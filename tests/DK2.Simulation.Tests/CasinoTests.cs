@@ -19,7 +19,7 @@ public class CasinoTests
     private const byte Rival = 5;
     private const byte GoblinId = 7;
     private static readonly TilePos Gambling = new(2, 2);
-    private static readonly TilePos LeverAt = new(1, 1);
+    private static readonly TilePos LeverAt = new(2, 2);
     private static readonly TilePos Vault = new(5, 3);
 
     private static int Second => SimulationTiming.TicksPerSecond;
@@ -27,12 +27,12 @@ public class CasinoTests
     private static GameDatabase Db => Dk2TerrainFixture.Database();
 
     /// <summary>A 3×3 Casino over the fixture's claimed square, (1,1) to (3,3).</summary>
-    private static WorldState World(GameDatabase db)
+    private static WorldState World(GameDatabase db, int width = 3, int height = 3)
     {
         WorldState world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
-        for (int y = 1; y <= 3; y++)
-        for (int x = 1; x <= 3; x++)
+        for (int y = 1; y <= height; y++)
+        for (int x = 1; x <= width; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Casino), Keeper);
         return world;
     }
@@ -87,10 +87,10 @@ public class CasinoTests
         sim.Tick(InputFrame.Of(new PullCasinoLeverCommand(player, LeverAt)));
 
     [Fact]
-    public void ACasinosLeverStandsOnItsFirstTileWithNoRoomToTheNorthAndStartsGenerous()
+    public void ACasinosLeverStandsOnTheCentreOfAThreeByThreeAndStartsGenerous()
     {
-        // 0x004D6ED0: the first slab whose north-west, north and north-east neighbours are not
-        // the room. Walked in index order that is the top-left tile of a rectangle.
+        // 0x004D6ED0: the first furniture slot (an interior slab of the room's parity) whose
+        // north-west, north and north-east neighbours are not slots. A 3x3 has one.
         GameDatabase db = Db;
         WorldState world = World(db);
         Simulation(db, world).Run(1);
@@ -99,6 +99,42 @@ public class CasinoTests
         Assert.Equal(Index(world, LeverAt), lever.TileIndex);
         Assert.Equal(Keeper, lever.OwnerPlayerId);
         Assert.Equal(CasinoRules.Generous, lever.Setting);
+    }
+
+    [Theory]
+    [InlineData(2, 2)]
+    [InlineData(3, 2)]
+    [InlineData(2, 3)]
+    public void ACasinoWithNoInteriorHasNoLever(int width, int height)
+    {
+        // The owner: "lever appears only when a casino is at minimum 3x3".
+        GameDatabase db = Db;
+        WorldState world = World(db, width, height);
+        Simulation(db, world).Run(1);
+
+        Assert.DoesNotContain(world.Objects, o => o.ObjectTypeId == AutoFurnitureRules.CasinoLeverObjectId);
+    }
+
+    [Fact]
+    public void ABiggerCasinosLeverIsTheFirstSlotOfItsTopInteriorRowAndNoTableStandsOnIt()
+    {
+        // 5x5 over (1,1)-(5,5): its slots are the interior tiles of (2,2)'s parity, and the
+        // first with no slot to its north-west and north-east is (2,2) itself.
+        GameDatabase db = Db;
+        WorldState world = World(db, 5, 5);
+        Simulation(db, world).Run(1);
+
+        int at = Index(world, new TilePos(2, 2));
+        Assert.Equal(at, Lever(world).TileIndex);
+
+        // The rule itself, since the fixture has no records for the tables: the other slots
+        // get furniture, the lever's gets nothing else.
+        var furniture = new List<(int TileIndex, byte ObjectTypeId)>();
+        RoomInstance room = RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.Casino);
+        AutoFurnitureRules.DesiredFurniture(world, db, room, furniture);
+        Assert.Equal([AutoFurnitureRules.CasinoLeverObjectId],
+            furniture.Where(f => f.TileIndex == at).Select(f => f.ObjectTypeId));
+        Assert.Contains(furniture, f => f.TileIndex == Index(world, new TilePos(3, 3)));
     }
 
     [Fact]

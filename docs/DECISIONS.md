@@ -4279,3 +4279,14 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Two trace tests. Negative controls, one at a time: the unhappy table, a walk through idle, and no hand-off each fail a named test.
 - `HashVersion` and `FormatVersion` **94**, pin `0x71F6772A33262059`.
 
+## ADR-0190 — The Casino's lever stands on a furniture slot
+**Date:** 2026-09-24 · **Status:** accepted · amends ADR-0188 · Research: `docs/research/state-category-hooks.md` §3.1
+
+**Context.** ADR-0188 read the lever's slab predicate `0x00454110` as "any unobstructed room slab" and put the lever on a Casino's top-left tile. The owner's screenshot shows it one row in, and they report that a Casino has no lever below 3×3. Read in full, the predicate wants an interior slab (`+0xC == 0xFF`), and for Guard Room, Workshop and Casino one of the room's checkerboard parity. That is exactly a floor-furniture slot.
+
+**Decision.** `CasinoLeverTile` takes the first floor slot whose north-west, north and north-east neighbours are not slots. Floor slots are computed once (`FloorSlots`), whatever the room's furniture list, and the lever's slot gets no table. A Casino with no interior has no lever, so no settlement, and gamblers there are always generous.
+
+**Consequences.**
+- The fixture Casino gains its shipped ObjectIds. New tests cover 2×2, 3×2 and 2×3 (no lever), 3×3 (centre) and 5×5 (first slot, no table on it). Negative controls, one at a time: a lever on any room tile, and a table left under the lever, each fail a named test.
+- `HashVersion` and `FormatVersion` **95**, pin `0xA22834D9084DFA9E`.
+

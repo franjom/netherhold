@@ -44,29 +44,24 @@ public static class AutoFurnitureRules
             return;
         }
 
+        var slots = new List<int>();
+        FloorSlots(world, room, roomTiles, slots);
+
+        // The Casino's lever takes one of the floor slots, so no table stands on it. Placed
+        // whatever the room's furniture list holds: it is the set-up's own object.
         if (room.Definition.TypeId == RoomTypeId.Casino)
         {
-            int leverTile = CasinoLeverTile(world, room, roomTiles);
-            if (leverTile >= 0) into.Add((leverTile, CasinoLeverObjectId));
+            int leverTile = CasinoLeverTile(world, slots);
+            if (leverTile >= 0)
+            {
+                into.Add((leverTile, CasinoLeverObjectId));
+                slots.Remove(leverTile);
+            }
         }
 
         int choiceCount = FloorChoiceCount(room.Definition);
         if (room.Definition.Flags.HasFlag(RoomFlags.SpecialTiles) && choiceCount != 0)
         {
-            var slots = new List<int>();
-            foreach (int tile in room.TileIndices)
-                if (IsSurroundedByRoom(world, roomTiles, tile)) slots.Add(tile);
-
-            if (UsesCheckerboard(room.Definition.TypeId) && slots.Count != 0)
-            {
-                int anchor = slots[0];
-                foreach (int tile in slots)
-                    if ((tile % world.Width) < (anchor % world.Width)) anchor = tile;
-                int phase = ((anchor % world.Width) + (anchor / world.Width)) & 1;
-                slots.RemoveAll(tile =>
-                    (((tile % world.Width) + (tile / world.Width)) & 1) != phase);
-            }
-
             foreach (int tile in slots)
             {
                 int x = tile % world.Width;
@@ -220,20 +215,41 @@ public static class AutoFurnitureRules
         return -1;
     }
 
-    /// <summary>Where the Casino's set-up <c>0x004D6ED0</c> puts its lever: the first slab in the
-    /// room's chain that <c>0x00454110</c> accepts and whose three neighbours to the north
-    /// (north-west, north, north-east) it does not. Ours walks the tiles in index order, and
-    /// floor furniture stands only on interior tiles, so no edge tile is obstructed. DK2's
-    /// chain order is not read (<c>state-category-hooks.md</c> §3.1).</summary>
-    public static int CasinoLeverTile(WorldState world, RoomInstance room, HashSet<int> roomTiles)
+    /// <summary>The floor-furniture slots: interior tiles, and for the checkerboard rooms only
+    /// those of the parity of the leftmost one (<c>FUN_004EF5E0</c>). In index order.</summary>
+    private static void FloorSlots(
+        WorldState world, RoomInstance room, HashSet<int> roomTiles, List<int> slots)
     {
         foreach (int tile in room.TileIndices)
+            if (IsSurroundedByRoom(world, roomTiles, tile)) slots.Add(tile);
+
+        if (!UsesCheckerboard(room.Definition.TypeId) || slots.Count == 0) return;
+
+        int anchor = slots[0];
+        foreach (int tile in slots)
+            if ((tile % world.Width) < (anchor % world.Width)) anchor = tile;
+        int phase = ((anchor % world.Width) + (anchor / world.Width)) & 1;
+        slots.RemoveAll(tile =>
+            (((tile % world.Width) + (tile / world.Width)) & 1) != phase);
+    }
+
+    /// <summary>Where the Casino's set-up <c>0x004D6ED0</c> puts its lever: the first slab in the
+    /// room's chain that <c>0x00454110</c> accepts and whose three neighbours to the north
+    /// (north-west, north, north-east) it does not. For a Casino that predicate is the
+    /// floor-furniture slot: an interior slab of the room's checkerboard parity. So a Casino
+    /// needs an interior, 3×3 at least, and the lever is the first slot of its top interior
+    /// row (owner, 2026-09-24). Ours walks the slots in index order; DK2's chain order is not
+    /// read (<c>state-category-hooks.md</c> §3.1).</summary>
+    public static int CasinoLeverTile(WorldState world, List<int> slots)
+    {
+        var slotSet = new HashSet<int>(slots);
+        foreach (int tile in slots)
         {
             int x = tile % world.Width;
             int y = tile / world.Width;
-            if (!IsRoom(world, roomTiles, x - 1, y - 1)
-                && !IsRoom(world, roomTiles, x, y - 1)
-                && !IsRoom(world, roomTiles, x + 1, y - 1))
+            if (!IsRoom(world, slotSet, x - 1, y - 1)
+                && !IsRoom(world, slotSet, x, y - 1)
+                && !IsRoom(world, slotSet, x + 1, y - 1))
                 return tile;
         }
         return -1;

@@ -193,7 +193,10 @@ internal static class Dk2TerrainFixture
             R(RoomTypeId.TrainingRoom, "Training Room", 500, TrainingRoomTerrain, 0x13ACu, 3, 3),
             R(RoomTypeId.Temple, "Temple", 3000, TempleTerrain, 0x108Cu, 5, 5,
               construction: TileConstruction.DoubleQuad),
-            R(RoomTypeId.Casino, "Casino", 750, CasinoTerrain, 0x13ACu, 3, 3),
+            // With its shipped ObjectIds (roulette table, barrel, bar table, alcove barrels),
+            // so the lever's slot can be shown to stay free of them (ADR-0188).
+            R(RoomTypeId.Casino, "Casino", 750, CasinoTerrain, 0x13ACu, 3, 3,
+              objectIds: [87, 59, 67, 68]),
             R(RoomTypeId.CombatPit, "Combat Pit", 750, CombatPitTerrain, 0x12ACu, 5, 5),
         ],
         creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), Warlock(), Priest(), Thief(), .. extraCreatures],

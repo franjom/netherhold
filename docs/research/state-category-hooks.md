@@ -128,8 +128,13 @@ the category operation failed; a return of one means it remains valid.
   variable 209 (1000). The payout path and variable 208's missed-deadline anger
   (applied to bucket 5 with selector 9 by `0x004D6A40`) are not traced further.
 - **The lever's place.** The set-up `0x004D6ED0` walks the room's slab chain from
-  `room+0x2D/+0x2E` and takes the first slab `0x00454110` accepts (an unobstructed
-  room slab) whose north-west, north and north-east neighbours it does not. It stores
+  `room+0x2D/+0x2E` and takes the first slab `0x00454110` accepts whose north-west,
+  north and north-east neighbours it does not. The predicate wants a room slab whose
+  byte `+0xC` is `0xFF` (interior), then switches on room type (`type − 3` through the
+  byte table `0x0045421C` into `0x004541F4`). Types 9, 10 and 15 (Guard Room, Workshop,
+  Casino) take the parity arm `(x + y + room+0x80) & 1 == 0`. So for a Casino it is a
+  floor-furniture slot, and **a Casino smaller than 3×3 has no lever**, which the owner
+  confirms (2026-09-24). Its screenshot shows the lever on the top interior row. It stores
   that tile at `+0x4B/+0x4F`, creates object `0x5F` there, and writes `+0x53` nonzero
   when the lever exists. **Enter** refuses a Casino whose `+0x53` is 0.
 - **The settlement** is the room's own update, around `0x004D6783`. It runs only with a
