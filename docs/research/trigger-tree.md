@@ -171,12 +171,11 @@ THINGS-file member copied verbatim and `+0x18`/`+0x1C` are its trigger and
 creature ids. Otherwise it creates a creature — a block of per-creature setters
 unpacking a bitfield — and enables that member's own subtree (`0x0051A594`).
 
-**UNKNOWN — the guarded early return.** When `PartyType` is non-zero the handler
-first walks an entity list for a match on the party id, and if bit `0x200000` of
-that entity's `+0x3E6` is clear it **returns 1 having armed nothing**
-(`0x00519FE4` to `0x0051A747`). What that bit means is untraced. It cannot be
-reached with `PartyType` zero, which is 244 of the 259 shipped records and both
-of campaign level 1's.
+**The guarded early return** is read in full in `hero-parties-and-effect-generators.md`:
+with `PartyType` non-zero the handler walks the hero player's creatures for a live,
+unimprisoned member of this party and returns 1 having armed nothing when it finds
+one (`0x00519FE4` to `0x0051A747`), so a party is not raised twice. The rest of the
+handler — types, level-ups, gold, health, job, flags, leader and followers — is there too.
 
 `+0x10` is initialised to **2**, not to 0 or 1: both initialisers set bit 1 and
 only bit 0 varies. What bit 1 means is UNKNOWN; nothing above reads it.

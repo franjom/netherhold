@@ -2,13 +2,13 @@
 
 This note records the data-side evidence needed to stop discarding the last two
 parsed THINGS record types, and then — in the last section, added later — how
-action type 14 reaches a spawn. Storage is established; the spawn itself is not.
+action type 14 raises a party, read to its last instruction on 2026-09-24.
 
 ## Result in one sentence
 
 The 48-level campaign contains 220 hero parties, and the shipped corpus contains
 one effect generator; every parsed field now enters ordered, hashed and
-snapshotted world state verbatim, while spawning and generation remain UNKNOWN.
+snapshotted world state verbatim; the spawn is read (last section) and generation remains UNKNOWN.
 Across the complete 66-level shipped sweep, 35 levels contain a party.
 
 ## Record shapes
@@ -40,8 +40,9 @@ Q256 records it rather than this change rewiring the tree.
 
 ## No behaviour
 
-Parties do not spawn. Effect generators do not generate or choose effects. Field
-meanings, transformations, cadence and consumption are UNKNOWN (Q254–Q259).
+Parties do not spawn yet (2026-09-24; the read below is the build's brief). Effect
+generators do not generate or choose effects; their fields, cadence and consumption
+are UNKNOWN (Q255, Q259).
 Verbatim storage loses no information; its conservative risk is hashing a value
 or bit DK2 discards or transforms.
 
@@ -56,47 +57,136 @@ party, member and generator field with its parsed source, asserts 220 parties,
 one generator and zero `NotYetProjected`, and proves party members do not inflate
 the placed-creature count.
 
-## Action type 14, read from the binary (2026-09-10)
+## Action type 14, read from the binary (2026-09-10, completed 2026-09-24)
 
-The doc above said "no binary was read for this work". This section is that
-work, and it stops short of the spawn itself.
+The handler is `0x00519F90(world; PartyId, ActionPointId, PartyType)`, reached
+from the world action dispatcher's arm `0x00519182` with the record's bytes
+`00`, `04`, `01` — our `PartyId`, `ActionPointId`, `PartyType`
+(`trigger-semantics.md`). Everything below is **CONFIRMED from the
+disassembly** unless marked; the shipped-data facts come from all 947 occupied
+member slots of the 220 campaign parties
+(`PlacedThingsOnRealDataTests.APartyMembersTrailingBytesAreItsWanderRadiusAndItsPartyId`).
 
-**The arm.** The world action dispatcher `0x00518AD0` sends type 14 to
-`0x00519182`, three instructions wide, which calls `0x00519F90` on the world
-with three bytes of the record:
+### The guard, when `PartyType` is non-zero
 
-```
-world->FUN_00519F90( byte[0], byte[4], byte[1] )
-```
+The hero player is the first record of the player array at `world+0x84`
+(stride `0x1125`, `TagId` at `+4`). Its creature list (head `+6`, link `+0x10`)
+is walked for a creature whose `PartyId` (`+0x417`) is the action's, whose
+prison-owner word `+0x3CB` is zero and whose `CreatureDying` bit
+(`+0x3E6` bit 21) is **clear**. One such creature and the handler **returns 1
+having done nothing** — the party is alive, so it is not raised again. An
+earlier draft of this section had the bit's polarity backwards; `trigger-tree.md`
+had it right. With `PartyType` zero (244 of 259 shipped records) the guard is
+skipped.
 
-Our parser calls those `PartyId`, `ActionPointId` and `PartyType`
-(`trigger-semantics.md`), and the consumer agrees with all three — independent
-of how the names were arrived at, which was the corpus.
+### Where the party appears
 
-**`PartyType` decides whether a guard runs.** Non-zero and the target walks the
-global object table `0x006EE540` from the list headed at `[world+0x84]`
-(head `u16 +0x06`, link `u16 +0x10`) looking for `byte [obj+0x417] == PartyId`.
-Where that matches **and** `u16 [obj+0x3CB]` is zero **and** `u32 [obj+0x3E6]`
-has bit 21 (`0x200000`) set, the action leaves without spawning. So a party
-already in the world is not spawned twice, and three fields say so.
+The action point is found from `world+0x12` (link `+8`) by its `+0x37` id. The
+centre tile is `((x1+x2)/2, (y1+y2)/2)` with signed halving, and the position is
+that tile times 4096 — the compiler adds and subtracts `0x800`, so the point is
+the tile's **corner**, not its centre. No action point: the position stays (0,0).
 
-**The action point is found by a second walk**, from `u16 [world+0x12]` along
-link `u16 +0x08`, matching `byte [obj+0x37] == ActionPointId`.
+The tile under it (world slot `+0x1D4` = `0x00508FE0`: `tiles + (y>>12 × width
++ x>>12) × 16`, unchecked) decides a **gate flag**:
 
-**The spawn position is the centre of that action point's rectangle**, and the
-rectangle is four words on the instance:
+| tile's terrain (`+0x0A`) | what happens |
+|---|---|
+| 33, Hero Gate 2×2 | position moves (+4096, +4096) to the gate's centre point; effect `0x137` spawned there for the hero player; gate flag set |
+| 37, Hero Gate 3×1 | gate flag set, position unchanged |
+| anything else | gate flag clear |
 
-```
-x = (u16[ap+0x38] + u16[ap+0x3C]) / 2      ; signed halve, toward zero
-y = (u16[ap+0x3A] + u16[ap+0x3E]) / 2
-position = (x << 12, y << 12, 0)           ; tiles to 4096ths
-```
+Then every thing on that tile whose class dword `+0x12` is 3 or 4 is finished
+through its vtable slot `+0x20` (a creature's is the health-zeroing
+`0x004B2AD0`, `creature-leaving.md`) and effect 1 is spawned at the position with
+the thing's `+0x28` word. Which two classes 3 and 4 are is UNKNOWN (class 2 is an
+object, `win-and-defeat.md` §3.1). The party's own subtree is armed
+(`0x00519A20(word[world+0x4030+PartyId×0x208], 1)`).
 
-That triple is passed by pointer to the world's own vtable slot **`+0x1D4`**,
-whose result is an object the code immediately reads `byte +0x0A` from.
+### One creature per occupied slot
 
-**Where this stops.** What `+0x1D4` returns, and everything after it, is
-UNKNOWN — that is where the creatures are actually made. The meaning of bit 21
-at `+0x3E6` and of `+0x3CB` is UNKNOWN beyond their role in the guard. Nothing
-here is implemented; the next probe is the vtable slot and the code from
-`0x0051A0AF` (Q254).
+The runtime party record is 8 bytes of header (the trigger id first) and sixteen
+32-byte members at `+8`, copied from the THINGS record: member `+0x1E` is the
+party's own id in every shipped slot and `+0x1D` is 0 in every shipped slot, so
+`Unknown_001D` is `{WanderRadius, PartyId}` — the dumper's names for the creature
+fields `+0x418` and `+0x417` they are copied to (Q258). A slot whose `CreatureId`
+(`+0x1C`) is 0 is skipped. For each other slot, in this order:
+
+1. **Type.** `PartyType` 0: the slot's `CreatureId`. Otherwise slot 0 is always
+   creature **14, the Dwarf**, and every other slot draws `RNG(count) + 1`
+   (`0x005558D0`, `WorldTrigger.cpp` line 1586) until a definition exists whose
+   flag dword `+0x686` has bit 30, `MpdRandomInvader`. The range `count` comes
+   from world slot `+0xC4` — the number of creature definitions, STRONGLY
+   INFERRED from that use.
+2. **Creation** through `0x00519B20(heroTagId, type, &position, &out)` →
+   `0x004B78D0` → `0x004B7900`: a unique creature (flag bit 27) is given the
+   owner at `def+0x5B3` instead; the owner must exist and the world must hold
+   fewer than `0x1C0` = 448 creatures, else the handler **returns 0 at once**,
+   keeping the members already made. `0x00519B20` also steps a hero-owned
+   creature off a gate room (types 19, 20, 23) with effect `0xF`, sets a
+   `GoodJob 19` and may call `0x004D0F60` — the party loop overwrites the job
+   below, and the rest is UNKNOWN (Q427).
+3. **King Reginald** (type 21): every player in the world's list (`world+0x7A`,
+   link `+0x3A`) is sent notification type **5, variant 1** with the new
+   creature's id — speech 1297 *"The King has entered your realm"*, 20 s
+   (variants 2–4 are 1298–1300: *"killing your creatures"*, *"dying!"*,
+   *"slain by your minions"*; `mentor-speech-and-notifications.md` §3).
+4. **Level-ups to buy.** `n = (Level − 1 + bonus) mod 10` in byte arithmetic,
+   where `bonus` is the party's **spawn count** `byte[world+0x70F0+PartyId]`
+   (read by `0x0050FAD0`) when `PartyType` is non-zero and 0 otherwise. A random
+   party therefore comes back one level higher each time it is raised, wrapping.
+5. **Gold.** `0x0048AE70(creature, ftol(GoldHeld × 0.01 × MaxGoldHeld scaled to
+   Level))`: the member's `GoldHeld` is a **percentage**; the setter caps at the
+   creature's *current* level's maximum, and the creature is still level 1 here.
+6. **Health.** `target = ftol(InitialHealth × 0.01 × Hp scaled to Level)`, applied
+   as `0x004B2CE0(creature, target − current, heroTagId, 0)`; the creature arm
+   clamps a positive delta at the current level's maximum, again level 1.
+7. **`n` level-ups** through `0x0048B120`, each: nothing at level 10 or when the
+   finished predicate holds; `ratio = (current << 12) / oldMax` (12-bit fixed),
+   `new = (ratio × newMax) >> 12`, applied as a delta through `0x004B2CE0` with
+   the source word unchanged; `+0x3AF` adjusted; effect `0x153` and sound
+   `0x349`; a creature with `+0x3E6` bit 15 at or past `byte[0x006F2976]` calls
+   `0x00476D30(1, 0)`. So a member's health percentage is applied at level 1,
+   clamped, then carried up by the maximum's growth — see Q427 for what that
+   means for a member under 100 %.
+8. **Party fields.** `+0x38 := 0` (dword, role UNKNOWN), `WanderRadius :=
+   member+0x1D`, `PartyId := member+0x1E`.
+9. **The job.** `0x0048BE20(job, target, value)` writes the triple at `+0x409`
+   (`rebellion.md` §3): `job` is the member's `Objective`, except that a
+   non-zero `PartyType` with `n == 0` forces **19, KillPlayer**; `target` is the
+   `TagId` of player index `ObjectiveTargetPlayerId − 1` when that byte is
+   non-zero, else 0; `value` is `ObjectiveTargetActionPointId`. Shipped
+   objectives are 13, 18, 19, 22, 23 — `StealGold`, `KillCreatures`,
+   `KillPlayer`, `Wait`, `SendToActionPoint` in our `JobType`.
+10. **Flags.** Member `Flags` bits 0, 1, 2, 3, 5, 6, 7 go to the creature's
+    `Flags` byte `+0x46F` through seven setters (`0x0048DF10`…`0x0048E030`);
+    **bit 4 is not copied**, though 4 of the 9 shipped values set it. Every
+    shipped member has exactly one of bit 1 (**leader**) and bit 2
+    (**follower**). Member `Flags2` bit 0 → `DestroysRooms` (`+0x3EA` bit 7),
+    bit 1 → `IsTool` (bit 8), bit 3 → `IsMercenary` (bit 9, mirrored at `+0xF0`),
+    bit 2 → `DieInstantly` (bit 11). Shipped `Flags2` values are 0, 1, 4, 5.
+11. **Trigger.** `0x0049A950(creature, TriggerId)` stores `TriggerRoot` and the
+    record's repeat count at `+0x4F9`; a non-zero id arms that member's subtree;
+    creature event **3** is fired (`0x0049AA30(creature, 3, 0, 0)`).
+12. **From a gate** the creature enters state **269**, a second idle
+    (`0x004626A0`, `creature-state-table.md`), and bit 0 of `+0xF3` is cleared.
+
+### After the loop
+
+The spawn count `byte[world+0x70F0+PartyId]` is incremented. The hero player's
+creatures with this `PartyId` are scanned for the **slowest** (`min def+0x5B4`)
+and the **leader** (`Flags` bit 1, the last one found). From a gate, effect
+`0x2B` is spawned at the leader's position with z `0x2000`. Then every member's
+speed mode is set with `0x004887D0(0, slowest)` — the party walks at its slowest
+member's pace — and each **follower** (bit 2) gets `MyLeadersId := leader` and
+`PositionInParty := ++k`; finally the leader's `PositionInParty := k`, the
+follower count. (No leader at all and that last write lands on address `0x3E1`;
+no shipped party lacks one.) The handler returns 1.
+
+### What this settles and what it opens
+
+Q254 is answered above. Q257: the runtime record keeps only an 8-byte header of
+the 43-byte file header and the handler reads the trigger id alone, so
+`Unknown_0023`/`Unknown_0027` are not consumed at spawn. Q258 is answered. Left
+UNKNOWN: thing classes 3 and 4; `+0x38`; what `0x00519B20`'s gate step-off and
+`0x004D0F60` do; where `PositionInParty` and `MyLeadersId` are read
+(`travel-states.md` §2.3 has one reader).

@@ -90,7 +90,11 @@ Rows read so far (2026-09-23): type **1** → speech 345 *"Your Dungeon Heart is
 attack!"*, 120 s, raised by the heart's health change on a negative delta; **39** → 346
 *"Your Dungeon Heart is dying!"* and **40** → 344 *"... in a critical state!"*, 50 s each,
 raised by the heart room's frame at exactly 50 % and 10 % (`win-and-defeat.md` §3.1).
-Type 6 is the "your creature is fighting" notice (`combat-fight-state.md` §1), its row unread.
+Type **5** is a variant list, 20 s each: 1 → 1297 *"The King has entered your realm"*, raised for
+every player when a hero party spawns King Reginald (`hero-parties-and-effect-generators.md`);
+2 → 1298 *"The King is killing your creatures"*, 3 → 1299 *"The King is dying!"*, 4 → 1300
+*"The King has been slain by your minions"*, their raisers unread. Type 6 is the "your creature
+is fighting" notice (`combat-fight-state.md` §1), its row unread.
 
 ### The encoding, and why it matters
 

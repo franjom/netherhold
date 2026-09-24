@@ -520,4 +520,46 @@ public class PlacedThingsOnRealDataTests
         // nothing would notice.
         Assert.NotEqual(0, sourceBits & ~kept);
     }
+
+    /// <summary>The spawn handler <c>0x00519F90</c> copies member byte <c>+0x1E</c> to the
+    /// creature's <c>PartyId</c> (<c>+0x417</c>) and byte <c>+0x1D</c> to its
+    /// <c>WanderRadius</c> (<c>+0x418</c>). If the second tail byte is the party's own id in
+    /// every shipped record, the file carries it and no loader writes it (Q258).</summary>
+    [Fact]
+    public void APartyMembersTrailingBytesAreItsWanderRadiusAndItsPartyId()
+    {
+        string install = Install();
+        var flags = new SortedSet<int>();
+        var flags2 = new SortedSet<int>();
+        var radii = new SortedSet<int>();
+        var objectives = new SortedSet<int>();
+        var mismatches = new List<string>();
+        int members = 0;
+
+        foreach (string level in LevelNames(install))
+        {
+            foreach (ThingRecord record in GameDatabaseLoader.LoadCampaignThings(install, level) ?? [])
+            {
+                if (record is not HeroPartyThing party) continue;
+                foreach (GoodCreatureThing m in party.Members)
+                {
+                    if (m.CreatureId == 0) continue;
+                    members++;
+                    flags.Add(m.Flags); flags2.Add(m.Flags2); objectives.Add(m.Objective);
+                    radii.Add(m.Unknown_001D.Span[0]);
+                    if (m.Unknown_001D.Span[1] != party.PartyId)
+                        mismatches.Add($"{level} party {party.PartyId} member {m.CreatureId}: tail {m.Unknown_001D.Span[1]}");
+                }
+            }
+        }
+
+        Assert.Equal(947, members);
+        Assert.True(mismatches.Count == 0, string.Join("; ", mismatches.Take(8)));
+        Assert.Equal([0], radii);
+        // Exactly one of leader (bit 1) and follower (bit 2) in every shipped value; bit 4 is
+        // set in four of them and the spawn never copies it.
+        Assert.Equal([10, 11, 13, 27, 29, 43, 45, 59, 61], flags);
+        Assert.Equal([0, 1, 4, 5], flags2);
+        Assert.Equal([13, 18, 19, 22, 23], objectives);
+    }
 }
