@@ -195,7 +195,7 @@ counter becomes 0, clamps as the adder does and recomputes the maximum. The
 world byte `+0x72A1` bit 0 gates it, the same switch that gates every anger add
 (`creature-anger.md`). So **a creature paid in full forgets its pay grievance at
 once**, rather than cooling. State 80 makes the same call with bucket 2 as it
-places a bed (`lair-acquisition.md` §9.1). **Not built.**
+places a bed (`lair-acquisition.md` §9.1). **Built** (ADR-0179).
 
 ---
 
@@ -213,7 +213,7 @@ places a bed (`lair-acquisition.md` §9.1). **Not built.**
 | `AngerNoPay` firing on an unpaid creature | **READ AND BUILT** the same day (ADR-0079) — see §6 |
 | `PayDayCutOffTimeSeconds` | **UNKNOWN**, and its readers are not in the payday path |
 | `FUN_0048ae70(taken/2)` | **UNKNOWN** |
-| `FUN_00486f80(4)`: zero the pay-anger bucket when fully paid | **read**, not built |
+| `FUN_00486f80(4)`: zero the pay-anger bucket when fully paid | **READ AND BUILT** (ADR-0179) |
 
 **Built on 2026-09-06 (ADR-0078):** `PaydayRules`, `PaydaySystem`,
 `CreatureActivity.SeekingWages`, three fields on the creature and one on the

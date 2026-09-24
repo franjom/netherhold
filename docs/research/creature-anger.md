@@ -178,9 +178,9 @@ recorded — *a bed outpaces an unpaid wage nine to one* — which was right abo
 both numbers and wrong about what they do to each other. **A keeper cannot buy
 off every grievance with the cheapest one to fix.** And
 `ModifyCreatureAngerWhilePrayingPerSecond` (−275) is applied in six consecutive
-calls, one per bucket, so **only a Temple gives anything back**: it is the one
-source in the game that drains a grievance it did not cause
-(`job-selection.md` §5).
+calls, one per bucket: the one source that drains a grievance it did not cause
+(`job-selection.md` §5). Two events wipe their own bucket to zero instead: a bed
+placed (Lair) and a wage paid in full (Pay), both `0x00486F80` (ADR-0179).
 
 ### A number above the ceiling, and the whole-routine guard
 

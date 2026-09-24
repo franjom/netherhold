@@ -171,10 +171,8 @@ public class CreatureAngerTests
     {
         // The control: one lair tile is the difference the player makes. The tile
         // is a diagonal step away rather than under the creature's feet because a
-        // bed is walked to (ADR-0060), and the two seconds of walk cost 200 anger
-        // at AngerNoLair's 100 a second which is never repaid — the bed drains a
-        // different counter (ADR-0081). 200 out of a 16383 unhappy band is
-        // nothing: the run never gets within sight of a mood change.
+        // bed is walked to (ADR-0060). The two seconds of walk cost 200 anger at
+        // AngerNoLair's 100 a second, and placing the bed wipes them (ADR-0179).
         GameDatabase db = Db;
         WorldState world = World(db);
         PaintLair(db, world, new TilePos(3, 3));
@@ -187,9 +185,8 @@ public class CreatureAngerTests
         Assert.True(LairRules.HasBed(world, db, goblin));
         Assert.Equal(CreatureMood.Content, CreatureAngerRules.MoodOf(db.CreatureById(GoblinId), goblin));
 
-        // Two seconds of walking to it, and not one point more in four hundred.
-        Assert.InRange(goblin.Anger.Lair, 1, 400);
-        Assert.Equal(goblin.Anger.Lair, goblin.Anger.Max);
+        // Nothing left of the walk, and not one point more in four hundred.
+        Assert.Equal(0, goblin.Anger.Max);
         Assert.DoesNotContain(events.Events, e => e.Kind == "creature_mood");
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
     }
@@ -270,8 +267,10 @@ public class CreatureAngerTests
         WorldState world = World(db);
         PaintLair(db, world, new TilePos(2, 2));
 
+        // Angry about its work, not its lair: a bed wipes the Lair bucket as it goes
+        // down (ADR-0179), and would cure a lair grievance before it could leave.
         CreatureState goblin = world.SpawnCreature(db, DeserterId, Keeper, new TilePos(2, 2));
-        goblin.Anger.Lair = CreatureAngerRules.Ceiling + 1;
+        goblin.Anger.Work = CreatureAngerRules.Ceiling + 1;
 
         Walking(db, world).Run(Second * 30);
 
@@ -281,14 +280,12 @@ public class CreatureAngerTests
     }
 
     [Fact]
-    public void AnUnhappyGoblinGivenABedCoolsBackToContentOneSleepAtATime()
+    public void AnUnhappyGoblinGivenABedIsContentTheMomentTheBedGoesDown()
     {
         // CONFIRMED (owner, Q115): the ladder is reversible — a mood is a pure
-        // function of the anger value, no latch, no hysteresis. Cooling is -550 a
-        // second asleep in its own bed and a Goblin sleeps 9 s in every ~250
-        // (TimeSleep 9, TimeAwake 240), so a bed cures anger in instalments of
-        // 9 x 550 = 4950 (Q123): one sleep crosses back under halfway, no number
-        // of them reaches zero. Lair painted after unhappy; from tick 0 it never angers.
+        // function of the anger value, no latch, no hysteresis. What reverses this
+        // one is not the -550 a second of cooling, which drains bucket 5: state 80
+        // wipes the Lair bucket outright as it places the bed (ADR-0179).
         GameDatabase db = Db;
         WorldState world = World(db);
 
@@ -306,35 +303,23 @@ public class CreatureAngerTests
         PaintLair(db, world, new TilePos(2, 3));
 
         // It has to notice and walk there — one tile, a couple of seconds, and
-        // each of those seconds is still charged 100 (ADR-0060). The exact
-        // arithmetic below starts from the anger it had when the bed went down.
+        // each of those seconds is still charged 100 (ADR-0060).
         int waited = 0;
         while (!LairRules.HasBed(world, db, goblin) && waited++ < Second * 20) sim.Run(1);
         Assert.True(LairRules.HasBed(world, db, goblin), "never got its bed");
-        int atBed = goblin.Anger.Lair;
-        Assert.True(atBed >= peak);
+        Assert.True(peak >= CreatureAngerRules.UnhappyAt(definition));
 
-        // Long enough for it to get tired (TimeAwake 240) and sleep once.
+        // Not one point of the four minutes without a bed is left, on the same tick.
+        Assert.Equal(0, goblin.Anger.Lair);
+        Assert.Equal(CreatureMood.Content, CreatureAngerRules.MoodOf(definition, goblin));
+
+        // Long enough for it to get tired (TimeAwake 240) and sleep once. A bedded
+        // creature is charged nothing more, so it stays at zero.
         sim.Run(Second * 300);
 
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
-
-        // A bed stops the bleeding and does not heal the wound: DK2 keeps six
-        // anger counters, not one (ADR-0081), the lairless charge went into bucket
-        // 2, and ModifyAngerOfCreatureInLairPerSecond drains bucket 5. So the Lair
-        // bucket is frozen exactly where the bed found it — not one point repaid —
-        // and the creature stays unhappy about the four minutes it spent without
-        // one, however long it now sleeps.
-        Assert.Equal(atBed, goblin.Anger.Lair);
-        Assert.Equal(CreatureMood.Unhappy, CreatureAngerRules.MoodOf(definition, goblin));
-
-        // The sleep did run and its calm did land; it landed in a bucket that
-        // was already empty, so it bought nothing. What that -550 is FOR is a
-        // slap, which is the one thing that fills the bucket it drains.
-        Assert.Equal(0, goblin.Anger.Treatment);
-
-        // And the ladder never came back down, so the log has no such line.
-        Assert.DoesNotContain(events.Events, e =>
+        Assert.Equal(0, goblin.Anger.Max);
+        Assert.Contains(events.Events, e =>
             e.Kind == "creature_mood" && e.Detail.Contains("Unhappy->Content"));
     }
 

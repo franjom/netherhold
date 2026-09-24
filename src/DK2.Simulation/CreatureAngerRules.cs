@@ -64,6 +64,15 @@ public static class CreatureAngerRules
             ? Apply(creature, state, bucket, delta)
             : 0;
 
+    /// <summary>Wipes one grievance to zero: DK2's <c>0x00486F80(bucket)</c>, which adds the
+    /// counter's own negation through the same clamp, behind the same world switch. Called
+    /// with the lair bucket as a bed goes down (state 80) and the pay bucket once a wage is
+    /// taken in full (state 189), so both are forgotten at once rather than cooled
+    /// (<c>payday.md</c> §4.4, <c>lair-acquisition.md</c> §9.1).</summary>
+    public static int Forget(
+        WorldState world, CreatureDef creature, CreatureState state, AngerBucket bucket) =>
+        Apply(world, creature, state, bucket, -state.Anger[bucket]);
+
     /// <summary>The anger a creature must <b>exceed</b> to be angry: the ceiling itself. No variable
     /// states it — it is the owner's 2:1 ratio, angry at twice the time unhappy took.</summary>
     public static int AngryAt(CreatureDef creature) => Ceiling;
@@ -112,8 +121,9 @@ public static class CreatureAngerRules
             delta.Pay += creature.AngerNoPay;
         }
 
-        // And a bed pays off neither of them (ADR-0081): ModifyAngerOfCreatureInLairPerSecond
+        // And cooling pays off neither of them (ADR-0081): ModifyAngerOfCreatureInLairPerSecond
         // reaches bucket 5 and nothing else, where the charges above are buckets 2 and 4.
+        // What empties those two is an event, not a rate: Forget, on a bed or a full wage.
         // Cooling is category-gated, not bed-gated — seven states including awake ones
         // (Q123, ADR-0171).
         if (LairRules.CoolsAngerInLair(state))

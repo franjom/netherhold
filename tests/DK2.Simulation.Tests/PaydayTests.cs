@@ -391,19 +391,87 @@ public class PaydayTests
             sim.Tick(InputFrame.Empty);
         int owing = goblin.Anger.Pay;
 
-        // Debt cleared by hand, standing in for a treasury it reached.
+        // Debt cleared by hand, so the take that wipes the bucket never runs; the
+        // wipe is TakingTheWholeWageWipesThePayGrievance, below.
         goblin.WageOwed = 0;
         int settled = goblin.Anger.Lair;
         for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
             sim.Tick(InputFrame.Empty);
 
         // The lair charge continues either way; the wage charge stops dead with
-        // the debt. What paying does NOT do is give back what was already
-        // charged - the Pay bucket is frozen where the payment found it, and
-        // only a Temple takes anything back out of it (ADR-0081).
+        // the debt. Stopping the charge gives back nothing already charged
+        // (ADR-0081).
         Assert.Equal(AngerWindowSeconds * def.AngerNoPay, owing);
         Assert.Equal(owing, goblin.Anger.Pay);
         Assert.Equal(settled + (AngerWindowSeconds * def.AngerNoLair), goblin.Anger.Lair);
+    }
+
+    // ---- a full wage wipes the pay bucket (ADR-0179) ------------------------
+
+    /// <summary>A Goblin with a pay grievance and its debt, standing beside a treasury.</summary>
+    private static (WorldState World, CreatureState Goblin) Aggrieved(GameDatabase db, int gold)
+    {
+        WorldState world = World(db);
+        Treasury(world, new TilePos(1, 3), gold);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.WageOwed = 500;
+        goblin.Anger.Pay = 20_000;
+        goblin.Anger.Treatment = 7_000;
+        return (world, goblin);
+    }
+
+    [Fact]
+    public void TakingTheWholeWageWipesThePayGrievance()
+    {
+        // State 189 calls 0x00486F80(4) once the wage owed reaches zero: the pay bucket
+        // is emptied at once rather than cooled, and the other buckets are left alone.
+        GameDatabase db = Db;
+        (WorldState world, CreatureState goblin) = Aggrieved(db, 2000);
+
+        Simulation(db, world).Run(200);
+
+        Assert.Equal(0, goblin.WageOwed);
+        Assert.Equal(0, goblin.Anger.Pay);
+        Assert.Equal(7_000, goblin.Anger.Treatment);
+    }
+
+    [Fact]
+    public void APartWageLeavesThePayGrievanceWhereItWas()
+    {
+        GameDatabase db = Db;
+        (WorldState world, CreatureState goblin) = Aggrieved(db, 200);
+
+        Simulation(db, world).Run(300);
+
+        Assert.Equal(300, goblin.WageOwed);
+        Assert.Equal(20_000, goblin.Anger.Pay);
+    }
+
+    [Fact]
+    public void WithCreatureAngerSwitchedOffAFullWageWipesNothing()
+    {
+        // The wipe goes through the anger adder's own switch, world byte +0x72A1 bit 0.
+        GameDatabase db = Db;
+        (WorldState world, CreatureState goblin) = Aggrieved(db, 2000);
+        SwitchAngerOff(world);
+
+        Simulation(db, world).Run(200);
+
+        Assert.Equal(0, goblin.WageOwed);
+        Assert.Equal(20_000, goblin.Anger.Pay);
+    }
+
+    /// <summary>Script action 44 with <c>Available</c> 0, the level's own way to turn creature
+    /// anger off.</summary>
+    internal static void SwitchAngerOff(WorldState world)
+    {
+        var off = new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = unchecked((ushort)-1), Type = 44,
+            Parameters = new Dictionary<string, long> { ["Available"] = 0 },
+        };
+        new TriggerExecutor(new TriggerTree([off], 0xFFFF), world.Triggers).Run(1);
+        Assert.False(world.Triggers.CreatureAngerEnabled);
     }
 
     [Fact]

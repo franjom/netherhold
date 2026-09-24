@@ -330,7 +330,7 @@ Three exits, each read instruction by instruction on 2026-09-24:
   false returns 0, which the dispatcher turns into idle. That is our
   `ShouldSleepFromWounds` branch. Just before it, `0x00486F80(2)` **zeroes the
   lair-anger bucket**: a creature that gets a bed forgets that grievance at once
-  (`payday.md` §4.4 reads the routine). **Not built.** A candidate walk is `0x00471890` with 80 as
+  (`payday.md` §4.4 reads the routine). **Built** (ADR-0179). A candidate walk is `0x00471890` with 80 as
   its own resume (`0x0046F7D3`); an exhausted room calls the lair attempt
   `0x0046F390` again, from 80.
 - **81** walks to the bed point in state 6, resuming in **82** (`0x0046F8EC`).

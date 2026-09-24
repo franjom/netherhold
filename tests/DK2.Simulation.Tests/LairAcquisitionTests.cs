@@ -575,6 +575,27 @@ public class LairAcquisitionTests
     }
 
     [Fact]
+    public void PlacingTheBedWipesTheLairGrievanceAndNoOther()
+    {
+        // State 80 calls 0x00486F80(2) as the bed goes down (ADR-0179): the lair bucket
+        // is emptied at once, not cooled.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CorridorToA3x3Lair(db, world);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        goblin.Anger.Lair = 20_000;
+        goblin.Anger.Pay = 9_000;
+        GameSimulation sim = Walking(db, world, new ListEventSink());
+
+        sim.Run(Second * 15);
+
+        Assert.True(LairRules.HasBed(world, db, goblin));
+        Assert.Equal(0, goblin.Anger.Lair);
+        Assert.Equal(9_000, goblin.Anger.Pay);
+    }
+
+    [Fact]
     public void ATileTakenMidWalkIsAStateSixWalkThatResumesInEighty()
     {
         // 80 finds the next candidate and walks to it through the position helper, with 80

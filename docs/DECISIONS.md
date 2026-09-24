@@ -4112,3 +4112,18 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - As with eating, 80 and 82 are entered and left inside one tick, so the traces pin them through the saved caller and the resume slot, not by being seen. With 80's candidate walk resuming in 81, with the Sleep job walking in 6, or with the wounded 80 not moving to 81, a trace test fails. Dropping `Sleeping` from the retired set fails the cross-shim test.
 - `CoolsAngerInLair` still reads the activity. Moving it onto state categories 6, 9 and 10 needs one fact first: whose category a travel state's hook runs, the saved caller's or the resume's.
 - `HashVersion` and `FormatVersion` **83**, pin `0xDFC977B66E524362`.
+
+## ADR-0179 — A bed and a full wage each wipe their own anger bucket
+**Date:** 2026-09-24 · **Status:** accepted · amends ADR-0081 · Research: `docs/research/payday.md` §4.4, `lair-acquisition.md` §9.1
+
+**Context.** ADR-0081 split anger into six buckets and concluded that a bed stops the lair charge but repays none of it, and that a paid wage freezes the pay bucket. Both rested on the only drains then read: the lair cooling (bucket 5) and the Temple. `0x00486F80`, called from state 80 and state 189, was unread.
+
+**Decision.**
+1. **`0x00486F80(bucket)` wipes one bucket to zero.** It adds the counter's own negation through the adder's clamp, behind the same world switch (`+0x72A1` bit 0). Ours is `CreatureAngerRules.Forget`, which goes through `Apply` and so through the same switch and the `NeverAngered` gate.
+2. **State 80 calls it with the Lair bucket** as the bed goes down, before the wound test. `CreatureSleepSystem.MakeBed`.
+3. **State 189 calls it with the Pay bucket** when the wage owed reaches zero, and not on a part payment. `PaydaySystem.Take`.
+
+**Consequences.**
+- An unhappy Goblin given a bed is Content on the tick the bed goes down, which is the owner's Q115 observation reached by a different road. `AnUnhappyGoblinGivenABedCoolsBackToContentOneSleepAtATime` claimed a frozen bucket and is now `...IsContentTheMomentTheBedGoesDown`; the deserter test is angered in the Work bucket, since a bed would cure a lair grievance first.
+- Negative controls, one at a time: no payday wipe, wiping on any take, bypassing the switch, no lair wipe, and wiping a second bucket each fail a named test.
+- `HashVersion` and `FormatVersion` **84**, pin `0xDB5AAE21ABF713BF`.

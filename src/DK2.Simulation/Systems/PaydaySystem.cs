@@ -288,6 +288,14 @@ public sealed class PaydaySystem : ISimulationSystem
 
         creature.WageOwed -= taken;
 
+        // Paid in full, state 189 wipes the pay grievance outright (payday.md 4.4).
+        if (creature.WageOwed == 0)
+        {
+            CreatureAngerRules.Forget(
+                world, context.Database.CreatureById(creature.CreatureTypeId),
+                creature, AngerBucket.Pay);
+        }
+
         context.Emit(SystemName, "paid",
             $"creature={creature.Id} player={creature.OwnerPlayerId} " +
             $"took={taken} still_owed={creature.WageOwed} " +

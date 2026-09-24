@@ -237,6 +237,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         }
 
         LairRules.PlaceBed(world, database, creature, tileIndex);
+        CreatureAngerRules.Forget(world, definition, creature, AngerBucket.Lair);
         creature.StopMoving();
         creature.TimerTicks = 0;
 

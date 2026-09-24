@@ -32,6 +32,7 @@ beside it.
 
 ## Versions
 
+**84** — `0xDB5AAE21ABF713BF`. A bed and a full wage wipe their anger bucket (ADR-0179).
 **83** — `0xDFC977B66E524362`. The lair and sleep on DK2's state ids (ADR-0178).
 **82** — `0xF1F260238F3D713D`. A job's walk and work on DK2's state ids (ADR-0177).
 
