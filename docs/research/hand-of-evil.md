@@ -384,12 +384,12 @@ ADR-0148; `structure-blocks.md` §4.2). What is assumed inside that is Q312.
   of the observation checklist would change it. Keyed on `IsWorker`, which also
   admits the Dwarf where the owner said *imps* — deliberate, and unreachable today.
 - **A chicken dropped into somebody else's Hatchery becomes theirs** — the handler
-  tests object id 9 against another keeper's tile in a room of type 4. Read only.
+  tests object id 9 against another keeper's tile in a room of type 4. **Unreachable
+  by the Hand**: nothing can be dropped on another keeper's tile (owner, 2026-09-25).
 - **A chicken or a pile of gold dropped ONTO a creature is earmarked for it**, by
   the creature's id written into a field on the object, when that creature's
-  level-scaled `HungerFill` or `MaxGoldHeld` is non-zero: a reservation, and the
-  one case where a bird is not up for grabs. The prison search does not consult it
-  (ADR-0074); whether anything else does is unread.
+  level-scaled `HungerFill` or `MaxGoldHeld` is non-zero. **CONFIRMED by the owner,
+  2026-09-25**, not built. The prison search ignores it (ADR-0074); other readers unread.
 - **The cursor's target search** (`FUN_0044dec0`), which is a rule rather than a
   ray-cast: a 3x3 sweep, an **octagonal** distance (`max + min/2`), a quarter tile
   for an object against half a tile for a creature, the Dungeon Heart admitted by
