@@ -180,8 +180,13 @@ emphatically **not** the room's owner or the dead creature's keeper. That global
 is written **once, at level load**, from a field of the level structure, and
 read from 165 places.
 
-**Which player id it is has not been read out — Q136.** Ours uses
-`PlayerIds.Neutral` and says so in the code.
+**It is the neutral player, `0x006F2548` (Q136, Q266; STRONGLY INFERRED, read
+2026-09-25).** Of the 72 calls to the object creator `0x004B7A90`, eleven create gold.
+All eight floor piles (type 1) push `word[0x006F2548]` as owner, including the Hand's
+untargeted drop and the computer keeper's make-happy path (`0x004F9710`). The two
+exceptions are treasury piles (type 3) in `0x004F3C60` and `0x004F4090`, which take
+the owner from `+0x1D` of the structure in `ESI`, and ours keeps treasury gold on the
+tile (ADR-0015). Ours uses `PlayerIds.Neutral`, now DK2's rule rather than a guess.
 
 **Both ends of it now agree, which is new.** The original's gold-fetching task
 requires the object's own owner to equal that same global before an imp will
