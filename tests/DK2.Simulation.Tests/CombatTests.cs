@@ -82,6 +82,23 @@ public class CombatTests
     }
 
     [Fact]
+    public void TheKillerFightsInOneNinetyNine_CelebratesInTwoSixty_AndGoesIdle()
+    {
+        // ADR-0208: 199 from idle, 260 on the victory arm, then state 1.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
+        Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
+        // With the systems that hand back a state id their creature has left beside it.
+        GameSimulation sim = new(db, world, 1,
+            [new CreatureJobSystem(), new CreatureSleepSystem(), new CombatSystem(), new CreatureHealthSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        Assert.Equal([199, 260, CreatureStateMachine.NoState], StateTrace.States(sim, demon, 120));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
     public void ThreeBlowsKillAGoblin_AndTheKillerCelebratesThenLetsGo()
     {
         (GameDatabase db, WorldState world) = OpenWorld();

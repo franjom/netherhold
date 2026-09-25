@@ -316,6 +316,7 @@ public static class FightRules
         target.CurrentJob = JobType.None;
         target.JobTileIndex = -1;
         target.Activity = CreatureActivity.Idle;
+        CombatStates.Idle(target);
         if (context.Navigation.TryRoute(target, attacker.Tile, MoveOptions.Plain))
             context.Emit(SystemName, "turns_toward", $"creature={target.Id} attacker={attacker.Id}");
     }

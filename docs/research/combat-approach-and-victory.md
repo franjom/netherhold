@@ -176,7 +176,8 @@ and runs the tick it hands back. `VictoryRules`: the death leaves the `0xF` nibb
 (`TargetDied`); the victory arm celebrates in `Celebrating` (state 260) or, for
 `NeedBodyForFightIdle`, walks to the nearest corpse strictly within `0x2000` squared
 (`GoingToBody`, state 259) and celebrates there; the celebrant is attackable, does not scan
-and does not turn on a blow (§5—§7).
+and does not turn on a blow (§5—§7). On state ids (ADR-0208): the fight is 199, the walk
+to a body state 6 resuming 259, the celebration 260, then state 1.
 
 **Deviations, named (Q400):** the pause lasts a fixed **8 ticks** (`VictoryRules.PauseTicks`)
 where DK2 plays animation slot 35 once (Q376); behind the target is read from its

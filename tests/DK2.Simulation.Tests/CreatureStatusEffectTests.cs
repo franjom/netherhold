@@ -149,6 +149,53 @@ public class CreatureStatusEffectTests
     }
 
     [Fact]
+    public void AFreezeIsTwoEighteen_AndAStunTwoFiftyFive_EachEndingInIdle()
+    {
+        // ADR-0208: 218 until the word runs out, then 1; 255, then 257 and 1 at once.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState frozen = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
+        CreatureState stunned = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 14);
+        GameSimulation sim = Sim(db, world);
+        Fire(db, world, Dk2TerrainFixture.FreezeShotId, Keeper, frozen, 10, 0);
+        ShotRules.Spawn(world, db.Shots[Dk2TerrainFixture.LightningShotId], Keeper, CreatureState.CentreOf(5),
+            CreatureState.CentreOf(14), 300, 0, 0, FightTargetKind.Creature, stunned.Id, 0, -1, stunned.PosX, stunned.PosY);
+
+        sim.Run(1);
+        Assert.Equal(218, frozen.Dk2StateId);
+        Assert.Equal(255, stunned.Dk2StateId);
+
+        sim.Run(41);
+        Assert.Equal(CreatureActivity.Idle, frozen.Activity);
+        Assert.Equal(CreatureStateMachine.NoState, frozen.Dk2StateId);
+        Assert.Equal(CreatureActivity.Idle, stunned.Activity);
+        Assert.Equal(CreatureStateMachine.NoState, stunned.Dk2StateId);
+    }
+
+    [Fact]
+    public void AFrozenCreatureIsNotStunned_TheRuleRefusesTwoFiftyFiveFromTwoEighteen()
+    {
+        // 0x00491830 returns at once when SetState(255) is refused: no stun, no action, no event 15.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
+        GameSimulation sim = Sim(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+        Fire(db, world, Dk2TerrainFixture.FreezeShotId, Keeper, goblin, 10, 0);
+        sim.Run(1);
+        Assert.Equal(218, goblin.Dk2StateId);
+
+        ShotRules.Spawn(world, db.Shots[Dk2TerrainFixture.LightningShotId], Keeper, CreatureState.CentreOf(5),
+            CreatureState.CentreOf(10), 300, 0, 0, FightTargetKind.Creature, goblin.Id, 0, -1, goblin.PosX, goblin.PosY);
+        sim.Run(1);
+
+        Assert.Contains(sink.Events, e => e.Kind == "lightning" && e.Detail.Contains($"target={goblin.Id} "));
+        Assert.Equal(CreatureActivity.Frozen, goblin.Activity);
+        Assert.Equal(218, goblin.Dk2StateId);
+        Assert.Equal(0, goblin.StunTicks);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "stunned");
+    }
+
+    [Fact]
     public void LightningStrikesItsTargetOnTheFirstTick_DoublesOnWater_AndStunsForStunDuration()
     {
         (GameDatabase db, WorldState world) = OpenWorld();

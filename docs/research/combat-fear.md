@@ -223,7 +223,8 @@ including the acquirer's withdraw; §4 in order with the nearest-attacker rule,
 the stand-off and the head-count; §5 steps 2–5 and the run, arriving idle;
 `Running` as the body's speed cap (`RunSpeed` scaled by the Speed row, STRONGLY
 INFERRED). `CreatureActivity.Fleeing` is state 203, `Withdrawing` state 6 toward
-202.
+202, entered from 199 when not already in the combat group; both hold those ids since
+ADR-0208.
 
 **Approximated, named:** the step back is a route three quarters of a tile
 straight away from the target, not a heading impulse (Q373); a state ending

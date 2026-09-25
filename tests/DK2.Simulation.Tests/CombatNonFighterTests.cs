@@ -145,6 +145,41 @@ public class CombatNonFighterTests
     }
 
     [Fact]
+    public void TheAlarmWalksInSixTowardsTwoFiftyOne_AndTheRespondersTowardsTwoFiftyFour()
+    {
+        // ADR-0208: the Scout enters 199 and walks in 6 resuming 251, then stands down through
+        // 1 and 252; a responder walks from where it was in 6 resuming 254.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.LairTerrain, 13, 5);
+        int roomTile = (5 * world.Width) + 13;
+        CreatureState[] goblins =
+        [
+            Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 5),
+            Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 14, 5),
+            Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 13, 4),
+        ];
+        foreach (CreatureState g in goblins)
+        {
+            g.Activity = CreatureActivity.AtWork;
+            g.JobTileIndex = roomTile;
+        }
+        CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
+        CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, 12, 12);
+        knight.PosX = imp.PosX + 3700;
+        knight.PosY = imp.PosY;
+        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        var seen = StateTrace.Of(sim, imp, 45);
+
+        Assert.Equal([(6, 199, 251), (CreatureStateMachine.NoState, 199, 1)], seen);
+        Assert.Equal(2, goblins.Count(g => g.StateBeforeUtilityState == CreatureStateMachine.Idle
+            && (g.UtilityNewState == 254 || g.Dk2StateId is 254 or 199)));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
     public void AResponderStandsDownThirtyTicksAfterArriving()
     {
         (GameDatabase db, WorldState world) = OpenWorld();

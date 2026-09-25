@@ -36,6 +36,9 @@ public sealed class CreatureStatusSystem : ISimulationSystem
                 if (creature.StunTicks == 0)
                 {
                     creature.Activity = CreatureActivity.Idle;
+                    // 257 while getting up, idle when its action ends; ours has no action.
+                    Combat.CombatStates.Enter(context, creature, Combat.CombatStates.GettingUp);
+                    Combat.CombatStates.Idle(creature);
                     context.Emit(SystemName, "recovered", $"creature={creature.Id}");
                 }
             }
@@ -49,6 +52,7 @@ public sealed class CreatureStatusSystem : ISimulationSystem
             if (creature.Activity == CreatureActivity.Frozen && creature.FrozenTicks == 0)
             {
                 creature.Activity = CreatureActivity.Idle;
+                Combat.CombatStates.Idle(creature);
                 context.Emit(SystemName, "thawed", $"creature={creature.Id}");
             }
 

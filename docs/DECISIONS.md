@@ -4552,3 +4552,19 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Two workaround tests that used Leaving as their unretired example now use Idle and Frozen.
 - No hashed state changed in the pinned world. Four tests. Negative controls: an ungated start, the anger and defeat paths ignoring a refusal, no walk state, no sacking state, and Leaving left off the retired list each fail a named test.
 
+## ADR-0208 — The combat group holds its states
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · Research: `combat-entry.md`, `combat-fear.md` §4–§5, `combat-alarm.md` §2–§4, `combat-approach-and-victory.md` §5–§7, `creature-status-effects.md` §2
+
+**Context.** Fighting, fleeing, withdrawing, raising the alarm, reporting danger, frozen, stunned, celebrating a kill and walking to a body were built from the binary on activities, with no state id. Their states are read: 199 the fight; 203 fleeing; the withdraw state 6 resuming 202; the alarm state 6 resuming 251, then 1 and 252; a responder state 6 resuming 254; 260 the victory pause, and state 6 resuming 259 for a body; 218 frozen; 255 then 257 stunned. The withdraw and the alarm first enter 199 unless already in the combat group. The stun routine `0x00491830` tests `SetState(255)`, which the rule refuses from the dying and frozen states, and on a refusal does nothing.
+
+**Decision.**
+1. `Combat.CombatStates` carries the ids and the moves: `Enter`, `Travel` (the route helper's state 6 and resume), `IntoTheGroup`, `Arrive`, and `Idle` for a handler that returns zero or sets 1.
+2. Each combat activity change makes its move beside it: the acquirer, the fear, withdraw and alarm code, the victory arm, freeze and stun, their ends in the status system, and `Disengage`.
+3. The stun is not taken when the rule refuses 255, so a frozen creature is not stunned.
+4. The nine activities join the retired list. Defeat lets the fight go before it sets 194, so the fight's end does not hand back the new state.
+
+**Consequences.**
+- Only Idle and Dead are left without state ids. Idle retires with the shim (step 3); a corpse is not a creature in DK2 (ADR-0206).
+- The dispatch still reads the activity. Ours, stated: 252 and 257 end at once, having no action; a responder may acquire the hero on its walk before it reaches 254.
+- No hashed state changed in the pinned world. Nine tests. Negative controls: each of the thirteen moves left out, the stun ungated, the idle keeping its id, the group left off the retired list, and defeat's old order each fail a named test.
+

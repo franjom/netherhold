@@ -118,8 +118,8 @@ public static class DefeatRules
 
             if (state.Activity != CreatureActivity.Leaving)
             {
-                if (!LeavingRules.Start(context, state, SystemName)) continue;
                 CombatRules.Disengage(world, state);
+                if (!LeavingRules.Start(context, state, SystemName)) continue;
                 state.ClearJob();
                 LairRules.ReleaseBed(world, database, state);
                 state.Activity = CreatureActivity.Leaving;

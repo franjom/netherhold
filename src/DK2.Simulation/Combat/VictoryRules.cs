@@ -63,6 +63,7 @@ public static class VictoryRules
                 me.BodyTargetId = body.Id;
                 me.AttackType = 0;
                 me.Activity = CreatureActivity.GoingToBody;
+                CombatStates.Travel(me, CombatStates.AtTheBody);
                 context.Emit(SystemName, "seeks_body", $"creature={me.Id} body={body.Id}");
                 return;
             }
@@ -100,6 +101,8 @@ public static class VictoryRules
         me.StopMoving();
         me.Running = false;
         me.Activity = CreatureActivity.Celebrating;
+        CombatStates.Arrive(context, me);
+        CombatStates.Enter(context, me, CombatStates.Celebrating);
         context.Emit(SystemName, "celebrates", $"creature={me.Id} ticks={PauseTicks}");
     }
 
@@ -117,6 +120,7 @@ public static class VictoryRules
             me.BodyTargetId = CombatRules.NoTarget;
             me.StopMoving();
             me.Activity = CreatureActivity.Idle;
+            CombatStates.Idle(me);
             context.Emit(SystemName, "body_gone", $"creature={me.Id}");
             return;
         }
@@ -130,6 +134,7 @@ public static class VictoryRules
         if (me.CelebrationTicks > 0) me.CelebrationTicks--;
         if (me.CelebrationTicks > 0) return;
         me.Activity = CreatureActivity.Idle;
+        CombatStates.Idle(me);
         context.Emit(SystemName, "celebration_over", $"creature={me.Id}");
     }
 }

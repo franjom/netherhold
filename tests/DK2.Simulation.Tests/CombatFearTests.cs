@@ -85,6 +85,26 @@ public class CombatFearTests
     }
 
     [Fact]
+    public void AFrightenedCreatureFleesInTwoHundredThree_AndWithdrawsInSixTowardsTwoHundredTwo()
+    {
+        // ADR-0208: 199, 203, then the withdraw's state 6 saving 203 and resuming 202, which
+        // ends at once in state 1.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+        Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
+        GameSimulation sim = Combat(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        var seen = StateTrace.Of(sim, goblin, 200, () => sink.Events.Any(e => e.Kind == "withdrawn"));
+
+        Assert.Equal([199, 203, 6], seen.Select(s => s.State).Take(3));
+        Assert.Contains((6, 203, 202), seen);
+        Assert.Equal(CreatureStateMachine.NoState, goblin.Dk2StateId);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
     public void ABackedOffCreatureKeepsItsTarget_AndRunsWhenTheTimerIsOut()
     {
         (GameDatabase db, WorldState world) = OpenWorld();

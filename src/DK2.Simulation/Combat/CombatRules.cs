@@ -278,5 +278,6 @@ public static class CombatRules
         creature.StopMoving();
         creature.Running = false;
         creature.Activity = CreatureActivity.Idle;
+        CombatStates.Idle(creature);
     }
 }

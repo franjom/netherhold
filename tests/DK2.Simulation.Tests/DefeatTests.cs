@@ -115,6 +115,22 @@ public class DefeatTests
     }
 
     [Fact]
+    public void ACreatureFightingWhenItsKeeperFallsWalksOutFromOneNinetyFour()
+    {
+        // The fight is let go first, then 194 set, so the walk saves 194 as its caller.
+        (GameDatabase db, WorldState world, _, _, CreatureState goblin, _) = FallenDungeon();
+        CreatureStateMachine.Begin(goblin, 199);
+        goblin.Activity = CreatureActivity.Fighting;
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Run(6);
+
+        Assert.Equal(CreatureActivity.Leaving, goblin.Activity);
+        Assert.Equal((6, LeavingRules.ChoosingState, LeavingRules.AtTheEntranceState),
+            (goblin.Dk2StateId, goblin.StateBeforeUtilityState, goblin.UtilityNewState));
+    }
+
+    [Fact]
     public void ACreatureOnATortureDeviceIsNotMarchedOut()
     {
         // The rule refuses 194 from the Torture category, and defeat's SetState is gated

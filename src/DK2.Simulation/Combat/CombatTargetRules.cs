@@ -528,6 +528,7 @@ public static class CombatTargetRules
         if (!CombatRules.IsFighting(me)) me.CombatStateEnteredTick = context.Tick.Value;
         me.Running = true; // state 199's entry sets the run speed (0x004887D0(1))
         me.Activity = CreatureActivity.Fighting;
+        CombatStates.Enter(context, me, CombatStates.Engaging);
         context.Emit("combat", "engaged",
             $"creature={me.Id} type={mine.Name} player={me.OwnerPlayerId} {target} reach2={me.AttackRangeSquared}");
     }

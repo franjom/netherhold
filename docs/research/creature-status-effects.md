@@ -104,6 +104,11 @@ animation); then, unless held (`+0x3CB`), in state 23, `IsHorny` or `Possessed`,
 `0x0049AA30(15)`. **The Reaper Fireball** (type 29, `0x004AF610`) stuns the same
 way, refused only for a dying or `IsHorny` target.
 
+**The stun needs its state.** `0x00491830` tests `SetState(255)` and on a refusal
+returns 0 before the action and event 15. The rule refuses 255 from 216–218, 219,
+246, 71, 207 and 208, so **a frozen creature cannot be stunned**, nor a dying one
+(read 2026-09-25). Freeze's `SetState(218)` is untested and never refused.
+
 **Stunned** (state 255, handler `0x004810E0`). Stands for **`StunDuration`** —
 `def+0x74C`, file `0xED0` × ticks-a-second by the loader (`0x00493B57`), parsed as
 `CreatureDef.StunDuration` — with effect 101 stuck on it from the first tick;
@@ -176,7 +181,9 @@ activities the fight gate and the job systems refuse (`CombatRules.Preoccupied`)
 attackers' targets go; Haste and Slow as a percent on the movement cap with the
 quarter-walk floor; Lightning on the first tick, doubled on water, immune for
 `CreatureFlags2` bit 0; Drain through the health routine both ways. Gate B's division
-by the work rate was corrected first (`combat-fight-state.md` §4).
+by the work rate was corrected first (`combat-fight-state.md` §4). On state ids
+(ADR-0208): freeze enters 218 and thaws to 1; the stun enters 255, is not taken when
+the rule refuses it, and gets up through 257 to 1.
 
 **Not built, named (Q399):** the per-player byte `+0x1095`, `CombatPitFighter`, the Stone
 Knight's blow path, the stun's early end `0x00481360`, state 257's length, the ignite

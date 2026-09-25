@@ -157,6 +157,34 @@ public class CombatApproachTests
     }
 
     [Fact]
+    public void TheWalkToABodyIsSixTowardsTwoFiftyNine_ThenTheCelebrationInTwoSixty()
+    {
+        CreatureDef lover = Dk2TerrainFixture.Goblin() with
+        {
+            Name = "Body lover", CreatureId = BodyLoverCreatureId,
+            Flags = Dk2TerrainFixture.Goblin().Flags | CreatureFlags.NeedBodyForFightIdle | CreatureFlags.IsFearless,
+        };
+        GameDatabase db = Dk2TerrainFixture.Database(lover);
+        WorldState world = OpenWorld(db);
+        CreatureState killer = Spawn(db, world, BodyLoverCreatureId, Keeper, 5, 5);
+        CreatureState victim = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, killer);
+        victim.Health = 100;
+        CreatureState corpse = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 5);
+        corpse.Activity = CreatureActivity.Dead;
+        corpse.Health = 0;
+        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem(), new CreatureHealthSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        var seen = StateTrace.Of(sim, killer, 120, () => killer.Activity == CreatureActivity.Celebrating);
+
+        Assert.Equal(199, seen[0].State);
+        Assert.Contains((6, 199, 259), seen);
+        Assert.Equal((260, 199, 1), seen[^1]);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
     public void ANeedBodyForFightIdleCreatureWithNoCorpseNearCelebratesWhereItStands()
     {
         CreatureDef lover = Dk2TerrainFixture.Goblin() with
