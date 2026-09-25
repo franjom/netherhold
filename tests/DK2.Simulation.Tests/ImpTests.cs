@@ -842,21 +842,16 @@ public class ImpTests
         Assert.Equal(1, floor.World.Creatures.Count(c => c.TargetTileIndex == target));
     }
 
-    // ---- taking a rival's ground (Q68) -----------------------------------
+    // ---- taking a rival's ground (Q68) --------------------------------
 
     /// <summary>
-    /// <b>A rival's floor is claimed directly, with no neutral step</b> —
-    /// CONFIRMED (Q68, owner 2026-09-03), and it refutes the two-step model this
-    /// project had: attack the tile to neutral with <c>AttackTileHealth</c>, then
-    /// claim the neutral tile.
-    ///
-    /// <para>The tile keeps its terrain and changes hands. Following
-    /// <c>MaxHealthTypeTerrainId</c> as a claim normally does would have turned
-    /// their floor into <b>Rock</b>, since that field is Claimed Path's fill-in
-    /// destination (Q18).</para>
+    /// <b>A rival's floor is attacked down to Dirt Path, then claimed</b> —
+    /// CONFIRMED (owner, 2026-09-25): the imp jumps on it until it is unclaimed
+    /// dirt, then claims it. It is not claimed directly; Q68's direct take was
+    /// a bridge, which is a room.
     /// </summary>
     [Fact]
-    public void ARivalsFloorIsClaimedDirectlyAndStaysFloor()
+    public void ARivalsFloorIsAttackedToDirtBeforeItIsClaimed()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         Run run = Start(new TilePos(2, 2));
@@ -867,21 +862,22 @@ public class ImpTests
         theirs.OwnerPlayerId = 2;
         theirs.Health = database.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
 
+        Assert.False(TileWorkRules.Applies(database, theirs, TileWorkKind.Claim, Keeper));
+        Assert.True(TileWorkRules.Applies(database, theirs, TileWorkKind.AttackTile, Keeper));
+
+        for (int i = 0; i < 5000 && theirs.TerrainId == Dk2TerrainFixture.ClaimedPath; i++)
+            TileWorkRules.Apply(database, ref theirs, TileWorkKind.AttackTile, Keeper);
+
+        Assert.Equal(Dk2TerrainFixture.DirtPath, theirs.TerrainId);
+        Assert.Equal(PlayerIds.Unowned, theirs.OwnerPlayerId);
         Assert.True(TileWorkRules.Applies(database, theirs, TileWorkKind.Claim, Keeper));
-
-        for (int i = 0; i < 5000 && theirs.OwnerPlayerId != Keeper; i++)
-            TileWorkRules.Apply(database, ref theirs, TileWorkKind.Claim, Keeper);
-
-        Assert.Equal(Keeper, theirs.OwnerPlayerId);
-        Assert.Equal(Dk2TerrainFixture.ClaimedPath, theirs.TerrainId);
     }
 
     /// <summary>
-    /// <b>An imp takes a rival's ground on its own</b>, which is hostile
-    /// expansion falling out of rules that were already here: claiming is second
-    /// in the priority order (ADR-0018), the tile must touch its keeper's
-    /// territory (Q42), and the imp stands on the tile it claims (Q44). Nothing
-    /// new decides to do it.
+    /// <b>An imp takes a rival's ground on its own</b>, in the two steps the owner
+    /// watched: first unclaimed dirt, then the imp's keeper's floor. Claiming is
+    /// second in the priority order (ADR-0018), the tile must touch its keeper's
+    /// territory (Q42), and the imp stands on the tile it works (Q44).
     /// </summary>
     [Fact]
     public void AnImpTakesARivalsFloorWithoutBeingTold()
@@ -899,8 +895,19 @@ public class ImpTests
         Assert.Contains("priority=Claim", taken.Detail);
         Assert.Contains("(4,2)", taken.Detail);
 
-        run.Ticks(SimulationTiming.TicksFromSeconds(4));
+        bool wasDirt = false;
+        for (int i = 0; i < SimulationTiming.TicksFromSeconds(20)
+                        && run.World.Tile(4, 2).OwnerPlayerId != Keeper; i++)
+        {
+            run.Tick();
+            TileState now = run.World.Tile(4, 2);
+            if (now.TerrainId == Dk2TerrainFixture.DirtPath && now.OwnerPlayerId == PlayerIds.Unowned)
+                wasDirt = true;
+        }
+
+        Assert.True(wasDirt, "the rival's floor never passed through unclaimed dirt");
         Assert.Equal(Keeper, run.World.Tile(4, 2).OwnerPlayerId);
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(4, 2).TerrainId);
     }
 
     /// <summary>

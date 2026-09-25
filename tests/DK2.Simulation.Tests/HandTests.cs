@@ -837,6 +837,49 @@ public class HandTests
         Assert.Contains(sink.Events, e => e.Kind == "object_pickup_refused");
     }
 
+    /// <summary>CONFIRMED by the owner, 2026-09-25: gold lifts only from claimed land
+    /// (Q196). Unclaimed dirt refuses it.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GoldLiftsOnlyFromTheKeepersClaimedFloor(bool claimed)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        if (!claimed)
+        {
+            ref TileState dirt = ref world.Tile(Floor);
+            dirt.TerrainId = Dk2TerrainFixture.DirtPath;
+            dirt.OwnerPlayerId = PlayerIds.Unowned;
+        }
+
+        ObjectState pile = world.SpawnObject(
+            db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, Index(world, Floor));
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, pile.Id)));
+
+        Assert.Equal(claimed, pile.InHand);
+    }
+
+    /// <summary>Our reading, not yet the owner's: "claimed land" taken as the keeper's
+    /// own, so a rival's floor refuses gold as unclaimed dirt does (Q196).</summary>
+    [Fact]
+    public void GoldOnARivalsFloorIsRefusedByOurReadingOfClaimed()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        world.Tile(Floor).OwnerPlayerId = Keeper + 1;
+
+        ObjectState pile = world.SpawnObject(
+            db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, Index(world, Floor));
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, pile.Id)));
+
+        Assert.False(pile.InHand);
+    }
+
     [Fact]
     public void AChickenMayOnlyBeDroppedOnTheKeepersOwnGround()
     {

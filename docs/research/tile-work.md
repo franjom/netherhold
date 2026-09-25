@@ -71,12 +71,12 @@ bit 7 (`0x3e6 & 0x80`) is set, built from two creature-definition fields and a
 per-creature field at `+0x5c6`; what that flag marks is UNKNOWN and the ordinary
 path is unaffected.
 
-So `AttackTileHealth` belongs to the hostile-ground work phase, alongside the imp
-states labelled *claiming territory*, not to a non-imp invasion behaviour (Q68).
-The binary has both a neutral-claim phase using `ClaimTileHealth` and a
-hostile-floor phase using `AttackTileHealth`, so the owner's observation that a
-bridge changes owner without a visible neutral pause does not mean both use the
-same rate.
+So `AttackTileHealth` is the imp's hostile-floor phase. The predicate
+(`0x00454000`, re-read 2026-09-25) admits a tile whose owner is anyone but the
+worker's keeper, neutral included, on `Ownable|Attackable` terrain without `Solid|Room`.
+Claimed Path falls to its destroyed type, Dirt Path, unowned, and is then claimed:
+**CONFIRMED by the owner, 2026-09-25**, who watched imps do it to a rival (Q68).
+A bridge is a room, which is why it changed owner with no neutral pause.
 
 **The two mana-vault values are CUT, not disabled.** A second variable
 dispatcher, missed by the original global map, caches them — 4 becomes 1 at

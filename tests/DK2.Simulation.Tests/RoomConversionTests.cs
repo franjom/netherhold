@@ -159,8 +159,12 @@ public class RoomConversionTests
         floor.OwnerPlayerId = Rival;
         floor.Health = Db.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
 
-        Assert.True(TileWorkRules.Applies(Db, floor, TileWorkKind.Claim, Keeper));
+        // A rival's floor is attacked before it is claimed (Q68), so it is
+        // AttackTile's, and a room is never AttackTile's.
+        Assert.False(TileWorkRules.Applies(Db, floor, TileWorkKind.Claim, Keeper));
+        Assert.True(TileWorkRules.Applies(Db, floor, TileWorkKind.AttackTile, Keeper));
         Assert.False(TileWorkRules.Applies(Db, floor, TileWorkKind.ConvertRoom, Keeper));
+        Assert.False(TileWorkRules.Applies(Db, roomTile, TileWorkKind.AttackTile, Keeper));
     }
 
     [Fact]

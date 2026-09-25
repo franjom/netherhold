@@ -1002,15 +1002,17 @@ public sealed class ImpTaskSystem : ISimulationSystem
                 if (!TileWorkRules.TryTaggedWork(context.Database, tile, playerId, out kind)) return false;
                 break;
 
-            // Claiming floor and taking somebody else's room are one priority
-            // and two kinds of work: the balance table gives them separate rates
-            // (ClaimTileHealth +825, ConvertRoomHealth −4000) and the terrain
-            // flag partitions them exactly, a room tile being one and only one
-            // of the two. The owner describes both as claiming (Q24, Q92), so
-            // no order between them has to be chosen here.
+            // Claiming floor, attacking a rival's floor and taking somebody
+            // else's room are one priority and three kinds of work, each with its
+            // own rate (ClaimTileHealth +825, AttackTileHealth −140,
+            // ConvertRoomHealth −4000). Their predicates partition the tiles, so
+            // no order between them has to be chosen here. Hostile floor falls to
+            // Dirt Path and is then an ordinary claim (Q68, owner).
             case JobPriority.Claim:
                 if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId))
                     kind = TileWorkKind.Claim;
+                else if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.AttackTile, playerId))
+                    kind = TileWorkKind.AttackTile;
                 else if (TileWorkRules.Applies(context.World, context.Database, tile, TileWorkKind.ConvertRoom, playerId))
                     kind = TileWorkKind.ConvertRoom;
                 else

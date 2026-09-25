@@ -443,7 +443,7 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 - **A creature caught on a burning bridge is unharmed here but not stranded.** The pathfinder enters a mover's starting tile without testing walkability, so a creature standing in lava can still walk out — a rule written long before anything could turn the ground under a creature impassable, and this is its first real cause. Tested.
 
 ## ADR-0033 — A rival claims your ground directly, and hostile expansion falls out
-**Date:** 2026-09-03 · **Status:** accepted · answers Q68 · refutes the two-step reading carried since M3
+**Date:** 2026-09-03 · **Status:** accepted, **amended 2026-09-25: a rival's floor is attacked to Dirt Path first** · answers Q68
 
 **Context.** `TileWorkKind.Claim` applied only to terrain that was **not `Ownable`**, so a rival's claimed floor was not claimable at all and the implied model was two steps: damage the tile to neutral with `AttackTileHealth` (−140), then claim it with `ClaimTileHealth` (825). The owner settled it in two messages (2026-09-03) — a bridge can only be "attacked" by a **rival keeper's imps, who jump on it and claim it if it is adjacent to their keeper's territory**, and, asked directly, **"no it doesn't go to neutral first, it is immediately claimed by an imp."**
 **Decision.**
@@ -459,6 +459,12 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 - **`AttackTileHealth` now has no user at all.** It must have one in the original; the obvious candidate is creatures other than imps smashing enemy floor during an invasion, which would make attacking and claiming two actors' jobs rather than two steps. HYPOTHESIS, Q69.
 - A tile of `Ownable` terrain owned by id 0 is now claimable, which was the first rule whose reach depended on Q17 (then answered by ADR-0043). The rule is right either way — id 0 is either nobody, making claiming neutral floor correct, or a keeper, making it hostile claiming.
 - No new state, so no `HashVersion` bump.
+
+**Amendment, 2026-09-25 (owner, and the binary).** *The floor half was wrong; the bridge half stands.* The owner, watching a fight with a rival keeper: an imp jumps on the enemy's claimed tile **until it becomes unclaimed dirt, then claims it for its own keeper**. The 2026-09-03 answer was about a bridge, which is a room, and rooms still change hands in one step (ADR-0044). Extending it to "any of a keeper's ground" was ours.
+- **`AttackTile` is DK2's hostile-floor predicate `0x00454000`**: owner anyone but the worker's keeper (neutral and unowned included), `Ownable` and `Attackable`, neither `Solid` nor `Room`. Claimed Path is the only shipped terrain it admits. `Claim` now excludes that ground.
+- The imp's claim priority tries `Claim`, then `AttackTile`, then `ConvertRoom`. The predicates partition the tiles, so the order is not a priority. The attack ends at Claimed Path's destroyed type, Dirt Path, unowned; the next search makes that an ordinary claim.
+- `AttackTileHealth` (−140) has its user, and the invasion hypothesis above is withdrawn. Rooms fall to `AttackRoomHealth` (handler 11), which is unbuilt, so nothing destroys a room tile yet: the treasury-spill and bridge-destroy tests pin the rules, not a mechanic.
+- Hash-neutral: no state changed, and the pinned run has no hostile floor.
 
 ## ADR-0034 — An asset is named by a logical key, and a provider chain resolves it
 **Date:** 2026-09-04 · **Status:** accepted
@@ -1261,6 +1267,7 @@ So a keeper who dug through **their own reinforced wall** got Dirt Path still st
 - The scenario harness gains `setup.objects` and `setup.creatures.hunger`, both named as shortcuts in the run report. The second is not a convenience: stating the hunger a creature accumulated *before* capture is the only way a scenario reaches the mechanic.
 - Cost: `HashVersion` 28 → 30, skipping 29, and `FormatVersion` with it. Both are composition: the fixture's keeper picks nothing up, so no slot's kind byte is written, and the world holds no objects, so `InHand` is never hashed for one — a field added to an empty list still has to change the hash. 29 was skipped on purpose because Codex's fog-of-war branch claimed it in its own worktree (ADR-0076); two branches holding one version number is exactly the failure a version number exists to catch.
 - `AMixedHandSurvivesASnapshot` found a real gap rather than confirming one: `ObjectState.InHand` was hashed and not snapshotted.
+- **Amendment, 2026-09-25 (owner, CONFIRMED): gold lifts only from claimed land.** `CanPickUpObject` refuses an `IsGold` object unless its tile is the lifting keeper's own. OpenKeeper reached the same rule independently (its issue 511). Two things are ours: "claimed" read as *the keeper's own*, so a rival's floor refuses gold too, and the gate is keyed on the flag, not the object id. Where the gate lives in the original is unread, as for the drop (Q196).
 - `a_keeper_drops_a_chicken_in_a_prison` runs the whole loop: two goblins dragged in by imps, angering at 25 a second in an empty cell, a keeper lifting a bird off its own floor into the cell, and one prisoner eating for +375. The second prisoner loses a clock rather than a race — captured 50 ticks apart, the two once-a-second looks are ten ticks out of phase, the bird lands at 1401, the first looks at 1409 and eats it, the second's next look is 1419. The contested case (both choosing the same bird, one arriving at an empty tile) is pinned by unit test, because staging it in a scenario would mean choreographing the wander.
 
 ## ADR-0076 — Fog of war is simulation state, and it cost a hash bump

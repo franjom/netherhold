@@ -173,15 +173,12 @@ public class BridgeTests
 
     // ---- destruction and selling agree ----------------------------------
 
-    /// <summary>Whatever removes a bridge tile leaves the hazard. Asserted through
-    /// the rules, not a mechanic: DK2 does not destroy a bridge by damage — a
-    /// rival keeper's imps claim it rather than beat it down (CONFIRMED, owner
-    /// 2026-09-03, Q68). What this pins is that the destroyed path and the selling
-    /// path cannot disagree; they used to consult the destroyed-type field
-    /// separately and were wrong the same way. <c>AttackTile</c> is the only work
-    /// kind that takes an enemy bridge tile to zero and nothing in the simulation
-    /// chooses it, so the injection here stands in for a future path that
-    /// might.</summary>
+    /// <summary>Whatever removes a bridge tile leaves the hazard: the destroyed path
+    /// and the selling path both resolve through <see cref="BridgeRules.RevertsTo"/>,
+    /// having once consulted the destroyed-type field separately and been wrong the
+    /// same way. No built work kind destroys a bridge — a rival's imps take it as a
+    /// room (Q68), and <c>AttackTile</c> refuses rooms (<c>0x00454000</c>). The
+    /// room-attack handler (<c>AttackRoomHealth</c>) is unbuilt (Q68).</summary>
     [Fact]
     public void AnythingThatRemovesABridgeTileLeavesTheHazard()
     {
@@ -191,13 +188,10 @@ public class BridgeTests
         GiveHeart(run, new TilePos(1, 1), 1000);
         run.Tick(BuildRoomCommand.At(Keeper, BridgeId, span));
 
-        // Driven straight through the rules. Nothing in the simulation chooses
-        // AttackTile, and in the original nothing attacks a bridge at all.
         ref TileState tile = ref run.World.Tile(span);
-        for (int i = 0; i < 5000 && tile.TerrainId == Dk2TerrainFixture.WoodenBridgeTerrain; i++)
-            TileWorkRules.Apply(database, ref tile, TileWorkKind.AttackTile, playerId: 2);
-
-        Assert.Equal(Dk2TerrainFixture.Lava, tile.TerrainId);
+        Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, tile.TerrainId);
+        Assert.False(TileWorkRules.Applies(database, tile, TileWorkKind.AttackTile, playerId: 2));
+        Assert.Equal(Dk2TerrainFixture.Lava, BridgeRules.RevertsTo(database, tile));
     }
 
     // ---- burning (Q67) ---------------------------------------------------

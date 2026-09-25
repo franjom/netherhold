@@ -350,12 +350,12 @@ public class RoomTests
     }
 
     [Fact]
-    public void GoldGoesWithTheTreasuryWhenTheTreasuryGoes()
+    public void AFloorAttackDoesNotTouchATreasuryOrItsGold()
     {
-        // A room tile is ownable floor, so a rival can attack it. When it falls
-        // it becomes claimed path, which holds nothing - and the gold that was
-        // in it is reported as spilled rather than left in a tile with no
-        // capacity for it.
+        // A room tile is not hostile floor (0x00454000 refuses Room), so the
+        // floor attack leaves a rival's treasury and its gold alone. Rooms fall
+        // to AttackRoomHealth, which is unbuilt, and with it the gold spill a
+        // destroyed treasury would make (Q68).
         GameDatabase database = Dk2TerrainFixture.Database();
         Run run = Start();
         GiveTreasury(run, Keeper, new TilePos(2, 2));
@@ -366,10 +366,9 @@ public class RoomTests
         run.World.QueueWork(2, 2, TileWorkKind.AttackTile, Rival);
         run.Tick();
 
-        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(2, 2).TerrainId);
-        Assert.Equal(0, run.World.Tile(2, 2).GoldHeld);
-        Assert.Equal(0, GoldStore.Total(run.World, Keeper));
-        Assert.Contains(run.Of("gold_spilled"), e => e.Detail.Contains("amount=2500", StringComparison.Ordinal));
+        Assert.Equal(1, run.World.Tile(2, 2).Health);
+        Assert.Equal(2500, GoldStore.Total(run.World, Keeper));
+        Assert.Empty(run.Of("gold_spilled"));
     }
 
     // ---- the gate ----------------------------------------------------------

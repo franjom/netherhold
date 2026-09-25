@@ -60,7 +60,8 @@ public static class HandRules
     /// <summary>Whether <paramref name="thing"/> may be lifted by <paramref name="playerId"/> now.
     /// CONFIRMED (owner, Q196): the eligible set is <see cref="ObjectDef.CanBePickedUp"/>, 26 of
     /// the 145 records; the cursor search that reads it also admits the Dungeon Heart by id, a
-    /// targeting special case. Ownership is not tested. An object in an imp's arms is refused,
+    /// targeting special case. The object's owner is not tested, but <b>gold lifts only from
+    /// the keeper's own claimed tile</b> (owner, Q196). An object in an imp's arms is refused,
     /// ours in form and DK2's in effect, since it takes a carried object off its tile.</summary>
     public static bool CanPickUpObject(
         WorldState world, GameDatabase database, ObjectState thing, byte playerId)
@@ -69,6 +70,8 @@ public static class HandRules
         if (definition is null || !definition.CanBePickedUp) return false;
         if (thing.InHand) return false;
         if (thing.CarriedByCreatureId >= 0) return false;
+        if (definition.IsGold && world.TileAtIndex(thing.TileIndex).OwnerPlayerId != playerId)
+            return false;
 
         return world.Player(playerId).Hand.Count < Capacity(database);
     }

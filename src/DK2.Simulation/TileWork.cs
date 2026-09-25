@@ -254,14 +254,15 @@ public static class TileWorkRules
             TileWorkKind.DigEnemyWall =>
                 terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId != playerId,
 
-            // Claiming takes non-solid ground not already yours — neutral or a
-            // rival's, directly, with no neutral step. CONFIRMED (owner,
-            // 2026-09-03; Q68). The last clause is the "nowhere to go" guard;
-            // rooms go to TileWorkKind.ConvertRoom at their own rate (Q92).
+            // Claiming takes non-solid ground not already yours. Hostile floor is
+            // attacked down to Dirt Path first and claimed after (AttackTile,
+            // Q68); a room changes hands in one step instead (ConvertRoom, Q92).
+            // The last clause is the "nowhere to go" guard.
             TileWorkKind.Claim =>
                 !terrain.IsSolid
                 && !terrain.IsRoom
                 && tile.OwnerPlayerId != playerId
+                && !IsHostileFloor(terrain, tile, playerId)
                 && (terrain.IsOwnable || terrain.MaxHealthTypeTerrainId != tile.TerrainId),
 
             // Somebody else's room — a rival's, or a neutral one, which is what
@@ -275,8 +276,7 @@ public static class TileWorkRules
                 && tile.OwnerPlayerId != playerId
                 && (ruinedHeart || terrain.TerrainId != ManaRules.DungeonHeartTerrainId(database)),
 
-            TileWorkKind.AttackTile =>
-                !terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId != playerId,
+            TileWorkKind.AttackTile => IsHostileFloor(terrain, tile, playerId),
 
             // Reinforcing turns rock into a wall; the data says which rock can.
             // The original splits it by health — reinforce below half MaxHealth
@@ -293,6 +293,16 @@ public static class TileWorkRules
             _ => false,
         };
     }
+
+    /// <summary>Ground an imp attacks rather than claims: owned by anyone but
+    /// <paramref name="playerId"/>, the unowned player included, <c>Ownable</c> and
+    /// <c>Attackable</c>, neither <c>Solid</c> nor <c>Room</c>. The original's own
+    /// predicate (<c>0x00454000</c>), which both attack handlers re-test after every
+    /// application. Claimed Path is the one shipped terrain it admits.</summary>
+    private static bool IsHostileFloor(TerrainDef terrain, in TileState tile, byte playerId) =>
+        tile.OwnerPlayerId != playerId
+        && terrain.IsOwnable && terrain.IsAttackable
+        && !terrain.IsSolid && !terrain.IsRoom;
 
     /// <summary>
     /// The kinds of work a dig marker can be asking for. The order is not a

@@ -85,6 +85,7 @@ public sealed record TerrainDef
     public bool IsOwnable => Flags.HasFlag(TerrainFlags.Ownable);
     public bool IsTaggable => Flags.HasFlag(TerrainFlags.Taggable);
     public bool IsRoom => Flags.HasFlag(TerrainFlags.Room);
+    public bool IsAttackable => Flags.HasFlag(TerrainFlags.Attackable);
     public bool IsWater => Flags.HasFlag(TerrainFlags.Water);
     public bool IsLava => Flags.HasFlag(TerrainFlags.Lava);
 
