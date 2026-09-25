@@ -47,6 +47,19 @@ Before implementing DK2 behavior, check, in this order:
 7. DK2 reverse-engineering documentation, and the DK2 wiki (CC BY-SA: facts in
    our own words with citations, never its prose)
 
+## Library and tool documentation — use Context7
+
+For how a **library, framework, SDK or tool** works, query Context7
+(`resolve-library-id`, then `query-docs`) before answering from memory:
+training data lags releases. That covers .NET and C# APIs, xUnit, YamlDotNet,
+Unity (the adapter, packages, editor scripting), Ghidra's scripting API,
+BenchmarkDotNet, and dotnet/git CLI flags.
+
+It is **never a source for DK2 behaviour**: that order is the list above. Skip
+it for this repo's own code, for refactoring, and for general programming
+questions. If Context7 has nothing for a tool, say so and read the tool's own
+docs.
+
 ## Architecture
 
 Game simulation must remain independent from Unity wherever practical.
