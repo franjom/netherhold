@@ -1,0 +1,93 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.Core;
+using DK2.Data.Model;
+using DK2.Simulation.Systems;
+
+namespace DK2.Simulation;
+
+/// <summary>A creature put down by the hand (hand-drop-landing.md, ADR-0226). The keeper's drop
+/// (<c>0x004BC710</c>) sets 76, whose handler <c>0x0046EAB0</c> stuns an own non-worker that no
+/// room takes over (<c>0x00491830(255)</c>): it lies for <c>StunDuration</c>, gets up in 257
+/// (<c>0x00481200</c>), and 257 asks the room underfoot (<c>0x004E8DA0(0)</c>): the room's drop
+/// state, or with none, 250.</summary>
+[Dk2Behavior(Confidence.Confirmed, "docs/research/hand-drop-landing.md")]
+public static class DropLandingRules
+{
+    /// <summary>State 76, the landing (<c>0x0046EAB0</c>).</summary>
+    public const int LandingState = 76;
+
+    /// <summary>State 250 (<c>0x00481CF0</c>), "guarding": plays action 43 until 50 turns past the
+    /// state word <c>+0x7E</c>, then idle.</summary>
+    public const int StandingState = 250;
+
+    /// <summary>250's length past <c>+0x7E</c>, in turns (<c>0x32</c>).</summary>
+    public const int StandTicks = 50;
+
+    /// <summary>What <c>0x004E8DA0(0)</c> leaves in <c>FightProcessCounter</c> on its way to 250:
+    /// bits 22 and 24 of the flag dword cleared, 23 and 25 set.</summary>
+    public const byte StandFightProcessCounter = 10;
+
+    /// <summary>A room record's drop state, <c>+0x19</c> (portals-room-handler-table.md); null for
+    /// a room with none.</summary>
+    public static int? RoomDropState(RoomTypeId type) => type switch
+    {
+        RoomTypeId.Treasury => 188,
+        RoomTypeId.Lair => 79,
+        RoomTypeId.Portal => 197,
+        RoomTypeId.Hatchery => 92,
+        RoomTypeId.DungeonHeart => 71,
+        RoomTypeId.Library => 53,
+        RoomTypeId.TrainingRoom => 108,
+        RoomTypeId.GuardRoom => 97,
+        RoomTypeId.Workshop => 63,
+        RoomTypeId.Prison => 114,
+        RoomTypeId.TortureChamber => 130,
+        RoomTypeId.Temple => 101,
+        RoomTypeId.Casino => 145,
+        RoomTypeId.CombatPit => 137,
+        (RoomTypeId)25 => 197,
+        (RoomTypeId)26 => 274,
+        _ => null,
+    };
+
+    /// <summary>257's tail, <c>0x004E8DA0(0)</c>. On a room with a drop state: the job rooms' state
+    /// through 1, with the job remembered (<see cref="JobRules.TryDropOnARoom"/>); the other rooms'
+    /// states are not built here and idle. With none, a keeper's creature goes to 250, its
+    /// <c>FightProcessCounter</c> at 10; a hero or a neutral creature idles. Ours: no Call To Arms
+    /// exists, which would also send it to idle.</summary>
+    public static void AfterGettingUp(SimulationContext context, string system, CreatureState creature, CreatureDef definition)
+    {
+        WorldState world = context.World;
+        int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
+        RoomInstance? room = RoomIndex.RoomAt(world, context.Database, here);
+        if (room?.Definition.TypeId is RoomTypeId type && RoomDropState(type) is not null)
+        {
+            if (JobRules.TryDropOnARoom(world, context.Database, creature, definition, here) is { } job)
+            {
+                context.Emit(system, "dropped_to_job", $"creature={creature.Id} job={job} at=({creature.Tile.X},{creature.Tile.Y})");
+                return;
+            }
+            StateShadow.ToIdle(context, system, creature);
+            return;
+        }
+        if (creature.OwnerPlayerId is PlayerIds.Good or PlayerIds.Neutral)
+        {
+            StateShadow.ToIdle(context, system, creature);
+            return;
+        }
+        creature.FightProcessCounter = StandFightProcessCounter;
+        if (!StateShadow.TryMove(context, system, creature, StandingState))
+        {
+            StateShadow.ToIdle(context, system, creature);
+            return;
+        }
+        context.Emit(system, "standing", $"creature={creature.Id} until={creature.StateDeadlineTick + StandTicks}");
+    }
+
+    /// <summary>State 250: true while it stands (<c>now &lt; +0x7E + 50</c>).</summary>
+    public static bool Stands(SimulationContext context, CreatureState creature) =>
+        context.Tick.Value < creature.StateDeadlineTick + StandTicks;
+}

@@ -302,14 +302,15 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
-        // An own non-worker dropped on a job room: the room record's state, through 1, and the
-        // room's job remembered (0x004E8DA0(0), ADR-0215).
+        // An own non-worker no room takes over lands in 76 and is stunned there (0x00491830(255),
+        // Q201): it gets up in 257, which asks the room underfoot for its job, or stands in 250
+        // (DropLandingRules, ADR-0226). A freed prisoner is not stunned (owner, Q201).
         if (creature.OwnerPlayerId == command.PlayerId && !definition.Flags.HasFlag(CreatureFlags.IsWorker)
-            && JobRules.TryDropOnARoom(world, context.Database, creature, definition, landingTileIndex) is { } job)
+            && Combat.StatusEffectRules.StunOnLanding(context, creature, definition))
         {
-            context.Emit(SystemName, "dropped_to_job",
-                $"player={command.PlayerId} creature={creature.Id} job={job} " +
-                $"tile={command.Tile.X},{command.Tile.Y} held={hand.Count}");
+            context.Emit(SystemName, "dropped_stunned",
+                $"player={command.PlayerId} creature={creature.Id} " +
+                $"tile={command.Tile.X},{command.Tile.Y} ticks={creature.StunTicks} held={hand.Count}");
             return;
         }
 

@@ -25,8 +25,8 @@ public static class PrisonRules
 
     /// <summary>The captive's states, category 14 Prison (ADR-0191, <c>state-category-hooks.md</c>
     /// §3.2). An imp's admission (state 44) puts the captive in 114, which moves to 115 on an
-    /// interior slab; a hand drop lands in <see cref="HandDropState"/>, which moves to 115 in a
-    /// Prison.</summary>
+    /// interior slab; a hand drop's landing (76) puts it there too, through 1: the room record's
+    /// enemy state <c>+0x1D</c> (ADR-0226).</summary>
     public const int AdmittedState = 114;
 
     /// <summary>115 decides: hungry, to 117; otherwise a walk in 6 to a slab nearby,
@@ -46,11 +46,12 @@ public static class PrisonRules
     /// <summary>119: waits out the eating, then 115.</summary>
     public const int AfterEatingState = 119;
 
-    /// <summary>77, the state a creature dropped from the hand takes (an idle state, category 7):
-    /// its handler <c>0x0046F1F0</c> sends it to 115 in a Prison, 130 in a Torture Chamber and 63
-    /// in a Workshop (ADR-0193). 120 reuses that handler through a thunk, but is a captive
-    /// state, and from it 130 is refused.</summary>
-    public const int HandDropState = 77;
+    /// <summary>77, the slap's reaction: the slap handler <c>0x0048B8A0</c> is its only way in. Its
+    /// handler <c>0x0046F1F0</c> plays action 19, then sends a creature attached to a room back to
+    /// that room's state: 115 in a Prison, 130 in a Torture Chamber, 63 in a Workshop. ADR-0193
+    /// read it as the hand drop's; the drop sets 76 (<c>0x004BC7D7</c>, ADR-0226). Nothing here
+    /// enters it yet.</summary>
+    public const int SlappedState = 77;
 
     /// <summary>The chance, <b>per tick</b>, that a prisoner standing still takes
     /// another step — <b>20 in 100</b>. Read from DK2's state 116 (<c>0x74</c>), which
@@ -354,8 +355,10 @@ public static class PrisonRules
         creature.SleepTicks = 0;
         creature.AwakeTicks = 0;
 
-        // Into the captive's states: 114 from an imp, 77 from the hand, then 115 (ADR-0191, ADR-0193).
-        CreatureStateMachine.TrySetState(creature, dropped ? HandDropState : AdmittedState);
+        // Into the captive's states: 114 from an imp; from the hand, 1 and then 114, the Prison's
+        // enemy state (76, ADR-0226); then 115 (ADR-0191).
+        if (dropped) CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(creature, AdmittedState);
         CreatureStateMachine.TrySetState(creature, DecidingState);
 
         creature.TargetTileIndex = -1;

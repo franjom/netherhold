@@ -83,7 +83,9 @@ public sealed class CombatPitTests
     }
 
     [Fact]
-    public void ACreatureDroppedOnThePitsRimIsAnOrdinaryDrop()
+    /// <summary>The rim does not take a creature over (<c>0x004E8DA0(1)</c>), so it lands stunned like
+    /// any drop (ADR-0226), not as a fighter.</summary>
+    public void ACreatureDroppedOnThePitsRimIsAnOrdinaryDrop_Stunned()
     {
         (GameDatabase db, WorldState world) = World();
         var sink = new ListEventSink();
@@ -92,7 +94,7 @@ public sealed class CombatPitTests
 
         Drop(sim, goblin, Rim);
 
-        Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
+        Assert.Equal(255, goblin.Dk2StateId);   // stunned
         Assert.False(goblin.CombatPitFighter);
     }
 

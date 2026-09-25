@@ -264,7 +264,8 @@ public sealed class StructureBlocksTests
 
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
         Assert.Equal(new TilePos(5, 5), goblin.Tile);
-        Assert.Contains(events.Events, e => e.Kind == "dropped");
+        // Put down, and stunned as any own non-worker is off a room that takes it over (ADR-0226).
+        Assert.Contains(events.Events, e => e.Kind is "dropped" or "dropped_stunned");
         Assert.DoesNotContain(events.Events, e => e.Kind == "creature_left");
     }
 

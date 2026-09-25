@@ -103,8 +103,8 @@ public static class TortureRules
         return device;
     }
 
-    /// <summary>Straps a captive dropped on a free device: 77, 130, 131. It stays its keeper's
-    /// captive. Returns whether it took.</summary>
+    /// <summary>Straps a captive dropped on a free device: 1, 130, 131 (76's enemy-room arm,
+    /// ADR-0226). It stays its keeper's captive. Returns whether it took.</summary>
     public static bool TryStrap(
         WorldState world, GameDatabase database, CreatureState creature, byte keeper, int tileIndex)
     {
@@ -114,15 +114,15 @@ public static class TortureRules
         creature.PrisonOwnerPlayerId = keeper;
         StrapOn(world, creature, tileIndex);
 
-        CreatureStateMachine.TrySetState(creature, PrisonRules.HandDropState);
+        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
         CreatureStateMachine.TrySetState(creature, StrappingState);
         CreatureStateMachine.TrySetState(creature, TorturedState);
         return true;
     }
 
-    /// <summary>77 for a keeper's own creature dropped on a free device of its own chamber: 130
-    /// and 131, as for a captive, but it stays its own and is not a prisoner. A Horned Reaper
-    /// goes to 238 instead (<c>0x0046F1F0</c>). Returns whether it took.</summary>
+    /// <summary>A keeper's own creature dropped on a free device of its own chamber: 1, 130 and
+    /// 131, the room's drop state (76, <c>0x004E8DA0(0)</c>, ADR-0226), as for a captive, but it
+    /// stays its own and is not a prisoner. A Horned Reaper is not strapped. Returns whether it took.</summary>
     public static bool TryStrapOwn(
         WorldState world, GameDatabase database, CreatureState creature, int tileIndex)
     {
@@ -134,7 +134,7 @@ public static class TortureRules
         StrapOn(world, creature, tileIndex);
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
-        CreatureStateMachine.TrySetState(creature, PrisonRules.HandDropState);
+        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
         CreatureStateMachine.TrySetState(creature, StrappingState);
         CreatureStateMachine.TrySetState(creature, TorturedState);
         return true;

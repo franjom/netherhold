@@ -118,6 +118,19 @@ public static class StatusEffectRules
         return true;
     }
 
+    /// <summary><c>0x00491830(255)</c> as the landing calls it (ADR-0226): <c>SetState(255)</c>,
+    /// action 52 and event 15, with none of <see cref="Stun"/>'s callers' refusals. A refused state
+    /// is no stun.</summary>
+    public static bool StunOnLanding(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (CreatureStateMachine.Classify(creature, CombatStates.Stunned) == StateTransition.Refused) return false;
+        creature.StunTicks = CombatRules.TicksOf(definition.StunDuration);
+        Stand(context, creature, CombatStates.Stunned);
+        context.FireCreatureEvent(creature, CreatureTriggerEvent.Stunned);
+        context.Emit(SystemName, "stunned", $"creature={creature.Id} ticks={creature.StunTicks} by=landing");
+        return true;
+    }
+
     /// <summary>Invisible (§2): the word set, then every attacker on my slots that is fighting me
     /// loses its target, my slots are emptied, and <see cref="CombatRules.IsAttackable"/> refuses me
     /// while the word runs.</summary>

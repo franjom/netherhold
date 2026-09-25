@@ -149,9 +149,10 @@ public class CreatureStatusEffectTests
     }
 
     [Fact]
-    public void AFreezeIsTwoEighteen_AndAStunTwoFiftyFive_EachEndingInIdle()
+    public void AFreezeIsTwoEighteen_EndingInIdle_AndAStunTwoFiftyFive_EndingIn250OffARoom()
     {
-        // ADR-0208: 218 until the word runs out, then 1; 255, then 257 and 1 at once.
+        // ADR-0208: 218 until the word runs out, then 1. 255, then 257, whose tail asks the room
+        // underfoot (0x004E8DA0(0)): off a room a keeper's creature stands in 250 (ADR-0226).
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState frozen = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
         CreatureState stunned = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 14);
@@ -167,8 +168,7 @@ public class CreatureStatusEffectTests
         sim.Run(41);
         Assert.Equal(CreatureActivity.Idle, frozen.Activity);
         Assert.Equal(CreatureStateMachine.Idle, frozen.Dk2StateId);
-        Assert.Equal(CreatureActivity.Idle, stunned.Activity);
-        Assert.Equal(CreatureStateMachine.Idle, stunned.Dk2StateId);
+        Assert.Equal(DropLandingRules.StandingState, stunned.Dk2StateId);
     }
 
     [Fact]

@@ -82,6 +82,13 @@ public sealed class CreatureJobSystem : ISimulationSystem
             }
             if (Combat.CombatRules.Preoccupied(creature)) continue;
 
+            // 250, after a drop with nowhere to go: stands, then idle (ADR-0226).
+            if (creature.Dk2StateId == DropLandingRules.StandingState)
+            {
+                if (!DropLandingRules.Stands(context, creature)) StateShadow.ToIdle(context, SystemName, creature);
+                continue;
+            }
+
             switch (creature.Activity)
             {
                 case CreatureActivity.GoingToJob:

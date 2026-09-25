@@ -35,10 +35,12 @@ public sealed class CreatureStatusSystem : ISimulationSystem
                 if (creature.StunTicks > 0) creature.StunTicks--;
                 if (creature.StunTicks == 0)
                 {
-                    // 257 while getting up, idle when its action ends; ours has no action.
+                    // 257 while getting up; ours has no get-up action. A worker idles (its arm,
+                    // 0x00481400, is unread); anyone else asks the room underfoot (ADR-0226).
                     Combat.CombatStates.Enter(context, creature, Combat.CombatStates.GettingUp);
-                    Combat.CombatStates.Idle(creature);
                     context.Emit(SystemName, "recovered", $"creature={creature.Id}");
+                    if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) Combat.CombatStates.Idle(creature);
+                    else DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
                 }
             }
 

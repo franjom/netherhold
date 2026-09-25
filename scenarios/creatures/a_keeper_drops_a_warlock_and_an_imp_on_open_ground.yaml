@@ -101,11 +101,12 @@ expect:
     because: >
       A worker is the exception and lands on the very tile the Goblin was
       refused. Being a worker is the whole difference between the two lines.
-  - event: dropped
-    detail: "worker=no"
+  - event: dropped_stunned
+    detail: "creature=1"
     because: >
       And the Goblin does go down - on the keeper's own floor. The refusal is
-      not a ban on dropping it, only on where.
+      not a ban on dropping it, only on where. A Lair does not take a creature
+      over, so it lands stunned, as every own non-worker does (Q201, ADR-0226).
   - event: dropped_onto_work
     detail: "task=Claim"
     because: >

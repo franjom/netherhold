@@ -155,9 +155,11 @@ the category operation failed; a return of one means it remains valid.
 ### 3.2 The captive's states, 114–126 (read 2026-09-24)
 
 Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
-- **In.** The imp's 44 puts an admitted captive in **114**. A hand drop puts a creature
-  in **77**, whose handler `0x0046F1F0` sends it to 115 in a Prison, 63 in a Workshop and
-  130 in a Torture Chamber; a Horny-flagged one goes to 238. 120 reuses that handler
+- **In.** The imp's 44 puts an admitted captive in **114**. **Corrected 2026-09-25
+  (ADR-0226):** a hand drop enters **76**, which puts a captive dropped into a cell in 114
+  through 1 (`hand-drop-landing.md`). **77** is the slap's reaction, entered only by the
+  slap handler `0x0048B8A0`. Its handler `0x0046F1F0` sends a creature to 115 in a Prison,
+  63 in a Workshop and 130 in a Torture Chamber; a Horny-flagged one goes to 238. 120 reuses that handler
   through the thunk `0x00470C00`, but it is a captive state: 130 is refused from it,
   since the two share group 1 and differ in category. (Corrected 2026-09-24; this line
   first said 120.) **126** (`0x00473920`), after its first tick, goes to 114 on a

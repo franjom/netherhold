@@ -50,19 +50,22 @@ public class DroppedToDoJobTests
     private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink sink)
     {
         var sim = new GameSimulation(db, world, seed: 42,
-            [new HandSystem(), new CreatureMovementSystem(), new CreatureJobSystem()]);
+            [new HandSystem(), new CreatureStatusSystem(), new CreatureMovementSystem(), new CreatureJobSystem()]);
         sim.ObserveWith(sink);
         return sim;
     }
 
+    /// <summary>The drop, then the stun it lands in (76 to 255, ADR-0226), then 257's room drop.</summary>
     private static void DropOnTheBench(GameSimulation sim, CreatureState creature)
     {
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Bench)));
+        Assert.Equal(255, creature.Dk2StateId);
+        for (int t = 0; t < 400 && creature.Dk2StateId == 255; t++) sim.Tick();
     }
 
     [Fact]
-    public void ACreatureDroppedInTheWorkshopIsAtWorkThereAtOnce_AndRemembersTheJob()
+    public void ACreatureDroppedInTheWorkshop_IsAtWorkThereOnceItGetsUp_AndRemembersTheJob()
     {
         GameDatabase db = Db();
         WorldState world = World(db);

@@ -4330,7 +4330,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - `HashVersion` and `FormatVersion` **97**, pin `0x99249045AA085298`.
 
 ## ADR-0193 — A captive on a torture device, and the hand drop is state 77
-**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0191, ADR-0192 · Research: `docs/research/state-category-hooks.md` §3.2, §3.3
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0191, ADR-0192 · **the "hand drop is 77" half is corrected by ADR-0226: the drop enters 76, and 77 is the slap's** · Research: `docs/research/state-category-hooks.md` §3.2, §3.3
 
 **Context.** Torture was unbuilt. Its states 127–135, its three hooks, and the routines behind them are now read. Reading the drop showed that a creature dropped from the hand is in state 77, not 120: 77 owns the handler `0x0046F1F0`, and 120 only reuses it through a thunk. From 120 the move to 130 would be refused.
 
@@ -4692,7 +4692,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Sixteen tests. Eighteen negative controls each fail a named test: the kinds swapped, the trap loader pushing, no registration, no 68, the crate never listed, no Workshop extra, one crate a tile, oldest first, the slots ignored, no Tier A handler, the hold ignored, a built entry kept, no unlisting, no build, no loose branch, no drop-scan step, a crate carried home but not listed, and a short walk treated as arrival.
 
 ## ADR-0215 — The job a creature is dropped on
-**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/workshop-crates.md` §5
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · amended by ADR-0226: the room's job is given when the creature gets up from the drop's stun, not on landing · Research: `docs/research/workshop-crates.md` §5
 
 **Context.** The owner confirmed that a Workshop's workers carry on after each crate (Q432). Idle's chooser 89 (`0x004778E0`) was then read. It tries the job the hand dropped a creature on before either mood chooser. The hand's drop on a room (`0x004E8DA0(0)`) is what records that job, and it also sets the creature straight to the room's work state. Ours had neither: a creature dropped in a Workshop was idle and rolled its table.
 
@@ -4911,3 +4911,23 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Because of the x-in-both-words quirk, a creature returns to (x, x), not where it fought, unless it fought on the diagonal.
 - Four tests. Six negative controls each fail a named test: no stamp, the y word from y, a non-strict threshold, no expiry, the arm not asked, and no arrival.
 - `HashVersion` and `FormatVersion` **117**.
+
+## ADR-0226 — A dropped creature lands stunned, gets up and asks the room, or stands in 250
+**Date:** 2026-09-25 · **Status:** accepted · corrects ADR-0193 (the drop is 76, not 77) · amends ADR-0215 · answers Q201's mechanism · Research: `docs/research/hand-drop-landing.md`
+
+**Context.** A dropped creature landed idle, or at once in a job room's state. The owner described a drop stun of 2–3 s (Q201), and no mechanism for it had been found. The keeper's drop (`0x004BC710`) sets **76**, not 77. 77 is the slap's reaction.
+
+**Decision.** `DropLandingRules`:
+1. **The stun.** An own non-worker dropped where no room takes it over is stunned: `0x00491830(255)` from 76, `StatusEffectRules.StunOnLanding`, for its definition's `StunDuration`, with event 15. A worker is not stunned, and neither is a freed prisoner (owner, Q201).
+2. **Getting up.** 257's tail is `0x004E8DA0(0)` (`DropLandingRules.AfterGettingUp`), for every stun, shots included.
+   - A room with a drop state gives it: the job rooms through `JobRules.TryDropOnARoom`, which moves here from the drop.
+   - With none, a keeper's creature enters **250** with `FightProcessCounter` 10. A hero or a neutral creature idles.
+3. **250** stands until `StateDeadlineTick + 50`, then idles.
+4. **The captive arms go through 1, not 77.** A captive dropped into a cell goes 1 → 114. A creature strapped on by a drop goes 1 → 130. `PrisonRules.HandDropState` becomes `SlappedState`.
+
+**Consequences.**
+- **Tests changed to the new sequence.** Seven tests and one scenario now wait out the stun. `AFreezeIsTwoEighteen_…` ends in 250 off a room.
+- The need-grace test uses a Goblin with the shipped one-second stun, since the fixture's five seconds is a deliberate test value.
+- **Not built:** the other rooms' drop states on getting up (they idle), the worker arm `0x00481400`, Call To Arms, `+0x2CC`, and the landing's sound, fall and pit scatter.
+- Three new tests. Six negative controls each fail a named test: no stun, no 250, a zero-length 250, a freed prisoner stunned, a worker stunned, and the room ignored on getting up.
+- No new state; `HashVersion` stays **117**.
