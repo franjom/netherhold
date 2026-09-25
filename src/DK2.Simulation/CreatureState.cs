@@ -733,6 +733,10 @@ public sealed class CreatureState
     /// for good, as a fight's speed call does in DK2.</summary>
     public int PartySpeedRaw;
 
+    /// <summary>The tile the creature was made on (<c>+0x404</c>/<c>+0x406</c>, written only by the
+    /// constructor at <c>0x004875DA</c>), -1 for none. A thief escapes to it (state 169).</summary>
+    public int OriginTileIndex = -1;
+
     /// <summary>The turn state 99 was entered, for its <c>Age</c> test.</summary>
     public long GuardLostTick;
 
@@ -970,6 +974,7 @@ public sealed class CreatureState
         hash.Add(StateDeadlineTick);
         hash.Add(WaypointDeadlineTick);
         hash.Add(PartySpeedRaw);
+        hash.Add(OriginTileIndex);
         hash.Add(GuardLostTick);
         hash.Add(CombatPitFighter);
         hash.Add(AttackAbnormalTargets);

@@ -13,8 +13,8 @@ namespace DK2.Simulation.Systems;
 /// them. A hero worker is a hero too: state 1 tests the hero owner before the worker flag
 /// (<c>0x004773D0</c>). A walk's arrival hands over to the state it resumes, which runs from the
 /// next turn, as DK2's dispatcher runs one handler a turn. Not built: state 1's pending-point walk
-/// (<c>+0x4FE</c>), the StealGold states, the Dwarf tunnelling of 223/224, and the knock-out
-/// re-lead of a party.</summary>
+/// (<c>+0x4FE</c>) and the Dwarf tunnelling of 223/224. StealGold's states are
+/// <see cref="StealGoldRules"/> (ADR-0219).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-party-walk.md")]
 public sealed class HeroSystem : ISimulationSystem
 {
@@ -34,6 +34,8 @@ public sealed class HeroSystem : ISimulationSystem
             if (HandRules.IsHeld(creature) || PrisonRules.IsImprisoned(creature)) continue;
             if (CreatureDeathRules.IsDown(creature) || Combat.CombatRules.Preoccupied(creature)) continue;
             Turn(context, creature);
+            // State 169 removes the thief: the next creature has moved into its slot.
+            if (i < creatures.Count && !ReferenceEquals(creatures[i], creature)) i--;
         }
     }
 
@@ -64,6 +66,11 @@ public sealed class HeroSystem : ISimulationSystem
             HeroJobRules.AtTheHeartState => false,
             HeroJobRules.FollowingState => HeroJobRules.Follow(context, creature),
             HeroJobRules.NoPointState => true,
+            StealGoldRules.ToTheTreasuryState => StealGoldRules.ToTheTreasury(context, SystemName, creature),
+            StealGoldRules.InTheTreasuryState => StealGoldRules.InTheTreasury(context, SystemName, creature),
+            StealGoldRules.AtTheGoldState => StealGoldRules.AtTheGold(context, SystemName, creature),
+            StealGoldRules.EscapingState => Escape(context, creature),
+            StealGoldRules.RunTheJobState => HeroJobRules.Dispatch(context, SystemName, creature),
             _ => true,
         };
         if (!stays) StateShadow.ToIdle(context, SystemName, creature);
@@ -89,9 +96,16 @@ public sealed class HeroSystem : ISimulationSystem
         return CreatureStateMachine.TrySetState(creature, HeroJobRules.WaitFailedState);
     }
 
+    private static bool Escape(SimulationContext context, CreatureState creature)
+    {
+        StealGoldRules.Escaped(context, SystemName, creature);
+        return true;
+    }
+
     /// <summary>A walk this system started, and so one it finishes: the other systems' walks resume
     /// their own states.</summary>
     private static bool IsHeroResume(int state) => state is HeroJobRules.WaitingState
         or HeroJobRules.AtThePointState or HeroJobRules.RoamingState or HeroJobRules.HuntingState
-        or HeroJobRules.AtTheHeartState or HeroJobRules.FollowingState;
+        or HeroJobRules.AtTheHeartState or HeroJobRules.FollowingState
+        or StealGoldRules.InTheTreasuryState or StealGoldRules.AtTheGoldState or StealGoldRules.EscapingState;
 }

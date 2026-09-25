@@ -38,6 +38,9 @@ public static class ActivityRules
         HeroJobRules.WaitingState or HeroJobRules.RoamingState => CreatureActivity.AtWork,
         HeroJobRules.AtThePointState or HeroJobRules.HuntingState or HeroJobRules.AtTheHeartState
             or HeroJobRules.FollowingState => CreatureActivity.GoingToJob,
+        StealGoldRules.InTheTreasuryState => CreatureActivity.GoingToJob,
+        StealGoldRules.AtTheGoldState => CreatureActivity.AtWork,
+        StealGoldRules.EscapingState => CreatureActivity.Leaving,
         _ when JobStates.Contains(resume) => CreatureActivity.GoingToJob,
         _ => Standing(creature, resume),
     };
@@ -49,6 +52,9 @@ public static class ActivityRules
             or HeroJobRules.NoPointState or HeroJobRules.FollowingState => CreatureActivity.Idle,
         >= HeroJobRules.ToThePointState and <= HeroJobRules.RoamingState => CreatureActivity.AtWork,
         HeroJobRules.HuntingState or HeroJobRules.AtTheHeartState => CreatureActivity.AtWork,
+        >= StealGoldRules.ToTheTreasuryState and <= StealGoldRules.AtTheGoldState => CreatureActivity.AtWork,
+        StealGoldRules.EscapingState => CreatureActivity.Leaving,
+        StealGoldRules.RunTheJobState => CreatureActivity.Idle,
         13 or 15 or 17 or 19 or 21 or 23 or 25 => CreatureActivity.MovingToJob,
         14 or 16 or 18 or 20 or 22 or 24 or 26 => CreatureActivity.Working,
         ImpStates.PickingUpGold => CreatureActivity.FetchingGold,

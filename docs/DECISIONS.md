@@ -4770,3 +4770,25 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - A death with no dying window changes no party field, as in DK2. What its followers then do is Q428.
 - Eight tests. Twelve negative controls each fail a named test: the 0xFF test, no count, the follower bit kept, a corpse heir, no state 1, the call removed, no repeat byte, the leader kept on detach, the value not copied, the old leader detached, the heir's leader cleared, and the last follower chosen.
 - No new fields; `HashVersion` stays **113**.
+
+## ADR-0219 — A hero steals gold from the first keeper's Treasury and escapes with it
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0216 · Research: `docs/research/steal-gold.md`
+
+**Context.** ADR-0216 left job 13, StealGold, failing and retrying.
+
+**Decision.** `StealGoldRules`, run by `HeroSystem`:
+1. **The arm** (`0x00481FA0`). It needs a job player other than the hero's own: the strongest when the job names none, not written back. That player must have a reachable Treasury. Then state 163.
+2. **163.** The Treasury is **player 3's**, hard-coded as the third player record. A creature of player 3 refuses.
+3. **164.** The tile must be a Treasury of the job's player. The hero walks to the first gold that routes. A leader hands job 13 to its followers in 222, which run it from 226.
+4. **165.** Creature event 13, then what the purse lacks is taken from the **whole room**, round its tiles (`0x004F4510`). Half goes into the purse, and the hero walks to its origin tile.
+5. **169.** The purse is emptied into nothing, and the creature is removed without a body. Effect 15 is emitted unless it is `AvailableViaPortal`.
+6. **A new field.** `CreatureState.OriginTileIndex` (`+0x404/+0x406`) is set by the spawn.
+
+**Consequences.**
+- **Kept as DK2 has it:** a job against a player other than the first keeper, or naming none, walks to player 3's gold and never takes any.
+- **Ours:** the ring follows tile-index order; the room points are approximations of unread helpers; tunnelling is not built.
+- **Not built:** the Library and Workshop steals (160–162, 166–168) and the second gold steal (170–172), all read in the research doc.
+- **Found:** payday calls the same take, so it drains the whole Treasury, not one tile (Q435). Not changed here.
+- **Tests and controls.** Seven tests. Nine negative controls each fail a named test: a one-tile take, 163 raiding the job's player, the choice written back, the purse not halved, no escape walk, no recruiting, no origin, 164 testing player 3, and no own-player test in the arm.
+- 163's refusal for player 3's own creatures has no test: only heroes run these states here.
+- `HashVersion` and `FormatVersion` **114**, pin `0x7AE4DE645C0A63A1`.

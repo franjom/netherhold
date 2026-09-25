@@ -940,6 +940,7 @@ public sealed class WorldState
             PosY = CreatureState.CentreOf(at.Y),
             LastPosX = CreatureState.CentreOf(at.X),
             LastPosY = CreatureState.CentreOf(at.Y),
+            OriginTileIndex = (at.Y * Width) + at.X,
 
             // The database is a parameter for this one line: a creature spawned at
             // zero health dies on the tick it arrives, so there is deliberately no

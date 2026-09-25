@@ -10,8 +10,8 @@ namespace DK2.Simulation;
 /// <summary>What a hero does between fights (hero-party-walk.md): state 1 sends a hero-owned
 /// creature to 90, which runs its standing <c>GoodJob</c> through the job dispatcher
 /// <c>0x00478800</c> on every visit, or sends a follower to 222 behind its leader. The arms
-/// built are the five shipped jobs but <see cref="JobType.StealGold"/>, whose stealing states
-/// do not exist (it fails and retries, as a job with no target does in DK2).</summary>
+/// built are the five shipped jobs; <see cref="JobType.StealGold"/>'s are in
+/// <see cref="StealGoldRules"/> (ADR-0219).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-party-walk.md")]
 public static class HeroJobRules
 {
@@ -93,6 +93,7 @@ public static class HeroJobRules
                 context, system, creature, creature.GoodJobActionPointId != 0 ? ToThePointState : NoPointState),
             JobType.KillCreatures => HuntFirst(context, creature),
             JobType.KillPlayer => ToTheHeart(context, creature, creature.GoodJob),
+            JobType.StealGold => StealGoldRules.Arm(context, system, creature),
             _ => false,
         };
         if (took) creature.CurrentJob = creature.GoodJob;
