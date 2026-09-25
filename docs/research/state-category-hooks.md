@@ -291,7 +291,9 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   `0x00517480` (an area of radius 3, kind 6) on each tile not flagged `0x20`, or failing
   that sets `+0x475 = 0x10` and `+0x476` to the chamber's owner on the first creature
   standing on such a tile; any other marks it given through `0x004C2B60`. Then speech
-  `0x61`, and `0x60` for 3–10 or `0x3B` for 11. What 3–10 unlock is not read.
+  `0x61`, and `0x60` for 3–10 or `0x3B` for 11. **Read 2026-09-25 (ADR-0230,
+  `torture-information.md`):** 3–10 unlock rows of the enemy-information panel, presentation
+  only; the candidates are keyed by `JobClass`.
 - **Built** (ADR-0201): the contact test and 134. `ThingProjection` copies the record's
   `Flags` with the loader's masks. A creature stepping onto a tile of an enemy's chamber
   with an ally on a device goes to 134, waits two turns, frees an ally on its tile (133,

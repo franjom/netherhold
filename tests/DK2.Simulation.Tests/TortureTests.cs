@@ -180,6 +180,12 @@ public class TortureTests
         Assert.Equal(Rival, captive.OwnerPlayerId);
         Assert.False(TortureRules.IsBeingTortured(captive));
         Assert.Contains(sink.Events, e => e.Kind == "tortured_to_death");
+
+        // An enemy's death tells the keeper something (0x004F2370, ADR-0230): 3–10 are kept.
+        string told = Assert.Single(sink.Events, e => e.Kind == "information").Detail;
+        int reward = int.Parse(told[(told.IndexOf("reward=", StringComparison.Ordinal) + 7)..].Split(' ')[0], System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Contains(reward, TortureInformationRules.Candidates(World(db), db.CreatureById(captive.CreatureTypeId), Rival, Keeper));   // before any was given
+        Assert.Equal(reward != TortureInformationRules.Reveal, TortureInformationRules.Given(world, reward, Keeper, Rival));
     }
 
     [Fact]

@@ -225,9 +225,8 @@ local. 268 of the 291 shipped records reveal.
 
 ### 3.7 The Torture Chamber's information — `0x004F2370`
 
-Reward 11 either explores the victim owner's heart room, a tile chain from the
-player's `+0x36` (the branch is skipped when the first tile is already
-explored), or tags one
+Reward 11 either explores the first of the victim owner's rooms (the chain from the
+player's `+0x36`) whose first tile is not yet explored, every tile of it, or tags one
 of that player's creatures that stands on unexplored ground: `+0x475 = 16`,
 `+0x476 = the chamber's owner`. The tag feeds §3.1's radius-1 square. The heart
 branch has no local-player test in the lines read.

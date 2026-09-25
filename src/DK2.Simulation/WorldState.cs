@@ -304,6 +304,10 @@ public struct PlayerState
     /// <summary>DK2's manufacture points, <c>player+0x217</c>, a word (ADR-0203).</summary>
     public int ManufacturePoints;
 
+    /// <summary>What this keeper has learned from torture (<c>0x004C2B60</c>'s table, ADR-0230):
+    /// bit <c>(k − 3) × 8 + victim's player id</c> for reward <c>k</c> of 3–10.</summary>
+    public ulong InformationGiven;
+
     /// <summary>DK2's manufacture list, <c>player+0x219</c>: the orders waiting, head first.</summary>
     public List<ManufactureOrder> ManufactureQueue;
 
@@ -389,6 +393,7 @@ public struct PlayerState
         foreach (AvailabilityState availability in Availabilities)
             availability.HashInto(ref hash);
         hash.Add(ManufacturePoints);
+        hash.Add(InformationGiven);
         hash.Add(ItemsManufactured);
         hash.Add(ManufactureQueue.Count);
         foreach (ManufactureOrder order in ManufactureQueue) order.HashInto(ref hash);

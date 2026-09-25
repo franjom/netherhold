@@ -5050,3 +5050,33 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - the `0x68`/`0x6C` route options;
   - `0x004E2C30`'s path.
 - `HashVersion` **119** (`PrisonDoor`).
+
+## ADR-0230 — An enemy tortured to death tells its torturer's keeper one thing
+**Date:** 2026-09-25 · **Status:** accepted · Research: `docs/research/torture-information.md`
+
+**Context.** `0x004F2370`, the manual's "valuable piece of information", was read for its choice but not for what the rewards do. Ours emitted `information=unbuilt`.
+
+**Decision.** `TortureInformationRules`:
+1. **The candidates.**
+   - By the victim's `JobClass`: Artisan 3 and 7, Thinker 4 and 9, Fighter 5 and 8, a Scout none.
+   - Then 10.
+   - Each is a candidate only while the chamber's keeper has not been given it about the victim's keeper.
+   - Then 11, always. A hero victim gives 11 alone.
+2. **The draw.** `rand(n)` picks one. Rewards 3–10 are recorded in `InformationGiven`, per pair of keepers; 11 never is.
+3. **Where it runs.** `TortureSystem` gives the reward when an enemy dies on the device, and emits `information`.
+
+**Consequences.**
+- **Presentation only.** Rewards 3–10 unlock rows of the enemy-information panel, whose values (score, gold, creature counts, average level, happiness) are player statistics.
+- **Reward 11 does nothing yet.** Its reveal needs fog of war, which is not built; it is chosen and reported. The speech is not built either.
+- **A bug caught before commit.** The flag for 11 would be a 64-bit shift wrapping onto reward 3's. `Given` answers false outside 3–10.
+- **Tests.** Four tests in `TortureInformationTests`, one of them a four-case theory, and the torture death test now checks the reward.
+- **Eight negative controls each fail a named test:**
+  - the Fighter's pair swapped;
+  - a hero offered everything;
+  - no 10;
+  - never marked;
+  - oneself not counted as given;
+  - flags not per victim;
+  - no reward on death;
+  - the shift guard removed.
+- `HashVersion` **120** (`InformationGiven`).

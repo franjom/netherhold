@@ -17,7 +17,7 @@ namespace DK2.Simulation.Systems;
 /// else joins the chamber's keeper.
 /// <para>Ours, stated: a captive whose health reaches zero is let go of there and then, and the
 /// health system takes it; DK2 knocks it out on the device and then kills it, revealing
-/// information (<c>0x004F2370</c>, unbuilt). A convert is let go of too, and stands in the
+/// information (<c>0x004F2370</c>, <see cref="TortureInformationRules"/>, ADR-0230). A convert is let go of too, and stands in the
 /// chamber idle as its new keeper's, and beds down like any other creature (owner, Q425).</para></remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public sealed class TortureSystem : ISimulationSystem
@@ -81,9 +81,19 @@ public sealed class TortureSystem : ISimulationSystem
 
         if (creature.Health <= 0)
         {
+            // An enemy that dies here tells its torturer's keeper something (0x004F2370, ADR-0230).
+            string information = "none";
+            if (creature.OwnerPlayerId != keeper)
+            {
+                int reward = TortureInformationRules.Give(world, context.Rng, definition, creature.OwnerPlayerId, keeper);
+                information = reward.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                context.Emit(SystemName, "information",
+                    $"keeper={keeper} about={creature.OwnerPlayerId} reward={reward}" +
+                    (reward == TortureInformationRules.Reveal ? " reveal=unbuilt" : ""));
+            }
             context.Emit(SystemName, "tortured_to_death",
                 $"creature={creature.Id} type={definition.Name} owner={creature.OwnerPlayerId} " +
-                $"keeper={keeper} duration={creature.TorturedDuration} information=unbuilt");
+                $"keeper={keeper} duration={creature.TorturedDuration} information={information}");
             Free(context, creature, "health_gone");
             return;
         }

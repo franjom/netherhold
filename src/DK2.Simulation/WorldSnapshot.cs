@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 119;
+    private const int FormatVersion = 120;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -160,6 +160,7 @@ public static class WorldSnapshot
                 w.Write(availability.Value);
             }
             w.Write(p.ManufacturePoints);
+            w.Write(p.InformationGiven);
             w.Write(p.ItemsManufactured);
             w.Write(p.ManufactureQueue.Count);
             foreach (ManufactureOrder order in p.ManufactureQueue)
@@ -618,6 +619,7 @@ public static class WorldSnapshot
                     r.ReadUInt16(), r.ReadInt32(), r.ReadInt32()));
 
             players[i].ManufacturePoints = r.ReadInt32();
+            players[i].InformationGiven = r.ReadUInt64();
             players[i].ItemsManufactured = r.ReadInt32();
             int orderCount = r.ReadInt32();
             for (int o = 0; o < orderCount; o++)
