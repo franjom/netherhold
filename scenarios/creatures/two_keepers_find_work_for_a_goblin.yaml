@@ -64,17 +64,17 @@
 #     Player 3 was given 1200 gold, two Goblins cost 5 a game second each, and
 #     at about t2500 the treasury is empty and both lose the job on the spot.
 #     Training is the only job in DK2 a keeper can be evicted from by being poor.
-#   * job_refused job=Train reason=no_room for player 4's pair, five game
-#     seconds apart - the reselection gate - and no_work between them at 50 a
-#     second. Player 4 is FUNDED on purpose: the original's training handler
+#   * job_refused job=Train reason=no_room for player 4's pair, and a no_work
+#     of +12 (the loaded def+0x6C7) on each failed pass. A pass comes when state 3
+#     ends, every eight turns or so, so the charge is far below the 50 a second
+#     this scenario used to show (ADR-0228). Player 4 is FUNDED on purpose: the original's training handler
 #     tests the keeper's gold before it looks for a room, so a broke player 4
 #     would be refused for poverty and this contrast would vanish.
-#   * creature_mood four times, and the pairing is the point. Player 4's Goblins
-#     turn Content->Unhappy at t6839/t6879 with worst=Work at 16400 against an
-#     unhappy_at of 16383. Player 3's turn at t9339/t9359 with the same numbers -
-#     2500 ticks later, because they spent that long training. TWO KEEPERS
-#     ARRIVE AT THE SAME UNHAPPY GOBLIN BY DIFFERENT ROUTES: one never built the
-#     room, the other could not keep paying for it.
+#   * creature_mood: every Goblin turns unhappy on Pay, not Work. Player 3's
+#     turn at t3495, their wages unpaid because training emptied the treasury;
+#     player 4's unpaid Goblin at t3495 and the other at t5895, after the second
+#     payday finds nothing left. Since ADR-0228 idleness costs too little to get
+#     there first: the Work bucket stands at a few thousand when Pay crosses.
 #   * and then nothing more from no_work for any of the four, because they are
 #     unhappy now and the unhappy chooser does not charge it.
 #   * prayed, once a second, for player 3's Vampire. It is there to be the third
@@ -123,9 +123,9 @@ question: >
   room get a Goblin who walks to it, is paid 40 experience a game second for
   standing there and reaches level 2 - and then loses the job the second the
   keeper's gold runs out? Does the keeper that built no room get one that takes
-  AngerNoWork at 50 a second until it turns unhappy, and do both keepers end up
-  with the same unhappy Goblin by different routes?
-map: flat_16x10
+  AngerNoWork on each failed choice, and do both keepers end up with an unhappy
+  Goblin?
+map: flat_36x10
 seed: 11
 duration_ticks: 12000
 setup:
@@ -150,9 +150,9 @@ setup:
     # and a keeper's gold lives in treasury tiles or nowhere.
     - { type: Treasury, at: [8, 6], player: 3 }
     # Player 4: somewhere to live, and nothing to do.
-    - { type: Lair, at: [12, 6], player: 4 }
-    - { type: Lair, at: [13, 6], player: 4 }
-    - { type: Treasury, at: [10, 6], player: 4 }
+    - { type: Lair, at: [32, 6], player: 4 }
+    - { type: Lair, at: [33, 6], player: 4 }
+    - { type: Treasury, at: [30, 6], player: 4 }
   creatures:
     # Two Goblins standing ON the two lair tiles, so they bed on the first tick
     # and the beds are gone before anything else can walk over. The first draft
@@ -165,10 +165,11 @@ setup:
     # watching: the Vampire never gets one, so its Lair bucket climbs at 100 a
     # second, and praying is the only thing in DK2 that can take it back out.
     - { type: Vampire, at: [7, 3], player: 3 }
-    # Six tiles from the Vampire: two tiles beyond DistanceCanSee, so nobody
-    # picks a fight and the run stays about work (ADR-0164).
-    - { type: Goblin, at: [13, 3], player: 4 }
-    - { type: Goblin, at: [14, 3], player: 4 }
+    # Twenty tiles east of player 3's dungeon. An idle creature wanders (state 3
+    # and 87, ADR-0228), and at six tiles the two keepers' Goblins met and fought;
+    # this far apart nobody picks a fight and the run stays about work (ADR-0164).
+    - { type: Goblin, at: [33, 3], player: 4 }
+    - { type: Goblin, at: [34, 3], player: 4 }
 observe:
   - state_hash
   - events
@@ -198,8 +199,11 @@ expect:
       Training costs the keeper gold per application, and the job ends the tick
       the store cannot cover it - the creature is not told, it simply stops
       being trained.
-  - event: wages_missed
+  - event: paid
+    detail: "player=4"
     count: 1
     because: >
       The other keeper's treasury holds 500 and two Goblins want 500 each. One
-      is paid and one is not, on the same payday, out of the same tile.
+      is paid and one is not, on the same payday, out of the same tile. Whether
+      the other misses it at the tile or finds it empty before setting out
+      depends on where its wander left it (ADR-0228).

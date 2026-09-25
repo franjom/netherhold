@@ -84,7 +84,8 @@ public class CombatTests
     [Fact]
     public void TheKillerFightsInOneNinetyNine_CelebratesInTwoSixty_AndGoesIdle()
     {
-        // ADR-0208: 199 from idle, 260 on the victory arm, then state 1.
+        // ADR-0208: 199 from idle, 260 on the victory arm, then state 1; with nothing to do, 89 then
+        // parks it in 3 (ADR-0228).
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
@@ -94,7 +95,7 @@ public class CombatTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        Assert.Equal([199, 260, CreatureStateMachine.Idle], StateTrace.States(sim, demon, 120));
+        Assert.Equal([199, 260, CreatureStateMachine.Idle, CreatureJobSystem.DoingNothingState], StateTrace.States(sim, demon, 120).Take(4));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 

@@ -109,8 +109,9 @@ Off the pit it returns 0.
    return 1. With an engagement, off the pit or with nobody found, go on to step 3.
 2. At or above the cap: at `Age` 1, a running action is ended and action `0x2C` started;
    started, return 1. While an action runs, return 1.
-3. Anger: `angerNoWork` (`def+0x6C7`) into bucket 0 and again into bucket 3, through the
-   wrapper `0x00478B80`, **every turn** this step is reached.
+3. Anger: `angerNoWork` (`def+0x6C7`, as loaded: the file's figure over four) into bucket 0
+   and again into bucket 3, through the wrapper `0x00478B80`, **every turn** this step is
+   reached. Ours added the file's figure until ADR-0228.
 4. On a room tile, `0x004E50F0(position, 4, 0, 0)` picks a neighbouring tile (§5); found,
    `0x00471890(point, 139, 0xE8)` walks there in state 6 and resumes in 139. Return 1.
 

@@ -4968,3 +4968,50 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - the pit ignored on getting up;
   - and crowding ignored.
 - `HashVersion` **118**: `SpectatorPosX`/`Y` and `PitFightSeenTick`.
+
+## ADR-0228 — An idle creature with nothing chosen trains, watches or gambles, else wanders in 3
+**Date:** 2026-09-25 · **Status:** accepted · amends ADR-0082 (the no-work charge) and ADR-0213 (139's anger) · Research: `docs/research/idle-fallback.md`
+
+**Context.** Ours left a creature with nothing to do standing in state 1. It retried every tick, and was charged `AngerNoWork` 50 once a second. DK2's state 89 does more after its happy chooser takes nothing, whether it failed or its gate was shut. It runs `0x00478680`, then sets `+0x7E` = now + 12 and state 3. `0x00478680` is also the only caller of job 26, so ADR-0227's spectators were unreachable without it.
+
+**Decision.**
+1. **The fallback** (`0x00478680`) runs after the mood's chooser, inside its gate or after a failed pass, for a creature in state 1:
+   - Train, unless `NotTrainWhenIdle`, when the level makes the Training Room available (`0x004BAB20(7) == 3`);
+   - then job 26 when the Combat Pit is available;
+   - then Drink when the Casino is.
+
+   Its Heart walk is replaced at once by 89's `SetState(3)`, so it is not built.
+2. **State 3** (`0x00477680`) holds until `+0x7E`:
+   - At first, and on a roll under 25, it wanders in 87 (the imp's handler, now shared), with `+0xA7` = now + 132.
+   - After a wander, 25–74 plays action 43 and 75–99 action 44.
+   - At the deadline, idle.
+3. **`AngerNoWork` is the loaded value**, the file's figure over four (12 for a Goblin), charged once per failed pass. The Combat Pit's 139 adds the same loaded value every turn, where ours added the file's.
+4. **Every refusal is logged**, since passes are no longer per tick.
+
+**Consequences.**
+- **Idle creatures wander.**
+  - `two_keepers_find_work_for_a_goblin` moved its second keeper 20 tiles away: its Goblins wandered into the first keeper's and fought.
+  - Its wage expectation became "one `paid`": where the wander leaves the unpaid Goblin decides between `wages_missed` and `wages_unreachable`.
+  - Its Goblins now turn unhappy on Pay, not Work.
+- **No-work anger is roughly eight times slower than ours was:** 60 in ten seconds in `AGoblinWithNowhereToTrain…`, against 500.
+- **Tests.** Five tests changed their expected traces or anger totals:
+  - `CombatTests.TheKiller…`, `CreatureJobTests.AGoblinWalksToTraining…` and `FightReturnTests.AStampFiveHundred…`, which now meets state 3;
+  - `AGoblinWithNowhereToTrain…`, which now charges 12 a pass;
+  - `BuildingTheTrainingRoom…`.
+
+  `IdleFallbackTests` adds eight tests.
+- **Eleven negative controls each fail a named test:**
+  - no fallback;
+  - no state 3;
+  - a zero deadline;
+  - availability ignored;
+  - `NotTrainWhenIdle` ignored;
+  - no spectating;
+  - no wander;
+  - no idle action;
+  - the gate skipping the fallback;
+  - the file's value in the chooser;
+  - and in the pit.
+- **Guessed:** that every creature has actions 43 and 44, and their length.
+- **Not built:** the idle sound, `ReturnToJobId`, and the Call To Arms and casino arms of 89.
+- No new state; `HashVersion` stays **118**.

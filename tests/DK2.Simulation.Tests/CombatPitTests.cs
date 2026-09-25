@@ -258,10 +258,14 @@ public sealed class CombatPitTests
         }
 
         // Every waiting turn adds angerNoWork to two buckets; a turn spent walking adds nothing.
-        int noWork = db.CreatureById(GoblinId).AngerNoWork;
+        int noWork = SimulationTiming.LoaderRatePerTick(db.CreatureById(GoblinId).AngerNoWork);   // def+0x6C7 as loaded
         Assert.True(noWork > 0);
         Assert.True(a.Anger[AngerBucket.Work] >= before + (10 * noWork), $"work anger {a.Anger[AngerBucket.Work]}");
         Assert.True(a.Anger[AngerBucket.Company] >= company + (10 * noWork), $"company anger {a.Anger[AngerBucket.Company]}");
+        // At most one charge a turn, each of the loaded 12, not the file's 50.
+        int rise = a.Anger[AngerBucket.Work] - before;
+        Assert.True(rise <= 200 * noWork, $"work anger rose {rise}");
+        Assert.Equal(0, rise % noWork);
     }
 
     [Fact]

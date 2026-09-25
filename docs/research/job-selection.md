@@ -129,7 +129,9 @@ chooser or the needs routine owns those two never arises in practice.
 
 The whole happy side needs five rooms — training room, library, workshop, temple
 and guard room — and **a Goblin in a dungeon with no training room has an empty
-table and takes `AngerNoWork` at 50 a second**. That is the mechanic.
+table and takes `AngerNoWork`**. That is the mechanic. **Corrected 2026-09-25 (ADR-0228):**
+the charge is the loaded `def+0x6C7` (the file's 50 over four, 12) once per failed pass, and a
+pass comes only when state 3 ends (`idle-fallback.md`), so not 50 a second.
 
 ---
 

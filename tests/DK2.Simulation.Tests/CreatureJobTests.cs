@@ -99,12 +99,13 @@ public sealed class CreatureJobTests
     }
 
     [Fact]
-    public void AGoblinWithNowhereToTrainTakesAngerNoWorkAndNothingElseDoes()
+    public void AGoblinWithNowhereToTrainTakesAngerNoWork_TheLoadedTwelveOnEachFailedPass()
     {
         // THE POINT OF THE WHOLE SYSTEM, and the last anger source in the game
-        // to acquire a consumer. AngerNoWork is 50 a second for a Goblin, and
-        // it is charged by the HAPPY chooser alone: when every job in the happy
-        // table has failed, the creature that was fine is made cross about it.
+        // to acquire a consumer. AngerNoWork is 50 in the file, loaded as 12 a
+        // turn, and it is charged by the HAPPY chooser alone, once on each pass
+        // where every job in the happy table has failed. A pass comes only when
+        // state 3 ends, so the rate is far below 50 a second (ADR-0228).
         GameDatabase db = Db;
         WorldState world = World(db);
 
@@ -118,9 +119,11 @@ public sealed class CreatureJobTests
 
         Simulation(db, world, events).Run(Second * 10);
 
-        // Ten seconds at 50, and in the Work bucket rather than pooled with the
-        // lairless grievance the same Goblin is also accruing (ADR-0081).
-        Assert.Equal(10 * 50, goblin.Anger.Work);
+        // In the Work bucket rather than pooled with the lairless grievance the
+        // same Goblin is also accruing (ADR-0081): 12 a pass, and a pass is rare.
+        int passes = events.Events.Count(e => e.Kind == "no_work");
+        Assert.InRange(passes, 2, 10);   // 3 wanders at once, and the walk back to 1 cuts its 12 turns short
+        Assert.Equal(passes * 12, goblin.Anger.Work);
         Assert.Equal(50, db.CreatureById(GoblinId).AngerNoWork);
         Assert.Equal(CreatureActivity.Idle, goblin.Activity);
         Assert.Equal(JobType.None, goblin.CurrentJob);
@@ -146,7 +149,7 @@ public sealed class CreatureJobTests
 
         sim.Run(Second * 10);
         int owed = goblin.Anger.Work;
-        Assert.Equal(500, owed);
+        Assert.True(owed > 0);
 
         Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
         sim.Run(Second * 60);
@@ -470,10 +473,12 @@ public sealed class CreatureJobTests
         world.Tile(3, 3).TerrainId = Dk2TerrainFixture.ClaimedPath;
         seen.AddRange(StatesSeen(sim, goblin, Second * 2));
 
+        // Then, with nothing left to choose, 89 parks it in 3 (ADR-0228).
         Assert.Equal(
             [(7, CreatureStateMachine.Idle), (108, CreatureStateMachine.Idle),
-             (CreatureStateMachine.Idle, CreatureStateMachine.Idle)],
-            seen);
+             (CreatureStateMachine.Idle, CreatureStateMachine.Idle),
+             (CreatureJobSystem.DoingNothingState, CreatureStateMachine.Idle)],
+            seen.Take(4));
         Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }

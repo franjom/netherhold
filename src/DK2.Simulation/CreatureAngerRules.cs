@@ -91,7 +91,7 @@ public static class CreatureAngerRules
     /// sources — <c>AngerNoLair</c> +100, <c>AngerNoPay</c> +60 (ADR-0079; being owed is the whole
     /// trigger, <see cref="PaydayRules.IsOwedWages"/>) and
     /// <c>ModifyAngerOfCreatureInLairPerSecond</c> −550. Elsewhere: <c>AngerNoFood</c> +100 in the
-    /// prison only (ADR-0074), <c>AngerNoWork</c> +50 in <see cref="Systems.CreatureJobSystem"/>,
+    /// prison only (ADR-0074), <c>AngerNoWork</c>, the loaded 12, on each failed pass in <see cref="Systems.CreatureJobSystem"/>,
     /// and <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> +150 every four seconds in a
     /// cell (<see cref="PrisonRules.CellAngerPerApplication"/>, ADR-0171). That variable's
     /// <i>other</i> reader, the mixed-alignment room rule, is still unbuilt.</summary>

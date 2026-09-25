@@ -93,8 +93,9 @@ public sealed partial class ImpTaskSystem
 
     /// <summary>State 87 (<c>0x004808E0</c>): a destination at ring radius 4–7, then each smaller one
     /// down to 1, else the creature's own position; a random sub-tile point in that tile; a walk with
-    /// options <c>0x80</c> resuming 1 (238 for a Horny creature).</summary>
-    private static bool Wander(SimulationContext context, CreatureState creature, CreatureDef definition)
+    /// options <c>0x80</c> resuming 1 (238 for a Horny creature). One handler for every creature: a
+    /// non-worker reaches it from state 3 (<see cref="CreatureJobSystem"/>, ADR-0228).</summary>
+    internal static bool Wander(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (context.Tick.Value < creature.ActionUntilTick) return true;
         int x = creature.PosX, y = creature.PosY;

@@ -21,7 +21,7 @@
      (`0x004C6460(5)`, room `+0x27`, each axis ±2 by `random(2)`). It returns 0 either way, so
      89 then stamps `+0x7E` and sets 3.
 
-  **`0x00478680` is not built in ours.** Until it is, job 26 is unreachable with shipped data.
+  **Built in ours (ADR-0228, `idle-fallback.md`).**
 
 ## 2. Job 26, `0x00457780` — CONFIRMED
 
@@ -99,7 +99,7 @@ keeps a creature in place, while a watcher in 144 still picks a new spot.
   - Room `+0x27`, the position tile, is taken to be the room's centre: 89's fallback aims ±2
     tiles from the Heart's. Ours uses the middle of the bounding box.
   - The route point `0x004E5000`: ours tests the room's first standable tile.
-- **Not built:** the finder's messages, and `0x00478680`, which is the only caller of job 26.
+- **Not built:** the finder's messages. `0x00478680`, job 26's only caller, is built (ADR-0228).
 - 138's rim arm is kept and refused by the gate, as DK2's is.
 - **Getting up on a pit.** A stunned creature that gets up on a pit (`0x004E8DA0(0)`) takes the
   drop state 137 through 1. On the rim, 137 goes to 138, and 138 idles.

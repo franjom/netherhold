@@ -13,7 +13,8 @@ namespace DK2.Simulation;
 /// <c>0x00457780</c>, which sends a creature to watch a fight in one of its keeper's pits, and the
 /// three Spectating states. 142 picks a spot on the rim and walks there, 143 turns to face the pit
 /// and cheers, 144 waits out the cheer and picks again while the fight lasts. Four game seconds
-/// after the last fight was seen the spectator goes idle.</summary>
+/// after the last fight was seen the spectator goes idle. Job 26's only caller is state 89's
+/// fallback (ADR-0228).</summary>
 /// <remarks>Not built: the finder's messages <c>0x2A</c>–<c>0x2C</c>, the animation test before
 /// the cheer (ours assumes every creature has one), and the reachability point
 /// <c>0x004E5000</c> (ours tests the room's first standable tile).</remarks>

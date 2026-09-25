@@ -20,7 +20,7 @@ namespace DK2.Simulation.Systems;
 /// until the room stops being the keeper's or a need intervenes. Leave, Rebel and Explore
 /// are chosen and logged only; StealGold runs <see cref="StealGoldRules"/> (ADR-0223).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/job-selection.md")]
-public sealed class CreatureJobSystem : ISimulationSystem
+public sealed partial class CreatureJobSystem : ISimulationSystem
 {
     private const string SystemName = "CreatureJob";
 
@@ -81,6 +81,18 @@ public sealed class CreatureJobSystem : ISimulationSystem
                 continue;
             }
             if (Combat.CombatRules.Preoccupied(creature)) continue;
+
+            // 3 and 87, 89's "nothing to do": an idle action or a wander, then idle (ADR-0228).
+            if (creature.Dk2StateId == DoingNothingState)
+            {
+                DoingNothing(context, creature);
+                continue;
+            }
+            if (creature.Dk2StateId == ImpStates.Wandering)
+            {
+                if (!ImpTaskSystem.Wander(context, creature, definition)) StateShadow.ToIdle(context, SystemName, creature);
+                continue;
+            }
 
             // 250, after a drop with nowhere to go: stands, then idle (ADR-0226).
             if (creature.Dk2StateId == DropLandingRules.StandingState)
@@ -143,7 +155,12 @@ public sealed class CreatureJobSystem : ISimulationSystem
             ? creature.LastHappyChoiceTick
             : creature.LastUnhappyChoiceTick;
 
-        if (last != 0 && now - last < JobRules.ReselectionGateTicks) return;
+        // Inside its gate the happy chooser returns 0 untried, and 89 goes on to its fallback (ADR-0228).
+        if (last != 0 && now - last < JobRules.ReselectionGateTicks)
+        {
+            NothingChosen(context, creature, definition);
+            return;
+        }
 
         // The unhappy chooser tries for a lair first and the happy one does not;
         // both halves are the original's. The happy path does not need to,
@@ -166,13 +183,9 @@ public sealed class CreatureJobSystem : ISimulationSystem
         CreatureAngerRules.CumulativeRanges(table, _ranges);
         int roll = CreatureAngerRules.RollPercent(context.Rng);
 
-        // A selection that fails stamps nothing, so a creature with nothing to
-        // do asks again on the very next tick - the original's shape, with its
-        // gate at the top and its failure path falling straight out. That also
-        // means twenty identical refusals a second, so the reporting is
-        // throttled to the same once-a-second phase the charge below uses: the
-        // decision is per tick, only the log is not.
-        bool report = OnTheSecond(context);
+        // A selection that fails stamps nothing, but 89 then parks the creature in
+        // state 3 (ADR-0228), so a pass is rare enough to report every refusal.
+        const bool report = true;
 
         // The rolled entry first, then every entry in record order - which is
         // the original's fall-through and is why a table's chances are a
@@ -203,21 +216,24 @@ public sealed class CreatureJobSystem : ISimulationSystem
 
         // Nothing in the table could be done, and only a content creature pays
         // for that: the unhappy chooser's tail is a bare return where the happy
-        // one's charges angerNoWork (JobRules.ChargesNoWorkAnger). Nothing is
-        // stamped either way, exactly as the angry chooser leaves a failed
-        // selection unstamped, so the creature may try again next second.
-        if (!JobRules.ChargesNoWorkAnger(mood)) return;
-        if (definition.AngerNoWork == 0) return;
-        if (!report) return;
+        // one's charges angerNoWork (JobRules.ChargesNoWorkAnger), on every failed
+        // pass. Nothing is stamped either way, exactly as the angry chooser leaves
+        // a failed selection unstamped. Then 89's fallback and state 3 (ADR-0228).
+        // The charge is the loaded def+0x6C7: the file's per-second figure over four (ADR-0228).
+        int charge = SimulationTiming.LoaderRatePerTick(definition.AngerNoWork);
+        if (JobRules.ChargesNoWorkAnger(mood) && charge != 0)
+        {
+            CreatureAngerRules.Apply(
+                context.World, definition, creature, AngerBucket.Work, charge);
 
-        CreatureAngerRules.Apply(
-            context.World, definition, creature, AngerBucket.Work, definition.AngerNoWork);
+            context.Emit(SystemName, "no_work",
+                $"creature={creature.Id} type={definition.Name} " +
+                $"player={creature.OwnerPlayerId} roll={roll} anger=+{charge} " +
+                $"work_anger={creature.Anger.Work} " +
+                $"tried=[{string.Join(",", _ranges.Select(r => r.Job))}]");
+        }
 
-        context.Emit(SystemName, "no_work",
-            $"creature={creature.Id} type={definition.Name} " +
-            $"player={creature.OwnerPlayerId} roll={roll} anger=+{definition.AngerNoWork} " +
-            $"work_anger={creature.Anger.Work} " +
-            $"tried=[{string.Join(",", _ranges.Select(r => r.Job))}]");
+        NothingChosen(context, creature, definition);
     }
 
     /// <summary>
