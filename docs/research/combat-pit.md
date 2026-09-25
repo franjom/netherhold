@@ -13,6 +13,12 @@ Source(s):
   own words; no decompiler output enters this repository (ADR-0046)
 - A sweep of every reader of `creature+0x3E6` bit 15 (`CombatPitFighter`), by immediate
   and by high-byte test (`TEST AH,0x80` after a load of the word): 30 functions
+- Whole-image `CallScanAll.py`, `SetStateLits.py`, `StoreAt.py` and `ReadsAtMulti.py`
+  sweeps on 2026-09-25, covering all 13 initialised blocks, including `.text`
+  (`0x00401000`–`0x00652BFF`) and `cseg` (`0x00653000`–`0x0066BFFF`); variable 19 at
+  `0x006F2590` was the positive control and produced its expected 226 hits
+- The creature save path: creature vtable `0x0066D524` slot `+4` → `0x00488520`, state
+  vtable `0x0066D404` slot `+4` → `0x00476CB0`
 
 Original version: DK2 v1.70 (GOG)
 
@@ -55,10 +61,23 @@ per-turn update), and 137 in both state slots.
 `CombatPitMaxExperienceLevel`, calls the pit finder `0x004D8870` and returns 0 whatever it
 says: the finder's result is discarded, and only its messages reach the player (§8).
 
-**Nothing enters 140.** No `SetState` or `0x0048AD30` call site passes `0x8C` as a
-literal; none of the 25 sites that pass a computed id is a pit site (they are the travel
-arrivals, the room-state accessors, the stun and the landing); the room records name 137;
-no instruction reads 140's state record. 140 is described in §2 as read, and is not built.
+**No ordinary gameplay entry to 140 was found; loading can restore it.** `CallScanAll.py`
+found 329 direct `SetState` calls, 145 calls to `0x0048AD30` and four to the stun wrapper
+`0x00491830`, all in `.text`; `cseg` has none, and neither setter address occurs as data,
+excluding a stored vtable or function-pointer target. No literal argument is `0x8C`.
+The 25 computed arguments resolve to `+0xDF`, the current state, 1, fixed non-140 ids, or
+the room table; every `+0xDF` writer and route-helper resume argument excludes 140, and
+the complete room table has no 140. The stun wrapper's four callers pass only 255 or 256.
+No exact `0x8C` scalar compares with the current-state field, and its state-table record
+has no specific reader; dispatch is only through the generic current-state index.
+
+The exception is save loading. `0x00488520` invokes the state object's virtual
+serialiser, and `0x00476CB0` transfers `0x111` bytes beginning at state-object `+0x10`.
+That block includes the current id and `+0xDF`, so a save containing 140 restores it
+directly without `SetState` or transition validation. A textual store sweep's only
+apparent direct write to `creature+0x25E`, `0x0056EEDF`, is an unrelated property-copy
+structure, not a creature. Thus 140 is load-restorable, but Q431 remains the live-game
+check for an endogenous Combat Pit transition.
 
 ## 2. The states
 
@@ -93,10 +112,10 @@ Off the pit it returns 0.
 4. On a room tile, `0x004E50F0(position, 4, 0, 0)` picks a neighbouring tile (§5); found,
    `0x00471890(point, 139, 0xE8)` walks there in state 6 and resumes in 139. Return 1.
 
-**140** (`0x00457CF0`), unreached (§1). While `Age` is at most variable 19 × 4 (four game
-seconds) it starts action `0x23` when none runs. After that, with no action, it sets 138
-and adds `ModifyAngerOfCombatPitVictor` (variable 134, word `0x006F2908`, ships −16400) to
-bucket 5.
+**140** (`0x00457CF0`), load-restorable but with no ordinary gameplay entry found (§1).
+While `Age` is at most variable 19 × 4 (four game seconds) it starts action `0x23` when
+none runs. After that, with no action, it sets 138 and adds
+`ModifyAngerOfCombatPitVictor` (variable 134, word `0x006F2908`, ships −16400) to bucket 5.
 
 **141** (`0x00458270`), thrown out. At `Age` 1 or less, return 1. Then on a Combat Pit tile
 of anyone's, 138; elsewhere 0.
@@ -166,6 +185,10 @@ fighters are not attackable), and the state ends. Idle then returns the winner t
 The owner confirms it (2026-09-25): the winner does not keep swinging at the unconscious
 loser; it fights another creature if one is in the pit, otherwise it walks around, and the
 mentor says the fight in the Combat Pit is over — message 9 of §8.
+
+None of those knockout, target-loss, victory or pickup paths sets 140. State 140 therefore
+does not explain the normal winner's post-knockout behaviour found statically; Q431 asks
+for the short live capture that can falsify that conclusion.
 
 **The loser is thrown to the rim.** State 217 (`0x004599D0`) clears `CombatPitFighter`, and
 for a creature lying on a Combat Pit's interior it picks a random rim tile through
@@ -259,8 +282,9 @@ room's `+0x423` sound.
   room owner into `+0x3CB` is left out for the same reason.
 - **The workers' and low-`Number` branches of the drop**, and state 76 itself: ours lands a
   dropped creature in 1.
-- **State 140**, which nothing enters (§1), and **142–144**, the spectators: 138 on the rim
-  goes to 142, which ours refuses by leaving the creature idle.
+- **State 140**, which a save can restore but no ordinary gameplay path was found to enter
+  (§1; Q431), and **142–144**, the spectators: 138 on the rim goes to 142, which ours
+  refuses by leaving the creature idle.
 - **Action `0x2C`** at the level cap and its wait: ours goes straight to the anger and the
   walk. **Scan A** for a dead forced target: ours clears it and finds nobody.
 - 217's throw of the loser to the rim; the room's entry point, its sounds, message 9, the
