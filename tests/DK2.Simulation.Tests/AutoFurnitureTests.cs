@@ -213,7 +213,6 @@ public class AutoFurnitureTests
     {
         GameDatabase basis = Database();
         RoomDef casino = basis.Room(RoomTypeId.Casino) with { ObjectIds = [87, 59, 67, 68] };
-        ObjectDef template = basis.ObjectById(Dk2TerrainFixture.BookCaseObjectId)!;
         TerrainDef originalWall = basis.TerrainById(Dk2TerrainFixture.ReinforcedWall);
         TerrainDef wall = originalWall with
         {
@@ -224,14 +223,7 @@ public class AutoFurnitureTests
             basis.Rooms.Values.Select(r => r.RoomId == casino.RoomId ? casino : r),
             basis.Creatures.Values,
             basis.Variables,
-            objects:
-            [
-                .. basis.Objects.Values,
-                template with { Name = "Roulette Table", ObjectId = 87 },
-                template with { Name = "Barrel", ObjectId = 59 },
-                template with { Name = "Bar Table", ObjectId = 67 },
-                template with { Name = "Alcove Barrels", ObjectId = 68 },
-            ]);
+            objects: basis.Objects.Values);
     }
 
     private static int Index(WorldState world, int x, int y) => (y * world.Width) + x;

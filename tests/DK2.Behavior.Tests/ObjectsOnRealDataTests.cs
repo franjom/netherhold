@@ -662,4 +662,46 @@ public class ObjectsOnRealDataTests
         // nothing.
         Assert.Equal(16000, db[VariableTypeId.MaxGoldPerDungeonHeartTile] << 4);
     }
+
+    /// <summary>
+    /// The furniture the room fixture carries, because it is a room's places (ADR-0205):
+    /// DK2's capacity counts a room's auto-placed objects of its own list. Pinned whole, the
+    /// zeros too, since the floor pass reads the first zero as the end of the floor choices.
+    /// </summary>
+    [InstallFact]
+    public void TheRoomFurnitureTheFixtureCarriesIsTheShippedFurniture()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Install());
+
+        Assert.Equal(new byte[] { 64, 0, 0, 58, 0, 0, 0, 0 }, db.Room(RoomTypeId.Library).ObjectIds);
+        Assert.Equal(new byte[] { 14, 0, 0, 29, 0, 0, 0, 0 }, db.Room(RoomTypeId.TrainingRoom).ObjectIds);
+        Assert.Equal(new byte[] { 16, 15, 46, 15, 16, 0, 0, 0 }, db.Room(RoomTypeId.Workshop).ObjectIds);
+        Assert.Equal(new byte[] { 87, 59, 67, 68, 0, 0, 0, 0 }, db.Room(RoomTypeId.Casino).ObjectIds);
+        Assert.Equal(new byte[] { 8, 8, 61, 8, 62, 63, 0, 0 }, db.Room(RoomTypeId.TortureChamber).ObjectIds);
+
+        void Piece(byte id, string name, uint flags, int hp, int width, int height)
+        {
+            ObjectDef o = db.ObjectById(id)!;
+            Assert.Equal(name, o.Name);
+            Assert.Equal(flags, (uint)o.Flags);
+            Assert.Equal(hp, o.Hp);
+            Assert.Equal(width, o.Width.Raw);
+            Assert.Equal(height, o.Height.Raw);
+            Assert.Equal(8192, o.Mass.Raw);
+            Assert.Equal(176, o.PickUpPriority);
+            Assert.Equal(0, o.RoomCapacity);
+        }
+
+        Piece(14, "Training Dummy", 0x02004000u, 1, 2297, 1228);
+        Piece(29, "Training Target", 0x00014000u, 1, 2048, 1228);
+        Piece(15, "Anvil", 0x02014000u, 128, 2252, 128);
+        Piece(16, "Steel Bucket", 0x02014000u, 128, 2252, 128);
+        Piece(46, "Work Bench", 0x02004000u, 1, 3276, 1228);
+        Piece(87, "Roulette Table", 0x02014000u, 1, 3276, 1228);
+        Piece(59, "Barrel", 0x02014000u, 1, 1875, 1228);
+        Piece(67, "Bar Table", 0x02004000u, 1, 2451, 1228);
+        Piece(68, "Alcove Barrels", 0x00010000u, 1, 2457, 1228);
+        Piece(62, "Torture Coals", 0x00010000u, 1, 1228, 1228);
+        Piece(63, "Torture Water", 0x00010000u, 1, 1228, 1228);
+    }
 }

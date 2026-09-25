@@ -324,9 +324,44 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   `player+0x8A` (the Manufacture enter hook's count) zero, once a second the points fall by
   variable 138 (1), to no lower than 0.
 - **Built** (ADR-0203): all four. **Ours:** the nearest Workshop is judged by its first
-  tile, there is no capacity test, the crate is always the keeper's, and state 68 is not
-  entered. Not built: blueprints placed in play (`0x004C33B0`, `0x004C3860`), the removals,
+  tile, the crate is always the keeper's, and state 68 is not entered (the capacity test
+  is §3.5). Not built: blueprints placed in play (`0x004C33B0`, `0x004C3860`), the removals,
   and what carries a crate to its blueprint.
+
+### 3.5 Capacity: the test, the claim and the finders (read 2026-09-25)
+
+- **The test** `0x004E53B0(room, units)`: `UsedCapacity (+0x6B) + units ≤ TotalCapacity
+  (+0x67)`, both words. Room type 6 (Library) must also pass `0x004E1AC0`, type 10
+  (Workshop) `0x004F6140`, and type 9 (Guard Room) adds the attached creatures whose
+  `+0x2B6` is 6 and `+0x2BA` names the room. All three are unread. `units` is the
+  definition's `+0x672` byte (creature file `0xF4D`), 1 for all 46 shipped creatures.
+  TotalCapacity is the furniture count `0x004E3ED0` (`auto-placed-furniture.md` §5).
+- **The claim** `0x004E5A70`, called by the nine claiming enter hooks (§1). Prison (11)
+  first needs the position tests `0x00453A20(11)` and `0x00454110`. A Combat Pit (16)
+  creature with `+0x3E6` bit 15 links in without any test. Otherwise it calls the test,
+  and on success links the creature, writes `+0x3B9`, and adds `units` to `+0x6B` and
+  `+0x6D`. The Torture Chamber (12) also links it into a per-owner list at `+0x4C`. A
+  Prison past its `+0x4B` raises message `0x2A` and may call `0x004E2E60` on a roll.
+- **A failed claim** calls `0x004C6AE0`: the nearest other room of the type that passes
+  the test and is reachable (`0x004D0E60`), preferring rooms none of whose occupants pass
+  `0x0045C640`. Its answer is written to a local nothing reads. So it decides only
+  whether message `0x2A` is raised (no other room) before `0x0048AD30(1)`, state 1. The
+  Guard Room searches only when every attached creature's cell names it, and otherwise
+  raises the message at once.
+- **Callers of the test**, 23 in all: the Training finder `0x004F3560` and the Temple
+  finder `0x004F1A20`, each asking for `units` at two sites; the
+  generic nearest-room-with-space helpers `0x004C6510`, `0x004C6610` (7 callers) and
+  `0x004C6860`; the crate maker `0x004F5240`; and the claim. The torture handler
+  `0x00483AE0` has two finders. `0x004F29A0` (a chamber with an occupant, used while the
+  keeper has victims) **asks no capacity**. `0x004F2B80` (any chamber) asks for
+  **`2 × units`** at both its sites, and falls back on a timer at room `+0x9F` that is unread. The strap
+  helper `0x00483B90` also asks for `2 × units`. The torturer's own states 127–129 are
+  category 0, which claims nothing, so only the victim holds a place.
+- **Built** (ADR-0205): the test (`RoomCapacityRules`), every room finder asking it (the
+  torture finders as read), and the claim at arrival with `0x004C6AE0`'s message choice.
+  **Ours:** `UsedCapacity` is derived from the claiming creatures standing in the room,
+  not counted. The Library, Workshop and Guard Room extras, the Prison and Combat Pit
+  arms, and the torture fallback timer are not built.
 
 ## 4. Answers and limits
 
@@ -346,8 +381,8 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   (ADR-0186). Spectating's update `0x0047AA70` was re-read for it: countdown `+0xAB`
   reloaded from variable 19, then variable 135 to buckets 5, 0 and 3, selector 9,
   always returning 1. The **Casino** followed (ADR-0187, §3.1), then **Prison**
-  (ADR-0191, §3.2), and **Manufacture** (ADR-0203, §3.4). Not built: the enter and leave
-  hooks, and the room-position claim.
+  (ADR-0191, §3.2), **Manufacture** (ADR-0203, §3.4) and the **capacity** test and claim
+  (ADR-0205, §3.5). Not built: the rest of the enter and leave hooks.
 - **Every countdown hook fires every v19 + 1 turns, from entry** (Q424). Casino
   `0x0047AD75`, Spectating `0x0047AA73`, Training `0x0047B368` and Torture `0x0047B596`
   each test the byte, decrement and return while it is nonzero, and at zero reload and

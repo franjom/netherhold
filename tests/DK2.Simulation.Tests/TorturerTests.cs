@@ -29,7 +29,7 @@ public class TorturerTests
 
     /// <summary>A 3x3 prison at (2..4, 2..4) and a 3x3 Torture Chamber at (7..9, 2..4) with a
     /// wheel in its middle, on paved ground the keeper owns.</summary>
-    private static WorldState World(GameDatabase db, bool chair = false)
+    private static WorldState World(GameDatabase db, bool chair = false, bool coals = true)
     {
         WorldState world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
@@ -49,8 +49,14 @@ public class TorturerTests
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), Keeper);
         }
 
-        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, Wheel));
-        if (chair) world.SpawnObject(db, TortureRules.ElectricChairObjectId, Keeper, Index(world, Chair));
+        // Auto-placed, as the chamber's own would be: they are its places (ADR-0205). The
+        // coals stand in for the wall furniture a walled chamber gets, the one place more a
+        // Mistress with no victim asks for (0x004F2B80).
+        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, Wheel)).AutoPlaced = true;
+        if (coals)
+            world.SpawnObject(db, Dk2TerrainFixture.TortureCoalsObjectId, Keeper, Index(world, new TilePos(7, 2))).AutoPlaced = true;
+        if (chair)
+            world.SpawnObject(db, TortureRules.ElectricChairObjectId, Keeper, Index(world, Chair)).AutoPlaced = true;
         return world;
     }
 
@@ -182,6 +188,43 @@ public class TorturerTests
         Assert.True(TortureRules.IsBeingTortured(mistress));
         Assert.Contains(sink.Events, e => e.Kind == "tortured" && e.Detail.Contains($"creature={mistress.Id} "));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "converted");
+    }
+
+    [Fact]
+    public void WithNoVictimAMistressPassesOverAChamberWithOnePlace()
+    {
+        // 0x004F2B80, the finder with no victim, asks the capacity test for two places: a
+        // chamber whose only furniture is one wheel has one (ADR-0205).
+        GameDatabase db = Db;
+        WorldState world = World(db, coals: false);
+        CreatureState mistress = world.SpawnCreature(db, MistressId, Keeper, Outside);
+        var sink = new ListEventSink();
+        Simulation(db, world, sink).Run(30 * SimulationTiming.TicksPerSecond);
+
+        Assert.False(TortureRules.IsBeingTortured(mistress));
+        Assert.Contains(sink.Events, e => e.Kind == "job_refused" && e.Detail.Contains($"creature={mistress.Id} ")
+            && e.Detail.Contains("job=Torture") && e.Detail.Contains("reason=no_room"));
+    }
+
+    [Fact]
+    public void WithAVictimTheChamberIsChosenWhateverItsPlaces()
+    {
+        // 0x004F29A0, the finder while the keeper has a victim, asks no capacity: the victim
+        // fills the wheel's one place and the Mistress still comes to whip it.
+        GameDatabase db = Db;
+        WorldState world = World(db, coals: false);
+        CreatureState victim = Victim(db, world);
+        CreatureState mistress = world.SpawnCreature(db, MistressId, Keeper, Outside);
+        var sink = new ListEventSink();
+        Simulation(db, world, sink).Run(30 * SimulationTiming.TicksPerSecond);
+
+        Assert.Contains(sink.Events, e => e.Kind == "torturer_to_victim" && e.Detail.Contains($"victim={victim.Id}"));
+        Assert.Contains(sink.Events, e => e.Kind == "whipped");
+
+        // Her states, 127 to 129, are no claiming category: the victim holds the one place.
+        RoomInstance chamber = RoomIndex.RoomAt(world, db, Index(world, Wheel))!;
+        Assert.True(EatingRules.Contains(chamber, (mistress.Tile.Y * world.Width) + mistress.Tile.X));
+        Assert.Equal(1, RoomCapacityRules.Occupants(world, chamber));
     }
 
     [Fact]

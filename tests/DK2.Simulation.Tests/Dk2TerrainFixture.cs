@@ -190,17 +190,18 @@ internal static class Dk2TerrainFixture
               createdCreatureId: SkeletonCreatureId),
 
             // The library: 600 to build, 3x3, and the shipped ObjectIds list
-            // [64, 58] -- a book case and a library book. That list is the
+            // [64, 0, 0, 58] -- a book case, and a library book for the walls. That list is the
             // whole reason this room is in the fixture: ObjectCarryRules reads
             // it backwards to find out where a loose object belongs (ADR-0065,
             // Q120).
             R(RoomTypeId.Library, "Library", 600, LibraryTerrain, 0x11ACu, 3, 3,
-              objectIds: [BookCaseObjectId, LibraryBookObjectId]),
+              objectIds: [BookCaseObjectId, 0, 0, LibraryBookObjectId]),
 
             // Costs, sizes and flags from the shipped table. The Temple's 5x5
             // DoubleQuad is transcribed rather than rounded off, because it is
             // the most expensive room in the game and the size is part of why.
-            R(RoomTypeId.TrainingRoom, "Training Room", 500, TrainingRoomTerrain, 0x13ACu, 3, 3),
+            R(RoomTypeId.TrainingRoom, "Training Room", 500, TrainingRoomTerrain, 0x13ACu, 3, 3,
+              objectIds: [TrainingDummyObjectId, 0, 0, 29]),
             R(RoomTypeId.Temple, "Temple", 3000, TempleTerrain, 0x108Cu, 5, 5,
               construction: TileConstruction.DoubleQuad),
             // With its shipped ObjectIds (roulette table, barrel, bar table, alcove barrels),
@@ -212,9 +213,9 @@ internal static class Dk2TerrainFixture
             // devices down by hand, since the fixture carries only the two device records.
             R(RoomTypeId.TortureChamber, "Torture Chamber", 1500, TortureChamberTerrain, 0x13ACu, 3, 3,
               objectIds: [8, 8, 61, 8, 62, 63]),
-            // The shipped cost and flags; its furniture list is left out, the fixture carrying
-            // none of those objects (ADR-0203).
-            R(RoomTypeId.Workshop, "Work Shop", 600, WorkshopTerrain, 0x13ACu, 3, 3),
+            // The shipped cost, flags and furniture list (ADR-0203, ADR-0205).
+            R(RoomTypeId.Workshop, "Work Shop", 600, WorkshopTerrain, 0x13ACu, 3, 3,
+              objectIds: [16, 15, 46, 15, 16]),
         ],
         creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), Warlock(), Priest(), Thief(), Mistress(), .. extraCreatures],
         variables: Variables(),
@@ -246,6 +247,12 @@ internal static class Dk2TerrainFixture
 
     /// <summary>Object id 52, the Wooden Door's crate, the shipped door record's <c>0x246</c> (ADR-0203).</summary>
     public const byte WoodenDoorCrateObjectId = 52;
+
+    /// <summary>Object id 62, a Torture Chamber's wall furniture: a place, not a device.</summary>
+    public const byte TortureCoalsObjectId = 62;
+
+    /// <summary>Object id 14, the Training Room's floor furniture.</summary>
+    public const byte TrainingDummyObjectId = 14;
 
     /// <summary>Object id 58, the Library's other object.</summary>
     public const byte LibraryBookObjectId = 58;
@@ -377,6 +384,20 @@ internal static class Dk2TerrainFixture
             Width = new Fp32(1083), Height = new Fp32(1228), Mass = new Fp32(8192), Speed = new Fp32(0),
             NameStringId = 0, TooltipStringId = 0,
         },
+
+        // The Training Room's, the Workshop's, the Casino's and the Torture Chamber's wall
+        // furniture, as shipped: what a room's capacity counts (ADR-0205).
+        Furniture(TrainingDummyObjectId, "Training Dummy", 0x02004000u, 1, 2297),
+        Furniture(29, "Training Target", 0x00014000u, 1, 2048),
+        Furniture(15, "Anvil", 0x02014000u, 128, 2252),
+        Furniture(16, "Steel Bucket", 0x02014000u, 128, 2252),
+        Furniture(46, "Work Bench", 0x02004000u, 1, 3276),
+        Furniture(87, "Roulette Table", 0x02014000u, 1, 3276),
+        Furniture(59, "Barrel", 0x02014000u, 1, 1875),
+        Furniture(67, "Bar Table", 0x02004000u, 1, 2451),
+        Furniture(68, "Alcove Barrels", 0x00010000u, 1, 2457),
+        Furniture(TortureCoalsObjectId, "Torture Coals", 0x00010000u, 1, 1228),
+        Furniture(63, "Torture Water", 0x00010000u, 1, 1228),
 
         // The Casino's lever, as shipped (ADR-0188): an obstacle a hand could lift, which
         // nothing here lets it do.
@@ -522,6 +543,48 @@ internal static class Dk2TerrainFixture
         NameStringId = 292,
         TooltipStringId = 292,
     };
+
+    /// <summary>A room's furniture as shipped: the fields that differ between the eleven records
+    /// transcribed, the rest being 0 in every one (<c>RoomFurnitureOnRealDataTests</c>).</summary>
+    private static ObjectDef Furniture(byte id, string name, uint flags, int hp, int width) => new()
+    {
+        Name = name, ObjectId = id, Flags = (ObjectFlags)flags, Hp = (ushort)hp, ManaValue = 0,
+        RoomCapacity = 0, StartState = 0, PickUpPriority = 176, Width = new Fp32(width),
+        Height = new Fp32(hp == 128 ? 128 : 1228), Mass = new Fp32(8192), Speed = new Fp32(0),
+        NameStringId = 0, TooltipStringId = 0,
+    };
+
+    /// <summary>Stands one piece of <paramref name="type"/>'s own furniture on
+    /// <paramref name="at"/>, auto-placed, so the room has places: a room's capacity counts
+    /// its auto-placed furniture (ADR-0205, <see cref="AutoFurnitureRules.TryTotalCapacity"/>).
+    /// <b>Not a state DK2 reaches</b> when the room is smaller than 3x3, which gets no
+    /// furniture; tests keep their one-tile rooms for the walk's sake, and furniture is not a
+    /// steering obstacle here, so the piece changes nothing but the count.</summary>
+    public static ObjectState Furnish(
+        GameDatabase database, WorldState world, RoomTypeId type, TilePos at, byte owner)
+    {
+        ObjectState thing = world.SpawnObject(
+            database, database.Room(type).ObjectIds[0], owner, (at.Y * world.Width) + at.X);
+        thing.AutoPlaced = true;
+        return thing;
+    }
+
+    /// <summary>What <see cref="DK2.Simulation.Systems.AutoFurnitureSystem"/> places, placed
+    /// once: every room's own furniture, auto-placed. For tests whose rooms are big enough to
+    /// get some and whose simulation does not run that system.</summary>
+    public static void FurnishRooms(GameDatabase database, WorldState world)
+    {
+        var pieces = new List<(int TileIndex, byte ObjectTypeId)>();
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
+            AutoFurnitureRules.DesiredFurniture(world, database, room, pieces);
+            foreach ((int tile, byte type) in pieces)
+            {
+                if (type == HatcheryRules.CoopObjectId || database.ObjectById(type) is null) continue;
+                world.SpawnObject(database, type, room.OwnerPlayerId, tile).AutoPlaced = true;
+            }
+        }
+    }
 
     private static ObjectDef Bed(byte id, string name) => new()
     {

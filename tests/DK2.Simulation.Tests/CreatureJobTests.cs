@@ -50,6 +50,11 @@ public sealed class CreatureJobTests
     {
         ref TileState tile = ref world.Tile(at.X, at.Y);
         RoomRules.Place(db, ref tile, db.Room(type), owner);
+
+        // A one-tile room gets no furniture, and a room's places are its furniture (ADR-0205).
+        if (type is RoomTypeId.TrainingRoom or RoomTypeId.Casino or RoomTypeId.Library
+            or RoomTypeId.Workshop or RoomTypeId.TortureChamber)
+            Dk2TerrainFixture.Furnish(db, world, type, at, owner);
     }
 
     /// <summary>

@@ -200,6 +200,7 @@ public class PaydayTests
         WorldState world = World(db);
         Treasury(world, new TilePos(1, 3), 2000);
         RoomRules.Place(db, ref world.Tile(3, 1), db.Room(RoomTypeId.Casino), Keeper);
+        Dk2TerrainFixture.Furnish(db, world, RoomTypeId.Casino, new TilePos(3, 1), Keeper);
         CreatureState paid = world.SpawnCreature(db, 40, Keeper, Floor);
 
         var sink = new ListEventSink();

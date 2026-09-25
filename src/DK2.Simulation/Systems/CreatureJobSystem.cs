@@ -273,9 +273,16 @@ public sealed class CreatureJobSystem : ISimulationSystem
         }
 
         // The torture handler 0x00483AE0: while the keeper has victims, the nearest chamber
-        // holding one (0x004F29A0) before any other (0x004F2B80).
+        // holding one (0x004F29A0), which asks no capacity, before any other (0x004F2B80),
+        // which asks for two places. Every other finder asks for one, so a full room is
+        // passed over (0x004F3560, 0x004F1A20, 0x004C6610; ADR-0205).
         if (job == JobType.Torture && candidates.Any(c => HoldsAVictim(world, c.Room)))
             candidates.RemoveAll(c => !HoldsAVictim(world, c.Room));
+        else
+        {
+            int units = job == JobType.Torture ? 2 * RoomCapacityRules.Units : RoomCapacityRules.Units;
+            candidates.RemoveAll(c => !RoomCapacityRules.HasRoom(world, c.Room, creature.Id, units));
+        }
 
         candidates.Sort((a, b) =>
             a.Distance != b.Distance
@@ -314,6 +321,8 @@ public sealed class CreatureJobSystem : ISimulationSystem
     private static void Arrive(
         SimulationContext context, CreatureState creature, CreatureDef definition, JobType job)
     {
+        if (RoomFilledMeanwhile(context, creature, definition, job)) return;
+
         creature.StopMoving();
         creature.Activity = CreatureActivity.AtWork;
 
@@ -600,6 +609,31 @@ public sealed class CreatureJobSystem : ISimulationSystem
             $"player={creature.OwnerPlayerId} job={creature.CurrentJob} " +
             $"at=({creature.Tile.X},{creature.Tile.Y}) reason=cannot_pay cost={cost}");
         Stop(context, creature);
+    }
+
+    /// <summary>The claim <c>0x004E5A70</c>, made by the job state's enter hook: a room that
+    /// filled while the creature walked sends it to state 1, raising message <c>0x2A</c> only
+    /// when no other room of the type has a place (<c>0x004C6AE0</c>, ADR-0205).</summary>
+    private static bool RoomFilledMeanwhile(
+        SimulationContext context, CreatureState creature, CreatureDef definition, JobType job)
+    {
+        if (JobRules.StateFor(job) is not int state) return false;
+        if (!RoomCapacityRules.Claims(CreatureStateTable.Get(state).Category)) return false;
+
+        WorldState world = context.World;
+        if (!world.Contains(creature.Tile)) return false;
+        RoomInstance? room = RoomIndex.RoomAt(
+            world, context.Database, (creature.Tile.Y * world.Width) + creature.Tile.X);
+        if (room is null || RoomCapacityRules.HasRoom(world, room, creature.Id)) return false;
+
+        bool elsewhere = RoomCapacityRules.AnotherHasRoom(world, context.Database, room, creature.Id);
+        context.Emit(SystemName, "job_lost",
+            $"creature={creature.Id} type={definition.Name} " +
+            $"player={creature.OwnerPlayerId} job={job} " +
+            $"at=({creature.Tile.X},{creature.Tile.Y}) reason=room_full " +
+            $"message={(elsewhere ? "none" : "0x2A")}");
+        Stop(context, creature);
+        return true;
     }
 
     /// <summary>Gives up the job and goes idle: state 1, then the shim takes the id, idle

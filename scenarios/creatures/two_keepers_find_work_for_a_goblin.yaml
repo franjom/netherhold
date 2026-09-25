@@ -142,7 +142,9 @@ setup:
     # Player 3: somewhere to live, somewhere to train, somewhere to pray.
     - { type: Lair, at: [2, 2], player: 3 }
     - { type: Lair, at: [3, 2], player: 3 }
-    - { type: Training Room, at: [2, 5], size: [2, 2], player: 3 }
+    # 3x3, the smallest that gets a Training Dummy: a room's places are its
+    # furniture, one dummy is two places, and a 2x2 room trains nobody (ADR-0205).
+    - { type: Training Room, at: [2, 5], size: [3, 3], player: 3 }
     - { type: Temple, at: [5, 2], size: [2, 2], player: 3 }
     # Somewhere to keep the money, because training is billed to the keeper
     # and a keeper's gold lives in treasury tiles or nowhere.

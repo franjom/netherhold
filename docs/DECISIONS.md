@@ -4497,3 +4497,20 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Ours, stated: 6 fires once per engagement where DK2's fight-starter may fire again; an event walk's blocked and partial records are not reported; the events not yet wired are listed with their sites in the research doc.
 - No hashed state; the trigger state's active bits move as DK2's would.
 - Six tests on the filters, one on the level-start firing.
+
+## ADR-0205 — A room's places are its furniture
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/state-category-hooks.md` §3.5
+
+**Context.** Nothing limited how many creatures worked in a room. DK2's capacity test `0x004E53B0` admits while `UsedCapacity + units ≤ TotalCapacity`, and TotalCapacity is the room's furniture count (Q270). Every room finder a job handler uses asks the test. The claim `0x004E5A70`, made by the claiming enter hooks, asks it again and sends a creature back to state 1 when the room filled on its way.
+
+**Decision.**
+1. `RoomCapacityRules`: `Claims(category)` for the nine claiming enter hooks, `Occupants` (the creatures in a claiming state standing in the room), `HasRoom(units)`, and `AnotherHasRoom` for the claim's fallback `0x004C6AE0`.
+2. `CreatureJobSystem.TrySetOut` drops full rooms. While the keeper has victims, the torture finder `0x004F29A0` asks nothing; otherwise the torture finder `0x004F2B80` asks for two places.
+3. On arrival, a job whose state claims tests again. A full room ends the job (`job_lost reason=room_full`), naming message `0x2A` only when no other room of the type has a place.
+
+**Consequences.**
+- A room too small for furniture trains, researches, gambles and manufactures nobody. A 3x3 Training Room has one dummy and two places.
+- The fixture carries the shipped furniture of the Training Room, Workshop, Casino and Torture Chamber walls, and the Library's list is corrected to `[64, 0, 0, 58]`. `Dk2TerrainFixture.Furnish` stands one piece in a one-tile test room, a state DK2 cannot reach. The scenario's Training Room is 3x3.
+- Ours, stated: `UsedCapacity` is derived, not counted. The Library, Workshop and Guard Room extras, the Prison and Combat Pit arms and the torture fallback timer are not built. Three bodies on one arrival tile never settle, because our walks all end on the room's centre.
+- No hashed state changed. Nine tests, one on real data. Negative controls: a room never full, the torture finder asking one place, the victim chamber tested, no arrival claim, a fallback always found, every body claiming, the arriving creature counted and the Training Room's +1 dropped each fail a named test.
+

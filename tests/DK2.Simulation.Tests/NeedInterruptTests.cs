@@ -41,6 +41,7 @@ public class NeedInterruptTests
         Paint(db, world, RoomTypeId.TrainingRoom, 8, 2);
         Paint(db, world, RoomTypeId.Hatchery, 2, 5);
         Paint(db, world, RoomTypeId.Lair, 2, 1);
+        Dk2TerrainFixture.FurnishRooms(db, world);
         world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, (6 * world.Width) + 3);
 
         ref TileState treasury = ref world.Tile(6, 7);
