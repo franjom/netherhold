@@ -49,6 +49,27 @@ public sealed class HeartSites
         return null;
     }
 
+    /// <summary>DK2's <c>DungeonHeartPosition</c> (<c>player+0xB43</c>, <c>0x004C5F50</c>) as ours
+    /// derives it: the centre tile of the bounding box of the player's heart tiles, as
+    /// <see cref="Refresh"/> computes it; -1 for a player with none.</summary>
+    public static int PositionOf(WorldState world, GameDatabase database, byte playerId)
+    {
+        byte? heartTerrain = ManaRules.DungeonHeartTerrainId(database);
+        if (heartTerrain is null) return -1;
+        int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
+        for (int i = 0; i < world.TileCount; i++)
+        {
+            ref TileState tile = ref world.TileAtIndex(i);
+            if (tile.OwnerPlayerId != playerId || tile.TerrainId != heartTerrain.Value) continue;
+            int x = i % world.Width, y = i / world.Width;
+            minX = Math.Min(minX, x);
+            maxX = Math.Max(maxX, x);
+            minY = Math.Min(minY, y);
+            maxY = Math.Max(maxY, y);
+        }
+        return maxX < 0 ? -1 : (((minY + maxY) / 2) * world.Width) + ((minX + maxX) / 2);
+    }
+
     /// <summary>Every keeper's heart: the bounding box of its tiles gives the centre and the box's
     /// border the ring; a fallen or ruined one is kept with <see cref="Site.Standing"/> clear.</summary>
     public void Refresh(WorldState world, GameDatabase database)

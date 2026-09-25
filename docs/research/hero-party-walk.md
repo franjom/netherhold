@@ -253,3 +253,27 @@ Not built: 223/224. The section 5 re-lead is built (ADR-0218), and StealGold (AD
 Review, the same day. State 1 tests the hero owner before the worker flag, so a hero Dwarf is run
 as a hero, and a resting 10 idles into 90. An arrival's resumed state runs from the next turn.
 Job 18 stops at the first reachable creature and fails outright if its route fails.
+
+## 6. The point in the heart (read 2026-09-25, ADR-0221)
+
+**Job 19.** It resolves `+0x40D` (or the strongest player, written back), then reads
+`DungeonHeartPosition` (`0x004C5F50`, `player+0xB43`, a tile). The cell there must name a room
+(`+0x2 & 0xFFF`; none fails). `0x004559B0` gives that room, and `0x004E4D90(room, &point, 0, 0)` a
+point in it. Then `0x00471890(point, 178, 1)`. **CONFIRMED** at `0x004624EC`–`0x00462544`.
+
+**`0x004E4D90(room, out, a, b)`.** It starts from `room+0x2D/+0x2E` and follows the cell links
+`random(room+0xA7)` times (`0x005558D0`). Unless `a != 0 && b == 0`, it then steps on round the
+ring while `0x00454110(cell)` is non-zero, or while it is zero when `b` is set. It writes the tile's
+centre. **CONFIRMED.**
+
+**`0x00454110(cell)`, non-zero meaning refused.** It refuses only for a room cell whose `+0xC` is
+0xFF:
+- **Types 3, 5, 8, 17, 22:** always accepted.
+- **Types 9, 10, 15:** refused on one colour of a checkerboard that `room+0x80` shifts.
+- **Type 14:** refused unless the cell holds an object of type 75.
+- **Any other type:** refused.
+
+So every heart tile is accepted, and job 19's point is a random heart tile. **CONFIRMED.**
+
+**State 177's fallback** (`0x004625F7`–`0x00462642`). The centre of the `DungeonHeartPosition`
+tile itself, `0x00471890(centre, 178, 0)`, with no room asked. **CONFIRMED.**

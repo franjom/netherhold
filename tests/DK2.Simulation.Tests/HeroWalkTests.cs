@@ -264,6 +264,64 @@ public class HeroWalkTests
         Assert.DoesNotContain(sink.Events, e => e.System == "CreatureJob" && e.Detail.Contains($"creature={hero.Id} "));
     }
 
+    /// <summary>Job 19 walks to a point from <c>0x004E4D90</c> in the room on the target's
+    /// <c>DungeonHeartPosition</c>: a random tile of the heart, since its cell test accepts every one.</summary>
+    [Fact]
+    public void KillPlayer_WalksToARandomTileOfTheHeart()
+    {
+        var aimed = new HashSet<TilePos>();
+        for (ulong seed = 1; seed <= 24; seed++)
+        {
+            (GameDatabase db, WorldState world) = OpenWorld();
+            Heart(world, Keeper, 10, 4);
+            CreatureState hero = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(3, 5));
+            hero.GoodJob = JobType.KillPlayer;
+            hero.GoodJobPlayerId = Keeper;
+            var sim = new GameSimulation(db, world, seed, [new HeroSystem(), new CreatureMovementSystem()]);
+            for (int t = 0; t < 8 && hero.UtilityNewState != HeroJobRules.AtTheHeartState; t++) sim.Tick();
+
+            Assert.Equal(HeroJobRules.AtTheHeartState, hero.UtilityNewState);
+            aimed.Add(new TilePos(hero.Body.PathTargetPos.X >> 16, hero.Body.PathTargetPos.Y >> 16));
+        }
+
+        Assert.All(aimed, p => Assert.True(p.X is >= 10 and <= 12 && p.Y is >= 4 and <= 6, $"{p} is not a heart tile"));
+        Assert.True(aimed.Count > 2, $"only {aimed.Count} tiles aimed at");
+    }
+
+    /// <summary>177's fallback (<c>0x004625F7</c>) walks to the <c>DungeonHeartPosition</c> tile
+    /// itself, the heart's centre, when the target player has no creature left.</summary>
+    [Fact]
+    public void KillCreatures_WithNoCreatureLeft_WalksToTheHeartsCentre()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        Heart(world, Keeper, 10, 4);
+        CreatureState prey = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(6, 8));
+        CreatureState hero = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(3, 5));
+        hero.GoodJob = JobType.KillCreatures;
+        hero.GoodJobPlayerId = Keeper;
+        GameSimulation sim = Simulation(db, world);
+
+        for (int t = 0; t < 600 && hero.Dk2StateId != HeroJobRules.HuntingState; t++) sim.Tick();
+        Assert.Equal(HeroJobRules.HuntingState, hero.Dk2StateId);
+        world.RemoveCreature(prey.Id);
+        for (int t = 0; t < 8 && hero.UtilityNewState != HeroJobRules.AtTheHeartState; t++) sim.Tick();
+
+        Assert.Equal(HeroJobRules.AtTheHeartState, hero.UtilityNewState);
+        Assert.Equal(new TilePos(11, 5), new TilePos(hero.Body.PathTargetPos.X >> 16, hero.Body.PathTargetPos.Y >> 16));
+    }
+
+    /// <summary>A 3x3 heart with its top-left at (x, y).</summary>
+    private static void Heart(WorldState world, byte owner, int x, int y)
+    {
+        for (int dy = 0; dy < 3; dy++)
+            for (int dx = 0; dx < 3; dx++)
+            {
+                ref TileState tile = ref world.Tile(x + dx, y + dy);
+                tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+                tile.OwnerPlayerId = owner;
+            }
+    }
+
     private static GameSimulation Simulation(GameDatabase db, WorldState world) =>
         new(db, world, 7, [new HeroSystem(), new CreatureMovementSystem()]);
 

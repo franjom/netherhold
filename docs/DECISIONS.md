@@ -4807,3 +4807,18 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Ours: the ring follows tile-index order, not DK2's cell links. 188's own re-check and its region test (Q371) are still not built.
 - Two tests. Two negative controls each fail a named test: a one-tile take, and no owner or type check.
 - No new state; `HashVersion` stays **114**.
+
+## ADR-0221 — A hero aims at the heart as DK2 does: a random heart tile, or its position
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0216 · Research: `docs/research/hero-party-walk.md` §6
+
+**Context.** Both hero walks to a heart aimed at the first heart tile in map order. `0x004E4D90` and its cell test `0x00454110` are now read.
+
+**Decision.**
+1. **Job 19** (`0x004624F0`–`0x00462544`). It takes the room on the target player's `DungeonHeartPosition` tile (`player+0xB43`), failing if the tile has no room. The point comes from `0x004E4D90(room, &point, 0, 0)`. For a heart that is a random tile of the room, because the cell test accepts every type-5 tile. Options stay 1.
+2. **State 177's fallback** (`0x004625F7`) walks to the centre of the `DungeonHeartPosition` tile itself, options 0.
+3. **`HeartSites.PositionOf`** gives ours for that position: the centre of the bounding box of the heart's tiles, as fear and combat already derive it.
+
+**Consequences.**
+- Ours: the ring is taken in tile-index order, and the cell test is not modelled for other room types. Job 19 always meets a heart there.
+- Two tests. Three negative controls each fail a named test: the first tile, 177 going through the room point, and job 19 aiming at the centre.
+- No new state; `HashVersion` stays **114**.

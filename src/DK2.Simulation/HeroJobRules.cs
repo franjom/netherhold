@@ -206,7 +206,7 @@ public static class HeroJobRules
                 && Walk(context, creature, prey.PosX, prey.PosY, HuntingState, Navigation.MoveOptions.Plain))
                 return true;
         }
-        return HeartWalk(context, creature, player, Navigation.MoveOptions.Plain);
+        return HeartPositionWalk(context, creature, player);
     }
 
     /// <summary>Job 19's arm (<c>0x00462490</c>): the target player's heart, resuming 178, whose
@@ -217,14 +217,30 @@ public static class HeroJobRules
         return HeartWalk(context, creature, player, TunnelOption);
     }
 
-    /// <summary>Ours aims at the first heart tile in map order, where DK2 asks the heart room for a
-    /// point (<c>0x004E4D90</c>, unread).</summary>
+    /// <summary>Job 19's walk (<c>0x004624F0</c>–<c>0x00462544</c>): the room on the player's
+    /// <c>DungeonHeartPosition</c> tile, none failing, then a point in it from
+    /// <c>0x004E4D90(room, &amp;point, 0, 0)</c>. That draws a random tile along the room's ring and
+    /// steps on while its cell test <c>0x00454110</c> rejects; the test accepts every tile of a
+    /// heart (type 5), so the point is the random tile. Ours takes the ring in tile-index order and
+    /// accepts any room's tile.</summary>
     private static bool HeartWalk(SimulationContext context, CreatureState creature, byte player, int options)
     {
-        int tile = ImpSupplyRules.HeartTileOf(context.World, context.Database, player);
-        if (tile < 0) return false;
-        int w = context.World.Width;
+        WorldState world = context.World;
+        int position = Combat.HeartSites.PositionOf(world, context.Database, player);
+        if (position < 0 || RoomIndex.RoomAt(world, context.Database, position) is not { } room) return false;
+        int tile = room.TileIndices[context.Rng.NextInt(room.TileCount)];
+        int w = world.Width;
         return Walk(context, creature, CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), AtTheHeartState, options);
+    }
+
+    /// <summary>State 177's fallback (<c>0x004625F7</c>): straight to the centre of the player's
+    /// <c>DungeonHeartPosition</c> tile, options 0, no room asked.</summary>
+    private static bool HeartPositionWalk(SimulationContext context, CreatureState creature, byte player)
+    {
+        int position = Combat.HeartSites.PositionOf(context.World, context.Database, player);
+        if (position < 0) return false;
+        int w = context.World.Width;
+        return Walk(context, creature, CreatureState.CentreOf(position % w), CreatureState.CentreOf(position / w), AtTheHeartState, Navigation.MoveOptions.Plain);
     }
 
     /// <summary>State 222 (<c>0x00461F00</c>): <c>max(PositionInParty &gt;&gt; 1, 1)</c> free tiles
