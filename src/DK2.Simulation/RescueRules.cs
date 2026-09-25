@@ -41,15 +41,23 @@ public static class RescueRules
 
     /// <summary>Whether stepping onto <paramref name="tileIndex"/> sends this creature to 134:
     /// <c>0x004E8660</c>'s Torture Chamber arm.</summary>
-    public static bool StartsARescue(WorldState world, GameDatabase database, CreatureState creature, int tileIndex)
+    public static bool StartsARescue(WorldState world, GameDatabase database, CreatureState creature, int tileIndex) =>
+        StateFor(world, database, creature, tileIndex) == RescuingState;
+
+    /// <summary><c>0x004E8660</c>: 134 for its Torture Chamber arm, 122 for its Prison arm
+    /// (<see cref="JailBreakRules.StartsABreakOut"/>, ADR-0229), or null.</summary>
+    public static int? StateFor(WorldState world, GameDatabase database, CreatureState creature, int tileIndex)
     {
-        if ((creature.Flags & FreesFriendsFlag) == 0) return false;
-        if ((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) != 0) return false;
+        if ((creature.Flags & FreesFriendsFlag) == 0) return null;
+        if ((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) != 0) return null;
 
         RoomInstance? room = RoomIndex.RoomAt(world, database, tileIndex);
-        if (room is null || room.Definition.TypeId != RoomTypeId.TortureChamber) return false;
-        if (world.AreAllied(creature.OwnerPlayerId, room.OwnerPlayerId)) return false;
-        return AlliedVictims(world, database, creature, room).Any();
+        if (room is null) return null;
+        if (room.Definition.TypeId == RoomTypeId.Prison)
+            return JailBreakRules.StartsABreakOut(world, database, creature, room) ? JailBreakRules.BreakingOutState : null;
+        if (room.Definition.TypeId != RoomTypeId.TortureChamber) return null;
+        if (world.AreAllied(creature.OwnerPlayerId, room.OwnerPlayerId)) return null;
+        return AlliedVictims(world, database, creature, room).Any() ? RescuingState : null;
     }
 
     /// <summary>The creatures on this chamber's devices that are allies of the rescuer, in

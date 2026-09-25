@@ -57,6 +57,7 @@ public sealed class HeroSystem : ISimulationSystem
             // A worker with no task goes 10, 12, 87 and a walk back to 1 (imp-idle-and-wandering.md
             // §5), where a hero's goes to 90. Ours: the wander is not built, so 10 idles at once.
             ImpStates.TaskSelection => false,
+            ImpStates.Wandering => ImpTaskSystem.Wander(context, creature, context.Database.CreatureById(creature.CreatureTypeId)),
             HeroJobRules.StandingJobState => StandingJob(context, creature),
             HeroJobRules.WaitFailedState => context.Tick.Value <= creature.StateDeadlineTick,
             HeroJobRules.WaitingState => HeroJobRules.Wait(context, creature),

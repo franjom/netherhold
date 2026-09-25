@@ -826,15 +826,17 @@ public class PrisonTests
         WorldState world = World(db);
         Prison(db, world);
 
-        CreatureState first = Prisoner(db, world, CellA);
+        // All three on the 3x3's one floor tile: the break (0x004E2E70) releases only the
+        // floor, and sends each out through the door north of it, (5, 3) (ADR-0229).
+        CreatureState first = Prisoner(db, world, CellB);
         CreatureState filler = Prisoner(db, world, CellB);
 
         // Only a keeper can do this. An imp refuses to deliver into a full
         // prison, so overcrowding is always somebody's own doing - which is
         // exactly what the manual calls it.
-        CreatureState second = world.SpawnCreature(db, GoblinId, Rival, CellA);
+        CreatureState second = world.SpawnCreature(db, GoblinId, Rival, CellB);
         Assert.True(PrisonRules.Imprison(
-            world, db, second, Keeper, (CellA.Y * world.Width) + CellA.X));
+            world, db, second, Keeper, (CellB.Y * world.Width) + CellB.X));
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
@@ -844,6 +846,10 @@ public class PrisonTests
         Assert.False(PrisonRules.IsImprisoned(filler));
         Assert.False(PrisonRules.IsImprisoned(second));
         Assert.Contains(sink.Events, e => e.Kind == "jail_break");
+        // Each is freed once, through the door; one pushed past it is freed off the room instead.
+        Assert.Equal(3, sink.Events.Count(e => e.Kind == "prisoner_released"));
+        Assert.Equal(3, sink.Events.Count(e => e.Kind == "prisoner_freed"));
+        Assert.Contains(sink.Events, e => e.Kind == "prisoner_freed" && e.Detail.Contains("at=(5,3)"));
     }
 
     [Fact]

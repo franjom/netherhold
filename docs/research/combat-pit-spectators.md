@@ -90,7 +90,8 @@ keeps a creature in place, while a watcher in 144 still picks a new spot.
 ## 5. Ours
 
 - `PitFightSeenTick` holds `+0x53` on the pit's lowest tile, as `HatchTicks` does for a
-  Hatchery. A pit whose lowest tile changes forgets it.
+  Hatchery. A pit whose lowest tile changes forgets it. The room dumper names the field
+  `GameTickLastFight` (`room-object.md`), which confirms the reading.
 - `SpectatorPosX`, `SpectatorPosY` hold 144's position.
 - `CurrentJob` is `CombatPitSpectate` while spectating.
 - **UNKNOWN or guessed:**

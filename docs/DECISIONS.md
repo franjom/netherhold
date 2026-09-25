@@ -5015,3 +5015,38 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **Guessed:** that every creature has actions 43 and 44, and their length.
 - **Not built:** the idle sound, `ReturnToJobId`, and the Call To Arms and casino arms of 89.
 - No new state; `HashVersion` stays **118**.
+
+## ADR-0229 — A rescuer breaks a Prison's door open, and the prisoners walk out through it
+**Date:** 2026-09-25 · **Status:** accepted · amends ADR-0201 (the contact test's Prison arm) · Research: `docs/research/jail-break.md`
+
+**Context.** 122 and 121, both labelled "freeing comrades", were unread. Ours had no Prison door, and its overcrowding break freed prisoners where they stood. `prison.md` already knew the break's routine sends them to the door.
+
+**Decision.** `JailBreakRules`:
+1. **The door** (`0x004E32C0`) is the tile north of the first floor tile whose three northern neighbours are off the floor. Its `Activation`, `DoorOpen` and `PrisonJailBroken` are one byte, `PrisonDoor`, on the room's lowest tile.
+2. **The contact test's Prison arm** sends a flagged non-worker to **122**. The Prison must be occupied and belong to a keeper it is not allied with (or to the neutral player), and hold an ally that is not the neutral player's. `RescueRules.StateFor` gives 134 or 122.
+3. **122:** walk to the door; face the room's centre; unlock, then open the door, which takes a turn; then release the rescuer's own side (`0x004E2E70(1, owner, 0)`) and wander (1, then 87). A hero now runs 87 in `HeroSystem`.
+4. **The release** sends each prisoner of that side on the cell's floor to a random point south of the door, resuming **121**. With no door it sends them to a random rim tile.
+5. **121:** off the floor the prisoner is free (`PrisonRules.Release`). South of the door it steps onto the door; elsewhere it walks to the tile south of the door. The overcrowding break now releases everyone this way (`0x004E2E60`).
+
+**Consequences.**
+- **`PrisonTests.AnOvercrowdedPrisonBreaksOut…`** puts its three prisoners on the 3x3's one floor tile, since the release reaches only the floor.
+- **Tests.** `JailBreakTests` adds four tests.
+- **Negative controls.** Nine fail a named test:
+  - no Prison arm;
+  - no ally needed;
+  - a door to the south;
+  - every side released;
+  - no walk out;
+  - freed in place;
+  - the door never opened;
+  - no wander after;
+  - never marked broken.
+
+  A tenth, dropping the NW and NE door tests, survives: with our ascending tile order the first candidate is always in the top floor row, so those tests cannot decide. It is recorded in `jail-break.md` §1.
+- **Not built:**
+  - the door objects and their frames;
+  - the keeper's lock toggle, and the imps' door arms with their auto-close;
+  - messages `0x3E`, `0x3F` and `0x42`;
+  - the `0x68`/`0x6C` route options;
+  - `0x004E2C30`'s path.
+- `HashVersion` **119** (`PrisonDoor`).

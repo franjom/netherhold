@@ -285,7 +285,7 @@ public static class CombatPitSpectatorRules
     /// <summary>The room's <c>+0x27</c>, its position tile. Its meaning is inferred: 89's fallback
     /// aims two tiles either side of the Heart's, which fits a centre. Ours: the middle of the
     /// bounding box.</summary>
-    private static (int X, int Y) Middle(RoomInstance room) => ((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
+    internal static (int X, int Y) Middle(RoomInstance room) => ((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
 
     /// <summary>144: moved since it last looked (and not at <c>Age</c> 1), it tries 142 and ends
     /// the cheer. Otherwise it remembers where it stands, waits out the cheer, and then: no fight

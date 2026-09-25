@@ -44,6 +44,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             CreatureState creature = creatures[i];
             if (!PrisonRules.IsImprisoned(creature)) continue;
             if (TortureRules.IsBeingTortured(creature)) continue;   // on a device, not in a cell
+            if (JailBreakRules.IsEscaping(creature)) continue;      // walking out, in 121 (ADR-0229)
 
             // In the keeper's hand it is out of the dungeon (ADR-0062); down,
             // it is not walking anywhere and PrisonSystem owns its second.

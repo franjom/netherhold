@@ -143,9 +143,9 @@ prisoner's second.
 **The jail break's destination is the door.** `prison.cpp`'s routine
 (`FUN_004e2e70`) walks the prison's slabs, takes each creature standing on one
 that is not flagged `CreatureDying`, and releases it at `DoorTileX`/`DoorTileY`
-with an effect. This project has no door and frees prisoners where they stand —
-cosmetic today, and not cosmetic the moment prisons have walls a creature has to
-come out through.
+with an effect. **Built 2026-09-25 (ADR-0229, `jail-break.md`):** the door is the tile north
+of the first floor tile whose northern neighbours are off the floor, and a released prisoner
+walks out through it in 121. Until then this project freed prisoners where they stood.
 
 ## 4b. The drain
 

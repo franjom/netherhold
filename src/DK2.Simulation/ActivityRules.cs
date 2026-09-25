@@ -44,6 +44,7 @@ public static class ActivityRules
         TunnelRules.TunnellingState or TunnelRules.HandBackState => CreatureActivity.AtWork,
         TunnelRules.AdvancingState => CreatureActivity.GoingToJob,
         CombatPitSpectatorRules.FacingState => CreatureActivity.AtWork,
+        JailBreakRules.BreakingOutState => CreatureActivity.Rescuing,
         _ when JobStates.Contains(resume) => CreatureActivity.GoingToJob,
         _ => Standing(creature, resume),
     };
@@ -82,7 +83,7 @@ public static class ActivityRules
         GuardRules.PatrolState or GuardRules.LostState or 100 => CreatureActivity.AtWork,
         TortureRules.StrappingState or TortureRules.TorturedState or 132 or RescueRules.FreedState
             or TortureRules.ReleasedState => CreatureActivity.BeingTortured,
-        RescueRules.RescuingState => CreatureActivity.Rescuing,
+        RescueRules.RescuingState or JailBreakRules.BreakingOutState => CreatureActivity.Rescuing,
         >= PaydayRules.FindTheMoneyState and <= PaydayRules.TakeItState => CreatureActivity.SeekingWages,
         >= LeavingRules.ChoosingState and <= LeavingRules.SackedState => CreatureActivity.Leaving,
         CombatStates.Engaging or 200 => CreatureActivity.Fighting,

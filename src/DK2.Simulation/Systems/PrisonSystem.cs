@@ -28,6 +28,7 @@ public sealed class PrisonSystem : ISimulationSystem
     {
         // The drain is the Prison hook, which the dispatcher runs every turn (ADR-0192).
         Wither(context);
+        WalkOut(context);
         if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
 
         FreeThoseWhoseCellIsGone(context);
@@ -62,6 +63,26 @@ public sealed class PrisonSystem : ISimulationSystem
                 $"at=({creature.Tile.X},{creature.Tile.Y}) reason=cell_gone");
 
             PrisonRules.Release(creature);
+        }
+    }
+
+    /// <summary>121, once a turn, for every released prisoner (ADR-0229).</summary>
+    private static void WalkOut(SimulationContext context)
+    {
+        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            CreatureState creature = creatures[i];
+            if (!PrisonRules.IsImprisoned(creature) || !JailBreakRules.IsEscaping(creature)) continue;
+            if (HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) continue;
+            if (StateShadow.IsTravelling(creature))
+            {
+                if (creature.HasRoute) continue;
+                creature.StopMoving();
+                StateShadow.Arrive(context, SystemName, creature);
+                continue;
+            }
+            JailBreakRules.Escape(context, SystemName, creature);
         }
     }
 
@@ -108,21 +129,8 @@ public sealed class PrisonSystem : ISimulationSystem
                 $"player={room.OwnerPlayerId} {Describe(world, room.TileIndices[0])} " +
                 $"held={held} capacity={PrisonRules.Capacity(room)} chance={percent}%");
 
-            foreach (CreatureState creature in world.Creatures)
-            {
-                if (!PrisonRules.IsImprisoned(creature)) continue;
-                if (creature.PrisonOwnerPlayerId != room.OwnerPlayerId) continue;
-
-                int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
-                if (!room.TileIndices.Contains(here)) continue;
-
-                context.Emit(SystemName, "prisoner_freed",
-                    $"creature={creature.Id} owner={creature.OwnerPlayerId} " +
-                    $"was_held_by={creature.PrisonOwnerPlayerId} " +
-                    $"at=({creature.Tile.X},{creature.Tile.Y}) reason=jail_break");
-
-                PrisonRules.Release(creature);
-            }
+            // 0x004E2E60, 0x004E2E70(1, 0, 1): everyone on the floor walks out through the door (ADR-0229).
+            JailBreakRules.Release(context, SystemName, room, 0, all: true);
         }
     }
 

@@ -145,6 +145,12 @@ public struct TileState
     /// forgets it.</summary>
     public long PitFightSeenTick;
 
+    /// <summary>A Prison's door, on the room's lowest tile like <see cref="HatchTicks"/>: its
+    /// <c>Activation</c>, <c>DoorOpen</c> and <c>PrisonJailBroken</c> as the bits of
+    /// <see cref="JailBreakRules.Activated"/>, <see cref="JailBreakRules.Open"/> and
+    /// <see cref="JailBreakRules.Broken"/>.</summary>
+    public byte PrisonDoor;
+
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = 15;
 
@@ -192,6 +198,7 @@ public struct TileState
         hash.Add(EntranceCreaturesGenerated);
         hash.Add(HatchTicks);
         hash.Add(PitFightSeenTick);
+        hash.Add(PrisonDoor);
     }
 }
 

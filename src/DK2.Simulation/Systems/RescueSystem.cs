@@ -8,7 +8,8 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Systems;
 
 /// <summary>A creature that steps into an enemy's Torture Chamber holding one of its allies
-/// frees it: the contact test <c>0x004E8660</c> and state 134 (ADR-0201, <see cref="RescueRules"/>).</summary>
+/// frees it: the contact test <c>0x004E8660</c> and state 134 (ADR-0201, <see cref="RescueRules"/>).
+/// In a Prison it breaks the door open in 122 (ADR-0229, <see cref="JailBreakRules"/>).</summary>
 /// <remarks>Ours, stated: the contact test runs for an idle creature or one holding a state
 /// id, not for one still on our own activities (combat, leaving, fleeing), as the busy
 /// creature is refused elsewhere; the 134 walk goes onto the victim's tile. The freed victim
@@ -34,22 +35,23 @@ public sealed class RescueSystem : ISimulationSystem
             if (creature.Activity == CreatureActivity.Rescuing)
             {
                 creature.ContactTileIndex = here;
-                Step(context, creature, here);
+                if (IsBreakingOut(creature)) BreakOut(context, creature);
+                else Step(context, creature, here);
                 continue;
             }
 
             if (here == creature.ContactTileIndex) continue;
             creature.ContactTileIndex = here;
-            if (MayStart(creature) && RescueRules.StartsARescue(world, database, creature, here)) Start(context, creature);
+            if (MayStart(creature) && RescueRules.StateFor(world, database, creature, here) is int state) Start(context, creature, state);
         }
     }
 
     private static bool MayStart(CreatureState creature) =>
         creature.Activity is CreatureActivity.Idle or CreatureActivity.AtWork or CreatureActivity.GoingToJob;
 
-    private static void Start(SimulationContext context, CreatureState creature)
+    private static void Start(SimulationContext context, CreatureState creature, int state)
     {
-        if (!CreatureStateMachine.TrySetState(creature, RescueRules.RescuingState)) return;
+        if (!CreatureStateMachine.TrySetState(creature, state)) return;
         NeedRules.EndJob(creature);
 
         creature.StopMoving();
@@ -99,6 +101,25 @@ public sealed class RescueSystem : ISimulationSystem
         }
 
         Stop(creature);
+    }
+
+    private static bool IsBreakingOut(CreatureState creature) =>
+        creature.Dk2StateId == JailBreakRules.BreakingOutState
+        || (StateShadow.IsTravelling(creature) && creature.UtilityNewState == JailBreakRules.BreakingOutState);
+
+    /// <summary>122, a turn: the walk to the door, then <see cref="JailBreakRules.BreakOut"/>. A state
+    /// entered this turn runs from the next.</summary>
+    private static void BreakOut(SimulationContext context, CreatureState creature)
+    {
+        if (StateShadow.IsTravelling(creature))
+        {
+            if (creature.HasRoute) return;
+            creature.StopMoving();
+            if (!CreatureStateMachine.Arrive(creature)) Stop(creature);
+            return;
+        }
+        if (!JailBreakRules.BreakOut(context, SystemName, creature)) Stop(creature);
+        else if (creature.Dk2StateId == ImpStates.Wandering) creature.ClearJob();
     }
 
     /// <summary>134 moves the victim to 133, which drops it to idle off the device; 134 then
