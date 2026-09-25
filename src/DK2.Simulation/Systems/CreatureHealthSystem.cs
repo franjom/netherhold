@@ -170,6 +170,9 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         if (state.Dk2StateId == CreatureDeathRules.FallingState)
             CreatureStateMachine.TrySetState(state, CreatureDeathRules.DyingState);
 
+        // 217's handler clears CombatPitFighter: a knocked-out loser is no longer a fighter.
+        if (state.Dk2StateId == CreatureDeathRules.DyingState) state.CombatPitFighter = false;
+
         state.DyingTicks += SimulationTiming.TicksPerSecond;
 
         if (!CreatureDeathRules.DyingWindowElapsed(context.Database, state)) return;

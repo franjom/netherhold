@@ -197,6 +197,10 @@ public enum CreatureActivity
     /// <summary>Freeing an ally from an enemy's torture device: DK2's state 134 and its walk
     /// (ADR-0201, <see cref="RescueRules"/>).</summary>
     Rescuing = 31,
+
+    /// <summary>In a Combat Pit: DK2's states 137, 138, 139 and 141 and 139's walks, category 16
+    /// (ADR-0213, <see cref="CombatPitRules"/>). The fight itself is <see cref="Fighting"/>.</summary>
+    PitFighting = 32,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -706,6 +710,22 @@ public sealed class CreatureState
     /// <summary>The turn state 99 was entered, for its <c>Age</c> test.</summary>
     public long GuardLostTick;
 
+    /// <summary><c>CombatPitFighter</c>, <c>+0x3E6</c> bit 15: set on a Combat Pit's floor by 138
+    /// and by 139's pairing, cleared by the pick-up, 217, idle's refused 138 and the room reset
+    /// (<c>combat-pit.md</c> §7).</summary>
+    public bool CombatPitFighter;
+
+    /// <summary><c>AttackAbnormalTargets</c>, <c>+0x3E6</c> bit 2, with <see cref="AttackingId"/>:
+    /// the forced target 139 hands both fighters (<c>0x0048F390</c>).</summary>
+    public bool AttackAbnormalTargets;
+
+    /// <summary><c>AttackingId</c>, <c>+0x3F9</c>: the forced target's creature id, or
+    /// <see cref="Combat.CombatRules.NoTarget"/>.</summary>
+    public int AttackingId;
+
+    /// <summary>The turn the current pit state was entered, for the pit states' <c>Age</c>.</summary>
+    public long PitStateEnteredTick;
+
     /// <summary>The turn each of the three spell slots was last cast at — DK2's <c>+0x41B + 4i</c>;
     /// zero means never, and a cast stamps it when the action starts, not when the shot leaves
     /// (combat-spells.md §4, §6).</summary>
@@ -920,6 +940,10 @@ public sealed class CreatureState
         hash.Add(GuardFacing);
         hash.Add(GuardDeadlineTick);
         hash.Add(GuardLostTick);
+        hash.Add(CombatPitFighter);
+        hash.Add(AttackAbnormalTargets);
+        hash.Add(AttackingId);
+        hash.Add(PitStateEnteredTick);
         for (int i = 0; i < SpellStamps.Length; i++) hash.Add(SpellStamps[i]);
         hash.Add(AttackSpellSlot);
         hash.Add(SwingKind);

@@ -89,9 +89,11 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             // A creature in the hand still minds - the ladder above ran, and
             // AngerInHand rides the same clock in HandSystem - but it can act
             // on none of it while it is off the ground. It rolls when it lands.
+            // A pit fighter's idle goes back to the pit before any chooser (0x004773D0).
             if (after == CreatureMood.Angry
                 && !HandRules.IsHeld(state)
-                && !PrisonRules.IsImprisoned(state))
+                && !PrisonRules.IsImprisoned(state)
+                && !state.CombatPitFighter)
                 Decide(context, creature, state);
         }
     }

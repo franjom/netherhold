@@ -77,13 +77,13 @@ public static class CreatureLevelRules
     /// everything, gains and losses alike; a loss bigger than the balance is a no-op, not a clamp;
     /// reaching the threshold zeroes the balance rather than subtracting, so the overshoot is
     /// discarded and an award's cadence is observable — hence training pays on
-    /// <see cref="SimulationTiming.OnOriginalTick"/>; one level per call, no loop. Not reproduced:
-    /// its refusal when an unmapped creature flag (<c>0x8000</c>) is set at
-    /// <c>CombatPitMaxExperienceLevel</c>.</summary>
+    /// <see cref="SimulationTiming.OnOriginalTick"/>; one level per call, no loop. A Combat Pit
+    /// fighter at <c>CombatPitMaxExperienceLevel</c> is refused everything (combat-pit.md §7).</summary>
     [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
     public static bool Grant(
         GameDatabase database, CreatureDef creature, CreatureState state, int amount)
     {
+        if (CombatPitRules.AtTheCap(database, state)) return false;
         int needed = ExperienceForNextLevel(database, creature, state.Level);
         if (needed <= 0) return false;
 
@@ -104,21 +104,24 @@ public static class CreatureLevelRules
         if (state.Level >= MaxLevel) return false;
 
         state.Level++;
+        LeaveThePitAtTheCap(database, state);
         return true;
     }
 
-    /// <summary>The experience needed to reach the next level: the record's <c>ExpForNextLevel</c>
-    /// scaled by the table, indexed by the creature's CURRENT level. CONFIRMED (Q124): DK2's adder
-    /// indexes the <c>ExperienceForNextLevel</c> column with the current level byte and uses the raw
-    /// value at level 1, so the first level costs the record's own 3000 where indexing by the target
-    /// would make it 3900. Not reproduced: the clamp of the scaled threshold to <c>0xFFFE</c>, which
-    /// cannot bite, the largest shipped product being 3000 at 1000 %.</summary>
+    /// <summary>The level increment's pit clause: a fighter that reaches
+    /// <c>CombatPitMaxExperienceLevel</c> is set to 1, and idle sends it back to 138.</summary>
+    private static void LeaveThePitAtTheCap(GameDatabase database, CreatureState state)
+    {
+        if (CombatPitRules.AtTheCap(database, state)) CreatureStateMachine.TrySetState(state, CreatureStateMachine.Idle);
+    }
+
     /// <summary>DK2's level increment <c>0x0048B120</c>, without its effect and sound: nothing at
     /// level 10 or on a finished (dead) creature; otherwise the level rises by one and health is
     /// carried across as its share of the maximum — <c>ratio = (health &lt;&lt; 12) / oldMax</c>
     /// in 12-bit fixed point, <c>new = (ratio × newMax) &gt;&gt; 12</c> — applied as a delta through
-    /// the health routine, which clamps at the new maximum. The <c>+0x3AF</c> adjustment and the
-    /// <c>+0x3E6</c> bit-15 call it also makes are not modelled (Q427). Returns whether it rose.</summary>
+    /// the health routine, which clamps at the new maximum. A Combat Pit fighter's move to 1 at the
+    /// cap is <see cref="LeaveThePitAtTheCap"/>; the <c>+0x3AF</c> adjustment is not modelled
+    /// (Q427). Returns whether it rose.</summary>
     public static bool LevelUp(GameDatabase database, CreatureDef creature, CreatureState state)
     {
         if (state.Level >= MaxLevel || state.Health <= 0) return false;
@@ -129,9 +132,16 @@ public static class CreatureLevelRules
         int newMax = CreatureHealthRules.MaxHealth(database, creature, state);
         int target = (int)((ratio * newMax) >> 12);
         CreatureHealthRules.Apply(database, creature, state, target - current);
+        LeaveThePitAtTheCap(database, state);
         return true;
     }
 
+    /// <summary>The experience needed to reach the next level: the record's <c>ExpForNextLevel</c>
+    /// scaled by the table, indexed by the creature's CURRENT level. CONFIRMED (Q124): DK2's adder
+    /// indexes the <c>ExperienceForNextLevel</c> column with the current level byte and uses the raw
+    /// value at level 1, so the first level costs the record's own 3000 where indexing by the target
+    /// would make it 3900. Not reproduced: the clamp of the scaled threshold to <c>0xFFFE</c>, which
+    /// cannot bite, the largest shipped product being 3000 at 1000 %.</summary>
     public static int ExperienceForNextLevel(
         GameDatabase database, CreatureDef creature, int level) =>
         Scale(creature.ExpForNextLevel,

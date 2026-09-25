@@ -30,11 +30,9 @@ public static class RebellionRules
 
     /// <summary>Whether job 16 may start at all. DK2's three guards, in its order: not a
     /// captive, not a Combat Pit fighter, not in the Hand.</summary>
-    /// <remarks>The pit-fighter guard is inert here: nothing in this simulation sets that
-    /// flag, so it can only ever pass. It is written out anyway so the Combat Pit lands on
-    /// a rule that already expects it.</remarks>
     public static bool CanRebel(CreatureState creature) =>
         !PrisonRules.IsImprisoned(creature)
+        && !creature.CombatPitFighter
         && !HandRules.IsHeld(creature);
 
     /// <summary>Is this creature waiting out the defection countdown?</summary>

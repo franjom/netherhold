@@ -68,6 +68,7 @@ public sealed class HandSystem : ISimulationSystem
         // (ADR-0065).
         DropLoad(context, creature);
         TortureRules.Unstrap(creature);
+        CombatPitRules.Unmark(world, creature);   // 0x004BC500 clears the fighter and its forced target
         creature.ClearJob();
         // 76, the hand's own state, is not built: ours holds 1 in the hand (ADR-0209).
         CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
@@ -283,6 +284,19 @@ public sealed class HandSystem : ISimulationSystem
         {
             // 77 in a Torture Chamber is 130 for any creature but a Horned Reaper (ADR-0200).
             context.Emit(SystemName, "own_strapped",
+                $"player={command.PlayerId} creature={creature.Id} " +
+                $"tile={command.Tile.X},{command.Tile.Y} held={hand.Count}");
+            return;
+        }
+
+        // An own non-worker on the floor of the keeper's Combat Pit: the room record's state,
+        // 137, through 1 (0x004E8DA0(0), combat-pit.md §1).
+        RoomInstance? pit = CombatPitRules.PitAt(world, context.Database, landingTileIndex);
+        if (creature.OwnerPlayerId == command.PlayerId && pit?.OwnerPlayerId == command.PlayerId
+            && !definition.Flags.HasFlag(CreatureFlags.IsWorker) && CombatPitRules.IsFloor(pit, landingTileIndex)
+            && CombatPitSystem.Move(context, creature, CombatPitRules.ArrivingState))
+        {
+            context.Emit(SystemName, "dropped_in_pit",
                 $"player={command.PlayerId} creature={creature.Id} " +
                 $"tile={command.Tile.X},{command.Tile.Y} held={hand.Count}");
             return;

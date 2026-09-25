@@ -4636,3 +4636,24 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - The fixture carries the shipped Guard Room (terrain 18, cost 600, flags `0x10A4`) and variables 152 and 30.
 - Nine tests. Negative controls: the mask bits swapped, the spiral's sign, slot 7 given a y inside the table, the wall's opening facing, one step per leg, no room gate and the leg point read like the post's each fail a named test. Three first survived and exposed thin tests (a spiral that found its post before turning, no inner corner, no leg point checked), since fixed.
 
+## ADR-0213 — The Combat Pit is states 137, 138, 139 and 141
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/combat-pit.md`
+
+**Context.** The Combat Pit had a room, a job id for its spectators and a damage arm, and no states. Its five handlers, the room's handlers, the hand-drop landing's room dispatch and every reader and writer of `CombatPitFighter` (`+0x3E6` bit 15) are now read.
+
+**Decision.**
+1. `CombatPitRules` holds the pit's floor (an interior tile, floor height `0x400`), the pairing `0x0048F390`, the opponent search `0x004D8100` (nearest enemy fighter on the floor, a friend if none), the one-tile step `0x004E50F0`, and the clears.
+2. `CombatPitSystem` runs 137, 138, 139 and 141 once a turn after the combat system, and idle's return of a fighter to 138. A state entered this turn runs from the next.
+3. The fight is the combat system's: a creature with `AttackAbnormalTargets` skips the look gate, and `SelectAVictim` takes its `AttackingId` with no attackability, sight or hostility test. A pit fighter is not attackable, keeps a knocked-out target while it is on the map, hits at variable 225 (double) and takes variable 239 of 128.
+4. Hand: an own non-worker dropped on the keeper's pit floor goes 1 → 137; the pick-up clears the fighter and its forced target. 217 clears the fighter. The experience adder refuses a fighter at `CombatPitMaxExperienceLevel`, and reaching it sets 1.
+5. A sale or build touching a pit throws the fighters on it out to 141.
+6. `CreatureState` gains `CombatPitFighter`, `AttackAbnormalTargets`, `AttackingId` and `PitStateEnteredTick`; `CreatureActivity.PitFighting`. `HashVersion` and `FormatVersion` 109, pin `0x1754FA244591A3A6`.
+
+**Consequences.**
+- **The winner stands over the loser.** DK2 keeps a knocked-out opponent as a pit fighter's target until an imp lifts it or it dies, so the winner swings at it to no effect meanwhile. The next waiting fighter may take the winner as its opponent first.
+- **A waiting fighter's anger rises every turn**: `angerNoWork` into buckets 0 and 3 each turn it waits in 139.
+- **Nothing enters 140**, the victor's celebration: no literal, no computed id, no room record names it. It is not built.
+- Not built: a captive dropped in the pit (ours holds captivity in `PrisonOwnerPlayerId`, which DK2's pit writes for every fighter), 142–144, action `0x2C` at the cap, scan A for a dead forced target, the room's sounds and messages, and state 76.
+- `state-category-hooks.md` named the pit's and the spectators' enter-hook bit as 23; it is 15, `CombatPitFighter`. `+0x16 == 2` is "off the map" (Q364).
+- Eleven tests. Eighteen negative controls each fail a named test: attackability, the forced branch, the blow's stance, the damage taken, the knocked-out target, the enemy-first search, the pick-up clear, the sale's reset, idle's return, the step's floor, the anger, the experience cap, the cap's move to 1, the same-turn wait, 141's wait, the knockout not counting as a death, 138 on the rim and the drop on the rim. The rim case first survived, and its test was added.
+

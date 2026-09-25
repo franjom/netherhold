@@ -32,7 +32,7 @@ public class CreatureStatusEffectTests
         sim.Run(1);
         Assert.Equal(CreatureActivity.Frozen, goblin.Activity);
         Assert.Equal(40, goblin.FrozenTicks);
-        Assert.Equal(160, StatusEffectRules.DamageMultiplier(world, goblin));
+        Assert.Equal(160, StatusEffectRules.DamageMultiplier(world, db, goblin));
         Assert.Equal(-500, StatusEffectRules.Hurt(world, db, db.CreatureById(goblin.CreatureTypeId), goblin, 400));
         Assert.False(CombatRules.MayLookForAFight(world, goblin, force: false));
         // A frozen creature is still a target: the Warlock engages it.
@@ -46,7 +46,7 @@ public class CreatureStatusEffectTests
         sim.Run(20);
         Assert.Equal(0, goblin.FrozenTicks);
         Assert.NotEqual(CreatureActivity.Frozen, goblin.Activity);
-        Assert.Equal(128, StatusEffectRules.DamageMultiplier(world, goblin));
+        Assert.Equal(128, StatusEffectRules.DamageMultiplier(world, db, goblin));
     }
 
     [Fact]
@@ -215,13 +215,13 @@ public class CreatureStatusEffectTests
         Assert.Equal(CreatureActivity.Stunned, dry.Activity);
         // The fixture Goblin's StunDuration is five seconds: twenty ticks.
         Assert.Equal(20, dry.StunTicks);
-        Assert.Equal(256, StatusEffectRules.DamageMultiplier(world, dry));
+        Assert.Equal(256, StatusEffectRules.DamageMultiplier(world, db, dry));
         Assert.Equal(-200, StatusEffectRules.Hurt(world, db, def, dry, 100));
         Assert.False(CombatRules.MayLookForAFight(world, dry, force: false));
 
         sim.Run(20);
         Assert.Equal(CreatureActivity.Idle, dry.Activity);
-        Assert.Equal(128, StatusEffectRules.DamageMultiplier(world, dry));
+        Assert.Equal(128, StatusEffectRules.DamageMultiplier(world, db, dry));
     }
 
     [Fact]

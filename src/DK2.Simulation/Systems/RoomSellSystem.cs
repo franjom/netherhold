@@ -48,6 +48,10 @@ public sealed class RoomSellSystem : ISimulationSystem
         int lastSold = -1;
         var refusals = new Dictionary<RoomSale, int>();
 
+        // A sold tile rebuilds or frees its room, and a Combat Pit's reset throws its fighters
+        // out (0x004D7E00, 0x004D8000): the pits as they stood before the sale.
+        List<RoomInstance> pits = CombatPitRules.PitsUnder(world, context.Database, command.Tiles);
+
         foreach (TilePos pos in command.Tiles)
         {
             if (!world.Contains(pos))
@@ -94,6 +98,7 @@ public sealed class RoomSellSystem : ISimulationSystem
         context.Emit(SystemName, "sold",
             $"player={command.PlayerId} tiles={sold} refund={refunded} " +
             $"refused={Describe(refusals)}");
+        if (sold > 0) foreach (RoomInstance pit in pits) CombatPitSystem.Reset(context, pit);
 
         // A refund with nowhere to go lands on the floor rather than vanishing:
         // the original's add-gold-to-player takes a position and, once every

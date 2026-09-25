@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 108: a guard's facing, deadline and lost turn (ADR-0212).
+        // HashVersion 109: a Combat Pit fighter, its forced target and its state's turn (ADR-0213).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xEE02B16BC2932E35UL, sim.StateHash());
+        Assert.Equal(0x1754FA244591A3A6UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

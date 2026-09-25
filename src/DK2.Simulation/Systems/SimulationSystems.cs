@@ -38,6 +38,7 @@ public static class SimulationSystems
         // Acquisition before state handlers and steering, as ProcessFight sits in DK2's update.
         new CreatureStatusSystem(), // the status countdowns (0x0048E160) before the fight reads their words
         new CombatSystem(),
+        new CombatPitSystem(), // the pit's states, after the fight processing as DK2's handler is (ADR-0213)
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
         new CreatureMovementSystem(),
         // Shots fly after the creatures have moved; where DK2's thing list puts them is Q398.

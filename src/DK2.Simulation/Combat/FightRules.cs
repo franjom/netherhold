@@ -23,14 +23,17 @@ public static class FightRules
     private const string SystemName = "combat";
 
     /// <summary>Whether the engagement still has something to hit: a live, attackable creature, or a
-    /// heart that stands. A creature target is also refused while its owner fights from the pit.</summary>
+    /// heart that stands. A Combat Pit fighter needs only a live target on the map, attackable or not,
+    /// so it stands over an opponent it has knocked out (combat-pit.md §4).</summary>
     public static bool TargetIsValid(WorldState world, CreatureState me)
     {
         switch (me.FightTargetKind)
         {
             case FightTargetKind.Creature:
                 CreatureState? target = world.CreatureById(me.FightTargetId);
-                return target != null && CombatRules.IsAttackable(target);
+                if (target is null) return false;
+                if (me.CombatPitFighter) return CreatureStateMachine.HasState(target) && CombatPitRules.IsOnTheMap(target);
+                return CombatRules.IsAttackable(target);
             case FightTargetKind.Heart:
                 ref PlayerState owner = ref world.Player(me.FightTargetPlayerId);
                 return owner.HeartHealth > 0 && !owner.HeartRuined;
@@ -264,7 +267,8 @@ public static class FightRules
     }
 
     private static int Blow(GameDatabase database, CreatureState me, CreatureDef mine, int targetX, int targetY) =>
-        MeleeDamageRules.Blow(database, mine, me.Level, MeleeDamageRules.Stance.None,
+        MeleeDamageRules.Blow(database, mine, me.Level,
+            me.CombatPitFighter ? MeleeDamageRules.Stance.CombatPitFighter : MeleeDamageRules.Stance.None,
             Bearing.Of(me.PosX - targetX, me.PosY - targetY), 0, 0);
 
     /// <summary><c>0x0045AA20</c>, the target's side of a swing beginning. A creature already

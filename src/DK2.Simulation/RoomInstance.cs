@@ -41,6 +41,9 @@ public sealed class RoomInstance
 
     public int TileCount => TileIndices.Count;
 
+    /// <summary>Whether a tile is one of this room's.</summary>
+    public bool Contains(int tileIndex) => Array.BinarySearch((int[])TileIndices, tileIndex) >= 0;
+
     // The smallest axis-aligned box containing the room; a room need not fill it (an L-shaped treasury has empty corners), so a shape rule must ask the tiles.
     public int MinX { get; }
     public int MinY { get; }

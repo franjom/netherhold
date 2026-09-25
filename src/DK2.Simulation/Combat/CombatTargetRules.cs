@@ -120,7 +120,11 @@ public static class CombatTargetRules
         SimulationContext context, ISightBlocker sight, HeartSites hearts, RoomCache rooms, CreatureState me, CreatureDef definition,
         List<Fixed16Vector> scratch)
     {
-        if (definition.FightStyle == FightStyle.NonFighter)
+        if (me.AttackAbnormalTargets)
+        {
+            if (!Forced(context, sight, me, definition, scratch)) return false;
+        }
+        else if (definition.FightStyle == FightStyle.NonFighter)
         {
             if (!NonFighter(context, sight, hearts, rooms, me, definition, scratch, out CreatureState? chosen)) return false;
             if (chosen is null) return true;
@@ -133,6 +137,32 @@ public static class CombatTargetRules
         if (FearRules.ShouldWithdraw(context.World, context.Database, hearts, me, definition) && !CreatureDeathRules.IsDown(me))
             FearRules.Withdraw(context, sight, hearts, rooms, me, definition, scratch);
         return true;
+    }
+
+    /// <summary>The forced target (<c>AttackingId</c>, combat-pit.md §4): taken with no
+    /// attackability, sight, hostility or range test, but a route to it must be found, or an attack
+    /// spell must see it. A dead one is cleared; scan A, which DK2 then runs over every creature, is
+    /// not built.</summary>
+    private static bool Forced(
+        SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition, List<Fixed16Vector> scratch)
+    {
+        CreatureState? target = context.World.CreatureById(me.AttackingId);
+        if (target is null || !CreatureStateMachine.HasState(target))
+        {
+            CombatPitRules.ClearForcedTarget(context.World, me);
+            return false;
+        }
+
+        int spellSlot = -1;
+        CreatureSpellDef? spell = null;
+        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
+            spellSlot = SpellRules.SurveyAttack(context.Database, me, definition, context.Tick.Value, out spell);
+        if (CombatPitRules.IsOnTheMap(target)
+            && !CanReach(context.Navigation, me, definition, target.PosX, target.PosY, int.MaxValue, scratch)
+            && (spell is null || !LineOfSight.Clear(sight, me.PosX, me.PosY, target.PosX, target.PosY)))
+            return false;
+
+        return Engage(context, me, definition, target, context.Database.CreatureById(target.CreatureTypeId), spellSlot, spell);
     }
 
     private static bool Choose(

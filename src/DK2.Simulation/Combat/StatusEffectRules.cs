@@ -38,13 +38,15 @@ public static class StatusEffectRules
         creature.Activity is CreatureActivity.Frozen or CreatureActivity.Stunned;
 
     /// <summary>The multiplier a negative health change is scaled by (§3): 128, plus 32 frozen,
-    /// minus 64 armoured or possessed, plus 128 stunned, floored at zero.</summary>
-    public static int DamageMultiplier(WorldState world, CreatureState target)
+    /// minus 64 armoured or possessed, plus 128 stunned, then for a Combat Pit fighter less 128 and
+    /// plus <c>PitPercentageDamageTakenOfNormalCombat</c> (20), floored at zero.</summary>
+    public static int DamageMultiplier(WorldState world, GameDatabase database, CreatureState target)
     {
         int m = Base;
         if (IsFrozen(target)) m += FrozenBonus;
         if (IsArmoured(target) || CreatureDeathRules.IsPossessed(world, target)) m -= ArmourDiscount;
         if (IsStunned(target)) m += StunnedBonus;
+        if (target.CombatPitFighter) m += database[VariableTypeId.PitPercentageDamageTakenOfNormalCombat] - Base;
         return Math.Max(0, m);
     }
 
@@ -57,7 +59,7 @@ public static class StatusEffectRules
         if (damage <= 0) return 0;
         if (definition.Flags.HasFlag(CreatureFlags.IsHorny) || definition.Flags.HasFlag(CreatureFlags.OnlyAttackableByHorny)) return 0;
         if (HandRules.IsHeld(target)) return 0;
-        int scaled = (int)((long)damage * DamageMultiplier(world, target) / Base);
+        int scaled = (int)((long)damage * DamageMultiplier(world, database, target) / Base);
         return CreatureHealthRules.Apply(database, definition, target, -scaled);
     }
 

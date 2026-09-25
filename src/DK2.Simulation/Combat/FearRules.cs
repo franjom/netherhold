@@ -110,11 +110,11 @@ public static class FearRules
     // ------------------------------------------------------------------ the two checks
 
     /// <summary><c>0x0045EDA0</c>: hurt below a third of my level-scaled health, more than five tiles
-    /// from my heart, and not fearless. A hero counts as six tiles away only with a creature flag
-    /// this simulation does not carry, so here a hero never withdraws (Q372).</summary>
+    /// from my heart, not fearless and not a Combat Pit fighter. A hero counts as six tiles away
+    /// only with a creature flag this simulation does not carry, so here a hero never withdraws (Q372).</summary>
     public static bool ShouldWithdraw(WorldState world, GameDatabase database, HeartSites hearts, CreatureState me, CreatureDef mine)
     {
-        if (mine.Flags.HasFlag(CreatureFlags.IsFearless)) return false;
+        if (me.CombatPitFighter || mine.Flags.HasFlag(CreatureFlags.IsFearless)) return false;
         int d = me.OwnerPlayerId == PlayerIds.Good ? 0 : HeartDistance(world, hearts, me);
         if (d <= WithdrawHeartDistance) return false;
         return me.Health < CreatureLevelRules.MaxHealth(database, mine, me.Level) / 3;
@@ -129,14 +129,14 @@ public static class FearRules
         return root;
     }
 
-    /// <summary><c>0x0045EC80</c>, the counter: clamped, cleared for the fearless, up by one each
+    /// <summary><c>0x0045EC80</c>, the counter: clamped, cleared for the fearless and a pit fighter, up by one each
     /// tick <c>CurrentFear</c> exceeds the threshold and back to zero when it does not; a
     /// <c>NonFighter</c> with an Imp among its attackers jumps to three. True at three or more.</summary>
     public static bool OverThreat(WorldState world, GameDatabase database, CreatureState me, CreatureDef mine)
     {
         if (me.OverThreatCounter > CounterReset) me.OverThreatCounter = 0;
         if (me.OverThreatCounter > FleeCount) me.OverThreatCounter = FleeCount;
-        if (mine.Flags.HasFlag(CreatureFlags.IsFearless))
+        if (me.CombatPitFighter || mine.Flags.HasFlag(CreatureFlags.IsFearless))
         {
             me.OverThreatCounter = 0;
             return false;

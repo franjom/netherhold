@@ -60,6 +60,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
 
             if (HandRules.IsHeld(creature)) continue;
             if (PrisonRules.IsImprisoned(creature)) continue;
+            if (creature.CombatPitFighter) continue;   // idle sends it back to the pit (ADR-0213)
             if (CreatureDeathRules.IsDown(creature)) continue;
             if (creature.Activity == CreatureActivity.Leaving) continue;
             if (Combat.CombatRules.Preoccupied(creature)) continue;

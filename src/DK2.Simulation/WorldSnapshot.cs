@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 108;
+    private const int FormatVersion = 109;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -283,6 +283,10 @@ public static class WorldSnapshot
             w.Write(c.GuardFacing);
             w.Write(c.GuardDeadlineTick);
             w.Write(c.GuardLostTick);
+            w.Write(c.CombatPitFighter);
+            w.Write(c.AttackAbnormalTargets);
+            w.Write(c.AttackingId);
+            w.Write(c.PitStateEnteredTick);
             w.Write(c.AttackSpellSlot);
             w.Write(c.SwingKind);
             w.Write(c.SwingSpellSlot);
@@ -698,6 +702,10 @@ public static class WorldSnapshot
                 GuardFacing = r.ReadInt32(),
                 GuardDeadlineTick = r.ReadInt64(),
                 GuardLostTick = r.ReadInt64(),
+                CombatPitFighter = r.ReadBoolean(),
+                AttackAbnormalTargets = r.ReadBoolean(),
+                AttackingId = r.ReadInt32(),
+                PitStateEnteredTick = r.ReadInt64(),
                 AttackSpellSlot = r.ReadByte(),
                 SwingKind = r.ReadByte(),
                 SwingSpellSlot = r.ReadByte(),

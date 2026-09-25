@@ -84,6 +84,11 @@ public sealed class RoomBuildSystem : ISimulationSystem
         context.Emit(SystemName, "built",
             $"player={command.PlayerId} room={room.Name} tiles={built} cost={spent} " +
             $"refused={Describe(refusals)}");
+
+        // A Combat Pit that took a tile is rebuilt, and its reset throws its fighters out (0x004D7E00).
+        if (built > 0)
+            foreach (RoomInstance pit in CombatPitRules.PitsUnder(world, context.Database, command.Tiles))
+                CombatPitSystem.Reset(context, pit);
     }
 
     private static void Count(Dictionary<RoomPlacement, int> refusals, RoomPlacement reason) =>

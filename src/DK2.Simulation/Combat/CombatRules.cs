@@ -146,10 +146,12 @@ public static class CombatRules
     /// <summary>DK2's <c>IsAttackable</c>, recomputed every tick by <c>0x0045A8B0</c> rather than
     /// stored, so it is a predicate here. Cleared for a dying creature, a captive, one leaving, one
     /// in a state whose table flag says so — the lair walk and sleep among them — one with all
-    /// sixteen slots taken, and one whose invisible word runs (creature-status-effects.md §2).
-    /// Not modelled: the combat-pit fighter and torture.</summary>
+    /// sixteen slots taken, one whose invisible word runs (creature-status-effects.md §2), and a
+    /// Combat Pit fighter, which only its forced opponent reaches (combat-pit.md §4). Not
+    /// modelled: torture.</summary>
     public static bool IsAttackable(CreatureState creature) =>
         !CreatureDeathRules.IsDown(creature)
+        && !creature.CombatPitFighter
         && !PrisonRules.IsImprisoned(creature)
         && creature.Activity != CreatureActivity.Leaving
         && !HandRules.IsHeld(creature)
@@ -260,6 +262,19 @@ public static class CombatRules
     /// keeps its own target and still lands.</summary>
     public static void Disengage(WorldState world, CreatureState creature)
     {
+        Unlink(world, creature);
+        if (!InCombat(creature)) return;
+        creature.CurrentJob = JobType.None;
+        creature.JobTileIndex = -1;
+        creature.StopMoving();
+        creature.Running = false;
+        CombatStates.Idle(creature);
+    }
+
+    /// <summary><c>0x0045EF50</c>: the engagement is let go and the attacker slot on its target
+    /// freed, and the state is left as it is.</summary>
+    public static void Unlink(WorldState world, CreatureState creature)
+    {
         if (creature.FightTargetKind == FightTargetKind.Creature && creature.FightTargetId != NoTarget)
         {
             CreatureState? target = world.CreatureById(creature.FightTargetId);
@@ -272,11 +287,5 @@ public static class CombatRules
         creature.AttackType = 0;
         creature.AttackRangeSquared = 0;
         creature.Approaching = false;
-        if (!InCombat(creature)) return;
-        creature.CurrentJob = JobType.None;
-        creature.JobTileIndex = -1;
-        creature.StopMoving();
-        creature.Running = false;
-        CombatStates.Idle(creature);
     }
 }

@@ -270,7 +270,7 @@ creature's experience:
 
 ```
 if ((creature.flags & 0x8000) && creature.level >= CombatPitMaxExperienceLevel)
-    return                                   -- unmapped flag; not reproduced
+    return                                   -- CombatPitFighter at the pit cap (combat-pit.md §7, built ADR-0213)
 
 needed = (level == 1) ? def.expForNextLevel
                       : clamp(def.expForNextLevel * statPercent[13][level] / 100,

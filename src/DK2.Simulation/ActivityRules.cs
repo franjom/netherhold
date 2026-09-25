@@ -34,6 +34,7 @@ public static class ActivityRules
         LairRules.GoingToBedState => creature.CurrentJob == JobType.Sleep ? CreatureActivity.GoingToJob : CreatureActivity.GoingToSleep,
         TortureRules.TorturerFacingState or TortureRules.StrappingState => CreatureActivity.AtWork,
         GuardRules.PatrolState or 100 => CreatureActivity.AtWork,
+        CombatPitRules.WaitingState => CreatureActivity.PitFighting,
         _ when JobStates.Contains(resume) => CreatureActivity.GoingToJob,
         _ => Standing(creature, resume),
     };
@@ -74,6 +75,7 @@ public static class ActivityRules
         >= CombatStates.Stunned and <= CombatStates.GettingUp => CreatureActivity.Stunned,
         CombatStates.AtTheBody => CreatureActivity.GoingToBody,
         CombatStates.Celebrating => CreatureActivity.Celebrating,
+        >= CombatPitRules.ArrivingState and <= CombatPitRules.WaitingState or CombatPitRules.ThrownOutState => CreatureActivity.PitFighting,
         _ when JobStates.Contains(state) => CreatureActivity.AtWork,
         _ => null,
     };

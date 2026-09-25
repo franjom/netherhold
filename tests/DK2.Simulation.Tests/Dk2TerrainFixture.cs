@@ -1258,6 +1258,9 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.GuardRoomReportingDistanceTiles, 7);
         // Guard duty's two deadlines (guard-room.md), shipped values.
         Set(vars, VariableTypeId.MaxTimeInGuardRoomBeforeWanderingToGuardPostSeconds, 60);
+        // The Combat Pit's cap and the damage a fighter takes (combat-pit.md), shipped values.
+        Set(vars, VariableTypeId.CombatPitMaxExperienceLevel, 8);
+        Set(vars, VariableTypeId.PitPercentageDamageTakenOfNormalCombat, 20);
         Set(vars, VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds, 5);
         // The chase limit on a retreating target (combat-approach-and-victory.md §2): 3 s Good, 7 s Evil.
         Set(vars, VariableTypeId.GoodCreaturesChaseEnemyDurationSeconds, 3);

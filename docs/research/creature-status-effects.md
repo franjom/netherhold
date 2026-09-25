@@ -185,7 +185,7 @@ by the work rate was corrected first (`combat-fight-state.md` §4). On state ids
 (ADR-0208): freeze enters 218 and thaws to 1; the stun enters 255, is not taken when
 the rule refuses it, and gets up through 257 to 1.
 
-**Not built, named (Q399):** the per-player byte `+0x1095`, `CombatPitFighter`, the Stone
+**Not built, named (Q399):** the per-player byte `+0x1095`, the Stone
 Knight's blow path, the stun's early end `0x00481360`, state 257's length, the ignite
 and every other display, the fear-over-time pair, the unread words. Ours lets the
 engagement go on freeze and stun where DK2 only changes the state, and scales the

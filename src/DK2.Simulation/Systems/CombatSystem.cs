@@ -92,7 +92,8 @@ public sealed class CombatSystem : ISimulationSystem
     private void ProcessFight(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (creature.OwnerPlayerId == PlayerIds.Neutral) return;
-        if (!CombatRules.MayLookForAFight(context.World, creature, force: false)) return;
+        // A forced target skips the may-I-look gate (combat-pit.md §4).
+        if (!creature.AttackAbnormalTargets && !CombatRules.MayLookForAFight(context.World, creature, force: false)) return;
 
         TilePos tile = creature.Tile;
         bool moved = creature.LastFightScanTileIndex != (tile.Y * context.World.Width) + tile.X;
@@ -128,8 +129,9 @@ public sealed class CombatSystem : ISimulationSystem
         // A healer holds no attacker slot on its ally, so an ally's death marks nothing.
         if (creature.FightTargetKind == FightTargetKind.Creature && creature.AttackType != CombatRules.AttackTypes.SpellAtAlly)
         {
+            // A pit fighter's knocked-out opponent is still a target; only its death counts.
             CreatureState? dying = world.CreatureById(creature.FightTargetId);
-            if (dying != null && CreatureDeathRules.IsDown(dying))
+            if (dying != null && (creature.CombatPitFighter ? !CreatureStateMachine.HasState(dying) : CreatureDeathRules.IsDown(dying)))
             {
                 VictoryRules.TargetDied(context, creature);
                 return;
@@ -151,6 +153,13 @@ public sealed class CombatSystem : ISimulationSystem
 
         if (!FightRules.TargetIsValid(world, creature))
         {
+            // A forced target that fails is let go with the fight: no other is sought (§4).
+            if (creature.AttackAbnormalTargets)
+            {
+                CombatPitRules.ClearForcedTarget(world, creature);
+                LetGo(context, creature, "forced_target_gone");
+                return;
+            }
             LetGo(context, creature, "target_gone");
             CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch);
             return;

@@ -74,8 +74,8 @@ the category operation failed; a return of one means it remains valid.
 
 | Address | Category / role | Body |
 |---|---|---|
-| `0x0047A9E0` | Spectating enter | On room type 16, clears creature `+0x3E6` bit 23; initializes `+0xAB`; claims the room position. |
-| `0x0047AAE0` | CombatPit enter | On room type 16 and an exact `0x400` position test, sets creature `+0x3E6` bit 23; initializes `+0xAB`; claims the room position. |
+| `0x0047A9E0` | Spectating enter | On room type 16, clears creature `+0x3E6` bit 15, `CombatPitFighter` (`AND CH,0x7F`; corrected 2026-09-25, this row said bit 23); initializes `+0xAB`; claims the room position. |
+| `0x0047AAE0` | CombatPit enter | On room type 16 and an exact `0x400` floor height, sets creature `+0x3E6` bit 15, `CombatPitFighter` (`OR 0x8000`; corrected 2026-09-25, this row said bit 23; `combat-pit.md`); initializes `+0xAB`; claims the room position. |
 | `0x0047AB90` | Sleeping leave | If creature `+0x3B7` names a class-2 thing, toggles that thing's `+0xF3` bit 0; then toggles creature `+0xF3` bit 0. The precise bed/occupancy fields are **UNKNOWN**. |
 | `0x0047AC00` | Sleeping update | State 83 first calls `0x00477B20(1)`. Once per game second by turn modulus, calls the shared lair effect `0x004DFF00`. |
 | `0x0047AC40` | Lair update | Once per game second by turn modulus, calls `0x004DFF00`. |
