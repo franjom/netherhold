@@ -27,8 +27,8 @@ The complete object-field writer set is:
 | `0x0049EFE7` | object state-1 hook `0x0049EF90` | clear an invalid or non-creature recipient |
 
 The ordinary drop handler has a `RET 8` at `0x004BCA2A` and
-`0x004BCA31`: besides its player receiver it consumes two stack arguments, one
-of which is the drop position. For object types 1–3 it tests level-scaled `Pay`
+`0x004BCA31`: besides its player receiver it consumes a drop-position pointer
+and an angle pointer (§7). For object types 1–3 it tests level-scaled `Pay`
 at creature definition `+0x69A`; for Chicken (type 9) it tests level-scaled
 `HungerFill` at `+0x66D`. A nonzero result admits the store. It does not test
 current debt, hunger, ownership, distance, or creature state.
@@ -133,10 +133,104 @@ object initialiser supplies the field's zero rather than initialized image data.
 - Add a 16-bit optional recipient id to object simulation state. Object creation
   starts it at zero; Hand and computer-keeper creature-targeted drops write it.
 - Extend `DropCommand` with an optional target creature id as well as the drop
-  position. Command validation must resolve an active creature and apply the
-  level-scaled `Pay`/`HungerFill` eligibility test.
+  position and angle. It represents the low word of DK2's keeper target field,
+  not either argument of `0x004BC710`. Command validation must resolve an active
+  creature and apply the level-scaled `Pay`/`HungerFill` eligibility test.
 - Have the landed-object system validate the recipient and directly invoke the
   existing eating, health, purse, wage, and anger rules before deleting the
-  chicken or pile. Preserve the id across Hand lift and ordinary carrying.
+  chicken or pile. Parse the signed creature field at file `0x0FCB` under its
+  provisional KWD name `unk_28`; delivery negates it into
+  `AngerBucket.Treatment`. Preserve the id across Hand lift and ordinary carrying.
+- Gold delivery sets a one-shot skip-payment flag. The next eligible pay-seeking
+  decision consumes it; payday wage accrual must not consult it.
 - Do not add earmark policy to Hatchery/prison food search, imp task kind 7, or
   wage pickup: DK2's implementations do not consult it.
+
+## 7. The drop handler's second argument
+
+**STRONGLY INFERRED (binary).** Both exits use `RET 8`, so `0x004BC710` has two
+stack arguments: argument 1 is a pointer to the three-coordinate drop position;
+argument 2 is a pointer to a 16-bit angle. At the end of the handler the angle is
+copied to the dropped thing's `Angle` (`+0xF4`) and `LastAngle` (`+0x102`). It is
+not a creature, thing id, or behavioural flag.
+
+The complete call-site set is `0x004BCA7E`, `0x004C0F70`, `0x004F95F4`,
+`0x004F96EA`, `0x004F98D0`, `0x004F9A2E`, `0x004F9B5F`, `0x004FAAFE`,
+`0x004FE280`, `0x004FE8AD`, `0x004FF589`, `0x004FFA1A`, `0x00500BFF` and
+`0x005037D4`. Reading every push gives the same pair. Most computer-keeper paths
+pass the address of a local zero angle. The keeper-input caller `0x004C0EE0`
+takes the angle from the high word of keeper `+0x196` and masks it to 11 bits.
+The `0x004F9710` gold and chicken paths are among these ordinary calls, after
+writing the recipient to the object themselves.
+
+The ordinary handler obtains its recipient separately. At `0x004BC886` it reads
+the **low word of keeper `+0x196`**, validates that id through the active-thing
+table `0x006ED540` and thing table `0x006EE540`, and requires thing kind 0 before
+the stores at `0x004BC92B` and `0x004BC994`. There is no cursor search inside the
+handler and no recipient stack argument. A simulation command nevertheless
+needs the optional target id to represent this keeper-selection state without
+coupling the simulation to cursor input.
+
+## 8. The delivery calming field
+
+**Values CONFIRMED from the shipped data; loader mapping STRONGLY INFERRED; semantic name UNKNOWN.** The creature loader
+copies loader-input `+0x13BB` to runtime definition `+0x6E1` at
+`0x00493A9E`–`0x00493AA5`. Pinning that source by its neighbours in the input
+record, rather than subtracting a presumed base, places it at creature KWD
+record offset **`0x0FCB`**: after `firstPersonFilterResource` at `0x0F77` and
+before the fixed-point `unk_29` at `0x0FCD`. The published field list used by
+`kwd-creatures.md` names the signed short **`unk_28`**. This project does not
+parse it.
+
+The shipped values are all zero, including:
+
+| Creature | `unk_28` |
+|---|---:|
+| Imp | 0 |
+| Goblin | 0 |
+| Warlock | 0 |
+| Troll | 0 |
+| Skeleton | 0 |
+
+Indeed all 46 shipped creature records contain zero there. Both successful
+delivery branches at `0x0049F117` and `0x0049F1B5` call
+`0x00478B80(5, -(u16)unk_28, 2)`. Bucket 5 is this project's
+`AngerBucket.Treatment`.
+
+**STRONGLY INFERRED from `0x00478B80`.** Its third argument is a complaint selector, not
+a mode, scale, or clamp. The wrapper applies the second argument through the
+ordinary saturating anger adder, compares the old and new mood bands, and uses
+the selector only if a positive change crosses a band and raises a complaint.
+Selector 2 is the pay/money complaint selection. It is inert for these negative
+delivery calls; the adder supplies the clamp.
+
+## 9. The per-payment flag at creature `+0x3EA` bit `0x20`
+
+**STRONGLY INFERRED (binary).** An exact-operand scan covered `.text`
+`0x00401000`–`0x00652BFF` and `cseg` `0x00653000`–`0x0066BFFF`: 174 instructions
+mention creature `+0x3EA`, with none in `cseg`. Auditing their masks and the
+register-mask helpers leaves these accesses to bit `0x20`:
+
+| Address | Access | Effect |
+|---|---|---|
+| `0x0049F173`–`0x0049F17C` | gameplay writer | earmarked gold delivery sets it |
+| `0x0047233E` | gameplay reader | the pay-seeking decision tests it |
+| `0x0047237F` | gameplay writer | that decision clears it |
+| `0x00490938` | diagnostic reader | creature dump prints it as `SkipNextPayment` |
+
+Other whole-word read/modify/write sites preserve bit 5 while operating on
+other flags. No anger, wage-accrual, state-change, or payday-notification path
+reads or clears it. Chicken delivery does not set it.
+
+`0x00472320` is called by the four-turn needs check `0x00477C20` and the payday
+loop `0x004BE1A0`. Once its outer eligibility gates pass, a clear flag, nonzero
+`WageOwed`, and fewer than two failed attempts can start state 187. Every other
+case—including a set flag or zero wage—clears the bit at `0x0047237F`. Thus the
+flag is consumed by the next eligible **collection decision**, not by a state
+change and not by a blanket payday reset.
+
+Payday calls wage accrual `0x0048B6B0` before `0x00472320`. A drop normally
+clears the bit at the next four-turn needs check because delivery also zeroes
+the wage. If it survives until payday, that payday still accrues the next wage;
+the bit only suppresses the immediate walk to collect it, then clears. It never
+suppresses the next payday's wage accrual.
