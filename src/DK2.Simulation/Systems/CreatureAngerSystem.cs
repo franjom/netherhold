@@ -172,8 +172,9 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             $"from=[{string.Join(",", creature.AngryJobs
                 .Select(j => $"{j.Job}:{j.ChancePercent}%"))}]");
 
-        // Not implemented: Sulk, DestroyWalls, StealGold and the rest are real DK2
-        // outcomes with nothing here to act on. The event above reports them as
+        // Not implemented: Sulk, DestroyWalls and the rest are real DK2 outcomes with
+        // nothing here to act on; no shipped angry table holds StealGold, which the
+        // unhappy chooser runs (ADR-0223). The event above reports them as
         // unbuilt and the creature stays in the dungeon, angry, until its gate
         // opens and it rolls again.
         if (chosen == JobType.Leave) Leave(context, creature, state);

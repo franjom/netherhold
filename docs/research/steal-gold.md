@@ -64,6 +64,12 @@ It is `0x00478800(+0x409)`: the standing job, run once through the dispatcher.
 - **The same quirks.** 160 and 166 carry the same player-3 test as 163. Their leaders recruit with jobs 14 and 17.
 - **State 172** (`0x00482EB0`) spends 75 % of the purse and drops what it carries.
 
+## 8. Who can steal, with shipped data — CHECKED (2026-09-25, ADR-0223)
+
+All 46 creature records were read by a throwaway test against the install. Only the **Thief** carries a steal job: StealGold in its unhappy table, at 20 %. No record holds StealSpells (14), StealManufactureCrates (17) or StealEnemyGold (25), and the shipped hero objectives are 13, 18, 19, 22 and 23. So §7's states are unreachable without a custom level.
+
+The Thief's StealGold is job 13's arm, the same as a hero's. The first keeper's Thief is refused at 163. Any other keeper's Thief walks to the first keeper's Treasury and fails at 164, which tests the creature's own keeper. **A Thief never steals in DK2.** Built as such (ADR-0223).
+
 ## Differences in ours
 
 - **The ring's order.** `TakeFromRoom` walks `TileIndices` in index order from the tile underfoot, where DK2 follows each cell's link.

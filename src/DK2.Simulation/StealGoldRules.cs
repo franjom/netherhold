@@ -60,6 +60,39 @@ public static class StealGoldRules
         return StateShadow.TryMove(context, system, creature, ToTheTreasuryState);
     }
 
+    public static bool IsStealState(int state) =>
+        state is ToTheTreasuryState or InTheTreasuryState or AtTheGoldState or EscapingState;
+
+    /// <summary>A keeper creature's turn in these states, which the Thief reaches through its unhappy
+    /// table's StealGold (job 13 has the same arm for everyone). True when the creature was in one;
+    /// a handler's failure goes to idle. <see cref="Systems.HeroSystem"/> runs a hero's.</summary>
+    public static bool KeeperTurn(SimulationContext context, string system, CreatureState creature)
+    {
+        if (StateShadow.IsTravelling(creature))
+        {
+            if (!IsStealState(creature.UtilityNewState)) return false;
+            if (creature.HasRoute) return true;
+            creature.StopMoving();
+            StateShadow.Arrive(context, system, creature);
+            return true;
+        }
+        bool stays;
+        switch (creature.Dk2StateId)
+        {
+            case ToTheTreasuryState: stays = ToTheTreasury(context, system, creature); break;
+            case InTheTreasuryState: stays = InTheTreasury(context, system, creature); break;
+            case AtTheGoldState: stays = AtTheGold(context, system, creature); break;
+            case EscapingState: Escaped(context, system, creature); return true;
+            default: return false;
+        }
+        if (!stays)
+        {
+            creature.CurrentJob = JobType.None;
+            StateShadow.ToIdle(context, system, creature);
+        }
+        return true;
+    }
+
     /// <summary>State 163: never for a creature of the raided player itself; otherwise that player's
     /// nearest Treasury, resuming 164, options <c>0x69</c>.</summary>
     public static bool ToTheTreasury(SimulationContext context, string system, CreatureState creature)

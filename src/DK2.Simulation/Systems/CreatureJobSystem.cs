@@ -17,9 +17,8 @@ namespace DK2.Simulation.Systems;
 /// is the original's own sequence. Ours: how long a job is kept — all six of DK2's
 /// duration variables, <c>MotionlessWhileResearchingSeconds</c> through
 /// <c>MinimumJobDurationSeconds</c>, are read by nothing (ADR-0082), so a job lasts
-/// until the room stops being the keeper's or a need intervenes. Not implemented:
-/// the effects of Guard and the roomless jobs (Leave, Rebel, Explore,
-/// StealGold), which are still chosen, logged and occupy the creature.</remarks>
+/// until the room stops being the keeper's or a need intervenes. Leave, Rebel and Explore
+/// are chosen and logged only; StealGold runs <see cref="StealGoldRules"/> (ADR-0223).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/job-selection.md")]
 public sealed class CreatureJobSystem : ISimulationSystem
 {
@@ -62,6 +61,12 @@ public sealed class CreatureJobSystem : ISimulationSystem
             if (PrisonRules.IsImprisoned(creature)) continue;
             if (creature.CombatPitFighter) continue;   // idle sends it back to the pit (ADR-0213)
             if (CreatureDeathRules.IsDown(creature)) continue;
+            // Before the leaving test: 169, the thief's escape, reads as leaving (ADR-0223).
+            if (!HeroJobRules.IsHero(creature) && StealGoldRules.KeeperTurn(context, SystemName, creature))
+            {
+                if (i < creatures.Count && !ReferenceEquals(creatures[i], creature)) i--;
+                continue;
+            }
             if (creature.Activity == CreatureActivity.Leaving) continue;
             if (HeroJobRules.IsHero(creature)) continue;   // HeroSystem: state 1 sends a hero to 90
             if (Combat.CombatRules.Preoccupied(creature)) continue;
@@ -206,9 +211,23 @@ public sealed class CreatureJobSystem : ISimulationSystem
         string? refused = JobRules.Refused(context.World, context.Database, definition, creature, job);
         RoomTypeId? wants = JobRules.RoomFor(job);
 
+        // Job 13's arm is the same for a keeper's creature as for a hero (0x00481FA0, ADR-0223).
+        if (refused is null && job == JobType.StealGold)
+        {
+            if (!StealGoldRules.Arm(context, SystemName, creature)) refused = "no_target";
+            else
+            {
+                creature.CurrentJob = job;
+                context.Emit(SystemName, "job_taken",
+                    $"creature={creature.Id} type={definition.Name} " +
+                    $"player={creature.OwnerPlayerId} job={job} roll={roll} how={how} room=Treasury effect=built steps=0");
+                return true;
+            }
+        }
+
         if (refused is null && wants is null)
         {
-            // Leave, Rebel, Explore, StealGold and the rest. Real DK2 outcomes
+            // Leave, Rebel, Explore and the rest. Real DK2 outcomes
             // with no room to walk to and nothing here to act on; the angry
             // chooser reports them the same way and neither invents one.
             refused = "no_such_job_here";

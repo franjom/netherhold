@@ -130,6 +130,46 @@ public class StealGoldTests
         Assert.Contains(sink.Events, e => e.Kind == "gold_stolen" && e.Detail.Contains($"creature={follower.Id} "));
     }
 
+    /// <summary>A keeper's Thief runs job 13 through the same states (its unhappy table's StealGold).
+    /// The first keeper's own Thief is refused at 163: 163 raids the first keeper.</summary>
+    [Fact]
+    public void TheFirstKeepersThief_IsRefusedAt163()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        Treasury(world, Keeper, 10, 5, [500, 500, 500, 500]);
+        CreatureState thief = world.SpawnCreature(db, Dk2TerrainFixture.ThiefCreatureId, Keeper, new TilePos(3, 5));
+        CreatureStateMachine.TrySetState(thief, StealGoldRules.ToTheTreasuryState);
+        var sim = new GameSimulation(db, world, 7, [new CreatureJobSystem(), new CreatureMovementSystem()]);
+
+        sim.Tick();
+
+        Assert.NotEqual(StealGoldRules.ToTheTreasuryState, thief.Dk2StateId);
+        Assert.False(thief.IsRouted);
+        Assert.Equal(2000, GoldIn(world, 10, 5));
+    }
+
+    /// <summary>A rival's Thief walks to the first keeper's Treasury, then 164 wants its own keeper's,
+    /// so it takes nothing: DK2's job 13 for a keeper's creature.</summary>
+    [Fact]
+    public void ARivalsThief_WalksToTheFirstKeepersTreasury_AndTakesNothing()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        Treasury(world, Keeper, 10, 5, [500, 500, 500, 500]);
+        CreatureState thief = world.SpawnCreature(db, Dk2TerrainFixture.ThiefCreatureId, Rival, new TilePos(3, 5));
+        CreatureStateMachine.TrySetState(thief, StealGoldRules.ToTheTreasuryState);
+        var sim = new GameSimulation(db, world, 7, [new CreatureJobSystem(), new CreatureMovementSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        var tiles = new HashSet<TilePos>();
+        for (int t = 0; t < 600 && !tiles.Any(p => p.X is 10 or 11 && p.Y is 5 or 6); t++) { sim.Tick(); tiles.Add(thief.Tile); }
+        sim.Run(20);
+
+        Assert.Contains(tiles, p => p.X is 10 or 11 && p.Y is 5 or 6);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "gold_stolen");
+        Assert.Equal(2000, GoldIn(world, 10, 5));
+    }
+
     [Fact]
     public void ACreatureRemembersTheTileItWasMadeOn()
     {

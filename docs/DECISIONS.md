@@ -4848,3 +4848,21 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - A worker pushed off its stand tile's centre can loop, because a same-tile walk finishes at once; whether DK2 does too is UNKNOWN.
 - Four tests. Six negative controls each fail a named test: no fallback, a non-worker tunnelling, no wall-follow, the hand flipped, the leader not released, and the leader not entering 223.
 - `HashVersion` and `FormatVersion` **115**, pin `0x9D966A6EC7AC034A`.
+
+## ADR-0223 — A keeper's Thief runs StealGold's states; the other steals are unreachable
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0219 · Research: `docs/research/steal-gold.md` §8
+
+**Context.** Job 13's arm is the dispatcher's arm for every creature, not only heroes. The shipped job tables were checked for the steal jobs.
+
+**Decision.**
+1. **The Thief's StealGold.** The job system's handler runs `StealGoldRules.Arm` for StealGold. `StealGoldRules.KeeperTurn` runs states 163–169 for a keeper's creature, before the job system's leaving filter, because 169 reads as leaving.
+2. **The shipped tables, all 46 records.** Only the Thief carries a steal job: StealGold in its unhappy table, at 20 %. No record holds StealSpells (14), StealManufactureCrates (17) or StealEnemyGold (25). The shipped hero objectives are 13, 18, 19, 22 and 23. **States 160–162, 166–168 and 170–172 are unreachable** with shipped data, so they stay read and unbuilt (`steal-gold.md` §7).
+
+**Consequences.**
+- **Kept as DK2 has it.**
+  - The first keeper's own Thief is refused at 163.
+  - Any other keeper's Thief walks to the first keeper's Treasury, then fails at 164, which wants its own keeper's. It takes nothing and tries again.
+  - So in DK2 a Thief's StealGold never takes a coin.
+- Two tests. Two negative controls each fail a named test: the job system not running the states, and 164 testing player 3.
+- The handler's StealGold branch has no test of its own: the chooser's roll is not driven here.
+- No new state; `HashVersion` stays **115**.
