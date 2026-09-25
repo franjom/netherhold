@@ -243,3 +243,7 @@ room or impenetrable tile of the hero's own keeper and any impenetrable tile a c
 wade; state 178 is `XOR EAX,EAX; RET`. Definition byte `+0x787` is file byte `0x0F4C`
 (loader `0x0049348A`): Imp 10, Dwarf 15, King Reginald 125, Dark Angel 232.
 Not built: StealGold's states, 223/224, the section 5 re-lead.
+
+Review, the same day. State 1 tests the hero owner before the worker flag, so a hero Dwarf is run
+as a hero, and a resting 10 idles into 90. An arrival's resumed state runs from the next turn.
+Job 18 stops at the first reachable creature and fails outright if its route fails.

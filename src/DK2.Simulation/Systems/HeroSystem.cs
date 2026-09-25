@@ -10,8 +10,11 @@ namespace DK2.Simulation.Systems;
 /// <summary>A hero's turn outside a fight (hero-party-walk.md, ADR-0216): the hero branch of state 1,
 /// state 90's standing job and the states its arms enter, one original turn at a time. Heroes are
 /// not given jobs by <see cref="CreatureJobSystem"/>; DK2's state 1 never reaches the choosers for
-/// them. Not built: state 1's pending-point walk (<c>+0x4FE</c>), the StealGold states, the Dwarf
-/// tunnelling of 223/224, and the knock-out re-lead of a party.</summary>
+/// them. A hero worker is a hero too: state 1 tests the hero owner before the worker flag
+/// (<c>0x004773D0</c>). A walk's arrival hands over to the state it resumes, which runs from the
+/// next turn, as DK2's dispatcher runs one handler a turn. Not built: state 1's pending-point walk
+/// (<c>+0x4FE</c>), the StealGold states, the Dwarf tunnelling of 223/224, and the knock-out
+/// re-lead of a party.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-party-walk.md")]
 public sealed class HeroSystem : ISimulationSystem
 {
@@ -28,7 +31,6 @@ public sealed class HeroSystem : ISimulationSystem
         {
             CreatureState creature = creatures[i];
             if (!HeroJobRules.IsHero(creature)) continue;
-            if (database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker)) continue;
             if (HandRules.IsHeld(creature) || PrisonRules.IsImprisoned(creature)) continue;
             if (CreatureDeathRules.IsDown(creature) || Combat.CombatRules.Preoccupied(creature)) continue;
             Turn(context, creature);
@@ -43,11 +45,15 @@ public sealed class HeroSystem : ISimulationSystem
             if (creature.HasRoute) return;
             creature.StopMoving();
             StateShadow.Arrive(context, SystemName, creature);
+            return;
         }
 
         bool stays = creature.Dk2StateId switch
         {
             CreatureStateMachine.Idle => StateShadow.TryMove(context, SystemName, creature, HeroJobRules.StandingJobState),
+            // A worker with no task goes 10, 12, 87 and a walk back to 1 (imp-idle-and-wandering.md
+            // §5), where a hero's goes to 90. Ours: the wander is not built, so 10 idles at once.
+            ImpStates.TaskSelection => false,
             HeroJobRules.StandingJobState => StandingJob(context, creature),
             HeroJobRules.WaitFailedState => context.Tick.Value <= creature.StateDeadlineTick,
             HeroJobRules.WaitingState => HeroJobRules.Wait(context, creature),

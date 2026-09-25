@@ -91,9 +91,15 @@ public class HeroWalkTests
         hero.GoodJob = JobType.StealGold;
         GameSimulation sim = Simulation(db, world);
 
-        sim.Run(2);
+        long entered = -1;
+        while (hero.Dk2StateId != HeroJobRules.WaitFailedState && sim.World.CurrentTick.Value < 10)
+        {
+            entered = sim.World.CurrentTick.Value;
+            sim.Tick();
+        }
         Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
         long deadline = hero.StateDeadlineTick;
+        Assert.Equal(entered + 12, deadline);
         while (sim.World.CurrentTick.Value <= deadline) { sim.Tick(); Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId); }
         sim.Tick();
         Assert.NotEqual(HeroJobRules.WaitFailedState, hero.Dk2StateId);
@@ -152,6 +158,110 @@ public class HeroWalkTests
         new GameSimulation(db, world, 1, [new CreatureMovementSystem()]).Tick();
         Assert.Equal(0, knight.PartySpeedRaw);
         Assert.Equal(slowest, imp.PartySpeedRaw);
+    }
+
+    /// <summary>DK2's state 1 tests the hero owner before the worker flag (<c>0x004773D0</c>), so a
+    /// hero's worker is a hero: from its resting 10 it idles, goes to 90 and, as a follower, to 222.
+    /// The imp task system leaves it alone.</summary>
+    [Fact]
+    public void AHeroWorkerIsAHero_ItFollowsItsLeaderAndTakesNoImpTask()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState leader = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
+        leader.GoodJob = JobType.Wait;
+        CreatureState dwarf = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, PlayerIds.Good, new TilePos(3, 5));
+        dwarf.Flags = 0x04;
+        dwarf.LeaderId = leader.Id;
+        dwarf.PositionInParty = 1;
+        StatePlacement.Place(dwarf, ImpStates.TaskSelection);
+        int beside = (5 * world.Width) + 4;
+        world.TileAtIndex(beside).OwnerPlayerId = PlayerIds.Good;
+        FloorGold.Drop(world, db, beside, 100);
+        var sim = new GameSimulation(db, world, 7, [new HeroSystem(), new ImpTaskSystem(), new CreatureMovementSystem()]);
+
+        var seen = new HashSet<int>();
+        for (int t = 0; t < 12; t++) { sim.Tick(); seen.Add(dwarf.Dk2StateId == 6 ? dwarf.UtilityNewState : dwarf.Dk2StateId); }
+
+        Assert.Contains(HeroJobRules.StandingJobState, seen);
+        Assert.Contains(HeroJobRules.FollowingState, seen);
+        Assert.Equal(ImpTaskKind.None, dwarf.LastTaskKind);
+        Assert.Equal(0, dwarf.GoldHeld);
+    }
+
+    /// <summary>State 90 sends a follower to 222 and never runs the follower's own standing job.</summary>
+    [Fact]
+    public void AFollowerInNinetyTrailsItsLeader_AndNeverRunsItsOwnJob()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState leader = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
+        leader.GoodJob = JobType.Wait;
+        CreatureState follower = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(3, 5));
+        follower.GoodJob = JobType.Wait;
+        follower.Flags = 0x04;
+        follower.LeaderId = leader.Id;
+        follower.PositionInParty = 1;
+        GameSimulation sim = Simulation(db, world);
+
+        var seen = new HashSet<int>();
+        for (int t = 0; t < 30; t++) { sim.Tick(); seen.Add(follower.Dk2StateId == 6 ? follower.UtilityNewState : follower.Dk2StateId); }
+
+        Assert.Contains(HeroJobRules.FollowingState, seen);
+        Assert.DoesNotContain(HeroJobRules.WaitingState, seen);
+        Assert.Equal(JobType.None, follower.CurrentJob);
+    }
+
+    /// <summary>One handler a turn: the turn a walk ends the hero is in the state it resumes, which
+    /// runs from the next turn. A follower that has reached its point is in 222 before it walks again.</summary>
+    [Fact]
+    public void AWalksEndHandsOverToItsStateWhichRunsFromTheNextTurn()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState leader = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
+        leader.GoodJob = JobType.Wait;
+        CreatureState follower = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(6, 5));
+        follower.Flags = 0x04;
+        follower.LeaderId = leader.Id;
+        follower.PositionInParty = 1;
+        GameSimulation sim = Simulation(db, world);
+
+        bool walked = false;
+        for (int t = 0; t < 200; t++)
+        {
+            sim.Tick();
+            if (follower.Dk2StateId == 6) { walked = true; continue; }
+            if (!walked) continue;
+            Assert.Equal(HeroJobRules.FollowingState, follower.Dk2StateId);
+            return;
+        }
+
+        Assert.Fail("the follower never finished a walk");
+    }
+
+    /// <summary><c>0x0050EA20</c> keeps a sum only when it is strictly greater: on a tie the first
+    /// player in order wins.</summary>
+    [Fact]
+    public void TheStrongestPlayerOnATieIsTheFirstInOrder()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld(Dk2TerrainFixture.Goblin() with { CreatureId = Strong, Name = "Strong", Unknown_0F4C = 60 });
+        world.SpawnCreature(db, Strong, Rival, new TilePos(12, 8));
+        world.SpawnCreature(db, Strong, Keeper, new TilePos(12, 5));
+
+        Assert.Equal(Keeper, HeroJobRules.StrongestPlayer(world, db));
+    }
+
+    /// <summary>The keepers' choosers never see a hero: DK2's state 1 sends it to 90 instead.</summary>
+    [Fact]
+    public void TheJobSystemLeavesAHeroAlone()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState hero = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(5, 5));
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, 7, [new CreatureJobSystem()]);
+        sim.ObserveWith(sink);
+
+        sim.Run(SimulationTiming.TicksPerSecond * 12);
+
+        Assert.DoesNotContain(sink.Events, e => e.System == "CreatureJob" && e.Detail.Contains($"creature={hero.Id} "));
     }
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world) =>

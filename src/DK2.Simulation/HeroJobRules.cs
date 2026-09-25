@@ -168,17 +168,23 @@ public static class HeroJobRules
         return false;
     }
 
-    /// <summary>Job 18's arm (<c>0x00462310</c>): the first creature of the target player, in list
-    /// order, that a route reaches — not the nearest; if that is the hero itself, the arm fails.</summary>
+    /// <summary>Job 18's arm (<c>0x00462310</c>): the first creature of the target player that is
+    /// reachable (<c>0x00471630</c>) — not the nearest. If that is the hero itself, or its route
+    /// (<c>0x00471890</c>, options <c>0x41</c>) fails, the arm fails; it does not try the next.</summary>
+    /// <remarks>Ours walks the creatures in spawn order, where DK2 walks the player's own list
+    /// (<c>player+6</c>), whose order is not read; reachability is the combat system's route test.</remarks>
     private static bool HuntFirst(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
         if (TargetPlayer(world, context.Database, creature) is not byte player) return false;
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        var scratch = new List<Steering.Fixed16Vector>();
         foreach (CreatureState prey in world.Creatures)
         {
             if (prey.OwnerPlayerId != player || !CreatureStateMachine.HasState(prey)) continue;
-            if (prey.Id == creature.Id) return false;
-            if (Walk(context, creature, prey.PosX, prey.PosY, HuntingState, 0x41)) return true;
+            if (!Combat.CombatTargetRules.CanReach(context.Navigation, creature, definition, prey.PosX, prey.PosY, int.MaxValue, scratch))
+                continue;
+            return prey.Id != creature.Id && Walk(context, creature, prey.PosX, prey.PosY, HuntingState, 0x41);
         }
         return false;
     }

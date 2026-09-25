@@ -115,6 +115,10 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
 
+            // A hero worker is HeroSystem's: DK2's state 1 sends a hero to 90 before it tests the
+            // worker flag (ADR-0216).
+            if (HeroJobRules.IsHero(creature)) continue;
+
             // A creature in the keeper's hand is out of the dungeon: it does
             // not act until it is put down (ADR-0062). A collapsed worker is
             // skipped below for the same reason (ADR-0051) — its job was cleared

@@ -162,11 +162,12 @@ public class ImpsOnRealDataTests
         // Find somewhere an imp could actually stand and work: a floor tile with
         // diggable rock beside it. Taken from the level rather than chosen, so
         // this test is about the shipped map and not about a layout we invented.
-        (TilePos stand, TilePos rock) = FindDiggableEdge(db, world)
-            ?? throw new InvalidOperationException("level1 has no floor tile adjacent to diggable rock.");
-
-        byte keeper = world.Tile(stand).OwnerPlayerId;
+        // The first keeper's imp: level 1's first such edge is on the heroes' land, and a hero's imp
+        // runs its standing job rather than the imp tasks (ADR-0216).
+        const byte keeper = PlayerIds.FirstKeeper;
         if (!world.HasPlayer(keeper)) return;
+        (TilePos stand, TilePos rock) = FindDiggableEdge(db, world, keeper)
+            ?? throw new InvalidOperationException("level1 has no floor tile adjacent to diggable rock.");
 
         CreatureState imp = world.SpawnCreature(
             db, db.CreatureByName("Imp")!.CreatureId, keeper, stand);
@@ -178,14 +179,15 @@ public class ImpsOnRealDataTests
         Assert.False(db.TerrainById(world.Tile(rock).TerrainId).IsSolid,
             $"{rock} is still solid after four work periods");
 
-        // Not idle afterwards: on a real level there is always more to do, and
-        // an imp that has finished what was marked goes on to claim and
-        // reinforce. Only a worker with nowhere of its keeper's to stand runs
-        // out of jobs — see ImpTests.AnImpWithNothingToDo_StaysWhereItIs.
-        Assert.NotEqual(CreatureActivity.Idle, imp.Activity);
+        // This test used to also require more work afterwards. That held only while the imp was
+        // the heroes' own, on the heroes' land. No floor of level 1's keepers borders diggable
+        // rock, so the keeper's imp stands on land that is not its keeper's, and a worker with
+        // nowhere of its keeper's to stand runs out of jobs
+        // (ImpTests.AnImpWithNothingToDo_StaysWhereItIs).
+        Assert.Equal(keeper, imp.OwnerPlayerId);
     }
 
-    private static (TilePos Stand, TilePos Rock)? FindDiggableEdge(GameDatabase db, WorldState world)
+    private static (TilePos Stand, TilePos Rock)? FindDiggableEdge(GameDatabase db, WorldState world, byte keeper)
     {
         for (int y = 1; y < world.Height - 1; y++)
         {
@@ -198,7 +200,7 @@ public class ImpsOnRealDataTests
                     var beside = new TilePos(x + dx, y + dy);
                     ref TileState candidate = ref world.Tile(beside);
 
-                    if (TileWorkRules.Applies(db, candidate, TileWorkKind.Dig, world.Tile(x, y).OwnerPlayerId)
+                    if (TileWorkRules.Applies(db, candidate, TileWorkKind.Dig, keeper)
                         && db.TerrainById(candidate.TerrainId).IsTaggable)
                     {
                         return (new TilePos(x, y), beside);

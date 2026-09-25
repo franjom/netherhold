@@ -4727,6 +4727,12 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Consequences.**
 - Not built, named at the sites: StealGold's states (the arm fails and retries), the Dwarf tunnelling of 223/224, state 1's pending-point walk, the knock-out re-lead of a party (`0x004B2FDF`), the heart room's own point `0x004E4D90` (ours aims at the first heart tile).
 - Eleven tests; negative controls: a reachable direction 0 and a waypoint chain that never advances each fail a named test.
+- **Review corrections (2026-09-25), checked against the binary:**
+  - **A hero worker is a hero.** State 1 (`0x004773D0`) sends a hero to 90 before it tests the worker flag. So `HeroSystem` now runs hero Dwarves and the imp task system skips them. Its 10 goes straight to 1, since the task-less wander `10 → 12 → 87 → 1` is not built.
+  - **An arrival hands over and stops**: the resumed state runs from the next turn, one handler a turn.
+  - **Job 18 stops at the first reachable creature**, and fails if that creature is the hero itself or its route fails (`0x00462310`).
+  - Five tests added. Nine negative controls each fail a named test: a hero worker skipped, the imp system taking heroes, a hero worker's 10 kept, the arrival running at once, no follower branch in 90, an 11-turn retry, a tie going to the last player, the job system taking heroes, and the pace kept while running.
+  - Also re-read and correct as built: 90 (`0x00477850`), 177's fallback to the target player's heart (`0x004625F7`), and 222's facing ranges (`0x00461F53`–`0x00461F86`).
 - `HashVersion` and `FormatVersion` **112**, pin `0x2EF320B63DEDBBD1`.
 
 ## ADR-0217 — A chicken or gold dropped onto a creature feeds or pays it
