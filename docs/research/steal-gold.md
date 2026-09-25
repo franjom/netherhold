@@ -1,7 +1,7 @@
 # Stealing: job 13 and states 160–172, 226
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.
-- Built: ADR-0219, `StealGoldRules`.
+- **Built:** ADR-0219, `StealGoldRules`.
 - Neighbours: `hero-party-walk.md` §1 (the dispatcher and arm 13), `payday.md` (the same gold take), `travel-states.md` (the route helpers).
 
 ## Result in one sentence

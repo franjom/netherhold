@@ -772,8 +772,15 @@ public sealed class CreatureState
     /// <see cref="Combat.CombatRules.NoTarget"/>.</summary>
     public int AttackingId;
 
-    /// <summary>The turn the current pit state was entered, for the pit states' <c>Age</c>.</summary>
+    /// <summary>The turn the current pit state was entered, for the pit states' <c>Age</c>; the
+    /// spectators' 142–144 use it too.</summary>
     public long PitStateEnteredTick;
+
+    /// <summary>State 144's remembered position (state <c>+0xAC</c>, <c>+0xB0</c>): where the
+    /// spectator stood when it last looked; moved since, it picks a new spot
+    /// (<see cref="CombatPitSpectatorRules"/>).</summary>
+    public int SpectatorPosX;
+    public int SpectatorPosY;
 
     /// <summary>The turn each of the three spell slots was last cast at — DK2's <c>+0x41B + 4i</c>;
     /// zero means never, and a cast stamps it when the action starts, not when the shot leaves
@@ -1020,6 +1027,8 @@ public sealed class CreatureState
         hash.Add(AttackAbnormalTargets);
         hash.Add(AttackingId);
         hash.Add(PitStateEnteredTick);
+        hash.Add(SpectatorPosX);
+        hash.Add(SpectatorPosY);
         for (int i = 0; i < SpellStamps.Length; i++) hash.Add(SpellStamps[i]);
         hash.Add(AttackSpellSlot);
         hash.Add(SwingKind);

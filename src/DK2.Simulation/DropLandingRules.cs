@@ -54,8 +54,8 @@ public static class DropLandingRules
     };
 
     /// <summary>257's tail, <c>0x004E8DA0(0)</c>. On a room with a drop state: the job rooms' state
-    /// through 1, with the job remembered (<see cref="JobRules.TryDropOnARoom"/>); the other rooms'
-    /// states are not built here and idle. With none, a keeper's creature goes to 250, its
+    /// through 1, with the job remembered (<see cref="JobRules.TryDropOnARoom"/>), and the Combat
+    /// Pit's 137 through 1 (ADR-0227); the other rooms' states are not built here and idle. With none, a keeper's creature goes to 250, its
     /// <c>FightProcessCounter</c> at 10; a hero or a neutral creature idles. Ours: no Call To Arms
     /// exists, which would also send it to idle.</summary>
     public static void AfterGettingUp(SimulationContext context, string system, CreatureState creature, CreatureDef definition)
@@ -65,6 +65,15 @@ public static class DropLandingRules
         RoomInstance? room = RoomIndex.RoomAt(world, context.Database, here);
         if (room?.Definition.TypeId is RoomTypeId type && RoomDropState(type) is not null)
         {
+            // The Combat Pit's drop state, 137: through 1, and on the rim 138 then makes a spectator.
+            if (type == RoomTypeId.CombatPit)
+            {
+                StateShadow.ToIdle(context, system, creature);
+                if (CombatPitSystem.Move(context, creature, CombatPitRules.ArrivingState))
+                    context.Emit(system, "dropped_to_job", $"creature={creature.Id} job=CombatPit at=({creature.Tile.X},{creature.Tile.Y})");
+                return;
+            }
+
             if (JobRules.TryDropOnARoom(world, context.Database, creature, definition, here) is { } job)
             {
                 context.Emit(system, "dropped_to_job", $"creature={creature.Id} job={job} at=({creature.Tile.X},{creature.Tile.Y})");

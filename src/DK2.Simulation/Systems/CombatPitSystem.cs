@@ -13,8 +13,9 @@ namespace DK2.Simulation.Systems;
 /// system's, through the forced target 139 hands out.</summary>
 /// <remarks>Runs after <see cref="CombatSystem"/>, as DK2's state handler follows its fight
 /// processing, and before the movement. A state entered this turn runs from the next, as
-/// DK2's dispatcher does. Not built: 140, which nothing enters; the spectators' 142, so 138 on
-/// the rim goes idle; action <c>0x2C</c> at the level cap.</remarks>
+/// DK2's dispatcher does. 138 on the rim of the keeper's own pit hands the creature to the
+/// spectators' 142 (<see cref="CombatPitSpectatorRules"/>, ADR-0227). Not built: 140, which
+/// nothing enters; action <c>0x2C</c> at the level cap.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-pit.md")]
 public sealed class CombatPitSystem : ISimulationSystem
 {
@@ -89,13 +90,14 @@ public sealed class CombatPitSystem : ISimulationSystem
         return true;
     }
 
-    /// <summary>138: on the floor a fighter and 139; on the rim 142, which is not built.</summary>
+    /// <summary>138: on the floor a fighter and 139; on the rim of the keeper's own pit, 142.</summary>
     private static bool Placing(SimulationContext context, CreatureState creature)
     {
         if (context.Tick.Value - creature.PitStateEnteredTick == 1) creature.StopMoving();
         int here = TileIndex(context.World, creature);
         RoomInstance? pit = CombatPitRules.PitAt(context.World, context.Database, here);
-        if (!CombatPitRules.IsFloor(pit, here)) return false;
+        if (pit is null) return false;
+        if (!CombatPitRules.IsFloor(pit, here)) return CombatPitSpectatorRules.FromPlacing(context, SystemName, creature, pit);
 
         creature.CombatPitFighter = true;
         if (!Move(context, creature, CombatPitRules.WaitingState)) return false;

@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 117: OldFightPos and OldFightTick (ADR-0225).
+        // HashVersion 118: a spectator's remembered position and a pit's fight stamp (ADR-0227).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xFA805D7B0DCA5668UL, sim.StateHash());
+        Assert.Equal(0x89637C687FBCC88DUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -138,6 +138,13 @@ public struct TileState
     /// </summary>
     public int HatchTicks;
 
+    /// <summary>A Combat Pit's <c>+0x53</c>: the turn <c>0x004D7CF0</c> last found a fight on its
+    /// floor, on the room's lowest tile index like <see cref="HatchTicks"/> and zero elsewhere. The
+    /// spectators' 144 and job 26 read it for the quiet spell after a fight
+    /// (<see cref="CombatPitSpectatorRules"/>). The same deviation: a pit whose lowest tile changes
+    /// forgets it.</summary>
+    public long PitFightSeenTick;
+
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = 15;
 
@@ -184,6 +191,7 @@ public struct TileState
         hash.Add(EntranceIdleTicks);
         hash.Add(EntranceCreaturesGenerated);
         hash.Add(HatchTicks);
+        hash.Add(PitFightSeenTick);
     }
 }
 

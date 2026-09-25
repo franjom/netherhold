@@ -28,6 +28,11 @@ public static class CombatPitRules
     /// <summary>The four-way table at <c>0x006BC350</c>: north, east, south, west.</summary>
     private static readonly (int Dx, int Dy)[] Directions = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
+    /// <summary>The eight-way table at <c>0x006BC370</c>: north, north-east, east, south-east,
+    /// south, south-west, west, north-west.</summary>
+    private static readonly (int Dx, int Dy)[] EightDirections =
+        [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)];
+
     /// <summary>The Combat Pit on this tile, any owner's (<c>0x00453A20(16)</c>).</summary>
     public static RoomInstance? PitAt(WorldState world, GameDatabase database, int tileIndex)
     {
@@ -129,30 +134,50 @@ public static class CombatPitRules
     public static bool IsOnTheMap(CreatureState creature) =>
         !HandRules.IsHeld(creature) && creature.CarriedByCreatureId < 0;
 
-    /// <summary><c>0x004E50F0(position, 4, 0, 0)</c>: from a random start, the first of the four
-    /// orthogonal neighbours that is the same room, not solid, and floor exactly when the
-    /// creature's own tile is. -1 when none is. <c>0x00455000</c>'s byte is taken as equal within a
-    /// room.</summary>
-    public static int NeighbourStep(SimulationContext context, RoomInstance pit, CreatureState creature)
+    /// <summary><c>0x004E50F0(position, out, count, rimOnly, empty)</c>: from a random start, the
+    /// first of the <paramref name="count"/> neighbours (4: orthogonal; 8: all round) that is the
+    /// same room, not solid, and floor exactly when the creature's own tile is, or with
+    /// <paramref name="rimOnly"/> not floor; with <paramref name="empty"/>, nobody stands on it
+    /// (<c>0x00453670</c>). -1 when none is. <c>0x00455000</c>'s byte is taken as equal within a
+    /// room. 139 passes <c>(4, 0, 0)</c>, 142 <c>(4 or 8, 1, 1)</c>.</summary>
+    public static int NeighbourStep(SimulationContext context, RoomInstance pit, CreatureState creature,
+        int count = 4, bool rimOnly = false, bool empty = false)
     {
         WorldState world = context.World;
         TilePos at = creature.Tile;
         int here = (at.Y * world.Width) + at.X;
         bool floor = IsFloor(pit, here);
-        int start = context.Rng.NextInt(Directions.Length);
-        for (int i = 0; i < Directions.Length; i++)
+        (int Dx, int Dy)[] table = count == 4 ? Directions : EightDirections;
+        int start = context.Rng.NextInt(count);
+        for (int i = 0; i < count; i++)
         {
-            (int dx, int dy) = Directions[(start + i) % Directions.Length];
+            (int dx, int dy) = table[(start + i) % count];
             var next = new TilePos(at.X + dx, at.Y + dy);
             if (!world.Contains(next)) continue;
             int index = (next.Y * world.Width) + next.X;
             if (!pit.Contains(index)) continue;
             if (context.Database.TerrainById(world.TileAtIndex(index).TerrainId).IsSolid) continue;
-            if (IsFloor(pit, index) != floor) continue;
+            if (IsFloor(pit, index) != (!rimOnly && floor)) continue;
+            if (empty && AnyoneOn(world, next, null)) continue;
             return index;
         }
 
         return -1;
+    }
+
+    /// <summary>Whether a creature on the map other than <paramref name="except"/> stands on the
+    /// tile: its tile list's things with container state 0 (<c>+0x12</c>).</summary>
+    public static bool AnyoneOn(WorldState world, TilePos tile, CreatureState? except)
+    {
+        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            CreatureState other = creatures[i];
+            if (ReferenceEquals(other, except) || !IsOnTheMap(other)) continue;
+            if (other.Tile == tile) return true;
+        }
+
+        return false;
     }
 
     /// <summary>The level increment <c>0x0048B120</c> and the adder <c>0x00457880</c>: a fighter

@@ -1,7 +1,7 @@
 # Where a dropped creature lands: states 76, 255, 257, 250 and 77
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.
-- Built: ADR-0226, `DropLandingRules`.
+- **Built:** ADR-0226, `DropLandingRules`.
 - Corrects:
   - ADR-0193 and `state-category-hooks.md` §3.2: a hand drop enters 76, not 77.
   - Q201's "the only site pushing a stunned state is the flee routine".
@@ -67,7 +67,7 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 ## Differences in ours
 
 - **Kept arms.** The Combat Pit floor, the torture devices and the Prison arms stay the direct arms they were. A captive now goes through 1, where it went through 77.
-- **Unbuilt drop states.** On getting up, the rooms whose drop state is not built (Treasury 188, Lair 79, Hatchery 92, Portal 197, Heart 71, Prison 114, Pit 137, Crypt 274) idle.
+- **Unbuilt drop states.** On getting up, the rooms whose drop state is not built (Treasury 188, Lair 79, Hatchery 92, Portal 197, Heart 71, Prison 114, Crypt 274) idle. The Combat Pit's 137 is built (ADR-0227).
 - **Workers.** A worker's getting up idles, since `0x00481400` is unread.
 - **Not modelled:** the landing's sound, fall and pit scatter; `+0x2CC`; Call To Arms, which does not exist here; the casino-winner gate.
 - **One word for `+0x7E`:** `StateDeadlineTick`, which our 89 does not write.

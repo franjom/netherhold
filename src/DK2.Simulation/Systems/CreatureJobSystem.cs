@@ -232,6 +232,20 @@ public sealed class CreatureJobSystem : ISimulationSystem
         string? refused = JobRules.Refused(context.World, context.Database, definition, creature, job);
         RoomTypeId? wants = JobRules.RoomFor(job);
 
+        // Job 26's handler (0x00457780) wants a fight on in one of the keeper's pits (ADR-0227).
+        if (refused is null && job == JobType.CombatPitSpectate)
+        {
+            if (!CombatPitSpectatorRules.TakeTheJob(context, SystemName, creature)) refused = "no_fight_to_watch";
+            else
+            {
+                creature.CurrentJob = job;
+                context.Emit(SystemName, "job_taken",
+                    $"creature={creature.Id} type={definition.Name} " +
+                    $"player={creature.OwnerPlayerId} job={job} roll={roll} how={how} room=CombatPit effect=built steps={creature.Body.PathTotalCount}");
+                return true;
+            }
+        }
+
         // Job 13's arm is the same for a keeper's creature as for a hero (0x00481FA0, ADR-0223).
         if (refused is null && job == JobType.StealGold)
         {
@@ -417,6 +431,16 @@ public sealed class CreatureJobSystem : ISimulationSystem
         if (job == JobType.Torture)
         {
             if (originalTick && !TorturerStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            return;
+        }
+
+        // A spectator's hook runs, then its state's handler: 142, 143 and 144 (ADR-0227).
+        if (job == JobType.CombatPitSpectate)
+        {
+            if (CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Spectating
+                && CreatureStateMachine.HookFires(creature, CreatureStateMachine.HookCountdownSeed))
+                Spectate(context, world, database, creature, definition);
+            if (originalTick && !CombatPitSpectatorRules.Turn(context, SystemName, creature)) Stop(context, creature);
             return;
         }
 

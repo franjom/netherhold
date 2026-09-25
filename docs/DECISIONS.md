@@ -4931,3 +4931,40 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **Not built:** the other rooms' drop states on getting up (they idle), the worker arm `0x00481400`, Call To Arms, `+0x2CC`, and the landing's sound, fall and pit scatter.
 - Three new tests. Six negative controls each fail a named test: no stun, no 250, a zero-length 250, a freed prisoner stunned, a worker stunned, and the room ignored on getting up.
 - No new state; `HashVersion` stays **117**.
+
+## ADR-0227 — A spectator watches a pit fight from the rim, cheers, and leaves four seconds after it ends
+**Date:** 2026-09-25 · **Status:** accepted · corrects ADR-0213's reason for 138's rim arm · amends ADR-0226 · Research: `docs/research/combat-pit-spectators.md`
+
+**Context.** 142–144 were unbuilt, and ours said 138 on the rim idled because 142 was missing. The binary says something else. Spectating's entry mask `0x8002383B` lacks the Combat Pit's bit, so DK2's own `SetState(142)` from 138 is refused, and 138 idles there too. The way in is **job 26**, whose handler `0x00457780` wants a fight on in one of the keeper's pits. Its only caller is state 89's fallback `0x00478680`, after the mood chooser fails. No shipped creature lists job 26.
+
+**Decision.** `CombatPitSpectatorRules`:
+1. **A fight is on** (`0x004D7CF0`) when a creature on the pit's floor is in a Combat-category state (a walk counted by its resume state). Found, it stamps the pit's `+0x53` (ours: `PitFightSeenTick` on the pit's lowest tile).
+2. **Job 26** (`0x00457780`):
+   - On the rim of an own or allied pit with a fight on, or one seen under 16 turns ago: 142 in place.
+   - Otherwise the nearest own pit with a fight on, reachable and with a place, preferring one with no occupant of the other side (`0x004D8510`). The creature walks into it, to a rim tile, resuming 142.
+3. **142** picks a free rim tile next to it: always when another creature shares its tile, otherwise on `random(100)` ≤ 35; else it keeps its own position. The point is in the tile's middle third, and it walks there resuming 143. A refused walk runs job 26 again.
+4. **143** goes back to 142 if its tile is shared. Otherwise it turns to the pit's centre, waiting while it turns, cheers (action 70, or 69 on `random(100)` > 30), and enters 144.
+5. **144** waits out the cheer and picks again. Once more than 16 turns have passed with no fight seen, it idles. Moved since it last looked, it picks again at once.
+6. **Getting up on a pit** takes its drop state 137 through 1 (ADR-0226's unbuilt list loses the pit).
+7. **The Spectating hook's calm** runs each fifth turn, as before, and the three handlers follow it.
+
+**Consequences.**
+- **Unreachable with shipped data until `0x00478680` is built.** That is the next change; it also makes idle creatures fall back to Train and Drink.
+- **Guessed:**
+  - The cheer's length, 8 turns (`CheerGuessTicks`).
+  - That every creature has the cheer animations.
+  - Room `+0x27` as the room's centre.
+  - The route point `0x004E5000` as the room's first standable tile.
+- **Not built:** the finder's messages `0x2A`–`0x2C`.
+- **Tests.** `CombatPitSpectatorTests` has eight tests, two of them theories. `CombatPitTests` gains the rim get-up and renames the 138 test for the gate.
+- **Nine negative controls each fail a named test:**
+  - no fight seen;
+  - no quiet spell;
+  - an off-by-one on the quiet spell;
+  - rim not required;
+  - no turn wait;
+  - the walk-in onto the floor;
+  - never picking again;
+  - the pit ignored on getting up;
+  - and crowding ignored.
+- `HashVersion` **118**: `SpectatorPosX`/`Y` and `PitFightSeenTick`.

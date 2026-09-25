@@ -98,6 +98,33 @@ public sealed class CombatPitTests
         Assert.False(goblin.CombatPitFighter);
     }
 
+    /// <summary>Getting up (<c>0x004E8DA0(0)</c>) on the rim takes the pit's drop state, 137, through
+    /// 1; 137 off the floor goes to 138, and 138's 142 is refused by the gate, so idle (ADR-0227).</summary>
+    [Fact]
+    public void ACreatureThatGetsUpOnThePitsRimArrivesIn137_Places138_AndIdles()
+    {
+        (GameDatabase db, WorldState world) = World();
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, seed: 42,
+            [new HandSystem(), new CreatureStatusSystem(), new CombatPitSystem(), new CreatureMovementSystem()]);
+        sim.ObserveWith(sink);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Outside);
+
+        Drop(sim, goblin, Rim);
+        var seen = new List<int>();
+        for (int i = 0; i < 200 && !(seen.Contains(CombatPitRules.PlacingState) && goblin.Dk2StateId == CreatureStateMachine.Idle); i++)
+        {
+            sim.Tick();
+            if (seen.Count == 0 || seen[^1] != goblin.Dk2StateId) seen.Add(goblin.Dk2StateId);
+        }
+
+        Assert.Contains(sink.Events, e => e.Kind == "dropped_to_job" && e.Detail.Contains("job=CombatPit"));
+        int arriving = seen.IndexOf(CombatPitRules.ArrivingState);
+        Assert.True(arriving >= 0, string.Join(",", seen));
+        Assert.Equal([CombatPitRules.ArrivingState, CombatPitRules.PlacingState, CreatureStateMachine.Idle], seen.Skip(arriving).Take(3));
+        Assert.False(goblin.CombatPitFighter);
+    }
+
     [Fact]
     public void TwoFightersArePairedAsEachOthersForcedTarget_AndFightThoughNeitherIsAttackable()
     {
@@ -274,7 +301,7 @@ public sealed class CombatPitTests
     }
 
     [Fact]
-    public void Placing138OnThePitsRimMakesNoFighter_AndGoesIdleFor142IsNotBuilt()
+    public void Placing138OnThePitsRimMakesNoFighter_AndGoesIdle_ForTheGateRefusesItsSetState142()
     {
         (GameDatabase db, WorldState world) = World();
         var sink = new ListEventSink();

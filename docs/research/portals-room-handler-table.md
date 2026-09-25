@@ -78,7 +78,9 @@ list `Wait`.
 
 **The Lair and Combat Pit records carry no job id**, so `Sleep`, `Sulk` and
 `CombatPitSpectate` are reached some other way and are neither confirmed nor
-contradicted here. This table is **one dispatch path, not the whole map**; a
+contradicted here.
+**`CombatPitSpectate` answered (2026-09-25, ADR-0227):** its only caller is state 89's
+fallback `0x00478680`, after the mood chooser fails (`combat-pit-spectators.md` §1). This table is **one dispatch path, not the whole map**; a
 room with no job slot is not a room with no purpose (`job-selection.md`).
 
 ## The three unidentified integers, for all 26 rooms

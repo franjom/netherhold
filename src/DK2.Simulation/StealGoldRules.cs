@@ -202,7 +202,7 @@ public static class StealGoldRules
     /// <summary><c>0x00471A70(room, resume, options)</c>: already in the room, 1 and then the resume
     /// state; otherwise a point in it (<c>0x004E4C10</c>) and state 7, or with option bit 0 a tunnel
     /// to the room's first tile (<c>0x00485AB0</c>).</summary>
-    private static bool ToRoom(SimulationContext context, string system, CreatureState creature, RoomInstance room, int resume, int options)
+    internal static bool ToRoom(SimulationContext context, string system, CreatureState creature, RoomInstance room, int resume, int options)
     {
         WorldState world = context.World;
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
@@ -220,7 +220,8 @@ public static class StealGoldRules
     }
 
     /// <summary><c>0x004E4C10</c>: a random tile of the room, then the first from there, round the
-    /// room, that passes its four cell tests. Ours reads those tests as "walkable" (unread).</summary>
+    /// room, that passes its four cell tests. The first is <c>0x00454110</c> = 0, which on a Combat
+    /// Pit refuses the floor (ADR-0227); ours reads the others as "walkable" (unread).</summary>
     private static int? RoomPoint(SimulationContext context, CreatureState creature, RoomInstance room)
     {
         IReadOnlyList<int> tiles = room.TileIndices;
@@ -230,6 +231,7 @@ public static class StealGoldRules
         for (int k = 0; k <= tiles.Count; k++)
         {
             int tile = tiles[(start + k) % tiles.Count];
+            if (room.Definition.TypeId == RoomTypeId.CombatPit && room.IsInterior(tile)) continue;
             if (grid.IsWalkable(tile % w, tile / w)) return tile;
         }
         return null;

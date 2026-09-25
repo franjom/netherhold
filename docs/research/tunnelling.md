@@ -1,7 +1,7 @@
 # Tunnelling: states 186, 223 and 224
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.
-- Built: ADR-0222, `TunnelRules`.
+- **Built:** ADR-0222, `TunnelRules`.
 - Neighbours: `travel-states.md` §2.3 (the fallback branches), `hero-party-walk.md` §2 (223 and 224), `tile-work.md` (the dig itself).
 
 ## Result in one sentence

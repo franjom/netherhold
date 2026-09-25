@@ -94,7 +94,9 @@ Pit tile:
 - at height `0x400` it gains `CombatPitFighter`, sets 139 and, if that is taken, copies the
   room's owner (`room+0x1D`) into `+0x3CB`;
 - elsewhere on the pit (the rim), if the tile is its own keeper's pit (`0x004539B0(16,
-  owner, 0)`), it sets 142, the spectator's state;
+  owner, 0)`), it sets 142, the spectator's state, and returns what `SetState` returned
+  (`0x00457AD3`–`0x00457AE3`). **The gate refuses it** (`combat-pit-spectators.md` §1), so 138 on the rim returns 0,
+  idle;
 - otherwise it returns 0.
 
 Off the pit it returns 0.
@@ -273,6 +275,8 @@ room's `+0x423` sound.
   with no victory; the experience refusal and the level-cap move to 1.
 - The room reset: a sale or build that touches a keeper's Combat Pit sends the fighters on
   that pit's tiles to 141 without the flag.
+- **The spectators (ADR-0227, `combat-pit-spectators.md`):** job 26, 142, 143 and 144, the pit's fight stamp, and the
+  pit's drop state on getting up (137, through 1).
 
 ## 10. Read, not built
 
@@ -280,11 +284,9 @@ room's `+0x423` sound.
   `PrisonOwnerPlayerId`, and DK2's pit writes the same word (`+0x3CB`) for every fighter,
   own creatures included; writing it would make our fighters prisoners. 138's copy of the
   room owner into `+0x3CB` is left out for the same reason.
-- **The workers' and low-`Number` branches of the drop**, and state 76 itself: ours lands a
-  dropped creature in 1.
+- **The workers' and low-`Number` branches of the drop.** State 76 is built (ADR-0226).
 - **State 140**, which a save can restore but no ordinary gameplay path was found to enter
-  (§1; Q431), and **142–144**, the spectators: 138 on the rim goes to 142, which ours
-  refuses by leaving the creature idle.
+  (§1; Q431).
 - **Action `0x2C`** at the level cap and its wait: ours goes straight to the anger and the
   walk. **Scan A** for a dead forced target: ours clears it and finds nobody.
 - 217's throw of the loser to the rim; the room's entry point, its sounds, message 9, the
@@ -292,3 +294,7 @@ room's `+0x423` sound.
   `0x00455000`'s byte in the neighbour picker (taken as equal within a room); the rim's
   slopes; `KillsInCombatPit` (`+0x408`), whose writer is still unread.
 - The shot owner: a pit fighter's shots are the hero player's (`combat-spells.md`).
+
+## 11. The spectators
+
+Job 26 and states 142–144 are in `combat-pit-spectators.md` (ADR-0227).

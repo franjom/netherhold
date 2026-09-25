@@ -18,7 +18,7 @@ namespace DK2.Simulation;
 /// carries a job id in its last slot, giving eight agreements plus Prison→<see cref="JobType.Wait"/>
 /// (Q210). That table is one dispatch path, not the whole map — Lair and Combat Pit
 /// carry no job id, so <see cref="JobType.Sleep"/>, <see cref="JobType.Sulk"/> and
-/// <see cref="JobType.CombatPitSpectate"/> are reached another way.</para></summary>
+/// <see cref="JobType.CombatPitSpectate"/> (state 89's fallback, ADR-0227) come another way.</para></summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/job-selection.md")]
 public static class JobRules
 {
@@ -72,8 +72,8 @@ public static class JobRules
     /// and the job becomes its <see cref="CreatureState.DroppedToDoJob"/>. Returns the job, or
     /// null when the drop is an ordinary one.</summary>
     /// <remarks>Built for the rooms whose state is the one their job works in: the Library,
-    /// Training Room, Guard Room, Workshop, Temple and Casino. The Combat Pit and a Torture
-    /// Chamber's devices have their own arms; the Hatchery (92), Treasury, Lair, Portal, Heart,
+    /// Training Room, Guard Room, Workshop, Temple and Casino. The Combat Pit's 137
+    /// (<see cref="DropLandingRules.AfterGettingUp"/>) and a Torture Chamber's devices have their own arms; the Hatchery (92), Treasury, Lair, Portal, Heart,
     /// Prison and Crypt states and the no-room arm (state 250) are not built. The room's
     /// capacity is the work state's enter hook's, so a full room sends the creature to idle
     /// with its job still remembered.</remarks>

@@ -241,7 +241,9 @@ missing row is harder to notice than an unused one.
 
 **Two rows the table cannot speak to.** The **Lair** and **Combat Pit** records
 carry *no* job id, so `Sleep`, `Sulk` and `CombatPitSpectate` are reached by some
-other route and are neither confirmed nor contradicted. Sulk needing a Lair (§3.1)
+other route and are neither confirmed nor contradicted.
+**`CombatPitSpectate` answered (2026-09-25, ADR-0227):** its only caller is state 89's
+fallback `0x00478680`, after the mood chooser fails (`combat-pit-spectators.md` §1). Sulk needing a Lair (§3.1)
 rests on its handler. A room with no job slot is not a room with no purpose.
 
 ---

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 117;
+    private const int FormatVersion = 118;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -126,6 +126,7 @@ public static class WorldSnapshot
             w.Write(t.EntranceIdleTicks);
             w.Write(t.EntranceCreaturesGenerated);
             w.Write(t.HatchTicks);
+            w.Write(t.PitFightSeenTick);
             w.Write(t.TaggedBy);
             w.Write(t.DiscoveredBy);
             w.Write(t.FreshlyDug);
@@ -320,6 +321,8 @@ public static class WorldSnapshot
             w.Write(c.AttackAbnormalTargets);
             w.Write(c.AttackingId);
             w.Write(c.PitStateEnteredTick);
+            w.Write(c.SpectatorPosX);
+            w.Write(c.SpectatorPosY);
             w.Write(c.AttackSpellSlot);
             w.Write(c.SwingKind);
             w.Write(c.SwingSpellSlot);
@@ -573,6 +576,7 @@ public static class WorldSnapshot
                 EntranceIdleTicks = r.ReadInt32(),
                 EntranceCreaturesGenerated = r.ReadInt32(),
                 HatchTicks = r.ReadInt32(),
+                PitFightSeenTick = r.ReadInt64(),
                 TaggedBy = r.ReadUInt16(),
                 DiscoveredBy = r.ReadUInt16(),
                 FreshlyDug = r.ReadBoolean(),
@@ -773,6 +777,8 @@ public static class WorldSnapshot
                 AttackAbnormalTargets = r.ReadBoolean(),
                 AttackingId = r.ReadInt32(),
                 PitStateEnteredTick = r.ReadInt64(),
+                SpectatorPosX = r.ReadInt32(),
+                SpectatorPosY = r.ReadInt32(),
                 AttackSpellSlot = r.ReadByte(),
                 SwingKind = r.ReadByte(),
                 SwingSpellSlot = r.ReadByte(),

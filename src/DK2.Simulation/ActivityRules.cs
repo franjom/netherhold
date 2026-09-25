@@ -43,6 +43,7 @@ public static class ActivityRules
         StealGoldRules.EscapingState => CreatureActivity.Leaving,
         TunnelRules.TunnellingState or TunnelRules.HandBackState => CreatureActivity.AtWork,
         TunnelRules.AdvancingState => CreatureActivity.GoingToJob,
+        CombatPitSpectatorRules.FacingState => CreatureActivity.AtWork,
         _ when JobStates.Contains(resume) => CreatureActivity.GoingToJob,
         _ => Standing(creature, resume),
     };
@@ -95,6 +96,7 @@ public static class ActivityRules
         CombatStates.AtTheBody => CreatureActivity.GoingToBody,
         CombatStates.Celebrating => CreatureActivity.Celebrating,
         CrateRules.CrateMadeState => CreatureActivity.AtWork,
+        CombatPitSpectatorRules.FacingState or CombatPitSpectatorRules.CheeringState => CreatureActivity.AtWork,
         CrateRules.FetchTrapCrateState or CrateRules.FetchDoorCrateState => CreatureActivity.FetchingObject,
         CrateRules.InstallTrapState or CrateRules.InstallDoorState => CreatureActivity.CarryingObject,
         >= CombatPitRules.ArrivingState and <= CombatPitRules.WaitingState or CombatPitRules.ThrownOutState => CreatureActivity.PitFighting,
