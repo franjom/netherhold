@@ -443,6 +443,13 @@ public sealed class CreatureState
     /// <see cref="HandRules.AngerGraceSeconds"/> after the pick-up.</summary>
     public long PickupTick;
 
+    /// <summary>DK2's <c>WasLastDroppedOnARoom</c> (<c>+0x3E6</c> bit 26): the last drop landed on
+    /// a room tile (ADR-0202).</summary>
+    public bool DroppedOnARoom;
+
+    /// <summary>The tick from which pay may be tried again, DK2's <c>+0x60</c> (ADR-0202).</summary>
+    public long NextPayTryTick;
+
     /// <summary>The tick of the last slap that landed, or 0 for never — DK2's
     /// <c>LastSlapTick</c>. A tally, not a cooldown: every slap counts however fast they come
     /// (<see cref="HandRules.KnockBackWindowSeconds"/>).</summary>
@@ -846,6 +853,8 @@ public sealed class CreatureState
         hash.Add(JobTileIndex);
         hash.Add(InHand);
         hash.Add(PickupTick);
+        hash.Add(DroppedOnARoom);
+        hash.Add(NextPayTryTick);
         hash.Add(LastSlapTick);
         hash.Add(WorkFasterTicks);
         hash.Add(JustDropped);

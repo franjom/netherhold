@@ -4453,3 +4453,17 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - New hashed and snapshotted fields `ContactTileIndex` and `RescueTurnsLeft`. `HashVersion` and `FormatVersion` **103**, pin `0x1A5F99A4C9E39974`.
 - Eight tests. Negative controls: no flag test, no worker test, an allied chamber, a victim of any side, testing every tick, no wait, no walk, the victim kept on the device, and flags copied unmasked each fail a named test.
 
+## ADR-0202 — Pay every fourth turn, and five seconds' grace after a drop on a room
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/creature-needs-routine.md` §2, §5
+
+**Context.** Ours tried pay every tick, so a creature with nowhere to be paid used up its two failed attempts in two ticks. DK2's needs routine stamps `+0x60` four turns on before each decision. The busy test `0x00477B40`, now read in full, also refuses every need for five seconds after a drop onto a room tile. The other fields it tests are our activities, which the needs never ask, or are unbuilt.
+
+**Decision.**
+1. `CreatureState.NextPayTryTick`. `PaydaySystem` tests it after the mask and before the owed and attempt gates, stamps it `NeedRules.RetryTurns` turns on, then asks the busy test.
+2. `CreatureState.DroppedOnARoom`, set by the hand's drop from the landing tile, and `NeedRules.IsBusy`: dropped on a room and under `DroppedOnARoomGraceTicks` (five seconds) since the drop. Eat, sleep and pay test it after their own stamps.
+
+**Consequences.**
+- Ours, stated: the grace counts from the drop, where DK2 counts from leaving state 76 (the landing action). The alert timer, possession, the Call To Arms, rebels and the Casino's big winner are recorded, not built.
+- `HashVersion` and `FormatVersion` **104**, pin `0xFB68B3CB26783D05`.
+- Three tests (one a two-row theory). Negative controls: pay every tick, no grace, grace everywhere, and eating that ignores the busy test each fail a named test.
+

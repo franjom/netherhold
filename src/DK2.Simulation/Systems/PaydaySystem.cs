@@ -160,6 +160,13 @@ public sealed class PaydaySystem : ISimulationSystem
             // Payday: the needs routine's mask test (NeedRules, ADR-0198).
             if (!NeedRules.MayAsk(creature, CreatureStateCategory.Payday)) continue;
 
+            // Tried every fourth turn: the stamp moves whether or not anything is owed, and
+            // before the busy test (0x00477F69, ADR-0202).
+            long now = context.Tick.Value;
+            if (now < creature.NextPayTryTick) continue;
+            creature.NextPayTryTick = now + (NeedRules.RetryTurns * SimulationTiming.OriginalTickPeriodTicks);
+            if (NeedRules.IsBusy(creature, now)) continue;
+
             if (creature.WageOwed <= 0) continue;
             if (creature.PayAttemptsFailed >= PaydayRules.MaxFailedAttempts) continue;
 

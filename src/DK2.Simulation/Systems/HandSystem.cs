@@ -224,6 +224,9 @@ public sealed class HandSystem : ISimulationSystem
         hand.RemoveAt(hand.Count - 1);
         creature.InHand = false;
         creature.PickupTick = context.Tick.Value;
+
+        // 76 records whether it landed on a room; the needs leave it be for five seconds (ADR-0202).
+        creature.DroppedOnARoom = RoomIndex.RoomAt(world, context.Database, landingTileIndex) is not null;
         creature.PosX = CreatureState.CentreOf(command.Tile.X);
         creature.PosY = CreatureState.CentreOf(command.Tile.Y);
         creature.Body.Vel = Steering.Fixed16Vector.Zero;

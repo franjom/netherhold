@@ -127,7 +127,8 @@ public sealed class CreatureSleepSystem : ISimulationSystem
                         bool wants = NeedRules.TirednessClockRuns(creature)
                             ? LairRules.WantsToSleep(database, definition, creature)
                             : CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature);
-                        if (wants && NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping))
+                        if (wants && NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping)
+                            && !NeedRules.IsBusy(creature, context.Tick.Value))
                             SetOff(context, creature, definition);
                         break;
                     }

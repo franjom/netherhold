@@ -54,6 +54,25 @@ public static class NeedRules
             || CreatureStateCategoryTable.Get(need).AdmitsFrom(CreatureStateCategoryTable.Get(from));
     }
 
+    /// <summary>Turns between two tries of one need: hunger's <c>+0x50</c>, sleep's <c>+0x5C</c>
+    /// and pay's <c>+0x60</c> are stamped four turns on.</summary>
+    public const int RetryTurns = 4;
+
+    /// <summary>How long a creature dropped on a room is left alone: five seconds of
+    /// <c>LastDroppedCounter</c> (<c>+0x46D</c>, <c>5 ×</c> variable 19 turns).</summary>
+    public const int DroppedOnARoomGraceTicks = 5 * SimulationTiming.OriginalTicksPerGameSecond;
+
+    /// <summary>The parts of the busy test <c>0x00477B40</c> our activity filters do not already
+    /// cover: a creature dropped on a room (<c>+0x3E6</c> bit 26, set by 76 from the landing tile)
+    /// within <see cref="DroppedOnARoomGraceTicks"/> of the drop.</summary>
+    /// <remarks>The rest of the test, read: group 1, a prison owner, <c>CombatPitFighter</c>,
+    /// combat, a possessed creature following, the stunned states 209 and 255–257, the alert
+    /// timer <c>+0x45B</c>, a Call To Arms (player <c>+0x76</c> bit 2, <c>CallToArmsOn</c>,
+    /// states 190–192), <c>RebelActive</c>, <c>Leaving</c> and the Casino's big-winner countdown.
+    /// Each is either one of our activities, which the needs never ask, or unbuilt.</remarks>
+    public static bool IsBusy(CreatureState creature, long now) =>
+        creature.DroppedOnARoom && now - creature.PickupTick < DroppedOnARoomGraceTicks;
+
     /// <summary>The health a tired creature that is not asleep loses a second:
     /// <c>CannotSleepModifyCreatureHealthPerSecond</c> ÷ variable 19 a turn (a truncating
     /// <c>IDIV</c>, <c>0x00477E74</c>), so four times that a second. Zero in every shipped level.</summary>

@@ -48,7 +48,15 @@ Every attempt is also refused by the **busy test** `0x00477B40` (through
 prison (`+0x3CB`), one whose category through a walk is 22 (combat), and a set of
 creature fields and flags: `+0x482`, `+0x45B`, `+0x3F2`, `+0x3E6` bits 3, 14 and 15,
 bit 26 unless `+0x46D` has reached 5 seconds, and two calls, `0x0048F350` and
-`0x004888C0`, not read here.
+`0x004888C0`. Named by the debug dumper and read on 2026-09-24: `+0x482` is
+`PossessedCreatureFollowing`, `+0x45B` `CreatureAlertTimer` (set by `0x0048CC10`, counted
+down by `0x0048E160`), `+0x3F2` `CasinoBigWinnerGameTickRemaining`, bit 3 `RebelActive`,
+bit 14 `Leaving`, bit 26 `WasLastDroppedOnARoom`. State 76's handler writes bit 26 from
+the landing tile (whether its word `+2` names a room, `0x0046EF1E`), and the creature
+update holds `LastDroppedCounter` (`+0x46D`) at 0 while in 76 and counts it up each turn
+after (`0x00489A4D`). `0x0048F350` is the stunned states 209, 255, 256 and 257;
+`0x004888C0` is a Call To Arms: player `+0x76` bit 2, `CallToArmsOn` (bit 20), or states
+190–192 through a walk.
 
 ## 3. The three needs, in order
 
@@ -109,8 +117,14 @@ leaves.
   the latch `+0x58` as `NeedRules.IsTired`, and the drain skips prisoners, whose health
   `PrisonSystem` owns. Zero in every shipped level.
 
-**Not built:** the busy test's fields beyond our activities;
-the wounded attempt's missing 4-turn gate (ours shares the tired path); pay's 4-turn
-cadence (ours tries every tick). Creatures still
+- **Pay every fourth turn, and the drop grace** (ADR-0202). `+0x60` is
+  `CreatureState.NextPayTryTick`, stamped four turns on before the decision whether or
+  not anything is owed, then the busy test. `NeedRules.IsBusy` is the drop grace: a
+  creature dropped on a room tile is not asked for five seconds; the eat, sleep and pay
+  attempts test it after their own stamps.
+
+**Not built:** the alert timer, possession, the Call To Arms, rebels and the big winner in
+the busy test (each is one of our activities or unbuilt); the wounded attempt's missing
+4-turn gate (ours shares the tired path). Creatures still
 on our own activities (combat, leaving, fleeing) are asked by none of the three, as
 before; they are not on state ids yet.

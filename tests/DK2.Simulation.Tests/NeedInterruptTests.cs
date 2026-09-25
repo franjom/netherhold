@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
@@ -290,6 +291,57 @@ public class NeedInterruptTests
         Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
         tired.OwnerPlayerId = Keeper;
         Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, db.CreatureById(Dk2TerrainFixture.ImpCreatureId), tired));
+    }
+
+    [Fact]
+    public void PayIsTriedEveryFourthTurnNotEveryTick()
+    {
+        // 0x00477F69: +0x60 is stamped four turns on before the decision runs.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.Tile(6, 7).GoldHeld = 0;
+        var sim = new GameSimulation(db, world, seed: 42, [new PaydaySystem()]);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 4));
+        goblin.WageOwed = 500;
+
+        var tries = new List<int>();
+        for (int t = 0; t < 12; t++)
+        {
+            int before = goblin.PayAttemptsFailed;
+            sim.Tick();
+            if (goblin.PayAttemptsFailed != before) tries.Add(t);
+        }
+
+        Assert.Equal(2, tries.Count);
+        Assert.Equal(NeedRules.RetryTurns, tries[1] - tries[0]);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AHungryCreatureDroppedOnARoomIsLeftAloneForFiveSecondsAndOffOneItIsNot(bool onARoom)
+    {
+        // 76 sets WasLastDroppedOnARoom from the landing tile; the busy test refuses every need
+        // while LastDroppedCounter is under five seconds.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, seed: 42,
+            [new HandSystem(), new CreatureMovementSystem(), new CreatureEatSystem()]);
+        sim.ObserveWith(sink);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 4));
+        goblin.HungerNeed = 1;
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, onARoom ? InTraining : new TilePos(6, 3))));
+        Assert.Equal(onARoom, goblin.DroppedOnARoom);
+
+        int ticks = 0;
+        while (goblin.Activity != CreatureActivity.SeekingFood && ticks < 60) { sim.Tick(); ticks++; }
+
+        Assert.Equal(CreatureActivity.SeekingFood, goblin.Activity);
+        if (onARoom) Assert.InRange(ticks, NeedRules.DroppedOnARoomGraceTicks - 2, NeedRules.DroppedOnARoomGraceTicks + 4);
+        else Assert.InRange(ticks, 0, 4);
     }
 
     private static CreatureState Fresh(int state)
