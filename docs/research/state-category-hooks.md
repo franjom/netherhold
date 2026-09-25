@@ -297,6 +297,37 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   **Ours:** the test runs for an idle creature or one holding a state id; the walk goes
   onto the victim's tile; "attached to a room" is read as at a job. 122 is not built.
 
+### 3.4 The Workshop, category 5 (read 2026-09-24)
+
+- **The credit.** The update `0x0047B190` takes `ManufacturePerSecond` (`+0x6BD`), which
+  the loader divides by variable 19 with a floor of one (`0x004938B8`, beside
+  `ResearchPerSecond` at `+0x6B9`), scales levels 2–10 by stat row 18, clamps to
+  `0..0xFFFE` and passes it to `0x004C3200` every turn. The adder's other calls read the
+  turn and discard it; a `turn % v19 == 0` call to `0x004F2300` is unread.
+- **The points and the list.** The adder adds to `player+0x217` (a word). The list at
+  `player+0x219` is a ring of 128 sixteen-byte entries: cost word, kind (0 trap, 1 door),
+  type id; head `+0x801`, tail `+0x802`, count `+0x803` (`player+0xA1C`, which the
+  Manufacture job handler `0x00470080` tests). `0x00506B50`: non-empty and head cost ≤
+  points. Then `0x004C3B50` picks the keeper's Workshop nearest the creature with someone
+  attached; `0x004F5240` sends everyone attached to it to state 68, makes the crate (the
+  definition's crate object: trap file `0x20E`, door `0x246`) on the room's first chain
+  tile, owned by the keeper when the room has space, and adds to `ItemsManufactured`
+  (`player+0x162`). The points go to 0 and the order is popped. With no Workshop, the
+  unread `0x004C6CF0`.
+- **The pushes.** `0x005066E0(kind, type)`: refused past 128; counts the keeper's
+  blueprints of the type (traps with `+0x109`, doors with `+0x10C` bit 5) against its
+  crates of the type, and queues one order only while blueprints outnumber crates. Its
+  callers are the level loader `0x00520F40`, `0x004C33B0` and `0x004C3860`; the removal
+  `0x005069E0` is called by `0x004C3670` and `0x004C3A20`. The shipped levels place 3
+  door blueprints, in one level, and no trap blueprints.
+- **The decay.** The player update `0x004B9EC0` calls `0x004C3340`: with points, and
+  `player+0x8A` (the Manufacture enter hook's count) zero, once a second the points fall by
+  variable 138 (1), to no lower than 0.
+- **Built** (ADR-0203): all four. **Ours:** the nearest Workshop is judged by its first
+  tile, there is no capacity test, the crate is always the keeper's, and state 68 is not
+  entered. Not built: blueprints placed in play (`0x004C33B0`, `0x004C3860`), the removals,
+  and what carries a crate to its blueprint.
+
 ## 4. Answers and limits
 
 - Casino's two anger globals are variables 201/202:
@@ -315,9 +346,8 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   (ADR-0186). Spectating's update `0x0047AA70` was re-read for it: countdown `+0xAB`
   reloaded from variable 19, then variable 135 to buckets 5, 0 and 3, selector 9,
   always returning 1. The **Casino** followed (ADR-0187, §3.1), then **Prison**
-  (ADR-0191, §3.2). Not built: Manufacture (its adder `0x004C3200` is unread and
-  nothing holds manufacture points), Torture, the enter and leave hooks, and the
-  room-position claim.
+  (ADR-0191, §3.2), and **Manufacture** (ADR-0203, §3.4). Not built: the enter and leave
+  hooks, and the room-position claim.
 - **Every countdown hook fires every v19 + 1 turns, from entry** (Q424). Casino
   `0x0047AD75`, Spectating `0x0047AA73`, Training `0x0047B368` and Torture `0x0047B596`
   each test the byte, decrement and return while it is nonzero, and at zero reload and

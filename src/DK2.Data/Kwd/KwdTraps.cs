@@ -21,6 +21,7 @@ public static class KwdTraps
     private const int OffsetManaUpkeepPerSecond = 0x202;
     private const int OffsetTrapId = 0x20C;
     private const int OffsetShotTypeId = 0x20D;
+    private const int OffsetCrateObjectId = 0x20E;
 
     public static List<TrapDef> Parse(IEnumerable<KwdChunk> chunks)
     {
@@ -51,6 +52,7 @@ public static class KwdTraps
         GoldCost = U16(record, at + OffsetGoldCost),
         ManufactureRequired = U16(record, at + OffsetManufactureRequired),
         ShotTypeId = record[at + OffsetShotTypeId],
+        CrateObjectId = record[at + OffsetCrateObjectId],
         ManaUpkeepPerSecond = U16(record, at + OffsetManaUpkeepPerSecond),
     };
 

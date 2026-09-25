@@ -658,13 +658,10 @@ public sealed class CreatureJobTests
     // ---- the jobs that refuse for their own reasons ------------------------
 
     [Fact]
-    public void ManufactureAlwaysRefusesBecauseNothingIsEverQueued()
+    public void ManufactureRefusesWithNothingOnTheKeepersList()
     {
-        // The original's workshop handler tests a per-player field that is
-        // non-zero when something is queued. Traps and doors do not exist here,
-        // so nothing is ever queued and this refuses always - which is the
-        // faithful answer rather than a shortcut. A Troll in a dungeon with no
-        // manufacturing order is a Troll with nothing to do in DK2 too.
+        // The workshop handler tests the manufacture list's count (player+0xA1C):
+        // a Troll with no order is a Troll with nothing to do (ADR-0203).
         GameDatabase db = Db;
         CreatureDef bile = db.CreatureById(Dk2TerrainFixture.BileDemonCreatureId);
         var state = new CreatureState { Level = 1 };

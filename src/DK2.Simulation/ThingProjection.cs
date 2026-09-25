@@ -148,6 +148,9 @@ public static class ThingProjection
             }
         }
 
+        // Every placed blueprint without a crate goes on its keeper's manufacture list (ADR-0203).
+        ManufactureRules.QueueBlueprints(world, database);
+
         return new ThingProjectionResult(
             creatures, objects, actionPoints, doors, traps,
             heroParties, effectGenerators, rooms, skipped);

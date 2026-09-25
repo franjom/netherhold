@@ -39,6 +39,32 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
     }
 
     [InstallFact]
+    public void EveryTrapAndDoorWithACrateNamesItsOwnCrateObject()
+    {
+        // Trap 0x20E and door 0x246 (ADR-0203): the object each points at is the crate named
+        // after it, which the Workshop's completion (0x004F5240) creates.
+        if (Database() is not { } database) return;
+
+        var traps = new Dictionary<byte, string>
+        {
+            [1] = "Crate Gas", [2] = "Crate Boulder", [3] = "Crate Sentry", [4] = "Crate Alarm",
+            [5] = "Crate Fireburst", [6] = "Crate Lightning", [7] = "Crate Freeze", [8] = "Crate Fear",
+            [9] = "Crate Trigger", [10] = "Crate Spike", [11] = "Crate Guard Post",
+            [16] = "Crate [ Jack-In-The-Box ]",
+        };
+        foreach ((byte id, string crate) in traps)
+            Assert.Equal(crate, database.ObjectById(database.Traps[id].CrateObjectId)!.Name);
+
+        var doors = new Dictionary<byte, string>
+        {
+            [1] = "Crate Wooden Door", [2] = "Crate Steel Door", [3] = "Crate Braced Door",
+            [4] = "Crate Magic Door", [5] = "Crate Secret Door", [6] = "Crate Barricade",
+        };
+        foreach ((byte id, string crate) in doors)
+            Assert.Equal(crate, database.ObjectById(database.Doors[id].CrateObjectId)!.Name);
+    }
+
+    [InstallFact]
     public void EveryManualTrapPriceMatchesTheShippedColumn()
     {
         if (Database() is not { } database) return;

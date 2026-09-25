@@ -81,6 +81,9 @@ public sealed class CreatureJobSystem : ISimulationSystem
                     break;
             }
         }
+
+        // The player update's manufacture loss, once a game second (0x004C3340, ADR-0203).
+        if (OnTheSecond(context)) ManufactureRules.Decay(world, database);
     }
 
     // ------------------------------------------------------------- choosing
@@ -387,6 +390,11 @@ public sealed class CreatureJobSystem : ISimulationSystem
                 if (originalTick) Research(context, world, database, creature, definition, second);
                 return;
 
+            // MANUFACTURE IS CREDITED EVERY TURN, like research: 0x0047B190 has no countdown.
+            case CreatureStateCategory.Manufacture:
+                if (originalTick) Manufacture(context, world, database, creature, definition);
+                return;
+
             case CreatureStateCategory.Spectating:
                 if (CreatureStateMachine.HookFires(creature, reload))
                     Spectate(context, world, database, creature, definition);
@@ -549,6 +557,23 @@ public sealed class CreatureJobSystem : ISimulationSystem
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} level={creature.Level} " +
             $"gain={amount} bonus={bonus} points={keeper.ResearchPoints}");
+    }
+
+    /// <summary>One turn in the Workshop: the credit, and a crate when an order is paid for
+    /// (ADR-0203, <see cref="ManufactureRules"/>).</summary>
+    private void Manufacture(
+        SimulationContext context, WorldState world, GameDatabase database,
+        CreatureState creature, CreatureDef definition)
+    {
+        int amount = ManufactureRules.PerOriginalTick(database, definition, creature);
+        if (amount <= 0) return;
+
+        ObjectState? crate = ManufactureRules.Credit(world, database, creature, amount);
+        if (crate is null) return;
+        context.Emit(SystemName, "crate_manufactured",
+            $"creature={creature.Id} player={creature.OwnerPlayerId} object={crate.ObjectTypeId} " +
+            $"at=({crate.TileIndex % world.Width},{crate.TileIndex / world.Width}) " +
+            $"made={world.Player(creature.OwnerPlayerId).ItemsManufactured}");
     }
 
     /// <summary>One charge of training billed to the keeper, and the job lost

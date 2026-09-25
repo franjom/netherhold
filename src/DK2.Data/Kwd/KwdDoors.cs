@@ -20,6 +20,7 @@ public static class KwdDoors
     private const int OffsetGoldCost = 0x22E;
     private const int OffsetManufactureRequired = 0x234;
     private const int OffsetDoorId = 0x244;
+    private const int OffsetCrateObjectId = 0x246;
 
     public static List<DoorDef> Parse(IEnumerable<KwdChunk> chunks)
     {
@@ -46,6 +47,7 @@ public static class KwdDoors
     {
         Name = Name(record, at),
         DoorId = record[at + OffsetDoorId],
+        CrateObjectId = record[at + OffsetCrateObjectId],
         Health = U16(record, at + OffsetHealth),
         GoldCost = U16(record, at + OffsetGoldCost),
         ManufactureRequired = BinaryPrimitives.ReadUInt32LittleEndian(

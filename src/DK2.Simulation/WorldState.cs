@@ -286,6 +286,15 @@ public struct PlayerState
     /// changes an existing row but never creates one (ADR-0161).</summary>
     public List<AvailabilityState> Availabilities;
 
+    /// <summary>DK2's manufacture points, <c>player+0x217</c>, a word (ADR-0203).</summary>
+    public int ManufacturePoints;
+
+    /// <summary>DK2's manufacture list, <c>player+0x219</c>: the orders waiting, head first.</summary>
+    public List<ManufactureOrder> ManufactureQueue;
+
+    /// <summary>Crates made, DK2's <c>ItemsManufactured</c> (<c>player+0x162</c>).</summary>
+    public int ItemsManufactured;
+
     /// <summary>DK2's <c>Status</c> at <c>player+0x19A</c>: one of <see cref="PlayerStatus"/>,
     /// written once by <see cref="WorldState.EndGame"/> and never changed after (ADR-0162).</summary>
     public byte Status;
@@ -359,6 +368,10 @@ public struct PlayerState
         hash.Add(Availabilities.Count);
         foreach (AvailabilityState availability in Availabilities)
             availability.HashInto(ref hash);
+        hash.Add(ManufacturePoints);
+        hash.Add(ItemsManufactured);
+        hash.Add(ManufactureQueue.Count);
+        foreach (ManufactureOrder order in ManufactureQueue) order.HashInto(ref hash);
         hash.Add(Hand.Count);
         foreach (HandItem held in Hand)
         {
@@ -709,6 +722,7 @@ public sealed class WorldState
         {
             _players[i].Hand ??= [];
             _players[i].Availabilities ??= [];
+            _players[i].ManufactureQueue ??= [];
         }
 
         CurrentTick = GameTick.Zero;

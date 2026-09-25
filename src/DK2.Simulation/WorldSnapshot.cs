@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 104;
+    private const int FormatVersion = 105;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -156,6 +156,15 @@ public static class WorldSnapshot
                 w.Write(availability.Kind);
                 w.Write(availability.TypeId);
                 w.Write(availability.Value);
+            }
+            w.Write(p.ManufacturePoints);
+            w.Write(p.ItemsManufactured);
+            w.Write(p.ManufactureQueue.Count);
+            foreach (ManufactureOrder order in p.ManufactureQueue)
+            {
+                w.Write(order.Kind);
+                w.Write(order.TypeId);
+                w.Write(order.Cost);
             }
             w.Write(p.Hand.Count);
             foreach (HandItem held in p.Hand)
@@ -553,6 +562,7 @@ public static class WorldSnapshot
                 HeartDiedTick = new GameTick(r.ReadInt64()),
                 HeartRuined = r.ReadBoolean(),
                 Availabilities = [],
+                ManufactureQueue = [],
                 Hand = [],
             };
 
@@ -560,6 +570,12 @@ public static class WorldSnapshot
             for (int a = 0; a < availabilityCount; a++)
                 players[i].Availabilities.Add(new AvailabilityState(
                     r.ReadUInt16(), r.ReadInt32(), r.ReadInt32()));
+
+            players[i].ManufacturePoints = r.ReadInt32();
+            players[i].ItemsManufactured = r.ReadInt32();
+            int orderCount = r.ReadInt32();
+            for (int o = 0; o < orderCount; o++)
+                players[i].ManufactureQueue.Add(new ManufactureOrder(r.ReadByte(), r.ReadByte(), r.ReadInt32()));
 
             int handCount = r.ReadInt32();
             for (int h = 0; h < handCount; h++)

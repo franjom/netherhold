@@ -55,6 +55,9 @@ internal static class Dk2TerrainFixture
 
     /// <summary>Terrain 21, the Torture Chamber (ADR-0193).</summary>
     public const byte TortureChamberTerrain = 21;
+
+    /// <summary>Terrain 19, the Workshop ("Work Shop", ADR-0203).</summary>
+    public const byte WorkshopTerrain = 19;
     public const byte ManaVaultTerrain = 31;
     public const byte ClaimedVaultTerrain = 32;
 
@@ -62,7 +65,7 @@ internal static class Dk2TerrainFixture
     /// (0x40) the navigation writer reads as a permanent lock.</summary>
     public static DoorDef[] Doors() =>
     [
-        new() { Name = "Wooden Door", DoorId = 1, Health = 400, GoldCost = 500, ManufactureRequired = 1000 },
+        new() { Name = "Wooden Door", DoorId = 1, Health = 400, GoldCost = 500, ManufactureRequired = 1000, CrateObjectId = WoodenDoorCrateObjectId },
         new() { Name = "Barricade", DoorId = 6, Health = 800, GoldCost = 750, ManufactureRequired = 1000, Flags = DoorFlags.Barricade },
     ];
 
@@ -116,6 +119,8 @@ internal static class Dk2TerrainFixture
               TerrainFlags.Ownable, 10000, 10000, CombatPitTerrain, ClaimedPath),
             T(TortureChamberTerrain, "Torture Chamber",
               TerrainFlags.Ownable, 10000, 10000, TortureChamberTerrain, ClaimedPath),
+            T(WorkshopTerrain, "Work Shop",
+              TerrainFlags.Ownable, 10000, 10000, WorkshopTerrain, ClaimedPath),
             T(ClaimedPath, "Claimed Path",
               TerrainFlags.Ownable | TerrainFlags.Attackable | TerrainFlags.FillInable,
               660, 660, Rock, DirtPath, manaGain: 1),
@@ -207,6 +212,9 @@ internal static class Dk2TerrainFixture
             // devices down by hand, since the fixture carries only the two device records.
             R(RoomTypeId.TortureChamber, "Torture Chamber", 1500, TortureChamberTerrain, 0x13ACu, 3, 3,
               objectIds: [8, 8, 61, 8, 62, 63]),
+            // The shipped cost and flags; its furniture list is left out, the fixture carrying
+            // none of those objects (ADR-0203).
+            R(RoomTypeId.Workshop, "Work Shop", 600, WorkshopTerrain, 0x13ACu, 3, 3),
         ],
         creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), Warlock(), Priest(), Thief(), Mistress(), .. extraCreatures],
         variables: Variables(),
@@ -235,6 +243,9 @@ internal static class Dk2TerrainFixture
     /// <summary>Object id 5, the Alarm trap's crate: <see cref="ObjectFlags.TypeCrate"/>, carried
     /// to the Workshop in state 32.</summary>
     public const byte AlarmCrateObjectId = 5;
+
+    /// <summary>Object id 52, the Wooden Door's crate, the shipped door record's <c>0x246</c> (ADR-0203).</summary>
+    public const byte WoodenDoorCrateObjectId = 52;
 
     /// <summary>Object id 58, the Library's other object.</summary>
     public const byte LibraryBookObjectId = 58;
@@ -311,6 +322,7 @@ internal static class Dk2TerrainFixture
         Carried(SpellBookObjectId, "Spell Book", ObjectFlags.TypeSpellBook),
         Carried(RevealMapSpecialObjectId, "Special [ Reveal Map ]", ObjectFlags.TypeSpecial),
         Carried(AlarmCrateObjectId, "Crate Alarm", ObjectFlags.TypeCrate),
+        Carried(WoodenDoorCrateObjectId, "Crate Wooden Door", ObjectFlags.TypeCrate),
 
         // The Library's furniture, the shipped Rooms.kwd ObjectIds for room 6. It carries
         // no carry flag, so no imp fetches it; the fields below are NOT transcribed.

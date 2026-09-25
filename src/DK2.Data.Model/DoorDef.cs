@@ -22,6 +22,10 @@ public sealed record DoorDef
     /// <summary>Gold price shown by the original manual and stored in the record.</summary>
     public required ushort GoldCost { get; init; }
 
+    /// <summary>The crate object a Workshop makes for this door (ADR-0203): every shipped door with a
+    /// crate matches its own crate object here. 0 when it has none.</summary>
+    public byte CrateObjectId { get; init; }
+
     /// <summary>Workshop manufacture work required to produce the door.</summary>
     public required uint ManufactureRequired { get; init; }
 

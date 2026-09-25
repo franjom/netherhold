@@ -4467,3 +4467,34 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - `HashVersion` and `FormatVersion` **104**, pin `0xFB68B3CB26783D05`.
 - Three tests (one a two-row theory). Negative controls: pay every tick, no grace, grace everywhere, and eating that ignores the busy test each fail a named test.
 
+## ADR-0203 — Trigger events fire through the two filters
+**Date:** 2026-09-25 · **Status:** accepted · completes the trigger walkers of ADR-0104 · Research: `docs/research/trigger-walkers.md`, "The second path"
+
+**Context.** A creature's tree could only be walked once a turn, where its event types are constant false, so a member's subtree could not react to being created, attacked or sacked. DK2 fires those through two filters; every one of their 36 call sites is now read and named.
+
+**Decision.**
+1. `TriggerExecutor.FireCreatureEvent` and `FirePlayerEvent` are `0x0049AA30` and `0x004C7A50`: from the root, along the top-level sibling chain, every active record of the event's type has its children walked with its own repeat; a non-positive id ends the scan; type 53 also needs its target pair. No repeat is decremented, as the child walker returns 0.
+2. The systems fire through `SimulationContext.FireCreatureEvent`/`FirePlayerEvent`, a no-op without an executor. Wired now: 3 for placed creatures at construction and from the party spawn, 6 on a new engagement, 15 from the stun, 63 and 61 from the entrance arrival.
+3. `CreatureTriggerEvent` and `PlayerTriggerEvent` name the types as the editor does, each with its firing site.
+
+**Consequences.**
+- Ours, stated: 6 fires once per engagement where DK2's fight-starter may fire again; an event walk's blocked and partial records are not reported; the events not yet wired are listed with their sites in the research doc.
+- No hashed state; the trigger state's active bits move as DK2's would.
+- Six tests on the filters, one on the level-start firing.
+
+## ADR-0203 — The Workshop's points, its list and its crates
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/state-category-hooks.md` §3.4
+
+**Context.** The Manufacture job always refused, because nothing held a manufacture list. The binary is now read end to end. The category 5 update credits the level-scaled `ManufacturePerSecond` every turn to `player+0x217`. When the head of the keeper's list (`player+0x219`, a 128-entry ring filled for blueprints without crates) is affordable, a crate appears in the nearest occupied Workshop, the points go to zero, and the order is popped. Points held with nobody manufacturing fall by variable 138 once a second.
+
+**Decision.**
+1. `TrapDef` and `DoorDef` carry `CrateObjectId` (trap file `0x20E`, door `0x246`); every shipped trap and door with a crate names its own.
+2. `PlayerState` carries `ManufacturePoints`, `ManufactureQueue` of `ManufactureOrder` and `ItemsManufactured`, all hashed and snapshotted. `ThingProjection` queues the level's blueprints through `ManufactureRules.QueueBlueprints`.
+3. `JobRules.Refused` refuses Manufacture only with an empty list; `EffectIsBuilt` includes it. `CreatureJobSystem` credits through `ManufactureRules.Credit` every original turn and runs `ManufactureRules.Decay` once a second.
+
+**Consequences.**
+- On shipped data the list is nearly always empty: 3 door blueprints are placed, in one level. The source that matters, blueprints placed in play, is not built, nor is carrying a crate to its blueprint.
+- Ours, stated: the nearest Workshop by its first tile, no capacity test, the crate always the keeper's, and state 68 not entered.
+- The fixture gains the shipped Workshop (terrain 19) and the Wooden Door's crate (52). `HashVersion` and `FormatVersion` **105**, pin `0xDBC19E3981F90A36`.
+- Six tests, one on real data. Negative controls: points kept on completion, no loader division, crates not counted, no decay, decay with workers present, the job always refused, and no crate made each fail a named test.
+

@@ -72,7 +72,7 @@ public static class JobRules
     /// and say so in the log.</summary>
     public static bool EffectIsBuilt(JobType job) =>
         job is JobType.Praying or JobType.Train or JobType.Research
-            or JobType.CombatPitSpectate or JobType.Drink or JobType.Torture;
+            or JobType.CombatPitSpectate or JobType.Drink or JobType.Torture or JobType.Manufacture;
 
     /// <summary>The keeper-or-creature test each handler makes before it looks for a
     /// room. Null means it passes; a non-null string is the reason and goes into the
@@ -99,11 +99,9 @@ public static class JobRules
                     : "at_training_cap";
 
             case JobType.Manufacture:
-                // The original tests a per-player field, non-zero when the workshop has
-                // something queued. Nothing ever is here, traps and doors not existing,
-                // so this always refuses — faithful, not a shortcut: a Troll with no
-                // order has nothing to do in DK2 either.
-                return "nothing_queued";
+                // The handler tests the manufacture list's count (player+0xA1C): a Troll
+                // with no order has nothing to do (ADR-0203).
+                return world.Player(state.OwnerPlayerId).ManufactureQueue.Count > 0 ? null : "nothing_queued";
 
             case JobType.Drink:
                 // 0x004560F0: more gold in the purse than a second of losing costs, unless
