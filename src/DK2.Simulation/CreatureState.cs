@@ -806,7 +806,7 @@ public sealed class CreatureState
     /// <see cref="HeroPartyRules.NoParty"/> for none — with its <c>PositionInParty</c> (<c>+0x3E1</c>,
     /// a follower's number from 1, the leader's the follower count), <c>MyLeadersId</c>
     /// (<c>+0x3DF</c>, -1 for none) and <c>WanderRadius</c> (<c>+0x418</c>, 0 in every shipped
-    /// member). Written by <see cref="HeroPartyRules"/>; nothing walks a party yet (Q427).</summary>
+    /// member). Written by <see cref="HeroPartyRules"/>, and re-led on a knock-out (ADR-0218).</summary>
     public byte PartyId = HeroPartyRules.NoParty;
     public byte PositionInParty;
     public int LeaderId = -1;

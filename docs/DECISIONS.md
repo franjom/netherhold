@@ -4753,3 +4753,20 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - One small pile settles any wage debt. That is DK2's arithmetic and is reproduced.
 - Six tests. Negative control: skipping the delivery and ignoring the flag fail exactly the three behaviour tests.
 - `HashVersion` and `FormatVersion` **113**, pin `0xFBE9C5B2CC6DE5EC`.
+
+## ADR-0218 — A knocked-out hero leaves its party, and a knocked-out leader hands it on
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0216 · Research: `docs/research/hero-party-walk.md` §5
+
+**Context.** ADR-0216 left the party's re-lead unbuilt. A party whose leader fell kept following the leader lying on the floor.
+
+**Decision.** `HeroPartyRules.KnockedOut` follows `0x004B2FBA`–`0x004B30F3`. `CreatureHealthSystem` calls it for a creature that has just entered its dying window, which is where `ModifyHealth` runs it, right after the countdown starts (`0x004B2FB5`).
+1. Only a hero with `PartyId != 0`. The test is against 0, not the 0xFF no-party value, so a hero in no party also takes the next arm and ends in party 0.
+2. A non-leader is detached. Its party becomes 0, it has no leader, and both role bits clear (`0x0048DF40(0)`, `0x0048DF70(0)`). The others keep their numbers.
+3. For a leader, the first follower of its party in the hero list becomes the heir. The heir gains the leader bit, loses the follower bit, and takes the old leader's job triple (`0x0048BE20`) and trigger root (`0x0049A950`, with the record's current repeat byte), then goes to state 1. The remaining followers are pointed at it and numbered from 1, and it takes their count.
+4. **Kept as DK2 has it:** the heir's own `MyLeadersId` is not rewritten, and the fallen leader keeps its party id and its leader bit.
+
+**Consequences.**
+- Ours: a corpse is skipped as an heir. DK2's hero list holds no `CDeadBody`; ours keeps corpses in the creature list.
+- A death with no dying window changes no party field, as in DK2. What its followers then do is Q428.
+- Eight tests. Twelve negative controls each fail a named test: the 0xFF test, no count, the follower bit kept, a corpse heir, no state 1, the call removed, no repeat byte, the leader kept on detach, the value not copied, the old leader detached, the heir's leader cleared, and the last follower chosen.
+- No new fields; `HashVersion` stays **113**.

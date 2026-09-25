@@ -213,6 +213,12 @@ enters state 1. A second scan points and renumbers the remaining
 followers behind it, then writes their count to
 the new leader. **CONFIRMED** by `0x004B2FDF`-`0x004B30F3`.
 
+Read again while building (ADR-0218). The branch runs only for the hero player's creatures
+(`+0x28` against `[0x006F254C]`), right after the dying countdown starts (`0x004B2FB5`). The detach
+clears bit 1 and bit 2 through `0x0048DF40(0)` and `0x0048DF70(0)`. The heir takes bit 1, loses
+bit 2 and keeps its own `MyLeadersId`. The fallen leader keeps its party and its bit. The count
+written to the heir covers the followers only.
+
 This re-lead path notably excludes `PartyId == 0`, even though `0xFF`
 is the
 usual no-party sentinel. **CONFIRMED** by the byte test at `0x004B2FDF`.
@@ -242,7 +248,7 @@ the tile's y before its x and excludes the rectangle's upper bounds; its tile te
 room or impenetrable tile of the hero's own keeper and any impenetrable tile a creature cannot
 wade; state 178 is `XOR EAX,EAX; RET`. Definition byte `+0x787` is file byte `0x0F4C`
 (loader `0x0049348A`): Imp 10, Dwarf 15, King Reginald 125, Dark Angel 232.
-Not built: StealGold's states, 223/224, the section 5 re-lead.
+Not built: StealGold's states, 223/224. The section 5 re-lead is built (ADR-0218).
 
 Review, the same day. State 1 tests the hero owner before the worker flag, so a hero Dwarf is run
 as a hero, and a resting 10 idles into 90. An arrival's resumed state runs from the next turn.

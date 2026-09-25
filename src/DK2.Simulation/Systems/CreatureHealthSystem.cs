@@ -240,6 +240,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
         if (!CreatureDeathRules.Collapse(state)) return;
+        HeroPartyRules.KnockedOut(context.World, context.Triggers, state);
 
         context.Emit(SystemName, "creature_collapsed",
             $"creature={state.Id} type={creature.Name} " +

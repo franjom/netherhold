@@ -182,4 +182,58 @@ public static class HeroPartyRules
         }
         if (leader is not null) leader.PositionInParty = k;
     }
+
+    /// <summary>The knock-out branch of <c>ModifyHealth</c> (<c>0x004B2FBA</c>–<c>0x004B30F3</c>),
+    /// for a hero that has just entered its dying window (hero-party-walk.md §5). The test is
+    /// <c>PartyId != 0</c>, not <see cref="NoParty"/>, so a hero in no party takes the first arm too.
+    /// A fallen non-leader is detached: party 0, no leader, both role bits clear. For a fallen
+    /// leader, the first follower of its party in the hero list is promoted: leader bit set,
+    /// follower bit clear, the old leader's job triple and trigger root, state 1. It keeps its own
+    /// <c>MyLeadersId</c>. The remaining followers are pointed at it and numbered from 1, and it takes
+    /// their count. The fallen leader keeps its party and its bit. Nothing happens on a death with no
+    /// dying window (Q428).</summary>
+    internal static void KnockedOut(WorldState world, TriggerExecutor? triggers, CreatureState fallen)
+    {
+        if (fallen.OwnerPlayerId != PlayerIds.Good || fallen.PartyId == 0) return;
+        byte party = fallen.PartyId;
+
+        if ((fallen.Flags & 0x02) == 0)
+        {
+            fallen.PartyId = 0;
+            fallen.LeaderId = -1;
+            fallen.Flags &= 0xF9;
+            return;
+        }
+
+        // DK2's hero list holds the living; a corpse is a separate CDeadBody there and one of ours here.
+        CreatureState? heir = null;
+        foreach (CreatureState c in world.Creatures)
+        {
+            if (!InPartyAsFollower(c, party)) continue;
+            heir = c;
+            break;
+        }
+        if (heir is null) return;
+
+        heir.Flags = (byte)((heir.Flags | 0x02) & ~0x04);
+        heir.GoodJob = fallen.GoodJob;
+        heir.GoodJobPlayerId = fallen.GoodJobPlayerId;
+        heir.GoodJobActionPointId = fallen.GoodJobActionPointId;
+        if (triggers is not null) triggers.AttachCreatureRoot(heir, fallen.TriggerId);
+        else heir.TriggerId = fallen.TriggerId;
+        CreatureStateMachine.TrySetState(heir, CreatureStateMachine.Idle);
+
+        byte k = 0;
+        foreach (CreatureState c in world.Creatures)
+        {
+            if (!InPartyAsFollower(c, party)) continue;
+            c.LeaderId = heir.Id;
+            c.PositionInParty = ++k;
+        }
+        heir.PositionInParty = k;
+    }
+
+    private static bool InPartyAsFollower(CreatureState c, byte party) =>
+        c.OwnerPlayerId == PlayerIds.Good && c.PartyId == party && (c.Flags & 0x04) != 0
+        && !CreatureDeathRules.IsCorpse(c);
 }

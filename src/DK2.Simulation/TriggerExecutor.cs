@@ -543,6 +543,15 @@ public sealed class TriggerExecutor
         }
     }
 
+    /// <summary><c>0x0049A950</c> during play: store the root and, when non-zero, snapshot the
+    /// resolved record's current repeat byte; a zero root leaves the old snapshot.</summary>
+    internal void AttachCreatureRoot(CreatureState creature, ushort triggerId)
+    {
+        creature.TriggerId = triggerId;
+        if (triggerId != 0 && _tree?.ResolveCondition(triggerId) is { } record)
+            creature.TriggerRepeat = _state.RecordRepeat(record);
+    }
+
     private void SetSubtreeActive(ushort triggerId, bool active) =>
         SetSubtreeActive(unchecked((short)triggerId), active);
 
