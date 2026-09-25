@@ -58,6 +58,7 @@ internal static class Dk2TerrainFixture
 
     /// <summary>Terrain 19, the Workshop ("Work Shop", ADR-0203).</summary>
     public const byte WorkshopTerrain = 19;
+    public const byte GuardRoomTerrain = 18;
     public const byte ManaVaultTerrain = 31;
     public const byte ClaimedVaultTerrain = 32;
 
@@ -121,6 +122,8 @@ internal static class Dk2TerrainFixture
               TerrainFlags.Ownable, 10000, 10000, TortureChamberTerrain, ClaimedPath),
             T(WorkshopTerrain, "Work Shop",
               TerrainFlags.Ownable, 10000, 10000, WorkshopTerrain, ClaimedPath),
+            T(GuardRoomTerrain, "Guard Room",
+              TerrainFlags.Ownable, 10000, 10000, GuardRoomTerrain, ClaimedPath),
             T(ClaimedPath, "Claimed Path",
               TerrainFlags.Ownable | TerrainFlags.Attackable | TerrainFlags.FillInable,
               660, 660, Rock, DirtPath, manaGain: 1),
@@ -216,6 +219,8 @@ internal static class Dk2TerrainFixture
             // The shipped cost, flags and furniture list (ADR-0203, ADR-0205).
             R(RoomTypeId.Workshop, "Work Shop", 600, WorkshopTerrain, 0x13ACu, 3, 3,
               objectIds: [16, 15, 46, 15, 16]),
+            // The shipped cost and flags (ADR-0212); its furniture (71, 112) is not in the fixture.
+            R(RoomTypeId.GuardRoom, "Guard Room", 600, GuardRoomTerrain, 0x10A4u),
         ],
         creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), Warlock(), Priest(), Thief(), Mistress(), .. extraCreatures],
         variables: Variables(),
@@ -1251,6 +1256,9 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.BackOffMinimumDurationSeconds, 0);
         Set(vars, VariableTypeId.BackOffMaximumDurationSeconds, 30);
         Set(vars, VariableTypeId.GuardRoomReportingDistanceTiles, 7);
+        // Guard duty's two deadlines (guard-room.md), shipped values.
+        Set(vars, VariableTypeId.MaxTimeInGuardRoomBeforeWanderingToGuardPostSeconds, 60);
+        Set(vars, VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds, 5);
         // The chase limit on a retreating target (combat-approach-and-victory.md §2): 3 s Good, 7 s Evil.
         Set(vars, VariableTypeId.GoodCreaturesChaseEnemyDurationSeconds, 3);
         Set(vars, VariableTypeId.EvilCreaturesChaseEnemyDurationSeconds, 7);

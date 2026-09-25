@@ -350,7 +350,8 @@ public sealed class CreatureJobSystem : ISimulationSystem
         JobType job = creature.CurrentJob;
         RoomTypeId? wants = JobRules.RoomFor(job);
 
-        if (second && (wants is null
+        // A guard's states test the room themselves, and its patrol may end on a post outside it.
+        if (second && job != JobType.Guard && (wants is null
                        || !StandingInOneOfIts(world, database, creature, wants.Value)))
         {
             context.Emit(SystemName, "job_lost",
@@ -366,6 +367,13 @@ public sealed class CreatureJobSystem : ISimulationSystem
         if (job == JobType.Torture)
         {
             if (originalTick && !TorturerStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            return;
+        }
+
+        // Guard's category has no update hook either: 97, 98 and 99 are the whole of it (ADR-0212).
+        if (job == JobType.Guard)
+        {
+            if (originalTick && !GuardStep.Turn(context, SystemName, creature)) Stop(context, creature);
             return;
         }
 

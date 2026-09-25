@@ -695,6 +695,17 @@ public sealed class CreatureState
     /// <c>state+0x7E</c> in state 254; over thirty and it stands down.</summary>
     public int ReportTicks;
 
+    /// <summary>A guard's facing, 0–7 — DK2's <c>state+0xAB</c> in states 97 and 98: the post
+    /// slot's facing, then each leg's (<c>guard-room.md</c>).</summary>
+    public int GuardFacing;
+
+    /// <summary>The turn after which a patrolling guard looks for a Guard Post — DK2's
+    /// <c>state+0xB1</c>.</summary>
+    public long GuardDeadlineTick;
+
+    /// <summary>The turn state 99 was entered, for its <c>Age</c> test.</summary>
+    public long GuardLostTick;
+
     /// <summary>The turn each of the three spell slots was last cast at — DK2's <c>+0x41B + 4i</c>;
     /// zero means never, and a cast stamps it when the action starts, not when the shot leaves
     /// (combat-spells.md §4, §6).</summary>
@@ -906,6 +917,9 @@ public sealed class CreatureState
         hash.Add(AlarmDeficit);
         hash.Add(AlarmRoomTile);
         hash.Add(ReportTicks);
+        hash.Add(GuardFacing);
+        hash.Add(GuardDeadlineTick);
+        hash.Add(GuardLostTick);
         for (int i = 0; i < SpellStamps.Length; i++) hash.Add(SpellStamps[i]);
         hash.Add(AttackSpellSlot);
         hash.Add(SwingKind);

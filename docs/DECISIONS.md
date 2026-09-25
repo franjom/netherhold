@@ -4618,3 +4618,21 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - `StateInvariantTests` now checks that every creature's state names an activity every tick, and that only a worker rests in 10.
 - Every test passed after the assignments were removed, which is what ADR-0210's per-tick check predicted. Negative controls on the table: sleeping read as idle and a walk not named by its resume fail behaviour tests across the suite (the first also hung one, so the control harness now kills a test after 90 s). 81 ignoring the job, the hand drop always idle and an unmapped state read as idle fail only the table's own tests: 77 lasts within a tick and no system enters an unmapped state, but no simulation test covers a Sleep-job creature standing in 81, which is a gap.
 
+## ADR-0212 — Guard duty is states 97, 98 and 99
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/guard-room.md`
+
+**Context.** The Guard job walked to a Guard Room and stood in state 97 doing nothing. Its category, 11, has no update hook: the enter hook only claims the room position (`state-category-hooks.md`). What guard duty is lives in the three handlers, now read.
+
+**Decision.**
+1. `GuardRules` holds the geometry. `Slot` is the post finder `0x00462BB0`: a neighbour mask over the keeper's Guard Room looked up in the nine pairs at `0x00698540`. `NearestPost` is state 97's square spiral. `PostPoint` and `LegPoint` read the offsets at `0x00698588` exactly as each state does. `Leg` is state 98's left-hand wall follow, one straight run to the next turn.
+2. `GuardStep` runs 97, 98 and 99 once a turn for the Guard job, as `TorturerStep` does for Torture. The job's per-second room test is skipped for Guard, whose states test the room themselves.
+3. `CreatureState` gains `GuardFacing` (`state+0xAB`), `GuardDeadlineTick` (`+0xB1`) and `GuardLostTick` (99's `Age`). `HashVersion` and `FormatVersion` 108, pin `0xEE02B16BC2932E35`.
+4. States 98, 99 and 100, and walks resuming 98 or 100, name `AtWork`.
+
+**Consequences.**
+- **Two of a rectangular room's four corners are posts in DK2.** The north-west corner's mask is the ninth pair, found at index 8, which is also the miss value, so no caller can tell it from a tile that is no post. The south-west corner's offset is read four bytes into the direction table, and its y lands in the source-path string after the table, so the route fails and the guard goes idle. Both are built as read, and the test names say they are unconfirmed in play.
+- Variables 152 and 30 are stored raw by the loader, so both deadlines are in turns: 75 + random(60) after reaching a post, 75 + random(5) on each reset.
+- Not built: the Guard Post visit at the deadline (`0x00463190`, state 100), because traps are not built. The `+0x3E6` bits 22–25 and the failed leg's sound are not modelled either.
+- The fixture carries the shipped Guard Room (terrain 18, cost 600, flags `0x10A4`) and variables 152 and 30.
+- Nine tests. Negative controls: the mask bits swapped, the spiral's sign, slot 7 given a y inside the table, the wall's opening facing, one step per leg, no room gate and the leg point read like the post's each fail a named test. Three first survived and exposed thin tests (a spiral that found its post before turning, no inner corner, no leg point checked), since fixed.
+

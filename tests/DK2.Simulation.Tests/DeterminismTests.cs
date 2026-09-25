@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 107: the activity is derived from the state and left the hash
-        // (ADR-0211). Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x01B0EBC839B5A5B4UL, sim.StateHash());
+        // HashVersion 108: a guard's facing, deadline and lost turn (ADR-0212).
+        // Earlier pins and their reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0xEE02B16BC2932E35UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

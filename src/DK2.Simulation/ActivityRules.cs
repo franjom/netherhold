@@ -33,6 +33,7 @@ public static class ActivityRules
     {
         LairRules.GoingToBedState => creature.CurrentJob == JobType.Sleep ? CreatureActivity.GoingToJob : CreatureActivity.GoingToSleep,
         TortureRules.TorturerFacingState or TortureRules.StrappingState => CreatureActivity.AtWork,
+        GuardRules.PatrolState or 100 => CreatureActivity.AtWork,
         _ when JobStates.Contains(resume) => CreatureActivity.GoingToJob,
         _ => Standing(creature, resume),
     };
@@ -57,6 +58,7 @@ public static class ActivityRules
         EatingRules.EatState => CreatureActivity.FetchingChicken,
         >= PrisonRules.AdmittedState and <= 121 => CreatureActivity.Imprisoned,
         TortureRules.TorturerFacingState or TortureRules.TorturerWhippingState => CreatureActivity.AtWork,
+        GuardRules.PatrolState or GuardRules.LostState or 100 => CreatureActivity.AtWork,
         TortureRules.StrappingState or TortureRules.TorturedState or 132 or RescueRules.FreedState
             or TortureRules.ReleasedState => CreatureActivity.BeingTortured,
         RescueRules.RescuingState => CreatureActivity.Rescuing,

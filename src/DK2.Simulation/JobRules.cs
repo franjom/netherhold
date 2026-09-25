@@ -72,7 +72,8 @@ public static class JobRules
     /// and say so in the log.</summary>
     public static bool EffectIsBuilt(JobType job) =>
         job is JobType.Praying or JobType.Train or JobType.Research
-            or JobType.CombatPitSpectate or JobType.Drink or JobType.Torture or JobType.Manufacture;
+            or JobType.CombatPitSpectate or JobType.Drink or JobType.Torture or JobType.Manufacture
+            or JobType.Guard;
 
     /// <summary>The keeper-or-creature test each handler makes before it looks for a
     /// room. Null means it passes; a non-null string is the reason and goes into the
