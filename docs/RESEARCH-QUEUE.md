@@ -94,23 +94,33 @@ Jython script:
   PyGhidra. A Python `bytearray` passed to `Memory.getBytes` silently stayed
   zeroed, so a byte scan reported 0 hits. Any non-ASCII character in a
   script, even in a comment, was a `SyntaxError`.
-- **Never index a Java array element by element.** Each access costs about
-  17 µs from CPython. Call `bytes(buf)` right after `getBytes`: it copies 2.4 MB
-  of `.text` in about 1 ms.
-- **Per-byte Python loops are slow in CPython.** Jython's JIT made them
-  cheap; CPython interprets them. Use `bytes.find`, `re.finditer` over the
-  buffer, or slice assignment instead. Rewritten this way, `CallScanAll`,
-  `Gaps` and `ForceGaps` went from 158 s, 41 s and 29 s under CPython to
-  1–2 s each, faster than the Jython originals (3–4 s).
-- **Instruction walks are 4–12× slower** (`SlotCallCtx` 6 s → 49 s,
-  `ScalarHits` 4 s → 46 s). Every Java call from CPython pays a crossing cost,
-  and a walk over every instruction makes several calls per instruction.
-  They still work. Batch queries into one run rather than paying the walk
-  per question.
+- **Put every loop inside a function (`main()`).** PyGhidra runs a script
+  with a `PyGhidraScript` mapping as its globals, so every module-level name
+  lookup is slow. The same 300k-iteration loop takes 5.3 s at module level and
+  0.46 s inside a function. `InsGrep` took 51 s at module level and 2 s inside
+  `main()`. This, not CPython versus Jython, was most of the first-port
+  slowdown.
+- **Never index a Java array element by element.** Every access crosses into
+  Java. Call `bytes(buf)` right after `getBytes`: it copies 2.4 MB of `.text`
+  in about 1 ms. Then use `bytes.find`, `re.finditer` or slice assignment
+  rather than a per-byte loop.
+- **Walk the listing through `insdb`, not through Java.** Even inside a
+  function, a walk calling `toString()` on all ~743k instructions takes
+  7–20 s. `ListingDump.java` writes the whole listing (address, containing
+  function, mnemonic, text, operand 0, scalar values) to
+  `reverse-engineering/.cache/` in about 5 s, natively. `insdb.load(currentProgram,
+  runScript)` rebuilds it when the program changes and streams it back in
+  about 1 s. The key is the project, program, save time, modification number
+  and instruction and function counts.
 
-All 39 local helper scripts were ported on 2026-09-25. Each was run under
-both versions with the same arguments, and every output matched except those
-that print decompiler output or string labels. Those differ only in the
+All 39 local helper scripts were ported on 2026-09-25, and Codex's four of its
+own the same day. Each was run under both versions with the same arguments,
+and every output matched except those that print decompiler output or string
+labels. Timings from a warm cache: the 15 listing walks take 1–3 s each
+(Jython under 11.0.1: 1–8 s; first 12.1.4 port: 10–50 s). The byte scans take
+1–2 s (first port: up to 158 s). All 38 run in one headless call in about
+75 s, including the cache build and Ghidra's start-up. Those that differ show
+only the decompiler's presentation. Those differ only in the
 decompiler's presentation, listed below. 12.1.4 also sometimes merges
 adjacent stack locals into one array (`auStack_58[3]`) and adds a "type
 propagation not settling" warning on `FUN_005099a0`.
