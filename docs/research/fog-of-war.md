@@ -7,6 +7,7 @@
 | Implementation | `Systems/FogOfWarSystem`, `TileState.DiscoveredBy` / `IsDiscoveredBy` / `SetDiscoveredBy`, `WorldState.FogOfWarEnabled`, `TerrainDef.IsRevealedThroughFog`, `WorldView` (constructed with a viewing player). ADR-0076 |
 | Tests | `FogOfWarTests`, `FogOfWarOnRealDataTests`, `FogOfWarViewTests`; `Dk2SaveReader` for the save-side evidence |
 | Open questions | Q190's AI half, Q192 (the setup labels), Q193's mechanism, Q194 (Sight of Evil, Reveal Map), Q197 (portals on the minimap) |
+| Reveal sources | Every writer of both discovery bits, and the second, *explored* bit this file's §11 missed: `fog-reveal-sources.md` (Q429, Q430) |
 
 ## 1. The substitution — CONFIRMED
 
