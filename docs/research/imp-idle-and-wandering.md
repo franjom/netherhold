@@ -150,6 +150,19 @@ orthogonal neighbours (table `0x006BC350`) that is within a Chebyshev radius
 resuming in 86 until the deadline `+0xB3`. It is a local mill-about round an
 anchor, not the idle imp's walk. Its callers are not traced here.
 
+## Built (2026-09-25, ADR-0224)
+
+States 10 → 12 → 87 → 1 with the deadline, the roll, the picker's ring and room branches and the
+own-spot fallback. Read while building:
+- **The ring scan** starts at rand(8r) and runs to the end, not wrapping.
+- **The fallback** runs only when the last tile tried was (0, 0).
+- **Room branch order:** after the last eligible room, every later room of any type is tried.
+- **The picker's rolls** come from a second random stream (`+0x568`).
+- **The room point** is `0x004E8430`: a random one of the room's tiles passing `0x00454110` and `0x00454230`.
+- **`0x00453600`** rejects a tile holding an object flagged Obstacle (bit 14).
+
+Guessed: the idle actions' length. Not built: the throttle.
+
 ## What building it needs
 
 - State 12's roll and deadline, state 87's picker, and the resume through 1 → 10.

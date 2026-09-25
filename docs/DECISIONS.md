@@ -4866,3 +4866,30 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Two tests. Two negative controls each fail a named test: the job system not running the states, and 164 testing player 3.
 - The handler's StealGold branch has no test of its own: the chooser's roll is not driven here.
 - No new state; `HashVersion` stays **115**.
+
+## ADR-0224 — An idle worker rests in 12 and wanders in 87
+**Date:** 2026-09-25 · **Status:** accepted · answers Q41's build · Research: `docs/research/imp-idle-and-wandering.md`
+
+**Context.** An imp with nothing to do stood still and looked again every `ImpIdleDelayBeforeReevaluationSeconds` (5 s). DK2's states 10 and 12 never read that variable. The owner saw idle imps run, stop, seem to wait and run again (Q41).
+
+**Decision.** `ImpTaskSystem.Wander.cs`:
+1. **State 10 finding nothing goes to 12** with its deadline `+0x7E` = now + 240 + rand(240), except for the neutral player's workers (the special-owner arm).
+2. **State 12** (`0x00464240`).
+   - At the deadline, back to 10.
+   - After a trip (the stamp `+0xA7` is set) it rolls: under 25 wander, 25–74 action 43, 75–99 action 44.
+   - Otherwise it goes to 87 and stamps.
+3. **State 87** (`0x004808E0`).
+   - **The destination** (`0x00480A00`) is tried at radius 4 + rand(4), then each smaller radius, else the imp's own position. One time in eight it is a room point: the last eligible room, then any room after it. Otherwise it is the ring at that radius, from a random start to its end: in bounds, not solid, not a heart, the keeper's own, with no obstacle object.
+   - **The walk** goes to a random sub-tile point of that tile, options `0x80`, resuming 1 (238 for a Horny creature). 1 goes back to 10.
+4. **New hashed and saved fields:** `CreatureState.WanderStamp` and `ActionUntilTick`.
+
+**Consequences.**
+- **Guessed and marked:** actions 43 and 44 play for `IdleActionGuessTicks` (8), and both are assumed available to an imp. Their length is the animation's, which is UNKNOWN.
+- **Ours:**
+  - Selection runs from state 1 in the same turn, as the imp's other states always have.
+  - The room point is a random walkable tile, where DK2's cell tests turn on an unread cell byte.
+  - One random stream, where DK2 draws the picker's rolls from a second one (`+0x568`).
+  - The throttle arm (player `+0x7A`) is not built.
+- `AnIdleImp_LooksForWorkOnTheIntervalTheDataNames` pinned the five-second guess and becomes `AnIdleImp_RestsInTwelve_AndLooksAgainOnlyAfterAWanderTrip`.
+- **Tests and controls.** Four tests. Six negative controls each fail a named test: no rest, the heart allowed, radius 1–3, any owner, no idle action, and no fallback to the imp's own spot.
+- `HashVersion` and `FormatVersion` **116**, pin `0xAACD3B15D9CFDCFF`.

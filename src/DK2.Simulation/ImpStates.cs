@@ -18,6 +18,13 @@ public static class ImpStates
     /// start every walk to work, and every even work state returns here.</summary>
     public const int TaskSelection = 10;
 
+    /// <summary>State 12 (<c>0x00464240</c>), idle with no task: a deadline back to 10, idle actions
+    /// and wander trips (imp-idle-and-wandering.md §3).</summary>
+    public const int Resting = 12;
+
+    /// <summary>State 87 (<c>0x004808E0</c>), a wander walk resuming 1.</summary>
+    public const int Wandering = 87;
+
     /// <summary>State 27: takes the floor gold on its tile, then walks to a store in 6 resuming
     /// in <see cref="AtTheStore"/>, or sets 10 with nothing to carry or nowhere to take it.</summary>
     public const int PickingUpGold = 27;

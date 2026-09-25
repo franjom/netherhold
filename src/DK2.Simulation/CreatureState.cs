@@ -740,6 +740,15 @@ public sealed class CreatureState
     /// <summary>A tunnelling worker's plan, state 186's controller fields (tunnelling.md §2–§5).</summary>
     public TunnelRecord Tunnel;
 
+    /// <summary>State 12's wander stamp (state <c>+0xA7</c>): set to now + 32 when 87 is entered and
+    /// tested only for non-zero, so after a trip the next rest rolls for an idle action; cleared when
+    /// one plays (imp-idle-and-wandering.md §3).</summary>
+    public long WanderStamp;
+
+    /// <summary>When the creature action playing now ends (DK2's running action, <c>0x00496D00</c>);
+    /// ours for the idle actions 43 and 44, whose length is UNKNOWN.</summary>
+    public long ActionUntilTick;
+
     /// <summary>The turn state 99 was entered, for its <c>Age</c> test.</summary>
     public long GuardLostTick;
 
@@ -994,6 +1003,8 @@ public sealed class CreatureState
         hash.Add(Tunnel.Reach);
         hash.Add(Tunnel.Hand);
         hash.Add(Tunnel.ActionUntilTick);
+        hash.Add(WanderStamp);
+        hash.Add(ActionUntilTick);
         hash.Add(GuardLostTick);
         hash.Add(CombatPitFighter);
         hash.Add(AttackAbnormalTargets);

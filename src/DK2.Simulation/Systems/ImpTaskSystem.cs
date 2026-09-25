@@ -17,7 +17,7 @@ namespace DK2.Simulation.Systems;
 /// only once every Tier A kind is empty: one nearest-first sweep asking several
 /// kinds at each tile — <see cref="TrySweep"/>. Carrying mined gold is in
 /// neither; it is the tail of a mining job, not a job an imp chooses (Q31,
-/// ADR-0018). Not implemented: idle wandering (Q41), dragging the unconscious
+/// ADR-0018). Idle wandering is ImpTaskSystem.Wander.cs (ADR-0224). Not implemented: dragging the unconscious
 /// to a prison, fleeing a fight, gold somebody else dropped (imp-tasks.md).</para>
 /// </summary>
 [Dk2Behavior(Confidence.Hypothesis, "docs/research/imp-tasks.md")]
@@ -147,6 +147,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         // answer and judged by another.
         var grid = new WorldPathGrid(context.Database, context.World, definition);
 
+        if (UpdateWander(context, creature, definition)) return;
+
         if (creature.Activity == CreatureActivity.DeliveringGold)
         {
             UpdateDelivering(context, creature, grid);
@@ -236,8 +238,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         creature.TimerTicks--;
         if (creature.TimerTicks > 0) return;
 
-        if (!TryTakeJob(context, creature, definition, grid))
-            creature.TimerTicks = IdleDelayTicks(context.Database);
+        // DK2's state 10 hands a worker that found nothing to 12 at once (ADR-0224).
+        if (!TryTakeJob(context, creature, definition, grid)) ToRest(context, creature);
     }
 
     private void UpdateMoving(SimulationContext context, CreatureState creature, WorldPathGrid grid)

@@ -165,24 +165,30 @@ public class ImpTests
         return new Run(sim, sink);
     }
 
+    /// <summary>DK2's state 10 hands a worker that found nothing to 12 with a 240–479 tick deadline
+    /// (imp-idle-and-wandering.md §2); 12 sets out on a trip in 87 that resumes 1, and 1 sends it
+    /// back to 10. So a new mark is noticed after the trip, not on a timer: 10 and 12 never read
+    /// <c>ImpIdleDelayBeforeReevaluationSeconds</c> (ADR-0224). The pocket reaches (5,4), whose
+    /// neighbour (6,4) is markable rock.</summary>
     [Fact]
-    public void AnIdleImp_LooksForWorkOnTheIntervalTheDataNames()
+    public void AnIdleImp_RestsInTwelve_AndLooksAgainOnlyAfterAWanderTrip()
     {
-        // ImpIdleDelayBeforeReevaluationSeconds is 5. An imp that found nothing
-        // on its first look must not notice a new mark before that delay is up,
-        // and must notice it once the delay has passed. The pocket reaches (5,4),
-        // whose neighbour (6,4) is markable rock.
         Run run = StartWithNothingToDo(extraTiles: 2);
-        int delay = SimulationTiming.TicksFromSeconds(5);
 
         run.Tick();                                       // first look: nothing to do at all
+        Assert.Equal(ImpStates.Resting, run.Imp.Dk2StateId);
+        Assert.InRange(run.Imp.StateDeadlineTick - run.World.CurrentTick.Value, 239, 479);
+
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(6, 4)));
+        var seen = new List<int>();
+        for (int t = 0; t < 40 && !run.Of("job_taken").Any(); t++)
+        {
+            seen.Add(run.Imp.Dk2StateId);
+            run.Tick();
+        }
 
-        run.Ticks(delay - 2);
-        Assert.Empty(run.Of("job_taken"));
-
-        run.Ticks(2);
         Assert.Single(run.Of("job_taken"));
+        Assert.Contains(ImpStates.Wandering, seen);
     }
 
     // ---- the priority order (CONFIRMED, owner observation) ----------------
