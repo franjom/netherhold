@@ -80,9 +80,14 @@ plausible one. Copying it would import that ambiguity.
 **Re-checked 2026-09-25 at `fb70fbc4`.** A few tests now exist (fog, rooms, lairs,
 torches). Three leads, none with an address: fog reveal sources other than sight
 (Q429), a Dungeon Heart reveal that unfolds at level start (Q430), and gold that
-lifts only from your own land, which the owner then confirmed (Q196). Their fog
-reveal uses line of sight over `DistanceCanSee`; §11 of `fog-of-war.md` refutes
-that for the discovery bit. Their no-lair anger adds nothing to `creature-anger.md`.
+lifts only from your own land, which the owner then confirmed (Q196). Their no-lair
+anger adds nothing to `creature-anger.md`. **Their fog code, re-read the same day
+against the binary (`fog-reveal-sources.md`), is close to DK2.** It keeps two layers,
+explored and perceived, as DK2 does. Explored comes from line of sight over
+`DistanceCanSee` clamped 2..7, which §11 of `fog-of-war.md` had wrongly called
+refuted, because §11 only knew the perceived bit. Where they differ from the binary:
+they seed in the campaign too; their heart disc runs; possession bypasses fog; and
+there is no `UnexploreIfDug…` re-shroud and no torture reveal.
 
 ### The order of preference, unchanged
 

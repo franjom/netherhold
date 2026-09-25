@@ -99,7 +99,7 @@ tile's minimap cell (`0x00451C60`) and posts a tile notification (`0x00517480`).
 
 | Routine | Does |
 |---|---|
-| `0x00454B80` | set, **unless the tile belongs to a room whose kind byte (`room def+0x452`) is 3, 4 or 8**. For those it hands over to `0x004E8B80`, which sets the bit along the room's tile chain through `0x00454D40`, so such a room is explored as a whole |
+| `0x00454B80` | set, **unless the tile belongs to a room whose `TileConstruction` (`room def+0x452`) is 3, 4 or 8** (3×3, 3×3 rotated, 5×5 rotated; values from the KWD format enum). This applies to any room, the viewer's or not. For those it hands over to `0x004E8B80`, which sets the bit along the room's tile chain through `0x00454D40`, so such a room is explored as a whole |
 | `0x00454E00` | clear. Its room-chain twin is `0x004E8BF0` → `0x00454F10` |
 
 ### 3.1 Creature sight — `0x0048CC90`
@@ -170,8 +170,9 @@ Skipped when the level comes from a save (world `+0x7239` bit `0x40`).
     when that tile's terrain is not `Solid`, its four orthogonal neighbours.
     Diagonals are not included. It also explores **every tile whose terrain is
     `AlwaysExplored` (`0x200`)**, a flag no shipped terrain carries. Last, it
-    **clears the explored bit along all four map edges**. So the border starts
-    hidden, the opposite of OpenKeeper's lead.
+    **clears the explored bit along all four map edges**, so the border starts
+    hidden. OpenKeeper's code does the same; Q429's old summary of it said
+    "revealed", and that was wrong.
 - **Flagged action points, every mode.** For each action point whose runtime
   flag byte `+0x32` has bit `0x10`, the level start explores the point's
   inclusive rectangle through `0x00454B80` (`action-points.md`'s bit-4 reader
