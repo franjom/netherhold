@@ -65,6 +65,7 @@ public sealed class StateInvariantTests
                 else Assert.True(CreatureStateMachine.HasState(c), at);
                 if (c.Activity == CreatureActivity.Idle)
                     Assert.True(c.Dk2StateId == CreatureStateMachine.Idle || (worker && c.Dk2StateId == ImpStates.TaskSelection), at);
+                Assert.True(ActivityRules.Of(c) == c.Activity, $"{at} names {ActivityRules.Of(c)}");
             }
         }
 

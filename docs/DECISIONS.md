@@ -4587,3 +4587,18 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - The activities remain, and the systems still dispatch on them. Moving the dispatch onto the state ids and the category hooks is the next step.
 - Two tests that tested only the workaround are deleted and a third now picks the creature up through the hand. Negative controls: each of the ten moves to idle left out and a creature born without a state each fail a named test.
 
+## ADR-0210 — The state names the activity
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/creature-state-table.md`
+
+**Context.** With every creature holding a state (ADR-0209), the activity should be redundant. A probe over the whole test suite recorded every (activity, state, resume) combination held at the end of a tick: 196 of them over 71 state keys. Only three keys named more than one activity, and every such case came from a test that set the activity by hand without a state.
+
+**Decision.**
+1. `ActivityRules.Of` derives the activity from the state id. A walk in state 6 or 7 is named by the state it resumes. 81 is the Sleep job's work when the job is Sleep and a tired creature's walk to bed otherwise. 77, the hand drop, is a captive's only for a prisoner. A corpse is Dead, and a state no system enters names nothing.
+2. `StateInvariantTests` checks, every tick of its busy dungeon, that the stored activity is the derived one.
+3. Tests that set an activity by hand now place a state that names it (`StatePlacement.As`). The alarm test's workers take the Sulk job, so their walk saves 85 as its caller, as a job's does.
+
+**Consequences.**
+- The stored activity can now be replaced by the derived one. That is the next step, and it moves the systems' dispatch onto the state.
+- The anger test that cooled "whatever the activity says" now asks the one thing still expressible: an idle creature does not cool.
+- No hashed state changed. 33 table rows and three special cases are pinned.
+

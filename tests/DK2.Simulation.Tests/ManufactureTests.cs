@@ -34,7 +34,7 @@ public class ManufactureTests
     {
         CreatureState it = world.SpawnCreature(db, MakerId, Keeper, Bench);
         it.CurrentJob = JobType.Manufacture;
-        it.Activity = CreatureActivity.AtWork;
+        StatePlacement.As(it, CreatureActivity.AtWork);
         StatePlacement.Place(it, JobRules.StateFor(JobType.Manufacture)!.Value);
         it.JobTileIndex = (Bench.Y * world.Width) + Bench.X;
         return it;

@@ -529,7 +529,7 @@ public class EatingTests
         Chicken(db, world, 7, 7);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
-        goblin.Activity = CreatureActivity.Sleeping;
+        StatePlacement.As(goblin, CreatureActivity.Sleeping);
         MakeHungry(goblin);
 
         Simulation(db, world).Run(Second * 20);
@@ -550,7 +550,7 @@ public class EatingTests
         Chicken(db, world, 7, 7);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Rival, new TilePos(7, 7));
-        goblin.Activity = CreatureActivity.Imprisoned;
+        StatePlacement.As(goblin, CreatureActivity.Imprisoned);
         goblin.PrisonOwnerPlayerId = Keeper;
         MakeHungry(goblin);
 
@@ -571,7 +571,7 @@ public class EatingTests
         Chicken(db, world, 7, 7);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
-        goblin.Activity = CreatureActivity.Leaving;
+        StatePlacement.As(goblin, CreatureActivity.Leaving);
         MakeHungry(goblin);
 
         Simulation(db, world).Run(Second * 20);

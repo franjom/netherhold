@@ -207,7 +207,7 @@ public class NeedInterruptTests
     public void AMistressOnADeviceIsNotAskedWhateverSheNeeds()
     {
         CreatureState mistress = Fresh(TortureRules.TorturedState);
-        mistress.Activity = CreatureActivity.BeingTortured;
+        StatePlacement.As(mistress, CreatureActivity.BeingTortured);
         Assert.False(NeedRules.MayAsk(mistress, CreatureStateCategory.Eating));
         Assert.False(NeedRules.MayAsk(mistress, CreatureStateCategory.Sleeping));
         Assert.False(NeedRules.MayAsk(mistress, CreatureStateCategory.Payday));

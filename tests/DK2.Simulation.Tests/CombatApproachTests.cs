@@ -66,7 +66,7 @@ public class CombatApproachTests
         {
             foreach (CreatureState r in new[] { runner, runner2 })
             {
-                r.Activity = CreatureActivity.Withdrawing;
+                StatePlacement.As(r, CreatureActivity.Withdrawing);
                 r.StopMoving();
             }
             sim.Run(1);
@@ -134,7 +134,7 @@ public class CombatApproachTests
         CreatureState victim = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, killer);
         victim.Health = 100;
         CreatureState corpse = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 5);
-        corpse.Activity = CreatureActivity.Dead;
+        StatePlacement.As(corpse, CreatureActivity.Dead);
         corpse.Health = 0;
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem(), new CreatureHealthSystem()]);
         var sink = new ListEventSink();
@@ -170,7 +170,7 @@ public class CombatApproachTests
         CreatureState victim = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, killer);
         victim.Health = 100;
         CreatureState corpse = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 5);
-        corpse.Activity = CreatureActivity.Dead;
+        StatePlacement.As(corpse, CreatureActivity.Dead);
         corpse.Health = 0;
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem(), new CreatureHealthSystem()]);
         var sink = new ListEventSink();
@@ -199,7 +199,7 @@ public class CombatApproachTests
         victim.Health = 100;
         // A corpse two tiles off: beyond 0x2000 squared.
         CreatureState far = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 7, 5);
-        far.Activity = CreatureActivity.Dead;
+        StatePlacement.As(far, CreatureActivity.Dead);
         far.Health = 0;
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
 
@@ -270,7 +270,7 @@ public class CombatApproachTests
     private static CreatureState Frozen(CreatureState c)
     {
         c.FrozenTicks = 10000;
-        c.Activity = CreatureActivity.Frozen;
+        StatePlacement.As(c, CreatureActivity.Frozen);
         return c;
     }
 

@@ -184,8 +184,8 @@ public class CreatureLevelTests
         CreatureState idler = world.SpawnCreature(
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 3));
 
-        worker.Activity = CreatureActivity.Working;
-        idler.Activity = CreatureActivity.Idle;
+        StatePlacement.As(worker, CreatureActivity.Working);
+        StatePlacement.As(idler, CreatureActivity.Idle);
 
         new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]).Run(Second * 10);
 
@@ -214,7 +214,7 @@ public class CreatureLevelTests
 
         CreatureState state = world.SpawnCreature(
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
-        state.Activity = CreatureActivity.Working;
+        StatePlacement.As(state, CreatureActivity.Working);
         var events = new ListEventSink();
 
         var sim = new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]);
@@ -256,7 +256,7 @@ public class CreatureLevelTests
         WorldState world = World(db);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
-        goblin.Activity = CreatureActivity.Working;   // even so
+        StatePlacement.As(goblin, CreatureActivity.Working);   // even so
 
         new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]).Run(Second * 600);
 
@@ -277,7 +277,7 @@ public class CreatureLevelTests
 
         CreatureState state = world.SpawnCreature(
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
-        state.Activity = CreatureActivity.Working;
+        StatePlacement.As(state, CreatureActivity.Working);
         state.Level = CreatureLevelRules.MaxLevel;
 
         new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]).Run(Second * 300);

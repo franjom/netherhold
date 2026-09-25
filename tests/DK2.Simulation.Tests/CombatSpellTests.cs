@@ -73,7 +73,7 @@ public class CombatSpellTests
         // A frozen target stands and cannot close to melee, which would turn the struck Warlock to its fists.
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
         goblin.FrozenTicks = 1000;
-        goblin.Activity = CreatureActivity.Frozen;
+        StatePlacement.As(goblin, CreatureActivity.Frozen);
         GameSimulation sim = Combat(db, world);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);

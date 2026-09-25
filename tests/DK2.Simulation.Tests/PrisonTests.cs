@@ -1144,7 +1144,7 @@ public class PrisonTests
 
         CreatureState captive = world.SpawnCreature(db, GoblinId, Rival, only);
         captive.PrisonOwnerPlayerId = Keeper;
-        captive.Activity = CreatureActivity.Imprisoned;
+        StatePlacement.As(captive, CreatureActivity.Imprisoned);
 
         for (int start = 0; start < PrisonRules.WanderDirections; start++)
             Assert.False(PrisonRules.TryWanderStep(world, db, captive, start, out _));

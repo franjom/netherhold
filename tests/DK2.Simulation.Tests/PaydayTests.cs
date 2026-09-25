@@ -681,7 +681,7 @@ public class PaydayTests
         LairRules.PlaceBed(world, db, goblin, (Floor.Y * world.Width) + Floor.X);
         goblin.Anger.Treatment = 30_000;
         goblin.Anger.Pay = 30_000;
-        goblin.Activity = CreatureActivity.Sleeping;
+        StatePlacement.As(goblin, CreatureActivity.Sleeping);
         StatePlacement.Place(goblin, LairRules.SleepingState);
         goblin.WageOwed = 500;
 

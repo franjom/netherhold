@@ -261,7 +261,7 @@ public sealed class CreatureJobTests
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         goblin.CurrentJob = JobType.Drink;
-        goblin.Activity = CreatureActivity.AtWork;
+        StatePlacement.As(goblin, CreatureActivity.AtWork);
         StatePlacement.Place(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
         goblin.GoldHeld = 100;
         goblin.Anger.Treatment = 10_000;
@@ -293,7 +293,7 @@ public sealed class CreatureJobTests
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         goblin.CurrentJob = JobType.Drink;
-        goblin.Activity = CreatureActivity.AtWork;
+        StatePlacement.As(goblin, CreatureActivity.AtWork);
         StatePlacement.Place(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
         goblin.GoldHeld = 8;
         goblin.Anger.Work = 10_000;
@@ -325,7 +325,7 @@ public sealed class CreatureJobTests
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         goblin.CurrentJob = JobType.CombatPitSpectate;
-        goblin.Activity = CreatureActivity.AtWork;
+        StatePlacement.As(goblin, CreatureActivity.AtWork);
         StatePlacement.Place(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
         goblin.Anger.Treatment = 5_000;
         goblin.Anger.Company = 5_000;
@@ -356,7 +356,7 @@ public sealed class CreatureJobTests
 
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, Floor);
         vampire.CurrentJob = JobType.Praying;
-        vampire.Activity = CreatureActivity.AtWork;
+        StatePlacement.As(vampire, CreatureActivity.AtWork);
         StatePlacement.Place(vampire, JobRules.StateFor(vampire.CurrentJob)!.Value);
         vampire.Anger.Pay = 10_000;
         vampire.Anger.Lair = 8_000;
@@ -389,7 +389,7 @@ public sealed class CreatureJobTests
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, Floor);
         CreatureDef definition = db.CreatureById(VampireId);
         vampire.CurrentJob = JobType.Praying;
-        vampire.Activity = CreatureActivity.AtWork;
+        StatePlacement.As(vampire, CreatureActivity.AtWork);
         StatePlacement.Place(vampire, JobRules.StateFor(vampire.CurrentJob)!.Value);
         vampire.Health = 100;
 
@@ -584,7 +584,7 @@ public sealed class CreatureJobTests
         Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
-        goblin.Activity = CreatureActivity.Leaving;
+        StatePlacement.As(goblin, CreatureActivity.Leaving);
 
         Simulation(db, world).Run(Second * 30);
 

@@ -1,0 +1,82 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.Core;
+using DK2.Data.Model;
+using DK2.Simulation.Combat;
+
+namespace DK2.Simulation;
+
+/// <summary>The activity a creature's DK2 state names (ADR-0210): what
+/// <see cref="CreatureState.Activity"/> must agree with, read from the state id, the resume
+/// slot for a walk in state 6 or 7, the job for the Sleep job's 81, and the prison owner for
+/// a hand drop's 77. A corpse, holding no state, is <see cref="CreatureActivity.Dead"/>.</summary>
+/// <remarks>The activities are ours, so this table is too: it is the inverse of the moves each
+/// system makes beside them. Null for a state no system moves a creature into.</remarks>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-state-table.md")]
+public static class ActivityRules
+{
+    public static CreatureActivity? Of(CreatureState creature)
+    {
+        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        int state = creature.Dk2StateId;
+        if (state == CreatureStateMachine.NoState) return CreatureActivity.Dead;
+        if (state is Systems.StateShadow.TravelToPoint or Systems.StateShadow.TravelToRoom)
+            return Walking(creature, creature.UtilityNewState);
+        return Standing(creature, state);
+    }
+
+    /// <summary>A walk is named by the state it resumes; one to a job's state is the job's
+    /// walk, and a torturer's steps to face a victim or strap itself on are its job.</summary>
+    private static CreatureActivity? Walking(CreatureState creature, int resume) => resume switch
+    {
+        LairRules.GoingToBedState => creature.CurrentJob == JobType.Sleep ? CreatureActivity.GoingToJob : CreatureActivity.GoingToSleep,
+        TortureRules.TorturerFacingState or TortureRules.StrappingState => CreatureActivity.AtWork,
+        _ when JobStates.Contains(resume) => CreatureActivity.GoingToJob,
+        _ => Standing(creature, resume),
+    };
+
+    private static CreatureActivity? Standing(CreatureState creature, int state) => state switch
+    {
+        CreatureStateMachine.Idle or ImpStates.TaskSelection => CreatureActivity.Idle,
+        13 or 15 or 17 or 19 or 21 or 23 or 25 => CreatureActivity.MovingToJob,
+        14 or 16 or 18 or 20 or 22 or 24 or 26 => CreatureActivity.Working,
+        ImpStates.PickingUpGold => CreatureActivity.FetchingGold,
+        ImpStates.AtTheStore or ImpStates.PuttingDownGold => CreatureActivity.DeliveringGold,
+        ImpStates.PickingUpObject => CreatureActivity.FetchingObject,
+        31 or 32 or 33 => CreatureActivity.CarryingObject,
+        ImpStates.PickingUpCorpse or ImpStates.PickingUpCasualty => CreatureActivity.FetchingBody,
+        >= ImpStates.CarryingCorpse and <= ImpStates.PuttingDownTheRefusedBody => CreatureActivity.CarryingBody,
+        PrisonRules.HandDropState => PrisonRules.IsImprisoned(creature) ? CreatureActivity.Imprisoned : CreatureActivity.Idle,
+        LairRules.MakingAHomeState => CreatureActivity.SeekingLair,
+        LairRules.GoingToBedState => creature.CurrentJob == JobType.Sleep ? CreatureActivity.AtWork : CreatureActivity.GoingToSleep,
+        LairRules.LyingDownState => CreatureActivity.GoingToSleep,
+        LairRules.SleepingState => CreatureActivity.Sleeping,
+        EatingRules.FindHatcheryState or EatingRules.InHatcheryState or EatingRules.AfterMealState => CreatureActivity.SeekingFood,
+        EatingRules.EatState => CreatureActivity.FetchingChicken,
+        >= PrisonRules.AdmittedState and <= 121 => CreatureActivity.Imprisoned,
+        TortureRules.TorturerFacingState or TortureRules.TorturerWhippingState => CreatureActivity.AtWork,
+        TortureRules.StrappingState or TortureRules.TorturedState or 132 or RescueRules.FreedState
+            or TortureRules.ReleasedState => CreatureActivity.BeingTortured,
+        RescueRules.RescuingState => CreatureActivity.Rescuing,
+        >= PaydayRules.FindTheMoneyState and <= PaydayRules.TakeItState => CreatureActivity.SeekingWages,
+        >= LeavingRules.ChoosingState and <= LeavingRules.SackedState => CreatureActivity.Leaving,
+        CombatStates.Engaging or 200 => CreatureActivity.Fighting,
+        CombatStates.Withdrawn => CreatureActivity.Withdrawing,
+        CombatStates.Fleeing => CreatureActivity.Fleeing,
+        CreatureDeathRules.FallingState or CreatureDeathRules.DyingState => CreatureActivity.Dying,
+        CombatStates.Frozen => CreatureActivity.Frozen,
+        CombatStates.RespondingToThreat or CombatStates.StandingDown => CreatureActivity.RaisingAlarm,
+        CombatStates.ReportingDanger => CreatureActivity.Reporting,
+        >= CombatStates.Stunned and <= CombatStates.GettingUp => CreatureActivity.Stunned,
+        CombatStates.AtTheBody => CreatureActivity.GoingToBody,
+        CombatStates.Celebrating => CreatureActivity.Celebrating,
+        _ when JobStates.Contains(state) => CreatureActivity.AtWork,
+        _ => null,
+    };
+
+    /// <summary>The states the job handlers work in (<see cref="JobRules.StateFor"/>).</summary>
+    private static readonly HashSet<int> JobStates =
+        [.. ((JobType[])Enum.GetValues(typeof(JobType))).Select(JobRules.StateFor).OfType<int>()];
+}

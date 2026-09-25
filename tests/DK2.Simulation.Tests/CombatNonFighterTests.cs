@@ -116,7 +116,8 @@ public class CombatNonFighterTests
         CreatureState third = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 13, 4);
         foreach (CreatureState g in new[] { first, second, third })
         {
-            g.Activity = CreatureActivity.AtWork;
+            g.CurrentJob = JobType.Sulk;
+            StatePlacement.As(g, CreatureActivity.AtWork);
             g.JobTileIndex = roomTile;
         }
         CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
@@ -160,7 +161,8 @@ public class CombatNonFighterTests
         ];
         foreach (CreatureState g in goblins)
         {
-            g.Activity = CreatureActivity.AtWork;
+            g.CurrentJob = JobType.Sulk;
+            StatePlacement.As(g, CreatureActivity.AtWork);
             g.JobTileIndex = roomTile;
         }
         CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
@@ -174,7 +176,7 @@ public class CombatNonFighterTests
         var seen = StateTrace.Of(sim, imp, 45);
 
         Assert.Equal([(6, 199, 251), (CreatureStateMachine.Idle, 199, 1)], seen);
-        Assert.Equal(2, goblins.Count(g => g.StateBeforeUtilityState == CreatureStateMachine.Idle
+        Assert.Equal(2, goblins.Count(g => g.StateBeforeUtilityState == JobRules.StateFor(JobType.Sulk)
             && (g.UtilityNewState == 254 || g.Dk2StateId is 254 or 199)));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
@@ -184,7 +186,7 @@ public class CombatNonFighterTests
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
-        goblin.Activity = CreatureActivity.Reporting;
+        StatePlacement.As(goblin, CreatureActivity.Reporting);
         goblin.Running = true;
         GameSimulation sim = Combat(db, world);
 

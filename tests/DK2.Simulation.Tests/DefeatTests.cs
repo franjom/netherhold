@@ -120,7 +120,7 @@ public class DefeatTests
         // The fight is let go first, then 194 set, so the walk saves 194 as its caller.
         (GameDatabase db, WorldState world, _, _, CreatureState goblin, _) = FallenDungeon();
         StatePlacement.Place(goblin, 199);
-        goblin.Activity = CreatureActivity.Fighting;
+        StatePlacement.As(goblin, CreatureActivity.Fighting);
         GameSimulation sim = Simulation(db, world);
 
         sim.Run(6);
@@ -137,7 +137,7 @@ public class DefeatTests
         // (0x0048AD30 is SetState with option 0), so the creature stays on its device.
         (GameDatabase db, WorldState world, _, _, CreatureState goblin, _) = FallenDungeon();
         StatePlacement.Place(goblin, TortureRules.TorturedState);
-        goblin.Activity = CreatureActivity.BeingTortured;
+        StatePlacement.As(goblin, CreatureActivity.BeingTortured);
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world);
         sim.ObserveWith(sink);

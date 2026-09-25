@@ -238,7 +238,7 @@ public class CreatureAngerTests
         CreatureState goblin = world.SpawnCreature(db, DeserterId, Keeper, new TilePos(1, 1));
         goblin.Anger.Lair = CreatureAngerRules.Ceiling + 1;
         StatePlacement.Place(goblin, TortureRules.TorturedState);
-        goblin.Activity = CreatureActivity.BeingTortured;
+        StatePlacement.As(goblin, CreatureActivity.BeingTortured);
         var events = new ListEventSink();
 
         Walking(db, world, events).Run(Second * 3);
@@ -595,7 +595,7 @@ public class CreatureAngerTests
         // bucket instead would show nothing happening at all, which is the
         // point of ABedStopsTheGrievanceGrowingButDoesNotUndoIt.
         goblin.Anger.Treatment = 10_000;
-        goblin.Activity = CreatureActivity.Sleeping;
+        StatePlacement.As(goblin, CreatureActivity.Sleeping);
         StatePlacement.Place(goblin, LairRules.SleepingState);
 
         Simulation(db, world).Run(Second);
@@ -683,12 +683,12 @@ public class CreatureAngerTests
     }
 
     [Fact]
-    public void ACreatureWithNoStateIdDoesNotCoolWhateverItsActivitySays()
+    public void ACreatureOutsideTheLairCategoriesDoesNotCool()
     {
+        // Cooling is the lair categories' hook (Q123): idle, state 1, is not one of them.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
-        goblin.Activity = CreatureActivity.Sleeping;
 
         Assert.Equal(0, CreatureAngerRules.PerSecond(
             world, db, db.CreatureById(GoblinId), goblin).Treatment);

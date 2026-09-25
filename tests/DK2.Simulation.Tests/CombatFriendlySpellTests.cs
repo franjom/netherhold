@@ -134,16 +134,16 @@ public class CombatFriendlySpellTests
 
         // Armour wants the Combat category — a walk to a fight counts — and a spent word.
         Assert.False(SpellRules.BuffApplies(db, def, goblin, armour));
-        goblin.Activity = CreatureActivity.Fighting;
+        StatePlacement.As(goblin, CreatureActivity.Fighting);
         Assert.True(SpellRules.BuffApplies(db, def, goblin, armour));
         goblin.ArmourTicks = 1;
         Assert.False(SpellRules.BuffApplies(db, def, goblin, armour));
-        goblin.Activity = CreatureActivity.Celebrating;
+        StatePlacement.As(goblin, CreatureActivity.Celebrating);
         goblin.ArmourTicks = 0;
         Assert.True(SpellRules.BuffApplies(db, def, goblin, armour));
 
         // Heal: strictly under half the level-scaled maximum, in any state.
-        goblin.Activity = CreatureActivity.Idle;
+        StatePlacement.As(goblin, CreatureActivity.Idle);
         goblin.Health = 750;
         Assert.False(SpellRules.BuffApplies(db, def, goblin, heal));
         goblin.Health = 749;
@@ -206,7 +206,7 @@ public class CombatFriendlySpellTests
     private static CreatureState Frozen(CreatureState c)
     {
         c.FrozenTicks = 10000;
-        c.Activity = CreatureActivity.Frozen;
+        StatePlacement.As(c, CreatureActivity.Frozen);
         return c;
     }
 

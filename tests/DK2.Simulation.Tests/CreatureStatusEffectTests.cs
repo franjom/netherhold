@@ -321,7 +321,7 @@ public class CreatureStatusEffectTests
         goblin.PoisonAmount = 9;
         goblin.PoisonOwner = Keeper;
         goblin.StunTicks = 11;
-        goblin.Activity = CreatureActivity.Stunned;
+        StatePlacement.As(goblin, CreatureActivity.Stunned);
         GameSimulation original = Sim(db, world);
 
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), db, [new CreatureStatusSystem()]);

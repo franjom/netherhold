@@ -46,7 +46,7 @@ public sealed class ResearchTests
         CreatureState it = world.SpawnCreature(
             db, Dk2TerrainFixture.VampireCreatureId, Keeper, Room);
         it.CurrentJob = JobType.Research;
-        it.Activity = CreatureActivity.AtWork;
+        StatePlacement.As(it, CreatureActivity.AtWork);
         StatePlacement.Place(it, JobRules.StateFor(it.CurrentJob)!.Value);
         it.JobTileIndex = (Room.Y * world.Width) + Room.X;
         return it;

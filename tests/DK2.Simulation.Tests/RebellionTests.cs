@@ -90,7 +90,7 @@ public class RebellionTests
         WorldState world = World(db);
         CreatureState vampire = AngryVampire(db, world, new TilePos(2, 2));
         vampire.CurrentJob = JobType.Train;
-        vampire.Activity = CreatureActivity.AtWork;
+        StatePlacement.As(vampire, CreatureActivity.AtWork);
         StatePlacement.Place(vampire, JobRules.StateFor(JobType.Train)!.Value);
 
         Simulation(db, world).Run(Second);

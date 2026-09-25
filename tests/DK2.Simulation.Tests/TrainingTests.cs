@@ -55,7 +55,7 @@ public sealed class TrainingTests
 
         CreatureState it = world.SpawnCreature(db, creatureId, Keeper, Room);
         it.CurrentJob = JobType.Train;
-        it.Activity = CreatureActivity.AtWork;
+        StatePlacement.As(it, CreatureActivity.AtWork);
         StatePlacement.Place(it, JobRules.StateFor(it.CurrentJob)!.Value);
         it.JobTileIndex = (Room.Y * world.Width) + Room.X;
         return it;

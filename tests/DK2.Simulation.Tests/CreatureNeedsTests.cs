@@ -178,7 +178,7 @@ public class CreatureNeedsTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
         goblin.Health = 500;
         LairRules.PlaceBed(world, db, goblin, (at.Y * world.Width) + at.X);
-        goblin.Activity = CreatureActivity.Sleeping;
+        StatePlacement.As(goblin, CreatureActivity.Sleeping);
 
         Simulation(db, world).Run(Second * 3);
 
@@ -200,7 +200,7 @@ public class CreatureNeedsTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
         goblin.Health = 500;
         LairRules.PlaceBed(world, db, goblin, (at.Y * world.Width) + at.X);
-        goblin.Activity = CreatureActivity.Idle;
+        StatePlacement.As(goblin, CreatureActivity.Idle);
 
         // The sleep system would eventually put it to bed, so run only the
         // health system: this is about the healing gate, not the cycle.
@@ -222,7 +222,7 @@ public class CreatureNeedsTests
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(4, 4));
         goblin.Health = 500;
-        goblin.Activity = CreatureActivity.Sleeping;
+        StatePlacement.As(goblin, CreatureActivity.Sleeping);
 
         // Its bed is the tile next door, and it is lying on the wrong one.
         LairRules.PlaceBed(world, db, goblin, (4 * world.Width) + 5);
