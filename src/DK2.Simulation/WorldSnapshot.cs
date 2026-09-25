@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 114;
+    private const int FormatVersion = 115;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -294,6 +294,22 @@ public static class WorldSnapshot
             w.Write(c.WaypointDeadlineTick);
             w.Write(c.PartySpeedRaw);
             w.Write(c.OriginTileIndex);
+            w.Write(c.Tunnel.StandX);
+            w.Write(c.Tunnel.StandY);
+            w.Write(c.Tunnel.DigX);
+            w.Write(c.Tunnel.DigY);
+            w.Write(c.Tunnel.TargetX);
+            w.Write(c.Tunnel.TargetY);
+            w.Write(c.Tunnel.Phase);
+            w.Write(c.Tunnel.ExitX);
+            w.Write(c.Tunnel.ExitY);
+            w.Write(c.Tunnel.HitX);
+            w.Write(c.Tunnel.HitY);
+            w.Write(c.Tunnel.Facing);
+            w.Write(c.Tunnel.Resume);
+            w.Write(c.Tunnel.Reach);
+            w.Write(c.Tunnel.Hand);
+            w.Write(c.Tunnel.ActionUntilTick);
             w.Write(c.GuardLostTick);
             w.Write(c.CombatPitFighter);
             w.Write(c.AttackAbnormalTargets);
@@ -723,6 +739,25 @@ public static class WorldSnapshot
                 WaypointDeadlineTick = r.ReadInt64(),
                 PartySpeedRaw = r.ReadInt32(),
                 OriginTileIndex = r.ReadInt32(),
+                Tunnel = new TunnelRecord
+                {
+                    StandX = r.ReadInt32(),
+                    StandY = r.ReadInt32(),
+                    DigX = r.ReadInt32(),
+                    DigY = r.ReadInt32(),
+                    TargetX = r.ReadInt32(),
+                    TargetY = r.ReadInt32(),
+                    Phase = r.ReadInt32(),
+                    ExitX = r.ReadInt32(),
+                    ExitY = r.ReadInt32(),
+                    HitX = r.ReadInt32(),
+                    HitY = r.ReadInt32(),
+                    Facing = r.ReadInt32(),
+                    Resume = r.ReadInt32(),
+                    Reach = r.ReadBoolean(),
+                    Hand = r.ReadBoolean(),
+                    ActionUntilTick = r.ReadInt64(),
+                },
                 GuardLostTick = r.ReadInt64(),
                 CombatPitFighter = r.ReadBoolean(),
                 AttackAbnormalTargets = r.ReadBoolean(),

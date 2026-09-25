@@ -13,8 +13,8 @@ namespace DK2.Simulation.Systems;
 /// them. A hero worker is a hero too: state 1 tests the hero owner before the worker flag
 /// (<c>0x004773D0</c>). A walk's arrival hands over to the state it resumes, which runs from the
 /// next turn, as DK2's dispatcher runs one handler a turn. Not built: state 1's pending-point walk
-/// (<c>+0x4FE</c>) and the Dwarf tunnelling of 223/224. StealGold's states are
-/// <see cref="StealGoldRules"/> (ADR-0219).</summary>
+/// (<c>+0x4FE</c>). StealGold's states are <see cref="StealGoldRules"/> (ADR-0219), tunnelling's
+/// <see cref="TunnelRules"/> (ADR-0222).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-party-walk.md")]
 public sealed class HeroSystem : ISimulationSystem
 {
@@ -71,6 +71,9 @@ public sealed class HeroSystem : ISimulationSystem
             StealGoldRules.AtTheGoldState => StealGoldRules.AtTheGold(context, SystemName, creature),
             StealGoldRules.EscapingState => Escape(context, creature),
             StealGoldRules.RunTheJobState => HeroJobRules.Dispatch(context, SystemName, creature),
+            TunnelRules.TunnellingState => TunnelRules.Tunnel(context, SystemName, creature),
+            TunnelRules.AdvancingState => TunnelRules.Advance(context, creature),
+            TunnelRules.HandBackState => TunnelRules.HandBack(context, SystemName, creature),
             _ => true,
         };
         if (!stays) StateShadow.ToIdle(context, SystemName, creature);
@@ -107,5 +110,6 @@ public sealed class HeroSystem : ISimulationSystem
     private static bool IsHeroResume(int state) => state is HeroJobRules.WaitingState
         or HeroJobRules.AtThePointState or HeroJobRules.RoamingState or HeroJobRules.HuntingState
         or HeroJobRules.AtTheHeartState or HeroJobRules.FollowingState
-        or StealGoldRules.InTheTreasuryState or StealGoldRules.AtTheGoldState or StealGoldRules.EscapingState;
+        or StealGoldRules.InTheTreasuryState or StealGoldRules.AtTheGoldState or StealGoldRules.EscapingState
+        or TunnelRules.TunnellingState or TunnelRules.AdvancingState or TunnelRules.HandBackState;
 }

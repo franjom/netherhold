@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 114: a creature's origin tile, where a thief escapes to (ADR-0219).
+        // HashVersion 115: a tunnelling worker's plan (ADR-0222).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x7AE4DE645C0A63A1UL, sim.StateHash());
+        Assert.Equal(0x9D966A6EC7AC034AUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

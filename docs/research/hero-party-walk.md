@@ -248,7 +248,7 @@ the tile's y before its x and excludes the rectangle's upper bounds; its tile te
 room or impenetrable tile of the hero's own keeper and any impenetrable tile a creature cannot
 wade; state 178 is `XOR EAX,EAX; RET`. Definition byte `+0x787` is file byte `0x0F4C`
 (loader `0x0049348A`): Imp 10, Dwarf 15, King Reginald 125, Dark Angel 232.
-Not built: 223/224. The section 5 re-lead is built (ADR-0218), and StealGold (ADR-0219, `steal-gold.md`).
+The section 5 re-lead is built (ADR-0218), StealGold (ADR-0219, `steal-gold.md`), and 223/224 with the tunnelling behind them (ADR-0222, `tunnelling.md`).
 
 Review, the same day. State 1 tests the hero owner before the worker flag, so a hero Dwarf is run
 as a hero, and a resting 10 idles into 90. An arrival's resumed state runs from the next turn.

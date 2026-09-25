@@ -166,7 +166,7 @@ Re-checks that the player still owns a room of type 1 or 5 (`FUN_004539b0`) and
 bails if not — so a treasury sold out from under a creature mid-walk aborts the
 trip. On arrival: `SetState(0xbd)` = **189**, but only when the region test
 `0x004B2AE0` on the tile centre returns a zero word; otherwise 188 returns 1 and
-waits (read 2026-09-24; the test is Q371's, unread). Ours does neither check.
+waits. That test is the turn toward a point, so 188 waits while it turns to face the tile (read 2026-09-25, `tunnelling.md` §3). Ours does neither check.
 
 ### 4.4 State 189 `FUN_00472740` — take it
 

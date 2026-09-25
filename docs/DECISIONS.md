@@ -4822,3 +4822,29 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Ours: the ring is taken in tile-index order, and the cell test is not modelled for other room types. Job 19 always meets a heart there.
 - Two tests. Three negative controls each fail a named test: the first tile, 177 going through the room point, and job 19 aiming at the centre.
 - No new state; `HashVersion` stays **114**.
+
+## ADR-0222 — A hero worker tunnels, and a party leader lends it the errand
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0216 · Research: `docs/research/tunnelling.md`
+
+**Context.** A hero's route that failed with option bit 0 simply failed. DK2 digs instead: its route helpers fall back to a tunnel (`0x0047193A`–`0x00471A56`).
+
+**Decision.** `TunnelRules`, run by `HeroSystem`:
+1. **The fallback.** A failed route with option bit 0, from `HeroJobRules.Walk`, StealGold's room walk and the arm's feasibility test:
+   - A hero worker tunnels itself.
+   - A party leader lends the errand to the first worker follower whose request is taken. The follower resumes 224, and the leader follows it in 223.
+2. **State 186.**
+   - Plan the next dig tile (`0x00485EF0`): a straight line toward the target, then a wall-follow round what may not be dug (impenetrable rock, Lava, the tunneller's own walls). The hand is chosen by a two-walker race (`0x004868D0`).
+   - Stand beside the tile (`0x00486680`), turn to it (`0x004B2AE0`, `Bearing.TurnToward`), and dig.
+   - When a route to the target exists, walk it and resume the errand.
+3. **223** trails the tunneller one free tile behind its facing. **224**, the worker's, sends its leader to 1 and itself to 222.
+4. **Found in reading.**
+   - World slot `+0x208` is `CWorld`'s `0x00509200`, the route map's solid bit (RTTI vtable `0x0066E3EC`).
+   - `0x004B2AE0` is the turn toward a point, not a region test (half of Q371).
+5. **New hashed and saved fields:** `CreatureState.Tunnel` (`TunnelRecord`, the controller fields `+0xA7`–`+0xD3`).
+
+**Consequences.**
+- Ours: a dig is one application of imp work per work period (Dig, or MineGold on a gold tile), and the solid bit is terrain `Solid`.
+- Not built: sound `0x100` and state 86, where a worker with nowhere left to dig idles.
+- A worker pushed off its stand tile's centre can loop, because a same-tile walk finishes at once; whether DK2 does too is UNKNOWN.
+- Four tests. Six negative controls each fail a named test: no fallback, a non-worker tunnelling, no wall-follow, the hand flipped, the leader not released, and the leader not entering 223.
+- `HashVersion` and `FormatVersion` **115**, pin `0x9D966A6EC7AC034A`.

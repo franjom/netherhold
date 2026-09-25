@@ -97,7 +97,7 @@ Both helpers share the failure path. Without option bit 0 they return 0. With it
   tag goes to the leader's `+0x3DF` and the leader enters
   **223, advancing** to follow it.
 
-State 224 later releases that leader to idle and puts the worker into
+Built, with the tunnel itself, in ADR-0222 (`tunnelling.md`). State 224 later releases that leader to idle and puts the worker into
 ordinary follower state 222; `+0x417`, `+0x3DF` and `+0x3E1` are the
 dumper's `PartyId`, `MyLeadersId` and `PositionInParty`, so the field
 identities are CONFIRMED.

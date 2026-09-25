@@ -54,7 +54,8 @@ public static class StealGoldRules
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         int w = world.Width;
         if (!Combat.CombatTargetRules.CanReach(context.Navigation, creature, definition,
-                CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), int.MaxValue, scratch))
+                CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), int.MaxValue, scratch)
+            && !((FeasibleOptions & 0x01) != 0 && TunnelRules.CouldTunnel(context, creature)))
             return false;
         return StateShadow.TryMove(context, system, creature, ToTheTreasuryState);
     }
@@ -166,8 +167,8 @@ public static class StealGoldRules
     }
 
     /// <summary><c>0x00471A70(room, resume, options)</c>: already in the room, 1 and then the resume
-    /// state; otherwise a point in it (<c>0x004E4C10</c>) and state 7. Ours: the tunnelling of
-    /// option bit 0 is not built.</summary>
+    /// state; otherwise a point in it (<c>0x004E4C10</c>) and state 7, or with option bit 0 a tunnel
+    /// to the room's first tile (<c>0x00485AB0</c>).</summary>
     private static bool ToRoom(SimulationContext context, string system, CreatureState creature, RoomInstance room, int resume, int options)
     {
         WorldState world = context.World;
@@ -177,12 +178,12 @@ public static class StealGoldRules
             StateShadow.Move(context, system, creature, CreatureStateMachine.Idle);
             return StateShadow.TryMove(context, system, creature, resume);
         }
-        if (RoomPoint(context, creature, room) is not int tile) return false;
         int w = world.Width;
-        if (!context.Navigation.TryRouteTo(creature, CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), options))
-            return false;
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToRoom, resume);
-        return true;
+        int first = room.TileIndices[0];
+        if (RoomPoint(context, creature, room) is not int tile)
+            return (options & 0x01) != 0 && TunnelRules.Fallback(context, system, creature, first % w, first / w, resume);
+        return TunnelRules.RouteOrTunnel(context, system, creature, CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w),
+            StateShadow.TravelToRoom, resume, options, first % w, first / w);
     }
 
     /// <summary><c>0x004E4C10</c>: a random tile of the room, then the first from there, round the

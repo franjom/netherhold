@@ -260,8 +260,6 @@ public static class HeroJobRules
     /// direction 3.</summary>
     public static (int X, int Y) FollowTile(WorldState world, GameDatabase database, CreatureState me, CreatureState leader)
     {
-        int h = leader.Heading & 0x7FF;
-        int dir = h is > 0x100 and < 0x300 ? 1 : h is > 0x300 and < 0x500 ? 2 : 3;
         int x, y;
         if (leader.Dk2StateId == Systems.StateShadow.TravelToPoint)
         {
@@ -273,9 +271,17 @@ public static class HeroJobRules
             x = leader.PosX >> 12;
             y = leader.PosY >> 12;
         }
+        return StepBehind(world, database, me, x, y, leader.Heading, Math.Max(me.PositionInParty >> 1, 1));
+    }
 
+    /// <summary>The trailing search 222 and 223 share: <paramref name="depth"/> free tiles behind a
+    /// facing from (<paramref name="x"/>, <paramref name="y"/>), a quarter turn on a blocked step,
+    /// five turns giving up.</summary>
+    public static (int X, int Y) StepBehind(WorldState world, GameDatabase database, CreatureState me, int x, int y, int heading, int depth)
+    {
+        int h = heading & 0x7FF;
+        int dir = h is > 0x100 and < 0x300 ? 1 : h is > 0x300 and < 0x500 ? 2 : 3;
         var grid = new WorldPathGrid(database, world, database.CreatureById(me.CreatureTypeId));
-        int depth = Math.Max(me.PositionInParty >> 1, 1);
         int turns = 0;
         while (depth != 0 && turns != 5)
         {
@@ -316,12 +322,11 @@ public static class HeroJobRules
         return null;
     }
 
-    /// <summary>DK2's <c>0x00471890(point, resume, options)</c>: route, then state 6 resuming.</summary>
-    private static bool Walk(SimulationContext context, CreatureState creature, int x, int y, int resume, int options)
-    {
-        if (!context.World.Contains(new TilePos(x / Fp32.One, y / Fp32.One))) return false;
-        if (!context.Navigation.TryRouteTo(creature, x, y, options)) return false;
-        CreatureStateMachine.BeginTravel(creature, Systems.StateShadow.TravelToPoint, resume);
-        return true;
-    }
+    /// <summary>One of the nine sub-tile offsets (<c>0x00698EC8</c>).</summary>
+    public static (int X, int Y) RandomSubTile(SimulationContext context) => SubTile[context.Rng.NextInt(SubTile.Length)];
+
+    /// <summary>DK2's <c>0x00471890(point, resume, options)</c>: route, then state 6 resuming; with
+    /// option bit 0 a failed route falls back to tunnelling (<see cref="TunnelRules"/>).</summary>
+    private static bool Walk(SimulationContext context, CreatureState creature, int x, int y, int resume, int options) =>
+        TunnelRules.RouteOrTunnel(context, "Hero", creature, x, y, Systems.StateShadow.TravelToPoint, resume, options, x >> 12, y >> 12);
 }

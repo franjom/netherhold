@@ -279,8 +279,8 @@ public sealed class PaydaySystem : ISimulationSystem
     }
 
     /// <summary>The walk ends in 188, which moves to 189 to take the money. 188 first
-    /// re-checks the keeper still owns a treasury or heart, and waits while the unread
-    /// region test <c>0x004B2AE0</c> is nonzero (Q371); ours does neither.</summary>
+    /// re-checks the keeper still owns a treasury or heart, and waits while it turns to face the
+    /// tile centre (<c>0x004B2AE0</c>, the turn, tunnelling.md §3); ours does neither.</summary>
     private static void Arrived(SimulationContext context, CreatureState creature)
     {
         StateShadow.Arrive(context, SystemName, creature);

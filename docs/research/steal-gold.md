@@ -71,4 +71,4 @@ It is `0x00478800(+0x409)`: the standing job, run once through the dispatcher.
 - **Room points.**
   - The feasibility point (`0x004E5000`, unread) is the room's first walkable tile.
   - The walking point (`0x004E4C10`) is a random tile, then the next walkable one; its four cell tests are unread.
-- **Not built:** option bit 0's tunnelling, sound `0x100`, and destroying a carried thing, since no carried steal is built.
+- **Not built:** sound `0x100`, and destroying a carried thing, since no carried steal is built. Option bit 0's tunnelling is built (ADR-0222).

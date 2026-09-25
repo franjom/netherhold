@@ -737,6 +737,9 @@ public sealed class CreatureState
     /// constructor at <c>0x004875DA</c>), -1 for none. A thief escapes to it (state 169).</summary>
     public int OriginTileIndex = -1;
 
+    /// <summary>A tunnelling worker's plan, state 186's controller fields (tunnelling.md §2–§5).</summary>
+    public TunnelRecord Tunnel;
+
     /// <summary>The turn state 99 was entered, for its <c>Age</c> test.</summary>
     public long GuardLostTick;
 
@@ -975,6 +978,22 @@ public sealed class CreatureState
         hash.Add(WaypointDeadlineTick);
         hash.Add(PartySpeedRaw);
         hash.Add(OriginTileIndex);
+        hash.Add(Tunnel.StandX);
+        hash.Add(Tunnel.StandY);
+        hash.Add(Tunnel.DigX);
+        hash.Add(Tunnel.DigY);
+        hash.Add(Tunnel.TargetX);
+        hash.Add(Tunnel.TargetY);
+        hash.Add(Tunnel.Phase);
+        hash.Add(Tunnel.ExitX);
+        hash.Add(Tunnel.ExitY);
+        hash.Add(Tunnel.HitX);
+        hash.Add(Tunnel.HitY);
+        hash.Add(Tunnel.Facing);
+        hash.Add(Tunnel.Resume);
+        hash.Add(Tunnel.Reach);
+        hash.Add(Tunnel.Hand);
+        hash.Add(Tunnel.ActionUntilTick);
         hash.Add(GuardLostTick);
         hash.Add(CombatPitFighter);
         hash.Add(AttackAbnormalTargets);
