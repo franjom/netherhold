@@ -21,7 +21,7 @@ namespace DK2.Simulation.Systems;
 /// to a prison, fleeing a fight, gold somebody else dropped (imp-tasks.md).</para>
 /// </summary>
 [Dk2Behavior(Confidence.Hypothesis, "docs/research/imp-tasks.md")]
-public sealed class ImpTaskSystem : ISimulationSystem
+public sealed partial class ImpTaskSystem : ISimulationSystem
 {
     private const string SystemName = "ImpTask";
 
@@ -169,13 +169,15 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         if (creature.Activity == CreatureActivity.FetchingObject)
         {
-            UpdateFetchingObject(context, creature, grid);
+            if (IsCrateJob(creature)) UpdateFetchingCrate(context, creature, grid);
+            else UpdateFetchingObject(context, creature, grid);
             return;
         }
 
         if (creature.Activity == CreatureActivity.CarryingObject)
         {
-            UpdateCarryingObject(context, creature, grid);
+            if (IsCrateJob(creature)) UpdateCarryingCrate(context, creature);
+            else UpdateCarryingObject(context, creature, grid);
             return;
         }
 
@@ -619,7 +621,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// Chooses a job, in the two tiers of the type comment.
     /// <para><b>Tier A — kind first, one whole-map search per kind</b>, in DK2's
     /// table order: claim the tile just dug (kind 14), carry a loose object (8),
-    /// build placed traps and doors (absent here), dig and mine marked tiles
+    /// build placed traps and doors (9, 10), dig and mine marked tiles
     /// (1), claim floor (3), carry the unconscious (13), carry a corpse (12) —
     /// <c>imp-task-priority.md</c> §4, ADR-0058/0063/0065. Walking outwards and
     /// stopping at the first tile a job can be worked from gives the nearest job
@@ -680,6 +682,9 @@ public sealed class ImpTaskSystem : ISimulationSystem
         // before it digs a wall the keeper marked (ADR-0065).
         if (TryTakeObject(context, creature, definition, grid)) return true;
 
+        // Kinds 9 and 10, third: a crate from a Workshop to a blueprint (ADR-0214).
+        if (TryTakeBlueprint(context, creature, grid)) return true;
+
         if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
         if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
 
@@ -705,10 +710,10 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// What a worker the keeper has just put down looks for, and where.
     /// <para><b>A different order from <see cref="TryTakeJob"/>'s</b>: DK2's drop
     /// scan is one composite per-tile predicate, ordered excavation, claiming,
-    /// carrying a body, reinforcing, gold, objects, corpses — so a worker dropped
-    /// beside a marked wall digs it rather than putting a book away (ADR-0065).
-    /// Two of its nine kinds are absent (no traps or doors here) and one is
-    /// unidentified; kind 14, claiming the just-dug tile, is not among them. All
+    /// traps and doors, carrying a body, reinforcing, gold, objects, corpses — so a
+    /// worker dropped beside a marked wall digs it rather than putting a book away
+    /// (ADR-0065, ADR-0214). One of its nine kinds is unidentified; kind 14,
+    /// claiming the just-dug tile, is not among them. All
     /// of it inside <see cref="DropScanTiles"/> of where the worker landed,
     /// measured to <b>the tile the work is at</b> — CONFIRMED, owner's count: a
     /// marked wall four away does not pay, though a floor tile three does.</para>
@@ -721,6 +726,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         {
             if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
             if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
+            if (TryTakeBlueprintNear(context, creature, grid)) return true;
             if (TryTakeBody(context, creature, definition, grid, corpses: false)) return true;
             if (TryTakeJobAt(context, creature, grid, JobPriority.Reinforce)) return true;
             if (TryTakeFloorGold(context, creature, definition, grid)) return true;
@@ -750,6 +756,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         ImpTaskKind.Reinforce => TryTakeJobAt(context, creature, grid, JobPriority.Reinforce),
         ImpTaskKind.FetchGold => TryTakeFloorGold(context, creature, definition, grid),
         ImpTaskKind.CarryObject => TryTakeObject(context, creature, definition, grid),
+        ImpTaskKind.BuildTrap or ImpTaskKind.BuildDoor => TryTakeBlueprint(context, creature, grid),
         ImpTaskKind.CarryCorpse => TryTakeBody(context, creature, definition, grid, corpses: true),
         ImpTaskKind.CarryUnconscious => TryTakeBody(context, creature, definition, grid, corpses: false),
         _ => false,
@@ -1251,7 +1258,9 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         bool found = _pathfinder.TryFindNearest(
             grid, creature.Tile,
-            at => InScanRange(at) && LooseObjectAt(context, creature, definition, at) is not null,
+            at => InScanRange(at) && LooseObjectAt(context, creature, definition, at) is { } loose
+                  && (ObjectCarryRules.TryDestinationFor(world, context.Database, creature, loose) >= 0
+                      || (CrateRules.IsCrate(context.Database, loose) && BlueprintForLooseCrate(context, creature, grid, loose) != null)),
             _route);
 
         if (!found) return false;
@@ -1259,6 +1268,14 @@ public sealed class ImpTaskSystem : ISimulationSystem
         TilePos at = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
         ObjectState? thing = LooseObjectAt(context, creature, definition, at);
         if (thing is null) return false;
+
+        // Kind 8's crate branch (0x00468910) comes before the crate's Workshop: straight to a
+        // blueprint that needs it, as kind 9 or 10 (ADR-0214).
+        if (CrateRules.IsCrate(context.Database, thing)
+            && BlueprintForLooseCrate(context, creature, grid, thing) is { } blueprint)
+            return CommitCrateFetch(context, creature, blueprint, thing, "loose");
+
+        if (ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing) < 0) return false;
 
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
@@ -1297,9 +1314,6 @@ public sealed class ImpTaskSystem : ISimulationSystem
             // wade for a book, so this is the narrower half of it (Q170).
             if (world.TileAtIndex(index).OwnerPlayerId != worker.OwnerPlayerId) continue;
 
-            if (ObjectCarryRules.TryDestinationFor(world, context.Database, worker, thing) < 0)
-                continue;
-
             if (best is null || thing.Id < best.Id) best = thing;
         }
 
@@ -1337,8 +1351,9 @@ public sealed class ImpTaskSystem : ISimulationSystem
         }
 
         StateShadow.Arrive(context, SystemName, creature);
-        int destination = ObjectCarryRules.TryDestinationFor(
-            world, context.Database, creature, thing);
+        int destination = CrateRules.IsCrate(context.Database, thing)
+            ? CrateHome(context, creature)
+            : ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing);
 
         if (destination < 0 || !RouteTo(context, creature, grid, destination))
         {
@@ -1387,8 +1402,9 @@ public sealed class ImpTaskSystem : ISimulationSystem
         {
             if (creature.HasRoute) return;
 
-            int destination = ObjectCarryRules.TryDestinationFor(
-                world, context.Database, creature, thing);
+            int destination = CrateRules.IsCrate(context.Database, thing)
+                ? CrateHome(context, creature)
+                : ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing);
 
             if (destination >= 0 && RouteTo(context, creature, grid, destination))
             {
@@ -1406,6 +1422,12 @@ public sealed class ImpTaskSystem : ISimulationSystem
             ObjectCarryRules.PutDown(creature, thing);
             StateShadow.ToIdle(context, SystemName, creature);
             GoIdle(creature);
+            return;
+        }
+
+        if (CrateRules.IsCrate(context.Database, thing))
+        {
+            StoreCrate(context, creature, grid, thing, here);
             return;
         }
 

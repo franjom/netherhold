@@ -132,6 +132,20 @@ public static class AutoFurnitureRules
             choiceCount++;
         if (choiceCount == 0) return;
 
+        var slots = new List<int>();
+        WallSlots(world, database, room, roomTiles, slots);
+        foreach (int tile in slots)
+        {
+            int choice = CoordinateChoice(tile % world.Width, tile / world.Width, choiceCount);
+            into.Add((tile, room.Definition.ObjectIds[choice + 3]));
+        }
+    }
+
+    /// <summary>The wall-furniture slots (<c>0x00454230</c>): room tiles with a straight wall on a
+    /// side, of the parity of the first such tile in each orientation. In index order.</summary>
+    private static void WallSlots(
+        WorldState world, GameDatabase database, RoomInstance room, HashSet<int> roomTiles, List<int> slots)
+    {
         int? horizontalPhase = null;
         int? verticalPhase = null;
         foreach (int tile in room.TileIndices)
@@ -149,11 +163,26 @@ public static class AutoFurnitureRules
                 phase ??= coordinate & 1;
                 if ((coordinate & 1) != phase) continue;
 
-                int choice = CoordinateChoice(x, y, choiceCount);
-                into.Add((tile, room.Definition.ObjectIds[choice + 3]));
+                slots.Add(tile);
                 break;
             }
         }
+    }
+
+    /// <summary>Every furniture slot of the room, floor (<c>0x00454110</c>) and wall
+    /// (<c>0x00454230</c>), whether or not anything stands there: the tiles the Workshop's crates
+    /// are not set down on (<see cref="CrateRules.Arrange"/>). Neither test asks the room's
+    /// special-tiles or special-walls flag.</summary>
+    public static void FurnitureSlots(WorldState world, GameDatabase database, RoomInstance room, HashSet<int> into)
+    {
+        into.Clear();
+        var roomTiles = new HashSet<int>(room.TileIndices);
+        var slots = new List<int>();
+        FloorSlots(world, room, roomTiles, slots);
+        into.UnionWith(slots);
+        slots.Clear();
+        WallSlots(world, database, room, roomTiles, slots);
+        into.UnionWith(slots);
     }
 
     private static bool HasStraightWall(

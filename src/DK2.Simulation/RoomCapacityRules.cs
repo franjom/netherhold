@@ -13,8 +13,8 @@ namespace DK2.Simulation;
 /// handlers' room finders ask it, and so does the claim a work state's enter hook makes
 /// (<c>0x004E5A70</c>). Ours derives <c>UsedCapacity</c> from the claiming creatures standing
 /// in the room rather than counting it, and limits only the rooms whose
-/// <see cref="AutoFurnitureRules.TryTotalCapacity"/> is read; the Library, Workshop and
-/// Guard Room extras are not modelled.</remarks>
+/// <see cref="AutoFurnitureRules.TryTotalCapacity"/> is read. The Workshop's extra is built
+/// (ADR-0214); the Library's and the Guard Room's are not.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public static class RoomCapacityRules
 {
@@ -48,11 +48,28 @@ public static class RoomCapacityRules
     }
 
     /// <summary><c>0x004E53B0</c>: true while <paramref name="units"/> places are free, and
-    /// always for a room whose capacity is not read.</summary>
-    public static bool HasRoom(WorldState world, RoomInstance room, int exceptId = -1, int units = Units)
+    /// always for a room whose capacity is not read. A Workshop must also have space for its
+    /// crates (<c>0x004F6140</c>, <see cref="CrateRules.WorkshopHasRoom"/>).</summary>
+    public static bool HasRoom(
+        WorldState world, GameDatabase database, RoomInstance room, int exceptId = -1, int units = Units)
     {
+        if (room.Definition.TypeId == RoomTypeId.Workshop && !CrateRules.WorkshopHasRoom(world, database, room))
+            return false;
         if (!AutoFurnitureRules.TryTotalCapacity(world, room, out int capacity)) return true;
         return Occupants(world, room, exceptId) + units <= capacity;
+    }
+
+    /// <summary>The claiming creature in <paramref name="room"/> with the lowest id, or null.</summary>
+    public static CreatureState? FirstOccupant(WorldState world, RoomInstance room)
+    {
+        foreach (CreatureState c in world.Creatures)
+        {
+            if (!CreatureStateMachine.HasState(c) || HandRules.IsHeld(c)) continue;
+            if (!Claims(CreatureStateTable.Get(c.Dk2StateId).Category)) continue;
+            if (EatingRules.Contains(room, (c.Tile.Y * world.Width) + c.Tile.X)) return c;
+        }
+
+        return null;
     }
 
     /// <summary>The claim's fallback <c>0x004C6AE0</c>: whether another of the keeper's rooms
@@ -69,7 +86,7 @@ public static class RoomCapacityRules
             if (room.OwnerPlayerId != full.OwnerPlayerId || room.Definition.TypeId != full.Definition.TypeId)
                 continue;
             if (room.TileIndices.Count == 0) continue;
-            if (HasRoom(world, room, exceptId)) return true;
+            if (HasRoom(world, database, room, exceptId)) return true;
         }
 
         return false;

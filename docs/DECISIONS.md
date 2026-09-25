@@ -4657,3 +4657,36 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - `state-category-hooks.md` named the pit's and the spectators' enter-hook bit as 23; it is 15, `CombatPitFighter`. `+0x16 == 2` is "off the map" (Q364).
 - Eleven tests. Eighteen negative controls each fail a named test: attackability, the forced branch, the blow's stance, the damage taken, the knocked-out target, the enemy-first search, the pick-up clear, the sale's reset, idle's return, the step's floor, the anger, the experience cap, the cap's move to 1, the same-turn wait, 141's wait, the knockout not counting as a death, 138 on the rim and the drop on the rim. The rim case first survived, and its test was added.
 
+## ADR-0214 — A crate is carried to its blueprint: task kinds 9 and 10, states 34 to 37
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135, completes ADR-0203 · Research: `docs/research/workshop-crates.md`
+
+**Context.** The Workshop made crates (ADR-0203) and nothing used them. The research note reads every step:
+- the crate maker, the Workshop's crate list and its capacity extra;
+- states 68 and 69;
+- the three task handlers for kinds 9 and 10 and the keeper's blueprint list;
+- states 32 and 34 to 37.
+
+**Decision.**
+1. **Kind 0 is a door, 1 a trap**, in the order list, on a crate and in the blueprint list (`0x00506BA0`). Ours had them the other way round.
+2. **The blueprint list** (`player+0xA21`, 128 entries) is `PlayerState.Blueprints`. The door loader adds every authored door blueprint to it, as well as pushing its order. The trap loader does neither, so an authored trap blueprint is never built.
+3. **A Workshop holds its crates.** A listed crate is owned by the keeper and set down three to a tile, off every floor and wall furniture slot, newest first (`0x004F5040`). The Workshop's capacity extra (`0x004F6140`: crates / 3 < tiles − furniture) is part of every capacity test on a Workshop. A crate made in a full Workshop belongs to nobody.
+4. **A made crate sends every worker in its Workshop to state 68**, which ends in state 1 the turn it runs: the handler sets 1 and 69, returns 0, and the dispatcher sets 1. The celebration takes no time here.
+5. **Three handlers take the job**, walking to the crate and resuming in 34 or 36:
+   - Tier A's third kind, `0x0046BD70`: the blueprint list in order, and the first Workshop holding a crate for it.
+   - The drop scan's third step, `0x0046C1A0`.
+   - Kind 8's crate branch, `0x00468910`: a loose crate goes straight to the nearest blueprint needing it.
+
+   None of them takes a blueprint another imp holds.
+6. **34 and 36** take the crate out of its Workshop and walk it to the blueprint. **35 and 37** set it down and, if the blueprint is still there, use it up and build the door or trap. A built door's navigation byte follows on the steering's next refresh.
+7. **A crate carried home** (state 32) goes to a random crate tile of the nearest Workshop with space, and joins it on arrival.
+8. `HashVersion` and `FormatVersion` **110**, pin `0x2B65E45AF14CB7A7`.
+
+**Consequences.**
+- **Every crate made empties the Workshop**: its workers choose a job again. That is the binary's reading, and Q432 asks the owner.
+- **The hand cannot lift a crate**: all 18 shipped crates have `CanBePickedUp` clear. A branch written for that case was removed before commit, because it could never run.
+- Ours:
+  - a crate is listed while its keeper owns it and it lies on one of the keeper's Workshop tiles;
+  - rooms are taken in `RoomIndex` order, distances are to a room's first tile, and tiles are walked in index order;
+  - the task hold is read from the other imps' states.
+- Not built: blueprints placed in play, state 76's crate branch, the five unread list removers, the trap's completion past its flag, the Secret Door's terrain update, the sounds, message `0x1A` and the maker's effects.
+- Fourteen tests. Eighteen negative controls each fail a named test: the kinds swapped, the trap loader pushing, no registration, no 68, the crate never listed, no Workshop extra, one crate a tile, oldest first, the slots ignored, no Tier A handler, the hold ignored, a built entry kept, no unlisting, no build, no loose branch, no drop-scan step, a crate carried home but not listed, and a short walk treated as arrival.

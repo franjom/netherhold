@@ -279,7 +279,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
         else
         {
             int units = job == JobType.Torture ? 2 * RoomCapacityRules.Units : RoomCapacityRules.Units;
-            candidates.RemoveAll(c => !RoomCapacityRules.HasRoom(world, c.Room, creature.Id, units));
+            candidates.RemoveAll(c => !RoomCapacityRules.HasRoom(world, database, c.Room, creature.Id, units));
         }
 
         candidates.Sort((a, b) =>
@@ -378,6 +378,14 @@ public sealed class CreatureJobSystem : ISimulationSystem
             return;
         }
 
+        // A crate was just made (ADR-0214): state 68 starts the celebration and sets 1 and 69,
+        // and returns 0, so the dispatcher sets 1 again. The creature is idle from this turn.
+        if (creature.Dk2StateId == CrateRules.CrateMadeState)
+        {
+            if (originalTick) CrateMade(context, creature, definition);
+            return;
+        }
+
         // What happens at work is the update hook of the job state's CATEGORY, which the
         // dispatcher runs before the state's own handler (ADR-0186). The countdown hooks act on
         // the creature's own countdown, every fifth turn from entry (Q424, ADR-0192).
@@ -405,7 +413,10 @@ public sealed class CreatureJobSystem : ISimulationSystem
 
             // MANUFACTURE IS CREDITED EVERY TURN, like research: 0x0047B190 has no countdown.
             case CreatureStateCategory.Manufacture:
-                if (originalTick) Manufacture(context, world, database, creature, definition);
+                if (!originalTick) return;
+                Manufacture(context, world, database, creature, definition);
+                // The maker's own handler runs after its hook, in the state the crate maker set.
+                if (creature.Dk2StateId == CrateRules.CrateMadeState) CrateMade(context, creature, definition);
                 return;
 
             case CreatureStateCategory.Spectating:
@@ -589,6 +600,18 @@ public sealed class CreatureJobSystem : ISimulationSystem
             $"made={world.Player(creature.OwnerPlayerId).ItemsManufactured}");
     }
 
+    /// <summary>State 68 (<c>0x00470B20</c>): a creature whose definition has the celebration
+    /// flag starts action 35 (<c>0x23</c>) for one or two plays; either way it ends the turn in
+    /// state 1, because the handler returns 0 after setting 1 and 69 and the dispatcher then sets
+    /// 1. Ours: no action is played, so the celebration takes no time, and the flag (animation
+    /// record 8's <c>+0xB</c> bit 0) is not read, since both arms end idle.</summary>
+    private static void CrateMade(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        context.Emit(SystemName, "crate_celebrated",
+            $"creature={creature.Id} type={definition.Name} player={creature.OwnerPlayerId}");
+        Stop(context, creature);
+    }
+
     /// <summary>One charge of training billed to the keeper, and the job lost
     /// if the keeper cannot pay.</summary>
     /// <remarks>Training is the only job a keeper can be evicted from by being
@@ -628,7 +651,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
         if (!world.Contains(creature.Tile)) return false;
         RoomInstance? room = RoomIndex.RoomAt(
             world, context.Database, (creature.Tile.Y * world.Width) + creature.Tile.X);
-        if (room is null || RoomCapacityRules.HasRoom(world, room, creature.Id)) return false;
+        if (room is null || RoomCapacityRules.HasRoom(world, context.Database, room, creature.Id)) return false;
 
         bool elsewhere = RoomCapacityRules.AnotherHasRoom(world, context.Database, room, creature.Id);
         context.Emit(SystemName, "job_lost",

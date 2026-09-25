@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 109;
+    private const int FormatVersion = 110;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -165,6 +165,12 @@ public static class WorldSnapshot
                 w.Write(order.Kind);
                 w.Write(order.TypeId);
                 w.Write(order.Cost);
+            }
+            w.Write(p.Blueprints.Count);
+            foreach (BlueprintRef blueprint in p.Blueprints)
+            {
+                w.Write(blueprint.Kind);
+                w.Write(blueprint.Index);
             }
             w.Write(p.Hand.Count);
             foreach (HandItem held in p.Hand)
@@ -569,6 +575,7 @@ public static class WorldSnapshot
                 HeartRuined = r.ReadBoolean(),
                 Availabilities = [],
                 ManufactureQueue = [],
+                Blueprints = [],
                 Hand = [],
             };
 
@@ -582,6 +589,9 @@ public static class WorldSnapshot
             int orderCount = r.ReadInt32();
             for (int o = 0; o < orderCount; o++)
                 players[i].ManufactureQueue.Add(new ManufactureOrder(r.ReadByte(), r.ReadByte(), r.ReadInt32()));
+            int blueprintCount = r.ReadInt32();
+            for (int o = 0; o < blueprintCount; o++)
+                players[i].Blueprints.Add(new BlueprintRef(r.ReadByte(), r.ReadInt32()));
 
             int handCount = r.ReadInt32();
             for (int h = 0; h < handCount; h++)

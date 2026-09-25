@@ -295,6 +295,11 @@ public struct PlayerState
     /// <summary>Crates made, DK2's <c>ItemsManufactured</c> (<c>player+0x162</c>).</summary>
     public int ItemsManufactured;
 
+    /// <summary>DK2's blueprint list, <c>player+0xA21</c>: the keeper's doors and traps waiting for
+    /// a crate, in the order they were placed, which is the order task kinds 9 and 10 take them
+    /// (ADR-0214).</summary>
+    public List<BlueprintRef> Blueprints;
+
     /// <summary>DK2's <c>Status</c> at <c>player+0x19A</c>: one of <see cref="PlayerStatus"/>,
     /// written once by <see cref="WorldState.EndGame"/> and never changed after (ADR-0162).</summary>
     public byte Status;
@@ -372,6 +377,8 @@ public struct PlayerState
         hash.Add(ItemsManufactured);
         hash.Add(ManufactureQueue.Count);
         foreach (ManufactureOrder order in ManufactureQueue) order.HashInto(ref hash);
+        hash.Add(Blueprints.Count);
+        foreach (BlueprintRef blueprint in Blueprints) blueprint.HashInto(ref hash);
         hash.Add(Hand.Count);
         foreach (HandItem held in Hand)
         {
@@ -487,7 +494,7 @@ public sealed class DoorState
     public byte DoorId { get; init; }
     public byte PlayerId { get; init; }
     public byte Flags { get; init; }
-    public bool UnderConstruction { get; init; }
+    public bool UnderConstruction { get; set; }
 
     /// <summary>DK2's <c>+0x111</c>: 0 opens for every allied creature, 1 for none of the
     /// workers, 2 for workers only, 3 for nobody. The loader seeds 3 from authored flag bit 0,
@@ -560,7 +567,7 @@ public sealed class TrapState
     public byte TrapId { get; init; }
     public byte PlayerId { get; init; }
     public byte Unknown_000F { get; init; }
-    public bool UnderConstruction { get; init; }
+    public bool UnderConstruction { get; set; }
 
     public void HashInto(ref Hash64 hash)
     {
@@ -723,6 +730,7 @@ public sealed class WorldState
             _players[i].Hand ??= [];
             _players[i].Availabilities ??= [];
             _players[i].ManufactureQueue ??= [];
+            _players[i].Blueprints ??= [];
         }
 
         CurrentTick = GameTick.Zero;

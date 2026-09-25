@@ -315,7 +315,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   (`player+0x162`). The points go to 0 and the order is popped. With no Workshop, the
   unread `0x004C6CF0`.
 - **The pushes.** `0x005066E0(kind, type)`: refused past 128; counts the keeper's
-  blueprints of the type (traps with `+0x109`, doors with `+0x10C` bit 5) against its
+  blueprints of the type (doors with `+0x109`, traps with `+0x10C` bit 5) against its
   crates of the type, and queues one order only while blueprints outnumber crates. Its
   callers are the level loader `0x00520F40`, `0x004C33B0` and `0x004C3860`; the removal
   `0x005069E0` is called by `0x004C3670` and `0x004C3A20`. The shipped levels place 3
@@ -324,9 +324,10 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   `player+0x8A` (the Manufacture enter hook's count) zero, once a second the points fall by
   variable 138 (1), to no lower than 0.
 - **Built** (ADR-0203): all four. **Ours:** the nearest Workshop is judged by its first
-  tile, the crate is always the keeper's, and state 68 is not entered (the capacity test
-  is §3.5). Not built: blueprints placed in play (`0x004C33B0`, `0x004C3860`), the removals,
-  and what carries a crate to its blueprint.
+  tile. ADR-0214 (`workshop-crates.md`) adds state 68, the crate left to nobody in a full
+  Workshop, the Workshop's capacity extra `0x004F6140`, and the carry to a blueprint. The
+  order kind is 0 for a door and 1 for a trap. Not built: blueprints placed in play
+  (`0x004C33B0`, `0x004C3860`) and the removals.
 
 ### 3.5 Capacity: the test, the claim and the finders (read 2026-09-25)
 

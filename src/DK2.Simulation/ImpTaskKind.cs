@@ -8,10 +8,10 @@ namespace DK2.Simulation;
 /// <remarks>
 /// <para>DK2 stores this as the byte <c>ImpJobData.LastTaskType</c>, written by each
 /// task-accepting routine when it takes the task; these values were read from those writes.
-/// docs/research/imp-task-priority.md §3 identifies the kinds; these are the eight built here.</para>
+/// docs/research/imp-task-priority.md §3 identifies the kinds; these are the ten built here.</para>
 /// <para>The values are load-bearing in one place: <see cref="CreatureState.DroppedTask"/> is
-/// compared against <see cref="CreatureState.LastTaskKind"/> as raw bytes, as DK2 does. Gaps are
-/// kinds not built here: 9/10 (fetch a crate for a trap or door) and 11 (unidentified).</para>
+/// compared against <see cref="CreatureState.LastTaskKind"/> as raw bytes, as DK2 does. The gap is
+/// kind 11, unidentified.</para>
 /// </remarks>
 public enum ImpTaskKind : byte
 {
@@ -38,6 +38,14 @@ public enum ImpTaskKind : byte
 
     /// <summary>Carry a loose object to its room — DK2's kind <b>8</b>.</summary>
     CarryObject = 8,
+
+    /// <summary>Carry a crate to a placed trap and build it — DK2's kind <b>9</b>, states 34 and
+    /// 35 (ADR-0214).</summary>
+    BuildTrap = 9,
+
+    /// <summary>Carry a crate to a placed door and build it — DK2's kind <b>10</b>, states 36 and
+    /// 37 (ADR-0214).</summary>
+    BuildDoor = 10,
 
     /// <summary>Carry a corpse to a Graveyard — DK2's kind <b>12</b>.</summary>
     CarryCorpse = 12,

@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 109: a Combat Pit fighter, its forced target and its state's turn (ADR-0213).
+        // HashVersion 110: a keeper's blueprint list (ADR-0214).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x1754FA244591A3A6UL, sim.StateHash());
+        Assert.Equal(0x2B65E45AF14CB7A7UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

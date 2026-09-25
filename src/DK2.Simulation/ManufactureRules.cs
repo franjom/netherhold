@@ -33,11 +33,11 @@ public readonly record struct ManufactureOrder(byte Kind, byte TypeId, int Cost)
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public static class ManufactureRules
 {
-    /// <summary>The list entry's kind byte for a trap.</summary>
-    public const byte TrapKind = 0;
+    /// <summary>The list entry's kind byte for a door: 0, as on a crate (<c>0x00506BA0</c>).</summary>
+    public const byte DoorKind = CrateRules.DoorKind;
 
-    /// <summary>The list entry's kind byte for a door.</summary>
-    public const byte DoorKind = 1;
+    /// <summary>The list entry's kind byte for a trap: 1.</summary>
+    public const byte TrapKind = CrateRules.TrapKind;
 
     /// <summary>The ring's size: 128 entries of 16 bytes, refused past it.</summary>
     public const int QueueCapacity = 128;
@@ -67,24 +67,22 @@ public static class ManufactureRules
             ? database.Traps.TryGetValue(order.TypeId, out TrapDef? trap) ? trap.CrateObjectId : (byte)0
             : database.Doors.TryGetValue(order.TypeId, out DoorDef? door) ? door.CrateObjectId : (byte)0;
 
-    /// <summary>The level loader's pushes (<c>0x00520F40</c> through <c>0x005066E0</c>): one order for
-    /// every placed blueprint of a type beyond the crates of that type the keeper already holds.</summary>
-    /// <remarks>Ours, stated: the counts are taken once over the whole level rather than as each
-    /// record is read, and orders go in blueprint order.</remarks>
+    /// <summary>The door loader's pushes (<c>0x00520F40</c>): every placed door blueprint joins its
+    /// keeper's blueprint list (<c>0x00505680</c>) and makes one order through <c>0x005066E0</c>
+    /// while the door blueprints of its type outnumber the keeper's crates of that type.</summary>
+    /// <remarks>The trap loader pushes neither, so a trap blueprint placed in the level is never
+    /// ordered and never built; the shipped levels place none. Ours, stated: the counts are taken
+    /// once over the whole level rather than as each record is read, and orders go in blueprint
+    /// order.</remarks>
     public static void QueueBlueprints(WorldState world, GameDatabase database)
     {
-        foreach (TrapState trap in world.Traps)
+        for (int i = 0; i < world.Doors.Count; i++)
         {
-            if (!trap.UnderConstruction) continue;
-            if (!database.Traps.TryGetValue(trap.TrapId, out TrapDef? def)) continue;
-            TryQueue(world, database, trap.PlayerId, TrapKind, trap.TrapId, def.ManufactureRequired, def.CrateObjectId);
-        }
-
-        foreach (DoorState door in world.Doors)
-        {
+            DoorState door = world.Doors[i];
             if (!door.UnderConstruction) continue;
             if (!database.Doors.TryGetValue(door.DoorId, out DoorDef? def)) continue;
             TryQueue(world, database, door.PlayerId, DoorKind, door.DoorId, (int)def.ManufactureRequired, def.CrateObjectId);
+            CrateRules.Register(world, door.PlayerId, new BlueprintRef(DoorKind, i));
         }
     }
 
@@ -118,6 +116,11 @@ public static class ManufactureRules
 
     /// <summary>The adder: credit, and the crate if the head order is paid for. Returns the crate
     /// made, or null.</summary>
+    /// <remarks>The crate maker <c>0x004F5240</c> first sends every creature attached to the
+    /// Workshop to state 68, which idles it on its next turn (<see cref="CrateRules.CrateMadeState"/>),
+    /// then makes the crate on the room's first tile. With space in the Workshop the crate is
+    /// listed there and owned by the keeper; without, it is left belonging to nobody, loose for
+    /// an imp to carry (ADR-0214).</remarks>
     public static ObjectState? Credit(
         WorldState world, GameDatabase database, CreatureState creature, int amount)
     {
@@ -127,22 +130,29 @@ public static class ManufactureRules
 
         ManufactureOrder order = keeper.ManufactureQueue[0];
         byte crateId = CrateObjectId(database, order);
-        int tile = WorkshopTile(world, database, creature);
-        if (crateId == 0 || tile < 0) return null;
+        RoomInstance? workshop = Workshop(world, database, creature);
+        if (crateId == 0 || workshop is null) return null;
 
+        foreach (CreatureState worker in world.Creatures)
+        {
+            if (worker.OwnerPlayerId != workshop.OwnerPlayerId || !IsAttached(world, workshop, worker)) continue;
+            CreatureStateMachine.TrySetState(worker, CrateRules.CrateMadeState);
+        }
+
+        ObjectState crate = world.SpawnObject(database, crateId, PlayerIds.Unowned, workshop.TileIndices[0]);
+        CrateRules.List(world, database, workshop, crate);
         keeper.ManufacturePoints = 0;
         keeper.ManufactureQueue.RemoveAt(0);
         keeper.ItemsManufactured++;
-        return world.SpawnObject(database, crateId, creature.OwnerPlayerId, tile);
+        return crate;
     }
 
     /// <summary><c>0x004C3B50</c>: the keeper's Workshop nearest the manufacturer with somebody at
-    /// work in it; the crate goes on the first tile of its chain. Ours, stated: distance to that
-    /// tile rather than to the room's position word, no capacity test (unbuilt, as for every
-    /// room), and the unread fallback <c>0x004C6CF0</c> is a failure that keeps the points.</summary>
-    private static int WorkshopTile(WorldState world, GameDatabase database, CreatureState creature)
+    /// work in it. Ours, stated: distance to the first tile rather than to the room's position
+    /// word, and the unread fallback <c>0x004C6CF0</c> is a failure that keeps the points.</summary>
+    private static RoomInstance? Workshop(WorldState world, GameDatabase database, CreatureState creature)
     {
-        int best = -1;
+        RoomInstance? best = null;
         long bestDistance = long.MaxValue;
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
@@ -153,19 +163,22 @@ public static class ManufactureRules
             if (distance < bestDistance)
             {
                 bestDistance = distance;
-                best = room.TileIndices[0];
+                best = room;
             }
         }
 
         return best;
     }
 
+    private static bool IsAttached(WorldState world, RoomInstance room, CreatureState c) =>
+        CreatureStateMachine.UpdatingCategory(c) == CreatureStateCategory.Manufacture
+        && EatingRules.Contains(room, (c.Tile.Y * world.Width) + c.Tile.X);
+
     private static bool Occupied(WorldState world, RoomInstance room, byte keeper)
     {
         foreach (CreatureState c in world.Creatures)
         {
-            if (c.OwnerPlayerId == keeper && CreatureStateMachine.UpdatingCategory(c) == CreatureStateCategory.Manufacture
-                && EatingRules.Contains(room, (c.Tile.Y * world.Width) + c.Tile.X)) return true;
+            if (c.OwnerPlayerId == keeper && IsAttached(world, room, c)) return true;
         }
 
         return false;

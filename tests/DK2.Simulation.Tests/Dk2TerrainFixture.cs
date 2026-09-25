@@ -62,6 +62,12 @@ internal static class Dk2TerrainFixture
     public const byte ManaVaultTerrain = 31;
     public const byte ClaimedVaultTerrain = 32;
 
+    /// <summary>The Alarm trap, its crate the Alarm crate (ADR-0214).</summary>
+    public static TrapDef[] Traps() =>
+    [
+        new() { Name = "Alarm", TrapId = 7, Health = 100, GoldCost = 250, ManufactureRequired = 1000, CrateObjectId = AlarmCrateObjectId, ShotTypeId = 0, ManaUpkeepPerSecond = 0 },
+    ];
+
     /// <summary>Two shipped door records: the Wooden Door and the Barricade, whose flags byte
     /// (0x40) the navigation writer reads as a permanent lock.</summary>
     public static DoorDef[] Doors() =>
@@ -152,6 +158,7 @@ internal static class Dk2TerrainFixture
               manaGain: 100, maxManaGain: 100),
         ],
         doors: Doors(),
+        traps: Traps(),
         rooms:
         [
             // Cost, terrain and placement flags exactly as the install has them

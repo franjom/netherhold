@@ -115,12 +115,40 @@ public static class ObjectCarryRules
         return best;
     }
 
-    /// <summary>Where <paramref name="thing"/> has to go, as a tile index, or -1.</summary>
+    /// <summary>Where <paramref name="thing"/> has to go, as a tile index, or -1. A crate goes to
+    /// the first crate tile of <see cref="WorkshopFor"/>; the carry itself picks a random one
+    /// (ADR-0214).</summary>
     public static int TryDestinationFor(
         WorldState world, GameDatabase database, CreatureState worker, ObjectState thing)
     {
         if (HomeRoomFor(database, thing.ObjectTypeId) is not { } type) return -1;
-        return FreeTileFor(world, database, worker.OwnerPlayerId, type, worker.Tile);
+        if (type != RoomTypeId.Workshop) return FreeTileFor(world, database, worker.OwnerPlayerId, type, worker.Tile);
+        if (WorkshopFor(world, database, worker) is not { } workshop) return -1;
+
+        var tiles = new List<int>();
+        CrateRules.CrateTiles(world, database, workshop, tiles);
+        return tiles.Count == 0 ? -1 : tiles[0];
+    }
+
+    /// <summary><c>0x004C6610</c> for a crate: the worker's keeper's Workshop nearest to it that has
+    /// space (<see cref="RoomCapacityRules.HasRoom"/> for a crate's places, none), or null. Ours
+    /// measures to the room's first tile rather than its position word, and leaves the
+    /// reachability test to the walk.</summary>
+    public static RoomInstance? WorkshopFor(WorldState world, GameDatabase database, CreatureState worker)
+    {
+        RoomInstance? best = null;
+        long bestDistance = long.MaxValue;
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
+            if (room.OwnerPlayerId != worker.OwnerPlayerId || room.Definition.TypeId != RoomTypeId.Workshop) continue;
+            if (room.TileIndices.Count == 0 || !RoomCapacityRules.HasRoom(world, database, room, units: 0)) continue;
+            long distance = EatingRules.DistanceSquared(world, worker.Tile, room.TileIndices[0]);
+            if (distance >= bestDistance) continue;
+            best = room;
+            bestDistance = distance;
+        }
+
+        return best;
     }
 
     /// <summary>Puts <paramref name="thing"/> into <paramref name="worker"/>'s arms.</summary>

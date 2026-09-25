@@ -139,7 +139,7 @@ body down and releases the imp. Thus 46 is carrier cleanup after admission, and
 | `DeliveringGold` | `G`: 6/51 → 28 → 29 → 10, entered from 10, 26, 27 or 76. | Ours has no separate arrival/deposit boundary 28 → 29. |
 | `FetchingBody` | Corpse: 10 → 6/51 → 40. Casualty: 10 → 6/51 → 42. | Ours folds the pickup handler (40/42) into the activity's arrival tick. |
 | `CarryingBody` | Corpse 6 → 41; own casualty 6 → 45; enemy 6 → 43 → 44 → 46 or 47 → 48. | Ours has one carry state and no prison admission/walk-away/refused-drop states. |
-| `FetchingObject` | 10 → 6/51 → 30; trap/door crates instead resume 34/36. | Ours does not represent crate installation as object fetching. |
+| `FetchingObject` | 10 → 6/51 → 30; trap/door crates instead resume 34/36. | Built (ADR-0214): 34/36 take the crate and walk to 35/37. |
 | `CarryingObject` | `O`: 6/51 → 31 (book), 32 (other) or 33 (Special), then 10. | Ours folds the three destination-specific arrival handlers into one activity. |
 
 ## 5. Open consequence
@@ -152,4 +152,5 @@ gold rows 26–29 are built too (ADR-0182), 28's wait for a standing point aside
 and the object rows 30–33 (ADR-0183), with the carry rule corrected to the object's
 own flags as `0x0046E480` reads them, and the body rows 40–48 (ADR-0184), with 43's
 inner leg and 44's walks falling in one tick because our carry walks straight to the
-cell. Trap and door crates (34–37) and teleport (51, 52) are not built.
+cell. Trap and door crates (34–37) are built (ADR-0214, `workshop-crates.md` §7); teleport
+(51, 52) is not.

@@ -284,12 +284,12 @@ face instead). Recorded, not built (**Q155**).
 
 | | DK2 | ours |
 |---|---|---|
-| Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **all of it but kind 9/10**: claim the just-dug tile, **8** (ADR-0065), marked excavation, claim, **13** both branches (ADR-0063, ADR-0064), **12**. Six of seven, in the original's order. The one missing is kind 9/10 — fetch a crate for a placed trap or door — which needs traps, doors and manufacturing |
+| Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **all of it**: claim the just-dug tile, **8** (ADR-0065), **9/10** (ADR-0214, `workshop-crates.md` §6), marked excavation, claim, **13** both branches (ADR-0063, ADR-0064), **12**, in the original's order |
 | Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold**. Kind 16 (fix a damaged own wall) is not a job here — §3 |
 | distance | rings, squared straight-line | steps along the walkable grid (Q25) |
 | kind 14 | claim the just-dug tile first, once no 8-neighbour has a dig task | **built** — `ClaimFreshlyDug`, same rule |
 | stealing | nearer imp takes the task | not built (Q155) |
-| just-dropped scan | three tiles, nine-step chain | **built** (ADR-0062, ADR-0069) — `TryTakeDroppedJob`, `DropScanTiles` = 3 Chebyshev measured to the work's tile, in DK2's drop order minus the two crate kinds and kind 11 (Q162) |
+| just-dropped scan | three tiles, nine-step chain | **built** (ADR-0062, ADR-0069) — `TryTakeDroppedJob`, `DropScanTiles` = 3 Chebyshev measured to the work's tile, in DK2's drop order minus kind 11 (Q162); the crate kinds are ADR-0214 |
 | the aimed bonus | `DroppedTask` carries Efficiency +10 for as long as work of that kind lasts; `DroppedTask == LastTaskType` retries that kind whole-map before it is cleared | **built** (ADR-0069) — `TryTakeJobOfKind`, `CreatureState.DroppedTask`/`JustDropped`/`LastTaskKind`. The bonus itself is `hand-of-evil.md` §6 |
 | kind 13 | carry an unconscious creature: own to a Lair, an enemy's to a Prison. **The Combat Pit is a confirmed source**: its loser is knocked out, never killed (owner, Q310), so a pit fight feeds this kind first — and kind 12 only when no imp arrives before the dying window closes, which the owner confirms does kill it | **built, both branches** — the rescue to its own bed (ADR-0063) and the capture into a cell (ADR-0064). What the prison then does is `docs/research/prison.md` |
 | kind 12 | carry a corpse to the Graveyard | **built** (ADR-0063); burial now feeds its per-room tally and Vampire threshold (Q165, ADR-0151) |
