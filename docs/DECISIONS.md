@@ -1311,7 +1311,7 @@ So a keeper who dug through **their own reinforced wall** got Dirt Path still st
 - No hash change; a rule got stricter. `hand-of-evil.md` §8 and `HandRules.CanDropObjectOn`'s doc comment are corrected in place.
 
 ## ADR-0078 — Payday is a journey, and the money comes off the tile underfoot
-**Date:** 2026-09-06 · **Status:** accepted · amended by ADR-0079: `AngerNoPay` is charged, and the nine-to-one conclusion here is retired by ADR-0081 · Q9 · Research: `docs/research/payday.md`
+**Date:** 2026-09-06 · **Status:** accepted · amended by ADR-0079: `AngerNoPay` is charged, and the nine-to-one conclusion here is retired by ADR-0081; ADR-0220 corrects "the one tile" to the room underfoot · Q9 · Research: `docs/research/payday.md`
 
 **Context.** The last of M4's original seven items, resting on ADR-0015 (no player gold counter) and ADR-0053 (the anger ladder). A keeper's wage bill falls due every `PayDayFrequencySeconds`; every creature it owns is credited `Pay` scaled by its level; each then walks to a treasury and lifts its own wages off the floor.
 
@@ -4792,3 +4792,18 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **Tests and controls.** Seven tests. Nine negative controls each fail a named test: a one-tile take, 163 raiding the job's player, the choice written back, the purse not halved, no escape walk, no recruiting, no origin, 164 testing player 3, and no own-player test in the arm.
 - 163's refusal for player 3's own creatures has no test: only heroes run these states here.
 - `HashVersion` and `FormatVersion` **114**, pin `0x7AE4DE645C0A63A1`.
+
+## ADR-0220 — A wage comes from the whole room underfoot, not one tile
+**Date:** 2026-09-25 · **Status:** accepted · amends ADR-0078 · answers Q435 · Research: `docs/research/payday.md` §4.4, `docs/research/steal-gold.md` §4
+
+**Context.** ADR-0078 read payday's withdrawal as taking from the one tile underfoot. Reading state 165 showed that the withdrawal, `0x004F4510`, is a method of the room: it goes round every tile. Payday's state 189 calls it on the tile's room (`0x004727B4`).
+
+**Decision.**
+1. `PaydayRules.TakeFromRoom` replaces `TakeFromTile` and is shared with `StealGoldRules`. It starts at the creature's tile and goes round the room, one pile a tile, until the wage is met.
+2. 189 first needs the tile to be a Treasury or Heart of the creature's own keeper (`0x004539B0`, types 1 then 5). Otherwise it goes idle, counts no attempt, and reports `wages_not_here`.
+
+**Consequences.**
+- A creature on a thin tile of a full treasury is paid in full. Only a room emptied during the walk comes up with nothing.
+- Ours: the ring follows tile-index order, not DK2's cell links. 188's own re-check and its region test (Q371) are still not built.
+- Two tests. Two negative controls each fail a named test: a one-tile take, and no owner or type check.
+- No new state; `HashVersion` stays **114**.

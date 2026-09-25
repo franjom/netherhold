@@ -119,7 +119,7 @@ Two consequences:
 table's `CreatureStatId.Pay` row; `PaydayRules.MaxFailedAttempts` = 2;
 `PaydayRules.IsPayingRoomOf` accepts a Treasury or Dungeon Heart of the
 creature's own keeper; `PaydayRules.GoldIn` skips a room whose total is zero and
-`PaydayRules.TakeFromTile` lifts the money off the tile underfoot.
+`PaydayRules.TakeFromRoom` lifts it from the room underfoot, starting at the creature's tile (Q435, ADR-0220).
 
 ---
 
@@ -182,10 +182,13 @@ if (creature[0x470] != 0) {
 }
 ```
 
-**The gold comes off the tile the creature is standing on.** This is the
-strongest independent confirmation yet of ADR-0015's finding that **DK2 has no
-player gold counter** — payday, the one moment where a global balance would be
-most convenient, is implemented as a withdrawal from a tile.
+**The gold comes off the room the creature is standing in, starting at its tile.** Corrected
+2026-09-25 (Q435, ADR-0220). This section used to say "off the tile", and that was wrong.
+`takeGoldFromTile` is `0x004F4510`, called on the tile's room (`MOV ECX,EAX` at `0x004727B2`).
+It takes one pile a tile and goes round the room's tile ring until the wage is met
+(`steal-gold.md` §4). Before it, 189 needs the tile to be a Treasury or Heart of the creature's
+own keeper (`0x004539B0`, types 1 then 5). Otherwise it returns 0 and counts no attempt. The
+confirmation of ADR-0015 stands: the withdrawal is from tiles, never from a player counter.
 
 **`FUN_0048ae70(taken / 2)` puts half the wage in the creature's purse — CONFIRMED
 (2026-09-24).** Its receiver is the creature (`MOV ECX,[ESI+0x8]` at the call). It adds
@@ -228,7 +231,7 @@ places a bed (`lair-acquisition.md` §9.1). **Built** (ADR-0179).
 | Wage = `Pay` scaled by level, accumulating | **read**, field pinned to record `0x0F1C` |
 | `GetPaid` (`+0x3E2`) as a consumed one-shot | **read** |
 | Walk to the nearest treasury/heart **that has gold** | **read** |
-| Take gold from the tile underfoot | **read**, and it confirms ADR-0015 |
+| Take gold from the room underfoot, starting at the creature's tile | **read** (corrected, Q435), and it confirms ADR-0015 |
 | Two failed attempts per payday, then stop | **read** |
 | Two distinct "cannot pay" messages | **read** |
 | `AngerNoPay` firing on an unpaid creature | **READ AND BUILT** the same day (ADR-0079) — see §6 |

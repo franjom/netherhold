@@ -34,7 +34,7 @@ public static class PaydayRules
     /// <see cref="TakeItState"/> (§4.3).</summary>
     public const int ArrivingState = 188;
 
-    /// <summary>State 189: takes the wage off the tile underfoot, then returns failure, which
+    /// <summary>State 189: takes the wage from the room underfoot, then returns failure, which
     /// is idle, unless the Drink job takes over (§4.4, Q421).</summary>
     public const int TakeItState = 189;
 
@@ -69,16 +69,27 @@ public static class PaydayRules
         return total;
     }
 
-    /// <summary>Takes up to <paramref name="wanted"/> gold off one tile and says how much came
-    /// off. One tile, the one underfoot, is the original's rule: a creature on an empty tile of a
-    /// full treasury gets nothing and spends an attempt (ADR-0015 per-tile gold).</summary>
-    public static int TakeFromTile(WorldState world, int tileIndex, int wanted)
+    /// <summary>DK2's <c>0x004F4510</c>, shared by payday's 189 and the thief's 165: from
+    /// <paramref name="start"/> round the room's tiles, one pile a tile, until
+    /// <paramref name="wanted"/> is met or the ring is back at the start (Q435). So a creature on a
+    /// bare tile of a full treasury is still paid; only an empty room pays nothing. Ours walks
+    /// <see cref="RoomInstance.TileIndices"/> in index order, where DK2 follows each cell's link.</summary>
+    public static int TakeFromRoom(WorldState world, RoomInstance room, int start, int wanted)
     {
         if (wanted <= 0) return 0;
+        IReadOnlyList<int> tiles = room.TileIndices;
+        int first = 0;
+        while (first < tiles.Count && tiles[first] != start) first++;
+        if (first == tiles.Count) first = 0;
 
-        ref TileState tile = ref world.TileAtIndex(tileIndex);
-        int taken = Math.Min(tile.GoldHeld, wanted);
-        tile.GoldHeld -= taken;
+        int taken = 0;
+        for (int k = 0; k < tiles.Count && taken < wanted; k++)
+        {
+            ref TileState tile = ref world.TileAtIndex(tiles[(first + k) % tiles.Count]);
+            int take = Math.Min(tile.GoldHeld, wanted - taken);
+            tile.GoldHeld -= take;
+            taken += take;
+        }
         return taken;
     }
 }

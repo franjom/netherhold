@@ -289,22 +289,33 @@ public sealed class PaydaySystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Takes what the tile underfoot will give, and decides what happens next.
+    /// State 189 (<c>0x00472740</c>): takes the wage from the room underfoot, and decides what
+    /// happens next.
     ///
-    /// <para><b>One tile, and it can come up empty.</b> The original passes the
-    /// creature's own coordinates to its withdrawal, so a creature standing on a
-    /// bare tile of an otherwise full treasury gets nothing and spends an
-    /// attempt. Ours picks a gold-bearing tile to walk to, so that is rarer here
-    /// than in the original — but it still happens, because somebody else may
-    /// have emptied the tile during the walk, and that case is the one worth
-    /// having.</para>
+    /// <para><b>Not on a paying room, nothing.</b> The tile must be a Treasury or Heart of the
+    /// creature's own keeper (<c>0x004539B0</c>, types 1 then 5). Otherwise 189 returns 0 and
+    /// counts no attempt.</para>
+    /// <para><b>The whole room, from the tile underfoot</b> (<c>0x004F4510</c> on the tile's room,
+    /// <c>0x004727B4</c>, Q435). The withdrawal starts at the creature's own tile and goes round
+    /// the room, so only a room emptied during the walk comes up with nothing.</para>
     /// </summary>
     private static void Take(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
 
-        int taken = PaydayRules.TakeFromTile(world, here, creature.WageOwed);
+        RoomInstance? room = RoomIndex.RoomAt(world, context.Database, here);
+        if (room is null || !PaydayRules.IsPayingRoomOf(room, creature.OwnerPlayerId))
+        {
+            creature.StopMoving();
+            StateShadow.ToIdle(context, SystemName, creature);
+            context.Emit(SystemName, "wages_not_here",
+                $"creature={creature.Id} player={creature.OwnerPlayerId} " +
+                $"owed={creature.WageOwed} at=({creature.Tile.X},{creature.Tile.Y})");
+            return;
+        }
+
+        int taken = PaydayRules.TakeFromRoom(world, room, here, creature.WageOwed);
 
         if (taken <= 0)
         {

@@ -53,7 +53,7 @@ HYPOTHESIS / UNKNOWN (AGENTS.md). **CONFIRMED is reserved for the running game**
 | The Prison: a 3x3 holds **two** (inner tiles plus one, CONFIRMED off the game's status bar), the drain is hunger, a Skeleton never withers, and a prisoner shuffles its cell and races the others to a chicken | ADR-0064, ADR-0068, ADR-0070, ADR-0073, ADR-0074 | `prison.md` |
 | The Hatchery: coops are `min(tiles / 6, 36)`, never adjacent; the room lays **object 47, the Egg**, which hatches after about two seconds; one chicken per room tile | ADR-0066 | `hatchery.md` |
 | The Hand of Evil holds a thing, not only a creature; a creature goes down on the keeper's own ground and only a worker may be dropped anywhere else | ADR-0062, ADR-0075, ADR-0077 | `hand-of-evil.md` |
-| Payday is a journey and the money comes off the tile underfoot; being owed is the whole trigger | ADR-0078, ADR-0079 | `payday.md` |
+| Payday is a journey and the money comes off the room underfoot, from the creature's tile; being owed is the whole trigger | ADR-0078, ADR-0079, ADR-0220 | `payday.md` |
 | Fog of war is simulation state, per keeper | ADR-0076 | `fog-of-war.md` |
 | An object is one type with an 18-byte tagged union keyed on its definition id; a bed is a thing standing on a tile that knows whose it is | ADR-0054 | `objects.md` |
 | Gold on the floor is an object, and the limit named after it is not a limit | ADR-0055, ADR-0056 | `gold-on-the-floor.md` |

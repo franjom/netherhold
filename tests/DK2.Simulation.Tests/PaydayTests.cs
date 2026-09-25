@@ -362,6 +362,50 @@ public class PaydayTests
         Assert.Equal(100, goblin.GoldHeld);
     }
 
+    /// <summary>State 189's withdrawal (<c>0x004F4510</c>) starts at the tile underfoot and goes
+    /// round the whole room, so a thin tile of a full treasury still pays in full (Q435).</summary>
+    [Fact]
+    public void AWageComesFromTheWholeTreasury_NotJustTheTileUnderfoot()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Treasury(world, new TilePos(1, 3), 2000);
+        TilePos thin = Treasury(world, new TilePos(2, 3), 200);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+
+        GameSimulation sim = Simulation(db, world);
+        RunToFirstPayday(sim, db, extraTicks: 300);
+
+        Assert.Equal(thin, goblin.Tile);
+        Assert.Equal(0, goblin.WageOwed);
+        Assert.Equal(0, world.Tile(2, 3).GoldHeld);
+        Assert.Equal(1700, world.Tile(1, 3).GoldHeld);
+    }
+
+    /// <summary>189 first asks whether the tile is its keeper's treasury or heart
+    /// (<c>0x004539B0</c>, types 1 and 5); a vault lost to another keeper during the walk pays
+    /// nothing and costs no attempt.</summary>
+    [Fact]
+    public void AVaultLostDuringTheWalkPaysNothing_AndCostsNoAttempt()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        TilePos vault = Treasury(world, new TilePos(1, 3), 2000);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        int limit = PaydayRules.FirstPaydayTicks(db) + 400;
+        while (goblin.UtilityNewState != PaydayRules.ArrivingState && sim.World.CurrentTick.Value < limit) sim.Tick();
+        Assert.Equal(PaydayRules.ArrivingState, goblin.UtilityNewState);
+        world.Tile(vault.X, vault.Y).OwnerPlayerId = PlayerIds.Neutral;
+        while (!sink.Events.Any(e => e.Kind == "wages_not_here") && sim.World.CurrentTick.Value < limit) sim.Tick();
+
+        Assert.Contains(sink.Events, e => e.Kind == "wages_not_here");
+        Assert.Equal(2000, world.Tile(vault.X, vault.Y).GoldHeld);
+        Assert.Equal(0, goblin.PayAttemptsFailed);
+    }
+
     [Fact]
     public void TheDungeonHeartPaysWagesToo()
     {

@@ -117,7 +117,7 @@ public static class StealGoldRules
         {
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
             int wanted = CreatureLevelRules.MaxGoldHeld(database, definition, creature.Level) - creature.GoldHeld;
-            int taken = TakeFromRoom(world, room, here, wanted);
+            int taken = PaydayRules.TakeFromRoom(world, room, here, wanted);
             int kept = PurseRules.Receive(database, definition, creature, taken >> 1);
             context.Emit(system, "gold_stolen",
                 $"creature={creature.Id} player={room.OwnerPlayerId} taken={taken} kept={kept} " +
@@ -142,28 +142,6 @@ public static class StealGoldRules
             $"creature={creature.Id} type={definition.Name} player={creature.OwnerPlayerId} " +
             $"at=({creature.Tile.X},{creature.Tile.Y}) gold_lost={lost} effect={(effect ? 15 : 0)}");
         context.World.RemoveCreature(creature.Id);
-    }
-
-    /// <summary><c>0x004F4510</c>: from <paramref name="start"/> round the room's tiles, one pile a
-    /// tile, until <paramref name="wanted"/> is met or the ring is back at the start. Ours walks
-    /// <see cref="RoomInstance.TileIndices"/> in index order, where DK2 follows each cell's link.</summary>
-    public static int TakeFromRoom(WorldState world, RoomInstance room, int start, int wanted)
-    {
-        if (wanted <= 0) return 0;
-        IReadOnlyList<int> tiles = room.TileIndices;
-        int first = 0;
-        while (first < tiles.Count && tiles[first] != start) first++;
-        if (first == tiles.Count) first = 0;
-
-        int taken = 0;
-        for (int k = 0; k < tiles.Count && taken < wanted; k++)
-        {
-            ref TileState tile = ref world.TileAtIndex(tiles[(first + k) % tiles.Count]);
-            int take = Math.Min(tile.GoldHeld, wanted - taken);
-            tile.GoldHeld -= take;
-            taken += take;
-        }
-        return taken;
     }
 
     /// <summary><c>0x004C61C0(1, position, out, 0)</c> on one player: its Treasury whose first tile's
