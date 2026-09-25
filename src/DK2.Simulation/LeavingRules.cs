@@ -14,10 +14,29 @@ namespace DK2.Simulation;
 /// point beside the room's centre; a failed route is retried each call, and
 /// DK2's no-entrance fallback to wandering (state 87) is not built (Q41), the creature standing
 /// instead. Shared by the deserter (<see cref="Systems.CreatureAngerSystem"/>) and a fallen
-/// keeper's creatures (<see cref="DefeatRules"/>).</summary>
+/// keeper's creatures (<see cref="DefeatRules"/>). On state ids (ADR-0207): 194, a walk in
+/// state 6 resuming 195, then 196; ours has no second walk from 195.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-leaving.md")]
 public static class LeavingRules
 {
+    /// <summary>State 194: choose the nearest entrance and route to it.</summary>
+    public const int ChoosingState = 194;
+
+    /// <summary>State 195: at the entrance, route to a point beside its centre.</summary>
+    public const int AtTheEntranceState = 195;
+
+    /// <summary>State 196: sacked, its gold gone, removed.</summary>
+    public const int SackedState = 196;
+
+    /// <summary>Sets 194, from idle when the creature holds no state yet. Returns whether the
+    /// rule took it: it refuses 194 from the captive, device and pit states, and the creature
+    /// then stays where it was.</summary>
+    public static bool Start(SimulationContext context, CreatureState state, string systemName)
+    {
+        Systems.StateShadow.FromIdle(state);
+        return Systems.StateShadow.TryMove(context, systemName, state, ChoosingState);
+    }
+
     /// <summary>Portal or Hero Portal terrain, whoever owns it — DK2's room finder treats types
     /// 3 and 25 alike and walks every player's list.</summary>
     public static bool IsExitTile(WorldState world, GameDatabase database, TilePos at) =>
@@ -64,7 +83,11 @@ public static class LeavingRules
         int exit = NearestExitTile(world, database, state);
         if (exit < 0) return false;
         target = new TilePos(exit % world.Width, exit / world.Width);
-        return context.Navigation.TryRoute(state, target, Navigation.MoveOptions.Leaving);
+        if (!context.Navigation.TryRoute(state, target, Navigation.MoveOptions.Leaving)) return false;
+        // A failed route leaves it in 194 to try again, as DK2's option 8 does.
+        if (!Systems.StateShadow.IsTravelling(state))
+            CreatureStateMachine.BeginTravel(state, Systems.StateShadow.TravelToPoint, AtTheEntranceState);
+        return true;
     }
 
     /// <summary>It reached the entrance. Gone, and its gold with it — DK2 zeroes the carried
@@ -73,6 +96,8 @@ public static class LeavingRules
     {
         // State 196's first act (0x0045A0E1, 0x0045A0ED): the creature's tree sees event 63 and its
         // owner's tree event 61, before the sacking, the gold and the removal.
+        Systems.StateShadow.Arrive(context, systemName, state);
+        Systems.StateShadow.Move(context, systemName, state, SackedState);
         context.FireCreatureEvent(state, CreatureTriggerEvent.Sacked);
         context.FirePlayerEvent(state.OwnerPlayerId, PlayerTriggerEvent.CreatureSacked);
         context.Emit(systemName, "creature_left",

@@ -94,6 +94,46 @@ public class DefeatTests
         Assert.Contains(sink.Events, e => e.Kind == "creature_left" && e.Detail.Contains("creature=" + goblin.Id));
     }
 
+    [Fact]
+    public void TheWalkOutIsOneNinetyFourThenSixTowardsOneNinetyFiveThenOneNinetySix()
+    {
+        // creature-leaving.md §1: 194 routes in state 6, resuming 195; 196 sacks and removes.
+        (GameDatabase db, WorldState world, _, _, CreatureState goblin, _) = FallenDungeon();
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world);
+        sim.ObserveWith(sink);
+
+        sim.Run(6);
+        Assert.Equal(6, goblin.Dk2StateId);
+        Assert.Equal(LeavingRules.AtTheEntranceState, goblin.UtilityNewState);
+        Assert.Equal(LeavingRules.ChoosingState, goblin.StateBeforeUtilityState);
+
+        sim.Run(200);
+        Assert.Null(world.CreatureById(goblin.Id));
+        Assert.Equal(LeavingRules.SackedState, goblin.Dk2StateId);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void ACreatureOnATortureDeviceIsNotMarchedOut()
+    {
+        // The rule refuses 194 from the Torture category, and defeat's SetState is gated
+        // (0x0048AD30 is SetState with option 0), so the creature stays on its device.
+        (GameDatabase db, WorldState world, _, _, CreatureState goblin, _) = FallenDungeon();
+        CreatureStateMachine.Begin(goblin, TortureRules.TorturedState);
+        goblin.Activity = CreatureActivity.BeingTortured;
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world);
+        sim.ObserveWith(sink);
+
+        sim.Run(20);
+
+        Assert.Equal(CreatureActivity.BeingTortured, goblin.Activity);
+        Assert.Equal(TortureRules.TorturedState, goblin.Dk2StateId);
+        Assert.Contains(sink.Events, e => e.Kind == "state_refused"
+            && e.Detail.Contains($"creature={goblin.Id} ") && e.Detail.Contains($"to={LeavingRules.ChoosingState}"));
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static (GameDatabase, WorldState, int, CreatureState, CreatureState, CreatureState) FallenDungeon(byte portalOwner = Keeper)

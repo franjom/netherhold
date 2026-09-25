@@ -214,7 +214,7 @@ public class EatingTests
         GameSimulation sim = Simulation(db, world);
         while (goblin.Dk2StateId != 7) sim.Run(1);
 
-        goblin.Activity = CreatureActivity.Leaving;
+        goblin.Activity = CreatureActivity.Idle;
         sim.Run(1);
 
         Assert.Equal(CreatureStateMachine.NoState, goblin.Dk2StateId);

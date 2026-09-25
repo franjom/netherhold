@@ -4536,3 +4536,19 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - The research notes, `RESEARCH_STATUS.md` and the code comments no longer say a corpse is a creature in a state.
 - No hashed state changed in the pinned world. Four tests. Negative controls: no fall, never lying down, a corpse keeping its id, a rescue skipping idle, and Dying left off the retired list each fail a named test.
 
+## ADR-0207 — Leaving is states 194 to 196
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/creature-leaving.md` §1, §2
+
+**Context.** Leaving was an activity with no state id. DK2's job 10 and its defeat code both set state 194 through `SetState` (defeat through `0x0048AD30`, which is `SetState` with option 0). 194 routes in state 6 to the nearest entrance, resuming 195; 195 routes to a point beside its centre, resuming 196; 196 sacks and removes the creature. The rule refuses 194 from the Refused, Temple, Prison, Torture, Combat Pit and two other categories.
+
+**Decision.**
+1. `LeavingRules.Start` sets 194 through the gate. The anger system and defeat commit the creature to leaving only when it is taken; otherwise it stays where it was and `state_refused` is reported.
+2. A route found starts state 6 resuming 195. A failed route leaves it in 194 to try again, as option 8 does.
+3. On an entrance tile the walk hands over to 195, then 196, then the removal. Leaving joins the retired activities.
+
+**Consequences.**
+- An angry creature strapped to a torture device can no longer choose to leave, and a fallen keeper's creature on a device is not marched out.
+- Ours, stated: no second walk from 195; arrival is any entrance tile.
+- Two workaround tests that used Leaving as their unretired example now use Idle and Frozen.
+- No hashed state changed in the pinned world. Four tests. Negative controls: an ungated start, the anger and defeat paths ignoring a refusal, no walk state, no sacking state, and Leaving left off the retired list each fail a named test.
+

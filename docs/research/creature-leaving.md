@@ -124,3 +124,9 @@ where DK2 targets the room's `(x+1, y)` and then a quarter-tile point (195); arr
 is any entrance tile; the no-entrance fallback to state 87 is not built (Q41), the
 creature standing instead; the sacking table, notification 20 and the `+0x423`
 effect are not modelled.
+
+**On state ids** (ADR-0207): the decision sets 194 through the gate, so a creature in
+a state the rule refuses 194 from (the captive, device and pit states) does not leave;
+a route found starts state 6 resuming 195; a failed one leaves it in 194; the
+entrance hands over to 195 and sets 196 before the removal. Ours has no second walk
+from 195.

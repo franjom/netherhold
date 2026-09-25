@@ -229,6 +229,27 @@ public class CreatureAngerTests
     }
 
     [Fact]
+    public void AnAngryCreatureOnATortureDeviceCannotChooseToLeave()
+    {
+        // Job 10 sets 194, and the rule refuses 194 from the Torture category.
+        GameDatabase db = DeserterDb;
+        WorldState world = World(db);
+        PaintPortal(db, world, new TilePos(3, 3));
+        CreatureState goblin = world.SpawnCreature(db, DeserterId, Keeper, new TilePos(1, 1));
+        goblin.Anger.Lair = CreatureAngerRules.Ceiling + 1;
+        CreatureStateMachine.Begin(goblin, TortureRules.TorturedState);
+        goblin.Activity = CreatureActivity.BeingTortured;
+        var events = new ListEventSink();
+
+        Walking(db, world, events).Run(Second * 3);
+
+        Assert.Equal(CreatureActivity.BeingTortured, goblin.Activity);
+        Assert.Equal(TortureRules.TorturedState, goblin.Dk2StateId);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "creature_leaving");
+        Assert.Contains(events.Events, e => e.Kind == "state_refused" && e.Detail.Contains($"to={LeavingRules.ChoosingState}"));
+    }
+
+    [Fact]
     public void AKeeperWithNoPortalKeepsTheCreatureThatWantedToLeave()
     {
         // The consequence of Q116 that is behaviour rather than bookkeeping: with
@@ -249,6 +270,9 @@ public class CreatureAngerTests
         Assert.Equal(CreatureActivity.Leaving, goblin.Activity);
         Assert.Equal(-1, LairRules.BedTileIndex(world, db, goblin));
         Assert.DoesNotContain(events.Events, e => e.Kind == "creature_left");
+
+        // Ours stands in 194 and retries; DK2's no-entrance fallback, wandering (87), is Q41.
+        Assert.Equal(LeavingRules.ChoosingState, goblin.Dk2StateId);
 
         // Reported once, on the second it first failed, and not once a second
         // for the next minute.

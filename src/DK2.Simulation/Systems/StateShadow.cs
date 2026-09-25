@@ -32,9 +32,15 @@ internal static class StateShadow
         }
     }
 
-    public static void Move(SimulationContext context, string system, CreatureState creature, int state)
+    public static void Move(SimulationContext context, string system, CreatureState creature, int state) =>
+        TryMove(context, system, creature, state);
+
+    /// <summary><see cref="Move"/>, returning whether the rule took it.</summary>
+    public static bool TryMove(SimulationContext context, string system, CreatureState creature, int state)
     {
-        if (!CreatureStateMachine.TrySetState(creature, state)) Refused(context, system, creature, state);
+        if (CreatureStateMachine.TrySetState(creature, state)) return true;
+        Refused(context, system, creature, state);
+        return false;
     }
 
     /// <summary>State 82's own shape (<c>0x0046F9F8</c>): set the target, and if that is

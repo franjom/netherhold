@@ -531,7 +531,7 @@ public sealed class CreatureJobTests
         sim.Run(Second * 20);
         Assert.Equal(108, goblin.Dk2StateId);
 
-        goblin.Activity = CreatureActivity.Leaving;
+        goblin.Activity = CreatureActivity.Frozen;
         sim.Run(1);
 
         Assert.Equal(CreatureStateMachine.NoState, goblin.Dk2StateId);
