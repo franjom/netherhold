@@ -277,7 +277,7 @@ a base class this read did not need.
 | 0x133 | `AutoPlaced` | placed and owned by a room's layout rather than by play |
 | 0x138 | `RoomId` | the room it belongs to |
 | 0x13A | `StateId`, `StateAge` | its own small state machine, and how long in it |
-| 0x142 | `WhoGetsThisFromADrop` | who owns it if a keeper drops it |
+| 0x142 | `WhoGetsThisFromADrop` | recipient creature of a keeper's drop |
 | 0x146 | bit 0 `EnableDeathEffect`, 1 `BeingDragged`, 2 `BeingCarried`, 3 `Possessed`, 4 `InHand`, 5 `InUse` | six flags in one word |
 | 0x14A | **the union** | 18 bytes, per kind |
 | 0x15C | `UtilityNewState` | |
