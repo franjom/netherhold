@@ -94,6 +94,26 @@ Jython script:
   PyGhidra. A Python `bytearray` passed to `Memory.getBytes` silently stayed
   zeroed, so a byte scan reported 0 hits. Any non-ASCII character in a
   script, even in a comment, was a `SyntaxError`.
+- **Never index a Java array element by element.** Each access costs about
+  17 µs from CPython. Call `bytes(buf)` right after `getBytes`: it copies 2.4 MB
+  of `.text` in about 1 ms.
+- **Per-byte Python loops are slow in CPython.** Jython's JIT made them
+  cheap; CPython interprets them. Use `bytes.find`, `re.finditer` over the
+  buffer, or slice assignment instead. Rewritten this way, `CallScanAll`,
+  `Gaps` and `ForceGaps` went from 158 s, 41 s and 29 s under CPython to
+  1–2 s each, faster than the Jython originals (3–4 s).
+- **Instruction walks are 4–12× slower** (`SlotCallCtx` 6 s → 49 s,
+  `ScalarHits` 4 s → 46 s). Every Java call from CPython pays a crossing cost,
+  and a walk over every instruction makes several calls per instruction.
+  They still work. Batch queries into one run rather than paying the walk
+  per question.
+
+All 39 local helper scripts were ported on 2026-09-25. Each was run under
+both versions with the same arguments, and every output matched except those
+that print decompiler output or string labels. Those differ only in the
+decompiler's presentation, listed below. 12.1.4 also sometimes merges
+adjacent stack locals into one array (`auStack_58[3]`) and adds a "type
+propagation not settling" warning on `FUN_005099a0`.
 
 **12.1.4 was checked against 11.0.1 on 2026-09-25**, on copies of the project
 opened read-only. The function count (10,519), references to `0x006DA8B0`,
