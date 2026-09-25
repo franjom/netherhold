@@ -153,7 +153,6 @@ public sealed class LairSeeker
         if (!context.Navigation.TryRoute(creature, new TilePos(chosenArrival % world.Width, chosenArrival / world.Width), Navigation.MoveOptions.Spot))
             return false;
         creature.TimerTicks = 0;
-        creature.Activity = CreatureActivity.SeekingLair;
 
         // The attempt calls the room helper with 80, from idle or from 80 itself when a
         // room had nothing left (0x0046F422, 0x0046F7EB); already inside is 1, then 80.

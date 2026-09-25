@@ -353,7 +353,6 @@ public static class PrisonRules
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
         creature.AwakeTicks = 0;
-        creature.Activity = CreatureActivity.Imprisoned;
 
         // Into the captive's states: 114 from an imp, 77 from the hand, then 115 (ADR-0191, ADR-0193).
         CreatureStateMachine.TrySetState(creature, dropped ? HandDropState : AdmittedState);

@@ -277,7 +277,6 @@ public static class CombatRules
         creature.JobTileIndex = -1;
         creature.StopMoving();
         creature.Running = false;
-        creature.Activity = CreatureActivity.Idle;
         CombatStates.Idle(creature);
     }
 }

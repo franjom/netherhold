@@ -191,7 +191,6 @@ public static class TortureRules
         creature.PosY = CreatureState.CentreOf(tileIndex / world.Width);
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.StopMoving();
-        creature.Activity = CreatureActivity.BeingTortured;
     }
 
     /// <summary>Takes a creature off its device, giving its state back. A captive is still its
@@ -203,7 +202,6 @@ public static class TortureRules
         CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
         if (PrisonRules.IsImprisoned(creature))
         {
-            creature.Activity = CreatureActivity.Imprisoned;
             return;
         }
 

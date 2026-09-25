@@ -204,7 +204,6 @@ public sealed class CreatureAngerSystem : ISimulationSystem
         if (CanReachAnExit(context, creature, state)
             && Leave(context, creature, state)) return;
 
-        state.Activity = CreatureActivity.Idle;
         CreatureStateMachine.TrySetState(state, CreatureStateMachine.Idle);
         state.RebelCountdownTicks = RebellionRules.DefectDelayTicks;
 
@@ -269,7 +268,6 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             state.OwnerPlayerId = RebellionRules.DefectsTo;
             state.RebelAgainstPlayerId = was;
             state.CurrentJob = JobType.KillPlayer;
-            state.Activity = CreatureActivity.Idle;
             CreatureStateMachine.TrySetState(state, CreatureStateMachine.Idle);
 
             CreatureDef creature = context.Database.CreatureById(state.CreatureTypeId);
@@ -303,7 +301,6 @@ public sealed class CreatureAngerSystem : ISimulationSystem
         {
             if (!LeavingRules.Start(context, state, SystemName)) return false;
             LairRules.ReleaseBed(context.World, context.Database, state);
-            state.Activity = CreatureActivity.Leaving;
         }
 
         // The walk itself is DK2's states 194-196 — the nearest entrance of anyone —

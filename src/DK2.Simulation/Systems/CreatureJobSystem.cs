@@ -293,7 +293,6 @@ public sealed class CreatureJobSystem : ISimulationSystem
             if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) continue;
 
             creature.JobTileIndex = target;
-            creature.Activity = CreatureActivity.GoingToJob;
             SetOutInState(context, creature, job);
 
             // Standing in it already - a creature that rolls Train while stood
@@ -321,7 +320,6 @@ public sealed class CreatureJobSystem : ISimulationSystem
         if (RoomFilledMeanwhile(context, creature, definition, job)) return;
 
         creature.StopMoving();
-        creature.Activity = CreatureActivity.AtWork;
 
         StateShadow.Arrive(context, SystemName, creature);
 
@@ -639,7 +637,6 @@ public sealed class CreatureJobSystem : ISimulationSystem
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
         creature.StopMoving();
-        creature.Activity = CreatureActivity.Idle;
 
         StateShadow.ToIdle(context, SystemName, creature);
     }

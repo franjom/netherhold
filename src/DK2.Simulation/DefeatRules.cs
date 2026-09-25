@@ -122,7 +122,6 @@ public static class DefeatRules
                 if (!LeavingRules.Start(context, state, SystemName)) continue;
                 state.ClearJob();
                 LairRules.ReleaseBed(world, database, state);
-                state.Activity = CreatureActivity.Leaving;
                 context.Emit(SystemName, "creature_leaving", $"creature={state.Id} type={creature.Name} player={playerId}");
             }
 

@@ -223,7 +223,6 @@ public sealed class PaydaySystem : ISimulationSystem
             {
                 creature.StopMoving();
                 SetOutInState(context, creature);
-                creature.Activity = CreatureActivity.SeekingWages;
                 Arrived(context, creature);
                 return;
             }
@@ -231,7 +230,6 @@ public sealed class PaydaySystem : ISimulationSystem
             if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot)) continue;
 
             SetOutInState(context, creature);
-            creature.Activity = CreatureActivity.SeekingWages;
 
             context.Emit(SystemName, "wages_sought",
                 $"creature={creature.Id} type={definition.Name} " +
@@ -306,7 +304,6 @@ public sealed class PaydaySystem : ISimulationSystem
         if (taken <= 0)
         {
             creature.PayAttemptsFailed++;
-            creature.Activity = CreatureActivity.Idle;
             creature.StopMoving();
             StateShadow.ToIdle(context, SystemName, creature);
 
@@ -337,7 +334,6 @@ public sealed class PaydaySystem : ISimulationSystem
         // State 189 returns 0, which is idle, and payday's own decision runs again next tick
         // for anything still owed. Unless the creature's happy table holds Drink: then 189
         // hands it to the Drink handler, owed or not, which walks from 189 itself (Q421).
-        creature.Activity = CreatureActivity.Idle;
         creature.StopMoving();
         if (CreatureJobSystem.TryGoGamblingWhenPaid(context, creature, definition)) return;
         StateShadow.ToIdle(context, SystemName, creature);

@@ -239,7 +239,6 @@ public static class FearRules
         }
 
         me.BackOffTimer = timer;
-        me.Activity = CreatureActivity.Fleeing; // the swing action, if any, still lands (Q373)
         CombatStates.Enter(context, me, CombatStates.Fleeing);
         me.CombatStateEnteredTick = context.Tick.Value;
         context.Emit(SystemName, "flees",
@@ -527,7 +526,6 @@ public static class FearRules
         me.CurrentJob = JobType.None;
         me.JobTileIndex = -1;
         me.Running = true;
-        me.Activity = CreatureActivity.Withdrawing;
         CombatStates.IntoTheGroup(context, me);
         CombatStates.Travel(me, CombatStates.Withdrawn);
         me.CombatStateEnteredTick = context.Tick.Value;
@@ -555,7 +553,6 @@ public static class FearRules
     {
         if (me.HasRoute) return;
         me.Running = false;
-        me.Activity = CreatureActivity.Idle;
         CombatStates.Arrive(context, me);
         CombatStates.Idle(me);
         context.Emit(SystemName, "withdrawn", $"creature={me.Id} tile={me.Tile.X},{me.Tile.Y}");
@@ -603,7 +600,6 @@ public static class FearRules
         me.AlarmDeficit = deficit;
         me.AlarmRoomTile = nearest.TileIndices[0];
         me.Running = true;
-        me.Activity = CreatureActivity.RaisingAlarm;
         CombatStates.IntoTheGroup(context, me);
         CombatStates.Travel(me, CombatStates.RespondingToThreat);
         me.CombatStateEnteredTick = context.Tick.Value;
@@ -670,7 +666,6 @@ public static class FearRules
             c.CurrentJob = JobType.None;
             c.JobTileIndex = -1;
             c.Running = true; // DK2 sets the raiser's run speed on it (combat-alarm.md §3)
-            c.Activity = CreatureActivity.Reporting;
             CombatStates.Travel(c, CombatStates.ReportingDanger);
             c.ReportTicks = 0;
             c.CombatStateEnteredTick = context.Tick.Value;
@@ -682,7 +677,6 @@ public static class FearRules
         me.AlarmRoomTile = -1;
         me.AlarmDeficit = 0;
         me.Running = false;
-        me.Activity = CreatureActivity.Idle;
         // 251, then SetState(1) and SetState(252), which ends at once here.
         CombatStates.Arrive(context, me);
         CombatStates.Enter(context, me, CreatureStateMachine.Idle);
@@ -700,7 +694,6 @@ public static class FearRules
         if (++me.ReportTicks <= ReportTicks) return;
         me.ReportTicks = 0;
         me.Running = false;
-        me.Activity = CreatureActivity.Idle;
         CombatStates.Idle(me);
         context.Emit(SystemName, "stands_down", $"creature={me.Id}");
     }
@@ -715,7 +708,6 @@ public static class FearRules
     /// <summary>Back into state 199 with the target kept.</summary>
     private static void FightOn(SimulationContext context, CreatureState me, string reason)
     {
-        me.Activity = CreatureActivity.Fighting;
         CombatStates.Enter(context, me, CombatStates.Engaging);
         me.CombatStateEnteredTick = context.Tick.Value;
         me.Running = true;

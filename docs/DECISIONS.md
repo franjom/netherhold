@@ -4602,3 +4602,19 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - The anger test that cooled "whatever the activity says" now asks the one thing still expressible: an idle creature does not cool.
 - No hashed state changed. 33 table rows and three special cases are pinned.
 
+## ADR-0211 — The activity is derived from the state
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/creature-state-table.md`
+
+**Context.** ADR-0210 showed that the state names the activity on every production path, and pinned the table. The stored `CreatureState.Activity` was then a second copy that every system kept in step by hand, beside each state move.
+
+**Decision.**
+1. `CreatureState.Activity` is a read-only property: `ActivityRules.Of(this)`. A state that names no activity throws on the read, so a system that leaves a creature in one fails loudly.
+2. The 55 assignments in `src/` are deleted, and so is the activity parameter of `StatusEffectRules.Stand`. `ClearJob` no longer names an activity; the state is the caller's to move.
+3. The activity leaves the hash and the snapshot: `HashVersion` and `FormatVersion` 107, pin `0x01B0EBC839B5A5B4`.
+
+**Consequences.**
+- The systems' switches on the activity are switches on the state, read through the table. `CreatureActivity` stays as the vocabulary the presentation and the logs use.
+- Tests that stripped a state to show a hook reads the state and not the activity cannot say that any more; they now put the creature in state 1 and show the hook does not run. The Casino test leaves through state 1 rather than releasing its state.
+- `StateInvariantTests` now checks that every creature's state names an activity every tick, and that only a worker rests in 10.
+- Every test passed after the assignments were removed, which is what ADR-0210's per-tick check predicted. Negative controls on the table: sleeping read as idle and a walk not named by its resume fail behaviour tests across the suite (the first also hung one, so the control harness now kills a test after 90 s). 81 ignoring the job, the hand drop always idle and an unmapped state read as idle fail only the table's own tests: 77 lasts within a tick and no system enters an unmapped state, but no simulation test covers a Sleep-job creature standing in 81, which is a gap.
+

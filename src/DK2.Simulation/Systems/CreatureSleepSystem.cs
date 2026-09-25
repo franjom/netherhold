@@ -260,14 +260,12 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             return;
         }
 
-        creature.Activity = CreatureActivity.Idle;
         StateShadow.ToIdle(context, SystemName, creature);
     }
 
     /// <summary>The attempt ended with nothing. Idle, and try again later.</summary>
     private static void GiveUp(SimulationContext context, CreatureState creature)
     {
-        creature.Activity = CreatureActivity.Idle;
         creature.StopMoving();
         creature.TimerTicks = LairRules.IdleRedecisionTicks;
         StateShadow.ToIdle(context, SystemName, creature);
@@ -288,7 +286,6 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         if (!context.Navigation.TryRoute(creature, bed, Navigation.MoveOptions.ExactSpot)) return;
 
         if (NeedRules.IsAtAJob(creature)) NeedRules.EndJob(creature);
-        creature.Activity = CreatureActivity.GoingToSleep;
 
         // The Sleep job calls the room helper with 81 (0x0046F4B0), from whatever state the
         // need interrupted; already in the bed's room is 1, 81, and 81's own walk to the bed.
@@ -375,7 +372,6 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             StateShadow.MoveOrViaIdle(context, SystemName, creature, LairRules.SleepingState);
         }
 
-        creature.Activity = CreatureActivity.Sleeping;
         creature.SleepTicks = 0;
         creature.StopMoving();
 
@@ -404,7 +400,6 @@ public sealed class CreatureSleepSystem : ISimulationSystem
     /// <summary>83's own exit for an ordinary bed returns failure, which is idle.</summary>
     private static void Wake(SimulationContext context, CreatureState creature)
     {
-        creature.Activity = CreatureActivity.Idle;
         creature.AwakeTicks = 0;
         creature.SleepTicks = 0;
         creature.StopMoving();

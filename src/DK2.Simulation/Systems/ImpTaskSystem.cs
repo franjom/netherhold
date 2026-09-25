@@ -239,7 +239,6 @@ public sealed class ImpTaskSystem : ISimulationSystem
         if (IsInWorkingPosition(context, creature, grid))
         {
             creature.StopMoving();
-            creature.Activity = CreatureActivity.Working;
             creature.TimerTicks = SimulationTiming.WorkApplicationPeriodTicks;
             AtWork(context, creature);
             return;
@@ -336,7 +335,6 @@ public sealed class ImpTaskSystem : ISimulationSystem
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = default;
         context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Plain);
-        creature.Activity = CreatureActivity.FetchingGold;
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.FetchGold;
         FromTaskSelection(creature);
@@ -495,7 +493,6 @@ public sealed class ImpTaskSystem : ISimulationSystem
     {
         creature.TargetTileIndex = -1;
         creature.TargetWork = default;
-        creature.Activity = CreatureActivity.DeliveringGold;
         creature.TimerTicks = 0;
     }
 
@@ -894,12 +891,10 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         if (_route.Count == 0)
         {
-            creature.Activity = CreatureActivity.Working;
             creature.TimerTicks = SimulationTiming.WorkApplicationPeriodTicks;
         }
         else
         {
-            creature.Activity = CreatureActivity.MovingToJob;
         }
 
         SetOutInState(context, creature, kind, routed: _route.Count > 0);
@@ -1265,7 +1260,6 @@ public sealed class ImpTaskSystem : ISimulationSystem
         ObjectState? thing = LooseObjectAt(context, creature, definition, at);
         if (thing is null) return false;
 
-        creature.Activity = CreatureActivity.FetchingObject;
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
         creature.TargetObjectId = thing.Id;
@@ -1362,7 +1356,6 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         creature.TargetObjectId = -1;
         ObjectCarryRules.PickUp(creature, thing);
-        creature.Activity = CreatureActivity.CarryingObject;
         creature.TargetTileIndex = destination;
 
         context.Emit(SystemName, "object_picked_up",
@@ -1484,7 +1477,6 @@ public sealed class ImpTaskSystem : ISimulationSystem
         CreatureState? body = BodyToCarryAt(context, creature, definition, at, corpses, graveyard);
         if (body is null) return false;
 
-        creature.Activity = CreatureActivity.FetchingBody;
         creature.CarriedCreatureId = -1;
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
@@ -1590,7 +1582,6 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         ForgetBody(creature);
         CarryRules.PickUp(creature, body);
-        creature.Activity = CreatureActivity.CarryingBody;
         creature.TargetTileIndex = destination;
 
         context.Emit(SystemName, "body_picked_up",

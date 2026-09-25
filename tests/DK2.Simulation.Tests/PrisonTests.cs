@@ -1530,14 +1530,15 @@ public class PrisonTests
     }
 
     [Fact]
-    public void ACaptiveWithNoPrisonStateTakesNoDrainWhateverItsActivitySays()
+    public void ACaptiveOutOfThePrisonStatesTakesNoDrain()
     {
-        // The drain is the Prison category's update hook (ADR-0191): no state, no hook.
+        // The drain is the Prison category's update hook (ADR-0191): it reads the state, and a
+        // prisoner (still the keeper's) that holds state 1 is not in the category.
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
-        CreatureStateMachine.Release(captive);
+        StatePlacement.Place(captive, CreatureStateMachine.Idle);
 
         GameSimulation sim = Simulation(db, world);
         for (int i = 0; i < 10 * Second; i++) sim.Tick();

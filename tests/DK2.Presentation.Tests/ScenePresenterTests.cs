@@ -275,7 +275,7 @@ public class ScenePresenterTests
         rig.Presenter.Present(world);
         rig.Target.Clear();
 
-        spawned.Activity = CreatureActivity.Working;
+        spawned.Dk2StateId = 14; // digging: the state names Working (ADR-0211)
         rig.Presenter.Present(world);
 
         Assert.Equal(1, rig.Target.CreatureUpdates);

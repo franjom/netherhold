@@ -229,7 +229,7 @@ public class NeedInterruptTests
         sim.Run((rate + 5) * Second);
         Assert.Equal(0, goblin.HungerNeed);
 
-        CreatureStateMachine.Release(goblin);
+        CreatureStateMachine.TrySetState(goblin, CreatureStateMachine.Idle);
         sim.Run(Second);
         Assert.True(goblin.HungerNeed > 0);
     }
@@ -273,16 +273,13 @@ public class NeedInterruptTests
         // A walk to eat resolves to group 7; asleep is group 7 and Sleeping.
         StatePlacement.Place(tired, EatingRules.FindHatcheryState);
         Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
-        CreatureStateMachine.Release(tired);
         StatePlacement.Place(tired, 83);
         Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
-        CreatureStateMachine.Release(tired);
 
         // A walk (group 9) to the bed is judged by the Sleeping state it resumes.
         StatePlacement.Place(tired, 1);
         CreatureStateMachine.BeginTravel(tired, Walk, 83);
         Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
-        CreatureStateMachine.Release(tired);
 
         // At a job it is still tired and still awake.
         StatePlacement.Place(tired, Training);

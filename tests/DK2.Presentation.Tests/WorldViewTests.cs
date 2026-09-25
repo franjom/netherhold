@@ -161,7 +161,8 @@ public class WorldViewTests
             ?? throw new InvalidOperationException("the shipped database has no Imp.");
 
         CreatureState spawned = world.SpawnCreature(database, imp.CreatureId, 1, FirstWalkableTile(database, world));
-        spawned.Activity = CreatureActivity.DeliveringGold;
+        spawned.Dk2StateId = 6;          // walking to the store: DeliveringGold (ADR-0211)
+        spawned.UtilityNewState = 28;
         spawned.GoldHeld = 500;
 
         CreatureView rendered = view.Creatures(world).Single(c => c.Id == spawned.Id);

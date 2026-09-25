@@ -92,7 +92,7 @@ public static class StatusEffectRules
         if (ticks <= 0 || IsFrozen(creature) || definition.Flags.HasFlag(CreatureFlags.IsHorny)) return false;
         if (CreatureDeathRules.IsDown(creature)) return false;
         creature.FrozenTicks = ticks;
-        Stand(context, creature, CreatureActivity.Frozen, CombatStates.Frozen);
+        Stand(context, creature, CombatStates.Frozen);
         context.Emit(SystemName, "frozen", $"creature={creature.Id} ticks={ticks}");
         return true;
     }
@@ -109,7 +109,7 @@ public static class StatusEffectRules
         // 0x00491840: a refused SetState(255) is no stun at all, so a frozen creature is not stunned.
         if (CreatureStateMachine.Classify(creature, CombatStates.Stunned) == StateTransition.Refused) return false;
         creature.StunTicks = CombatRules.TicksOf(definition.StunDuration);
-        Stand(context, creature, CreatureActivity.Stunned, CombatStates.Stunned);
+        Stand(context, creature, CombatStates.Stunned);
         // 0x00491862, after SetState(255): the stunned creature's tree sees event 15.
         context.FireCreatureEvent(creature, CreatureTriggerEvent.Stunned);
         context.Emit(SystemName, "stunned", $"creature={creature.Id} ticks={creature.StunTicks}");
@@ -197,7 +197,7 @@ public static class StatusEffectRules
     /// <summary>Into a standing state: the engagement let go, the action ended, the route dropped.
     /// Letting the target go is ours — DK2 changes the state and leaves the attack word; the
     /// creature looks again when it comes round either way.</summary>
-    private static void Stand(SimulationContext context, CreatureState creature, CreatureActivity state, int stateId)
+    private static void Stand(SimulationContext context, CreatureState creature, int stateId)
     {
         CombatRules.Disengage(context.World, creature);
         creature.ClearJob();
@@ -205,7 +205,6 @@ public static class StatusEffectRules
         creature.JobTileIndex = -1;
         creature.SwingInProgress = false;
         creature.Running = false;
-        creature.Activity = state;
         CombatStates.Enter(context, creature, stateId);
     }
 }

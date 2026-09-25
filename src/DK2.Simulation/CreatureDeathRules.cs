@@ -100,10 +100,9 @@ public static class CreatureDeathRules
     public static bool IsCorpse(CreatureState creature) =>
         creature.Activity == CreatureActivity.Dead;
 
-    /// <summary>Whether this creature is off its feet: out of health, or already in the dying
-    /// window. This, not <see cref="IsDying"/>, is what every system guards on.
-    /// <see cref="Systems.CreatureHealthSystem"/> books the collapse once a game second, leaving a
-    /// window in which a creature has no health and is still <see cref="CreatureActivity.Idle"/>;
+    /// <summary>Whether this creature is off its feet: out of health, or already dying. Every system
+    /// guards on this, not <see cref="IsDying"/>: the collapse is booked once a game second
+    /// (<see cref="Systems.CreatureHealthSystem"/>), so a creature can have no health and still be idle;
     /// guarding on <c>IsDying</c> alone let a creature at zero health walk to its bed under
     /// <c>CreatureSleepsWhenBelowPercentHealth</c> and heal, and let an Imp regenerate 67 a second on its own land back to 500.</summary>
     public static bool IsDown(CreatureState creature) =>
@@ -138,7 +137,6 @@ public static class CreatureDeathRules
     {
         LairRules.ReleaseBed(world, database, creature);
 
-        creature.Activity = CreatureActivity.Dead;
         CreatureStateMachine.Release(creature);
 
         // A fresh sixty seconds: the corpse and rescue windows share one field.
@@ -168,7 +166,6 @@ public static class CreatureDeathRules
     {
         if (IsDying(creature)) return false;
 
-        creature.Activity = CreatureActivity.Dying;
         CreatureStateMachine.TrySetState(creature, FallingState);
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
@@ -181,10 +178,8 @@ public static class CreatureDeathRules
 
     /// <summary>Puts a rescued creature into its own bed, where it recovers. Returns false if it was
     /// not dying or has no bed — a bed sold while its owner lay dying is not replaced, so such a
-    /// creature cannot be rescued at all; UNKNOWN whether DK2 agrees (Q107). Adds no health: it
-    /// wakes at zero and the lair heals it at <c>ModifyHealthOfCreatureInLairPerSecond</c> (100 a
-    /// second), being now <see cref="CreatureActivity.Sleeping"/> in its own bed (ADR-0049). So the
-    /// order in <see cref="Systems.CreatureHealthSystem"/> is load-bearing: healing runs before the collapse test, or a rescue would collapse what it saved.</summary>
+    /// creature cannot be rescued at all; UNKNOWN whether DK2 agrees (Q107). Adds no health: asleep
+    /// in its own bed, the lair heals it at 100 a second (ADR-0049). So the order in <see cref="Systems.CreatureHealthSystem"/> is load-bearing: healing runs before the collapse test, or a rescue would collapse what it saved.</summary>
     public static bool Rescue(WorldState world, GameDatabase database, CreatureState creature)
     {
         if (!IsDying(creature)) return false;
@@ -199,7 +194,6 @@ public static class CreatureDeathRules
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
         creature.AwakeTicks = 0;
-        creature.Activity = CreatureActivity.Sleeping;
         // 217's way out is SetState(1); ours then lies down in the bed, 83 (ADR-0206).
         CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
         CreatureStateMachine.TrySetState(creature, LairRules.SleepingState);

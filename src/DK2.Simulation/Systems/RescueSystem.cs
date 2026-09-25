@@ -53,7 +53,6 @@ public sealed class RescueSystem : ISimulationSystem
         NeedRules.EndJob(creature);
 
         creature.StopMoving();
-        creature.Activity = CreatureActivity.Rescuing;
         creature.RescueTurnsLeft = RescueRules.WaitTurns;
         context.Emit(SystemName, "rescue_started",
             $"creature={creature.Id} owner={creature.OwnerPlayerId} at=({creature.Tile.X},{creature.Tile.Y})");

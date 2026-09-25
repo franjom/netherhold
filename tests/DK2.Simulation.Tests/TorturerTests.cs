@@ -152,12 +152,10 @@ public class TorturerTests
 
         Assert.Null(TorturerStep.UnattendedVictim(world, db, second));
 
-        CreatureStateMachine.Release(first);
         StatePlacement.Place(first, TortureRules.TorturerFacingState);
         Assert.Same(victim, TorturerStep.UnattendedVictim(world, db, second));
 
         first.OwnerPlayerId = Rival;
-        CreatureStateMachine.Release(first);
         StatePlacement.Place(first, TortureRules.TorturerWhippingState);
         Assert.Same(victim, TorturerStep.UnattendedVictim(world, db, second));
     }

@@ -102,10 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 106: every creature holds a state from its constructor on, 1 where
-        // it had held none (ADR-0209), so the pinned world's two creatures moved it.
-        // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x52719F6004D8BDBBUL, sim.StateHash());
+        // HashVersion 107: the activity is derived from the state and left the hash
+        // (ADR-0211). Earlier pins and their reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0x01B0EBC839B5A5B4UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

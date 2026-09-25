@@ -537,12 +537,15 @@ public sealed class CreatureState
     /// <summary>The object this worker is walking towards, or -1 for none.</summary>
     public int TargetObjectId = -1;
 
-    public CreatureActivity Activity;
+    /// <summary>What the creature is doing, named by its DK2 state (<see cref="ActivityRules"/>,
+    /// ADR-0211). Not stored: the systems move the state, and this follows it.</summary>
+    public CreatureActivity Activity =>
+        ActivityRules.Of(this)
+        ?? throw new InvalidOperationException($"Creature {Id} is in state {Dk2StateId}, which names no activity.");
 
     /// <summary>DK2's own state id, 0–280 (<c>creature-state-table.md</c>), and the
-    /// authoritative representation of what a creature is doing (ADR-0135).
-    /// <see cref="Activity"/> is the retiring convenience beside it: new work sets
-    /// this, and an activity retires once the states composing it have been read.
+    /// authoritative representation of what a creature is doing (ADR-0135);
+    /// <see cref="Activity"/> is derived from it (ADR-0211).
     /// <para><b>1, idle, from the constructor</b> (<c>0x00476B40</c> writes <c>+0x10</c> = 1,
     /// <c>travel-states.md</c> §2.4). A corpse holds none, -1 (ADR-0206).</para></summary>
     public int Dk2StateId = 1;
@@ -810,8 +813,7 @@ public sealed class CreatureState
         // DroppedTask survives: DK2 clears it in exactly one place, a later
         // evaluation that finds no more work of the same kind, and giving a job
         // up is not that place (ADR-0069). JustDropped is spent by the drop scan
-        // itself, the only thing that reads it.
-        Activity = CreatureActivity.Idle;
+        // itself, the only thing that reads it. The state is the caller's to move.
         TargetTileIndex = -1;
         TargetWork = default;
         StopMoving();
@@ -865,7 +867,6 @@ public sealed class CreatureState
         hash.Add(PrisonOwnerPlayerId);
         hash.Add(CarriedObjectId);
         hash.Add(TargetObjectId);
-        hash.Add((int)Activity);
         hash.Add(Dk2StateId);
         hash.Add(StateBeforeUtilityState);
         hash.Add(UtilityNewState);

@@ -233,15 +233,15 @@ public class TortureTests
     }
 
     [Fact]
-    public void AVictimWithNoTortureStateIsNotHurtWhateverItsActivitySays()
+    public void AVictimOutOfTheTortureStatesIsNotHurt()
     {
-        // The hurt is the category 15 hook: no state, no hook.
+        // The hurt is the category 15 hook: it reads the state, not the device the victim is on.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState captive = Captive(db, world);
         Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
         captive.Health = 1000;
-        CreatureStateMachine.Release(captive);
+        StatePlacement.Place(captive, CreatureStateMachine.Idle);
 
         Simulation(db, world).Run(20);
 

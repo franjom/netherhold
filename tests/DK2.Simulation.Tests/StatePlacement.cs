@@ -36,7 +36,6 @@ internal static class StatePlacement
             default: Place(creature, Standing(activity)); break;
         }
 
-        creature.Activity = activity;
         Assert.Equal(activity, ActivityRules.Of(creature));
     }
 

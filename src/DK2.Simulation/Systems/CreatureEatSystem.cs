@@ -97,7 +97,6 @@ public sealed class CreatureEatSystem : ISimulationSystem
                         EnterTheChain(context, creature);
                         Shadow(context, creature, CreatureStateMachine.Idle);
                         Shadow(context, creature, EatingRules.InHatcheryState);
-                        creature.Activity = CreatureActivity.SeekingFood;
                         creature.StopMoving();
                         Seeking(context, creature, definition);
                         break;
@@ -180,7 +179,6 @@ public sealed class CreatureEatSystem : ISimulationSystem
         creature.TargetObjectId = EatingRules.NoChicken;
         EnterTheChain(context, creature);
         CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToRoom, EatingRules.InHatcheryState);
-        creature.Activity = CreatureActivity.SeekingFood;
 
         context.Emit(SystemName, "food_sought",
             $"creature={creature.Id} type={definition.Name} " +
@@ -300,7 +298,6 @@ public sealed class CreatureEatSystem : ISimulationSystem
         GameDatabase database = context.Database;
 
         creature.TargetObjectId = chicken.Id;
-        creature.Activity = CreatureActivity.FetchingChicken;
         creature.StopMoving();
 
         // 92 hands the bird to the position helper: state 6, resuming in 93. That helper has
@@ -368,7 +365,6 @@ public sealed class CreatureEatSystem : ISimulationSystem
     {
         creature.TargetObjectId = EatingRules.NoChicken;
         Shadow(context, creature, EatingRules.InHatcheryState);
-        creature.Activity = CreatureActivity.SeekingFood;
         creature.StopMoving();
     }
 
@@ -377,7 +373,6 @@ public sealed class CreatureEatSystem : ISimulationSystem
     {
         creature.TargetObjectId = EatingRules.NoChicken;
         Shadow(context, creature, CreatureStateMachine.Idle);
-        creature.Activity = CreatureActivity.Idle;
         creature.StopMoving();
     }
 

@@ -8,16 +8,17 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>What the release workaround used to enforce and nothing else checks (ADR-0209): every creature
-/// holds a state but a corpse, and an idle creature is in state 1, or an imp in 10, where it
-/// rests between tasks. A path that sets the activity idle and forgets the state breaks it.</summary>
+/// <summary>The activity is named by the state (ADR-0211), so a system that leaves a creature
+/// in a state no activity names would throw on the next read. This runs a busy dungeon and
+/// checks every tick that every creature's state names one, and that only a worker rests
+/// idle in 10, the task selection state.</summary>
 public sealed class StateInvariantTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = 4;
 
     [Fact]
-    public void ABusyDungeonNeverHoldsAnIdleCreatureOutOfStateOneOrAnImpOutOfTen()
+    public void ABusyDungeonNeverLeavesACreatureInAStateThatNamesNoActivity()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
@@ -58,14 +59,12 @@ public sealed class StateInvariantTests
             sim.Tick();
             foreach (CreatureState c in world.Creatures)
             {
-                seenActivities.Add(c.Activity);
+                CreatureActivity? named = ActivityRules.Of(c);
+                string at = $"tick {t}: creature {c.Id} in state {c.Dk2StateId} resuming {c.UtilityNewState}";
+                Assert.True(named.HasValue, at + " names no activity");
+                seenActivities.Add(named!.Value);
                 bool worker = db.CreatureById(c.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker);
-                string at = $"tick {t}: creature {c.Id} {c.Activity} in state {c.Dk2StateId}";
-                if (c.Activity == CreatureActivity.Dead) Assert.False(CreatureStateMachine.HasState(c), at);
-                else Assert.True(CreatureStateMachine.HasState(c), at);
-                if (c.Activity == CreatureActivity.Idle)
-                    Assert.True(c.Dk2StateId == CreatureStateMachine.Idle || (worker && c.Dk2StateId == ImpStates.TaskSelection), at);
-                Assert.True(ActivityRules.Of(c) == c.Activity, $"{at} names {ActivityRules.Of(c)}");
+                if (c.Dk2StateId == ImpStates.TaskSelection) Assert.True(worker, at);
             }
         }
 
