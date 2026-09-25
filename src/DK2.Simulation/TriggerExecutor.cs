@@ -378,8 +378,58 @@ public sealed class TriggerExecutor
         {
             _areaRoots = BuildAreaRoots(world);
             AttachCreatureRoots(world);
+            // The level initialiser 0x0050B5B0 fires event 3 for every creature it places.
+            foreach (CreatureState creature in world.Creatures)
+                FireCreatureEvent(creature, CreatureTriggerEvent.Created, currentTick: 0);
         }
     }
+
+    /// <summary>DK2's creature event filter <c>0x0049AA30(creature, type, 0, 0)</c>: from the
+    /// creature's root, along the top-level sibling chain only, every <b>active</b> record of the
+    /// event's type has its children walked with the record's own repeat byte — the condition itself
+    /// is never evaluated, its occurrence being the event. A negative (action) id ends the scan. The
+    /// child walker <c>0x0049A980</c> returns 0 on every path, so the filter's repeat decrement
+    /// (<c>0x00508640</c>) is never reached; nothing is decremented here either.</summary>
+    public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type, int currentTick)
+    {
+        if (_tree is null || creature.TriggerId == 0) return;
+        var run = new TriggerRun(currentTick) { Creature = creature, Player = creature.OwnerPlayerId };
+        FireEvent(unchecked((short)creature.TriggerId), (byte)type, TriggerContext.Creature, run, null);
+    }
+
+    /// <summary>DK2's player event filter <c>0x004C7A50(player, type, targetType, targetId)</c>, the
+    /// same scan from the player's root. Type 53 alone reads the pair: its record's first two body
+    /// bytes must equal <paramref name="targetType"/> and <paramref name="targetId"/>.</summary>
+    public void FirePlayerEvent(
+        byte playerId, PlayerTriggerEvent type, int currentTick, byte targetType = 0, byte targetId = 0)
+    {
+        if (_tree is null) return;
+        foreach (TriggerPlayerRoot root in _tree.PlayerRoots)
+        {
+            if (root.PlayerId != playerId || root.TriggerId == 0) continue;
+            var run = new TriggerRun(currentTick) { Player = playerId };
+            (byte, byte)? pair = type == PlayerTriggerEvent.GuiButtonPressed ? (targetType, targetId) : null;
+            FireEvent(unchecked((short)root.TriggerId), (byte)type, TriggerContext.Player, run, pair);
+            return;
+        }
+    }
+
+    private void FireEvent(short id, byte type, TriggerContext context, TriggerRun run, (byte Type, byte Id)? pair)
+    {
+        while (id > 0)
+        {
+            TriggerRecord record = _tree!.Resolve(id)
+                ?? throw new InvalidDataException("No tag 213 trigger records exist.");
+            if (record.Type == type && _state.IsRecordActive(record) && PairMatches(record, pair))
+                Walk(unchecked((short)record.ChildTriggerId), _state.RecordRepeat(record), context, run);
+            id = unchecked((short)record.NextTriggerId);
+        }
+    }
+
+    private static bool PairMatches(TriggerRecord record, (byte Type, byte Id)? pair) =>
+        pair is null
+        || (record.Parameters.TryGetValue("TargetType", out long t) && t == pair.Value.Type
+            && record.Parameters.TryGetValue("TargetId", out long i) && i == pair.Value.Id);
 
     internal TriggerExecutor(TriggerState state) => _state = state;
 
@@ -1020,7 +1070,7 @@ public sealed class TriggerExecutor
             return true;
         }
         if (record.Type == 1) return CreateCreature(record, context, p, run);
-        if (record.Type == 14) return CreateParty(record, context, p, partial);
+        if (record.Type == 14) return CreateParty(record, context, p, run);
         if (record.Type == 22) return AlterTerrain(record, context, p, run);
         if (record.Type != 7)
             throw new ArgumentException($"Action type {record.Type} has no arm here.", nameof(record));
@@ -1128,8 +1178,9 @@ public sealed class TriggerExecutor
     /// action succeeds.</summary>
     private bool CreateParty(
         TriggerRecord record, TriggerContext context,
-        IReadOnlyDictionary<string, long> p, List<BlockedTrigger> partial)
+        IReadOnlyDictionary<string, long> p, TriggerRun run)
     {
+        List<BlockedTrigger> partial = run.Partial;
         int partyId = checked((byte)p["PartyId"]);
         if (partyId >= TriggerTree.PartySlotCount)
             throw new InvalidDataException(
@@ -1149,7 +1200,8 @@ public sealed class TriggerExecutor
             return HeroPartyRules.Spawn(
                 _world, _database, _rng, _tree!, party,
                 Byte(p, "ActionPointId"), Byte(p, "PartyType"),
-                id => SetSubtreeActive(id, active: true));
+                id => SetSubtreeActive(id, active: true),
+                created => FireCreatureEvent(created, CreatureTriggerEvent.Created, run.CurrentTick));
 
         TriggerPartySlot slot = _tree!.Parties[partyId];
         if (ReferenceEquals(slot, TriggerPartySlot.Empty)) return true;

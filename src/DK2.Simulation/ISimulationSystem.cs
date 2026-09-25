@@ -43,6 +43,21 @@ public sealed class SimulationContext
 
     public void Emit(string system, string kind, string detail) =>
         Events.Emit(new SimEvent(Tick, system, kind, detail));
+
+    /// <summary>The level's trigger executor, when the simulation has one: the systems fire DK2's
+    /// creature and player trigger events through it at the moment they happen, as the binary
+    /// does. Null in a world without triggers, and the firings are no-ops.</summary>
+    internal TriggerExecutor? Triggers { get; set; }
+
+    /// <summary>DK2's turn number for a trigger walk fired now: the executor's own
+    /// <c>Run</c> takes <c>CurrentTick + 1</c>, and an event during this tick belongs to that turn.</summary>
+    private int TriggerTurn => unchecked((int)(Tick.Value + 1));
+
+    public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type) =>
+        Triggers?.FireCreatureEvent(creature, type, TriggerTurn);
+
+    public void FirePlayerEvent(byte playerId, PlayerTriggerEvent type, byte targetType = 0, byte targetId = 0) =>
+        Triggers?.FirePlayerEvent(playerId, type, TriggerTurn, targetType, targetId);
 }
 
 /// <summary>One unit of per-tick simulation work.</summary>

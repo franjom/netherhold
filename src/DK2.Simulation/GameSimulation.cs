@@ -52,6 +52,7 @@ public sealed class GameSimulation
         _triggers = triggers is null
             ? new TriggerExecutor(world.Triggers)
             : new TriggerExecutor(triggers, world.Triggers, world, database, rng);
+        _context.Triggers = _triggers;
     }
 
     public GameDatabase Database { get; }

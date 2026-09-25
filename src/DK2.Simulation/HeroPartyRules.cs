@@ -11,7 +11,7 @@ namespace DK2.Simulation;
 /// hero party is raised at an action point's centre tile, one creature per occupied member slot,
 /// each given its level, gold, health, job, flags and trigger root from the member record, and the
 /// party then linked follower-to-leader. Ours differs, stated: creatures stand at tile centres where
-/// DK2 uses the tile's corner; things already on the tile are not cleared; no party pace, no event 3,
+/// DK2 uses the tile's corner; things already on the tile are not cleared; no party pace,
 /// no gate state 269 or effects, no King notification (Q427).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
 public static class HeroPartyRules
@@ -63,10 +63,12 @@ public static class HeroPartyRules
 
     /// <summary>Raise the party. Returns <see langword="false"/> only where DK2 returns 0: a
     /// creature could not be made (the cap, or an unplaceable tile), the members already made
-    /// staying. <paramref name="armSubtree"/> is the executor's arming of a trigger subtree.</summary>
+    /// staying. <paramref name="armSubtree"/> is the executor's arming of a trigger subtree and
+    /// <paramref name="created"/> its firing of creature event 3 for each member made.</summary>
     public static bool Spawn(
         WorldState world, GameDatabase database, SimRandom? rng, TriggerTree tree,
-        HeroPartyState party, byte actionPointId, byte partyType, Action<ushort> armSubtree)
+        HeroPartyState party, byte actionPointId, byte partyType, Action<ushort> armSubtree,
+        Action<CreatureState>? created = null)
     {
         if (partyType != 0 && IsAlive(world, party.PartyId)) return true;
 
@@ -114,6 +116,7 @@ public static class HeroPartyRules
             state.TriggerId = member.TriggerId;
             state.TriggerRepeat = tree.ResolveCondition(member.TriggerId)?.RepeatCount ?? 0;
             if (member.TriggerId != 0) armSubtree(member.TriggerId);
+            created?.Invoke(state);
         }
 
         party.SpawnCount++;

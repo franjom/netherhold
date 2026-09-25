@@ -102,14 +102,56 @@ differently. `FUN_0049AA30` (creature) and `FUN_004C7A50` (player) take an
   occurrence *is* the condition.
 
 This is why `trigger-semantics.md` finds condition types whose eight-byte body
-no handler reads. It is also the one place the repeat-decrement helper is
-reachable: `0x0049AA7F` calls it when the walk returns non-zero, where every
-exit from the world walker returns zero (`trigger-tree.md`, "Repeat and active
-state"). Whether these walkers can return non-zero is **UNKNOWN**.
+no handler reads. The repeat-decrement helper `0x00508640` sits behind the walk
+at `0x0049AA7F`, but the child walker `0x0049A980` returns 0 on every path
+(both its exits are `return 0`), so **an event never decrements a repeat** —
+settled 2026-09-25; the world walker is the same (`trigger-tree.md`, "Repeat
+and active state"). A record with repeat 1 still fires once, because the child
+action clears its own active bit.
 
-The creature event filter has 18 callers, including the level initialiser and
-action type 14's party creation, which fires event 3 for each creature it makes
-(`0x0051A5A1`). The player filter has 8.
+### Who fires what (2026-09-25, every call site of both filters)
+
+The creature filter `0x0049AA30(creature, type, 0, 0)` has **24 call sites**
+(`PreCall`, 14-instruction windows; 20 functions and 3 unattributed spans).
+The player filter `0x004C7A50(player, type, targetType, targetId)` has 12; only
+type 53 reads the pair, comparing it with the record's first two body bytes,
+and `(0, 0xF1)` also calls world slot `+0x358`. The names are the level
+editor's; `CreatureTriggerEvent`/`PlayerTriggerEvent` carry them in code.
+
+| type | editor name | fired by |
+|---|---|---|
+| 3 | creature created | level initialiser `0x0050B5B0` per placed creature; action 14 per member (`0x0051A5A1`) |
+| 4 | killed | death bookkeeping `0x00487C70` |
+| 5 | slapped | the slap `0x0048B8A0` (two sites), with player 60 |
+| 6 | attacked | fight-starter `0x0045A550`, on the target |
+| 7 | imprisoned | `0x0047B740` |
+| 8 | tortured | state 130 `0x00484110` |
+| 9 | converted | `0x004F2800` |
+| 10 | claimed | `0x0048D0ED`, unattributed span |
+| 11 | angry | anger adders `0x00478B80`/`0x00478C30` on mood 2 (with notifications 17/18), setter `0x0048B870`; never for `def+0x68A` bit 2 |
+| 12 | afraid | creature update `0x00488930` |
+| 13 | steals | stealing booty 162/168 (`0x00482880`, `0x00482C50`) and two spans beside them |
+| 14 | leaves | **no site**; no shipped record |
+| 15 | stunned | `0x00491830(255)` |
+| 16 | dying | countdown start `0x0048B770` |
+| 54 | hunger sated | hunger decrement `0x00477AD0` at zero |
+| 63 | sacked | entrance arrival 196 `0x0045A0D0`, gate 197 `0x00459D50`, with player 61 |
+| 65 | picked up | hand pick-up `0x004BFBD0`, with player 58 |
+| P46 | pay day | `0x004BE1A0`, after notification 46 |
+| P53 | GUI button | `0x00513EB0` |
+| P56/57 | dungeon breached / enemy breached | `0x00498BB0`: a creature on a tile owned by another player — 56 on its owner, 57 on the tile's, after notification 12 |
+| P59 | creature dropped | hand drop `0x0048B3A0` when the thing is class 0 |
+
+Shipped creature-event records: 3 (22), 4 (37), 6 (158), 8 (88), 10 (4),
+12 (2), 13 (4), 16 (30); player 46/56/57/58/60 once each (`kwd trigger-types`).
+
+**Built (ADR-0204):** `TriggerExecutor.FireCreatureEvent`/`FirePlayerEvent`
+are the two filters; `SimulationContext.FireCreatureEvent` is the systems' hook.
+Wired: 3 at executor construction and from the party spawn, 6 from a new
+engagement (DK2 fires on every fight-start), 15 from the stun, 63/61 from the
+entrance arrival. Not yet wired, their sites above: 4, 5/60, 7, 8, 9, 10, 11,
+12, 13, 16, 54, 65/58, 46, 53, 56/57, 59 — each waits on the system that owns
+the moment. An event walk's blocked and partial records are not reported.
 
 ## A tree's context decides only part of its meaning
 

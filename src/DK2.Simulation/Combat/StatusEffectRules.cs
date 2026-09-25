@@ -108,6 +108,8 @@ public static class StatusEffectRules
         if (CreatureDeathRules.IsPossessed(world, creature) || CreatureDeathRules.IsDown(creature)) return false;
         creature.StunTicks = CombatRules.TicksOf(definition.StunDuration);
         Stand(world, creature, CreatureActivity.Stunned);
+        // 0x00491862, after SetState(255): the stunned creature's tree sees event 15.
+        context.FireCreatureEvent(creature, CreatureTriggerEvent.Stunned);
         context.Emit(SystemName, "stunned", $"creature={creature.Id} ticks={creature.StunTicks}");
         return true;
     }

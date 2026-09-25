@@ -71,6 +71,10 @@ public static class LeavingRules
     /// amount without dropping or crediting it (creature-leaving.md §2).</summary>
     public static void Gone(SimulationContext context, CreatureDef creature, CreatureState state, string systemName)
     {
+        // State 196's first act (0x0045A0E1, 0x0045A0ED): the creature's tree sees event 63 and its
+        // owner's tree event 61, before the sacking, the gold and the removal.
+        context.FireCreatureEvent(state, CreatureTriggerEvent.Sacked);
+        context.FirePlayerEvent(state.OwnerPlayerId, PlayerTriggerEvent.CreatureSacked);
         context.Emit(systemName, "creature_left",
             $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} " +
             $"at=({state.Tile.X},{state.Tile.Y}) gold_lost={state.GoldHeld} via=portal");

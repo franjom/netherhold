@@ -468,6 +468,11 @@ public static class CombatTargetRules
         if (same && wasRanged != useSpell) CombatRules.Unregister(target, me.Id);
         if ((!same || wasRanged != useSpell) && !CombatRules.Register(target, me.Id, ranged: useSpell)) return false;
 
+        // The fight-starter's 0x0049AA30(target, 6, 0, 0) after registration (combat-acquisition.md
+        // §8). Ours fires on a new engagement only; DK2's fight-starter may run again for the same
+        // target and fire again, which a one-shot event subtree would not notice.
+        if (!same) context.FireCreatureEvent(target, CreatureTriggerEvent.Attacked);
+
         me.FightTargetKind = FightTargetKind.Creature;
         me.FightTargetId = target.Id;
         me.FightTargetPlayerId = 0;
