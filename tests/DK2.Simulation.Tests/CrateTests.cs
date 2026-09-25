@@ -24,8 +24,14 @@ public class CrateTests
     private static readonly TilePos DoorAt = new(9, 2);
     private static readonly TilePos ImpAt = new(6, 2);
 
+    /// <summary>A maker at 40 a second whose content table is Manufacture alone, as the shipped
+    /// Troll's is.</summary>
     private static GameDatabase Db() => Dk2TerrainFixture.Database(
-        Dk2TerrainFixture.Goblin() with { CreatureId = MakerId, Name = "Maker", ManufacturePerSecond = 40 });
+        Dk2TerrainFixture.Goblin() with
+        {
+            CreatureId = MakerId, Name = "Maker", ManufacturePerSecond = 40,
+            HappyJobs = [new(JobType.Manufacture, 0, 0, 100)],
+        });
 
     private static WorldState World(GameDatabase db)
     {
@@ -39,6 +45,7 @@ public class CrateTests
             world.Tile(x, 2).OwnerPlayerId = Keeper;
         }
 
+        Dk2TerrainFixture.FurnishRooms(db, world);
         return world;
     }
 
@@ -128,8 +135,51 @@ public class CrateTests
         Assert.Equal(Keeper, crate.OwnerPlayerId);
         Assert.True(CrateRules.IsListedIn(world, db, Workshop(db, world), crate));
         Assert.Equal(2, sink.Events.Count(e => e.Kind == "crate_celebrated"));
-        Assert.Equal(JobType.None, maker.CurrentJob);
-        Assert.Equal(JobType.None, other.CurrentJob);
+        Assert.Equal(1, world.Player(Keeper).ItemsManufactured);
+    }
+
+    [Fact]
+    public void TwoMakersWorkOneQueue_OneCrateAtATime_InHalfTheTime()
+    {
+        // CONFIRMED (owner, 2026-09-25): one queue for the keeper; more workers make the same
+        // crate sooner, not a crate each. 1000 points at 40 a second each: 12.5 s for two.
+        GameDatabase db = Db();
+        WorldState world = World(db);
+        Maker(db, world, new TilePos(1, 1));
+        Maker(db, world, new TilePos(3, 3));
+        List<ManufactureOrder> queue = world.Player(Keeper).ManufactureQueue;
+        queue.Add(new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+        queue.Add(new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+        GameSimulation sim = Simulation(db, world, new ListEventSink());
+
+        sim.Run(Second * 12);
+        Assert.DoesNotContain(world.Objects, o => o.ObjectTypeId == DoorCrate);
+        sim.Run(Second * 2);
+        Assert.Single(world.Objects, o => o.ObjectTypeId == DoorCrate);
+        Assert.Single(queue);
+    }
+
+    [Fact]
+    public void AMakerWhoseTableIsManufactureAloneGoesStraightBackToWorkAfterACrate()
+    {
+        // CONFIRMED (owner, 2026-09-25, Q432): they carry on working. 68 ends in idle, and idle's
+        // chooser takes Manufacture again for a creature whose content table holds nothing else.
+        GameDatabase db = Db();
+        WorldState world = World(db);
+        TilePos at = new(2, 2);
+        CreatureState maker = Maker(db, world, at);
+        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+        world.Player(Keeper).ManufacturePoints = 995;
+        var sink = new ListEventSink();
+
+        Simulation(db, world, sink).Run(Second);
+
+        Assert.Contains(sink.Events, e => e.Kind == "crate_celebrated");
+        Assert.True(maker.CurrentJob == JobType.Manufacture,
+            string.Join(" | ", sink.Events.Select(e => $"{e.Tick} {e.Kind} {e.Detail}")));
+        Assert.Equal(CreatureStateCategory.Manufacture, CreatureStateMachine.UpdatingCategory(maker));
+        Assert.Equal(at, maker.Tile);
     }
 
     [Fact]
@@ -176,7 +226,7 @@ public class CrateTests
         // Enough crates to pass the slots in index order: none is set down on one.
         for (int i = 0; i < 11; i++)
             Assert.True(CrateRules.List(world, db, workshop, world.SpawnObject(db, DoorCrate, PlayerIds.Unowned, workshop.TileIndices[0])));
-        Assert.All(world.Objects, o => Assert.DoesNotContain(o.TileIndex, slots));
+        Assert.All(world.Objects.Where(o => o.ObjectTypeId == DoorCrate), o => Assert.DoesNotContain(o.TileIndex, slots));
     }
 
     // ---- the imp ------------------------------------------------------------------

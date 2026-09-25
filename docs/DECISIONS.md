@@ -4682,11 +4682,11 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 8. `HashVersion` and `FormatVersion` **110**, pin `0x2B65E45AF14CB7A7`.
 
 **Consequences.**
-- **Every crate made empties the Workshop**: its workers choose a job again. That is the binary's reading, and Q432 asks the owner.
+- **A made crate stops the Workshop's workers for a moment**: 68 ends in idle, and idle's chooser 89 takes Manufacture again. The owner confirms they carry on working (Q432), and confirms one queue per keeper, which more workers only speed up. 89's retry of the job the hand dropped a creature on is not built.
 - **The hand cannot lift a crate**: all 18 shipped crates have `CanBePickedUp` clear. A branch written for that case was removed before commit, because it could never run.
 - Ours:
   - a crate is listed while its keeper owns it and it lies on one of the keeper's Workshop tiles;
   - rooms are taken in `RoomIndex` order, distances are to a room's first tile, and tiles are walked in index order;
   - the task hold is read from the other imps' states.
 - Not built: blueprints placed in play, state 76's crate branch, the five unread list removers, the trap's completion past its flag, the Secret Door's terrain update, the sounds, message `0x1A` and the maker's effects.
-- Fourteen tests. Eighteen negative controls each fail a named test: the kinds swapped, the trap loader pushing, no registration, no 68, the crate never listed, no Workshop extra, one crate a tile, oldest first, the slots ignored, no Tier A handler, the hold ignored, a built entry kept, no unlisting, no build, no loose branch, no drop-scan step, a crate carried home but not listed, and a short walk treated as arrival.
+- Sixteen tests. Eighteen negative controls each fail a named test: the kinds swapped, the trap loader pushing, no registration, no 68, the crate never listed, no Workshop extra, one crate a tile, oldest first, the slots ignored, no Tier A handler, the hold ignored, a built entry kept, no unlisting, no build, no loose branch, no drop-scan step, a crate carried home but not listed, and a short walk treated as arrival.

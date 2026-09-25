@@ -33,7 +33,8 @@ Questions: advances ADR-0135; builds the half of ADR-0203 it left out ("what car
 to its blueprint"); Q432.
 
 Confidence: **STRONGLY INFERRED (binary)** throughout. The crate flags and capacities are
-**CONFIRMED** from shipped data.
+**CONFIRMED** from shipped data. §5's outcome and the single queue are **CONFIRMED** by the
+owner.
 
 ---
 
@@ -158,8 +159,26 @@ the flag, or with an action still running, 68 returns 0 at once, which is also i
 returns 0. Nothing that sets 69 leaves the creature there, so it never runs. The only setter
 is 68.
 
-So **every crate made sends every worker in that Workshop idle**, and they choose a job again
-through the ordinary selection. That is the binary's reading; Q432 asks the owner.
+So **every crate made sends every worker in that Workshop to idle for a moment**. Idle (state 1,
+`0x004773D0`) sends a keeper's non-worker to 89 (`0x004778E0`). 89 asks, in order:
+1. Call To Arms.
+2. The lair.
+3. `DroppedToDoJobId` (`+0x6E`), the job of the room the hand dropped it on.
+4. `ReturnToJobId` (`+0x68`), whose only writer outside the constructor sets it to 6 (Guard,
+   `0x00462850`).
+5. The happy or unhappy chooser.
+
+For a Workshop creature that means Manufacture again. The shipped Troll's content table is
+Manufacture alone, and a creature dropped in the Workshop retries that job first.
+
+**CONFIRMED by the owner (2026-09-25, Q432):** the workers carry on working; nobody wanders off.
+
+**Also CONFIRMED by the owner:** there is one queue for the keeper. Two or three workers, in one
+Workshop or several, make the same crate sooner, not a crate each. Ours already does this: every
+worker credits the keeper's one pool of points (ADR-0203).
+
+**Not built:** 89's `DroppedToDoJobId` retry. A creature dropped in the Workshop whose table holds
+other jobs rolls its table again in ours.
 
 ## 6. Kinds 9 and 10: a crate to a blueprint
 
