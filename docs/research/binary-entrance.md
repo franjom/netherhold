@@ -312,9 +312,11 @@ session scratchpad; each takes arguments and writes to
 | `Callers.py <addrHex> <out>` | Decompiles everything calling a function. Returns nothing for a vtable-dispatched method, which is itself informative |
 
 Headless, with `JAVA_HOME` pointed at the JDK for the invocation rather than set
-on the machine:
+on the machine. This pass ran on Ghidra 11.0.1 with Jython. Since 2026-09-25
+the setup is 12.1.4 with PyGhidra, projects under `D:\Ghidra\`. The current
+command and porting notes are in `docs/RESEARCH-QUEUE.md`:
 
 ```text
-analyzeHeadless.bat "D:\ghidra projects" DK2_RE -process DKII.EXE -noanalysis \
+pyghidraRun.bat -H "D:\Ghidra\ghidra projects claude" DK2_RE -process DKII.EXE -noanalysis \
   -scriptPath <scratchpad> -postScript DumpRange.py 004db000 004de000 <out>
 ```

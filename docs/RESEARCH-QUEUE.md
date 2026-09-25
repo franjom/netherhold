@@ -66,14 +66,49 @@ existing row over opening a new question.
 
 ## How the binary work is done here
 
-Ghidra 11.0.1, headless, against the project at `D:\ghidra projects\DK2_RE`:
+Ghidra 12.1.4, headless, since 2026-09-25. Claude's project is
+`D:\Ghidra\ghidra projects claude\DK2_RE` and Codex's is
+`D:\Ghidra\ghidra projects\DK2_RE`; never share one between concurrent runs.
 
 ```
 JAVA_HOME="C:/Program Files/Java/jdk-26.0.2.1" \
-  "D:/ghidra_11.0.1_PUBLIC/support/analyzeHeadless.bat" \
-  "D:/ghidra projects" DK2_RE -process DKII.EXE -noanalysis \
+  "D:/Ghidra/ghidra_12.1.4_PUBLIC/support/pyghidraRun.bat" -H \
+  "D:/Ghidra/ghidra projects claude" DK2_RE -process DKII.EXE -noanalysis \
   -scriptPath <dir> -postScript <Script.py> <args>
 ```
+
+`-H` passes everything after it to `analyzeHeadless`. Add `-readOnly` for a run
+that must not save. The launcher's venv is
+`%APPDATA%\ghidra\ghidra_12.1.4_PUBLIC\venv`.
+
+**Scripts are CPython 3 (PyGhidra), not Jython.** 12.1 ships Jython only as an
+uninstalled extension. `analyzeHeadless.bat` with a `.py` script aborts with
+`JythonStubException`, even with a `# @runtime Jython` header. Porting a
+Jython script:
+
+- `jarray.zeros(n, 'b')` becomes `from jpype import JArray, JByte` then
+  `JArray(JByte)(n)`.
+- `/` on two ints is float division in CPython. Use `//` for addresses and
+  counts.
+- Two Jython traps gave false negatives in the past, and neither applies to
+  PyGhidra. A Python `bytearray` passed to `Memory.getBytes` silently stayed
+  zeroed, so a byte scan reported 0 hits. Any non-ASCII character in a
+  script, even in a comment, was a `SyntaxError`.
+
+**12.1.4 was checked against 11.0.1 on 2026-09-25**, on copies of the project
+opened read-only. The function count (10,519), references to `0x006DA8B0`,
+`0x006DA8C6` and `0x00699688`, and a byte read at `0x0050EA70` were
+identical. Four decompiles (the world log and the creature, room and state
+dumps) say the same thing but read differently:
+
+- String labels lose a leading underscore (`s__Seed__x_…` becomes
+  `s_Seed__x_…`), and long labels are cut at a different point.
+- `undefined` becomes `undefined1`.
+- A byte or short read through an `int*` is written `(char)param_1[0x1c8c]`
+  where 11.0.1 wrote `*(undefined *)(param_1 + 0x1c8c)`. Same byte, and the
+  index is still ×4.
+
+So a label copied out of an old 11.0.1 export may not match 12.1.4 output.
 
 Helper scripts sit in `reverse-engineering/` alongside the exports. **Only
 `README.md` there is tracked** (`git ls-files reverse-engineering`), so the

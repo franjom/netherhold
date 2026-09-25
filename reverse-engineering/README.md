@@ -42,7 +42,8 @@ settled — ADR-0023 deliberately disbelieves one shipped value.
 
 ## What is in here
 
-Ghidra project: `D:\ghidra projects\DK2_RE` (outside the repo — a Ghidra project of
+Ghidra project: `D:\Ghidra\ghidra projects claude\DK2_RE` for Claude and
+`D:\Ghidra\ghidra projects\DK2_RE` for Codex, opened with Ghidra 12.1.4 (outside the repo — a Ghidra project of
 this binary contains the binary). Exports land here as `<subject>.c` /
 `<subject>.txt`, one file per question, named after the question they were opened
 for. The headless Ghidra command is in `docs/RESEARCH-QUEUE.md`; the scan recipes

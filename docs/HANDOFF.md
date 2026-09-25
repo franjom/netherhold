@@ -158,10 +158,13 @@ The smoke test loads campaign level 1 through Unity's Mono runtime and fails unl
 there is one GameObject per tile; it exits 0 with no install. Interactive use and
 controls: `unity/README.md`.
 
-**Ghidra** (headless, 11.0.1 at `D:/ghidra_11.0.1_PUBLIC`, JDK 26): the command is
-in `docs/RESEARCH-QUEUE.md`. Two projects exist and must not be shared between
-concurrent runs: `D:/ghidra projects/DK2_RE` (Codex) and `D:/ghidra projects claude/DK2_RE`
-(this session). Runs on one project are sequential. Scripts (`DisasmMulti.py`,
+**Ghidra** (headless, **12.1.4** at `D:/Ghidra/ghidra_12.1.4_PUBLIC`, JDK 26, scripts
+run as PyGhidra via `pyghidraRun.bat -H`; since 2026-09-25): the command and the
+Jython-to-PyGhidra porting notes are in `docs/RESEARCH-QUEUE.md`. Two projects exist
+and must not be shared between concurrent runs: `D:/Ghidra/ghidra projects/DK2_RE`
+(Codex) and `D:/Ghidra/ghidra projects claude/DK2_RE` (Claude). The top-level
+`D:/ghidra projects*` and `D:/ghidra_11.0.1_PUBLIC` are the retired 11.0.1 setup;
+`D:/Ghidra/backup_projects_11` holds the 11.0.1 databases. Runs on one project are sequential. Scripts (`DisasmMulti.py`,
 `InsGrep.py`, `ScanAll.py`, `CallScanAll.py`, `ReadsAt.py`, …) and exports live in
 `reverse-engineering/` on this machine only; `git status --short reverse-engineering/`
 must be empty before every commit.
