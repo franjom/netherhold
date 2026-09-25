@@ -862,10 +862,10 @@ public class HandTests
         Assert.Equal(claimed, pile.InHand);
     }
 
-    /// <summary>Our reading, not yet the owner's: "claimed land" taken as the keeper's
-    /// own, so a rival's floor refuses gold as unclaimed dirt does (Q196).</summary>
+    /// <summary>CONFIRMED by the owner, 2026-09-25: gold on a rival's claimed floor
+    /// cannot be lifted either (Q196).</summary>
     [Fact]
-    public void GoldOnARivalsFloorIsRefusedByOurReadingOfClaimed()
+    public void GoldOnARivalsFloorCannotBeLifted()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
