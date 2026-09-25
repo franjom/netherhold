@@ -205,6 +205,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             && Leave(context, creature, state)) return;
 
         state.Activity = CreatureActivity.Idle;
+        CreatureStateMachine.TrySetState(state, CreatureStateMachine.Idle);
         state.RebelCountdownTicks = RebellionRules.DefectDelayTicks;
 
         context.Emit(SystemName, "creature_rebelling",
@@ -269,6 +270,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             state.RebelAgainstPlayerId = was;
             state.CurrentJob = JobType.KillPlayer;
             state.Activity = CreatureActivity.Idle;
+            CreatureStateMachine.TrySetState(state, CreatureStateMachine.Idle);
 
             CreatureDef creature = context.Database.CreatureById(state.CreatureTypeId);
             context.Emit(SystemName, "creature_defected",

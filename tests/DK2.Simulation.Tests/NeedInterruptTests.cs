@@ -221,7 +221,7 @@ public class NeedInterruptTests
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 4));
         var sim = new GameSimulation(db, world, seed: 42, [new CreatureHealthSystem()]);
-        CreatureStateMachine.Begin(goblin, 145);
+        StatePlacement.Place(goblin, 145);
         Assert.False(NeedRules.HungerClockRuns(goblin));
         Assert.False(NeedRules.TirednessClockRuns(goblin));
 
@@ -271,21 +271,21 @@ public class NeedInterruptTests
         Assert.Equal(-8, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
 
         // A walk to eat resolves to group 7; asleep is group 7 and Sleeping.
-        CreatureStateMachine.Begin(tired, EatingRules.FindHatcheryState);
+        StatePlacement.Place(tired, EatingRules.FindHatcheryState);
         Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
         CreatureStateMachine.Release(tired);
-        CreatureStateMachine.Begin(tired, 83);
+        StatePlacement.Place(tired, 83);
         Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
         CreatureStateMachine.Release(tired);
 
         // A walk (group 9) to the bed is judged by the Sleeping state it resumes.
-        CreatureStateMachine.Begin(tired, 1);
+        StatePlacement.Place(tired, 1);
         CreatureStateMachine.BeginTravel(tired, Walk, 83);
         Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
         CreatureStateMachine.Release(tired);
 
         // At a job it is still tired and still awake.
-        CreatureStateMachine.Begin(tired, Training);
+        StatePlacement.Place(tired, Training);
         Assert.Equal(-8, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
 
         tired.OwnerPlayerId = PlayerIds.Good;
@@ -348,7 +348,7 @@ public class NeedInterruptTests
     private static CreatureState Fresh(int state)
     {
         var creature = new CreatureState { Id = 1 };
-        CreatureStateMachine.Begin(creature, state);
+        StatePlacement.Place(creature, state);
         return creature;
     }
 }

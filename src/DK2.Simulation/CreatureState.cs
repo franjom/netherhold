@@ -543,11 +543,9 @@ public sealed class CreatureState
     /// authoritative representation of what a creature is doing (ADR-0135).
     /// <see cref="Activity"/> is the retiring convenience beside it: new work sets
     /// this, and an activity retires once the states composing it have been read.
-    /// <para><b>-1 means no state has been assigned yet</b>, which is every creature
-    /// until the first activity retires. It is not state 0 — that is a real state
-    /// (<c>idle</c>, the only row with no handler at all), and defaulting to it would
-    /// silently claim a state nothing had chosen.</para></summary>
-    public int Dk2StateId = -1;
+    /// <para><b>1, idle, from the constructor</b> (<c>0x00476B40</c> writes <c>+0x10</c> = 1,
+    /// <c>travel-states.md</c> §2.4). A corpse holds none, -1 (ADR-0206).</para></summary>
+    public int Dk2StateId = 1;
 
     /// <summary>DK2's own <c>StateBeforeUtilityState</c> (state object <c>+0x40</c>): the
     /// state this creature was in when it entered a utility state. <c>SetState</c> writes
@@ -563,7 +561,7 @@ public sealed class CreatureState
     /// where it is heading (<c>travel-states.md</c>).
     /// <para><b>There is no "none".</b> The constructor writes 0, every arrival writes
     /// <b>1</b>, and the route helper fills it as the walk starts, so the rule may read it
-    /// unconditionally. Nothing writes it here yet (ADR-0135, ADR-0175).</para></summary>
+    /// unconditionally (ADR-0175).</para></summary>
     public int UtilityNewState;
 
     /// <summary>The countdown of the category update hook the creature is under, DK2's state

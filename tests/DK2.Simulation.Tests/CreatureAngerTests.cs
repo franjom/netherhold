@@ -237,7 +237,7 @@ public class CreatureAngerTests
         PaintPortal(db, world, new TilePos(3, 3));
         CreatureState goblin = world.SpawnCreature(db, DeserterId, Keeper, new TilePos(1, 1));
         goblin.Anger.Lair = CreatureAngerRules.Ceiling + 1;
-        CreatureStateMachine.Begin(goblin, TortureRules.TorturedState);
+        StatePlacement.Place(goblin, TortureRules.TorturedState);
         goblin.Activity = CreatureActivity.BeingTortured;
         var events = new ListEventSink();
 
@@ -596,7 +596,7 @@ public class CreatureAngerTests
         // point of ABedStopsTheGrievanceGrowingButDoesNotUndoIt.
         goblin.Anger.Treatment = 10_000;
         goblin.Activity = CreatureActivity.Sleeping;
-        CreatureStateMachine.Begin(goblin, LairRules.SleepingState);
+        StatePlacement.Place(goblin, LairRules.SleepingState);
 
         Simulation(db, world).Run(Second);
 
@@ -622,7 +622,7 @@ public class CreatureAngerTests
         PaintLair(db, world, lair);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, lair);
-        CreatureStateMachine.Begin(goblin, state);
+        StatePlacement.Place(goblin, state);
 
         // The rule, not a run: the sleep system moves a lair-seeker on within the same
         // tick, so driving this through a simulation would measure the ordering rather
@@ -644,7 +644,7 @@ public class CreatureAngerTests
         PaintLair(db, world, lair);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, lair);
-        CreatureStateMachine.Begin(goblin, JobRules.StateFor(JobType.Research)!.Value);
+        StatePlacement.Place(goblin, JobRules.StateFor(JobType.Research)!.Value);
 
         CreatureAnger working = CreatureAngerRules.PerSecond(
             world, db, db.CreatureById(GoblinId), goblin);
@@ -652,7 +652,7 @@ public class CreatureAngerTests
 
         // And the fourth arm of the widening, category 10: sulking is a lair job.
         CreatureState sulker = world.SpawnCreature(db, GoblinId, Keeper, lair);
-        CreatureStateMachine.Begin(sulker, JobRules.StateFor(JobType.Sulk)!.Value);
+        StatePlacement.Place(sulker, JobRules.StateFor(JobType.Sulk)!.Value);
         CreatureAnger sulking = CreatureAngerRules.PerSecond(
             world, db, db.CreatureById(GoblinId), sulker);
         Assert.Equal(-550, sulking.Treatment);
@@ -672,7 +672,7 @@ public class CreatureAngerTests
         int CoolingOf(int from, int travel, int resume)
         {
             CreatureState walker = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
-            CreatureStateMachine.Begin(walker, from);
+            StatePlacement.Place(walker, from);
             CreatureStateMachine.BeginTravel(walker, travel, resume);
             return CreatureAngerRules.PerSecond(world, db, definition, walker).Treatment;
         }

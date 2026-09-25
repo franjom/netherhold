@@ -94,7 +94,7 @@ public class CombatTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        Assert.Equal([199, 260, CreatureStateMachine.NoState], StateTrace.States(sim, demon, 120));
+        Assert.Equal([199, 260, CreatureStateMachine.Idle], StateTrace.States(sim, demon, 120));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 

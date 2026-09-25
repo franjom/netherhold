@@ -14,7 +14,6 @@ namespace DK2.Simulation.Tests;
 public class ImpStateTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private const int NoState = CreatureStateMachine.NoState;
     private const int Idle = CreatureStateMachine.Idle;
     private const int Walk = 6;
     private const int Select = ImpStates.TaskSelection;
@@ -59,8 +58,8 @@ public class ImpStateTests
         (GameSimulation sim, ListEventSink events) = Start(new TilePos(2, 2));
 
         Assert.Equal(
-            [(Walk, Select, 13), (14, Select, Idle), (NoState, Select, Idle),
-             (Walk, Select, 15), (16, Select, Idle), (NoState, Select, Idle),
+            [(Walk, Select, 13), (14, Select, Idle), (Select, Select, Idle),
+             (Walk, Select, 15), (16, Select, Idle), (Select, Select, Idle),
              (22, Select, Idle)],
             StatesSeen(sim, SimulationTiming.TicksFromSeconds(6),
                 TagTilesCommand.Tag(Keeper, new TilePos(4, 2))));
@@ -101,7 +100,7 @@ public class ImpStateTests
         sim.Tick(InputFrame.Of(TagTilesCommand.Untag(Keeper, new TilePos(4, 2))));
 
         Assert.Single(events.Events, e => e.Kind == "job_abandoned");
-        Assert.Equal(NoState, imp.Dk2StateId);
+        Assert.Equal(Select, imp.Dk2StateId);
         Assert.Equal((Select, Idle), (imp.StateBeforeUtilityState, imp.UtilityNewState));
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
@@ -139,7 +138,7 @@ public class ImpStateTests
         Assert.Equal(
             [(Walk, Select, ImpStates.PickingUpGold),
              (Walk, ImpStates.PickingUpGold, ImpStates.AtTheStore),
-             (NoState, ImpStates.PickingUpGold, Idle)],
+             (Select, ImpStates.PickingUpGold, Idle)],
             StatesSeen(sim, 100).Take(3));
         Assert.Contains(events.Events, e => e.Kind == "gold_delivered" && e.Detail.Contains("amount=900"));
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
@@ -159,7 +158,7 @@ public class ImpStateTests
         Assert.Equal(
             [(Walk, Select, 25), (26, Select, Idle),
              (Walk, 26, ImpStates.AtTheStore), (Walk, Select, ImpStates.AtTheStore),
-             (NoState, Select, Idle)],
+             (Select, Select, Idle)],
             StatesSeen(sim, 30, TagTilesCommand.Tag(Keeper, new TilePos(5, 5))).Take(5));
         Assert.Equal(1000, sim.World.Tile(3, 3).GoldHeld);
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
@@ -185,7 +184,7 @@ public class ImpStateTests
         Assert.Equal(
             [(Walk, Select, ImpStates.PickingUpObject),
              (Walk, ImpStates.PickingUpObject, carrying),
-             (NoState, ImpStates.PickingUpObject, Idle)],
+             (Select, ImpStates.PickingUpObject, Idle)],
             StatesSeen(sim, 200).Take(3));
         Assert.Contains(events.Events, e => e.Kind == "object_stored");
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");

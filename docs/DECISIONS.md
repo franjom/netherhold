@@ -4568,3 +4568,22 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - The dispatch still reads the activity. Ours, stated: 252 and 257 end at once, having no action; a responder may acquire the hero on its walk before it reaches 254.
 - No hashed state changed in the pinned world. Nine tests. Negative controls: each of the thirteen moves left out, the stun ungated, the idle keeping its id, the group left off the retired list, and defeat's old order each fail a named test.
 
+## ADR-0209 — Every creature holds a state; the release workaround is gone
+**Date:** 2026-09-25 · **Status:** accepted · completes ADR-0135 step 2 and its step 3 · Research: `docs/research/travel-states.md` §2.4, `imp-state-exits.md`
+
+**Context.** With dying, leaving and the combat group on state ids (ADR-0206 to ADR-0208), only Idle held none. The migration rule, that a creature holds a state id only while in a retired activity, was enforced by `CreatureStateMachine.Release`, `IsRetired`, `ReleaseIfLeft` in five systems, `StateShadow.FromIdle` and a release after every move to idle. DK2's constructor `0x00476B40` sets the state to 1 and both slots to 0, so a DK2 creature is never without one.
+
+**Decision.**
+1. `CreatureState.Dk2StateId` starts at 1. `Begin`, `IsRetired`, `ReleaseIfLeft` and `FromIdle` are deleted. `Release` stays for the corpse, the one creature with no state (ADR-0206).
+2. Every path into idle moves the state to 1: `StateShadow.ToIdle`, `CombatStates.Idle`, a freed prisoner, a creature taken off a device, the rescuer's end, a rebel and a defector. An imp rests in 10, where its task ends.
+3. The resets that released and began again (a captive admitted or dropped, a device strapped, a hunger from idle, a rescue from idle) are gated moves; every one of them is allowed.
+4. Pickup leaves the creature in state 1. DK2's in-hand state 76 is not built.
+5. `HashVersion` and `FormatVersion` 106, pin `0x52719F6004D8BDBB`.
+
+**Consequences.**
+- `StateInvariantTests` runs a busy dungeon for 4000 ticks on the default systems and checks, every tick, what the workaround had enforced: every creature but a corpse holds a state, and an idle one holds 1, or 10 for an imp. It reaches fights, room jobs and imp work.
+- The job set-out's `fromCurrentState` flag had become a no-op and is removed.
+- Tests set up states through `StatePlacement.Place`, which writes what entering a state writes, where they had used `Begin`.
+- The activities remain, and the systems still dispatch on them. Moving the dispatch onto the state ids and the category hooks is the next step.
+- Two tests that tested only the workaround are deleted and a third now picks the creature up through the hand. Negative controls: each of the ten moves to idle left out and a creature born without a state each fail a named test.
+

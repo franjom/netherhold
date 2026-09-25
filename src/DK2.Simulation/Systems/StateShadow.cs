@@ -7,10 +7,9 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Systems;
 
 /// <summary>The gated moves a system makes beside the activity changes they mirror, while
-/// activities retire onto DK2's state ids one at a time (ADR-0135 step two). Every chain
-/// built so far is legal under DK2's rule, so a refusal means the mapping is wrong: it is
-/// reported as <c>state_refused</c> and the creature keeps its state, as the original's
-/// would, rather than being forced.</summary>
+/// the systems still dispatch on the activity (ADR-0135, ADR-0209). A refusal is reported
+/// as <c>state_refused</c> and the creature keeps its state, as the original's would,
+/// rather than being forced.</summary>
 internal static class StateShadow
 {
     /// <summary>DK2's two travel states: 6 walks to a point, 7 walks to a room and checks
@@ -21,16 +20,6 @@ internal static class StateShadow
     public static bool IsTravelling(CreatureState creature) =>
         CreatureStateMachine.HasState(creature)
         && CreatureStateTable.Get(creature.Dk2StateId).IsUtility;
-
-    /// <summary>Idle is not on state ids yet, so a creature setting out from it has none;
-    /// it takes state 1 first, which is where DK2's callers run.</summary>
-    public static void FromIdle(CreatureState creature)
-    {
-        if (!CreatureStateMachine.HasState(creature))
-        {
-            CreatureStateMachine.Begin(creature, CreatureStateMachine.Idle);
-        }
-    }
 
     public static void Move(SimulationContext context, string system, CreatureState creature, int state) =>
         TryMove(context, system, creature, state);
@@ -61,13 +50,11 @@ internal static class StateShadow
         if (!CreatureStateMachine.Arrive(creature)) Refused(context, system, creature, to);
     }
 
-    /// <summary>A handler that returns failure: DK2 drops the creature to state 1. Idle is
-    /// not on state ids yet, so the id is then released.</summary>
+    /// <summary>A handler that returns failure: DK2 drops the creature to state 1.</summary>
     public static void ToIdle(SimulationContext context, string system, CreatureState creature)
     {
         if (!CreatureStateMachine.HasState(creature)) return;
         Move(context, system, creature, CreatureStateMachine.Idle);
-        CreatureStateMachine.Release(creature);
     }
 
     private static void Refused(SimulationContext context, string system, CreatureState creature, int state) =>

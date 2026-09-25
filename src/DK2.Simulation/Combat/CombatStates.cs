@@ -47,25 +47,18 @@ internal static class CombatStates
     /// <summary>260, the victory pause.</summary>
     public const int Celebrating = 260;
 
-    /// <summary>A move into <paramref name="state"/>, from idle when the creature holds no state.</summary>
-    public static void Enter(SimulationContext context, CreatureState me, int state)
-    {
-        StateShadow.FromIdle(me);
+    /// <summary>A move into <paramref name="state"/>.</summary>
+    public static void Enter(SimulationContext context, CreatureState me, int state) =>
         StateShadow.Move(context, SystemName, me, state);
-    }
 
     /// <summary>The route helper <c>0x00471890</c>: state 6, resuming <paramref name="resume"/>.</summary>
-    public static void Travel(CreatureState me, int resume)
-    {
-        StateShadow.FromIdle(me);
+    public static void Travel(CreatureState me, int resume) =>
         CreatureStateMachine.BeginTravel(me, StateShadow.TravelToPoint, resume);
-    }
 
     /// <summary>The withdraw and the alarm's first step: "in the combat group, or
     /// <c>SetState(199)</c>" (combat-fear.md §5, combat-alarm.md §2).</summary>
     public static void IntoTheGroup(SimulationContext context, CreatureState me)
     {
-        StateShadow.FromIdle(me);
         if (NeedRules.ResolvedCategory(me) != CreatureStateCategory.Combat) StateShadow.Move(context, SystemName, me, Engaging);
     }
 
@@ -73,12 +66,9 @@ internal static class CombatStates
     public static void Arrive(SimulationContext context, CreatureState me) =>
         StateShadow.Arrive(context, SystemName, me);
 
-    /// <summary>A handler returning zero, or one that sets 1: state 1, which no state refuses,
-    /// and then the id is handed back while idle is not on state ids.</summary>
+    /// <summary>A handler returning zero, or one that sets 1: state 1, which no state refuses.</summary>
     public static void Idle(CreatureState me)
     {
-        if (!CreatureStateMachine.HasState(me)) return;
-        CreatureStateMachine.TrySetState(me, CreatureStateMachine.Idle);
-        CreatureStateMachine.Release(me);
+        if (CreatureStateMachine.HasState(me)) CreatureStateMachine.TrySetState(me, CreatureStateMachine.Idle);
     }
 }

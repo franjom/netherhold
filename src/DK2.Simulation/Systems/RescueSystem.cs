@@ -45,20 +45,12 @@ public sealed class RescueSystem : ISimulationSystem
     }
 
     private static bool MayStart(CreatureState creature) =>
-        creature.Activity == CreatureActivity.Idle
-        || (CreatureStateMachine.HasState(creature) && creature.Activity is CreatureActivity.AtWork or CreatureActivity.GoingToJob);
+        creature.Activity is CreatureActivity.Idle or CreatureActivity.AtWork or CreatureActivity.GoingToJob;
 
     private static void Start(SimulationContext context, CreatureState creature)
     {
-        if (CreatureStateMachine.HasState(creature))
-        {
-            if (!CreatureStateMachine.TrySetState(creature, RescueRules.RescuingState)) return;
-            NeedRules.EndJob(creature);
-        }
-        else
-        {
-            CreatureStateMachine.Begin(creature, RescueRules.RescuingState);
-        }
+        if (!CreatureStateMachine.TrySetState(creature, RescueRules.RescuingState)) return;
+        NeedRules.EndJob(creature);
 
         creature.StopMoving();
         creature.Activity = CreatureActivity.Rescuing;
@@ -127,7 +119,7 @@ public sealed class RescueSystem : ISimulationSystem
     {
         creature.StopMoving();
         creature.RescueTurnsLeft = 0;
-        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
+        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
         creature.ClearJob();
     }
 }

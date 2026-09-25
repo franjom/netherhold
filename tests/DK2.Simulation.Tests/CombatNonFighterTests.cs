@@ -173,7 +173,7 @@ public class CombatNonFighterTests
 
         var seen = StateTrace.Of(sim, imp, 45);
 
-        Assert.Equal([(6, 199, 251), (CreatureStateMachine.NoState, 199, 1)], seen);
+        Assert.Equal([(6, 199, 251), (CreatureStateMachine.Idle, 199, 1)], seen);
         Assert.Equal(2, goblins.Count(g => g.StateBeforeUtilityState == CreatureStateMachine.Idle
             && (g.UtilityNewState == 254 || g.Dk2StateId is 254 or 199)));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");

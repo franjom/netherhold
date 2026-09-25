@@ -119,7 +119,7 @@ public class DefeatTests
     {
         // The fight is let go first, then 194 set, so the walk saves 194 as its caller.
         (GameDatabase db, WorldState world, _, _, CreatureState goblin, _) = FallenDungeon();
-        CreatureStateMachine.Begin(goblin, 199);
+        StatePlacement.Place(goblin, 199);
         goblin.Activity = CreatureActivity.Fighting;
         GameSimulation sim = Simulation(db, world);
 
@@ -136,7 +136,7 @@ public class DefeatTests
         // The rule refuses 194 from the Torture category, and defeat's SetState is gated
         // (0x0048AD30 is SetState with option 0), so the creature stays on its device.
         (GameDatabase db, WorldState world, _, _, CreatureState goblin, _) = FallenDungeon();
-        CreatureStateMachine.Begin(goblin, TortureRules.TorturedState);
+        StatePlacement.Place(goblin, TortureRules.TorturedState);
         goblin.Activity = CreatureActivity.BeingTortured;
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world);

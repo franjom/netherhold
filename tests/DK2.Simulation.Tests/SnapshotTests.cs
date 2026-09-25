@@ -24,16 +24,13 @@ public class SnapshotTests
     }
 
     [Fact]
-    public void RoundTrip_CarriesTheStateIdAndUtilityPair_AndOnlyTheStateIdIsSentinelled()
+    public void RoundTrip_CarriesTheStateIdAndUtilityPair_FromTheConstructorsValues()
     {
-        // Only Dk2StateId carries a sentinel, and it is a migration artefact rather than
-        // DK2's: -1 says no activity has retired onto this creature yet (ADR-0135). The
-        // two slots do NOT get one - the constructor writes 0 and every arrival writes 1,
-        // so there is no "unset" for the rule to trip over (ADR-0175). Asserted rather
-        // than trusted to a comment, because nothing reads the fields yet.
+        // The constructor writes the state 1 and both slots 0 (travel-states.md 2.4); only a
+        // corpse holds no state (ADR-0206, ADR-0209).
         GameSimulation original = TestWorld.Simulation();
         Assert.NotEmpty(original.World.Creatures);   // Q206: Assert.All passes on an empty population
-        Assert.All(original.World.Creatures, c => Assert.Equal(-1, c.Dk2StateId));
+        Assert.All(original.World.Creatures, c => Assert.Equal(CreatureStateMachine.Idle, c.Dk2StateId));
         Assert.All(original.World.Creatures, c => Assert.Equal(0, c.StateBeforeUtilityState));
         Assert.All(original.World.Creatures, c => Assert.Equal(0, c.UtilityNewState));
 

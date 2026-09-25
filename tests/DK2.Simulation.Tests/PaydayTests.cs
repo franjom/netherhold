@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
@@ -513,7 +514,7 @@ public class PaydayTests
 
         Assert.Equal(
             [(6, PaydayRules.FindTheMoneyState, PaydayRules.ArrivingState),
-             (CreatureStateMachine.NoState, PaydayRules.FindTheMoneyState, CreatureStateMachine.Idle)],
+             (CreatureStateMachine.Idle, PaydayRules.FindTheMoneyState, CreatureStateMachine.Idle)],
             StatesSeen(sim, goblin, 200));
         Assert.Equal(0, goblin.WageOwed);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
@@ -534,31 +535,35 @@ public class PaydayTests
         Simulation(db, world, sink).Run(1);
 
         Assert.Equal(0, goblin.WageOwed);
-        Assert.Equal(CreatureStateMachine.NoState, goblin.Dk2StateId);
+        Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
         Assert.Equal(PaydayRules.FindTheMoneyState, goblin.StateBeforeUtilityState);
         Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 
     [Fact]
-    public void AWageWalkerPickedUpGivesItsStateIdBack()
+    public void AWageWalkerPickedUpIsIdleInTheHand()
     {
+        // 76, the hand's own state, is not built: ours holds 1 in the hand (ADR-0209).
         GameDatabase db = Db;
         WorldState world = World(db);
         Treasury(world, new TilePos(1, 3), 2000);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         goblin.WageOwed = 500;
-        GameSimulation sim = Simulation(db, world);
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, seed: 42,
+            [new HandSystem(), new CreatureMovementSystem(), new PaydaySystem()]);
+        sim.ObserveWith(sink);
 
         sim.Run(1);
         Assert.Equal(6, goblin.Dk2StateId);
 
-        goblin.Activity = CreatureActivity.Idle;
-        goblin.StopMoving();
-        goblin.WageOwed = 0;
-        sim.Run(1);
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
 
-        Assert.Equal(CreatureStateMachine.NoState, goblin.Dk2StateId);
+        Assert.True(HandRules.IsHeld(goblin));
+        Assert.Equal(CreatureActivity.Idle, goblin.Activity);
+        Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 
     // ---- a full wage wipes the pay bucket (ADR-0179) ------------------------
@@ -677,7 +682,7 @@ public class PaydayTests
         goblin.Anger.Treatment = 30_000;
         goblin.Anger.Pay = 30_000;
         goblin.Activity = CreatureActivity.Sleeping;
-        CreatureStateMachine.Begin(goblin, LairRules.SleepingState);
+        StatePlacement.Place(goblin, LairRules.SleepingState);
         goblin.WageOwed = 500;
 
         WithAnger(db, world).Run(SimulationTiming.TicksPerSecond * 10);

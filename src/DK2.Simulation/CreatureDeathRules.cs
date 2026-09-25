@@ -24,8 +24,7 @@ public static class CreatureDeathRules
     /// <see cref="DyingState"/> once the fall's action ends (ADR-0206).</summary>
     public const int FallingState = 216;
 
-    /// <summary>State 217, lying while the countdown runs; a creature healed above zero leaves
-    /// it for state 1 (ADR-0206).</summary>
+    /// <summary>State 217, lying while the countdown runs; healed above zero, it leaves for 1.</summary>
     public const int DyingState = 217;
 
     /// <summary>Whether this creature has run out of health — not the same as dead.</summary>
@@ -170,8 +169,7 @@ public static class CreatureDeathRules
         if (IsDying(creature)) return false;
 
         creature.Activity = CreatureActivity.Dying;
-        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.TrySetState(creature, FallingState);
-        else CreatureStateMachine.Begin(creature, FallingState);
+        CreatureStateMachine.TrySetState(creature, FallingState);
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
         creature.TargetTileIndex = -1;

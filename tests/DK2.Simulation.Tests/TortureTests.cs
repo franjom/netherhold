@@ -229,7 +229,7 @@ public class TortureTests
 
         Assert.False(TortureRules.IsBeingTortured(captive));
         Assert.False(PrisonRules.IsImprisoned(captive));
-        Assert.False(CreatureStateMachine.HasState(captive));
+        Assert.Equal(CreatureStateMachine.Idle, captive.Dk2StateId);
     }
 
     [Fact]
@@ -271,6 +271,24 @@ public class TortureTests
         Assert.Equal(health - 10, goblin.Health);
         Assert.NotEqual(0, goblin.Anger.Treatment);
         Assert.Equal(Keeper, goblin.OwnerPlayerId);
+    }
+
+    [Fact]
+    public void AnOwnGoblinWhoseWheelIsGoneGetsOffIdle()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, ChamberFloor);
+        GameSimulation sim = Simulation(db, world);
+        Carry(sim, goblin, Wheel);
+        Assert.Equal(TortureRules.TorturedState, goblin.Dk2StateId);
+
+        world.RemoveObject(world.Objects.Single(o => o.ObjectTypeId == TortureRules.WheelObjectId).Id);
+        sim.Run(1);
+
+        Assert.False(TortureRules.IsBeingTortured(goblin));
+        Assert.Equal(CreatureActivity.Idle, goblin.Activity);
+        Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
     }
 
     [Fact]

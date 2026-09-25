@@ -46,9 +46,6 @@ public sealed class CreatureEatSystem : ISimulationSystem
             CreatureState creature = creatures[i];
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
-            // Pulled out of the chain by a system that still sets Activity directly - the
-            // hand, a fight, a death - it is no longer in the state it holds (ADR-0176).
-            CreatureStateMachine.ReleaseIfLeft(creature);
 
             if (!CreatureHealthRules.CanGetHungry(definition)) continue;
             if (HandRules.IsHeld(creature)) continue;
@@ -375,32 +372,21 @@ public sealed class CreatureEatSystem : ISimulationSystem
         creature.StopMoving();
     }
 
-    /// <summary>Out of the eating states entirely, and idle — state 1, and then the state id
-    /// is given back, because idle has not retired onto one yet (ADR-0176).</summary>
+    /// <summary>Out of the eating states entirely, and idle: state 1.</summary>
     private static void GiveUp(SimulationContext context, CreatureState creature)
     {
         creature.TargetObjectId = EatingRules.NoChicken;
         Shadow(context, creature, CreatureStateMachine.Idle);
-        CreatureStateMachine.Release(creature);
         creature.Activity = CreatureActivity.Idle;
         creature.StopMoving();
     }
 
     /// <summary>From idle into state 91, the needs routine's entry into eating
-    /// (<c>eating.md</c> §3). A creature arrives here with no state id, because idle is
-    /// not yet on one.</summary>
+    /// (<c>eating.md</c> §3).</summary>
     private static void EnterTheChain(SimulationContext context, CreatureState creature)
     {
         // Taken off a job: 0x004633D0 sets 91 from the job's own state.
-        if (NeedRules.IsAtAJob(creature) && CreatureStateMachine.HasState(creature))
-        {
-            NeedRules.EndJob(creature);
-            Shadow(context, creature, EatingRules.FindHatcheryState);
-            return;
-        }
-
-        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
-        CreatureStateMachine.Begin(creature, CreatureStateMachine.Idle);
+        if (NeedRules.IsAtAJob(creature)) NeedRules.EndJob(creature);
         Shadow(context, creature, EatingRules.FindHatcheryState);
     }
 

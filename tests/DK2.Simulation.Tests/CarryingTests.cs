@@ -230,7 +230,7 @@ public class CarryingTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
-        CreatureStateMachine.Begin(goblin, TortureRules.ReleasedState);
+        StatePlacement.Place(goblin, TortureRules.ReleasedState);
         goblin.Health = 0;
 
         Assert.True(CreatureDeathRules.Collapse(goblin));
@@ -301,7 +301,7 @@ public class CarryingTests
         Assert.Equal(
             [(6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
              (6, ImpStates.PickingUpCasualty, ImpStates.CarryingToLair),
-             (CreatureStateMachine.NoState, ImpStates.PickingUpCasualty, CreatureStateMachine.Idle)],
+             (ImpStates.TaskSelection, ImpStates.PickingUpCasualty, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,
                 () => sink.Events.Any(e => e.Kind == "creature_rescued")));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
@@ -322,7 +322,7 @@ public class CarryingTests
         Assert.Equal(
             [(6, ImpStates.TaskSelection, ImpStates.PickingUpCorpse),
              (6, ImpStates.PickingUpCorpse, ImpStates.CarryingCorpse),
-             (CreatureStateMachine.NoState, ImpStates.PickingUpCorpse, CreatureStateMachine.Idle)],
+             (ImpStates.TaskSelection, ImpStates.PickingUpCorpse, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,
                 () => sink.Events.Any(e => e.Kind == "corpse_buried")));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");

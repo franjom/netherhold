@@ -28,14 +28,10 @@ public static class LeavingRules
     /// <summary>State 196: sacked, its gold gone, removed.</summary>
     public const int SackedState = 196;
 
-    /// <summary>Sets 194, from idle when the creature holds no state yet. Returns whether the
-    /// rule took it: it refuses 194 from the captive, device and pit states, and the creature
-    /// then stays where it was.</summary>
-    public static bool Start(SimulationContext context, CreatureState state, string systemName)
-    {
-        Systems.StateShadow.FromIdle(state);
-        return Systems.StateShadow.TryMove(context, systemName, state, ChoosingState);
-    }
+    /// <summary>Sets 194. Returns whether the rule took it: it refuses 194 from the captive,
+    /// device and pit states, and the creature then stays where it was.</summary>
+    public static bool Start(SimulationContext context, CreatureState state, string systemName) =>
+        Systems.StateShadow.TryMove(context, systemName, state, ChoosingState);
 
     /// <summary>Portal or Hero Portal terrain, whoever owns it — DK2's room finder treats types
     /// 3 and 25 alike and walks every player's list.</summary>

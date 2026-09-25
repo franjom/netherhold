@@ -51,8 +51,6 @@ public sealed class CreatureJobSystem : ISimulationSystem
             CreatureState creature = creatures[i];
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
-            // Taken off its job by a system that still sets Activity directly (ADR-0177).
-            CreatureStateMachine.ReleaseIfLeft(creature);
 
             // Workers have their own whole system and their own priority order
             // (ADR-0018). DK2 dispatches them before any of this too - an Imp's
@@ -193,7 +191,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
     /// </summary>
     private static bool TryTake(
         SimulationContext context, CreatureState creature, CreatureDef definition,
-        JobType job, int roll, string how, bool report, bool fromCurrentState = false)
+        JobType job, int roll, string how, bool report)
     {
         string? refused = JobRules.Refused(context.World, context.Database, definition, creature, job);
         RoomTypeId? wants = JobRules.RoomFor(job);
@@ -206,7 +204,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
             refused = "no_such_job_here";
         }
 
-        if (refused is null && !TrySetOut(context, creature, definition, job, wants!.Value, fromCurrentState))
+        if (refused is null && !TrySetOut(context, creature, definition, job, wants!.Value))
         {
             refused = "no_room";
         }
@@ -240,8 +238,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (!definition.HappyJobs.Any(j => j.Job == JobType.Drink)) return false;
-        return TryTake(context, creature, definition, JobType.Drink, roll: -1, how: "paid", report: true,
-            fromCurrentState: true);
+        return TryTake(context, creature, definition, JobType.Drink, roll: -1, how: "paid", report: true);
     }
 
     /// <summary>Chooses the room and sets off for it.</summary>
@@ -255,7 +252,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
     /// tile.</remarks>
     private static bool TrySetOut(
         SimulationContext context, CreatureState creature, CreatureDef definition,
-        JobType job, RoomTypeId wants, bool fromCurrentState = false)
+        JobType job, RoomTypeId wants)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -297,7 +294,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
 
             creature.JobTileIndex = target;
             creature.Activity = CreatureActivity.GoingToJob;
-            SetOutInState(context, creature, job, fromCurrentState);
+            SetOutInState(context, creature, job);
 
             // Standing in it already - a creature that rolls Train while stood
             // in the training room. No walk to make, so it is at work now.
@@ -636,8 +633,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
         return true;
     }
 
-    /// <summary>Gives up the job and goes idle: state 1, then the shim takes the id, idle
-    /// not being on state ids yet.</summary>
+    /// <summary>Gives up the job and goes idle: state 1.</summary>
     private static void Stop(SimulationContext context, CreatureState creature)
     {
         creature.CurrentJob = JobType.None;
@@ -650,16 +646,13 @@ public sealed class CreatureJobSystem : ISimulationSystem
 
     /// <summary>DK2's room helper, called by the job's handler from idle with the job's
     /// state as the resume (ADR-0177): state 7 for a walk, or 1 and then the job state
-    /// when the creature is already in the room (<c>travel-states.md</c> §8). From idle, or
-    /// with <paramref name="fromCurrentState"/> from the state the caller is in (189).</summary>
+    /// when the creature is already in the room (<c>travel-states.md</c> §8), from the state
+    /// the caller is in: idle, or 189 for the Drink handler after pay.</summary>
     private static void SetOutInState(
-        SimulationContext context, CreatureState creature, JobType job, bool fromCurrentState)
+        SimulationContext context, CreatureState creature, JobType job)
     {
-        if (CreatureStateMachine.HasState(creature) && !fromCurrentState)
-            CreatureStateMachine.Release(creature);
         if (JobRules.StateFor(job) is not int state) return;
 
-        StateShadow.FromIdle(creature);
         if (creature.IsRouted)
         {
             CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToRoom, state);

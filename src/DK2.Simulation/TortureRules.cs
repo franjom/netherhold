@@ -114,8 +114,7 @@ public static class TortureRules
         creature.PrisonOwnerPlayerId = keeper;
         StrapOn(world, creature, tileIndex);
 
-        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
-        CreatureStateMachine.Begin(creature, PrisonRules.HandDropState);
+        CreatureStateMachine.TrySetState(creature, PrisonRules.HandDropState);
         CreatureStateMachine.TrySetState(creature, StrappingState);
         CreatureStateMachine.TrySetState(creature, TorturedState);
         return true;
@@ -135,8 +134,7 @@ public static class TortureRules
         StrapOn(world, creature, tileIndex);
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
-        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
-        CreatureStateMachine.Begin(creature, PrisonRules.HandDropState);
+        CreatureStateMachine.TrySetState(creature, PrisonRules.HandDropState);
         CreatureStateMachine.TrySetState(creature, StrappingState);
         CreatureStateMachine.TrySetState(creature, TorturedState);
         return true;
@@ -202,7 +200,7 @@ public static class TortureRules
     public static void Unstrap(CreatureState creature)
     {
         if (!IsBeingTortured(creature)) return;
-        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
+        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
         if (PrisonRules.IsImprisoned(creature))
         {
             creature.Activity = CreatureActivity.Imprisoned;

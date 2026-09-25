@@ -161,7 +161,7 @@ public sealed class RoomCapacityTests
         Assert.Contains(sink.Events, e => e.Kind == "job_lost" && e.Detail.Contains($"creature={walker.Id} ")
             && e.Detail.Contains("reason=room_full") && e.Detail.Contains(message));
         Assert.Equal(CreatureActivity.Idle, walker.Activity);
-        Assert.False(CreatureStateMachine.HasState(walker));
+        Assert.Equal(CreatureStateMachine.Idle, walker.Dk2StateId);
         Assert.True(Training(first));
     }
 

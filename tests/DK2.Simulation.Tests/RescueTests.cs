@@ -100,6 +100,8 @@ public class RescueTests
         Assert.False(PrisonRules.IsImprisoned(victim));
         Assert.Equal(Hero, victim.OwnerPlayerId);
         Assert.Equal(CreatureActivity.Idle, hero.Activity);
+        // 134 returns 0 and the rescuer is in state 1; 133 drops the victim to 1 as well.
+        Assert.Equal((CreatureStateMachine.Idle, CreatureStateMachine.Idle), (hero.Dk2StateId, victim.Dk2StateId));
         Assert.Equal(Wheel, hero.Tile);
         Assert.Contains(sink.Events, e => e.Kind == "rescuer_to_victim");
         Assert.Contains(sink.Events, e => e.Kind == "captive_rescued" && e.Detail.Contains($"victim={victim.Id} "));

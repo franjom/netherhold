@@ -262,7 +262,7 @@ public sealed class CreatureJobTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         goblin.CurrentJob = JobType.Drink;
         goblin.Activity = CreatureActivity.AtWork;
-        CreatureStateMachine.Begin(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
+        StatePlacement.Place(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
         goblin.GoldHeld = 100;
         goblin.Anger.Treatment = 10_000;
         goblin.Anger.Company = 10_000;
@@ -294,7 +294,7 @@ public sealed class CreatureJobTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         goblin.CurrentJob = JobType.Drink;
         goblin.Activity = CreatureActivity.AtWork;
-        CreatureStateMachine.Begin(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
+        StatePlacement.Place(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
         goblin.GoldHeld = 8;
         goblin.Anger.Work = 10_000;
 
@@ -304,7 +304,7 @@ public sealed class CreatureJobTests
 
         Assert.Equal(JobType.None, goblin.CurrentJob);
         Assert.Equal(CreatureActivity.Idle, goblin.Activity);
-        Assert.False(CreatureStateMachine.HasState(goblin));
+        Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
         Assert.Equal(8, goblin.GoldHeld);
         Assert.Equal(10_000, goblin.Anger.Work);
         Assert.Contains(sink.Events, e => e.Kind == "job_lost"
@@ -326,7 +326,7 @@ public sealed class CreatureJobTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         goblin.CurrentJob = JobType.CombatPitSpectate;
         goblin.Activity = CreatureActivity.AtWork;
-        CreatureStateMachine.Begin(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
+        StatePlacement.Place(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
         goblin.Anger.Treatment = 5_000;
         goblin.Anger.Company = 5_000;
         goblin.Anger.Work = 5_000;
@@ -357,7 +357,7 @@ public sealed class CreatureJobTests
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, Floor);
         vampire.CurrentJob = JobType.Praying;
         vampire.Activity = CreatureActivity.AtWork;
-        CreatureStateMachine.Begin(vampire, JobRules.StateFor(vampire.CurrentJob)!.Value);
+        StatePlacement.Place(vampire, JobRules.StateFor(vampire.CurrentJob)!.Value);
         vampire.Anger.Pay = 10_000;
         vampire.Anger.Lair = 8_000;
         vampire.Anger.Treatment = 500;
@@ -390,7 +390,7 @@ public sealed class CreatureJobTests
         CreatureDef definition = db.CreatureById(VampireId);
         vampire.CurrentJob = JobType.Praying;
         vampire.Activity = CreatureActivity.AtWork;
-        CreatureStateMachine.Begin(vampire, JobRules.StateFor(vampire.CurrentJob)!.Value);
+        StatePlacement.Place(vampire, JobRules.StateFor(vampire.CurrentJob)!.Value);
         vampire.Health = 100;
 
         Simulation(db, world).Run(Second * 3);
@@ -456,7 +456,7 @@ public sealed class CreatureJobTests
     {
         // The Train handler calls the room helper from idle with 108 as the resume
         // (travel-state-call-sites.md 2). The saved caller is the evidence the walk came
-        // from idle; selling the room drops the creature to 1 and the shim takes the id.
+        // from idle; selling the room drops the creature to 1.
         GameDatabase db = Db;
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
@@ -472,7 +472,7 @@ public sealed class CreatureJobTests
 
         Assert.Equal(
             [(7, CreatureStateMachine.Idle), (108, CreatureStateMachine.Idle),
-             (CreatureStateMachine.NoState, CreatureStateMachine.Idle)],
+             (CreatureStateMachine.Idle, CreatureStateMachine.Idle)],
             seen);
         Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
@@ -496,10 +496,9 @@ public sealed class CreatureJobTests
     }
 
     [Fact]
-    public void TheEatSystemsShimLeavesAWorkingGoblinsStateAlone()
+    public void TheEatSystemLeavesAWorkingGoblinsStateAlone()
     {
-        // The trap this slice had and eating did not: AtWork holds the job's state, so
-        // every system's release shim must count it retired, or the id goes on arrival.
+        // AtWork holds the job's state; no other system may take it from the creature.
         GameDatabase db = Db;
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
@@ -516,25 +515,6 @@ public sealed class CreatureJobTests
 
         Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
         Assert.Equal(108, goblin.Dk2StateId);
-    }
-
-    [Fact]
-    public void AGoblinTakenOffItsJobGivesItsStateIdBack()
-    {
-        GameDatabase db = Db;
-        WorldState world = World(db);
-        Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
-        Fund(world, 10_000);
-
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
-        GameSimulation sim = Simulation(db, world);
-        sim.Run(Second * 20);
-        Assert.Equal(108, goblin.Dk2StateId);
-
-        goblin.Activity = CreatureActivity.Dead;
-        sim.Run(1);
-
-        Assert.Equal(CreatureStateMachine.NoState, goblin.Dk2StateId);
     }
 
     [Fact]

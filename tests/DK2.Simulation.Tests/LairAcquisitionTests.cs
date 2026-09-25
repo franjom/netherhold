@@ -550,7 +550,6 @@ public class LairAcquisitionTests
         return seen;
     }
 
-    private const int NoState = CreatureStateMachine.NoState;
     private const int Idle = CreatureStateMachine.Idle;
 
     [Fact]
@@ -568,7 +567,7 @@ public class LairAcquisitionTests
         GameSimulation sim = Walking(db, world, events);
 
         Assert.Equal(
-            [(7, Idle, LairRules.MakingAHomeState), (NoState, Idle, Idle)],
+            [(7, Idle, LairRules.MakingAHomeState), (Idle, Idle, Idle)],
             StatesSeen(sim, goblin, Second * 15));
         Assert.Single(events.Events, e => e.Kind == "bed_claimed");
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
@@ -614,7 +613,7 @@ public class LairAcquisitionTests
         seen.AddRange(StatesSeen(sim, goblin, Second * 15));
 
         Assert.Equal(
-            [(7, Idle, LairRules.MakingAHomeState), (6, LairRules.MakingAHomeState, LairRules.MakingAHomeState), (NoState, LairRules.MakingAHomeState, Idle)],
+            [(7, Idle, LairRules.MakingAHomeState), (6, LairRules.MakingAHomeState, LairRules.MakingAHomeState), (Idle, LairRules.MakingAHomeState, Idle)],
             seen);
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
@@ -660,17 +659,16 @@ public class LairAcquisitionTests
 
         Assert.Equal(
             [(7, Idle, LairRules.GoingToBedState), (6, LairRules.GoingToBedState, LairRules.LyingDownState),
-             (LairRules.SleepingState, LairRules.GoingToBedState, Idle), (NoState, LairRules.GoingToBedState, Idle)],
+             (LairRules.SleepingState, LairRules.GoingToBedState, Idle), (Idle, LairRules.GoingToBedState, Idle)],
             StatesSeen(sim, goblin, Second * 40));
         Assert.Contains(events.Events, e => e.Kind == "woke_up");
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
 
     [Fact]
-    public void ASleepingCreatureKeepsEightyThreeWhileTheOtherShimsRun()
+    public void ASleepingCreatureKeepsEightyThreeWhileTheOtherSystemsRun()
     {
-        // Every system owning a retired activity runs a release shim; each must count the
-        // lair states retired, or the job or eat system takes a sleeper's id.
+        // The job and eat systems run beside the sleeper and must leave its state alone.
         GameDatabase db = Db;
         WorldState world = World(db);
         CorridorToA3x3Lair(db, world);

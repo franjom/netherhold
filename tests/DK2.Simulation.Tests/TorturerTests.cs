@@ -147,18 +147,18 @@ public class TorturerTests
         CreatureState victim = Victim(db, world);
         CreatureState first = world.SpawnCreature(db, MistressId, Keeper, new TilePos(7, 3));
         CreatureState second = world.SpawnCreature(db, MistressId, Keeper, new TilePos(9, 3));
-        CreatureStateMachine.Begin(first, TortureRules.TorturerWhippingState);
+        StatePlacement.Place(first, TortureRules.TorturerWhippingState);
         first.TortureTargetTile = Index(world, Wheel);
 
         Assert.Null(TorturerStep.UnattendedVictim(world, db, second));
 
         CreatureStateMachine.Release(first);
-        CreatureStateMachine.Begin(first, TortureRules.TorturerFacingState);
+        StatePlacement.Place(first, TortureRules.TorturerFacingState);
         Assert.Same(victim, TorturerStep.UnattendedVictim(world, db, second));
 
         first.OwnerPlayerId = Rival;
         CreatureStateMachine.Release(first);
-        CreatureStateMachine.Begin(first, TortureRules.TorturerWhippingState);
+        StatePlacement.Place(first, TortureRules.TorturerWhippingState);
         Assert.Same(victim, TorturerStep.UnattendedVictim(world, db, second));
     }
 

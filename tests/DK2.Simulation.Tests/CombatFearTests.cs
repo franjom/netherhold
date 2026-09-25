@@ -100,7 +100,7 @@ public class CombatFearTests
 
         Assert.Equal([199, 203, 6], seen.Select(s => s.State).Take(3));
         Assert.Contains((6, 203, 202), seen);
-        Assert.Equal(CreatureStateMachine.NoState, goblin.Dk2StateId);
+        Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 

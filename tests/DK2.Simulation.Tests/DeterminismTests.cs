@@ -102,11 +102,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 81: eating is the first errand on DK2's own state ids (ADR-0176).
-        // A hungry creature now writes 91, 7, 92, 6, 93 and 94 beside its activity. The
-        // pinned world never grows hungry, so the literal moved on the version alone.
+        // HashVersion 106: every creature holds a state from its constructor on, 1 where
+        // it had held none (ADR-0209), so the pinned world's two creatures moved it.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xDBC19E3981F90A36UL, sim.StateHash());
+        Assert.Equal(0x52719F6004D8BDBBUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -356,8 +356,7 @@ public static class PrisonRules
         creature.Activity = CreatureActivity.Imprisoned;
 
         // Into the captive's states: 114 from an imp, 77 from the hand, then 115 (ADR-0191, ADR-0193).
-        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
-        CreatureStateMachine.Begin(creature, dropped ? HandDropState : AdmittedState);
+        CreatureStateMachine.TrySetState(creature, dropped ? HandDropState : AdmittedState);
         CreatureStateMachine.TrySetState(creature, DecidingState);
 
         creature.TargetTileIndex = -1;
@@ -377,8 +376,8 @@ public static class PrisonRules
         bool wasCaptive = creature.PrisonOwnerPlayerId != NoPrison;
         creature.PrisonOwnerPlayerId = NoPrison;
 
-        // A captive holds only the captive states and the walks between them.
-        if (wasCaptive && CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
+        // A captive holds only the captive states and the walks between them; freed, it is idle.
+        if (wasCaptive) CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
         if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.BeingTortured)
             creature.ClearJob();
     }

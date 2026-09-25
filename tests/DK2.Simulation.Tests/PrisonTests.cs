@@ -176,7 +176,7 @@ public class PrisonTests
         Assert.Equal(
             [(6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
              (6, ImpStates.PickingUpCasualty, ImpStates.CarryingToPrison),
-             (CreatureStateMachine.NoState, ImpStates.AtThePrisonDoor, CreatureStateMachine.Idle)],
+             (ImpStates.TaskSelection, ImpStates.AtThePrisonDoor, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,
                 () => sink.Events.Any(e => e.Kind == "creature_imprisoned")));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
@@ -200,7 +200,7 @@ public class PrisonTests
         Assert.Equal(
             [(6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
              (6, ImpStates.PickingUpCasualty, ImpStates.CarryingToPrison),
-             (CreatureStateMachine.NoState, ImpStates.TakingTheRefusedBody, CreatureStateMachine.Idle)],
+             (ImpStates.TaskSelection, ImpStates.TakingTheRefusedBody, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,
                 () => sink.Events.Any(e => e.Kind == "body_dropped")));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
@@ -1504,7 +1504,7 @@ public class PrisonTests
     }
 
     [Fact]
-    public void ADroppedCaptiveIsBackInItsOwnStatesAndAFreedOneHasNone()
+    public void ADroppedCaptiveIsBackInItsOwnStatesAndAFreedOneIsIdle()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -1520,13 +1520,13 @@ public class PrisonTests
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
         Assert.False(PrisonRules.IsImprisoned(captive));
-        Assert.False(CreatureStateMachine.HasState(captive));
+        Assert.Equal(CreatureStateMachine.Idle, captive.Dk2StateId);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
 
-        // And letting one go gives its state back there and then, whatever runs next.
+        // And letting one go makes it idle there and then, whatever runs next.
         CreatureState other = Prisoner(db, world, CellA);
         PrisonRules.Release(other);
-        Assert.False(CreatureStateMachine.HasState(other));
+        Assert.Equal(CreatureStateMachine.Idle, other.Dk2StateId);
     }
 
     [Fact]

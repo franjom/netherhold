@@ -55,7 +55,7 @@ public class CasinoTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Gambling);
         goblin.CurrentJob = JobType.Drink;
         goblin.Activity = CreatureActivity.AtWork;
-        CreatureStateMachine.Begin(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
+        StatePlacement.Place(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
         goblin.GoldHeld = purse;
         return goblin;
     }

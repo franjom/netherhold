@@ -50,8 +50,6 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             CreatureState creature = creatures[i];
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
-            // Taken out of the lair states by a system that still sets Activity (ADR-0178).
-            CreatureStateMachine.ReleaseIfLeft(creature);
 
             // Workers are skipped explicitly rather than incidentally: an imp
             // has no bed (LairObjectId 0) and would fall out of NeedsBed anyway,
@@ -294,7 +292,6 @@ public sealed class CreatureSleepSystem : ISimulationSystem
 
         // The Sleep job calls the room helper with 81 (0x0046F4B0), from whatever state the
         // need interrupted; already in the bed's room is 1, 81, and 81's own walk to the bed.
-        StateShadow.FromIdle(creature);
         if (InBedsRoom(context, creature))
         {
             StateShadow.Move(context, SystemName, creature, CreatureStateMachine.Idle);

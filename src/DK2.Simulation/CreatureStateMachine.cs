@@ -10,25 +10,23 @@ namespace DK2.Simulation;
 /// <summary>The one way a creature's DK2 state id changes: DK2's <c>SetState</c>
 /// (<c>0x00476D30</c>), which consults the transition rule and refuses an illegal move
 /// rather than taking it (ADR-0135 step one).
-/// <para>The activities retire onto state ids one group at a time (<see cref="IsRetired"/>),
-/// and the gate came first on purpose: each retirement that landed before it would have
-/// been a chance to invent a transition rule the original does not have. AGENTS.md forbids inventing
-/// behaviour that can be researched, and this one is researched — all 78,680 ordered pairs
-/// resolve (<see cref="CreatureStateTransitions"/>, Q300).</para></summary>
+/// <para>Every creature holds a state from its constructor on, and the activities that
+/// once stood in for them all make their moves through here (ADR-0209). The gate came
+/// first on purpose: all 78,680 ordered pairs resolve (<see cref="CreatureStateTransitions"/>,
+/// Q300), so no retirement had to invent a transition rule.</para></summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-state-table.md")]
 public static class CreatureStateMachine
 {
-    /// <summary>No state has been assigned yet — <see cref="CreatureState.Dk2StateId"/>'s
-    /// default. Not state 0, which is a real state (<c>idle</c>, the one row with no
-    /// handler); defaulting to it would claim a state nothing had chosen.</summary>
+    /// <summary>A corpse's: DK2 destroys the creature and makes a <c>CDeadBody</c> thing, and
+    /// ours keeps the creature with no state (ADR-0206). Not state 0, which is a real state
+    /// (<c>idle</c>, the one row with no handler).</summary>
     public const int NoState = -1;
 
-    /// <summary>Whether this creature has been given a state id at all.</summary>
+    /// <summary>Whether this creature holds a state: every creature but a corpse.</summary>
     public static bool HasState(CreatureState creature) => creature.Dk2StateId != NoState;
 
-    /// <summary>What the rule says about a move, without taking it.</summary>
-    /// <remarks>A creature with no state id yet is not a transition at all: the rule takes
-    /// two states and there is only one. <see cref="Begin"/> is that case.</remarks>
+    /// <summary>What the rule says about a move, without taking it. A corpse's move is not
+    /// judged: it has no state to judge it from.</summary>
     public static StateTransition Classify(CreatureState creature, int targetStateId)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));
@@ -36,24 +34,6 @@ public static class CreatureStateMachine
 
         return CreatureStateTransitions.Classify(
             creature.Dk2StateId, targetStateId, creature.UtilityNewState);
-    }
-
-    /// <summary>Gives a creature its first state id. Separate from <see cref="TrySetState"/>
-    /// because there is nothing to judge a first state against, and because an activity
-    /// retiring onto a state id has to start somewhere.</summary>
-    public static void Begin(CreatureState creature, int stateId)
-    {
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
-        _ = CreatureStateTable.Get(stateId);
-
-        if (HasState(creature))
-        {
-            throw new InvalidOperationException(
-                $"Creature {creature.Id} is already in state {creature.Dk2StateId}; " +
-                $"use {nameof(TrySetState)}.");
-        }
-
-        Enter(creature, stateId);
     }
 
     /// <summary>DK2's <c>SetState</c>. Returns whether the move was taken; on a refusal the
@@ -113,47 +93,13 @@ public static class CreatureStateMachine
         return took;
     }
 
-    /// <summary>Takes a creature's state id away again. <b>A migration shim, not DK2</b>, and
-    /// it goes when the last activity retires (ADR-0176).</summary>
-    /// <remarks>While only some activities are on state ids, a creature that leaves them —
-    /// or is pulled out by a system that still sets <see cref="CreatureState.Activity"/>
-    /// directly — would otherwise keep a state it is no longer in, and the next gated move
-    /// would be judged from the wrong place. So the rule while migrating is: a creature
-    /// holds a state id <b>only while it is in a retired activity</b>. Releasing keeps the
-    /// saved caller and the resume slot, which DK2 itself never clears.</remarks>
+    /// <summary>Takes a dying creature's state away as it becomes a corpse, the one creature
+    /// with none: DK2 destroys it and makes a <c>CDeadBody</c> (ADR-0206). Keeps the saved
+    /// caller and the resume slot, which DK2 never clears.</summary>
     public static void Release(CreatureState creature)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));
         creature.Dk2StateId = NoState;
-    }
-
-    /// <summary>The retired activities, the only ones a creature may hold a state id in:
-    /// eating (ADR-0176), a job's walk and work (ADR-0177), the lair and sleep (ADR-0178),
-    /// collecting wages (ADR-0180), an imp's tile work (ADR-0181), its gold (ADR-0182), objects (ADR-0183), bodies (ADR-0184), dying (ADR-0206), leaving (ADR-0207) and the combat group (ADR-0208). Part of the shim.</summary>
-    public static bool IsRetired(CreatureActivity activity) =>
-        activity is CreatureActivity.SeekingFood or CreatureActivity.FetchingChicken
-            or CreatureActivity.GoingToJob or CreatureActivity.AtWork
-            or CreatureActivity.SeekingLair or CreatureActivity.GoingToSleep
-            or CreatureActivity.Sleeping or CreatureActivity.SeekingWages
-            or CreatureActivity.MovingToJob or CreatureActivity.Working
-            or CreatureActivity.FetchingGold or CreatureActivity.DeliveringGold
-            or CreatureActivity.FetchingObject or CreatureActivity.CarryingObject
-            or CreatureActivity.FetchingBody or CreatureActivity.CarryingBody
-            or CreatureActivity.Imprisoned or CreatureActivity.BeingTortured
-            or CreatureActivity.Rescuing or CreatureActivity.Dying
-            or CreatureActivity.Leaving or CreatureActivity.Fighting
-            or CreatureActivity.Fleeing or CreatureActivity.Withdrawing
-            or CreatureActivity.RaisingAlarm or CreatureActivity.Reporting
-            or CreatureActivity.Frozen or CreatureActivity.Stunned
-            or CreatureActivity.Celebrating or CreatureActivity.GoingToBody;
-
-    /// <summary>Hands the state id back if the creature has left the retired activities.
-    /// Every system that owns a retired activity calls it first, so one system's shim
-    /// cannot take the id of an errand another owns.</summary>
-    public static void ReleaseIfLeft(CreatureState creature)
-    {
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
-        if (HasState(creature) && !IsRetired(creature.Activity)) Release(creature);
     }
 
     /// <summary>The category whose update hook DK2's per-tick dispatcher <c>0x00476FC0</c>
@@ -161,7 +107,7 @@ public static class CreatureStateMachine
     /// is the current state's. In one, the dispatcher compares the categories of the saved
     /// caller and the resume slot and runs the hook only when they agree, so a walk between
     /// two states of one category keeps that category's effect and any other walk has none.
-    /// A creature with no state id yet has no category.</summary>
+    /// A corpse has no category.</summary>
     public static CreatureStateCategory? UpdatingCategory(CreatureState creature)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));

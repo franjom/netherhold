@@ -138,7 +138,6 @@ public sealed class PaydaySystem : ISimulationSystem
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            CreatureStateMachine.ReleaseIfLeft(creature);
 
             if (HandRules.IsHeld(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
@@ -270,9 +269,7 @@ public sealed class PaydaySystem : ISimulationSystem
     private static void SetOutInState(SimulationContext context, CreatureState creature)
     {
         // Taken off a job, 187 is set from the job's own state; otherwise from idle.
-        if (NeedRules.IsAtAJob(creature) && CreatureStateMachine.HasState(creature)) NeedRules.EndJob(creature);
-        else CreatureStateMachine.Release(creature);
-        StateShadow.FromIdle(creature);
+        if (NeedRules.IsAtAJob(creature)) NeedRules.EndJob(creature);
         StateShadow.Move(context, SystemName, creature, PaydayRules.FindTheMoneyState);
         CreatureStateMachine.BeginTravel(
             creature, StateShadow.TravelToPoint, PaydayRules.ArrivingState);

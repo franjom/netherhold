@@ -185,7 +185,7 @@ public class EatingTests
 
         Assert.Equal(
             [(7, EatingRules.FindHatcheryState), (6, EatingRules.InHatcheryState),
-             (CreatureStateMachine.NoState, EatingRules.InHatcheryState)],
+             (CreatureStateMachine.Idle, EatingRules.InHatcheryState)],
             seen);
 
         // Every arrival put the resume slot back to 1, and nothing was refused: the whole
@@ -193,31 +193,6 @@ public class EatingTests
         Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
         Assert.Contains(sink.Events, e => e.Kind == "chicken_eaten");
-    }
-
-    [Fact]
-    public void AGoblinPulledOutOfTheChainGivesItsStateIdBack()
-    {
-        // The migration rule (ADR-0176): a creature holds a state id only while it is in
-        // a retired activity. The hand, a fight or a death still set Activity directly,
-        // so the eat system hands the id back the next time it sees the creature.
-        GameDatabase db = Db;
-        WorldState world = World(db);
-        Floor(world, 1, 1, 10, 10);
-        Hatchery(db, world, 6, 6, 3, 3, Keeper);
-        Chicken(db, world, 8, 8);
-
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
-        goblin.Health = 500;
-        MakeHungry(goblin);
-
-        GameSimulation sim = Simulation(db, world);
-        while (goblin.Dk2StateId != 7) sim.Run(1);
-
-        goblin.Activity = CreatureActivity.Idle;
-        sim.Run(1);
-
-        Assert.Equal(CreatureStateMachine.NoState, goblin.Dk2StateId);
     }
 
     [Fact]

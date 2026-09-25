@@ -83,6 +83,24 @@ public class RebellionTests
     }
 
     [Fact]
+    public void ARebelTakenFromItsJobIsIdleInStateOne()
+    {
+        // The countdown starts from idle; a creature at work leaves its job's state for 1.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState vampire = AngryVampire(db, world, new TilePos(2, 2));
+        vampire.CurrentJob = JobType.Train;
+        vampire.Activity = CreatureActivity.AtWork;
+        StatePlacement.Place(vampire, JobRules.StateFor(JobType.Train)!.Value);
+
+        Simulation(db, world).Run(Second);
+
+        Assert.Equal(RebellionRules.DefectDelayTicks, vampire.RebelCountdownTicks);
+        Assert.Equal(CreatureActivity.Idle, vampire.Activity);
+        Assert.Equal(CreatureStateMachine.Idle, vampire.Dk2StateId);
+    }
+
+    [Fact]
     public void TheCountdownIsThirtyTicksAndTheThirtiethIsStillWaiting()
     {
         // 0x004750B0 compares the tick against its deadline with JBE, so the tick that

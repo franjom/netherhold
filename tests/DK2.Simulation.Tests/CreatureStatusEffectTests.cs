@@ -166,9 +166,9 @@ public class CreatureStatusEffectTests
 
         sim.Run(41);
         Assert.Equal(CreatureActivity.Idle, frozen.Activity);
-        Assert.Equal(CreatureStateMachine.NoState, frozen.Dk2StateId);
+        Assert.Equal(CreatureStateMachine.Idle, frozen.Dk2StateId);
         Assert.Equal(CreatureActivity.Idle, stunned.Activity);
-        Assert.Equal(CreatureStateMachine.NoState, stunned.Dk2StateId);
+        Assert.Equal(CreatureStateMachine.Idle, stunned.Dk2StateId);
     }
 
     [Fact]

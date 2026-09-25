@@ -157,7 +157,6 @@ public sealed class LairSeeker
 
         // The attempt calls the room helper with 80, from idle or from 80 itself when a
         // room had nothing left (0x0046F422, 0x0046F7EB); already inside is 1, then 80.
-        StateShadow.FromIdle(creature);
         if (creature.IsRouted)
         {
             CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToRoom, LairRules.MakingAHomeState);

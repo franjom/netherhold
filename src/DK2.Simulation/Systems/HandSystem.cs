@@ -69,6 +69,8 @@ public sealed class HandSystem : ISimulationSystem
         DropLoad(context, creature);
         TortureRules.Unstrap(creature);
         creature.ClearJob();
+        // 76, the hand's own state, is not built: ours holds 1 in the hand (ADR-0209).
+        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
 
         creature.InHand = true;
         creature.PickupTick = context.Tick.Value;
