@@ -749,6 +749,13 @@ public sealed class CreatureState
     /// ours for the idle actions 43 and 44, whose length is UNKNOWN.</summary>
     public long ActionUntilTick;
 
+    /// <summary>DK2's <c>OldFightPos</c> (<c>+0x52A</c>, <c>+0x52C</c>, a tile; 0 for none) and
+    /// <c>OldFightTick</c> (<c>+0x52E</c>): where a creature withdrew from a fight, and when
+    /// (<see cref="Combat.FightReturnRules"/>).</summary>
+    public int OldFightTileX;
+    public int OldFightTileY;
+    public long OldFightTick;
+
     /// <summary>The turn state 99 was entered, for its <c>Age</c> test.</summary>
     public long GuardLostTick;
 
@@ -1005,6 +1012,9 @@ public sealed class CreatureState
         hash.Add(Tunnel.ActionUntilTick);
         hash.Add(WanderStamp);
         hash.Add(ActionUntilTick);
+        hash.Add(OldFightTileX);
+        hash.Add(OldFightTileY);
+        hash.Add(OldFightTick);
         hash.Add(GuardLostTick);
         hash.Add(CombatPitFighter);
         hash.Add(AttackAbnormalTargets);

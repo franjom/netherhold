@@ -36,7 +36,7 @@ dumper prints each by name.
 | `+0x528` | `OverThreatCounter` | byte; ticks over the threshold, clamped |
 | `+0x532` | `BackOffTimer` | byte; ticks of backing off left |
 | `+0x533`, `+0x535` | `ThreatThing`, `ThreatThingThreshold` | the tag radiating most at me; read only by the creature update `0x00488930`, which zeroes both |
-| `+0x52A`, `+0x52E` | `OldFightPos`, `OldFightTick` | stamped by the withdraw state; **no reader** |
+| `+0x52A`, `+0x52E` | `OldFightPos`, `OldFightTick` | stamped by the withdraw state; **read by state 1** (§8; "no reader" was wrong, corrected 2026-09-25) |
 | `+0x3D7` | `FearlessUntil` | set only by the casino's big win: `now + var19 × GamblingDelayBeforeBecomingFearlessSeconds` (`0x0047AF20`) |
 
 ## 2. The accumulator (`0x0045E4F0`)
@@ -247,3 +247,17 @@ return, §6.
 run speed scaled by the Speed row; `+0x12` clear meaning a live thing.
 
 **UNKNOWN:** Q372–Q375.
+
+## 8. The walk back (read 2026-09-25, ADR-0225)
+
+**The stamp.** The withdraw state's success tail (`0x004617B2`–`0x00461826`) sets the run speed,
+makes effect `0xDC`, and then, unless the creature's `TypeId` (`+0x36F`, the dumper's name) is
+1 (the Imp), stamps `OldFightPos` and `OldFightTick`. It reads `+0x1A`, the x coordinate, for
+**both** words. **CONFIRMED.**
+
+**The reader.** State 1 (`0x004773D0`) tests the stamp before its hero, neutral, worker and
+default arms.
+- **Stale:** with `now >= OldFightTick + 500` it clears all three.
+- **Healthy:** with `(level-scaled Hp × 3) >> 2 < Health` it walks to the tile's centre,
+  `0x00471890(point, 1, TypeId == 1 ? 0x80 : 0)`, and clears the stamp on success.
+- **Otherwise** the stamp is kept, and the other arms run. **CONFIRMED.**

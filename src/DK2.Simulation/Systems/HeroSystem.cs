@@ -12,9 +12,9 @@ namespace DK2.Simulation.Systems;
 /// not given jobs by <see cref="CreatureJobSystem"/>; DK2's state 1 never reaches the choosers for
 /// them. A hero worker is a hero too: state 1 tests the hero owner before the worker flag
 /// (<c>0x004773D0</c>). A walk's arrival hands over to the state it resumes, which runs from the
-/// next turn, as DK2's dispatcher runs one handler a turn. Not built: state 1's pending-point walk
-/// (<c>+0x4FE</c>). StealGold's states are <see cref="StealGoldRules"/> (ADR-0219), tunnelling's
-/// <see cref="TunnelRules"/> (ADR-0222).</summary>
+/// next turn, as DK2's dispatcher runs one handler a turn. State 1 first asks
+/// <see cref="Combat.FightReturnRules"/> (ADR-0225). StealGold's states are <see cref="StealGoldRules"/>
+/// (ADR-0219), tunnelling's <see cref="TunnelRules"/> (ADR-0222).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-party-walk.md")]
 public sealed class HeroSystem : ISimulationSystem
 {
@@ -52,7 +52,8 @@ public sealed class HeroSystem : ISimulationSystem
 
         bool stays = creature.Dk2StateId switch
         {
-            CreatureStateMachine.Idle => StateShadow.TryMove(context, SystemName, creature, HeroJobRules.StandingJobState),
+            CreatureStateMachine.Idle => Combat.FightReturnRules.TryReturn(context, creature)
+                || StateShadow.TryMove(context, SystemName, creature, HeroJobRules.StandingJobState),
             // A worker with no task goes 10, 12, 87 and a walk back to 1 (imp-idle-and-wandering.md
             // §5), where a hero's goes to 90. Ours: the wander is not built, so 10 idles at once.
             ImpStates.TaskSelection => false,
@@ -107,7 +108,7 @@ public sealed class HeroSystem : ISimulationSystem
 
     /// <summary>A walk this system started, and so one it finishes: the other systems' walks resume
     /// their own states.</summary>
-    private static bool IsHeroResume(int state) => state is HeroJobRules.WaitingState
+    private static bool IsHeroResume(int state) => state is CreatureStateMachine.Idle or HeroJobRules.WaitingState
         or HeroJobRules.AtThePointState or HeroJobRules.RoamingState or HeroJobRules.HuntingState
         or HeroJobRules.AtTheHeartState or HeroJobRules.FollowingState
         or StealGoldRules.InTheTreasuryState or StealGoldRules.AtTheGoldState or StealGoldRules.EscapingState

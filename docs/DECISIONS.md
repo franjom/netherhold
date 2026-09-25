@@ -4893,3 +4893,21 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - `AnIdleImp_LooksForWorkOnTheIntervalTheDataNames` pinned the five-second guess and becomes `AnIdleImp_RestsInTwelve_AndLooksAgainOnlyAfterAWanderTrip`.
 - **Tests and controls.** Four tests. Six negative controls each fail a named test: no rest, the heart allowed, radius 1–3, any owner, no idle action, and no fallback to the imp's own spot.
 - `HashVersion` and `FormatVersion` **116**, pin `0xAACD3B15D9CFDCFF`.
+
+## ADR-0225 — A creature that withdrew walks back to the fight once healed
+**Date:** 2026-09-25 · **Status:** accepted · corrects `combat-fear.md` §1 · Research: `docs/research/combat-fear.md` §8
+
+**Context.** "State 1's pending-point walk" was named but unread; the note put it at `+0x4FE`, which is the engagement record. It is `OldFightPos`/`OldFightTick` (`+0x52A`, `+0x52E`), which `combat-fear.md` listed as having no reader. State 1 (`0x004773D0`) reads it, before all of its other arms.
+
+**Decision.** `FightReturnRules`:
+1. **The stamp.** At the end of a successful withdrawal (`0x004617F2`), for any creature whose `TypeId` (`+0x36F`, named by the dumper) is not 1, the Imp, the tile and the turn are stamped. **Both words hold the x coordinate** (`+0x1A` read twice, `0x004617FB`–`0x00461811`); kept.
+2. **State 1's first arm.**
+   - A stamp 500 turns old is cleared.
+   - A fresh one, with health strictly above `(MaxHealth × 3) >> 2`, walks to the tile's centre, resuming 1. The options are `0x80` for an Imp and 0 otherwise. The stamp is cleared once the walk is taken; below the threshold it is kept.
+3. **Where it runs.** The job system runs it for a keeper's creature before 89's choosers, and the hero system before 90. The job system gives a walk resuming 1 its arrival.
+4. **New hashed and saved fields:** `OldFightTileX`, `OldFightTileY` and `OldFightTick`.
+
+**Consequences.**
+- Because of the x-in-both-words quirk, a creature returns to (x, x), not where it fought, unless it fought on the diagonal.
+- Four tests. Six negative controls each fail a named test: no stamp, the y word from y, a non-strict threshold, no expiry, the arm not asked, and no arrival.
+- `HashVersion` and `FormatVersion` **117**.

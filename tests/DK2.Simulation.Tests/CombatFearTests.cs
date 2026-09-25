@@ -104,6 +104,26 @@ public class CombatFearTests
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 
+    /// <summary>The withdraw state stamps <c>OldFightPos</c> for a non-Imp, and DK2 writes the x
+    /// coordinate into both words (<c>0x004617FB</c>–<c>0x00461811</c>): the return point is (x, x).</summary>
+    [Fact]
+    public void AWithdrawalStampsWhereTheFightWas_WithDk2sXInBothWords()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 9);
+        Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
+        GameSimulation sim = Combat(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        for (int t = 0; t < 60 && !sink.Events.Any(e => e.Kind == "withdraws"); t++) sim.Tick();
+
+        Assert.Contains(sink.Events, e => e.Kind == "withdraws" && e.Detail.Contains("creature=" + goblin.Id));
+        Assert.InRange(goblin.OldFightTileX, 11, 13);
+        Assert.Equal(goblin.OldFightTileX, goblin.OldFightTileY);
+        Assert.True(goblin.OldFightTick > 0);
+    }
+
     [Fact]
     public void ABackedOffCreatureKeepsItsTarget_AndRunsWhenTheTimerIsOut()
     {

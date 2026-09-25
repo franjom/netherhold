@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 116: an idle worker's wander stamp and action timer (ADR-0224).
+        // HashVersion 117: OldFightPos and OldFightTick (ADR-0225).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xAACD3B15D9CFDCFFUL, sim.StateHash());
+        Assert.Equal(0xFA805D7B0DCA5668UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

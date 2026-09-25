@@ -69,6 +69,17 @@ public sealed class CreatureJobSystem : ISimulationSystem
             }
             if (creature.Activity == CreatureActivity.Leaving) continue;
             if (HeroJobRules.IsHero(creature)) continue;   // HeroSystem: state 1 sends a hero to 90
+
+            // A walk resuming 1 is state 1's own, back to a fight (ADR-0225): the arrival is idle.
+            if (StateShadow.IsTravelling(creature) && creature.UtilityNewState == CreatureStateMachine.Idle)
+            {
+                if (!creature.HasRoute)
+                {
+                    creature.StopMoving();
+                    StateShadow.Arrive(context, SystemName, creature);
+                }
+                continue;
+            }
             if (Combat.CombatRules.Preoccupied(creature)) continue;
 
             switch (creature.Activity)
@@ -102,6 +113,9 @@ public sealed class CreatureJobSystem : ISimulationSystem
     private void Choose(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        // State 1's first arm, before it sends the creature to 89: back to a fight it withdrew from.
+        if (creature.Dk2StateId == CreatureStateMachine.Idle && Combat.FightReturnRules.TryReturn(context, creature)) return;
+
         // State 89 (0x004778E0) asks the job the hand dropped this creature on before either
         // chooser, whatever the mood, and forgets it only when it is refused (ADR-0215).
         if (creature.DroppedToDoJob != JobType.None)

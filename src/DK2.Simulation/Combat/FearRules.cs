@@ -529,6 +529,7 @@ public static class FearRules
         CombatStates.IntoTheGroup(context, me);
         CombatStates.Travel(me, CombatStates.Withdrawn);
         me.CombatStateEnteredTick = context.Tick.Value;
+        FightReturnRules.Stamp(context, me);
         context.Emit(SystemName, "withdraws",
             $"creature={me.Id} type={mine.Name} health={me.Health} to={destX / Fp32.One},{destY / Fp32.One} lair={bed >= 0}");
         return true;
