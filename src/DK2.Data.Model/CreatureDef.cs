@@ -85,6 +85,11 @@ public sealed record CreatureDef
     public required ushort HpFromChicken { get; init; }
     public required Fp32 HungerRate { get; init; }
     public required byte HungerFill { get; init; }
+
+    /// <summary>File byte <c>0x0F4C</c>, runtime <c>+0x787</c>: summed over a player's creatures to
+    /// pick the strongest player for a hero job with no target (<c>0x004BCB20</c>). Imp 10, Dwarf 15,
+    /// King Reginald 125, Dark Angel 232. Its name is UNKNOWN; this is its only gameplay reader.</summary>
+    public byte Unknown_0F4C { get; init; }
     public required int TimeAwake { get; init; }
     public required int TimeSleep { get; init; }
     public required short OwnLandHealthIncreasePerSecond { get; init; }

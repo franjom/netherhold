@@ -48,8 +48,12 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             creature.Body.Radius = SteeringMover.CrowdWordOf(definition.FootprintRadius.Raw);
             creature.Body.MaxForce = SeparationRules.ShippedMaxForce;
-            creature.Body.MaxSpeed = StatusEffectRules.SpeedCap(context.Database, definition, creature,
-                MaxSpeedOf(context.Database, definition, creature.Level, creature.Running));
+            // A party's shared pace holds until the creature runs (ADR-0216).
+            if (creature.Running) creature.PartySpeedRaw = 0;
+            int cap = creature.PartySpeedRaw > 0
+                ? Math.Min(SimulationTiming.LoaderRatePerTick(creature.PartySpeedRaw), MaxSpeedPerTick) << 4
+                : MaxSpeedOf(context.Database, definition, creature.Level, creature.Running);
+            creature.Body.MaxSpeed = StatusEffectRules.SpeedCap(context.Database, definition, creature, cap);
         }
 
         foreach (CreatureState creature in context.World.Creatures)

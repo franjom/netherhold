@@ -149,6 +149,7 @@ public static class KwdCreatures
             HpFromChicken = U16(0xF0E),
             HungerRate = Fp(0xEBC),
             HungerFill = U8(0xF4E),
+            Unknown_0F4C = U8(0xF4C),
             TimeAwake = S32(0xEC0),
             TimeSleep = S32(0xEC4),
             OwnLandHealthIncreasePerSecond = S16(0xEEA),

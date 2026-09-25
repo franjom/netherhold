@@ -4711,3 +4711,20 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - the no-room drop arm, state 250;
   - `ReturnToJobId` (`+0x68`), which only the Guard job writes.
 - Three tests. Six negative controls each fail a named test: no drop arm, the hated job ignored, no retry, a retry never forgotten, no bonus, and the job not remembered.
+
+## ADR-0216 — A hero runs its standing job and a party walks behind its leader
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0197 and ADR-0135 · Research: `docs/research/hero-party-walk.md`
+
+**Context.** A spawned party stood on its action point: heroes went through the keepers' job choosers, which DK2's state 1 never reaches for them. Codex's read of the hero states (merged 32a0340) says what they do instead.
+
+**Decision.**
+1. `HeroSystem`, before `CreatureJobSystem`, runs a hero's states once an original turn; the job system skips heroes. State 1 sends a hero to 90; 90 sends a follower to 222 and otherwise runs `GoodJob` through the dispatcher's arms (`HeroJobRules.Dispatch`); a failed arm sets a twelve-turn deadline in state 4, then idle and the job again.
+2. Arms: Wait (176, a stroll in its own tile every 50–84 turns), SendToActionPoint (173 random rectangle tile, 174 next waypoint and wait timer, 175 neighbour roaming, 227 when the chain ends), KillCreatures (the target player's first reachable creature, then 177's random ones, then the heart), KillPlayer (the heart, resuming 178, which idles). A job naming no player takes the strongest: the greatest sum of definition byte `+0x787`, now `CreatureDef.Unknown_0F4C`.
+3. State 222: a point `max(PositionInParty >> 1, 1)` free tiles behind the leader's facing, with DK2's unreachable direction 0, then a random sub-tile point.
+4. The spawn sets every member's `PartySpeedRaw` to the slowest level-scaled walk speed; running clears it for good.
+5. New hashed fields `StateDeadlineTick`, `WaypointDeadlineTick`, `PartySpeedRaw`.
+
+**Consequences.**
+- Not built, named at the sites: StealGold's states (the arm fails and retries), the Dwarf tunnelling of 223/224, state 1's pending-point walk, the knock-out re-lead of a party (`0x004B2FDF`), the heart room's own point `0x004E4D90` (ours aims at the first heart tile).
+- Eleven tests; negative controls: a reachable direction 0 and a waypoint chain that never advances each fail a named test.
+- `HashVersion` and `FormatVersion` **112**, pin `0x2EF320B63DEDBBD1`.

@@ -104,7 +104,7 @@ public class DeterminismTests
 
         // HashVersion 111: the job a creature was dropped on (ADR-0215).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x92F1E00A712726B0UL, sim.StateHash());
+        Assert.Equal(0x2EF320B63DEDBBD1UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

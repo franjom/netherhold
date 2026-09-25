@@ -121,6 +121,7 @@ public static class HeroPartyRules
 
         party.SpawnCount++;
         LinkFollowers(world, party.PartyId);
+        SetPace(world, database, party.PartyId);
         return true;
     }
 
@@ -144,6 +145,19 @@ public static class HeroPartyRules
                 && (def.Flags & CreatureFlags.MpdRandomInvader) != 0)
                 return id;
         }
+    }
+
+    /// <summary>The handler's pace: every hero of the party walks at the slowest one's level-scaled
+    /// walk speed (<c>min def+0x5B4</c>, then <c>0x004887D0(0, slowest)</c> on each).</summary>
+    public static void SetPace(WorldState world, GameDatabase database, byte partyId)
+    {
+        int slowest = int.MaxValue;
+        foreach (CreatureState c in world.Creatures)
+            if (c.OwnerPlayerId == PlayerIds.Good && c.PartyId == partyId)
+                slowest = Math.Min(slowest, CreatureLevelRules.SpeedRaw(database, database.CreatureById(c.CreatureTypeId), c.Level));
+        if (slowest == int.MaxValue) return;
+        foreach (CreatureState c in world.Creatures)
+            if (c.OwnerPlayerId == PlayerIds.Good && c.PartyId == partyId) c.PartySpeedRaw = slowest;
     }
 
     /// <summary>The tail of the handler: the last leader-flagged member of the party is the leader;

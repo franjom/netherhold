@@ -63,6 +63,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
             if (creature.CombatPitFighter) continue;   // idle sends it back to the pit (ADR-0213)
             if (CreatureDeathRules.IsDown(creature)) continue;
             if (creature.Activity == CreatureActivity.Leaving) continue;
+            if (HeroJobRules.IsHero(creature)) continue;   // HeroSystem: state 1 sends a hero to 90
             if (Combat.CombatRules.Preoccupied(creature)) continue;
 
             switch (creature.Activity)

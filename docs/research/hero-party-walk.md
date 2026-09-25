@@ -231,3 +231,15 @@ the knock-out/capture branch is **UNKNOWN** (Q428).
   strong negative evidence, but does not establish how long the dead
   thing remains tag-addressable or what a later tag reuse looks like to
   state 222.
+
+## Built (2026-09-25, ADR-0216)
+
+`HeroSystem` and `HeroJobRules` follow sections 1, 2 and 4: state 1 to 90, the dispatcher's
+arms for jobs 18, 19, 22 and 23 with states 173–178 and 227, the follower's 222 and the one-time
+pace. Checked against the binary while building: state 90's failure deadline is `now + 12`
+at `0x004778BB`; state 176 compares `+0x7E`, not the `+0x44` its entry writes; state 173 draws
+the tile's y before its x and excludes the rectangle's upper bounds; its tile test rejects a
+room or impenetrable tile of the hero's own keeper and any impenetrable tile a creature cannot
+wade; state 178 is `XOR EAX,EAX; RET`. Definition byte `+0x787` is file byte `0x0F4C`
+(loader `0x0049348A`): Imp 10, Dwarf 15, King Reginald 125, Dark Angel 232.
+Not built: StealGold's states, 223/224, the section 5 re-lead.

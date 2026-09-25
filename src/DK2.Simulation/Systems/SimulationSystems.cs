@@ -82,6 +82,7 @@ public static class SimulationSystems
         // charged (ADR-0079). Experience last: nothing that died or left is promoted (Q124).
         new PaydaySystem(),
 
+        new HeroSystem(), // a hero's standing job and its party walk, instead of the choosers (ADR-0216)
         new CreatureJobSystem(),
 
         new CreatureAngerSystem(),

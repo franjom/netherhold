@@ -713,6 +713,19 @@ public sealed class CreatureState
     /// <c>state+0xB1</c>.</summary>
     public long GuardDeadlineTick;
 
+    /// <summary>DK2's state deadline (state object <c>+0x7E</c>) as a hero uses it: state 90's
+    /// twelve-turn retry and state 176's next stroll. One word, so a hero entering 176 after a
+    /// failed job keeps the retry's deadline (hero-party-walk.md).</summary>
+    public long StateDeadlineTick;
+
+    /// <summary>When a hero leaves an action point for the next (<c>creature+0x413</c>, state 174).</summary>
+    public long WaypointDeadlineTick;
+
+    /// <summary>A hero party's shared pace, the slowest member's walk speed in the record's units,
+    /// written once by the spawn (<c>0x004887D0(0, slowest)</c>); 0 for none. Running replaces it
+    /// for good, as a fight's speed call does in DK2.</summary>
+    public int PartySpeedRaw;
+
     /// <summary>The turn state 99 was entered, for its <c>Age</c> test.</summary>
     public long GuardLostTick;
 
@@ -946,6 +959,9 @@ public sealed class CreatureState
         hash.Add(ReportTicks);
         hash.Add(GuardFacing);
         hash.Add(GuardDeadlineTick);
+        hash.Add(StateDeadlineTick);
+        hash.Add(WaypointDeadlineTick);
+        hash.Add(PartySpeedRaw);
         hash.Add(GuardLostTick);
         hash.Add(CombatPitFighter);
         hash.Add(AttackAbnormalTargets);
