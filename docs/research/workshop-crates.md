@@ -177,8 +177,18 @@ Manufacture alone, and a creature dropped in the Workshop retries that job first
 Workshop or several, make the same crate sooner, not a crate each. Ours already does this: every
 worker credits the keeper's one pool of points (ADR-0203).
 
-**Not built:** 89's `DroppedToDoJobId` retry. A creature dropped in the Workshop whose table holds
-other jobs rolls its table again in ours.
+**The dropped-on job** (built, ADR-0215):
+- **The write.** The hand's drop on a room, `0x004E8DA0(0)`, reads the room record's work
+  state (`+0x19`) and job (`+0x25`). A creature that does not hate the job (`0x00494480`, the
+  definition's hated list at `+0x66E`) is set to 1 and then that state, and the job goes into
+  `creature+0x2BC`.
+- **Who clears it.** The field has only three clearers besides the constructor: the escape
+  state 121 (`0x004739E0`), the Torture leave hook (`0x0047B4A0`), and 89 itself when the job
+  refuses. The pick-up leaves it alone.
+- **What it does.** A creature dropped in the Workshop keeps going back to it after every crate
+  until the queue is empty.
+- **Ours:** the Library, Training Room, Guard Room, Workshop, Temple and Casino. The escape and
+  Torture clears are not built.
 
 ## 6. Kinds 9 and 10: a crate to a blueprint
 

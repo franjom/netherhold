@@ -66,6 +66,54 @@ public static class JobRules
         _ => null,
     };
 
+    /// <summary>The hand's drop on a room, <c>0x004E8DA0(0)</c>: on a tile of a room whose record
+    /// names a work state (<c>+0x19</c>) and a job (<c>+0x25</c>), a creature that does not hate
+    /// the job (<c>0x00494480</c>, the definition's hated list) is set to 1 and then that state,
+    /// and the job becomes its <see cref="CreatureState.DroppedToDoJob"/>. Returns the job, or
+    /// null when the drop is an ordinary one.</summary>
+    /// <remarks>Built for the rooms whose state is the one their job works in: the Library,
+    /// Training Room, Guard Room, Workshop, Temple and Casino. The Combat Pit and a Torture
+    /// Chamber's devices have their own arms; the Hatchery (92), Treasury, Lair, Portal, Heart,
+    /// Prison and Crypt states and the no-room arm (state 250) are not built. The room's
+    /// capacity is the work state's enter hook's, so a full room sends the creature to idle
+    /// with its job still remembered.</remarks>
+    public static JobType? TryDropOnARoom(
+        WorldState world, GameDatabase database, CreatureState creature, CreatureDef definition, int tileIndex)
+    {
+        if (RoomIndex.RoomAt(world, database, tileIndex) is not { } room) return null;
+        if (room.Definition.TypeId is not { } type) return null;
+        JobType job = JobOfRoom(type);
+        if (job == JobType.None || StateFor(job) is not int state) return null;
+        if (definition.HateJobs.Contains(job)) return null;
+
+        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
+        if (!CreatureStateMachine.TrySetState(creature, state)) return null;
+        creature.CurrentJob = job;
+        creature.JobTileIndex = tileIndex;
+        creature.DroppedToDoJob = job;
+        if (!RoomCapacityRules.HasRoom(world, database, room, creature.Id))
+        {
+            creature.CurrentJob = JobType.None;
+            creature.JobTileIndex = -1;
+            CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
+        }
+
+        return job;
+    }
+
+    /// <summary>A room record's job, <c>+0x25</c>, for the rooms whose work state is its job's
+    /// (<c>portals-room-handler-table.md</c>).</summary>
+    private static JobType JobOfRoom(RoomTypeId type) => type switch
+    {
+        RoomTypeId.Library => JobType.Research,
+        RoomTypeId.TrainingRoom => JobType.Train,
+        RoomTypeId.GuardRoom => JobType.Guard,
+        RoomTypeId.Workshop => JobType.Manufacture,
+        RoomTypeId.Temple => JobType.Praying,
+        RoomTypeId.Casino => JobType.Drink,
+        _ => JobType.None,
+    };
+
     /// <summary>Whether this job's <i>effect</i> is built, as opposed to its choosing
     /// and its walk: the jobs whose state category's update hook is built (ADR-0081, Q205,
     /// ADR-0186, ADR-0187). Guard, Manufacture and the rest are walked to and stood in,

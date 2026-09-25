@@ -355,6 +355,12 @@ public sealed class CreatureState
     /// <see cref="CreatureActivity.AtWork"/>.</summary>
     public JobType CurrentJob;
 
+    /// <summary>DK2's <c>DroppedToDoJobId</c> (<c>creature+0x2BC</c>): the job of the room the hand
+    /// last dropped this creature on (<c>0x004E8DA0</c>). Idle's chooser 89 tries it first and
+    /// clears it only when it is refused, so a creature dropped in a Workshop keeps going back
+    /// to it; the pick-up leaves it alone (ADR-0215).</summary>
+    public JobType DroppedToDoJob;
+
     /// <summary>The tile of the room this creature is walking to for its job, or -1.</summary>
     public int JobTileIndex = -1;
 
@@ -882,6 +888,7 @@ public sealed class CreatureState
         hash.Add(LastHappyChoiceTick);
         hash.Add(LastUnhappyChoiceTick);
         hash.Add((int)CurrentJob);
+        hash.Add((int)DroppedToDoJob);
         hash.Add(JobTileIndex);
         hash.Add(InHand);
         hash.Add(PickupTick);

@@ -44,8 +44,9 @@ public static class EfficiencyRules
     /// <summary>This creature's Efficiency as a whole percent: two independent ten-point bonuses,
     /// as DK2 builds <c>WorkEnhancement</c> — a slap that has not run out, and still doing the job
     /// it was dropped onto (<see cref="CreatureState.DroppedTask"/> holds the kind of task the drop
-    /// found, not merely "was dropped" — ADR-0069). Not implemented: DK2's non-worker branch
-    /// (<c>DroppedToDoJobId</c> without <see cref="CreatureFlags.IsWorker"/>) and a third term of 0.05 per keeper-held counter unit, most likely the torture tally.</summary>
+    /// found, not merely "was dropped" — ADR-0069), or for a non-worker the job of the room it was
+    /// dropped on (<see cref="CreatureState.DroppedToDoJob"/>, ADR-0215). Not implemented: a third
+    /// term of 0.05 per keeper-held counter unit, most likely the torture tally.</summary>
     public static int Percent(CreatureState creature, CreatureDef definition) =>
         BasePercent + (BonusPercent * Bonuses(creature, definition));
 
@@ -63,7 +64,8 @@ public static class EfficiencyRules
         if (creature.WorkFasterTicks > 0) bonuses++;
 
         if (definition.Flags.HasFlag(CreatureFlags.IsWorker)
-            && creature.DroppedTask != ImpTaskKind.None)
+            ? creature.DroppedTask != ImpTaskKind.None
+            : creature.DroppedToDoJob != JobType.None)
             bonuses++;
 
         return bonuses;

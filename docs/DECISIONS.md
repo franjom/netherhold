@@ -4682,7 +4682,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 8. `HashVersion` and `FormatVersion` **110**, pin `0x2B65E45AF14CB7A7`.
 
 **Consequences.**
-- **A made crate stops the Workshop's workers for a moment**: 68 ends in idle, and idle's chooser 89 takes Manufacture again. The owner confirms they carry on working (Q432), and confirms one queue per keeper, which more workers only speed up. 89's retry of the job the hand dropped a creature on is not built.
+- **A made crate stops the Workshop's workers for a moment**: 68 ends in idle, and idle's chooser 89 takes Manufacture again. The owner confirms they carry on working (Q432), and confirms one queue per keeper, which more workers only speed up. 89's retry of the job the hand dropped a creature on is ADR-0215.
 - **The hand cannot lift a crate**: all 18 shipped crates have `CanBePickedUp` clear. A branch written for that case was removed before commit, because it could never run.
 - Ours:
   - a crate is listed while its keeper owns it and it lies on one of the keeper's Workshop tiles;
@@ -4690,3 +4690,24 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - the task hold is read from the other imps' states.
 - Not built: blueprints placed in play, state 76's crate branch, the five unread list removers, the trap's completion past its flag, the Secret Door's terrain update, the sounds, message `0x1A` and the maker's effects.
 - Sixteen tests. Eighteen negative controls each fail a named test: the kinds swapped, the trap loader pushing, no registration, no 68, the crate never listed, no Workshop extra, one crate a tile, oldest first, the slots ignored, no Tier A handler, the hold ignored, a built entry kept, no unlisting, no build, no loose branch, no drop-scan step, a crate carried home but not listed, and a short walk treated as arrival.
+
+## ADR-0215 — The job a creature is dropped on
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/workshop-crates.md` §5
+
+**Context.** The owner confirmed that a Workshop's workers carry on after each crate (Q432). Idle's chooser 89 (`0x004778E0`) was then read. It tries the job the hand dropped a creature on before either mood chooser. The hand's drop on a room (`0x004E8DA0(0)`) is what records that job, and it also sets the creature straight to the room's work state. Ours had neither: a creature dropped in a Workshop was idle and rolled its table.
+
+**Decision.**
+1. `CreatureState.DroppedToDoJob`, DK2's `DroppedToDoJobId` (`+0x2BC`).
+2. **The drop.** `JobRules.TryDropOnARoom`: an own non-worker dropped on a job room whose job it does not hate (`CreatureDef.HateJobs`, `0x00494480`) goes to 1 and then the room's work state, and remembers the job. A full room sends it to idle with the job still remembered. It is built for the Library, Training Room, Guard Room, Workshop, Temple and Casino.
+3. **The retry.** `CreatureJobSystem.Choose` tries `DroppedToDoJob` first, whatever the mood and before the reselection gate, and clears it only when that job is refused.
+4. **The bonus.** A non-worker holding a dropped-on job gets Efficiency's second ten points (`hand-of-evil.md` §6).
+5. `HashVersion` and `FormatVersion` **111**, pin `0x92F1E00A712726B0`.
+
+**Consequences.**
+- A creature dropped in the Workshop goes back to it after every crate until the queue is empty, whatever its table says.
+- Not built:
+  - the escape (121) and Torture-leave clears;
+  - the Hatchery, Treasury, Lair, Portal, Heart, Prison and Crypt drop states;
+  - the no-room drop arm, state 250;
+  - `ReturnToJobId` (`+0x68`), which only the Guard job writes.
+- Three tests. Six negative controls each fail a named test: no drop arm, the hated job ignored, no retry, a retry never forgotten, no bonus, and the job not remembered.

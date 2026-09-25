@@ -96,6 +96,14 @@ public sealed class CreatureJobSystem : ISimulationSystem
     private void Choose(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        // State 89 (0x004778E0) asks the job the hand dropped this creature on before either
+        // chooser, whatever the mood, and forgets it only when it is refused (ADR-0215).
+        if (creature.DroppedToDoJob != JobType.None)
+        {
+            if (TryTake(context, creature, definition, creature.DroppedToDoJob, roll: -1, "dropped", report: false)) return;
+            creature.DroppedToDoJob = JobType.None;
+        }
+
         CreatureMood mood = CreatureAngerRules.MoodOf(definition, creature);
 
         // An angry creature is CreatureAngerSystem's, and has been since

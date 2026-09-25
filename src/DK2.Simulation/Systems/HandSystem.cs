@@ -302,6 +302,17 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
+        // An own non-worker dropped on a job room: the room record's state, through 1, and the
+        // room's job remembered (0x004E8DA0(0), ADR-0215).
+        if (creature.OwnerPlayerId == command.PlayerId && !definition.Flags.HasFlag(CreatureFlags.IsWorker)
+            && JobRules.TryDropOnARoom(world, context.Database, creature, definition, landingTileIndex) is { } job)
+        {
+            context.Emit(SystemName, "dropped_to_job",
+                $"player={command.PlayerId} creature={creature.Id} job={job} " +
+                $"tile={command.Tile.X},{command.Tile.Y} held={hand.Count}");
+            return;
+        }
+
         // Dropping a worker sets a one-shot ticket and nothing else; the next
         // evaluation spends it by looking around where the worker landed, and
         // the keeper's 12.5% bonus turns on only if that look finds something

@@ -223,7 +223,7 @@ WorkEnhancement = bonus
 - **The non-worker branch reads `DroppedToDoJobId`**, the generic creature state's
   *"the job I was dropped to do"* — the same sentence as `ImpJobData.DroppedTask`
   one struct up, kept separately because imps keep their job bookkeeping
-  separately. Only workers do tile work here, so only the worker's branch is built.
+  separately. Both branches are built (ADR-0069, and ADR-0215 for the non-worker).
 - **A third term exists** — 0.05 per unit of a byte counter held on an object the
   creature points at. `IncreasedWorkRatePersentageOfPlayersTorturedCreatureTypes`
   is the obvious candidate and is **UNVERIFIED**; it needs a Torture Chamber to be
