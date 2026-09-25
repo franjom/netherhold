@@ -90,14 +90,17 @@ Both helpers share the failure path. Without option bit 0 they return 0. With it
   `0x00485AB0(room, resume)`. Each enters state **186, tunnelling**, stores the target
   tile, and keeps the resume state at `+0xD3`, so the tunnel carries the errand. Success
   returns 1.
-- **Anyone else** with `+0x417 != 0xFF`, `+0x46F` bit 1 and `+0x3E1 > 0` walks the
-  thing list from `[+0x2A]+6` for a creature with the same `+0x417`, `+0x46F` bit 2 and
-  `IsWorker`. It tries to put that worker into tunnelling toward the target, with
-  resume **224, waiting**. On the first success the worker's tag goes to
-  `creature+0x3DF`, and the caller enters state **223, advancing**, following it.
+- **A party leader** with `+0x417 != 0xFF`, `+0x46F` bit 1 and
+  `+0x3E1 > 0` scans its owner's creature list for a same-party
+  follower (`+0x46F` bit 2) whose definition says `IsWorker`; on
+  success that worker tunnels with resume **224, waiting**, while its
+  tag goes to the leader's `+0x3DF` and the leader enters
+  **223, advancing** to follow it.
 
-That `+0x417` is a party id, and that the worker is the Dwarf, are STRONGLY INFERRED
-from the shape; the three party bytes are unnamed.
+State 224 later releases that leader to idle and puts the worker into
+ordinary follower state 222; `+0x417`, `+0x3DF` and `+0x3E1` are the
+dumper's `PartyId`, `MyLeadersId` and `PositionInParty`, so the field
+identities are CONFIRMED.
 
 ### 2.4 Other writers of `+0xDF` — CONFIRMED (complete list)
 
