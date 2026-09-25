@@ -278,7 +278,8 @@ if another creature holds it, walks the imp to the crate through the imp wrapper
 
 ## 9. Read, not built
 
-- **Blueprints placed in play** (`0x004C33B0`, `0x004C3860`) and the five unread removers.
+- **The five unread blueprint removers.** Blueprints placed in play (`0x004C33B0`,
+  `0x004C3860`) are built (ADR-0231, `blueprint-placement.md`).
 - **State 76's crate branch** (`0x00464A80`). It also takes a held crate job from an imp it
   judges to be farther away, through `0x0048AD30(10)`.
 - **The trap's completion** past its flag, the Secret Door's terrain update, the sounds,

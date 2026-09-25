@@ -5080,3 +5080,35 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - no reward on death;
   - the shift guard removed.
 - `HashVersion` **120** (`InformationGiven`).
+
+## ADR-0231 — A keeper places door and trap blueprints during play, and pays their gold at once
+**Date:** 2026-09-25 · **Status:** accepted · extends ADR-0214 · Research: `docs/research/blueprint-placement.md`
+
+**Context.** Blueprints came only from a level's own doors. The two placement routines, `0x004C33B0` (door) and `0x004C3860` (trap), were named but not read.
+
+**Decision.** `PlaceDoorCommand`, `PlaceTrapCommand` and `BlueprintSystem`, through `BlueprintPlacementRules`:
+1. **A trap** goes on the keeper's own tile that is not solid, not a room, and has no door or trap (`0x00450EB0`).
+2. **A door** needs the same, and solid tiles on both sides, north and south or east and west, unless it is a `Barricade` (`0x00450DB0`).
+3. **The definition's `GoldCost` is paid at once**, out of the keeper's gold. A keeper short of it gets nothing. The door's price is `def+0x8F`, loaded from file offset `0x22E`, which is `GoldCost`.
+4. **The blueprint** is laid under construction. Its order is pushed with the level loader's count (`ManufactureRules.QueueOne`), and it joins the blueprint list, so the Workshop and the imps build it as they build an authored one.
+
+**Consequences.**
+- **Gold at placement.** Placing a blueprint costs gold at once, then Workshop points for the crate. This comes from the binary alone; the owner has not confirmed it from play.
+- **Not built:**
+  - the door's orientation;
+  - the spend statistic `player+0x177`;
+  - message `0x37`, the cost display and the sounds;
+  - the computer keeper's placement;
+  - the five blueprint removers.
+- **Tests.** `BlueprintPlacementTests` has five tests.
+- **Nine negative controls each fail a named test:**
+  - no walls needed;
+  - walls asked of a Barricade;
+  - a free door;
+  - a free trap;
+  - no order;
+  - not listed;
+  - any owner's tile;
+  - rooms allowed;
+  - stacking.
+- No new state; `HashVersion` stays **120**.

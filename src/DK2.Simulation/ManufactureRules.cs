@@ -86,6 +86,19 @@ public static class ManufactureRules
         }
     }
 
+    /// <summary><c>0x005066E0(kind, type)</c> for one blueprint placed in play (ADR-0231): an order
+    /// while the keeper's blueprints of the type outnumber its crates and orders of it.</summary>
+    public static void QueueOne(WorldState world, GameDatabase database, byte playerId, byte kind, byte typeId)
+    {
+        if (kind == TrapKind)
+        {
+            if (database.Traps.TryGetValue(typeId, out TrapDef? trap))
+                TryQueue(world, database, playerId, kind, typeId, trap.ManufactureRequired, trap.CrateObjectId);
+        }
+        else if (database.Doors.TryGetValue(typeId, out DoorDef? door))
+            TryQueue(world, database, playerId, kind, typeId, (int)door.ManufactureRequired, door.CrateObjectId);
+    }
+
     private static void TryQueue(
         WorldState world, GameDatabase database, byte playerId, byte kind, byte typeId, int cost, byte crateId)
     {

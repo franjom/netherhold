@@ -21,6 +21,7 @@ public static class SimulationSystems
         new TileTagSystem(),
         new RoomSellSystem(),
         new RoomBuildSystem(),
+        new BlueprintSystem(),
         // Room-owned objects are rebuilt after the room shape changes and before
         // movement or attraction can observe it (Q270).
         new AutoFurnitureSystem(),
