@@ -121,22 +121,10 @@ public class ObjectsOnRealDataTests
     {
         string install = Install();
 
-        // **THE CORRECTION.** This project has written "a corpse is an OBJECT
-        // (M6)" as the named cause of three gaps -- no graveyard, no vampire,
-        // and a death that owes a body -- in ADR-0051, in creature-death.md and
-        // in half a dozen code comments.
-        //
-        // It is wrong. All 145 objects are named and none of them is a corpse.
-        // The nearest things are decoration: Skeleton (48), Skull (49) and Bone
-        // (50), which are graveyard and torture-chamber props, and none carries
-        // a type flag at all.
-        //
-        // So a dead body is NOT an object, and corpses were never blocked on
-        // this record. Which fits everything else: both timers are *creature*
-        // variables (CreatureDyingStateDurationSeconds and
-        // DeadBodyDiesAfterSeconds), DecomposeValue is a *creature* field, and
-        // the binary's own per-creature dump carries HasBeenKnockedOut and
-        // DieInstantly. A corpse is a creature in a state.
+        // None of the 145 named objects is a corpse; the nearest, Skeleton (48),
+        // Skull (49) and Bone (50), are props with no type flag. So corpses were
+        // never blocked on this record, as "a corpse is an OBJECT" had claimed.
+        // DK2's corpse is a CDeadBody thing (objects.md section 4, ADR-0206).
         GameDatabase db = GameDatabaseLoader.Load(install);
 
         var names = db.Objects.Values.Select(o => o.Name).ToList();

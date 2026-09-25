@@ -15,8 +15,9 @@ namespace DK2.Simulation.Tests;
 /// corpse lies there for a second period, during which an imp can carry it to a
 /// graveyard; if that timer runs out too the corpse disappears. Both timers are
 /// sixty seconds and had been parsed for months with no reader, on the false
-/// explanation that a corpse is an object — a corpse is a creature in a state
-/// (ADR-0063).</summary>
+/// explanation that a corpse is an object. It is not an object record; DK2 makes it a
+/// CDeadBody thing, and ours keeps it as a creature with no state id (ADR-0063,
+/// ADR-0206).</summary>
 public class CarryingTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -196,6 +197,85 @@ public class CarryingTests
 
         Assert.Equal(CreatureActivity.Dead, goblin.Activity);
         Assert.DoesNotContain(world.Creatures, c => c.Id == imp.Id);
+    }
+
+    // ---- dying on DK2's state ids (ADR-0206) ---------------------------------
+
+    [Fact]
+    public void ACollapseFallsInTwoHundredSixteenAndLiesInTwoHundredSeventeen()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        goblin.Health = 0;
+        var sink = new ListEventSink();
+        // With the systems that hand back a state id their creature has left beside it.
+        GameSimulation sim = new(db, world, 42,
+            [new CreatureSleepSystem(), new CreatureJobSystem(), new CreatureHealthSystem()]);
+        sim.ObserveWith(sink);
+
+        for (int i = 0; i < 2 * Second && !sink.Events.Any(e => e.Kind == "creature_collapsed"); i++) sim.Tick();
+        Assert.Equal(CreatureDeathRules.FallingState, goblin.Dk2StateId);
+
+        sim.Run(Second);
+        Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
+        Assert.Equal(CreatureActivity.Dying, goblin.Activity);
+    }
+
+    [Fact]
+    public void ACreatureCollapsesOutOfWhateverStateItHeld()
+    {
+        // The rule admits 216 from every state, the Refused category included (group 3's
+        // passthrough), and the state is set rather than released and begun again.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        CreatureStateMachine.Begin(goblin, TortureRules.ReleasedState);
+        goblin.Health = 0;
+
+        Assert.True(CreatureDeathRules.Collapse(goblin));
+
+        Assert.Equal(CreatureDeathRules.FallingState, goblin.Dk2StateId);
+    }
+
+    [Fact]
+    public void ARescuedCreatureLeavesTheDyingStatesThroughIdleIntoSleep()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var lair = new TilePos(1, 1);
+        Paint(db, world, RoomTypeId.Lair, lair);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, lair);
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
+        goblin.PosX = CreatureState.CentreOf(3);
+        goblin.PosY = CreatureState.CentreOf(3);
+        Down(goblin);
+        Assert.Equal(CreatureDeathRules.FallingState, goblin.Dk2StateId);
+        world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        for (int i = 0; i < 30 * Second && !sink.Events.Any(e => e.Kind == "creature_rescued"); i++) sim.Tick();
+
+        Assert.Equal(LairRules.SleepingState, goblin.Dk2StateId);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void ACorpseHoldsNoStateBecauseDk2MakesItADeadBodyThing()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        goblin.Health = 0;
+        GameSimulation sim = new(db, world, 42, [new CreatureHealthSystem()]);
+
+        sim.Run(Second * 10);
+        Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
+        sim.Run(Second * 55);
+
+        Assert.Equal(CreatureActivity.Dead, goblin.Activity);
+        Assert.False(CreatureStateMachine.HasState(goblin));
     }
 
     // ---- on DK2's state ids (ADR-0184) ---------------------------------------

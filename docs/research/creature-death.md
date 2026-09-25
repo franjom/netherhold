@@ -144,8 +144,8 @@ Everything else already pointed the same way:
 - the binary's per-creature debug dump carries **`HasBeenKnockedOut`** and
   **`DieInstantly`**, and `Creature.cpp` owns the dying state.
 
-**A corpse is a creature in a state** — `CreatureActivity.Dead`. See
-`docs/research/objects.md` §4.
+**A corpse is not an object, nor a creature state:** DK2 makes a `CDeadBody` thing
+(`dying-states.md` §2). Ours keeps the creature in `CreatureActivity.Dead`, with no state id.
 
 ### 2.2 Where a vampire comes back — the Graveyard (Q113)
 
@@ -285,6 +285,9 @@ countdown itself, another state handler that also decrements by one, a trigger
 action that adjusts a spawned creature to a requested health value, and loading
 paths. Rescue and healing remain the only way out before the countdown expires.
 
+**The states** are 216, the fall, then 217; a healed creature leaves 217 for state 1
+(`dying-states.md`, ADR-0206).
+
 ## 5. Implementation
 
 `CreatureActivity.Dying` and `Dead`, `CreatureState.DyingTicks`,
@@ -327,11 +330,9 @@ A collapsed creature has health, an owner, a tile and a bed, and recovers by
 being healed — everything that reads a creature keeps working on it, so it stays
 in `WorldState.Creatures`. A corpse has none of those.
 
-Modelling the corpse as a *separate entity* was considered and rejected
-(ADR-0051): it would put a thing with no needs into the creature list, where
-every present *and future* system would have to remember to skip it. What it is
-instead is the same creature in `CreatureActivity.Dead`, which every system tests
-through `CreatureDeathRules.IsDown`.
+Modelling the corpse as a *separate entity* was rejected (ADR-0051), though DK2's is
+one (`CDeadBody`): it stays the same creature in `CreatureActivity.Dead`, which every
+system tests through `CreatureDeathRules.IsDown`.
 
 ### 5.2 Guard on health, not on state
 

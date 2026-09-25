@@ -113,7 +113,8 @@ pointed that way:
 - the binary's per-creature debug dump carries **`HasBeenKnockedOut`** and
   **`DieInstantly`**, and `Creature.cpp` owns the dying state.
 
-**A corpse is a creature in a state.** Which means the graveyard is buildable
+**A corpse is not an object.** (Nor, it turned out on 2026-09-25, a creature in a
+state: DK2 destroys the creature and makes a `CDeadBody` thing, `dying-states.md`. Ours keeps it as a creature with no state id.) Which means the graveyard is buildable
 without any new record: it needs an imp task that carries a *creature* whose
 dying window has run out, and a room that consumes it for `DecomposeValue`. That
 is a much smaller job than "parse OBJECTS first" implied, and it was hiding

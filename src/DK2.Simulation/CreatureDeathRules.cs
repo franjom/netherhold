@@ -14,10 +14,20 @@ namespace DK2.Simulation;
 /// if an enemy, to a prison; then it dies and lies as a corpse for <c>DeadBodyDiesAfterSeconds</c>
 /// (also 60), in which an imp may carry it to a graveyard; then it disappears. CONFIRMED (owner,
 /// Q99; ADR-0051, ADR-0063).</para>
-/// <para>A corpse is a creature in a state, not an object: none of the 145 OBJECTS records is a corpse (objects.md §4). Burial feeds the per-room tally in <see cref="GraveyardRules"/> (Q165).</para></remarks>
+/// <para>A corpse is no OBJECTS record; DK2 makes a <c>CDeadBody</c> thing, and ours keeps the creature in
+/// <see cref="CreatureActivity.Dead"/> with no state id (ADR-0206). Burial feeds the per-room tally in
+/// <see cref="GraveyardRules"/> (Q165).</para></remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-death.md")]
 public static class CreatureDeathRules
 {
+    /// <summary>State 216, the fall, which the rule admits from any state; its handler moves to
+    /// <see cref="DyingState"/> once the fall's action ends (ADR-0206).</summary>
+    public const int FallingState = 216;
+
+    /// <summary>State 217, lying while the countdown runs; a creature healed above zero leaves
+    /// it for state 1 (ADR-0206).</summary>
+    public const int DyingState = 217;
+
     /// <summary>Whether this creature has run out of health — not the same as dead.</summary>
     public static bool HasCollapsed(CreatureState creature) => creature.Health <= 0;
 
@@ -130,6 +140,7 @@ public static class CreatureDeathRules
         LairRules.ReleaseBed(world, database, creature);
 
         creature.Activity = CreatureActivity.Dead;
+        CreatureStateMachine.Release(creature);
 
         // A fresh sixty seconds: the corpse and rescue windows share one field.
         creature.DyingTicks = 0;
@@ -159,6 +170,8 @@ public static class CreatureDeathRules
         if (IsDying(creature)) return false;
 
         creature.Activity = CreatureActivity.Dying;
+        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.TrySetState(creature, FallingState);
+        else CreatureStateMachine.Begin(creature, FallingState);
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
         creature.TargetTileIndex = -1;
@@ -189,6 +202,9 @@ public static class CreatureDeathRules
         creature.SleepTicks = 0;
         creature.AwakeTicks = 0;
         creature.Activity = CreatureActivity.Sleeping;
+        // 217's way out is SetState(1); ours then lies down in the bed, 83 (ADR-0206).
+        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(creature, LairRules.SleepingState);
         return true;
     }
 }

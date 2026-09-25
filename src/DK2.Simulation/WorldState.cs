@@ -950,10 +950,8 @@ public sealed class WorldState
     /// collapses at zero health, lies rescuable for
     /// <c>CreatureDyingStateDurationSeconds</c>, and only then dies (Q99,
     /// CONFIRMED, ADR-0051). <see cref="Systems.CreatureHealthSystem"/> runs that
-    /// process and calls this at the end of it. Not implemented: the corpse, which
-    /// is a creature in a state waiting on an imp that can carry one and not an
-    /// object (docs/research/objects.md §4) — so this removal stands in for the
-    /// body rotting away too.</para>
+    /// process and calls this at the end of it, and for a corpse when it rots away
+    /// (a corpse is kept as the creature, with no state id: ADR-0206).</para>
     /// <para>Ids are never reused: <c>_nextCreatureId</c> only climbs and a
     /// snapshot restores the counter rather than deriving it.</para></summary>
     public bool RemoveCreature(int id)

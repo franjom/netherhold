@@ -75,8 +75,9 @@ public enum CreatureActivity
     /// the owner 2026-09-04). Only records carrying
     /// <see cref="Data.Model.CreatureFlags.GenerateDeadBody"/> reach this state;
     /// an Imp dies at once, and so does a Vampire, which reincarnates.
-    /// <para>A corpse is a creature in a state, not an object — none of the 145
-    /// OBJECTS records is a corpse (docs/research/objects.md §4).</para></summary>
+    /// <para>None of the 145 OBJECTS records is a corpse (docs/research/objects.md §4).
+    /// DK2 makes it a <c>CDeadBody</c> thing; ours keeps the creature, holding no state
+    /// id (ADR-0206).</para></summary>
     Dead = 10,
 
     /// <summary>Walking to a body — collapsed or dead — in order to pick it up. DK2's

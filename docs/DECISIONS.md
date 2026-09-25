@@ -4521,3 +4521,18 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Ours, stated: `UsedCapacity` is derived, not counted. The Library, Workshop and Guard Room extras, the Prison and Combat Pit arms and the torture fallback timer are not built. Three bodies on one arrival tile never settle, because our walks all end on the room's centre.
 - No hashed state changed. Nine tests, one on real data. Negative controls: a room never full, the torture finder asking one place, the victim chamber tested, no arrival claim, a fallback always found, every body claiming, the arriving creature counted and the Training Room's +1 dropped each fail a named test.
 
+## ADR-0206 — Dying is states 216 and 217; a corpse holds no state
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · corrects ADR-0051 and ADR-0063 on what a corpse is · Research: `docs/research/dying-states.md`
+
+**Context.** Dying was still an activity with no state id. DK2 enters state 216 from any state when a creature collapses; 216's handler moves to 217 once the fall ends; 217 counts down and hands a healed creature to state 1. The binary also carries `.?AVCDeadBody@@`, the flag `DeadBodyOnDestroy`, THINGS tag 202 and a room `DeadBodyList`. So DK2's corpse is a thing of its own class, not a creature in a state, as ADR-0051 and ADR-0063 had put it.
+
+**Decision.**
+1. `CreatureDeathRules.Collapse` enters 216 (`FallingState`). The first dying second in `CreatureHealthSystem` enters 217 (`DyingState`). Dying joins the retired activities.
+2. `Rescue` leaves through state 1 into 83, the sleeping state its bed puts it in.
+3. `BecomeCorpse` hands the state id back. The corpse stays in the creature list, in `CreatureActivity.Dead`, as the one creature with no state.
+
+**Consequences.**
+- Ours, stated: no fall animation, so 216 lasts until the next game second. A rescue lies down in its bed rather than running the lair-trip chooser `0x0046F390`. The corpse is not a separate thing.
+- The research notes, `RESEARCH_STATUS.md` and the code comments no longer say a corpse is a creature in a state.
+- No hashed state changed in the pinned world. Four tests. Negative controls: no fall, never lying down, a corpse keeping its id, a rescue skipping idle, and Dying left off the retired list each fail a named test.
+

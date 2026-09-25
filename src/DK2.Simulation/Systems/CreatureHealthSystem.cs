@@ -165,6 +165,11 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     private static void Dying(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
+        // 216's handler moves to 217 once the fall's action ends; ours has no animation and
+        // lies down on the first second (ADR-0206).
+        if (state.Dk2StateId == CreatureDeathRules.FallingState)
+            CreatureStateMachine.TrySetState(state, CreatureDeathRules.DyingState);
+
         state.DyingTicks += SimulationTiming.TicksPerSecond;
 
         if (!CreatureDeathRules.DyingWindowElapsed(context.Database, state)) return;
@@ -250,9 +255,9 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         // lying on the floor is not still holding a lair tile.
         LairRules.ReleaseBed(context.World, context.Database, state);
 
-        // The body is delivered by an imp task (ADR-0063). A corpse is a creature
-        // in a state, not an object: none of the 145 objects is a corpse
-        // (objects.md section 4).
+        // The body is delivered by an imp task (ADR-0063). A corpse is not an
+        // object (objects.md section 4); DK2 makes it a CDeadBody thing, ours
+        // keeps it in the creature list with no state id (ADR-0206).
         bool leavesBody = CreatureDeathRules.LeavesBody(creature);
 
         // What it was carrying falls where it fell -- in one, two or three
