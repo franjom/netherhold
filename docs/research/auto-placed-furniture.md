@@ -79,6 +79,10 @@ types against the room definition. The relevant arms are:
 | Library, Training Room, Workshop, Casino | zero with no match; otherwise matching objects + 1 |
 | Torture Chamber | matching objects |
 
+**Confirmed for the Training Room (owner, 2026-09-25):** a 3x3 room on open ground shows
+capacity 2 (one dummy + 1), and against reinforced walls the dummy, plus every Training
+Target, plus 1. So the +1 is real and wall furniture counts.
+
 The count is furniture, not room area. With both generic passes represented,
 the five arms can count every `RoomDef.ObjectIds[0..5]` object they consult.
 
