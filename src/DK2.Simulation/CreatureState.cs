@@ -394,14 +394,21 @@ public sealed class CreatureState
     /// the same counter in a byte beside the wage.</summary>
     public int PayAttemptsFailed;
 
-    /// <summary>DK2's own <c>SkipNextPayment</c>: a one-shot ticket that suppresses
-    /// exactly one payday. The original's clock consumes it whether or not it
-    /// was needed — the creature is not credited a wage at all and the flag is
-    /// cleared in the same breath.
-    /// <para>Not implemented: nothing sets it. The thing that should is a treat,
-    /// which the manual (§7.6.2.2) describes as buying off wages on the next
-    /// payday; keeper spells do not exist, so the field is carried, hashed, read
-    /// by the clock and written by tests only.</para></summary>
+    /// <summary>DK2's <c>GetPaid</c> (<c>creature+0x3E2</c>, a dword read as a flag): a one-shot
+    /// ticket that suppresses exactly one payday. The original's clock consumes it whether or
+    /// not it was needed — the creature is not credited a wage at all and the field is zeroed
+    /// in the same breath. Called <c>SkipNextPayment</c> here until 2026-09-25, after Flame's
+    /// map; DK2's own dump gives that name to <see cref="SkipNextPayment"/>.
+    /// <para>Not implemented: nothing sets it. The thing that should is a treat, which the
+    /// manual (§7.6.2.2) describes as buying off wages on the next payday; keeper spells do
+    /// not exist, so the field is carried, hashed, read by the clock and written by tests
+    /// only.</para></summary>
+    public bool GetPaid;
+
+    /// <summary>DK2's <c>SkipNextPayment</c>, <c>creature+0x3EA</c> bit 5: skip the next
+    /// decision to walk to a treasury. Set when dropped gold pays this creature
+    /// (<see cref="DropDeliveryRules"/>); the collection decision clears it whatever it decides
+    /// (<c>0x0047237F</c>). It never stops a wage being credited (hand-drop-earmark.md §9).</summary>
     public bool SkipNextPayment;
 
     /// <summary><c>DieInstantly</c>, bit 11 of the creature's second flag dword: this one
@@ -892,6 +899,7 @@ public sealed class CreatureState
         Anger.Hash(ref hash);
         hash.Add(WageOwed);
         hash.Add(PayAttemptsFailed);
+        hash.Add(GetPaid);
         hash.Add(SkipNextPayment);
         hash.Add(DieInstantly);
         hash.Add(Level);

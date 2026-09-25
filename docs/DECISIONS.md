@@ -4728,3 +4728,22 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Not built, named at the sites: StealGold's states (the arm fails and retries), the Dwarf tunnelling of 223/224, state 1's pending-point walk, the knock-out re-lead of a party (`0x004B2FDF`), the heart room's own point `0x004E4D90` (ours aims at the first heart tile).
 - Eleven tests; negative controls: a reachable direction 0 and a waypoint chain that never advances each fail a named test.
 - `HashVersion` and `FormatVersion` **112**, pin `0x2EF320B63DEDBBD1`.
+
+## ADR-0217 — A chicken or gold dropped onto a creature feeds or pays it
+**Date:** 2026-09-25 · **Status:** accepted · amends ADR-0075 and ADR-0078 · answers Q196's earmark · Research: `docs/research/hand-drop-earmark.md`
+
+**Context.** The owner confirmed that a chicken or gold dropped onto a creature is for that creature. Codex's two reads (merged 66579b8 and aca9db2) show it is not a reservation. The drop writes the creature's id into the object (`+0x142`), and the object's landing hook delivers the effect directly and deletes the object. No search reads the field.
+
+**Decision.**
+1. `DropCommand` gains `TargetCreatureId` (0 for none): the creature under the cursor, which DK2 keeps in the keeper record (`+0x196`). The presentation fills it from its creature targets, and scenarios from `drop_onto`.
+2. `DropDeliveryRules.RecipientOf` follows `0x004BC710`. The target must be a live creature, and its level-scaled `Pay` (gold) or `HungerFill` (chicken) must be non-zero. Ownership, debt, hunger and distance are not tested.
+3. `Deliver` follows `0x0049EF90`. A chicken is the one-bird meal (`0x00463A10`: one helping and its heal while food is owed) plus a wiped hunger grievance. A pile puts half its gold in the purse, clears the **whole** wage owed, wipes the pay grievance and sets `SkipNextPayment`. Both then subtract `CreatureDef.DropDeliveryCalm` (record `0x0FCB`, zero on all 46) from the treatment bucket, and the object is removed.
+4. **Two fields, renamed to DK2's own dump.** The payday clock's one-shot skip at `+0x3E2` is `GetPaid`; it was called `SkipNextPayment` here, after Flame. The real `SkipNextPayment` is `+0x3EA` bit 5. The collection decision spends it whatever it decides, and it never touches a wage.
+
+**Consequences.**
+- **Ours: delivery happens in the drop's own tick.** DK2 delivers when the object settles. Our objects do not fall, so the recipient field would always read zero and is not carried. The re-lift-before-landing case is unreachable.
+- Ours: a corpse or a creature in a hand is no target, and a delivered chicken leaves the creature's own chicken target alone.
+- Not built: the chicken routine's state 95 and action 26 (gated by a record-13 flag, unread), and the computer keeper's make-happy drops (`0x004F9710`).
+- One small pile settles any wage debt. That is DK2's arithmetic and is reproduced.
+- Six tests. Negative control: skipping the delivery and ignoring the flag fail exactly the three behaviour tests.
+- `HashVersion` and `FormatVersion` **113**, pin `0xFBE9C5B2CC6DE5EC`.

@@ -41,7 +41,7 @@ if (player[0xb53] != 0 && now >= player[0xb53]) {     // next payday due
                 creature[0x474] = 0;                    // reset failed attempts
                 tryToCollect(creature);                 // FUN_00472320
             } else {
-                creature[0x3e2] = 0;                    // consume SkipNextPayment
+                creature[0x3e2] = 0;                    // consume GetPaid
             }
         }
     }
@@ -51,9 +51,9 @@ if (player[0xb53] != 0 && now >= player[0xb53]) {     // next payday due
 }
 ```
 
-**`creature[0x3e2]` is `SkipNextPayment`**, and this is the first time it has
-been seen doing anything. Q9 had the name from Flame's symbol map and guessed it
-was *"a mood input rather than an accounting flag"*. It is neither: it is a
+**`creature[0x3e2]` is DK2's `GetPaid`**, as its own creature dump prints it (the
+dump's `SkipNextPayment` is a different field, `+0x3EA` bit 5, ADR-0217). Q9 guessed
+it was *"a mood input rather than an accounting flag"*. It is neither: it is a
 **one-shot ticket that suppresses exactly one payday and is consumed whether or
 not it was needed**. That is precisely the manual's account of a treat
 (§7.6.2.2, `manual-1999.md`): *"wages on the next Payday"* — **a treat is a
@@ -226,7 +226,7 @@ places a bed (`lair-acquisition.md` §9.1). **Built** (ADR-0179).
 |---|---|
 | Payday interval, first payday | **read**, and the variables are live |
 | Wage = `Pay` scaled by level, accumulating | **read**, field pinned to record `0x0F1C` |
-| `SkipNextPayment` as a consumed one-shot | **read** |
+| `GetPaid` (`+0x3E2`) as a consumed one-shot | **read** |
 | Walk to the nearest treasury/heart **that has gold** | **read** |
 | Take gold from the tile underfoot | **read**, and it confirms ADR-0015 |
 | Two failed attempts per payday, then stop | **read** |

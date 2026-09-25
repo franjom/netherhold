@@ -161,6 +161,7 @@ the same path the game would use, so every ground rule and every refusal applies
 | `pick_up` | `PickUpCreatureCommand` | a creature id. Ids are assigned in the order `setup.creatures` lists them, starting at 1 |
 | `pick_up_object` | `PickUpObjectCommand` | an object id (ADR-0075) |
 | `drop: [x, y]` | `DropCommand` | no creature is named, because the hand chooses: DK2 puts down what it picked up last, and letting a scenario name one would hide that |
+| `drop_onto` | `DropCommand.TargetCreatureId` | with `drop`: the creature id under the cursor. A chicken or gold dropped onto it feeds or pays it on the spot (ADR-0217) |
 | `slap` | `SlapCreatureCommand` | a creature id |
 
 ### `commands` vs `work`

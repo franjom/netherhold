@@ -51,7 +51,7 @@ public sealed class PaydaySystem : ISimulationSystem
     /// <c>now + PayDayFrequencySeconds</c> each time it fires. A creature is credited
     /// <c>Pay</c> scaled by its level, added to what it is already owed, and its
     /// failed-attempt budget refills; one holding
-    /// <see cref="CreatureState.SkipNextPayment"/> is not credited and spends the
+    /// <see cref="CreatureState.GetPaid"/> is not credited and spends the
     /// ticket.</remarks>
     private static void Clock(SimulationContext context)
     {
@@ -96,12 +96,12 @@ public sealed class PaydaySystem : ISimulationSystem
 
                 creatures++;
 
-                if (creature.SkipNextPayment)
+                if (creature.GetPaid)
                 {
                     // Spent whether or not it was needed, and no wage is
                     // credited at all - the payday does not happen for this
                     // creature, once.
-                    creature.SkipNextPayment = false;
+                    creature.GetPaid = false;
                     skipped++;
                     continue;
                 }
@@ -166,6 +166,11 @@ public sealed class PaydaySystem : ISimulationSystem
             creature.NextPayTryTick = now + (NeedRules.RetryTurns * SimulationTiming.OriginalTickPeriodTicks);
             if (NeedRules.IsBusy(creature, now)) continue;
 
+            // SkipNextPayment is spent by this decision whatever it decides: a set flag, nothing
+            // owed or two failures all clear it (0x0047237F, hand-drop-earmark.md §9).
+            bool skip = creature.SkipNextPayment;
+            creature.SkipNextPayment = false;
+            if (skip) continue;
             if (creature.WageOwed <= 0) continue;
             if (creature.PayAttemptsFailed >= PaydayRules.MaxFailedAttempts) continue;
 

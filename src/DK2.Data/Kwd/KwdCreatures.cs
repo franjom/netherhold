@@ -192,6 +192,7 @@ public static class KwdCreatures
             AngerNoWork = S16(0xF2E),
             AngerSlap = S16(0xF30),
             AngerInHand = S16(0xF32),
+            DropDeliveryCalm = S16(0xFCB),
             TortureHpChange = S16(0x107F),
             TortureMoodChange = S16(0x1081),
             TortureTimeToConvert = Fp(0xEF4),

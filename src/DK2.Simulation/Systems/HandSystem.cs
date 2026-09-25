@@ -365,14 +365,10 @@ public sealed class HandSystem : ISimulationSystem
     /// owner (2026-09-06), and not <c>CanBeDroppedOnAnyLand</c>, which is set on
     /// one record and read by nothing
     /// (<see cref="HandRules.CanDropObjectOn"/>).</summary>
-    /// <remarks>Not implemented: two branches of the original's handler, both
-    /// needing a drop target this project cannot name. A chicken dropped into
-    /// another keeper's Hatchery becomes theirs (the handler tests object id 9
-    /// against another keeper's tile in a room of type 4). A chicken or gold
-    /// pile dropped onto a creature is earmarked for it, by that creature's id,
-    /// when its level-scaled <c>HungerFill</c> or <c>MaxGoldHeld</c> is
-    /// non-zero; ADR-0074's prison search does not consult that field, and
-    /// whether anything else does is unread.</remarks>
+    /// <remarks>A chicken or gold dropped onto a creature feeds or pays it at once
+    /// (<see cref="DropDeliveryRules"/>, ADR-0217). Not implemented: the handler's
+    /// branch giving a chicken to the keeper of the Hatchery it lands in, which the
+    /// hand cannot reach because nothing drops on another keeper's tile (Q196).</remarks>
     private static void DropObject(
         SimulationContext context, DropCommand command, HandItem held)
     {
@@ -418,6 +414,17 @@ public sealed class HandSystem : ISimulationSystem
             $"player={command.PlayerId} object={thing.Id} " +
             $"type={thing.ObjectTypeId} " +
             $"tile={command.Tile.X},{command.Tile.Y} held={hand.Count}");
+
+        if (DropDeliveryRules.RecipientOf(world, context.Database, thing, command.TargetCreatureId)
+            is not { } recipient)
+            return;
+
+        DropDelivery given = DropDeliveryRules.Deliver(world, context.Database, thing, recipient);
+        context.Emit(SystemName, "object_delivered",
+            $"player={command.PlayerId} object={thing.Id} creature={recipient.Id} " +
+            (given.Gold
+                ? $"gold pocketed={given.Pocketed} wage_cleared={given.WageCleared}"
+                : $"chicken healed={given.Healed} hunger={recipient.HungerNeed}"));
     }
 
     private static void EmitSacrifice(

@@ -26,7 +26,8 @@ public sealed class ObjectState
     public byte ObjectTypeId;
 
     /// <summary>Whose object it is — a bed belongs to the keeper whose creature sleeps in
-    /// it. Not implemented: DK2's separate <c>WhoGetsThisFromADrop</c>, for who owns a thing a keeper drops.</summary>
+    /// it. DK2's <c>WhoGetsThisFromADrop</c> is not an owner but the creature a dropped chicken or
+    /// pile is for, and is not carried: ours delivers in the drop's own tick (<see cref="DropDeliveryRules"/>).</summary>
     public byte OwnerPlayerId;
 
     /// <summary>The tile it stands on, as an index into <see cref="WorldState"/>'s tiles.

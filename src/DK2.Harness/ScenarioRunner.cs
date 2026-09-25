@@ -635,7 +635,7 @@ public sealed class ScenarioRunner
                 else
                 {
                     list.Add(new DropCommand(
-                        c.Player, new TilePos(c.Drop[0], c.Drop[1])));
+                        c.Player, new TilePos(c.Drop[0], c.Drop[1]), c.DropOnto));
                 }
             }
 

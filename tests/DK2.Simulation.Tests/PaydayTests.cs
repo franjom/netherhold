@@ -139,12 +139,12 @@ public class PaydayTests
     }
 
     [Fact]
-    public void SkipNextPaymentIsSpentWhetherOrNotItWasNeeded()
+    public void GetPaidIsSpentWhetherOrNotItWasNeeded()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
-        goblin.SkipNextPayment = true;
+        goblin.GetPaid = true;
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
@@ -153,12 +153,38 @@ public class PaydayTests
         // Not "paid early and skipped": the payday does not happen for this
         // creature at all, and the ticket is gone.
         Assert.Equal(0, goblin.WageOwed);
-        Assert.False(goblin.SkipNextPayment);
+        Assert.False(goblin.GetPaid);
         Assert.Contains(sink.Events, e => e.Kind == "payday" && e.Detail.Contains("skipped=1"));
 
         // And the next one bills it normally.
         for (int i = 0; i < PaydayRules.IntervalTicks(db); i++) sim.Tick(InputFrame.Empty);
         Assert.Equal(500, goblin.WageOwed);
+    }
+
+    /// <summary>DK2's <c>SkipNextPayment</c> (<c>+0x3EA</c> bit 5), which dropped gold sets: the
+    /// next collection decision is skipped and spends it, the one after walks, and the wage is
+    /// never touched (<c>0x00472320</c>, hand-drop-earmark.md §9).</summary>
+    [Fact]
+    public void SkipNextPaymentSkipsOneWalkToTheTreasuryAndNotTheWage()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Treasury(world, new TilePos(1, 3), 2000);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.WageOwed = 500;
+        goblin.SkipNextPayment = true;
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        sim.Tick(InputFrame.Empty);
+
+        Assert.False(goblin.SkipNextPayment);
+        Assert.Equal(500, goblin.WageOwed);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "wages_sought");
+
+        int retry = NeedRules.RetryTurns * SimulationTiming.OriginalTickPeriodTicks;
+        for (int i = 0; i < retry + 1; i++) sim.Tick(InputFrame.Empty);
+        Assert.Contains(sink.Events, e => e.Kind == "wages_sought");
     }
 
     // ---- collecting -------------------------------------------------------
@@ -381,6 +407,7 @@ public class PaydayTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.GetPaid = true;
         goblin.SkipNextPayment = true;
         goblin.WageOwed = 750;
         goblin.PayAttemptsFailed = 1;
@@ -394,6 +421,7 @@ public class PaydayTests
         CreatureState back = restored.CreatureById(goblin.Id)!;
         Assert.Equal(750, back.WageOwed);
         Assert.Equal(1, back.PayAttemptsFailed);
+        Assert.True(back.GetPaid);
         Assert.True(back.SkipNextPayment);
         Assert.Equal(12345, restored.Player(Keeper).NextPaydayTick.Value);
     }

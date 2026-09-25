@@ -880,6 +880,112 @@ public class HandTests
         Assert.False(pile.InHand);
     }
 
+    // ---- a chicken or gold dropped onto a creature (ADR-0217, Q196) --------
+
+    /// <summary>Lifts <paramref name="thing"/>, then drops it on <paramref name="onto"/>'s tile
+    /// with that creature under the cursor (0 for none).</summary>
+    private static void LiftAndDropOnto(GameSimulation sim, ObjectState thing, CreatureState onto, int target)
+    {
+        sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, thing.Id)));
+        Assert.True(thing.InHand);
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, onto.Tile, target)));
+    }
+
+    /// <summary>CONFIRMED by the owner that dropped gold goes to the creature it lands on; the
+    /// amounts are the binary's (<c>0x0049EF90</c>): half the pile in the purse, the whole wage
+    /// debt cleared however small the pile, the pay grievance wiped, and the pile gone.</summary>
+    [Fact]
+    public void GoldDroppedOntoACreatureClearsItsWholeWageForHalfThePile()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.WageOwed = 1500;
+        goblin.Anger[AngerBucket.Pay] = 400;
+
+        ObjectState pile = world.SpawnObject(
+            db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, Index(world, new TilePos(3, 3)));
+        pile.GoldHeld = 200;
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        int purse = goblin.GoldHeld;
+
+        LiftAndDropOnto(sim, pile, goblin, goblin.Id);
+
+        Assert.Null(world.ObjectById(pile.Id));
+        Assert.Equal(purse + 100, goblin.GoldHeld);
+        Assert.Equal(0, goblin.WageOwed);
+        Assert.Equal(0, goblin.Anger[AngerBucket.Pay]);
+        Assert.Contains(sink.Events, e => e.Kind == "object_delivered" && e.Detail.Contains("wage_cleared=1500"));
+    }
+
+    /// <summary>The one-bird meal and the hunger grievance wiped (<c>0x00463A10</c>): one helping
+    /// paid off, whatever the creature was doing, and the chicken gone.</summary>
+    [Fact]
+    public void AChickenDroppedOntoAHungryCreatureFeedsIt()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.HungerNeed = 3;
+        goblin.Anger[AngerBucket.Hunger] = 300;
+
+        ObjectState bird = world.SpawnObject(
+            db, HatcheryRules.ChickenObjectId, Keeper, Index(world, new TilePos(3, 3)));
+        GameSimulation sim = Simulation(db, world);
+
+        LiftAndDropOnto(sim, bird, goblin, goblin.Id);
+
+        Assert.Null(world.ObjectById(bird.Id));
+        Assert.Equal(2, goblin.HungerNeed);
+        Assert.Equal(0, goblin.Anger[AngerBucket.Hunger]);
+    }
+
+    [Fact]
+    public void WithNobodyUnderTheCursorDroppedGoldJustLands()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.WageOwed = 1500;
+
+        ObjectState pile = world.SpawnObject(
+            db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, Index(world, new TilePos(3, 3)));
+        pile.GoldHeld = 200;
+        GameSimulation sim = Simulation(db, world);
+
+        LiftAndDropOnto(sim, pile, goblin, target: 0);
+
+        Assert.NotNull(world.ObjectById(pile.Id));
+        Assert.Equal(200, pile.GoldHeld);
+        Assert.Equal(1500, goblin.WageOwed);
+    }
+
+    /// <summary>The drop's only tests are the level-scaled <c>Pay</c> for gold and
+    /// <c>HungerFill</c> for a chicken (<c>0x004BC710</c>): the fixture Imp has both at 0 and
+    /// takes neither; the Goblin takes both.</summary>
+    [Fact]
+    public void OnlyACreatureWithAWageOrAnAppetiteIsATarget()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        ObjectState pile = world.SpawnObject(
+            db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, Index(world, new TilePos(1, 1)));
+        ObjectState bird = world.SpawnObject(
+            db, HatcheryRules.ChickenObjectId, Keeper, Index(world, new TilePos(1, 1)));
+
+        Assert.Null(DropDeliveryRules.RecipientOf(world, db, pile, imp.Id));
+        Assert.Null(DropDeliveryRules.RecipientOf(world, db, bird, imp.Id));
+        Assert.Same(goblin, DropDeliveryRules.RecipientOf(world, db, pile, goblin.Id));
+        Assert.Same(goblin, DropDeliveryRules.RecipientOf(world, db, bird, goblin.Id));
+    }
+
     [Fact]
     public void AChickenMayOnlyBeDroppedOnTheKeepersOwnGround()
     {

@@ -24,12 +24,15 @@ public sealed record PickUpCreatureCommand(byte PlayerId, int CreatureId)
 
 /// <summary>Puts down whatever the keeper is holding on the given tile — a creature or an object,
 /// whichever came last. One gesture, one command (ADR-0075): DK2 has a single drop handler
-/// branching on the kind it read back, and it takes no argument but a position, so the hand
-/// chooses. Last in, first out — CONFIRMED (owner, 2026-09-06); that ordering is behaviour, so
-/// naming a creature here would discard it (<see cref="PlayerState.Hand"/>). A worker put down
-/// beside work the keeper has marked takes the job and works it 12.5 % faster
-/// (<see cref="CreatureState.JustDropped"/>); dropping it on empty ground is worth nothing.</summary>
-public sealed record DropCommand(byte PlayerId, TilePos Tile)
+/// branching on the kind it read back, so the hand chooses what goes down. Last in, first out —
+/// CONFIRMED (owner, 2026-09-06); naming the held thing here would discard that ordering
+/// (<see cref="PlayerState.Hand"/>). A worker put down beside work the keeper has marked takes
+/// the job and works it 12.5 % faster (<see cref="CreatureState.JustDropped"/>).
+/// <para><paramref name="TargetCreatureId"/> is the creature under the cursor, 0 for none. DK2
+/// keeps it in the keeper record (<c>+0x196</c>) rather than passing it to the handler, and only
+/// a chicken or gold dropped onto a creature reads it (<see cref="DropDeliveryRules"/>,
+/// ADR-0217).</para></summary>
+public sealed record DropCommand(byte PlayerId, TilePos Tile, int TargetCreatureId = 0)
     : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
@@ -37,6 +40,7 @@ public sealed record DropCommand(byte PlayerId, TilePos Tile)
         base.HashInto(ref hash);
         hash.Add(Tile.X);
         hash.Add(Tile.Y);
+        hash.Add(TargetCreatureId);
     }
 }
 

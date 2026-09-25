@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 111: the job a creature was dropped on (ADR-0215).
+        // HashVersion 113: SkipNextPayment, set by gold dropped onto a creature (ADR-0217).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x2EF320B63DEDBBD1UL, sim.StateHash());
+        Assert.Equal(0xFBE9C5B2CC6DE5ECUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

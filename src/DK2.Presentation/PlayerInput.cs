@@ -166,7 +166,11 @@ public sealed class PlayerInputTranslator
 
         if (intent.Tool == PlayerToolMode.Hand)
         {
-            if (snapshot.IsHolding) return new DropCommand(intent.PlayerId, tile);
+            // The creature under the cursor rides along: DK2's keeper record holds it, and a
+            // chicken or gold dropped onto it goes to it (ADR-0217).
+            if (snapshot.IsHolding)
+                return new DropCommand(intent.PlayerId, tile,
+                    TargetAt(snapshot.Targets, tile, PlayerInputTargetKind.Creature)?.Id ?? 0);
 
             PlayerInputTarget? creature = TargetAt(
                 snapshot.Targets, tile, PlayerInputTargetKind.Creature);

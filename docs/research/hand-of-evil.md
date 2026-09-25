@@ -389,8 +389,8 @@ ADR-0148; `structure-blocks.md` §4.2). What is assumed inside that is Q312.
 - **A chicken or a pile of gold dropped ONTO a creature is earmarked for it**, by
   the creature's id written into a field on the object, when that creature's
   level-scaled `HungerFill` or `Pay` is non-zero. **CONFIRMED by the owner,
-  2026-09-25**, not built. The field, all accesses, direct food/wage effects and
-  search negatives are in `hand-drop-earmark.md`.
+  2026-09-25**, and BUILT (ADR-0217): the object feeds or pays it on landing.
+  The field, all accesses and search negatives are in `hand-drop-earmark.md`.
 - **The cursor's target search** (`FUN_0044dec0`), which is a rule rather than a
   ray-cast: a 3x3 sweep, an **octagonal** distance (`max + min/2`), a quarter tile
   for an object against half a tile for a creature, the Dungeon Heart admitted by

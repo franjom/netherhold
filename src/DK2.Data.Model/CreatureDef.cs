@@ -133,6 +133,13 @@ public sealed record CreatureDef
     public required short AngerNoWork { get; init; }
     public required short AngerSlap { get; init; }
     public required short AngerInHand { get; init; }
+
+    /// <summary>CREATURES record offset <c>0x0FCB</c>, unnamed in the published field list
+    /// (<c>unk_28</c>). Its one reader subtracts it from the treatment bucket when a dropped
+    /// chicken or gold reaches the creature it was dropped on (hand-drop-earmark.md §8). Zero on
+    /// all 46 shipped creatures; what it was meant to be called is Q433.</summary>
+    public short DropDeliveryCalm { get; init; }
+
     public required short TortureHpChange { get; init; }
     public required short TortureMoodChange { get; init; }
     public required Fp32 TortureTimeToConvert { get; init; }

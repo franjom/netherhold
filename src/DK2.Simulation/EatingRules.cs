@@ -290,12 +290,20 @@ public static class EatingRules
         return true;
     }
 
+    /// <summary>Eat a chicken dropped onto this creature: the same routine as <see cref="Eat"/>
+    /// (<c>0x00463A10</c>, reached from the drop's landing hook), which pays off one helping and
+    /// heals only while food is still owed. Ours keeps the creature's own target: the bird came to
+    /// it, and a chase for another is not this bird's business. Returns the health gained.</summary>
+    public static int EatDropped(GameDatabase database, CreatureDef creature, CreatureState state) =>
+        StillOwesFood(state) ? Swallow(database, creature, state, 1, keepTarget: true) : 0;
+
     private static int Swallow(
-        GameDatabase database, CreatureDef creature, CreatureState state, int pays)
+        GameDatabase database, CreatureDef creature, CreatureState state, int pays,
+        bool keepTarget = false)
     {
         state.HungerNeed = Math.Max(0, state.HungerNeed - pays);
         state.HungerTicks = 0;
-        state.TargetObjectId = NoChicken;
+        if (!keepTarget) state.TargetObjectId = NoChicken;
 
         return CreatureHealthRules.Apply(database, creature, state, creature.HpFromChicken);
     }

@@ -591,6 +591,18 @@ public class CreatureNeedsOnRealDataTests
         });
     }
 
+    /// <summary>Record offset <c>0x0FCB</c>, which a chicken or gold dropped onto a creature takes
+    /// off its treatment bucket (ADR-0217): zero on all 46, so in the shipped game the delivery
+    /// calms nobody by it. Only mods exercise its read (Q433).</summary>
+    [InstallFact]
+    public void TheDropDeliveryCalmIsZeroOnEveryShippedCreature()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Install());
+
+        Assert.Equal(46, db.Creatures.Count);
+        Assert.All(db.Creatures.Values, c => Assert.Equal(0, c.DropDeliveryCalm));
+    }
+
     [InstallFact]
     public void EveryCreatureBecomesUnhappyAtFiftyPercentOfWhateverAngerIs()
     {

@@ -156,6 +156,10 @@ public sealed class ScenarioCommand
     /// named because the hand chooses: DK2 puts down what it picked up last, and letting a scenario
     /// name one would hide that.</summary>
     public List<int> Drop { get; set; } = [];
+
+    /// <summary>The creature under the cursor as the drop happens, by id, or 0 for none. A chicken
+    /// or gold dropped onto a creature feeds or pays it on the spot (ADR-0217).</summary>
+    public int DropOnto { get; set; }
 }
 
 /// <summary>A room a player asks to build, at a tick, and pays for.</summary>

@@ -9,6 +9,10 @@ Confidence: the owner's observation that a chicken or gold dropped onto a
 creature is reserved for it is **CONFIRMED** (2026-09-25). Binary findings below
 are **STRONGLY INFERRED**.
 
+**Built (ADR-0217)** as `DropDeliveryRules`, `DropCommand.TargetCreatureId` and
+`CreatureState.SkipNextPayment`, from §6 with one change: the drop delivers in
+its own tick and no recipient field is carried, because our objects do not fall.
+
 ## 1. Field and writers
 
 The earmark is a **16-bit creature thing id at object `+0x142`**. DK2's object
