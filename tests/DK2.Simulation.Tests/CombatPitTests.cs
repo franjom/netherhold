@@ -138,7 +138,7 @@ public sealed class CombatPitTests
     }
 
     [Fact]
-    public void TheWinnerStandsOverAKnockedOutOpponent_ForItIsStillATargetWhileOnTheMap()
+    public void TheWinnerLetsGoOfAKnockedOutOpponentWithNoVictory_AndGoesBackToThePit()
     {
         (GameDatabase db, WorldState world) = World();
         var sink = new ListEventSink();
@@ -149,13 +149,21 @@ public sealed class CombatPitTests
         Drop(sim, b, OtherFloor);
         RunUntil(sim, () => a.Activity == CreatureActivity.Fighting && a.FightTargetId == b.Id);
 
-        CreatureDeathRules.Collapse(b);
+        // The opponent is not attackable, and still a valid target for a fighter only.
         Assert.True(FightRules.TargetIsValid(world, a));
-        sim.Tick();
-        Assert.Equal(b.Id, a.FightTargetId);
-
         a.CombatPitFighter = false;
         Assert.False(FightRules.TargetIsValid(world, a));
+        a.CombatPitFighter = true;
+
+        // Owner (2026-09-25): the winner does not stand over the loser; it takes another fighter
+        // or walks about. The leave hook 0x0045ADC0 releases it without the victory nibble.
+        CreatureDeathRules.Collapse(b);
+        sim.Tick();
+        Assert.Equal(CombatRules.NoTarget, a.FightTargetId);
+        Assert.False(a.AttackAbnormalTargets);
+        Assert.NotEqual(CreatureActivity.Celebrating, a.Activity);
+        RunUntil(sim, () => a.Activity == CreatureActivity.PitFighting && a.Dk2StateId != CombatPitRules.PlacingState, 10);
+        Assert.True(a.CombatPitFighter);
     }
 
     [Fact]

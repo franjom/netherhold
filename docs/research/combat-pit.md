@@ -19,7 +19,9 @@ Original version: DK2 v1.70 (GOG)
 Questions: advances ADR-0135; Q310 (the loser is knocked out) is the owner's and stands;
 Q364's `+0x16` is answered in §6; Q427's bit-15 call in the level increment is §7.
 
-Confidence: **STRONGLY INFERRED (binary)** throughout; the one owner observation is Q310.
+Confidence: **STRONGLY INFERRED (binary)** throughout. Owner observations: Q310 (the loser is
+knocked out), and §4's end of a fight with the mentor's announcement (**CONFIRMED**, owner
+2026-09-25).
 
 ---
 
@@ -149,11 +151,26 @@ The pit adds no fight of its own; the forced target does it.
   creature then takes no damage from a blow (`0x004B2CE0` returns early when `CreatureDying`
   is set and its fourth argument is 0, which every swing passes).
 
-**So the winner stands over the loser.** The knocked-out opponent is still live and on the
-map, so it stays a valid target; the winner swings to no effect until an imp lifts the
-body (off the map: target invalid, the handler returns 0, idle, 138) or the dying window
-closes (the tag dies: the victory nibble, 260, idle, 138) — or until another fighter's
-139 takes it as an opponent (§3).
+**The knockout ends the fight, with no victory.** The loser's collapse takes it out of the
+fight state, and the Combat category's leave hook `0x0047A980` calls `0x0045ADC0`. That
+clears the loser's own forced target and engagement, then walks its sixteen attacker slots
+(`+0x504`, `+0x514`): each attacker whose engagement (`+0x502`) is the loser has it cleared,
+its forced target cleared (`0x0048F3F0`) when it has `AttackAbnormalTargets`, and the victory
+nibble (`+0x529 |= 0xF`) set **only when the loser's health is below 1**. A knockout has
+just set that health to the dying countdown, `var(0x006F25B0) × var19`, so the winner gets
+no nibble: `spFighting` finds no target, `SelectAVictim` finds none (the flag is gone and pit
+fighters are not attackable), and the state ends. Idle then returns the winner to 138 and
+139, where it takes the next fighter or walks about. A loser that dies outright (no
+`GenerateDeadBody`) leaves at health 0 or below, and the winner takes the victory arm.
+
+The owner confirms it (2026-09-25): the winner does not keep swinging at the unconscious
+loser; it fights another creature if one is in the pit, otherwise it walks around, and the
+mentor says the fight in the Combat Pit is over — message 9 of §8.
+
+**The loser is thrown to the rim.** State 217 (`0x004599D0`) clears `CombatPitFighter`, and
+for a creature lying on a Combat Pit's interior it picks a random rim tile through
+`0x004E8430` (a tile the interior test and `0x00454230` both refuse), sets the body there
+with facing `0x300`, and plays sound `0x149`.
 
 ## 5. The floor, and where a waiting fighter walks
 
@@ -209,7 +226,8 @@ list (`room+0x0A`) to 141. **`0x004D8000`** (freed, owner changed) does only the
 definition's sound `+0x421` / `+0x423` at a random interior point. Then it counts the
 creatures on the interior: those not dying and those dying. **Exactly one standing, more
 than one standing last turn and at least one down** posts message 9 to the owner (the
-winner's announcement); the count is kept at `+0x59`.
+mentor's "the fight in the Combat Pit is over", CONFIRMED by the owner); the count is kept at
+`+0x59`.
 
 `0x004D8870`, the finder, per keeper's Combat Pit (`player+0x36` chain) that has room
 (`0x00471740(room, 0x80)`): a free spot (`0x004E8210(1, 0)`), whether the drop test
@@ -228,8 +246,8 @@ room's `+0x423` sound.
 - 137, 138, 139 and 141 (`CombatPitStep`), idle's return to 138, the pairing, the per-turn
   anger, the one-step wander.
 - The forced target through `ProcessFight`, `SelectAVictim` and the fight state; the pit
-  fighter's attackability, its blow and its damage taken; a knocked-out opponent kept as a
-  target; the experience refusal and the level-cap move to 1.
+  fighter's attackability, its blow and its damage taken; the knockout's release of the winner
+  with no victory; the experience refusal and the level-cap move to 1.
 - The room reset: a sale or build that touches a keeper's Combat Pit sends the fighters on
   that pit's tiles to 141 without the flag.
 
@@ -245,7 +263,8 @@ room's `+0x423` sound.
   goes to 142, which ours refuses by leaving the creature idle.
 - **Action `0x2C`** at the level cap and its wait: ours goes straight to the anger and the
   walk. **Scan A** for a dead forced target: ours clears it and finds nobody.
-- The room's entry point, its sounds, message 9, the finder's messages, the death sound;
+- 217's throw of the loser to the rim; the room's entry point, its sounds, message 9, the
+  finder's messages, the death sound;
   `0x00455000`'s byte in the neighbour picker (taken as equal within a room); the rim's
   slopes; `KillsInCombatPit` (`+0x408`), whose writer is still unread.
 - The shot owner: a pit fighter's shots are the hero player's (`combat-spells.md`).

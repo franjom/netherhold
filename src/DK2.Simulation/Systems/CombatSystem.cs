@@ -129,9 +129,17 @@ public sealed class CombatSystem : ISimulationSystem
         // A healer holds no attacker slot on its ally, so an ally's death marks nothing.
         if (creature.FightTargetKind == FightTargetKind.Creature && creature.AttackType != CombatRules.AttackTypes.SpellAtAlly)
         {
-            // A pit fighter's knocked-out opponent is still a target; only its death counts.
+            // A pit fighter's opponent knocked out leaves the fight state, and its leave hook
+            // (0x0045ADC0) releases the fighter and its forced target with no victory, as the
+            // knockout's health is the dying countdown and not below 1; the fight ends (ADR-0213).
             CreatureState? dying = world.CreatureById(creature.FightTargetId);
-            if (dying != null && (creature.CombatPitFighter ? !CreatureStateMachine.HasState(dying) : CreatureDeathRules.IsDown(dying)))
+            if (dying != null && creature.CombatPitFighter && CreatureStateMachine.HasState(dying) && CreatureDeathRules.IsDown(dying))
+            {
+                CombatPitRules.ClearForcedTarget(world, creature);
+                LetGo(context, creature, "opponent_knocked_out");
+                return;
+            }
+            if (dying != null && CreatureDeathRules.IsDown(dying))
             {
                 VictoryRules.TargetDied(context, creature);
                 return;

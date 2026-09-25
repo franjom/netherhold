@@ -24,7 +24,7 @@ public static class FightRules
 
     /// <summary>Whether the engagement still has something to hit: a live, attackable creature, or a
     /// heart that stands. A Combat Pit fighter needs only a live target on the map, attackable or not,
-    /// so it stands over an opponent it has knocked out (combat-pit.md §4).</summary>
+    /// since its opponent, a fighter too, is never attackable (combat-pit.md §4).</summary>
     public static bool TargetIsValid(WorldState world, CreatureState me)
     {
         switch (me.FightTargetKind)
