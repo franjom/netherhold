@@ -110,6 +110,27 @@ public sealed class JailBreakTests
         Assert.Equal(JailBreakRules.Activated | JailBreakRules.Open | JailBreakRules.Broken, door);
     }
 
+    /// <summary>The unlock goes through the lock toggle <c>0x004E3680</c>, which begins with
+    /// <c>0x004E2D40(0)</c>: a stale <c>PrisonJailBroken</c> is clear on the turn the door opens, and
+    /// set again only when the comrade is released (<c>0x004E2E70</c>, once per creature).</summary>
+    [Fact]
+    public void UnlockingClearsTheBrokenMark_AndReleasingSetsItAgain()
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState comrade = Prisoner(db, world, Hero, Cell);
+        JailBreakRules.DoorOf(world, Prison(db, world)) = JailBreakRules.Broken;
+        (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
+        CreatureState hero = Rescuer(db, world);
+        sim.Tick();
+        StepOnto(hero, Rim);
+
+        for (int i = 0; i < 300 && !sink.Events.Any(e => e.Kind == "prison_door_opened"); i++) sim.Tick();
+
+        Assert.Equal(JailBreakRules.Activated | JailBreakRules.Open, JailBreakRules.DoorOf(world, Prison(db, world)));
+        for (int i = 0; i < 300 && PrisonRules.IsImprisoned(comrade); i++) sim.Tick();
+        Assert.Equal(JailBreakRules.Activated | JailBreakRules.Open | JailBreakRules.Broken, JailBreakRules.DoorOf(world, Prison(db, world)));
+    }
+
     /// <summary><c>0x004E2E70(1, owner, 0)</c> releases the rescuer's own side: another keeper's
     /// prisoner in the same cell stays.</summary>
     [Fact]

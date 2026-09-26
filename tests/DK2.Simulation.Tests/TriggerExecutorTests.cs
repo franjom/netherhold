@@ -1784,6 +1784,37 @@ public class TriggerExecutorTests
         Assert.Equal(3, run.CreatureActions.Count);
     }
 
+    /// <summary>Action 15 leaves a Good creature alone while it is a Combat Pit fighter (DK2's
+    /// <c>+0x3CB</c>) or dying (body bit 21), and still succeeds (<c>0x0049ACE7</c>).</summary>
+    [Fact]
+    public void CreatureActionFifteenLeavesAPitFighterAndADyingHeroAlone()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        CreatureState fighter = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, PlayerIds.Good, new TilePos(4, 4));
+        CreatureState dying = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, PlayerIds.Good, new TilePos(6, 4));
+        fighter.TriggerId = 5;
+        dying.TriggerId = 7;
+        fighter.CombatPitFighter = true;
+        dying.Dk2StateId = CreatureDeathRules.DyingState;
+        Assert.True(CreatureDeathRules.IsDying(dying));
+
+        TriggerRecord[] records =
+        [
+            Condition(5, repeat: 1, child: 0xFFFF, next: 0, FlagEqualsZero()),
+            Condition(7, repeat: 1, child: 0xFFFE, next: 0, FlagEqualsZero()),
+            Objective(0xFFFF, (byte)JobType.KillPlayer, player: 3, actionPoint: 2),
+            Objective(0xFFFE, (byte)JobType.KillPlayer, player: 3, actionPoint: 2),
+        ];
+        TriggerRunResult run = new TriggerExecutor(
+            new TriggerTree(records, 0), world.Triggers, world, database).Run(1);
+
+        Assert.Equal(2, run.CreatureActions.Count);
+        Assert.Equal((JobType.None, (byte)0), (fighter.GoodJob, fighter.GoodJobPlayerId));
+        Assert.Equal((JobType.None, (byte)0), (dying.GoodJob, dying.GoodJobPlayerId));
+        Assert.Equal(CreatureDeathRules.DyingState, dying.Dk2StateId);
+    }
+
     private static TriggerRecord Objective(ushort id, byte objective, byte player, int actionPoint) =>
         new ActionTriggerRecord(new byte[16])
         {
