@@ -40,6 +40,18 @@ public static class BlueprintPlacementRules
         return northSouth || eastWest ? Verdict.Allowed : Verdict.NoWalls;
     }
 
+    /// <summary>A door's orientation when it is made, the same in the placement <c>0x004C33B0</c> and
+    /// the level loader <c>0x00520F40</c>: 2, or 1 when west and east are solid, else 0 when north
+    /// and south are. A <see cref="DoorFlags.Barricade"/> keeps 2. A door a trigger makes
+    /// (<c>0x00518AD0</c>) is given 0, which is not built.</summary>
+    public static byte Orientation(WorldState world, GameDatabase database, TilePos at, DoorDef? door)
+    {
+        if (door is not null && door.Flags.HasFlag(DoorFlags.Barricade)) return 2;
+        if (Solid(world, database, at.X - 1, at.Y) && Solid(world, database, at.X + 1, at.Y)) return 1;
+        if (Solid(world, database, at.X, at.Y - 1) && Solid(world, database, at.X, at.Y + 1)) return 0;
+        return 2;
+    }
+
     /// <summary><c>0x004C33B0</c>: with the tile allowed and the keeper able to pay the door's
     /// <c>GoldCost</c> (<c>def+0x8F</c>), the gold is spent, the blueprint laid, its order pushed
     /// (<c>0x005066E0</c>) and it joins the blueprint list (<c>0x00505680</c>).</summary>
@@ -50,7 +62,12 @@ public static class BlueprintPlacementRules
         if (verdict != Verdict.Allowed) return verdict;
         if (!GoldStore.TryWithdraw(world, player, door.GoldCost)) return Verdict.NotEnoughGold;
 
-        world.AddDoor(new DoorState { X = at.X, Y = at.Y, DoorId = doorId, PlayerId = player, UnderConstruction = true, Unknown_0011 = new byte[DoorState.Unknown0011Length] });
+        world.AddDoor(new DoorState
+        {
+            X = at.X, Y = at.Y, DoorId = doorId, PlayerId = player, UnderConstruction = true,
+            Orientation = Orientation(world, database, at, door),
+            Unknown_0011 = new byte[DoorState.Unknown0011Length],
+        });
         ManufactureRules.QueueOne(world, database, player, CrateRules.DoorKind, doorId);
         CrateRules.Register(world, player, new BlueprintRef(CrateRules.DoorKind, world.Doors.Count - 1));
         return Verdict.Allowed;

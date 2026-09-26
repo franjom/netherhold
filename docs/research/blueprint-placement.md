@@ -60,8 +60,12 @@ The same, with:
 - The blueprint is a `DoorState` or `TrapState` under construction. Its order is pushed through
   `ManufactureRules.QueueOne`, the same count as the level loader's, and it is listed through
   `CrateRules.Register`. From there the Workshop and the imps build it (ADR-0214).
+- **The orientation** is `BlueprintPlacementRules.Orientation`, kept on the door (ADR-0233). The
+  level loader `0x00520F40` gives an authored door the same: it starts at 2, skips the tests for a
+  Barricade (`+0x8B` bit `0x40`), and tests west and east first. The door creator `0x004B7B50`
+  takes it as its fourth argument. A door a trigger makes (`0x00518AD0`) is given 0; that path
+  is not built.
 - **Not built:**
-  - the door's orientation;
   - `player+0x177`;
   - message `0x37`, the cost display, the sounds, `0x004E8D30`;
   - the computer keeper's placement.

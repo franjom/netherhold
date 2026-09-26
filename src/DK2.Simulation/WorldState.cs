@@ -537,6 +537,11 @@ public sealed class DoorState
     /// while open the tile's navigation byte is plain floor for everyone.</summary>
     public bool Open { get; set; }
 
+    /// <summary>0, 1 or 2, fixed when the door is made
+    /// (<see cref="BlueprintPlacementRules.Orientation"/>): which pair of neighbours are its
+    /// walls. Nothing in the simulation reads it yet; the presentation does.</summary>
+    public byte Orientation { get; init; }
+
     /// <summary>How long <see cref="Unknown_0011"/> is. The snapshot writes those bytes
     /// without a length and reads back exactly this many, so a door carrying any other
     /// number would desync the stream and silently corrupt everything after it.</summary>
@@ -569,6 +574,7 @@ public sealed class DoorState
         hash.Add(LockMode);
         hash.Add(LockPickTicks);
         hash.Add(Open);
+        hash.Add(Orientation);
         foreach (byte value in Unknown_0011.Span) hash.Add(value);
     }
 }

@@ -113,7 +113,7 @@ public static class ThingProjection
                     break;
 
                 case DoorThing t:
-                    PlaceDoor(world, t);
+                    PlaceDoor(world, database, t);
                     doors++;
                     break;
 
@@ -220,7 +220,7 @@ public static class ThingProjection
         });
     }
 
-    private static void PlaceDoor(WorldState world, DoorThing thing) =>
+    private static void PlaceDoor(WorldState world, GameDatabase database, DoorThing thing) =>
         world.AddDoor(new DoorState
         {
             X = thing.X,
@@ -232,6 +232,8 @@ public static class ThingProjection
             Flags = thing.Flags,
             UnderConstruction = (thing.Flags & 0x02) != 0,
             LockMode = (byte)((thing.Flags & 0x01) != 0 ? 3 : 0),
+            Orientation = BlueprintPlacementRules.Orientation(world, database, new TilePos(thing.X, thing.Y),
+                database.Doors.GetValueOrDefault(thing.DoorId)),
             Unknown_0011 = thing.Unknown_0011.ToArray(),
         });
 

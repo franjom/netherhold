@@ -62,6 +62,37 @@ public sealed class BlueprintPlacementTests
         Assert.Equal(BlueprintPlacementRules.Verdict.Allowed, BlueprintPlacementRules.PlaceDoor(world, db, OpenFloor, Keeper, Barricade));
     }
 
+    /// <summary>The orientation: 0 between north and south walls, 1 between west and east ones,
+    /// 2 for a Barricade even between walls, and 1 walled on all four sides, since west and east are
+    /// tested first (<c>0x004C33B0</c>).</summary>
+    [Fact]
+    public void ADoorsOrientationNamesTheWallsItStandsBetween()
+    {
+        (GameDatabase db, WorldState world) = World();
+        world.Tile(4, 7).TerrainId = Dk2TerrainFixture.Rock;
+        world.Tile(6, 7).TerrainId = Dk2TerrainFixture.Rock;
+        world.Tile(7, 4).TerrainId = Dk2TerrainFixture.Rock;
+        world.Tile(9, 4).TerrainId = Dk2TerrainFixture.Rock;
+
+        BlueprintPlacementRules.PlaceDoor(world, db, InTheCorridor, Keeper, WoodenDoor);
+        BlueprintPlacementRules.PlaceDoor(world, db, OpenFloor, Keeper, WoodenDoor);
+        BlueprintPlacementRules.PlaceDoor(world, db, new TilePos(3, 4), Keeper, Barricade);
+        BlueprintPlacementRules.PlaceDoor(world, db, new TilePos(8, 4), Keeper, WoodenDoor);
+
+        Assert.Equal([(byte)0, (byte)1, (byte)2, (byte)1], world.Doors.Select(d => d.Orientation));
+    }
+
+    /// <summary>The level loader <c>0x00520F40</c> gives an authored door the same orientation.</summary>
+    [Fact]
+    public void AnAuthoredDoorIsOrientedAsAPlacedOneIs()
+    {
+        (GameDatabase db, WorldState world) = World();
+
+        ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = InTheCorridor.X, Y = InTheCorridor.Y, PlayerId = Keeper, DoorId = WoodenDoor, Unknown_0011 = new byte[3] }]);
+
+        Assert.Equal(0, Assert.Single(world.Doors).Orientation);
+    }
+
     [Fact]
     public void ATrapGoesOnTheKeepersOpenFloor_AndNowhereElse()
     {

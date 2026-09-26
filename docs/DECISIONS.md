@@ -5141,3 +5141,26 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **A query that cannot match returns nothing, not a negative.** The first neighbour search wrote addresses unpadded (`0x6f2960`), where the listing prints `0x006f2960`, and found nothing, the exact address included. Every negative here was re-run padded, with the known hit as its positive control.
 - **Not re-run:** claims already backed by a whole-program sweep in their own doc (`RebelLeader`'s bit 4, the state record's dead slots). Also not re-run: bit and field claims with no address to scan (spell flag bit 8, trigger-walker `+0x36`, `ReturnToJobId`).
 - No new state; `HashVersion` stays **120**.
+
+## ADR-0233 — A door keeps the orientation it is made with
+**Date:** 2026-09-26 · **Status:** accepted · extends ADR-0231 · Research: `docs/research/blueprint-placement.md`
+
+**Context.** ADR-0231 placed door blueprints but left their orientation unbuilt. The door creator `0x004B7B50` takes it as its fourth argument, and it has three callers: the placement routine, the level loader and a trigger action.
+
+**Decision.**
+1. **The rule** is `BlueprintPlacementRules.Orientation`:
+   - 2 by default;
+   - 1 when the tiles west and east are both solid;
+   - otherwise 0 when the tiles north and south are both solid;
+   - a Barricade (`+0x8B` bit `0x40`) skips the tests and keeps 2.
+2. **Placement (`0x004C33B0`) and the level loader (`0x00520F40`) both apply it,** so an authored door and a placed one are oriented alike. The loader was read for this ADR: it starts at 2 (`0x00520F7B`), tests the Barricade bit, then west and east, then north and south.
+3. **`DoorState.Orientation`** is fixed when the door is made. It is hashed and snapshotted, because the walls it was judged from can later be dug away.
+
+**Consequences.**
+- **Not built:** a door made by a trigger action (`0x00518AD0`), which DK2 gives 0. Nothing in the simulation reads the orientation; it is for the presentation.
+- **Tests.** `BlueprintPlacementTests` gains two: the three outcomes plus a door walled on all four sides, and an authored door.
+- **Three negative controls each fail a named test:**
+  - the Barricade test removed;
+  - north and south tested before west and east;
+  - the loader's orientation left at 0.
+- **`HashVersion` and `FormatVersion` 121,** pin `0x954849F97CFC0296`.
