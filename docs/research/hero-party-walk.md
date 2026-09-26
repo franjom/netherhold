@@ -228,15 +228,37 @@ and the whole-offset scan found no other cleanup. Ordinary state 222
 performs no active-tag or thing-kind test before dereferencing
 `MyLeadersId`; only state 223 validates its temporary tunneller
 reference. What followers observably do after a leader dies without
-the knock-out/capture branch is **UNKNOWN** (Q428).
+the knock-out/capture branch was observed by the owner on 2026-09-26
+(Q428, below).
 
 ## Open question
 
-- **Q428:** the observable fate of followers after immediate leader
-  death. The binary's absence of another direct party-field cleanup is
-  strong negative evidence, but does not establish how long the dead
-  thing remains tag-addressable or what a later tag reuse looks like to
-  state 222.
+- **Q428, partly answered by the owner (2026-09-26).** On level 2 the Lord
+  of the Land died outright: type 29 dies instantly outside a room
+  (`creature-death.md` §2.1) and became a corpse at once. The Horned
+  Reaper then appeared and took his gem, in a cutscene. Of the five
+  Dwarves who survived him:
+  - **four stayed where he fell and moved around that spot;**
+  - **one made it to the keeper's Dungeon Heart.**
+
+  The four fit the binary. Nothing clears their party fields, and
+  state 222 keeps trailing `MyLeadersId` without checking it, so they
+  follow what is left where the Lord died. Ours does the same while the
+  corpse lasts: `Follow` trails the dead leader's record. Once the
+  corpse is removed, ours stands still in 222; DK2's stale tag after
+  that is unread.
+
+  **The fifth is UNKNOWN.** Candidates:
+  - it had lost its follower bit earlier, and went for the heart on
+    its own standing job;
+  - it was fighting when the Lord died, and left the fight into its
+    job. The owner's reading: it had chased imps into the dungeon
+    before the Lord died, and with him gone it saw the heart and
+    attacked it. The heart scan in target acquisition would do that;
+  - the stale tag was reused by a thing that moved, such as the Reaper.
+
+  The session is recorded as `PacketRecord\q428_1.sav` (level 2), and a
+  replay with the position logger separates the three.
 
 ## Built (2026-09-25, ADR-0216)
 
