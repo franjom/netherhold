@@ -61,6 +61,16 @@ A and B are scripted and run first, over everything. C and D are per rule, in th
 `-PSAVE`/`-PLOAD` replay compare our simulation with DK2 over a whole session. That catches
 wiring errors between rules that no per-rule check sees.
 
+**First, make replays faithful again.** On 2026-09-26 both level 2 recordings (`q428.sav`,
+`q428_1.sav`, made with `-LEVEL level2 -PSAVE`) replayed with `Gone Out Of Sync (Checksum) GT 6`.
+The seed matched and the checksum was off by 2, and turns 1–6 carry no player command, so the
+starting state differs. The replay then drifted: the Lord of the Land's party 0 never appeared.
+Recordings made on 2026-09-18 had replayed without divergence. Candidates:
+- a registry value the level start reads, such as campaign progress, since the owner won level 2
+  in both sessions;
+- a setting read at start;
+- something in the first six turns that the recording does not capture.
+
 ## 6. First steps, in order
 
 1. Copy the Ghidra project into `D:\Ghidra\claude ghidra\worker-1\` … `worker-4\`, and run the
