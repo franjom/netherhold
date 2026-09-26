@@ -27,8 +27,10 @@ public sealed class TriggerRunResult
         IEnumerable<BlockedTrigger> assumed,
         IEnumerable<BlockedTrigger> unhandled,
         HashSet<ushort>? reached = null,
-        HashSet<ushort>? unsatisfied = null)
+        HashSet<ushort>? unsatisfied = null,
+        IEnumerable<BlockedTrigger>? creatureActions = null)
     {
+        CreatureActions = Order(creatureActions ?? []);
         Blocked = Order(blocked);
         Partial = Order(partial);
         Assumed = Order(assumed);
@@ -36,6 +38,10 @@ public sealed class TriggerRunResult
         Reached = reached;
         Unsatisfied = unsatisfied;
     }
+
+    /// <summary>Creature-owned actions this run carried out in a creature's tree (type 15), so a
+    /// performed dispatch stays as observable as a partial one.</summary>
+    public IReadOnlyList<BlockedTrigger> CreatureActions { get; }
 
     /// <summary>Every record the walk resolved, when the executor was asked to track it.
     /// What a decline <b>cost</b> is the subtree behind it that this set does not already
@@ -322,9 +328,10 @@ internal sealed class TriggerRun(int currentTick)
     public List<BlockedTrigger> Partial { get; } = [];
     public List<BlockedTrigger> Assumed { get; } = [];
     public List<BlockedTrigger> Unhandled { get; } = [];
+    public List<BlockedTrigger> CreatureActions { get; } = [];
 
     public TriggerRunResult Result() =>
-        new(Blocked, Partial, Assumed, Unhandled, Reached, Unsatisfied);
+        new(Blocked, Partial, Assumed, Unhandled, Reached, Unsatisfied, CreatureActions);
 }
 
 /// <summary>Walks every level trigger root once a game turn — world, 24 parties, action
@@ -957,6 +964,11 @@ public sealed class TriggerExecutor
             return false;
         }
 
+        if (context == TriggerContext.Creature && record.Type == 15 && run.Creature is not null)
+        {
+            run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
+            return SetHeroObjective(record.Parameters, run.Creature);
+        }
         if (context == TriggerContext.Creature && CreatureOwnsAction(record.Type))
             return Unperformed(record, context, run.Partial);
         if (context == TriggerContext.Creature && PlayerOwnsAction(record.Type))
@@ -969,6 +981,23 @@ public sealed class TriggerExecutor
 
         run.Unhandled.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
         return false;
+    }
+
+    /// <summary>Creature action 15 (<c>0x0049ACC1</c>): a Good creature's standing job. Anyone
+    /// else, a Combat Pit fighter (DK2 tests the pit's owner word <c>+0x3CB</c>, written for every
+    /// fighter) or a dying creature (body bit 21) is left alone, and the action succeeds anyway.
+    /// Otherwise <c>0x0048BE20</c> stores the triple: the objective, the named player (objectives
+    /// 22 and 23 keep the creature's own), the action point; then state 1 (<c>0x0048AD30</c>).</summary>
+    private static bool SetHeroObjective(IReadOnlyDictionary<string, long> p, CreatureState creature)
+    {
+        if (creature.OwnerPlayerId != PlayerIds.Good || creature.CombatPitFighter || CreatureDeathRules.IsDying(creature))
+            return true;
+        byte objective = Byte(p, "ObjectiveType");
+        if (objective is not (22 or 23)) creature.GoodJobPlayerId = Byte(p, "PlayerId");
+        creature.GoodJob = (JobType)objective;
+        creature.GoodJobActionPointId = unchecked((int)p["ActionPointId"]);
+        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
+        return true;
     }
 
     private static bool Unperformed(

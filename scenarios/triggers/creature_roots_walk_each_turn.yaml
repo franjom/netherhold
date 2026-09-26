@@ -1,7 +1,8 @@
 # Four ticks are one DK2 game second (SimulationTiming.OriginalTicksPerGameSecond).
 # Frosty's Castle has five placed creature roots. Each reaches creature-owned
-# action type 15 after its one-game-second gate; its effect is not implemented,
-# so the honest observable is five partial dispatches on zero-based tick 3.
+# action type 15 after its one-game-second gate. Type 15 sets a hero's standing
+# job (ADR-0236), and each dispatch is reported as trigger_performed, so the
+# observable is five of them on zero-based tick 3.
 id: creature-roots-walk-each-turn-001
 question: Do all placed creature trigger roots run once per game turn?
 map: "campaign:Frosty's Castle"
@@ -12,7 +13,7 @@ setup:
 observe:
   - events
 expect:
-  - event: trigger_partial
+  - event: trigger_performed
     detail: "type=15"
     at_tick: 3
     count: 5

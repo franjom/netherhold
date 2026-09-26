@@ -5221,3 +5221,21 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - no time-up bit;
   - the comparison's operands swapped.
 - **`HashVersion` and `FormatVersion` 122,** pin `0xED95A480A9DB92C5`.
+
+## ADR-0236 — Trigger action 15 sets a hero's standing job
+**Date:** 2026-09-26 · **Status:** accepted · extends ADR-0216 · Research: `docs/research/level-time-limit.md` §6
+
+**Context.** Action 15 was the most-reached creature action the executor did not carry out: 81 records reached, 565 shipped. Every one ran as partial.
+
+**Decision.**
+1. **In a creature's tree,** a Good creature that is not a Combat Pit fighter and not dying gets its `GoodJob` triple from the record (`0x0048BE20`) and enters state 1. The triple is the objective, the named player and the action point; objectives 22 and 23 keep the creature's own player. `HeroJobRules.Dispatch` then runs the job.
+2. **Anyone else is left alone,** and the action still succeeds, as DK2's arm returns 1 on every path.
+3. **Each dispatch is reported** in `TriggerRunResult.CreatureActions` and emitted as `trigger_performed`, so it stays as observable as the partial report was. `creature_roots_walk_each_turn.yaml` now counts those.
+
+**Consequences.**
+- **Tests.** `TriggerExecutorTests.CreatureActionFifteenSetsAHerosStandingJob`. Three negative controls fail it:
+  - any owner;
+  - no exemption for objective 22;
+  - no state change.
+- **Not covered by a test:** the pit and dying guards.
+- No new state; `HashVersion` stays **122**.

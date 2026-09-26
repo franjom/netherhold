@@ -106,6 +106,10 @@ public sealed class GameSimulation
         // The same per-turn world update (0x0050A450) counts the level time limit down.
         if (World.Triggers.CountDownLevelTimeLimit())
             _context.Emit(nameof(TriggerExecutor), "level_time_up", $"turn={dk2Turn}");
+        foreach (BlockedTrigger done in LastTriggerRun.CreatureActions)
+            _context.Emit(
+                nameof(TriggerExecutor), "trigger_performed",
+                $"tag={done.Tag} type={done.Type} id={done.TriggerId} context={done.Context}");
         foreach (BlockedTrigger partial in LastTriggerRun.Partial)
         {
             _context.Emit(

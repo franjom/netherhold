@@ -1747,8 +1747,54 @@ public class TriggerExecutorTests
         Assert.Empty(run.Blocked);
     }
 
+    /// <summary>Creature action 15 (<c>0x0049ACC1</c>) gives a Good creature its standing job and
+    /// state 1; objective 22 keeps the creature's own player; a keeper's creature is left alone.
+    /// None of it is partial.</summary>
+    [Fact]
+    public void CreatureActionFifteenSetsAHerosStandingJob()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        CreatureState hero = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, PlayerIds.Good, new TilePos(4, 4));
+        CreatureState keepers = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(5, 4));
+        CreatureState kept = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, PlayerIds.Good, new TilePos(6, 4));
+        hero.TriggerId = 5;
+        keepers.TriggerId = 9;
+        kept.TriggerId = 7;
+        kept.GoodJobPlayerId = 4;
+        Assert.True(CreatureStateMachine.TrySetState(hero, 90));
+
+        TriggerRecord[] records =
+        [
+            Condition(5, repeat: 1, child: 0xFFFF, next: 0, FlagEqualsZero()),
+            Condition(7, repeat: 1, child: 0xFFFE, next: 0, FlagEqualsZero()),
+            Condition(9, repeat: 1, child: 0xFFFD, next: 0, FlagEqualsZero()),
+            Objective(0xFFFF, (byte)JobType.KillPlayer, player: 3, actionPoint: 2),
+            Objective(0xFFFE, 22, player: 3, actionPoint: 9),
+            Objective(0xFFFD, (byte)JobType.KillPlayer, player: 3, actionPoint: 2),
+        ];
+        TriggerRunResult run = new TriggerExecutor(
+            new TriggerTree(records, 0), world.Triggers, world, database).Run(1);
+
+        Assert.Equal((JobType.KillPlayer, (byte)3, 2), (hero.GoodJob, hero.GoodJobPlayerId, hero.GoodJobActionPointId));
+        Assert.Equal(CreatureStateMachine.Idle, hero.Dk2StateId);
+        Assert.Equal((byte)0, keepers.GoodJobPlayerId);
+        Assert.Equal(((JobType)22, (byte)4, 9), (kept.GoodJob, kept.GoodJobPlayerId, kept.GoodJobActionPointId));
+        Assert.Empty(run.Partial);
+        Assert.Equal(3, run.CreatureActions.Count);
+    }
+
+    private static TriggerRecord Objective(ushort id, byte objective, byte player, int actionPoint) =>
+        new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = id, Type = 15, RepeatCount = 0, ChildTriggerId = 0xFFFF,
+            Parameters = new Dictionary<string, long>
+            {
+                ["PlayerId"] = player, ["ObjectiveType"] = objective, ["ActionPointId"] = actionPoint,
+            },
+        };
+
     [Theory]
-    [InlineData((byte)15)]
     [InlineData((byte)20)]
     [InlineData((byte)43)]
     public void CreatureOwnedActionsSucceedAndRemainExplicitlyPartial(byte type)

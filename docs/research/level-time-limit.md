@@ -1,7 +1,7 @@
-# The level time limit, and trigger actions 9, 23 and 47
+# The level time limit, and trigger actions 9, 15, 23 and 47
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-26.
-- **Built:** ADR-0235, `TriggerState.LevelTimeLimit`, `TriggerState.LevelTimeUp`, `TriggerState.SpecialInfoNextRoomTypeId`.
+- **Built:** ADR-0235, `TriggerState.LevelTimeLimit`, `TriggerState.LevelTimeUp`, `TriggerState.SpecialInfoNextRoomTypeId`; ADR-0236, `TriggerRunResult.CreatureActions`.
 - Related: `trigger-state.md` §5 (timer id 16), `trigger-dispatch-tables.md`, `win-and-defeat.md`.
 
 ## Result in one sentence
@@ -73,5 +73,20 @@ slots near `0x005096F0`.
 - **Not built:**
   - the defeat on running out, since game modes are not modelled;
   - the `+0x284` gate;
-  - action 9, which stays partial;
-  - action 15 in a creature's tree.
+  - action 9, which stays partial.
+
+## 6. Action 15 in a creature's tree — CONFIRMED, built (ADR-0236)
+
+The creature action dispatcher `0x0049AC80` (types 15–43, byte table `0x0049B19C`, jump table
+`0x0049B170`) sends 15 to `0x0049ACC1`. It returns 1 on every path:
+- **the owner is not the Good player** (`creature+0x28` against `[0x006F254C]`): nothing;
+- **`+0x3CB` is non-zero** (the Combat Pit owner word, written for every pit fighter) **or
+  `+0x3E6` bit 21 is set** (dying): nothing;
+- **otherwise** `0x0048BE20(ObjectiveType, target, ActionPointId)` stores the `GoodJob` triple
+  `+0x409`/`+0x40D`/`+0x40F`, then `0x0048AD30(1)` enters state 1. The target is the named
+  player's tag (`player+0x4`, through the player array at `[world+0x84]`, stride `0x1125`), except
+  for objectives 22 and 23, which keep the creature's own `+0x40D`.
+
+`HeroJobRules.Dispatch` then runs the job from state 1 as it does a spawned hero's. Ours stands
+in `CombatPitFighter` for `+0x3CB` and `IsDying` for bit 21. No test covers the pit and dying
+guards.
