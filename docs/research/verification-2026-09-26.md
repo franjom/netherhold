@@ -20,7 +20,7 @@
 |---|---|---|---|
 | 1 | 0232 | `0x006F286B` **is** written: variable 224 stat 4, shipped **60** | WRONG |
 | 2 | 0234 | `0x0048B120` has 20 call sites, not twelve | WRONG (count only) |
-| 3 | 0229 | The door is picked in slab-list order; ours uses ascending index, and a test pins it | UNSURE |
+| 3 | 0229 | The door column follows the slab list; ours is always leftmost. The owner saw it move between rebuilds | WRONG |
 | 4 | 0227 | The pit finder measures to `FirstSlab`; ours to the lowest tile | UNSURE |
 | 5 | 0228 | Two more `AngerNoWork` sites: states 59/109 (per turn) and `0x004E88A0` | missing from the docs |
 | 6 | 0227 | Level data can supply job 26 through `+0x409`; no shipped level does | claim needs qualifying |
@@ -80,19 +80,20 @@
     12.12 multiply by the new one, and the difference applied through `0x004B2CE0`. Level 1
     uses the raw `def+0x692`.
 
-## 3. ADR-0229: which tile is the door — UNSURE
+## 3. ADR-0229: which tile is the door — WRONG (owner-observed)
 
-- **Doc/code:** `JailBreakRules.DoorTile` walks interior tiles in ascending index. `jail-break.md`
-  §1 records this only as the reason the NW/NE tests never decide.
+- **Doc/code:** `JailBreakRules.DoorTile` walks interior tiles in ascending index, so the door is
+  always above the leftmost top-row floor tile.
 - **Binary:** `0x004E32C0` walks the slab list from `FirstSlab` (`+0x2D`/`+0x2E`) through each
-  tile's `+4/+5`. It takes the first floor tile whose N, NW and NE neighbours are not floor, and
-  the door is the tile north of it.
-- **Why it matters:** in a 5×5 Prison every top-row floor tile qualifies. The door is therefore
-  whichever of the three the list reaches first. Q289 found a lair's list running from (8,30)
-  to (10,26), that is descending, so ascending order is not DK2's.
-- **Test:** `JailBreakTests.TheDoorIsNorthOfTheFirstFloorTile…` pins (5, 2), the leftmost tile.
-  The pinned value is our order, and the test name does not say so.
-- **Q439.**
+  tile's `+4/+5`. The door is the tile north of the first floor tile whose N, NW and NE are not floor.
+  In a 5×5 Prison all three top-row floor tiles qualify, so the list order decides.
+- **Owner, 2026-09-26 (five screenshots, minimap north up):** the door is always in the north wall.
+  But a 5×5 Prison sold and rebuilt on the same spot put it left of centre, then right of centre,
+  then left again. So the column follows the placement, not a fixed rule. The north wall
+  confirms the N test.
+- **Test:** `JailBreakTests.TheDoorIsNorthOfTheFirstFloorTile…` pins (5, 2), our order.
+- **Still open (Q439):** how placement orders the list. Either read the room builder's slab insert
+  or record a tile-by-tile build.
 
 ## 4. ADR-0227: the pit finder's distance — UNSURE
 
@@ -395,5 +396,5 @@ Readers of `def+0x6C7` (`InsGrep 0x6c7]`, plus `0x6c4]`–`0x6c6]` for wider loa
 | Q | Question | How to close |
 |---|---|---|
 | Q438 | What do states 59 and 109, and room method `0x004E88A0`, do to a researcher or trainee near an intruder? Both charge `AngerNoWork`; 59/109 do so every turn | Read `0x00478F00`'s watch arm and `0x004871A0(5)`, then decide whether to build them |
-| Q439 | In what order does DK2's slab list run? It decides the Prison's door tile (`0x004E32C0`) and the pit finder's distance (`0x004D8510`) | Owner: where a 5×5 Prison's door appears. Or read the list insert in the room builder |
+| Q439 | In what order does DK2's slab list run? It decides the Prison's door tile (`0x004E32C0`) and the pit finder's distance (`0x004D8510`) | Read the room builder's slab insert, or record the door after a tile-by-tile build. Owner (2026-09-26): north wall, column varies between rebuilds |
 | Q337 | Rewrite as answered (finding 1); no new number | — |
