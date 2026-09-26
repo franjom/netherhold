@@ -61,15 +61,14 @@ A and B are scripted and run first, over everything. C and D are per rule, in th
 `-PSAVE`/`-PLOAD` replay compare our simulation with DK2 over a whole session. That catches
 wiring errors between rules that no per-rule check sees.
 
-**First, make replays faithful again.** On 2026-09-26 both level 2 recordings (`q428.sav`,
-`q428_1.sav`, made with `-LEVEL level2 -PSAVE`) replayed with `Gone Out Of Sync (Checksum) GT 6`.
-The seed matched and the checksum was off by 2, and turns 1–6 carry no player command, so the
-starting state differs. The replay then drifted: the Lord of the Land's party 0 never appeared.
-Recordings made on 2026-09-18 had replayed without divergence. Candidates:
-- a registry value the level start reads, such as campaign progress, since the owner won level 2
-  in both sessions;
-- a setting read at start;
-- something in the first six turns that the recording does not capture.
+**Check what the replay's checksum warning means.** On 2026-09-26 both level 2 recordings
+(`q428.sav`, `q428_1.sav`, made with `-LEVEL level2 -PSAVE`) logged
+`Gone Out Of Sync (Checksum) GT 6`. The seed matched, the checksum was off by 2, and turns 1–6
+carry no player command. Even so, the replay followed the session: the owner watched it play to
+the same win, and the log shows the Lord of the Land's party arriving as it did. So the checksum
+may cover something local, like the camera or the interface, that does not steer the game.
+Confirm that before relying on replays for a whole-session comparison. The recordings of
+2026-09-18 raised no warning.
 
 ## 6. First steps, in order
 

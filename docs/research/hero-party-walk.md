@@ -246,32 +246,32 @@ the knock-out/capture branch was observed by the owner on 2026-09-26
 
 ## Open question
 
-- **Q428, partly answered by the owner (2026-09-26).** On level 2 the Lord
-  of the Land died outright: type 29 dies instantly outside a room
-  (`creature-death.md` §2.1) and became a corpse at once. The Horned
-  Reaper then appeared and took his gem, in a cutscene. Of the five
-  Dwarves who survived him:
-  - **four stayed where he fell and moved around that spot;**
-  - **one made it to the keeper's Dungeon Heart.**
+- **Q428, answered (owner and a logged replay, 2026-09-26).** On level 2
+  the Lord of the Land dies outright (type 29 outside a room,
+  `creature-death.md` §2.1). The owner saw four of five surviving Dwarves
+  stay about where he fell, and one reach the heart. A replay of
+  `PacketRecord\q428_1.sav`, logged at 6 Hz, showed why. In that run the
+  Lord, entity 447, led followers 427–430:
+  - **The leader's slot is reused, and the followers follow its new
+    occupant.** The Lord left the entity table between turns 3520 and
+    3530. At turn 3543 the Horned Reaper, owned by the keeper, was created
+    **in slot 447**. The followers' `MyLeadersId` still read 447, and
+    state 222 does not check it, so 428–430 trailed the Reaper. They moved
+    to (10–13, 19–21) while it stood at (11,20)–(12,21), then to (16,21)
+    when it walked to (16,22), beside the spot where the Lord fell. Between
+    the death and the reuse they barely moved.
+  - **The one at the heart was not following.** 427 was in state 199,
+    engaging in battle, before the Lord died. It went on south into the
+    dungeon, to (19,40), until it was knocked out. That is the owner's
+    reading: it had chased the imps.
+  - **The allocator looks last-in first-out.** Slots 440, 441, 443 and
+    452–455 were all freed before 447, and the Reaper still got 447. This
+    rests on one sample.
 
-  The four fit the binary. Nothing clears their party fields, and
-  state 222 keeps trailing `MyLeadersId` without checking it, so they
-  follow what is left where the Lord died. Ours does the same while the
-  corpse lasts: `Follow` trails the dead leader's record. Once the
-  corpse is removed, ours stands still in 222; DK2's stale tag after
-  that is unread.
-
-  **The fifth is UNKNOWN.** Candidates:
-  - it had lost its follower bit earlier, and went for the heart on
-    its own standing job;
-  - it was fighting when the Lord died, and left the fight into its
-    job. The owner's reading: it had chased imps into the dungeon
-    before the Lord died, and with him gone it saw the heart and
-    attacked it. The heart scan in target acquisition would do that;
-  - the stale tag was reused by a thing that moved, such as the Reaper.
-
-  The session is recorded as `PacketRecord\q428_1.sav` (level 2), and a
-  replay with the position logger separates the three.
+  **Ours differs.** Creature ids only climb (`WorldState._nextCreatureId`),
+  and our follower trails the dead leader's corpse record until it is
+  removed, then stands still. Reproducing DK2 needs its entity-slot
+  allocation, which is unread.
 
 ## Built (2026-09-25, ADR-0216)
 
