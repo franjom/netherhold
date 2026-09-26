@@ -219,6 +219,19 @@ clears bit 1 and bit 2 through `0x0048DF40(0)` and `0x0048DF70(0)`. The heir tak
 bit 2 and keeps its own `MyLeadersId`. The fallen leader keeps its party and its bit. The count
 written to the heir covers the followers only.
 
+**Seen live (2026-09-26).** A level 2 replay that went out of sync at turn 6 still played DK2's
+own game, with memory logged at 8 Hz. The first party (four Dwarves, 440–443, leader 443) fell
+in this order:
+- **Turn 3122:** follower 441 goes down and is detached: party 0, `MyLeadersId` 0, flags
+  `0x0D` → `0x09`.
+- **Turn 3125:** leader 443 goes down. The first follower, 440, takes bit 1 (flags `0x0B`), keeps
+  its own `MyLeadersId` (443) and enters 90. Follower 442 is pointed at 440 as number 1. 443 keeps
+  party 1 and its bit.
+- **Turn 3126:** 440 goes down in turn. 442 is promoted with a count of 0, keeping its
+  `MyLeadersId` (440).
+
+Every step is as read.
+
 This re-lead path notably excludes `PartyId == 0`, even though `0xFF`
 is the
 usual no-party sentinel. **CONFIRMED** by the byte test at `0x004B2FDF`.
