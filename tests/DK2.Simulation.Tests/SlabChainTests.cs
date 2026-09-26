@@ -121,8 +121,23 @@ public sealed class SlabChainTests
         Assert.Equal([new(6, 4), new(6, 5), new(5, 5), new(4, 4), new(4, 5)], Chain(db, world, new TilePos(5, 5)));
     }
 
+    /// <summary>The owner (2026-09-26): a Prison dragged so its door is in the east column, saved and
+    /// reloaded, has its door in the west column. DK2's load re-chains every room row-major.</summary>
     [Fact]
-    public void TheChainSurvivesASnapshot()
+    public void LoadingASavedGameReChainsEveryRoomRowMajor_SoADraggedPrisonsDoorMovesWest()
+    {
+        (GameDatabase db, WorldState world, GameSimulation sim) = World();
+        Run(sim, BuildRoomCommand.Rect(Keeper, Prison(db), 4, 2, 8, 6));
+        Assert.Equal(new TilePos(7, 2), Door(db, world, new TilePos(6, 4)));
+
+        GameSimulation loaded = WorldSnapshot.LoadGame(WorldSnapshot.ToBytes(sim), db);
+        Assert.Equal(new TilePos(5, 2), Door(db, loaded.World, new TilePos(6, 4)));
+        Assert.Equal(new TilePos(4, 2), Chain(db, loaded.World, new TilePos(6, 4))[0]);
+    }
+
+    /// <summary>A checkpoint, unlike a loaded game, restores the chain exactly.</summary>
+    [Fact]
+    public void ACheckpointKeepsTheChain()
     {
         (GameDatabase db, WorldState world, GameSimulation sim) = World();
         Run(sim, BuildRoomCommand.Rect(Keeper, Prison(db), 8, 2, 4, 6));

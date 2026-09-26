@@ -1,7 +1,8 @@
 # A room's slab chain: the order its tiles are in
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-26.
-- Answers Q439. Owner observation 2026-09-26 (two Prison screenshots, minimap north up).
+- Answers Q439. Owner observations 2026-09-26: two Prison screenshots (minimap north up), the
+  wave's first tiles at the tile released, and a door that moved on a reload.
 - Related: `room-list.md` and `room-object.md` (`FirstSlab`/`LastSlab`, the 16-byte tile record),
   `jail-break.md` §1 (the Prison door), `combat-pit-spectators.md` (the pit finder).
 
@@ -63,10 +64,9 @@ player. The corners are the packet's words at `+4`, `+6`, `+8` and `+0xA`, passe
 **Single-tile building is the same action with x1 = x2, y1 = y2**, a one-tile wave. A room built
 click by click is therefore built in click order.
 
-**Which corner is which.** The door (§5) puts the chain head at the corner where the owner
-**released** the drag. So the packet carries (press, release), and the wave runs from the
-release corner back to the press corner. The binary reads this far only from the packet on, and
-what the owner sees of the wave is still to be confirmed (Q441).
+**Which corner is which — CONFIRMED (owner, 2026-09-26).** The packet carries (press, release),
+and the wave runs from the release corner back to the press corner. The owner saw a drag's first
+tiles appear at the tile released, and the door (§5) agrees.
 
 ## 3. Adding a tile: join, create or merge — CONFIRMED
 
@@ -157,8 +157,10 @@ A pre-placed room's chain is therefore its tiles in **row-major insert order**, 
 - for room terrain, `0x00452BD0` sets `world+0x9D4 = 1` and `world+0x9D8 =` the tile's saved room
   id, then calls `buildRoom`, a forced join (§3).
 
-Whether this is the save-game load, and so whether a load rebuilds every chain in row-major order
-and moves doors, is open (Q441).
+**It is the save-game load — CONFIRMED (owner, 2026-09-26).** A Prison dragged so its door was
+in the east column was saved and reloaded, and its door moved to the west column. Every room's
+chain comes back row-major. Rooms keep their saved ids, and the forced join makes no merge, so
+each room's chain is its tiles in row-major order.
 
 ## 7. What else reads the chain
 
@@ -207,3 +209,5 @@ ADR-0240 records the chain order. §9 says what was built.
   - the pit finder's `FirstSlab`;
   - the heart walk's random tile.
 - The other §7 readers still use `TileIndices` (Q441).
+- **A loaded game:** `WorldSnapshot.LoadGame` zeroes every order (`SlabChain.AsLoaded`), which is
+  DK2's row-major re-chaining. `FromBytes` stays an exact checkpoint (ADR-0241).

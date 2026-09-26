@@ -5325,3 +5325,20 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **Uncovered:** the heart walk's switch. A heart is a map room, so its chain is its index order and nothing changes on shipped levels.
 - **Deviation kept:** per-room state (a door's bits, a pit's fight stamp) still lives on the room's lowest tile.
 - `HashVersion` and `FormatVersion` are **123**.
+
+## ADR-0241 — Loading a saved game re-chains every room row-major
+**Date:** 2026-09-26 · **Status:** accepted · follows ADR-0240 · Research: `docs/research/room-slab-chain.md` §2, §6
+
+**Context.** The owner checked the two open points of ADR-0240:
+- a drag's first tiles appear at the tile released;
+- a Prison dragged so its door was in the east column, saved and reloaded, had its door in the west column.
+
+The stream loader `0x0044F4C0` re-adds every room tile row by row, each to its saved room (`0x00452BD0`), so a load rebuilds each chain in row-major order.
+
+**Decision.**
+1. **`WorldSnapshot.LoadGame` is DK2's load.** It restores the snapshot and then `SlabChain.AsLoaded` zeroes every tile's `SlabOrder`, which is the row-major order.
+2. **`FromBytes` stays an exact checkpoint**, which the tests and replays depend on. Nothing in `src/` loads a saved game yet; a save-load feature takes `LoadGame`.
+
+**Consequences.**
+- **Tests:** `SlabChainTests.LoadingASavedGameReChainsEveryRoomRowMajor_SoADraggedPrisonsDoorMovesWest`, which fails under its control (a load that keeps the chain), and `ACheckpointKeepsTheChain`.
+- No new state; `HashVersion` stays **123**.

@@ -130,6 +130,14 @@ public static class SlabChain
         foreach (List<int> chain in chains) Stamp(world, chain);
     }
 
+    /// <summary>What a saved game's load does to the chains (<c>0x0044F4C0</c>, <c>0x00452BD0</c>):
+    /// every room tile is re-added row by row to the room it was saved in, with no merge, so each
+    /// chain becomes its tiles in row-major order — order 0 here.</summary>
+    public static void AsLoaded(WorldState world)
+    {
+        for (int i = 0; i < world.TileCount; i++) world.TileAtIndex(i).SlabOrder = 0;
+    }
+
     /// <summary><c>0x004C7380</c>'s wave over a dragged rectangle: from the second corner, one
     /// diagonal at a time (<c>|x − x2| + |y − y2|</c>), and along each diagonal from x2 toward x1.
     /// It ends at the first corner. Selling (<c>0x004C7160</c>) sweeps the same way.</summary>

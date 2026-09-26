@@ -1039,4 +1039,19 @@ public static class WorldSnapshot
         using var ms = new MemoryStream(bytes, writable: false);
         return Read(ms, database, systems, triggers);
     }
+
+    /// <summary>A saved game loaded as DK2 loads one, where <see cref="FromBytes"/> restores an exact
+    /// checkpoint. DK2's load (<c>0x0044F4C0</c>) re-adds every room tile row by row, each to its saved
+    /// room, so every chain comes back row-major (<see cref="SlabChain.AsLoaded"/>). The owner saw a
+    /// dragged Prison's door move to the west end on a reload (room-slab-chain.md §6).</summary>
+    public static GameSimulation LoadGame(
+        byte[] bytes,
+        GameDatabase database,
+        IEnumerable<ISimulationSystem>? systems = null,
+        TriggerTree? triggers = null)
+    {
+        GameSimulation simulation = FromBytes(bytes, database, systems, triggers);
+        SlabChain.AsLoaded(simulation.World);
+        return simulation;
+    }
 }
