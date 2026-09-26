@@ -136,10 +136,7 @@ public static class EatingRules
 
     /// <summary>The nearest chicken in this room by <b>straight-line squared distance</b>
     /// — the original's ranking exactly, and deliberately not a path length.
-    /// <para>Ties go to the lowest object id, which is spawn order. The original
-    /// takes the first it meets at equal distance, in its room's own tile order;
-    /// ours settles by id so the answer is reproducible whatever order the room
-    /// was built in (ADR-0001).</para></summary>
+    /// <para>Ties keep the first object met along the room's slab chain.</para></summary>
     public static ObjectState? NearestChickenIn(
         WorldState world, RoomInstance room, TilePos from)
     {
@@ -147,11 +144,12 @@ public static class EatingRules
         long bestDistance = long.MaxValue;
 
         IReadOnlyList<ObjectState> objects = world.Objects;
+        foreach (int tile in SlabChain.Order(world, room))
         for (int i = 0; i < objects.Count; i++)
         {
             ObjectState thing = objects[i];
             if (!IsEdibleChicken(thing)) continue;
-            if (!Contains(room, thing.TileIndex)) continue;
+            if (thing.TileIndex != tile) continue;
 
             int x = thing.TileIndex % world.Width;
             int y = thing.TileIndex / world.Width;
@@ -159,12 +157,7 @@ public static class EatingRules
             long dy = y - from.Y;
             long distance = (dx * dx) + (dy * dy);
 
-            if (best is not null
-                && (distance > bestDistance
-                    || (distance == bestDistance && thing.Id >= best.Id)))
-            {
-                continue;
-            }
+            if (distance >= bestDistance) continue;
 
             best = thing;
             bestDistance = distance;
@@ -179,8 +172,8 @@ public static class EatingRules
     /// object list, keeping every object of kind <c>2</c> whose definition
     /// carries <see cref="ObjectFlags.TypeFood"/> — two of the 145 records, the
     /// Chicken and the Torture Pendulum — ranked by <b>straight-line squared
-    /// distance</b> with a strict comparison. Ties go to the lowest object id
-    /// (ADR-0001). A carried bird is not a candidate: ours in form, the
+    /// distance</b> with a strict comparison. Ties keep the first object along
+    /// the room's slab chain. A carried bird is not a candidate: ours in form, the
     /// original's in effect, since DK2 takes a carried object out of its tile's
     /// list where ours keeps its tile following the carrier.</para></summary>
     public static ObjectState? NearestFoodIn(
@@ -190,21 +183,17 @@ public static class EatingRules
         long bestDistance = long.MaxValue;
 
         IReadOnlyList<ObjectState> objects = world.Objects;
+        foreach (int tile in SlabChain.Order(world, room))
         for (int i = 0; i < objects.Count; i++)
         {
             ObjectState thing = objects[i];
             if (thing.InHand) continue;
             if (thing.CarriedByCreatureId >= 0) continue;
             if (!IsFood(database, thing)) continue;
-            if (!Contains(room, thing.TileIndex)) continue;
+            if (thing.TileIndex != tile) continue;
 
             long distance = DistanceSquared(world, from, thing.TileIndex);
-            if (best is not null
-                && (distance > bestDistance
-                    || (distance == bestDistance && thing.Id >= best.Id)))
-            {
-                continue;
-            }
+            if (distance >= bestDistance) continue;
 
             best = thing;
             bestDistance = distance;

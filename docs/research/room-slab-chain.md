@@ -22,7 +22,7 @@ The chain does not depend on the camera.
 - Each tile's 16-byte record holds the next tile's coordinates at `+0x04`/`+0x05`. (0, 0) ends
   the chain.
 - `+0xA7` is the count.
-- Every "walk the room's tiles" routine starts at `FirstSlab` and follows the links. §7 lists them.
+- Room tile walks follow these links, sometimes after advancing to a random start. §7 lists them.
 
 ## 2. Building: the action and its wave — CONFIRMED
 
@@ -164,7 +164,8 @@ each room's chain is its tiles in row-major order.
 
 ## 7. What else reads the chain
 
-Each of these starts at `FirstSlab` and follows the links:
+These readers traverse the slab links; most start at `FirstSlab`, while the
+random-start readers enter the same chain at a chosen tile:
 
 | Reader | Address | Doc |
 |---|---|---|
@@ -174,12 +175,21 @@ Each of these starts at `FirstSlab` and follows the links:
 | A random room tile: `random(Size)` steps, then on while refused | `0x004E4D90` | `hero-party-walk.md` |
 | Imp room point | `0x004E8430` | `imp-idle-and-wandering.md` |
 | Wall-furniture phases (`+0x92`/`+0x96`): parity of the first eligible slab | `0x004ECEB0` | `auto-placed-furniture.md` |
-| Hatchery: the first chicken along the chain | | `eating.md` |
-| Gold deposit and capacity along the chain | | `rooms-and-gold.md`, `observation-checklist.md` |
-| Lair acquisition | | `lair-acquisition.md` |
-| Workshop free-tile count | | `workshop-crates.md` |
+| Hatchery: the first chicken per tile, distance-ranked | `0x00463500` | `eating.md` |
+| Carrier's gold target: random chain tile, then onward and wrap to a tile with room | `0x00464400` | `rooms-and-gold.md` |
+| Lair acquisition: local candidates, then random chain tile and onward | `0x004E0140` | `lair-acquisition.md` |
+| Workshop crate free tiles: counted along the chain to place each crate | `0x004F5040` | `workshop-crates.md` |
 | Prison food search (distance-ranked; order breaks ties only) | `0x00473550` | `prison.md` |
-| Fog of a 3×3/5×5 room revealed along the chain | `0x004E8B80` | `fog-reveal-sources.md` |
+| Fog of a 3×3/5×5 room revealed along the chain | `0x004E8B80` | `fog-reveal-sources.md`; order cannot change the final bit set |
+
+The eight migrated readers and the fog walk were re-decompiled for Q441 on
+2026-09-26. They follow each tile's `+4/+5` link. Gold and lair start at a
+random chain tile and wrap; the other readers start at `FirstSlab`. The Workshop's
+*capacity* (`0x004F6140`) is a count of
+objects and tiles, so chain order cannot change it. Gold capacity is likewise a
+sum; only selection of the deposit tile is order-sensitive. Fog sets a discovery
+bit on every tile, so its order cannot change the resulting fog state; event
+ordering is outside the current fog model.
 
 ## 8. Ours
 
@@ -204,10 +214,23 @@ ADR-0240 records the chain order. §9 says what was built.
   re-inserts them one by one through the same rule, and restamps each resulting room.
 - `BuildRoomCommand.Rectangle` and `SellRoomCommand.Rectangle` keep the corners and list the tiles
   in wave order from the second corner.
-- `SlabChain.Order` is now read by:
-  - the Prison door;
-  - the pit finder's `FirstSlab`;
-  - the heart walk's random tile.
-- The other §7 readers still use `TileIndices` (Q441).
+- ADR-0243 switches the order-sensitive §7 readers: pit route point, imp room
+  point, wall-furniture phase, chicken and prison-food ties, gold deposit tile,
+  lair search, and Workshop crate placement. Each has a dragged-room regression
+  that fails when its reader is temporarily returned to index order.
+- Fog and capacity counts require no order change (above).
 - **A loaded game:** `WorldSnapshot.LoadGame` zeroes every order (`SlabChain.AsLoaded`), which is
   DK2's row-major re-chaining. `FromBytes` stays an exact checkpoint (ADR-0241).
+
+## 10. Owner changes and room count — STRONGLY INFERRED
+
+The room damage path `0x00497BF0` calls `0x004E5300`; when the room is taken,
+`0x004E5650` relinks the *room* in the new player's list, retags its owner, and
+walks the existing slab links to update tile ownership. It does not relink the
+slabs. Keeper defeat `0x004DAA10` uses that same `0x004E5650` for rooms passed
+to neutral. Ours keeps `SlabOrder` in both cases, as DK2 does.
+
+`0x004ED320` refuses a new disconnected room when the keeper already has 96
+rooms (`0x60 − player+0x10F9`). This is an observable construction limit and
+should be modelled with a dedicated rejection test, but it is outside Q441's
+reader migration. It does not affect joins to an existing room.

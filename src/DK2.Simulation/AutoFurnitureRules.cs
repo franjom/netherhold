@@ -142,13 +142,13 @@ public static class AutoFurnitureRules
     }
 
     /// <summary>The wall-furniture slots (<c>0x00454230</c>): room tiles with a straight wall on a
-    /// side, of the parity of the first such tile in each orientation. In index order.</summary>
+    /// side, of the parity of the first such tile in each orientation.</summary>
     private static void WallSlots(
         WorldState world, GameDatabase database, RoomInstance room, HashSet<int> roomTiles, List<int> slots)
     {
         int? horizontalPhase = null;
         int? verticalPhase = null;
-        foreach (int tile in room.TileIndices)
+        foreach (int tile in SlabChain.Order(world, room))
         {
             int x = tile % world.Width;
             int y = tile / world.Width;

@@ -16,8 +16,8 @@ namespace DK2.Simulation;
 /// <i>per tile</i> (ADR-0015, docs/research/rooms-and-gold.md).</para>
 /// <para>Deviates: a treasury tile's gold is object type 3 in the original;
 /// ours keeps it in the tile. <see cref="Deposit"/> and
-/// <see cref="TryWithdraw"/> work in tile-index order, <b>ours not DK2's</b>,
-/// where <see cref="DepositInto"/> uses the tile the imp reached (Q35).</para>
+/// <see cref="TryWithdraw"/> work in tile-index order, <b>ours not DK2's</b>;
+/// the carrier's target is chosen by <see cref="DepositTileAlongChain"/>.</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public static class GoldStore
@@ -151,6 +151,22 @@ public static class GoldStore
             space += SpaceIn(world, database, index, room);
 
         return (int)Math.Min(space, int.MaxValue);
+    }
+
+    /// <summary>The carrier's tile search after it picks a room (<c>0x00464400</c>):
+    /// start at a random chain tile and follow the links, wrapping once.</summary>
+    public static int DepositTileAlongChain(WorldState world, GameDatabase database,
+        RoomInstance room, int startTile)
+    {
+        int[] chain = SlabChain.Order(world, room);
+        int start = Array.IndexOf(chain, startTile);
+        if (start < 0) return -1;
+        for (int step = 0; step < chain.Length; step++)
+        {
+            int tile = chain[(start + step) % chain.Length];
+            if (SpaceIn(world, database, tile, room) > 0) return tile;
+        }
+        return -1;
     }
 
     /// <summary>

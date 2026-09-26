@@ -145,14 +145,11 @@ swings, −60 health apiece and 3000 in total.
 
 ### Which tile the load lands in (Q35)
 
-**READ from the binary (2026-09-05), and ours differs.** The original's carrier
-picks the nearest reachable Treasury or Heart below capacity — squared distance to
-the room anchor, reachability tested first — then walks that room's tile chain and
-takes the **first tile below `MaxGoldPerTreasuryTile` along the chain**, not the
-nearest tile. The owner's earlier belief was "nearest tile, spilling into another
-empty one". Ours: the imp walks to the nearest tile with room, puts down what fits
-and looks again if still carrying anything, so spillover is a consequence rather
-than a clause (`GoldStore.DepositInto` — one tile, the carrier's).
+**READ from the binary (2026-09-05; `0x00464400` re-read 2026-09-26).** The carrier
+picks the nearest reachable Treasury or Heart below capacity, measuring to its
+`FirstSlab`. It starts at a random chain tile (`0x004E4D90`), follows the links,
+wraps at the tail and takes the first tile below capacity. Ours routes to that
+tile (ADR-0243); `GoldStore.DepositInto` puts the load down where the imp arrives.
 `GoldStore.Deposit`'s tile-index order survives only for the two cases with no
 carrier in them, paying for a room and refunds, and that order is **ours, not
 DK2's**; the withdrawal order is open (Q35). Totals are unaffected either way, and

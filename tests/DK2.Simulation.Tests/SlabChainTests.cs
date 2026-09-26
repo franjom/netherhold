@@ -16,9 +16,9 @@ public sealed class SlabChainTests
 {
     private const byte Keeper = 4;
 
-    private static (GameDatabase, WorldState, GameSimulation) World()
+    private static (GameDatabase, WorldState, GameSimulation) World(GameDatabase? definition = null)
     {
-        GameDatabase db = Dk2TerrainFixture.Database();
+        GameDatabase db = definition ?? Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Keeper]);
         for (int y = 1; y <= 10; y++)
         for (int x = 1; x <= 14; x++)
@@ -33,6 +33,13 @@ public sealed class SlabChainTests
     }
 
     private static byte Prison(GameDatabase db) => db.Room(RoomTypeId.Prison).RoomId;
+
+    private static RoomInstance Drag(GameDatabase db, WorldState world, GameSimulation sim, RoomTypeId type,
+        int x1, int y1, int x2, int y2)
+    {
+        Run(sim, BuildRoomCommand.Rect(Keeper, db.Room(type).RoomId, x1, y1, x2, y2));
+        return RoomOn(db, world, new TilePos(x1, y1));
+    }
 
     private static void Run(GameSimulation sim, PlayerCommand command) => sim.Tick(new InputFrame([command]));
 
@@ -146,5 +153,126 @@ public sealed class SlabChainTests
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db);
         Assert.Equal(before, Chain(db, restored.World, new TilePos(6, 4)));
         Assert.Equal(sim.World.NextSlabOrder, restored.World.NextSlabOrder);
+    }
+
+    [Fact]
+    public void ADraggedHatcheryChoosesTheChainFirstChickenRatherThanTheIndexFirstChickenOnATie()
+    {
+        (GameDatabase db, WorldState world, GameSimulation sim) = World();
+        RoomInstance room = Drag(db, world, sim, RoomTypeId.Hatchery, 4, 2, 8, 6);
+        ObjectState west = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, 3 * world.Width + 5);
+        ObjectState east = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, 3 * world.Width + 7);
+
+        Assert.True(west.TileIndex < east.TileIndex);
+        Assert.Same(east, EatingRules.NearestChickenIn(world, room, new TilePos(6, 3)));
+    }
+
+    [Fact]
+    public void ADraggedPrisonChoosesTheChainFirstFoodRatherThanTheIndexFirstFoodOnATie()
+    {
+        (GameDatabase db, WorldState world, GameSimulation sim) = World();
+        RoomInstance room = Drag(db, world, sim, RoomTypeId.Prison, 4, 2, 8, 6);
+        ObjectState west = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, 3 * world.Width + 5);
+        ObjectState east = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, 3 * world.Width + 7);
+
+        Assert.True(west.TileIndex < east.TileIndex);
+        Assert.Same(east, EatingRules.NearestFoodIn(world, db, room, new TilePos(6, 3)));
+    }
+
+    [Fact]
+    public void ADraggedWorkshopListsFreeCrateTilesInChainOrderRatherThanIndexOrder()
+    {
+        (GameDatabase db, WorldState world, GameSimulation sim) = World();
+        RoomInstance room = Drag(db, world, sim, RoomTypeId.Workshop, 4, 3, 6, 3);
+        var tiles = new List<int>();
+        CrateRules.CrateTiles(world, db, room, tiles);
+
+        Assert.Equal([3 * world.Width + 6, 3 * world.Width + 5, 3 * world.Width + 4], tiles);
+    }
+
+    [Fact]
+    public void ADraggedLairSearchStartsAlongTheChainRatherThanIndexOrderWhenTheLocalRingIsFull()
+    {
+        (GameDatabase db, WorldState world, GameSimulation sim) = World();
+        RoomInstance room = Drag(db, world, sim, RoomTypeId.Lair, 4, 4, 8, 4);
+        foreach (int x in new[] { 5, 6, 7 })
+            world.SpawnObject(db, Dk2TerrainFixture.GoblinBedObjectId, Keeper, 4 * world.Width + x);
+
+        int[] chain = SlabChain.Order(world, room);
+        for (ulong seed = 1; seed <= 20; seed++)
+        {
+            var expectedRng = new SimRandom(seed);
+            int start = expectedRng.NextInt(chain.Length);
+            int expected = -1;
+            for (int step = 0; step < chain.Length; step++)
+            {
+                int tile = chain[(start + step) % chain.Length];
+                if (tile % world.Width is 4 or 8) { expected = tile; break; }
+            }
+            Assert.True(LairRules.TryFindFreeTile(world, db, room, new TilePos(6, 4), Keeper,
+                new SimRandom(seed), out int found, out LairRules.TileFound how));
+            Assert.Equal(LairRules.TileFound.Walk, how);
+            Assert.Equal(expected, found);
+        }
+    }
+
+    [Fact]
+    public void ADraggedWorkshopsWallPhaseStartsAtTheChainFirstEligibleTileRatherThanTheIndexFirst()
+    {
+        GameDatabase basis = Dk2TerrainFixture.Database();
+        TerrainDef wall = basis.TerrainById(Dk2TerrainFixture.ReinforcedWall) with
+        {
+            Flags = basis.TerrainById(Dk2TerrainFixture.ReinforcedWall).Flags | TerrainFlags.AllowRoomWalls,
+        };
+        GameDatabase db = new(
+            basis.Terrain.Values.Select(t => t.TerrainId == wall.TerrainId ? wall : t),
+            basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
+            objects: basis.Objects.Values);
+        (_, WorldState world, GameSimulation sim) = World(db);
+        RoomInstance room = Drag(db, world, sim, RoomTypeId.Workshop, 4, 3, 7, 5);
+        for (int x = 4; x <= 7; x++) world.Tile(x, 2).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        var slots = new HashSet<int>();
+        AutoFurnitureRules.FurnitureSlots(world, db, room, slots);
+
+        Assert.Contains(3 * world.Width + 6, slots);
+        Assert.DoesNotContain(3 * world.Width + 5, slots);
+    }
+
+    [Fact]
+    public void ADraggedPitRoutePointTakesTheChainFirstRimTileRatherThanTheIndexFirstRimTile()
+    {
+        (GameDatabase db, WorldState world, GameSimulation sim) = World();
+        RoomInstance room = Drag(db, world, sim, RoomTypeId.CombatPit, 4, 3, 6, 5);
+        int? point = StealGoldRules.FirstStandable(world, db,
+            db.CreatureById(Dk2TerrainFixture.KnightCreatureId), room);
+
+        Assert.Equal(5 * world.Width + 6, point);
+    }
+
+    [Fact]
+    public void ADraggedRoomImpPointDrawsFromChainOrderRatherThanIndexOrder()
+    {
+        (GameDatabase db, WorldState world, GameSimulation sim) = World();
+        RoomInstance room = Drag(db, world, sim, RoomTypeId.Treasury, 4, 3, 6, 3);
+        int[] chain = SlabChain.Order(world, room);
+        CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
+
+        for (ulong seed = 1; seed <= 20; seed++)
+        {
+            int pick = new SimRandom(seed).NextInt(chain.Length);
+            Assert.Equal(chain[pick], ImpTaskSystem.RoomPoint(world, db, imp, room, new SimRandom(seed)));
+        }
+    }
+
+    [Fact]
+    public void ADraggedTreasuryDepositWrapsAlongTheChainRatherThanIndexOrder()
+    {
+        (GameDatabase db, WorldState world, GameSimulation sim) = World();
+        RoomInstance room = Drag(db, world, sim, RoomTypeId.Treasury, 4, 3, 6, 3);
+        int middle = 3 * world.Width + 5;
+        world.TileAtIndex(middle).GoldHeld = GoldStore.Capacity(world, db, middle);
+
+        Assert.Equal(3 * world.Width + 4,
+            GoldStore.DepositTileAlongChain(world, db, room, middle));
     }
 }

@@ -8,8 +8,7 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>A room's slab chain: the order DK2 links a room's tiles in, <c>FirstSlab</c> to
-/// <c>LastSlab</c> (room-slab-chain.md). Every "walk the room" routine follows it, so it decides
-/// the Prison's door, the pit finder's distance and a random room tile.</summary>
+/// <c>LastSlab</c> (room-slab-chain.md). Order-sensitive room readers use it.</summary>
 /// <remarks>Rooms here are still found from the map (<see cref="RoomIndex"/>); only the order is
 /// state, as <see cref="TileState.SlabOrder"/>. Tiles with equal orders, the map's own at 0, come
 /// in tile-index order, which is the row-major order DK2 loads a level's rooms in (<c>0x0056D2D0</c>).</remarks>

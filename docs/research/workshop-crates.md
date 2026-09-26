@@ -271,7 +271,7 @@ if another creature holds it, walks the imp to the crate through the imp wrapper
 - A crate is listed while its keeper owns it and it lies on one of that keeper's Workshop
   tiles. Newest means the highest id.
 - Rooms are taken in `RoomIndex` order. Distances are to a room's first tile.
-- Tiles are walked in index order, not chain order.
+- Tiles are walked in chain order (ADR-0243).
 - The task hold is read from the other imps' states.
 - 68's celebration takes no time and its flag is not read, because both arms end idle.
 - The eviction takes the working creature with the lowest id.

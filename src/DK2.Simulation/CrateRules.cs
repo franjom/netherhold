@@ -228,7 +228,7 @@ public static class CrateRules
     /// <summary><c>0x004F5040</c>: the room's crates, newest first, three to a tile along the
     /// room's tiles that are neither a floor-furniture slot (<c>0x00454110</c>) nor a
     /// wall-furniture slot (<c>0x00454230</c>). Crates past the last such tile stay where they
-    /// are. Ours walks the tiles in index order; DK2 walks the room's chain.</summary>
+    /// are. Tiles are visited in the room's chain order.</summary>
     public static void Arrange(WorldState world, GameDatabase database, RoomInstance workshop)
     {
         var crates = new List<ObjectState>();
@@ -238,7 +238,7 @@ public static class CrateRules
         var slots = new HashSet<int>();
         AutoFurnitureRules.FurnitureSlots(world, database, workshop, slots);
         int next = 0;
-        foreach (int tile in workshop.TileIndices)
+        foreach (int tile in SlabChain.Order(world, workshop))
         {
             if (slots.Contains(tile)) continue;
             for (int k = 0; k < CratesPerTile && next < crates.Count; k++) crates[next++].TileIndex = tile;
@@ -246,14 +246,14 @@ public static class CrateRules
         }
     }
 
-    /// <summary>The tiles a crate may be set down on in <paramref name="workshop"/>, in index
+    /// <summary>The tiles a crate may be set down on in <paramref name="workshop"/>, in chain
     /// order: the tiles <see cref="Arrange"/> uses.</summary>
     public static void CrateTiles(WorldState world, GameDatabase database, RoomInstance workshop, List<int> into)
     {
         into.Clear();
         var slots = new HashSet<int>();
         AutoFurnitureRules.FurnitureSlots(world, database, workshop, slots);
-        foreach (int tile in workshop.TileIndices)
+        foreach (int tile in SlabChain.Order(world, workshop))
             if (!slots.Contains(tile)) into.Add(tile);
     }
 }

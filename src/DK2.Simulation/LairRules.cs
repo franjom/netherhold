@@ -223,13 +223,8 @@ public static class LairRules
     /// neighbours in the fixed order, then a walk through the room from a random start,
     /// each candidate put through <see cref="IsFreeLairTile"/>. False and
     /// <paramref name="tileIndex"/> −1 when the room has no free tile.
-    /// <para>The walk is the original's in shape and ours in order: it draws
-    /// <c>rand(tileCount)</c> and follows the room's tile chain, which is join order,
-    /// where <see cref="RoomInstance.TileIndices"/> is ascending tile order — so the
-    /// same draw lands elsewhere. The random start is the behaviour (two creatures that
-    /// fail the local search spread out) and is kept; the chain order is not observable
-    /// without the room's history. The neighbour ring is not confined to the room, so a
-    /// lair joined at a corner qualifies, as in the original.</para>
+    /// <para>The random start and onward walk use the room's slab chain. The neighbour
+    /// ring is not confined to the room, so a lair joined at a corner qualifies.</para>
     /// </summary>
     public static bool TryFindFreeTile(
         WorldState world, GameDatabase database, RoomInstance room, TilePos from,
@@ -257,11 +252,12 @@ public static class LairRules
             return true;
         }
 
-        int count = room.TileIndices.Count;
+        int[] tiles = SlabChain.Order(world, room);
+        int count = tiles.Length;
         int start = rng.NextInt(count);
         for (int step = 0; step < count; step++)
         {
-            int index = room.TileIndices[(start + step) % count];
+            int index = tiles[(start + step) % count];
             if (!IsFreeLairTile(world, database, index, ownerPlayerId)) continue;
 
             tileIndex = index;
