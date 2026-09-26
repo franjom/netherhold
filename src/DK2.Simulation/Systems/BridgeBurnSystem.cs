@@ -41,10 +41,12 @@ public sealed class BridgeBurnSystem : ISimulationSystem
             byte becomes = BridgeRules.RevertsTo(context.Database, tile);
             TerrainDef next = context.Database.TerrainById(becomes);
 
+            byte ownerBefore = tile.OwnerPlayerId;
             tile.TerrainId = becomes;
             tile.Health = next.StartingHealth;
             tile.Flags = BridgeRules.SpansWater;
             if (!next.IsTaggable) tile.TaggedBy = 0;
+            SlabChain.Changed(world, context.Database, i, was, ownerBefore);
 
             int lostGold = tile.GoldHeld;
             tile.GoldHeld = 0;

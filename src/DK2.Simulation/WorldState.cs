@@ -151,6 +151,12 @@ public struct TileState
     /// <see cref="JailBreakRules.Broken"/>.</summary>
     public byte PrisonDoor;
 
+    /// <summary>A room tile's place in its room's slab chain (<c>FirstSlab</c> to <c>LastSlab</c>,
+    /// <c>room+0x2D</c>/<c>+0x2F</c>): the chain is the room's tiles by this, then by tile index.
+    /// Zero for the map's own rooms, which DK2 loads in row-major order. Kept by
+    /// <see cref="SlabChain"/> (room-slab-chain.md).</summary>
+    public int SlabOrder;
+
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = 15;
 
@@ -199,6 +205,7 @@ public struct TileState
         hash.Add(HatchTicks);
         hash.Add(PitFightSeenTick);
         hash.Add(PrisonDoor);
+        hash.Add(SlabOrder);
     }
 }
 
@@ -1088,6 +1095,10 @@ public sealed class WorldState
 
     public int NextShotId { get => _nextShotId; internal set => _nextShotId = value; }
 
+    /// <summary>The next <see cref="TileState.SlabOrder"/> to hand out. It only climbs, so a
+    /// stamped tile always comes after every tile stamped before it.</summary>
+    public int NextSlabOrder { get; internal set; } = 1;
+
     internal List<ShotState> RawShots => _shots;
 
     /// <summary>A new shot at a position, with the next id; the caller fills the rest.</summary>
@@ -1276,6 +1287,7 @@ public sealed class WorldState
         hash.Add(FogOfWarEnabled ? (byte)1 : (byte)0);
         hash.Add(_tiles.Length);
         foreach (TileState t in _tiles) t.HashInto(ref hash);
+        hash.Add(NextSlabOrder);
         hash.Add(_players.Length);
         foreach (PlayerState p in _players) p.HashInto(ref hash);
         hash.Add(_pendingWork.Count);

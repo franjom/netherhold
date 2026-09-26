@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 122;
+    private const int FormatVersion = 123;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -128,11 +128,13 @@ public static class WorldSnapshot
             w.Write(t.HatchTicks);
             w.Write(t.PitFightSeenTick);
             w.Write(t.PrisonDoor);
+            w.Write(t.SlabOrder);
             w.Write(t.TaggedBy);
             w.Write(t.DiscoveredBy);
             w.Write(t.FreshlyDug);
         }
 
+        w.Write(world.NextSlabOrder);
         w.Write(world.PlayerCount);
         for (int i = 0; i < world.PlayerCount; i++)
         {
@@ -583,12 +585,14 @@ public static class WorldSnapshot
                 HatchTicks = r.ReadInt32(),
                 PitFightSeenTick = r.ReadInt64(),
                 PrisonDoor = r.ReadByte(),
+                SlabOrder = r.ReadInt32(),
                 TaggedBy = r.ReadUInt16(),
                 DiscoveredBy = r.ReadUInt16(),
                 FreshlyDug = r.ReadBoolean(),
             };
         }
 
+        int nextSlabOrder = r.ReadInt32();
         int playerCount = r.ReadInt32();
         var players = new PlayerState[playerCount];
         for (int i = 0; i < playerCount; i++)
@@ -640,6 +644,7 @@ public static class WorldSnapshot
         }
 
         WorldState world = WorldState.FromParts(width, height, tiles, players, fogOfWarEnabled);
+        world.NextSlabOrder = nextSlabOrder;
         world.CurrentTick = tick;
 
         int workCount = r.ReadInt32();

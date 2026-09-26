@@ -88,6 +88,50 @@ public sealed class CombatPitSpectatorTests
         Assert.Equal(CreatureActivity.Idle, watcher.Activity);
     }
 
+    /// <summary><c>0x004D8510</c> measures to each pit's <c>FirstSlab</c>, the head of its slab chain.
+    /// Pit A, dragged and released at (3, 3), starts there; pit B, placed as the map places a room, at
+    /// (11, 1). From (7, 4) A's head is nearer (17 to 25 tiles²), though its lowest tile (1, 1) is
+    /// farther than B's.</summary>
+    [Fact]
+    public void ThePitFinderMeasuresToEachPitsFirstSlab_NotItsLowestTile()
+    {
+        CreatureDef watcherDef = Dk2TerrainFixture.Goblin() with { CreatureId = Watcher, Name = "Watching Goblin", HappyJobs = [new(JobType.CombatPitSpectate, 0, 0, 100)] };
+        GameDatabase db = Dk2TerrainFixture.Database(watcherDef);
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        for (int y = 1; y <= 10; y++)
+        for (int x = 1; x <= 14; x++)
+        {
+            ref TileState tile = ref world.Tile(x, y);
+            tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+            tile.OwnerPlayerId = Keeper;
+        }
+
+        RoomDef pit = db.Room(RoomTypeId.CombatPit);
+        foreach (TilePos t in SlabChain.Wave(1, 1, 3, 3))
+        {
+            ref TileState tile = ref world.Tile(t);
+            byte terrain = tile.TerrainId, owner = tile.OwnerPlayerId;
+            RoomRules.Place(db, ref tile, pit, Keeper);
+            SlabChain.Changed(world, db, (t.Y * world.Width) + t.X, terrain, owner);
+        }
+
+        for (int y = 1; y <= 3; y++)
+        for (int x = 11; x <= 13; x++)
+            RoomRules.Place(db, ref world.Tile(x, y), pit, Keeper);
+
+        foreach (TilePos floor in new[] { new TilePos(2, 2), new TilePos(12, 2) })
+        foreach (byte owner in new[] { Keeper, Rival })
+            Assert.True(CreatureStateMachine.TrySetState(world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, owner, floor), Engaging));
+
+        (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
+        for (int i = 0; i < 3; i++) sim.Tick();
+        CreatureState watcher = world.SpawnCreature(db, Watcher, Keeper, new TilePos(7, 4));
+        for (int i = 0; i < 300 && watcher.Dk2StateId != CombatPitSpectatorRules.ChoosingState; i++) sim.Tick();
+
+        Assert.Equal(CombatPitSpectatorRules.ChoosingState, watcher.Dk2StateId);
+        Assert.True(watcher.Tile.X <= 3, $"the watcher went to ({watcher.Tile.X},{watcher.Tile.Y}), not pit A");
+    }
+
     /// <summary><c>0x004D8510</c> and <c>0x00471A70</c>: a walk into the pit resuming 142, to a rim
     /// tile (<c>0x004E4C10</c> refuses the floor).</summary>
     [Theory]

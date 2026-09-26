@@ -48,14 +48,18 @@ public sealed class TileWorkSystem : ISimulationSystem
                 : null;
 
             ref TileState tile = ref world.TileAtIndex(order.TileIndex);
-            byte before = tile.TerrainId;
+            byte before = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
 
             TileWorkResult result = TileWorkRules.Apply(
                 context.Database, ref tile, order.Kind, order.PlayerId,
                 EfficiencyOf(context, order.WorkerCreatureId));
 
+            // A room taken whole keeps its chain; anything else that made or unmade a room tile, a
+            // rival breaking one down, goes through the chain's own insert and replay.
             if (convertingRoom is not null && result.Outcome == TileWorkOutcome.Transformed)
                 SpreadTakeover(context, order, convertingRoom);
+            else
+                SlabChain.Changed(world, context.Database, order.TileIndex, before, ownerBefore);
 
             // A tile that has just changed terrain is freshly dug exactly when
             // the work that changed it was excavation (Q154). A claim, a

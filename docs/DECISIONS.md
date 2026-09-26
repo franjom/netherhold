@@ -5292,3 +5292,36 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   Each of the last two fails under its control.
 - **Still uncovered:** a Prison release that frees nobody.
 - No new state; `HashVersion` stays **122**.
+
+## ADR-0240 — A room's tiles are in build order: the slab chain
+**Date:** 2026-09-26 · **Status:** accepted · answers Q439, corrects ADR-0237 §3 · Research: `docs/research/room-slab-chain.md`
+
+**Context.** The owner built one 5×5 Prison twice, on the same spot with north up. Dragged top-left to bottom-right, its door was right of centre; dragged top-right to bottom-left, left of centre. The door routine `0x004E32C0` takes the first qualifying tile in the room's slab chain, so the chain follows the drag, not the camera ADR-0237 assumed.
+
+**Decision.**
+1. **DK2's chain is build order.**
+   - A drag (`0x004C6EF0`, wave `0x004C7380`) is laid one diagonal a turn from the released corner.
+   - Each slab joins its first N/E/S/W neighbour's room at the tail (`0x004EC650`), and a later neighbour's room is merged in behind it (`0x004ECB70`).
+   - A sale re-inserts the room's other slabs in their old order (`0x004ED7B0`).
+   - A level's rooms are loaded row-major (`0x0056D2D0`).
+2. **Ours records the order, not the chain.** `TileState.SlabOrder` and `WorldState.NextSlabOrder` hold it, and `SlabChain` keeps it.
+   - `SlabChain.Changed` is called from the build and sell systems, from tile work (except a whole-room takeover), and from a burnt bridge.
+   - A map room's tiles stay at 0, which gives the row-major order.
+3. **Drags are laid in wave order.** `BuildRoomCommand.Rect` and `SellRoomCommand.Rect` list their tiles from the second corner, which the interface passes as the release.
+4. **Three readers take the chain:**
+   - the Prison door;
+   - the Combat Pit finder's `FirstSlab`;
+   - the heart walk's random tile.
+
+   The other chain readers are listed in Q441 and still take tile-index order.
+
+**Consequences.**
+- **Tests:**
+  - `SlabChainTests`: the wave; the four drags; click order; the join and merge; a reordering sale; the snapshot;
+  - `CombatPitSpectatorTests.ThePitFinderMeasuresToEachPitsFirstSlab_NotItsLowestTile`;
+  - the jail-break fixture, a map-placed room, whose door is now (5, 2).
+
+  Ten negative controls each fail their test: join order, head insert, wave corner, no replay, no merge, each system hook, the door's order, the finder, and the snapshot.
+- **Uncovered:** the heart walk's switch. A heart is a map room, so its chain is its index order and nothing changes on shipped levels.
+- **Deviation kept:** per-room state (a door's bits, a pit's fight stamp) still lives on the room's lowest tile.
+- `HashVersion` and `FormatVersion` are **123**.

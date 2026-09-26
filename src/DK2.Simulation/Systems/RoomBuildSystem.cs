@@ -76,7 +76,9 @@ public sealed class RoomBuildSystem : ISimulationSystem
                 continue;
             }
 
+            byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
             RoomRules.Place(context.Database, ref tile, room, command.PlayerId);
+            SlabChain.Changed(world, context.Database, (pos.Y * world.Width) + pos.X, terrainBefore, ownerBefore);
             built++;
             spent += cost;
         }

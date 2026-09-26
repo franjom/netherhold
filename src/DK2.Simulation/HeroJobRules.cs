@@ -221,14 +221,14 @@ public static class HeroJobRules
     /// <c>DungeonHeartPosition</c> tile, none failing, then a point in it from
     /// <c>0x004E4D90(room, &amp;point, 0, 0)</c>. That draws a random tile along the room's ring and
     /// steps on while its cell test <c>0x00454110</c> rejects; the test accepts every tile of a
-    /// heart (type 5), so the point is the random tile. Ours takes the ring in tile-index order and
-    /// accepts any room's tile.</summary>
+    /// heart (type 5), so the point is the random tile. Ours walks the room's slab chain
+    /// (<see cref="SlabChain"/>) and accepts any room's tile.</summary>
     private static bool HeartWalk(SimulationContext context, CreatureState creature, byte player, int options)
     {
         WorldState world = context.World;
         int position = Combat.HeartSites.PositionOf(world, context.Database, player);
         if (position < 0 || RoomIndex.RoomAt(world, context.Database, position) is not { } room) return false;
-        int tile = room.TileIndices[context.Rng.NextInt(room.TileCount)];
+        int tile = SlabChain.Order(world, room)[context.Rng.NextInt(room.TileCount)];
         int w = world.Width;
         return Walk(context, creature, CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), AtTheHeartState, options);
     }

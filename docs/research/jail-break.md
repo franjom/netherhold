@@ -23,12 +23,13 @@ The same routine places object `0x6D` (109) and object `0x74` (116) on the door,
 following `DoorOpen` and `Activation`. It runs from the room's rebuild `0x004EDFC0`. The reset
 `0x004E2910` zeroes the door, the auto-close count and `DoorOpen`.
 
-**The slab list's order depends on the camera when the room is placed** (Q439; the owner,
-2026-09-26, `verification-2026-09-26.md` §3). The door is always in the north wall, right of
-centre when the room is built under the default camera and left of centre with the camera turned
-180°. Ours walks each floor row from the right, top row first, which is the default camera's
-result for a 5×5. The NW and NE tests then never decide, and a negative control that drops them
-survives for that reason.
+**The chain is build order** (Q439, answered 2026-09-26, `room-slab-chain.md`). A dragged room is
+laid as a diagonal wave from the corner released, so the door is at that corner's end of the top
+interior row. The owner's two builds of one 5×5 showed it: dragged top-left to bottom-right, the door
+is in the east column; top-right to bottom-left, the west. A room the map places is chained
+row-major, which puts its door at the west end. The earlier "camera" reading was a drag that looks
+the same on screen but runs the other way on the map. Ours walks `SlabChain.Order` (ADR-0240). The
+NW and NE tests never decide for a rectangle, so a negative control that drops them survives.
 
 ## 2. The room's door state — CONFIRMED
 

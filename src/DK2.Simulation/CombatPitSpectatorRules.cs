@@ -92,7 +92,8 @@ public static class CombatPitSpectatorRules
 
     /// <summary><c>0x004D8510</c>, over the keeper's own rooms: each Combat Pit with a fight on,
     /// that the creature can reach (<c>0x00471740</c>) and that has a place for it
-    /// (<c>0x004E53B0</c>). The nearest by the distance to its first tile, preferring one whose
+    /// (<c>0x004E53B0</c>). The nearest by the distance to its <c>FirstSlab</c> (<c>0x004D8510</c>,
+    /// <see cref="SlabChain.FirstSlab"/>), preferring one whose
     /// occupants include nobody of the other side (<c>0x0045C640</c>).</summary>
     private static RoomInstance? Finder(SimulationContext context, CreatureState creature)
     {
@@ -109,7 +110,7 @@ public static class CombatPitSpectatorRules
             if (!Reachable(context, creature, definition, room, scratch ??= [])) continue;
             if (!RoomCapacityRules.HasRoom(world, database, room, creature.Id)) continue;
 
-            int first = room.TileIndices[0];
+            int first = SlabChain.FirstSlab(world, room);
             long dx = Math.Abs((long)CreatureState.CentreOf(first % world.Width) - creature.PosX);
             long dy = Math.Abs((long)CreatureState.CentreOf(first / world.Width) - creature.PosY);
             uint distance = unchecked((uint)((dx * dx) >> 12) + (uint)((dy * dy) >> 12));

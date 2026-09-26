@@ -93,7 +93,7 @@
   there again. Built with the camera turned 180°, it is left of centre. So placement orders the
   slab list by camera direction.
 - **Test:** `JailBreakTests.TheDoorIsNorthOfTheFirstFloorTile…` pins (5, 2), our order.
-- **Still open (Q439):** the exact camera-to-order rule, from the room builder's slab insert.
+- **Answered (Q439):** build order, not the camera (`room-slab-chain.md`, ADR-0240).
 
 ## 4. ADR-0227: the pit finder's distance — UNSURE
 

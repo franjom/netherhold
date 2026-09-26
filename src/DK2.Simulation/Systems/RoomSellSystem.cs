@@ -78,7 +78,9 @@ public sealed class RoomSellSystem : ISimulationSystem
 
             // Unmake first, then bank. The other order would let a refund land on
             // the tile being sold and spill straight back out again.
+            byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
             int displacedHere = RoomRules.Unmake(context.Database, ref tile);
+            SlabChain.Changed(world, context.Database, (pos.Y * world.Width) + pos.X, terrainBefore, ownerBefore);
             displacedGold += displacedHere;
             sold++;
 

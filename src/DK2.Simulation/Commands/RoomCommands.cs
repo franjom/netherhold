@@ -24,15 +24,12 @@ public sealed record BuildRoomCommand(byte PlayerId, byte RoomId, IReadOnlyList<
     public static BuildRoomCommand At(byte playerId, byte roomId, params TilePos[] tiles) =>
         new(playerId, roomId, tiles);
 
-    /// <summary>Every tile in a rectangle, in row-major order.</summary>
-    public static BuildRoomCommand Rect(byte playerId, byte roomId, int x0, int y0, int x1, int y1)
-    {
-        var tiles = new List<TilePos>();
-        for (int y = Math.Min(y0, y1); y <= Math.Max(y0, y1); y++)
-            for (int x = Math.Min(x0, x1); x <= Math.Max(x0, x1); x++)
-                tiles.Add(new TilePos(x, y));
-        return new BuildRoomCommand(playerId, roomId, tiles);
-    }
+    /// <summary>Every tile in a rectangle dragged from (<paramref name="x0"/>, <paramref name="y0"/>)
+    /// to (<paramref name="x1"/>, <paramref name="y1"/>), in the order DK2's build wave lays them
+    /// (<see cref="SlabChain.Wave"/>): from the corner released, which is where the room's slab
+    /// chain starts (room-slab-chain.md §2).</summary>
+    public static BuildRoomCommand Rect(byte playerId, byte roomId, int x0, int y0, int x1, int y1) =>
+        new(playerId, roomId, SlabChain.Wave(x0, y0, x1, y1));
 
     public override void HashInto(ref Hash64 hash)
     {
@@ -62,15 +59,10 @@ public sealed record SellRoomCommand(byte PlayerId, IReadOnlyList<TilePos> Tiles
     public static SellRoomCommand At(byte playerId, params TilePos[] tiles) =>
         new(playerId, tiles);
 
-    /// <summary>Every tile in a rectangle, in row-major order.</summary>
-    public static SellRoomCommand Rect(byte playerId, int x0, int y0, int x1, int y1)
-    {
-        var tiles = new List<TilePos>();
-        for (int y = Math.Min(y0, y1); y <= Math.Max(y0, y1); y++)
-            for (int x = Math.Min(x0, x1); x <= Math.Max(x0, x1); x++)
-                tiles.Add(new TilePos(x, y));
-        return new SellRoomCommand(playerId, tiles);
-    }
+    /// <summary>Every tile in a dragged rectangle, in the order DK2's sell wave takes them
+    /// (<c>0x004C7160</c>, the same sweep as building's).</summary>
+    public static SellRoomCommand Rect(byte playerId, int x0, int y0, int x1, int y1) =>
+        new(playerId, SlabChain.Wave(x0, y0, x1, y1));
 
     public override void HashInto(ref Hash64 hash)
     {

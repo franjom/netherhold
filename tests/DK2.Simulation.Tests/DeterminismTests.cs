@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 122: the level time limit and the next-room info (ADR-0235).
+        // HashVersion 123: each room tile's place in its slab chain, and the next one (ADR-0240).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xED95A480A9DB92C5UL, sim.StateHash());
+        Assert.Equal(0x14316E84B1FDB0F7UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

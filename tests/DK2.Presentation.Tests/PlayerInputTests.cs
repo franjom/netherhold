@@ -44,8 +44,9 @@ public class PlayerInputTests
                 PointerButtonTransition.Released, roomId: 12).All));
 
         Assert.Equal((byte)7, command.RoomId);
+        // DK2's build wave: from the corner released, a diagonal at a time (room-slab-chain.md §2).
         Assert.Equal(
-            [new TilePos(1, 2), new TilePos(2, 2), new TilePos(1, 3), new TilePos(2, 3)],
+            [new TilePos(2, 3), new TilePos(2, 2), new TilePos(1, 3), new TilePos(1, 2)],
             command.Tiles);
     }
 
@@ -58,7 +59,7 @@ public class PlayerInputTests
             Translate(PlayerToolMode.SellRoom, new TilePos(6, 6),
                 PointerButtonTransition.Released).All));
 
-        Assert.Equal([new TilePos(5, 6), new TilePos(6, 6)], command.Tiles);
+        Assert.Equal([new TilePos(6, 6), new TilePos(5, 6)], command.Tiles);
     }
 
     [Fact]

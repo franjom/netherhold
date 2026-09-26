@@ -31,14 +31,15 @@ public static class JailBreakRules
     public const byte Activated = 1, Open = 2, Broken = 4;
 
     /// <summary><c>0x004E32C0</c>: the door tile, or -1 when the room has none: north of the first
-    /// floor tile, in the room's slab list, whose N, NW and NE are not floor. DK2's list order depends
-    /// on the camera when the room was placed (Q439). The owner saw the default camera put the door
-    /// right of centre every time, so ours walks each row from the right, top row first.</summary>
+    /// floor tile, in the room's slab chain, whose N, NW and NE are not floor. The chain is build order
+    /// (<see cref="SlabChain"/>), so a dragged Prison's door is at the released corner's end of the top
+    /// interior row (room-slab-chain.md §5).</summary>
     public static int DoorTile(WorldState world, RoomInstance room)
     {
         int w = world.Width;
-        foreach (int tile in room.InteriorTileIndices.OrderBy(t => t / w).ThenByDescending(t => t % w))
+        foreach (int tile in SlabChain.Order(world, room))
         {
+            if (!room.IsInterior(tile)) continue;
             int x = tile % w, y = tile / w;
             if (y == 0) continue;
             int north = tile - w;
