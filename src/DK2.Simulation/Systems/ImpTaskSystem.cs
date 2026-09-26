@@ -204,7 +204,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         // JobPriority (Q31, ADR-0018). The timer gate is what stops an imp with
         // nowhere to unload from searching the whole dungeon every tick.
         if (creature.GoldHeld > 0 && creature.TargetTileIndex < 0 && creature.TimerTicks <= 0
-            && TryRouteToSomewhereItFits(context, creature, grid))
+            && TryRouteToSomewhereItFits(context, creature))
         {
             BeginDelivering(creature);
             FromTaskSelection(creature);
@@ -289,7 +289,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         // with nowhere to run to keeps mining instead, which is also what the
         // original does. See WouldOverfillItsHands.
         if (WouldOverfillItsHands(context, creature, definition)
-            && TryRouteToSomewhereItFits(context, creature, grid))
+            && TryRouteToSomewhereItFits(context, creature))
         {
             // 26 walks to the store in 6 resuming in 28.
             BeginDelivering(creature);
@@ -449,7 +449,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         // Straight into the carrying half, which is the same mechanic whatever
         // put the gold in its hands.
-        if (TryRouteToSomewhereItFits(context, creature, grid))
+        if (TryRouteToSomewhereItFits(context, creature))
         {
             BeginDelivering(creature);
             ToTheStore(creature);
@@ -508,11 +508,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// One tick of carrying: put the load down if this is somewhere it can go,
     /// otherwise keep walking, otherwise look for somewhere else.
     /// <para>The put-down test runs every tick rather than only on arrival, so
-    /// an imp that walks over a treasury tile with room uses that one; ours,
-    /// because what the original does when a nearer store appears mid-journey is
-    /// UNKNOWN. Re-routing on arrival is also what makes a load spill from one
-    /// treasury tile into the next: Q35's spillover, arrived at rather than
-    /// coded.</para>
+    /// an imp that walks over a treasury tile with room uses that one. What the
+    /// original does when a nearer store appears mid-journey is UNKNOWN.</para>
     /// <para>A worker that can then find nowhere else goes back to looking for
     /// work still holding its load, as the original's imps do (Q43).</para>
     /// </summary>
@@ -539,7 +536,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         // Still on the road.
         if (creature.HasRoute) return;
 
-        if (TryRouteToSomewhereItFits(context, creature, grid))
+        if (TryRouteToSomewhereItFits(context, creature))
         {
             // Arrived with no room here: through 28 and 29 to 10, which walks on.
             StateShadow.Arrive(context, SystemName, creature);
@@ -586,41 +583,43 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Routes the worker to the nearest tile of its keeper's that has room for
-    /// gold — a treasury tile or a dungeon-heart tile, since those are the only
-    /// two the data gives a capacity.
-    ///
-    /// Same search as job selection, for the same reason: "nearest" has to mean
-    /// nearest by walking, and unreachable stores must not be considered at all.
+    /// The carrier picks the nearest reachable store room by its first slab,
+    /// then a random start and the first free tile along that room's chain.
     /// </summary>
-    private bool TryRouteToSomewhereItFits(
-        SimulationContext context, CreatureState creature, WorldPathGrid grid)
-    {
-        byte player = creature.OwnerPlayerId;
-
-        if (!_pathfinder.TryFindNearest(grid, creature.Tile, at => HasRoomForGold(context, at, player), _route))
-            return false;
-
-        TilePos drop = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
-        if (!context.Navigation.TryRoute(creature, drop, Navigation.MoveOptions.Plain)) return false;
-        context.Emit(SystemName, "delivering",
-            $"imp={creature.Id} player={player} gold={creature.GoldHeld} " +
-            $"to=({drop.X},{drop.Y}) steps={_route.Count}");
-        return true;
-    }
-
-    private static bool HasRoomForGold(SimulationContext context, TilePos at, byte playerId)
+    private bool TryRouteToSomewhereItFits(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
-        if (!world.Contains(at)) return false;
+        byte player = creature.OwnerPlayerId;
+        int w = world.Width;
+        var rooms = new List<(long Distance, RoomInstance Room)>();
+        foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
+        {
+            if (room.OwnerPlayerId != player || room.Definition.TypeId is not
+                (RoomTypeId.Treasury or RoomTypeId.DungeonHeart)) continue;
+            if (!room.TileIndices.Any(tile => GoldStore.SpaceIn(world, context.Database, tile) > 0)) continue;
+            int first = SlabChain.FirstSlab(world, room);
+            long dx = CreatureState.CentreOf(first % w) - (long)creature.PosX;
+            long dy = CreatureState.CentreOf(first / w) - (long)creature.PosY;
+            rooms.Add((((dx * dx) >> 12) + ((dy * dy) >> 12), room));
+        }
+        rooms.Sort((a, b) => a.Distance.CompareTo(b.Distance));
 
-        int index = (at.Y * world.Width) + at.X;
-        ref TileState tile = ref world.TileAtIndex(index);
-
-        // Room-aware: the nine tiles of a dungeon heart's raised platform hold
-        // nothing (Q52), so an imp must not set off for one.
-        return tile.OwnerPlayerId == playerId
-               && GoldStore.SpaceIn(world, context.Database, index) > 0;
+        foreach ((_, RoomInstance room) in rooms)
+        {
+            int first = SlabChain.FirstSlab(world, room);
+            if (!context.Navigation.TryRoute(creature, new TilePos(first % w, first / w), Navigation.MoveOptions.Plain)) continue;
+            int[] chain = SlabChain.Order(world, room);
+            int start = chain[context.Rng.NextInt(chain.Length)];
+            int target = GoldStore.DepositTileAlongChain(world, context.Database, room, start);
+            if (target < 0) continue;
+            TilePos drop = new(target % w, target / w);
+            if (!context.Navigation.TryRoute(creature, drop, Navigation.MoveOptions.Plain)) continue;
+            context.Emit(SystemName, "delivering",
+                $"imp={creature.Id} player={player} gold={creature.GoldHeld} " +
+                $"to=({drop.X},{drop.Y}) steps={creature.Body.PathTotalCount}");
+            return true;
+        }
+        return false;
     }
 
     /// <summary>

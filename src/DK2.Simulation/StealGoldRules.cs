@@ -49,7 +49,7 @@ public static class StealGoldRules
             : HeroJobRules.StrongestPlayer(world, context.Database);
         if (target is not byte player || player == creature.OwnerPlayerId) return false;
         if (NearestTreasury(context, player, creature) is not RoomInstance room) return false;
-        if (FirstStandable(context, creature, room) is not int tile) return false;
+        if (FirstStandable(world, context.Database, context.Database.CreatureById(creature.CreatureTypeId), room) is not int tile) return false;
         var scratch = new List<Steering.Fixed16Vector>();
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         int w = world.Width;
@@ -212,7 +212,7 @@ public static class StealGoldRules
             return StateShadow.TryMove(context, system, creature, resume);
         }
         int w = world.Width;
-        int first = room.TileIndices[0];
+        int first = SlabChain.FirstSlab(world, room);
         if (RoomPoint(context, creature, room) is not int tile)
             return (options & 0x01) != 0 && TunnelRules.Fallback(context, system, creature, first % w, first / w, resume);
         return TunnelRules.RouteOrTunnel(context, system, creature, CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w),
@@ -224,7 +224,7 @@ public static class StealGoldRules
     /// Pit refuses the floor (ADR-0227); ours reads the others as "walkable" (unread).</summary>
     private static int? RoomPoint(SimulationContext context, CreatureState creature, RoomInstance room)
     {
-        IReadOnlyList<int> tiles = room.TileIndices;
+        IReadOnlyList<int> tiles = SlabChain.Order(context.World, room);
         int start = context.Rng.NextInt(tiles.Count);
         var grid = new WorldPathGrid(context.Database, context.World, context.Database.CreatureById(creature.CreatureTypeId));
         int w = context.World.Width;
@@ -237,14 +237,17 @@ public static class StealGoldRules
         return null;
     }
 
-    /// <summary>The feasibility test's point. DK2's <c>0x004E5000</c> is unread; ours takes the
-    /// room's first walkable tile, which draws no random number.</summary>
-    private static int? FirstStandable(SimulationContext context, CreatureState creature, RoomInstance room)
+    /// <summary>The feasibility test's point (<c>0x004E5000</c>): the first walkable
+    /// tile along the room's chain, without drawing a random number.</summary>
+    public static int? FirstStandable(WorldState world, GameDatabase database, CreatureDef creature, RoomInstance room)
     {
-        var grid = new WorldPathGrid(context.Database, context.World, context.Database.CreatureById(creature.CreatureTypeId));
-        int w = context.World.Width;
-        foreach (int tile in room.TileIndices)
+        var grid = new WorldPathGrid(database, world, creature);
+        int w = world.Width;
+        foreach (int tile in SlabChain.Order(world, room))
+        {
+            if (room.Definition.TypeId == RoomTypeId.CombatPit && room.IsInterior(tile)) continue;
             if (grid.IsWalkable(tile % w, tile / w)) return tile;
+        }
         return null;
     }
 

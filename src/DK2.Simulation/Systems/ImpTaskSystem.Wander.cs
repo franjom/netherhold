@@ -176,7 +176,7 @@ public sealed partial class ImpTaskSystem
             .Where(room => room.OwnerPlayerId == creature.OwnerPlayerId).ToList();
         int remaining = rooms.Count(room => IsWanderRoom(room.Definition));
         if (remaining == 0) return null;
-        var grid = new WorldPathGrid(context.Database, world, context.Database.CreatureById(creature.CreatureTypeId));
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         foreach (RoomInstance room in rooms)
         {
             if (remaining != 0)
@@ -184,14 +184,22 @@ public sealed partial class ImpTaskSystem
                 if (!IsWanderRoom(room.Definition)) continue;
                 if (--remaining != 0) continue;
             }
-            var open = new List<int>();
-            foreach (int t in room.TileIndices)
-                if (grid.IsWalkable(t % world.Width, t / world.Width) && !HasObstacle(context, t)) open.Add(t);
-            if (open.Count == 0) continue;
-            int pick = open[context.Rng.NextInt(open.Count)];
+            if (RoomPoint(world, context.Database, definition, room, context.Rng) is not int pick) continue;
             return (pick % world.Width, pick / world.Width);
         }
         return null;
+    }
+
+    /// <summary><c>0x004E8430</c>: choose among eligible room tiles in slab-chain order.</summary>
+    public static int? RoomPoint(WorldState world, GameDatabase database, CreatureDef creature,
+        RoomInstance room, SimRandom rng)
+    {
+        var grid = new WorldPathGrid(database, world, creature);
+        var open = new List<int>();
+        foreach (int tile in SlabChain.Order(world, room))
+            if (grid.IsWalkable(tile % world.Width, tile / world.Width)
+                && !HasObstacle(world, database, tile)) open.Add(tile);
+        return open.Count == 0 ? null : open[rng.NextInt(open.Count)];
     }
 
     private static bool IsWanderRoom(RoomDef room) => room.TypeId is RoomTypeId t && Array.IndexOf(WanderRooms, t) >= 0;
@@ -209,10 +217,13 @@ public sealed partial class ImpTaskSystem
 
     /// <summary><c>0x00453600</c>: an object on the tile whose definition is an obstacle.</summary>
     private static bool HasObstacle(SimulationContext context, int tileIndex)
+        => HasObstacle(context.World, context.Database, tileIndex);
+
+    private static bool HasObstacle(WorldState world, GameDatabase database, int tileIndex)
     {
-        foreach (ObjectState o in context.World.Objects)
+        foreach (ObjectState o in world.Objects)
             if (o.TileIndex == tileIndex
-                && context.Database.Objects.TryGetValue(o.ObjectTypeId, out ObjectDef? def)
+                && database.Objects.TryGetValue(o.ObjectTypeId, out ObjectDef? def)
                 && def.Flags.HasFlag(ObjectFlags.Obstacle))
                 return true;
         return false;

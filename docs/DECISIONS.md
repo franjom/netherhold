@@ -5367,3 +5367,16 @@ The stream loader `0x0044F4C0` re-adds every room tile row by row, each to its s
 - Human and AI contributors are bound by `ART_DIRECTION.md`; `AGENTS.md` points there.
 - The first real user of the replacement tier arrives with the proof of concept. Nothing is built yet beyond `DK2.Convert`.
 - Open: Q442 (clip playback rate), Q443 (second UV family), the render pipeline, the Unity interchange format and where hand-touched derived work is stored (`ASSET_PIPELINE.md` §11).
+
+## ADR-0243 — Readers of a room use its slab chain
+**Date:** 2026-09-26 · **Status:** accepted · closes Q441 · Research: `docs/research/room-slab-chain.md` §7, §10
+
+**Context.** ADR-0240 recorded chain order, but most order-sensitive room readers still used ascending tile indices. Ghidra confirms their `FirstSlab` and `+4/+5` walks.
+
+**Decision.**
+1. The pit route point, imp room point, wall-furniture phase, hatchery and prison food ties, gold carrier's deposit tile, lair search and Workshop crate placement use `SlabChain.Order`.
+2. The gold carrier chooses a reachable room by distance to its first slab, then starts at a random chain tile and scans to the first with space. Capacity counts and fog discovery are order-independent, so they need no switch.
+3. Whole-room takeover and keeper defeat keep the slab links. Both use `0x004E5650` to transfer room ownership; ours already keeps `SlabOrder`.
+4. DK2's 96-room keeper limit is observable and worth modelling, but is deferred as a construction limit with a dedicated rejection test.
+
+**Consequences.** `SlabChainTests` pins every changed reader on a dragged room. Each test fails when that reader is returned to index order. No state shape changed; `HashVersion` and `FormatVersion` stay **123**.
