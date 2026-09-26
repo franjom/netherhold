@@ -11,8 +11,8 @@
   138 returns 0. **Corrected:** `combat-pit.md` §10 said, before ADR-0227, that 142 was refused in ours only because it was not built.
 - **Job 26, `CombatPitSpectate`**, handler `0x00457780`, is the way in. The job dispatcher
   `0x00478800` sends job `0x1A` to it.
-- **No shipped creature lists job 26** in its happy, unhappy or angry table. Its only caller
-  is **`0x00478680`**, the tail of state 89 (`0x004778E0`) after the mood chooser fails:
+- **No shipped creature lists job 26** in its happy, unhappy or angry table. The only code
+  that selects it is **`0x00478680`**, the tail of state 89 (`0x004778E0`) after the mood chooser fails:
   1. Train, unless the definition has `NotTrainWhenIdle` (`+0x686` bit 21), when the keeper's
      Training Room availability (`0x004BAB20(7)`) is 3.
   2. Job 26, when the Combat Pit's availability (`0x004BAB20(16)`) is 3.
@@ -63,7 +63,8 @@ and **`room+0x53` takes now**. It returns 1; with none, 0.
 - The point's low twelve bits on each axis become `random(0x555) + 0x555`, x first: the middle
   third of the tile.
 - `0x00471890(point, 143, 0x80)` walks there. Refused: `SetState(1)`, then job 26 again, and 142
-  returns what that returned.
+  returns what that returned. That call, at `0x00457F2A`, is the handler's one direct caller
+  besides the job dispatcher's (raw call scan of both code blocks, 2026-09-26).
 
 **143** (`0x00457F40`), facing the pit.
 - Another thing on its tile and `SetState(142)` taken: return 1.

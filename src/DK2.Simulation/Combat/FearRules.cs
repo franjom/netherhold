@@ -91,12 +91,16 @@ public static class FearRules
     public static int FearThreshold(GameDatabase database, CreatureDef definition, int level) =>
         CreatureLevelRules.Scale(definition.Fear, CreatureLevelRules.Percent(database, CreatureStatId.Fear, level));
 
+    /// <summary>A heartless player's <c>DungeonHeartPosition</c>: the player initialiser
+    /// <c>0x004B8640</c> stores 1 in both words (<c>0x004B883E</c>, <c>0x004B8845</c>), and only the
+    /// heart setter <c>0x004C5F60</c> writes them again (Q372).</summary>
+    public const int NoHeartTile = 1;
+
     /// <summary>Chebyshev tiles from my tile to my owner's <c>DungeonHeartPosition</c>. A player
-    /// with no heart — the heroes, the neutral player — keeps the field's initial value, which is
-    /// taken to be the origin (STRONGLY INFERRED, Q372).</summary>
+    /// with no heart — the heroes, the neutral player — keeps <see cref="NoHeartTile"/> on both axes.</summary>
     public static int HeartDistance(WorldState world, HeartSites hearts, CreatureState me)
     {
-        int hx = 0, hy = 0;
+        int hx = NoHeartTile, hy = NoHeartTile;
         HeartSites.Site? site = hearts.SiteOf(me.OwnerPlayerId);
         if (site.HasValue)
         {

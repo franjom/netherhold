@@ -26,7 +26,7 @@ JMP [EAX*4 + 0x45E174]
 
 `def+0x67E` is loaded from **file offset `0x0F03`**, by a guarded store at
 `0x0049347A` taking `EBP+0x12F3` — the `0x3F0` frame delta again. That offset is
-**`FightStyle`**, which this project already parses and *nothing reads*
+**`FightStyle`**, which this project already parsed and, when this was written, nothing read (now `ApproachRules` and `CombatRules`)
 (`KwdCreatures`, `manual-1999.md` § the editor's enum). **So `FightStyle` selects
 which routine chooses a creature's enemy.** It also fills the slot `training.md`
 §4 observed the experience run skipping.

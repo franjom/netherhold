@@ -174,7 +174,7 @@ listed here without re-deriving them.
 | `0x00486DBA` | `0x00486CF0` | 176 idle | 6 | 176 idle | 0x80 |  |
 | `0x00489E17` | `0x00488930` | UNKNOWN (vtable slot at `0x0066D538`) | 6 | 221 fleeing | Imp ? 0x80 : 0 |  |
 | `0x004A8A06` | `0x004A84E0` | UNKNOWN (vtable slot at `0x0066D768`) | 6 | 254 reporting danger | Imp ? 0x80 : 0 |  |
-| `0x004D9A1A` | `0x004D9690` | UNKNOWN (`0x004D9A60`, no references) | 6 | 254 reporting danger | Imp ? 0x80 : 0 |  |
+| `0x004D9A1A` | `0x004D9690` | the Dungeon Heart room's per-tick update `0x004D9A60`, reached through slot `+0x15` of the room handler table (`0x006A1F81`, record 5; `portals-room-handler-table.md`) | 6 | 254 reporting danger | Imp ? 0x80 : 0 |  |
 | `0x004E2F69` | `0x004E2E70` | 122; `0x004E2C30`, `0x004E2E60` | 6 | 121 freeing comrades | 0x6C |  |
 | `0x004E307C` | `0x004E2E70` | 122; `0x004E2C30`, `0x004E2E60` | 6 | 121 freeing comrades | 0x68 |  |
 | `0x004E309E` | `0x004E2E70` | 122; `0x004E2C30`, `0x004E2E60` | 6 | 121 freeing comrades | 0x6C |  |

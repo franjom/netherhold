@@ -12,11 +12,23 @@ namespace DK2.Simulation.Tests;
 /// <summary>Fear and flight — docs/research/combat-fear.md, ADR-0165: the threat a fighter radiates,
 /// the heart-distance factor, the counter and the flee mark, the back-off and the run, the
 /// withdrawal of a hurt creature and where it goes. Duellists stand at (12,12), beyond ten tiles
-/// of the origin a heartless player's heart position is taken to be (Q372), so fear counts in full.</summary>
+/// of (1,1), a heartless player's heart position (Q372), so fear counts in full.</summary>
 public class CombatFearTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
+
+    /// <summary>A player with no heart keeps the initialiser's (1,1), not the origin (<c>0x004B8640</c>).
+    /// At (5,5) that is four tiles, where the origin would be five.</summary>
+    [Fact]
+    public void AHeartlessPlayersHeartIsTileOneOne()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        var none = new HeartSites();
+
+        Assert.Equal(4, FearRules.HeartDistance(world, none, Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 5, 5)));
+        Assert.Equal(0, FearRules.HeartDistance(world, none, Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 1, 1)));
+    }
 
     [Fact]
     public void AFighterRadiatesItsThreat_SplitAmongItsEngagements_IntoThoseItCanSee()

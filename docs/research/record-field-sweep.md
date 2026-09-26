@@ -159,7 +159,9 @@ binary, and a dword there would cover `ManaValue` in its low half and
 would be after the *tooltip id*, not the mana value. And since all 145 records
 ship zero, the mechanism is inert whichever way that falls. The bases of those
 dword reads have not been typed, which is why this is a caveat rather than a
-proof.
+proof. The same holds for dword reads at `+0x105`, `+0x106` and `+0x107`, which
+also span `+0x108`: a raw search (2026-09-26) finds them in about fifty functions,
+most in the renderer at `0x0043xxxx`, none typed as an object definition.
 
 **The trap that made this a separate step.** The creature loader uses
 `file + 0x3F0` and this one does not; a query for the `0x73E` the creature

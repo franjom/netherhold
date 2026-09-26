@@ -5112,3 +5112,32 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - rooms allowed;
   - stacking.
 - No new state; `HashVersion` stays **120**.
+
+## ADR-0232 — An audit of "only" and "never" claims: a heartless player's heart is tile (1, 1)
+**Date:** 2026-09-26 · **Status:** accepted · corrects ADR-0165 · Research: `docs/research/combat-fear.md`, `docs/research/open-questions.md` Q372
+
+**Context.** A claim that a field has one writer, or a function no caller, is checked by nothing once it is written down. This audit re-ran each checkable one against the binary: a raw rel32 and absolute-address scan of both code blocks (`.text` and `cseg`) and every initialised block, and an instruction search that includes the one to three bytes below each address, since a wider load starting there also reads it.
+
+**Decision.**
+1. **A heartless player's `DungeonHeartPosition` is (1, 1), not the origin.** The heart setter `0x004C5F60` is not its only writer: the player initialiser `0x004B8640` stores `EBP` = 1 into both words (`0x004B883E`, `0x004B8845`). `FearRules.NoHeartTile` is 1, and `HeartDistance` measures a hero's or the neutral player's creature from it.
+2. **Corrected in the docs:**
+   - `0x004D9A60` is the Dungeon Heart's per-tick update, reached through slot `+0x15` of room record 5 in the handler table (`0x006A1F81`). The travel-state table had it as "no references".
+   - `CombatPitSpectate`'s handler has a second direct caller, state 142's refused walk at `0x00457F2A`. `0x00478680` stays the only code that selects job 26.
+   - Two lines about our own code were stale: `FightRules` calls `MeleeDamageRules`, and `ApproachRules` and `CombatRules` read `FightStyle`.
+   - The `ManaValue` caveat now names the dword reads at `+0x105` to `+0x107`.
+3. **Re-confirmed:**
+   - one writer for `0x0075B174` (`-LOGOOS`), and none for the clearance byte `0x006A11F0`, whose one reference is its read;
+   - no reader for variables 6, 11, 22, 175, 176 and 193, nor for `0x006F28E0`, `0x006F28F2`, `0x006F2910` and `0x006F2912`. Two dword loads at `0x006F2974` span variable 193, but both mask to the low byte;
+   - no store at all to `0x006F286B` (Q337);
+   - one reader each for variables 112 and 180;
+   - one caller each for `0x00478680`, `0x00519F90`, `0x004B0C90`, `0x004A6DF0`, `0x004C9400` and `0x00494D00`, and two for `0x00491AE0`;
+   - one reader of `def+0x5C4` outside the copier;
+   - the constructor as the only writer of the origin tile `+0x404`/`+0x406`;
+   - the unread out-parameter of `0x004C6AE0` at `0x004E5D5D`;
+   - `InitialGoldHeld` read only by the copier.
+
+**Consequences.**
+- **Tests.** `CombatFearTests.AHeartlessPlayersHeartIsTileOneOne` pins (1, 1). A creature at (5, 5) is four tiles out; from the origin it would be five.
+- **A query that cannot match returns nothing, not a negative.** The first neighbour search wrote addresses unpadded (`0x6f2960`), where the listing prints `0x006f2960`, and found nothing, the exact address included. Every negative here was re-run padded, with the known hit as its positive control.
+- **Not re-run:** claims already backed by a whole-program sweep in their own doc (`RebelLeader`'s bit 4, the state record's dead slots). Also not re-run: bit and field claims with no address to scan (spell flag bit 8, trigger-walker `+0x36`, `ReturnToJobId`).
+- No new state; `HashVersion` stays **120**.

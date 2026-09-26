@@ -50,8 +50,10 @@ Called once a tick per creature from the creature update (`0x00488930`), after
    `DungeonHeartPosition` (`player+0xB43`, via `0x004C5F50`), capped at 10.
    `CurrentFear = CurrentFear × d / 10`, stored as a word. **At the heart a
    creature fears nothing; ten tiles out it fears in full.** A player with no
-   heart keeps the field's initial value — taken to be the origin, STRONGLY
-   INFERRED from the setter `0x004C5F60` being the only writer (Q372).
+   heart keeps the field's initial value, **(1, 1)**: the player initialiser
+   `0x004B8640` stores 1 in both words (`0x004B883E`, `0x004B8845`), and the
+   setter `0x004C5F60` is the only other writer. (Corrected 2026-09-26: this
+   said the origin, inferred from the setter being the only writer.)
 3. **My threat.** The level-scaled `Threat` stat (`def+0x698`, file `0xF12`,
    table row 3 — level 1 unscaled). Divided by my **engagements**: the nonzero
    slots of both arrays plus one if `Attacking` (`+0x502`) is set. None → return.
@@ -243,7 +245,9 @@ two balance variables, the escape test's direction, the run-speed comparison's
 direction, the dead overwrite in §5 step 5, the dispatcher's idle on a zero
 return, §6.
 
-**STRONGLY INFERRED:** the origin as a heartless player's heart position; the
+**CONFIRMED (binary, 2026-09-26):** (1, 1) as a heartless player's heart position.
+
+**STRONGLY INFERRED:** the
 run speed scaled by the Speed row; `+0x12` clear meaning a live thing.
 
 **UNKNOWN:** Q372–Q375.

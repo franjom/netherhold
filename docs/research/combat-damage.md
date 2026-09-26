@@ -135,10 +135,9 @@ In a Combat Pit: `(100 + 100) / 100 = 2.0`, so `1020`.
 ## 6. What is built, and what is deliberately not
 
 `MeleeDamageRules` implements §2–§4 as pure functions and is covered by tests
-against the shipped table. **Nothing calls it.** Combat needs an attack state,
-target acquisition and the cadence of `combat-cadence.md`, and this project has
-none of them — wiring a formula into a simulation that cannot swing would report
-progress it has not made.
+against the shipped table. **`FightRules` calls it** for every blow (ADR-0163 onward).
+Until combat existed nothing did, because a formula wired into a simulation that
+could not swing would have reported progress it had not made. (Updated 2026-09-26.)
 
 `atan2` (`FUN_0065FB54`) is **not** reimplemented; step 3 takes the raw angle as
 an argument, because a bearing this project cannot yet produce is not a bearing
