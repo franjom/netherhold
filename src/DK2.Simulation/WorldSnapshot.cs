@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 121;
+    private const int FormatVersion = 122;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -518,6 +518,8 @@ public static class WorldSnapshot
         w.Write(world.Triggers.SpecialValue);
         w.Write(world.Triggers.SpecialValueWritten);
         w.Write(world.Triggers.RawWorldOptions);
+        w.Write(world.Triggers.LevelTimeLimit);
+        w.Write(world.Triggers.SpecialInfoNextRoomTypeId);
         KeyValuePair<(int Tag, ushort Id), TriggerRecordState>[] triggerRecords =
             world.Triggers.RawRecords.ToArray();
         w.Write(triggerRecords.Length);
@@ -1014,6 +1016,8 @@ public static class WorldSnapshot
         world.Triggers.SpecialValue = r.ReadInt32();
         world.Triggers.SpecialValueWritten = r.ReadBoolean();
         world.Triggers.RawWorldOptions = r.ReadByte();
+        world.Triggers.LevelTimeLimit = r.ReadInt32();
+        world.Triggers.SpecialInfoNextRoomTypeId = r.ReadByte();
         int triggerRecordCount = r.ReadInt32();
         for (int i = 0; i < triggerRecordCount; i++)
             world.Triggers.RestoreRecord(r.ReadInt32(), r.ReadUInt16(), r.ReadBoolean(), r.ReadByte());

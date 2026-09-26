@@ -5189,3 +5189,35 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **Still UNKNOWN:** thing classes 3 and 4; creature `+0x38`.
 - **Tests.** `CreatureLevelTests.AnEarnedLevelCarriesHealthUpWithTheMaximum`. The negative control, a bare increment, fails it.
 - No new state; `HashVersion` stays **121**.
+
+## ADR-0235 — Trigger action 23 sets the level time limit, which counts down each turn
+**Date:** 2026-09-26 · **Status:** accepted · answers Q232 · Research: `docs/research/level-time-limit.md`
+
+**Context.** `kwd unreached` ranked actions 17, 24, 47, 23, 15 and 9 as the most-reached action records the executor does not carry out. The first two are parked (Q309, Q227). Timer id 16, which all 86 action 23 records name, was refused as unknown (Q232).
+
+**Decision.**
+1. **Timer id 16 is `LevelTimeLimit`** (`world+0x72AA`, DK2's own dumper name).
+   - Action 23 sets it to its `Value`.
+   - The per-turn world update counts a non-zero limit down by one, and at zero sets bit `0x08` of the world options.
+   - A type 2 condition naming id 16 compares the limit raw with its `Value`.
+2. **Action 47 sets `SpecialInfoNextRoomTypeId`** (`world+0x72BC`), which only the interface is known to read. It is stored so that the state matches DK2's.
+3. **Action 9 stays partial.** It stores a wall-clock timed interface block that a deterministic simulation cannot hold.
+4. **Action 15** gets nothing at world level; its creature arm is not read.
+
+**Consequences.**
+- **Not built:**
+  - running out making every keeper lose, which DK2 does only in game modes 2 and 3; modes are not modelled;
+  - the countdown's `[[world+4]+0x284]` gate;
+  - where the countdown falls relative to the trigger walk. Ours runs right after it.
+- **Tests.**
+  - `TriggerExecutorTests` gains two: the two actions, and the countdown.
+  - The timer 16 condition test now pins the comparison.
+  - The snapshot round trip carries both fields.
+  - The real-data test now expects every shipped timer 16 condition to evaluate.
+- **Five negative controls each fail a named test:**
+  - action 23 storing 0;
+  - action 47 storing 0;
+  - no countdown;
+  - no time-up bit;
+  - the comparison's operands swapped.
+- **`HashVersion` and `FormatVersion` 122,** pin `0xED95A480A9DB92C5`.

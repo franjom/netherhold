@@ -9,7 +9,7 @@ and when the tree that reads it runs.
 | Confidence | The layout, the mode bytes, the deadline shape and the once-per-turn cadence are **strongly inferred** from instructions; the authored unit, the stored-times-four scaling and the byte-01 corrections are **observed** in the running game. `CONFIRMED` is not used: no *gameplay* observation was made, only memory reads |
 | Implementation | `TriggerState` on `WorldState` (`WorldState.Triggers`), `TriggerConditionEvaluator`, `TriggerExecutor` / `TriggerTree`, `TriggerTurnCsvEmitter`; ADR-0092, ADR-0102 |
 | Tests | `TriggerStateOnRealDataTests`, `TriggerExecutorTests`, `KwdAdditionalRecordTests` |
-| Open questions | Q229 (what flag id 128 addresses), Q231 (whether the two globals are one object), Q232 (what timer id 16 addresses), Q228's residue (what the 24 slots at `+0x4030` are), Q230 (ids above 128) |
+| Open questions | Q229 (what flag id 128 addresses), Q231 (whether the two globals are one object), Q232 answered (the level time limit), Q228's residue (what the 24 slots at `+0x4030` are), Q230 (ids above 128) |
 
 Follows on from `trigger-semantics.md` (ADR-0092), which established every
 record's parameter offsets and widths; this establishes the state those
@@ -313,11 +313,11 @@ byte equals 16 the handler reads a value through a **virtual call at slot
 to the timer bank in the whole executable — action type 8's, which stamps the
 clock — so a write naming 16 does not reach the bank either.
 
-**It is heavily used and completely unidentified.** All 86 action type 23 records
-target it, and five type 2 conditions test it. **Q232.** `TriggerState` refuses
-the id rather than modelling a stored value it has not seen written: the read
-side is a virtual call and the write side is somewhere this reading has not
-reached, and they need not be the same field.
+**It is the level time limit (Q232, answered 2026-09-26, ADR-0235).** Slot `+0x34C`
+is `0x00509660`, which returns `world+0x72AA`, DK2's own `LevelTimeLimit`. All 86
+action type 23 records set it, and the five type 2 conditions compare it raw with
+their `Value`. The world update counts it down once a turn; `level-time-limit.md`
+has the whole mechanism.
 
 ## 6. Where evaluation happens — once per game turn
 

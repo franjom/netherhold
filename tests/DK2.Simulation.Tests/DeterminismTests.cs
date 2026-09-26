@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 121: a door's orientation (ADR-0233).
+        // HashVersion 122: the level time limit and the next-room info (ADR-0235).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x954849F97CFC0296UL, sim.StateHash());
+        Assert.Equal(0xED95A480A9DB92C5UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -79,8 +79,11 @@ public static class TriggerConditionEvaluator
         int currentTick)
     {
         byte timerId = Byte(parameters, "TimerId");
+        // Id 16 is the level time limit, compared raw against the Value dword: no flag test,
+        // no seconds, no started check (0x005184F8).
         if (timerId == TriggerState.SpecialTimerId)
-            return TriggerConditionResult.NotEvaluated;
+            return Result(TriggerState.Compare(
+                Byte(parameters, "Comparison"), state.LevelTimeLimit, Int(parameters, "Value")));
         if (!state.IsStarted(timerId))
             return TriggerConditionResult.Unsatisfied;
 

@@ -61,6 +61,8 @@ public class SnapshotTests
         original.World.Triggers.StartTimer(0, now: 11);
         original.World.Triggers.StartTimer(15, now: -4);
         original.World.Triggers.Write(TriggerState.SpecialFlagId, FlagWriteMode.Assign, 0x7FFFFFFF);
+        original.World.Triggers.LevelTimeLimit = 777;
+        original.World.Triggers.SpecialInfoNextRoomTypeId = 5;
         TriggerRecord option = new ActionTriggerRecord(new byte[16])
         {
             Body = new byte[8], TriggerId = 0xFFFF, Type = 45,
@@ -83,6 +85,8 @@ public class SnapshotTests
         Assert.Equal(0x7FFFFFFF, restored.World.Triggers.SpecialValue);
         Assert.True(restored.World.Triggers.SpecialValueWritten);
         Assert.False(restored.World.Triggers.NotificationsEnabled);
+        Assert.Equal(777, restored.World.Triggers.LevelTimeLimit);
+        Assert.Equal(5, restored.World.Triggers.SpecialInfoNextRoomTypeId);
     }
 
     [Fact]

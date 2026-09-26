@@ -20,7 +20,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 121;
+    private const ulong HashVersion = 122;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationContext _context;
@@ -103,6 +103,9 @@ public sealed class GameSimulation
         // DK2's first game turn is 1; our next-tick clock starts at 0.
         int dk2Turn = unchecked((int)(World.CurrentTick.Value + 1));
         LastTriggerRun = _triggers.Run(dk2Turn);
+        // The same per-turn world update (0x0050A450) counts the level time limit down.
+        if (World.Triggers.CountDownLevelTimeLimit())
+            _context.Emit(nameof(TriggerExecutor), "level_time_up", $"turn={dk2Turn}");
         foreach (BlockedTrigger partial in LastTriggerRun.Partial)
         {
             _context.Emit(

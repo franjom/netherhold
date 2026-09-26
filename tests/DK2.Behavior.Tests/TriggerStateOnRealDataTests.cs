@@ -290,7 +290,7 @@ public class TriggerStateOnRealDataTests
             else if (record.Parameters["TimerId"] == TriggerState.SpecialTimerId)
             {
                 specialTimers++;
-                Assert.Equal(TriggerConditionResult.NotEvaluated, result);
+                Assert.NotEqual(TriggerConditionResult.NotEvaluated, result);
             }
             else
             {

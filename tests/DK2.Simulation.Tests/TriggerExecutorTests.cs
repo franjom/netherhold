@@ -938,7 +938,7 @@ public class TriggerExecutorTests
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
         Assert.Equal(
-            [(byte)1, (byte)6, (byte)7, (byte)8, (byte)10, (byte)11, (byte)14, (byte)22, (byte)44, (byte)45],
+            [(byte)1, (byte)6, (byte)7, (byte)8, (byte)10, (byte)11, (byte)14, (byte)22, (byte)23, (byte)44, (byte)45, (byte)47],
             performed);
     }
 
@@ -1482,6 +1482,52 @@ public class TriggerExecutorTests
         Assert.Equal(1, state.Read(3));
         Assert.Equal(new BlockedTrigger(214, type, 0xFFFF, TriggerContext.World), Assert.Single(result.Partial));
         Assert.Empty(result.Unhandled);
+    }
+
+    /// <summary>Action 23 writes the level time limit (<c>0x0051916F</c>), not a timer slot; action
+    /// 47 writes <c>SpecialInfoNextRoomTypeId</c> (<c>0x005097B1</c>). Neither is partial.</summary>
+    [Fact]
+    public void ActionTwentyThreeSetsTheLevelTimeLimit_AndFortySevenTheNextRoomInfo()
+    {
+        var state = new TriggerState();
+        TriggerRecord limit = new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = 0xFFFF, Type = 23,
+            Parameters = new Dictionary<string, long> { ["TimerId"] = TriggerState.SpecialTimerId, ["Value"] = 300 },
+        };
+        TriggerRecord info = new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = 0xFFFE, Type = 47,
+            Parameters = new Dictionary<string, long> { ["TargetId"] = 9 },
+        };
+
+        TriggerRunResult first = new TriggerExecutor(new TriggerTree([limit], 0xFFFF), state).Run(1);
+        TriggerRunResult second = new TriggerExecutor(new TriggerTree([info], 0xFFFE), state).Run(2);
+
+        Assert.Equal(300, state.LevelTimeLimit);
+        Assert.Equal(9, state.SpecialInfoNextRoomTypeId);
+        Assert.Empty(first.Partial);
+        Assert.Empty(second.Partial);
+    }
+
+    /// <summary>The per-turn update counts the limit down by one and sets the time-up bit at zero
+    /// (<c>0x0050A64E</c>); a limit of zero is left alone.</summary>
+    [Fact]
+    public void TheLevelTimeLimitCountsDownOncePerTurn_AndIsUpAtZero()
+    {
+        GameSimulation sim = TestWorld.Simulation();
+        sim.World.Triggers.LevelTimeLimit = 3;
+
+        sim.Run(2);
+        Assert.Equal(1, sim.World.Triggers.LevelTimeLimit);
+        Assert.False(sim.World.Triggers.LevelTimeUp);
+
+        sim.Run(1);
+        Assert.Equal(0, sim.World.Triggers.LevelTimeLimit);
+        Assert.True(sim.World.Triggers.LevelTimeUp);
+
+        sim.Run(1);
+        Assert.Equal(0, sim.World.Triggers.LevelTimeLimit);
     }
 
     [Theory]

@@ -1040,7 +1040,7 @@ public sealed class TriggerExecutor
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
     public static bool Performs(byte type) =>
-        type is 1 or 6 or 7 or 8 or 10 or 11 or 14 or 22 or 44 or 45;
+        type is 1 or 6 or 7 or 8 or 10 or 11 or 14 or 22 or 23 or 44 or 45 or 47;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -1066,6 +1066,18 @@ public sealed class TriggerExecutor
             if (_world is null || run.Player is not byte player)
                 return Unperformed(record, context, partial);
             _world.EndGame(player, record.Type == 10 ? PlayerStatus.Won : PlayerStatus.Lost);
+            return true;
+        }
+        if (record.Type == 23)
+        {
+            // 0x0051916F: the Value dword into world+0x72AA; the timer id byte is not read.
+            _state.LevelTimeLimit = unchecked((int)p["Value"]);
+            return true;
+        }
+        if (record.Type == 47)
+        {
+            // 0x005197B1: world slot +0x378, which stores the byte at world+0x72BC.
+            _state.SpecialInfoNextRoomTypeId = Byte(p, "TargetId");
             return true;
         }
         if (record.Type == 44)

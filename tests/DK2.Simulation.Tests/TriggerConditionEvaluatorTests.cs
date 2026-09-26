@@ -142,7 +142,7 @@ public class TriggerConditionEvaluatorTests
     }
 
     [Fact]
-    public void UnsupportedAndUnknownSpecialTimerConditionsAreNotFalse()
+    public void AnUnsupportedConditionIsNotFalse_AndTimerSixteenComparesTheLevelTimeLimit()
     {
         var state = new TriggerState();
         TriggerRecord unsupported = Condition(3, new Dictionary<string, long>());
@@ -158,8 +158,13 @@ public class TriggerConditionEvaluatorTests
         Assert.Equal(
             TriggerConditionResult.NotEvaluated,
             TriggerConditionEvaluator.Evaluate(unsupported, state, currentTick: 0));
+        // Id 16 is LevelTimeLimit, compared raw with Value (here >= 1), started or not (Q232).
         Assert.Equal(
-            TriggerConditionResult.NotEvaluated,
+            TriggerConditionResult.Unsatisfied,
+            TriggerConditionEvaluator.Evaluate(specialTimer, state, currentTick: 0));
+        state.LevelTimeLimit = 1;
+        Assert.Equal(
+            TriggerConditionResult.Satisfied,
             TriggerConditionEvaluator.Evaluate(specialTimer, state, currentTick: 0));
     }
 

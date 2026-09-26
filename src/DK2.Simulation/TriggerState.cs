@@ -54,12 +54,10 @@ public sealed class TriggerState
     /// condition path compares the id against <c>0x10</c> first.</summary>
     public const int TimerCount = 16;
 
-    /// <summary>Id 16 — the first id past the timer bank and <b>not a timer</b>, the
-    /// same shape as <see cref="SpecialFlagId"/>. The condition path compares against it
-    /// (<c>CMP DL,0x10</c> at <c>0x005184EB</c>) and on a match reads through virtual
-    /// slot <c>+0x34C</c> instead of indexing; the bank's only indexed store in the whole
-    /// executable is action type 8's clock stamp. Heavily used and <b>UNKNOWN</b> — all
-    /// 86 action type 23 records target it and five type 2 conditions test it (Q232) — so this type refuses the id rather than model a value it has never seen written.</summary>
+    /// <summary>Id 16 — the first id past the timer bank and <b>not a timer</b>: it names
+    /// <see cref="LevelTimeLimit"/>. The condition path compares against it (<c>CMP DL,0x10</c>
+    /// at <c>0x005184EB</c>) and on a match reads world slot <c>+0x34C</c>, <c>0x00509660</c>,
+    /// which returns <c>world+0x72AA</c>; action type 23 writes that field (Q232).</summary>
     public const byte SpecialTimerId = 16;
 
     private readonly byte[] _flags = new byte[FlagCount];
@@ -90,6 +88,34 @@ public sealed class TriggerState
     /// companion the executable sets to 1 beside it. Purpose UNKNOWN; carried so a
     /// snapshot round-trips what the original would hold.</summary>
     public bool SpecialValueWritten { get; set; }
+
+    /// <summary>DK2's <c>LevelTimeLimit</c> (<c>world+0x72AA</c>, named by the world dumper at
+    /// <c>0x0050ED6A</c>), in game turns. Action type 23 sets it to its <c>Value</c>
+    /// (<c>0x00519177</c>); the per-turn world update counts it down while it is not zero
+    /// (<c>0x0050A64E</c>), see <see cref="CountDownLevelTimeLimit"/>.</summary>
+    public int LevelTimeLimit { get; set; }
+
+    /// <summary>Bit <c>0x08</c> of the world options (<c>world+0x72A1</c>): set when
+    /// <see cref="LevelTimeLimit"/> runs out (<c>0x0050A671</c>).</summary>
+    public bool LevelTimeUp => (_worldOptions & 0x08) != 0;
+
+    /// <summary>One turn of <c>0x0050A64E</c>: a non-zero limit drops by one, and on reaching
+    /// zero sets <see cref="LevelTimeUp"/>. Returns whether it ran out this turn. What DK2 does
+    /// next, making every keeper lose, runs only in game modes 2 and 3, which are not modelled;
+    /// the gate <c>[[world+4]+0x284]</c> that skips the countdown is UNKNOWN.</summary>
+    internal bool CountDownLevelTimeLimit()
+    {
+        if (LevelTimeLimit == 0) return false;
+        LevelTimeLimit--;
+        if (LevelTimeLimit != 0) return false;
+        _worldOptions |= 0x08;
+        return true;
+    }
+
+    /// <summary>DK2's <c>SpecialInfoNextRoomTypeId</c> (<c>world+0x72BC</c>, named by the world
+    /// dumper), set by action type 47 (<c>0x005098C0</c>). Only the interface
+    /// (<c>0x00427BA0</c>) and the dumpers read it, through world slot <c>+0x374</c>.</summary>
+    public byte SpecialInfoNextRoomTypeId { get; set; }
 
     /// <summary>A flag's value, <b>zero-extended</b>. The asymmetry is DK2's, not ours:
     /// see <see cref="Write"/>.</summary>
@@ -146,9 +172,7 @@ public sealed class TriggerState
         if (timerId == SpecialTimerId)
             throw new ArgumentOutOfRangeException(
                 nameof(timerId), timerId,
-                $"Timer id {SpecialTimerId} is the special target, not a timer slot. Every "
-                + "action type 23 record in the campaign names it and nobody knows what it is "
-                + "yet (Q232).");
+                $"Timer id {SpecialTimerId} is not a timer slot: it names LevelTimeLimit (Q232).");
 
         if (timerId >= TimerCount)
             throw new ArgumentOutOfRangeException(
@@ -167,10 +191,9 @@ public sealed class TriggerState
     /// <summary>Stamps a timer with <paramref name="now"/> — DK2's action type 8.</summary>
     public void StartTimer(byte timerId, int now) => _timers[CheckTimer(timerId)] = now;
 
-    /// <summary>Sets a timer to an explicit stamp. <b>Not DK2's action type 23</b>:
-    /// every one of that type's 86 shipped records names <see cref="SpecialTimerId"/>,
-    /// and the bank's only indexed store is type 8's, so type 23 does not write a timer
-    /// slot at all. This exists for tests and for a snapshot restore.</summary>
+    /// <summary>Sets a timer to an explicit stamp. <b>Not DK2's action type 23</b>, which sets
+    /// <see cref="LevelTimeLimit"/>; the bank's only indexed store is type 8's. This exists for
+    /// tests and for a snapshot restore.</summary>
     public void SetTimer(byte timerId, int value) => _timers[CheckTimer(timerId)] = value;
 
     /// <summary>Ticks elapsed since the timer was stamped. <b>Only meaningful when
@@ -265,6 +288,8 @@ public sealed class TriggerState
         hash.Add(SpecialValue);
         hash.Add(SpecialValueWritten ? (byte)1 : (byte)0);
         hash.Add(_worldOptions);
+        hash.Add(LevelTimeLimit);
+        hash.Add(SpecialInfoNextRoomTypeId);
         hash.Add(_records.Count);
         foreach (((int tag, ushort id), TriggerRecordState record) in RawRecords)
         {
