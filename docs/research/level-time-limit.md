@@ -32,7 +32,10 @@ world dispatcher `0x00518AD0` (byte table `0x00519930`, jump table `0x005198C4`)
   - on reaching zero, bit `0x08` of the world options `world+0x72A1` is set.
 
   The countdown is skipped while `[[world+4]+0x284]` is non-zero. That word is the game's
-  **suspended** flag, read 2026-09-26. Its only toggle is `0x00527270(on)`:
+  **suspended** flag, read 2026-09-26. The only writer seen to set it is the toggle
+  `0x00527270(on)`. `0x00526090`, called from `0x00525370`, zeroes `+0x280` and `+0x284` together,
+  as a reset would. The vtable methods `0x0052A8E0` and `0x0052AA10` also store to `+0x284` on
+  objects that keep small codes at `+0x280`, and are not typed to this one. The toggle:
   - switching on saves `+0x4` into `+0x280` and sets `+0x284` to 1;
   - switching off restores `+0x4` and clears `+0x284`.
 
