@@ -95,7 +95,9 @@ keeps a creature in place, while a watcher in 144 still picks a new spot.
 - `SpectatorPosX`, `SpectatorPosY` hold 144's position.
 - `CurrentJob` is `CombatPitSpectate` while spectating.
 - **UNKNOWN or guessed:**
-  - The cheer's length (`CheerGuessTicks` = 8), since the animations are not read.
+  - The cheer's length (`CheerGuessTicks` = 8). The binary does not hold it: an action runs
+    for its animation, whose length is in the creature's animation data, not read. The owner
+    confirms the cheering itself (2026-09-26).
   - Whether a creature has animation 8 or `0x14`: ours assumes it does.
   - Room `+0x27`, the position tile, is taken to be the room's centre: 89's fallback aims ±2
     tiles from the Heart's. Ours uses the middle of the bounding box.

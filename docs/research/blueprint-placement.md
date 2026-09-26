@@ -7,7 +7,8 @@
 ## Result in one sentence
 
 A keeper places a door or trap blueprint on its own open floor, a door only between two walls
-unless it is a Barricade. **The definition's `GoldCost` is paid at once**, and the blueprint then
+unless it is a Barricade. **The definition's `GoldCost` is paid at once** (confirmed by the owner,
+2026-09-26), and the blueprint then
 gets the same order and list entry an authored one does.
 
 ## 1. The door, `0x004C33B0(x, y, type)` — CONFIRMED

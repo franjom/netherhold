@@ -4993,7 +4993,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - `two_keepers_find_work_for_a_goblin` moved its second keeper 20 tiles away: its Goblins wandered into the first keeper's and fought.
   - Its wage expectation became "one `paid`": where the wander leaves the unpaid Goblin decides between `wages_missed` and `wages_unreachable`.
   - Its Goblins now turn unhappy on Pay, not Work.
-- **No-work anger is roughly eight times slower than ours was:** 60 in ten seconds in `AGoblinWithNowhereToTrain…`, against 500.
+- **No-work anger is roughly eight times slower than ours was:** 60 in ten seconds in `AGoblinWithNowhereToTrain…`, against 500. The owner (2026-09-26) remembers the mentor saying a Warlock became angry for having nothing to do, which the charge still produces; the rate itself is the binary's.
 - **Tests.** Five tests changed their expected traces or anger totals:
   - `CombatTests.TheKiller…`, `CreatureJobTests.AGoblinWalksToTraining…` and `FightReturnTests.AStampFiveHundred…`, which now meets state 3;
   - `AGoblinWithNowhereToTrain…`, which now charges 12 a pass;
@@ -5093,7 +5093,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 4. **The blueprint** is laid under construction. Its order is pushed with the level loader's count (`ManufactureRules.QueueOne`), and it joins the blueprint list, so the Workshop and the imps build it as they build an authored one.
 
 **Consequences.**
-- **Gold at placement.** Placing a blueprint costs gold at once, then Workshop points for the crate. This comes from the binary alone; the owner has not confirmed it from play.
+- **Gold at placement.** Placing a blueprint costs gold at once, then Workshop points for the crate. **Confirmed by the owner (2026-09-26).**
 - **Not built:**
   - the door's orientation;
   - the spend statistic `player+0x177`;
