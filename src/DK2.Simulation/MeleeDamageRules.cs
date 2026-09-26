@@ -43,15 +43,21 @@ public static class MeleeDamageRules
     }
 
     /// <summary>
-    /// The percentage the possession arms add. <b>UNKNOWN (Q337)</b>: the original reads a cached
-    /// scalar that nothing in the image writes, and the two shipped variables whose values match its
-    /// two arms exactly — 12 and 6, in the 2:1 ratio the ceilings produce — are themselves never
-    /// read. If the scalar is in fact never filled, possession scales damage by 1.0 and this returns
-    /// the wrong answer; that is one owner glance away.
+    /// The percentage the possession arms add: <c>global+0x31B</c> (<c>0x006F286B</c>), the
+    /// <c>MeleeDamage</c> slot of the first-person stat table. Variable 224's handler
+    /// <c>0x0051DC70</c> stores each record's value at <c>0x006F2863 + 2 × statId</c>, ignoring its
+    /// level, so the last stat-4 record wins; the shipped one is 60 (Q337, ADR-0237). The table is
+    /// uninitialised data, so a file without one leaves 0. Variable 98, once guessed here, has no
+    /// reader.
     /// </summary>
-    [Dk2Behavior(Confidence.Hypothesis, "docs/research/combat-damage.md")]
-    public static int PossessionIncreasePercent(GameDatabase database) =>
-        database[VariableTypeId.FirstPersonStatIncreasePercentage];
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-damage.md")]
+    public static int PossessionIncreasePercent(GameDatabase database)
+    {
+        int value = 0;
+        foreach (CreatureStatEntry entry in database.Variables.CreatureStats)
+            if (entry.FirstPerson && entry.StatId == (int)CreatureStatId.MeleeDamage) value = entry.Value;
+        return value;
+    }
 
     /// <summary>The stance multiplier in 12.12 fixed point: <c>(ceiling + value) / ceiling</c>,
     /// built by a fixed-point add and divide, so it truncates.</summary>

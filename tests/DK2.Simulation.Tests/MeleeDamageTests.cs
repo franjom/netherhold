@@ -50,9 +50,9 @@ public class MeleeDamageTests
     public void InfluenceGetsHalfOfPossessionsBonus()
     {
         GameDatabase db = Db();
-        Assert.Equal(4587, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.Possessed));
+        Assert.Equal(6553, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.Possessed));
         Assert.Equal(
-            4341,
+            5324,
             MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.InfluencedByPossessed));
     }
 

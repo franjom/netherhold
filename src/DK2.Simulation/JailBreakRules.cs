@@ -30,12 +30,14 @@ public static class JailBreakRules
     /// <c>PrisonJailBroken</c> (<c>+0x4D</c>), as bits of <see cref="TileState.PrisonDoor"/>.</summary>
     public const byte Activated = 1, Open = 2, Broken = 4;
 
-    /// <summary><c>0x004E32C0</c>: the door tile, or -1 when the room has none. Ours walks the tiles
-    /// in ascending index, where DK2 walks its chain.</summary>
+    /// <summary><c>0x004E32C0</c>: the door tile, or -1 when the room has none: north of the first
+    /// floor tile, in the room's slab list, whose N, NW and NE are not floor. DK2's list order depends
+    /// on the camera when the room was placed (Q439). The owner saw the default camera put the door
+    /// right of centre every time, so ours walks each row from the right, top row first.</summary>
     public static int DoorTile(WorldState world, RoomInstance room)
     {
         int w = world.Width;
-        foreach (int tile in room.InteriorTileIndices.OrderBy(t => t))
+        foreach (int tile in room.InteriorTileIndices.OrderBy(t => t / w).ThenByDescending(t => t % w))
         {
             int x = tile % w, y = tile / w;
             if (y == 0) continue;
@@ -107,7 +109,7 @@ public static class JailBreakRules
         if (left != 0) return true;
 
         ref byte flags = ref DoorOf(world, room);
-        if ((flags & Activated) == 0) flags |= Activated;
+        if ((flags & Activated) == 0) flags = Unlocked(flags);
         if ((flags & Open) == 0)
         {
             flags |= Open;
@@ -150,12 +152,16 @@ public static class JailBreakRules
                 x = ((door % w) << 12) | context.Rng.NextInt(0x1000);
                 y = (((door / w) + 1) << 12) | context.Rng.NextInt(0x1000);
             }
+            // 0x004E2D40(1), once per creature released; with no door only when a rim was found.
+            DoorOf(world, room) |= Broken;
             if (!Walk(context, c, x, y)) continue;
             context.Emit(system, "prisoner_released", $"creature={c.Id} owner={c.OwnerPlayerId} held_by={c.PrisonOwnerPlayerId}");
         }
-
-        DoorOf(world, room) |= Broken;
     }
+
+    /// <summary>The lock toggle <c>0x004E3680</c> as it unlocks: <see cref="Activated"/> on, and
+    /// <see cref="Broken"/> cleared, since the toggle starts with <c>0x004E2D40(0)</c>.</summary>
+    private static byte Unlocked(byte flags) => (byte)((flags | Activated) & ~Broken);
 
     /// <summary>121 (<c>0x004739E0</c>), once a turn. Off the cell's floor, the prisoner is free
     /// (the handler's 0, idle). South of the door it steps onto the door, unlocking and opening it;
@@ -188,7 +194,8 @@ public static class JailBreakRules
         {
             if (!Walk(context, prisoner, CreatureState.CentreOf(dx), CreatureState.CentreOf(dy))) return;
             ref byte flags = ref DoorOf(world, room);
-            flags |= Activated | Open;
+            if ((flags & Activated) == 0) flags = Unlocked(flags);
+            flags |= Open;
             return;
         }
 

@@ -61,12 +61,15 @@ pair: variable 98 `FirstPersonStatIncreasePercentage` = **12** and variable 113
 `PossessionFriendlyStatIncreasePercentage` = **6**.
 
 **But neither of those globals is ever read.** `0x006F28E0` and `0x006F28F2` each
-appear once in the whole image — in their own setter. And `global+0x31B`
-(`0x006F286B`) has **no writer**: no absolute store anywhere, and the one indexed
-store to `+0x31B` belongs to a different structure. Its only two readers are
-these two arms. **What fills it is Q337**, and the two possibilities differ
-sharply: if it carries 12 the possession bonus is +12 %/+6 %, and if it is never
-written the bonus is **`(100+0)/100 = 1.0` and possession changes nothing**.
+appear once in the whole image — in their own setter.
+
+**`global+0x31B` (`0x006F286B`) is filled by variable 224** (Q337, answered 2026-09-26,
+ADR-0237; `verification-2026-09-26.md` §1). The handler `0x0051DC70` stores each
+`CreatureFirstPersonStats` record's value as a word at `0x006F2863 + 2 × statId`, and stat 4 is
+`MeleeDamage`. The VARIABLES dispatcher `0x00521790` reaches it; the chunk table `0x0051E0A0`
+registers that dispatcher (`0x0051E1D7`). The shipped value is **60**: a possessed creature hits
+for **×1.6**, and one influenced by possession for **×1.3**. An address scan and a `+0x31B`
+displacement search both miss it, because the store is base plus index.
 
 ## 3. The base, which is ours already
 
@@ -153,6 +156,5 @@ modifiers; the Monk bracket; the argument order into `FUN_004B2CE0`.
 **CONFIRMED (repo cross-reference):** `Possessed`, `InfluencedByPossessed`,
 `CombatPitFighter` and `CantBeResurrected`, from `creature-object.md`.
 
-**UNKNOWN:** what fills `global+0x31B` (Q337), so the possession multiplier's
-*value* is unknown though its shape is not; the bearing bonus's purpose (Q325);
+**UNKNOWN:** the bearing bonus's purpose (Q325);
 what `FUN_00490120` does (Q328).

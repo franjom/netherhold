@@ -5239,3 +5239,32 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - no state change.
 - **Not covered by a test:** the pit and dying guards.
 - No new state; `HashVersion` stays **122**.
+
+## ADR-0237 — The verifier's findings: possession is ×1.6, and the Prison door sits right of centre
+**Date:** 2026-09-26 · **Status:** accepted · answers Q337 · corrects ADR-0232, ADR-0234 and ADR-0229 · Research: `docs/research/verification-2026-09-26.md`
+
+**Context.** A separate verification pass (commit `e19aa2e`) re-read ADR-0227 to ADR-0234 against the binary. It found three wrong statements and several gaps. The owner then settled the Prison door from screenshots (`324f05d`, `629b318`).
+
+**Decision.**
+1. **The possession bonus is variable 224's `MeleeDamage` record, shipped 60** (Q337).
+   - `0x0051DC70` stores it at `0x006F2863 + 2 × statId`, which for stat 4 is `global+0x31B`.
+   - `MeleeDamageRules.PossessionIncreasePercent` now reads it, in place of variable 98, which has no reader. A possessed creature hits for ×1.6 and an influenced one for ×1.3.
+   - This corrects ADR-0232, which re-confirmed "no store at all" for that address. The store is base plus index, which neither an address scan nor a displacement search can see.
+   - The link the verifier left inferred is closed: the chunk table `0x0051E0A0` registers the VARIABLES dispatcher `0x00521790` (`0x0051E1D7`).
+2. **`PrisonJailBroken` is set once per creature released,** and cleared when the lock toggle unlocks. Ours set it after every release pass. Nothing reads it.
+3. **The Prison door is right of centre.** DK2's slab-list order follows the camera when the room is placed (Q439). Ours takes the default camera's result, walking each row from the right.
+4. **`0x0048B120` has twenty call sites, not twelve.** The conclusion of ADR-0234 stands.
+5. **Recorded, not built:**
+   - Q438, `AngerNoWork` in states 59 and 109 and a room check;
+   - job 26 from a level's placed heroes, which no shipped level uses;
+   - room `+0x27` as DK2's `CentrePos`.
+
+**Consequences.**
+- **Tests.**
+  - `PossessionDamageOnRealDataTests` pins 60 and both multipliers on the shipped data.
+  - `MeleeDamageTests` pins the multipliers on the fixture, which now carries the record.
+  - The door test's name now says it assumes the default camera.
+  - No new test pins the `Broken` change; it is inert.
+- **Negative control:** a stat match that never fires fails `InfluenceGetsHalfOfPossessionsBonus`.
+- Codex's next question number is now **Q440**.
+- No new state; `HashVersion` stays **122**.

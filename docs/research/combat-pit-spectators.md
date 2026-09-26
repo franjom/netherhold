@@ -12,7 +12,8 @@
 - **Job 26, `CombatPitSpectate`**, handler `0x00457780`, is the way in. The job dispatcher
   `0x00478800` sends job `0x1A` to it.
 - **No shipped creature lists job 26** in its happy, unhappy or angry table. The only code
-  that selects it is **`0x00478680`**, the tail of state 89 (`0x004778E0`) after the mood chooser fails:
+  that selects it is **`0x00478680`**. A level could give a placed hero job 26 as its standing
+  job, but none of the 66 shipped levels does (`verification-2026-09-26.md` §6). `0x00478680` is the tail of state 89 (`0x004778E0`) after the mood chooser fails:
   1. Train, unless the definition has `NotTrainWhenIdle` (`+0x686` bit 21), when the keeper's
      Training Room availability (`0x004BAB20(7)`) is 3.
   2. Job 26, when the Combat Pit's availability (`0x004BAB20(16)`) is 3.
@@ -100,8 +101,9 @@ keeps a creature in place, while a watcher in 144 still picks a new spot.
     for its animation, whose length is in the creature's animation data, not read. The owner
     confirms the cheering itself (2026-09-26).
   - Whether a creature has animation 8 or `0x14`: ours assumes it does.
-  - Room `+0x27`, the position tile, is taken to be the room's centre: 89's fallback aims ±2
-    tiles from the Heart's. Ours uses the middle of the bounding box.
+  - Room `+0x27` is DK2's own `CentrePos`, named by its room dumper
+    (`verification-2026-09-26.md` §8). How it is computed is unread; ours uses the middle of the
+    bounding box.
   - The route point `0x004E5000`: ours tests the room's first standable tile.
 - **Not built:** the finder's messages. `0x00478680`, job 26's only caller, is built (ADR-0228).
 - 138's rim arm is kept and refused by the gate, as DK2's is.

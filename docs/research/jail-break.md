@@ -23,9 +23,12 @@ The same routine places object `0x6D` (109) and object `0x74` (116) on the door,
 following `DoorOpen` and `Activation`. It runs from the room's rebuild `0x004EDFC0`. The reset
 `0x004E2910` zeroes the door, the auto-close count and `DoorOpen`.
 
-**Ours walks the tiles in ascending index.** The first floor tile is then always in the topmost
-floor row, so the NW and NE tests never decide. A negative control that drops them survives for
-that reason.
+**The slab list's order depends on the camera when the room is placed** (Q439; the owner,
+2026-09-26, `verification-2026-09-26.md` §3). The door is always in the north wall, right of
+centre when the room is built under the default camera and left of centre with the camera turned
+180°. Ours walks each floor row from the right, top row first, which is the default camera's
+result for a 5×5. The NW and NE tests then never decide, and a negative control that drops them
+survives for that reason.
 
 ## 2. The room's door state — CONFIRMED
 
@@ -34,8 +37,10 @@ that reason.
 - `DoorOpen` (`+0x5D`): toggled by `0x004E35C0`, which plays the door's sounds.
 - `DelayAutoCloseDoorCount` (`+0x61`): set to `var19 × 2` only by the imps' two door arms
   (`0x004E2940`, `0x004E29E0`), and counted down by `0x004E2AC0`, which closes the door at 0.
-- `PrisonJailBroken` (`+0x4D`): `0x004E2D40(1)`. Its first setting plays sound `0x3F` at the
-  room's centre, and any change redraws every tile.
+- `PrisonJailBroken` (`+0x4D`): `0x004E2D40(1)`, once per creature released (§4). Its first
+  setting plays sound `0x3F` at the room's centre, and any change redraws every tile. The lock
+  toggle `0x004E3680` and `0x004E2B30` both start with `0x004E2D40(0)`, which clears it
+  (corrected 2026-09-26).
 
 ## 3. The way in, `0x004E8660`'s Prison arm — CONFIRMED
 
@@ -70,7 +75,8 @@ any, with `all`):
   otherwise `0x6C`.
 - **Without:** a random rim tile (`0x004E8430`), walked to resuming 121.
 
-With `message` it posts `0x42` to the room's owner, and it calls `0x004E2D40(1)`. Its callers:
+With `message` it posts `0x42` to the room's owner. It calls `0x004E2D40(1)` inside its loop, once
+per creature it releases, and on the no-door path only when a rim tile is found. Its callers:
 - 122 (the rescuer's side);
 - `0x004E2E60`, which is `(1, 0, 1)`, everyone. That is called from the claim `0x004E5A70`, the
   **overcrowding break**, and from `0x00514462`;

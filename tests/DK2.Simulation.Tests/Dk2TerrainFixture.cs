@@ -1415,6 +1415,8 @@ internal static class Dk2TerrainFixture
         // keeper's world cannot be built without them (ADR-0162).
         Set(vars, VariableTypeId.DungeonHeartObjectHealth, 100000);
         Set(vars, VariableTypeId.DungeonHeartHealthRegenerationPerSecond, 25);
+        // Variable 224's shipped MeleeDamage record, the possession bonus (Q337).
+        vars.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.MeleeDamage, 60, 0, FirstPerson: true));
         return vars;
     }
 

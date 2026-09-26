@@ -119,7 +119,7 @@ public static class CreatureLevelRules
     /// in 12-bit fixed point, <c>new = (ratio × newMax) &gt;&gt; 12</c> — applied as a delta through
     /// the health routine, which clamps at the new maximum. A Combat Pit fighter's move to 1 at the
     /// cap is <see cref="LeaveThePitAtTheCap"/>; the <c>+0x3AF</c> adjustment is not modelled
-    /// (Q427). Its twelve callers include the experience adder, the party spawn and the trigger
+    /// (Q427). Its twenty call sites include the experience adder, the party spawn and the trigger
     /// actions, so every promotion goes through it. Returns whether it rose.</summary>
     public static bool LevelUp(GameDatabase database, CreatureDef creature, CreatureState state)
     {

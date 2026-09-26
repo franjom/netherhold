@@ -156,7 +156,8 @@ fields `+0x418` and `+0x417` they are copied to (Q258). A slot whose `CreatureId
    `0x349`; a creature with `+0x3E6` bit 15 at or past `byte[0x006F2976]` calls
    `0x00476D30(1, 0)`. So a member's health percentage is applied at level 1,
    clamped, then carried up by the maximum's growth. `0x0048B120` is DK2's
-   **only** level increment: its twelve callers include the experience adder
+   **only** level increment: its twenty call sites (eight in code Ghidra has not made a
+   function of) include the experience adder
    (`0x004579D4`), so an earned level rescales health the same way (ADR-0234).
    Its mirror `0x0048AFA0` lowers the level with the same rescale (three
    callers; not built). With the constructor's 1 at `0x004875C9`, these are the

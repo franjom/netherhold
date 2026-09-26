@@ -17,8 +17,8 @@ public sealed class JailBreakTests
     private const byte Rival = 5;
     private const byte GoblinId = Dk2TerrainFixture.GoblinCreatureId;
 
-    // A 5x5 prison at (4..8, 2..6): its floor is the 3x3 at (5..7, 3..5), its door (5, 2).
-    private static readonly TilePos Door = new(5, 2);
+    // A 5x5 prison at (4..8, 2..6): its floor is the 3x3 at (5..7, 3..5), its door (7, 2) under the default camera (Q439).
+    private static readonly TilePos Door = new(7, 2);
     private static readonly TilePos Cell = new(6, 4);
     private static readonly TilePos Outside = new(10, 4);
     private static readonly TilePos Rim = new(8, 4);
@@ -76,7 +76,7 @@ public sealed class JailBreakTests
     private static RoomInstance Prison(GameDatabase db, WorldState world) => RoomIndex.RoomAt(world, db, Index(world, Cell))!;
 
     [Fact]
-    public void TheDoorIsNorthOfTheFirstFloorTileWhoseThreeNorthernNeighboursAreNotFloor()
+    public void TheDoorIsNorthOfTheFirstFloorTileWhoseThreeNorthernNeighboursAreNotFloor_RightOfCentreAsUnderTheDefaultCamera()
     {
         (GameDatabase db, WorldState world) = World();
         Assert.Equal(Index(world, Door), JailBreakRules.DoorTile(world, Prison(db, world)));
