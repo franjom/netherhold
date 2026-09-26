@@ -46,14 +46,15 @@ public static class MeleeDamageRules
     /// The percentage the possession arms add: <c>global+0x31B</c> (<c>0x006F286B</c>), the
     /// <c>MeleeDamage</c> slot of the first-person stat table. Variable 224's handler
     /// <c>0x0051DC70</c> stores each record's value at <c>0x006F2863 + 2 × statId</c>, ignoring its
-    /// level, so the last stat-4 record wins; the shipped one is 60 (Q337, ADR-0237). The table is
-    /// uninitialised data, so a file without one leaves 0. Variable 98, once guessed here, has no
+    /// level, so the last stat-4 record wins; the shipped one is 60 (Q337, ADR-0237). Without one
+    /// the table keeps the world initialiser's 100 (<c>0x005099A0</c> fills all 32 words with
+    /// <c>0x64</c> at <c>0x00509A88</c>, before the load). Variable 98, once guessed here, has no
     /// reader.
     /// </summary>
     [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-damage.md")]
     public static int PossessionIncreasePercent(GameDatabase database)
     {
-        int value = 0;
+        int value = 100;
         foreach (CreatureStatEntry entry in database.Variables.CreatureStats)
             if (entry.FirstPerson && entry.StatId == (int)CreatureStatId.MeleeDamage) value = entry.Value;
         return value;

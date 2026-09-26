@@ -23,4 +23,21 @@ public class PossessionDamageOnRealDataTests
         Assert.Equal(6553, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.Possessed));
         Assert.Equal(5324, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.InfluencedByPossessed));
     }
+
+    /// <summary>DK2 writes variable 224 record by record, so a level's own records override only
+    /// the stats they name. Ours replaces the list when a level has any, which would lose the
+    /// global 60 on a level that lists other first-person stats. No shipped level does.</summary>
+    [InstallFact]
+    public void EveryShippedLevelKeepsTheSixtyPercent()
+    {
+        string maps = System.IO.Path.Combine(Dk2InstallGate.Path, "Data", "editor", "maps");
+        string[] levels = System.IO.Directory.GetFiles(maps, "*Variables.kld")
+            .Select(f => System.IO.Path.GetFileName(f)[..^"Variables.kld".Length]).ToArray();
+        Assert.True(levels.Length >= 60, $"found {levels.Length} level variable files");
+
+        foreach (string level in levels)
+            Assert.True(
+                MeleeDamageRules.PossessionIncreasePercent(GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, level)) == 60,
+                level);
+    }
 }

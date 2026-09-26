@@ -5268,3 +5268,27 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **Negative control:** a stat match that never fires fails `InfluenceGetsHalfOfPossessionsBonus`.
 - Codex's next question number is now **Q440**.
 - No new state; `HashVersion` stays **122**.
+
+## ADR-0238 — Without its record the possession bonus is 100, and the level time limit's gate is the window's focus
+**Date:** 2026-09-26 · **Status:** accepted · corrects ADR-0237 · Research: `docs/research/combat-damage.md` §2, `docs/research/level-time-limit.md` §2, §7
+
+**Context.** A read for the time limit's gate passed through the world initialiser `0x005099A0` and found it writing the first-person stat table that ADR-0237 had read as uninitialised.
+
+**Decision.**
+1. **The fallback is 100.** `0x005099A0` zeroes the cached global block, then sets all 32 first-person words to 100 (`0x00509A88`). `MeleeDamageRules.PossessionIncreasePercent` falls back to 100 when no stat-4 record exists; it was 0.
+   - The shipped 60 is unaffected: the load follows the initialiser. The initialiser zeroes variable 19, which the game divides by.
+   - All 66 levels keep the 60, now tested.
+2. **Our merge replaces variable 224's list wholesale**, where DK2 applies it record by record. No shipped level exposes the difference; it is recorded, not changed.
+3. **The time limit's gate `[[world+4]+0x284]` is the game's suspended flag,** set while the window is out of focus (game action `0x5C`). Ours has no window.
+4. **Action 31** asks the local player's view to follow a camera path (game action `0x73`). It stays partial.
+
+**Consequences.**
+- **Tests:**
+  - `MeleeDamageTests.WithoutTheRecordThePossessionBonusIsTheInitialisersHundred`, whose control (a 0 fallback) fails it;
+  - `PossessionDamageOnRealDataTests.EveryShippedLevelKeepsTheSixtyPercent`;
+  - `TriggerExecutorTests.CreatureActionFifteenLeavesAPitFighterAndADyingHeroAlone`;
+  - `JailBreakTests.UnlockingClearsTheBrokenMark_AndReleasingSetsItAgain`.
+
+  Each of the last two fails under its control.
+- **Still uncovered:** a Prison release that frees nobody.
+- No new state; `HashVersion` stays **122**.

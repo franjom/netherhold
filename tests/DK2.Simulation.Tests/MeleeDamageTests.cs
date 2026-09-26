@@ -56,6 +56,20 @@ public class MeleeDamageTests
             MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.InfluencedByPossessed));
     }
 
+    /// <summary>Without a variable-224 <c>MeleeDamage</c> record the table keeps the world
+    /// initialiser's 100 (<c>0x00509A88</c>), not zero: possession then doubles damage.</summary>
+    [Fact]
+    public void WithoutTheRecordThePossessionBonusIsTheInitialisersHundred()
+    {
+        GameDatabase db = Db();
+        var bare = new GlobalVariables();
+        foreach (KeyValuePair<VariableTypeId, MiscVariable> entry in db.Variables.Misc) bare.Misc[entry.Key] = entry.Value;
+        bare.CreatureStats.AddRange(db.Variables.CreatureStats.Where(e => !e.FirstPerson));
+        var without = new GameDatabase(db.Terrain.Values, db.Rooms.Values, db.Creatures.Values, bare);
+
+        Assert.Equal(100, MeleeDamageRules.PossessionIncreasePercent(without));
+    }
+
     [Fact]
     public void NoStanceIsExactlyOne()
     {

@@ -71,6 +71,14 @@ registers that dispatcher (`0x0051E1D7`). The shipped value is **60**: a possess
 for **×1.6**, and one influenced by possession for **×1.3**. An address scan and a `+0x31B`
 displacement search both miss it, because the store is base plus index.
 
+**Without that record the value is 100, not 0.** The world initialiser `0x005099A0` zeroes the
+cached global block from `0x006F2550`, then sets all 32 first-person words (and the level-stat
+table) to 100 (`0x00509A88`). The load has to come after it: the zeroed block holds variable 19
+at `0x006F2590`, which the game divides by. **A latent difference:** DK2 applies a level's
+variable-224 records one by one, while our merge replaces the whole list when a level has any,
+so a level listing other first-person stats would lose the 60. No shipped level does
+(`PossessionDamageOnRealDataTests.EveryShippedLevelKeepsTheSixtyPercent`).
+
 ## 3. The base, which is ours already
 
 ```

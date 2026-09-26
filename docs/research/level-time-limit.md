@@ -1,4 +1,4 @@
-# The level time limit, and trigger actions 9, 15, 23 and 47
+# The level time limit, and trigger actions 9, 15, 23, 31 and 47
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-26.
 - **Built:** ADR-0235, `TriggerState.LevelTimeLimit`, `TriggerState.LevelTimeUp`, `TriggerState.SpecialInfoNextRoomTypeId`; ADR-0236, `TriggerRunResult.CreatureActions`.
@@ -103,3 +103,18 @@ The creature action dispatcher `0x0049AC80` (types 15–43, byte table `0x0049B1
 `HeroJobRules.Dispatch` then runs the job from state 1 as it does a spawned hero's. Ours stands
 in `CombatPitFighter` for `+0x3CB` and `IsDying` for bit 21. No test covers the pit and dying
 guards.
+
+## 7. Action 31 is a local camera request — STRONGLY INFERRED, stays partial
+
+Player arm `0x004C886E`, read 2026-09-26:
+- It does nothing unless the player's tag equals world slot `+0x264`, the local player.
+- It looks up `ActionPointId` (world slot `+0x2C8`) and takes the centre of its rectangle
+  (`+0x38`..`+0x3E`).
+- It queues game action `0x73` through `0x0050E5C0`. The record carries `PathId`, with bit 31
+  set when `Available` is non-zero, the centre and the player.
+
+`0x0050E5C0` first offers a record to the listener at `[[world+4]+0x10]`, then to the world's
+table at `+0x1684`. `0x73` is not among the 86 ids the game-action list registers
+(`game-actions.md` §4). What fills `+0x1684` is unread, so that it has no world handler is
+inferred. It names a path, only the local player issues it, and no simulation arm is known, so
+it is taken to be a camera path for the interface. The executor keeps it partial.
