@@ -102,7 +102,8 @@ public sealed class TriggerState
     /// <summary>One turn of <c>0x0050A64E</c>: a non-zero limit drops by one, and on reaching
     /// zero sets <see cref="LevelTimeUp"/>. Returns whether it ran out this turn. What DK2 does
     /// next, making every keeper lose, runs only in game modes 2 and 3, which are not modelled;
-    /// the gate <c>[[world+4]+0x284]</c> that skips the countdown is UNKNOWN.</summary>
+    /// the gate <c>[[world+4]+0x284]</c> that skips the countdown is the window-focus suspension
+    /// (game action <c>0x5C</c>), which a simulation with no window never raises.</summary>
     internal bool CountDownLevelTimeLimit()
     {
         if (LevelTimeLimit == 0) return false;

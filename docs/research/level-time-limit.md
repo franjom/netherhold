@@ -31,7 +31,18 @@ world dispatcher `0x00518AD0` (byte table `0x00519930`, jump table `0x005198C4`)
   - otherwise it drops by one;
   - on reaching zero, bit `0x08` of the world options `world+0x72A1` is set.
 
-  The countdown is skipped while `[[world+4]+0x284]` is non-zero, which is **UNKNOWN**.
+  The countdown is skipped while `[[world+4]+0x284]` is non-zero. That word is the game's
+  **suspended** flag, read 2026-09-26. Its only toggle is `0x00527270(on)`:
+  - switching on saves `+0x4` into `+0x280` and sets `+0x284` to 1;
+  - switching off restores `+0x4` and clears `+0x284`.
+
+  The toggle has two callers:
+  - game action `0x5C`, "the window lost or regained focus" (`0x005137E0`, `game-actions.md`
+    §4), which refuses in game mode 3;
+  - `0x0050E920`, which switches it off.
+
+  So a suspended game's time limit does not run down. Ours has no window and advances only
+  when ticked, so the gate stays clear.
 - **Running out** (`0x0050A67A`). Only when the game mode `[0x0075AD4B]` is 2 or 3: for every
   player in the world list whose `Number` (`+0x10FC`) is 3 or more, `0x004BE630(3)`, the defeat
   verdict (`win-and-defeat.md`), then an event through the world's handler table at `+0x1684`.
@@ -72,7 +83,6 @@ slots near `0x005096F0`.
 - Both are hashed and snapshotted (`HashVersion` 122).
 - **Not built:**
   - the defeat on running out, since game modes are not modelled;
-  - the `+0x284` gate;
   - action 9, which stays partial.
 
 ## 6. Action 15 in a creature's tree — CONFIRMED, built (ADR-0236)
