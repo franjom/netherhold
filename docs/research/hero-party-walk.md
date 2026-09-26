@@ -270,8 +270,8 @@ the knock-out/capture branch was observed by the owner on 2026-09-26
 
   **Ours differs.** Creature ids only climb (`WorldState._nextCreatureId`),
   and our follower trails the dead leader's corpse record until it is
-  removed, then stands still. Reproducing DK2 needs its entity-slot
-  allocation, which is unread.
+  removed, then stands still. **Kept on purpose** (owner, 2026-09-26): ids
+  stay unique, and DK2's slot reuse is not reproduced.
 
 ## Built (2026-09-25, ADR-0216)
 
