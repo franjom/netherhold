@@ -228,6 +228,11 @@ PNG, and every key it produces round-trips through `FileAssetProvider`. **No
 renderer loads its output yet**: Unity ships no runtime glTF importer and
 `DungeonScene` has no branch for it.
 
+**Modern assets** are one more answer to the same keys, from the replacement
+tier; the converted tier stays the classic look. What a modern asset may and may
+not change is `docs/ART_DIRECTION.md`; the proposed Blender pipeline that makes
+and validates them is `docs/ASSET_PIPELINE.md` (ADR-0242).
+
 ## Unity (M3)
 
 `unity/DK2.Unity` — Unity 6 LTS `6000.6.0f1` (ADR-0036). It consumes the

@@ -5342,3 +5342,28 @@ The stream loader `0x0044F4C0` re-adds every room tile row by row, each to its s
 **Consequences.**
 - **Tests:** `SlabChainTests.LoadingASavedGameReChainsEveryRoomRowMajor_SoADraggedPrisonsDoorMovesWest`, which fails under its control (a load that keeps the chain), and `ACheckpointKeepsTheChain`.
 - No new state; `HashVersion` stays **123**.
+
+## ADR-0242 — Modern assets re-express the original: preserve design, increase fidelity
+**Date:** 2026-09-26 · **Status:** accepted as a standard; the pipeline is proposed · Docs: `docs/ART_DIRECTION.md`, `docs/ASSET_PIPELINE.md`
+
+**Context.** Goal 3 asks for a presentation like a hypothetical modern remaster, and M11 names PBR, lighting and HD textures, but nothing said what a modern asset may change. The owner set the standard on 2026-09-26. Measured the same day over all 2,015 KMF files: **DK2 has no skeleton.** Creature animation is per-frame vertex animation, one file per clip, yet a creature's clips share one body (constant positions, triangles matching by index and UV; `src/DK2.Convert/README.md`).
+
+**Decision.**
+1. **The original's visual design is the source of truth, as its behaviour is for gameplay.** A modern asset raises geometry, texture, material and rendering fidelity and keeps silhouette, proportions, stylization, colour and identity. Every change is one of four levels (`ART_DIRECTION.md` §3): **A** preserved, which cannot change; **B** reconstructed, constrained by the source; **C** inferred detail, which must not change how the asset reads; **D** redesign, forbidden. Photorealism is D; where realism and faithfulness conflict, faithfulness wins.
+2. **Preserve motion, modernize representation.** The KMF frames are authoritative reference data and are never discarded. The runtime clip may be a reconstructed skeletal rig, which corresponds to no original skeleton; reconstruction fits the original frames and never generates a clip whose frames exist.
+3. **A modern asset is one more answer to an `AssetRef` key**, served by ADR-0034's replacement tier. The key shape, the provider chain and the presentation boundary (ADR-0035) are unchanged, and the converted tier remains the classic look (Goal 11).
+4. **Modern assets are derivatives of EA's art**: non-redistributable and never committed. Scripts, manifests, source hashes and validation summaries are committed.
+5. **Blender, headless and scripted, is the asset workstation**; each asset rebuilds from a committed manifest, and every AI service is a replaceable stage.
+6. **Automated validation can fail an asset; only the owner approves one**, and an approval names the output hash it approved.
+7. **No bulk modernization** before the three-asset proof of concept (the Imp, the Training Dummy, the Lair kit) passes and `ASSET_PIPELINE.md` is revised on what it taught.
+
+**Why.**
+- The same rule on both halves of the project: an asset that looks better than DK2's is the same kind of defect as a rule that plays better than DK2's.
+- With no skeleton, "preserve the skeleton" had nothing to preserve; the frames are what the original actually authored. A rig is what Unity blends, interpolates and carries through LODs, and the shared body makes one fit across all of a creature's clips feasible.
+- The replacement tier already exists, so the look becomes a data choice and needs no new architecture.
+- `AGENTS.md`: original assets may not be assumed redistributable, and a derived asset inherits that.
+
+**Consequences.**
+- Human and AI contributors are bound by `ART_DIRECTION.md`; `AGENTS.md` points there.
+- The first real user of the replacement tier arrives with the proof of concept. Nothing is built yet beyond `DK2.Convert`.
+- Open: Q442 (clip playback rate), Q443 (second UV family), the render pipeline, the Unity interchange format and where hand-touched derived work is stored (`ASSET_PIPELINE.md` §11).

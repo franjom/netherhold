@@ -48,6 +48,21 @@ semantics, and group (`GROP`) semantics are **UNKNOWN** here. They are retained,
 identified, or skipped only where they cannot affect decoded geometry; no meaning is
 guessed.
 
+### How a creature's clips relate
+
+Measured on 2026-09-26 over all 2,015 KMF files in v1.70 `Meshes.WAD`, all of which
+decode: 862 static meshes, 1,145 animations, 8 groups. **Each clip is its own file and
+there is no skeleton**: no bones, bind pose or weights exist anywhere in the format.
+
+A creature's clips nevertheless share one body. Vertex counts vary per clip (the
+Imp has 26 different counts across 32 clips) only because vertices are split by UV
+and normal; distinct positions are constant (Skeleton 112, Imp 96, Bile Demon 126),
+and in 27 of the Imp's 35 files every triangle matches `Imp-PoseFrame` by index and
+UV. Prop clips keep the whole body and append the prop: the Bile Demon's Eat, Drink
+and bed clips hold all 212 body triangles plus the chicken, bottle or bed. A few
+files use a second UV layout over the same counts (Q443). The model behind the
+modern pipeline is `docs/ASSET_PIPELINE.md` §2.
+
 ## Texture formats
 
 There are two unrelated stores:

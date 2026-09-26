@@ -891,6 +891,15 @@ would ship a hand-authored database. Every simulation test already builds a `Gam
 by hand with no DK2 install, so that path is proven; what does not exist is an external
 content format.
 
+### 7.4 Modernized assets
+
+M11's modern presentation re-expresses the originals rather than replacing their design:
+*preserve design, increase fidelity*, and for animation *preserve motion, modernize
+representation* (ADR-0242). The standard is `docs/ART_DIRECTION.md`; the proposed
+Blender-based pipeline, its three-asset proof of concept and its open decisions are
+`docs/ASSET_PIPELINE.md`. Modern assets are served by the replacement tier of §7.2 and,
+being derived from EA's art, are never committed or distributed.
+
 ---
 
 ## 8. Milestones

@@ -78,6 +78,16 @@ Do not assume they are redistributable.
 
 All asset access must go through an abstraction layer.
 
+## Visual fidelity
+
+**Preserve design. Increase fidelity.** For animation: **preserve motion,
+modernize representation.** Original DK2 visual design is the source of truth
+for graphics exactly as original DK2 behaviour is for gameplay: modern assets
+and Unity rendering re-express it and never redesign it, and photorealism is
+out of scope. Before creating, generating or reviewing any modern asset, read
+`docs/ART_DIRECTION.md` (the standard) and `docs/ASSET_PIPELINE.md` (how assets
+are made and checked). ADR-0242.
+
 ## Fidelity
 
 Do not "fix" strange DK2 behavior without documenting the deviation.
