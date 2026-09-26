@@ -91,3 +91,32 @@ through 89.
   - the idle sound;
   - `ReturnToJobId`;
   - the Call To Arms and casino arms.
+
+## 6. Two more `AngerNoWork` sites (Q438) — CONFIRMED, not built
+
+Read 2026-09-26 after the verification pass (`verification-2026-09-26.md` §5). The reader search
+covered every `def+0x6C0`–`+0x6CB` displacement and the indexed forms, and found four readers of
+`def+0x6C7`: the happy chooser, pit state 139, and the two below.
+
+1. **States 59 and 109.** Their handlers, `0x004762D0` and `0x004859E0`, both begin by calling
+   `0x00478F00`. That routine's first act is `0x00478B80(3, def+0x6C7, 3)`, the same charge the
+   happy chooser makes, before any of its tests. So a creature in 59 (Library) or 109 (Training
+   Room) is charged every turn it is there.
+2. **The disturbed room, `0x004E88A0(intruder)`.** `0x004E8660` calls it for a creature on a
+   Library tile whose state category is not 4, or on a Training Room tile whose category is
+   not 13. Once a game second (`turn % var19 == 0`), for each creature attached to the room
+   (`+0xA`, then `+0x238`):
+   - it is skipped if it is a worker (`def+0x686` bit 0), if it stands 3 tiles or more from the
+     intruder (`dx² + dy² ≥ 0x9000` in 1/4096 units), or if it is not in state 56 (Library) or
+     112 (Training Room);
+   - if its bucket 5 is above a tenth of `def+0x76A`, it goes to state 59 or 109
+     (`0x0048AD30`);
+   - otherwise it is charged `0x00478B80(3, def+0x6C7, 3)`.
+
+   `def+0x76A` is `UnhappyThreshold × 0x7FFF / 100` (the loader at `0x00494249`, from file
+   `0xF4F`), which is `CreatureAngerRules.UnhappyAt`: the bucket-5 bar is 1638 for every shipped
+   creature. The loader stores it only when `[EBP+0x198]` is set, which is **UNKNOWN**.
+
+**Why none of it is built.** Ours holds a researcher in 53 and a trainee in 108, the states the
+job handlers resume (`JobRules.StateFor`). Nothing enters 56, 59, 109 or 112, so both rules would
+be dead code. They wait for the Library's and Training Room's own state walks, 53–59 and 108–113.

@@ -24,7 +24,7 @@ a coincidence between two unrelated mechanics (§5.2).
 Not in any of the six training states. `FUN_00485310`, `FUN_004859e0`,
 `FUN_00485580`, `FUN_004855b0`, `FUN_004857f0` and `FUN_00485a60` are states
 108–113 and **none of them awards anything**. They walk to a training machine,
-face it, and animate.
+face it, and animate. State 109 charges `AngerNoWork` (Q438).
 
 The payment hangs off the state's **category**. Every state record carries a
 category byte at `+0x17`; there are **32 category records of `0x40` bytes at
