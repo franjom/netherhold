@@ -20,7 +20,7 @@
 |---|---|---|---|
 | 1 | 0232 | `0x006F286B` **is** written: variable 224 stat 4, shipped **60** | WRONG |
 | 2 | 0234 | `0x0048B120` has 20 call sites, not twelve | WRONG (count only) |
-| 3 | 0229 | The door column follows the slab list; ours is always leftmost. The owner saw it move between rebuilds | WRONG |
+| 3 | 0229 | The door column follows the slab list; ours is always leftmost. It follows the camera at placement (owner) | WRONG |
 | 4 | 0227 | The pit finder measures to `FirstSlab`; ours to the lowest tile | UNSURE |
 | 5 | 0228 | Two more `AngerNoWork` sites: states 59/109 (per turn) and `0x004E88A0` | missing from the docs |
 | 6 | 0227 | Level data can supply job 26 through `+0x409`; no shipped level does | claim needs qualifying |
@@ -87,13 +87,13 @@
 - **Binary:** `0x004E32C0` walks the slab list from `FirstSlab` (`+0x2D`/`+0x2E`) through each
   tile's `+4/+5`. The door is the tile north of the first floor tile whose N, NW and NE are not floor.
   In a 5×5 Prison all three top-row floor tiles qualify, so the list order decides.
-- **Owner, 2026-09-26 (five screenshots, minimap north up):** the door is always in the north wall.
-  But a 5×5 Prison sold and rebuilt on the same spot put it left of centre, then right of centre,
-  then left again. So the column follows the placement, not a fixed rule. The north wall
-  confirms the N test.
+- **Owner, 2026-09-26 (screenshots, all taken with the minimap's north up):** the door is always
+  in the map's north wall, which confirms the N test. Its column depends on the camera when the
+  room is placed. Built with the default camera, it is right of centre, and repeat builds put it
+  there again. Built with the camera turned 180°, it is left of centre. So placement orders the
+  slab list by camera direction.
 - **Test:** `JailBreakTests.TheDoorIsNorthOfTheFirstFloorTile…` pins (5, 2), our order.
-- **Still open (Q439):** how placement orders the list. Either read the room builder's slab insert
-  or record a tile-by-tile build.
+- **Still open (Q439):** the exact camera-to-order rule, from the room builder's slab insert.
 
 ## 4. ADR-0227: the pit finder's distance — UNSURE
 
@@ -396,5 +396,5 @@ Readers of `def+0x6C7` (`InsGrep 0x6c7]`, plus `0x6c4]`–`0x6c6]` for wider loa
 | Q | Question | How to close |
 |---|---|---|
 | Q438 | What do states 59 and 109, and room method `0x004E88A0`, do to a researcher or trainee near an intruder? Both charge `AngerNoWork`; 59/109 do so every turn | Read `0x00478F00`'s watch arm and `0x004871A0(5)`, then decide whether to build them |
-| Q439 | In what order does DK2's slab list run? It decides the Prison's door tile (`0x004E32C0`) and the pit finder's distance (`0x004D8510`) | Read the room builder's slab insert, or record the door after a tile-by-tile build. Owner (2026-09-26): north wall, column varies between rebuilds |
+| Q439 | In what order does DK2's slab list run? It decides the Prison's door tile (`0x004E32C0`) and the pit finder's distance (`0x004D8510`) | Read the room builder's slab insert, or record the door after a tile-by-tile build. Owner (2026-09-26): north wall; default camera gives right of centre, turned 180° gives left |
 | Q337 | Rewrite as answered (finding 1); no new number | — |
