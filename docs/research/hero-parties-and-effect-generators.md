@@ -120,10 +120,20 @@ fields `+0x418` and `+0x417` they are copied to (Q258). A slot whose `CreatureId
    `0x004B78D0` → `0x004B7900`: a unique creature (flag bit 27) is given the
    owner at `def+0x5B3` instead; the owner must exist and the world must hold
    fewer than `0x1C0` = 448 creatures, else the handler **returns 0 at once**,
-   keeping the members already made. `0x00519B20` also steps a hero-owned
-   creature off a gate room (types 19, 20, 23) with effect `0xF`, sets a
-   `GoodJob 19` and may call `0x004D0F60` — the party loop overwrites the job
-   below, and the rest is UNKNOWN (Q427).
+   keeping the members already made. **The gate step-off** (read 2026-09-26, not
+   built): for a Good creature made on a room tile, `0x00519B20` first moves the
+   point by room type, each time with effect `0xF`:
+   - **19:** a random open neighbour, N, E, S or W (world slot `+0x208`, a bit
+     mask re-rolled with `random(4)` until an open side comes up), halfway from
+     the tile centre to that neighbour's centre; none open, it returns 0;
+   - **20:** the tile named by the room's bytes `+0x2D`, `+0x2E`, plus one;
+   - **23:** the room's centre tile (world slot `+0x1D8`).
+
+   After creation it sets `GoodJob 19` (`0x0048BE20`), which the party loop
+   overwrites below. If the point moved, it calls `0x004D0F60`. That is not a
+   tile clear: it is a movement helper that six walk routines also call
+   (`0x00471890`, `0x00471A70` and others), and it sets the creature's
+   movement flags.
 3. **King Reginald** (type 21): every player in the world's list (`world+0x7A`,
    link `+0x3A`) is sent notification type **5, variant 1** with the new
    creature's id — speech 1297 *"The King has entered your realm"*, 20 s
@@ -145,8 +155,12 @@ fields `+0x418` and `+0x417` they are copied to (Q258). A slot whose `CreatureId
    the source word unchanged; `+0x3AF` adjusted; effect `0x153` and sound
    `0x349`; a creature with `+0x3E6` bit 15 at or past `byte[0x006F2976]` calls
    `0x00476D30(1, 0)`. So a member's health percentage is applied at level 1,
-   clamped, then carried up by the maximum's growth — see Q427 for what that
-   means for a member under 100 %.
+   clamped, then carried up by the maximum's growth. `0x0048B120` is DK2's
+   **only** level increment: its twelve callers include the experience adder
+   (`0x004579D4`), so an earned level rescales health the same way (ADR-0234).
+   Its mirror `0x0048AFA0` lowers the level with the same rescale (three
+   callers; not built). With the constructor's 1 at `0x004875C9`, these are the
+   only stores to `+0x403`.
 8. **Party fields.** `+0x38 := 0` (dword, role UNKNOWN), `WanderRadius :=
    member+0x1D`, `PartyId := member+0x1E`.
 9. **The job.** `0x0048BE20(job, target, value)` writes the triple at `+0x409`
@@ -186,8 +200,8 @@ no shipped party lacks one.) The handler returns 1.
 Q254 is answered above. Q257: the runtime record keeps only an 8-byte header of
 the 43-byte file header and the handler reads the trigger id alone, so
 `Unknown_0023`/`Unknown_0027` are not consumed at spawn. Q258 is answered. Left
-UNKNOWN: thing classes 3 and 4; `+0x38`; what `0x00519B20`'s gate step-off and
-`0x004D0F60` do; where `PositionInParty` and `MyLeadersId` are read
+UNKNOWN: thing classes 3 and 4; `+0x38`; what `0x004D0F60` does to the moved
+creature beyond its movement flags; where `PositionInParty` and `MyLeadersId` are read
 (`travel-states.md` §2.3 has one reader).
 
 ### Built (2026-09-24, ADR-0197)

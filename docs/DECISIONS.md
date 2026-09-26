@@ -5164,3 +5164,28 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - north and south tested before west and east;
   - the loader's orientation left at 0.
 - **`HashVersion` and `FormatVersion` 121,** pin `0x954849F97CFC0296`.
+
+## ADR-0234 — Every promotion rescales health, and the gate step-off is read
+**Date:** 2026-09-26 · **Status:** accepted · answers Q427 in part · Research: `docs/research/hero-parties-and-effect-generators.md`, `docs/research/creature-levels.md`
+
+**Context.** `CreatureLevelRules.LevelUp` reproduced `0x0048B120` for the party spawn, but `Grant`, the experience path, raised the level byte alone. Q427 asked whether that was right, and what `0x00519B20`'s gate step-off does. Codex began the read and ran out of budget; its dumps were reused here.
+
+**Decision.**
+1. **`Grant` promotes through `LevelUp`.** `0x0048B120` is DK2's only level increment. It has twelve callers, and the experience adder calls it at `0x004579D4` when the threshold is reached, before zeroing `+0x3FF`. So an earned level keeps health's share of the maximum, as a spawned one does.
+2. **The only other writers of `+0x403`** are the constructor's 1 and the mirror `0x0048AFA0`, which lowers a level with the same rescale.
+3. **The gate step-off is read, not built.** For a Good creature made on a room tile, `0x00519B20` moves its point by room type:
+   - on 19, halfway to a random open side;
+   - on 20, to a tile the room names;
+   - on 23, to its centre.
+
+   `0x004D0F60`, which it then calls, is a movement helper shared with the walk routines, not a tile clear as Q427 supposed.
+
+**Consequences.**
+- **Not built:**
+  - the step-off;
+  - the level decrement;
+  - `+0x3AF`;
+  - the level-up effect and sound.
+- **Still UNKNOWN:** thing classes 3 and 4; creature `+0x38`.
+- **Tests.** `CreatureLevelTests.AnEarnedLevelCarriesHealthUpWithTheMaximum`. The negative control, a bare increment, fails it.
+- No new state; `HashVersion` stays **121**.

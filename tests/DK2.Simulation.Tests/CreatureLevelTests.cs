@@ -314,6 +314,25 @@ public class CreatureLevelTests
         Assert.Equal(3900, CreatureLevelRules.ExperienceForNextLevel(db, imp, 2));
     }
 
+    /// <summary>An earned level goes through DK2's one level increment, <c>0x0048B120</c>
+    /// (<c>0x004579D4</c>), so health keeps its share of the new maximum (Q427).</summary>
+    [Fact]
+    public void AnEarnedLevelCarriesHealthUpWithTheMaximum()
+    {
+        GameDatabase db = Db;
+        CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
+        WorldState world = World(db);
+        CreatureState state = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        int oldMax = CreatureHealthRules.MaxHealth(db, imp, state);
+        state.Health = oldMax / 2;
+
+        Assert.True(CreatureLevelRules.Grant(db, imp, state, 3000));
+
+        int newMax = CreatureHealthRules.MaxHealth(db, imp, state);
+        Assert.True(newMax > oldMax);
+        Assert.Equal((int)(((((long)(oldMax / 2)) << 12) / oldMax * newMax) >> 12), state.Health);
+    }
+
     [Fact]
     public void LandingExactlyOnTheThresholdPromotes()
     {

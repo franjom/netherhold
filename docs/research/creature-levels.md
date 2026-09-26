@@ -123,6 +123,9 @@ prove the correction from behaviour, which nobody has done for these.
 `WorkExperiencePerOriginalTick`, `Grant`, `ExperienceForNextLevel`), plus
 `CreatureState.Level` and `ExperiencePoints`, both hashed and snapshotted.
 
+- **A promotion** goes through `CreatureLevelRules.LevelUp`, DK2's `0x0048B120`, from
+  `Grant` as from the party spawn: health keeps its share of the maximum across the level
+  (the adder calls it at `0x004579D4`; ADR-0234).
 - **Maximum health** is the record's `Hp` scaled by the Health row.
   `CreatureHealthRules.MaxHealth` takes the database and the state; the old flat
   signature was **removed rather than kept as an overload**, because a call that

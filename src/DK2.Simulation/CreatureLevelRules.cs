@@ -77,7 +77,8 @@ public static class CreatureLevelRules
     /// everything, gains and losses alike; a loss bigger than the balance is a no-op, not a clamp;
     /// reaching the threshold zeroes the balance rather than subtracting, so the overshoot is
     /// discarded and an award's cadence is observable — hence training pays on
-    /// <see cref="SimulationTiming.OnOriginalTick"/>; one level per call, no loop. A Combat Pit
+    /// <see cref="SimulationTiming.OnOriginalTick"/>; one level per call, no loop, through
+    /// <see cref="LevelUp"/> (Q427). A Combat Pit
     /// fighter at <c>CombatPitMaxExperienceLevel</c> is refused everything (combat-pit.md §7).</summary>
     [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
     public static bool Grant(
@@ -99,13 +100,10 @@ public static class CreatureLevelRules
         state.ExperiencePoints += amount;
         if (state.ExperiencePoints < needed) return false;
 
-        // The remainder is thrown away, and only one level is bought.
+        // The remainder is thrown away, and only one level is bought, through the same level
+        // increment every promotion uses (0x004579D4 calls 0x0048B120), health rescaled with it.
         state.ExperiencePoints = 0;
-        if (state.Level >= MaxLevel) return false;
-
-        state.Level++;
-        LeaveThePitAtTheCap(database, state);
-        return true;
+        return LevelUp(database, creature, state);
     }
 
     /// <summary>The level increment's pit clause: a fighter that reaches
@@ -121,7 +119,8 @@ public static class CreatureLevelRules
     /// in 12-bit fixed point, <c>new = (ratio × newMax) &gt;&gt; 12</c> — applied as a delta through
     /// the health routine, which clamps at the new maximum. A Combat Pit fighter's move to 1 at the
     /// cap is <see cref="LeaveThePitAtTheCap"/>; the <c>+0x3AF</c> adjustment is not modelled
-    /// (Q427). Returns whether it rose.</summary>
+    /// (Q427). Its twelve callers include the experience adder, the party spawn and the trigger
+    /// actions, so every promotion goes through it. Returns whether it rose.</summary>
     public static bool LevelUp(GameDatabase database, CreatureDef creature, CreatureState state)
     {
         if (state.Level >= MaxLevel || state.Health <= 0) return false;
