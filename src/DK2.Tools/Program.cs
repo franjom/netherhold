@@ -1113,6 +1113,13 @@ switch (args[0])
         }
 
         string thingsPath = ResolveEditor(args[2]);
+        if (!File.Exists(thingsPath) && !Path.HasExtension(args[2]))
+            thingsPath = ResolveEditor(args[2] + "Things.kld");
+        if (!File.Exists(thingsPath))
+        {
+            Console.Error.WriteLine($"THINGS file not found: {thingsPath}");
+            return 2;
+        }
 
         // The level's own grid, when the file is named the shipped way, so each
         // line can say what terrain is already under the thing. That is the
@@ -2667,7 +2674,7 @@ static int Usage()
     Console.WriteLine("  kwd trigger-params <tag> <type|*> [name]  value distribution of one trigger parameter");
     Console.WriteLine("  kwd triggers <file> [tag] [type]        one level's triggers, their links and parameters");
     Console.WriteLine("  kwd corpus                             parse and round-trip the shipped KWD/KLD corpus");
-    Console.WriteLine("  kwd things [file.kld]                  placed entities of one level, or the corpus");
+    Console.WriteLine("  kwd things [level|file.kld]            placed entities of one level, or the corpus");
     Console.WriteLine("  kwd parties                            how shipped HERO_PARTY records map onto the 24 runtime slots");
     Console.WriteLine("  kwd roots                              every trigger root in the campaign, by the walker that owns it");
     Console.WriteLine("  kwd unreached [turns]                 records a run never walks, and why -- declined, creature, party, orphan, closed (default 14400 = an hour)");
@@ -2686,7 +2693,7 @@ static int Usage()
 static int RunTriggerCsv(
     string levelName, int turns, string outPath, InputLog? log = null, RoomLog? rooms = null,
     string? tilePath = null, PacketLog? packet = null,
-    PacketCreatureMap? creatureIds = null, string? creaturePath = null,
+    PacketEntityMap? entityIds = null, string? creaturePath = null,
     string? eventPath = null)
 {
     string? install = Dk2Install.Find();
@@ -2749,8 +2756,9 @@ static int RunTriggerCsv(
     tileWriter?.WriteLine("tick,x,y,terrain,health");
     var seen = new Dictionary<TilePos, (byte Terrain, int Health)>();
     using var creatureWriter = creaturePath is null ? null : new StreamWriter(creaturePath);
-    creatureWriter?.WriteLine("tick,id,type,owner,x,y,state");
-    var seenCreatures = new Dictionary<int, (byte Type, byte Owner, TilePos Tile, int State)>();
+    creatureWriter?.WriteLine("tick,id,type,owner,x,y,health,state,target");
+    var seenCreatures = new Dictionary<int,
+        (byte Type, byte Owner, TilePos Tile, int Health, int State, int Target)>();
 
     using (var writer = new StreamWriter(outPath))
     {
@@ -2761,7 +2769,7 @@ static int RunTriggerCsv(
             long turn = simulation.CurrentTick.Value + 1;
             simulation.Tick(packet is null
                 ? Merge(log?.At(turn), rooms?.At(turn))
-                : packet.At(turn, creatureIds ?? new PacketCreatureMap()));
+                : packet.At(turn, entityIds ?? new PacketEntityMap()));
 
             foreach (TilePos at in watched)
             {
@@ -2777,12 +2785,14 @@ static int RunTriggerCsv(
                 foreach (CreatureState creature in world.Creatures)
                 {
                     var now = (creature.CreatureTypeId, creature.OwnerPlayerId,
-                        creature.Tile, creature.Dk2StateId);
+                        creature.Tile, creature.Health, creature.Dk2StateId,
+                        creature.FightTargetId);
                     if (seenCreatures.TryGetValue(creature.Id, out var was) && was == now)
                         continue;
                     seenCreatures[creature.Id] = now;
                     creatureWriter.WriteLine($"{turn},{creature.Id},{now.CreatureTypeId},"
-                        + $"{now.OwnerPlayerId},{now.Tile.X},{now.Tile.Y},{now.Dk2StateId}");
+                        + $"{now.OwnerPlayerId},{now.Tile.X},{now.Tile.Y},"
+                        + $"{now.Health},{now.Dk2StateId},{now.FightTargetId}");
                 }
         }
     }
@@ -2797,6 +2807,12 @@ static int RunTriggerCsv(
     {
         int imps = ImpSupplyRules.ImpCount(world, database, p.PlayerId);
         if (imps > 0) Console.WriteLine($"  imps: player {p.PlayerId} has {imps}");
+        if (log is not null || rooms is not null || packet is not null)
+        {
+            PlayerState player = world.Player(p.PlayerId);
+            Console.WriteLine($"  result: player {p.PlayerId} status={player.Status} "
+                + $"at tick={player.StatusTick.Value}");
+        }
     }
 
     if (log is not null || rooms is not null || packet is not null) tally.Report();
@@ -2865,7 +2881,7 @@ static int Replay(string[] arguments)
     string? roomPath = null;
     string? tilePath = null;
     string? packetPath = null;
-    string? creatureMapPath = null;
+    string? entityMapPath = null;
     string? creaturePath = null;
     string? eventPath = null;
     for (int i = 4; i < arguments.Length; i += 2)
@@ -2894,7 +2910,8 @@ static int Replay(string[] arguments)
                 packetPath = value;
                 break;
             case "--creature-map":
-                creatureMapPath = value;
+            case "--entity-map":
+                entityMapPath = value;
                 break;
             case "--creatures":
                 creaturePath = value;
@@ -2910,7 +2927,7 @@ static int Replay(string[] arguments)
     InputLog? log = null;
     RoomLog? rooms = null;
     PacketLog? packet = null;
-    PacketCreatureMap? creatureIds = null;
+    PacketEntityMap? entityIds = null;
     try
     {
         if (packetPath is null)
@@ -2921,15 +2938,15 @@ static int Replay(string[] arguments)
         else
         {
             packet = PacketLog.Read(packetPath, turns);
-            creatureIds = PacketCreatureMap.Read(creatureMapPath);
-            string[] unmapped = [.. packet.CreatureReferences
-                .Where(reference => !creatureIds.TryResolve(
+            entityIds = PacketEntityMap.Read(entityMapPath);
+            string[] unmapped = [.. packet.EntityReferences
+                .Where(reference => !entityIds.TryResolve(
                     reference.Original, reference.Turn, out _))
                 .Select(reference => $"{reference.Original}@{reference.Turn}")];
             if (unmapped.Length > 0)
                 throw new InvalidDataException(
-                    $"Packet creatures need observed ID mappings: {string.Join(", ", unmapped)}. "
-                    + "Pass --creature-map original,from_turn,ours.csv.");
+                    $"Packet entities need observed ID mappings: {string.Join(", ", unmapped)}. "
+                    + "Pass --entity-map original,from_turn,ours.csv.");
             if (arguments[2] != "-") log = InputLog.Read(arguments[2], lag, origin);
         }
     }
@@ -2943,9 +2960,6 @@ static int Replay(string[] arguments)
     if (packet is not null)
     {
         Console.WriteLine($"{packetPath}: {packet.ActionCount} actions on {packet.TurnCount} turns");
-        if (packet.UnknownActionCount > 0)
-            Console.WriteLine($"  {packet.UnknownActionCount} action 88 command(s) ignored "
-                + "because its meaning is UNKNOWN (navigation-captures.md)");
     }
     if (log is not null)
     {
@@ -2983,7 +2997,7 @@ static int Replay(string[] arguments)
     }
 
     return RunTriggerCsv(arguments[1], turns, arguments[3],
-        log, rooms, tilePath, packet, creatureIds, creaturePath, eventPath);
+        log, rooms, tilePath, packet, entityIds, creaturePath, eventPath);
 }
 
 /// <summary>
@@ -3006,7 +3020,7 @@ static int ReplayUsage()
     Console.Error.WriteLine("usage: dk2tools replay <level> <tags.csv> <out.csv> "
         + "[--turns N] [--lag L] [--origin T] [--rooms rooms.csv] [--tiles tiles.csv]\n"
         + "       dk2tools replay <level> <tags.csv|-> <out.csv> "
-        + "--packet recording.sav [--creature-map ids.csv] [--turns N] "
+        + "--packet recording.sav [--entity-map ids.csv] [--turns N] "
         + "[--tiles tiles.csv] [--creatures creatures.csv] [--events events.tsv]");
     return 2;
 }

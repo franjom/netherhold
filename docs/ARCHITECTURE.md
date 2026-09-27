@@ -502,18 +502,18 @@ flag bytes, 16 timer dwords, one opaque special value. Hashed and snapshotted.
 - Parameter offsets, widths and signedness come from DKII.EXE reads, not editor
   labels (ADR-0092, `docs/research/trigger-semantics.md`). Pinned by
   `TriggerStateOnRealDataTests`.
-- **Trigger execution is not built.** Flag and ordinary timer conditions can be
-  evaluated singly. Q228 fixes the cadence and `trigger-tree.md` fixes traversal
-  and repeat semantics; the executor and actions remain absent.
+- **Trigger execution runs each turn.** The executor traverses the level's roots,
+  checks conditions, and applies implemented actions; remaining coverage is in
+  `docs/RESEARCH_STATUS.md`. A recorded Level 1 play wins headlessly (Q444).
 
 ## Absences with architectural weight
 
 `docs/HANDOFF.md` §"What does not exist" is the full list. Four of them constrain
 design rather than merely waiting their turn:
 
-- **Trigger execution.** The banks, the parameter views and the action points are
-  state; nothing consumes them, so no level is winnable and objectives have no
-  host.
+- **Trigger coverage.** Level 1's recorded play reaches a win, while other
+  campaign levels still depend on unimplemented actions and conditions
+  (`docs/RESEARCH_STATUS.md`).
 - **The pathfinder is an admitted placeholder** (ADR-0012, Q5), and since
   ADR-0155 a *measured* divergence rather than an unknown one. Everything that
   depends on route length or arrival order is provisional.

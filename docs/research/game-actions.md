@@ -39,7 +39,7 @@ independently caught it**. All six land on a handler here:
 | 41 | untag | `KEEPER_AI.md` |
 | 62 | slap | `KEEPER_AI.md` |
 | 63 | remove Call To Arms | `KEEPER_AI.md` |
-| 88 | pick up Special | `KEEPER_AI.md` |
+| 88 | activate selected Special | `specials.md` |
 | 135 | Temple keeper-spell offering, handler `0x005133A0` | `sacrifice.md` §3 |
 
 None was used to *derive* the layout; all six were checked against it after.
@@ -49,8 +49,7 @@ None was used to *derive* the layout; all six were checked against it after.
 DK2's own packet recorder writes the player's commands as `[startTile, endTile,
 zero, action id, word]` (`navigation-captures.md`, Q356). **Those action ids are
 these ids.** Three of §2's anchors — 40 tag, 41 untag, 62 slap — came back from
-recorded sessions unchanged, and **88 arrives here already named**: the table
-calls it *pick up Special* from `KEEPER_AI.md`, and a played session issued it.
+recorded sessions unchanged; action 88 activates a selected Special (`specials.md`).
 
 So the two halves name each other. The recordings say what a command *is*, from
 an owner performing a numbered list; this table says what code *runs*. The names
@@ -82,7 +81,7 @@ and attack with `-PSAVE` running; the prediction is action 26 in the stream.
 | `0x01` | `0x00512930` | `0x35` | `0x005132a0` | `0x53` | `0x00506050` |
 | `0x14` | `0x00514560` | `0x36` | `0x005132d0` cast a spell at a place | `0x54` | `0x005060e0` |
 | `0x15` | `0x00514590` leave possession | `0x37` | `0x00513340` cast a spell on a creature | `0x55` | `0x00506100` |
-| `0x19` | `0x005146b0` the per-turn stream while possessing | `0x38` | `0x00513370` | `0x58` | `0x00513760` pick up Special |
+| `0x19` | `0x005146b0` the per-turn stream while possessing | `0x38` | `0x00513370` | `0x58` | `0x00513760` activate Special |
 | `0x1a` | `0x00514830` **the possessed creature acts — Q340** | `0x39` | `0x00513480` take a creature into the hand | `0x5c` | `0x005137e0` the window lost or regained focus |
 | `0x1b` | `0x005163c0` | `0x3a` | `0x005134e0` | `0x5d` | `0x00513800` |
 | `0x1c` | `0x00516ec0` | `0x3b` | `0x005135b0` take gold into the hand | `0x64` | `0x00513850` |

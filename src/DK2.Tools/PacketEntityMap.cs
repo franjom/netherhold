@@ -6,21 +6,21 @@ using System.Globalization;
 
 namespace DK2.Tools;
 
-/// <summary>Maps original entity slots to simulation creatures at a turn. DK2
+/// <summary>Maps original entity slots to simulation entities at a turn. DK2
 /// can reuse a slot after its first occupant dies.</summary>
-public sealed class PacketCreatureMap
+public sealed class PacketEntityMap
 {
     private readonly Dictionary<uint, SortedList<long, int>> _rows = [];
 
     public void Add(uint original, long fromTurn, int ours)
     {
         if (fromTurn < 1 || ours < 1)
-            throw new InvalidDataException("Creature map turns and IDs must be positive.");
+            throw new InvalidDataException("Entity map turns and IDs must be positive.");
         if (!_rows.TryGetValue(original, out SortedList<long, int>? spans))
             _rows[original] = spans = [];
         if (spans.ContainsKey(fromTurn))
             throw new InvalidDataException(
-                $"Original creature {original} has two mappings from turn {fromTurn}.");
+                $"Original entity {original} has two mappings from turn {fromTurn}.");
         spans.Add(fromTurn, ours);
     }
 
@@ -37,9 +37,9 @@ public sealed class PacketCreatureMap
         return false;
     }
 
-    public static PacketCreatureMap Read(string? path)
+    public static PacketEntityMap Read(string? path)
     {
-        var map = new PacketCreatureMap();
+        var map = new PacketEntityMap();
         if (path is null) return map;
         using var reader = File.OpenText(path);
         if (reader.ReadLine() != "original,from_turn,ours")
@@ -56,7 +56,7 @@ public sealed class PacketCreatureMap
                     out long from) ||
                 !int.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture,
                     out int ours))
-                throw new InvalidDataException($"{path}:{number}: invalid creature mapping.");
+                throw new InvalidDataException($"{path}:{number}: invalid entity mapping.");
             map.Add(original, from, ours);
         }
         return map;

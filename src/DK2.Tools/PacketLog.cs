@@ -9,7 +9,7 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Tools;
 
-/// <summary>Player actions from a DK2 packet recording. Creature ids belong to
+/// <summary>Player actions from a DK2 packet recording. Entity ids belong to
 /// the original process and require an observed mapping before replay.</summary>
 public sealed class PacketLog
 {
@@ -19,13 +19,11 @@ public sealed class PacketLog
 
     public int ActionCount => _turns.Values.Sum(actions => actions.Count);
     public int TurnCount => _turns.Count;
-    public IReadOnlyList<(long Turn, uint Original)> CreatureReferences =>
+    public IReadOnlyList<(long Turn, uint Original)> EntityReferences =>
         [.. _turns.OrderBy(pair => pair.Key)
             .SelectMany(pair => pair.Value
-                .Where(action => action.Kind is 57 or 62)
+                .Where(action => action.Kind is 57 or 62 or 88)
                 .Select(action => (pair.Key, action.First)))];
-    public int UnknownActionCount => _turns.Values.Sum(actions =>
-        actions.Count(action => action.Kind == 88));
 
     public static PacketLog Read(string path, int throughTurn)
     {
@@ -80,7 +78,7 @@ public sealed class PacketLog
         return new PacketLog(turns);
     }
 
-    public InputFrame At(long turn, PacketCreatureMap creatureIds)
+    public InputFrame At(long turn, PacketEntityMap entityIds)
     {
         if (!_turns.TryGetValue(turn, out List<PacketAction>? raw)) return InputFrame.Empty;
         var commands = new List<PlayerCommand>();
@@ -112,6 +110,8 @@ public sealed class PacketLog
                     commands.Add(new SlapCreatureCommand(player, Resolve(a.First)));
                     break;
                 case 88:
+                    commands.Add(new ActivateSpecialCommand(player, Resolve(a.First)));
+                    break;
                 case 114:
                     break;
                 default:
@@ -120,9 +120,9 @@ public sealed class PacketLog
         }
         return commands.Count == 0 ? InputFrame.Empty : new InputFrame(commands);
 
-        int Resolve(uint original) => creatureIds.TryResolve(original, turn, out int ours)
+        int Resolve(uint original) => entityIds.TryResolve(original, turn, out int ours)
             ? ours : throw new InvalidDataException(
-                $"Original creature {original} at turn {turn} has no observed simulation mapping.");
+                $"Original entity {original} at turn {turn} has no observed simulation mapping.");
     }
 
     private static TilePos PackedTile(uint packed) =>

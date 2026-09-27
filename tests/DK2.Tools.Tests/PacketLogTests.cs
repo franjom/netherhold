@@ -24,7 +24,7 @@ public sealed class PacketLogTests
             PacketLog packet = PacketLog.Read(path, 3);
             Assert.Equal(4, packet.ActionCount);
 
-            var map = new PacketCreatureMap();
+            var map = new PacketEntityMap();
             Assert.Throws<InvalidDataException>(() => packet.At(3, map));
             map.Add(453, 2, 8);
             map.Add(453, 3, 9);
@@ -38,6 +38,31 @@ public sealed class PacketLogTests
             Assert.Equal(9, Assert.IsType<PickUpCreatureCommand>(hand[0]).CreatureId);
             var drop = Assert.IsType<DropCommand>(hand[1]);
             Assert.Equal((7, 9), (drop.Tile.X, drop.Tile.Y));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void SpecialActivationRequiresObservedObjectMapping()
+    {
+        var bytes = new List<byte>(new byte[69]);
+        Turn(bytes, 2, (1128, 0, 0, 88));
+        Turn(bytes, 3);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            PacketLog packet = PacketLog.Read(path, 2);
+            Assert.Contains(packet.EntityReferences, reference =>
+                reference == (2L, 1128u));
+            var map = new PacketEntityMap();
+            Assert.Throws<InvalidDataException>(() => packet.At(2, map));
+            map.Add(1128, 2, 1);
+            var command = Assert.IsType<ActivateSpecialCommand>(Assert.Single(packet.At(2, map).All));
+            Assert.Equal((3, 1), (command.PlayerId, command.ObjectId));
         }
         finally
         {

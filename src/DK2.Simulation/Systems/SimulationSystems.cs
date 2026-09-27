@@ -15,6 +15,8 @@ public static class SimulationSystems
         // Hand first: one picked up this tick takes no step, and one dropped onto
         // marked work starts on it at once (ADR-0062).
         new HandSystem(),
+        // A picked Special changes levels before this tick's movement and combat.
+        new SpecialSystem(),
 
         // A tile marked on tick N is marked for all of N; sell before build, so one
         // room can pay for another on one tick; build after tag, so both land as room.

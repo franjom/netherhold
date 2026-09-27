@@ -190,8 +190,8 @@ places a trap with nothing manufactured would say outright whether a refused
 placement still writes a command. It matters for anything that reads these
 commands as state changes.
 
-**STRONGLY INFERRED.** What is still UNKNOWN: **88**, seen in the first session
-and in neither of these, and **93** and **106**, which appeared here (a large id
+**STRONGLY INFERRED.** Action **88** is resolved in `specials.md`. Still UNKNOWN:
+**93** and **106**, which appeared here (a large id
 and a 1) against no action the owner named.
 
 ## Level 1 winning packet (2026-09-27)
@@ -203,8 +203,8 @@ start at 1848 and the win at 1872. The shipped trigger tree writes flag 20 from
 creature event 4 (killed), then starts timer 12 and wins when it expires.
 
 The packet through turn 1899 has 82 commands: 31 tags, 2 untags, 2 room builds,
-20 creature pickups, 20 drops, 1 slap, 1 unknown action 88 and 5 UI selections.
-`dk2tools replay --packet` reads all 82 commands directly. Its creature map uses
+20 creature pickups, 20 drops, 1 slap, 1 Special activation and 5 UI selections.
+`dk2tools replay --packet` reads all 82 commands directly. Its entity map uses
 `original,from_turn,ours` because DK2 reuses entity slots: IDs 450 and 451 begin
 as hero Dwarves and later hold keeper Goblins. The read-only playback probe
 (`creature-map.csv` beside the packet) supplies the original slot lifetimes:
@@ -217,14 +217,11 @@ as hero Dwarves and later hold keeper Goblins. The read-only playback probe
 | 450, 451 | 1437, 1653 | 13, 14 | reused for the next two keeper Goblins, **STRONGLY INFERRED** |
 
 Our first Goblin arrives at turn 672 against DK2's 753. All 20 pickups and
-20 drops execute in our replay;
-12 drops stun the creature. The original and ours share 56 trigger/flag event
-IDs, but ours has no flag 20, timer 12 or win through turn 1900. DK2's killed
-flag for the Lord of the Land is visible at capture turn 1847; ours is alive
-at 1900, with 4,980 health after its last logged Goblin hit at 1816 (Q444).
-The recorded mass drop lands seven
-Goblins at turns 1775–1802. Action 88 remains UNKNOWN and is reported as
-ignored. Tile ownership's repaired gap is in `tile-work.md`.
+20 drops execute; 12 drops stun the creature. The recorded mass drop lands
+seven Goblins at turns 1775–1802. With the Special action at turn 1708
+(`specials.md`), our Lord dies at turn 1846, flag 20 and timer 12 fire, and
+player 3 reaches status 2 (Won) at tick 1872, the original win tick (Q444).
+Tile ownership's repaired gap is in `tile-work.md`.
 
 ## The probe's own limits
 

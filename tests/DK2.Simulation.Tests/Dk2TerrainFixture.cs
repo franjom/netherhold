@@ -253,6 +253,9 @@ internal static class Dk2TerrainFixture
     /// carried to the Library in state 33.</summary>
     public const byte RevealMapSpecialObjectId = 118;
 
+    /// <summary>Object id 117, Level 1's Increase Level Special.</summary>
+    public const byte IncreaseLevelSpecialObjectId = 117;
+
     /// <summary>Object id 5, the Alarm trap's crate: <see cref="ObjectFlags.TypeCrate"/>, carried
     /// to the Workshop in state 32.</summary>
     public const byte AlarmCrateObjectId = 5;
@@ -340,6 +343,7 @@ internal static class Dk2TerrainFixture
         // shipped records' (ObjectsOnRealDataTests); nothing reads the other fields.
         Carried(SpellBookObjectId, "Spell Book", ObjectFlags.TypeSpellBook),
         Carried(RevealMapSpecialObjectId, "Special [ Reveal Map ]", ObjectFlags.TypeSpecial),
+        Carried(IncreaseLevelSpecialObjectId, "Special [ Increase Level ]", ObjectFlags.TypeSpecial),
         Carried(AlarmCrateObjectId, "Crate Alarm", ObjectFlags.TypeCrate),
         Carried(WoodenDoorCrateObjectId, "Crate Wooden Door", ObjectFlags.TypeCrate),
 
