@@ -253,6 +253,8 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     private static void Die(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
+        context.FireCreatureEvent(state, CreatureTriggerEvent.Killed);
+
         // A dead creature gives up its bed, or a lair leaks a tile forever.
         // Not on collapse — the rescue path carries it back to that bed. A
         // creature that goes on to be a corpse releases it here too, so a body

@@ -169,7 +169,7 @@
 **Consequences.**
 - An imp with nothing marked claims and reinforces outward from its keeper's territory; five tests that had encoded the old restriction changed.
 - Wandering is not implemented: an imp with none of the three stands still (Q41). It has no simulation consequence we model, and inventing a walk would put imps where DK2 would not.
-- The original's cap of three imps a face and twelve a tile (Q43) was unimplemented here; ADR-0026 and ADR-0030 built it.
+- Digging's cap of three imps a face and twelve a tile (Q43) was unimplemented here; ADR-0026 and ADR-0030 built the job-specific limits.
 - Code now: this order is one tier of a two-tier chooser (ADR-0058), and `ImpTaskKind` carries DK2's own task-kind bytes read from the binary — `None` 0, `Excavate` 1, `Claim` 3, `Reinforce` 6, `FetchGold` 7, `CarryObject` 8, `CarryCorpse` 12, `CarryUnconscious` 13, `ClaimFreshlyDug` 14 (`docs/research/imp-task-priority.md`).
 
 ## ADR-0019 — A creature's hands are a place gold can be
@@ -285,20 +285,20 @@
 - **What the *pathfinder* charges is still not evidence about DK2** (Q5). The mover's √2 is forced and the router's 14 is the only choice consistent with it, but whether the original's own search weights diagonals is unobserved and probably unobservable — in open uniform terrain both cost models produce paths of the same shape. **ADR-0155 makes the question moot:** the original searches a triangle mesh, so it has no per-step diagonal cost to weight.
 - Code now: with `TicksPerSecond = 4` (ADR-0089) the 14/10 ratio no longer survives tick quantisation — a four-tile walk is 9 ticks straight against 13 on the bias — so `ImpTests.WalkingOnTheBias_TakesRootTwoTimesAsLong` asserts within one tick and says why. How a leg's surplus is spent inside a tick is ADR-0059.
 
-## ADR-0026 — Three workers to a face, and the fourth goes elsewhere
-**Date:** 2026-08-30 · **Status:** accepted · refined by ADR-0030: the cap follows the stance
+## ADR-0026 — Worker limits belong to a job and a face
+**Date:** 2026-08-30 · **Status:** accepted · corrected 2026-09-27
 
 **Context.** The owner watched a block being dug in the original (Q26/Q43): **three imps to a face, twelve to a block**, and an imp that cannot get onto a face **goes and finds other work — it does not queue**. Ours converged without limit, so a marked tile could soak up every imp a keeper had.
 **Decision.**
-- **The cap is on the face, not on the block.** `ImpCrowding.FaceIsFull` counts workers whose *target tile* is this one and whose *face* is this neighbour, and the job search skips a full face. **The twelve is not a rule and nothing counts to it** — it is the three, four times, because a tile has four orthogonal neighbours and work is orthogonal (Q27). The twelve is how the owner established that work is orthogonal: eight-connected work would have given eight.
+- **The cap is on a job's face, not on the block.** Digging admits three imps on each orthogonal side; twelve is the consequence of four accessible sides, not a separate limit. Reinforcing admits one on each side, at most four on a wall. The owner observed this distinction on 2026-09-27; the original dig handler checks three holder slots per side, while reinforcing checks one (`imp-tasks.md`).
 - **Rejecting the face rather than the tile is what makes the fourth imp leave.** The search carries on to the next standing tile — another side of the same block, or another block — and falls through to the next job priority if nothing is left. Nothing waits.
 - **A worker's face is derived, not stored**: the end of its route if it is still walking, the tile under it if it has arrived. Counting the *intended* face stops four imps setting off for the same side and discovering the crowd on arrival; deriving it keeps a field out of the determinism hash and makes it impossible for the face to disagree with the route.
-- **The asking creature is excluded from the count**, or the third imp on a face would drop its own job the instant it re-evaluated it.
+- **The asking creature is excluded from the count**, or a worker on a full face would drop its own job the instant it re-evaluated it.
 - **Counted across every player**: two keepers' imps on the same side of a block are in each other's way exactly as much as one keeper's would be. (ADR-0030 keeps this and replaces its stated reason.)
 **Consequences.**
-- **The three is an observed number with no source in the data, which is its own category.** `ObservedCorrections` exists for a shipped value that cannot produce the observed behaviour; here the files carry **no** value at all. The balance table has no per-face, per-tile or crowding limit for workers — the nearest thing, `OvercrowdingJailBreakPercentagePerExtraCreature`, is about prisons — and it is not derivable from geometry, since CREATURES gives a creature a `Height` and no width or radius. It lives in `ImpCrowding`, named, documented, with the search recorded. Q34's 50 % sell refund looked like the second member and was not (ADR-0029).
+- The limits are observed and visible in the task holder slots; no balance value supplies them. `ImpCrowding` keeps the job-specific limits.
 - Imps now spread: a crowd on one marked tile pushes the surplus onto other faces and then into other jobs.
-- No test broke, because every existing imp test uses one or two imps and none ever reached the cap. Three new tests cover it.
+- Digging and reinforcing have separate multi-worker tests for a full face and other accessible faces.
 - The count is O(creatures) inside a search predicate — acceptable at tens of creatures, worth revisiting if a level ever carries hundreds.
 
 ## ADR-0027 — A room is an instance, and it is derived rather than stored
@@ -386,11 +386,11 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 - The harness gained a sell command, and `scenarios/rooms/sell_a_room_back.yaml` (`rooms-sell-a-room-back-001`) runs the whole thing, including a dungeon heart being refused in the middle of a selection.
 - No new state, so no `HashVersion` bump. The economy has its first sink that runs backwards.
 
-## ADR-0030 — The crowding cap follows the stance: three to a wall, one to a floor tile
-**Date:** 2026-09-03 · **Status:** accepted · refines ADR-0026
+## ADR-0030 — Claiming takes one worker on its tile
+**Date:** 2026-09-03 · **Status:** accepted · corrected 2026-09-27
 
-**Context.** ADR-0026 justified the three-to-a-face cap as *"the limit is physical space on a tile"*, and ADR-0028 reused it for floor jobs because standing on the target *is* standing on a tile. The owner's next observation (2026-09-03) refutes that: *"only one claiming imp jumping per unclaimed tile is allowed"*. Three imps really do share a single tile to get at a wall and only one may stand on a floor tile to claim it, so the cap is per job rather than about how many bodies fit on a tile — if it were the latter, the two numbers would agree.
-**Decision.** `ImpCrowding.MaxWorkers(workedFromTheTile)` — **1** on the tile, **3** from a neighbour — and `FaceIsFull` takes the stance. `ImpTaskSystem` already knows which stance a job uses (ADR-0028), so nothing new is computed and no work kind is named.
+**Context.** The owner observed that only one imp claims an unclaimed floor tile at once (2026-09-03). Digging can put three on one neighbouring tile, so occupancy is a job rule rather than a physical space limit.
+**Decision.** `ImpCrowding.MaxWorkers` admits one worker on the target tile. Neighbouring work also names its kind: digging admits three per face and reinforcing one (ADR-0026).
 - **CONFIRMED for both numbers, and neither is derived.** The tidier story ("a tile holds three workers") is refuted by the very observation that gave the second number; both are here because both were watched, and neither is in any file we read.
 **Consequences.**
 - **A test had been passing for the wrong reason.** `AnImpDoesNotCountItselfOutOfItsOwnFace` ticked four times past its crowding assertions and checked three imps still held the block — but three imps swinging together put 300 damage into a plain wall's 165, so the block had already fallen and the tile had become claimable floor, and the assertion actually read **three imps claiming one tile**, which the original does not do.
@@ -663,24 +663,14 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - **Two rules are ours rather than the owner's, both flagged:** a dungeon heart **cannot** be taken this way (a heart is beaten down, and Q40's "rivals claim the rooms" happens *after* it falls — Q93), and a multi-tile bridge converts whole (a bridge is a room in every way the data can tell, but the owner said "rooms" — Q94, since **CONFIRMED by the owner, 2026-09-07: yes, like a room**, closing it with no change).
 - Q92's *rate* is still unobserved; only the propagation is confirmed. The thirteen applications are **3.25 s** at four applications a second (ADR-0089); the 2.6 s recorded when this was written assumed five a second.
 
-## ADR-0045 — A tile that cannot be owned does not carry an owner
-**Date:** 2026-09-04 · **Status:** accepted · supersedes the never-clear-ownership rule stated in `TileWorkRules.Convert` and `RoomRules.Unmake`
+## ADR-0045 — Neutral ownership after tile-work destruction
+**Date:** 2026-09-04 · **Status:** accepted · corrected 2026-09-27
 
-**Context.** Found by a scenario, not by review: a run that dug from level 1's dungeon heart toward its portal did **nothing at all for 130 game-seconds** — it dug the three tiles it was told to and then sat there.
+**Context.** A keeper digging through its own reinforced wall could not claim the floor afterward because the old conversion retained the keeper's owner id. `Claim` checks that the owner differs; the keeper was trapped inside its Level 1 dungeon.
 
-**The cause was four months old and it walled a level-1 keeper in permanently.** The owner byte survived every terrain conversion, on a justification recorded in two places: *"which owner id means 'nobody' is UNKNOWN (Q17), and every rule that cares asks `TerrainDef.IsOwnable` first, so a stale byte on unownable terrain is inert."* **Both halves were false by the time it mattered:**
+**Decision.** `TileWorkRules.Convert` assigns `PlayerIds.Neutral` when the destination terrain is not ownable. The binary's terrain conversion (`0x0044FC40`) selects the neutral player global for that destination, and the Level 1 capture confirms the resulting tile satisfies the neutral-owner area trigger. `RoomRules.Unmake` still clears ownership to `PlayerIds.Unowned` when selling a room leaves unownable terrain; that separate path has not been checked against the binary.
 
-| the claim | why it failed |
-|---|---|
-| "which id means nobody is UNKNOWN (Q17)" | **Answered the same day, in ADR-0043**: 0 is unowned, confirmed three ways across all 66 shipped levels. The reason for not writing a neutral id had expired, and nothing connected the two facts. |
-| "every rule that cares asks `IsOwnable` first, so a stale byte is inert" | **`TileWorkKind.Claim` does not.** It tests `OwnerPlayerId != playerId` and nothing else about ownership. |
-
-So a keeper who dug through **their own reinforced wall** got Dirt Path still stamped with their id — neither claimable by them (the owner already matched) nor their own land (`ImpTaskSystem.StandsOnOwnLand` requires `IsOwnable`), so their territory could not grow through it, ever. On level 1 that is fatal rather than untidy: the only route out of that dungeon heart is through the keeper's own wall, so nothing beyond it was reachable — not the portal, not a lair, not a treasury.
-**Decision.** `TileWorkRules.Convert` and `RoomRules.Unmake` clear the owner to `PlayerIds.Unowned` when the terrain they leave cannot be owned. The original reason for keeping it still holds where it applied: a treasury's destroyed type is Claimed Path, which *is* ownable, so **selling your own room still keeps the floor it stood on**. What changes is the cases nobody had in view — a dug wall, a destroyed claimed path, and a sold bridge over water, which no longer leaves you owning the water.
-**Consequences.**
-- Eight tests in `TileOwnershipTests` and one on the shipped level-1 map. Their point is that **every existing claiming test opened *unowned* rock**, which never carried the stale byte: the gap was specifically a wall the keeper already owned, and nothing dug one and then tried to grow past it.
-- One scenario hash moved (`tiles-mine-gold-001`): a mined seam's tile no longer carries the owner the rock happened to have.
-- **A third standing review question.** The first two are *what would fail if this stopped being true?* and *does anything read this fact at all?* This adds **is this justification still true?** — a reason resting on an open question rots silently the day that question is answered somewhere else, and neither the answer nor the reason knows about the other. `docs/GOAL_ALIGNMENT.md` carries it.
+**Evidence:** `docs/research/tile-work.md`. The change lets the keeper claim the dug tile and restores Level 1's missing tile triggers. A non-ownable terrain id alone does not imply owner zero.
 
 ## ADR-0046 — DKII.EXE may be decompiled; its output may not enter the repository
 **Date:** 2026-09-04 · **Status:** accepted · amended 2026-09-04: the binary is the *primary* source to consult

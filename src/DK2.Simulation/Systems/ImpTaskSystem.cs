@@ -1068,15 +1068,15 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             }
         }
 
-        // Three workers to a face for a wall and exactly ONE for a tile a worker
-        // stands on to claim it (CONFIRMED both ways, Q43/Q44); the surplus finds
+        // Digging allows three workers per face, reinforcing one; a worker
+        // standing on a tile to claim it also works alone (Q43/Q44). Surplus finds
         // other work rather than queueing. Rejecting the FACE rather than the
         // tile is what makes that happen: the search carries on to the next
         // standing tile, which may be another side of this block, another block,
         // or another priority entirely. The cap is per job, not per tile.
         int index = (target.Y * world.Width) + target.X;
         if (ImpCrowding.FaceIsFull(
-                world, context.Database, index, standing, askingCreatureId, onTheTile))
+                world, context.Database, index, standing, askingCreatureId, onTheTile, kind))
         {
             kind = default;
             return false;

@@ -348,7 +348,7 @@ public class TileWorkOnRealDataTests
         Assert.False(db.TerrainById(world.Tile(wall).TerrainId).IsSolid);
 
         // And the whole point: the keeper can take the ground they opened.
-        Assert.Equal(PlayerIds.Unowned, world.Tile(wall).OwnerPlayerId);
+        Assert.Equal(PlayerIds.Neutral, world.Tile(wall).OwnerPlayerId);
         Assert.True(TileWorkRules.Applies(db, world.Tile(wall), TileWorkKind.Claim, 3));
     }
 }

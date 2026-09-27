@@ -171,15 +171,16 @@ public class TileWorkTests
         for (int i = 1; i <= 23; i++)
             Assert.Equal(
                 TileWorkOutcome.Progressed,
-                TileWorkRules.Apply(Db, ref tile, TileWorkKind.AttackTile, 2).Outcome);
+                TileWorkRules.Apply(Db, ref tile, TileWorkKind.AttackTile, PlayerIds.FirstKeeper).Outcome);
 
-        TileWorkResult last = TileWorkRules.Apply(Db, ref tile, TileWorkKind.AttackTile, 2);
+        TileWorkResult last = TileWorkRules.Apply(Db, ref tile, TileWorkKind.AttackTile, PlayerIds.FirstKeeper);
 
         Assert.Equal(TileWorkOutcome.Destroyed, last.Outcome);
         Assert.Equal(Dk2TerrainFixture.DirtPath, tile.TerrainId);
 
-        // Destroying a tile never hands it to the attacker: it has to be claimed.
-        Assert.NotEqual(2, tile.OwnerPlayerId);
+        // Destruction assigns the neutral player; the attacker must claim it.
+        Assert.Equal(PlayerIds.Neutral, tile.OwnerPlayerId);
+        Assert.NotEqual(PlayerIds.FirstKeeper, tile.OwnerPlayerId);
     }
 
     [Fact]

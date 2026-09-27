@@ -542,10 +542,10 @@ public static class TileWorkRules
     /// <para>A dig mark survives only if the new terrain can carry one: rock that
     /// becomes floor loses it, a gem face (destroyed type itself) keeps it, which
     /// is why marking one sets imps mining indefinitely — STRONGLY INFERRED.
-    /// Ownership is written only when the new terrain is ownable and the work took
-    /// it, else cleared to <c>PlayerIds.Unowned</c> (Q17, Q95, ADR-0045). Gold the
-    /// terrain cannot hold comes loose, so <see cref="GoldStore.Total"/> counts
-    /// nothing unreachable.</para>
+    /// A takeover of ownable terrain assigns the worker's player; conversion to
+    /// unownable terrain assigns <c>PlayerIds.Neutral</c> (Q95, ADR-0045).
+    /// Otherwise ownership stays. Gold the terrain cannot hold comes loose,
+    /// so <see cref="GoldStore.Total"/> counts nothing unreachable.</para>
     /// </summary>
     /// <returns>Gold that was on the tile and could not stay.</returns>
     private static int Convert(
@@ -581,12 +581,10 @@ public static class TileWorkRules
             PortalRules.OnOwnerChanged(ref tile);
         }
 
-        // A tile that cannot be owned does not carry an owner: 0 is unowned,
-        // confirmed three ways across all 66 shipped levels (Q17, ADR-0043).
-        // Keeping the byte was a four-month defect — TileWorkKind.Claim tests
-        // `OwnerPlayerId != playerId` and never asks IsOwnable, so dug-out own
-        // wall stayed stamped and unclaimable, walling level 1 in. Q95.
-        if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Unowned;
+        // DK2's terrain conversion assigns the neutral player when the destination
+        // cannot be owned (0x0044FC40); Level 1's tile triggers read that owner.
+        // This also lets a keeper claim the ground dug out of their own wall.
+        if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Neutral;
 
         int spilled = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));
         tile.GoldHeld -= spilled;

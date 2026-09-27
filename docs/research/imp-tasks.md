@@ -28,13 +28,14 @@ Q47); `DKII.EXE` v1.70 for the priority order (`imp-task-priority.md`).
 | Creature `speed` is in tiles per second | **STRONGLY INFERRED** (Q29) — see below |
 | Walkability follows `CanWalkOnWater` / `CanWalkOnLava` | **STRONGLY INFERRED** — the flags exist for nothing else |
 | **Job priority is two tiers: marked excavation then claiming, each whole-map; then the nearest of reinforcing and floor gold, wall first on a tie** | **READ from the binary and CONFIRMED by the owner twice** — the order in 2026-08 (Q24, ADR-0018), and that a marked wall beats gold near or far on 2026-09-05 (Q147). Gold's place is DK2's (Q146, ADR-0058); the distance metric is ours (Q25). `imp-task-priority.md` |
-| A **wall** is worked from an orthogonal neighbour | **CONFIRMED** — twelve imps a block at three a face is four faces (Q27) |
+| A **wall** is worked from an orthogonal neighbour | **CONFIRMED** (Q27); up to four faces may be accessible |
 | **Floor is worked standing on the tile itself** | **CONFIRMED** for claiming (Q44) — *"imps claim tiles by jumping on them"*; ADR-0028 |
 | Repairing and attacking floor use the same stance as claiming | **STRONGLY INFERRED** (Q49) — identical geometry, and no observation distinguishes them |
 | The ~500 ms an imp lingers on a tile it has just claimed | **UNKNOWN** (Q49) — cooldown or animation, indistinguishable from outside; not modelled |
 | An imp with no work rests and wanders | **PARTLY BUILT** — states 10, 12 and 87 run; idle-action duration is guessed (`imp-idle-and-wandering.md`, ADR-0224) |
-| Three imps a face for a wall, and the surplus goes elsewhere | **CONFIRMED and IMPLEMENTED** (Q26/Q43, ADR-0026) — `ImpCrowding.MaxWorkersPerFace` = 3 |
-| **One** imp for a tile it stands on to claim | **CONFIRMED and IMPLEMENTED** (Q43, ADR-0030) — `ImpCrowding.MaxWorkersOnTheTile` = 1; the cap is per job, not per tile: three share a tile to reach a wall and one may stand on floor |
+| Digging admits three imps per face; reinforcing admits one per face | **CONFIRMED** (owner, 2026-09-27, Q26/Q43). The binary's dig handler (`0x0046A550`) checks three holder slots per side; the reinforce handler (`0x0046AEA0`) checks slot zero only. `ImpCrowding` applies the two limits. |
+| **One** imp for a tile it stands on to claim | **CONFIRMED and IMPLEMENTED** (Q43, ADR-0030) — `ImpCrowding.MaxWorkersOnTheTile` = 1; the cap depends on the job, not just the tile or stance |
+
 | Claiming and reinforcing spread from ground the keeper already holds | **CONFIRMED** (Q42, restated by the owner 2026-09-03: imps claim tiles adjacent to claimed tiles) — supported by Q33, where a room tile must touch owned land. Which tile carries the condition follows from the stance (ADR-0028) |
 | Whether "adjacent" there includes diagonals | **CONFIRMED — no** (Q66, owner 2026-09-07). Orthogonal is what is implemented, and it only started mattering once movement went eight-connected (ADR-0025) |
 | A worker takes the marked tile fewest steps away | **HYPOTHESIS** (Q25) |
@@ -45,6 +46,10 @@ Q47); `DKII.EXE` v1.70 for the priority order (`imp-task-priority.md`).
 | An imp with a part-load tops up from a pile it passes | **READ** (Q142) — until its hands hold a level-scaled share of `MaxGoldHeld`; ours gets the same outcome because a loaded imp is delivering before selection runs |
 | An imp with nowhere to unload keeps mining | **CONFIRMED** (Q31) — but the floor lump it should leave is NOT IMPLEMENTED, so the overflow is lost (Q138, Q140) |
 | Routing: connectivity and step cost | **CONFIRMED** eight-connected with cut corners (Q28); **CONFIRMED** no terrain weighting (Q30); **STRONGLY INFERRED** octile 10/14 (Q48). Tie-breaking is ours. The original's algorithm is **not a grid search at all** (Q5, ADR-0155): a triangulated navigation mesh followed by a steering system. Q28 and Q30 stand, because they were observed rather than inferred |
+
+**STRONGLY INFERRED:** workers on separate reinforcing faces each apply their
+own health increment to the same wall, so more faces shorten completion time.
+The owner observed the occupancy, not a controlled multi-imp timing comparison.
 
 ---
 

@@ -8,18 +8,7 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>One invariant: a tile whose terrain cannot be owned does not carry an
-/// owner (Q95, ADR-0045). Player 0 is unowned, confirmed three ways across all 66
-/// shipped levels (ADR-0043), so there is an id that means nobody.</summary>
-/// <remarks>The owner byte used to survive every conversion, justified as inert
-/// because every rule that cares asks <c>TerrainDef.IsOwnable</c> first. It does
-/// not: <see cref="TileWorkKind.Claim"/> tests <c>OwnerPlayerId != playerId</c>
-/// and never asks, so a keeper who dug through their own reinforced wall got Dirt
-/// Path still stamped with their id — neither claimable by them nor their own
-/// land, and their territory could not grow through it. That walled a level-1
-/// keeper in permanently for four months, the only route out of that heart being
-/// through the keeper's own reinforced wall. A justification can rot when the
-/// thing it rests on is answered elsewhere.</remarks>
+/// <summary>Ownership after tile work and room removal (Q95, ADR-0045).</summary>
 public class TileOwnershipTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -52,7 +41,7 @@ public class TileOwnershipTests
     // ---- the invariant ----------------------------------------------------
 
     [Fact]
-    public void NoTerrainThatCannotBeOwnedEverCarriesAnOwner()
+    public void TileWorkAssignsNeutralOwnershipToGroundThatCannotBeOwned()
     {
         WorldState world = World();
 
@@ -83,7 +72,7 @@ public class TileOwnershipTests
                 $"{terrain} under {kind} was expected to end on unownable ground, " +
                 $"and ended on {after.Name} — so this case tests nothing");
 
-            Assert.Equal(PlayerIds.Unowned, world.Tile(at).OwnerPlayerId);
+            Assert.Equal(PlayerIds.Neutral, world.Tile(at).OwnerPlayerId);
             checkedCases++;
         }
 
@@ -102,11 +91,11 @@ public class TileOwnershipTests
         // Dirt Path — neither of which is ownable terrain.
         WorkUntilChanged(world, at, TileWorkKind.DigOwnWall, Keeper);
         Assert.Equal(Dk2TerrainFixture.Rock, world.Tile(at).TerrainId);
-        Assert.Equal(PlayerIds.Unowned, world.Tile(at).OwnerPlayerId);
+        Assert.Equal(PlayerIds.Neutral, world.Tile(at).OwnerPlayerId);
 
         WorkUntilChanged(world, at, TileWorkKind.Dig, Keeper);
         Assert.Equal(Dk2TerrainFixture.DirtPath, world.Tile(at).TerrainId);
-        Assert.Equal(PlayerIds.Unowned, world.Tile(at).OwnerPlayerId);
+        Assert.Equal(PlayerIds.Neutral, world.Tile(at).OwnerPlayerId);
 
         // And the point of all of it: the keeper can now claim what they opened.
         // With the stale byte this was false, and there was no other way through.

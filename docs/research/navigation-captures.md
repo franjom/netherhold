@@ -194,6 +194,38 @@ commands as state changes.
 and in neither of these, and **93** and **106**, which appeared here (a large id
 and a 1) against no action the owner named.
 
+## Level 1 winning packet (2026-09-27)
+
+The owner won Level 1 at tick 1872 (player 3 status 2). The local packet and
+probe output are in ignored `reverse-engineering/dk2runs/level1-win-20260927-142547/`;
+the packet is `l1win927b.sav`. The probe saw flag 20 at tick 1847, timer 12
+start at 1848 and the win at 1872. The shipped trigger tree writes flag 20 from
+creature event 4 (killed), then starts timer 12 and wins when it expires.
+
+The packet through turn 1899 has 82 commands: 31 tags, 2 untags, 2 room builds,
+20 creature pickups, 20 drops, 1 slap, 1 unknown action 88 and 5 UI selections.
+`dk2tools replay --packet` reads all 82 commands directly. Its creature map uses
+`original,from_turn,ours` because DK2 reuses entity slots: IDs 450 and 451 begin
+as hero Dwarves and later hold keeper Goblins. The read-only playback probe
+(`creature-map.csv` beside the packet) supplies the original slot lifetimes:
+
+| Original slot(s) | From turn(s) | Ours | Basis |
+|---|---|---|---|
+| 455, 454, 453, 452 | 2 | 1, 2, 3, 4 | starting Imp positions, **CONFIRMED** |
+| 450, 451 | 2 | 6, 5 | starting Dwarves, first movement, **STRONGLY INFERRED** |
+| 448, 447, 446, 445, 444 | 753, 933, 1021, 1129, 1265 | 8, 9, 10, 11, 12 | keeper Goblin type and recruitment order, **STRONGLY INFERRED** |
+| 450, 451 | 1437, 1653 | 13, 14 | reused for the next two keeper Goblins, **STRONGLY INFERRED** |
+
+Our first Goblin arrives at turn 672 against DK2's 753. All 20 pickups and
+20 drops execute in our replay;
+12 drops stun the creature. The original and ours share 56 trigger/flag event
+IDs, but ours has no flag 20, timer 12 or win through turn 1900. DK2's killed
+flag for the Lord of the Land is visible at capture turn 1847; ours is alive
+at 1900, with 4,980 health after its last logged Goblin hit at 1816 (Q444).
+The recorded mass drop lands seven
+Goblins at turns 1775–1802. Action 88 remains UNKNOWN and is reported as
+ignored. Tile ownership's repaired gap is in `tile-work.md`.
+
 ## The probe's own limits
 
 The creature pass walks 4,096 entity slots and takes **~128 ms**, so asking it

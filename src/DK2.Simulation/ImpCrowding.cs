@@ -8,31 +8,29 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>How many workers fit on one job at once, and what the ones who do not fit do.</summary>
-/// <remarks><para>CONFIRMED by observation (owner, 2026-08-29 and 2026-09-03, Q26/Q43/Q44): three
-/// imps to a face and twelve to a block for a wall, exactly one for a tile a worker stands on to
-/// claim, and an imp that cannot get onto a face finds other work rather than queueing. The twelve
-/// is not a rule but the three four times — a tile has four orthogonal neighbours and work is
-/// orthogonal (Q27); nothing here counts to twelve.</para>
-/// <para>Both numbers are observed with no source in the data: a different category from
-/// <see cref="ObservedCorrections"/>, where the file carries a value that cannot produce the
-/// behaviour. The balance table has no worker crowding limit — the nearest,
-/// <c>OvercrowdingJailBreakPercentagePerExtraCreature</c>, is about prisons — and the CREATURES
-/// record gives a <see cref="CreatureDef.Height"/> and no width or radius. The ~500 ms pause after a claim (Q49) is the other case of this shape.</para></remarks>
+/// <remarks>CONFIRMED by the owner (Q26/Q43/Q44, 2026-09-27): digging admits
+/// three per face, reinforcing one per face, and claiming one on the tile.
+/// A worker denied a slot finds other work. The binary's reinforce handler
+/// uses one holder slot per side; the dig handler checks three.</remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/imp-tasks.md")]
 public static class ImpCrowding
 {
-    /// <summary>How many workers may work one tile from the same neighbouring tile: three.
-    /// Observed in the original; in no file.</summary>
+    /// <summary>Digging and mining workers per face: three.</summary>
     public const int MaxWorkersPerFace = 3;
+
+    /// <summary>One reinforcing worker per face (owner, 2026-09-27; original
+    /// reinforce task uses one holder slot per side at 0x0046AEA0).</summary>
+    public const int MaxReinforcersPerFace = 1;
 
     /// <summary>How many workers may work a tile they are standing on: one. CONFIRMED (owner,
     /// 2026-09-03) — "only one claiming imp jumping per unclaimed tile is allowed".</summary>
     public const int MaxWorkersOnTheTile = 1;
 
-    /// <summary>The cap for a job in the given <see cref="WorkStance"/>: one worker if the job is
-    /// done standing on the target, three if from a neighbour. Both numbers observed, not derived.</summary>
-    public static int MaxWorkers(bool workedFromTheTile) =>
-        workedFromTheTile ? MaxWorkersOnTheTile : MaxWorkersPerFace;
+    /// <summary>The worker cap for a job and stance.</summary>
+    public static int MaxWorkers(bool workedFromTheTile, TileWorkKind? kind = null) =>
+        workedFromTheTile ? MaxWorkersOnTheTile
+        : kind == TileWorkKind.Reinforce
+            ? MaxReinforcersPerFace : MaxWorkersPerFace;
 
     /// <summary>Whether <paramref name="face"/> already has its full complement of workers on
     /// <paramref name="targetTileIndex"/>. A worker's face is where it will be standing when it
@@ -46,9 +44,10 @@ public static class ImpCrowding
         int targetTileIndex,
         TilePos face,
         int askingCreatureId,
-        bool workedFromTheTile)
+        bool workedFromTheTile,
+        TileWorkKind? kind = null)
     {
-        int limit = MaxWorkers(workedFromTheTile);
+        int limit = MaxWorkers(workedFromTheTile, kind);
         int faceIndex = (face.Y * world.Width) + face.X;
         int count = 0;
 

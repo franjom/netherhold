@@ -2685,7 +2685,9 @@ static int Usage()
 /// </summary>
 static int RunTriggerCsv(
     string levelName, int turns, string outPath, InputLog? log = null, RoomLog? rooms = null,
-    string? tilePath = null)
+    string? tilePath = null, PacketLog? packet = null,
+    PacketCreatureMap? creatureIds = null, string? creaturePath = null,
+    string? eventPath = null)
 {
     string? install = Dk2Install.Find();
     if (install is null)
@@ -2723,7 +2725,7 @@ static int RunTriggerCsv(
     // declared system list; an idle run keeps the shape its baselines were measured in.
     var simulation = new GameSimulation(
         database, world, seed: 0,
-        systems: log is null && rooms is null ? null : SimulationSystems.Default(),
+        systems: log is null && rooms is null && packet is null ? null : SimulationSystems.Default(),
         triggers: tree)
     {
         TrackTriggerReach = true,
@@ -2732,8 +2734,10 @@ static int RunTriggerCsv(
     // A replay's tags are worth nothing if they never land, and a wrong reading of the
     // task pool looks exactly like a level nobody dug: counting what TileTagSystem
     // accepted turns that silent failure into a number.
-    var tally = new TagTally();
-    if (log is not null || rooms is not null) simulation.ObserveWith(tally);
+    using var eventWriter = eventPath is null ? null : new StreamWriter(eventPath);
+    eventWriter?.WriteLine("turn\tsystem\tkind\tdetail");
+    var tally = new TagTally(eventWriter);
+    if (log is not null || rooms is not null || packet is not null) simulation.ObserveWith(tally);
 
     // The same tiles the probe was sampling, so the two traces line up tile for
     // tile. Watching only those costs a handful of reads a tick instead of a sweep,
@@ -2744,6 +2748,9 @@ static int RunTriggerCsv(
     using var tileWriter = tilePath is null ? null : new StreamWriter(tilePath);
     tileWriter?.WriteLine("tick,x,y,terrain,health");
     var seen = new Dictionary<TilePos, (byte Terrain, int Health)>();
+    using var creatureWriter = creaturePath is null ? null : new StreamWriter(creaturePath);
+    creatureWriter?.WriteLine("tick,id,type,owner,x,y,state");
+    var seenCreatures = new Dictionary<int, (byte Type, byte Owner, TilePos Tile, int State)>();
 
     using (var writer = new StreamWriter(outPath))
     {
@@ -2752,7 +2759,9 @@ static int RunTriggerCsv(
         {
             // The logs are in DK2's turn numbers, which run one ahead of our tick.
             long turn = simulation.CurrentTick.Value + 1;
-            simulation.Tick(Merge(log?.At(turn), rooms?.At(turn)));
+            simulation.Tick(packet is null
+                ? Merge(log?.At(turn), rooms?.At(turn))
+                : packet.At(turn, creatureIds ?? new PacketCreatureMap()));
 
             foreach (TilePos at in watched)
             {
@@ -2763,6 +2772,18 @@ static int RunTriggerCsv(
                 tileWriter?.WriteLine(
                     $"{turn},{at.X},{at.Y},{tile.TerrainId},{tile.Health}");
             }
+
+            if (creatureWriter is not null)
+                foreach (CreatureState creature in world.Creatures)
+                {
+                    var now = (creature.CreatureTypeId, creature.OwnerPlayerId,
+                        creature.Tile, creature.Dk2StateId);
+                    if (seenCreatures.TryGetValue(creature.Id, out var was) && was == now)
+                        continue;
+                    seenCreatures[creature.Id] = now;
+                    creatureWriter.WriteLine($"{turn},{creature.Id},{now.CreatureTypeId},"
+                        + $"{now.OwnerPlayerId},{now.Tile.X},{now.Tile.Y},{now.Dk2StateId}");
+                }
         }
     }
 
@@ -2778,7 +2799,7 @@ static int RunTriggerCsv(
         if (imps > 0) Console.WriteLine($"  imps: player {p.PlayerId} has {imps}");
     }
 
-    if (log is not null || rooms is not null) tally.Report();
+    if (log is not null || rooms is not null || packet is not null) tally.Report();
 
     int occupied = tree.Parties.Count(s => s.TriggerId != 0);
     Console.WriteLine($"{levelName}: {turns} turns, root trigger {tree.RootTriggerId} "
@@ -2843,6 +2864,10 @@ static int Replay(string[] arguments)
     long origin = 1;
     string? roomPath = null;
     string? tilePath = null;
+    string? packetPath = null;
+    string? creatureMapPath = null;
+    string? creaturePath = null;
+    string? eventPath = null;
     for (int i = 4; i < arguments.Length; i += 2)
     {
         if (i + 1 >= arguments.Length) return ReplayUsage();
@@ -2865,17 +2890,48 @@ static int Replay(string[] arguments)
             case "--tiles":
                 tilePath = value;
                 break;
+            case "--packet":
+                packetPath = value;
+                break;
+            case "--creature-map":
+                creatureMapPath = value;
+                break;
+            case "--creatures":
+                creaturePath = value;
+                break;
+            case "--events":
+                eventPath = value;
+                break;
             default:
                 return ReplayUsage();
         }
     }
 
-    InputLog log;
+    InputLog? log = null;
     RoomLog? rooms = null;
+    PacketLog? packet = null;
+    PacketCreatureMap? creatureIds = null;
     try
     {
-        log = InputLog.Read(arguments[2], lag, origin);
-        if (roomPath is not null) rooms = RoomLog.Read(roomPath, lag, origin);
+        if (packetPath is null)
+        {
+            log = InputLog.Read(arguments[2], lag, origin);
+            if (roomPath is not null) rooms = RoomLog.Read(roomPath, lag, origin);
+        }
+        else
+        {
+            packet = PacketLog.Read(packetPath, turns);
+            creatureIds = PacketCreatureMap.Read(creatureMapPath);
+            string[] unmapped = [.. packet.CreatureReferences
+                .Where(reference => !creatureIds.TryResolve(
+                    reference.Original, reference.Turn, out _))
+                .Select(reference => $"{reference.Original}@{reference.Turn}")];
+            if (unmapped.Length > 0)
+                throw new InvalidDataException(
+                    $"Packet creatures need observed ID mappings: {string.Join(", ", unmapped)}. "
+                    + "Pass --creature-map original,from_turn,ours.csv.");
+            if (arguments[2] != "-") log = InputLog.Read(arguments[2], lag, origin);
+        }
     }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
         or InvalidDataException or ArgumentException)
@@ -2884,6 +2940,15 @@ static int Replay(string[] arguments)
         return 2;
     }
 
+    if (packet is not null)
+    {
+        Console.WriteLine($"{packetPath}: {packet.ActionCount} actions on {packet.TurnCount} turns");
+        if (packet.UnknownActionCount > 0)
+            Console.WriteLine($"  {packet.UnknownActionCount} action 88 command(s) ignored "
+                + "because its meaning is UNKNOWN (navigation-captures.md)");
+    }
+    if (log is not null)
+    {
     InputLogTally t2 = log.Tally;
     Console.WriteLine($"{arguments[2]}: {t2.Rows} rows -> {t2.Commands} commands over "
         + $"{log.Turns.Count} turns, probe turns {t2.FirstStamp}..{t2.LastStamp}");
@@ -2900,6 +2965,7 @@ static int Replay(string[] arguments)
     if (log.Turns.Count > 0 && log.Turns[^1] > turns)
         Console.WriteLine($"  the log runs to turn {log.Turns[^1]} but the run stops at "
             + $"{turns}; raise --turns to replay all of it");
+    }
 
     if (rooms is not null)
     {
@@ -2916,7 +2982,8 @@ static int Replay(string[] arguments)
                 + "the list it was found in -- THE ROOM WALK IS WRONG, not the room");
     }
 
-    return RunTriggerCsv(arguments[1], turns, arguments[3], log, rooms, tilePath);
+    return RunTriggerCsv(arguments[1], turns, arguments[3],
+        log, rooms, tilePath, packet, creatureIds, creaturePath, eventPath);
 }
 
 /// <summary>
@@ -2937,7 +3004,10 @@ static InputFrame Merge(InputFrame? tags, InputFrame? rooms)
 static int ReplayUsage()
 {
     Console.Error.WriteLine("usage: dk2tools replay <level> <tags.csv> <out.csv> "
-        + "[--turns N] [--lag L] [--origin T] [--rooms rooms.csv] [--tiles tiles.csv]");
+        + "[--turns N] [--lag L] [--origin T] [--rooms rooms.csv] [--tiles tiles.csv]\n"
+        + "       dk2tools replay <level> <tags.csv|-> <out.csv> "
+        + "--packet recording.sav [--creature-map ids.csv] [--turns N] "
+        + "[--tiles tiles.csv] [--creatures creatures.csv] [--events events.tsv]");
     return 2;
 }
 
@@ -3706,11 +3776,35 @@ static class DocBudgets
 /// <summary>Counts what the replayed tags did, from the events the tag system already emits.</summary>
 sealed class TagTally : ISimulationEventSink
 {
+    private readonly TextWriter? _events;
     private int _applied;
     private int _rejected;
+    private int _picked;
+    private int _dropped;
+    private int _dropStunned;
+    private int _pickupRefused;
+    private int _dropRefused;
+    private int _slapped;
+
+    public TagTally(TextWriter? events = null) => _events = events;
 
     public void Emit(in SimEvent simEvent)
     {
+        _events?.WriteLine($"{simEvent.Tick.Value + 1}\t{simEvent.System}\t"
+            + $"{simEvent.Kind}\t{simEvent.Detail}");
+        if (simEvent.System == "Hand")
+        {
+            switch (simEvent.Kind)
+            {
+                case "picked_up": _picked++; break;
+                case "dropped": _dropped++; break;
+                case "dropped_stunned": _dropped++; _dropStunned++; break;
+                case "pickup_refused": _pickupRefused++; break;
+                case "drop_refused": _dropRefused++; break;
+                case "slapped": _slapped++; break;
+            }
+            return;
+        }
         if (simEvent.System != "TileTag") return;
         foreach (string part in simEvent.Detail.Split(' '))
         {
@@ -3730,6 +3824,11 @@ sealed class TagTally : ISimulationEventSink
     public void Report()
     {
         Console.WriteLine($"  tags: {_applied} applied, {_rejected} rejected");
+        if (_picked + _dropped + _pickupRefused + _dropRefused + _slapped > 0)
+            Console.WriteLine($"  hand: {_picked} picked, {_dropped} dropped "
+                + $"({_dropStunned} stunned), "
+                + $"{_pickupRefused} pickups refused, {_dropRefused} drops refused, "
+                + $"{_slapped} slapped");
         if (_applied == 0 && _rejected > 0)
             Console.WriteLine("  NOTHING landed -- suspect the pool's coordinates rather "
                 + "than the level");

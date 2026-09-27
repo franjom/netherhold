@@ -315,9 +315,8 @@ public class ImpTests
     }
 
     /// <summary>
-    /// The stance rule has to keep giving the old answer for walls, or Q27's
-    /// three-imps-a-side observation stops making sense. An imp reinforcing rock
-    /// stands beside it, never on it.
+    /// The stance rule puts a reinforcing imp on an adjacent floor tile, one
+    /// worker per face (Q26/Q43), never on the wall.
     /// </summary>
     [Fact]
     public void AnImpReinforcesFromBesideTheWall()
@@ -549,6 +548,65 @@ public class ImpTests
     }
 
     // ---- crowding (Q43) ---------------------------------------------------
+
+    [Fact]
+    public void ReinforcingAdmitsOnlyOneWorkerOnEachFace()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        TilePos face = new(8, 5);
+        TilePos wall = new(8, 4);
+        ref TileState floor = ref world.Tile(face);
+        floor.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        floor.OwnerPlayerId = Keeper;
+        floor.Health = database.TerrainById(floor.TerrainId).StartingHealth;
+        foreach (TilePos other in new[] { new TilePos(7, 5), new TilePos(9, 5), new TilePos(8, 6) })
+            world.Tile(other).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+        for (int i = 0; i < 3; i++)
+            world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, face);
+
+        new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems()).Run(4);
+
+        int target = wall.Y * world.Width + wall.X;
+        Assert.Single(world.Creatures, c => c.TargetTileIndex == target
+            && c.TargetWork == TileWorkKind.Reinforce
+            && ImpCrowding.FaceOf(world, c) == face.Y * world.Width + face.X);
+    }
+
+    [Fact]
+    public void FourAccessibleFacesCanReinforceTheSameWall()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        TilePos wall = new(8, 4);
+        for (int y = 2; y <= 6; y++)
+            for (int x = 6; x <= 10; x++)
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+        ref TileState target = ref world.Tile(wall);
+        target.TerrainId = Dk2TerrainFixture.Rock;
+        target.Health = database.TerrainById(target.TerrainId).StartingHealth;
+        TilePos[] faces =
+        [
+            new(7, 4), new(9, 4), new(8, 3), new(8, 5),
+        ];
+        foreach (TilePos face in faces)
+        {
+            ref TileState floor = ref world.Tile(face);
+            floor.TerrainId = Dk2TerrainFixture.ClaimedPath;
+            floor.OwnerPlayerId = Keeper;
+            floor.Health = database.TerrainById(floor.TerrainId).StartingHealth;
+            world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, face);
+        }
+
+        new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems()).Run(4);
+
+        int targetIndex = wall.Y * world.Width + wall.X;
+        Assert.Equal(4, world.Creatures.Count(c => c.TargetTileIndex == targetIndex
+            && c.TargetWork == TileWorkKind.Reinforce));
+        Assert.Equal(4, world.Creatures.Select(c => ImpCrowding.FaceOf(world, c)).Distinct().Count());
+    }
 
     /// <summary>
     /// <b>Three workers to a face, and a fourth goes elsewhere.</b> CONFIRMED by
@@ -794,11 +852,10 @@ public class ImpTests
     /// <b>One claiming imp per unclaimed tile</b> — CONFIRMED (owner, 2026-09-03:
     /// <i>"only one claiming imp jumping per unclaimed tile is allowed"</i>).
     ///
-    /// <para>Same crowding machinery as the three-a-face wall cap (Q43) with a
-    /// different number, and the difference is <b>observed rather than
-    /// derived</b>. Three imps really do share one tile to get at a wall; only one
-    /// may stand on a floor tile to claim it. So the cap is per job, not "how many
-    /// bodies fit on a tile" — see <see cref="ImpCrowding"/>.</para>
+    /// <para>Same crowding machinery as wall work (Q43) with a different cap.
+    /// Digging admits three per face, reinforcing one, and claiming one on the
+    /// target tile. The cap belongs to the job and stance; see
+    /// <see cref="ImpCrowding"/>.</para>
     /// </summary>
     [Fact]
     public void OnlyOneImpClaimsOneTile()
@@ -875,7 +932,7 @@ public class ImpTests
             TileWorkRules.Apply(database, ref theirs, TileWorkKind.AttackTile, Keeper);
 
         Assert.Equal(Dk2TerrainFixture.DirtPath, theirs.TerrainId);
-        Assert.Equal(PlayerIds.Unowned, theirs.OwnerPlayerId);
+        Assert.Equal(PlayerIds.Neutral, theirs.OwnerPlayerId);
         Assert.True(TileWorkRules.Applies(database, theirs, TileWorkKind.Claim, Keeper));
     }
 
@@ -907,7 +964,7 @@ public class ImpTests
         {
             run.Tick();
             TileState now = run.World.Tile(4, 2);
-            if (now.TerrainId == Dk2TerrainFixture.DirtPath && now.OwnerPlayerId == PlayerIds.Unowned)
+            if (now.TerrainId == Dk2TerrainFixture.DirtPath && now.OwnerPlayerId == PlayerIds.Neutral)
                 wasDirt = true;
         }
 

@@ -15,6 +15,23 @@ public class TriggerEventTests
     private const byte Keeper = PlayerIds.FirstKeeper;
 
     [Fact]
+    public void ACreatureDeathFiresKilledBeforeItsRootIsLost()
+    {
+        (WorldState world, GameDatabase database, CreatureState creature) = CreatureWorld(root: 5);
+        creature.PosX = CreatureState.CentreOf(6);
+        creature.PosY = CreatureState.CentreOf(6);
+        creature.DieInstantly = true;
+        creature.Health = 0;
+        TriggerRecord[] records =
+            [Event(5, CreatureTriggerEvent.Killed, child: 0xFFFF), Assign(1, flagId: 1)];
+
+        new GameSimulation(database, world, 1,
+            [new Systems.CreatureHealthSystem()], new TriggerTree(records, 0)).Run(4);
+
+        Assert.Equal(9, world.Triggers.Read(1));
+    }
+
+    [Fact]
     public void AnEventRunsTheChildrenOfEveryActiveTopLevelRecordOfItsType_AndNothingElse()
     {
         (WorldState world, GameDatabase database, CreatureState creature) = CreatureWorld(root: 5);

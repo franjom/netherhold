@@ -115,10 +115,10 @@ rival's Claimed Path into Rock, a transition nothing in DK2 triggers (Q18, Q219;
 `TileWorkRules.UpwardDestination`, keyed on `Ownable`, so floor, bridge and room
 read alike).
 
-Ownership is written only when upward work converts a tile into an ownable type,
-and `Claim` requires `IsOwnable`: without that check a keeper digging through
-their own reinforced wall got Dirt Path stamped with their own id, and territory
-could not grow through it (ADR-0045).
+DK2's terrain conversion (`0x0044FC40`) assigns `[0x006F2548]`, the neutral
+player, when the destination lacks the ownable flag. Level 1's neutral-owner
+area trigger at (14,23) fires when digging leaves Dirt Path; owner 0 missed
+flags 5 through 13. The keeper can claim the tile (ADR-0045). Room sale differs.
 
 ### Why the upward conversion is a property of the work
 
