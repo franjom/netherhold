@@ -397,11 +397,13 @@ public class HandTests
     }
 
     [Theory]
-    [InlineData(1, 90)]
-    [InlineData(2, 90)]
-    [InlineData(3, 90)]
-    [InlineData(4, 80)]
-    public void TheDropLooksThreeTilesAndNotAFourth(int gap, int expected)
+    [InlineData(1, false, 90)]
+    [InlineData(2, false, 90)]
+    [InlineData(3, false, 90)]
+    [InlineData(4, false, 80)]
+    [InlineData(3, true, 90)]
+    [InlineData(4, true, 80)]
+    public void TheDropLooksThreeTilesAndNotAFourth_InBothAxes(int gap, bool vertical, int expected)
     {
         // CONFIRMED by the owner off the status bar (2026-09-06), counting marked
         // tiles up a corridor: three tiles boost, the fourth does not. DK2's own
@@ -416,7 +418,7 @@ public class HandTests
         // to reinforce, no floor to claim - is in range to muddy the reading.
         // Then one block of rock, marked, at the distance under test.
         Pave(world, 1, 1, 14, 10);
-        var mark = new TilePos(4 + gap, 5);
+        var mark = new TilePos(vertical ? 4 : 4 + gap, vertical ? 5 + gap : 5);
         ref TileState wall = ref world.Tile(mark.X, mark.Y);
         wall.TerrainId = Dk2TerrainFixture.Rock;
         wall.OwnerPlayerId = PlayerIds.Neutral;

@@ -32,7 +32,7 @@ Q47); `DKII.EXE` v1.70 for the priority order (`imp-task-priority.md`).
 | **Floor is worked standing on the tile itself** | **CONFIRMED** for claiming (Q44) — *"imps claim tiles by jumping on them"*; ADR-0028 |
 | Repairing and attacking floor use the same stance as claiming | **STRONGLY INFERRED** (Q49) — identical geometry, and no observation distinguishes them |
 | The ~500 ms an imp lingers on a tile it has just claimed | **UNKNOWN** (Q49) — cooldown or animation, indistinguishable from outside; not modelled |
-| An imp with none of the three available wanders and interacts with scenery and creatures | **CONFIRMED but NOT IMPLEMENTED** (Q41) — ours stands still |
+| An imp with no work rests and wanders | **PARTLY BUILT** — states 10, 12 and 87 run; idle-action duration is guessed (`imp-idle-and-wandering.md`, ADR-0224) |
 | Three imps a face for a wall, and the surplus goes elsewhere | **CONFIRMED and IMPLEMENTED** (Q26/Q43, ADR-0026) — `ImpCrowding.MaxWorkersPerFace` = 3 |
 | **One** imp for a tile it stands on to claim | **CONFIRMED and IMPLEMENTED** (Q43, ADR-0030) — `ImpCrowding.MaxWorkersOnTheTile` = 1; the cap is per job, not per tile: three share a tile to reach a wall and one may stand on floor |
 | Claiming and reinforcing spread from ground the keeper already holds | **CONFIRMED** (Q42, restated by the owner 2026-09-03: imps claim tiles adjacent to claimed tiles) — supported by Q33, where a room tile must touch owned land. Which tile carries the condition follows from the stance (ADR-0028) |
@@ -72,8 +72,8 @@ Imp (id 1)  class=Scout style=NonFighter
 - **The Imp has no needs.** `hungerRate` and `timeAwake` are both 32767 — the
   "never" sentinel (Q12) — and `pay` is 0. An imp does not eat, sleep or get
   paid.
-- **`AlwaysFlee` is set.** Imps run from combat. Not implemented; there is no
-  combat system to flee from.
+- **`AlwaysFlee` is set.** Combat flight is implemented (`combat-fear.md`); the
+  separate effect of this flag is not established here.
 
 The decimal forms above are lossy; the fixture's first transcription of
 `hungerRate` was 32767 where the raw value is 134213632, which
@@ -271,10 +271,10 @@ STRONGLY INFERRED.
 
 | Behaviour | DK2 | Here | Question |
 |---|---|---|---|
-| **Wandering** with nothing to do | Runs around the dungeon, interacts with scenery and creatures (CONFIRMED) | Stands still; a walk we invented would put imps where DK2 would not | Q41 |
+| **Wandering** with nothing to do | Runs around the dungeon, interacts with scenery and creatures (CONFIRMED) | States 10, 12 and 87 run; idle-action duration is guessed | `imp-idle-and-wandering.md` |
 | ~500 ms linger after claiming | Observed | Goes straight to the next job; cooldown or animation is indistinguishable from outside | Q49 |
-| Fetching a Workshop crate for a placed trap or door (kinds 9/10) | Tier A task | Nothing to act on: no traps, doors or manufacturing | `imp-task-priority.md` §8 |
-| **Fleeing a fight** (`AlwaysFlee`) | Imps flee | No combat system; the carrying tasks begin *after* a fight and scenarios place creatures at zero health | — |
+| Fetching a Workshop crate for a placed trap or door (kinds 9/10) | Tier A task | Crate delivery runs when a blueprint exists; placing blueprints in play remains open | `workshop-crates.md` |
+| **Fleeing a fight** | Imps flee | Combat flight runs; see `combat-fear.md` for its limits | `combat-fear.md` |
 | Floor lump from mined surplus with nowhere to unload | Lump grows in front of the imp | `gold_uncollected`, lost | Q138, Q140 |
 | **Building rooms** | An imp walks to a marked room tile and constructs it | `RoomBuildSystem` lays the terrain down instantly; where the job sits in the order is UNKNOWN | — |
 

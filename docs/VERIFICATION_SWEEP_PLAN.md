@@ -1,6 +1,7 @@
 # Verification sweep of everything built
 
-- **Status:** planned for the week of 2026-09-28. Not started.
+- **Status:** underway 2026-09-27. The source ledger and the first scripted scans exist;
+  no rule has passed all four checks.
 - **Why:** the ADR-0232 audit found a built rule resting on a misread "only writer" claim: a
   heartless player's heart was taken to be the origin, and DK2 uses (1, 1). The earlier checks
   had been done one feature at a time. This sweep checks every built rule once, in a fixed order,
@@ -26,6 +27,15 @@
    A `dk2tools` command generates the rows from the attributes, so nothing is typed by hand. The
    ledger is also the resume file.
 
+`dk2tools verification-ledger` writes `docs/verification-ledger.csv` and preserves A–D
+and date cells on regeneration; `--check` detects a stale ledger. It currently finds
+166 attributes (1 Hypothesis, 98 StronglyInferred, 67 Confirmed). `CandidateTests`
+means a lexical source reference, not proof that a test pins the rule. ADRs are
+collected from the source comments and the linked research note; absent citations
+remain blank for review. The existing read-only `verifier-1` Ghidra copy passed the
+226-hit positive control on 2026-09-27. One worker needs one copy; the other three
+copies are needed only when concurrent workers start.
+
 ## 2. The four checks, per rule
 
 | # | Check | How | Catches |
@@ -36,6 +46,30 @@
 | D | **Fresh reading** | A reviewer rereads the rule's routines in Ghidra against the doc and the code, without the earlier conclusions. Codex does a share of these in `D:\DungeonKeeperRemake-Codex` for a second opinion | reading errors like the (1, 1) one |
 
 A and B are scripted and run first, over everything. C and D are per rule, in the order of §3.
+
+**First-pass scan (2026-09-27):** `tools/verification/constants.py` inventoried 298
+literal constants in attributed source files. Forty have an address in adjacent
+comments; a 0x200-byte disassembly window at their 47 cited addresses gave 22
+numeric occurrences. These are candidates, not verified matches; the other 18
+and the 258 without adjacent citations remain for review. `negative_claims.py`
+inventoried broad wording matches across `docs/`; 124 research/ADR lines
+with nearby addresses look like binary exclusivity claims. `ScanBatch.py`,
+`CallScanAll.py`, and `InsBatch.py` ran on their 244 unique nearby addresses
+(960 address variants including the preceding three bytes). Both the raw and
+instruction scans retained the 226-hit control. No negative claim is cleared
+solely by an address count: indexed accesses such as the ADR-0232 counterexample
+can use a different base address.
+
+**First C pass (2026-09-27):** Stryker.NET 5.0.0, Basic mutations in
+`ImpTaskSystem.cs` against `DK2.Simulation.Tests`, scored 76.21% in 16 minutes
+(207 killed, 49 survived, 25 no coverage, 30 timeout, 12 compile errors).
+The report is local under `build/verification/stryker-imp-task-basic/`. The
+vertical three-tile drop boundary survived; `HandTests` now covers both axes,
+and the `< 3` negative control failed exactly that new case. C stays Partial
+until the other survivors and timeouts have been reviewed. Run Stryker from
+`tests/DK2.Simulation.Tests/` with `--project DK2.Simulation.csproj` and
+`--mutate Systems/ImpTaskSystem.cs`; launching from the solution root also
+analyzes unrelated test projects.
 
 ## 3. Order
 

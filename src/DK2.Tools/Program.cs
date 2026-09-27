@@ -40,6 +40,9 @@ switch (args[0])
     case "sgmap":
         return SgmapCommand.Run(args[1..], FindRepoRoot());
 
+    case "verification-ledger":
+        return VerificationLedger.Run(args[1..], FindRepoRoot());
+
     case "where":
     {
         string? dir = Dk2Install.Find();
@@ -2624,6 +2627,7 @@ static int Usage()
     Console.WriteLine("  convert --out converted-assets/        convert catalogue assets to GLB and PNG");
     Console.WriteLine("  wad list <file.WAD>                    list archive entries");
     Console.WriteLine("  coverage [--all] [--check]             which research is built: every type a research");
+    Console.WriteLine("  verification-ledger [--check]          generate or validate the sweep ledger CSV");
     Console.WriteLine("                                         doc names must exist in src/; --all also lists");
     Console.WriteLine("                                         docs naming no implementation; --check exits 1");
     Console.WriteLine("                                         on a stale claim");
