@@ -104,7 +104,7 @@ public class DeterminismTests
 
         // HashVersion 131: worker pickup flags on task release and prison delivery.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xC0AF4F951938F85CUL, sim.StateHash());
+        Assert.Equal(0xFFF1AFE1DFB6A231UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

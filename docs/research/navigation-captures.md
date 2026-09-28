@@ -245,12 +245,16 @@ down, ours 1 up; positions confirm all twelve), party members by position with
 DK2 taking the highest free slot, keeper arrivals by type and order, and gold by
 the tile its pile lay on (`GoldTile`).
 
-**First divergence: no Treasury, and gold left in hand.** Level 2 is played
-without a Treasury. DK2's imps put gold on the floor (Q140). Ours keep it and
-stop working, so at turn 635 the Library site is neither dug nor claimed. The
-Library is built with 2 of 16 tiles, and our portal sends five Goblins (first at
-870) where DK2 sent five Warlocks (987–1471). The replay therefore stops at 1329,
-with no Goblin in ours to stand for DK2's second Warlock. Action 28 (Warlock
+**First divergence: the Library site is not ready at turn 635.** Level 2 is
+played without a Treasury, and DK2's miners put their overflow on the floor
+(Q140, ADR-0264). Building that did not close the gap. Ours now drops its first
+pile at 456 against DK2's 170, and 3 tiles away, so 26 of the owner's 27 gold
+pickups up to turn 1328 find no pile of ours. The Library comes out 3 tiles of
+16. Our portal sends five Goblins (first at 870) where DK2 sent five Warlocks
+(987–1471), so the replay stops at 1329. Over turns 1–635 DK2's four starting
+imps spent 976 ticks walking (state 6) and 373 mining (26). Ours spent 1,342
+and 110, and never entered 13, 15 or 25, the pre-work checks. The next read is
+how an imp chooses and reaches its work. Action 28 (Warlock
 level 1 from the portal once a Library exists) is read, not built:
 `0x004DC8F0` makes the creature at the first owned Portal
 (`0x004DC9A0`), counts it in the portal's tally `+0x4D` and levels it up.

@@ -629,6 +629,12 @@ public sealed class CreatureState
     /// <summary>Which kind of work it intends to apply. Meaningless when <see cref="TargetTileIndex"/> is -1.</summary>
     public TileWorkKind TargetWork;
 
+    /// <summary>The standing slot a miner holds on its wall, <c>face × 3 + slot</c> (0–11), or
+    /// <see cref="MiningSlots.None"/>. DK2's chooser <c>0x00469AF0</c> gives each of a wall's four
+    /// faces three slots a third of a tile wide; the miner's overflow lands in its slot's cell
+    /// (gold-on-the-floor.md §10).</summary>
+    public byte WorkSlot = MiningSlots.None;
+
     /// <summary>Countdown in ticks. What it counts down to depends on
     /// <see cref="Activity"/>: the next re-evaluation when idle, the next work
     /// application when working.</summary>
@@ -909,6 +915,7 @@ public sealed class CreatureState
         // itself, the only thing that reads it. The state is the caller's to move.
         TargetTileIndex = -1;
         TargetWork = default;
+        WorkSlot = MiningSlots.None;
         StopMoving();
     }
 
@@ -976,6 +983,7 @@ public sealed class CreatureState
         hash.Add(RebelAgainstPlayerId);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);
+        hash.Add(WorkSlot);
         hash.Add(TimerTicks);
         hash.Add(FightTargetId);
         hash.Add(AttackType);

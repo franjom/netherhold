@@ -2760,6 +2760,7 @@ static int RunTriggerCsv(
     var seenCreatures = new Dictionary<int,
         (byte Type, byte Owner, TilePos Tile, int Health, int State, int Target)>();
 
+    int goldAsked = 0, goldMissed = 0;
     using (var writer = new StreamWriter(outPath))
     {
         simulation.EmitTriggerTurnsTo(writer);
@@ -2799,6 +2800,9 @@ static int RunTriggerCsv(
 
     if (tilePath is not null)
         Console.WriteLine($"  tiles: {watched.Length} watched -> {tilePath}");
+    // A pickup of nothing is dropped silently by the hand, so the miss is counted here.
+    if (goldAsked > 0)
+        Console.WriteLine($"  gold: {goldAsked} pickups, {goldMissed} found no pile of ours on DK2's tile");
 
     // How many workers were available to answer the marks. A capture's approach
     // times cannot be compared against ours without it: two imps and five imps
@@ -2871,10 +2875,12 @@ static int RunTriggerCsv(
     // A packet's gold pickup names DK2's pile; ours is whichever loose pile lies on its tile.
     int GoldOnTile(int tileIndex)
     {
+        goldAsked++;
         foreach (ObjectState thing in world.Objects)
             if (thing.TileIndex == tileIndex && !thing.InHand && thing.CarriedByCreatureId < 0
                 && database.ObjectById(thing.ObjectTypeId) is { IsGold: true })
                 return thing.Id;
+        goldMissed++;
         return 0;
     }
 }

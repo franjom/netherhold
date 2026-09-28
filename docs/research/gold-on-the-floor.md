@@ -164,14 +164,14 @@ renderer for objects, and because the three layouts differ:
   coordinate one of 0x3FF, 0x7FF or 0xBFF, all nine combinations except the
   centre;
 - **a dying creature** draws both coordinates uniformly over the whole tile;
-- **an imp putting a load down** uses a **twelve-slot** layout — four directions
-  by three slots along an edge, each slot a third of a tile (0x555) — and this
-  is the one place the original **merges** rather than making a new pile, which
-  is what the outside-treasury limit governs.
+- **a miner's overflow** goes down at the imp's own position, merging into a pile
+  within 1/64 of a tile of it (§10). The **twelve slots** (four faces by three
+  slots, each a third of a tile, 0x555) are where an imp *stands* to work a wall,
+  not a put-down layout; the outside-treasury limit governs which of them a miner
+  will stand in. This note first read them as a put-down layout (corrected
+  2026-09-28).
 
-Our `FloorGold` therefore **never merges**: every path it implements is one the
-original does not merge on, and the merging path is an imp task that does not
-exist yet.
+Our `FloorGold` merges on that one path (`PutDown`), per tile rather than per point.
 
 ## 8. Who owns a floor pile
 
@@ -213,16 +213,14 @@ on the same tile, a nearer pile beats a farther wall.
 
 **Not built, and named:**
 
-- the twelve-slot merge, which arrives with an imp that puts a load *down*
-  rather than picking one up;
+- per-slot piles and merging within 1/64 of a tile (§10): ours merges per tile;
 - treasury gold as an object (§2), deliberately;
 - sub-tile position (§7). `ObjectView` carries a tile and no finer position, so a
   renderer draws a pile at the tile centre wherever the original would offset it.
 
-**Open here:** Q136 (whose a floor pile is), Q138 (whether mined gold an imp
-cannot hold falls on the floor), Q139 (which tile an overflowing refund uses),
-Q140 (whether an imp with a full treasury puts its load down), Q143 (whether the
-pick-up costs time), Q145 (whether fetching interrupts a swing in progress).
+**Open here:** Q136 (whose a floor pile is), Q139 (which tile an overflowing
+refund uses), Q143 (whether the pick-up costs time), Q145 (whether fetching
+interrupts a swing in progress). Q138 and Q140 are answered in §10.
 
 **Answered here:** Q137 — a creature thrown through a portal keeps its gold
 (§6). Q142 — an imp does top up a part-load in the original; ours never does,
@@ -232,3 +230,65 @@ reachability: the original refuses a tile that is neither water nor the worker's
 own before it looks at what is on it, which is why gold mined on unclaimed
 ground never comes home. Ours reproduces the outcome by another route, both
 searches having to walk.
+
+## 10. Gold a miner cannot hold goes down at its feet (Q138, Q140)
+
+Read 2026-09-28 with Ghidra 12.1.4. STRONGLY INFERRED from the binary; the
+outcome is CONFIRMED by the owner's Level 2 recording (`navigation-captures.md`).
+
+- **The strike** (`0x004971D0`, the mining action's effect) takes gold out of the
+  seam, adds it to the owner's `GoldMined` (`+0x15A`), then hands the imp as much
+  as it can still hold: its level-scaled maximum (`+0x69C`, raw at level 1, else
+  scaled by the level table) less what it carries (`+0x3FB`), through
+  `0x0048AE70`. **The rest goes to `0x004510C0` at the imp's own position.**
+- **The put-down** (`0x004510C0`, a map method) adds the amount to a floor pile
+  (object 1) lying within `0x40` of that point, Chebyshev, or creates a new pile
+  there owned by the neutral global. Its other caller, `0x004A4710`, spreads a
+  lump of gold (`0x006F25B4`) over the Treasuries and Heart and puts the rest down
+  the same way.
+- **The miner's state** (26, `0x00465870`). A nearly full imp first tries the
+  store chooser `0x00464400`, which picks the nearest reachable Treasury or intact
+  Heart with room and otherwise posts message `0x29`, `0x2A` or `0x2B` and returns 0.
+  Delivering or not, before the next strike it checks the floor piles in its own
+  third-of-a-tile cell. One over `MaxGoldPileOutsideTreasury` gives the task up
+  (state 10). Otherwise it strikes again, so a miner with no store keeps mining.
+- **Choosing a spot.** The dig and mine chooser `0x00469AF0`, and `0x0046A550`
+  beside it, score the twelve standing slots of the target wall. For mining, they
+  skip a slot whose cell holds a pile over the limit. These three are the
+  variable's only readers (`.text`, `cseg` and all data blocks scanned, 226-hit
+  control), and none of them puts gold down.
+
+**Built:** a miner holds one of the twelve slots (`MiningSlots`,
+`CreatureState.WorkSlot`), and a floor pile records its cell (`ObjectState.Cell`).
+`TileWorkSystem.HandTo` puts the overflow into the slot's cell through
+`FloorGold.PutDown`. The miner gives the slot up once that cell passes the limit,
+and the chooser hands out only a free slot whose cell is at or under it (ADR-0264).
+Deviates: the cell stands for DK2's exact point, merging where it merges within
+1/64 of a tile, and the hand limit is unscaled, which agrees below level 5.
+
+## 11. A store sweeps loose gold on its own tiles back in (not built)
+
+Read 2026-09-28. STRONGLY INFERRED from the binary; the outcome matches the
+owner's Level 2 play. They dropped 20,000+ on one Heart tile. The Heart took
+16,000, the rest lay on that tile, and it drained into the Heart as they spent.
+
+- **The overflow.** The deposit `0x004F3C60` walks the room's tiles along its
+  chain from the given tile, filling each tile's store pile (object 3) to 3000, or
+  to 1000 on a Heart's rim tiles (`0x004DA1B0`). What is left after a full pass
+  becomes a floor pile (object 1, neutral) on the starting tile, at one of §7's
+  eight points.
+- **The sweep.** `0x004F47E0` walks the room's tiles. Every gold-flagged object
+  there that is not a store pile (def `+0xF4` bit `0x40`) is deposited through
+  `0x004F3C60` and destroyed. A pile the store cannot take therefore comes straight
+  back down, less what fitted. For a Heart it runs only when room `+0x51` is
+  non-zero (unread, Q472).
+- **When.** The Treasury update `0x004F39A0` runs the sweep every 16th turn
+  (`turn & 0xF == 0`, four seconds) while the room is not full. The Heart's update
+  `0x004D9690` does the same, but compares its gold with 16 × 3000, the Treasury
+  tile cap, where its capacity is 16 × 1000. So that test always passes, and the
+  sweep runs whether the Heart is full or not.
+- **`0x004F3C40`**, reached through a virtual slot, recounts the store, zeroes it
+  and sweeps floor piles (object 1) in with `0x004F3B60`. Probably a rebuild path.
+
+Ours has no sweep. Imps fetch a pile on the keeper's own ground (§9), which reaches
+the same end more slowly and only while imps are free.

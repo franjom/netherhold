@@ -157,7 +157,7 @@ public sealed class PacketLogTests
 
     /// <summary>Gold is mapped to the tile its DK2 pile lay on, and the pile picked up is
     /// whichever of ours the resolver finds there; none there still yields a pickup, of
-    /// nothing, so the hand counts it as refused rather than the replay hiding it.</summary>
+    /// nothing, which the hand ignores and the replay's resolver counts as a miss.</summary>
     [Fact]
     public void GoldIntoTheHandResolvesByTile_AndLocalInterfaceActionsAreIgnored()
     {

@@ -482,7 +482,7 @@ public class ImpTests
         // between applications, whatever a period is worth in seconds (Q19). This
         // keeper has no treasury, so the imp mines the seam straight through
         // instead of running off with the first load, as in the original (Q31);
-        // the overflow is reported as uncollected and lost (Q138).
+        // the overflow is put down at its feet (Q138, Q140).
         GameDatabase database = Dk2TerrainFixture.Database();
         Run run = Start(new TilePos(2, 2));
         Carve(run.World, database, new TilePos(4, 3), new TilePos(4, 4), new TilePos(4, 5));
@@ -491,7 +491,7 @@ public class ImpTests
         run.Ticks(SimulationTiming.TicksFromSeconds(10));
 
         List<long> at = run.Events.Events
-            .Where(e => e.Kind is "gold_mined" or "gold_uncollected")
+            .Where(e => e.Kind is "gold_mined" or "gold_put_down")
             .Select(e => e.Tick.Value)
             .Distinct()
             .ToList();
@@ -503,11 +503,11 @@ public class ImpTests
         // it opened, which is the priority order doing its job.
         Assert.NotEqual(Dk2TerrainFixture.Gold, run.World.Tile(5, 5).TerrainId);
 
-        // A seam is worth exactly 3000 and the imp's hands hold 1400. Everything
-        // above that is gold DK2 would have left on the floor and we cannot.
+        // A seam is worth exactly 3000 and the imp's hands hold 1400. The rest is on the
+        // floor, all of it: nothing mined is lost.
         Assert.Equal(1400, run.Imp.GoldHeld);
-        Assert.Equal(1600, run.Of("gold_uncollected")
-            .Sum(e => int.Parse(e.Detail.Split("amount=")[1].Split(' ')[0])));
+        Assert.Equal(1600, FloorGold.Total(run.World, database));
+        Assert.Empty(run.Of("gold_uncollected"));
     }
 
     [Fact]

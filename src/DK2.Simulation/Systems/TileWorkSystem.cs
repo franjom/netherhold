@@ -69,8 +69,8 @@ public sealed class TileWorkSystem : ISimulationSystem
                 tile.FreshlyDug = result.Outcome == TileWorkOutcome.Destroyed && IsExcavation(order.Kind);
 
             CreditGoldMined(context, order, result.GoldReleased);
-            int carried = HandTo(context, order, result.GoldReleased);
-            Report(context, order, result, before, world, carried);
+            int carried = HandTo(context, order, result.GoldReleased, out int putDown);
+            Report(context, order, result, before, world, carried, putDown);
         }
 
         world.RawPendingWork.RemoveRange(0, count);
@@ -132,14 +132,19 @@ public sealed class TileWorkSystem : ISimulationSystem
 
     /// <summary>
     /// Puts freed gold into the hands of whoever swung, and says how much fitted.
+    /// What does not fit is put down at the worker's feet (<see cref="FloorGold.PutDown"/>),
+    /// as DK2's mining strike <c>0x004971D0</c> does: it hands the imp what it can still
+    /// hold and gives the rest to <c>0x004510C0</c> at the imp's own position (Q138, Q140).
     ///
     /// The creature is looked up rather than passed in because the queue is the
     /// only thing that connects a swing to a swinger, and the queue survives a
     /// snapshot: an order is a fact about the world, not a reference to an
-    /// object.
+    /// object. Deviates: the limit is the unscaled <c>MaxGoldHeld</c> where DK2 scales
+    /// it by level; the two agree below level 5.
     /// </summary>
-    private static int HandTo(SimulationContext context, TileWorkOrder order, int goldReleased)
+    private static int HandTo(SimulationContext context, TileWorkOrder order, int goldReleased, out int putDown)
     {
+        putDown = 0;
         if (goldReleased <= 0 || order.WorkerCreatureId < 0) return 0;
 
         CreatureState? worker = context.World.CreatureById(order.WorkerCreatureId);
@@ -148,6 +153,16 @@ public sealed class TileWorkSystem : ISimulationSystem
         int capacity = context.Database.CreatureById(worker.CreatureTypeId).MaxGoldHeld;
         int taken = Math.Max(0, Math.Min(capacity - worker.GoldHeld, goldReleased));
         worker.GoldHeld += taken;
+
+        int spilled = goldReleased - taken;
+        byte cell = worker.WorkSlot == MiningSlots.None ? MiningSlots.AnyCell : MiningSlots.Cell(worker.WorkSlot);
+        if (spilled > 0 && FloorGold.PutDown(context.World, context.Database,
+                worker.Tile.Y * context.World.Width + worker.Tile.X, cell, spilled) is { } pile)
+        {
+            putDown = spilled;
+            context.Emit(SystemName, "gold_put_down",
+                $"imp={worker.Id} at=({worker.Tile.X},{worker.Tile.Y}) gold={spilled} pile={pile.GoldHeld}");
+        }
         return taken;
     }
 
@@ -190,7 +205,8 @@ public sealed class TileWorkSystem : ISimulationSystem
         in TileWorkResult result,
         byte terrainBefore,
         WorldState world,
-        int goldCarried)
+        int goldCarried,
+        int goldPutDown)
     {
         int x = order.TileIndex % world.Width;
         int y = order.TileIndex / world.Width;
@@ -229,16 +245,11 @@ public sealed class TileWorkSystem : ISimulationSystem
                 $"imp={order.WorkerCreatureId} carrying={worker?.GoldHeld ?? 0}");
         }
 
-        int uncollected = result.GoldReleased - goldCarried;
+        // Gold a worker cannot hold is put down at its feet (HandTo), so only a swing with no
+        // worker to receive it leaves gold uncollected: work a test or the harness queued.
+        int uncollected = result.GoldReleased - goldCarried - goldPutDown;
         if (uncollected > 0)
-        {
-            context.Emit(SystemName, "gold_uncollected",
-                $"{where} amount={uncollected} " +
-                (order.WorkerCreatureId < 0
-                    ? "(nobody swung)"
-                    : "(would not fit in the worker's hands)") +
-                " (Q138: whether the original leaves this on the floor is unread)");
-        }
+            context.Emit(SystemName, "gold_uncollected", $"{where} amount={uncollected} (nobody swung)");
 
         // A store that stopped being one keeps its contents, on the floor of the
         // tile it stood on. That is the original's own answer and it is exact:

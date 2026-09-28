@@ -5634,3 +5634,29 @@ prison inner walks remain compressed into the delivery tick, so their transient
 pickup refusal lasts no separate simulation turn. Full task cleanup, other
 worker-bit writers and the remaining eligibility lifecycles are still separate
 dependencies; this does not connect live keeper defence.
+
+## ADR-0264 — A miner puts down what it cannot hold
+**Date:** 2026-09-28 · **Status:** accepted · Research: `gold-on-the-floor.md` §10
+
+**Context.** Ours destroyed the gold a mining strike freed beyond the imp's
+hands. The owner's Level 2 win, played with no Treasury, shows floor piles by the
+seam from tick 170 (Q140). The binary settles it: the strike `0x004971D0` hands
+the imp what fits and puts the rest down at its position (`0x004510C0`), merging
+into a nearby pile. `MaxGoldPileOutsideTreasury`'s three readers are all
+standing-slot choosers, not a put-down layout.
+
+**Decision.** A miner holds a standing slot, face × 3 + slot (`MiningSlots`,
+`CreatureState.WorkSlot`), and a floor pile records its third-of-a-tile cell
+(`ObjectState.Cell`). `TileWorkSystem.HandTo` puts the overflow into the slot's
+cell through `FloorGold.PutDown`, adding to that cell's pile. A miner gives its slot
+up (state 10) once the cell's pile exceeds the limit, and the chooser hands out
+only a slot no one holds whose cell is at or under it. `gold_uncollected` now
+means only a swing with no worker to receive it.
+
+**Consequences.** Mined gold is conserved: hands plus floor equal what the seam
+gave. A first build kept one pile per tile. It stopped a Level 1 miner about three
+times sooner than DK2's, left a seam solid and cost that replay its win. With the
+slots, Level 1 wins at tick 1868. The hand limit stays unscaled (the same below
+level 5). Hash/snapshot version 132; 131 is held by a concurrent change. The Level
+2 replay still diverges at turn 635, traced to imp work choice and travel
+(`navigation-captures.md`).

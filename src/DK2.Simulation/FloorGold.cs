@@ -13,11 +13,10 @@ namespace DK2.Simulation;
 /// (docs/research/gold-on-the-floor.md). A pile is object <b>1</b>, "Gold",
 /// carrying the amount in <see cref="ObjectState.GoldHeld"/>, created wherever
 /// gold leaves a player's books for the world.</para>
-/// <para>Piles do not merge here because they do not merge there: every path
-/// creates a <i>new</i> object, so a creature carrying 3000 leaves three piles.
+/// <para>Piles merge only where a miner puts its overflow down (<see cref="PutDown"/>);
+/// every other path makes a new object, so a creature carrying 3000 leaves three piles.
 /// <see cref="MaxPile"/> is exposed <b>unenforced</b>. Not implemented: sub-tile
-/// position, of which the original has a great deal — which is also why this
-/// class takes no <see cref="SimRandom"/> (Q3).</para>
+/// position, which is also why this class takes no <see cref="SimRandom"/> (Q3).</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/gold-on-the-floor.md")]
 public static class FloorGold
@@ -138,6 +137,46 @@ public static class FloorGold
     public static ObjectState? Drop(
         WorldState world, GameDatabase database, int tileIndex, int amount) =>
         Drop(world, database, tileIndex, amount, PlayerIds.Neutral);
+
+    /// <summary>Puts gold down at a point, DK2's <c>0x004510C0</c>: onto a floor pile already
+    /// within 1/64 of a tile of it (<c>0x40</c>, Chebyshev), else as a new pile owned by the
+    /// neutral player. Its one caller that matters is the mining strike (<c>0x004971D0</c>),
+    /// for the gold its miner cannot hold (Q140, gold-on-the-floor.md §10). Deviates: "at that
+    /// point" is "in that third-of-a-tile cell" (<see cref="MiningSlots"/>), and a miner always
+    /// stands at the same point of its slot, so the two merge the same piles.</summary>
+    public static ObjectState? PutDown(
+        WorldState world, GameDatabase database, int tileIndex, byte cell, int amount)
+    {
+        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (amount <= 0) return null;
+
+        foreach (ObjectState instance in world.Objects)
+        {
+            if (!IsLoosePile(instance, tileIndex) || instance.Cell != cell) continue;
+            instance.GoldHeld += amount;
+            return instance;
+        }
+        ObjectState? pile = Drop(world, database, tileIndex, amount);
+        if (pile is not null) pile.Cell = cell;
+        return pile;
+    }
+
+    /// <summary>The largest loose floor pile in one cell of a tile, what the miner's two tests
+    /// compare with <see cref="MaxPile"/>; 0 for none. <see cref="MiningSlots.AnyCell"/> asks
+    /// the whole tile.</summary>
+    public static int PileInCell(WorldState world, int tileIndex, byte cell)
+    {
+        if (world is null) throw new ArgumentNullException(nameof(world));
+        int largest = 0;
+        foreach (ObjectState instance in world.Objects)
+            if (IsLoosePile(instance, tileIndex) && (cell == MiningSlots.AnyCell || instance.Cell == cell))
+                largest = Math.Max(largest, instance.GoldHeld);
+        return largest;
+    }
+
+    private static bool IsLoosePile(ObjectState instance, int tileIndex) =>
+        instance.TileIndex == tileIndex && instance.ObjectTypeId == FloorGoldObjectId
+        && !instance.InHand && instance.CarriedByCreatureId < 0;
 
     /// <summary>Takes up to <paramref name="amount"/> off a pile and returns how much came off,
     /// destroying the pile when it empties.</summary>

@@ -131,8 +131,8 @@ public sealed class PacketLog
                     commands.Add(new PickUpCreatureCommand(player, Resolve(a.First, PacketEntityKind.Creature)));
                     break;
                 case 59:
-                    // Our pile on the tile DK2's lay on; none there is a refused pickup, which the
-                    // hand tally counts as a difference rather than hiding it.
+                    // Our pile on the tile DK2's lay on; none there is a pickup of nothing, which the
+                    // hand ignores and the replay's resolver counts as a miss.
                     int pile = goldOnTile?.Invoke(Resolve(a.First, PacketEntityKind.GoldTile))
                         ?? throw new InvalidOperationException("Packet action 59 needs a gold resolver.");
                     commands.Add(new PickUpObjectCommand(player, pile));

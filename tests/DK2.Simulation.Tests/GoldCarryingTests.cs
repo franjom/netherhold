@@ -18,8 +18,8 @@ namespace DK2.Simulation.Tests;
 /// owner measured. A seam is therefore eleven swings totalling exactly 3000, and
 /// an Imp's <c>maxGoldHeld</c> of 1400 fills after five swings, so a seam takes
 /// three trips: 1363, 1364, 273. A treasury tile holds 3000 and a dungeon-heart
-/// tile 1000. Not implemented: the lump. Gold that will not fit in an imp's hands
-/// is reported as uncollected and lost (Q138).</remarks>
+/// tile 1000. Gold that will not fit in an imp's hands is put down at its feet,
+/// onto the lump already there (Q138, Q140).</remarks>
 public class GoldCarryingTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -295,14 +295,13 @@ public class GoldCarryingTests
     // ---- nowhere to put it -----------------------------------------------
 
     [Fact]
-    public void AnImpWithNowhereToPutGold_KeepsMining()
+    public void AnImpWithNowhereToPutGold_KeepsMining_AndGrowsALumpAtItsFeet()
     {
         // CONFIRMED that the original's imp goes on mining and grows a lump on
-        // the floor. The mining is here; the lump is not, so what the imp cannot
-        // hold is reported as uncollected and lost. The point of the test is that
-        // a keeper with no treasury still gets their seam dug out — an imp that
-        // stood still holding a full load would be a worse wrong answer than one
-        // that loses the overflow.
+        // the floor, and read: the mining strike 0x004971D0 hands the imp what it
+        // can hold and puts the rest down at its own position, onto the pile
+        // already there (Q138, Q140). So nothing is lost: 1400 in hand, 1600 in
+        // one pile where it stood.
         Run run = AtTheSeam();
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
@@ -312,9 +311,69 @@ public class GoldCarryingTests
         // it opened - which is the priority order doing its job (ADR-0018).
         Assert.NotEqual(Dk2TerrainFixture.Gold, run.World.Tile(5, 5).TerrainId);
         Assert.Equal(1400, run.Imp.GoldHeld);
-        Assert.Equal(1600, run.Amounts("gold_uncollected"));
-        Assert.Contains(run.Of("gold_uncollected"),
-            e => e.Detail.Contains("would not fit in the worker's hands"));
+        Assert.Empty(run.Of("gold_uncollected"));
+        ObjectState lump = Assert.Single(run.World.Objects, o => FloorGold.IsPile(Dk2TerrainFixture.Database(), o));
+        Assert.Equal(1600, lump.GoldHeld);
+        Assert.Contains(lump.TileIndex, new[] { new TilePos(4, 5), new TilePos(4, 4) }
+            .Select(p => p.Y * run.World.Width + p.X));
+    }
+
+    /// <summary>The seam (5,5) is worked from (4,5) with the wall to the right: face 2, whose three
+    /// slots cover cells 2, 5 and 8 of the standing tile (the column along its right edge).</summary>
+    private static readonly byte[] SeamSlotCells = [2, 5, 8];
+
+    /// <summary>The chooser 0x00469AF0 skips a slot whose cell's pile holds strictly more than
+    /// MaxGoldPileOutsideTreasury (2000). With every slot's cell over, no mining job is taken
+    /// while they stay over; at exactly 2000 one is taken at once (Q140). The imp may later claim
+    /// the tile and pick the piles up, which reopens it; the assertion is about the ticks they
+    /// are over.</summary>
+    [Theory]
+    [InlineData(2001, false)]
+    [InlineData(2000, true)]
+    public void AFaceWhoseSlotsAllHoldPilesOverTheLimitIsNotMined_StrictlyGreater(int pile, bool takenAtOnce)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Run run = AtTheSeam();
+        int spot = 5 * run.World.Width + 4;
+        foreach (byte cell in SeamSlotCells) FloorGold.PutDown(run.World, database, spot, cell, pile);
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
+        bool takenWhileOver = false;
+        for (int t = 0; t < 300; t++)
+        {
+            bool over = SeamSlotCells.All(c => FloorGold.PileInCell(run.World, spot, c) > FloorGold.MaxPile(database));
+            int before = MiningTaken(run);
+            run.Tick();
+            if (over && MiningTaken(run) > before) takenWhileOver = true;
+        }
+
+        Assert.False(takenWhileOver);
+        Assert.Equal(takenAtOnce, run.Of("job_taken").Take(1).Any(e => e.Detail.Contains("MineGold")));
+
+        static int MiningTaken(Run r) => r.Of("job_taken").Count(e => e.Detail.Contains("MineGold"));
+    }
+
+    /// <summary>A miner with nowhere to deliver gives its slot up once the pile in the slot's cell
+    /// passes 2000 (state 26, 0x00465870), and the chooser hands it the face's next slot, so the
+    /// seam is still mined out, its gold in more than one cell. One pile per tile would stop it
+    /// short, which is what broke Level 1's replay.</summary>
+    [Fact]
+    public void AMinerMovesToTheNextSlotWhenItsPilePassesTheLimit_AndMinesTheSeamOut()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Run run = AtTheSeam();
+        int spot = 5 * run.World.Width + 4;
+        FloorGold.PutDown(run.World, database, spot, SeamSlotCells[0], 1500);
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
+        run.Ticks(300);
+
+        Assert.Contains(run.Of("job_abandoned"), e => e.Detail.Contains("reason=pile_underfoot_full"));
+        Assert.NotEqual(Dk2TerrainFixture.Gold, run.World.Tile(5, 5).TerrainId);
+        Assert.InRange(FloorGold.PileInCell(run.World, spot, SeamSlotCells[0]), 2001, 2000 + 1364);
+        Assert.True(FloorGold.PileInCell(run.World, spot, SeamSlotCells[1]) > 0);
+        // Conserved: 3000 mined, 1400 in hand, and the 1500 laid beforehand.
+        Assert.Equal(3000 + 1500 - run.Imp.GoldHeld, FloorGold.Total(run.World, database));
     }
 
     [Fact]

@@ -47,6 +47,9 @@ public sealed class ObjectState
     /// Deviation: the original stores treasury gold as a type-3 object on the tile, where this keeps it in <see cref="TileState.GoldHeld"/> (ADR-0015) and only floor piles here (gold-on-the-floor.md §2).</summary>
     public int GoldHeld;
 
+    /// <summary>A floor pile's third-of-a-tile cell, set by a miner's overflow (<see cref="MiningSlots"/>).</summary>
+    public byte Cell = MiningSlots.AnyCell;
+
     /// <summary>The id of the worker carrying this object, or -1 — the other end of
     /// <see cref="CreatureState.CarriedObjectId"/>. Both ends are stored (ADR-0063): the
     /// carrier is asked what it holds on arrival, the object whether anybody already has it, so two imps do not cross the dungeon for one book.</summary>
@@ -93,6 +96,7 @@ public sealed class ObjectState
         hash.Add(TileIndex);
         hash.Add(CreatureId);
         hash.Add(GoldHeld);
+        hash.Add(Cell);
         hash.Add(CarriedByCreatureId);
         hash.Add(TimerTicks);
         hash.Add(InHand);

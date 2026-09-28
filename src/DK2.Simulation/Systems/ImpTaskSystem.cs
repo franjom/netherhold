@@ -297,6 +297,23 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             return;
         }
 
+        // A miner not going to deliver gives its slot up once the pile in the slot's cell holds
+        // more than MaxGoldPileOutsideTreasury, and state 26 falls to 10 (0x00465870; its overflow
+        // lands in that cell, TileWorkSystem.HandTo). The chooser may then give it the face's next
+        // slot, which is how a seam gets mined out with nowhere to take the gold (Q140).
+        if (creature.TargetWork == TileWorkKind.MineGold
+            && FloorGold.PileInCell(context.World, creature.Tile.Y * context.World.Width + creature.Tile.X,
+                creature.WorkSlot == MiningSlots.None ? MiningSlots.AnyCell : MiningSlots.Cell(creature.WorkSlot))
+                > FloorGold.MaxPile(context.Database))
+        {
+            context.Emit(SystemName, "job_abandoned",
+                $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
+                $"{creature.TargetWork} reason=pile_underfoot_full");
+            WorkEnded(context, creature);
+            GoIdle(creature);
+            return;
+        }
+
         context.World.QueueWork(new TileWorkOrder(
             creature.TargetTileIndex, creature.TargetWork, creature.OwnerPlayerId, creature.Id));
         creature.TimerTicks = SimulationTiming.WorkApplicationPeriodTicks;
@@ -899,7 +916,13 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     {
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = kind;
-        context.Navigation.TryRoute(creature, _route.Count > 0 ? _route[^1] : creature.Tile, Navigation.MoveOptions.Plain);
+        TilePos standing = _route.Count > 0 ? _route[^1] : creature.Tile;
+        WorldState world = context.World;
+        creature.WorkSlot = kind == TileWorkKind.MineGold
+            ? MiningSlots.FreeSlot(world, context.Database, tileIndex, standing,
+                new TilePos(tileIndex % world.Width, tileIndex / world.Width), creature.Id)
+            : MiningSlots.None;
+        context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Plain);
 
         if (_route.Count == 0)
         {
@@ -1077,6 +1100,16 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         int index = (target.Y * world.Width) + target.X;
         if (ImpCrowding.FaceIsFull(
                 world, context.Database, index, standing, askingCreatureId, onTheTile, kind))
+        {
+            kind = default;
+            return false;
+        }
+
+        // Mining needs a free slot on this face: one no other miner holds, whose cell's pile holds
+        // no more than MaxGoldPileOutsideTreasury (0x00469AF0, 0x0046A550; Q140).
+        if (kind == TileWorkKind.MineGold
+            && MiningSlots.FreeSlot(world, context.Database, index, standing, target, askingCreatureId)
+                == MiningSlots.None)
         {
             kind = default;
             return false;

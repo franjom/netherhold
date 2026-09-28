@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 131;
+    private const int FormatVersion = 132;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -273,6 +273,7 @@ public static class WorldSnapshot
             w.Write(c.RebelAgainstPlayerId);
             w.Write(c.TargetTileIndex);
             w.Write((int)c.TargetWork);
+            w.Write(c.WorkSlot);
             w.Write(c.TimerTicks);
             w.Write(c.FightTargetId);
             w.Write(c.AttackType);
@@ -409,6 +410,7 @@ public static class WorldSnapshot
             w.Write(o.TileIndex);
             w.Write(o.CreatureId);
             w.Write(o.GoldHeld);
+            w.Write(o.Cell);
             w.Write(o.CarriedByCreatureId);
             w.Write(o.TimerTicks);
             w.Write(o.InHand);
@@ -741,6 +743,7 @@ public static class WorldSnapshot
                 RebelAgainstPlayerId = r.ReadByte(),
                 TargetTileIndex = r.ReadInt32(),
                 TargetWork = (TileWorkKind)r.ReadInt32(),
+                WorkSlot = r.ReadByte(),
                 TimerTicks = r.ReadInt32(),
                 FightTargetId = r.ReadInt32(),
                 AttackType = r.ReadByte(),
@@ -892,6 +895,7 @@ public static class WorldSnapshot
                 TileIndex = r.ReadInt32(),
                 CreatureId = r.ReadInt32(),
                 GoldHeld = r.ReadInt32(),
+                Cell = r.ReadByte(),
                 CarriedByCreatureId = r.ReadInt32(),
                 TimerTicks = r.ReadInt32(),
                 InHand = r.ReadBoolean(),
