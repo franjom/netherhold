@@ -362,7 +362,9 @@ The consumers establish functions without requiring UI labels:
   (`creature-anger.md`);
 - bit 1 guards the notification constructor at `0x004C4600`. When clear it
   refuses ordinary notification types, with four hard-coded categories exempt.
-  This is presentation state; there is no notification queue in the simulation.
+  The same messages feed keeper AI decisions; queue evidence and exceptions are
+  in `computer-keeper-messages.md`. Our simulation has the gate but no queue
+  (2026-09-28).
 
 Both writes are world actions even when reached through a player tree: types
 44 and 45 are outside the player dispatcher's owned set and delegate. They are

@@ -68,7 +68,7 @@ public sealed class TriggerState
     /// <summary>Whether anger deltas may change a creature's six counters.</summary>
     public bool CreatureAngerEnabled => (_worldOptions & 0x01) != 0;
 
-    /// <summary>Whether ordinary notifications may enter the presentation queue.</summary>
+    /// <summary>Whether ordinary player messages, including keeper AI inputs, may be created.</summary>
     public bool NotificationsEnabled => (_worldOptions & 0x02) != 0;
 
     internal void SetCreatureAngerEnabled(bool enabled) => SetWorldOption(0x01, enabled);

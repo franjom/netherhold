@@ -3650,8 +3650,9 @@ availability; reading that arm refuted the forecast.
 initially `0x07` as DK2 initialises them. Type 44 replaces bit 0 and type 45 bit
 1; only parameter value 1 enables a bit. Bit 0 gates every simulated anger
 delta while leaving mood recomputation intact. Bit 1 is exposed as the ordinary
-notification gate, but drives no queue because notifications are presentation
-state and this simulation has none. Hash and snapshot the whole byte.
+player-message gate, including messages consumed by keeper AI
+(`computer-keeper-messages.md`; corrected 2026-09-28). It drives no queue in
+this simulation yet. Hash and snapshot the whole byte.
 
 **Consequences.** Types 44 and 45 leave the Partial census. Level 1's first
 turn therefore has five Partial action groups instead of seven. Keeper-spell

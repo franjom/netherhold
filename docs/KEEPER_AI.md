@@ -351,11 +351,20 @@ preferences 2, `RemoveCallToArmsAfter` 240, `WaitBeforeAttackingAgain` 90,
 10/8/15/8/5/2/5/4/3, starting mana 100, `ManaValue`/`GoldValue` 100. The full decode
 is reproducible from the seven addresses above.
 
-Two more things the setter does: it builds `RoomList` **not from a table** but as
-"every room type in the world's definition order, skipping ids 3 (Portal) and 25 (Hero
-Portal) and any type with a flag byte bit set" — the first 15; and it consults a
-**level-name remap table** at `0x006A30A0` (entries of a name pointer, a replacement
-personality, and a 10-terminated list of personalities to replace):
+The setter builds `RoomList` from the world's definition enumeration: the first
+15 entries with room-descriptor `+0x43D` bit 7 **set**, **or** id 3 (Portal), **or**
+id 25 (Hero Portal). All other entries are skipped. The inclusion branches and
+15-entry bound were independently checked at `0x004F8E8B..0x004F8EDE`
+(2026-09-28); interpreting those jumps as exclusions reverses the predicate.
+The setter also caps attack skill at the byte at `0x006F2976`, initializes each
+enemy's breach count, sets build bounds to `(1,1,width-1,height-1)` and forces
+`Flags = 0xFFFF`, as the campaign loader does.
+
+Before selecting table rows, it consults the **level-name remap table** at
+`0x006A30A0`: 40-byte entries containing a name pointer, replacement personality,
+and up to eight dword personality ids terminated by 10. The map-name comparison
+is case-sensitive and stops at `End Of List`. The following bytes and the
+selection loop in `0x004F8C60` were independently rechecked on 2026-09-28:
 
 | Map | Replaced personalities → replacement |
 |---|---|
@@ -494,20 +503,21 @@ until it reaches the exit tile and resumes the straight walk; arriving back at
 
 ### 5.3 The message handler (`0x4FA400`)
 
-Walks the player's message queue (56-byte messages; type at `+3`, two data words at
-`+0x1F` and `+0x23`, a handled bit at `+0x28`):
+Walks the global retained message queue filtered by player, skipping handled
+records. Layout, producers, duplicate suppression and expiration are audited in
+[`computer-keeper-messages.md`](research/computer-keeper-messages.md).
 
 | Type | Reaction |
 |---|---|
 | 0, 13, 22, 26 | ignored (left in the queue) |
 | 1, 6, 12, 47 | if `Flags` bit 3: **threat evaluation** at a map position (§5.4); sets `FightGoingOn` |
-| 34 | same, at a thing's position (`0x4FA000`) |
+| 34 | same, at the attacked room's position (`0x4FA000`) |
 | 17 | creature unhappy: if `UnhappyCreaturesHappy` → **make happy** (`0x4F9710`) |
 | 18 | creature angry: `AngryCreaturesDisposeOf` → **dispose** (`0x4F9520`); else `AngryCreaturesHappy` → make happy |
-| 32 | room taken over: if the room was a Portal (3) or Hero Portal (25) and `AutomaticallyBuildBiggerLairWhenPortalTakenOver` → schedule a **Lair (2)**, expanding an existing one when `BuildNewRoomWhenMoreSpaceRequired` = 0, a new one when 1, nothing when 2 |
-| 35 | (portal-related; clears a pending Portal build) then re-run room choice |
-| 41 | room became available: schedule it as `NextRoomToBuild` |
-| 42 | room needs more space: apply `BuildNewRoomWhenMoreSpaceRequired`. For the **Treasury (1)** the AI first **untags every gold-dig tag** (task list 2, action 41, `0x4FA7C0`) and only goes on to expand when all of them came off |
+| 32 | room captured from a non-neutral owner: if Portal (3) or Hero Portal (25) and `AutomaticallyBuildBiggerLairWhenPortalTakenOver` → schedule a **Lair (2)**, expanding an existing one when `BuildNewRoomWhenMoreSpaceRequired` = 0, a new one when 1, nothing when 2. Neutral acquisition sends 33, handled by the default branch |
+| 35 | room lost: clear a pending Portal build, then re-run room choice |
+| 41 | room needed: schedule it as `NextRoomToBuild` if available |
+| 42 | room needs more space: first attempt to untag all gold-dig tags, for **every room type**, then apply `BuildNewRoomWhenMoreSpaceRequired`. A failed untag on still-gold terrain suppresses Treasury expansion and marks the message handled; other room types continue (message audit §3) |
 | anything else | marked handled |
 
 Only three parameter bit-fields are read here (`UnhappyCreaturesHappy`,
@@ -754,15 +764,12 @@ at the Lair, or the heart if none.
 
 ## 7. UNKNOWN — explicitly
 
-- **Player status codes** are read as 0 playing, **1 lost** (heart destroyed by
-  another keeper; the destroyer's id is at `CPlayer+0x132`), **2 won** (the last active
-  player, or all mutually allied survivors), **3 lost otherwise** (heart destroyed by
-  the neutral/hero side, or because another keeper won). The AI bails on 1 and 3 and
-  **keeps ticking after a win**. What the two trigger-script callers of the setter pass
-  is unread.
-- **Message type meanings** beyond what the AI does with them (1, 6, 12, 34, 47 are
-  combat-shaped; 17/18 unhappy/angry; 32/35/41/42 room events). The senders are outside
-  this unit.
+- **Player status is resolved** in `research/win-and-defeat.md` §§1–2, including
+  trigger actions 10/11. The keeper still ticks after status 2; statuses 1/3 stop it.
+- **Remaining message producer branches and suppression fields** are open; the
+  independently checked senders and retention rules are in
+  `research/computer-keeper-messages.md`. In particular 41 means room needed,
+  and 47 is emitted by the Turncoat shot process.
 - **Which creature stat the make-room step minimises** — the descriptor byte at
   `+0x787` of the in-memory creature descriptor (Flame names neither it nor the job
   count next to it at `+0x78B`). The candidate ordering is therefore known in form,
@@ -1002,16 +1009,19 @@ Every row marked **bold** adds simulation state or a new effect, so each bumps
 own ADR — the standing rule in `docs/HANDOFF.md`, *Conventions that are easy to violate
 by accident*.
 
-### 12.4 Messages: the original's queue, and what to build instead of it
+### 12.4 Messages: retained simulation state
 
-The keeper's reactive half (§5.3) consumes a per-player message queue: attacked at a
-position, creature unhappy/angry, room taken over/available/needs space, portal events.
+The keeper's reactive half (§5.3) reads the shared retained queue filtered by player
+(`research/computer-keeper-messages.md`).
 The simulation's `SimulationEvents` sink is **observation only** and by ADR-0006 must
-never drive behaviour, so it is not the answer. The proposal is a typed
-`PlayerMessage` list per `PlayerState`, filled by the systems that already know these
-facts (combat, anger, room build/claim), hashed, drained by whoever reads the frame.
-**No such type exists.** Until it does, the keeper runs its proactive half only (dig,
-build, gold, imps, slap) and never responds to an attack, which is honest and visible.
+never drive behaviour. The proposal is typed, hashed and snapshotted message state,
+filled by the producing simulation systems, with the verified shared capacity,
+duplicate suppression and expiration rules. Reading an observation must not drain
+messages. Keeper acknowledgments must pass through commands so `DK2.AI` remains
+an input source. The original keeper runs before queue expiry; the observation
+must expose zero-timeout combat messages before they disappear (message audit §3).
+**No such type exists (2026-09-28).** Until it does, the keeper runs its proactive
+half only (dig, build, gold, imps, slap) and does not respond to attacks.
 
 Alliances, player status, and trap and door instances now exist (ADR-0159,
 ADR-0162, ADR-0231). Per-player spell availability is stored and can change through
