@@ -276,3 +276,20 @@ twice the larger map dimension (`0x00501F40..0x00501F59`); exhaustion sets X to
 zero. These details required instructions because the decompiler conflates
 stack variables during this scan. Behaviour at gold on the map border remains
 **UNKNOWN**: the neighbour walk has no explicit bounds call.
+
+## 13. Make-happy grievance selection — `0x004F9710`
+
+The retained message identifies the creature through Data2, but its Data1
+complaint selector does not choose the remedy. The routine returns success for
+a missing creature or current mood zero. Otherwise `0x004F9772..0x004F9786`
+passes creature `+0x26E` to `0x004871B0`, then dispatches on its result.
+That helper scans six current anger counters, replacing the selected index only
+for a strictly larger value; ties keep the lowest index.
+
+The remedy mapping is therefore by current bucket: 0/4/5 pay gold, 1 give food,
+2 move to Lair, 3 move to a job room. It must not use the sender's complaint
+selector or a bucket cached when the message was inserted. The wrapper
+`0x00478B80` sends its third argument as Data1; the bucket is its first argument.
+The independently checked callers agree with the distinction in
+`state-categories.md` section 7.2. A discriminating case retains a hunger message
+while Lair anger becomes the largest counter: the keeper chooses the Lair.

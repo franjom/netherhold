@@ -105,36 +105,33 @@ worker had in its arms, where it stood.
 
 ## 3. What refuses a pick-up
 
-The original's four creature-specific refusals are one ownership test, one state
-flag and two creature states:
+The keeper pickup handler `0x004BC500` and creature permission predicate
+`0x0048E6A0` are separate gates. The computer keeper calls the latter before
+moving a creature. Its instructions were independently checked on 2026-09-28;
+behaviour below is **STRONGLY INFERRED**. The caller's player tag is the stack
+word read at `0x0048E70F`, not an implicit local-player value.
 
-| Original | Here |
+| Permission predicate, in order | Rule |
 |---|---|
-| already in a hand | same |
-| hand full | same |
-| record lacks `CanBePickedUp` | same |
-| an ownership test — **unread**, see below | the keeper's own creatures, **plus any creature whose `PrisonOwnerPlayerId` is the keeper** (ADR-0064) |
-| state flag `0x200000` = **`CreatureDying`** | **same** — a creature that is down is refused |
-| creature states `0x33` and `0x34` | **absent** — unidentified, and the states do not exist here |
+| Common refusals | Dying flag, InHand, nonzero `CountDownStartTick`, missing `CanBePickedUp`, state 76 or 193 |
+| Same owner, Combat Pit fighter | Return whether its current tile belongs to that owner; bypass the remaining same-owner tests |
+| Other same-owner creature | Refuse states 51/52 (teleporting), nonzero Turncoat timer, or a worker with neither bit 0 nor bit 3 of byte `+0x46F` |
+| Remaining same-owner creature | Permit only if `RoomId` is zero or that room belongs to the owner |
+| Different owner | Permit `IsTool`, nonzero `+0x4A3` matching the caller tag, or nonzero `PrisonOwner` matching it |
 
-**The hand never touches a body.** CONFIRMED by the owner (Q161): *"a corpse can
-not be picked up by hand of evil … also an injured creature, lying on the floor
-bleeding out, can't be picked up by hand of evil"*. Carrying one is an imp's job
-and only an imp's. Bit `0x200000` is bit 21 of the first state-flag word, and the
-creature dump's own bit list gives bit 21 as `CreatureDying`, so the binary agreed
-all along. **Trap: name the flag when you read a handler** — written down as *"two
-creature states and one state flag, none of which this project has"*, the unnamed
-flag turned a rule DK2 had into a narrowing supposedly invented here.
+The comparison at `0x0048E7C5` consumes `+0x4A3` as a player tag in this
+predicate. Its debug name `SneakingAs` does not establish that it is a creature
+type. Other uses and the worker-byte meanings remain **UNKNOWN** here.
+The earlier interpretation of this predicate as only ownership plus dying
+omitted several gates. Current `HandRules.CanPickUp` remains narrower in its
+ownership exceptions and omits countdown, state, Turncoat, worker and room gates.
 
-**The ownership test is genuinely unread.** The handler's test is
-`if (SneakingAs != 0 && owner != me) refuse`, and `SneakingAs` (`0x4a3`) is the
-creature type a creature is disguised as — so read literally it refuses an enemy
-only while it is disguised, which cannot be the whole rule. The real gate is most
-likely the virtual call the handler makes before any of this (`vtable + 0x28`);
-recorded as unread rather than guessed at. What this project does instead is the
-owner's description: **own creatures, plus prisoners in the keeper's own prison**,
-the one exception there is (`prison.md` §2). Once lifted, that prisoner may be
-dropped on owned tiles, a torture rack or in a Combat Pit; here a non-prison drop frees it.
+Hand capacity and repeated ids are checked by the keeper's handler; see section 2.
+The predicate does not itself test capacity. Its Pit branch does not override the
+common dying/InHand checks. **CONFIRMED** by the owner (Q161): corpses and creatures
+lying on the floor bleeding out cannot be lifted by the Hand of Evil. Carrying
+bodies is an imp's job. A captive can be moved to owned tiles, Torture or a Combat
+Pit; our non-prison drop frees it (ADR-0064).
 
 ---
 

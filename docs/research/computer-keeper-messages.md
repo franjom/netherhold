@@ -105,10 +105,18 @@ value; equality permits another message. Durations use `0x006F2590` ticks/second
 | 89 / 27 | `+0xF62` | reject when 1; write 1 |
 | 89 / 10 | `+0xF66` | reject when 1; write 1 |
 
-The direct-offset instruction sweep finds these readers/writers; unrelated
-functions also use the same numeric offsets. Initialization, save persistence
-and possible indirect resets remain **UNKNOWN**. In particular, do not infer
-that the type-41/room-14 suppression lasts forever from the direct writer alone.
+Save persistence is **STRONGLY INFERRED**: `0x004B8D40` writes and `0x004B9250`
+reads `0x1028` bytes beginning at player `+0x76`, covering every suppression
+field. Queue expiration therefore does not reset these values on a save/load.
+
+Initialization remains **UNKNOWN**. The constructor `0x004B8450` and initializer
+`0x004B8640` do not explicitly clear these fields. `0x004C1E20` allocates the
+seven-player array through `0x00634E80`; its allocator chain ends at
+`0x00637C20`, which can call `HeapAlloc` with flags zero. No explicit clearing
+of the allocation was found on this path. Direct-offset and interior-base
+instruction sweeps found no reset, but do not exclude every indirect writer.
+Do not turn unspecified initial contents into a random rule, or infer lifelong
+type-41/room-14 suppression solely from the direct writer.
 
 ## 2. Producers and payloads
 
@@ -135,11 +143,53 @@ number at `0x0069E92C`. The shipped record's name/id/process/flags are
 See `shots.md` for process-event dispatch. The full Turncoat effect is outside
 this message audit.
 
+For 17/18, Data1 is the anger wrapper's third argument, not its bucket index.
+The keeper recomputes the current largest bucket when choosing a remedy;
+see `computer-keeper-management.md` section 13.
+
 For 41, `0x004C6E70` independently confirms the Treasury-count test in the
 producer. Existing storage with no capacity instead yields 42; storage with
 capacity but no route yields 43. Room availability and room need are separate
-conditions. Other type-41 producers include graveyard searches at `0x0046CF40`
-and `0x0046D3C0`; complete room-specific suppression remains to be audited.
+conditions. Additional independently checked branches follow; this is not yet
+an exhaustive classification of computed message types.
+
+| Producer | Room / messages | Discriminating gate |
+|---|---|---|
+| `0x004DED00` | Hatchery / 41, 42, 43 | Availability 3; no room gives 41, unreachable stocked room gives 43, otherwise an empty reachable room more than four seconds past `room+0x9F` gives 42. Pending build or sale suppresses all three. |
+| `0x004E0470` | Lair / 41, 42, 43 | Availability 3; absent/full/unreachable branches. Pending build or sale suppresses only the absent-room 41 branch; 42/43 have no such gate. The full-room branch uses the same strict four-second comparison. |
+| `0x004D8870` | Combat Pit / 41, 42, 43, 44 | Availability 3 and no pending build/sale for each message. Four-second timing applies to the unusable-place branches. Message 44 carries the room tag; the others carry zero. |
+| `0x0046CF40`, `0x0046D3C0` | Graveyard / 41, 42 | Both require availability 3 for absent-room 41. Only `0x0046CF40` rechecks availability 3 on the failed-capacity 42 branch. |
+| `0x004BA420` | Treasury / 41, 42 | Positive gold left after storage attempts: availability other than 1 permits a request; Treasury count zero selects 41, otherwise 42. This differs from the imp's state-3-only absent-room gate. |
+
+The pending-work predicates `0x004C7340` and `0x004C7360` scan three room-type
+bytes, stride `0x19`, at player `+0x1C2` and `+0xE97`. Their writers are the
+build/sell queues `0x004C6EF0`/`0x004C70A0`; see `room-slab-chain.md` sections
+2 and 4. Any occupied slot suppresses the gated requests, regardless of room type.
+The route helper `0x00471740` obtains a room position and tests a creature route;
+the producer calls above use options `0x80` for the first search and 2 for the
+unreachable-room distinction. These are not merely room-count checks.
+
+The Library finder `0x004E2500` checks **Lair availability (2)** before posting
+Library (6) messages: `0x004E26A6` pushes 2, `0x004E26AA` calls the availability
+lookup, and `0x004E26AF` compares with 3. This is not Library availability.
+An existing Library also requires nonzero player research points (`+0x213`)
+before its failure messages. Missing room gives 41; otherwise the precedence is
+unreachable 43, missing work position 45, capacity 42, then room-tagged 44.
+All branches test pending build/sale. The work-position and capacity failures
+wait strictly more than four seconds after `room+0x9F`; `room+0xA3 == 0`
+selects 44 instead. This quirk needs a test with differing Lair/Library availability.
+
+The Casino (`0x004D75F0`), Temple (`0x004F1A20`), Torture (`0x004F2B80`),
+Training (`0x004F3560`) and Workshop (`0x004F6200`) finders also gate messages
+on availability 3 and pending build/sale. After the no-room 41 branch, the
+message precedence is unreachable 43, capacity 42, room-tagged 44. Capacity
+failures wait strictly more than four seconds after `room+0x9F`; a zero
+`room+0xA3` redirects that failure to 44. Workshop's existing-room failures
+also require nonzero player byte `+0xA1C`. Torture substitutes type 99 for 41
+when creature byte `+0x36F` is 4 and its owner equals the searched player.
+The captive Pit finder `0x004D8510` only posts 42/43/44 when a Pit already exists;
+it does not request a missing Pit. Room-specific capacity and work-position
+helper semantics must still be matched to their room systems before wiring senders.
 
 The ownership transfer's argument order was checked in instructions:
 `0x004E5658` reads the old owner; `0x004E58F4` sends 35 to it;
@@ -164,5 +214,5 @@ explicit acknowledgments; the observation sink must remain observational.
 An AI host that observes only after all simulation systems, including message
 expiry, would miss type 6 entirely. The input-source boundary must expose the
 pre-expiration observation while preserving the chosen command delay. Suppression
-initialization/persistence and unclassified producer branches still prevent
+initialization and unclassified producer branches still prevent
 claiming complete queue fidelity.

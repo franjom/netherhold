@@ -525,12 +525,14 @@ records. Layout, producers, duplicate suppression and expiration are audited in
 | 42 | room needs more space: first attempt to untag all gold-dig tags, for **every room type**, then apply `BuildNewRoomWhenMoreSpaceRequired`. A failed untag on still-gold terrain suppresses Treasury expansion and marks the message handled; other room types continue (message audit §3) |
 | anything else | marked handled |
 
-Only three parameter bit-fields are read here (`UnhappyCreaturesHappy`,
-`AngryCreaturesHappy`, `AngryCreaturesDisposeOf`). The instruction-level scan had also
+The three mood parameter bit-fields read here are `UnhappyCreaturesHappy`,
+`AngryCreaturesHappy`, `AngryCreaturesDisposeOf`. The instruction-level scan had also
 credited `UnwantedCreatureDisposeOf` and `LightningInWater` to this function; the
 decompiled data flow does not read them, so both are **probably dead** (§7).
 
-**Make happy** reads the creature's grievance code: 0/4/5 → **pay it directly** (its
+**Make happy** selects the creature's current largest anger bucket, with low-index
+ties, not the retained message's complaint selector (management audit §13):
+0/4/5 → **pay it directly** (its
 level-scaled wage is taken from the treasury, minted as a gold object and dropped on
 the creature); 1 → drop a **chicken** from the Hatchery on it; 2 → drop it in the
 **Lair**; 3 → drop it in a room matching one of its jobs. **Dispose** drops it in the
@@ -645,7 +647,7 @@ past tagged/room tiles, leave the configured gap, then validate a square centred
 across the approach. Side = floor(sqrt(DefaultRoomSize)). The direction table is
 `0x006A32A8`: N, W, S, E with signed rectangle steps. The detailed acceptance,
 extra-strip and build-area rules differ from the current `SiteFinder`; see
-`research/computer-keeper-tasks.md` ?7. In particular, the approach need not be
+`research/computer-keeper-tasks.md` section 7. In particular, the approach need not be
 solid rock, and spacing zero does not add the extra strip.
 
 **Gold** (`0x4FD590`, `0x501C10`): the scan retains four distance-ordered deposits
@@ -787,7 +789,7 @@ heart if none. Exact gates and remaining helper questions:
 
 - **Player status is resolved** in `research/win-and-defeat.md` §§1–2, including
   trigger actions 10/11. The keeper still ticks after status 2; statuses 1/3 stop it.
-- **Remaining message producers and suppression initialization/persistence** are open; the
+- **Remaining message producers and suppression initialization** are open; the
   independently checked senders and retention rules are in
   `research/computer-keeper-messages.md`. In particular 41 means room needed,
   and 47 is emitted by the Turncoat shot process.

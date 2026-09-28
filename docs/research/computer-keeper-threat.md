@@ -113,7 +113,7 @@ means no allowance debit. The dumper calls `+0x3B9` RoomId
 `0x00478050` is the effective state-category lookup: while travelling it reads
 the saved resume state's category. `0x004888C0` rejects the owner flag at
 player `+0x76 & 4`, creature flag `+0x3E6 & 0x100000`, or effective state
-190/191/192. The hand eligibility routine `0x0048E6A0` also reads countdown,
-Turncoat, room ownership and worker flags; those predicates need their existing
-hand-rule mappings checked before reuse. `0x004BFBD0` prepares state 75,
+190/191/192. The hand eligibility routine `0x0048E6A0` is audited against the
+current `HandRules` in `hand-of-evil.md` section 3; its missing gates must be
+accounted for before reuse. `0x004BFBD0` prepares state 75,
 retrying through idle on refusal; it is not simply a permission query.

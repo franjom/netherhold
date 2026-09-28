@@ -151,7 +151,7 @@ current direction (N, W, S, E table order):
 5. Only when `TilesLeftBetweenRooms != 0`, count open perimeter samples and reject
    when `100 * open / samples > Openness`.
 6. If `side^2 < DefaultRoomSize`, test an extra strip. Its spacing-dependent
-   increment and exclusive-end build-area check are in `computer-keeper-tasks.md` ?7.
+   increment and exclusive-end build-area check are in `computer-keeper-tasks.md` section 7.
 
 **Known:** there is no heart-distance test and no dedicated gold test. The fallback
 interior test requires this player as owner and no room, without a solidity test.
