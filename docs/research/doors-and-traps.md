@@ -10,8 +10,9 @@ The THINGS loaders use one door flag as an initial lock request, another as an
 initial construction marker, and the trap field named `NumberOfShots` only as a
 Boolean initial-construction marker. The runtime later maintains construction,
 open, lock, disarm, recharge and firing state independently of the authored
-records. This branch models only construction and the trigger counts that read
-it; open/close, navigation blocking and firing remain unbuilt under ADR-0141.
+records. Construction, door opening and navigation costs are built. Physical
+door contact and damage are researched in [door-blocking.md](door-blocking.md);
+trap activation and its implementation limits are in [traps.md](traps.md).
 
 ## Shipped records
 
@@ -65,21 +66,23 @@ condition 27's zero/nonzero partition.
 
 The ordinary update at `0x004A55F0` separates construction from completed-door
 behavior. While construction is nonzero it refreshes the construction
-presentation and bypasses the normal open/close work. A completed door's
+presentation and bypasses the normal open/close work. Barricades return before
+the opening decision, including its picked-lock arm. An ordinary completed door's
 **open** state (`+0x10D`) is recomputed every update, in this order
 (`0x004A5D52`): a **running lock-pick timer** (`+0x115`) forces it open ahead
 of everything; failing that **lock mode 3** (`+0x111`) shuts it; otherwise it
 is open while an **eligible** creature stands on one of three tiles: the door's
-own, and the two beside it along the passage — `(x−1, y)` and `(x+1, y)` when
-the world predicate `+0x208` holds for the tiles above and below, else
-`(x, y−1)` and `(x, y+1)` (`0x004A5A4B`–`0x004A5B02`). The three chains are
+own, and the two beside it along stored orientation (`+0x119`): zero selects
+`(x−1, y)` and `(x+1, y)`, otherwise `(x, y−1)` and `(x, y+1)`. The world
+predicate `+0x208` checks supporting walls; it does not reorient these probes
+(`0x004A5A4B`–`0x004A5B02`). The three chains are
 walked in turn and the first eligible creature ends the search. Eligible:
 allied with the owner (`0x004BF3D0`), not the neutral player (`[0x006F2548]`),
 not `CreatureDying` (creature flag `+0x3E6` bit 21, named by the debug dumper),
 and by lock mode — 0 any, 1 no worker (definition flag bit 0), 2 workers only.
 
-**Lock modes 1 and 2 are unreachable.** The transition `0x004A6800` has three
-callers: the loader (`0x00521130`, mode 3 from authored flag bit 0), the
+**The read lock writers use modes 0 and 3.** Direct callers of transition
+`0x004A6800` include the loader (`0x00521130`, mode 3 from authored flag bit 0), the
 player's lock command handler, and an effect handler `0x00474F80` registered
 in a descriptor table at `0x0047F972` that, over the four neighbours of an
 entity's tile, destroys traps, unlocks the entity owner's locked doors (mode 0)
@@ -90,15 +93,15 @@ UNKNOWN.
 unless the thing is live in `[0x006ED540]`, its type word `+0x12` is 4, and its
 owner `+0x28` equals the issuing player. It takes **no mode**: `0x0051382D`
 computes `3` from a zero lock mode and `0` from any other, so the command is a
-toggle, which is the other half of why 1 and 2 never appear.
+toggle; this path does not request modes 1 or 2.
 
 **The lock-pick timer.** `+0x115` is a plain tick countdown: the update
 decrements it by one (`0x004A56A1`) above both the construction bypass and the
 open decision, and a nonzero value sets the open accumulator without looking at
-anything else. The one writer is `0x004A6DF0`, four instructions that store
+anything else. The read writer is `0x004A6DF0`, four instructions that store
 `[0x006F28D3] * [0x006F2590]` — a duration times the tick rate, the shape every
 timer here has. Both globals live in uninitialised data, so the duration is
-**UNKNOWN**; the effect handler above is its only caller.
+**UNKNOWN**; the effect handler above calls it.
 
 **Definition flags.** Record offset `0x228` is the flags byte, runtime
 `def+0x8B` (the offset delta is STRONGLY INFERRED from the bits' owners): the
@@ -126,7 +129,8 @@ Built (ADR-0158 and ADR-0159; `DoorSystem`, `AllianceSystem`, `WorldSteering`,
 `MeshRouter.TransitionCost`): open state and its order, the three tiles, lock
 mode from the authored flag and from the owner's toggling command, the
 alliance array and its symmetric writes, the lock-pick countdown, the byte with
-the barricade arm, and the cost arms. Unbuilt: the effect handler that starts a
+the barricade arm, and the cost arms. ADR-0250 corrects the opening bypass and
+stored-orientation probes. Unbuilt: the effect handler that starts a
 picked lock — no ability dispatches one here — and trigger action 18.
 
 ## Trap loader and fields
@@ -154,18 +158,10 @@ The construction finisher at `0x004A96D0` clears only bit `0x20` and refreshes
 the trap. This full loader-to-completion trace supports the existing
 **UnderConstruction** interpretation from Q281.
 
-The firing decision at `0x004A7D10` refuses an under-construction trap. A
-completed trap additionally checks its recharge state, disarming state and,
-where applicable, whether its keeper can afford the mana cost. The update at
-`0x004A84E0` bypasses ordinary targeting while construction or disarming is
-active, otherwise finds a target or proximity condition according to the trap
-definition, advances a runtime charge counter, fires at the definition's
-threshold, and installs a definition-derived recharge.
-
-The firing path at `0x004A80E0` creates the shot type named by the trap
-definition. No authored shot counter is consumed. Exact target selection,
-charge timing, mana charging, disarming and projectile behavior remain
-**UNKNOWN** or unimplemented, so this branch adds no trap firing.
+Readiness, target selectors, field mapping, timing, mana, disarm execution,
+reveal and shot coverage are now in [traps.md](traps.md). That note owns both
+the evidence and the remaining integration reads. ADR-0251 builds the parsed
+fields and stateless activation arithmetic; automatic firing stays disabled.
 
 ## Trigger conditions 27 and 28
 
@@ -191,12 +187,11 @@ nonzero comparison, so no shipped record needs the unread availability mode.
 |---|---|
 | Record counts, all-zero door trigger ids, 3 unfinished doors and 0 unfinished traps | **CONFIRMED from shipped data** |
 | Loader transforms, saved ranges and runtime state transitions above | **STRONGLY INFERRED from DKII.EXE v1.70** |
-| Door open eligibility and its order, the three tiles, the lock transition's callers, the toggling lock command, the alliance array and the lock-pick countdown | **CONFIRMED from DKII.EXE v1.70** |
+| Door open eligibility and its order, the three tiles, the toggling lock command, the alliance array and the lock-pick countdown | **STRONGLY INFERRED from DKII.EXE v1.70** |
 | The lock-pick duration, and which ability reaches the effect handler | **UNKNOWN** |
-| Exact trap targeting, charge, mana, disarm and shot behavior | **UNKNOWN** |
+| Trap runtime and door contact | See [traps.md](traps.md) and [door-blocking.md](door-blocking.md) |
 | Any semantic meaning for either `Unknown_0008`, door trailing bytes or trap `Unknown_000F` | **UNKNOWN** |
 
-Next work should isolate door navigation as a pathfinding change and trap
-firing as a definition-driven state machine, each with original-game
-experiments for observable results. A field absent from the runtime licenses
+Next work is Q450 and Q453, with owner observations Q451, Q452 and Q454.
+A field absent from the runtime licenses
 only that result; it does not show that a corresponding behavior is absent.

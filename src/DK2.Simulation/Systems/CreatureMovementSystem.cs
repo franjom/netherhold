@@ -112,6 +112,9 @@ public sealed class CreatureMovementSystem : ISimulationSystem
         creature.Heading = mover.Heading;
 
         int x = body.Pos.X >> 4, y = body.Pos.Y >> 4;
+        // UNKNOWN integration: 0x0048A2EB can cancel this move and force a door fight.
+        // Q453 tracks its thing-target spell survey, reach and destruction dependencies;
+        // do not substitute a solid tile for that combat transition (door-blocking.md).
         if (!NavBytes.IsSolid(steering.NavByte(x / Fp32.One, y / Fp32.One)))
         {
             creature.PosX = x;

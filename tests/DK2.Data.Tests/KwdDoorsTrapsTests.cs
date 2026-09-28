@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Buffers.Binary;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
 using DK2.TestSupport;
@@ -10,6 +11,38 @@ namespace DK2.Data.Tests;
 
 public class KwdDoorsTrapsTests
 {
+    [Fact]
+    public void RuntimeColumnsKeepSignedWordsDwordsAndHighFlagBits()
+    {
+        byte[] bytes = new byte[579];
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(0x1EC), 0xF1234567);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(0x1C8), -4097);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(0x1D4), -250);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(0x1E0), int.MinValue);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(0x231), -2048);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(0x1EA), 65530);
+        BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(0x241), -32760);
+        TrapDef trap = Assert.Single(KwdTraps.Parse([new KwdChunk
+        {
+            Type = KwdRecordType.Traps, ItemCount = 1, Content = bytes, HeaderBlock = [],
+        }]));
+        Assert.Equal(0xF1234567u, trap.Flags);
+        Assert.Equal(-4097, trap.RechargeSecondsRaw);
+        Assert.Equal(-250, trap.ManaCostToFire);
+        Assert.Equal(int.MinValue, trap.ShotData1);
+        Assert.Equal(-2048, trap.ShotOffsetX);
+        Assert.Equal((ushort)65530, trap.Threat);
+        Assert.Equal((short)-32760, trap.HealthGain);
+
+        byte[] doorBytes = new byte[616];
+        BinaryPrimitives.WriteInt16LittleEndian(doorBytes.AsSpan(0x21C), -32760);
+        DoorDef door = Assert.Single(KwdDoors.Parse([new KwdChunk
+        {
+            Type = KwdRecordType.Doors, ItemCount = 1, Content = doorBytes, HeaderBlock = [],
+        }]));
+        Assert.Equal((short)-32760, door.HealthGain);
+    }
+
     private static string Editor()
     {
         string editor = Path.Combine(Dk2InstallGate.Path, "Data", "editor");

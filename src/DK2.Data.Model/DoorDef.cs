@@ -19,6 +19,9 @@ public sealed record DoorDef
     /// <summary>Initial health of a placed door.</summary>
     public required ushort Health { get; init; }
 
+    /// <summary>Signed recovery delta at file 0x21C, runtime definition +0x93.</summary>
+    public short HealthGain { get; init; }
+
     /// <summary>Gold price shown by the original manual and stored in the record.</summary>
     public required ushort GoldCost { get; init; }
 

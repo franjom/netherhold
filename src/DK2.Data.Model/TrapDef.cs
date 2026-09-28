@@ -6,7 +6,7 @@ namespace DK2.Data.Model;
 
 /// <summary>
 /// The verified gameplay fields from one 579-byte TRAPS(130) record.
-/// Ambiguous timing, trigger and firing fields are deliberately omitted.
+/// Runtime fields are mapped through the loader in docs/research/traps.md.
 /// </summary>
 public sealed record TrapDef
 {
@@ -42,4 +42,19 @@ public sealed record TrapDef
 
     /// <summary>Standing mana drain measured per game second, or zero.</summary>
     public required ushort ManaUpkeepPerSecond { get; init; }
+
+    public uint Flags { get; init; }
+    public byte TriggerType { get; init; }
+    public int RangeTiles { get; init; }
+    public int RechargeSecondsRaw { get; init; }
+    public int ChargeSecondsRaw { get; init; }
+    public int ThreatSecondsRaw { get; init; }
+    public ushort Threat { get; init; }
+    public int ManaCostToFire { get; init; }
+    public int ShotData1 { get; init; }
+    public int ShotData2 { get; init; }
+    public int ShotOffsetX { get; init; }
+    public int ShotOffsetY { get; init; }
+    public int ShotOffsetZ { get; init; }
+    public short HealthGain { get; init; }
 }

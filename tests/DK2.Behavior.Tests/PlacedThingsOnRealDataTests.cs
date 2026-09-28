@@ -525,7 +525,7 @@ public class PlacedThingsOnRealDataTests
     /// creature's <c>PartyId</c> (<c>+0x417</c>) and byte <c>+0x1D</c> to its
     /// <c>WanderRadius</c> (<c>+0x418</c>). If the second tail byte is the party's own id in
     /// every shipped record, the file carries it and no loader writes it (Q258).</summary>
-    [Fact]
+    [InstallFact]
     public void APartyMembersTrailingBytesAreItsWanderRadiusAndItsPartyId()
     {
         string install = Install();

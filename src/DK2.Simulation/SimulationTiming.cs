@@ -22,6 +22,12 @@ public static class SimulationTiming
     /// <summary>Ticks in <paramref name="seconds"/> seconds of game time, rounded down.</summary>
     public static int TicksFromSeconds(int seconds) => seconds * TicksPerSecond;
 
+    /// <summary>TRAPS loader 0x004AA440: retain the low dword of the product, then shift logically.
+    /// The authored value is seconds in 1/4096 units; overflow and negative inputs stay unsigned.</summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/traps.md")]
+    public static uint LoaderFixedSecondsToTicks(int secondsRaw) =>
+        unchecked((uint)(secondsRaw * OriginalTicksPerGameSecond)) >> 12;
+
     /// <summary>DK2's own ticks per game second: four (Q1, Q132). Read, not chosen — variable 19,
     /// the seconds-to-ticks multiplier the engine divides and multiplies by, is copied out of the
     /// LEVEL chunk and reads 4 in all 66 shipped levels. Distinct from <see cref="TicksPerSecond"/>
