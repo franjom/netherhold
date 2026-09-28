@@ -26,7 +26,7 @@ public static class RoomPlanner
     /// is available to the keeper and not yet owned. Null when every room is
     /// built, which the caller records as <c>AllRoomsBuilt</c>. The original's
     /// second pass (rooms researchable but not yet available, yielding an empty
-    /// room-shaped dig) is not reproduced: this codebase has no research state yet.
+    /// room-shaped dig) is not reproduced, although availability state 2 exists.
     /// </summary>
     public static byte? ChooseRoom(
         KeeperView view, KeeperAIParameters p, Func<byte, bool> isAvailable,

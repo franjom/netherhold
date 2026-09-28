@@ -8,9 +8,8 @@ using DK2.Simulation;
 namespace DK2.AI;
 
 /// <summary>
-/// The original's gold scan (docs/KEEPER_AI.md §5.5): flood-fill gold-bearing rock
-/// into seams, take each seam's centroid, and keep the four nearest to the
-/// keeper's rooms. STRONGLY INFERRED.
+/// Provisional gold scan. Its full sort, tile-count amount and uncorrected centroid
+/// differ from DK2; see docs/research/computer-keeper-management.md §12.
 /// </summary>
 public static class GoldScanner
 {

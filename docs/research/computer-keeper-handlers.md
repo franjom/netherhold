@@ -94,8 +94,8 @@ No creature list, job, anger, capacity or need is read. The personality setter b
 4. Otherwise start `Task=1`. Rooms below id 6 use `DefendDirection`; later rooms use
    `OpenDirection + random(3) - 1`, modulo four. Select an origin from an ideal-room
    table or a random owned non-bridge room, subject to `PlaceRoomsNextToIdeal` and
-   whether the ideal kind exists. An `0x80` expansion request first tries to add one
-   strip to an existing room; failure clears the bit and falls back to a new room.
+   whether the ideal kind exists. An `0x80` request first tries to enlarge an
+   existing room; failure clears the bit and falls back to a new room.
 
 **Known:** `DefaultRoomSize` (`+0x4BF`) does not choose a room type. It is both the
 planned tile count in the cost estimate and the area passed to the site finder. The
@@ -125,7 +125,7 @@ estimate above; id 3 also consults the per-tile price.
 `DungeonHeartPosition`; `0x004C6460` chooses an unflagged room of one type;
 `0x004C63D0` chooses a non-bridge room; `0x005558D0` is the RNG. **Strongly
 inferred:** `0x004C61C0` finds a typed room near a point, `0x004FC3B0` finds nearby
-owned land, `0x004FBE00` derives an expansion strip, world slot `+0x98` fetches a
+owned land, `0x004FBE00` derives an expansion rectangle, world slot `+0x98` fetches a
 room definition, and `0x00501C10` rescans gold (§7).
 ## 4. Task 1 — select a room footprint (`0x004FCE70`)
 
@@ -266,11 +266,12 @@ reserves 0x10 bytes, saves `EBX/EBP/ESI/EDI`, returns allowance minus one in `AL
 uses `RET 4`. It has no SEH frame.
 
 **Rule — Known:** the target was selected by `0x004FD590`: take
-`GoldDeposits[CurrentGoldArea]` when its size dword is nonzero, copy its `(x,y)` to
+`GoldDeposits[CurrentGoldArea]` when its total-gold dword is nonzero, copy its `(x,y)` to
 `DigRoomAt`, reset `CurrentGoldArea=0`, rescan deposits, then start task 5. The scan
-flood-fills gold areas, uses each centroid, scores it by squared tile distance to the
-nearest owned room, and retains the four lowest scores in ascending order. Thus the
-normal index 0 is the nearest remembered deposit; no random choice occurs.
+scores gold areas by squared distance to an owned room. Its four slots stay ordered,
+but a stale admission cutoff means they need not be the four nearest deposits
+(`computer-keeper-management.md` §12). The normal index 0 is the nearest retained
+entry; no random choice occurs. The same audit covers centroid correction.
 
 **Known:** task 5 walks `player.RoomList` and minimizes
 `(deposit.x-room.x)^2 + (deposit.y-room.y)^2`; `<`, not `<=`, leaves a tie with the
@@ -307,17 +308,18 @@ existence/fetch terrain; **Known:** `0x0050E5C0` submits §2's tag action.
 **Prologue/result — Known:** `ECX` plus allowance byte; SEH frame, 0x2C locals, saved
 `EBX/EBP/ESI/EDI`, `AL` remainder, `RET 4`.
 
-**Rule — Known:** reject a target outside `MaxBuildArea`; a continuation other than
-0 or 4 becomes task 4. Otherwise spend one allowance per walker result until one of:
+**Rule — Known:** a target outside `MaxBuildArea` aborts only when `NextTask` is
+neither 0 nor 4: both tasks become 4 and allowance becomes zero. Otherwise:
 
-1. Current equals target, a direct route succeeds, a required bridge cannot be built,
+1. Current equals target, a direct route succeeds, no required bridge is available,
    or the walker fails: copy `NextTask` to `Task`, reset `TaskTimeCounter`.
 2. On solid/taggable terrain, submit action `0x28` only with more than 51 free task
-   entries; water (`+0x17B` bit 7) builds room 8 and lava (bit 8) room 17 when that
-   room's availability is 3 and placement accepts it.
+   entries; water (`+0x17B` bit 7) chooses room 8 when available (state 3), otherwise
+   room 17; lava (bit 8) chooses only 17. An unavailable required bridge ends the
+   task; failed placement/build retries the same tile while allowance remains.
 3. During an attack (`BlibBlubBlob` low nibble nonzero), if `0x004FDB90` finds an
-   enemy-owned tile in the current tile's 3x3 neighbourhood, decrement that enemy's
-   `TunnelsLeft`, store current→target in its first empty eight-slot tunnel entry,
+   enemy-owned tile in the current tile's 3x3 neighbourhood, convert the encoded
+   enemy index from one-based to zero-based, store current→target in its first empty tunnel entry,
    clear the low nibble, and resume `NextTask`.
 
 **Wall-hug — Known:** `0x00502230` first steps toward the target on the axis with the
@@ -351,7 +353,7 @@ threatenedX:u16@+0x5E, threatenedY:u16@+0x60}` at stride 8. Negative means withd
 scan owned creatures in list order within squared fixed-point distance `<0x19000`
 (strictly less than five tiles) of that tile, excluding descriptor flag `0x4000`, the
 `0x004888C0` state predicate, creatures in hand and state `0x4C`, plus the exact
-gate `(creature.u16[+0x46D] <= 300 && turn <= 300)`. Move the first eligible creature beside the heart and add its
+gate `(creature.u16[+0x46D] <= 300 && turn > 300)`. Move the first eligible creature beside the heart and add its
 level-scaled threat. `+0x46D` is **`LastDroppedCounter`** by DK2's dumper (`creature-object.md`), so the gate reads how recently the hand dropped it.
 
 **Known:** nonnegative means reinforce. Scan owned creatures in list order; require
@@ -359,14 +361,12 @@ descriptor bits 0 and `0x4000` clear, `0x004888C0==0`, generic eligibility
 `0x0045A6D0(0)` — the fight gate of `combat-acquisition.md` §2 — health above half of level-scaled maximum (the quarter-health and
 state-category 7/3 checks are redundant before that), category !=22, not in hand,
 state !=`0x4C`, and not one of states `0xD1/0xFF/0x100/0x101`. If the threatened tile
-is not owned, replace the payload tile with the first owned, unobstructed candidate
-from an expanding square spiral bounded by twice the smaller map dimension. Pick and
-drop one creature there, then subtract its level-scaled threat.
+is not owned, seek an owned, unobstructed replacement in a square spiral bounded by
+twice the smaller map dimension. An already owned payload tile skips movement;
+eligible threat can still be subtracted (`computer-keeper-threat.md` §3).
 
-**Known:** threat is descriptor `u16 +0x698` at level 1, otherwise multiplied by the
-signed per-level percentage at table `0x006E4154 + 0x105 + 2*level`, divided by 100.
-One creature costs one allowance unit, so this handler moves at most
-`TendancySpeed` creatures in a turn. Zero allowance pauses the event. Residual crossing
+**Known:** threat scaling is in `computer-keeper-threat.md` §2. One selected creature
+costs one allowance unit. Zero allowance pauses the event. Residual crossing
 zero, an empty creature list, or no eligible candidate retires it: zero the residual,
 advance `CurrentEventTask=(head+1)%3`, decrement `NumberOfEventTasks`.
 
@@ -394,7 +394,6 @@ hand; `0x0048E6A0` tests keeper interaction; `0x004BFBD0` prepares a creature,
 the gold selector may cast keeper spell 13 (Create Gold) at one tile beside the heart.
 
 **UNKNOWN:** retail names for terrain bits `+0x17B/+0x1CB`, keeper/world words
-`+0x4650/+0x467A/+0x467C` and most state constants; which eligible
-strip wins an irregular-room expansion; and unused bytes/padding in the action record.
-Resolve names from DK2 dumpers or complete reader/writer sets; strip order from
-branch tracing or a rectangular-room experiment; padding from the action-40 serializer.
+`+0x4650/+0x467A/+0x467C` and unused action-record padding. Resolve names through
+dumpers/readers/writers; padding through the action-40 serializer. Expansion retains
+multiple sides in order (`computer-keeper-management.md` §10).

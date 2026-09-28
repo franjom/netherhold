@@ -11,7 +11,7 @@ public enum WalkOutcome
     /// <summary>Diggable rock met; the caller tags <see cref="WalkStep.Tile"/>.</summary>
     Dig,
 
-    /// <summary>Water or lava met; the original lays a bridge here. No bridge command exists yet.</summary>
+    /// <summary>Water or lava met; the caller must choose and request a bridge.</summary>
     Hazard,
 
     /// <summary>The walker moved over open ground and has nothing to tag this call.</summary>

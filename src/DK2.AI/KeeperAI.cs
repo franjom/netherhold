@@ -30,10 +30,9 @@ public sealed class KeeperAI
     public const int UntagGoldAfterTicks = 240;
 
     /// <summary>
-    /// This keeper does not slap the same creature again within 300 ticks (75 game
-    /// seconds) — pacing for the computer player's own hand (§5.9), not a DK2 rule
-    /// about slapping: a human keeper has no such cooldown, and no simulation
-    /// system may read it.
+    /// Temporary approximation, refuted by the binary audit: DK2 checks the shared
+    /// speed timer and activity accessor, not elapsed time since the last slap.
+    /// Replacement dependencies: docs/research/computer-keeper-management.md §8.
     /// </summary>
     public const int SlapCooldownTicks = 300;
 
@@ -467,7 +466,7 @@ public sealed class KeeperAI
                 break;
             case WalkOutcome.Moved:
                 break;
-            case WalkOutcome.Hazard: // the original bridges here; there is no bridge command yet
+            case WalkOutcome.Hazard: // Bridge planning is missing; BuildRoomCommand already supports it.
             case WalkOutcome.Failed:
                 State.WallHug = false;
                 State.BeginTask(KeeperTask.Done);

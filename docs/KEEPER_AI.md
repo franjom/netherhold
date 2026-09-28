@@ -204,7 +204,7 @@ HYPOTHESIS-dead.
 | `+0x008` | `AttackingPlayerId` | last player whose creatures were found near an attack |
 | `+0x012` | `MaxBuildArea` (4×i32) | from block `0x92` as four u16 (min x, min y, max x, max y); the personality setter uses the whole map |
 | `+0x022` | `EventTask[3]` | 1 = respond to attack |
-| `+0x02E` | `GoldDeposits[4]` | x, y, and a size word — the four nearest gold seams (§5.5) |
+| `+0x02E` | `GoldDeposits[4]` | x/y words and a total-gold dword; four retained gold seams (§5.5), not always the four nearest |
 | `+0x04E` | `CallToArmsPos` | x, y, z in 1/4096 tile |
 | `+0x05A` | `RespondToAttack[3]` | threat needed (signed), x, y |
 | `+0x072`–`+0x095` | `DigRoomAt`, `DigRoomAtCurrent`, `WallHugStart/End`, `JoinPathStart/End`, `WallHugDistance/Heading`, `DigDX/DY`, `InnerLoopXOrY`, `MaxX/MaxY`, `SquaresTarget/Current` | rectangle-walk state for digging and placing |
@@ -222,8 +222,9 @@ Two things the dump prints that are **not** in the struct:
   `{ u8 roomId; fn* mayPlace; u32; u32; i32 unused = −1 }`. Only four jobs map to a
   room — **3 Research → Library (6)**, **4 Train → Training Room (7)**, **5
   Manufacture → Workshop (10)**, **7 Torture → Torture Chamber (12)** (job ids
-  CONFIRMED against this repository's `JobType`). The predicates: Research runs the
-  make-room-for-a-researcher step (§5.1 step 12) and returns true, Train returns "army
+  CONFIRMED against this repository's `JobType`). The predicates: Research requires
+  a spell in state 2, invokes the make-room step if a Library exists, and then
+  returns true; with no such spell it returns false. Train returns "army
   not ready to attack", Manufacture always true, **Torture always false** — so the AI
   never drops a creature into the Torture Chamber for work. Sleep, Eat, Guard, Pray
   and Drink have no room. Consumers: job placement (`0x503690`) and the "make happy"
@@ -394,17 +395,20 @@ and `TrapsStartFights` **on**; `Flags` 0 (then `0xFFFF` from either loader).
 
 ## 4. What the AI can do — its outbound interface — STRONGLY INFERRED
 
-It is a **separate actor issuing the same commands a human issues**. Everything it
-does goes through: the player's hand (take thing, drop thing, "is hand holding"), the
+Most outward actions use the human player's dispatch paths: the player's hand
+(take thing, drop thing, "is hand holding"), the
 generic player-action handler with an action id (40 = tag a tile for digging, 41 =
 untag, 62 = slap, 63 = remove Call to Arms, 88 = pick up a Special), room placement
 (with the world's "can this room go here" check first), trap and door placement,
 keeper-spell casting at a position or on a thing (spell 1 Sight of Evil, 3 Call to
 Arms, 4 Create Imp, 13 Create Gold — ids CONFIRMED from `KeeperSpells.kwd`, whose id
 byte is at record offset `0xEE`), pathfinding queries, the room list, the dungeon
-heart position, and a per-player RNG (`random(n)`, 31 call sites). It reads other
-players' creature lists directly. It never writes creature state except one bit: the
-per-keeper **"imprison me"** mask on enemy creatures (§5.4).
+heart position, and the world's RNG (§5.9). It reads other players' creature lists
+directly. It also writes creature state: the per-keeper imprisonment mask (§5.4),
+direct readiness level-ups and preparation for hand movement
+(`research/computer-keeper-threat.md` §§2–4). Our input-source architecture must
+represent such verified effects through commands; it is not the binary's exact
+internal boundary.
 
 ---
 
@@ -435,11 +439,11 @@ tick is skipped (the counters still run).
 7. If budget: if `PlayersAttackedFlags` → **attack management** (`0x4FECE0`: place a
    Call to Arms at the front, or check for its removal); if `CallToArmsInUse` → **CTA
    removal test** (`0x4FEFC0`); then **retreat wounded** (`0x4FF260`).
-8. **Collect specials** (`0x500520`, no budget): the last eligible Special encountered
-   in the owned-object list is activated (action 88). The loop overwrites its saved
-   tag on each match (`0x00500520`); list order in play remains to be checked.
-   Specials are object ids 117–129 (and 8) — CONFIRMED ids
-   from `Objects.kwd`.
+8. **Collect specials** (`0x500520`, no budget): retain the last qualifying owned
+   Special, then check its type before action 88. Accepted ids are 8, 117–126,
+   128/129; an excluded last object can suppress an earlier accepted one.
+   Exact filter and remaining virtual-predicate question:
+   `research/computer-keeper-management.md` §3.
 9. `random(100) < 50` and budget and army not ready-to-attack → **training moves**
    (`0x4FF5C0`): a creature within a level-up (experience above ¾ of its next
    threshold) or at level ≥ `TrainingRoomMaxExperienceLevel` (balance variable 126,
@@ -459,16 +463,16 @@ tick is skipped (the counters still run).
     with the lowest value of an unnamed descriptor byte (`+0x787`, §7) and — only when
     the dungeon is **at its portal creature cap** (`first-portal count + (portals − 1)
     × per-extra-portal count` ≤ creatures flagged as counting) and the creature is not
-    in hand, not in a handful of states, and not picked up within the last 300 ticks —
+    in hand, not in a handful of states, and passing the dropped-counter guard —
     picks it up and **drops it at a Portal or Hero Portal**, so it leaves and frees a
     slot for a creature that can research. Then, unless an event task is pending,
     **job placement** (`0x503690`): drop what the hand holds into a room matching one
     of the creature's jobs through the `JobRooms` table (§2.3); at 10 % pick up a
-    working creature for the same.
-13. If budget and `Flags` bit 5: **slap** (`0x502F00`): a working creature above half
-    health, not recently slapped, 1 % per creature per tick (action 62). The
-    "recently slapped" guard is the AI's own pacing of its hand; a *human* keeper has
-    no slap cooldown in DK2 (§12.5).
+    creature whose activity accessor returns 5 for the same (management audit §8).
+13. If budget and `Flags` bit 5: **slap** (`0x502F00`): accessor `0x00478A20 == 5`,
+    health above half, `SpeedChangeTimer == 0`, and a 1 % roll (action 62).
+    The accessor includes idle creatures and excludes ordinary research/training;
+    it is not a working-state test (`research/computer-keeper-management.md` §8).
 14. If budget: **prisoners** (`0x5006D0`, §5.8); if that returned budget and
     `UseSightOfEvil` ≠ 0: **Sight of Evil** (`0x5003A0`): a random map tile; mode 1
     casts at 2 %/tick anywhere, mode 2 at 20 %/tick only on enemy-owned tiles.
@@ -535,24 +539,30 @@ creature leaves).
 ### 5.4 Threat, imprisonment, and responding (`0x4F9B90`, `0x4FA000`, `0x4FE0B0`)
 
 - Bail if three event tasks are already queued (the message stays unhandled).
-- If the keeper owns a **Prison (11)**: for **every enemy creature**, roll
+- For position messages, if the keeper owns a **Prison (11)**; for room-attack
+  messages, without that check: for **every enemy creature**, roll
   `random(100) < ImprisonPercentage`; set or clear this keeper's bit in the creature's
   "imprison me" mask accordingly. Imprisonment is a per-creature coin toss re-rolled
   on every combat message, and the mask is what the creature side reads when a fight
   ends.
 - `enemyThreat` = sum of level-scaled threat of enemy creatures within 10 tiles of the
-  position (radius 5 for the thing variant), plus armed traps when `TrapsStartFights`;
+  position (radius 5 for the room variant). Position messages include eligible traps
+  when `TrapsStartFights`; room messages exclude traps;
   records `AttackingPlayerId`, sets `HaveBeenAttacked`. `allyThreat` = own and allied
-  creatures within 4 tiles for position messages, 5 for the thing variant.
-- Drop tile: nearest own, passable, unblocked tile within ±5.
+  creatures within 4 tiles for position messages, 5 for room messages.
+- Drop tile: search own, navigation-open tiles within ±5. Position messages choose
+  nearest; the room reader has a different, erroneous score. Exact arithmetic and
+  tie order: `research/computer-keeper-threat.md` §1.
 - `needed = BAThreatSuperiority% × enemyThreat − allyThreat`. With a drop tile:
-  `needed < 0` → nothing to do; else queue **respond-to-attack(needed, tile)**. Without
+  `needed < 0` → position messages cancel the event, room messages queue residual
+  zero; else queue **respond-to-attack(needed, tile)**. Without
   one: if `BARemoveIfCantReinforce` and `needed ≥ 1` → queue
-  **respond-to-attack(−allyThreat, position)** — a withdrawal.
+  **respond-to-attack(−allyThreat, position)** — a withdrawal. Otherwise room
+  messages still enqueue residual zero, while position messages cancel it.
 - **Respond-to-attack** (one action per budget unit): positive → pick own creatures
   above half health, not fighting or in certain states, and drop them at the tile (or
   the nearest own tile found by a spiral search), subtracting each one's threat until
-  ≤ 0; negative → pick own creatures within five tiles of the fight and drop them beside
+  ≤ 0 (the debit can happen even if the move fails); negative → pick own creatures within five tiles of the fight and drop them beside
   the heart, adding their threat until ≥ 0. No candidate → the event is dropped.
   Creature threat (`0x4FBDB0`) = the descriptor's threat value at level 1, otherwise
   threat × a global per-level percentage table (`i16[level]` at `+0x105` of the table
@@ -576,9 +586,11 @@ creature leaves).
   any spell is still researchable, push a research move instead and refuse.
 - Target: with `IAOnlyAttackAttackers`, only the recorded attacker (then the flags are
   cleared); otherwise the **nearest enemy heart** (skipping ids 1 and 2 and finished
-  players) whose total army threat × `IAThreatSuperiority`% we exceed.
+  statuses 1/3) whose total army threat × `IAThreatSuperiority`% we meet or exceed.
 - If that enemy's `TunnelsLeft` is 0 and a stored tunnel exists → resume it (`Task 7`,
-  `NextTask 4`), set `CannotAttackCounter ← WaitBeforeAttackingAgain × 4`.
+  `NextTask 4`) before the ordinary nearest/strength comparison. Ordinary mode sets
+  the cooldown only if no stored tunnel remains; attacker-only mode does not write
+  it (`research/computer-keeper-management.md` §6).
 - First attack on a player (`FirstAttackFlag`): end point by `IAFirstEnd` — 0 the enemy
   **Dungeon Heart (5)**, 1 a random enemy room, 2 the enemy room with the least threat
   within 5 tiles, 3 the most; start point by `IAFirstStart` — 0 own room furthest from
@@ -639,17 +651,20 @@ test entirely; if side² < `DefaultRoomSize`, try one extra strip; validate agai
 `MaxBuildArea`. Side = ⌊√DefaultRoomSize⌋. The square may overlap the keeper's own
 empty floor, which is how a room ends up flush against the corridor that led to it.
 
-**Gold** (`0x4FD590`, `0x501C10`): the scan flood-fills gold-bearing tiles into
-deposits, takes each deposit's centroid, and keeps the **four nearest** to the keeper's
-rooms in `GoldDeposits`. The gold step takes `GoldDeposits[CurrentGoldArea]` → Task 5;
+**Gold** (`0x4FD590`, `0x501C10`): the scan retains four distance-ordered deposits
+in `GoldDeposits`; its stale admission cutoff means these are not always the four
+nearest. It uses an unweighted centroid, correcting away from terrain flag bit 1;
+the stored amount is total gold (`research/computer-keeper-management.md` §12).
+The gold step takes `GoldDeposits[CurrentGoldArea]` → Task 5;
 with none known and **Create Gold** available, it casts Create Gold one tile off the
 heart.
 
 ### 5.6 Traps and doors (`0x5000A0`, `0x4FFD80`)
 
 Needs a Workshop (10) and `random(100) < TrapAndDoorUsage`. The bounding box of all
-own rooms is grown by `random(10) − 2` tiles, clamped to the map, and its four edges
-are walked; each valid site gets one placement per budget unit. A **valid site**
+own rooms' stored positions is grown by `random(10) − 2` tiles and clamped to the
+map. The west pass tests only its first tile; the other three edges are walked
+fully (`research/computer-keeper-management.md` §9). A **valid site**
 (`0x4FFA50`) is interior to the map and checks the centre and opposite
 neighbours through world vtable slot `+0x208` (the navigation solid bit;
 `tunnelling.md`); adjacent dig tags are excluded. The centre must be open
@@ -661,21 +676,23 @@ at the first, 2 = stop when `random(100) ≤ 50` (the inclusive comparison matte
 Otherwise a **trap**: type 2 is the boulder — with
 `BoulderTrapsOnLongCorridors` only where a straight run of 4 valid tiles exists in
 some direction, else at `random(4) > AggressiveVsDefensiveTrapPreference`; other traps
-split by a per-type "aggressive" byte against `AggressiveVsDefensiveTrapPreference`
-(0 → all aggressive, 4 → all defensive).
+split on descriptor `+0xBD == 1`, using opposite random comparisons against
+`AggressiveVsDefensiveTrapPreference`. The last eligible candidate is a fallback,
+so the preference extremes do not guarantee one class (management audit §9).
 
 ### 5.7 Battle step (`0x503060`) and Call to Arms
 
 Recomputes `FightGoingOn` from creatures in the fighting state. For a fighter: if
-enemy threat within 12 tiles exceeds `BACallToArmsValue`, CTA is affordable, the tile
+the target owner's threat within 12 tiles exceeds `BACallToArmsValue`, mana is
+strictly greater than CTA cost, the tile
 is not lava, the game tick is a multiple of 40, and a route from the heart exists →
 cast **Call to Arms** there; `CallToArmsCounter ← RemoveCallToArmsAfter`,
 `CallToArmsInUse`. Otherwise, with `random(4) ≥ UseKeeperSpells`: `random(4) <
 AttackingVsDefensiveSpellPreference` chooses a **supportive** spell (flag bit 3 in the
 spell descriptor) for an own creature under half health within five tiles, else an
 **offensive** one (flag bit 2) for an enemy within five tiles; among available, un-cooled
-spells the pick is weighted by cost against `4 − SpellPreference` (higher preference →
-dearer spells). For each eligible target, `random(100) > 75` stops the scan
+spells are scanned in id order with different supportive/offensive fallback rules
+(`research/computer-keeper-management.md` §4). For each eligible target, `random(100) > 75` stops the scan
 (24 %); otherwise the selected target is overwritten and the scan continues.
 
 **CTA removal** (`0x4FEFC0`): when the counter reaches 0, or fewer than
@@ -684,16 +701,23 @@ dearer spells). For each eligible target, `random(100) > 75` stops the scan
 exist anywhere → remove it (action 63) and `CannotAttackCounter ←
 WaitBeforeAttackingAgain × 4`. **CTA front** (`0x4FE9C0`): for `CallToArmsUsage` 1/2
 the position is near the enemy heart; for 0 it **creeps** from the current CTA toward
-the enemy heart, advancing one step once ~80 % of the army is within 10 tiles.
+the enemy heart when `total <= floor(nearby * 5 / 4)`, counting nonworkers strictly
+within 10 tiles. The route helper's step distance remains unverified
+(`research/computer-keeper-management.md` §7).
 
 ### 5.8 Prisoners (`0x5006D0`) and retreat
 
-With a Prison and prisoners: each prisoner is considered with 5 % probability; one
-belonging to a non-enemy goes to a **Lair**; an enemy goes by
+Choose one owned Prison and scan its occupants: select a non-enemy immediately,
+or an enemy on a 5 % roll, stopping at the first selection. A non-enemy goes to
+a **Lair**; an enemy goes by
 `ImprisonedCreatureAction`: 0 Torture Chamber (12), 1 nothing, 2 Combat Pit (16), 3
-Temple (13). **Retreat** (`0x4FF260`): a creature below `BARetreatHealth`% health (or
-below 50 % when marked as a Combat Pit fighter) and at least `IACreatureSkillLevel` is dropped
-at the Lair, or the heart if none.
+Temple (13). Selection costs one allowance even when no move follows; room and
+hand restrictions are in `research/computer-keeper-management.md` §1.
+**Retreat** (`0x4FF260`) uses alternative branches for low health,
+state category and Combat Pit fighters; it does not require both low health and
+the target skill level. Selected creatures are dropped at an own Lair or the
+heart if none. Exact gates and remaining helper questions:
+`research/computer-keeper-threat.md` §4.
 
 ### 5.9 Constants worth knowing
 
@@ -701,7 +725,7 @@ at the Lair, or the heart if none.
 |---|---|---|
 | 1,680 ticks | tick | task timeout (`TimesOut`) |
 | 240 ticks | tasks 2, 3, 6, 7 | `UntagGoldCounter` after tagging |
-| 300 ticks | make-room step, job placement | a creature is not **picked up** again within 300 ticks of the last pick-up (skipped in the first 300 ticks of the game). This is the pick-up guard, not a slap guard |
+| 300 ticks | creature hand movement | the `LastDroppedCounter` guard, bypassed during the first 300 game turns; it measures dropping, not picking up (`computer-keeper-threat.md` §3) |
 | 40 | battle step | CTA cast only on ticks divisible by 40 |
 | ×4 | attack planner, CTA removal | `WaitBeforeAttackingAgain` is in units of 4 ticks |
 | 10 / 12 / 5 / 4 tiles | threat radii | attack response / battle CTA / thing-variant, weak-room test, battle spell and withdrawal / ally radius |
@@ -781,7 +805,9 @@ at the Lair, or the heart if none.
   keeper-spell state enumeration itself was not read.
 - **Terrain descriptor byte `+0x1CB` bit 0**, which the site finder and the expansion
   test accept as buildable alongside diggable rock and own floor.
-- **Room-expansion side priority** when more than one strip qualifies.
+- **Room expansion's observed shape:** the binary accepts multiple sides in order;
+  irregular extrema and excluded endpoints need an original comparison
+  (`research/computer-keeper-management.md` §10).
 - **What `0x4F8150` does** — a 41-byte routine in the unit, referenced by nothing the
   AI calls, that hands a word at `+0x66` to a pair of stream helpers.
 - **Why the skirmish maps remap personalities** (§3.2).
@@ -804,12 +830,13 @@ at the Lair, or the heart if none.
    threshold that may never be met.)
 2. Have you ever seen the AI keeper on Level 17 run out of imps? (Predicted from the
    232 garbage value: at most 4 imps, one per 232 tiles.)
-3. When an AI keeper is attacked, do its creatures get *dropped* at the fight (they
-   appear from above) rather than walking there? (Predicted: yes.)
+3. When an AI keeper is attacked, are creatures visibly dropped near the fight?
+   The already-owned-target branch predicts no move despite debiting threat
+   (`research/computer-keeper-threat.md` §3).
 4. Does an AI keeper ever pay creatures by dropping gold on them, or feed one a chicken
    by hand? (Predicted: yes — that is how it handles unhappiness.)
-5. Does an AI keeper slap its creatures? (Predicted: rarely, about 1 % per working
-   creature per tick.)
+5. Does an AI keeper slap idle creatures? (Predicted by accessor 5; research and
+   training categories are excluded. See management audit §8.)
 6. In skirmish, does choosing the same personality on "Spiral" and on another map feel
    different? (The remap table says Spiral silently plays Conqueror for three
    personalities.)
@@ -980,7 +1007,7 @@ the simulation's stream. The delay and separate stream are deliberate deviations
 | `KeeperDirections` | both direction tables and the creation-time defend/open rule (§5.5) | **exists** |
 | `SiteFinder` (+ `BuildArea`) | §5.5's site search, including the gap-gated `Openness` test | **exists** |
 | `LineWalker` (+ `WalkOutcome`) | §5.2's corridor digger, with wall-hugging and the two-way trial | **exists** |
-| `GoldScanner` | §5.5's seam scan and the four nearest deposits | **exists** |
+| `GoldScanner` | seam scan; its sorted retention differs from §5.5 | **exists, needs correction** |
 | `RoomPlanner` | §5.5's room choice, ideal neighbours, directions, claimable neutral rooms | **exists** |
 | `KeeperAIPersonality` | the nine skirmish rows of §3.2 as typed static data, producing a `KeeperAIParameters` plus the computed `RoomList` | **does not exist**; the values are decoded in `reverse-engineering/` |
 | `ThreatEvaluator`, `AttackPlanner`, `TrapPlacer`, `BattleStep` | §5.4, §5.5, §5.6, §5.7 as pure functions over the view | **do not exist** |
@@ -1046,14 +1073,10 @@ named quirk the harness can assert on.
 - Tick unit: the counters are game ticks, four to a game second (Q1, ADR-0089), and the
   simulation already runs on game ticks, so §5.9's constants (1,680; 240; 300; 40)
   transfer unchanged.
-- **`KeeperAI.SlapCooldownTicks` is AI pacing, not a DK2 rule.** It is 300 ticks,
-  borrowed from §5.9's *pick-up* guard to stand in for the unmeasured "not recently
-  slapped" test of §5.1 step 13, and it belongs to this keeper's hand. **DK2 imposes no
-  cooldown on slapping**: every slap counts however fast they come, the work bonus is
-  rewritten rather than compounded (Q114), and the original's `LastSlapTick` window
-  guards only the knock-back impulse (`HandRules.KnockBackWindowSeconds`,
-  `docs/research/hand-of-evil.md`). No simulation system may read this constant, and
-  a comment that cites it as a slapping rule is wrong.
+- **The current slap approximation is refuted.** `SlapCooldownTicks = 300` and
+  `Activity == Working` do not match DK2's gates. The required state accessor and
+  shared speed timer are audited in `research/computer-keeper-management.md` §8;
+  the original's human slap has no cooldown (`research/hand-of-evil.md` §4).
 
 ### 12.6 Tests the sketch implies
 
@@ -1115,10 +1138,13 @@ Deviations and approximations, each a candidate ADR:
 - The keeper's own RNG stream and one-tick input delay (§12.1, ADR-0244).
 - "Connected" is a flood fill from the heart over passable tiles and the keeper's own
   tags; the original's connectivity test was not read in that detail.
-- Water and lava stop a corridor (the task ends) because there is no bridge command;
-  the original bridges.
+- Water and lava currently stop a corridor, although `BuildRoomCommand` already
+  supports bridges. The original's bridge selection and retry are in
+  `research/computer-keeper-handlers.md` §9; its complete placement check remains
+  a simulation dependency (`RoomRules` omits bridge adjacency).
 - The room planner's second pass (researchable-but-unavailable rooms, the `0xE5`
-  empty-shape dig) is not reproduced: there is no research state.
+  empty-shape dig) is not reproduced. Availability state 2 already exists; the
+  research progression that changes it remains incomplete.
 - `SlapCooldownTicks` (§12.5).
 
 The observation facade and typed player messages, reactive and battle decisions,
