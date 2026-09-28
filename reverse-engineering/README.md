@@ -67,6 +67,84 @@ script here is driven by addresses, offsets and globals, never by a class name. 
 whole-binary class map is a useful local asset and a large import of somebody else's
 naming: generate it here if it is wanted, and let only addresses cross.
 
+## Full-state captures (`dk2record.py`, `dk2capture.py`)
+
+One `-PLOAD` playback, recorded once, answers later questions offline. The
+recorder polls DK2 from outside and stores raw bytes every world tick. Decoders
+then read fields out of those bytes afterwards, so a new question needs a new
+decoder, not a new playback. Nothing here patches the game.
+
+**Record** (probe first, elevated; then the game, elevated):
+
+```
+python -u dk2record.py dk2runs/<run>/<name>.dk2cap --map 40x50 --last-tick 3545
+"E:\GogGames\Dungeon Keeper 2\DKII-DX.exe" -LEVEL level2 -PLOAD l2win928 0
+```
+
+It waits for the process, then for a level with that map size (`--map 0` takes
+any), then stores one frame per new tick until `--last-tick`, the process
+exits, or the tick goes backwards. It ends by printing a summary: pass times,
+torn and missed ticks, and unknown classes.
+
+**What a frame holds**, each item in one bulk read:
+
+| region / record | address | size | size from |
+|---|---|---|---|
+| every non-null slot of the thing table | `[0x006EE540 + slot*4]`, all 4,096 slots | per class, by the vtable at record `+0` | allocator and vector-iterator sizes in the binary (below) |
+| the thing table and its per-slot active bytes | `0x006EE540`, `0x006ED540` | 16 KB, 4 KB | register `0x00507850` / unregister `0x00507920`, `0x00507970` |
+| the world object | `[0x006E5054]` (= `0x006F2A08`) | `0xA36B` | an upper bound: the next referenced global is `0x006FCD73` |
+| the player array | `[world+0x84]` | 7 × `0x1125` | vector construction at `0x004C1E64` |
+| each player's task pool | `[player+0x1105]` | `0x469B` | allocation at `0x004B87BD` (players whose `Number` is not 1 or 2) |
+| the tile array | `[world+0x9DA+0x14]` | width × height × 16 | `runtime-map.md` |
+
+Record sizes: creature `0x53F` (a pool of `0x1C0` built at `0x004B5A7E`),
+object `0x189`, door `0x11E`, trap `0x123`, action point `0x40`, effect generator
+`0x45`, shot `0x173`, dead body `0x140`, room `0xA9`. The heap allocator
+`0x00554B30` takes the byte count, rounds it up to 4 and adds a 12-byte header.
+A pointer is live exactly when it is non-null, because unregister nulls it. A
+vtable the table does not know is stored as 64 bytes and counted in the summary.
+
+**File layout.** The magic `DK2CAP\x01\n`, then chunks, each `u32 length, u8 kind,
+payload`:
+- `H`: a JSON header (class table, sizes, settings);
+- `F`: one zlib-compressed frame per tick;
+- `E`: a JSON end summary.
+
+A frame is a head (`seq, tick_before, tick_after, wall, pass_ms, flags`; bit 0
+keyframe, bit 1 torn), then its regions and its records. Each region or record
+has a mode: full, XOR against the previous frame's bytes, gone, or unreadable.
+A keyframe (every 256 frames, and the first) stores everything in full. Other
+frames store only what changed. XOR is used only when the slot keeps the same
+pointer, class and size; otherwise the bytes are stored in full.
+
+**Decode.** `Capture(path).at(tick)` or `.frames()` give snapshots with
+`records()`, `things(kind)`, `record(slot)`, `region(id)`, `tile(x, y)`,
+`player(i)`, `timers()` and `flags_bank()`. A record's `f(name)` reads a named
+field. Every offset lives in one table, `dk2capture.FIELDS`, and each entry
+cites its source. CLI: `python dk2capture.py <cap> info | creature-map |
+object-map | tiles | floor-gold <out.csv>`. The first two regenerate the old
+`level2_creature_map.py` CSVs exactly. `dk2check_l2.py` runs the Level 2
+checks in a run folder's `PREDICTIONS.md`. `test_dk2capture.py` is the offline
+dry run: a synthetic game in memory, polled by the real recorder loop, then
+checked frame by frame.
+
+**Known limits.**
+- **Torn passes.** The tick is read before and after each pass, and a pass
+  that saw it change is flagged. A pass that falls inside one world update is
+  not detected. The recorder waits 30 ms after the tick changes (`--settle-ms`)
+  to make that unlikely.
+- **Missed ticks.** If the game runs two ticks between polls, the gap is
+  counted and listed in the summary. Nothing is interpolated.
+- **Not stored:**
+  - anything a record only points at (definitions, path buffers, the
+    navigation cache, per-tile thing lists);
+  - effects and lights, which live outside the thing table;
+  - balance variables and terrain tables, which are static per level and come
+    from files;
+  - the player interface and camera, which is what condition 72 reads and why
+    two playbacks of one recording differ;
+  - the packet stream itself.
+
 ## Contents
 
 Nothing is committed but this README, by design. `git status --short
