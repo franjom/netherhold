@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 126;
+    private const int FormatVersion = 128;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -141,6 +141,7 @@ public static class WorldSnapshot
             ref PlayerState p = ref world.PlayerAtIndex(i);
             w.Write(p.PlayerId);
             w.Write(p.Mana);
+            w.Write(p.OneShotManaSpent);
             w.Write(p.GoldMined);
             w.Write(p.KilledByPlayerId);
             w.Write(p.SlapCount);
@@ -162,6 +163,8 @@ public static class WorldSnapshot
                 w.Write(availability.TypeId);
                 w.Write(availability.Value);
                 w.Write(availability.Upgraded);
+                w.Write(availability.LastCastTick);
+                w.Write(availability.LastCheckedTick);
             }
             w.Write(p.ManufacturePoints);
             w.Write(p.InformationGiven);
@@ -607,6 +610,7 @@ public static class WorldSnapshot
             {
                 PlayerId = r.ReadByte(),
                 Mana = r.ReadInt32(),
+                OneShotManaSpent = r.ReadInt32(),
                 GoldMined = r.ReadInt32(),
                 KilledByPlayerId = r.ReadByte(),
                 SlapCount = r.ReadInt32(),
@@ -630,7 +634,7 @@ public static class WorldSnapshot
             int availabilityCount = r.ReadInt32();
             for (int a = 0; a < availabilityCount; a++)
                 players[i].Availabilities.Add(new AvailabilityState(
-                    r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean()));
+                    r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt64(), r.ReadInt64()));
 
             players[i].ManufacturePoints = r.ReadInt32();
             players[i].InformationGiven = r.ReadUInt64();

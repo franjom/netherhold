@@ -8,17 +8,9 @@ using DK2.Data.Model;
 
 namespace DK2.Data.Kwd;
 
-/// <summary>Parser for KEEPERSPELLS(150) records: 13 spells over 5278 bytes, 406 each.
-/// A few fields of the 406 bytes are read — the record is not understood and spells proper
-/// are M7 work: what a spell costs to cast and to keep, its id, and the normal and bonus
-/// shots, which decide what an upgraded Create Imp makes.</summary>
-/// <remarks><para>0x11C is the mana cost, <b>s32</b> because Summon Horny's 100000 does
-/// not fit in 16 bits; 0xE2 is mana upkeep per second, u16, non-zero for exactly the
-/// five spells with a persistent result and zero for all eight instants.</para>
-/// <para>Both offsets STRONGLY INFERRED, validated structurally, with three anchors
-/// measured outside the file: Create Imp's 1500 cast cost and its 7/second upkeep are
-/// both CONFIRMED by the owner, and Summon Horny's 2000 is the community's figure. Full
-/// tables and the derivation: docs/research/imps-and-mana.md, Q53, Q55.</para></remarks>
+/// <summary>Reads the researched fields of 406-byte KEEPERSPELLS(150) records.
+/// Costs: imps-and-mana.md; shots: research-tree.md; cooldown and selectors:
+/// keeper-spell-thunderbolt.md. Unknown bytes remain unparsed.</summary>
 public static class KwdKeeperSpells
 {
     private const int RecordSize = 406;
@@ -72,6 +64,9 @@ public static class KwdKeeperSpells
         ManaCost =
             BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetManaCost)),
         KeeperSpellId = rec[b + OffsetKeeperSpellId],
+        CooldownRaw = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + 0xCC)),
+        LocationSelector = rec[b + 0xEF],
+        TargetSelector = rec[b + 0xDA],
         ShotTypeId = rec[b + OffsetShotTypeId],
         ShotData1 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetShotData1)),
         ShotData2 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetShotData2)),

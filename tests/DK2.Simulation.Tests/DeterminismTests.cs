@@ -105,7 +105,7 @@ public class DeterminismTests
         // HashVersion 126: the research tree — a keeper's target, each availability row's
         // Upgraded flag, and a book's research kind and type.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x1C559815D4AB992BUL, sim.StateHash());
+        Assert.Equal(0xDBFD17A3B1351515UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

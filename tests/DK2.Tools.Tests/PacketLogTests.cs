@@ -107,6 +107,32 @@ public sealed class PacketLogTests
         finally { File.Delete(path); }
     }
 
+    [Fact]
+    public void CreatureSpellUsesSecondFieldMappingAndPreservesPackedFlags()
+    {
+        var bytes = new List<byte>(new byte[69]);
+        Turn(bytes, 2, (6u | (4u << 16), 442, 0, 55));
+        Turn(bytes, 3, (6, 442, 0, 55));
+        Turn(bytes, 4);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            PacketLog packet = PacketLog.Read(path, 3, 69);
+            Assert.Equal(new[] { (2L, 442u, PacketEntityKind.Creature), (3L, 442u, PacketEntityKind.Creature) }, packet.EntityReferences);
+            var map = new PacketEntityMap();
+            Assert.Throws<InvalidDataException>(() => packet.At(2, map));
+            map.Add(442, 2, 7, PacketEntityKind.Object);
+            Assert.Throws<InvalidDataException>(() => packet.At(2, map));
+            map = new PacketEntityMap();
+            map.Add(442, 2, 8, PacketEntityKind.Creature);
+            map.Add(442, 3, 9, PacketEntityKind.Creature);
+            Assert.Equal(new CastSpellOnCreatureCommand(3, 6, 8, 4), Assert.Single(packet.At(2, map).All));
+            Assert.Equal(new CastSpellOnCreatureCommand(3, 6, 9), Assert.Single(packet.At(3, map).All));
+        }
+        finally { File.Delete(path); }
+    }
+
     private static uint Pack(uint x, uint y) => x | y << 16;
 
     private static void Turn(List<byte> bytes, uint turn,

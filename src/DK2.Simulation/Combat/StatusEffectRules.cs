@@ -31,7 +31,7 @@ public static class StatusEffectRules
     public static bool IsInvulnerable(CreatureState creature) => creature.InvulnerableTicks > 0;
     public static bool IsInvisible(CreatureState creature) => creature.InvisibleTicks > 0;
     public static bool IsArmoured(CreatureState creature) => creature.ArmourTicks > 0;
-    public static bool IsStunned(CreatureState creature) => creature.Activity == CreatureActivity.Stunned;
+    public static bool IsStunned(CreatureState creature) => creature.Dk2StateId is 209 or 255 or 256 or 257;
 
     /// <summary>Standing in the frozen or the stunned state: no fight, no job, no move.</summary>
     public static bool IsIncapacitated(CreatureState creature) =>

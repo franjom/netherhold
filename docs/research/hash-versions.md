@@ -12,13 +12,9 @@ determinism is broken and the change must not ship. See
 `docs/architecture/simulation-loop.md` for what the pin is for and why the hash
 is FNV-1a rather than `GetHashCode`.
 
-**What the pin could not see, and now can (Q206).** Until 2026-09-10 the gate's
-world held no creatures, so a change to `CreatureState` reached the pinned value
-only through `HashVersion` — verified by hashing a constant in
-`CreatureState.HashInto` and watching the pin still pass. It holds two now, and
-that same constant fails the pin. **Every note below predates the fix:** for
-versions up to 55, what moved the value was the version bump beside the change,
-not the creature field the note describes.
+**Q206:** before version 56, the pinned world had no creatures: creature-field
+changes moved its hash only through the version bump. It now holds two;
+injecting a constant into their hash fails the pin.
 
 **Composition versus behaviour.** A version bump changes the pin even when a
 new field is omitted from hashing. State absent from its fixture needs separate
@@ -27,6 +23,10 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 This file records version history; decisions and evidence live in the cited ADRs.
 
 ## Versions
+
+**128** — `0xDBFD17A3B1351515`. Keeper-spell last-cast/last-checked clocks and
+one-shot mana expenditure (ADR-0260). 127 belongs to the parallel doors/traps
+branch; renumber if the merge order requires it.
 
 **126** — `0x1C559815D4AB992B`, the research tree: a keeper's target, each availability row's `Upgraded`, a book's research kind and type (ADR-0247). **125** — `0x5D8E842FA7697068`. Persist the state-entry turn used by the
 state-199 message prologue; ADR-0246.

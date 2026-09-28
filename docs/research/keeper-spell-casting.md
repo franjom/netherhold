@@ -83,8 +83,8 @@ that flag choice; target 3 accepts any live nonneutral creature. Target 6 has
 additional state/status restrictions, or accepts an owned type-9 object.
 These predicates are not interchangeable with pickup permission.
 
-**Implementation gates still UNKNOWN:** the exact world `+0x20C` predicate,
-the Heart-position helper `0x004DA150`, and the full interpretation of target
-6's status fields. The shipped descriptor selectors must be mapped before
-implementing each spell. A cast command must not substitute a generic
-ownership/range check for this dispatch, or assume every selected spell succeeds.
+**Thunderbolt gates resolved:** see `keeper-spell-thunderbolt.md` §2 for the
+world `+0x20C` predicate, Heart-position helper `0x004DA150`, and shipped
+selectors. Target 6's status fields remain UNKNOWN for other spells.
+A cast command must follow the selected callbacks rather than substitute
+a generic ownership or range check.
