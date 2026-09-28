@@ -91,3 +91,69 @@ tick** (165, 329, 493, 657). At 175 it becomes **Claimed Path (8), owner 3, at
   the placed creatures. From tick 2 they agree.
 - At tick 2 the Heart's 16 rim tiles, (17,36)–(21,40), each hold one store pile
   (object 3) of 1000.
+
+## 5. The other work kinds, rock, and the state 26 read (2026-09-28)
+
+**CONFIRMED (same capture, solo imps).** Every entry state (13, 15, 21, 25) lasts
+exactly one tick (416 cases). From the work state's first tick E, the first
+application lands at E+2 for every kind. The second follows 4 ticks later for
+mining, 3 for digging (one case) and reinforcing (seven), and 1 for claiming (ten
+cases). After that, one application a tick.
+
+**Rock falls to one strike.** Every rock tile (terrain 2, 165 health) in the
+capture goes from 165 to a dug path at health 1 in one step, on the first strike
+of the imp beside it (for example (15,33) at 333). So the shipped `DigRockHealth`
+(-5000, one application -1000) is right. The two swings the owner counted
+(2026-08-30) must be the long first animation, and `ObservedCorrections`'
+-500 is wrong.
+
+**The mechanism, read (STRONGLY INFERRED).** State 26 (`0x00465870`) holds while
+an action runs. Otherwise it checks the task, the full-hands store trip and the
+cell pile, and starts action 2 while the seam stands. The action runner
+`0x00496AA0` runs a mode-3 action (record `+21` = 3; actions 1, 2, 4 and 7) by
+calling its handler once, which is the strike (`0x004971D0` for action 2). It then
+keeps the action until its animation reports done (`+0xDC` = 0). So one action is
+one application, and its length is animation time. Why only the first swing is
+long is in the animation engine, unread.
+
+**Not built, and why (Q481).** Built together, the cadence and the uncorrected
+rock match this capture's early imp time. Over turns 1–635, walking is 968
+ticks against 976, digging 365 against 367 and mining 374 against 413. But
+Level 1's packet no longer wins: its Hatchery at 324 lands on ground not yet
+dug or claimed. Level 2 replays to the end without a win. Committed master wins
+both, so its two errors cancel. The patch is kept in the ignored
+`reverse-engineering/worktree-archive/work-cadence-wip/`.
+
+## 6. Level 1's full-state playback: rest, and how long a work state holds (2026-09-28)
+
+A second capture (`l1win927b`, 1905 ticks, none torn or missed) answers part of
+Q481. The numbers below are imp runs in each state, from both captures.
+
+**The idle actions last 20 and 25 ticks (CONFIRMED as outcomes).** After a
+wander trip, state 12 lasts 1 tick (a wander at once), 20 ticks (31 cases) or
+25 to 26 ticks (17 cases). A 2:1 split matches 12's roll: 25-74 plays action 43
+and 75-99 plays action 44, so 43 is the 20 and 44 the 25 (STRONGLY INFERRED). Ours
+plays both for a guessed 8. The imp's animation blocks do not give these lengths:
+its two long ones are 171 and 172 frames at 30 fps, 23 ticks each.
+
+**Resting too briefly broke the hand drop.** With the parked cadence build, three
+of our imps take (10,28) together at 41-48 while DK2's are still resting or
+wandering. So (14,32), which DK2 digs from 61, falls at 236, and the player's drop
+there at 221 is refused as unwalkable. With 43 at 19 and 44 at 24 ticks (our
+count, one short of the run) the drop lands. The Hatchery at 324 is still refused,
+because its tiles are dug 50-100 ticks late and claimed 100 late.
+
+**A dig holds after the strike (CONFIRMED as outcomes).** A dirt or rock dig runs
+6 ticks in state 14, with its one strike at E+2 (34 of 40 in Level 1, 62 in Level
+2). The imp stays until E+5 and leaves at E+6. Ours leaves once the tile is gone:
+2-3 ticks on master and 4 with the cadence. A claim applies every tick from E+2
+and leaves one tick after the last: 6 ticks (four applications) or 8 (five). Master
+matches that; the cadence build takes 8 where DK2 takes 6. Mining runs 8-9 in
+Level 1, against 5-6 on master and 9-11 with the cadence.
+
+**DK2's idle loop takes two more ticks.** It runs 1, then 10, then 12, one tick
+each. Ours goes from 1 to 12 in the same tick. Ours has no entry states (13, 15,
+21, 25) either, which each last one tick in DK2.
+
+So master's early digs are too fast and its rests too short, and the two cancel
+there. Neither the hold nor the idle lengths is built.
