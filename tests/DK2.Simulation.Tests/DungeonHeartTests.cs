@@ -209,6 +209,29 @@ public class DungeonHeartTests
         Assert.Equal(original.StateHash(), restored.StateHash());
     }
 
+    [Fact]
+    public void AContactShotHurtsTheHeartAndRetainsItsAttackMessage()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = NewWorld(db);
+        GiveHeart(world, db, Keeper, new TilePos(5, 5));
+        int before = world.Player(Keeper).HeartHealth;
+        var sim = new GameSimulation(db, world, 1, [new HeartShot()]);
+        sim.Tick();
+        Assert.Equal(before - 300, world.Player(Keeper).HeartHealth);
+        PlayerMessage message = Assert.Single(world.Messages.Entries);
+        Assert.Equal((Keeper, PlayerMessageKind.HeartAttacked, 5, 5),
+            (message.PlayerId, message.Kind, message.Data1, message.Data2));
+    }
+
+    private sealed class HeartShot : ISimulationSystem
+    {
+        public string Name => "test heart shot";
+        public void Execute(SimulationContext context) => Combat.ShotRules.ContactDamageHeart(context,
+            new ShotState { TargetPlayerId = Keeper, OwnerPlayerId = Rival, Data1 = 300 },
+            context.Database.Shots[Dk2TerrainFixture.FireballShotId]);
+    }
+
     private static WorldState NewWorld(GameDatabase database) =>
         WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);

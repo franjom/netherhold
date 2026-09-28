@@ -12,6 +12,35 @@ namespace DK2.AI.Tests;
 public class KeeperViewTests
 {
     [Fact]
+    public void CombatMessagesSurviveTheObservationWindowAndDoNotLeakAcrossPlayers()
+    {
+        GameDatabase db = KeeperWorld.Database();
+        WorldState world = KeeperWorld.World(db);
+        var sim = new GameSimulation(db, world, 1, [new CombatMessageProducer()]);
+        sim.Tick();
+        var captured = new KeeperView(db, world, KeeperWorld.Keeper);
+        PlayerMessage message = Assert.Single(captured.Messages);
+        Assert.Equal(PlayerMessageKind.CombatStarted, message.Kind);
+        Assert.Equal(0u, message.Timeout);
+        Assert.Equal(captured.Messages,
+            KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(captured), db).Messages);
+        sim.Tick();
+        Assert.Empty(new KeeperView(db, world, KeeperWorld.Keeper).Messages);
+        Assert.Single(captured.Messages);
+    }
+
+    private sealed class CombatMessageProducer : ISimulationSystem
+    {
+        public string Name => "test combat messages";
+        public void Execute(SimulationContext context)
+        {
+            if (context.Tick != GameTick.Zero) return;
+            context.World.Messages.Post(context.World, KeeperWorld.Keeper, PlayerMessageKind.CombatStarted, 4, 5);
+            context.World.Messages.Post(context.World, 2, PlayerMessageKind.CombatStarted, 6, 7);
+        }
+    }
+
+    [Fact]
     public void ObservationPacketRoundTripPreservesTheDeterministicCommandStream()
     {
         GameDatabase db = KeeperWorld.Database();

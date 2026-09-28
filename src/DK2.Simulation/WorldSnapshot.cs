@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 123;
+    private const int FormatVersion = 124;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -515,6 +515,7 @@ public static class WorldSnapshot
         // The trigger banks. Written whole rather than sparsely: they are a
         // fixed 128 bytes and 16 dwords, and a sparse form would have to
         // encode which slots are set, which costs more than the slots.
+        world.Messages.Write(w);
         for (int i = 0; i < TriggerState.FlagCount; i++) w.Write(world.Triggers.RawFlags[i]);
         for (int i = 0; i < TriggerState.TimerCount; i++) w.Write(world.Triggers.RawTimers[i]);
         w.Write(world.Triggers.SpecialValue);
@@ -1016,6 +1017,7 @@ public static class WorldSnapshot
             world.RawGraveyards.Add(graveyard);
         }
 
+        world.Messages.Read(r);
         for (int i = 0; i < TriggerState.FlagCount; i++) world.Triggers.RawFlags[i] = r.ReadByte();
         for (int i = 0; i < TriggerState.TimerCount; i++) world.Triggers.RawTimers[i] = r.ReadInt32();
         world.Triggers.SpecialValue = r.ReadInt32();

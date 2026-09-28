@@ -27,8 +27,9 @@ public sealed class KeeperView
         Height = world.Height;
         Gold = GoldStore.Total(world, playerId);
         ImpCount = ImpSupplyRules.ImpCount(world, database, playerId);
-        _availability = world.Player(playerId).Availabilities.ToArray();
+        Messages = Array.AsReadOnly(world.Messages.Entries.Where(m => m.PlayerId == playerId).ToArray());
         _tiles = new KeeperTileView[world.TileCount];
+        _availability = world.Player(playerId).Availabilities.ToArray();
 
         AllRooms = RoomIndex.Build(world, database).Select(r => new KeeperRoomView(r)).ToList().AsReadOnly();
         OwnRooms = AllRooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
@@ -52,7 +53,7 @@ public sealed class KeeperView
     internal KeeperView(GameDatabase database, byte playerId, GameTick tick, byte status,
         int width, int height, int gold, int impCount, TilePos? heart,
         KeeperTileView[] tiles, AvailabilityState[] availability,
-        KeeperCreatureView[] creatures, KeeperRoomView[] rooms)
+        KeeperCreatureView[] creatures, KeeperRoomView[] rooms, PlayerMessage[] messages)
     {
         Database = database;
         PlayerId = playerId;
@@ -66,6 +67,7 @@ public sealed class KeeperView
         _tiles = tiles;
         _availability = availability;
         Creatures = Array.AsReadOnly(creatures);
+        Messages = Array.AsReadOnly(messages);
         AllRooms = Array.AsReadOnly(rooms);
         OwnRooms = rooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
         OwnedTiles = tiles.Count(t => t.OwnerPlayerId == playerId);
@@ -78,6 +80,7 @@ public sealed class KeeperView
     public GameTick Tick { get; }
     public byte Status { get; }
     public IReadOnlyList<KeeperCreatureView> Creatures { get; }
+    public IReadOnlyList<PlayerMessage> Messages { get; }
 
     public IReadOnlyList<KeeperRoomView> AllRooms { get; }
     public IReadOnlyList<KeeperRoomView> OwnRooms { get; }

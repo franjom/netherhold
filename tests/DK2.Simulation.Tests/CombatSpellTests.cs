@@ -20,6 +20,21 @@ public class CombatSpellTests
     private const byte Rival = PlayerIds.FirstKeeper + 1;
 
     [Fact]
+    public void EnteringBattlePostsTheAttackersPositionWithoutRepeatingEveryTick()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState warlock = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
+        Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
+        GameSimulation sim = Combat(db, world);
+        sim.Tick();
+        PlayerMessage message = Assert.Single(world.Messages.Entries, m => m.PlayerId == Keeper);
+        Assert.Equal((PlayerMessageKind.CombatStarted, 5, 10), (message.Kind, message.Data1, message.Data2));
+        sim.Tick();
+        Assert.DoesNotContain(world.Messages.Entries, m => m.PlayerId == Keeper);
+        Assert.Equal(CreatureActivity.Fighting, warlock.Activity);
+    }
+
+    [Fact]
     public void AWarlockThreeTilesFromAnEnemyEngagesWithItsFireball()
     {
         (GameDatabase db, WorldState world) = OpenWorld();

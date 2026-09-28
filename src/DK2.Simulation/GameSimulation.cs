@@ -20,7 +20,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 123;
+    private const ulong HashVersion = 124;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationContext _context;
@@ -99,6 +99,13 @@ public sealed class GameSimulation
     {
         _context.Tick = World.CurrentTick;
         _context.Input = input;
+
+        // Close the previous turn's observation window before this turn's producers.
+        // This preserves zero-timeout messages for an external keeper (ADR-0245).
+        foreach (PlayerCommand command in input.All)
+            if (command is Commands.AcknowledgePlayerMessageCommand ack)
+                World.Messages.Acknowledge(ack.PlayerId, ack.MessageId);
+        World.Messages.Sweep();
 
         // DK2's first game turn is 1; our next-tick clock starts at 0.
         int dk2Turn = unchecked((int)(World.CurrentTick.Value + 1));

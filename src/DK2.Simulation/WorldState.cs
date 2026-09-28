@@ -913,6 +913,7 @@ public sealed class WorldState
     /// that.
     /// </summary>
     public TriggerState Triggers { get; } = new();
+    public PlayerMessageQueue Messages { get; } = new();
 
     /// <summary>
     /// Work applications waiting to be resolved by
@@ -1332,5 +1333,6 @@ public sealed class WorldState
         // writes a flag and a later condition reads it, so two worlds that
         // disagree about a flag diverge as soon as that condition is evaluated.
         Triggers.HashInto(ref hash);
+        Messages.HashInto(ref hash);
     }
 }

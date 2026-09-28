@@ -232,3 +232,18 @@ expiry, would miss type 6 entirely. The input-source boundary must expose the
 pre-expiration observation while preserving the chosen command delay. Suppression
 initialization and unclassified producer branches still prevent
 claiming complete queue fidelity.
+
+## 4. Implementation coverage
+
+`PlayerMessageQueue` implements types 1/6 only, including admission, duplicate
+retention, shared eviction, age/tab expiry and explicit handled state. These
+types do not use the unresolved suppression fields. `CombatMessageRules` posts
+on combat entry and the melee/shot Heart-damage paths. The state-199 handler
+`0x0045EB20` was rechecked: it posts only when its entry stamp equals the current
+turn and attack mode is not 3; it is not a notification on each hit.
+Current state-transition adapters emit at that entry, including travel arrival.
+The general state-hook dispatcher is still separate work.
+
+Scheduling and the preserved observation window are ADR-0245. No live original
+message trace has been captured. Room/mood/subtype messages, their suppression
+and remaining producers are unimplemented; unsupported kinds fail explicitly.

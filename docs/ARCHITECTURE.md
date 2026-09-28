@@ -126,6 +126,7 @@ rather than to match something nobody has measured.
 | `HeroParties`, `EffectGenerators` | verbatim authored state in THINGS-file order, without spawn/generation behaviour (ADR-0108) |
 | `TempleSacrifices` (`TempleSacrificeState`) | a sorted persistent three-offering ring per derived Temple anchor (ADR-0149) |
 | `Triggers` (`TriggerState`) | the level-global flag and timer banks (ADR-0102) |
+| `Messages` (`PlayerMessageQueue`) | retained combat messages; observation and expiry boundary in ADR-0245 |
 
 Three rules govern it:
 

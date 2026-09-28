@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 1;
+    public const int FormatVersion = 2;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -48,6 +48,13 @@ public static class KeeperViewSnapshot
             w.Write(room.MinX); w.Write(room.MinY); w.Write(room.MaxX); w.Write(room.MaxY);
             w.Write(room.TileIndices.Count);
             foreach (int index in room.TileIndices) w.Write(index);
+        }
+        w.Write(view.Messages.Count);
+        foreach (PlayerMessage m in view.Messages)
+        {
+            w.Write(m.Id); w.Write(m.PlayerId); w.Write((uint)m.Kind);
+            w.Write(m.Data1); w.Write(m.Data2); w.Write(m.Age); w.Write(m.Timeout);
+            w.Write(m.NeedsTab); w.Write(m.Handled);
         }
         w.Flush();
         return stream.ToArray();
@@ -92,10 +99,15 @@ public static class KeeperViewSnapshot
             }
             rooms[i] = new KeeperRoomView(definition, owner, indices, minX, minY, maxX, maxY);
         }
+        var messages = new PlayerMessage[ReadCount(r, 27)];
+        for (int i = 0; i < messages.Length; i++)
+            messages[i] = new PlayerMessage(r.ReadUInt32(), r.ReadByte(),
+                (PlayerMessageKind)r.ReadUInt32(), r.ReadInt32(), r.ReadInt32(),
+                r.ReadUInt32(), r.ReadUInt32(), r.ReadBoolean(), r.ReadBoolean());
         if (stream.Position != stream.Length)
             throw new InvalidDataException("Trailing keeper observation data.");
         return new KeeperView(database, player, tick, status, width, height, gold, imps,
-            heart, tiles, availability, creatures, rooms);
+            heart, tiles, availability, creatures, rooms, messages);
     }
 
     private static int ReadCount(BinaryReader r, int minimumEntryBytes)

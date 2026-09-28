@@ -175,7 +175,9 @@ public static class ShotRules
     {
         if (definition.DamageType != ContactDamageType || shot.Data1 <= 0) return;
         WorldState world = context.World;
-        bool killed = world.DamageHeart(shot.TargetPlayerId, -shot.Data1, shot.OwnerPlayerId);
+        if (world.Player(shot.TargetPlayerId).HeartHealth <= 0) return;
+        bool killed = world.DamageHeart(shot.TargetPlayerId, shot.Data1, shot.OwnerPlayerId);
+        CombatMessageRules.HeartDamaged(context, shot.TargetPlayerId);
         context.Emit(SystemName, "shot_heart_hit",
             $"shot={shot.Id} caster={shot.CasterId} heart={shot.TargetPlayerId} damage={shot.Data1} health={world.Player(shot.TargetPlayerId).HeartHealth}{(killed ? " destroyed" : "")}");
     }

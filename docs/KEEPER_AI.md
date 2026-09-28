@@ -1040,15 +1040,14 @@ by accident*.
 
 The keeper's reactive half (§5.3) reads the shared retained queue filtered by player
 (`research/computer-keeper-messages.md`).
-The simulation's `SimulationEvents` sink is **observation only** and by ADR-0006 must
-never drive behaviour. The proposal is typed, hashed and snapshotted message state,
-filled by the producing simulation systems, with the verified shared capacity,
-duplicate suppression and expiration rules. Reading an observation must not drain
-messages. Keeper acknowledgments must pass through commands so `DK2.AI` remains
-an input source. The original keeper runs before queue expiry; the observation
-must expose zero-timeout combat messages before they disappear (message audit §3).
-**No such type exists (2026-09-28).** Until it does, the keeper runs its proactive
-half only (dig, build, gold, imps, slap) and does not respond to attacks.
+The simulation's `SimulationEvents` sink remains **observation only** (ADR-0006).
+`PlayerMessageQueue` now retains types 1 and 6, with shared capacity, duplicate
+suppression, expiry and explicit acknowledgment commands. It is hashed and
+snapshotted; `KeeperView` copies the recipient's messages without draining them.
+ADR-0245 defines the sweep timing that preserves zero-timeout messages for AI.
+Other types and their producers remain unbuilt, including room and mood messages.
+`KeeperAI` still runs its proactive half only; consuming combat messages and
+responding to attacks are the next implementation slice (2026-09-28).
 
 Alliances, player status, and trap and door instances now exist (ADR-0159,
 ADR-0162, ADR-0231). Per-player spell availability is stored and can change through
@@ -1100,7 +1099,8 @@ The proactive foundation already exists (§12.8). Remaining plan, agreed 2026-09
    management helpers were independently reviewed. This does not close every dependency:
    spell descriptor mapping, target checks and effects remain gated by `keeper-spell-casting.md`.
 2. **Observation, messages and defence.** The captured, serialisable observation is built
-   (ADR-0244). Next: typed player messages, threat evaluation, reinforcement and retreat.
+   (ADR-0244); retained combat messages are built (ADR-0245). Next: threat events,
+   reinforcement and retreat, then the remaining message families and producers.
    Acceptance: an attack on its dungeon causes an unaided defensive response.
 3. **Dungeon management.** Add need-driven room expansion/building, training moves,
    mood responses, prisoners, specials and research decisions. Acceptance: a verified
@@ -1150,6 +1150,6 @@ Deviations and approximations, each a candidate ADR:
   research progression that changes it remains incomplete.
 - `SlapCooldownTicks` (§12.5).
 
-Typed player messages, reactive and battle decisions, personality loader, and
-§5.1 step 9 training moves remain unbuilt (2026-09-28).
+Combat messages reach the observation; reactive and battle decisions, the remaining
+message families, personality loader and §5.1 step 9 training moves remain unbuilt.
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.

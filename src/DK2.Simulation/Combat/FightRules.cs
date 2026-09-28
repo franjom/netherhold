@@ -135,6 +135,7 @@ public static class FightRules
                 CombatTargetRules.TileCentreX(world, me.FightTargetTileIndex), CombatTargetRules.TileCentreY(world, me.FightTargetTileIndex));
             if (blow == 0) return;
             bool killed = world.DamageHeart(owner.PlayerId, -blow, me.OwnerPlayerId);
+            if (blow < 0) CombatMessageRules.HeartDamaged(context, owner.PlayerId);
             context.Emit(SystemName, "heart_hit",
                 $"creature={me.Id} heart={owner.PlayerId} blow={blow} health={owner.HeartHealth}{(killed ? " destroyed" : "")}");
         }

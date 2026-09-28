@@ -5403,3 +5403,33 @@ external process to consume the same observation. The host owns pacing: ordinary
 keeper play observes once after each tick and submits commands on the next one;
 a turn-based external host waits before advancing, while a real-time host may
 advance with empty input while waiting. No wall-clock timing enters the keeper.
+
+## ADR-0245 — Retain combat messages across the keeper observation boundary
+**Date:** 2026-09-28 · **Status:** accepted · Research: `computer-keeper-messages.md`
+
+**Context.** DK2's keeper consumes a shared retained queue before its expiry
+sweep. Our keeper observes after a completed simulation tick (ADR-0244), so
+sweeping before that observation would hide every zero-timeout combat message.
+
+**Decision.** `WorldState.Messages` holds an ordered, globally bounded queue.
+Start with types 1 and 6: Heart damage and entry into battle. Their lifetime,
+duplicate and admission rules are verified and require no unknown suppression
+initialization. Unsupported kinds are rejected explicitly; room, mood and other
+message producers remain separate implementation work.
+
+Move the expiry sweep to the beginning of the following `Tick`, before triggers
+and ordinary systems. Apply message acknowledgment commands first. The end-of-tick
+world and `KeeperView` therefore expose the pre-expiration messages, including
+zero-timeout entries. This is a deliberate scheduling adaptation; recording
+commands suffices for replay, and no callback into AI enters the simulation.
+Human-only games use the same sweep. Reading a view never acknowledges or drains.
+
+Persist and hash queue order, identifiers, payloads, age, timeout and handled/tab
+state. Pool addresses and wall-clock presentation stamps are not represented.
+`KeeperViewSnapshot` schema 2 carries the recipient's copied messages.
+
+**Consequences.** Hash/snapshot versions become 124. `KeeperAI` does not yet
+consume these messages: threat events and their response commands are the next
+slice. Heart position retains the existing Heart-tile approximation (Q363).
+The contact-shot producer also corrects the caller's damage sign: `DamageHeart`
+takes a positive loss; negating a positive shot amount healed the Heart.
