@@ -1739,12 +1739,14 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             // in this tick: admitted walks away through 46, refused puts it down through 47
             // and 48, and both end in 10.
             WalkOn(context, creature, ImpStates.AtThePrisonDoor);
+            WorkerPickupRules.SetEnabled(creature, false);
             int cell = creature.TargetTileIndex;
             if (PrisonRules.AdmitsAt(world, context.Database, creature.OwnerPlayerId, cell)
                 && PrisonRules.Imprison(
                     world, context.Database, body, creature.OwnerPlayerId, cell))
             {
                 WalkOn(context, creature, ImpStates.LeavingThePrisoner);
+                WorkerPickupRules.SetEnabled(creature, true);
                 context.Emit(SystemName, "creature_imprisoned",
                     $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
                     $"type={definition.Name} owner={body.OwnerPlayerId} " +
@@ -1756,6 +1758,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                     $"imp={creature.Id} body={body.Id} " +
                     $"at=({creature.Tile.X},{creature.Tile.Y}) reason=not_admitted");
                 WalkOn(context, creature, ImpStates.TakingTheRefusedBody);
+                WorkerPickupRules.SetEnabled(creature, true);
                 WalkOn(context, creature, ImpStates.PuttingDownTheRefusedBody);
             }
 

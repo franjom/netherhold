@@ -43,7 +43,8 @@ projects held/carried and corpse state correctly. The response queue is built an
 tested independently, including the event's whole-tick allowance rule. Combat-message consumption,
 reactive decisions and an original command trace remain open. The casualty-priority
 command and imp reader are built (ADR-0261). Represented pickup gates are captured;
-remaining eligibility lifecycles and live response dispatch are next (ADR-0262)
+worker task-exit and prison-delivery flag writes are built (ADR-0263).
+Other eligibility lifecycles and live response dispatch remain next
 (2026-09-28; `KEEPER_AI.md` §12.8).
 
 ### What exists (present tense; the ADR is the specification)

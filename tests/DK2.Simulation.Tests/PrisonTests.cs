@@ -170,6 +170,7 @@ public class PrisonTests
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
         Down(enemy);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        imp.Flags = 0x20;
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
@@ -179,6 +180,7 @@ public class PrisonTests
              (ImpStates.TaskSelection, ImpStates.AtThePrisonDoor, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,
                 () => sink.Events.Any(e => e.Kind == "creature_imprisoned")));
+        Assert.Equal((byte)0x29, imp.Flags);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 
@@ -193,6 +195,7 @@ public class PrisonTests
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
         Down(enemy);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        imp.Flags = 0x20;
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
@@ -203,6 +206,7 @@ public class PrisonTests
              (ImpStates.TaskSelection, ImpStates.TakingTheRefusedBody, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,
                 () => sink.Events.Any(e => e.Kind == "body_dropped")));
+        Assert.Equal((byte)0x29, imp.Flags);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 

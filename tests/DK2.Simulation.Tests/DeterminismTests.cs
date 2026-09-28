@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 130: constructor worker flags and pickup permission gates.
+        // HashVersion 131: worker pickup flags on task release and prison delivery.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x1E3B2DF848B4A2F9UL, sim.StateHash());
+        Assert.Equal(0xC0AF4F951938F85CUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

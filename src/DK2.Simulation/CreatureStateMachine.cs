@@ -145,6 +145,13 @@ public static class CreatureStateMachine
         }
         else if (EntersCategory(creature, stateId))
         {
+            if (HasState(creature))
+            {
+                int caller = CreatureStateTable.Get(creature.Dk2StateId).IsUtility
+                    ? creature.StateBeforeUtilityState : creature.Dk2StateId;
+                if (caller >= 0 && CreatureStateTable.Get(caller).Category == CreatureStateCategory.WorkerJob)
+                    WorkerPickupRules.OnTaskReleased(creature);
+            }
             // The target's enter hook: every countdown hook's seeds its byte with variable 19.
             creature.HookCountdown = HookCountdownSeed;
         }

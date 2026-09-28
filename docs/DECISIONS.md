@@ -5616,3 +5616,21 @@ observation schema 7 adds two permission booleans. Runtime worker-bit changes an
 the unrepresented timer, disguise and room-association gates still prevent full
 original eligibility and live response dispatch. This slice adds no approximation
 for those missing fields. Original-versus-modern validation remains outstanding.
+
+## ADR-0263 — preserve worker pickup flags across task exits
+
+**Decision.** Run the verified pickup-bit subset of WorkerJob's leave hook
+through `CreatureStateMachine`, retaining its saved-caller category test and
+the hook's separate resume-state branch. Preserve unrelated flag bits. Apply
+the prison-handler writes at the existing delivery transitions.
+
+**Reason.** Broadly restoring flags on every interruption or reading the saved
+caller inside the hook would change the original branch selection. Evidence:
+`research/creature-pickup.md`. Room membership has been traced there but is not
+implemented by substituting the creature's tile or job destination.
+
+**Consequences.** Hash/snapshot 131; observation schema remains 7. The existing
+prison inner walks remain compressed into the delivery tick, so their transient
+pickup refusal lasts no separate simulation turn. Full task cleanup, other
+worker-bit writers and the remaining eligibility lifecycles are still separate
+dependencies; this does not connect live keeper defence.

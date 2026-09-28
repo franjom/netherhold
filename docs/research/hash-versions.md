@@ -17,6 +17,8 @@ This file records version history; decisions and evidence live in the cited ADRs
 
 ## Versions
 
+**131** — `0xC0AF4F951938F85C`. Worker pickup flags on task exit and prison delivery (ADR-0263).
+
 **130** — `0x1E3B2DF848B4A2F9`. Constructor worker flags and pickup gates (ADR-0262).
 
 **129** — `0x1E64CAC720660CBC`. Per-player casualty-priority mask (ADR-0261).
