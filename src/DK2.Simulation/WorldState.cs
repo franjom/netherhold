@@ -312,6 +312,11 @@ public struct PlayerState
     /// changes an existing row but never creates one (ADR-0161).</summary>
     public List<AvailabilityState> Availabilities;
 
+    /// <summary>DK2's <c>CreatureEntranceInfo</c> (<c>player+0xB57</c>, 18-byte rows): a row
+    /// for each creature type the portal has noticed, in creature-id order, carrying the
+    /// two modifiers its pick applies (<see cref="PortalChoiceRules"/>, ADR-0272).</summary>
+    public List<EntranceInfoState> EntranceInfo;
+
     /// <summary>DK2's manufacture points, <c>player+0x217</c>, a word (ADR-0203).</summary>
     public int ManufacturePoints;
 
@@ -405,6 +410,9 @@ public struct PlayerState
         hash.Add(Availabilities.Count);
         foreach (AvailabilityState availability in Availabilities)
             availability.HashInto(ref hash);
+        hash.Add(EntranceInfo.Count);
+        foreach (EntranceInfoState entrance in EntranceInfo)
+            entrance.HashInto(ref hash);
         hash.Add(ManufacturePoints);
         hash.Add(InformationGiven);
         hash.Add(ItemsManufactured);
@@ -425,6 +433,19 @@ public struct PlayerState
 /// <param name="Upgraded">DK2's per-entry <c>Upgraded</c> dword: <c>@0xD</c> of a 17-byte
 /// spell entry, <c>@5</c> of a room, door or trap entry. Only research sets it, and only
 /// for spells (research-tree.md §2); a spell cast reads it to fire the bonus shot.</param>
+/// <summary>One <c>CreatureEntranceInfo</c> row, which exists once the type is noticed
+/// (row <c>+0x02</c> = 1): the boost (<c>+0x06</c>) and the sack block (<c>+0x0E</c>), both
+/// in 1/4096 and both taken down by 1.0 after every pick.</summary>
+public readonly record struct EntranceInfoState(byte CreatureTypeId, int Boost, int Block)
+{
+    internal void HashInto(ref Hash64 hash)
+    {
+        hash.Add(CreatureTypeId);
+        hash.Add(Boost);
+        hash.Add(Block);
+    }
+}
+
 public readonly record struct AvailabilityState(ushort Kind, int TypeId, int Value, bool Upgraded = false,
     long LastCastTick = 0, long LastCheckedTick = 0)
 {
@@ -775,6 +796,7 @@ public sealed class WorldState
         {
             _players[i].Hand ??= [];
             _players[i].Availabilities ??= [];
+            _players[i].EntranceInfo ??= [];
             _players[i].ManufactureQueue ??= [];
             _players[i].Blueprints ??= [];
         }

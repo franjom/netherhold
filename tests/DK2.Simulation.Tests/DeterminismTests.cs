@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 131: worker pickup flags on task release and prison delivery.
+        // HashVersion 133: a keeper's portal entrance rows, boost and block (ADR-0272).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xFFF1AFE1DFB6A231UL, sim.StateHash());
+        Assert.Equal(0x584EDA75014EEB18UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

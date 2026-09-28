@@ -76,6 +76,39 @@ creature. Health retains its fixed-point fraction of the old maximum;
 experience is not reset there. `CreatureLevelRules.LevelUp` already models
 that arithmetic. Its existing unmodelled adjustment is covered by Q427.
 
+## The portal's type pick (built 2026-09-28, ADR-0272)
+
+Read with Ghidra 12.1.4. STRONGLY INFERRED from the binary; the order it predicts
+matches the Level 2 recording.
+
+- **The weight.** `0x004DBF90` walks the 46 types. For each type the keeper may
+  receive (the same gates as ours), the weight is taken from its first attraction.
+  A Lair gives a flat 1.0, or 3.0 when the definition's lair object (`+0x771`) is
+  `0x16`, the Goblin's. Any other room gives each of the keeper's rooms of that
+  type's contribution (`0x004DCE70`), less 1.0 per creature of the type held.
+  A type whose weight is 0 here is not a candidate.
+- **The modifiers.** The player's `CreatureEntranceInfo` table (`+0xB57`, 18-byte
+  rows, named by the player dumper `0x004BCF10`) holds a boost at row `+0x06` and a
+  sack block at `+0x0E`, both in 1/4096. A boost of exactly 10.0 multiplies the
+  weight by 200, any other by itself, at least 1.0. A block of exactly 10.0 zeroes
+  it, any other divides by itself, at least 1.0.
+- **The draw.** The weights become shares of 100.0 and a running total. One random
+  number below the total picks the first entry whose running total reaches it. The
+  creature is made (`0x004DC9A0`) and the portal's tally goes up.
+- **The decay.** After every pick, every non-zero boost and block drops by 1.0.
+- **Noticing.** `0x004DBD90` runs once at level start (`0x0050BDD6`) and before each
+  pick. It gives each admitted type without a row one. After tick 1, a type not
+  attracted by the Lair starts with a boost of 10.0. So a type that becomes
+  available mid-game is almost certain next, then weighted 9, 8, 7 and so on.
+- **The block.** `0x004DC7E0` sets 10.0 on the type named as last sacked
+  (`+0xB47`, `EntranceLastSackedCreatureTypeId`). Its caller `0x0045A0D0` is
+  unread. Ours has no sacking, so the block is never set.
+
+In Level 2 the Library makes Warlocks available at 635. Their boost puts four
+Warlocks through our portal before the first Goblin, against DK2's five. With
+this built, the whole recording replays and our keeper wins, at 3508 where DK2
+won at 3263.
+
 ## Warlocks and a Library
 
 CONFIRMED (shipped data): Warlock 5 has attraction `(Present=1, RoomId=6,
@@ -102,9 +135,8 @@ has unused Warlock budget. The shipped-data test establishes that setup and
 also proves refusal when existing Warlocks exhaust the budget. Tile count
 alone does not establish how much furniture the original had at that turn.
 No attraction change is justified for this Level 2 case.
-STRONGLY INFERRED: admission does not guarantee the next ordinary arrival's type. Our picker is
-uniform, while the binary's weighting remains the separate Q90 limitation
-documented in `portals.md`.
+STRONGLY INFERRED: admission does not guarantee the next ordinary arrival's type. The
+weighted pick is above.
 
 ## Implementation boundaries
 

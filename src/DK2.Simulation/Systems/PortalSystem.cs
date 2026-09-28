@@ -130,15 +130,11 @@ public sealed class PortalSystem : ISimulationSystem
 
     /// <summary>Which creature walks out, or null when nothing qualifies.</summary>
     /// <remarks>
-    /// <para>Uniformly at random among the eligible types — a placeholder for a
-    /// weighting the data says exists (Q90). Both
-    /// <c>DecreaseEntrancePersentageOfLastSackedCreatureType</c> and
-    /// <c>IncreaseEntrancePersentageOfNewCreatureTypes</c> are 33, so DK2 carries
-    /// a percentage per creature type that moves as a keeper sacks and receives.
-    /// Uniform is what it starts as; modelling it needs sacking, not yet built.</para>
-    /// <para>Candidates are collected in creature-id order and the draw is made
-    /// even when only one qualifies, so the RNG advances exactly one step per
-    /// arrival and the stream does not depend on the keeper's rooms.</para>
+    /// <para>The gates here decide who may come; <see cref="PortalChoiceRules"/> weighs them
+    /// as <c>0x004DBF90</c> does, with a new type boosted (ADR-0272). The sack block it
+    /// reads has no writer until sacking is built.</para>
+    /// <para>Candidates are collected in creature-id order and one draw is made whenever
+    /// any carries weight, even a single one.</para>
     /// </remarks>
     private static CreatureDef? Pick(
         SimulationContext context, List<RoomInstance> ownedRooms, byte playerId,
@@ -169,8 +165,7 @@ public sealed class PortalSystem : ISimulationSystem
             candidates.Add(creature);
         }
 
-        return candidates.Count == 0
-            ? null
-            : candidates[context.Rng.NextInt(candidates.Count)];
+        // DK2's weighted draw, not a uniform one (0x004DBF90, ADR-0272).
+        return PortalChoiceRules.Pick(world, context.Rng, playerId, candidates, ownedRooms);
     }
 }

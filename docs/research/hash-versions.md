@@ -17,6 +17,7 @@ This file records version history; decisions and evidence live in the cited ADRs
 
 ## Versions
 
+**133** — `0x584EDA75014EEB18`. A keeper's portal entrance rows: boost and sack block (ADR-0272).
 **132** — `0xFFF1AFE1DFB6A231`. A miner's standing slot and a floor pile's cell (ADR-0264).
 **131** — `0xC0AF4F951938F85C`. Worker pickup flags on task exit and prison delivery (ADR-0263).
 
@@ -396,5 +397,4 @@ is a proven no-op at level 1: composition only.
 **12** — `0x9D2695B2F62707D2`.
 **11** — `0x12E4F45E48ACEB9B`.
 **10** — `0x06F71648486D0FEC`.
-**9** — `0x4F824667CDA7EF25`. Reasons for 9–13 are not recorded here; see git
-history.
+**9** — `0x4F824667CDA7EF25`. Reasons for 9–13: see git history.

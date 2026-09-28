@@ -5745,3 +5745,24 @@ exactly.
 **Limits.** Hero Portal arrivals (state 278) are unchanged. The floor height is not
 taken, and 193 reads as idle to other systems. `StateEnteredTick` already existed,
 so no new state and no version change.
+
+## ADR-0272 — Weigh the portal's pick as DK2 does, boosting a new type
+**Date:** 2026-09-28 · **Status:** accepted
+
+**Context.** Our portal drew uniformly among admitted types, so in the Level 2
+replay Goblins arrived where DK2 sent Warlocks and the replay stopped at 1504.
+Q90 had found the two named percentage variables unread. Evidence:
+`research/portal-creature-action.md`.
+
+**Decision.** `PortalChoiceRules` weighs each admitted type as `0x004DBF90` does:
+room contribution less held, or 1.0 / 3.0 for Lair types. It applies the row's
+boost and block and makes one draw over shares of 100.0. Every boost and block
+then drops by 1.0. `Notice` gives each newly admitted type a row, boosted to 10.0
+after tick 1 unless it is Lair-attracted. `PlayerState.EntranceInfo` holds the rows.
+
+**Reason.** The rule is hardcoded in the binary. It is what makes a newly available
+creature arrive first.
+
+**Limits.** No sacking, so no block is ever set. Our random numbers are ours.
+HashVersion and FormatVersion 133, pin `0x584EDA75014EEB18`. With this, the full
+Level 2 recording replays to a win (3508; DK2 3263), and Level 1 still wins.

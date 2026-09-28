@@ -261,8 +261,9 @@ scripted Warlock arrives at 885. DK2's five Warlocks arrive 987–1471 (which on
 is scripted is not known) before its first Goblin at 1651. Our uniform picker sends Goblins at 927,
 1023 and 1139, so the replay stopped at 1359. Our portal arrivals also never
 left the portal's hole (no route from it). With state 193's wait and step built
-(ADR-0271) they leave on the recording's tick and walk DK2's path. The replay now
-stops at 1504: our fourth arrival is a Goblin where DK2's fifth Warlock came.
+(ADR-0271) they leave on the recording's tick and walk DK2's path. With the
+portal's weighted pick (ADR-0272) the whole recording replays and our keeper wins
+at 3508, against DK2's 3263. The gap is not yet read.
 
 ## The probe's own limits
 
