@@ -5393,3 +5393,13 @@ fixed seed, world sequence and keeper parameters.
 
 **Consequences.** No simulation state changes; HashVersion and snapshot version
 stay 123. `KEEPER_AI.md` §12.8 names the remaining planner approximations.
+
+**Observation boundary (2026-09-28).** `KeeperView` captures values for one tick,
+and `Think(KeeperView)` cannot retain mutable simulation entities. The existing
+database/world overload captures that view. `KeeperViewSnapshot` schema 1 carries
+the frame, with static definitions supplied separately; it is not a world save
+and does not change the simulation's hash or snapshot version. This permits an
+external process to consume the same observation. The host owns pacing: ordinary
+keeper play observes once after each tick and submits commands on the next one;
+a turn-based external host waits before advancing, while a real-time host may
+advance with empty input while waiting. No wall-clock timing enters the keeper.

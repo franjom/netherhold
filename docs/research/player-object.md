@@ -57,9 +57,12 @@ or a community document.
 **Corrected 2026-09-09.** Those four are not four keeper spells — they are four
 separate **availability tables**, each a `{count, base}` pair at stride 8:
 `RoomInfo[]` (`+0x56`/`+0x5A`), `DoorInfo[]` (`+0x5E`/`+0x62`), `TrapInfo[]`
-(`+0x66`/`+0x6A`) and the keeper spells (`+0x6E`/`+0x72`). Every entry is nine
-bytes — `TypeId:u8@0`, `Availability:u32@1`, `Upgraded:u32@5` — and the spell
-table's dumper adds `TimeLastCast` and `TimeLastChecked`. `FUN_004BAB20` is the
+(`+0x66`/`+0x6A`) and the keeper spells (`+0x6E`/`+0x72`). Room, door and trap
+entries are nine bytes: `TypeId:u8@0`, `Availability:u32@1`, `Upgraded:u32@5`.
+Spell entries are **17 bytes**, independently checked 2026-09-28 in the lookup
+`0x004BAFA0`, cooldown reader `0x004BE390`, and cast writer `0x004BBD30`:
+id at 0, availability at 1, last-cast tick at 5, last-checked tick at 9,
+upgrade at 13 (all but id are dwords). `FUN_004BAB20` is the
 `RoomInfo` lookup: a descending scan for `TypeId`, returning that entry's
 `Availability` or **1** when the type is absent. Reading the earlier summary as
 one spell array was a mis-transcription of four loops that share a format string.

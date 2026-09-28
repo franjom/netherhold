@@ -77,18 +77,18 @@ public static class RoomPlanner
     public static TilePos? Origin(KeeperView view, KeeperAIParameters p, byte roomId, SimRandom rng)
     {
         if (!p.PlaceRoomsNextToIdeal && IdealNeighbour(roomId) is RoomTypeId ideal
-            && view.OwnRoomOfType((byte)ideal) is RoomInstance neighbour)
+            && view.OwnRoomOfType((byte)ideal) is KeeperRoomView neighbour)
             return KeeperView.Centre(neighbour);
 
-        RoomInstance? random = RandomOwnRoom(view, rng, avoidBridges: true);
+        KeeperRoomView? random = RandomOwnRoom(view, rng, avoidBridges: true);
         if (random is not null) return KeeperView.Centre(random);
         return view.Heart;
     }
 
-    public static RoomInstance? RandomOwnRoom(KeeperView view, SimRandom rng, bool avoidBridges)
+    public static KeeperRoomView? RandomOwnRoom(KeeperView view, SimRandom rng, bool avoidBridges)
     {
-        var pool = new List<RoomInstance>();
-        foreach (RoomInstance r in view.OwnRooms)
+        var pool = new List<KeeperRoomView>();
+        foreach (KeeperRoomView r in view.OwnRooms)
             if (!avoidBridges || !BridgeRules.IsBridge(r.Definition)) pool.Add(r);
         if (pool.Count == 0) return null;
         return pool[rng.NextInt(pool.Count)];
@@ -104,13 +104,13 @@ public static class RoomPlanner
     /// <c>NeutralRoomRangeFromClaimedArea × 2 + 3</c>-wide square whose boundary
     /// includes an owned tile. The original scans the four boundary edges.
     /// </summary>
-    public static RoomInstance? ClaimableNeutralRoom(KeeperView view, KeeperAIParameters p, byte roomId, BuildArea area)
+    public static KeeperRoomView? ClaimableNeutralRoom(KeeperView view, KeeperAIParameters p, byte roomId, BuildArea area)
     {
         if (view.Heart is not TilePos heart) return null;
-        RoomInstance? best = null;
+        KeeperRoomView? best = null;
         int bestDist = int.MaxValue;
 
-        foreach (RoomInstance r in view.AllRooms)
+        foreach (KeeperRoomView r in view.AllRooms)
         {
             if (r.Definition.RoomId != roomId || !KeeperView.IsNeutral(r)) continue;
             TilePos c = KeeperView.Centre(r);

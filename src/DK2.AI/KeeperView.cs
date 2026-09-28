@@ -9,54 +9,113 @@ using DK2.Simulation;
 namespace DK2.AI;
 
 /// <summary>
-/// One keeper's read-only look at the world for one tick. Everything the keeper
-/// asks about tiles, rooms and its own holdings goes through here, so the
-/// eventual <c>IWorldView</c> facade (docs/KEEPER_AI.md §12.2) has one place to
-/// replace. Nothing in this type writes to the world.
+/// A captured observation for one keeper and one tick. It retains no mutable
+/// world or creature references; advancing the simulation cannot change it.
 /// </summary>
 public sealed class KeeperView
 {
+    private readonly KeeperTileView[] _tiles;
+    private readonly AvailabilityState[] _availability;
+
     public KeeperView(GameDatabase database, WorldState world, byte playerId)
     {
         Database = database;
-        World = world;
         PlayerId = playerId;
+        Tick = world.CurrentTick;
+        Status = world.Player(playerId).Status;
+        Width = world.Width;
+        Height = world.Height;
+        Gold = GoldStore.Total(world, playerId);
+        ImpCount = ImpSupplyRules.ImpCount(world, database, playerId);
+        _availability = world.Player(playerId).Availabilities.ToArray();
+        _tiles = new KeeperTileView[world.TileCount];
 
-        AllRooms = RoomIndex.Build(world, database);
-        OwnRooms = AllRooms.Where(r => r.OwnerPlayerId == playerId).ToList();
+        AllRooms = RoomIndex.Build(world, database).Select(r => new KeeperRoomView(r)).ToList().AsReadOnly();
+        OwnRooms = AllRooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
+        Creatures = world.Creatures.Select(c => new KeeperCreatureView(
+            c.Id, c.CreatureTypeId, c.OwnerPlayerId, c.Activity, c.Health, c.Level,
+            c.LastSlapTick, HandRules.CanSlap(database, c, playerId))).ToList().AsReadOnly();
 
         int heartIndex = ImpSupplyRules.HeartTileOf(world, database, playerId);
         Heart = heartIndex < 0 ? null : FromIndex(heartIndex);
 
         int owned = 0;
         for (int i = 0; i < world.TileCount; i++)
-            if (world.TileAtIndex(i).OwnerPlayerId == playerId) owned++;
+        {
+            TileState tile = world.TileAtIndex(i);
+            _tiles[i] = new KeeperTileView(tile.TerrainId, tile.OwnerPlayerId, tile.TaggedBy);
+            if (_tiles[i].OwnerPlayerId == playerId) owned++;
+        }
         OwnedTiles = owned;
     }
 
-    public GameDatabase Database { get; }
-    public WorldState World { get; }
-    public byte PlayerId { get; }
+    internal KeeperView(GameDatabase database, byte playerId, GameTick tick, byte status,
+        int width, int height, int gold, int impCount, TilePos? heart,
+        KeeperTileView[] tiles, AvailabilityState[] availability,
+        KeeperCreatureView[] creatures, KeeperRoomView[] rooms)
+    {
+        Database = database;
+        PlayerId = playerId;
+        Tick = tick;
+        Status = status;
+        Width = width;
+        Height = height;
+        Gold = gold;
+        ImpCount = impCount;
+        Heart = heart;
+        _tiles = tiles;
+        _availability = availability;
+        Creatures = Array.AsReadOnly(creatures);
+        AllRooms = Array.AsReadOnly(rooms);
+        OwnRooms = rooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
+        OwnedTiles = tiles.Count(t => t.OwnerPlayerId == playerId);
+    }
 
-    public IReadOnlyList<RoomInstance> AllRooms { get; }
-    public IReadOnlyList<RoomInstance> OwnRooms { get; }
+    internal IReadOnlyList<AvailabilityState> AvailabilityEntries => _availability;
+
+    public GameDatabase Database { get; }
+    public byte PlayerId { get; }
+    public GameTick Tick { get; }
+    public byte Status { get; }
+    public IReadOnlyList<KeeperCreatureView> Creatures { get; }
+
+    public IReadOnlyList<KeeperRoomView> AllRooms { get; }
+    public IReadOnlyList<KeeperRoomView> OwnRooms { get; }
 
     /// <summary>The keeper's Dungeon Heart tile, or null when it has none left.</summary>
     public TilePos? Heart { get; }
 
     public int OwnedTiles { get; }
 
-    public int Gold => GoldStore.Total(World, PlayerId);
-    public int ImpCount => ImpSupplyRules.ImpCount(World, Database, PlayerId);
+    public int Gold { get; }
+    public int ImpCount { get; }
 
-    public int Width => World.Width;
-    public int Height => World.Height;
+    public int Width { get; }
+    public int Height { get; }
+    public int TileCount => _tiles.Length;
 
-    public bool InBounds(TilePos p) => World.Contains(p);
-    public int IndexOf(TilePos p) => (p.Y * World.Width) + p.X;
-    public TilePos FromIndex(int index) => new(index % World.Width, index / World.Width);
+    public bool InBounds(TilePos p) => p.X >= 0 && p.Y >= 0 && p.X < Width && p.Y < Height;
+    public int IndexOf(TilePos p) => (p.Y * Width) + p.X;
+    public TilePos FromIndex(int index) => new(index % Width, index / Width);
 
-    public TerrainDef Terrain(TilePos p) => Database.TerrainById(World.Tile(p).TerrainId);
+    public KeeperTileView Tile(TilePos p)
+    {
+        if (!InBounds(p)) throw new ArgumentOutOfRangeException(nameof(p));
+        return _tiles[IndexOf(p)];
+    }
+
+    public int Availability(ushort kind, int typeId)
+    {
+        foreach (AvailabilityState entry in _availability)
+            if (entry.Kind == kind && entry.TypeId == typeId) return entry.Value;
+        return 1;
+    }
+
+    public TerrainDef Terrain(TilePos p) => Database.TerrainById(Tile(p).TerrainId);
+
+    public RoomPlacement CanBuild(TilePos p, RoomDef room) =>
+        InBounds(p) ? RoomRules.CanBuild(Database, Tile(p).ToTileState(), room, PlayerId)
+            : RoomPlacement.OffMap;
 
     /// <summary>Solid and not impenetrable: rock an imp can dig (the original's tile predicate, §5.2).</summary>
     public bool IsDiggable(TilePos p)
@@ -80,10 +139,10 @@ public sealed class KeeperView
         return !t.IsSolid && !t.IsWater && !t.IsLava;
     }
 
-    public bool IsMine(TilePos p) => InBounds(p) && World.Tile(p).OwnerPlayerId == PlayerId;
+    public bool IsMine(TilePos p) => InBounds(p) && Tile(p).OwnerPlayerId == PlayerId;
     public bool HasRoom(TilePos p) => InBounds(p) && Terrain(p).IsRoom;
-    public bool IsTaggedByMe(TilePos p) => InBounds(p) && World.Tile(p).IsTaggedBy(PlayerId);
-    public bool IsTaggedByAnyone(TilePos p) => InBounds(p) && World.Tile(p).IsTaggedByAnyone;
+    public bool IsTaggedByMe(TilePos p) => InBounds(p) && Tile(p).IsTaggedBy(PlayerId);
+    public bool IsTaggedByAnyone(TilePos p) => InBounds(p) && Tile(p).IsTaggedByAnyone;
 
     /// <summary>Solid rock that yields gold when dug.</summary>
     public bool IsGoldRock(TilePos p)
@@ -94,10 +153,10 @@ public sealed class KeeperView
     }
 
     /// <summary>A room instance may be dug into or built on when it is nobody's or the neutral side's.</summary>
-    public static bool IsNeutral(RoomInstance room) =>
+    public static bool IsNeutral(KeeperRoomView room) =>
         room.OwnerPlayerId == PlayerIds.Unowned || room.OwnerPlayerId == PlayerIds.Neutral;
 
-    public static TilePos Centre(RoomInstance room) =>
+    public static TilePos Centre(KeeperRoomView room) =>
         new((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
 
     public static int DistanceSquared(TilePos a, TilePos b)
@@ -106,18 +165,18 @@ public sealed class KeeperView
         return (dx * dx) + (dy * dy);
     }
 
-    public RoomInstance? OwnRoomOfType(byte roomId)
+    public KeeperRoomView? OwnRoomOfType(byte roomId)
     {
-        foreach (RoomInstance r in OwnRooms)
+        foreach (KeeperRoomView r in OwnRooms)
             if (r.Definition.RoomId == roomId) return r;
         return null;
     }
 
-    public RoomInstance? NearestOwnRoom(TilePos to, bool avoidBridges = false)
+    public KeeperRoomView? NearestOwnRoom(TilePos to, bool avoidBridges = false)
     {
-        RoomInstance? best = null;
+        KeeperRoomView? best = null;
         int bestDist = int.MaxValue;
-        foreach (RoomInstance r in OwnRooms)
+        foreach (KeeperRoomView r in OwnRooms)
         {
             if (avoidBridges && BridgeRules.IsBridge(r.Definition)) continue;
             int d = DistanceSquared(Centre(r), to);

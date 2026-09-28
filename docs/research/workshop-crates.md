@@ -116,6 +116,15 @@ crates also refuses a manufacturer.**
 
 ## 4. Where a Workshop's crates lie, `0x004F5040`
 
+The room-position selector `0x004E8210`, independently checked 2026-09-28,
+also uses the two slot tests below. Its first two arguments enable floor and
+wall slots respectively. It counts qualifying slabs, draws a uniform index
+using world `+0x568`, then walks the slab chain again to select that slab's
+centre at height zero. A slab passing both tests counts once. A wall selection
+also writes the side output. No qualifying slab means failure. Thus the
+keeper's `(1,0)` training request selects floor slots, while `(1,1)` prisoner
+placement admits either kind (`computer-keeper-management.md` §§1–2).
+
 The room's listed objects are taken head first, which is the newest. For each one, the
 routine walks the room's tile chain and counts the tiles that neither furniture test
 accepts. The *n*-th crate goes on the (*n* / 3)-th such tile, facing the room's position. Its

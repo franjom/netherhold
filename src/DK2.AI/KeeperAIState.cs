@@ -80,5 +80,5 @@ public sealed class KeeperAIState
     }
 }
 
-/// <summary>A gold seam the scanner found: its centroid and how many tiles it has.</summary>
-public readonly record struct GoldDeposit(TilePos Centre, int Tiles);
+/// <summary>A seam's corrected centroid and sum of its terrain gold values.</summary>
+public readonly record struct GoldDeposit(TilePos Centre, int GoldAmount);

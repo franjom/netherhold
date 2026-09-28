@@ -973,7 +973,7 @@ choice), never the reference project's.
 
 ### 12.1 Where it lives, and the one decision that matters
 
-**The keeper is an input source, not a simulation system.** It reads `WorldState` after
+**The keeper is an input source, not a simulation system.** It captures `KeeperView` after
 tick *N* and emits `PlayerCommand`s for its player id into the `InputFrame` of tick
 *N+1*, exactly as the human and the harness's scripted scenarios do. Home:
 `src/DK2.AI`, which references Core, Data.Model and Simulation.
@@ -983,8 +983,9 @@ Why this and not an `ISimulationSystem`:
 - **No state-hash change.** `InputFrame.HashInto` already hashes every command, so a
   replay with the same emitted commands reproduces the same game while the AI's own state stays
   outside `GameSimulation.StateHash()`.
-- **It is what the original does.** §4: the AI acts only through the player hand and
-  the action handler. Every one of its effects is a command a human could issue.
+- **Commands make the boundary explicit.** The original also writes state directly,
+  including readiness-driven level increments (§5.5). Those effects need commands
+  in ours; not every original keeper effect corresponds to a human input.
 - **It is testable without the simulation.** A harness `Scenario` carries a keeper
   the same way it carries scripted input.
 
@@ -1001,16 +1002,16 @@ the simulation's stream. The delay and separate stream are deliberate deviations
 |---|---|---|
 | `KeeperAIParameters` | the 158-byte block, decoded | **exists** (`DK2.Data.Model`, read by `KwdPlayers`) |
 | `KeeperAIState` | the runtime half of §2.3 | **exists**: `Task`/`NextTask`, the counters, the dig rectangle and walker state, the gold deposits, the room-to-build fields, the directions. Not carried: the 3-slot event ring, the 16×8 breaches |
-| `KeeperAI` | `IReadOnlyList<PlayerCommand> Think(GameDatabase database, WorldState world)` — one player tick of §5.1 with `budget = TendancySpeed` | **exists** |
-| `KeeperView` | the read-only look at the world — rooms via `RoomIndex`, heart, owned tiles, gold, imps, terrain predicates, reachability | **exists**; it is the seam a future `IWorldView` would replace |
+| `KeeperAI` | `IReadOnlyList<PlayerCommand> Think(KeeperView view)` — one player tick of §5.1 with `budget = TendancySpeed`; the database/world overload captures a view | **exists** |
+| `KeeperView` | captured tick, status, availability, room and creature values, heart, tiles, gold and imps; no mutable world references | **exists**, with versioned `KeeperViewSnapshot` serialization (ADR-0244) |
 | `KeeperDirections` | both direction tables and the creation-time defend/open rule (§5.5) | **exists** |
 | `SiteFinder` (+ `BuildArea`) | §5.5's site search, including the gap-gated `Openness` test | **exists** |
 | `LineWalker` (+ `WalkOutcome`) | §5.2's corridor digger, with wall-hugging and the two-way trial | **exists** |
-| `GoldScanner` | seam scan; its sorted retention differs from §5.5 | **exists, needs correction** |
+| `GoldScanner` | cardinal seams, gold totals, centroid correction and historical admission cutoff | **exists**; remaining position and border limits: management research §12 |
 | `RoomPlanner` | §5.5's room choice, ideal neighbours, directions, claimable neutral rooms | **exists** |
 | `KeeperAIPersonality` | the nine skirmish rows of §3.2 as typed static data, producing a `KeeperAIParameters` plus the computed `RoomList` | **does not exist**; the values are decoded in `reverse-engineering/` |
 | `ThreatEvaluator`, `AttackPlanner`, `TrapPlacer`, `BattleStep` | §5.4, §5.5, §5.6, §5.7 as pure functions over the view | **do not exist** |
-| `IWorldView` | a read-only facade the simulation exposes | **does not exist**. Most of what it would carry is in `WorldState`/`RoomIndex`; the rest is §12.4 |
+| `IWorldView` | a general agent observation interface | **not added**: `KeeperView` supplies the current keeper boundary; extend it with verified observations as §12.4 grows |
 
 The housekeeping steps of §5.1 (imps, slap, gold untag, the task machine) are private
 methods on `KeeperAI` rather than a separate type.
@@ -1095,11 +1096,11 @@ named quirk the harness can assert on.
 
 The proactive foundation already exists (§12.8). Remaining plan, agreed 2026-09-28:
 
-1. **Finish the binary audit.** Check message senders and payloads, helper branches,
-   personality initialization and existing approximations. Retain explicit confidence
-   levels; record deliberate deviations in ADRs before implementing them.
-2. **Observation, messages and defence.** Add the serialisable, tick-paced observation
-   facade (goal 10), typed player messages, threat evaluation, reinforcement and retreat.
+1. **Binary audit checkpoint reached.** Selection, tasks, parameters, messages and
+   management helpers were independently reviewed. This does not close every dependency:
+   spell descriptor mapping, target checks and effects remain gated by `keeper-spell-casting.md`.
+2. **Observation, messages and defence.** The captured, serialisable observation is built
+   (ADR-0244). Next: typed player messages, threat evaluation, reinforcement and retreat.
    Acceptance: an attack on its dungeon causes an unaided defensive response.
 3. **Dungeon management.** Add need-driven room expansion/building, training moves,
    mood responses, prisoners, specials and research decisions. Acceptance: a verified
@@ -1122,11 +1123,14 @@ are §12.2's table.
 `tests/DK2.AI.Tests` runs `KeeperAITests` against a synthetic 30×30 rock world
 (`KeeperWorld`): the creation-time directions for all four heart positions, the site
 finder's placement and its gap gate, the walker in a straight line and round an
-impenetrable wall, the gold scanner's nearest four, and the keeper end to end — with
+impenetrable wall, the gold scanner's historical cutoff, and the keeper end to end — with
 imps stood in for by a helper that digs whatever is tagged, it builds a 9-tile
 Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot afford a
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
+
+Observation tests check frozen values, packet round trips and equal command streams;
+stock-creature coverage checks that later world mutations cannot change the capture.
 
 Room and Create Imp availability use the player's current state on every tick.
 Stock Level 10's state-4 Prison and Torture Chamber are no longer built
@@ -1146,6 +1150,6 @@ Deviations and approximations, each a candidate ADR:
   research progression that changes it remains incomplete.
 - `SlapCooldownTicks` (§12.5).
 
-The observation facade and typed player messages, reactive and battle decisions,
-personality loader, and §5.1 step 9 training moves remain unbuilt (2026-09-27).
+Typed player messages, reactive and battle decisions, personality loader, and
+§5.1 step 9 training moves remain unbuilt (2026-09-28).
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.

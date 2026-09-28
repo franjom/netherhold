@@ -174,8 +174,8 @@ Library (6) messages: `0x004E26A6` pushes 2, `0x004E26AA` calls the availability
 lookup, and `0x004E26AF` compares with 3. This is not Library availability.
 An existing Library also requires nonzero player research points (`+0x213`)
 before its failure messages. Missing room gives 41; otherwise the precedence is
-unreachable 43, missing work position 45, capacity 42, then room-tagged 44.
-All branches test pending build/sale. The work-position and capacity failures
+unreachable 43, missing storage position 45, capacity 42, then room-tagged 44.
+All branches test pending build/sale. The storage-position and capacity failures
 wait strictly more than four seconds after `room+0x9F`; `room+0xA3 == 0`
 selects 44 instead. This quirk needs a test with differing Lair/Library availability.
 
@@ -188,8 +188,24 @@ failures wait strictly more than four seconds after `room+0x9F`; a zero
 also require nonzero player byte `+0xA1C`. Torture substitutes type 99 for 41
 when creature byte `+0x36F` is 4 and its owner equals the searched player.
 The captive Pit finder `0x004D8510` only posts 42/43/44 when a Pit already exists;
-it does not request a missing Pit. Room-specific capacity and work-position
-helper semantics must still be matched to their room systems before wiring senders.
+it does not request a missing Pit. The shared capacity predicate is in
+`state-category-hooks.md` §3.5; Library storage and Workshop crate gates are
+in `library-and-research.md` §7 and `workshop-crates.md` §3.
+
+The rescue selector `0x0046D810` separately caches Lair and Prison searches
+on the worker state. Missing room plus availability 3 produces result 1;
+an existing room with no capacity produces 3; capacity without a worker route
+(`0x80`) produces 2; a usable room produces 4. When an eligible collapsed
+creature is encountered, results 1/2/3 emit 41/43/42 respectively, with room
+type in Data1 and zero Data2. Foreign creatures request Prison; own creatures
+without a bed request Lair. An existing bed bypasses that Lair request branch.
+These senders have no pending-build/sale check or four-second room timer.
+The capacity search `0x004C6510` uses Prison's `+0x4B` limit rather than
+generic capacity. The routed search `0x004C6610` additionally requires Prison
+`+0x59` nonzero; that field's meaning is outside this sender audit.
+The foreign scan first prioritizes the keeper's imprisonment-mask bit, then
+repeats without that bit test after the own-creature rescue scan. Other rescue
+eligibility and task-reservation effects belong to the worker system.
 
 The ownership transfer's argument order was checked in instructions:
 `0x004E5658` reads the old owner; `0x004E58F4` sends 35 to it;

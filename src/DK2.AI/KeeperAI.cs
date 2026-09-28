@@ -61,10 +61,14 @@ public sealed class KeeperAI
 
     /// <summary>One player tick (§5.1). Returns the commands to put in the next input frame.</summary>
     public IReadOnlyList<PlayerCommand> Think(GameDatabase database, WorldState world)
+        => Think(new KeeperView(database, world, PlayerId));
+
+    public IReadOnlyList<PlayerCommand> Think(KeeperView view)
     {
+        if (view.PlayerId != PlayerId)
+            throw new ArgumentException("The observation belongs to another keeper.", nameof(view));
         var commands = new List<PlayerCommand>();
-        var view = new KeeperView(database, world, PlayerId);
-        if (world.Player(PlayerId).Status is PlayerStatus.Conquered or PlayerStatus.Lost)
+        if (view.Status is PlayerStatus.Conquered or PlayerStatus.Lost)
             return commands;
         if (view.Heart is not TilePos heart) return commands;
 
@@ -110,7 +114,7 @@ public sealed class KeeperAI
         if (--State.UntagGoldCounter > 0) return;
 
         var tiles = new List<TilePos>();
-        for (int i = 0; i < view.World.TileCount; i++)
+        for (int i = 0; i < view.TileCount; i++)
         {
             TilePos p = view.FromIndex(i);
             if (view.IsTaggedByMe(p) && view.IsGoldRock(p)) tiles.Add(p);
@@ -120,7 +124,7 @@ public sealed class KeeperAI
 
     private void CreateImps(KeeperView view, List<PlayerCommand> commands, ref int budget)
     {
-        if (view.World.Availability(PlayerId, 5, 4) != 3) return;
+        if (view.Availability(5, 4) != 3) return;
         int imps = view.ImpCount;
         int perTiles = Math.Max(1, (int)_p.TilesPerImpRatio);
         if (imps >= _p.MaximumImps || imps >= view.OwnedTiles / perTiles) return;
@@ -130,12 +134,12 @@ public sealed class KeeperAI
 
     private void Slap(KeeperView view, List<PlayerCommand> commands, ref int budget)
     {
-        long now = view.World.CurrentTick.Value;
-        foreach (CreatureState c in view.World.Creatures)
+        long now = view.Tick.Value;
+        foreach (KeeperCreatureView c in view.Creatures)
         {
             if (budget <= 0) return;
             if (c.OwnerPlayerId != PlayerId || c.Activity != CreatureActivity.Working) continue;
-            if (!HandRules.CanSlap(view.Database, c, PlayerId)) continue;
+            if (!c.CanSlap) continue;
             CreatureDef def = view.Database.CreatureById(c.CreatureTypeId);
             if (c.Health * 2 <= CreatureLevelRules.MaxHealth(view.Database, def, c.Level)) continue;
             if (c.LastSlapTick != 0 && now - c.LastSlapTick < SlapCooldownTicks) continue;
@@ -205,7 +209,7 @@ public sealed class KeeperAI
         if (!State.NextRoomToBuildSet)
         {
             byte? chosen = RoomPlanner.ChooseRoom(
-                view, _p, _isRoomAvailable ?? (id => view.World.Availability(PlayerId, 1, id) == 3),
+                view, _p, _isRoomAvailable ?? (id => view.Availability(1, id) == 3),
                 State.CurrentRoomToBuild);
             if (chosen is null)
             {
@@ -221,11 +225,11 @@ public sealed class KeeperAI
         byte room = State.NextRoomToBuild;
 
         // A neutral room of that type within reach is claimed by digging to it.
-        RoomInstance? neutral = RoomPlanner.ClaimableNeutralRoom(view, _p, room, area);
+        KeeperRoomView? neutral = RoomPlanner.ClaimableNeutralRoom(view, _p, room, area);
         if (neutral is not null)
         {
             TilePos target = KeeperView.Centre(neutral);
-            State.DigRoomAtCurrent = (view.NearestOwnRoom(target) is RoomInstance from ? KeeperView.Centre(from) : view.Heart)!.Value;
+            State.DigRoomAtCurrent = (view.NearestOwnRoom(target) is KeeperRoomView from ? KeeperView.Centre(from) : view.Heart)!.Value;
             State.DigRoomAt = target;
             State.WallHug = false;
             State.CurrentRoomToBuild = room;
@@ -270,7 +274,7 @@ public sealed class KeeperAI
         if (++State.DirectionsTried < 4) return;
 
         State.DirectionsTried = 0;
-        RoomInstance? reseed = _rng.NextInt(100) < 95 ? RoomPlanner.RandomOwnRoom(view, _rng, avoidBridges: false) : null;
+        KeeperRoomView? reseed = _rng.NextInt(100) < 95 ? RoomPlanner.RandomOwnRoom(view, _rng, avoidBridges: false) : null;
         if (reseed is not null)
         {
             State.SearchOrigin = KeeperView.Centre(reseed);
@@ -334,12 +338,12 @@ public sealed class KeeperAI
         foreach (TilePos t in Rectangle.Tiles())
         {
             if (!view.InBounds(t)) continue;
-            ref TileState tile = ref view.World.Tile(t);
+            KeeperTileView tile = view.Tile(t);
             if (tile.TerrainId == def.TerrainId && tile.OwnerPlayerId == PlayerId) continue;
             allDone = false;
             if (budget - build.Count - retag.Count <= 0) break;
 
-            if (RoomRules.CanBuild(view.Database, tile, def, PlayerId) == RoomPlacement.Allowed)
+            if (view.CanBuild(t, def) == RoomPlacement.Allowed)
                 build.Add(t);
             else if (view.Terrain(t).IsTaggable && !view.IsTaggedByMe(t))
                 retag.Add(t);
@@ -392,7 +396,7 @@ public sealed class KeeperAI
             return;
         }
         GoldDeposit deposit = State.GoldDeposits[State.CurrentGoldArea % State.GoldDeposits.Count];
-        RoomInstance? from = view.NearestOwnRoom(deposit.Centre);
+        KeeperRoomView? from = view.NearestOwnRoom(deposit.Centre);
         State.DigRoomAtCurrent = from is null ? view.Heart!.Value : KeeperView.Centre(from);
         State.DigRoomAt = deposit.Centre;
         State.WallHug = false;

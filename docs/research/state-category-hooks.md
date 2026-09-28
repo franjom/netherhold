@@ -337,8 +337,10 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
 
 - **The test** `0x004E53B0(room, units)`: `UsedCapacity (+0x6B) + units ≤ TotalCapacity
   (+0x67)`, both words. Room type 6 (Library) must also pass `0x004E1AC0`, type 10
-  (Workshop) `0x004F6140`, and type 9 (Guard Room) adds the attached creatures whose
-  `+0x2B6` is 6 and `+0x2BA` names the room. All three are unread. `units` is the
+  (Workshop) `0x004F6140`, and type 9 (Guard Room) adds the owner's creatures whose
+  `+0x2B6` is 6 and `+0x2BA` names the room. Independently checked 2026-09-28;
+  the extra predicates are in `library-and-research.md` §7 and `workshop-crates.md` §3.
+  `units` is the
   definition's `+0x672` byte (creature file `0xF4D`), 1 for all 46 shipped creatures.
   TotalCapacity is the furniture count `0x004E3ED0` (`auto-placed-furniture.md` §5).
 - **The claim** `0x004E5A70`, called by the nine claiming enter hooks (§1). Prison (11)

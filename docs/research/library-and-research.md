@@ -276,7 +276,8 @@ measuring it. A variable looks dead when it is looked for in the wrong mechanism
   Step 11 casts Create Imp only when it is available. Step 12 moves a researcher in
   while any spell is in state 2. The attack gate `IAAllSpellsResearched` refuses to
   attack while any spell is still researchable. Until the tree exists, all three
-  treat every spell as already researched.
+  must use live availability. The implemented Create Imp step already requires
+  state 3; the researcher and attack gates remain unbuilt (2026-09-28).
 - **The casino bonus.** Needs a Casino, and **what sets `player+0x20D` is
   UNKNOWN** (Q217) — it is a 16-bit field beside the accumulator, tested for
   non-zero, and the variable's *name* is the only evidence for reading it as a
@@ -294,3 +295,19 @@ measuring it. A variable looks dead when it is looked for in the wrong mechanism
 - **Does a Skeleton in a Library really research as fast as a Warlock?** The
   loader's floor says yes — 4 a second each, despite records of 1 and 5. That is
   a strange enough consequence to be worth one look.
+
+## 7. Library storage gate
+
+**STRONGLY INFERRED**, independently read 2026-09-28: `0x004E1AC0` searches
+the room's slab chain from a random starting index, wrapping once. A tile must
+pass the floor-slot predicate `0x00454110` (`workshop-crates.md` §4). It counts
+objects on that tile whose room tag `+0x138` matches this room and whose type
+is 4 or descriptor `+0xF4` has bit 2 set (the Special flag). Fewer than two
+such objects permits storage; the output is the tile centre, height zero.
+This is a book/Special storage position, not a vacant researcher workstation.
+
+The generic capacity predicate calls this search before testing capacity units
+(`state-category-hooks.md` §3.5). Thus even a Library capacity query consumes
+a random draw, and a Library with no storage position refuses another user
+despite spare numerical capacity. The keeper-message finder also calls this
+helper directly before the generic test (`computer-keeper-messages.md` §2).

@@ -65,6 +65,10 @@ and all but the same seven player-3 rock ownership fields as the no-AI control.
 It still emitted 67 Create Imp commands, so the tile match is not proof of
 equivalent AI behaviour or successful spell casts.
 
+The observation-facade/gold-scan revision reproduces these counts and mismatches.
+Modern harness artifacts: `build/m12-observation/` (ignored); the existing original
+save remains the comparison source, not a new original run.
+
 A control with the same modern initial state, random seed, triggers and 2408
 ticks but no AI input ended with zero terrain changes and 427 player-4 tiles.
 It matched the original save on all 5,800 terrain bytes and all but seven owner

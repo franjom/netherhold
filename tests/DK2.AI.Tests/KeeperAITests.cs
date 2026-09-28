@@ -144,7 +144,7 @@ public class KeeperAITests
     }
 
     [Fact]
-    public void GoldScannerFindsSeamsAndKeepsTheNearestFour()
+    public void GoldScannerFindsCardinalSeamsAndSumsTheirGold()
     {
         WorldState world = KeeperWorld.World(Db);
         var seams = new[] { new TilePos(4, 4), new TilePos(25, 4), new TilePos(4, 25), new TilePos(25, 25), new TilePos(15, 3) };
@@ -157,7 +157,7 @@ public class KeeperAITests
         List<GoldDeposit> deposits = GoldScanner.Scan(view);
 
         Assert.Equal(4, deposits.Count);
-        Assert.All(deposits, d => Assert.Equal(4, d.Tiles));
+        Assert.All(deposits, d => Assert.Equal(4 * 1024, d.GoldAmount));
         Assert.Equal(new TilePos(15, 3), deposits[0].Centre); // nearest to the heart first
     }
 

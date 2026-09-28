@@ -24,9 +24,10 @@ Every move checks the dropped-counter guard, the hand, state 76, the
 209/255/256/257 exclusion helper and interaction permission. See
 `computer-keeper-threat.md` for these common predicates. Lair, Pit and Temple
 drops use the room's stored tile plus fractional offset `0x900`. Torture asks
-`0x004E8210(1,1)` for a position and refuses a tile containing an active
-thing accepted by `0x00485210`. The meanings of that position selector's
-arguments and the occupancy predicate remain **UNKNOWN** pending their reads.
+`0x004E8210(1,1)` for a floor or wall furniture slot and refuses a tile
+containing an active creature in state 136 or effective category 15
+(`0x00485210`): a torturer or torture victim. Slot selection is documented in
+`workshop-crates.md` §4.
 
 ## 2. Training moves — `0x004FF5C0`
 
@@ -43,7 +44,7 @@ the level-scaled maximum; Training has no health comparison. Both apply the
 dropped-counter guard, exclude an existing destination activity, combat category,
 hand/state restrictions, and a nonzero creature dword `+0x2BC`. The latter's
 meaning is **UNKNOWN** here. A selected room's position comes from
-`0x004E8210(1,0)` and is offset by `0x100` before dropping.
+`0x004E8210(1,0)` (floor slots only) and is offset by `0x100` before dropping.
 
 Neither branch attempts a move if its predicates fail. Once the move attempt
 is reached, one allowance is spent even when position selection or hand
@@ -58,8 +59,11 @@ is set, whose tile is owned by the keeper, and whose virtual predicate at
 The accepted ids are 8, 117–126, 128 and 129; id 127 is excluded. Submit action
 88 for that retained tag if accepted. An excluded last object suppresses an
 earlier accepted one; this is not a last-activatable-object search. The tick
-charges no allowance for this routine. The virtual predicate's exact meaning
-still needs checking against the object's implementation.
+charges no allowance for this routine. RTTI resolves the object's primary vtable
+to `0x0066D654`; slot `+0x74` calls `0x004B7250`, which returns bit 1 of the
+object dword at `+0x146`. The gate is therefore a concrete bit test; its wider
+state meaning remains **UNKNOWN**, and must not be replaced by guessed ownership
+or pickup eligibility.
 
 ## 4. Battle spells — `0x00503060`
 
@@ -95,8 +99,8 @@ health or dying filter. Every accepted target replaces the previous target;
 `random(100) > 75` stops either scan. Casting uses the selected spell's
 position/thing targeting mode and its existing validation path. At most one
 spell is attempted per call; failure does not fall through to another fighter.
-The cast helpers' complete permission and cooldown effects remain outside this
-selection audit.
+Permission, cooldown and cast bookkeeping are independently audited in
+`keeper-spell-casting.md`; its explicit implementation gates remain open.
 
 ## 5. CTA removal — `0x004FEFC0`
 
@@ -260,7 +264,7 @@ encounter order; a later equal-to-third candidate can overwrite the fourth.
 
 Discriminating prediction: encounter distances `1,4,9,100,16,25` leave
 `1,4,9,25`, not `1,4,9,16`. This follows from the instructions, not a live test.
-Our `GoldScanner` currently sorts the full set and differs.
+`GoldScanner` implements this retention rule with discriminating regression tests.
 
 The instruction trace `0x00501D26..0x00501F15` checks terrain `u16 +0x185 != 0`,
 without a solidity test, and visits cardinal neighbours through `0x006BC350`.
@@ -273,9 +277,14 @@ If the centroid is out of bounds or has terrain flag bit 1, a square spiral
 starts one tile east and accepts the first in-bounds tile without that bit.
 It does not require the replacement tile to contain gold. The extent limit is
 twice the larger map dimension (`0x00501F40..0x00501F59`); exhaustion sets X to
-zero. These details required instructions because the decompiler conflates
+zero and preserves the low word of the accumulated Y sum, not the centroid Y
+(`0x00501EFE..0x00501F15`, `0x005020AF`, `0x005021C2..0x005021C7`).
+These details required instructions because the decompiler conflates
 stack variables during this scan. Behaviour at gold on the map border remains
 **UNKNOWN**: the neighbour walk has no explicit bounds call.
+
+Implementation limits: room distance uses the bounding-box centre rather than
+the original stored room position; the flood walk explicitly bounds neighbours.
 
 ## 13. Make-happy grievance selection — `0x004F9710`
 
