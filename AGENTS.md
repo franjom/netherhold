@@ -217,9 +217,13 @@ docs/RESEARCH_STATUS.md
 docs/EXPERIMENTS.md
 
 
+## Commit messages
 
-
-
+- Match the language of recent commits in the repo (`git log --oneline -20`).
+- Casing and length after the number: lowercase, one short phrase, no conventional-commit prefix (`feat:`, `fix:`, `chore:`).
+- One imperative line. No bullet list unless the change genuinely spans unrelated scopes.
+- Describe intent, not mechanics.
+- Never include `Co-Authored-By`. For AI-assisted commits add trailer `Assisted-by: <Model>` (e.g. `Assisted-by: Claude:claude-fable-5`).
 
 
 # Long-Term Project Goals
