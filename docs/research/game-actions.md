@@ -74,6 +74,41 @@ three arms are what possession does, and combat's own entry does not go through
 here (`combat-entry.md`). **Cheap confirmation, not yet run**: possess a creature
 and attack with `-PSAVE` running; the prediction is action 26 in the stream.
 
+## 3.1 Actions 75 and 134 are what happens after the level's result (2026-09-28)
+
+The owner's Level 2 win (`l2win928`, `navigation-captures.md`) holds one of each:
+75 at turn 3289, 26 turns after the win, and 134 at 3525, the turn the probe saw
+player 3's `Status` go from 2 back to 0. Both carry zero fields.
+
+- **75 reveals the whole map, locally.** Handler `0x00505D70` compares the record's
+  player word with the world's local player (virtual `+0x264`). Only on a match
+  does it call `0x00451EF0` on the runtime map, which explores every tile
+  (`fog-reveal-sources.md` §3.3). DK2 keeps one fog bit per machine, so this is a
+  view of the issuing player's own map.
+- **134 lets the player carry on.** Handler `0x00512950` calls `0x004C0120` on the
+  player and clears bit `0x10` of an interface field (`+0xE3C`), then calls
+  `0x0044DB90(0)`. `0x004C0120` sets player `+0x76` bits: `0x440000` after a win,
+  `0x400000` (clearing `0x40000`) otherwise, adding `0x80000` for status 1. It then
+  writes `Status = 0` and posts an event with code `0x74` (`0x0050E5C0`). It calls
+  `0x0048AD30(1)` on each owned creature except the Horned Reaper (descriptor flag
+  `0x4000`, the flag Summon Horny's cast check tests, Q447), or where `+0x3E6` bit 0
+  is set or `+0x3CB` is non-zero. In single player it calls `0x00491B70` on the
+  keeper's Horned Reaper, if there is one.
+- **Who issues them.** The key handler `FUN_00405010` runs this arm only while
+  player `Status` is non-zero (`0x004054F0`). In the Won, single-player branch,
+  **Escape** (scancode `0x01`) sets player `+0x109E` and `+0x76` bit `0x100000`,
+  then issues 75. **Space** (`0x39`) issues action 1 in every branch. In the
+  other game modes, Escape issues 134 and then 75 at once. The single-player 134
+  comes from `0x0042C390`. Once two interface fields are set, it arms a deadline
+  of `0x005B5E90() + 500`, and one of the two is set when the end-screen layout
+  routine `0x0042BE90` (scaled to 1280 × 800) returns 0. When the deadline passes
+  with bit `0x100000` on the player, it issues 134 and clears the bit.
+
+STRONGLY INFERRED from the binary, fitted to one recording. The clock's unit is
+assumed to be milliseconds (UNKNOWN). So are the meanings of `0x0048AD30`,
+`0x00491B70` and event `0x74` (Q448). For a replay these are
+**after the result**: a comparison that stops at the win need not decode them.
+
 ## 4. The map
 
 | id | handler | id | handler | id | handler |
@@ -99,9 +134,9 @@ and attack with `-PSAVE` running; the prediction is action 26 in the stream.
 | `0x29` | `0x005129e0` untag | `0x48` | `0x00505c30` | `0x7b` | `0x00513ff0` |
 | `0x2a` | `0x00512ee0` | `0x49` | `0x00505c90` | `0x7c` | `0x00514280` |
 | `0x2c` | `0x005172b0` | `0x4a` | `0x00505d00` | `0x7d` | `0x00512940` |
-| `0x2d` | `0x005127b0` | `0x4b` | `0x00505d70` | `0x81` | `0x005142e0` |
+| `0x2d` | `0x005127b0` | `0x4b` | `0x00505d70` reveal the map after a result (§3.1) | `0x81` | `0x005142e0` |
 | `0x2e` | `0x00512800` | `0x4c` | `0x00505da0` | `0x82` | `0x00514320` |
-| `0x2f` | `0x00512850` build a room | `0x4d` | `0x00505dd0` | `0x86` | `0x00512950` |
+| `0x2f` | `0x00512850` build a room | `0x4d` | `0x00505dd0` | `0x86` | `0x00512950` carry on after a result (§3.1) |
 | `0x30` | `0x00512890` | `0x4e` | `0x00505e20` | `0x87` | `0x005133a0` Temple keeper-spell offering |
 | `0x31` | `0x005128f0` sell | `0x4f` | `0x00505e80` | `0x88` | `0x00514420` |
 | `0x32` | `0x00513210` place a trap | `0x50` | `0x00505ec0` | `0x89` | `0x00514470` |

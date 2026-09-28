@@ -30,7 +30,9 @@ so the **first verdict stands**. It then snapshots the end-of-level statistics:
 land owned (`+0x156`, from `0x004BFE00`), mana (`+0x82` → `+0x15E`), a count
 via `0x004BFEA0`, and **elapsed seconds** into `+0x17F` as game turn divided
 by variable 19 (`[0x006F2590]`, turns per second). The other two writers,
-`0x004B8640` and `0x004C0120`, store zero — construction and reset.
+`0x004B8640` and `0x004C0120`, store zero. The first is construction. The second is
+game action 134, which lets a player carry on after the result: it flags the
+player, then treats its creatures (`game-actions.md` §3.1).
 
 The codes, from the eleven call sites (`PreCall.py`):
 
