@@ -36,22 +36,32 @@ public static class HandRules
     /// Belongs beside <see cref="CreatureDeathRules.IsDown"/> wherever a system makes a creature act: a held creature does not walk, work, sleep or look for a lair.</summary>
     public static bool IsHeld(CreatureState creature) => creature.InHand;
 
-    /// <summary>Whether <paramref name="creature"/> may be picked up by
-    /// <paramref name="playerId"/> now. The original's gates in its order:
-    /// <see cref="CreatureFlags.CanBePickedUp"/>, not in a hand, ownership, <c>CreatureDying</c>
-    /// (bit <c>0x200000</c>), two states we lack (hand-of-evil.md §3). Neither a corpse nor a
-    /// creature bleeding out may be lifted (Q161, CONFIRMED owner); a prisoner is the one ownership exception (<see cref="CreatureState.PrisonOwnerPlayerId"/>, ADR-0064).</summary>
+    /// <summary>Creature permission plus hand capacity. Remaining binary gates needing
+    /// missing lifecycle state are listed in hand-of-evil.md §3.</summary>
     public static bool CanPickUp(
+        WorldState world, GameDatabase database, CreatureState creature, byte playerId)
+        => HasPickupPermission(world, database, creature, playerId)
+            && world.Player(playerId).Hand.Count < Capacity(database);
+
+    /// <summary>The represented creature-permission gates, independent of hand capacity.
+    /// State exclusions inspect the current state, not a travel resume slot.</summary>
+    public static bool HasPickupPermission(
         WorldState world, GameDatabase database, CreatureState creature, byte playerId)
     {
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        // Permission also covers original states whose simulation activity is not implemented.
+        if (CreatureDeathRules.HasCollapsed(creature) || creature.InHand
+            || creature.Dk2StateId is CreatureDeathRules.FallingState
+                or CreatureDeathRules.DyingState or CreatureStateMachine.NoState) return false;
         if (!definition.Flags.HasFlag(CreatureFlags.CanBePickedUp)) return false;
-        if (creature.InHand) return false;
-        if (creature.OwnerPlayerId != playerId
-            && creature.PrisonOwnerPlayerId != playerId) return false;
-        if (CreatureDeathRules.IsDown(creature)) return false;
-
-        return world.Player(playerId).Hand.Count < Capacity(database);
+        if (creature.Dk2StateId is 76 or 193) return false;
+        if (creature.OwnerPlayerId != playerId)
+            return creature.IsTool || creature.PrisonOwnerPlayerId == playerId;
+        if (creature.CombatPitFighter)
+            return world.Contains(creature.Tile)
+                && world.Tile(creature.Tile.X, creature.Tile.Y).OwnerPlayerId == playerId;
+        if (creature.Dk2StateId is 51 or 52) return false;
+        return !definition.Flags.HasFlag(CreatureFlags.IsWorker) || (creature.Flags & 9) != 0;
     }
 
     /// <summary>Whether this object is in somebody's hand.</summary>

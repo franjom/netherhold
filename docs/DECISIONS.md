@@ -5598,3 +5598,21 @@ ids outside 1–7 are ignored as adapter validation.
 rank candidates within the existing tile chooser, retaining its documented
 route, room and tie approximations. Original trigger writes remain unconnected.
 The response queue still needs captured hand eligibility and live dispatch.
+
+## ADR-0262 — capture pickup permission separately from hand capacity
+
+**Decision.** Reuse `CreatureState.Flags`, `IsTool`, the Pit marker and current
+state ids for the verified pickup gates. Correct the constructor's flags to 9.
+Expose creature permission independently of the capacity-checked command gate,
+and capture both in `KeeperView` rather than reading live simulation from AI.
+Evidence and unsupported lifecycles: `research/creature-pickup.md`.
+
+**Reason.** The original response event distinguishes permission refusal from
+an attempted pickup that fails. Collapsing those results changes its accounting.
+The existing fields suffice for this subset; adding parallel state would diverge.
+
+**Consequences.** Hash/snapshot 130 records the changed initialization and rules;
+observation schema 7 adds two permission booleans. Runtime worker-bit changes and
+the unrepresented timer, disguise and room-association gates still prevent full
+original eligibility and live response dispatch. This slice adds no approximation
+for those missing fields. Original-versus-modern validation remains outstanding.

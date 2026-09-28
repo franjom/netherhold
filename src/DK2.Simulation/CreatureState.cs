@@ -850,12 +850,12 @@ public sealed class CreatureState
 
     /// <summary>DK2's creature <c>Flags</c> byte (<c>+0x46F</c>, Q302): bit 1 party leader, bit 2
     /// follower, bit 5 frees friends (<see cref="RescueRules"/>), bit 6 unread here. A party spawn and
-    /// a placed creature write it (ADR-0201); action 1 leaves the default 0.</summary>
-    public byte Flags;
+    /// a placed creature write it (ADR-0201); the constructor seeds bits 0 and 3 (ADR-0262).</summary>
+    public byte Flags = 9;
 
     /// <summary>The member's <c>Flags2</c> bits landed on the second flag dword: <c>DestroysRooms</c>
     /// (bit 7), <c>IsTool</c> (bit 8), <c>IsMercenary</c> (bit 9); <see cref="DieInstantly"/> is bit 11.
-    /// Remembered, not yet read by any rule.</summary>
+    /// IsTool also permits foreign pickup (hand-of-evil.md §3).</summary>
     public bool DestroysRooms;
     public bool IsTool;
     public bool IsMercenary;

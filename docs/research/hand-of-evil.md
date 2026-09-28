@@ -105,26 +105,11 @@ worker had in its arms, where it stood.
 
 ## 3. What refuses a pick-up
 
-The keeper pickup handler `0x004BC500` and creature permission predicate
-`0x0048E6A0` are separate gates. The computer keeper calls the latter before
-moving a creature. Its instructions were independently checked on 2026-09-28;
-behaviour below is **STRONGLY INFERRED**. The caller's player tag is the stack
-word read at `0x0048E70F`, not an implicit local-player value.
-
-| Permission predicate, in order | Rule |
-|---|---|
-| Common refusals | Dying flag, InHand, nonzero `CountDownStartTick`, missing `CanBePickedUp`, state 76 or 193 |
-| Same owner, Combat Pit fighter | Return whether its current tile belongs to that owner; bypass the remaining same-owner tests |
-| Other same-owner creature | Refuse states 51/52 (teleporting), nonzero Turncoat timer, or a worker with neither bit 0 nor bit 3 of byte `+0x46F` |
-| Remaining same-owner creature | Permit only if `RoomId` is zero or that room belongs to the owner |
-| Different owner | Permit `IsTool`, nonzero `+0x4A3` matching the caller tag, or nonzero `PrisonOwner` matching it |
-
-The comparison at `0x0048E7C5` consumes `+0x4A3` as a player tag in this
-predicate. Its debug name `SneakingAs` does not establish that it is a creature
-type. Other uses and the worker-byte meanings remain **UNKNOWN** here.
-The earlier interpretation of this predicate as only ownership plus dying
-omitted several gates. Current `HandRules.CanPickUp` remains narrower in its
-ownership exceptions and omits countdown, state, Turncoat, worker and room gates.
+The keeper handler `0x004BC500` and creature predicate `0x0048E6A0` are
+separate gates. Their ordering, field writers and implementation limits are
+recorded in [creature-pickup.md](creature-pickup.md). `HandRules` implements
+the gates supported by current simulation state; the keeper observation carries
+creature permission separately from command permission including hand capacity.
 
 Hand capacity and repeated ids are checked by the keeper's handler; see section 2.
 The predicate does not itself test capacity. Its Pit branch does not override the

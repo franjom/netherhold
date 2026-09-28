@@ -9,10 +9,6 @@ one literal hash for a 500-tick run of `TestWorld.Simulation(seed: 0xDEADBEEF)`.
 version bumps and a new pin in the same commit. Unexplained pin failures block
 shipping. Rationale: `docs/architecture/simulation-loop.md`.
 
-**Q206:** before version 56, the pinned world had no creatures: creature-field
-changes moved its hash only through the version bump. It now holds two;
-injecting a constant into their hash fails the pin.
-
 **Composition versus behaviour.** A version bump changes the pin even when a
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
@@ -20,6 +16,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 This file records version history; decisions and evidence live in the cited ADRs.
 
 ## Versions
+
+**130** — `0x1E3B2DF848B4A2F9`. Constructor worker flags and pickup gates (ADR-0262).
 
 **129** — `0x1E64CAC720660CBC`. Per-player casualty-priority mask (ADR-0261).
 

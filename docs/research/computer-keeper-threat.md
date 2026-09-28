@@ -219,12 +219,13 @@ Trap construction and recharge do not filter this strength calculation. The
 simulation has no additional limbo or trap off-map lifecycle to project yet.
 
 Campaign keepers receive PLAYERS activation order from the harness; observation
-schema 6 stores its reversed active-list walk and casualty-priority masks. Synthetic callers may supply
+schema 7 stores its reversed active-list walk, casualty-priority masks and pickup permissions. Synthetic callers may supply
 activation order explicitly; otherwise it uses this simulation world's ascending
 creation order, reversed. This changes observation semantics, not world tick order.
-Simulation hash/save version 129 adds casualty-priority masks. `KeeperResponseQueue` implements
+For current simulation versions see `hash-versions.md`. `KeeperResponseQueue` implements
 reservation, cancellation, FIFO retirement, signed residual accounting and the
 event's allowance contract. Its caller supplies creature selection and interaction
 outcomes; it cannot itself move creatures. `KeeperAI.Think` still does not consume
-these assessments. The priority command is built; integration waits on captured eligibility
-and hand responses; acknowledging a message before those effects would lose work.
+these assessments. The priority command and represented pickup gates are built;
+remaining eligibility lifecycles are in `creature-pickup.md`. Integration still
+needs hand responses; acknowledging a message before those effects would lose work.

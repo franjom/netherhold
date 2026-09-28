@@ -59,7 +59,8 @@ public class KeeperObservationTests
         var players = GameDatabaseLoader.LoadCampaignPlayers(install, "level10")!;
         var world = WorldState.FromMap(db, map, players.Select(p => p.PlayerId));
         ThingProjection.Place(world, db, GameDatabaseLoader.LoadCampaignThings(install, "level10")!);
-        var creature = world.Creatures.First(c => c.OwnerPlayerId == 4);
+        var creature = world.Creatures.First(c => c.OwnerPlayerId == 4
+            && HandRules.CanPickUp(world, db, c, 4));
         creature.PosX = 12345;
         creature.PosY = 67890;
         creature.CarriedByCreatureId = 321;
@@ -75,6 +76,20 @@ public class KeeperObservationTests
         Assert.Equal(321, captured.CarriedByCreatureId);
         Assert.Equal((ushort)0x8045, captured.RescuePriorityMask);
         Assert.False(captured.InHand);
+        Assert.True(captured.PickupPermitted);
+        Assert.True(captured.CanPickUp);
+        for (int i = 0; i < HandRules.Capacity(db); i++)
+        {
+            var held = world.SpawnCreature(db, creature.CreatureTypeId, 4, new TilePos(1, 1));
+            held.InHand = true;
+            world.Player(4).Hand.Add(HandItem.Of(held));
+        }
+        var fullHand = KeeperViewSnapshot.FromBytes(
+            KeeperViewSnapshot.ToBytes(new KeeperView(db, world, 4)), db)
+            .Creatures.Single(c => c.Id == creature.Id);
+        Assert.True(fullHand.PickupPermitted);
+        Assert.False(fullHand.CanPickUp);
+        Assert.True(original.Creatures.Single(c => c.Id == creature.Id).CanPickUp);
         creature.PosX++;
         creature.PosY++;
         creature.InHand = true;
@@ -88,6 +103,8 @@ public class KeeperObservationTests
         KeeperCreatureView changed = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(current), db)
             .Creatures.Single(c => c.Id == creature.Id);
         Assert.True(changed.InHand);
+        Assert.False(changed.PickupPermitted);
+        Assert.False(changed.CanPickUp);
         Assert.Equal(-1, changed.CarriedByCreatureId);
         Assert.Equal((ushort)0, changed.RescuePriorityMask);
         Assert.Equal(12346, changed.PosX);

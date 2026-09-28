@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 129: per-player casualty priority.
+        // HashVersion 130: constructor worker flags and pickup permission gates.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x1E64CAC720660CBCUL, sim.StateHash());
+        Assert.Equal(0x1E3B2DF848B4A2F9UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
