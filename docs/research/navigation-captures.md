@@ -229,6 +229,32 @@ differently. The first recruitment is 81 turns early. A turn-aligned event trace
 not the isolated win label, is needed to claim a matching trajectory.
 Tile ownership's repaired gap is in `tile-work.md`.
 
+## Level 2 winning packet (2026-09-28)
+
+The owner won Level 2 (`l2win928.sav`, 3,537 turns). Two `-PLOAD` playbacks were
+probed (ignored `reverse-engineering/dk2runs/level2-win-20260928/`). One logged creature
+slots 400–469 and the trigger banks, the other object slots 1150–1719. DK2's win
+chain: flag 10 at tick 2888 (condition 64, ADR-0248), the leader killed at 3242,
+Won at 3263. The two playbacks differ only in timer 14's start, which is condition
+72's interface state (`VERIFICATION_SWEEP_PLAN.md` §5). The packet's action kinds
+are all decoded or deliberately ignored (40, 41, 47, 54, 55, 57, 59, 61, 114;
+75, 92, 134 ignored, `game-actions.md` §3.1).
+
+Slots map to ours by rule, not by hand: placed creatures in THINGS order (DK2 455
+down, ours 1 up; positions confirm all twelve), party members by position with
+DK2 taking the highest free slot, keeper arrivals by type and order, and gold by
+the tile its pile lay on (`GoldTile`).
+
+**First divergence: no Treasury, and gold left in hand.** Level 2 is played
+without a Treasury. DK2's imps put gold on the floor (Q140). Ours keep it and
+stop working, so at turn 635 the Library site is neither dug nor claimed. The
+Library is built with 2 of 16 tiles, and our portal sends five Goblins (first at
+870) where DK2 sent five Warlocks (987–1471). The replay therefore stops at 1329,
+with no Goblin in ours to stand for DK2's second Warlock. Action 28 (Warlock
+level 1 from the portal once a Library exists) is read, not built:
+`0x004DC8F0` makes the creature at the first owned Portal
+(`0x004DC9A0`), counts it in the portal's tally `+0x4D` and levels it up.
+
 ## The probe's own limits
 
 The creature pass walks 4,096 entity slots and takes **~128 ms**, so asking it

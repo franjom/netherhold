@@ -5571,6 +5571,16 @@ branch; merge order may require renumbering. Q470/Q471 retain the observed
 getting-up and concurrent-damage discrepancies. The binary refuses damage
 to an already-dying target; no listed cast provides contrary evidence.
 
+### ADR-0260 amendment — no availability gate in the rules (2026-09-28)
+
+The AVAILABLE requirement is removed. It came from the brief, not the binary,
+and it contradicted ADR-0247, which leaves Create Imp ungated because the
+interface and the computer keeper do the gating. In a replay it would refuse a
+cast DK2 performed whenever our research tree finishes Thunderbolt later than
+DK2's did. The command now needs only the spell's entry in the player's table,
+which holds the cast clocks and `Upgraded` (`NoSpellEntry` otherwise, ours). The
+gate belongs in the input sources: the Unity layer and `KeeperAI`, when it casts.
+
 ## ADR-0261 — command-driven casualty priority
 
 **Decision.** Represent the original creature's per-player casualty-priority

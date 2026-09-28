@@ -236,6 +236,22 @@ public class ImpSupplyTests
         Assert.Contains(run.Of("imp_created"), e => e.Detail.Contains("cost=1500"));
     }
 
+    /// <summary>A cast onto a tile (packet action 54) makes the imp there, not at the heart.
+    /// The tile is trusted: the position cast's location check is not built for Create Imp.</summary>
+    [Fact]
+    public void CreateImpCastOntoATileMakesTheImpThere_TheLocationCheckIsNotBuilt()
+    {
+        Run run = WithAHeart(mana: 10_000);
+        run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 5);
+        var at = new TilePos(2, 3);
+
+        run.Tick(new CreateImpCommand(Keeper, at));
+
+        Assert.Equal(5, run.Imps);
+        Assert.Contains(run.Of("imp_created"), e => e.Detail.Contains("at=(2,3)"));
+        Assert.Contains(run.World.Creatures, c => c.Tile == at);
+    }
+
     [Fact]
     public void EachBoughtImpCostsFifteenHundredMore()
     {

@@ -6,7 +6,10 @@ using System.Globalization;
 
 namespace DK2.Tools;
 
-public enum PacketEntityKind { Creature, Object }
+/// <summary>What an original slot maps to. <see cref="GoldTile"/> maps a floor gold pile
+/// to the tile index it lay on, since piles are interchangeable and our mining makes its
+/// own; the replay picks up whichever of our piles is on that tile.</summary>
+public enum PacketEntityKind { Creature, Object, GoldTile }
 
 /// <summary>Maps original entity slots to simulation entities at a turn. DK2
 /// can reuse a slot after its first occupant dies.</summary>

@@ -133,6 +133,53 @@ public sealed class PacketLogTests
         finally { File.Delete(path); }
     }
 
+    /// <summary>The owner's Level 2 casts: spell 4 at (97305, 173923) in 1/4096 tile is
+    /// tile (23, 42), where the probe saw the new imp appear.</summary>
+    [Fact]
+    public void CreateImpAtAPlaceLandsOnItsTile_AndOtherPlaceSpellsAreNotDecoded()
+    {
+        var bytes = new List<byte>(new byte[69]);
+        Turn(bytes, 2, (4, 97305, 173923, 54));
+        Turn(bytes, 3, (6, 97305, 173923, 54));
+        Turn(bytes, 4);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            PacketLog packet = PacketLog.Read(path, 3, 69);
+            Assert.Empty(packet.EntityReferences);
+            var map = new PacketEntityMap();
+            Assert.Equal(new CreateImpCommand(3, new DK2.Core.TilePos(23, 42)), Assert.Single(packet.At(2, map).All));
+            Assert.Throws<InvalidDataException>(() => packet.At(3, map));
+        }
+        finally { File.Delete(path); }
+    }
+
+    /// <summary>Gold is mapped to the tile its DK2 pile lay on, and the pile picked up is
+    /// whichever of ours the resolver finds there; none there still yields a pickup, of
+    /// nothing, so the hand counts it as refused rather than the replay hiding it.</summary>
+    [Fact]
+    public void GoldIntoTheHandResolvesByTile_AndLocalInterfaceActionsAreIgnored()
+    {
+        var bytes = new List<byte>(new byte[69]);
+        Turn(bytes, 2, (1176, 0, 0, 59), (0, 0, 0, 75), (1, 0, 0, 92), (0, 0, 0, 134));
+        Turn(bytes, 3);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            PacketLog packet = PacketLog.Read(path, 2, 69);
+            Assert.Equal(new[] { (2L, 1176u, PacketEntityKind.GoldTile) }, packet.EntityReferences);
+            var map = new PacketEntityMap();
+            map.Add(1176, 1, 33 * 40 + 19, PacketEntityKind.GoldTile);
+            Assert.Throws<InvalidOperationException>(() => packet.At(2, map));
+            Assert.Equal(new PickUpObjectCommand(3, 77),
+                Assert.Single(packet.At(2, map, tile => tile == 33 * 40 + 19 ? 77 : 0).All));
+            Assert.Equal(new PickUpObjectCommand(3, 0), Assert.Single(packet.At(2, map, _ => 0).All));
+        }
+        finally { File.Delete(path); }
+    }
+
     private static uint Pack(uint x, uint y) => x | y << 16;
 
     private static void Turn(List<byte> bytes, uint turn,

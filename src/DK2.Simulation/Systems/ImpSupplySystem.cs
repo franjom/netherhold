@@ -30,7 +30,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
     {
         foreach (PlayerCommand command in context.Input.All)
         {
-            if (command is CreateImpCommand create) Buy(context, create.PlayerId);
+            if (command is CreateImpCommand create) Buy(context, create.PlayerId, create.At);
         }
 
         TopUp(context);
@@ -94,7 +94,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
     /// than a refused one — the same rule <see cref="GoldStore.TryWithdraw"/>
     /// follows for rooms.
     /// </summary>
-    private static void Buy(SimulationContext context, byte playerId)
+    private static void Buy(SimulationContext context, byte playerId, TilePos? at)
     {
         WorldState world = context.World;
         if (!world.HasPlayer(playerId))
@@ -125,10 +125,10 @@ public sealed class ImpSupplySystem : ISimulationSystem
             return;
         }
 
-        if (Spawn(context, playerId) is not { } imp)
+        if (Spawn(context, playerId, at) is not { } imp)
         {
             context.Emit(SystemName, "create_imp_refused",
-                $"player={playerId} cost={cost} reason=no_dungeon_heart");
+                $"player={playerId} cost={cost} reason={(at is null ? "no_dungeon_heart" : "outside_the_map")}");
             return;
         }
 
@@ -138,23 +138,32 @@ public sealed class ImpSupplySystem : ISimulationSystem
             $"cost={cost} mana={player.Mana}");
     }
 
-    /// <summary>Puts a new imp on this keeper's dungeon heart, or returns null if
-    /// they have not got one.</summary>
+    /// <summary>Puts a new imp on the cast's tile, or on this keeper's dungeon heart when the
+    /// cast names none (free imps and <see cref="CreateImpCommand"/> without a tile). Returns
+    /// null for a tile outside the map, or with no tile, for a keeper without a heart.</summary>
     /// <remarks>The type is found by name, <c>Imp</c> — not by id, and not by the
     /// worker flag, because the Dwarf carries it too and is not what Create Imp
     /// makes.</remarks>
-    private static CreatureState? Spawn(SimulationContext context, byte playerId)
+    private static CreatureState? Spawn(SimulationContext context, byte playerId, TilePos? at = null)
     {
         WorldState world = context.World;
-        int heart = ImpSupplyRules.HeartTileOf(world, context.Database, playerId);
-        if (heart < 0) return null;
+        TilePos tile;
+        if (at is { } cast)
+        {
+            if (!world.Contains(cast)) return null;
+            tile = cast;
+        }
+        else
+        {
+            int heart = ImpSupplyRules.HeartTileOf(world, context.Database, playerId);
+            if (heart < 0) return null;
+            tile = new TilePos(heart % world.Width, heart / world.Width);
+        }
 
         CreatureDef? imp = context.Database.CreatureByName("Imp");
         if (imp is null) return null;
 
-        CreatureState made = world.SpawnCreature(
-            context.Database, imp.CreatureId, playerId,
-            new TilePos(heart % world.Width, heart / world.Width));
+        CreatureState made = world.SpawnCreature(context.Database, imp.CreatureId, playerId, tile);
 
         // The shot's second datum is the level: 1 normally, 4 once research has upgraded
         // Create Imp (bonus shot 60, data (1, 4)). Free imps take the same cast and the same

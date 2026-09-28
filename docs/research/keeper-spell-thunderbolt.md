@@ -78,9 +78,9 @@ health routine subsequently refuses damage. With flag bit 2 set the target
 callback delegates to selector 1's own-creature arm; that variant is read
 but refused by this implementation's ordinary-cast boundary.
 
-Availability is not tested by this packet handler or the helper. The new
-public command's requested AVAILABLE gate is adapter policy, documented in
-ADR-0260; it must not be cited as an original helper predicate.
+Availability is not tested by this packet handler or the helper, and since
+ADR-0260's amendment our command does not test it either. The interface gates
+it, as for Create Imp (ADR-0247).
 
 ## 3. Effect and limits — STRONGLY INFERRED
 

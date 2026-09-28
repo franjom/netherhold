@@ -12,9 +12,17 @@ namespace DK2.Simulation.Commands;
 /// first and rises by 1500 each time, and that 1500 is the number on DK2's own
 /// <c>Create Imp</c> record. HYPOTHESIS: the exact form of the rise — see
 /// <see cref="ImpSupplyRules.CreateImpCost"/> and Q54.</para>
-/// <para>Deviates: a bare command with no target. The original casts onto a tile
-/// and the imp appears there; here it appears at the dungeon heart, because
-/// where a cast lands is a UI question and a keeper with no heart has already
-/// lost (Q40).</para>
+/// <para>The original casts onto a tile (packet action 54) and the imp appears there.
+/// <paramref name="At"/> is that tile; without one the imp appears at the dungeon heart.
+/// Deviates: the tile is taken as given. The position cast's location check
+/// (<c>0x004BB8A0</c>, keeper-spell-casting.md §3) is not built for Create Imp, so a
+/// replayed cast is trusted to have passed it in DK2 (HYPOTHESIS for any other source).</para>
 /// </summary>
-public sealed record CreateImpCommand(byte PlayerId) : PlayerCommand(PlayerId);
+public sealed record CreateImpCommand(byte PlayerId, TilePos? At = null) : PlayerCommand(PlayerId)
+{
+    public override void HashInto(ref Hash64 hash)
+    {
+        base.HashInto(ref hash);
+        hash.Add(At is { } at ? at.Y * 65536 + at.X : -1);
+    }
+}

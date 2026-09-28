@@ -2769,7 +2769,7 @@ static int RunTriggerCsv(
             long turn = simulation.CurrentTick.Value + 1;
             simulation.Tick(packet is null
                 ? Merge(log?.At(turn), rooms?.At(turn))
-                : packet.At(turn, entityIds ?? new PacketEntityMap()));
+                : packet.At(turn, entityIds ?? new PacketEntityMap(), GoldOnTile));
 
             foreach (TilePos at in watched)
             {
@@ -2867,6 +2867,16 @@ static int RunTriggerCsv(
         Console.WriteLine($"  ASSUMED tag {r.Tag} type {r.Type} in {r.Context}: {r.Count} "
             + "-- taken as true: no modal interface state in a headless run");
     return 0;
+
+    // A packet's gold pickup names DK2's pile; ours is whichever loose pile lies on its tile.
+    int GoldOnTile(int tileIndex)
+    {
+        foreach (ObjectState thing in world.Objects)
+            if (thing.TileIndex == tileIndex && !thing.InHand && thing.CarriedByCreatureId < 0
+                && database.ObjectById(thing.ObjectTypeId) is { IsGold: true })
+                return thing.Id;
+        return 0;
+    }
 }
 
 /// <summary>

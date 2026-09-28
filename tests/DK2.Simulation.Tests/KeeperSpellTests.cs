@@ -40,7 +40,6 @@ public sealed class KeeperSpellTests
 
     [Theory]
     [InlineData(0, KeeperSpellRefusal.UnsupportedSpell)]
-    [InlineData(1, KeeperSpellRefusal.Unavailable)]
     [InlineData(2, KeeperSpellRefusal.Mana)]
     [InlineData(3, KeeperSpellRefusal.MissingCreature)]
     [InlineData(4, KeeperSpellRefusal.Target)]
@@ -56,7 +55,6 @@ public sealed class KeeperSpellTests
         switch (change)
         {
             case 0: spell = 4; break;
-            case 1: world.SetAvailability(Keeper, 5, 6, 2); break;
             case 2: world.Player(Keeper).Mana = 5999; break;
             case 3: id = 999; break;
             case 4: target.OwnerPlayerId = Keeper; break;
@@ -76,6 +74,37 @@ public sealed class KeeperSpellTests
         Assert.Equal(mana, world.Player(Keeper).Mana);
         Assert.Equal(0, world.Player(Keeper).OneShotManaSpent);
         Assert.Equal(row, Assert.Single(world.Player(Keeper).Availabilities));
+    }
+
+    /// <summary>Neither action 55 nor <c>0x004BBF90</c> reads availability; the interface gates
+    /// it, as for Create Imp (ADR-0247). A merely researchable Thunderbolt still casts, so a
+    /// replayed cast is never refused for research our tree finished later than DK2's.</summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void AThunderboltNotYetAvailableStillCasts_ForTheInterfaceGatesAvailability(int value)
+    {
+        var (db, world, target) = Setup();
+        world.SetAvailability(Keeper, 5, 6, value);
+        var boundary = new Boundary();
+        new GameSimulation(db, world, 1, [boundary]).Tick(
+            InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id)));
+        Assert.Equal(KeeperSpellRefusal.None, boundary.Refusal);
+        Assert.Single(world.Shots);
+    }
+
+    /// <summary>With no spell entry there is nowhere to stamp the clocks or read Upgraded from,
+    /// so the cast is refused: ours, not a read of DK2.</summary>
+    [Fact]
+    public void ASpellWithNoEntryInThePlayersTableIsRefused_OursNotARead()
+    {
+        var (db, world, target) = Setup();
+        world.Player(Keeper).Availabilities.Clear();
+        var boundary = new Boundary();
+        new GameSimulation(db, world, 1, [boundary]).Tick(
+            InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id)));
+        Assert.Equal(KeeperSpellRefusal.NoSpellEntry, boundary.Refusal);
+        Assert.Empty(world.Shots);
     }
 
     [Theory]

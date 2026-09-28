@@ -12,7 +12,7 @@ namespace DK2.Simulation;
 public enum KeeperSpellRefusal
 {
     None, UnsupportedSpell, UnsupportedFlags, MissingDefinition, MissingPlayer,
-    Unavailable, Cooldown, Mana, MissingCreature, UnsupportedLocationSelector,
+    NoSpellEntry, Cooldown, Mana, MissingCreature, UnsupportedLocationSelector,
     Location, UnsupportedTargetSelector, Target, MissingShot, UnsupportedShotProcess
 }
 
@@ -61,8 +61,10 @@ public static class KeeperSpellRules
         if (!world.HasPlayer(cast.PlayerId)) return KeeperSpellRefusal.MissingPlayer;
         ref PlayerState player = ref world.Player(cast.PlayerId);
         int row = player.Availabilities.FindIndex(a => a.Kind == SpellAvailabilityKind && a.TypeId == cast.SpellId);
-        // ADR-0260: the requested public command gate, not a test in 0x004BBF90 itself.
-        if (row < 0 || player.Availabilities[row].Value != 3) return KeeperSpellRefusal.Unavailable;
+        // Availability is not tested: neither action 55 nor 0x004BBF90 reads it, and the
+        // interface or the computer keeper gates it, as for Create Imp (ADR-0247, ADR-0260
+        // amended). The entry is still needed: it holds the clocks and the Upgraded flag.
+        if (row < 0) return KeeperSpellRefusal.NoSpellEntry;
         AvailabilityState availability = player.Availabilities[row];
         long cooldown = (uint)unchecked(spell.CooldownRaw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
         if (availability.LastCastTick != 0 && context.Tick.Value - availability.LastCastTick < cooldown)

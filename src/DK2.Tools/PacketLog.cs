@@ -22,8 +22,14 @@ public sealed class PacketLog
     public IReadOnlyList<(long Turn, uint Original, PacketEntityKind Kind)> EntityReferences =>
         [.. _turns.OrderBy(pair => pair.Key)
             .SelectMany(pair => pair.Value
-                .Where(action => action.Kind is 55 or 57 or 62 or 88)
-                .Select(action => (pair.Key, action.Kind == 55 ? action.Second & 0xffff : action.First, action.Kind == 88 ? PacketEntityKind.Object : PacketEntityKind.Creature)))];
+                .Where(action => action.Kind is 55 or 57 or 59 or 62 or 88)
+                .Select(action => (pair.Key, action.Kind == 55 ? action.Second & 0xffff : action.First,
+                    action.Kind switch
+                    {
+                        88 => PacketEntityKind.Object,
+                        59 => PacketEntityKind.GoldTile,
+                        _ => PacketEntityKind.Creature,
+                    })))];
 
     public static PacketLog Read(string path, int throughTurn, int firstRecord)
     {
@@ -85,7 +91,9 @@ public sealed class PacketLog
         return new PacketLog(turns);
     }
 
-    public InputFrame At(long turn, PacketEntityMap entityIds)
+    /// <param name="goldOnTile">Our floor gold pile on a tile index, 0 for none; needed only
+    /// when the recording takes gold into the hand (action 59).</param>
+    public InputFrame At(long turn, PacketEntityMap entityIds, Func<int, int>? goldOnTile = null)
     {
         if (!_turns.TryGetValue(turn, out List<PacketAction>? raw)) return InputFrame.Empty;
         var commands = new List<PlayerCommand>();
@@ -106,12 +114,28 @@ public sealed class PacketLog
                         player, checked((byte)a.First), second.X, second.Y,
                         PackedTile(a.Third).X, PackedTile(a.Third).Y));
                     break;
+                case 54:
+                    // Cast at a place: spell id (flags above it), then x and y in 1/4096 tile.
+                    // Only Create Imp is decoded; its position check is not built (ImpCommands).
+                    if ((a.First & 0xff) != 4 || a.First >> 16 != 0)
+                        throw new InvalidDataException(
+                            $"Packet action 54 casting spell {a.First & 0xff} at turn {turn} is not decoded.");
+                    commands.Add(new CreateImpCommand(player,
+                        new TilePos(checked((int)(a.Second >> 12)), checked((int)(a.Third >> 12)))));
+                    break;
                 case 55:
                     commands.Add(new CastSpellOnCreatureCommand(player, (byte)(a.First & 0xff),
                         Resolve(a.Second & 0xffff, PacketEntityKind.Creature), (ushort)(a.First >> 16)));
                     break;
                 case 57:
                     commands.Add(new PickUpCreatureCommand(player, Resolve(a.First, PacketEntityKind.Creature)));
+                    break;
+                case 59:
+                    // Our pile on the tile DK2's lay on; none there is a refused pickup, which the
+                    // hand tally counts as a difference rather than hiding it.
+                    int pile = goldOnTile?.Invoke(Resolve(a.First, PacketEntityKind.GoldTile))
+                        ?? throw new InvalidOperationException("Packet action 59 needs a gold resolver.");
+                    commands.Add(new PickUpObjectCommand(player, pile));
                     break;
                 case 61:
                     commands.Add(new DropCommand(player, new TilePos(
@@ -124,6 +148,13 @@ public sealed class PacketLog
                     commands.Add(new ActivateSpecialCommand(player, Resolve(a.First, PacketEntityKind.Object)));
                     break;
                 case 114:
+                    break;
+                // Not replayed. 75 reveals the map on the issuing machine only, and 92 is the
+                // window losing or regaining focus. 134 does change state, but only after the
+                // level's result, where a comparison stops; it is not built (game-actions.md §3.1).
+                case 75:
+                case 92:
+                case 134:
                     break;
                 default:
                     throw new InvalidDataException($"Packet action {a.Kind} at turn {turn} is not decoded.");
