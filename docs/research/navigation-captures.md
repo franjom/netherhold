@@ -254,7 +254,9 @@ found no pile of ours. With the gold paid in (Q75, ADR-0270), our first floor pi
 is at 154, deliveries start at 503, the Library is 15 tiles and 8 pickups miss.
 Up to turn 635 DK2's four imps walked (state 6) 976 ticks and mined (26) 373.
 Ours now walk 1,185 and mine 181, and a seam takes three of ours four ticks
-against DK2's ten to twelve (Q480).
+against DK2's ten to twelve (Q480). DK2's imp strikes two ticks after entering
+state 26, again four ticks later, then every tick (`mining-cadence.md`, from
+a full-state playback that matches the creature pass row for row from tick 2).
 
 **Next divergence: the portal's type choice.** Action 28 is built (ADR-0265): our
 scripted Warlock arrives at 885. DK2's five Warlocks arrive 987–1471 (which one

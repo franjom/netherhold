@@ -103,6 +103,11 @@ object `0x189`, door `0x11E`, trap `0x123`, action point `0x40`, effect generato
 `0x00554B30` takes the byte count, rounds it up to 4 and adds a 12-byte header.
 A pointer is live exactly when it is non-null, because unregister nulls it. A
 vtable the table does not know is stored as 64 bytes and counted in the summary.
+The seven players are registered in the thing table too. There only their
+first 64 bytes are stored, because the player region holds the full records.
+
+First real run (Level 2, `l2win928`, 2026-09-28): 3,536 frames, no torn passes,
+no missed ticks, pass p50 3.7 ms / p95 6.2 ms / max 25 ms, 10.8 MB.
 
 **File layout.** The magic `DK2CAP\x01\n`, then chunks, each `u32 length, u8 kind,
 payload`:
@@ -135,6 +140,9 @@ checked frame by frame.
   to make that unlikely.
 - **Missed ticks.** If the game runs two ticks between polls, the gap is
   counted and listed in the summary. Nothing is interpolated.
+- **The first frame can catch the level still loading.** In the first run,
+  tick 1 had all 448 pool creatures registered and zeroed and no objects yet.
+  Read from tick 2.
 - **Not stored:**
   - anything a record only points at (definitions, path buffers, the
     navigation cache, per-tile thing lists);
