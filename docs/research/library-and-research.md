@@ -241,6 +241,42 @@ measuring it. A variable looks dead when it is looked for in the wrong mechanism
 
 - **The research tree.** No target (`player+0x213`), no costs, no completion,
   no spell or room unlocks. Points bank indefinitely.
+
+  **What the owner has seen, from play (2026-09-28).** The binary has not been read
+  for any of this yet.
+  1. Keeper spells are gated twice. The level decides which spells exist at all
+     (`Availability` kind 5, [kwd-variables.md](kwd-variables.md)), and a
+     RESEARCHABLE spell cannot be cast until Library research completes it.
+  2. Once every spell available on the map is researched, research carries on and
+     **upgrades those same spells** to enhanced versions. Every spell can be
+     upgraded.
+  3. An upgraded **Create Imp makes a level-4 imp** instead of a level-1 imp.
+
+  This agrees with two sources already on file: the manual's *"researchers can
+  upgrade spells afterwards"* ([manual-1999.md](manual-1999.md), with
+  `UpgradedPossessionCostPercentage` = 70 as one such upgrade), and the per-spell
+  `Upgraded:u32@5` beside `Availability` in the player's spell table
+  ([player-object.md](player-object.md)).
+
+  Nothing in `src/` models any of it. `CreateImpCommand` does not check
+  availability, the imp it makes is always the same, and `KeeperSpellDef` carries no
+  research cost or upgrade field. Still to be read from the binary:
+  - how the next target at `player+0x213` is chosen (a fixed order, the table order,
+    or random);
+  - where a spell's research cost and upgrade cost come from (KeeperSpells.kwd
+    fields not yet loaded);
+  - what writes `Upgraded`, and what each upgraded spell changes. For Create Imp,
+    find where the 4 comes from: a record field or a constant in the cast;
+  - whether rooms are researched the same way (a level's list can mark rooms
+    RESEARCHABLE), and how rooms and spells interleave with upgrades in one queue;
+  - what happens to an upgrade when the Library is lost. The manual says
+    researched spells are lost with it.
+
+  The keeper AI reads spell state in three places ([KEEPER_AI.md](../KEEPER_AI.md)).
+  Step 11 casts Create Imp only when it is available. Step 12 moves a researcher in
+  while any spell is in state 2. The attack gate `IAAllSpellsResearched` refuses to
+  attack while any spell is still researchable. Until the tree exists, all three
+  treat every spell as already researched.
 - **The casino bonus.** Needs a Casino, and **what sets `player+0x20D` is
   UNKNOWN** (Q217) — it is a 16-bit field beside the accumulator, tested for
   non-zero, and the variable's *name* is the only evidence for reading it as a
