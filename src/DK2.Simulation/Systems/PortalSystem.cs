@@ -116,16 +116,9 @@ public sealed class PortalSystem : ISimulationSystem
             CreatureDef? arriving = Pick(context, owned, playerId, portal.Definition);
             if (arriving is null) continue;
 
-            CreatureState spawned = world.SpawnCreature(
-                database, arriving.CreatureId, playerId,
-                new TilePos(entranceTile % world.Width, entranceTile / world.Width));
+            CreatureState spawned = PortalRules.CreateArrival(world, database, portal, arriving.CreatureId);
 
             centre.EntranceIdleTicks = 0;
-
-            // Once per creature generated, and it only ever climbs — nothing
-            // here decrements it, matching the original, where 129 references
-            // to the field include no DEC and no SUB. A portal wears out.
-            centre.EntranceCreaturesGenerated++;
 
             context.Emit(SystemName, "creature_entered",
                 $"player={playerId} creature={spawned.Id} type={arriving.Name} " +

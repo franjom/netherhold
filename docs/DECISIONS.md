@@ -5660,3 +5660,25 @@ slots, Level 1 wins at tick 1868. The hand limit stays unscaled (the same below
 level 5). Hash/snapshot version 132; 131 is held by a concurrent change. The Level
 2 replay still diverges at turn 635, traced to imp work choice and travel
 (`navigation-captures.md`).
+
+## ADR-0265 — Execute scripted portal arrivals through the shared arrival path
+**Date:** 2026-09-28 · **Status:** accepted
+
+**Context.** Player action 28 was reported unperformed, so Level 2's scripted
+Warlock never arrived. Evidence: `research/portal-creature-action.md`.
+
+**Decision.** Dispatch action 28 for players and creatures through the owning
+player. Select the first owned keeper Portal in the current derived room order,
+create through the ordinary placement path, increment its tally and promote
+with `CreatureLevelRules.LevelUp`. Bypass ordinary admission gates and leave
+the portal clock alone. With no Portal, still descend. World and action-point
+contexts refuse it.
+
+**Reason.** The binary invokes its creator directly and treats the spawn result
+separately from trigger success. Shared placement avoids two diverging spawn
+implementations while retaining the ordinary arrival clock's own caller.
+
+**Limits.** Q473/Q474 cover the existing arrival representation and pool/allocator
+differences. Room order is an explicit approximation for multiple Portals.
+No new persistent state; hash/snapshot versions stay unchanged. The Level 2
+Library test does not justify an attraction-rule change.

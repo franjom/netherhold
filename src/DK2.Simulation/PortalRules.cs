@@ -23,6 +23,38 @@ public static class PortalRules
     private const int Researchable = 2;
     private const int Available = 3;
 
+    /// <summary>Action 28: use the first owned keeper Portal, bypass attraction, pool,
+    /// availability and keeper capacity, then promote. No Portal still succeeds.
+    /// Arrival representation and room ordering limits: portal-creature-action.md, Q473.</summary>
+    public static CreatureState? CreateScriptedArrival(
+        WorldState world, GameDatabase database, byte playerId, byte creatureTypeId, byte level)
+    {
+        // UNKNOWN: DK2 walks the player's linked room list; our derived room order is
+        // ascending tile index. Do not silently try a later portal (0x004DC8F0).
+        RoomInstance? portal = RoomIndex.Build(world, database).FirstOrDefault(r =>
+            r.OwnerPlayerId == playerId && IsKeeperPortal(r.Definition));
+        if (portal is null) return null;
+
+        CreatureState creature = CreateArrival(world, database, portal, creatureTypeId);
+        CreatureDef definition = database.CreatureById(creatureTypeId);
+        while (creature.Level < level && CreatureLevelRules.LevelUp(database, definition, creature)) { }
+        return creature;
+    }
+
+    /// <summary>Shared placement and tally for ordinary and scripted portal arrivals.
+    /// The caller owns the ordinary clock reset; action 28 leaves that clock alone.</summary>
+    internal static CreatureState CreateArrival(
+        WorldState world, GameDatabase database, RoomInstance portal, byte creatureTypeId)
+    {
+        int entrance = EntranceTileIndex(world, portal);
+        // State 193's animation completion and displacement are not represented by
+        // this existing idle arrival path; see Q473 before changing its timing.
+        CreatureState creature = world.SpawnCreature(database, creatureTypeId, portal.OwnerPlayerId,
+            new TilePos(entrance % world.Width, entrance / world.Width));
+        world.TileAtIndex(entrance).EntranceCreaturesGenerated++;
+        return creature;
+    }
+
     /// <summary>Whether this room is one creatures walk out of. Exactly two are —
     /// Portal (3) and Hero Portal (25), the only shipped rooms with
     /// <see cref="TileConstruction.ThreeByThree"/> construction (<c>PortalTests</c>).

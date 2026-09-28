@@ -258,10 +258,10 @@ See Q97.
 4. A type is a candidate only while `value > 0`. Past that the arm computes
    against `0xA000` (10.0) and `0xC8000` (200.0), which is unread.
 
-**The gates ahead of the budget**, same loop, in order: an availability bitmap
-at `player+0x1109`; creature flag `def+0x686 & 0x8000000` excludes outright;
+**The gates ahead of the budget**, same loop, in order: the per-type table
+at `player+0x1109` (creator decrement: `portal-creature-action.md`); creature flag `def+0x686 & 0x8000000` excludes outright;
 flag bit 10 against a spawner of room type **3 (Portal)** or `def+0x68a & 8`
-against type **25**; `FUN_004DC810` on the player, unread; and then a
+against type **25**; `FUN_004DC810` on the player (now read in `portal-creature-action.md`); and then a
 **population cap**.
 
 **That cap is Q87's capacity, found in the code.** It counts the keeper's

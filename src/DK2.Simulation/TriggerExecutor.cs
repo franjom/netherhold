@@ -386,7 +386,7 @@ public sealed class TriggerExecutor
             _areaRoots = BuildAreaRoots(world);
             AttachCreatureRoots(world);
             // The level initialiser 0x0050B5B0 fires event 3 for every creature it places.
-            foreach (CreatureState creature in world.Creatures)
+            foreach (CreatureState creature in world.Creatures.ToArray())
                 FireCreatureEvent(creature, CreatureTriggerEvent.Created, currentTick: 0);
         }
     }
@@ -481,7 +481,8 @@ public sealed class TriggerExecutor
         }
         run.Area = null;
 
-        foreach (CreatureState creature in _world?.Creatures ?? [])
+        // A creature's action 28 can append an arrival while this walk is running.
+        foreach (CreatureState creature in _world?.Creatures.ToArray() ?? [])
         {
             if (creature.TriggerId == 0) continue;
             run.Creature = creature;
@@ -987,14 +988,12 @@ public sealed class TriggerExecutor
     /// </remarks>
     private bool RunAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
-        // WIN_GAME and LOSE_GAME are the player dispatcher's first two arms
-        // (0x004C8662, 0x004C8675): each ends the game for the player whose tree —
-        // or whose creature's tree, the creature dispatcher delegating with the
-        // owner as `this` — reached it. The world dispatcher refuses them, which the
-        // fall-through below reproduces (ADR-0162, win-and-defeat.md §2).
-        if (record.Type is 10 or 11)
+        // Player-owned implemented arms delegate from a creature with its owner as
+        // context. The world dispatcher refuses these types (ADR-0162, ADR-0265).
+        if (record.Type is 10 or 11 or 28)
         {
-            if (context != TriggerContext.World) return ExecuteAction(record, context, run);
+            if (context is TriggerContext.Player or TriggerContext.Creature)
+                return ExecuteAction(record, context, run);
             run.Unhandled.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
             return false;
         }
@@ -1104,12 +1103,20 @@ public sealed class TriggerExecutor
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
     public static bool Performs(byte type) =>
-        type is 1 or 6 or 7 or 8 or 10 or 11 or 14 or 22 or 23 or 44 or 45 or 47;
+        type is 1 or 6 or 7 or 8 or 10 or 11 or 14 or 22 or 23 or 28 or 44 or 45 or 47;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
         IReadOnlyDictionary<string, long> p = record.Parameters;
         List<BlockedTrigger> partial = run.Partial;
+        if (record.Type == 28)
+        {
+            if (_world is null || _database is null || run.Player is not byte player)
+                return Unperformed(record, context, partial);
+            PortalRules.CreateScriptedArrival(_world, _database, player,
+                Byte(p, "CreatureId"), Byte(p, "Level"));
+            return true;
+        }
         if (record.Type == 6)
         {
             if (_world is null) return Unperformed(record, context, partial);
