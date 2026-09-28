@@ -29,7 +29,8 @@ public enum TriggerConditionResult
 /// 43, 44, 45, 64 and 67 — and the other 57 types the corpus ships fail in the
 /// retail engine too, at the default arm <c>0x00518929</c>, so declining them is
 /// not a gap (trigger-semantics.md, "The world context computes only nine
-/// condition types").</para>
+/// condition types"). Of the six, 64 is answered by <see cref="TriggerExecutor"/>,
+/// which holds the creatures (ADR-0248).</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-state.md")]
 public static class TriggerConditionEvaluator

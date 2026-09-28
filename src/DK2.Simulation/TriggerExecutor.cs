@@ -656,6 +656,14 @@ public sealed class TriggerExecutor
         if (context == TriggerContext.Creature && CreatureOwnsCondition(record.Type))
             return EvaluateCreatureCondition(record, run.Creature!, _database!);
 
+        // A world arm every context reaches by delegation; it needs the creatures, so it is
+        // answered here rather than by the bank-only evaluator.
+        if (record.Type == 64 && _world is not null)
+            return Result(TriggerState.Compare(
+                Byte(record.Parameters, "Comparison"),
+                PartyMembersMissing(_world, Byte(record.Parameters, "PartyId")),
+                unchecked((int)record.Parameters["Value"])));
+
         bool reachesPlayer = context is TriggerContext.Player or TriggerContext.Creature;
         if (!reachesPlayer || !PlayerOwnsCondition(record.Type))
             return TriggerConditionEvaluator.Evaluate(record, _state, run.CurrentTick);
@@ -795,6 +803,33 @@ public sealed class TriggerExecutor
     /// tests equality itself. So it is answered here and never reaches
     /// <see cref="TriggerState.Compare"/>, whose <c>Comparison</c> byte this type does not
     /// even read.</summary>
+    /// <summary>Condition type 64's measure (<c>0x005187AD</c>, trigger-dispatch-tables.md): the
+    /// party's occupied member templates minus its creatures still active. Every owner counts,
+    /// since DK2 walks the world list and the Good player's own; a member is inactive only when
+    /// dying (bit 21) or a corpse, which DK2 holds as a separate dead-body thing. A knocked-out
+    /// hero therefore counts as missing at once, as a Level 2 playback showed (ADR-0248).</summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-dispatch-tables.md")]
+    internal static int PartyMembersMissing(WorldState world, byte partyId)
+    {
+        int templates = 0;
+        foreach (HeroPartyState party in world.HeroParties)
+        {
+            if (party.PartyId != partyId) continue;
+            foreach (HeroPartyMemberState member in party.Members)
+                if (member.CreatureId != 0) templates++;
+            break;
+        }
+
+        int active = 0;
+        foreach (CreatureState creature in world.Creatures)
+        {
+            if (creature.PartyId != partyId) continue;
+            if (CreatureDeathRules.IsDying(creature) || CreatureDeathRules.IsCorpse(creature)) continue;
+            active++;
+        }
+        return templates - active;
+    }
+
     private static bool KilledBy(
         IReadOnlyDictionary<string, long> parameters, WorldState world, byte playerId)
     {

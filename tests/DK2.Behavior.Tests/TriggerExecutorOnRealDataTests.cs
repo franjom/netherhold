@@ -20,17 +20,18 @@ public class TriggerExecutorOnRealDataTests
 
         // Turn 1 across all three trees this executor walks. The world root, trigger 89,
         // is a type-34 level-time test that holds from the first turn, so both of its
-        // type-14 children fire and arm their parties; party 1's root is the type 64. The
-        // rest is the player tree, which is where level 1 keeps its script.
+        // type-14 children fire and arm their parties; party 1's root is the type 64, now
+        // answered (ADR-0248). The rest is the player tree, which is where level 1 keeps its
+        // script.
 
         // Blocked is conditions only, and it is the work queue: declining a condition
         // cannot be told apart from it being false, so the walk stops there. Twelve types
         // have left it: 53/56/58/60 (ADR-0109), 30 gold (ADR-0110), 31 gold mined
         // (ADR-0112), 19 creature count (ADR-0113), 25 room count (ADR-0114), 29 spell
-        // availability (ADR-0120), and 46/52/71/73 (ADR-0121) -- 46 is what left this
-        // census, and it left it answered false rather than implemented.
+        // availability (ADR-0120), and 46/52/71/73 (ADR-0121) -- 46 left it answered false
+        // rather than implemented -- and 64, party members missing (ADR-0248), the last.
         Assert.Equal(
-            "213:64@World=1",
+            "",
             Census(simulation.LastTriggerRun!.Summary));
 
         // Actions, which descend whatever we do because their dispatcher succeeds.

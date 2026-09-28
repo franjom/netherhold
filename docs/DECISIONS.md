@@ -5487,3 +5487,27 @@ book-loss rule (`Unshelved`) is written but has no caller: nothing here takes a
 shelved book out of a Library yet. Also not modelled: the Library accept and lock
 tests, message 0x19, and the other upgraded spells' effects. Only Create Imp casts
 a spell here.
+
+## ADR-0248 — Build condition type 64, party members missing
+**Date:** 2026-09-28 · **Status:** accepted · Arm `0x005187AD`; amends ADR-0122
+
+**Context.** ADR-0122 read type 64 whole and declined it until parties spawned and
+creatures carried a party id. Both have been true since ADR-0197, and nothing
+re-read the decline (Q283). Level 2's win runs through it: party 1 missing four
+members sets flag 10, which raises the party whose leader's death wins the level.
+The owner's Level 2 recording (`l2win928`), played back under a probe, set flag 10
+the tick after the fourth Dwarf entered state 216, about 240 ticks before its
+body left the slot. A knocked-out member is missing at once. **CONFIRMED**.
+
+**Decision.** `TriggerExecutor` answers type 64 from any context, since it is a
+world arm every dispatcher delegates to. The measure is the party's member records
+with a creature id, minus creatures of any owner carrying that `PartyId` that are
+neither dying nor corpses (DK2 holds a corpse as a separate dead-body thing).
+The comparison uses the standard codes, as `trigger-dispatch-tables.md` reads the
+arm's own table.
+
+**Consequences.** Level 1's opening turn declines nothing. Its party 1 root now
+fires: timer 8 and flag 58 at turn 1077 and flag 63 at 1557, against DK2's 1221
+and 1701. The 480-tick gap matches, and the 144-tick lead is the combat timing
+Q444 already records. The Level 1 win turns are unchanged. No state was added,
+so `HashVersion` stays 126.

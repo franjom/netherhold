@@ -101,8 +101,14 @@ wiring errors between rules that no per-rule check sees.
 carry no player command. Even so, the replay followed the session: the owner watched it play to
 the same win, and the log shows the Lord of the Land's party arriving as it did. So the checksum
 may cover something local, like the camera or the interface, that does not steer the game.
-Confirm that before relying on replays for a whole-session comparison. The recordings of
-2026-09-18 raised no warning.
+The recordings of 2026-09-18 raised no warning.
+
+**Answered 2026-09-28: the interface, through condition 72.** Two probed playbacks of one
+recording (`l2win928`) went out of sync at GT 81 and GT 9. Their trigger timelines differ in one
+entry only, timer 14's start, at 81 and 9. Root 194 starts timer 14 behind a type 72 test, which
+reads modal interface state (Q242). The packet does not record that state, so a playback decides
+it again. Every flag and the win matched. A replay is sound wherever a 72-gated branch only speaks
+or waits; a branch that 72 gates into game state would need the interface modelled.
 
 ## 6. First steps, in order
 

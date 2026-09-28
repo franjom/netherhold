@@ -160,6 +160,71 @@ public class HeroPartyTests
         Assert.Empty(result.Unhandled);
     }
 
+    /// <summary>Condition 64 (<c>0x005187AD</c>): occupied templates minus members still active.
+    /// A knocked-out member is missing at once, not after its dying window — as the owner's
+    /// Level 2 playback showed, flag 10 turning the tick after the fourth Dwarf went to 216
+    /// (ADR-0248).</summary>
+    [Fact]
+    public void Condition64CountsAKnockedOutMemberAsMissing_BeforeItsBodyIsGone()
+    {
+        (WorldState world, GameDatabase database) = World();
+        Place(world, database, partyId: 0, members:
+        [
+            Member(Goblin, level: 1, gold: 0, health: 100, flags: 0x0B),
+            Member(Goblin, level: 1, gold: 0, health: 100, flags: 0x0D),
+        ]);
+        Assert.True(HeroPartyRules.Spawn(
+            world, database, null, Tree(0, 0), world.HeroParties[0], PointId, partyType: 0, _ => { }));
+        var sim = new GameSimulation(database, world, 7,
+            [new Systems.CreatureHealthSystem()], MissingTree(partyId: 0, atLeast: 1));
+
+        sim.Run(SimulationTiming.TicksPerSecond);
+        Assert.Equal(0, world.Triggers.Read(10));
+
+        world.Creatures[1].Health = 0;
+        sim.Run(SimulationTiming.TicksPerSecond * 2);
+
+        Assert.True(CreatureDeathRules.IsDying(world.Creatures[1]));
+        Assert.Equal(1, world.Triggers.Read(10));
+    }
+
+    /// <summary>DK2 walks the world list for every owner but Good, then Good's own list, so a
+    /// member now owned by a keeper still counts as present.</summary>
+    [Fact]
+    public void Condition64CountsAMemberOfAnyOwner_NotOnlyTheHeroPlayers()
+    {
+        (WorldState world, GameDatabase database) = World();
+        Place(world, database, partyId: 0, members: [Member(Goblin, level: 1, gold: 0, health: 100, flags: 0x0B)]);
+        Assert.True(HeroPartyRules.Spawn(
+            world, database, null, Tree(0, 0), world.HeroParties[0], PointId, partyType: 0, _ => { }));
+        world.Creatures[0].OwnerPlayerId = Keeper;
+        var sim = new GameSimulation(database, world, 7, [], MissingTree(partyId: 0, atLeast: 1));
+
+        sim.Run(SimulationTiming.TicksPerSecond);
+
+        Assert.Equal(0, world.Triggers.Read(10));
+    }
+
+    /// <summary>A world root asking <c>missing members of the party &gt;= atLeast</c>, setting flag 10.</summary>
+    private static TriggerTree MissingTree(byte partyId, int atLeast) =>
+        new(
+        [
+            new GenericTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = 1, Type = 64, RepeatCount = 1,
+                ChildTriggerId = 0xFFFF, NextTriggerId = 0,
+                Parameters = new Dictionary<string, long>
+                {
+                    ["Comparison"] = 5, ["PartyId"] = partyId, ["Value"] = atLeast,
+                },
+            },
+            new ActionTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = 0xFFFF, Type = 7, RepeatCount = 0,
+                Parameters = new Dictionary<string, long> { ["FlagId"] = 10, ["Flag"] = 0x0A, ["Value"] = 1 },
+            },
+        ], 1, playerRoots: []);
+
     private static (WorldState World, GameDatabase Database) World(params CreatureDef[] extra)
     {
         GameDatabase database = Dk2TerrainFixture.Database(extra);

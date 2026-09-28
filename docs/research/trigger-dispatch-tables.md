@@ -163,10 +163,9 @@ All 37 shipped records exercise this path: comparisons are 35 `>=` and two
 range** any other condition uses, which is the corpus half of the `PartyId`
 correction. **STRONGLY INFERRED** from DKII.EXE v1.70 and the shipped corpus.
 
-This is deliberately not built. Action 14 only arms subtrees here; it creates
-no party creatures, and `CreatureState` carries no party id. Computing from
-templates alone would therefore count every party member as missing as soon as
-the subtree is armed and could fire twelve reached conditions early (Q283).
+Built by ADR-0248, once action 14 raised creatures carrying a party id (ADR-0197).
+A Level 2 playback confirms the dying filter: flag 10 turned the tick after the
+fourth Dwarf entered state 216, with its body still in the slot. **CONFIRMED**.
 
 ## Action type 1 creates one creature
 
