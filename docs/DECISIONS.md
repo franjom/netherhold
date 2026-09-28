@@ -5543,3 +5543,30 @@ in Q450 are closed; a Ready result is not a supported-shot verdict.
 **Consequences.** All sixteen TRAPS rows and eight DOORS rows have new drift
 guards. No runtime fields or balance variables are added; hash and snapshot
 remain 126, and the reserved 127 is unused. Disarm acquisition remains Q455.
+
+## ADR-0260 — Cast keeper Thunderbolt through the shared shot process
+**Date:** 2026-09-28 · **Status:** accepted · Research: `keeper-spell-thunderbolt.md`
+
+**Context.** Research unlocks Thunderbolt but no input casts it. The binary's
+creature helper returns zero after success, while packet action 55 ignores
+that result. The owner's brief asks for a public availability gate and for
+upgraded shot selection.
+
+**Decision.** Decode action 55 into `CastSpellOnCreatureCommand`, resolving
+field 2 through the observed entity map. `KeeperSpellRules` validates the
+selected location/target callbacks, creates the existing lightning process,
+pays mana and stamps both clocks. Preserve the helper's zero return and
+report refusal separately. Other spell ids, nonzero flags and unsupported
+selectors/processes fail explicitly. Action 54 remains outside this change.
+
+The public command requires AVAILABLE (3), as requested. This is adapter
+policy: neither original action 55 nor `0x004BBF90` tests availability.
+Likewise select the upgraded shot id from the descriptor as requested; the
+original creature helper creates the normal id with upgraded data. Both
+Thunderbolt ids are 21, so the shipped effect agrees.
+
+**Consequences.** Hash/snapshot version 128 adds both availability clocks and
+one-shot mana accounting. Version 127 is reserved to the doors-and-traps
+branch; merge order may require renumbering. Q470/Q471 retain the observed
+getting-up and concurrent-damage discrepancies. The binary refuses damage
+to an already-dying target; no listed cast provides contrary evidence.

@@ -4,18 +4,9 @@
 
 namespace DK2.Data.Model;
 
-/// <summary>
-/// One keeper spell from KEEPERSPELLS(?), the spells a keeper casts with their
-/// own hand rather than through a creature.
-///
-/// <para><b>Deliberately partial.</b> Only the fields DK2's own loader
-/// <c>0x004F7CE0</c> was read copying are loaded: the name, the id, the two costs, and
-/// the normal and bonus shots (docs/research/research-tree.md §5). The rest
-/// arrives with spells proper at M7. Parsing a record badly is worse than not parsing
-/// it, so the unknown bytes are left alone rather than guessed at.</para>
-/// <para>The shot fields default to zero so that a hand-built spell in a test need not
-/// name a shot it does not fire.</para>
-/// </summary>
+/// <summary>Keeper-spell costs, normal/upgraded shots, cooldown and validation selectors.
+/// Loader provenance: research-tree.md §5 and keeper-spell-thunderbolt.md §1.
+/// Fields outside those reads remain unparsed.</summary>
 public sealed record KeeperSpellDef
 {
     /// <summary>The spell's name in the data file's own words, e.g. "Create Imp".</summary>
@@ -44,6 +35,10 @@ public sealed record KeeperSpellDef
     /// <summary>The spell's id, file <c>0xEE</c> (runtime <c>+0x75</c>): the type id its
     /// availability rows and research entries use. Create Imp is 4.</summary>
     public byte KeeperSpellId { get; init; }
+
+    public int CooldownRaw { get; init; }
+    public byte LocationSelector { get; init; }
+    public byte TargetSelector { get; init; }
 
     /// <summary>The shot a cast fires, file <c>0xF0</c> (runtime <c>+0x42</c>).</summary>
     public byte ShotTypeId { get; init; }

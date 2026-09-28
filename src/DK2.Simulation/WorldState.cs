@@ -223,6 +223,9 @@ public struct PlayerState
     public byte PlayerId;
     public int Mana;
 
+    /// <summary>Cumulative one-shot mana loss, player +0x10F2 (keeper-spell-casting.md).</summary>
+    public int OneShotManaSpent;
+
     /// <summary>Gold this keeper's creatures have mined, DK2's <c>player+0x15A</c> —
     /// <c>GoldMined</c> in the level-statistics struct embedded at <c>+0x142</c>
     /// (`player-object.md`). Trigger condition type 31 compares it.</summary>
@@ -384,6 +387,7 @@ public struct PlayerState
         hash.Add(PlayerId);
         hash.Add(AlliedWith);
         hash.Add(Mana);
+        hash.Add(OneShotManaSpent);
         hash.Add(GoldMined);
         hash.Add(KilledByPlayerId);
         hash.Add(SlapCount);
@@ -421,7 +425,8 @@ public struct PlayerState
 /// <param name="Upgraded">DK2's per-entry <c>Upgraded</c> dword: <c>@0xD</c> of a 17-byte
 /// spell entry, <c>@5</c> of a room, door or trap entry. Only research sets it, and only
 /// for spells (research-tree.md §2); a spell cast reads it to fire the bonus shot.</param>
-public readonly record struct AvailabilityState(ushort Kind, int TypeId, int Value, bool Upgraded = false)
+public readonly record struct AvailabilityState(ushort Kind, int TypeId, int Value, bool Upgraded = false,
+    long LastCastTick = 0, long LastCheckedTick = 0)
 {
     internal void HashInto(ref Hash64 hash)
     {
@@ -429,6 +434,8 @@ public readonly record struct AvailabilityState(ushort Kind, int TypeId, int Val
         hash.Add(TypeId);
         hash.Add(Value);
         hash.Add(Upgraded ? (byte)1 : (byte)0);
+        hash.Add(LastCastTick);
+        hash.Add(LastCheckedTick);
     }
 }
 

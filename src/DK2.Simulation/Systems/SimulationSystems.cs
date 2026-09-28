@@ -38,6 +38,7 @@ public static class SimulationSystems
         new AllianceSystem(),
         // Doors open and close before anyone routes across them this tick.
         new DoorSystem(),
+        new KeeperSpellSystem(),
         // Acquisition before state handlers and steering, as ProcessFight sits in DK2's update.
         new CreatureStatusSystem(), // the status countdowns (0x0048E160) before the fight reads their words
         new CombatSystem(),

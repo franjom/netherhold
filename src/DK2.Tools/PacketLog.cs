@@ -22,8 +22,8 @@ public sealed class PacketLog
     public IReadOnlyList<(long Turn, uint Original, PacketEntityKind Kind)> EntityReferences =>
         [.. _turns.OrderBy(pair => pair.Key)
             .SelectMany(pair => pair.Value
-                .Where(action => action.Kind is 57 or 62 or 88)
-                .Select(action => (pair.Key, action.First, action.Kind == 88 ? PacketEntityKind.Object : PacketEntityKind.Creature)))];
+                .Where(action => action.Kind is 55 or 57 or 62 or 88)
+                .Select(action => (pair.Key, action.Kind == 55 ? action.Second & 0xffff : action.First, action.Kind == 88 ? PacketEntityKind.Object : PacketEntityKind.Creature)))];
 
     public static PacketLog Read(string path, int throughTurn, int firstRecord)
     {
@@ -105,6 +105,10 @@ public sealed class PacketLog
                     commands.Add(BuildRoomCommand.Rect(
                         player, checked((byte)a.First), second.X, second.Y,
                         PackedTile(a.Third).X, PackedTile(a.Third).Y));
+                    break;
+                case 55:
+                    commands.Add(new CastSpellOnCreatureCommand(player, (byte)(a.First & 0xff),
+                        Resolve(a.Second & 0xffff, PacketEntityKind.Creature), (ushort)(a.First >> 16)));
                     break;
                 case 57:
                     commands.Add(new PickUpCreatureCommand(player, Resolve(a.First, PacketEntityKind.Creature)));
