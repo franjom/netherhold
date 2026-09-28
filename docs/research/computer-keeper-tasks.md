@@ -145,6 +145,85 @@ other id, `0x00500C20` spends no more allowance and does not dequeue it. Such an
 id is therefore unsupported by the live producer paths; whether save loading
 can introduce one is UNKNOWN.
 
+## 5. Corridor execution and wall-hug audit
+
+Independent instruction check, 2026-09-28; **STRONGLY INFERRED** without a
+matching original command trace. The current `LineWalker` approximation differs.
+
+`0x004FDC50` spends allowance on the **current cursor tile before advancing**:
+water/lava attempt a bridge, taggable terrain attempts a dig tag, other terrain
+asks whether the target can route to the cursor. A tile already carrying task
+kind 1/2 is retried without advancing (`0x004FDE91..0x004FDE9F`). Thus a corridor
+waits for tagged rock to change before proceeding; it does not pre-tag its entire
+route. A successful bridge build calls the walker immediately; a failed build
+retries the same tile. The dig pool must have **at least 51 free entries**:
+`0x004FDEB7..0x004FDEC4` rejects `500-free >= 450`, not `free <= 51`.
+
+The route request (`0x004FDF3B..0x004FDF8D`) passes the target and cursor tile
+centres, player tag, then options `1,0,0,0` through `0x00452970` to
+`0x004D1700`. It uses the mesh router and current navigation bytes; the current
+AI's heart flood-fill through dig tags is not equivalent. The wrapper sets
+query globals `0x006EC9D0/D4/D8/DC/E0`, but does not initialize `E4`; that flag
+retains a prior query's value. A decision to isolate query context needs an ADR.
+
+In `0x00502230`, the first obstruction establishes distance/heading and the
+straight-line exit. **The saved route cursor is still the start**: instructions
+`0x0050248A..0x00502491` copy keeper `+0x76` to `WallHugStart +0x7A`, and
+`0x005024A8..0x005024AB` pass that same saved cursor into the trial. The code
+does not first move it onto the obstruction. The exit test uses navigation
+solidity, while actual hugging's open-tile test uses terrain solidity/lava.
+
+`0x005027D0` tries the heading-plus-one side first, then heading-minus-one.
+Its segment counter begins at zero and stops after incrementing to 25
+(`0x00502AE9..0x00502AF1`, `0x00502E42..0x00502E4A`). An open-ground walk can
+visit several tiles within a segment. The first trial returning to its start
+selects the other side immediately; the second looping back selects the first.
+When the first reaches the exit, its segment count bounds the second trial.
+Otherwise compare their minimum squared distances; ties select the second side.
+Actual hugging returns zero on a loop to its start; reaching the exit clears
+wall-hug and succeeds. The trial's player-tag exclusion receives zero from this
+caller; it must not be replaced by the keeper's player id.
+
+## 6. Rectangle traversal audit
+
+Independent instruction check, 2026-09-28; **STRONGLY INFERRED**.
+Task 2 initializes when `JoinPathStart.X` is zero: set that word to 1 and restore
+both rectangle origin and cursor from `JoinPathEnd`. A zero cursor X instead
+swaps the route endpoints, enters task 7 with continuation 2 and resets its clock;
+neither this detour nor a zero action result spends allowance. Only completing
+the rectangle decrements it (`0x004FD205`, `0x004FD22F`, `0x004FD24F`).
+The unchanged failure return could cause immediate repeated attempts in the task
+loop; whether that failure is reachable in ordinary play is **UNKNOWN**.
+
+Task 3's blocked/foreign-tile flag bypasses cursor advancement
+(`0x004FD42A..0x004FD437`). Build attempts also return without advancing
+(`0x004FD550..0x004FD577`). On the next pass, a newly built owned tile advances
+only if the placement predicate now refuses it and navigation is open. Our
+current `PlaceRoom` scans the whole footprint and can skip a blocked leading
+tile; it does not reproduce this cursor discipline.
+
+## 7. Site search audit
+
+`0x004FCE70` tries preferred direction, then preferred +1, −1, +2 (modulo 4).
+A failed direction returns zero allowance; success spends one. After four
+failures the random roll accepts 5–99 for reseeding, resets the preferred
+direction and asks for a non-bridge owned room. Failure to find one clears task 1.
+
+`0x005012A0` rejects approach/gap terrain only when solid and not taggable;
+it does not require rock. Interior acceptance is taggable terrain, descriptor
+`+0x1CB` bit 0, or owned tiles without a room; that last arm does not test
+solidity. The initial square's perimeter is examined before an extra strip.
+Build-area validation tests the start and `start + step * extent`, one step
+beyond the final tile on each axis, rather than the two included corner tiles.
+
+When the requested count exceeds the square, the extra strip requires untagged
+taggable terrain. Only nonzero room spacing enables its dimension increment
+(`0x00501934..0x0050197B`, `0x00501A67..0x00501AAA`); spacing zero can accept
+the smaller square after testing the unused strip. A rejected strip branches
+back into the search (`0x00501B1F..0x00501B23`), rather than accepting the square.
+These are **STRONGLY INFERRED** instruction/data-flow results; termination for
+all possible rejected-strip configurations is **UNKNOWN**.
+
 ## What is left
 
 - Find a writer for task id 8, or establish that it is only loadable state.

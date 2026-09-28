@@ -131,14 +131,16 @@ For a fresh ordinary-mode attack, the documented first-end and first-start
 choices apply. The strongest-room choice starts its best score at zero and uses
 a strict greater-than comparison, so all-zero room strengths leave no endpoint.
 The attacked/first-attack bits are written before room selection can fail.
-The attacker-only branch uses its own nearest-room selection path, not those
-first-attack choices; the `this` receivers of its repeated `0x004C6010` calls
-need instruction-level checking before implementing them.
+The attacker-only branch chooses the enemy non-bridge room nearest the own
+Heart, then the own non-bridge room nearest that target. Receivers are the enemy
+at `0x004FB9C1` and self at `0x004FBA2D`. The helper `0x004C6010` measures
+from each room's first slab (`+0x2D/+0x2E`), excludes ids 8/17/22, and keeps
+the first tie. These choices replace the ordinary first-attack choices.
 
 A successful new tunnel decrements `TunnelsLeft` once here and stores player id
 plus one in the target nibble. Task 7 later subtracts one from that encoded id
 to index the tunnel array; it does **not** decrement `TunnelsLeft` again.
-CTA staging begins at heart `(x+2,y+2)`; route-helper effects remain to be audited.
+CTA staging begins at heart `(x+2,y+2)`; route-query effects are below.
 
 ## 7. Moving CTA front — `0x004FE9C0`, `0x004FECE0`
 
@@ -147,8 +149,13 @@ random X/Y offsets of minus or plus two tiles. A creature route test must pass.
 Nonzero CTA usage stores that destination directly. Usage zero, with an active
 CTA, counts all own nonworkers and those strictly within ten tiles of the current
 CTA position. Advance only when `total <= floor(nearby * 5 / 4)` and the route
-helper `0x004D0E10` supplies a point. Its `0x2000` argument is not yet a verified
-movement distance. With no active CTA, success leaves the staging point unchanged.
+helper `0x004D0E10` supplies a point. Its `0x2000` argument selects each kept
+gate's midpoint through `0x004D0240`; it is not a movement distance. The keeper
+copies the **first returned waypoint**, scaled back by 16. On a straight route
+that can be the destination itself (`navigation-and-steering.md` §1). With no
+active CTA, success leaves the staging point unchanged. The preceding creature
+request `0x004D0E60` sets route-option bits 17–19 on that creature; querying
+reachability is not entirely observational in DK2.
 
 `0x004FECE0` removes an existing nonzero-usage CTA through the removal routine;
 otherwise, with zero attack cooldown, it asks for a front and tries spell 3 when

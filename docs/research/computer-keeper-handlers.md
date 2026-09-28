@@ -146,15 +146,15 @@ current direction (N, W, S, E table order):
    marks it unsuitable. Record the approach endpoints in `JoinPathStart/End`.
 3. If `TilesLeftBetweenRooms` is nonzero, advance that many further suitable tiles.
 4. Test a `side * side` area centred across the approach line and extending forward.
-   Every tile must be in-map and be either suitable solid terrain, owned empty floor,
-   or carry terrain descriptor `+0x1CB` bit 0.
+   Every tile must be in-map and be taggable, owned without a room, or carry
+   terrain descriptor `+0x1CB` bit 0; interior solidity is not tested.
 5. Only when `TilesLeftBetweenRooms != 0`, count open perimeter samples and reject
    when `100 * open / samples > Openness`.
-6. If `side^2 < DefaultRoomSize`, try one additional strip. Require both rectangle
-   corners inside `MaxBuildArea`.
+6. If `side^2 < DefaultRoomSize`, test an extra strip. Its spacing-dependent
+   increment and exclusive-end build-area check are in `computer-keeper-tasks.md` ?7.
 
-**Known:** there is no heart-distance test and no dedicated gold test. Ownership is
-tested only for nonsolid interior floor: it must be this player and have no room.
+**Known:** there is no heart-distance test and no dedicated gold test. The fallback
+interior test requires this player as owner and no room, without a solidity test.
 Walls are not required on all sides; the conditional perimeter-open percentage is
 the only surrounding-wall rule.
 
@@ -192,13 +192,12 @@ remaining allowance in `AL`, and uses `RET 4`.
 
 ### Decision rule
 
-**Known:** on first entry it initializes the traversal from `JoinPathStart/End` when
-needed. For each allowance unit it visits one rectangle coordinate in the row/column
-order selected by `InnerLoopXOrY`. If the player's task pool has more than 20 free
-entries, it submits action `0x28`; a refused action stops this turn. Completion resets
-the cursor and starts `Task=3`. `CurrentRoomToBuild==0xE5` instead clears the task.
-The alternate initialization swaps `JoinPathStart/End`, starts `Task=7` with
-`NextTask=2`, and routes to the rectangle before tagging it.
+**STRONGLY INFERRED:** traversal follows `InnerLoopXOrY`, spending one allowance
+for the completed rectangle, not per coordinate. With more than 20 free pool entries
+it submits action `0x28`; otherwise it skips tagging and advances. A zero action
+result returns with unchanged cursor and allowance (`0x004FD0DC..0x004FD0E7`,
+`0x004FD28E`). Completion resets the cursor and starts task 3; room `0xE5` instead
+clears the task. Initialization and failure implications: `computer-keeper-tasks.md` §6.
 
 ### Fields
 
@@ -227,10 +226,11 @@ SEH frame, reserves 0x18 bytes, saves `EBX/EBP/ESI/EDI`, returns the remainder i
 
 1. If world slot `+0x22C` accepts `(x,y,player TagId, roomId)`, call the room-build
    wrapper and return without advancing the cursor.
-2. Otherwise, if the tile is not already acceptable owned room/floor, optionally
-   submit action `0x28` when it is taggable solid terrain and the pool has more than
-   20 free entries.
-3. Advance the rectangle cursor. At its end reset the cursor and start `Task=4`.
+2. Otherwise, if navigation says solid or the tile is not owned, retain the cursor.
+   Optionally tag it when terrain is taggable, task kind is neither 1 nor 2, and
+   the pool has more than 20 free entries. Repeat while allowance remains.
+3. Only an owned, navigation-open, unbuildable tile advances the cursor. At the
+   rectangle's end reset the cursor, start task 4 and exhaust the allowance.
 
 **Known:** price is `roomDefinition(roomId).u16[+0x43F]`, per tile. The planner first
 checks `price * DefaultRoomSize`, but `0x004C5B40` checks current `player.Money`
@@ -313,7 +313,7 @@ neither 0 nor 4: both tasks become 4 and allowance becomes zero. Otherwise:
 
 1. Current equals target, a direct route succeeds, no required bridge is available,
    or the walker fails: copy `NextTask` to `Task`, reset `TaskTimeCounter`.
-2. On solid/taggable terrain, submit action `0x28` only with more than 51 free task
+2. On solid/taggable terrain, submit action `0x28` only with at least 51 free task
    entries; water (`+0x17B` bit 7) chooses room 8 when available (state 3), otherwise
    room 17; lava (bit 8) chooses only 17. An unavailable required bridge ends the
    task; failed placement/build retries the same tile while allowance remains.
@@ -322,15 +322,10 @@ neither 0 nor 4: both tasks become 4 and allowance becomes zero. Otherwise:
    enemy index from one-based to zero-based, store current→target in its first empty tunnel entry,
    clear the low nibble, and resume `NextTask`.
 
-**Wall-hug — Known:** `0x00502230` first steps toward the target on the axis with the
-larger absolute difference (ties use Y). Heading is 0=N, 1=E, 2=S, 3=W. On an
-undiggable obstacle it records `WallHugStart` at the first obstruction,
-`WallHugEnd` at the straight-line exit, and `WallHugDistance` as the first
-obstruction's squared tile distance to the target. `0x005027D0` trials both sides;
-its boolean sets `WallHugLeft`, and `WallHugHeading` is turned one quarter left or
-right. Edge following tries that side first, rotates through at most four headings,
-returns diggable rock for tagging, and ends wall-hug at `WallHugEnd`. Returning to
-`WallHugStart` fails. Each side trial is bounded to 24 turns.
+**Wall-hug — Known:** `0x00502230` steps on the axis with the larger absolute
+difference (ties use Y), with headings N/E/S/W. `WallHugStart` is the saved cursor,
+not the first obstruction. The trial has 25 segments and asymmetric early exits;
+see `computer-keeper-tasks.md` §5 for the independent instruction audit.
 
 **Fields — Known:** `MaxBuildArea +0x12..+0x1E`; `DigRoomAt/Current +0x72/+0x76`;
 `WallHugStart/End/Distance/Heading +0x7A/+0x7E/+0x8A/+0x8E`; `BlibBlubBlob +0x4BA`;

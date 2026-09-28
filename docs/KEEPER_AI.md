@@ -485,11 +485,11 @@ tick is skipped (the counters still run).
 | **0** | `0x4FAEF0` then `0x4FC690` | **Decide.** First the attack planner (§5.5). If it declines and `Flags` bit 0: the **room planner** (§5.5). Then, if no task was started and `Flags` bit 1 and `gold < TendancyMoney` and no gold-dig task is pending on the task stack → **gold step** (`0x4FD590`) |
 | **1** | `0x4FCE70` | **Find a site** for `CurrentRoomToBuild`: `0x5012A0` searches from `DigRoomAtCurrent` in the current direction for a `DefaultRoomSize` square (§5.5). Success → Task 2. Failure → rotate the search direction; after the fourth, 95 % chance to re-seed from a random own room, else give up (Task 0) |
 | **2** | `0x4FD030` | **Dig the rectangle**: tag every tile (action 40), `UntagGoldCounter ← 240`, provided the task stack has more than 20 free entries. If the site is not connected, first detour: `Task ← 7` with `NextTask ← 2` to dig a corridor from `JoinPathStart`. Done → Task 3 (or Task 0 for the `0xE5` placeholder) |
-| **3** | `0x4FD2B0` | **Place the room** tile by tile over the rectangle (one tile per budget unit); re-tag any tile still solid; done → Task 4 |
+| **3** | `0x4FD2B0` | **Place the room** at the persistent cursor, spending one allowance per pass. Blocked or foreign tiles retain the cursor; only owned navigation-open tiles that fail placement advance it. Rectangle end → Task 4. Exact traversal: `research/computer-keeper-tasks.md` §6 |
 | **4** | (inline) | **Done**: budget −1, gold check as in Task 0, reset to Task 0 |
 | **5** | `0x4FD660` | **Route to gold**: `DigRoomAtCurrent ←` nearest own room to the deposit (or the heart); `Task ← 7`, `NextTask ← 6` |
 | **6** | `0x4FD750` | **Mine the seam**: tag gold-bearing solid tiles in an expanding square spiral around the deposit until radius > 6, then Task 0 |
-| **7** | `0x4FDC50` | **Dig a path** from `DigRoomAtCurrent` to `DigRoomAt`: step toward the target with the line walker below; tiles it returns are tagged (action 40, `UntagGoldCounter ← 240`, needs > 51 free task entries); water gets a Wooden Bridge (8), lava a Stone Bridge (17) if available; when the path becomes walkable → `Task ← NextTask`; if it reaches **enemy-owned** land (any of the 8 neighbours or the tile itself owned by an enemy, `0x4FDB90`) during an attack, the remainder is stored in that enemy's breach slots and the task ends; outside `MaxBuildArea` → Task 4 |
+| **7** | `0x4FDC50` | **Dig a path**: process the current cursor before stepping. Tagging needs at least 51 free entries; already tagged rock waits for excavation. Water tries Wooden Bridge (8), then Stone (17) only if Wood is unavailable; lava needs Stone. A successful route query resumes `NextTask`. During an attack, an enemy tile in the cursor's 3×3 neighbourhood stores the remaining tunnel. An out-of-area target aborts only for continuations other than 0/4. Exact flow: `research/computer-keeper-tasks.md` §5 |
 | **8** | — | stop for this tick |
 | 9–15 | — | invalid: reset to Task 4 |
 
@@ -498,8 +498,9 @@ a time along whichever axis is further from `DigRoomAt`. The first tile met that
 solid, water or lava is returned to the caller when it is **diggable** (terrain Solid
 and not Impenetrable, `0x453D10`), water or lava. An **undiggable** obstacle is walked
 around: the straight line is continued through it to find the exit tile
-(`WallHugEnd`), both hugging directions are trial-walked (up to 24 turns each,
-`0x5027D0`) and the one that gets closer to the target wins (`WallHugLeft`); then, in
+(`WallHugEnd`), both hugging directions are trial-walked (up to 25 segments each,
+with loop and early-arrival rules; `research/computer-keeper-tasks.md` §5). The
+saved cursor, not the obstruction, starts the trial and `WallHugStart`. Then, in
 `WallHug` mode, the walker follows the obstacle's edge using a clockwise N/E/S/W table
 (`0x0069A070`), returning any diggable rock it meets (so it digs through where it can)
 until it reaches the exit tile and resumes the straight walk; arriving back at
@@ -591,11 +592,12 @@ creature leaves).
   `NextTask 4`) before the ordinary nearest/strength comparison. Ordinary mode sets
   the cooldown only if no stored tunnel remains; attacker-only mode does not write
   it (`research/computer-keeper-management.md` §6).
-- First attack on a player (`FirstAttackFlag`): end point by `IAFirstEnd` — 0 the enemy
+- In ordinary mode, first attack on a player (`FirstAttackFlag`): end point by `IAFirstEnd` — 0 the enemy
   **Dungeon Heart (5)**, 1 a random enemy room, 2 the enemy room with the least threat
   within 5 tiles, 3 the most; start point by `IAFirstStart` — 0 own room furthest from
   own heart, 1 random own room, 2 own heart, 3 own room nearest the target. Later
-  attacks: random enemy room, random own room.
+  attacks: random enemy room, random own room. Attacker-only mode uses nearest
+  enemy/own non-bridge rooms instead (management audit §6).
 - Set `Task 7 / NextTask 4`, `TunnelsLeft--`, remember the target in `BlibBlubBlob`'s
   low nibble; when `CallToArmsUsage` = 0 and breaches are used up and no CTA is active,
   place `CallToArmsPos` two tiles off the heart along a checked route.
@@ -638,18 +640,13 @@ creature leaves).
   `OpenDirection` is the opposite. So core rooms (id < 6) are sited **behind** the
   heart, toward the map edge, everything else toward the centre.
 
-**Site finder** (`0x5012A0`): walk from the origin in the direction (the 4-entry table
-at `0x006A32A8`: N (0,−1), W (−1,0), S (0,+1), E (+1,0), each with the two step signs
-the square uses) up to 2×side tiles past tagged or room tiles; land on diggable solid
-rock; skip `TilesLeftBetweenRooms` more solid tiles; the side×side square is **centred
-on the approach line and extends forward** from the landing tile; each of its tiles
-must be diggable rock, own floor without a room, or a terrain whose descriptor byte
-`+0x1CB` has bit 0 (§7); **only when `TilesLeftBetweenRooms` is non-zero**, count the
-perimeter tiles that are already open (tagged or not solid) and reject if more than
-`Openness`% of the perimeter is open — a keeper that builds rooms touching skips the
-test entirely; if side² < `DefaultRoomSize`, try one extra strip; validate against
-`MaxBuildArea`. Side = ⌊√DefaultRoomSize⌋. The square may overlap the keeper's own
-empty floor, which is how a room ends up flush against the corridor that led to it.
+**Site finder** (`0x5012A0`): walk from the origin in the current direction
+past tagged/room tiles, leave the configured gap, then validate a square centred
+across the approach. Side = floor(sqrt(DefaultRoomSize)). The direction table is
+`0x006A32A8`: N, W, S, E with signed rectangle steps. The detailed acceptance,
+extra-strip and build-area rules differ from the current `SiteFinder`; see
+`research/computer-keeper-tasks.md` ?7. In particular, the approach need not be
+solid rock, and spacing zero does not add the extra strip.
 
 **Gold** (`0x4FD590`, `0x501C10`): the scan retains four distance-ordered deposits
 in `GoldDeposits`; its stale admission cutoff means these are not always the four
@@ -702,8 +699,8 @@ exist anywhere → remove it (action 63) and `CannotAttackCounter ←
 WaitBeforeAttackingAgain × 4`. **CTA front** (`0x4FE9C0`): for `CallToArmsUsage` 1/2
 the position is near the enemy heart; for 0 it **creeps** from the current CTA toward
 the enemy heart when `total <= floor(nearby * 5 / 4)`, counting nonworkers strictly
-within 10 tiles. The route helper's step distance remains unverified
-(`research/computer-keeper-management.md` §7).
+within 10 tiles. It moves to the first route waypoint, which can be the destination
+on a straight route (`research/computer-keeper-management.md` §7).
 
 ### 5.8 Prisoners (`0x5006D0`) and retreat
 
@@ -732,9 +729,9 @@ heart if none. Exact gates and remaining helper questions:
 | 3 | event ring | at most three pending event tasks |
 | 8 × 16 | breaches | stored tunnels per enemy × enemies |
 | 4 | gold | deposits remembered |
-| 20 / 51 | task stack | minimum free task entries before tagging (room / corridor) |
+| >20 / >50 | task stack | free entries required before tagging (room / corridor) |
 | 3 tiles | traps and doors | minimum spacing from own traps and doors |
-| 24 | line walker | turns tried per side when choosing which way round an obstacle |
+| 25 | line walker | maximum trial segments per side; early exits are in `computer-keeper-tasks.md` §5 |
 | 15 + 5×(portals − 1) | make-room step | portal creature cap: balance variable 73 (`0x006F28B4`, 15 in shipped data) plus the adjacent byte per extra portal, whose id is HYPOTHESIS (OpenKeeper lists variable 177 = 5 by that name) |
 | 4 ticks = 1 game second = 1 s | everything | the LEVEL record's ticks-per-second field is 4 in all 66 shipped levels, and a tick is **250 ms**: binary-read and stopwatched by the owner (Q1, ADR-0089; `research/balance-variables-in-the-binary.md`). So 1,680 ticks = 7 minutes, 240 = 1 minute, 300 = 75 s, 40 = 10 s. Measured live at 3.93–3.95 ticks/s in steady state |
 | `seed = seed × 0x19660D + 0x3C6EF35F`, `rotl(seed, 19) mod n` | RNG | every `random(n)` here draws from the **world's** stream (seed at world `+0x15A0`), so the AI is deterministic given the world state |
@@ -790,7 +787,7 @@ heart if none. Exact gates and remaining helper questions:
 
 - **Player status is resolved** in `research/win-and-defeat.md` §§1–2, including
   trigger actions 10/11. The keeper still ticks after status 2; statuses 1/3 stop it.
-- **Remaining message producer branches and suppression fields** are open; the
+- **Remaining message producers and suppression initialization/persistence** are open; the
   independently checked senders and retention rules are in
   `research/computer-keeper-messages.md`. In particular 41 means room needed,
   and 47 is emitted by the Turncoat shot process.

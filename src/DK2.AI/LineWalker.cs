@@ -26,7 +26,7 @@ public enum WalkOutcome
 
 public readonly record struct WalkStep(WalkOutcome Outcome, TilePos Tile);
 
-/// <summary>The original's corridor digger — STRONGLY INFERRED, docs/KEEPER_AI.md §5.2.</summary>
+/// <summary>Provisional corridor digger; discrepancies are audited in computer-keeper-tasks.md §5.</summary>
 /// <remarks>
 /// <para>From <see cref="KeeperAIState.DigRoomAtCurrent"/>, step one tile at a time
 /// along whichever axis is further from <see cref="KeeperAIState.DigRoomAt"/>. The
@@ -40,7 +40,7 @@ public readonly record struct WalkStep(WalkOutcome Outcome, TilePos Tile);
 /// </remarks>
 public static class LineWalker
 {
-    /// <summary>Segments each trial walk may run before giving up, as in the original.</summary>
+    /// <summary>Current trial bound; the binary audit establishes 25, pending the traversal correction.</summary>
     public const int TrialSegments = 24;
 
     public static WalkStep Step(KeeperView view, KeeperAIState s)

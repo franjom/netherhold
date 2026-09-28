@@ -88,6 +88,28 @@ types 300. These bytes are **CONFIRMED**. Unknown-subtype fallback is not a
 general default lifetime: insertion only copies a matching subtype's lifetime;
 a selected zero string discards the new message.
 
+### Player suppression state
+
+`0x004C5530` checks the following player dwords before duplicate lookup.
+`0x004C5650` updates them on the accepted-message path at `0x004C4A00`, even
+when the caller did not request a retained record. Duplicate-return paths do
+not reach that update. Deadlines compare current turn strictly below the stored
+value; equality permits another message. Durations use `0x006F2590` ticks/second.
+
+| Types / Data1 | Player offset | Suppression / update |
+|---|---|---|
+| 41 or 99 / 14 | `+0xF4E` | reject when 1; write 1 |
+| 53 / 1 | `+0xF52` | deadline; current turn + 300 seconds |
+| 55 / 1 | `+0xF56` | deadline; current turn + 120 seconds |
+| 75 / any | `+0xF5A` | deadline; current turn + 600 seconds |
+| 89 / 27 | `+0xF62` | reject when 1; write 1 |
+| 89 / 10 | `+0xF66` | reject when 1; write 1 |
+
+The direct-offset instruction sweep finds these readers/writers; unrelated
+functions also use the same numeric offsets. Initialization, save persistence
+and possible indirect resets remain **UNKNOWN**. In particular, do not infer
+that the type-41/room-14 suppression lasts forever from the direct writer alone.
+
 ## 2. Producers and payloads
 
 These are independently traced producers, not a claim that every call site of
@@ -141,6 +163,6 @@ implementation needs retained simulation state, lifetime/eviction policy and
 explicit acknowledgments; the observation sink must remain observational.
 An AI host that observes only after all simulation systems, including message
 expiry, would miss type 6 entirely. The input-source boundary must expose the
-pre-expiration observation while preserving the chosen command delay. Unresolved
-suppression fields and unclassified producer branches still prevent claiming
-complete queue fidelity.
+pre-expiration observation while preserving the chosen command delay. Suppression
+initialization/persistence and unclassified producer branches still prevent
+claiming complete queue fidelity.
