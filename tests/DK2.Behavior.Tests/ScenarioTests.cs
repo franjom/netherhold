@@ -6,6 +6,7 @@ using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Harness;
+using DK2.Simulation.Commands;
 using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
@@ -21,6 +22,42 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class ScenarioTests
 {
+    [InstallFact]
+    public void Level10ComputerKeeperRespectsLockedRoomAvailability()
+    {
+        string install = Dk2InstallGate.Path;
+        Scenario scenario = Scenario.Load(Path.Combine(
+            RepositoryRoot(), "scenarios", "keepers", "level10_asmodeus_idle.yaml"));
+        ScenarioResult run = new ScenarioRunner(GameDatabaseLoader.Load(install), install).Run(scenario);
+
+        Assert.DoesNotContain(run.EmittedKeeperCommands, c => c is BuildRoomCommand);
+        Assert.Contains(run.EmittedKeeperCommands, c => c is CreateImpCommand);
+        Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
+    }
+
+    [InstallFact]
+    public void UnaidedKeeperHasARepeatableCommandStream()
+    {
+        string install = Dk2InstallGate.Path;
+        Scenario scenario = Scenario.Load(Path.Combine(
+            RepositoryRoot(), "scenarios", "keepers", "level17_harkan_unassisted.yaml"));
+        var runner = new ScenarioRunner(GameDatabaseLoader.Load(install), install);
+        ScenarioResult first = runner.Run(scenario);
+        ScenarioResult second = runner.Run(scenario);
+
+        Assert.Equal(first.HashPerTick, second.HashPerTick);
+        Assert.NotEmpty(first.KeeperCommandLog);
+        Assert.Equal(first.KeeperCommandLog.Select(Fingerprint),
+            second.KeeperCommandLog.Select(Fingerprint));
+
+        static (int Tick, ulong Hash) Fingerprint(KeeperCommandEmission emission)
+        {
+            var hash = Hash64.Start();
+            emission.Command.HashInto(ref hash);
+            return (emission.InputTick, hash.Value);
+        }
+    }
+
     [Fact]
     public void EveryScenarioInTheRepository_Loads()
     {

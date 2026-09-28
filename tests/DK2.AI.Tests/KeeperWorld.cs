@@ -186,6 +186,9 @@ internal static class KeeperWorld
     private static GlobalVariables Variables()
     {
         var vars = new GlobalVariables();
+        foreach (RoomTypeId room in new[] { RoomTypeId.Treasury, RoomTypeId.Lair, RoomTypeId.Hatchery })
+            vars.Availabilities.Add(new AvailabilityEntry(1, Keeper, (int)room, 3));
+        vars.Availabilities.Add(new AvailabilityEntry(5, Keeper, 4, 3));
         vars.Misc[VariableTypeId.MaximumManaThreshold] = new MiscVariable(VariableTypeId.MaximumManaThreshold, 200000, 0, 0);
         vars.Misc[VariableTypeId.MinimumImpThreshold] = new MiscVariable(VariableTypeId.MinimumImpThreshold, 4, 0, 0);
         // The heart's health and regeneration, as the shipped global VARIABLES table

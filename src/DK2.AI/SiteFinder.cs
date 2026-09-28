@@ -37,8 +37,8 @@ public readonly record struct BuildArea(int MinX, int MinY, int MaxX, int MaxY)
 /// extending forward. Every tile of the square must be diggable rock or the
 /// keeper's own empty floor; the square is rejected when more than
 /// <c>Openness</c>% of its perimeter is already open, or when it leaves the
-/// keeper's build area. All four directions are tried, starting with the given
-/// one, before giving up.
+/// keeper's build area. The task machine retries another direction on its next
+/// allowance unit when this one fails.
 /// </summary>
 public static class SiteFinder
 {
@@ -48,14 +48,8 @@ public static class SiteFinder
     {
         int side = Math.Max(1, (int)Math.Sqrt(roomSize));
 
-        for (int attempt = 0; attempt < 4; attempt++)
-        {
-            int direction = (startDirection + attempt) & 3;
-            RoomSite? site = TryDirection(view, origin, direction, side, roomSize,
-                tilesBetweenRooms, opennessPercent, area);
-            if (site is not null) return site;
-        }
-        return null;
+        return TryDirection(view, origin, startDirection & 3, side, roomSize,
+            tilesBetweenRooms, opennessPercent, area);
     }
 
     private static RoomSite? TryDirection(

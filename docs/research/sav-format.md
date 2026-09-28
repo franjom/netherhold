@@ -23,21 +23,22 @@ abstraction layer like everything else.
 | Entity sections | after the grid | rest of file | typed, variable-size, self-serialising |
 
 **The grid offset is not a constant.** The two original samples were saves of
-the same level, so two samples were one sample. Across all fourteen saves in
+the same level, so two samples were one sample. Across fourteen reference saves plus the owner Level 10 save in
 the reference install the grid lands on three offsets:
 
 | Level | Grid | Offset | Saves |
 |---|---:|---:|---:|
-| `mpd1` | 61x61 | `0x8861` | 10 |
-| `TrapTime` | 110x80 | `0x14880` | 3 |
-| `Caverns` | 101x101 | `0x19e0f` | 1 |
+| `mpd1` | 61x61 | `0x8859` | 10 |
+| `TrapTime` | 110x80 | `0x14878` | 3 |
+| `Caverns` | 101x101 | `0x19e07` | 1 |
+| `level10` | 58x100 | `0xE7DA` | 1 |
 
 It is **not a function of the tile count** either — those offsets divided by
 their tile counts give 9.38, 9.56 and 10.39 bytes a tile, and no linear fit
 passes through all three. What varies is the global/player block above it, which
 is sized by something else about the level (Q183).
 
-`0x8861` is odd, so the writer is a byte-oriented serialiser, not a `memcpy` of
+`0x8859` is odd, so the writer is a byte-oriented serialiser, not a `memcpy` of
 a packed struct.
 
 ## How the save is written — CONFIRMED from the binary
@@ -105,127 +106,46 @@ Resources, two objects reached through vtable slot `+4`, the **rooms**, the
 **creature collection**, the world's own block, 24 raw bytes, the camera, and
 the player message queue.
 
-## Tile grid — CONFIRMED
+## Tile grid - STRONGLY INFERRED from the binary, checked against saves
 
-Row-major `width * height`, dimensions taken from the level's own
-`...Map.kld` (61x61 for mpd1), **10 bytes per tile** — the runtime tile, wider
-than the 4-byte design tile in the `.kld`.
+The writer `0x0044F3F0` emits an eight-byte map header, then calls
+`0x00452B90` once per tile. Each call writes ten bytes from runtime tile
+`+2..+0xB`, row-major. The record begins at the room word. In the owner's
+Level 10 save the header is at `0xE7D2`, so the first record is `0xE7DA`.
 
-**Four lanes are identified, and each was settled against something outside the
-save file.** The owner supplied a purpose-built series on 2026-09-06 — five
-saves of one dungeon differing by one known action each — which is what made
-the last two readable:
-
-| Lane | Meaning | How it was settled |
+| Record offset | Reading | Evidence |
 |---:|---|---|
-| 0 | terrain id, the MAP(100) enum | 73%/85% agreement with the level's design map |
-| **2** | **room instance id**, 0 for none | every distinct value is one solid rectangle matching its room type's footprint |
-| **6-7** | **tile health**, little-endian u16 | equals the terrain's `StartingHealth` from `Terrain.kwd` on **91.9%** of tiles |
-| 8 | owner / player id | 72% agreement with the design map's player byte |
+| 0-1 | room instance, low twelve bits | writer source `tile+2`; the Level 10 Portal's nine tiles all have id 1125 |
+| 2-3 | undecoded | writer source `tile+4` |
+| 4-5 | health, u16 | writer source `tile+6`; pristine Rock is 165 and Heart 10000 in the save |
+| 6-7 | owner, low twelve bits; high bits are flags | writer source `tile+8`; player ids agree with the map and the claimed Portal |
+| 8 | terrain id | writer source `tile+0xA`; all 5,800 Level 10 tiles match the design map |
+| 9 | undecoded | writer source `tile+0xB` |
 
-`Dk2SaveReader` names them `LaneTerrain`, `LaneRoom`, `LaneHealth` and
-`LaneOwner`; `SavedTile.Raw` carries all ten bytes so a partial reading loses
-nothing.
+The former reader located the terrain lane itself at `0xE7E2` and called
+that the record start. This shifted room, health, and owner to the next tile.
+The old lane-1 discovery reading is actually record lane 9; the old
+lane-3 and lane-4/5 readings belong to the following tile. The
+44+44 health mismatch, the supposed last scratch slot, and the one-column
+room footprint offset were consequences of that shift. They are not game
+rules. Q181 and Q189 track any remaining lane questions.
 
-### The control that made the series work
+`Dk2SaveReader.FindGridOffset` now scores terrain at record `+8` and returns
+the actual record start. `ReadTiles` masks both room and owner words to
+twelve bits, and `ReadGrid` decodes the same owner and terrain. Every
+`width * height` record is a tile, including the last one. The owner save
+has a real border tile there (terrain 30, owner 2).
 
-Between two of the saves the owner created an imp and did nothing else. **Zero
-tiles changed** in lanes 0, 2, 4, 5, 6, 7 and 8 — which both validated the
-method and showed that lanes 1, 3 and 9 are noise for this purpose: those three
-move across most of the map between *any* two saves, consistent with visibility
-or fog state (Q181). **Lanes 4 and 5 are non-zero only on room tiles** and are
-otherwise unread.
+The corrected alignment resolves Q200 too. In `fow_3.SAV` (TrapTime), Stone
+Bridge tiles (72,38) and (76,38) have room ids 1117 and 1116. The Claimed
+Path tiles between them have room id zero. The former reader attributed each
+bridge id to an adjacent path tile.
 
-Read as bytes those three lanes look like noise; bit by bit they are quiet.
-**Lane 1, bit 6 is the local player's discovery bit** — set on 100% of the
-owner's own territory and 0% of the other three keepers', monotonic with zero
-reversals across three saves, and clearing in a band **13 tiles tall around a
-1-tile tunnel**, which is the six-tile `PerceptionRange` every creature record
-carries. `fog-of-war.md` §11 has the whole derivation. Lane 3's high nibble
-resets to zero wherever *any* keeper is active, in every territory at once, so
-it is a property of the tile rather than of a viewer — still UNKNOWN, and no
-longer a fog candidate.
-
-Mining one gold tile and claiming one wall changed exactly **three** slots:
-terrain 6 (Gold) became 8 (Claimed Path) on the mined tile, the claimed tile's
-owner went 2 (neutral) to 3 (the keeper) — and the third was the scratch slot
-below. Mining two changed five. The arithmetic closes exactly.
-
-### The series also reconfirmed two settled rules
-
-A cross-check that the save data reproduces what the original was already
-observed to do, not news about DK2:
-
-- **Mining a gold seam yields its full 3000.** Gold went 3000 to 6000 across
-  one mined seam and 6000 to 12000 across two, and `Terrain.kwd` gives terrain 6
-  a gold value of 3000 (Q21).
-- **A room's cost is per tile**, twice over. The 5x5 hatchery took gold from
-  12000 to 4500 — 7500 for 25 tiles, i.e. **300 a tile**, and the ROOMS record
-  prices a Hatchery at exactly 300. A later 5x5 lair took 13250 to **5750**, the
-  same 7500 for 25 tiles, and a Lair is priced 300 too (Q32). The lair's 25
-  tiles came out of Claimed Path, whose count falls 41 to 16 across the same
-  pair of saves.
-
-That recorded gold sequence — 3000, 6000, 6000, 12000, 4500 — is also what
-located the player's gold at **`0x2dd4`** in the global/player block: it matches
-at exactly two offsets in the whole file, one there and one inside the entity
-region. Q183 is partly answered by it, and the same trick will name more fields
-from any save series with recorded numbers.
-
-### Lane 2 is an instance, not a type
-
-The type is already in the terrain id. In the save with a purpose-built 5x5
-hatchery, lane 2 yields **ten** instances, every one a solid rectangle whose
-size matches what it is: a 2x2 hero gate on 4 tiles, four 3x3 portals on 9
-each, and five 5x5 rooms — dungeon heart, guard room, work shop, hatchery — on
-25 each. A byte that merely correlated with rooms could not do that.
-`Dk2SaveReaderTests.RoomId_GroupsTilesIntoContiguousRoomsOfTheRightSize` pins it.
-
-**A room's tile set includes part of its surrounding wall.** The hatchery's 25
-tiles are 20 hatchery floor plus 5 of wall and claimed path. **Open detail, with
-no question row of its own:** five hatchery-floor tiles in the adjoining column
-carry room id 0, so the room instance and the terrain-13 footprint are offset by
-one column. Whether that is a room still being registered at save time or
-something about how DK2 assigns the id is not settled.
-
-### Health, and the residue
-
-91.9% of tiles on a freshly started dungeon carry their terrain's
-`StartingHealth` exactly, and 82% on a long-played one — the difference being
-tiles mid-dig, mid-claim or mid-reinforce, which is what health is for. Across
-the owner's eight-save series the figure moves 91.8% to 91.3% as the dungeon is
-worked.
-
-**The residue splits in two, and only one half is a puzzle.**
-
-*Variable mismatches* track play. Rock carrying Gold's 660, Rock carrying
-Reinforced Wall's 900, Reinforced Wall carrying Rock's 165 — the counts move
-between every pair of saves and follow the tiles the owner dug, claimed and
-reinforced. That is health doing its job.
-
-*A fixed anomaly of exactly 44 + 44 tiles* does not. 44 tiles of Impenetrable
-Rock carry Rock's 165, and 44 tiles of Rock carry Impenetrable Rock's 1, and
-**those two counts are identical in all eight saves** — untouched by mining,
-claiming, reinforcing or building.
-
-**Lane 0 is not the problem.** The level's own design map agrees with lane 0 on
-all 88 tiles — 44 Impenetrable Rock, 44 Rock, no exceptions — so the terrain
-reading is sound and it is the health that is unexpected. Lane 0 is not half of
-a two-field terrain.
-
-What the 88 tiles are is open (Q189). Both groups lie along arcs, and their lane
-profiles are identical down to the counts — lane 1 splits 37/7 in both, lane 3
-splits 27/14/2/1 in both — yet no mirror, rotation or transpose maps one onto
-the other. Their design-map bytes are also identical to each other and to
-ordinary tiles of the same terrain, so nothing in the `.kld` marks them out.
-
-### The last slot of the grid is not a tile
-
-`(60,60)` on a 61x61 level changes between saves where **nothing on the map
-changed**, carries a non-zero room id of its own, and is the one slot whose
-owner byte falls outside the level's player set. Treated as scratch and excluded
-from tile statistics: `Dk2SaveReader.ScratchSlotIndex(width, height)` is
-`width * height - 1`.
+The owner's five-save action series still confirms its observed outcomes:
+one mined gold seam added 3000, and a 5x5 Hatchery or Lair cost 7500.
+Those economy rules are independently supported by the shipped terrain
+and room records (Q21, Q32). The old per-lane change counts from the
+shifted alignment should not be used to infer fields.
 
 ## The entity region — Q182 answered, and the premise was wrong
 
@@ -274,7 +194,7 @@ read off the routine rather than off the bytes.
 ## The grid is located, not assumed
 
 `Dk2SaveReader.FindGridOffset` searches for the grid instead of reading it at a
-constant, by correlating lane 0 against the level's design map — the MAP(100)
+constant, by correlating record lane 8 against the level's design map — the MAP(100)
 chunk of `<Level>Map.kld`, byte 0 of each 4-byte design tile, via
 `GameDatabaseLoader.LoadCampaignMap` — in two passes: score a spread
 sample of `SampleTiles` = 512 tiles at every candidate offset, then score the
@@ -284,13 +204,13 @@ neighbour can win the sample, so the sample alone is not trusted.
 Agreement is not a fact about the save but the read's own sanity check
 (`SavedGame.TerrainAgreement`). A mid-game save scores lower simply because the
 dungeon has been dug, which is what the 73–85% figures are; it is not parser
-error. **The peak is sharp**, measured across all fourteen saves in the install:
+error. **The peak is sharp**, measured across the fourteen earlier saves in the install:
 
 | Read at | Agreement |
 |---|---:|
 | the located offset | **72.9% – 100%** |
 | one tile record either side | 59.1% – 91.3% |
-| **one byte** on | **0.000%**, every save |
+| **one byte** on | **0.000%**, each earlier save |
 
 The one-byte control is the strong one. Shifting by a whole record still agrees
 at up to 91% because a map has long runs of a single terrain, so a tile mostly
@@ -307,7 +227,7 @@ hundred milliseconds on the largest save here. Paid once per load.
 
 `GameDatabaseLoader` already yields a `LevelMap`, and the Unity adapter's
 `DungeonRunner` already renders one. `Dk2SaveReader.Load` fills a `LevelMap`
-from lanes 0 and 8 and needs no Unity-side change. Entities need the per-class
+from record lanes 8 and 6-7 and needs no Unity-side change. Entities need the per-class
 serialisers first.
 
 Writing saves back is not attempted and is not planned.
@@ -326,6 +246,6 @@ grouping into contiguous rooms of the right size.
 
 ## Open questions
 
-Q181 (lanes 1, 3, 9 and 4–5), Q183 (the rest of the global/player block),
-Q189 (the 44 + 44 health anomaly), and the one-column offset between a room
-instance and its terrain footprint, which has no question row.
+Q181 covers record bytes 2-3, the upper word bits, and the remaining bits of byte 9. Q183 covers the rest of the global
+and player block; Q182 covers entity payloads. Q189's former 44+44
+health anomaly was a shifted read, not an original-game effect.

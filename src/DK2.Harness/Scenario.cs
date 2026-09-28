@@ -263,6 +263,9 @@ public sealed class Scenario
     /// <summary>Player commands, scheduled by tick.</summary>
     public List<ScenarioCommand> Commands { get; set; } = [];
 
+    /// <summary>Computer keepers driven by the campaign PLAYERS records after each tick.</summary>
+    public List<byte> ComputerKeepers { get; set; } = [];
+
     /// <summary>Harness-injected tile work, standing in for a creature that does not exist yet.</summary>
     public List<ScenarioWork> Work { get; set; } = [];
 
@@ -281,7 +284,7 @@ public sealed class Scenario
     public string SourcePath { get; private set; } = "";
 
     private static readonly string[] KnownKeys =
-        ["id", "question", "map", "seed", "duration_ticks", "fog_of_war", "viewing_player", "setup", "commands", "work", "observe", "expect"];
+        ["id", "question", "map", "seed", "duration_ticks", "fog_of_war", "viewing_player", "setup", "commands", "computer_keepers", "work", "observe", "expect"];
 
     public static Scenario Load(string path)
     {

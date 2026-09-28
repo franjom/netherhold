@@ -5,6 +5,7 @@
 using System.Globalization;
 using System.Text;
 using DK2.Assets;
+using DK2.AI;
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
@@ -14,6 +15,8 @@ using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
 
 namespace DK2.Harness;
+
+public sealed record KeeperCommandEmission(int InputTick, PlayerCommand Command);
 
 /// <summary>What a scenario run produced, and what it could not do.</summary>
 public sealed record ScenarioResult(
@@ -59,6 +62,10 @@ public sealed record ScenarioResult(
     /// should not have to guess.</para>
     /// </summary>
     public string BalanceTable { get; init; } = "GlobalVariables.kwd";
+
+    /// <summary>Commands emitted by computer keepers, before the next-tick input delay.</summary>
+    public IReadOnlyList<PlayerCommand> EmittedKeeperCommands { get; init; } = [];
+    public IReadOnlyList<KeeperCommandEmission> KeeperCommandLog { get; init; } = [];
 }
 
 /// <summary>
@@ -205,13 +212,26 @@ public sealed class ScenarioRunner
 
         Dictionary<int, InputFrame> input = BuildInput(scenario, unsupported);
         List<ScenarioWork> work = ResolveWork(scenario, world, unsupported);
+        List<KeeperAI> keepers = CreateComputerKeepers(scenario, campaignLevel, unsupported);
+        var emitted = new List<PlayerCommand>();
+        var commandLog = new List<KeeperCommandEmission>();
+        IReadOnlyList<PlayerCommand> pending = [];
 
         var hashes = new List<ulong>(scenario.DurationTicks + 1) { simulation.StateHash() };
         for (int t = 0; t < scenario.DurationTicks; t++)
         {
             InjectWork(world, work, t);
-            simulation.Tick(input.TryGetValue(t, out InputFrame frame) ? frame : InputFrame.Empty);
+            InputFrame scripted = input.TryGetValue(t, out InputFrame frame) ? frame : InputFrame.Empty;
+            simulation.Tick(pending.Count == 0 ? scripted :
+                new InputFrame([.. scripted.All, .. pending]));
             hashes.Add(simulation.StateHash());
+            var next = new List<PlayerCommand>();
+            foreach (KeeperAI keeper in keepers)
+                next.AddRange(keeper.Think(_database, world));
+            emitted.AddRange(next);
+            foreach (PlayerCommand command in next)
+                commandLog.Add(new KeeperCommandEmission(t + 1, command));
+            pending = next;
         }
 
         if (simulation.Systems.Count == 0)
@@ -233,7 +253,34 @@ public sealed class ScenarioRunner
             Picture = picture,
             AssetSummary = assets.Summarise(),
             BalanceTable = balanceTable,
+            EmittedKeeperCommands = emitted,
+            KeeperCommandLog = commandLog,
         };
+    }
+
+    private List<KeeperAI> CreateComputerKeepers(
+        Scenario scenario, string? campaignLevel, List<string> unsupported)
+    {
+        var result = new List<KeeperAI>();
+        if (scenario.ComputerKeepers.Count == 0) return result;
+        if (campaignLevel is null || _installDir is null)
+        {
+            unsupported.Add("computer_keepers needs a campaign map and the DK2 installation");
+            return result;
+        }
+
+        List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(_installDir, campaignLevel);
+        foreach (byte id in scenario.ComputerKeepers.Distinct())
+        {
+            PlayerDef? player = players?.FirstOrDefault(p => p.PlayerId == id);
+            if (player is null || !player.IsComputerKeeper)
+            {
+                unsupported.Add($"computer_keepers: player {id} has no computer PLAYERS record");
+                continue;
+            }
+            result.Add(new KeeperAI(id, player.Ai, new SimRandom(scenario.Seed ^ id)));
+        }
+        return result;
     }
 
     /// <summary>
@@ -297,19 +344,6 @@ public sealed class ScenarioRunner
             "from the binary and stopwatched by the owner, so Q1 is settled and the wall-clock " +
             "rate these totals imply is now a claim this project stands behind");
 
-        byte? heartTerrain = ManaRules.DungeonHeartTerrainId(_database);
-        if (heartTerrain is null) return;
-
-        for (int i = 0; i < world.TileCount; i++)
-        {
-            if (world.TileAtIndex(i).TerrainId != heartTerrain) continue;
-
-            unsupported.Add(
-                "a dungeon heart on this map is terrain and a mana source and nothing else. In DK2 " +
-                "losing it is defeat, and defeat is not implemented: a keeper whose heart is beaten " +
-                "down here simply stops earning the heart's 30 a second and plays on");
-            return;
-        }
     }
 
     /// <summary>
@@ -873,6 +907,15 @@ public sealed class ScenarioRunner
             Path.Combine(outputDir, "events.log"),
             result.Events.Select(e => e.ToString()));
 
+        if (result.Scenario.ComputerKeepers.Count > 0)
+            File.WriteAllLines(Path.Combine(outputDir, "keeper-commands.tsv"),
+                result.KeeperCommandLog.Select(e =>
+                {
+                    var hash = Hash64.Start();
+                    e.Command.HashInto(ref hash);
+                    return $"{e.InputTick}\t{e.Command.PlayerId}\t{e.Command.GetType().Name}\t{hash.Value:x16}";
+                }));
+
         var report = new StringBuilder();
         report.AppendLine($"# Scenario run: {result.Scenario.Id}");
         report.AppendLine();
@@ -883,6 +926,8 @@ public sealed class ScenarioRunner
         report.AppendLine($"- ticks run: {result.TicksRun}");
         report.AppendLine($"- final state hash: {result.FinalStateHash:x16}");
         report.AppendLine($"- events recorded: {result.Events.Count}");
+        if (result.Scenario.ComputerKeepers.Count > 0)
+            report.AppendLine($"- keeper commands emitted: {result.KeeperCommandLog.Count} (keeper-commands.tsv)");
         report.AppendLine();
 
         if (!string.IsNullOrWhiteSpace(result.Scenario.Question))

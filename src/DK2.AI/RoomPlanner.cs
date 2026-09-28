@@ -28,11 +28,14 @@ public static class RoomPlanner
     /// second pass (rooms researchable but not yet available, yielding an empty
     /// room-shaped dig) is not reproduced: this codebase has no research state yet.
     /// </summary>
-    public static byte? ChooseRoom(KeeperView view, KeeperAIParameters p, Func<byte, bool> isAvailable)
+    public static byte? ChooseRoom(
+        KeeperView view, KeeperAIParameters p, Func<byte, bool> isAvailable,
+        byte currentRoomToBuild = 0)
     {
         foreach (byte id in Candidates(p))
         {
             if (id == 0 || Array.IndexOf(NeverBuilt, id) >= 0) continue;
+            if (id == (currentRoomToBuild & 0x7F)) continue;
             if (!view.Database.Rooms.TryGetValue(id, out RoomDef? def)) continue;
             if (!def.IsBuildable || !isAvailable(id)) continue;
             if (view.OwnRoomOfType(id) is not null) continue;
@@ -98,15 +101,14 @@ public static class RoomPlanner
     /// <summary>
     /// A neutral room of the wanted type the keeper may dig to and claim: inside
     /// the build area, and within <c>NeutralRoomRangeFromHeart</c> of the heart or
-    /// <c>NeutralRoomRangeFromClaimedArea × 2 + 3</c> of an own room. The original's
-    /// distance metric was not pinned; Chebyshev distance is used here.
+    /// <c>NeutralRoomRangeFromClaimedArea × 2 + 3</c>-wide square whose boundary
+    /// includes an owned tile. The original scans the four boundary edges.
     /// </summary>
     public static RoomInstance? ClaimableNeutralRoom(KeeperView view, KeeperAIParameters p, byte roomId, BuildArea area)
     {
         if (view.Heart is not TilePos heart) return null;
         RoomInstance? best = null;
         int bestDist = int.MaxValue;
-        int nearOwn = (p.NeutralRoomRangeFromClaimedArea * 2) + 3;
 
         foreach (RoomInstance r in view.AllRooms)
         {
@@ -116,8 +118,7 @@ public static class RoomPlanner
 
             bool inRange = c.ChebyshevDistance(heart) <= p.NeutralRoomRangeFromHeart;
             if (!inRange)
-                foreach (RoomInstance own in view.OwnRooms)
-                    if (c.ChebyshevDistance(KeeperView.Centre(own)) <= nearOwn) { inRange = true; break; }
+                inRange = HasOwnLandOnBoundary(view, c, p.NeutralRoomRangeFromClaimedArea);
             if (!inRange) continue;
 
             int d = KeeperView.DistanceSquared(c, heart);
@@ -128,5 +129,20 @@ public static class RoomPlanner
             }
         }
         return best;
+    }
+
+    /// <summary>Four edges of the odd-sized square examined by the original's 0x004FC3B0.</summary>
+    public static bool HasOwnLandOnBoundary(KeeperView view, TilePos centre, int claimedRange)
+    {
+        int radius = claimedRange + 1;
+        for (int offset = -radius; offset <= radius; offset++)
+        {
+            if (view.IsMine(new TilePos(centre.X + offset, centre.Y - radius))
+                || view.IsMine(new TilePos(centre.X + offset, centre.Y + radius))
+                || view.IsMine(new TilePos(centre.X - radius, centre.Y + offset))
+                || view.IsMine(new TilePos(centre.X + radius, centre.Y + offset)))
+                return true;
+        }
+        return false;
     }
 }

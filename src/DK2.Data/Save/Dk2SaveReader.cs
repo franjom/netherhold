@@ -76,27 +76,17 @@ public static class Dk2SaveReader
     /// </summary>
     public const int TileRecordSize = 10;
 
-    /// <summary>Lane 0 of the tile record: terrain id, the enum MAP(100) uses.</summary>
-    private const int LaneTerrain = 0;
+    /// <summary>Lane 8 of the writer's ten-byte record: terrain id.</summary>
+    private const int LaneTerrain = 8;
 
-    /// <summary>Lane 8: the owning player id, matching MAP(100)'s player byte.</summary>
-    private const int LaneOwner = 8;
+    /// <summary>Lanes 6-7: owner in the low twelve bits, flags above it.</summary>
+    private const int LaneOwner = 6;
 
-    /// <summary>Lane 2: the room instance this tile belongs to, 0 for none.</summary>
-    private const int LaneRoom = 2;
+    /// <summary>Lanes 0-1: room instance in the low twelve bits.</summary>
+    private const int LaneRoom = 0;
 
-    /// <summary>Lanes 6-7: the tile's current health, little-endian u16.</summary>
-    private const int LaneHealth = 6;
-
-    /// <summary>
-    /// The last slot of the grid is <b>not a tile</b>. Its bytes change between
-    /// any two saves of the same dungeon, including saves where nothing on the
-    /// map changed at all, and it is the one slot whose owner byte falls outside
-    /// the level's own player set. Treated as scratch and excluded from tile
-    /// statistics; still returned, because dropping a cell would misalign every
-    /// index into the grid.
-    /// </summary>
-    public static int ScratchSlotIndex(int width, int height) => (width * height) - 1;
+    /// <summary>Lanes 4-5: the tile's current health, little-endian u16.</summary>
+    private const int LaneHealth = 4;
 
     /// <summary>Where DK2 keeps saves, relative to the install.</summary>
     public static string SaveDirectory(string installDir) =>
@@ -165,9 +155,8 @@ public static class Dk2SaveReader
     /// Two passes: score a spread sample of <see cref="SampleTiles"/> tiles at every
     /// candidate offset, then score the <see cref="FinalistOffsets"/> best against the
     /// whole grid (the sample alone can rank a near neighbour first).</summary>
-    /// <remarks>Measured over all fourteen saves in the install: the located offset
-    /// agrees 72.9–100%, one tile record either side 59.1–91.3%, one byte off 0.000%
-    /// (docs/research/sav-format.md, fog-of-war.md §11.5).</remarks>
+    /// <remarks>The terrain lane agrees with every design tile in the owner's
+    /// untouched Level 10 save (docs/research/sav-format.md).</remarks>
     /// <exception cref="InvalidDataException">The file is too small for the grid, or
     /// nothing correlates with the design map: the save is not of this level, or the
     /// stride is not what this reader believes.</exception>
@@ -200,7 +189,7 @@ public static class Dk2SaveReader
         {
             int hits = 0;
             for (int i = 0; i < tiles; i += stride)
-                if (save[offset + (i * TileRecordSize)] == design.Tiles[i].TerrainId) hits++;
+                if (save[offset + LaneTerrain + (i * TileRecordSize)] == design.Tiles[i].TerrainId) hits++;
 
             if (held == FinalistOffsets && hits <= scores[held - 1]) continue;
 
@@ -225,7 +214,7 @@ public static class Dk2SaveReader
 
             int hits = 0;
             for (int i = 0; i < tiles; i++)
-                if (save[offsets[n] + (i * TileRecordSize)] == design.Tiles[i].TerrainId) hits++;
+                if (save[offsets[n] + LaneTerrain + (i * TileRecordSize)] == design.Tiles[i].TerrainId) hits++;
 
             if (hits <= winningScore) continue;
             winningScore = hits;
@@ -242,7 +231,7 @@ public static class Dk2SaveReader
 
     /// <summary>
     /// Reads the grid at the given dimensions, which come from the level's own
-    /// design map — the save does not restate them anywhere yet found — and at
+    /// design map — the save's map header also records them — and at
     /// the offset <see cref="FindGridOffset"/> located.
     /// </summary>
     public static LevelMap ReadGrid(
@@ -261,13 +250,13 @@ public static class Dk2SaveReader
         {
             int o = gridOffset + (i * TileRecordSize);
 
-            // Flags stays zero: eight of the ten lanes are undecoded (Q181) and none
+            // Flags stays zero: several record bits remain undecoded (Q181) and none
             // beat chance against the design map's flag byte. Consequence: BridgeRules
             // reads TileState.Flags to tell a bridge over lava from one over water, so
             // a bridge in a loaded save reads as spanning water until Q181 closes.
             tiles[i] = new MapTile(
                 TerrainId: save[o + LaneTerrain],
-                PlayerId: save[o + LaneOwner],
+                PlayerId: (byte)(BinaryPrimitives.ReadUInt16LittleEndian(save.Slice(o + LaneOwner)) & 0x0FFF),
                 Flags: 0,
                 Unknown: 0);
         }
@@ -292,8 +281,8 @@ public static class Dk2SaveReader
             int o = gridOffset + (i * TileRecordSize);
             tiles[i] = new SavedTile(
                 TerrainId: save[o + LaneTerrain],
-                OwnerPlayerId: save[o + LaneOwner],
-                RoomId: save[o + LaneRoom],
+                OwnerPlayerId: (byte)(BinaryPrimitives.ReadUInt16LittleEndian(save.AsSpan(o + LaneOwner)) & 0x0FFF),
+                RoomId: (ushort)(BinaryPrimitives.ReadUInt16LittleEndian(save.AsSpan(o + LaneRoom)) & 0x0FFF),
                 Health: BinaryPrimitives.ReadUInt16LittleEndian(save.AsSpan(o + LaneHealth)),
                 Raw: new ReadOnlyMemory<byte>(save, o, TileRecordSize));
         }

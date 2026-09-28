@@ -1,0 +1,19 @@
+id: keepers-level10-asmodeus-idle-001
+question: >
+  What does the current keeper emit unaided on the same stock map and tick
+  interval as the owner's Level 10 save?
+map: campaign:level10
+seed: 12345
+duration_ticks: 2408
+viewing_player: 4
+computer_keepers: [4]
+setup:
+  placed_things: true
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 2, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
+    - { id: 4, gold: 10000, mana: 100 }
+observe:
+  - state_hash
+  - events

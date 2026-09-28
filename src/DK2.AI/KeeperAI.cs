@@ -15,7 +15,7 @@ namespace DK2.AI;
 /// issue by hand, for the host to put in the next <see cref="InputFrame"/>. Nothing
 /// in the simulation sees this type, so the world hash is untouched. Source: the
 /// original's <c>ComputerPlayer.cpp</c> (docs/KEEPER_AI.md §5, §12.1).</para>
-/// <para>Step 1 of §12.7 only. Not implemented: threat response, the attack planner,
+/// <para>The proactive foundation of §12.8. Not implemented: threat response, the attack planner,
 /// battle spells and Call to Arms, traps and doors, prisoners, retreat, training
 /// moves, make-room-for-a-researcher, messages, creature mood (§12.3, §12.4).</para>
 /// <para>Deviates: randomness is the keeper's own <see cref="SimRandom"/>, not the
@@ -42,7 +42,7 @@ public sealed class KeeperAI
 
     private readonly KeeperAIParameters _p;
     private readonly SimRandom _rng;
-    private readonly Func<byte, bool> _isRoomAvailable;
+    private readonly Func<byte, bool>? _isRoomAvailable;
     private readonly BuildArea? _area;
     private bool _directionsFixed;
 
@@ -53,7 +53,7 @@ public sealed class KeeperAI
         PlayerId = playerId;
         _p = parameters;
         _rng = rng;
-        _isRoomAvailable = isRoomAvailable ?? (_ => true);
+        _isRoomAvailable = isRoomAvailable;
         _area = buildArea;
     }
 
@@ -65,6 +65,8 @@ public sealed class KeeperAI
     {
         var commands = new List<PlayerCommand>();
         var view = new KeeperView(database, world, PlayerId);
+        if (world.Player(PlayerId).Status is PlayerStatus.Conquered or PlayerStatus.Lost)
+            return commands;
         if (view.Heart is not TilePos heart) return commands;
 
         BuildArea area = _area ?? BuildArea.WholeMap(view.Width, view.Height);
@@ -76,7 +78,7 @@ public sealed class KeeperAI
             _directionsFixed = true;
         }
 
-        int budget = Math.Max(1, (int)_p.TendancySpeed);
+        int budget = _p.TendancySpeed;
 
         // 2. The task clock, and the timeout that abandons a stuck task.
         State.TaskTimeCounter++;
@@ -119,6 +121,7 @@ public sealed class KeeperAI
 
     private void CreateImps(KeeperView view, List<PlayerCommand> commands, ref int budget)
     {
+        if (view.World.Availability(PlayerId, 5, 4) != 3) return;
         int imps = view.ImpCount;
         int perTiles = Math.Max(1, (int)_p.TilesPerImpRatio);
         if (imps >= _p.MaximumImps || imps >= view.OwnedTiles / perTiles) return;
@@ -200,17 +203,18 @@ public sealed class KeeperAI
     /// <summary>The room planner (§5.5). True when a task was started.</summary>
     private bool PlanRoom(KeeperView view, BuildArea area)
     {
-        if (State.AllRoomsBuilt && !State.NextRoomToBuildSet) return false;
-
         if (!State.NextRoomToBuildSet)
         {
-            byte? chosen = RoomPlanner.ChooseRoom(view, _p, _isRoomAvailable);
+            byte? chosen = RoomPlanner.ChooseRoom(
+                view, _p, _isRoomAvailable ?? (id => view.World.Availability(PlayerId, 1, id) == 3),
+                State.CurrentRoomToBuild);
             if (chosen is null)
             {
                 State.NextRoomToBuild = (byte)RoomTypeId.Portal;
                 State.AllRoomsBuilt = true;
                 return false;
             }
+            State.AllRoomsBuilt = false;
             State.NextRoomToBuild = chosen.Value;
             State.NextRoomToBuildSet = true;
         }
@@ -348,7 +352,8 @@ public sealed class KeeperAI
             State.BeginTask(KeeperTask.Done);
             return;
         }
-        if (build.Count > 0) commands.Add(new BuildRoomCommand(PlayerId, def.RoomId, build));
+        foreach (TilePos tile in build)
+            commands.Add(new BuildRoomCommand(PlayerId, def.RoomId, [tile]));
         if (retag.Count > 0)
         {
             commands.Add(new TagTilesCommand(PlayerId, retag, true));

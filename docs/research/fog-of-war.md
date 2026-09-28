@@ -294,7 +294,7 @@ set over a *different* region — one belonging to another keeper's exploration.
 The owner made a three-save series on **TrapTime**, a 110x80 skirmish map with
 four keepers on it.
 
-### 11.1 The fog bit is lane 1, bit 6
+### 11.1 The fog bit is record lane 9, bit 6
 
 Diffing all **80 bit positions** of the 10-byte save tile record across the three
 saves, exactly one bit has the fingerprint §10.2 predicted: quiet in the control,
@@ -314,9 +314,9 @@ arriving by a completely independent route.
 
 ### 11.2 It belongs to exactly one keeper, and there is no second one
 
-The save's owner lane gives four territories. Bit 1.6 in the final save:
+The save's owner lane gives four territories. Record bit 9.6 in the final save:
 
-| keeper | tiles owned | bit 1.6 set |
+| keeper | tiles owned | bit 9.6 set |
 |---|---:|---:|
 | **player 3** (the owner's own) | 81 | **100%** |
 | player 1 | 412 | **0%** |
@@ -324,8 +324,8 @@ The save's owner lane gives four territories. Bit 1.6 in the final save:
 | player 5 | 49 | **0%** |
 
 **All 80 bit positions were then checked for a mirror** — a bit set over another
-keeper's territory the way 1.6 is set over player 3's. There is none. The only
-other bits that discriminate between territories are lane 8's own bits 0, 1 and
+keeper's territory the way 9.6 is set over player 3's. There is none. The only
+other bits that discriminate between territories are record lane 6's bits 0, 1 and
 2, which *are* the owner id: player 3 is `0b011`, player 4 `0b100`, player 5
 `0b101`, and the table reproduces exactly that. **That the owner id falls out of
 the same scan is what makes the negative result trustworthy** — the method can
@@ -359,17 +359,17 @@ should not be described as DK2's model, because DK2 tracks one viewpoint.
 
 ### 11.5 Two corrections to the save format
 
-**The tile grid is NOT at a fixed `0x8861`.** In these saves it is at
-**`0x14880`**. `sav-format.md` recorded the offset as fixed on the strength of two
+**The tile grid is NOT at a fixed `0x8861`.** In these saves the record start is at
+**`0x14878`** at the true record start. `sav-format.md` recorded the offset as fixed on the strength of two
 saves *of the same level*: two samples of one thing are one sample. The grid is
-found reliably by correlating lane 0 against the level's design map — 99.7%
+found reliably by correlating record lane 8 against the level's design map — 99.7%
 agreement on a save taken at the start, a far sharper signal than the 73-85% the
 original series reported from mid-game saves.
 
-**Lane 1 bit 6 is discovery**, which retires part of the *"lanes 1, 3 and 9 move
+**Record lane 9 bit 6 is discovery**, correcting the earlier terrain-anchored lane numbering. The old *"lanes 1, 3 and 9 move
 across most of the map between any two saves and are still UNKNOWN"* entry. They
 churn because they were read as whole bytes; **bit by bit they are quiet**, and
-the churn is in their other bits. Lane 3's high nibble is a separate matter: it
+the churn is in their other bits. The former lane 3 high nibble is a separate matter: it
 resets to zero from many different values wherever *any* keeper is active, in
 both territories at once, so whatever it is, it is a property of the tile and not
 of a viewer. Still UNKNOWN, and no longer a fog candidate.

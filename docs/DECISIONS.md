@@ -5370,3 +5370,25 @@ The stream loader `0x0044F4C0` re-adds every room tile row by row, each to its s
 4. DK2's 96-room keeper limit is observable and worth modelling, but is deferred as a construction limit with a dedicated rejection test.
 
 **Consequences.** `SlabChainTests` pins every changed reader on a dragged room. Each test fails when that reader is returned to index order. No state shape changed; `HashVersion` and `FormatVersion` stay **123**.
+
+## ADR-0244 — The computer keeper is a delayed input source with its own random stream
+**Date:** 2026-09-27 · **Status:** accepted · Research: `docs/KEEPER_AI.md` §12.1
+
+**Context.** DK2's keeper decides and acts inside its player tick and draws from
+the world's random stream. `DK2.AI.KeeperAI` already emits `PlayerCommand`s for
+the following simulation tick using a separately seeded `SimRandom`.
+
+**Decision.** Keep the keeper outside the simulation. Its commands enter an
+`InputFrame` one tick after observation; its random stream is seeded from the
+level seed and player id. Both differences from DK2 are deliberate. A replay
+must record the emitted commands; equal world seeds alone do not imply equal
+commands when an AI is attached. A same-map original comparison reports the
+one-tick delay and seed difference.
+
+**Why.** The simulation remains independent of AI and Unity, and adding an
+AI player cannot change the simulation's random draw order. External agents
+can use the same input boundary. Command streams remain deterministic for a
+fixed seed, world sequence and keeper parameters.
+
+**Consequences.** No simulation state changes; HashVersion and snapshot version
+stay 123. `KEEPER_AI.md` §12.8 names the remaining planner approximations.

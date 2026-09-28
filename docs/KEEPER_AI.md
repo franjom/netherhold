@@ -113,9 +113,9 @@ tick never reaches the AI for them.
 | `+0x4C2` | `TilesPerImpRatio` | u8 | `0x90` (**byte**, editor writes u16) | misc+6 | tick | 1–40 (232 = garbage byte) | 50 |
 | `+0x4C3` | `ImprisonPercentage` | u8 % | `0x64` | battles+4 | `4F9B90`, `4FA000` | 0–100 | 0 |
 | `+0x4C4` | `BARetreatHealth` | u8 % | `0x65` | battles+9 | `4FF260` | 10–30 | 0 |
-| `+0x4C5` | `SpecialSearchChance` | u8 | `0x9B` | misc+4 | `4F93B0` (see quirk §6.3) | 0, 1 | 0 |
+| `+0x4C5` | `SpecialSearchChance` | u8 | `0x9B` | misc+4 | **nobody** | 0, 1 | 0 |
 | `+0x4C6` | `RoomList[15]` | 15×u8 | `0x1B` | computed (§3.2) | `4F93B0` | 8 distinct orders; default `1,2,3,4,6,7,8,…,16` | 0 |
-| `+0x4D5` | `SpecialFindChance` | u8 | `0x9C` | misc+5 | **nobody** (but see §6.3) | 0–90 | 0 |
+| `+0x4D5` | `SpecialFindChance` | u8 | `0x9C` | misc+5 | `4F93B0` (accidental read on the second pass; §6.3) | 0–90 | 0 |
 | `+0x4D6` | `Flexibility` | u8 | `0x2A` | rooms+21 | **nobody** | 0, 17, 100 | 0 |
 | `+0x4D7` | `IAMinimumCreatures` | u8 | `0x7B` | attack+0 | `4FAB10` | 0–30 | 0 |
 | `+0x4D8` | `IAThreatSuperiority` | u16 % | `0x53` u8 | attack+6 | `4FAEF0` | 0–200 | 100 |
@@ -173,16 +173,16 @@ from the tables):
 | 16 | `AngryCreaturesHappy` | `0x6C` i32 | creatures+4 | `4FA400` | 0/1 |
 | 17 | `AngryCreaturesDisposeOf` | `0x70` i32 | creatures+8 | `4FA400` | 0/1 |
 | 18 | `AngryDisposalMethod` | `0x78` u8 | creatures+12 | `4F9520` | 0/1 |
-| 19 | `UnwantedCreatureDisposeOf` | `0x74` i32 | creatures+13 | `4FA400` | 0/1 |
+| 19 | `UnwantedCreatureDisposeOf` | `0x74` i32 | creatures+13 | none found | 0/1 |
 | 20–21 | `UseSightOfEvil` | `0x80` | spells+0 | tick, `5003A0` | 0–2 |
-| 22 | `LightningInWater` | `0x7C` i32 | spells+2 | `4FA400` | 0/1 |
+| 22 | `LightningInWater` | `0x7C` i32 | spells+2 | none found | 0/1 |
 | 23–25 | `SpellPreference` | `0x82` | spells+6 | `503060` | 0–4 |
 | 26–27 | `CallToArmsUsage` | `0x83` | spells+7 | `4FAEF0`, `4FE9C0`, `4FECE0` | 0–2 |
 | 28–29 | `ImprisonedCreatureAction` | `0x9D` | misc+7 | `5006D0` | 0–2 |
 | 30 | `NeverAttack` | `0x4E` i32 | attack+27 | `4FAEF0` | 0/1 |
 
 **Nine parameters are loaded but never read** — `TendancyType`,
-`MinimumRandomTimeBeforePlacingReseachedRoom`, `SpecialFindChance`, `Flexibility`,
+`MinimumRandomTimeBeforePlacingReseachedRoom`, `SpecialSearchChance`, `Flexibility`,
 `BuildLostRoomAfterMinimumTime`, `SpecialRange`, `IAUseCreatures`, `GoldValue`,
 `ManaValue` — by both the displacement scan and the decompiled-text scan. STRONGLY
 INFERRED with one caveat: a read through a pointer that already carries part of the
@@ -426,14 +426,17 @@ tick is skipped (the counters still run).
 7. If budget: if `PlayersAttackedFlags` → **attack management** (`0x4FECE0`: place a
    Call to Arms at the front, or check for its removal); if `CallToArmsInUse` → **CTA
    removal test** (`0x4FEFC0`); then **retreat wounded** (`0x4FF260`).
-8. **Collect specials** (`0x500520`, no budget): the first Special object on own land
-   is activated (action 88). Specials are object ids 117–129 (and 8) — CONFIRMED ids
+8. **Collect specials** (`0x500520`, no budget): the last eligible Special encountered
+   in the owned-object list is activated (action 88). The loop overwrites its saved
+   tag on each match (`0x00500520`); list order in play remains to be checked.
+   Specials are object ids 117–129 (and 8) — CONFIRMED ids
    from `Objects.kwd`.
 9. `random(100) < 50` and budget and army not ready-to-attack → **training moves**
    (`0x4FF5C0`): a creature within a level-up (experience above ¾ of its next
    threshold) or at level ≥ `TrainingRoomMaxExperienceLevel` (balance variable 126,
    global `0x006F28FC`) and below `IACreatureSkillLevel` goes to the Combat Pit (16);
-   others go to the Training Room (7). Needs the room and health > ¾.
+   others go to the Training Room (7). Each needs its destination room; the
+   health > ¾ gate is on the Combat Pit branch only (`0x004FF5C0`).
 10. If budget: `random(100) < 10` → **traps and doors** (`0x5000A0`, §5.6).
 11. If budget and `Flags` bit 4: **imps**. If `FightGoingOn` is clear: when
     `imps < MaximumImps` **and** `imps < ownedTiles / TilesPerImpRatio`, and Create Imp
@@ -530,7 +533,7 @@ creature leaves).
 - `enemyThreat` = sum of level-scaled threat of enemy creatures within 10 tiles of the
   position (radius 5 for the thing variant), plus armed traps when `TrapsStartFights`;
   records `AttackingPlayerId`, sets `HaveBeenAttacked`. `allyThreat` = own and allied
-  creatures within 4 tiles.
+  creatures within 4 tiles for position messages, 5 for the thing variant.
 - Drop tile: nearest own, passable, unblocked tile within ±5.
 - `needed = BAThreatSuperiority% × enemyThreat − allyThreat`. With a drop tile:
   `needed < 0` → nothing to do; else queue **respond-to-attack(needed, tile)**. Without
@@ -539,7 +542,7 @@ creature leaves).
 - **Respond-to-attack** (one action per budget unit): positive → pick own creatures
   above half health, not fighting or in certain states, and drop them at the tile (or
   the nearest own tile found by a spiral search), subtracting each one's threat until
-  ≤ 0; negative → pick own creatures within 10 tiles of the fight and drop them beside
+  ≤ 0; negative → pick own creatures within five tiles of the fight and drop them beside
   the heart, adding their threat until ≥ 0. No candidate → the event is dropped.
   Creature threat (`0x4FBDB0`) = the descriptor's threat value at level 1, otherwise
   threat × a global per-level percentage table (`i16[level]` at `+0x105` of the table
@@ -554,8 +557,11 @@ creature leaves).
 
 - Refuse if `NeverAttack`, `CannotAttackCounter > 0`, or `CallToArmsInUse`.
 - **Readiness** (`0x4FAB10`): more than `IAMinimumCreatures` non-imps **and** all of
-  them at level ≥ `IACreatureSkillLevel`; under-levelled creatures are nudged toward
-  training when they are few.
+  them at level ≥ `IACreatureSkillLevel`. If the under-levelled count is no greater
+  than that level threshold and is less than the army size, the helper calls the
+  creature's ordinary level-up routine `0x0048B120` once for **each** under-levelled
+  creature before the final readiness test (`0x004FABC4`). This grants levels
+  directly; it does not send them to training. STRONGLY INFERRED from the binary.
 - If `IAAllRoomsPlaced`, also require `AllRoomsBuilt`. If `IAAllSpellsResearched` and
   any spell is still researchable, push a research move instead and refuse.
 - Target: with `IAOnlyAttackAttackers`, only the recorded attacker (then the flags are
@@ -580,9 +586,10 @@ creature leaves).
   researchable-but-unavailable, yielding the `0xE5` "empty room shape" placeholder.
   Still none → `NextRoomToBuild ← 3` and **`AllRoomsBuilt`** set.
 - Portal/Hero Portal: claim the nearest **neutral** one within `MaxBuildArea` if it is
-  within `NeutralRoomRangeFromHeart` of the heart, or within
-  `NeutralRoomRangeFromClaimedArea × 2 + 3` of own land → `Task 7 / NextTask 4`. Any
-  other room: the same for a **neutral room of that type** first.
+  within `NeutralRoomRangeFromHeart` of the heart, or if an owned tile lies on the
+  boundary of a square of side `NeutralRoomRangeFromClaimedArea * 2 + 3` centred
+  on it. The accepted room starts Task 7 / NextTask 4. Any other room: the same
+  for a **neutral room of that type** first (handler research section 3).
 - Cost: `roomCostPerTile × DefaultRoomSize > gold` → gold step (Task 5 via the nearest
   known deposit) instead of building.
 - Otherwise Task 1 with a direction (rooms id < 6 use `DefendDirection`, others
@@ -633,12 +640,15 @@ heart.
 Needs a Workshop (10) and `random(100) < TrapAndDoorUsage`. The bounding box of all
 own rooms is grown by `random(10) − 2` tiles, clamped to the map, and its four edges
 are walked; each valid site gets one placement per budget unit. A **valid site**
-(`0x4FFA50`) is a passable tile, not on the map border, with solid tiles on two
-opposite sides and open, untagged tiles on the other two — a corridor tile — and
-(`0x4FFC40`) **no own trap or door within 3 tiles**. Placement: `random(4) <
+(`0x4FFA50`) is interior to the map and checks the centre and opposite
+neighbours through world vtable slot `+0x208` (the navigation solid bit;
+`tunnelling.md`); adjacent dig tags are excluded. The centre must be open
+and opposite sides solid, a corridor tile. The spacing helper (`0x4FFC40`) rejects a site with an own trap or
+door at squared distance strictly below nine. Placement: `random(4) <
 TrapVsDoorPreference` → a **door**: iterate door types available (skipping a flagged
-kind); `DoorPreference` 0 = keep scanning to the best, 1 = stop at the first (worst),
-2 = 50 % stop each. Otherwise a **trap**: type 2 is the boulder — with
+kind); `DoorPreference` 0 = continue scanning unless `random(100) == 0`, 1 = stop
+at the first, 2 = stop when `random(100) ≤ 50` (the inclusive comparison matters).
+Otherwise a **trap**: type 2 is the boulder — with
 `BoulderTrapsOnLongCorridors` only where a straight run of 4 valid tiles exists in
 some direction, else at `random(4) > AggressiveVsDefensiveTrapPreference`; other traps
 split by a per-type "aggressive" byte against `AggressiveVsDefensiveTrapPreference`
@@ -652,10 +662,11 @@ is not lava, the game tick is a multiple of 40, and a route from the heart exist
 cast **Call to Arms** there; `CallToArmsCounter ← RemoveCallToArmsAfter`,
 `CallToArmsInUse`. Otherwise, with `random(4) ≥ UseKeeperSpells`: `random(4) <
 AttackingVsDefensiveSpellPreference` chooses a **supportive** spell (flag bit 3 in the
-spell descriptor) for an own creature under half health within 10 tiles, else an
-**offensive** one (flag bit 2) for an enemy within 10 tiles; among available, un-cooled
+spell descriptor) for an own creature under half health within five tiles, else an
+**offensive** one (flag bit 2) for an enemy within five tiles; among available, un-cooled
 spells the pick is weighted by cost against `4 − SpellPreference` (higher preference →
-dearer spells); 75 % chance to keep the first target found.
+dearer spells). For each eligible target, `random(100) > 75` stops the scan
+(24 %); otherwise the selected target is overwritten and the scan continues.
 
 **CTA removal** (`0x4FEFC0`): when the counter reaches 0, or fewer than
 `RemoveCallToArmsEnemyCreatures` enemies (hearts count) are within
@@ -671,7 +682,7 @@ With a Prison and prisoners: each prisoner is considered with 5 % probability; o
 belonging to a non-enemy goes to a **Lair**; an enemy goes by
 `ImprisonedCreatureAction`: 0 Torture Chamber (12), 1 nothing, 2 Combat Pit (16), 3
 Temple (13). **Retreat** (`0x4FF260`): a creature below `BARetreatHealth`% health (or
-below 50 % when flagged as in a fight) and at least `IACreatureSkillLevel` is dropped
+below 50 % when marked as a Combat Pit fighter) and at least `IACreatureSkillLevel` is dropped
 at the Lair, or the heart if none.
 
 ### 5.9 Constants worth knowing
@@ -683,7 +694,7 @@ at the Lair, or the heart if none.
 | 300 ticks | make-room step, job placement | a creature is not **picked up** again within 300 ticks of the last pick-up (skipped in the first 300 ticks of the game). This is the pick-up guard, not a slap guard |
 | 40 | battle step | CTA cast only on ticks divisible by 40 |
 | ×4 | attack planner, CTA removal | `WaitBeforeAttackingAgain` is in units of 4 ticks |
-| 10 / 12 / 5 / 4 tiles | threat radii | attack response / battle CTA / thing-variant & weak-room test / ally radius |
+| 10 / 12 / 5 / 4 tiles | threat radii | attack response / battle CTA / thing-variant, weak-room test, battle spell and withdrawal / ally radius |
 | 3 | event ring | at most three pending event tasks |
 | 8 × 16 | breaches | stored tunnels per enemy × enemies |
 | 4 | gold | deposits remembered |
@@ -937,18 +948,19 @@ tick *N* and emits `PlayerCommand`s for its player id into the `InputFrame` of t
 Why this and not an `ISimulationSystem`:
 
 - **No state-hash change.** `InputFrame.HashInto` already hashes every command, so a
-  replay with the same seeds reproduces the same game while the AI's own state stays
+  replay with the same emitted commands reproduces the same game while the AI's own state stays
   outside `GameSimulation.StateHash()`.
 - **It is what the original does.** §4: the AI acts only through the player hand and
   the action handler. Every one of its effects is a command a human could issue.
-- **It is testable without the simulation.** A harness `Scenario` could carry a keeper
+- **It is testable without the simulation.** A harness `Scenario` carries a keeper
   the same way it carries scripted input.
 
 Cost accepted: one tick of latency (the original decides and acts inside the same
 player tick). Cost noted, not accepted blindly: the original draws its random numbers
 from the **world's** stream (§5.9). Here the keeper gets its own `SimRandom` seeded
 from (level seed, player id) so that adding or removing an AI player does not perturb
-the simulation's stream. That is a deliberate deviation and wants an ADR.
+the simulation's stream. The delay and separate stream are deliberate deviations
+(ADR-0244).
 
 ### 12.2 Shape
 
@@ -976,12 +988,12 @@ methods on `KeeperAI` rather than a separate type.
 |---|---|---|
 | 40 tag / 41 untag | `TagTilesCommand` | none |
 | pick up / drop creature | `PickUpCreatureCommand`, `DropCommand` | none. There is one drop command, not one per kind, because DK2 has a single drop handler that takes only a position and the hand chooses what comes out (ADR-0075) |
-| pick up an object: a chicken, minted gold, a Special | `PickUpObjectCommand` | activating a Special (action 88) has no effect to apply |
+| pick up an object: a chicken, minted gold, a Special | `PickUpObjectCommand`, `ActivateSpecialCommand` | action 88 activates Increase Level (117); other Special effects remain unimplemented (`specials.md`) |
 | 62 slap | `SlapCreatureCommand` | none |
-| place room tile by tile | `BuildRoomCommand(tiles)` | none — one tile per budget unit or the rectangle at once is the caller's choice; see §12.8 |
+| place room tile by tile | one `BuildRoomCommand` per tile | The command lacks DK2's payment-bypass mode when gold falls below one tile's price (handler research section 6). |
 | spell 4 Create Imp | `CreateImpCommand` | none |
 | spells 1 Sight of Evil, 3 Call to Arms (+63 remove), 13 Create Gold, battle spells | — | **`CastKeeperSpellCommand(spellId, tile, target)`** |
-| place trap / door | — | **`PlaceTrapCommand`, `PlaceDoorCommand`** (Workshop mechanics land first) |
+| place trap / door | `PlaceTrapCommand`, `PlaceDoorCommand` | placement exists (ADR-0231); AI site choice remains |
 | pay a creature by minting gold on it | — | needs a treasury-withdrawal rule as well as a command |
 | claim a neutral room | digging a path to it, then `ConvertRoom` work | none (ADR-0044) |
 
@@ -1001,9 +1013,10 @@ facts (combat, anger, room build/claim), hashed, drained by whoever reads the fr
 **No such type exists.** Until it does, the keeper runs its proactive half only (dig,
 build, gold, imps, slap) and never responds to an attack, which is honest and visible.
 
-Also absent from the world, and needed by the keeper: **alliances** (the enemy/ally
-tests, §5.4), **player status** (won/lost, §7), **spell research state** per player,
-and **trap and door instances**. None is large; all are hash changes.
+Alliances, player status, and trap and door instances now exist (ADR-0159,
+ADR-0162, ADR-0231). Per-player spell availability is stored and can change through
+trigger action 6; the research progression that changes it from accrued points is
+absent (`WorldState.SetAvailability`, `library-and-research.md`).
 
 ### 12.5 Fidelity choices, decided here so they are not decided by accident
 
@@ -1035,34 +1048,37 @@ named quirk the harness can assert on.
 ### 12.6 Tests the sketch implies
 
 1. **Unit, synthetic grids** — built, in `tests/DK2.AI.Tests` (§12.8).
-2. **Harness scenario.** A Level7-shaped map with Gormagon's `KeeperAIParameters` from
-   `KwdPlayers`: within a bounded number of ticks the keeper has tagged, built rooms in
-   `RoomList` order starting with a Treasury next to its heart, and never holds more
-   than 4 imps. **Not built:** `DK2.Harness` references `DK2.AI` but no `Scenario` field
-   carries a keeper, so no scenario runs one.
-3. **Determinism.** Same seeds, same scenario → identical command stream and identical
-   world hash; a different AI seed changes the commands and not the simulation's own RNG
-   consumption. The command-stream half is built; the scenario half waits on 2.
+2. **Harness scenario.** Built: `Scenario.ComputerKeepers` loads campaign PLAYERS
+   parameters and emits commands for the next input tick. Stock Level 17 Harkan
+   digs and builds an available Prison unaided; its portal recruits through the
+   ambient portal rule. Level 10 Asmodeus has a same-map 2,408-tick command capture
+   beside the owner's save (`computer-keeper-observations.md`).
+3. **Determinism.** A repeated Level 17 scenario produces identical emitted
+   command hashes and every per-tick world hash. The different-seed claim remains
+   to be checked in the harness.
 4. **Owner predictions.** §8's ten questions become acceptance checks the first time the
    game is watched with a keeper running.
 
 ### 12.7 Order of work
 
-1. `DK2.AI`: `KeeperAIState`, `KeeperAI.Think`, the housekeeping steps (imps, slap),
-   `GoldScanner` + gold tasks via `TagTilesCommand`, `RoomPlanner` + `SiteFinder` +
-   `LineWalker` + room placement via `BuildRoomCommand`. **No simulation change.**
-   Deliverable: a keeper that digs out and builds its dungeon in the shipped order.
-   **Done** (§12.8), except the training moves of §5.1 step 9.
-2. Simulation: `IWorldView` facade over existing state. No hash change. Serialisable
-   and tick-paced from the start: goal 10 names an out-of-process agent such as an
-   LLM as a consumer (`GOAL_ALIGNMENT.md`, owner 2026-09-22), and it wants an ADR
-   for how a slow agent is paced.
-3. Simulation: §12.3's missing commands, §12.4's messages, alliances, status, spell
-   state. Hash bumps, each with an ADR.
-4. `DK2.AI`: `ThreatEvaluator`, respond-to-attack, `AttackPlanner`, `BattleStep`, Call
-   to Arms front and removal, `TrapPlacer`, prisoners and retreat.
-5. `KeeperAIPersonality` for skirmish, with the level-name remap (§3.2) left out until
-   the owner answers question 6.
+The proactive foundation already exists (§12.8). Remaining plan, agreed 2026-09-28:
+
+1. **Finish the binary audit.** Check message senders and payloads, helper branches,
+   personality initialization and existing approximations. Retain explicit confidence
+   levels; record deliberate deviations in ADRs before implementing them.
+2. **Observation, messages and defence.** Add the serialisable, tick-paced observation
+   facade (goal 10), typed player messages, threat evaluation, reinforcement and retreat.
+   Acceptance: an attack on its dungeon causes an unaided defensive response.
+3. **Dungeon management.** Add need-driven room expansion/building, training moves,
+   mood responses, prisoners, specials and research decisions. Acceptance: a verified
+   need changes its orders. Reuse §12.3–12.4's existing commands and state.
+4. **Deliberate attacks.** Add readiness, enemy selection, attack tunnels, Call to Arms,
+   battle spells and trap/door decisions as their simulation effects become usable.
+   Acceptance: the keeper prepares and launches an attack without scripted orders.
+5. **Personalities and comparison.** Load all nine profiles; test deterministic command
+   streams and compare an active original keeper on the same stock map with availability
+   and scripting accounted for. M12 requires unaided digging, expansion, building to a
+   need, recruitment, defence and attack, with original-game differences reported.
 
 ### 12.8 What exists
 
@@ -1080,19 +1096,21 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
+Room and Create Imp availability use the player's current state on every tick.
+Stock Level 10's state-4 Prison and Torture Chamber are no longer built
+(`computer-keeper-observations.md`). A caller may override the room predicate.
+
 Deviations and approximations, each a candidate ADR:
 
-- The keeper's own RNG stream (§12.1).
+- The keeper's own RNG stream and one-tick input delay (§12.1, ADR-0244).
 - "Connected" is a flood fill from the heart over passable tiles and the keeper's own
   tags; the original's connectivity test was not read in that detail.
-- Neutral-room range uses Chebyshev distance (§5.5 did not pin the metric).
-- Room placement batches up to `budget` tiles into one `BuildRoomCommand` per tick
-  instead of one command per tile.
 - Water and lava stop a corridor (the task ends) because there is no bridge command;
   the original bridges.
 - The room planner's second pass (researchable-but-unavailable rooms, the `0xE5`
   empty-shape dig) is not reproduced: there is no research state.
-- Room availability is a caller-supplied predicate defaulting to "buildable".
 - `SlapCooldownTicks` (§12.5).
 
-Not built, and not stubbed: everything §12.7 puts in steps 2–5, and step 9 of §5.1.
+The observation facade and typed player messages, reactive and battle decisions,
+personality loader, and §5.1 step 9 training moves remain unbuilt (2026-09-27).
+Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.

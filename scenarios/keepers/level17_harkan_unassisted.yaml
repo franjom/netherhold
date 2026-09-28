@@ -1,0 +1,36 @@
+id: keepers-level17-harkan-unassisted-001
+question: >
+  Does Harkan expand and build from the stock Level 17 room availability
+  without scripted player commands?
+map: campaign:level17
+seed: 12345
+duration_ticks: 1200
+viewing_player: 4
+computer_keepers: [4]
+setup:
+  placed_things: true
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 2, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
+    - { id: 4, gold: 10000, mana: 100 }
+    - { id: 5, gold: 10000, mana: 100 }
+observe:
+  - state_hash
+  - events
+expect:
+  - event: destroyed
+    detail: "player=4 Dig terrain"
+    because: >
+      The binary's room task tags a footprint and the original imp work rule digs
+      tagged rock; Level 17 gives Harkan a buildable missing Prison.
+  - event: built
+    detail: "player=4 room=Prison"
+    because: >
+      The Level 17 availability record gives Harkan Prison state 3, and the
+      binary room chooser at 0x004F93B0 selects the first available missing room.
+  - event: creature_entered
+    detail: "player=4"
+    because: >
+      The portal rule recruits from the level's creature pool after a portal is
+      owned. This is ambient recruitment, not a keeper command.

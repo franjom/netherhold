@@ -13,7 +13,7 @@ namespace DK2.AI;
 /// side. Lives outside the simulation's state hash by design (§12.1); the
 /// keeper's decisions reach the simulation only as hashed commands.
 ///
-/// <para>Only the fields step 1 of §12.7 uses are here. The attack, battle,
+/// <para>Only the fields the proactive foundation uses are here. The attack, battle,
 /// event-ring and breach state arrive with the reactive half.</para>
 /// </summary>
 public sealed class KeeperAIState

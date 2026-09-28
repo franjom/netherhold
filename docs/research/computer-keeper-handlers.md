@@ -84,8 +84,9 @@ No creature list, job, anger, capacity or need is read. The personality setter b
 2. For Portal (3) or Hero Portal (25), seek that neutral-room kind (Portal first,
    Hero Portal second). For another kind, seek a neutral room of that kind. It must
    lie in `MaxBuildArea`; the portal case also accepts it only within
-   `NeutralRoomRangeFromHeart` of the heart or within
-   `2 * NeutralRoomRangeFromClaimedArea + 3` of owned land. Accepted neutral rooms
+   `NeutralRoomRangeFromHeart` of the heart or when `0x004FC3B0` finds an owned tile on the boundary of a square
+   of side `2 * NeutralRoomRangeFromClaimedArea + 3` centred on the room.
+   It checks the four edges, not the interior. Accepted neutral rooms
    start a route (`Task=7`, `NextTask=4`).
 3. Let `price = roomDefinition(CurrentRoomToBuild & 0x7F).u16[+0x43F]`. If
    `player.Money < price * DefaultRoomSize` and the unnamed word at
@@ -395,6 +396,5 @@ the gold selector may cast keeper spell 13 (Create Gold) at one tile beside the 
 **UNKNOWN:** retail names for terrain bits `+0x17B/+0x1CB`, keeper/world words
 `+0x4650/+0x467A/+0x467C` and most state constants; which eligible
 strip wins an irregular-room expansion; and unused bytes/padding in the action record.
-Resolve names only from another DK2 dumper/assertion or their complete reader/writer
-sets; resolve strip order with instruction-level branch tracing or a rectangular-room
-experiment; resolve packet padding by opening the action-40 consumer and serializer.
+Resolve names from DK2 dumpers or complete reader/writer sets; strip order from
+branch tracing or a rectangular-room experiment; padding from the action-40 serializer.

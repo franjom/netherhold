@@ -48,6 +48,17 @@ public class KeeperAITests
     }
 
     [Fact]
+    public void SiteFinderConsumesOnlyTheRequestedDirection()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        var view = new KeeperView(Db, world, KeeperWorld.Keeper);
+        var eastOnly = new BuildArea(16, 0, 29, 29);
+
+        Assert.Null(SiteFinder.Find(view, KeeperWorld.HeartAt, 0, 9, 0, 20, eastOnly));
+        Assert.NotNull(SiteFinder.Find(view, KeeperWorld.HeartAt, 3, 9, 0, 20, eastOnly));
+    }
+
+    [Fact]
     public void OpennessGatesTheSiteOnlyWhenRoomsKeepAGap()
     {
         WorldState world = KeeperWorld.World(Db);
@@ -159,10 +170,12 @@ public class KeeperAITests
         var keeper = new KeeperAI(KeeperWorld.Keeper, KeeperWorld.Parameters(speed: 4), new SimRandom(7));
 
         var kinds = new List<string>();
+        var roomCommands = new List<BuildRoomCommand>();
         for (int tick = 0; tick < 300; tick++)
         {
             IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
             kinds.AddRange(commands.Select(c => c.GetType().Name));
+            roomCommands.AddRange(commands.OfType<BuildRoomCommand>());
             sim.Tick(new InputFrame(commands));
             KeeperWorld.DigWhatIsTagged(world, Db, KeeperWorld.Keeper);
         }
@@ -173,6 +186,7 @@ public class KeeperAITests
         Assert.Contains(rooms, r => r.Definition.TypeId == RoomTypeId.Hatchery && r.TileCount == 9);
         Assert.Contains(nameof(TagTilesCommand), kinds);
         Assert.Contains(nameof(BuildRoomCommand), kinds);
+        Assert.All(roomCommands, command => Assert.Single(command.Tiles));
         Assert.DoesNotContain(nameof(CreateImpCommand), kinds); // MaximumImps is 0 here
         Assert.True(keeper.State.AllRoomsBuilt);
     }
@@ -215,6 +229,67 @@ public class KeeperAITests
         IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
 
         Assert.Contains(commands, c => c is CreateImpCommand);
+    }
+
+    [Fact]
+    public void CampaignUnlocksAreReadFromCurrentPlayerAvailability()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
+        foreach (byte room in new byte[] { 1, 2, 4 }) world.SetAvailability(KeeperWorld.Keeper, 1, room, 4);
+        world.SetAvailability(KeeperWorld.Keeper, 5, 4, 1);
+
+        KeeperAIParameters parameters = KeeperWorld.Parameters(speed: 2, maxImps: 4)
+            with { TilesPerImpRatio = 10 };
+        var keeper = new KeeperAI(KeeperWorld.Keeper, parameters, new SimRandom(7));
+        IReadOnlyList<PlayerCommand> closed = keeper.Think(Db, world);
+        Assert.DoesNotContain(closed, c => c is TagTilesCommand or BuildRoomCommand or CreateImpCommand);
+
+        world.SetAvailability(KeeperWorld.Keeper, 1, 1, 3);
+        world.SetAvailability(KeeperWorld.Keeper, 5, 4, 3);
+        var opened = new List<PlayerCommand>();
+        for (int tick = 0; tick < 8; tick++) opened.AddRange(keeper.Think(Db, world));
+        Assert.Contains(opened, c => c is TagTilesCommand);
+        Assert.Contains(opened, c => c is CreateImpCommand);
+    }
+
+    [Fact]
+    public void RoomChoiceSkipsTheRoomThatThePreviousPlanTried()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        var view = new KeeperView(Db, world, KeeperWorld.Keeper);
+        KeeperAIParameters parameters = KeeperWorld.Parameters();
+
+        Assert.Equal((byte)RoomTypeId.Treasury,
+            RoomPlanner.ChooseRoom(view, parameters, _ => true));
+        Assert.Equal((byte)RoomTypeId.Lair,
+            RoomPlanner.ChooseRoom(view, parameters, _ => true, (byte)RoomTypeId.Treasury));
+    }
+
+    [Fact]
+    public void NeutralRoomProximityTestsOwnedLandOnTheSquareBoundary()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        var target = new TilePos(22, 15);
+        KeeperWorld.Set(world, Db, target, KeeperWorld.ClaimedPath, KeeperWorld.Keeper);
+        var view = new KeeperView(Db, world, KeeperWorld.Keeper);
+        Assert.False(RoomPlanner.HasOwnLandOnBoundary(view, target, claimedRange: 2));
+
+        KeeperWorld.Set(world, Db, new TilePos(19, 15), KeeperWorld.ClaimedPath, KeeperWorld.Keeper);
+        view = new KeeperView(Db, world, KeeperWorld.Keeper);
+        Assert.True(RoomPlanner.HasOwnLandOnBoundary(view, target, claimedRange: 2));
+    }
+
+    [Fact]
+    public void ConqueredAndLostKeepersDoNotIssueCommands()
+    {
+        foreach (byte status in new[] { PlayerStatus.Conquered, PlayerStatus.Lost })
+        {
+            WorldState world = KeeperWorld.World(Db);
+            world.Player(KeeperWorld.Keeper).Status = status;
+            var keeper = new KeeperAI(KeeperWorld.Keeper, KeeperWorld.Parameters(maxImps: 4), new SimRandom(7));
+            Assert.Empty(keeper.Think(Db, world));
+        }
     }
 
     [Fact]

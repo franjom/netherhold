@@ -11,7 +11,7 @@ The planner and handlers summarized in §3 are opened instruction-by-instruction
 
 ## 1. Per-turn entry point
 
-**CONFIRMED from the binary:** `0x00500C20` advances one computer keeper. Its
+**STRONGLY INFERRED from the binary:** `0x00500C20` advances one computer keeper. Its
 call chain is:
 
 1. The game-session update at `0x00526590` invokes the world update through
@@ -42,7 +42,7 @@ the invocation cadence is one per turn.
 
 ## 2. `Task`
 
-**CONFIRMED from DK2's own dumper and the binary:** `Task` is not a separate
+**STRONGLY INFERRED from DK2's own dumper and the binary:** `Task` is not a separate
 field. It occupies bits 22-25 of the computer keeper's dword at `+0x00`:
 
 ```text
@@ -95,14 +95,14 @@ arm does; they are not recovered source identifiers.
 
 | id | evidence-based name | confidence and evidence |
 |---:|---|---|
-| 0 | no ordinary task / choose work | **CONFIRMED behaviour.** Initialisation and completed tasks write 0. The inline arm spends one allowance unit, runs the room planner, and may start a gold search when money is below `TendancyMoney`. |
+| 0 | no ordinary task / choose work | **STRONGLY INFERRED behaviour.** Initialisation and completed tasks write 0. The inline arm spends one allowance unit, runs the room planner, and may start a gold search when money is below `TendancyMoney`. |
 | 1 | select and validate a room footprint | **STRONGLY INFERRED name.** `0x004FCE70` uses `DefaultRoomSize`, `DigRoomAtCurrent`, the direction fields and the map ownership around a candidate square. Success writes id 2; exhaustion clears the task. |
-| 2 | tag the room footprint for digging | **CONFIRMED behaviour.** `0x004FD030` walks the rectangle described by `DigRoomAt`, `DigRoomAtCurrent`, `DigDX/DigDY`, `InnerLoopXOrY` and `MaxX/MaxY`, issuing game action `0x28`, independently established as tag-for-digging. Completion writes id 3, or clears the task for the special no-room case. |
+| 2 | tag the room footprint for digging | **STRONGLY INFERRED behaviour.** `0x004FD030` walks the rectangle described by `DigRoomAt`, `DigRoomAtCurrent`, `DigDX/DigDY`, `InnerLoopXOrY` and `MaxX/MaxY`, issuing game action `0x28`, independently established as tag-for-digging. Completion writes id 3, or clears the task for the special no-room case. |
 | 3 | build the room tiles | **STRONGLY INFERRED name.** `0x004FD2B0` walks the same rectangle and submits `CurrentRoomToBuild` at each eligible tile. Its submit helper checks the room's cost against player money; Flame independently calls the callee at `0x004C5C30` `buildRoom`. Completion writes id 4. |
 | 4 | finish the room cycle | **STRONGLY INFERRED name.** The inline arm spends one allowance unit, may start the low-money gold fallback, resets `TaskTimeCounter`, and clears id 4 if nothing replaced it. It performs no tile work itself. |
-| 5 | choose a tunnel start toward gold | **CONFIRMED behaviour.** The only writer selects an entry from `GoldDeposits`, then `0x004FD660` chooses the owned room nearest the deposit — the heart when there is none — as `DigRoomAtCurrent` (`computer-keeper-handlers.md` §7) and starts id 7 with id 6 as the continuation. |
+| 5 | choose a tunnel start toward gold | **STRONGLY INFERRED behaviour.** The only writer selects an entry from `GoldDeposits`, then `0x004FD660` chooses the owned room nearest the deposit — the heart when there is none — as `DigRoomAtCurrent` (`computer-keeper-handlers.md` §7) and starts id 7 with id 6 as the continuation. |
 | 6 | expose the selected gold area | **STRONGLY INFERRED name.** `0x004FD750` expands a square around the selected deposit and issues tag-for-digging action `0x28` on eligible tiles. It is reached as id 7's continuation from the low-money path. |
-| 7 | dig a route, then resume `NextTask` | **CONFIRMED mechanism; STRONGLY INFERRED name.** `0x004FDC50` advances `DigRoomAtCurrent` toward `DigRoomAt`, fills `WallHugStart`, `WallHugEnd`, `WallHugDistance` and `WallHugHeading`, and tags obstructing tiles. On completion or refusal it copies `NextTask` into `Task`. |
+| 7 | dig a route, then resume `NextTask` | **STRONGLY INFERRED mechanism and name.** `0x004FDC50` advances `DigRoomAtCurrent` toward `DigRoomAt`, fills `WallHugStart`, `WallHugEnd`, `WallHugDistance` and `WallHugHeading`, and tags obstructing tiles. On completion or refusal it copies `NextTask` into `Task`. |
 | 8 | stop/suspended sentinel | **UNKNOWN meaning.** Its arm merely exhausts the allowance and returns. No immediate-value writer of id 8 was found in the executable; save/load or a computed write remains possible. |
 
 The shipped `Text.str` was checked for task, room, gold, dig, corridor and tunnel
@@ -125,7 +125,7 @@ They are separate schedulers sharing one flags dword.
 | `EventTask[3]` | `+0x22`, three dwords | event kind at each ring slot |
 | response payloads | `+0x5A`, three 8-byte records | signed threat plus target tile for the matching slot |
 
-**CONFIRMED:** event production uses tail index `(CurrentEventTask +
+**STRONGLY INFERRED:** event production uses tail index `(CurrentEventTask +
 NumberOfEventTasks) % 3`, increments the count, stores event id 1 and fills the
 same slot's response payload. Producers refuse a fourth entry. DK2's own dumper
 prints the payload as `RespondToAttack` when the event id is 1, so that name is
@@ -152,9 +152,9 @@ can introduce one is UNKNOWN.
 
 ## Confidence
 
-- **CONFIRMED:** the addresses, call chain, cadence, field layout, jump-table
-  contents, bounds check, listed readers/writers, and per-id mechanics marked
-  confirmed are direct binary reads. The event-ring shape, capacity, priority,
+- **STRONGLY INFERRED:** the addresses, call chain, cadence, field layout, jump-table
+  contents, bounds check, listed readers/writers, and per-id mechanics are direct
+  binary reads. The event-ring shape, capacity, priority,
   id 1, payload association and completion update are also direct binary reads;
   `RespondToAttack` is printed by DK2's own dumper.
 - **STRONGLY INFERRED:** the descriptive names marked that way in §3; the
