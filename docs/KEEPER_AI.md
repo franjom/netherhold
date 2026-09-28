@@ -1008,7 +1008,8 @@ the simulation's stream. The delay and separate stream are deliberate deviations
 | `GoldScanner` | cardinal seams, gold totals, centroid correction and historical admission cutoff | **exists**; remaining position and border limits: management research §12 |
 | `RoomPlanner` | §5.5's room choice, ideal neighbours, directions, claimable neutral rooms | **exists** |
 | `KeeperAIPersonality` | the nine skirmish rows of §3.2 as typed static data, producing a `KeeperAIParameters` plus the computed `RoomList` | **does not exist**; the values are decoded in `reverse-engineering/` |
-| `ThreatEvaluator`, `AttackPlanner`, `TrapPlacer`, `BattleStep` | §5.4, §5.5, §5.6, §5.7 as pure functions over the view | **do not exist** |
+| `ThreatEvaluator` | Pure strength, drop-site and response arithmetic (§5.4) | Built; live inputs and message integration remain (`research/computer-keeper-threat.md` section 5) |
+| `AttackPlanner`, `TrapPlacer`, `BattleStep` | §5.5, §5.6, §5.7 as pure functions over the view | **do not exist** |
 | `IWorldView` | a general agent observation interface | **not added**: `KeeperView` supplies the current keeper boundary; extend it with verified observations as §12.4 grows |
 
 The housekeeping steps of §5.1 (imps, slap, gold untag, the task machine) are private
@@ -1097,7 +1098,8 @@ The proactive foundation already exists (§12.8). Remaining plan, agreed 2026-09
    management helpers were independently reviewed. This does not close every dependency:
    spell descriptor mapping, target checks and effects remain gated by `keeper-spell-casting.md`.
 2. **Observation, messages and defence.** The captured, serialisable observation is built
-   (ADR-0244); retained combat messages are built (ADR-0245). Next: threat events,
+   (ADR-0244); retained combat messages are built (ADR-0245), as is pure threat
+   evaluation (`research/computer-keeper-threat.md` section 5). Next: live threat inputs, event integration,
    reinforcement and retreat, then the remaining message families and producers.
    Acceptance: an attack on its dungeon causes an unaided defensive response.
 3. **Dungeon management.** Add need-driven room expansion/building, training moves,

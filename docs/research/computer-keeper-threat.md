@@ -48,12 +48,21 @@ dispatches zero through its reinforcement arm.
 
 ## 2. Local strength and readiness
 
-`0x004FAC40` walks the player's creature list, excluding thing status `+0x16 == 2`.
+`0x004FAC40` walks the player's creature list, excluding map layer `+0x16 == 2`
+(off-map, not low health; `combat-pit.md` section 6).
 It applies a strict radius test, shifting each squared fixed-point axis delta
 right by 12 separately before summing. The optional trap walk uses the player's
-trap list, excludes the same thing status and trap byte `+0xF6 == 2`, then adds
+trap list, excludes the same map layer and trap byte `+0xF6 == 2`, then adds
 descriptor threat `u16 +0x8C`. Describing this as an ammunition test is not
 established by this routine.
+
+The radius square is a 32-bit multiply followed by arithmetic shift 12
+(`0x004FAC57`, `0x004FAC62`), then an unsigned distance comparison
+(`0x004FACCB..0x004FACCD`). The 4/5/10-tile message radii behave geometrically.
+A 12-tile radius overflows to a negative square and becomes `0xFFF90000`
+after shifting; it can therefore admit a creature 100 tiles away. This is a
+binary prediction, not an observed battle response. Preserve this quirk when
+reusing the helper for Call to Arms; do not replace its radius square with 64-bit math.
 
 Creature threat is descriptor `u16 +0x698` at level 1. Other levels multiply it
 by the signed percentage at `[0x006E4154] +0x105 +2*level` and divide by 100
@@ -117,3 +126,20 @@ player `+0x76 & 4`, creature flag `+0x3E6 & 0x100000`, or effective state
 current `HandRules` in `hand-of-evil.md` section 3; its missing gates must be
 accounted for before reuse. `0x004BFBD0` prepares state 75,
 retrying through idle on refusal; it is not simply a permission query.
+
+## 5. Implementation boundary
+
+`DK2.AI.ThreatEvaluator` implements the two readers' pure arithmetic: local
+strength, message-specific radii and trap inclusion, last nonzero enemy in
+player-list order, drop-site selection and signed 16-bit response payloads.
+Rechecked against `0x004F9B90`, `0x004FA000`, `0x004FAC40`, `0x004FBDB0`,
+`0x004BF390` and `0x004BF3D0` on 2026-09-28. Tests distinguish strict range,
+per-axis truncation, signed scaling, scan ties, zero-coordinate rejection,
+the room-score defect, zero residuals and narrowing overflow.
+
+This is not yet called by `KeeperAI.Think`. Inputs require explicit map-layer
+and trap-state values, player-list order and a navigation-aware tile predicate;
+the current observation does not provide all of them. Do not substitute health
+for map layer, ammunition for trap state, or terrain solidity for navigation.
+The three-slot ring, imprisonment commands, interaction gates and hand response
+remain integration work. No simulation state or snapshot format changed.
