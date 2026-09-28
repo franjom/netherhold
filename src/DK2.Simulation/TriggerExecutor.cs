@@ -797,12 +797,6 @@ public sealed class TriggerExecutor
         return count;
     }
 
-    /// <summary>Condition type 47 — <b>has this keeper been killed, and by whom</b>
-    /// (<c>0x004C7B4B</c>). Not a comparison: the arm returns 0 outright when
-    /// <c>KilledByPlayerId</c> is zero, 1 when the record names no player, and otherwise
-    /// tests equality itself. So it is answered here and never reaches
-    /// <see cref="TriggerState.Compare"/>, whose <c>Comparison</c> byte this type does not
-    /// even read.</summary>
     /// <summary>Condition type 64's measure (<c>0x005187AD</c>, trigger-dispatch-tables.md): the
     /// party's occupied member templates minus its creatures still active. Every owner counts,
     /// since DK2 walks the world list and the Good player's own; a member is inactive only when
@@ -830,6 +824,12 @@ public sealed class TriggerExecutor
         return templates - active;
     }
 
+    /// <summary>Condition type 47 — <b>has this keeper been killed, and by whom</b>
+    /// (<c>0x004C7B4B</c>). Not a comparison: the arm returns 0 outright when
+    /// <c>KilledByPlayerId</c> is zero, 1 when the record names no player, and otherwise
+    /// tests equality itself. So it is answered here and never reaches
+    /// <see cref="TriggerState.Compare"/>, whose <c>Comparison</c> byte this type does not
+    /// even read.</summary>
     private static bool KilledBy(
         IReadOnlyDictionary<string, long> parameters, WorldState world, byte playerId)
     {
