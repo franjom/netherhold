@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 4;
+    public const int FormatVersion = 5;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)

@@ -13,6 +13,41 @@ namespace DK2.AI.Tests;
 public class KeeperViewTests
 {
     [Fact]
+    public void LiveThreatUsesReverseActivationOrderAndPreservesItAcrossPackets()
+    {
+        GameDatabase basis = KeeperWorld.Database();
+        var trap = new TrapDef
+        {
+            Name = "test trap", TrapId = 3, Threat = 74, Health = 1, GoldCost = 1,
+            ManufactureRequired = 1, ShotTypeId = 0, ManaUpkeepPerSecond = 0,
+        };
+        var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
+            basis.Creatures.Values, basis.Variables, traps: [trap]);
+        WorldState world = KeeperWorld.World(db);
+        foreach (byte owner in new byte[] { 1, 2 })
+            ThingProjection.Place(world, db, [new TrapThing(new byte[16])
+            {
+                X = 15, Y = 15, PlayerId = owner, TrapId = 3, NumberOfShots = 0,
+            }]);
+        byte[] activation = [1, 3, 2];
+        var captured = new KeeperView(db, world, KeeperWorld.Keeper, activation);
+        activation[0] = 2;
+        KeeperView restored = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(captured), db);
+        Assert.Equal(new byte[] { 2, 3, 1 }, restored.PlayerOrder);
+        Assert.Equal(new KeeperThreatAssessment(148, 0, 1),
+            ThreatEvaluator.Assess(restored, KeeperWorld.HeartAt, false, true));
+        Assert.Equal(new KeeperThreatAssessment(0, 0, null),
+            ThreatEvaluator.Assess(restored, KeeperWorld.HeartAt, false, false));
+        Assert.Equal(new KeeperThreatAssessment(0, 0, null),
+            ThreatEvaluator.Assess(restored, KeeperWorld.HeartAt, true, true));
+        world.Player(KeeperWorld.Keeper).AlliedWith = 1 << 1;
+        Assert.Equal(new KeeperThreatAssessment(74, 74, 2), ThreatEvaluator.Assess(
+            new KeeperView(db, world, KeeperWorld.Keeper, [1, 3, 2]), KeeperWorld.HeartAt, false, true));
+        Assert.Equal(new KeeperThreatAssessment(148, 0, 1),
+            ThreatEvaluator.Assess(captured, KeeperWorld.HeartAt, false, true));
+    }
+
+    [Fact]
     public void TrapObservationIncludesBlueprintsAndKeepsDefinitionThreatAcrossPackets()
     {
         GameDatabase basis = KeeperWorld.Database();
@@ -33,6 +68,8 @@ public class KeeperViewTests
         byte[] packet = KeeperViewSnapshot.ToBytes(captured);
         KeeperView restored = KeeperViewSnapshot.FromBytes(packet, db);
         Assert.Equal(new KeeperTrapView(3, KeeperWorld.Keeper, 14, 16, 43210), Assert.Single(restored.Traps));
+        Assert.Equal(new KeeperThreatSource(KeeperWorld.Keeper, 14 * 4096 + 2048,
+            16 * 4096 + 2048, 43210, 0, true, 3), Assert.Single(ThreatEvaluator.Sources(restored)));
         Assert.Equal(packet, KeeperViewSnapshot.ToBytes(restored));
         ThingProjection.Place(world, db, [new TrapThing(new byte[16])
         {
@@ -105,7 +142,7 @@ public class KeeperViewTests
         Assert.Equal(packet, KeeperViewSnapshot.ToBytes(restored));
         for (byte player = 0; player <= 8; player++)
             Assert.Equal(world.AreAllied(KeeperWorld.Keeper, player), restored.AreAllied(player));
-        Assert.Equal(world.PlayerIds, restored.PlayerOrder);
+        Assert.Equal(world.PlayerIds.Where(id => id != PlayerIds.Unowned).Reverse(), restored.PlayerOrder);
         Assert.True(restored.IsUpgraded(5, 4));
         Assert.False(restored.IsUpgraded(5, 255));
 
@@ -123,7 +160,7 @@ public class KeeperViewTests
     {
         GameDatabase db = KeeperWorld.Database();
         byte[] packet = KeeperViewSnapshot.ToBytes(new KeeperView(db, KeeperWorld.World(db), KeeperWorld.Keeper));
-        packet[4] = 3;
+        packet[4] = 4;
         Assert.Throws<InvalidDataException>(() => KeeperViewSnapshot.FromBytes(packet, db));
     }
 

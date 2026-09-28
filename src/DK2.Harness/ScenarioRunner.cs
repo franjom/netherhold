@@ -279,7 +279,8 @@ public sealed class ScenarioRunner
                 unsupported.Add($"computer_keepers: player {id} has no computer PLAYERS record");
                 continue;
             }
-            result.Add(new KeeperAI(id, player.Ai, new SimRandom(scenario.Seed ^ id)));
+            result.Add(new KeeperAI(id, player.Ai, new SimRandom(scenario.Seed ^ id),
+                playerActivationOrder: players!.Select(p => p.PlayerId)));
         }
         return result;
     }

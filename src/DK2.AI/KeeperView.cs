@@ -19,14 +19,18 @@ public sealed class KeeperView
     private readonly KeeperTileView[] _tiles;
     private readonly AvailabilityState[] _availability;
 
-    public KeeperView(GameDatabase database, WorldState world, byte playerId)
+    public KeeperView(GameDatabase database, WorldState world, byte playerId,
+        IEnumerable<byte>? playerActivationOrder = null)
     {
         Database = database;
         PlayerId = playerId;
         Tick = world.CurrentTick;
         Status = world.Player(playerId).Status;
         AlliedWith = world.Player(playerId).AlliedWith;
-        PlayerOrder = Array.AsReadOnly(world.PlayerIds.ToArray());
+        // Original activation prepends to the active list. Hosts supply PLAYERS record order;
+        // without it, use this simulation world's ascending creation order.
+        PlayerOrder = Array.AsReadOnly((playerActivationOrder ?? world.PlayerIds)
+            .Where(id => id != PlayerIds.Unowned).Reverse().ToArray());
         Width = world.Width;
         Height = world.Height;
         Gold = GoldStore.Total(world, playerId);

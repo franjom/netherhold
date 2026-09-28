@@ -38,8 +38,8 @@ the researched subset and blockers are below (2026-09-28).
 **M12** has its proactive task slice in `DK2.AI` (tasks 0–7, digging, rooms,
 gold, imps and slaps), with a captured, serialisable observation. The Level 17 unaided harness and Level 10 same-map
 capture exist; the planner/message review corrections are covered by regression
-tests (ADR-0246). Observation schema 4 adds verified trap threat and navigation drop candidates
-to the existing creature, alliance and research observations. Pure threat evaluation is tested; its live integration,
+tests (ADR-0246). Observation schema 5 carries the verified player walk; live threat assessment
+projects held/carried and corpse state correctly. Combat-message consumption,
 reactive decisions and an original command trace remain open
 (2026-09-28; `KEEPER_AI.md` §12.8).
 

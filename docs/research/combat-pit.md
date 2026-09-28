@@ -217,12 +217,12 @@ orthogonal step, staying on the interior.
 
 ## 6. `+0x16` is the map layer (Q364)
 
-`0x004B4A10` unlinks a thing from the map: it zeroes its tile-list links and writes 2 to
-`+0x16`; `0x004B4F60` removes it from that layer's tile list and writes 2,
-unless it is already 2 (rechecked 2026-09-28). So
-**`+0x16 == 2` means "not on the map"** — held, carried or in limbo — which is why
-`ProcessFight`, the gate and `IsAttackable` all refuse it. `+0x12` alongside it is the
-thing's container state, 0 on the ground.
+`0x004B4A10` initializes the thing links to zero and map layer `+0x16` to 2;
+`0x004B4F60` actually removes a thing from its tile list and writes 2 unless
+already off-map (rechecked 2026-09-28). **Layer 2 means not on the map**.
+Hand and carrier callers: `computer-keeper-threat.md` section 2. The adjacent
+`+0x12` is the thing class (0 creature, 2 object), not its container state;
+`0x004BC500` branches on these classes while picking up.
 
 ## 7. Experience, levels, and leaving the pit
 

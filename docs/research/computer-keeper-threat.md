@@ -14,6 +14,18 @@ walk records the last enemy with nonzero local strength as the attacker.
 `0x004BF3D0` accepts self or a nonzero alliance byte. Neither excludes heroes or
 neutral players by id.
 
+The active player list is reverse activation order, not ascending player id.
+`0x004C1E20` allocates compact ids 1 through 7 on a free list; `0x004C2460`
+moves an activated player to the head of the active list. `0x004B8640` stores
+the manager pointer at player `+0x10FD`; threat readers start at that manager's
+head and follow player `+0x3A`. For a fresh level, `0x0056DAD0` reads the
+205-byte PLAYERS records sequentially; callbacks `0x0051EF80/0x0051F0B0`
+activate each through `0x004C2340`. Thus the last nonzero enemy encountered
+is the earliest activated such enemy. Level10Players ids are 1,2,3,4 and
+Level17Players ids 1,2,3,4,5 (**CONFIRMED from data**), giving reversed walks.
+Id 0 is unowned ground, not one of these player objects. Save-restored list
+order and dynamic deactivation/reactivation are not established by this load trace.
+
 | Rule | Position messages, `0x004F9B90` | Room message, `0x004FA000` |
 |---|---|---|
 | Location | Data1/Data2 tile coordinates | Room tag in Data2; room coordinates at `+0x27/+0x29` |
@@ -86,6 +98,13 @@ by the signed percentage at `[0x006E4154] +0x105 +2*level` and divide by 100
 (`0x004FBDB0`, also inlined in the strength and event routines). It does not
 scale threat by current health.
 
+Pickup `0x004BC500` unlinks the held thing through `0x004B4F60`; carrier
+pickup `0x0048B350` does the same for its payload. These correspond to our
+`InHand` and `CarriedByCreatureId`. A dying creature still on the map is
+counted. A corpse is a different original thing type (creature-death.md),
+so our retained corpse-shaped creature record must not enter this list.
+Authored trap placement `0x00520E50` uses tile centres: coordinate * 4096 + 2048.
+
 Readiness at `0x004FAB10` counts nonworkers by descriptor bit 0, requires strictly
 more than `IAMinimumCreatures`, and then checks level. When the below-level
 count is at most the target level and less than the total, it grants each
@@ -154,12 +173,16 @@ Rechecked against `0x004F9B90`, `0x004FA000`, `0x004FAC40`, `0x004FBDB0`,
 per-axis truncation, signed scaling, scan ties, zero-coordinate rejection,
 the room-score defect, zero residuals and narrowing overflow.
 
-This is not yet called by `KeeperAI.Think`. The observation now copies creature
-positions, hand/carrier state, alliances, simulation player order, placed trap
-coordinates/type/definition threat and navigation bytes. Trap construction and
-shot counts do not filter this capture. Original map-layer exclusion and
-player-list ordering still need reconciliation with simulation state/order;
-trap runtime off-map transitions are not modelled. Do not substitute health
-for map layer. The three-slot ring, imprisonment commands, interaction gates
-and hand response remain integration work. Simulation state and world-save
-format are unchanged; the separate observation packet is schema 4.
+`ThreatEvaluator.Sources` and the observation overload of `Assess` now project
+live captured creature and trap values. Held/carried creatures become off-map
+sources, corpse records are omitted, and dying creatures retain their threat.
+Trap construction and recharge do not filter this strength calculation. The
+simulation has no additional limbo or trap off-map lifecycle to project yet.
+
+Campaign keepers receive PLAYERS activation order from the harness; observation
+schema 5 stores its reversed active-list walk. Synthetic callers may supply
+activation order explicitly; otherwise it uses this simulation world's ascending
+creation order, reversed. This changes observation semantics, not world tick order.
+Simulation hash/save versions remain unchanged. `KeeperAI.Think` still does not
+consume these assessments: the three-slot ring, imprisonment commands,
+interaction gates and hand response remain integration work.

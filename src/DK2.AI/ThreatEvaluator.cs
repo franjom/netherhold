@@ -3,6 +3,8 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
+using DK2.Simulation;
 
 namespace DK2.AI;
 
@@ -10,6 +12,27 @@ namespace DK2.AI;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-threat.md")]
 public static class ThreatEvaluator
 {
+    /// <summary>Projects the captured states currently represented by the simulation.
+    /// Corpse records stand in for a different original thing type; held/carried creatures are off-map.</summary>
+    public static IReadOnlyList<KeeperThreatSource> Sources(KeeperView view)
+    {
+        var sources = new List<KeeperThreatSource>();
+        foreach (KeeperCreatureView creature in view.Creatures)
+        {
+            if (creature.Activity == CreatureActivity.Dead) continue;
+            int layer = creature.InHand || creature.CarriedByCreatureId >= 0 ? 2 : 0;
+            ushort basis = view.Database.CreatureById(creature.CreatureTypeId).Threat;
+            short percent = unchecked((short)view.Database.StatPercent(CreatureStatId.Threat, creature.Level));
+            sources.Add(new KeeperThreatSource(creature.OwnerPlayerId, creature.PosX, creature.PosY,
+                CreatureThreat(basis, (byte)creature.Level, percent), layer));
+        }
+        foreach (KeeperTrapView trap in view.Traps)
+            sources.Add(new KeeperThreatSource(trap.OwnerPlayerId,
+                CreatureState.CentreOf(trap.X), CreatureState.CentreOf(trap.Y),
+                trap.Threat, 0, true, trap.TrapTypeId));
+        return sources.AsReadOnly();
+    }
+
     public static int CreatureThreat(ushort baseThreat, byte level, short levelPercent) =>
         level == 1 ? baseThreat : baseThreat * levelPercent / 100;
 
@@ -59,6 +82,10 @@ public static class ThreatEvaluator
         }
         return new KeeperThreatAssessment(enemy, friendly, attacker);
     }
+
+    public static KeeperThreatAssessment Assess(KeeperView view, TilePos target,
+        bool roomMessage, bool trapsStartFights) =>
+        Assess(Sources(view), view.PlayerOrder, view.AreAllied, target, roomMessage, trapsStartFights);
 
     /// <summary>The caller supplies the audited ownership, bounds and navigation predicate.</summary>
     public static TilePos? DropSite(TilePos target, bool roomMessage, Func<TilePos, bool> eligible)

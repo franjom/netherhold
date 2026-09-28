@@ -3,7 +3,9 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.AI;
+using DK2.Core;
 using DK2.Data;
+using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.TestSupport;
 
@@ -11,6 +13,43 @@ namespace DK2.Behavior.Tests;
 
 public class KeeperObservationTests
 {
+    [InstallFact]
+    public void LiveThreatIncludesDyingCreaturesButExcludesHeldCarriedAndCorpseRecords()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        var map = GameDatabaseLoader.LoadCampaignMap(install, "level10")!;
+        var world = WorldState.FromMap(db, map, [1, 2, 3, 4]);
+        var at = new TilePos(20, 20);
+        byte type = db.Creatures.Values.Single(c => c.Name == "Goblin").CreatureId;
+        CreatureState standing = world.SpawnCreature(db, type, 4, at);
+        CreatureState dying = world.SpawnCreature(db, type, 4, at);
+        CreatureState held = world.SpawnCreature(db, type, 4, at);
+        CreatureState carried = world.SpawnCreature(db, type, 4, at);
+        CreatureState corpse = world.SpawnCreature(db, type, 4, at);
+        dying.Health = 0;
+        Assert.True(CreatureStateMachine.TrySetState(dying, CreatureDeathRules.FallingState));
+        held.InHand = true;
+        carried.CarriedByCreatureId = standing.Id;
+        CreatureStateMachine.Release(corpse);
+        Assert.Equal(CreatureActivity.Dead, corpse.Activity);
+        var captured = new KeeperView(db, world, 4);
+        KeeperView restored = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(captured), db);
+        IReadOnlyList<KeeperThreatSource> sources = ThreatEvaluator.Sources(restored);
+        Assert.Equal(4, sources.Count);
+        Assert.Equal(2, sources.Count(s => s.MapLayer == 2));
+        int expected = 2 * db.CreatureById(type).Threat;
+        Assert.True(expected > 0);
+        Assert.Equal(expected, ThreatEvaluator.LocalStrength(sources, 4,
+            standing.PosX, standing.PosY, Fp32.One, false));
+
+        standing.InHand = true;
+        Assert.Equal(sources, ThreatEvaluator.Sources(captured));
+        Assert.Equal(expected / 2, ThreatEvaluator.LocalStrength(
+            ThreatEvaluator.Sources(new KeeperView(db, world, 4)), 4,
+            standing.PosX, standing.PosY, Fp32.One, false));
+    }
+
     [InstallFact]
     public void StockCreaturesSurviveObservationSerializationAndLaterWorldMutation()
     {

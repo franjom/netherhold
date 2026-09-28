@@ -1103,7 +1103,7 @@ The proactive foundation already exists (§12.8). Remaining plan, agreed 2026-09
    spell descriptor mapping, target checks and effects remain gated by `keeper-spell-casting.md`.
 2. **Observation, messages and defence.** The captured, serialisable observation is built
    (ADR-0244); retained combat messages are built (ADR-0245), as is pure threat
-   evaluation (`research/computer-keeper-threat.md` section 5). Next: live threat inputs, event integration,
+   evaluation (`research/computer-keeper-threat.md` section 5). Live observation assessment is built; next: event integration,
    reinforcement and retreat, then the remaining message families and producers.
    Acceptance: an attack on its dungeon causes an unaided defensive response.
 3. **Dungeon management.** Add need-driven room expansion/building, training moves,
@@ -1133,8 +1133,8 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
-Observation schema 4 includes fixed-point creature positions, hand/carrier state,
-alliances, simulation player order, research upgrades, placed trap threat and
+Observation schema 5 includes fixed-point creature positions, hand/carrier state,
+alliances, reverse player activation order, research upgrades, placed trap threat and
 navigation bytes (`research/computer-keeper-threat.md` sections 1 and 2). Tests check frozen
 values, packet round trips and equal command streams;
 stock-creature coverage checks that later world mutations cannot change the capture.

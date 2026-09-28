@@ -43,17 +43,20 @@ public sealed class KeeperAI
     private readonly SimRandom _rng;
     private readonly Func<byte, bool>? _isRoomAvailable;
     private readonly BuildArea? _area;
+    private readonly byte[]? _playerActivationOrder;
     private bool _directionsFixed;
 
     public KeeperAI(
         byte playerId, KeeperAIParameters parameters, SimRandom rng,
-        Func<byte, bool>? isRoomAvailable = null, BuildArea? buildArea = null)
+        Func<byte, bool>? isRoomAvailable = null, BuildArea? buildArea = null,
+        IEnumerable<byte>? playerActivationOrder = null)
     {
         PlayerId = playerId;
         _p = parameters;
         _rng = rng;
         _isRoomAvailable = isRoomAvailable;
         _area = buildArea;
+        _playerActivationOrder = playerActivationOrder?.ToArray();
     }
 
     public byte PlayerId { get; }
@@ -61,7 +64,7 @@ public sealed class KeeperAI
 
     /// <summary>One player tick (§5.1). Returns the commands to put in the next input frame.</summary>
     public IReadOnlyList<PlayerCommand> Think(GameDatabase database, WorldState world)
-        => Think(new KeeperView(database, world, PlayerId));
+        => Think(new KeeperView(database, world, PlayerId, _playerActivationOrder));
 
     public IReadOnlyList<PlayerCommand> Think(KeeperView view)
     {
