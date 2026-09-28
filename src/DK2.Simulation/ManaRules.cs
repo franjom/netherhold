@@ -143,10 +143,8 @@ public static class ManaRules
     /// keeper's income cap; but the owner's screenshot of a full keeper reads exactly
     /// 200000 with +400 and −297 on the orb, so income beating upkeep pins them at the
     /// top rather than 297 short.</para>
-    /// <para><b>Mana floors at zero</b>, and what the original does when a keeper cannot
-    /// pay is UNKNOWN (Q57): <c>InsufficientManaImpEvaluationPeriodSeconds</c> (10) says
-    /// something happens on a ten-second clock, and guessing it would be inventing
-    /// behaviour, so a keeper here simply sits at zero.</para></summary>
+    /// <para>Mana floors at zero. The independently tested mana-pressure rules
+    /// are not connected to this payment path yet (ADR-0266).</para></summary>
     public static int ApplyOneSecond(
         GameDatabase database, ref PlayerState player, int gainPerSecond, int upkeepPerSecond = 0)
     {

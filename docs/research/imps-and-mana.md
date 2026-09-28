@@ -312,12 +312,10 @@ lookup in the same change.
 
 ### What is still open
 
-- **Q57 — what happens when a keeper cannot pay.** Ours floors mana at zero and
-  carries on. `InsufficientManaImpEvaluationPeriodSeconds` (10) says the original
-  re-evaluates imps on a ten-second clock when mana is short; the obvious guess is
-  that imps start dying, and it is a guess. Half of Q57 *is* answered: an imp costs
-  mana every second and **gold never** — no wage and no gold upkeep (owner,
-  2026-09-07; `payday.md`).
+- **Q57 — mana exhaustion.** The warning, selection and countdown rules are now
+  STRONGLY INFERRED from the binary and tested independently; see
+  `imp-mana-removal.md`. Live integration and original observation remain open.
+  Imps have no gold wage or gold upkeep (owner, 2026-09-07; `payday.md`).
 - **Q58 — possession.** `KeeperSpells` `0x00E2` says 25 a second, and
   `ManaCostInFirstPersonPerSecond` says 5, so the data disagrees with itself before
   it disagrees with the owner's report of no drain at all. The likely explanation is

@@ -53,12 +53,9 @@ remain open; the current tile cannot substitute for stored membership.
 
 ## Countdown lifetime
 
-The initializer clears `+0x4B3`. `0x004C1BC0` stamps it with the current turn
-when selecting a creature for removal; `0x00488930` clears it if its keeper
-condition recovers, otherwise removes the creature after five seconds.
-The full keeper condition and selection policy are not established here.
-It is not a generic pickup cooldown and must not be mapped to an unrelated
-existing countdown merely because both are timers.
+The mana-pressure writer, selection quirks and countdown reader are established
+in `imp-mana-removal.md`. Its independent rules are tested; the live lifecycle
+is not connected (ADR-0266). This is not a generic pickup cooldown.
 
 ## Implementation boundary
 

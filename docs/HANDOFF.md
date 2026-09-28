@@ -44,7 +44,8 @@ tested independently, including the event's whole-tick allowance rule. Combat-me
 reactive decisions and an original command trace remain open. The casualty-priority
 command and imp reader are built (ADR-0261). Represented pickup gates are captured;
 worker task-exit and prison-delivery flag writes are built (ADR-0263).
-Other eligibility lifecycles and live response dispatch remain next
+Mana-pressure rules are tested independently; live lifecycle integration remains
+open (ADR-0266). Other eligibility lifecycles and live response dispatch remain next
 (2026-09-28; `KEEPER_AI.md` §12.8).
 
 ### What exists (present tense; the ADR is the specification)
@@ -361,7 +362,7 @@ that gate work today, by how they are answered:
 | Q226, Q227 | selectors and fields read without a revealed role, exposed as `Unknown_*`; action type 24 alone has 827 records |
 | Q225 | trigger types the shipped corpus never uses but the executable reads; needs a map made in the original editor |
 
-**Parked UNKNOWNs:** Q57 (a keeper who cannot pay imps; ours floors mana at zero), Q58 (Possession upkeep), Q70 (the last 72 bytes of a CREATURES record), Q75 (a starting gold stockpile), Q76, Q78, Q83 (`GameTicks` = 340), Q87 (`CreaturePool`: limit or quota), Q102, Q164, Q169, Q194, Q208 (the Imp's `ExpPerSecond` is 40× its training rate).
+**Parked UNKNOWNs:** Q57 (removal integration/runtime check; `imp-mana-removal.md`), Q58 (Possession upkeep), Q70 (the last 72 bytes of a CREATURES record), Q75 (a starting gold stockpile), Q76, Q78, Q83 (`GameTicks` = 340), Q87 (`CreaturePool`: limit or quota), Q102, Q164, Q169, Q194, Q208 (the Imp's `ExpPerSecond` is 40× its training rate).
 
 ---
 

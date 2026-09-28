@@ -5682,3 +5682,22 @@ implementations while retaining the ordinary arrival clock's own caller.
 differences. Room order is an explicit approximation for multiple Portals.
 No new persistent state; hash/snapshot versions stay unchanged. The Level 2
 Library test does not justify an attraction-rule change.
+
+## ADR-0266 — Isolate verified mana-pressure rules until their lifecycles exist
+**Date:** 2026-09-28 · **Status:** accepted
+
+**Context.** The pickup predicate reads a mana-removal stamp. Its warning clocks,
+candidate policy and countdown are now read; evidence: `research/imp-mana-removal.md`.
+The selector also reads an original owned-list order and stored idle field that
+the current world does not preserve. Complete removal side effects remain unread.
+
+**Decision.** Build pure `ManaPressureRules` with explicit original-order inputs,
+stored idle flags and caller-supplied clocks. Test the verified comparisons and
+quirks independently. Do not derive the idle flag from `CreatureActivity` or
+connect a partially researched removal operation to the default systems.
+
+**Consequences.** This is a tested dependency, not live mana-pressure behaviour.
+The new state value is an input/output of the pure rules, not world state; no
+snapshot or hash-version change. Live integration must persist/hash the clocks,
+reproduce the field writers and order, and connect removal and messages. The
+remaining original experiment is Q57. This does not complete M12 defence.

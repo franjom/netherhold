@@ -27,6 +27,20 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class ImpsOnRealDataTests
 {
+    [InstallFact]
+    public void ManaPressureUsesTheShippedWarningIntervalAndImpUpkeep()
+    {
+        GameDatabase db = RealDatabase();
+        Assert.Equal(10, db[VariableTypeId.InsufficientManaImpEvaluationPeriodSeconds]);
+        Assert.Equal(100, db[VariableTypeId.LowManaWarningThreshold]);
+        Assert.Equal(7, db.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaUpkeepPerSecond);
+        var result = ManaPressureRules.Advance(default, 4, 0, -7, 5,
+            (uint)db[VariableTypeId.MinimumImpThreshold],
+            (ushort)db[VariableTypeId.LowManaWarningThreshold],
+            (byte)db[VariableTypeId.InsufficientManaImpEvaluationPeriodSeconds], 4);
+        Assert.Equal(44u, result.State.WarningDeadline);
+    }
+
     private static GameDatabase RealDatabase() =>
         GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
