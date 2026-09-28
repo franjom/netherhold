@@ -102,10 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 126: the research tree — a keeper's target, each availability row's
-        // Upgraded flag, and a book's research kind and type.
+        // HashVersion 129: per-player casualty priority.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xDBFD17A3B1351515UL, sim.StateHash());
+        Assert.Equal(0x1E64CAC720660CBCUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

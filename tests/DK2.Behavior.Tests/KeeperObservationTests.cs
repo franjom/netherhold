@@ -63,6 +63,7 @@ public class KeeperObservationTests
         creature.PosX = 12345;
         creature.PosY = 67890;
         creature.CarriedByCreatureId = 321;
+        creature.RescuePriorityMask = 0x8045;
         var original = new KeeperView(db, world, 4);
         var restored = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(original), db);
 
@@ -72,11 +73,13 @@ public class KeeperObservationTests
         Assert.Equal(12345, captured.PosX);
         Assert.Equal(67890, captured.PosY);
         Assert.Equal(321, captured.CarriedByCreatureId);
+        Assert.Equal((ushort)0x8045, captured.RescuePriorityMask);
         Assert.False(captured.InHand);
         creature.PosX++;
         creature.PosY++;
         creature.InHand = true;
         creature.CarriedByCreatureId = -1;
+        creature.RescuePriorityMask = 0;
         creature.Health = 0;
         creature.LastSlapTick = 1234;
         Assert.Equal(captured, restored.Creatures.Single(c => c.Id == creature.Id));
@@ -86,6 +89,7 @@ public class KeeperObservationTests
             .Creatures.Single(c => c.Id == creature.Id);
         Assert.True(changed.InHand);
         Assert.Equal(-1, changed.CarriedByCreatureId);
+        Assert.Equal((ushort)0, changed.RescuePriorityMask);
         Assert.Equal(12346, changed.PosX);
         Assert.Equal(67891, changed.PosY);
         Assert.NotEqual(captured, changed);

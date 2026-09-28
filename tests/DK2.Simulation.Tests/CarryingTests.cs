@@ -68,6 +68,35 @@ public class CarryingTests
 
     // ---- the rescue -------------------------------------------------------
 
+    [Theory]
+    [InlineData(0, false, false)]
+    [InlineData(1, false, false)]
+    [InlineData(4, true, false)]
+    [InlineData(4, false, true)]
+    public void OurMarkPromotesAForeignCasualtyOnlyWithinTheSelectedTile(
+        ushort mask, bool foreignWins, bool foreignFartherAway)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Lair, new TilePos(1, 1));
+        for (int y = 4; y <= 6; y++)
+            for (int x = 4; x <= 6; x++)
+                Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+        CreatureState foreign = world.SpawnCreature(db, GoblinId, Rival, new TilePos(3, 3));
+        foreign.RescuePriorityMask = mask;
+        if (foreignFartherAway) foreign.PosX = CreatureState.CentreOf(4);
+        Down(foreign);
+        CreatureState own = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, own));
+        own.PosX = CreatureState.CentreOf(3);
+        own.PosY = CreatureState.CentreOf(3);
+        Down(own);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
+        var sim = new GameSimulation(db, world, 42, [new ImpTaskSystem()]);
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(foreignWins ? foreign.Id : own.Id, imp.TargetBodyId);
+    }
+
     [Fact]
     public void AnImpCarriesACollapsedCreatureBackToItsOwnBed()
     {

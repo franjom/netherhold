@@ -182,6 +182,26 @@ current `HandRules` in `hand-of-evil.md` section 3; its missing gates must be
 accounted for before reuse. `0x004BFBD0` prepares state 75,
 retrying through idle on refusal; it is not simply a permission query.
 
+### 4.1 Casualty-priority lifetime and reader
+
+**STRONGLY INFERRED**, read-only PyGhidra recheck, 2026-09-28:
+`0x004872A0` initializes the creature's word at `+0x3F7` to zero.
+The writers `0x004F9B90` and `0x004FA000` set or clear the bit indexed
+by compact player id minus one after their imprisonment-percentage roll.
+`0x004F2800` clears only the converting keeper's bit after torture conversion.
+
+`0x0046D810` traverses the same tile's thing list three times: marked foreign
+dying creatures, own dying creatures, then other foreign dying creatures.
+The tile must belong to the worker. Candidate reservation, room, capacity and
+path checks still apply. This is priority within one tile, not a global
+ordering of casualties by mark. Instruction sites `0x00513E22`/`0x00513E3E`
+also write this word; their trigger integration is not implemented here.
+
+The simulation command adapter and existing per-tile body chooser implement
+the mask and these three ranks (ADR-0261). Existing route selection, stable
+spawn-order ties and room-capacity approximations remain; this does not verify
+the complete original rescue selector. No new original-game capture covers it.
+
 ## 5. Implementation boundary
 
 `DK2.AI.ThreatEvaluator` implements the two readers' pure arithmetic: local
@@ -199,12 +219,12 @@ Trap construction and recharge do not filter this strength calculation. The
 simulation has no additional limbo or trap off-map lifecycle to project yet.
 
 Campaign keepers receive PLAYERS activation order from the harness; observation
-schema 5 stores its reversed active-list walk. Synthetic callers may supply
+schema 6 stores its reversed active-list walk and casualty-priority masks. Synthetic callers may supply
 activation order explicitly; otherwise it uses this simulation world's ascending
 creation order, reversed. This changes observation semantics, not world tick order.
-Simulation hash/save versions remain unchanged. `KeeperResponseQueue` implements
+Simulation hash/save version 129 adds casualty-priority masks. `KeeperResponseQueue` implements
 reservation, cancellation, FIFO retirement, signed residual accounting and the
 event's allowance contract. Its caller supplies creature selection and interaction
 outcomes; it cannot itself move creatures. `KeeperAI.Think` still does not consume
-these assessments. Integration waits on imprisonment commands, captured eligibility
+these assessments. The priority command is built; integration waits on captured eligibility
 and hand responses; acknowledging a message before those effects would lose work.

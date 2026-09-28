@@ -544,6 +544,9 @@ public sealed class CreatureState
     /// it (<see cref="PrisonRules.Release"/>).</para></summary>
     public int PrisonOwnerPlayerId = PrisonRules.NoPrison;
 
+    /// <summary>Casualty priority per compact player id minus one; initially zero (creature +0x3F7).</summary>
+    public ushort RescuePriorityMask;
+
     /// <summary>The id of the object this worker is carrying, or -1 for none — DK2's
     /// <c>CarryingId</c> at creature offset <c>0x3c3</c>, a separate slot from
     /// <see cref="CarriedCreatureId"/> (DK2's <c>DraggingId</c>, two bytes
@@ -957,6 +960,7 @@ public sealed class CreatureState
         hash.Add(CarriedByCreatureId);
         hash.Add(TargetBodyId);
         hash.Add(PrisonOwnerPlayerId);
+        hash.Add(RescuePriorityMask);
         hash.Add(CarriedObjectId);
         hash.Add(TargetObjectId);
         hash.Add(Dk2StateId);

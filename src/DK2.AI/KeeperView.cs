@@ -44,7 +44,7 @@ public sealed class KeeperView
         Creatures = world.Creatures.Select(c => new KeeperCreatureView(
             c.Id, c.CreatureTypeId, c.OwnerPlayerId, c.Activity, c.Health, c.Level,
             c.LastSlapTick, HandRules.CanSlap(database, c, playerId),
-            c.PosX, c.PosY, c.InHand, c.CarriedByCreatureId)).ToList().AsReadOnly();
+            c.PosX, c.PosY, c.InHand, c.CarriedByCreatureId, c.RescuePriorityMask)).ToList().AsReadOnly();
         Traps = world.Traps.Select(t => new KeeperTrapView(t.TrapId, t.PlayerId, t.X, t.Y,
             database.Traps[t.TrapId].Threat)).ToList().AsReadOnly();
 

@@ -10,4 +10,4 @@ namespace DK2.AI;
 public readonly record struct KeeperCreatureView(
     int Id, byte CreatureTypeId, byte OwnerPlayerId, CreatureActivity Activity,
     int Health, int Level, long LastSlapTick, bool CanSlap,
-    int PosX, int PosY, bool InHand, int CarriedByCreatureId);
+    int PosX, int PosY, bool InHand, int CarriedByCreatureId, ushort RescuePriorityMask = 0);

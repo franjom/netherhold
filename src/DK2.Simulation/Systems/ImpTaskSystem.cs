@@ -1533,8 +1533,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
     /// <summary>
     /// The body on <paramref name="at"/> this worker could carry somewhere, or
-    /// null. Ties between two bodies on one tile go to the lower creature id,
-    /// which is spawn order and is stable.
+    /// null. Casualties on this tile prefer marked foreigners, own creatures,
+    /// then other foreigners; equal-rank ties retain the simulation's spawn order.
     /// </summary>
     private static CreatureState? BodyToCarryAt(
         SimulationContext context, CreatureState worker, CreatureDef definition,
@@ -1557,7 +1557,10 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 : CarryRules.TryDestinationFor(world, context.Database, worker, body);
 
             if (destination < 0) continue;
-            if (best is null || body.Id < best.Id) best = body;
+            int rank = corpses ? 0 : RescuePriorityRules.Rank(body, worker.OwnerPlayerId);
+            int bestRank = best is null ? int.MaxValue
+                : corpses ? 0 : RescuePriorityRules.Rank(best, worker.OwnerPlayerId);
+            if (rank < bestRank || (rank == bestRank && body.Id < best!.Id)) best = body;
         }
 
         return best;

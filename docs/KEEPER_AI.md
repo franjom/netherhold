@@ -1102,7 +1102,7 @@ The proactive foundation already exists (§12.8). Remaining plan, agreed 2026-09
 2. **Observation, messages and defence.** The captured, serialisable observation is built
    (ADR-0244); retained combat messages are built (ADR-0245), as is pure threat
    evaluation and the response queue (`research/computer-keeper-threat.md` section 5).
-   Live observation assessment is built; next: imprisonment/hand dependencies and event integration,
+   Live observation assessment and casualty-priority commands are built; next: hand eligibility and event integration,
    reinforcement and retreat, then the remaining message families and producers.
    Acceptance: an attack on its dungeon causes an unaided defensive response.
 3. **Dungeon management.** Add need-driven room expansion/building, training moves,
@@ -1132,7 +1132,7 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
-Observation schema 5 includes fixed-point creature positions, hand/carrier state,
+Observation schema 6 includes casualty-priority masks, fixed-point creature positions, hand/carrier state,
 alliances, reverse player activation order, research upgrades, placed trap threat and
 navigation bytes (`research/computer-keeper-threat.md` sections 1 and 2). Tests check frozen
 values, packet round trips and equal command streams;
@@ -1159,6 +1159,8 @@ Deviations and approximations, each a candidate ADR:
 - `SlapCooldownTicks` (§12.5).
 
 The response queue is tested independently but not yet dispatched by `Think`.
+The casualty-priority command and imp reader are built (ADR-0261); captured hand
+eligibility and response dispatch remain next.
 Combat messages reach the observation; reactive and battle decisions, the remaining
 message families, personality loader and §5.1 step 9 training moves remain unbuilt.
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.

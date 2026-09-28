@@ -15,6 +15,7 @@ public static class SimulationSystems
         // Hand first: one picked up this tick takes no step, and one dropped onto
         // marked work starts on it at once (ADR-0062).
         new HandSystem(),
+        new RescuePrioritySystem(), // command-driven casualty marks before worker selection (ADR-0261)
         // A picked Special changes levels before this tick's movement and combat.
         new SpecialSystem(),
 

@@ -145,15 +145,18 @@ public class TortureTests
         CreatureState captive = Captive(db, world);
         Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
         captive.Health = 1500;
+        captive.RescuePriorityMask = 0x8044;
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
         sim.Run(404);
         Assert.Equal(Rival, captive.OwnerPlayerId);
+        Assert.Equal((ushort)0x8044, captive.RescuePriorityMask);
         sim.Run(1);
 
         Assert.Equal(Keeper, captive.OwnerPlayerId);
         Assert.Equal(1500 - 810, captive.Health);
+        Assert.Equal((ushort)0x8040, captive.RescuePriorityMask);
         Assert.Equal(0, captive.TorturedDuration);
         Assert.False(PrisonRules.IsImprisoned(captive));
         Assert.False(TortureRules.IsBeingTortured(captive));

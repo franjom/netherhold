@@ -5570,3 +5570,21 @@ one-shot mana accounting. Version 127 is reserved to the doors-and-traps
 branch; merge order may require renumbering. Q470/Q471 retain the observed
 getting-up and concurrent-damage discrepancies. The binary refuses damage
 to an already-dying target; no listed cast provides contrary evidence.
+
+## ADR-0261 — command-driven casualty priority
+
+**Decision.** Represent the original creature's per-player casualty-priority
+word in simulation state. `SetRescuePriorityCommand` changes one player's bit
+without capturing the creature. Apply commands before imp job selection;
+observe the mask through the detached keeper view. Successful torture conversion
+clears the new owner's bit. Evidence: `research/computer-keeper-threat.md` §4.1.
+
+**Reason.** The original keeper writes the creature directly. Our AI must emit
+commands instead; the existing next-tick boundary is ADR-0244. This command is
+an adapter, not a discovered packet action. Missing targets/players and compact
+ids outside 1–7 are ignored as adapter validation.
+
+**Consequences.** Hash and snapshot version 129; observation schema 6. Marks
+rank candidates within the existing tile chooser, retaining its documented
+route, room and tie approximations. Original trigger writes remain unconnected.
+The response queue still needs captured hand eligibility and live dispatch.

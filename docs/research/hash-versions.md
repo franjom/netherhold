@@ -5,12 +5,9 @@
 equal to it. `DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines` pins
 one literal hash for a 500-tick run of `TestWorld.Simulation(seed: 0xDEADBEEF)`.
 
-**The rule.** A deliberate change to simulation state, or to the hash itself,
-bumps `HashVersion`, bumps `FormatVersion` to match, and updates the pinned
-literal — all in the same commit. Any other way of breaking the pin means
-determinism is broken and the change must not ship. See
-`docs/architecture/simulation-loop.md` for what the pin is for and why the hash
-is FNV-1a rather than `GetHashCode`.
+**The rule.** Change simulation state or hashing only with matching hash/save
+version bumps and a new pin in the same commit. Unexplained pin failures block
+shipping. Rationale: `docs/architecture/simulation-loop.md`.
 
 **Q206:** before version 56, the pinned world had no creatures: creature-field
 changes moved its hash only through the version bump. It now holds two;
@@ -23,6 +20,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 This file records version history; decisions and evidence live in the cited ADRs.
 
 ## Versions
+
+**129** — `0x1E64CAC720660CBC`. Per-player casualty-priority mask (ADR-0261).
 
 **128** — `0xDBFD17A3B1351515`. Keeper-spell last-cast/last-checked clocks and
 one-shot mana expenditure (ADR-0260). 127 was reserved for the doors/traps
