@@ -152,8 +152,33 @@ public sealed class ImpSupplySystem : ISimulationSystem
         CreatureDef? imp = context.Database.CreatureByName("Imp");
         if (imp is null) return null;
 
-        return world.SpawnCreature(
+        CreatureState made = world.SpawnCreature(
             context.Database, imp.CreatureId, playerId,
             new TilePos(heart % world.Width, heart / world.Width));
+
+        // The shot's second datum is the level: 1 normally, 4 once research has upgraded
+        // Create Imp (bonus shot 60, data (1, 4)). Free imps take the same cast and the same
+        // branch (0x004BBD30), so they arrive upgraded too (research-tree.md §5).
+        int level = ImpLevel(context, playerId);
+        if (level != made.Level)
+        {
+            made.Level = level;
+            made.Health = CreatureLevelRules.MaxHealth(context.Database, imp, level);
+        }
+
+        return made;
+    }
+
+    /// <summary>The level a Create Imp cast makes for <paramref name="playerId"/>: the second
+    /// datum of the spell's shot, or of its bonus shot when the keeper's row is upgraded. Level
+    /// 1 for a database without the spell.</summary>
+    public static int ImpLevel(SimulationContext context, byte playerId)
+    {
+        if (context.Database.KeeperSpell(KeeperSpellName.CreateImp) is not { } spell)
+            return CreatureLevelRules.FirstLevel;
+
+        bool upgraded = context.World.IsUpgraded(
+            playerId, ResearchTreeRules.AvailabilityKindOf(ResearchTreeRules.KindSpell), spell.KeeperSpellId);
+        return CreatureLevelRules.Clamp(spell.Shot(upgraded).Data2);
     }
 }

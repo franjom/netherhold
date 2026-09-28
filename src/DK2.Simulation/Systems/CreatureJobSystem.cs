@@ -664,6 +664,10 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         ref PlayerState keeper = ref world.Player(creature.OwnerPlayerId);
         keeper.ResearchPoints += amount + bonus;
 
+        // The adder goes on to the target in the same call (0x004C2DC0): the credit is
+        // always banked first, and only then may it pay for something.
+        ResearchTreeRules.Advance(context, creature.OwnerPlayerId);
+
         if (!second) return;
 
         context.Emit(SystemName, "researched",

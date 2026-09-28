@@ -228,6 +228,15 @@ public sealed class GameDatabase
     public KeeperSpellDef? KeeperSpell(string name) =>
         KeeperSpells.TryGetValue(name, out KeeperSpellDef? s) ? s : null;
 
+    /// <summary>The keeper spell with this id (<see cref="KeeperSpellDef.KeeperSpellId"/>), or
+    /// null — the type id availability rows and research entries use.</summary>
+    public KeeperSpellDef? KeeperSpellById(int id)
+    {
+        foreach (KeeperSpellDef spell in KeeperSpells.Values)
+            if (spell.KeeperSpellId == id) return spell;
+        return null;
+    }
+
     /// <summary>The named keeper spell, or a throw naming what is missing. Deliberately loud
     /// (docs/HANDOFF.md): a rule that starts reading a new piece of the database breaks every
     /// synthetic database that does not supply it, and it should break at the seam with a name in

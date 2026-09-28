@@ -102,9 +102,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 124: retained player messages and their next id (ADR-0245).
+        // HashVersion 126: the research tree — a keeper's target, each availability row's
+        // Upgraded flag, and a book's research kind and type.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x5D8E842FA7697068UL, sim.StateHash());
+        Assert.Equal(0x1C559815D4AB992BUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

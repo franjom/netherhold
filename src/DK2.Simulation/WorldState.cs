@@ -263,18 +263,19 @@ public struct PlayerState
     public int PossessedCreatureId;
 
     /// <summary>
-    /// Research points banked by this keeper, DK2's <c>player+0x20F</c>. Only ever
-    /// added to: the original keeps a <i>current target</i> beside it at
-    /// <c>player+0x213</c> and completes the target when the points reach its cost,
-    /// but this project has the accrual and not the tree
-    /// (<see cref="ResearchRules"/>), so points bank indefinitely. Faithful for the
-    /// case that matters, since the original credits them whether or not a target
-    /// is selected — the field is written before the target is looked at.
-    /// <para>Not implemented: spending. The original's adder has a subtract path
-    /// (a negative credit is clamp-subtracted rather than allowed below zero) but
-    /// nothing has been found that passes it a negative amount, so what that path
-    /// is for is UNKNOWN (Q218).</para></summary>
+    /// Research points banked toward <see cref="ResearchTarget"/>, DK2's
+    /// <c>player+0x20F</c>. Credited whether or not a target is selected, because the
+    /// original writes the field before it looks at the target, and reset to zero when
+    /// a target is delivered (<see cref="ResearchTreeRules.Advance"/>).
+    /// <para>Not implemented: the adder's subtract path. A negative credit is
+    /// clamp-subtracted rather than allowed below zero, but nothing has been found that
+    /// passes one, so what that path is for is UNKNOWN (Q218).</para></summary>
     public int ResearchPoints;
+
+    /// <summary>What this keeper is researching, DK2's <c>player+0x213</c>: a
+    /// <b>1-based</b> index into <see cref="Data.Model.GlobalVariables.Research"/>, and 0
+    /// for nothing (research-tree.md).</summary>
+    public int ResearchTarget;
 
     /// <summary>
     /// The earliest tick at which this keeper may be handed a free imp.
@@ -388,6 +389,7 @@ public struct PlayerState
         hash.Add(SlapCount);
         hash.Add(PossessedCreatureId);
         hash.Add(ResearchPoints);
+        hash.Add(ResearchTarget);
         hash.Add(NextFreeImpTick);
         hash.Add(NextPaydayTick);
         hash.Add(Status);
@@ -416,13 +418,17 @@ public struct PlayerState
 }
 
 /// <summary>One mutable room, creature, door, trap or spell availability row.</summary>
-public readonly record struct AvailabilityState(ushort Kind, int TypeId, int Value)
+/// <param name="Upgraded">DK2's per-entry <c>Upgraded</c> dword: <c>@0xD</c> of a 17-byte
+/// spell entry, <c>@5</c> of a room, door or trap entry. Only research sets it, and only
+/// for spells (research-tree.md §2); a spell cast reads it to fire the bonus shot.</param>
+public readonly record struct AvailabilityState(ushort Kind, int TypeId, int Value, bool Upgraded = false)
 {
     internal void HashInto(ref Hash64 hash)
     {
         hash.Add(Kind);
         hash.Add(TypeId);
         hash.Add(Value);
+        hash.Add(Upgraded ? (byte)1 : (byte)0);
     }
 }
 
@@ -830,6 +836,30 @@ public sealed class WorldState
             AvailabilityState entry = player.Availabilities[i];
             if (entry.Kind != kind || entry.TypeId != typeId) continue;
             player.Availabilities[i] = entry with { Value = value };
+            return;
+        }
+    }
+
+    /// <summary>A row's <see cref="AvailabilityState.Upgraded"/>, or false when no row
+    /// exists — DK2's <c>0x004BB0D0</c> returns 0 for an absent entry.</summary>
+    public bool IsUpgraded(byte playerId, ushort kind, int typeId)
+    {
+        foreach (AvailabilityState entry in Player(playerId).Availabilities)
+            if (entry.Kind == kind && entry.TypeId == typeId)
+                return entry.Upgraded;
+        return false;
+    }
+
+    /// <summary>Sets an existing row's <see cref="AvailabilityState.Upgraded"/>; a missing
+    /// row is a no-op, as DK2's writer <c>0x004BB070</c> is.</summary>
+    public void SetUpgraded(byte playerId, ushort kind, int typeId, bool upgraded)
+    {
+        ref PlayerState player = ref Player(playerId);
+        for (int i = 0; i < player.Availabilities.Count; i++)
+        {
+            AvailabilityState entry = player.Availabilities[i];
+            if (entry.Kind != kind || entry.TypeId != typeId) continue;
+            player.Availabilities[i] = entry with { Upgraded = upgraded };
             return;
         }
     }

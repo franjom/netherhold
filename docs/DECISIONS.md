@@ -5457,3 +5457,33 @@ turn; other fight-body scheduling stays as already implemented.
 **Consequences.** HashVersion and snapshot FormatVersion become 125 together.
 This fixes message dispatch, not the still-incomplete general state-hook
 scheduler. ADR-0245's delayed expiry and ADR-0244's input delay remain in force.
+
+## ADR-0247 — Research buys books, and books are the availability
+**Date:** 2026-09-28 · **Status:** accepted · Research: `research-tree.md`
+
+**Context.** The owner reported from play that a keeper spell must be researched
+before it can be cast, that research then upgrades spells, and that an upgraded
+Create Imp makes level-4 imps. Research points banked and bought nothing. The
+binary shows a fixed list (Variables id 17), a chooser, a cost check and a Library
+that stores the result as a book.
+
+**Decision.** Load the id-17 list into `GlobalVariables.Research` and the spell
+record's id, shot and bonus shot into `KeeperSpellDef`. `PlayerState.ResearchTarget`
+is DK2's 1-based `player+0x213`. `AvailabilityState.Upgraded` is the per-entry
+`Upgraded` dword. The book is a new union member on `ObjectState`
+(`ResearchKind`, `ResearchTypeId`). `ResearchTreeRules` chooses, pays, picks a
+random Library, finds a shelf with the two RNG draws the original makes, and
+either upgrades or shelves a book, which makes the item AVAILABLE.
+`ResearchSystem` chooses a target every turn a keeper has none, as the player
+update does. Create Imp takes its level from the chosen shot's second datum, and
+free imps share it.
+
+`CreateImpCommand` stays ungated by availability. The original's cast check does
+not test it; the interface and the computer keeper do.
+
+**Consequences.** Hash/snapshot versions become 126. With the shipped data every
+level's first research target is Create Imp, if it is still researchable. The
+book-loss rule (`Unshelved`) is written but has no caller: nothing here takes a
+shelved book out of a Library yet. Also not modelled: the Library accept and lock
+tests, message 0x19, and the other upgraded spells' effects. Only Create Imp casts
+a spell here.

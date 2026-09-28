@@ -9,7 +9,7 @@ namespace DK2.Data.Model;
 /// game-rule table. Names CONFIRMED from ufdada/dk2-tools variables_struct.bt
 /// (format facts; cross-checked against OpenKeeper's independent derivation);
 /// numbering gaps exist in the original data and are preserved.
-/// Ids 1 (CreaturePool), 2 (Availability), 43 (Sacrifice), 65 (CreatureStats)
+/// Ids 1 (CreaturePool), 2 (Availability), 17 (Research), 43 (Sacrifice), 65 (CreatureStats)
 /// and 224 (CreatureFirstPersonStats) select structured payloads; all other
 /// ids are plain integer values (docs/research/kwd-variables.md).
 /// </summary>
@@ -31,6 +31,12 @@ public enum VariableTypeId
     ConvertRoomHealth = 14,
     AttackRoomHealth = 15,
     RepairRoomHealth = 16,
+
+    /// <summary>One research-list entry, <c>{kind, typeId, cost}</c> — not a plain value.
+    /// Unnamed by the community tools; named here from DK2's own handler, which appends the
+    /// payload to the research list (docs/research/research-tree.md §1).</summary>
+    Research = 17,
+
     ChickenGenerationTimePerHatchery = 18,
     GoldMinedFromGems = 20,
     TimeBetweenReattemptingHungerSeconds = 21,

@@ -66,6 +66,13 @@ public static class KwdVariables
                             FirstPerson: id == VariableTypeId.CreatureFirstPersonId));
                         break;
 
+                    case VariableTypeId.Research:
+                        result.Research.Add(new ResearchEntry(
+                            BinaryPrimitives.ReadInt32LittleEndian(p),
+                            BinaryPrimitives.ReadInt32LittleEndian(p[4..]),
+                            BinaryPrimitives.ReadInt32LittleEndian(p[8..])));
+                        break;
+
                     default:
                         // Plain value. Last occurrence wins (files can carry repeats).
                         result.Misc[id] = new MiscVariable(

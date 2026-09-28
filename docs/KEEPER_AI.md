@@ -798,8 +798,13 @@ heart if none. Exact gates and remaining helper questions:
 - **Which creatures "count" toward the portal cap** — those with bit 1 of the
   creature's state-flags word (`+0x3E6`) set; the meaning of that bit is the creature
   side's.
-- **Spell state 2** is read as "not yet researched" from how both callers use it; the
-  keeper-spell state enumeration itself was not read.
+- **Spell state 2** is RESEARCHABLE, the state the research chooser looks for
+  (`0x004C30F0`), and the tree now moves it: a finished book sets 3 and a lost last
+  book sets 2 again (`research/research-tree.md`, ADR-0247). With the
+  shipped list, Create Imp is every level's first research target while it is
+  researchable, so a computer keeper there gets no paid imps until its Library has
+  researched Create Imp. Once upgraded, its imps are level 4. The researcher
+  move (step 12) and the `IAAllSpellsResearched` attack gate are still unbuilt.
 - **Terrain descriptor byte `+0x1CB` bit 0**, which the site finder and the expansion
   test accept as buildable alongside diggable rock and own floor.
 - **Room expansion's observed shape:** the binary accepts multiple sides in order;

@@ -1,24 +1,25 @@
-﻿# The Library: research accrual
+﻿# The Library: research accrual and the research tree
 
-Milestone M4/M6. What a creature standing in a Library earns for its keeper.
+Milestone M4/M6. What a creature standing in a Library earns for its keeper
+(§1–§4), and what those points buy ([research-tree.md](research-tree.md)).
 
 **Implementation:** `DK2.Simulation.ResearchRules` — `PerOriginalTick`,
 `MaxCredit`, `SlapBonusSeconds`, `SlapBonus` — credited from the
 `JobType.Research` branch of `Systems.CreatureJobSystem`, which adds the base
-once per original tick and the bonus once a game second.
-**Tests:** `ResearchTests` (`DK2.Simulation.Tests`) and
-`ResearchOnRealDataTests` (`DK2.Behavior.Tests`).
-**Questions:** Q81, Q159 (answered), Q216, Q217, Q218.
+once per original tick and the bonus once a game second. The tree is
+`DK2.Simulation.ResearchTreeRules`, advanced from the same credit and chosen
+each turn by `Systems.ResearchSystem` (ADR-0247).
+**Tests:** `ResearchTests`, `ResearchTreeTests` (`DK2.Simulation.Tests`),
+`ResearchOnRealDataTests` and `ResearchTreeOnRealDataTests` (`DK2.Behavior.Tests`).
+**Questions:** Q81, Q159 (answered), Q216, Q217, Q218, Q447.
 
 Read from the binary on **2026-09-07**; every number below is from the reference
 install or from DKII.EXE, and none is written into the code as a literal.
 
-**Scope: the accrual, not the tree.** DK2 keeps two fields on the keeper — the
-accumulated points and a *current target* — and this reproduces only the first.
-Nothing here decides what is being researched, what it costs, or what happens
-when it completes. That is less of a hole than it sounds: **the original credits
-the points whether or not a target is selected**, because the field is written
-before the target is even looked at. So the accrual is a complete mechanism.
+**Two fields on the keeper**: the accumulated points and a *current target*.
+Sections 1–4 are the first, and **the original credits the points whether or
+not a target is selected**, because the field is written before the target is
+even looked at. The second is [research-tree.md](research-tree.md), read and built on 2026-09-28.
 
 ---
 
@@ -37,7 +38,12 @@ before the target is even looked at. So the accrual is a complete mechanism.
 | The slap bonus is **+200%**, not the 50% its variable is named for | **STRONGLY INFERRED** — the extra `variable19` is in the instructions |
 | What sets the casino flag at `player+0x20D` | **UNKNOWN** (Q217) |
 | What passes the adder a negative amount | **UNKNOWN** (Q218) |
-| Whether a player can see the slap tripling their research | **UNKNOWN** (Q216) — needs the tree |
+| Whether a player can see the slap tripling their research | **UNKNOWN** (Q216) — the tree is built now, but nothing shows progress yet |
+| The research list is Variables id 17: 29 global entries at 1000 points each, none per level | **CONFIRMED** in the data; the handler **STRONGLY INFERRED** (research-tree.md) |
+| Researchable items first, in list order; then spells with a bonus shot are upgraded | **STRONGLY INFERRED** (research-tree.md); agrees with the owner's play |
+| A finished item is a book on a random Library's shelf, and the book is the availability | **STRONGLY INFERRED** (research-tree.md) |
+| An upgraded Create Imp makes level-4 imps, free imps included | **CONFIRMED** by the owner for cast imps; the free-imp half **STRONGLY INFERRED** (research-tree.md) |
+| How many times Summon Horny can be cast in a campaign | **UNKNOWN** (Q447) |
 
 ---
 
@@ -239,45 +245,8 @@ measuring it. A variable looks dead when it is looked for in the wrong mechanism
 
 ## 5. What is deliberately not built
 
-- **The research tree.** No target (`player+0x213`), no costs, no completion,
-  no spell or room unlocks. Points bank indefinitely.
-
-  **What the owner has seen, from play (2026-09-28).** The binary has not been read
-  for any of this yet.
-  1. Keeper spells are gated twice. The level decides which spells exist at all
-     (`Availability` kind 5, [kwd-variables.md](kwd-variables.md)), and a
-     RESEARCHABLE spell cannot be cast until Library research completes it.
-  2. Once every spell available on the map is researched, research carries on and
-     **upgrades those same spells** to enhanced versions. Every spell can be
-     upgraded.
-  3. An upgraded **Create Imp makes a level-4 imp** instead of a level-1 imp.
-
-  This agrees with two sources already on file: the manual's *"researchers can
-  upgrade spells afterwards"* ([manual-1999.md](manual-1999.md), with
-  `UpgradedPossessionCostPercentage` = 70 as one such upgrade), and the per-spell
-  `Upgraded:u32@5` beside `Availability` in the player's spell table
-  ([player-object.md](player-object.md)).
-
-  Nothing in `src/` models any of it. `CreateImpCommand` does not check
-  availability, the imp it makes is always the same, and `KeeperSpellDef` carries no
-  research cost or upgrade field. Still to be read from the binary:
-  - how the next target at `player+0x213` is chosen (a fixed order, the table order,
-    or random);
-  - where a spell's research cost and upgrade cost come from (KeeperSpells.kwd
-    fields not yet loaded);
-  - what writes `Upgraded`, and what each upgraded spell changes. For Create Imp,
-    find where the 4 comes from: a record field or a constant in the cast;
-  - whether rooms are researched the same way (a level's list can mark rooms
-    RESEARCHABLE), and how rooms and spells interleave with upgrades in one queue;
-  - what happens to an upgrade when the Library is lost. The manual says
-    researched spells are lost with it.
-
-  The keeper AI reads spell state in three places ([KEEPER_AI.md](../KEEPER_AI.md)).
-  Step 11 casts Create Imp only when it is available. Step 12 moves a researcher in
-  while any spell is in state 2. The attack gate `IAAllSpellsResearched` refuses to
-  attack while any spell is still researchable. Until the tree exists, all three
-  must use live availability. The implemented Create Imp step already requires
-  state 3; the researcher and attack gates remain unbuilt (2026-09-28).
+- **The research tree** was listed here until 2026-09-28. It is now read and
+  built: see [research-tree.md](research-tree.md).
 - **The casino bonus.** Needs a Casino, and **what sets `player+0x20D` is
   UNKNOWN** (Q217) — it is a 16-bit field beside the accumulator, tested for
   non-zero, and the variable's *name* is the only evidence for reading it as a
@@ -311,3 +280,10 @@ The generic capacity predicate calls this search before testing capacity units
 a random draw, and a Library with no storage position refuses another user
 despite spare numerical capacity. The keeper-message finder also calls this
 helper directly before the generic test (`computer-keeper-messages.md` §2).
+
+---
+
+## 8. The research tree
+
+Moved to [research-tree.md](research-tree.md) on 2026-09-28: what the points buy,
+the list, the chooser, the Library book and what an upgrade changes.

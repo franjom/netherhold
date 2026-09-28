@@ -15,6 +15,9 @@ Evidence:
 - Payload shapes by id (`VariableTypeId` enum name in brackets):
     1  CreaturePool             s32 creatureId, s32 value, s32 playerId
     2  Availability             u16 kind, u16 playerId, s32 typeId, s32 value
+    17 Research                 s32 kind, s32 typeId, s32 cost — one research-list
+                                entry, appended in file order; 29 in the global
+                                file, none per level (research-tree.md §1)
     43 Sacrifice [SacrificesId] 6 × u8 ingredient (type,id pairs), u8 rewardType,
                                 u8 speechId, s32 rewardValue
     65 CreatureStats [CreatureStatsId], 224 CreatureFirstPersonStats
@@ -31,8 +34,10 @@ Evidence:
 Observed behaviour: this file IS the game's balance specification. Per-level
 *Variables.kld files override it (same record format).
 
-Confidence: CONFIRMED (layout and values) / UNKNOWN (ids 17, 19, 29, 44, ...
-present in data without names — `VariableTypeId` preserves the gaps)
+Confidence: CONFIRMED (layout and values) / UNKNOWN (ids 19, 29, 44, ...
+present in data without names — `VariableTypeId` preserves the gaps). Id 17 was on
+that list until 2026-09-28: DK2's own Variables dispatcher (`0x0051AA90`) sends it
+to the research-list handler.
 
 Implementation: `DK2.Data.Kwd.KwdReader`, `DK2.Data.Kwd.KwdVariables`,
 `DK2.Data.Model.VariableTypeId`, `DK2.Data.Model.GlobalVariables`

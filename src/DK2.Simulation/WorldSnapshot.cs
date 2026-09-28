@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 125;
+    private const int FormatVersion = 126;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -146,6 +146,7 @@ public static class WorldSnapshot
             w.Write(p.SlapCount);
             w.Write(p.PossessedCreatureId);
             w.Write(p.ResearchPoints);
+            w.Write(p.ResearchTarget);
             w.Write(p.NextFreeImpTick.Value);
             w.Write(p.NextPaydayTick.Value);
             w.Write(p.Status);
@@ -160,6 +161,7 @@ public static class WorldSnapshot
                 w.Write(availability.Kind);
                 w.Write(availability.TypeId);
                 w.Write(availability.Value);
+                w.Write(availability.Upgraded);
             }
             w.Write(p.ManufacturePoints);
             w.Write(p.InformationGiven);
@@ -408,6 +410,8 @@ public static class WorldSnapshot
             w.Write(o.InHand);
             w.Write(o.AutoPlaced);
             w.Write(o.Setting);
+            w.Write(o.ResearchKind);
+            w.Write(o.ResearchTypeId);
         }
 
         w.Write(world.ActionPoints.Count);
@@ -608,6 +612,7 @@ public static class WorldSnapshot
                 SlapCount = r.ReadInt32(),
                 PossessedCreatureId = r.ReadInt32(),
                 ResearchPoints = r.ReadInt32(),
+                ResearchTarget = r.ReadInt32(),
                 NextFreeImpTick = new GameTick(r.ReadInt64()),
                 NextPaydayTick = new GameTick(r.ReadInt64()),
                 Status = r.ReadByte(),
@@ -625,7 +630,7 @@ public static class WorldSnapshot
             int availabilityCount = r.ReadInt32();
             for (int a = 0; a < availabilityCount; a++)
                 players[i].Availabilities.Add(new AvailabilityState(
-                    r.ReadUInt16(), r.ReadInt32(), r.ReadInt32()));
+                    r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean()));
 
             players[i].ManufacturePoints = r.ReadInt32();
             players[i].InformationGiven = r.ReadUInt64();
@@ -886,6 +891,8 @@ public static class WorldSnapshot
                 InHand = r.ReadBoolean(),
                 AutoPlaced = r.ReadBoolean(),
                 Setting = r.ReadByte(),
+                ResearchKind = r.ReadByte(),
+                ResearchTypeId = r.ReadByte(),
             });
         }
 

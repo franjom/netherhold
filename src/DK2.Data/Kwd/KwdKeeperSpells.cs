@@ -9,9 +9,9 @@ using DK2.Data.Model;
 namespace DK2.Data.Kwd;
 
 /// <summary>Parser for KEEPERSPELLS(150) records: 13 spells over 5278 bytes, 406 each.
-/// Three of the 406 bytes are read — the record is not understood and spells proper are
-/// M7 work — because two of those fields carry numbers the simulation needs now: what
-/// Create Imp costs to cast, and what an imp costs to keep.</summary>
+/// A few fields of the 406 bytes are read — the record is not understood and spells proper
+/// are M7 work: what a spell costs to cast and to keep, its id, and the normal and bonus
+/// shots, which decide what an upgraded Create Imp makes.</summary>
 /// <remarks><para>0x11C is the mana cost, <b>s32</b> because Summon Horny's 100000 does
 /// not fit in 16 bits; 0xE2 is mana upkeep per second, u16, non-zero for exactly the
 /// five spells with a persistent result and zero for all eight instants.</para>
@@ -32,6 +32,17 @@ public static class KwdKeeperSpells
     // s32 chosen here because 100000 overflows a u16; OpenKeeper independently reads
     // the same offset as s32 `manaCost`, with `bonusIcon` at 0x120 as the checkpoint.
     private const int OffsetManaCost = 0x11C;
+
+    // The shot fields, located by DK2's own loader 0x004F7CE0, which copies each from the
+    // file record into the 122-byte runtime spell (research-tree.md §5). OpenKeeper
+    // names the same offsets shotData1/2, shotTypeId, keeperSpellId and bonusShot*.
+    private const int OffsetShotData1 = 0xD0;
+    private const int OffsetShotData2 = 0xD4;
+    private const int OffsetKeeperSpellId = 0xEE;
+    private const int OffsetShotTypeId = 0xF0;
+    private const int OffsetBonusShotTypeId = 0x113;
+    private const int OffsetBonusShotData1 = 0x114;
+    private const int OffsetBonusShotData2 = 0x118;
 
     public static List<KeeperSpellDef> Parse(IEnumerable<KwdChunk> chunks)
     {
@@ -60,6 +71,13 @@ public static class KwdKeeperSpells
             BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + OffsetManaUpkeepPerSecond)),
         ManaCost =
             BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetManaCost)),
+        KeeperSpellId = rec[b + OffsetKeeperSpellId],
+        ShotTypeId = rec[b + OffsetShotTypeId],
+        ShotData1 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetShotData1)),
+        ShotData2 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetShotData2)),
+        BonusShotTypeId = rec[b + OffsetBonusShotTypeId],
+        BonusShotData1 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetBonusShotData1)),
+        BonusShotData2 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetBonusShotData2)),
     };
 
     private static string Name(byte[] rec, int b)

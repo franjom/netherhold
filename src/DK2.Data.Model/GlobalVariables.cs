@@ -18,6 +18,12 @@ public sealed record SacrificeEntry(
 /// <summary>Per-creature, per-level stat override (variable ids 65 / 224).</summary>
 public sealed record CreatureStatEntry(int StatId, int Value, int Level, bool FirstPerson);
 
+/// <summary>One entry of the research list (variable id 17), in the order research takes
+/// them. <paramref name="Kind"/> is a research kind — 1 room, 2 door, 3 trap, 4 spell —
+/// which is <b>not</b> an availability kind (docs/research/research-tree.md §1).
+/// <paramref name="Cost"/> is research points; every shipped entry costs 1000.</summary>
+public sealed record ResearchEntry(int Kind, int TypeId, int Cost);
+
 /// <summary>Plain global rule value — the vast majority of VARIABLES records.</summary>
 public sealed record MiscVariable(VariableTypeId Id, int Value, int Unk1, int Unk2);
 
@@ -34,6 +40,11 @@ public sealed class GlobalVariables
     public List<AvailabilityEntry> Availabilities { get; } = [];
     public List<SacrificeEntry> Sacrifices { get; } = [];
     public List<CreatureStatEntry> CreatureStats { get; } = [];
+
+    /// <summary>The research list, in file order: 29 entries in the shipped
+    /// <c>GlobalVariables.kwd</c> and none in any level file.</summary>
+    public List<ResearchEntry> Research { get; } = [];
+
     public Dictionary<VariableTypeId, MiscVariable> Misc { get; } = [];
 
     /// <summary>The value of a global rule variable. Throws if the data does not carry it.</summary>
@@ -56,7 +67,7 @@ public sealed class GlobalVariables
     /// (ADR-0021), and level 1 doubles both payday variables, 600 to 1200.</para>
     /// <para><b>Two merge rules, because the file holds two kinds of thing.</b> Plain values
     /// replace by id and new ids are added — levels introduce <c>GameTicks</c>, <c>LevelRating</c>,
-    /// <c>AverageTime</c> and two unnamed ids. The four lists replace wholesale when the level
+    /// <c>AverageTime</c> and two unnamed ids. The five lists replace wholesale when the level
     /// provides any and are kept when it does not: STRONGLY INFERRED, the global availability list
     /// being a player-0 template that a level's own players' lists cannot be unioned with.
     /// ADR-0040, Q82 and docs/research/kwd-variables.md "The merge rules".</para></summary>
@@ -71,6 +82,7 @@ public sealed class GlobalVariables
         merged.Availabilities.AddRange(Availabilities);
         merged.Sacrifices.AddRange(Sacrifices);
         merged.CreatureStats.AddRange(CreatureStats);
+        merged.Research.AddRange(Research);
 
         if (level is null) return merged;
 
@@ -81,6 +93,9 @@ public sealed class GlobalVariables
         Replace(merged.Availabilities, level.Availabilities);
         Replace(merged.Sacrifices, level.Sacrifices);
         Replace(merged.CreatureStats, level.CreatureStats);
+        // Untested for research: no shipped level carries a list, and DK2's handler only
+        // appends, so how a level's list would combine with the global one is not settled.
+        Replace(merged.Research, level.Research);
 
         return merged;
 

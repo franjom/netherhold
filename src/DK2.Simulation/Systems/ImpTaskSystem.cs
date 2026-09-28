@@ -1450,6 +1450,11 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         ObjectCarryRules.Deliver(creature, thing, creature.OwnerPlayerId, here);
 
+        // A book joining a Library is the room's take (0x004E12A0): it makes its item
+        // available, or is destroyed when it duplicates a spell the keeper already has.
+        if (context.Database.ObjectById(thing.ObjectTypeId)?.IsSpellBook == true)
+            ResearchTreeRules.Shelve(world, context.Database, creature.OwnerPlayerId, thing);
+
         context.Emit(SystemName, "object_stored",
             $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
             $"type={ObjectName(context, thing)} " +

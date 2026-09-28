@@ -74,6 +74,17 @@ public sealed class ObjectState
     /// reshape that moves the lever resets it (ADR-0188).</summary>
     public byte Setting;
 
+    /// <summary><b>Union member: the research book</b> (object 4, the Spell Book). The
+    /// research kind the book holds, DK2's <c>+0x14A</c>: 1 room, 2 door, 3 trap, 4 spell,
+    /// and zero on every object that is not a book. A book on a Library shelf is what
+    /// keeps its item available (research-tree.md §4).</summary>
+    public byte ResearchKind;
+
+    /// <summary><b>Union member: the research book.</b> The type id within
+    /// <see cref="ResearchKind"/>, DK2's <c>+0x14E</c>; zero on every object that is not a
+    /// book.</summary>
+    public byte ResearchTypeId;
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
@@ -87,5 +98,7 @@ public sealed class ObjectState
         hash.Add(InHand);
         hash.Add(AutoPlaced);
         hash.Add(Setting);
+        hash.Add(ResearchKind);
+        hash.Add(ResearchTypeId);
     }
 }

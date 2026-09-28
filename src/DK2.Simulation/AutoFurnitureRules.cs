@@ -244,6 +244,16 @@ public static class AutoFurnitureRules
         return -1;
     }
 
+    /// <summary>The tiles of <paramref name="room"/> that DK2's floor-slot predicate
+    /// <c>0x00454110</c> accepts: its floor-furniture slots. A Library stores research books
+    /// only on these (library-and-research.md §7).</summary>
+    public static HashSet<int> FloorSlotSet(WorldState world, RoomInstance room)
+    {
+        var slots = new List<int>();
+        FloorSlots(world, room, new HashSet<int>(room.TileIndices), slots);
+        return new HashSet<int>(slots);
+    }
+
     /// <summary>The floor-furniture slots: interior tiles, and for the checkerboard rooms only
     /// those of the parity of the leftmost one (<c>FUN_004EF5E0</c>). In index order.</summary>
     private static void FloorSlots(

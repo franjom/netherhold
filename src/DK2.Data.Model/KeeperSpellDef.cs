@@ -8,11 +8,13 @@ namespace DK2.Data.Model;
 /// One keeper spell from KEEPERSPELLS(?), the spells a keeper casts with their
 /// own hand rather than through a creature.
 ///
-/// <para><b>Deliberately partial.</b> Only three fields of a 406-byte record are
-/// read, because only three are understood: the name, what the spell costs to
-/// cast, and what its result costs to keep. The rest arrives with spells proper
-/// at M7. Parsing a record badly is worse than not parsing it, so the unknown
-/// bytes are left alone rather than guessed at.</para>
+/// <para><b>Deliberately partial.</b> Only the fields DK2's own loader
+/// <c>0x004F7CE0</c> was read copying are loaded: the name, the id, the two costs, and
+/// the normal and bonus shots (docs/research/research-tree.md §5). The rest
+/// arrives with spells proper at M7. Parsing a record badly is worse than not parsing
+/// it, so the unknown bytes are left alone rather than guessed at.</para>
+/// <para>The shot fields default to zero so that a hand-built spell in a test need not
+/// name a shot it does not fire.</para>
 /// </summary>
 public sealed record KeeperSpellDef
 {
@@ -38,4 +40,38 @@ public sealed record KeeperSpellDef
     /// long search of the CREATURES record for the Imp's 7 found nothing
     /// (docs/research/imps-and-mana.md).</para></summary>
     public required int ManaUpkeepPerSecond { get; init; }
+
+    /// <summary>The spell's id, file <c>0xEE</c> (runtime <c>+0x75</c>): the type id its
+    /// availability rows and research entries use. Create Imp is 4.</summary>
+    public byte KeeperSpellId { get; init; }
+
+    /// <summary>The shot a cast fires, file <c>0xF0</c> (runtime <c>+0x42</c>).</summary>
+    public byte ShotTypeId { get; init; }
+
+    /// <summary>The shot's first datum, file <c>0xD0</c>. For Create Imp, the creature type.</summary>
+    public int ShotData1 { get; init; }
+
+    /// <summary>The shot's second datum, file <c>0xD4</c>. For Create Imp, the level.</summary>
+    public int ShotData2 { get; init; }
+
+    /// <summary>The shot an <b>upgraded</b> cast fires instead, file <c>0x113</c> (runtime
+    /// <c>+0x4B</c>). Zero means the spell has no upgrade: research never targets it for one.</summary>
+    public byte BonusShotTypeId { get; init; }
+
+    /// <summary>The bonus shot's first datum, file <c>0x114</c>.</summary>
+    public int BonusShotData1 { get; init; }
+
+    /// <summary>The bonus shot's second datum, file <c>0x118</c>. Create Imp's is 4: an upgraded
+    /// Create Imp makes a level-4 imp (owner, 2026-09-28).</summary>
+    public int BonusShotData2 { get; init; }
+
+    /// <summary>Whether research can upgrade this spell — the chooser's test of runtime
+    /// <c>+0x4B</c> (<c>0x004C3000</c>). False for Summon Horny and OneShotReaper.</summary>
+    public bool CanBeUpgraded => BonusShotTypeId != 0;
+
+    /// <summary>The shot a cast fires and its data: the bonus ones when the caster's row is
+    /// upgraded (<c>0x004BBD30</c>).</summary>
+    public (byte ShotTypeId, int Data1, int Data2) Shot(bool upgraded) => upgraded
+        ? (BonusShotTypeId, BonusShotData1, BonusShotData2)
+        : (ShotTypeId, ShotData1, ShotData2);
 }

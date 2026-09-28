@@ -249,6 +249,9 @@ internal static class Dk2TerrainFixture
     /// the Library in state 31 (ADR-0183).</summary>
     public const byte SpellBookObjectId = 4;
 
+    /// <summary>Create Imp's keeper spell id, the type id its availability rows use.</summary>
+    public const byte CreateImpSpellId = 4;
+
     /// <summary>Object id 118, the Reveal Map Special: <see cref="ObjectFlags.TypeSpecial"/>,
     /// carried to the Library in state 33.</summary>
     public const byte RevealMapSpecialObjectId = 118;
@@ -640,7 +643,16 @@ internal static class Dk2TerrainFixture
     /// </summary>
     private static KeeperSpellDef[] KeeperSpells() =>
     [
-        new() { Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7 },
+        // Id, shot and bonus shot transcribed from the shipped record and guarded by
+        // ResearchTreeOnRealDataTests: shot 2 makes an Imp (1) at level 1, and the bonus shot
+        // an upgraded cast fires, 60, makes one at level 4.
+        new()
+        {
+            Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7,
+            KeeperSpellId = CreateImpSpellId,
+            ShotTypeId = 2, ShotData1 = 1, ShotData2 = 1,
+            BonusShotTypeId = 60, BonusShotData1 = 1, BonusShotData2 = 4,
+        },
     ];
 
     /// <summary>The flags every room terrain in the install carries: Ownable, Room, Attackable.</summary>

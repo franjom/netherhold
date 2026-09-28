@@ -56,6 +56,7 @@ public static class SimulationSystems
         // it buys next, so N's mana casts on N; a lair built on N attracts on N.
         new ManaSystem(),
         new ImpSupplySystem(),
+        new ResearchSystem(), // the same player frame chooses a research target when it has none
         new PortalSystem(),
 
         // Laying, once a game second (ADR-0066), before anything eats; then hunger
