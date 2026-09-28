@@ -31,12 +31,13 @@ M0–M4 closed. **M5** has a first clean comparison: two levels' idle trigger ev
 match a live capture exactly once the probe's one-tick lag is applied (ADR-0117,
 ADR-0119, `docs/experiments/`). **M6** is partial: every THINGS record reaches the
 world, ten trigger action types execute, and a recorded Level 1 play wins headlessly
-at the original tick (Q444). **M7** is
+with remaining timing differences (Q444, `navigation-captures.md`). **M7** is
 partial: combat (ADR-0163–0170) and hero parties (ADR-0197, 0216, 0218, 0219) are
 built; traps, door blocking and hero gates are not (2026-09-25).
 **M12** has its proactive task slice in `DK2.AI` (tasks 0–7, digging, rooms,
 gold, imps and slaps), with a captured, serialisable observation. The Level 17 unaided harness and Level 10 same-map
-capture exist; reactive decisions and an original command trace remain open
+capture exist; the planner/message review corrections are covered by regression
+tests (ADR-0246). Reactive decisions and an original command trace remain open
 (2026-09-28; `KEEPER_AI.md` §12.8).
 
 ### What exists (present tense; the ADR is the specification)

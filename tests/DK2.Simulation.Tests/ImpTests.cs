@@ -90,6 +90,13 @@ public class ImpTests
 
     // ---- doing nothing ---------------------------------------------------
 
+    [Theory]
+    [InlineData(TileWorkKind.Reinforce, 1)]
+    [InlineData(TileWorkKind.RepairWall, 1)]
+    [InlineData(TileWorkKind.Dig, 3)]
+    public void WallRepairSharesTheReinforcementFaceLimit(TileWorkKind kind, int limit) =>
+        Assert.Equal(limit, ImpCrowding.MaxWorkers(false, kind));
+
     [Fact]
     public void AnImpWithNothingToDo_StaysWhereItIs()
     {

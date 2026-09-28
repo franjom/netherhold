@@ -29,7 +29,7 @@
 
 `dk2tools verification-ledger` writes `docs/verification-ledger.csv` and preserves A–D
 and date cells on regeneration; `--check` detects a stale ledger. It finds
-170 attributes on 2026-09-28 (1 Hypothesis, 101 StronglyInferred, 68 Confirmed). `CandidateTests`
+170 attributes on 2026-09-28 (1 Hypothesis, 102 StronglyInferred, 67 Confirmed). `CandidateTests`
 means a lexical source reference, not proof that a test pins the rule. ADRs are
 collected from the source comments and the linked research note; absent citations
 remain blank for review. The existing read-only `verifier-1` Ghidra copy passed the

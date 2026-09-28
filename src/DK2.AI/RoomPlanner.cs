@@ -98,51 +98,68 @@ public static class RoomPlanner
     public static int DirectionFor(byte roomId, KeeperAIState state, SimRandom rng) =>
         roomId < 6 ? state.DefendDirection : (state.OpenDirection + rng.NextInt(3) - 1) & 3;
 
-    /// <summary>
-    /// A neutral room of the wanted type the keeper may dig to and claim: inside
-    /// the build area, and within <c>NeutralRoomRangeFromHeart</c> of the heart or
-    /// <c>NeutralRoomRangeFromClaimedArea × 2 + 3</c>-wide square whose boundary
-    /// includes an owned tile. The original scans the four boundary edges.
-    /// </summary>
-    public static KeeperRoomView? ClaimableNeutralRoom(KeeperView view, KeeperAIParameters p, byte roomId, BuildArea area)
+    /// <summary>Nearest neutral candidate, then the planner's range and boundary gates.</summary>
+    public static KeeperRoomView? ClaimableNeutralRoom(KeeperView view, KeeperAIParameters p, byte roomId, BuildArea area) =>
+        ClaimableNeutralRoom(view, p, roomId, area, out _);
+
+    public static KeeperRoomView? ClaimableNeutralRoom(
+        KeeperView view, KeeperAIParameters p, byte roomId, BuildArea area, out TilePos origin)
     {
+        origin = default;
         if (view.Heart is not TilePos heart) return null;
+        bool portal = roomId is (byte)RoomTypeId.Portal or (byte)RoomTypeId.HeroPortal;
         KeeperRoomView? best = null;
         int bestDist = int.MaxValue;
-
         foreach (KeeperRoomView r in view.AllRooms)
         {
-            if (r.Definition.RoomId != roomId || !KeeperView.IsNeutral(r)) continue;
-            TilePos c = KeeperView.Centre(r);
-            if (!area.Contains(c)) continue;
-
-            bool inRange = c.ChebyshevDistance(heart) <= p.NeutralRoomRangeFromHeart;
-            if (!inRange)
-                inRange = HasOwnLandOnBoundary(view, c, p.NeutralRoomRangeFromClaimedArea);
-            if (!inRange) continue;
-
-            int d = KeeperView.DistanceSquared(c, heart);
-            if (d < bestDist)
-            {
-                bestDist = d;
-                best = r;
-            }
+            bool matches = portal
+                ? r.Definition.TypeId is RoomTypeId.Portal or RoomTypeId.HeroPortal
+                : r.Definition.RoomId == roomId;
+            if (!matches || !KeeperView.IsNeutral(r)) continue;
+            int distance = KeeperView.DistanceSquared(KeeperView.Centre(r), heart);
+            if (distance < bestDist) { bestDist = distance; best = r; }
         }
+        if (best is null) return null;
+        TilePos target = KeeperView.Centre(best);
+        if (!area.Contains(target) || view.NearestOwnRoom(target) is not KeeperRoomView from) return null;
+        origin = KeeperView.Centre(from);
+        // Room centres stand in for the original's stored position and entrance (KEEPER_AI.md section 12.8).
+        int rangeSquared = p.NeutralRoomRangeFromHeart * p.NeutralRoomRangeFromHeart;
+        bool inRange = portal
+            ? KeeperView.DistanceSquared(target, origin) <= rangeSquared
+            : bestDist < rangeSquared;
+        if (inRange) return best;
+        if (OwnLandOnBoundary(view, target, p.NeutralRoomRangeFromClaimedArea) is not TilePos boundary) return null;
+        origin = boundary;
         return best;
     }
 
-    /// <summary>Four edges of the odd-sized square examined by the original's 0x004FC3B0.</summary>
-    public static bool HasOwnLandOnBoundary(KeeperView view, TilePos centre, int claimedRange)
+    public static bool HasOwnLandOnBoundary(KeeperView view, TilePos centre, int claimedRange) =>
+        OwnLandOnBoundary(view, centre, claimedRange) is not null;
+
+    /// <summary>0x004FC3B0: left, right, top, bottom; each edge extends one tile beyond its positive end.</summary>
+    public static TilePos? OwnLandOnBoundary(KeeperView view, TilePos centre, int claimedRange)
     {
         int radius = claimedRange + 1;
-        for (int offset = -radius; offset <= radius; offset++)
-        {
-            if (view.IsMine(new TilePos(centre.X + offset, centre.Y - radius))
-                || view.IsMine(new TilePos(centre.X + offset, centre.Y + radius))
-                || view.IsMine(new TilePos(centre.X - radius, centre.Y + offset))
-                || view.IsMine(new TilePos(centre.X + radius, centre.Y + offset)))
-                return true;
-        }
-        return false;
+        TilePos? best = null;
+        int bestDistance = int.MaxValue;
+        for (int edge = 0; edge < 4; edge++)
+            for (int offset = -radius; offset <= radius + 1; offset++)
+            {
+                TilePos tile = edge switch
+                {
+                    0 => new(centre.X - radius, centre.Y + offset),
+                    1 => new(centre.X + radius, centre.Y + offset),
+                    2 => new(centre.X + offset, centre.Y - radius),
+                    _ => new(centre.X + offset, centre.Y + radius),
+                };
+                int distance = KeeperView.DistanceSquared(tile, centre);
+                if (view.IsMine(tile) && distance < bestDistance)
+                {
+                    best = tile;
+                    bestDistance = distance;
+                }
+            }
+        return best;
     }
 }

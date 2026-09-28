@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Systems;
+using DK2.Simulation.Combat;
 
 namespace DK2.Simulation.Tests;
 
@@ -222,6 +223,36 @@ public class DungeonHeartTests
         PlayerMessage message = Assert.Single(world.Messages.Entries);
         Assert.Equal((Keeper, PlayerMessageKind.HeartAttacked, 5, 5),
             (message.PlayerId, message.Kind, message.Data1, message.Data2));
+    }
+
+    [Fact]
+    public void MeleeHeartDamagePostsOnceWithoutRefreshingTheFirstPayload()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = NewWorld(db);
+        GiveHeart(world, db, Keeper, new TilePos(5, 5));
+        CreatureState attacker = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
+        attacker.SwingTargetKind = FightTargetKind.Heart;
+        attacker.SwingTargetPlayerId = Keeper;
+        attacker.FightTargetTileIndex = 5 + 5 * world.Width;
+        int before = world.Player(Keeper).HeartHealth;
+        var sim = new GameSimulation(db, world, 1, [new HeartMelee(attacker)]);
+        sim.Tick();
+        Assert.True(world.Player(Keeper).HeartHealth < before);
+        PlayerMessage first = Assert.Single(world.Messages.Entries);
+        Assert.Equal((Keeper, PlayerMessageKind.HeartAttacked, 5, 5),
+            (first.PlayerId, first.Kind, first.Data1, first.Data2));
+        sim.Tick();
+        PlayerMessage second = Assert.Single(world.Messages.Entries);
+        Assert.Equal(first.Id, second.Id);
+        Assert.Equal(1u, second.Age);
+    }
+
+    private sealed class HeartMelee(CreatureState attacker) : ISimulationSystem
+    {
+        public string Name => "test heart melee";
+        public void Execute(SimulationContext context) => Combat.FightRules.LandBlow(
+            context, attacker, context.Database.CreatureById(attacker.CreatureTypeId));
     }
 
     private sealed class HeartShot : ISimulationSystem

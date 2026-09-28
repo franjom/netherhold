@@ -96,6 +96,40 @@ public class PlayerMessageTests
         }
     }
 
+    [Fact]
+    public void ZeroTimeoutCombatMessagesDoNotSatisfyTheDuplicateAgeTest()
+    {
+        GameSimulation sim = TestWorld.Simulation();
+        var first = sim.World.Messages.Post(sim.World, 1, PlayerMessageKind.CombatStarted, 2, 3)!.Value;
+        var next = sim.World.Messages.Post(sim.World, 1, PlayerMessageKind.CombatStarted, 2, 3)!.Value;
+        Assert.NotEqual(first.Id, next.Id);
+        Assert.Equal(2, sim.World.Messages.Entries.Count);
+        sim.Tick();
+        Assert.Empty(sim.World.Messages.Entries);
+    }
+
+    [Fact]
+    public void WorldHashDetectsMessagePayloadRecipientOrderAndAcknowledgment()
+    {
+        GameSimulation Make(int x = 2, byte owner = 1, bool reverse = false)
+        {
+            GameSimulation sim = TestWorld.Simulation();
+            foreach (int y in reverse ? new[] { 4, 3 } : new[] { 3, 4 })
+                sim.World.Messages.Post(sim.World, owner, PlayerMessageKind.CombatStarted, x, y);
+            return sim;
+        }
+        GameSimulation baseline = Make();
+        Assert.NotEqual(baseline.StateHash(), Make(x: 9).StateHash());
+        Assert.NotEqual(baseline.StateHash(), Make(owner: 2).StateHash());
+        Assert.NotEqual(baseline.StateHash(), Make(reverse: true).StateHash());
+        Assert.NotEqual(baseline.StateHash(), TestWorld.Simulation().StateHash());
+        GameSimulation a = TestWorld.Simulation(), b = TestWorld.Simulation();
+        uint id = a.World.Messages.Post(a.World, 1, PlayerMessageKind.HeartAttacked, 2, 3)!.Value.Id;
+        b.World.Messages.Post(b.World, 1, PlayerMessageKind.HeartAttacked, 2, 3);
+        a.Tick(InputFrame.Of(new AcknowledgePlayerMessageCommand(1, id))); b.Tick();
+        Assert.NotEqual(a.StateHash(), b.StateHash());
+    }
+
     private static void SetNotifications(WorldState world, bool enabled)
     {
         var action = new ActionTriggerRecord(new byte[16])

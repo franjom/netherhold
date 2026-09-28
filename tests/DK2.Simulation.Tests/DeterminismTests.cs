@@ -104,7 +104,7 @@ public class DeterminismTests
 
         // HashVersion 124: retained player messages and their next id (ADR-0245).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x00C706A5C1D92221UL, sim.StateHash());
+        Assert.Equal(0x5D8E842FA7697068UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

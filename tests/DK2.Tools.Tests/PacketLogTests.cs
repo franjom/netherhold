@@ -21,13 +21,13 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            PacketLog packet = PacketLog.Read(path, 3);
+            PacketLog packet = PacketLog.Read(path, 3, 69);
             Assert.Equal(4, packet.ActionCount);
 
             var map = new PacketEntityMap();
             Assert.Throws<InvalidDataException>(() => packet.At(3, map));
-            map.Add(453, 2, 8);
-            map.Add(453, 3, 9);
+            map.Add(453, 2, 8, PacketEntityKind.Creature);
+            map.Add(453, 3, 9, PacketEntityKind.Creature);
 
             var early = packet.At(2, map).All;
             var tag = Assert.IsType<TagTilesCommand>(early[0]);
@@ -55,12 +55,14 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            PacketLog packet = PacketLog.Read(path, 2);
+            PacketLog packet = PacketLog.Read(path, 2, 69);
             Assert.Contains(packet.EntityReferences, reference =>
-                reference == (2L, 1128u));
+                reference == (2L, 1128u, PacketEntityKind.Object));
             var map = new PacketEntityMap();
             Assert.Throws<InvalidDataException>(() => packet.At(2, map));
-            map.Add(1128, 2, 1);
+            map.Add(1128, 1, 1, PacketEntityKind.Creature);
+            Assert.Throws<InvalidDataException>(() => packet.At(2, map));
+            map.Add(1128, 2, 1, PacketEntityKind.Object);
             var command = Assert.IsType<ActivateSpecialCommand>(Assert.Single(packet.At(2, map).All));
             Assert.Equal((3, 1), (command.PlayerId, command.ObjectId));
         }
@@ -68,6 +70,41 @@ public sealed class PacketLogTests
         {
             File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void RecordingOriginIsExplicitAndFirstTurnComesFromTheRecord()
+    {
+        var bytes = new List<byte>(new byte[83]);
+        for (uint turn = 100; turn <= 10100; turn++) Turn(bytes, turn);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            Assert.Equal(0, PacketLog.Read(path, 10099, 83).ActionCount);
+            Assert.Throws<InvalidDataException>(() => PacketLog.Read(path, 10100, 83));
+            Assert.Throws<InvalidDataException>(() => PacketLog.Read(path, 10099, 69));
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void CsvRequiresTypesAndUsesTheLatestSlotOccupant()
+    {
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(path, "original,from_turn,ours\n450,2,1\n");
+            Assert.Throws<InvalidDataException>(() => PacketEntityMap.Read(path));
+            File.WriteAllText(path, "original,from_turn,ours,kind\n450,2,1,Creature\n450,10,1,Object\n");
+            PacketEntityMap map = PacketEntityMap.Read(path);
+            Assert.True(map.TryResolve(450, 9, PacketEntityKind.Creature, out int creature));
+            Assert.Equal(1, creature);
+            Assert.False(map.TryResolve(450, 10, PacketEntityKind.Creature, out _));
+            Assert.True(map.TryResolve(450, 10, PacketEntityKind.Object, out int item));
+            Assert.Equal(1, item);
+        }
+        finally { File.Delete(path); }
     }
 
     private static uint Pack(uint x, uint y) => x | y << 16;

@@ -39,7 +39,7 @@ public static class CreatureStateMachine
     /// <summary>DK2's <c>SetState</c>. Returns whether the move was taken; on a refusal the
     /// creature keeps the state it has, which is the original's behaviour and not an error
     /// (<c>creature-state-table.md</c> §2.2).</summary>
-    public static bool TrySetState(CreatureState creature, int targetStateId)
+    public static bool TrySetState(CreatureState creature, int targetStateId, long currentTick = -1)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));
         _ = CreatureStateTable.Get(targetStateId);
@@ -47,6 +47,7 @@ public static class CreatureStateMachine
         if (Classify(creature, targetStateId) == StateTransition.Refused) return false;
 
         Enter(creature, targetStateId);
+        creature.StateEnteredTick = currentTick;
         return true;
     }
 
@@ -79,7 +80,7 @@ public static class CreatureStateMachine
     /// before the call and only then branches on the result. Returns what the move returned,
     /// as the handler does; a false there reaches DK2's dispatcher, which idles the
     /// creature.</remarks>
-    public static bool Arrive(CreatureState creature)
+    public static bool Arrive(CreatureState creature, long currentTick = -1)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));
         if (!CreatureStateTable.Get(creature.Dk2StateId).IsUtility)
@@ -88,7 +89,7 @@ public static class CreatureStateMachine
                 $"Creature {creature.Id} is in state {creature.Dk2StateId}, not a travel state.");
         }
 
-        bool took = TrySetState(creature, creature.UtilityNewState);
+        bool took = TrySetState(creature, creature.UtilityNewState, currentTick);
         creature.UtilityNewState = Idle;
         return took;
     }

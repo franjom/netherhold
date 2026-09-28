@@ -65,8 +65,8 @@ and all but the same seven player-3 rock ownership fields as the no-AI control.
 It still emitted 67 Create Imp commands, so the tile match is not proof of
 equivalent AI behaviour or successful spell casts.
 
-The retained-combat-message revision reproduces these counts and mismatches.
-Modern harness artifacts: `build/m12-messages/` (ignored); the existing original
+The reviewed planner/message revision reproduces these counts and mismatches.
+Modern harness artifacts: `build/m12-review/` (ignored); the existing original
 save remains the comparison source, not a new original run.
 
 A control with the same modern initial state, random seed, triggers and 2408

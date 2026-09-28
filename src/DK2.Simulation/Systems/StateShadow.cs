@@ -27,13 +27,7 @@ internal static class StateShadow
     /// <summary><see cref="Move"/>, returning whether the rule took it.</summary>
     public static bool TryMove(SimulationContext context, string system, CreatureState creature, int state)
     {
-        int previous = creature.Dk2StateId;
-        if (CreatureStateMachine.TrySetState(creature, state))
-        {
-            if (state == Combat.CombatStates.Engaging && previous != state)
-                CombatMessageRules.EnteredBattle(context.World, creature);
-            return true;
-        }
+        if (CreatureStateMachine.TrySetState(creature, state, context.Tick.Value)) return true;
         Refused(context, system, creature, state);
         return false;
     }
@@ -43,8 +37,8 @@ internal static class StateShadow
     public static void MoveOrViaIdle(
         SimulationContext context, string system, CreatureState creature, int state)
     {
-        if (CreatureStateMachine.TrySetState(creature, state)) return;
-        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
+        if (CreatureStateMachine.TrySetState(creature, state, context.Tick.Value)) return;
+        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle, context.Tick.Value);
         Move(context, system, creature, state);
     }
 
@@ -53,9 +47,7 @@ internal static class StateShadow
     {
         if (!IsTravelling(creature)) return;
         int to = creature.UtilityNewState;
-        if (!CreatureStateMachine.Arrive(creature)) Refused(context, system, creature, to);
-        else if (to == Combat.CombatStates.Engaging)
-            CombatMessageRules.EnteredBattle(context.World, creature);
+        if (!CreatureStateMachine.Arrive(creature, context.Tick.Value)) Refused(context, system, creature, to);
     }
 
     /// <summary>A handler that returns failure: DK2 drops the creature to state 1.</summary>

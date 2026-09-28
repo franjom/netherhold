@@ -208,6 +208,7 @@ public sealed class KeeperAI
     {
         if (!State.NextRoomToBuildSet)
         {
+            State.CurrentRoomToBuild = 0; // 0x004FC690 clears this before the chooser.
             byte? chosen = RoomPlanner.ChooseRoom(
                 view, _p, _isRoomAvailable ?? (id => view.Availability(1, id) == 3),
                 State.CurrentRoomToBuild);
@@ -215,21 +216,23 @@ public sealed class KeeperAI
             {
                 State.NextRoomToBuild = (byte)RoomTypeId.Portal;
                 State.AllRoomsBuilt = true;
-                return false;
             }
-            State.AllRoomsBuilt = false;
-            State.NextRoomToBuild = chosen.Value;
+            else
+            {
+                State.AllRoomsBuilt = false;
+                State.NextRoomToBuild = chosen.Value;
+            }
             State.NextRoomToBuildSet = true;
         }
 
         byte room = State.NextRoomToBuild;
 
         // A neutral room of that type within reach is claimed by digging to it.
-        KeeperRoomView? neutral = RoomPlanner.ClaimableNeutralRoom(view, _p, room, area);
+        KeeperRoomView? neutral = RoomPlanner.ClaimableNeutralRoom(view, _p, room, area, out TilePos origin);
         if (neutral is not null)
         {
             TilePos target = KeeperView.Centre(neutral);
-            State.DigRoomAtCurrent = (view.NearestOwnRoom(target) is KeeperRoomView from ? KeeperView.Centre(from) : view.Heart)!.Value;
+            State.DigRoomAtCurrent = origin;
             State.DigRoomAt = target;
             State.WallHug = false;
             State.CurrentRoomToBuild = room;

@@ -12,6 +12,22 @@ namespace DK2.Simulation.Tests;
 public sealed class SpecialSystemTests
 {
     [Fact]
+    public void Action88DoesNotRequireOwnedLandOrNearbyCreatures()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        const byte keeper = PlayerIds.FirstKeeper;
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, keeper]);
+        CreatureState creature = world.SpawnCreature(db, 7, keeper, new TilePos(1, 1));
+        int far = world.TileCount - 1;
+        world.TileAtIndex(far).OwnerPlayerId = PlayerIds.Good;
+        ObjectState item = world.SpawnObject(db, 117, PlayerIds.Good, far);
+        var sim = new GameSimulation(db, world, 1, [new SpecialSystem()]);
+        sim.Tick(InputFrame.Of(new ActivateSpecialCommand(keeper, item.Id)));
+        Assert.Equal(2, creature.Level);
+        Assert.Null(world.ObjectById(item.Id));
+    }
+
+    [Fact]
     public void IncreaseLevelPromotesAndHealsThePlayerOnlyThenIsConsumed()
     {
         GameDatabase db = Dk2TerrainFixture.Database();

@@ -272,6 +272,33 @@ public class TriggerExecutorOnRealDataTests
         Assert.Equal(2, simulation.World.HeroParties.Count(p => p.SpawnCount == 1));
     }
 
+    [InstallFact]
+    public void LevelOneDugGroundSatisfiesItsShippedNeutralOwnerCondition()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "level1");
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level1")!;
+        List<TriggerRecord> records = GameDatabaseLoader.LoadCampaignTriggers(install, "level1")!;
+        ActionPointThing point = GameDatabaseLoader.LoadCampaignThings(install, "level1")!
+            .OfType<ActionPointThing>().Single(p => p.StartX == 14 && p.StartY == 23 && p.EndX == 14 && p.EndY == 23);
+        var world = WorldState.FromMap(db, map, [0, 1, 2, 3]);
+        ThingProjection.Place(world, db, [point]);
+        var tree = new TriggerTree(records, rootTriggerId: 0);
+        var state = new TriggerState();
+        var executor = new TriggerExecutor(tree, state, world, db);
+        ref TileState tile = ref world.Tile(14, 23);
+        for (int attempt = 0; attempt < 100 && db.TerrainById(tile.TerrainId).IsSolid; attempt++)
+            TileWorkRules.Apply(db, ref tile, TileWorkKind.Dig, 3);
+        Assert.Equal((byte)3, tile.TerrainId);
+        Assert.Equal(PlayerIds.Neutral, tile.OwnerPlayerId);
+        tile.OwnerPlayerId = PlayerIds.Unowned;
+        executor.Run(1);
+        Assert.Equal(0, state.Read(5));
+        tile.OwnerPlayerId = PlayerIds.Neutral;
+        executor.Run(2);
+        Assert.Equal(1, state.Read(5));
+    }
+
     private static (GameSimulation Simulation, TriggerTree Tree) LevelOne(ulong seed, bool withThings = false)
     {
         string install = Dk2InstallGate.Path;

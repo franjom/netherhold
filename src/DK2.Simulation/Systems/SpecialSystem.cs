@@ -9,7 +9,7 @@ using DK2.Simulation.Commands;
 namespace DK2.Simulation.Systems;
 
 /// <summary>Applies a selected special before creatures act on this tick.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/specials.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/specials.md")]
 public sealed class SpecialSystem : ISimulationSystem
 {
     private const byte IncreaseLevel = 117;

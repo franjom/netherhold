@@ -700,6 +700,9 @@ public sealed class CreatureState
     /// a withdrawal is refused in the state's first tick.</summary>
     public long CombatStateEnteredTick;
 
+    // State-object +0x18; -1 when a clockless setup transition supplies no turn.
+    public long StateEnteredTick = -1;
+
     /// <summary>The alarm a Scout carries to its room (DK2's state fields <c>+0xA7</c>, <c>+0xAF</c>,
     /// <c>+0xB1</c>): the threat's position, the strength still wanted there, and the room by its
     /// first tile. Read on arrival by <see cref="Combat.FearRules.RespondToThreat"/>.</summary>
@@ -990,6 +993,7 @@ public sealed class CreatureState
         hash.Add(BackOffTimer);
         hash.Add(Running);
         hash.Add(CombatStateEnteredTick);
+        hash.Add(StateEnteredTick);
         hash.Add(AlarmX);
         hash.Add(AlarmY);
         hash.Add(AlarmDeficit);

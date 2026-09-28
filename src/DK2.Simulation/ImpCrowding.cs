@@ -29,7 +29,7 @@ public static class ImpCrowding
     /// <summary>The worker cap for a job and stance.</summary>
     public static int MaxWorkers(bool workedFromTheTile, TileWorkKind? kind = null) =>
         workedFromTheTile ? MaxWorkersOnTheTile
-        : kind == TileWorkKind.Reinforce
+        : kind is TileWorkKind.Reinforce or TileWorkKind.RepairWall
             ? MaxReinforcersPerFace : MaxWorkersPerFace;
 
     /// <summary>Whether <paramref name="face"/> already has its full complement of workers on

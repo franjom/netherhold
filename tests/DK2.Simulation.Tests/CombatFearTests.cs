@@ -18,6 +18,30 @@ public class CombatFearTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
 
+    [Fact]
+    public void WithdrawalThroughTheCombatGroupDoesNotDispatchTheBattleHandler()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState creature = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+        var sim = new GameSimulation(db, world, 1, [new WithdrawWithoutBattle(creature)]);
+        sim.Tick();
+        Assert.Equal(CreatureActivity.Withdrawing, creature.Activity);
+        Assert.Empty(world.Messages.Entries);
+    }
+
+    private sealed class WithdrawWithoutBattle(CreatureState creature) : ISimulationSystem
+    {
+        public string Name => "withdrawal entry test";
+        public void Execute(SimulationContext context)
+        {
+            context.Navigation.Refresh();
+            var hearts = new HeartSites();
+            hearts.Refresh(context.World, context.Database);
+            Assert.True(FearRules.Withdraw(context, new WorldSight(context.Navigation, context.World, context.Database),
+                hearts, new RoomCache(), creature, context.Database.CreatureById(creature.CreatureTypeId), []));
+        }
+    }
+
     /// <summary>A player with no heart keeps the initialiser's (1,1), not the origin (<c>0x004B8640</c>).
     /// At (5,5) that is four tiles, where the origin would be five.</summary>
     [Fact]

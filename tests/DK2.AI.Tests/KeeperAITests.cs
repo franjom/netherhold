@@ -254,16 +254,75 @@ public class KeeperAITests
     }
 
     [Fact]
-    public void RoomChoiceSkipsTheRoomThatThePreviousPlanTried()
+    public void PlannerRetriesTheRoomThatItsPreviousPlanTried()
     {
         WorldState world = KeeperWorld.World(Db);
-        var view = new KeeperView(Db, world, KeeperWorld.Keeper);
-        KeeperAIParameters parameters = KeeperWorld.Parameters();
+        world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
+        var keeper = new KeeperAI(KeeperWorld.Keeper, KeeperWorld.Parameters(), new SimRandom(7));
+        keeper.State.CurrentRoomToBuild = (byte)RoomTypeId.Treasury;
+        keeper.Think(Db, world);
+        Assert.Equal((byte)RoomTypeId.Treasury, keeper.State.CurrentRoomToBuild);
+        Assert.Equal(KeeperTask.FindSite, keeper.State.Task);
+    }
 
-        Assert.Equal((byte)RoomTypeId.Treasury,
-            RoomPlanner.ChooseRoom(view, parameters, _ => true));
-        Assert.Equal((byte)RoomTypeId.Lair,
-            RoomPlanner.ChooseRoom(view, parameters, _ => true, (byte)RoomTypeId.Treasury));
+    [Theory]
+    [InlineData(24, 15, true)]
+    [InlineData(25, 15, false)]
+    [InlineData(23, 23, false)]
+    public void OrdinaryNeutralRoomsUseStrictSquaredHeartDistance(int x, int y, bool accepted)
+    {
+        WorldState world = KeeperWorld.World(Db);
+        KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.TreasuryFloor, PlayerIds.Neutral);
+        var view = new KeeperView(Db, world, KeeperWorld.Keeper);
+        Assert.Equal(accepted, RoomPlanner.ClaimableNeutralRoom(view, KeeperWorld.Parameters(),
+            (byte)RoomTypeId.Treasury, BuildArea.WholeMap(30, 30)) is not null);
+    }
+
+    [Theory]
+    [InlineData(-3, 4, true)]
+    [InlineData(3, 4, true)]
+    [InlineData(4, -3, true)]
+    [InlineData(4, 3, true)]
+    [InlineData(4, 4, false)]
+    [InlineData(-4, -3, false)]
+    public void BoundaryIncludesExtendedEdgeEndsButNotTheOuterCorner(int dx, int dy, bool accepted)
+    {
+        WorldState world = KeeperWorld.World(Db);
+        var centre = new TilePos(23, 23);
+        var owned = new TilePos(centre.X + dx, centre.Y + dy);
+        KeeperWorld.Set(world, Db, owned, KeeperWorld.ClaimedPath, KeeperWorld.Keeper);
+        var view = new KeeperView(Db, world, KeeperWorld.Keeper);
+        Assert.Equal(accepted, RoomPlanner.HasOwnLandOnBoundary(view, centre, 2));
+        if (accepted) Assert.Equal(owned, RoomPlanner.OwnLandOnBoundary(view, centre, 2));
+    }
+
+    [Theory]
+    [InlineData(KeeperWorld.PortalFloor)]
+    [InlineData(KeeperWorld.HeroPortalFloor)]
+    public void CompletedBuildOrderStillPlansToClaimANeutralPortal(byte floor)
+    {
+        WorldState world = KeeperWorld.World(Db);
+        var portal = new TilePos(25, 15); // Portal branch includes equality at range ten.
+        KeeperWorld.Set(world, Db, portal, floor, PlayerIds.Neutral);
+        var keeper = new KeeperAI(KeeperWorld.Keeper, KeeperWorld.Parameters(), new SimRandom(7), _ => false);
+        keeper.Think(Db, world);
+        Assert.True(keeper.State.AllRoomsBuilt);
+        Assert.Equal(KeeperTask.DigPath, keeper.State.Task);
+        Assert.Equal(portal, keeper.State.DigRoomAt);
+    }
+
+    [Fact]
+    public void PortalSearchUsesOnePoolAndDoesNotRetryAnOutOfAreaCandidate()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        KeeperWorld.Set(world, Db, new TilePos(24, 15), KeeperWorld.PortalFloor, PlayerIds.Neutral);
+        KeeperWorld.Set(world, Db, new TilePos(22, 15), KeeperWorld.HeroPortalFloor, PlayerIds.Neutral);
+        var view = new KeeperView(Db, world, KeeperWorld.Keeper);
+        KeeperRoomView? chosen = RoomPlanner.ClaimableNeutralRoom(view, KeeperWorld.Parameters(),
+            (byte)RoomTypeId.Portal, BuildArea.WholeMap(30, 30));
+        Assert.Equal(RoomTypeId.HeroPortal, chosen!.Definition.TypeId);
+        Assert.Null(RoomPlanner.ClaimableNeutralRoom(view, KeeperWorld.Parameters(),
+            (byte)RoomTypeId.Portal, new BuildArea(23, 0, 29, 29)));
     }
 
     [Fact]

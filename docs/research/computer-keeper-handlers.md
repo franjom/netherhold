@@ -18,10 +18,9 @@ lower-case descriptions are ours. `Task`, `NextTask`, `CurrentEventTask` and
 dword also come from the dumper. `world` (`+0x0A`) and `player` (`+0x0E`) are our
 names for pointers established by their use.
 
-**Known:** all eight routines were first passed through `FnStrings.py`. Only
-`0x004FC690` and `0x004FCE70` reference the assertion path
-`ComputerPlayer.cpp`; none exposes a handler name. Handler descriptions in headings
-are therefore ours except `RespondToAttack`, which the dumper prints.
+Only `0x004FC690` and `0x004FCE70` reference `ComputerPlayer.cpp`; no handler
+name is exposed. Headings are descriptive except `RespondToAttack`, which
+DK2's dumper prints.
 
 ## 2. Shared allowance and command path
 
@@ -30,10 +29,7 @@ one-byte allowance at the start of every accepted keeper turn. Each handler rece
 the remaining byte and returns the remainder; an arm can therefore run repeatedly in
 one turn. A processed coordinate or moved creature normally decrements it once.
 
-**Known:** the creation default and all nine built-in personalities give 1. Shipped
-computer-player records contain 1, 2 and 4, so the record, not a
-separate difficulty multiplier, determines the per-turn value. See `KEEPER_AI.md`
-§3.2 for the table provenance.
+Personality defaults and shipped allowance values: `KEEPER_AI.md` section 3.2.
 
 **Known:** tagging uses the ordinary action dispatcher `0x0050E5C0` with this 20-byte
 record (trailing padding is not read here):
@@ -72,22 +68,24 @@ with plain `RET`. The task arm has already spent one allowance unit before calli
 4. If neither pass succeeds, set `NextRoomToBuild=3`, `NextRoomToBuildSet`, and
    `AllRoomsBuilt`.
 
-**Known:** thus `CurrentRoomToBuild` comes from the keeper's `RoomList` order plus a
-fixed 16..26 tail, filtered by the player's room availability and existing rooms.
-No creature list, job, anger, capacity or need is read. The personality setter builds
-`RoomList` from world room-definition order; campaign records may supply the list.
+**STRONGLY INFERRED, independently rechecked 2026-09-28:** the planner clears
+`CurrentRoomToBuild` (`+0x98`) before calling the chooser. The chooser's exclusion
+therefore does not skip the previous plan's room on this path.
 
 **Known:** the planner then performs these steps:
 
 1. Copy `NextRoomToBuild` to `CurrentRoomToBuild`; clear `NextRoomToBuildSet` only
    for room 3, otherwise replace `NextRoomToBuild` with 3.
-2. For Portal (3) or Hero Portal (25), seek that neutral-room kind (Portal first,
-   Hero Portal second). For another kind, seek a neutral room of that kind. It must
-   lie in `MaxBuildArea`; the portal case also accepts it only within
-   `NeutralRoomRangeFromHeart` of the heart or when `0x004FC3B0` finds an owned tile on the boundary of a square
-   of side `2 * NeutralRoomRangeFromClaimedArea + 3` centred on the room.
-   It checks the four edges, not the interior. Accepted neutral rooms
-   start a route (`Task=7`, `NextTask=4`).
+2. Search the neutral player's nearest matching room, then test `MaxBuildArea`;
+   rejection does not search a second candidate. `0x004C61C0` measures distance
+   to room bytes `+0x2D/+0x2E`; requests 3 and 25 each match both Portal kinds.
+   Thus the two calls (3, then 25 if absent) do not establish Portal priority.
+   With no build candidate the chooser's room-3 fallback still enters this path.
+   Ordinary rooms require squared heart-to-room-position distance strictly below
+   `NeutralRoomRangeFromHeart` squared. Portals instead compare their entrance
+   to the nearest owned room's stored position and accept equality. Both can
+   fall back to the owned-boundary search; both require an owned room as origin.
+   Accepted rooms start Task 7 / NextTask 4.
 3. Let `price = roomDefinition(CurrentRoomToBuild & 0x7F).u16[+0x43F]`. If
    `player.Money < price * DefaultRoomSize` and the unnamed word at
    `player[+0x1105]+0x467C` is zero, start the gold selector instead of a room.
@@ -96,6 +94,14 @@ No creature list, job, anger, capacity or need is read. The personality setter b
    table or a random owned non-bridge room, subject to `PlaceRoomsNextToIdeal` and
    whether the ideal kind exists. An `0x80` request first tries to enlarge an
    existing room; failure clears the bit and falls back to a new room.
+
+`0x004FC3B0` scans left, right, top, bottom with `h = claimedRange + 1`.
+Each fixed edge coordinate is `centre +/- h`; its varying coordinate runs
+inclusively from `centre - h` to `centre + h + 1`. This is four extended edges,
+not a larger rectangular perimeter. It returns the nearest owned tile by
+squared distance, retaining the first on ties, and replaces the route origin.
+These comparisons and endpoints were checked against the instructions and
+fresh Ghidra output; no original-game boundary experiment has been captured.
 
 **Known:** `DefaultRoomSize` (`+0x4BF`) does not choose a room type. It is both the
 planned tile count in the cost estimate and the area passed to the site finder. The

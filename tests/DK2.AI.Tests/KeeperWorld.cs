@@ -26,6 +26,7 @@ internal static class KeeperWorld
     public const byte LairFloor = 11;
     public const byte HatcheryFloor = 12;
     public const byte PortalFloor = 13;
+    public const byte HeroPortalFloor = 14;
     public const byte HeartFloor = 20;
 
     public const byte Keeper = 3;
@@ -41,6 +42,7 @@ internal static class KeeperWorld
             Terrain(TreasuryFloor, "Treasury", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(LairFloor, "Lair", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(HatcheryFloor, "Hatchery", TerrainFlags.Ownable | TerrainFlags.Room, 100),
+            Terrain(HeroPortalFloor, "Hero Portal", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(PortalFloor, "Portal", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(HeartFloor, "Dungeon Heart", TerrainFlags.Ownable | TerrainFlags.Room, 100),
         ],
@@ -49,6 +51,7 @@ internal static class KeeperWorld
             Room(RoomTypeId.Treasury, "Treasury", 50, TreasuryFloor, buildable: true),
             Room(RoomTypeId.Lair, "Lair", 100, LairFloor, buildable: true),
             Room(RoomTypeId.Hatchery, "Hatchery", 125, HatcheryFloor, buildable: true),
+            Room(RoomTypeId.HeroPortal, "Hero Portal", 0, HeroPortalFloor, buildable: false),
             Room(RoomTypeId.Portal, "Portal", 0, PortalFloor, buildable: false),
             Room(RoomTypeId.DungeonHeart, "Dungeon Heart", 0, HeartFloor, buildable: false),
         ],

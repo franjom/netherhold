@@ -45,14 +45,20 @@ public sealed class PlayerMessageQueue
         };
         if (world.Player(recipient).Status != PlayerStatus.Playing || !world.Triggers.NotificationsEnabled)
             return null;
-        foreach (PlayerMessage message in _entries)
-            if (message.PlayerId == recipient && message.Kind == kind && message.Age < message.Timeout)
-                return message;
+        if (Unexpired(recipient, kind) is PlayerMessage retained) return retained;
         if (_entries.Count == Capacity) _entries.RemoveAt(0);
         var added = new PlayerMessage(_nextId, recipient, kind, data1, data2, 0, timeout, true, false);
         _nextId = unchecked(_nextId + 1);
         _entries.Add(added);
         return added;
+    }
+
+    internal PlayerMessage? Unexpired(byte recipient, PlayerMessageKind kind)
+    {
+        foreach (PlayerMessage message in _entries)
+            if (message.PlayerId == recipient && message.Kind == kind && message.Age < message.Timeout)
+                return message;
+        return null;
     }
 
     internal void Acknowledge(byte player, uint id)

@@ -204,8 +204,10 @@ creature event 4 (killed), then starts timer 12 and wins when it expires.
 
 The packet through turn 1899 has 82 commands: 31 tags, 2 untags, 2 room builds,
 20 creature pickups, 20 drops, 1 slap, 1 Special activation and 5 UI selections.
-`dk2tools replay --packet` reads all 82 commands directly. Its entity map uses
-`original,from_turn,ours` because DK2 reuses entity slots: IDs 450 and 451 begin
+`dk2tools replay --packet ... --packet-offset 69` reads all 82 actions directly.
+The first turn comes from the record; the verified record offset must be supplied.
+Packet mode requires `-` for tags and rejects `--rooms`, preventing ignored inputs. Its entity map uses
+`original,from_turn,ours,kind` (Creature or Object), because DK2 reuses entity slots: IDs 450 and 451 begin
 as hero Dwarves and later hold keeper Goblins. The read-only playback probe
 (`creature-map.csv` beside the packet) supplies the original slot lifetimes:
 
@@ -220,7 +222,11 @@ Our first Goblin arrives at turn 672 against DK2's 753. All 20 pickups and
 20 drops execute; 12 drops stun the creature. The recorded mass drop lands
 seven Goblins at turns 1775–1802. With the Special action at turn 1708
 (`specials.md`), our Lord dies at turn 1846, flag 20 and timer 12 fire, and
-player 3 reaches status 2 (Won) at tick 1872, the original win tick (Q444).
+player 3 reaches status 2 (Won) at reported tick 1872 (Q444).
+The matching final label is not a timing-equivalence result: surrounding event
+turns differ, and the probe and simulation label their observation boundaries
+differently. The first recruitment is 81 turns early. A turn-aligned event trace,
+not the isolated win label, is needed to claim a matching trajectory.
 Tile ownership's repaired gap is in `tile-work.md`.
 
 ## The probe's own limits

@@ -2,10 +2,23 @@
 
 ## Increase Level (object 117)
 
-**CONFIRMED (binary and original Level 1 replay, 2026-09-27).** Packet action 88 activates a selected object whose definition has the Special type flag. The packet carries its original entity slot, which must be mapped to a simulation object instance. The handler dispatches on subtype and destroys the object after activation. For subtype 117, it walks the activating player's creatures, raises each one level through the usual level increment, then heals each to its new maximum through the health routine. Effect, sound, and notification work remains presentation work.
+**STRONGLY INFERRED (binary, rechecked 2026-09-28).** Action 88 at
+`0x00513760` checks a live entity, object category 2, and definition Special
+flag `+0xF4 & 4`; it calls `0x004A3FC0` for the command's player, then destroys
+the object. Neither this handler nor the subtype-117 arm (`0x004A42C0`) checks
+land ownership, distance or reach. Do not add those checks to the command.
+Human selection eligibility remains **UNKNOWN** here; the AI's separate
+selector is in `computer-keeper-management.md` section 3.
+
+Subtype 117 walks the activating player's creature list, increments level,
+and applies the new maximum health through the health routine. Effect, sound,
+notification and the player's activation counter remain unimplemented.
+The positive-health Increase Level result below is **CONFIRMED** by capture;
+that does not confirm every admission rule or creature-state edge case.
 
 The original Level 1 packet activates slot 1128 at turn 1708. The level's sole placed Special is subtype 117 at (12,13), so slot 1128 → our object 1 is **STRONGLY INFERRED**. The read-only creature capture shows all seven keeper Goblins at 1875 health on turn 1708; one had 890 on turn 1707. This confirms the full heal as well as the 1500 → 1875 level-2 maximum. The replay map is `build/verification/level1-observed-entity-map.csv` (local, ignored).
 
-With this activation mapped, the headless Level 1 replay kills the Lord at turn 1846 and reaches player status 2 (Won) at tick 1872, the original win tick (Q444). Other combat timing still differs: the first Goblin arrives at turn 672 here versus 753 in DK2 (`navigation-captures.md`).
+Replay timing and remaining differences: `navigation-captures.md`,
+"Level 1 winning packet" (Q444).
 
 Other Special subtypes remain **UNKNOWN** here and are left unimplemented.

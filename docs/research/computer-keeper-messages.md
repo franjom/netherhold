@@ -62,6 +62,10 @@ With duplicates disallowed, an unexpired record for the same recipient and type
 is returned unchanged. For subtype messages, Data1 must also match the stored
 subtype. Neither age, data nor handled state is refreshed. A successful new
 insertion receives a new unique id, age zero and cleared handled state.
+Type 6 has timeout zero, so `age < timeout` is false even immediately after
+insertion: it does not suppress another type-6 record before the sweep.
+This was rechecked at `0x004C4600`; the clear duplicate-permission bit alone
+is insufficient to infer suppression.
 
 `0x004C41E0` increments age and removes at `age >= timeout`. A zero-timeout
 message therefore survives insertion until the next queue sweep. NeedsTab clears
@@ -127,7 +131,7 @@ index or a creature id inferred from the message number.
 | Type | Producer | Recipient and payload | Result |
 |---|---|---|---|
 | 1 | `0x004DA200` | Heart owner; heart tile x/y | Negative heart-health delta while not invulnerable; see `win-and-defeat.md` §3.1 |
-| 6 | `0x0045EB20` | Attacking creature's owner; its tile x/y | State-199 entry, excluding the ally-spell attack mode 3; not every damage hit |
+| 6 | `0x0045EB20` | Attacking creature's owner; its tile x/y | State-199 update with entry stamp equal to current turn, excluding ally-spell mode 3 |
 | 12 | `0x00498BB0` | Hostile target tile's owner; target x/y | Terrain work calls `0x004508D0`, tests return zero, then emits when owner differs; exact helper-result semantics remain UNKNOWN |
 | 17, 18 | `0x00478B80`, `0x00478C30` | Creature owner; caller's grievance code / creature tag | Positive anger input changes mood to unhappy/angry; never-angry creatures are excluded |
 | 32, 35 | `0x004E5650` | New/old room owner; room type / room tag | Room ownership transfer; type 33 replaces 32 when the old owner is neutral |
@@ -238,11 +242,15 @@ claiming complete queue fidelity.
 `PlayerMessageQueue` implements types 1/6 only, including admission, duplicate
 retention, shared eviction, age/tab expiry and explicit handled state. These
 types do not use the unresolved suppression fields. `CombatMessageRules` posts
-on combat entry and the melee/shot Heart-damage paths. The state-199 handler
+during the combat update and on the melee/shot Heart-damage paths. The state-199 handler
 `0x0045EB20` was rechecked: it posts only when its entry stamp equals the current
 turn and attack mode is not 3; it is not a notification on each hit.
-Current state-transition adapters emit at that entry, including travel arrival.
-The general state-hook dispatcher is still separate work.
+`0x00476D30` writes the entry stamp on every accepted transition, including a
+same-state transition. A transition alone does not emit; if the state changes
+again before its handler runs, no type 6 is sent. Travel arrival only stamps.
+`CombatSystem` runs the message prologue after acquisition on that turn and at
+state-199 update; acquisition precedes state dispatch in the original
+(`combat-acquisition.md` section 2). General state-hook dispatch remains open.
 
 Scheduling and the preserved observation window are ADR-0245. No live original
 message trace has been captured. Room/mood/subtype messages, their suppression

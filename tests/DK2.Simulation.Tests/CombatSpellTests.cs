@@ -19,6 +19,41 @@ public class CombatSpellTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
 
+    [Theory]
+    [InlineData(0, false, false, true)]
+    [InlineData(-1, false, false, false)]
+    [InlineData(0, true, false, false)]
+    [InlineData(0, false, true, false)]
+    public void BattleUpdateRequiresCurrentEntryStampAndHostileMode(
+        long stampOffset, bool allySpell, bool leaveBeforeUpdate, bool expected)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState creature = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
+        long tick = world.CurrentTick.Value;
+        Assert.True(CreatureStateMachine.TrySetState(creature, 199, tick + stampOffset));
+        if (allySpell) creature.AttackType = CombatRules.AttackTypes.SpellAtAlly;
+        if (leaveBeforeUpdate) Assert.True(CreatureStateMachine.TrySetState(creature, 1, tick));
+        Assert.Empty(world.Messages.Entries);
+        new GameSimulation(db, world, 1, [new CombatSystem()]).Tick();
+        Assert.Equal(expected, world.Messages.Entries.Any(m => m.Kind == PlayerMessageKind.CombatStarted));
+    }
+
+    [Fact]
+    public void TravelArrivalAloneDoesNotPostAndItsEntryStampSurvivesSnapshot()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState creature = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
+        CreatureStateMachine.BeginTravel(creature, 6, 199);
+        Assert.True(CreatureStateMachine.Arrive(creature, world.CurrentTick.Value));
+        Assert.Empty(world.Messages.Entries);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem()]);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, [new CombatSystem()]);
+        Assert.Equal(creature.StateEnteredTick, restored.World.CreatureById(creature.Id)!.StateEnteredTick);
+        sim.Tick(); restored.Tick();
+        Assert.Single(world.Messages.Entries);
+        Assert.Equal(sim.StateHash(), restored.StateHash());
+    }
+
     [Fact]
     public void EnteringBattlePostsTheAttackersPositionWithoutRepeatingEveryTick()
     {

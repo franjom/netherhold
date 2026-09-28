@@ -78,7 +78,13 @@ public static class Dk2InstallGate
 /// </summary>
 public sealed class InstallFactAttribute : FactAttribute
 {
-    public InstallFactAttribute() => Skip = Dk2InstallGate.SkipReason;
+    public InstallFactAttribute(string? saveName = null)
+    {
+        Skip = Dk2InstallGate.SkipReason;
+        if (saveName is not null && Dk2InstallGate.Present &&
+            !File.Exists(System.IO.Path.Combine(DK2.Data.Save.Dk2SaveReader.SaveDirectory(Dk2InstallGate.Path), saveName)))
+            Skip = $"Original capture {saveName} is not installed.";
+    }
 }
 
 /// <summary>

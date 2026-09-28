@@ -398,7 +398,7 @@ and `TrapsStartFights` **on**; `Flags` 0 (then `0xFFFF` from either loader).
 Most outward actions use the human player's dispatch paths: the player's hand
 (take thing, drop thing, "is hand holding"), the
 generic player-action handler with an action id (40 = tag a tile for digging, 41 =
-untag, 62 = slap, 63 = remove Call to Arms, 88 = pick up a Special), room placement
+untag, 62 = slap, 63 = remove Call to Arms, 88 = activate a Special), room placement
 (with the world's "can this room go here" check first), trap and door placement,
 keeper-spell casting at a position or on a thing (spell 1 Sight of Evil, 3 Call to
 Arms, 4 Create Imp, 13 Create Gold — ids CONFIRMED from `KeeperSpells.kwd`, whose id
@@ -611,11 +611,9 @@ creature leaves).
   Heart (5), Guard Room (9) or Portal (3). None → the same walk for rooms that are
   researchable-but-unavailable, yielding the `0xE5` "empty room shape" placeholder.
   Still none → `NextRoomToBuild ← 3` and **`AllRoomsBuilt`** set.
-- Portal/Hero Portal: claim the nearest **neutral** one within `MaxBuildArea` if it is
-  within `NeutralRoomRangeFromHeart` of the heart, or if an owned tile lies on the
-  boundary of a square of side `NeutralRoomRangeFromClaimedArea * 2 + 3` centred
-  on it. The accepted room starts Task 7 / NextTask 4. Any other room: the same
-  for a **neutral room of that type** first (handler research section 3).
+- The planner clears the current-room byte before the chooser; it can retry the
+  previous room. The all-built fallback still searches neutral portals. Exact
+  candidate, distance, boundary and route-origin rules: `research/computer-keeper-handlers.md` section 3.
 - Cost: `roomCostPerTile × DefaultRoomSize > gold` → gold step (Task 5 via the nearest
   known deposit) instead of building.
 - Otherwise Task 1 with a direction (rooms id < 6 use `DefendDirection`, others
@@ -896,7 +894,7 @@ repository (`TendancyMoney` is EA's spelling; Flame has it too).
   above it are sent to the Combat Pit instead of the Training Room.
 - The retail build **profiles the AI tick** into three globals; the player tick wraps it
   with two timer reads.
-- Player-action ids seen: 40 tag, 41 untag, 62 slap, 63 remove CTA, 88 pick up Special.
+- Player-action ids seen: 40 tag, 41 untag, 62 slap, 63 remove CTA, 88 activate Special.
   Player message types: see §5.3.
 - Object ids 117–129 are the thirteen Specials (Increase Level … Locate Hidden Land);
   the AI also matches id 8 (Torture Wheel) in the same switch, which looks like a
@@ -1148,6 +1146,8 @@ Deviations and approximations, each a candidate ADR:
 - The room planner's second pass (researchable-but-unavailable rooms, the `0xE5`
   empty-shape dig) is not reproduced. Availability state 2 already exists; the
   research progression that changes it remains incomplete.
+- Room bounding-box centres stand in for DK2's stored room positions and entrance
+  coordinates; room-list tie order also remains approximate. See handler section 3.
 - `SlapCooldownTicks` (§12.5).
 
 Combat messages reach the observation; reactive and battle decisions, the remaining

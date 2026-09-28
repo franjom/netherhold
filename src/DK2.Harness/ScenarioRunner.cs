@@ -225,6 +225,7 @@ public sealed class ScenarioRunner
             simulation.Tick(pending.Count == 0 ? scripted :
                 new InputFrame([.. scripted.All, .. pending]));
             hashes.Add(simulation.StateHash());
+            if (t + 1 == scenario.DurationTicks) break;
             var next = new List<PlayerCommand>();
             foreach (KeeperAI keeper in keepers)
                 next.AddRange(keeper.Think(_database, world));

@@ -100,6 +100,7 @@ public sealed class CombatSystem : ISimulationSystem
         if (!CombatRules.ScanIsDue(creature, moved)) return;
 
         CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch);
+        CombatMessageRules.UpdateBattle(context.World, creature, context.Tick.Value);
     }
 
     /// <summary><c>spFighting</c> in the order it runs (combat-fight-state.md §2), with state 8 as
@@ -112,6 +113,7 @@ public sealed class CombatSystem : ISimulationSystem
     {
         WorldState world = context.World;
         long tick = context.Tick.Value;
+        CombatMessageRules.UpdateBattle(world, creature, tick);
 
         if (!CombatRules.MayLookForAFight(world, creature, force: false))
         {

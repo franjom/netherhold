@@ -115,10 +115,10 @@ rival's Claimed Path into Rock, a transition nothing in DK2 triggers (Q18, Q219;
 `TileWorkRules.UpwardDestination`, keyed on `Ownable`, so floor, bridge and room
 read alike).
 
-DK2's terrain conversion (`0x0044FC40`) assigns `[0x006F2548]`, the neutral
-player, when the destination lacks the ownable flag. Level 1's neutral-owner
-area trigger at (14,23) fires when digging leaves Dirt Path; owner 0 missed
-flags 5 through 13. The keeper can claim the tile (ADR-0045). Room sale differs.
+Conversion `0x0044FC40` assigns neutral (`[0x006F2548]`) to non-ownable results.
+Level 1's area at (14,23) then advances flag 5; owner 0 does not. The shipped-trigger
+regression is in `TriggerExecutorOnRealDataTests`. Initial map owner 0 is preserved;
+claimability is separate from stored ownership (ADR-0045). Room sale differs.
 
 ### Why the upward conversion is a property of the work
 

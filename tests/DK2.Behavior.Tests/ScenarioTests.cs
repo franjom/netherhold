@@ -58,6 +58,23 @@ public class ScenarioTests
         }
     }
 
+    [InstallFact]
+    public void KeeperCommandsAreCountedOnlyWhenThereIsATickToApplyThem()
+    {
+        string install = Dk2InstallGate.Path;
+        Scenario scenario = Scenario.Load(Path.Combine(
+            RepositoryRoot(), "scenarios", "keepers", "level10_asmodeus_idle.yaml"));
+        scenario.DurationTicks = 1;
+        var runner = new ScenarioRunner(GameDatabaseLoader.Load(install), install);
+        ScenarioResult one = runner.Run(scenario);
+        Assert.Empty(one.EmittedKeeperCommands);
+        Assert.Empty(one.KeeperCommandLog);
+        scenario.DurationTicks = 2;
+        ScenarioResult two = runner.Run(scenario);
+        Assert.NotEmpty(two.KeeperCommandLog);
+        Assert.All(two.KeeperCommandLog, e => Assert.InRange(e.InputTick, 1, scenario.DurationTicks - 1));
+    }
+
     [Fact]
     public void EveryScenarioInTheRepository_Loads()
     {

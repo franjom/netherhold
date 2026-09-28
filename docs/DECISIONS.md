@@ -5404,6 +5404,12 @@ keeper play observes once after each tick and submits commands on the next one;
 a turn-based external host waits before advancing, while a real-time host may
 advance with empty input while waiting. No wall-clock timing enters the keeper.
 
+**Planner geometry limit (2026-09-28).** Keep bounding-box centres as stand-ins
+for original stored room positions and entrances until those fields are modelled.
+The verified candidate gates, distance comparisons and boundary endpoints are
+implemented, but multi-tile geometry and equal-distance room ordering remain
+approximate. `computer-keeper-handlers.md` section 3 owns the original rules.
+
 ## ADR-0245 — Retain combat messages across the keeper observation boundary
 **Date:** 2026-09-28 · **Status:** accepted · Research: `computer-keeper-messages.md`
 
@@ -5433,3 +5439,21 @@ consume these messages: threat events and their response commands are the next
 slice. Heart position retains the existing Heart-tile approximation (Q363).
 The contact-shot producer also corrects the caller's damage sign: `DamageHeart`
 takes a positive loss; negating a positive shot amount healed the Heart.
+
+## ADR-0246 — Stamp state entry separately from battle-message dispatch
+**Date:** 2026-09-28 · **Status:** accepted · Research: `computer-keeper-messages.md`
+
+**Context.** A state transition can be followed by another transition before its
+handler runs. Posting type 6 from the transition adapter notified about battles
+whose state-199 handler never executed.
+
+**Decision.** Persist and hash `StateEnteredTick`, distinct from the combat
+fear/withdrawal clock. Context-aware transitions and travel arrival supply the
+current turn. Clockless state helpers, including fixture setup, use -1 and cannot imply a
+first-turn message. The battle update checks state 199, equality with the entry
+turn, and the hostile attack mode. Acquisition runs this prologue on the same
+turn; other fight-body scheduling stays as already implemented.
+
+**Consequences.** HashVersion and snapshot FormatVersion become 125 together.
+This fixes message dispatch, not the still-incomplete general state-hook
+scheduler. ADR-0245's delayed expiry and ADR-0244's input delay remain in force.

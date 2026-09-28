@@ -2881,6 +2881,7 @@ static int Replay(string[] arguments)
     string? roomPath = null;
     string? tilePath = null;
     string? packetPath = null;
+    int? packetOffset = null;
     string? entityMapPath = null;
     string? creaturePath = null;
     string? eventPath = null;
@@ -2905,6 +2906,9 @@ static int Replay(string[] arguments)
                 break;
             case "--tiles":
                 tilePath = value;
+                break;
+            case "--packet-offset" when int.TryParse(value, out int offset) && offset >= 0:
+                packetOffset = offset;
                 break;
             case "--packet":
                 packetPath = value;
@@ -2937,17 +2941,20 @@ static int Replay(string[] arguments)
         }
         else
         {
-            packet = PacketLog.Read(packetPath, turns);
+            if (arguments[2] != "-" || roomPath is not null)
+                throw new InvalidDataException("Packet replay requires tags path - and no --rooms input.");
+            if (packetOffset is not int start)
+                throw new InvalidDataException("Packet replay requires --packet-offset for the verified first record (69 for the Level 1 capture).");
+            packet = PacketLog.Read(packetPath, turns, start);
             entityIds = PacketEntityMap.Read(entityMapPath);
             string[] unmapped = [.. packet.EntityReferences
                 .Where(reference => !entityIds.TryResolve(
-                    reference.Original, reference.Turn, out _))
+                    reference.Original, reference.Turn, reference.Kind, out _))
                 .Select(reference => $"{reference.Original}@{reference.Turn}")];
             if (unmapped.Length > 0)
                 throw new InvalidDataException(
                     $"Packet entities need observed ID mappings: {string.Join(", ", unmapped)}. "
-                    + "Pass --entity-map original,from_turn,ours.csv.");
-            if (arguments[2] != "-") log = InputLog.Read(arguments[2], lag, origin);
+                    + "Pass --entity-map original,from_turn,ours,kind.csv.");
         }
     }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
@@ -3019,8 +3026,8 @@ static int ReplayUsage()
 {
     Console.Error.WriteLine("usage: dk2tools replay <level> <tags.csv> <out.csv> "
         + "[--turns N] [--lag L] [--origin T] [--rooms rooms.csv] [--tiles tiles.csv]\n"
-        + "       dk2tools replay <level> <tags.csv|-> <out.csv> "
-        + "--packet recording.sav [--entity-map ids.csv] [--turns N] "
+        + "       dk2tools replay <level> - <out.csv> "
+        + "--packet recording.sav --packet-offset N [--entity-map ids.csv] [--turns N] "
         + "[--tiles tiles.csv] [--creatures creatures.csv] [--events events.tsv]");
     return 2;
 }
