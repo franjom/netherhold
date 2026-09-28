@@ -10,6 +10,21 @@ namespace DK2.Data.Tests;
 
 public class KwdDoorsTrapsTests
 {
+    [Fact]
+    public void TrapThreatIsAnUnsignedWordIndependentOfNeighbouringFields()
+    {
+        byte[] record = new byte[579];
+        record[0x1E9] = 0xFF;
+        record[0x1EA] = 0xCD;
+        record[0x1EB] = 0xAB;
+        record[0x1EC] = 0xFF;
+        var chunk = new KwdChunk
+        {
+            Type = KwdRecordType.Traps, ItemCount = 1, Content = record, HeaderBlock = [],
+        };
+        Assert.Equal((ushort)0xABCD, Assert.Single(KwdTraps.Parse([chunk])).Threat);
+    }
+
     private static string Editor()
     {
         string editor = Path.Combine(Dk2InstallGate.Path, "Data", "editor");

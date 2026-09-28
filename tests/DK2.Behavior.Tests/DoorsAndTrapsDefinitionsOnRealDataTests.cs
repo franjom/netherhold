@@ -20,6 +20,13 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
         GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
     [InstallFact]
+    public void EveryTrapThreatMatchesTheBinaryVerifiedColumnIncludingZeros()
+    {
+        Assert.Equal(new ushort[] { 74, 0, 74, 0, 185, 74, 37, 600, 0, 74, 0, 100, 0, 74, 0, 0 },
+            Database().Traps.OrderBy(t => t.Key).Select(t => t.Value.Threat));
+    }
+
+    [InstallFact]
     public void EveryKeeperDoorPriceMatchesTheOriginalManual()
     {
         if (Database() is not { } database) return;

@@ -6,7 +6,7 @@ using DK2.Simulation;
 
 namespace DK2.AI;
 
-public readonly record struct KeeperTileView(byte TerrainId, byte OwnerPlayerId, ushort TaggedBy)
+public readonly record struct KeeperTileView(byte TerrainId, byte OwnerPlayerId, ushort TaggedBy, byte NavigationByte)
 {
     internal TileState ToTileState() => new()
     {

@@ -36,6 +36,11 @@ The comparison is signed and strict, with initial best `0x19000`, despite these
 being integer tile coordinates. For target `(20,20)`, candidate `(20,25)` scores
 −2500 and beats `(20,20)`'s zero. This arithmetic example is a prediction,
 not an observed drop. The position reader really does use squared distance.
+The navigation query is world vtable `0x0066E3EC +0x208`, resolving to
+`0x00509200`: it tests byte bit 3 in the navigation grid at world `+0x9F2`.
+It does not reject water, lava, portal-hole or door bits. Ownership is checked
+separately by each reader. `KeeperView.IsThreatDropCandidate` captures this
+predicate using the simulation's shared navigation-byte builder.
 Both scan Y then X in ascending order and retain the first equal-score tile.
 A chosen zero X or Y is subsequently treated as no drop site.
 
@@ -59,6 +64,14 @@ at `+0xF6`; initializer `0x004A7940` uses it to select the descriptor. Rechecked
 2026-09-28 with Ghidra 12.1.4/PyGhidra. Shipped `Traps.kwd` record 2 names
 Boulder Trap (record offset `0x20C`); construction and recharge are not tested
 by this strength helper.
+
+The threat word comes from TRAPS record `+0x1EA`: `0x00570D10` copies it to
+intermediate `+0x292`; `0x004AA440` copies that word to descriptor `+0x8C`.
+`0x004AA330` initializes it to zero. No conversion or scaling occurs.
+Shipped global `Traps.kwd` ids 1 through 16 carry, in order, 74, 0, 74, 0, 185, 74,
+37, 600, 0, 74, 0, 100, 0, 74, 0, 0 (**CONFIRMED** from data). Zero is a
+real zero contribution, not a missing-value fallback. The synthetic parser test
+also distinguishes unsigned values above 32767 and adjacent fields.
 
 The radius square is a 32-bit multiply followed by arithmetic shift 12
 (`0x004FAC57`, `0x004FAC62`), then an unsigned distance comparison
@@ -141,12 +154,12 @@ Rechecked against `0x004F9B90`, `0x004FA000`, `0x004FAC40`, `0x004FBDB0`,
 per-axis truncation, signed scaling, scan ties, zero-coordinate rejection,
 the room-score defect, zero residuals and narrowing overflow.
 
-This is not yet called by `KeeperAI.Think`. Inputs require explicit map-layer
-and trap definition/threat values, player-list order and a navigation-aware tile predicate;
-the current observation copies positions, hand/carrier state, alliances and the
-simulation player order, but does not yet derive all threat inputs. Original
-player-list ordering still needs reconciliation with that simulation order. Do not substitute health
-for map layer or terrain solidity for navigation.
-The three-slot ring, imprisonment commands, interaction gates and hand response
-remain integration work. Simulation state and world-save format are unchanged;
-the separate observation packet is schema 3.
+This is not yet called by `KeeperAI.Think`. The observation now copies creature
+positions, hand/carrier state, alliances, simulation player order, placed trap
+coordinates/type/definition threat and navigation bytes. Trap construction and
+shot counts do not filter this capture. Original map-layer exclusion and
+player-list ordering still need reconciliation with simulation state/order;
+trap runtime off-map transitions are not modelled. Do not substitute health
+for map layer. The three-slot ring, imprisonment commands, interaction gates
+and hand response remain integration work. Simulation state and world-save
+format are unchanged; the separate observation packet is schema 4.

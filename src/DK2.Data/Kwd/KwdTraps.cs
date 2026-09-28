@@ -15,6 +15,7 @@ public static class KwdTraps
 
     // Five 84-byte art resources follow the 32-byte name. Gold prices are an
     // exact 11-for-11 match with the manual; shot ids resolve through SHOTS.
+    private const int OffsetThreat = 0x1EA;
     private const int OffsetHealth = 0x1F0;
     private const int OffsetGoldCost = 0x1F2;
     private const int OffsetManufactureRequired = 0x1FA;
@@ -48,6 +49,7 @@ public static class KwdTraps
     {
         Name = Name(record, at),
         TrapId = record[at + OffsetTrapId],
+        Threat = U16(record, at + OffsetThreat),
         Health = U16(record, at + OffsetHealth),
         GoldCost = U16(record, at + OffsetGoldCost),
         ManufactureRequired = U16(record, at + OffsetManufactureRequired),

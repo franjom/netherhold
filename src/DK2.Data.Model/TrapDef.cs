@@ -16,6 +16,10 @@ public sealed record TrapDef
     /// <summary>The stable record id; the shipped table contains 1 through 16.</summary>
     public required byte TrapId { get; init; }
 
+    /// <summary>Keeper strength contribution; record +0x1EA, descriptor +0x8C.
+    /// See computer-keeper-threat.md section 2.</summary>
+    public ushort Threat { get; init; }
+
     /// <summary>Initial health of a placed trap.</summary>
     public required ushort Health { get; init; }
 

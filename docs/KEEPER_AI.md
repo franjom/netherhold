@@ -1055,8 +1055,7 @@ responding to attacks are the next implementation slice (2026-09-28).
 
 Alliances, player status, and trap and door instances now exist (ADR-0159,
 ADR-0162, ADR-0231). Per-player spell availability is stored and can change through
-trigger action 6; the research progression that changes it from accrued points is
-absent (`WorldState.SetAvailability`, `library-and-research.md`).
+trigger action 6 and the research tree (ADR-0247; `library-and-research.md`).
 
 ### 12.5 Fidelity choices, decided here so they are not decided by accident
 
@@ -1134,8 +1133,9 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
-Observation schema 3 includes fixed-point creature positions, hand/carrier state,
-alliances, simulation player order and research upgrades. Tests check frozen
+Observation schema 4 includes fixed-point creature positions, hand/carrier state,
+alliances, simulation player order, research upgrades, placed trap threat and
+navigation bytes (`research/computer-keeper-threat.md` sections 1 and 2). Tests check frozen
 values, packet round trips and equal command streams;
 stock-creature coverage checks that later world mutations cannot change the capture.
 

@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
 
@@ -11,6 +12,86 @@ namespace DK2.AI.Tests;
 
 public class KeeperViewTests
 {
+    [Fact]
+    public void TrapObservationIncludesBlueprintsAndKeepsDefinitionThreatAcrossPackets()
+    {
+        GameDatabase basis = KeeperWorld.Database();
+        var trap = new TrapDef
+        {
+            Name = "test trap", TrapId = 3, Threat = 43210, Health = 1, GoldCost = 1,
+            ManufactureRequired = 1, ShotTypeId = 0, ManaUpkeepPerSecond = 0,
+        };
+        var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
+            basis.Creatures.Values, basis.Variables, traps: [trap]);
+        WorldState world = KeeperWorld.World(db);
+        ThingProjection.Place(world, db, [new TrapThing(new byte[16])
+        {
+            X = 14, Y = 16, PlayerId = KeeperWorld.Keeper, TrapId = 3, NumberOfShots = 0,
+        }]);
+        Assert.True(world.Traps[0].UnderConstruction);
+        var captured = new KeeperView(db, world, KeeperWorld.Keeper);
+        byte[] packet = KeeperViewSnapshot.ToBytes(captured);
+        KeeperView restored = KeeperViewSnapshot.FromBytes(packet, db);
+        Assert.Equal(new KeeperTrapView(3, KeeperWorld.Keeper, 14, 16, 43210), Assert.Single(restored.Traps));
+        Assert.Equal(packet, KeeperViewSnapshot.ToBytes(restored));
+        ThingProjection.Place(world, db, [new TrapThing(new byte[16])
+        {
+            X = 16, Y = 14, PlayerId = 2, TrapId = 3, NumberOfShots = 1,
+        }]);
+        Assert.Single(captured.Traps);
+        Assert.Equal(2, new KeeperView(db, world, KeeperWorld.Keeper).Traps.Count);
+    }
+
+    [Fact]
+    public void ThreatDropCandidatesUseNavigationSolidityRatherThanWalkingPassability()
+    {
+        GameDatabase basis = KeeperWorld.Database();
+        TerrainDef floor = basis.TerrainById(KeeperWorld.ClaimedPath);
+        var db = new GameDatabase(basis.Terrain.Values.Concat([
+            floor with { TerrainId = 30, Flags = TerrainFlags.Water },
+            floor with { TerrainId = 31, Flags = TerrainFlags.Lava }]),
+            basis.Rooms.Values, basis.Creatures.Values, basis.Variables);
+        WorldState world = KeeperWorld.World(db);
+        var water = new TilePos(5, 5);
+        var lava = new TilePos(6, 5);
+        var solid = new TilePos(7, 5);
+        var enemy = new TilePos(8, 5);
+        KeeperWorld.Set(world, db, water, 30, KeeperWorld.Keeper);
+        KeeperWorld.Set(world, db, lava, 31, KeeperWorld.Keeper);
+        KeeperWorld.Set(world, db, solid, KeeperWorld.Rock, KeeperWorld.Keeper);
+        KeeperWorld.Set(world, db, enemy, KeeperWorld.ClaimedPath, 2);
+        for (int y = 8; y <= 10; y++)
+            for (int x = 8; x <= 10; x++)
+                KeeperWorld.Set(world, db, new TilePos(x, y), KeeperWorld.PortalFloor, KeeperWorld.Keeper);
+        var portal = new TilePos(9, 9);
+        var door = new TilePos(14, 14);
+        ThingProjection.Place(world, db, [new DoorThing(new byte[20])
+        {
+            X = door.X, Y = door.Y, PlayerId = KeeperWorld.Keeper,
+            DoorId = 1, Flags = 1, Unknown_0011 = new byte[3],
+        }]);
+        var captured = new KeeperView(db, world, KeeperWorld.Keeper);
+        KeeperView restored = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(captured), db);
+        Assert.Equal(NavBytes.Water, restored.Tile(water).NavigationByte);
+        Assert.Equal(NavBytes.Lava, restored.Tile(lava).NavigationByte);
+        Assert.Equal(NavBytes.PortalHole, restored.Tile(portal).NavigationByte);
+        Assert.Equal(NavBytes.Door(KeeperWorld.Keeper, true, false), restored.Tile(door).NavigationByte);
+        foreach (TilePos candidate in new[] { water, lava, portal, door, KeeperWorld.HeartAt })
+            Assert.True(restored.IsThreatDropCandidate(candidate));
+        foreach (TilePos rejected in new[] { solid, enemy, new TilePos(-1, 5), new TilePos(world.Width, 5) })
+            Assert.False(restored.IsThreatDropCandidate(rejected));
+        Assert.False(restored.IsPassable(water));
+        Assert.False(restored.IsPassable(lava));
+
+        world.Doors[0].Open = true;
+        KeeperWorld.Set(world, db, water, KeeperWorld.Rock, KeeperWorld.Keeper);
+        var current = new KeeperView(db, world, KeeperWorld.Keeper);
+        Assert.False(current.IsThreatDropCandidate(water));
+        Assert.True(captured.IsThreatDropCandidate(water));
+        Assert.Equal(NavBytes.Floor, current.Tile(door).NavigationByte);
+        Assert.Equal(restored.Tile(door).NavigationByte, captured.Tile(door).NavigationByte);
+    }
+
     [Fact]
     public void AlliancesAndResearchUpgradesRemainFrozenAcrossPacketRoundTrip()
     {
@@ -42,7 +123,7 @@ public class KeeperViewTests
     {
         GameDatabase db = KeeperWorld.Database();
         byte[] packet = KeeperViewSnapshot.ToBytes(new KeeperView(db, KeeperWorld.World(db), KeeperWorld.Keeper));
-        packet[4] = 2;
+        packet[4] = 3;
         Assert.Throws<InvalidDataException>(() => KeeperViewSnapshot.FromBytes(packet, db));
     }
 

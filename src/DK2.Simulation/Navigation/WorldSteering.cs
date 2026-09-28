@@ -51,24 +51,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         if (_scratch.Length != count) _scratch = new byte[count];
         StructureBlocks structures = StructureBlocks.For(_world, _database);
         _structures = structures;
-        for (int y = 0; y < _world.Height; y++)
-        {
-            for (int x = 0; x < _world.Width; x++)
-            {
-                int index = (y * _world.Width) + x;
-                _scratch[index] = ByteOf(_database.TerrainById(_world.Tile(x, y).TerrainId), structures.IsPortalCentre(index));
-            }
-        }
-
-        // A closed, completed door overwrites its tile (`0x004A66F0`); an open one leaves floor.
-        // A barricade (definition flag bit 6) carries the lock bit whatever its lock mode.
-        foreach (DoorState door in _world.Doors)
-        {
-            if (door.UnderConstruction || door.Open || !_world.Contains(door.X, door.Y)) continue;
-            bool barricade = _database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && def.Flags.HasFlag(DoorFlags.Barricade);
-            _scratch[(door.Y * _world.Width) + door.X] =
-                NavBytes.Door(door.PlayerId, door.LockMode != 0 || barricade, _world.Tile(door.X, door.Y).IsTaggedByAnyone);
-        }
+        FillNavigationBytes(_database, _world, structures, _scratch);
 
         if (_mesh != null && _scratch.AsSpan().SequenceEqual(_bytes)) return;
         (_bytes, _scratch) = (_scratch, _bytes);
@@ -76,6 +59,37 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         _mesh = NavMesh.Build(this);
         _router = new MeshRouter(_mesh);
         Rebuilds++;
+    }
+
+    /// <summary>Copies the navigation cache without constructing a routing mesh.</summary>
+    public static byte[] CaptureNavigationBytes(GameDatabase database, WorldState world)
+    {
+        var bytes = new byte[world.TileCount];
+        FillNavigationBytes(database, world, StructureBlocks.For(world, database), bytes);
+        return bytes;
+    }
+
+    private static void FillNavigationBytes(GameDatabase database, WorldState world,
+        StructureBlocks structures, byte[] bytes)
+    {
+        for (int y = 0; y < world.Height; y++)
+        {
+            for (int x = 0; x < world.Width; x++)
+            {
+                int index = (y * world.Width) + x;
+                bytes[index] = ByteOf(database.TerrainById(world.Tile(x, y).TerrainId), structures.IsPortalCentre(index));
+            }
+        }
+
+        // A closed, completed door overwrites its tile (`0x004A66F0`); an open one leaves floor.
+        // A barricade (definition flag bit 6) carries the lock bit whatever its lock mode.
+        foreach (DoorState door in world.Doors)
+        {
+            if (door.UnderConstruction || door.Open || !world.Contains(door.X, door.Y)) continue;
+            bool barricade = database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && def.Flags.HasFlag(DoorFlags.Barricade);
+            bytes[(door.Y * world.Width) + door.X] =
+                NavBytes.Door(door.PlayerId, door.LockMode != 0 || barricade, world.Tile(door.X, door.Y).IsTaggedByAnyone);
+        }
     }
 
     /// <summary>The navigation byte the original's cache holds (structure-blocks.md §5.4): solid,

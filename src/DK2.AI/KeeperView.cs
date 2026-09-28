@@ -4,7 +4,9 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 using DK2.Simulation;
+using DK2.Simulation.Navigation;
 
 namespace DK2.AI;
 
@@ -39,15 +41,18 @@ public sealed class KeeperView
             c.Id, c.CreatureTypeId, c.OwnerPlayerId, c.Activity, c.Health, c.Level,
             c.LastSlapTick, HandRules.CanSlap(database, c, playerId),
             c.PosX, c.PosY, c.InHand, c.CarriedByCreatureId)).ToList().AsReadOnly();
+        Traps = world.Traps.Select(t => new KeeperTrapView(t.TrapId, t.PlayerId, t.X, t.Y,
+            database.Traps[t.TrapId].Threat)).ToList().AsReadOnly();
 
         int heartIndex = ImpSupplyRules.HeartTileOf(world, database, playerId);
         Heart = heartIndex < 0 ? null : FromIndex(heartIndex);
 
+        byte[] navigation = WorldSteering.CaptureNavigationBytes(database, world);
         int owned = 0;
         for (int i = 0; i < world.TileCount; i++)
         {
             TileState tile = world.TileAtIndex(i);
-            _tiles[i] = new KeeperTileView(tile.TerrainId, tile.OwnerPlayerId, tile.TaggedBy);
+            _tiles[i] = new KeeperTileView(tile.TerrainId, tile.OwnerPlayerId, tile.TaggedBy, navigation[i]);
             if (_tiles[i].OwnerPlayerId == playerId) owned++;
         }
         OwnedTiles = owned;
@@ -56,7 +61,7 @@ public sealed class KeeperView
     internal KeeperView(GameDatabase database, byte playerId, GameTick tick, byte status, byte alliedWith, byte[] playerIds,
         int width, int height, int gold, int impCount, TilePos? heart,
         KeeperTileView[] tiles, AvailabilityState[] availability,
-        KeeperCreatureView[] creatures, KeeperRoomView[] rooms, PlayerMessage[] messages)
+        KeeperCreatureView[] creatures, KeeperTrapView[] traps, KeeperRoomView[] rooms, PlayerMessage[] messages)
     {
         Database = database;
         PlayerId = playerId;
@@ -72,6 +77,7 @@ public sealed class KeeperView
         _tiles = tiles;
         _availability = availability;
         Creatures = Array.AsReadOnly(creatures);
+        Traps = Array.AsReadOnly(traps);
         Messages = Array.AsReadOnly(messages);
         AllRooms = Array.AsReadOnly(rooms);
         OwnRooms = rooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
@@ -90,6 +96,7 @@ public sealed class KeeperView
     public bool AreAllied(byte otherId) => otherId == PlayerId
         || (otherId < 8 && (AlliedWith & (1 << otherId)) != 0);
     public IReadOnlyList<KeeperCreatureView> Creatures { get; }
+    public IReadOnlyList<KeeperTrapView> Traps { get; }
     public IReadOnlyList<PlayerMessage> Messages { get; }
 
     public IReadOnlyList<KeeperRoomView> AllRooms { get; }
@@ -160,6 +167,9 @@ public sealed class KeeperView
     }
 
     public bool IsMine(TilePos p) => InBounds(p) && Tile(p).OwnerPlayerId == PlayerId;
+
+    /// <summary>Threat-reader candidate gate: ownership and navigation bit 3 (0x00509200).</summary>
+    public bool IsThreatDropCandidate(TilePos p) => IsMine(p) && !NavBytes.IsSolid(Tile(p).NavigationByte);
     public bool HasRoom(TilePos p) => InBounds(p) && Terrain(p).IsRoom;
     public bool IsTaggedByMe(TilePos p) => InBounds(p) && Tile(p).IsTaggedBy(PlayerId);
     public bool IsTaggedByAnyone(TilePos p) => InBounds(p) && Tile(p).IsTaggedByAnyone;
