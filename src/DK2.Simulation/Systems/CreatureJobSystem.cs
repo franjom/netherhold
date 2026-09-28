@@ -82,6 +82,14 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             }
             if (Combat.CombatRules.Preoccupied(creature)) continue;
 
+            // 193, joining your Dungeon: the Entrance animation, a step off the portal, then 1 and
+            // a job in the same tick, as 0x00459C20 sets 1 and calls the lair attempt at once.
+            if (creature.Dk2StateId == PortalRules.JoiningState)
+            {
+                if (PortalRules.StillJoining(world, creature, definition)) continue;
+                StateShadow.ToIdle(context, SystemName, creature);
+            }
+
             // 3 and 87, 89's "nothing to do": an idle action or a wander, then idle (ADR-0228).
             if (creature.Dk2StateId == DoingNothingState)
             {
@@ -370,7 +378,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         {
             int target = ArrivalTile(world, room);
             var at = new TilePos(target % world.Width, target / world.Width);
-            if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) continue;
+            if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) { if (context.Tick.Value < 900) { var g = new WorldPathGrid(database, world, definition); var sb = new System.Text.StringBuilder(); for (int yy = 28; yy <= 41; yy++) { sb.Append(yy).Append(' '); for (int xx = 10; xx <= 24; xx++) sb.Append(xx == creature.Tile.X && yy == creature.Tile.Y ? 'C' : xx == at.X && yy == at.Y ? 'T' : g.IsWalkable(xx, yy) ? '.' : '#'); sb.AppendLine(); } System.Console.Error.WriteLine($"DBG t={context.Tick.Value} {definition.Name} at={creature.Tile} target={at} room={room.Definition.Name}"); System.Console.Error.WriteLine(sb.ToString()); } continue; }
 
             creature.JobTileIndex = target;
             SetOutInState(context, creature, job);

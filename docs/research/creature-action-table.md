@@ -69,8 +69,12 @@ wrappers at `0x00496980`, `0x004969D0` and `0x00496A30` call it and then copy
 two or three dwords into `+0x38D` — the same entry point with different argument
 shapes.
 
-**HYPOTHESIS, from the shape only**: `+20` selects which of the creature
-record's ~45 `ArtResource` animation blocks to play. Its range stops at `0x25`,
+**STRONGLY INFERRED (2026-09-28)**: `+20` selects which of the creature
+record's ~45 `ArtResource` animation blocks to play, counting 84-byte blocks from
+record offset `0x20`. Actions 1 and 2 hold 5, the Imp's block 5 is `Imp_Dig`;
+action 49 holds 30, block 30 is every portal creature's Entrance
+(`portal-creature-action.md`). The filler runs past `0x00495E00`: record 49 is
+written at `0x00495E0A`–`0x00495EBD`. Formerly a hypothesis from the shape only. Its range stops at `0x25`,
 and records 36, 37 and 38 share one handler (`0x00499300`) and differ only in
 this byte. Not tested, and not named on the strength of a shape.
 
@@ -187,7 +191,7 @@ attack and that `FUN_00514830` starts it with a literal `0x11`.
 
 **CONFIRMED (negative):** `+25` is not a `Text.str` id.
 
-**HYPOTHESIS:** that `+20` selects a creature animation block (§3).
+**STRONGLY INFERRED:** that `+20` selects a creature animation block (§3; two actions checked by name).
 
 **UNKNOWN:** the table's own name, the other six fields, index 21, and what the
 57 handler-less records do.

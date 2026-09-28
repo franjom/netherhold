@@ -5723,3 +5723,25 @@ balance.
 **Limits.** Treasuries go in our room order, not the player's room list. No new
 state; hash and snapshot versions are unchanged. Level 1's keeper starts at 0, and
 its packet replay still wins at tick 1864 (1868 before ADR-0265).
+
+## ADR-0271 — A portal creature waits out its Entrance animation, then steps off the hole
+**Date:** 2026-09-28 · **Status:** accepted
+
+**Context.** Portal arrivals were made on the portal's centre, the hole, and left
+idle there. A creature on the hole has no route, so in the Level 2 replay every
+arrival stood on it for good. DK2's state 193 moves it off. Evidence:
+`research/portal-creature-action.md`, Q473.
+
+**Decision.** A keeper portal's arrival enters state 193. `CreatureJobSystem`
+holds it for `ceil(EntranceFrames × 4 / EntranceFramesPerSecond)` ticks after the
+one it was made in, then adds the definition's `EntranceOffset`, sets state 1 and
+lets it choose in the same tick. `KwdCreatures` reads the offset at `0xE94` and
+the Entrance animation (block 30) frames and rate.
+
+**Reason.** Handler 193 waits on action 49, which plays Entrance, and then adds the
+`+0x6EC` vector. The tick count fits the recording's 21 (Warlock) and 28 (Goblin)
+exactly.
+
+**Limits.** Hero Portal arrivals (state 278) are unchanged. The floor height is not
+taken, and 193 reads as idle to other systems. `StateEnteredTick` already existed,
+so no new state and no version change.

@@ -259,8 +259,10 @@ against DK2's ten to twelve (Q480).
 **Next divergence: the portal's type choice.** Action 28 is built (ADR-0265): our
 scripted Warlock arrives at 885. DK2's five Warlocks arrive 987–1471 (which one
 is scripted is not known) before its first Goblin at 1651. Our uniform picker sends Goblins at 927,
-1023 and 1139, so the replay stops at 1359. Our Library has room (capacity 4),
-but the scripted Warlock cannot route to it at 885.
+1023 and 1139, so the replay stopped at 1359. Our portal arrivals also never
+left the portal's hole (no route from it). With state 193's wait and step built
+(ADR-0271) they leave on the recording's tick and walk DK2's path. The replay now
+stops at 1504: our fourth arrival is a Goblin where DK2's fifth Warlock came.
 
 ## The probe's own limits
 

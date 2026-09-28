@@ -52,6 +52,22 @@ public sealed record CreatureDef
     /// </summary>
     public CreatureFlags2 Flags2 { get; init; }
 
+    /// <summary>Where a creature steps to as it finishes coming out of a portal, relative to the
+    /// point it was made at, in 1/4096 tiles: record offset <c>0xE94</c> (x) and <c>0xE98</c> (y),
+    /// the first of the eight runtime vectors at <c>+0x6EC</c> (loader <c>0x00493B37</c>) that
+    /// state 193 adds (<c>0x00459C20</c>). Not <c>required</c>: zero leaves it where it was made.</summary>
+    public int EntranceOffsetX { get; init; }
+
+    /// <inheritdoc cref="EntranceOffsetX"/>
+    public int EntranceOffsetY { get; init; }
+
+    /// <summary>The Entrance animation's frame count and rate (animation block 30, the one
+    /// action 49 plays while state 193 waits). Zero when the creature has none, as the Imp.</summary>
+    public int EntranceFrames { get; init; }
+
+    /// <inheritdoc cref="EntranceFrames"/>
+    public int EntranceFramesPerSecond { get; init; }
+
     // Movement / perception
     public required Fp32 Speed { get; init; }
     public required Fp32 RunSpeed { get; init; }

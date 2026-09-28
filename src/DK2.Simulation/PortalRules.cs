@@ -47,12 +47,39 @@ public static class PortalRules
         WorldState world, GameDatabase database, RoomInstance portal, byte creatureTypeId)
     {
         int entrance = EntranceTileIndex(world, portal);
-        // State 193's animation completion and displacement are not represented by
-        // this existing idle arrival path; see Q473 before changing its timing.
         CreatureState creature = world.SpawnCreature(database, creatureTypeId, portal.OwnerPlayerId,
             new TilePos(entrance % world.Width, entrance / world.Width));
         world.TileAtIndex(entrance).EntranceCreaturesGenerated++;
+        // A keeper portal's creature enters 193 (a Hero Portal's enters 278, not built).
+        if (IsKeeperPortal(portal.Definition))
+            CreatureStateMachine.TrySetState(creature, JoiningState, world.CurrentTick.Value);
         return creature;
+    }
+
+    /// <summary>State 193, joining your Dungeon (<c>0x00459C20</c>).</summary>
+    public const int JoiningState = 193;
+
+    /// <summary>How long the Entrance animation runs, in ticks: its frames at its rate,
+    /// rounded up. Zero for a creature with none.</summary>
+    public static int JoiningTicks(CreatureDef definition) =>
+        definition.EntranceFrames <= 0 || definition.EntranceFramesPerSecond <= 0
+            ? 0
+            : ((definition.EntranceFrames * SimulationTiming.OriginalTicksPerGameSecond)
+               + definition.EntranceFramesPerSecond - 1) / definition.EntranceFramesPerSecond;
+
+    /// <summary>One tick of state 193: whether the creature is still coming out. When done,
+    /// it steps by its definition's entrance offset, off the portal's hole, and the caller
+    /// moves it to state 1.</summary>
+    /// <remarks>STRONGLY INFERRED (portal-creature-action.md): 193 waits while action 49 runs,
+    /// which plays Entrance, then adds the vector and sets 1. DK2 releases the creature the
+    /// tick after the animation ends: 21 ticks for a Warlock, 28 for a Goblin, in Level 2.</remarks>
+    public static bool StillJoining(WorldState world, CreatureState creature, CreatureDef definition)
+    {
+        if (world.CurrentTick.Value - creature.StateEnteredTick <= JoiningTicks(definition)) return true;
+
+        creature.PosX = Math.Clamp(creature.PosX + definition.EntranceOffsetX, 0, (world.Width * Fp32.One) - 1);
+        creature.PosY = Math.Clamp(creature.PosY + definition.EntranceOffsetY, 0, (world.Height * Fp32.One) - 1);
+        return false;
     }
 
     /// <summary>Whether this room is one creatures walk out of. Exactly two are —

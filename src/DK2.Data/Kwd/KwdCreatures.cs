@@ -23,6 +23,9 @@ public static class KwdCreatures
     private const int RecordSize = 5449;
     private const int RecordSizeEmbedded = 5537;
 
+    /// <summary>Animation block 30, Entrance, which action 49 plays (<c>0x006E4739</c> = 30).</summary>
+    private const int EntranceBlock = 0x20 + (30 * 84);
+
     public static List<CreatureDef> Parse(IEnumerable<KwdChunk> chunks)
     {
         var result = new List<CreatureDef>();
@@ -132,6 +135,13 @@ public static class KwdCreatures
             // says nobody had accounted for. See CreatureFlags2 for how it was
             // located: by the roster its bit 3 has to select, not by layout.
             Flags2 = (CreatureFlags2)U32(0x1545),
+
+            // The portal step (loader source +0x1284, less the 0x3F0 shift) and the Entrance
+            // animation: art block 30 of 84 bytes from 0x20, frames at +0x44 and rate at +0x48.
+            EntranceOffsetX = S32(0xE94),
+            EntranceOffsetY = S32(0xE98),
+            EntranceFrames = S32(EntranceBlock + 0x44),
+            EntranceFramesPerSecond = S32(EntranceBlock + 0x48),
 
             Speed = Fp(0xEB4),
             RunSpeed = Fp(0xEB8),

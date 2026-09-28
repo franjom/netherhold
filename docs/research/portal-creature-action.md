@@ -41,9 +41,29 @@ under its type-seen/mode checks; it also has mode-specific sound/effect calls.
 
 CONFIRMED: handler 193 at `0x00459C20` waits for `0x00496D00` to return
 zero, clears its motion vector, displaces the creature using `0x00494650(0)`,
-sets state 1, then calls `0x0046F390`. UNKNOWN: the exact wait duration and
-that final job-selection call's complete effects. These must be read before
-assigning a simulation duration. The ordinary path currently starts idle too.
+sets state 1, then calls `0x0046F390`. UNKNOWN: that final call's complete
+effects.
+
+## State 193's wait and step (built 2026-09-28, ADR-0271)
+
+- **The wait.** The creator starts action 49 (`0x004DCBE2`). Action record 49's
+  `+20` byte is 30 (filler `0x00495EA6`), so it plays animation block 30,
+  Entrance: the creature record's 84-byte art blocks from `0x20`, frames at
+  `+0x44` and rate at `+0x48`. The Warlock has 147 frames at 30, the Goblin 197
+  at 30. STRONGLY INFERRED from two exact fits: the recording holds every
+  Warlock in 193 for 21 ticks and every Goblin for 28, which is
+  `ceil(frames × 4 / rate)` plus the tick the handler sees the action end.
+- **The step.** `0x00494650(0)` returns runtime `+0x6EC`, which the loader fills
+  from source `+0x1284` (`0x00493B37`), file offset `0xE94`. Handler 193 adds it
+  to the position unrotated and takes the floor height there. The Warlock's is
+  (0, 2929), the Goblin's (43, 3139): from the centre (12.5, 38.5) both land on
+  (12,39), as all eleven recorded Level 2 arrivals do.
+- **Why it matters.** The centre is the portal's hole. A creature left there has
+  no route, so every one of our portal arrivals stood on it for good.
+
+Built: `PortalRules.JoiningState`, `JoiningTicks` and `StillJoining`;
+`CreatureJobSystem` holds 193, steps and chooses in the same tick. Deviates: the
+height is not taken, and while in 193 the creature reads as idle to other systems.
 
 CONFIRMED negative scope: no direct `0x0049AA30` created-event call occurs
 in the complete bodies of `0x004DC8F0`, `0x004DC9A0`, `0x004B78D0`,

@@ -135,6 +135,51 @@ public class PortalCreatureActionTests
         Assert.Equal(0, world.Tile(11, 9).EntranceCreaturesGenerated);
     }
 
+    /// <summary>State 193 as read from 0x00459C20, timed as the Level 2 recording shows it: the
+    /// Entrance animation runs to its end, the creature leaves the tick after, one step off the
+    /// portal's centre, and chooses in the same tick. 147 frames at 30 is a Warlock.</summary>
+    [Fact]
+    public void APortalCreatureWaitsOutItsEntranceAnimation_ThenStepsOffTheHole_TimingInferredFromTwoTypes()
+    {
+        CreatureDef joiner = Dk2TerrainFixture.Database().CreatureById(7) with
+        {
+            CreatureId = 91, EntranceOffsetX = 0, EntranceOffsetY = 2929,
+            EntranceFrames = 147, EntranceFramesPerSecond = 30,
+        };
+        GameDatabase db = Dk2TerrainFixture.Database(joiner);
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, 3, 4]);
+        Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
+        var sim = new GameSimulation(db, world, seed: 1, Dk2TerrainFixture.DefaultSystems());
+
+        CreatureState creature = PortalRules.CreateScriptedArrival(world, db, 3, 91, 1)!;
+        Assert.Equal(PortalRules.JoiningState, creature.Dk2StateId);
+
+        // Counted as the recording counts it: ticks that end with the creature still in 193.
+        int joining = 0;
+        while (joining < 100)
+        {
+            sim.Tick();
+            if (creature.Dk2StateId != PortalRules.JoiningState) break;
+            Assert.Equal(new TilePos(6, 6), creature.Tile);
+            joining++;
+        }
+
+        Assert.Equal(21, joining);
+        Assert.Equal(CreatureState.CentreOf(6), creature.PosX);
+        Assert.Equal(CreatureState.CentreOf(6) + 2929, creature.PosY);
+        Assert.NotEqual(PortalRules.JoiningState, creature.Dk2StateId);
+    }
+
+    [Theory]
+    [InlineData(147, 30, 20)]
+    [InlineData(197, 30, 27)]
+    [InlineData(120, 30, 16)]
+    [InlineData(0, 30, 0)]
+    [InlineData(147, 0, 0)]
+    public void JoiningLastsTheEntranceAnimationRoundedUpToATick(int frames, int fps, int ticks) =>
+        Assert.Equal(ticks, PortalRules.JoiningTicks(
+            Dk2TerrainFixture.Database().CreatureById(7) with { EntranceFrames = frames, EntranceFramesPerSecond = fps }));
+
     private static TriggerRunResult Run(GameDatabase db, WorldState world, byte level)
     {
         var tree = new TriggerTree(Records(level), 0,

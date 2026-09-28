@@ -32,6 +32,21 @@ public class PortalCreatureActionOnRealDataTests
             "level8:65392:24:1;level9:65463:3:1", string.Join(";", rows));
     }
 
+    /// <summary>The Level 2 recording: every Warlock spends 21 ticks in state 193 and every
+    /// Goblin 28, and each then stands one tile south of the portal centre.</summary>
+    [InstallFact]
+    public void ShippedEntranceDataGivesTheRecordedJoiningTimesAndStep()
+    {
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "level2");
+        CreatureDef warlock = db.CreatureById(5), goblin = db.CreatureById(7), imp = db.CreatureById(1);
+
+        Assert.Equal((0, 2929, 147, 30), (warlock.EntranceOffsetX, warlock.EntranceOffsetY, warlock.EntranceFrames, warlock.EntranceFramesPerSecond));
+        Assert.Equal((43, 3139, 197, 30), (goblin.EntranceOffsetX, goblin.EntranceOffsetY, goblin.EntranceFrames, goblin.EntranceFramesPerSecond));
+        Assert.Equal(21, PortalRules.JoiningTicks(warlock) + 1);
+        Assert.Equal(28, PortalRules.JoiningTicks(goblin) + 1);
+        Assert.Equal(0, PortalRules.JoiningTicks(imp));
+    }
+
     [InstallFact]
     public void LevelTwoSixteenTileLibraryAdmitsWarlocksAtTurn635WithNoPriorWarlocks()
     {
