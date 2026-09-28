@@ -39,14 +39,14 @@ public class ThreatEvaluatorTests
     }
 
     [Fact]
-    public void LocalStrengthExcludesOnlyTheOffMapLayerAndSpecifiedTrapState()
+    public void LocalStrengthExcludesOffMapSourcesAndTrapDefinitionTwo()
     {
         KeeperThreatSource[] sources =
         [
             new(3, 0, 0, 10, 0), new(3, 0, 0, 20, 1), new(3, 0, 0, 40, 2),
             new(3, 0, 0, 80, 3), new(4, 0, 0, 160, 0),
-            new(3, 0, 0, 320, 0, true), new(3, 0, 0, 640, 0, true, 2),
-            new(3, 0, 0, 1280, 2, true), new(3, 0, 0, 2560, 0, true, 1)
+            new(3, 0, 0, 320, 0, true, 3), new(3, 0, 0, 640, 0, true, 2),
+            new(3, 0, 0, 1280, 2, true, 3), new(3, 0, 0, 2560, 0, true, 1)
         ];
         Assert.Equal(110, ThreatEvaluator.LocalStrength(sources, 3, 0, 0, 4096, false));
         Assert.Equal(2990, ThreatEvaluator.LocalStrength(sources, 3, 0, 0, 4096, true));
@@ -62,8 +62,8 @@ public class ThreatEvaluatorTests
             new(1, centre + 6 * 4096, centre, 10, 0),
             new(2, centre, centre, 20, 0),
             new(3, centre + 4 * 4096, centre, 30, 0),
-            new(4, centre, centre, 40, 0, true),
-            new(5, centre, centre, 50, 0, true)
+            new(4, centre, centre, 40, 0, true, 3),
+            new(5, centre, centre, 50, 0, true, 4)
         ];
         byte[] order = [1, 2, 3, 4, 5];
         bool Allied(byte player) => player is 3 or 5;

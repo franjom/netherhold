@@ -52,9 +52,13 @@ dispatches zero through its reinforcement arm.
 (off-map, not low health; `combat-pit.md` section 6).
 It applies a strict radius test, shifting each squared fixed-point axis delta
 right by 12 separately before summing. The optional trap walk uses the player's
-trap list, excludes the same map layer and trap byte `+0xF6 == 2`, then adds
-descriptor threat `u16 +0x8C`. Describing this as an ammunition test is not
-established by this routine.
+trap list, excludes the same map layer and trap definition id `+0xF6 == 2`,
+then adds descriptor threat `u16 +0x8C`. This is a type exclusion, not runtime
+state: `0x00520E50` passes the authored type to `0x004B7C10`, which stores it
+at `+0xF6`; initializer `0x004A7940` uses it to select the descriptor. Rechecked
+2026-09-28 with Ghidra 12.1.4/PyGhidra. Shipped `Traps.kwd` record 2 names
+Boulder Trap (record offset `0x20C`); construction and recharge are not tested
+by this strength helper.
 
 The radius square is a 32-bit multiply followed by arithmetic shift 12
 (`0x004FAC57`, `0x004FAC62`), then an unsigned distance comparison
@@ -138,8 +142,11 @@ per-axis truncation, signed scaling, scan ties, zero-coordinate rejection,
 the room-score defect, zero residuals and narrowing overflow.
 
 This is not yet called by `KeeperAI.Think`. Inputs require explicit map-layer
-and trap-state values, player-list order and a navigation-aware tile predicate;
-the current observation does not provide all of them. Do not substitute health
-for map layer, ammunition for trap state, or terrain solidity for navigation.
+and trap definition/threat values, player-list order and a navigation-aware tile predicate;
+the current observation copies positions, hand/carrier state, alliances and the
+simulation player order, but does not yet derive all threat inputs. Original
+player-list ordering still needs reconciliation with that simulation order. Do not substitute health
+for map layer or terrain solidity for navigation.
 The three-slot ring, imprisonment commands, interaction gates and hand response
-remain integration work. No simulation state or snapshot format changed.
+remain integration work. Simulation state and world-save format are unchanged;
+the separate observation packet is schema 3.

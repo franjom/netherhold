@@ -29,7 +29,7 @@ public static class ThreatEvaluator
         foreach (KeeperThreatSource source in sources)
         {
             if (source.OwnerPlayerId != playerId || source.MapLayer == 2) continue;
-            if (source.IsTrap && (!includeTraps || source.TrapState == 2)) continue;
+            if (source.IsTrap && (!includeTraps || source.TrapTypeId == 2)) continue;
             if (!WithinRadius(source.X, source.Y, centreX, centreY, radius)) continue;
             sum = unchecked(sum + source.Threat);
         }
@@ -97,7 +97,7 @@ public static class ThreatEvaluator
 /// <summary>Copied threat inputs; map layer 2 means off-map, not low health.</summary>
 public readonly record struct KeeperThreatSource(
     byte OwnerPlayerId, int X, int Y, int Threat, int MapLayer,
-    bool IsTrap = false, byte TrapState = 0);
+    bool IsTrap = false, byte TrapTypeId = 0);
 
 public readonly record struct KeeperThreatResponse(short RemainingThreat, TilePos Position);
 

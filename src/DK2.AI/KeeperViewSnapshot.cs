@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 2;
+    public const int FormatVersion = 3;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -20,7 +20,9 @@ public static class KeeperViewSnapshot
         using var stream = new MemoryStream();
         using var w = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         w.Write(Magic); w.Write(FormatVersion);
-        w.Write(view.PlayerId); w.Write(view.Tick.Value); w.Write(view.Status);
+        w.Write(view.PlayerId); w.Write(view.Tick.Value); w.Write(view.Status); w.Write(view.AlliedWith);
+        w.Write(view.PlayerOrder.Count);
+        foreach (byte player in view.PlayerOrder) w.Write(player);
         w.Write(view.Width); w.Write(view.Height); w.Write(view.Gold); w.Write(view.ImpCount);
         w.Write(view.Heart.HasValue);
         if (view.Heart is TilePos heart) { w.Write(heart.X); w.Write(heart.Y); }
@@ -32,7 +34,7 @@ public static class KeeperViewSnapshot
         w.Write(view.AvailabilityEntries.Count);
         foreach (AvailabilityState entry in view.AvailabilityEntries)
         {
-            w.Write(entry.Kind); w.Write(entry.TypeId); w.Write(entry.Value);
+            w.Write(entry.Kind); w.Write(entry.TypeId); w.Write(entry.Value); w.Write(entry.Upgraded);
         }
         w.Write(view.Creatures.Count);
         foreach (KeeperCreatureView c in view.Creatures)
@@ -40,6 +42,7 @@ public static class KeeperViewSnapshot
             w.Write(c.Id); w.Write(c.CreatureTypeId); w.Write(c.OwnerPlayerId);
             w.Write((int)c.Activity); w.Write(c.Health); w.Write(c.Level);
             w.Write(c.LastSlapTick); w.Write(c.CanSlap);
+            w.Write(c.PosX); w.Write(c.PosY); w.Write(c.InHand); w.Write(c.CarriedByCreatureId);
         }
         w.Write(view.AllRooms.Count);
         foreach (KeeperRoomView room in view.AllRooms)
@@ -69,6 +72,9 @@ public static class KeeperViewSnapshot
         byte player = r.ReadByte();
         var tick = new GameTick(r.ReadInt64());
         byte status = r.ReadByte();
+        byte alliedWith = r.ReadByte();
+        var playerIds = new byte[ReadCount(r, 1)];
+        for (int i = 0; i < playerIds.Length; i++) playerIds[i] = r.ReadByte();
         int width = r.ReadInt32(), height = r.ReadInt32();
         if (width <= 0 || height <= 0 || (long)width * height > bytes.Length / 4)
             throw new InvalidDataException("Invalid observation dimensions.");
@@ -77,13 +83,14 @@ public static class KeeperViewSnapshot
         var tiles = new KeeperTileView[width * height];
         for (int i = 0; i < tiles.Length; i++)
             tiles[i] = new KeeperTileView(r.ReadByte(), r.ReadByte(), r.ReadUInt16());
-        var availability = new AvailabilityState[ReadCount(r, 10)];
+        var availability = new AvailabilityState[ReadCount(r, 11)];
         for (int i = 0; i < availability.Length; i++)
-            availability[i] = new AvailabilityState(r.ReadUInt16(), r.ReadInt32(), r.ReadInt32());
-        var creatures = new KeeperCreatureView[ReadCount(r, 27)];
+            availability[i] = new AvailabilityState(r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean());
+        var creatures = new KeeperCreatureView[ReadCount(r, 40)];
         for (int i = 0; i < creatures.Length; i++)
             creatures[i] = new KeeperCreatureView(r.ReadInt32(), r.ReadByte(), r.ReadByte(),
-                (CreatureActivity)r.ReadInt32(), r.ReadInt32(), r.ReadInt32(), r.ReadInt64(), r.ReadBoolean());
+                (CreatureActivity)r.ReadInt32(), r.ReadInt32(), r.ReadInt32(), r.ReadInt64(), r.ReadBoolean(),
+                r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt32());
         var rooms = new KeeperRoomView[ReadCount(r, 22)];
         for (int i = 0; i < rooms.Length; i++)
         {
@@ -106,7 +113,7 @@ public static class KeeperViewSnapshot
                 r.ReadUInt32(), r.ReadUInt32(), r.ReadBoolean(), r.ReadBoolean());
         if (stream.Position != stream.Length)
             throw new InvalidDataException("Trailing keeper observation data.");
-        return new KeeperView(database, player, tick, status, width, height, gold, imps,
+        return new KeeperView(database, player, tick, status, alliedWith, playerIds, width, height, gold, imps,
             heart, tiles, availability, creatures, rooms, messages);
     }
 

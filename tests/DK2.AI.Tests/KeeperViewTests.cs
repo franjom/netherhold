@@ -12,6 +12,41 @@ namespace DK2.AI.Tests;
 public class KeeperViewTests
 {
     [Fact]
+    public void AlliancesAndResearchUpgradesRemainFrozenAcrossPacketRoundTrip()
+    {
+        GameDatabase db = KeeperWorld.Database();
+        WorldState world = KeeperWorld.World(db);
+        world.Player(KeeperWorld.Keeper).AlliedWith = 1 << 4;
+        world.SetUpgraded(KeeperWorld.Keeper, 5, 4, true);
+        var captured = new KeeperView(db, world, KeeperWorld.Keeper);
+        byte[] packet = KeeperViewSnapshot.ToBytes(captured);
+        KeeperView restored = KeeperViewSnapshot.FromBytes(packet, db);
+        Assert.Equal(packet, KeeperViewSnapshot.ToBytes(restored));
+        for (byte player = 0; player <= 8; player++)
+            Assert.Equal(world.AreAllied(KeeperWorld.Keeper, player), restored.AreAllied(player));
+        Assert.Equal(world.PlayerIds, restored.PlayerOrder);
+        Assert.True(restored.IsUpgraded(5, 4));
+        Assert.False(restored.IsUpgraded(5, 255));
+
+        world.Player(KeeperWorld.Keeper).AlliedWith = 0;
+        world.SetUpgraded(KeeperWorld.Keeper, 5, 4, false);
+        Assert.True(captured.AreAllied(4));
+        Assert.True(captured.IsUpgraded(5, 4));
+        var current = new KeeperView(db, world, KeeperWorld.Keeper);
+        Assert.False(current.AreAllied(4));
+        Assert.False(current.IsUpgraded(5, 4));
+    }
+
+    [Fact]
+    public void EarlierObservationSchemaIsRejectedExplicitly()
+    {
+        GameDatabase db = KeeperWorld.Database();
+        byte[] packet = KeeperViewSnapshot.ToBytes(new KeeperView(db, KeeperWorld.World(db), KeeperWorld.Keeper));
+        packet[4] = 2;
+        Assert.Throws<InvalidDataException>(() => KeeperViewSnapshot.FromBytes(packet, db));
+    }
+
+    [Fact]
     public void CombatMessagesSurviveTheObservationWindowAndDoNotLeakAcrossPlayers()
     {
         GameDatabase db = KeeperWorld.Database();

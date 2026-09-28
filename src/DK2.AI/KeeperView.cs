@@ -23,6 +23,8 @@ public sealed class KeeperView
         PlayerId = playerId;
         Tick = world.CurrentTick;
         Status = world.Player(playerId).Status;
+        AlliedWith = world.Player(playerId).AlliedWith;
+        PlayerOrder = Array.AsReadOnly(world.PlayerIds.ToArray());
         Width = world.Width;
         Height = world.Height;
         Gold = GoldStore.Total(world, playerId);
@@ -35,7 +37,8 @@ public sealed class KeeperView
         OwnRooms = AllRooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
         Creatures = world.Creatures.Select(c => new KeeperCreatureView(
             c.Id, c.CreatureTypeId, c.OwnerPlayerId, c.Activity, c.Health, c.Level,
-            c.LastSlapTick, HandRules.CanSlap(database, c, playerId))).ToList().AsReadOnly();
+            c.LastSlapTick, HandRules.CanSlap(database, c, playerId),
+            c.PosX, c.PosY, c.InHand, c.CarriedByCreatureId)).ToList().AsReadOnly();
 
         int heartIndex = ImpSupplyRules.HeartTileOf(world, database, playerId);
         Heart = heartIndex < 0 ? null : FromIndex(heartIndex);
@@ -50,7 +53,7 @@ public sealed class KeeperView
         OwnedTiles = owned;
     }
 
-    internal KeeperView(GameDatabase database, byte playerId, GameTick tick, byte status,
+    internal KeeperView(GameDatabase database, byte playerId, GameTick tick, byte status, byte alliedWith, byte[] playerIds,
         int width, int height, int gold, int impCount, TilePos? heart,
         KeeperTileView[] tiles, AvailabilityState[] availability,
         KeeperCreatureView[] creatures, KeeperRoomView[] rooms, PlayerMessage[] messages)
@@ -59,6 +62,8 @@ public sealed class KeeperView
         PlayerId = playerId;
         Tick = tick;
         Status = status;
+        AlliedWith = alliedWith;
+        PlayerOrder = Array.AsReadOnly(playerIds);
         Width = width;
         Height = height;
         Gold = gold;
@@ -79,6 +84,11 @@ public sealed class KeeperView
     public byte PlayerId { get; }
     public GameTick Tick { get; }
     public byte Status { get; }
+    public byte AlliedWith { get; }
+    public IReadOnlyList<byte> PlayerOrder { get; }
+
+    public bool AreAllied(byte otherId) => otherId == PlayerId
+        || (otherId < 8 && (AlliedWith & (1 << otherId)) != 0);
     public IReadOnlyList<KeeperCreatureView> Creatures { get; }
     public IReadOnlyList<PlayerMessage> Messages { get; }
 
@@ -112,6 +122,13 @@ public sealed class KeeperView
         foreach (AvailabilityState entry in _availability)
             if (entry.Kind == kind && entry.TypeId == typeId) return entry.Value;
         return 1;
+    }
+
+    public bool IsUpgraded(ushort kind, int typeId)
+    {
+        foreach (AvailabilityState entry in _availability)
+            if (entry.Kind == kind && entry.TypeId == typeId) return entry.Upgraded;
+        return false;
     }
 
     public TerrainDef Terrain(TilePos p) => Database.TerrainById(Tile(p).TerrainId);

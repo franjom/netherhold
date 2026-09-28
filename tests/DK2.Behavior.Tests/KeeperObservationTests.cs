@@ -20,17 +20,35 @@ public class KeeperObservationTests
         var players = GameDatabaseLoader.LoadCampaignPlayers(install, "level10")!;
         var world = WorldState.FromMap(db, map, players.Select(p => p.PlayerId));
         ThingProjection.Place(world, db, GameDatabaseLoader.LoadCampaignThings(install, "level10")!);
+        var creature = world.Creatures.First(c => c.OwnerPlayerId == 4);
+        creature.PosX = 12345;
+        creature.PosY = 67890;
+        creature.CarriedByCreatureId = 321;
         var original = new KeeperView(db, world, 4);
         var restored = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(original), db);
 
         Assert.NotEmpty(original.Creatures);
         Assert.Equal(original.Creatures, restored.Creatures);
-        var creature = world.Creatures.First(c => c.OwnerPlayerId == 4);
         KeeperCreatureView captured = original.Creatures.Single(c => c.Id == creature.Id);
+        Assert.Equal(12345, captured.PosX);
+        Assert.Equal(67890, captured.PosY);
+        Assert.Equal(321, captured.CarriedByCreatureId);
+        Assert.False(captured.InHand);
+        creature.PosX++;
+        creature.PosY++;
+        creature.InHand = true;
+        creature.CarriedByCreatureId = -1;
         creature.Health = 0;
         creature.LastSlapTick = 1234;
         Assert.Equal(captured, restored.Creatures.Single(c => c.Id == creature.Id));
         Assert.Equal(captured, original.Creatures.Single(c => c.Id == creature.Id));
-        Assert.NotEqual(captured, new KeeperView(db, world, 4).Creatures.Single(c => c.Id == creature.Id));
+        var current = new KeeperView(db, world, 4);
+        KeeperCreatureView changed = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(current), db)
+            .Creatures.Single(c => c.Id == creature.Id);
+        Assert.True(changed.InHand);
+        Assert.Equal(-1, changed.CarriedByCreatureId);
+        Assert.Equal(12346, changed.PosX);
+        Assert.Equal(67891, changed.PosY);
+        Assert.NotEqual(captured, changed);
     }
 }

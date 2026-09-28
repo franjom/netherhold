@@ -1134,7 +1134,9 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
-Observation tests check frozen values, packet round trips and equal command streams;
+Observation schema 3 includes fixed-point creature positions, hand/carrier state,
+alliances, simulation player order and research upgrades. Tests check frozen
+values, packet round trips and equal command streams;
 stock-creature coverage checks that later world mutations cannot change the capture.
 
 Room and Create Imp availability use the player's current state on every tick.
