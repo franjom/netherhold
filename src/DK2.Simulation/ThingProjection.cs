@@ -64,7 +64,8 @@ public static class ThingProjection
     /// lists them, not the way a sort would.</para>
     /// </summary>
     public static ThingProjectionResult Place(
-        WorldState world, GameDatabase database, IEnumerable<ThingRecord> things)
+        WorldState world, GameDatabase database, IEnumerable<ThingRecord> things,
+        IReadOnlyDictionary<byte, int>? startingGold = null)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (database is null) throw new ArgumentNullException(nameof(database));
@@ -73,6 +74,7 @@ public static class ThingProjection
         int creatures = 0, objects = 0, actionPoints = 0, doors = 0, traps = 0;
         int heroParties = 0, effectGenerators = 0;
         int rooms = 0, skipped = 0;
+        var paid = new HashSet<byte>();
 
         foreach (ThingRecord record in things)
         {
@@ -138,7 +140,8 @@ public static class ThingProjection
                 // the corpus all 275 of them agree with the terrain id under
                 // them, with no exceptions. Projecting one as a placement would
                 // build every dungeon heart and hero gate twice.
-                case RoomThing:
+                case RoomThing t:
+                    if (startingGold is not null) PayStartingGold(world, database, t, startingGold, paid);
                     rooms++;
                     break;
 
@@ -154,6 +157,37 @@ public static class ThingProjection
         return new ThingProjectionResult(
             creatures, objects, actionPoints, doors, traps,
             heroParties, effectGenerators, rooms, skipped);
+    }
+
+    /// <summary>
+    /// A dungeon heart's record pays its keeper's starting gold into the heart, once.
+    ///
+    /// <para>STRONGLY INFERRED (Q75, <c>player-object.md</c>): the heart's builder
+    /// <c>0x004DB700</c>, run by the THINGS loader for a room on terrain 14, moves the loader's
+    /// <c>+0x7E</c> into the heart along its chain (<c>0x004F4090</c>), the rest into the keeper's
+    /// Treasuries, and drops what is left. Level 2's 16000 fills its heart.</para>
+    /// <para>Deviates: the Treasuries are taken in our room order, not the player's room list.</para>
+    /// </summary>
+    private static void PayStartingGold(
+        WorldState world, GameDatabase database, RoomThing thing,
+        IReadOnlyDictionary<byte, int> startingGold, HashSet<byte> paid)
+    {
+        if (database.RoomByTerrain(thing.RoomType)?.TypeId != RoomTypeId.DungeonHeart) return;
+        if (!world.Contains(new TilePos(thing.X, thing.Y))) return;
+
+        int tileIndex = (thing.Y * world.Width) + thing.X;
+        RoomInstance? heart = RoomIndex.RoomAt(world, database, tileIndex);
+        if (heart is null || !paid.Add(heart.OwnerPlayerId)) return;
+
+        if (!startingGold.TryGetValue(heart.OwnerPlayerId, out int gold) || gold <= 0) return;
+
+        int left = GoldStore.FillAlongChain(world, database, heart, gold);
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
+            if (left <= 0) break;
+            if (room.OwnerPlayerId == heart.OwnerPlayerId && room.Definition.TypeId == RoomTypeId.Treasury)
+                left = GoldStore.FillAlongChain(world, database, room, left);
+        }
     }
 
     private static void PlaceCreature(

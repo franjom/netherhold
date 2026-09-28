@@ -169,6 +169,22 @@ public static class GoldStore
         return -1;
     }
 
+    /// <summary>Fills one room's tiles in chain order from its head, and returns what did not fit:
+    /// the room deposit <c>0x004F4090</c>, which walks the chain once and, in a heart, skips the
+    /// platform (<c>0x004DA1B0</c>).</summary>
+    public static int FillAlongChain(WorldState world, GameDatabase database, RoomInstance room, int amount)
+    {
+        int left = amount;
+        foreach (int tile in SlabChain.Order(world, room))
+        {
+            if (left <= 0) break;
+            int put = Math.Min(SpaceIn(world, database, tile, room), left);
+            world.TileAtIndex(tile).GoldHeld += put;
+            left -= put;
+        }
+        return Math.Max(0, left);
+    }
+
     /// <summary>
     /// Stores as much of <paramref name="amount"/> as this player's tiles will
     /// take, and returns how much was stored.

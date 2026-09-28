@@ -224,6 +224,27 @@ public class PlacedThingsOnRealDataTests
     /// test furniture into the level the game ships, so it pins the specifics
     /// rather than the counts alone.</para>
     /// </summary>
+    /// <summary>Level 2's keeper starts with 16000 and its heart holds 16000, so the heart is full
+    /// before an imp moves: DK2's capture shows a store pile on every rim tile at tick 2, and its
+    /// miners put their gold down until the first room is paid for.</summary>
+    [InstallFact]
+    public void CampaignLevelTwoStartsWithItsHeartFull_FromThePlayersRecord()
+    {
+        string install = Install();
+
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "level2");
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level2")!;
+        List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "level2")!;
+        List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, "level2")!;
+        WorldState world = WorldState.FromMap(db, map, [.. players.Select(p => p.PlayerId)]);
+
+        ThingProjection.Place(world, db, things, players.ToDictionary(p => p.PlayerId, p => p.StartingGold));
+
+        Assert.Equal(16000, players.Single(p => p.PlayerId == PlayerIds.FirstKeeper).StartingGold);
+        Assert.Equal(16000, GoldStore.Total(world, PlayerIds.FirstKeeper));
+        Assert.Equal(0, GoldStore.SpaceFor(world, db, PlayerIds.FirstKeeper));
+    }
+
     [InstallFact]
     public void CampaignLevelOneProjectsItsFourImpsOntoTheHeart()
     {

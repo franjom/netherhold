@@ -184,6 +184,107 @@ public class ThingProjectionTests
         Assert.Equal(before, world.Tile(4, 4).TerrainId);
     }
 
+    /// <summary>A 5x5 heart for the keeper at x 8..12, y 3..7 (platform 9..11, 4..6), and
+    /// optionally a one-tile treasury at (1,1).</summary>
+    private static WorldState HeartWorld(GameDatabase database, bool treasury = false)
+    {
+        WorldState world = World(database);
+        for (int y = 3; y <= 7; y++)
+            for (int x = 8; x <= 12; x++)
+            {
+                ref TileState tile = ref world.Tile(x, y);
+                tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+                tile.OwnerPlayerId = PlayerIds.FirstKeeper;
+            }
+        if (treasury) world.Tile(1, 1).TerrainId = Dk2TerrainFixture.TreasuryTerrain;
+        return world;
+    }
+
+    private static RoomThing HeartRecord() => new(new byte[20])
+    { X = 10, Y = 5, RoomType = Dk2TerrainFixture.DungeonHeartTerrain, PlayerId = 3, InitialHealth = 100 };
+
+    private static int GoldIn(WorldState world, int x0, int y0, int x1, int y1)
+    {
+        int sum = 0;
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++) sum += world.Tile(x, y).GoldHeld;
+        return sum;
+    }
+
+    [Fact]
+    public void AHeartsRecordPaysItsKeepersStartingGoldIntoTheRim_TheLevel2Case()
+    {
+        GameDatabase database = Database();
+        WorldState world = HeartWorld(database);
+
+        ThingProjection.Place(world, database, [HeartRecord()],
+            new Dictionary<byte, int> { [PlayerIds.FirstKeeper] = 16000 });
+
+        for (int y = 3; y <= 7; y++)
+            for (int x = 8; x <= 12; x++)
+            {
+                bool platform = x is >= 9 and <= 11 && y is >= 4 and <= 6;
+                Assert.Equal(platform ? 0 : 1000, world.Tile(x, y).GoldHeld);
+            }
+        Assert.Equal(16000, GoldStore.Total(world, PlayerIds.FirstKeeper));
+    }
+
+    [Fact]
+    public void WhatTheHeartCannotHoldGoesToATreasury_AndWhatNeitherHoldsIsLost()
+    {
+        GameDatabase database = Database();
+        WorldState world = HeartWorld(database, treasury: true);
+
+        ThingProjection.Place(world, database, [HeartRecord()],
+            new Dictionary<byte, int> { [PlayerIds.FirstKeeper] = 16000 + 3000 + 500 });
+
+        Assert.Equal(16000, GoldIn(world, 8, 3, 12, 7));
+        Assert.Equal(3000, world.Tile(1, 1).GoldHeld);
+        Assert.Equal(19000, GoldStore.Total(world, PlayerIds.FirstKeeper));
+        Assert.Empty(world.Objects);
+    }
+
+    [Fact]
+    public void APartPaymentFillsTheHeartInChainOrderFromItsHead()
+    {
+        GameDatabase database = Database();
+        WorldState world = HeartWorld(database);
+        RoomInstance heart = RoomIndex.RoomAt(world, database, (5 * world.Width) + 10)!;
+        int[] rim = [.. SlabChain.Order(world, heart).Where(i => GoldStore.Capacity(world, database, i) > 0)];
+
+        ThingProjection.Place(world, database, [HeartRecord()],
+            new Dictionary<byte, int> { [PlayerIds.FirstKeeper] = 2500 });
+
+        Assert.Equal([1000, 1000, 500, 0], rim.Take(4).Select(i => world.TileAtIndex(i).GoldHeld));
+        Assert.Equal(2500, GoldStore.Total(world, PlayerIds.FirstKeeper));
+    }
+
+    [Fact]
+    public void AKeeperIsPaidOnce_EvenIfTwoRecordsNameItsHeart()
+    {
+        GameDatabase database = Database();
+        WorldState world = HeartWorld(database);
+
+        ThingProjection.Place(world, database, [HeartRecord(), HeartRecord()],
+            new Dictionary<byte, int> { [PlayerIds.FirstKeeper] = 2000 });
+
+        Assert.Equal(2000, GoldStore.Total(world, PlayerIds.FirstKeeper));
+    }
+
+    [Fact]
+    public void NoStartingGoldIsPaidWithoutThePlayers_OrForARoomThatIsNotAHeart()
+    {
+        GameDatabase database = Database();
+        WorldState world = HeartWorld(database, treasury: true);
+
+        ThingProjection.Place(world, database, [HeartRecord()]);
+        ThingProjection.Place(world, database,
+            [new RoomThing(new byte[20]) { X = 1, Y = 1, RoomType = Dk2TerrainFixture.TreasuryTerrain, PlayerId = 3 }],
+            new Dictionary<byte, int> { [PlayerIds.FirstKeeper] = 2000 });
+
+        Assert.Equal(0, GoldStore.Total(world, PlayerIds.FirstKeeper));
+    }
+
     /// <summary>
     /// The snapshot writes a door's trailing unknown with no length and reads back a
     /// fixed three, so a door holding any other number would desync the stream and

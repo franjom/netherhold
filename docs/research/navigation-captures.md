@@ -245,19 +245,22 @@ down, ours 1 up; positions confirm all twelve), party members by position with
 DK2 taking the highest free slot, keeper arrivals by type and order, and gold by
 the tile its pile lay on (`GoldTile`).
 
-**First divergence: the Library site is not ready at turn 635.** Level 2 is
-played without a Treasury, and DK2's miners put their overflow on the floor
-(Q140, ADR-0264). Building that did not close the gap. Ours now drops its first
-pile at 456 against DK2's 170, and 3 tiles away, so 26 of the owner's 27 gold
-pickups up to turn 1328 find no pile of ours. The Library comes out 3 tiles of
-16. Our portal sends five Goblins (first at 870) where DK2 sent five Warlocks
-(987–1471), so the replay stops at 1329. Over turns 1–635 DK2's four starting
-imps spent 976 ticks walking (state 6) and 373 mining (26). Ours spent 1,342
-and 110, and never entered 13, 15 or 25, the pre-work checks. The next read is
-how an imp chooses and reaches its work. Action 28 (Warlock
-level 1 from the portal once a Library exists) is read, not built:
-`0x004DC8F0` makes the creature at the first owned Portal
-(`0x004DC9A0`), counts it in the portal's tally `+0x4D` and levels it up.
+**First divergence: our heart started empty.** Level 2's keeper starts with
+16,000, a full heart. DK2's miners therefore found no store with room, put their
+overflow down from turn 155 and carried nothing home until the Lair was paid for
+at 503. Ours ignored the starting gold, so its imps walked every load to an empty
+heart. The Library came out 3 tiles of 16, and 26 of the owner's 27 gold pickups
+found no pile of ours. With the gold paid in (Q75, ADR-0270), our first floor pile
+is at 154, deliveries start at 503, the Library is 15 tiles and 8 pickups miss.
+Up to turn 635 DK2's four imps walked (state 6) 976 ticks and mined (26) 373.
+Ours now walk 1,185 and mine 181, and a seam takes three of ours four ticks
+against DK2's ten to twelve (Q480).
+
+**Next divergence: the portal's type choice.** Action 28 is built (ADR-0265): our
+scripted Warlock arrives at 885. DK2's five Warlocks arrive 987–1471 (which one
+is scripted is not known) before its first Goblin at 1651. Our uniform picker sends Goblins at 927,
+1023 and 1139, so the replay stops at 1359. Our Library has room (capacity 4),
+but the scripted Warlock cannot route to it at 885.
 
 ## The probe's own limits
 

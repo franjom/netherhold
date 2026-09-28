@@ -1317,7 +1317,7 @@ switch (args[0])
             GameDatabase rdatabase = GameDatabaseLoader.LoadForCampaignLevel(reachInstall, level);
             WorldState rworld = WorldState.FromMap(
                 rdatabase, rmap, rplayers.Select(p => p.PlayerId).ToArray());
-            ThingProjection.Place(rworld, rdatabase, rthings);
+            ThingProjection.Place(rworld, rdatabase, rthings, rplayers.ToDictionary(p => p.PlayerId, p => p.StartingGold));
             var rtree = new TriggerTree(
                 rrecords, rdef.TriggerId,
                 rthings.OfType<HeroPartyThing>(),
@@ -2722,7 +2722,7 @@ static int RunTriggerCsv(
     HeroPartyThing[] parties = things.OfType<HeroPartyThing>().ToArray();
     // And the action points, which carry a root each and the rectangle every area
     // condition measures over. A world with none of them walks no area tree.
-    ThingProjection.Place(world, database, things);
+    ThingProjection.Place(world, database, things, players.ToDictionary(p => p.PlayerId, p => p.StartingGold));
     var tree = new TriggerTree(
         records, level.TriggerId, parties,
         players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
@@ -3745,7 +3745,7 @@ static (int Moved, int MovedAfterFirstTurn, int Stalls, int Gates) RunOracleLeve
     GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, level);
     WorldState world = WorldState.FromMap(
         database, map, players.Select(p => p.PlayerId).ToArray());
-    ThingProjection.Place(world, database, things);
+    ThingProjection.Place(world, database, things, players.ToDictionary(p => p.PlayerId, p => p.StartingGold));
 
     var tree = new TriggerTree(
         records, def.TriggerId,

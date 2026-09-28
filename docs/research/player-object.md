@@ -136,3 +136,30 @@ keeper has that number. Whether the game genuinely reuses the slot or the
 dumper simply names the offset is not separated here; either way, reading
 `ObjectiveTextId` as a plain scalar and the tally as starting later would be
 wrong, because both instructions above use `+0x19E` itself.
+
+## Starting gold is paid into the heart (Q75)
+
+Read 2026-09-28 with Ghidra 12.1.4. STRONGLY INFERRED from the binary; the
+outcome is CONFIRMED by the owner's Level 2 recording. The balance table has no
+starting balance, but the level's PLAYERS record does, at offset 0 (`KwdPlayers`).
+
+- **The loader.** `0x0051F0B0` hands the record's gold to the money routine
+  `0x004BA420` with no tile. With no tile, that routine only adds the amount to
+  the player's `+0x7E`.
+- **The heart.** The THINGS loader (`0x0052156D`) runs the heart's builder
+  `0x004DB700` for a room record on terrain 14. At the heart's centre tile the
+  builder reads `+0x7E`, zeroes it and deposits it into the heart through
+  `0x004F4090`. That routine fills the room's tiles in chain order from the given
+  tile, skipping the platform. What the heart cannot take goes into the keeper's
+  Treasuries with room. Anything still left is dropped.
+- **No stockpile.** The player tick (`0x004B9EC0`) sets `+0x7E` to the sum of the
+  keeper's Treasury and Heart gold every tick (while `+0x132` is 0, unread). So
+  `+0x7E` is the displayed total, not the separate stockpile the manual describes.
+- **Level 2.** Its keeper starts with 16,000, a full heart. The recording shows a
+  store pile on all sixteen rim tiles at tick 2. Its imps found no store with room
+  (`0x00464400`), put their gold down from turn 155 and first carried gold home
+  after the Lair was paid for at 503.
+
+Built as `ThingProjection.Place(..., startingGold)` with `GoldStore.FillAlongChain`
+(ADR-0270). Deviates: the Treasuries are taken in our room order, not the player's
+room list.

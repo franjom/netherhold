@@ -779,7 +779,10 @@ public sealed class ScenarioRunner
             ?? throw new InvalidOperationException(
                 $"No THINGS file for campaign level '{level}' under Data/editor/maps.");
 
-        ThingProjectionResult result = ThingProjection.Place(world, _database, things);
+        // The players too: a heart's record pays its keeper's starting gold in.
+        List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(_installDir, level);
+        ThingProjectionResult result = ThingProjection.Place(
+            world, _database, things, players?.ToDictionary(p => p.PlayerId, p => p.StartingGold));
 
         // Reported, not swallowed. Doors, traps, hero parties and effect
         // generators have nowhere to go yet, so a scenario built on a level

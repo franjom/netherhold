@@ -58,8 +58,9 @@ The balance table's limits on gold are these three, and nothing else:
   178  MaxGoldPerDungeonHeartTile    1000
 ```
 
-There is **no** variable for a player's gold, a starting balance, or a maximum a
-keeper may hold; all three limits are *per tile*, and the fourth place gold sits —
+There is **no** variable for a player's gold, a starting balance (the PLAYERS record's,
+paid into the heart at load: `player-object.md`, Q75), or a maximum a keeper may
+hold; all three limits are *per tile*, and the fourth place gold sits —
 a creature's hands, bounded by the CREATURES record's own `maxGoldHeld` — is per
 creature. Four places, four limits, none of them a player total. So the number DK2
 shows a keeper is the sum of those places, not a counter that treasuries merely

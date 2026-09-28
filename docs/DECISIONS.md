@@ -5701,3 +5701,25 @@ The new state value is an input/output of the pure rules, not world state; no
 snapshot or hash-version change. Live integration must persist/hash the clocks,
 reproduce the field writers and order, and connect removal and messages. The
 remaining original experiment is Q57. This does not complete M12 defence.
+
+## ADR-0270 — A keeper's starting gold is paid into its heart at load
+**Date:** 2026-09-28 · **Status:** accepted
+
+**Context.** `PlayerDef.StartingGold` was parsed and never used, so every keeper
+started with an empty heart. In Level 2 (16,000) ours carried every load home,
+while DK2's miners put their gold down until the first room was paid for. The
+replay stopped at turn 1329. Evidence: `research/player-object.md`, Q75.
+
+**Decision.** `ThingProjection.Place` takes an optional map of starting gold per
+player. A room record on the heart's terrain pays its owner once: into the heart
+along its chain from the head (`GoldStore.FillAlongChain`, `0x004F4090`), then
+into that keeper's Treasuries, and drops the remainder. Every campaign caller in
+`dk2tools` and the harness passes the level's PLAYERS records.
+
+**Reason.** `0x004DB700` moves the loader's `+0x7E` into the heart and the player
+tick recounts `+0x7E` from the stores, so gold in tiles (ADR-0015) stays the only
+balance.
+
+**Limits.** Treasuries go in our room order, not the player's room list. No new
+state; hash and snapshot versions are unchanged. Level 1's keeper starts at 0, and
+its packet replay still wins at tick 1864 (1868 before ADR-0265).
