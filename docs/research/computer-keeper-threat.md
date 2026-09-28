@@ -115,10 +115,29 @@ until the test passes. The grant path calls `0x0048B120` directly.
 
 ## 3. Response event and withdrawal gate
 
+The three slots are FIFO: readers refuse before any imprisonment reroll when
+count is three; a new reservation uses `(head + count) % 3`. A position reader
+that cancels its reservation still returns success, allowing acknowledgment.
+`0x004FA400` sets FightGoingOn even when the reader refuses a full queue.
+
 `0x004FE0B0` uses a signed 16-bit residual, so narrowing and subsequent word
 arithmetic matter. Its negative arm withdraws creatures in list order from a
 strict five-tile radius; its nonnegative arm reinforces. Eligibility and the
 movement search are detailed in `computer-keeper-handlers.md` §10.
+
+Every dispatch returns **zero allowance**, including early completion or no
+candidate. Rechecked in Ghidra 12.1.4 on 2026-09-28: retirement clears the
+allowance at `0x004FE36E/0x004FE99B`; both exits clear AL at
+`0x004FE37D/0x004FE9AC`. Caller `0x00500D99..0x00500DAA` consumes that return.
+Thus only one event is dispatched per tick, and subsequent budgeted work is
+skipped even if a single attempt completes it. Within that event, each attempt
+restarts the creature-list search. Refused interaction spends an attempt but
+does not change the residual. Word addition/subtraction precedes the signed
+crossing-zero test. Retirement advances the head modulo three and decrements
+count. Crossing zero clears the residual; no-candidate retirement leaves its
+unused payload stale. Exhausted allowance without completion retains the event.
+Zero residual enters the reinforcement arm and
+still attempts selection. These are binary predictions, not live observations.
 
 Withdrawal excludes a creature when `LastDroppedCounter <= 300` **and the game
 turn is greater than 300**. The instruction check is at
@@ -183,6 +202,9 @@ Campaign keepers receive PLAYERS activation order from the harness; observation
 schema 5 stores its reversed active-list walk. Synthetic callers may supply
 activation order explicitly; otherwise it uses this simulation world's ascending
 creation order, reversed. This changes observation semantics, not world tick order.
-Simulation hash/save versions remain unchanged. `KeeperAI.Think` still does not
-consume these assessments: the three-slot ring, imprisonment commands,
-interaction gates and hand response remain integration work.
+Simulation hash/save versions remain unchanged. `KeeperResponseQueue` implements
+reservation, cancellation, FIFO retirement, signed residual accounting and the
+event's allowance contract. Its caller supplies creature selection and interaction
+outcomes; it cannot itself move creatures. `KeeperAI.Think` still does not consume
+these assessments. Integration waits on imprisonment commands, captured eligibility
+and hand responses; acknowledging a message before those effects would lose work.

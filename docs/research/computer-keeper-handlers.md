@@ -347,7 +347,7 @@ query wrapper. World slots `+0x6C/+0x22C` fetch terrain/test room placement
 ## 10. Event 1 — `RespondToAttack` (`0x004FE0B0`)
 
 **Prologue/result — Known:** `ECX` is keeper, one stack allowance byte; EBP frame,
-0x48 locals, saved `EBX/ESI/EDI`, `AL` remainder, `RET 4`.
+0x48 locals, saved `EBX/ESI/EDI`, `AL=0`, `RET 4`.
 
 **Rule — Known:** the current payload is `{remainingThreat:i16@+0x5A,
 threatenedX:u16@+0x5E, threatenedY:u16@+0x60}` at stride 8. Negative means withdraw:
@@ -366,10 +366,8 @@ is not owned, seek an owned, unobstructed replacement in a square spiral bounded
 twice the smaller map dimension. An already owned payload tile skips movement;
 eligible threat can still be subtracted (`computer-keeper-threat.md` §3).
 
-**Known:** threat scaling is in `computer-keeper-threat.md` §2. One selected creature
-costs one allowance unit. Zero allowance pauses the event. Residual crossing
-zero, an empty creature list, or no eligible candidate retires it: zero the residual,
-advance `CurrentEventTask=(head+1)%3`, decrement `NumberOfEventTasks`.
+**Known:** threat scaling, FIFO retirement and the whole-tick allowance rule
+are in `computer-keeper-threat.md` §2–3; implementation boundary in §5.
 
 **Fields — Known:** keeper event nibbles and payload above; player `+0x04/+0x06/+0x16`
 `TagId/ThingsOwnedList[0]/TotalNumberOfOwnedThings[0]`; creature `+0x04/+0x10`

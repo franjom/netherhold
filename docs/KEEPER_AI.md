@@ -434,8 +434,9 @@ tick is skipped (the counters still run).
    set to 1 to retry next tick.
 4. `CannotAttackCounter--`, `CallToArmsCounter--` (each if non-zero).
 5. **Message handler** (§5.3).
-6. **Event tasks**: while budget and the current slot's `EventTask` is 1 → run
-   **respond-to-attack** (§5.4).
+6. **Event tasks**: with budget and current slot's `EventTask` 1, run
+   **respond-to-attack** (§5.4). Its return exhausts the tick's remaining budget,
+   even after early retirement; see `research/computer-keeper-threat.md` §3.
 7. If budget: if `PlayersAttackedFlags` → **attack management** (`0x4FECE0`: place a
    Call to Arms at the front, or check for its removal); if `CallToArmsInUse` → **CTA
    removal test** (`0x4FEFC0`); then **retreat wounded** (`0x4FF260`).
@@ -546,8 +547,8 @@ creature leaves).
   messages, without that check: for **every enemy creature**, roll
   `random(100) < ImprisonPercentage`; set or clear this keeper's bit in the creature's
   "imprison me" mask accordingly. Imprisonment is a per-creature coin toss re-rolled
-  on every combat message, and the mask is what the creature side reads when a fight
-  ends.
+  on every admitted combat-message evaluation; the foreign-body rescue selector
+  reads it (`research/computer-keeper-messages.md` §2).
 - `enemyThreat` = sum of level-scaled threat of enemy creatures within 10 tiles of the
   position (radius 5 for the room variant). Position messages include eligible traps
   when `TrapsStartFights`; room messages exclude traps;
@@ -562,14 +563,11 @@ creature leaves).
   one: if `BARemoveIfCantReinforce` and `needed ≥ 1` → queue
   **respond-to-attack(−allyThreat, position)** — a withdrawal. Otherwise room
   messages still enqueue residual zero, while position messages cancel it.
-- **Respond-to-attack** (one action per budget unit): positive → pick own creatures
-  above half health, not fighting or in certain states, and drop them at the tile (or
-  the nearest own tile found by a spiral search), subtracting each one's threat until
-  ≤ 0 (the debit can happen even if the move fails); negative → pick own creatures within five tiles of the fight and drop them beside
-  the heart, adding their threat until ≥ 0. No candidate → the event is dropped.
-  Creature threat (`0x4FBDB0`) = the descriptor's threat value at level 1, otherwise
-  threat × a global per-level percentage table (`i16[level]` at `+0x105` of the table
-  pointed to by `0x006E4154`) / 100.
+- **Respond-to-attack:** nonnegative residual reinforces; negative withdraws.
+  One selection attempt uses one allowance, but the dispatch always returns zero
+  allowance. The owned-target no-move branch, signed arithmetic and exact
+  eligibility are in `research/computer-keeper-threat.md` §2–3 and
+  `research/computer-keeper-handlers.md` §10.
 - **Enemy** (`0x4BF390`) means not this player and the alliance byte for that player is
   0; **ally** (`0x4BF3D0`) is the complement. Players 1 and 2 are skipped by the attack
   planner, not by these tests.
@@ -1103,7 +1101,8 @@ The proactive foundation already exists (§12.8). Remaining plan, agreed 2026-09
    spell descriptor mapping, target checks and effects remain gated by `keeper-spell-casting.md`.
 2. **Observation, messages and defence.** The captured, serialisable observation is built
    (ADR-0244); retained combat messages are built (ADR-0245), as is pure threat
-   evaluation (`research/computer-keeper-threat.md` section 5). Live observation assessment is built; next: event integration,
+   evaluation and the response queue (`research/computer-keeper-threat.md` section 5).
+   Live observation assessment is built; next: imprisonment/hand dependencies and event integration,
    reinforcement and retreat, then the remaining message families and producers.
    Acceptance: an attack on its dungeon causes an unaided defensive response.
 3. **Dungeon management.** Add need-driven room expansion/building, training moves,
@@ -1159,6 +1158,7 @@ Deviations and approximations, each a candidate ADR:
   coordinates; room-list tie order also remains approximate. See handler section 3.
 - `SlapCooldownTicks` (§12.5).
 
+The response queue is tested independently but not yet dispatched by `Think`.
 Combat messages reach the observation; reactive and battle decisions, the remaining
 message families, personality loader and §5.1 step 9 training moves remain unbuilt.
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.
