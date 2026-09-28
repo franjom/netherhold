@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace DK2.Tools;
 
-internal static class VerificationLedger
+public static class VerificationLedger
 {
     private const string Header = "Id,Source,Symbol,Confidence,Research,ADRs,CandidateTests,CommentAddresses,A,B,C,D,CheckedDate";
     private static readonly Regex Attribute = new(
@@ -94,7 +94,10 @@ internal static class VerificationLedger
         return 0;
     }
 
-    private static string SymbolAt(string source, int start)
+    /// <summary>The name declared after an attribute ending at <paramref name="start"/>: the type's
+    /// name, or the member's — the identifier just before its first <c>(</c>, <c>{</c>, <c>;</c> or
+    /// <c>=</c>, so a field is named and not its initialiser.</summary>
+    public static string SymbolAt(string source, int start)
     {
         string tail = source[start..Math.Min(source.Length, start + 500)];
         tail = tail.TrimStart();
@@ -104,10 +107,26 @@ internal static class VerificationLedger
             if (close < 0) break;
             tail = tail[(close + 1)..].TrimStart();
         }
+        int end = tail.IndexOfAny(['(', '{', ';', '=']);
         Match type = Regex.Match(tail, @"\b(?:class|struct|interface|enum|record)\s+(?<name>\w+)");
-        Match member = Regex.Match(tail, @"\b(?<name>\w+)\s*(?:\(|\{|=>|;)");
-        if (type.Success && (!member.Success || type.Index <= member.Index))
+        if (type.Success && (end < 0 || type.Index < end))
             return type.Groups["name"].Value;
+
+        string head = end < 0 ? "" : tail[..end].TrimEnd();
+        if (head.EndsWith('>'))
+        {
+            int depth = 0;
+            for (int i = head.Length - 1; i >= 0; i--)
+            {
+                if (head[i] == '>') depth++;
+                else if (head[i] == '<' && --depth == 0)
+                {
+                    head = head[..i].TrimEnd();
+                    break;
+                }
+            }
+        }
+        Match member = Regex.Match(head, @"(?<name>\w+)$");
         return member.Success ? member.Groups["name"].Value : "line-" + (source[..start].Count(c => c == '\n') + 1);
     }
 

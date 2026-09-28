@@ -28,8 +28,8 @@
    ledger is also the resume file.
 
 `dk2tools verification-ledger` writes `docs/verification-ledger.csv` and preserves A–D
-and date cells on regeneration; `--check` detects a stale ledger. It currently finds
-166 attributes (1 Hypothesis, 98 StronglyInferred, 67 Confirmed). `CandidateTests`
+and date cells on regeneration; `--check` detects a stale ledger. It finds
+170 attributes on 2026-09-28 (1 Hypothesis, 101 StronglyInferred, 68 Confirmed). `CandidateTests`
 means a lexical source reference, not proof that a test pins the rule. ADRs are
 collected from the source comments and the linked research note; absent citations
 remain blank for review. The existing read-only `verifier-1` Ghidra copy passed the
@@ -73,8 +73,8 @@ analyzes unrelated test projects.
 
 ## 3. Order
 
-1. Rules marked `Hypothesis` (2 on 2026-09-26), then `StronglyInferred` (98). There are 65
-   `Confirmed` rules, 165 attributed in all.
+1. Rules marked `Hypothesis` (1 on 2026-09-28), then `StronglyInferred` (101). There are 68
+   `Confirmed` rules, 170 attributed in all; the ledger is the current count.
 2. Rules whose doc rests on an "only", "never" or "no reader" claim.
 3. Work from before 2026-09-07, when `cseg` was not scanned and scans were `.text` only.
 4. The rest, by subsystem.
