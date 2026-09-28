@@ -5511,3 +5511,35 @@ fires: timer 8 and flag 58 at turn 1077 and flag 63 at 1557, against DK2's 1221
 and 1701. The 480-tick gap matches, and the 144-tick lead is the combat timing
 Q444 already records. The Level 1 win turns are unchanged. No state was added,
 so `HashVersion` stays 126.
+
+## ADR-0250 — Door opening uses stored orientation and bypasses barricades
+**Date:** 2026-09-28 · **Status:** accepted · Research: `doors-and-traps.md`
+
+**Context.** Re-reading the door update showed that the wall predicate checks
+support, while the stored orientation chooses the two neighbour tiles. The
+implementation derived the neighbours from current passability and also sent
+barricades through ordinary opening.
+
+**Decision.** Probe the axis selected by `DoorState.Orientation`; bypass ordinary
+opening for definitions carrying `Barricade`, after decrementing the picked-lock
+timer. Keep the router's owner comparison separate from opening's alliance test.
+
+**Consequences.** Existing state and save layouts suffice. Regression tests cover
+both axes, barricades, picked locks and allied route refusal. Physical contact,
+door damage and support-loss destruction remain Q453.
+
+## ADR-0251 — Build trap activation arithmetic before enabling automatic firing
+**Date:** 2026-09-28 · **Status:** accepted · Research: `traps.md`
+
+**Context.** The readiness and loader paths are read, but every ordinary trigger
+mode can depend on nearby Trigger traps. Existing creature shot support does
+not establish trap immediate-hit, vertical origin or collision behavior.
+
+**Decision.** Parse the mapped definition fields and expose stateless readiness
+and charge rules. Preserve raw timing values in data and convert them through
+`SimulationTiming`. Automatic firing is not dispatched until the dependencies
+in Q450 are closed; a Ready result is not a supported-shot verdict.
+
+**Consequences.** All sixteen TRAPS rows and eight DOORS rows have new drift
+guards. No runtime fields or balance variables are added; hash and snapshot
+remain 126, and the reserved 127 is unused. Disarm acquisition remains Q455.

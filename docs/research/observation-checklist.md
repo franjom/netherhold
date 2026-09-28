@@ -387,3 +387,9 @@ Instrumentation, measurement tooling or disassembly, and scheduled accordingly.
 | Q48 (second half) | What the *pathfinder* charges for a diagonal when choosing between routes. The mover's cost is forced — a diagonal step covers √2 tile-widths at a constant speed, so octile 14:10 — and the owner confirmed the glide. Two cost models produce the same paths except where a route with fewer steps is longer in true distance |
 | Q4, Q11, Q14, Q15, Q70, Q85, Q183 | Record and runtime-structure layouts, field meanings |
 | Q103 | The sleep cycle. A stopwatch corroborated 240 s up and could not close it, because the walk to the bed is inside the measurement; what resets the last-slept stamp is only in the binary |
+
+## 9. Door contact and traps
+
+Q451 (failed disarm), Q452 (Sentry range) and Q454 (open enemy door contact)
+have a [shared experiment sheet](../experiments/doors-and-traps.md). Record
+the level and trap/creature types, with video of the action and its control.

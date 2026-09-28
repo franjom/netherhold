@@ -15,7 +15,7 @@ namespace DK2.Simulation.Systems;
 /// the passage. Eligible: allied with the door's owner, not the neutral player, not dying, and
 /// permitted by the lock mode. An open door's tile is plain floor in the navigation byte; a
 /// closed one carries its owner and lock (<see cref="Navigation.WorldSteering"/>).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/doors-and-traps.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
 public sealed class DoorSystem : ISimulationSystem
 {
     public string Name => "doors";
@@ -31,6 +31,8 @@ public sealed class DoorSystem : ISimulationSystem
             // the open decision.
             if (door.LockPickTicks > 0) door.LockPickTicks--;
             if (door.UnderConstruction) continue;
+            if (context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)
+                && definition.Flags.HasFlag(DoorFlags.Barricade)) continue;
 
             door.Open = door.LockPickTicks > 0
                 || (door.LockMode != 3 && AnyEligibleAtHand(context, door));
@@ -58,15 +60,14 @@ public sealed class DoorSystem : ISimulationSystem
     private static bool AnyEligibleAtHand(SimulationContext context, DoorState door)
     {
         WorldState world = context.World;
-        bool alongX = Passable(context, door.X - 1, door.Y) || Passable(context, door.X + 1, door.Y);
-        bool alongY = Passable(context, door.X, door.Y - 1) || Passable(context, door.X, door.Y + 1);
-
         foreach (CreatureState creature in world.Creatures)
         {
             TilePos at = creature.Tile;
             int dx = at.X - door.X, dy = at.Y - door.Y;
             bool onDoor = dx == 0 && dy == 0;
-            bool beside = (alongX && dy == 0 && (dx == 1 || dx == -1)) || (alongY && dx == 0 && (dy == 1 || dy == -1));
+            bool beside = door.Orientation == 0
+                ? dy == 0 && (dx == 1 || dx == -1)
+                : dx == 0 && (dy == 1 || dy == -1);
             if (!onDoor && !beside) continue;
             if (Eligible(context, door, creature)) return true;
         }
@@ -75,8 +76,8 @@ public sealed class DoorSystem : ISimulationSystem
     }
 
     /// <summary>The creature arms of the update (<c>0x004A5E9E</c>–<c>0x004A5F1B</c> and its two
-    /// copies). Lock modes 1 and 2 have their arms but no caller reaches them in v1.70: the lock
-    /// command toggles 3 and 0, the loader sets 3, and an effect handler sets 0.</summary>
+    /// copies). The read lock writers use 0 and 3: the lock command toggles them, the loader
+    /// sets 3, and an effect handler sets 0. Modes 1 and 2 retain their read eligibility arms.</summary>
     /// <remarks>DK2's third test is the creature flag <c>+0x3E6</c> bit 21, <c>CreatureDying</c>.
     /// Ours is <see cref="CreatureDeathRules.IsDown"/>, which is that state plus the tick window
     /// in which a creature is out of health and has not been booked as collapsed yet — the guard
@@ -98,6 +99,4 @@ public sealed class DoorSystem : ISimulationSystem
         };
     }
 
-    private static bool Passable(SimulationContext context, int x, int y) =>
-        context.World.Contains(x, y) && !context.Database.TerrainById(context.World.Tile(x, y).TerrainId).IsSolid;
 }

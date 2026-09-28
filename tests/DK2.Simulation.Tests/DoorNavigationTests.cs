@@ -19,7 +19,7 @@ public class DoorNavigationTests
     private const byte Rival = PlayerIds.FirstKeeper + 1;
     private static readonly TilePos Beyond = new(7, 2);
 
-    private static (WorldState world, GameDatabase db, DoorState door) Build(byte doorOwner, byte flags, byte doorId = 1)
+    private static (WorldState world, GameDatabase db, DoorState door) Build(byte doorOwner, byte flags, byte doorId = 1, bool vertical = false)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
@@ -30,6 +30,14 @@ public class DoorNavigationTests
             tile.Health = db.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
         }
 
+        if (vertical)
+        {
+            var solid = world.Tile(new TilePos(5, 1)).TerrainId;
+            world.Tile(new TilePos(4, 2)).TerrainId = solid;
+            world.Tile(new TilePos(6, 2)).TerrainId = solid;
+            world.Tile(new TilePos(5, 1)).TerrainId = Dk2TerrainFixture.DirtPath;
+            world.Tile(new TilePos(5, 3)).TerrainId = Dk2TerrainFixture.DirtPath;
+        }
         ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = 5, Y = 2, PlayerId = doorOwner, Flags = flags, DoorId = doorId, Unknown_0011 = new byte[3] }]);
         return (world, db, world.Doors[0]);
     }
@@ -74,6 +82,46 @@ public class DoorNavigationTests
         (WorldState world, GameDatabase db, DoorState door) = Build(Keeper, 0);
         door.Open = true;
         Assert.True(Routes(world, db, Rival, MoveOptions.Loose));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public void BinaryInferredBarricadeDoesNotOpenForAnAllyOrPickedLock(int pickedTicks)
+    {
+        (WorldState world, GameDatabase db, DoorState door) = Build(Keeper, 0, doorId: 6);
+        world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(4, 2));
+        door.LockPickTicks = pickedTicks;
+        new GameSimulation(db, world, 7, [new DoorSystem()]).Tick(InputFrame.Empty);
+        Assert.False(door.Open);
+        Assert.Equal(Math.Max(0, pickedTicks - 1), door.LockPickTicks);
+    }
+
+    [Theory]
+    [InlineData(0, 5, 1, false)]
+    [InlineData(0, 4, 2, true)]
+    [InlineData(1, 5, 1, true)]
+    [InlineData(1, 4, 2, false)]
+    public void BinaryInferredDoorProbesStoredOrientation(int orientation, int x, int y, bool opens)
+    {
+        (WorldState world, GameDatabase db, DoorState door) = Build(Keeper, 0, vertical: orientation == 1);
+        Assert.Equal((byte)orientation, door.Orientation);
+        world.Tile(new TilePos(4, 2)).TerrainId = Dk2TerrainFixture.DirtPath;
+        world.Tile(new TilePos(6, 2)).TerrainId = Dk2TerrainFixture.DirtPath;
+        world.Tile(new TilePos(5, 1)).TerrainId = Dk2TerrainFixture.DirtPath;
+        world.Tile(new TilePos(5, 3)).TerrainId = Dk2TerrainFixture.DirtPath;
+        world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(x, y));
+        new GameSimulation(db, world, 7, [new DoorSystem()]).Tick(InputFrame.Empty);
+        Assert.Equal(opens, door.Open);
+    }
+
+    [Fact]
+    public void BinaryInferredRouterUsesOwnerEvenWhenDoorOpeningUsesAlliance()
+    {
+        (WorldState world, GameDatabase db, _) = Build(Keeper, 0);
+        world.SetAllied(Keeper, Rival, true);
+        Assert.False(Routes(world, db, Rival, MoveOptions.Loose));
+        Assert.True(Routes(world, db, Rival, MoveOptions.Plain));
     }
 
     [Fact]

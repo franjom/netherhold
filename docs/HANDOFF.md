@@ -33,7 +33,8 @@ ADR-0119, `docs/experiments/`). **M6** is partial: every THINGS record reaches t
 world, ten trigger action types execute, and a recorded Level 1 play wins headlessly
 with remaining timing differences (Q444, `navigation-captures.md`). **M7** is
 partial: combat (ADR-0163–0170) and hero parties (ADR-0197, 0216, 0218, 0219) are
-built; traps, door blocking and hero gates are not (2026-09-25).
+built. Trap firing, physical door contact/combat and hero gates remain unbuilt;
+the researched subset and blockers are below (2026-09-28).
 **M12** has its proactive task slice in `DK2.AI` (tasks 0–7, digging, rooms,
 gold, imps and slaps), with a captured, serialisable observation. The Level 17 unaided harness and Level 10 same-map
 capture exist; the planner/message review corrections are covered by regression
@@ -55,6 +56,7 @@ reactive decisions and an original command trace remain open
 - **Hero parties** (ADR-0197, ADR-0216, ADR-0218, ADR-0219, ADR-0221). Action 14 raises a party; its leader runs its standing job (Wait, SendToActionPoint, KillCreatures, KillPlayer, StealGold) and followers trail it at the slowest pace (`HeroSystem`). A knocked-out follower leaves the party and a knocked-out leader hands it to the first follower (`HeroPartyRules.KnockedOut`). StealGold takes from player 3's Treasury and escapes to the hero's origin tile (`StealGoldRules`). A walk to a heart aims at a random heart tile (job 19) or the heart's position (state 177's fallback).
 - **Trigger events** (ADR-0204). DK2's creature and player event filters, with every firing site tabled (`trigger-walkers.md`); wired for created, killed, attacked, stunned and sacked, the rest waiting on their systems.
 - **Navigation** (ADR-0155/0157/0158). DK2's mesh router, funnel and four steering forces drive every creature; doors are in the navigation byte and `DoorSystem` opens, closes, locks and picks them (ADR-0159).
+- **M7 doors/traps** (ADR-0250/0251). Barricade opening and stored-orientation probes are corrected; trap definition fields and stateless readiness/charge arithmetic are built. Automatic firing, disarm and door combat remain disabled. Exact blocking reads: `traps.md` §Built subset and remaining reads (Q450/Q455), `door-blocking.md` §Blocking reads before integration (Q453). Owner observations: Q451/Q452/Q454. No hashed state changed: HashVersion/FormatVersion remain 126; reserved 127 is unused.
 - **Players.** `PlayerIds` 0 unowned, 1 heroes, 2 neutral, 3–7 keepers (ADR-0043); only a keeper is staffed (ADR-0052). `DK2.AI.KeeperAI` is an input source emitting `PlayerCommand`s (`KEEPER_AI.md` §12.8).
 - **World.** Fog of war as simulation state, one bit per keeper in ours (ADR-0076); levels on their own VARIABLES (ADR-0040); FNV-1a state hash with one pin and `ChaosSystem` (ADR-0006).
 - **A level's THINGS and triggers.** `ThingProjection.Place` keeps every record in file order (ADR-0101/0103/0106/0108/0139); `TriggerExecutor` walks the five root kinds once a turn, performs actions 1, 6, 7, 8, 10, 11, 14, 22, 44, 45 and marks the rest `Partial` or `Unhandled` (ADR-0107/0152/0160–0162); conditions cover the world arms, creature 36/37/49, player counters and the area arms (`trigger-*.md`).

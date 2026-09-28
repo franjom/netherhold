@@ -56,7 +56,23 @@ public static class KwdTraps
         ShotTypeId = record[at + OffsetShotTypeId],
         CrateObjectId = record[at + OffsetCrateObjectId],
         ManaUpkeepPerSecond = U16(record, at + OffsetManaUpkeepPerSecond),
+        Flags = BinaryPrimitives.ReadUInt32LittleEndian(record.AsSpan(at + 0x1EC)),
+        TriggerType = record[at + 0x20B],
+        RangeTiles = I32(record, at + 0x1DC),
+        RechargeSecondsRaw = I32(record, at + 0x1C8),
+        ChargeSecondsRaw = I32(record, at + 0x1CC),
+        ThreatSecondsRaw = I32(record, at + 0x1D0),
+        ManaCostToFire = I32(record, at + 0x1D4),
+        ShotData1 = I32(record, at + 0x1E0),
+        ShotData2 = I32(record, at + 0x1E4),
+        ShotOffsetX = I32(record, at + 0x231),
+        ShotOffsetY = I32(record, at + 0x235),
+        ShotOffsetZ = I32(record, at + 0x239),
+        HealthGain = BinaryPrimitives.ReadInt16LittleEndian(record.AsSpan(at + 0x241)),
     };
+
+    private static int I32(byte[] record, int at) =>
+        BinaryPrimitives.ReadInt32LittleEndian(record.AsSpan(at));
 
     private static ushort U16(byte[] record, int at) =>
         BinaryPrimitives.ReadUInt16LittleEndian(record.AsSpan(at));

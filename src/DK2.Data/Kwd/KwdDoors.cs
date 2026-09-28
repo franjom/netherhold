@@ -49,6 +49,7 @@ public static class KwdDoors
         DoorId = record[at + OffsetDoorId],
         CrateObjectId = record[at + OffsetCrateObjectId],
         Health = U16(record, at + OffsetHealth),
+        HealthGain = BinaryPrimitives.ReadInt16LittleEndian(record.AsSpan(at + 0x21C)),
         GoldCost = U16(record, at + OffsetGoldCost),
         ManufactureRequired = BinaryPrimitives.ReadUInt32LittleEndian(
             record.AsSpan(at + OffsetManufactureRequired)),
