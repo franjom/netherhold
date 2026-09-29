@@ -9,13 +9,12 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>An imp claims the tile it has just dug before it does anything else,
-/// once nothing beside that tile is still marked for digging. STRONGLY INFERRED
-/// from the binary (Q154, ADR-0058, docs/research/imp-task-priority.md §6): a dig
-/// that leaves plain unowned path beside a keeper's floor raises a task that is
-/// first in the imp's whole-map order, ahead of digging, and the handler takes it
-/// as soon as none of the tile's eight neighbours still carries a dig
-/// task.</summary>
+/// <summary>What becomes of the tile an imp has just dug. READ from the binary
+/// (ADR-0286, superseding ADR-0058's reading of Q154): a dig or a mine that leaves
+/// plain unowned path beside a keeper's floor raises kind 14 there, and the only
+/// taker is a worker walking to deposit that steps onto it (<c>0x00464170</c>),
+/// once none of its eight neighbours still carries a dig task. Choosing a job never
+/// takes kind 14; with nothing else to do the tile is an ordinary claim.</summary>
 /// <remarks>Fixture map: a claimed room at (1..3, 1..3) in rock; (4,2) is the wall
 /// east of the room's middle row, (5,2) the one beyond it, (1,4) the wall south of
 /// the room's first column. All three are diggable from the room and become
@@ -67,12 +66,13 @@ public class ImpClaimsWhatItDugTests
     }
 
     /// <summary>
-    /// One wall marked. It is dug, and the very next job the imp takes is to
-    /// claim the floor it just made — labelled as the just-dug claim, not as an
-    /// ordinary one, and taken before any wall gets reinforced.
+    /// One wall marked. It is dug, and with no digging left the imp's next job is
+    /// to claim the floor it just made — as an <i>ordinary</i> claim. DK2's Tier A
+    /// table opens with the just-dug kind 14, but its search has no arm for 14
+    /// (jump table <c>0x00468770</c>), so choosing never takes it (ADR-0286).
     /// </summary>
     [Fact]
-    public void TheTileJustDugIsClaimedNext()
+    public void WithNoDiggingLeft_TheTileJustDugIsClaimedAsAnOrdinaryClaim()
     {
         Run run = Start(new TilePos(3, 2));
         Mark(run, new TilePos(4, 2));
@@ -83,9 +83,9 @@ public class ImpClaimsWhatItDugTests
         run.Ticks(8);   // the dig action runs out (6 ticks at most), then 10 looks
 
         SimEvent next = run.Of("job_taken").Last();
-        Assert.Contains("priority=ClaimFreshlyDug", next.Detail);
+        Assert.Contains("priority=Claim ", next.Detail);
         Assert.Contains("(4,2)", next.Detail);
-        Assert.Contains("Claim", next.Detail);
+        Assert.DoesNotContain(run.Of("job_taken"), e => e.Detail.Contains("ClaimFreshlyDug"));
         Assert.DoesNotContain(run.Of("job_taken"), e => e.Detail.Contains("Reinforce"));
     }
 
@@ -126,14 +126,45 @@ public class ImpClaimsWhatItDugTests
         SimEvent next = run.Of("job_taken").Last();
         Assert.Contains("priority=MarkedExcavation", next.Detail);
         Assert.Contains("(5,2)", next.Detail);
-        Assert.DoesNotContain(run.Of("job_taken"), e => e.Detail.Contains("ClaimFreshlyDug"));
-
         run.UntilDug(new TilePos(5, 2));
         run.Ticks(SimulationTiming.TicksFromSeconds(12));
 
         Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(4, 2).TerrainId);
         Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(5, 2).TerrainId);
-        Assert.Contains(run.Of("job_taken"), e => e.Detail.Contains("priority=ClaimFreshlyDug"));
+    }
+
+    /// <summary>
+    /// <b>A worker walking to deposit claims a just-dug tile it steps onto</b>
+    /// (<c>0x00464170</c>, ADR-0286): (5,2) was dug and touches the keeper's floor
+    /// at (4,2); the imp carrying gold from (7,2) walks over it, more than two
+    /// tiles from its last task at (8,2), and takes the claim there.
+    /// </summary>
+    [Fact]
+    public void AnImpGoingToDepositClaimsTheJustDugTileItStepsOnto()
+    {
+        Run run = Start(new TilePos(7, 2));
+        for (int y = 1; y <= 3; y++)
+            for (int x = 1; x <= 3; x++)
+                SetTile(run, x, y, Dk2TerrainFixture.TreasuryTerrain, Keeper);
+        SetTile(run, 4, 2, Dk2TerrainFixture.ClaimedPath, Keeper);
+        for (int x = 5; x <= 7; x++) SetTile(run, x, 2, Dk2TerrainFixture.DirtPath, PlayerIds.Unowned);
+        run.World.Tile(5, 2).FreshlyDug = true;
+        run.Imp.GoldHeld = 500;
+        run.Imp.LastTaskKind = ImpTaskKind.Claim;
+        run.Imp.LastTaskTileIndex = (2 * run.World.Width) + 8;
+
+        run.Ticks(SimulationTiming.TicksFromSeconds(4));
+
+        SimEvent claim = Assert.Single(run.Of("claimed_on_the_way"));
+        Assert.Contains("at=(5,2)", claim.Detail);
+    }
+
+    private static void SetTile(Run run, int x, int y, byte terrain, byte owner)
+    {
+        ref TileState tile = ref run.World.Tile(x, y);
+        tile.TerrainId = terrain;
+        tile.OwnerPlayerId = owner;
+        tile.Health = run.Db.TerrainById(terrain).StartingHealth;
     }
 
     /// <summary>

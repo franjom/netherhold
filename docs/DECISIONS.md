@@ -6188,3 +6188,43 @@ pin stands.
 **Limits.** The claim handler's theft of a farther imp's claim (Q155) and its
 `tile+0xB` bit `0x20` pre-filter (Q487) are not built. The Heart's `+0x51` gate
 (Q472) is taken as always on. A pile keeps its object where DK2 remakes it.
+
+## ADR-0286 — A just-dug tile is claimed on the way to a deposit, never by choosing
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** The owner's live Level 1 game (`reverse-engineering/dk2runs/level1-live1/`,
+packet `l1live`, no imp picked up) replayed over 20 seeds won in 6: ours had no
+claimer until about tick 510, where DK2's imp 454 claimed from 206. Read from the
+binary (`research/imp-task-priority.md` §2.2, §6):
+- DK2's Tier A table opens with kind 14, but its search `0x00468520` has no arm
+  for 14 (jump table `0x00468770` sends it to the default), so choosing a job never
+  takes the just-dug tile. ADR-0058's reading of Q154 was wrong.
+- A finished dig or mine (`0x004655D0`, `0x00465b57`) raises kind 14 on the opened
+  tile when it is plain unowned path touching the keeper's floor.
+- The one taker is `0x00464170`, from the creature update `0x00488930`: on entering
+  a new tile, with its state's category 3, more than two tiles from its task tile and
+  a last task of kind 1–7 or 16, a keeper's worker runs the kind-14 handler
+  `0x00469600` on the tile underfoot, which claims it unless a neighbour still
+  carries a dig task.
+
+**Decision.**
+1. `ClaimFreshlyDug` leaves Tier A. `TileState.FreshlyDug` is set only on a tile the
+   raise would mark.
+2. `TryClaimOnTheWay` runs for a worker **walking to deposit gold**, not for one
+   walking to a job. The code admits both; in five DK2 captures the check fired once,
+   on a deposit walk (Level 1 live, tick 206), while at tick 136 of the same game four
+   imps walking to jobs crossed a marked tile at (10,28) and none took it. The
+   condition that stops them is unread (Q489).
+3. The replay tool decodes packet action 49, selling a dragged rectangle.
+
+**Reason.** Level 1 live over 20 seeds: 12 wins (6 before), the Lair whole in 19;
+seed 2 claims the Hatchery and Lair within 13–21 ticks of DK2 tile for tile. The
+version allowing job walks won 19 but claimed three times per game where DK2 claims
+about once in five.
+
+**Limits.** Q489; the claim walk ends on entering the tile where DK2 walks to its
+centre, so a claim step is 11–12 ticks against DK2's 13 (Q490). Level 2's first claim
+is bimodal in ours as in DK2: the fourth imp claims only if it chooses before the first
+seam is mined out. Ours replaying `l2live2` wins 6 of 20; DK2 replaying it under seed
+234567 claims first at 364, gets a 5-tile Lair and no Library, and does not win
+(`dk2runs/level2-live2-seeds/`).

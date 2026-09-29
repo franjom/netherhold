@@ -117,6 +117,10 @@ public sealed class PacketLog
                         player, checked((byte)a.First), second.X, second.Y,
                         PackedTile(a.Third).X, PackedTile(a.Third).Y));
                     break;
+                case 49:
+                    // Sell a dragged rectangle (0x005128f0, game-actions.md): its two corners.
+                    commands.Add(SellRoomCommand.Rect(player, first.X, first.Y, second.X, second.Y));
+                    break;
                 case 54:
                     // Cast at a place: spell id (flags above it), then x and y in 1/4096 tile.
                     // Only Create Imp is decoded; its position check is not built (ImpCommands).

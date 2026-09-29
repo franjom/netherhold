@@ -326,10 +326,10 @@ face instead). Recorded, not built (**Q155**).
 |---|---|---|
 | the kind just done | after 1/2/3 search that kind first; after 1/2 deposit | **built** (ADR-0282) |
 | the cap | 4 selections per keeper per tick | **built** (ADR-0282) |
-| Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **all of it**: claim the just-dug tile, **8** (ADR-0065), **9/10** (ADR-0214, `workshop-crates.md` §6), marked excavation, claim, **13** both branches (ADR-0063, ADR-0064), **12**, in the original's order |
+| Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **all of it**; 14 is a no-op in the original (its search has no arm), so none here (ADR-0286); **8** (ADR-0065), **9/10** (ADR-0214, `workshop-crates.md` §6), marked excavation, claim, **13** both branches (ADR-0063, ADR-0064), **12**, in the original's order |
 | Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold**. Kind 16 (fix a damaged own wall) is not a job here — §3 |
 | distance | rings; for 1/2 straight-line, seams from the last seam | the 1/2 walk straight-line (ADR-0282); other kinds steps along the walkable grid; seam slot occupancy not built |
-| kind 14 | claim the just-dug tile first, once no 8-neighbour has a dig task | **built** — `ClaimFreshlyDug`, same rule |
+| kind 14 | taken only on the way: `0x00464170` on entering a tile, category 3, more than two tiles from the task tile, last kind 1–7 or 16 | **built for deposit walks** (ADR-0286, Q489) — `TryClaimOnTheWay` |
 | stealing | nearer imp takes the task | not built (Q155) |
 | just-dropped scan | three tiles, nine-step chain | **built** (ADR-0062, ADR-0069) — `TryTakeDroppedJob`, `DropScanTiles` = 3 Chebyshev measured to the work's tile, in DK2's drop order minus kind 11 (Q162); the crate kinds are ADR-0214 |
 | the aimed bonus | `DroppedTask` carries Efficiency +10 for as long as work of that kind lasts; `DroppedTask == LastTaskType` retries that kind whole-map before it is cleared | **built** (ADR-0069) — `TryTakeJobOfKind`, `CreatureState.DroppedTask`/`JustDropped`/`LastTaskKind`. The bonus itself is `hand-of-evil.md` §6 |
@@ -358,8 +358,7 @@ kind 3 tests for the *absence* of Lava and Water, and is claiming.
 ## 10. Open, in one place
 
 - **Q153** — answered: the reinforce ceiling at `terrain+0x1ad` is `MaxHealth` (§3).
-- **Q154** — answered and built: kind 14, claim-the-just-dug-tile. The trigger's
-  timing is inferred, not read (§6).
+- **Q154** — revised (ADR-0286): kind 14 is never chosen; it is claimed on the way (Q489).
 - **Q162** — answered: the drop scan reaches three tiles (§4b).
 - **Q155** — task stealing by distance: read, not built (§7).
 - **Q25** — answered 2026-09-29: the nearest by straight-line distance, list

@@ -172,6 +172,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         if (creature.Activity == CreatureActivity.DeliveringGold)
         {
+            if (TryClaimOnTheWay(context, creature, grid)) return;
             UpdateDelivering(context, creature, grid);
             return;
         }
@@ -802,7 +803,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         // Tier A: kind first. One search per kind over the whole map, not one
         // scored search over a mixed list, because the order is an ordering.
-        if (TryTakeJobAt(context, creature, grid, JobPriority.ClaimFreshlyDug)) return true;
+        // DK2's table opens with kind 14, but its search 0x00468520 has no arm for
+        // 14 (jump table 0x00468770 sends it to the default), so the just-dug claim
+        // is taken only on the way (TryClaimOnTheWay, ADR-0286).
 
         // Kind 8 - carry a loose object to its room - is SECOND in DK2's table,
         // above marked excavation and above claiming, so an imp puts a book away
@@ -1095,6 +1098,42 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             if (!database.TerrainById(world.Tile(nx, ny).TerrainId).IsSolid) return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// A keeper's worker walking to deposit claims a just-dug tile it steps onto (<c>0x00464170</c>,
+    /// from the creature update <c>0x00488930</c>): on entering a new tile, more than two tiles
+    /// (either axis) from its last task tile, with a last task of kind 1–7 or 16, the kind-14
+    /// handler <c>0x00469600</c> runs on the tile underfoot — the only taker of a kind-14 task. The
+    /// code admits job walks too; DK2's captures show it on a deposit walk only (Q489, ADR-0286).
+    /// </summary>
+    private bool TryClaimOnTheWay(SimulationContext context, CreatureState creature, WorldPathGrid grid)
+    {
+        if (!PlayerIds.IsKeeper(creature.OwnerPlayerId) || creature.LastTaskTileIndex < 0) return false;
+        TilePos at = creature.Tile;
+        if (at.X == creature.LastPosX / Fp32.One && at.Y == creature.LastPosY / Fp32.One) return false;
+
+        WorldState world = context.World;
+        int tx = creature.LastTaskTileIndex % world.Width, ty = creature.LastTaskTileIndex / world.Width;
+        if (Math.Abs(at.X - tx) <= 2 && Math.Abs(at.Y - ty) <= 2) return false;
+        if ((byte)creature.LastTaskKind is not ((>= 1 and <= 7) or 16)) return false;
+
+        ref TileState tile = ref world.Tile(at);
+        if (!tile.FreshlyDug) return false;
+        if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, creature.OwnerPlayerId))
+        {
+            tile.FreshlyDug = false;
+            return false;
+        }
+        if (!TryJobOn(context, grid, at, at, creature.OwnerPlayerId, JobPriority.ClaimFreshlyDug, creature.Id,
+                      out int tileIndex, out TileWorkKind kind))
+            return false;
+
+        _route.Clear();
+        context.Emit(SystemName, "claimed_on_the_way",
+            $"imp={creature.Id} at=({at.X},{at.Y}) gold={creature.GoldHeld}");
+        CommitJob(context, creature, tileIndex, kind, JobPriority.ClaimFreshlyDug);
+        return true;
     }
 
     /// <summary>
@@ -1438,7 +1477,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// (level2-live1): the heart's walls touch the dug Lair on three sides, and the
     /// first claim is the one tile touching the heart's gap, then outward from it.</para>
     /// </summary>
-    private static bool TouchesOwnLand(
+    internal static bool TouchesOwnLand(
         SimulationContext context, WorldState world, TilePos target, byte playerId)
     {
         for (int i = 0; i < NeighbourDx.Length; i++)
