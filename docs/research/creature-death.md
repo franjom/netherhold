@@ -371,7 +371,7 @@ Two corollaries:
 
 ## Tests
 
-`CreatureNeedsTests`, `CarryingTests` and `GraveyardTests` (`tests/DK2.Simulation.Tests/`);
+`CreatureNeedsTests`, `CarryingTests` and `GraveyardTests` (`tests/DK2.Simulation.Tests/`); carrier cleanup evidence: `imp-mana-removal.md`, "Expiry and subsequent cleanup".
 `BothDyingTimersAreSixtySecondsAndTheyAreTwoDifferentClocks`,
 `EightCreaturesLeaveNoBodyAndThatSetIsNotTheNeverHungryOne`,
 `TheEightCreaturesThatLeaveNoBodyAreExactlyTheOnesWithNoLyingState`,

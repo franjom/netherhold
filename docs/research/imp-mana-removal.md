@@ -1,7 +1,7 @@
 # Mana pressure and creature removal
 
 **STRONGLY INFERRED**, DKII.EXE v1.70, read-only Ghidra 12.1.4/PyGhidra,
-2026-09-28. No runtime observation validates this sequence yet (Q57).
+2026-09-28, lifecycle rechecked 2026-09-29. No runtime observation validates this sequence yet (Q57).
 Implementation: independent `ManaPressureRules`; integration boundary: ADR-0266.
 
 ## Claim audit
@@ -17,9 +17,10 @@ record values are checked by `ImpsOnRealDataTests` and `KeeperSpellsOnRealDataTe
 | Warning/scan interval | `0x004C158E`, `0x004C165D`, `0x004C169F`; variable 110 | Byte seconds, shipped 10, multiplied by ticks per second |
 | Population floor | `0x004C15C0..0x004C1611`, `0x004C1BC0`; variable 94 | Count owned definitions with worker and evil bits; removal needs strictly more than shipped floor 4 |
 | Warning payload | `0x004C1611..0x004C162F` | Message 52, player tag, current stage, zero, final argument 1 |
+| Warning/removal message metadata | `0x006A0D08` / `0x006A0D12`; subtables `0x006A0610` / `0x006A0638`; `0x004C4600` | Flags `0xA000`: subtype matching, NeedsTab, duplicates suppressed per recipient/type/Data1. Warning variants 1–4 and removal variant 3 live 20 seconds; `0x004C5530` has no extra suppression for these variants |
 | Selection and stamp | `0x004C1BC0` | Policy below; clears creature flag bit 5 at `+0x3E6`, stamps `+0x4B3`, posts message 53 with data1=3, data2=0, final argument 1 |
 | Upkeep field | Loader `0x004F7CE0`; Create Imp record `+0xE2` | Runtime word `+0x5C`; loader input includes `0x78` prefix; shipped upkeep 7 |
-| Countdown reader | `0x00488930`, affordability `0x004C1740` | Only unpossessed type 1; recovery first, otherwise five seconds to virtual removal call |
+| Countdown reader | `0x00488930`, affordability `0x004C1740` | Only unpossessed type 1; recovery first, otherwise five seconds to the zero-health virtual call |
 | Pickup reader | `0x0048E6A0` | Any nonzero removal stamp refuses pickup, including non-imps |
 | Stored idle flag | `0x00463DB0`, `0x00463DF0`, `0x00464240`; creature `+0x3D1` | First two clear it, third sets it and conditionally clears after a successful state-10 transition; not equivalent to current state 10 |
 
@@ -60,12 +61,44 @@ An existing stamp is not an exclusion: selection may refresh it.
 The creature update processes a nonzero stamp only for unpossessed type 1.
 Enough mana to afford the Create Imp upkeep clears the stamp, including exactly
 7 mana with shipped data. Zero upkeep also clears it. Otherwise, at or after
-`start + 5 * ticksPerSecond`, it calls the creature's virtual slot `+0x20`.
+`start + 5 * ticksPerSecond`, it calls virtual slot `+0x20`, which only zeroes health.
 The number **5 is literal** here; variable 144's shipped value 10 is not this
 reader's countdown. Possession skips both recovery and expiry. Consequently the
 unique-lowest non-imp path can leave a pickup-blocking stamp that this reader
-never clears. The complete removal side effects and other clearing paths remain
-UNKNOWN pending a wider lifecycle audit.
+never clears. A direct-store scan of `+0x4B3` finds constructor initialization,
+this recovery clear, and the selector's two stamp writes; this does not exclude
+indirect load/copy writes.
+
+## Expiry and subsequent cleanup
+
+The creature constructor installs table `0x0066D524` (`0x004B5ED7`). Its
+`+0x20` slot at `0x0066D544` points to `0x004B2AD0`: the entire routine writes
+zero to health `+0x40` and returns. It neither deletes the entity nor invokes
+the damage/collapse helper. `ManaRemovalAction.ZeroHealth` names that effect.
+The cleanup slot is separately `+0x30`, pointing to `0x0048AF80`, which reaches
+`0x004B7A20` and then `0x00487C70`.
+
+`0x004B7830` first updates the eight thing lists through slot `+0x14`, then
+makes a separate cleanup pass through predicate `+0x28` and cleanup `+0x30`.
+The creature predicate is `0x004B5C30`: health strictly below 1. Thus the
+zero-health write does not interrupt the current creature update, but qualifies
+it for the subsequent cleanup pass. It does not start the collapsed-state timer.
+
+| Cleanup effect | Binary evidence | Modern boundary |
+|---|---|---|
+| Spill carried gold | `0x0048814B` calls `0x0048F930` unless flag `+0x3E6 & 0x40` | Existing `FloorGold.DropFrom` preserves pile-count division and lost remainder; sub-tile scattering remains absent |
+| Release carried object / dragged creature | `0x004881D6` / `0x00488221` call `0x0048B3A0` / `0x0048B500` on the ordinary cleanup path | Health cleanup now releases both, including when the carrier becomes a corpse |
+| Place the dragged thing and clear its drag state | `0x0048B500` moves it to the carrier; creature slot `+0x70` is `0x004B5E00`, clearing `+0x3C7`; carrier `+0x3C5` is cleared | `CarryRules.DropWhatever` moves the passenger and clears both modern relationship ids; no death or ownership change is applied to it |
+| Release engagements, upkeep and owner membership | `0x0048833E`, `0x00488365`, `0x00488468` | Existing combat unregister, recomputed upkeep and owned-list removal cover these represented effects |
+| Corpse creation gate | `0x00487C70` tests definition bit `0x8000` and runtime bit `0x20`; selection clears the latter | Runtime corpse suppression remains unrepresented; a non-imp selection must not silently retain ordinary corpse generation |
+
+These are ordinary gameplay branches, not an exhaustive destructor model. The
+routine also handles beds, room/state release, possession, special creatures,
+statistics, UI and rendering resources. The modern death system still runs once
+per second; equating its timing or collapse decision with this direct zero-health
+path would require further work. Seven regression cases in `CarryingTests` check
+passenger/object survival, placement, released relationships, corpse carriers,
+missing passengers and gold rounding. No new original observation was made.
 
 ## Integration and observation limits
 
@@ -75,8 +108,8 @@ the original per-player deadline. Possession/CTA/Reaper branches can return
 before the original warning block; those effects are outside these pure rules.
 Owned-list order is maintained and persisted (`creature-ownership.md`, ADR-0273).
 The stored idle flag is maintained and persisted; its adapter limits are in
-`imp-idle-and-wandering.md` (ADR-0274). Removal side effects still need verification
-and integration before the selector is used on a live world.
+`imp-idle-and-wandering.md` (ADR-0274). Live clocks, stamps, corpse suppression,
+message dispatch and the zero-health cleanup boundary still need integration.
 
 An original experiment should hold more than four imps, spend below 100 with
 nonpositive net income, record all warning turns, and record selection/expiry.

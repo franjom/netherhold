@@ -20,7 +20,8 @@ public readonly record struct ManaRemovalCandidate(
     int Id, byte TypeId, byte Level, bool EvilWorker, bool InHand,
     bool Idle, int PosX, int PosY);
 
-public enum ManaRemovalAction { None, Cancel, Remove }
+/// <summary>Expiry zeroes health; the later creature cleanup pass owns deletion.</summary>
+public enum ManaRemovalAction { None, Cancel, ZeroHealth }
 
 /// <summary>Verified mana-pressure arithmetic, awaiting live lifecycle integration (ADR-0266).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/imp-mana-removal.md")]
@@ -125,6 +126,6 @@ public static class ManaPressureRules
         if (typeId != 1 || possessed || started == 0) return ManaRemovalAction.None;
         if (impUpkeep == 0 || mana >= impUpkeep) return ManaRemovalAction.Cancel;
         return unchecked(started + 5 * ticksPerSecond) <= now
-            ? ManaRemovalAction.Remove : ManaRemovalAction.None;
+            ? ManaRemovalAction.ZeroHealth : ManaRemovalAction.None;
     }
 }

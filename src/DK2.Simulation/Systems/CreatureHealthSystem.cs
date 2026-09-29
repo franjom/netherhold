@@ -214,6 +214,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     /// </summary>
     private static void Remove(SimulationContext context, CreatureState state)
     {
+        CarryRules.DropWhatever(context.World, state);
         if (state.CarriedByCreatureId >= 0)
         {
             CreatureState? carrier = context.World.CreatureById(state.CarriedByCreatureId);
@@ -286,6 +287,8 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         // spot -- the Imp is "dead right away" and a Vampire reincarnates.
         if (leavesBody)
         {
+            CarryRules.DropWhatever(context.World, state);
+            ObjectCarryRules.DropWhatever(context.World, state);
             CreatureDeathRules.BecomeCorpse(context.World, context.Database, state);
             return;
         }

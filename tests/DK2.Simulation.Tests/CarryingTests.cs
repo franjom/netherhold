@@ -69,6 +69,82 @@ public class CarryingTests
     // ---- the rescue -------------------------------------------------------
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void CarrierDeathReleasesItsPassengerAtTheCarrierPosition(bool passengerIsCorpse, bool carrierLeavesBody)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState passenger = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
+        Down(passenger);
+        if (passengerIsCorpse) CreatureDeathRules.BecomeCorpse(world, db, passenger);
+        CreatureState carrier = world.SpawnCreature(db, carrierLeavesBody ? GoblinId : ImpId,
+            Keeper, new TilePos(2, 3));
+        CarryRules.PickUp(carrier, passenger);
+        carrier.GoldHeld = 1001;
+        carrier.Health = 0;
+        if (carrierLeavesBody)
+        {
+            Down(carrier);
+            carrier.DyingTicks = CreatureDeathRules.DyingWindowTicks(db);
+        }
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
+        sim.Run(Second);
+
+        Assert.Equal(carrierLeavesBody, world.CreatureById(carrier.Id) is not null);
+        if (carrierLeavesBody) Assert.True(CreatureDeathRules.IsCorpse(carrier));
+        Assert.Same(passenger, world.CreatureById(passenger.Id));
+        Assert.Equal(-1, carrier.CarriedCreatureId);
+        Assert.Equal(-1, passenger.CarriedByCreatureId);
+        Assert.Equal(carrier.PosX, passenger.PosX);
+        Assert.Equal(carrier.PosY, passenger.PosY);
+        Assert.Equal(Rival, passenger.OwnerPlayerId);
+        Assert.Equal(passengerIsCorpse, CreatureDeathRules.IsCorpse(passenger));
+        Assert.Equal(1000, FloorGold.Total(world, db));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CarrierDeathAlsoReleasesItsObject(bool carrierLeavesBody)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState carrier = world.SpawnCreature(db, carrierLeavesBody ? GoblinId : ImpId,
+            Keeper, new TilePos(2, 3));
+        ObjectState cargo = world.SpawnObject(db, Dk2TerrainFixture.AlarmCrateObjectId, Keeper, 0);
+        ObjectCarryRules.PickUp(carrier, cargo);
+        carrier.Health = 0;
+        if (carrierLeavesBody)
+        {
+            Down(carrier);
+            carrier.DyingTicks = CreatureDeathRules.DyingWindowTicks(db);
+        }
+        new GameSimulation(db, world, 42, [new CreatureHealthSystem()]).Run(Second);
+        Assert.Same(cargo, world.ObjectById(cargo.Id));
+        Assert.Equal(-1, cargo.CarriedByCreatureId);
+        Assert.Equal(-1, carrier.CarriedObjectId);
+        Assert.Equal(3 * world.Width + 2, cargo.TileIndex);
+    }
+
+    [Fact]
+    public void CarrierCleanupToleratesAnAlreadyRemovedPassenger()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState passenger = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
+        CreatureState carrier = world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
+        CarryRules.PickUp(carrier, passenger);
+        world.RemoveCreature(passenger.Id);
+        carrier.Health = 0;
+        new GameSimulation(db, world, 42, [new CreatureHealthSystem()]).Run(Second);
+        Assert.Null(world.CreatureById(carrier.Id));
+        Assert.Equal(-1, carrier.CarriedCreatureId);
+    }
+
+    [Theory]
     [InlineData(0, false, false)]
     [InlineData(1, false, false)]
     [InlineData(4, true, false)]

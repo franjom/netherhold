@@ -137,7 +137,7 @@ public class ManaPressureTests
 
     [Theory]
     [InlineData(1, false, 4, 23, 0, 7, ManaRemovalAction.None)]
-    [InlineData(1, false, 4, 24, 0, 7, ManaRemovalAction.Remove)]
+    [InlineData(1, false, 4, 24, 0, 7, ManaRemovalAction.ZeroHealth)]
     [InlineData(1, false, 4, 24, 7, 7, ManaRemovalAction.Cancel)]
     [InlineData(1, false, 4, 24, -1, 0, ManaRemovalAction.Cancel)]
     [InlineData(1, true, 4, 100, 0, 7, ManaRemovalAction.None)]

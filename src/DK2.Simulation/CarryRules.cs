@@ -134,6 +134,19 @@ public static class CarryRules
         body.CarriedByCreatureId = -1;
     }
 
+    /// <summary>Releases a dragged creature at its carrier's current position on cleanup.</summary>
+    public static void DropWhatever(WorldState world, CreatureState worker)
+    {
+        if (worker.CarriedCreatureId < 0) return;
+        CreatureState? body = world.CreatureById(worker.CarriedCreatureId);
+        if (body is not null)
+        {
+            FollowCarrier(worker, body);
+            PutDown(worker, body);
+        }
+        else worker.CarriedCreatureId = -1;
+    }
+
     /// <summary>Moves a carried body to wherever its carrier is. Called after the mover has run, so
     /// a body is never a tick behind the arms holding it — which matters because <c>LairRules</c>
     /// and the graveyard both ask what tile it is standing on.</summary>
