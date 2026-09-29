@@ -26,11 +26,15 @@ public class PlayerInputTests
 
         Assert.Equal(Keeper, command.PlayerId);
         Assert.Equal(tagged, command.Tagged);
-        Assert.Equal(
-            [new TilePos(2, 1), new TilePos(3, 1), new TilePos(4, 1),
-             new TilePos(2, 2), new TilePos(3, 2), new TilePos(4, 2),
-             new TilePos(2, 3), new TilePos(3, 3), new TilePos(4, 3)],
-            command.Tiles);
+        // Marking files the tiles in DK2's spiral from the corner the drag began at (ADR-0288);
+        // unmarking has no order to keep.
+        TilePos[] expected = tagged
+            ? [new TilePos(4, 3), new TilePos(3, 3), new TilePos(3, 2), new TilePos(4, 2),
+               new TilePos(4, 1), new TilePos(3, 1), new TilePos(2, 1), new TilePos(2, 2), new TilePos(2, 3)]
+            : [new TilePos(2, 1), new TilePos(3, 1), new TilePos(4, 1),
+               new TilePos(2, 2), new TilePos(3, 2), new TilePos(4, 2),
+               new TilePos(2, 3), new TilePos(3, 3), new TilePos(4, 3)];
+        Assert.Equal(expected, command.Tiles);
     }
 
     [Fact]

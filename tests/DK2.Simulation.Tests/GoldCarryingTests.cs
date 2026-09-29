@@ -246,6 +246,10 @@ public class GoldCarryingTests
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
         run.Ticks(300);
 
+        // The takeover leaves the load in the imp's hands; its next dig puts it down (kind 15).
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 6)));
+        run.Ticks(600);
+
         Assert.Equal(Keeper, run.World.Tile(1, 1).OwnerPlayerId);
         Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, run.World.Tile(1, 1).TerrainId);
         Assert.True(run.World.Tile(1, 1).GoldHeld > 0, "the imp took the treasury and then left it empty");
@@ -388,21 +392,24 @@ public class GoldCarryingTests
     [Fact]
     public void AnImpHoldsItsLoadUntilSomewhereToPutItAppears()
     {
-        // The load is not lost while the keeper has nowhere to keep it: an imp
-        // that has been carrying 1400 around all game puts it down the moment a
-        // treasury exists. That is what makes gold-in-hands a place gold can be
-        // rather than an accounting step.
+        // The load is not lost while the keeper has nowhere to keep it: a miner with
+        // full hands and nowhere to go mines on, and puts the load down the moment a
+        // treasury exists - state 26 asks the store chooser before each swing that
+        // would not fit. That is what makes gold-in-hands a place gold can be rather
+        // than an accounting step.
+        GameDatabase database = Dk2TerrainFixture.Database();
         Run run = AtTheSeam();
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
         run.Ticks(300);
-        Assert.Equal(1400, run.Imp.GoldHeld);
+        int held = run.Imp.GoldHeld;
+        Assert.True(held >= database.CreatureById(Dk2TerrainFixture.ImpCreatureId).MaxGoldHeld, $"hands hold {held}");
 
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
         run.Ticks(300);
 
         Assert.Equal(0, run.Imp.GoldHeld);
-        Assert.Equal(1400, run.World.Tile(1, 1).GoldHeld);
+        Assert.True(run.World.Tile(1, 1).GoldHeld >= held, $"stored {run.World.Tile(1, 1).GoldHeld} of {held}");
     }
 
     // ---- the gate --------------------------------------------------------

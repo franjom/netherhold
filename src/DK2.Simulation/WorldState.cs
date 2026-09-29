@@ -57,6 +57,12 @@ public struct TileState
     /// </summary>
     public ushort TaggedBy;
 
+    /// <summary>When this tile was last marked, from <see cref="WorldState.NextTagOrder"/>; 0
+    /// unmarked. DK2 files a marked tile at the head of its keeper's task list for the kind
+    /// (<c>0x00507bb0</c>), and its dig walk keeps the first of equally near tasks, so the most
+    /// recently marked wins a tie (ADR-0288). One number for all markers.</summary>
+    public int TagOrder;
+
     /// <summary>
     /// Keepers that have discovered this tile: bit <c>n</c> belongs to player
     /// id <c>n</c>. This is our per-keeper representation, not a claim about
@@ -199,6 +205,7 @@ public struct TileState
         hash.Add(TaggedBy);
         hash.Add(DiscoveredBy);
         hash.Add(FreshlyDug ? (byte)1 : (byte)0);
+        hash.Add(TagOrder);
         hash.Add(BurnTicksRemaining);
         hash.Add(EntranceIdleTicks);
         hash.Add(EntranceCreaturesGenerated);
@@ -1217,6 +1224,9 @@ public sealed class WorldState
     /// stamped tile always comes after every tile stamped before it.</summary>
     public int NextSlabOrder { get; internal set; } = 1;
 
+    /// <summary>The next <see cref="TileState.TagOrder"/>.</summary>
+    public int NextTagOrder { get; internal set; } = 1;
+
     internal List<ShotState> RawShots => _shots;
 
     /// <summary>A new shot at a position, with the next id; the caller fills the rest.</summary>
@@ -1404,6 +1414,7 @@ public sealed class WorldState
         hash.Add(_tiles.Length);
         foreach (TileState t in _tiles) t.HashInto(ref hash);
         hash.Add(NextSlabOrder);
+        hash.Add(NextTagOrder);
         hash.Add(_players.Length);
         foreach (PlayerState p in _players) p.HashInto(ref hash);
         hash.Add(_pendingWork.Count);

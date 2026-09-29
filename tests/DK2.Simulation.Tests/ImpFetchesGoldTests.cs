@@ -104,12 +104,13 @@ public class ImpFetchesGoldTests
     // ---- the answer itself -------------------------------------------------
 
     /// <summary>
-    /// Gold on the floor of the keeper's room, an imp standing in it, and a
-    /// treasury tile beside it: the gold ends up in the treasury and the floor
-    /// is bare.
+    /// A handful of gold on the floor of the keeper's room, an imp standing in it,
+    /// and a treasury tile beside it: the imp picks the gold up and keeps it. State
+    /// 27 (<c>0x00466850</c>) calls the store chooser only when the hands are full;
+    /// a part-load sets 10, and nothing in 10 deposits it (ADR-0288).
     /// </summary>
     [Fact]
-    public void AnImpCarriesFloorGoldToATreasury()
+    public void AnImpKeepsAPartLoadOfFloorGoldInItsHands()
     {
         Run run = Start(new TilePos(1, 1));
         Treasury(run, new TilePos(3, 3));
@@ -119,12 +120,34 @@ public class ImpFetchesGoldTests
         run.Ticks(400);
 
         Assert.Equal(0, FloorGold.Total(run.World, run.Db));
-        Assert.Equal(900, GoldStore.Total(run.World, Keeper));
+        Assert.Equal(0, GoldStore.Total(run.World, Keeper));
+        Assert.Equal(900, run.Imp.GoldHeld);
+        Assert.Contains(run.Of("gold_picked_up"), e => e.Detail.Contains("amount=900"));
+        Assert.Empty(run.Of("gold_delivered"));
+    }
+
+    /// <summary>
+    /// A full load goes to the treasury: the same room with a pile the imp's hands
+    /// hold exactly, and the gold ends up in the treasury and the floor is bare.
+    /// </summary>
+    [Fact]
+    public void AnImpCarriesAFullLoadOfFloorGoldToATreasury()
+    {
+        Run run = Start(new TilePos(1, 1));
+        Treasury(run, new TilePos(3, 3));
+        int hands = run.Db.CreatureById(Dk2TerrainFixture.ImpCreatureId).MaxGoldHeld;
+
+        FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(2, 2)), hands);
+
+        run.Ticks(400);
+
+        Assert.Equal(0, FloorGold.Total(run.World, run.Db));
+        Assert.Equal(hands, GoldStore.Total(run.World, Keeper));
         Assert.Equal(0, run.Imp.GoldHeld);
 
-        Assert.Contains(run.Of("fetch_taken"), e => e.Detail.Contains("gold=900"));
-        Assert.Contains(run.Of("gold_picked_up"), e => e.Detail.Contains("amount=900"));
-        Assert.Contains(run.Of("gold_delivered"), e => e.Detail.Contains("amount=900"));
+        Assert.Contains(run.Of("fetch_taken"), e => e.Detail.Contains($"gold={hands}"));
+        Assert.Contains(run.Of("gold_picked_up"), e => e.Detail.Contains($"amount={hands}"));
+        Assert.Contains(run.Of("gold_delivered"), e => e.Detail.Contains($"amount={hands}"));
     }
 
     /// <summary>A marked wall and a pile of gold, both a step away and both there
@@ -178,7 +201,7 @@ public class ImpFetchesGoldTests
 
         Assert.NotEmpty(run.Of("job_taken"));
         Assert.Equal(0, FloorGold.Total(run.World, run.Db));
-        Assert.Equal(400, GoldStore.Total(run.World, Keeper));
+        Assert.Equal(400, run.Imp.GoldHeld); // a part-load, kept (ADR-0288)
     }
 
     /// <summary>
@@ -206,7 +229,7 @@ public class ImpFetchesGoldTests
     /// A creature's death leaves up to three piles on one tile (ADR-0055), and
     /// an imp empties them oldest first until its hands are full. The order is
     /// ours and is marked as such; what is <i>not</i> ours is that all of it
-    /// eventually goes.
+    /// is taken up — here into the imp's hands, a part-load it keeps (ADR-0288).
     /// </summary>
     [Fact]
     public void SeveralPilesOnOneTileAreAllCollected()
@@ -222,7 +245,7 @@ public class ImpFetchesGoldTests
         run.Ticks(400);
 
         Assert.Equal(0, FloorGold.Total(run.World, run.Db));
-        Assert.Equal(600, GoldStore.Total(run.World, Keeper));
+        Assert.Equal(600, run.Imp.GoldHeld);
     }
 
     // ---- the second tier (Q146, Q147, ADR-0058) ----------------------------
@@ -378,7 +401,7 @@ public class ImpFetchesGoldTests
         run.Ticks(200);
 
         Assert.Equal(0, FloorGold.Total(run.World, run.Db));
-        Assert.Equal(500, GoldStore.Total(run.World, Keeper));
+        Assert.Equal(500, run.Imp.GoldHeld);
     }
 
     // ---- crowding ----------------------------------------------------------

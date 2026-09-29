@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 140: a shot's forced-collision word (ADR-0287).
+        // HashVersion 141: a tile's mark order, and the gold an imp keeps in its hands (ADR-0288).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x25381F6E02610FECUL, sim.StateHash());
+        Assert.Equal(0x1B3AF57D6F23BE5EUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -204,8 +204,12 @@ question was really about.
 - `MaxPile` and `AcceptsMore` **exposed and never applied as a clamp**;
 - drops wired into selling a store, destroying a store, and a creature dying.
 
-**An imp fetches a pile and carries it to a treasury** (ADR-0056), so the drops
-above are a delay rather than a loss. **Where that sits in its priorities is
+**An imp fetches a pile and carries it to a treasury once its hands are full**
+(ADR-0056, ADR-0288), so the drops above are a delay rather than a loss. State 27
+(`0x00466850`) takes the piles within `0x555` up to the level-scaled cap, then
+calls the store chooser only for full hands; a part-load goes back to 10 and is
+carried until more gold fills it, a dig or a mine ends with nothing more to excavate
+(kind 15), or the imp is dropped on a store. **Where that sits in its priorities is
 Tier B, below marked excavation and claiming** — not, as ADR-0056 first had it,
 ahead of a marked wall (ADR-0058, Q146, Q147; `imp-task-priority.md` §1 and §5).
 Against reinforcing it is decided by **distance**, not order: a wall beats gold

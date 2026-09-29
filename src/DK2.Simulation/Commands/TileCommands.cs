@@ -32,9 +32,41 @@ public sealed record TagTilesCommand(byte PlayerId, IReadOnlyList<TilePos> Tiles
         byte playerId, int x0, int y0, int x1, int y1, bool tagged = true)
     {
         var tiles = new List<TilePos>();
-        for (int y = Math.Min(y0, y1); y <= Math.Max(y0, y1); y++)
-            for (int x = Math.Min(x0, x1); x <= Math.Max(x0, x1); x++)
-                tiles.Add(new TilePos(x, y));
+        if (!tagged)
+        {
+            for (int y = Math.Min(y0, y1); y <= Math.Max(y0, y1); y++)
+            {
+                for (int x = Math.Min(x0, x1); x <= Math.Max(x0, x1); x++)
+                {
+                    tiles.Add(new TilePos(x, y));
+                }
+            }
+
+            return new TagTilesCommand(playerId, tiles, tagged);
+        }
+
+        // Marking files the tiles in DK2's order (0x00512a20, run under an emulator): square
+        // shells around the corner the drag began at, shell k from (k,0) up to (k,k) and back to
+        // (0,k) when k is odd, the other way round when k is even, skipping what lies outside.
+        int sx = x1 >= x0 ? 1 : -1, sy = y1 >= y0 ? 1 : -1;
+        int w = Math.Abs(x1 - x0), h = Math.Abs(y1 - y0);
+        tiles.Add(new TilePos(x0, y0));
+        for (int k = 1; k <= Math.Max(w, h); k++)
+        {
+            for (int i = 0; i <= 2 * k; i++)
+            {
+                (int dx, int dy) = i <= k ? (k, i) : (2 * k - i, k);
+                if (k % 2 == 0)
+                {
+                    (dx, dy) = (dy, dx);
+                }
+
+                if (dx <= w && dy <= h)
+                {
+                    tiles.Add(new TilePos(x0 + sx * dx, y0 + sy * dy));
+                }
+            }
+        }
         return new TagTilesCommand(playerId, tiles, tagged);
     }
 

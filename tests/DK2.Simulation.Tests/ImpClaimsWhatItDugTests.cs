@@ -136,8 +136,9 @@ public class ImpClaimsWhatItDugTests
     /// <summary>
     /// <b>A worker walking to deposit claims a just-dug tile it steps onto</b>
     /// (<c>0x00464170</c>, ADR-0286): (5,2) was dug and touches the keeper's floor
-    /// at (4,2); the imp carrying gold from (7,2) walks over it, more than two
-    /// tiles from its last task at (8,2), and takes the claim there.
+    /// at (4,2); the imp that dug (8,2) with gold in its hands has nothing more to
+    /// dig, so it carries the gold from (7,2) (kind 15), walks over (5,2), more than
+    /// two tiles from its last task, and takes the claim there.
     /// </summary>
     [Fact]
     public void AnImpGoingToDepositClaimsTheJustDugTileItStepsOnto()
@@ -150,7 +151,7 @@ public class ImpClaimsWhatItDugTests
         for (int x = 5; x <= 7; x++) SetTile(run, x, 2, Dk2TerrainFixture.DirtPath, PlayerIds.Unowned);
         run.World.Tile(5, 2).FreshlyDug = true;
         run.Imp.GoldHeld = 500;
-        run.Imp.LastTaskKind = ImpTaskKind.Claim;
+        run.Imp.LastTaskKind = ImpTaskKind.Excavate;
         run.Imp.LastTaskTileIndex = (2 * run.World.Width) + 8;
 
         run.Ticks(SimulationTiming.TicksFromSeconds(4));

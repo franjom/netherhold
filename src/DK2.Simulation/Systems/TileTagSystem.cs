@@ -32,7 +32,11 @@ public sealed class TileTagSystem : ISimulationSystem
     {
         foreach (PlayerCommand command in context.Input.All)
         {
-            if (command is not TagTilesCommand tag) continue;
+            if (command is not TagTilesCommand tag)
+            {
+                continue;
+            }
+
             Apply(context, tag);
         }
     }
@@ -63,9 +67,21 @@ public sealed class TileTagSystem : ISimulationSystem
                 continue;
             }
 
-            if (tile.IsTaggedBy(command.PlayerId) == command.Tagged) continue;
+            if (tile.IsTaggedBy(command.PlayerId) == command.Tagged)
+            {
+                continue;
+            }
 
             tile.SetTaggedBy(command.PlayerId, command.Tagged);
+            if (command.Tagged)
+            {
+                tile.TagOrder = world.NextTagOrder++;
+            }
+            else if (!tile.IsTaggedByAnyone)
+            {
+                tile.TagOrder = 0;
+            }
+
             applied++;
         }
 

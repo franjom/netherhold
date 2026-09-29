@@ -60,8 +60,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     public const int ThrottleRandomTicks = 80;
 
     /// <summary>A tagged tile the dig walk may take, ordered as DK2 ranks them: nearest
-    /// first, a wall before a seam at the same distance, then tile order.</summary>
-    private readonly record struct ExcavationCandidate(long DistanceSquared, bool Seam, int TileIndex)
+    /// first, a wall before a seam at the same distance, then the most recently marked (DK2's
+    /// task list takes new tasks at its head, <c>0x00507bb0</c>), then tile order.</summary>
+    private readonly record struct ExcavationCandidate(long DistanceSquared, bool Seam, int TagOrder, int TileIndex)
         : IComparable<ExcavationCandidate>
     {
         public int CompareTo(ExcavationCandidate other)
@@ -69,7 +70,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             int byDistance = DistanceSquared.CompareTo(other.DistanceSquared);
             if (byDistance != 0) return byDistance;
             int byKind = Seam.CompareTo(other.Seam); // false (wall) sorts before true (seam)
-            return byKind != 0 ? byKind : TileIndex.CompareTo(other.TileIndex);
+            if (byKind != 0) return byKind;
+            int byOrder = other.TagOrder.CompareTo(TagOrder); // newest first
+            return byOrder != 0 ? byOrder : TileIndex.CompareTo(other.TileIndex);
         }
     }
 
@@ -112,11 +115,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// and nothing converts — but it <i>is</i> a job an imp chooses, in Tier B,
     /// where distance is the primary key: a wall beats gold on the same tile, a
     /// nearer pile beats a farther wall (<see cref="TrySweep"/>, ADR-0058).
-    /// <para><b>Only with room in its hands.</b> The original refuses the gold
-    /// kind once the hands hold a level-scaled share of <c>MaxGoldHeld</c> and
-    /// sends the imp to deposit instead (Q142, read); here an imp with gold in
-    /// its hands is already delivering before job selection is reached, so the
-    /// same outcome falls out without the threshold.</para>
+    /// <para><b>Only with room in its hands</b> (<see cref="HandsFull"/>, Q142). A
+    /// part-load tops up; a full one is refused here, and deposited only when the
+    /// gold kind is the aimed retry (<c>0x00468520</c> kind 7).</para>
     /// </summary>
     private const string FetchPriority = "FetchFloorGold";
 
@@ -239,20 +240,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             return;
         }
 
-        // An imp with gold in its hands and no job runs to put the load down, before
-        // job selection (Q31, ADR-0018); the timer gate stops an imp with nowhere to
-        // unload searching every tick. After a dig or a mine the load waits for state
-        // 10, which looks for more excavation first and deposits after (ADR-0282).
-        if (creature.GoldHeld > 0 && creature.TargetTileIndex < 0 && creature.TimerTicks <= 0
-            && (creature.JustDropped || creature.LastTaskKind is not (ImpTaskKind.Excavate or ImpTaskKind.Mine))
-            && TryRouteToSomewhereItFits(context, creature))
-        {
-            BeginDelivering(creature);
-            FromTaskSelection(creature);
-            ToTheStore(creature);
-            return;
-        }
-
+        // No deposit before the choice: DK2's state 10 has none. An imp puts gold down after a
+        // dig or a mine with no more excavation (kind 15, in TryTakeJob), on the aimed gold retry
+        // with full hands, and when dropped on a store; a claimer carries its load on (ADR-0288).
         switch (creature.Activity)
         {
             case CreatureActivity.Idle:
@@ -272,6 +262,30 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 break;
         }
     }
+
+    /// <summary>State 10's choice alone, for the decision checker (<c>dk2tools decide</c>), on the
+    /// world as the caller has set it. No wander, timer or per-tick cap.</summary>
+    public bool ChooseJob(SimulationContext context, CreatureState creature)
+    {
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        var grid = new WorldPathGrid(context.Database, context.World, definition);
+        return TryTakeJob(context, creature, definition, grid);
+    }
+
+    /// <summary>The store chooser <c>0x00464400</c> from state 10: a walk to the nearest store with
+    /// room, if there is one.</summary>
+    private bool TryDepositTheLoad(SimulationContext context, CreatureState creature)
+    {
+        if (!TryRouteToSomewhereItFits(context, creature)) return false;
+        BeginDelivering(creature);
+        ToTheStore(creature);
+        return true;
+    }
+
+    /// <summary>DK2's hands test <c>0x00464360(1)</c>: full at <c>MaxGoldHeld</c> scaled by the
+    /// imp's level (level 1 unscaled), less variable 74, which ships no value.</summary>
+    private static bool HandsFull(SimulationContext context, CreatureState creature, CreatureDef definition) =>
+        creature.GoldHeld >= CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level);
 
     private void UpdateIdle(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
@@ -543,7 +557,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         }
 
         StateShadow.Arrive(context, SystemName, creature);
-        int room = definition.MaxGoldHeld - creature.GoldHeld;
+        int room = CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level) - creature.GoldHeld;
         int taken = TakeFromPilesOn(context, creature.TargetTileIndex, room);
         creature.GoldHeld += taken;
 
@@ -560,21 +574,13 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             return;
         }
 
-        // Straight into the carrying half, which is the same mechanic whatever
-        // put the gold in its hands.
-        if (TryRouteToSomewhereItFits(context, creature))
-        {
-            BeginDelivering(creature);
-            ToTheStore(creature);
-            return;
-        }
+        // State 27 (0x00466850): full hands go to the store chooser (resume 28); a part-load, or
+        // a full one with no store that has room, sets 10 at once, and the next choice may be
+        // more gold, a claim or a wall with the gold still in its hands (ADR-0288).
+        if (HandsFull(context, creature, definition) && TryDepositTheLoad(context, creature)) return;
 
-        context.Emit(SystemName, "delivery_blocked",
-            $"imp={creature.Id} player={creature.OwnerPlayerId} gold={creature.GoldHeld} " +
-            "reason=no_room after=fetch");
         WorkEnded(context, creature);
         GoIdle(creature);
-        creature.TimerTicks = IdleDelayTicks(context.Database);
     }
 
     /// <summary>
@@ -780,14 +786,11 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             // Kind 15, after a dig or a mine and only then: nothing more to excavate, so put
             // down what it holds. Digging on comes first, so an imp whose seam ran out beside
             // another marked wall digs that with the load still in its hands.
+            // A deposit keeps the kind (0x00464005 returns before the zeroing at 0x00464010),
+            // so the walk to the store can claim on the way.
             if (last is ImpTaskKind.Excavate or ImpTaskKind.Mine
-                && creature.GoldHeld > 0 && TryRouteToSomewhereItFits(context, creature))
-            {
-                creature.LastTaskKind = ImpTaskKind.None;
-                BeginDelivering(creature);
-                ToTheStore(creature);
+                && creature.GoldHeld > 0 && TryDepositTheLoad(context, creature))
                 return true;
-            }
             creature.LastTaskKind = ImpTaskKind.None;
         }
 
@@ -909,7 +912,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         ImpTaskKind.Excavate or ImpTaskKind.Mine => TryTakeMarkedExcavation(context, creature, grid),
         ImpTaskKind.Claim => TryTakeClaim(context, creature, grid),
         ImpTaskKind.Reinforce => TryTakeJobAt(context, creature, grid, JobPriority.Reinforce),
-        ImpTaskKind.FetchGold => TryTakeFloorGold(context, creature, definition, grid),
+        ImpTaskKind.FetchGold => HandsFull(context, creature, definition)
+            ? TryDepositTheLoad(context, creature)
+            : TryTakeFloorGold(context, creature, definition, grid),
         ImpTaskKind.CarryObject => TryTakeObject(context, creature, definition, grid),
         ImpTaskKind.BuildTrap or ImpTaskKind.BuildDoor => TryTakeBlueprint(context, creature, grid),
         ImpTaskKind.CarryCorpse => TryTakeBody(context, creature, definition, grid, corpses: true),
@@ -928,7 +933,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private bool TryTakeFloorGold(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
-        if (creature.GoldHeld >= definition.MaxGoldHeld) return false;
+        if (HandsFull(context, creature, definition)) return false;
 
         byte player = creature.OwnerPlayerId;
 
@@ -978,8 +983,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// reinforce <i>or</i> gold to pick up, and at that tile the wall wins.
     /// <para>The shape of the original's last resort: once every whole-map kind is
     /// empty it scans outwards in rings and at each tile tries reinforce-or-repair,
-    /// then floor gold, then a loose object, then one kind not yet identified. Two
-    /// of the four exist here. Ours: rings measured in steps (HYPOTHESIS, Q25).</para>
+    /// then floor gold, then a loose object, then one kind not yet identified. Two of the
+    /// four exist here; ours counts steps to a stand, DK2 Manhattan rings of walls (Q493).</para>
     /// <para>One search and not two: the nearest wall then the nearest pile would
     /// put a wall across the dungeon above a pile at the imp's feet, the strict
     /// order the binary does not have. Distance is the primary key, kind the
@@ -989,7 +994,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
         byte player = creature.OwnerPlayerId;
-        bool handsFree = creature.GoldHeld < definition.MaxGoldHeld;
+        bool handsFree = !HandsFull(context, creature, definition);
 
         bool found = _pathfinder.TryFindNearest(
             grid,
@@ -1048,8 +1053,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// tile's centre, and the nearest with a face it can work from is taken. A later task
     /// replaces the best only when strictly nearer, so a wall beats a seam at the same
     /// distance. After a mining job, seams are measured from the seam just mined instead of
-    /// from the worker. Which of two walls at one distance comes first is the task list's
-    /// order in DK2 and the tile order here.
+    /// from the worker. Of two walls at one distance the later marked comes first: DK2's list
+    /// order, which its diggers' off-centre stance makes decide real choices (ADR-0288).
     /// <para>The drop scan is a different search (a ring walk around the landing tile) and
     /// keeps <see cref="TryTakeJobAt"/>.</para>
     /// </summary>
@@ -1076,7 +1081,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 bool seam = kind == TileWorkKind.MineGold;
                 long dx = x * 4096L + 2048 - (seam && fromSeam ? seamX : creature.PosX);
                 long dy = y * 4096L + 2048 - (seam && fromSeam ? seamY : creature.PosY);
-                _excavation.Add(new ExcavationCandidate(dx * dx + dy * dy, seam, y * width + x));
+                _excavation.Add(new ExcavationCandidate(dx * dx + dy * dy, seam, tile.TagOrder, y * width + x));
             }
         }
         _excavation.Sort();

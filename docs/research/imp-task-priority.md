@@ -50,6 +50,17 @@ Three functions carry the list and are used identically everywhere:
 | **raise** | `00507bb0` | *make a task of kind K at this tile* |
 | **find any** | `00507e40` / next `00507e90` | *walk every task of kind K* |
 
+**Order (read 2026-09-29).** A raise puts the new task at the **head** of its kind's list
+(`00507bb0`: its next is the old head), so a walk visits the most recently raised first,
+and a walk that keeps its best unless strictly nearer lets the newest win a tie. A dragged
+mark files its tiles (`0x00512a20`, run under an emulator) in square shells around the
+corner the drag began at: shell k from (k,0) to (k,k) to (0,k) when k is odd, the other way
+when even, clipped to the rectangle. **Built (ADR-0288)** as `TileState.TagOrder`, the
+dig walk's tie-break. DK2's diggers stand off a face's centre by the same fraction on both
+axes (672/4096 of a tile in the Level 1 capture), so two marks one diagonal apart are
+exactly equally near, and two of that game's 309 choices were decided by the list. Ours
+stands elsewhere and rarely ties, so over 20 seeds the order changes no outcome (Q492).
+
 Most kinds are raised by the very handler that consumes them — the handler
 scans, finds work, raises the task, takes it. **Kinds 1, 2 and 14 are raised
 from outside the imp code**, which is what makes them identifiable (§3).
@@ -195,9 +206,12 @@ read. Six dwords select searches: kinds 14, 13, 12, 9, 1, and the kind itself.
 In the shipped table **only the last is ever set, and only for kinds 1–5**; 6, 7,
 16 set only dwords this code never reads. So after a dig, a mine or a claim the
 imp looks for more of the same anywhere first, and after a dig or a mine
-deposits (kind 15) if nothing is found. `+0x98` is then zeroed. This is what
+deposits (kind 15) if nothing is found. `+0x98` is then zeroed, but not when the
+deposit is taken: `0x00464005` returns before the zeroing at `0x00464010`, so the
+walk to the store keeps kind 1 or 2 and can claim on the way (ADR-0288). This is what
 keeps a claimer claiming and a digger digging, and why a corridor is claimed on
-to the room at its end.
+to the room at its end. Nothing before this step deposits: state 10 has no
+"put the load down first", so a claimer carries its gold on (ADR-0288).
 
 **(b) The `JustDropped` scan.** If `imp+0x99` is non-zero it is cleared and a
 ring scan runs with the **nine-step chain** as its per-tile callback. This is
@@ -273,12 +287,22 @@ whole-map kind has come up empty.
 - **Whose ground:** the tile must be the imp's own or water (Q144), and the
   pile's owner must be the level-wide floor-gold id (Q136 — the two ends agree,
   the value is still unread).
-- **When to stop fetching (Q142, read):** before the gold kind is even
-  searched, `FUN_00464360(1)` tests the hands. An imp holding at least a
-  **level-scaled share of `MaxGoldHeld`** (level 1: all of it; higher levels
-  through a percentage table) less a global slack goes to **deposit**
-  (`FUN_00464400`) instead. So an imp *does* top up a part-load, until its hands
-  are nearly full.
+- **When to stop fetching (Q142, read):** `FUN_00464360(1)` tests the hands:
+  full at the **level-scaled `MaxGoldHeld`** (level 1 unscaled; higher levels
+  through the MaxGoldHeld row) less variable 74, which ships no value. The kind
+  dispatcher's kind 7 (`0x00468520`) sends full hands to the **store chooser**
+  (`FUN_00464400`); only the aimed retry reaches that arm. Tier B calls the gold
+  handler `0x0046b6d0` directly, which makes the same test and only declines.
+  So an imp tops up a part-load until its hands are full.
+- **After the pick-up (state 27, `0x00466850`, read 2026-09-29):** the piles
+  within `0x555` of the imp are taken up to the level-scaled cap, stopping once
+  full. Full hands then go to the store chooser, falling back to 10 when no store
+  has room; a part-load goes to 10 and stays in the hands.
+- **Who deposits at all:** the store chooser has five call sites (a raw scan of
+  every executable block): state 26 mining, state 27 above, the dispatcher's kind
+  7 and kind 15, and state 76 (the hand-drop landing). An imp with gold and
+  nothing to dig keeps it (the Level 1 capture: 1092 gold through 41 claims
+  over 680 ticks, with room in the heart).
 - **Where it deposits:** `FUN_00464400` walks the keeper's rooms of type
   **Treasury (1)** or **Dungeon Heart (5)** with room left, reachable, and picks
   the **nearest**. That confirms `GoldStore.DepositInto`'s carrier route.
@@ -330,7 +354,9 @@ face instead). Recorded, not built (**Q155**).
 | Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold**. Kind 16 (fix a damaged own wall) is not a job here — §3 |
 | distance | rings; for 1/2 straight-line, seams from the last seam | the 1/2 walk straight-line (ADR-0282); other kinds steps along the walkable grid; seam slot occupancy not built |
 | kind 14 | taken only on the way: `0x00464170` on entering a tile, category 3, more than two tiles from the task tile, last kind 1–7 or 16 | **built for deposit walks** (ADR-0286, Q489) — `TryClaimOnTheWay` |
-| stealing | nearer imp takes the task | not built (Q155) |
+| gold in hands | put down only by 26, 27 (full hands), 76, and in 10 by kind 15 or the aimed kind 7 (full hands) | **built** (ADR-0288); our pre-choice deposit is gone |
+| equal distance | the newest task, the list's head | **built** for the dig walk (ADR-0288), `TileState.TagOrder` |
+| stealing | nearer imp takes the task | not built (Q155); 7 of the Level 1 capture's choices and 38 of Level 2's were an imp losing its task this way |
 | just-dropped scan | three tiles, nine-step chain | **built** (ADR-0062, ADR-0069) — `TryTakeDroppedJob`, `DropScanTiles` = 3 Chebyshev measured to the work's tile, in DK2's drop order minus kind 11 (Q162); the crate kinds are ADR-0214 |
 | the aimed bonus | `DroppedTask` carries Efficiency +10 for as long as work of that kind lasts; `DroppedTask == LastTaskType` retries that kind whole-map before it is cleared | **built** (ADR-0069) — `TryTakeJobOfKind`, `CreatureState.DroppedTask`/`JustDropped`/`LastTaskKind`. The bonus itself is `hand-of-evil.md` §6 |
 | kind 13 | carry an unconscious creature: own to a Lair, an enemy's to a Prison. **The Combat Pit is a confirmed source**: its loser is knocked out, never killed (owner, Q310), so a pit fight feeds this kind first — and kind 12 only when no imp arrives before the dying window closes, which the owner confirms does kill it | **built, both branches** — the rescue to its own bed (ADR-0063) and the capture into a cell (ADR-0064). What the prison then does is `docs/research/prison.md` |

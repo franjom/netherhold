@@ -131,19 +131,21 @@ public class ImpStateTests
     [Fact]
     public void FloorGoldIsPickedUpInTwentySevenAndPutDownThroughTwentyEightAndTwentyNine()
     {
-        // 10 walks in 6 to 27; 27 takes the pile and walks to the store in 6 resuming in 28,
-        // so the saved caller turns from 10 to 27. 28 moves to 29, which deposits and sets 10.
+        // 10 walks in 6 to 27; 27 takes the pile, full hands, and walks to the store in 6
+        // resuming in 28, so the saved caller turns from 10 to 27. 28 moves to 29, which
+        // deposits and sets 10.
         GameDatabase db = Dk2TerrainFixture.Database();
         (GameSimulation sim, ListEventSink events) = Start(new TilePos(1, 1));
         Store(sim, new TilePos(3, 3), RoomTypeId.Treasury);
-        FloorGold.Drop(sim.World, db, (2 * sim.World.Width) + 2, 900);
+        int hands = db.CreatureById(Dk2TerrainFixture.ImpCreatureId).MaxGoldHeld;
+        FloorGold.Drop(sim.World, db, (2 * sim.World.Width) + 2, hands);
 
         Assert.Equal(
             [(Select, 0, 0), (Walk, Select, ImpStates.PickingUpGold),
              (Walk, ImpStates.PickingUpGold, ImpStates.AtTheStore),
              (Select, ImpStates.PickingUpGold, Idle)],
             StatesSeen(sim, 100).Take(4));
-        Assert.Contains(events.Events, e => e.Kind == "gold_delivered" && e.Detail.Contains("amount=900"));
+        Assert.Contains(events.Events, e => e.Kind == "gold_delivered" && e.Detail.Contains($"amount={hands}"));
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
 

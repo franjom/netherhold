@@ -37,6 +37,9 @@ switch (args[0])
     case "replay" when args.Length >= 4:
         return Replay(args);
 
+    case "decide" when args.Length == 4:
+        return Decide(args[1], args[2], args[3]);
+
     case "sgmap":
         return SgmapCommand.Run(args[1..], FindRepoRoot());
 
@@ -2649,6 +2652,8 @@ static int Usage()
     Console.WriteLine("                                         the same, driven by a captured task-pool log");
     Console.WriteLine("  capture-diff <ours.csv> <capture.csv> [--anchor tN]");
     Console.WriteLine("                                         event set and stamp-aligned capture timing");
+    Console.WriteLine("  decide <level> <decisions.jsonl> <out.tsv>");
+    Console.WriteLine("                                         DK2's imp choices put to ours in DK2's world");
     Console.WriteLine("  trigger-diff <left.csv> <right.csv>   exact per-turn diff for two of our own runs");
     Console.WriteLine("  wad extract <file.WAD> <entry> [out]   extract one entry");
     Console.WriteLine("  sdt list <file.sdt>                    list sound-bank entries and formats");
@@ -3113,6 +3118,36 @@ static InputFrame Merge(InputFrame? tags, InputFrame? rooms)
     if (b.Count == 0) return tags ?? InputFrame.Empty;
     if (a.Count == 0) return rooms ?? InputFrame.Empty;
     return new InputFrame([.. a, .. b]);
+}
+
+/// <summary><c>decide &lt;level&gt; &lt;decisions.jsonl&gt; &lt;out.tsv&gt;</c>: DK2's state-10 choices
+/// put to ours, one at a time, in DK2's world (<see cref="DecisionCheck"/>).</summary>
+static int Decide(string levelName, string inPath, string outPath)
+{
+    string? install = Dk2Install.Find();
+    if (install is null)
+    {
+        Console.Error.WriteLine("DK2 installation not found (set DK2_DIR).");
+        return 2;
+    }
+    LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, levelName);
+    List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName);
+    if (map is null || players is null)
+    {
+        Console.Error.WriteLine($"'{levelName}' is missing map or player data.");
+        return 2;
+    }
+    GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, levelName);
+    WorldState world = WorldState.FromMap(database, map, players.Select(p => p.PlayerId).ToArray());
+    try
+    {
+        return DecisionCheck.Run(database, world, inPath, outPath);
+    }
+    catch (Exception ex) when (ex is IOException or InvalidDataException or System.Text.Json.JsonException)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 2;
+    }
 }
 
 static int ReplayUsage()

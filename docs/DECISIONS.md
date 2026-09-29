@@ -6264,3 +6264,40 @@ is bimodal in ours as in DK2: the fourth imp claims only if it chooses before th
 seam is mined out. Ours replaying `l2live2` wins 6 of 20; DK2 replaying it under seed
 234567 claims first at 364, gets a 5-tile Lair and no Library, and does not win
 (`dk2runs/level2-live2-seeds/`).
+
+## ADR-0288 — Put DK2's own imp choices to ours; keep gold in the hands as DK2 does
+**Date:** 2026-09-29 · **Status:** accepted · Research: `imp-task-priority.md` §2.1, §4, §5, §8
+
+**Context.** Level 1 replays won 12 of 20 where DK2 wins 7 of 7, and seed-level
+comparisons could not say which rule was wrong. A full-state capture holds, each tick,
+every imp's job fields (the state at creature `+0x24E`: task id `+0x8A`, tile `+0x8C`/
+`+0x90`, kind `+0x98`) and the keeper's task pool with its workers, so each of DK2's
+state-10 choices can be put to our selection in DK2's own world.
+
+**Decision.**
+1. `dk2tools decide <level> <decisions.jsonl> <out.tsv>` (`DecisionCheck`): for each
+   choice, DK2's tiles, marks (from the choice's own frame, since input lands first),
+   list order and every imp of the keeper are loaded into our world, an imp holding a
+   task put on its face; `ImpTaskSystem.ChooseJob` runs for the chooser alone, and the
+   row says whether kind and tile agree. A tile an imp with a lower slot works takes
+   the new frame's value: creatures update in slot order. The extractor is local,
+   `reverse-engineering/dk2decisions.py`, beside the capture reader.
+2. No deposit before the choice. DK2's state 10 has none; the store chooser
+   `0x00464400` has five callers (26, 27, the dispatcher's kinds 7 and 15, 76). A
+   claimer carries its load on: the Level 1 capture's imp held 1092 through 41 claims
+   with room in the heart.
+3. State 27 (`0x00466850`) deposits only full hands, falling back to 10; a part-load
+   stays held. The hands test is the level-scaled `MaxGoldHeld`, less variable 74
+   (no shipped value). The aimed gold retry deposits a full load (`0x00468520` kind 7).
+4. A kind-15 deposit keeps the last kind (`0x00464005` returns before the zeroing), so
+   its walk can claim on the way (ADR-0286).
+5. Marks carry `TileState.TagOrder` in DK2's drag spiral (`0x00512a20`), and the dig
+   walk takes the newest of equally near marks. `HashVersion` and snapshot version 141.
+
+**Consequences.** On the Level 1 capture 271 of 309 choices agree (63% before the gold
+rules); before tick 700 the only difference left is stealing. Level 2: 640 of 799.
+Replays of the owner's games: Level 1 wins 15 of 20 (12 before), Level 2 7 of 20 (6).
+The rest the checker names: stealing (Q155; 7 and 38 choices), Tier B's ring scan
+(Q493), and rooms and floor gold, which the checker does not load yet. Nine gold tests
+were rewritten to the binary's rule; `ImpKeepsItsGoldTests` pins the new ones, each
+negative-controlled.
