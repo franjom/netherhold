@@ -5833,3 +5833,29 @@ the format is the version bump that making `dk2` the default will need. Choosing
 their ranges differ, and `KeeperAI` draws from its own stream, while DK2's
 computer player draws from the world seed. Draw-for-draw alignment is not a goal
 (owner, 2026-09-29: fidelity is judged by outcomes).
+
+## ADR-0276 — No logging framework; the simulation reports through typed events
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** The owner asked whether the project needs a logging framework. The
+solution references only xunit, YamlDotNet and test tooling. The simulation
+reports through `ISimulationEventSink`; capture tools have their own recorders;
+the CLIs write to `Console`.
+
+**Decision.** Add no logging framework (Microsoft.Extensions.Logging, Serilog or
+similar). The simulation says what happened only through typed `SimEvent`s: they
+are deterministic and assertable, and cost nothing under `NullEventSink`. Text
+log lines carry timestamps and formatting, allocate every tick, and would add a
+dependency to the Unity-bound netstandard2.1 assemblies. The Unity adapter may
+forward events to `Debug.Log`; the CLIs keep `Console`.
+
+**Throwaway diagnostics.** The simulation never writes to `Console` or `Debug`.
+If ad-hoc tracing is needed often, add a `[Conditional("DK2_TRACE")]` helper
+to DK2.Core, which compiles out of normal builds. Output worth keeping becomes an
+event.
+
+**Known violation.** `be87acc` left a `DBG` stderr dump of the walkable grid in
+`CreatureJobSystem.cs` (a failed route before tick 900). Remove it.
+
+**Revisit** if a dedicated multiplayer server process appears (M14): host-side
+operational logging belongs there, never in the simulation.
