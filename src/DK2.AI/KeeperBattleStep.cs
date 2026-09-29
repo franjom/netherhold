@@ -45,16 +45,20 @@ public sealed class KeeperBattleStep
     private readonly SimRandom _rng;
     private readonly List<PlayerCommand> _commands;
     private readonly long _turn;
+    private readonly HashSet<int> _prepared;
     private IReadOnlyList<KeeperThreatSource>? _sources;
 
+    /// <param name="prepared">Creatures the tick's earlier steps are predicted to have prepared for
+    /// the hand, which DK2's walk finds in state 75 or 78, outside the combat category.</param>
     public KeeperBattleStep(KeeperView view, KeeperAIState state, KeeperAIParameters parameters,
-        SimRandom rng, List<PlayerCommand> commands)
+        SimRandom rng, List<PlayerCommand> commands, HashSet<int>? prepared = null)
     {
         _view = view;
         _state = state;
         _p = parameters;
         _rng = rng;
         _commands = commands;
+        _prepared = prepared ?? new HashSet<int>();
         // DK2's first game turn is 1; the observation's tick is the turn about to run.
         _turn = view.Tick.Value + 1;
     }
@@ -245,9 +249,11 @@ public sealed class KeeperBattleStep
     private IReadOnlyList<KeeperThreatSource> Sources => _sources ??= ThreatEvaluator.Sources(_view);
 
     /// <summary><c>0x00478050</c> answering the combat category: an own creature fighting through a
-    /// walk. A held creature is out of the category in DK2 (state 76 or 78) and excluded here.</summary>
-    private static bool IsFighting(KeeperCreatureView creature) =>
-        creature.Activity != CreatureActivity.Dead && !creature.InHand && creature.ResolvedStateId >= 0
+    /// walk. A held creature is out of the category in DK2 (state 76 or 78) and excluded here, as
+    /// is one the retreat prepared for the hand this tick.</summary>
+    private bool IsFighting(KeeperCreatureView creature) =>
+        creature.Activity != CreatureActivity.Dead && !creature.InHand && !_prepared.Contains(creature.Id)
+        && creature.ResolvedStateId >= 0
         && CreatureStateTable.Get(creature.ResolvedStateId).Category == CreatureStateCategory.Combat;
 
     /// <summary>An owner's creature list in DK2's order; a corpse is a different thing there.</summary>

@@ -1,13 +1,15 @@
 # The unaided keeper's battle step on a stock map: Level 17 gives Harkan (player 4) Call to Arms
 # at availability 3 from its own VARIABLES rows, BACallToArmsValue 200 and TendancySpeed 4. A
 # Black Knight of Harkan's stands on the claimed tile west of its heart and a hero Knight (threat
-# 213) with two Guards in the neutral room beside it; the fight's combat message sets the
+# 213) in the neutral room beside it; the fight's combat message sets the
 # keeper's fight flag, and from then on the battle step runs where imps would be made. Harkan's
 # spell arm picks Thunderbolt every tick, but the heroes stand on neutral ground, which location
-# selector 1 refuses, so no mana goes there. On the first turn divisible by 40 while the fight
-# lasts, the heroes' strength (453) exceeds 200, the keeper can pay 10000 of its 25000 mana, the
-# claimed tile is a lawful place and a walker routes there from the heart, so the keeper casts
-# the call at its fighter through the same action 54 a human uses; the flag object raises the
+# selector 1 refuses, so no mana goes there. The Knight fights alone because Harkan's retreat
+# (BARetreatHealth 20, ADR-0284) lifts a fighter below 800 health out of the fight, and against
+# the Knight and two Guards the Black Knight is there by turn 33. On the first turn divisible
+# by 40 while the fight lasts, the heroes' strength exceeds 200, the keeper can pay 10000 of its
+# 25000 mana, the claimed tile is a lawful place and a walker routes there from the heart, so
+# the keeper casts the call at its fighter through the same action 54 a human uses; the flag object raises the
 # call and Harkan's placed creatures answer it. Harkan's removal parameters want six enemies
 # within two tiles and five own non-workers, so once the call is seen the removal test slaps the
 # flag down (action 63). No allowance and no flag is set by hand: the fight, the message walk,
@@ -35,8 +37,6 @@ setup:
   creatures:
     - { type: Black Knight, at: [4, 7], player: 4 }
     - { type: Knight, at: [3, 7], player: 1 }
-    - { type: Guard, at: [3, 6], player: 1 }
-    - { type: Guard, at: [3, 8], player: 1 }
 observe:
   - state_hash
   - events

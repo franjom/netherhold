@@ -73,6 +73,7 @@ public static class ActivityRules
         >= ImpStates.CarryingCorpse and <= ImpStates.PuttingDownTheRefusedBody => CreatureActivity.CarryingBody,
         PrisonRules.SlappedState => PrisonRules.IsImprisoned(creature) ? CreatureActivity.Imprisoned : CreatureActivity.Idle,
         DropLandingRules.LandingState or DropLandingRules.StandingState => CreatureActivity.Idle,
+        HandRules.PreparationState => CreatureActivity.BeingLifted,
         PortalRules.JoiningState => CreatureActivity.Idle,
         CallToArmsRules.GoingState or CallToArmsRules.ArrivedState or CallToArmsRules.MillingState => CreatureActivity.HeedingCallToArms,
         LairRules.MakingAHomeState => CreatureActivity.SeekingLair,

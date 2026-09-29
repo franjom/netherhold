@@ -15,9 +15,9 @@ namespace DK2.AI;
 /// issue by hand, for the host to put in the next <see cref="InputFrame"/>. Nothing
 /// in the simulation sees this type, so the world hash is untouched. Source: the
 /// original's <c>ComputerPlayer.cpp</c> (docs/KEEPER_AI.md §5, §12.1).</para>
-/// <para>The proactive foundation of §12.8, the attack response (<see cref="KeeperThreatResponder"/>)
-/// and the battle step (<see cref="KeeperBattleStep"/>). Not implemented: the attack planner, traps
-/// and doors, prisoners, retreat, training moves, researcher room, room and mood messages.</para>
+/// <para>The proactive foundation of §12.8, the attack response (<see cref="KeeperThreatResponder"/>),
+/// the battle step (<see cref="KeeperBattleStep"/>) and the retreat (<see cref="KeeperRetreatStep"/>). Not
+/// implemented: the attack planner, traps and doors, prisoners, training moves, researcher room, room and mood messages.</para>
 /// <para>Deviates: randomness is the keeper's own <see cref="SimRandom"/>, not the
 /// world's stream (§12.1).</para>
 /// </remarks>
@@ -106,10 +106,12 @@ public sealed class KeeperAI
         responder.HandleMessages();
         budget = responder.Dispatch(budget);
 
-        // 7. The call's removal test while allowance remains; it spends none. Attack management
-        // needs the unbuilt attack planner's flags, and the retreat is not built.
-        var battle = new KeeperBattleStep(view, State, _p, _rng, commands);
+        // 7. The call's removal test while allowance remains, spending none, then the retreat of
+        // the wounded. Attack management needs the unbuilt attack planner's flags.
+        var retreat = new KeeperRetreatStep(view, _p, _rng, commands);
+        var battle = new KeeperBattleStep(view, State, _p, _rng, commands, retreat.Prepared);
         if (budget > 0 && State.CallToArmsInUse) battle.TestRemoval();
+        if (budget > 0) budget = retreat.Run(budget);
 
         // 11. Imps while no fight is on, else the battle step; then 13. slaps.
         if (budget > 0)

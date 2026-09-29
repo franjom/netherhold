@@ -6106,6 +6106,54 @@ keeper's own RNG (ADR-0244).
 **Limits.** Heal, Inferno and Chicken casts, the attack planner's front
 (`0x004FECE0`, `0x004FE9C0`) and the retreat are not built. No original run (Q485).
 
+## ADR-0284 — Connect the keeper's retreat of the wounded as pick-up and drop commands
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** Step 7 of the keeper tick runs `0x004FF260` after the Call to Arms
+removal test: wounded creatures and Combat Pit fighters are lifted into the hand
+and put down in a Lair or at the heart. It was research only
+(`computer-keeper-threat.md` §4); the hand commands and the captured pickup
+permissions (ADR-0262, ADR-0278) are what it needs.
+
+**Decision.**
+1. `KeeperRetreatStep` in `DK2.AI` runs at step 7 while no event is pending and
+   allowance remains, walking the owned list from its newest creature with the
+   binary's five branches in order: the Pit fighter below half health, the fighter
+   below `BARetreatHealth` percent, the dropped-counter guard, the other creature
+   below the percentage with its six exclusions, the Pit fighter at
+   `IACreatureSkillLevel`. Each selection spends one allowance once an own Heart
+   room exists.
+2. The move is the existing `PickUpCreatureCommand` and `DropCommand`, the drop at
+   a random own Lair's middle or the observation's heart tile. Several creatures
+   may move in one tick.
+3. Observation schema 11 adds each creature's Combat Pit mark and whether it holds
+   a room id. The latter is `RoomMembershipRules.IsAttached`: DK2 writes `RoomId`
+   only from the enter hooks of the ten room categories and clears it from their
+   leave hooks, so a state in one of them, or a walk whose saved caller was, holds it.
+4. A creature whose pick-up is issued is handed to the battle step, whose walk skips
+   it as DK2's finds it in state 75 or 78.
+5. The hand command runs DK2's preparation before its capacity test: state 75 through
+   idle (`HandRules.PreparationState`, activity `BeingLifted`), so a full hand still
+   takes a fighter out of its fight and leaves it there (`hand-of-evil.md` §2).
+   `HashVersion` is unchanged: no field moved, and no pinned run fills a hand.
+
+**Reason.** DK2 lifts and drops inside the routine and reads the hand back at once;
+ours issues commands executed a tick later. The drop is issued only when the
+capture's `CanPickUp` predicts the lift, the allowance is spent as DK2's is either
+way, and no AI state records the attempt, so no grace period is needed: a refused
+lift leaves the creature where the next tick's walk finds it again, as DK2's does.
+
+**Deviations, ours.** The one-tick delay; the keeper's own RNG for the Lair draw
+(ADR-0244); the Lair's bounding-box middle where DK2 reads `CentrePos`, and the
+observation's heart tile where DK2 reads `DungeonHeartPosition`; the drop's `0x900`
+offset is not carried by the command; the drop lands through the simulation's tile
+tests where DK2's `0x004BC710` has none; room membership is derived from the state,
+not stored, and the unrepresented `0x0048E6A0` gates of `creature-pickup.md` bound
+the prediction.
+
+**Limits.** No original run (Q486). The attack planner's front, training moves and
+the remaining battle spells are not built.
+
 ## ADR-0285 — An imp claims outward from its keeper's floor in DK2's ring order, and a store sweeps in loose gold
 **Date:** 2026-09-29 · **Status:** accepted
 

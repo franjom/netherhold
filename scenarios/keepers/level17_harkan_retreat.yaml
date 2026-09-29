@@ -1,0 +1,50 @@
+# The unaided keeper's retreat of the wounded on a stock map: Level 17 gives Harkan (player 4)
+# BARetreatHealth 20 from its own PLAYERS record and a Lair centred on (13,13). A Black Knight
+# of Harkan's stands on the claimed tile west of its heart with 60 of its 4000 health. Far
+# below CreatureSleepsWhenBelowPercentHealth, it seeks its bed at once; while it walks there
+# its category through the walk is the Lair's (6), which the retreat's fourth branch passes
+# over, as DK2's does. Once it lies down asleep (category 9) it holds no room id, is not held,
+# landing or stunned, and the game turn is not yet past 300, so the dropped-counter guard is
+# inactive: the retreat (0x004FF260) selects it, finds Harkan's Heart room, the hand predicate
+# admits it, and the keeper lifts it through the pick-up a human uses and puts it down at the
+# Lair's centre, one allowance spent (input tick 109 in this run). Dropped that hurt it lands
+# stunned; the stunned states are passed over, and once they end, the guard still inactive,
+# it is lifted again each time, as the binary predicts for the first 300 turns (ADR-0284).
+#
+# What this run does NOT establish: DK2's timing, or that DK2 lifts a sleeper as often. No
+# original run of a keeper's retreat has been compared (Q486).
+id: keepers-level17-harkan-retreat-001
+question: >
+  Does Harkan, unaided, lift a wounded creature of its own and put it down in a Lair?
+map: campaign:level17
+seed: 12345
+duration_ticks: 130
+viewing_player: 4
+computer_keepers: [4]
+setup:
+  placed_things: true
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 2, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
+    - { id: 4, gold: 10000, mana: 25000 }
+    - { id: 5, gold: 10000, mana: 100 }
+  creatures:
+    - { type: Black Knight, at: [4, 7], player: 4, health: 60 }
+observe:
+  - state_hash
+  - events
+expect:
+  - event: picked_up
+    detail: "player=4"
+    because: >
+      The retreat (0x004FF260) lifts an own creature strictly below BARetreatHealth percent of
+      its level-scaled maximum that is outside the Lair and Combat categories, the hand, state
+      76, the stunned states and any room, through the hand pick-up 0x004BC500; asleep in its
+      bed it qualifies, seeking the bed it does not.
+  - event: dropped_stunned
+    detail: "player=4"
+    because: >
+      In the hand (0x004BCAE0), the creature is dropped by 0x004BC710 at a random own Lair's
+      CentrePos, or at DungeonHeartPosition when the keeper owns no Lair; a creature put down
+      that hurt lands stunned (ADR-0226).

@@ -102,7 +102,8 @@ public sealed class KeeperView : INavByteGrid
                 fighter && callToArms is not null && KeeperSpellRules.PlaceAllowed(world, database, this, playerId, callToArms, c.Tile),
                 routed,
                 c.OwnerPlayerId != playerId && c.Activity != CreatureActivity.Dead && thunderbolt is not null
-                    && KeeperSpellRules.CreatureTargetAllowed(world, database, this, playerId, thunderbolt, c)));
+                    && KeeperSpellRules.CreatureTargetAllowed(world, database, this, playerId, thunderbolt, c),
+                c.CombatPitFighter, RoomMembershipRules.IsAttached(c)));
         }
         Creatures = creatures.AsReadOnly();
         CallToArms = world.Player(playerId).CallToArms;

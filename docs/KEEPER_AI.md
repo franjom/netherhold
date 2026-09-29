@@ -711,11 +711,13 @@ a **Lair**; an enemy goes by
 `ImprisonedCreatureAction`: 0 Torture Chamber (12), 1 nothing, 2 Combat Pit (16), 3
 Temple (13). Selection costs one allowance even when no move follows; room and
 hand restrictions are in `research/computer-keeper-management.md` §1.
-**Retreat** (`0x4FF260`) uses alternative branches for low health,
-state category and Combat Pit fighters; it does not require both low health and
-the target skill level. Selected creatures are dropped at an own Lair or the
-heart if none. Exact gates and remaining helper questions:
-`research/computer-keeper-threat.md` §4.
+**Retreat** (`0x4FF260`, step 7) walks the owned list from its newest creature
+with alternative branches: a Combat Pit fighter below half health, anyone fighting
+below `BARetreatHealth` percent, the 300-turn dropped guard, another creature below
+the percentage outside a room, the hand, landing and stun, or a Pit fighter at
+`IACreatureSkillLevel`. Each selection spends one allowance once a Heart room
+exists; the hand puts it down in a random own Lair or at the heart. Built as
+`KeeperRetreatStep` (ADR-0284): `research/computer-keeper-threat.md` §4.
 
 ### 5.9 Constants worth knowing
 
@@ -1111,8 +1113,9 @@ The proactive foundation already exists (§12.8). **Future direction, agreed 202
    creature engages is acknowledged, reserved and dispatched as pick-up and drop
    commands. Call to Arms is built as a spell the simulation runs (ADR-0279,
    `research/call-to-arms.md`) and the battle step casts it and Thunderbolt and takes
-   the flag down (ADR-0283). Next: retreat of the wounded, the unbuilt battle spells,
-   then the remaining message families and producers.
+   the flag down (ADR-0283); the retreat of the wounded runs at step 7 as pick-up and
+   drop commands (ADR-0284). Next: the unbuilt battle spells, then the remaining
+   message families and producers.
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
 3. **Dungeon management.** Add need-driven room expansion/building, training moves,
@@ -1172,11 +1175,12 @@ The response queue is dispatched by `Think` through `KeeperThreatResponder` (ADR
 schema 8 adds each creature's state, fight gate, health basis, dropped counter, hand and list rank;
 schema 9 adds its `0x004888C0` answer and the keeper's own Call to Arms; schema 10 the
 mana pool, each spell row's last cast, and per creature its target's owner and the
-captured place, route and Thunderbolt-target permissions the battle step predicts with.
+captured place, route and Thunderbolt-target permissions the battle step predicts with;
+schema 11 its Combat Pit mark and whether it holds a room id.
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
 now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);
-remaining gaps: `research/creature-pickup.md`. Response dispatch is connected, Call to Arms is a simulation spell (ADR-0279) and the battle step runs through `Think` at step 11 with the removal test at step 7 (ADR-0283, `KeeperBattleStep`); retreat is not built.
+remaining gaps: `research/creature-pickup.md`. Response dispatch is connected, Call to Arms is a simulation spell (ADR-0279) and the battle step runs through `Think` at step 11 with the removal test at step 7 (ADR-0283, `KeeperBattleStep`) and the retreat of the wounded after that test (ADR-0284, `KeeperRetreatStep`).
 Combat messages reach the observation; the remaining reactive decisions, the Heal, Inferno
 and Chicken casts, the remaining message families, personality loader and §5.1 step 9 training moves remain unbuilt.
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.

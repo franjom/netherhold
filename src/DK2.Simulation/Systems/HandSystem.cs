@@ -53,11 +53,27 @@ public sealed class HandSystem : ISimulationSystem
         CreatureState? creature = world.CreatureById(command.CreatureId);
         if (creature is null) return;
 
-        if (!HandRules.CanPickUp(world, context.Database, creature, command.PlayerId))
+        if (!HandRules.HasPickupPermission(world, context.Database, creature, command.PlayerId))
         {
             context.Emit(SystemName, "pickup_refused",
                 $"player={command.PlayerId} creature={command.CreatureId} " +
-                $"held={world.Player(command.PlayerId).Hand.Count}");
+                $"held={world.Player(command.PlayerId).Hand.Count} reason=permission");
+            return;
+        }
+
+        // 0x004BFBD0 runs before 0x004BC500 tests the hand: state 75, through idle when the
+        // current category is outside its mask, so a full hand still takes a fighter out of
+        // its fight and leaves it there (HandRules.PreparationState).
+        if (!CreatureStateMachine.TrySetState(creature, HandRules.PreparationState, context.Tick.Value))
+        {
+            CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle, context.Tick.Value);
+            CreatureStateMachine.TrySetState(creature, HandRules.PreparationState, context.Tick.Value);
+        }
+        if (world.Player(command.PlayerId).Hand.Count >= HandRules.Capacity(context.Database))
+        {
+            context.Emit(SystemName, "pickup_refused",
+                $"player={command.PlayerId} creature={command.CreatureId} " +
+                $"held={world.Player(command.PlayerId).Hand.Count} reason=hand_full");
             return;
         }
 

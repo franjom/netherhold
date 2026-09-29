@@ -416,7 +416,7 @@ public class KeeperBattleStepTests
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
         Engage(own, Fighter(world, Hero, 14, 15));
-        own.Health = 100; // below half of 1500: Heal's target
+        own.Health = 700; // below half of 1500, Heal's target, and above the retreat's 300 (ADR-0284)
         world.Player(Keeper).Mana = 20000;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, 10, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 4, preference: 4);

@@ -163,33 +163,51 @@ the move flag. This original no-move branch must not be silently repaired.
 
 ## 4. Automatic retreat is separate from an event withdrawal
 
-`0x004FF260` scans owned creatures while allowance remains. These are alternative
-eligibility branches, not one combined health-and-level gate:
+**STRONGLY INFERRED** and BUILT (`KeeperRetreatStep`, ADR-0284); reread in Ghidra
+12.1.4 on 2026-09-29. The tick `0x00500C20` runs `0x004FF260` at step 7, after
+attack management and the Call to Arms removal test, only while no event task is
+pending and allowance remains, and the routine returns the allowance left. It walks
+the keeper's owned list from its head, the newest creature, while allowance remains.
+The branches are alternatives, tested in this order; the first that holds selects:
 
-- A Combat Pit fighter (creature flag `+0x3E6 & 0x8000`) below half maximum
-  health is selected regardless of the target skill level.
-- A creature below `BARetreatHealth` percent in state category 22 is selected
-  before the dropped-counter restriction.
-- Other non-pit creatures below that percentage must pass the dropped-counter
-  restriction, be outside categories 6/22, outside the hand and state 76, pass
-  `0x0048F350 == 0`, and have no room tag at creature `+0x3B9`.
-- A remaining Pit fighter is selected when its level is at least
-  `IACreatureSkillLevel`, even if healthy.
+1. A Combat Pit fighter (`+0x3E6` bit 15) whose health `+0x40` is strictly below half
+   its level-scaled maximum (an unsigned shift).
+2. Any creature strictly below `BARetreatHealth` percent of that maximum (the byte
+   times the unsigned maximum, divided by 100, compared signed) whose effective
+   category (`0x00478050`, through a walk) is 22. No hand, counter or room test.
+3. If `LastDroppedCounter` (`+0x46D`) is at most 300 **and** the game turn is above
+   300: a Pit fighter goes on to branch 5; anyone else is skipped.
+4. A non-Pit creature below the percentage whose effective category is neither 6 nor
+   22, that this keeper's hand does not hold (`0x004BCAE0`), whose current state is
+   not 76, that `0x0048F350` does not call stunned (209, 255 to 257) and whose
+   `RoomId` (`+0x3B9`) is zero.
+5. A Pit fighter whose level `+0x403` is at least `IACreatureSkillLevel` (the
+   four-bit field at `+0x4B2` bits 19 to 22), whatever its health.
 
-After selection, an owned Heart room and interaction permission are required.
-It attempts pickup and, if in hand, drops at a randomly selected own Lair or
-the heart when no Lair exists, with fractional tile offset `0x900`. Finding
-the Heart consumes one allowance even if the interaction fails. No Heart
-means no allowance debit. The dumper calls `+0x3B9` RoomId
-(`creature-object.md`). `0x0048F350` rejects states 209/255/256/257.
+The maximum is `Hp` (`def+0x692`) at level 1, else the signed product `Hp x
+table[+0xE1 + level x 2] / 100`, the scaling `CreatureLevelRules.MaxHealth` applies.
 
-`0x00478050` is the effective state-category lookup: while travelling it reads
-the saved resume state's category. `0x004888C0` rejects the owner flag at
-player `+0x76 & 4`, creature flag `+0x3E6 & 0x100000`, or effective state
-190/191/192. The hand eligibility routine `0x0048E6A0` is audited against the
-current `HandRules` in `hand-of-evil.md` section 3; its missing gates must be
-accounted for before reuse. `0x004BFBD0` prepares state 75,
-retrying through idle on refusal; it is not simply a permission query.
+A selected creature needs an own Heart room, drawn by `0x004C6460(5)` with the
+world's RNG among unflagged rooms of the type; without one nothing is attempted and
+nothing is spent. With one, one allowance is spent whatever follows. The creature
+predicate `0x0048E6A0(creature, keeper id)` (`creature-pickup.md`) decides whether
+`0x004BFBD0` (state 75, before the hand's capacity test, `hand-of-evil.md` §2) and
+the hand pick-up `0x004BC500` run at all; when
+`0x004BCAE0` then finds the creature in the hand, `0x004BC710` drops it, with no tile
+test of its own, at a random own Lair's `CentrePos` (room `+0x27`, `0x004C6460(2)`)
+or, with no Lair, at `DungeonHeartPosition` (`player+0xB43`, `0x004C5F50`), each axis
+`tile x 4096 + 0x900`. The walk continues with the next creature, so several may move
+in one tick; a lifted creature sits in state 78 for the rest of the tick, outside
+category 22, so step 11's battle step does not count it. The routine reads no random
+draw, timer or flag of its own.
+
+`RoomId` is written only by the constructor (zero), the load relink `0x004E5DA0`, the
+claim `0x004E5A70` that the enter hooks of categories 4, 5, 11 to 17 and 31 call, and
+the release `0x004E5E00` their leave hooks call (`state-categories.md`); the simulation
+derives it from the state (`RoomMembershipRules`). Shipped values: `BARetreatHealth`
+10, 20 or 30 and `IACreatureSkillLevel` 0 to 8 by profile (`KEEPER_AI.md`'s profile
+table). The one-tick command delay, the keeper's own RNG and the Lair's bounding-box
+middle for `CentrePos` are ADR-0284's deviations. No original run (Q486).
 
 ### 4.1 Casualty-priority lifetime and reader
 
@@ -228,12 +246,13 @@ Trap construction and recharge do not filter this strength calculation. The
 simulation has no additional limbo or trap off-map lifecycle to project yet.
 
 Campaign keepers receive PLAYERS activation order from the harness; observation
-schema 10 stores its reversed active-list walk, casualty-priority masks, pickup
+schema 11 stores its reversed active-list walk, casualty-priority masks, pickup
 permissions, the keeper's Call to Arms and mana, each spell row's last cast and, per
 creature, the DK2 state, the state through a walk, the fight gate, level-scaled
 maximum health, `LastDroppedCounter`, whether this keeper's hand holds it, its rank
-in the owner's list, its `0x004888C0` answer, its target's owner and the battle
-step's captured permissions (ADR-0283). Synthetic callers may supply activation
+in the owner's list, its `0x004888C0` answer, its target's owner, the battle
+step's captured permissions (ADR-0283), its Combat Pit mark and whether it holds a
+room id (ADR-0284). Synthetic callers may supply activation
 order explicitly; otherwise it uses this simulation world's ascending creation
 order, reversed. For current simulation versions see `hash-versions.md`.
 
@@ -250,8 +269,9 @@ on the heart tile; a reinforcement moves only from an unowned payload through th
 spiral and debits threat either way. Commands land a tick later, so outcomes are
 predicted from the captured permissions and a creature moved this tick leaves the
 tick's candidates; `0x004888C0` is captured whole now that the call exists
-(`call-to-arms.md`). Not represented: the spiral's `0x00454110` exclusion, the room
-reader (no kind 34 producer) and retreat (§4).
+(`call-to-arms.md`). The retreat of the wounded runs after the removal test
+(§4, `KeeperRetreatStep`). Not represented: the spiral's `0x00454110` exclusion and
+the room reader (no kind 34 producer).
 `KeeperThreatResponseTests` distinguish the owned-payload no-move, the withdrawal
 walk and its counter gate, refused permission, the full queue, the cancelled
 reservation, the imprisonment reroll, the spiral's order and a live type 6 from

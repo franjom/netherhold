@@ -76,6 +76,7 @@ own creature in another keeper's cells is refused; other rooms' membership,
 teleport/combat writers, Turncoat and the disguise tag remain unimplemented.
 A tile's room is not substituted for that association. The existing
 zero-health refusal remains a simulation adaptation before its delayed collapse.
-The keeper's attack response consumes this permission from its observation
-(ADR-0278); the unrepresented gates above still bound that response's fidelity.
+The keeper's attack response and its retreat of the wounded consume this permission
+from their observation (ADR-0278, ADR-0284); the unrepresented gates above still
+bound those responses' fidelity.
 No new original-game observation validates this slice.

@@ -32,6 +32,13 @@ public static class HandRules
     /// the speed boost land however recent the last slap was (hand-of-evil.md §4). Not implemented: the knock-back, there being no physics, so nothing reads this.</summary>
     public const int KnockBackWindowSeconds = 1;
 
+    /// <summary>State 75: what the pick-up preparation <c>0x004BFBD0</c> enters, through idle when
+    /// the current category is outside its entry mask, before the hand handler <c>0x004BC500</c>
+    /// tests capacity; both the human handler <c>0x004C0BE0</c> and the keeper's routines call it
+    /// first. Its update returns 1, so a creature the hand then refuses stays there; what else
+    /// leaves it is UNKNOWN (hand-of-evil.md §2).</summary>
+    public const int PreparationState = 75;
+
     /// <summary>Whether this creature is in somebody's hand — DK2's <c>StateFlags1.InHand</c>.
     /// Belongs beside <see cref="CreatureDeathRules.IsDown"/> wherever a system makes a creature act: a held creature does not walk, work, sleep or look for a lair.</summary>
     public static bool IsHeld(CreatureState creature) => creature.InHand;

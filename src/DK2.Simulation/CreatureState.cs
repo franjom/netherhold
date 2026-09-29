@@ -205,6 +205,10 @@ public enum CreatureActivity
     /// <summary>Heeding its keeper's Call to Arms: states 190 to 192 and the walks resuming them
     /// (<see cref="CallToArmsRules"/>).</summary>
     HeedingCallToArms = 33,
+
+    /// <summary>State 75, the hand's preparation (<see cref="HandRules.PreparationState"/>): entered
+    /// before the hand's capacity is tested, and inert while it lasts.</summary>
+    BeingLifted = 34,
 }
 
 /// <summary>One creature in the world.</summary>

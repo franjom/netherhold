@@ -44,6 +44,35 @@ public class ScenarioTests
     }
 
     [InstallFact]
+    public void Level17HarkanLiftsItsWoundedBlackKnightToALairUnaided()
+    {
+        string install = Dk2InstallGate.Path;
+        Scenario scenario = Scenario.Load(Path.Combine(
+            RepositoryRoot(), "scenarios", "keepers", "level17_harkan_retreat.yaml"));
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        ScenarioResult run = new ScenarioRunner(database, install).Run(scenario);
+
+        // The retreat's own commands, not a scripted move: the wounded creature is passed over
+        // while it seeks its bed and lifted once asleep, each pick-up followed at once by a drop
+        // on one of Harkan's Lair tiles (ADR-0284, the scenario's comment for the turn).
+        Assert.Empty(run.ExpectationFailures);
+        List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is PickUpCreatureCommand or DropCommand).ToList();
+        Assert.NotEmpty(moves);
+        Assert.All(moves, e => Assert.Equal((byte)4, e.Command.PlayerId));
+        Assert.All(moves.Chunk(2), pair => Assert.True(pair[0].Command is PickUpCreatureCommand && pair[1].Command is DropCommand
+            && pair[0].InputTick == pair[1].InputTick));
+        Assert.True(moves[0].InputTick > 1, "the lift waits for the bed, it is not the first tick's");
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level17")!;
+        byte lair = database.RoomById((byte)RoomTypeId.Lair).TerrainId;
+        foreach (DropCommand put in moves.Select(e => e.Command).OfType<DropCommand>())
+        {
+            MapTile landing = map[put.Tile.X, put.Tile.Y];
+            Assert.Equal((lair, (byte)4), (landing.TerrainId, landing.PlayerId));
+        }
+        Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
+    }
+
+    [InstallFact]
     public void Level10ComputerKeeperRespectsLockedRoomAvailability()
     {
         string install = Dk2InstallGate.Path;
