@@ -31,7 +31,10 @@ Before implementing DK2 behavior, check, in this order:
    **12.1.4** at `D:\Ghidra\ghidra_12.1.4_PUBLIC`, projects under `D:\Ghidra\`,
    scripts run as **PyGhidra (CPython 3)** through `pyghidraRun.bat -H`. 12.1
    ships no Jython. The command and the porting notes are in
-   `docs/RESEARCH-QUEUE.md`, *How the binary work is done here*.
+   `docs/RESEARCH-QUEUE.md`, *How the binary work is done here*. The
+   repeatable queries are the `ghidra-queries` skill
+   (`.agents/skills/ghidra-queries/SKILL.md`): the runner
+   `tools/ghidra/ghidra.py --agent <you>`, the script catalogue and the traps.
 2. **The shipped data files** — also the actual DK2, and cheaper to read.
 3. **Original game experiments** — the running install is the oracle for
    anything observable, and it outranks a misread disassembly.

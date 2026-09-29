@@ -7,7 +7,7 @@ import sys
 
 def main():
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                    '..', '..', 'reverse-engineering'))
+                                    '..', 'ghidra', 'scripts'))
     import insdb
 
     output, address_file = getScriptArgs()
