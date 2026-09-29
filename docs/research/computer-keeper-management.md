@@ -67,22 +67,39 @@ or pickup eligibility.
 
 ## 4. Battle spells — `0x00503060`
 
-Clear the fight flag and walk own creatures. Effective category 22 sets it
-again. A candidate for emergency Call to Arms must have an existing target
-with an owner, no active CTA and no attack cooldown. Strength is that target
-owner's creatures within 12 tiles, without traps; other enemy players are
-not summed. It must strictly exceed `BACallToArmsValue`, and the fighter must
-not be over lava. The stored CTA position is changed before the later cast
-checks. Require mana **strictly greater** than spell cost, tick divisible by
-40, availability 3, and a route from two tiles east of the heart to that
-position. A successful cast costs one allowance, sets the active flag and
-timer, and returns immediately.
+Re-read 2026-09-29 (Ghidra 12.1.4, Claude's read-only project) and **BUILT** as
+`KeeperBattleStep` (ADR-0283). The tick (`0x00500C20`) reaches it at step 11
+only with allowance left and the fight flag (bit 3) set; otherwise step 11
+makes imps. The message walk sets the flag; only this routine clears it.
 
-Otherwise `random(4) >= UseKeeperSpells` permits a spell-selection attempt.
-`random(4) < AttackingVsDefensiveSpellPreference` selects the supportive arm;
-otherwise offensive. Both enumerate spell ids ascending, require availability
-3, no cooldown, the corresponding descriptor flag (8 supportive, 4 offensive),
-and descriptor flag 16 clear. With `q = manaCost / 2499`:
+Clear the fight flag and walk own creatures in list order. Effective category
+22 (`0x00478050`) sets it again. A candidate for emergency Call to Arms must
+have an existing target (`+0x502` through the liveness table) with an owner,
+no active CTA (bit 7) and a zero attack cooldown (`+0x4F3`). Strength is
+`0x004FAC40` over that target owner's creatures within 12 tiles, without
+traps; other enemy players are not summed, and the 12-tile square overflows
+(`computer-keeper-threat.md` §2), so the whole map counts. It must strictly
+exceed `BACallToArmsValue`, and the fighter's terrain must lack flag bit 8
+(`Lava`, world slot `+0x68` → terrain `+0x17B`). The stored CTA position
+(`+0x4E`) is written before the later checks. Require mana **strictly
+greater** than `0x004BE560(3)`'s cost (the human's own cast passes on
+equality), the world turn (`0x00517490`) divisible by 40, availability 3,
+and `0x00452970`'s route from two tiles east of `DungeonHeartPosition` to
+the fighter for the player with options 1,0,0,0. A cast `0x004BBD30`
+accepts costs one allowance, sets bit 7 and `CallToArmsCounter ←
+RemoveCallToArmsAfter`, and returns at once. Every fighter before the first
+that passes the spell roll gets such an attempt.
+
+Otherwise `random(4) >= UseKeeperSpells` permits a spell-selection attempt,
+and that fighter ends the walk whatever comes of it; a fighter failing the
+roll is passed over. `random(4) < AttackingVsDefensiveSpellPreference`
+selects the supportive arm; otherwise offensive. Both enumerate spell ids 1
+to the descriptor count (slot `+0x114`: 13 shipped, so id 14 is never
+reached), require availability 3, no cooldown, the corresponding descriptor
+flag word bit (`+0x54` ← file `0xDC`: 8 supportive, 4 offensive), and bit
+16 clear. Shipped: Thunderbolt, Inferno and Chicken are offensive, Heal is
+supportive, Tremor carries 4 and 16 (CONFIRMED from `KeeperSpells.kwd`).
+With `q = manaCost / 2499`:
 
 - Supportive: retain each eligible spell **before** testing
   `random(q+1) >= 4-SpellPreference`. Stop on success; if no roll succeeds,
@@ -95,22 +112,36 @@ This is ordered selection with different fallback rules, not one weighted draw.
 Supportive targets are own creatures strictly within five tiles, strictly
 below half health and without the dying flag. Offensive targets are creatures
 of the fighter's target owner strictly within five tiles; this loop adds no
-health or dying filter. Every accepted target replaces the previous target;
-`random(100) > 75` stops either scan. Casting uses the selected spell's
-position/thing targeting mode and its existing validation path. At most one
-spell is attempted per call; failure does not fall through to another fighter.
-Permission, cooldown and cast bookkeeping are independently audited in
-`keeper-spell-casting.md`; its explicit implementation gates remain open.
+health or dying filter, and neither scan skips a held or carried creature.
+Every accepted target replaces the previous target; `random(100) > 75` stops
+either scan. With a spell and a target, slot `+0x250` (`0x005177B0`: byte
+`0x11` of the target-validator entry, set for selectors 1, 2, 3 and 6) picks
+the thing cast: `0x004BBA40`'s permission, then `0x004BBF90` with its return
+ignored; selectors 4 and 5 cast at the target's position through
+`0x004BB8A0` and `0x004BBD30`, each of which must return nonzero. A refused
+permission returns the allowance unspent; a cast spends one. At most one
+spell is attempted per call.
+
+Built: the whole walk, with Thunderbolt the only spell arm cast the
+simulation executes; a chosen Heal, Inferno or Chicken is counted and not
+issued (ADR-0283). Ours predicts the permission from the observation and
+issues the cast a tick later; the original run is Q485.
 
 ## 5. CTA removal — `0x004FEFC0`
 
+Called from step 7 while bit 7 is set and allowance remains; it spends none.
 Remove when the timer is zero, or the strict-radius enemy count is below the
 configured minimum, or the total own nonworker count is below its minimum.
-Counts exclude thing status 2. The enemy count also includes each enemy's
-Heart room if its stored centre lies within the radius. The own count has no
-distance requirement. Clear the AI active flag, submit action 63 using the
-player's CTA tag, and set the attack cooldown to `WaitBeforeAttackingAgain * 4`.
-Those AI state changes do not depend on the command's return value.
+Counts exclude map layer 2. The enemy walk takes every player in the manager
+list that `0x004BF390` calls an enemy (another tag, alliance byte zero), heroes
+and neutral included, and adds each such player's Heart room (`0x004C6460(5)`
+with that player as receiver) if its stored centre lies within the radius of
+the stored position's tile centre, `RemoveCallToArmsWithinRange`² × 4096
+against the shifted squares. The own count has no distance requirement.
+Clear bit 7, submit action 63 using the player's CTA tag, and set the attack
+cooldown to `WaitBeforeAttackingAgain * 4`. Those AI state changes do not
+depend on the command's return value. Built (ADR-0283); ours waits for the
+observation to show the call before testing, since its cast lands a tick late.
 
 ## 6. Attack selection — `0x004FAEF0`
 

@@ -6,6 +6,7 @@ using DK2.AI;
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.Simulation.Combat;
 
 namespace DK2.AI.Tests;
 
@@ -29,6 +30,11 @@ internal static class KeeperWorld
     public const byte HeroPortalFloor = 14;
     public const byte HeartFloor = 20;
     public const byte PrisonFloor = 21;
+    public const byte Lava = 7;
+
+    /// <summary>Shot 5, Create Object, and a Lightning shot for Thunderbolt; the flag is object 10.</summary>
+    public const byte CreateObjectShotId = 5;
+    public const byte LightningShotId = 30;
 
     /// <summary>A worker and a fighter, so the keeper has something to move; a hero owns the
     /// same fighter record when it attacks.</summary>
@@ -55,6 +61,7 @@ internal static class KeeperWorld
             Terrain(PortalFloor, "Portal", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(HeartFloor, "Dungeon Heart", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(PrisonFloor, "Prison", TerrainFlags.Ownable | TerrainFlags.Room, 100),
+            Terrain(Lava, "Lava", TerrainFlags.Lava, 0),
         ],
         rooms:
         [
@@ -74,8 +81,62 @@ internal static class KeeperWorld
                 | CreatureFlags.CanWalkOnWater, hp: 1500, threat: FighterThreat, JobClass.Fighter, FightStyle.Blocker),
         ],
         variables: Variables(handCapacity),
-        keeperSpells: [new KeeperSpellDef { Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7 }]);
+        keeperSpells: KeeperSpells(),
+        objects: [Flag()],
+        shots:
+        [
+            Shot("Create Object", CreateObjectShotId, 2048, 1, 4, 0x80, ShotRules.CreateObjectProcess),
+            Shot("Lightning Shot", LightningShotId, 0, 8, 0x104, 0x40, ShotRules.LightningProcess),
+        ]);
     }
+
+    /// <summary>Spells 1 to 10 with the shipped ids, costs, flags and selectors, so the battle
+    /// step's ascending walk over the descriptor count meets what DK2's meets: Thunderbolt (6),
+    /// Inferno (9) and a Chicken-shaped 7 are offensive, Heal (10) supportive, the rest excluded.</summary>
+    private static KeeperSpellDef[] KeeperSpells() =>
+    [
+        Spell("Sight Of Evil", 1, 5000, KeeperSpellFlags.ExcludedFromBattle, 5, 4),
+        Spell("Possession", 2, 500, KeeperSpellFlags.ExcludedFromBattle, 5, 6),
+        new()
+        {
+            Name = KeeperSpellName.CallToArms, KeeperSpellId = CallToArmsRules.SpellId, ManaCost = 10000, ManaUpkeepPerSecond = 90,
+            Flags = KeeperSpellFlags.ExcludedFromBattle, LocationSelector = 4, TargetSelector = 4,
+            ShotTypeId = CreateObjectShotId, ShotData1 = CallToArmsRules.ObjectTypeId,
+            BonusShotTypeId = CreateObjectShotId, BonusShotData1 = CallToArmsRules.ObjectTypeId,
+        },
+        new() { Name = KeeperSpellName.CreateImp, KeeperSpellId = 4, ManaCost = 1500, ManaUpkeepPerSecond = 7, Flags = KeeperSpellFlags.ExcludedFromBattle },
+        Spell("Summon Horny", 5, 100000, KeeperSpellFlags.ExcludedFromBattle, 1, 4),
+        Spell("Thunderbolt", KeeperSpellRules.Thunderbolt, 6000, KeeperSpellFlags.Offensive, 1, 2, LightningShotId),
+        Spell("Chicken", 7, 10000, KeeperSpellFlags.Offensive, 1, 3),
+        Spell("Tremor", 8, 30000, KeeperSpellFlags.Offensive | KeeperSpellFlags.ExcludedFromBattle, 5, 4),
+        Spell("Inferno", 9, 50000, KeeperSpellFlags.Offensive, 1, 5),
+        Spell("Heal", 10, 5000, KeeperSpellFlags.Supportive, 4, 1),
+    ];
+
+    private static KeeperSpellDef Spell(string name, byte id, int cost, KeeperSpellFlags flags, byte location, byte target, byte shot = 0) =>
+        new()
+        {
+            Name = name, KeeperSpellId = id, ManaCost = cost, ManaUpkeepPerSecond = 0, Flags = flags,
+            LocationSelector = location, TargetSelector = target, ShotTypeId = shot, BonusShotTypeId = shot,
+        };
+
+    /// <summary>The Call to Arms flag, OBJECTS record 10 as shipped: start state 12, 128 health.</summary>
+    private static ObjectDef Flag() => new()
+    {
+        Name = "Call To Arms", ObjectId = CallToArmsRules.ObjectTypeId,
+        Flags = ObjectFlags.CanBePickedUp | ObjectFlags.CanBeSlapped | ObjectFlags.CanBeDroppedOnAnyLand,
+        Hp = 128, ManaValue = 0, RoomCapacity = 1, StartState = 12, PickUpPriority = 176,
+        Width = new Fp32(1704), Height = new Fp32(127), Mass = new Fp32(4), Speed = new Fp32(0),
+        NameStringId = 2725, TooltipStringId = 2726,
+    };
+
+    private static ShotDef Shot(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte process) =>
+        new(new byte[239])
+        {
+            Name = name, MeshResource = new KwdArtResource("", 0, default, 0, 0, 0, 0), Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            SoundCategory = "", ShotId = id, Speed = speed, Radius = 819, Health = health, Flags = flags,
+            ShotProcessFlags = processFlags, CollideType = 0, ProcessType = process, DamageType = 0, AttackCategory = 12, DeathShotId = 0,
+        };
 
     /// <summary>Gormagon-shaped parameters, trimmed to what step 1 reads.</summary>
     public static KeeperAIParameters Parameters(byte speed = 1, byte roomSize = 9, ushort money = 1000, byte maxImps = 0, byte gap = 0,
@@ -217,6 +278,9 @@ internal static class KeeperWorld
         }
 
         vars.Availabilities.Add(new AvailabilityEntry(5, Keeper, 4, 3));
+        // Rows for the battle spells, unavailable until a test says otherwise.
+        foreach (int spell in new[] { 3, 6, 7, 9, 10 })
+            vars.Availabilities.Add(new AvailabilityEntry(5, Keeper, spell, 1));
         vars.Misc[VariableTypeId.MaximumManaThreshold] = new MiscVariable(VariableTypeId.MaximumManaThreshold, 200000, 0, 0);
         vars.Misc[VariableTypeId.MinimumImpThreshold] = new MiscVariable(VariableTypeId.MinimumImpThreshold, 4, 0, 0);
         // The heart's health and regeneration, as the shipped global VARIABLES table

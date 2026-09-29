@@ -677,18 +677,21 @@ so the preference extremes do not guarantee one class (management audit §9).
 
 ### 5.7 Battle step (`0x503060`) and Call to Arms
 
-Recomputes `FightGoingOn` from creatures in the fighting state. For a fighter: if
-the target owner's threat within 12 tiles exceeds `BACallToArmsValue`, mana is
-strictly greater than CTA cost, the tile
-is not lava, the game tick is a multiple of 40, and a route from the heart exists →
-cast **Call to Arms** there; `CallToArmsCounter ← RemoveCallToArmsAfter`,
-`CallToArmsInUse`. Otherwise, with `random(4) ≥ UseKeeperSpells`: `random(4) <
-AttackingVsDefensiveSpellPreference` chooses a **supportive** spell (flag bit 3 in the
-spell descriptor) for an own creature under half health within five tiles, else an
-**offensive** one (flag bit 2) for an enemy within five tiles; among available, un-cooled
-spells are scanned in id order with different supportive/offensive fallback rules
-(`research/computer-keeper-management.md` §4). For each eligible target, `random(100) > 75` stops the scan
-(24 %); otherwise the selected target is overwritten and the scan continues.
+Built as `KeeperBattleStep` (ADR-0283). Recomputes `FightGoingOn` from own creatures in
+the combat category through a walk. For a fighter: if the target owner's threat within 12
+tiles (a square that overflows to the whole map) exceeds `BACallToArmsValue`, mana is
+strictly greater than CTA cost, the tile is not lava, the game turn is a multiple of 40,
+availability is 3 and a route from two tiles east of the heart exists → cast **Call to
+Arms** there; `CallToArmsCounter ← RemoveCallToArmsAfter`, `CallToArmsInUse`, one
+allowance. Otherwise, with `random(4) ≥ UseKeeperSpells` (that fighter ends the walk):
+`random(4) < AttackingVsDefensiveSpellPreference` chooses a **supportive** spell (flag bit
+3 in the spell descriptor) for an own creature under half health within five tiles, else
+an **offensive** one (flag bit 2) for a creature of the target's owner within five tiles;
+among available, un-cooled spells are scanned in id order with different
+supportive/offensive fallback rules (`research/computer-keeper-management.md` §4). For
+each eligible target, `random(100) > 75` stops the scan (24 %); otherwise the selected
+target is overwritten and the scan continues. A refused permission spends nothing. Ours
+issues Thunderbolt; Heal, Inferno and Chicken choices are counted, not cast.
 
 **CTA removal** (`0x4FEFC0`): when the counter reaches 0, or fewer than
 `RemoveCallToArmsEnemyCreatures` enemies (hearts count) are within
@@ -1107,8 +1110,9 @@ The proactive foundation already exists (§12.8). **Future direction, agreed 202
    and the respond-to-attack event are built (ADR-0278): an attack the keeper's
    creature engages is acknowledged, reserved and dispatched as pick-up and drop
    commands. Call to Arms is built as a spell the simulation runs (ADR-0279,
-   `research/call-to-arms.md`). Next: the battle step that DK2's fight flag routes to
-   and that casts it, retreat of the wounded, then the remaining message families and producers.
+   `research/call-to-arms.md`) and the battle step casts it and Thunderbolt and takes
+   the flag down (ADR-0283). Next: retreat of the wounded, the unbuilt battle spells,
+   then the remaining message families and producers.
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
 3. **Dungeon management.** Add need-driven room expansion/building, training moves,
@@ -1166,11 +1170,13 @@ Deviations and approximations, each a candidate ADR:
 
 The response queue is dispatched by `Think` through `KeeperThreatResponder` (ADR-0278);
 schema 8 adds each creature's state, fight gate, health basis, dropped counter, hand and list rank;
-schema 9 adds its `0x004888C0` answer and the keeper's own Call to Arms.
+schema 9 adds its `0x004888C0` answer and the keeper's own Call to Arms; schema 10 the
+mana pool, each spell row's last cast, and per creature its target's owner and the
+captured place, route and Thunderbolt-target permissions the battle step predicts with.
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
 now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);
-remaining gaps: `research/creature-pickup.md`. Response dispatch is connected and Call to Arms is a simulation spell (ADR-0279); the battle step and retreat are not built.
-Combat messages reach the observation; reactive and battle decisions, the remaining
-message families, personality loader and §5.1 step 9 training moves remain unbuilt.
+remaining gaps: `research/creature-pickup.md`. Response dispatch is connected, Call to Arms is a simulation spell (ADR-0279) and the battle step runs through `Think` at step 11 with the removal test at step 7 (ADR-0283, `KeeperBattleStep`); retreat is not built.
+Combat messages reach the observation; the remaining reactive decisions, the Heal, Inferno
+and Chicken casts, the remaining message families, personality loader and §5.1 step 9 training moves remain unbuilt.
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.

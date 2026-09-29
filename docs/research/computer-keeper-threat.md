@@ -228,11 +228,12 @@ Trap construction and recharge do not filter this strength calculation. The
 simulation has no additional limbo or trap off-map lifecycle to project yet.
 
 Campaign keepers receive PLAYERS activation order from the harness; observation
-schema 9 stores its reversed active-list walk, casualty-priority masks, pickup
-permissions, the keeper's Call to Arms and, per creature, the DK2 state, the state
-through a walk, the fight gate, level-scaled maximum health, `LastDroppedCounter`,
-whether this keeper's hand holds it, its rank in the owner's list and its
-`0x004888C0` answer. Synthetic callers may supply activation
+schema 10 stores its reversed active-list walk, casualty-priority masks, pickup
+permissions, the keeper's Call to Arms and mana, each spell row's last cast and, per
+creature, the DK2 state, the state through a walk, the fight gate, level-scaled
+maximum health, `LastDroppedCounter`, whether this keeper's hand holds it, its rank
+in the owner's list, its `0x004888C0` answer, its target's owner and the battle
+step's captured permissions (ADR-0283). Synthetic callers may supply activation
 order explicitly; otherwise it uses this simulation world's ascending creation
 order, reversed. For current simulation versions see `hash-versions.md`.
 
@@ -250,7 +251,7 @@ spiral and debits threat either way. Commands land a tick later, so outcomes are
 predicted from the captured permissions and a creature moved this tick leaves the
 tick's candidates; `0x004888C0` is captured whole now that the call exists
 (`call-to-arms.md`). Not represented: the spiral's `0x00454110` exclusion, the room
-reader (no kind 34 producer), the battle step that clears the fight flag, and retreat (§4).
+reader (no kind 34 producer) and retreat (§4).
 `KeeperThreatResponseTests` distinguish the owned-payload no-move, the withdrawal
 walk and its counter gate, refused permission, the full queue, the cancelled
 reservation, the imprisonment reroll, the spiral's order and a live type 6 from

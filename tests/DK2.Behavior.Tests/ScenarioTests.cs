@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.AI;
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
@@ -22,6 +23,26 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class ScenarioTests
 {
+    [InstallFact]
+    public void Level17HarkanCastsTheCallAtItsFighterAndTakesItDownUnaided()
+    {
+        string install = Dk2InstallGate.Path;
+        Scenario scenario = Scenario.Load(Path.Combine(
+            RepositoryRoot(), "scenarios", "keepers", "level17_harkan_call_to_arms.yaml"));
+        ScenarioResult run = new ScenarioRunner(GameDatabaseLoader.Load(install), install).Run(scenario);
+
+        // The battle step's own commands, not a scripted cast: action 54 on the first turn
+        // divisible by 40 at the Black Knight's tile, and action 63 once the call is seen and
+        // Harkan's removal gates fail (ADR-0283).
+        Assert.Empty(run.ExpectationFailures);
+        KeeperCommandEmission cast = Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand);
+        var call = (CastSpellAtPlaceCommand)cast.Command;
+        Assert.Equal((39, (byte)4, (byte)3, 4, 7), (cast.InputTick, call.PlayerId, call.SpellId, call.X >> 12, call.Y >> 12));
+        KeeperCommandEmission removal = Assert.Single(run.KeeperCommandLog, e => e.Command is RemoveCallToArmsCommand);
+        Assert.InRange(removal.InputTick, cast.InputTick + 1, cast.InputTick + 1 + KeeperBattleStep.CastGraceTurns);
+        Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
+    }
+
     [InstallFact]
     public void Level10ComputerKeeperRespectsLockedRoomAvailability()
     {

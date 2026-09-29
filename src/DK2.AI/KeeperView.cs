@@ -7,6 +7,7 @@ using DK2.Data.Model;
 using DK2.Pathfinding;
 using DK2.Simulation;
 using DK2.Simulation.Navigation;
+using DK2.Simulation.Steering;
 
 namespace DK2.AI;
 
@@ -14,7 +15,7 @@ namespace DK2.AI;
 /// A captured observation for one keeper and one tick. It retains no mutable
 /// world or creature references; advancing the simulation cannot change it.
 /// </summary>
-public sealed class KeeperView
+public sealed class KeeperView : INavByteGrid
 {
     private readonly KeeperTileView[] _tiles;
     private readonly AvailabilityState[] _availability;
@@ -34,37 +35,11 @@ public sealed class KeeperView
         Width = world.Width;
         Height = world.Height;
         Gold = GoldStore.Total(world, playerId);
+        Mana = world.Player(playerId).Mana;
         ImpCount = ImpSupplyRules.ImpCount(world, database, playerId);
         Messages = Array.AsReadOnly(world.Messages.Entries.Where(m => m.PlayerId == playerId).ToArray());
         _tiles = new KeeperTileView[world.TileCount];
         _availability = world.Player(playerId).Availabilities.ToArray();
-
-        AllRooms = RoomIndex.Build(world, database).Select(r => new KeeperRoomView(r)).ToList().AsReadOnly();
-        OwnRooms = AllRooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
-        // Each owner's acquisition-ordered list, the order DK2's keeper walks (ADR-0273).
-        var ranks = new Dictionary<int, int>();
-        foreach (byte owner in world.PlayerIds)
-        {
-            int rank = 0;
-            foreach (CreatureState listed in world.OwnedCreatures(owner)) ranks[listed.Id] = rank++;
-        }
-        List<HandItem> hand = world.Player(playerId).Hand;
-        Creatures = world.Creatures.Select(c => new KeeperCreatureView(
-            c.Id, c.CreatureTypeId, c.OwnerPlayerId, c.Activity, c.Health, c.Level,
-            c.LastSlapTick, HandRules.CanSlap(database, c, playerId),
-            c.PosX, c.PosY, c.InHand, c.CarriedByCreatureId, c.RescuePriorityMask,
-            HandRules.HasPickupPermission(world, database, c, playerId),
-            HandRules.CanPickUp(world, database, c, playerId),
-            // A corpse record holds no state (-1) and no table row; it is never a candidate.
-            c.Dk2StateId, CreatureStateMachine.HasState(c) ? NeedRules.ResolvedStateId(c) : c.Dk2StateId,
-            CreatureStateMachine.HasState(c) && DK2.Simulation.Combat.CombatRules.MayLookForAFight(world, database, c, false),
-            CreatureLevelRules.MaxHealth(database, database.CreatureById(c.CreatureTypeId), c.Level),
-            HandRules.LastDroppedCounter(c, world.CurrentTick.Value), hand.Contains(HandItem.Of(c)),
-            ranks.TryGetValue(c.Id, out int rankOf) ? rankOf : -1,
-            CallToArmsRules.IsUnderCallToArms(world, c))).ToList().AsReadOnly();
-        CallToArms = world.Player(playerId).CallToArms;
-        Traps = world.Traps.Select(t => new KeeperTrapView(t.TrapId, t.PlayerId, t.X, t.Y,
-            database.Traps[t.TrapId].Threat)).ToList().AsReadOnly();
 
         int heartIndex = ImpSupplyRules.HeartTileOf(world, database, playerId);
         Heart = heartIndex < 0 ? null : FromIndex(heartIndex);
@@ -78,13 +53,95 @@ public sealed class KeeperView
             if (_tiles[i].OwnerPlayerId == playerId) owned++;
         }
         OwnedTiles = owned;
+
+        AllRooms = RoomIndex.Build(world, database).Select(r => new KeeperRoomView(r)).ToList().AsReadOnly();
+        OwnRooms = AllRooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
+        // Each owner's acquisition-ordered list, the order DK2's keeper walks (ADR-0273).
+        var ranks = new Dictionary<int, int>();
+        foreach (byte owner in world.PlayerIds)
+        {
+            int rank = 0;
+            foreach (CreatureState listed in world.OwnedCreatures(owner)) ranks[listed.Id] = rank++;
+        }
+        List<HandItem> hand = world.Player(playerId).Hand;
+        KeeperSpellDef? callToArms = database.KeeperSpellById(CallToArmsRules.SpellId);
+        KeeperSpellDef? thunderbolt = database.KeeperSpellById(KeeperSpellRules.Thunderbolt);
+        WorldSteering? steering = null;
+        var route = new List<Fixed16Vector>();
+        var creatures = new List<KeeperCreatureView>(world.Creatures.Count);
+        foreach (CreatureState c in world.Creatures)
+        {
+            // A corpse record holds no state (-1) and no table row; it is never a candidate.
+            bool hasState = CreatureStateMachine.HasState(c);
+            int resolved = hasState ? NeedRules.ResolvedStateId(c) : c.Dk2StateId;
+            // The battle step's fighter: an own creature in the combat category through a walk.
+            // DK2's held creature sits in state 76 or 78, outside that category; ours holds idle.
+            bool fighter = hasState && c.OwnerPlayerId == playerId && !c.InHand
+                && CreatureStateTable.Get(resolved).Category == CreatureStateCategory.Combat;
+            bool routed = false;
+            if (fighter && Heart is TilePos heartTile)
+            {
+                steering ??= new WorldSteering(database, world);
+                route.Clear();
+                routed = steering.Route(StagingPoint(heartTile), new Fixed16Vector(c.PosX << 4, c.PosY << 4),
+                    StagingWalker(playerId), route, refresh: false);
+            }
+            creatures.Add(new KeeperCreatureView(
+                c.Id, c.CreatureTypeId, c.OwnerPlayerId, c.Activity, c.Health, c.Level,
+                c.LastSlapTick, HandRules.CanSlap(database, c, playerId),
+                c.PosX, c.PosY, c.InHand, c.CarriedByCreatureId, c.RescuePriorityMask,
+                HandRules.HasPickupPermission(world, database, c, playerId),
+                HandRules.CanPickUp(world, database, c, playerId),
+                c.Dk2StateId, resolved,
+                hasState && DK2.Simulation.Combat.CombatRules.MayLookForAFight(world, database, c, false),
+                CreatureLevelRules.MaxHealth(database, database.CreatureById(c.CreatureTypeId), c.Level),
+                HandRules.LastDroppedCounter(c, world.CurrentTick.Value), hand.Contains(HandItem.Of(c)),
+                ranks.TryGetValue(c.Id, out int rankOf) ? rankOf : -1,
+                CallToArmsRules.IsUnderCallToArms(world, c),
+                FightTargetOwner(world, c),
+                fighter && callToArms is not null && KeeperSpellRules.PlaceAllowed(world, database, this, playerId, callToArms, c.Tile),
+                routed,
+                c.OwnerPlayerId != playerId && c.Activity != CreatureActivity.Dead && thunderbolt is not null
+                    && KeeperSpellRules.CreatureTargetAllowed(world, database, this, playerId, thunderbolt, c)));
+        }
+        Creatures = creatures.AsReadOnly();
+        CallToArms = world.Player(playerId).CallToArms;
+        Traps = world.Traps.Select(t => new KeeperTrapView(t.TrapId, t.PlayerId, t.X, t.Y,
+            database.Traps[t.TrapId].Threat)).ToList().AsReadOnly();
     }
+
+    /// <summary>The engagement target's owner as the battle step reads it: the creature's owner
+    /// while it lives, the heart's owner for a heart, 0 with no target.</summary>
+    private static byte FightTargetOwner(WorldState world, CreatureState creature)
+    {
+        if (!CreatureStateMachine.HasState(creature)) return 0;
+        switch (creature.FightTargetKind)
+        {
+            case DK2.Simulation.Combat.FightTargetKind.Creature:
+                CreatureState? target = world.CreatureById(creature.FightTargetId);
+                return target is null || target.Activity == CreatureActivity.Dead ? (byte)0 : target.OwnerPlayerId;
+            case DK2.Simulation.Combat.FightTargetKind.Heart:
+                return creature.FightTargetPlayerId;
+            default:
+                return 0;
+        }
+    }
+
+    /// <summary>Two tiles east of the heart tile, at its centre: where the battle step's route test
+    /// starts (<c>0x00503060</c>, heart x + 2).</summary>
+    public static Fixed16Vector StagingPoint(TilePos heart) =>
+        new(CreatureState.CentreOf(heart.X + 2) << 4, CreatureState.CentreOf(heart.Y) << 4);
+
+    /// <summary>The route test's mover (<c>0x004D1700</c> with options 1, 0, 0, 0): the player's
+    /// own locked doors pass, no lava; its water flag is a stale global, taken as off.</summary>
+    public static MoverProfile StagingWalker(byte playerId) =>
+        new(false, false, playerId, RespectDoors: false, PassOwnLockedDoors: true, EntersPortalHole: false);
 
     internal KeeperView(GameDatabase database, byte playerId, GameTick tick, byte status, byte alliedWith, byte[] playerIds,
         int width, int height, int gold, int impCount, TilePos? heart,
         KeeperTileView[] tiles, AvailabilityState[] availability,
         KeeperCreatureView[] creatures, KeeperTrapView[] traps, KeeperRoomView[] rooms, PlayerMessage[] messages,
-        CallToArmsState callToArms = default)
+        CallToArmsState callToArms = default, int mana = 0)
     {
         CallToArms = callToArms;
         Database = database;
@@ -96,6 +153,7 @@ public sealed class KeeperView
         Width = width;
         Height = height;
         Gold = gold;
+        Mana = mana;
         ImpCount = impCount;
         Heart = heart;
         _tiles = tiles;
@@ -135,7 +193,21 @@ public sealed class KeeperView
     public int OwnedTiles { get; }
 
     public int Gold { get; }
+
+    /// <summary>The keeper's mana pool (<c>player+0x82</c>), which the battle step's cast tests.</summary>
+    public int Mana { get; }
     public int ImpCount { get; }
+
+    /// <summary>The navigation byte captured for a tile (<see cref="INavByteGrid"/>).</summary>
+    public byte NavByte(int x, int y) => _tiles[(y * Width) + x].NavigationByte;
+
+    /// <summary>The availability row for a kind and type, or null when the player has none.</summary>
+    public AvailabilityState? AvailabilityRow(ushort kind, int typeId)
+    {
+        foreach (AvailabilityState entry in _availability)
+            if (entry.Kind == kind && entry.TypeId == typeId) return entry;
+        return null;
+    }
 
     public int Width { get; }
     public int Height { get; }

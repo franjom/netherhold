@@ -77,7 +77,11 @@ relation; 4 omits ownership. They reject the world `+0x20C` predicate.
 Selectors 2/3/4 conditionally require tile flag `0x2000` when cast flag bit 1
 is set. Location 1 additionally excludes the neutral player. Location 1/2/3
 and target 4 apply room-position exclusions for Portal, Heart, Prison,
-Temple and Combat Pit. Selector 5 always returns true.
+Temple and Combat Pit. Selector 5 always returns true. Byte `0x11` of each target
+entry (1 for selectors 1, 2, 3 and 6, 0 for 4 and 5) is what `0x005177B0` returns
+to the keeper's battle step: a thing cast against a cast at a place. The descriptor
+flag word `+0x54` is file `0xDC` (`0x004F7CE0` copies it from its intermediate at
+`0x154`); the battle step reads its bits 2, 3 and 4 (`computer-keeper-management.md` §4).
 
 Target 1 normally admits own creatures, with room-owner and Pit-fighter
 exceptions, excluding descriptor flag `0x4000` in its ordinary ownership arm.

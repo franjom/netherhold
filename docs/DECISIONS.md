@@ -6066,3 +6066,42 @@ becomes bistable on when the fourth imp first chooses: DK2's recording has a
 standing claimer, and most of our seeds do not (Q484).
 
 **Limits.** The seam-slot occupancy test and task stealing (Q155) are not built.
+
+## ADR-0283 — Connect the keeper's battle step: the fight flag, the emergency call and the spell roll as commands
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** The tick's step 11 runs `0x00503060` instead of imp creation while
+the fight flag is on, and `0x004FEFC0` takes a standing call down. Both were
+research only (`computer-keeper-management.md` §4, §5); Call to Arms (ADR-0279)
+and Thunderbolt (ADR-0260) are the casts they need.
+
+**Decision.**
+1. `KeeperBattleStep` in `DK2.AI` runs at step 11 while `FightGoingOn` holds,
+   clearing it and setting it again for each own creature in the combat category
+   through a walk; the removal test runs at step 7 while the keeper's own call
+   bit is set; step 4 counts the two countdowns down.
+2. The emergency call, the spell roll, both selection arms, the target scans and
+   the removal's three gates are the binary's: the twelve-tile overflow, the
+   strict mana test, the fortieth turn, the shipped flag word (`KeeperSpellDef.Flags`,
+   file `0xDC`). The call bit, counters and stored position are AI state.
+3. Casts are the existing commands: action 54 at the fighter's position, action
+   55 at a creature, action 63 for the removal. A chosen spell the simulation
+   cannot cast (Heal, Inferno, Chicken) is counted in `UnbuiltSpellChoices`, not issued.
+4. Observation schema 10 adds the mana pool, each row's last-cast tick and, per
+   creature, its target's owner, the place validators at its tile, the route from
+   the heart's staging point and Thunderbolt's target permission, computed by the
+   simulation's own validators (`KeeperSpellRules.PlaceAllowed`, `CreatureTargetAllowed`).
+
+**Reason.** DK2 casts inside the step and reads the result at once; ours issues a
+command executed a tick later, so success is predicted from captured permissions
+rather than from a second copy of the rules, and the removal test waits
+`CastGraceTurns` for the call to appear before treating the cast as refused.
+
+**Deviations, ours.** The one-tick delay: a removal and a recast issued in one
+tick land a tick apart, and a refused cast is forgotten after three turns where
+DK2 never set the bit. A held creature is excluded by the hand, not by state 76
+or 78. The route test's water flag is a stale global in DK2, taken as off. The
+keeper's own RNG (ADR-0244).
+
+**Limits.** Heal, Inferno and Chicken casts, the attack planner's front
+(`0x004FECE0`, `0x004FE9C0`) and the retreat are not built. No original run (Q485).

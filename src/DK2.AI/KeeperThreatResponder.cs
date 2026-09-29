@@ -233,11 +233,16 @@ public sealed class KeeperThreatResponder
 
     /// <summary>Per-axis absolute differences, squared as 64-bit values, shifted down twelve,
     /// summed as 32-bit values and compared signed, as <c>0x004FE0DA</c> does.</summary>
-    public static bool WithinFiveTiles(int x, int y, int centreX, int centreY)
+    public static bool WithinFiveTiles(int x, int y, int centreX, int centreY) =>
+        ShiftedDistance(x, y, centreX, centreY) < WithdrawRadiusSquared;
+
+    /// <summary>The keeper's squared distance in tiles times 4096: per-axis absolute differences,
+    /// squared as 64-bit values, shifted down twelve and summed as 32-bit values (also
+    /// <c>0x00503060</c>, <c>0x004FEFC0</c>); the caller compares it signed.</summary>
+    public static int ShiftedDistance(int x, int y, int centreX, int centreY)
     {
         long dx = Math.Abs((long)x - centreX), dy = Math.Abs((long)y - centreY);
-        uint sum = unchecked((uint)((dx * dx) >> 12) + (uint)((dy * dy) >> 12));
-        return unchecked((int)sum) < WithdrawRadiusSquared;
+        return unchecked((int)((uint)((dx * dx) >> 12) + (uint)((dy * dy) >> 12)));
     }
 
     /// <summary>The square spiral from an unowned payload: the tile itself, then right one,

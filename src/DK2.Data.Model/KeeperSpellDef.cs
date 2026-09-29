@@ -40,6 +40,10 @@ public sealed record KeeperSpellDef
     public byte LocationSelector { get; init; }
     public byte TargetSelector { get; init; }
 
+    /// <summary>The descriptor's flag word, file <c>0xDC</c> (runtime <c>+0x54</c>); see
+    /// <see cref="KeeperSpellFlags"/> for the bits the computer keeper reads.</summary>
+    public KeeperSpellFlags Flags { get; init; }
+
     /// <summary>The shot a cast fires, file <c>0xF0</c> (runtime <c>+0x42</c>).</summary>
     public byte ShotTypeId { get; init; }
 

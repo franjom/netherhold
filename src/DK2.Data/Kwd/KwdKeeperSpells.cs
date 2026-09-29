@@ -67,6 +67,8 @@ public static class KwdKeeperSpells
         CooldownRaw = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + 0xCC)),
         LocationSelector = rec[b + 0xEF],
         TargetSelector = rec[b + 0xDA],
+        // 0x004F7CE0 copies runtime +0x54 from its intermediate at 0x154, which is file + 0x78.
+        Flags = (KeeperSpellFlags)BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + 0xDC)),
         ShotTypeId = rec[b + OffsetShotTypeId],
         ShotData1 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetShotData1)),
         ShotData2 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetShotData2)),

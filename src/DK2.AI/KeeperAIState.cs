@@ -30,9 +30,30 @@ public sealed class KeeperAIState
     // --- the reactive half (§5.3, §5.4) ---
 
     /// <summary>Bit 3 of the flag word: set by every combat message the walk reaches, even one
-    /// a full queue refuses. DK2's battle step clears and re-derives it; that step is unbuilt,
-    /// so nothing here reads it yet (ADR-0278).</summary>
+    /// a full queue refuses; the battle step clears it and sets it again for every own creature
+    /// fighting through a walk, and the tick's imp creation gives way to that step while it is
+    /// on (ADR-0278, ADR-0283).</summary>
     public bool FightGoingOn;
+
+    /// <summary>Bit 7 and the countdowns of §5.1 step 4 (<c>+0x4EF</c>, <c>+0x4F3</c>): a cast Call
+    /// to Arms the keeper still counts as its own, the turns before the removal test takes it
+    /// down on time, and the turns before it may call or attack again.</summary>
+    public bool CallToArmsInUse;
+    public int CallToArmsCounter;
+    public int CannotAttackCounter;
+
+    /// <summary>The stored call position (<c>+0x4E</c>, <c>+0x52</c>), written by the battle step
+    /// before its later cast checks; the removal test counts enemies around it.</summary>
+    public int CallToArmsX;
+    public int CallToArmsY;
+
+    /// <summary>Ours: the turn of the last cast; the removal test waits for the simulation to show
+    /// the call, and a call never shown by then counts as a refused cast (ADR-0283).</summary>
+    public long CallToArmsCastTurn = -1;
+
+    /// <summary>Ours: battle spell choices the simulation cannot cast yet (Heal, Inferno, Chicken),
+    /// counted and not issued.</summary>
+    public int UnbuiltSpellChoices;
 
     /// <summary>Bit 6: an enemy's strength was found at an attacked position.</summary>
     public bool HaveBeenAttacked;

@@ -15,9 +15,9 @@ namespace DK2.AI;
 /// issue by hand, for the host to put in the next <see cref="InputFrame"/>. Nothing
 /// in the simulation sees this type, so the world hash is untouched. Source: the
 /// original's <c>ComputerPlayer.cpp</c> (docs/KEEPER_AI.md §5, §12.1).</para>
-/// <para>The proactive foundation of §12.8 and the attack response (<see cref="KeeperThreatResponder"/>).
-/// Not implemented: the attack planner, battle spells and Call to Arms, traps and doors, prisoners,
-/// retreat, training moves, make-room-for-a-researcher, room and mood messages (§12.3, §12.4).</para>
+/// <para>The proactive foundation of §12.8, the attack response (<see cref="KeeperThreatResponder"/>)
+/// and the battle step (<see cref="KeeperBattleStep"/>). Not implemented: the attack planner, traps
+/// and doors, prisoners, retreat, training moves, researcher room, room and mood messages.</para>
 /// <para>Deviates: randomness is the keeper's own <see cref="SimRandom"/>, not the
 /// world's stream (§12.1).</para>
 /// </remarks>
@@ -97,13 +97,26 @@ public sealed class KeeperAI
         // 3. Gold tags come off when their timer runs out.
         UntagGold(view, commands);
 
+        // 4. The attack and Call to Arms countdowns.
+        if (State.CannotAttackCounter != 0) State.CannotAttackCounter--;
+        if (State.CallToArmsCounter != 0) State.CallToArmsCounter--;
+
         // 5. The message walk, then 6. the head event, which spends the whole tick when it runs.
         var responder = new KeeperThreatResponder(view, State, _p, _rng, commands);
         responder.HandleMessages();
         budget = responder.Dispatch(budget);
 
-        // 11. Imps, then 13. slaps. FightGoingOn would route 11 to the unbuilt battle step.
-        if (budget > 0) CreateImps(view, commands, ref budget);
+        // 7. The call's removal test while allowance remains; it spends none. Attack management
+        // needs the unbuilt attack planner's flags, and the retreat is not built.
+        var battle = new KeeperBattleStep(view, State, _p, _rng, commands);
+        if (budget > 0 && State.CallToArmsInUse) battle.TestRemoval();
+
+        // 11. Imps while no fight is on, else the battle step; then 13. slaps.
+        if (budget > 0)
+        {
+            if (State.FightGoingOn) budget = battle.Run(budget);
+            else CreateImps(view, commands, ref budget);
+        }
         if (budget > 0) Slap(view, commands, ref budget);
 
         // 15. The task machine, while the budget lasts.

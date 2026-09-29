@@ -1,0 +1,66 @@
+# The unaided keeper's battle step on a stock map: Level 17 gives Harkan (player 4) Call to Arms
+# at availability 3 from its own VARIABLES rows, BACallToArmsValue 200 and TendancySpeed 4. A
+# Black Knight of Harkan's stands on the claimed tile west of its heart and a hero Knight (threat
+# 213) with two Guards in the neutral room beside it; the fight's combat message sets the
+# keeper's fight flag, and from then on the battle step runs where imps would be made. Harkan's
+# spell arm picks Thunderbolt every tick, but the heroes stand on neutral ground, which location
+# selector 1 refuses, so no mana goes there. On the first turn divisible by 40 while the fight
+# lasts, the heroes' strength (453) exceeds 200, the keeper can pay 10000 of its 25000 mana, the
+# claimed tile is a lawful place and a walker routes there from the heart, so the keeper casts
+# the call at its fighter through the same action 54 a human uses; the flag object raises the
+# call and Harkan's placed creatures answer it. Harkan's removal parameters want six enemies
+# within two tiles and five own non-workers, so once the call is seen the removal test slaps the
+# flag down (action 63). No allowance and no flag is set by hand: the fight, the message walk,
+# the step and the spell run through the default systems (ADR-0283).
+#
+# What this run does NOT establish: DK2's timing. No original run of Harkan casting has been
+# compared (Q485).
+id: keepers-level17-harkan-call-to-arms-001
+question: >
+  Does Harkan, unaided, raise Call to Arms at its fighting Black Knight when heroes attack
+  it, and take the flag down again when its removal gates say so?
+map: campaign:level17
+seed: 12345
+duration_ticks: 140
+viewing_player: 4
+computer_keepers: [4]
+setup:
+  placed_things: true
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 2, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
+    - { id: 4, gold: 10000, mana: 25000 }
+    - { id: 5, gold: 10000, mana: 100 }
+  creatures:
+    - { type: Black Knight, at: [4, 7], player: 4 }
+    - { type: Knight, at: [3, 7], player: 1 }
+    - { type: Guard, at: [3, 6], player: 1 }
+    - { type: Guard, at: [3, 8], player: 1 }
+observe:
+  - state_hash
+  - events
+expect:
+  - event: cast
+    detail: "player=4 spell=3"
+    because: >
+      The battle step (0x00503060) casts spell 3 at the fighter's position once the target
+      owner's strength within twelve tiles exceeds BACallToArmsValue, mana strictly exceeds the
+      cost, the turn is divisible by 40, availability is 3 and the heart routes to it.
+  - event: call_to_arms_raised
+    detail: "player=4"
+    because: The Create Object shot puts the flag down and its activation raises the call (0x004BDDA0).
+  - event: call_to_arms_heeded
+    detail: "player=4"
+    because: >
+      The activation's recruit sends every routable non-worker of Harkan's that is not joining,
+      fighting, reporting danger or captive to state 190; the level places several.
+  - event: call_to_arms_slapped
+    detail: "player=4"
+    because: >
+      The removal test (0x004FEFC0) wants RemoveCallToArmsEnemyCreatures enemies strictly within
+      RemoveCallToArmsWithinRange tiles of the stored position and RemoveCallToArmsOwnCreatures own
+      non-workers; Harkan's six and five are not met, so the keeper submits action 63.
+  - event: call_to_arms_removed
+    detail: "player=4"
+    because: The slap's releasing state clears the call and destroys the flag (0x0049FD80).

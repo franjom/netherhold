@@ -114,7 +114,9 @@ public class KeeperThreatResponseTests
         // Allies 100 against 50 wanted: a negative deficit with a drop site cancels the slot.
         Assert.Equal(message.Id, Assert.Single(commands.OfType<AcknowledgePlayerMessageCommand>()).MessageId);
         Assert.Equal(0, keeper.State.Responses.Count);
-        Assert.True(keeper.State.FightGoingOn);
+        // The walk set the fight flag; with nothing dispatched, the battle step ran in the same
+        // tick and cleared it again, nobody of the keeper's fighting (ADR-0283).
+        Assert.False(keeper.State.FightGoingOn);
     }
 
     [Fact]
@@ -346,7 +348,8 @@ public class KeeperThreatResponseTests
         var drop = (DropCommand)Assert.Single(log, e => e.Command is DropCommand).Command;
         Assert.Equal(KeeperWorld.HeartAt, drop.Tile);
         Assert.Equal(KeeperWorld.HeartAt, defender.Tile);
-        Assert.True(keeper.State.FightGoingOn);
+        // Lifted out of the fight, the defender no longer holds the flag up (ADR-0283).
+        Assert.False(keeper.State.FightGoingOn);
     }
 
     [Fact]

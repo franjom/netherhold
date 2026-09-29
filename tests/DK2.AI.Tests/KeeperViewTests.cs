@@ -160,7 +160,7 @@ public class KeeperViewTests
     {
         GameDatabase db = KeeperWorld.Database();
         byte[] packet = KeeperViewSnapshot.ToBytes(new KeeperView(db, KeeperWorld.World(db), KeeperWorld.Keeper));
-        packet[4] = 8;
+        packet[4] = 9;
         Assert.Throws<InvalidDataException>(() => KeeperViewSnapshot.FromBytes(packet, db));
     }
 
