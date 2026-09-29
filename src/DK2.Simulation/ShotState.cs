@@ -42,6 +42,11 @@ public sealed class ShotState
     public int TargetX;
     public int TargetY;
 
+    /// <summary>DK2's <c>+0x14D</c>: the next collision check hits <see cref="TargetId"/> if its tag is
+    /// live, whatever the overlap, and clears this word (shots.md §4a). Set by a keeper's cast at a
+    /// thing (<c>0x004BBF90</c>) and by the instant handler.</summary>
+    public bool ForcedCollision;
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
@@ -62,5 +67,6 @@ public sealed class ShotState
         hash.Add(TargetTileIndex);
         hash.Add(TargetX);
         hash.Add(TargetY);
+        hash.Add(ForcedCollision);
     }
 }

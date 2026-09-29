@@ -411,21 +411,140 @@ public class KeeperBattleStepTests
     }
 
     [Fact]
-    public void AnUnbuiltSupportiveChoiceIsCountedAndNotIssued()
+    public void TheSupportiveArmCastsHealAtTheWoundedFighterAndTheSimulationHealsItToItsMaximum()
     {
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
         Engage(own, Fighter(world, Hero, 14, 15));
         own.Health = 700; // below half of 1500, Heal's target, and above the retreat's 300 (ADR-0284)
         world.Player(Keeper).Mana = 20000;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, 10, 3);
+        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 4, preference: 4);
         keeper.State.FightGoingOn = true;
 
         IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
 
-        // random(4) < 4 always takes the supportive arm; Heal is chosen and targets the fighter
-        // itself, but no command casts it here, so nothing is issued and nothing is spent.
+        // random(4) < 4 always takes the supportive arm; Heal, the last eligible supportive spell,
+        // stays selected whatever its roll, the scan finds the fighter itself, and the captured
+        // validators pass: one cast through action 55, one allowance (ADR-0287).
+        var cast = Assert.Single(commands.OfType<CastSpellOnCreatureCommand>());
+        Assert.Equal((KeeperSpellRules.Heal, own.Id), (cast.SpellId, cast.CreatureId));
+        Assert.Equal((KeeperTask.Decide, 0), (keeper.State.Task, keeper.State.UnbuiltSpellChoices));
+
+        // Applied a tick later: the missing 800 lands, 5000 is paid, and the fighter goes idle.
+        new GameSimulation(Db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]).Tick(new InputFrame(commands));
+        Assert.Equal((1500, CreatureStateMachine.Idle, 15000), (own.Health, own.Dk2StateId, world.Player(Keeper).Mana));
+    }
+
+    [Fact]
+    public void AWoundedFighterOnUnownedFloorIsStillHealsTargetWhereThunderboltsLocationRefuses()
+    {
+        WorldState world = World();
+        CreatureState own = Fighter(world, Keeper, 10, 15); // the unowned dirt west of the patch
+        Engage(own, Fighter(world, Hero, 11, 15));
+        own.Health = 700;
+        world.Player(Keeper).Mana = 20000;
+        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
+        KeeperAI keeper = SpellCaster(attackingVsDefensive: 4, preference: 4);
+        keeper.State.FightGoingOn = true;
+
+        // Location selector 4 asks no ownership of the tile, only that it is not solid.
+        Assert.True(Assert.Single(new KeeperView(Db, world, Keeper).Creatures, c => c.Id == own.Id).HealTargetAllowed);
+        var cast = Assert.Single(keeper.Think(Db, world).OfType<CastSpellOnCreatureCommand>());
+        Assert.Equal((KeeperSpellRules.Heal, own.Id), (cast.SpellId, cast.CreatureId));
+    }
+
+    [Fact]
+    public void AWoundedCreatureHeldInTheEnemysPrisonIsChosenButRefusedByTargetOneAndNothingIsSpent()
+    {
+        WorldState world = World();
+        CreatureState own = Fighter(world, Keeper, 13, 15);
+        Engage(own, Fighter(world, Hero, 14, 15));
+        KeeperWorld.Set(world, Db, new TilePos(10, 15), KeeperWorld.PrisonFloor, Hero);
+        CreatureState captive = Fighter(world, Keeper, 10, 15);
+        captive.Health = 700;
+        Assert.True(CreatureStateMachine.TrySetState(captive, PrisonRules.DecidingState));
+        world.Player(Keeper).Mana = 20000;
+        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
+        KeeperAI keeper = SpellCaster(attackingVsDefensive: 4, preference: 4);
+        keeper.State.FightGoingOn = true;
+
+        IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
+
+        // The scan admits the captive (own, within five tiles, under half), but a creature holding
+        // a room id passes target 1 only when that room is the caster's: refused, allowance kept.
+        Assert.False(Assert.Single(new KeeperView(Db, world, Keeper).Creatures, c => c.Id == captive.Id).HealTargetAllowed);
+        Assert.DoesNotContain(commands, c => c is CastSpellOnCreatureCommand);
+        Assert.NotEqual(KeeperTask.Decide, keeper.State.Task);
+        Assert.Equal(0, keeper.State.UnbuiltSpellChoices);
+    }
+
+    [Theory]
+    [InlineData(5000, true)]
+    [InlineData(4999, false)]
+    public void ManaEqualToHealsCostPassesThePredictedPermissionAndOneLessRefusesItUnspent(int mana, bool cast)
+    {
+        WorldState world = World();
+        CreatureState own = Fighter(world, Keeper, 13, 15);
+        Engage(own, Fighter(world, Hero, 14, 15));
+        own.Health = 700;
+        world.Player(Keeper).Mana = mana;
+        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
+        KeeperAI keeper = SpellCaster(attackingVsDefensive: 4, preference: 4);
+        keeper.State.FightGoingOn = true;
+
+        IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
+
+        // 0x004C1740: a cost at most the mana passes; the selection itself never looks at mana.
+        Assert.Equal(cast, commands.Any(c => c is CastSpellOnCreatureCommand));
+        Assert.Equal(cast, keeper.State.Task == KeeperTask.Decide);
+    }
+
+    [Fact]
+    public void AWoundedCreatureTheRetreatLiftsThisTickIsStillHealsTargetAndIsHealedWhereItLands()
+    {
+        WorldState world = World();
+        CreatureState wounded = Fighter(world, Keeper, 12, 15);
+        wounded.Health = 250; // below the retreat's 300: lifted at step 7, before the battle step
+        CreatureState own = Fighter(world, Keeper, 13, 15);
+        Engage(own, Fighter(world, Hero, 14, 15));
+        world.Player(Keeper).Mana = 20000;
+        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
+        var keeper = new KeeperAI(Keeper, KeeperWorld.Parameters(speed: 2) with
+        {
+            UseKeeperSpells = 0, AttackingVsDefensiveSpellPreference = 4, SpellPreference = 4,
+        }, new SimRandom(7));
+        keeper.State.FightGoingOn = true;
+
+        IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
+
+        // DK2's supportive scan skips no held creature and the ordinary arm of target 1 admits it,
+        // so the lifted creature is the tick's Heal target; the retreat and the cast each spend one.
+        Assert.Equal([wounded.Id], commands.OfType<PickUpCreatureCommand>().Select(c => c.CreatureId));
+        Assert.Single(commands.OfType<DropCommand>());
+        Assert.Equal((KeeperSpellRules.Heal, wounded.Id), Assert.Single(commands.OfType<CastSpellOnCreatureCommand>()) is var cast ? (cast.SpellId, cast.CreatureId) : default);
+        Assert.Equal(KeeperTask.Decide, keeper.State.Task);
+
+        // Applied: the hand puts it down first, then the cast finds it on the ground and heals it.
+        new GameSimulation(Db, world, 1, [new HandSystem(), new KeeperSpellSystem(), new ShotSystem()]).Tick(new InputFrame(commands));
+        Assert.Equal((1500, false, FightState), (wounded.Health, wounded.InHand, own.Dk2StateId));
+    }
+
+    [Fact]
+    public void AnUnbuiltOffensiveChoiceIsCountedAndNotIssued()
+    {
+        WorldState world = World();
+        CreatureState own = Fighter(world, Keeper, 13, 15);
+        Engage(own, Fighter(world, Hero, 14, 15));
+        world.Player(Keeper).Mana = 20000;
+        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, 7, 3);
+        KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
+        keeper.State.FightGoingOn = true;
+
+        IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
+
+        // The offensive arm's first eligible spell is the Chicken-shaped 7, at a creature; no
+        // command casts it here, so nothing is issued and nothing is spent.
         Assert.DoesNotContain(commands, c => c is CastSpellOnCreatureCommand or CastSpellAtPlaceCommand);
         Assert.Equal(1, keeper.State.UnbuiltSpellChoices);
         Assert.NotEqual(KeeperTask.Decide, keeper.State.Task);
@@ -442,9 +561,9 @@ public class KeeperBattleStepTests
 
         Assert.Equal(20000, restored.Mana);
         KeeperCreatureView fighter = Assert.Single(restored.Creatures, c => c.Id == own.Id);
-        Assert.Equal((Hero, true, true, false), (fighter.FightTargetOwner, fighter.CallToArmsSiteAllowed, fighter.HeartRouteExists, fighter.SpellTargetAllowed));
+        Assert.Equal((Hero, true, true, false, true), (fighter.FightTargetOwner, fighter.CallToArmsSiteAllowed, fighter.HeartRouteExists, fighter.SpellTargetAllowed, fighter.HealTargetAllowed));
         KeeperCreatureView foe = Assert.Single(restored.Creatures, c => c.Id == enemy.Id);
-        Assert.Equal(((byte)0, false, false, false), (foe.FightTargetOwner, foe.CallToArmsSiteAllowed, foe.HeartRouteExists, foe.SpellTargetAllowed));
+        Assert.Equal(((byte)0, false, false, false, false), (foe.FightTargetOwner, foe.CallToArmsSiteAllowed, foe.HeartRouteExists, foe.SpellTargetAllowed, foe.HealTargetAllowed));
         Assert.Equal(captured.AvailabilityRow(5, 3), restored.AvailabilityRow(5, 3));
 
         Hash64 first = Hash64.Start(), second = Hash64.Start();

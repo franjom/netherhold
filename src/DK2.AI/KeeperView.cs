@@ -66,6 +66,7 @@ public sealed class KeeperView : INavByteGrid
         List<HandItem> hand = world.Player(playerId).Hand;
         KeeperSpellDef? callToArms = database.KeeperSpellById(CallToArmsRules.SpellId);
         KeeperSpellDef? thunderbolt = database.KeeperSpellById(KeeperSpellRules.Thunderbolt);
+        KeeperSpellDef? heal = database.KeeperSpellById(KeeperSpellRules.Heal);
         WorldSteering? steering = null;
         var route = new List<Fixed16Vector>();
         var creatures = new List<KeeperCreatureView>(world.Creatures.Count);
@@ -103,7 +104,9 @@ public sealed class KeeperView : INavByteGrid
                 routed,
                 c.OwnerPlayerId != playerId && c.Activity != CreatureActivity.Dead && thunderbolt is not null
                     && KeeperSpellRules.CreatureTargetAllowed(world, database, this, playerId, thunderbolt, c),
-                c.CombatPitFighter, RoomMembershipRules.IsAttached(c)));
+                c.CombatPitFighter, RoomMembershipRules.IsAttached(c),
+                c.OwnerPlayerId == playerId && c.Activity != CreatureActivity.Dead && heal is not null
+                    && KeeperSpellRules.CreatureTargetAllowed(world, database, this, playerId, heal, c)));
         }
         Creatures = creatures.AsReadOnly();
         CallToArms = world.Player(playerId).CallToArms;

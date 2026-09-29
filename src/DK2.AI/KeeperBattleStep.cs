@@ -15,8 +15,9 @@ namespace DK2.AI;
 /// that takes the flag down.</summary>
 /// <remarks>
 /// <para>Built: the fight flag's recomputation, the emergency call at a fighter, the spell roll,
-/// both selection arms with their target scans, and the removal's three gates. A chosen spell
-/// the simulation cannot cast (Heal, Inferno, Chicken) is counted and not issued.</para>
+/// both selection arms with their target scans, and the removal's three gates; Thunderbolt and
+/// Heal are cast. A chosen spell the simulation cannot cast (Inferno, Chicken) is counted and
+/// not issued.</para>
 /// <para>Deviates: a cast is a command executed a tick later, so its success is predicted from
 /// the captured permissions and the removal test waits until the call is seen (ADR-0283).</para>
 /// </remarks>
@@ -211,8 +212,8 @@ public sealed class KeeperBattleStep
         KeeperSpellDef chosen = _view.Database.KeeperSpellById(spell)!;
         if (!KeeperSpellRules.TargetsAThing(chosen.TargetSelector) || !KeeperSpellRules.ExecutesOnCreature(spell))
         {
-            // Inferno at a place, Heal and Chicken at a creature: DK2 would test its permission
-            // and cast; ours has no such command, so nothing is issued and nothing is spent.
+            // Inferno at a place and Chicken at a creature: DK2 would test its permission and
+            // cast; ours has no such command, so nothing is issued and nothing is spent.
             _state.UnbuiltSpellChoices++;
             return allowance;
         }
@@ -220,8 +221,9 @@ public sealed class KeeperBattleStep
         foreach (KeeperCreatureView creature in _view.Creatures)
             if (creature.Id == target) { victim = creature; break; }
         // 0x004BBA40's permission, predicted: the row's cooldown, the cost against the mana and the
-        // captured target permission. The cast's own return is ignored, as DK2 ignores it.
-        if (!Ready(chosen) || chosen.ManaCost > _view.Mana || !victim.SpellTargetAllowed) return allowance;
+        // spell's captured validators. The cast's own return is ignored, as DK2 ignores it.
+        bool permitted = spell == KeeperSpellRules.Heal ? victim.HealTargetAllowed : victim.SpellTargetAllowed;
+        if (!Ready(chosen) || chosen.ManaCost > _view.Mana || !permitted) return allowance;
         _commands.Add(new CastSpellOnCreatureCommand(_view.PlayerId, spell, target));
         return allowance - 1;
     }

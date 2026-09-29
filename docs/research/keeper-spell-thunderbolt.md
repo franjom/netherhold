@@ -174,8 +174,8 @@ Thunderbolt alone. Do not tune the spell to 466.
 ## 5. Implementation boundary
 
 `KeeperSpellRules` and packet action 55 use the existing process-9 shot path.
-Other spell ids, nonzero flags and unimplemented selector/process variants
-are explicitly refused. Clocks and mana accounting are hashed and saved.
+Other spell ids (Heal since ADR-0287, `keeper-spell-casting.md` §4), nonzero flags and
+unimplemented selector/process variants are explicitly refused. Clocks and mana accounting are hashed and saved.
 Action 54, computer-keeper battle wiring and other keeper effects remain
 outside this change. The normal/upgraded shot id distinction for modded data
 follows the requested public adapter contract (ADR-0260).

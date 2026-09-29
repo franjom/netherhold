@@ -107,11 +107,20 @@ public static class ShotRules
         return child;
     }
 
-    /// <summary>The overlap finder's answer (§4a): the nearest standing creature the collide class
-    /// admits — an enemy by alliance, a friend by owner — that <see cref="Overlaps"/> the shot, never
-    /// the caster unless it is the target. Doors, objects and bodies are not looked for.</summary>
+    /// <summary>The collision's answer (§4a): a forced collision hits the target word's creature if
+    /// its tag is live, whatever the overlap, and spends the word; otherwise the overlap finder's,
+    /// the nearest standing creature the collide class admits — an enemy by alliance, a friend by
+    /// owner — that <see cref="Overlaps"/> the shot, never the caster unless it is the target.
+    /// Doors, objects and bodies are not looked for.</summary>
     public static CreatureState? FindHit(WorldState world, GameDatabase database, ShotState shot, ShotDef definition)
     {
+        if (shot.ForcedCollision)
+        {
+            // 0x004ABD60: the word is cleared either way, and a dead target is a miss with no search.
+            shot.ForcedCollision = false;
+            CreatureState? forced = shot.TargetKind == FightTargetKind.Creature ? world.CreatureById(shot.TargetId) : null;
+            return forced is null || forced.Activity == CreatureActivity.Dead ? null : forced;
+        }
         byte mode = definition.CollideType;
         if (mode is CollideNone or CollideBodies) return null;
         CreatureState? best = null;
@@ -237,7 +246,12 @@ public static class ShotRules
             case InstantProcess:
                 // The shot is moved onto its target and the collision forced (§8, type 34): here it stands on
                 // the target and the finder takes it this tick; no live target and the shot dies.
-                if (struck is null && !CreatureDeathRules.IsDown(target)) { shot.PosX = target.PosX; shot.PosY = target.PosY; }
+                if (struck is null && !CreatureDeathRules.IsDown(target))
+                {
+                    shot.PosX = target.PosX;
+                    shot.PosY = target.PosY;
+                    shot.ForcedCollision = true;
+                }
                 else if (struck is null) shot.Health = 0;
                 break;
             case ModifyHealthProcess: ModifyHealth(context, shot, definition, target, definitionOfTarget); break;
@@ -277,7 +291,10 @@ public static class ShotRules
     /// <summary>Type 3, <c>0x004ADB30</c> (§8): nothing for <c>IsHorny</c>; a fire-category shot's ignition is
     /// display; the Disruption shot sets health to five percent of the level-scaled maximum, or
     /// kills under it; every other carrier heals the lesser of its data word and the missing
-    /// health — through the health routine, so a target over its maximum loses the excess.</summary>
+    /// health — through the health routine, which refuses <c>OnlyAttackableByHorny</c> and lets a
+    /// target over its maximum lose the excess — after <c>SetState(1)</c>, which interrupts what the
+    /// target was doing, its walk included, unless it is frozen, held, a Combat Pit fighter or
+    /// attacking abnormal targets (rebellion.md §7.2).</summary>
     public static void ModifyHealth(SimulationContext context, ShotState shot, ShotDef definition, CreatureState target, CreatureDef targetDef)
     {
         if (targetDef.Flags.HasFlag(CreatureFlags.IsHorny) || CreatureDeathRules.IsDown(target)) return;
@@ -294,8 +311,12 @@ public static class ShotRules
             return;
         }
         int amount = Math.Min(shot.Data1, max - target.Health);
+        if (amount > 0 && target.FrozenTicks == 0 && !target.InHand && !target.CombatPitFighter && !target.AttackAbnormalTargets
+            && CreatureStateMachine.TrySetState(target, CreatureStateMachine.Idle, context.Tick.Value))
+            target.StopMoving(); // DK2 moves only a walking state (0x0048A23B), so the route goes with the state
+        // 0x004B2CE0 refuses a creature whose kind is OnlyAttackableByHorny for a positive delta too.
         int healed = amount >= 0
-            ? CreatureHealthRules.Apply(database, targetDef, target, amount)
+            ? targetDef.Flags.HasFlag(CreatureFlags.OnlyAttackableByHorny) ? 0 : CreatureHealthRules.Apply(database, targetDef, target, amount)
             : StatusEffectRules.Hurt(world, database, targetDef, target, -amount);
         context.Emit(SystemName, "healed", $"shot={shot.Id} type={definition.ShotId} caster={shot.CasterId} target={target.Id} amount={amount} landed={healed} health={target.Health}");
     }

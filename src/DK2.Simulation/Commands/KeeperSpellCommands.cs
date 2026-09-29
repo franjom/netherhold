@@ -32,6 +32,8 @@ public sealed record RemoveCallToArmsCommand(byte PlayerId) : PlayerCommand(Play
     public override void HashInto(ref Hash64 hash) => base.HashInto(ref hash);
 }
 
+/// <summary>Packet action 55: a keeper spell cast at a creature. Thunderbolt (6, ADR-0260) and
+/// Heal (10, ADR-0287) are read end to end; other ids and nonzero flags are refused.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-thunderbolt.md")]
 public sealed record CastSpellOnCreatureCommand(byte PlayerId, byte SpellId, int CreatureId, ushort Flags = 0)
     : PlayerCommand(PlayerId)

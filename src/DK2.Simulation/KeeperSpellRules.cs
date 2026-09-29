@@ -14,13 +14,17 @@ public enum KeeperSpellRefusal
 {
     None, UnsupportedSpell, UnsupportedFlags, MissingDefinition, MissingPlayer,
     NoSpellEntry, Cooldown, Mana, MissingCreature, UnsupportedLocationSelector,
-    Location, UnsupportedTargetSelector, Target, MissingShot, UnsupportedShotProcess
+    Location, UnsupportedTargetSelector, Target, MissingShot, UnsupportedShotProcess, TargetAtMaxHealth
 }
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-thunderbolt.md")]
 public static class KeeperSpellRules
 {
     public const byte Thunderbolt = 6;
+
+    /// <summary>Heal (10): shot 4, the Modify Health process, at a creature target selector 1 admits
+    /// on a tile location selector 4 admits (keeper-spell-casting.md §4).</summary>
+    public const byte Heal = 10;
     public const ushort SpellAvailabilityKind = 5;
 
     // Zero is the original helper's result even when creation and payment succeeded.
@@ -37,9 +41,11 @@ public static class KeeperSpellRules
         int row = player.Availabilities.FindIndex(a => a.Kind == SpellAvailabilityKind && a.TypeId == cast.SpellId);
         AvailabilityState availability = player.Availabilities[row];
         var effect = spell.Shot(availability.Upgraded);
-        ShotRules.Spawn(world, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
+        ShotState shot = ShotRules.Spawn(world, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
             target.PosX, target.PosY, effect.Data1, effect.Data2, 0,
             FightTargetKind.Creature, target.Id, target.OwnerPlayerId, -1, target.PosX, target.PosY);
+        // 0x004BC1CF: a thing-targeting selector forces the shot's first collision onto the target.
+        shot.ForcedCollision = TargetsAThing(spell.TargetSelector);
         player.Mana -= spell.ManaCost;
         player.OneShotManaSpent += spell.ManaCost;
         player.Availabilities[row] = availability with
@@ -112,32 +118,65 @@ public static class KeeperSpellRules
     /// of the runtime table at <c>0x006FCE40</c>) rather than at a place (4 and 5).</summary>
     public static bool TargetsAThing(byte targetSelector) => targetSelector is 1 or 2 or 3 or 6;
 
-    /// <summary>The spells whose casts this simulation executes: Call to Arms at a place and
-    /// Thunderbolt at a creature. Create Imp keeps its own command.</summary>
+    /// <summary>The spells whose casts this simulation executes: Call to Arms at a place,
+    /// Thunderbolt and Heal at a creature. Create Imp keeps its own command.</summary>
     public static bool ExecutesAtPlace(byte spellId) => spellId == CallToArmsRules.SpellId;
-    public static bool ExecutesOnCreature(byte spellId) => spellId == Thunderbolt;
+    public static bool ExecutesOnCreature(byte spellId) => spellId is Thunderbolt or Heal;
 
     /// <summary>The place validators of <c>0x004BB8A0</c> for one spell at one tile: its location
     /// selector (1 or 4 read) and target selector 4. The caller's grid must be current.</summary>
     public static bool PlaceAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
-        byte playerId, KeeperSpellDef spell, TilePos at)
-    {
-        bool location = spell.LocationSelector switch
-        {
-            1 => LocationOne(world, database, navigation, playerId, at),
-            4 => LocationFour(world, navigation, at),
-            _ => false,
-        };
-        return location && spell.TargetSelector == 4 && TargetFour(world, database, playerId, at);
-    }
+        byte playerId, KeeperSpellDef spell, TilePos at) =>
+        LocationAllowed(world, database, navigation, playerId, spell, at)
+        && spell.TargetSelector == 4 && TargetFour(world, database, playerId, at);
 
-    /// <summary>The creature validators of <c>0x004BBA40</c> for the spells read: location 1 at the
-    /// target's tile and target selector 2, a foreign non-neutral creature.</summary>
+    /// <summary>The creature validators of <c>0x004BBA40</c>: the record's location selector at the
+    /// target's tile, then its target selector on the creature.</summary>
     public static bool CreatureTargetAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
         byte playerId, KeeperSpellDef spell, CreatureState target) =>
-        spell.LocationSelector == 1 && spell.TargetSelector == 2
-        && target.OwnerPlayerId != playerId && target.OwnerPlayerId != PlayerIds.Neutral
-        && LocationOne(world, database, navigation, playerId, target.Tile);
+        LocationAllowed(world, database, navigation, playerId, spell, target.Tile)
+        && TargetAllowed(world, database, playerId, spell, target);
+
+    /// <summary>The location validator the record selects (<c>0x005176B0</c>) at one tile: 1
+    /// (<c>0x00517B80</c>) and 4 (<c>0x00517F10</c>) are read; any other fails closed.</summary>
+    public static bool LocationAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
+        byte playerId, KeeperSpellDef spell, TilePos at) => spell.LocationSelector switch
+    {
+        1 => LocationOne(world, database, navigation, playerId, at),
+        4 => LocationFour(world, navigation, at),
+        _ => false,
+    };
+
+    /// <summary>The target validator the record selects (<c>0x00517730</c>) on a creature: 1
+    /// (<c>0x00517800</c>) and 2 (<c>0x00517930</c>) are read; any other fails closed.</summary>
+    public static bool TargetAllowed(WorldState world, GameDatabase database, byte playerId, KeeperSpellDef spell,
+        CreatureState target) => spell.TargetSelector switch
+    {
+        1 => TargetOne(world, database, playerId, target),
+        2 => TargetTwo(playerId, target),
+        _ => false,
+    };
+
+    /// <summary>Target 1, flags zero: a creature holding a room id is admitted when that room is the
+    /// caster's; a Combat Pit fighter when the room under it is; otherwise the caster's own creature,
+    /// unless its kind is <c>IsHorny</c>. This simulation keeps no room id on a creature, so an
+    /// attached creature's room owner is read from the floor it stands on.</summary>
+    private static bool TargetOne(WorldState world, GameDatabase database, byte playerId, CreatureState target)
+    {
+        if (RoomMembershipRules.IsAttached(target))
+            return world.Contains(target.Tile) && world.Tile(target.Tile).OwnerPlayerId == playerId;
+        if (target.CombatPitFighter && world.Contains(target.Tile))
+        {
+            int index = target.Tile.Y * world.Width + target.Tile.X;
+            if (RoomIndex.RoomAt(world, database, index) is not null && world.TileAtIndex(index).OwnerPlayerId == playerId) return true;
+        }
+        return !database.CreatureById(target.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsHorny) && target.OwnerPlayerId == playerId;
+    }
+
+    /// <summary>Target 2, flags zero: a creature owned by neither the caster nor neutral; allies and
+    /// dying creatures included.</summary>
+    private static bool TargetTwo(byte playerId, CreatureState target) =>
+        target.OwnerPlayerId != playerId && target.OwnerPlayerId != PlayerIds.Neutral;
 
     /// <summary>Location 4 (<c>0x00517F10</c>): no ownership; the navigation grid's solid bit
     /// refuses, and cast flag bit 1 would also want tile flag <c>0x2000</c>.</summary>
@@ -158,10 +197,12 @@ public static class KeeperSpellRules
         return !RoomExcludes(world, room, at, index);
     }
 
+    /// <summary>The creature permission helper <c>0x004BBA40</c> for the spells read, then the
+    /// cast helper's own maximum-health test: what the command would refuse before paying.</summary>
     public static KeeperSpellRefusal CanCast(SimulationContext context, CastSpellOnCreatureCommand cast)
     {
-        // Other keeper effects have not been read end to end; Create Imp retains its own command.
-        if (cast.SpellId != Thunderbolt) return KeeperSpellRefusal.UnsupportedSpell;
+        // Thunderbolt and Heal are read end to end; Create Imp retains its own command.
+        if (!ExecutesOnCreature(cast.SpellId)) return KeeperSpellRefusal.UnsupportedSpell;
         // The ordinary packet path is read; bypass/inverted targeting is a separate boundary.
         if (cast.Flags != 0) return KeeperSpellRefusal.UnsupportedFlags;
         WorldState world = context.World;
@@ -182,16 +223,19 @@ public static class KeeperSpellRules
         if (spell.ManaCost != 0 && spell.ManaCost > player.Mana) return KeeperSpellRefusal.Mana;
         CreatureState? target = world.CreatureById(cast.CreatureId);
         if (target is null || target.Activity == CreatureActivity.Dead) return KeeperSpellRefusal.MissingCreature;
-        if (spell.LocationSelector != 1) return KeeperSpellRefusal.UnsupportedLocationSelector;
+        if (spell.LocationSelector is not (1 or 4)) return KeeperSpellRefusal.UnsupportedLocationSelector;
         context.Navigation.Refresh();
-        if (!LocationOne(world, database, context.Navigation, cast.PlayerId, target.Tile)) return KeeperSpellRefusal.Location;
-        if (spell.TargetSelector != 2) return KeeperSpellRefusal.UnsupportedTargetSelector;
-        // Target selector 2, flags zero: foreign nonneutral, including allies and dying creatures.
-        if (target.OwnerPlayerId == cast.PlayerId || target.OwnerPlayerId == PlayerIds.Neutral)
-            return KeeperSpellRefusal.Target;
+        if (!LocationAllowed(world, database, context.Navigation, cast.PlayerId, spell, target.Tile)) return KeeperSpellRefusal.Location;
+        if (spell.TargetSelector is not (1 or 2)) return KeeperSpellRefusal.UnsupportedTargetSelector;
+        if (!TargetAllowed(world, database, cast.PlayerId, spell, target)) return KeeperSpellRefusal.Target;
         var effect = spell.Shot(availability.Upgraded);
         if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
-        if (shot.ProcessType != ShotRules.LightningProcess) return KeeperSpellRefusal.UnsupportedShotProcess;
+        if (shot.ProcessType is not (ShotRules.LightningProcess or ShotRules.ModifyHealthProcess)) return KeeperSpellRefusal.UnsupportedShotProcess;
+        // 0x004BC13C, after the permission and before the shot and the payment: a positive Modify
+        // Health carrier wants its target strictly below the level-scaled maximum.
+        if (shot.ProcessType == ShotRules.ModifyHealthProcess && effect.Data1 > 0
+            && target.Health >= CreatureHealthRules.MaxHealth(database, database.CreatureById(target.CreatureTypeId), target))
+            return KeeperSpellRefusal.TargetAtMaxHealth;
         return KeeperSpellRefusal.None;
     }
 

@@ -1,0 +1,60 @@
+# The unaided keeper's Heal on a stock map: Level 18 gives Nemesis (player 4) Heal at
+# availability 3 from its own VARIABLES rows, UseKeeperSpells 0, so every fighter its battle
+# walk meets gets a spell attempt, AttackingVsDefensiveSpellPreference 2, so half of them take
+# the supportive arm, whose only shipped spell is Heal and which keeps it whatever its roll, and
+# BARetreatHealth 20. A Black Knight of Nemesis's stands at full health on the west edge of its
+# Lair and a hero Knight on the claimed tile between that Lair and the heart attacks it; a
+# second Black Knight of Nemesis's lies in the Lair with 1500 of its 4000 health: under half, so
+# the supportive scan admits it from anywhere in the Lair, and over 800, so the retreat
+# (0x004FF260) leaves it alone, and it takes a bed and sleeps. The fight's combat message sets
+# the keeper's fight flag, and from then on the battle step (0x00503060) runs where imps would
+# be made. On the first turn the supportive arm is drawn, the keeper casts Heal at the sleeper
+# through the same action 55 a human uses: location selector 4 admits the Lair tile, target
+# selector 1 the keeper's own creature, and the cast helper finds it below its maximum. Shot 4
+# stands on the target, hits it through the forced collision word, and its Modify Health process
+# sets the sleeper idle and heals the missing 2500, the lesser of 16000 and the deficit
+# (ADR-0287). The offensive draws Thunderbolt the hero on Nemesis's land, and on a turn
+# divisible by 40 the emergency call may come first; neither is scripted. No allowance and no
+# flag is set by hand: the fight, the message walk, the step and the spell run through the
+# default systems. Level 10, whose Asmodeus always takes the supportive arm, was not used: its
+# script turns notifications off for the first 120 seconds, so no combat message reaches it.
+#
+# What this run does NOT establish: DK2's timing, or how often DK2's Nemesis casts. No original
+# run of a keeper's Heal has been compared (Q491).
+id: keepers-level18-nemesis-heal-001
+question: >
+  Does Nemesis, unaided, heal a wounded creature of its own with the keeper spell while its
+  fighter holds a hero, and does the simulation apply the heal?
+map: campaign:level18
+seed: 12345
+duration_ticks: 120
+viewing_player: 4
+computer_keepers: [4]
+setup:
+  placed_things: true
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 2, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
+    - { id: 4, gold: 10000, mana: 25000 }
+    - { id: 5, gold: 10000, mana: 100 }
+    - { id: 6, gold: 10000, mana: 100 }
+  creatures:
+    - { type: Black Knight, at: [54, 53], player: 4, health: 1500 }
+    - { type: Black Knight, at: [52, 54], player: 4 }
+    - { type: Knight, at: [51, 54], player: 1 }
+observe:
+  - state_hash
+  - events
+expect:
+  - event: cast
+    detail: "player=4 spell=10"
+    because: >
+      The battle step's supportive arm keeps Heal, the last eligible supportive spell, scans the
+      keeper's own creatures strictly within five tiles of the fighter for one strictly below half
+      health and not dying, and casts it once 0x004BBA40's validators pass.
+  - event: healed
+    detail: "amount=2500 landed=2500 health=4000"
+    because: >
+      Shot 4's Modify Health process (0x004ADB30) heals the lesser of the data word, 16000, and
+      the missing health through the health routine, after setting the target idle.

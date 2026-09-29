@@ -51,7 +51,7 @@ public sealed class KeeperAIState
     /// the call, and a call never shown by then counts as a refused cast (ADR-0283).</summary>
     public long CallToArmsCastTurn = -1;
 
-    /// <summary>Ours: battle spell choices the simulation cannot cast yet (Heal, Inferno, Chicken),
+    /// <summary>Ours: battle spell choices the simulation cannot cast yet (Inferno, Chicken),
     /// counted and not issued.</summary>
     public int UnbuiltSpellChoices;
 

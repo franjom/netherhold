@@ -6106,6 +6106,42 @@ keeper's own RNG (ADR-0244).
 **Limits.** Heal, Inferno and Chicken casts, the attack planner's front
 (`0x004FECE0`, `0x004FE9C0`) and the retreat are not built. No original run (Q485).
 
+## ADR-0287 — Cast the keeper's Heal through the shared shot process, and let the battle step issue it
+**Date:** 2026-09-29 · **Status:** accepted · Research: `keeper-spell-casting.md` §4
+
+**Context.** The battle step's supportive arm chose Heal and counted it (ADR-0283):
+no command cast it. The binary's Heal is shot 4's Modify Health process at an own
+creature, with a forced collision and a maximum-health refusal before payment.
+
+**Decision.**
+1. `KeeperSpellRules` executes spell 10 through action 55: `0x004BBA40`'s cost,
+   cooldown, location selector 4 at the target's tile and target selector 1 on the
+   creature (a room's owner for an attached creature, the room under a Combat Pit
+   fighter, else the caster's own non-Horny creature), then the cast helper's own
+   refusal of a target at or above its level-scaled maximum, before the shot and
+   the payment. The validators are one code path with the observation's capture.
+2. `ShotState.ForcedCollision` is DK2's `+0x14D`: set by a cast at a thing and by
+   the instant handler, it makes the next collision check hit the target tag if
+   live and is spent either way. `HashVersion` and snapshot version 140.
+3. `ShotRules.ModifyHealth` sets the target idle, dropping its walk, before the
+   health lands unless it is frozen, held, a Combat Pit fighter or attacking
+   abnormal targets, and heals nothing of a kind `OnlyAttackableByHorny`; the
+   creature Heals share this, as the binary's handler does.
+4. `KeeperBattleStep` issues Heal from the captured `HealTargetAllowed` (schema 12)
+   with the row's cooldown and the cost against the mana; Inferno and Chicken
+   remain counted. A cast the capture permits spends one allowance.
+
+**Reason.** DK2 casts inside the step and the shot lands on its own update; ours
+issues a command a tick later and the shot lands the tick it is applied.
+
+**Deviations, ours.** The one-tick delay: the observation the next tick may not yet
+show the heal, so a second cast at the same creature can be issued and refused at
+its maximum with nothing paid. A creature's room owner is read from the floor under
+it, as no room id is kept on a creature. The keeper's own RNG (ADR-0244).
+
+**Limits.** Inferno and Chicken are not built. The health routine's vtable `+0x74`
+predicate is unread. No original run (Q491).
+
 ## ADR-0284 — Connect the keeper's retreat of the wounded as pick-up and drop commands
 **Date:** 2026-09-29 · **Status:** accepted
 

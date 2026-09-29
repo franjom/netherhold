@@ -87,6 +87,7 @@ internal static class KeeperWorld
         [
             Shot("Create Object", CreateObjectShotId, 2048, 1, 4, 0x80, ShotRules.CreateObjectProcess),
             Shot("Lightning Shot", LightningShotId, 0, 8, 0x104, 0x40, ShotRules.LightningProcess),
+            Shot("Modify Health", ModifyHealthShotId, 3686, 128, 0x23, 0x4, ShotRules.ModifyHealthProcess, collide: 3),
         ]);
     }
 
@@ -110,8 +111,16 @@ internal static class KeeperWorld
         Spell("Chicken", 7, 10000, KeeperSpellFlags.Offensive, 1, 3),
         Spell("Tremor", 8, 30000, KeeperSpellFlags.Offensive | KeeperSpellFlags.ExcludedFromBattle, 5, 4),
         Spell("Inferno", 9, 50000, KeeperSpellFlags.Offensive, 1, 5),
-        Spell("Heal", 10, 5000, KeeperSpellFlags.Supportive, 4, 1),
+        new()
+        {
+            Name = "Heal", KeeperSpellId = KeeperSpellRules.Heal, ManaCost = 5000, ManaUpkeepPerSecond = 0,
+            Flags = KeeperSpellFlags.Supportive, LocationSelector = 4, TargetSelector = 1,
+            ShotTypeId = ModifyHealthShotId, ShotData1 = 16000, BonusShotTypeId = ModifyHealthShotId, BonusShotData1 = 25000,
+        },
     ];
+
+    /// <summary>Shot 4 as shipped: process 3 on the thing struck, dying on it, collide class 3.</summary>
+    public const byte ModifyHealthShotId = 4;
 
     private static KeeperSpellDef Spell(string name, byte id, int cost, KeeperSpellFlags flags, byte location, byte target, byte shot = 0) =>
         new()
@@ -130,12 +139,12 @@ internal static class KeeperWorld
         NameStringId = 2725, TooltipStringId = 2726,
     };
 
-    private static ShotDef Shot(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte process) =>
+    private static ShotDef Shot(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte process, byte collide = 0) =>
         new(new byte[239])
         {
             Name = name, MeshResource = new KwdArtResource("", 0, default, 0, 0, 0, 0), Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
             SoundCategory = "", ShotId = id, Speed = speed, Radius = 819, Health = health, Flags = flags,
-            ShotProcessFlags = processFlags, CollideType = 0, ProcessType = process, DamageType = 0, AttackCategory = 12, DeathShotId = 0,
+            ShotProcessFlags = processFlags, CollideType = collide, ProcessType = process, DamageType = 0, AttackCategory = 12, DeathShotId = 0,
         };
 
     /// <summary>Gormagon-shaped parameters, trimmed to what step 1 reads.</summary>

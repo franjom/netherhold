@@ -7,6 +7,7 @@ using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Harness;
+using DK2.Simulation;
 using DK2.Simulation.Commands;
 using DK2.TestSupport;
 
@@ -69,6 +70,30 @@ public class ScenarioTests
             MapTile landing = map[put.Tile.X, put.Tile.Y];
             Assert.Equal((lair, (byte)4), (landing.TerrainId, landing.PlayerId));
         }
+        Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
+    }
+
+    [InstallFact]
+    public void Level18NemesisHealsItsSleepingBlackKnightUnaidedAndTheSimulationAppliesTheHeal()
+    {
+        string install = Dk2InstallGate.Path;
+        Scenario scenario = Scenario.Load(Path.Combine(
+            RepositoryRoot(), "scenarios", "keepers", "level18_nemesis_heal.yaml"));
+        ScenarioResult run = new ScenarioRunner(GameDatabaseLoader.Load(install), install).Run(scenario);
+
+        // The battle step's own cast, not a scripted one, and the level's own availability, not
+        // the scenario's: no player lists a spell, and the VARIABLES rows give Nemesis Heal at 3.
+        Assert.Empty(run.ExpectationFailures);
+        Assert.All(scenario.Setup.Players, p => Assert.Empty(p.Spells));
+        GlobalVariables variables = GameDatabaseLoader.LoadCampaignVariables(install, "level18")!;
+        Assert.Equal(3, Assert.Single(variables.Availabilities, a => a.Kind == 5 && a.PlayerId == 4 && a.TypeId == 10).Value);
+        KeeperCommandEmission emission = Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellOnCreatureCommand { SpellId: 10 });
+        var cast = (CastSpellOnCreatureCommand)emission.Command;
+        Assert.Equal((byte)4, cast.PlayerId);
+        // The heal lands on the creature the keeper named, for the whole deficit (ADR-0287).
+        SimEvent healed = Assert.Single(run.Events, e => e.Kind == "healed");
+        Assert.Contains($"target={cast.CreatureId} amount=2500 landed=2500 health=4000", healed.Detail);
+        Assert.Equal(healed.Tick.Value, emission.InputTick);
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
 
