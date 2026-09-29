@@ -80,7 +80,7 @@ public class ImpClaimsWhatItDugTests
         run.UntilDug(new TilePos(4, 2));
         Assert.True(run.World.Tile(4, 2).FreshlyDug);
 
-        run.Ticks(3);
+        run.Ticks(8);   // the dig action runs out (6 ticks at most), then 10 looks
 
         SimEvent next = run.Of("job_taken").Last();
         Assert.Contains("priority=ClaimFreshlyDug", next.Detail);
@@ -121,7 +121,7 @@ public class ImpClaimsWhatItDugTests
         Mark(run, new TilePos(4, 2), new TilePos(5, 2));
 
         run.UntilDug(new TilePos(4, 2));
-        run.Ticks(3);
+        run.Ticks(8);   // the dig action runs out (6 ticks at most), then 10 looks
 
         SimEvent next = run.Of("job_taken").Last();
         Assert.Contains("priority=MarkedExcavation", next.Detail);
@@ -137,14 +137,17 @@ public class ImpClaimsWhatItDugTests
     }
 
     /// <summary>
-    /// <b>It outranks marked work elsewhere.</b> A wall east of the room and a
-    /// wall south of it, both marked, not neighbours of each other. The imp digs
-    /// the nearer, then — with a mark still standing across the room — claims
-    /// what it just dug before walking over to the second mark. That is the
-    /// line that separates "first of everything" from "claiming, but sooner".
+    /// <b>A digger digs on before it claims.</b> A wall east of the room and a wall
+    /// south of it, both marked, not neighbours of each other. The imp digs the
+    /// nearer, and then, though the just-dug claim is first of Tier A, walks over
+    /// to the second mark: state 10 first asks for more of the kind just done
+    /// (the record table at <c>0x006986A0</c>, imp-task-priority.md §4), and a
+    /// dig's kind is dig. The just-dug claim is left for whoever looks next with
+    /// no digging behind it; this imp claims it once the digging is done, claiming
+    /// on from the tile it dug last.
     /// </summary>
     [Fact]
-    public void TheJustDugClaimOutranksAMarkAcrossTheRoom()
+    public void ADiggerDigsTheMarkAcrossTheRoomBeforeClaimingWhatItDug()
     {
         Run run = Start(new TilePos(3, 2));
         Mark(run, new TilePos(4, 2), new TilePos(1, 4));
@@ -152,11 +155,15 @@ public class ImpClaimsWhatItDugTests
         run.UntilDug(new TilePos(4, 2));
         Assert.True(run.World.Tile(1, 4).IsTaggedBy(Keeper), "the far mark should still be standing");
 
-        run.Ticks(3);
+        run.Ticks(8);   // the dig action runs out (6 ticks at most), then 10 looks
 
         SimEvent next = run.Of("job_taken").Last();
-        Assert.Contains("priority=ClaimFreshlyDug", next.Detail);
-        Assert.Contains("(4,2)", next.Detail);
+        Assert.Contains("priority=MarkedExcavation", next.Detail);
+        Assert.Contains("(1,4)", next.Detail);
+
+        run.UntilDug(new TilePos(1, 4));
+        run.Ticks(SimulationTiming.TicksFromSeconds(12));
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(4, 2).TerrainId);
     }
 
     /// <summary>
@@ -174,7 +181,7 @@ public class ImpClaimsWhatItDugTests
         outside.Health = run.Db.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
         outside.OwnerPlayerId = PlayerIds.Unowned;
 
-        run.Ticks(1);
+        run.Ticks(2);   // 1 hands the imp to 10, which chooses on the next tick
 
         SimEvent taken = Assert.Single(run.Of("job_taken"));
         Assert.Contains("priority=Claim ", taken.Detail);

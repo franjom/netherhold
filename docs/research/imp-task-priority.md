@@ -59,11 +59,24 @@ from outside the imp code**, which is what makes them identifiable (§3).
 `FUN_00468520(kind, radius)` is *"find me a job of this kind within this
 distance"*, and it has two shapes:
 
-- **kinds 1 and 2** walk the task list (`FUN_00469af0`) and test each task's
-  squared straight-line distance against the radius;
+- **kinds 1 and 2** both call one walk, `FUN_00469af0` (read 2026-09-29): every
+  kind-1 task, then every kind-2 task, each tested by squared **straight-line**
+  distance from the imp to the task tile's centre. A task replaces the best so
+  far only when strictly nearer, so a wall beats a seam at the same distance and
+  list order breaks other ties. A task qualifies when one of its four sides,
+  tried from the side facing the imp, is not Solid, passes a reachability test
+  (`FUN_00471630`, flag `0x80`) and has a free holder slot of three
+  (`FUN_00508110`), or a slot whose holder it may take (§7). For seams only, a
+  slot is also refused while a creature stands in that slot's third of the face
+  tile. **After a mining job** (`+0x98` = 2) seams are measured from the last
+  task tile (`+0x8C`/`+0x90`), not the imp, which is what sends a miner back to
+  its seam after a delivery. The walk writes `+0x98` = 1 and state 13 for a wall,
+  2 and state 25 for a seam, and the task tile to `+0x8C`/`+0x90`;
 - **kinds 3, 6/16, 7, 8** run a **ring scan** (`FUN_00468d10`) outwards from
   the imp, calling the kind's handler on each tile in turn; kinds 9/10, 11,
-  12, 13 have scanners of their own over the things or rooms they concern.
+  12, 13 have scanners of their own over the things or rooms they concern;
+- **kind 15** deposits: if the imp holds any gold (`FUN_00464360(0)`, `+0x3FB`
+  non-zero), the store chooser `FUN_00464400`.
 
 The ring scan walks concentric squares — the imp's own tile first, then the
 ring at distance 1, then 2 — and skips a tile unless a flag bit (`tile+0xb &
@@ -152,12 +165,26 @@ priority selects it, so **kind 16 is not built as an imp job**.
 The routine is not a Ghidra-defined function — it was read from the
 disassembly. In order:
 
-**(a) A first block, keyed on an argument.** If the caller passed a kind, and
-it differs from the imp's `LastTaskType` (`imp+0x9d`), a 36-byte record for
-that kind (table at `006986a0`) is consulted flag by flag, and for each set flag
-one kind is searched whole-map: 14, 13, 12, 9, 1, then the passed kind itself,
-then kind 15 for kinds 1/2. **Not read further.** It reads as "an imp told to
-do X also considers these"; where the argument comes from was not chased.
+**(0) The cap.** Past the special-owner exit, a keeper's per-player counter
+(`player+0x7A`, zeroed each player frame) is tested: at 4 or more, the imp goes
+to 12 with its deadline at now + 20 + rand(80), the draw taken once 12 accepts
+it; otherwise the counter goes up and selection runs. A just-dropped imp skips
+this (read 2026-09-29, `0x00463E2C`–`0x00463E9C`).
+
+**(a) The kind just done** (read 2026-09-29). The byte at `+0x98` is not an
+argument: every task handler writes its own kind there as it takes a task
+(the walk 1 or 2, claim 3, reinforce/fix 6/16, gold 7, objects 8, crates 9/10,
+corpse 12, carry 13), the claim state writes 3 again on finishing, and state 11
+zeroes it on a drop. When it is non-zero: if it equals `+0x9D` (the aimed kind of
+ADR-0069, `hand-of-evil.md` §6) that kind is searched whole-map first, and on
+failure `+0x9D` is cleared. Then its 36-byte record (`006986a0` + kind × 36) is
+read. Six dwords select searches: kinds 14, 13, 12, 9, 1, and the kind itself.
+In the shipped table **only the last is ever set, and only for kinds 1–5**; 6, 7,
+16 set only dwords this code never reads. So after a dig, a mine or a claim the
+imp looks for more of the same anywhere first, and after a dig or a mine
+deposits (kind 15) if nothing is found. `+0x98` is then zeroed. This is what
+keeps a claimer claiming and a digger digging, and why a corridor is claimed on
+to the room at its end.
 
 **(b) The `JustDropped` scan.** If `imp+0x99` is non-zero it is cleared and a
 ring scan runs with the **nine-step chain** as its per-tile callback. This is
@@ -284,9 +311,11 @@ face instead). Recorded, not built (**Q155**).
 
 | | DK2 | ours |
 |---|---|---|
+| the kind just done | after 1/2/3 search that kind first; after 1/2 deposit | **built** (ADR-0282) |
+| the cap | 4 selections per keeper per tick | **built** (ADR-0282) |
 | Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **all of it**: claim the just-dug tile, **8** (ADR-0065), **9/10** (ADR-0214, `workshop-crates.md` §6), marked excavation, claim, **13** both branches (ADR-0063, ADR-0064), **12**, in the original's order |
 | Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold**. Kind 16 (fix a damaged own wall) is not a job here — §3 |
-| distance | rings, squared straight-line | steps along the walkable grid (Q25) |
+| distance | rings; for 1/2 straight-line, seams from the last seam | the 1/2 walk straight-line (ADR-0282); other kinds steps along the walkable grid; seam slot occupancy not built |
 | kind 14 | claim the just-dug tile first, once no 8-neighbour has a dig task | **built** — `ClaimFreshlyDug`, same rule |
 | stealing | nearer imp takes the task | not built (Q155) |
 | just-dropped scan | three tiles, nine-step chain | **built** (ADR-0062, ADR-0069) — `TryTakeDroppedJob`, `DropScanTiles` = 3 Chebyshev measured to the work's tile, in DK2's drop order minus kind 11 (Q162); the crate kinds are ADR-0214 |
@@ -320,8 +349,6 @@ kind 3 tests for the *absence* of Lava and Water, and is claiming.
   timing is inferred, not read (§6).
 - **Q162** — answered: the drop scan reaches three tiles (§4b).
 - **Q155** — task stealing by distance: read, not built (§7).
-- **Q25** — the dig search walks the task list within a radius; whether it
-  takes the *nearest* qualifying task or the *first in list order* was not read.
-  The owner's answer (nearest by walking distance) stands as the observation.
-- kind 11's identity and raiser; the `tile+0xb & 0x20` scan pre-filter; the
-  first block's argument and its per-kind record table.
+- **Q25** — answered 2026-09-29: the nearest by straight-line distance, list
+  order only on an exact tie (§2.2).
+- kind 11's identity and raiser; the `tile+0xb & 0x20` scan pre-filter.

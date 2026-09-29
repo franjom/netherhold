@@ -571,13 +571,14 @@ public class CreatureNeedsTests
         Assert.Contains(events.Events, e => e.Kind == "creature_died");
     }
 
-    /// <summary>And <b>the same creature in a room still collapses</b>. This is the quirk,
-    /// not an accident of the port: DK2 asks the room first and only reaches
-    /// <c>DieInstantly</c> when the creature is standing on no room at all
-    /// (<c>0x004B2F61</c>). A Lord Of The Land killed in a Treasury lies there rescuable and
-    /// one killed in the corridor outside it does not.</summary>
+    /// <summary>And <b>standing in a room changes nothing</b>. DK2 asks the room first, but the
+    /// room it asks is the one the creature is <i>attached</i> to (<c>RoomId</c> at
+    /// <c>+0x3B9</c>, read at <c>0x004B2F61</c>), written when a room takes a creature in as a
+    /// user, not the one under its feet. A creature merely standing in a Treasury is attached
+    /// to nothing, so <c>DieInstantly</c> is asked: the Level 2 capture shows a Lord Of The Land
+    /// dying outright on the keeper's Lair at tick 3241.</summary>
     [Fact]
-    public void TheSameCreatureDyingInsideARoomIsNeverAskedAboutDieInstantly()
+    public void ACreatureStandingInARoomItIsNotAttachedToIsStillAskedAboutDieInstantly()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -589,16 +590,16 @@ public class CreatureNeedsTests
         goblin.Health = 0;
         Simulation(db, world).Run(Second);
 
-        Assert.Single(world.Creatures);
-        Assert.Equal(CreatureActivity.Dying, goblin.Activity);
+        Assert.Equal(CreatureActivity.Dead, goblin.Activity);
     }
 
-    /// <summary>A Prison refuses the window to <b>anyone</b> who dies on its tiles, not only
-    /// to a registered prisoner. Our prison withering already bypassed the collapse through
-    /// <c>PrisonRules.IsImprisoned</c>; DK2 keys it on the tile, which is the wider rule and
-    /// the one that also covers a creature killed in a prison it is not held in.</summary>
+    /// <summary>A Prison refuses the window to the creatures <b>attached</b> to it, its
+    /// prisoners, not to anyone who happens to die on its tiles: the gate reads the attached
+    /// room (<c>+0x3B9</c>), and a creature is attached to a prison when the prison takes it
+    /// in (<c>0x004E5A70</c>). That a non-prisoner is never attached is STRONGLY INFERRED from
+    /// those writers, not watched, which is why the name says so.</summary>
     [Fact]
-    public void APrisonTileRefusesTheWindowToACreatureThatIsNotAPrisoner()
+    public void APrisonTileGivesTheWindowToACreatureThatIsNotAPrisoner_Inferred()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -611,7 +612,7 @@ public class CreatureNeedsTests
         goblin.Health = 0;
         Simulation(db, world).Run(Second);
 
-        Assert.Equal(CreatureActivity.Dead, goblin.Activity);
+        Assert.Equal(CreatureActivity.Dying, goblin.Activity);
     }
 
     /// <summary>Possession is the third gate. Nothing in this simulation possesses a

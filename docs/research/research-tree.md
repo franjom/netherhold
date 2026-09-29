@@ -180,3 +180,14 @@ not read. **It does not test availability.** Casting an unresearched spell is
 prevented by the interface, which shows only available spells, and by the
 computer keeper, which checks for state 3 itself. How many times Horny may be
 summoned per campaign is **Q447**.
+
+## 7. Where availability comes from: rows accumulate (2026-09-29)
+
+The Variables availability handler (`0x0051CA60`) writes each record into the
+player tables as it is read, into every player's for a player-0 record, and
+nothing clears the tables between the global file and the level's. So a level's
+rows follow `GlobalVariables.kwd`'s rather than replacing them, the last write to
+a kind and type winning. Level 2 lists neither Create Imp nor Thunderbolt, keeps
+the global RESEARCHABLE for both, and its Warlocks research them in list order,
+Create Imp first (owner, 2026-09-29; our replay completes them at 1426 and 2026).
+Ours: `GlobalVariables.AvailabilitiesOf`, ADR-0281.

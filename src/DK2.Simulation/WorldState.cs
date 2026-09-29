@@ -1354,9 +1354,7 @@ public sealed class WorldState
                 HeartHealth = Data.Model.PlayerIds.IsKeeper(id)
                     ? database[VariableTypeId.DungeonHeartObjectHealth]
                     : 0,
-                Availabilities = database.Variables.Availabilities
-                    .Where(a => a.PlayerId == id)
-                    .OrderBy(a => a.Kind).ThenBy(a => a.TypeId)
+                Availabilities = database.Variables.AvailabilitiesOf(id)
                     .Select(a => new AvailabilityState(a.Kind, a.TypeId, a.Value))
                     .ToList(),
             })

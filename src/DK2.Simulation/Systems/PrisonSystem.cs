@@ -213,11 +213,9 @@ public sealed class PrisonSystem : ISimulationSystem
     /// on the <b>rim</b>, outside the fence, while the live captives stayed inside it. The
     /// body is moved to the first free rim tile of the prison it died in — which is
     /// what puts it where an imp can reach it without passing the gate.</para>
-    /// <para>The death itself is not booked here. Releasing it is enough:
-    /// <see cref="CreatureHealthSystem"/> skips prisoners and picks this one up on the next
-    /// game second, where standing on a Prison tile already means no rescuable window
-    /// (Q303, ADR-0138) — so the ordinary path produces exactly the corpse observed.
-    /// </para></remarks>
+    /// <para>The death is booked here, at once: DK2 judges the window against the room a
+    /// creature is attached to, a prisoner's prison refuses it, and once released the
+    /// captive is attached to nothing (ADR-0281).</para></remarks>
     private static void Slain(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
@@ -247,6 +245,9 @@ public sealed class PrisonSystem : ISimulationSystem
         context.Emit(SystemName, "prisoner_slain",
             $"creature={creature.Id} player={keeper} " +
             $"died_at=({died.X},{died.Y}) body_at=({creature.Tile.X},{creature.Tile.Y})");
+
+        CreatureHealthSystem.Die(
+            context, SystemName, context.Database.CreatureById(creature.CreatureTypeId), creature);
     }
 
     /// <summary>Whether anything but <paramref name="exceptId"/> stands on this tile.

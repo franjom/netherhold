@@ -123,6 +123,21 @@ public static class HandRules
         return IsUnclaimedFloor(database.TerrainById(world.Tile(tile.X, tile.Y).TerrainId));
     }
 
+    /// <summary>Whether a drop of <paramref name="creature"/> on <paramref name="tile"/> would land:
+    /// the two tests <see cref="Systems.HandSystem"/> refuses on, in its order — a disposal tile
+    /// (<see cref="DisposalRules"/>) or a walkable one, and then <see cref="CanDropCreatureOn"/>.</summary>
+    public static bool DropLands(
+        WorldState world, GameDatabase database, CreatureState creature, CreatureDef definition,
+        TilePos tile, byte playerId)
+    {
+        if (!world.Contains(tile)) return false;
+        bool disposed = !PrisonRules.IsImprisoned(creature)
+            && DisposalRules.Disposes(world, database, definition, tile, playerId);
+        if (!disposed && !new WorldPathGrid(database, world, definition).IsWalkable(tile.X, tile.Y))
+            return false;
+        return CanDropCreatureOn(world, database, tile, playerId, definition);
+    }
+
     /// <summary>Floor that no keeper can have claimed: <b>Dirt Path</b> and the <b>Mana Vault</b>,
     /// and nothing else in the shipped table of 41. Structural, not by id — not
     /// <see cref="TerrainFlags.Solid"/>, not <see cref="TerrainFlags.Ownable"/>, not

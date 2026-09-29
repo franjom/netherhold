@@ -32,53 +32,35 @@ public class TileWorkTests
     // ---- the rules -------------------------------------------------------
 
     [Fact]
-    public void DiggingRock_TakesTwoApplications_AndLeavesDirtPath()
+    public void DiggingRock_TakesOneApplication_AndLeavesDirtPath()
     {
-        // TWO applications, CONFIRMED (owner, 2026-08-30), who noted that a third
-        // animation plays over the block already crumbling, so two do the damage.
-        // The shipped DigRockHealth of -5000 would fell it in one with 4835 to
-        // spare, so it cannot produce the observed behaviour and is corrected to
-        // -500 in ObservedCorrections — the project's only such override
-        // (ADR-0023, Q20).
+        // ONE application, on the shipped DigRockHealth of -5000: both full-state
+        // captures show Rock at 165 health gone in a single strike (2026-09-29). The
+        // owner's earlier count of two swings was an animation count, and the -500
+        // correction it justified is retired (ObservedCorrections, ADR-0023).
         TileState tile = TileOf(Dk2TerrainFixture.Rock);
 
         TileWorkResult first = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Dig, 1);
 
-        Assert.Equal(TileWorkOutcome.Progressed, first.Outcome);
-        Assert.Equal(Dk2TerrainFixture.Rock, tile.TerrainId);
-        Assert.Equal(-100, first.HealthDelta);   // -500 a second, a fifth each
-        Assert.Equal(65, tile.Health);
-
-        TileWorkResult second = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Dig, 1);
-
-        Assert.Equal(TileWorkOutcome.Destroyed, second.Outcome);
+        Assert.Equal(TileWorkOutcome.Destroyed, first.Outcome);
         Assert.Equal(Dk2TerrainFixture.DirtPath, tile.TerrainId);
         Assert.Equal(Db.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth, tile.Health);
-        Assert.Equal(-65, second.HealthDelta);   // clamped to the health present
+        Assert.Equal(-165, first.HealthDelta);   // clamped to the health present
     }
 
     /// <summary>
-    /// The override is narrow on purpose: it fires only on the exact shipped
-    /// value it was measured against, so a mod or a patch carrying a workable
-    /// number is left alone. Guarding this is the difference between a recorded
-    /// correction and a silent one.
+    /// No work rate is corrected: every one is read from the shipped table as it
+    /// stands. The one correction there was is retired (ObservedCorrections).
     /// </summary>
     [Fact]
-    public void TheDigCorrection_LeavesAnyOtherValueAlone()
+    public void NoWorkRateIsCorrected()
     {
         Assert.Equal(
-            ObservedCorrections.CorrectedDigRockHealth,
+            Db[VariableTypeId.DigRockHealth],
             ObservedCorrections.TileWorkPerSecond(Db, VariableTypeId.DigRockHealth));
-        Assert.True(ObservedCorrections.IsCorrected(Db, VariableTypeId.DigRockHealth));
 
-        // The raw value is still there and still says what the file says.
-        Assert.Equal(
-            ObservedCorrections.ShippedDigRockHealth, Db[VariableTypeId.DigRockHealth]);
-
-        // Nothing else in the table is touched.
         foreach (TileWorkKind kind in Enum.GetValues<TileWorkKind>())
         {
-            if (kind == TileWorkKind.Dig) continue;
             Assert.False(
                 ObservedCorrections.IsCorrected(Db, TileWorkRules.Variable(kind)),
                 $"{kind} is being corrected and should not be");
@@ -207,13 +189,13 @@ public class TileWorkTests
 
         Assert.Equal(Dk2TerrainFixture.Rock, tile.TerrainId);
 
-        TileWorkResult firstRockSwing =
-            TileWorkRules.Apply(Db, ref tile, TileWorkKind.DigOwnWall, 1);
-        TileWorkResult secondRockSwing =
+        // The wall falls to Rock, and the next strike takes the Rock at once: the
+        // Level 1 capture shows exactly this, 900 down to Rock at 165 for one tick,
+        // then Dirt Path (2026-09-29).
+        TileWorkResult rockSwing =
             TileWorkRules.Apply(Db, ref tile, TileWorkKind.DigOwnWall, 1);
 
-        Assert.Equal(-100, firstRockSwing.HealthDelta);
-        Assert.Equal(-65, secondRockSwing.HealthDelta);
+        Assert.Equal(-165, rockSwing.HealthDelta);
         Assert.Equal(Dk2TerrainFixture.DirtPath, tile.TerrainId);
     }
 

@@ -16,8 +16,17 @@ public sealed partial class ImpTaskSystem
     public const int RestBaseTicks = 240;
     public const int RestRandomTicks = 240;
 
-    /// <summary>How long an idle action (43, 44) plays. <b>A guess</b>: the length is the animation's
-    /// and is UNKNOWN (imp-idle-and-wandering.md §3).</summary>
+    /// <summary>How long idle action 43 holds state 12, one tick short of the 20-tick rest the
+    /// two full-state captures show (mining-cadence.md §6). Measured as an outcome: the imp's
+    /// animation blocks (171 and 172 frames at 30 fps) do not give it.</summary>
+    public const int IdleAction43Ticks = 19;
+
+    /// <summary>Action 44's, one short of the 25-tick rest. That 43 is the 20 and 44 the 25
+    /// is STRONGLY INFERRED from the 2:1 split matching 12's roll.</summary>
+    public const int IdleAction44Ticks = 24;
+
+    /// <summary>How long another creature's idle action plays. <b>A guess</b>: the length is the
+    /// animation's and is UNKNOWN; the imp's two were measured, not read.</summary>
     public const int IdleActionGuessTicks = 8;
 
     /// <summary><c>0x00480A00</c>'s room branch: the room types a wander may go to.</summary>
@@ -48,7 +57,8 @@ public sealed partial class ImpTaskSystem
                 creature.WorkerIdle = false;
                 if (StateShadow.TryMove(context, SystemName, creature, ImpStates.TaskSelection))
                 {
-                    creature.DroppedTask = ImpTaskKind.None;
+                    // State 11 (0x00463DB0): the kind just done is zeroed, the aimed kind kept.
+                    creature.LastTaskKind = ImpTaskKind.None;
                     creature.JustDropped = true;
                 }
                 return true;
@@ -73,8 +83,8 @@ public sealed partial class ImpTaskSystem
     }
 
     /// <summary>State 12 (<c>0x00464240</c>): wait out a playing action; at the deadline, 10; after a
-    /// trip, roll: under 25 wander, 25–74 action 43, 75–99 action 44; otherwise wander. Ours plays
-    /// both actions (whether an imp has them is UNKNOWN) for <see cref="IdleActionGuessTicks"/>.</summary>
+    /// trip, roll: under 25 wander, 25–74 action 43, 75–99 action 44; otherwise wander. The two
+    /// actions' lengths are <see cref="IdleAction43Ticks"/> and <see cref="IdleAction44Ticks"/>.</summary>
     private static void Rest(SimulationContext context, CreatureState creature)
     {
         creature.WorkerIdle = true;
@@ -92,7 +102,7 @@ public sealed partial class ImpTaskSystem
             if (roll >= 25)
             {
                 creature.WanderStamp = 0;
-                creature.ActionUntilTick = now + IdleActionGuessTicks;
+                creature.ActionUntilTick = now + (roll < 75 ? IdleAction43Ticks : IdleAction44Ticks);
                 context.Emit(SystemName, "idle_action",
                     $"imp={creature.Id} action={(roll < 75 ? 43 : 44)} at=({creature.Tile.X},{creature.Tile.Y})");
                 return;

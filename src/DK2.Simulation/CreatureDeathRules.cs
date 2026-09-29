@@ -35,9 +35,9 @@ public static class CreatureDeathRules
     /// (<c>0x004B2CE0</c>) between <c>0x004B2F2E</c> and <c>0x004B2F96</c> — Q303,
     /// docs/research/creature-death.md §2.</summary>
     /// <remarks>
-    /// <para>The last two are the quirk: a creature <b>standing in a room</b> is judged by the
-    /// room alone and <see cref="DiesInstantly"/> is never asked, so a Lord Of The Land killed
-    /// in a Treasury lies there rescuable and one killed in a corridor does not.</para>
+    /// <para>The last two are the quirk: a creature <b>attached to a room</b>
+    /// (<see cref="AttachedRoom"/>) is judged by the room alone and <see cref="DiesInstantly"/>
+    /// is never asked. Standing in a room is not being attached to it.</para>
     /// <para><see cref="LeavesBody"/> alone was the whole rule until Q303, and it is the first
     /// gate rather than a wrong one — <c>0x004B2F2E</c> tests the same
     /// <c>GenerateDeadBody</c> bit, definition flags bit 15.</para>
@@ -48,12 +48,27 @@ public static class CreatureDeathRules
         if (!LeavesBody(creature)) return false;
         if (IsPossessed(world, state)) return false;
 
-        RoomInstance? room = RoomIndex.RoomAt(
-            world, database, (state.Tile.Y * world.Width) + state.Tile.X);
+        RoomInstance? room = AttachedRoom(world, database, state);
 
         return room is not null
             ? !RoomRefusesTheDyingWindow(room.Definition)
             : !DiesInstantly(creature, state);
+    }
+
+    /// <summary>The room this creature is attached to, DK2's <c>RoomId</c> at <c>+0x3B9</c>, which
+    /// the gates read (<c>0x004B2F61</c>) — not the room under its feet. A room's add-creature
+    /// routine (<c>0x004E5A70</c>) writes it for a creature that joins the room as a user: its
+    /// prisoners and torture victims, and a creature using it for its job. So a hero fighting
+    /// on a keeper's Lair is attached to nothing and a Lord Of The Land dies outright there, as
+    /// the Level 2 capture shows at 3241. Ours derives it: STRONGLY INFERRED from the writers.</summary>
+    public static RoomInstance? AttachedRoom(WorldState world, GameDatabase database, CreatureState state)
+    {
+        int tile = -1;
+        if (PrisonRules.IsImprisoned(state) || TortureRules.IsBeingTortured(state))
+            tile = (state.Tile.Y * world.Width) + state.Tile.X;
+        else if (state.CurrentJob != JobType.None && state.Activity == CreatureActivity.AtWork)
+            tile = state.JobTileIndex;
+        return tile < 0 ? null : RoomIndex.RoomAt(world, database, tile);
     }
 
     /// <summary>The two rooms that kill outright: a creature dying on their tiles gets no

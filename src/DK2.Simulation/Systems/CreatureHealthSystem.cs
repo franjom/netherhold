@@ -244,6 +244,10 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         if (!CreatureDeathRules.Collapse(state)) return;
         HeroPartyRules.KnockedOut(context.World, context.Triggers, state);
 
+        // Creature event 16, "dying", from the countdown start 0x0048B770 (trigger-walkers.md,
+        // "Who fires what"). Level 2 counts four of its heroes going down this way.
+        context.FireCreatureEvent(state, CreatureTriggerEvent.Dying);
+
         context.Emit(SystemName, "creature_collapsed",
             $"creature={state.Id} type={creature.Name} " +
             $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +

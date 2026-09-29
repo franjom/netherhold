@@ -7,10 +7,10 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>The one place where this project uses a number the shipped data does
+/// <summary>The one place where this project may use a number the shipped data does
 /// not contain: the sanctioned exception to "a balance constant hardcoded in
-/// simulation code is a bug" (ADR-0023, Q20, docs/research/tile-work.md),
-/// owner-approved 2026-08-30 for the single entry below.</summary>
+/// simulation code is a bug" (ADR-0023). <b>It holds no entries</b>: its only one,
+/// <c>DigRockHealth</c>, was retired by ADR-0280 (Q20).</summary>
 /// <remarks>All five admission conditions must hold: (1) the behaviour is
 /// <b>measured in the original</b>, not inferred, remembered or taken from a
 /// community source; (2) the shipped value is shown <b>incapable</b> of producing
@@ -22,23 +22,6 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.Confirmed, "docs/research/tile-work.md")]
 public static class ObservedCorrections
 {
-    /// <summary>What <c>DigRockHealth</c> reads in the shipped GlobalVariables.kwd.</summary>
-    public const int ShippedDigRockHealth = -5000;
-
-    /// <summary>
-    /// What it must be for the original's behaviour to happen: <b>-500</b>. The owner
-    /// dug plain unreinforced wall (terrain 2, "Rock") and counted <b>two damaging
-    /// swings</b>, a third animation playing over a crumbling block (2026-08-30).
-    /// <para>Rock has 165 health, so per-swing damage is in [83, 164]; one application
-    /// is the tabled delta shifted by <see cref="SimulationTiming.WorkApplicationShift"/>,
-    /// so the field should read [415, 825] and the shipped -5000 is six to twelve times
-    /// too big. -500 is the only round number in the window, is a tenth of the shipped
-    /// value, gives 165 → 65 → destroyed, and the balance table holds no alternative
-    /// candidate in that range (docs/research/tile-work.md §Q20). Whether the engine
-    /// reads a different field, applies an unfound divisor or ships a typo is
-    /// UNKNOWN.</para></summary>
-    public const int CorrectedDigRockHealth = -500;
-
     /// <summary>
     /// The per-second health delta for a tile-work variable, with any correction
     /// above applied. Everything that needs a work rate goes through here rather
@@ -50,14 +33,7 @@ public static class ObservedCorrections
         // Through the indexer, so a variable this database does not carry still
         // throws with its own name: correcting a value is not a licence to invent
         // a missing one.
-        int shipped = database[variable];
-
-        // Rule 4: a data set that already carries a workable number is not
-        // second-guessed.
-        if (variable == VariableTypeId.DigRockHealth && shipped == ShippedDigRockHealth)
-            return CorrectedDigRockHealth;
-
-        return shipped;
+        return database[variable];
     }
 
     /// <summary>
@@ -68,8 +44,5 @@ public static class ObservedCorrections
     /// corrected number" is safe to ask on any database, including the
     /// deliberately minimal ones tests build.</para>
     /// </summary>
-    public static bool IsCorrected(GameDatabase database, VariableTypeId variable) =>
-        database.Variables.TryGet(variable, out int shipped)
-        && variable == VariableTypeId.DigRockHealth
-        && shipped == ShippedDigRockHealth;
+    public static bool IsCorrected(GameDatabase database, VariableTypeId variable) => false;
 }

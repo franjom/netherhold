@@ -69,7 +69,10 @@ public sealed class TileTagSystem : ISimulationSystem
             applied++;
         }
 
+        string span = command.Tiles.Count == 0 ? "none" :
+            $"({command.Tiles.Min(t => t.X)},{command.Tiles.Min(t => t.Y)})-" +
+            $"({command.Tiles.Max(t => t.X)},{command.Tiles.Max(t => t.Y)})";
         context.Emit(SystemName, command.Tagged ? "tagged" : "untagged",
-            $"player={command.PlayerId} applied={applied} rejected={rejected}");
+            $"player={command.PlayerId} applied={applied} rejected={rejected} span={span}");
     }
 }

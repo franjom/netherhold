@@ -6,7 +6,7 @@
 | Confidence | **CONFIRMED**: the data, the deficit rule, the 273-gold swing, the once-a-tick cadence, Efficiency and its two bonuses, and — run 15, tile by tile — all four per-application deltas (ADR-0133). **STRONGLY INFERRED**: the unguarded upward-conversion path (Q215), that the deltas are per game second, per-player tagging. **UNKNOWN**: whether a second worker adds a second application; what moved the base work rate mid-session |
 | Implementation | `TileWorkRules`, `Systems/TileWorkSystem`, `Systems/TileTagSystem`, `EfficiencyRules`, `ObservedCorrections`; `TileState.Health`; `SimulationTiming.WorkApplicationShift` (sizes an application) and `.WorkApplicationsPerSecond` (schedules it) |
 | Tests | `TileWorkTests`, `TileWorkOnRealDataTests` (re-runs the rules against the real database and asserts the terrain transition graph terminates for every tile of a campaign level), `DugOutTilesStayDugOutTests` |
-| Known exceptions | `DigRockHealth` is the project's only `ObservedCorrections` override (Q20, ADR-0023) |
+| Known exceptions | none: `ObservedCorrections` holds no entries since the `DigRockHealth` override was retired (Q20, ADR-0280) |
 | Open questions | Q74 and the mid-session base-rate shift below. **Q215, Q292 and Q62 are answered; the rates below are measured, and the swing arithmetic in this file predates run 15** — `EXPERIMENTS.md` has the traces |
 
 Every number comes from the reference install; none is written into the code.
@@ -212,41 +212,18 @@ what an imp shuttling to and from a rock face looks like in the original. That
 answers Q50 by arithmetic rather than by a rule guessed for it.
 
 
-## Q20 — DigRockHealth is 30× the health of the rock it digs
+## Q20 — DigRockHealth: one strike, as shipped
 
-Rock has 165 health and `DigRockHealth` is −5000, so one application destroys it
-with 4835 to spare: under any reading where an application is a discrete event,
-digging earth is instantaneous. It is not — a single imp takes a few seconds —
-and it is **the only thing in the table that does not fit**. The 273-gold
-measurement settled the granularity for the whole table at a stroke and every
-other rate fell into place; rock did not move at all.
+Rock has 165 health and `DigRockHealth` is −5000, so one application destroys it.
+That is what the original does. Both full-state captures (2026-09-28) show it
+tile by tile: in Level 1, (14,32) is reinforced wall at 900 losing 26 a tick,
+turns to Rock at 165 for one tick at 101 and is Dirt Path at 102; the interior
+Rock tiles of the Hatchery square go from 165 to Dirt Path in one sample, one
+every ten ticks while a single imp works them.
 
-**By how much, precisely.** The owner settled the count on 2026-08-30, and the
-distinction they drew is the useful part: **two swings do the damage**, and a
-third animation plays over the block already crumbling — so it is 2, not the
-"2–3" a casual count gives. Two damaging swings against 165 health bound the
-per-swing damage `d` from both sides: `d < 165`, or one swing would finish it,
-and `2d >= 165`, or two would not. So `d` ∈ **[83, 164]** and the per-second
-field should read **415 to 820**. It reads **5000** — 6x to 12x too big.
-
-**500 is the only round number in that window, and it is exactly 5000/10.**
-`d = 100` gives 165 → 65 → destroyed, two swings with no coincidence required,
-and every other tile delta is in the tens or low hundreds (825, 125, −300, −130,
-−8, 5, 50, 22), so −5000 is the sole four-digit one. **It is not a different
-variable**: the balance table holds six values in [415, 820] and none is a
-candidate — two payday intervals, a boulder fear amount, a tremor damage, a
-music threshold and the mana gain cap.
-
-**RESOLVED by override, owner-approved (ADR-0023):** `ObservedCorrections` reads
-`DigRockHealth` as **−500**, the project's only such override, admitted under
-five stated conditions. One candidate explanation is dead — *"an application is
-much shorter than a second and the other rates are simply slow"*: an application
-**is** a fifth of a second, which made every other rate right and left this one
-where it was. Two survive, and the second has grown more attractive by
-elimination: a per-creature work rate scaling the delta (now known, and
-insufficient — Efficiency is 0.8, not 0.1); or `DigRockHealth` applying to
-something other than terrain 2, with ordinary earth dug by a variable not yet
-identified.
+The −500 override (ADR-0023, owner-approved 2026-08-30) came from a count of two
+swings, which was an animation count. It is retired (ADR-0280, owner agreed
+2026-09-29), and `ObservedCorrections` keeps the mechanism with no entries.
 
 ## Q21 — how a seam divides its gold
 

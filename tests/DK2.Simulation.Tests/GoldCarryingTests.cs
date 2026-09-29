@@ -119,13 +119,18 @@ public class GoldCarryingTests
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
         run.Ticks(24);
 
+        // It sets off on the tick of its fifth strike, as both captures show, so the
+        // departure is logged before that strike's gold reaches its hands; the load
+        // it puts down is the full five.
         SimEvent leaving = run.Of("delivering").First();
-        Assert.Contains($"gold={FullLoad}", leaving.Detail);
         Assert.Contains("to=(1,1)", leaving.Detail);
 
         // Five swings, and nothing thrown away to get there.
         Assert.Equal(5, run.Of("gold_mined").Count());
         Assert.Empty(run.Of("gold_uncollected"));
+
+        run.Ticks(40);
+        Assert.Equal(FullLoad, Run.Amount(run.Of("gold_delivered").First()));
     }
 
     [Fact]
@@ -169,8 +174,12 @@ public class GoldCarryingTests
         // goes, not how long the walk takes.
         for (int i = 0; i < 95 && run.World.Tile(3, 2).GoldHeld == 0; i++) run.Tick();
 
+        // The load is five swings, 1363 or 1364 by which swings the 272s fall on; the
+        // point is that (3,2) takes exactly what (3,3) could not.
+        List<int> loads = run.Of("gold_delivered").Select(Run.Amount).ToList();
         Assert.Equal(1000, run.World.Tile(3, 3).GoldHeld);
-        Assert.Equal(363, run.World.Tile(3, 2).GoldHeld);
+        Assert.Equal([1000, run.World.Tile(3, 2).GoldHeld], loads);
+        Assert.InRange(run.World.Tile(3, 2).GoldHeld, 363, 364);
         Assert.Equal(0, run.Imp.GoldHeld);
     }
 

@@ -175,7 +175,8 @@ public class PrisonTests
         GameSimulation sim = Simulation(db, world, sink);
 
         Assert.Equal(
-            [(6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
+            [(ImpStates.TaskSelection, 0, 0),
+             (6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
              (6, ImpStates.PickingUpCasualty, ImpStates.CarryingToPrison),
              (ImpStates.TaskSelection, ImpStates.AtThePrisonDoor, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,
@@ -201,7 +202,8 @@ public class PrisonTests
 
         // The walk into 48 is 47's, so 47 is the saved caller the id is handed back with.
         Assert.Equal(
-            [(6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
+            [(ImpStates.TaskSelection, 0, 0),
+             (6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
              (6, ImpStates.PickingUpCasualty, ImpStates.CarryingToPrison),
              (ImpStates.TaskSelection, ImpStates.TakingTheRefusedBody, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,

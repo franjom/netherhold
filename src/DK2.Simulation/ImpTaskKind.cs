@@ -19,10 +19,18 @@ public enum ImpTaskKind : byte
     None = 0,
 
     /// <summary>
-    /// Dig or mine a tile the keeper marked — DK2's kinds <b>1 and 2</b>, always
-    /// raised and taken as a pair; one value here because nothing distinguishes them.
+    /// Dig a tile the keeper marked — DK2's kind <b>1</b>. Its whole-map walk takes marked
+    /// seams too, so a search for this kind finds either; a job it takes on a seam is
+    /// recorded as <see cref="Mine"/>.
     /// </summary>
     Excavate = 1,
+
+    /// <summary>
+    /// Mine a marked seam — DK2's kind <b>2</b>, which its walk writes when it took a seam.
+    /// Searched by the same walk as <see cref="Excavate"/>; what differs is that the next
+    /// search measures seams from the seam just mined (<c>imp-task-priority.md</c> §4).
+    /// </summary>
+    Mine = 2,
 
     /// <summary>Claim a floor tile — DK2's kind <b>3</b>.</summary>
     Claim = 3,

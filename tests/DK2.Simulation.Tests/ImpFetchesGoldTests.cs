@@ -148,6 +148,7 @@ public class ImpFetchesGoldTests
         run.World.Tile(4, 2).SetTaggedBy(Keeper, true);
 
         run.Ticks(1);
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
 
         Assert.Equal(CreatureActivity.MovingToJob, run.Imp.Activity);
         Assert.Contains(run.Of("job_taken"), e => e.Detail.Contains("MarkedExcavation"));
@@ -245,6 +246,7 @@ public class ImpFetchesGoldTests
         FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(2, 2)), 400);
 
         run.Ticks(1);
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
 
         SimEvent taken = Assert.Single(run.Of("job_taken"));
         Assert.Contains("priority=Claim", taken.Detail);
@@ -267,6 +269,7 @@ public class ImpFetchesGoldTests
         FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(2, 2)), 400);
 
         run.Ticks(1);
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
 
         Assert.Single(run.Of("fetch_taken"));
         Assert.Empty(run.Of("job_taken"));
@@ -287,6 +290,7 @@ public class ImpFetchesGoldTests
         FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(3, 2)), 400);
 
         run.Ticks(1);
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
 
         SimEvent taken = Assert.Single(run.Of("job_taken"));
         Assert.Contains("priority=Reinforce", taken.Detail);
@@ -307,6 +311,7 @@ public class ImpFetchesGoldTests
         FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(1, 3)), 400);
 
         run.Ticks(1);
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
 
         SimEvent taken = Assert.Single(run.Of("job_taken"));
         Assert.Contains("priority=Reinforce", taken.Detail);
@@ -393,8 +398,8 @@ public class ImpFetchesGoldTests
 
         FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(2, 2)), 300);
 
-        // One tick: every imp looks, and only one may have the tile.
-        run.Ticks(1);
+        // State 1's tick, then one in 10: every imp looks, and only one may have the tile.
+        run.Ticks(2);
 
         Assert.Equal(
             1,

@@ -15,6 +15,7 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**139** — `0xF3B644CAA2F6FE61`. A worker's last task tile, and the job choice of ADR-0282.
 **138** — `0xB858D2093C84A232`. The Call to Arms, its flag's process states and the heeding bit (ADR-0279).
 **137** — `0x5113A130122CFD15`. The tick a creature was spawned or last put down (ADR-0278).
 **136** — `0x4C67CCBC9B5CA5C4`. Mana-pressure clocks, removal stamp and corpse bit (ADR-0277).
@@ -394,7 +395,5 @@ instead of two.
 **15** — `0x38CCE7E988729817`. The `Level` field itself (Q119), whose arithmetic
 is a proven no-op at level 1: composition only.
 
-**14** — `0x5DB64D0C91D99368`. Reason not recorded here; see git history.
-
-**13** — `0xAEAF871CC4814DA1`; **12** — `0x9D2695B2F62707D2`; **11** — `0x12E4F45E48ACEB9B`;
-**10** — `0x06F71648486D0FEC`; **9** — `0x4F824667CDA7EF25`. Reasons for 9–13: see git history.
+**14** — `0x5DB64D0C91D99368`; **13** — `0xAEAF871CC4814DA1`; **12** — `0x9D2695B2F62707D2`;
+**11** — `0x12E4F45E48ACEB9B`; **10** — `0x06F71648486D0FEC`; **9** — `0x4F824667CDA7EF25`. Reasons for 9–14: see git history.

@@ -88,7 +88,7 @@ public class GlobalVariablesMergeTests
     }
 
     [Fact]
-    public void AListTheLevelProvidesReplacesTheGlobalOne()
+    public void AListTheLevelProvidesReplacesTheGlobalOne_AvailabilityAccumulates()
     {
         var global = new GlobalVariables();
         global.Availabilities.Add(new AvailabilityEntry(1, 0, 1, 3));
@@ -101,9 +101,13 @@ public class GlobalVariablesMergeTests
 
         GlobalVariables merged = global.MergedWith(level);
 
-        AvailabilityEntry availability = Assert.Single(merged.Availabilities);
-        Assert.Equal(3, availability.PlayerId);
-        Assert.Equal(1, availability.Value);
+        // Availability rows accumulate, as DK2's handler writes them as read (0x0051CA60,
+        // ADR-0281): player 3 gets the level's value for type 1 and keeps the global type 2.
+        Assert.Equal(3, merged.Availabilities.Count);
+        AvailabilityEntry[] table = merged.AvailabilitiesOf(3).ToArray();
+        Assert.Equal(2, table.Length);
+        Assert.Equal((1, 1), (table[0].TypeId, table[0].Value));
+        Assert.Equal((2, 3), (table[1].TypeId, table[1].Value));
 
         CreaturePoolEntry pooled = Assert.Single(merged.CreaturePool);
         Assert.Equal(7, pooled.CreatureId);
@@ -125,8 +129,8 @@ public class GlobalVariablesMergeTests
 
         Assert.Single(merged.Sacrifices);
         Assert.Single(merged.CreatureStats);
-        Assert.Single(merged.Availabilities);
-        Assert.Equal(3, merged.Availabilities[0].PlayerId);
+        Assert.Equal(2, merged.Availabilities.Count);
+        Assert.Equal(1, Assert.Single(merged.AvailabilitiesOf(3)).Value);
     }
 
     /// <summary>

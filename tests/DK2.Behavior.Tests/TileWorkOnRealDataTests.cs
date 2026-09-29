@@ -97,15 +97,9 @@ public class TileWorkOnRealDataTests
         byte rock = IdOf(db, "Rock");
         TileState tile = Tile(db, rock);
 
-        // TWO swings on real data, which is what the owner counted in the
-        // original. The shipped DigRockHealth would do it in one; it is the
-        // project's single ObservedCorrections entry, and asserting the count
-        // here rather than looping is what would catch the correction being
-        // removed or widened. See ADR-0023 and Q20.
-        Assert.Equal(TileWorkOutcome.Progressed,
-            TileWorkRules.Apply(db, ref tile, TileWorkKind.Dig, 1).Outcome);
-        Assert.Equal(rock, tile.TerrainId);
-
+        // ONE swing on real data: the shipped DigRockHealth, which both full-state
+        // captures agree with (2026-09-29; the -500 correction is retired). Asserted
+        // rather than looped, so a change to the rate shows up here.
         Assert.Equal(TileWorkOutcome.Destroyed,
             TileWorkRules.Apply(db, ref tile, TileWorkKind.Dig, 1).Outcome);
         Assert.Equal(IdOf(db, "Dirt Path"), tile.TerrainId);

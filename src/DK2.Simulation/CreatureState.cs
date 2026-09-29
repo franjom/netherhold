@@ -535,6 +535,11 @@ public sealed class CreatureState
     /// the aimed bonus, because the comparison fails and DK2 falls through.</para></summary>
     public ImpTaskKind LastTaskKind;
 
+    /// <summary>The tile of the task this worker last took, or -1: DK2's task position
+    /// (<c>+0x8C</c>/<c>+0x90</c>), which outlives the task. The dig walk measures seams from it
+    /// after a mining job (ADR-0282).</summary>
+    public int LastTaskTileIndex = -1;
+
     /// <summary>The id of the body this worker is carrying, or -1 for none. One slot, as
     /// DK2's imp has: a worker holding a body is not offered another, and a
     /// worker holding gold is not offered a body at all
@@ -994,6 +999,7 @@ public sealed class CreatureState
         hash.Add(CorpseSuppressed);
         hash.Add((byte)DroppedTask);
         hash.Add((byte)LastTaskKind);
+        hash.Add(LastTaskTileIndex);
         hash.Add(CarriedCreatureId);
         hash.Add(CarriedByCreatureId);
         hash.Add(TargetBodyId);

@@ -61,7 +61,10 @@ public class ImpWanderTests
         sim.Tick();
         Assert.Equal(CreatureStateMachine.Idle, imp.Dk2StateId);
         Assert.True(imp.WorkerIdle);
-        sim.Tick();
+        sim.Tick();   // 1 hands the imp to 10 (mining-cadence.md §6); still idle
+        Assert.Equal(ImpStates.TaskSelection, imp.Dk2StateId);
+        Assert.True(imp.WorkerIdle);
+        sim.Tick();   // 10 chooses, and the choosing clears it
         Assert.False(imp.WorkerIdle);
     }
 

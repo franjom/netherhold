@@ -315,15 +315,13 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
-        // Dropping a worker sets a one-shot ticket and nothing else; the next
-        // evaluation spends it by looking around where the worker landed, and
-        // the keeper's 12.5% bonus turns on only if that look finds something
-        // (ADR-0069). The timer goes to zero with it because DK2's chooser skips
-        // its own idle throttle while the ticket is unspent: a dropped worker
-        // evaluates on the spot, not on the next scheduled think.
+        // A one-shot ticket: the next look spends it around the landing tile, and the
+        // 12.5% bonus turns on only if that look finds something (ADR-0069). The timer
+        // goes to zero because a dropped worker skips the chooser's cap. The kind just
+        // done is zeroed, the aimed kind kept: state 11 writes +0x98 only (0x00463DD2).
         bool worker = definition.Flags.HasFlag(CreatureFlags.IsWorker);
         creature.JustDropped = worker;
-        creature.DroppedTask = ImpTaskKind.None;
+        creature.LastTaskKind = ImpTaskKind.None;
         if (worker)
         {
             creature.TimerTicks = 0;

@@ -93,7 +93,10 @@ public sealed class PacketLog
 
     /// <param name="goldOnTile">Our floor gold pile on a tile index, 0 for none; needed only
     /// when the recording takes gold into the hand (action 59).</param>
-    public InputFrame At(long turn, PacketEntityMap entityIds, Func<int, int>? goldOnTile = null)
+    /// <param name="dropAt">Where a drop the recording makes on a tile goes on our side; the
+    /// replay's stand-in for the player, who would not drop where it cannot land.</param>
+    public InputFrame At(long turn, PacketEntityMap entityIds, Func<int, int>? goldOnTile = null,
+        Func<byte, TilePos, TilePos>? dropAt = null)
     {
         if (!_turns.TryGetValue(turn, out List<PacketAction>? raw)) return InputFrame.Empty;
         var commands = new List<PlayerCommand>();
@@ -138,8 +141,8 @@ public sealed class PacketLog
                     commands.Add(new PickUpObjectCommand(player, pile));
                     break;
                 case 61:
-                    commands.Add(new DropCommand(player, new TilePos(
-                        checked((int)(a.First >> 12)), checked((int)(a.Second >> 12)))));
+                    var dropTile = new TilePos(checked((int)(a.First >> 12)), checked((int)(a.Second >> 12)));
+                    commands.Add(new DropCommand(player, dropAt?.Invoke(player, dropTile) ?? dropTile));
                     break;
                 case 62:
                     commands.Add(new SlapCreatureCommand(player, Resolve(a.First, PacketEntityKind.Creature)));

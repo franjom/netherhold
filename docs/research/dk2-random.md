@@ -98,9 +98,9 @@ shared debug log object `0x00756EE8`.
   so the log is off in the shipped game.
 - They are read only by the generator, the checksum and an unnamed block at
   `0x0050A4CA`.
-- Setting `0x0075B2F4` to 1 in Cheat Engine should print every simulation draw
-  with its call site. Where the lines land is UNKNOWN. MESSAGE.LOG, the world
-  log's file, is the likely target, but not checked.
+- Setting `0x0075B2F4` to 1 prints every simulation draw with its call site to
+  `MESSAGE.LOG` beside the executable (CONFIRMED 2026-09-29, §6). No Cheat Engine
+  is needed: `reverse-engineering/dk2drawlog.py` writes the flag from outside.
 
 This is the cheapest oracle for "which mechanics roll, how often, in what
 order". Reading per-tick seeds from a full-state capture gives the count only:
@@ -109,6 +109,46 @@ order". Reading per-tick seeds from a full-state capture gives the count only:
 ## 5. What this does not settle
 
 - Whether our draws can line up with DK2's. That needs the same call sites,
-  ranges and order at all 283 world-seed sites. It is not a goal (ADR-0275).
+  ranges and order at all 283 world-seed sites. §6 measures what one level
+  actually draws; most of it is cosmetic.
 - Where each of the 283 sites sits in a mechanic. The per-file counts above
   are the index for that work.
+
+## 6. What Level 2 draws, from the log (2026-09-29)
+
+The log was switched on for one playback of the owner's `l2win928` packet,
+recorded at the same time (`dk2runs/level2-drawlog-20260929/`, 3534 ticks).
+
+- **The line is `R[file:line] seed`, and the seed is the one before the draw.**
+  The first line reads 1, the level-start seed, and each of the 49,586 lines is
+  one generator step after the one before. So the capture's seed at the end of a
+  tick is the first logged value of the next, and every draw has its tick.
+- **About 14 draws a tick.** Our replay of Level 1 draws under one a tick
+  against DK2's six to seven.
+- **87 call sites fire.** 74 map to a generator call by their pushed file and
+  line (`PreCall` on `0x005558D0`: line, file, seed pointer, range, in push
+  order). 13 are in branches that window drops.
+
+The busiest, with what they are (read in Ghidra 12.1.4):
+
+| draws | site | address, range | what |
+|---|---|---|---|
+| 15,361 | Treasure.cpp:162 | `0x004F3AC3`, 100 | per gold pile in a Treasury, on a tick the room's own roll passed: a glint effect below 10 |
+| 3,534 | Treasure.cpp:132 | `0x004F3A20`, 100 | once a tick per Treasury: below 30, walk its tiles for the roll above |
+| 3,534 + 3,534 | Player.cpp:2045, 2046 | `0x004BB156`, `0x004BB181`, map width − 2, height − 2 | once a tick: a random tile for an ambient effect; two more draws only when that tile is of the right kind |
+| 5,749 | ObjectState.cpp:2782 | `0x004A2650`, 2 | object state `0x004A24A0` |
+| 1,706 | ObjectState.cpp:2708 | `0x004A24C9`, 16 | the same state's timer, set to the draw + 8 |
+| 2,982 | EffectGenerator.cpp:173 | `0x004B1BA4`, 4 | an effect generator picking one of four effects; 179/180/188 place it |
+| 1,620 ×3 | ObjectState.cpp:2523, 2558, 2559 | `0x004A2149` and two unmapped | always together |
+| 342 | RenderInfo.cpp:201 | `0x004B38C6`, 2 | a render routine that passes the world seed's address directly |
+| 730 | ImpUtils.cpp:484 | unmapped | imp work |
+| 676 | GoodState.cpp:253 | `0x00462079`, 9 | heroes |
+| 554 + 554 | PatrolState.cpp:148, 165 | `0x0047220E`, 4; `0x0047228D`, 9 | patrolling |
+| 476 | Training.cpp:188 | `0x004F30B3`, 100 | the Training Room |
+
+**Most draws are cosmetic, and they still move the simulation's dice.**
+The treasury glints, the ambient tile, the effect generators and a render
+routine all draw from the world seed, so a Treasury holding more piles, or an
+effect spawned one tick apart, shifts every later gameplay roll. Lining up with
+DK2 means drawing for those too, in DK2's order within the tick, even where
+nothing we model changes.

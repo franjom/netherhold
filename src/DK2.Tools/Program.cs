@@ -2694,7 +2694,7 @@ static int RunTriggerCsv(
     string levelName, int turns, string outPath, InputLog? log = null, RoomLog? rooms = null,
     string? tilePath = null, PacketLog? packet = null,
     PacketEntityMap? entityIds = null, string? creaturePath = null,
-    string? eventPath = null)
+    string? eventPath = null, bool dk2Random = false, string? seedPath = null, uint? seed = null)
 {
     string? install = Dk2Install.Find();
     if (install is null)
@@ -2730,8 +2730,12 @@ static int RunTriggerCsv(
     // world changing, which is why both matched -- but it cannot honour input at all,
     // because TileTagSystem is not there to read it. A replay therefore runs the
     // declared system list; an idle run keeps the shape its baselines were measured in.
+    // --rng dk2: the original's generator from its level-start seed (ADR-0275), so a replay
+    // draws as DK2 does wherever our draws line up with its own.
     var simulation = new GameSimulation(
-        database, world, seed: 0,
+        database, world, dk2Random
+            ? new SimRandom(seed is { } s ? new Dk2Lcg(s) : new Dk2Lcg())
+            : new SimRandom(seed ?? 0),
         systems: log is null && rooms is null && packet is null ? null : SimulationSystems.Default(),
         triggers: tree)
     {
@@ -2749,18 +2753,26 @@ static int RunTriggerCsv(
     // The same tiles the probe was sampling, so the two traces line up tile for
     // tile. Watching only those costs a handful of reads a tick instead of a sweep,
     // and a tile the capture never mentions has nothing to compare against anyway.
-    TilePos[] watched = tilePath is null || log is null
+    // A packet replay has no probe to line up with: it watches every tile, for comparing
+    // against a full-state capture's tile log.
+    TilePos[] watched = tilePath is null
         ? []
-        : [.. log.Watched.OrderBy(t => t.Y).ThenBy(t => t.X)];
+        : log is not null
+            ? [.. log.Watched.OrderBy(t => t.Y).ThenBy(t => t.X)]
+            : [.. Enumerable.Range(0, world.Height)
+                .SelectMany(y => Enumerable.Range(0, world.Width).Select(x => new TilePos(x, y)))];
     using var tileWriter = tilePath is null ? null : new StreamWriter(tilePath);
-    tileWriter?.WriteLine("tick,x,y,terrain,health");
-    var seen = new Dictionary<TilePos, (byte Terrain, int Health)>();
+    // --seeds: DK2's generator state after each tick, to count our draws against a capture's.
+    using var seedWriter = seedPath is null ? null : new StreamWriter(seedPath);
+    seedWriter?.WriteLine("tick,seed");
+    tileWriter?.WriteLine("tick,x,y,terrain,health,owner,tagged");
+    var seen = new Dictionary<TilePos, (byte Terrain, int Health, byte Owner, ushort Tagged)>();
     using var creatureWriter = creaturePath is null ? null : new StreamWriter(creaturePath);
     creatureWriter?.WriteLine("tick,id,type,owner,x,y,health,state,target");
     var seenCreatures = new Dictionary<int,
         (byte Type, byte Owner, TilePos Tile, int Health, int State, int Target)>();
 
-    int goldAsked = 0, goldMissed = 0;
+    int goldAsked = 0, goldMissed = 0, dropsMoved = 0;
     using (var writer = new StreamWriter(outPath))
     {
         simulation.EmitTriggerTurnsTo(writer);
@@ -2770,16 +2782,19 @@ static int RunTriggerCsv(
             long turn = simulation.CurrentTick.Value + 1;
             simulation.Tick(packet is null
                 ? Merge(log?.At(turn), rooms?.At(turn))
-                : packet.At(turn, entityIds ?? new PacketEntityMap(), GoldOnTile));
+                : packet.At(turn, entityIds ?? new PacketEntityMap(), GoldOnTile, DropAt));
+
+            if (seedWriter is not null && simulation.Rng.Algorithm is Dk2Lcg lcg)
+                seedWriter.WriteLine($"{turn},{lcg.Seed}");
 
             foreach (TilePos at in watched)
             {
                 ref TileState tile = ref world.Tile(at);
-                var now = (tile.TerrainId, tile.Health);
-                if (seen.TryGetValue(at, out (byte, int) was) && was == now) continue;
+                var now = (tile.TerrainId, tile.Health, tile.OwnerPlayerId, tile.TaggedBy);
+                if (seen.TryGetValue(at, out (byte, int, byte, ushort) was) && was == now) continue;
                 seen[at] = now;
                 tileWriter?.WriteLine(
-                    $"{turn},{at.X},{at.Y},{tile.TerrainId},{tile.Health}");
+                    $"{turn},{at.X},{at.Y},{tile.TerrainId},{tile.Health},{tile.OwnerPlayerId},{tile.TaggedBy}");
             }
 
             if (creatureWriter is not null)
@@ -2803,6 +2818,8 @@ static int RunTriggerCsv(
     // A pickup of nothing is dropped silently by the hand, so the miss is counted here.
     if (goldAsked > 0)
         Console.WriteLine($"  gold: {goldAsked} pickups, {goldMissed} found no pile of ours on DK2's tile");
+    if (dropsMoved > 0)
+        Console.WriteLine($"  drops: {dropsMoved} moved to the nearest tile they land on, as the player would");
 
     // How many workers were available to answer the marks. A capture's approach
     // times cannot be compared against ours without it: two imps and five imps
@@ -2873,6 +2890,39 @@ static int RunTriggerCsv(
     return 0;
 
     // A packet's gold pickup names DK2's pile; ours is whichever loose pile lies on its tile.
+    // A recorded drop lands where DK2's world let it. Ours may not have dug or claimed that
+    // tile yet, and a refused drop would leave the creature in the hand for the rest of the
+    // run, which no player does: put it on the nearest tile it lands on instead (owner,
+    // 2026-09-29: the nearest claimed tile, or dirt for an imp). Objects are left alone.
+    TilePos DropAt(byte player, TilePos tile)
+    {
+        List<HandItem> hand = world.Player(player).Hand;
+        if (hand.Count == 0 || hand[^1].IsObject) return tile;
+        CreatureState? creature = world.CreatureById(hand[^1].Id);
+        if (creature is null) return tile;
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        if (HandRules.DropLands(world, database, creature, definition, tile, player)) return tile;
+
+        TilePos best = tile;
+        long bestDistance = long.MaxValue;
+        for (int r = 1; r <= Math.Max(world.Width, world.Height) && bestDistance == long.MaxValue; r++)
+        {
+            for (int dy = -r; dy <= r; dy++)
+            for (int dx = -r; dx <= r; dx++)
+            {
+                if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != r) continue;
+                var at = new TilePos(tile.X + dx, tile.Y + dy);
+                long d = ((long)dx * dx) + ((long)dy * dy);
+                if (d >= bestDistance || !HandRules.DropLands(world, database, creature, definition, at, player))
+                    continue;
+                best = at;
+                bestDistance = d;
+            }
+        }
+        if (bestDistance != long.MaxValue) dropsMoved++;
+        return best;
+    }
+
     int GoldOnTile(int tileIndex)
     {
         goldAsked++;
@@ -2901,6 +2951,9 @@ static int Replay(string[] arguments)
     string? entityMapPath = null;
     string? creaturePath = null;
     string? eventPath = null;
+    bool dk2Random = false;
+    string? seedPath = null;
+    uint? seed = null;
     for (int i = 4; i < arguments.Length; i += 2)
     {
         if (i + 1 >= arguments.Length) return ReplayUsage();
@@ -2938,6 +2991,17 @@ static int Replay(string[] arguments)
                 break;
             case "--events":
                 eventPath = value;
+                break;
+            case "--seeds":
+                seedPath = value;
+                break;
+            // --seed: a different starting seed, so repeated replays sample the spread of
+            // outcomes one recorded playback can take.
+            case "--seed" when uint.TryParse(value, System.Globalization.NumberStyles.Integer, ic, out uint sd):
+                seed = sd;
+                break;
+            case "--rng" when value is "dk2" or "xoshiro":
+                dk2Random = value == "dk2";
                 break;
             default:
                 return ReplayUsage();
@@ -3020,7 +3084,7 @@ static int Replay(string[] arguments)
     }
 
     return RunTriggerCsv(arguments[1], turns, arguments[3],
-        log, rooms, tilePath, packet, entityIds, creaturePath, eventPath);
+        log, rooms, tilePath, packet, entityIds, creaturePath, eventPath, dk2Random, seedPath, seed);
 }
 
 /// <summary>
@@ -3044,7 +3108,8 @@ static int ReplayUsage()
         + "[--turns N] [--lag L] [--origin T] [--rooms rooms.csv] [--tiles tiles.csv]\n"
         + "       dk2tools replay <level> - <out.csv> "
         + "--packet recording.sav --packet-offset N [--entity-map ids.csv] [--turns N] "
-        + "[--tiles tiles.csv] [--creatures creatures.csv] [--events events.tsv]");
+        + "[--tiles tiles.csv] [--creatures creatures.csv] [--events events.tsv] "
+        + "[--rng dk2|xoshiro] [--seed N] [--seeds seeds.csv]");
     return 2;
 }
 

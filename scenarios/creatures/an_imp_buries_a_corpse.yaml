@@ -109,8 +109,10 @@ setup:
     # No health at all, so both collapse on the first game second.
     - { type: Goblin, at: [2, 2], player: 3, health: 0 }
     - { type: Goblin, at: [3, 2], player: 3, health: 0 }
-    # The gravedigger.
+    # The gravediggers. Two since DK2's work cadence (ADR-0280): one imp alone now finishes
+    # claiming after the second corpse has rotted, which is faithful and not this run's point.
     - { type: Imp, at: [1, 1], player: 3 }
+    - { type: Imp, at: [1, 2], player: 3 }
 commands: []
 observe:
   - state_hash

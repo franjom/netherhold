@@ -387,10 +387,10 @@ public class HandTests
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Beside)));
+        sim.Tick();   // 11 hands the imp to 10, which looks on its next update
 
-        // The drop only buys the look; the look happens in the same tick,
-        // because the job system runs after the hand and the timer was zeroed
-        // on the way down (ADR-0069). So the ticket is already spent.
+        // The drop only buys the look, and the look is the first thing 10 does
+        // (ADR-0069). So the ticket is already spent.
         Assert.False(imp.JustDropped);
         Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
         Assert.Equal(90, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
@@ -429,6 +429,7 @@ public class HandTests
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, mark)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(4, 5))));
+        sim.Tick();   // 11 hands the imp to 10, which looks on its next update
 
         Assert.Equal(expected, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
         Assert.Equal(
@@ -457,6 +458,28 @@ public class HandTests
 
         Assert.Equal(ImpTaskKind.None, imp.DroppedTask);
         Assert.Equal(80, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
+    }
+
+    /// <summary>The drop does not write the aimed kind: state 11 zeroes the kind just done
+    /// (<c>+0x98</c>, <c>0x00463DD2</c>) and <c>+0x9D</c> has no writer outside state 10. So a
+    /// worker aimed earlier and put down on empty ground keeps its kind, and its bonus, until
+    /// a look for that kind comes up empty. Read, not watched.</summary>
+    [Fact]
+    public void AnAimedImpDroppedOnEmptyGroundKeepsItsAimedKind_Read()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 9, 9);
+
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        imp.DroppedTask = ImpTaskKind.Excavate;
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(5, 5))));
+        sim.Tick();
+
+        Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
     }
 
     /// <summary>Paves w-by-h of the keeper's own claimed floor at (x,y).</summary>
@@ -547,6 +570,7 @@ public class HandTests
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, near, far)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(4, 5))));
+        sim.Tick();   // 11 hands the imp to 10, which looks on its next update
 
         Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
 

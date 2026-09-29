@@ -255,8 +255,10 @@ the ordinary claim.
 
 **The bonus.** If and only if the scan takes something, `DroppedTask` is set to
 that task's kind. If the scan finds nothing, the worker falls through to the
-whole-map chain and finds work anyway — with `DroppedTask` still zero and no bonus.
-That is the owner's *"drop it on a random tile and it remains at 80%."*
+whole-map chain and finds work anyway, and `DroppedTask` keeps what it held: zero
+for a worker never aimed, so no bonus. That is the owner's *"drop it on a random
+tile and it remains at 80%."* A worker aimed earlier keeps its old kind, since the
+drop does not write it (state 11 zeroes `LastTaskType` only, `0x00463DD2`).
 
 **The three tiles, and why they are an off-by-one.** The scan is `ImpUtils.cpp`'s
 ring walk. It tests the tile underfoot, refuses to look further if the radius is

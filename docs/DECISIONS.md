@@ -243,7 +243,7 @@
 - Still open: what a trap draws (Q59 — confirmed to exist, unmeasured, `Traps.kwd` unparsed); whether possession really drains 25 (Q58 — the data disagrees with itself and with the owner); what happens at zero mana (Q57).
 
 ## ADR-0023 — One measured behaviour overrides one shipped number
-**Date:** 2026-08-30 · **Status:** accepted, owner-approved
+**Date:** 2026-08-30 · **Status:** the mechanism stands; its one override is retired by ADR-0280 (2026-09-29)
 
 **Context.** `DigRockHealth` ships as **−5000**, which against Rock's 165 health is 1000 a swing and fells a plain wall in **one**; the owner dug one out in the original and counted **two**, distinguishing the two swings that do the damage from the third animation playing over the block already crumbling. Two applications against 165 health bounds the per-application damage at **[83, 164]** — under 165 and one swing would finish it, under 83 and two would not — so the per-second figure is in **[415, 820]** and the shipped value is six to twelve times too big.
 **Decision.** Correct it to **−500**, in one named place.
@@ -5994,3 +5994,75 @@ dead flag, which is the binary's own reading, not an observation.
 
 **Limits.** No original run (Q483). Only selectors 4/4 and spell 3 at a place;
 `TortureVoluntary` recruits and the Reaper timer are not represented.
+
+## ADR-0280 — Reproduce DK2's work cadence and rest timing; retire the one data override
+**Date:** 2026-09-29 · **Status:** accepted; retires ADR-0023's override
+
+**Context.** The Level 1 and Level 2 full-state captures time every imp state
+per tick (`research/mining-cadence.md` §5, §6). Ours applied work, rested and
+chose on its own clock, and read `DigRockHealth` through ADR-0023's −500.
+
+**Decision.**
+1. `WorkCadence`: the entry states 13, 15, 21 and 25 hold one tick; the first
+   application lands three ticks after arrival, the second after a
+   kind-dependent gap (mine 4, dig and wall work 3, others 1), then every tick.
+   A work state holds until its action ends (dig 6 ticks, claim 2); a miner sets
+   off to the store on the tick of its last strike.
+2. State 1 hands a worker to 10, which chooses on its next update. Idle actions
+   43 and 44 hold 19 and 24 ticks (20 and 25 with the hand-over).
+3. The drop scan walks rings 0 to 3 outwards and asks the nine-step chain per
+   tile, nearest ring first.
+4. `ObservedCorrections` keeps its rules and holds no entries: Rock goes in one
+   strike on the shipped −5000, as both captures show (Q20, owner agreed).
+
+**Reason.** Fidelity is judged by outcomes — rooms, dig and claim times, level
+results — and each of these moved a Level 1 or Level 2 outcome measured over
+50 and 20 seeds. The −500 came from an animation count, which the captures
+contradict tile by tile.
+
+## ADR-0281 — Availability accumulates; the dying window reads the attached room
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** Level 2 could not be won: Thunderbolt was never researchable, its
+hero parties never spawned, and its Lord Of The Land lay rescuable where the
+capture shows him dying outright (`research/research-tree.md` §7,
+`research/creature-death.md` §2.1, `research/trigger-walkers.md`).
+
+**Decision.**
+1. A level's availability rows follow the global ones, player-0 rows applying
+   to every player and the last write winning (`GlobalVariables.AvailabilitiesOf`).
+2. A collapse fires creature event 16, Dying, as the countdown start does.
+3. `CreatureDeathRules.AttachedRoom` stands in for `+0x3B9`: a prisoner's or
+   torture victim's room, or the room of a job being worked; otherwise none.
+   The gates read it, not the room underfoot. `PrisonSystem.Slain` books the
+   death at once, since a released captive is attached to nothing.
+
+**Reason.** Each is the binary's behaviour (`0x0051CA60`, `0x0048B770`,
+`0x004B2F61`, `0x004E5A70`), and with all three Level 2 can be won in replay.
+
+## ADR-0282 — An imp chooses as DK2's state 10 does: the cap, the kind just done, the straight-line dig walk
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** State 10 (`0x00463DF0`) and the dig walk (`0x00469AF0`) were read
+end to end (`research/imp-task-priority.md` §2.2, §4). Ours ranked dig jobs by
+walking steps, merged mining into digging, and went straight to the tiers.
+
+**Decision.**
+1. A keeper lets four workers choose a tick; the fifth rests until
+   now + 20 + rand(80). A just-dropped worker is exempt.
+2. After a dig, a mine or a claim, a worker first searches that kind again,
+   whole-map; after a dig or a mine with nothing found, it deposits any gold it
+   holds (kind 15). Only then the drop look and the tiers. Gold in hand no
+   longer sends a digger to the store before it chooses.
+3. Marked digging and mining are one search: the nearest by straight-line
+   distance to the tile's centre with a workable face, a wall before a seam at
+   equal distance; after mining, seams are measured from the last seam
+   (`CreatureState.LastTaskTileIndex`). `ImpTaskKind.Mine` = 2 records a seam.
+4. HashVersion and FormatVersion 139.
+
+**Reason.** It is the binary's order. Over 50 seeds Level 1 digs within a median
+8 ticks of DK2 (36 before) and its portal is claimed around DK2's tick. Level 2
+becomes bistable on when the fourth imp first chooses: DK2's recording has a
+standing claimer, and most of our seeds do not (Q484).
+
+**Limits.** The seam-slot occupancy test and task stealing (Q155) are not built.

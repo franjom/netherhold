@@ -169,6 +169,7 @@ public class CarryingTests
         Down(own);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
         var sim = new GameSimulation(db, world, 42, [new ImpTaskSystem()]);
+        sim.Tick(InputFrame.Empty); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
         sim.Tick(InputFrame.Empty);
         Assert.Equal(foreignWins ? foreign.Id : own.Id, imp.TargetBodyId);
     }
@@ -404,7 +405,8 @@ public class CarryingTests
         GameSimulation sim = Simulation(db, world, sink);
 
         Assert.Equal(
-            [(6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
+            [(ImpStates.TaskSelection, 0, 0),
+             (6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
              (6, ImpStates.PickingUpCasualty, ImpStates.CarryingToLair),
              (ImpStates.TaskSelection, ImpStates.PickingUpCasualty, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,
@@ -425,7 +427,8 @@ public class CarryingTests
         GameSimulation sim = Simulation(db, world, sink);
 
         Assert.Equal(
-            [(6, ImpStates.TaskSelection, ImpStates.PickingUpCorpse),
+            [(ImpStates.TaskSelection, 0, 0),
+             (6, ImpStates.TaskSelection, ImpStates.PickingUpCorpse),
              (6, ImpStates.PickingUpCorpse, ImpStates.CarryingCorpse),
              (ImpStates.TaskSelection, ImpStates.PickingUpCorpse, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,

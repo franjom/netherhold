@@ -49,13 +49,14 @@ expect:
       Both imps take the same near tile rather than dividing the corridor between
       them - nothing reserves a tile.
   - event: destroyed
-    at_tick: 4
+    at_tick: 6
     because: >
-      Rock is 165 health and a dig application is DigRockHealth -500 times
-      Efficiency 0xCCC/4096, arithmetic-shifted down to -100. Two swings, and the
-      imps arrive one and two steps away (ADR-0089, ADR-0023).
+      Rock is 165 health and a dig application is the shipped DigRockHealth
+      -5000 times Efficiency 0xCCC/4096, shifted down: one strike fells it
+      (Q20). The imps choose at tick 1, arrive one and two steps away, and the
+      nearer strikes first three ticks after it arrives (ADR-0089, ADR-0280).
   - event: destroyed
     count: 4
     because: >
-      All four marks fall: 4, 9, 14, 19. The far tiles only become reachable as
+      All four marks fall: 7, 14, 21, 28. The far tiles only become reachable as
       the near ones go, which is why all four are marked in one command.

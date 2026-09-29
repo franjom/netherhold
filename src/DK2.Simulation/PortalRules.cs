@@ -272,9 +272,8 @@ public static class PortalRules
 
     /// <summary>Reads the immutable level definition before a world exists.</summary>
     public static bool IsUnlocked(GameDatabase database, byte playerId, byte creatureTypeId) =>
-        database.Variables.Availabilities.Any(a =>
-            a.Kind == KindCreature && a.PlayerId == playerId
-            && a.TypeId == creatureTypeId && a.Value is Available or Researchable);
+        database.Variables.AvailabilitiesOf(playerId).Any(a =>
+            a.Kind == KindCreature && a.TypeId == creatureTypeId && a.Value is Available or Researchable);
 
     /// <summary>The most of this creature type the keeper's pool allows at once, or 0
     /// if the pool does not mention it — a standing limit, not a draining quota

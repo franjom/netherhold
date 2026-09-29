@@ -52,16 +52,18 @@ public class ImpStateTests
     [Fact]
     public void AnImpDigsInFourteenClaimsInSixteenAndReinforcesInTwentyTwo()
     {
-        // 10 walks in 6 resuming in 13; 13 moves to 14, which swings until the rock is dug
-        // and sets 10. The claim of the tile it opened is 15 into 16 the same way. The wall
-        // beside it needs no walk, so 6 and 21 fall inside one tick and only 22 is seen.
+        // 1 hands the imp to 10 first. 10 walks in 6 resuming in 13; 13 holds one tick and
+        // moves to 14, which swings until the rock is dug and sets 10. The claim of the tile
+        // it opened is 15 into 16 the same way. The wall beside it needs no walk, so 6 falls
+        // inside one tick, and 21 holds its tick before 22 (mining-cadence.md §5, §6).
         (GameSimulation sim, ListEventSink events) = Start(new TilePos(2, 2));
 
         Assert.Equal(
-            [(Walk, Select, 13), (14, Select, Idle), (Select, Select, Idle),
-             (Walk, Select, 15), (16, Select, Idle), (Select, Select, Idle),
-             (22, Select, Idle)],
-            StatesSeen(sim, SimulationTiming.TicksFromSeconds(6),
+            [(Select, 0, 0),
+             (Walk, Select, 13), (13, Select, Idle), (14, Select, Idle), (Select, Select, Idle),
+             (Walk, Select, 15), (15, Select, Idle), (16, Select, Idle), (Select, Select, Idle),
+             (21, Select, Idle), (22, Select, Idle)],
+            StatesSeen(sim, SimulationTiming.TicksFromSeconds(7),
                 TagTilesCommand.Tag(Keeper, new TilePos(4, 2))));
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
@@ -95,6 +97,7 @@ public class ImpStateTests
         CreatureState imp = sim.World.Creatures[0];
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, new TilePos(4, 2))));
+        sim.Tick(InputFrame.Empty); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
         Assert.Equal((Walk, 13), (imp.Dk2StateId, imp.UtilityNewState));
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Untag(Keeper, new TilePos(4, 2))));
@@ -136,10 +139,10 @@ public class ImpStateTests
         FloorGold.Drop(sim.World, db, (2 * sim.World.Width) + 2, 900);
 
         Assert.Equal(
-            [(Walk, Select, ImpStates.PickingUpGold),
+            [(Select, 0, 0), (Walk, Select, ImpStates.PickingUpGold),
              (Walk, ImpStates.PickingUpGold, ImpStates.AtTheStore),
              (Select, ImpStates.PickingUpGold, Idle)],
-            StatesSeen(sim, 100).Take(3));
+            StatesSeen(sim, 100).Take(4));
         Assert.Contains(events.Events, e => e.Kind == "gold_delivered" && e.Detail.Contains("amount=900"));
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
@@ -156,10 +159,10 @@ public class ImpStateTests
         Store(sim, new TilePos(3, 2), RoomTypeId.DungeonHeart);
 
         Assert.Equal(
-            [(Walk, Select, 25), (26, Select, Idle),
+            [(Select, 0, 0), (Walk, Select, 25), (25, Select, Idle), (26, Select, Idle),
              (Walk, 26, ImpStates.AtTheStore), (Walk, Select, ImpStates.AtTheStore),
              (Select, Select, Idle)],
-            StatesSeen(sim, 30, TagTilesCommand.Tag(Keeper, new TilePos(5, 5))).Take(5));
+            StatesSeen(sim, 30, TagTilesCommand.Tag(Keeper, new TilePos(5, 5))).Take(7));
         Assert.Equal(1000, sim.World.Tile(3, 3).GoldHeld);
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
@@ -182,10 +185,10 @@ public class ImpStateTests
         sim.World.SpawnObject(db, type, PlayerIds.Unowned, (1 * sim.World.Width) + 1);
 
         Assert.Equal(
-            [(Walk, Select, ImpStates.PickingUpObject),
+            [(Select, 0, 0), (Walk, Select, ImpStates.PickingUpObject),
              (Walk, ImpStates.PickingUpObject, carrying),
              (Select, ImpStates.PickingUpObject, Idle)],
-            StatesSeen(sim, 200).Take(3));
+            StatesSeen(sim, 200).Take(4));
         Assert.Contains(events.Events, e => e.Kind == "object_stored");
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
@@ -199,7 +202,7 @@ public class ImpStateTests
         List<(int State, int Saved, int Resume)> seen = StatesSeen(
             sim, SimulationTiming.TicksFromSeconds(4), TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
 
-        Assert.Equal([(Walk, Select, 25), (26, Select, Idle)], seen.Take(2));
+        Assert.Equal([(Select, 0, 0), (Walk, Select, 25), (25, Select, Idle), (26, Select, Idle)], seen.Take(4));
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
 }

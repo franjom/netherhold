@@ -182,6 +182,7 @@ public class ImpTests
     {
         Run run = StartWithNothingToDo(extraTiles: 2);
 
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
         run.Tick();                                       // first look: nothing to do at all
         Assert.Equal(ImpStates.Resting, run.Imp.Dk2StateId);
         Assert.InRange(run.Imp.StateDeadlineTick - run.World.CurrentTick.Value, 239, 479);
@@ -215,6 +216,7 @@ public class ImpTests
         Carve(run.World, database, new TilePos(4, 2), new TilePos(5, 2), new TilePos(6, 2));
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(7, 2)));
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
 
         SimEvent taken = run.Of("job_taken").First();
         Assert.Contains("priority=MarkedExcavation", taken.Detail);
@@ -232,6 +234,7 @@ public class ImpTests
         Carve(run.World, database, new TilePos(4, 2));
 
         run.Tick();
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
 
         SimEvent taken = run.Of("job_taken").First();
         Assert.Contains("priority=Claim", taken.Detail);
@@ -265,6 +268,7 @@ public class ImpTests
         Carve(run.World, database, new TilePos(4, 2));
 
         run.Tick();
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
         Assert.Contains("priority=Claim", run.Of("job_taken").First().Detail);
 
         // Run to the moment the claim lands, and look at where its feet are.
@@ -293,6 +297,7 @@ public class ImpTests
         Carve(run.World, database, new TilePos(5, 2), new TilePos(4, 2));
 
         run.Tick();
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
 
         SimEvent taken = run.Of("job_taken").First();
         Assert.Contains("priority=Claim", taken.Detail);
@@ -365,11 +370,11 @@ public class ImpTests
         Run run = Start(new TilePos(2, 2));
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 2)));
-        run.Ticks(SimulationTiming.TicksFromSeconds(4));
+        run.Ticks(SimulationTiming.TicksFromSeconds(6));
 
-        // Rock at 165 health takes TWO applications - the count the owner
-        // measured in the original, which the ObservedCorrections entry for
-        // DigRockHealth reproduces (ADR-0023, Q20). Four seconds is ample.
+        // Rock at 165 health goes in ONE application on the shipped DigRockHealth,
+        // as both full-state captures show (2026-09-29). Six seconds covers the dig
+        // and the claim at DK2's work cadence (ADR-0280).
         Assert.Contains(run.Of("destroyed"), e => e.Detail.Contains("(4,2)"));
 
         // The first job it took was the marked one.
@@ -393,6 +398,7 @@ public class ImpTests
         Run run = Start(new TilePos(1, 1));
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(3, 4), new TilePos(4, 1)));
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
 
         SimEvent first = run.Of("job_taken").First();
         Assert.Contains("(4,1)", first.Detail);
@@ -421,6 +427,7 @@ public class ImpTests
         Run run = Start(new TilePos(2, 2));
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 2)));
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
         Assert.Single(run.Of("job_taken"));
 
         run.Tick(TagTilesCommand.Untag(Keeper, new TilePos(4, 2)));
@@ -475,11 +482,11 @@ public class ImpTests
     // ---- mining ----------------------------------------------------------
 
     [Fact]
-    public void AnImpMinesAMarkedSeam_OneApplicationEveryWorkPeriod()
+    public void AnImpMinesAMarkedSeam_SecondSwingFourTicksAfterTheFirst_ThenEveryTick()
     {
         // The seam at (5,5) is 660 health and a swing takes 60 of it (Q47), so
-        // eleven applications. What is asserted is the spacing: one work period
-        // between applications, whatever a period is worth in seconds (Q19). This
+        // eleven applications. What is asserted is the spacing the Level 2 capture
+        // measured (ADR-0280): four ticks between the first two, then one. This
         // keeper has no treasury, so the imp mines the seam straight through
         // instead of running off with the first load, as in the original (Q31);
         // the overflow is put down at its feet (Q138, Q140).
@@ -496,8 +503,10 @@ public class ImpTests
             .Distinct()
             .ToList();
         Assert.Equal(11, at.Count);
-        for (int i = 1; i < at.Count; i++)
-            Assert.Equal(SimulationTiming.WorkApplicationPeriodTicks, (int)(at[i] - at[i - 1]));
+        Assert.Equal(WorkCadence.SecondApplicationGap(TileWorkKind.MineGold), (int)(at[1] - at[0]));
+        Assert.Equal(4, (int)(at[1] - at[0]));
+        for (int i = 2; i < at.Count; i++)
+            Assert.Equal(1, (int)(at[i] - at[i - 1]));
 
         // Mined out - and by ten seconds the imp has gone on to claim the floor
         // it opened, which is the priority order doing its job.
@@ -961,6 +970,7 @@ public class ImpTests
         theirs.Health = database.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
 
         run.Tick();
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
         SimEvent taken = run.Of("job_taken").First();
         Assert.Contains("priority=Claim", taken.Detail);
         Assert.Contains("(4,2)", taken.Detail);

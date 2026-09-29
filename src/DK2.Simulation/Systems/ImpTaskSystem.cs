@@ -46,6 +46,27 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// </summary>
     private TilePos? _within;
 
+    /// <summary>The ring of <see cref="_within"/> the drop scan is on: DK2's scan is position
+    /// first, the nine-step chain asked of each tile outwards from the landing tile, so a
+    /// nearer ring wins before the chain's order is consulted.</summary>
+    private int? _ring;
+
+    /// <summary>State 10's cap: how many workers a keeper may let choose a job in one tick
+    /// (<c>0x00463E41</c>, the counter at <c>player+0x7A</c>, zeroed every player frame).</summary>
+    public const int SelectionsPerTick = 4;
+
+    /// <summary>The throttled arm's rest: 12's deadline is now + 20 + rand(80), 5–25 s.</summary>
+    public const int ThrottleBaseTicks = 20;
+    public const int ThrottleRandomTicks = 80;
+
+    // Per keeper, the tick the counter belongs to and the selections run in it. A tick's
+    // count is dead once the tick ends, so nothing here outlives an update.
+    // The dig walk's candidates, reused: squared distance, wall before seam, tile index.
+    private readonly List<(long, int, int)> _excavation = [];
+
+    private readonly long[] _selectionTick = new long[256];
+    private readonly int[] _selections = new int[256];
+
     /// <summary>
     /// The tile-work jobs an imp looks for. The first three are Tier A and are
     /// searched over the whole map in this order; <see cref="Reinforce"/> is
@@ -189,6 +210,11 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         if (creature.TargetTileIndex >= 0 && !JobStillStands(context, creature))
         {
+            // The work state holds while its action runs, and looks at the task only when the
+            // action ends (0x004655D0 returns at once while 0x00496D00 reports one running).
+            if (creature.Dk2StateId == ImpStates.For(creature.TargetWork).Work
+                && !WorkCadence.ActionEnded(creature.TargetWork, context.Tick.Value, creature.StateEnteredTick))
+                return;
             context.Emit(SystemName, "job_abandoned",
                 $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
                 $"{creature.TargetWork} reason=gone");
@@ -197,13 +223,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             return;
         }
 
-        // An imp with gold in its hands and no job is not weighing what to do
-        // next: it is running to put the load down. This is the other half of
-        // the mining job — the seam ran out mid-load — and it comes before job
-        // selection rather than inside it, which is why carrying is absent from
-        // JobPriority (Q31, ADR-0018). The timer gate is what stops an imp with
-        // nowhere to unload from searching the whole dungeon every tick.
+        // An imp with gold in its hands and no job runs to put the load down, before
+        // job selection (Q31, ADR-0018); the timer gate stops an imp with nowhere to
+        // unload searching every tick. After a dig or a mine the load waits for state
+        // 10, which looks for more excavation first and deposits after (ADR-0282).
         if (creature.GoldHeld > 0 && creature.TargetTileIndex < 0 && creature.TimerTicks <= 0
+            && (creature.JustDropped || creature.LastTaskKind is not (ImpTaskKind.Excavate or ImpTaskKind.Mine))
             && TryRouteToSomewhereItFits(context, creature))
         {
             BeginDelivering(creature);
@@ -238,17 +263,63 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         creature.TimerTicks--;
         if (creature.TimerTicks > 0) return;
 
+        // State 1 hands a worker to 10 (0x004773D0), and 10 looks on its own next update: both
+        // captures show one tick in 1 and one in 10 before every walk or rest (mining-cadence.md
+        // §6). A worker whose job ended is already in 10 and looks at once.
+        if (creature.Dk2StateId is CreatureStateMachine.Idle or CreatureStateMachine.NoState)
+        {
+            StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
+            return;
+        }
+
         // DK2's state 10 hands a worker that found nothing to 12 at once (ADR-0224).
+        if (creature.OwnerPlayerId != PlayerIds.Neutral && !creature.JustDropped && Throttled(context, creature))
+            return;
         if (creature.OwnerPlayerId != PlayerIds.Neutral) creature.WorkerIdle = false;
         if (!TryTakeJob(context, creature, definition, grid)) ToRest(context, creature);
+    }
+
+    /// <summary>State 10's cap (<c>0x00463E2C</c>–<c>0x00463E9C</c>): a keeper's fifth worker to
+    /// choose in one tick rests in 12 until now + 20 + rand(80) instead, the draw taken only once
+    /// 12 has accepted it; otherwise the count goes up and the choice runs. A just-dropped
+    /// worker skips the cap. The binary also skips it when the worker's last evaluation stamp
+    /// is 40 or more ticks in the future, which a stamp written from the current tick never is.</summary>
+    private bool Throttled(SimulationContext context, CreatureState creature)
+    {
+        long now = context.Tick.Value;
+        byte owner = (byte)creature.OwnerPlayerId;
+        if (_selectionTick[owner] != now)
+        {
+            _selectionTick[owner] = now;
+            _selections[owner] = 0;
+        }
+        if (_selections[owner] >= SelectionsPerTick
+            && StateShadow.TryMove(context, SystemName, creature, ImpStates.Resting))
+        {
+            creature.StateDeadlineTick = now + ThrottleBaseTicks + context.Rng.NextInt(ThrottleRandomTicks);
+            context.Emit(SystemName, "throttled",
+                $"imp={creature.Id} player={creature.OwnerPlayerId} until={creature.StateDeadlineTick}");
+            return true;
+        }
+        _selections[owner]++;
+        return false;
     }
 
     private void UpdateMoving(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
         if (IsInWorkingPosition(context, creature, grid))
         {
+            (int entry, int work) = ImpStates.For(creature.TargetWork);
+            if (creature.Dk2StateId == entry)
+            {
+                // The tick after arrival: the entry state's turn is done. This tick counts
+                // towards the first application, as DK2's work state's first tick does.
+                StateShadow.Move(context, SystemName, creature, work);
+                creature.TimerTicks--;
+                return;
+            }
             creature.StopMoving();
-            creature.TimerTicks = SimulationTiming.WorkApplicationPeriodTicks;
+            creature.TimerTicks = WorkCadence.FirstApplicationTicks;
             AtWork(context, creature);
             return;
         }
@@ -275,12 +346,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             return;
         }
 
-        // Decrement first, then act on zero: setting the timer to N and spending
-        // one tick each time makes applications exactly N ticks apart, starting
-        // one period after the imp arrives. The period is
-        // SimulationTiming.WorkApplicationPeriodTicks, from the Q19 reading that
-        // the tabled health deltas are per second. UNKNOWN (Q20): whether a
-        // single imp contributes the whole delta — here it does.
+        // Decrement first, then act on zero. The timer is WorkCadence's: three ticks
+        // from arrival, a kind-dependent gap, then every tick (ADR-0280).
         creature.TimerTicks--;
         if (creature.TimerTicks > 0) return;
 
@@ -317,7 +384,19 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         context.World.QueueWork(new TileWorkOrder(
             creature.TargetTileIndex, creature.TargetWork, creature.OwnerPlayerId, creature.Id));
-        creature.TimerTicks = SimulationTiming.WorkApplicationPeriodTicks;
+        creature.TimerTicks = WorkCadence.AfterApplication(
+            creature.TargetWork, context.Tick.Value, creature.StateEnteredTick);
+
+        // A miner walks to the store on the tick of the strike after which another would not
+        // fit: in both captures the last strike and state 6 share a tick. This strike's gold
+        // reaches the hands later this tick (TileWorkSystem), so count it as held.
+        if (creature.TargetWork == TileWorkKind.MineGold
+            && WouldOverfillItsHands(context, creature, definition, pendingStrikes: 1)
+            && TryRouteToSomewhereItFits(context, creature))
+        {
+            BeginDelivering(creature);
+            ToTheStore(creature);
+        }
     }
 
     /// <summary>
@@ -333,15 +412,15 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// caller's second question.</para>
     /// </summary>
     private static bool WouldOverfillItsHands(
-        SimulationContext context, CreatureState creature, CreatureDef definition)
+        SimulationContext context, CreatureState creature, CreatureDef definition, int pendingStrikes = 0)
     {
-        if (creature.GoldHeld <= 0) return false;
-
         ref TileState tile = ref context.World.TileAtIndex(creature.TargetTileIndex);
         int yield = TileWorkRules.GoldYield(
             context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
+        int held = creature.GoldHeld + (pendingStrikes * yield);
+        if (held <= 0) return false;
 
-        return yield > 0 && creature.GoldHeld + yield > definition.MaxGoldHeld;
+        return yield > 0 && held + yield > definition.MaxGoldHeld;
     }
 
     /// <summary>
@@ -655,9 +734,49 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private bool TryTakeJob(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
-        // Before any of it: the two things the keeper's hand does to this
-        // choice. Both come from DK2's job chooser, which asks them in this
-        // order and ahead of its own priority chain (ADR-0069).
+        // First, the kind of the job just ended (DK2's imp +0x98, written by every job handler
+        // as it takes a job and zeroed by state 11 on a drop, so a dropped worker skips this).
+        // The aimed retry below is one arm; the other is a per-kind record (0x006986A0) whose
+        // only flag any kind sets is "this kind again": dig, mine and claim look for more of
+        // their own kind, anywhere, before the tiers. So a worker that has claimed a tile
+        // claims the nearest next one, and a claimed corridor runs on to the room at its end.
+        ImpTaskKind last = creature.LastTaskKind;
+        if (!creature.JustDropped && last != ImpTaskKind.None)
+        {
+            if (creature.DroppedTask == last)
+            {
+                // Still on the kind it was aimed at, and its last job has ended. More of
+                // that kind anywhere on the map and the aimed bonus carries over; none
+                // and this is the one place in DK2 that clears it.
+                if (TryTakeJobOfKind(context, creature, definition, grid, last)) return true;
+
+                context.Emit(SystemName, "aim_spent",
+                    $"imp={creature.Id} player={creature.OwnerPlayerId} " +
+                    $"task={creature.DroppedTask} reason=no_more_of_that_kind");
+                creature.DroppedTask = ImpTaskKind.None;
+            }
+            else if (last is ImpTaskKind.Excavate or ImpTaskKind.Mine or ImpTaskKind.Claim
+                     && TryTakeJobOfKind(context, creature, definition, grid, last))
+            {
+                return true;
+            }
+
+            // Kind 15, after a dig or a mine and only then: nothing more to excavate, so put
+            // down what it holds. Digging on comes first, so an imp whose seam ran out beside
+            // another marked wall digs that with the load still in its hands.
+            if (last is ImpTaskKind.Excavate or ImpTaskKind.Mine
+                && creature.GoldHeld > 0 && TryRouteToSomewhereItFits(context, creature))
+            {
+                creature.LastTaskKind = ImpTaskKind.None;
+                BeginDelivering(creature);
+                ToTheStore(creature);
+                return true;
+            }
+            creature.LastTaskKind = ImpTaskKind.None;
+        }
+
+        // The keeper's hand: a just-dropped worker looks around where it landed
+        // before the tiers (ADR-0069).
         if (creature.JustDropped)
         {
             // The ticket is spent whether or not the look finds anything - DK2
@@ -678,22 +797,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 $"at=({creature.Tile.X},{creature.Tile.Y}) within={DropScanTiles}");
 
             // And on through the ordinary chain. A worker dropped in an empty
-            // corridor still finds work - it just does not get paid extra for
-            // it, because DroppedTask stays None.
-        }
-        else if (creature.DroppedTask != ImpTaskKind.None
-                 && creature.DroppedTask == creature.LastTaskKind)
-        {
-            // Still on the kind it was aimed at, and its last job has ended.
-            // More of that kind anywhere on the map and the aimed bonus carries
-            // over; none and this is the one place in DK2 that clears it.
-            if (TryTakeJobOfKind(context, creature, definition, grid, creature.DroppedTask))
-                return true;
-
-            context.Emit(SystemName, "aim_spent",
-                $"imp={creature.Id} player={creature.OwnerPlayerId} " +
-                $"task={creature.DroppedTask} reason=no_more_of_that_kind");
-            creature.DroppedTask = ImpTaskKind.None;
+            // corridor still finds work - it just does not get paid extra for it.
         }
 
         // Tier A: kind first. One search per kind over the whole map, not one
@@ -708,7 +812,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         // Kinds 9 and 10, third: a crate from a Workshop to a blueprint (ADR-0214).
         if (TryTakeBlueprint(context, creature, grid)) return true;
 
-        if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
+        if (TryTakeMarkedExcavation(context, creature, grid)) return true;
         if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
 
         // The last two entries of DK2's Tier A table, in its order: kind 13,
@@ -747,18 +851,28 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         _within = creature.Tile;
         try
         {
-            if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
-            if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
-            if (TryTakeBlueprintNear(context, creature, grid)) return true;
-            if (TryTakeBody(context, creature, definition, grid, corpses: false)) return true;
-            if (TryTakeJobAt(context, creature, grid, JobPriority.Reinforce)) return true;
-            if (TryTakeFloorGold(context, creature, definition, grid)) return true;
-            if (TryTakeObject(context, creature, definition, grid)) return true;
-            return TryTakeBody(context, creature, definition, grid, corpses: true);
+            // The landing tile first, then each ring out to DropScanTiles. The three captured
+            // Level 1 drops each claim the tile they land on, next to marked walls a kind-first
+            // search would dig (mining-cadence.md §6). Within a ring the chain's order decides,
+            // where DK2 visits tile by tile: the order inside a ring is not read.
+            for (int ring = 0; ring <= DropScanTiles; ring++)
+            {
+                _ring = ring;
+                if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
+                if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
+                if (TryTakeBlueprintNear(context, creature, grid)) return true;
+                if (TryTakeBody(context, creature, definition, grid, corpses: false)) return true;
+                if (TryTakeJobAt(context, creature, grid, JobPriority.Reinforce)) return true;
+                if (TryTakeFloorGold(context, creature, definition, grid)) return true;
+                if (TryTakeObject(context, creature, definition, grid)) return true;
+                if (TryTakeBody(context, creature, definition, grid, corpses: true)) return true;
+            }
+            return false;
         }
         finally
         {
             _within = null;
+            _ring = null;
         }
     }
 
@@ -774,7 +888,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         SimulationContext context, CreatureState creature, CreatureDef definition,
         WorldPathGrid grid, ImpTaskKind kind) => kind switch
     {
-        ImpTaskKind.Excavate => TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation),
+        ImpTaskKind.Excavate or ImpTaskKind.Mine => TryTakeMarkedExcavation(context, creature, grid),
         ImpTaskKind.Claim => TryTakeJobAt(context, creature, grid, JobPriority.Claim),
         ImpTaskKind.Reinforce => TryTakeJobAt(context, creature, grid, JobPriority.Reinforce),
         ImpTaskKind.FetchGold => TryTakeFloorGold(context, creature, definition, grid),
@@ -818,8 +932,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// </summary>
     private bool InScanRange(TilePos at) =>
         _within is not TilePos centre
-        || (Math.Abs(at.X - centre.X) <= DropScanTiles
-            && Math.Abs(at.Y - centre.Y) <= DropScanTiles);
+        || Math.Max(Math.Abs(at.X - centre.X), Math.Abs(at.Y - centre.Y)) is int d
+            && d <= DropScanTiles && (_ring is not int ring || d == ring);
 
     /// <summary>The same test, for a search that names its work by tile index.</summary>
     private bool InScanRange(WorldState world, int tileIndex) =>
@@ -833,8 +947,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// <see cref="ImpTaskKind.Claim"/> because the original's kind 14 raises a
     /// kind 3 at the tile and takes that; the byte it leaves behind is a 3.</para>
     /// </summary>
-    private static ImpTaskKind KindOf(JobPriority priority) => priority switch
+    private static ImpTaskKind KindOf(JobPriority priority, TileWorkKind kind) => priority switch
     {
+        _ when kind == TileWorkKind.MineGold => ImpTaskKind.Mine,
         JobPriority.MarkedExcavation => ImpTaskKind.Excavate,
         JobPriority.Reinforce => ImpTaskKind.Reinforce,
         _ => ImpTaskKind.Claim,
@@ -910,6 +1025,79 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
+    /// DK2's dig-and-mine walk (<c>0x00469AF0</c>, kinds 1 and 2 alike): every marked wall,
+    /// then every marked seam, ranked by <b>straight-line</b> distance from the worker to the
+    /// tile's centre, and the nearest with a face it can work from is taken. A later task
+    /// replaces the best only when strictly nearer, so a wall beats a seam at the same
+    /// distance. After a mining job, seams are measured from the seam just mined instead of
+    /// from the worker. Which of two walls at one distance comes first is the task list's
+    /// order in DK2 and the tile order here.
+    /// <para>The drop scan is a different search (a ring walk around the landing tile) and
+    /// keeps <see cref="TryTakeJobAt"/>.</para>
+    /// </summary>
+    private bool TryTakeMarkedExcavation(SimulationContext context, CreatureState creature, WorldPathGrid grid)
+    {
+        if (_within is not null) return TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation);
+
+        WorldState world = context.World;
+        byte player = creature.OwnerPlayerId;
+        int width = world.Width;
+        bool fromSeam = creature.LastTaskKind == ImpTaskKind.Mine && creature.LastTaskTileIndex >= 0;
+        long seamX = fromSeam ? (creature.LastTaskTileIndex % width) * 4096L + 2048 : 0;
+        long seamY = fromSeam ? (creature.LastTaskTileIndex / width) * 4096L + 2048 : 0;
+
+        _excavation.Clear();
+        for (int y = 0; y < world.Height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                ref TileState tile = ref world.Tile(x, y);
+                if (!tile.IsTaggedBy(player)) continue;
+                if (!TileWorkRules.TryTaggedWork(context.Database, tile, player, out TileWorkKind kind)) continue;
+                if (!HasOpenFace(world, context.Database, x, y)) continue;
+                bool seam = kind == TileWorkKind.MineGold;
+                long dx = x * 4096L + 2048 - (seam && fromSeam ? seamX : creature.PosX);
+                long dy = y * 4096L + 2048 - (seam && fromSeam ? seamY : creature.PosY);
+                _excavation.Add((dx * dx + dy * dy, seam ? 1 : 0, y * width + x));
+            }
+        }
+        _excavation.Sort();
+
+        foreach ((long _, int _, int index) in _excavation)
+        {
+            var target = new TilePos(index % width, index / width);
+            if (!_pathfinder.TryFindNearest(
+                    grid, creature.Tile,
+                    stand => Math.Abs(stand.X - target.X) + Math.Abs(stand.Y - target.Y) == 1
+                             && TryJobOn(context, grid, stand, target, player, JobPriority.MarkedExcavation,
+                                         creature.Id, out _, out _),
+                    _route))
+                continue;
+
+            TilePos standing = _route.Count > 0 ? _route[^1] : creature.Tile;
+            if (!TryJobOn(context, grid, standing, target, player, JobPriority.MarkedExcavation, creature.Id,
+                          out int tileIndex, out TileWorkKind work))
+                continue;
+            CommitJob(context, creature, tileIndex, work, JobPriority.MarkedExcavation);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>DK2's first test of a face (<c>terrain+0x17B &amp; 1</c>): a side that is not
+    /// solid. Cheap, so a marked tile deep in rock never costs a route search.</summary>
+    private static bool HasOpenFace(WorldState world, GameDatabase database, int x, int y)
+    {
+        for (int i = 0; i < NeighbourDx.Length; i++)
+        {
+            int nx = x + NeighbourDx[i], ny = y + NeighbourDy[i];
+            if (nx < 0 || ny < 0 || nx >= world.Width || ny >= world.Height) continue;
+            if (!database.TerrainById(world.Tile(nx, ny).TerrainId).IsSolid) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Commits a worker to tile work along the route the last search planned.
     /// </summary>
     private void CommitJob(
@@ -927,7 +1115,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         if (_route.Count == 0)
         {
-            creature.TimerTicks = SimulationTiming.WorkApplicationPeriodTicks;
+            creature.TimerTicks = WorkCadence.FirstApplicationTicks;
         }
         else
         {
@@ -935,7 +1123,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         SetOutInState(context, creature, kind, routed: _route.Count > 0);
 
-        creature.LastTaskKind = KindOf(priority);
+        creature.LastTaskKind = KindOf(priority, kind);
+        creature.LastTaskTileIndex = tileIndex;
 
         context.Emit(SystemName, "job_taken",
             $"imp={creature.Id} player={creature.OwnerPlayerId} " +
@@ -1884,12 +2073,13 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private static void ToTheStore(CreatureState creature) =>
         CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, ImpStates.AtTheStore);
 
-    /// <summary>The walk ends in the entry state, which finds the stance free and moves to
-    /// the work state. The entry state's wait for an occupied stance is not modelled.</summary>
+    /// <summary>The walk ends in the entry state (13, 15, 21, 25), which turns the imp to face
+    /// the tile (<c>0x004654F0</c> for 13) and sets the work state once the turn is done. Ours
+    /// takes the one tick every one of 416 captured entries took (mining-cadence.md §5); the
+    /// work state follows in <see cref="UpdateMoving"/>.</summary>
     private static void AtWork(SimulationContext context, CreatureState creature)
     {
         StateShadow.Arrive(context, SystemName, creature);
-        StateShadow.Move(context, SystemName, creature, ImpStates.For(creature.TargetWork).Work);
     }
 
     /// <summary>The task or the stance has gone, or the tile is done: the entry or work state

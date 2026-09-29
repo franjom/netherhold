@@ -188,10 +188,13 @@ public class ImpsOnRealDataTests
 
         var sim = new GameSimulation(db, world, 7, SimulationSystems.Default());
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(keeper, rock)));
-        sim.Run(SimulationTiming.WorkApplicationPeriodTicks * 4);
+        // Rock goes in one application (Q20), three ticks in at DK2's cadence (ADR-0280); the rest is the walk.
+        int ticks = WorkCadence.FirstApplicationTicks + WorkCadence.SecondApplicationGap(TileWorkKind.Dig)
+            + SimulationTiming.TicksFromSeconds(1);
+        sim.Run(ticks);
 
         Assert.False(db.TerrainById(world.Tile(rock).TerrainId).IsSolid,
-            $"{rock} is still solid after four work periods");
+            $"{rock} is still solid after {ticks} ticks");
 
         // This test used to also require more work afterwards. That held only while the imp was
         // the heroes' own, on the heroes' land. No floor of level 1's keepers borders diggable

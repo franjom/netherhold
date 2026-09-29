@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 138: the Call to Arms, its flag's process and the heeding bit (ADR-0279).
+        // HashVersion 139: a worker's last task tile and the job choice (ADR-0282).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xB858D2093C84A232UL, sim.StateHash());
+        Assert.Equal(0xF3B644CAA2F6FE61UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -60,17 +60,28 @@ public sealed class GlobalVariables
     }
 
     /// <summary>This table with one level's own VARIABLES applied on top.
-    /// <para>Every shipped level carries its own <c>&lt;name&gt;Variables.kld</c> and <b>26 variable
-    /// ids are overridden by at least one of them</b>, so reading only <c>GlobalVariables.kwd</c>
-    /// plays a level with the wrong numbers: <c>MinimumImpThreshold</c> is <b>0</b> on four of the
-    /// five secret levels and on the front end, where the global table hands out four free imps
-    /// (ADR-0021), and level 1 doubles both payday variables, 600 to 1200.</para>
-    /// <para><b>Two merge rules, because the file holds two kinds of thing.</b> Plain values
-    /// replace by id and new ids are added — levels introduce <c>GameTicks</c>, <c>LevelRating</c>,
-    /// <c>AverageTime</c> and two unnamed ids. The five lists replace wholesale when the level
-    /// provides any and are kept when it does not: STRONGLY INFERRED, the global availability list
-    /// being a player-0 template that a level's own players' lists cannot be unioned with.
-    /// ADR-0040, Q82 and docs/research/kwd-variables.md "The merge rules".</para></summary>
+    /// <para>Every shipped level carries its own <c>&lt;name&gt;Variables.kld</c>, and 26 ids are
+    /// overridden by at least one: <c>MinimumImpThreshold</c> is 0 on four secret levels and the
+    /// front end (ADR-0021), and level 1 doubles both payday variables.</para>
+    /// <para>Plain values replace by id and new ids are added. Availability rows accumulate, the
+    /// level's after the global ones (<see cref="AvailabilitiesOf"/>, ADR-0281). The other four
+    /// lists replace wholesale when the level provides any and are kept when it does not:
+    /// STRONGLY INFERRED. ADR-0040, Q82, docs/research/kwd-variables.md "The merge rules".</para>
+    /// </summary>
+    /// <summary>One player's availability table as DK2 leaves it after loading: every row for
+    /// player 0 or <paramref name="playerId"/>, in file order, the last write to a kind and type
+    /// winning (<c>0x0051CA60</c>). Ordered by kind, then type.</summary>
+    public IEnumerable<AvailabilityEntry> AvailabilitiesOf(ushort playerId)
+    {
+        var table = new Dictionary<(ushort Kind, int TypeId), AvailabilityEntry>();
+        foreach (AvailabilityEntry row in Availabilities)
+        {
+            if (row.PlayerId != 0 && row.PlayerId != playerId) continue;
+            table[(row.Kind, row.TypeId)] = row with { PlayerId = playerId };
+        }
+        return table.Values.OrderBy(a => a.Kind).ThenBy(a => a.TypeId);
+    }
+
     public GlobalVariables MergedWith(GlobalVariables? level)
     {
         var merged = new GlobalVariables();
@@ -90,7 +101,7 @@ public sealed class GlobalVariables
             merged.Misc[entry.Key] = entry.Value;
 
         Replace(merged.CreaturePool, level.CreaturePool);
-        Replace(merged.Availabilities, level.Availabilities);
+        merged.Availabilities.AddRange(level.Availabilities);
         Replace(merged.Sacrifices, level.Sacrifices);
         Replace(merged.CreatureStats, level.CreatureStats);
         // Untested for research: no shipped level carries a list, and DK2's handler only

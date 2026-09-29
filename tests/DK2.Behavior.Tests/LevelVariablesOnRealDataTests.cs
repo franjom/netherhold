@@ -148,24 +148,18 @@ public class LevelVariablesOnRealDataTests
     }
 
     /// <summary>
-    /// A level's availability set replaces the global template rather than
-    /// joining it, and the shipped data is what argues for that.
+    /// A level's availability rows follow the global template's, and override it
+    /// type by type (DK2's handler 0x0051CA60 writes rows as read, ADR-0281).
     ///
-    /// <para>The global list is a template keyed to <b>player 0</b> — rooms
-    /// AVAILABLE, traps/doors/spells RESEARCHABLE. A level's list names its own
-    /// players and its own states. Level 1 gives its keeper three room entries
-    /// where the global template gives five, and level 20 gives eleven: the sets
-    /// are the level's own, and a union would leave a level-1 keeper holding
-    /// "every room available" from the template alongside its own "treasury
-    /// unavailable".</para>
+    /// <para>The global template is player 0's. Level 1 marks the Treasury and the
+    /// Library unavailable and says nothing of the Lair or the Hatchery, which its
+    /// keeper then has from the template: the two rooms the level is played with.</para>
     ///
-    /// <para>Kind and value ids are named by OpenKeeper as ROOM/CREATURE/TRAP/
-    /// DOOR/SPELL and UNAVAILABLE/RESEARCHABLE/AVAILABLE/UNAVAILABLE_ROOM, which
-    /// agrees with what the counts imply here — eleven traps, six doors,
-    /// thirteen spells — and that agreement was reached from the data first.</para>
+    /// <para>Kind and value ids follow OpenKeeper's ROOM/CREATURE/TRAP/DOOR/SPELL and
+    /// UNAVAILABLE/RESEARCHABLE/AVAILABLE/UNAVAILABLE_ROOM, reached from the data first.</para>
     /// </summary>
     [InstallFact]
-    public void ALevelsAvailabilitySetReplacesTheGlobalTemplate()
+    public void ALevelsAvailabilityRowsOverrideTheGlobalTemplateTypeByType()
     {
         string install = Install();
 
@@ -173,20 +167,25 @@ public class LevelVariablesOnRealDataTests
         GameDatabase level1 = GameDatabaseLoader.LoadForCampaignLevel(install, "level1");
         GameDatabase level20 = GameDatabaseLoader.LoadForCampaignLevel(install, "level20");
 
-        // The global template is player 0 throughout; a level's set is not.
+        // The global template is player 0 throughout; a level's own rows are not.
         Assert.All(global.Variables.Availabilities, a => Assert.Equal(0, a.PlayerId));
-        Assert.NotEmpty(level1.Variables.Availabilities);
-        Assert.DoesNotContain(level1.Variables.Availabilities, a => a.PlayerId == 0);
-
-        // Replaced, not joined: the counts are the level's own, not a sum.
         Assert.Equal(32, global.Variables.Availabilities.Count);
-        Assert.Equal(31, level1.Variables.Availabilities.Count);
+        Assert.Equal(32 + 31, level1.Variables.Availabilities.Count);
+        Assert.Equal(31, level1.Variables.Availabilities.Count(a => a.PlayerId != 0));
 
-        // And the level's room list grows through the campaign, which is what
-        // makes it a per-level fact rather than a constant.
+        // Keeper 3's rooms: the level's two, the template's for the rest.
         const ushort room = 1;
-        int roomsAtLevel1 = level1.Variables.Availabilities.Count(a => a.Kind == room);
-        int roomsAtLevel20 = level20.Variables.Availabilities.Count(a => a.Kind == room);
+        Dictionary<int, int> rooms = level1.Variables.AvailabilitiesOf(3)
+            .Where(a => a.Kind == room).ToDictionary(a => a.TypeId, a => a.Value);
+        Assert.Equal(1, rooms[(int)RoomTypeId.Treasury]);
+        Assert.Equal(1, rooms[(int)RoomTypeId.Library]);
+        Assert.Equal(3, rooms[(int)RoomTypeId.Lair]);
+        Assert.Equal(3, rooms[(int)RoomTypeId.Hatchery]);
+
+        // And the level's own room rows grow through the campaign, which is what
+        // makes them a per-level fact rather than a constant.
+        int roomsAtLevel1 = level1.Variables.Availabilities.Count(a => a.Kind == room && a.PlayerId != 0);
+        int roomsAtLevel20 = level20.Variables.Availabilities.Count(a => a.Kind == room && a.PlayerId != 0);
         Assert.True(
             roomsAtLevel20 > roomsAtLevel1,
             $"level 20 offered {roomsAtLevel20} rooms, level 1 offered {roomsAtLevel1}");

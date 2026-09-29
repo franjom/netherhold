@@ -113,12 +113,12 @@ sends it straight to dead**; the corpse still follows, gate 1 having passed.
 |---|---|---|
 | 1 | the definition lacks `GenerateDeadBody`, flags bit 15 | `0x004B2F2E` |
 | 2 | the creature is `Possessed` | `0x004B2F37` |
-| 3 | it stands in a **Prison** or **Torture Chamber** — room `TypeId` 11 or 12 | `0x004B2F81` |
-| 4 | it stands in **no room** and `DieInstantly` is true | `0x004B2F8D` |
+| 3 | it is attached to a **Prison** or **Torture Chamber** — room `TypeId` 11 or 12 | `0x004B2F81` |
+| 4 | it is attached to **no room** and `DieInstantly` is true | `0x004B2F8D` |
 
-**3 and 4 are exclusive, and that is the quirk.** The room is asked first, so a
-creature inside any *other* room is never asked about `DieInstantly`: a Lord Of
-The Land killed in a Treasury lies there rescuable, one killed outside does not.
+**The room is the one it is attached to** (`+0x3B9`, set by `0x004E5A70` for
+prisoners, victims and workers): standing in a room is not enough, and Level 2's
+Lord dies outright on the keeper's Lair at 3241 (ADR-0281; non-prisoners inferred).
 
 `DieInstantly` is `+0x3EA` bit 11. Its getter `0x0048E110` answers true for
 creature types 21, 28 and 29 — King Reginald, Stone Knight and Lord Of The

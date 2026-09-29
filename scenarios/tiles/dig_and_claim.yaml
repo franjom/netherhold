@@ -54,13 +54,13 @@ observe:
 expect:
   - event: destroyed
     detail: "Dig terrain 2->3"
-    at_tick: 5
+    at_tick: 4
     count: 2
     because: >
-      Rock 165 health against a dig application of -100 - DigRockHealth -500
-      times Efficiency 0xCCC/4096, shifted down - is two swings, at ticks 4 and
-      5 (ADR-0023, ADR-0089). Rock becomes Dirt Path, which is the terrain
-      record's own DestroyedTypeTerrainId.
+      Rock 165 health against the shipped DigRockHealth -5000 times Efficiency
+      0xCCC/4096, shifted down, is one swing, at tick 4 (Q20, ADR-0280,
+      ADR-0089). Rock becomes Dirt Path, which is the terrain record's own
+      DestroyedTypeTerrainId.
   - event: transformed
     detail: "Claim terrain 3->8"
     at_tick: 12
