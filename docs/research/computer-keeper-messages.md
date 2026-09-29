@@ -239,9 +239,14 @@ claiming complete queue fidelity.
 
 ## 4. Implementation coverage
 
-`PlayerMessageQueue` implements types 1/6 only, including admission, duplicate
-retention, shared eviction, age/tab expiry and explicit handled state. These
-types do not use the unresolved suppression fields. `CombatMessageRules` posts
+`PlayerMessageQueue` implements types 1/6 and the mana-pressure types 52/53,
+including admission, duplicate retention, shared eviction, age/tab expiry and
+explicit handled state. For 52/53 the lifetime is the subtype row's 20 seconds,
+a duplicate must match Data1, warning subtype 0 (no string) is discarded and a
+subtype off the table is refused; their producers are `ManaSystem` and
+`ManaRemovalLifecycle` (`imp-mana-removal.md`, ADR-0277). 53 subtype 1, possession
+ended for want of mana, has no producer here. These types do not use the
+unresolved suppression fields. `CombatMessageRules` posts
 during the combat update and on the melee/shot Heart-damage paths. The state-199 handler
 `0x0045EB20` was rechecked: it posts only when its entry stamp equals the current
 turn and attack mode is not 3; it is not a notification on each hit.

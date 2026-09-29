@@ -288,11 +288,13 @@ public sealed class PrisonSystem : ISimulationSystem
         }
 
         // At the ceiling the room refuses, and DK2 sets DeadBodyOnDestroy instead
-        // (0x004B323A): the prisoner leaves a corpse, the same end a slain one gets.
+        // (0x004B3240 ORs runtime bit 0x20 into +0x3E6): the prisoner leaves a corpse, the
+        // same end a slain one gets, even one mana-removal selection had suppressed (ADR-0277).
         if (raises != 0
             && PrisonRules.SkeletonCount(world, keeper, raises)
                >= PrisonRules.SkeletonCap(world, context.Database, keeper))
         {
+            prisoner.CorpseSuppressed = false;
             Slain(context, prisoner);
             return;
         }

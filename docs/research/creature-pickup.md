@@ -54,22 +54,24 @@ remain open; the current tile cannot substitute for stored membership.
 ## Countdown lifetime
 
 The mana-pressure writer, selection quirks and countdown reader are established
-in `imp-mana-removal.md`. Its independent rules are tested; the live lifecycle
-is not connected (ADR-0266). This is not a generic pickup cooldown.
+in `imp-mana-removal.md`, and the live lifecycle is connected: the stamp is
+`CreatureState.ManaRemovalStamp`, written by the scan and cleared or expired by
+`ManaRemovalSystem` (ADR-0277). This is not a generic pickup cooldown.
 
 ## Implementation boundary
 
 `HandRules.HasPickupPermission` now checks the represented common, current-state,
-Pit, worker-byte, tool and prisoner gates. `CanPickUp` additionally checks hand
-capacity. `KeeperView` captures both results separately; schema 7 persists them.
-Neither result claims complete original permission outside the represented state.
+removal-stamp, Pit, worker-byte, tool and prisoner gates. `CanPickUp` additionally
+checks hand capacity. `KeeperView` captures both results separately; schema 7
+persists them. Neither result claims complete original permission outside the
+represented state.
 
 The existing `CreatureState.Flags` starts at 9; placed/party projection still
 applies its existing record masks. The pickup-bit subset of the WorkerJob leave
 hook and prison delivery is built (ADR-0263). The existing compressed inner
 prison walks clear and restore the bits within one tick; this does not reproduce
-their original duration. Teleport/combat writers, countdown removal, Turncoat,
-the disguise tag and the original room association remain unimplemented.
+their original duration. Teleport/combat writers, Turncoat, the disguise tag and
+the original room association remain unimplemented.
 A tile's room is not substituted for that association. The existing
 zero-health refusal remains a simulation adaptation before its delayed collapse.
 Consequently live keeper defence remains gated on these dependencies (ADR-0262).

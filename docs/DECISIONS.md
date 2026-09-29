@@ -5859,3 +5859,48 @@ event.
 
 **Revisit** if a dedicated multiplayer server process appears (M14): host-side
 operational logging belongs there, never in the simulation.
+
+## ADR-0277 — Connect the mana-pressure lifecycle: warnings and scans on the payment, the countdown before it, expiry through the death bookkeeping
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** ADR-0266 built the pure rules and left them unconnected. The
+acquisition order (ADR-0273) and the stored idle flag (ADR-0274) now exist, and
+the expiry slot is read: it writes zero health only, and the cleanup pass after
+the thing update takes the creature through the death bookkeeping. Evidence:
+`research/imp-mana-removal.md`.
+
+**Decision.**
+1. Persist `PlayerState.ManaPressure` (two deadlines, the stage, the two bits),
+   `CreatureState.ManaRemovalStamp` and `CorpseSuppressed`; hash and snapshot 136.
+2. `ManaSystem` advances the rules after each keeper's payment with the clamped
+   mana and the unclamped net rate, posts message 52 with the stage and, on a due
+   scan, selects from `OwnedCreatures` in acquisition order measured from
+   `HeartSites.PositionOf`, or the initialiser's tile (1, 1) with no heart. The
+   chosen creature loses its corpse bit, takes the turn as its stamp, and
+   message 53 subtype 3 is posted.
+3. `ManaRemovalSystem`, every tick before `ManaSystem`, runs the countdown on
+   stamped creatures: an affordable upkeep clears the stamp; otherwise twenty
+   ticks after it health is zeroed and `CreatureHealthSystem.Die` runs at once,
+   honouring the runtime corpse bit.
+4. `HandRules.HasPickupPermission` refuses any nonzero stamp. Kinds 52 and 53
+   take the subtype tables' 20 seconds, match duplicates on Data1 and refuse a
+   subtype off the table.
+
+**Reason.** The thing update precedes the player update in the world turn
+(`0x0050A450`), so a stamp is first read the turn after it is written and a
+payment cannot reprieve an imp on its expiry turn. `0x00487C70` is one function
+for every removal, and our `Die` is that boundary; the collapse decision keeps
+reading the definition alone, as `ModifyHealth` does.
+
+**Deviations, ours.** The payment keeps its shared once-a-second phase, not a
+per-player stamp. The countdown and cleanup run in one system, not inside each
+creature's update, so a creature updated later in the same turn no longer sees
+the dead one. The heart position is derived from tiles at each scan where DK2
+stores it. Unrepresented: the "no mana" interface notice, the possession, Call to
+Arms and Reaper early returns, and the positive-rate multiplier at player
+`+0x86` (the sign alone is read). Keepers only: `0x004B9EC0` returns for the
+hero and neutral tags before the update.
+
+**Limits.** No original run has been compared (Q57). Selection reads our
+`Level`. The Prison's Skeleton-cap fallback sets the corpse bit back
+(`0x004B3240`) and ours does too; other writers of the bit are unread.

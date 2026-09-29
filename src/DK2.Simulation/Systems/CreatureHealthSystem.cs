@@ -122,7 +122,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             if (CreatureDeathRules.HasDyingState(world, database, creature, state))
                 Collapse(context, creature, state);
             else
-                Die(context, creature, state);
+                Die(context, SystemName, creature, state);
         }
     }
 
@@ -177,7 +177,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
         if (!CreatureDeathRules.DyingWindowElapsed(context.Database, state)) return;
 
-        Die(context, creature, state);
+        Die(context, SystemName, creature, state);
     }
 
     /// <summary>
@@ -204,15 +204,16 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             $"decompose_value={creature.DecomposeValue} " +
             $"carried_by={state.CarriedByCreatureId}");
 
-        Remove(context, state);
+        Remove(context, SystemName, state);
     }
 
     /// <summary>
     /// Takes a creature out of the world, and out of whatever arms were holding
     /// it. One place, so that no removal path can leave a carrier pointing at a
-    /// creature that no longer exists.
+    /// creature that no longer exists. <paramref name="system"/> names the caller
+    /// in the events: <see cref="ManaRemovalSystem"/> ends an imp through here too.
     /// </summary>
-    private static void Remove(SimulationContext context, CreatureState state)
+    internal static void Remove(SimulationContext context, string system, CreatureState state)
     {
         CarryRules.DropWhatever(context.World, state);
         if (state.CarriedByCreatureId >= 0)
@@ -225,7 +226,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         // than out of the world with it (ADR-0065).
         if (ObjectCarryRules.DropWhatever(context.World, state))
         {
-            context.Emit(SystemName, "object_dropped",
+            context.Emit(system, "object_dropped",
                 $"imp={state.Id} object={state.CarriedObjectId} " +
                 $"at=({state.Tile.X},{state.Tile.Y}) reason=carrier_gone");
         }
@@ -251,8 +252,11 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             $"bed={LairRules.BedTileIndex(context.World, context.Database, state)}");
     }
 
-    private static void Die(
-        SimulationContext context, CreatureDef creature, CreatureState state)
+    /// <summary>DK2's death bookkeeping (<c>0x00487C70</c>): the Killed event, the bed, the
+    /// gold, then a corpse or removal. Reached from the dying window here and directly from
+    /// <see cref="ManaRemovalSystem"/>, whose zero-health write skips the window.</summary>
+    internal static void Die(
+        SimulationContext context, string system, CreatureDef creature, CreatureState state)
     {
         context.FireCreatureEvent(state, CreatureTriggerEvent.Killed);
 
@@ -264,8 +268,9 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
         // The body is delivered by an imp task (ADR-0063). A corpse is not an
         // object (objects.md section 4); DK2 makes it a CDeadBody thing, ours
-        // keeps it in the creature list with no state id (ADR-0206).
-        bool leavesBody = CreatureDeathRules.LeavesBody(creature);
+        // keeps it in the creature list with no state id (ADR-0206). The runtime
+        // copy of the flag counts here, as in 0x00487C70 (ADR-0277).
+        bool leavesBody = CreatureDeathRules.LeavesBody(creature, state);
 
         // What it was carrying falls where it fell -- in one, two or three
         // piles, and the original's integer division destroys the remainder
@@ -275,7 +280,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         int carried = state.GoldHeld;
         int dropped = FloorGold.DropFrom(context.World, context.Database, state);
 
-        context.Emit(SystemName, "creature_died",
+        context.Emit(system, "creature_died",
             $"creature={state.Id} type={creature.Name} " +
             $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
             $"gold_dropped={dropped} gold_lost_to_rounding={carried - dropped} " +
@@ -293,6 +298,6 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             return;
         }
 
-        Remove(context, state);
+        Remove(context, system, state);
     }
 }

@@ -157,6 +157,12 @@ public static class CreatureDeathRules
     public static bool LeavesBody(CreatureDef creature) =>
         creature.Flags.HasFlag(CreatureFlags.GenerateDeadBody);
 
+    /// <summary>The death bookkeeping's gate (<c>0x00487C70</c>): the definition flag and its
+    /// runtime copy, which mana-removal selection clears (<see cref="CreatureState.CorpseSuppressed"/>).
+    /// <see cref="HasDyingState"/> reads the definition alone, as <c>ModifyHealth</c> does.</summary>
+    public static bool LeavesBody(CreatureDef creature, CreatureState state) =>
+        LeavesBody(creature) && !state.CorpseSuppressed;
+
     /// <summary>Drops a creature to the ground at zero health, starting the rescue window. Returns
     /// false if it was already dying. It keeps its bed on purpose: the rescue path is an imp
     /// carrying the creature to that bed, so a lair tile freed on collapse would be claimed by

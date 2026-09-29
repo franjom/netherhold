@@ -1381,6 +1381,9 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.MaximumManaGainPerSecond, 500);
         Set(vars, VariableTypeId.ExcessManaDecreaseRatePerSecond, 5);
         Set(vars, VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond, 30);
+        // The low-mana warning threshold and the warning/scan interval, as shipped (ADR-0277).
+        Set(vars, VariableTypeId.LowManaWarningThreshold, 100);
+        Set(vars, VariableTypeId.InsufficientManaImpEvaluationPeriodSeconds, 10);
 
         // The two the melee multiplier reads, as shipped. The Combat Pit's 100 is an
         // increment and not a scale, so a pit fighter hits twice as hard; the first-person

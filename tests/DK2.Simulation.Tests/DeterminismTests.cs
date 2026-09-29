@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 135: stored worker idle flag (ADR-0274).
+        // HashVersion 136: mana-pressure clocks, removal stamp and corpse bit (ADR-0277).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x4289BE0A7A244163UL, sim.StateHash());
+        Assert.Equal(0x4C67CCBC9B5CA5C4UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -633,7 +633,12 @@ public class ScenarioTests
 
         // ManaSystem reads these every second and GameDatabase throws rather
         // than defaulting. No terrain here generates mana, so the values only
-        // have to exist.
+        // have to exist. The warning threshold and interval are the shipped ones, so a
+        // scenario keeper with more than four imps loses one as DK2's would (ADR-0277).
+        vars.Misc[VariableTypeId.LowManaWarningThreshold] =
+            new MiscVariable(VariableTypeId.LowManaWarningThreshold, 100, 0, 0);
+        vars.Misc[VariableTypeId.InsufficientManaImpEvaluationPeriodSeconds] =
+            new MiscVariable(VariableTypeId.InsufficientManaImpEvaluationPeriodSeconds, 10, 0, 0);
         vars.Misc[VariableTypeId.MaximumManaThreshold] =
             new MiscVariable(VariableTypeId.MaximumManaThreshold, 200000, 0, 0);
         vars.Misc[VariableTypeId.MaximumManaGainPerSecond] =

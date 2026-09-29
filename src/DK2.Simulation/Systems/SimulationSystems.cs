@@ -54,6 +54,9 @@ public static class SimulationSystems
         new ImpTaskSystem(),
         new TileWorkSystem(),
         new BridgeBurnSystem(),
+        // The removal countdown reads the stamp and the mana of the last payment before this
+        // tick's payment, as DK2's thing update precedes its player update (ADR-0277).
+        new ManaRemovalSystem(),
         // Mana after all ownership changes, so a tile claimed on N pays on N; the imp
         // it buys next, so N's mana casts on N; a lair built on N attracts on N.
         new ManaSystem(),

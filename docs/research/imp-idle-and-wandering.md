@@ -189,4 +189,5 @@ flag, matching the original early-exit ordering. The drop path still compresses
 original landing/state-11 timing. State 11's additional byte at worker-state
 `+0xA2` is unrepresented; this is not a claim that the entire handler is complete.
 Idle-action durations remain guessed. No new original observation validates this
-integration; removal side effects remain open in Q57.
+integration. The mana-removal selector reads the flag live (ADR-0277); the
+original run that would validate the whole sequence is Q57.

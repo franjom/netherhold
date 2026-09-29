@@ -361,6 +361,11 @@ public struct PlayerState
     /// finds no heart object. A ruined heart stores no gold and can be claimed (Q93, Q263).</summary>
     public bool HeartRuined;
 
+    /// <summary>The low-mana warning clocks and the removal-scan deadline, DK2's player
+    /// <c>+0x76</c> bits 0 and 8, <c>+0x9E</c>, <c>+0xA6</c> and <c>+0xB48</c>; advanced by
+    /// <see cref="Systems.ManaSystem"/> on every payment (imp-mana-removal.md, ADR-0277).</summary>
+    public ManaPressureState ManaPressure;
+
     /// <summary>
     /// The Hand of Evil: the <b>things</b> this keeper is holding, in pick-up order.
     /// Things, not creatures (ADR-0075) — DK2 keeps one array of thing ids on the
@@ -407,6 +412,11 @@ public struct PlayerState
         hash.Add(HeartLastAttackerPlayerId);
         hash.Add(HeartDiedTick);
         hash.Add(HeartRuined ? (byte)1 : (byte)0);
+        hash.Add(ManaPressure.WarningDeadline);
+        hash.Add(ManaPressure.WarningStage);
+        hash.Add(ManaPressure.WarningsSuppressed);
+        hash.Add(ManaPressure.RemovalEnabled);
+        hash.Add(ManaPressure.ScanDeadline);
         hash.Add(Availabilities.Count);
         foreach (AvailabilityState availability in Availabilities)
             availability.HashInto(ref hash);

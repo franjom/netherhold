@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 135;
+    private const int FormatVersion = 136;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -156,6 +156,11 @@ public static class WorldSnapshot
             w.Write(p.HeartLastAttackerPlayerId);
             w.Write(p.HeartDiedTick.Value);
             w.Write(p.HeartRuined);
+            w.Write(p.ManaPressure.WarningDeadline);
+            w.Write(p.ManaPressure.WarningStage);
+            w.Write(p.ManaPressure.WarningsSuppressed);
+            w.Write(p.ManaPressure.RemovalEnabled);
+            w.Write(p.ManaPressure.ScanDeadline);
             w.Write(p.Availabilities.Count);
             foreach (AvailabilityState availability in p.Availabilities)
             {
@@ -259,6 +264,8 @@ public static class WorldSnapshot
             w.Write(c.WorkFasterTicks);
             w.Write(c.JustDropped);
             w.Write(c.WorkerIdle);
+            w.Write(c.ManaRemovalStamp);
+            w.Write(c.CorpseSuppressed);
             w.Write((byte)c.DroppedTask);
             w.Write((byte)c.LastTaskKind);
             w.Write(c.CarriedCreatureId);
@@ -638,6 +645,8 @@ public static class WorldSnapshot
                 HeartLastAttackerPlayerId = r.ReadByte(),
                 HeartDiedTick = new GameTick(r.ReadInt64()),
                 HeartRuined = r.ReadBoolean(),
+                ManaPressure = new ManaPressureState(
+                    r.ReadUInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadBoolean(), r.ReadUInt32()),
                 Availabilities = [],
                 EntranceInfo = [],
                 ManufactureQueue = [],
@@ -736,6 +745,8 @@ public static class WorldSnapshot
                 WorkFasterTicks = r.ReadInt32(),
                 JustDropped = r.ReadBoolean(),
                 WorkerIdle = r.ReadBoolean(),
+                ManaRemovalStamp = r.ReadUInt32(),
+                CorpseSuppressed = r.ReadBoolean(),
                 DroppedTask = (ImpTaskKind)r.ReadByte(),
                 LastTaskKind = (ImpTaskKind)r.ReadByte(),
                 CarriedCreatureId = r.ReadInt32(),

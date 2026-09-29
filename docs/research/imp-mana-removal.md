@@ -2,7 +2,8 @@
 
 **STRONGLY INFERRED**, DKII.EXE v1.70, read-only Ghidra 12.1.4/PyGhidra,
 2026-09-28, lifecycle rechecked 2026-09-29. No runtime observation validates this sequence yet (Q57).
-Implementation: independent `ManaPressureRules`; integration boundary: ADR-0266.
+Implementation: `ManaPressureRules` (arithmetic, ADR-0266), `ManaRemovalLifecycle`,
+`ManaSystem` and `ManaRemovalSystem` (the live lifecycle, ADR-0277).
 
 ## Claim audit
 
@@ -90,28 +91,38 @@ it for the subsequent cleanup pass. It does not start the collapsed-state timer.
 | Release carried object / dragged creature | `0x004881D6` / `0x00488221` call `0x0048B3A0` / `0x0048B500` on the ordinary cleanup path | Health cleanup now releases both, including when the carrier becomes a corpse |
 | Place the dragged thing and clear its drag state | `0x0048B500` moves it to the carrier; creature slot `+0x70` is `0x004B5E00`, clearing `+0x3C7`; carrier `+0x3C5` is cleared | `CarryRules.DropWhatever` moves the passenger and clears both modern relationship ids; no death or ownership change is applied to it |
 | Release engagements, upkeep and owner membership | `0x0048833E`, `0x00488365`, `0x00488468` | Existing combat unregister, recomputed upkeep and owned-list removal cover these represented effects |
-| Corpse creation gate | `0x00487C70` tests definition bit `0x8000` and runtime bit `0x20`; selection clears the latter | Runtime corpse suppression remains unrepresented; a non-imp selection must not silently retain ordinary corpse generation |
+| Corpse creation gate | `0x00487C70` tests definition bit `0x8000` and runtime bit `0x20`; the constructor `0x00487555` copies definition bit 15 into the runtime bit; selection clears it; the Prison's refused raise at the Skeleton cap sets it back (`0x004B3240`) | `CreatureState.CorpseSuppressed`, read by `CreatureDeathRules.LeavesBody(def, state)` in the death bookkeeping only; `PrisonSystem` clears it at the cap |
 
 These are ordinary gameplay branches, not an exhaustive destructor model. The
 routine also handles beds, room/state release, possession, special creatures,
-statistics, UI and rendering resources. The modern death system still runs once
-per second; equating its timing or collapse decision with this direct zero-health
-path would require further work. Seven regression cases in `CarryingTests` check
-passenger/object survival, placement, released relationships, corpse carriers,
-missing passengers and gold rounding. No new original observation was made.
+statistics, UI and rendering resources. Seven regression cases in `CarryingTests`
+check passenger/object survival, placement, released relationships, corpse
+carriers, missing passengers and gold rounding. No new original observation was made.
+
+## Turn order and the players updated
+
+The world turn `0x0050A450` calls the thing update `0x004B7830` (creatures'
+countdowns, then the cleanup pass), then the per-player update `0x004C2310`,
+then the message sweep `0x004C41E0`. `0x004B9EC0` returns for the neutral tag
+(`0x006F2548`) and the hero tag (`0x006F254C`, mana set to `0x7FFFFFFF`) before
+reaching the mana update through `0x004BB2A0`, so warnings and scans are a
+keeper's alone. The heart the selector measures from is `player+0xB43/+0xB45`,
+which `0x004B8640` initialises to (1, 1). Affordability `0x004C1740` is
+`upkeep == 0 || upkeep <= mana`.
 
 ## Integration and observation limits
 
-The rules are executable and tested independently; no system calls them yet.
-`ManaSystem` still floors mana at zero. Its existing once-second phase is not
-the original per-player deadline. Possession/CTA/Reaper branches can return
-before the original warning block; those effects are outside these pure rules.
-Owned-list order is maintained and persisted (`creature-ownership.md`, ADR-0273).
-The stored idle flag is maintained and persisted; its adapter limits are in
-`imp-idle-and-wandering.md` (ADR-0274). Live clocks, stamps, corpse suppression,
-message dispatch and the zero-health cleanup boundary still need integration.
+Built (ADR-0277): `ManaSystem` advances the clocks after each keeper's payment,
+posts message 52 and runs the scan; `ManaRemovalSystem` runs the countdown every
+tick before it and ends an expired imp through the death bookkeeping;
+`HandRules` refuses a stamped creature; `ManaRemovalLifecycleTests` cover the
+timing, selection, refusal, recovery, expiry, corpse suppression, carried
+contents and save continuation. Our deviations are listed in the ADR: the
+payment's shared phase rather than `player+0x9A`, the countdown and cleanup in
+one system, the heart position derived from tiles, and the unrepresented
+possession, Call to Arms and Reaper early returns and the "no mana" notice.
 
 An original experiment should hold more than four imps, spend below 100 with
 nonpositive net income, record all warning turns, and record selection/expiry.
 Recovering to exactly 7 mana during a stamp distinguishes upkeep affordability
-from the 100-mana warning reset. This observation is still outstanding.
+from the 100-mana warning reset. This observation is still outstanding (Q57).

@@ -80,6 +80,9 @@ internal static class TestWorld
         Set(vars, VariableTypeId.MaximumManaThreshold, 200000);
         Set(vars, VariableTypeId.MaximumManaGainPerSecond, 500);
         Set(vars, VariableTypeId.ExcessManaDecreaseRatePerSecond, 5);
+        // The low-mana warning threshold and the warning/scan interval, as shipped (ADR-0277).
+        Set(vars, VariableTypeId.LowManaWarningThreshold, 100);
+        Set(vars, VariableTypeId.InsufficientManaImpEvaluationPeriodSeconds, 10);
         // Payday, as shipped: ten minutes between them, and the first one ten
         // minutes in rather than at zero (Q9, ADR-0078).
         Set(vars, VariableTypeId.PayDayFrequencySeconds, 600);

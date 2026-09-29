@@ -203,10 +203,11 @@ applied to the net: the owner's screenshot of a full keeper reads exactly 200000
 with +400 and −297 on the orb, so income beating upkeep pins them at the top
 rather than 297 short. `ManaRules.ApplyOneSecond` does it in that order.
 
-**Mana floors at zero**, and what the original does when a keeper cannot pay is
-**UNKNOWN** (Q57): `InsufficientManaImpEvaluationPeriodSeconds` (10) says
-something happens on a ten-second clock, and guessing it would be inventing
-behaviour, so a keeper here sits at zero.
+**Mana floors at zero**, and a keeper that cannot pay is warned four times on
+the ten-second clock of `InsufficientManaImpEvaluationPeriodSeconds`, then loses
+a creature every scan while it holds more than `MinimumImpThreshold` evil
+workers: `imp-mana-removal.md`, built as ADR-0277 and STRONGLY INFERRED from
+the binary alone (Q57 is the missing original run).
 
 ---
 

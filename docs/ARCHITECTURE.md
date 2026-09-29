@@ -89,7 +89,7 @@ in a different order are a different game. The declared sequence:
 HandSystem, TileTagSystem, RoomSellSystem, RoomBuildSystem, AutoFurnitureSystem,
 TempleSacrificeSystem,
 CreatureMovementSystem, FogOfWarSystem, ImpTaskSystem, TileWorkSystem,
-BridgeBurnSystem, ManaSystem, ImpSupplySystem, PortalSystem,
+BridgeBurnSystem, ManaRemovalSystem, ManaSystem, ImpSupplySystem, PortalSystem,
 HatcherySystem, CreatureEatSystem, CreatureSleepSystem, CreatureHealthSystem,
 PrisonSystem, PrisonerEatSystem, PrisonerWanderSystem, PaydaySystem,
 CreatureJobSystem, CreatureAngerSystem, CreatureExperienceSystem
@@ -350,7 +350,9 @@ Which rooms have behaviour, and which are inert terrain their owner holds:
 - The heart's 30 is counted **once per keeper, not once per heart tile**, and that
   is exact rather than a simplification — a keeper has at most one dungeon heart,
   ever, and losing it is defeat.
-- `ManaSystem` pays it once a game second (ADR-0017).
+- `ManaSystem` pays it once a game second (ADR-0017), then warns a keeper below the
+  threshold and, after four warnings, scans its creatures for one to stamp;
+  `ManaRemovalSystem` runs that stamp's countdown before the payment (ADR-0277).
 - Mana stays a player-level number, unlike gold. The asymmetry is the data's:
   every limit DK2 sets on gold is per place, and every variable it sets on mana is
   per player.

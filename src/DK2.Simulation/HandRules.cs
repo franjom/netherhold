@@ -53,6 +53,8 @@ public static class HandRules
         if (CreatureDeathRules.HasCollapsed(creature) || creature.InHand
             || creature.Dk2StateId is CreatureDeathRules.FallingState
                 or CreatureDeathRules.DyingState or CreatureStateMachine.NoState) return false;
+        // A nonzero removal stamp refuses any creature, an imp or not (0x0048E6A0, ADR-0277).
+        if (creature.ManaRemovalStamp != 0) return false;
         if (!definition.Flags.HasFlag(CreatureFlags.CanBePickedUp)) return false;
         if (creature.Dk2StateId is 76 or 193) return false;
         if (creature.OwnerPlayerId != playerId)

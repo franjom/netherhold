@@ -497,6 +497,16 @@ public sealed class CreatureState
     /// <summary>Stored worker idle flag; remains set through wandering (imp-idle-and-wandering.md).</summary>
     public bool WorkerIdle;
 
+    /// <summary>DK2's <c>+0x4B3</c>: the turn the mana-removal scan chose this creature, 0 for
+    /// none. Refuses pickup while set; the countdown reader clears it or zeroes the
+    /// creature's health (imp-mana-removal.md, ADR-0277).</summary>
+    public uint ManaRemovalStamp;
+
+    /// <summary>Runtime bit <c>0x20</c> of <c>+0x3E6</c>, cleared: the constructor copies the
+    /// definition's <c>GenerateDeadBody</c> flag there and mana-removal selection clears it, so
+    /// the death bookkeeping makes no corpse (<see cref="CreatureDeathRules.LeavesBody"/>).</summary>
+    public bool CorpseSuppressed;
+
     /// <summary>The kind of task this worker was <b>dropped onto and is still doing</b>,
     /// or <see cref="ImpTaskKind.None"/> — DK2's <c>ImpJobData.DroppedTask</c>,
     /// the field <see cref="EfficiencyRules.Percent"/> reads, worth
@@ -966,6 +976,8 @@ public sealed class CreatureState
         hash.Add(WorkFasterTicks);
         hash.Add(JustDropped);
         hash.Add(WorkerIdle);
+        hash.Add(ManaRemovalStamp);
+        hash.Add(CorpseSuppressed);
         hash.Add((byte)DroppedTask);
         hash.Add((byte)LastTaskKind);
         hash.Add(CarriedCreatureId);

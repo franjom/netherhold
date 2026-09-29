@@ -31,7 +31,7 @@ is excluded from the owner reader because an original corpse is another thing
 category. Dying creatures are still included.
 
 The order is saved and hashed separately from creature values. Snapshot loading
-restores the recorded order rather than recreating it from ids. Existing AI
-observation ordering and other selectors are unchanged; each consumer needs its
-own source audit before switching to this reader. See `imp-mana-removal.md` for
-the remaining removal dependencies.
+restores the recorded order rather than recreating it from ids. The mana-removal
+selector walks this reader (`ManaRemovalLifecycle.Candidates`, ADR-0277), as its
+original does. Existing AI observation ordering and other selectors are
+unchanged; each consumer needs its own source audit before switching.

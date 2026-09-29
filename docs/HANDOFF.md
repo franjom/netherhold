@@ -44,11 +44,11 @@ tested independently, including the event's whole-tick allowance rule. Combat-me
 reactive decisions and an original command trace remain open. The casualty-priority
 command and imp reader are built (ADR-0261). Represented pickup gates are captured;
 worker task-exit and prison-delivery flag writes are built (ADR-0263).
-Mana-pressure rules are tested independently (ADR-0266). Creature ownership order
-and the worker idle flag are persisted (ADRs 0273–0274). Expiry's zero-health call
-is verified and carrier cleanup repaired (`research/imp-mana-removal.md`); live
-mana lifecycle integration, other eligibility lifecycles and response dispatch remain next
-(2026-09-29; `KEEPER_AI.md` §12.8).
+Creature ownership order and the worker idle flag are persisted (ADRs 0273–0274)
+and the mana-pressure lifecycle is live: warnings, the removal scan, the stamp's
+pickup refusal, recovery and expiry through the death bookkeeping (ADR-0277,
+`research/imp-mana-removal.md`; the original run is Q57). Other eligibility
+lifecycles and response dispatch remain next (2026-09-29; `KEEPER_AI.md` §12.8).
 
 ### What exists (present tense; the ADR is the specification)
 
@@ -228,7 +228,7 @@ AI (M12) ahead of breadth.
 - Treasury deposit order is tile-index order (`GoldStore`; Q35's withdrawal half unread).
 - Which lair tile a bedless creature walks to (Q157).
 - A nearer imp does not take a task from a farther one (Q155; DK2 does).
-- `ManaSystem` runs for every player, not only keepers (ADR-0052).
+- `ManaSystem` runs for every player, not only keepers (ADR-0052); its warnings and removal scans are keepers' alone, on the payment's shared once-a-second phase rather than DK2's per-player stamp, and the removal countdown runs in one system before it (ADR-0277).
 - `RoomRules` does not model a level's per-room `Availability`; only `PortalRules` reads availability (ADR-0040).
 - Combat: the heart's ring tile stands in for the Arch Pillar (Q363); the victory pause is 8 ticks (Q376); the Flanker offset uses the target's velocity (Q400); haste rescales the speed cap each tick where DK2 pins once.
 
@@ -366,7 +366,7 @@ that gate work today, by how they are answered:
 | Q226, Q227 | selectors and fields read without a revealed role, exposed as `Unknown_*`; action type 24 alone has 827 records |
 | Q225 | trigger types the shipped corpus never uses but the executable reads; needs a map made in the original editor |
 
-**Parked UNKNOWNs:** Q57 (removal integration/runtime check; `imp-mana-removal.md`), Q58 (Possession upkeep), Q70 (the last 72 bytes of a CREATURES record), Q76, Q78, Q83 (`GameTicks` = 340), Q87 (`CreaturePool`: limit or quota), Q102, Q164, Q169, Q194, Q208 (the Imp's `ExpPerSecond` is 40× its training rate).
+**Parked UNKNOWNs:** Q57 (the mana-removal original run; built as ADR-0277, `imp-mana-removal.md`), Q58 (Possession upkeep), Q70 (the last 72 bytes of a CREATURES record), Q76, Q78, Q83 (`GameTicks` = 340), Q87 (`CreaturePool`: limit or quota), Q102, Q164, Q169, Q194, Q208 (the Imp's `ExpPerSecond` is 40× its training rate).
 
 ---
 

@@ -10,6 +10,13 @@ public enum PlayerMessageKind : uint
 {
     HeartAttacked = 1,
     CombatStarted = 6,
+
+    /// <summary>Type 52: Data1 is the warning stage 1–4 (subtable <c>0x006A0610</c>).</summary>
+    LowManaWarning = 52,
+
+    /// <summary>Type 53: Data1 3 is a creature chosen for removal; 1 is possession ended for
+    /// want of mana, which nothing here produces (subtable <c>0x006A0638</c>).</summary>
+    ManaShortfall = 53,
 }
 
 public readonly record struct PlayerMessage(
@@ -24,7 +31,8 @@ public readonly record struct PlayerMessage(
     }
 }
 
-/// <summary>The shared retained queue; currently supports the two combat position messages.</summary>
+/// <summary>The shared retained queue: the two combat position messages and the two
+/// mana-pressure messages. Any other kind, or a subtype its table lacks, is refused.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-messages.md")]
 public sealed class PlayerMessageQueue
 {
@@ -35,17 +43,30 @@ public sealed class PlayerMessageQueue
     public PlayerMessageQueue() => Entries = _entries.AsReadOnly();
     public IReadOnlyList<PlayerMessage> Entries { get; }
 
+    /// <summary>Kinds whose table flag bit 15 is set: the lifetime comes from a subtype row
+    /// selected by Data1, and a duplicate must match Data1 as well as recipient and kind.</summary>
+    public static bool HasSubtypes(PlayerMessageKind kind) =>
+        kind is PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall;
+
     public PlayerMessage? Post(WorldState world, byte recipient, PlayerMessageKind kind, int data1, int data2)
     {
         uint timeout = kind switch
         {
             PlayerMessageKind.HeartAttacked => (uint)SimulationTiming.TicksFromSeconds(120),
             PlayerMessageKind.CombatStarted => 0,
+            // Both subtables give every listed variant 20 seconds. Warning row 0 names no
+            // string, which discards the message; a variant off the table is refused.
+            PlayerMessageKind.LowManaWarning when data1 == 0 => uint.MaxValue,
+            PlayerMessageKind.LowManaWarning when data1 is >= 1 and <= 4 => (uint)SimulationTiming.TicksFromSeconds(20),
+            PlayerMessageKind.ManaShortfall when data1 is >= 1 and <= 5 => (uint)SimulationTiming.TicksFromSeconds(20),
+            PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall =>
+                throw new ArgumentOutOfRangeException(nameof(data1), data1, $"No subtype row for {kind}."),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
+        if (timeout == uint.MaxValue) return null;
         if (world.Player(recipient).Status != PlayerStatus.Playing || !world.Triggers.NotificationsEnabled)
             return null;
-        if (Unexpired(recipient, kind) is PlayerMessage retained) return retained;
+        if (Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained) return retained;
         if (_entries.Count == Capacity) _entries.RemoveAt(0);
         var added = new PlayerMessage(_nextId, recipient, kind, data1, data2, 0, timeout, true, false);
         _nextId = unchecked(_nextId + 1);
@@ -53,10 +74,11 @@ public sealed class PlayerMessageQueue
         return added;
     }
 
-    internal PlayerMessage? Unexpired(byte recipient, PlayerMessageKind kind)
+    internal PlayerMessage? Unexpired(byte recipient, PlayerMessageKind kind, int? subtype = null)
     {
         foreach (PlayerMessage message in _entries)
-            if (message.PlayerId == recipient && message.Kind == kind && message.Age < message.Timeout)
+            if (message.PlayerId == recipient && message.Kind == kind && message.Age < message.Timeout
+                && (subtype is null || message.Data1 == subtype.Value))
                 return message;
         return null;
     }

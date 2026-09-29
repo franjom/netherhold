@@ -15,6 +15,7 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**136** — `0x4C67CCBC9B5CA5C4`. Mana-pressure clocks, removal stamp and corpse bit (ADR-0277).
 **135** — `0x4289BE0A7A244163`. Stored worker idle flag (ADR-0274).
 **134** — `0xBBEF0554E88AFB16`. Creature acquisition order, including transfers (ADR-0273).
 **133** — `0x584EDA75014EEB18`. A keeper's portal entrance rows: boost and sack block (ADR-0272).
@@ -393,8 +394,5 @@ is a proven no-op at level 1: composition only.
 
 **14** — `0x5DB64D0C91D99368`. Reason not recorded here; see git history.
 
-**13** — `0xAEAF871CC4814DA1`.
-**12** — `0x9D2695B2F62707D2`.
-**11** — `0x12E4F45E48ACEB9B`.
-**10** — `0x06F71648486D0FEC`.
-**9** — `0x4F824667CDA7EF25`. Reasons for 9–13: see git history.
+**13** — `0xAEAF871CC4814DA1`; **12** — `0x9D2695B2F62707D2`; **11** — `0x12E4F45E48ACEB9B`;
+**10** — `0x06F71648486D0FEC`; **9** — `0x4F824667CDA7EF25`. Reasons for 9–13: see git history.
