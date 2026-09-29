@@ -359,12 +359,12 @@ level-scaled threat. `+0x46D` is **`LastDroppedCounter`** by DK2's dumper (`crea
 
 **Known:** nonnegative means reinforce. Scan owned creatures in list order; require
 descriptor bits 0 and `0x4000` clear, `0x004888C0==0`, generic eligibility
-`0x0045A6D0(0)` — the fight gate of `combat-acquisition.md` §2 — health above half of level-scaled maximum (the quarter-health and
-state-category 7/3 checks are redundant before that), category !=22, not in hand,
+`0x0045A6D0(0)` — the fight gate of `combat-acquisition.md` §2 — health above half of level-scaled maximum (a quarter-health test and
+a group 7/3 test of the current state's first table byte precede it, redundantly), category !=22 through a walk (`0x00478050`), not in hand,
 state !=`0x4C`, and not one of states `0xD1/0xFF/0x100/0x101`. If the threatened tile
-is not owned, seek an owned, unobstructed replacement in a square spiral bounded by
-twice the smaller map dimension. An already owned payload tile skips movement;
-eligible threat can still be subtracted (`computer-keeper-threat.md` §3).
+is not owned, seek an owned, unobstructed replacement in a square spiral (right, down,
+left, up, each side one longer) bounded by twice the larger map dimension. An already owned payload tile, the
+readers' usual drop site, skips movement; eligible threat is still subtracted (`computer-keeper-threat.md` §3). Built: ADR-0278.
 
 **Known:** threat scaling, FIFO retirement and the whole-tick allowance rule
 are in `computer-keeper-threat.md` §2–3; implementation boundary in §5.

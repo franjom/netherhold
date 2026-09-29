@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 136: mana-pressure clocks, removal stamp and corpse bit (ADR-0277).
+        // HashVersion 137: the tick a creature was spawned or last put down (ADR-0278).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x4C67CCBC9B5CA5C4UL, sim.StateHash());
+        Assert.Equal(0x5113A130122CFD15UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

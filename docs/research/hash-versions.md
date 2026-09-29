@@ -15,6 +15,7 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**137** — `0x5113A130122CFD15`. The tick a creature was spawned or last put down (ADR-0278).
 **136** — `0x4C67CCBC9B5CA5C4`. Mana-pressure clocks, removal stamp and corpse bit (ADR-0277).
 **135** — `0x4289BE0A7A244163`. Stored worker idle flag (ADR-0274).
 **134** — `0xBBEF0554E88AFB16`. Creature acquisition order, including transfers (ADR-0273).

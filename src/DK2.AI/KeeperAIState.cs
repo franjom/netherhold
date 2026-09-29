@@ -27,6 +27,22 @@ public sealed class KeeperAIState
     /// <summary>When it reaches zero, every gold tag the keeper placed comes off.</summary>
     public int UntagGoldCounter;
 
+    // --- the reactive half (§5.3, §5.4) ---
+
+    /// <summary>Bit 3 of the flag word: set by every combat message the walk reaches, even one
+    /// a full queue refuses. DK2's battle step clears and re-derives it; that step is unbuilt,
+    /// so nothing here reads it yet (ADR-0278).</summary>
+    public bool FightGoingOn;
+
+    /// <summary>Bit 6: an enemy's strength was found at an attacked position.</summary>
+    public bool HaveBeenAttacked;
+
+    /// <summary>The last enemy whose strength was found near an attack, for the attack planner.</summary>
+    public byte AttackingPlayerId;
+
+    /// <summary>The three-slot respond-to-attack ring and its residuals.</summary>
+    public KeeperResponseQueue Responses { get; } = new();
+
     /// <summary>The direction the site search currently walks (0 N, 1 W, 2 S, 3 E).</summary>
     public int SearchDirection;
 

@@ -5904,3 +5904,54 @@ hero and neutral tags before the update.
 **Limits.** No original run has been compared (Q57). Selection reads our
 `Level`. The Prison's Skeleton-cap fallback sets the corpse bit back
 (`0x004B3240`) and ours does too; other writers of the bit are unread.
+
+## ADR-0278 — Connect the keeper's attack response: the message walk, the reservation and both event arms as commands
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** The threat readers and the response queue existed apart from
+`KeeperAI.Think` (ADR-0245, `computer-keeper-threat.md` §5). Reading the event
+`0x004FE0B0` and both readers again shows the reinforcement payload is the
+reader's own owned drop site, so the event's owned-tile branch, which moves
+nobody and only debits threat, is its common path; the withdrawal arm is what
+moves creatures. Its dropped-counter gate needed DK2's `LastDroppedCounter`,
+which nothing here kept.
+
+**Decision.**
+1. `CreatureState.DroppedTick`, set at spawn and at every hand drop, gives
+   `HandRules.LastDroppedCounter`: zero in the hand, else the turns since, as a
+   word. Hash and snapshot version 137.
+2. `KeeperView` captures per creature the DK2 state, the state through a walk
+   (`0x00478050`), the fight gate, level-scaled maximum health, that counter,
+   whether this keeper's hand holds it and its rank in the owner's list (schema 8).
+3. `KeeperThreatResponder` runs steps 5 and 6 of the tick between the gold untag
+   and imp creation: unhandled kinds 1 and 6 are evaluated by the position reader
+   when a slot is free and acknowledged when it accepts them, other kinds are
+   acknowledged, and the fight flag is set either way. The reader rerolls
+   imprisonment through `SetRescuePriorityCommand` when the keeper owns a Prison,
+   records the attacker and reserves the event.
+4. The head event is dispatched with the tick's allowance and returns zero. Each
+   attempt restarts the owner-list walk with DK2's eligibility tests; a refused
+   permission spends the attempt; a withdrawal emits pick-up and drop on the heart
+   tile; a reinforcement moves only from an unowned payload, through the square
+   spiral, and debits threat either way.
+
+**Reason.** The event's arithmetic, retirement and whole-tick allowance were
+already verified; connecting them as commands keeps the simulation validating
+every pick-up and drop and keeps the keeper's state outside the world hash.
+
+**Deviations, ours.** Commands land a tick later, so an attempt's outcome is
+predicted from captured permissions; a creature predicted to move is excluded
+from later attempts, as DK2's is by its hand state, and one a full hand refuses
+stays a candidate. The fight flag is recorded but does not route step 11 to the
+unbuilt battle step, which is what clears it. The imprisonment reroll emits only
+bits that change against the mark pending this tick. `HandRules` now refuses an
+own creature held in another keeper's Prison, the one stored room membership the
+simulation keeps (`0x0047B740` calls `0x004E5A70`). Unrepresented: the
+player-wide Call to Arms flag and creature bit 20 in `0x004888C0`, the spiral's
+furniture-slot exclusion `0x00454110`, and kinds 12, 34 and 47, which nothing
+produces. The counter reads one on the tick after a drop, where DK2's update
+order gives the same value the turn after.
+
+**Limits.** No original run shows a keeper's response (Q482). The reinforcement
+arm's move is reachable only when the payload tile changes hands between the
+reservation and a later attempt.

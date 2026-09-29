@@ -142,7 +142,16 @@ still attempts selection. These are binary predictions, not live observations.
 Withdrawal excludes a creature when `LastDroppedCounter <= 300` **and the game
 turn is greater than 300**. The instruction check is at
 `0x004FE189..0x004FE1A1`; it does not exclude the first 300 turns. The field is
-the dumper's `LastDroppedCounter`, not time since the last pickup.
+the dumper's `LastDroppedCounter`, not time since the last pickup: the constructor
+zeroes the word (`0x00487711`), the creature update holds it at zero in state 76
+and increments it once a turn otherwise (`0x00489A4D`, `0x00489A5F`), so it wraps.
+`HandRules.LastDroppedCounter` derives it from the spawn or last drop tick.
+
+Both readers store their own drop site as the event's position whenever one
+exists (`0x004F9FB6..0x004F9FCF`); only a reservation without a drop site carries
+the attacked tile. Since a drop site is always an owned tile, the reinforcement
+arm's move below is reached only when that tile changes hands before a later
+attempt, and the spiral's bound is twice the larger map dimension.
 
 The reinforcement branch subtracts the selected creature's threat once the
 interaction predicate succeeds, even when pickup or drop fails. The subtraction
@@ -219,13 +228,29 @@ Trap construction and recharge do not filter this strength calculation. The
 simulation has no additional limbo or trap off-map lifecycle to project yet.
 
 Campaign keepers receive PLAYERS activation order from the harness; observation
-schema 7 stores its reversed active-list walk, casualty-priority masks and pickup permissions. Synthetic callers may supply
-activation order explicitly; otherwise it uses this simulation world's ascending
-creation order, reversed. This changes observation semantics, not world tick order.
-For current simulation versions see `hash-versions.md`. `KeeperResponseQueue` implements
-reservation, cancellation, FIFO retirement, signed residual accounting and the
-event's allowance contract. Its caller supplies creature selection and interaction
-outcomes; it cannot itself move creatures. `KeeperAI.Think` still does not consume
-these assessments. The priority command and represented pickup gates are built;
-remaining eligibility lifecycles are in `creature-pickup.md`. Integration still
-needs hand responses; acknowledging a message before those effects would lose work.
+schema 8 stores its reversed active-list walk, casualty-priority masks, pickup
+permissions and, per creature, the DK2 state, the state through a walk, the fight
+gate, level-scaled maximum health, `LastDroppedCounter`, whether this keeper's hand
+holds it and its rank in the owner's list. Synthetic callers may supply activation
+order explicitly; otherwise it uses this simulation world's ascending creation
+order, reversed. For current simulation versions see `hash-versions.md`.
+
+`KeeperResponseQueue` implements reservation, cancellation, FIFO retirement,
+signed residual accounting and the event's allowance contract.
+`KeeperThreatResponder` connects it (ADR-0278): `KeeperAI.Think` walks the
+retained messages in queue order after the gold untag, evaluates kinds 1 and 6
+through the position reader when a slot is free, acknowledges by command what the
+reader accepts, marks every other kind handled and sets the fight flag; then it
+dispatches the head event with the tick's allowance and keeps none of it. Each
+attempt restarts the owner-list walk with the tests of `computer-keeper-handlers.md`
+§10; a refused permission spends the attempt; a withdrawal emits pick-up and drop
+on the heart tile; a reinforcement moves only from an unowned payload through the
+spiral and debits threat either way. Commands land a tick later, so outcomes are
+predicted from the captured permissions and a creature moved this tick leaves the
+tick's candidates. Not represented: the player-wide Call to Arms flag and creature
+bit 20 of `0x004888C0`, the spiral's `0x00454110` exclusion, the room reader (no
+kind 34 producer), the battle step that clears the fight flag, and retreat (§4).
+`KeeperThreatResponseTests` distinguish the owned-payload no-move, the withdrawal
+walk and its counter gate, refused permission, the full queue, the cancelled
+reservation, the imprisonment reroll, the spiral's order and a live type 6 from
+`CombatSystem` ending in a drop on the heart. No original response is observed (Q482).

@@ -52,7 +52,7 @@ from the developers. The ones this mechanic needed:
 | `0x3e6` bit 0 | **`InHand`** | first bit of the first state-flag word |
 | `0x3e6` bit 26 | `WasLastDroppedOnARoom` | unused here |
 | `0x459` | `SpeedChangeTimer` | the slap's *speed* boost, see §5 |
-| `0x46d` | `LastDroppedCounter` | unused here |
+| `0x46d` | `LastDroppedCounter` | turns since spawn or the last drop, 0 in the hand; the keeper's hand routines read it (ADR-0278) |
 | `0x4bb` | **`LastSlapTick`** | when the last slap landed |
 | `0x4bf` | **`PickupTick`** | written on pick-up **and on drop** |
 | `0x4d7` | **`WorkFasterTimer`** | the slap's work bonus, counts down |

@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 7;
+    public const int FormatVersion = 8;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -46,6 +46,8 @@ public static class KeeperViewSnapshot
             w.Write(c.PosX); w.Write(c.PosY); w.Write(c.InHand); w.Write(c.CarriedByCreatureId);
             w.Write(c.RescuePriorityMask);
             w.Write(c.PickupPermitted); w.Write(c.CanPickUp);
+            w.Write(c.StateId); w.Write(c.ResolvedStateId); w.Write(c.MayFight); w.Write(c.MaxHealth);
+            w.Write(c.LastDroppedCounter); w.Write(c.InMyHand); w.Write(c.OwnershipRank);
         }
         w.Write(view.Traps.Count);
         foreach (KeeperTrapView t in view.Traps)
@@ -94,12 +96,14 @@ public static class KeeperViewSnapshot
         var availability = new AvailabilityState[ReadCount(r, 11)];
         for (int i = 0; i < availability.Length; i++)
             availability[i] = new AvailabilityState(r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean());
-        var creatures = new KeeperCreatureView[ReadCount(r, 44)];
+        var creatures = new KeeperCreatureView[ReadCount(r, 64)];
         for (int i = 0; i < creatures.Length; i++)
             creatures[i] = new KeeperCreatureView(r.ReadInt32(), r.ReadByte(), r.ReadByte(),
                 (CreatureActivity)r.ReadInt32(), r.ReadInt32(), r.ReadInt32(), r.ReadInt64(), r.ReadBoolean(),
                 r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt32(), r.ReadUInt16(),
-                r.ReadBoolean(), r.ReadBoolean());
+                r.ReadBoolean(), r.ReadBoolean(),
+                r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt32(),
+                r.ReadUInt16(), r.ReadBoolean(), r.ReadInt32());
         var traps = new KeeperTrapView[ReadCount(r, 12)];
         for (int i = 0; i < traps.Length; i++)
             traps[i] = new KeeperTrapView(r.ReadByte(), r.ReadByte(), r.ReadInt32(), r.ReadInt32(), r.ReadUInt16());

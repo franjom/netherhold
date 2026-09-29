@@ -36,6 +36,13 @@ public static class HandRules
     /// Belongs beside <see cref="CreatureDeathRules.IsDown"/> wherever a system makes a creature act: a held creature does not walk, work, sleep or look for a lair.</summary>
     public static bool IsHeld(CreatureState creature) => creature.InHand;
 
+    /// <summary>DK2's <c>LastDroppedCounter</c> (<c>+0x46D</c>): a word held at zero while the
+    /// creature is in the hand and counted up once a turn otherwise, from its construction or
+    /// its last drop (<c>0x00489A4D</c>, <c>0x00489A5F</c>). Wraps as the word does. Read by the
+    /// keeper's hand routines, which leave a creature alone for 300 turns after a drop.</summary>
+    public static ushort LastDroppedCounter(CreatureState creature, long now) =>
+        creature.InHand ? (ushort)0 : unchecked((ushort)(now - creature.DroppedTick));
+
     /// <summary>Creature permission plus hand capacity. Remaining binary gates needing
     /// missing lifecycle state are listed in hand-of-evil.md §3.</summary>
     public static bool CanPickUp(
@@ -63,7 +70,11 @@ public static class HandRules
             return world.Contains(creature.Tile)
                 && world.Tile(creature.Tile.X, creature.Tile.Y).OwnerPlayerId == playerId;
         if (creature.Dk2StateId is 51 or 52) return false;
-        return !definition.Flags.HasFlag(CreatureFlags.IsWorker) || (creature.Flags & 9) != 0;
+        if (definition.Flags.HasFlag(CreatureFlags.IsWorker) && (creature.Flags & 9) == 0) return false;
+        // The stored room must be nobody's or the owner's. A Prison writes that membership on
+        // entry (0x0047B740 calls 0x004E5A70), so an own creature in another keeper's cells is
+        // refused; other rooms' membership is not stored here (creature-pickup.md).
+        return !PrisonRules.IsImprisoned(creature) || creature.PrisonOwnerPlayerId == playerId;
     }
 
     /// <summary>Whether this object is in somebody's hand.</summary>

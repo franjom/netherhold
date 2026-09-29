@@ -104,11 +104,15 @@ public static class NeedRules
 
     /// <summary>The category DK2 judges a creature by: its state's, or through a walk the state
     /// the walk resumes (<c>+0xDF</c>).</summary>
-    public static CreatureStateCategory ResolvedCategory(CreatureState creature)
+    public static CreatureStateCategory ResolvedCategory(CreatureState creature) =>
+        CreatureStateTable.Get(ResolvedStateId(creature)).Category;
+
+    /// <summary>The state behind <see cref="ResolvedCategory"/>: the current one, or through a
+    /// walk the one it resumes (<c>0x00478050</c> reads <c>+0xDF</c> when the category is 2).</summary>
+    public static int ResolvedStateId(CreatureState creature)
     {
         ref readonly CreatureStateDef current = ref CreatureStateTable.Get(creature.Dk2StateId);
-        int resolved = current.IsUtility ? creature.UtilityNewState : creature.Dk2StateId;
-        return CreatureStateTable.Get(resolved).Category;
+        return current.IsUtility ? creature.UtilityNewState : creature.Dk2StateId;
     }
 
     /// <summary>Whether the hunger clock runs: not in a state flagged

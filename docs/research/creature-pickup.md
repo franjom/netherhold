@@ -70,9 +70,12 @@ The existing `CreatureState.Flags` starts at 9; placed/party projection still
 applies its existing record masks. The pickup-bit subset of the WorkerJob leave
 hook and prison delivery is built (ADR-0263). The existing compressed inner
 prison walks clear and restore the bits within one tick; this does not reproduce
-their original duration. Teleport/combat writers, Turncoat, the disguise tag and
-the original room association remain unimplemented.
+their original duration. Of the stored room association only a Prison's is kept
+(`PrisonOwnerPlayerId`, written as `0x0047B740` calls `0x004E5A70` on entry), so an
+own creature in another keeper's cells is refused; other rooms' membership,
+teleport/combat writers, Turncoat and the disguise tag remain unimplemented.
 A tile's room is not substituted for that association. The existing
 zero-health refusal remains a simulation adaptation before its delayed collapse.
-Consequently live keeper defence remains gated on these dependencies (ADR-0262).
+The keeper's attack response consumes this permission from its observation
+(ADR-0278); the unrepresented gates above still bound that response's fidelity.
 No new original-game observation validates this slice.

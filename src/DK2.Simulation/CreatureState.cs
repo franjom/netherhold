@@ -462,6 +462,10 @@ public sealed class CreatureState
     /// <see cref="HandRules.AngerGraceSeconds"/> after the pick-up.</summary>
     public long PickupTick;
 
+    /// <summary>The tick this creature was spawned or last put down: the basis of DK2's
+    /// <c>LastDroppedCounter</c>, <see cref="HandRules.LastDroppedCounter"/> (ADR-0278).</summary>
+    public long DroppedTick;
+
     /// <summary>DK2's <c>WasLastDroppedOnARoom</c> (<c>+0x3E6</c> bit 26): the last drop landed on
     /// a room tile (ADR-0202).</summary>
     public bool DroppedOnARoom;
@@ -970,6 +974,7 @@ public sealed class CreatureState
         hash.Add(JobTileIndex);
         hash.Add(InHand);
         hash.Add(PickupTick);
+        hash.Add(DroppedTick);
         hash.Add(DroppedOnARoom);
         hash.Add(NextPayTryTick);
         hash.Add(LastSlapTick);

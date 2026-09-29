@@ -41,12 +41,26 @@ public sealed class KeeperView
 
         AllRooms = RoomIndex.Build(world, database).Select(r => new KeeperRoomView(r)).ToList().AsReadOnly();
         OwnRooms = AllRooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
+        // Each owner's acquisition-ordered list, the order DK2's keeper walks (ADR-0273).
+        var ranks = new Dictionary<int, int>();
+        foreach (byte owner in world.PlayerIds)
+        {
+            int rank = 0;
+            foreach (CreatureState listed in world.OwnedCreatures(owner)) ranks[listed.Id] = rank++;
+        }
+        List<HandItem> hand = world.Player(playerId).Hand;
         Creatures = world.Creatures.Select(c => new KeeperCreatureView(
             c.Id, c.CreatureTypeId, c.OwnerPlayerId, c.Activity, c.Health, c.Level,
             c.LastSlapTick, HandRules.CanSlap(database, c, playerId),
             c.PosX, c.PosY, c.InHand, c.CarriedByCreatureId, c.RescuePriorityMask,
             HandRules.HasPickupPermission(world, database, c, playerId),
-            HandRules.CanPickUp(world, database, c, playerId))).ToList().AsReadOnly();
+            HandRules.CanPickUp(world, database, c, playerId),
+            // A corpse record holds no state (-1) and no table row; it is never a candidate.
+            c.Dk2StateId, CreatureStateMachine.HasState(c) ? NeedRules.ResolvedStateId(c) : c.Dk2StateId,
+            CreatureStateMachine.HasState(c) && DK2.Simulation.Combat.CombatRules.MayLookForAFight(world, c, false),
+            CreatureLevelRules.MaxHealth(database, database.CreatureById(c.CreatureTypeId), c.Level),
+            HandRules.LastDroppedCounter(c, world.CurrentTick.Value), hand.Contains(HandItem.Of(c)),
+            ranks.TryGetValue(c.Id, out int rankOf) ? rankOf : -1)).ToList().AsReadOnly();
         Traps = world.Traps.Select(t => new KeeperTrapView(t.TrapId, t.PlayerId, t.X, t.Y,
             database.Traps[t.TrapId].Threat)).ToList().AsReadOnly();
 

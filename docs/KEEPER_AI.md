@@ -1048,8 +1048,9 @@ suppression, expiry and explicit acknowledgment commands. It is hashed and
 snapshotted; `KeeperView` copies the recipient's messages without draining them.
 ADR-0245 defines the sweep timing that preserves zero-timeout messages for AI.
 Other types and their producers remain unbuilt, including room and mood messages.
-`KeeperAI` still runs its proactive half only; consuming combat messages and
-responding to attacks are the next implementation slice (2026-09-28).
+`KeeperAI` consumes kinds 1 and 6 through `KeeperThreatResponder`: reservation,
+acknowledgment and the respond-to-attack event as commands (ADR-0278, 2026-09-29).
+Kinds 12, 34 and 47 wait for producers.
 
 Alliances, player status, and trap and door instances now exist (ADR-0159,
 ADR-0162, ADR-0231). Per-player spell availability is stored and can change through
@@ -1102,10 +1103,13 @@ The proactive foundation already exists (§12.8). **Future direction, agreed 202
 2. **Observation, messages and defence.** The captured, serialisable observation is built
    (ADR-0244); retained combat messages are built (ADR-0245), as is pure threat
    evaluation and the response queue (`research/computer-keeper-threat.md` section 5).
-   Live observation assessment, casualty-priority commands and represented pickup gates are built;
-   next: remaining eligibility lifecycles and event integration,
-   reinforcement and retreat, then the remaining message families and producers.
-   Acceptance: an attack on its dungeon causes an unaided defensive response.
+   Live observation assessment, casualty-priority commands, represented pickup gates
+   and the respond-to-attack event are built (ADR-0278): an attack the keeper's
+   creature engages is acknowledged, reserved and dispatched as pick-up and drop
+   commands. Next: the battle step and Call to Arms that DK2's fight flag routes to,
+   retreat of the wounded, then the remaining message families and producers.
+   Acceptance: an attack on its dungeon causes an unaided defensive response; the
+   withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
 3. **Dungeon management.** Add need-driven room expansion/building, training moves,
    mood responses, prisoners, specials and research decisions. Acceptance: a verified
    need changes its orders. Reuse §12.3–12.4's existing commands and state.
@@ -1159,11 +1163,12 @@ Deviations and approximations, each a candidate ADR:
   coordinates; room-list tie order also remains approximate. See handler section 3.
 - `SlapCooldownTicks` (§12.5).
 
-The response queue is tested independently but not yet dispatched by `Think`.
+The response queue is dispatched by `Think` through `KeeperThreatResponder` (ADR-0278);
+schema 8 adds each creature's state, fight gate, health basis, dropped counter, hand and list rank.
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
 now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);
-remaining gaps: `research/creature-pickup.md`. Response dispatch remains unconnected.
+remaining gaps: `research/creature-pickup.md`. Response dispatch is connected; the battle step, Call to Arms and retreat are not.
 Combat messages reach the observation; reactive and battle decisions, the remaining
 message families, personality loader and §5.1 step 9 training moves remain unbuilt.
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.
