@@ -266,7 +266,7 @@ and the chooser hands out only a free slot whose cell is at or under it (ADR-026
 Deviates: the cell stands for DK2's exact point, merging where it merges within
 1/64 of a tile, and the hand limit is unscaled, which agrees below level 5.
 
-## 11. A store sweeps loose gold on its own tiles back in (not built)
+## 11. A store sweeps loose gold on its own tiles back in (built, ADR-0285)
 
 Read 2026-09-28. STRONGLY INFERRED from the binary; the outcome matches the
 owner's Level 2 play. They dropped 20,000+ on one Heart tile. The Heart took
@@ -290,5 +290,12 @@ owner's Level 2 play. They dropped 20,000+ on one Heart tile. The Heart took
 - **`0x004F3C40`**, reached through a virtual slot, recounts the store, zeroes it
   and sweeps floor piles (object 1) in with `0x004F3B60`. Probably a rebuild path.
 
-Ours has no sweep. Imps fetch a pile on the keeper's own ground (§9), which reaches
-the same end more slowly and only while imps are free.
+**Seen in a capture (2026-09-29, level2-live1).** The owner dropped a 36,400 pile
+on a Heart rim tile at turn 1020. At capture tick 1023, which is turn 1024, the
+sixteen rim piles were topped to 1,000 (+15,500) and a 20,900 pile lay on the tile.
+Hand drops onto the floor beside the Heart had merged into that pile first.
+
+Built as `StoreSweepSystem` (ADR-0285): every turn divisible by 16, each loose pile on
+a keeper's Treasury or Heart tile goes in along the chain from its own tile
+(`GoldStore.FillAlongChainFrom`). Deviates: the pile keeps its object; the "not full"
+test is left out, as a full store takes nothing; `+0x51` is taken as non-zero (Q472).

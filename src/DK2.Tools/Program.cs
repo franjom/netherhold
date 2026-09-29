@@ -2772,7 +2772,7 @@ static int RunTriggerCsv(
     var seenCreatures = new Dictionary<int,
         (byte Type, byte Owner, TilePos Tile, int Health, int State, int Target)>();
 
-    int goldAsked = 0, goldMissed = 0, dropsMoved = 0;
+    int goldAsked = 0, goldMissed = 0, goldMoved = 0, dropsMoved = 0;
     using (var writer = new StreamWriter(outPath))
     {
         simulation.EmitTriggerTurnsTo(writer);
@@ -2817,7 +2817,8 @@ static int RunTriggerCsv(
         Console.WriteLine($"  tiles: {watched.Length} watched -> {tilePath}");
     // A pickup of nothing is dropped silently by the hand, so the miss is counted here.
     if (goldAsked > 0)
-        Console.WriteLine($"  gold: {goldAsked} pickups, {goldMissed} found no pile of ours on DK2's tile");
+        Console.WriteLine($"  gold: {goldAsked} pickups, {goldMissed} found no pile of ours on DK2's tile or next to it, "
+            + $"{goldMoved} took ours from the next tile");
     if (dropsMoved > 0)
         Console.WriteLine($"  drops: {dropsMoved} moved to the nearest tile they land on, as the player would");
 
@@ -2923,15 +2924,27 @@ static int RunTriggerCsv(
         return best;
     }
 
+    // Our imps put gold down where they stand, which can be the next tile over from DK2's
+    // pile; a player grabs the pile they see, so a pile on a neighbouring tile stands in
+    // (l2nohand: 16 of 39 grabs missed, and the Library then lacked the gold for 6 tiles).
     int GoldOnTile(int tileIndex)
     {
         goldAsked++;
+        int x = tileIndex % world.Width, y = tileIndex / world.Width;
+        int best = 0, bestDistance = int.MaxValue;
         foreach (ObjectState thing in world.Objects)
-            if (thing.TileIndex == tileIndex && !thing.InHand && thing.CarriedByCreatureId < 0
-                && database.ObjectById(thing.ObjectTypeId) is { IsGold: true })
-                return thing.Id;
-        goldMissed++;
-        return 0;
+        {
+            if (thing.InHand || thing.CarriedByCreatureId >= 0
+                || database.ObjectById(thing.ObjectTypeId) is not { IsGold: true })
+                continue;
+            int dx = Math.Abs(thing.TileIndex % world.Width - x), dy = Math.Abs(thing.TileIndex / world.Width - y);
+            if (Math.Max(dx, dy) > 1 || dx + dy >= bestDistance) continue;
+            best = thing.Id;
+            bestDistance = dx + dy;
+        }
+        if (best == 0) goldMissed++;
+        else if (bestDistance > 0) goldMoved++;
+        return best;
     }
 }
 

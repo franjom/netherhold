@@ -185,6 +185,25 @@ public static class GoldStore
         return Math.Max(0, left);
     }
 
+    /// <summary>The same walk from a given tile of the room, wrapping once, and what did not fit:
+    /// the deposit <c>0x004F3C60</c> the store sweep hands a loose pile to, from the pile's tile
+    /// (gold-on-the-floor.md §11).</summary>
+    public static int FillAlongChainFrom(
+        WorldState world, GameDatabase database, RoomInstance room, int startTile, int amount)
+    {
+        int[] chain = SlabChain.Order(world, room);
+        int start = Math.Max(0, Array.IndexOf(chain, startTile));
+        int left = amount;
+        for (int step = 0; step < chain.Length && left > 0; step++)
+        {
+            int tile = chain[(start + step) % chain.Length];
+            int put = Math.Min(SpaceIn(world, database, tile, room), left);
+            world.TileAtIndex(tile).GoldHeld += put;
+            left -= put;
+        }
+        return Math.Max(0, left);
+    }
+
     /// <summary>
     /// Stores as much of <paramref name="amount"/> as this player's tiles will
     /// take, and returns how much was stored.

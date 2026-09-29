@@ -78,10 +78,23 @@ distance"*, and it has two shapes:
 - **kind 15** deposits: if the imp holds any gold (`FUN_00464360(0)`, `+0x3FB`
   non-zero), the store chooser `FUN_00464400`.
 
-The ring scan walks concentric squares — the imp's own tile first, then the
-ring at distance 1, then 2 — and skips a tile unless a flag bit (`tile+0xb &
-0x20`, unread) is set or the tile carries a dig task. Within a ring the order
-is fixed by the scan, not by distance.
+The ring scan walks **diamonds**, not squares (read 2026-09-29 by running the
+function's own bytes under an emulator): the imp's own tile first, then every
+tile at Manhattan distance 1, then 2, and one ring past the radius it is given.
+Each ring is four sides walked clockwise corner to corner — north to east, east
+to south, south to west, west to north — both corners visited, starting at side
+`k` of a start side chosen once per scan. For claims (kind 3) the second
+callback `0x00469340` chooses it: it grades the four neighbours in the order
+north, east, south, west (`0x00469460`, ranked by the byte table at
+`0x00698628`: a marked wall or seam 1, a rival's room 3, a rival's floor 4,
+unowned floor 5 — each only if it touches the keeper's floor — a wall to
+reinforce or repair 12, anything else 127) and keeps the first of the best. For
+the other kinds, which pass no chooser, the side is `rand(4)` from the world
+seed, drawn at every scan. A tile whose byte `+0xB` has bit `0x20` **set** is
+skipped unless it carries a dig or mine task. The bit is clear on tiles touching
+anything the keeper owns, walls included (level2-live1), so for claims it is
+implied by the handler's own adjacency test; its writers are unread (Q487).
+Built for claims (ADR-0285); the drop scan's rings are still squares here (Q488).
 
 ### 2.3 The dispatch, and the two per-tile chains
 
@@ -106,7 +119,7 @@ Two *chains* call handlers in a fixed order and stop at the first that takes:
 |---|---|---|---|
 | **1** | dig a marked wall | `0xd` | raised by the **tile-marking code** when the terrain's `GoldValue` is 0; handler requires Solid, not Impenetrable |
 | **2** | mine a marked seam | `0x19` | same raiser when `GoldValue` ≠ 0; handler requires Solid with `GoldValue` ≠ 0, owner nobody |
-| **3** | **claim floor** | `0xf` / `0x13` / `0x11` | tile **not** the imp's, **not** Solid/Water/Lava, owner nobody **or not allied** (alliance table `FUN_004bf3d0`), no room structure on it, and **orthogonally adjacent to the imp's own floor** (`FUN_00453b30`). Three states: plain unowned path; enemy floor (flag Attackable); enemy room tile |
+| **3** | **claim floor** | `0xf` / `0x13` / `0x11` | tile **not** the imp's, **not** Solid/Water/Lava, owner nobody **or not allied** (alliance table `FUN_004bf3d0`), no room structure on it, and **orthogonally adjacent to the imp's own floor** (`FUN_00453b30`: a neighbour counts when the keeper owns it, its terrain is Ownable and not Solid — so not the keeper's walls; built ADR-0285). Three states: plain unowned path; enemy floor (flag Attackable); enemy room tile |
 | **6** | **reinforce a wall** | `0x15` | worked from an adjacent tile that is **not Solid and owned by the imp** — the wall-stance. Target: Solid, not Impenetrable, `GoldValue` 0, Ownable; either the imp's own with tile health below **half** a per-terrain ceiling, or nobody's, below half, and adjacent to own floor |
 | **16** | **fix (repair) a wall** | `0x17` | same stance; target owned by the imp, Solid, not Impenetrable, `GoldValue` 0, tile health **≠** the ceiling, adjacent to own floor |
 | **7** | **gold off the floor** | `0x1b` | object with definition flag `TypeGold` (0x40), owner = the level-wide floor-gold id; tile must be the imp's own **or water** (Q144) |

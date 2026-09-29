@@ -6105,3 +6105,38 @@ keeper's own RNG (ADR-0244).
 
 **Limits.** Heal, Inferno and Chicken casts, the attack planner's front
 (`0x004FECE0`, `0x004FE9C0`) and the retreat are not built. No original run (Q485).
+
+## ADR-0285 — An imp claims outward from its keeper's floor in DK2's ring order, and a store sweeps in loose gold
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** The owner played Level 2 live without picking up an imp
+(`reverse-engineering/dk2runs/level2-live1/`, packet `l2nohand`). Replayed in our
+engine over 20 seeds, the Library placed at 1055 was whole in 3. Three rules were
+missing, each read from the binary (`research/imp-task-priority.md` §2.2,
+`research/gold-on-the-floor.md` §11).
+
+**Decision.**
+1. A claim's target must touch the keeper's own ground that is Ownable and not
+   Solid (`0x00453b30`): the keeper's walls no longer start a claim.
+2. The idle claim search (kind 3) is DK2's ring scan (`0x00468d10`): the worker's
+   tile, then Manhattan rings walked clockwise corner to corner, starting on the
+   side `0x00469340` grades best among north, east, south and west (the table at
+   `0x00698628`), the first of equal grades winning. A tile with no route is passed
+   over. The drop scan keeps its own search.
+3. `StoreSweepSystem`: every 16th turn a loose gold pile on a keeper's Treasury or
+   Heart tile is deposited along the room's chain from its tile
+   (`GoldStore.FillAlongChainFrom`), and what does not fit stays on the tile.
+4. The replay's gold grab takes our pile on DK2's tile or the next one.
+
+**Reason.** Over the 20 seeds the Library is whole in 20 (3 before), the first
+Hatchery in 11 (2), the Lair in 16 (19; the four short by two tiles are claim
+timing), and the early claimers that came from claiming beside walls are gone (0,
+3 before). Ours now claims up DK2's column tile for tile, about ten ticks early.
+Level 1 over 50 seeds: claim timing gap 57 → 42 ticks, digs unchanged. `l2win928`
+over 20 seeds: an early claimer (before tick 200) in 9, against DK2's 3 of 7.
+No state is added; the determinism fixture does not reach these rules, so the
+pin stands.
+
+**Limits.** The claim handler's theft of a farther imp's claim (Q155) and its
+`tile+0xB` bit `0x20` pre-filter (Q487) are not built. The Heart's `+0x51` gate
+(Q472) is taken as always on. A pile keeps its object where DK2 remakes it.

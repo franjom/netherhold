@@ -813,7 +813,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         if (TryTakeBlueprint(context, creature, grid)) return true;
 
         if (TryTakeMarkedExcavation(context, creature, grid)) return true;
-        if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
+        if (TryTakeClaim(context, creature, grid)) return true;
 
         // The last two entries of DK2's Tier A table, in its order: kind 13,
         // carry an unconscious creature, then kind 12, a corpse. Both below
@@ -889,7 +889,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         WorldPathGrid grid, ImpTaskKind kind) => kind switch
     {
         ImpTaskKind.Excavate or ImpTaskKind.Mine => TryTakeMarkedExcavation(context, creature, grid),
-        ImpTaskKind.Claim => TryTakeJobAt(context, creature, grid, JobPriority.Claim),
+        ImpTaskKind.Claim => TryTakeClaim(context, creature, grid),
         ImpTaskKind.Reinforce => TryTakeJobAt(context, creature, grid, JobPriority.Reinforce),
         ImpTaskKind.FetchGold => TryTakeFloorGold(context, creature, definition, grid),
         ImpTaskKind.CarryObject => TryTakeObject(context, creature, definition, grid),
@@ -1095,6 +1095,111 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             if (!database.TerrainById(world.Tile(nx, ny).TerrainId).IsSolid) return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// DK2's claim search (kind 3: <c>0x00468520</c> runs the ring scan <c>0x00468d10</c> with the
+    /// claim handler <c>0x0046ab50</c>, whole map). The worker's own tile first, then diamond rings
+    /// of Manhattan radius 1, 2, …, each walked clockwise from one corner to the next — north to
+    /// east, east to south, south to west, west to north, both corners visited — starting at the
+    /// side <see cref="ClaimStartSide"/> picks. The first tile the handler accepts is taken: the
+    /// claim predicates, then a route to it (a tile with no route is passed over).
+    /// <para>Not built: taking a held claim from a farther imp (Q155), and the <c>+0xB</c> bit
+    /// <c>0x20</c> pre-filter (Q487). imp-task-priority.md §2.2, ADR-0285.</para>
+    /// </summary>
+    private bool TryTakeClaim(SimulationContext context, CreatureState creature, WorldPathGrid grid)
+    {
+        if (_within is not null) return TryTakeJobAt(context, creature, grid, JobPriority.Claim);
+
+        WorldState world = context.World;
+        TilePos at = creature.Tile;
+        if (TryClaimAt(context, creature, grid, at)) return true;
+
+        int side = ClaimStartSide(context, world, at, creature.OwnerPlayerId);
+        for (int r = 1; ; r++)
+        {
+            bool inMap = false;
+            for (int s = 0; s < 4; s++)
+            {
+                int k = (side + s) & 3;
+                for (int i = 0; i <= r; i++)
+                {
+                    var target = k switch
+                    {
+                        0 => new TilePos(at.X + i, at.Y - r + i),
+                        1 => new TilePos(at.X + r - i, at.Y + i),
+                        2 => new TilePos(at.X - i, at.Y + r - i),
+                        _ => new TilePos(at.X - r + i, at.Y - i),
+                    };
+                    if (!world.Contains(target)) continue;
+                    inMap = true;
+                    if (TryClaimAt(context, creature, grid, target)) return true;
+                }
+            }
+            if (!inMap) return false;
+        }
+    }
+
+    private bool TryClaimAt(SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos target)
+    {
+        if (!TryJobOn(context, grid, target, target, creature.OwnerPlayerId, JobPriority.Claim, creature.Id,
+                      out int tileIndex, out TileWorkKind kind))
+            return false;
+        if (!_pathfinder.TryFindNearest(grid, creature.Tile, stand => stand == target, _route)) return false;
+        CommitJob(context, creature, tileIndex, kind, JobPriority.Claim);
+        return true;
+    }
+
+    /// <summary>
+    /// Which side of the ring the claim search starts on (<c>0x00469340</c>): the four neighbours
+    /// in the order north, east, south, west, each graded by <see cref="ClaimSideGrade"/>, and the
+    /// first of the lowest grades wins.
+    /// </summary>
+    private static int ClaimStartSide(SimulationContext context, WorldState world, TilePos at, byte playerId)
+    {
+        int best = 0, bestGrade = int.MaxValue;
+        for (int k = 0; k < 4; k++)
+        {
+            var n = k switch
+            {
+                0 => new TilePos(at.X, at.Y - 1),
+                1 => new TilePos(at.X + 1, at.Y),
+                2 => new TilePos(at.X, at.Y + 1),
+                _ => new TilePos(at.X - 1, at.Y),
+            };
+            int grade = ClaimSideGrade(context, world, n, playerId);
+            if (grade >= bestGrade) continue;
+            best = k;
+            bestGrade = grade;
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// A neighbour's grade for <see cref="ClaimStartSide"/>, lower first: <c>0x00469460</c> sorts the
+    /// tile into a class and the byte table at <c>0x00698628</c> ranks the classes. A marked wall or
+    /// seam 1; floor to take that touches the keeper's floor — a rival's room 3, a rival's floor 4,
+    /// unowned floor 5; a wall to reinforce or repair (not gold, below MaxHealth, unowned or the
+    /// keeper's own, touching its floor: <c>0x00453dc0</c>, <c>0x00453e30</c>) 12; anything else 127.
+    /// </summary>
+    private static int ClaimSideGrade(SimulationContext context, WorldState world, TilePos at, byte playerId)
+    {
+        if (!world.Contains(at)) return 127;
+        ref TileState tile = ref world.Tile(at);
+        TerrainDef terrain = context.Database.TerrainById(tile.TerrainId);
+        bool unowned = tile.OwnerPlayerId is PlayerIds.Unowned or PlayerIds.Neutral;
+        if (!terrain.IsSolid)
+        {
+            if (terrain.IsWater || terrain.IsLava || tile.OwnerPlayerId == playerId
+                || !TouchesOwnLand(context, world, at, playerId))
+                return 127;
+            return terrain.IsRoom ? 3 : unowned ? 5 : 4;
+        }
+        if (tile.IsTaggedBy(playerId)) return 1;
+        if (!terrain.IsImpenetrable && terrain.GoldValue == 0 && tile.Health != terrain.MaxHealth
+            && (unowned || tile.OwnerPlayerId == playerId) && TouchesOwnLand(context, world, at, playerId))
+            return 12;
+        return 127;
     }
 
     /// <summary>
@@ -1324,13 +1429,14 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Whether any tile orthogonally adjacent to <paramref name="target"/>
-    /// belongs to the keeper — the condition on an unprompted job the worker
+    /// Whether any tile orthogonally adjacent to <paramref name="target"/> is the
+    /// keeper's own <b>floor</b> — the condition on an unprompted job the worker
     /// does standing on the target itself (CONFIRMED, Q42).
-    /// <para>Orthogonal rather than the eight-connected neighbourhood the mover
-    /// uses, matching the way work spreads (Q27). That narrowing is STRONGLY
-    /// INFERRED: a keeper's territory creeping diagonally across a corner is not
-    /// what the original shows.</para>
+    /// <para>READ from <c>0x00453b30</c>: each of the four neighbours counts only
+    /// when its owner is the keeper, its terrain is Ownable and it is not Solid, so
+    /// the keeper's own walls do not start a claim. Level 2 live capture
+    /// (level2-live1): the heart's walls touch the dug Lair on three sides, and the
+    /// first claim is the one tile touching the heart's gap, then outward from it.</para>
     /// </summary>
     private static bool TouchesOwnLand(
         SimulationContext context, WorldState world, TilePos target, byte playerId)
@@ -1338,7 +1444,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         for (int i = 0; i < NeighbourDx.Length; i++)
         {
             var neighbour = new TilePos(target.X + NeighbourDx[i], target.Y + NeighbourDy[i]);
-            if (StandsOnOwnLand(context, world, neighbour, playerId)) return true;
+            if (StandsOnOwnLand(context, world, neighbour, playerId)
+                && !context.Database.TerrainById(world.Tile(neighbour).TerrainId).IsSolid)
+                return true;
         }
 
         return false;

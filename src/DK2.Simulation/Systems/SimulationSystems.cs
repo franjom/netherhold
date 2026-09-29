@@ -57,6 +57,7 @@ public static class SimulationSystems
         new ImpTaskSystem(),
         new TileWorkSystem(),
         new BridgeBurnSystem(),
+        new StoreSweepSystem(), // a store takes in loose gold on its tiles every 16th turn
         // The removal countdown reads the stamp and the mana of the last payment before this
         // tick's payment, as DK2's thing update precedes its player update (ADR-0277).
         new ManaRemovalSystem(),
