@@ -218,6 +218,7 @@ public sealed class CreatureState
     /// <summary>Index into the CREATURES table — the definition this creature is an instance of.</summary>
     public byte CreatureTypeId;
 
+    // Change a live creature's owner through WorldState.ChangeCreatureOwner so list order follows it.
     public byte OwnerPlayerId;
 
     /// <summary>The root of this creature's trigger tree, or zero for none.</summary>

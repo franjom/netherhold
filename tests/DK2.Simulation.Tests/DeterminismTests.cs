@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 133: a keeper's portal entrance rows, boost and block (ADR-0272).
+        // HashVersion 134: persistent creature acquisition order (ADR-0273).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x584EDA75014EEB18UL, sim.StateHash());
+        Assert.Equal(0xBBEF0554E88AFB16UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

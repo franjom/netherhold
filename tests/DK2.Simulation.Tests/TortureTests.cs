@@ -146,6 +146,7 @@ public class TortureTests
         Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
         captive.Health = 1500;
         captive.RescuePriorityMask = 0x8044;
+        CreatureState resident = world.SpawnCreature(db, GoblinId, Keeper, Cell);
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
@@ -157,6 +158,8 @@ public class TortureTests
         Assert.Equal(Keeper, captive.OwnerPlayerId);
         Assert.Equal(1500 - 810, captive.Health);
         Assert.Equal((ushort)0x8040, captive.RescuePriorityMask);
+        Assert.Equal(new[] { captive.Id, resident.Id }, world.OwnedCreatures(Keeper).Select(c => c.Id));
+        Assert.DoesNotContain(captive, world.OwnedCreatures(Rival));
         Assert.Equal(0, captive.TorturedDuration);
         Assert.False(PrisonRules.IsImprisoned(captive));
         Assert.False(TortureRules.IsBeingTortured(captive));

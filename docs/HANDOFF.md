@@ -44,9 +44,10 @@ tested independently, including the event's whole-tick allowance rule. Combat-me
 reactive decisions and an original command trace remain open. The casualty-priority
 command and imp reader are built (ADR-0261). Represented pickup gates are captured;
 worker task-exit and prison-delivery flag writes are built (ADR-0263).
-Mana-pressure rules are tested independently; live lifecycle integration remains
-open (ADR-0266). Other eligibility lifecycles and live response dispatch remain next
-(2026-09-28; `KEEPER_AI.md` §12.8).
+Mana-pressure rules are tested independently (ADR-0266). Creature ownership order
+is maintained and persisted (ADR-0273); idle-flag and removal integration, other
+eligibility lifecycles and live response dispatch remain next
+(2026-09-29; `KEEPER_AI.md` §12.8).
 
 ### What exists (present tense; the ADR is the specification)
 

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 133;
+    private const int FormatVersion = 134;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -382,6 +382,8 @@ public static class WorldSnapshot
             // request again from a different position and the restored run would diverge.
             WriteBody(w, c.Body);
         }
+
+        foreach (CreatureState c in world.CreatureOwnershipOrder) w.Write(c.Id);
 
         w.Write(world.NextShotId);
         w.Write(world.Shots.Count);
@@ -865,6 +867,10 @@ public static class WorldSnapshot
         // so the counter is restored rather than derived: a level that has had
         // creatures die must not hand out an id it has already used.
         world.NextCreatureId = nextCreatureId;
+
+        int[] ownershipOrder = new int[creatureCount];
+        for (int i = 0; i < ownershipOrder.Length; i++) ownershipOrder[i] = r.ReadInt32();
+        world.RestoreCreatureOwnershipOrder(ownershipOrder);
 
         int nextShotId = r.ReadInt32();
         int shotCount = r.ReadInt32();

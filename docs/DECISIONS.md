@@ -5766,3 +5766,28 @@ creature arrive first.
 **Limits.** No sacking, so no block is ever set. Our random numbers are ours.
 HashVersion and FormatVersion 133, pin `0x584EDA75014EEB18`. With this, the full
 Level 2 recording replays to a win (3508; DK2 3263), and Level 1 still wins.
+
+## ADR-0273 — Preserve creature acquisition order independently of update order
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** The original owner list prepends acquisitions and transfers. Creature
+ids cannot reconstruct its tie order after conversion. Evidence:
+`research/creature-ownership.md`.
+
+**Decision.** Keep an ordered list of creature references alongside the world's
+existing creature storage. Creation prepends; removal deletes; live transfers
+use `WorldState.ChangeCreatureOwner`. `OwnedCreatures(player)` filters the order
+to that owner and excludes the existing corpse representation. A same-owner
+request leaves the order untouched. Persist the ordered ids and include them in
+the world hash; keep hash/snapshot versions together at 134.
+
+**Reason.** One acquisition sequence gives each owner the original relative
+order without replacing the simulation's existing update order or introducing
+linked-list pointers into every creature. Cross-owner relative order is an
+internal representation detail. Corpses leave the reader immediately and the
+stored sequence when removed from the world.
+
+**Limits.** Torture and defection now maintain ownership order; their other
+conversion behaviour is unchanged. Existing selectors and AI observations have
+not switched to this reader. Stored idle-flag integration and destruction side
+effects remain prerequisites for live mana removal (Q57).

@@ -73,9 +73,10 @@ The rules are executable and tested independently; no system calls them yet.
 `ManaSystem` still floors mana at zero. Its existing once-second phase is not
 the original per-player deadline. Possession/CTA/Reaper branches can return
 before the original warning block; those effects are outside these pure rules.
-Owned-list order, the stored idle lifecycle and removal side effects must be
-connected before using the selector on a live world. Do not substitute activity
-for the idle field, or current creature-id order for original list order.
+Owned-list order is maintained and persisted (`creature-ownership.md`, ADR-0273).
+The stored idle flag and removal side effects still need integration before using
+the selector on a live world. Existing rest/wander states do not store that flag;
+see `imp-idle-and-wandering.md`. Do not derive it from the activity category.
 
 An original experiment should hold more than four imps, spend below 100 with
 nonpositive net income, record all warning turns, and record selection/expiry.

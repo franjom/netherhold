@@ -767,6 +767,7 @@ public sealed class WorldState
     private readonly PlayerState[] _players; // kept sorted by PlayerId, for stable hashing
     private readonly List<TileWorkOrder> _pendingWork = [];
     private readonly List<CreatureState> _creatures = [];
+    private readonly List<CreatureState> _creaturesByOwnership = [];
     private readonly List<ObjectState> _objects = [];
     private readonly List<ActionPointState> _actionPoints = [];
     private readonly List<DoorState> _doors = [];
@@ -1010,6 +1011,41 @@ public sealed class WorldState
     /// </summary>
     public IReadOnlyList<CreatureState> Creatures => _creatures;
 
+    /// <summary>Most recently acquired first; held and dying creatures remain owned.
+    /// Corpses are separate things in DK2 and are excluded here (ADR-0273).</summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-ownership.md")]
+    public IEnumerable<CreatureState> OwnedCreatures(byte playerId)
+    {
+        foreach (CreatureState creature in _creaturesByOwnership)
+            if (creature.OwnerPlayerId == playerId && CreatureStateMachine.HasState(creature))
+                yield return creature;
+    }
+
+    /// <summary>Changes the owner and places the creature first in its new owner's list.</summary>
+    public void ChangeCreatureOwner(CreatureState creature, byte playerId)
+    {
+        if (!_creatures.Contains(creature))
+            throw new ArgumentException("Creature does not belong to this world.", nameof(creature));
+        if (creature.OwnerPlayerId == playerId) return;
+        creature.OwnerPlayerId = playerId;
+        _creaturesByOwnership.Remove(creature);
+        _creaturesByOwnership.Insert(0, creature);
+    }
+
+    internal IReadOnlyList<CreatureState> CreatureOwnershipOrder => _creaturesByOwnership;
+
+    internal void RestoreCreatureOwnershipOrder(IReadOnlyList<int> ids)
+    {
+        if (ids.Count != _creatures.Count || ids.Distinct().Count() != ids.Count)
+            throw new InvalidDataException("Invalid creature ownership order.");
+        var ordered = new List<CreatureState>(ids.Count);
+        foreach (int id in ids)
+            ordered.Add(CreatureById(id)
+                ?? throw new InvalidDataException("Ownership order names a missing creature."));
+        _creaturesByOwnership.Clear();
+        _creaturesByOwnership.AddRange(ordered);
+    }
+
     /// <summary>
     /// Puts a creature on the map, at the centre of the given tile. Every
     /// in-simulation producer goes through here —
@@ -1042,6 +1078,7 @@ public sealed class WorldState
         };
 
         _creatures.Add(creature);
+        _creaturesByOwnership.Insert(0, creature);
         return creature;
     }
 
@@ -1060,6 +1097,7 @@ public sealed class WorldState
         for (int i = 0; i < _creatures.Count; i++)
         {
             if (_creatures[i].Id != id) continue;
+            _creaturesByOwnership.Remove(_creatures[i]);
             _creatures.RemoveAt(i);
             // DK2's death handler unlinks the dead from every engagement list it was on; a
             // creature that was fighting it notices the empty target on its next fight process.
@@ -1358,6 +1396,7 @@ public sealed class WorldState
         hash.Add(_creatures.Count);
         hash.Add(_nextCreatureId);
         foreach (CreatureState c in _creatures) c.HashInto(ref hash);
+        foreach (CreatureState c in _creaturesByOwnership) hash.Add(c.Id);
 
         hash.Add(_objects.Count);
         hash.Add(_nextObjectId);

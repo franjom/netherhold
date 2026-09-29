@@ -1162,7 +1162,7 @@ Deviations and approximations, each a candidate ADR:
 The response queue is tested independently but not yet dispatched by `Think`.
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
-now update its flags (ADR-0263). Mana-pressure rules await integration (ADR-0266);
+now update its flags (ADR-0263). Ownership order is persisted (ADR-0273); mana-pressure integration remains open (ADR-0266);
 remaining gaps: `research/creature-pickup.md`. Response dispatch remains unconnected.
 Combat messages reach the observation; reactive and battle decisions, the remaining
 message families, personality loader and §5.1 step 9 training moves remain unbuilt.

@@ -10,7 +10,10 @@ the owner's "waiting" needs state 88). State ids, labels and categories come fro
 `creature-state-table.md`; `imp-state-exits.md` has the one-line summaries of
 states 10 and 12 that this note expands.
 
-**Nothing here is built.** Our imp stands still when it has no task (Q41).
+**Built subset:** `ImpTaskSystem.Wander.cs` (ADR-0224) runs rest and wandering,
+with its documented action-duration and destination approximations. The stored
+idle flag at `+0x3D1` is not represented yet; its removal reader is audited in
+`imp-mana-removal.md`.
 
 ---
 
@@ -42,11 +45,13 @@ unused.
 
 `0x00464240`, label *idle* (string 2599), category 3, group 8.
 
-1. Set creature `+0x3D1` to 1. State 10 and the deadline exit clear it. What
-   reads it is not traced; the worker panel's idle count is a guess.
+1. Set creature `+0x3D1` to 1 before checking the action or deadline. The
+   mana-removal selector reads it (`imp-mana-removal.md`). `0x00463DF0` clears it
+   only after its special-owner and throttle exits; state 11 (`0x00463DB0`) clears
+   it before requesting state 10, even on refusal. It persists through wandering.
 2. If an action is running (`0x00496D00`: creature `+0x3A9` non-zero and not 21),
    do nothing more this tick.
-3. If the deadline `+0x7E` has passed, go to state 10 and clear `+0x3D1`.
+3. At or after deadline `+0x7E`, request state 10; clear `+0x3D1` only if accepted.
 4. If state `+0xA7` is non-zero, roll rand(100):
    - **0–24**: wander (step 5);
    - **25–74**: play creature action **43** if the creature can (below), clear
