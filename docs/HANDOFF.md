@@ -45,7 +45,7 @@ reactive decisions and an original command trace remain open. The casualty-prior
 command and imp reader are built (ADR-0261). Represented pickup gates are captured;
 worker task-exit and prison-delivery flag writes are built (ADR-0263).
 Mana-pressure rules are tested independently (ADR-0266). Creature ownership order
-and the worker idle flag are persisted (ADRs 0273?0274); removal integration, other
+and the worker idle flag are persisted (ADRs 0273–0274); removal integration, other
 eligibility lifecycles and live response dispatch remain next
 (2026-09-29; `KEEPER_AI.md` §12.8).
 
@@ -178,10 +178,12 @@ Jython-to-PyGhidra porting notes are in `docs/RESEARCH-QUEUE.md`. Two projects e
 and must not be shared between concurrent runs: `D:/Ghidra/ghidra projects/DK2_RE`
 (Codex) and `D:/Ghidra/ghidra projects claude/DK2_RE` (Claude). The top-level
 `D:/ghidra projects*` and `D:/ghidra_11.0.1_PUBLIC` are the retired 11.0.1 setup;
-`D:/Ghidra/backup_projects_11` holds the 11.0.1 databases. Runs on one project are sequential. Scripts (`DisasmMulti.py`,
-`InsGrep.py`, `ScanAll.py`, `CallScanAll.py`, `ReadsAt.py`, …) and exports live in
-`reverse-engineering/` on this machine only; `git status --short reverse-engineering/`
-must be empty before every commit.
+`D:/Ghidra/backup_projects_11` holds the 11.0.1 databases. Runs on one project are sequential. The reusable query
+scripts (`DisasmMulti.py`, `InsGrep.py`, `ScanAll.py`, `CallScanAll.py`, `ReadsAt.py`, …)
+are tracked in `tools/ghidra/scripts/` and run through `tools/ghidra/ghidra.py`
+(the `ghidra-queries` skill, `.agents/skills/ghidra-queries/SKILL.md`). Exports and
+subject-specific scripts live in `reverse-engineering/` on this machine only;
+`git status --short reverse-engineering/` must be empty before every commit.
 
 **Live memory reader:** `python reverse-engineering/dk2watch.py --seconds 300 --csv D:\run.csv`
 attaches to `DKII-dx.EXE` or `DKII.EXE` with `PROCESS_VM_READ` (the two differ in no
