@@ -17,6 +17,10 @@ public sealed class ScenarioPlayer
     public byte Id { get; set; }
     public int Gold { get; set; }
     public int Mana { get; set; }
+
+    /// <summary>Keeper spell ids this player starts with at availability 3, as a level's own
+    /// VARIABLES rows would grant them; a synthetic map has no such rows (ADR-0279).</summary>
+    public List<int> Spells { get; set; } = [];
 }
 
 /// <summary>One block of room tiles laid down before the run starts.
@@ -161,6 +165,13 @@ public sealed class ScenarioCommand
     /// <summary>The creature under the cursor as the drop happens, by id, or 0 for none. A chicken
     /// or gold dropped onto a creature feeds or pays it on the spot (ADR-0217).</summary>
     public int DropOnto { get; set; }
+
+    /// <summary>Casts Call to Arms at a tile, as <c>[x, y]</c>: packet action 54 aimed at the
+    /// tile's centre (ADR-0279).</summary>
+    public List<int> CallToArms { get; set; } = [];
+
+    /// <summary>Slaps this player's Call to Arms flag down: packet action 63.</summary>
+    public bool RemoveCallToArms { get; set; }
 }
 
 /// <summary>A room a player asks to build, at a tick, and pays for.</summary>

@@ -57,10 +57,12 @@ public sealed class KeeperView
             HandRules.CanPickUp(world, database, c, playerId),
             // A corpse record holds no state (-1) and no table row; it is never a candidate.
             c.Dk2StateId, CreatureStateMachine.HasState(c) ? NeedRules.ResolvedStateId(c) : c.Dk2StateId,
-            CreatureStateMachine.HasState(c) && DK2.Simulation.Combat.CombatRules.MayLookForAFight(world, c, false),
+            CreatureStateMachine.HasState(c) && DK2.Simulation.Combat.CombatRules.MayLookForAFight(world, database, c, false),
             CreatureLevelRules.MaxHealth(database, database.CreatureById(c.CreatureTypeId), c.Level),
             HandRules.LastDroppedCounter(c, world.CurrentTick.Value), hand.Contains(HandItem.Of(c)),
-            ranks.TryGetValue(c.Id, out int rankOf) ? rankOf : -1)).ToList().AsReadOnly();
+            ranks.TryGetValue(c.Id, out int rankOf) ? rankOf : -1,
+            CallToArmsRules.IsUnderCallToArms(world, c))).ToList().AsReadOnly();
+        CallToArms = world.Player(playerId).CallToArms;
         Traps = world.Traps.Select(t => new KeeperTrapView(t.TrapId, t.PlayerId, t.X, t.Y,
             database.Traps[t.TrapId].Threat)).ToList().AsReadOnly();
 
@@ -81,8 +83,10 @@ public sealed class KeeperView
     internal KeeperView(GameDatabase database, byte playerId, GameTick tick, byte status, byte alliedWith, byte[] playerIds,
         int width, int height, int gold, int impCount, TilePos? heart,
         KeeperTileView[] tiles, AvailabilityState[] availability,
-        KeeperCreatureView[] creatures, KeeperTrapView[] traps, KeeperRoomView[] rooms, PlayerMessage[] messages)
+        KeeperCreatureView[] creatures, KeeperTrapView[] traps, KeeperRoomView[] rooms, PlayerMessage[] messages,
+        CallToArmsState callToArms = default)
     {
+        CallToArms = callToArms;
         Database = database;
         PlayerId = playerId;
         Tick = tick;
@@ -118,6 +122,9 @@ public sealed class KeeperView
     public IReadOnlyList<KeeperCreatureView> Creatures { get; }
     public IReadOnlyList<KeeperTrapView> Traps { get; }
     public IReadOnlyList<PlayerMessage> Messages { get; }
+
+    /// <summary>This keeper's Call to Arms: on, its flag's tile and the turn its upkeep starts.</summary>
+    public CallToArmsState CallToArms { get; }
 
     public IReadOnlyList<KeeperRoomView> AllRooms { get; }
     public IReadOnlyList<KeeperRoomView> OwnRooms { get; }

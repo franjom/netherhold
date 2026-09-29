@@ -48,6 +48,9 @@ public static class SimulationSystems
         new CreatureMovementSystem(),
         // Shots fly after the creatures have moved; where DK2's thing list puts them is Q398.
         new ShotSystem(),
+        // The Call to Arms flag is an object the shot puts down; its recall, release and the
+        // heeding states run in the thing update, before the payment that keeps it (ADR-0279).
+        new CallToArmsSystem(),
         new FogOfWarSystem(),
         // Work queued and resolved inside one tick, so nothing survives the boundary
         // half-done; bridges burn after the work (Q67), which makes the fire final.

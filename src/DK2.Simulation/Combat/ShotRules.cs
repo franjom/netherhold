@@ -46,6 +46,10 @@ public static class ShotRules
 
     /// <summary><c>ProcessType</c>s with a creature side built (§8, creature-status-effects.md).</summary>
     public const byte ModifyHealthProcess = 3;
+    /// <summary>Type 2, <c>0x004ADE10</c>: the shot's death puts an object of its first data word
+    /// down where it died; the Call to Arms flag (10) is refused while the keeper's standing flag
+    /// is in the hand. Its Heart-edge nudge (<c>0x00455000</c>) is unread and absent.</summary>
+    public const byte CreateObjectProcess = 2;
     public const byte InstantProcess = 34;
     public const byte SpeedProcess = 4;
     public const byte ArmourProcess = 5;
@@ -215,6 +219,11 @@ public static class ShotRules
     {
         if ((definition.ShotProcessFlags & eventBit) == 0) return;
         WorldState world = context.World;
+        if (definition.ProcessType == CreateObjectProcess)
+        {
+            CreateObject(context, shot);
+            return;
+        }
         CreatureState? target = struck ?? (shot.TargetKind == FightTargetKind.Creature ? world.CreatureById(shot.TargetId) : null);
         if (target is null)
         {
@@ -242,6 +251,27 @@ public static class ShotRules
             case DrainProcess: StatusEffectRules.Drain(context, target, definitionOfTarget, world.CreatureById(shot.CasterId), shot.Data1); break;
             case PoisonProcess: StatusEffectRules.Poison(context, target, shot.Data2, shot.Data1, shot.OwnerPlayerId); break;
         }
+    }
+
+    private static void CreateObject(SimulationContext context, ShotState shot)
+    {
+        WorldState world = context.World;
+        var tile = new TilePos(shot.PosX >> 12, shot.PosY >> 12);
+        if (!world.Contains(tile) || context.Database.ObjectById((byte)shot.Data1) is not { } definition) return;
+        if (shot.Data1 == CallToArmsRules.ObjectTypeId && world.HasPlayer(shot.OwnerPlayerId))
+        {
+            ref PlayerState player = ref world.Player(shot.OwnerPlayerId);
+            if (CallToArmsRules.IsLive(world, player)
+                && player.Hand.Contains(new HandItem(HandItemKind.Object, player.CallToArms.ObjectId)))
+            {
+                context.Emit(SystemName, "shot_object_refused", $"shot={shot.Id} type={shot.Data1} reason=flag_in_hand");
+                return;
+            }
+        }
+        ObjectState made = world.SpawnObject(context.Database, (byte)shot.Data1, shot.OwnerPlayerId, tile.Y * world.Width + tile.X);
+        made.ProcessState = definition.StartState;
+        if (definition.IsGold) made.GoldHeld = shot.Data2;
+        context.Emit(SystemName, "shot_object_created", $"shot={shot.Id} object={made.Id} type={shot.Data1} tile={tile.X},{tile.Y}");
     }
 
     /// <summary>Type 3, <c>0x004ADB30</c> (§8): nothing for <c>IsHorny</c>; a fire-category shot's ignition is

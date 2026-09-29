@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 8;
+    public const int FormatVersion = 9;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -48,6 +48,7 @@ public static class KeeperViewSnapshot
             w.Write(c.PickupPermitted); w.Write(c.CanPickUp);
             w.Write(c.StateId); w.Write(c.ResolvedStateId); w.Write(c.MayFight); w.Write(c.MaxHealth);
             w.Write(c.LastDroppedCounter); w.Write(c.InMyHand); w.Write(c.OwnershipRank);
+            w.Write(c.UnderCallToArms);
         }
         w.Write(view.Traps.Count);
         foreach (KeeperTrapView t in view.Traps)
@@ -69,6 +70,8 @@ public static class KeeperViewSnapshot
             w.Write(m.Data1); w.Write(m.Data2); w.Write(m.Age); w.Write(m.Timeout);
             w.Write(m.NeedsTab); w.Write(m.Handled);
         }
+        w.Write(view.CallToArms.On); w.Write(view.CallToArms.ObjectId);
+        w.Write(view.CallToArms.X); w.Write(view.CallToArms.Y); w.Write(view.CallToArms.ManaTick);
         w.Flush();
         return stream.ToArray();
     }
@@ -96,14 +99,14 @@ public static class KeeperViewSnapshot
         var availability = new AvailabilityState[ReadCount(r, 11)];
         for (int i = 0; i < availability.Length; i++)
             availability[i] = new AvailabilityState(r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean());
-        var creatures = new KeeperCreatureView[ReadCount(r, 64)];
+        var creatures = new KeeperCreatureView[ReadCount(r, 65)];
         for (int i = 0; i < creatures.Length; i++)
             creatures[i] = new KeeperCreatureView(r.ReadInt32(), r.ReadByte(), r.ReadByte(),
                 (CreatureActivity)r.ReadInt32(), r.ReadInt32(), r.ReadInt32(), r.ReadInt64(), r.ReadBoolean(),
                 r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt32(), r.ReadUInt16(),
                 r.ReadBoolean(), r.ReadBoolean(),
                 r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt32(),
-                r.ReadUInt16(), r.ReadBoolean(), r.ReadInt32());
+                r.ReadUInt16(), r.ReadBoolean(), r.ReadInt32(), r.ReadBoolean());
         var traps = new KeeperTrapView[ReadCount(r, 12)];
         for (int i = 0; i < traps.Length; i++)
             traps[i] = new KeeperTrapView(r.ReadByte(), r.ReadByte(), r.ReadInt32(), r.ReadInt32(), r.ReadUInt16());
@@ -127,10 +130,11 @@ public static class KeeperViewSnapshot
             messages[i] = new PlayerMessage(r.ReadUInt32(), r.ReadByte(),
                 (PlayerMessageKind)r.ReadUInt32(), r.ReadInt32(), r.ReadInt32(),
                 r.ReadUInt32(), r.ReadUInt32(), r.ReadBoolean(), r.ReadBoolean());
+        var callToArms = new CallToArmsState(r.ReadBoolean(), r.ReadInt32(), r.ReadUInt16(), r.ReadUInt16(), r.ReadUInt32());
         if (stream.Position != stream.Length)
             throw new InvalidDataException("Trailing keeper observation data.");
         return new KeeperView(database, player, tick, status, alliedWith, playerIds, width, height, gold, imps,
-            heart, tiles, availability, creatures, traps, rooms, messages);
+            heart, tiles, availability, creatures, traps, rooms, messages, callToArms);
     }
 
     private static int ReadCount(BinaryReader r, int minimumEntryBytes)

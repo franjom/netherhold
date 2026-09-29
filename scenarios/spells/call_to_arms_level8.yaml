@@ -1,0 +1,41 @@
+# Call to Arms on a stock map where the level itself makes it available: Level 8 gives
+# player 3 spell 3 at availability 3 from the start (its VARIABLES rows), so the cast is
+# the level's own, not a synthetic unlock (ADR-0279, docs/research/call-to-arms.md).
+#
+# The keeper casts on its heart's corner tile (32,41) at tick 40 and slaps the flag down at tick 200.
+# The map's placed things supply whatever creatures the keeper starts with; the run asks
+# only that the level's availability lets the cast through and that the flag's lifetime
+# runs from the cast to the slap.
+id: spells-call-to-arms-level8-001
+question: >
+  On Level 8, which ships Call to Arms available to the player's keeper, does an
+  ordinary cast at the heart raise the call and a slap take it down again?
+map: campaign:level8
+seed: 8
+duration_ticks: 240
+viewing_player: 3
+setup:
+  placed_things: true
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 2, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 25000 }
+    - { id: 4, gold: 0, mana: 0 }
+commands:
+  - { at_tick: 40, player: 3, call_to_arms: [32, 41] }
+  - { at_tick: 200, player: 3, remove_call_to_arms: true }
+observe:
+  - state_hash
+  - events
+expect:
+  - event: cast
+    detail: "player=3 spell=3"
+    because: >
+      Level 8's availability row gives player 3 spell 3 at 3, and the position helper
+      0x004BB8A0 wants only the cost, no cooldown and the two validators.
+  - event: call_to_arms_raised
+    detail: "player=3"
+    because: The flag's activation raises the call at the flag's tile (0x004BDDA0).
+  - event: call_to_arms_removed
+    detail: "player=3"
+    because: The slap's releasing state clears the call and destroys the flag (0x0049FD80).

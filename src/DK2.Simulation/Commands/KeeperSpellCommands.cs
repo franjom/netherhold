@@ -6,6 +6,32 @@ using DK2.Core;
 
 namespace DK2.Simulation.Commands;
 
+/// <summary>Packet action 54: a keeper spell cast at a place. <paramref name="X"/> and
+/// <paramref name="Y"/> are DK2's position units, 4096 a tile, as the packet carries them.
+/// Only Call to Arms (spell 3) is read end to end; other ids are refused (ADR-0279).</summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/call-to-arms.md")]
+public sealed record CastSpellAtPlaceCommand(byte PlayerId, byte SpellId, int X, int Y, ushort Flags = 0)
+    : PlayerCommand(PlayerId)
+{
+    public override void HashInto(ref Hash64 hash)
+    {
+        base.HashInto(ref hash);
+        hash.Add(SpellId);
+        hash.Add(X);
+        hash.Add(Y);
+        hash.Add(Flags);
+    }
+}
+
+/// <summary>Packet action 63: the slap that takes a keeper's own Call to Arms flag down
+/// (<c>0x005136E0</c> through the slap action 6 and <c>0x0049C2A0</c>). Refused when the
+/// keeper has no standing flag or it is already going (ADR-0279).</summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/call-to-arms.md")]
+public sealed record RemoveCallToArmsCommand(byte PlayerId) : PlayerCommand(PlayerId)
+{
+    public override void HashInto(ref Hash64 hash) => base.HashInto(ref hash);
+}
+
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-thunderbolt.md")]
 public sealed record CastSpellOnCreatureCommand(byte PlayerId, byte SpellId, int CreatureId, ushort Flags = 0)
     : PlayerCommand(PlayerId)

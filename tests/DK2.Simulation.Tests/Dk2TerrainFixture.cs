@@ -298,6 +298,17 @@ internal static class Dk2TerrainFixture
 
     private static ObjectDef[] Objects() =>
     [
+        // The Call to Arms flag, OBJECTS record 10 as shipped: start state 12, the hand may lift
+        // it and put it down on any land, 128 health (call-to-arms.md).
+        new ObjectDef
+        {
+            Name = "Call To Arms", ObjectId = CallToArmsRules.ObjectTypeId,
+            Flags = ObjectFlags.CanBePickedUp | ObjectFlags.CanBeSlapped | ObjectFlags.CanBeDroppedOnAnyLand
+                | ObjectFlags.BoulderCanRollThrough | ObjectFlags.Highlightable | ObjectFlags.CastShadows,
+            Hp = 128, ManaValue = 0, RoomCapacity = 1, StartState = 12, PickUpPriority = 176,
+            Width = new Fp32(1704), Height = new Fp32(127), Mass = new Fp32(4), Speed = new Fp32(0),
+            NameStringId = 2725, TooltipStringId = 2726,
+        },
         Bed(GoblinBedObjectId, "Goblin Creature Bed"),
         Bed(VampireBedObjectId, "Vampire Creature Bed"),
 
@@ -653,7 +664,21 @@ internal static class Dk2TerrainFixture
             ShotTypeId = 2, ShotData1 = 1, ShotData2 = 1,
             BonusShotTypeId = 60, BonusShotData1 = 1, BonusShotData2 = 4,
         },
+        // Call to Arms as shipped: 10000 to cast, 90 a second to keep, no cooldown, location
+        // selector 4 and target selector 4, the Create Object shot (5) putting object 10 down
+        // whether or not upgraded (call-to-arms.md).
+        new()
+        {
+            Name = KeeperSpellName.CallToArms, ManaCost = 10000, ManaUpkeepPerSecond = 90,
+            KeeperSpellId = CallToArmsRules.SpellId, LocationSelector = 4, TargetSelector = 4,
+            ShotTypeId = CreateObjectShotId, ShotData1 = CallToArmsRules.ObjectTypeId, ShotData2 = 0,
+            BonusShotTypeId = CreateObjectShotId, BonusShotData1 = CallToArmsRules.ObjectTypeId, BonusShotData2 = 0,
+        },
     ];
+
+    /// <summary>Shot 5, Create Object, as shipped: flag 4 counts its one health down, so it
+    /// dies on its first tick and its death process (0x80, type 2) puts the object down.</summary>
+    public const byte CreateObjectShotId = 5;
 
     /// <summary>The flags every room terrain in the install carries: Ownable, Room, Attackable.</summary>
     private const TerrainFlags RoomTerrain =
@@ -1215,6 +1240,7 @@ internal static class Dk2TerrainFixture
     /// the explosion stands still and hurts a linear area for the ticks its health lasts.</summary>
     public static ShotDef[] Shots() =>
     [
+        Status("Create Object", CreateObjectShotId, 2048, 1, 4, 0x80, 0, ShotRules.CreateObjectProcess, attackCategory: 12),
         new(new byte[239])
         {
             Name = "Fireball", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = FireballShotId,
@@ -1279,6 +1305,9 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.BackOffMinimumDurationSeconds, 0);
         Set(vars, VariableTypeId.BackOffMaximumDurationSeconds, 30);
         Set(vars, VariableTypeId.GuardRoomReportingDistanceTiles, 7);
+        // Call to Arms (call-to-arms.md): the fight gate's radius and the upgraded upkeep's percentage.
+        Set(vars, VariableTypeId.CallToArmsFightDistanceTiles, 5);
+        Set(vars, VariableTypeId.UpgradedCallToArmsCostPercentage, 70);
         // Guard duty's two deadlines (guard-room.md), shipped values.
         Set(vars, VariableTypeId.MaxTimeInGuardRoomBeforeWanderingToGuardPostSeconds, 60);
         // The Combat Pit's cap and the damage a fighter takes (combat-pit.md), shipped values.

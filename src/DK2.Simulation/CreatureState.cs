@@ -201,6 +201,10 @@ public enum CreatureActivity
     /// <summary>In a Combat Pit: DK2's states 137, 138, 139 and 141 and 139's walks, category 16
     /// (ADR-0213, <see cref="CombatPitRules"/>). The fight itself is <see cref="Fighting"/>.</summary>
     PitFighting = 32,
+
+    /// <summary>Heeding its keeper's Call to Arms: states 190 to 192 and the walks resuming them
+    /// (<see cref="CallToArmsRules"/>).</summary>
+    HeedingCallToArms = 33,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -789,6 +793,11 @@ public sealed class CreatureState
     /// <summary>The turn state 99 was entered, for its <c>Age</c> test.</summary>
     public long GuardLostTick;
 
+    /// <summary><c>+0x3E6</c> bit 20: heeding its keeper's Call to Arms, set when the flag's
+    /// recruit or idle's walk sends it to 190 and cleared by the release, by idle and by the
+    /// three states when the call is gone or unreachable (<see cref="CallToArmsRules"/>).</summary>
+    public bool HeedingCallToArms;
+
     /// <summary><c>CombatPitFighter</c>, <c>+0x3E6</c> bit 15: set on a Combat Pit's floor by 138
     /// and by 139's pairing, cleared by the pick-up, 217, idle's refused 138 and the room reset
     /// (<c>combat-pit.md</c> §7).</summary>
@@ -1061,6 +1070,7 @@ public sealed class CreatureState
         hash.Add(OldFightTileY);
         hash.Add(OldFightTick);
         hash.Add(GuardLostTick);
+        hash.Add(HeedingCallToArms);
         hash.Add(CombatPitFighter);
         hash.Add(AttackAbnormalTargets);
         hash.Add(AttackingId);

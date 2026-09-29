@@ -86,7 +86,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
                     creature.FoodAttemptTicks = EatingRules.RetryTicks;
 
                     // The busy test comes after the stamp, so a busy creature spends the try.
-                    if (NeedRules.IsBusy(creature, context.Tick.Value)) break;
+                    if (NeedRules.IsBusy(context.World, creature, context.Tick.Value)) break;
 
                     // Standing in one already? Then there is no walk to make and
                     // the search runs here and now.

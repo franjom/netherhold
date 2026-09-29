@@ -126,7 +126,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
                             ? LairRules.WantsToSleep(database, definition, creature)
                             : CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature);
                         if (wants && NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping)
-                            && !NeedRules.IsBusy(creature, context.Tick.Value))
+                            && !NeedRules.IsBusy(context.World, creature, context.Tick.Value))
                             SetOff(context, creature, definition);
                         break;
                     }

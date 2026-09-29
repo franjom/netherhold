@@ -88,6 +88,21 @@ public sealed class ObjectState
     /// book.</summary>
     public byte ResearchTypeId;
 
+    /// <summary>The object's process state, DK2's <c>+0x13A</c>, run by the table
+    /// <c>0x0049E686</c> fills; only the Call to Arms flag uses it here
+    /// (<see cref="CallToArmsRules"/>). Zero on every other object.</summary>
+    public byte ProcessState;
+
+    /// <summary>The process's next turn, <c>+0x14A</c>: the flag recalls its creatures when the
+    /// turn is past it.</summary>
+    public long ProcessDeadline;
+
+    /// <summary>The process's counter, <c>+0x14E</c>: the flag's third recall plays its effect.</summary>
+    public byte ProcessCount;
+
+    /// <summary>The process is ending, <c>+0x14F</c>: a recall or handover moves to the release.</summary>
+    public bool ProcessEnding;
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
@@ -104,5 +119,9 @@ public sealed class ObjectState
         hash.Add(Setting);
         hash.Add(ResearchKind);
         hash.Add(ResearchTypeId);
+        hash.Add(ProcessState);
+        hash.Add(ProcessDeadline);
+        hash.Add(ProcessCount);
+        hash.Add(ProcessEnding);
     }
 }

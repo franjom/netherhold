@@ -56,8 +56,8 @@ public static class DropLandingRules
     /// <summary>257's tail, <c>0x004E8DA0(0)</c>. On a room with a drop state: the job rooms' state
     /// through 1, with the job remembered (<see cref="JobRules.TryDropOnARoom"/>), and the Combat
     /// Pit's 137 through 1 (ADR-0227); the other rooms' states are not built here and idle. With none, a keeper's creature goes to 250, its
-    /// <c>FightProcessCounter</c> at 10; a hero or a neutral creature idles. Ours: no Call To Arms
-    /// exists, which would also send it to idle.</summary>
+    /// <c>FightProcessCounter</c> at 10; a hero or a neutral creature idles, and so does a
+    /// keeper's while its Call To Arms is on (ADR-0279).</summary>
     public static void AfterGettingUp(SimulationContext context, string system, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
@@ -83,6 +83,12 @@ public static class DropLandingRules
             return;
         }
         if (creature.OwnerPlayerId is PlayerIds.Good or PlayerIds.Neutral)
+        {
+            StateShadow.ToIdle(context, system, creature);
+            return;
+        }
+        // With the owner's Call to Arms on the creature idles instead, and idle walks to the flag.
+        if (CallToArmsRules.IsOn(world, creature.OwnerPlayerId))
         {
             StateShadow.ToIdle(context, system, creature);
             return;

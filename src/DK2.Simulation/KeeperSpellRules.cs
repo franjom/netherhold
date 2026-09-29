@@ -48,6 +48,85 @@ public static class KeeperSpellRules
         return 0;
     }
 
+    /// <summary>Action 54 through <c>0x004BBD30</c>: permission, the shot at the place, the
+    /// payment and both clocks. Only Call to Arms (3) is read end to end. Returns the original
+    /// helper's success flag.</summary>
+    public static int CastAtPlace(SimulationContext context, CastSpellAtPlaceCommand cast, out KeeperSpellRefusal refusal)
+    {
+        refusal = CanCastAtPlace(context, cast);
+        if (refusal != KeeperSpellRefusal.None) return 0;
+        WorldState world = context.World;
+        KeeperSpellDef spell = context.Database.KeeperSpellById(cast.SpellId)!;
+        ref PlayerState player = ref world.Player(cast.PlayerId);
+        int row = player.Availabilities.FindIndex(a => a.Kind == SpellAvailabilityKind && a.TypeId == cast.SpellId);
+        AvailabilityState availability = player.Availabilities[row];
+        var effect = spell.Shot(availability.Upgraded);
+        ShotRules.Spawn(world, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
+            cast.X, cast.Y, effect.Data1, effect.Data2, 0, FightTargetKind.None, -1, cast.PlayerId, -1, cast.X, cast.Y);
+        player.Mana -= spell.ManaCost;
+        player.OneShotManaSpent += spell.ManaCost;
+        player.Availabilities[row] = availability with
+        {
+            LastCastTick = context.Tick.Value, LastCheckedTick = context.Tick.Value
+        };
+        return 1;
+    }
+
+    /// <summary>The position permission helper <c>0x004BB8A0</c> for the spells read: cost,
+    /// cooldown, then the location and target validators the record selects.</summary>
+    public static KeeperSpellRefusal CanCastAtPlace(SimulationContext context, CastSpellAtPlaceCommand cast)
+    {
+        if (cast.SpellId != CallToArmsRules.SpellId) return KeeperSpellRefusal.UnsupportedSpell;
+        if (cast.Flags != 0) return KeeperSpellRefusal.UnsupportedFlags;
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        KeeperSpellDef? spell = database.KeeperSpellById(cast.SpellId);
+        if (spell is null) return KeeperSpellRefusal.MissingDefinition;
+        if (!world.HasPlayer(cast.PlayerId)) return KeeperSpellRefusal.MissingPlayer;
+        ref PlayerState player = ref world.Player(cast.PlayerId);
+        int row = player.Availabilities.FindIndex(a => a.Kind == SpellAvailabilityKind && a.TypeId == cast.SpellId);
+        if (row < 0) return KeeperSpellRefusal.NoSpellEntry;
+        AvailabilityState availability = player.Availabilities[row];
+        if (spell.ManaCost != 0 && spell.ManaCost > player.Mana) return KeeperSpellRefusal.Mana;
+        long cooldown = (uint)unchecked(spell.CooldownRaw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
+        if (availability.LastCastTick != 0 && context.Tick.Value - availability.LastCastTick < cooldown)
+            return KeeperSpellRefusal.Cooldown;
+        var at = new TilePos(cast.X >> 12, cast.Y >> 12);
+        switch (spell.LocationSelector)
+        {
+            case 1: if (!LocationOne(context, cast.PlayerId, at)) return KeeperSpellRefusal.Location; break;
+            case 4: if (!LocationFour(context, at)) return KeeperSpellRefusal.Location; break;
+            default: return KeeperSpellRefusal.UnsupportedLocationSelector;
+        }
+        if (spell.TargetSelector != 4) return KeeperSpellRefusal.UnsupportedTargetSelector;
+        if (!TargetFour(context, cast.PlayerId, at)) return KeeperSpellRefusal.Target;
+        var effect = spell.Shot(availability.Upgraded);
+        if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
+        if (shot.ProcessType != ShotRules.CreateObjectProcess) return KeeperSpellRefusal.UnsupportedShotProcess;
+        return KeeperSpellRefusal.None;
+    }
+
+    /// <summary>Location 4 (<c>0x00517F10</c>): no ownership; the navigation grid's solid bit
+    /// refuses, and cast flag bit 1 would also want tile flag <c>0x2000</c>.</summary>
+    private static bool LocationFour(SimulationContext context, TilePos at)
+    {
+        if (!context.World.Contains(at)) return false;
+        context.Navigation.Refresh();
+        return (context.Navigation.NavByte(at.X, at.Y) & 8) == 0;
+    }
+
+    /// <summary>Target 4 at a place (<c>0x005179D0</c>): a room of the caster's own applies the
+    /// Portal, Heart, Prison, Temple and Combat Pit interior exclusions; anything else passes.</summary>
+    private static bool TargetFour(SimulationContext context, byte playerId, TilePos at)
+    {
+        WorldState world = context.World;
+        if (!world.Contains(at)) return false;
+        int index = at.Y * world.Width + at.X;
+        RoomInstance? room = RoomIndex.RoomAt(world, context.Database, index);
+        if (room is null || world.TileAtIndex(index).OwnerPlayerId != playerId) return true;
+        return !RoomExcludes(world, room, at, index);
+    }
+
     public static KeeperSpellRefusal CanCast(SimulationContext context, CastSpellOnCreatureCommand cast)
     {
         // Other keeper effects have not been read end to end; Create Imp retains its own command.
@@ -94,15 +173,22 @@ public static class KeeperSpellRules
         context.Navigation.Refresh();
         if ((context.Navigation.NavByte(at.X, at.Y) & 8) != 0) return false;
         RoomInstance? room = RoomIndex.RoomAt(world, context.Database, index);
-        if (room is null) return true;
+        return room is null || !RoomExcludes(world, room, at, index);
+    }
+
+    /// <summary>The room-position exclusions the validators share: a Portal's interior, the
+    /// Heart's three-by-three middle, and a Prison, Temple or Combat Pit slab with all eight
+    /// neighbours in the room.</summary>
+    private static bool RoomExcludes(WorldState world, RoomInstance room, TilePos at, int index)
+    {
         switch (room.Definition.TypeId)
         {
             case RoomTypeId.Portal:
-                return !room.IsInterior(index);
+                return room.IsInterior(index);
             case RoomTypeId.DungeonHeart:
                 int first = SlabChain.FirstSlab(world, room);
                 int dx = at.X - first % world.Width, dy = at.Y - first / world.Width;
-                return !(dx > 0 && dx < 4 && dy > 0 && dy < 4);
+                return dx > 0 && dx < 4 && dy > 0 && dy < 4;
             case RoomTypeId.Prison:
             case RoomTypeId.Temple:
             case RoomTypeId.CombatPit:
@@ -110,11 +196,11 @@ public static class KeeperSpellRules
                     for (int dx8 = -1; dx8 <= 1; dx8++)
                     {
                         int x = at.X + dx8, y = at.Y + dy8;
-                        if (!world.Contains(x, y) || !room.TileIndices.Contains(y * world.Width + x)) return true;
+                        if (!world.Contains(x, y) || !room.TileIndices.Contains(y * world.Width + x)) return false;
                     }
-                return false;
-            default:
                 return true;
+            default:
+                return false;
         }
     }
 }

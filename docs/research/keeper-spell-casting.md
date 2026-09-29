@@ -29,6 +29,9 @@ its position to location validation and its tag to target validation.
 
 ## 2. Cast side effects
 
+The position path is built for Call to Arms alone: `KeeperSpellRules.CastAtPlace`
+runs the helper below for spell 3 with selectors 4/4 (`call-to-arms.md`, ADR-0279).
+
 Both cast helpers take three stack arguments: spell id, position pointer or
 creature tag, and flags; `RET 0xC` and callers establish this. Their decompiler
 output misplaces arguments after virtual calls, so the following bookkeeping

@@ -143,6 +143,22 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         // State 1's first arm, before it sends the creature to 89: back to a fight it withdrew from.
         if (creature.Dk2StateId == CreatureStateMachine.Idle && Combat.FightReturnRules.TryReturn(context, creature)) return;
 
+        // 89 clears the heeding bit, and with the owner's Call to Arms on walks to the flag
+        // resuming 191, or sends message 84 (0x004778E0; call-to-arms.md).
+        creature.HeedingCallToArms = false;
+        if (CallToArmsRules.IsOn(context.World, creature.OwnerPlayerId))
+        {
+            TilePos flag = context.World.Player(creature.OwnerPlayerId).CallToArms.Tile;
+            if (context.Navigation.TryRoute(creature, flag, 0))
+            {
+                CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, CallToArmsRules.ArrivedState);
+                creature.HeedingCallToArms = true;
+                context.Emit(SystemName, "call_to_arms_heeded", $"player={creature.OwnerPlayerId} creature={creature.Id} tile={flag.X},{flag.Y} how=idle");
+                return;
+            }
+            context.World.Messages.Post(context.World, creature.OwnerPlayerId, PlayerMessageKind.CallToArmsUnreachable, 0, 0);
+        }
+
         // State 89 (0x004778E0) asks the job the hand dropped this creature on before either
         // chooser, whatever the mood, and forgets it only when it is refused (ADR-0215).
         if (creature.DroppedToDoJob != JobType.None)
@@ -183,10 +199,8 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             return;
         }
 
-        // Missing guard, and it cannot be added yet: while the owner's CallToArmsOn bit
-        // is set DK2 admits only Leave and Rebel here and fails every other job untried
-        // (0x00478849, ADR-0145). Nothing models a Call To Arms, so creatures keep
-        // working through a call that would have stopped them.
+        // While the owner's CallToArmsOn bit is set the dispatcher admits only Leave and Rebel
+        // and fails every other job untried (0x00478849, ADR-0145): TryTake's first refusal.
         IReadOnlyList<CreatureJobPreference> table = JobRules.TableFor(definition, mood);
         CreatureAngerRules.CumulativeRanges(table, _ranges);
         int roll = CreatureAngerRules.RollPercent(context.Rng);
@@ -254,6 +268,9 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         JobType job, int roll, string how, bool report)
     {
         string? refused = JobRules.Refused(context.World, context.Database, definition, creature, job);
+        // The dispatcher (0x00478800) admits only Leave and Rebel while the owner's Call to Arms is on (ADR-0145, ADR-0279).
+        if (refused is null && job is not (JobType.Leave or JobType.Rebel) && CallToArmsRules.IsOn(context.World, creature.OwnerPlayerId))
+            refused = "call_to_arms";
         RoomTypeId? wants = JobRules.RoomFor(job);
 
         // Job 26's handler (0x00457780) wants a fight on in one of the keeper's pits (ADR-0227).

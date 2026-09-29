@@ -285,7 +285,7 @@ public static class FearRules
             return;
         }
 
-        if (!CombatRules.MayLookForAFight(world, me, force: false))
+        if (!CombatRules.MayLookForAFight(world, context.Database, me, force: false))
         {
             End(context, me, "cannot_continue");
             return;
@@ -661,7 +661,7 @@ public static class FearRules
             if (c.OwnerPlayerId != me.OwnerPlayerId || c.Id == me.Id) continue;
             CreatureDef def = database.CreatureById(c.CreatureTypeId);
             if (def.Flags.HasFlag(CreatureFlags.IsWorker) || def.Flags.HasFlag(CreatureFlags.IsHorny)) continue;
-            if (CombatRules.InCombat(c) || !CombatRules.MayLookForAFight(world, c, force: false)) continue;
+            if (CombatRules.InCombat(c) || !CombatRules.MayLookForAFight(world, context.Database, c, force: false)) continue;
             if (c.Activity is not (CreatureActivity.Working or CreatureActivity.AtWork or CreatureActivity.GoingToJob)) continue;
             if (c.JobTileIndex < 0 || !room.TileIndices.Contains(c.JobTileIndex)) continue;
             if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4) continue;

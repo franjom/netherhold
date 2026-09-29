@@ -162,10 +162,12 @@ public static class CombatRules
     /// <summary>The gate <c>0x0045A6D0</c>: may this creature look for a fight? Refused for a captive,
     /// one asleep, one leaving unless forced, one in the hand unless forced, the possessed
     /// creature, a dying one, one standing frozen or stunned, and one walking to its withdraw
-    /// destination unless forced. Not modelled: the chicken timer, hypnosis, the threat-response state, the Call to Arms radius
-    /// (Q361) and the Horned Reaper's states.</summary>
-    public static bool MayLookForAFight(WorldState world, CreatureState creature, bool force) =>
+    /// destination unless forced, and under its keeper's Call to Arms one farther than
+    /// <c>CallToArmsFightDistanceTiles</c> from the flag unless forced (Q361). Not modelled: the
+    /// chicken timer, hypnosis, the threat-response state and the Horned Reaper's states.</summary>
+    public static bool MayLookForAFight(WorldState world, GameDatabase database, CreatureState creature, bool force) =>
         !PrisonRules.IsImprisoned(creature)
+        && (force || CallToArmsRules.WithinFightDistance(world, database, creature))
         && creature.Activity != CreatureActivity.Sleeping
         && (creature.Activity != CreatureActivity.Leaving || force)
         && (creature.Activity is not (CreatureActivity.Withdrawing or CreatureActivity.RaisingAlarm) || force)

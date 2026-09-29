@@ -164,7 +164,7 @@ public sealed class PaydaySystem : ISimulationSystem
             long now = context.Tick.Value;
             if (now < creature.NextPayTryTick) continue;
             creature.NextPayTryTick = now + (NeedRules.RetryTurns * SimulationTiming.OriginalTickPeriodTicks);
-            if (NeedRules.IsBusy(creature, now)) continue;
+            if (NeedRules.IsBusy(context.World, creature, now)) continue;
 
             // SkipNextPayment is spent by this decision whatever it decides: a set flag, nothing
             // owed or two failures all clear it (0x0047237F, hand-drop-earmark.md §9).

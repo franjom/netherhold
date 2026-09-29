@@ -1106,8 +1106,9 @@ The proactive foundation already exists (§12.8). **Future direction, agreed 202
    Live observation assessment, casualty-priority commands, represented pickup gates
    and the respond-to-attack event are built (ADR-0278): an attack the keeper's
    creature engages is acknowledged, reserved and dispatched as pick-up and drop
-   commands. Next: the battle step and Call to Arms that DK2's fight flag routes to,
-   retreat of the wounded, then the remaining message families and producers.
+   commands. Call to Arms is built as a spell the simulation runs (ADR-0279,
+   `research/call-to-arms.md`). Next: the battle step that DK2's fight flag routes to
+   and that casts it, retreat of the wounded, then the remaining message families and producers.
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
 3. **Dungeon management.** Add need-driven room expansion/building, training moves,
@@ -1137,7 +1138,7 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
-Observation schema 7 includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
+Observation schema 9 includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
 alliances, reverse player activation order, research upgrades, placed trap threat and
 navigation bytes (`research/computer-keeper-threat.md` sections 1 and 2). Tests check frozen
 values, packet round trips and equal command streams;
@@ -1164,11 +1165,12 @@ Deviations and approximations, each a candidate ADR:
 - `SlapCooldownTicks` (§12.5).
 
 The response queue is dispatched by `Think` through `KeeperThreatResponder` (ADR-0278);
-schema 8 adds each creature's state, fight gate, health basis, dropped counter, hand and list rank.
+schema 8 adds each creature's state, fight gate, health basis, dropped counter, hand and list rank;
+schema 9 adds its `0x004888C0` answer and the keeper's own Call to Arms.
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
 now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);
-remaining gaps: `research/creature-pickup.md`. Response dispatch is connected; the battle step, Call to Arms and retreat are not.
+remaining gaps: `research/creature-pickup.md`. Response dispatch is connected and Call to Arms is a simulation spell (ADR-0279); the battle step and retreat are not built.
 Combat messages reach the observation; reactive and battle decisions, the remaining
 message families, personality loader and §5.1 step 9 training moves remain unbuilt.
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.

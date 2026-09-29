@@ -215,11 +215,11 @@ the binary alone (Q57 is the missing original run).
 
 Read this before adding to `ManaRules`.
 
-- **Spells other than Create Imp.** Possess, Lightning, Call to Arms, Summon
+- **Spells other than Create Imp, Thunderbolt and Call to Arms.** Possess, Summon
   Horny and research/possession upkeep (`ManaCostInFirstPersonPerSecond`) all
   spend mana in DK2 and none of them exists here; the same spell column that gave
-  the imp its 7 holds 2000 a second for Summon Horny and 90 for Call To Arms.
-  Spells are M7. Trap drain is owner-reported and uninvestigated.
+  the imp its 7 holds 2000 a second for Summon Horny. Call To Arms' 90 is charged
+  after its prepaid period (`call-to-arms.md`, ADR-0279). Trap drain is owner-reported and uninvestigated.
 - **Nothing happens when a heart falls.** Losing your dungeon heart is defeat in
   DK2, and the owner has described what defeat does (Q40): the defeated keeper's
   creatures leave through the nearest portal and rival keepers claim their rooms

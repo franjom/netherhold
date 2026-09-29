@@ -322,9 +322,9 @@ lookup in the same change.
   that the mana orb is not on screen in first person, which would make the
   observation an absence of HUD rather than an absence of drain. Nothing here
   depends on it; possession arrives at M7.
-- **The other four upkeeps.** Summon Horny's 2000 a second, Call To Arms' 90,
-  Possession's 25 and OneShotReaper's 125 are parsed and read by nothing, because
-  none of those spells exists (M7).
+- **The other three upkeeps.** Summon Horny's 2000 a second, Possession's 25 and
+  OneShotReaper's 125 are parsed and read by nothing, because none of those spells
+  exists. Call To Arms' 90 is charged (`call-to-arms.md`, ADR-0279).
 
 ---
 
@@ -332,7 +332,7 @@ lookup in the same change.
 
 **Everything else that spends mana.** Create Imp is the only spell implemented,
 because it is the only one whose effect is a mechanic that already exists.
-Possession, Call to Arms, Sight of Evil and the rest arrive at M7. Two fields of
+Thunderbolt and Call to Arms followed; Possession, Sight of Evil and the rest have not. Two fields of
 `KeeperSpells.kwd` are parsed — the cast cost at `0x11C` and the upkeep at `0x00E2`
 (Q55) — so the upkeeps of the four other persistent spells sit in the database
 being read by nothing, waiting for the spells themselves.

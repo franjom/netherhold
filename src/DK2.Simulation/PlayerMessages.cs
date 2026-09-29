@@ -17,6 +17,10 @@ public enum PlayerMessageKind : uint
     /// <summary>Type 53: Data1 3 is a creature chosen for removal; 1 is possession ended for
     /// want of mana, which nothing here produces (subtable <c>0x006A0638</c>).</summary>
     ManaShortfall = 53,
+
+    /// <summary>Type 84: a creature could not route to the Call to Arms flag
+    /// (<c>0x00455DA0</c>, <c>0x004778E0</c>); fifty seconds, tab, no duplicates.</summary>
+    CallToArmsUnreachable = 84,
 }
 
 public readonly record struct PlayerMessage(
@@ -54,6 +58,7 @@ public sealed class PlayerMessageQueue
         {
             PlayerMessageKind.HeartAttacked => (uint)SimulationTiming.TicksFromSeconds(120),
             PlayerMessageKind.CombatStarted => 0,
+            PlayerMessageKind.CallToArmsUnreachable => (uint)SimulationTiming.TicksFromSeconds(50),
             // Both subtables give every listed variant 20 seconds. Warning row 0 names no
             // string, which discards the message; a variant off the table is refused.
             PlayerMessageKind.LowManaWarning when data1 == 0 => uint.MaxValue,

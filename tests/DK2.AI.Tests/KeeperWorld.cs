@@ -232,6 +232,8 @@ internal static class KeeperWorld
         Set(vars, VariableTypeId.PitPercentageDamageTakenOfNormalCombat, 20);
         Set(vars, VariableTypeId.GoodCreaturesChaseEnemyDurationSeconds, 3);
         Set(vars, VariableTypeId.EvilCreaturesChaseEnemyDurationSeconds, 7);
+        Set(vars, VariableTypeId.CallToArmsFightDistanceTiles, 5);
+        Set(vars, VariableTypeId.UpgradedCallToArmsCostPercentage, 70);
         return vars;
     }
 

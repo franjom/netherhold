@@ -93,7 +93,7 @@ public sealed class CombatSystem : ISimulationSystem
     {
         if (creature.OwnerPlayerId == PlayerIds.Neutral) return;
         // A forced target skips the may-I-look gate (combat-pit.md §4).
-        if (!creature.AttackAbnormalTargets && !CombatRules.MayLookForAFight(context.World, creature, force: false)) return;
+        if (!creature.AttackAbnormalTargets && !CombatRules.MayLookForAFight(context.World, context.Database, creature, force: false)) return;
 
         TilePos tile = creature.Tile;
         bool moved = creature.LastFightScanTileIndex != (tile.Y * context.World.Width) + tile.X;
@@ -115,7 +115,7 @@ public sealed class CombatSystem : ISimulationSystem
         long tick = context.Tick.Value;
         CombatMessageRules.UpdateBattle(world, creature, tick);
 
-        if (!CombatRules.MayLookForAFight(world, creature, force: false))
+        if (!CombatRules.MayLookForAFight(world, context.Database, creature, force: false))
         {
             LetGo(context, creature, "cannot_continue");
             return;

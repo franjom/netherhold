@@ -123,8 +123,8 @@ leaves.
   creature dropped on a room tile is not asked for five seconds; the eat, sleep and pay
   attempts test it after their own stamps.
 
-**Not built:** the alert timer, possession, the Call To Arms, rebels and the big winner in
-the busy test (each is one of our activities or unbuilt); the wounded attempt's missing
+**Not built:** the alert timer, possession, rebels and the big winner in
+the busy test (the Call To Arms is read, ADR-0279) (each is one of our activities or unbuilt); the wounded attempt's missing
 4-turn gate (ours shares the tired path). Creatures still
 on our own activities (combat, leaving, fleeing) are asked by none of the three, as
 before; they are not on state ids yet.

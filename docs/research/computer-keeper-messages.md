@@ -257,7 +257,8 @@ again before its handler runs, no type 6 is sent. Travel arrival only stamps.
 state-199 update; acquisition precedes state dispatch in the original
 (`combat-acquisition.md` section 2). General state-hook dispatch remains open.
 
-Scheduling and the preserved observation window are ADR-0245. The keeper consumes
+Scheduling and the preserved observation window are ADR-0245. Type 84, a creature that cannot reach the Call to Arms flag, is posted by states 190
+and 89 with a fifty-second lifetime and no duplicates (`call-to-arms.md`). The keeper consumes
 1 and 6 (ADR-0278): `KeeperThreatResponder` walks the recipient's retained entries
 in queue order, skips handled ones and acknowledges by command. No live original
 message trace has been captured. Room/mood/subtype messages, their suppression

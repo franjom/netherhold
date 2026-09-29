@@ -1,0 +1,71 @@
+# Call to Arms, cast by ordinary player commands on a synthetic map and run through the
+# default systems (ADR-0279, docs/research/call-to-arms.md).
+#
+# The keeper has two goblins and an imp on a flat floor. At tick 40 it casts Call to Arms
+# at (5,5): the packet action 54 becomes the Create Object shot, which dies on its first
+# tick and puts the flag (object 10) down; the flag's activation raises the call, takes
+# 10000 of the keeper's mana and recruits the two goblins, not the imp. Both walk to the
+# flag and mill about within two tiles of it. At tick 300 the keeper recasts at (14,14):
+# the first flag fades, the call moves and the goblins follow it. At tick 500 the keeper
+# slaps the flag down (action 63): the flag goes, the call ends and the goblins idle.
+#
+# What this run does NOT establish: any original timing. The recruit's walk, the milling
+# and the fade are the binary's rules; no original run has been compared (Q483).
+id: spells-call-to-arms-001
+question: >
+  Does a keeper's Call to Arms, cast and removed by ordinary commands, gather its
+  non-workers at the flag, follow a recast and release them when slapped down?
+map: flat_24x20
+seed: 3
+duration_ticks: 560
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 25000, spells: [3] }
+  creatures:
+    - { type: Goblin, at: [12, 12], player: 3 }
+    - { type: Goblin, at: [13, 12], player: 3 }
+    - { type: Imp, at: [12, 13], player: 3 }
+commands:
+  - { at_tick: 40, player: 3, call_to_arms: [5, 5] }
+  - { at_tick: 300, player: 3, call_to_arms: [14, 14] }
+  - { at_tick: 500, player: 3, remove_call_to_arms: true }
+observe:
+  - state_hash
+  - events
+expect:
+  - event: cast
+    detail: "player=3 spell=3 at=5,5 reason=None"
+    because: >
+      Location selector 4 refuses only a solid navigation cell and target selector 4 only
+      the caster's own special-room interiors; open floor passes (0x00517F10, 0x005179D0).
+  - event: shot_object_created
+    detail: "type=10 tile=5,5"
+    because: >
+      The Create Object shot (5) has one health and counts it down, so it dies on its
+      first tick and its death process puts the flag down where it died (0x004ADE10).
+  - event: call_to_arms_raised
+    detail: "player=3"
+    because: >
+      The flag's activation state runs the cast handler 0x004BDDA0: the call is on at the
+      flag's tile and the prepaid clock is 10000 over 90 seconds ahead.
+  - event: call_to_arms_heeded
+    detail: "player=3 creature=1"
+    because: >
+      The recruit walks the owner's list for non-workers that are not joining, fighting,
+      reporting danger or captive, and sends each with a route to 190 (0x004BDDA0).
+  - event: call_to_arms_heeded
+    detail: "player=3 creature=2"
+    because: The second goblin qualifies the same way.
+  - event: call_to_arms_faded
+    detail: "player=3"
+    because: >
+      A second cast with the first flag on the map fades it (state 20 then 19) and takes
+      the new flag's tile; the creatures follow the call, not the flag.
+  - event: call_to_arms_slapped
+    detail: "player=3"
+    because: Action 63 slaps the keeper's own flag, which moves it to its releasing state.
+  - event: call_to_arms_removed
+    detail: "player=3"
+    because: >
+      The releasing state clears the call, idles every non-worker under it and destroys
+      the flag (0x0049FD80, 0x004BDFC0).

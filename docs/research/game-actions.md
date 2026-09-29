@@ -38,7 +38,8 @@ independently caught it**. All six land on a handler here:
 | 40 | tag a tile for digging | `KEEPER_AI.md` |
 | 41 | untag | `KEEPER_AI.md` |
 | 62 | slap | `KEEPER_AI.md` |
-| 63 | remove Call To Arms | `KEEPER_AI.md` |
+| 54 | cast a keeper spell at a place; Call To Arms built | `call-to-arms.md` |
+| 63 | remove Call To Arms: the slap, built | `call-to-arms.md` |
 | 88 | activate selected Special | `specials.md` |
 | 135 | Temple keeper-spell offering, handler `0x005133A0` | `sacrifice.md` §3 |
 

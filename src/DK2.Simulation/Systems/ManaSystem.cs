@@ -28,7 +28,10 @@ public sealed class ManaSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
+        if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0)
+        {
+            return;
+        }
 
         WorldState world = context.World;
         int[] gain = ManaRules.GainPerSecondByPlayerIndex(world, context.Database);
@@ -42,14 +45,25 @@ public sealed class ManaSystem : ISimulationSystem
             // Both halves are reported, not just the net, because that is what
             // the original puts on screen: a green figure and a red one.
             if (changed != 0)
+            {
                 context.Emit(SystemName, changed > 0 ? "mana_gained" : "mana_drained",
                     $"player={player.PlayerId} amount={Math.Abs(changed)} " +
                     $"rate={gain[i]}/s upkeep={upkeep[i]}/s total={player.Mana}");
+            }
 
             // The warning block and the removal scan follow the payment in 0x004C10E0, which
             // runs for keepers alone: the hero and neutral tags return before it (0x004B9EC0).
+            // A Call to Arms the mana left cannot keep fades its flag, and DK2's update returns
+            // there, before the warning block (0x004C10E0).
+            if (PlayerIds.IsKeeper(player.PlayerId) && CallToArmsRules.AfterPayment(context, SystemName, ref player))
+            {
+                continue;
+            }
+
             if (PlayerIds.IsKeeper(player.PlayerId))
+            {
                 Pressure(context, ref player, gain[i] - upkeep[i]);
+            }
         }
     }
 
@@ -76,7 +90,11 @@ public sealed class ManaSystem : ISimulationSystem
                 $"player={playerId} stage={result.Warning} mana={player.Mana} net={netRate}/s turn={now}");
         }
 
-        if (!result.ScanForRemoval) return;
+        if (!result.ScanForRemoval)
+        {
+            return;
+        }
+
         CreatureState? chosen = ManaRemovalLifecycle.Select(context, playerId, now, minimum);
         context.Emit(SystemName, "mana_removal_scan",
             $"player={playerId} chosen={(chosen is null ? -1 : chosen.Id)} " +

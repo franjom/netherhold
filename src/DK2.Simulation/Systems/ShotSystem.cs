@@ -140,7 +140,13 @@ public sealed class ShotSystem : ISimulationSystem
     /// for one the world stopped; then the thing is gone.</summary>
     private static void Die(SimulationContext context, ShotState shot, ShotDef definition, bool deathShot)
     {
-        if (deathShot) ShotRules.Chain(context, shot, definition.DeathShotId);
+        // The flying death (§4 step 7): the death shot, then process event 0x80; a shot the
+        // world stopped is removed without either.
+        if (deathShot)
+        {
+            ShotRules.Chain(context, shot, definition.DeathShotId);
+            ShotRules.Process(context, shot, definition, ShotRules.DeathEvent, null);
+        }
         context.World.RemoveShot(shot.Id);
         context.Emit(SystemName, "shot_died", $"shot={shot.Id} type={definition.ShotId} age={shot.Age}");
     }

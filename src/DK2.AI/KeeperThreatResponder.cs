@@ -18,8 +18,8 @@ namespace DK2.AI;
 /// producer here, and the room reader waits for 34.</para>
 /// <para>Deviates: picks and drops are commands executed one tick later, so an attempt's outcome
 /// is predicted from the captured permissions, and only a creature predicted to move leaves the
-/// tick's candidates, as DK2's does by its hand state. Not represented: the player-wide Call to Arms
-/// flag, creature bit 20 and the spiral's furniture-slot exclusion <c>0x00454110</c> (ADR-0278).</para>
+/// tick's candidates, as DK2's does by its hand state. Not represented: the spiral's furniture-slot
+/// exclusion <c>0x00454110</c> (ADR-0278).</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-threat.md")]
 public sealed class KeeperThreatResponder
@@ -227,10 +227,9 @@ public sealed class KeeperThreatResponder
     /// <summary><c>0x0048F350</c>: the stunned states 209 and 255 to 257.</summary>
     public static bool IsStunned(int stateId) => stateId is 209 or 255 or 256 or 257;
 
-    /// <summary><c>0x004888C0</c> as far as the simulation represents it: the Call to Arms
-    /// states 190 to 192, through a walk. The player's flag and creature bit 20 are unbuilt.</summary>
-    public static bool UnderCallToArms(KeeperCreatureView creature) =>
-        creature.ResolvedStateId is >= 190 and <= 192;
+    /// <summary><c>0x004888C0</c>, captured with the creature: the owner's flag, its bit 20 or
+    /// the states 190 to 192 through a walk (<c>CallToArmsRules</c>).</summary>
+    public static bool UnderCallToArms(KeeperCreatureView creature) => creature.UnderCallToArms;
 
     /// <summary>Per-axis absolute differences, squared as 64-bit values, shifted down twelve,
     /// summed as 32-bit values and compared signed, as <c>0x004FE0DA</c> does.</summary>

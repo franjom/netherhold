@@ -69,8 +69,9 @@ public static class NeedRules
     /// timer <c>+0x45B</c>, a Call To Arms (player <c>+0x76</c> bit 2, <c>CallToArmsOn</c>,
     /// states 190–192), <c>RebelActive</c>, <c>Leaving</c> and the Casino's big-winner countdown.
     /// Each is either one of our activities, which the needs never ask, or unbuilt.</remarks>
-    public static bool IsBusy(CreatureState creature, long now) =>
+    public static bool IsBusy(WorldState world, CreatureState creature, long now) =>
         creature.CombatPitFighter
+        || CallToArmsRules.IsUnderCallToArms(world, creature)
         || (creature.DroppedOnARoom && now - creature.PickupTick < DroppedOnARoomGraceTicks);
 
     /// <summary>The health a tired creature that is not asleep loses a second:

@@ -437,6 +437,40 @@ public class KeeperThreatResponseTests
     }
 
     [Fact]
+    public void ACreatureUnderItsKeepersCallToArmsIsCapturedAsSuchAndNeverReinforces()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        CreatureState called = Fighter(world, Keeper, 14, 15);
+        CreatureState free = Fighter(world, Keeper, 15, 14);
+        called.HeedingCallToArms = true; // bit 20, as the flag's recruit sets it
+        Fighter(world, Hero, 16, 15);
+        Fighter(world, Hero, 16, 14);
+        Fighter(world, Hero, 16, 16);
+        Attack(world, 16, 15);
+        KeeperView view = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(new KeeperView(Db, world, Keeper)), Db);
+        Assert.True(Assert.Single(view.Creatures, c => c.Id == called.Id).UnderCallToArms);
+        Assert.False(Assert.Single(view.Creatures, c => c.Id == free.Id).UnderCallToArms);
+        Assert.False(view.CallToArms.On);
+
+        // 150 wanted against 100 allies: residual 50; the called one heads the list and is
+        // skipped (0x004888C0), so the free one's 50 retires the event.
+        KeeperAI keeper = NewKeeper();
+        keeper.Think(Db, world);
+        Assert.Equal(0, keeper.State.Responses.Count);
+
+        // With the keeper's own call on, every creature of its counts as under it and nobody reinforces.
+        ref PlayerState player = ref world.Player(Keeper);
+        player.CallToArms = player.CallToArms with { On = true, X = 15, Y = 15 };
+        Attack(world, 16, 14);
+        KeeperAI another = NewKeeper();
+        another.Think(Db, world);
+        Assert.Equal(50, Assert.NotNull(another.State.Responses.Current).RemainingThreat);
+        KeeperView on = new(Db, world, Keeper);
+        Assert.True(on.CallToArms.On);
+        Assert.All(on.Creatures.Where(c => c.OwnerPlayerId == Keeper), c => Assert.True(c.UnderCallToArms));
+    }
+
+    [Fact]
     public void SameSeedsGiveTheSameCommandStreamUnderAttack()
     {
         static ulong Run(ulong seed)

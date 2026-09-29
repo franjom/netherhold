@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 137;
+    private const int FormatVersion = 138;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -161,6 +161,11 @@ public static class WorldSnapshot
             w.Write(p.ManaPressure.WarningsSuppressed);
             w.Write(p.ManaPressure.RemovalEnabled);
             w.Write(p.ManaPressure.ScanDeadline);
+            w.Write(p.CallToArms.On);
+            w.Write(p.CallToArms.ObjectId);
+            w.Write(p.CallToArms.X);
+            w.Write(p.CallToArms.Y);
+            w.Write(p.CallToArms.ManaTick);
             w.Write(p.Availabilities.Count);
             foreach (AvailabilityState availability in p.Availabilities)
             {
@@ -345,6 +350,7 @@ public static class WorldSnapshot
             w.Write(c.OldFightTileY);
             w.Write(c.OldFightTick);
             w.Write(c.GuardLostTick);
+            w.Write(c.HeedingCallToArms);
             w.Write(c.CombatPitFighter);
             w.Write(c.AttackAbnormalTargets);
             w.Write(c.AttackingId);
@@ -436,6 +442,10 @@ public static class WorldSnapshot
             w.Write(o.Setting);
             w.Write(o.ResearchKind);
             w.Write(o.ResearchTypeId);
+            w.Write(o.ProcessState);
+            w.Write(o.ProcessDeadline);
+            w.Write(o.ProcessCount);
+            w.Write(o.ProcessEnding);
         }
 
         w.Write(world.ActionPoints.Count);
@@ -648,6 +658,8 @@ public static class WorldSnapshot
                 HeartRuined = r.ReadBoolean(),
                 ManaPressure = new ManaPressureState(
                     r.ReadUInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadBoolean(), r.ReadUInt32()),
+                CallToArms = new CallToArmsState(
+                    r.ReadBoolean(), r.ReadInt32(), r.ReadUInt16(), r.ReadUInt16(), r.ReadUInt32()),
                 Availabilities = [],
                 EntranceInfo = [],
                 ManufactureQueue = [],
@@ -830,6 +842,7 @@ public static class WorldSnapshot
                 OldFightTileY = r.ReadInt32(),
                 OldFightTick = r.ReadInt64(),
                 GuardLostTick = r.ReadInt64(),
+                HeedingCallToArms = r.ReadBoolean(),
                 CombatPitFighter = r.ReadBoolean(),
                 AttackAbnormalTargets = r.ReadBoolean(),
                 AttackingId = r.ReadInt32(),
@@ -935,6 +948,10 @@ public static class WorldSnapshot
                 Setting = r.ReadByte(),
                 ResearchKind = r.ReadByte(),
                 ResearchTypeId = r.ReadByte(),
+                ProcessState = r.ReadByte(),
+                ProcessDeadline = r.ReadInt64(),
+                ProcessCount = r.ReadByte(),
+                ProcessEnding = r.ReadBoolean(),
             });
         }
 

@@ -16,10 +16,19 @@ public sealed class KeeperSpellSystem : ISimulationSystem
     {
         foreach (PlayerCommand command in context.Input.All)
         {
-            if (command is not CastSpellOnCreatureCommand cast) continue;
-            KeeperSpellRules.CastOnCreature(context, cast, out KeeperSpellRefusal refusal);
-            context.Emit(Name, refusal == KeeperSpellRefusal.None ? "cast" : "refused",
-                $"player={cast.PlayerId} spell={cast.SpellId} target={cast.CreatureId} reason={refusal}");
+            switch (command)
+            {
+                case CastSpellOnCreatureCommand cast:
+                    KeeperSpellRules.CastOnCreature(context, cast, out KeeperSpellRefusal refusal);
+                    context.Emit(Name, refusal == KeeperSpellRefusal.None ? "cast" : "refused",
+                        $"player={cast.PlayerId} spell={cast.SpellId} target={cast.CreatureId} reason={refusal}");
+                    break;
+                case CastSpellAtPlaceCommand place:
+                    KeeperSpellRules.CastAtPlace(context, place, out KeeperSpellRefusal placeRefusal);
+                    context.Emit(Name, placeRefusal == KeeperSpellRefusal.None ? "cast" : "refused",
+                        $"player={place.PlayerId} spell={place.SpellId} at={place.X >> 12},{place.Y >> 12} reason={placeRefusal}");
+                    break;
+            }
         }
     }
 }

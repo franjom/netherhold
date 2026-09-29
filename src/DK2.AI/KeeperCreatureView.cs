@@ -15,10 +15,11 @@ namespace DK2.AI;
 /// <param name="LastDroppedCounter">DK2's <c>+0x46D</c>: turns since spawn or the last drop, zero in the hand.</param>
 /// <param name="InMyHand">Whether this keeper's hand holds it (<c>0x004BCAE0</c>).</param>
 /// <param name="OwnershipRank">Position in the owner's acquisition-ordered list, or -1 when not listed.</param>
+/// <param name="UnderCallToArms"><c>0x004888C0</c>: the owner's flag, the creature's bit 20 or states 190 to 192 through a walk.</param>
 public readonly record struct KeeperCreatureView(
     int Id, byte CreatureTypeId, byte OwnerPlayerId, CreatureActivity Activity,
     int Health, int Level, long LastSlapTick, bool CanSlap,
     int PosX, int PosY, bool InHand, int CarriedByCreatureId, ushort RescuePriorityMask = 0,
     bool PickupPermitted = false, bool CanPickUp = false,
     int StateId = 0, int ResolvedStateId = 0, bool MayFight = false, int MaxHealth = 0,
-    ushort LastDroppedCounter = 0, bool InMyHand = false, int OwnershipRank = -1);
+    ushort LastDroppedCounter = 0, bool InMyHand = false, int OwnershipRank = -1, bool UnderCallToArms = false);

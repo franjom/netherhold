@@ -5952,6 +5952,45 @@ furniture-slot exclusion `0x00454110`, and kinds 12, 34 and 47, which nothing
 produces. The counter reads one on the tick after a drop, where DK2's update
 order gives the same value the turn after.
 
-**Limits.** No original run shows a keeper's response (Q482). The reinforcement
-arm's move is reachable only when the payload tile changes hands between the
-reservation and a later attempt.
+**Limits.** No original run shows a keeper's response (Q482); the reinforcement
+arm's move is reachable only when the payload tile changes hands after reservation.
+
+## ADR-0279 — Build Call to Arms as the flag object's process, cast and slapped by commands
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** The keeper's battle step and attack management cast and remove Call
+to Arms, and five mechanics already read its flag (`call-to-arms.md`). Nothing
+here had the spell: the job dispatcher's gate (ADR-0145) and the fight gate's
+radius (Q361) were recorded as unbuildable.
+
+**Decision.**
+1. `CastSpellAtPlaceCommand` is packet action 54: `KeeperSpellRules.CastAtPlace`
+   runs the position helper's cost, cooldown and the record's selectors (4 and 4
+   built), makes the Create Object shot and pays; other ids are refused. Shot
+   process 2 puts the object down on the shot's flying death.
+2. `PlayerState.CallToArms` holds the bit, tag, tile and prepaid clock;
+   `CreatureState.HeedingCallToArms` is bit 20; `ObjectState` gains the process
+   state, deadline, count and ending mark. Hash and snapshot version 138.
+3. `CallToArmsSystem` runs the creatures' 190–192 first, then each flag's states,
+   chaining a changed state within the tick; `RemoveCallToArmsCommand` is action
+   63, the slap that sets the keeper's own flag releasing. The state machine's
+   category hooks set and clear the run speed.
+4. `ManaRules` adds the upkeep to the second's drain once the clock is past;
+   `ManaSystem` fades a flag the mana left cannot keep and skips the pressure
+   block for that second, as DK2's early return does.
+5. The fight gate, the job dispatcher, idle's walk, the needs' busy test and the
+   drop landing read the call; the observation (schema 9) carries `0x004888C0`.
+
+**Reason.** The flag is a thing with its own process in DK2, and the human, the
+replay and the keeper AI all reach it through the same two actions; building it
+as an object keeps the hand's pick-up and drop of the flag, and the recall's
+re-read of its tile, for free.
+
+**Deviations, ours.** A changed flag state runs in the same tick and creatures run
+before flags, where DK2's update order is unread. The flag's effects, sound, the
+slapped flag's flight and the Heart-slab nudge are absent. A held creature is
+excluded by the hand rather than by state 78. The fade keeps the call on with a
+dead flag, which is the binary's own reading, not an observation.
+
+**Limits.** No original run (Q483). Only selectors 4/4 and spell 3 at a place;
+`TortureVoluntary` recruits and the Reaper timer are not represented.

@@ -90,7 +90,7 @@ through 89.
   - the Heart walk, since it has no effect;
   - the idle sound;
   - `ReturnToJobId`;
-  - the Call To Arms and casino arms.
+  - the casino arm. The Call To Arms arm is built (`call-to-arms.md`, ADR-0279).
 
 ## 6. Two more `AngerNoWork` sites (Q438) — CONFIRMED, not built
 

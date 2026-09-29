@@ -64,6 +64,7 @@ public static class AssetCatalogue
         "being_tortured",
         "rescuing",
         "pit_fighting",
+        "heeding_call_to_arms",
     ];
 
     /// <summary>

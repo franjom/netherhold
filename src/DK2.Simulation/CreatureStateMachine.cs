@@ -151,9 +151,15 @@ public static class CreatureStateMachine
                     ? creature.StateBeforeUtilityState : creature.Dk2StateId;
                 if (caller >= 0 && CreatureStateTable.Get(caller).Category == CreatureStateCategory.WorkerJob)
                     WorkerPickupRules.OnTaskReleased(creature);
+                // The Call to Arms category's leave hook (0x00455E90) takes the run speed off.
+                if (caller >= 0 && CreatureStateTable.Get(caller).Category == CreatureStateCategory.CallToArms)
+                    creature.Running = false;
             }
-            // The target's enter hook: every countdown hook's seeds its byte with variable 19.
+            // The target's enter hook: every countdown hook's seeds its byte with variable 19,
+            // and the Call to Arms category's (0x00455E70) sets the run speed (0x004887D0).
             creature.HookCountdown = HookCountdownSeed;
+            if (CreatureStateTable.Get(stateId).Category == CreatureStateCategory.CallToArms)
+                creature.Running = true;
         }
 
         creature.Dk2StateId = stateId;

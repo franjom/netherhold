@@ -338,7 +338,7 @@ public sealed class ScenarioRunner
             "a dungeon heart; outgoings are Create Imp's cast cost and the 7 a second every imp " +
             "charges its keeper (Q53, confirmed and now read off DK2's own Create Imp record). " +
             "What is missing is every other keeper spell - a summoned Horned Reaper costs 2000 a " +
-            "second and Call To Arms 90, and neither spell exists yet - plus research and the " +
+            "second and Possession 25, and neither spell exists yet; Call To Arms does - plus research and the " +
             "mana traps draw, which is reported and uninvestigated. A mana total in this run is " +
             "close to what a keeper would have, and short of every outgoing but one");
         unsupported.Add(
@@ -493,6 +493,13 @@ public sealed class ScenarioRunner
         foreach (ScenarioPlayer p in scenario.Setup.Players)
         {
             world.Player(p.Id).Mana = p.Mana;
+            foreach (int spell in p.Spells)
+            {
+                if (world.Player(p.Id).Availabilities.Exists(a => a.Kind == KeeperSpellRules.SpellAvailabilityKind && a.TypeId == spell))
+                    world.SetAvailability(p.Id, KeeperSpellRules.SpellAvailabilityKind, spell, 3);
+                else
+                    world.Player(p.Id).Availabilities.Add(new AvailabilityState(KeeperSpellRules.SpellAvailabilityKind, spell, 3));
+            }
 
             if (p.Gold <= 0) continue;
 
@@ -675,8 +682,24 @@ public sealed class ScenarioRunner
                 }
             }
 
+            bool called = c.CallToArms.Count > 0;
+            if (called)
+            {
+                if (c.CallToArms.Count != 2)
+                {
+                    unsupported.Add($"commands entry at_tick={c.AtTick} has a call_to_arms that is not [x, y]");
+                    called = false;
+                }
+                else
+                {
+                    list.Add(new CastSpellAtPlaceCommand(c.Player, CallToArmsRules.SpellId,
+                        CreatureState.CentreOf(c.CallToArms[0]), CreatureState.CentreOf(c.CallToArms[1])));
+                }
+            }
+            if (c.RemoveCallToArms) list.Add(new RemoveCallToArmsCommand(c.Player));
+
             if (c.Tag.Count == 0 && c.Untag.Count == 0 && !built
-                && c.Sell.Count == 0 && !c.CreateImp
+                && c.Sell.Count == 0 && !c.CreateImp && !called && !c.RemoveCallToArms
                 && c.PickUp == 0 && c.PickUpObject == 0 && c.Slap == 0 && !dropped)
                 unsupported.Add($"commands entry at_tick={c.AtTick} names nothing this build can do");
         }

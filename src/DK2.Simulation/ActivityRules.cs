@@ -45,6 +45,7 @@ public static class ActivityRules
         TunnelRules.AdvancingState => CreatureActivity.GoingToJob,
         CombatPitSpectatorRules.FacingState => CreatureActivity.AtWork,
         JailBreakRules.BreakingOutState => CreatureActivity.Rescuing,
+        CallToArmsRules.ArrivedState or CallToArmsRules.MillingState => CreatureActivity.HeedingCallToArms,
         _ when JobStates.Contains(resume) => CreatureActivity.GoingToJob,
         _ => Standing(creature, resume),
     };
@@ -73,6 +74,7 @@ public static class ActivityRules
         PrisonRules.SlappedState => PrisonRules.IsImprisoned(creature) ? CreatureActivity.Imprisoned : CreatureActivity.Idle,
         DropLandingRules.LandingState or DropLandingRules.StandingState => CreatureActivity.Idle,
         PortalRules.JoiningState => CreatureActivity.Idle,
+        CallToArmsRules.GoingState or CallToArmsRules.ArrivedState or CallToArmsRules.MillingState => CreatureActivity.HeedingCallToArms,
         LairRules.MakingAHomeState => CreatureActivity.SeekingLair,
         LairRules.GoingToBedState => creature.CurrentJob == JobType.Sleep ? CreatureActivity.AtWork : CreatureActivity.GoingToSleep,
         LairRules.LyingDownState => CreatureActivity.GoingToSleep,

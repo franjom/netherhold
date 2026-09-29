@@ -23,4 +23,7 @@ public static class KeeperSpellName
 
     /// <summary>Take a creature over in first person.</summary>
     public const string Possession = "Possession";
+
+    /// <summary>Plants the flag the keeper's creatures gather at; 90 a second while it stands.</summary>
+    public const string CallToArms = "Call To Arms";
 }

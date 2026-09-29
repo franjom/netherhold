@@ -54,7 +54,7 @@ Returns 1 only when every test passes. DK2's own field names throughout.
 | not `Possessed` (bit 7), not `CreatureDying` (bit 21) | `IsPossessed`, `IsDown` |
 | not en route (state 6) toward a threat (251) or fleeing (202), unless `force` | no such states yet |
 | not `IsHypnotised` (`+0x3EA` bit 0) | not modelled |
-| when the owner's `CallToArmsOn` is set and not `force`: within `CallToArmsFightDistanceTiles` (variable 182, byte at `0x006F2963`, ships 5) of `CallToArmsPosition` (`player+0x13A/+0x13C`) | Q361 |
+| when the owner's `CallToArmsOn` is set and not `force`: within `CallToArmsFightDistanceTiles` (variable 182, byte at `0x006F2963`, ships 5) of `CallToArmsPosition` (`player+0x13A/+0x13C`) | `CallToArmsRules.WithinFightDistance` (ADR-0279) |
 | an `IsHorny` creature: not in states 235–237 and `+0x2F5` zero | not modelled |
 
 ## 3. `ProcessFight`: when a creature looks

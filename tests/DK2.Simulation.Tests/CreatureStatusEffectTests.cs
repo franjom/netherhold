@@ -34,7 +34,7 @@ public class CreatureStatusEffectTests
         Assert.Equal(40, goblin.FrozenTicks);
         Assert.Equal(160, StatusEffectRules.DamageMultiplier(world, db, goblin));
         Assert.Equal(-500, StatusEffectRules.Hurt(world, db, db.CreatureById(goblin.CreatureTypeId), goblin, 400));
-        Assert.False(CombatRules.MayLookForAFight(world, goblin, force: false));
+        Assert.False(CombatRules.MayLookForAFight(world, db, goblin, force: false));
         // A frozen creature is still a target: the Warlock engages it.
         Assert.True(CombatRules.IsAttackable(goblin));
 
@@ -217,7 +217,7 @@ public class CreatureStatusEffectTests
         Assert.Equal(20, dry.StunTicks);
         Assert.Equal(256, StatusEffectRules.DamageMultiplier(world, db, dry));
         Assert.Equal(-200, StatusEffectRules.Hurt(world, db, def, dry, 100));
-        Assert.False(CombatRules.MayLookForAFight(world, dry, force: false));
+        Assert.False(CombatRules.MayLookForAFight(world, db, dry, force: false));
 
         sim.Run(20);
         Assert.Equal(CreatureActivity.Idle, dry.Activity);

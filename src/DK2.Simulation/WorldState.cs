@@ -366,6 +366,10 @@ public struct PlayerState
     /// <see cref="Systems.ManaSystem"/> on every payment (imp-mana-removal.md, ADR-0277).</summary>
     public ManaPressureState ManaPressure;
 
+    /// <summary>The Call to Arms: DK2's player <c>+0x76</c> bit 2 with <c>+0x138</c> to
+    /// <c>+0x13E</c> (call-to-arms.md, ADR-0279).</summary>
+    public CallToArmsState CallToArms;
+
     /// <summary>
     /// The Hand of Evil: the <b>things</b> this keeper is holding, in pick-up order.
     /// Things, not creatures (ADR-0075) — DK2 keeps one array of thing ids on the
@@ -417,6 +421,11 @@ public struct PlayerState
         hash.Add(ManaPressure.WarningsSuppressed);
         hash.Add(ManaPressure.RemovalEnabled);
         hash.Add(ManaPressure.ScanDeadline);
+        hash.Add(CallToArms.On);
+        hash.Add(CallToArms.ObjectId);
+        hash.Add(CallToArms.X);
+        hash.Add(CallToArms.Y);
+        hash.Add(CallToArms.ManaTick);
         hash.Add(Availabilities.Count);
         foreach (AvailabilityState availability in Availabilities)
             availability.HashInto(ref hash);
