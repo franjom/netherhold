@@ -18,6 +18,9 @@ public static class ImpStates
     /// start every walk to work, and every even work state returns here.</summary>
     public const int TaskSelection = 10;
 
+    /// <summary>State 11 prepares a dropped worker for task selection.</summary>
+    public const int AfterDrop = 11;
+
     /// <summary>State 12 (<c>0x00464240</c>), idle with no task: a deadline back to 10, idle actions
     /// and wander trips (imp-idle-and-wandering.md §3).</summary>
     public const int Resting = 12;

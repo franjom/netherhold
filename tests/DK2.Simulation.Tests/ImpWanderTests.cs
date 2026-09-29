@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
@@ -13,6 +14,110 @@ namespace DK2.Simulation.Tests;
 public class ImpWanderTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
+
+    [Theory]
+    [InlineData(100, 0, ImpStates.Resting, true)]
+    [InlineData(0, 100, ImpStates.Wandering, true)]
+    [InlineData(0, 0, ImpStates.TaskSelection, false)]
+    public void RestWritesIdleBeforeActionWaitAndClearsOnlyOnDeadlineExit(
+        long actionUntil, long deadline, int expectedState, bool idle)
+    {
+        var (db, world) = AllClaimed();
+        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        imp.Dk2StateId = ImpStates.Resting;
+        imp.ActionUntilTick = actionUntil;
+        imp.StateDeadlineTick = deadline;
+        new GameSimulation(db, world, 11, [new ImpTaskSystem()]).Tick();
+        Assert.Equal(expectedState, imp.Dk2StateId);
+        Assert.Equal(idle, imp.WorkerIdle);
+    }
+
+    [Fact]
+    public void SelectionClearsIdleWhenItRunsRatherThanWhenRestIsEntered()
+    {
+        var (db, world) = AllClaimed();
+        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        imp.Dk2StateId = ImpStates.TaskSelection;
+        imp.WorkerIdle = true;
+        imp.TimerTicks = 2;
+        var sim = new GameSimulation(db, world, 11, [new ImpTaskSystem()]);
+        sim.Tick();
+        Assert.True(imp.WorkerIdle);
+        sim.Tick();
+        Assert.Equal(ImpStates.Resting, imp.Dk2StateId);
+        Assert.False(imp.WorkerIdle);
+        sim.Tick();
+        Assert.True(imp.WorkerIdle);
+    }
+
+    [Fact]
+    public void WanderArrivalPreservesIdleUntilTheNextSelection()
+    {
+        var (db, world) = AllClaimed();
+        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        imp.WorkerIdle = true;
+        CreatureStateMachine.BeginTravel(imp, 6, CreatureStateMachine.Idle);
+        var sim = new GameSimulation(db, world, 11, [new ImpTaskSystem()]);
+        sim.Tick();
+        Assert.Equal(CreatureStateMachine.Idle, imp.Dk2StateId);
+        Assert.True(imp.WorkerIdle);
+        sim.Tick();
+        Assert.False(imp.WorkerIdle);
+    }
+
+    [Theory]
+    [InlineData(PlayerIds.Neutral)]
+    [InlineData(Keeper)]
+    public void StateElevenClearsIdleAndPreparesTheDropScan(byte owner)
+    {
+        var (db, world) = AllClaimed();
+        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, owner, new TilePos(7, 6));
+        imp.Dk2StateId = ImpStates.AfterDrop;
+        imp.WorkerIdle = true;
+        new GameSimulation(db, world, 11, [new ImpTaskSystem()]).Tick();
+        Assert.False(imp.WorkerIdle);
+        Assert.True(imp.JustDropped);
+        Assert.Equal(ImpStates.TaskSelection, imp.Dk2StateId);
+    }
+
+    [Fact]
+    public void HandPreservesIdleOnPickupAndClearsItOnTheCompressedWorkerDrop()
+    {
+        var (db, world) = AllClaimed();
+        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        imp.WorkerIdle = true;
+        var sim = new GameSimulation(db, world, 11, [new HandSystem()]);
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        Assert.True(imp.InHand);
+        Assert.True(imp.WorkerIdle);
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(7, 6))));
+        Assert.False(imp.InHand);
+        Assert.False(imp.WorkerIdle);
+        Assert.True(imp.JustDropped);
+    }
+
+    [Fact]
+    public void IdleFlagAffectsHashAndSurvivesSaveThenResume()
+    {
+        var (db, world) = AllClaimed();
+        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        imp.Dk2StateId = ImpStates.Resting;
+        imp.ActionUntilTick = 3;
+        imp.StateDeadlineTick = 5;
+        var sim = new GameSimulation(db, world, 11, [new ImpTaskSystem()]);
+        ulong before = sim.StateHash();
+        imp.WorkerIdle = true;
+        Assert.NotEqual(before, sim.StateHash());
+        var copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, [new ImpTaskSystem()]);
+        Assert.True(copy.World.CreatureById(imp.Id)!.WorkerIdle);
+        for (int i = 0; i < 12; i++)
+        {
+            Assert.Equal(sim.StateHash(), copy.StateHash());
+            sim.Tick();
+            copy.Tick();
+        }
+        Assert.Equal(sim.StateHash(), copy.StateHash());
+    }
 
     /// <summary>The owner's run-stop-wait loop: each trip ends on one of the keeper's own tiles at
     /// ring radius 1–7 (<c>0x00480A00</c>), never on the Dungeon Heart.</summary>

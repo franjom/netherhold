@@ -494,6 +494,9 @@ public sealed class CreatureState
     /// Efficiency arithmetic reads is four bytes further on (ADR-0069).</para></summary>
     public bool JustDropped;
 
+    /// <summary>Stored worker idle flag; remains set through wandering (imp-idle-and-wandering.md).</summary>
+    public bool WorkerIdle;
+
     /// <summary>The kind of task this worker was <b>dropped onto and is still doing</b>,
     /// or <see cref="ImpTaskKind.None"/> — DK2's <c>ImpJobData.DroppedTask</c>,
     /// the field <see cref="EfficiencyRules.Percent"/> reads, worth
@@ -962,6 +965,7 @@ public sealed class CreatureState
         hash.Add(LastSlapTick);
         hash.Add(WorkFasterTicks);
         hash.Add(JustDropped);
+        hash.Add(WorkerIdle);
         hash.Add((byte)DroppedTask);
         hash.Add((byte)LastTaskKind);
         hash.Add(CarriedCreatureId);

@@ -12,8 +12,8 @@ states 10 and 12 that this note expands.
 
 **Built subset:** `ImpTaskSystem.Wander.cs` (ADR-0224) runs rest and wandering,
 with its documented action-duration and destination approximations. The stored
-idle flag at `+0x3D1` is not represented yet; its removal reader is audited in
-`imp-mana-removal.md`.
+idle flag at `+0x3D1` is maintained and persisted (ADR-0274); its removal reader
+is audited in `imp-mana-removal.md`.
 
 ---
 
@@ -168,11 +168,25 @@ own-spot fallback. Read while building:
 
 Guessed: the idle actions' length. Not built: the throttle.
 
-## What building it needs
+## Stored idle flag and remaining limits
 
-- State 12's roll and deadline, state 87's picker, and the resume through 1 → 10.
-- Actions 43 and 44 as timed "busy" periods. Their length comes from the
-  animation, which is UNKNOWN (above); a placeholder duration must be marked as a
-  guess.
-- The per-player selection throttle of §2, which also bounds how many imps search
-  in one tick.
+Rechecked with Ghidra 12.1.4/PyGhidra on 2026-09-29, STRONGLY INFERRED:
+`0x004872A0` initializes `+0x3D1` to zero; states 10/11/12 have the writes
+described above. State 11 clears before its state-10 request and, on success,
+clears the previous drop task and sets the fresh-drop ticket. Worker landing
+`0x00459180` requests state 11 after checking its special disposal path.
+
+`CreatureState.WorkerIdle` stores this flag. Rest sets it before the action wait;
+accepted deadline exit clears it; normal task selection clears it when selection
+runs. State 11 clears it before transition. The existing compressed HandSystem
+worker-drop path also clears it alongside its fresh-drop ticket. Picking up,
+wandering and arriving do not infer a new value from activity. Tests exercise
+these boundaries and hash sensitivity/save continuation (`ImpWanderTests`).
+
+The original per-player selection throttle remains unbuilt. The existing modern
+timer gate still controls when task selection runs; neutral selection keeps the
+flag, matching the original early-exit ordering. The drop path still compresses
+original landing/state-11 timing. State 11's additional byte at worker-state
+`+0xA2` is unrepresented; this is not a claim that the entire handler is complete.
+Idle-action durations remain guessed. No new original observation validates this
+integration; removal side effects remain open in Q57.

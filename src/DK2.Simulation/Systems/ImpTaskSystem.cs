@@ -239,6 +239,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         if (creature.TimerTicks > 0) return;
 
         // DK2's state 10 hands a worker that found nothing to 12 at once (ADR-0224).
+        if (creature.OwnerPlayerId != PlayerIds.Neutral) creature.WorkerIdle = false;
         if (!TryTakeJob(context, creature, definition, grid)) ToRest(context, creature);
     }
 

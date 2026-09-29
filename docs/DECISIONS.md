@@ -5789,5 +5789,24 @@ stored sequence when removed from the world.
 
 **Limits.** Torture and defection now maintain ownership order; their other
 conversion behaviour is unchanged. Existing selectors and AI observations have
-not switched to this reader. Stored idle-flag integration and destruction side
-effects remain prerequisites for live mana removal (Q57).
+not switched to this reader. ADR-0274 supplies the stored idle flag; destruction
+side effects remain a prerequisite for live mana removal (Q57).
+
+## ADR-0274 — Persist the worker idle flag rather than derive it from activity
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** Mana-removal selection reads a stored flag that can stay set while
+a worker walks. Its writers and limits are in `research/imp-idle-and-wandering.md`.
+
+**Decision.** Store `CreatureState.WorkerIdle`, initially false, and write it in
+the represented task-selection, rest and drop paths. State 11 is an idle activity
+handled before ordinary selection: clear the flag before its transition attempt,
+then prepare the existing drop ticket on success. Rest sets the flag before
+waiting on an action and clears it only after an accepted deadline exit.
+Persist and hash it; hash/save version 135.
+
+**Limits.** Keep the existing compressed HandSystem drop timing and selection
+timer rather than claim original frame equivalence. The original per-player
+throttle and state 11's extra byte at worker-state `+0xA2` remain unrepresented.
+Action durations remain approximate. This supplies the stored flag for later
+removal integration; it does not enable live mana removal or keeper defence.

@@ -45,7 +45,7 @@ reactive decisions and an original command trace remain open. The casualty-prior
 command and imp reader are built (ADR-0261). Represented pickup gates are captured;
 worker task-exit and prison-delivery flag writes are built (ADR-0263).
 Mana-pressure rules are tested independently (ADR-0266). Creature ownership order
-is maintained and persisted (ADR-0273); idle-flag and removal integration, other
+and the worker idle flag are persisted (ADRs 0273?0274); removal integration, other
 eligibility lifecycles and live response dispatch remain next
 (2026-09-29; `KEEPER_AI.md` §12.8).
 

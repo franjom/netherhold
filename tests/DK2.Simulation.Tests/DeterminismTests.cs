@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 134: persistent creature acquisition order (ADR-0273).
+        // HashVersion 135: stored worker idle flag (ADR-0274).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xBBEF0554E88AFB16UL, sim.StateHash());
+        Assert.Equal(0x4289BE0A7A244163UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

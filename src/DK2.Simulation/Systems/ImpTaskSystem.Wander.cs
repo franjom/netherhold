@@ -44,6 +44,14 @@ public sealed partial class ImpTaskSystem
         // same turn, as the rest of the imp's states always have.
         switch (creature.Dk2StateId)
         {
+            case ImpStates.AfterDrop:
+                creature.WorkerIdle = false;
+                if (StateShadow.TryMove(context, SystemName, creature, ImpStates.TaskSelection))
+                {
+                    creature.DroppedTask = ImpTaskKind.None;
+                    creature.JustDropped = true;
+                }
+                return true;
             case ImpStates.Resting:
                 Rest(context, creature);
                 return true;
@@ -69,11 +77,13 @@ public sealed partial class ImpTaskSystem
     /// both actions (whether an imp has them is UNKNOWN) for <see cref="IdleActionGuessTicks"/>.</summary>
     private static void Rest(SimulationContext context, CreatureState creature)
     {
+        creature.WorkerIdle = true;
         long now = context.Tick.Value;
         if (now < creature.ActionUntilTick) return;
         if (creature.StateDeadlineTick <= now)
         {
-            StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
+            if (StateShadow.TryMove(context, SystemName, creature, ImpStates.TaskSelection))
+                creature.WorkerIdle = false;
             return;
         }
         if (creature.WanderStamp != 0)

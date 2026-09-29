@@ -323,7 +323,11 @@ public sealed class HandSystem : ISimulationSystem
         bool worker = definition.Flags.HasFlag(CreatureFlags.IsWorker);
         creature.JustDropped = worker;
         creature.DroppedTask = ImpTaskKind.None;
-        if (worker) creature.TimerTicks = 0;
+        if (worker)
+        {
+            creature.TimerTicks = 0;
+            creature.WorkerIdle = false;
+        }
 
         context.Emit(SystemName, "dropped",
             $"player={command.PlayerId} creature={creature.Id} " +

@@ -15,6 +15,7 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**135** — `0x4289BE0A7A244163`. Stored worker idle flag (ADR-0274).
 **134** — `0xBBEF0554E88AFB16`. Creature acquisition order, including transfers (ADR-0273).
 **133** — `0x584EDA75014EEB18`. A keeper's portal entrance rows: boost and sack block (ADR-0272).
 **132** — `0xFFF1AFE1DFB6A231`. A miner's standing slot and a floor pile's cell (ADR-0264).
