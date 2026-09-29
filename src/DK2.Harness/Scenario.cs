@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -250,6 +251,10 @@ public sealed class Scenario
 
     public ulong Seed { get; set; }
 
+    /// <summary><c>modern</c> (the default, xoshiro) or <c>dk2</c>, the original's generator
+    /// (ADR-0275). Under <c>dk2</c> a seed of 0 means DK2's level-start seed, 1.</summary>
+    public string Random { get; set; } = "modern";
+
     public int DurationTicks { get; set; }
 
     /// <summary>Enables DK2's player-specific explored-tile state.</summary>
@@ -284,7 +289,7 @@ public sealed class Scenario
     public string SourcePath { get; private set; } = "";
 
     private static readonly string[] KnownKeys =
-        ["id", "question", "map", "seed", "duration_ticks", "fog_of_war", "viewing_player", "setup", "commands", "computer_keepers", "work", "observe", "expect"];
+        ["id", "question", "map", "seed", "random", "duration_ticks", "fog_of_war", "viewing_player", "setup", "commands", "computer_keepers", "work", "observe", "expect"];
 
     public static Scenario Load(string path)
     {
@@ -318,5 +323,16 @@ public sealed class Scenario
             throw new InvalidDataException($"'{SourcePath}': scenario '{Id}' needs a map.");
         if (DurationTicks <= 0)
             throw new InvalidDataException($"'{SourcePath}': scenario '{Id}' needs a positive duration_ticks.");
+        if (Random is not ("modern" or "dk2"))
+            throw new InvalidDataException($"'{SourcePath}': scenario '{Id}' has random '{Random}'; expected modern or dk2.");
+        if (Random == "dk2" && Seed > uint.MaxValue)
+            throw new InvalidDataException($"'{SourcePath}': scenario '{Id}' needs a 32-bit seed under random: dk2.");
+    }
+
+    /// <summary>The simulation's generator, as <see cref="Random"/> selects it.</summary>
+    public SimRandom CreateRandom()
+    {
+        if (Random != "dk2") return new SimRandom(Seed);
+        return new SimRandom(new Dk2Lcg(Seed == 0 ? Dk2Lcg.LevelStartSeed : (uint)Seed));
     }
 }

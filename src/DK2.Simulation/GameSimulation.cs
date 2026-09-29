@@ -156,11 +156,7 @@ public sealed class GameSimulation
         hash.Add(HashVersion);
         World.HashInto(ref hash);
 
-        (ulong s0, ulong s1, ulong s2, ulong s3) = Rng.SaveState();
-        hash.Add(s0);
-        hash.Add(s1);
-        hash.Add(s2);
-        hash.Add(s3);
+        Rng.HashInto(ref hash);
 
         return hash.Value;
     }

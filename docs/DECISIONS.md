@@ -5810,3 +5810,26 @@ timer rather than claim original frame equivalence. The original per-player
 throttle and state 11's extra byte at worker-state `+0xA2` remain unrepresented.
 Action durations remain approximate. This supplies the stored flag for later
 removal integration; it does not enable live mana removal or keeper defence.
+
+## ADR-0275 — DK2's generator behind a pluggable algorithm, not yet the default
+**Date:** 2026-09-29 · **Status:** accepted
+
+**Context.** Q3 is answered: DK2's generator, its streams and its seeding are in
+`research/dk2-random.md`. The owner wants it built and switchable, so runs can be
+compared against captures, without replacing the current generator yet.
+
+**Decision.** `SimRandom` stays the one type systems take. It delegates to an
+`IRandomAlgorithm`: `Xoshiro256StarStar`, the unchanged default, or `Dk2Lcg`, the
+original's LCG. Each algorithm owns its reduction to a range and its hash fold.
+A scenario selects one with `random: modern | dk2`; under `dk2`, seed 0 means
+DK2's level-start seed 1. `Dk2Lcg.StepsBetween` reads a capture's per-tick seeds
+as draws per tick. The default's draws, hash and snapshot are bit-identical, so
+there is no hash or save version change.
+
+**Limits.** Snapshots store xoshiro state only; `SaveState` refuses another
+algorithm rather than restore it as the wrong generator. Adding the algorithm to
+the format is the version bump that making `dk2` the default will need. Choosing
+`dk2` does not make our draws line up with DK2's: our call sites, their order and
+their ranges differ, and `KeeperAI` draws from its own stream, while DK2's
+computer player draws from the world seed. Draw-for-draw alignment is not a goal
+(owner, 2026-09-29: fidelity is judged by outcomes).

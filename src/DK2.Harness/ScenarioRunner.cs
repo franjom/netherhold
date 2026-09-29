@@ -205,7 +205,7 @@ public sealed class ScenarioRunner
         // systems in a different order from the test suite would be producing
         // evidence about neither.
         var simulation = new GameSimulation(
-            _database, world, scenario.Seed, SimulationSystems.Default(), triggers);
+            _database, world, scenario.CreateRandom(), SimulationSystems.Default(), triggers);
 
         var sink = new ListEventSink();
         simulation.ObserveWith(sink);
@@ -927,6 +927,8 @@ public sealed class ScenarioRunner
         report.AppendLine($"- source: {result.Scenario.SourcePath}");
         report.AppendLine($"- map: {result.Scenario.Map}");
         report.AppendLine($"- seed: {result.Scenario.Seed}");
+        if (result.Scenario.Random != "modern")
+            report.AppendLine($"- random: {result.Scenario.Random}");
         report.AppendLine($"- balance table: {result.BalanceTable}");
         report.AppendLine($"- ticks run: {result.TicksRun}");
         report.AppendLine($"- final state hash: {result.FinalStateHash:x16}");

@@ -5,68 +5,34 @@
 namespace DK2.Core;
 
 /// <summary>
-/// The simulation's only source of randomness. Explicitly seeded, fully
-/// serialisable, platform-independent.
-///
-/// Algorithm: xoshiro256** (public domain, Blackman &amp; Vigna). Chosen for our
-/// determinism requirement; it deliberately does NOT try to match DK2's original
-/// RNG. If behavioural fidelity work later requires reproducing the original
-/// generator (UNKNOWN which one DK2 uses), that becomes a second implementation
-/// behind this same type — see docs/research/open-questions.md.
+/// The simulation's only source of randomness. Explicitly seeded and
+/// platform-independent. The generator is pluggable (ADR-0275): the default is
+/// <see cref="Xoshiro256StarStar"/>; <see cref="Dk2Lcg"/> is the original's.
 /// </summary>
 public sealed class SimRandom
 {
-    private ulong _s0, _s1, _s2, _s3;
+    private readonly IRandomAlgorithm _algorithm;
 
-    public SimRandom(ulong seed)
+    public SimRandom(ulong seed) : this(new Xoshiro256StarStar(seed))
     {
-        // SplitMix64 expansion of the seed, per xoshiro authors' recommendation.
-        ulong x = seed;
-        _s0 = SplitMix64(ref x);
-        _s1 = SplitMix64(ref x);
-        _s2 = SplitMix64(ref x);
-        _s3 = SplitMix64(ref x);
-        if ((_s0 | _s1 | _s2 | _s3) == 0) _s0 = 1; // all-zero state is invalid
     }
 
-    private SimRandom(ulong s0, ulong s1, ulong s2, ulong s3)
-        => (_s0, _s1, _s2, _s3) = (s0, s1, s2, s3);
-
-    private static ulong SplitMix64(ref ulong x)
+    public SimRandom(IRandomAlgorithm algorithm)
     {
-        x += 0x9E3779B97F4A7C15UL;
-        ulong z = x;
-        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
-        z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
-        return z ^ (z >> 31);
+        _algorithm = algorithm ?? throw new ArgumentNullException(nameof(algorithm));
     }
 
-    private static ulong Rotl(ulong v, int k) => (v << k) | (v >> (64 - k));
+    public IRandomAlgorithm Algorithm => _algorithm;
 
     public ulong NextUInt64()
     {
-        ulong result = Rotl(_s1 * 5, 7) * 9;
-        ulong t = _s1 << 17;
-        _s2 ^= _s0;
-        _s3 ^= _s1;
-        _s1 ^= _s2;
-        _s0 ^= _s3;
-        _s2 ^= t;
-        _s3 = Rotl(_s3, 45);
-        return result;
+        return Xoshiro().NextUInt64();
     }
 
-    /// <summary>Uniform integer in [0, exclusiveMax). Rejection-sampled — no modulo bias.</summary>
+    /// <summary>Integer in [0, exclusiveMax), reduced as the algorithm defines.</summary>
     public int NextInt(int exclusiveMax)
     {
-        if (exclusiveMax <= 0) throw new ArgumentOutOfRangeException(nameof(exclusiveMax));
-        ulong bound = (ulong)exclusiveMax;
-        ulong threshold = (0UL - bound) % bound;
-        while (true)
-        {
-            ulong r = NextUInt64();
-            if (r >= threshold) return (int)(r % bound);
-        }
+        return _algorithm.NextInt(exclusiveMax);
     }
 
     /// <summary>Uniform integer in [min, max] inclusive.</summary>
@@ -76,9 +42,30 @@ public sealed class SimRandom
         return min + NextInt(maxInclusive - min + 1);
     }
 
-    /// <summary>Captures the full generator state for save/load.</summary>
-    public (ulong S0, ulong S1, ulong S2, ulong S3) SaveState() => (_s0, _s1, _s2, _s3);
+    public void HashInto(ref Hash64 hash)
+    {
+        _algorithm.HashInto(ref hash);
+    }
+
+    /// <summary>
+    /// Captures the full generator state for save/load. The snapshot format
+    /// stores xoshiro state only, so another algorithm refuses rather than
+    /// restoring as the wrong generator.
+    /// </summary>
+    public (ulong S0, ulong S1, ulong S2, ulong S3) SaveState()
+    {
+        return Xoshiro().SaveState();
+    }
 
     public static SimRandom Restore((ulong S0, ulong S1, ulong S2, ulong S3) state)
-        => new(state.S0, state.S1, state.S2, state.S3);
+    {
+        return new(Xoshiro256StarStar.Restore(state));
+    }
+
+    private Xoshiro256StarStar Xoshiro()
+    {
+        return _algorithm as Xoshiro256StarStar
+        ?? throw new NotSupportedException(
+            $"{_algorithm.GetType().Name} has no 64-bit draw and no snapshot format yet (ADR-0275).");
+    }
 }

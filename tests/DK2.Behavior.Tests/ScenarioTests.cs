@@ -155,6 +155,43 @@ public class ScenarioTests
         Assert.Equal(first.FinalStateHash, second.FinalStateHash);
     }
 
+    [Theory]
+    [InlineData("", typeof(Xoshiro256StarStar))]
+    [InlineData("random: modern", typeof(Xoshiro256StarStar))]
+    [InlineData("random: dk2", typeof(Dk2Lcg))]
+    public void Load_RandomKeySelectsTheGenerator(string line, Type expected)
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"dk2-scenario-{Guid.NewGuid():N}.yaml");
+        File.WriteAllText(path, $"id: random-probe\nmap: flat_8x8\nduration_ticks: 1\n{line}\n");
+        try
+        {
+            Scenario scenario = Scenario.Load(path);
+            Assert.Empty(scenario.UnknownKeys);
+            IRandomAlgorithm algorithm = scenario.CreateRandom().Algorithm;
+            Assert.IsType(expected, algorithm);
+            if (algorithm is Dk2Lcg dk2) Assert.Equal(Dk2Lcg.LevelStartSeed, dk2.Seed);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Load_RejectsAnUnknownGenerator()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"dk2-scenario-{Guid.NewGuid():N}.yaml");
+        File.WriteAllText(path, "id: random-probe\nmap: flat_8x8\nduration_ticks: 1\nrandom: dk3\n");
+        try
+        {
+            Assert.Throws<InvalidDataException>(() => Scenario.Load(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void Run_ReportsThatInjectedWorkHasNoWorkerAndNoKnownRate()
     {

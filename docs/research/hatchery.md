@@ -72,9 +72,9 @@ each successful lay.
 
 The random pick is behaviour, and it is the first place in this project where
 DK2's own RNG position would matter observably (Q3): two hatcheries of the same
-size lay in the same rhythm but not in the same places. Our `SimRandom` is not
-DK2's generator and is not trying to be; what matters for the determinism gate
-is that the draw happens in a fixed order.
+size lay in the same rhythm but not in the same places. Our default generator is
+not DK2's; the original's is available as `Dk2Lcg` (`dk2-random.md`, ADR-0275).
+What matters for the determinism gate is that the draw happens in a fixed order.
 
 ## 4. How often it lays
 
@@ -208,5 +208,4 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
   vanishing, so both are in play. Ours refuses — a 3x3 settling at *exactly* nine
   is a cap rather than the balance point of two rates, and refusing cannot run
   away. **UNKNOWN**, and it blocks nothing.
-- Q3: DK2's RNG, and whether its sequence matters observably (§3).
 - Q134: why the exponent is that value. Does not affect fidelity.
