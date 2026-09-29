@@ -220,6 +220,36 @@ docs/RESEARCH_STATUS.md
 docs/EXPERIMENTS.md
 
 
+## Meaningful types over primitives
+
+The simulation is integer-only by decision (ADR-0001) and its records mirror DKII.EXE's byte layout so that Ghidra offsets, the full-state recorder and hash comparisons line up one-to-one. Neither fact is a licence for primitive obsession in the code that *uses* those records. A `byte` that means "player 3" and a `byte` that means "room type 3" must not be interchangeable at a call site.
+
+The rule: **a value that has a domain meaning gets a domain type when it crosses a signature.** Raw bytes and ints may live inside a record that mirrors the binary; they should not travel through rules, systems and commands unwrapped.
+
+Existing types to reuse before inventing anything: `TilePos`, `GameTick`, `Fp32` (DK2.Core), the reserved ids in `PlayerIds`, and the enums for kinds and flags (`CreatureFlags`, `RoomTypeId`, `ImpTaskKind`, ...). A new `byte kind` parameter beside an existing enum is a defect, not a shortcut.
+
+Where a domain type is warranted:
+
+- **Identity.** Player ids, creature ids, room ids, slot numbers. Two ids of different kinds must not share a type. A sentinel (`-1`, `0xFF`, `0`) belongs on the type as a named member, never inlined at the call site.
+- **Position.** One representation per layer. `TilePos` for tile coordinates; a flat tile index only inside grid storage, converted at the boundary rather than by `% world.Width` in callers; sub-tile fixed-point positions as `Fp32` or a named struct, never a bare int pair.
+- **Time.** A tick *stamp* and a tick *duration* are different things. Use `GameTick` for stamps. A countdown or an interval gets its own type or, at minimum, a name ending in `Ticks` and never an `int turn` parameter.
+- **Quantities.** Gold, mana, health, experience and research points are not interchangeable ints. When a function takes more than one of them, or when arithmetic between two of them would be a bug, wrap them.
+- **Flags.** A bitmask is a `[Flags]` enum with the underlying width the binary uses, not a `byte Flags` field with masks in comments.
+
+Where a primitive is the right choice:
+
+- A record field whose offset and width are documented against the binary. Keep the raw type, name it precisely, and convert at the accessor.
+- Loop counters, array indices into a local buffer, lengths, and intermediate arithmetic.
+- Hot paths where the profiler shows a wrapper costs something. A `readonly record struct` over one field is free in .NET; assert that with a benchmark before choosing the primitive.
+
+Signals that a signature has the problem:
+
+- Three or more adjacent parameters of the same primitive type. Swapping two of them compiles and changes a number silently. Use a struct, named arguments at every call site, or split the function.
+- A parameter compared to a magic literal (`owner == 0`, `id != -1`) inside the callee.
+- The same conversion (`tileIndex % Width`, `tick - stamp > n`) repeated in more than two callers.
+
+When touching existing code that has the problem, fix the signature you are changing and its callers; do not sweep the codebase. Wrappers go in the assembly that owns the concept (DK2.Core for engine-neutral values, DK2.Data.Model for ids the map format defines, DK2.Simulation for simulation-only state), and they must remain Unity-loadable like everything else there.
+
 ## Commit messages
 
 - Match the language of recent commits in the repo (`git log --oneline -20`).

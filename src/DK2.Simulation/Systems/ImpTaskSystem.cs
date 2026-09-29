@@ -59,10 +59,25 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     public const int ThrottleBaseTicks = 20;
     public const int ThrottleRandomTicks = 80;
 
+    /// <summary>A tagged tile the dig walk may take, ordered as DK2 ranks them: nearest
+    /// first, a wall before a seam at the same distance, then tile order.</summary>
+    private readonly record struct ExcavationCandidate(long DistanceSquared, bool Seam, int TileIndex)
+        : IComparable<ExcavationCandidate>
+    {
+        public int CompareTo(ExcavationCandidate other)
+        {
+            int byDistance = DistanceSquared.CompareTo(other.DistanceSquared);
+            if (byDistance != 0) return byDistance;
+            int byKind = Seam.CompareTo(other.Seam); // false (wall) sorts before true (seam)
+            return byKind != 0 ? byKind : TileIndex.CompareTo(other.TileIndex);
+        }
+    }
+
+    // The dig walk's candidates, reused across updates.
+    private readonly List<ExcavationCandidate> _excavation = [];
+
     // Per keeper, the tick the counter belongs to and the selections run in it. A tick's
     // count is dead once the tick ends, so nothing here outlives an update.
-    // The dig walk's candidates, reused: squared distance, wall before seam, tile index.
-    private readonly List<(long, int, int)> _excavation = [];
 
     private readonly long[] _selectionTick = new long[256];
     private readonly int[] _selections = new int[256];
@@ -1061,14 +1076,14 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 bool seam = kind == TileWorkKind.MineGold;
                 long dx = x * 4096L + 2048 - (seam && fromSeam ? seamX : creature.PosX);
                 long dy = y * 4096L + 2048 - (seam && fromSeam ? seamY : creature.PosY);
-                _excavation.Add((dx * dx + dy * dy, seam ? 1 : 0, y * width + x));
+                _excavation.Add(new ExcavationCandidate(dx * dx + dy * dy, seam, y * width + x));
             }
         }
         _excavation.Sort();
 
-        foreach ((long _, int _, int index) in _excavation)
+        foreach (ExcavationCandidate candidate in _excavation)
         {
-            var target = new TilePos(index % width, index / width);
+            var target = new TilePos(candidate.TileIndex % width, candidate.TileIndex / width);
             if (!_pathfinder.TryFindNearest(
                     grid, creature.Tile,
                     stand => Math.Abs(stand.X - target.X) + Math.Abs(stand.Y - target.Y) == 1
