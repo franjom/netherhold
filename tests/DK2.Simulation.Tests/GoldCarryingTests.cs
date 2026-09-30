@@ -15,18 +15,18 @@ namespace DK2.Simulation.Tests;
 /// <remarks>Numbers, all from the shipped data: a gold seam is 660 health and
 /// 3000 gold; <c>MineGoldHealth</c> is −300 a second and work lands five times a
 /// second (Q47), so a swing takes 60 health and frees 273 gold — the number the
-/// owner measured. A seam is therefore eleven swings totalling exactly 3000, and
-/// an Imp's <c>maxGoldHeld</c> of 1400 fills after five swings, so a seam takes
-/// three trips: 1363, 1364, 273. A treasury tile holds 3000 and a dungeon-heart
-/// tile 1000. Gold that will not fit in an imp's hands is put down at its feet,
-/// onto the lump already there (Q138, Q140).</remarks>
+/// owner measured. A seam is eleven swings totalling exactly 3000. A level 1 Imp's hands
+/// are full at 1400 less variable 74's 340, so a seam is three trips: 1090, 1091, 819 (Q50,
+/// ADR-0296). A treasury tile holds 3000 and a dungeon-heart tile 1000. Gold that will not
+/// fit in an imp's hands is put down at its feet, onto the lump already there (Q138, Q140).</remarks>
 public class GoldCarryingTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = 4;
 
-    /// <summary>What an imp is holding when it breaks off: five swings' worth.</summary>
-    private const int FullLoad = 1363;
+    /// <summary>What an imp is holding when it breaks off: four swings' worth, the first over
+    /// 1060 (1400 less 340).</summary>
+    private const int FullLoad = 1090;
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {
@@ -109,24 +109,24 @@ public class GoldCarryingTests
     }
 
     [Fact]
-    public void AnImpBreaksOffMiningWhenTheNextSwingWouldNotFit()
+    public void AnImpBreaksOffMiningOnceItsHandsAreFull()
     {
-        // maxGoldHeld is 1400 and a swing frees 273, so the imp downs tools after
-        // five swings (1363 held) rather than take a sixth it could not hold.
+        // State 26 asks the hands test before each strike (0x00465870: 0x00464360(1)), full at
+        // 1400 less 340, so the imp downs tools after four swings (1090 held, Q50).
         Run run = AtTheSeam();
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
         run.Ticks(24);
 
-        // It sets off on the tick of its fifth strike, as both captures show, so the
+        // It sets off on the tick of its fourth strike, as both captures show, so the
         // departure is logged before that strike's gold reaches its hands; the load
-        // it puts down is the full five.
+        // it puts down is the full four.
         SimEvent leaving = run.Of("delivering").First();
         Assert.Contains("to=(1,1)", leaving.Detail);
 
-        // Five swings, and nothing thrown away to get there.
-        Assert.Equal(5, run.Of("gold_mined").Count());
+        // Four swings, and nothing thrown away to get there.
+        Assert.Equal(4, run.Of("gold_mined").Count());
         Assert.Empty(run.Of("gold_uncollected"));
 
         run.Ticks(40);
@@ -136,9 +136,9 @@ public class GoldCarryingTests
     [Fact]
     public void AnImpDeliversWhatItIsHoldingWhenTheSeamRunsOut()
     {
-        // Eleven swings split five, five and one, so the last trip carries a
-        // single swing - nowhere near a full load. An imp that only ran when full
-        // would stand on an exhausted seam holding it.
+        // Eleven swings split four, four and three, so the last trip carries less
+        // than a full load. An imp that only ran when full would stand on an
+        // exhausted seam holding it.
         Run run = AtTheSeam();
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
 
@@ -146,7 +146,7 @@ public class GoldCarryingTests
         run.Ticks(800);
 
         List<int> loads = run.Of("gold_delivered").Select(Run.Amount).ToList();
-        Assert.Equal([1363, 1364, 273], loads);
+        Assert.Equal([1090, 1091, 819], loads);
         Assert.Equal(3000, loads.Sum());
     }
 
@@ -155,7 +155,7 @@ public class GoldCarryingTests
     [Fact]
     public void AFullTileSpillsIntoTheNextOne()
     {
-        // Two dungeon-heart tiles, 1000 each, against a 1363 load: the imp fills
+        // Two dungeon-heart tiles, 1000 each, against a 1090 load: the imp fills
         // the one it walked to and carries the rest to the next (Q35's spillover,
         // which falls out of re-routing rather than being coded). (3,3) fills first
         // because the imp reaches it first coming back — which tile of a store
@@ -174,12 +174,12 @@ public class GoldCarryingTests
         // goes, not how long the walk takes.
         for (int i = 0; i < 95 && run.World.Tile(3, 2).GoldHeld == 0; i++) run.Tick();
 
-        // The load is five swings, 1363 or 1364 by which swings the 272s fall on; the
+        // The load is four swings, 1090 to 1092 by which swings the 272s fall on; the
         // point is that (3,2) takes exactly what (3,3) could not.
         List<int> loads = run.Of("gold_delivered").Select(Run.Amount).ToList();
         Assert.Equal(1000, run.World.Tile(3, 3).GoldHeld);
         Assert.Equal([1000, run.World.Tile(3, 2).GoldHeld], loads);
-        Assert.InRange(run.World.Tile(3, 2).GoldHeld, 363, 364);
+        Assert.InRange(run.World.Tile(3, 2).GoldHeld, 90, 92);
         Assert.Equal(0, run.Imp.GoldHeld);
     }
 
@@ -313,9 +313,9 @@ public class GoldCarryingTests
         // CONFIRMED that the original's imp goes on mining and grows a lump on
         // the floor, and read: the mining strike 0x004971D0 hands the imp what it
         // can hold and puts the rest down at its own position, onto the pile
-        // already there (Q138, Q140). So nothing is lost: 1400 in hand, 1600 in
-        // one pile where it stood. The pile is on its own floor, so Tier B's ring scan tops the
-        // hands up from it whenever its level lets it hold more (ADR-0291).
+        // already there (Q138, Q140). So nothing is lost: 1400 in hand, 1600 in one pile where
+        // it stood. Nothing tops the hands up from it: the pick-ups take only below the hands
+        // test's mark (1060 at level 1, 1130 at level 2), and 1400 is over both (ADR-0293).
         GameDatabase database = Dk2TerrainFixture.Database();
         Run run = AtTheSeam();
 
@@ -326,7 +326,7 @@ public class GoldCarryingTests
         // it opened - which is the priority order doing its job (ADR-0018).
         Assert.NotEqual(Dk2TerrainFixture.Gold, run.World.Tile(5, 5).TerrainId);
         CreatureDef imp = database.CreatureById(Dk2TerrainFixture.ImpCreatureId);
-        Assert.Equal(CreatureLevelRules.MaxGoldHeld(database, imp, run.Imp.Level), run.Imp.GoldHeld);
+        Assert.Equal(CreatureLevelRules.MaxGoldHeld(database, imp, level: 1), run.Imp.GoldHeld);
         Assert.Empty(run.Of("gold_uncollected"));
         ObjectState lump = Assert.Single(run.World.Objects, o => FloorGold.IsPile(database, o));
         Assert.Equal(3000 - run.Imp.GoldHeld, lump.GoldHeld);

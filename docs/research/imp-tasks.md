@@ -42,7 +42,7 @@ Q47); `DKII.EXE` v1.70 for the priority order (`imp-task-priority.md`).
 | A worker that finishes a job starts the next one at once rather than waiting out the idle delay | **STRONGLY INFERRED** — an imp that has just finished has not been idle |
 | Imps never eat | **CONFIRMED** — owner observation; the Imp's hunger rate of 32767 does mean "never" (Q12) |
 | An imp carries mined gold to a treasury or heart tile itself | **CONFIRMED** — owner observation (Q31); the tail of a mining job, not a job |
-| Where an imp breaks off mining to go and unload | **STRONGLY INFERRED** (Q50) — when one more swing would not fit; the shipped numbers make that five swings and 1363 gold |
+| Where an imp breaks off mining to go and unload | **CONFIRMED, BUILT** (Q50, ADR-0296) — when the hands test reads full, `MaxGoldHeld(level)` less 340: four swings and 1090 gold at level 1 |
 | An imp with a part-load tops up from a pile it passes | **READ** (Q142) — until its hands hold a level-scaled share of `MaxGoldHeld`; ours gets the same outcome because a loaded imp is delivering before selection runs |
 | An imp with nowhere to unload keeps mining | **CONFIRMED** (Q31) — but the floor lump it should leave is NOT IMPLEMENTED, so the overflow is lost (Q138, Q140) |
 | Routing: connectivity and step cost | **CONFIRMED** eight-connected with cut corners (Q28); **CONFIRMED** no terrain weighting (Q30); **STRONGLY INFERRED** octile 10/14 (Q48). Tie-breaking is ours. The original's algorithm is **not a grid search at all** (Q5, ADR-0155): a triangulated navigation mesh followed by a steering system. Q28 and Q30 stand, because they were observed rather than inferred |
@@ -207,9 +207,9 @@ treasury tile into the next without a spillover rule
 
 Two decisions are ours rather than the game's, and both are stated in the code:
 
-- **Where it stops mining.** "One more swing would not fit" — STRONGLY INFERRED
-  (Q50). With the shipped numbers: five swings, a 1363 load, a seam in three
-  trips; see `rooms-and-gold.md`, "Where an imp decides to stop mining".
+- **Where it stops mining.** When the hands test `0x00464360(1)` reads full, the
+  level's `MaxGoldHeld` less variable 74 — CONFIRMED (Q50, ADR-0296). At level 1:
+  four swings, a 1090 load, a seam in three trips of 1090, 1091 and 819.
 - **Nowhere to unload.** It keeps mining, which is DK2's behaviour; the gold it
   cannot hold is reported as `gold_uncollected` and lost, which is not — the
   original leaves a lump on the floor. Standing still holding a full load would

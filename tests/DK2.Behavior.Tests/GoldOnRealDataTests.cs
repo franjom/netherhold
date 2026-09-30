@@ -55,7 +55,9 @@ public class GoldOnRealDataTests
         string install = Dk2InstallGate.Path;
         if (install is null) return null; // skipped: no DK2 install
 
-        GameDatabase db = GameDatabaseLoader.Load(install);
+        // The level's own variables: variable 74, the hands test's margin, is only in a level's
+        // file (340), and without it a miner fills to the full 1400 (ADR-0296).
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "level1");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level1")!;
         WorldState world = WorldState.FromMap(
             db, map, map.Tiles.Select(t => t.PlayerId).Distinct());
@@ -158,7 +160,7 @@ public class GoldOnRealDataTests
     [InstallFact]
     public void ALoadTooBigForOneHeartTileSpillsIntoTheNext()
     {
-        // MaxGoldPerDungeonHeartTile is 1000 against a first load of 1363, so the
+        // MaxGoldPerDungeonHeartTile is 1000 against a first load of 1090, so the
         // first trip alone has to touch two tiles. Which two is decided by where
         // the imp walked, which is as close to Q35 as observation has got.
         Level? level = Level1();

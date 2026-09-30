@@ -439,12 +439,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         creature.TimerTicks--;
         if (creature.TimerTicks > 0) return;
 
-        // Stop before the swing that would not fit — but only if there is
-        // somewhere to take the load. An imp mines into its own hands up to
-        // maxGoldHeld and then runs to the drop spot (CONFIRMED, Q31); an imp
-        // with nowhere to run to keeps mining instead, which is also what the
-        // original does. See WouldOverfillItsHands.
-        if (WouldOverfillItsHands(context, creature, definition)
+        // Before another strike, full hands try the store chooser (0x00465870: 0x00464360(1),
+        // then 0x00464400); an imp with nowhere to take the load keeps mining (Q31).
+        if (MinersHandsFull(context, creature, definition)
             && TryRouteToSomewhereItFits(context, creature))
         {
             // 26 walks to the store in 6 resuming in 28.
@@ -475,11 +472,11 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         creature.TimerTicks = WorkCadence.AfterApplication(
             creature.TargetWork, context.Tick.Value, creature.StateEnteredTick);
 
-        // A miner walks to the store on the tick of the strike after which another would not
-        // fit: in both captures the last strike and state 6 share a tick. This strike's gold
-        // reaches the hands later this tick (TileWorkSystem), so count it as held.
+        // A miner walks to the store on the tick of the strike that fills its hands: in both
+        // captures the last strike and state 6 share a tick. This strike's gold reaches the
+        // hands later this tick (TileWorkSystem), so count it as held.
         if (creature.TargetWork == TileWorkKind.MineGold
-            && WouldOverfillItsHands(context, creature, definition, pendingStrikes: 1)
+            && MinersHandsFull(context, creature, definition, pendingStrikes: 1)
             && TryRouteToSomewhereItFits(context, creature))
         {
             BeginDelivering(creature);
@@ -488,27 +485,22 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Whether one more swing would free more gold than this worker can hold —
-    /// the point at which an imp breaks off to carry.
-    /// <para>Stopping before the swing is the only rule that neither wastes gold
-    /// nor overfills a pair of hands: <c>MineGoldHealth</c> is −300 against a
-    /// seam's 660 health and 3000 gold, so one swing frees 1363 where the Imp's
-    /// <c>maxGoldHeld</c> is 1400 — almost exactly two swings' worth under Q47's
-    /// reading (2 × 681 = 1362), independent support for it. Nothing here
-    /// depends on that; at the whole-delta granularity we run, an imp makes one
-    /// trip per swing. Whether there is anywhere to take the load is the
-    /// caller's second question.</para>
+    /// Whether a miner's hands are full, the point at which it breaks off to carry: state 26
+    /// (<c>0x00465870</c>) asks the hands test <c>0x00464360(1)</c> before each strike, full at
+    /// the level-scaled <c>MaxGoldHeld</c> less variable 74 (<see cref="HandsFull"/>). A level 1
+    /// Imp (1,400) leaves after four strikes (1,092 of 1,060), a level 2 one (1,470) after five
+    /// (1,365 of 1,130): Level 1's imp 455 claims holding 1,092 at tick 216 (ADR-0296).
+    /// Whether there is anywhere to take the load is the caller's second question.
     /// </summary>
-    private static bool WouldOverfillItsHands(
+    private static bool MinersHandsFull(
         SimulationContext context, CreatureState creature, CreatureDef definition, int pendingStrikes = 0)
     {
         ref TileState tile = ref context.World.TileAtIndex(creature.TargetTileIndex);
         int yield = TileWorkRules.GoldYield(
             context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
+        if (yield <= 0) return false;
         int held = creature.GoldHeld + (pendingStrikes * yield);
-        if (held <= 0) return false;
-
-        return yield > 0 && held + yield > CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level);
+        return held > 0 && held >= FullAt(context, creature, definition);
     }
 
     /// <summary>

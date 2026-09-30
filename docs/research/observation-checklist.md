@@ -111,9 +111,10 @@ somewhere unfound — which matters, because `DroppedTask` has only two writers 
 the whole executable and one of them would have to be wrong.
 
 ### Q50 — how many swings before an imp runs off with its load?
-Answered by arithmetic: a swing frees 273, an Imp holds 1400, so it fills after
-**five** swings (1363), and an eleven-swing seam is three trips — 1363, 1364,
-273. Marked HYPOTHESIS because nobody has counted.
+Answered from the binary (2026-09-30, ADR-0296): state 26 asks the hands test
+before each strike, full at 1400 less 340, so a level 1 Imp runs after **four**
+swings (1090) and a seam is three trips — 1090, 1091, 819. Level 1's capture
+agrees (imp 455 holds 1092 from tick 216).
 
 **Do:** count the swings between an imp starting on a fresh seam and running off.
 **Means:** five confirms the chain from Q47 through `MaxGoldHeld`.

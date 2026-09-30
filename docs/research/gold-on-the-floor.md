@@ -250,8 +250,8 @@ outcome is CONFIRMED by the owner's Level 2 recording (`navigation-captures.md`)
   there owned by the neutral global. Its other caller, `0x004A4710`, spreads a
   lump of gold (`0x006F25B4`) over the Treasuries and Heart and puts the rest down
   the same way.
-- **The miner's state** (26, `0x00465870`). A nearly full imp first tries the
-  store chooser `0x00464400`, which picks the nearest reachable Treasury or intact
+- **The miner's state** (26, `0x00465870`). An imp the hands test `0x00464360(1)` finds
+  full (the level's maximum less variable 74, Q50) first tries the store chooser `0x00464400`, which picks the nearest reachable Treasury or intact
   Heart with room and otherwise posts message `0x29`, `0x2A` or `0x2B` and returns 0.
   Delivering or not, before the next strike it checks the floor piles in its own
   third-of-a-tile cell. One over `MaxGoldPileOutsideTreasury` gives the task up

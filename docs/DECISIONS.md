@@ -6482,3 +6482,23 @@ clear. The constructor also sets `GetPaid` when the keeper's deadline is fewer t
 turn 0 would set `GetPaid` in DK2's unsigned test; ours leaves it out (unread whether a
 level's creatures are built on turn 0). Three tests; four negative controls each fail a
 named test. `HashVersion` **142** (a Goblin in the pin's world now arms its keeper).
+
+## ADR-0296 — A miner breaks off at the hands test, not when the next strike would not fit
+**Date:** 2026-09-30 · **Status:** accepted · Research: `functions/00465870.md`, `imp-hands-full.md`
+
+**Context.** In Level 1's capture imp 455 leaves the seam at (14,21) holding 1,092 and claims;
+ours shuttled 1,363 loads, which put its claimer on the Hatchery block late. State 26
+(`0x00465870`) asks the hands test `0x00464360(1)` before every strike, and only a full imp
+tries the store chooser `0x00464400`. Q50's "one more strike would not fit" was arithmetic.
+
+**Decision.** `MinersHandsFull` replaces `WouldOverfillItsHands` at both of the miner's checks
+(before a strike, and after one with its gold counted): full at `MaxGoldHeld(level)` less
+variable 74. The test fixture carries variable 74 at its shipped 340, and the real-data gold
+tests load Level 1's own variables.
+
+**Consequences.** A level 1 Imp breaks off after four strikes (1,090–1,092 of 1,060); a seam
+is three trips of 1,090, 1,091 and 819; at level 2, five strikes. The capture in
+`mining-cadence.md` where an imp strikes holding 1,363 fits a miner with no store with room,
+which keeps mining. Replays against HEAD: Level 1 18 of 20 (20), Level 2 11 of 20 (12), within
+seed noise; with walks ending on their point it is what keeps Level 1 at 17, not 13. The
+checker is unchanged (288/309, 732/799): it does not score leaving a seam.
