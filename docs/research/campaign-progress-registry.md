@@ -28,15 +28,15 @@ was trying to set.
 
 `0x0055FED3` is the load:
 
-```
-0055fed3  MOV EDX,[0x0066f470]      ; -> "Player Level Status"
-0055fedc  CALL 0x005622b0           ; how many bytes are stored?
-0055fee1  CMP EAX,0xa0              ; 160
-0055fee6  JNC 0055fef7              ;   >= 160 -> read 160
-0055fef7  MOV EAX,0xa0
-0055ff02  LEA ECX,[ESI + 0x881]     ; destination on the profile
-0055ff12  CALL 0x00562260           ; read that many bytes
-```
+1. `0x0055FED3`: the value name comes from `[0x0066F470]`, the pointer to the
+   string `"Player Level Status"`.
+2. `0x0055FEDC`: `0x005622B0` is called to ask how many bytes are stored under
+   that name.
+3. `0x0055FEE1`–`0x0055FEF7`: the answer is compared with `0xA0` (160); when it
+   is 160 or more, the byte count to read is set to 160.
+4. `0x0055FF02`: the destination is `profile + 0x881` (the profile pointer is
+   in `ESI`).
+5. `0x0055FF12`: `0x00562260` reads that many bytes into the destination.
 
 **160 bytes, forty dwords**, landing at `profile + 0x881`. Two independent
 checks agree: `Total Evil Rating` and `Level Attempts` are already 160 bytes in

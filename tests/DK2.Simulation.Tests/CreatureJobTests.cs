@@ -662,6 +662,24 @@ public sealed class CreatureJobTests
     }
 
     [Fact]
+    public void ResearchRefusesWhenTheKeeperHasNothingToResearch()
+    {
+        // 0x004759D0 refuses while the owner's player+0x213, the research target,
+        // is 0: a Warlock whose keeper has researched everything does not go to
+        // the library.
+        GameDatabase db = Db;
+        CreatureDef goblin = db.CreatureById(GoblinId);
+        WorldState world = World(db);
+        var state = new CreatureState { Level = 1, OwnerPlayerId = Keeper };
+
+        world.Player(Keeper).ResearchTarget = 0;
+        Assert.Equal("nothing_to_research", JobRules.Refused(world, db, goblin, state, JobType.Research));
+
+        world.Player(Keeper).ResearchTarget = 1;
+        Assert.Null(JobRules.Refused(world, db, goblin, state, JobType.Research));
+    }
+
+    [Fact]
     public void TrainingRefusesAtTheCapAndTheCapIsTheShippedFour()
     {
         GameDatabase db = Db;

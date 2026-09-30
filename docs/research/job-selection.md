@@ -167,7 +167,8 @@ The two praying variables in the same block are emphatically *not* dead:
 
 ## 5. The Temple, `FUN_0047b7c0`
 
-Once a game second, gated on a per-creature countdown reloaded from variable 19:
+The heading's address is the prison's update hook; the Temple's (category 12) is
+`0x0047B970` (state-categories.md §7.1). Once a game second, gated on a per-creature countdown reloaded from variable 19:
 
 - **`ModifyCreatureAngerWhilePrayingPerSecond` (−275) applied six times**, once
   per anger bucket, in six consecutive calls.

@@ -65,12 +65,10 @@ clean two-decimal `fp32` seconds — 0.75, 1.25, 0.50, 0.95, 0.25, 0.47, 1.17,
 
 Both fields are multiplied on the way in:
 
-```
-MOV EAX,[EBP + 0x12e8]      ; MeleeRecharge, fp32 seconds
-IMUL EAX,EDI
-SHR EAX,0xc                 ; >> 12 undoes the fixed point
-MOV [EBX + 0x5c6],EAX       ; ticks
-```
+the loader reads `MeleeRecharge` (fp32 seconds) from the file record at
+`+0x12E8` (base register `EBP`), multiplies it by `EDI`, shifts the product right
+by 12 to undo the fixed point, and stores the result, now in ticks, at
+`def+0x5C6` (base register `EBX`).
 
 `EDI` is `[0x006E4154 + 0x40]`, **variable 19**, which `training.md` §4 already
 established is **4 game ticks a second in all 66 shipped levels**. So both
@@ -100,15 +98,12 @@ for them, so this is a property of those records, not of the read.
 **Gate A — `creature+0x3A5` against `def+0x5CA`.** Three routines share it
 verbatim, all in the attack cluster:
 
-```
-MOV EAX,[ESI + 0x370]       ; the definition
-MOV EDI,[EAX + 0x5ca]
-CALL 0x00517490             ; the game turn (trigger-state.md §6)
-MOV ECX,[ESI + 0x3a5]       ; last-swing stamp
-LEA EDX,[ECX + EDI*0x1 + -0x1]
-CMP EAX,EDX
-JBE <not yet>
-```
+1. The interval is read from the definition (`creature+0x370`) at `def+0x5CA`.
+2. The game turn is fetched from `0x00517490` (`trigger-state.md` §6).
+3. The last-swing stamp is read from `creature+0x3A5`.
+4. The gate passes only when the turn is strictly greater than
+   `stamp + interval - 1` — that is, `turn >= stamp + interval`; otherwise
+   "not yet" (an unsigned compare).
 
 `FUN_00498E34` is the third, so **the swing's cadence is `def+0x5CA`, not
 `MeleeRecharge`**. Eighteen instructions write `creature+0x3A5`; four are in
@@ -118,26 +113,22 @@ JBE <not yet>
 **Gate B — `creature+0x427` against a scaled `MeleeRecharge`.** `FUN_0048C9B0`
 is a two-line predicate over a different stamp:
 
-```
-CALL 0x00494ef0             ; modified MeleeRecharge, in ticks
-SHL EAX,0xc
-DIV dword ptr [EDI]         ; EDI from creature+0x3AF and +0x3B3
-ADD EDI,[ESI + 0x427]
-CMP EDI,EAX                 ; returns now >= stamp + interval
-```
+it takes the modified `MeleeRecharge` in ticks from `0x00494EF0`, shifts it
+left by 12 into fixed point, and divides it by a dword reached through
+`creature+0x3AF` and `+0x3B3`; it then adds the stamp at `creature+0x427` and
+returns `now >= stamp + interval`.
 
 So `MeleeRecharge` is genuinely a recharge — it simply is not the one the melee
-swing waits on. What Gate B gates is **UNKNOWN**; `FUN_0048C9B0` and
-`FUN_0048CA10` are its two callers outside the `0x497xxx` cluster.
+swing waits on. Gate B gates **starting** melee action 17 in the fight state's
+melee arm; Gate A then times the blow inside it (combat-fight-state.md §4).
 
 `FUN_00494EF0` itself is `__thiscall` on the definition taking the creature, and
 folds the same two instance flags `FUN_00494D00` uses for damage — `+0x3E6`
 bit 7 with ceiling 100.0, `+0x3EA` bit 3 with ceiling 200.0, both against global
 `+0x351`, plus `+0x460` in the first arm — before combining with `def+0x5C6`.
-Whether those three helpers (`0x0043D750`, `0x00441990`, `0x004363F0`) are
-clamps or fixed-point operators is not settled; `combat.md` §5.1 reads them as
-clamps and `FUN_0048C9B0` uses `0x0043D750`'s result as a **divisor**, which a
-clamp would also permit. Not needed for the damage formula, so left open.
+The three helpers (`0x0043D750`, `0x00441990`, `0x004363F0`) are 12.12
+fixed-point add, divide and multiply, and the flag arms are mutually exclusive
+(combat-damage.md §1).
 
 ## 5. Is `FUN_00492320` live?
 
@@ -180,5 +171,5 @@ gates' arithmetic; that `EDI` is `[0x006E4154+0x40]`.
 **STRONGLY INFERRED:** that file `0x0CF9` is the source of `def+0x5CA`, and that
 `FUN_00492320` reflects the live loader (§5).
 
-**UNKNOWN:** the shipped name of file `0x0CF9` (Q336); what Gate B gates; why
+**UNKNOWN:** the shipped name of file `0x0CF9` (Q336); why
 the `Unique *` records ship zero.

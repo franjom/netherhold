@@ -56,9 +56,10 @@ public static class AttractionBudget
             // place one attracts no Dark Angel, which is what the owner saw.
             RoomTypeId.Temple => HoldsTempleHand(world, room) ? 2 : 0,
 
-            // Both land on FUN_00454110's arm 9, an unconditional true, so every slab
-            // of the room counts. The +0x0C guard there is unread (binary-entrance.md).
-            RoomTypeId.Prison or RoomTypeId.CombatPit => room.TileCount,
+            // Both land on 0x00454110's arm 9, an unconditional true, but the function
+            // tests the cell's interior byte (+0x0C == 0xFF) before its type switch, so
+            // only interior cells count and the rim never does (read 2026-09-30).
+            RoomTypeId.Prison or RoomTypeId.CombatPit => room.InteriorTileIndices.Count,
 
             _ => AutoFurnitureRules.TryTotalCapacity(world, room, out int capacity)
                 ? capacity

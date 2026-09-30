@@ -31,25 +31,21 @@ alone (§6).
 
 ## 2. The clock — `FUN_004be1a0`, called per player
 
-```c
-if (player[0xb53] != 0 && now >= player[0xb53]) {     // next payday due
-    message(0x2e, playerId, ...);                      // "It's payday"
-    for (creature in player's creature chain) {         // chain steps via +0x10
-        if (isPayable(creature) && !isExempt(creature)) {
-            if (creature[0x3e2] == 0) {
-                accrueWage(creature);                   // FUN_0048b6b0
-                creature[0x474] = 0;                    // reset failed attempts
-                tryToCollect(creature);                 // FUN_00472320
-            } else {
-                creature[0x3e2] = 0;                    // consume GetPaid
-            }
-        }
-    }
-    endMessage(0x2e);
-    player[0xb53] = now + PayDayFrequencySeconds * ticksPerSecond;
-    player[0xb4f] = now;                                // when this payday began
-}
-```
+Nothing happens unless the next-payday stamp at `player+0xB53` is non-zero and
+`now` has reached it. When it has:
+
+1. Message `0x2E` — "It's payday" — is raised for the player.
+2. The player's creature chain is walked (it steps through `+0x10`). Each
+   creature that is payable and not exempt is handled one of two ways:
+   - if `creature+0x3E2` is zero, its wage is accrued (`FUN_0048b6b0`), its
+     failed-attempt counter `creature+0x474` is reset to zero, and it tries to
+     collect (`FUN_00472320`);
+   - otherwise `creature+0x3E2` is set back to zero — the `GetPaid` flag is
+     consumed — and nothing else is done for it.
+3. Message `0x2E` is ended.
+4. The next payday is scheduled: `player+0xB53 = now + PayDayFrequencySeconds *
+   ticksPerSecond`.
+5. `player+0xB4F` is set to `now`, recording when this payday began.
 
 **`creature[0x3e2]` is DK2's `GetPaid`**, as its own creature dump prints it (the
 dump's `SkipNextPayment` is a different field, `+0x3EA` bit 5, ADR-0217). Q9 guessed
@@ -86,18 +82,11 @@ in the creature initialiser. Left UNKNOWN rather than assumed.
 
 ## 3. The wage — `FUN_0048b6b0`
 
-```c
-uint accrueWage(creature) {
-    level   = creature[0x403];
-    basePay = *(u16*)(creatureDef + 0x69a);
-
-    wage = (level == 1) ? basePay
-                        : (levelPercent[level] * basePay) / 100;
-
-    creature[0x470] = max(0, creature[0x470] + wage);
-    return wage;
-}
-```
+The level is read from `creature+0x403` and the base pay from the unsigned
+16-bit field at `creatureDef + 0x69a`. At level 1 the wage is the base pay;
+at any other level it is `levelPercent[level] * basePay / 100`. The wage is
+added to the amount owed at `creature+0x470`, which is clamped at zero, and the
+wage is returned.
 
 **`creatureDef + 0x69a` is `Pay`**, and this was pinned rather than guessed. The
 loader (`FUN_00492320`) stores it at `0x00492467` from frame offset
@@ -170,17 +159,17 @@ waits. That test is the turn toward a point, so 188 waits while it turns to face
 
 ### 4.4 State 189 `FUN_00472740` — take it
 
-```c
-if (creature[0x470] != 0) {
-    taken = takeGoldFromTile(creature.tileX, creature.tileY, creature[0x470]);
-    if (taken == 0) { creature[0x474]++; return 0; }     // came up empty
+Only when something is owed (`creature+0x470` non-zero):
 
-    ... effect 0xc3, floating number, sound ...
-    FUN_0048ae70(taken / 2);
-    FUN_0048e810(-taken);
-    if (creature[0x470] == 0) FUN_00486f80(4);           // fully paid
-}
-```
+1. `takeGoldFromTile` is asked for the amount owed, at the creature's tile X and
+   Y; the result is `taken`.
+2. If `taken` is zero — the creature came up empty — the failed-attempt counter
+   `creature+0x474` goes up by one and the state returns 0.
+3. Otherwise effect `0xC3`, a floating number and a sound are played.
+4. `FUN_0048ae70` is called with `taken / 2`.
+5. `FUN_0048e810` is called with `-taken`.
+6. If the amount owed at `creature+0x470` is now zero — fully paid —
+   `FUN_00486f80` is called with 4.
 
 **The gold comes off the room the creature is standing in, starting at its tile.** Corrected
 2026-09-25 (Q435, ADR-0220). This section used to say "off the tile", and that was wrong.

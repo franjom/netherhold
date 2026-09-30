@@ -106,25 +106,18 @@ One routine drives hunger, sleep and pay, in that order, and each block returns
 early on success. So **hunger is asked before tiredness**, and a creature that
 sets off to eat does not also consider its bed this tick.
 
-```c
-if (stateTable[CurrentStateId].groupTag == 7) return 0;  // already attending to a need
-
-fill = levelScale(def.HungerFill, statRow9);
-if (fill != 0) {
-    if (now >= LastAteTime + def.HungerRateTicks
-        && (stateTable[CurrentStateId].flags & 8) == 0) {   // 8 = the Casino
-        LastAteTime = now;
-        HungerNeed += fill;                              // ADDS. Nothing caps it.
-    }
-    if (HungerNeed >= fill
-        && category != 8                                    // 8 = already eating
-        && now >= LastAttemptedHunger + 4) {
-        LastAttemptedHunger = now;
-        if (FUN_004633d0()) return 1;                    // go and eat
-    }
-}
-// ... then the sleep block, then pay
-```
+1. If the current state's group tag in the state table is 7 — the creature is
+   already attending to a need — the routine returns 0.
+2. `fill` is `def.HungerFill` scaled by the creature's level through stat row 9.
+   If `fill` is zero, the whole hunger block is skipped.
+3. **Accumulation.** When `now >= LastAteTime + def.HungerRateTicks` and the
+   current state's flags do not have bit `8` set (8 = the Casino), `LastAteTime`
+   becomes `now` and `fill` is **added** to `HungerNeed`. Nothing caps it.
+4. **Attempt.** When `HungerNeed >= fill`, the category is not 8 (8 = already
+   eating) and `now >= LastAttemptedHunger + 4`, `LastAttemptedHunger` becomes
+   `now` and `FUN_004633d0` is tried; if it succeeds — the creature goes to
+   eat — the routine returns 1.
+5. Otherwise the sleep block follows, then pay.
 
 **Group tag 7 is exactly the fourteen states that ARE a need** — lair-seeking
 (79–81), sleeping (82–84), eating (91–95) and pay (187–189). So the first line
@@ -386,13 +379,11 @@ filled, and the small integers were category indices.
 
 **And the dispatcher, from `FUN_00476fc0`:**
 
-```c
-Age++;
-... category enter/update hooks ...
-if (CurrentStateId != 0 && stateTable[CurrentStateId].handler() == 0)
-    SetState(1);            // a handler that returns 0 drops the creature to idle
-GameTickLastUpdated = now;
-```
+1. `Age` goes up by one.
+2. The category enter and update hooks run.
+3. If `CurrentStateId` is not 0, the state table's handler for that state is
+   called; if it returns 0, the creature is set to state 1 — idle.
+4. `GameTickLastUpdated` becomes `now`.
 
 So **returning 0 from a state handler is "I could not"**, and the answer is
 always the same: back to state 1. That is why the eating states re-enter

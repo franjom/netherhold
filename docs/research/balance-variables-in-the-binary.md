@@ -726,19 +726,16 @@ guess is still not the evidence.
 setter because a **wider load at its neighbour's address** covers its byte. Read
 directly, the capacity routine is:
 
-```
-004dbe57  PUSH 0x3                       ; count rooms of type 3   (Portal)
-004dbe5b  CALL 0x004dce30
-004dbe60  PUSH 0x19                      ; count rooms of type 25  (Hero Portal)
-004dbe66  CALL 0x004dce30
-004dbe6b  ADD  ESI,EAX                   ; n = portals + hero portals
-004dbe6f  MOV  ECX,dword ptr [0x006f28b4]
-004dbe77  LEA  EAX,[ESI + -0x1]          ; n - 1
-004dbe7a  MOV  DL,CH                     ; <- the byte at 0x006f28b5
-004dbe7c  IMUL EAX,EDX                   ; (n - 1) * perAdditional
-004dbe7f  AND  ECX,0xff                  ; byFirstPortal
-004dbe85  ADD  EAX,ECX
-```
+1. `0x004DBE57`–`0x004DBE66`: the room counter `0x004DCE30` is called twice,
+   once for room type 3 (Portal) and once for room type 25 (Hero Portal).
+2. `0x004DBE6B`: the two counts are summed, `n = portals + hero portals`.
+3. `0x004DBE6F`: one **dword** is loaded from `0x006F28B4`.
+4. `0x004DBE77`: `n - 1` is formed.
+5. `0x004DBE7A`: the second byte of that dword — the byte at `0x006F28B5`,
+   `perAdditional` — is taken out of it (the `MOV DL,CH` named below).
+6. `0x004DBE7C`: `(n - 1) * perAdditional`.
+7. `0x004DBE7F`: the low byte of the same dword is masked out: `byFirstPortal`.
+8. `0x004DBE85`: capacity = `(n - 1) * perAdditional + byFirstPortal`.
 
 > **Correction to the section above.** It says the routine *"loads a **word** at
 > `0x006F28B4` and takes the two halves — the low byte as the first portal's

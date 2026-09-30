@@ -77,15 +77,14 @@ the second flag field at file `0xF00`, which holds a 3000/2800 value.
 **The loader gives the mapping exactly, and the map is a constant.**
 
 `FUN_00492320` is the creature-definition loader. Its shape, repeated once per
-field for ~130 fields:
+field for ~130 fields (the example is the flags dword):
 
-```
-MOV  EAX,dword ptr [EBP + 0x25c]    ; this field's "was it set?" flag
-TEST EAX,EAX
-JZ   skip                            ; leave the initialiser's value alone
-MOV  ECX,dword ptr [EBP + 0x12ec]    ; SOURCE: the file record
-MOV  dword ptr [EBX + 0x686],ECX     ; DEST:   the runtime definition
-```
+1. Read this field's "was it set?" flag, a dword in the loader's frame
+   (`EBP + 0x25C`).
+2. If it is zero, skip the field and leave the initialiser's value alone.
+3. Otherwise read the source dword from the file record in the frame
+   (`EBP + 0x12EC`).
+4. Store it into the runtime definition (`EBX + 0x686`).
 
 Two things fall out.
 

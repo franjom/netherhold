@@ -17,12 +17,9 @@ acquisition gate that calls these routines is read.
 ## 1. `FightStyle` picks the selector — the field's consumer, found
 
 Inside the acquirer, immediately before the call, sits a five-arm jump table:
-
-```
-EDX = creature[0x370]          ; the compact definition
-AL  = byte[EDX + 0x67E]        ; 0..4, else the default arm
-JMP [EAX*4 + 0x45E174]
-```
+the compact definition is taken from `creature+0x370`, its byte at `+0x67E`
+selects the arm (0 to 4, anything else the default arm), and the arms are
+dispatched through the table at `0x0045E174`, four bytes per entry.
 
 `def+0x67E` is loaded from **file offset `0x0F03`**, by a guarded store at
 `0x0049347A` taking `EBP+0x12F3` — the `0x3F0` frame delta again. That offset is
@@ -230,22 +227,17 @@ attack — they attack the creatures attacking it.* That observation is what sen
 this read back into the routine, and it lands on the one computation the section
 above had flagged as unexplained.
 
-```
-EDX = dx*dx + dy*dy            ; to the creature's OWN heart, 12.12 fixed
-CMP EDX,0xD000                 ; 53248 / 4096 = 13 tiles squared
-JNC  skip                      ; farther -> leave the flag clear
-MOV dword[EBP-0x18],1          ; nearer -> set it
-```
+1. The squared distance `dx*dx + dy*dy` to the creature's **own** heart is
+   formed, in 12.12 fixed point.
+2. It is compared, unsigned, with `0xD000` — 53248 / 4096 = 13 tiles squared.
+3. At or beyond that, the flag is left clear.
+4. Nearer, the local flag at `EBP-0x18` is set to 1.
 
 so the radius is **sqrt(13), about 3.6 tiles**. The flag starts clear and is read
 **exactly once**, as one of two conditions that jump to `0x0045C1AB` and so skip
-the test the fall-through begins with:
-
-```
-CMP AX,word[ESI + 0x28]        ; the candidate's owner word
-CMP AX,word[0x006F254C]
-JNZ next-candidate
-```
+the test the fall-through begins with: the candidate's owner word at
+`cand + 0x28` is compared with the word at `[0x006F254C]`, and if they differ
+the routine moves on to the next candidate.
 
 **`[0x006F254C]` is the hero player id** — ANSWERED as Q266, ADR-0142. So the
 filter is not "whose side" in general: **a worker normally attacks heroes and
@@ -291,12 +283,12 @@ previous target is stashed in a local, so that `0x00460B50` can be asked about m
 `0x5000` — five-tile — neighbourhood of my position. Writing `theirs` and `ours`
 for the two answers:
 
-```
-theirs = 0x004FAC40(the hero's owner);  ours = 0x004FAC40(my owner) * 3 / 4
-if (ours > theirs)  -> put the old target back, keep scanning
-0x004752B0(me + 0x24E, heroPosition, (theirs - ours) * 3 / 2)   -> the alarm
-else 0x004611D0(me + 0x24E)                                    -> withdraw
-```
+1. `theirs` is the head-count for the hero's owner; `ours` is the head-count for
+   my owner, multiplied by 3 and divided by 4.
+2. If `ours > theirs`, the old target is put back and scanning continues.
+3. Otherwise the outcome is either `0x004752B0` — the alarm — called with
+   `me + 0x24E`, the hero's position and `(theirs - ours) * 3 / 2`, or, in the
+   else arm, `0x004611D0` called with `me + 0x24E` — withdraw.
 
 **Corrected 2026-09-23 (combat-alarm.md §1).** An earlier reading took `0x004752B0`
 for a commit to a fight because it `SetState`s 199 on the way; it is **the alarm**: a

@@ -652,16 +652,21 @@ public class PortalTests
     }
 
     [Fact]
-    public void APrisonContributesItsSlabCountAndACapacityRoomItsFurniture()
+    public void APrisonOrPitContributesItsInteriorCellsAndACapacityRoomItsFurniture()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.Prison, 5, 5, 3, 3);
+        Paint(db, world, RoomTypeId.CombatPit, 9, 1, 5, 4);
         List<RoomInstance> rooms = RoomIndex.Build(world, db);
         RoomInstance prison = rooms.Single(r => r.Definition.TypeId == RoomTypeId.Prison);
+        RoomInstance pit = rooms.Single(r => r.Definition.TypeId == RoomTypeId.CombatPit);
 
-        // Arm 9 is an unconditional true, so every slab of the room counts.
-        Assert.Equal(prison.TileCount, AttractionBudget.Contribution(world, prison));
+        // 0x00454110 tests the cell's interior byte (+0x0C == 0xFF) before its type
+        // switch, so arm 9's unconditional true only ever sees interior cells: a 3x3
+        // prison counts its one middle cell, a 5x4 pit its 3x2 middle, never the rim.
+        Assert.Equal(1, AttractionBudget.Contribution(world, prison));
+        Assert.Equal(6, AttractionBudget.Contribution(world, pit));
 
         Paint(db, world, RoomTypeId.Library, 12, 5, 3, 3);
         rooms = RoomIndex.Build(world, db);

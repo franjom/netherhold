@@ -54,12 +54,9 @@ that were already right, not a correction.
 
 ## 3. The switch is on AttackType
 
-```
-AL  = byte[creature + 0x529]
-ECX = AL & 0xF          ; the arm
-CMP ECX,4 / JA default  ; five arms, 0..4
-JMP [ECX*4 + 0x4602c0]
-```
+The byte at `creature + 0x529` is read and its **low** nibble (`& 0xF`) selects
+the arm. Values above 4 take the default arm, so there are five arms, 0 to 4,
+dispatched through the jump table at `0x004602C0` (four bytes per entry).
 
 The **high** nibble of the same byte is shifted down and passed on as an argument
 to the spell arm, so one byte packs the attack kind and a second small id.
@@ -134,13 +131,11 @@ gate compares. And the value `spFighting` passes to the action-start wrapper is
 **`spFighting`'s first act is an acquisition gate**, and it is the four
 instructions after the rebase:
 
-```
-CMP word[creature + 0x502],0   ; do I have a target?
-LEA EDI,[creature + 0x4FE]
-JNZ  ...                       ; yes -> straight on
-CALL 0x0045cb00                ; no  -> acquire one
-TEST EAX,EAX / JZ ...          ; acquisition can fail
-```
+1. It tests whether the word at `creature + 0x502` is zero — does the creature
+   have a target? (`EDI` is set to `creature + 0x4FE` alongside.)
+2. If there is a target, it goes straight on.
+3. If not, it calls `0x0045CB00` to acquire one.
+4. It tests that call's result, because acquisition can fail.
 
 So the target field is the fight's condition, and **`FUN_0045cb00` is the
 acquirer**. It has twelve callers: **six inside `spFighting` itself** — which is

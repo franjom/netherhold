@@ -51,18 +51,16 @@ even looked at. The second is [research-tree.md](research-tree.md), read and bui
 
 Eleven lines, and the shortest category hook read so far.
 
-```
-sub_0047b000(state):
-    creature = state[+0x08]
-    if creature[+0x403] == 1:                       # level
-        amount = creatureDef[+0x6BB]                # ResearchPerSecond, per TICK
-    else:
-        amount = levelTable[+0x201 + level*2] * creatureDef[+0x6BB] / 100
-        if amount <= 0:      amount = 0
-        if amount >= 0xFFFE: amount = 0xFFFE
-    FUN_004c2dc0(amount, creature)                  # ECX = creature[+0x2A], the keeper
-    return 1
-```
+The hook at `0x0047B000` takes the state and works as follows:
+
+1. The creature is read from `state+0x08`.
+2. If the creature's level, `creature+0x403`, is 1, the amount is
+   `creatureDef+0x6BB` — `ResearchPerSecond`, credited per **tick**.
+3. Otherwise the amount is the level table's entry at `+0x201 + level*2` times
+   `creatureDef+0x6BB`, divided by 100, then clamped to the range 0 to `0xFFFE`.
+4. The amount and the creature are passed to the keeper's adder `FUN_004c2dc0`,
+   called on the keeper at `creature+0x2A` (in `ECX`).
+5. The hook returns 1.
 
 **The field is identified exactly, not by neighbourhood.** `CopyPairs.py` gives
 the loader's source→destination pair `src=0x12F8 dst=0x6BB`, and
@@ -131,21 +129,21 @@ conclusion survives, because no shipped field is negative in the −3..−1 rang
 
 `FUN_004c2dc0(this = keeper, amount, creature)`:
 
-```
-if amount < 0:
-    this[+0x20F] = max(0, this[+0x20F] - |amount|)      # clamp-subtract
-else:
-    bonus = 0
-    if now % variable19 == 0:                            # ONCE A GAME SECOND
-        if this[+0x20D] != 0:                            # casino big win?
-            bonus += variable19 * var143 * variable19 * amount / 100
-        if FUN_004f2300(creature[+0x28]):                # tortured type?
-            bonus += (variable19 + var142) * variable19 * amount / 100
-        if creature[+0x4BB] != 0 and
-           now - creature[+0x4BB] < variable19 * var165: # slapped recently?
-            bonus += variable19 * var164 * variable19 * amount / 100
-    this[+0x20F] += bonus + amount                       # base EVERY tick
-```
+- **A negative amount** is subtracted from the keeper's total at `keeper+0x20F`
+  by its magnitude, and the total is clamped at zero.
+- **A zero or positive amount** is added, with bonuses that are considered only
+  **once a game second** (`now % variable19 == 0`). Each bonus below adds to one
+  sum, which starts at zero:
+  1. *Casino big win?* If `keeper+0x20D` is non-zero:
+     `variable19 * var143 * variable19 * amount / 100`.
+  2. *Tortured type?* If `0x004F2300` answers true for `creature+0x28`:
+     `(variable19 + var142) * variable19 * amount / 100`.
+  3. *Slapped recently?* If `creature+0x4BB` is non-zero and
+     `now - creature+0x4BB < variable19 * var165`:
+     `variable19 * var164 * variable19 * amount / 100`.
+
+  Then `bonus + amount` is added to `keeper+0x20F` — the base amount **every
+  tick**, the bonus only on the once-a-second tick.
 
 The `/100` is the compiler's `MOV EAX,0x51EB851F ; MUL ; SHR EDX,5` reciprocal,
 confirmed in the disassembly rather than trusted from the decompile — which

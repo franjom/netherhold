@@ -63,14 +63,14 @@ ADR-0071). The owner drew the line on who may carry it, 2026-09-05:
 
 Owner play on 2026-09-13 confirms this includes ordinary owned tiles, the Combat Pit and the torture rack.
 
-The pick-up handler `FUN_004bc500`'s creature branch is four tests:
+The pick-up handler `FUN_004bc500`'s creature branch is four tests, each of
+which refuses the pick-up:
 
-```
-if (SneakingAs != 0 && owner != me)      refuse, with the "no" feedback
-if (StateFlags1 & 0x200000)              refuse
-if (state == 0x33)                       refuse
-if (state == 0x34)                       refuse
-```
+1. `SneakingAs` is non-zero and the owner is not me — refused with the "no"
+   feedback;
+2. bit `0x200000` of `StateFlags1` is set;
+3. the state is `0x33`;
+4. the state is `0x34`.
 
 Bit `0x200000` of the first state-flag word is bit 21, and the creature dump's own
 list of that word's bits gives bit 21 as **`CreatureDying`**, so the original
@@ -159,14 +159,13 @@ that number.
 
 The applier's cadence and gate are its own prologue:
 
-```
-  if (counter != 0) return           ; counter at state + 0xab
-  counter = variable19 * 4           ; 4 ticks a game second, so 16 ticks
-  if (HungerFill != 0 && creature.IsInARoom) {
-      health -= variable55 * 4       ; -3 * 4 = -12
-      anger  += variable78, reason 9 ; ModifyAngerInCompanyOfHatedCreaturesPerSecond, 150
-  }
-```
+1. If the counter at `state + 0xAB` is non-zero, the applier returns.
+2. Otherwise the counter is set to `variable19 * 4` — at 4 ticks a game second,
+   16 ticks.
+3. Only if `HungerFill` is non-zero and the creature `IsInARoom`:
+   - health is reduced by `variable55 * 4` (−3 × 4 = −12);
+   - anger is increased by `variable78`
+     (`ModifyAngerInCompanyOfHatedCreaturesPerSecond`, 150), with reason 9.
 
 So the original applies **−12 every 16 ticks** — −12 every four game seconds, an
 average of exactly the −3 a second the variable's name promises. **Built that way

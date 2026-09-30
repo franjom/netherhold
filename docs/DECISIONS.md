@@ -3210,7 +3210,7 @@ that sum **exceeds** the number of that type the keeper already holds.
 |---|---|---|
 | Lair | never capped: the arm stores a flat 1.0 and jumps past the draw-down | CONFIRMED |
 | Temple | **2** while it holds object 66, the Temple Hand, else 0 | CONFIRMED |
-| Prison, Combat Pit | the room's slab count | STRONGLY INFERRED |
+| Prison, Combat Pit | the room's interior cells (amended 2026-09-30) | STRONGLY INFERRED |
 | every other | `AutoFurnitureRules.TryTotalCapacity` | CONFIRMED |
 
 Whole numbers where the original uses 12-bit fixed point: every contribution is
@@ -3226,9 +3226,10 @@ same one and no rounding enters.
 
 **Assumptions, stated rather than hidden.**
 
-- The Prison and Combat Pit arm also guards on `byte[slab+0x0C] == 0xFF`, a field
-  this project has not read. If it excludes slabs, those two contribute fewer
-  than the slab count. One live read of a prison settles it.
+- **Amended 2026-09-30:** `0x00454110` tests `byte[slab+0x0C] == 0xFF`, the
+  interior marker, before its type switch, so a Prison or Combat Pit contributes
+  its interior cells only, never its rim (record `00454110`). Built as
+  `InteriorTileIndices.Count`; a 3x3 prison gives 1, not 9.
 - The Lair arm has a second branch giving 3.0 when a creature byte `+0x771` is
   **22**. Unexplained, and harmless here: the draw-down is skipped either way, so
   1.0 and 3.0 both admit for ever.
@@ -3422,6 +3423,9 @@ The Combat Pit's shipped 100 is an increment against a ceiling of 100, so a pit
 fighter hits for **double** — the variable's name argues for the other reading
 and is now pinned by a test. Combat still does not happen; this buys the attack
 state a formula instead of a guess when someone writes it.
+
+**Amended 2026-09-30.** The bearing is no longer raw: `FightRules` passes
+`Bearing.Of`, which reproduces `0x0065FB54`'s own table (Q370).
 
 ## ADR-0154 — A captive dropped on a Temple is sacrificed, not freed
 

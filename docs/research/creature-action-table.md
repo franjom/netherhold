@@ -42,13 +42,9 @@ The record, recovered by walking the filler tracking register values:
 
 The index is `dword[creature+0x3A9]`, and the address arithmetic is why the
 stride was hard to find: there is **no `IMUL` by 29 anywhere in the image**. The
-compiler emits
-
-```
-LEA ECX,[EAX*0x8 + 0x0]
-SUB ECX,EAX                              ; ECX = 7n
-LEA EAX,[EAX + ECX*0x4 + 0x6e4198]       ; n + 28n = 29n
-```
+compiler builds the index in three steps: `8n`, minus `n` to give `7n`, then
+`n + 4 * 7n` = `29n` added to the table base `0x006E4198` in one address
+computation.
 
 **Index 0 is the null entry** — every reader guards with `SETNZ` on the field
 before indexing — and **index `0x15` (21) is excluded by name** at both sites

@@ -28,13 +28,11 @@ of `CreatureDyingStateDurationSeconds` at `0x006F25B0` (`0x004B2FA1`, inside it)
 It is `__thiscall` on the **target**, with three stack arguments. One call site
 reads, in push order:
 
-```
-PUSH 0                 ; mode — 0 is the ordinary one
-PUSH <word>            ; the source: a thing id out of the caller's context
-PUSH <signed delta>    ; health change, negative to hurt
-MOV  ECX, <target>
-CALL 0x004B2CE0
-```
+1. the mode, a literal 0 — the ordinary one;
+2. a word, the source: a thing id out of the caller's context;
+3. a signed delta, the health change, negative to hurt;
+
+and then the target goes in `ECX` and `0x004B2CE0` is called.
 
 That settles a reading `creature-death.md` had to state in prose: the
 **"ordinary mode" is a literal third argument of zero**, and the dying-countdown
@@ -172,15 +170,11 @@ read:
 | `creature+0x3EA` bit 3 | `200.0` | global `+0x31B`, `int16` |
 | `creature+0x3E6` bit 15 | `100.0` | global `+0x482`, **byte** |
 
-Each pair goes through the same two helpers (`0x0043D750`, `0x00441990`) before
-a fixed-point multiply (`IMUL` then `SHRD …, 0xC`), which is the shape of a
-clamp between two values rather than a plain product. Only then is `def+0x5C4`
-read and scaled by the level row of §4.
-
-**What those three flags are is UNKNOWN.** Two share a balance value and differ
-only in their ceiling, which is what a *weakened* and a *strengthened* state
-would look like — but naming them from the shape would be a guess, and this
-project does not name mechanisms before reading their consumers.
+The helpers (`0x0043D750`, `0x00441990`, then `0x004363F0`) are 12.12 fixed-point
+add, divide and multiply, not a clamp, and the three flag arms are mutually
+exclusive: `Possessed`, `InfluencedByPossessed`, `CombatPitFighter`
+(combat-damage.md §1–§2). Only then is `def+0x5C4` read and scaled by the level
+row of §4.
 
 ## 6. The swing, found 2026-09-15, named 2026-09-16 (Q313 — ANSWERED)
 
@@ -283,11 +277,10 @@ is set on all 46 shipped creatures**, so it selects nothing.
 state.** At `0x00499224`, if `byte[attacker+0x36F] == 0x13` — creature type 19,
 the **Monk** — and the target is a creature, the routine does exactly this:
 
-```
-MOV ECX,[ESI + 0x3ea] / OR ECX,0x4 / MOV [ESI + 0x3ea],ECX   ; set bit 2 on the TARGET
-CALL 0x004b2ce0                                              ; deal the damage
-MOV EAX,[ESI + 0x3ea] / AND AL,0xfb / MOV [ESI + 0x3ea],EAX  ; clear it again
-```
+1. it sets bit 2 (`0x4`) of the **target's** dword at `+0x3EA` (the target is
+   in `ESI`);
+2. it calls `0x004B2CE0` to deal the damage;
+3. it clears that bit again (mask `0xFB` on the low byte).
 
 Set, damage, clear. A bit held only across one call is an **argument smuggled
 through the damage sink**, not a status — which is how DK2 tells the death path
@@ -299,7 +292,8 @@ owner's *"a monk's kill is permanent at any level"*.
 `IsHorny` in our own enum. One fires when attacker and target share an owner
 (`word+0x28`) and ends the swing early through virtual slot `+0x20`; the other,
 at `0x00499289`, fires when the target's type is `0x1C` — **Stone Knight** — and
-calls `FUN_00490120`. Neither is read further (Q328).
+calls `FUN_00490120`, the Stone Knight's blow path read in
+`creature-status-effects.md` §3.
 
 ### 6.3 What the Monk's bit reaches: reincarnation (Q111)
 
@@ -320,8 +314,9 @@ and then restores health to the level-scaled maximum, calls **`FUN_0048AFA0`**
 they are permanently dead"*, and *"a monk's kill is permanent at any level"*.
 `creature-death.md` §2.3 carries the rule; this is the mechanism.
 
-**`FUN_0048AFA0`'s other caller is `FUN_0049C2A0`, and it is unread** — a second
-way to lose a level that nothing here has looked at (Q328).
+**`FUN_0048AFA0` has two other callers**, `FUN_0049C2A0` (a hit reaction) and
+`0x005143C6`: both set a level at a Hero Lair, not a penalty (Q328,
+`creature-levels.md` §2.1).
 
 ### 6.1 `FUN_004998A0` is not the resistance step
 

@@ -125,7 +125,7 @@ public static class JobRules
 
     /// <summary>The keeper-or-creature test each handler makes before it looks for a
     /// room. Null means it passes; a non-null string is the reason and goes into the
-    /// log. Most jobs have no such test; the four that do are below, each read.</summary>
+    /// log. Most jobs have no such test; the five that do are below, each read.</summary>
     public static string? Refused(
         WorldState world, GameDatabase database, CreatureDef creature,
         CreatureState state, JobType job)
@@ -146,6 +146,11 @@ public static class JobRules
                 return state.Level < database[VariableTypeId.TrainingRoomMaxExperienceLevel]
                     ? null
                     : "at_training_cap";
+
+            case JobType.Research:
+                // 0x004759D0 tests the owner's research target (player+0x213) before it
+                // looks for a library: with nothing left to research there is no job.
+                return world.Player(state.OwnerPlayerId).ResearchTarget != 0 ? null : "nothing_to_research";
 
             case JobType.Manufacture:
                 // The handler tests the manufacture list's count (player+0xA1C): a Troll

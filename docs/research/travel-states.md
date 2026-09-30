@@ -327,5 +327,6 @@ are, not the order they move through states. A tighter series would show that.
 
 ## Implementation and tests
 
-Nothing built; research only. The retirement is its own commit with its own hash bump,
-after the transition gate.
+Both route helpers are mirrored: `CreatureStateMachine.BeginTravel` enters the walk and
+writes the resume; `TunnelRules.RouteOrTunnel` (`0x00471890`, `0x00471A70`) and
+`StealGoldRules.ToRoom` (`0x00471A70`) call it.

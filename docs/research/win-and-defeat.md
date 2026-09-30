@@ -19,14 +19,9 @@ opens Q359. Built as ADR-0162, amended 2026-09-23 for the defeat's consequences.
 
 DK2's debug dumper names `player+0x19A` **`Status`**. Exactly one routine writes
 a non-zero value into it, `0x004BE630` — `thiscall (CPlayer*, int32 code)` —
-and it begins:
-
-```
-if (player.Status != 0) return          ; a game ends once
-player.Status = code
-```
-
-so the **first verdict stands**. It then snapshots the end-of-level statistics:
+and it begins by returning at once if `player.Status` is already non-zero — a
+game ends once — and otherwise storing `code` in it, so the **first verdict
+stands**. It then snapshots the end-of-level statistics:
 land owned (`+0x156`, from `0x004BFE00`), mana (`+0x82` → `+0x15E`), a count
 via `0x004BFEA0`, and **elapsed seconds** into `+0x17F` as game turn divided
 by variable 19 (`[0x006F2590]`, turns per second). The other two writers,
@@ -52,10 +47,10 @@ and indexes a byte table at `0x004C8A98` into a jump table at `0x004C8A60`
 (`DispatchMap.py`, which prints `index + 1`; base 10, so a printed 1 is type
 10). Its first two arms are the whole story:
 
-```
-0x004C8662  (type 10, WIN_GAME)   push 2 ; ecx = player ; call 0x004BE630 ; eax = 1
-0x004C8675  (type 11, LOSE_GAME)  push 3 ; ecx = player ; call 0x004BE630 ; eax = 1
-```
+- `0x004C8662`, type 10 (`WIN_GAME`): calls `0x004BE630` on the player with
+  code 2, then returns 1.
+- `0x004C8675`, type 11 (`LOSE_GAME`): calls `0x004BE630` on the player with
+  code 3, then returns 1.
 
 `this` is the player whose tree reached the record — or, from a creature tree,
 its owner, because the creature dispatcher delegates player-owned types with the
@@ -98,14 +93,14 @@ divided by variable 19); its regeneration is variable 131
 `0x004D9EFB` walks the room's object list (`word[room+0xE]`, next at
 `+0x12A`) for an object whose type byte `+0x12C` is 13:
 
-```
-found: countdown byte room+0x56 ; reload from variable 19 -> once a second
-       if health != 0:
-           add min(regen, max - health)            ; never past the maximum
-           via 0x004E52F0(room) -> owner, 0x004DA200(owner, amount, ownerTag)
-       cache health in room+0x57
-none:  0x004E9130(room, 1)                          ; ruin it (§4)
-```
+- **Found:** the countdown byte at `room+0x56` runs down and is reloaded from
+  variable 19, so the rest happens once a second. If the heart's health is not
+  zero, it gains `min(regen, max - health)` — never past the maximum — by
+  finding the owner through `0x004E52F0` (called with the room) and calling
+  `0x004DA200` with the owner, the amount and the owner's tag. The health is
+  then cached in `room+0x57`.
+- **None:** `0x004E9130` is called with the room and 1 — the room is ruined
+  (§4).
 
 A heart at zero health **does not regenerate** — the `health != 0` test skips it
 — and a room whose heart object is gone is ruined on its next frame.
@@ -181,13 +176,13 @@ How the ruined room leaves the keeper's room list, which type 25 needs, is Q358.
 `0x0049B5E0` is the object death handler (reached from the thing deleter
 `0x004B7B10` at `+0x17`). When the dying object's type is 13:
 
-```
-0x004C0060(owner = object+0x2A, killer = word[object+0x36])
-    -> owner.KilledByPlayerId (+0x132) = killer
-       owner.GameTickDied      (+0xEE2) = game turn
-destroy every type-94 object (Arch Pillar) in the heart's room
-0x004DA560(room, object, killer)          ; DungeonHeart.cpp — the effect
-```
+1. `0x004C0060` is called with the owner (`object+0x2A`) and the killer (the
+   word at `object+0x36`); it stores the killer in the owner's
+   `KilledByPlayerId` (`+0x132`) and the game turn in the owner's `GameTickDied`
+   (`+0xEE2`).
+2. Every type-94 object (Arch Pillar) in the heart's room is destroyed.
+3. `0x004DA560` is called with the room, the object and the killer — the effect,
+   from `DungeonHeart.cpp`.
 
 `word[object+0x36]` is the player whose blow last landed; what writes it is the
 object damage path, unread (combat, Q8). `KilledByPlayerId` is DK2's own name
@@ -200,19 +195,21 @@ A world bit gates the whole arm: `[world+0x7239] & 0x40` skips it, UNKNOWN.
 (`+0x1F4`). It is the housekeeping tail of `Player.cpp` — its second half is the
 free-imp spawn and the research clocks — but it **opens with the verdict**:
 
-```
-if (KilledByPlayerId != 0 && !(flags76 & bit22)):
-    game vtable +0x2F4 (this player's slot, 0, 0)        ; eliminated
-    if killer == HERO id [0x006F254C] or NEUTRAL id [0x006F2548]:
-        0x004BE630(player, 3)                             ; lost
-    else:
-        player.ObjectiveTextId (+0x19E) = 701 ; killer.ObjectiveTextId = 702
-        0x004BE630(player, 1)                             ; conquered
-    mode [0x0075AD4B] == 1 && local player ? 0x004DAE40(player) : 0x004DAA10(player)
-    if mode != 1:
-        count players with Number(+0x10FC) >= 3, Status == 0, !(flags76 & bit19)
-        exactly one -> 0x004BE630(that one, 2)            ; last keeper standing
-```
+Only when `KilledByPlayerId` is non-zero and bit 22 of the flags at `+0x76` is
+clear:
+
+1. The game's vtable slot `+0x2F4` is called with this player's slot, 0 and 0 —
+   the player is eliminated.
+2. If the killer is the hero id (`[0x006F254C]`) or the neutral id
+   (`[0x006F2548]`), `0x004BE630` is called on the player with code 3 — lost.
+3. Otherwise the player's `ObjectiveTextId` (`+0x19E`) is set to 701 and the
+   killer's to 702, and `0x004BE630` is called on the player with code 1 —
+   conquered.
+4. If the mode at `[0x0075AD4B]` is 1 and this is the local player,
+   `0x004DAE40` is called on the player; otherwise `0x004DAA10`.
+5. If the mode is not 1, the players with `Number` (`+0x10FC`) at least 3,
+   `Status` 0 and bit 19 of `+0x76` clear are counted; if exactly one remains,
+   `0x004BE630` is called on that one with code 2 — last keeper standing.
 
 So **the heart's death is not the defeat; the stamped killer is**, read one turn
 later, and the side that struck decides between *lost* and *conquered*.

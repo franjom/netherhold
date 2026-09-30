@@ -138,13 +138,8 @@ trigger clock at all** — 196 functions call it, at 448 sites. It is the "now"
 every gate in the game reads. **Its unit is ticks, read directly**: in the
 creature's per-tick update at `0x00488D89`,
 
-```
-CALL 0x00517490            ; now
-XOR  EDX,EDX
-DIV  dword ptr [0x006F2590] ; / variable 19
-TEST EDX,EDX
-JNZ  ...                    ; proceed only when now % var19 == 0
-```
+`now` is fetched from `0x00517490` and divided, unsigned, by variable 19 (the
+dword at `0x006F2590`); the update proceeds only when the remainder is zero.
 
 `now % var19 == 0` is the once-a-game-second gate, and it is only once a game
 second if `now` counts **ticks**, four to the second. That fixes a trigger
@@ -161,18 +156,17 @@ including `cseg`, positive control 226 hits.
 The conversion is at `0x0050C2DB`, inside the level trigger initialiser
 `FUN_0050B5B0`:
 
-```
-0050c2db  MOV  EDI,dword ptr [0x006f2590]   ; variable 19
-0050c2e3  CMP  word ptr [ESI + 0x7314],DX   ; the condition count
-0050c2ec  MOV  ECX,dword ptr [ESI + 0x7308] ; the condition array
-0050c2f9  LEA  EAX,[EAX + EAX*0x4]          ; index * 5
-0050c2fc  LEA  EAX,[ECX + EAX*0x4]          ; ... * 4 -> a 20-byte stride
-0050c2ff  MOV  CL,byte ptr [EAX + 0xe]      ; the record's type byte
-0050c302  CMP  CL,0x2                       ; a timer condition
-0050c30a  CMP  CL,0x22                      ; or type 34
-0050c30e  IMUL ECX,dword ptr [EAX + 0x4]    ; var19 * the value
-0050c312  MOV  dword ptr [EAX + 0x4],ECX    ; written back IN PLACE
-```
+1. `0x0050C2DB`: variable 19 is loaded from `0x006F2590`.
+2. `0x0050C2E3`: the loop runs over the condition count, the word at
+   `+0x7314` of the level's trigger data.
+3. `0x0050C2EC`: the condition array is the pointer at `+0x7308`.
+4. `0x0050C2F9`–`0x0050C2FC`: each record is found at `index * 5 * 4` — a
+   20-byte stride.
+5. `0x0050C2FF`: the record's type byte at `+0x0E` is read.
+6. `0x0050C302`–`0x0050C30A`: only type 2 (a timer condition) or type `0x22`
+   (34) is converted.
+7. `0x0050C30E`–`0x0050C312`: the dword value at `+0x04` is multiplied by
+   variable 19 and written back **in place**.
 
 A second loop immediately after does the same to the **action** array for types
 `0x10` (16) and `0x17` (23). Q233.
@@ -273,14 +267,13 @@ first-record fallback.
 
 The handler at `0x0051845B`:
 
-```
-0051845f  MOV  DL,CH                              ; byte 01
-00518471  MOV  BL,byte ptr [EBP + ESI + 0x3f70]   ; flags[byte 01] -- the subject
-0051847f  CMP  EBP,0x80                           ; ... unless it is the special id
-005184ab  TEST DL,0x1                             ; byte 02, low bit
-005184b0  MOV  EAX,dword ptr [EAX + 0x4]          ;   set   -> the immediate at +4
-005184b7  MOV  AL,byte ptr [ECX + ESI + 0x3f70]   ;   clear -> flags[byte 03]
-```
+1. `0x0051845F`: byte 01 of the record is taken.
+2. `0x00518471`: the subject is the flag it indexes — the byte at `+0x3F70 +
+   byte 01` of the flag table.
+3. `0x0051847F`: … unless byte 01 is the special id `0x80`.
+4. `0x005184AB`: the low bit of byte 02 is tested.
+5. `0x005184B0`: set — the operand is the immediate dword at `+4` of the record.
+6. `0x005184B7`: clear — the operand is the flag byte at `+0x3F70 + byte 03`.
 
 So byte 01 is the flag id, byte 02's low bit selects the operand, and byte 03 is
 the **indirect** flag — the same shape as the timer condition. The reader had

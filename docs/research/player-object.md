@@ -114,14 +114,14 @@ another keeper's record, where `n` is the *asking* keeper's `Number`
 
 The death handler `FUN_00487C70` writes the same place:
 
-```
-MOV ECX,[ESI + 0x2a]              ; the victim's owner
-MOV AL,byte ptr [ECX + 0x10fc]    ; that owner's Number
-INC word ptr [EDI + EAX*2 + 0x19e]  ; on the KILLER: one more of theirs
-TEST byte ptr [ESI + 0x3e6],0x40
-JNZ skip
-INC dword ptr [EAX + 0x173]         ; the victim owner's own total
-```
+1. It reads the victim's owner from `victim+0x2A` (the victim is in `ESI`).
+2. It reads that owner's `Number`, the byte at `owner+0x10FC`.
+3. On the **killer** (in `EDI`) it adds one to the word at
+   `+0x19E + Number*2` — one more of theirs.
+4. It tests bit `0x40` of the victim's byte at `+0x3E6`; if set, the next step
+   is skipped.
+5. It adds one to the dword at `+0x173` of the victim's owner — that owner's own
+   total.
 
 So `+0x19E` is a **16-entry per-victim tally living on the killer**, and
 `+0x173` is the victim's own running total — the two halves of type 22. The

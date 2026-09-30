@@ -227,8 +227,8 @@ the §5 gate, both halves), `Capacity` (the room's tile count), `HasFreeSlot`,
 
 **Ours, and marked as such in the code:** the idle retry cadence (12 ticks); the
 arrival tile — room centre, where the original's travel-to-room step
-(`FUN_00471a70`) has not been read and its arrival test only requires *some* tile
-of the keeper's lair underfoot (**Q157**); the order of the room walk (ascending
+(`FUN_00471A70`, read in travel-states.md §2.2) walks to a random tile of the room,
+then the next walkable one (**Q157**); the order of the room walk (ascending
 tile index, with the random start kept); and no sub-tile jitter on the walk
 target.
 

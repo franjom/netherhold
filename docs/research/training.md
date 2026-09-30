@@ -60,21 +60,21 @@ trick gave the prison its drain (category 14, `FUN_0047B7C0`, Q173).
 
 ## 3. What the update hook does, in order — CONFIRMED
 
-```
-if (creature.level >= TrainingRoomMaxExperienceLevel) return failure
-
-award = (creature.level == 1)
-      ? def.expTrainPerTick
-      : clamp(def.expTrainPerTick * statPercent[16][level] / 100, 0, 0xFFFE)
-
-AddExperienceClamped(creature, award)          -- every tick
-
-if (creature.goldCountdown != 0) { creature.goldCountdown--; return success }
-creature.goldCountdown = variable19   -- so every 5th turn, not every 4th (Q424)
-if (keeper.gold < trainingCostPerSecond) { message 0x37; return failure }
-spend(trainingCostPerSecond) at the creature's tile
-if (++creature.chargeCount == 4) { pop a floating "-20"; chargeCount = 0 }
-```
+1. If the creature's level is at or above `TrainingRoomMaxExperienceLevel`, the
+   hook returns failure.
+2. The award is `def.expTrainPerTick` at level 1; at any other level it is
+   `def.expTrainPerTick * statPercent[16][level] / 100`, clamped to 0 to
+   `0xFFFE`.
+3. The award is added through the clamped experience adder — **every tick**.
+4. If the creature's gold countdown is non-zero, it is decremented and the hook
+   returns success.
+5. Otherwise the countdown is reloaded from `variable19` — so the charge falls
+   every 5th turn, not every 4th (Q424).
+6. If the keeper's gold is below `trainingCostPerSecond`, message `0x37` is
+   raised and the hook returns failure.
+7. `trainingCostPerSecond` is spent at the creature's tile.
+8. The creature's charge count goes up by one; when it reaches 4, a floating
+   "-20" pops up and the count goes back to 0.
 
 Four things fall out of the order, and each is behaviour:
 
@@ -268,25 +268,20 @@ would drain **four times** its named rate.
 `FUN_00457880(creature, delta)` is the only thing in the game that changes a
 creature's experience:
 
-```
-if ((creature.flags & 0x8000) && creature.level >= CombatPitMaxExperienceLevel)
-    return                                   -- CombatPitFighter at the pit cap (combat-pit.md §7, built ADR-0213)
-
-needed = (level == 1) ? def.expForNextLevel
-                      : clamp(def.expForNextLevel * statPercent[13][level] / 100,
-                              0, 0xFFFE)
-if (needed == 0) return                      -- refuses EVERYTHING, losses too
-
-if (delta < 0) {
-    if (-delta <= creature.exp) creature.exp += delta
-    return                                   -- a loss that does not fit is a NO-OP
-}
-
-creature.exp += delta
-if (creature.exp < needed) return
-LevelUp(creature)
-creature.exp = 0                             -- the overshoot is DISCARDED
-```
+1. If the creature's flags carry `0x8000` (`CombatPitFighter`) and its level is
+   at or above `CombatPitMaxExperienceLevel`, it returns — a pit fighter at the
+   pit cap (`combat-pit.md` §7, built ADR-0213).
+2. `needed` is `def.expForNextLevel` at level 1; at any other level it is
+   `def.expForNextLevel * statPercent[13][level] / 100`, clamped to 0 to
+   `0xFFFE`.
+3. If `needed` is zero it returns — it refuses **everything**, losses too.
+4. For a negative `delta`: the loss is applied only if its magnitude is no more
+   than the creature's current experience, and either way it returns — a loss
+   that does not fit is a **no-op**.
+5. Otherwise `delta` is added to the creature's experience.
+6. If experience is still below `needed`, it returns.
+7. Otherwise the creature levels up and its experience is set to 0 — the
+   overshoot is **discarded**.
 
 **Q127 asked which of two readings DK2 uses, and both halves chosen here were
 wrong:**

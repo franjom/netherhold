@@ -124,7 +124,8 @@ rounding quirk, not a presentation detail.
 8. `FUN_004B2CE0(target, damage, word[attacker+0x28], 0)`
 9. a Horned Reaper (`def+0x686 & 0x4000`) hitting a **Stone Knight**
    (`target+0x36F == 0x1C`) additionally calls `FUN_00490120` with the same
-   three arguments (Q328)
+   three arguments: the stun, armour and knock-out path of
+   `creature-status-effects.md` §3
 
 There is **no resistance step**. `combat.md` §6.1.1 ruled the shipped
 `Resistances` table out of the live path, and reading the swing end to end finds
@@ -150,9 +151,8 @@ against the shipped table. **`FightRules` calls it** for every blow (ADR-0163 on
 Until combat existed nothing did, because a formula wired into a simulation that
 could not swing would have reported progress it had not made. (Updated 2026-09-26.)
 
-`atan2` (`FUN_0065FB54`) is **not** reimplemented; step 3 takes the raw angle as
-an argument, because a bearing this project cannot yet produce is not a bearing
-worth approximating.
+`atan2` (`FUN_0065FB54`) is `Bearing.Of`, its own table reproduced; `FightRules`
+passes it to step 3 (Q370).
 
 ## Confidence
 
@@ -164,5 +164,5 @@ modifiers; the Monk bracket; the argument order into `FUN_004B2CE0`.
 **CONFIRMED (repo cross-reference):** `Possessed`, `InfluencedByPossessed`,
 `CombatPitFighter` and `CantBeResurrected`, from `creature-object.md`.
 
-**UNKNOWN:** the bearing bonus's purpose (Q325);
-what `FUN_00490120` does (Q328).
+**UNKNOWN:** the bearing bonus's purpose (Q325). `FUN_00490120` is read in
+`creature-status-effects.md` §3.
