@@ -6302,6 +6302,39 @@ The rest the checker names: stealing (Q155; 7 and 38 choices), Tier B's ring sca
 were rewritten to the binary's rule; `ImpKeepsItsGoldTests` pins the new ones, each
 negative-controlled.
 
+## ADR-0289 — A nearer imp takes a held task, and workers update newest first
+**Date:** 2026-09-30 · **Status:** accepted · Research: `imp-task-stealing.md`, `imp-claim-path.md`
+
+**Context.** Ours never re-assigned a taken job: a full face was refused, so a far imp
+kept a task a nearer one walked past (Q155). The binary answers every part of it.
+
+**Decision.**
+1. `TaskStealing` holds the shared holder test: a creature with a state, not in 51 or
+   52, able to move to 10. There is no same-tick protection; a guard of ours was tried
+   and removed, since without it steals rose only from 5.8% to 6.5% of takes and no
+   trade appeared.
+2. The dig walk `TryExcavationAt` follows `0x00469AF0`: sides from `MiningSlots.StartSide`
+   (`0x004805F0`), three slots each for digs and mines (`0x00698A80`, answering Q492).
+   A free slot is taken at once; a held one is a fallback when, for a dig, the imp's
+   distance to the wall's centre is below the holder's to the side tile's centre, and for
+   a mine, both measured to the side tile's corner from where they stand.
+3. Claim, attack, room conversion and reinforce take a held face when strictly nearer the
+   tile's centre, routing first and then kicking (`0x0046AB50`, `0x0046AEA0`).
+4. The loser goes to 10 (`0x0048AD30`) and keeps its last kind. A worker walks to its
+   stance point and works there; one in its entry or work state is measured from it.
+5. An attacked floor that turns neutral is claimed by its attacker under the same job,
+   20 → 15 → 16, with no second choice (`0x00465F20`).
+6. `ImpTaskSystem` walks workers newest first, by id, as the world turn does
+   (`0x004B7830`, `0x004B4A10`): a loser older than its thief chooses again this tick.
+
+**Consequences.** Level 1 replays win 19 of 20 (15 before), Level 2 8 of 20 (7). Dig and
+mine steals are near DK2's; claim steals are not (Level 1 12 a game against 5.1, Level 2
+13 against 31), and the decision checker (Level 1 277 of 309, Level 2 683 of 799) puts the
+difference in Tier B's reinforce choices and Level 2's gold fetches (Q493), not in the claim
+rules. Not built: the drop scan's dig handler (`0x0046A550`), gold and objects stealing, and
+the loser walking its old route on. `TaskStealingTests` pins the rules, each
+negative-controlled.
+
 ## ADR-0290 — Function records are the one home for per-function knowledge
 **Date:** 2026-09-30 · **Status:** accepted · Design: `docs/plans/2026-09-30-function-knowledge-base-design.md`
 

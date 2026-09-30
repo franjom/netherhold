@@ -55,6 +55,7 @@ public static class DecisionCheck
             int deciderSlot = root.GetProperty("imp").GetInt32();
             CreatureState? decider = null;
             JsonElement deciderJson = default;
+            var faces = new List<(CreatureState Holder, TilePos Face)>();
             foreach (JsonElement imp in root.GetProperty("imps").EnumerateArray())
             {
                 int slot = imp.GetProperty("slot").GetInt32();
@@ -63,7 +64,7 @@ public static class DecisionCheck
                     creature = world.SpawnCreature(database, ImpTypeId, player, new TilePos(0, 0));
                     ours[slot] = creature;
                 }
-                LoadImp(database, world, creature, imp, player, holdsJob: slot != deciderSlot);
+                LoadImp(database, world, creature, imp, player, holdsJob: slot != deciderSlot, faces);
                 if (slot == deciderSlot)
                 {
                     decider = creature;
@@ -79,7 +80,7 @@ public static class DecisionCheck
             decider.TargetTileIndex = -1;
             decider.TimerTicks = 0;
 
-            var probe = new Probe(imps, decider);
+            var probe = new Probe(imps, decider, faces);
             var simulation = new GameSimulation(database, world, seed: 0, systems: [probe]);
             if (Environment.GetEnvironmentVariable("DK2_DECIDE_TRACE") == root.GetProperty("tick").GetInt32().ToString(CultureInfo.InvariantCulture))
             {
@@ -171,7 +172,8 @@ public static class DecisionCheck
     }
 
     private static void LoadImp(
-        GameDatabase database, WorldState world, CreatureState creature, JsonElement imp, byte player, bool holdsJob)
+        GameDatabase database, WorldState world, CreatureState creature, JsonElement imp, byte player, bool holdsJob,
+        List<(CreatureState Holder, TilePos Face)> faces)
     {
         creature.StopMoving();
         creature.PosX = creature.LastPosX = imp.GetProperty("x").GetInt32();
@@ -221,18 +223,38 @@ public static class DecisionCheck
             default:
                 return;
         }
-        TilePos face = kind == 3 ? target : FaceFor(database, world, creature.Tile, target);
+        // The side and slot the handler wrote (+0x94, +0x96); a claim is worked from the tile.
+        int side = imp.TryGetProperty("task_side", out JsonElement sd) ? sd.GetInt32() & 3 : -1;
+        TilePos face = kind == 3 ? target
+            : side >= 0 ? new TilePos(tx + SideDx[side], ty + SideDy[side])
+            : FaceFor(database, world, creature.Tile, target);
         creature.TargetTileIndex = ty * world.Width + tx;
         creature.TargetWork = work;
-        PutIn(creature, ImpStates.For(work).Work);
-        creature.PosX = creature.LastPosX = CreatureState.CentreOf(face.X);
-        creature.PosY = creature.LastPosY = CreatureState.CentreOf(face.Y);
-        if (work == TileWorkKind.MineGold)
+        // A holder still walking stays in the walk (6, resuming in the work's entry state): task
+        // stealing measures it from where it is, an arrived one from its stance point.
+        if (state == WalkState)
         {
-            creature.WorkSlot = MiningSlots.FreeSlot(
-                world, database, creature.TargetTileIndex, face, target, creature.Id);
+            CreatureStateMachine.Release(creature);
+            CreatureStateMachine.BeginTravel(creature, WalkState, ImpStates.For(work).Entry);
         }
+        else
+        {
+            PutIn(creature, ImpStates.For(work).Work);
+        }
+
+        if (kind is 1 or 2 && MiningSlots.Face(face, target) is int f and >= 0)
+        {
+            int along = imp.TryGetProperty("task_slot", out JsonElement sl) ? sl.GetInt32() % MiningSlots.PerFace : 0;
+            creature.WorkSlot = (byte)(f * MiningSlots.PerFace + along);
+        }
+        faces.Add((creature, face));
     }
+
+    private const int WalkState = 6;
+
+    /// <summary>DK2's sides, north, east, south, west (<c>0x00698A60</c>).</summary>
+    private static readonly int[] SideDx = [0, 1, 0, -1];
+    private static readonly int[] SideDy = [-1, 0, 1, 0];
 
     /// <summary>The side of a wall an imp works from: where it stands if that is a side, else the
     /// open side nearest to it.</summary>
@@ -293,12 +315,29 @@ public static class DecisionCheck
     }
 
     /// <summary>The one system the check runs: the decider's choice, and nothing else moving.</summary>
-    private sealed class Probe(ImpTaskSystem imps, CreatureState decider) : ISimulationSystem
+    private sealed class Probe(
+        ImpTaskSystem imps, CreatureState decider, List<(CreatureState Holder, TilePos Face)> faces) : ISimulationSystem
     {
         public string Name => "DecisionProbe";
 
         public bool Took { get; private set; }
 
-        public void Execute(SimulationContext context) => Took = imps.ChooseJob(context, decider);
+        public void Execute(SimulationContext context)
+        {
+            // A holder keeps where DK2 had it, for the stealing distance, and walks to its face,
+            // which is what our crowding counts; one with no route is put there.
+            foreach ((CreatureState holder, TilePos face) in faces)
+            {
+                if (holder.Tile == face || context.Navigation.TryRoute(holder, face, Simulation.Navigation.MoveOptions.Plain))
+                {
+                    continue;
+                }
+
+                holder.PosX = holder.LastPosX = CreatureState.CentreOf(face.X);
+                holder.PosY = holder.LastPosY = CreatureState.CentreOf(face.Y);
+            }
+
+            Took = imps.ChooseJob(context, decider);
+        }
     }
 }

@@ -75,12 +75,54 @@ public static class MiningSlots
         return None;
     }
 
-    private static bool Held(WorldState world, int targetIndex, byte slot, int askingCreatureId)
+    private static bool Held(WorldState world, int targetIndex, byte slot, int askingCreatureId) =>
+        Holder(world, targetIndex, slot, askingCreatureId) is not null;
+
+    /// <summary>The worker digging or mining this wall from this slot, other than the asker.
+    /// Digs hold slots as mines do: the dig handler walks the same twelve (ADR-0289).</summary>
+    public static CreatureState? Holder(WorldState world, int targetIndex, byte slot, int askingCreatureId)
     {
+        if (world is null) throw new ArgumentNullException(nameof(world));
         foreach (CreatureState other in world.Creatures)
-            if (other.Id != askingCreatureId && other.TargetTileIndex == targetIndex
-                && other.TargetWork == TileWorkKind.MineGold && other.WorkSlot == slot)
-                return true;
-        return false;
+            if (other.Id != askingCreatureId && other.TargetTileIndex == targetIndex && other.WorkSlot == slot
+                && other.TargetWork is TileWorkKind.Dig or TileWorkKind.MineGold
+                    or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall)
+                return other;
+        return null;
+    }
+
+    /// <summary>Where a worker stands in a slot, in the 4096-a-tile fixed point (<c>0x00698A80</c>):
+    /// 682/4096 in from the edge that touches the wall, at 682, 2047 and 3412 along it (Q492).</summary>
+    public static (long X, long Y) StancePoint(TilePos standing, byte slot)
+    {
+        int along = StanceAlong[slot % PerFace];
+        (int ox, int oy) = (slot / PerFace) switch
+        {
+            0 => (along, StanceNear),
+            1 => (StanceNear, along),
+            2 => (StanceFar, along),
+            _ => (along, StanceFar),
+        };
+        return ((standing.X * 4096L) + ox, (standing.Y * 4096L) + oy);
+    }
+
+    private const int StanceNear = 682, StanceFar = 3412;
+    private static readonly int[] StanceAlong = [682, 2047, 3412];
+
+    /// <summary>The side of a wall DK2's dig and reinforce handlers try first, and which way they
+    /// turn (<c>0x004805F0</c>), from the worker's tile minus the wall's: sides 0 north, 1 east,
+    /// 2 south, 3 west; the step is +1 clockwise or -1, toward the worker's second side.</summary>
+    public static (int Side, int Step) StartSide(int dx, int dy)
+    {
+        if (dx == 0) return (dy > 0 ? 2 : 0, 1);
+        if (dx < 0)
+        {
+            if (dy == 0) return (3, 1);
+            if (dy > 0) return -dx < dy ? (2, 1) : (3, -1);
+            return dx != dy && -dx <= -dy ? (0, -1) : (3, 1);
+        }
+        if (dy == 0) return (1, 1);
+        if (dy > 0) return dx < dy ? (2, -1) : (1, 1);
+        return -dx != dy && dx <= -dy ? (0, 1) : (1, -1);
     }
 }

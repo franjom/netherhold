@@ -144,11 +144,20 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     {
         IReadOnlyList<CreatureState> creatures = context.World.Creatures;
 
-        // Spawn order, deliberately: when two imps could take the same job, the
-        // older one gets it, and that has to be reproducible.
-        for (int i = 0; i < creatures.Count; i++)
+        // Newest first, as DK2's world turn walks its creature list (0x004B7830), where a new
+        // creature is linked at the head (0x004B4A10). So a worker robbed of its task by a newer
+        // one chooses again this same tick, and one robbed by an older one on the next
+        // (imp-task-stealing.md §8). The list is in id order and ids only climb, so the walk goes
+        // by id: a creature removed during it (a buried corpse) shifts nothing onto a second
+        // update, and one added during it waits for the next tick.
+        int below = int.MaxValue;
+        for (int i = creatures.Count - 1; ; i--)
         {
+            if (i >= creatures.Count) i = creatures.Count - 1;
+            while (i >= 0 && creatures[i].Id >= below) i--;
+            if (i < 0) break;
             CreatureState creature = creatures[i];
+            below = creature.Id;
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
 
@@ -232,6 +241,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             if (creature.Dk2StateId == ImpStates.For(creature.TargetWork).Work
                 && !WorkCadence.ActionEnded(creature.TargetWork, context.Tick.Value, creature.StateEnteredTick))
                 return;
+            if (TryClaimWhatWasAttacked(context, creature)) return;
             context.Emit(SystemName, "job_abandoned",
                 $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
                 $"{creature.TargetWork} reason=gone");
@@ -348,7 +358,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 creature.TimerTicks--;
                 return;
             }
-            creature.StopMoving();
+            // Arrived on entering the tile; a route whose point lies in it runs on, so the worker
+            // settles on its stance point while it works (ADR-0289).
+            if (creature.Destination != creature.Tile) creature.StopMoving();
             creature.TimerTicks = WorkCadence.FirstApplicationTicks;
             AtWork(context, creature);
             return;
@@ -1089,22 +1101,129 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         foreach (ExcavationCandidate candidate in _excavation)
         {
             var target = new TilePos(candidate.TileIndex % width, candidate.TileIndex / width);
-            if (!_pathfinder.TryFindNearest(
-                    grid, creature.Tile,
-                    stand => Math.Abs(stand.X - target.X) + Math.Abs(stand.Y - target.Y) == 1
-                             && TryJobOn(context, grid, stand, target, player, JobPriority.MarkedExcavation,
-                                         creature.Id, out _, out _),
-                    _route))
-                continue;
-
-            TilePos standing = _route.Count > 0 ? _route[^1] : creature.Tile;
-            if (!TryJobOn(context, grid, standing, target, player, JobPriority.MarkedExcavation, creature.Id,
-                          out int tileIndex, out TileWorkKind work))
-                continue;
-            CommitJob(context, creature, tileIndex, work, JobPriority.MarkedExcavation);
-            return true;
+            if (TryExcavationAt(context, creature, grid, target, player)) return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// One wall of DK2's dig-and-mine walk (<c>0x00469AF0</c>): its four sides from the one facing
+    /// the worker, or facing the seam it last mined (<see cref="MiningSlots.StartSide"/>), each open
+    /// and reachable side's three slots in order. The first free slot is taken. A held one counts
+    /// only when the worker is nearer the wall's centre than the holder is to its side tile's centre;
+    /// for a mine, when the worker, from where it stands, is nearer the side tile's corner than the
+    /// holder is. The last such is taken if no slot is free, the
+    /// holder set to 10. A slot whose cell's pile is over the limit is passed over when mining
+    /// (Q140). Q155, ADR-0289.
+    /// </summary>
+    private bool TryExcavationAt(
+        SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos target, byte player)
+    {
+        WorldState world = context.World;
+        int targetIndex = target.Y * world.Width + target.X;
+        bool afterMining = creature.LastTaskKind == ImpTaskKind.Mine && creature.LastTaskTileIndex >= 0;
+        TilePos from = afterMining
+            ? new TilePos(creature.LastTaskTileIndex % world.Width, creature.LastTaskTileIndex / world.Width)
+            : creature.Tile;
+        (int side, int step) = MiningSlots.StartSide(from.X - target.X, from.Y - target.Y);
+
+        TilePos? taken = null;
+        byte takenSlot = MiningSlots.None;
+        TileWorkKind takenWork = default;
+        CreatureState? takenFrom = null;
+        long mine = -1;
+        for (int turn = 0; turn < 4; turn++, side = (side + step) & 3)
+        {
+            var stand = new TilePos(target.X + SideDx[side], target.Y + SideDy[side]);
+            if (!world.Contains(stand) || context.Database.TerrainById(world.Tile(stand).TerrainId).IsSolid) continue;
+            if (!TryJobOn(context, grid, stand, target, player, JobPriority.MarkedExcavation, creature.Id,
+                          out _, out TileWorkKind work, crowding: false))
+                continue;
+            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == stand, _route)) continue;
+
+            bool mining = work == TileWorkKind.MineGold;
+            if (mining)
+                mine = TaskStealing.DistanceSquared(creature.PosX, creature.PosY, stand.X * 4096L, stand.Y * 4096L);
+            else if (mine < 0)
+                mine = TaskStealing.DistanceSquared(creature.PosX, creature.PosY,
+                    CreatureState.CentreOf(target.X), CreatureState.CentreOf(target.Y));
+            (long px, long py) = mining
+                ? (stand.X * 4096L, stand.Y * 4096L)
+                : (CreatureState.CentreOf(stand.X), CreatureState.CentreOf(stand.Y));
+
+            int face = MiningSlots.Face(stand, target);
+            int standIndex = stand.Y * world.Width + stand.X;
+            for (int along = 0; along < MiningSlots.PerFace; along++)
+            {
+                byte slot = (byte)(face * MiningSlots.PerFace + along);
+                if (work == TileWorkKind.MineGold
+                    && FloorGold.PileInCell(world, standIndex, MiningSlots.Cell(slot)) > FloorGold.MaxPile(context.Database))
+                    continue;
+                CreatureState? holder = MiningSlots.Holder(world, targetIndex, slot, creature.Id);
+                if (holder is null)
+                {
+                    (taken, takenSlot, takenWork, takenFrom) = (stand, slot, work, null);
+                    break;
+                }
+                if (!TaskStealing.CanLoseItsTask(holder)) continue;
+                (long hx, long hy) = TaskStealing.HolderPosition(holder, MiningSlots.StancePoint(stand, slot));
+                if (mine < TaskStealing.DistanceSquared(hx, hy, px, py))
+                    (taken, takenSlot, takenWork, takenFrom) = (stand, slot, work, holder);
+            }
+            if (taken is not null && takenFrom is null) break;
+        }
+
+        if (taken is not TilePos chosen) return false;
+        if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == chosen, _route)) return false;
+        if (takenFrom is not null) TakeTaskFrom(context, takenFrom, creature, targetIndex);
+        CommitJob(context, creature, targetIndex, takenWork, JobPriority.MarkedExcavation, takenSlot);
+        return true;
+    }
+
+    /// <summary>DK2's four sides in its own order (<c>0x00698A60</c>): north, east, south, west.</summary>
+    private static readonly int[] SideDx = [0, 1, 0, -1];
+    private static readonly int[] SideDy = [-1, 0, 1, 0];
+
+    /// <summary>The handler's <c>0x0048AD30(10)</c> on the holder: it goes to 10 without its task
+    /// and chooses again; its last kind stays.</summary>
+    private static void TakeTaskFrom(SimulationContext context, CreatureState holder, CreatureState taker, int tileIndex)
+    {
+        context.Emit(SystemName, "task_stolen",
+            $"imp={taker.Id} from={holder.Id} {Describe(context.World, tileIndex)} {holder.TargetWork} " +
+            $"holder_state={holder.Dk2StateId}");
+        holder.ClearJob();
+        if (CreatureStateMachine.HasState(holder))
+        {
+            StateShadow.Arrive(context, SystemName, holder);
+            StateShadow.Move(context, SystemName, holder, ImpStates.TaskSelection);
+        }
+        holder.TimerTicks = 0;
+    }
+
+    /// <summary>A claim or reinforce holder of this face the asker may take the task from: the one
+    /// worker there, able to lose it, and farther from the tile's centre (Q155, ADR-0289).</summary>
+    private static CreatureState? HolderToTakeFrom(
+        SimulationContext context, int tileIndex, TilePos face, int askingCreatureId, TileWorkKind kind)
+    {
+        if (kind is not (TileWorkKind.Claim or TileWorkKind.AttackTile or TileWorkKind.ConvertRoom
+                or TileWorkKind.Reinforce or TileWorkKind.RepairWall))
+            return null;
+        WorldState world = context.World;
+        CreatureState? asking = world.CreatureById(askingCreatureId);
+        if (asking is null) return null;
+        int faceIndex = face.Y * world.Width + face.X;
+        foreach (CreatureState other in world.Creatures)
+        {
+            if (other.Id == askingCreatureId || other.TargetTileIndex != tileIndex) continue;
+            if (ImpCrowding.FaceOf(world, other) != faceIndex) continue;
+            if (!TaskStealing.CanLoseItsTask(other)) return null;
+            var tile = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
+            (long X, long Y) stance = face == tile
+                ? (CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y))
+                : TaskStealing.ReinforceStance(face, MiningSlots.Face(face, tile));
+            return TaskStealing.NearerTheTile(asking, TaskStealing.HolderPosition(other, stance), tile) ? other : null;
+        }
+        return null;
     }
 
     /// <summary>DK2's first test of a face (<c>terrain+0x17B &amp; 1</c>): a side that is not
@@ -1265,17 +1384,41 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// Commits a worker to tile work along the route the last search planned.
     /// </summary>
     private void CommitJob(
-        SimulationContext context, CreatureState creature, int tileIndex, TileWorkKind kind, JobPriority priority)
+        SimulationContext context, CreatureState creature, int tileIndex, TileWorkKind kind, JobPriority priority,
+        byte? slot = null)
     {
-        creature.TargetTileIndex = tileIndex;
-        creature.TargetWork = kind;
         TilePos standing = _route.Count > 0 ? _route[^1] : creature.Tile;
         WorldState world = context.World;
-        creature.WorkSlot = kind == TileWorkKind.MineGold
+        bool onTheTile = standing.Y * world.Width + standing.X == tileIndex;
+        if (slot is null && ImpCrowding.FaceIsFull(world, context.Database, tileIndex, standing, creature.Id, onTheTile, kind)
+            && HolderToTakeFrom(context, tileIndex, standing, creature.Id, kind) is CreatureState holder)
+            TakeTaskFrom(context, holder, creature, tileIndex);
+
+        creature.TargetTileIndex = tileIndex;
+        creature.TargetWork = kind;
+        creature.WorkSlot = slot ?? (kind == TileWorkKind.MineGold
             ? MiningSlots.FreeSlot(world, context.Database, tileIndex, standing,
                 new TilePos(tileIndex % world.Width, tileIndex / world.Width), creature.Id)
-            : MiningSlots.None;
-        context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Plain);
+            : MiningSlots.None);
+
+        // A digger walks to its slot's point and a reinforcer to its side's, as DK2's handlers
+        // route; the rest to the tile's centre. Where it stands is what task stealing measures.
+        var target = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
+        int face = MiningSlots.Face(standing, target);
+        if (creature.WorkSlot != MiningSlots.None)
+        {
+            (long sx, long sy) = MiningSlots.StancePoint(standing, creature.WorkSlot);
+            context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.Plain);
+        }
+        else if (kind is TileWorkKind.Reinforce or TileWorkKind.RepairWall && face >= 0)
+        {
+            (long sx, long sy) = TaskStealing.ReinforceStance(standing, face);
+            context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.Plain);
+        }
+        else
+        {
+            context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Plain);
+        }
 
         if (_route.Count == 0)
         {
@@ -1354,7 +1497,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         JobPriority priority,
         int askingCreatureId,
         out int tileIndex,
-        out TileWorkKind kind)
+        out TileWorkKind kind,
+        bool crowding = true)
     {
         tileIndex = -1;
         kind = default;
@@ -1445,15 +1589,14 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             }
         }
 
-        // Digging allows three workers per face, reinforcing one; a worker
-        // standing on a tile to claim it also works alone (Q43/Q44). Surplus finds
-        // other work rather than queueing. Rejecting the FACE rather than the
-        // tile is what makes that happen: the search carries on to the next
-        // standing tile, which may be another side of this block, another block,
-        // or another priority entirely. The cap is per job, not per tile.
+        // Three workers per dig face, one per reinforce face or claim (Q43/Q44). Rejecting the
+        // FACE, not the tile, sends the surplus on to the next standing tile, block or priority
+        // rather than queueing. A full face stays open to a nearer claimer or reinforcer, whom
+        // CommitJob lets take it (Q155).
         int index = (target.Y * world.Width) + target.X;
-        if (ImpCrowding.FaceIsFull(
-                world, context.Database, index, standing, askingCreatureId, onTheTile, kind))
+        if (crowding
+            && ImpCrowding.FaceIsFull(world, context.Database, index, standing, askingCreatureId, onTheTile, kind)
+            && HolderToTakeFrom(context, index, standing, askingCreatureId, kind) is null)
         {
             kind = default;
             return false;
@@ -1461,7 +1604,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         // Mining needs a free slot on this face: one no other miner holds, whose cell's pile holds
         // no more than MaxGoldPileOutsideTreasury (0x00469AF0, 0x0046A550; Q140).
-        if (kind == TileWorkKind.MineGold
+        if (crowding && kind == TileWorkKind.MineGold
             && MiningSlots.FreeSlot(world, context.Database, index, standing, target, askingCreatureId)
                 == MiningSlots.None)
         {
@@ -1624,8 +1767,16 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         var target = new TilePos(
             creature.TargetTileIndex % world.Width, creature.TargetTileIndex / world.Width);
 
-        return WorkStance.IsInPosition(
-            context.Database, world, grid, creature.Tile, target, creature.TargetWork);
+        if (WorkStance.IsInPosition(context.Database, world, grid, creature.Tile, target, creature.TargetWork))
+            return true;
+
+        // A worker at work still settling on its stance point may be nudged across the tile's edge
+        // by a neighbour; its route still ends on the stance tile, and that is where it works.
+        (int entry, int work) = ImpStates.For(creature.TargetWork);
+        return creature.Dk2StateId == entry || creature.Dk2StateId == work
+            ? creature.IsRouted && WorkStance.IsInPosition(
+                context.Database, world, grid, creature.Destination, target, creature.TargetWork)
+            : false;
     }
 
 
@@ -2229,6 +2380,27 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         CreatureStateMachine.BeginTravel(
             creature, StateShadow.TravelToPoint, ImpStates.For(kind).Entry);
         if (!routed) AtWork(context, creature);
+    }
+
+    /// <summary>An attacked floor tile that has gone neutral is claimed by its attacker under the
+    /// same task: enemy floor is DK2's kind-3 task with subkind 2, and state 20 (<c>0x00465F20</c>)
+    /// sets the subkind to 0 and goes to 15, not to 10, so there is no second choice and no second
+    /// chance to be robbed of it (imp-claim-path.md §8).</summary>
+    private static bool TryClaimWhatWasAttacked(SimulationContext context, CreatureState creature)
+    {
+        if (creature.TargetWork != TileWorkKind.AttackTile
+            || creature.Dk2StateId != ImpStates.For(TileWorkKind.AttackTile).Work)
+            return false;
+        ref TileState tile = ref context.World.TileAtIndex(creature.TargetTileIndex);
+        if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, creature.OwnerPlayerId))
+            return false;
+
+        creature.TargetWork = TileWorkKind.Claim;
+        StateShadow.Move(context, SystemName, creature, ImpStates.For(TileWorkKind.Claim).Entry);
+        creature.TimerTicks = WorkCadence.FirstApplicationTicks;
+        context.Emit(SystemName, "attack_to_claim",
+            $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)}");
+        return true;
     }
 
     /// <summary>State 10 is where a worker's every task starts, and where it rests between them.</summary>

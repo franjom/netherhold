@@ -154,6 +154,22 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return RouteWindow.Request(creature.Body, this, ProfileOf(definition, creature.OwnerPlayerId, options), target, flags);
     }
 
+    /// <summary>A worker's walk to its stance point inside the tile it works from (the dig and
+    /// reinforce handlers route to <c>0x00698A80</c> and <c>0x00698AE0</c>'s points): as
+    /// <see cref="TryRouteTo"/>, except that a creature already on that tile steps to the point
+    /// rather than getting a finished route (ADR-0289).</summary>
+    public bool TryRouteToStance(CreatureState creature, long x, long y, int options)
+    {
+        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (creature.Tile != new TilePos((int)(x / Fp32.One), (int)(y / Fp32.One)))
+            return TryRouteTo(creature, (int)x, (int)y, options);
+        SyncBody(creature);
+        creature.RouteOptions = options;
+        var target = new Fixed16Vector((int)x << 4, (int)y << 4);
+        RouteWindow.Load(creature.Body, [target], target, MoveOptions.PathFlagsOf(options));
+        return true;
+    }
+
     public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points) =>
         Route(from, to, mover, points, refresh: true);
 
