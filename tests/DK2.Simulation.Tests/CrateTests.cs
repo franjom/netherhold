@@ -384,16 +384,18 @@ public class CrateTests
     }
 
     [Fact]
-    public void AnImpDroppedBesideABlueprintTakesItsCrateBeforeAnythingBelowClaiming()
+    public void AnImpDroppedOnABlueprintTakesItsCrateBeforeTheWallsBesideIt()
     {
-        // The drop scan's third step is 0x0046C1A0, traps and doors.
+        // The drop scan's third step is 0x0046C1A0, traps and doors, and its ring scan hands the
+        // landing tile to the chain first: the rock beside it is on ring 1 (ADR-0292). Dropped one
+        // tile short, the imp would reinforce (8,1), which the chooser visits first.
         GameDatabase db = Db();
         WorldState world = World(db);
         ThingProjection.Place(world, db, [Door(DoorAt)]);
         world.Player(Keeper).ManufactureQueue.Clear();
         world.Player(Keeper).Blueprints.Clear();   // so only the drop scan can find it
         CrateRules.List(world, db, Workshop(db, world), Crate(db, world, DoorCrate, new TilePos(2, 2)));
-        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(8, 2));
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, DoorAt);
         imp.JustDropped = true;
         var sink = new ListEventSink();
 

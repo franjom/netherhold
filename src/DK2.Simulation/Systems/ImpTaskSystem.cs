@@ -27,8 +27,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
     /// <summary>
     /// How far a worker the keeper has just put down looks around itself before
-    /// it looks anywhere else: <b>three tiles</b>, Chebyshev — a seven by seven
-    /// box centred on where it landed, its own tile first and then in rings.
+    /// it looks anywhere else: <b>three rings</b> of Manhattan distance, its own
+    /// tile first (Q488).
     /// <para>Three is DK2's number and DK2 reaches it by accident: its scan is
     /// handed a radius of <c>0x2000</c>, two tiles at <c>0x1000</c> to the tile,
     /// but the loop tests its bound <i>after</i> scanning a ring, with a strict
@@ -40,16 +40,11 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private const int DropScanTiles = 3;
 
     /// <summary>
-    /// While set, every job search below is confined to
-    /// <see cref="DropScanTiles"/> of this tile. Non-null only inside
-    /// <see cref="TryTakeDroppedJob"/>, which is the one search DK2 bounds.
+    /// While set, the searches with no per-tile form (blueprints, bodies, objects) are confined to
+    /// this one tile. Non-null only inside <see cref="TryTakeDroppedJob"/>, whose ring scan hands
+    /// each tile to the chain in turn.
     /// </summary>
-    private TilePos? _within;
-
-    /// <summary>The ring of <see cref="_within"/> the drop scan is on: DK2's scan is position
-    /// first, the nine-step chain asked of each tile outwards from the landing tile, so a
-    /// nearer ring wins before the chain's order is consulted.</summary>
-    private int? _ring;
+    private TilePos? _only;
 
     /// <summary>State 10's cap: how many workers a keeper may let choose a job in one tick
     /// (<c>0x00463E41</c>, the counter at <c>player+0x7A</c>, zeroed every player frame).</summary>
@@ -881,22 +876,33 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private bool TryTakeDroppedJob(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
-        _within = creature.Tile;
+        // The ring scan of radius 0x2000 (0x0046402C): the landing tile, then diamond rings 1 to 3
+        // from the chooser's side, each tile the filter admits given the chain 0x00469240 in its
+        // order (Q488, ADR-0292). The kinds without a per-tile form search the one tile.
+        WorldState world = context.World;
+        TilePos at = creature.Tile;
+        byte player = creature.OwnerPlayerId;
+        bool handsFree = !HandsFull(context, creature, definition);
+        var rings = new DiamondRings(world, at, ClaimStartSide(context, world, at, player));
         try
         {
-            // The landing tile first, then each ring out to DropScanTiles. The three captured
-            // Level 1 drops each claim the tile they land on, next to marked walls a kind-first
-            // search would dig (mining-cadence.md §6). Within a ring the chain's order decides,
-            // where DK2 visits tile by tile: the order inside a ring is not read.
-            for (int ring = 0; ring <= DropScanTiles; ring++)
+            while (rings.MoveNext())
             {
-                _ring = ring;
-                if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
-                if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
+                TilePos tile = rings.Current;
+                if (Math.Abs(tile.X - at.X) + Math.Abs(tile.Y - at.Y) > DropScanTiles) return false;
+                if (!RingScanVisits(context, world, tile)) continue;
+                _only = tile;
+                if (TryExcavationAt(context, creature, grid, tile, player)) return true;
+                if (TryClaimAt(context, creature, grid, tile)) return true;
                 if (TryTakeBlueprintNear(context, creature, grid)) return true;
                 if (TryTakeBody(context, creature, definition, grid, corpses: false)) return true;
-                if (TryTakeJobAt(context, creature, grid, JobPriority.Reinforce)) return true;
-                if (TryTakeFloorGold(context, creature, definition, grid)) return true;
+                if (TryReinforceAt(context, creature, grid, tile)) return true;
+                if (handsFree && CanFetchFrom(context, tile, player, creature.Id)
+                    && _pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route))
+                {
+                    CommitFetch(context, creature, tile);
+                    return true;
+                }
                 if (TryTakeObject(context, creature, definition, grid)) return true;
                 if (TryTakeBody(context, creature, definition, grid, corpses: true)) return true;
             }
@@ -904,8 +910,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         }
         finally
         {
-            _within = null;
-            _ring = null;
+            _only = null;
         }
     }
 
@@ -923,7 +928,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     {
         ImpTaskKind.Excavate or ImpTaskKind.Mine => TryTakeMarkedExcavation(context, creature, grid),
         ImpTaskKind.Claim => TryTakeClaim(context, creature, grid),
-        ImpTaskKind.Reinforce => TryTakeJobAt(context, creature, grid, JobPriority.Reinforce),
+        ImpTaskKind.Reinforce => TryTakeReinforce(context, creature, grid),
         ImpTaskKind.FetchGold => HandsFull(context, creature, definition)
             ? TryDepositTheLoad(context, creature)
             : TryTakeFloorGold(context, creature, definition, grid),
@@ -965,15 +970,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// <summary>
     /// Whether a search may stop here - always, unless a drop scan is running.
     /// </summary>
-    private bool InScanRange(TilePos at) =>
-        _within is not TilePos centre
-        || Math.Max(Math.Abs(at.X - centre.X), Math.Abs(at.Y - centre.Y)) is int d
-            && d <= DropScanTiles && (_ring is not int ring || d == ring);
-
-    /// <summary>The same test, for a search that names its work by tile index.</summary>
-    private bool InScanRange(WorldState world, int tileIndex) =>
-        _within is null
-        || InScanRange(new TilePos(tileIndex % world.Width, tileIndex / world.Width));
+    private bool InScanRange(TilePos at) => _only is not TilePos only || at == only;
 
     /// <summary>
     /// The task kind DK2 records for a job of this priority.
@@ -1073,26 +1070,19 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         static bool IsOwned(byte owner) => owner is not (PlayerIds.Unowned or PlayerIds.Neutral);
     }
 
-    private bool TryTakeJobAt(
-        SimulationContext context, CreatureState creature, WorldPathGrid grid, JobPriority priority)
+    /// <summary>The dispatcher's kinds 6 and 16 (<c>0x00468520</c>): the ring scan over the whole
+    /// map with the reinforce handler alone, started on a <c>rand(4)</c> side, not the chooser's.
+    /// ADR-0292.</summary>
+    private bool TryTakeReinforce(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        byte player = creature.OwnerPlayerId;
-
-        bool found = _pathfinder.TryFindNearest(
-            grid,
-            creature.Tile,
-            stand => TryJobFrom(context, grid, stand, player, priority, creature.Id, out int found, out _)
-                     && InScanRange(context.World, found),
-            _route);
-
-        if (!found) return false;
-
-        TilePos standing = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
-        if (!TryJobFrom(context, grid, standing, player, priority, creature.Id, out int tileIndex, out TileWorkKind kind))
-            return false;
-
-        CommitJob(context, creature, tileIndex, kind, priority);
-        return true;
+        WorldState world = context.World;
+        var rings = new DiamondRings(world, creature.Tile, context.Rng.NextInt(4));
+        while (rings.MoveNext())
+        {
+            TilePos tile = rings.Current;
+            if (RingScanVisits(context, world, tile) && TryReinforceAt(context, creature, grid, tile)) return true;
+        }
+        return false;
     }
 
     /// <summary>
@@ -1103,13 +1093,10 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// distance. After a mining job, seams are measured from the seam just mined instead of
     /// from the worker. Of two walls at one distance the later marked comes first: DK2's list
     /// order, which its diggers' off-centre stance makes decide real choices (ADR-0288).
-    /// <para>The drop scan is a different search (a ring walk around the landing tile) and
-    /// keeps <see cref="TryTakeJobAt"/>.</para>
+    /// <para>The drop scan hands each tile of its rings to <see cref="TryExcavationAt"/> instead.</para>
     /// </summary>
     private bool TryTakeMarkedExcavation(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        if (_within is not null) return TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation);
-
         WorldState world = context.World;
         byte player = creature.OwnerPlayerId;
         int width = world.Width;
@@ -1323,7 +1310,6 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// </summary>
     private bool TryTakeClaim(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        if (_within is not null) return TryTakeJobAt(context, creature, grid, JobPriority.Claim);
 
         WorldState world = context.World;
         TilePos at = creature.Tile;
@@ -1498,13 +1484,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Plain);
         }
 
-        if (_route.Count == 0)
-        {
-            creature.TimerTicks = WorkCadence.FirstApplicationTicks;
-        }
-        else
-        {
-        }
+        if (_route.Count == 0) creature.TimerTicks = WorkCadence.FirstApplicationTicks;
 
         SetOutInState(context, creature, kind, routed: _route.Count > 0);
 
@@ -1514,46 +1494,6 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         context.Emit(SystemName, "job_taken",
             $"imp={creature.Id} player={creature.OwnerPlayerId} " +
             $"{Describe(context.World, tileIndex)} {kind} priority={priority} steps={_route.Count}");
-    }
-
-    /// <summary>
-    /// A job of the given priority that a worker at <paramref name="standing"/>
-    /// could be doing — the tile underfoot first, then the four around it.
-    ///
-    /// <para>The tile underfoot comes first because a job that can be done where
-    /// the worker already is beats one it would have to reach for; the neighbour
-    /// order after that is the pathfinder's, so that the tile an imp takes is the
-    /// tile the search stopped for.</para>
-    /// </summary>
-    private static bool TryJobFrom(
-        SimulationContext context,
-        WorldPathGrid grid,
-        TilePos standing,
-        byte playerId,
-        JobPriority priority,
-        int askingCreatureId,
-        out int tileIndex,
-        out TileWorkKind kind)
-    {
-        if (TryJobOn(context, grid, standing, standing, playerId, priority, askingCreatureId,
-                     out tileIndex, out kind))
-        {
-            return true;
-        }
-
-        for (int i = 0; i < NeighbourDx.Length; i++)
-        {
-            var target = new TilePos(standing.X + NeighbourDx[i], standing.Y + NeighbourDy[i]);
-            if (TryJobOn(context, grid, standing, target, playerId, priority, askingCreatureId,
-                         out tileIndex, out kind))
-            {
-                return true;
-            }
-        }
-
-        tileIndex = -1;
-        kind = default;
-        return false;
     }
 
     /// <summary>

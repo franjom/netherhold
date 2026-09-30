@@ -107,9 +107,10 @@ expect:
       And the Goblin does go down - on the keeper's own floor. The refusal is
       not a ban on dropping it, only on where. A Lair does not take a creature
       over, so it lands stunned, as every own non-worker does (Q201, ADR-0226).
-  - event: dropped_onto_work
-    detail: "task=Claim"
+  - event: dropped_onto_nothing
+    detail: "at=(8,6)"
     because: >
-      The drop looks three tiles for work of a kind this worker does and records
-      the KIND it found, which is what the Efficiency bonus reads afterwards
-      (ADR-0069).
+      The drop looks three Manhattan rings for work of a kind this worker does
+      (ADR-0069, Q488). The claimable floor by then, (6,3) and (5,4) beside what
+      the imp claimed from the lair, is five rings away, so the drop buys nothing;
+      a square of three tiles would have reached (6,3).

@@ -436,6 +436,37 @@ public class HandTests
             expected == 90 ? ImpTaskKind.Excavate : ImpTaskKind.None, imp.DroppedTask);
     }
 
+    /// <summary>
+    /// <b>The three rings are diamonds (Q488).</b> The drop scan is the ring scan, whose rings are
+    /// Manhattan distance: a marked wall two across and one down is on ring 3 and pays, one two
+    /// across and two down is on ring 4 and does not, though a square of three would reach it.
+    /// </summary>
+    [Theory]
+    [InlineData(2, 1, 90)]
+    [InlineData(1, 2, 90)]
+    [InlineData(2, 2, 80)]
+    [InlineData(3, 1, 80)]
+    public void TheDropsThreeRingsAreDiamonds(int dx, int dy, int expected)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 14, 10);
+        var mark = new TilePos(4 + dx, 5 + dy);
+        ref TileState wall = ref world.Tile(mark.X, mark.Y);
+        wall.TerrainId = Dk2TerrainFixture.Rock;
+        wall.OwnerPlayerId = PlayerIds.Neutral;
+
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, mark)));
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(4, 5))));
+        sim.Tick();
+
+        Assert.Equal(expected, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
+    }
+
     [Fact]
     public void AnImpDroppedOnEmptyGroundGetsNothingForIt()
     {

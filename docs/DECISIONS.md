@@ -6393,3 +6393,23 @@ Level 1 (19) and 9 of 20 on Level 2 (8). Gold under an imp now comes before the 
 it, and gold lying in water is never fetched: bit `0x20` stays set on liquid. Four gold
 tests pinned our step order; one now asserts the ring order, three assert what does not
 depend on it.
+
+## ADR-0292 — The drop scan and the reinforce retry are ring scans too
+**Date:** 2026-09-30 · **Status:** accepted · Research: `imp-claim-path.md` §2, §3
+
+**Context.** The drop scan searched walking steps inside a Chebyshev square of three,
+ring by ring, the chain's order deciding within a ring. DK2's is the ring scan of radius
+`0x2000` (`0x0046402C`): the landing tile, then Manhattan rings 1 to 3 from the chooser
+`0x00469340`'s side, the chain `0x00469240` on each tile the bit-`0x20` filter admits
+(Q488). The dispatcher's kinds 6 and 16 (`0x00468520`), step (a)'s reinforce retry, are the
+same scan over the whole map with the reinforce handler alone, from a `rand(4)` side.
+
+**Decision.** `TryTakeDroppedJob` walks `DiamondRings` to three rings and hands each admitted
+tile to the chain: `TryExcavationAt`, `TryClaimAt`, blueprints, the unconscious,
+`TryReinforceAt`, gold, objects, corpses. The steps with no per-tile form search that one tile
+(`_only`). `TryTakeReinforce` is the retry. The step search `TryTakeJobAt` and `TryJobFrom` go.
+
+**Consequences.** A drop two across and two down from work pays nothing; the owner's count
+along a line (Q162) still holds. The drop scan's dig step uses the dig walk's slot rule, not
+the handler `0x0046A550`'s `0x32` slack. Replays: Level 1 20 of 20, Level 2 9 of 20. One test
+and one scenario pinned the square or our kind order; both now assert the rings.
