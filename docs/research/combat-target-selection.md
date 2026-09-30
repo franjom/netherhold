@@ -122,10 +122,14 @@ Then, per candidate and in this order:
    most attractive target on the map, at any range, to every arm at once.
 
    **Bit 12 is `Creeping`**, by DK2's own dumper (`creature-object.md`); no
-   `OR reg,0x1000` exists in the executable, so a mask sets it, and what creeps
-   is unread. Its readers are enumerated, and every one of them is target scoring: all five arms, both scans
-   inside `FUN_0045CB00`, both inside `FUN_0045C690`, `FUN_0040E910` and
-   `FUN_0048EE90`. Nothing else in DKII.EXE reads it.
+   `OR reg,0x1000` exists in the executable, so a mask sets it. It is the
+   possessed creature's sneak: `Possession_UpdateMovement` (`0x0040E910`) posts
+   command 0x22 to set or clear it from a held key and moves at the shuffle speed
+   while it is set. Its readers are enumerated: all five arms, both scans inside
+   `FUN_0045CB00` and both inside `FUN_0045C690` score targets with it;
+   `0x0040E910` is the possession step, and `Creature_ToggleSneak` (`0x0048EE90`)
+   applies the same `def+0x760` scaling to watchers' distance before a disguise.
+   Nothing else in DKII.EXE reads it.
 4. **An alignment discount.** `def+0x686` is the creature flag dword
    (`job-selection.md` §6.2), bit 7 `IsEvil` and bit 8 `IsGood`:
 

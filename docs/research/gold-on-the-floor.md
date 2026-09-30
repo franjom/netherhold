@@ -339,7 +339,8 @@ neutral workers.
    (`+0x28` = `word[0x006F2548]`, the owner every floor pile gets, §8), is of type id
    (`+0x12C`) 1, 2 or 3, and the creature is not in state 76, the hand-drop landing.
 4. On a Treasury tile (room type 1) the pile is left for the store sweep (§11). On any other
-   room tile, **Dungeon Heart included**, and off rooms, the pile is taken.
+   room tile, **Dungeon Heart included**, and off rooms, the pile is taken. The worker arm
+   tests no room at all.
 5. The take is what the purse lacks, or the whole pile if that is less. The pile loses it
    through `0x0049C760`, and an emptied pile is destroyed. The purse is clamped to
    `0x0048AB60`.
@@ -356,8 +357,11 @@ neutral workers.
 - The creature's owner is never compared with anything. The pile only has to be neutral,
   and every floor pile is, so an enemy or a hero on your ground takes your gold the same
   way.
-- Every floor pile counts except one on a Treasury or Casino tile, including the overflow
-  that §11 leaves on a Heart tile. The rest of a pile stays behind.
+- Every floor pile counts except one on a Treasury or Casino tile (the owner agrees). A Heart's
+  own tile piles (object 3) are the keeper's, not neutral, so they are safe; a loose pile there
+  is taken. **Seen (captures, 2026-09-30):** walking Goblins (states 7, 8) took whole neutral
+  Heart-tile piles in one tick: 800 and 3,388 (level1 seed02), 4,998 (l1win927b). Loose Heart
+  gold is only rare: a Hand drop fills the store first and the sweep (§11) pulls in the rest.
 - There is no random draw, no definition flag (the worker bit only picks the arm) and no
   cooldown: it runs four times a game second.
 - Any state counts except 76.
@@ -380,8 +384,7 @@ neutral workers.
 the level row. The worker arm also uses variable 74, which is **340** on every shipped level
 (`imp-hands-full.md`).
 
-**Related, not the walk-over.** These are LIKELY, and the detail is in each function's
-record.
+**Related, not the walk-over** (LIKELY; detail in each function's record):
 
 - A possessed creature's action 26 (`0x00514830`) has a pick-up arm. It takes the smallest
   of the pile, twice what the purse lacks, and 100, and credits half. A possessed creature
@@ -393,7 +396,5 @@ record.
 Hand, whether a falling pile (§6) is on the tile list yet, and what the chicken arm does to
 hunger.
 
-**Ours: not built.** `FloorGold.Take` has three callers: the imp fetch (`ImpTaskSystem`),
-the store sweep and the Casino. Nothing moves floor gold into a non-worker's `GoldHeld`,
-imps do not pick up gold they pass, and a grep found no walk-over chicken either. Why this
-makes DK2's imps rest where ours fetch, and what to change: `imp-hands-full.md`.
+**Ours:** the worker arm is built (ADR-0293, `imp-hands-full.md`). The creature arm and the
+walk-over chicken are not: nothing moves floor gold into a non-worker's `GoldHeld`.
