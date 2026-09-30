@@ -56,23 +56,26 @@ public sealed class StructureBlocks
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (database is null) throw new ArgumentNullException(nameof(database));
 
-        // The two terrain ids up front, from the ROOMS records' own terrain column, so the per-tile
+        // The terrain ids up front, from the ROOMS records' own terrain column, so the per-tile
         // test is a byte compare and not a dictionary lookup.
         byte portalTerrain = 0;
+        byte heroPortalTerrain = 0;
         byte heartTerrain = 0;
         foreach (RoomDef room in database.Rooms.Values)
         {
             if (room.TypeId == RoomTypeId.Portal) portalTerrain = room.TerrainId;
+            else if (room.TypeId == RoomTypeId.HeroPortal) heroPortalTerrain = room.TerrainId;
             else if (room.TypeId == RoomTypeId.DungeonHeart) heartTerrain = room.TerrainId;
         }
 
-        if (portalTerrain == 0 && heartTerrain == 0) return Empty;
+        if (portalTerrain == 0 && heroPortalTerrain == 0 && heartTerrain == 0) return Empty;
 
         List<int>? seeds = null;
         for (int i = 0; i < world.TileCount; i++)
         {
             byte terrainId = world.TileAtIndex(i).TerrainId;
-            if (terrainId != portalTerrain && terrainId != heartTerrain) continue;
+            if (terrainId == 0) continue;
+            if (terrainId != portalTerrain && terrainId != heroPortalTerrain && terrainId != heartTerrain) continue;
 
             (seeds ??= []).Add(i);
         }
@@ -106,7 +109,10 @@ public sealed class StructureBlocks
     {
         switch (room.Definition.TypeId)
         {
+            // A Hero Portal carries the Portal's handler set byte for byte, its tile pass 0x004DCD20
+            // included, so its centre is the same hole (portals-room-handler-table.md).
             case RoomTypeId.Portal:
+            case RoomTypeId.HeroPortal:
                 // The single centre tile: the hole a creature arrives through, and the one a keeper
                 // drops a creature into to be rid of it. A room with no middle has no structure —
                 // the same guard RoomInstance.IsCentrePlatform makes for the heart: a portal

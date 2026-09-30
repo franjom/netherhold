@@ -903,7 +903,7 @@ public class PortalTests
             .Where(r => r.Construction == TileConstruction.ThreeByThree)
             .ToArray();
 
-        Assert.Equal(["Portal"], threeByThree.Select(r => r.Name).ToArray());
+        Assert.Equal(["Portal", "Hero Portal"], threeByThree.Select(r => r.Name).ToArray());
         Assert.All(threeByThree, r => Assert.True(PortalRules.IsEntrance(r)));
     }
 
