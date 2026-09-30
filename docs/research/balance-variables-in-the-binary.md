@@ -155,9 +155,9 @@ the engine counts ticks, and something has to bridge the two 223 times. That
 makes id 19 the strongest candidate yet for the constant **Q1** has been asking
 about since this project's first day.
 
-It also reframes Q1's other datum. `GameTicks` (id 74) is **340 in every level
-file** and its global is read by **two** instructions. Two against 223. Whatever
-340 is for, it is not the thing the engine multiplies by.
+Q1's other datum, `GameTicks` (id 74), is **340 in every level file** and read by
+two instructions: it is the imp's hands-full margin below the level-scaled
+`MaxGoldHeld`, not a rate (`imp-hands-full.md`).
 
 ## A variable with a global, a shipped value, and no readers at all
 
@@ -191,7 +191,7 @@ Recorded so that "no value" is not later mistaken for "not in the file":
 | id | our name | global | readers |
 |---|---|---|---|
 | 29 | — | `0x006F25C1` | 0 |
-| 74 | `GameTicks` | `0x006F28B6` | 2 |
+| 74 | `GameTicks` (340 in every level file, none in the global one: `imp-hands-full.md`) | `0x006F28B6` | 2 |
 | 186 | — | `0x006F296A` | 0 |
 | 241 | `LevelRating` | `0x006F29FA` | 1 |
 | 242 | `AverageTime` | `0x006F29FE` | 1 |
@@ -381,7 +381,7 @@ thirteen initialised blocks, and each reader placed in the task-handler table at
 | 71 | `CasinoBigWinKeeperLossPercentage` | 0 | `0x006F28B3` (u8) |
 | 72 | `?` | ? | — |
 | 73 | `CreaturesSupportedByFirstPortal` | 15 | `0x006F28B4` (u8) |
-| 74 | `?` | ? | `0x006F28B6` (u32) |
+| 74 | `GameTicks` | 340 (level files only) | `0x006F28B6` (u32) |
 | 75 | `ModifyHealthOfCreatureInLairPerSecond` | 100 | `0x006F28BA` (u16) |
 | 76 | `ModifyAngerOfCreatureInLairPerSecond` | -550 | `0x006F28BC` (u16) |
 | 77 | `?` | ? | — |

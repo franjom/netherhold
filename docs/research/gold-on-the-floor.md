@@ -377,8 +377,8 @@ neutral workers.
 - There is no anger change, message, sound, trigger event or effect.
 
 **Balance variables (Q4):** none of its own. It uses the definition's `MaxGoldHeld` and
-the level row. The worker arm also uses variable 74. Its shipped value is disputed:
-`balance-variables-in-the-binary.md` says both 340 (`GameTicks`) and no value.
+the level row. The worker arm also uses variable 74, which is **340** on every shipped level
+(`imp-hands-full.md`).
 
 **Related, not the walk-over.** These are LIKELY, and the detail is in each function's
 record.
@@ -390,9 +390,10 @@ record.
   it half through `Purse_Receive` and settles its owed wage and pay anger.
 
 **Unread** (Q494 is the observable check): whether `0x00488930` runs for a creature in the
-Hand, whether a falling pile (§6) is on the tile list yet, what the chicken arm does to
-hunger, and variable 74's value.
+Hand, whether a falling pile (§6) is on the tile list yet, and what the chicken arm does to
+hunger.
 
 **Ours: not built.** `FloorGold.Take` has three callers: the imp fetch (`ImpTaskSystem`),
 the store sweep and the Casino. Nothing moves floor gold into a non-worker's `GoldHeld`,
-imps do not pick up gold they pass, and a grep found no walk-over chicken either.
+imps do not pick up gold they pass, and a grep found no walk-over chicken either. Why this
+makes DK2's imps rest where ours fetch, and what to change: `imp-hands-full.md`.
