@@ -303,3 +303,96 @@ Built as `StoreSweepSystem` (ADR-0285): every turn divisible by 16, each loose p
 a keeper's Treasury or Heart tile goes in along the chain from its own tile
 (`GoldStore.FillAlongChainFrom`). Deviates: the pile keeps its object; the "not full"
 test is left out, as a full store takes nothing; `+0x51` is taken as non-zero (Q472).
+
+## 12. A creature takes loose gold it walks over (read 2026-09-30)
+
+**CONFIRMED (owner, 2026-09-30):** a creature that walks onto a tile with loose gold on it
+tends to take the gold, which in effect steals it from its keeper. The binary reads below
+are **STRONGLY INFERRED** (pyghidra-mcp, Ghidra 12.1.4) unless marked otherwise.
+
+**The mechanism.** It is not a job, a state or a chance. The per-tick creature update
+`0x00488930` checks the things on the map tile under the creature. It moves floor gold
+straight into the purse (`+0x3FB`), capped at the level-scaled `MaxGoldHeld`: definition
+`+0x69C` at level 1, otherwise that value times the level row at `0x006E4154 + 0x13B`,
+divided by 100. The purse is written directly rather than through `Purse_Receive`
+(`0x0048AE70`), so **the whole take is kept, not half** as with payday and stealing.
+Nothing returns early before the block, so it runs every tick, whether or not the creature
+changed tile. The block has two arms.
+
+**The worker arm** (`0x0048904E`–`0x00489241`) is for a creature that is not Possessed
+(`+0x3E6` bit 7), whose definition is a worker (`+0x686` bit 0), and whose owner is a
+keeper (`player+0x10FC` at least 3). It works only while the purse is below `MaxGoldHeld`
+less variable 74 (`0x006F28B6`), the margin the imp's hands test `0x00464360` uses. It
+takes the **first** neutral gold pile whose centre lies strictly within `0x555` (a third of
+a tile) of the worker on both axes, once per tick. The take is what the purse lacks against
+the full maximum, or the whole pile if that is less. So an imp picks up gold it passes on
+the way to any job, outside the fetch state 27 (§9).
+
+**The creature arm** (`0x00489246`–`0x0048954B`) takes everyone else: non-workers of any
+owner (a keeper's fighters, an enemy's, heroes, neutrals), possessed creatures, and hero or
+neutral workers.
+
+1. It does nothing while CasinoBigWinnerGameTickRemaining (`+0x3F2`) is non-zero, or when
+   the tile is a Casino room tile (type 15).
+2. It walks the **whole** tile's thing list. There is no distance test.
+3. A thing is taken if it is an object (`+0x12` = 2) owned by the neutral player
+   (`+0x28` = `word[0x006F2548]`, the owner every floor pile gets, §8), is of type id
+   (`+0x12C`) 1, 2 or 3, and the creature is not in state 76, the hand-drop landing.
+4. On a Treasury tile (room type 1) the pile is left for the store sweep (§11). On any other
+   room tile, **Dungeon Heart included**, and off rooms, the pile is taken.
+5. The take is what the purse lacks, or the whole pile if that is less. The pile loses it
+   through `0x0049C760`, and an emptied pile is destroyed. The purse is clamped to
+   `0x0048AB60`.
+6. The walk goes on to the next pile, so every pile on the tile goes in one tick until the
+   purse is full. After that each take is zero.
+7. **Side arm:** a neutral Chicken (type 9) is destroyed, and the creature starts action 26
+   (`0x1A`, eating) at its own position, except on a Portal (3) or Hatchery (4) tile.
+
+**Conditions (Q2).**
+
+- Any creature with a non-zero `MaxGoldHeld` takes gold. Shipped values include Imp 1400,
+  Goblin 5000 and Vampire 7500. The Skeleton has 0, so it takes nothing
+  (`creature-table-dump.md`).
+- The creature's owner is never compared with anything. The pile only has to be neutral,
+  and every floor pile is, so an enemy or a hero on your ground takes your gold the same
+  way.
+- Every floor pile counts except one on a Treasury or Casino tile, including the overflow
+  that §11 leaves on a Heart tile. The rest of a pile stays behind.
+- There is no random draw, no definition flag (the worker bit only picks the arm) and no
+  cooldown: it runs four times a game second.
+- Any state counts except 76.
+
+**Afterwards (Q3).**
+
+- The gold stays in the purse until it leaves one of these ways:
+  - destruction spills it as one to three piles (§6);
+  - leaving state 196 (`0x0045A0D0`) and the thief's escape state 169 empty the purse
+    through `0x0048AF50` before removal, so the creature takes the gold away with it;
+  - the Casino takes from the purse and pays into it (`0x0047AD70`);
+  - a worker deposits it in state 29 (`0x00466AC0`).
+- A full purse caps what payday, stealing (state 165) and later pick-ups can add.
+- The keeper's total does not move. Neither arm calls a player routine, floor piles are
+  neutral, and the total is recounted from Treasury and Heart rooms (`0x004B9EC0`). What is
+  lost is the gold the imps would have fetched (§8, §9).
+- There is no anger change, message, sound, trigger event or effect.
+
+**Balance variables (Q4):** none of its own. It uses the definition's `MaxGoldHeld` and
+the level row. The worker arm also uses variable 74. Its shipped value is disputed:
+`balance-variables-in-the-binary.md` says both 340 (`GameTicks`) and no value.
+
+**Related, not the walk-over.** These are LIKELY, and the detail is in each function's
+record.
+
+- A possessed creature's action 26 (`0x00514830`) has a pick-up arm. It takes the smallest
+  of the pile, twice what the purse lacks, and 100, and credits half. A possessed creature
+  also falls under the creature arm above.
+- Gold dropped onto a creature (`0x0049EF90`, landing with a creature id at `+0x142`) pays
+  it half through `Purse_Receive` and settles its owed wage and pay anger.
+
+**Unread** (Q494 is the observable check): whether `0x00488930` runs for a creature in the
+Hand, whether a falling pile (§6) is on the tile list yet, what the chicken arm does to
+hunger, and variable 74's value.
+
+**Ours: not built.** `FloorGold.Take` has three callers: the imp fetch (`ImpTaskSystem`),
+the store sweep and the Casino. Nothing moves floor gold into a non-worker's `GoldHeld`,
+imps do not pick up gold they pass, and a grep found no walk-over chicken either.

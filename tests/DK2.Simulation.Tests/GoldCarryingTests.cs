@@ -314,7 +314,9 @@ public class GoldCarryingTests
         // the floor, and read: the mining strike 0x004971D0 hands the imp what it
         // can hold and puts the rest down at its own position, onto the pile
         // already there (Q138, Q140). So nothing is lost: 1400 in hand, 1600 in
-        // one pile where it stood.
+        // one pile where it stood. The pile is on its own floor, so Tier B's ring scan tops the
+        // hands up from it whenever its level lets it hold more (ADR-0291).
+        GameDatabase database = Dk2TerrainFixture.Database();
         Run run = AtTheSeam();
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
@@ -323,10 +325,11 @@ public class GoldCarryingTests
         // Mined out, and by 300 ticks the imp has moved on and claimed the floor
         // it opened - which is the priority order doing its job (ADR-0018).
         Assert.NotEqual(Dk2TerrainFixture.Gold, run.World.Tile(5, 5).TerrainId);
-        Assert.Equal(1400, run.Imp.GoldHeld);
+        CreatureDef imp = database.CreatureById(Dk2TerrainFixture.ImpCreatureId);
+        Assert.Equal(CreatureLevelRules.MaxGoldHeld(database, imp, run.Imp.Level), run.Imp.GoldHeld);
         Assert.Empty(run.Of("gold_uncollected"));
-        ObjectState lump = Assert.Single(run.World.Objects, o => FloorGold.IsPile(Dk2TerrainFixture.Database(), o));
-        Assert.Equal(1600, lump.GoldHeld);
+        ObjectState lump = Assert.Single(run.World.Objects, o => FloorGold.IsPile(database, o));
+        Assert.Equal(3000 - run.Imp.GoldHeld, lump.GoldHeld);
         Assert.Contains(lump.TileIndex, new[] { new TilePos(4, 5), new TilePos(4, 4) }
             .Select(p => p.Y * run.World.Width + p.X));
     }
@@ -379,11 +382,18 @@ public class GoldCarryingTests
         FloorGold.PutDown(run.World, database, spot, SeamSlotCells[0], 1500);
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        run.Ticks(300);
+        int most = 0;
+        for (int t = 0; t < 300; t++)
+        {
+            run.Tick();
+            most = Math.Max(most, FloorGold.PileInCell(run.World, spot, SeamSlotCells[0]));
+        }
 
+        // The pile passes the limit before the slot is given up, by less than one more load;
+        // Tier B may take some back up afterwards, so its highest is what is asserted.
         Assert.Contains(run.Of("job_abandoned"), e => e.Detail.Contains("reason=pile_underfoot_full"));
         Assert.NotEqual(Dk2TerrainFixture.Gold, run.World.Tile(5, 5).TerrainId);
-        Assert.InRange(FloorGold.PileInCell(run.World, spot, SeamSlotCells[0]), 2001, 2000 + 1364);
+        Assert.InRange(most, 2001, 2000 + 1364);
         Assert.True(FloorGold.PileInCell(run.World, spot, SeamSlotCells[1]) > 0);
         // Conserved: 3000 mined, 1400 in hand, and the 1500 laid beforehand.
         Assert.Equal(3000 + 1500 - run.Imp.GoldHeld, FloorGold.Total(run.World, database));
@@ -401,14 +411,17 @@ public class GoldCarryingTests
         Run run = AtTheSeam();
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        run.Ticks(300);
+        int max = database.CreatureById(Dk2TerrainFixture.ImpCreatureId).MaxGoldHeld;
+        for (int t = 0; t < 300 && run.Imp.GoldHeld < max; t++) run.Tick();
         int held = run.Imp.GoldHeld;
-        Assert.True(held >= database.CreatureById(Dk2TerrainFixture.ImpCreatureId).MaxGoldHeld, $"hands hold {held}");
+        Assert.True(held >= max, $"hands hold {held}");
+        Assert.Equal(Dk2TerrainFixture.Gold, run.World.Tile(5, 5).TerrainId);
 
+        // The treasury appears while the full miner still works the seam. (Once the seam is
+        // out, a full imp holds its load: state 10 never deposits, ADR-0288.)
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
         run.Ticks(300);
 
-        Assert.Equal(0, run.Imp.GoldHeld);
         Assert.True(run.World.Tile(1, 1).GoldHeld >= held, $"stored {run.World.Tile(1, 1).GoldHeld} of {held}");
     }
 

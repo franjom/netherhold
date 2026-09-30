@@ -991,50 +991,86 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     };
 
     /// <summary>
-    /// Tier B: the nearest tile at which there is <i>either</i> a wall to
-    /// reinforce <i>or</i> gold to pick up, and at that tile the wall wins.
-    /// <para>The shape of the original's last resort: once every whole-map kind is
-    /// empty it scans outwards in rings and at each tile tries reinforce-or-repair,
-    /// then floor gold, then a loose object, then one kind not yet identified. Two of the
-    /// four exist here; ours counts steps to a stand, DK2 Manhattan rings of walls (Q493).</para>
-    /// <para>One search and not two: the nearest wall then the nearest pile would
-    /// put a wall across the dungeon above a pile at the imp's feet, the strict
-    /// order the binary does not have. Distance is the primary key, kind the
-    /// tie-break.</para>
+    /// Tier B (<c>0x004640bb</c>): the ring scan from the worker over the whole map, started on
+    /// the side <see cref="ClaimStartSide"/> picks, with the chain <c>0x00469580</c> at each tile:
+    /// the tile as a wall to reinforce or repair (<see cref="TryReinforceAt"/>), then the gold on
+    /// it. The first tile that gives a job wins, so a wall one ring nearer beats a pile under the
+    /// next ring. The chain's objects and kind-11 steps are not built here. Q493, ADR-0291.
     /// </summary>
     private bool TrySweep(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
+        WorldState world = context.World;
         byte player = creature.OwnerPlayerId;
         bool handsFree = !HandsFull(context, creature, definition);
+        TilePos at = creature.Tile;
 
-        bool found = _pathfinder.TryFindNearest(
-            grid,
-            creature.Tile,
-            stand => TryJobFrom(context, grid, stand, player, JobPriority.Reinforce, creature.Id, out _, out _)
-                     || (handsFree && CanFetchFrom(context, stand, player, creature.Id)),
-            _route);
-
-        if (!found) return false;
-
-        TilePos standing = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
-
-        // Reinforce first at the tile the search stopped on — the per-tile
-        // order — and only then the gold underfoot.
-        if (TryJobFrom(context, grid, standing, player, JobPriority.Reinforce, creature.Id,
-                       out int tileIndex, out TileWorkKind kind))
+        var rings = new DiamondRings(world, at, ClaimStartSide(context, world, at, player));
+        while (rings.MoveNext())
         {
+            TilePos tile = rings.Current;
+            if (!RingScanVisits(context, world, tile)) continue;
+            if (TryReinforceAt(context, creature, grid, tile)) return true;
+            if (handsFree && CanFetchFrom(context, tile, player, creature.Id)
+                && _pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route))
+            {
+                CommitFetch(context, creature, tile);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// The reinforce handler (<c>0x0046aea0</c>) on one wall: its four sides from the one
+    /// <see cref="MiningSlots.StartSide"/> gives for the worker, each a stand of the keeper's own
+    /// floor; the first whose face is free, or held by a farther worker, and which the worker can
+    /// reach is taken. imp-task-stealing.md §4.
+    /// </summary>
+    private bool TryReinforceAt(SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos wall)
+    {
+        WorldState world = context.World;
+        if (!context.Database.TerrainById(world.Tile(wall).TerrainId).IsSolid) return false;
+        (int side, int step) = MiningSlots.StartSide(creature.Tile.X - wall.X, creature.Tile.Y - wall.Y);
+        for (int turn = 0; turn < 4; turn++, side = (side + step) & 3)
+        {
+            var stand = new TilePos(wall.X + SideDx[side], wall.Y + SideDy[side]);
+            if (!world.Contains(stand)) continue;
+            if (!TryJobOn(context, grid, stand, wall, creature.OwnerPlayerId, JobPriority.Reinforce, creature.Id,
+                          out int tileIndex, out TileWorkKind kind))
+                continue;
+            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == stand, _route)) continue;
             CommitJob(context, creature, tileIndex, kind, JobPriority.Reinforce);
             return true;
         }
-
-        if (handsFree && CanFetchFrom(context, standing, player, creature.Id))
-        {
-            CommitFetch(context, creature, standing);
-            return true;
-        }
-
         return false;
+    }
+
+    /// <summary>
+    /// The ring scan's tile filter (<c>0x00468d10</c>): tile byte <c>+0xB</c> bit <c>0x20</c>,
+    /// recomputed by <c>0x004502d0</c>, is clear when the tile or one of its four neighbours is
+    /// owned, the tile is not water or lava, and it or a neighbour is open floor. A set tile is
+    /// visited only when it carries a dig or mine mark (Q487).
+    /// </summary>
+    private static bool RingScanVisits(SimulationContext context, WorldState world, TilePos at)
+    {
+        ref TileState tile = ref world.Tile(at);
+        if (tile.IsTaggedByAnyone) return true;
+        TerrainDef terrain = context.Database.TerrainById(tile.TerrainId);
+        if (terrain.IsWater || terrain.IsLava) return false;
+        bool owned = IsOwned(tile.OwnerPlayerId), open = !terrain.IsSolid;
+        for (int i = 0; i < 4 && !(owned && open); i++)
+        {
+            var n = new TilePos(at.X + SideDx[i], at.Y + SideDy[i]);
+            if (!world.Contains(n)) continue;
+            ref TileState next = ref world.Tile(n);
+            TerrainDef nt = context.Database.TerrainById(next.TerrainId);
+            owned |= IsOwned(next.OwnerPlayerId);
+            open |= !nt.IsSolid && !nt.IsWater && !nt.IsLava;
+        }
+        return owned && open;
+
+        static bool IsOwned(byte owner) => owner is not (PlayerIds.Unowned or PlayerIds.Neutral);
     }
 
     private bool TryTakeJobAt(
@@ -1291,30 +1327,72 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         WorldState world = context.World;
         TilePos at = creature.Tile;
-        if (TryClaimAt(context, creature, grid, at)) return true;
+        var rings = new DiamondRings(world, at, ClaimStartSide(context, world, at, creature.OwnerPlayerId));
+        while (rings.MoveNext())
+            if (TryClaimAt(context, creature, grid, rings.Current)) return true;
+        return false;
+    }
 
-        int side = ClaimStartSide(context, world, at, creature.OwnerPlayerId);
-        for (int r = 1; ; r++)
+    /// <summary>
+    /// The ring scan's walk (<c>0x00468d10</c>): the centre first, then diamond rings of Manhattan
+    /// radius 1, 2, …, each walked clockwise from one corner to the next — north to east, east to
+    /// south, south to west, west to north, both corners visited — from the given start side,
+    /// until a whole ring lies outside the map. imp-claim-path.md §2.
+    /// </summary>
+    private struct DiamondRings
+    {
+        private readonly WorldState _world;
+        private readonly TilePos _at;
+        private readonly int _side;
+        private int _r, _s, _i;
+        private bool _inMap;
+
+        public DiamondRings(WorldState world, TilePos at, int side)
         {
-            bool inMap = false;
-            for (int s = 0; s < 4; s++)
+            _world = world;
+            _at = at;
+            _side = side;
+            _r = 0;
+            _s = 0;
+            _i = -1;
+            _inMap = false;
+            Current = at;
+        }
+
+        public TilePos Current { get; private set; }
+
+        public bool MoveNext()
+        {
+            if (_r == 0)
             {
-                int k = (side + s) & 3;
-                for (int i = 0; i <= r; i++)
-                {
-                    var target = k switch
-                    {
-                        0 => new TilePos(at.X + i, at.Y - r + i),
-                        1 => new TilePos(at.X + r - i, at.Y + i),
-                        2 => new TilePos(at.X - i, at.Y + r - i),
-                        _ => new TilePos(at.X - r + i, at.Y - i),
-                    };
-                    if (!world.Contains(target)) continue;
-                    inMap = true;
-                    if (TryClaimAt(context, creature, grid, target)) return true;
-                }
+                _r = 1;
+                return _world.Contains(_at);
             }
-            if (!inMap) return false;
+            while (true)
+            {
+                if (++_i > _r)
+                {
+                    _i = 0;
+                    if (++_s == 4)
+                    {
+                        if (!_inMap) return false;
+                        _s = 0;
+                        _r++;
+                        _inMap = false;
+                    }
+                }
+                int k = (_side + _s) & 3;
+                Current = k switch
+                {
+                    0 => new TilePos(_at.X + _i, _at.Y - _r + _i),
+                    1 => new TilePos(_at.X + _r - _i, _at.Y + _i),
+                    2 => new TilePos(_at.X - _i, _at.Y + _r - _i),
+                    _ => new TilePos(_at.X - _r + _i, _at.Y - _i),
+                };
+                if (!_world.Contains(Current)) continue;
+                _inMap = true;
+                return true;
+            }
         }
     }
 

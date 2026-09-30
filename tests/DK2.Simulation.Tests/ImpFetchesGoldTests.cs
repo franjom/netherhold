@@ -300,12 +300,13 @@ public class ImpFetchesGoldTests
     }
 
     /// <summary>
-    /// <b>And at the same distance, the wall wins.</b> The imp stands on gold at
-    /// the room's edge with bare rock beside it: both jobs are at distance zero,
-    /// and the original's per-tile order puts reinforcing before gold.
+    /// <b>Gold under the imp beats the wall beside it.</b> Tier B is the ring scan
+    /// (<c>0x00468d10</c>): the imp's own tile is visited first, and its chain finds no wall
+    /// there but the gold; the rock beside it is on ring 1. The imp stands on gold at the
+    /// room's edge with bare rock at (4,2).
     /// </summary>
     [Fact]
-    public void AWallBeatsGoldOnTheSameTile()
+    public void GoldUnderTheImpBeatsTheWallBesideIt()
     {
         Run run = Start(new TilePos(3, 2));
         Treasury(run, new TilePos(1, 1));
@@ -315,10 +316,8 @@ public class ImpFetchesGoldTests
         run.Ticks(1);
         run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
 
-        SimEvent taken = Assert.Single(run.Of("job_taken"));
-        Assert.Contains("priority=Reinforce", taken.Detail);
-        Assert.Contains("(4,2)", taken.Detail);
-        Assert.Empty(run.Of("fetch_taken"));
+        Assert.Single(run.Of("fetch_taken"));
+        Assert.Empty(run.Of("job_taken"));
     }
 
     /// <summary>

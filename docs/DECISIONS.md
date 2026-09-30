@@ -6372,3 +6372,24 @@ a History line dated that day, and the record is read before decompiling. `docs/
 is exempt: a plan is a process document, not a claim. Records imported from existing
 research are GUESS until a reader has checked them against the binary and raised them,
 in a dated History line.
+
+## ADR-0291 — Tier B is the ring scan with the per-tile chain
+**Date:** 2026-09-30 · **Status:** accepted · Research: `imp-claim-path.md` §2, `imp-task-stealing.md` §4
+
+**Context.** Our Tier B searched walking steps to a stand and tried reinforce, then gold,
+at the tile it stopped on. DK2's (`0x004640bb`) is the ring scan `0x00468d10` from the
+worker over the whole map, started by the chooser `0x00469340`, with `0x00469580` per
+tile: reinforce, gold, objects, kind 11, first taker wins (Q493).
+
+**Decision.** `TrySweep` walks `DiamondRings`, the ring walk the claim search now shares,
+and at each tile the filter of bit `0x20` admits (`RingScanVisits`: something owned on or
+beside it, not water or lava, open floor on or beside it, or a mark) it tries the tile as a
+wall (`TryReinforceAt`: sides from `MiningSlots.StartSide`, as `0x0046aea0`), then the gold on
+it. The objects and kind-11 steps are not in it; objects are found by Tier A.
+
+**Consequences.** The decision checker agrees on 287 of Level 1's 309 choices (277) and
+701 of Level 2's 799 (683); no reinforce tile differs on Level 1. Replays win 20 of 20 on
+Level 1 (19) and 9 of 20 on Level 2 (8). Gold under an imp now comes before the wall beside
+it, and gold lying in water is never fetched: bit `0x20` stays set on liquid. Four gold
+tests pinned our step order; one now asserts the ring order, three assert what does not
+depend on it.
