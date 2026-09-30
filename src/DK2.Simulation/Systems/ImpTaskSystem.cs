@@ -188,6 +188,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         // answer and judged by another.
         var grid = new WorldPathGrid(context.Database, context.World, definition);
 
+        PickUpGoldInPassing(context, creature, definition);
         if (UpdateWander(context, creature, definition)) return;
 
         if (creature.Activity == CreatureActivity.DeliveringGold)
@@ -288,9 +289,59 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>DK2's hands test <c>0x00464360(1)</c>: full at <c>MaxGoldHeld</c> scaled by the
-    /// imp's level (level 1 unscaled), less variable 74, which ships no value.</summary>
+    /// imp's level (level 1 unscaled), less variable 74, 340 in every shipped level
+    /// (imp-hands-full.md).</summary>
     private static bool HandsFull(SimulationContext context, CreatureState creature, CreatureDef definition) =>
-        creature.GoldHeld >= CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level);
+        creature.GoldHeld >= FullAt(context, creature, definition);
+
+    private static int FullAt(SimulationContext context, CreatureState creature, CreatureDef definition) =>
+        CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level) - HandsMargin(context.Database);
+
+    /// <summary>Variable 74 (<c>0x006F28B6</c>), the hands test's margin. A database without it is
+    /// read as 0, as DK2's global is before a level loads.</summary>
+    private static int HandsMargin(GameDatabase database) =>
+        database.Variables.TryGet(VariableTypeId.GameTicks, out int margin) ? margin : 0;
+
+    /// <summary>A pile's centre within this of a worker, on both axes and strictly, is picked up
+    /// in passing: a third of a tile (<c>0x555</c>).</summary>
+    private const int PassingReach = 0x555;
+
+    /// <summary>
+    /// The worker arm of DK2's walk-over pick-up (<c>0x0048904E</c>), which the creature update
+    /// runs every tick before the state handler, so state 10 then sees the gold in the hands. A
+    /// keeper's worker below the hands test's mark takes the first neutral pile whose centre is
+    /// within <see cref="PassingReach"/>, as much as it lacks against the level's full maximum
+    /// (imp-hands-full.md, gold-on-the-floor.md §12, ADR-0293).
+    /// </summary>
+    private static void PickUpGoldInPassing(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (!PlayerIds.IsKeeper(creature.OwnerPlayerId) || creature.GoldHeld >= FullAt(context, creature, definition))
+            return;
+        WorldState world = context.World;
+        foreach (ObjectState pile in world.Objects)
+        {
+            if (!FloorGold.IsPile(context.Database, pile) || pile.InHand || pile.CarriedByCreatureId >= 0
+                || pile.OwnerPlayerId != PlayerIds.Neutral || pile.TileIndex < 0)
+                continue;
+            (long px, long py) = PileCentre(world, pile);
+            if (Math.Abs(px - creature.PosX) >= PassingReach || Math.Abs(py - creature.PosY) >= PassingReach) continue;
+
+            int lacks = CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level) - creature.GoldHeld;
+            int taken = FloorGold.Take(world, context.Database, pile, lacks);
+            creature.GoldHeld += taken;
+            context.Emit(SystemName, "gold_picked_up_in_passing",
+                $"imp={creature.Id} at={Describe(world, pile.TileIndex)} gold={taken} holding={creature.GoldHeld}");
+            return;
+        }
+    }
+
+    /// <summary>A pile's point: the centre of its third-of-a-tile cell, or of the tile.</summary>
+    private static (long X, long Y) PileCentre(WorldState world, ObjectState pile)
+    {
+        long x = (pile.TileIndex % world.Width) * 4096L, y = (pile.TileIndex / world.Width) * 4096L;
+        if (pile.Cell == MiningSlots.AnyCell) return (x + 2048, y + 2048);
+        return (x + 682 + (pile.Cell % 3) * 1365, y + 682 + (pile.Cell / 3) * 1365);
+    }
 
     private void UpdateIdle(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
@@ -457,7 +508,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         int held = creature.GoldHeld + (pendingStrikes * yield);
         if (held <= 0) return false;
 
-        return yield > 0 && held + yield > definition.MaxGoldHeld;
+        return yield > 0 && held + yield > CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level);
     }
 
     /// <summary>

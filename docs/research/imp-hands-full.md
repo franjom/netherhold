@@ -6,7 +6,7 @@
 own words; ADR-0046 governs the boundary. The walk-over pick-up itself is
 `gold-on-the-floor.md` §12. Q494 is its question, and this doc settles its worker half.
 
-**Status: CONFIRMED, not built.**
+**Status: CONFIRMED; items 1 to 4 below BUILT (ADR-0293), item 5 open.**
 
 The decision checker (`dk2tools decide` on `level2-live2/seed01`) finds 85 Level 2 choices
 where DK2's imp rests (state 12) and ours starts a gold fetch. They fall in two groups, and

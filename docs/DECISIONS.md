@@ -6413,3 +6413,26 @@ tile to the chain: `TryExcavationAt`, `TryClaimAt`, blueprints, the unconscious,
 along a line (Q162) still holds. The drop scan's dig step uses the dig walk's slot rule, not
 the handler `0x0046A550`'s `0x32` slack. Replays: Level 1 20 of 20, Level 2 9 of 20. One test
 and one scenario pinned the square or our kind order; both now assert the rings.
+
+## ADR-0293 — An imp picks gold up in passing, and its hands are full 340 short
+**Date:** 2026-09-30 · **Status:** accepted · Research: `imp-hands-full.md`, `gold-on-the-floor.md` §12
+
+**Context.** Put to DK2's choices with floor gold loaded, 85 Level 2 choices had DK2's imp
+rest where ours fetched gold. Two readings explain them (Q494): the creature update's
+walk-over pick-up (`0x0048904E`) runs before the state handler, and the hands test
+`0x00464360` counts full at the level's `MaxGoldHeld` less variable 74, 340 in every level.
+
+**Decision.**
+1. `HandsFull` is `GoldHeld >= MaxGoldHeld(level) - variable 74`; a database without the
+   variable reads 0.
+2. `PickUpGoldInPassing` runs first in each worker's update: a keeper's worker below that mark
+   takes the first neutral pile whose centre is within `0x555` on both axes, as much as it
+   lacks against the full maximum.
+3. A miner's hands (`TileWorkSystem.HandTo`, `WouldOverfillItsHands`) hold the level's
+   maximum, not the record's.
+
+**Consequences.** The checker agrees on 732 of Level 2's 799 choices (646 with gold loaded
+before) and 288 of Level 1's 309; replays win 20 of 20 and 8 of 20. Gold at an imp's feet
+never waits to be fetched. Not built: the non-workers' arm. Not read: whether a kind-7 task
+goes with its pile; a fetcher whose pile was taken in passing keeps the load, and the test
+says so in its name.

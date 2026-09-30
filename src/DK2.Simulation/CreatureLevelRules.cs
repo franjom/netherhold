@@ -44,7 +44,7 @@ public static class CreatureLevelRules
         Scale(creature.Hp, Percent(database, CreatureStatId.Health, level));
 
     /// <summary>The most gold this creature can carry at this level: the record's
-    /// <c>MaxGoldHeld</c> scaled by the MaxGoldHeld row, 120% from level 5.</summary>
+    /// <c>MaxGoldHeld</c> scaled by the MaxGoldHeld row: 105, 110 and 115% at levels 2 to 4, 120% from level 5.</summary>
     public static int MaxGoldHeld(GameDatabase database, CreatureDef creature, int level) =>
         Scale(creature.MaxGoldHeld, Percent(database, CreatureStatId.MaxGoldHeld, level));
 

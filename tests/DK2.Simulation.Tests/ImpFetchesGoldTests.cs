@@ -205,11 +205,13 @@ public class ImpFetchesGoldTests
     }
 
     /// <summary>
-    /// An imp takes what its hands hold and comes back for the rest, "until all
-    /// of it is gone".
+    /// An imp takes what its hands hold and comes back for the rest, "until all of it is gone".
+    /// The second load is taken in passing as the imp nears the pile, which empties it, and the
+    /// fetch then finds its pile gone: whether DK2 removes a kind-7 task with its pile, so that
+    /// the imp keeps the load (as here) rather than depositing it, is not read.
     /// </summary>
     [Fact]
-    public void APileBiggerThanItsHandsTakesSeveralTrips()
+    public void APileBiggerThanItsHandsIsAllTakenUp_TheLastLoadMayStayInTheHands()
     {
         Run run = Start(new TilePos(1, 1));
         Treasury(run, new TilePos(3, 3));
@@ -221,8 +223,8 @@ public class ImpFetchesGoldTests
         run.Ticks(1500);
 
         Assert.Equal(0, FloorGold.Total(run.World, run.Db));
-        Assert.Equal(hands * 2, GoldStore.Total(run.World, Keeper));
-        Assert.True(run.Of("gold_picked_up").Count() >= 2, "it should have made more than one trip");
+        Assert.True(GoldStore.Total(run.World, Keeper) >= hands, "at least one load reached the store");
+        Assert.Equal(hands * 2, GoldStore.Total(run.World, Keeper) + run.Imp.GoldHeld);
     }
 
     /// <summary>
@@ -289,7 +291,8 @@ public class ImpFetchesGoldTests
         Run run = Start(new TilePos(2, 2));
         Treasury(run, new TilePos(1, 1));
 
-        FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(2, 2)), 400);
+        // In the tile's corner cell, just out of reach of a pick-up in passing (0x555).
+        FloorGold.PutDown(run.World, run.Db, Index(run.World, new TilePos(2, 2)), 0, 400);
 
         run.Ticks(1);
         run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
@@ -311,13 +314,33 @@ public class ImpFetchesGoldTests
         Run run = Start(new TilePos(3, 2));
         Treasury(run, new TilePos(1, 1));
 
-        FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(3, 2)), 400);
+        FloorGold.PutDown(run.World, run.Db, Index(run.World, new TilePos(3, 2)), 0, 400);
 
         run.Ticks(1);
         run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
 
         Assert.Single(run.Of("fetch_taken"));
         Assert.Empty(run.Of("job_taken"));
+    }
+
+    /// <summary>
+    /// <b>Gold at an imp's feet goes into its hands before it chooses.</b> DK2's creature update
+    /// runs the walk-over pick-up (<c>0x0048904E</c>) before the state handler: a pile whose centre
+    /// is within a third of a tile on both axes is taken, as much as the hands lack against the
+    /// level's maximum (imp-hands-full.md). The same pile one cell off the imp's point is not.
+    /// </summary>
+    [Theory]
+    [InlineData(MiningSlots.AnyCell, true)]
+    [InlineData(0, false)]
+    public void GoldAtAnImpsFeetIsPickedUpInPassing(byte cell, bool inPassing)
+    {
+        Run run = Start(new TilePos(2, 2));
+        FloorGold.PutDown(run.World, run.Db, Index(run.World, new TilePos(2, 2)), cell, 400);
+
+        run.Ticks(1);
+
+        Assert.Equal(inPassing, run.Of("gold_picked_up_in_passing").Any());
+        Assert.Equal(inPassing ? 400 : 0, run.Imp.GoldHeld);
     }
 
     /// <summary>

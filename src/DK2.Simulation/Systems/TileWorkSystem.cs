@@ -142,8 +142,7 @@ public sealed class TileWorkSystem : ISimulationSystem
     /// The creature is looked up rather than passed in because the queue is the
     /// only thing that connects a swing to a swinger, and the queue survives a
     /// snapshot: an order is a fact about the world, not a reference to an
-    /// object. Deviates: the limit is the unscaled <c>MaxGoldHeld</c> where DK2 scales
-    /// it by level; the two agree below level 5.
+    /// object. The limit is <c>MaxGoldHeld</c> at the worker's level (imp-hands-full.md).
     /// </summary>
     private static int HandTo(SimulationContext context, TileWorkOrder order, int goldReleased, out int putDown)
     {
@@ -153,7 +152,8 @@ public sealed class TileWorkSystem : ISimulationSystem
         CreatureState? worker = context.World.CreatureById(order.WorkerCreatureId);
         if (worker is null) return 0;
 
-        int capacity = context.Database.CreatureById(worker.CreatureTypeId).MaxGoldHeld;
+        int capacity = CreatureLevelRules.MaxGoldHeld(
+            context.Database, context.Database.CreatureById(worker.CreatureTypeId), worker.Level);
         int taken = Math.Max(0, Math.Min(capacity - worker.GoldHeld, goldReleased));
         worker.GoldHeld += taken;
 
