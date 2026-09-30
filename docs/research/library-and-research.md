@@ -137,7 +137,12 @@ conclusion survives, because no shipped field is negative in the −3..−1 rang
   1. *Casino big win?* If `keeper+0x20D` is non-zero:
      `variable19 * var143 * variable19 * amount / 100`.
   2. *Tortured type?* If `0x004F2300` answers true for `creature+0x28`:
-     `(variable19 + var142) * variable19 * amount / 100`.
+     `(variable19 + var142) * variable19 * amount / 100`. Read 2026-09-30:
+     `creature+0x28` is the owner; the test walks that player's torture list
+     (`player+0x4C`, next `+0x23C`, one victim per type, linked by the Torture
+     Chamber's claim `0x004E5A70`) and is true only for a victim of the same
+     type id (`+0x36F`) **and the same owner** — the keeper torturing one of
+     its own creatures of that type.
   3. *Slapped recently?* If `creature+0x4BB` is non-zero and
      `now - creature+0x4BB < variable19 * var165`:
      `variable19 * var164 * variable19 * amount / 100`.
@@ -249,7 +254,7 @@ measuring it. A variable looks dead when it is looked for in the wrong mechanism
   non-zero, and the variable's *name* is the only evidence for reading it as a
   big-win flag. A name is not a reader.
 - **The tortured-type bonus.** Needs a Torture Chamber and a per-keeper list of
-  the types tortured there.
+  the types tortured there (one per type, own creatures only count; §3).
 - **The negative path.** The adder clamp-subtracts a negative credit, and
   nothing has been found that passes it one (Q218).
 

@@ -301,8 +301,11 @@ state 116, which is code rather than a table entry.
   something in the room on a ten-tick cadence: both cosmetic, both gated on an
   animation slot (`creature+0x3a9`) with no counterpart here.
 - A **narrower variant of the step roll** takes rolls 10..19 instead of 0..19
-  when a per-creature flag is set, halving the rate to 10 in 100 — flag unread,
-  Q188.
+  when the creature's definition has art record 9 (`0x00494A00`), halving the
+  rate to 10 in 100; rolls 0..9 then play an idle flourish (action 41). Which
+  record 9 is and who has it is Q188.
+- The look-at turn latches in `creature+0x2FA` (state object `+0xAC`); while it is
+  set, the mover leaves the prisoner standing (`0x004739C0`).
 - The three unread function pointers in every state record, and the 32 category
   records category 14 indexes (Q184, Q186).
 
@@ -316,7 +319,7 @@ The owner watched three things in a prison (Q172); two are §6, and this is the 
 |---|---|
 | **115** (`0x73`) | Hungry (`HungerNeed >= HungerFill`, level-scaled) **and** past `TimeBetweenReattemptingHungerSeconds` since the last try → stamp the clock, go to **117**. Otherwise wander |
 | **117** (`0x75`) | `FUN_00473550`. Walk the prison's own tile chain; on each tile walk that tile's object list; keep every object of kind `2` whose definition carries flag `0x80` at `+0xf4`; rank by **straight-line squared distance** and take the smallest. Issue a move to it, resuming in **118**. Found nothing → apply `AngerNoFood`, tell the interface, drop back to **116** |
-| **118** (`0x76`) | `FUN_00473750`. A food-flagged object on the tile underfoot: destroy it, and pay off hunger by **the whole of `HungerFill`**. Still owing → back to **117**. **Nothing there → also back to 117** |
+| **118** (`0x76`) | `FUN_00473750`. A food-flagged object on the tile underfoot: destroy it, and pay off hunger by **the whole of `HungerFill`**. Still owing → back to **117**; filled (the hunger routine `0x00477AD0` returns 0) → action 26 if the definition's action 13 allows it, then **119**. **Nothing there → also back to 117** (re-read 2026-09-30) |
 
 **117 is a walk, not a meal**: `FUN_00471890(object + 0x1a, 0x76, 0x80)` is a move order with a resume state, and 0x76 is 118.
 

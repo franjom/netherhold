@@ -143,9 +143,10 @@ at `+0x00`, times 24 slots). Unlike the runtime arm it **gates on nothing** but
 the id being non-zero: an unoccupied member slot is disabled here and, because
 the arm skips it, never re-enabled.
 
-**UNKNOWN — the sweep has an off switch.** The whole loop is skipped when bit
-`0x40` of the world byte at `+0x7239` is set (`0x0050C280`). Nothing traced sets
-it; a restored save is a guess and no more than that.
+**The sweep is skipped for a restored save.** The whole loop is skipped when bit
+`0x40` of the world byte at `+0x7239` is set (`0x0050C280`). The file restore
+`0x0050E920` holds that bit set across its call of the initialiser; the KWD level
+load `0x0050E620` clears it first (Q241).
 
 **Which slot a shipped party lands in is not decided by the data.** Action type
 14 selects by id, so a reimplementation should too — but across 66 THINGS files

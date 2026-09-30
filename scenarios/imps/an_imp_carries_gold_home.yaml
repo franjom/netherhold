@@ -13,24 +13,23 @@
 #            5x5 block (12..16, 26..30)
 #
 # What to read in the event log, in order:
-#   gold_mined      273 into the imp's hands, five times over. A seam is 3000
+#   gold_mined      273 into the imp's hands, four times over. A seam is 3000
 #                   gold over 660 health and a swing takes 60 of it (Q47), so a
 #                   swing frees 273 - the number the owner measured in the
 #                   original - and the seam is eleven swings totalling exactly
 #                   3000. (Eight swings give 273 and three give 272: gold is
 #                   taken from a running total, so truncation shows up between
 #                   swings and never as a shortfall.)
-#   delivering      the imp breaks off at its FIFTH swing, because a sixth would
-#                   take it over the Imp's maxGoldHeld of 1400; it sets off on
-#                   that swing's tick, logged at 1090 before the swing's gold
-#                   lands, and carries 1363.
-#                   Where it stops is ours; that it stops when full is DK2's.
+#   delivering      the imp breaks off at its FOURTH swing, when its hands test
+#                   reads full: maxGoldHeld 1400 less variable 74's 340 (Q50,
+#                   0x00465870, ADR-0296). It sets off on that swing's tick,
+#                   logged at 818 before the swing's gold lands, and carries 1091.
 #   gold_delivered  1000 into (14,26) - MaxGoldPerDungeonHeartTile - and then
-#                   the remaining 363 into (13,26) next door. That spillover is
+#                   the remaining 91 into the heart tile next door. That spillover is
 #                   not coded anywhere: the imp fills the tile it is standing
 #                   on, finds it still has gold, and looks again. It is the
 #                   closest thing we have to an answer to Q35.
-#   ... and round again. Three loads - 1363, 1364, 273 - spread across four
+#   ... and round again. Three loads - 1091, 1090, 819 - spread across the
 #   heart tiles as each fills up, and exactly 3000 in total.
 #
 # Then, once the seam is gone, the priority order takes over on its own: the imp
@@ -76,20 +75,19 @@ expect:
       the original. Eight swings give 273 and three give 272, because the gold
       comes off a running total.
   - event: delivering
-    detail: "gold=1090"
+    detail: "gold=818"
     because: >
-      The imp breaks off at its fifth swing because a sixth would take it past the
-      Imp's maxGoldHeld of 1400, and sets off on that swing's tick as both
-      full-state captures show (ADR-0280): the departure is logged before the
-      fifth swing's 273 reaches its hands. WHERE it stops is our routing (Q5);
-      THAT it stops when full is DK2's.
+      The imp breaks off at its fourth swing, when the hands test reads full at
+      maxGoldHeld 1400 less variable 74's 340 (Q50, ADR-0296), and sets off on that
+      swing's tick as both full-state captures show (ADR-0280): the departure is
+      logged before the fourth swing's 273 reaches its hands.
   - event: gold_delivered
     detail: "amount=1000"
     because: >
       MaxGoldPerDungeonHeartTile. The tile fills and the imp is still holding
-      363, which is what forces the spill below.
+      91, which is what forces the spill below.
   - event: gold_delivered
-    detail: "amount=363"
+    detail: "amount=91"
     because: >
       The remainder goes into the next heart tile. That spillover is coded
       nowhere - the imp fills the tile it stands on, finds it still has gold and

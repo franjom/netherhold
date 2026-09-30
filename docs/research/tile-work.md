@@ -206,10 +206,10 @@ between applications; without it an enemy wall would take 900 swings instead of
 563 and run 37% slow forever. The carry is taken **before** Efficiency scaling,
 so the tabled per-second rate stays exact and the 80% case is unchanged.
 
-One consequence nobody designed: an Imp's `maxGoldHeld` of 1400 is **five
-swings** of 273 (1363), so a seam is three trips — 1363, 1364, 273 — which is
-what an imp shuttling to and from a rock face looks like in the original. That
-answers Q50 by arithmetic rather than by a rule guessed for it.
+An imp breaks off when its hands test reads full, `maxGoldHeld` 1400 less
+variable 74's 340 at level 1: **four swings** of 273 (1090), so a seam is three
+trips — 1090, 1091, 819 (Q50, read in `0x00465870`, ADR-0296). The older reading,
+five swings to 1363, was arithmetic on the full 1400.
 
 
 ## Q20 — DigRockHealth: one strike, as shipped

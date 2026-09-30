@@ -66,7 +66,8 @@ Because the entry is per tile and the distance per object, two objects on one ti
 give two answers against one holder, as with gold. The handler reads nothing about what
 the imp is carrying or holding.
 
-**What our engine must change** (`ImpTaskSystem.TryTakeObject`, `LooseObjectAt`):
+**What our engine must change** (`ImpTaskSystem.TryTakeObject`; built in ADR-0294 except the
+in-its-room skip and the walk to the object's own position):
 
 - take the tile when it is the keeper's **or water**; ours takes only its own (Q170);
 - drop the refusals ours adds: DK2 does not refuse an imp that holds gold or carries
@@ -255,9 +256,10 @@ remaining 0.076 tile is one sixteenth, so case 3 fails; the next tick begins ins
 tile, so case 1 holds and the imp is on the point by the end of it. The 12s are later in
 the level, when the imps step 0.525 then 0.461: imp 452 at ticks 1534–1536 reads 14.5,
 13.975, 13.514, and 13.514 is 0.014 tile from the centre, zero sixteenths, so case 3 ends
-the walk one tick early and **off the point**. How the 13-tick case lands exactly on the
-centre (the integrator's snap needs `path_flags` bit 2; the options passed are `0xE8`,
-and how `0x004D0F60` turns them into flags was not read) is open.
+the walk one tick early and **off the point**. That walk is the exception: 20 of the 21
+two-frame claim walks in `seed01` land exactly on the centre, and how every exact landing
+happens — the integrator's arrival snap, which the claim's option word switches on — is
+`imp-walk-arrival.md`.
 
 So a neighbouring claim is 3 walk ticks in DK2 (2 when the imp is fast), and the walk
 ends near the centre, never on crossing into the tile.

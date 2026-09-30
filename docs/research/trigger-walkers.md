@@ -205,11 +205,13 @@ What each context owns is its own:
 **Type 72 is not universally unhandled.** `trigger-semantics.md` establishes that
 no *world* arm reaches it and that all 137 shipped records have an empty body,
 both of which hold. But the player context **does** own it, at `0x004C84B8`: it
-reaches an interface object through the world and returns 1 unless one of four
-fields is set — `+0xDD8`, `+0xDA8 == 0x12`, `+0xDFA`, `+0xE20`. The game's cancel
-handler at `0x00405362` tests the same four in the same order to decide what to
-close, so they are **modal interface states** and the condition means roughly
-"nothing modal is open". What each field is remains UNKNOWN (Q242).
+reaches the camera object through the world and returns 1 unless one of four
+fields is set — `+0xDD8`, `+0xDA8 == 0x12`, `+0xDFA`, `+0xE20`. They are the
+camera's, updated each frame by `Camera_Update` (`0x0044BED0`): `+0xDA8` is the
+camera mode (0x12 a scripted path), and the other three are deadlines of timed
+camera moves (the full transition, the move to a point, the yaw turn), zeroed on
+arrival. So the condition means **"the camera is not moving"**. The cancel handler
+at `0x00405362` tests the same four, which reads as skipping a camera move (Q242).
 
 That matters more than its obscurity suggests: 49 of campaign level 1's records
 are type 72, they sit in the player tree, and one of them gates the action that

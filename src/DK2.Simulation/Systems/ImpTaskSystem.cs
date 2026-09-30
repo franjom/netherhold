@@ -393,7 +393,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
     private void UpdateMoving(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        if (IsInWorkingPosition(context, creature, grid))
+        // State 6 resumes only when the route's progress is exactly 1.0 after the tick's move
+        // (0x00470C80, 0x004D54F0): the point reached, or within a sixteenth of it, never on
+        // entering the tile (imp-task-objects-and-walks.md §4, Q490, ADR-0297).
+        bool walked = creature.Dk2StateId != StateShadow.TravelToPoint
+            || Steering.FollowPathRules.Progress(creature.Body) == Steering.Fixed16.One;
+        if (walked && IsInWorkingPosition(context, creature, grid))
         {
             (int entry, int work) = ImpStates.For(creature.TargetWork);
             if (creature.Dk2StateId == entry)
@@ -404,15 +409,13 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 creature.TimerTicks--;
                 return;
             }
-            // Arrived on entering the tile; a route whose point lies in it runs on, so the worker
-            // settles on its stance point while it works (ADR-0289).
-            if (creature.Destination != creature.Tile) creature.StopMoving();
+            creature.StopMoving();
             creature.TimerTicks = WorkCadence.FirstApplicationTicks;
             AtWork(context, creature);
             return;
         }
 
-        if (creature.HasRoute) return;
+        if (!walked || creature.HasRoute) return;
 
         // Walked the whole route and the target is still not next to it: the
         // world changed under the route. Drop the job rather than re-planning
@@ -439,12 +442,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         creature.TimerTicks--;
         if (creature.TimerTicks > 0) return;
 
-        // Stop before the swing that would not fit — but only if there is
-        // somewhere to take the load. An imp mines into its own hands up to
-        // maxGoldHeld and then runs to the drop spot (CONFIRMED, Q31); an imp
-        // with nowhere to run to keeps mining instead, which is also what the
-        // original does. See WouldOverfillItsHands.
-        if (WouldOverfillItsHands(context, creature, definition)
+        // Before another strike, full hands try the store chooser (0x00465870: 0x00464360(1),
+        // then 0x00464400); an imp with nowhere to take the load keeps mining (Q31).
+        if (MinersHandsFull(context, creature, definition)
             && TryRouteToSomewhereItFits(context, creature))
         {
             // 26 walks to the store in 6 resuming in 28.
@@ -475,11 +475,11 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         creature.TimerTicks = WorkCadence.AfterApplication(
             creature.TargetWork, context.Tick.Value, creature.StateEnteredTick);
 
-        // A miner walks to the store on the tick of the strike after which another would not
-        // fit: in both captures the last strike and state 6 share a tick. This strike's gold
-        // reaches the hands later this tick (TileWorkSystem), so count it as held.
+        // A miner walks to the store on the tick of the strike that fills its hands: in both
+        // captures the last strike and state 6 share a tick. This strike's gold reaches the
+        // hands later this tick (TileWorkSystem), so count it as held.
         if (creature.TargetWork == TileWorkKind.MineGold
-            && WouldOverfillItsHands(context, creature, definition, pendingStrikes: 1)
+            && MinersHandsFull(context, creature, definition, pendingStrikes: 1)
             && TryRouteToSomewhereItFits(context, creature))
         {
             BeginDelivering(creature);
@@ -488,27 +488,22 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Whether one more swing would free more gold than this worker can hold —
-    /// the point at which an imp breaks off to carry.
-    /// <para>Stopping before the swing is the only rule that neither wastes gold
-    /// nor overfills a pair of hands: <c>MineGoldHealth</c> is −300 against a
-    /// seam's 660 health and 3000 gold, so one swing frees 1363 where the Imp's
-    /// <c>maxGoldHeld</c> is 1400 — almost exactly two swings' worth under Q47's
-    /// reading (2 × 681 = 1362), independent support for it. Nothing here
-    /// depends on that; at the whole-delta granularity we run, an imp makes one
-    /// trip per swing. Whether there is anywhere to take the load is the
-    /// caller's second question.</para>
+    /// Whether a miner's hands are full, the point at which it breaks off to carry: state 26
+    /// (<c>0x00465870</c>) asks the hands test <c>0x00464360(1)</c> before each strike, full at
+    /// the level-scaled <c>MaxGoldHeld</c> less variable 74 (<see cref="HandsFull"/>). A level 1
+    /// Imp (1,400) leaves after four strikes (1,092 of 1,060), a level 2 one (1,470) after five
+    /// (1,365 of 1,130): Level 1's imp 455 claims holding 1,092 at tick 216 (ADR-0296).
+    /// Whether there is anywhere to take the load is the caller's second question.
     /// </summary>
-    private static bool WouldOverfillItsHands(
+    private static bool MinersHandsFull(
         SimulationContext context, CreatureState creature, CreatureDef definition, int pendingStrikes = 0)
     {
         ref TileState tile = ref context.World.TileAtIndex(creature.TargetTileIndex);
         int yield = TileWorkRules.GoldYield(
             context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
+        if (yield <= 0) return false;
         int held = creature.GoldHeld + (pendingStrikes * yield);
-        if (held <= 0) return false;
-
-        return yield > 0 && held + yield > CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level);
+        return held > 0 && held >= FullAt(context, creature, definition);
     }
 
     /// <summary>
@@ -527,7 +522,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = default;
-        context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Plain);
+        context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.FetchGold;
         FromTaskSelection(creature);
@@ -784,13 +779,13 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         foreach ((_, RoomInstance room) in rooms)
         {
             int first = SlabChain.FirstSlab(world, room);
-            if (!context.Navigation.TryRoute(creature, new TilePos(first % w, first / w), Navigation.MoveOptions.Plain)) continue;
+            if (!context.Navigation.TryRoute(creature, new TilePos(first % w, first / w), Navigation.MoveOptions.ExactSpot)) continue;
             int[] chain = SlabChain.Order(world, room);
             int start = chain[context.Rng.NextInt(chain.Length)];
             int target = GoldStore.DepositTileAlongChain(world, context.Database, room, start);
             if (target < 0) continue;
             TilePos drop = new(target % w, target / w);
-            if (!context.Navigation.TryRoute(creature, drop, Navigation.MoveOptions.Plain)) continue;
+            if (!context.Navigation.TryRoute(creature, drop, Navigation.MoveOptions.ExactSpot)) continue;
             context.Emit(SystemName, "delivering",
                 $"imp={creature.Id} player={player} gold={creature.GoldHeld} " +
                 $"to=({drop.X},{drop.Y}) steps={creature.Body.PathTotalCount}");
@@ -1121,13 +1116,21 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         static bool IsOwned(byte owner) => owner is not (PlayerIds.Unowned or PlayerIds.Neutral);
     }
 
+    /// <summary>
+    /// Where the ring scan starts when its caller passes no chooser (the dispatcher's kinds 6, 7,
+    /// 8 and 16). Not a draw: <c>0x00468d10</c> reads the side from a local only the chooser
+    /// writes (<c>0x00468deb</c>), so it starts on whatever the stack held, and a value above 3
+    /// skips ring 1's first side (<c>0x00468e38</c>). UNKNOWN; ours starts north (ADR-0294).
+    /// </summary>
+    private const int UnchosenStartSide = 0;
+
     /// <summary>The dispatcher's kinds 6 and 16 (<c>0x00468520</c>): the ring scan over the whole
-    /// map with the reinforce handler alone, started on a <c>rand(4)</c> side, not the chooser's.
+    /// map with the reinforce handler alone, started on <see cref="UnchosenStartSide"/>, not the chooser's.
     /// ADR-0292.</summary>
     private bool TryTakeReinforce(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
         WorldState world = context.World;
-        var rings = new DiamondRings(world, creature.Tile, context.Rng.NextInt(4));
+        var rings = new DiamondRings(world, creature.Tile, UnchosenStartSide);
         while (rings.MoveNext())
         {
             TilePos tile = rings.Current;
@@ -1523,21 +1526,24 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         if (creature.WorkSlot != MiningSlots.None)
         {
             (long sx, long sy) = MiningSlots.StancePoint(standing, creature.WorkSlot);
-            context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.Plain);
+            context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.ExactSpot);
         }
         else if (kind is TileWorkKind.Reinforce or TileWorkKind.RepairWall && face >= 0)
         {
             (long sx, long sy) = TaskStealing.ReinforceStance(standing, face);
-            context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.Plain);
+            context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.ExactSpot);
         }
         else
         {
-            context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Plain);
+            context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Spot);
         }
 
-        if (_route.Count == 0) creature.TimerTicks = WorkCadence.FirstApplicationTicks;
+        // A worker already on its stance tile still walks to its point (0x004651A0 always walks),
+        // so a route loaded to the point counts, not only one the search found steps for.
+        bool routed = _route.Count > 0 || creature.IsRouted;
+        if (!routed) creature.TimerTicks = WorkCadence.FirstApplicationTicks;
 
-        SetOutInState(context, creature, kind, routed: _route.Count > 0);
+        SetOutInState(context, creature, kind, routed);
 
         creature.LastTaskKind = KindOf(priority, kind);
         creature.LastTaskTileIndex = tileIndex;
@@ -1853,49 +1859,118 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     // ------------------------------------------------------- carrying objects
 
     /// <summary>
-    /// DK2's imp task <b>kind 8</b>: the nearest loose object that belongs in a
-    /// room, and a walk to it.
+    /// DK2's imp task <b>kind 8</b> (<c>0x00468520</c>): the ring scan over the whole map from a
+    /// side of <see cref="UnchosenStartSide"/> with the objects handler <see cref="TryObjectAt"/> on each tile, the
+    /// first tile that gives a job winning; inside the drop scan, that one tile.
     /// <para><b>Second in Tier A</b>, above marked excavation and above claiming
     /// (<c>imp-task-priority.md</c> §4, ADR-0065) - so an imp that finds a book
     /// on the floor shelves it before it digs anything the keeper marked.</para>
-    /// <para>Like every other carry here the destination is settled before the
-    /// walk: an object whose room the keeper has not built, or has no space left
-    /// in, is an object nobody sets off for.</para>
     /// </summary>
     private bool TryTakeObject(
         SimulationContext context, CreatureState creature, CreatureDef definition,
         WorldPathGrid grid)
     {
-        WorldState world = context.World;
-
+        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) return false;
         if (creature.CarriedObjectId >= 0 || creature.CarriedCreatureId >= 0) return false;
-        if (creature.GoldHeld > 0) return false;
+        if (_only is TilePos only) return TryObjectAt(context, creature, grid, only);
 
-        bool found = _pathfinder.TryFindNearest(
-            grid, creature.Tile,
-            at => InScanRange(at) && LooseObjectAt(context, creature, definition, at) is { } loose
-                  && (ObjectCarryRules.TryDestinationFor(world, context.Database, creature, loose) >= 0
-                      || (CrateRules.IsCrate(context.Database, loose) && BlueprintForLooseCrate(context, creature, grid, loose) != null)),
-            _route);
+        WorldState world = context.World;
+        var rings = new DiamondRings(world, creature.Tile, UnchosenStartSide);
+        while (rings.MoveNext())
+        {
+            TilePos tile = rings.Current;
+            if (RingScanVisits(context, world, tile) && TryObjectAt(context, creature, grid, tile)) return true;
+        }
+        return false;
+    }
 
-        if (!found) return false;
+    /// <summary>
+    /// The objects handler (<c>0x0046B9C0</c>) on one tile, the keeper's own or water: its loose
+    /// objects in list order, the first that takes a job winning. A special (flag <c>0x04</c>) needs
+    /// a Library with room, a crate (<c>0x10</c>) a blueprint (the crate branch <c>0x00468910</c>)
+    /// or a Workshop, a book (<c>0x08</c>) a Library; a failed search skips the rest of the tile's
+    /// specials, or of its crates and books together. The tile's one task is taken from a holder
+    /// strictly farther from the object, the holder kicked first (imp-task-objects-and-walks.md §1).
+    /// Not built: a special already standing in its room is not skipped (ours keeps no room id).
+    /// </summary>
+    private bool TryObjectAt(SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos at)
+    {
+        WorldState world = context.World;
+        int index = (at.Y * world.Width) + at.X;
+        ref TileState tile = ref world.TileAtIndex(index);
+        if (tile.OwnerPlayerId != creature.OwnerPlayerId && !context.Database.TerrainById(tile.TerrainId).IsWater)
+            return false;
 
-        TilePos at = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
-        ObjectState? thing = LooseObjectAt(context, creature, definition, at);
-        if (thing is null) return false;
+        bool specialsFailed = false, othersFailed = false;
+        foreach (ObjectState thing in world.Objects)
+        {
+            if (thing.TileIndex != index || !ObjectCarryRules.IsLoose(context.Database, thing)) continue;
+            ObjectFlags flags = context.Database.ObjectById(thing.ObjectTypeId)!.Flags;
 
-        // Kind 8's crate branch (0x00468910) comes before the crate's Workshop: straight to a
-        // blueprint that needs it, as kind 9 or 10 (ADR-0214).
-        if (CrateRules.IsCrate(context.Database, thing)
-            && BlueprintForLooseCrate(context, creature, grid, thing) is { } blueprint)
-            return CommitCrateFetch(context, creature, blueprint, thing, "loose");
+            BlueprintRef? blueprint = null;
+            if (flags.HasFlag(ObjectFlags.TypeSpecial))
+            {
+                if (specialsFailed) continue;
+                if (ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing) < 0)
+                {
+                    specialsFailed = true;
+                    continue;
+                }
+            }
+            else if (flags.HasFlag(ObjectFlags.TypeCrate) || flags.HasFlag(ObjectFlags.TypeSpellBook))
+            {
+                if (othersFailed) continue;
+                if (flags.HasFlag(ObjectFlags.TypeCrate))
+                    blueprint = BlueprintForLooseCrate(context, creature, grid, thing);
+                if (blueprint is null && ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing) < 0)
+                {
+                    othersFailed = true;
+                    continue;
+                }
+            }
+            else
+            {
+                continue;
+            }
 
-        if (ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing) < 0) return false;
+            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == at, _route)) continue;
+            if (ObjectHolder(context, creature, index) is { } holder)
+            {
+                (long ox, long oy) = PileCentre(world, thing);
+                if (!TaskStealing.CanLoseItsTask(holder)
+                    || TaskStealing.DistanceSquared(creature.PosX, creature.PosY, ox, oy)
+                        >= TaskStealing.DistanceSquared(holder.PosX, holder.PosY, ox, oy))
+                    continue;
+                TakeTaskFrom(context, holder, creature, index);
+                holder.TargetObjectId = -1;
+            }
 
+            if (blueprint is { } forCrate) return CommitCrateFetch(context, creature, forCrate, thing, "loose");
+            CommitObjectFetch(context, creature, thing, at);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>The worker holding this tile's kind-8 task: one walking to pick up an object on it.</summary>
+    private static CreatureState? ObjectHolder(SimulationContext context, CreatureState asking, int tileIndex)
+    {
+        foreach (CreatureState other in context.World.Creatures)
+        {
+            if (other.Id == asking.Id || other.Activity != CreatureActivity.FetchingObject) continue;
+            if (context.World.ObjectById(other.TargetObjectId) is { } target && target.TileIndex == tileIndex)
+                return other;
+        }
+        return null;
+    }
+
+    private void CommitObjectFetch(SimulationContext context, CreatureState creature, ObjectState thing, TilePos at)
+    {
+        WorldState world = context.World;
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
         creature.TargetObjectId = thing.Id;
-        context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Plain);
+        context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.CarryObject;
         FromTaskSelection(creature);
@@ -1905,34 +1980,6 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
             $"type={ObjectName(context, thing)} " +
             $"at=({at.X},{at.Y}) steps={_route.Count}");
-        return true;
-    }
-
-    /// <summary>
-    /// The loose object on <paramref name="at"/> this worker could put away, or
-    /// null. Ties between two on one tile go to the lower object id.
-    /// </summary>
-    private static ObjectState? LooseObjectAt(
-        SimulationContext context, CreatureState worker, CreatureDef definition, TilePos at)
-    {
-        WorldState world = context.World;
-        int index = (at.Y * world.Width) + at.X;
-        ObjectState? best = null;
-
-        foreach (ObjectState thing in world.Objects)
-        {
-            if (thing.TileIndex != index) continue;
-            if (!ObjectCarryRules.CanCarry(context.Database, definition, worker, thing)) continue;
-
-            // The tile it is standing on has to be the imp's own. DK2's test is
-            // "own floor or water"; there is no reason here for a worker to
-            // wade for a book, so this is the narrower half of it (Q170).
-            if (world.TileAtIndex(index).OwnerPlayerId != worker.OwnerPlayerId) continue;
-
-            if (best is null || thing.Id < best.Id) best = thing;
-        }
-
-        return best;
     }
 
     /// <summary>Walking to a loose object, and picking it up on arrival.</summary>
@@ -2122,7 +2169,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         creature.CarriedCreatureId = -1;
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
-        context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Plain);
+        context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = corpses ? ImpTaskKind.CarryCorpse : ImpTaskKind.CarryUnconscious;
         FromTaskSelection(creature);
@@ -2420,7 +2467,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         WorldState world = context.World;
         var to = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
 
-        return context.Navigation.TryRoute(creature, to, Navigation.MoveOptions.Plain);
+        return context.Navigation.TryRoute(creature, to, Navigation.MoveOptions.ExactSpot);
     }
 
     /// <summary>Clears the "body I am walking towards" note.</summary>

@@ -168,7 +168,7 @@ public sealed partial class ImpTaskSystem
     {
         WorldState world = context.World;
         var at = new TilePos(crate.TileIndex % world.Width, crate.TileIndex / world.Width);
-        if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Plain)) return false;
+        if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot)) return false;
 
         creature.TargetTileIndex = CrateRules.TileOf(world, blueprint);
         creature.TargetWork = default;

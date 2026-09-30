@@ -215,7 +215,8 @@ missing Heart disposal exception and portal's missing Imp refusal are known gaps
 
 **The router does not use the block** (2026-09-17). DK2's own navigation
 cache, captured from a running Level 7, holds plain floor on every one of a
-heart's 25 tiles and byte 4 on a portal's centre, and the cost function
+heart's 25 tiles and byte 4 on a portal's centre (a Hero Portal's too: both run the tile
+pass `0x004DCD20`, and ours blocks both since 2026-09-30), and the cost function
 crosses a bit-2 boundary only for a state that passed option bit 2 (§5.4,
 navigation-mesh-and-search.md §4). `WorldSteering.ByteOf` follows the cache:
 the router walks the heart's platform and enters the hole only for a leaving

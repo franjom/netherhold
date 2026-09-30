@@ -53,7 +53,8 @@ every steal in eight captures took a task from an imp still walking (§10).
   **first** of the best: a later side replaces the choice only when strictly better
   (`0x0046938C`, `0x004693C9`, `0x00469408`, `0x00469442`). It is passed by the claim
   dispatcher arm, by the drop scan and by Tier B (`0x00464031`, `0x004640C0`); only the
-  kinds 6, 7, 8 and 16 arms of `0x00468520` pass none and take `rand(4)`.
+  kinds 6, 7, 8 and 16 arms of `0x00468520` pass none, and then the side is a local only
+  the chooser writes, read uninitialised: whatever the stack held, not a draw (ADR-0294).
 - **Radius per call site.** Step (a) and Tier A pass `0x7FFFFFFF` (§3); the drop scan
   passes `0x2000` (`0x0046402C`), which scans rings 1, 2 and 3 because the bound is
   tested after a ring with `>`; Tier B passes `0x7FFFFFFF` (`0x004640BB`). A whole-map

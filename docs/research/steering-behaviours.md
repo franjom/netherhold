@@ -140,7 +140,7 @@ normals.)
 
 **The snap.** With `path_flags` bit 2, on the last window point, when the
 octile distance still to go is **less than** the octile length of `vel`, `next`
-is the point and `vel` is zeroed.
+is the point and `vel` is zeroed (the tick, the flags, a capture check: `imp-walk-arrival.md`).
 
 **The wall clamp.** `own` is the byte of the tile the body stands on; a tile is
 open when the transition cost from `own` to it is nonzero. If `next`'s tile is

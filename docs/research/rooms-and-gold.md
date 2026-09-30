@@ -36,7 +36,7 @@ reads recorded in `gold-on-the-floor.md`.
 | `RecommendedSizeX/Y` gates what a room *does*, not what may be built | **STRONGLY INFERRED, BUILT** (Q36, Q45, ADR-0027); the Prison contradicts it, Q179 |
 | Selling a room returns half its cost, per tile | **CONFIRMED, BUILT** (Q34, ADR-0029) |
 | Mined gold goes into the mining imp's hands, then a treasury or heart tile | **CONFIRMED** (Q31); the Imp's `maxGoldHeld` is 1400 |
-| Where an imp stops mining to unload | **HYPOTHESIS, implemented** (Q50) — when one more swing would not fit: five swings, 1363 gold |
+| Where an imp stops mining to unload | **CONFIRMED, BUILT** (Q50, ADR-0296) — at the hands test, 1400 less 340: four swings, 1090 gold at level 1 |
 | A dungeon heart stores 16000, not 25000 | **CONFIRMED, BUILT** (Q52, ADR-0027) — 16 of its 25 tiles hold gold |
 | A pile on the floor is the fourth place gold sits | **STRONGLY INFERRED, BUILT** — object type 1; `gold-on-the-floor.md` |
 
@@ -129,8 +129,8 @@ MineGoldHealth     -300 a game second, applied once a tick at a fifth of the
                    tabled delta (ADR-0020, ADR-0089; tile-work.md)
   -> a swing takes 60 health and frees 273 gold, measured in the original
   -> a seam is 11 swings and yields exactly 3000
-Imp maxGoldHeld    1400
-  -> five swings fill it (1363), so a seam is three trips: 1363, 1364, 273
+Imp maxGoldHeld    1400, full at 1400 - variable 74 (340) = 1060 (Q50)
+  -> four swings fill it (1090), so a seam is three trips: 1090, 1091, 819
 ```
 
 The 1363-against-1400 near-miss is what pointed at Q47. The owner measured 273

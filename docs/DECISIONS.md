@@ -1301,7 +1301,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - No hash change; a rule got stricter. `hand-of-evil.md` §8 and `HandRules.CanDropObjectOn`'s doc comment are corrected in place.
 
 ## ADR-0078 — Payday is a journey, and the money comes off the tile underfoot
-**Date:** 2026-09-06 · **Status:** accepted · amended by ADR-0079: `AngerNoPay` is charged, and the nine-to-one conclusion here is retired by ADR-0081; ADR-0220 corrects "the one tile" to the room underfoot · Q9 · Research: `docs/research/payday.md`
+**Date:** 2026-09-06 · **Status:** accepted · amended by ADR-0079: `AngerNoPay` is charged, and the nine-to-one conclusion here is retired by ADR-0081; ADR-0220 corrects "the one tile" to the room underfoot; ADR-0295 arms the first payday on the first non-worker · Q9 · Research: `docs/research/payday.md`
 
 **Context.** The last of M4's original seven items, resting on ADR-0015 (no player gold counter) and ADR-0053 (the anger ladder). A keeper's wage bill falls due every `PayDayFrequencySeconds`; every creature it owns is credited `Pay` scaled by its level; each then walks to a treasury and lifts its own wages off the floor.
 
@@ -4299,7 +4299,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 
 **Decision.**
 1. **`PrisonRules.Imprison`** puts an imp's admission in 114 and a hand drop in 120, and both move to 115. `PrisonRules.Release` gives the state back, and `Imprisoned` joins the retired activities.
-2. **Steps** are 116 → 115 → a walk in 6 resuming in 116. **Eating** is 115 → 117 → a walk in 6 to the bird resuming in 118 → 119 → 115; with no bird, 117 → 116.
+2. **Steps** are 116 → 115 → a walk in 6 resuming in 116. **Eating** is 115 → 117 → a walk in 6 to the bird resuming in 118 → 119 → 115; with no bird, 117 → 116. *Amended 2026-09-30 (0x00473750 re-read):* 118 goes to 119 only when filled; still owing, or with the bird gone, it goes straight back to 117, which searches again with no hunger test; 118 also wipes the hunger grievance; 119 holds one turn.
 3. **The drain dispatches on category 14** (`UpdatingCategory`), so a walk between two captive states keeps it and a captive with no state takes none.
 
 **Consequences.**
@@ -6402,7 +6402,7 @@ ring by ring, the chain's order deciding within a ring. DK2's is the ring scan o
 `0x2000` (`0x0046402C`): the landing tile, then Manhattan rings 1 to 3 from the chooser
 `0x00469340`'s side, the chain `0x00469240` on each tile the bit-`0x20` filter admits
 (Q488). The dispatcher's kinds 6 and 16 (`0x00468520`), step (a)'s reinforce retry, are the
-same scan over the whole map with the reinforce handler alone, from a `rand(4)` side.
+same scan over the whole map with the reinforce handler alone, from an unchosen side (ADR-0294).
 
 **Decision.** `TryTakeDroppedJob` walks `DiamondRings` to three rings and hands each admitted
 tile to the chain: `TryExcavationAt`, `TryClaimAt`, blueprints, the unconscious,
@@ -6437,6 +6437,92 @@ never waits to be fetched. Not built: the non-workers' arm. Not read: whether a 
 goes with its pile; a fetcher whose pile was taken in passing keeps the load, and the test
 says so in its name.
 
+## ADR-0294 — The objects handler per tile, and a ring scan with no chooser draws nothing
+**Date:** 2026-09-30 · **Status:** accepted · Research: `imp-task-objects-and-walks.md` §1
+
+**Context.** Kind 8 picked the loose object with the shortest walk, refused an imp holding
+gold, and could not be taken from a holder. DK2's objects handler `0x0046B9C0` runs per tile
+of a ring scan. The notes said a scan passed no chooser (kinds 6, 7, 8, 16) starts on
+`rand(4)`; the disassembly says otherwise.
+
+**Decision.**
+1. `TryTakeObject` is the ring scan over the map, or the drop scan's one tile, with
+   `TryObjectAt`: a tile the keeper owns or water; its loose objects in list order; special,
+   then crate (a blueprint first, `0x00468910`), then book; a failed search latched for the
+   rest of the tile, one latch for specials and one shared by crates and books. Gold in the
+   hands no longer refuses. The tile's task is taken from a holder strictly farther from the
+   object, the holder kicked first.
+2. With no chooser, `0x00468D10` reads its start side from a local only the chooser writes
+   (`0x00468DEB`, read at `0x00468E34`, bounds-checked at `0x00468E38`): stale stack, not a
+   draw. UNKNOWN; ours starts north for kinds 6 and 8 and draws nothing
+   (`UnchosenStartSide`), correcting ADR-0292's `rand(4)`.
+
+**Consequences.** Replays keep 20 of 20 and 8 of 20; drawing `rand(4)` there had cost them
+16 and 4, by shifting every later draw. Not built: a special already standing in its room is
+not skipped (ours keeps no room id). A test that pinned Harkan's single Call to Arms in a
+random run now checks each call's turn and removal.
+
+## ADR-0295 — A keeper's first non-worker arms its payday, and a late arrival skips one
+**Date:** 2026-09-30 · **Status:** accepted · amends ADR-0078 · Research: `payday.md` §2.1
+
+**Context.** Ours seeded every player's first payday on the first tick. The initialiser
+`0x004BE330` is called only from the creature constructor (`0x0048795E`) and the owner
+change (`0x0048D24E`), each for a non-worker and only while `player+0x76` bit `0x200` is
+clear. The constructor also sets `GetPaid` when the keeper's deadline is fewer than
+`PayDayCutOffTimeSeconds` (120, compared raw with turns) away (`0x0048750C`).
+
+**Decision.**
+1. `PaydayRules.ArmOnGain`, from `SpawnCreature` and the new `ChangeCreatureOwner(database,
+   …)`: a non-worker sets its keeper's deadline `TimeBeforeFirstPayDaySeconds` out if it is
+   still zero. Zero means no payday, so the clock no longer seeds it.
+2. `PaydayRules.TooCloseToPayday` sets `GetPaid` at spawn, before the arming.
+
+**Consequences.** A keeper with only imps is never billed; level 1's first payday falls
+600 s after the first portal creature, not after level start. Deviates: an unarmed clock on
+turn 0 would set `GetPaid` in DK2's unsigned test; ours leaves it out (unread whether a
+level's creatures are built on turn 0). Three tests; four negative controls each fail a
+named test. `HashVersion` **142** (a Goblin in the pin's world now arms its keeper).
+
+## ADR-0296 — A miner breaks off at the hands test, not when the next strike would not fit
+**Date:** 2026-09-30 · **Status:** accepted · Research: `functions/00465870.md`, `imp-hands-full.md`
+
+**Context.** In Level 1's capture imp 455 leaves the seam at (14,21) holding 1,092 and claims;
+ours shuttled 1,363 loads, which put its claimer on the Hatchery block late. State 26
+(`0x00465870`) asks the hands test `0x00464360(1)` before every strike, and only a full imp
+tries the store chooser `0x00464400`. Q50's "one more strike would not fit" was arithmetic.
+
+**Decision.** `MinersHandsFull` replaces `WouldOverfillItsHands` at both of the miner's checks
+(before a strike, and after one with its gold counted): full at `MaxGoldHeld(level)` less
+variable 74. The test fixture carries variable 74 at its shipped 340, and the real-data gold
+tests load Level 1's own variables.
+
+**Consequences.** A level 1 Imp breaks off after four strikes (1,090–1,092 of 1,060); a seam
+is three trips of 1,090, 1,091 and 819; at level 2, five strikes. The capture in
+`mining-cadence.md` where an imp strikes holding 1,363 fits a miner with no store with room,
+which keeps mining. Replays against HEAD: Level 1 18 of 20 (20), Level 2 11 of 20 (12), within
+seed noise; with walks ending on their point it is what keeps Level 1 at 17, not 13. The
+checker is unchanged (288/309, 732/799): it does not score leaving a seam.
+
+## ADR-0297 — A job walk ends on its point, with DK2's option words, and an imp at work stands still
+**Date:** 2026-09-30 · **Status:** accepted · Research: `imp-task-objects-and-walks.md` §4, `imp-walk-arrival.md`
+
+**Context.** Ours ended a walk on entering its tile, so a claim began before the imp reached the
+centre (Q490). State 6 (`0x00470C80`) resumes only when `0x004D54F0` returns exactly 1.0. The
+route request `0x004D0F60` turns the option word's bits 5 and 6 into path flags `0xC`, and bit 2
+switches on the integrator's arrival snap, already built. In `seed01`, 41 of 49 neighbour claims
+begin 13 ticks after the last; ours took 15 once walks ended on their point without the snap.
+
+**Decision.**
+1. State 6 resumes work only at progress 1.0 (`FollowPathRules.Progress`); a route still held
+   then waits.
+2. Claim walks pass `MoveOptions.Spot` (`0xE0`), and the other job walks `ExactSpot` (`0xE8`).
+3. A worker on its stance tile still walks to its point, so a route loaded there counts as routed.
+4. The movement system skips an imp in states 10 to 26, which DK2's creature mover never moves.
+
+**Consequences.** Neighbour claims come 13 ticks apart, as in the capture; a one-strike dig lands
+a tick later. Replays against HEAD: Level 1 17 of 20 (18), Level 2 12 of 20 (11); the
+checker is unchanged (288/309, 732/799). Without ADR-0296 the same change cost Level 1 seven seeds.
+Not built: the route request zeroing the body's velocity.
 ## ADR-0298 — Plan an attack from task 0: readiness grants as commands, a tunnel to the enemy's room, the call at the front
 **Date:** 2026-09-30 · **Status:** accepted · Research: `computer-keeper-management.md` §6–7, `computer-keeper-threat.md` §2
 

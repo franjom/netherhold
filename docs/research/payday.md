@@ -66,17 +66,35 @@ engine consults it* — each was scanned for readers:
 | Variable | Global | Hits | Reader |
 |---|---|---:|---|
 | `PayDayFrequencySeconds` = 600 | `0x006F25D1` | 2 | `FUN_004be1a0`, the clock above |
-| `TimeBeforeFirstPayDaySeconds` = 600 | `0x006F2611` | 2 | `FUN_004be330`, the initialiser |
+| `TimeBeforeFirstPayDaySeconds` = 600 | `0x006F2611` | 2 | `FUN_004be330`, the initialiser (below) |
 | `PayDayCutOffTimeSeconds` = 120 | `0x006F28A3` | 3 | `FUN_00414bc0` and `FUN_004872a0` |
 
-(One hit in each is the setter stub.) All three are real — the negative of the
+(One hit in each is the setter stub.)
+
+**The first payday is armed by the keeper's first non-worker creature**, read
+2026-09-30. `0x004BE330` runs on the owning player and sets `player+0xB53 = now +
+TimeBeforeFirstPayDaySeconds × variable 19`, `player+0xB4F = now`, and
+`player+0x76` bit `0x200`. Both callers skip it once that bit is set and for a
+creature whose definition flags (`def+0x686`) have bit 0, `IsWorker`: the
+creature constructor (`0x0048795E`) and a second site that hands a creature to a
+new owner (`0x0048D24E`). So a keeper with only imps has no payday, and the first
+one falls 600 s after its first other creature arrives, not after level start.
+**Built** with the `GetPaid` rule below (ADR-0295). Unread: whether a level's own
+creatures are built on turn 0, where an unarmed (zero) deadline would pass the
+unsigned test; ours never sets `GetPaid` from a zero deadline.
+
+All three are real — the negative of the
 dead-field pattern this project has caught elsewhere, and read rather than
 assumed.
 
-**`PayDayCutOffTimeSeconds` is still not understood.** Q9 guessed *"how long a
-creature has to reach the treasury before it counts as unpaid"*. Its two readers
-are **not** in the payday states, which is evidence against that reading; one is
-in the creature initialiser. Left UNKNOWN rather than assumed.
+**`PayDayCutOffTimeSeconds` is how close to payday a new creature joins too late
+to be paid** (read 2026-09-30). Both readers compare it with the turns left until
+payday (`0x004BE180`: `player+0xB53` minus now), in **raw turns**: the setter stub
+`0x0051CF9F` stores the level value unconverted, so 120 is 30 game seconds.
+`Creature_Construct` (`0x0048750C`) sets `GetPaid` (`+0x3E2`) to 1 when fewer turns
+than that remain, so that creature's first payday is skipped, and to 0 otherwise.
+The gold counter draw `0x00414BC0` flashes the wage bill inside the same window
+(100 turns if the variable is 0).
 
 ---
 
@@ -167,7 +185,7 @@ Only when something is owed (`creature+0x470` non-zero):
    `creature+0x474` goes up by one and the state returns 0.
 3. Otherwise effect `0xC3`, a floating number and a sound are played.
 4. `FUN_0048ae70` is called with `taken / 2`.
-5. `FUN_0048e810` is called with `-taken`.
+5. `0x0048E810` is called with `-taken`: the take comes off the owed wage.
 6. If the amount owed at `creature+0x470` is now zero — fully paid —
    `FUN_00486f80` is called with 4.
 
@@ -224,7 +242,8 @@ places a bed (`lair-acquisition.md` §9.1). **Built** (ADR-0179).
 | Two failed attempts per payday, then stop | **read** |
 | Two distinct "cannot pay" messages | **read** |
 | `AngerNoPay` firing on an unpaid creature | **READ AND BUILT** the same day (ADR-0079) — see §6 |
-| `PayDayCutOffTimeSeconds` | **UNKNOWN**, and its readers are not in the payday path |
+| `PayDayCutOffTimeSeconds`: a creature built within it of payday gets `GetPaid` (§2.1) | **READ AND BUILT** (ADR-0295) |
+| First payday armed by the keeper's first non-worker (§2.1) | **READ AND BUILT** (ADR-0295) |
 | `FUN_0048ae70(taken/2)`: half the wage into the purse, capped | **READ AND BUILT** (ADR-0187) |
 | `FUN_00486f80(4)`: zero the pay-anger bucket when fully paid | **READ AND BUILT** (ADR-0179) |
 
@@ -233,7 +252,7 @@ places a bed (`lair-acquisition.md` §9.1). **Built** (ADR-0179).
 player. It cost one bump of `GameSimulation.HashVersion` and the snapshot
 `FormatVersion` with it; ADR-0078 records which.
 
-What is left unread: `PayDayCutOffTimeSeconds`, and `FUN_0048e810(-taken)` in state 189.
+Nothing in the payday path is left unread: `0x0048E810(-taken)` in state 189 subtracts the take from the owed wage `+0x470`, floored at zero (`Payday_AdjustOwed`).
 The owner's account of the consequence stands as the observation (Q9: unhappy,
 then angry, then leaves — or rebels, if converted).
 

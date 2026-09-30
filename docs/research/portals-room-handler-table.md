@@ -36,9 +36,9 @@ the slot**. Thirteen indexing sites in twelve callers:
 |---|---|---|
 | `+0x01` | `FUN_004E3800` | **the room constructor** — zeroes the struct field by field, writes the type id, links the room into its owner's list |
 | `+0x05` | `FUN_004E39C0` | null for portals |
-| `+0x09` | `FUN_004E4480` | a tile/effect pass |
+| `+0x09` | `FUN_004E4480` | a tile/effect pass; the portal's (`0x004DCD20`) runs the shared room pass `0x004E6BC0`, then, only for a 9-slab room, writes navigation byte 4 on the fifth slab of the chain (`0x00454FD0`) and adds an engine light over it |
 | `+0x0d` | `FUN_004E5650` | **the room ownership change** — fires the portal's reset (`portals-interval.md`) |
-| `+0x11` | `FUN_004E3DD0` | null for portals |
+| `+0x11` | `FUN_004E3DD0` | null for portals; a per-room hook run only after a saved game is restored (`0x0050B3C0` → `0x004EC410` → `0x004E3DD0`). Only the Library (6) has a real one, `0x004E10D0`, its own `+0x09` pass; Lair and Workshop point at the empty `0x00401200` |
 | `+0x15` | `FUN_004E4B00` | **the per-tick handler**, `0x004DBBE0` for a portal |
 | `+0x19` | `FUN_004E6C90` (accessor), `FUN_004E8DA0` | a creature state id, below |
 | `+0x1d` | `FUN_004E6D10` (accessor) | a creature state id, below |

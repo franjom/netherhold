@@ -15,7 +15,7 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**141** — `0x1B3AF57D6F23BE5E`. A tile's mark order, and the gold an imp keeps in its hands (ADR-0288). **140** — `0x25381F6E02610FEC`. A shot's forced-collision word (ADR-0287).
+**142** — `0x5C3E476976F79986`. The payday clock armed by a keeper's first non-worker (ADR-0295). **141** — `0x1B3AF57D6F23BE5E`. A tile's mark order, and the gold an imp keeps in its hands (ADR-0288). **140** — `0x25381F6E02610FEC`. A shot's forced-collision word (ADR-0287).
 **139** — `0xF3B644CAA2F6FE61`. A worker's last task tile, and the job choice of ADR-0282.
 **138** — `0xB858D2093C84A232`. The Call to Arms, its flag's process states and the heeding bit (ADR-0279).
 **137** — `0x5113A130122CFD15`. The tick a creature was spawned or last put down (ADR-0278).

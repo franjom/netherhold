@@ -255,10 +255,10 @@ Dwarf (0x17)** — the keeper's worker and the heroes'.
 
 Types 20 and 21 are one arm shape used twice. Both walk `ThingsOwnedList[0]`,
 filter by `CreatureId` when non-zero, exclude workers **always** (unlike type 19),
-and additionally require `creature+0x28A` to equal **0** for type 20
-(`0x004C7C4C`) and **2** for type 21 (`0x004C7CC4`). That field is never stored by
-name and is compared against 0, 1 and 2 in a filter table at `FUN_00418A90`; it is
-Q269, and type 20 stays declined until it is answered. Type 21 ships no records.
+and require `creature+0x28A` to be **0** (type 20, `0x004C7C4C`) or **2** (type 21,
+`0x004C7CC4`): the **mood class**, 0 Happy, 1 Unhappy, 2 Angry (Q269, tooltip text
+ids 2340/2342/2344), so type 20 counts happy creatures and 21 angry ones. No store
+to it is found; type 20 stays declined until the writer is read. 21 ships no records.
 Types 27, 28, 46, 52, 71, 73 and area 70 are in `trigger-dispatch-tables.md`.
 
 ## Parameter provenance

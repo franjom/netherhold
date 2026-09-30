@@ -90,6 +90,23 @@ public sealed class StructureBlocksTests
         Assert.Equal(8, walkable);
     }
 
+    /// <summary>A Hero Portal carries the Portal's handler set byte for byte, and its tile pass
+    /// <c>0x004DCD20</c> writes navigation byte 4 on its centre just as it does a Portal's.</summary>
+    [Fact]
+    public void AHeroPortalsCentreIsTheSameHoleAsAPortals()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.HeroPortal, 5, 5, 7, 7, owner: PlayerIds.Neutral);
+
+        StructureBlocks blocks = StructureBlocks.For(world, db);
+
+        int centre = (6 * world.Width) + 6;
+        Assert.True(blocks.IsPortalCentre(centre));
+        Assert.True(blocks.Blocks(centre));
+        Assert.Equal(1, blocks.Count);
+    }
+
     [Fact]
     public void ADungeonHeartsMiddleNineAreNotWalkableAndTheSixteenAroundThemAre()
     {

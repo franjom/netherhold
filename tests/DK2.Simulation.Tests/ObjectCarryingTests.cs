@@ -114,6 +114,53 @@ public class ObjectCarryingTests
 
     // ---- the carry ----------------------------------------------------------
 
+    /// <summary>
+    /// <b>Gold in the hands does not stop an imp shelving a book.</b> The objects handler
+    /// (<c>0x0046B9C0</c>) reads nothing about what the imp holds (imp-task-objects-and-walks.md §1).
+    /// </summary>
+    [Fact]
+    public void AnImpHoldingGoldStillPicksUpABook()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Library, Shelf, Shelf2);
+        Drop(db, world, Loose);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Middle);
+        imp.GoldHeld = 500;
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        sim.Run(4);
+
+        Assert.Contains(sink.Events, e => e.Kind == "object_claimed");
+    }
+
+    /// <summary>
+    /// <b>A failed Workshop search on a tile skips its books too.</b> The handler keeps one latch
+    /// for specials and one shared by crates and books: a crate first in the tile's list with no
+    /// Workshop to go to leaves the book beside it, though the Library has room. Alone, the book
+    /// is taken.
+    /// </summary>
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void AFailedWorkshopSearchOnATileSkipsItsBooksToo(bool crateFirst, bool bookTaken)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Library, Shelf, Shelf2);
+        world.Player(Keeper).Blueprints.Clear();
+        if (crateFirst) Drop(db, world, Loose, Dk2TerrainFixture.AlarmCrateObjectId);
+        Drop(db, world, Loose);
+        world.SpawnCreature(db, ImpId, Keeper, Middle);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        sim.Run(4);
+
+        Assert.Equal(bookTaken, sink.Events.Any(e => e.Kind == "object_claimed"));
+    }
+
     [Fact]
     public void AnImpCarriesALooseSpellBookToTheLibrary()
     {

@@ -1481,7 +1481,8 @@ public class PrisonTests
     public void AHungryCaptiveEatsThroughOneSeventeenOneEighteenAndOneNineteen()
     {
         // 115 finds it hungry and moves to 117, which walks in 6 to the bird resuming in
-        // 118; 118 eats and 119 waits it out, back to 115.
+        // 118; 118 eats and, filled, sets 119, which waits out the meal and sets 115 on a
+        // later turn (0x00473750 re-read 2026-09-30).
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
@@ -1494,8 +1495,83 @@ public class PrisonTests
             () => sink.Events.Any(e => e.Kind == "prisoner_ate"));
 
         Assert.Contains((Walk, PrisonRules.SeekingFoodState, PrisonRules.EatingState), seen);
+        Assert.Equal(0, captive.HungerNeed);
+        Assert.Equal(PrisonRules.AfterEatingState, captive.Dk2StateId);
+
+        sim.Tick();
         Assert.Equal(PrisonRules.DecidingState, captive.Dk2StateId);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void EatingWipesAPrisonersHungerGrievance()
+    {
+        // 118 calls 0x00486F80(1) on the food before it eats: bucket 1 goes to zero.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = HungryPrisoner(db, world, CellA);
+        captive.Anger.Hunger = 5000;
+        Chicken(db, world, CellC);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int i = 0; i < 10 * Second && !sink.Events.Any(e => e.Kind == "prisoner_ate"); i++) sim.Tick();
+
+        Assert.Contains(sink.Events, e => e.Kind == "prisoner_ate");
+        Assert.Equal(0, captive.Anger.Hunger);
+    }
+
+    [Fact]
+    public void AStillHungryCaptiveGoesStraightBackToOneSeventeenAndSearchesWithoutTheHungerTest()
+    {
+        // Owing one helping more than a bird pays: after the meal 0x00477AD0 returns the
+        // need still owed, so 118 goes back to 117, and 117 searches on the next turn with
+        // no hunger threshold and no retry wait. With no second bird it finds none and
+        // drops to 116 with the no-food anger. Ours used to pass 119 to 115, whose hunger
+        // test (need >= HungerFill) then kept it from searching at all.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = HungryPrisoner(db, world, CellA);
+        captive.HungerNeed += 1;
+        Chicken(db, world, CellC);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int i = 0; i < 10 * Second && !sink.Events.Any(e => e.Kind == "prisoner_ate"); i++) sim.Tick();
+
+        Assert.Equal(1, captive.HungerNeed);
+        Assert.Equal(PrisonRules.SeekingFoodState, captive.Dk2StateId);
+
+        sim.Tick();
+        Assert.Contains(sink.Events, e => e.Kind == "prisoner_no_food" && e.Detail.Contains($"creature={captive.Id} "));
+        Assert.Equal(PrisonRules.InTheCellState, captive.Dk2StateId);
+    }
+
+    [Fact]
+    public void ACaptiveWhoseBirdIsGoneGoesBackToOneSeventeenNotOneFifteen()
+    {
+        // 118 with nothing edible underfoot sets 117, not 115; 117 then looks again.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = HungryPrisoner(db, world, CellA);
+        ObjectState bird = Chicken(db, world, CellC);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int i = 0; i < 5 * Second && !sink.Events.Any(e => e.Kind == "prisoner_food_chosen"); i++) sim.Tick();
+        Assert.Contains(sink.Events, e => e.Kind == "prisoner_food_chosen");
+
+        world.RemoveObject(bird.Id);
+        for (int i = 0; i < 5 * Second && !sink.Events.Any(e => e.Kind == "prisoner_food_lost"); i++) sim.Tick();
+
+        Assert.Contains(sink.Events, e => e.Kind == "prisoner_food_lost");
+        Assert.Equal(PrisonRules.SeekingFoodState, captive.Dk2StateId);
+
+        sim.Tick();
+        Assert.Equal(PrisonRules.InTheCellState, captive.Dk2StateId);
     }
 
     [Fact]

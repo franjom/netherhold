@@ -180,13 +180,13 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   `AngerNoFood` goes to bucket 1 with selector 1 and message `0x40`; otherwise a walk to
   it resuming in 118, returning 1. No food, or a walk that fails, sets 116.
 - **118** (`0x00473750`): on the food it wipes bucket 1 (`0x00486F80(1)`), eats, and goes
-  to 119, or to 115 without food. **119** (`0x00473730`) waits for the action, then 115.
+  to 119 if filled, else 117 (re-read 2026-09-30). **119** (`0x00473730`) waits, then 115.
 - **123–125** toggle the prison's `+0x5D` and walk; **121/122** are "freeing comrades".
   Neither is traced further.
 - **76** (`0x0046EAB0`), a creature the map places with flag bit 6, goes by the room it
   stands in; in a Torture Chamber it zeroes `+0x4F6` and sets 130. 77 does not zero it.
 - **Built** (ADR-0191, ADR-0194): 114 and 120 into 115, a step walked in 116, 117 to 118,
-  119 and 115, 117 to 116 with no food, and the drain on category 14. **Ours:** 114's move
+  119 and 115 (118 back to 117 when owing or birdless), 117 to 116, the drain on 14. **Ours:** 114's move
   to 115 happens on the tick of admission. The roll for a step is our 20 % a tick, from
   116 through 115, standing in for 116's roll and 115's slab pick.
 
