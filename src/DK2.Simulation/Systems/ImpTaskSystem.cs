@@ -1121,13 +1121,21 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         static bool IsOwned(byte owner) => owner is not (PlayerIds.Unowned or PlayerIds.Neutral);
     }
 
+    /// <summary>
+    /// Where the ring scan starts when its caller passes no chooser (the dispatcher's kinds 6, 7,
+    /// 8 and 16). Not a draw: <c>0x00468d10</c> reads the side from a local only the chooser
+    /// writes (<c>0x00468deb</c>), so it starts on whatever the stack held, and a value above 3
+    /// skips ring 1's first side (<c>0x00468e38</c>). UNKNOWN; ours starts north (ADR-0294).
+    /// </summary>
+    private const int UnchosenStartSide = 0;
+
     /// <summary>The dispatcher's kinds 6 and 16 (<c>0x00468520</c>): the ring scan over the whole
-    /// map with the reinforce handler alone, started on a <c>rand(4)</c> side, not the chooser's.
+    /// map with the reinforce handler alone, started on <see cref="UnchosenStartSide"/>, not the chooser's.
     /// ADR-0292.</summary>
     private bool TryTakeReinforce(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
         WorldState world = context.World;
-        var rings = new DiamondRings(world, creature.Tile, context.Rng.NextInt(4));
+        var rings = new DiamondRings(world, creature.Tile, UnchosenStartSide);
         while (rings.MoveNext())
         {
             TilePos tile = rings.Current;
@@ -1853,45 +1861,114 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     // ------------------------------------------------------- carrying objects
 
     /// <summary>
-    /// DK2's imp task <b>kind 8</b>: the nearest loose object that belongs in a
-    /// room, and a walk to it.
+    /// DK2's imp task <b>kind 8</b> (<c>0x00468520</c>): the ring scan over the whole map from a
+    /// side of <see cref="UnchosenStartSide"/> with the objects handler <see cref="TryObjectAt"/> on each tile, the
+    /// first tile that gives a job winning; inside the drop scan, that one tile.
     /// <para><b>Second in Tier A</b>, above marked excavation and above claiming
     /// (<c>imp-task-priority.md</c> §4, ADR-0065) - so an imp that finds a book
     /// on the floor shelves it before it digs anything the keeper marked.</para>
-    /// <para>Like every other carry here the destination is settled before the
-    /// walk: an object whose room the keeper has not built, or has no space left
-    /// in, is an object nobody sets off for.</para>
     /// </summary>
     private bool TryTakeObject(
         SimulationContext context, CreatureState creature, CreatureDef definition,
         WorldPathGrid grid)
     {
-        WorldState world = context.World;
-
+        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) return false;
         if (creature.CarriedObjectId >= 0 || creature.CarriedCreatureId >= 0) return false;
-        if (creature.GoldHeld > 0) return false;
+        if (_only is TilePos only) return TryObjectAt(context, creature, grid, only);
 
-        bool found = _pathfinder.TryFindNearest(
-            grid, creature.Tile,
-            at => InScanRange(at) && LooseObjectAt(context, creature, definition, at) is { } loose
-                  && (ObjectCarryRules.TryDestinationFor(world, context.Database, creature, loose) >= 0
-                      || (CrateRules.IsCrate(context.Database, loose) && BlueprintForLooseCrate(context, creature, grid, loose) != null)),
-            _route);
+        WorldState world = context.World;
+        var rings = new DiamondRings(world, creature.Tile, UnchosenStartSide);
+        while (rings.MoveNext())
+        {
+            TilePos tile = rings.Current;
+            if (RingScanVisits(context, world, tile) && TryObjectAt(context, creature, grid, tile)) return true;
+        }
+        return false;
+    }
 
-        if (!found) return false;
+    /// <summary>
+    /// The objects handler (<c>0x0046B9C0</c>) on one tile, the keeper's own or water: its loose
+    /// objects in list order, the first that takes a job winning. A special (flag <c>0x04</c>) needs
+    /// a Library with room, a crate (<c>0x10</c>) a blueprint (the crate branch <c>0x00468910</c>)
+    /// or a Workshop, a book (<c>0x08</c>) a Library; a failed search skips the rest of the tile's
+    /// specials, or of its crates and books together. The tile's one task is taken from a holder
+    /// strictly farther from the object, the holder kicked first (imp-task-objects-and-walks.md §1).
+    /// Not built: a special already standing in its room is not skipped (ours keeps no room id).
+    /// </summary>
+    private bool TryObjectAt(SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos at)
+    {
+        WorldState world = context.World;
+        int index = (at.Y * world.Width) + at.X;
+        ref TileState tile = ref world.TileAtIndex(index);
+        if (tile.OwnerPlayerId != creature.OwnerPlayerId && !context.Database.TerrainById(tile.TerrainId).IsWater)
+            return false;
 
-        TilePos at = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
-        ObjectState? thing = LooseObjectAt(context, creature, definition, at);
-        if (thing is null) return false;
+        bool specialsFailed = false, othersFailed = false;
+        foreach (ObjectState thing in world.Objects)
+        {
+            if (thing.TileIndex != index || !ObjectCarryRules.IsLoose(context.Database, thing)) continue;
+            ObjectFlags flags = context.Database.ObjectById(thing.ObjectTypeId)!.Flags;
 
-        // Kind 8's crate branch (0x00468910) comes before the crate's Workshop: straight to a
-        // blueprint that needs it, as kind 9 or 10 (ADR-0214).
-        if (CrateRules.IsCrate(context.Database, thing)
-            && BlueprintForLooseCrate(context, creature, grid, thing) is { } blueprint)
-            return CommitCrateFetch(context, creature, blueprint, thing, "loose");
+            BlueprintRef? blueprint = null;
+            if (flags.HasFlag(ObjectFlags.TypeSpecial))
+            {
+                if (specialsFailed) continue;
+                if (ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing) < 0)
+                {
+                    specialsFailed = true;
+                    continue;
+                }
+            }
+            else if (flags.HasFlag(ObjectFlags.TypeCrate) || flags.HasFlag(ObjectFlags.TypeSpellBook))
+            {
+                if (othersFailed) continue;
+                if (flags.HasFlag(ObjectFlags.TypeCrate))
+                    blueprint = BlueprintForLooseCrate(context, creature, grid, thing);
+                if (blueprint is null && ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing) < 0)
+                {
+                    othersFailed = true;
+                    continue;
+                }
+            }
+            else
+            {
+                continue;
+            }
 
-        if (ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing) < 0) return false;
+            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == at, _route)) continue;
+            if (ObjectHolder(context, creature, index) is { } holder)
+            {
+                (long ox, long oy) = PileCentre(world, thing);
+                if (!TaskStealing.CanLoseItsTask(holder)
+                    || TaskStealing.DistanceSquared(creature.PosX, creature.PosY, ox, oy)
+                        >= TaskStealing.DistanceSquared(holder.PosX, holder.PosY, ox, oy))
+                    continue;
+                TakeTaskFrom(context, holder, creature, index);
+                holder.TargetObjectId = -1;
+            }
 
+            if (blueprint is { } forCrate) return CommitCrateFetch(context, creature, forCrate, thing, "loose");
+            CommitObjectFetch(context, creature, thing, at);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>The worker holding this tile's kind-8 task: one walking to pick up an object on it.</summary>
+    private static CreatureState? ObjectHolder(SimulationContext context, CreatureState asking, int tileIndex)
+    {
+        foreach (CreatureState other in context.World.Creatures)
+        {
+            if (other.Id == asking.Id || other.Activity != CreatureActivity.FetchingObject) continue;
+            if (context.World.ObjectById(other.TargetObjectId) is { } target && target.TileIndex == tileIndex)
+                return other;
+        }
+        return null;
+    }
+
+    private void CommitObjectFetch(SimulationContext context, CreatureState creature, ObjectState thing, TilePos at)
+    {
+        WorldState world = context.World;
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
         creature.TargetObjectId = thing.Id;
@@ -1905,34 +1982,6 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
             $"type={ObjectName(context, thing)} " +
             $"at=({at.X},{at.Y}) steps={_route.Count}");
-        return true;
-    }
-
-    /// <summary>
-    /// The loose object on <paramref name="at"/> this worker could put away, or
-    /// null. Ties between two on one tile go to the lower object id.
-    /// </summary>
-    private static ObjectState? LooseObjectAt(
-        SimulationContext context, CreatureState worker, CreatureDef definition, TilePos at)
-    {
-        WorldState world = context.World;
-        int index = (at.Y * world.Width) + at.X;
-        ObjectState? best = null;
-
-        foreach (ObjectState thing in world.Objects)
-        {
-            if (thing.TileIndex != index) continue;
-            if (!ObjectCarryRules.CanCarry(context.Database, definition, worker, thing)) continue;
-
-            // The tile it is standing on has to be the imp's own. DK2's test is
-            // "own floor or water"; there is no reason here for a worker to
-            // wade for a book, so this is the narrower half of it (Q170).
-            if (world.TileAtIndex(index).OwnerPlayerId != worker.OwnerPlayerId) continue;
-
-            if (best is null || thing.Id < best.Id) best = thing;
-        }
-
-        return best;
     }
 
     /// <summary>Walking to a loose object, and picking it up on arrival.</summary>

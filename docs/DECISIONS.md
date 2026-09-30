@@ -6402,7 +6402,7 @@ ring by ring, the chain's order deciding within a ring. DK2's is the ring scan o
 `0x2000` (`0x0046402C`): the landing tile, then Manhattan rings 1 to 3 from the chooser
 `0x00469340`'s side, the chain `0x00469240` on each tile the bit-`0x20` filter admits
 (Q488). The dispatcher's kinds 6 and 16 (`0x00468520`), step (a)'s reinforce retry, are the
-same scan over the whole map with the reinforce handler alone, from a `rand(4)` side.
+same scan over the whole map with the reinforce handler alone, from an unchosen side (ADR-0294).
 
 **Decision.** `TryTakeDroppedJob` walks `DiamondRings` to three rings and hands each admitted
 tile to the chain: `TryExcavationAt`, `TryClaimAt`, blueprints, the unconscious,
@@ -6436,3 +6436,28 @@ before) and 288 of Level 1's 309; replays win 20 of 20 and 8 of 20. Gold at an i
 never waits to be fetched. Not built: the non-workers' arm. Not read: whether a kind-7 task
 goes with its pile; a fetcher whose pile was taken in passing keeps the load, and the test
 says so in its name.
+
+## ADR-0294 — The objects handler per tile, and a ring scan with no chooser draws nothing
+**Date:** 2026-09-30 · **Status:** accepted · Research: `imp-task-objects-and-walks.md` §1
+
+**Context.** Kind 8 picked the loose object with the shortest walk, refused an imp holding
+gold, and could not be taken from a holder. DK2's objects handler `0x0046B9C0` runs per tile
+of a ring scan. The notes said a scan passed no chooser (kinds 6, 7, 8, 16) starts on
+`rand(4)`; the disassembly says otherwise.
+
+**Decision.**
+1. `TryTakeObject` is the ring scan over the map, or the drop scan's one tile, with
+   `TryObjectAt`: a tile the keeper owns or water; its loose objects in list order; special,
+   then crate (a blueprint first, `0x00468910`), then book; a failed search latched for the
+   rest of the tile, one latch for specials and one shared by crates and books. Gold in the
+   hands no longer refuses. The tile's task is taken from a holder strictly farther from the
+   object, the holder kicked first.
+2. With no chooser, `0x00468D10` reads its start side from a local only the chooser writes
+   (`0x00468DEB`, read at `0x00468E34`, bounds-checked at `0x00468E38`): stale stack, not a
+   draw. UNKNOWN; ours starts north for kinds 6 and 8 and draws nothing
+   (`UnchosenStartSide`), correcting ADR-0292's `rand(4)`.
+
+**Consequences.** Replays keep 20 of 20 and 8 of 20; drawing `rand(4)` there had cost them
+16 and 4, by shifting every later draw. Not built: a special already standing in its room is
+not skipped (ours keeps no room id). A test that pinned Harkan's single Call to Arms in a
+random run now checks each call's turn and removal.

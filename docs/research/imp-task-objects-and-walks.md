@@ -66,7 +66,8 @@ Because the entry is per tile and the distance per object, two objects on one ti
 give two answers against one holder, as with gold. The handler reads nothing about what
 the imp is carrying or holding.
 
-**What our engine must change** (`ImpTaskSystem.TryTakeObject`, `LooseObjectAt`):
+**What our engine must change** (`ImpTaskSystem.TryTakeObject`; built in ADR-0294 except the
+in-its-room skip and the walk to the object's own position):
 
 - take the tile when it is the keeper's **or water**; ours takes only its own (Q170);
 - drop the refusals ours adds: DK2 does not refuse an imp that holds gold or carries

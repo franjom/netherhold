@@ -100,8 +100,10 @@ north, east, south, west (`0x00469460`, ranked by the byte table at
 `0x00698628`: a marked wall or seam 1, a rival's room 3, a rival's floor 4,
 unowned floor 5 — each only if it touches the keeper's floor — a wall to
 reinforce or repair 12, anything else 127) and keeps the first of the best. For
-the other kinds, which pass no chooser, the side is `rand(4)` from the world
-seed, drawn at every scan. A tile whose byte `+0xB` has bit `0x20` **set** is
+the other kinds, which pass no chooser, nothing sets the side: the scan reads it
+from a local only the chooser writes (`0x00468DEB`, read at `0x00468E34`), so it
+starts on whatever the stack held, and a value above 3 skips ring 1's first side
+(`0x00468E38`). There is no draw (ADR-0294). A tile whose byte `+0xB` has bit `0x20` **set** is
 skipped unless it carries a dig or mine task. The bit is clear on tiles touching
 anything the keeper owns, walls included (level2-live1), so for claims it is
 implied by the handler's own adjacency test; its writers are unread (Q487).

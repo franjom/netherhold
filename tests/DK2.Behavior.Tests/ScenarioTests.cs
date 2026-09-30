@@ -35,12 +35,20 @@ public class ScenarioTests
         // The battle step's own commands, not a scripted cast: action 54 on the first turn
         // divisible by 40 at the Black Knight's tile, and action 63 once the call is seen and
         // Harkan's removal gates fail (ADR-0283).
+        // A later fight still running on a later such turn draws another call: which fights last
+        // that long depends on the run's draws, so every call is checked, not their number.
         Assert.Empty(run.ExpectationFailures);
-        KeeperCommandEmission cast = Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand);
-        var call = (CastSpellAtPlaceCommand)cast.Command;
-        Assert.Equal((39, (byte)4, (byte)3, 4, 7), (cast.InputTick, call.PlayerId, call.SpellId, call.X >> 12, call.Y >> 12));
-        KeeperCommandEmission removal = Assert.Single(run.KeeperCommandLog, e => e.Command is RemoveCallToArmsCommand);
-        Assert.InRange(removal.InputTick, cast.InputTick + 1, cast.InputTick + 1 + KeeperBattleStep.CastGraceTurns);
+        List<KeeperCommandEmission> casts = run.KeeperCommandLog.Where(e => e.Command is CastSpellAtPlaceCommand).ToList();
+        List<KeeperCommandEmission> removals = run.KeeperCommandLog.Where(e => e.Command is RemoveCallToArmsCommand).ToList();
+        Assert.NotEmpty(casts);
+        var call = (CastSpellAtPlaceCommand)casts[0].Command;
+        Assert.Equal((39, (byte)4, (byte)3, 4, 7), (casts[0].InputTick, call.PlayerId, call.SpellId, call.X >> 12, call.Y >> 12));
+        Assert.Equal(casts.Count, removals.Count);
+        for (int i = 0; i < casts.Count; i++)
+        {
+            Assert.Equal(39, casts[i].InputTick % 40);
+            Assert.InRange(removals[i].InputTick, casts[i].InputTick + 1, casts[i].InputTick + 1 + KeeperBattleStep.CastGraceTurns);
+        }
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
 
