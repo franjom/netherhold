@@ -151,6 +151,8 @@ public static class DecisionCheck
             tile.FreshlyDug = false;
             tile.TagOrder = 0;
         }
+        LoadFloorGold(database, world, tiles);
+
         // Each kind's list is walked from its head, the newest task first.
         int order = pool.GetArrayLength();
         foreach (JsonElement entry in pool.EnumerateArray())
@@ -168,7 +170,44 @@ public static class DecisionCheck
                 tile.FreshlyDug = true;
             }
         }
-        _ = database;
+    }
+
+    /// <summary>The frame's floor gold, each pile in the third-of-a-tile cell its point is in;
+    /// the piles of the choice before are removed first. A line without piles loads none.</summary>
+    private static void LoadFloorGold(GameDatabase database, WorldState world, JsonElement tiles)
+    {
+        var old = new List<int>();
+        foreach (ObjectState thing in world.Objects)
+        {
+            if (FloorGold.IsPile(database, thing))
+            {
+                old.Add(thing.Id);
+            }
+        }
+        foreach (int id in old)
+        {
+            world.RemoveObject(id);
+        }
+
+        if (!tiles.TryGetProperty("piles", out JsonElement piles))
+        {
+            return;
+        }
+        foreach (JsonElement pile in piles.EnumerateArray())
+        {
+            int x = pile.GetProperty("x").GetInt32(), y = pile.GetProperty("y").GetInt32();
+            var at = new TilePos(x >> 12, y >> 12);
+            if (!world.Contains(at))
+            {
+                continue;
+            }
+            ObjectState? made = FloorGold.Drop(world, database, at.Y * world.Width + at.X,
+                pile.GetProperty("gold").GetInt32(), (byte)pile.GetProperty("owner").GetInt32());
+            if (made is not null)
+            {
+                made.Cell = (byte)(((y & 0xFFF) * 3 >> 12) * 3 + ((x & 0xFFF) * 3 >> 12));
+            }
+        }
     }
 
     private static void LoadImp(
@@ -181,6 +220,10 @@ public static class DecisionCheck
         int state = imp.GetProperty("state").GetInt32();
         PutIn(creature, state is ImpStates.Resting or ImpStates.Wandering ? state : ImpStates.TaskSelection);
         creature.GoldHeld = imp.GetProperty("gold").GetInt32();
+        if (imp.TryGetProperty("level", out JsonElement level) && level.GetInt32() >= CreatureLevelRules.FirstLevel)
+        {
+            creature.Level = level.GetInt32();
+        }
         creature.JustDropped = imp.GetProperty("just_dropped").GetInt32() != 0;
         creature.DroppedTask = (ImpTaskKind)imp.GetProperty("dropped_task").GetInt32();
         int kind = imp.GetProperty("kind").GetInt32();
