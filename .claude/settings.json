@@ -2,7 +2,7 @@
   "enabledPlugins": {
     "unity@claude-plugins-official": true
   },
-  "enabledMcpjsonServers": ["pyghidra-mcp"],
+  "enabledMcpjsonServers": ["pyghidra-mcp", "dk2kb"],
   "env": {
     "MCP_TIMEOUT": "120000"
   },
@@ -19,7 +19,10 @@
       "mcp__pyghidra-mcp__read_bytes",
       "mcp__pyghidra-mcp__search_code",
       "mcp__pyghidra-mcp__search_strings",
-      "mcp__pyghidra-mcp__search_symbols_by_name"
+      "mcp__pyghidra-mcp__search_symbols_by_name",
+      "mcp__dk2kb__kb_get",
+      "mcp__dk2kb__kb_search",
+      "mcp__dk2kb__kb_history"
     ],
     "deny": [
       "mcp__pyghidra-mcp__delete_project_binary",

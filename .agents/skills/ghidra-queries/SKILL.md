@@ -20,16 +20,19 @@ the traps that have already cost committed wrong claims.
 - RTTI class names (`Rtti.py`, `RttiFind.py`, `NewSizes.py`) stay local too:
   only addresses, offsets and "same class or not" may leave.
 - `git status --short reverse-engineering/` must stay empty.
+- **Write it to the record.** Anything you learn about a function goes into
+  docs/research/functions/<ADDRESS>.md with a dated History line (AGENTS.md,
+  HARD RULE); read that record before you decompile.
 
 ## Before running anything
 
 1. **Grep the repo first.** `docs/research/` and `docs/research/open-questions.md`
    often answer an offset or mask under a different name.
-2. **Know whose project you open.** Claude uses
-   `D:/Ghidra/ghidra projects claude/DK2_RE`, Codex uses
-   `D:/Ghidra/ghidra projects/DK2_RE`. Never open the other agent's project.
-3. **One run per project at a time.** Batch the steps into one call instead of
-   running several calls in parallel.
+2. **Every run works on its own clone.** Each read-only run and each MCP
+   session clones the one project `D:\Ghidra\DK2_RE` (instant on ReFS) and
+   deletes the clone at exit, so runs never collide and may go in parallel;
+   batching steps with `::` still saves the start-up. Only `--write` (used by
+   `dk2tools kb apply-names`) opens the canonical project, one at a time.
 
 ## The MCP server (pyghidra-mcp)
 
@@ -48,26 +51,28 @@ runner above stays the tool for anything scripted or bulk.
   start-up (Claude's start-up timeout is raised to 120 s in
   `.claude/settings.json`); a lock left by a killed session does not block the
   next start. `uv run tools/ghidra/mcp-check.py <agent>` says PASS or FAIL in
-  about ten seconds, on its own copy, so it never collides with a live session.
-- **One server per agent, on a copy of that agent's project.** The server
-  holds its project open for its whole life, so it runs on
-  `D:\Ghidra\mcp\<agent>\DK2_RE` and never blocks the runner. Two sessions
-  of the same agent cannot both hold the copy: the second one's MCP fails to
-  connect, and the runner still works. The launcher refreshes the copy at
-  start-up whenever the real project's database changed, so names given
-  through `--write` runs or the GUI arrive at the next session by themselves.
-- **The copy is a reading surface.** `rename_function`, `set_comment` and the
-  other mutation tools change the copy only, and the next refresh replaces it.
-  Real naming goes into the agent's own project. `delete_project_binary` and
+  about thirty seconds, under its own root, so it never collides with a live session.
+- **One server per session, on a fresh clone.** The server holds its project
+  open for its whole life, so it runs on `D:\Ghidra\mcp\<agent>-<pid>\DK2_RE`,
+  cloned from `D:\Ghidra\DK2_RE` at start and deleted at exit (a reaper
+  process does it when the client kills the launcher; a clone left by a
+  killed session is swept at the next start). Any number of sessions run at
+  once, and names given through `dk2tools kb apply-names` arrive at the next
+  session by themselves.
+- **The clone is a reading surface.** `rename_function`, `set_comment` and the
+  other mutation tools change the clone only, and it is deleted at exit.
+  Real naming goes into the function records and `dk2tools kb apply-names`. `delete_project_binary` and
   `import_binary` are denied to Claude in `.claude/settings.json`; the
   read-only tools are pre-approved there. Codex has no per-tool filter: do not
   call those two.
 - **Build the semantic index once.** `search_code` runs on a chromadb index
-  next to the copy. While it is incomplete every session start embeds the
-  whole binary in the background, which slows every other Ghidra start on the
-  machine and holds shutdown until the in-flight work is done. Run
-  `python tools/ghidra/mcp-serve.py --agent <you> --index-only` once (and
-  with `--reindex` after many renames); a complete index is skipped at start.
+  that each session copies beside its clone from `D:\Ghidra\mcp\index`. While
+  none exists every session embeds the whole binary in the background, which
+  slows every other Ghidra start on the machine and holds shutdown until the
+  in-flight work is done. Run
+  `python tools/ghidra/mcp-serve.py --agent <you> --index-only` once (about
+  ten minutes; again after many renames): it builds on its own clone and
+  replaces `D:\Ghidra\mcp\index` when complete.
 - **Big functions do not fit.** Claude truncates a tool result above its MCP
   output limit; a dispatcher of several thousand lines will be cut. For those
   use the runner with an output file and read it with a filter, as below.
@@ -81,19 +86,21 @@ runner above stays the tool for anything scripted or bulk.
 - The binary's name in every tool call is `DKII.EXE`. The install is pinned
   (`uv tool install pyghidra-mcp==0.2.7`); the project is beta, so upgrade on
   purpose, then run `mcp-check.py`.
+- What the MCP tells you about a function is a finding: it goes into the
+  function's record, not only into the conversation.
 
 ## Running
 
 ```
-python tools/ghidra/ghidra.py --agent claude|codex <Script> <args...> [:: <Script2> <args...>]...
+python tools/ghidra/ghidra.py [--agent <you>] <Script> <args...> [:: <Script2> <args...>]...
 ```
 
 - Steps separated by a standalone `::` run in order in **one** Ghidra start
   (about 15 s of start-up, paid once). Batch every read a question needs.
 - The run is `-readOnly` by default. A `ForceAt`/`ForceGaps`/`DecompLoose`
   change still applies to later steps in the same run, but is not saved.
-  `--write` saves it; use that only in your own project, and only when you
-  mean it.
+  `--write` saves it into the canonical project; leave that to
+  `dk2tools kb apply-names`.
 - **The output path is always the first argument, and must be absolute**
   (Ghidra's working directory is not yours). Put it in your scratchpad or
   `reverse-engineering/`.
@@ -101,9 +108,10 @@ python tools/ghidra/ghidra.py --agent claude|codex <Script> <args...> [:: <Scrip
 - Only the scripts' own lines (`WROTE ...`) and errors are printed. The full
   log is in `reverse-engineering/.cache/ghidra-<agent>.log`, and `--verbose`
   echoes all of it. The exit code is non-zero if any step raised an error.
-- The runner refuses to start while another run holds the project. If
-  Ghidra's own `DK2_RE.lock` is left behind with no Java process alive,
-  delete it.
+- A `--write` run refuses to start while another process holds the canonical
+  project. If Ghidra's own `D:\Ghidra\DK2_RE.lock` is left behind with no
+  Java process alive, delete it. Read-only runs ignore the lock (the clone
+  does not copy it).
 - `--script-path DIR` adds your own scripts (see *Writing a new script*).
   `--dry-run` prints the command. Toolchain paths can be overridden with
   `DK2_GHIDRA_HOME` and `DK2_JAVA_HOME`.

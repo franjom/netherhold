@@ -5,8 +5,10 @@ description: Query DKII.EXE (the original Dungeon Keeper 2 binary) headlessly wi
 
 The skill is shared by every agent working in this repo. Its one copy is
 `.agents/skills/ghidra-queries/SKILL.md`: read that file now and follow it.
-Claude runs with `--agent claude`. Claude's MCP server (pyghidra-mcp, tools
+Claude may pass `--agent claude` (it only names the log and the clone). Claude's MCP server (pyghidra-mcp, tools
 prefixed `mcp__pyghidra-mcp__`, binary name `DKII.EXE`) is spawned by Claude
 Code itself from the repo's `.mcp.json` through `tools/ghidra/mcp-serve.py`;
 nothing to start by hand. Read tools are pre-approved; never call
-`delete_project_binary` or `import_binary`.
+`delete_project_binary` or `import_binary`. Every finding about a function goes
+into docs/research/functions/<ADDRESS>.md with a dated History line; read the
+record first.

@@ -4,6 +4,11 @@
       "type": "stdio",
       "command": "python",
       "args": ["D:/DungeonKeeperRemake/tools/ghidra/mcp-serve.py", "--agent", "claude"]
+    },
+    "dk2kb": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--quiet", "D:/DungeonKeeperRemake/tools/kb/dk2kb.py"]
     }
   }
 }

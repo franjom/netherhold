@@ -41,10 +41,10 @@ switch (args[0])
         return Decide(args[1], args[2], args[3]);
 
     case "sgmap":
-        return SgmapCommand.Run(args[1..], FindRepoRoot());
+        return SgmapCommand.Run(args[1..], Repo.FindRepoRoot());
 
     case "verification-ledger":
-        return VerificationLedger.Run(args[1..], FindRepoRoot());
+        return VerificationLedger.Run(args[1..], Repo.FindRepoRoot());
 
     case "where":
     {
@@ -68,7 +68,7 @@ switch (args[0])
         bool fast = args.Contains("--fast");
         bool check = args.Contains("--check");
 
-        string? root = FindRepoRoot();
+        string? root = Repo.FindRepoRoot();
         if (root is null)
         {
             Console.Error.WriteLine("not inside the repository (no DK2.slnx above the working directory).");
@@ -234,6 +234,9 @@ switch (args[0])
         }
     }
 
+    case "kb" when args.Length >= 2:
+        return FunctionKbCommand.Run(args.Skip(1).ToArray());
+
     case "docs":
     {
         // Budget checker for AGENTS.md's recording rules.
@@ -241,7 +244,7 @@ switch (args[0])
         // It checks only what you CHANGED, because 161 of 234 question rows are
         // already over budget and a checker that reports all of them would be
         // switched off within a day. --all reports the backlog separately.
-        string? docsRoot = FindRepoRoot();
+        string? docsRoot = Repo.FindRepoRoot();
         if (docsRoot is null)
         {
             Console.Error.WriteLine("not inside the repository (no DK2.slnx above the working directory).");
@@ -249,15 +252,15 @@ switch (args[0])
         }
 
         bool all = args.Contains("--all");
-        string baseRef = OptionValue(args, "--since") ?? "HEAD";
-        string? messagePath = OptionValue(args, "--message");
+        string baseRef = Repo.OptionValue(args, "--since") ?? "HEAD";
+        string? messagePath = Repo.OptionValue(args, "--message");
 
         // --message means a commit-msg hook, and a hook must judge the commit,
         // not the tree it happens to sit in. Without this, another session's
         // unstaged edit blocks a commit that does not touch it -- which happened,
         // and the only way past it was --no-verify.
         bool staged = args.Contains("--staged")
-            || (messagePath is not null && !all && OptionValue(args, "--since") is null);
+            || (messagePath is not null && !all && Repo.OptionValue(args, "--since") is null);
 
         var findings = new List<string>();
 
@@ -277,9 +280,9 @@ switch (args[0])
                 Report(Path.GetFileName(messagePath), "commit body", body, DocBudgets.CommitBody);
         }
 
-        IEnumerable<string> files = all ? AllTrackedFiles(docsRoot)
-            : staged ? StagedFiles(docsRoot)
-            : ChangedFiles(docsRoot, baseRef);
+        IEnumerable<string> files = all ? Repo.AllTrackedFiles(docsRoot)
+            : staged ? Repo.StagedFiles(docsRoot)
+            : Repo.ChangedFiles(docsRoot, baseRef);
 
         foreach (string relative in files)
         {
@@ -287,18 +290,18 @@ switch (args[0])
             if (!staged && !File.Exists(full)) continue;
 
             string[] lines = staged
-                ? GitLines(docsRoot, $":{relative}")
+                ? Repo.GitLines(docsRoot, $":{relative}")
                 : File.ReadAllLines(full);
 
             // Whole-file measures only fail when the change made them worse. A
             // one-line fix to a doc that was already long is not the moment to
             // demand it be split, and a checker that says otherwise is one
             // nobody runs.
-            string[] baseLines = all ? [] : GitLines(docsRoot, $"{baseRef}:{relative}");
+            string[] baseLines = all ? [] : Repo.GitLines(docsRoot, $"{baseRef}:{relative}");
             bool Worse(int now, int before) => all || now > before;
             HashSet<int>? touched = all
                 ? null
-                : AddedLineNumbers(docsRoot, baseRef, relative, staged);
+                : Repo.AddedLineNumbers(docsRoot, baseRef, relative, staged);
             bool Touched(int from, int to)
                 => touched is null || Enumerable.Range(from, to - from + 1).Any(touched.Contains);
 
@@ -335,6 +338,7 @@ switch (args[0])
             if (relative.StartsWith("docs/research/", StringComparison.OrdinalIgnoreCase)
                 && relative.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
                 && !relative.EndsWith("open-questions.md", StringComparison.OrdinalIgnoreCase)
+                && !relative.EndsWith("functions/INDEX.md", StringComparison.OrdinalIgnoreCase)
                 && lines.Length > DocBudgets.ResearchDoc
                 && Worse(lines.Length, baseLines.Length))
                 Report(relative, "length", lines.Length, DocBudgets.ResearchDoc);
@@ -455,7 +459,7 @@ switch (args[0])
         //
         // Only a STALE CLAIM fails -- a doc naming a type the code lacks. A doc
         // naming no implementation is RESEARCH ONLY, legitimate, and counted.
-        string? covRoot = FindRepoRoot();
+        string? covRoot = Repo.FindRepoRoot();
         if (covRoot is null)
         {
             Console.Error.WriteLine("not inside the repository (no DK2.slnx above the working directory).");
@@ -2644,6 +2648,9 @@ static int Usage()
     Console.WriteLine("  docs [--since <ref>] [--all]           check AGENTS.md's recording budgets on what");
     Console.WriteLine("                                         changed; --all reports the whole backlog");
     Console.WriteLine("       [--message <file>]                also check a commit message body");
+    Console.WriteLine("  kb check [--all|--staged|--since REF]  check the function knowledge base on what changed");
+    Console.WriteLine("  kb index                               write docs/research/functions/INDEX.md from the records");
+    Console.WriteLine("  kb apply-names [--dry-run]             write the records' names into the canonical Ghidra project");
     Console.WriteLine("  status [--fast] [--check]              regenerate the plan's status paragraph;");
     Console.WriteLine("                                         --check exits 1 if the plan is stale");
     Console.WriteLine("  trigger-run <level> <turns> <out.csv>  our per-turn trigger state, in the live probe's shape");
@@ -3423,23 +3430,6 @@ static IEnumerable<(int X, int Y)> ThingTiles(ThingRecord record)
 
 
 /// <summary>
-/// The repository root, found by walking up for <c>DK2.slnx</c>.
-///
-/// <para>Every path this subcommand reads is relative to the repository, not
-/// to wherever the tool happened to be launched from.</para>
-/// </summary>
-static string? FindRepoRoot()
-{
-    DirectoryInfo? dir = new(Directory.GetCurrentDirectory());
-    while (dir is not null)
-    {
-        if (File.Exists(Path.Combine(dir.FullName, "DK2.slnx"))) return dir.FullName;
-        dir = dir.Parent;
-    }
-    return null;
-}
-
-/// <summary>
 /// The test total, and how many of them are gated on the game installation.
 ///
 /// <para><b>Discovery rather than a source count.</b> Counting
@@ -3592,136 +3582,6 @@ static string DescribeGaps(int[] ids)
     }
     return parts.Count == 0 ? "none" : string.Join(", ", parts);
 }
-
-
-/// <summary>One named option's value, or null.</summary>
-static string? OptionValue(string[] args, string name)
-{
-    int i = Array.IndexOf(args, name);
-    return i >= 0 && i + 1 < args.Length ? args[i + 1] : null;
-}
-
-/// <summary>Runs git in the repository and returns stdout, or empty on failure.</summary>
-static string RunGit(string root, params string[] arguments)
-{
-    var psi = new ProcessStartInfo("git")
-    {
-        WorkingDirectory = root,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-    };
-    foreach (string a in arguments) psi.ArgumentList.Add(a);
-
-    try
-    {
-        using Process? process = Process.Start(psi);
-        if (process is null) return string.Empty;
-        // Drain stderr concurrently: forty changed files' line-ending warnings fill the pipe
-        // and deadlock a reader that waits for stdout first.
-        Task<string> errors = process.StandardError.ReadToEndAsync();
-        string output = process.StandardOutput.ReadToEnd();
-        errors.Wait();
-        process.WaitForExit();
-        return output;
-    }
-    catch (Exception)
-    {
-        return string.Empty;
-    }
-}
-
-/// <summary>Working-tree, staged and untracked paths, relative to the root.</summary>
-static IEnumerable<string> ChangedFiles(string root, string baseRef)
-{
-    var set = new SortedSet<string>(StringComparer.Ordinal);
-    void Collect(string text)
-    {
-        foreach (string line in text.Split('\n'))
-        {
-            string t = line.Trim();
-            if (t.Length > 0) set.Add(t);
-        }
-    }
-
-    Collect(RunGit(root, "diff", "--name-only", baseRef));
-    Collect(RunGit(root, "diff", "--cached", "--name-only", baseRef));
-    Collect(RunGit(root, "ls-files", "--others", "--exclude-standard"));
-    return set;
-}
-
-/// <summary>
-/// The paths a commit would actually carry. Deletions are excluded — there is
-/// nothing left in them to measure.
-/// </summary>
-static IEnumerable<string> StagedFiles(string root)
-    => RunGit(root, "diff", "--cached", "--name-only", "--diff-filter=d").Split('\n')
-        .Select(l => l.Trim())
-        .Where(l => l.Length > 0);
-
-/// <summary>
-/// One blob's lines, from the index (<c>:path</c>) or a commit (<c>ref:path</c>).
-///
-/// <para>Git returns LF-terminated text whatever the working tree uses, so the
-/// carriage return and the trailing empty element are stripped here. A stray
-/// <c>\r</c> adds one to every measured line length, which on the question-row
-/// budget is the difference between passing and failing.</para>
-/// </summary>
-static string[] GitLines(string root, string spec)
-{
-    string text = RunGit(root, "show", spec);
-    if (text.Length == 0) return [];
-    if (text.EndsWith('\n')) text = text[..^1];
-    return text.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
-}
-
-/// <summary>Every tracked path, for the --all backlog report.</summary>
-static IEnumerable<string> AllTrackedFiles(string root)
-    => RunGit(root, "ls-files").Split('\n')
-        .Select(l => l.Trim())
-        .Where(l => l.Length > 0);
-
-/// <summary>
-/// The 1-based line numbers this change adds to one file.
-///
-/// <para>A file with no readable diff is treated as entirely new, which is the
-/// safe direction: a checker that stays silent because it could not read the
-/// diff is worse than one that over-reports.</para>
-/// </summary>
-static HashSet<int> AddedLineNumbers(string root, string baseRef, string relative, bool staged)
-{
-    var added = new HashSet<int>();
-
-    // Staged mode asks only the index. Falling back to the working tree there
-    // would reintroduce exactly the leak this mode exists to close.
-    string diff = staged
-        ? RunGit(root, "diff", "--cached", "-U0", baseRef, "--", relative)
-        : RunGit(root, "diff", "-U0", baseRef, "--", relative);
-    if (!staged && diff.Trim().Length == 0)
-        diff = RunGit(root, "diff", "--cached", "-U0", baseRef, "--", relative);
-
-    if (diff.Trim().Length == 0)
-    {
-        string full = Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar));
-        int count = staged ? GitLines(root, $":{relative}").Length
-            : File.Exists(full) ? File.ReadAllLines(full).Length
-            : 0;
-        for (int i = 1; i <= count; i++) added.Add(i);
-        return added;
-    }
-
-    foreach (string line in diff.Split('\n'))
-    {
-        Match hunk = Regex.Match(line, @"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@");
-        if (!hunk.Success) continue;
-
-        int start = int.Parse(hunk.Groups[1].Value);
-        int count = hunk.Groups[2].Success ? int.Parse(hunk.Groups[2].Value) : 1;
-        for (int i = 0; i < count; i++) added.Add(start + i);
-    }
-
-    return added;
-}
-
 
 
 /// <summary>

@@ -10,9 +10,10 @@
 # globals are a PyGhidraScript mapping, and a module-level loop pays ~12x per
 # name lookup: InsGrep took 51 s at module level and 2 s inside main().
 #
-# The cache is keyed on the project directory, the program path, its last
-# saved time, its modification number and its instruction and function
-# counts, and is rebuilt whenever any of them changes. A run that modifies
+# The cache file is named by the program path and the executable's MD5, which
+# every clone of the project shares, and is rebuilt whenever the program's
+# last saved time, modification number or instruction or function counts
+# change. A run that modifies
 # the program (ForceGaps, ForceAt) bumps the modification number, so a later
 # script in the same run sees a fresh dump.
 #
@@ -28,7 +29,6 @@ import zlib
 _HERE = os.path.dirname(os.path.abspath(__file__))
 # The listing is DKII.EXE's own disassembly, so the cache stays in the ignored
 # reverse-engineering/ folder (ADR-0046), never next to these tracked scripts.
-# The tag hashes the project directory, so the two agents' projects never share a file.
 _CACHE_DIR = os.environ.get('DK2_GHIDRA_CACHE') or os.path.normpath(
     os.path.join(_HERE, '..', '..', '..', 'reverse-engineering', '.cache'))
 
@@ -61,7 +61,7 @@ class InsDb(object):
 def _key(program):
     df = program.getDomainFile()
     return '|'.join(str(x) for x in (
-        df.getProjectLocator().getProjectDir(), df.getPathname(),
+        df.getPathname(), program.getExecutableMD5(),
         df.getLastModifiedTime(), program.getModificationNumber(),
         program.getListing().getNumInstructions(),
         program.getFunctionManager().getFunctionCount()))
@@ -78,8 +78,16 @@ def load(program, run_script):
         with open(path, encoding='utf-8') as f:
             fresh = f.readline().rstrip('\n') == '#key\t' + key
     if not fresh:
+        # Parallel runs share the file, so dump aside and swap it in whole.
+        temp = '%s.%d.tmp' % (path, os.getpid())
         print('insdb: rebuilding %s' % path)
-        run_script('ListingDump.java', [path, key])
+        run_script('ListingDump.java', [temp, key])
+        try:
+            os.replace(temp, path)
+        except OSError:  # another run is reading the old file: use ours, delete it at exit
+            import atexit
+            atexit.register(lambda: os.path.exists(temp) and os.remove(temp))
+            path = temp
     names = {}
     with open(path, encoding='utf-8') as f:
         if f.readline().rstrip('\n') != '#key\t' + key:

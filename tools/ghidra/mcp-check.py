@@ -35,8 +35,8 @@ async def check(agent):
     log_dir = os.path.join(REPO, 'reverse-engineering', '.cache')
     os.makedirs(log_dir, exist_ok=True)
     errlog = open(os.path.join(log_dir, 'mcp-check-%s.log' % agent), 'w')
-    # A live session of this agent holds D:/Ghidra/mcp/<agent>; the check
-    # serves its own copy under a sibling root so the two never collide.
+    # Every session serves its own clone, <root>/<agent>-<pid>; the check
+    # uses a sibling root so its clones and sweep never touch a live session's.
     env = dict(os.environ, DK2_MCP_ROOT=os.environ.get('DK2_MCP_CHECK_ROOT', 'D:/Ghidra/mcp/check'))
     params = StdioServerParameters(command=sys.executable,
                                    args=[os.path.join(HERE, 'mcp-serve.py'), '--agent', agent],
@@ -71,7 +71,29 @@ async def check(agent):
             if 'Logging_World' not in decomp:
                 failures.append('decompile of %s does not show the world-log strings' % PROBE)
     print('total: %.1f s' % (time.time() - t0))
+    left = clones_left(env['DK2_MCP_ROOT'], agent)
+    if left:
+        failures.append('clone(s) left behind under %s: %s' % (env['DK2_MCP_ROOT'], ', '.join(left)))
     return failures
+
+
+def clones_left(root, agent, budget_sec=90):
+    """Wait for the session's clone to go: the reaper deletes it, or, when the
+    client's job killed the reaper too, a sweep does once the processes are gone."""
+    import importlib.util
+    sys.dont_write_bytecode = True  # no __pycache__ in tools/
+    spec = importlib.util.spec_from_file_location('dk2_ghidra_runner', os.path.join(HERE, 'ghidra.py'))
+    runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runner)
+    deadline = time.time() + budget_sec
+    while True:
+        left = sorted(n for n in os.listdir(root) if n.startswith(agent + '-')) if os.path.isdir(root) else []
+        if not left or time.time() > deadline:
+            if not left:
+                print('clone deleted after %.1f s' % (time.time() - deadline + budget_sec))
+            return left
+        runner.sweep_stale_clones(root)
+        time.sleep(1)
 
 
 def main():

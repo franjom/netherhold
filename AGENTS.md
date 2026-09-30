@@ -28,7 +28,7 @@ Before implementing DK2 behavior, check, in this order:
 1. **The binary, via Ghidra** — `reverse-engineering/README.md` has the method
    and ADR-0046 has the rule. Facts may cross into `docs/research/`; decompiler
    output may never cross, anywhere, at all. Setup (since 2026-09-25): Ghidra
-   **12.1.4** at `D:\Ghidra\ghidra_12.1.4_PUBLIC`, projects under `D:\Ghidra\`,
+   **12.1.4** at `D:\Ghidra\ghidra_12.1.4_PUBLIC`, the one project `D:\Ghidra\DK2_RE`, cloned per run,
    scripts run as **PyGhidra (CPython 3)** through `pyghidraRun.bat -H`. 12.1
    ships no Jython. The command and the porting notes are in
    `docs/RESEARCH-QUEUE.md`, *How the binary work is done here*. The
@@ -118,10 +118,25 @@ Every fact has exactly **one** canonical location. Everywhere else links to it.
 | something surprising about *this* code | a comment in the code |
 | why this change, now | the commit message |
 | where the project currently stands | `docs/HANDOFF.md` |
+| what a DKII.EXE function is, and how that verdict changed | its record in `docs/research/functions/` |
 
 If you are about to write a paragraph that exists elsewhere, write `see
 ADR-0102` instead. A second copy is not emphasis — it is a second thing that
 can go stale, and stale claims are this repo's most frequent defect.
+
+### HARD RULE: the function knowledge base is kept current
+
+`docs/research/functions/<ADDRESS>.md` is the one home for what a DKII.EXE
+function is, how sure we are, why, and how that changed. **Every new finding
+or correction about a function goes into its record in the same change, with
+a `History` line dated that day.** A document, ADR or source file that names a
+`FUN_` without a record does not pass `dk2tools kb check`, and the commit hook
+runs it (`docs/plans/` is exempt: a plan is a process document, not a claim).
+Read the record before you decompile: a later session may already have
+disputed what you are about to conclude. `implements` names our code that
+mirrors the function, not code that consumes its output. `INDEX.md` there is
+generated (`dk2tools kb index`); never edit it by hand. Design:
+`docs/plans/2026-09-30-function-knowledge-base-design.md`.
 
 ### Replace, do not append
 

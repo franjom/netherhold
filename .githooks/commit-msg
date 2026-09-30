@@ -30,6 +30,17 @@ if ! dotnet "$TOOL" docs --message "$1"; then
     exit 1
 fi
 
+# --- Blocking: the function knowledge base (AGENTS.md, HARD rule) -------
+#
+# A function named in this commit has a record; a record whose verdict this
+# commit changes carries a History line dated today.
+if ! dotnet "$TOOL" kb check --staged; then
+    echo >&2
+    echo "commit-msg: the function knowledge base is behind this commit." >&2
+    echo "            write or update docs/research/functions/<ADDRESS>.md, then re-run." >&2
+    exit 1
+fi
+
 # --- Advisory: the plan's status paragraph -------------------------------
 #
 # Deliberately NOT blocking. The status line is a reference for whoever reads
