@@ -3,7 +3,9 @@
 **CONFIRMED** unless a paragraph says otherwise. DKII.EXE v1.70 (GOG), read-only Ghidra
 12.1.4/PyGhidra on a worker copy of Claude's project, 2026-09-30. Decompiler output stayed
 under `reverse-engineering/` (ADR-0046); every fact below is in our words with its
-address. No capture was compared; §10 names the checks. `imp-task-priority.md` owns the
+address. No capture was compared here; §10 names the checks. The sibling
+`imp-task-objects-and-walks.md` finishes the rows this note skimmed (kinds 8 and 11, the
+kicked imp's mover, the walk's end) and checks them against captures. `imp-task-priority.md` owns the
 selection order and §7 there is superseded by this note. `travel-states.md` owns the walk
 protocol, `state-categories.md` the category records this note leans on.
 
@@ -38,8 +40,8 @@ keeper per tick.
 | 14 → 3 | just-dug claim `0x00469600` | `[0][0]` of the kind-3 task it creates | tile centre | strictly nearer | kick first | refused |
 | 6, 16 | reinforce/repair `0x0046AEA0` | `[side][0]` | the wall tile's centre, not the reinforce point | strictly nearer | own walk first, then kick | refused |
 | 7 | gold `0x0046B6D0` | `[0][0]` | the gold pile's own position | strictly nearer | kick first | free |
-| 8 | objects `0x0046B9C0` | `[0][0]` | the object's position | strictly nearer | kick first | free (STRONGLY INFERRED, skimmed) |
-| 11 | `0x0046CB80` | `[side][1]` | the side's stance point | taker < holder + `0x32` | kick first | free (STRONGLY INFERRED, skimmed) |
+| 8 | objects `0x0046B9C0` | `[0][0]` | the object's position | strictly nearer | kick first | free (`imp-task-objects-and-walks.md` §1) |
+| 11 | secret door `0x0046CB80` | `[side][1]` **of an unwritten id** (`imp-task-objects-and-walks.md` §2) | the side's stance point | taker < holder + `0x32` | kick first | free (`imp-task-objects-and-walks.md` §2) |
 
 The holder test is the same text in all eight (`0x0046AD30`–`0x0046AD68` in the claim
 handler): liveness byte at `0x006ED540[id]`, thing kind `+0x12 == 0`, `creature+0x252`
@@ -125,11 +127,10 @@ category-3 state, so again a plain commit; `+0xDF` keeps the stale resume.
 
 Nothing else is touched: `+0x8A` task id, `+0x8C/+0x90` tile, `+0x94/+0x96`, `+0x98`
 last kind and `+0x9D` aimed kind all stay. The pool slot is overwritten with the taker's
-id when the taker's own walk succeeds. The route is not cancelled; the body mover in the
-creature update runs for any state whose record flag byte has bit 0, which 10, 11 and 12
-have and 13–26 do not (`0x00488930`, the gate before `0x004D5AF0`), so **the loser keeps
-walking its old route until a new task loads a new one** (STRONGLY INFERRED: the mover's
-path following was not re-read here; `steering-behaviours.md` §5).
+id when the taker's own walk succeeds. The route is not cancelled, but **a kicked imp
+stops where it stands**: the creature update's mover skips every imp (type id `+0x36F ==
+1`), so an imp's body is integrated only by the handlers of states 6, 7 and 265, and 10,
+11 and 12 do not call it (`imp-task-objects-and-walks.md` §3; the earlier "keeps walking its old route" was wrong).
 
 **It chooses again at its next dispatch, which is the same tick when it is updated after
 the thief** (§8). The dispatcher `0x00476FC0` runs the state handler whenever `+0x44` is
@@ -207,7 +208,7 @@ capture check in §10 is what would show a long trade.
 **Two ghosts the code allows.**
 
 1. A kick-first handler kicks the holder and then its own walk fails: the holder is in 10,
-   the slot still names it, and it may keep walking its old route. Every later candidate is
+   the slot still names it, and it stands where it was kicked (`imp-task-objects-and-walks.md` §3). Every later candidate is
    measured against that imp's position; the imp itself retakes the slot only where the
    measure is biased in its favour (the kind-1 arm's two centres, the `0x32` handlers), never
    under the one-point rules, since it is not strictly nearer than itself. The slot frees when the
@@ -244,6 +245,7 @@ constructor is the only writer of eight zeroed heads.
 - Claim and reinforce kick after their own walk and refuse a dead or reused holder;
   dig, gold, objects and 11 kick first and treat such a holder as free.
 - The loser keeps its whole job block, its route and `+0x98`; only the slot changes hands.
+  It does not move again until a new walk starts (`imp-task-objects-and-walks.md` §3).
 - 13, 21 and 25 wait to turn toward the point, not for an occupied stance.
 - Bit `0x20` of tile byte `+0xB` has one writer, `0x004502D0`, and means nothing owned
   within one tile.
@@ -260,8 +262,7 @@ Captures: `reverse-engineering/dk2runs/level1-live1*/`, `level2-live2/`; decode 
    rule, and no other imp nearer than the taker may have had a free slot on that task.
 2. §5 same-tick reselection: a loser with a lower creation order than its thief should
    leave state 10 in the same frame; one with a higher order in the next.
-3. §5 route: a loser that finds nothing should still move along its old path for a few
-   frames before idling.
+3. §5 route: **done, `imp-task-objects-and-walks.md` §3.** A loser does not move while it stays in 10, 11 or 12.
 4. §7 trades: count chains of `lost` lines on one task alternating between two imps; the
    claim kinds should show none, digging only chains of a few frames.
 5. §8: read the eight heads at world `+0x08` from a frame and check the creature list is
@@ -279,5 +280,9 @@ Captures: `reverse-engineering/dk2runs/level1-live1*/`, `level2-live2/`; decode 
 `0x004528E0`, `0x004D0F60`, `0x004D1A20`, `0x004D54F0`, `0x004654F0`, `0x004655D0`,
 `0x00465BC0`, `0x004662E0`, `0x00465790`, `0x00466850`, `0x004653F0`, `0x004654A0`,
 `0x00464240`, `0x00508040`, `0x00508070`, `0x00508110`, `0x00508160`, `0x00508200`,
-`0x00507EF0`, `0x005081C0`, `0x005080E0`. Skimmed: `0x0046B9C0`, `0x0046CB80`,
-`0x00488930` (the mover gate and the call sites of `0x00476FC0` and `0x00464170`).
+`0x00507EF0`, `0x005081C0`, `0x005080E0`. Added 2026-09-30 (`imp-task-objects-and-walks.md`): `0x0046B9C0`,
+`0x0046CB80`, `0x004C6610`, `0x00512D20`, `0x00467460`, `0x00467650`, `0x00467790`,
+`0x00450FF0`, `0x00463DB0`, `0x00464240`, `0x004739C0`, `0x004D5A40`, `0x004D5AF0`,
+`0x004D54F0`, `0x004D5100`, `0x004D1070`, `0x0048ECE0`, `0x00471890`, `0x004D56E0`,
+`0x00508110`, `0x00508160`, `0x00508200`, `0x00507BB0`, `0x004B7250`, and the mover gate
+of `0x00488930` (`0x0048A202`–`0x0048A248`).
