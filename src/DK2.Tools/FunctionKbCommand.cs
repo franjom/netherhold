@@ -219,10 +219,12 @@ static class FunctionKbCommand
 /// <summary>The table dk2tools kb apply-names hands to tools/ghidra/scripts/ApplyNames.py.</summary>
 public static class FunctionKbNames
 {
-    /// <summary>ADDRESS&lt;TAB&gt;name rows by address: every record whose name is not Ghidra's FUN_ default.</summary>
+    /// <summary>ADDRESS&lt;TAB&gt;name rows by address: every record whose name is not Ghidra's FUN_ default,
+    /// except SUPERSEDED ones, whose address may not even be a function entry.</summary>
     public static string Table(IEnumerable<FunctionRecord> records)
         => string.Concat(records
             .Where(r => r.Address.Length > 0 && r.Name.Length > 0 && !r.Name.StartsWith("FUN_", StringComparison.Ordinal))
+            .Where(r => r.Status != "SUPERSEDED")
             .OrderBy(r => r.Address, StringComparer.Ordinal)
             .Select(r => $"{r.Address}\t{r.Name}\n"));
 }

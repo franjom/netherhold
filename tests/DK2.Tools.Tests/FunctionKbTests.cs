@@ -195,7 +195,9 @@ public sealed class FunctionKbTests
         var named = Record("0050EA70") with { Name = "Logging_World" };
         var earlier = Record("00405010") with { Name = "KeyHandler" };
         var unnamed = Record("00414BC0") with { Name = "FUN_00414BC0" };
-        Assert.Equal("00405010\tKeyHandler\n0050EA70\tLogging_World\n", FunctionKbNames.Table([named, unnamed, earlier]));
+        // A SUPERSEDED record may not even be an entry (00498E34 was four bytes into one).
+        var superseded = Record("00498E34") with { Name = "Combat_MeleeSwing_MidEntry", Status = "SUPERSEDED" };
+        Assert.Equal("00405010\tKeyHandler\n0050EA70\tLogging_World\n", FunctionKbNames.Table([named, unnamed, earlier, superseded]));
         Assert.Equal("", FunctionKbNames.Table([unnamed]));
     }
 
