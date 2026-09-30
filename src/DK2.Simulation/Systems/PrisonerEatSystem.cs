@@ -58,10 +58,26 @@ public sealed class PrisonerEatSystem : ISimulationSystem
                 continue;
             }
 
-            // Already walking to one: states 118 and 119.
+            // Already walking to one: the walk that resumes in 118.
             if (creature.TargetObjectId >= 0)
             {
                 Fetching(context, creature, definition);
+                continue;
+            }
+
+            // 119 waits out the meal, then 115 (0x00473730). Action lengths are not
+            // modelled here or at the hatchery, so the wait is the one turn.
+            if (creature.Dk2StateId == PrisonRules.AfterEatingState)
+            {
+                To(context, creature, PrisonRules.DecidingState);
+                continue;
+            }
+
+            // 117 searches every turn it runs, with no hunger test and no retry wait:
+            // both belong to 115, and 118 comes back here directly (0x00473750).
+            if (creature.Dk2StateId == PrisonRules.SeekingFoodState)
+            {
+                Search(context, creature, definition);
                 continue;
             }
 
@@ -103,9 +119,10 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         // frees it on the same second; there is nothing to search.
         if (cell is null) return;
 
-        // 115 decides it is hungry and moves to 117 (ADR-0191).
+        // 115 decides it is hungry and moves to 117 (ADR-0191); a captive 118 sent
+        // back is in 117 already.
         if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
-        To(context, creature, PrisonRules.DecidingState);
+        if (creature.Dk2StateId != PrisonRules.SeekingFoodState) To(context, creature, PrisonRules.DecidingState);
         To(context, creature, PrisonRules.SeekingFoodState);
 
         ObjectState? food = EatingRules.NearestFoodIn(world, database, cell, creature.Tile);
@@ -199,6 +216,9 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, PrisonRules.EatingState);
         if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
 
+        // On the food, before it eats, 118 wipes the hunger grievance (0x00486F80(1)).
+        CreatureAngerRules.Forget(context.World, definition, creature, AngerBucket.Hunger);
+
         int before = creature.Health;
         int gained = EatingRules.EatInPrison(context.Database, definition, creature);
         context.World.RemoveObject(food.Id);
@@ -210,16 +230,9 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             $"health={before}->{creature.Health} gained={gained} " +
             $"need={creature.HungerNeed}");
 
-        // 118 eats, 119 waits it out, 115 decides again.
-        To(context, creature, PrisonRules.AfterEatingState);
-        To(context, creature, PrisonRules.DecidingState);
-
-        // Still owing helpings sends it round again at once. One bird fills a
-        // prisoner completely: EatInPrison pays off a whole level-scaled
-        // HungerFill rather than one helping, because DK2's state 118 passes it
-        // to the same routine the hatchery state passes a literal 1 to. So this
-        // only fires for a prisoner that had accumulated more than one helping,
-        // which is any prisoner left long enough.
+        // The hunger routine returns the need still owed: owing, 118 goes straight back
+        // to 117 for another; filled, 119 waits out the meal. One bird pays a whole
+        // level-scaled HungerFill, so owing means helpings built up over a long stay.
         if (EatingRules.StillOwesFood(creature))
         {
             BackToTheSearch(context, creature);
@@ -228,23 +241,22 @@ public sealed class PrisonerEatSystem : ISimulationSystem
 
         creature.TargetObjectId = EatingRules.NoChicken;
         creature.StopMoving();
+        To(context, creature, PrisonRules.AfterEatingState);
     }
 
     /// <summary>
-    /// Back into state 117, and <b>without</b> the retry wait: the original's
-    /// clock is stamped on the way out of the decision state, not on the way
-    /// into the search, so a prisoner that loses its bird looks again straight
-    /// away rather than a second later.
+    /// Back into state 117, which searches again on the next turn with neither the
+    /// retry wait nor the hunger test: both are 115's, and 118 sends a captive whose
+    /// bird is gone, or who still owes food after one, straight to 117
+    /// (<c>0x00473750</c>, re-read 2026-09-30).
     /// </summary>
     private static void BackToTheSearch(SimulationContext context, CreatureState creature)
     {
         creature.TargetObjectId = EatingRules.NoChicken;
-        creature.FoodAttemptTicks = 1;
         creature.StopMoving();
 
-        // 118 without its bird goes back to 115.
         if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
-        To(context, creature, PrisonRules.DecidingState);
+        To(context, creature, PrisonRules.SeekingFoodState);
     }
 
     /// <summary>A captive state change, for a captive on state ids; a repeat is no move.</summary>

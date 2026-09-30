@@ -40,7 +40,8 @@ public static class PrisonRules
     /// in <see cref="EatingState"/>; with none, the hunger anger and back to 116.</summary>
     public const int SeekingFoodState = 117;
 
-    /// <summary>118: eats the chicken underfoot, then <see cref="AfterEatingState"/>.</summary>
+    /// <summary>118: eats the chicken underfoot, then <see cref="AfterEatingState"/> once
+    /// filled; still owing, or with no bird there, straight back to 117 (0x00473750).</summary>
     public const int EatingState = 118;
 
     /// <summary>119: waits out the eating, then 115.</summary>

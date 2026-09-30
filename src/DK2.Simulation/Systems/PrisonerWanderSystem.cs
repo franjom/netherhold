@@ -50,6 +50,9 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
             // only when the answer is no (PrisonerEatSystem, ADR-0074).
             if (creature.TargetObjectId >= 0) continue;
 
+            // Searching again in 117, or finishing a meal in 119: neither rolls for a step.
+            if (creature.Dk2StateId is PrisonRules.SeekingFoodState or PrisonRules.AfterEatingState) continue;
+
             if (context.Rng.NextInt(100) >= PrisonRules.WanderPercentPerTick) continue;
 
             int start = context.Rng.NextInt(PrisonRules.WanderDirections);

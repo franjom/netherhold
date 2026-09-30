@@ -316,7 +316,7 @@ The owner watched three things in a prison (Q172); two are §6, and this is the 
 |---|---|
 | **115** (`0x73`) | Hungry (`HungerNeed >= HungerFill`, level-scaled) **and** past `TimeBetweenReattemptingHungerSeconds` since the last try → stamp the clock, go to **117**. Otherwise wander |
 | **117** (`0x75`) | `FUN_00473550`. Walk the prison's own tile chain; on each tile walk that tile's object list; keep every object of kind `2` whose definition carries flag `0x80` at `+0xf4`; rank by **straight-line squared distance** and take the smallest. Issue a move to it, resuming in **118**. Found nothing → apply `AngerNoFood`, tell the interface, drop back to **116** |
-| **118** (`0x76`) | `FUN_00473750`. A food-flagged object on the tile underfoot: destroy it, and pay off hunger by **the whole of `HungerFill`**. Still owing → back to **117**. **Nothing there → also back to 117** |
+| **118** (`0x76`) | `FUN_00473750`. A food-flagged object on the tile underfoot: destroy it, and pay off hunger by **the whole of `HungerFill`**. Still owing → back to **117**; filled (the hunger routine `0x00477AD0` returns 0) → action 26 if the definition's action 13 allows it, then **119**. **Nothing there → also back to 117** (re-read 2026-09-30) |
 
 **117 is a walk, not a meal**: `FUN_00471890(object + 0x1a, 0x76, 0x80)` is a move order with a resume state, and 0x76 is 118.
 
