@@ -35,8 +35,10 @@ belong to a single level-wide object:
    at `0x004C8A45` it deliberately loads the global instead before delegating.
    If flags were per-player this is the one call site that would have shown it.
 4. **Neither global is per-player.** `0x006E5050` is written at two sites
-   (`0x004B5A38`, `0x004B6026`) and `0x006E5054` at exactly one (`0x004C1EA9`),
-   each from a constructor parameter. Singletons, set at construction.
+   (`0x004B5A38`, `0x004B6026`) and `0x006E5054` set at one (`0x004C1EA9`),
+   each from a constructor parameter, and cleared to zero at one more, the player
+   list's teardown `0x004C2010` (`0x004C203E`, re-read 2026-09-30; the scan missed a
+   store from a register). Singletons, set at construction.
 
 **Method control:** the scan walked every initialised block, `cseg`
 (`0x00653000`–`0x0066BFFF`) included, and returned 19 references to the flag bank

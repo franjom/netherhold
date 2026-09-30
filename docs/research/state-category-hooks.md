@@ -180,7 +180,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   `AngerNoFood` goes to bucket 1 with selector 1 and message `0x40`; otherwise a walk to
   it resuming in 118, returning 1. No food, or a walk that fails, sets 116.
 - **118** (`0x00473750`): on the food it wipes bucket 1 (`0x00486F80(1)`), eats, and goes
-  to 119, or to 115 without food. **119** (`0x00473730`) waits for the action, then 115.
+  to 119 if filled, else 117 (re-read 2026-09-30). **119** (`0x00473730`) waits, then 115.
 - **123–125** toggle the prison's `+0x5D` and walk; **121/122** are "freeing comrades".
   Neither is traced further.
 - **76** (`0x0046EAB0`), a creature the map places with flag bit 6, goes by the room it

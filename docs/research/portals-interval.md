@@ -125,7 +125,9 @@ counter only climbs or is zeroed wholesale, and three things follow:
 
 Both zero-stores are handler-table slots for room type 3 — `FUN_004DBB90` at
 slot `+0x01` (the room constructor) and `FUN_004DBBC0` at slot `+0x0d` (the room
-ownership change), the second also stamping `room[0x49] = now`. The table:
+ownership change), and both also stamp `room[0x49] = now` (the constructor
+additionally sets `room[0xA3] = 1`; re-read 2026-09-30, as ADR-0086 amendment 1
+says). The table:
 `portals-room-handler-table.md`.
 
 `FUN_004E5650`, the ownership change, in order: decrement a counter on the old
