@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "pyghidra-mcp": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["D:/DungeonKeeperRemake/tools/ghidra/mcp-serve.py", "--agent", "claude"]
+    }
+  }
+}

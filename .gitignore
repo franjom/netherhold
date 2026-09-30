@@ -62,3 +62,7 @@ reverse-engineering/**
 
 # Cygwin/MSYS crash dumps, which a crashing grep leaves in the working tree
 *.stackdump
+
+# Python bytecode from tools/ghidra scripts run or imported directly
+__pycache__/
+*.pyc

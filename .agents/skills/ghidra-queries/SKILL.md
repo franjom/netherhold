@@ -31,6 +31,57 @@ the traps that have already cost committed wrong claims.
 3. **One run per project at a time.** Batch the steps into one call instead of
    running several calls in parallel.
 
+## The MCP server (pyghidra-mcp)
+
+Since 2026-09-30 the same binary is also served over MCP by
+[pyghidra-mcp](https://github.com/clearbluejar/pyghidra-mcp) (headless,
+PyGhidra, installed with `uv tool install pyghidra-mcp`). It answers the quick
+questions - decompile one function, list its xrefs, disassemble a range, search
+strings or symbols, walk a call graph - without a 15 s headless start, and the
+runner above stays the tool for anything scripted or bulk.
+
+- **Nobody starts it by hand.** The client runs
+  `python tools/ghidra/mcp-serve.py --agent <you>` over stdio when a session
+  opens and closes it when the session ends: Claude from the repo's
+  `.mcp.json`, Codex from `[mcp_servers.pyghidra-mcp]` in
+  `~/.codex/config.toml`. The first tool answer comes after about 8 s of JVM
+  start-up (Claude's start-up timeout is raised to 120 s in
+  `.claude/settings.json`); a lock left by a killed session does not block the
+  next start. `uv run tools/ghidra/mcp-check.py <agent>` says PASS or FAIL in
+  about ten seconds, on its own copy, so it never collides with a live session.
+- **One server per agent, on a copy of that agent's project.** The server
+  holds its project open for its whole life, so it runs on
+  `D:\Ghidra\mcp\<agent>\DK2_RE` and never blocks the runner. Two sessions
+  of the same agent cannot both hold the copy: the second one's MCP fails to
+  connect, and the runner still works. The launcher refreshes the copy at
+  start-up whenever the real project's database changed, so names given
+  through `--write` runs or the GUI arrive at the next session by themselves.
+- **The copy is a reading surface.** `rename_function`, `set_comment` and the
+  other mutation tools change the copy only, and the next refresh replaces it.
+  Real naming goes into the agent's own project. `delete_project_binary` and
+  `import_binary` are denied to Claude in `.claude/settings.json`; the
+  read-only tools are pre-approved there. Codex has no per-tool filter: do not
+  call those two.
+- **Build the semantic index once.** `search_code` runs on a chromadb index
+  next to the copy. While it is incomplete every session start embeds the
+  whole binary in the background, which slows every other Ghidra start on the
+  machine and holds shutdown until the in-flight work is done. Run
+  `python tools/ghidra/mcp-serve.py --agent <you> --index-only` once (and
+  with `--reindex` after many renames); a complete index is skipped at start.
+- **Big functions do not fit.** Claude truncates a tool result above its MCP
+  output limit; a dispatcher of several thousand lines will be cut. For those
+  use the runner with an output file and read it with a filter, as below.
+- For the CodeBrowser in the same JVM, or one server shared by several
+  sessions of one agent, run the HTTP variant by hand:
+  `python tools/ghidra/mcp-serve.py --agent <you> --http [--gui]` (ports
+  8000/8001) and point the client at `http://127.0.0.1:<port>/mcp`.
+- **ADR-0046 applies unchanged.** What the MCP returns is decompiler output:
+  it stays in the conversation or under `reverse-engineering/`, never in
+  `docs/`, `src/`, `tests/` or `tools/`. Facts cross; text does not.
+- The binary's name in every tool call is `DKII.EXE`. The install is pinned
+  (`uv tool install pyghidra-mcp==0.2.7`); the project is beta, so upgrade on
+  purpose, then run `mcp-check.py`.
+
 ## Running
 
 ```

@@ -34,7 +34,10 @@ Before implementing DK2 behavior, check, in this order:
    `docs/RESEARCH-QUEUE.md`, *How the binary work is done here*. The
    repeatable queries are the `ghidra-queries` skill
    (`.agents/skills/ghidra-queries/SKILL.md`): the runner
-   `tools/ghidra/ghidra.py --agent <you>`, the script catalogue and the traps.
+   `tools/ghidra/ghidra.py --agent <you>`, the script catalogue and the traps,
+   and (since 2026-09-30) the pyghidra-mcp server, one per agent on its own
+   project copy, which the client spawns itself through
+   `tools/ghidra/mcp-serve.py --agent <you>`.
 2. **The shipped data files** — also the actual DK2, and cheaper to read.
 3. **Original game experiments** — the running install is the oracle for
    anything observable, and it outranks a misread disassembly.

@@ -1,5 +1,29 @@
 {
   "enabledPlugins": {
     "unity@claude-plugins-official": true
+  },
+  "enabledMcpjsonServers": ["pyghidra-mcp"],
+  "env": {
+    "MCP_TIMEOUT": "120000"
+  },
+  "permissions": {
+    "allow": [
+      "mcp__pyghidra-mcp__decompile_function",
+      "mcp__pyghidra-mcp__disassemble",
+      "mcp__pyghidra-mcp__gen_callgraph",
+      "mcp__pyghidra-mcp__list_exports",
+      "mcp__pyghidra-mcp__list_imports",
+      "mcp__pyghidra-mcp__list_project_binaries",
+      "mcp__pyghidra-mcp__list_project_binary_metadata",
+      "mcp__pyghidra-mcp__list_xrefs",
+      "mcp__pyghidra-mcp__read_bytes",
+      "mcp__pyghidra-mcp__search_code",
+      "mcp__pyghidra-mcp__search_strings",
+      "mcp__pyghidra-mcp__search_symbols_by_name"
+    ],
+    "deny": [
+      "mcp__pyghidra-mcp__delete_project_binary",
+      "mcp__pyghidra-mcp__import_binary"
+    ]
   }
 }
