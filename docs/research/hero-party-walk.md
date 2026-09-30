@@ -301,14 +301,16 @@ point in it. Then `0x00471890(point, 178, 1)`. **CONFIRMED** at `0x004624EC`–`
 ring while `0x00454110(cell)` is non-zero, or while it is zero when `b` is set. It writes the tile's
 centre. **CONFIRMED.**
 
-**`0x00454110(cell)`, non-zero meaning refused.** It refuses only for a room cell whose `+0xC` is
-0xFF:
-- **Types 3, 5, 8, 17, 22:** always accepted.
-- **Types 9, 10, 15:** refused on one colour of a checkerboard that `room+0x80` shifts.
-- **Type 14:** refused unless the cell holds an object of type 75.
-- **Any other type:** refused.
+**`0x00454110(cell)`, non-zero meaning accepted** (record `00454110.md`, polarity checked
+2026-09-30). It returns 0 for any cell that is not an interior room cell (`+0xC == 0xFF`); for an
+interior one:
+- **Types 3, 5, 8, 17, 22:** 0.
+- **Types 9, 10, 15:** 1 on one colour of a checkerboard that `room+0x80` shifts.
+- **Type 14:** 0 on the cell holding an object of type 75, else 1.
+- **Any other type:** 1.
 
-So every heart tile is accepted, and job 19's point is a random heart tile. **CONFIRMED.**
+So every heart tile returns 0, the walk above never steps on, and job 19's point is a random heart
+tile. **CONFIRMED.**
 
 **State 177's fallback** (`0x004625F7`–`0x00462642`). The centre of the `DungeonHeartPosition`
 tile itself, `0x00471890(centre, 178, 0)`, with no room asked. **CONFIRMED.**

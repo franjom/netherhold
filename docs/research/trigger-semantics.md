@@ -158,8 +158,8 @@ create the entry — so 69 asks whether the player has marked everything here th
 can be marked.
 
 39 and 70 count and test **things standing in the rectangle**, filtered by a
-category dword at thing `+0x12` and then by `FUN_004B0A80`. Neither is
-implemented; what that filter reads is UNKNOWN.
+category dword at thing `+0x12` and then by `FUN_004B0A80` (owner and own type
+id, 0 any); both are built in `TriggerAreaConditions` (`trigger-dispatch-tables.md`).
 
 ## What an arm returns, and what it does not decide
 

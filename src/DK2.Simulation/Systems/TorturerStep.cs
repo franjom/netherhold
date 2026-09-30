@@ -14,8 +14,8 @@ namespace DK2.Simulation.Systems;
 /// its target tile, then 1, 129 and action 63; 129 holds while the whip plays, then 1, 128.
 /// The whip hurts nothing: it spawns effect <c>0xED</c> at the victim.
 /// <para>Ours, stated: she walks onto the victim's tile rather than 0.6 of a tile off, faces
-/// it at once, the whip's action runs before the state each turn, and the room capacity
-/// test (<c>0x004E53B0</c>) is not modelled, as for every room here. DK2's needs routine can
+/// it at once, and the whip's action runs before the state each turn; the room capacity
+/// test (<c>0x004E53B0</c>) is <c>RoomCapacityRules.HasRoom</c> (ADR-0205). DK2's needs routine can
 /// pull her out of 127–129; ours, like every job's, does not.</para></remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public static class TorturerStep

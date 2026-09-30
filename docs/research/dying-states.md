@@ -22,7 +22,8 @@ Confidence: **STRONGLY INFERRED (binary)**.
   `state+0xAB` with `0x00517490`'s value + 10. Both return at once for a creature
   already in 216 or 217, and return 0 if `SetState(216)` is refused. Then they write
   the body's `+0xF4`/`+0x102` words and position, zero three vectors, clear
-  `+0x453`/`+0x455`, call `0x0048AD30(1)` when the unread `0x00478050` returns 22,
+  `+0x453`/`+0x455`, call `0x0048AD30(1)` when `0x00478050` returns 22 (the state's category, combat;
+`training.md` §8),
   and set `+0x3EA` bit 10. The rule admits 216 from every state: group 3 with
   category 23 is its passthrough (`creature-state-table.md` §2.2).
 - **216's handler** `0x00459850` returns 1 while an action runs (`0x00496D00`, the
@@ -55,4 +56,3 @@ none.
 
 - Which of `0x00459560`'s five callers is the ordinary collapse, and what the
   single caller `0x0048B770` of `0x004596D0` is for.
-- What `0x00478050` returns, whose 22 sends a newly collapsed creature to state 1.

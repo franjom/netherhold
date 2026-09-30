@@ -97,7 +97,7 @@ damage = (multiplier * base) >> 12          ; 12.12, truncating
 
 ## 4. What the swing then does to it, in order
 
-`FUN_00498E34` from `0x00498EC1`. **The damage is negated immediately**, at
+`FUN_00498E30` from `0x00498EC1`. **The damage is negated immediately**, at
 `0x00498ED3`, so every step below operates on a negative number and every
 `/ 100` truncates **toward zero** — each bonus is therefore slightly *smaller*
 in magnitude than the same arithmetic on a positive value. That is a real

@@ -339,8 +339,8 @@ somebody does, and that somebody is a creature in a stealable state, the
 handler compares **squared straight-line distance** — mine to the task versus
 theirs to the task — and **takes the task if it is nearer**, re-assigning the
 holder. The gold and reinforce handlers, the claim handler and the dig handler
-all do it. Ours never re-assigns a job once taken (`ImpCrowding` refuses the
-face instead). Recorded, not built (**Q155**).
+all do it. Built for dig, mine, claim and reinforce (ADR-0289,
+`imp-task-stealing.md`); gold and objects stealing are not (**Q155**).
 
 ---
 
@@ -356,7 +356,7 @@ face instead). Recorded, not built (**Q155**).
 | kind 14 | taken only on the way: `0x00464170` on entering a tile, category 3, more than two tiles from the task tile, last kind 1–7 or 16 | **built for deposit walks** (ADR-0286, Q489) — `TryClaimOnTheWay` |
 | gold in hands | put down only by 26, 27 (full hands), 76, and in 10 by kind 15 or the aimed kind 7 (full hands) | **built** (ADR-0288); our pre-choice deposit is gone |
 | equal distance | the newest task, the list's head | **built** for the dig walk (ADR-0288), `TileState.TagOrder` |
-| stealing | nearer imp takes the task | not built (Q155); 7 of the Level 1 capture's choices and 38 of Level 2's were an imp losing its task this way |
+| stealing | nearer imp takes the task | **built** for dig, mine, claim and reinforce (ADR-0289, `imp-task-stealing.md`); gold and objects not (Q155); 7 of the Level 1 capture's choices and 38 of Level 2's were an imp losing its task this way |
 | just-dropped scan | three tiles, nine-step chain | **built** (ADR-0062, ADR-0069) — `TryTakeDroppedJob`, `DropScanTiles` = 3 Chebyshev measured to the work's tile, in DK2's drop order minus kind 11 (Q162); the crate kinds are ADR-0214 |
 | the aimed bonus | `DroppedTask` carries Efficiency +10 for as long as work of that kind lasts; `DroppedTask == LastTaskType` retries that kind whole-map before it is cleared | **built** (ADR-0069) — `TryTakeJobOfKind`, `CreatureState.DroppedTask`/`JustDropped`/`LastTaskKind`. The bonus itself is `hand-of-evil.md` §6 |
 | kind 13 | carry an unconscious creature: own to a Lair, an enemy's to a Prison. **The Combat Pit is a confirmed source**: its loser is knocked out, never killed (owner, Q310), so a pit fight feeds this kind first — and kind 12 only when no imp arrives before the dying window closes, which the owner confirms does kill it | **built, both branches** — the rescue to its own bed (ADR-0063) and the capture into a cell (ADR-0064). What the prison then does is `docs/research/prison.md` |
@@ -386,7 +386,7 @@ kind 3 tests for the *absence* of Lava and Water, and is claiming.
 - **Q153** — answered: the reinforce ceiling at `terrain+0x1ad` is `MaxHealth` (§3).
 - **Q154** — revised (ADR-0286): kind 14 is never chosen; it is claimed on the way (Q489).
 - **Q162** — answered: the drop scan reaches three tiles (§4b).
-- **Q155** — task stealing by distance: read, not built (§7).
+- **Q155** — task stealing by distance: built for four handlers (§7, ADR-0289).
 - **Q25** — answered 2026-09-29: the nearest by straight-line distance, list
   order only on an exact tie (§2.2).
 - kind 11's identity and raiser; the `tile+0xb & 0x20` scan pre-filter.

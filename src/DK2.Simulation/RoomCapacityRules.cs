@@ -77,7 +77,8 @@ public static class RoomCapacityRules
     /// same test, so it need not be skipped. It only decides whether message
     /// <c>0x2A</c> is raised; either way the creature goes to state 1. Ours skips its
     /// reachability test (<c>0x004D0E60</c>) and its preference for rooms none of whose
-    /// occupants pass the unread <c>0x0045C640</c>, neither changing the answer's use.</summary>
+    /// occupants the alignment objection test <c>0x0045C640</c> objects to, neither changing
+    /// the answer's use.</summary>
     public static bool AnotherHasRoom(
         WorldState world, GameDatabase database, RoomInstance full, int exceptId)
     {

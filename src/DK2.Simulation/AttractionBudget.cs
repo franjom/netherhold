@@ -10,7 +10,7 @@ namespace DK2.Simulation;
 /// <summary>DK2's second attraction gate: a per-creature-type budget, not a yes/no.
 /// The original builds a value for each type from the keeper's matching rooms, takes
 /// <b>one</b> off it for every creature of that type already held, and admits the type
-/// only while the value stays above zero (<c>0x004DC0F0</c>ff).
+/// only while the value stays above zero (<c>0x004DBF90</c>).
 /// <para>Whole numbers here where the original uses 12-bit fixed point: every
 /// contribution is an integer shifted left 12 and every subtraction is exactly 1.0, so
 /// the comparison is the same one. <c>PortalRules.IsAttracted</c> is the separate

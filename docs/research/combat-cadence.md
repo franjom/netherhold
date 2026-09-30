@@ -32,7 +32,7 @@ Every access in the image, by width, gives the block's boundaries:
 | `def+0x5C0` | dword | `MeleeRange` | `FUN_0045E190` |
 | `def+0x5C4` | **word** | `MeleeDamage` | `FUN_00494D00`, twice |
 | `def+0x5C6` | dword | **`MeleeRecharge`** | `FUN_00494EF0`, which has **6 callers** |
-| `def+0x5CA` | dword | the attack-gate interval | `FUN_00498CA0`, `FUN_00498D20`, `FUN_00498E34` |
+| `def+0x5CA` | dword | the attack-gate interval | `FUN_00498CA0`, `FUN_00498D20`, `FUN_00498E30` |
 | `def+0x5CE` | dword | — | — |
 
 The widths are not inferred. `FUN_0051F3B0`, the definition copier, moves all
@@ -105,7 +105,7 @@ verbatim, all in the attack cluster:
    `stamp + interval - 1` — that is, `turn >= stamp + interval`; otherwise
    "not yet" (an unsigned compare).
 
-`FUN_00498E34` is the third, so **the swing's cadence is `def+0x5CA`, not
+`FUN_00498E30` is the third, so **the swing's cadence is `def+0x5CA`, not
 `MeleeRecharge`**. Eighteen instructions write `creature+0x3A5`; four are in
 `FUN_00496700`–`FUN_00496D80` and the rest sit in an unnamed run at
 `0x004997D8`–`0x0049A457`.
@@ -134,8 +134,8 @@ fixed-point add, divide and multiply, and the flag arms are mutually exclusive
 
 It has **0 callers and 0 absolute occurrences** across every initialised block,
 and the `0x1939` checksum loop occurs once in the image, so there is no inlined
-twin to find. That is the same signature as `FUN_00498E34`, whose reachability
-`combat.md` §6.1 already attributes to a table built at runtime — so
+twin to find. The swing `FUN_00498E30` looked the same until its entry was
+corrected, and it is reached through a table filled at runtime (`combat.md` §6.0) — so
 "unreferenced" here is not evidence of dead code.
 
 The positive argument is stronger than the parallel: `FUN_00494EF0` reads

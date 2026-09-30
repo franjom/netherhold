@@ -151,9 +151,9 @@ pile — and the creature is issued `move(target, resume: 0xbc, flags: 0xe8)`.
 
 ### 4.3 State 188 `FUN_00472690` — arriving
 
-Re-checks that the player still owns a room of type 1 or 5 (`FUN_004539b0`) and
-bails if not — so a treasury sold out from under a creature mid-walk aborts the
-trip. On arrival: `SetState(0xbd)` = **189**, but only when the region test
+Re-checks that the tile under the creature is a room of type 1 or 5 owned by its
+keeper (`FUN_004539b0`, as §4.4) and bails if not — so a treasury sold out from
+under a creature during the walk aborts the trip. On arrival: `SetState(0xbd)` = **189**, but only when the region test
 `0x004B2AE0` on the tile centre returns a zero word; otherwise 188 returns 1 and
 waits. That test is the turn toward a point, so 188 waits while it turns to face the tile (read 2026-09-25, `tunnelling.md` §3). Ours does neither check.
 

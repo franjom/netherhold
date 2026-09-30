@@ -221,13 +221,13 @@ terrain definition table `DAT_006DA4A8`:
 |---|---|
 | `FUN_00453FC0` | tile is unowned, terrain flag `+0x1CB & 1` set, `+0x17B & 1` clear — **claimable** |
 | `FUN_00453D10` | terrain `+0x17B & 1` set and `& 2` clear — **a diggable wall** |
-| `FUN_00453D80` | tile unowned, terrain solid, `+0x185 != 0` — **reinforceable** |
+| `FUN_00453D80` | tile unowned, terrain solid, `+0x185` (`GoldValue`) `!= 0` — **a gold seam** (imp-task-priority.md, imp-state-exits.md §2) |
 
 **None of them means "the job just finished."** They mean *"is this still a
 valid target for the work I am about to do."* The work applied immediately after
 is the accrual `tile-work.md` establishes runs **once an original tick**, so the
-experience shares that cadence. The handlers are entries in an **imp task
-table** at `0x006E4198`, stride `0x1D`, filled by a second static initialiser
+experience shares that cadence. The handlers are entries in the general 81-record **creature
+action table** at `0x006E4198` (creature-action-table.md), stride `0x1D`, filled by a second static initialiser
 `FUN_004950C0` — not creature state handlers: no state in the 281-record table
 points into `0x00496`–`0x00498`.
 
@@ -347,7 +347,7 @@ still counted as training.
 |---|---|
 | Training refuses at the cap in **six** separate places — the job handler, the category update hook, and four of the six state handlers (108, 110, 111, 112) | — |
 | The category **enter** hook is the one place that does *not* test the cap; it tests only the keeper's gold | `0x0047B230` |
-| A creature at or above `TrainingRoomMaxExperienceLevel` but below `CombatPitMaxExperienceLevel` is handed to **the combat pit's finder** rather than refused | `FUN_00485240` tail, `FUN_004D8870` |
+| A creature at or above `TrainingRoomMaxExperienceLevel` but below `CombatPitMaxExperienceLevel` makes the job handler call **the combat pit's finder** for its messages, discard its result and refuse (`combat-pit.md` §1) | `FUN_00485240` tail, `FUN_004D8870` |
 | State 108 kicks a capped creature to state `0x6E` via a `FUN_00496700(0x2C, …)` test | `FUN_00485310` |
 | The gold spend goes through `FUN_004BA420(-cost, 0, tileX, tileY)`, i.e. it is charged **at the creature's tile** rather than to an abstract balance | `0x0047B3CA` |
 | Message id `0x37` is what a keeper is shown when training cannot be paid for | `FUN_004C4600` |

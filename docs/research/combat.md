@@ -178,7 +178,7 @@ row of §4.
 
 ## 6. The swing, found 2026-09-15, named 2026-09-16 (Q313 — ANSWERED)
 
-**`FUN_00494D00` has exactly one caller: `FUN_00498E34`.** That is Q313's whole
+**`FUN_00494D00` has exactly one caller: `FUN_00498E30`.** That is Q313's whole
 question, and it is now answered from two directions that agree — `CallScanAll`
 found the call site as bytes before the region was analysed, and `AtAndCallers`
 attributes it to a named function after `ForceGaps.py` defined one there (§6.0).
@@ -383,7 +383,7 @@ routine sets `0x54` through `[ESI+0x24E]` twenty bytes on. Not resistance.
 **CONFIRMED (binary):** the health routine and its argument shape; the three
 creature offsets; the melee block's runtime offsets; the stat matrix's layout and
 the `× percent / 100` rule with level 1 exempt; that `FUN_00514830` is not
-combat (it is game action `0x1A`, §3); that `FUN_00498E34` is the attack routine
+combat (it is game action `0x1A`, §3); that `FUN_00498E30` is the attack routine
 and the sole caller of the melee-damage accessor; the recharge gate's shape; the
 bearing bonus's *arithmetic*; both player multipliers; the Monk's
 set-damage-clear around `FUN_004B2CE0`.

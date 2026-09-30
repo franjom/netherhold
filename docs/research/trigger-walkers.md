@@ -149,8 +149,9 @@ Shipped creature-event records: 3 (22), 4 (37), 6 (158), 8 (88), 10 (4),
 are the two filters; `SimulationContext.FireCreatureEvent` is the systems' hook.
 Wired: 3 at executor construction and from the party spawn, 6 from a new
 engagement (DK2 fires on every fight-start), 15 from the stun, 63/61 from the
-entrance arrival. Not yet wired, their sites above: 4, 5/60, 7, 8, 9, 10, 11,
-12, 13, 16, 54, 65/58, 46, 53, 56/57, 59 — each waits on the system that owns
+entrance arrival, 16 and 4 from the health system's collapse and death, 13 from
+a gold steal. Not yet wired, their sites above: 5/60, 7, 8, 9, 10, 11, 12, 54,
+65/58, 46, 53, 56/57, 59 — each waits on the system that owns
 the moment. An event walk's blocked and partial records are not reported.
 
 ## A tree's context decides only part of its meaning

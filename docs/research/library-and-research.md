@@ -147,9 +147,8 @@ conclusion survives, because no shipped field is negative in the −3..−1 rang
 
 The `/100` is the compiler's `MOV EAX,0x51EB851F ; MUL ; SHR EDX,5` reciprocal,
 confirmed in the disassembly rather than trusted from the decompile — which
-mattered, because the decompile of this function also produced one pure artefact
-(a `uVar7 = uVar8 / 0x32000` that is register noise feeding a two-register
-argument).
+mattered, because the decompile of this function also produced one pure artefact:
+a spurious division by `0x32000`, register noise feeding a two-register argument.
 
 **All four `IncreasedWorkRate*` variables are read here, and only here.** Each
 pair is loaded as one dword and split — `DAT_006F2914` is variables 142 and 143,
