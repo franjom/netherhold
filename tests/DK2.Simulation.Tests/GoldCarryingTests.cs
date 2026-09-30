@@ -433,7 +433,7 @@ public class GoldCarryingTests
         Run run = AtTheSeam();
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        run.Ticks(12);
+        for (int t = 0; t < 60 && run.Imp.GoldHeld == 0; t++) run.Tick();
 
         Assert.True(run.Imp.GoldHeld > 0, "the imp should be mid-delivery");
 

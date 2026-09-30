@@ -28,6 +28,9 @@ public sealed class CreatureMovementSystem : ISimulationSystem
     /// <summary>The speed setter clamps what it stores at <c>0xFFF</c> entity units a tick.</summary>
     public const int MaxSpeedPerTick = 0xFFF;
 
+    /// <summary>The Imp's creature type id, the one the update's mover gate names.</summary>
+    private const int ImpTypeId = 1;
+
     public string Name => SystemName;
 
     public void Execute(SimulationContext context)
@@ -65,14 +68,23 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             // braking step and the state that follows stands where it stopped.
             if (creature.Body.PathTotalCount == 0) continue;
 
+            // DK2 moves an imp only in its walking states, 6, 7 and 265 (the update's gate skips type
+            // id 1 at 0x0048A202; state 6 integrates it itself), so a kicked or working imp stands
+            // (imp-task-objects-and-walks.md §3). Ours routes imps in states of its own too, so the
+            // gate names the ones DK2 is read to hold still: selection 10–12 and the work 13–26.
+            if (creature.CreatureTypeId == ImpTypeId && creature.Dk2StateId is >= 10 and <= 26)
+                continue;
+
             Advance(context.Database, steering, creature, context.Database.CreatureById(creature.CreatureTypeId));
         }
     }
 
     /// <summary>The body's speed cap in 16.16 tiles a tick: the level-scaled definition speed
     /// divided by the tick rate as the loader does it, clamped, shifted up four.</summary>
-    public static int MaxSpeedOf(GameDatabase database, CreatureDef definition, int level) =>
-        MaxSpeedOf(database, definition, level, running: false);
+    public static int MaxSpeedOf(GameDatabase database, CreatureDef definition, int level)
+    {
+        return MaxSpeedOf(database, definition, level, running: false);
+    }
 
     /// <summary>The same cap for a creature set running (<c>0x004887D0(1)</c>, the fight and the
     /// withdrawal): the record's <c>RunSpeed</c>, scaled by the Speed row like the walk

@@ -370,11 +370,11 @@ public class ImpTests
         Run run = Start(new TilePos(2, 2));
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 2)));
-        run.Ticks(SimulationTiming.TicksFromSeconds(6));
+        run.Ticks(SimulationTiming.TicksFromSeconds(8));
 
         // Rock at 165 health goes in ONE application on the shipped DigRockHealth,
-        // as both full-state captures show (2026-09-29). Six seconds covers the dig
-        // and the claim at DK2's work cadence (ADR-0280).
+        // as both full-state captures show (2026-09-29). Eight seconds covers the dig
+        // and the claim at DK2's work cadence (ADR-0280) and walks that end on their point.
         Assert.Contains(run.Of("destroyed"), e => e.Detail.Contains("(4,2)"));
 
         // The first job it took was the marked one.

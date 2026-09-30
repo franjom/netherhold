@@ -6502,3 +6502,24 @@ is three trips of 1,090, 1,091 and 819; at level 2, five strikes. The capture in
 which keeps mining. Replays against HEAD: Level 1 18 of 20 (20), Level 2 11 of 20 (12), within
 seed noise; with walks ending on their point it is what keeps Level 1 at 17, not 13. The
 checker is unchanged (288/309, 732/799): it does not score leaving a seam.
+
+## ADR-0297 — A job walk ends on its point, with DK2's option words, and an imp at work stands still
+**Date:** 2026-09-30 · **Status:** accepted · Research: `imp-task-objects-and-walks.md` §4, `imp-walk-arrival.md`
+
+**Context.** Ours ended a walk on entering its tile, so a claim began before the imp reached the
+centre (Q490). State 6 (`0x00470C80`) resumes only when `0x004D54F0` returns exactly 1.0. The
+route request `0x004D0F60` turns the option word's bits 5 and 6 into path flags `0xC`, and bit 2
+switches on the integrator's arrival snap, already built. In `seed01`, 41 of 49 neighbour claims
+begin 13 ticks after the last; ours took 15 once walks ended on their point without the snap.
+
+**Decision.**
+1. State 6 resumes work only at progress 1.0 (`FollowPathRules.Progress`); a route still held
+   then waits.
+2. Claim walks pass `MoveOptions.Spot` (`0xE0`), and the other job walks `ExactSpot` (`0xE8`).
+3. A worker on its stance tile still walks to its point, so a route loaded there counts as routed.
+4. The movement system skips an imp in states 10 to 26, which DK2's creature mover never moves.
+
+**Consequences.** Neighbour claims come 13 ticks apart, as in the capture; a one-strike dig lands
+a tick later. Replays against HEAD: Level 1 17 of 20 (18), Level 2 12 of 20 (11); the
+checker is unchanged (288/309, 732/799). Without ADR-0296 the same change cost Level 1 seven seeds.
+Not built: the route request zeroing the body's velocity.

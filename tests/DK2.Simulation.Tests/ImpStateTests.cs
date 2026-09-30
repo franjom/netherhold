@@ -54,16 +54,17 @@ public class ImpStateTests
     {
         // 1 hands the imp to 10 first. 10 walks in 6 resuming in 13; 13 holds one tick and
         // moves to 14, which swings until the rock is dug and sets 10. The claim of the tile
-        // it opened is 15 into 16 the same way. The wall beside it needs no walk, so 6 falls
-        // inside one tick, and 21 holds its tick before 22 (mining-cadence.md §5, §6).
+        // it opened is 15 into 16 the same way. The wall beside it is walked to as well: from the
+        // tile's centre to the reinforce point, one tick in 6, then 21 holds its tick before 22
+        // (mining-cadence.md §5, §6; a walk ends at its point, imp-task-objects-and-walks.md §4).
         (GameSimulation sim, ListEventSink events) = Start(new TilePos(2, 2));
 
         Assert.Equal(
             [(Select, 0, 0),
              (Walk, Select, 13), (13, Select, Idle), (14, Select, Idle), (Select, Select, Idle),
              (Walk, Select, 15), (15, Select, Idle), (16, Select, Idle), (Select, Select, Idle),
-             (21, Select, Idle), (22, Select, Idle)],
-            StatesSeen(sim, SimulationTiming.TicksFromSeconds(7),
+             (Walk, Select, 21), (21, Select, Idle), (22, Select, Idle)],
+            StatesSeen(sim, SimulationTiming.TicksFromSeconds(10),
                 TagTilesCommand.Tag(Keeper, new TilePos(4, 2))));
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }

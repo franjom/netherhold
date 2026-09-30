@@ -393,7 +393,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
     private void UpdateMoving(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        if (IsInWorkingPosition(context, creature, grid))
+        // State 6 resumes only when the route's progress is exactly 1.0 after the tick's move
+        // (0x00470C80, 0x004D54F0): the point reached, or within a sixteenth of it, never on
+        // entering the tile (imp-task-objects-and-walks.md §4, Q490, ADR-0297).
+        bool walked = creature.Dk2StateId != StateShadow.TravelToPoint
+            || Steering.FollowPathRules.Progress(creature.Body) == Steering.Fixed16.One;
+        if (walked && IsInWorkingPosition(context, creature, grid))
         {
             (int entry, int work) = ImpStates.For(creature.TargetWork);
             if (creature.Dk2StateId == entry)
@@ -404,15 +409,13 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 creature.TimerTicks--;
                 return;
             }
-            // Arrived on entering the tile; a route whose point lies in it runs on, so the worker
-            // settles on its stance point while it works (ADR-0289).
-            if (creature.Destination != creature.Tile) creature.StopMoving();
+            creature.StopMoving();
             creature.TimerTicks = WorkCadence.FirstApplicationTicks;
             AtWork(context, creature);
             return;
         }
 
-        if (creature.HasRoute) return;
+        if (!walked || creature.HasRoute) return;
 
         // Walked the whole route and the target is still not next to it: the
         // world changed under the route. Drop the job rather than re-planning
@@ -519,7 +522,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = default;
-        context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Plain);
+        context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.FetchGold;
         FromTaskSelection(creature);
@@ -776,13 +779,13 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         foreach ((_, RoomInstance room) in rooms)
         {
             int first = SlabChain.FirstSlab(world, room);
-            if (!context.Navigation.TryRoute(creature, new TilePos(first % w, first / w), Navigation.MoveOptions.Plain)) continue;
+            if (!context.Navigation.TryRoute(creature, new TilePos(first % w, first / w), Navigation.MoveOptions.ExactSpot)) continue;
             int[] chain = SlabChain.Order(world, room);
             int start = chain[context.Rng.NextInt(chain.Length)];
             int target = GoldStore.DepositTileAlongChain(world, context.Database, room, start);
             if (target < 0) continue;
             TilePos drop = new(target % w, target / w);
-            if (!context.Navigation.TryRoute(creature, drop, Navigation.MoveOptions.Plain)) continue;
+            if (!context.Navigation.TryRoute(creature, drop, Navigation.MoveOptions.ExactSpot)) continue;
             context.Emit(SystemName, "delivering",
                 $"imp={creature.Id} player={player} gold={creature.GoldHeld} " +
                 $"to=({drop.X},{drop.Y}) steps={creature.Body.PathTotalCount}");
@@ -1523,21 +1526,24 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         if (creature.WorkSlot != MiningSlots.None)
         {
             (long sx, long sy) = MiningSlots.StancePoint(standing, creature.WorkSlot);
-            context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.Plain);
+            context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.ExactSpot);
         }
         else if (kind is TileWorkKind.Reinforce or TileWorkKind.RepairWall && face >= 0)
         {
             (long sx, long sy) = TaskStealing.ReinforceStance(standing, face);
-            context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.Plain);
+            context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.ExactSpot);
         }
         else
         {
-            context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Plain);
+            context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Spot);
         }
 
-        if (_route.Count == 0) creature.TimerTicks = WorkCadence.FirstApplicationTicks;
+        // A worker already on its stance tile still walks to its point (0x004651A0 always walks),
+        // so a route loaded to the point counts, not only one the search found steps for.
+        bool routed = _route.Count > 0 || creature.IsRouted;
+        if (!routed) creature.TimerTicks = WorkCadence.FirstApplicationTicks;
 
-        SetOutInState(context, creature, kind, routed: _route.Count > 0);
+        SetOutInState(context, creature, kind, routed);
 
         creature.LastTaskKind = KindOf(priority, kind);
         creature.LastTaskTileIndex = tileIndex;
@@ -1964,7 +1970,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
         creature.TargetObjectId = thing.Id;
-        context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Plain);
+        context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.CarryObject;
         FromTaskSelection(creature);
@@ -2163,7 +2169,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         creature.CarriedCreatureId = -1;
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
-        context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Plain);
+        context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = corpses ? ImpTaskKind.CarryCorpse : ImpTaskKind.CarryUnconscious;
         FromTaskSelection(creature);
@@ -2461,7 +2467,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         WorldState world = context.World;
         var to = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
 
-        return context.Navigation.TryRoute(creature, to, Navigation.MoveOptions.Plain);
+        return context.Navigation.TryRoute(creature, to, Navigation.MoveOptions.ExactSpot);
     }
 
     /// <summary>Clears the "body I am walking towards" note.</summary>
