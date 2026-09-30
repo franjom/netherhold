@@ -4299,7 +4299,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 
 **Decision.**
 1. **`PrisonRules.Imprison`** puts an imp's admission in 114 and a hand drop in 120, and both move to 115. `PrisonRules.Release` gives the state back, and `Imprisoned` joins the retired activities.
-2. **Steps** are 116 → 115 → a walk in 6 resuming in 116. **Eating** is 115 → 117 → a walk in 6 to the bird resuming in 118 → 119 → 115; with no bird, 117 → 116.
+2. **Steps** are 116 → 115 → a walk in 6 resuming in 116. **Eating** is 115 → 117 → a walk in 6 to the bird resuming in 118 → 119 → 115; with no bird, 117 → 116. *Amended 2026-09-30 (0x00473750 re-read):* 118 goes to 119 only when filled; still owing, or with the bird gone, it goes straight back to 117, which searches again with no hunger test; 118 also wipes the hunger grievance; 119 holds one turn.
 3. **The drain dispatches on category 14** (`UpdatingCategory`), so a walk between two captive states keeps it and a captive with no state takes none.
 
 **Consequences.**
