@@ -79,6 +79,9 @@ creature whose definition flags (`def+0x686`) have bit 0, `IsWorker`: the
 creature constructor (`0x0048795E`) and a second site that hands a creature to a
 new owner (`0x0048D24E`). So a keeper with only imps has no payday, and the first
 one falls 600 s after its first other creature arrives, not after level start.
+**Built** with the `GetPaid` rule below (ADR-0295). Unread: whether a level's own
+creatures are built on turn 0, where an unarmed (zero) deadline would pass the
+unsigned test; ours never sets `GetPaid` from a zero deadline.
 
 All three are real — the negative of the
 dead-field pattern this project has caught elsewhere, and read rather than
@@ -239,7 +242,8 @@ places a bed (`lair-acquisition.md` §9.1). **Built** (ADR-0179).
 | Two failed attempts per payday, then stop | **read** |
 | Two distinct "cannot pay" messages | **read** |
 | `AngerNoPay` firing on an unpaid creature | **READ AND BUILT** the same day (ADR-0079) — see §6 |
-| `PayDayCutOffTimeSeconds`: a creature built within it of payday gets `GetPaid` (§2.1) | **READ, NOT BUILT** |
+| `PayDayCutOffTimeSeconds`: a creature built within it of payday gets `GetPaid` (§2.1) | **READ AND BUILT** (ADR-0295) |
+| First payday armed by the keeper's first non-worker (§2.1) | **READ AND BUILT** (ADR-0295) |
 | `FUN_0048ae70(taken/2)`: half the wage into the purse, capped | **READ AND BUILT** (ADR-0187) |
 | `FUN_00486f80(4)`: zero the pay-anger bucket when fully paid | **READ AND BUILT** (ADR-0179) |
 

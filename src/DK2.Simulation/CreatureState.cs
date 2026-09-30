@@ -408,10 +408,9 @@ public sealed class CreatureState
     /// not it was needed — the creature is not credited a wage at all and the field is zeroed
     /// in the same breath. Called <c>SkipNextPayment</c> here until 2026-09-25, after Flame's
     /// map; DK2's own dump gives that name to <see cref="SkipNextPayment"/>.
-    /// <para>Not implemented: nothing sets it. The thing that should is a treat, which the
-    /// manual (§7.6.2.2) describes as buying off wages on the next payday; keeper spells do
-    /// not exist, so the field is carried, hashed, read by the clock and written by tests
-    /// only.</para></summary>
+    /// <para>Set at spawn when fewer than <c>PayDayCutOffTimeSeconds</c> turns remain before the
+    /// keeper's payday (<c>0x0048750C</c>, <see cref="PaydayRules.TooCloseToPayday"/>). Whether a
+    /// treat (manual §7.6.2.2) sets it too is unread.</para></summary>
     public bool GetPaid;
 
     /// <summary>DK2's <c>SkipNextPayment</c>, <c>creature+0x3EA</c> bit 5: skip the next

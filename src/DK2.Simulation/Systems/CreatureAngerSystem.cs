@@ -268,7 +268,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             }
 
             byte was = state.OwnerPlayerId;
-            context.World.ChangeCreatureOwner(state, RebellionRules.DefectsTo);
+            context.World.ChangeCreatureOwner(context.Database, state, RebellionRules.DefectsTo);
             state.RebelAgainstPlayerId = was;
             state.CurrentJob = JobType.KillPlayer;
             CreatureStateMachine.TrySetState(state, CreatureStateMachine.Idle);

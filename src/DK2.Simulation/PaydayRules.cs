@@ -22,6 +22,36 @@ public static class PaydayRules
     public static int FirstPaydayTicks(GameDatabase database) =>
         database[VariableTypeId.TimeBeforeFirstPayDaySeconds] * SimulationTiming.TicksPerSecond;
 
+    /// <summary>The initialiser <c>0x004BE330</c>: a keeper's clock is armed once, when it gains
+    /// its first non-worker creature, by construction (<c>0x0048795E</c>) or a change of owner
+    /// (<c>0x0048D24E</c>). A keeper with only imps never has a payday (payday.md §2.1). Ours
+    /// reads "armed" as a non-zero deadline where DK2 keeps <c>player+0x76</c> bit <c>0x200</c>.</summary>
+    public static void ArmOnGain(WorldState world, GameDatabase database, CreatureState creature)
+    {
+        if (database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker)) return;
+        if (!world.HasPlayer(creature.OwnerPlayerId)) return;
+        ref PlayerState player = ref world.Player(creature.OwnerPlayerId);
+        if (player.NextPaydayTick.Value != 0) return;
+        // Data without the variable (a test's) has no payday to arm.
+        if (!database.Variables.TryGet(VariableTypeId.TimeBeforeFirstPayDaySeconds, out int seconds)) return;
+        player.NextPaydayTick = new GameTick(world.CurrentTick.Value + (seconds * SimulationTiming.TicksPerSecond));
+    }
+
+    /// <summary>The constructor's <c>GetPaid</c> (<c>0x0048750C</c>): a creature made with fewer
+    /// than <c>PayDayCutOffTimeSeconds</c> turns left before its keeper's payday skips that one.
+    /// The 120 is compared raw with turns, so the window is 30 s. The subtraction is unsigned, so a
+    /// passed deadline never sets it, nor does an unarmed clock (zero) after turn 0. Ours leaves
+    /// turn 0 out too: whether DK2 builds a level's creatures on turn 0 is unread (payday.md §2.1).</summary>
+    public static bool TooCloseToPayday(WorldState world, GameDatabase database, byte ownerPlayerId)
+    {
+        if (!world.HasPlayer(ownerPlayerId)) return false;
+        long deadline = world.Player(ownerPlayerId).NextPaydayTick.Value;
+        if (deadline == 0) return false;
+        if (!database.Variables.TryGet(VariableTypeId.PayDayCutOffTimeSeconds, out int cutOff)) return false;
+        long left = deadline - world.CurrentTick.Value;
+        return left >= 0 && left < cutOff * SimulationTiming.OriginalTickPeriodTicks;
+    }
+
     /// <summary>Times a creature walks to a treasury, finds nothing and retries before giving up:
     /// two. Hardcoded as <c>creature[0x474] &lt; 2</c>, reset by the payday clock — per payday, not per life.</summary>
     public const int MaxFailedAttempts = 2;

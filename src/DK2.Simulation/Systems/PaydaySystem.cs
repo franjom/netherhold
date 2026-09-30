@@ -46,8 +46,7 @@ public sealed class PaydaySystem : ISimulationSystem
     /// <summary>Fires any keeper's payday that has come due, credits its creatures,
     /// and reschedules.</summary>
     /// <remarks>Each keeper carries a deadline
-    /// (<see cref="PlayerState.NextPaydayTick"/>), seeded from
-    /// <c>TimeBeforeFirstPayDaySeconds</c> and rewritten as
+    /// (<see cref="PlayerState.NextPaydayTick"/>), armed by its first non-worker and rewritten as
     /// <c>now + PayDayFrequencySeconds</c> each time it fires. A creature is credited
     /// <c>Pay</c> scaled by its level, added to what it is already owed, and its
     /// failed-attempt budget refills; one holding
@@ -63,19 +62,10 @@ public sealed class PaydaySystem : ISimulationSystem
         {
             ref PlayerState player = ref world.PlayerAtIndex(p);
 
-            // Zero means "not scheduled yet", and the first sight of it sets the
-            // first payday TimeBeforeFirstPayDaySeconds out, so a level does not
-            // open with the whole dungeon owed money. A stated divergence: the
-            // original seeds this in an initialiser and reads zero as "this
-            // player never has a payday". Suppressing a player here would want a
-            // flag rather than the sentinel back.
-            if (player.NextPaydayTick.Value == 0)
-            {
-                player.NextPaydayTick =
-                    new GameTick(now + PaydayRules.FirstPaydayTicks(database));
-                continue;
-            }
-
+            // Zero is "no payday": the clock is armed by the keeper's first
+            // non-worker creature (PaydayRules.ArmOnGain, 0x004BE330), so a keeper
+            // with only imps is never billed.
+            if (player.NextPaydayTick.Value == 0) continue;
             if (now < player.NextPaydayTick.Value) continue;
 
             byte playerId = player.PlayerId;

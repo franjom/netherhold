@@ -161,6 +161,69 @@ public class PaydayTests
         Assert.Equal(500, goblin.WageOwed);
     }
 
+    /// <summary>The clock is armed by the keeper's first non-worker (<c>0x004BE330</c>, called
+    /// from the constructor at <c>0x0048795E</c>), so imps alone never bring a payday.</summary>
+    [Fact]
+    public void AKeeperWithOnlyImpsIsNeverBilledAndItsFirstGoblinStartsTheClock()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(1, 1));
+        GameSimulation sim = Simulation(db, world);
+
+        RunToFirstPayday(sim, db, extraTicks: 100);
+        Assert.Equal(0, world.Player(Keeper).NextPaydayTick.Value);
+
+        long arrived = world.CurrentTick.Value;
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        Assert.Equal(arrived + PaydayRules.FirstPaydayTicks(db), world.Player(Keeper).NextPaydayTick.Value);
+
+        for (int i = 0; i < PaydayRules.FirstPaydayTicks(db); i++) sim.Tick(InputFrame.Empty);
+        Assert.Equal(0, goblin.WageOwed);
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(500, goblin.WageOwed);
+        Assert.Equal(0, imp.WageOwed);
+    }
+
+    /// <summary>DK2's owner change arms the new owner's clock as well (<c>0x0048D24E</c>).</summary>
+    [Fact]
+    public void ACreatureChangingHandsStartsItsNewKeepersClock()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, PlayerIds.Neutral, Floor);
+        Assert.Equal(0, world.Player(Keeper).NextPaydayTick.Value);
+
+        world.ChangeCreatureOwner(db, goblin, Keeper);
+
+        Assert.Equal(world.CurrentTick.Value + PaydayRules.FirstPaydayTicks(db),
+            world.Player(Keeper).NextPaydayTick.Value);
+    }
+
+    /// <summary>The constructor sets <c>GetPaid</c> when fewer than <c>PayDayCutOffTimeSeconds</c>
+    /// turns (120, compared raw) remain before payday (<c>0x0048750C</c>).</summary>
+    [Fact]
+    public void ACreatureMadeInTheLastHundredTwentyTurnsBeforePaydaySkipsIt()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        GameSimulation sim = Simulation(db, world);
+
+        long deadline = world.Player(Keeper).NextPaydayTick.Value;
+        while (world.CurrentTick.Value < deadline - 120) sim.Tick(InputFrame.Empty);
+        CreatureState onTheEdge = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
+        sim.Tick(InputFrame.Empty);
+        CreatureState late = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 2));
+
+        Assert.False(onTheEdge.GetPaid);
+        Assert.True(late.GetPaid);
+
+        while (world.CurrentTick.Value <= deadline) sim.Tick(InputFrame.Empty);
+        Assert.Equal(500, onTheEdge.WageOwed);
+        Assert.Equal(0, late.WageOwed);
+    }
+
     /// <summary>DK2's <c>SkipNextPayment</c> (<c>+0x3EA</c> bit 5), which dropped gold sets: the
     /// next collection decision is skipped and spends it, the one after walks, and the wage is
     /// never touched (<c>0x00472320</c>, hand-drop-earmark.md §9).</summary>

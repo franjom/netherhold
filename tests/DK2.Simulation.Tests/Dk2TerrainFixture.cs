@@ -1299,6 +1299,9 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.RepairWallHealth, 22);
         Set(vars, VariableTypeId.ConvertRoomHealth, -4000);
         Set(vars, VariableTypeId.GoldMinedFromGems, 25);
+        // Variable 74, the hands test's margin: 340 in every shipped level, absent from the global
+        // file (imp-hands-full.md). A level 1 Imp's hands are full at 1400 less this.
+        Set(vars, VariableTypeId.GameTicks, 340);
 
         // Fear (combat-fear.md): the back-off runs between these two, in ticks of the flee state;
         // a fleeing creature counts heads within the guard room's reporting distance of its rooms.
@@ -1399,6 +1402,7 @@ internal static class Dk2TerrainFixture
         // minutes in rather than at zero (Q9, ADR-0078).
         Set(vars, VariableTypeId.PayDayFrequencySeconds, 600);
         Set(vars, VariableTypeId.TimeBeforeFirstPayDaySeconds, 600);
+        Set(vars, VariableTypeId.PayDayCutOffTimeSeconds, 120);
         Set(vars, VariableTypeId.MinimumImpThreshold, 4);
         Set(vars, VariableTypeId.TimeBeforeFreeImpGeneratedSeconds, 5);
         Set(vars, VariableTypeId.MaxGoldPerTreasuryTile, 3000);

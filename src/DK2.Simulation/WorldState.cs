@@ -306,13 +306,9 @@ public struct PlayerState
     /// <see cref="NextFreeImpTick"/>, and the original keeps it the same way: one
     /// field on the player, compared against now, rewritten as
     /// <c>now + PayDayFrequencySeconds × ticksPerSecond</c> the moment it fires.
-    /// The first is seeded from <c>TimeBeforeFirstPayDaySeconds</c> rather than
-    /// zero, so a level does not open with the whole dungeon owed money.
-    /// <para>Deviation (ADR-0078): zero means "not scheduled yet" and
-    /// <see cref="Systems.PaydaySystem"/> seeds it the first tick it sees one,
-    /// where the original reads zero as <i>never</i> and seeds in an initialiser.
-    /// <see cref="FromMap"/> has no <c>GameDatabase</c> to seed from, and a player
-    /// slot with no creatures bills nobody.</para></summary>
+    /// Zero is <i>no payday</i>, as in DK2: the first is set
+    /// <c>TimeBeforeFirstPayDaySeconds</c> out when the keeper gains its first
+    /// non-worker creature (<see cref="PaydayRules.ArmOnGain"/>).</summary>
     public GameTick NextPaydayTick;
 
     /// <summary>The level's mutable unlock rows for this keeper. Trigger action 6
@@ -1058,6 +1054,14 @@ public sealed class WorldState
         _creaturesByOwnership.Insert(0, creature);
     }
 
+    /// <summary>Changes the owner as DK2's owner change does, which also arms the new owner's
+    /// payday clock on its first non-worker (<c>0x0048D24E</c>, <see cref="PaydayRules.ArmOnGain"/>).</summary>
+    public void ChangeCreatureOwner(GameDatabase database, CreatureState creature, byte playerId)
+    {
+        ChangeCreatureOwner(creature, playerId);
+        PaydayRules.ArmOnGain(this, database, creature);
+    }
+
     internal IReadOnlyList<CreatureState> CreatureOwnershipOrder => _creaturesByOwnership;
 
     internal void RestoreCreatureOwnershipOrder(IReadOnlyList<int> ids)
@@ -1102,7 +1106,12 @@ public sealed class WorldState
             // zero health dies on the tick it arrives, so there is deliberately no
             // overload that leaves health out.
             Health = database.CreatureById(creatureTypeId).Hp,
+
+            GetPaid = PaydayRules.TooCloseToPayday(this, database, ownerPlayerId),
         };
+
+        // After GetPaid, as in DK2's constructor (0x0048750C, then 0x0048795E).
+        PaydayRules.ArmOnGain(this, database, creature);
 
         _creatures.Add(creature);
         _creaturesByOwnership.Insert(0, creature);

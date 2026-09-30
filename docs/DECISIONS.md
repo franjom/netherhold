@@ -1301,7 +1301,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - No hash change; a rule got stricter. `hand-of-evil.md` §8 and `HandRules.CanDropObjectOn`'s doc comment are corrected in place.
 
 ## ADR-0078 — Payday is a journey, and the money comes off the tile underfoot
-**Date:** 2026-09-06 · **Status:** accepted · amended by ADR-0079: `AngerNoPay` is charged, and the nine-to-one conclusion here is retired by ADR-0081; ADR-0220 corrects "the one tile" to the room underfoot · Q9 · Research: `docs/research/payday.md`
+**Date:** 2026-09-06 · **Status:** accepted · amended by ADR-0079: `AngerNoPay` is charged, and the nine-to-one conclusion here is retired by ADR-0081; ADR-0220 corrects "the one tile" to the room underfoot; ADR-0295 arms the first payday on the first non-worker · Q9 · Research: `docs/research/payday.md`
 
 **Context.** The last of M4's original seven items, resting on ADR-0015 (no player gold counter) and ADR-0053 (the anger ladder). A keeper's wage bill falls due every `PayDayFrequencySeconds`; every creature it owns is credited `Pay` scaled by its level; each then walks to a treasury and lifts its own wages off the floor.
 
@@ -6461,3 +6461,24 @@ of a ring scan. The notes said a scan passed no chooser (kinds 6, 7, 8, 16) star
 16 and 4, by shifting every later draw. Not built: a special already standing in its room is
 not skipped (ours keeps no room id). A test that pinned Harkan's single Call to Arms in a
 random run now checks each call's turn and removal.
+
+## ADR-0295 — A keeper's first non-worker arms its payday, and a late arrival skips one
+**Date:** 2026-09-30 · **Status:** accepted · amends ADR-0078 · Research: `payday.md` §2.1
+
+**Context.** Ours seeded every player's first payday on the first tick. The initialiser
+`0x004BE330` is called only from the creature constructor (`0x0048795E`) and the owner
+change (`0x0048D24E`), each for a non-worker and only while `player+0x76` bit `0x200` is
+clear. The constructor also sets `GetPaid` when the keeper's deadline is fewer than
+`PayDayCutOffTimeSeconds` (120, compared raw with turns) away (`0x0048750C`).
+
+**Decision.**
+1. `PaydayRules.ArmOnGain`, from `SpawnCreature` and the new `ChangeCreatureOwner(database,
+   …)`: a non-worker sets its keeper's deadline `TimeBeforeFirstPayDaySeconds` out if it is
+   still zero. Zero means no payday, so the clock no longer seeds it.
+2. `PaydayRules.TooCloseToPayday` sets `GetPaid` at spawn, before the arming.
+
+**Consequences.** A keeper with only imps is never billed; level 1's first payday falls
+600 s after the first portal creature, not after level start. Deviates: an unarmed clock on
+turn 0 would set `GetPaid` in DK2's unsigned test; ours leaves it out (unread whether a
+level's creatures are built on turn 0). Three tests; four negative controls each fail a
+named test. `HashVersion` **142** (a Goblin in the pin's world now arms its keeper).
