@@ -13,8 +13,8 @@ namespace DK2.AI;
 /// side. Lives outside the simulation's state hash by design (§12.1); the
 /// keeper's decisions reach the simulation only as hashed commands.
 ///
-/// <para>Only the fields the proactive foundation uses are here. The attack, battle,
-/// event-ring and breach state arrive with the reactive half.</para>
+/// <para>Only the fields the built steps use are here: the proactive foundation, the
+/// reactive half, the battle and the attack planner's flags and breaches.</para>
 /// </summary>
 public sealed class KeeperAIState
 {
@@ -60,6 +60,33 @@ public sealed class KeeperAIState
 
     /// <summary>The last enemy whose strength was found near an attack, for the attack planner.</summary>
     public byte AttackingPlayerId;
+
+    // --- the attack planner (§5.5, ADR-0298) ---
+
+    /// <summary><c>PlayersAttackedFlags</c> (<c>+0x9B</c>) and <c>FirstAttackFlag</c> (<c>+0x9D</c>): a bit
+    /// per player id, set by the planner when it starts an attack; the front clears an attacked
+    /// bit whose player is gone.</summary>
+    public ushort PlayersAttackedFlags;
+    public ushort FirstAttackFlag;
+
+    /// <summary>The low nibble of <c>BlibBlubBlob</c> (<c>+0x4BA</c>): the player a tunnel is being
+    /// dug toward, 0 for none; task 7 stores the tunnel where it meets enemy land and clears it.</summary>
+    public byte AttackTarget;
+
+    /// <summary><c>EnemyBreaches[16]</c> (<c>+0x9F</c>), by player id: the tunnels left to dig and
+    /// the eight stored ones, empty when their start's X is zero.</summary>
+    public readonly KeeperBreachState[] Breaches = Enumerable.Range(0, 16).Select(_ => new KeeperBreachState()).ToArray();
+
+    /// <summary>Ours: the research move (<c>0x004FA8D0</c>) and the training moves (<c>0x004FF5C0</c>)
+    /// the tick would run and this build does not, counted where DK2 would call them.</summary>
+    public int UnbuiltResearchMoves;
+    public int UnbuiltTrainingMoves;
+
+    /// <summary>The loaders copy <c>BreachAtXPoints</c>, kept to four bits, into every enemy's count.</summary>
+    public void InitialiseBreaches(byte breachAtXPoints)
+    {
+        foreach (KeeperBreachState breach in Breaches) breach.TunnelsLeft = (byte)(breachAtXPoints & 0xF);
+    }
 
     /// <summary>The three-slot respond-to-attack ring and its residuals.</summary>
     public KeeperResponseQueue Responses { get; } = new();
@@ -119,3 +146,22 @@ public sealed class KeeperAIState
 
 /// <summary>A seam's corrected centroid and sum of its terrain gold values.</summary>
 public readonly record struct GoldDeposit(TilePos Centre, int GoldAmount);
+
+/// <summary>One enemy's breach record (65 bytes in DK2): <c>TunnelsLeft</c> and eight stored
+/// tunnels, each a start and an end tile; a start whose X is zero is an empty slot.</summary>
+public sealed class KeeperBreachState
+{
+    public const int Slots = 8;
+    public byte TunnelsLeft;
+    public readonly TilePos[] Start = new TilePos[Slots];
+    public readonly TilePos[] End = new TilePos[Slots];
+
+    public bool HasStoredTunnel
+    {
+        get
+        {
+            foreach (TilePos start in Start) if (start.X != 0) return true;
+            return false;
+        }
+    }
+}

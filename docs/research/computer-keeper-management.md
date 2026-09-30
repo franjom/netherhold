@@ -1,7 +1,7 @@
 # Keeper management and battle selection audit
 
 Independent Ghidra 12.1.4/PyGhidra read of the read-only `DKII.EXE` v1.70
-project, 2026-09-28. Executable MD5:
+project, 2026-09-28; §§6–7 re-read 2026-09-30. Executable MD5:
 `2f3bbc21eae8c3aa468136baa303036d`. All behavioural claims here are
 **STRONGLY INFERRED**, without a matching live sequence. This note records
 selection and allowance rules, not proof that every requested game action succeeds.
@@ -144,62 +144,47 @@ cooldown to `WaitBeforeAttackingAgain * 4`. Those AI state changes do not
 depend on the command's return value. Built (ADR-0283); ours waits for the
 observation to show the call before testing, since its cast lands a tick late.
 
-## 6. Attack selection — `0x004FAEF0`
+## 6. Attack planner — `0x004FAEF0`, readiness `0x004FAB10`
 
-The outer gates are NeverAttack, nonzero attack cooldown, active CTA, readiness,
-optional AllRoomsBuilt and optional absence of researchable spells. A required
-researchable spell invokes the portal-slot eviction helper if a Library exists,
-then declines the attack. The attacker-only mode consumes and clears the recorded
-attacker before subsequent strength and room-selection failures.
+Re-read 2026-09-30 (Ghidra 12.1.4, MCP and runner, Claude's clone) and **BUILT** as
+`KeeperAttackPlanner` and `KeeperReadiness` (ADR-0298). Q497 is the original run.
 
-The ordinary enemy scan skips player ids 1/2 and statuses 1/3, not winner status
-2. Army strength sums the entire owned-creature list without the local-strength
-helper's status filter. Equality suffices: own strength must be **at least** the
-enemy's total multiplied by `IAThreatSuperiority / 100`.
+| Claim | Source | Result | Status |
+|---|---|---|---|
+| Gates | `0x004FAEF0` | NeverAttack (`+0x4B6` bit 30), a nonzero attack wait (`+0x4F3`) or a call up (bit 7) refuses before readiness runs | STRONGLY INFERRED |
+| Readiness | `0x004FAB10` | non-workers (definition bit 0 clear) strictly above `IAMinimumCreatures`; under-levelled means level below the four-bit skill; when under ≤ skill and under < count, each under-levelled one gets one `0x0048B120`, then any left under refuses. Called before the rooms test, and by the tick's training step (`random(100) < 50` with allowance) and the Train predicate | STRONGLY INFERRED |
+| Rooms, research | | `IAAllRoomsPlaced` wants `AllRoomsBuilt`; `IAAllSpellsResearched` bit 0 with a spell at availability 2 among ids 1..count refuses, calling `0x004FA8D0` first when a Library exists | STRONGLY INFERRED |
+| Modes | | attacker-only takes `AttackingPlayerId` (`+0x08`, a tag) when `HaveBeenAttacked`, clearing both, else nothing; otherwise ordinary; superiority is `IAThreatSuperiority` | STRONGLY INFERRED |
+| Stored tunnel | | an enemy with `TunnelsLeft` 0 resumes its first stored tunnel (start X ≠ 0): task 7, next 4, `DigRoomAt` = end, `DigRoomAtCurrent` = start, the start cleared; ordinary mode writes the wait ×4 and clears it again when another of that enemy's tunnels remains, inside the player scan before any strength test; attacker-only writes no wait | STRONGLY INFERRED |
+| Strength | `0x004FBDB0` | the whole owned list, workers included, level-scaled; ordinary: enemy × superiority / 100 ≤ own; attacker-only: own ≥ attacker × superiority / 100 | STRONGLY INFERRED |
+| Ordinary scan | manager list, `+0x3A` | skips status 1 and 3, ids 1 and 2 and non-enemies (`0x004BF390`); the nearest `DungeonHeartPosition` (`+0xB43`, the heart thing's tile, `0x004C5F60`) by shifted squares, strict less | STRONGLY INFERRED |
+| First attack | | `FirstAttackFlag` bit set; end by `IAFirstEnd`: 0 random Heart room, 1 random room by index, 2 least own strength within five tiles (strict below `0x7FFFFFFF`), 3 greatest (strict above 0); then start by `IAFirstStart & 3`: 0 `0x004FADF0` (furthest position from the heart, strict above 0), 1 random room, 2 random Heart, 3 `0x004C6010` nearest the end's first slab; a missing room refuses after the bits | STRONGLY INFERRED |
+| Later attack | `0x004FB579`, `0x004FB58B` | a random own room drawn first, then a random enemy one | STRONGLY INFERRED |
+| Attacker-only rooms | `0x004FB9C1`, `0x004FBA2D` | end: the attacker's non-bridge room nearest the own heart, `DigRoomAt` its first slab; start: the own non-bridge room nearest that slab, the end room itself when none | STRONGLY INFERRED |
+| Start | | task 7, next 4, clock reset, wall hug off; `DigRoomAt` = end position, `DigRoomAtCurrent` = start position; `TunnelsLeft`−1; the nibble of `+0x4BA` = id + 1 | STRONGLY INFERRED |
+| Staging | usage 0, tunnels used up, no call | `CallToArmsPos` = heart (x+2, y+2); the first own creature lacking definition bits 4 or 5 (else the list head) routes (`0x004D0E60`)? then the start room's position; then its slabs in chain order; the last tried stays | STRONGLY INFERRED |
+| Random room | `0x004C63D0` | `random(count)` over the whole list; a bridge at that index yields nothing | STRONGLY INFERRED |
+| Room position | `0x004E4590` | `CentrePos`: the slabs' centroid when it is a room tile, else a spiral from it; a Portal's or Hero Portal's first slab +1; the Heart's first slab +3; ids 18–24 the first slab | STRONGLY INFERRED |
+| Random room of a type | `0x004C6460` | uniform among the player's rooms of the type whose ruin bit (`+0x9A` bit 0) is clear; the research gate draws a Library this way before its move | STRONGLY INFERRED |
+| Room order | `0x004E3800` | a new room is linked at the head of its owner's list: newest first | STRONGLY INFERRED |
+| Breach counts | `0x004F8993` | `BreachAtXPoints & 0xF` into all sixteen | STRONGLY INFERRED |
+| Tunnel store | `0x004FDC50`, `0x004FDB90` | with the nibble set, an owner `0x004BF390` calls an enemy on any of the nine tiles around the cursor stores start = cursor, end = target in the first empty slot, clears the nibble and ends the task | STRONGLY INFERRED |
+| Neutral land | `0x004BF390`, `0x0051DC90` | alliance bytes start at zero and only a level record sets one, so unowned land, held by the neutral player, counts: the store fires at the corridor's first step out | HYPOTHESIS |
+| Heart room extent | | the +3 rule centres a seven-by-seven room; `RoomIndex` sees five by five, so ours lands one tile inside the corner | UNKNOWN |
 
-A stored tunnel for a player with no tunnels left is resumed immediately during
-the player scan, before nearest-heart selection and before that player's strength
-comparison. Consuming the tunnel clears its start-X word. Ordinary mode writes
-the attack cooldown, then clears it again if any stored tunnel for that player
-remains. The attacker-only resume branch does not write this cooldown.
+## 7. Front and attack management — `0x004FE9C0`, `0x004FECE0`
 
-For a fresh ordinary-mode attack, the documented first-end and first-start
-choices apply. The strongest-room choice starts its best score at zero and uses
-a strict greater-than comparison, so all-zero room strengths leave no endpoint.
-The attacked/first-attack bits are written before room selection can fail.
-The attacker-only branch chooses the enemy non-bridge room nearest the own
-Heart, then the own non-bridge room nearest that target. Receivers are the enemy
-at `0x004FB9C1` and self at `0x004FBA2D`. The helper `0x004C6010` measures
-from each room's first slab (`+0x2D/+0x2E`), excludes ids 8/17/22, and keeps
-the first tie. These choices replace the ordinary first-attack choices.
+| Claim | Source | Result | Status |
+|---|---|---|---|
+| Tick order | `0x00500C20` step 7 | management when `PlayersAttackedFlags` ≠ 0, then the removal test when bit 7, then the retreat | STRONGLY INFERRED |
+| Management | `0x004FECE0` | usage ≠ 0 with a call up: the removal test only; else, with no wait and a front: availability 3 admits `0x004BBD30(3, pos, 0)`, whose success sets the counter and bit; usage 1 with fewer than three events queues half the army's threat at an owned, open drop site by the room reader's score; a front costs one allowance whatever the cast did | STRONGLY INFERRED |
+| Front | `0x004FE9C0` | per set bit 0..15 (the null test on the player slot's address never fires, so a bit is never cleared): a random Heart room; two `random(2)` put the point two tiles off its position on each axis; the walker must route; usage ≠ 0 stores it; usage 0 with no call returns true unchanged; with a call, only when non-workers ≤ floor(5 × those strictly within ten tiles / 4) and `0x004D0E10` (mode `0x2000`) routes: the first waypoint | STRONGLY INFERRED |
+| Refused staging | `0x005179D0` | the cast at a Temple, Prison or Pit interior or the heart's inner square is refused and the allowance spent each turn; a heart room's own CentrePos is inside that square, so `IAFirstStart` 2 stages nothing | STRONGLY INFERRED |
 
-A successful new tunnel decrements `TunnelsLeft` once here and stores player id
-plus one in the target nibble. Task 7 later subtracts one from that encoded id
-to index the tunnel array; it does **not** decrement `TunnelsLeft` again.
-CTA staging begins at heart `(x+2,y+2)`; route-query effects are below.
-
-## 7. Moving CTA front — `0x004FE9C0`, `0x004FECE0`
-
-For each attacked player bit, choose an enemy Heart point with independently
-random X/Y offsets of minus or plus two tiles. A creature route test must pass.
-Nonzero CTA usage stores that destination directly. Usage zero, with an active
-CTA, counts all own nonworkers and those strictly within ten tiles of the current
-CTA position. Advance only when `total <= floor(nearby * 5 / 4)` and the route
-helper `0x004D0E10` supplies a point. Its `0x2000` argument selects each kept
-gate's midpoint through `0x004D0240`; it is not a movement distance. The keeper
-copies the **first returned waypoint**, scaled back by 16. On a straight route
-that can be the destination itself (`navigation-and-steering.md` §1). With no
-active CTA, success leaves the staging point unchanged. The preceding creature
-request `0x004D0E60` sets route-option bits 17–19 on that creature; querying
-reachability is not entirely observational in DK2.
-
-`0x004FECE0` removes an existing nonzero-usage CTA through the removal routine;
-otherwise, with zero attack cooldown, it asks for a front and tries spell 3 when
-availability is 3. A successful cast resets the timer and active flag. Usage 1
-also queues half the entire army's threat for reinforcement when there is room
-in the three-event queue and an owned drop point exists. Its drop search uses
-the same asymmetric score as the room-threat variant (`computer-keeper-threat.md`
-§1). Finding a front costs one allowance even if availability or casting fails.
+Deviations (ADR-0298): the one-tick delay and the keeper's RNG; a room's first slab is its
+first tile and its list order the capture's scan; routes run over the captured bytes, whose
+router selects gate midpoints as mode `0x2000` does. Tests: `KeeperAttackPlannerTests`,
+`GrantCreatureLevelTests`, `level18_nemesis_attack.yaml`, `level11a_drako_attack.yaml`.
 
 ## 8. Slapping — `0x00502F00`
 

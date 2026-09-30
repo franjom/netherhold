@@ -16,10 +16,10 @@ namespace DK2.AI;
 /// in the simulation sees this type, so the world hash is untouched. Source: the
 /// original's <c>ComputerPlayer.cpp</c> (docs/KEEPER_AI.md §5, §12.1).</para>
 /// <para>The proactive foundation of §12.8, the attack response (<see cref="KeeperThreatResponder"/>),
-/// the battle step (<see cref="KeeperBattleStep"/>) and the retreat (<see cref="KeeperRetreatStep"/>). Not
-/// implemented: the attack planner, traps and doors, prisoners, training moves, researcher room, room and mood messages.</para>
-/// <para>Deviates: randomness is the keeper's own <see cref="SimRandom"/>, not the
-/// world's stream (§12.1).</para>
+/// the battle step (<see cref="KeeperBattleStep"/>), the retreat (<see cref="KeeperRetreatStep"/>) and the
+/// attack planner (<see cref="KeeperAttackPlanner"/>). Not implemented: traps and doors, prisoners,
+/// training moves, the researcher's portal move, room and mood messages.</para>
+/// <para>Deviates: randomness is the keeper's own <see cref="SimRandom"/>, not the world's (§12.1).</para>
 /// </remarks>
 public sealed class KeeperAI
 {
@@ -57,6 +57,7 @@ public sealed class KeeperAI
         _isRoomAvailable = isRoomAvailable;
         _area = buildArea;
         _playerActivationOrder = playerActivationOrder?.ToArray();
+        State.InitialiseBreaches(parameters.BreachAtXPoints);
     }
 
     public byte PlayerId { get; }
@@ -106,12 +107,19 @@ public sealed class KeeperAI
         responder.HandleMessages();
         budget = responder.Dispatch(budget);
 
-        // 7. The call's removal test while allowance remains, spending none, then the retreat of
-        // the wounded. Attack management needs the unbuilt attack planner's flags.
+        // 7. Attack management while a player is attacked, the call's removal test while allowance
+        // remains, spending none, then the retreat of the wounded.
         var retreat = new KeeperRetreatStep(view, _p, _rng, commands);
         var battle = new KeeperBattleStep(view, State, _p, _rng, commands, retreat.Prepared);
+        var readiness = new KeeperReadiness(view, _p, commands);
+        var attack = new KeeperAttackPlanner(view, State, _p, _rng, commands, readiness, battle);
+        if (budget > 0 && State.PlayersAttackedFlags != 0) budget = attack.Manage(budget);
         if (budget > 0 && State.CallToArmsInUse) battle.TestRemoval();
         if (budget > 0) budget = retreat.Run(budget);
+
+        // 9. The training roll, drawn with or without allowance; readiness grants levels as it
+        // tests, and the moves themselves (0x004FF5C0) are unbuilt.
+        if (_rng.NextInt(100) < 50 && budget > 0 && !readiness.ArmyReady()) State.UnbuiltTrainingMoves++;
 
         // 11. Imps while no fight is on, else the battle step; then 13. slaps.
         if (budget > 0)
@@ -124,7 +132,7 @@ public sealed class KeeperAI
         // 15. The task machine, while the budget lasts.
         int guard = 64;
         while (budget > 0 && guard-- > 0 && State.Task != KeeperTask.Stop)
-            RunTask(view, area, commands, ref budget);
+            RunTask(view, area, commands, attack, ref budget);
 
         return commands;
     }
@@ -151,6 +159,11 @@ public sealed class KeeperAI
         int imps = view.ImpCount;
         int perTiles = Math.Max(1, (int)_p.TilesPerImpRatio);
         if (imps >= _p.MaximumImps || imps >= view.OwnedTiles / perTiles) return;
+        // 0x004BBD30's own cost test (0x004BB8A0: cost at most the mana), predicted as the
+        // simulation's Create Imp will price it; a refused cast spends no allowance in DK2.
+        int cost = ImpSupplyRules.CreateImpBaseCost(view.Database)
+            * (Math.Max(0, imps - ImpSupplyRules.MinimumImps(view.Database)) + 1);
+        if (cost > view.Mana) return;
         commands.Add(new CreateImpCommand(PlayerId));
         budget--;
     }
@@ -174,13 +187,15 @@ public sealed class KeeperAI
 
     // ----------------------------------------------------------------- the task machine
 
-    private void RunTask(KeeperView view, BuildArea area, List<PlayerCommand> commands, ref int budget)
+    private void RunTask(KeeperView view, BuildArea area, List<PlayerCommand> commands, KeeperAttackPlanner attack, ref int budget)
     {
         switch (State.Task)
         {
             case KeeperTask.Decide:
                 budget--;
-                if (!PlanRoom(view, area) && WantsGold(view)) StartGold(view);
+                // The attack planner first; the room planner when it declines (Flags bit 0 is
+                // always on); the gold step when neither started a task.
+                if (!attack.Plan() && !PlanRoom(view, area) && WantsGold(view)) StartGold(view);
                 break;
 
             case KeeperTask.FindSite:
@@ -466,9 +481,26 @@ public sealed class KeeperAI
 
     private void DigPath(KeeperView view, BuildArea area, List<PlayerCommand> commands)
     {
-        if (!area.Contains(State.DigRoomAtCurrent))
+        // 0x004FDC50: a target outside MaxBuildArea aborts only a continuation other than 0 or 4,
+        // so an attack tunnel or a room's own path digs on past the area.
+        if (!area.Contains(State.DigRoomAt) && State.NextTask is not (KeeperTask.Decide or KeeperTask.Done))
         {
-            State.BeginTask(KeeperTask.Done);
+            State.BeginTask(KeeperTask.Done, KeeperTask.Done);
+            return;
+        }
+        if (State.DigRoomAtCurrent == State.DigRoomAt)
+        {
+            State.WallHug = false;
+            State.BeginTask(State.NextTask);
+            return;
+        }
+        // During an attack, enemy land in the cursor's 3x3 stores the rest of the tunnel for the
+        // planner to resume, and the task ends here (ADR-0298).
+        if (State.AttackTarget != 0 && view.EnemyLandAround(State.DigRoomAtCurrent))
+        {
+            KeeperAttackPlanner.StoreTunnel(State);
+            State.WallHug = false;
+            State.BeginTask(State.NextTask);
             return;
         }
 

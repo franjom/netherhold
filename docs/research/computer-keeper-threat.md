@@ -111,7 +111,9 @@ count is at most the target level and less than the total, it grants each
 below-level nonworker one ordinary level-up before testing again. It does not
 exclude low-health, captive or fighting creatures in this count, and it does
 not send creatures to Training. The level-up can repeat on subsequent calls
-until the test passes. The grant path calls `0x0048B120` directly.
+until the test passes. The grant path calls `0x0048B120` directly. Built as
+`KeeperReadiness` (ADR-0298): the grant is `GrantCreatureLevelCommand`, and the tick's
+test reads the level it predicts.
 
 ## 3. Response event and withdrawal gate
 

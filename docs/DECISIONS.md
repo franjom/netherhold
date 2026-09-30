@@ -6436,3 +6436,40 @@ before) and 288 of Level 1's 309; replays win 20 of 20 and 8 of 20. Gold at an i
 never waits to be fetched. Not built: the non-workers' arm. Not read: whether a kind-7 task
 goes with its pile; a fetcher whose pile was taken in passing keeps the load, and the test
 says so in its name.
+
+## ADR-0298 — Plan an attack from task 0: readiness grants as commands, a tunnel to the enemy's room, the call at the front
+**Date:** 2026-09-30 · **Status:** accepted · Research: `computer-keeper-management.md` §6–7, `computer-keeper-threat.md` §2
+
+**Context.** M12's proactive attack was unbuilt: task 0 went straight to the room planner,
+and no keeper tunnelled toward an enemy or raised the call away from a fight. The planner
+(`0x004FAEF0`), its readiness helper (`0x004FAB10`), the front (`0x004FE9C0`), attack
+management (`0x004FECE0`) and task 7's tunnel store (`0x004FDC50`) were re-read and
+audited claim by claim.
+
+**Decision.**
+1. `KeeperAttackPlanner.Plan` runs first in task 0 with DK2's gates, modes, strength test,
+   nearest-heart choice, first and later room choices, breach counts kept to four bits,
+   stored tunnels resumed with the attack wait, and the staging point; `Manage` runs at
+   step 7 with the front for every usage and the cast through action 54, usage 1 queueing
+   half the army's threat. `DigPath` stores the tunnel where the cursor meets land
+   `0x004BF390` calls an enemy; a target outside the build area aborts only a continuation
+   other than 0 or 4.
+2. Readiness grants are `GrantCreatureLevelCommand`, executed by `KeeperSpellSystem` through
+   the ordinary level-up for an own living creature; `KeeperReadiness` predicts the granted
+   level for the tick and grants once per creature. The tick's training roll draws and
+   calls readiness; the moves themselves stay unbuilt and are counted.
+3. Observation schema 13: every player's status, the heart room's middle as `Heart`, the
+   call's refused own-room tiles and route queries over the captured bytes; rooms carry
+   DK2's `CentrePos` and first slab, and the planner walks them newest first.
+4. The imp step predicts the cast's cost test and spends no allowance on an unaffordable
+   imp, as the refused cast spends none.
+5. A scenario creature takes a `level`, as the level's THINGS records carry one.
+
+**Consequences.** Nemesis on Level 18 grants four knights three levels, chooses Fabian, casts
+the call at its Library and creeps it; Drako on Level 11A chooses Morgana, tags the
+corridor's first rock and stops at the lava as `0x004FDC50` would without a Stone Bridge.
+No simulation state changed: HashVersion stays 141. Deviations: the delay and own RNG
+(ADR-0244); a room's first slab is its first tile and its list order the capture's scan;
+the heart's +3 `CentrePos` lands inside a five-by-five room. Not built: the research move
+`0x004FA8D0` (its Library draw is made and the move counted), the training moves, bridges
+in task 7, Inferno and Chicken. Original run: Q497.

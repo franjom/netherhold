@@ -40,9 +40,12 @@ public sealed class KeeperView : INavByteGrid
         Messages = Array.AsReadOnly(world.Messages.Entries.Where(m => m.PlayerId == playerId).ToArray());
         _tiles = new KeeperTileView[world.TileCount];
         _availability = world.Player(playerId).Availabilities.ToArray();
-
-        int heartIndex = ImpSupplyRules.HeartTileOf(world, database, playerId);
-        Heart = heartIndex < 0 ? null : FromIndex(heartIndex);
+        foreach (byte id in world.PlayerIds)
+            if (id < _statuses.Length)
+            {
+                _statuses[id] = world.Player(id).Status;
+                _heartRuined[id] = world.Player(id).HeartRuined;
+            }
 
         byte[] navigation = WorldSteering.CaptureNavigationBytes(database, world);
         int owned = 0;
@@ -56,6 +59,16 @@ public sealed class KeeperView : INavByteGrid
 
         AllRooms = RoomIndex.Build(world, database).Select(r => new KeeperRoomView(r)).ToList().AsReadOnly();
         OwnRooms = AllRooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
+        // DK2's DungeonHeartPosition (player+0xB43) is the heart thing's tile, the room's middle
+        // (0x004C5F60's two writers); a keeper whose heart room is gone keeps no position here.
+        int heartIndex = ImpSupplyRules.HeartTileOf(world, database, playerId);
+        Heart = HeartOf(playerId) ?? (heartIndex < 0 ? null : FromIndex(heartIndex));
+        KeeperSpellDef? callToArms = database.KeeperSpellById(CallToArmsRules.SpellId);
+        if (callToArms is not null)
+            foreach (KeeperRoomView room in OwnRooms)
+                foreach (int index in room.TileIndices)
+                    if (!KeeperSpellRules.PlaceAllowed(world, database, this, playerId, callToArms, FromIndex(index)))
+                        _callRefusedTiles.Add(index);
         // Each owner's acquisition-ordered list, the order DK2's keeper walks (ADR-0273).
         var ranks = new Dictionary<int, int>();
         foreach (byte owner in world.PlayerIds)
@@ -64,7 +77,6 @@ public sealed class KeeperView : INavByteGrid
             foreach (CreatureState listed in world.OwnedCreatures(owner)) ranks[listed.Id] = rank++;
         }
         List<HandItem> hand = world.Player(playerId).Hand;
-        KeeperSpellDef? callToArms = database.KeeperSpellById(CallToArmsRules.SpellId);
         KeeperSpellDef? thunderbolt = database.KeeperSpellById(KeeperSpellRules.Thunderbolt);
         KeeperSpellDef? heal = database.KeeperSpellById(KeeperSpellRules.Heal);
         WorldSteering? steering = null;
@@ -145,7 +157,8 @@ public sealed class KeeperView : INavByteGrid
         int width, int height, int gold, int impCount, TilePos? heart,
         KeeperTileView[] tiles, AvailabilityState[] availability,
         KeeperCreatureView[] creatures, KeeperTrapView[] traps, KeeperRoomView[] rooms, PlayerMessage[] messages,
-        CallToArmsState callToArms = default, int mana = 0)
+        CallToArmsState callToArms = default, int mana = 0, byte[]? statuses = null, IEnumerable<int>? callRefusedTiles = null,
+        bool[]? heartRuined = null)
     {
         CallToArms = callToArms;
         Database = database;
@@ -153,6 +166,9 @@ public sealed class KeeperView : INavByteGrid
         Tick = tick;
         Status = status;
         AlliedWith = alliedWith;
+        if (statuses is not null) Array.Copy(statuses, _statuses, Math.Min(statuses.Length, _statuses.Length));
+        if (heartRuined is not null) Array.Copy(heartRuined, _heartRuined, Math.Min(heartRuined.Length, _heartRuined.Length));
+        if (callRefusedTiles is not null) _callRefusedTiles.UnionWith(callRefusedTiles);
         PlayerOrder = Array.AsReadOnly(playerIds);
         Width = width;
         Height = height;
@@ -171,6 +187,99 @@ public sealed class KeeperView : INavByteGrid
     }
 
     internal IReadOnlyList<AvailabilityState> AvailabilityEntries => _availability;
+    internal IReadOnlyList<byte> StatusEntries => _statuses;
+    internal IReadOnlyList<bool> HeartRuinedEntries => _heartRuined;
+
+    /// <summary>Whether a player's heart is a ruin (<see cref="PlayerState.HeartRuined"/>), the room
+    /// ruin bit <c>+0x9A</c> the random room draw skips.</summary>
+    public bool HeartRuined(byte playerId) => playerId < _heartRuined.Length && _heartRuined[playerId];
+    internal IEnumerable<int> CallRefusedTiles => _callRefusedTiles.OrderBy(i => i);
+
+    /// <summary>Every player's status (<c>player+0x19A</c>) by id, 0 for an id the world lacks.</summary>
+    public byte StatusOf(byte playerId) => playerId < _statuses.Length ? _statuses[playerId] : (byte)0;
+
+    /// <summary>A player's <c>DungeonHeartPosition</c>: the middle of its Dungeon Heart room, or null
+    /// when it has none; the attack planner reads a missing one as tile (0, 0), as DK2's zeroed
+    /// field would be.</summary>
+    public TilePos? HeartOf(byte playerId)
+    {
+        foreach (KeeperRoomView room in AllRooms)
+            if (room.OwnerPlayerId == playerId && room.Definition.RoomId == (byte)RoomTypeId.DungeonHeart)
+                return Centre(room);
+        return null;
+    }
+
+    /// <summary>A room's first slab (<c>+0x2D</c>), kept here as the first tile listed.</summary>
+    public TilePos FirstSlabOf(KeeperRoomView room) =>
+        room.TileIndices.Count == 0 ? Centre(room) : FromIndex(room.TileIndices[0]);
+
+    /// <summary>A room's <c>CentrePos</c> (<c>+0x27</c>) as <c>0x004E4590</c> writes it: the first slab
+    /// plus one for a Portal, plus three for the Heart, the first slab itself for ids 18 to 24, and
+    /// otherwise the slabs' integer centroid, or the room tile nearest it when the centroid is not
+    /// the room's (DK2 spirals out from it; ours takes the nearest, first listed on a tie).</summary>
+    public TilePos PositionOf(KeeperRoomView room)
+    {
+        TilePos first = FirstSlabOf(room);
+        switch (room.Definition.RoomId)
+        {
+            case (byte)RoomTypeId.Portal or (byte)RoomTypeId.HeroPortal: return new TilePos(first.X + 1, first.Y + 1);
+            case (byte)RoomTypeId.DungeonHeart: return new TilePos(first.X + 3, first.Y + 3);
+            case >= (byte)RoomTypeId.HeroGateFinal and <= (byte)RoomTypeId.MercenaryGate: return first;
+        }
+        if (room.TileIndices.Count == 0) return first;
+        int sumX = 0, sumY = 0;
+        foreach (int index in room.TileIndices) { sumX += index % Width; sumY += index / Width; }
+        var centroid = new TilePos(sumX / room.TileIndices.Count, sumY / room.TileIndices.Count);
+        if (room.TileIndices.Contains(IndexOf(centroid))) return centroid;
+        TilePos best = first;
+        int bestDistance = int.MaxValue;
+        foreach (int index in room.TileIndices)
+        {
+            int distance = DistanceSquared(FromIndex(index), centroid);
+            if (distance < bestDistance) { bestDistance = distance; best = FromIndex(index); }
+        }
+        return best;
+    }
+
+    /// <summary>The place validators of a Call to Arms cast at a tile (<c>0x004BB8A0</c>): location
+    /// 4's navigation solid bit, and target 4's exclusions on the keeper's own room tiles, captured
+    /// with the observation.</summary>
+    public bool CallToArmsPlaceAllowed(TilePos at) =>
+        InBounds(at) && !NavBytes.IsSolid(Tile(at).NavigationByte) && !_callRefusedTiles.Contains(IndexOf(at));
+
+    /// <summary>A tile whose owner <c>0x004BF390</c> calls an enemy: not this keeper and not allied,
+    /// unowned land included, since DK2 holds it for the neutral player.</summary>
+    public bool IsEnemyLand(TilePos at) => InBounds(at) && !AreAllied(Tile(at).OwnerPlayerId);
+
+    /// <summary><c>0x004FDB90</c>: enemy land on any of the nine tiles around and under a tile.</summary>
+    public bool EnemyLandAround(TilePos at)
+    {
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+                if (IsEnemyLand(new TilePos(at.X + dx, at.Y + dy))) return true;
+        return false;
+    }
+
+    /// <summary>The route query a creature's reachability test asks (<c>0x004D0E60</c> →
+    /// <c>0x004D0E10</c>) over the captured navigation bytes: whether a mover routes between two
+    /// positions in 4096ths, and the waypoints when a list is given. Deterministic from the
+    /// capture; the mesh is built on first use.</summary>
+    public bool CanRoute(int fromX, int fromY, int toX, int toY, MoverProfile mover, List<Fixed16Vector>? points = null)
+    {
+        _router ??= new MeshRouter(NavMesh.Build(this));
+        _waypoints.Clear();
+        if (!_router.TryRoute(new NavPoint(fromX >> 4, fromY >> 4), new NavPoint(toX >> 4, toY >> 4), mover, _waypoints))
+            return false;
+        if (points is not null)
+            foreach (NavPoint p in _waypoints) points.Add(new Fixed16Vector(p.X << 8, p.Y << 8));
+        return true;
+    }
+
+    private readonly byte[] _statuses = new byte[8];
+    private readonly bool[] _heartRuined = new bool[8];
+    private readonly HashSet<int> _callRefusedTiles = new();
+    private MeshRouter? _router;
+    private readonly List<NavPoint> _waypoints = new();
 
     public GameDatabase Database { get; }
     public byte PlayerId { get; }
@@ -191,7 +300,8 @@ public sealed class KeeperView : INavByteGrid
     public IReadOnlyList<KeeperRoomView> AllRooms { get; }
     public IReadOnlyList<KeeperRoomView> OwnRooms { get; }
 
-    /// <summary>The keeper's Dungeon Heart tile, or null when it has none left.</summary>
+    /// <summary>The keeper's <c>DungeonHeartPosition</c>, the middle of its Dungeon Heart room, or
+    /// null when it has none left.</summary>
     public TilePos? Heart { get; }
 
     public int OwnedTiles { get; }

@@ -98,6 +98,55 @@ public class ScenarioTests
     }
 
     [InstallFact]
+    public void Level18NemesisGrantsLevelsChoosesFabianAndCreepsTheCallTowardHerUnaided()
+    {
+        string install = Dk2InstallGate.Path;
+        Scenario scenario = Scenario.Load(Path.Combine(
+            RepositoryRoot(), "scenarios", "keepers", "level18_nemesis_attack.yaml"));
+        ScenarioResult run = new ScenarioRunner(GameDatabaseLoader.Load(install), install).Run(scenario);
+
+        // The planner's own decisions (ADR-0298), not scripted ones: the level's availability
+        // rows, the readiness grants as commands, Fabian as the target and the call at the
+        // Library's position, the own room furthest from the heart, then crept.
+        Assert.Empty(run.ExpectationFailures);
+        Assert.All(scenario.Setup.Players, p => Assert.Empty(p.Spells));
+        List<GrantCreatureLevelCommand> grants = run.KeeperCommandLog.Select(e => e.Command).OfType<GrantCreatureLevelCommand>().ToList();
+        Assert.Equal((12, 4), (grants.Count, grants.Select(g => g.CreatureId).Distinct().Count()));
+        Assert.Equal(12, run.Events.Count(e => e.Kind == "level_granted"));
+        // Fabian's one breach is used first; with it spent the scan goes on to the others, so the
+        // flags end holding more than her bit.
+        KeeperAIState state = run.KeeperStates[4];
+        Assert.Equal((1 << 5, 1 << 5, (byte)0), (state.PlayersAttackedFlags & (1 << 5), state.FirstAttackFlag & (1 << 5), state.Breaches[5].TunnelsLeft));
+        List<CastSpellAtPlaceCommand> casts = run.KeeperCommandLog.Select(e => e.Command).OfType<CastSpellAtPlaceCommand>().ToList();
+        Assert.NotEmpty(casts);
+        Assert.All(casts, c => Assert.Equal(((byte)4, (byte)3), (c.PlayerId, c.SpellId)));
+        Assert.Equal((60, 66), (casts[0].X >> 12, casts[0].Y >> 12));
+        Assert.True(casts.Select(c => (c.X >> 12, c.Y >> 12)).Distinct().Count() > 1, "the call never crept");
+        Assert.Contains(run.Events, e => e.Kind == "call_to_arms_slapped" && e.Detail.Contains("player=4"));
+        Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
+    }
+
+    [InstallFact]
+    public void Level11ADrakoChoosesMorganaStartsItsTunnelFromTheLairAndStopsWhereTheLavaStopsIt()
+    {
+        string install = Dk2InstallGate.Path;
+        Scenario scenario = Scenario.Load(Path.Combine(
+            RepositoryRoot(), "scenarios", "keepers", "level11a_drako_attack.yaml"));
+        ScenarioResult run = new ScenarioRunner(GameDatabaseLoader.Load(install), install).Run(scenario);
+
+        // The planner picks Morgana (player 6) among four enemies, tags the corridor's first rock
+        // north of the Lair, stores the tunnel at the first step and resumes it with the wait; the
+        // lava two tiles on ends task 7 as 0x004FDC50 would without a Stone Bridge, and no call is cast.
+        Assert.Empty(run.ExpectationFailures);
+        KeeperAIState state = run.KeeperStates[5];
+        Assert.Equal((1 << 6, 1 << 6, (byte)0, false), (state.PlayersAttackedFlags, state.FirstAttackFlag, state.Breaches[6].TunnelsLeft, state.Breaches[6].HasStoredTunnel));
+        KeeperCommandEmission tag = Assert.Single(run.KeeperCommandLog, e => e.Command is TagTilesCommand t && t.Tiles.Contains(new TilePos(64, 41)));
+        Assert.Equal((byte)5, tag.Command.PlayerId);
+        Assert.DoesNotContain(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand);
+        Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
+    }
+
+    [InstallFact]
     public void Level10ComputerKeeperRespectsLockedRoomAvailability()
     {
         string install = Dk2InstallGate.Path;
@@ -139,6 +188,8 @@ public class ScenarioTests
         string install = Dk2InstallGate.Path;
         Scenario scenario = Scenario.Load(Path.Combine(
             RepositoryRoot(), "scenarios", "keepers", "level10_asmodeus_idle.yaml"));
+        // Mana for the first tick's imp cast: the keeper predicts the cost test as DK2's cast does (ADR-0298).
+        scenario.Setup.Players.Single(p => p.Id == 4).Mana = 25000;
         scenario.DurationTicks = 1;
         var runner = new ScenarioRunner(GameDatabaseLoader.Load(install), install);
         ScenarioResult one = runner.Run(scenario);

@@ -70,6 +70,11 @@ public sealed class ScenarioCreature
     /// full.</para></summary>
     public int? Health { get; set; }
 
+    /// <summary>Experience level to start at, 1 to 10, as a level's own THINGS records carry one.
+    /// Omit it for level 1. Reached through the ordinary level-up, so the health scales with it
+    /// before <see cref="Health"/> is applied.</summary>
+    public int? Level { get; set; }
+
     /// <summary>Helpings of food owed, for the same reason <see cref="Health"/> exists: nothing in
     /// a scenario can make a creature hungry in a reasonable number of ticks.
     /// <para><b>And for the prison it is the only way.</b> A Goblin's <c>HungerRate</c> is 180 game

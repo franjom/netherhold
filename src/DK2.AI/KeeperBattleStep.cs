@@ -239,13 +239,15 @@ public sealed class KeeperBattleStep
         return spell;
     }
 
+    private bool Ready(KeeperSpellDef spell) => Ready(_view, spell);
+
     /// <summary><c>0x004BE390</c>: no cooldown left on the keeper's row for the spell.</summary>
-    private bool Ready(KeeperSpellDef spell)
+    internal static bool Ready(KeeperView view, KeeperSpellDef spell)
     {
-        AvailabilityState? row = _view.AvailabilityRow(KeeperSpellRules.SpellAvailabilityKind, spell.KeeperSpellId);
+        AvailabilityState? row = view.AvailabilityRow(KeeperSpellRules.SpellAvailabilityKind, spell.KeeperSpellId);
         if (row is not AvailabilityState entry || entry.LastCastTick == 0) return true;
         long cooldown = (uint)unchecked(spell.CooldownRaw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
-        return _view.Tick.Value - entry.LastCastTick >= cooldown;
+        return view.Tick.Value - entry.LastCastTick >= cooldown;
     }
 
     private IReadOnlyList<KeeperThreatSource> Sources => _sources ??= ThreatEvaluator.Sources(_view);

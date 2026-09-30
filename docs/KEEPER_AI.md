@@ -574,33 +574,37 @@ creature leaves).
 
 ### 5.5 Planning: attack, rooms, gold
 
-**Attack planner** (`0x4FAEF0`, Task 0 first step):
+**Attack planner** (`0x4FAEF0`, Task 0 first step). Built as `KeeperAttackPlanner` and
+`KeeperReadiness` (ADR-0298); the claim audit is `research/computer-keeper-management.md` §6–7.
 
 - Refuse if `NeverAttack`, `CannotAttackCounter > 0`, or `CallToArmsInUse`.
-- **Readiness** (`0x4FAB10`): more than `IAMinimumCreatures` non-imps **and** all of
+- **Readiness** (`0x4FAB10`): more than `IAMinimumCreatures` non-workers **and** all of
   them at level ≥ `IACreatureSkillLevel`. If the under-levelled count is no greater
-  than that level threshold and is less than the army size, the helper calls the
-  creature's ordinary level-up routine `0x0048B120` once for **each** under-levelled
-  creature before the final readiness test (`0x004FABC4`). This grants levels
-  directly; it does not send them to training. STRONGLY INFERRED from the binary.
-- If `IAAllRoomsPlaced`, also require `AllRoomsBuilt`. If `IAAllSpellsResearched` and
-  any spell is still researchable, push a research move instead and refuse.
+  than that level and less than the army size, each under-levelled non-worker gets one
+  ordinary level-up (`0x0048B120`) before the final test; ours issues it as a command.
+  Readiness runs before the rooms test, and again from the tick's training roll.
+- If `IAAllRoomsPlaced`, also require `AllRoomsBuilt`. If `IAAllSpellsResearched` (bit 0)
+  and any spell is at availability 2, run the research move (unbuilt) and refuse.
 - Target: with `IAOnlyAttackAttackers`, only the recorded attacker (then the flags are
-  cleared); otherwise the **nearest enemy heart** (skipping ids 1 and 2 and finished
-  statuses 1/3) whose total army threat × `IAThreatSuperiority`% we meet or exceed.
-- If that enemy's `TunnelsLeft` is 0 and a stored tunnel exists → resume it (`Task 7`,
-  `NextTask 4`) before the ordinary nearest/strength comparison. Ordinary mode sets
-  the cooldown only if no stored tunnel remains; attacker-only mode does not write
-  it (`research/computer-keeper-management.md` §6).
-- In ordinary mode, first attack on a player (`FirstAttackFlag`): end point by `IAFirstEnd` — 0 the enemy
-  **Dungeon Heart (5)**, 1 a random enemy room, 2 the enemy room with the least threat
-  within 5 tiles, 3 the most; start point by `IAFirstStart` — 0 own room furthest from
-  own heart, 1 random own room, 2 own heart, 3 own room nearest the target. Later
-  attacks: random enemy room, random own room. Attacker-only mode uses nearest
-  enemy/own non-bridge rooms instead (management audit §6).
-- Set `Task 7 / NextTask 4`, `TunnelsLeft--`, remember the target in `BlibBlubBlob`'s
-  low nibble; when `CallToArmsUsage` = 0 and breaches are used up and no CTA is active,
-  place `CallToArmsPos` two tiles off the heart along a checked route.
+  cleared); otherwise the **nearest enemy heart** (skipping ids 1 and 2, statuses 1/3 and
+  allies) whose whole-list threat × `IAThreatSuperiority`% the keeper's meets or exceeds.
+- An enemy whose `TunnelsLeft` is 0 with a stored tunnel resumes it (`Task 7`, `NextTask 4`)
+  inside the scan, before any strength test; ordinary mode sets the wait ×4 and clears it
+  again when another of that enemy's tunnels remains; attacker-only writes no wait.
+- First attack on a player (`FirstAttackFlag`): end point by `IAFirstEnd` (0 a random enemy
+  **Heart** room, 1 a random enemy room by index, 2 the enemy room with the least of its own
+  threat within 5 tiles, 3 the most), then start point by `IAFirstStart & 3` (0 the own room
+  whose `CentrePos` lies furthest from the heart, 1 random, 2 a random own Heart room, 3 the
+  own room nearest the end's first slab). Later attacks: a random own room, then a random
+  enemy room. Attacker-only mode: the enemy room nearest the own heart, then the own room
+  nearest its first slab. Rooms walk newest first, as `Room_Construct` links them.
+- Set `Task 7 / NextTask 4`, `TunnelsLeft--` (loaded as `BreachAtXPoints & 0xF`), the
+  target in `BlibBlubBlob`'s low nibble; when `CallToArmsUsage` = 0, breaches are used up
+  and no call is up, stage `CallToArmsPos` two tiles off the heart, then at the start room's
+  `CentrePos` when a walker routes there, else at the first of its slabs that routes.
+- Task 7 stores the tunnel where its cursor's 3×3 holds land `0x004BF390` calls an enemy
+  and ends; the resume digs on. That the neutral player's unowned land counts, so the store
+  fires at the first step out, is a HYPOTHESIS from the zeroed alliance bytes (Q497).
 
 **Room planner** (`0x4FC690`, when the attack planner declines):
 
@@ -807,7 +811,7 @@ exists; the hand puts it down in a random own Lair or at the heart. Built as
   shipped list, Create Imp is every level's first research target while it is
   researchable, so a computer keeper there gets no paid imps until its Library has
   researched Create Imp. Once upgraded, its imps are level 4. The researcher
-  move (step 12) and the `IAAllSpellsResearched` attack gate are still unbuilt.
+  move (step 12) is still unbuilt; the `IAAllSpellsResearched` attack gate is built.
 - **Terrain descriptor byte `+0x1CB` bit 0**, which the site finder and the expansion
   test accept as buildable alongside diggable rock and own floor.
 - **Room expansion's observed shape:** the binary accepts multiple sides in order;
@@ -1017,7 +1021,8 @@ the simulation's stream. The delay and separate stream are deliberate deviations
 | `RoomPlanner` | §5.5's room choice, ideal neighbours, directions, claimable neutral rooms | **exists** |
 | `KeeperAIPersonality` | the nine skirmish rows of §3.2 as typed static data, producing a `KeeperAIParameters` plus the computed `RoomList` | **does not exist**; the values are decoded in `reverse-engineering/` |
 | `ThreatEvaluator` | Pure strength, drop-site and response arithmetic (§5.4) | Built; live inputs and message integration remain (`research/computer-keeper-threat.md` section 5) |
-| `AttackPlanner`, `TrapPlacer`, `BattleStep` | §5.5, §5.6, §5.7 as pure functions over the view | **do not exist** |
+| `KeeperAttackPlanner`, `KeeperReadiness` | §5.5's attack planner, front and management; the readiness grants as commands | **exist** (ADR-0298) |
+| `TrapPlacer` | §5.6 | **does not exist** |
 | `IWorldView` | a general agent observation interface | **not added**: `KeeperView` supplies the current keeper boundary; extend it with verified observations as §12.4 grows |
 
 The housekeeping steps of §5.1 (imps, slap, gold untag, the task machine) are private
@@ -1122,8 +1127,11 @@ The proactive foundation already exists (§12.8). **Future direction, agreed 202
 3. **Dungeon management.** Add need-driven room expansion/building, training moves,
    mood responses, prisoners, specials and research decisions. Acceptance: a verified
    need changes its orders. Reuse §12.3–12.4's existing commands and state.
-4. **Deliberate attacks.** Add readiness, enemy selection, attack tunnels, Call to Arms,
-   battle spells and trap/door decisions as their simulation effects become usable.
+4. **Deliberate attacks.** Readiness with its level grants, enemy selection, the attack
+   tunnel, the staging point, the front and the call are built (ADR-0298): Nemesis on
+   Level 18 grants levels, chooses Fabian and creeps the call toward her; Drako on Level 11A
+   chooses Morgana and tunnels until the lava. Left: bridges in task 7, the research move,
+   training moves, trap/door decisions, and the original comparison (Q497).
    Acceptance: the keeper prepares and launches an attack without scripted orders.
 5. **Personalities and comparison.** Load all nine profiles; test deterministic command
    streams and compare an active original keeper on the same stock map with availability
@@ -1137,6 +1145,7 @@ untouched. `KeeperAI.Think` runs the budget, the 1,680-tick task timeout, the 24
 gold untag, imp creation, slapping, and the task machine for tasks 0–7. The other files
 are §12.2's table.
 
+`KeeperAI.Think` also runs step 7's attack management and step 9's training roll.
 `tests/DK2.AI.Tests` runs `KeeperAITests` against a synthetic 30×30 rock world
 (`KeeperWorld`): the creation-time directions for all four heart positions, the site
 finder's placement and its gap gate, the walker in a straight line and round an
@@ -1178,11 +1187,14 @@ schema 9 adds its `0x004888C0` answer and the keeper's own Call to Arms; schema 
 mana pool, each spell row's last cast, and per creature its target's owner and the
 captured place, route and Thunderbolt-target permissions the battle step predicts with;
 schema 11 its Combat Pit mark and whether it holds a room id; schema 12 the Heal permission
-its validators give an own creature.
+its validators give an own creature; schema 13 every player's status, the heart room's middle
+as the heart and the call's refused own-room tiles, with route queries over the captured bytes.
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
 now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);
 remaining gaps: `research/creature-pickup.md`. Response dispatch is connected, Call to Arms is a simulation spell (ADR-0279) and the battle step runs through `Think` at step 11 with the removal test at step 7 (ADR-0283, `KeeperBattleStep`) and the retreat of the wounded after that test (ADR-0284, `KeeperRetreatStep`).
+The attack planner, the front and attack management run through `Think` at task 0 and step 7
+with readiness grants as commands (ADR-0298, `KeeperAttackPlanner`, `KeeperReadiness`).
 Combat messages reach the observation; the remaining reactive decisions, the Inferno
 and Chicken casts, the remaining message families, personality loader and §5.1 step 9 training moves remain unbuilt.
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.

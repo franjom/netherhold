@@ -1,0 +1,46 @@
+# The unaided keeper's attack planner on a stock map: level 11A gives Drako (player 5) two
+# Mistresses and a Salamander, IAMinimumCreatures 2, IACreatureSkillLevel 1, IAThreatSuperiority 30,
+# NeverAttack 0, IAFirstEnd 2, IAFirstStart 3, BreachAtXPoints 1, CallToArmsUsage 1 and
+# WaitBeforeAttackingAgain 8. Nobody attacks Drako and no command is scripted: once its imps are
+# bought the attack planner (0x004FAEF0) finds the army ready, passes over the human (player 3,
+# 47 tiles off), Belial (21) and Raksha (20) for Morgana (player 6, 11 tiles off, four imps),
+# chooses her heart as the room with the least of her own strength within five tiles and the
+# Lair as the own non-bridge room nearest that heart's first slab, and starts task 7 from the
+# Lair toward the heart: the corridor's first tile of rock north of the Lair is tagged with
+# action 40. That step's neighbourhood holds unowned rock, which DK2's enemy test counts, so the
+# tunnel is stored and resumed two turns later with the 32-turn attack wait. Two tiles on the
+# corridor meets lava, and Drako's level gives it no Stone Bridge, so task 7 ends there as
+# 0x004FDC50 ends it; the walkers cannot wade lava either, so no front is found and no call is
+# cast. The attack on Morgana stops where the level's lava stops it in both games.
+#
+# What this run does NOT establish: DK2's timing, or that the neutral player's land stores the
+# tunnel in the original (Q497). No original run of Drako attacking has been compared.
+id: keepers-level11a-drako-attack-001
+question: >
+  Does Drako, unaided, choose Morgana as its target and start its tunnel from the Lair toward
+  her heart?
+map: campaign:level11A
+seed: 12345
+duration_ticks: 60
+viewing_player: 5
+computer_keepers: [5]
+setup:
+  placed_things: true
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 2, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
+    - { id: 4, gold: 0, mana: 0 }
+    - { id: 5, gold: 5000, mana: 25000 }
+    - { id: 6, gold: 0, mana: 0 }
+    - { id: 7, gold: 0, mana: 0 }
+observe:
+  - state_hash
+  - events
+expect:
+  - event: tagged
+    detail: "player=5 applied=1 rejected=0 span=(64,41)-(64,41)"
+    because: >
+      Task 7 (0x004FDC50) tags the rock on the cursor's tile with action 40 when the tile is
+      taggable and not yet in the task pool: the first tile of rock north of Drako's Lair, on the
+      line from its position (64,43) to Morgana's heart position (65,35).

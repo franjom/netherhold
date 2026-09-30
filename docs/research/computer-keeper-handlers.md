@@ -323,10 +323,12 @@ neither 0 nor 4: both tasks become 4 and allowance becomes zero. Otherwise:
    entries; water (`+0x17B` bit 7) chooses room 8 when available (state 3), otherwise
    room 17; lava (bit 8) chooses only 17. An unavailable required bridge ends the
    task; failed placement/build retries the same tile while allowance remains.
-3. During an attack (`BlibBlubBlob` low nibble nonzero), if `0x004FDB90` finds an
-   enemy-owned tile in the current tile's 3x3 neighbourhood, convert the encoded
+3. During an attack (`BlibBlubBlob` low nibble nonzero), if `0x004FDB90` finds a
+   tile in the current tile's 3x3 neighbourhood whose owner `0x004BF390` calls an
+   enemy (the neutral player's unowned land included), convert the encoded
    enemy index from one-based to zero-based, store current→target in its first empty tunnel entry,
-   clear the low nibble, and resume `NextTask`.
+   clear the low nibble, and resume `NextTask`. Built (ADR-0298); the walker's other
+   arms keep their approximations.
 
 **Wall-hug — Known:** `0x00502230` steps on the axis with the larger absolute
 difference (ties use Y), with headings N/E/S/W. `WallHugStart` is the saved cursor,

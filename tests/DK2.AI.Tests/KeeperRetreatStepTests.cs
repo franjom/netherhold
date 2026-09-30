@@ -276,6 +276,7 @@ public class KeeperRetreatStepTests
     public void TheWalkFollowsTheListOrderAndStopsWhenTheAllowanceIsSpent(byte speed, int lifted, bool impsAfter)
     {
         WorldState world = World();
+        world.Player(Keeper).Mana = 20000; // the imp cast is predicted affordable (ADR-0298)
         CreatureState a = Wounded(world, 299, 17, 17);
         CreatureState b = Wounded(world, 299, 13, 17);
         CreatureState c = Wounded(world, 299, 17, 13);

@@ -252,6 +252,7 @@ public class KeeperViewTests
     {
         GameDatabase db = KeeperWorld.Database();
         WorldState world = KeeperWorld.World(db);
+        world.Player(KeeperWorld.Keeper).Mana = 20000;
         var captured = new KeeperView(db, world, KeeperWorld.Keeper);
         world.SetAvailability(KeeperWorld.Keeper, 5, 4, 1);
         var sim = new GameSimulation(db, world, 1, []);

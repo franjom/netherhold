@@ -66,6 +66,10 @@ public sealed record ScenarioResult(
     /// <summary>Commands emitted by computer keepers, before the next-tick input delay.</summary>
     public IReadOnlyList<PlayerCommand> EmittedKeeperCommands { get; init; } = [];
     public IReadOnlyList<KeeperCommandEmission> KeeperCommandLog { get; init; } = [];
+
+    /// <summary>Each computer keeper's own state at the end of the run, by player id: what it
+    /// decided, which no command shows (the attack target, the flags, the stored tunnels).</summary>
+    public IReadOnlyDictionary<byte, KeeperAIState> KeeperStates { get; init; } = new Dictionary<byte, KeeperAIState>();
 }
 
 /// <summary>
@@ -256,6 +260,7 @@ public sealed class ScenarioRunner
             BalanceTable = balanceTable,
             EmittedKeeperCommands = emitted,
             KeeperCommandLog = commandLog,
+            KeeperStates = keepers.ToDictionary(k => k.PlayerId, k => k.State),
         };
     }
 
@@ -580,6 +585,12 @@ public sealed class ScenarioRunner
 
             CreatureState placed = world.SpawnCreature(
                 _database, definition.CreatureId, c.Player, new TilePos(c.At[0], c.At[1]));
+
+            // A starting level, as the shipped THINGS records give one, through the same
+            // level-up the portal and the hero lair use.
+            if (c.Level is int level)
+                while (placed.Level < Math.Min(level, CreatureLevelRules.MaxLevel)
+                    && CreatureLevelRules.LevelUp(_database, definition, placed)) { }
 
             // Wounded on purpose, because nothing in a scenario can wound one.
             // Clamped at both ends: a typo cannot make a creature stronger than

@@ -30,6 +30,7 @@ internal static class KeeperWorld
     public const byte HeroPortalFloor = 14;
     public const byte HeartFloor = 20;
     public const byte PrisonFloor = 21;
+    public const byte LibraryFloor = 22;
     public const byte Lava = 7;
 
     /// <summary>Shot 5, Create Object, and a Lightning shot for Thunderbolt; the flag is object 10.</summary>
@@ -61,6 +62,7 @@ internal static class KeeperWorld
             Terrain(PortalFloor, "Portal", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(HeartFloor, "Dungeon Heart", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(PrisonFloor, "Prison", TerrainFlags.Ownable | TerrainFlags.Room, 100),
+            Terrain(LibraryFloor, "Library", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(Lava, "Lava", TerrainFlags.Lava, 0),
         ],
         rooms:
@@ -72,6 +74,7 @@ internal static class KeeperWorld
             Room(RoomTypeId.Portal, "Portal", 0, PortalFloor, buildable: false),
             Room(RoomTypeId.DungeonHeart, "Dungeon Heart", 0, HeartFloor, buildable: false),
             Room(RoomTypeId.Prison, "Prison", 0, PrisonFloor, buildable: false),
+            Room(RoomTypeId.Library, "Library", 0, LibraryFloor, buildable: false),
         ],
         creatures:
         [
@@ -229,7 +232,7 @@ internal static class KeeperWorld
     }
 
     /// <summary>A 30×30 rock map: impenetrable border, the keeper's heart and a 5×5 claimed patch around it.</summary>
-    public static WorldState World(GameDatabase database, int width = 30, int height = 30)
+    public static WorldState World(GameDatabase database, int width = 30, int height = 30, IEnumerable<byte>? morePlayers = null)
     {
         var tiles = new MapTile[width * height];
         for (int y = 0; y < height; y++)
@@ -244,7 +247,10 @@ internal static class KeeperWorld
                 tiles[(y * width) + x] = new MapTile(ClaimedPath, Keeper, 0, 0);
         tiles[(HeartAt.Y * width) + HeartAt.X] = new MapTile(HeartFloor, Keeper, 0, 0);
 
-        return WorldState.FromMap(database, new LevelMap(width, height, tiles), [0, 1, 2, Keeper]);
+        WorldState world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [0, 1, 2, Keeper, .. morePlayers ?? []]);
+        // Mana enough for the imps the tests ask for: DK2's imp cast tests its cost first.
+        world.Player(Keeper).Mana = 100000;
+        return world;
     }
 
     public static void Set(WorldState world, GameDatabase database, TilePos p, byte terrainId, byte owner = 0)

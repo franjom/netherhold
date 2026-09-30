@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 12;
+    public const int FormatVersion = 13;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -77,6 +77,11 @@ public static class KeeperViewSnapshot
         }
         w.Write(view.CallToArms.On); w.Write(view.CallToArms.ObjectId);
         w.Write(view.CallToArms.X); w.Write(view.CallToArms.Y); w.Write(view.CallToArms.ManaTick);
+        foreach (byte status in view.StatusEntries) w.Write(status);
+        foreach (bool ruined in view.HeartRuinedEntries) w.Write(ruined);
+        int[] refused = view.CallRefusedTiles.ToArray();
+        w.Write(refused.Length);
+        foreach (int index in refused) w.Write(index);
         w.Flush();
         return stream.ToArray();
     }
@@ -140,10 +145,21 @@ public static class KeeperViewSnapshot
                 (PlayerMessageKind)r.ReadUInt32(), r.ReadInt32(), r.ReadInt32(),
                 r.ReadUInt32(), r.ReadUInt32(), r.ReadBoolean(), r.ReadBoolean());
         var callToArms = new CallToArmsState(r.ReadBoolean(), r.ReadInt32(), r.ReadUInt16(), r.ReadUInt16(), r.ReadUInt32());
+        var statuses = new byte[8];
+        for (int i = 0; i < statuses.Length; i++) statuses[i] = r.ReadByte();
+        var heartRuined = new bool[8];
+        for (int i = 0; i < heartRuined.Length; i++) heartRuined[i] = r.ReadBoolean();
+        var refused = new int[ReadCount(r, 4)];
+        for (int i = 0; i < refused.Length; i++)
+        {
+            refused[i] = r.ReadInt32();
+            if ((uint)refused[i] >= tiles.Length)
+                throw new InvalidDataException("Refused tile is outside the observation.");
+        }
         if (stream.Position != stream.Length)
             throw new InvalidDataException("Trailing keeper observation data.");
         return new KeeperView(database, player, tick, status, alliedWith, playerIds, width, height, gold, imps,
-            heart, tiles, availability, creatures, traps, rooms, messages, callToArms, mana);
+            heart, tiles, availability, creatures, traps, rooms, messages, callToArms, mana, statuses, refused, heartRuined);
     }
 
     private static int ReadCount(BinaryReader r, int minimumEntryBytes)
