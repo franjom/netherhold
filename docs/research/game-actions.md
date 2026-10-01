@@ -140,9 +140,9 @@ assumed to be milliseconds (UNKNOWN). So are the meanings of `0x0048AD30`,
 | `0x2f` | `0x00512850` build a room | `0x4d` | `0x00505dd0` | `0x86` | `0x00512950` carry on after a result (§3.1) |
 | `0x30` | `0x00512890` | `0x4e` | `0x00505e20` | `0x87` | `0x005133a0` Temple keeper-spell offering |
 | `0x31` | `0x005128f0` sell | `0x4f` | `0x00505e80` | `0x88` | `0x00514420` |
-| `0x32` | `0x00513210` place a trap | `0x50` | `0x00505ec0` | `0x89` | `0x00514470` |
+| `0x32` | `0x00513210` place a door | `0x50` | `0x00505ec0` | `0x89` | `0x00514470` |
 | `0x33` | `0x00513240` | `0x51` | `0x00505f00` |  |  |
-| `0x34` | `0x00513270` place a door | `0x52` | `0x00505f80` |  |  |
+| `0x34` | `0x00513270` place a trap | `0x52` | `0x00505f80` |  |  |
 ## Confidence
 
 **CONFIRMED (binary):** the base, the 20-byte stride, the 86 records and the
@@ -152,3 +152,8 @@ assumed to be milliseconds (UNKNOWN). So are the meanings of `0x0048AD30`,
 
 **UNKNOWN:** what all but those six ids mean, and the 52 gaps — whether they are
 unused ids or actions handled somewhere else entirely.
+
+**50 places a door and 52 a trap** (corrected 2026-10-01; the table had them swapped). Both
+handlers pass the tile (x low, y high) and the id in the next field's low byte, to `0x004C33B0`
+(door) and `0x004C3860` (trap). Level 3's capture (`level3-live1`) shows it: DK2's door records
+appear on the five tiles of action 50 at ticks 1223–1270, its trap records on the fourteen of 52.

@@ -121,6 +121,15 @@ public sealed class PacketLog
                     // Sell a dragged rectangle (0x005128f0, game-actions.md): its two corners.
                     commands.Add(SellRoomCommand.Rect(player, first.X, first.Y, second.X, second.Y));
                     break;
+                case 50:
+                case 52:
+                    // Place a door (50, 0x00513210 to 0x004C33B0) or a trap (52, 0x00513270 to 0x004C3860)
+                    // blueprint: the tile packed as x and y, then the id in the next field's low byte.
+                    // Level 3's capture puts DK2's door records on 50's tiles and its traps on 52's.
+                    commands.Add(a.Kind == 50
+                        ? new PlaceDoorCommand(player, first, (byte)a.Second)
+                        : new PlaceTrapCommand(player, first, (byte)a.Second));
+                    break;
                 case 54:
                     // Cast at a place: spell id (flags above it), then x and y in 1/4096 tile.
                     // Only Create Imp is decoded; its position check is not built (ImpCommands).
