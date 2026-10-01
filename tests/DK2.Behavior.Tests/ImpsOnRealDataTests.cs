@@ -163,6 +163,40 @@ public class ImpsOnRealDataTests
         }
     }
 
+    /// <summary>
+    /// <b>A gate is never converted; every other rival room is.</b> DK2's enemy-room test
+    /// <c>0x00454040</c> takes a room whose terrain is Attackable, and one that is not only once
+    /// ruined (<c>+0x9A</c> bit 0), which only COLLAPSE_HERO_GATE does and we do not build. In
+    /// Level 1's capture no imp ever targets the heroes' 2x2 gate (ADR-0299).
+    /// </summary>
+    [InstallFact]
+    public void ARoomWhoseTerrainIsNotAttackable_IsNeverConverted()
+    {
+        GameDatabase db = RealDatabase();
+        const byte rival = 1;
+        const byte keeper = 3;
+
+        var gates = new List<string>();
+        foreach (TerrainDef terrain in db.Terrain.Values.Where(t => t.IsRoom && !t.IsSolid))
+        {
+            var tile = new TileState { TerrainId = terrain.TerrainId, OwnerPlayerId = rival, Health = terrain.StartingHealth };
+            bool converts = TileWorkRules.Applies(db, tile, TileWorkKind.ConvertRoom, keeper);
+            if (!terrain.IsAttackable)
+            {
+                Assert.False(converts, $"{terrain.Name} is not Attackable and was converted");
+                gates.Add(terrain.Name);
+            }
+            else if (terrain.TerrainId != ManaRules.DungeonHeartTerrainId(db))
+            {
+                Assert.True(converts, $"{terrain.Name} is Attackable and was not converted");
+            }
+        }
+
+        // The five gates of the shipped data, so a reading that matched none would fail here.
+        Assert.Equal(5, gates.Count);
+        Assert.Contains(gates, n => n.Contains("2x2"));
+    }
+
     [InstallFact]
     public void ImpsDigOutMarkedRock_OnARealCampaignLevel()
     {

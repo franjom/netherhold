@@ -112,7 +112,7 @@ is decided next and written to the entry's `+0x1D` (`0x005080E0`):
 |---|---|---|---|
 | `0x00453FC0`: owner neutral, terrain `+0x1CB` bit 0, not solid | 0 | 15 | plain claim |
 | `0x00454000(owner)`: owner not the imp's, flags Ownable `0x4` and Attackable `0x20`, neither Solid nor Room | 2 | 19 | enemy floor |
-| `0x00454040(owner)`: owner not the imp's, Room flag `0x10`; a Dungeon Heart (room type 5) only when `room+0x9A` bit 0 | 1 | 17 | enemy room |
+| `0x00454040(owner)`: owner not the imp's, Room flag `0x10`; on Attackable terrain any room but a Dungeon Heart (type 5), which needs `room+0x9A` bit 0 (the ruin); on non-Attackable terrain (the five gates) only that bit (ADR-0299) | 1 | 17 | enemy room |
 
 Terrain byte `+0x1CB` bit 0 is set by the terrain loader at `0x004F7759` when the type
 is **not Ownable, its StartingHealth (`+0x1AB`) is below its MaxHealth (`+0x1AD`), and

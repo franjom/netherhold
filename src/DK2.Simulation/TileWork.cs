@@ -265,14 +265,14 @@ public static class TileWorkRules
                 && !IsHostileFloor(terrain, tile, playerId)
                 && (terrain.IsOwnable || terrain.MaxHealthTypeTerrainId != tile.TerrainId),
 
-            // Somebody else's room — a rival's, or a neutral one, which is what
-            // an unclaimed portal is (PlayerIds.Neutral, ADR-0043). A live
-            // dungeon heart is excluded by terrain identity, because nothing in
-            // the record separates a heart from a portal; a ruined one is a room
-            // like any other (Q40, Q93, ADR-0162).
+            // Somebody else's room, a rival's or a neutral one such as an unclaimed portal (ADR-0043).
+            // A live heart is excluded by terrain identity, a ruined one is a room like any other
+            // (Q93, ADR-0162). A room on non-Attackable terrain, a gate, converts only once ruined
+            // (0x00454040), which only the unbuilt COLLAPSE_HERO_GATE does, so never (ADR-0299).
             TileWorkKind.ConvertRoom =>
                 !terrain.IsSolid
                 && terrain.IsRoom
+                && terrain.IsAttackable
                 && tile.OwnerPlayerId != playerId
                 && (ruinedHeart || terrain.TerrainId != ManaRules.DungeonHeartTerrainId(database)),
 

@@ -6595,3 +6595,21 @@ other way round; a keeper's worker that is imprisoned, down or fighting takes no
 `ImpTaskSystem` skips it before the worker arm (from ADR-0293); a tile's piles go newest first
 (the tile list's order is unread); a pile has no falling phase. Not built: the chicken side arm
 (a neutral Chicken eaten off a Portal or Hatchery tile, action 26).
+
+## ADR-0299 — A gate is not converted until it is ruined
+**Date:** 2026-10-01 · **Status:** accepted · Research: `functions/00454040.md`, `imp-claim-path.md` §4
+
+**Context.** Late in Level 1, ten of the checker's 21 disagreements had DK2's imps reinforce the
+rock beside them where ours walked to claim (15,7) and (16,7): the heroes' 2x2 Hero Gate. In
+2,044 turns of the capture no DK2 imp targets it. The enemy-room test `0x00454040` has a second
+arm we had not recorded: a room whose terrain is not Attackable converts only when its `+0x9A`
+bit 0, the ruin, is set, and only trigger action 32 COLLAPSE_HERO_GATE sets it on a gate.
+
+**Decision.** `TileWorkRules`' ConvertRoom requires the terrain to be Attackable. In the shipped
+data that excludes exactly the five gates. The ruined-gate case is not built, because action 32
+is not.
+
+**Consequences.** The checker agrees on 300 of Level 1's 309 choices (288 before): ten late
+reinforce choices and two that followed them. Level 2 is unchanged (732/799), and so are the
+replays (17 and 12 of 20), the gate coming into play near the end of Level 1. One real-data
+test pins the five gates; it fails with the term removed.
