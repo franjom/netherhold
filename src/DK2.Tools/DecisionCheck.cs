@@ -104,15 +104,15 @@ public static class DecisionCheck
 
             JsonElement dk2 = root.GetProperty("dk2");
             int dk2State = dk2.GetProperty("state").GetInt32();
-            // A walk with no task is the store chooser's (kind 15 in our column's terms).
-            int dk2Kind = dk2State == ImpStates.Resting ? 0
-                : dk2.GetProperty("task_id").GetInt32() == 0 ? 15
+            // A walk with no task is the store chooser's.
+            int dk2Kind = dk2State == ImpStates.Resting ? (int)ImpTaskKind.None
+                : dk2.GetProperty("task_id").GetInt32() == 0 ? StoreWalk
                 : dk2.GetProperty("kind").GetInt32();
             int dk2X = dk2.GetProperty("task_x").GetInt32(), dk2Y = dk2.GetProperty("task_y").GetInt32();
-            int ourKind = probe.Took ? (int)decider.LastTaskKind : 0;
+            int ourKind = probe.Took ? (int)decider.LastTaskKind : (int)ImpTaskKind.None;
             if (decider.Activity == CreatureActivity.DeliveringGold)
             {
-                ourKind = 15;
+                ourKind = StoreWalk;
             }
 
             int ourIndex = probe.Took ? decider.TargetTileIndex : -1;
@@ -121,7 +121,7 @@ public static class DecisionCheck
             bool lost = root.TryGetProperty("lost", out JsonElement l) && l.GetBoolean();
             string verdict = lost ? "lost"
                 : dk2Kind != ourKind ? "kind"
-                : dk2Kind is 0 or 15 || (dk2X == ourX && dk2Y == ourY) ? "same" : "tile";
+                : dk2Kind is (int)ImpTaskKind.None or StoreWalk || (dk2X == ourX && dk2Y == ourY) ? "same" : "tile";
             if (verdict == "same")
             {
                 same++;
@@ -182,15 +182,15 @@ public static class DecisionCheck
         int order = pool.GetArrayLength();
         foreach (JsonElement entry in pool.EnumerateArray())
         {
-            int kind = entry.GetProperty("kind").GetInt32();
+            var kind = (ImpTaskKind)entry.GetProperty("kind").GetInt32();
             ref TileState tile = ref world.Tile(entry.GetProperty("x").GetInt32(), entry.GetProperty("y").GetInt32());
             order--;
-            if (kind is 1 or 2)
+            if (kind is ImpTaskKind.Excavate or ImpTaskKind.Mine)
             {
                 tile.SetTaggedBy(player, true);
                 tile.TagOrder = order;
             }
-            else if (kind == 14)
+            else if (kind == ImpTaskKind.ClaimFreshlyDug)
             {
                 tile.FreshlyDug = true;
             }
@@ -251,10 +251,10 @@ public static class DecisionCheck
         }
         creature.JustDropped = imp.GetProperty("just_dropped").GetInt32() != 0;
         creature.DroppedTask = (ImpTaskKind)imp.GetProperty("dropped_task").GetInt32();
-        int kind = imp.GetProperty("kind").GetInt32();
-        creature.LastTaskKind = (ImpTaskKind)kind;
+        var kind = (ImpTaskKind)imp.GetProperty("kind").GetInt32();
+        creature.LastTaskKind = kind;
         int tx = imp.GetProperty("task_x").GetInt32(), ty = imp.GetProperty("task_y").GetInt32();
-        bool hasTile = kind != 0 && world.Contains(new TilePos(tx, ty));
+        bool hasTile = kind != ImpTaskKind.None && world.Contains(new TilePos(tx, ty));
         creature.LastTaskTileIndex = hasTile ? ty * world.Width + tx : -1;
         creature.TargetTileIndex = -1;
         creature.WorkSlot = MiningSlots.None;
@@ -268,24 +268,37 @@ public static class DecisionCheck
         }
 
         var target = new TilePos(tx, ty);
+
+        // A gold fetch is held on the pile's tile and walked to in 6, resuming in 27: ours counts
+        // it by its target and the end of its walk (ImpCrowding).
+        if (kind == ImpTaskKind.FetchGold)
+        {
+            creature.TargetTileIndex = ty * world.Width + tx;
+            creature.TargetWork = default;
+            CreatureStateMachine.Release(creature);
+            CreatureStateMachine.BeginTravel(creature, WalkState, ImpStates.PickingUpGold);
+            faces.Add((creature, target));
+            return;
+        }
+
         ref TileState tile = ref world.Tile(target);
         TileWorkKind work;
         switch (kind)
         {
-            case 1 when TileWorkRules.TryTaggedWork(database, tile, player, out TileWorkKind dig):
+            case ImpTaskKind.Excavate when TileWorkRules.TryTaggedWork(database, tile, player, out TileWorkKind dig):
                 work = dig;
                 break;
-            case 1:
+            case ImpTaskKind.Excavate:
                 work = TileWorkKind.Dig;
                 break;
-            case 2:
+            case ImpTaskKind.Mine:
                 work = TileWorkKind.MineGold;
                 break;
-            case 3:
+            case ImpTaskKind.Claim:
                 work = TileWorkRules.Applies(database, tile, TileWorkKind.AttackTile, player)
                     ? TileWorkKind.AttackTile : TileWorkKind.Claim;
                 break;
-            case 6:
+            case ImpTaskKind.Reinforce:
                 work = TileWorkKind.Reinforce;
                 break;
             default:
@@ -293,7 +306,7 @@ public static class DecisionCheck
         }
         // The side and slot the handler wrote (+0x94, +0x96); a claim is worked from the tile.
         int side = imp.TryGetProperty("task_side", out JsonElement sd) ? sd.GetInt32() & 3 : -1;
-        TilePos face = kind == 3 ? target
+        TilePos face = kind == ImpTaskKind.Claim ? target
             : side >= 0 ? new TilePos(tx + SideDx[side], ty + SideDy[side])
             : FaceFor(database, world, creature.Tile, target);
         creature.TargetTileIndex = ty * world.Width + tx;
@@ -310,7 +323,7 @@ public static class DecisionCheck
             PutIn(creature, ImpStates.For(work).Work);
         }
 
-        if (kind is 1 or 2 && MiningSlots.Face(face, target) is int f and >= 0)
+        if (kind is ImpTaskKind.Excavate or ImpTaskKind.Mine && MiningSlots.Face(face, target) is int f and >= 0)
         {
             int along = imp.TryGetProperty("task_slot", out JsonElement sl) ? sl.GetInt32() % MiningSlots.PerFace : 0;
             creature.WorkSlot = (byte)(f * MiningSlots.PerFace + along);
@@ -319,6 +332,10 @@ public static class DecisionCheck
     }
 
     private const int WalkState = 6;
+
+    /// <summary>The verdict columns' value for a walk to a store with no task: DK2's state 6 resuming
+    /// in 28 after the store chooser. Not a pool kind; DK2's kinds are <see cref="ImpTaskKind"/>.</summary>
+    private const int StoreWalk = 15;
 
     /// <summary>DK2's sides, north, east, south, west (<c>0x00698A60</c>).</summary>
     private static readonly int[] SideDx = [0, 1, 0, -1];

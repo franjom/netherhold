@@ -10,8 +10,8 @@ namespace DK2.Simulation;
 /// task-accepting routine when it takes the task; these values were read from those writes.
 /// docs/research/imp-task-priority.md §3 identifies the kinds; these are the ten built here.</para>
 /// <para>The values are load-bearing in one place: <see cref="CreatureState.DroppedTask"/> is
-/// compared against <see cref="CreatureState.LastTaskKind"/> as raw bytes, as DK2 does. The gap is
-/// kind 11, unidentified.</para>
+/// compared against <see cref="CreatureState.LastTaskKind"/> as raw bytes, as DK2 does. Not built:
+/// kind 11, a marked Secret Door (<c>0x0046CB80</c>), and 16, fix a wall; 4 and 5 are unidentified.</para>
 /// </remarks>
 public enum ImpTaskKind : byte
 {
