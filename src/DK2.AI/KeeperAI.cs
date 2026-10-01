@@ -45,6 +45,7 @@ public sealed class KeeperAI
     private readonly BuildArea? _area;
     private readonly byte[]? _playerActivationOrder;
     private bool _directionsFixed;
+    private readonly KeeperRouteCache _routes = new();
 
     public KeeperAI(
         byte playerId, KeeperAIParameters parameters, SimRandom rng,
@@ -63,6 +64,10 @@ public sealed class KeeperAI
     public byte PlayerId { get; }
     public KeeperAIState State { get; } = new();
 
+    /// <summary>How many routing meshes this keeper has built: one per change of the navigation
+    /// bytes between turns that ask a route, not one per turn.</summary>
+    public int RouteMeshBuilds => _routes.Builds;
+
     /// <summary>One player tick (§5.1). Returns the commands to put in the next input frame.</summary>
     public IReadOnlyList<PlayerCommand> Think(GameDatabase database, WorldState world)
         => Think(new KeeperView(database, world, PlayerId, _playerActivationOrder));
@@ -71,6 +76,7 @@ public sealed class KeeperAI
     {
         if (view.PlayerId != PlayerId)
             throw new ArgumentException("The observation belongs to another keeper.", nameof(view));
+        view.RouteCache ??= _routes;
         var commands = new List<PlayerCommand>();
         if (view.Status is PlayerStatus.Conquered or PlayerStatus.Lost)
             return commands;

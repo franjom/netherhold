@@ -263,10 +263,11 @@ public sealed class KeeperView : INavByteGrid
     /// <summary>The route query a creature's reachability test asks (<c>0x004D0E60</c> →
     /// <c>0x004D0E10</c>) over the captured navigation bytes: whether a mover routes between two
     /// positions in 4096ths, and the waypoints when a list is given. Deterministic from the
-    /// capture; the mesh is built on first use.</summary>
+    /// capture; the mesh is built on first use, or taken from <see cref="RouteCache"/> when the
+    /// keeper's last mesh was built from the same bytes.</summary>
     public bool CanRoute(int fromX, int fromY, int toX, int toY, MoverProfile mover, List<Fixed16Vector>? points = null)
     {
-        _router ??= new MeshRouter(NavMesh.Build(this));
+        _router ??= RouteCache?.RouterFor(this) ?? new MeshRouter(NavMesh.Build(this));
         _waypoints.Clear();
         if (!_router.TryRoute(new NavPoint(fromX >> 4, fromY >> 4), new NavPoint(toX >> 4, toY >> 4), mover, _waypoints))
             return false;
@@ -280,6 +281,9 @@ public sealed class KeeperView : INavByteGrid
     private readonly HashSet<int> _callRefusedTiles = new();
     private MeshRouter? _router;
     private readonly List<NavPoint> _waypoints = new();
+
+    /// <summary>The thinking keeper's mesh cache, attached by <see cref="KeeperAI.Think(KeeperView)"/>.</summary>
+    internal KeeperRouteCache? RouteCache { get; set; }
 
     public GameDatabase Database { get; }
     public byte PlayerId { get; }
