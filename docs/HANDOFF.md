@@ -356,7 +356,7 @@ that gate work today, by how they are answered:
 | Q197 | portals visible through fog on the minimap — a second mechanism |
 | Q185 | state-record flag byte `+0x18`: bit 0 on 147 of 281 states, untested by its seven readers |
 | Q210 leftovers | creature flag bit 0's attack; bit 1 has no reader found; room table integers `+0x19/+0x1d/+0x21` |
-| `creature+0x3EA` | bits 4 (doubles prayer mana) and 7 (Q69) gate real behaviour and are UNKNOWN |
+| `creature+0x3EA` | bits 4 (doubles prayer mana) and 7 gate real behaviour and are UNKNOWN |
 | Q84 | id 66 as the level's player count; `Level17` reads 2 against a pool reaching player 5 |
 | Q35 | which treasury tile a withdrawal drains |
 | Q220, Q221 | a standalone GLOBALS(0) chunk; the 16-byte DeadBody THINGS payload |
