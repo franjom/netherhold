@@ -60,7 +60,7 @@ public class FightReturnTests
         sink.Clear();
         goblin.OldFightTileX = goblin.OldFightTileY = 9;
         goblin.OldFightTick = 0;
-        Assert.True(CreatureStateMachine.TrySetState(goblin, CreatureStateMachine.Idle));   // state 1's arm, not 3's
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, CreatureStateMachine.Idle));   // state 1's arm, not 3's
 
         sim.Tick();
 

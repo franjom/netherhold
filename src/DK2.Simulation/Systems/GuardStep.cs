@@ -96,7 +96,7 @@ public static class GuardStep
     {
         if (!context.World.Contains(new TilePos(x / Fp32.One, y / Fp32.One))) return false;
         if (!context.Navigation.TryRouteTo(creature, x, y, Navigation.MoveOptions.Loose)) return false;
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, GuardRules.PatrolState);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, GuardRules.PatrolState);
         return true;
     }
 

@@ -82,8 +82,9 @@ public static class CreatureLevelRules
     /// fighter at <c>CombatPitMaxExperienceLevel</c> is refused everything (combat-pit.md §7).</summary>
     [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
     public static bool Grant(
-        GameDatabase database, CreatureDef creature, CreatureState state, int amount)
+        in StateHookContext hooks, CreatureDef creature, CreatureState state, int amount)
     {
+        GameDatabase database = hooks.Database;
         if (CombatPitRules.AtTheCap(database, state)) return false;
         int needed = ExperienceForNextLevel(database, creature, state.Level);
         if (needed <= 0) return false;
@@ -103,14 +104,14 @@ public static class CreatureLevelRules
         // The remainder is thrown away, and only one level is bought, through the same level
         // increment every promotion uses (0x004579D4 calls 0x0048B120), health rescaled with it.
         state.ExperiencePoints = 0;
-        return LevelUp(database, creature, state);
+        return LevelUp(hooks, creature, state);
     }
 
     /// <summary>The level increment's pit clause: a fighter that reaches
     /// <c>CombatPitMaxExperienceLevel</c> is set to 1, and idle sends it back to 138.</summary>
-    private static void LeaveThePitAtTheCap(GameDatabase database, CreatureState state)
+    private static void LeaveThePitAtTheCap(in StateHookContext hooks, CreatureState state)
     {
-        if (CombatPitRules.AtTheCap(database, state)) CreatureStateMachine.TrySetState(state, CreatureStateMachine.Idle);
+        if (CombatPitRules.AtTheCap(hooks.Database, state)) CreatureStateMachine.TrySetState(hooks, state, CreatureStateMachine.Idle);
     }
 
     /// <summary>DK2's level increment <c>0x0048B120</c>, without its effect and sound: nothing at
@@ -121,8 +122,9 @@ public static class CreatureLevelRules
     /// cap is <see cref="LeaveThePitAtTheCap"/>; the <c>+0x3AF</c> adjustment is not modelled
     /// (Q427). Its twenty call sites include the experience adder, the party spawn and the trigger
     /// actions, so every promotion goes through it. Returns whether it rose.</summary>
-    public static bool LevelUp(GameDatabase database, CreatureDef creature, CreatureState state)
+    public static bool LevelUp(in StateHookContext hooks, CreatureDef creature, CreatureState state)
     {
+        GameDatabase database = hooks.Database;
         if (state.Level >= MaxLevel || state.Health <= 0) return false;
         int oldMax = CreatureHealthRules.MaxHealth(database, creature, state);
         int current = state.Health;
@@ -131,7 +133,7 @@ public static class CreatureLevelRules
         int newMax = CreatureHealthRules.MaxHealth(database, creature, state);
         int target = (int)((ratio * newMax) >> 12);
         CreatureHealthRules.Apply(database, creature, state, target - current);
-        LeaveThePitAtTheCap(database, state);
+        LeaveThePitAtTheCap(hooks, state);
         return true;
     }
 

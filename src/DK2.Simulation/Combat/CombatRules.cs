@@ -264,15 +264,15 @@ public static class CombatRules
     /// <summary>Lets go of the engagement: struck out of the target's arrays, target and reach
     /// cleared, and a creature that was fighting stands idle with no job. A swing already begun
     /// keeps its own target and still lands.</summary>
-    public static void Disengage(WorldState world, CreatureState creature)
+    public static void Disengage(in StateHookContext hooks, CreatureState creature)
     {
-        Unlink(world, creature);
+        Unlink(hooks.World, creature);
         if (!InCombat(creature)) return;
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
         creature.StopMoving();
         creature.Running = false;
-        CombatStates.Idle(creature);
+        CombatStates.Idle(hooks, creature);
     }
 
     /// <summary><c>0x0045EF50</c>: the engagement is let go and the attacker slot on its target

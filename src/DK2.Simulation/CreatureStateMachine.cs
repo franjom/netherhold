@@ -38,15 +38,18 @@ public static class CreatureStateMachine
 
     /// <summary>DK2's <c>SetState</c>. Returns whether the move was taken; on a refusal the
     /// creature keeps the state it has, which is the original's behaviour and not an error
-    /// (<c>creature-state-table.md</c> §2.2).</summary>
-    public static bool TrySetState(CreatureState creature, int targetStateId, long currentTick = -1)
+    /// (<c>creature-state-table.md</c> §2.2). An enter hook that refuses leaves it in
+    /// <see cref="Idle"/> instead, unstamped (<c>state-category-hooks.md</c> §5).</summary>
+    /// <param name="hooks">What the category hooks touch (ADR-0308).</param>
+    public static bool TrySetState(
+        in StateHookContext hooks, CreatureState creature, int targetStateId, long currentTick = -1)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));
         _ = CreatureStateTable.Get(targetStateId);
 
         if (Classify(creature, targetStateId) == StateTransition.Refused) return false;
 
-        Enter(creature, targetStateId);
+        if (!Enter(in hooks, creature, targetStateId)) return false;
         creature.StateEnteredTick = currentTick;
         return true;
     }
@@ -59,7 +62,8 @@ public static class CreatureStateMachine
     /// <remarks>A caller's whole contribution in DK2 is one call with a target, a resume
     /// state and an option word. Routing and the destination are the mover's; this models
     /// only the state side, because nothing retires onto it yet.</remarks>
-    public static void BeginTravel(CreatureState creature, int travelStateId, int resumeStateId)
+    public static void BeginTravel(
+        in StateHookContext hooks, CreatureState creature, int travelStateId, int resumeStateId)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));
         if (!CreatureStateTable.Get(travelStateId).IsUtility)
@@ -69,7 +73,7 @@ public static class CreatureStateMachine
         }
 
         _ = CreatureStateTable.Get(resumeStateId);
-        TrySetState(creature, travelStateId);
+        TrySetState(in hooks, creature, travelStateId);
         creature.UtilityNewState = resumeStateId;
     }
 
@@ -80,7 +84,7 @@ public static class CreatureStateMachine
     /// before the call and only then branches on the result. Returns what the move returned,
     /// as the handler does; a false there reaches DK2's dispatcher, which idles the
     /// creature.</remarks>
-    public static bool Arrive(CreatureState creature, long currentTick = -1)
+    public static bool Arrive(in StateHookContext hooks, CreatureState creature, long currentTick = -1)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));
         if (!CreatureStateTable.Get(creature.Dk2StateId).IsUtility)
@@ -89,7 +93,7 @@ public static class CreatureStateMachine
                 $"Creature {creature.Id} is in state {creature.Dk2StateId}, not a travel state.");
         }
 
-        bool took = TrySetState(creature, creature.UtilityNewState, currentTick);
+        bool took = TrySetState(in hooks, creature, creature.UtilityNewState, currentTick);
         creature.UtilityNewState = Idle;
         return took;
     }
@@ -127,7 +131,7 @@ public static class CreatureStateMachine
     /// unset while a creature is travelling (<c>travel-states.md</c> §2.4, §9).</summary>
     public const int Idle = 1;
 
-    private static void Enter(CreatureState creature, int stateId)
+    private static bool Enter(in StateHookContext hooks, CreatureState creature, int stateId)
     {
         // Entering a utility state saves the caller; leaving one does NOT clear the save.
         // DK2's own 2-to-2 move recurses through SetState(1) first, so the slot ends up
@@ -136,33 +140,36 @@ public static class CreatureStateMachine
         // rule judges a creature by when a walk drops it to idle (travel-states.md 3, 5).
         if (CreatureStateTable.Get(stateId).IsUtility)
         {
-            if (HasState(creature) && CreatureStateTable.Get(creature.Dk2StateId).IsUtility)
-            {
-                Enter(creature, Idle);
-            }
+            // DK2 asks the rule for that inner move too; travel to 1 is never refused (ADR-0308).
+            if (HasState(creature) && CreatureStateTable.Get(creature.Dk2StateId).IsUtility
+                && !Enter(in hooks, creature, Idle))
+                return false;
 
             creature.StateBeforeUtilityState = creature.Dk2StateId;
         }
         else if (EntersCategory(creature, stateId))
         {
+            // SetState's order (state-category-hooks.md 5): the old category's leave hook, judged
+            // by the saved caller when leaving a walk; state 1; then the target's enter hook, which
+            // sees state 1 and may refuse, leaving the creature there.
             if (HasState(creature))
             {
                 int caller = CreatureStateTable.Get(creature.Dk2StateId).IsUtility
                     ? creature.StateBeforeUtilityState : creature.Dk2StateId;
-                if (caller >= 0 && CreatureStateTable.Get(caller).Category == CreatureStateCategory.WorkerJob)
-                    WorkerPickupRules.OnTaskReleased(creature);
-                // The Call to Arms category's leave hook (0x00455E90) takes the run speed off.
-                if (caller >= 0 && CreatureStateTable.Get(caller).Category == CreatureStateCategory.CallToArms)
-                    creature.Running = false;
+                if (caller >= 0) CategoryHooks.RunLeave(in hooks, CreatureStateTable.Get(caller).Category, creature);
             }
-            // The target's enter hook: every countdown hook's seeds its byte with variable 19,
-            // and the Call to Arms category's (0x00455E70) sets the run speed (0x004887D0).
-            creature.HookCountdown = HookCountdownSeed;
-            if (CreatureStateTable.Get(stateId).Category == CreatureStateCategory.CallToArms)
-                creature.Running = true;
+
+            creature.Dk2StateId = Idle;
+            if (!CategoryHooks.RunEnter(in hooks, CreatureStateTable.Get(stateId).Category, creature))
+            {
+                if (StateEntryLog.Enabled) StateEntryLog.Record(Idle);
+                return false;
+            }
         }
 
         creature.Dk2StateId = stateId;
+        if (StateEntryLog.Enabled) StateEntryLog.Record(stateId);
+        return true;
     }
 
     /// <summary>Whether <c>SetState</c> runs the target's enter hook (<c>travel-states.md</c> §3):

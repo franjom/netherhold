@@ -452,6 +452,9 @@ switch (args[0])
             => heading.Length <= 40 ? heading : heading[..40] + "...";
     }
 
+    case "coverage" when args.Length == 2 && args[1] == "states":
+        return StateCoverageReport.Print(Console.Out);
+
     case "coverage":
     {
         // Which research is built, measured rather than asserted: HANDOFF.md's
@@ -2645,6 +2648,8 @@ static int Usage()
     Console.WriteLine("                                         doc names must exist in src/; --all also lists");
     Console.WriteLine("                                         docs naming no implementation; --check exits 1");
     Console.WriteLine("                                         on a stale claim");
+    Console.WriteLine("  coverage states                        the 281 creature states: built, unreachable or");
+    Console.WriteLine("                                         unbuilt, per category, and the unbuilt list");
     Console.WriteLine("  docs [--since <ref>] [--all]           check AGENTS.md's recording budgets on what");
     Console.WriteLine("                                         changed; --all reports the whole backlog");
     Console.WriteLine("       [--message <file>]                also check a commit message body");

@@ -49,7 +49,7 @@ public static class TunnelRules
             && !IsSolid(context, x >> 12, y >> 12)
             && context.Navigation.TryRouteTo(creature, x, y, options))
         {
-            CreatureStateMachine.BeginTravel(creature, travelState, resume);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, travelState, resume);
             return true;
         }
         if ((options & 0x01) == 0) return false;
@@ -393,7 +393,7 @@ public static class TunnelRules
     {
         if (!context.World.Contains(new TilePos(x >> 12, y >> 12)) || IsSolid(context, x >> 12, y >> 12)) return false;
         if (!context.Navigation.TryRouteTo(creature, x, y, options)) return false;
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, resume);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         return true;
     }
 

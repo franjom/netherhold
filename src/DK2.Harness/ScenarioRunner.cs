@@ -574,6 +574,8 @@ public sealed class ScenarioRunner
     /// </summary>
     private void SpawnCreatures(Scenario scenario, WorldState world, List<string> unsupported)
     {
+        // Setup runs before the simulation exists, so there is no trigger executor to give the hooks.
+        var setupHooks = new StateHookContext(world, _database);
         int workers = 0;
 
         foreach (ScenarioCreature c in scenario.Setup.Creatures)
@@ -599,7 +601,7 @@ public sealed class ScenarioRunner
             // level-up the portal and the hero lair use.
             if (c.Level is int level)
                 while (placed.Level < Math.Min(level, CreatureLevelRules.MaxLevel)
-                    && CreatureLevelRules.LevelUp(_database, definition, placed)) { }
+                    && CreatureLevelRules.LevelUp(setupHooks, definition, placed)) { }
 
             // Wounded on purpose, because nothing in a scenario can wound one.
             // Clamped at both ends: a typo cannot make a creature stronger than

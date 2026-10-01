@@ -1300,7 +1300,7 @@ public class HandTests
         TilePos dirt = Carve(world, new TilePos(4, 2), Dk2TerrainFixture.DirtPath);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, PlayerIds.Neutral, Floor);
-        PrisonRules.Imprison(world, db, goblin, Keeper, (Floor.Y * world.Width) + Floor.X);
+        PrisonRules.Imprison(new StateHookContext(world, db), goblin, Keeper, (Floor.Y * world.Width) + Floor.X);
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);

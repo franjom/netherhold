@@ -531,7 +531,7 @@ public static class FearRules
         me.JobTileIndex = -1;
         me.Running = true;
         CombatStates.IntoTheGroup(context, me);
-        CombatStates.Travel(me, CombatStates.Withdrawn);
+        CombatStates.Travel(context, me, CombatStates.Withdrawn);
         me.CombatStateEnteredTick = context.Tick.Value;
         FightReturnRules.Stamp(context, me);
         context.Emit(SystemName, "withdraws",
@@ -559,7 +559,7 @@ public static class FearRules
         if (me.HasRoute) return;
         me.Running = false;
         CombatStates.Arrive(context, me);
-        CombatStates.Idle(me);
+        CombatStates.Idle(context.Hooks, me);
         context.Emit(SystemName, "withdrawn", $"creature={me.Id} tile={me.Tile.X},{me.Tile.Y}");
     }
 
@@ -606,7 +606,7 @@ public static class FearRules
         me.AlarmRoomTile = nearest.TileIndices[0];
         me.Running = true;
         CombatStates.IntoTheGroup(context, me);
-        CombatStates.Travel(me, CombatStates.RespondingToThreat);
+        CombatStates.Travel(context, me, CombatStates.RespondingToThreat);
         me.CombatStateEnteredTick = context.Tick.Value;
         context.Emit(SystemName, "raises_alarm",
             $"creature={me.Id} type={mine.Name} threat={threatX / Fp32.One},{threatY / Fp32.One} deficit={deficit} room={nearest.Definition.Name}");
@@ -671,7 +671,7 @@ public static class FearRules
             c.CurrentJob = JobType.None;
             c.JobTileIndex = -1;
             c.Running = true; // DK2 sets the raiser's run speed on it (combat-alarm.md §3)
-            CombatStates.Travel(c, CombatStates.ReportingDanger);
+            CombatStates.Travel(context, c, CombatStates.ReportingDanger);
             c.ReportTicks = 0;
             c.CombatStateEnteredTick = context.Tick.Value;
             sent++;
@@ -686,7 +686,7 @@ public static class FearRules
         CombatStates.Arrive(context, me);
         CombatStates.Enter(context, me, CreatureStateMachine.Idle);
         CombatStates.Enter(context, me, CombatStates.StandingDown);
-        CombatStates.Idle(me);
+        CombatStates.Idle(context.Hooks, me);
     }
 
     /// <summary>State 6 on the way to 254, then state 254 "reporting danger" (<c>0x004759A0</c>):
@@ -699,7 +699,7 @@ public static class FearRules
         if (++me.ReportTicks <= ReportTicks) return;
         me.ReportTicks = 0;
         me.Running = false;
-        CombatStates.Idle(me);
+        CombatStates.Idle(context.Hooks, me);
         context.Emit(SystemName, "stands_down", $"creature={me.Id}");
     }
 
@@ -723,7 +723,7 @@ public static class FearRules
     /// the target tag in place; here the engagement is let go with the state (Q373).</summary>
     private static void End(SimulationContext context, CreatureState me, string reason)
     {
-        CombatRules.Disengage(context.World, me);
+        CombatRules.Disengage(context.Hooks, me);
         context.Emit(SystemName, "disengaged", $"creature={me.Id} player={me.OwnerPlayerId} reason={reason}");
     }
 

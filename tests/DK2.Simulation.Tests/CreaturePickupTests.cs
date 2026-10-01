@@ -38,7 +38,7 @@ public class CreaturePickupTests
         var captive = world.SpawnCreature(db, 7, 3, new TilePos(2, 2));
         Assert.True(HandRules.HasPickupPermission(world, db, captive, 3));
         // The Prison writes the room membership 0x0048E6A0 reads (0x0047B740 calls 0x004E5A70).
-        Assert.True(PrisonRules.Imprison(world, db, captive, 4, (2 * world.Width) + 2));
+        Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, 4, (2 * world.Width) + 2));
         Assert.False(HandRules.HasPickupPermission(world, db, captive, 3));
         Assert.True(HandRules.HasPickupPermission(world, db, captive, 4));
     }

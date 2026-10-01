@@ -98,7 +98,7 @@ public sealed class HeroSystem : ISimulationSystem
             return true;
         }
         creature.StateDeadlineTick = context.Tick.Value + HeroJobRules.RetryTurns;
-        return CreatureStateMachine.TrySetState(creature, HeroJobRules.WaitFailedState);
+        return CreatureStateMachine.TrySetState(context.Hooks, creature, HeroJobRules.WaitFailedState);
     }
 
     private static bool Escape(SimulationContext context, CreatureState creature)

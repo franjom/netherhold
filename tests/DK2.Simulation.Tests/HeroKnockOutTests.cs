@@ -29,7 +29,7 @@ public class HeroKnockOutTests
         CreatureState second = Member(db, world, 0x04, 5);
         CreatureState third = Member(db, world, 0x04, 6);
         HeroPartyRules.LinkFollowers(world, Party);
-        CreatureStateMachine.TrySetState(heir, HeroJobRules.FollowingState);
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), heir, HeroJobRules.FollowingState);
 
         KnockOut(db, world, leader);
 

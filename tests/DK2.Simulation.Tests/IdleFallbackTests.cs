@@ -70,7 +70,7 @@ public sealed class IdleFallbackTests
         for (int x = 4; x <= 8; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
         foreach ((TilePos at, byte owner) in new[] { (new TilePos(6, 4), Keeper), (new TilePos(6, 5), Rival) })
-            Assert.True(CreatureStateMachine.TrySetState(world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, owner, at), Engaging));
+            Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, owner, at), Engaging));
     }
 
     [Fact]

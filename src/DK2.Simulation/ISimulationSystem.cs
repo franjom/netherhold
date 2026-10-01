@@ -53,6 +53,10 @@ public sealed class SimulationContext
     /// <c>Run</c> takes <c>CurrentTick + 1</c>, and an event during this tick belongs to that turn.</summary>
     private int TriggerTurn => unchecked((int)(Tick.Value + 1));
 
+    /// <summary>What <see cref="CreatureStateMachine"/> hands a category hook: this context's
+    /// world, database and trigger executor, made on the stack.</summary>
+    public StateHookContext Hooks => new(World, Database, Triggers);
+
     public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type) =>
         Triggers?.FireCreatureEvent(creature, type, TriggerTurn);
 

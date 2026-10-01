@@ -151,7 +151,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             TilePos flag = context.World.Player(creature.OwnerPlayerId).CallToArms.Tile;
             if (context.Navigation.TryRoute(creature, flag, 0))
             {
-                CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, CallToArmsRules.ArrivedState);
+                CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, CallToArmsRules.ArrivedState);
                 creature.HeedingCallToArms = true;
                 context.Emit(SystemName, "call_to_arms_heeded", $"player={creature.OwnerPlayerId} creature={creature.Id} tile={flag.X},{flag.Y} how=idle");
                 return;
@@ -630,9 +630,9 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     /// earns nothing and <b>keeps the job</b>, which is the original's shape at
     /// this point rather than an oversight — the cap ejects a creature through
     /// four of the training <i>state</i> handlers, which this project does not
-    /// have, so here it simply stops paying. The creature will re-choose at its
-    /// next gate and the job handler will refuse it then
-    /// (<see cref="JobRules.Refused"/>), so it does leave, one gate late.</para>
+    /// have, so here it earns nothing, though ours still charges where DK2's hook does not
+    /// (CategoryHooks). The job handler refuses it at its next gate (<see cref="JobRules.Refused"/>),
+    /// so it does leave, one gate late.</para>
     /// </summary>
     private void Train(
         SimulationContext context, WorldState world, GameDatabase database,
@@ -643,7 +643,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
 
         int before = creature.ExperiencePoints;
         int level = creature.Level;
-        bool promoted = CreatureLevelRules.Grant(database, definition, creature, amount);
+        bool promoted = CreatureLevelRules.Grant(context.Hooks, definition, creature, amount);
 
         if (!promoted)
         {
@@ -710,7 +710,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         int amount = ManufactureRules.PerOriginalTick(database, definition, creature);
         if (amount <= 0) return;
 
-        ObjectState? crate = ManufactureRules.Credit(world, database, creature, amount);
+        ObjectState? crate = ManufactureRules.Credit(context.Hooks, creature, amount);
         if (crate is null) return;
         context.Emit(SystemName, "crate_manufactured",
             $"creature={creature.Id} player={creature.OwnerPlayerId} object={crate.ObjectTypeId} " +
@@ -802,7 +802,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
 
         if (creature.IsRouted)
         {
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToRoom, state);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToRoom, state);
             return;
         }
 

@@ -62,7 +62,7 @@ public sealed class PrisonSystem : ISimulationSystem
                 $"was_held_by={creature.PrisonOwnerPlayerId} " +
                 $"at=({creature.Tile.X},{creature.Tile.Y}) reason=cell_gone");
 
-            PrisonRules.Release(creature);
+            PrisonRules.Release(context.Hooks, creature);
         }
     }
 
@@ -240,7 +240,7 @@ public sealed class PrisonSystem : ISimulationSystem
             break;
         }
 
-        PrisonRules.Release(creature);
+        PrisonRules.Release(context.Hooks, creature);
 
         context.Emit(SystemName, "prisoner_slain",
             $"creature={creature.Id} player={keeper} " +

@@ -53,7 +53,7 @@ public class KeeperChickenInfernoTests
     {
         var (db, world) = Setup();
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
-        Assert.True(CreatureStateMachine.TrySetState(enemy, CreatureDeathRules.DyingState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), enemy, CreatureDeathRules.DyingState));
 
         Tick(db, world, new CastSpellOnCreatureCommand(Keeper, KeeperSpellRules.Chicken, enemy.Id));
 
@@ -65,7 +65,7 @@ public class KeeperChickenInfernoTests
     {
         var (db, world) = Setup();
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
-        Assert.True(CreatureStateMachine.TrySetState(enemy, ChickenRules.ChickenState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), enemy, ChickenRules.ChickenState));
         enemy.ChickenTicks = 2;
         var sim = new GameSimulation(db, world, 1, [new CreatureStatusSystem()]);
 
@@ -80,7 +80,7 @@ public class KeeperChickenInfernoTests
     {
         var (db, world) = Setup();
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
-        Assert.True(CreatureStateMachine.TrySetState(enemy, ChickenRules.ChickenState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), enemy, ChickenRules.ChickenState));
         enemy.ChickenTicks = 100;
 
         new GameSimulation(db, world, 7, [new ChickenSystem()]).Tick();
@@ -103,7 +103,7 @@ public class KeeperChickenInfernoTests
                 }
         });
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
-        Assert.True(CreatureStateMachine.TrySetState(enemy, ChickenRules.ChickenState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), enemy, ChickenRules.ChickenState));
         enemy.ChickenTicks = 100;
 
         new GameSimulation(db, world, 7, [new ChickenSystem()]).Tick();

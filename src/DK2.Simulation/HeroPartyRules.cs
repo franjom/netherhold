@@ -66,10 +66,12 @@ public static class HeroPartyRules
     /// staying. <paramref name="armSubtree"/> is the executor's arming of a trigger subtree and
     /// <paramref name="created"/> its firing of creature event 3 for each member made.</summary>
     public static bool Spawn(
-        WorldState world, GameDatabase database, SimRandom? rng, TriggerTree tree,
+        in StateHookContext hooks, SimRandom? rng, TriggerTree tree,
         HeroPartyState party, byte actionPointId, byte partyType, Action<ushort> armSubtree,
         Action<CreatureState>? created = null)
     {
+        WorldState world = hooks.World;
+        GameDatabase database = hooks.Database;
         if (partyType != 0 && IsAlive(world, party.PartyId)) return true;
 
         TilePos at = SpawnTile(world, database, actionPointId, out _);
@@ -98,7 +100,7 @@ public static class HeroPartyRules
             PurseRules.Receive(database, def, state, gold);
             int health = (int)(member.InitialHealth * 0.01 * CreatureLevelRules.MaxHealth(database, def, member.Level));
             CreatureHealthRules.Apply(database, def, state, health - state.Health);
-            for (int k = 0; k < levelUps; k++) CreatureLevelRules.LevelUp(database, def, state);
+            for (int k = 0; k < levelUps; k++) CreatureLevelRules.LevelUp(hooks, def, state);
 
             state.WanderRadius = member.WanderRadius;
             state.PartyId = member.PartyId;
@@ -192,8 +194,10 @@ public static class HeroPartyRules
     /// <c>MyLeadersId</c>. The remaining followers are pointed at it and numbered from 1, and it takes
     /// their count. The fallen leader keeps its party and its bit. Nothing happens on a death with no
     /// dying window (Q428).</summary>
-    internal static void KnockedOut(WorldState world, TriggerExecutor? triggers, CreatureState fallen)
+    internal static void KnockedOut(in StateHookContext hooks, CreatureState fallen)
     {
+        WorldState world = hooks.World;
+        TriggerExecutor? triggers = hooks.Triggers;
         if (fallen.OwnerPlayerId != PlayerIds.Good || fallen.PartyId == 0) return;
         byte party = fallen.PartyId;
 
@@ -221,7 +225,7 @@ public static class HeroPartyRules
         heir.GoodJobActionPointId = fallen.GoodJobActionPointId;
         if (triggers is not null) triggers.AttachCreatureRoot(heir, fallen.TriggerId);
         else heir.TriggerId = fallen.TriggerId;
-        CreatureStateMachine.TrySetState(heir, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(hooks, heir, CreatureStateMachine.Idle);
 
         byte k = 0;
         foreach (CreatureState c in world.Creatures)

@@ -52,8 +52,8 @@ internal static class CombatStates
         StateShadow.Move(context, SystemName, me, state);
 
     /// <summary>The route helper <c>0x00471890</c>: state 6, resuming <paramref name="resume"/>.</summary>
-    public static void Travel(CreatureState me, int resume) =>
-        CreatureStateMachine.BeginTravel(me, StateShadow.TravelToPoint, resume);
+    public static void Travel(SimulationContext context, CreatureState me, int resume) =>
+        CreatureStateMachine.BeginTravel(context.Hooks, me, StateShadow.TravelToPoint, resume);
 
     /// <summary>The withdraw and the alarm's first step: "in the combat group, or
     /// <c>SetState(199)</c>" (combat-fear.md §5, combat-alarm.md §2).</summary>
@@ -67,8 +67,8 @@ internal static class CombatStates
         StateShadow.Arrive(context, SystemName, me);
 
     /// <summary>A handler returning zero, or one that sets 1: state 1, which no state refuses.</summary>
-    public static void Idle(CreatureState me)
+    public static void Idle(in StateHookContext hooks, CreatureState me)
     {
-        if (CreatureStateMachine.HasState(me)) CreatureStateMachine.TrySetState(me, CreatureStateMachine.Idle);
+        if (CreatureStateMachine.HasState(me)) CreatureStateMachine.TrySetState(hooks, me, CreatureStateMachine.Idle);
     }
 }

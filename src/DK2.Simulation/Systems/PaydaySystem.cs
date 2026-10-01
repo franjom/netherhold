@@ -264,7 +264,7 @@ public sealed class PaydaySystem : ISimulationSystem
         // Taken off a job, 187 is set from the job's own state; otherwise from idle.
         if (NeedRules.IsAtAJob(creature)) NeedRules.EndJob(creature);
         StateShadow.Move(context, SystemName, creature, PaydayRules.FindTheMoneyState);
-        CreatureStateMachine.BeginTravel(
+        CreatureStateMachine.BeginTravel(context.Hooks,
             creature, StateShadow.TravelToPoint, PaydayRules.ArrivingState);
     }
 

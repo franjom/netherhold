@@ -757,7 +757,7 @@ public class CreatureNeedsTests
         state.Health = 0;
         Assert.Equal(0, CreatureHealthRules.OwnLandRegenPerSecond(world, imp, state));
 
-        CreatureDeathRules.Collapse(state);
+        CreatureDeathRules.Collapse(new StateHookContext(world, db), state);
         Assert.Equal(0, CreatureHealthRules.OwnLandRegenPerSecond(world, imp, state));
     }
 
@@ -798,7 +798,7 @@ public class CreatureNeedsTests
         sim.Run(Second);
         Assert.Equal(CreatureActivity.Dying, goblin.Activity);
 
-        Assert.True(CreatureDeathRules.Rescue(world, db, goblin));
+        Assert.True(CreatureDeathRules.Rescue(new StateHookContext(world, db), goblin));
         Assert.Equal(CreatureActivity.Sleeping, goblin.Activity);
         Assert.Equal(0, goblin.Health);              // rescue heals nothing itself
 
@@ -815,11 +815,11 @@ public class CreatureNeedsTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
 
         goblin.Health = 0;
-        Assert.True(CreatureDeathRules.Collapse(goblin));
+        Assert.True(CreatureDeathRules.Collapse(new StateHookContext(world, db), goblin));
 
         // Nowhere to carry it to. Its keeper never built a lair.
         Assert.Equal(-1, LairRules.BedTileIndex(world, db, goblin));
-        Assert.False(CreatureDeathRules.Rescue(world, db, goblin));
+        Assert.False(CreatureDeathRules.Rescue(new StateHookContext(world, db), goblin));
         Assert.Equal(CreatureActivity.Dying, goblin.Activity);
     }
 

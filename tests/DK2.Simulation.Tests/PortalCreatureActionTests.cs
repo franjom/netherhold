@@ -151,7 +151,7 @@ public class PortalCreatureActionTests
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         var sim = new GameSimulation(db, world, seed: 1, Dk2TerrainFixture.DefaultSystems());
 
-        CreatureState creature = PortalRules.CreateScriptedArrival(world, db, 3, 91, 1)!;
+        CreatureState creature = PortalRules.CreateScriptedArrival(new StateHookContext(world, db), 3, 91, 1)!;
         Assert.Equal(PortalRules.JoiningState, creature.Dk2StateId);
 
         // Counted as the recording counts it: ticks that end with the creature still in 193.

@@ -304,7 +304,7 @@ public class CreatureLevelTests
 
         // 3000 buys level 2 and 3900 would buy level 3, so 6900 was the number
         // that "bought both exactly" under the old reading.
-        Assert.True(CreatureLevelRules.Grant(db, imp, state, 6900));
+        Assert.True(CreatureLevelRules.Grant(new StateHookContext(world, db), imp, state, 6900));
 
         Assert.Equal(2, state.Level);
         Assert.Equal(0, state.ExperiencePoints);
@@ -326,7 +326,7 @@ public class CreatureLevelTests
         int oldMax = CreatureHealthRules.MaxHealth(db, imp, state);
         state.Health = oldMax / 2;
 
-        Assert.True(CreatureLevelRules.Grant(db, imp, state, 3000));
+        Assert.True(CreatureLevelRules.Grant(new StateHookContext(world, db), imp, state, 3000));
 
         int newMax = CreatureHealthRules.MaxHealth(db, imp, state);
         Assert.True(newMax > oldMax);
@@ -346,10 +346,10 @@ public class CreatureLevelTests
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
 
         state.ExperiencePoints = 2999;
-        Assert.False(CreatureLevelRules.Grant(db, imp, state, 0));
+        Assert.False(CreatureLevelRules.Grant(new StateHookContext(world, db), imp, state, 0));
         Assert.Equal(1, state.Level);
 
-        Assert.True(CreatureLevelRules.Grant(db, imp, state, 1));
+        Assert.True(CreatureLevelRules.Grant(new StateHookContext(world, db), imp, state, 1));
         Assert.Equal(2, state.Level);
         Assert.Equal(0, state.ExperiencePoints);
     }
@@ -371,11 +371,11 @@ public class CreatureLevelTests
 
         state.ExperiencePoints = 10;
 
-        Assert.False(CreatureLevelRules.Grant(db, imp, state, -50));
+        Assert.False(CreatureLevelRules.Grant(new StateHookContext(world, db), imp, state, -50));
         Assert.Equal(10, state.ExperiencePoints);
 
         // A loss that fits is taken in full.
-        Assert.False(CreatureLevelRules.Grant(db, imp, state, -10));
+        Assert.False(CreatureLevelRules.Grant(new StateHookContext(world, db), imp, state, -10));
         Assert.Equal(0, state.ExperiencePoints);
 
         // And the shipped drain is zero, which is why none of this is visible
@@ -396,11 +396,11 @@ public class CreatureLevelTests
         var state = new CreatureState { Level = 1, ExperiencePoints = 500 };
 
         Assert.Equal(0, zero.ExpForNextLevel);
-        Assert.False(CreatureLevelRules.Grant(db, zero, state, 10_000));
+        Assert.False(CreatureLevelRules.Grant(DetachedHooks.Context, zero, state, 10_000));
         Assert.Equal(500, state.ExperiencePoints);
         Assert.Equal(1, state.Level);
 
-        Assert.False(CreatureLevelRules.Grant(db, zero, state, -100));
+        Assert.False(CreatureLevelRules.Grant(DetachedHooks.Context, zero, state, -100));
         Assert.Equal(500, state.ExperiencePoints);
     }
 

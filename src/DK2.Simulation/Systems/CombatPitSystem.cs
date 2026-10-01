@@ -81,7 +81,7 @@ public sealed class CombatPitSystem : ISimulationSystem
                 CreatureState other = creatures[i];
                 if (!other.CombatPitFighter || !CombatPitRules.IsOnTheMap(other)) continue;
                 if (!CombatPitRules.IsFloor(pit, TileIndex(world, other))) continue;
-                CreatureStateMachine.TrySetState(other, CreatureStateMachine.Idle);
+                CreatureStateMachine.TrySetState(context.Hooks, other, CreatureStateMachine.Idle);
                 Move(context, other, CombatPitRules.PlacingState);
             }
         }
@@ -134,7 +134,7 @@ public sealed class CombatPitSystem : ISimulationSystem
         if (step < 0) return true;
         int x = CreatureState.CentreOf(step % world.Width), y = CreatureState.CentreOf(step / world.Width);
         if (!context.Navigation.TryRouteTo(creature, x, y, Navigation.MoveOptions.ExactSpot)) return true;
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, CombatPitRules.WaitingState);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, CombatPitRules.WaitingState);
         return true;
     }
 
@@ -160,7 +160,7 @@ public sealed class CombatPitSystem : ISimulationSystem
             if (!creature.CombatPitFighter || !CombatPitRules.IsOnTheMap(creature)) continue;
             if (!pit.Contains(TileIndex(world, creature))) continue;
             CombatPitRules.Unmark(world, creature);
-            if (!CreatureStateMachine.TrySetState(creature, CombatPitRules.ThrownOutState)) continue;
+            if (!CreatureStateMachine.TrySetState(context.Hooks, creature, CombatPitRules.ThrownOutState)) continue;
             creature.PitStateEnteredTick = context.Tick.Value;
             context.Emit(SystemName, "pit_thrown_out", $"creature={creature.Id} player={creature.OwnerPlayerId}");
         }
@@ -172,7 +172,7 @@ public sealed class CombatPitSystem : ISimulationSystem
     {
         bool entering = !CreatureStateMachine.HasState(creature)
             || CreatureStateTable.Get(creature.Dk2StateId).Category != CreatureStateCategory.CombatPit;
-        if (!CreatureStateMachine.TrySetState(creature, stateId)) return false;
+        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, stateId)) return false;
         creature.PitStateEnteredTick = context.Tick.Value;
         if (entering && CreatureStateTable.Get(stateId).Category == CreatureStateCategory.CombatPit)
         {

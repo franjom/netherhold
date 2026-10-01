@@ -66,7 +66,7 @@ public class KeeperAttackPlannerTests
     private static CreatureState Fighter(WorldState world, byte owner, int x, int y, int level = 1)
     {
         CreatureState creature = world.SpawnCreature(Db, KeeperWorld.FighterCreature, owner, new TilePos(x, y));
-        while (creature.Level < level) CreatureLevelRules.LevelUp(Db, Db.CreatureById(KeeperWorld.FighterCreature), creature);
+        while (creature.Level < level) CreatureLevelRules.LevelUp(new StateHookContext(world, Db), Db.CreatureById(KeeperWorld.FighterCreature), creature);
         return creature;
     }
 

@@ -214,7 +214,7 @@ public sealed class CombatSystem : ISimulationSystem
         if (creature.FightTargetKind == FightTargetKind.Creature)
         {
             int previous = creature.FightTargetId;
-            CombatRules.Disengage(world, creature);
+            CombatRules.Disengage(context.Hooks, creature);
             if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
             {
                 context.Emit(SystemName, "disengaged", $"creature={creature.Id} player={creature.OwnerPlayerId} reason=nobody_in_reach");
@@ -238,7 +238,7 @@ public sealed class CombatSystem : ISimulationSystem
         WorldState world = context.World;
         byte kind = creature.FightTargetKind;
         int previous = creature.FightTargetId;
-        CombatRules.Disengage(world, creature);
+        CombatRules.Disengage(context.Hooks, creature);
         if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
         {
             context.Emit(SystemName, "disengaged", $"creature={creature.Id} player={creature.OwnerPlayerId} reason=cannot_cast");
@@ -263,7 +263,7 @@ public sealed class CombatSystem : ISimulationSystem
 
     private static void LetGo(SimulationContext context, CreatureState creature, string reason)
     {
-        CombatRules.Disengage(context.World, creature);
+        CombatRules.Disengage(context.Hooks, creature);
         context.Emit(SystemName, "disengaged", $"creature={creature.Id} player={creature.OwnerPlayerId} reason={reason}");
     }
 }

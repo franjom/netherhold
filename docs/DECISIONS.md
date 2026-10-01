@@ -6769,3 +6769,41 @@ DK2 takes `NextTask`: our task 2 lacks DK2's one-detour guard and would detour a
 casts Call to Arms beside Morgana's heart and engages it. No simulation state or observation
 field changed: HashVersion stays 146, observation schema 14. The `built` event names its first
 tile. Original comparison: Q497.
+
+## ADR-0308 — SetState dispatches the category hooks from one table, in DK2's order, with the world to hand
+**Date:** 2026-10-01 · **Status:** accepted · Research: `state-category-hooks.md` §5, `functions/00476D30.md`
+
+**Context.** `CreatureStateMachine.Enter` ran the hooks that are built inline: the WorkerJob leave
+hook's pickup subset, the Call to Arms run speed and the countdown seed. The rest need what the
+machine could not reach: the room under the creature, the keeper's gold, trigger event 7. DK2's
+`SetState` (`0x00476D30`), re-read in full, runs the rule, then the old category's leave hook, then
+a raw state 1, then the target's enter hook. An enter hook that returns 0 leaves the creature in
+state 1 and unstamped. Our code already ran leave before enter, so nothing had to change.
+
+**Decision.**
+1. `TrySetState`, `BeginTravel` and `Arrive` take an `in StateHookContext`: the world, the database
+   and the trigger executor, three references on the stack. A system passes `context.Hooks`. A rule
+   that took a world and a database takes the context in their place, and its callers pass theirs.
+2. `CategoryHooks` holds DK2's 48 filled slots by category and kind, each with its address, a
+   status (built, partial, stub, not built), a reason, and for an update slot the system arm that
+   runs it. Enter and leave delegates are dispatched from `SetState`; update arms stay in the
+   systems, keyed on `UpdatingCategory`.
+3. The order is DK2's: leave (the saved caller's category when leaving a walk), state 1, the
+   countdown seed, enter. A refused enter returns false, leaving the creature in 1. A walk inside one
+   category runs no hook (`EntersCategory`, unchanged).
+4. The seed stays a shared step for every category. DK2 seeds six bytes, one per countdown
+   category; ours has one field, and only a countdown category's update reads it.
+
+**Consequences.**
+- No behaviour change: `HashVersion` stays 145, and the 40 scenarios' hash series and event logs
+  are byte-identical before and after.
+- Not modelled: `SetState`'s guards. It refuses every move for a held creature (`InHand`, Q503) or
+  one whose state object lacks its pointers. The 2→2 recursion's own rule check is skipped. That
+  is safe because no travel state, with any resume, is refused state 1; a test checks all four.
+- No enter hook refuses yet, so the refusal path is inert. The first ones will be Training's gold,
+  the Casino's purse and lever, and the claims, all listed as not built in `CategoryHooks.Slots`.
+  So will the Prison's event 7 and the Combat, Casino and Torture leaves.
+- A trigger executor built without a world reports action 15 unperformed, as it does actions 6
+  and 28. Tests whose creature belongs to no world use `DetachedHooks`, a real synthetic world.
+- The Combat Pit and Spectating enter effects stay at their call sites. Moving them would change
+  when they fire across a walk.

@@ -162,7 +162,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
 
         context.Navigation.TryRoute(creature, new TilePos(x, y), Navigation.MoveOptions.CaptiveSpot);
         if (CreatureStateMachine.HasState(creature))
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, PrisonRules.EatingState);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, PrisonRules.EatingState);
 
         context.Emit(SystemName, "prisoner_food_chosen",
             $"creature={creature.Id} type={definition.Name} " +
@@ -213,7 +213,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
     {
         // At the bird: 118, straight from 117 when it was already within reach.
         if (creature.Dk2StateId == PrisonRules.SeekingFoodState)
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, PrisonRules.EatingState);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, PrisonRules.EatingState);
         if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
 
         // On the food, before it eats, 118 wipes the hunger grievance (0x00486F80(1)).

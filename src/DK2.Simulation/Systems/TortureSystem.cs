@@ -47,7 +47,7 @@ public sealed class TortureSystem : ISimulationSystem
                 int next = TortureRules.DeviceWithinReach(world, database, creature, keeper);
                 if (next >= 0)
                 {
-                    TortureRules.Restrap(world, creature, next);
+                    TortureRules.Restrap(context.Hooks, creature, next);
                     context.Emit(SystemName, "restrapped",
                         $"creature={creature.Id} at=({next % world.Width},{next / world.Width})");
                     continue;
@@ -128,8 +128,8 @@ public sealed class TortureSystem : ISimulationSystem
     /// <summary>Off the device and out of captivity.</summary>
     private static void Free(SimulationContext context, CreatureState creature, string reason)
     {
-        TortureRules.Unstrap(creature);
-        PrisonRules.Release(creature);
+        TortureRules.Unstrap(context.Hooks, creature);
+        PrisonRules.Release(context.Hooks, creature);
         context.Emit(SystemName, "released",
             $"creature={creature.Id} owner={creature.OwnerPlayerId} reason={reason}");
     }

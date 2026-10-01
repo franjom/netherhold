@@ -56,7 +56,7 @@ public class ImpWanderTests
         var (db, world) = AllClaimed();
         var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         imp.WorkerIdle = true;
-        CreatureStateMachine.BeginTravel(imp, 6, CreatureStateMachine.Idle);
+        CreatureStateMachine.BeginTravel(new StateHookContext(world, db), imp, 6, CreatureStateMachine.Idle);
         var sim = new GameSimulation(db, world, 11, [new ImpTaskSystem()]);
         sim.Tick();
         Assert.Equal(CreatureStateMachine.Idle, imp.Dk2StateId);

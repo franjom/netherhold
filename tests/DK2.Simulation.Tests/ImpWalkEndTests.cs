@@ -81,7 +81,7 @@ public class ImpWalkEndTests
         (GameSimulation full, CreatureState imp) = Start(pathEndX: 9, new TilePos(3, 2));
         WorldState world = full.World;
         Assert.True(new Navigation.WorldSteering(full.Database, world).TryRoute(imp, new TilePos(9, 2), Navigation.MoveOptions.Plain));
-        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, full.Database), imp, ImpStates.TaskSelection));
         var sim = new GameSimulation(full.Database, world, 1, [new Systems.CreatureMovementSystem()]);
         long x = imp.PosX, y = imp.PosY;
 

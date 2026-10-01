@@ -96,7 +96,7 @@ public static class JailBreakRules
         {
             if (!context.Navigation.TryRouteTo(rescuer, CreatureState.CentreOf(door % world.Width), CreatureState.CentreOf(door / world.Width), Navigation.MoveOptions.Loose))
                 return false;
-            CreatureStateMachine.BeginTravel(rescuer, StateShadow.TravelToPoint, BreakingOutState);
+            CreatureStateMachine.BeginTravel(context.Hooks, rescuer, StateShadow.TravelToPoint, BreakingOutState);
             context.Emit(system, "rescuer_to_door", $"creature={rescuer.Id} door=({door % world.Width},{door / world.Width})");
             return true;
         }
@@ -179,7 +179,7 @@ public static class JailBreakRules
             context.Emit(system, "prisoner_freed",
                 $"creature={prisoner.Id} owner={prisoner.OwnerPlayerId} was_held_by={prisoner.PrisonOwnerPlayerId} " +
                 $"at=({prisoner.Tile.X},{prisoner.Tile.Y}) reason=walked_out");
-            PrisonRules.Release(prisoner);
+            PrisonRules.Release(context.Hooks, prisoner);
             return;
         }
 
@@ -207,7 +207,7 @@ public static class JailBreakRules
     private static bool Walk(SimulationContext context, CreatureState creature, int x, int y)
     {
         if (!context.Navigation.TryRouteTo(creature, x, y, Navigation.MoveOptions.Loose)) return false;
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, EscapingState);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, EscapingState);
         return true;
     }
 

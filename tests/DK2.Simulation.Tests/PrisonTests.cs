@@ -116,10 +116,10 @@ public class PrisonTests
     /// once a game second, so setting health to zero alone leaves nineteen ticks
     /// in which an imp takes some other job.
     /// </summary>
-    private static void Down(CreatureState creature)
+    private static void Down(in StateHookContext hooks, CreatureState creature)
     {
         creature.Health = 0;
-        Assert.True(CreatureDeathRules.Collapse(creature));
+        Assert.True(CreatureDeathRules.Collapse(hooks, creature));
     }
 
     private static CreatureState Prisoner(
@@ -127,7 +127,7 @@ public class PrisonTests
     {
         CreatureState captive = world.SpawnCreature(db, GoblinId, owner, cell);
         int index = (cell.Y * world.Width) + cell.X;
-        Assert.True(PrisonRules.Imprison(world, db, captive, Keeper, index));
+        Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, index));
         return captive;
     }
 
@@ -144,7 +144,7 @@ public class PrisonTests
         Prison(db, world);
 
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
-        Down(enemy);
+        Down(new StateHookContext(world, db), enemy);
         world.SpawnCreature(db, ImpId, Keeper, Floor);
 
         var sink = new ListEventSink();
@@ -168,7 +168,7 @@ public class PrisonTests
         WorldState world = World(db);
         Prison(db, world);
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
-        Down(enemy);
+        Down(new StateHookContext(world, db), enemy);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
         imp.Flags = 0x20;
         var sink = new ListEventSink();
@@ -194,7 +194,7 @@ public class PrisonTests
         Prisoner(db, world, CellA);
         Prisoner(db, world, CellB);
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
-        Down(enemy);
+        Down(new StateHookContext(world, db), enemy);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
         imp.Flags = 0x20;
         var sink = new ListEventSink();
@@ -221,7 +221,7 @@ public class PrisonTests
         WorldState world = World(db);
 
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
-        Down(enemy);
+        Down(new StateHookContext(world, db), enemy);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
 
         GameSimulation sim = Simulation(db, world);
@@ -249,7 +249,7 @@ public class PrisonTests
         Prisoner(db, world, CellB);
 
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
-        Down(enemy);
+        Down(new StateHookContext(world, db), enemy);
         world.SpawnCreature(db, ImpId, Keeper, Floor);
 
         var sink = new ListEventSink();
@@ -298,7 +298,7 @@ public class PrisonTests
         Prisoner(db, world, CellB);
 
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
-        Down(enemy);
+        Down(new StateHookContext(world, db), enemy);
         world.SpawnCreature(db, ImpId, Keeper, Floor);
 
         GameSimulation sim = Simulation(db, world);
@@ -520,7 +520,7 @@ public class PrisonTests
 
         CreatureState bones = world.SpawnCreature(db, SkeletonId, Rival, CellA);
         Assert.True(PrisonRules.Imprison(
-            world, db, bones, Keeper, (CellA.Y * world.Width) + CellA.X));
+            new StateHookContext(world, db), bones, Keeper, (CellA.Y * world.Width) + CellA.X));
 
         // Whatever the arrival health is - two petals, like anybody else - it
         // stays there.
@@ -630,7 +630,7 @@ public class PrisonTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState mine = world.SpawnCreature(db, GoblinId, Keeper, Floor);
-        Down(mine);
+        Down(new StateHookContext(world, db), mine);
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
@@ -648,7 +648,7 @@ public class PrisonTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState mine = world.SpawnCreature(db, GoblinId, Keeper, Floor);
-        Down(mine);
+        Down(new StateHookContext(world, db), mine);
         CreatureDeathRules.BecomeCorpse(world, db, mine);
         Assert.True(CreatureDeathRules.IsCorpse(mine));
 
@@ -842,7 +842,7 @@ public class PrisonTests
         // exactly what the manual calls it.
         CreatureState second = world.SpawnCreature(db, GoblinId, Rival, CellB);
         Assert.True(PrisonRules.Imprison(
-            world, db, second, Keeper, (CellB.Y * world.Width) + CellB.X));
+            new StateHookContext(world, db), second, Keeper, (CellB.Y * world.Width) + CellB.X));
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
@@ -1613,7 +1613,7 @@ public class PrisonTests
 
         // And letting one go makes it idle there and then, whatever runs next.
         CreatureState other = Prisoner(db, world, CellA);
-        PrisonRules.Release(other);
+        PrisonRules.Release(new StateHookContext(world, db), other);
         Assert.Equal(CreatureStateMachine.Idle, other.Dk2StateId);
     }
 
@@ -1683,7 +1683,7 @@ public class PrisonTests
         WorldState world = World(db);
         BigPrison(db, world);
         CreatureState captive = world.SpawnCreature(db, FlourishingId, Rival, CellB);
-        Assert.True(PrisonRules.Imprison(world, db, captive, Keeper, (CellB.Y * world.Width) + CellB.X));
+        Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, (CellB.Y * world.Width) + CellB.X));
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);

@@ -82,7 +82,7 @@ public static class LeavingRules
         if (!context.Navigation.TryRoute(state, target, Navigation.MoveOptions.Leaving)) return false;
         // A failed route leaves it in 194 to try again, as DK2's option 8 does.
         if (!Systems.StateShadow.IsTravelling(state))
-            CreatureStateMachine.BeginTravel(state, Systems.StateShadow.TravelToPoint, AtTheEntranceState);
+            CreatureStateMachine.BeginTravel(context.Hooks, state, Systems.StateShadow.TravelToPoint, AtTheEntranceState);
         return true;
     }
 

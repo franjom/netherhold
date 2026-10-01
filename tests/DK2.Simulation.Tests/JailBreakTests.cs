@@ -48,7 +48,7 @@ public sealed class JailBreakTests
     private static CreatureState Prisoner(GameDatabase db, WorldState world, byte owner, TilePos at)
     {
         CreatureState c = world.SpawnCreature(db, GoblinId, owner, at);
-        Assert.True(PrisonRules.Imprison(world, db, c, Keeper, Index(world, at)));
+        Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), c, Keeper, Index(world, at)));
         return c;
     }
 

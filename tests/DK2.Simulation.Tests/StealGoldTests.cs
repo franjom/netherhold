@@ -138,7 +138,7 @@ public class StealGoldTests
         (GameDatabase db, WorldState world) = OpenWorld();
         Treasury(world, Keeper, 10, 5, [500, 500, 500, 500]);
         CreatureState thief = world.SpawnCreature(db, Dk2TerrainFixture.ThiefCreatureId, Keeper, new TilePos(3, 5));
-        CreatureStateMachine.TrySetState(thief, StealGoldRules.ToTheTreasuryState);
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), thief, StealGoldRules.ToTheTreasuryState);
         var sim = new GameSimulation(db, world, 7, [new CreatureJobSystem(), new CreatureMovementSystem()]);
 
         sim.Tick();
@@ -156,7 +156,7 @@ public class StealGoldTests
         (GameDatabase db, WorldState world) = OpenWorld();
         Treasury(world, Keeper, 10, 5, [500, 500, 500, 500]);
         CreatureState thief = world.SpawnCreature(db, Dk2TerrainFixture.ThiefCreatureId, Rival, new TilePos(3, 5));
-        CreatureStateMachine.TrySetState(thief, StealGoldRules.ToTheTreasuryState);
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), thief, StealGoldRules.ToTheTreasuryState);
         var sim = new GameSimulation(db, world, 7, [new CreatureJobSystem(), new CreatureMovementSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);

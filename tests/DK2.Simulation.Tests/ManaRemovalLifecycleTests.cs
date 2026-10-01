@@ -383,7 +383,7 @@ public class ManaRemovalLifecycleTests
         for (int i = 0; i < cap; i++)
             world.SpawnCreature(db, Dk2TerrainFixture.SkeletonCreatureId, Keeper, new TilePos(1, 1));
         CreatureState captive = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 1, new TilePos(5, 4));
-        Assert.True(PrisonRules.Imprison(world, db, captive, Keeper, (4 * world.Width) + 5));
+        Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, (4 * world.Width) + 5));
         captive.CorpseSuppressed = suppressed;
         captive.Health = 1;
         var sim = new GameSimulation(db, world, 1, [new CreatureHealthSystem(), new PrisonSystem()]);

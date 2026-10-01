@@ -153,7 +153,7 @@ public class KeeperHealTests
                 world.Tile(x, y).OwnerPlayerId = roomOwner;
             }
         target.OwnerPlayerId = foreign ? Rival : Keeper;
-        if (attached) Assert.True(CreatureStateMachine.TrySetState(target, PrisonRules.DecidingState));
+        if (attached) Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), target, PrisonRules.DecidingState));
         target.CombatPitFighter = pitFighter;
         var boundary = new Boundary();
 
@@ -185,7 +185,7 @@ public class KeeperHealTests
     {
         var (db, world, target) = Setup();
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
-        Assert.True(CreatureStateMachine.TrySetState(target, FightState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), target, FightState));
         target.FightTargetId = enemy.Id;
         target.FightTargetKind = FightTargetKind.Creature;
 
@@ -204,7 +204,7 @@ public class KeeperHealTests
     {
         var (db, world, target) = Setup();
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
-        Assert.True(CreatureStateMachine.TrySetState(target, FightState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), target, FightState));
         target.FightTargetId = enemy.Id;
         target.FightTargetKind = FightTargetKind.Creature;
         switch (which)

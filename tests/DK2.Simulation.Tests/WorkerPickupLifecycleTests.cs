@@ -20,8 +20,8 @@ public class WorkerPickupLifecycleTests
         var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), db, []);
         var copy = restored.World.CreatureById(creature.Id)!;
         Assert.Equal(original.StateHash(), restored.StateHash());
-        Assert.True(CreatureStateMachine.TrySetState(creature, 1));
-        Assert.True(CreatureStateMachine.TrySetState(copy, 1));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), creature, 1));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), copy, 1));
         Assert.Equal((byte)0xAF, copy.Flags);
         Assert.Equal(original.StateHash(), restored.StateHash());
     }
@@ -39,7 +39,7 @@ public class WorkerPickupLifecycleTests
     public void LeavingWorkerCategoryRestoresOnlyTheListedStates(int state, byte expected)
     {
         var creature = new CreatureState { Dk2StateId = state, Flags = 0xA6 };
-        Assert.True(CreatureStateMachine.TrySetState(creature, 1));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, creature, 1));
         Assert.Equal(expected, creature.Flags);
     }
 
@@ -55,7 +55,7 @@ public class WorkerPickupLifecycleTests
             Dk2StateId = 6, StateBeforeUtilityState = caller,
             UtilityNewState = resume, Flags = 0xA6,
         };
-        Assert.True(CreatureStateMachine.TrySetState(creature, 1));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, creature, 1));
         Assert.Equal(expected, creature.Flags);
     }
 
@@ -63,11 +63,11 @@ public class WorkerPickupLifecycleTests
     public void SameCategoryAndTravelEntryDoNotReleaseTheTask()
     {
         var creature = new CreatureState { Dk2StateId = 43, Flags = 0xA6 };
-        Assert.True(CreatureStateMachine.TrySetState(creature, 44));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, creature, 44));
         Assert.Equal((byte)0xA6, creature.Flags);
-        CreatureStateMachine.BeginTravel(creature, 6, 46);
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, 6, 46);
         Assert.Equal((byte)0xA6, creature.Flags);
-        Assert.True(CreatureStateMachine.Arrive(creature));
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, creature));
         Assert.Equal((byte)0xA6, creature.Flags);
     }
 
@@ -75,8 +75,8 @@ public class WorkerPickupLifecycleTests
     public void TravelToTravelRunsTheWorkerLeaveHookThroughIdle()
     {
         var creature = new CreatureState { Dk2StateId = 43, Flags = 0xA6 };
-        CreatureStateMachine.BeginTravel(creature, 6, 44);
-        CreatureStateMachine.BeginTravel(creature, 7, 46);
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, 6, 44);
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, 7, 46);
         Assert.Equal((byte)0xAF, creature.Flags);
         Assert.Equal(1, creature.StateBeforeUtilityState);
     }

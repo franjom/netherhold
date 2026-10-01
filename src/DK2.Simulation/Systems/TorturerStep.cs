@@ -68,7 +68,7 @@ public static class TorturerStep
         if (victim is not null && context.Navigation.TryRoute(creature, victim.Tile, Navigation.MoveOptions.Loose))
         {
             creature.TortureTargetTile = TileOf(world, victim);
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, TortureRules.TorturerFacingState);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, TortureRules.TorturerFacingState);
             context.Emit(system, "torturer_to_victim",
                 $"creature={creature.Id} victim={victim.Id} at=({victim.Tile.X},{victim.Tile.Y})");
             return true;
@@ -78,7 +78,7 @@ public static class TorturerStep
         if (device is not null
             && context.Navigation.TryRoute(creature, TilePosOf(world, device.TileIndex), Navigation.MoveOptions.Loose))
         {
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, TortureRules.StrappingState);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, TortureRules.StrappingState);
             context.Emit(system, "torturer_to_device",
                 $"creature={creature.Id} device={device.Id} type={device.ObjectTypeId}");
             return true;
@@ -117,7 +117,7 @@ public static class TorturerStep
 
     private static bool StrapSelf(SimulationContext context, string system, CreatureState creature)
     {
-        if (!TortureRules.TryStrapSelf(context.World, context.Database, creature)) return false;
+        if (!TortureRules.TryStrapSelf(context.Hooks, creature)) return false;
         context.Emit(system, "torturer_strapped",
             $"creature={creature.Id} at=({creature.Tile.X},{creature.Tile.Y})");
         return true;

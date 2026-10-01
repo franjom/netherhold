@@ -323,7 +323,7 @@ public static class ShotRules
         }
         int amount = Math.Min(shot.Data1, max - target.Health);
         if (amount > 0 && target.FrozenTicks == 0 && !target.InHand && !target.CombatPitFighter && !target.AttackAbnormalTargets
-            && CreatureStateMachine.TrySetState(target, CreatureStateMachine.Idle, context.Tick.Value))
+            && CreatureStateMachine.TrySetState(context.Hooks, target, CreatureStateMachine.Idle, context.Tick.Value))
             target.StopMoving(); // DK2 moves only a walking state (0x0048A23B), so the route goes with the state
         // 0x004B2CE0 refuses a creature whose kind is OnlyAttackableByHorny for a positive delta too.
         int healed = amount >= 0

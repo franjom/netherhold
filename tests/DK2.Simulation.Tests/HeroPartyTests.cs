@@ -103,7 +103,7 @@ public class HeroPartyTests
         HeroPartyState party = world.HeroParties[0];
         var rng = new SimRandom(11);
 
-        Assert.True(HeroPartyRules.Spawn(world, database, rng, Tree(2, 2), party, PointId, partyType: 2, _ => { }));
+        Assert.True(HeroPartyRules.Spawn(new StateHookContext(world, database), rng, Tree(2, 2), party, PointId, partyType: 2, _ => { }));
         Assert.Equal(HeroPartyRules.DwarfCreatureId, world.Creatures[0].CreatureTypeId);
         Assert.Equal(Invader, world.Creatures[1].CreatureTypeId);
         // No level-ups on the first raising, so the job is forced to KillPlayer.
@@ -111,14 +111,14 @@ public class HeroPartyTests
         Assert.All(world.Creatures, c => Assert.Equal(1, c.Level));
 
         // Alive: the second raising does nothing, not even a count.
-        Assert.True(HeroPartyRules.Spawn(world, database, rng, Tree(2, 2), party, PointId, partyType: 2, _ => { }));
+        Assert.True(HeroPartyRules.Spawn(new StateHookContext(world, database), rng, Tree(2, 2), party, PointId, partyType: 2, _ => { }));
         Assert.Equal(2, world.Creatures.Count);
         Assert.Equal((byte)1, party.SpawnCount);
 
         // Dead: the third raising buys one level-up per earlier raising and keeps the record's job.
         world.RemoveCreature(world.Creatures[0].Id);
         world.RemoveCreature(world.Creatures[0].Id);
-        Assert.True(HeroPartyRules.Spawn(world, database, rng, Tree(2, 2), party, PointId, partyType: 2, _ => { }));
+        Assert.True(HeroPartyRules.Spawn(new StateHookContext(world, database), rng, Tree(2, 2), party, PointId, partyType: 2, _ => { }));
         Assert.Equal(2, world.Creatures.Count);
         Assert.All(world.Creatures, c => Assert.Equal(2, c.Level));
         Assert.All(world.Creatures, c => Assert.Equal(JobType.KillCreatures, c.GoodJob));
@@ -133,12 +133,12 @@ public class HeroPartyTests
         CreatureState state = world.SpawnCreature(database, Goblin, Keeper, new TilePos(2, 2));
         state.Health = 750;
 
-        Assert.True(CreatureLevelRules.LevelUp(database, goblin, state));
+        Assert.True(CreatureLevelRules.LevelUp(new StateHookContext(world, database), goblin, state));
         Assert.Equal(2, state.Level);
         Assert.Equal(937, state.Health); // 750/1500 in 12-bit fixed point is exactly 1/2; 1875/2 truncates.
 
         state.Level = CreatureLevelRules.MaxLevel;
-        Assert.False(CreatureLevelRules.LevelUp(database, goblin, state));
+        Assert.False(CreatureLevelRules.LevelUp(new StateHookContext(world, database), goblin, state));
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public class HeroPartyTests
             Member(Goblin, level: 1, gold: 0, health: 100, flags: 0x0D),
         ]);
         Assert.True(HeroPartyRules.Spawn(
-            world, database, null, Tree(0, 0), world.HeroParties[0], PointId, partyType: 0, _ => { }));
+            new StateHookContext(world, database), null, Tree(0, 0), world.HeroParties[0], PointId, partyType: 0, _ => { }));
         var sim = new GameSimulation(database, world, 7,
             [new Systems.CreatureHealthSystem()], MissingTree(partyId: 0, atLeast: 1));
 
@@ -196,7 +196,7 @@ public class HeroPartyTests
         (WorldState world, GameDatabase database) = World();
         Place(world, database, partyId: 0, members: [Member(Goblin, level: 1, gold: 0, health: 100, flags: 0x0B)]);
         Assert.True(HeroPartyRules.Spawn(
-            world, database, null, Tree(0, 0), world.HeroParties[0], PointId, partyType: 0, _ => { }));
+            new StateHookContext(world, database), null, Tree(0, 0), world.HeroParties[0], PointId, partyType: 0, _ => { }));
         world.Creatures[0].OwnerPlayerId = Keeper;
         var sim = new GameSimulation(database, world, 7, [], MissingTree(partyId: 0, atLeast: 1));
 

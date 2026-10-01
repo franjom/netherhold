@@ -96,7 +96,7 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
             {
                 if (creature.Dk2StateId == PrisonRules.InTheCellState)
                     StateShadow.Move(context, SystemName, creature, PrisonRules.DecidingState);
-                CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, PrisonRules.InTheCellState);
+                CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, PrisonRules.InTheCellState);
                 StateShadow.Move(context, SystemName, creature, PrisonRules.InTheCellState);
             }
 

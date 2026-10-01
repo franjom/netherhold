@@ -57,7 +57,7 @@ public class GrantCreatureLevelTests
         (GameDatabase db, WorldState world, CreatureState goblin) = Setup();
         byte player = which == 0 ? Rival : Keeper;
         int id = which == 1 ? goblin.Id + 100 : goblin.Id;
-        if (which == 2) while (goblin.Level < CreatureLevelRules.MaxLevel) CreatureLevelRules.LevelUp(db, db.CreatureById(goblin.CreatureTypeId), goblin);
+        if (which == 2) while (goblin.Level < CreatureLevelRules.MaxLevel) CreatureLevelRules.LevelUp(new StateHookContext(world, db), db.CreatureById(goblin.CreatureTypeId), goblin);
         int level = goblin.Level, health = goblin.Health;
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem()]);

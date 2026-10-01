@@ -61,14 +61,14 @@ public sealed class CombatPitSpectatorTests
         foreach ((TilePos at, byte owner) in new[] { (new TilePos(6, 4), Keeper), (new TilePos(6, 5), Rival) })
         {
             CreatureState fighter = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, owner, at);
-            Assert.True(CreatureStateMachine.TrySetState(fighter, Engaging));
+            Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), fighter, Engaging));
         }
     }
 
-    private static void EndTheFight(WorldState world)
+    private static void EndTheFight(GameDatabase db, WorldState world)
     {
         foreach (CreatureState c in world.Creatures)
-            if (c.Dk2StateId == Engaging) Assert.True(CreatureStateMachine.TrySetState(c, CreatureStateMachine.Idle));
+            if (c.Dk2StateId == Engaging) Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), c, CreatureStateMachine.Idle));
     }
 
     private static bool OnTheFloor(GameDatabase db, WorldState world, CreatureState c) =>
@@ -121,7 +121,7 @@ public sealed class CombatPitSpectatorTests
 
         foreach (TilePos floor in new[] { new TilePos(2, 2), new TilePos(12, 2) })
         foreach (byte owner in new[] { Keeper, Rival })
-            Assert.True(CreatureStateMachine.TrySetState(world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, owner, floor), Engaging));
+            Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, owner, floor), Engaging));
 
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
         for (int i = 0; i < 3; i++) sim.Tick();
@@ -223,7 +223,7 @@ public sealed class CombatPitSpectatorTests
         for (int i = 0; i < 400 && !(watcher.Dk2StateId == CombatPitSpectatorRules.ChoosingState && stamp.PitFightSeenTick == sim.World.CurrentTick.Value - 1); i++)
             sim.Tick();
         Assert.Equal(sim.World.CurrentTick.Value - 1, stamp.PitFightSeenTick);
-        EndTheFight(world);
+        EndTheFight(db, world);
 
         long quietUntil = stamp.PitFightSeenTick + 16;   // variable 19 x 4: four game seconds
         while (sim.World.CurrentTick.Value <= quietUntil)
@@ -249,8 +249,8 @@ public sealed class CombatPitSpectatorTests
         (GameSimulation sim, _) = Simulation(db, world);
         for (int i = 0; i < 20; i++) sim.Tick();
         CreatureState watcher = world.SpawnCreature(db, Watcher, Keeper, Rim);
-        Assert.True(CreatureStateMachine.TrySetState(watcher, CombatPitSpectatorRules.ChoosingState));
-        Assert.True(CreatureStateMachine.TrySetState(watcher, CombatPitSpectatorRules.CheeringState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), watcher, CombatPitSpectatorRules.ChoosingState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), watcher, CombatPitSpectatorRules.CheeringState));
         watcher.CurrentJob = JobType.CombatPitSpectate;
         watcher.PitStateEnteredTick = sim.World.CurrentTick.Value - 5;
         watcher.SpectatorPosX = watcher.PosX;
@@ -297,9 +297,9 @@ public sealed class CombatPitSpectatorTests
     {
         (GameDatabase db, WorldState world) = World();
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, Rim);
-        Assert.True(CreatureStateMachine.TrySetState(goblin, CombatPitRules.PlacingState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, CombatPitRules.PlacingState));
         Assert.Equal(StateTransition.Refused, CreatureStateMachine.Classify(goblin, CombatPitSpectatorRules.ChoosingState));
-        Assert.True(CreatureStateMachine.TrySetState(goblin, CreatureStateMachine.Idle));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, CreatureStateMachine.Idle));
         Assert.Equal(StateTransition.Allowed, CreatureStateMachine.Classify(goblin, CombatPitSpectatorRules.ChoosingState));
     }
 }

@@ -143,7 +143,7 @@ public class KeeperRetreatStepTests
         AdvanceToTurn(world, 400);
         CreatureState fighting = Wounded(world, 299, 17, 17);
         CreatureState enemy = world.SpawnCreature(Db, KeeperWorld.FighterCreature, Hero, new TilePos(17, 16));
-        Assert.True(CreatureStateMachine.TrySetState(fighting, FightState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, Db), fighting, FightState));
         fighting.FightTargetId = enemy.Id;
         fighting.FightTargetKind = FightTargetKind.Creature;
         fighting.DroppedTick = world.CurrentTick.Value - 10;
@@ -252,7 +252,7 @@ public class KeeperRetreatStepTests
         CreatureState own = world.SpawnCreature(full, KeeperWorld.FighterCreature, Keeper, new TilePos(13, 15));
         own.Health = 299;
         CreatureState enemy = world.SpawnCreature(full, KeeperWorld.FighterCreature, Hero, new TilePos(12, 15));
-        Assert.True(CreatureStateMachine.TrySetState(own, FightState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, Db), own, FightState));
         own.FightTargetId = enemy.Id;
         own.FightTargetKind = FightTargetKind.Creature;
         KeeperAI keeper = NewKeeper(speed: 4);
@@ -321,7 +321,7 @@ public class KeeperRetreatStepTests
         WorldState world = World();
         CreatureState own = Wounded(world, 299, 13, 15);
         CreatureState enemy = world.SpawnCreature(Db, KeeperWorld.FighterCreature, Hero, new TilePos(12, 15));
-        Assert.True(CreatureStateMachine.TrySetState(own, FightState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, Db), own, FightState));
         own.FightTargetId = enemy.Id;
         own.FightTargetKind = FightTargetKind.Creature;
         KeeperAI keeper = NewKeeper(speed: 4);

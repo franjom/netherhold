@@ -320,7 +320,7 @@ public static class FightRules
         if (target.CreatureTypeId == CombatRules.ImpCreatureTypeId) return;
         target.CurrentJob = JobType.None;
         target.JobTileIndex = -1;
-        CombatStates.Idle(target);
+        CombatStates.Idle(context.Hooks, target);
         if (context.Navigation.TryRoute(target, attacker.Tile, MoveOptions.Plain))
             context.Emit(SystemName, "turns_toward", $"creature={target.Id} attacker={attacker.Id}");
     }
