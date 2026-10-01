@@ -26,4 +26,9 @@
     <ProjectReference Include="..\..\src\DK2.Harness\DK2.Harness.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- StateEntryLog records every state the tests enter, for StateCoverageTests. -->
+    <RuntimeHostConfigurationOption Include="DK2.Simulation.RecordStateEntries" Value="true" />
+  </ItemGroup>
+
 </Project>

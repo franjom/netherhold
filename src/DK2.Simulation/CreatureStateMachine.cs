@@ -163,6 +163,7 @@ public static class CreatureStateMachine
         }
 
         creature.Dk2StateId = stateId;
+        if (StateEntryLog.Enabled) StateEntryLog.Record(stateId);
     }
 
     /// <summary>Whether <c>SetState</c> runs the target's enter hook (<c>travel-states.md</c> §3):

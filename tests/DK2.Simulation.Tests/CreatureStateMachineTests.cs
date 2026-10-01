@@ -13,6 +13,7 @@ namespace DK2.Simulation.Tests;
 /// <para><see cref="CreatureStateTransitions"/> owns the rule and is tested against all
 /// 78,680 ordered pairs elsewhere. These tests are about the gate's own behaviour: what it
 /// refuses, what it writes on the way in, and what it will not let a caller skip.</para></summary>
+[StatesUnrecorded]
 public class CreatureStateMachineTests
 {
     private const int Idle = 1;                  // group 0, Idle
