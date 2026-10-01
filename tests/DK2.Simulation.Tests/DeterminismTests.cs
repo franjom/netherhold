@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 146: a dig task outlives its wall until the digger's action ends (ADR-0305).
+        // HashVersion 147: a creature's held room place, claimed and released by its hooks (ADR-0309).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x31889C236E089472UL, sim.StateHash());
+        Assert.Equal(0x75745303F30520A9UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

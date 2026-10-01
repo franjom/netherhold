@@ -27,6 +27,22 @@ public class CreatureStateMachineTests
 
     private static CreatureState Fresh() => new() { Id = 1 };
 
+    /// <summary>The one refusal that is not the rule's: a claiming category's enter hook finds no
+    /// room under (0, 0), where <see cref="Fresh"/> stands, and leaves the creature in 1 (ADR-0309).</summary>
+    private static bool RefusedByTheClaim(CreatureState creature, int target) =>
+        RoomCapacityRules.Claims(CreatureStateTable.Get(target).Category) && creature.Dk2StateId == Idle;
+
+    /// <summary>A context whose (0, 0) is a one-place room of <paramref name="type"/>, so a claim
+    /// made there succeeds.</summary>
+    private static StateHookContext OnARoom(RoomTypeId type)
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral]);
+        RoomRules.Place(db, ref world.Tile(0, 0), db.Room(type), 0);
+        if (type == RoomTypeId.TortureChamber) world.SpawnObject(db, TortureRules.WheelObjectId, 0, 0).AutoPlaced = true;
+        return new StateHookContext(world, db);
+    }
+
     [Fact]
     public void AFreshCreatureIsIdleAsTheConstructorLeavesIt()
     {
@@ -137,14 +153,14 @@ public class CreatureStateMachineTests
         // travel state is judged by the resume state, and the target IS the resume state,
         // so the comparison is a state against itself and the rule always says yes. Every
         // refusal the original checks for comes from the enter hook of the resume's
-        // category, which nothing here has yet (travel-states.md 3, 4).
+        // category: here only the room claim, with no room underfoot (travel-states.md 3, 4).
         int allowed = 0;
         for (int resume = 0; resume < CreatureStateTable.Count; resume++)
         {
             CreatureState creature = Fresh();
             StatePlacement.Place(creature, Sleeping);
             CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, EnRoute, resume);
-            if (CreatureStateMachine.Arrive(DetachedHooks.Context, creature)) allowed++;
+            if (CreatureStateMachine.Arrive(DetachedHooks.Context, creature) || RefusedByTheClaim(creature, resume)) allowed++;
             Assert.Equal(CreatureStateMachine.Idle, creature.UtilityNewState);
         }
 
@@ -186,20 +202,24 @@ public class CreatureStateMachineTests
         // The chooser runs in idle, the handler walks in state 7 resuming in the job's
         // state, and a job that ends drops back to idle. Each step through the rule, and
         // the room helper's no-walk shortcut (1, then the job state) as well.
+        // A claiming job's state is legal but its enter hook refuses it here, with no room.
         int state = JobRules.StateFor(job)!.Value;
+        bool claims = RoomCapacityRules.Claims(CreatureStateTable.Get(state).Category);
 
         CreatureState walker = Fresh();
         StatePlacement.Place(walker, Idle);
         Assert.Equal(StateTransition.Allowed, CreatureStateMachine.Classify(walker, EnRouteToRoom));
         CreatureStateMachine.BeginTravel(DetachedHooks.Context, walker, EnRouteToRoom, state);
         Assert.Equal(EnRouteToRoom, walker.Dk2StateId);
-        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, walker));
+        Assert.Equal(StateTransition.Allowed, CreatureStateMachine.Classify(walker, state));
+        Assert.Equal(!claims, CreatureStateMachine.Arrive(DetachedHooks.Context, walker));
         Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, walker, Idle));
 
         CreatureState standing = Fresh();
         StatePlacement.Place(standing, Idle);
         Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, standing, Idle));
-        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, standing, state));
+        Assert.Equal(StateTransition.Allowed, CreatureStateMachine.Classify(standing, state));
+        Assert.Equal(!claims, CreatureStateMachine.TrySetState(DetachedHooks.Context, standing, state));
         Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, standing, Idle));
     }
 
@@ -231,12 +251,13 @@ public class CreatureStateMachineTests
         // that handler through a thunk, but in its own group 130 is refused from it.
         CreatureState dropped = Fresh();
         StatePlacement.Place(dropped, 77);
-        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, dropped, 115));
+        Assert.True(CreatureStateMachine.TrySetState(OnARoom(RoomTypeId.Prison), dropped, 115));
 
         CreatureState victim = Fresh();
         StatePlacement.Place(victim, 77);
-        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, victim, 130));
-        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, victim, 131));
+        StateHookContext chamber = OnARoom(RoomTypeId.TortureChamber);
+        Assert.True(CreatureStateMachine.TrySetState(chamber, victim, 130));
+        Assert.True(CreatureStateMachine.TrySetState(chamber, victim, 131));
         Assert.Equal(StateTransition.Refused, CreatureStateTransitions.Classify(120, 130, CreatureStateMachine.Idle));
     }
 
@@ -448,8 +469,9 @@ public class CreatureStateMachineTests
                 Assert.Equal(expected, CreatureStateMachine.Classify(creature, to));
 
                 bool took = CreatureStateMachine.TrySetState(DetachedHooks.Context, creature, to);
-                Assert.Equal(expected == StateTransition.Allowed, took);
-                Assert.Equal(took ? to : from, creature.Dk2StateId);
+                bool claimRefused = !took && expected == StateTransition.Allowed && RefusedByTheClaim(creature, to);
+                Assert.Equal(expected == StateTransition.Allowed, took || claimRefused);
+                Assert.Equal(took ? to : claimRefused ? Idle : from, creature.Dk2StateId);
                 checked_++;
             }
         }

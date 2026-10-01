@@ -46,7 +46,7 @@ public class TortureTests
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), Keeper);
         }
 
-        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, Wheel));
+        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, Wheel)).AutoPlaced = true;
         return world;
     }
 
@@ -325,7 +325,7 @@ public class TortureTests
         GameDatabase db = Db;
         WorldState world = World(db);
         var beside = new TilePos(Wheel.X, Wheel.Y - 1);
-        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, beside));
+        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, beside)).AutoPlaced = true;
         CreatureState captive = Captive(db, world);
         Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
         var sink = new ListEventSink();
@@ -348,7 +348,7 @@ public class TortureTests
         // 0x1800 against the squared distance: a side neighbour is 1, a diagonal 2.
         GameDatabase db = Db;
         WorldState world = World(db);
-        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, new TilePos(Wheel.X + 1, Wheel.Y - 1)));
+        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, new TilePos(Wheel.X + 1, Wheel.Y - 1))).AutoPlaced = true;
         CreatureState captive = Captive(db, world);
         Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
         GameSimulation sim = Simulation(db, world);

@@ -46,7 +46,7 @@ public class RescueTests
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), Keeper);
         }
 
-        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, Wheel));
+        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, Wheel)).AutoPlaced = true;
         CreatureState victim = world.SpawnCreature(db, GoblinId, Hero, Cell);
         Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), victim, Keeper, Index(world, Cell)));
         Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), victim, Keeper, Index(world, Wheel)));

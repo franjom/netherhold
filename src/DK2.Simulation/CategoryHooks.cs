@@ -86,8 +86,9 @@ internal delegate void LeaveHook(in StateHookContext hooks, CreatureState creatu
 public static class CategoryHooks
 {
     private const string Seeded = "the countdown seed is built (the shared step in RunEnter)";
-    private const string Release = "0x0047B920 releases the room position; not built: ours derives "
-        + "UsedCapacity from the claiming creatures in the room (ADR-0205)";
+    private const string Claimed = "the claim is built (RoomCapacityRules.Claim, ADR-0309)";
+    private const string Release = "releases the room position (ADR-0309); not built: the Crypt occupant "
+        + "handover 0x004D8E60 when the place is a Crypt's (state-category-hooks.md §1)";
 
     private static readonly HookSlot[] All =
     [
@@ -99,20 +100,19 @@ public static class CategoryHooks
             Leave = static (in StateHookContext _, CreatureState creature) => WorkerPickupRules.OnTaskReleased(creature),
         },
 
-        Slot(CreatureStateCategory.Research, HookKind.Enter, 0x0047AFB0, HookStatus.NotBuilt,
-            "claims the room position; ours claims at arrival instead (RoomCapacityRules, ADR-0205)"),
+        Claiming(CreatureStateCategory.Research, 0x0047AFB0, HookStatus.Built, "claims the room position (ADR-0309)"),
         Arm(CreatureStateCategory.Research, 0x0047B000, HookStatus.Built, "credit per turn, bonuses per second (ADR-0186)",
             typeof(CreatureJobSystem), "Research"),
-        Slot(CreatureStateCategory.Research, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+        Releasing(CreatureStateCategory.Research, 0x0047B920, Release),
 
-        Slot(CreatureStateCategory.Manufacture, HookKind.Enter, 0x0047B0A0, HookStatus.NotBuilt,
-            "raises station +0x8A and claims; ours counts the makers from UpdatingCategory (ManufactureRules, ADR-0203)"),
+        Claiming(CreatureStateCategory.Manufacture, 0x0047B0A0, HookStatus.Partial,
+            Claimed + "; station +0x8A is not: ours counts the makers from UpdatingCategory (ManufactureRules, ADR-0203)"),
         Arm(CreatureStateCategory.Manufacture, 0x0047B190, HookStatus.Partial,
             "credit per turn (ADR-0203); not built: a zero credit failing the hook, and the turn % v19 call "
             + "to 0x004F2300 (state-category-hooks.md §3.4)",
             typeof(CreatureJobSystem), "Manufacture"),
-        Slot(CreatureStateCategory.Manufacture, HookKind.Leave, 0x0047B120, HookStatus.NotBuilt,
-            "lowers station +0x8A and releases; ours counts the makers from UpdatingCategory (ADR-0203)"),
+        Releasing(CreatureStateCategory.Manufacture, 0x0047B120,
+            "releases (ADR-0309); station +0x8A is not lowered: ours counts the makers from UpdatingCategory (ADR-0203)"),
 
         Slot(CreatureStateCategory.Lair, HookKind.Enter, 0x004B4C20, HookStatus.Stub, "success stub"),
         Arm(CreatureStateCategory.Lair, 0x0047AC40, HookStatus.Partial,
@@ -133,51 +133,50 @@ public static class CategoryHooks
             "anger cools (ADR-0185); its return, 0x004871A0(5), is not built (Q438)",
             typeof(LairRules), nameof(LairRules.CoolsAngerInLair)),
 
-        Slot(CreatureStateCategory.GuardPost, HookKind.Enter, 0x0047AFB0, HookStatus.NotBuilt,
-            "claims the room position; ours claims at arrival instead (RoomCapacityRules, ADR-0205)"),
-        Slot(CreatureStateCategory.GuardPost, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+        Claiming(CreatureStateCategory.GuardPost, 0x0047AFB0, HookStatus.Built, "claims the room position (ADR-0309)"),
+        Releasing(CreatureStateCategory.GuardPost, 0x0047B920, Release),
 
-        Slot(CreatureStateCategory.Temple, HookKind.Enter, 0x0047B8C0, HookStatus.Partial,
-            Seeded + "; the claim is not dispatched (ADR-0205)"),
+        Claiming(CreatureStateCategory.Temple, 0x0047B8C0, HookStatus.Built, Seeded + "; " + Claimed),
         Arm(CreatureStateCategory.Temple, 0x0047B970, HookStatus.Built, "prayer every fifth turn (ADR-0186, ADR-0192)",
             typeof(CreatureJobSystem), "Pray"),
-        Slot(CreatureStateCategory.Temple, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+        Releasing(CreatureStateCategory.Temple, 0x0047B920, Release),
 
-        Slot(CreatureStateCategory.Training, HookKind.Enter, 0x0047B230, HookStatus.Partial,
-            Seeded + "; the gold refusal with message 55 and the claim are not (state-category-hooks.md §3)"),
+        Claiming(CreatureStateCategory.Training, 0x0047B230, HookStatus.Partial,
+            Seeded + "; " + Claimed + "; the gold refusal with message 55 is not (state-category-hooks.md §3)"),
         Arm(CreatureStateCategory.Training, 0x0047B2D0, HookStatus.Partial,
             "experience per turn, the charge every fifth (Q205); not built: at the level cap DK2 returns 1 with "
             + "no charge and no countdown step, where ours still charges, and message 55 when the keeper cannot pay",
             typeof(CreatureJobSystem), "Train"),
-        Slot(CreatureStateCategory.Training, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+        Releasing(CreatureStateCategory.Training, 0x0047B920, Release),
 
-        Slot(CreatureStateCategory.Prison, HookKind.Enter, 0x0047B740, HookStatus.Partial,
-            Seeded + "; the claim and creature trigger event 7 are not (state-category-hooks.md §3)"),
+        Claiming(CreatureStateCategory.Prison, 0x0047B740, HookStatus.Partial,
+            Seeded + "; " + Claimed + "; not built: the claim's position tests and overcrowding roll (Q504) "
+            + "and creature trigger event 7 (state-category-hooks.md §3)"),
         Arm(CreatureStateCategory.Prison, 0x0047B7C0, HookStatus.Built, "the drain every seventeenth turn (ADR-0191)",
             typeof(PrisonSystem), "Wither"),
-        Slot(CreatureStateCategory.Prison, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+        Releasing(CreatureStateCategory.Prison, 0x0047B920, Release),
 
-        Slot(CreatureStateCategory.Torture, HookKind.Enter, 0x0047B430, HookStatus.Partial,
-            Seeded + "; the claim is not dispatched (ADR-0205)"),
+        Claiming(CreatureStateCategory.Torture, 0x0047B430, HookStatus.Built, Claimed + "; " + Seeded),
         Arm(CreatureStateCategory.Torture, 0x0047B590, HookStatus.Partial,
             "duration, hurt, mood and conversion (ADR-0193); the information is ADR-0230's",
             typeof(TortureSystem), nameof(TortureSystem.Execute)),
-        Slot(CreatureStateCategory.Torture, HookKind.Leave, 0x0047B4A0, HookStatus.NotBuilt,
-            "clears station bits, state +0x6E, +0x3EA bit 14 and releases; the helpers' contracts are UNKNOWN (§3.3)"),
+        Releasing(CreatureStateCategory.Torture, 0x0047B4A0,
+            "releases (ADR-0309); not built: the station bits, state +0x6E and +0x3EA bit 14, whose helpers' "
+            + "contracts are UNKNOWN (§3.3)"),
 
-        Slot(CreatureStateCategory.CombatPit, HookKind.Enter, 0x0047AAE0, HookStatus.Partial,
-            Seeded + "; the CombatPitFighter flag is set at the call site (CombatPitSystem.Move), whose entry "
-            + "test is the current category, not the saved caller's; the claim is not dispatched"),
+        Claiming(CreatureStateCategory.CombatPit, 0x0047AAE0, HookStatus.Partial,
+            Seeded + "; " + Claimed + "; the CombatPitFighter flag is set at the call site (CombatPitSystem.Move), "
+            + "whose entry test is the current category, not the saved caller's"),
         Slot(CreatureStateCategory.CombatPit, HookKind.Update, 0x004B4C20, HookStatus.Stub, "success stub"),
-        Slot(CreatureStateCategory.CombatPit, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+        Releasing(CreatureStateCategory.CombatPit, 0x0047B920, Release),
 
-        Slot(CreatureStateCategory.Casino, HookKind.Enter, 0x0047ACB0, HookStatus.Partial,
-            Seeded + "; the purse and lever refusals and the claim are not (state-category-hooks.md §3.1)"),
+        Claiming(CreatureStateCategory.Casino, 0x0047ACB0, HookStatus.Partial,
+            Seeded + "; " + Claimed + "; the purse and lever refusals are not (state-category-hooks.md §3.1)"),
         Arm(CreatureStateCategory.Casino, 0x0047AD70, HookStatus.Partial,
             "calm, anger and the purse (ADR-0187, ADR-0188); the jackpot and fearless countdown are not",
             typeof(CreatureJobSystem), "Gamble"),
-        Slot(CreatureStateCategory.Casino, HookKind.Leave, 0x0047AF20, HookStatus.NotBuilt,
-            "clears fearless, stamps +0x3D7 and releases (state-category-hooks.md §3.1)"),
+        Releasing(CreatureStateCategory.Casino, 0x0047AF20,
+            "releases (ADR-0309); not built: clearing fearless and stamping +0x3D7 (state-category-hooks.md §3.1)"),
 
         Slot(CreatureStateCategory.Combat, HookKind.Enter, 0x0047A810, HookStatus.NotBuilt,
             "ends the current action and clears the combat words (state-category-hooks.md §2)"),
@@ -212,11 +211,11 @@ public static class CategoryHooks
         Slot(CreatureStateCategory.Unnamed28, HookKind.Update, 0x0047A9B0, HookStatus.NotBuilt,
             "-10 health a tick unless the owner has won; no category-28 state is built"),
 
-        Slot(CreatureStateCategory.Spectating, HookKind.Enter, 0x0047A9E0, HookStatus.Partial,
-            Seeded + "; the CombatPitFighter clear is at the call site (CombatPitSpectatorRules); the claim is not dispatched"),
+        Claiming(CreatureStateCategory.Spectating, 0x0047A9E0, HookStatus.Partial,
+            Seeded + "; " + Claimed + "; the CombatPitFighter clear is at the call site (CombatPitSpectatorRules)"),
         Arm(CreatureStateCategory.Spectating, 0x0047AA70, HookStatus.Built, "variable 135 to three buckets every fifth turn (ADR-0186)",
             typeof(CreatureJobSystem), "Spectate"),
-        Slot(CreatureStateCategory.Spectating, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+        Releasing(CreatureStateCategory.Spectating, 0x0047B920, Release),
     ];
 
     private static readonly EnterHook?[] Enters = Index(s => s.Enter);
@@ -243,6 +242,21 @@ public static class CategoryHooks
     private static HookSlot Slot(
         CreatureStateCategory category, HookKind kind, uint address, HookStatus status, string note) =>
         new(category, kind, address, status, note);
+
+    /// <summary>An enter slot whose only dispatched step is the room claim.</summary>
+    private static HookSlot Claiming(
+        CreatureStateCategory category, uint address, HookStatus status, string note) =>
+        new(category, HookKind.Enter, address, status, note)
+        {
+            Enter = static (in StateHookContext hooks, CreatureState creature) => RoomCapacityRules.Claim(in hooks, creature),
+        };
+
+    /// <summary>A leave slot whose only dispatched step is the room release.</summary>
+    private static HookSlot Releasing(CreatureStateCategory category, uint address, string note) =>
+        new(category, HookKind.Leave, address, HookStatus.Partial, note)
+        {
+            Leave = static (in StateHookContext _, CreatureState creature) => RoomCapacityRules.Release(creature),
+        };
 
     private static HookSlot Arm(
         CreatureStateCategory category, uint address, HookStatus status, string note, Type arm, string member) =>

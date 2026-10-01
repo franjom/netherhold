@@ -89,17 +89,13 @@ public static class JobRules
         if (definition.HateJobs.Contains(job)) return null;
 
         CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
-        if (!CreatureStateMachine.TrySetState(hooks, creature, state)) return null;
+        if (CreatureStateMachine.Classify(creature, state) == StateTransition.Refused) return null;
+        creature.DroppedToDoJob = job;
+
+        // The enter hook's claim (ADR-0309): refused, the creature is left in 1.
+        if (!CreatureStateMachine.TrySetState(hooks, creature, state)) return job;
         creature.CurrentJob = job;
         creature.JobTileIndex = tileIndex;
-        creature.DroppedToDoJob = job;
-        if (!RoomCapacityRules.HasRoom(world, database, room, creature.Id))
-        {
-            creature.CurrentJob = JobType.None;
-            creature.JobTileIndex = -1;
-            CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
-        }
-
         return job;
     }
 

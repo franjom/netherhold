@@ -100,10 +100,12 @@ public static class CreatureStateMachine
 
     /// <summary>Takes a dying creature's state away as it becomes a corpse, the one creature
     /// with none: DK2 destroys it and makes a <c>CDeadBody</c> (ADR-0206). Keeps the saved
-    /// caller and the resume slot, which DK2 never clears.</summary>
+    /// caller and the resume slot, which DK2 never clears. A room place still held is released,
+    /// as DK2's death bookkeeping does after its state reset (<c>0x004883F8</c>).</summary>
     public static void Release(CreatureState creature)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));
+        RoomCapacityRules.Release(creature);
         creature.Dk2StateId = NoState;
     }
 

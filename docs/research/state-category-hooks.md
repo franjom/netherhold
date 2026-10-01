@@ -10,26 +10,14 @@ not a running-game observation (ADR-0046).
 
 ### Room position, admission and occupancy
 
-Nine distinct enter functions, filling ten hook slots because Research and
-GuardPost share one, use the same chain. The world virtual call at `+0x1D4`
-looks up the map cell under the creature. `0x004559B0` resolves the cell's
-low-12-bit thing id. `0x004E7F80` accepts the room when its occupant/type word
-already names this creature or when the room type is one of the supported
-work-room types. `0x004E5A70` then inserts the creature into the room's linked
-occupant lists, writes the room id to creature `+0x3B9`, and increases the
-room's used-capacity counters by the creature definition's `+0x672` byte.
-
-The corresponding leave operation is `0x004E5E00(room, creature)`. It unlinks
-the creature, zeroes creature `+0x3B9`, and subtracts the same capacity. Seven
-category leaves then inspect the thing formerly named by `+0x3B9`; if it is
-class 26 and its occupant word `+0x53` names this creature, they pass zero to
-`0x004D8E60`. That routine reassigns the thing's occupant, maintaining the old
-and new player's type-specific counts, and writes the new id to `+0x53`.
-
-This confirms that the repeated enter/leave idioms **claim and release a
-creature's room position**, not merely a boolean room slot. The room keeps
-linked membership and capacity, the creature keeps the room id, and some room
-furniture keeps a separate occupant id.
+Nine enter functions fill ten slots (Research and GuardPost share `0x0047AFB0`) and
+use one chain, **CONFIRMED** (re-read 2026-10-01). The world call `+0x1D4` finds the
+map cell under the creature, `0x004559B0` resolves its low-12-bit thing id, `0x004E7F80`
+admits the room, and `0x004E5A70` claims a place in it (§3.5). The leave hooks release
+the place with `0x004E5E00`. The room keeps a linked occupant list and `UsedCapacity`;
+the creature keeps the room id at `+0x3B9`. The shared leave `0x0047B920` then, when
+that room is a Crypt (type 26, room `+0x18`) whose `+0x53` names this creature, passes
+zero to `0x004D8E60`, which reassigns the Crypt's occupant.
 
 ### Cadence fields
 
@@ -326,12 +314,23 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   `units` is the
   definition's `+0x672` byte (creature file `0xF4D`), 1 for all 46 shipped creatures.
   TotalCapacity is the furniture count `0x004E3ED0` (`auto-placed-furniture.md` §5).
-- **The claim** `0x004E5A70`, called by the nine claiming enter hooks (§1). Prison (11)
-  first needs the position tests `0x00453A20(11)` and `0x00454110`. A Combat Pit (16)
-  creature with `+0x3E6` bit 15 links in without any test. Otherwise it calls the test,
-  and on success links the creature, writes `+0x3B9`, and adds `units` to `+0x6B` and
-  `+0x6D`. The Torture Chamber (12) also links it into a per-owner list at `+0x4C`. A
-  Prison past its `+0x4B` raises message `0x2A` and may call `0x004E2E60` on a roll.
+- **The lookup** (`0x0047AFB0`, re-read 2026-10-01): no thing in the cell, or
+  `0x004E7F80` refusing, returns 0 at once (state 1, no message). `0x004E7F80` admits the
+  creature's own keeper's room (room `+0x1D` = creature `+0x28`) and any keeper's Prison,
+  Torture Chamber, Temple, Combat Pit or Crypt (11, 12, 13, 16, 26).
+- **The claim** `0x004E5A70` (re-read 2026-10-01). Prison (11) first needs the position
+  tests `0x00453A20(11)` and `0x00454110`, failing with 0 and no message. A Combat Pit (16)
+  creature with `+0x3E6` bit 15 is linked and given `+0x3B9` with **no test and no units**.
+  Otherwise the test; on success it links the creature at the head of room `+0x0A`, writes
+  `+0x3B9`, and adds `units` to `+0x6B` and `+0x6D`. The Torture Chamber (12) also links it
+  into a per-owner list at `+0x4C`. A Prison past `+0x4B` raises message `0x2A` and may
+  call `0x004E2E60` on a roll.
+- **The release** `0x004E5E00`: unlinks, zeroes `+0x3B9`, and subtracts `units` only
+  **while `+0x6B ≥ units`**, so a fighter's release takes a spectator's unit. Its callers
+  besides the leave hooks: the room freed (`0x004E39C0`) and `0x004D9570`, each kicking
+  every occupant to state 1 first; and the guards after a state reset in the death
+  bookkeeping (`0x004883F8`) and at `0x0048D1E2`. A sold tile frees its whole room and a
+  merge frees the absorbed one (`room-slab-chain.md` §3–4), so both evict the occupants.
 - **A failed claim** calls `0x004C6AE0`: the nearest other room of the type that passes
   the test and is reachable (`0x004D0E60`), preferring rooms none of whose occupants pass
   `0x0045C640`. Its answer is written to a local nothing reads. So it decides only
@@ -347,11 +346,12 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   **`2 × units`** at both its sites, and falls back on a timer at room `+0x9F` that is unread. The strap
   helper `0x00483B90` also asks for `2 × units`. The torturer's own states 127–129 are
   category 0, which claims nothing, so only the victim holds a place.
-- **Built** (ADR-0205): the test (`RoomCapacityRules`), every room finder asking it (the
-  torture finders as read), and the claim at arrival with `0x004C6AE0`'s message choice.
-  **Ours:** `UsedCapacity` is derived from the claiming creatures standing in the room,
-  not counted. The Library, Workshop and Guard Room extras, the Prison and Combat Pit
-  arms, and the torture fallback timer are not built.
+- **Built** (ADR-0205, ADR-0309): the test (`RoomCapacityRules`), every room finder
+  asking it (the torture finders as read), the lookup, and the claim and release as the
+  hooks, with `0x004C6AE0`'s message choice. `UsedCapacity` is the sum of the creatures'
+  held places (`CreatureState.HeldPlace`). Not built: the Prison's position tests and roll,
+  the release's clamp, eviction from a freed room (Q504); the Library and Guard Room extras
+  and the torture fallback timer.
 
 ## 4. Answers and limits
 

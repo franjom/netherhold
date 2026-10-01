@@ -4506,9 +4506,9 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Context.** Nothing limited how many creatures worked in a room. DK2's capacity test `0x004E53B0` admits while `UsedCapacity + units ≤ TotalCapacity`, and TotalCapacity is the room's furniture count (Q270). Every room finder a job handler uses asks the test. The claim `0x004E5A70`, made by the claiming enter hooks, asks it again and sends a creature back to state 1 when the room filled on its way.
 
 **Decision.**
-1. `RoomCapacityRules`: `Claims(category)` for the nine claiming enter hooks, `Occupants` (the creatures in a claiming state standing in the room), `HasRoom(units)`, and `AnotherHasRoom` for the claim's fallback `0x004C6AE0`.
+1. `RoomCapacityRules`: `Claims(category)` for the nine claiming enter hooks, `Occupants` (the places held in the room, ADR-0309; first derived from the creatures standing in it), `HasRoom(units)`, and `AnotherHasRoom` for the claim's fallback `0x004C6AE0`.
 2. `CreatureJobSystem.TrySetOut` drops full rooms. While the keeper has victims, the torture finder `0x004F29A0` asks nothing; otherwise the torture finder `0x004F2B80` asks for two places.
-3. On arrival, a job whose state claims tests again. A full room ends the job (`job_lost reason=room_full`), naming message `0x2A` only when no other room of the type has a place.
+3. On arrival, a job whose state claims tests again (since ADR-0309, the enter hook's claim). A full room ends the job (`job_lost reason=room_full`), naming message `0x2A` only when no other room of the type has a place.
 
 **Consequences.**
 - A room too small for furniture trains, researches, gambles and manufactures nobody. A 3x3 Training Room has one dummy and two places.
@@ -6807,6 +6807,39 @@ state 1 and unstamped. Our code already ran leave before enter, so nothing had t
   and 28. Tests whose creature belongs to no world use `DetachedHooks`, a real synthetic world.
 - The Combat Pit and Spectating enter effects stay at their call sites. Moving them would change
   when they fire across a walk.
+
+## ADR-0309 — A room's used capacity is the places its creatures hold
+**Date:** 2026-10-01 · **Status:** accepted · amends ADR-0205 · Research: `state-category-hooks.md` §1, §3.5
+
+**Context.** ADR-0205 derived a room's `UsedCapacity` from the creatures in a claiming state
+standing in it, and tested the claim only at a job's arrival. DK2's count is a field, re-read
+in full: the claim `0x004E5A70`, made by the nine claiming enter hooks, adds the creature's units
+to room `+0x6B` and writes the room id to creature `+0x3B9`; the release `0x004E5E00`, made by
+the leave hooks and the death guard, takes them back. A place is held across walks and while the
+creature stands elsewhere, and a claiming state entered without the hook holds none.
+
+**Decision.**
+1. `CreatureState.HeldPlace` (`RoomPlace`: the tile claimed on and the units) is `+0x3B9`.
+   Rooms are derived (`RoomInstance`), so the place belongs to whichever room holds that tile.
+   `Occupants` is the sum of the held places in the room.
+2. The ten claiming enter slots dispatch `RoomCapacityRules.Claim`: the cell lookup and
+   `0x004E7F80` (own keeper's room, or any Prison, Torture Chamber, Temple, Combat Pit or
+   Crypt), then the capacity test. Any failure refuses the enter (ADR-0308), leaving state 1.
+   A Combat Pit fighter holds a place of 0 units, as DK2 adds none.
+3. The ten leave slots and the corpse path (`CreatureStateMachine.Release`) clear the place.
+4. The job system no longer pre-tests at arrival: a refused claim ends the job
+   (`job_lost reason=room_full`, message `0x2A` as before, or `reason=no_room`). `StateShadow`
+   reports a hook refusal as `enter_refused`, a rule refusal as `state_refused`. A hand drop
+   on a full room still remembers its job.
+
+**Consequences.**
+- `HashVersion` and the snapshot format are 147. L1 replays 20/20 and L2 17/20 over seeds
+  1–20, the same seeds as before (L1 never reaches a claiming room). L2 job starts 401→409,
+  room-full losses 3→4; no room or verdict moved.
+- Test fixtures that spawned a torture wheel as a loose object now mark it auto-placed: a
+  chamber with no furniture has no places, so its victim's claim is refused, as DK2's would be.
+- Not built (Q504): the Prison's position tests and overcrowding roll, the release's clamp,
+  and eviction when a sale or merge frees a room (`0x004E39C0`, `0x004D9570`).
 
 ## ADR-0310 — The hand's claimed-land rule for gold is the cursor's, not the action's
 **Date:** 2026-10-01 · **Status:** accepted · Research: `hand-of-evil.md`, Q196

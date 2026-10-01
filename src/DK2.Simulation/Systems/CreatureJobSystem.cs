@@ -422,11 +422,10 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     private static void Arrive(
         SimulationContext context, CreatureState creature, CreatureDef definition, JobType job)
     {
-        if (RoomFilledMeanwhile(context, creature, definition, job)) return;
-
         creature.StopMoving();
 
         StateShadow.Arrive(context, SystemName, creature);
+        if (ClaimRefused(context, creature, definition, job)) return;
 
         context.Emit(SystemName, "job_started",
             $"creature={creature.Id} type={definition.Name} " +
@@ -756,27 +755,27 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         Stop(context, creature);
     }
 
-    /// <summary>The claim <c>0x004E5A70</c>, made by the job state's enter hook: a room that
-    /// filled while the creature walked sends it to state 1, raising message <c>0x2A</c> only
-    /// when no other room of the type has a place (<c>0x004C6AE0</c>, ADR-0205).</summary>
-    private static bool RoomFilledMeanwhile(
+    /// <summary>The job state's enter hook refused its claim <c>0x004E5A70</c> and left the
+    /// creature in state 1 (ADR-0309): the job ends. A room that filled while the creature walked
+    /// raises message <c>0x2A</c> only when no other room of the type has a place
+    /// (<c>0x004C6AE0</c>, ADR-0205); no room underfoot raises none.</summary>
+    private static bool ClaimRefused(
         SimulationContext context, CreatureState creature, CreatureDef definition, JobType job)
     {
-        if (JobRules.StateFor(job) is not int state) return false;
+        if (JobRules.StateFor(job) is not int state || creature.Dk2StateId != CreatureStateMachine.Idle) return false;
         if (!RoomCapacityRules.Claims(CreatureStateTable.Get(state).Category)) return false;
 
         WorldState world = context.World;
-        if (!world.Contains(creature.Tile)) return false;
-        RoomInstance? room = RoomIndex.RoomAt(
-            world, context.Database, (creature.Tile.Y * world.Width) + creature.Tile.X);
-        if (room is null || RoomCapacityRules.HasRoom(world, context.Database, room, creature.Id)) return false;
-
-        bool elsewhere = RoomCapacityRules.AnotherHasRoom(world, context.Database, room, creature.Id);
+        RoomInstance? room = world.Contains(creature.Tile)
+            ? RoomIndex.RoomAt(world, context.Database, (creature.Tile.Y * world.Width) + creature.Tile.X)
+            : null;
+        string why = room is null ? "reason=no_room message=none"
+            : RoomCapacityRules.AnotherHasRoom(world, context.Database, room, creature.Id)
+                ? "reason=room_full message=none" : "reason=room_full message=0x2A";
         context.Emit(SystemName, "job_lost",
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} job={job} " +
-            $"at=({creature.Tile.X},{creature.Tile.Y}) reason=room_full " +
-            $"message={(elsewhere ? "none" : "0x2A")}");
+            $"at=({creature.Tile.X},{creature.Tile.Y}) {why}");
         Stop(context, creature);
         return true;
     }

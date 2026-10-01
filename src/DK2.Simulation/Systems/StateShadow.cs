@@ -27,8 +27,9 @@ internal static class StateShadow
     /// <summary><see cref="Move"/>, returning whether the rule took it.</summary>
     public static bool TryMove(SimulationContext context, string system, CreatureState creature, int state)
     {
+        bool byRule = CreatureStateMachine.Classify(creature, state) == StateTransition.Refused;
         if (CreatureStateMachine.TrySetState(context.Hooks, creature, state, context.Tick.Value)) return true;
-        Refused(context, system, creature, state);
+        Refused(context, system, creature, state, byRule);
         return false;
     }
 
@@ -42,12 +43,16 @@ internal static class StateShadow
         Move(context, system, creature, state);
     }
 
-    /// <summary>The travel state's handover, if the creature is in one.</summary>
-    public static void Arrive(SimulationContext context, string system, CreatureState creature)
+    /// <summary>The travel state's handover, if the creature is in one. False when it was
+    /// refused.</summary>
+    public static bool Arrive(SimulationContext context, string system, CreatureState creature)
     {
-        if (!IsTravelling(creature)) return;
+        if (!IsTravelling(creature)) return true;
         int to = creature.UtilityNewState;
-        if (!CreatureStateMachine.Arrive(context.Hooks, creature, context.Tick.Value)) Refused(context, system, creature, to);
+        bool byRule = CreatureStateMachine.Classify(creature, to) == StateTransition.Refused;
+        if (CreatureStateMachine.Arrive(context.Hooks, creature, context.Tick.Value)) return true;
+        Refused(context, system, creature, to, byRule);
+        return false;
     }
 
     /// <summary>A handler that returns failure: DK2 drops the creature to state 1.</summary>
@@ -57,7 +62,10 @@ internal static class StateShadow
         Move(context, system, creature, CreatureStateMachine.Idle);
     }
 
-    private static void Refused(SimulationContext context, string system, CreatureState creature, int state) =>
-        context.Emit(system, "state_refused",
+    /// <summary><c>state_refused</c> when the rule refused and the creature kept its state;
+    /// <c>enter_refused</c> when the target's enter hook did, leaving it in state 1 (a full room).</summary>
+    private static void Refused(
+        SimulationContext context, string system, CreatureState creature, int state, bool byRule) =>
+        context.Emit(system, byRule ? "state_refused" : "enter_refused",
             $"creature={creature.Id} from={creature.Dk2StateId} to={state}");
 }

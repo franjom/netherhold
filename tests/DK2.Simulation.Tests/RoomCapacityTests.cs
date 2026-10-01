@@ -184,4 +184,120 @@ public sealed class RoomCapacityTests
         Assert.Equal(1, RoomCapacityRules.Occupants(world, room));
         Assert.Equal(0, RoomCapacityRules.Occupants(world, room, exceptId: goblin.Id));
     }
+
+    // ---- held places: claimed by the enter hook, released by the leave hook (ADR-0309)
+
+    private static int TrainState => JobRules.StateFor(JobType.Train)!.Value;
+
+    private static StateHookContext Hooks(GameDatabase db, WorldState world) => new(world, db);
+
+    [Fact]
+    public void APlaceIsHeldWhereverTheClaimantStandsUntilItLeavesTheCategory()
+    {
+        // The derived count dropped a trainee the moment it stepped off the room; DK2's +0x6B
+        // moves only at the claim and the release.
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        Room(db, world, RoomTypeId.TrainingRoom, 5, 1);
+        Dk2TerrainFixture.FurnishRooms(db, world);
+        RoomInstance room = RoomAt(db, world, 6, 2);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 2));
+
+        Assert.True(CreatureStateMachine.TrySetState(Hooks(db, world), goblin, TrainState));
+        goblin.PosX = CreatureState.CentreOf(1);
+        goblin.PosY = CreatureState.CentreOf(7);
+        Assert.Equal(1, RoomCapacityRules.Occupants(world, room));
+
+        Assert.True(CreatureStateMachine.TrySetState(Hooks(db, world), goblin, CreatureStateMachine.Idle));
+        Assert.Equal(RoomPlace.None, goblin.HeldPlace);
+        Assert.Equal(0, RoomCapacityRules.Occupants(world, room));
+    }
+
+    [Fact]
+    public void AClaimingStateWrittenWithoutTheEnterHookHoldsNoPlace()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        Room(db, world, RoomTypeId.TrainingRoom, 5, 1);
+        Dk2TerrainFixture.FurnishRooms(db, world);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 2));
+
+        goblin.Dk2StateId = TrainState;
+        Assert.Equal(0, RoomCapacityRules.Occupants(world, RoomAt(db, world, 6, 2)));
+    }
+
+    [Fact]
+    public void AFullRoomRefusesTheEnterAndLeavesTheCreatureInStateOne()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        Room(db, world, RoomTypeId.TrainingRoom, 5, 1);
+        Dk2TerrainFixture.FurnishRooms(db, world);
+        CreatureState[] goblins = [.. Enumerable.Range(0, 3).Select(_ => world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 2)))];
+
+        Assert.True(CreatureStateMachine.TrySetState(Hooks(db, world), goblins[0], TrainState));
+        Assert.True(CreatureStateMachine.TrySetState(Hooks(db, world), goblins[1], TrainState));
+        Assert.False(CreatureStateMachine.TrySetState(Hooks(db, world), goblins[2], TrainState));
+
+        Assert.Equal(CreatureStateMachine.Idle, goblins[2].Dk2StateId);
+        Assert.False(goblins[2].HeldPlace.IsHeld);
+        Assert.Equal(2, RoomCapacityRules.Occupants(world, RoomAt(db, world, 6, 2)));
+    }
+
+    [Theory]
+    [InlineData(RoomTypeId.TrainingRoom, false)]
+    [InlineData(RoomTypeId.Temple, true)]
+    public void AnotherKeepersRoomIsAdmittedOnlyForTheTypes0x004E7F80Names(RoomTypeId type, bool admitted)
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        Room(db, world, type, 5, 1, size: 5);
+        Dk2TerrainFixture.FurnishRooms(db, world);
+        CreatureState stranger = world.SpawnCreature(db, GoblinId, 0, new TilePos(6, 2));
+        int state = type == RoomTypeId.Temple ? JobRules.StateFor(JobType.Praying)!.Value : TrainState;
+
+        Assert.Equal(admitted, CreatureStateMachine.TrySetState(Hooks(db, world), stranger, state));
+        Assert.Equal(admitted, stranger.HeldPlace.IsHeld);
+    }
+
+    [Fact]
+    public void NoRoomUnderfootRefusesTheClaim()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 7));
+
+        Assert.False(CreatureStateMachine.TrySetState(Hooks(db, world), goblin, TrainState));
+        Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
+    }
+
+    [Fact]
+    public void ACorpseHoldsNoPlace()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        Room(db, world, RoomTypeId.TrainingRoom, 5, 1);
+        Dk2TerrainFixture.FurnishRooms(db, world);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 2));
+        Assert.True(CreatureStateMachine.TrySetState(Hooks(db, world), goblin, TrainState));
+
+        CreatureStateMachine.Release(goblin);
+        Assert.Equal(0, RoomCapacityRules.Occupants(world, RoomAt(db, world, 6, 2)));
+    }
+
+    [Fact]
+    public void APlaceSurvivesASnapshot()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        Room(db, world, RoomTypeId.TrainingRoom, 5, 1);
+        Dk2TerrainFixture.FurnishRooms(db, world);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 2));
+        Assert.True(CreatureStateMachine.TrySetState(Hooks(db, world), goblin, TrainState));
+
+        var simulation = new GameSimulation(db, world, 1, []);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(simulation), db, []);
+        Assert.Equal(goblin.HeldPlace, restored.World.CreatureById(goblin.Id)!.HeldPlace);
+        Assert.Equal(simulation.StateHash(), restored.StateHash());
+    }
 }

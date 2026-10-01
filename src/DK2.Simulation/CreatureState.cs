@@ -634,6 +634,10 @@ public sealed class CreatureState
     /// run by <see cref="CreatureStateMachine.HookFires"/> (Q424, ADR-0192).</summary>
     public int HookCountdown;
 
+    /// <summary>The room place this creature holds, DK2's <c>+0x3B9</c>: claimed by a work
+    /// category's enter hook, released by its leave hook (<see cref="RoomCapacityRules"/>).</summary>
+    public RoomPlace HeldPlace = RoomPlace.None;
+
     /// <summary>How long this creature has been tortured, DK2's <c>TorturedDuration</c> at
     /// <c>creature+0x4F6</c>: variable 19 more each time the Torture hook acts, zeroed only by a
     /// conversion, so it carries over from one session on the device to the next (ADR-0193).</summary>
@@ -1031,6 +1035,8 @@ public sealed class CreatureState
         hash.Add(StateBeforeUtilityState);
         hash.Add(UtilityNewState);
         hash.Add(HookCountdown);
+        hash.Add(HeldPlace.TileIndex);
+        hash.Add(HeldPlace.Units);
         hash.Add(TorturedDuration);
         hash.Add(TortureTargetTile);
         hash.Add(WhipTurnsLeft);

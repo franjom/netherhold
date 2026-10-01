@@ -144,16 +144,14 @@ public static class CombatPitSpectatorRules
         return false;
     }
 
-    /// <summary><c>0x0045C640</c> over the room's occupants: a good creature objects to an evil
-    /// one, anyone else to a good one.</summary>
+    /// <summary><c>0x0045C640</c> over the room's occupants, the holders of its places: a good
+    /// creature objects to an evil one, anyone else to a good one.</summary>
     private static bool HasAnOpponent(WorldState world, GameDatabase database, RoomInstance room, CreatureDef seeker)
     {
         CreatureFlags against = seeker.Flags.HasFlag(CreatureFlags.IsGood) ? CreatureFlags.IsEvil : CreatureFlags.IsGood;
         foreach (CreatureState c in world.Creatures)
         {
-            if (!CreatureStateMachine.HasState(c) || HandRules.IsHeld(c)) continue;
-            if (!RoomCapacityRules.Claims(CreatureStateTable.Get(c.Dk2StateId).Category)) continue;
-            if (!room.Contains((c.Tile.Y * world.Width) + c.Tile.X)) continue;
+            if (!c.HeldPlace.In(room)) continue;
             if (database.CreatureById(c.CreatureTypeId).Flags.HasFlag(against)) return true;
         }
 

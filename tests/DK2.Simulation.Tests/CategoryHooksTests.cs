@@ -92,13 +92,20 @@ public class CategoryHooksTests
     }
 
     [Fact]
-    public void TheOnlyHooksSetStateDispatchesAreWorkerJobsLeaveAndCallToArmsEnterAndLeave()
+    public void SetStateDispatchesWorkerJobsLeaveCallToArmsAndEveryRoomClaimAndRelease()
     {
-        var dispatched = CategoryHooks.Slots.Where(s => s.IsDispatched).Select(s => (s.Category, s.Kind)).ToArray();
+        var dispatched = CategoryHooks.Slots.Where(s => s.IsDispatched).Select(s => (s.Category, s.Kind)).ToHashSet();
+        var expected = new HashSet<(Cat, HookKind)>
+        {
+            (Cat.WorkerJob, HookKind.Leave), (Cat.CallToArms, HookKind.Enter), (Cat.CallToArms, HookKind.Leave),
+        };
+        foreach (Cat claiming in Enum.GetValues<Cat>().Where(RoomCapacityRules.Claims))
+        {
+            expected.Add((claiming, HookKind.Enter));
+            expected.Add((claiming, HookKind.Leave));
+        }
 
-        Assert.Equal(
-            [(Cat.WorkerJob, HookKind.Leave), (Cat.CallToArms, HookKind.Enter), (Cat.CallToArms, HookKind.Leave)],
-            dispatched);
+        Assert.Equal(expected, dispatched);
     }
 
     // --- Call to Arms enter (0x00455E70) and leave (0x00455E90) ---------------------------
