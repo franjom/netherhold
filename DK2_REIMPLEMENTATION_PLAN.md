@@ -830,7 +830,7 @@ oracle.json ──┐
 ours.json ────┘
 ```
 
-Every scenario becomes a test in `DK2.Behavior.Tests` (`ScenarioTests` runs every YAML).
+Every scenario becomes a test in `DK2.Behavior.Tests` (`ScenarioExpectationTests` runs every YAML with expectations, one case per file; the computer keepers' scenarios have tests of their own in `KeeperScenarioTests.cs`).
 Divergences are triaged as: *our bug* → fix; *unknown mechanic* → new research doc;
 *acceptable* → record with an explicit written justification. The corpus only ever grows.
 **Not yet built:** no scenario carries an expectation block, `docs/experiments/` is empty,
