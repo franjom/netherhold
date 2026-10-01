@@ -66,20 +66,20 @@ existing row over opening a new question.
 
 ## How the binary work is done here
 
-Ghidra 12.1.4, headless, since 2026-09-25. Claude's project is
-`D:\Ghidra\ghidra projects claude\DK2_RE` and Codex's is
-`D:\Ghidra\ghidra projects\DK2_RE`; never share one between concurrent runs.
+Ghidra 12.1.4 at `D:\Ghidra\ghidra_12.1.4_PUBLIC`, headless, since 2026-09-25.
+There is one project, `D:\Ghidra\DK2_RE`; read-only runs clone it per run and
+delete the clone at exit, so concurrent runs do not collide. Run scripts through
+the runner, and query interactively through the pyghidra-mcp server:
 
 ```
-JAVA_HOME="C:/Program Files/Java/jdk-26.0.2.1" \
-  "D:/Ghidra/ghidra_12.1.4_PUBLIC/support/pyghidraRun.bat" -H \
-  "D:/Ghidra/ghidra projects claude" DK2_RE -process DKII.EXE -noanalysis \
-  -scriptPath <dir> -postScript <Script.py> <args>
+python tools/ghidra/ghidra.py --agent <you> <Script.py> <out> <args> [:: <next step> ...]
 ```
 
-`-H` passes everything after it to `analyzeHeadless`. Add `-readOnly` for a run
-that must not save. The launcher's venv is
-`%APPDATA%\ghidra\ghidra_12.1.4_PUBLIC\venv`.
+`tools/ghidra/mcp-serve.py --agent <you>` is the server the client spawns. Runs
+are `-readOnly` unless `--write` is given. The runner calls
+`pyghidraRun.bat -H` underneath; the launcher's venv is
+`%APPDATA%\ghidra\ghidra_12.1.4_PUBLIC\venv`. The `ghidra-queries` skill
+(`.agents/skills/ghidra-queries/SKILL.md`) holds the script catalogue.
 
 **Scripts are CPython 3 (PyGhidra), not Jython.** 12.1 ships Jython only as an
 uninstalled extension. `analyzeHeadless.bat` with a `.py` script aborts with
@@ -140,9 +140,9 @@ dumps) say the same thing but read differently:
 
 So a label copied out of an old 11.0.1 export may not match 12.1.4 output.
 
-Helper scripts sit in `reverse-engineering/` alongside the exports. **Only
-`README.md` there is tracked** (`git ls-files reverse-engineering`), so the
-scripts below are local to a clone and are lost with it.
+Tracked helper scripts sit in `tools/ghidra/scripts/`. A script below that is
+missing there (`CatTable.py`, for one) is local to a clone in
+`reverse-engineering/`, where only `README.md` is tracked.
 
 | Script | What it does |
 |---|---|
@@ -206,14 +206,9 @@ scripts below are local to a clone and are lost with it.
 
 ## Tranche A — the cheap reader scans
 
-**Method:** take the variable's cached global out of
-`balance-variables-in-the-binary.md`, run `ScanAll.py`, then `MaskScan.py` to
-name the containing routine, then decompile it. An hour or two each.
-
-| Q | Question | Starting point |
-|---|---|---|
-| **Q160** | What is `TimeInHandBeforeCreaturesBecomeAngrySeconds` = 1000 for? | `0x006F2977`. It is **not** the hand's grace period, which the original hardcodes as `PickupTick + 20 × variable 19`. 1000 seconds is over sixteen minutes, so it is ticks, dead, or not a duration |
-| **Q168** | How often does an overcrowded prison roll its jail break? | `OvercrowdingJailBreakPercentagePerExtraCreature` at `0x006F2920` has **one** reader already counted. Ours rolls once a game second, which makes two over capacity a certainty on the first roll. Also has an observation route |
+Empty: Q160 and Q168 are answered. **Method** for a new one: take the variable's
+cached global out of `balance-variables-in-the-binary.md`, run `ScanAll.py`, then
+`MaskScan.py` to name the containing routine, then decompile it.
 
 ## Tranche B — field-level questions inside parsed records
 
@@ -225,11 +220,9 @@ cross-checks; touches no simulation code. The tools are already there:
 |---|---|
 | **Q70** | What are the last **72 bytes** of a CREATURES record? `KwdCreatures` reads nothing past `0x1081`, and every offset it does read was confirmed against OpenKeeper's cumulative field order, so nothing built today is at risk |
 | **Q14** | What are the **88 extra bytes** in the embedded 5537-byte CREATURES variant? |
-| **Q15** | What is the `THINGS(190)` chunk inside `GlobalVariables.kwd` (39 items) for? |
-| **Q85** | What do the two trailing fields on every VARIABLES record mean? In a level file almost every entry carries `unk1 = 13, unk2 = 1` while `GameTicks`, `LevelRating` and `AverageTime` carry `0, 0` — that is a grouping. Correlate across all 214 records and all 66 level files |
-| **Q84** | What are variable ids **66** and **77**? Both appear only in per-level files; level 1 has 66 = 3 (`unk1` = 2) and 77 = 29 (`unk1` = 3, `unk2` = 125). Low priority |
+| **Q15** | What are the `THINGS(190)` chunk's 39 items in `GlobalVariables.kwd` for? The payloads parse (ADR-0091) |
+| **Q84** | What is variable id **77**? Id 66 is strongly inferred as the level's player count; 77 appears in nine levels, mostly `Secret` ones. Low priority |
 | **Q183** | What is in the fixed block between a map's header (ends `0x134`) and its grid (`0x8861`)? Partly cracked — the player's gold is at `0x2dd4`. Whether the rest is identical across all 66 maps is itself informative |
-| **Q120** | Which objects belong to which room? `Rooms.kwd` carries an `ObjectIds` list per room, parsed and read by nothing; `dk2tools kwd objects` prints a partial map. **Q169** is the follow-on when two rooms list the same object |
 | **Q129** | Is the Dungeon Heart's health **34464** or a truncated **100000**? 34464 is exactly 100000 − 65536, the signature of a five-digit number typed into a 16-bit field — the same arithmetic already seen once (Q55) |
 | **Q221** | Is the 16-byte DeadBody THINGS payload correct in retail data? |
 | **Q220** | Does a standalone `GLOBALS(0)` chunk exist, and if so what is its payload? |
@@ -261,49 +254,21 @@ into it.
 
 ## Tranche C — the meaty single questions
 
-**Q186 — the rest of the state-category record.** All 32 records are decoded
-except `+0x34`, an allowed-category **bitmask** whose use is unread, and
-`+0x3c`, a small integer. `CatTable.py` reconstructs the table; the question is
-what consults those two. **Transition legality lives here**, and a
-reimplementation that lets a creature move between states the original forbids
-will drift with nothing to catch it.
+**Q186 — the state-category record's `+0x3c`.** All 32 records are decoded
+except `+0x3c`, a small integer traced to two accessors whose meaning is open
+(Q300; ADR-0083, `state-categories.md`).
 
 **Q202 — anger buckets 0 and 5.** Six counters, four certain because exactly one
 record field feeds each. Buckets 0 and 5 are catch-alls and **their names in our
 code are ours**. All 60 call sites are tabulated in `creature-anger.md`; the
 work is finding what distinguishes the two groups. Also has an observation route.
 
-**Q204 — two unidentified flags in the job path.** (a) `player+0x76 & 4` in the
-dispatcher restricts a creature to jobs 10 (Leave) and 16 (Rebel) and nothing
-else — a switch that turns a keeper's whole workforce mutinous, and it smells
-like a keeper whose heart has fallen. (b) `def+0x686 & 0x4000` diverts a chooser
-to state `0xEE`, is per-creature-type, and can be checked against all 46
-records. Both self-contained.
-
-**Q188 — when does a prisoner's step roll halve?** State 116 returns to the
-decision state on `random(100) < 20`, but down one of two paths: when
-`CreatureDef_HasArt(9)` (`0x00494A00`) is non-zero it instead requires 10..19,
-halving the rate. ANSWERED 2026-10-01: record 9 is the Angry animation and the
-test is its file flag bit 0, set by 13 creatures (open-questions.md Q188). Built, ADR-0301.
-
-**Q217 — what sets the keeper's casino flag at `player+0x20D`?** The research
-adder's first bonus is gated on a 16-bit field beside the research accumulator
-being non-zero, and the percentage comes from
-`IncreasedWorkRatePersentageWhenCasinoBigWinOccurs`. The only evidence is a
-variable's name. Scan for stores to `[reg + 0x20D]`.
-
-**Q218 — what passes DK2's research adder a negative amount?** `FUN_004c2dc0`
-has a full negative branch — clamp-subtract from the accumulator, floored at
-zero, skipping every bonus — and its only caller is the category-4 hook, which
-can only pass a non-negative value. So either a second caller exists or the
-branch is dead. `CallScanAll.py` on `0x004c2dc0`, and remember that a `.text`-only
-scan is how ADR-0086's "reached only through a vtable" went wrong.
-
 ## Tranche D — the trigger and action-point frontier
 
-Records parse and their state banks exist (ADR-0092, ADR-0102, ADR-0103);
-**nothing evaluates a condition or runs an action**, and these are what stands
-between the corpus and execution. All are binary or shipped-file work.
+`TriggerExecutor` evaluates conditions and runs actions (ADR-0152, ADR-0235,
+ADR-0236; shipped type counts: `dk2tools kwd trigger-types`). What is left is the
+meaning of selectors and fields the binary reads without naming. All are binary
+or shipped-file work.
 
 | Q | Question |
 |---|---|
@@ -311,14 +276,9 @@ between the corpus and execution. All are binary or shipped-file work.
 | **Q226** | What do the remaining transcribed trigger selectors mean? |
 | **Q227** | What are the trigger fields DKII.EXE reads without revealing a role? |
 | **Q229** | Flag id 128 is **not a flag** — both dispatchers compare the id against `0x80`. What is it? |
-| **Q230** | What does DK2 do when a trigger names a flag id above 128? The write path masks the id |
-| **Q232** | Timer id 16 is **not a timer** — the condition path compares the id against `0x10`. What is it? |
-| **Q235** | What do action-point flag bits 0, 2, 3, 4 and 5 mean? The corpus authors `0x7D`; bits 1 and 7 rest on the disassembly alone |
-| **Q236** | Who consumes or mutates the passage counter and the wait timer? |
-| **Q237** | When is an action-point rectangle tested, and what is its actual per-tick cost? |
+| **Q235** | What do action-point flag bits 0, 2, 3, 4 and 5 mean? Bits 0, 4 and 5 have a direct reader; 2 and 3 have none found |
+| **Q237** | Which invokers other than action type 17 walk an action-point rectangle, and does the cost scale with area? |
 | **Q238** | How is `NextWaypointId` traversed, terminated, and handled when missing or cyclic? |
-| **Q223** | When a ROOM record and the MAP grid disagree about who owns a structure, which does DK2 believe? |
-| **Q224** | What state does a door or a trap need, and is `DoorThing.Flags` the locked bit? |
 
 ## Tranche E — needs Flame specifically
 
@@ -328,7 +288,6 @@ is slow going. **Facts only — never an identifier into the repo.**
 | Q | Question |
 |---|---|
 | **Q4** | `CMapEntry` (11 bytes) — full per-tile runtime state or a cache? Field meanings |
-| **Q5** | **ANSWERED architecturally** (ADR-0155, `research/navigation-and-steering.md`): a triangulated navigation mesh plus a steering system, so our A* cannot match the original's routes in general. `Follow_Path` held no path data. Now worked as Q341–Q355, and rebuilt as ADR-0157: all three phases landed, so the mesh router and the steering tick move every creature |
 
 ---
 
@@ -336,10 +295,8 @@ is slow going. **Facts only — never an identifier into the repo.**
 
 Anything that needs the game running or the owner watching lives in
 `docs/research/observation-checklist.md`: Q35 the treasury fill order, Q49 the
-pause after claiming, Q57 running out of mana, Q62 the reinforce application
-count, Q75 the starting stockpile, Q89 and Q61 attraction below recommended
-size, Q97 why arrivals slow, Q102 the hunger clock's start, Q103 the sleep
-cycle, Q138/Q140 the floor lump, Q143, Q145, Q177, Q199 and Q216.
+pause after claiming, Q102 the hunger clock's start, Q103 the sleep cycle, Q143,
+Q145, Q177, Q199 and Q216.
 
 **Combat (Q8) is deliberately absent.** It is the largest unread mechanic in the
 game and an M7 milestone, not a research errand.

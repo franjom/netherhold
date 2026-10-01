@@ -176,8 +176,9 @@ Thunderbolt alone. Do not tune the spell to 466.
 `KeeperSpellRules` and packet action 55 use the existing process-9 shot path.
 Other spell ids (Heal since ADR-0287, `keeper-spell-casting.md` §4), nonzero flags and
 unimplemented selector/process variants are explicitly refused. Clocks and mana accounting are hashed and saved.
-Action 54, computer-keeper battle wiring and other keeper effects remain
-outside this change. The normal/upgraded shot id distinction for modded data
+This note covers the Thunderbolt shot itself; the computer keeper's battle step
+that casts it is `KeeperBattleStep` (ADR-0283), and other keeper effects are in
+`keeper-spell-casting.md`. The normal/upgraded shot id distinction for modded data
 follows the requested public adapter contract (ADR-0260).
 
 Read but not represented here: the height/display effects; the owner's

@@ -162,14 +162,14 @@ not required to fix the backlog, but do not add to it.
 
 | | budget | currently |
 |---|---|---|
-| open-question row | **800 characters** | 161 of 234 over; 41 rows hold 126 KB |
+| open-question row | **800 characters** | 452 rows, none over |
 | XML doc comment | **12 lines** | worst is 113 |
 | inline comment | **6 lines** | median is 3, so 6 is real headroom |
 | comment lines per file | **40%** | 39% overall, worst 84% |
 | commit message body | **15 lines** | recent ones run 40–64 |
-| research doc | **400 lines** | 6 of 50 over |
+| research doc | **400 lines** | 3 of 152 over |
 | ADR | **50 lines** (amendment **15**) | already met — do not regress |
-| `docs/HANDOFF.md` | **500 lines** | 469 after the 2026-09-08 rewrite |
+| `docs/HANDOFF.md` | **500 lines** | 412 |
 
 An ADR carries the decision and the reason. The *evidence* goes in the research
 doc. A commit message says why the change was needed, not what the
@@ -185,7 +185,7 @@ a commit body, for a commit-msg hook. Budgets live in one place,
 this table is a bug.
 
 **Install the hook once per clone:** `git config core.hooksPath .githooks`.
-There is no CI, so the hook is the only gate. It **blocks** on a budget
+CI (`.github/workflows/ci.yml`) builds and tests on Linux and Windows with no DK2 install; it does not run the doc budgets, so the hook is the only gate for those. It **blocks** on a budget
 violation and merely **notes** a stale status line — almost every commit changes
 one of that line’s numbers, and blocking each one would teach everybody to pass
 `--no-verify`, which would switch off the budget check too.

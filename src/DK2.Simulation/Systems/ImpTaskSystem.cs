@@ -270,10 +270,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>State 10's choice alone, for the decision checker (<c>dk2tools decide</c>), on the
-    /// world as the caller has set it. No wander, timer or per-tick cap.</summary>
+    /// world as the caller has set it, after the walk-over pick-up that DK2's creature update runs
+    /// first in the same tick (0x0048904E). No wander, timer or per-tick cap.</summary>
     public bool ChooseJob(SimulationContext context, CreatureState creature)
     {
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        PickUpGoldInPassing(context, creature, definition);
         var grid = new WorldPathGrid(context.Database, context.World, definition);
         return TryTakeJob(context, creature, definition, grid);
     }

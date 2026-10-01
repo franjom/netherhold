@@ -5,8 +5,9 @@ Controlled experiments comparing our simulation against original DK2 v1.70
 
 - Scenario definitions live in `/scenarios` (declarative YAML; one scenario
   drives both the original game and our simulation).
-- Recorded results live in `docs/experiments/<scenario-id>/` as
-  `oracle.json` + `ours.json`.
+- Recorded runs live in `docs/experiments/<run-id>/README.md` (one write-up per
+  capture; the capture CSVs are not committed, see "Recorded runs"), plus
+  `docs/experiments/doors-and-traps.md`.
 - Divergences are triaged as: our bug / unknown mechanic / accepted deviation
   (accepted ones need a written justification here).
 
@@ -500,6 +501,6 @@ first mark was finished. Then all of them redeployed together.
 
 Ours also has four, from the shipped `MinimumImpThreshold`, and sends its spare
 to the next mark at once. That is the whole 18–37 tick lead. What an imp does
-when the job it wants is full is Q299, and nothing should change in
-`ImpTaskSystem` until a capture samples creature activity rather than the pool:
-three readings of this one capture have already been wrong.
+when the job it wants is full is Q299, still open. When this was written the
+advice was to leave `ImpTaskSystem` alone until a capture samples creature
+activity; it has since changed (ADR-0280, 0282, 0288, 0289, 0296, 0297).

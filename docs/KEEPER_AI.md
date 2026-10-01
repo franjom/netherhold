@@ -1012,7 +1012,7 @@ the simulation's stream. The delay and separate stream are deliberate deviations
 | Type | Role | State |
 |---|---|---|
 | `KeeperAIParameters` | the 158-byte block, decoded | **exists** (`DK2.Data.Model`, read by `KwdPlayers`) |
-| `KeeperAIState` | the runtime half of §2.3 | **exists**: `Task`/`NextTask`, the counters, the dig rectangle and walker state, the gold deposits, the room-to-build fields, the directions. Not carried: the 3-slot event ring, the 16×8 breaches |
+| `KeeperAIState` | the runtime half of §2.3 | **exists**: `Task`/`NextTask`, the counters, the dig rectangle and walker state, the gold deposits, the room-to-build fields, the directions, the respond-to-attack ring and the 16×8 breaches |
 | `KeeperAI` | `IReadOnlyList<PlayerCommand> Think(KeeperView view)` — one player tick of §5.1 with `budget = TendancySpeed`; the database/world overload captures a view | **exists** |
 | `KeeperView` | captured tick, status, availability, room and creature values, heart, tiles, gold and imps; no mutable world references | **exists**, with versioned `KeeperViewSnapshot` serialization (ADR-0244) |
 | `KeeperDirections` | both direction tables and the creation-time defend/open rule (§5.5) | **exists** |
@@ -1021,7 +1021,7 @@ the simulation's stream. The delay and separate stream are deliberate deviations
 | `GoldScanner` | cardinal seams, gold totals, centroid correction and historical admission cutoff | **exists**; remaining position and border limits: management research §12 |
 | `RoomPlanner` | §5.5's room choice, ideal neighbours, directions, claimable neutral rooms | **exists** |
 | `KeeperAIPersonality` | the nine skirmish rows of §3.2 as typed static data, producing a `KeeperAIParameters` plus the computed `RoomList` | **does not exist**; the values are decoded in `reverse-engineering/` |
-| `ThreatEvaluator` | Pure strength, drop-site and response arithmetic (§5.4) | Built; live inputs and message integration remain (`research/computer-keeper-threat.md` section 5) |
+| `ThreatEvaluator` | Pure strength, drop-site and response arithmetic (§5.4) | **exists**; live inputs and messages arrive through `KeeperThreatResponder` (ADR-0278, `research/computer-keeper-threat.md` section 5) |
 | `KeeperAttackPlanner`, `KeeperReadiness` | §5.5's attack planner, front and management; the readiness grants as commands | **exist** (ADR-0298) |
 | `TrapPlacer` | §5.6 | **does not exist** |
 | `IWorldView` | a general agent observation interface | **not added**: `KeeperView` supplies the current keeper boundary; extend it with verified observations as §12.4 grows |

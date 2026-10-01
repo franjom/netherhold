@@ -102,4 +102,4 @@ arrives with the mechanic that reads it, not before. `TriggerState` is the most
 recent addition (ADR-0102) and shows the rule working in the other direction: a
 flag bank that only a trigger *reader* would need was still added, because an
 action record writes a flag a later condition reads, so two worlds disagreeing
-about one will diverge — even though trigger execution itself is not built.
+about one will diverge; `TriggerExecutor` now walks the roots each turn (ADR-0152).
