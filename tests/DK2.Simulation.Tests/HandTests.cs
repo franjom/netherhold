@@ -894,12 +894,12 @@ public class HandTests
         Assert.Contains(sink.Events, e => e.Kind == "object_pickup_refused");
     }
 
-    /// <summary>CONFIRMED by the owner, 2026-09-25: gold lifts only from claimed land
-    /// (Q196). Unclaimed dirt refuses it.</summary>
+    /// <summary>CONFIRMED by the owner, 2026-09-25: the cursor offers gold only from claimed
+    /// land (Q196), unclaimed dirt refusing it. It is the cursor's rule, not the action's.</summary>
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void GoldLiftsOnlyFromTheKeepersClaimedFloor(bool claimed)
+    public void TheCursorOffersGoldOnlyFromTheKeepersClaimedFloor(bool claimed)
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -913,16 +913,14 @@ public class HandTests
 
         ObjectState pile = world.SpawnObject(
             db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, Index(world, Floor));
-        GameSimulation sim = Simulation(db, world);
-        sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, pile.Id)));
 
-        Assert.Equal(claimed, pile.InHand);
+        Assert.Equal(claimed, HandRules.MayReachObject(world, db, pile, Keeper));
     }
 
-    /// <summary>CONFIRMED by the owner, 2026-09-25: gold on a rival's claimed floor
-    /// cannot be lifted either (Q196).</summary>
+    /// <summary>CONFIRMED by the owner, 2026-09-25: the cursor does not offer gold on a
+    /// rival's claimed floor either (Q196).</summary>
     [Fact]
-    public void GoldOnARivalsFloorCannotBeLifted()
+    public void TheCursorDoesNotOfferGoldOnARivalsFloor()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -931,10 +929,29 @@ public class HandTests
 
         ObjectState pile = world.SpawnObject(
             db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, Index(world, Floor));
+
+        Assert.False(HandRules.MayReachObject(world, db, pile, Keeper));
+    }
+
+    /// <summary>A recorded pick-up is carried out wherever the gold lies: action 59's handler
+    /// (<c>0x005135B0</c>, hand state 2 <c>0x004C0CB0</c>) tests no ownership, and DK2's own
+    /// replay of <c>l2live2</c> lifts two piles off unclaimed dirt at ticks 232 to 234.</summary>
+    [Fact]
+    public void ARecordedPickUpLiftsGoldOffUnclaimedDirt()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        ref TileState dirt = ref world.Tile(Floor);
+        dirt.TerrainId = Dk2TerrainFixture.DirtPath;
+        dirt.OwnerPlayerId = PlayerIds.Unowned;
+
+        ObjectState pile = world.SpawnObject(
+            db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, Index(world, Floor));
         GameSimulation sim = Simulation(db, world);
         sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, pile.Id)));
 
-        Assert.False(pile.InHand);
+        Assert.True(pile.InHand);
     }
 
     // ---- a chicken or gold dropped onto a creature (ADR-0217, Q196) --------

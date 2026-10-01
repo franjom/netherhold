@@ -29,6 +29,24 @@ public class ObjectViewTests
         return (database, WorldState.FromMap(database, map, [0, 1, 3]));
     }
 
+    /// <summary>The cursor offers gold only off the keeper's own land (owner, Q196); the
+    /// simulation itself lifts whatever a recorded action names (<c>HandRules.MayReachObject</c>).</summary>
+    [InstallFact]
+    public void TheHandIsOfferedGoldOnlyOffTheKeepersOwnLand()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        const byte Keeper = 3;
+
+        ObjectState pile = world.SpawnObject(database, 1, PlayerIds.Neutral, 40);
+        bool Offered() => PlayerInputSnapshot.Capture(new WorldView(database), world, Keeper, database)
+            .Targets.Any(t => t.Kind == PlayerInputTargetKind.Object && t.Id == pile.Id);
+
+        world.TileAtIndex(40).OwnerPlayerId = PlayerIds.Unowned;
+        Assert.False(Offered());
+        world.TileAtIndex(40).OwnerPlayerId = Keeper;
+        Assert.True(Offered());
+    }
+
     [InstallFact]
     public void AnObjectInTheHandIsNotDrawnInTheDungeon()
     {

@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
 
@@ -68,9 +69,12 @@ public sealed class PlayerInputSnapshot
 
     /// <summary>
     /// Captures only entities visible through <paramref name="view"/>. Held and
-    /// worker-carried things are outside the dungeon and cannot be targeted.
+    /// worker-carried things are outside the dungeon and cannot be targeted, and with a
+    /// <paramref name="database"/> neither is gold off the keeper's own land
+    /// (<see cref="HandRules.MayReachObject"/>).
     /// </summary>
-    public static PlayerInputSnapshot Capture(WorldView view, WorldState world, byte playerId)
+    public static PlayerInputSnapshot Capture(
+        WorldView view, WorldState world, byte playerId, GameDatabase? database = null)
     {
         if (view is null) throw new ArgumentNullException(nameof(view));
         if (world is null) throw new ArgumentNullException(nameof(world));
@@ -89,6 +93,7 @@ public sealed class PlayerInputSnapshot
         {
             ObjectState? thing = world.ObjectById(instance.Id);
             if (thing is null || thing.InHand || thing.CarriedByCreatureId >= 0) continue;
+            if (database is not null && !HandRules.MayReachObject(world, database, thing, playerId)) continue;
             targets.Add(new PlayerInputTarget(
                 PlayerInputTargetKind.Object, instance.Id, instance.Tile));
         }

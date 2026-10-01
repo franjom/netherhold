@@ -186,7 +186,7 @@ namespace DK2.Unity
             var intent = new PlayerIntent(
                 (byte)viewingPlayerId, tool, tile, button, (byte)selectedRoomId);
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
-                _worldView, _simulation.World, (byte)viewingPlayerId);
+                _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database);
             InputFrame frame = _input.Translate(intent, snapshot);
 
             foreach (PlayerCommand command in frame.All)

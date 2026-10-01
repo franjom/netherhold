@@ -90,9 +90,10 @@ public static class HandRules
     /// <summary>Whether <paramref name="thing"/> may be lifted by <paramref name="playerId"/> now.
     /// CONFIRMED (owner, Q196): the eligible set is <see cref="ObjectDef.CanBePickedUp"/>, 26 of
     /// the 145 records; the cursor search that reads it also admits the Dungeon Heart by id, a
-    /// targeting special case. The object's owner is not tested, but <b>gold lifts only from
-    /// the keeper's own claimed tile</b> (owner, Q196). An object in an imp's arms is refused,
-    /// ours in form and DK2's in effect, since it takes a carried object off its tile.</summary>
+    /// targeting special case. Neither the object's owner nor its tile is tested: action 59's
+    /// handler (<c>0x005135B0</c>, hand state 2 <c>0x004C0CB0</c>) lifts any live object, so
+    /// the claimed-land rule is the cursor's (<see cref="MayReachObject"/>). An object in an
+    /// imp's arms is refused, ours in form and DK2's in effect.</summary>
     public static bool CanPickUpObject(
         WorldState world, GameDatabase database, ObjectState thing, byte playerId)
     {
@@ -100,11 +101,16 @@ public static class HandRules
         if (definition is null || !definition.CanBePickedUp) return false;
         if (thing.InHand) return false;
         if (thing.CarriedByCreatureId >= 0) return false;
-        if (definition.IsGold && world.TileAtIndex(thing.TileIndex).OwnerPlayerId != playerId)
-            return false;
-
         return world.Player(playerId).Hand.Count < Capacity(database);
     }
+
+    /// <summary>Whether the keeper's cursor may offer <paramref name="thing"/> to the hand:
+    /// <b>gold only from the keeper's own claimed tile</b> (owner, Q196), a rival's floor
+    /// refusing too. An input rule: DK2's own replay of <c>l2live2</c> (seed 2, ticks 232 to
+    /// 234) lifts two piles off unclaimed dirt, as the recorded action carries no test (ADR-0310).</summary>
+    public static bool MayReachObject(WorldState world, GameDatabase database, ObjectState thing, byte playerId) =>
+        database.ObjectById(thing.ObjectTypeId)?.IsGold != true
+        || world.TileAtIndex(thing.TileIndex).OwnerPlayerId == playerId;
 
     /// <summary>Where a keeper may put an <b>object</b> down: <b>a tile it owns</b>. CONFIRMED
     /// (owner, Q198); creatures have one exception, <see cref="CanDropCreatureOn"/>. Where the rule

@@ -6807,3 +6807,22 @@ state 1 and unstamped. Our code already ran leave before enter, so nothing had t
   and 28. Tests whose creature belongs to no world use `DetachedHooks`, a real synthetic world.
 - The Combat Pit and Spectating enter effects stay at their call sites. Moving them would change
   when they fire across a walk.
+
+## ADR-0310 — The hand's claimed-land rule for gold is the cursor's, not the action's
+**Date:** 2026-10-01 · **Status:** accepted · Research: `hand-of-evil.md`, Q196
+
+**Context.** The owner confirmed that gold lifts only from claimed land (2026-09-25), and ours
+refused it inside the simulation. DK2's replay of `l2live2` (seed 2) lifts two miner's piles
+off unclaimed dirt at ticks 232–234 and drops them on the full Heart at 240. Action 59's handler
+(`0x005135B0`) checks only that the slot is a live object, and hand state 2 (`0x004C0CB0`) takes
+it, debiting a Treasury or Heart, with no ownership test. So the rule sits in the input layer, as
+the drop rule does. Ours refused all 26 recorded pick-ups, so the piles stayed at the seam, the
+Heart overflow pile at (22,38) never formed, and nobody's hands filled with gold that would not go in.
+
+**Decision.** `HandRules.CanPickUpObject` keeps what the action tests. The gold rule becomes
+`HandRules.MayReachObject`, which `PlayerInputSnapshot.Capture` applies when it is given the
+database, so a player still cannot grab gold off unclaimed dirt.
+
+**Consequences.** Replays put the piles where DK2 does. Level 1 wins 20 of 20; Level 2 19 of 20,
+and its Hatchery at 2692 gets tiles in 4 of 20 runs (DK2 4 of 5). DK2 wins Level 2 in 2 of 5
+seeded runs, ours in 19 of 20, which is open.
