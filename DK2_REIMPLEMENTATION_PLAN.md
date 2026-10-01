@@ -493,15 +493,15 @@ Confidence reflects *our ability to reproduce the behaviour*, not merely to pars
 | **Creature job/destination selection** | | ● | | **Workers: CONFIRMED and built** (ADR-0018/0058/0061, `imp-task-priority.md`); **non-workers: built from the mood choosers and the 28-way dispatcher `FUN_00478800`** (ADR-0082), against the 281-state table (ADR-0072) that is still being mapped |
 | **Creature moods / anger / happiness** | | ● | | **Built** (ADR-0053/0081, `creature-anger.md`): six counters saturating at 65533, mood banded on the largest, measured ceiling 32767, once a game second, desertion. Open: happiness sources beyond the two a player can switch off |
 | **Combat — stats** | ● | | | KWD; `MELEE_DAMAGE`, `MELEE_RECHARGE_TIME_SECONDS` |
-| **Combat — resolution & target selection** | | ● | | `f37A_isInBattleFlag`, `f37E_canLeaveBattleAt`, `FightProcessCounter` [KNOWN]; formulas [UNKNOWN], nothing built (Q8) |
-| **Pathfinding** | | | ● | Flame `Follow_Path` named, **no fields**; OpenKeeper uses its own A*+steering; ours is an admitted placeholder (ADR-0012) |
+| **Combat — resolution & target selection** | | ● | | Melee and spells built from the binary (ADR-0163–0170); what is left: `dk2tools coverage`, `docs/HANDOFF.md` |
+| **Pathfinding** | ● | | | Triangulated navigation mesh, greedy two-ended search, funnel and steering read from the binary and built (ADR-0155, ADR-0157) |
 | **Possession** | | ● | | `Possessed` flags, `f3EE_nextPossessionInfluenceTick`, `POSSESSION_MANA_COST_PER_SECOND` [KNOWN]; control model [PARTIAL] |
-| **Spells (keeper & creature)** | | ● | | KWD `KEEPER_SPELLS(150)`, `CREATURE_SPELLS(160)`, `SHOTS(260)`; only Create Imp built (ADR-0021/0022) |
-| **Traps & doors** | | ● | | KWD `TRAPS(130)`, `DOORS(140)` parse into `TrapDef`/`DoorDef`; no simulation state holds one (Q224) |
-| **Heroes & parties** | | ● | | `CREATE_HERO_PARTY` trigger; `f3DF_myLeadersId`, `f3E1_positionInParty`; not projected (Q224) |
+| **Spells (keeper & creature)** | | ● | | KWD `KEEPER_SPELLS(150)`, `CREATURE_SPELLS(160)`, `SHOTS(260)`; Create Imp, Thunderbolt, Heal and Call to Arms built (ADR-0021/0022, ADR-0170, ADR-0279, ADR-0287); the rest: `dk2tools coverage` |
+| **Traps & doors** | | ● | | KWD `TRAPS(130)`, `DOORS(140)`; state held verbatim (ADR-0106); `DoorSystem` and trap activation run; open behaviour Q249–Q253 |
+| **Heroes & parties** | | ● | | `HeroSystem`; parties raised by action 14 (ADR-0108, ADR-0197) and walked behind their leader (ADR-0216); what is left: `docs/HANDOFF.md` |
 | **Level scripting / triggers** | | ● | | Parameter views verified against DKII.EXE (ADR-0092); banks are level state (ADR-0102); action points are world state (ADR-0103). **Runs**: cadence closed (Q228, Q239), the world, party and player trees walked once a turn, condition types 1/2/34 and action types 7/8/14 executed. **Missing**: the creature and action-point trees, and every other type — 3 of 67 conditions and 3 of 51 actions are implemented |
 | **Campaign progression** | | ● | | OpenKeeper open issue "Campaign progress" |
-| **Computer player (AI keeper)** | | ● | | Flame `MyComputerPlayer`, `computer_player_flags`, `drop_condition`; `DK2.AI.KeeperAI` is ours, not a reading of DK2's |
+| **Computer player (AI keeper)** | | ● | | Flame `MyComputerPlayer`, `computer_player_flags`, `drop_condition`; DK2's own keeper AI has been read (`docs/KEEPER_AI.md`) and `DK2.AI.KeeperAI` is being built against it |
 | **Multiplayer** | | ● | | `GameAction`, Flame `protocol_dump`, `network/protocol.h` |
 | **Save system** | | ● | | dk2-tools `save_struct.bt`; Flame `sData_*` prefixes; `Dk2SaveReader` reads the tile grid only (Q182) |
 | **Rendering** | ● | | | KMF 95%, EngineTextures 100%; `DK2.Convert` writes glTF/GLB and PNG |
@@ -509,7 +509,7 @@ Confidence reflects *our ability to reproduce the behaviour*, not merely to pars
 | **Audio — event semantics** | | | ● | OpenKeeper: BANK/SFX usage 40% |
 
 **Summary:** *data* is largely solved; *procedure* is largely not. The remaining red and
-thin cells — pathfinding, combat resolution, trigger execution, the computer player and
+thin cells — the rest of combat and trigger execution, the computer player and
 audio event semantics — are where original research is required. `docs/RESEARCH_STATUS.md`
 tracks the same ground per mechanic.
 
@@ -556,11 +556,11 @@ difference is noted here.
 ├── unity/DK2.Unity/              Unity project — presentation only
 ├── unity/DK2.Unity.Compile/      compiles the adapter against Unity's modules
 ├── tests/                        Core, Data, Simulation, Behavior, Assets,
-│                                 Presentation, Convert, AI, TestSupport
+│                                 Presentation, Convert, AI, Tools, TestSupport
 ├── docs/
 │   ├── research/                 one file per mechanic, on the Appendix B template
 │   ├── architecture/             the simulation loop
-│   └── experiments/              recorded oracle results (empty)
+│   └── experiments/              recorded oracle results (level1-idle-001, level20-idle-001, level20-idle-002, doors-and-traps.md)
 ├── scenarios/                    declarative scenario files (see §6.2)
 ├── reverse-engineering/          .gitignored except its README (ADR-0046)
 └── original-reference/           .gitignored — reference material, never committed
@@ -1092,7 +1092,7 @@ condition work can close it**: it is a tutorial that advances when the human doe
 action.
 
 What remains: a **second level** captured from both sides, per-scenario records under
-`docs/experiments/` (still empty), and running DK2 under Flame, which §6.1 calls M5's first
+`docs/experiments/` (three idle captures so far), and running DK2 under Flame, which §6.1 calls M5's first
 step and which has not been done.
 
 **M6 — partial, and trigger execution is now the bulk of it.** Records parse (M1); a level's
