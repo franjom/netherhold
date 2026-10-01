@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Systems;
 
@@ -15,9 +16,9 @@ namespace DK2.Simulation.Systems;
 /// <see cref="PrisonRules.TryWanderStep"/> — the hundred first, the direction only if
 /// it moves, so the random stream is consumed the same way round. Nothing stops a
 /// prisoner leaving its cell because nothing offers a tile outside one, so
-/// <see cref="CreatureMovementSystem"/> carries no guard. Not modelled: state 116's
-/// cosmetic flourishes; the narrower 10-in-100 step roll is Q188. Runs every tick,
-/// after <see cref="PrisonSystem"/>.</remarks>
+/// <see cref="CreatureMovementSystem"/> carries no guard. A creature whose Angry animation
+/// carries flag bit 0 plays it (action 41) on rolls 0..9 and stands while it runs (Q188); the
+/// look-at turns are not modelled. Runs every tick, after <see cref="PrisonSystem"/>.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/prison.md")]
 public sealed class PrisonerWanderSystem : ISimulationSystem
 {
@@ -53,7 +54,25 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
             // Searching again in 117, or finishing a meal in 119: neither rolls for a step.
             if (creature.Dk2StateId is PrisonRules.SeekingFoodState or PrisonRules.AfterEatingState) continue;
 
-            if (context.Rng.NextInt(100) >= PrisonRules.WanderPercentPerTick) continue;
+            // 116 rolls only once no action runs (0x00496D00): a flourish holds it.
+            long now = context.Tick.Value;
+            if (now < creature.ActionUntilTick) continue;
+
+            // HasArt(9) draws nothing; the hundred comes first, then the flourish's rand(3).
+            CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+            int roll = context.Rng.NextInt(100);
+            if (PrisonRules.HasAngryFlourish(definition) && roll < PrisonRules.FlourishPercent)
+            {
+                int variant = 2 + context.Rng.NextInt(3);
+                // Released the tick after the animation ends, as action 49 is (portal-creature-action.md).
+                creature.ActionUntilTick = now + PrisonRules.FlourishTicks(definition, variant) + 1;
+                context.Emit(SystemName, "prisoner_flourish",
+                    $"creature={creature.Id} player={creature.OwnerPlayerId} variant={variant} " +
+                    $"until={creature.ActionUntilTick}");
+                continue;
+            }
+
+            if (roll >= PrisonRules.WanderPercentPerTick) continue;
 
             int start = context.Rng.NextInt(PrisonRules.WanderDirections);
             if (!PrisonRules.TryWanderStep(

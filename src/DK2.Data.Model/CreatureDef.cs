@@ -68,6 +68,18 @@ public sealed record CreatureDef
     /// <inheritdoc cref="EntranceFrames"/>
     public int EntranceFramesPerSecond { get; init; }
 
+    /// <summary>The Angry animation (block 9, the one action 41 plays): its file flags and its
+    /// frame count and rate. Zero when the creature has none, as the Imp; the loader copies a block
+    /// only when its resource is present (<c>0x00492320</c>, <c>0x00504D80</c>). Bit 0 of the flags
+    /// is what <c>CreatureDef_HasArt(9)</c> tests in prison state 116 (Q188).</summary>
+    public uint AngryArtFlags { get; init; }
+
+    /// <inheritdoc cref="AngryArtFlags"/>
+    public int AngryFrames { get; init; }
+
+    /// <inheritdoc cref="AngryArtFlags"/>
+    public int AngryFramesPerSecond { get; init; }
+
     // Movement / perception
     public required Fp32 Speed { get; init; }
     public required Fp32 RunSpeed { get; init; }

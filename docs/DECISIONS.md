@@ -1191,7 +1191,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Legal, flagged not assumed: the new document reproduces 70 short UI strings from the install's `Text.str` as state labels. They are research documentation and the code loads them at run time from the user's own install, so nothing is redistributed. If judged too far, the `Text.str` id column alone keeps the table usable without re-deriving anything.
 
 ## ADR-0073 — A prisoner shuffles about its cell, one orthogonal tile at a time
-**Date:** 2026-09-06 · **Status:** accepted · amended by ADR-0074: state 117 is a search and a walk, not eating where it stands · Q172, first of three
+**Date:** 2026-09-06 · **Status:** accepted · amended by ADR-0074: state 117 is a search and a walk, not eating where it stands; ADR-0301 adds the Angry flourish · Q172, first of three
 
 **Context.** The owner watched a prison on 2026-09-05 and reported three things: a prisoner moves about its cell, prisoners race each other to a chicken dropped among them, and one of them eats it (Q172). The project's answer was to do none of it — `CreatureMovementSystem`, `CreatureSleepSystem` and `ImpTaskSystem` each carried the same paragraph saying so. This builds the first.
 
@@ -6595,3 +6595,24 @@ other way round; a keeper's worker that is imprisoned, down or fighting takes no
 `ImpTaskSystem` skips it before the worker arm (from ADR-0293); a tile's piles go newest first
 (the tile list's order is unread); a pile has no falling phase. Not built: the chicken side arm
 (a neutral Chicken eaten off a Portal or Hatchery tile, action 26).
+
+## ADR-0301 — A prisoner with the Angry flag plays it on low rolls and stands while it runs
+**Date:** 2026-10-01 · **Status:** accepted · amends ADR-0073 · answers Q188 · Research: `prison.md` §6.3
+
+**Context.** State 116 (`0x00473350`) tests `CreatureDef_HasArt(9)` before its step roll. Record 9
+is the Angry animation and the test is bit 0 of its file flags, set by 13 shipped creatures. Action
+41, which the low rolls start, plays animation block 9 (`0x00495C9C`) with no handler of its own.
+
+**Decision.**
+1. `CreatureDef` carries the Angry block's flags, frames and rate, taken only when the block has a
+   type, as the loader copies it (`0x00492320`, `0x00504D80`).
+2. In `PrisonerWanderSystem`, a creature with the flag that rolls under 10 draws `rand(3) + 2` and
+   holds in `ActionUntilTick`; 10..19 step; the roll waits while an action runs (`0x00496D00`).
+3. `PrisonRules.FlourishTicks`: the animation plays the variant plus one times (`0x00496A30` stores
+   one more as `+0x3AE`, which `0x00496AA0` counts down per cycle), frames × 4 / rate rounded up, and
+   the roll resumes the tick after, as action 49 does.
+
+**Consequences.** A Firefly holds 15 to 24 ticks, a Royal Guard 42 to 69. LIKELY: the cycle count
+and the end come from renderer flags (`+0xF1`, `+0xDC`) that are not read, and no capture holds a
+prisoner. Four tests, each failed by a negative control, and a real-data test of the 13. The pin
+holds.
