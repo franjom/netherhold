@@ -6836,8 +6836,8 @@ creature stands elsewhere, and a claiming state entered without the hook holds n
 - **A walk keeps the place.** `SetState` runs no hook entering a walk (`0x00476D30`), and the
   needs routine `0x00477C20` sends a creature to bed straight from its work state, so a trainee
   walking to bed still counts against the Training Room. This is the change's one visible
-  ripple: on L2 seed 7 a newcomer is refused for it (win 3304→3404), on seed 11 a finder
-  passes a room over (3320→3316). L1 never reaches a claiming room. `HashVersion` 147.
+  ripple. On 2e25e1d, seeds 1–20: L1 20/20 both ways, identical (it never reaches a claiming
+  room); L2 19/20 → 20/20, seed 7 now winning and seeds 5 and 9 moving. `HashVersion` 147.
 - `TryStrap` reports a refused claim. A chamber's places are its auto-placed devices; no
   shipped map places a device as a THINGS object, and all 30 pre-built chambers get a place
   once furnished (`TortureChamberPlacesOnRealDataTests`). Fixtures mark their wheels so.
