@@ -11,9 +11,10 @@ namespace DK2.Pathfinding;
 /// <para>Points are tile corners in whole tiles. A triangle holds three point indices, a neighbour
 /// across each edge, the navigation byte of the tiles it covers, and a constraint bit per edge.
 /// Edge <c>i</c> runs from vertex <c>i</c> to vertex <c>i+1</c>; every live triangle is wound so
-/// that <see cref="Orient"/> is positive. Point location is a scan, not the original's walk — a
-/// labelled residual (ADR-0157) that yields the same mesh. Deliberately absent, because the shipped
-/// game never engages them: edge width classes, mover classes and region ids (§2.2).</para>
+/// that <see cref="Orient"/> is positive. Point location gives the lowest slot holding the point, as
+/// a scan would, not where the original's walk ends — a labelled residual (ADR-0157) that yields the
+/// same mesh, pinned slot for slot by <c>NavMeshBuildOnRealDataTests</c>. Deliberately absent, because
+/// the shipped game never engages them: edge width classes, mover classes and region ids (§2.2).</para>
 /// <para>Determinism: integer arithmetic only, arrays indexed by insertion order, free lists
 /// reused in a fixed order. Not thread-safe.</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/navigation-mesh-and-search.md")]
@@ -37,6 +38,16 @@ public sealed partial class NavMesh
     private byte[] _constraint = new byte[64];
     private int _triCount;
     private readonly List<int> _triFree = [];
+
+    // Indexes over the arrays above, never part of the mesh: they only find what a scan in slot
+    // order would find, faster (perf/navmesh-rebuilds). A point's triangle is one that holds it,
+    // left right by every write of a triangle's vertices; touched triangles are those written since
+    // the last Coarsen, which is all it has to look at.
+    private int[] _pointTri = new int[64];
+    private bool[] _touchedMark = new bool[64];
+    private readonly List<int> _touched = [];
+    private readonly List<int> _fan = [];
+    private int _locateHint;
 
     /// <summary>The canvas the reset covers, in tiles. The original's is always −256 … 1280
     /// (`0x004C8F30`), far outside any map, so a map's own border is an ordinary constraint and
@@ -97,6 +108,9 @@ public sealed partial class NavMesh
         _pointFree.Clear();
         _triCount = 0;
         _triFree.Clear();
+        foreach (int t in _touched) _touchedMark[t] = false;
+        _touched.Clear();
+        _locateHint = 0;
 
         int p0 = NewPoint(x0, y0);
         int p1 = NewPoint(x1, y0);
@@ -119,12 +133,68 @@ public sealed partial class NavMesh
     /// deterministic.</summary>
     public int Locate(int x, int y)
     {
+        int t = Walk(x, y);
+        if (t < 0) return LocateByScan(x, y);
+        _locateHint = t;
+        return LowestHolding(t, x, y);
+    }
+
+    private int LocateByScan(int x, int y)
+    {
         for (int t = 0; t < _triCount; t++)
         {
             if (!IsTriangleLive(t)) continue;
             if (Contains(t, x, y)) return t;
         }
         return -1;
+    }
+
+    /// <summary>A triangle holding the position, found by stepping from the last one located
+    /// across an edge the position lies strictly beyond. The edge tested first turns with each
+    /// step, so the walk cannot circle a fixed loop; one that runs long or off the mesh gives up
+    /// and the scan answers instead.</summary>
+    private int Walk(long x, long y)
+    {
+        if (_triCount == 0) return -1;
+        int t = _locateHint < _triCount && IsTriangleLive(_locateHint) ? _locateHint : 0;
+        if (!IsTriangleLive(t)) return -1;
+        for (int steps = 0; steps <= _triCount; steps++)
+        {
+            int exit = -1;
+            for (int k = 0; k < 3 && exit < 0; k++)
+            {
+                int i = (k + steps) % 3;
+                int a = Vertex(t, i), b = Vertex(t, (i + 1) % 3);
+                if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) < 0) exit = i;
+            }
+            if (exit < 0) return t;
+            t = Neighbour(t, exit);
+            if (t == NoNeighbour) return -1;
+        }
+        return -1;
+    }
+
+    /// <summary>What the scan in slot order returns for a position <paramref name="t"/> holds:
+    /// <c>t</c> itself for an interior position, the lower of the two triangles on an edge, the
+    /// lowest of a vertex's fan. No other triangle can hold it, the mesh having no T-junctions.</summary>
+    private int LowestHolding(int t, long x, long y)
+    {
+        for (int k = 0; k < 3; k++)
+        {
+            int p = Vertex(t, k);
+            if (Sx(p) != x || Sy(p) != y) continue;
+            int lowest = t;
+            foreach (int f in Fan(p)) if (f < lowest) lowest = f;
+            return lowest;
+        }
+        for (int i = 0; i < 3; i++)
+        {
+            int a = Vertex(t, i), b = Vertex(t, (i + 1) % 3);
+            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) != 0) continue;
+            int n = Neighbour(t, i);
+            return n == NoNeighbour ? t : Math.Min(t, n);
+        }
+        return t;
     }
 
     /// <summary>The far point the endpoint rule leans toward: 257 tiles past the origin on both axes.</summary>
@@ -310,6 +380,7 @@ public sealed partial class NavMesh
                 Array.Resize(ref _px, _px.Length * 2);
                 Array.Resize(ref _py, _py.Length * 2);
                 Array.Resize(ref _pointDead, _pointDead.Length * 2);
+                Array.Resize(ref _pointTri, _pointTri.Length * 2);
             }
             p = _pointCount++;
         }
@@ -333,6 +404,7 @@ public sealed partial class NavMesh
                 Array.Resize(ref _n, _n.Length * 2);
                 Array.Resize(ref _nav, _nav.Length * 2);
                 Array.Resize(ref _constraint, _constraint.Length * 2);
+                Array.Resize(ref _touchedMark, _touchedMark.Length * 2);
             }
             t = _triCount++;
         }
@@ -348,6 +420,52 @@ public sealed partial class NavMesh
     {
         if (Orient(_px[a], _py[a], _px[b], _py[b], _px[c], _py[c]) < 0) (b, c) = (c, b);
         _v[(3 * t) + 0] = a; _v[(3 * t) + 1] = b; _v[(3 * t) + 2] = c;
+        _pointTri[a] = t; _pointTri[b] = t; _pointTri[c] = t;
+        Touch(t);
+    }
+
+    private void Touch(int t)
+    {
+        if (_touchedMark[t]) return;
+        _touchedMark[t] = true;
+        _touched.Add(t);
+    }
+
+    /// <summary>Every triangle holding point <c>p</c>, by walking its fan both ways from the
+    /// triangle the index names, in no particular order. Falls back to the scan if the index
+    /// names a triangle that does not hold the point, which no write leaves it doing.</summary>
+    private List<int> Fan(int p)
+    {
+        _fan.Clear();
+        int start = _pointTri[p];
+        if (start >= _triCount || !IsTriangleLive(start) || IndexOf(start, p) < 0)
+        {
+            for (int t = 0; t < _triCount; t++)
+                if (IsTriangleLive(t) && IndexOf(t, p) >= 0) _fan.Add(t);
+            return _fan;
+        }
+
+        // Turn across the edge arriving at p until the fan closes or reaches the hull...
+        int cur = start;
+        for (int guard = 0; guard <= _triCount; guard++)
+        {
+            _fan.Add(cur);
+            int next = Neighbour(cur, (IndexOf(cur, p) + 2) % 3);
+            if (next == start) return _fan;
+            if (next == NoNeighbour) break;
+            cur = next;
+        }
+
+        // ...and, having reached the hull, the other way from the start across the edge leaving p.
+        cur = start;
+        for (int guard = 0; guard <= _triCount; guard++)
+        {
+            int next = Neighbour(cur, IndexOf(cur, p));
+            if (next == NoNeighbour || next == start) break;
+            _fan.Add(next);
+            cur = next;
+        }
+        return _fan;
     }
 
     /// <summary>Points edge <c>i</c> of <c>t</c> at <c>u</c>, and the matching edge of <c>u</c>
@@ -355,7 +473,9 @@ public sealed partial class NavMesh
     private void Link(int t, int i, int u)
     {
         _n[(3 * t) + i] = u;
+        Touch(t);
         if (u == NoNeighbour) return;
+        Touch(u);
         int from = Vertex(t, i), to = Vertex(t, (i + 1) % 3);
         int j = EdgeIndexOf(u, to, from);
         _n[(3 * u) + j] = t;

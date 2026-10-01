@@ -80,14 +80,57 @@ public sealed partial class NavMesh
         InsertConstraint(c, d);
         InsertConstraint(d, a);
 
-        for (int t = 0; t < _triCount; t++)
+        // The triangles with every vertex inside are those covering the rectangle, which with its
+        // sides now edges is a region of its own: fill it from a corner's fan, never crossing to
+        // a triangle with a vertex outside. A scan of every slot stamps the same set.
+        int start = -1;
+        foreach (int t in Fan(a))
+            if (AllInside(t, x0, y0, x1, y1)) { start = t; break; }
+        if (start < 0)
         {
-            if (!IsTriangleLive(t)) continue;
-            if (Inside(Vertex(t, 0), x0, y0, x1, y1) && Inside(Vertex(t, 1), x0, y0, x1, y1)
-                && Inside(Vertex(t, 2), x0, y0, x1, y1))
-                _nav[t] = nav;
+            for (int t = 0; t < _triCount; t++)
+                if (IsTriangleLive(t) && AllInside(t, x0, y0, x1, y1)) Stamp(t, nav);
+            return;
+        }
+
+        if (++_fillGeneration == 0)
+        {
+            Array.Clear(_filled, 0, _filled.Length);
+            _fillGeneration = 1;
+        }
+        if (_filled.Length < _triCount) Array.Resize(ref _filled, _nav.Length);
+        _fill.Clear();
+        _fill.Add(start);
+        _filled[start] = _fillGeneration;
+        while (_fill.Count > 0)
+        {
+            int t = _fill[_fill.Count - 1];
+            _fill.RemoveAt(_fill.Count - 1);
+            Stamp(t, nav);
+            for (int i = 0; i < 3; i++)
+            {
+                int n = Neighbour(t, i);
+                if (n == NoNeighbour || _filled[n] == _fillGeneration || !AllInside(n, x0, y0, x1, y1)) continue;
+                _filled[n] = _fillGeneration;
+                _fill.Add(n);
+            }
         }
     }
+
+    private int[] _filled = [];
+    private int _fillGeneration;
+    private readonly List<int> _fill = [];
+
+    private void Stamp(int t, byte nav)
+    {
+        if (_nav[t] == nav) return;
+        _nav[t] = nav;
+        Touch(t);
+    }
+
+    private bool AllInside(int t, int x0, int y0, int x1, int y1) =>
+        Inside(Vertex(t, 0), x0, y0, x1, y1) && Inside(Vertex(t, 1), x0, y0, x1, y1)
+        && Inside(Vertex(t, 2), x0, y0, x1, y1);
 
     private bool Inside(int p, int x0, int y0, int x1, int y1) =>
         _px[p] >= x0 && _px[p] <= x1 && _py[p] >= y0 && _py[p] <= y1;
@@ -104,12 +147,14 @@ public sealed partial class NavMesh
         if (pa == pb) return;
         long ax = _px[pa], ay = _py[pa], bx = _px[pb], by = _py[pb];
 
+        // pa's fan in slot order: the triangles a scan of every slot would reach, in its order.
+        int[] fan = [.. Fan(pa)];
+        Array.Sort(fan);
         int t0 = -1, exit = -1;
-        for (int t = 0; t < _triCount && t0 < 0; t++)
+        for (int k = 0; k < fan.Length && t0 < 0; k++)
         {
-            if (!IsTriangleLive(t)) continue;
+            int t = fan[k];
             int i = IndexOf(t, pa);
-            if (i < 0) continue;
 
             int v1 = Vertex(t, (i + 1) % 3), v2 = Vertex(t, (i + 2) % 3);
             if (v1 == pb) { MarkConstraint(t, i); return; }
@@ -169,15 +214,20 @@ public sealed partial class NavMesh
             && Orient(cx, cy, dx, dy, ax, ay) * Orient(cx, cy, dx, dy, bx, by) < 0;
     }
 
+    /// <summary>The lowest slot holding the edge <c>p</c>–<c>q</c>, as a scan of every slot finds
+    /// it: the two triangles on it are both in p's fan.</summary>
     private int TriangleWithEdge(int p, int q, out int edge)
     {
-        for (int t = 0; t < _triCount; t++)
+        int best = -1;
+        edge = -1;
+        foreach (int t in Fan(p))
         {
-            if (!IsTriangleLive(t)) continue;
-            edge = EdgeBetween(t, p, q);
-            if (edge >= 0) return t;
+            if (best >= 0 && t > best) continue;
+            int e = EdgeBetween(t, p, q);
+            if (e >= 0) { best = t; edge = e; }
         }
-        throw new InvalidOperationException($"no live triangle has the edge {p}-{q}");
+        if (best < 0) throw new InvalidOperationException($"no live triangle has the edge {p}-{q}");
+        return best;
     }
 
     /// <summary>The edge of <c>t</c> joining <c>p</c> and <c>q</c> in either order, or −1.</summary>
@@ -236,18 +286,128 @@ public sealed partial class NavMesh
     /// criterion accepts until none is left. The original walks it as a flood fill from the
     /// rebuilt rectangle's corners, stamped by a generation counter, and never enters a solid
     /// triangle (`0x004CC75E` and its two copies test bit 3 of a neighbour's byte); ours sweeps
-    /// the slots instead, which reaches the same triangles for a whole-map rebuild.</summary>
+    /// the slots instead, which reaches the same triangles for a whole-map rebuild.
+    /// <para>The sweep is in slot order, a pass at a time until a pass flips nothing, and that is
+    /// the order kept here; only which slots are looked at is narrowed. A triangle can offer a flip
+    /// only if it or a neighbour was written since the last Coarsen, which left none to offer. Within
+    /// a pass, a flip at <c>t</c> changes what <c>t</c>, the triangle across and their neighbours
+    /// offer: the sweep would still reach those above <c>t</c> in this pass, and all of them in the
+    /// next.</para></summary>
     public void Coarsen()
     {
-        for (bool again = true; again;)
+        _pass.Clear();
+        foreach (int t in _touched)
         {
-            again = false;
-            for (int t = 0; t < _triCount; t++)
+            AddToNext(t);
+            for (int i = 0; i < 3; i++) AddToNext(Neighbour(t, i));
+        }
+        foreach (int t in _touched) _touchedMark[t] = false;
+        _touched.Clear();
+
+        while (_next.Count > 0)
+        {
+            foreach (int t in _next) { _inNext[t] = false; _pass.Push(t); }
+            _next.Clear();
+
+            bool flipped = false;
+            while (_pass.TryPop(out int t))
             {
                 if (!IsTriangleLive(t) || NavBytes.IsSolid(_nav[t])) continue;
                 for (int i = 0; i < 3; i++)
-                    if (ShouldFlip(t, i) && TryFlip(t, i, false, out _, out _)) { again = true; break; }
+                {
+                    if (!ShouldFlip(t, i)) continue;
+                    int u = Neighbour(t, i);
+                    if (!TryFlip(t, i, false, out _, out _)) continue;
+                    flipped = true;
+                    Affected(t, t);
+                    Affected(u, t);
+                    for (int k = 0; k < 3; k++)
+                    {
+                        Affected(Neighbour(t, k), t);
+                        Affected(Neighbour(u, k), t);
+                    }
+                    break;
+                }
             }
+            if (!flipped) break;
+        }
+
+        foreach (int t in _next) _inNext[t] = false;
+        _next.Clear();
+        foreach (int t in _touched) _touchedMark[t] = false;
+        _touched.Clear();
+    }
+
+    private readonly SlotHeap _pass = new();
+    private readonly List<int> _next = [];
+    private bool[] _inNext = [];
+
+    private void AddToNext(int t)
+    {
+        if (t == NoNeighbour) return;
+        if (_inNext.Length < _triCount) Array.Resize(ref _inNext, _nav.Length);
+        if (_inNext[t]) return;
+        _inNext[t] = true;
+        _next.Add(t);
+    }
+
+    /// <summary>A triangle a flip at <paramref name="at"/> changed: looked at again in the next
+    /// pass, and in this one too when the sweep has not reached it yet.</summary>
+    private void Affected(int t, int at)
+    {
+        if (t == NoNeighbour) return;
+        AddToNext(t);
+        if (t > at) _pass.Push(t);
+    }
+
+    /// <summary>Slots in ascending order, each at most once: the order a sweep reaches them.</summary>
+    private sealed class SlotHeap
+    {
+        private int[] _items = new int[64];
+        private bool[] _held = new bool[64];
+        private int _count;
+
+        public void Clear()
+        {
+            for (int i = 0; i < _count; i++) _held[_items[i]] = false;
+            _count = 0;
+        }
+
+        public void Push(int slot)
+        {
+            if (slot >= _held.Length) Array.Resize(ref _held, Math.Max(slot + 1, _held.Length * 2));
+            if (_held[slot]) return;
+            _held[slot] = true;
+            if (_count == _items.Length) Array.Resize(ref _items, _items.Length * 2);
+            int i = _count++;
+            while (i > 0)
+            {
+                int parent = (i - 1) / 2;
+                if (_items[parent] <= slot) break;
+                _items[i] = _items[parent];
+                i = parent;
+            }
+            _items[i] = slot;
+        }
+
+        public bool TryPop(out int slot)
+        {
+            if (_count == 0) { slot = -1; return false; }
+            slot = _items[0];
+            _held[slot] = false;
+            int last = _items[--_count];
+            int i = 0;
+            while (true)
+            {
+                int child = (2 * i) + 1;
+                if (child >= _count) break;
+                if (child + 1 < _count && _items[child + 1] < _items[child]) child++;
+                if (_items[child] >= last) break;
+                _items[i] = _items[child];
+                i = child;
+            }
+            if (_count > 0) _items[i] = last;
+            return true;
         }
     }
 
