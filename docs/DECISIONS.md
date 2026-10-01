@@ -6876,7 +6876,8 @@ and return 1; every refusal returns 0 before that.
 **Decision.** The Prison Enter slot gets its own delegate: `RoomCapacityRules.Claim`, then
 `FireCreatureEvent(creature, Imprisoned)` on success, else false. The countdown seed stays in
 `RunEnter`. The slot stays `Partial`: our claim lacks the Prison's position tests and capacity
-(Q504), so 7 also fires for a captive dropped on a rim tile, where DK2's claim refuses.
+(Q504), so 7 also fires for a captive dropped on a rim tile or into a full Prison, where DK2's
+claim refuses. The imp's route is unaffected: `PrisonRules.AdmitsAt` admits it to a free cell only.
 
 **Consequences.** No shipped level has a condition of type 7 (`kwd trigger-types`: none of
 9,161 records), so the event is inert today and `HashVersion` stays 147. The Level 1 and Level 2 rigs

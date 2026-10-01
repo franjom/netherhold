@@ -147,9 +147,9 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   63 in a Workshop and 130 in a Torture Chamber; a Horny-flagged one goes to 238. 120 reuses that handler
   through the thunk `0x00470C00`, but it is a captive state: 130 is refused from it,
   since the two share group 1 and differ in category. **126** (`0x00473920`), after its
-  first tick, goes to 114 on a Prison tile. 1, 76, 77 (category 7) and 126 (0) are outside
-  14, so each of those entries runs the Prison enter hook and, its claim taking, event 7; the
-  rule admits 114–119 → 77, so a slapped prisoner fires 7 again (STRONGLY INFERRED; 120 → 115 runs none).
+  first tick, goes to 114 on a Prison tile. 1 (category 1), 76, 77 (7) and 126 (0) are outside
+  14, so entries from them run the Prison enter hook and, the claim taking, event 7. The slap
+  sets 120 for a creature in its keeper's own Prison (`0x0048B9C3`), so 115 → 120 → 115 runs none.
 - **114** (`0x00473130`): on a Prison slab that `0x00454110` accepts (for a Prison, any
   interior slab), sets 115 and stores the prison at creature `+0x3CB`; otherwise
   returns 0, which is idle.
