@@ -51,6 +51,7 @@ public static class SimulationSystems
         // The Call to Arms flag is an object the shot puts down; its recall, release and the
         // heeding states run in the thing update, before the payment that keeps it (ADR-0279).
         new CallToArmsSystem(),
+        new ChickenSystem(), // state 96: the walk to the Hatchery or the wander (keeper-spell-inferno-chicken.md §3)
         new FogOfWarSystem(),
         new WalkOverGoldSystem(), // gold underfoot, after movement and before the state choosers (ADR-0300)
         // Work queued and resolved inside one tick, so nothing survives the boundary

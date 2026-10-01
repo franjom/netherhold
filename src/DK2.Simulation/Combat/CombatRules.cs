@@ -163,8 +163,9 @@ public static class CombatRules
     /// one asleep, one leaving unless forced, one in the hand unless forced, the possessed
     /// creature, a dying one, one standing frozen or stunned, and one walking to its withdraw
     /// destination unless forced, and under its keeper's Call to Arms one farther than
-    /// <c>CallToArmsFightDistanceTiles</c> from the flag unless forced (Q361). Not modelled: the
-    /// chicken timer, hypnosis, the threat-response state and the Horned Reaper's states.</summary>
+    /// <c>CallToArmsFightDistanceTiles</c> from the flag unless forced (Q361), and a chicken
+    /// (<c>ChickenTimer</c> <c>+0x44B</c> running). Not modelled: hypnosis, the threat-response state
+    /// and the Horned Reaper's states.</summary>
     public static bool MayLookForAFight(WorldState world, GameDatabase database, CreatureState creature, bool force) =>
         !PrisonRules.IsImprisoned(creature)
         && (force || CallToArmsRules.WithinFightDistance(world, database, creature))
@@ -174,6 +175,7 @@ public static class CombatRules
         && (!HandRules.IsHeld(creature) || force)
         && !CreatureDeathRules.IsPossessed(world, creature)
         && !StatusEffectRules.IsIncapacitated(creature)
+        && !ChickenRules.IsChicken(creature)
         && !CreatureDeathRules.IsDown(creature);
 
     /// <summary>The throttle at the top of <c>ProcessFight</c>: bump the counter; a creature on a

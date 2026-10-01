@@ -695,8 +695,8 @@ among available, un-cooled spells are scanned in id order with different
 supportive/offensive fallback rules (`research/computer-keeper-management.md` §4). For
 each eligible target, `random(100) > 75` stops the scan (24 %); otherwise the selected
 target is overwritten and the scan continues. A refused permission spends nothing. Ours
-issues Thunderbolt and Heal (ADR-0287); Inferno and Chicken choices are counted, not cast
-(their casts and effects are read in `research/keeper-spell-inferno-chicken.md`, Q498).
+issues Thunderbolt, Heal (ADR-0287), Chicken and Inferno (ADR-0302,
+`research/keeper-spell-inferno-chicken.md`; the original run is Q498).
 
 **CTA removal** (`0x4FEFC0`): when the counter reaches 0, or fewer than
 `RemoveCallToArmsEnemyCreatures` enemies (hearts count) are within
@@ -1121,8 +1121,8 @@ The proactive foundation already exists (§12.8). **Future direction, agreed 202
    `research/call-to-arms.md`) and the battle step casts it and Thunderbolt and takes
    the flag down (ADR-0283); the retreat of the wounded runs at step 7 as pick-up and
    drop commands (ADR-0284); Heal is cast through the simulation's own validators and
-   shot (ADR-0287). Next: Inferno and Chicken, then the remaining message families
-   and producers.
+   shot (ADR-0287), and Chicken and Inferno likewise (ADR-0302). Next: the remaining
+   message families and producers.
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
 3. **Dungeon management.** Add need-driven room expansion/building, training moves,
@@ -1196,6 +1196,7 @@ now update its flags (ADR-0263). Ownership order and worker idle flags are persi
 remaining gaps: `research/creature-pickup.md`. Response dispatch is connected, Call to Arms is a simulation spell (ADR-0279) and the battle step runs through `Think` at step 11 with the removal test at step 7 (ADR-0283, `KeeperBattleStep`) and the retreat of the wounded after that test (ADR-0284, `KeeperRetreatStep`).
 The attack planner, the front and attack management run through `Think` at task 0 and step 7
 with readiness grants as commands (ADR-0298, `KeeperAttackPlanner`, `KeeperReadiness`).
-Combat messages reach the observation; the remaining reactive decisions, the Inferno
-and Chicken casts, the remaining message families, personality loader and §5.1 step 9 training moves remain unbuilt.
+Combat messages reach the observation; the battle step casts all four shipped battle spells
+(ADR-0302). The remaining reactive decisions, the remaining message families, personality loader
+and §5.1 step 9 training moves remain unbuilt.
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.

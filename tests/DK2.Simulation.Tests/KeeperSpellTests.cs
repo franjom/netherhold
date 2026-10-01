@@ -186,7 +186,7 @@ public sealed class KeeperSpellTests
     [Fact]
     public void SyntheticSelectorsFailClosedAndUpgradedShotIdComesFromTheDefinition()
     {
-        foreach (KeeperSpellDef spell in new[] { Spell() with { LocationSelector = 5 }, Spell() with { TargetSelector = 3 } })
+        foreach (KeeperSpellDef spell in new[] { Spell() with { LocationSelector = 5 }, Spell() with { TargetSelector = 6 } })
         {
             var (db, world, target) = Setup(spell);
             var boundary = new Boundary();

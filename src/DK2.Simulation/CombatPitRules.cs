@@ -104,6 +104,8 @@ public static class CombatPitRules
     /// creatures in id order, so between two at exactly one distance the pick may differ.</remarks>
     public static CreatureState? Opponent(WorldState world, GameDatabase database, RoomInstance pit, CreatureState seeker)
     {
+        // 0x004D8113: a chicken finds nobody, and neither scan takes one (0x004D81DA, 0x004D8327).
+        if (ChickenRules.IsChicken(seeker)) return null;
         return Nearest(world, database, pit, seeker, hostile: true) ?? Nearest(world, database, pit, seeker, hostile: false);
     }
 
@@ -117,7 +119,7 @@ public static class CombatPitRules
         {
             CreatureState candidate = creatures[i];
             if (candidate.Id == seeker.Id || !candidate.CombatPitFighter || candidate.Level >= cap) continue;
-            if (CreatureDeathRules.IsDown(candidate) || !IsOnTheMap(candidate)) continue;
+            if (CreatureDeathRules.IsDown(candidate) || !IsOnTheMap(candidate) || ChickenRules.IsChicken(candidate)) continue;
             if (CombatRules.IsHostile(world, seeker.OwnerPlayerId, candidate.OwnerPlayerId) != hostile) continue;
             TilePos tile = candidate.Tile;
             if (!IsFloor(pit, (tile.Y * world.Width) + tile.X)) continue;

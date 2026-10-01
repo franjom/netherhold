@@ -15,7 +15,7 @@ namespace DK2.AI;
 /// <param name="UnderCallToArms"><c>0x004888C0</c>: the owner's flag, bit 20 or states 190 to 192 through a walk.</param>
 /// <param name="FightTargetOwner">The owner of its engagement's target (<c>+0x502</c>), or 0 with none.</param>
 /// <param name="CallToArmsSiteAllowed">For an own fighter: the place validators pass at its tile; <paramref name="HeartRouteExists"/>: a walker routes from two tiles east of the heart to it.</param>
-/// <param name="SpellTargetAllowed">For a foreign creature: <c>0x004BBA40</c>'s validators pass for Thunderbolt; <paramref name="HealTargetAllowed"/>: for an own creature, for Heal.</param>
+/// <param name="SpellTargetAllowed">For a foreign creature: <c>0x004BBA40</c>'s validators pass for Thunderbolt, <paramref name="ChickenTargetAllowed"/> for Chicken, and <paramref name="InfernoPlaceAllowed"/> <c>0x004BB8A0</c>'s for Inferno at its tile; <paramref name="HealTargetAllowed"/>: for an own creature, for Heal.</param>
 /// <param name="CombatPitFighter">Its <c>+0x3E6</c> bit 15, the Combat Pit's fighter mark.</param>
 /// <param name="AttachedToRoom">Whether it holds a room id (<c>+0x3B9</c>, <see cref="RoomMembershipRules"/>).</param>
 public readonly record struct KeeperCreatureView(
@@ -27,4 +27,4 @@ public readonly record struct KeeperCreatureView(
     ushort LastDroppedCounter = 0, bool InMyHand = false, int OwnershipRank = -1, bool UnderCallToArms = false,
     byte FightTargetOwner = 0, bool CallToArmsSiteAllowed = false, bool HeartRouteExists = false,
     bool SpellTargetAllowed = false, bool CombatPitFighter = false, bool AttachedToRoom = false,
-    bool HealTargetAllowed = false);
+    bool HealTargetAllowed = false, bool ChickenTargetAllowed = false, bool InfernoPlaceAllowed = false);

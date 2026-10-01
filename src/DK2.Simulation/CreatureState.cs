@@ -209,6 +209,12 @@ public enum CreatureActivity
     /// <summary>State 75, the hand's preparation (<see cref="HandRules.PreparationState"/>): entered
     /// before the hand's capacity is tested, and inert while it lasts.</summary>
     BeingLifted = 34,
+
+    /// <summary>A chicken: DK2's state 96 (<see cref="ChickenRules.ChickenState"/>), entered by the
+    /// Chicken spell's process. It walks to its own keeper's nearest Hatchery or wanders a tile at a
+    /// time; the timer <see cref="CreatureState.ChickenTicks"/>, not this state, keeps it out of
+    /// fights (keeper-spell-inferno-chicken.md §3).</summary>
+    Chicken = 35,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -870,6 +876,11 @@ public sealed class CreatureState
     public byte PoisonOwner;
     public int StunTicks;
 
+    /// <summary>DK2's <c>ChickenTimer</c> (<c>+0x44B</c>): set to data1 × ticks-a-second by the Chicken
+    /// spell's process 15, stepped down by <see cref="Systems.CreatureStatusSystem"/>, and read by the
+    /// fight gate, the fear accumulator and the Combat Pit finder (keeper-spell-inferno-chicken.md §3).</summary>
+    public int ChickenTicks;
+
     /// <summary>State 8, the walk to a fight, as a flag on the fighting creature; while set
     /// <see cref="Combat.ApproachRules"/> runs instead of <c>spFighting</c>. <see cref="RouteRefreshCountdown"/>
     /// is the state's <c>+0xF5</c>, <see cref="ChaseTicks"/> the creature's <c>+0x53D</c>, and
@@ -1108,6 +1119,7 @@ public sealed class CreatureState
         hash.Add(PoisonAmount);
         hash.Add(PoisonOwner);
         hash.Add(StunTicks);
+        hash.Add(ChickenTicks);
         hash.Add(Approaching);
         hash.Add(RouteRefreshCountdown);
         hash.Add(ChaseTicks);

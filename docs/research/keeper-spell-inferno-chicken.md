@@ -282,11 +282,15 @@ six stores the field scan found writes a nonzero value into a creature.
 - **UNKNOWN:** `+0xF2`.
 - **UNKNOWN:** the original run (Q498).
 
-**For a build:** both spells are new `KeeperSpellRules` cast arms (selectors 1·3
-and 1·5). Chicken needs a `ChickenTimer` on the creature, state 96 with the
-Hatchery walk, and the gate and fear exemption keyed on the timer. Selector 3
-tests no owner, so a human may chicken their own creatures. Damage credits the
-caster's player, not the shot. Inferno needs a stationary 30-tick
+**Built (ADR-0302):** `KeeperSpellRules` casts both (selectors 1·3 and 1·5);
+`InfernoRules` is process 30; `ChickenRules` is process 15, state 96's handler and
+the timer's end, with `CreatureState.ChickenTicks` read by the fight gate, the fear
+accumulator and the Pit finder; `ChickenSystem` runs state 96; the battle step casts
+both from captured permissions. Approximations: the Hatchery is measured from its
+centroid tile rather than `NavigationPos`, and the tile box clamps to the last
+column. Not modelled: burning, the source stamp, bridge command 10, the chicken art
+and `+0xF2`. Level 18's Nemesis casts both unaided
+(`scenarios/keepers/level18_nemesis_inferno_chicken.yaml`). Inferno needs a stationary 30-tick
 shot with process 30. The battle step's predicted permission for Chicken is
 Thunderbolt's location test with target 3, and for Inferno the location test alone,
 at the target's position.

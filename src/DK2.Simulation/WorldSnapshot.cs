@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 143;
+    private const int FormatVersion = 144;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -376,6 +376,7 @@ public static class WorldSnapshot
             w.Write(c.PoisonAmount);
             w.Write(c.PoisonOwner);
             w.Write(c.StunTicks);
+            w.Write(c.ChickenTicks);
             w.Write(c.Approaching);
             w.Write(c.RouteRefreshCountdown);
             w.Write(c.ChaseTicks);
@@ -874,6 +875,7 @@ public static class WorldSnapshot
                 PoisonAmount = r.ReadInt32(),
                 PoisonOwner = r.ReadByte(),
                 StunTicks = r.ReadInt32(),
+                ChickenTicks = r.ReadInt32(),
                 Approaching = r.ReadBoolean(),
                 RouteRefreshCountdown = r.ReadInt32(),
                 ChaseTicks = r.ReadInt32(),

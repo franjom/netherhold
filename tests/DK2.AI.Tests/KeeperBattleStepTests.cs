@@ -531,6 +531,73 @@ public class KeeperBattleStepTests
     }
 
     [Fact]
+    public void TheOffensiveArmCastsInfernoAtTheTargetsPositionAndTheSimulationBurnsItOnTheKeepersLand()
+    {
+        WorldState world = World();
+        CreatureState own = Fighter(world, Keeper, 13, 15);
+        CreatureState near = Fighter(world, Hero, 14, 15);
+        Engage(own, near);
+        world.Player(Keeper).Mana = 50001;
+        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Inferno, 3);
+        KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
+        keeper.State.FightGoingOn = true;
+
+        IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
+
+        // 0x004BB8A0 then 0x004BBD30 at the target's x and y; a passed pair spends the allowance.
+        var cast = Assert.Single(commands.OfType<CastSpellAtPlaceCommand>());
+        Assert.Equal((KeeperSpellRules.Inferno, near.PosX, near.PosY), (cast.SpellId, cast.X, cast.Y));
+        Assert.Equal((KeeperTask.Decide, 0), (keeper.State.Task, keeper.State.UnbuiltSpellChoices));
+        int ownBefore = own.Health;
+        var sim = new GameSimulation(Db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
+        sim.Tick(InputFrame.Of(cast));
+        sim.Run(31);
+        // Thirty hits of 100 empty the hero's 1500; the own fighter a whole tile away sits on the
+        // strict bound and is spared, where one closer would burn too (KeeperChickenInfernoTests).
+        Assert.Equal((0, ownBefore), (near.Health, own.Health));
+    }
+
+    [Fact]
+    public void AnInfernoTargetOffTheKeepersLandIsRefusedBeforeAnyAllowanceIsSpent()
+    {
+        WorldState world = World();
+        CreatureState own = Fighter(world, Keeper, 13, 15);
+        CreatureState enemy = Fighter(world, Hero, 12, 15);
+        Engage(own, enemy);
+        world.Player(Keeper).Mana = 50001;
+        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Inferno, 3);
+        KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
+        keeper.State.FightGoingOn = true;
+
+        IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
+
+        Assert.False(Assert.Single(new KeeperView(Db, world, Keeper).Creatures, c => c.Id == enemy.Id).InfernoPlaceAllowed);
+        Assert.DoesNotContain(commands, c => c is CastSpellAtPlaceCommand or CastSpellOnCreatureCommand);
+        Assert.NotEqual(KeeperTask.Decide, keeper.State.Task);
+    }
+
+    [Fact]
+    public void TheOffensiveArmCastsChickenAtTheTargetAndTheSimulationTurnsIt()
+    {
+        WorldState world = World();
+        CreatureState own = Fighter(world, Keeper, 13, 15);
+        CreatureState near = Fighter(world, Hero, 14, 15);
+        Engage(own, near);
+        world.Player(Keeper).Mana = 10001;
+        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Chicken, 3);
+        KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
+        keeper.State.FightGoingOn = true;
+
+        IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
+
+        var cast = Assert.Single(commands.OfType<CastSpellOnCreatureCommand>());
+        Assert.Equal((KeeperSpellRules.Chicken, near.Id), (cast.SpellId, cast.CreatureId));
+        Assert.Equal(KeeperTask.Decide, keeper.State.Task);
+        new GameSimulation(Db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]).Tick(InputFrame.Of(cast));
+        Assert.Equal((240, CreatureActivity.Chicken), (near.ChickenTicks, near.Activity));
+    }
+
+    [Fact]
     public void AnUnbuiltOffensiveChoiceIsCountedAndNotIssued()
     {
         WorldState world = World();
@@ -543,8 +610,8 @@ public class KeeperBattleStepTests
 
         IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
 
-        // The offensive arm's first eligible spell is the Chicken-shaped 7, at a creature; no
-        // command casts it here, so nothing is issued and nothing is spent.
+        // The offensive arm's first eligible spell is the stand-in 7, at a creature; no command
+        // casts it here, so nothing is issued and nothing is spent.
         Assert.DoesNotContain(commands, c => c is CastSpellOnCreatureCommand or CastSpellAtPlaceCommand);
         Assert.Equal(1, keeper.State.UnbuiltSpellChoices);
         Assert.NotEqual(KeeperTask.Decide, keeper.State.Task);

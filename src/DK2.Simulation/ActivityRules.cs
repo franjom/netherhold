@@ -82,6 +82,7 @@ public static class ActivityRules
         LairRules.SleepingState => CreatureActivity.Sleeping,
         EatingRules.FindHatcheryState or EatingRules.InHatcheryState or EatingRules.AfterMealState => CreatureActivity.SeekingFood,
         EatingRules.EatState => CreatureActivity.FetchingChicken,
+        ChickenRules.ChickenState => CreatureActivity.Chicken,
         >= PrisonRules.AdmittedState and <= 121 => CreatureActivity.Imprisoned,
         TortureRules.TorturerFacingState or TortureRules.TorturerWhippingState => CreatureActivity.AtWork,
         GuardRules.PatrolState or GuardRules.LostState or 100 => CreatureActivity.AtWork,

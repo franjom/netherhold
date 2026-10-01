@@ -58,6 +58,10 @@ public static class ShotRules
     public const byte FreezeProcess = 11;
     public const byte InvisibleProcess = 20;
     public const byte ReaperStunProcess = 29;
+    /// <summary>Type 15, <c>0x004AE2A0</c>: the keeper's Chicken on the creature struck (<see cref="ChickenRules"/>).</summary>
+    public const byte ChickenProcess = 15;
+    /// <summary>Type 30, <c>0x004AF660</c>: the keeper's Inferno before each move (<see cref="InfernoRules"/>).</summary>
+    public const byte InfernoProcess = 30;
     public const byte DrainProcess = 35;
     public const byte PoisonProcess = 38;
 
@@ -116,10 +120,11 @@ public static class ShotRules
     {
         if (shot.ForcedCollision)
         {
-            // 0x004ABD60: the word is cleared either way, and a dead target is a miss with no search.
+            // 0x004ABD60: the word is cleared either way, and a dead target, or one off the map
+            // (layer +0x16 = 2: in a hand or carried), is a miss with no search.
             shot.ForcedCollision = false;
             CreatureState? forced = shot.TargetKind == FightTargetKind.Creature ? world.CreatureById(shot.TargetId) : null;
-            return forced is null || forced.Activity == CreatureActivity.Dead ? null : forced;
+            return forced is null || forced.Activity == CreatureActivity.Dead || !CombatPitRules.IsOnTheMap(forced) ? null : forced;
         }
         byte mode = definition.CollideType;
         if (mode is CollideNone or CollideBodies) return null;
@@ -233,6 +238,11 @@ public static class ShotRules
             CreateObject(context, shot);
             return;
         }
+        if (definition.ProcessType == InfernoProcess)
+        {
+            InfernoRules.Burn(context, shot);
+            return;
+        }
         CreatureState? target = struck ?? (shot.TargetKind == FightTargetKind.Creature ? world.CreatureById(shot.TargetId) : null);
         if (target is null)
         {
@@ -264,6 +274,7 @@ public static class ShotRules
             case ReaperStunProcess: StatusEffectRules.Stun(context, target, definitionOfTarget); break;
             case DrainProcess: StatusEffectRules.Drain(context, target, definitionOfTarget, world.CreatureById(shot.CasterId), shot.Data1); break;
             case PoisonProcess: StatusEffectRules.Poison(context, target, shot.Data2, shot.Data1, shot.OwnerPlayerId); break;
+            case ChickenProcess: ChickenRules.Strike(context, shot, target, definitionOfTarget); break;
         }
     }
 

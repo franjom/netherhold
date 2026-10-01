@@ -104,7 +104,7 @@ public class DeterminismTests
 
         // HashVersion 143: the Casino big-winner countdown the walk-over pick-up reads (ADR-0300).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x6A93081534CC88BDUL, sim.StateHash());
+        Assert.Equal(0xAFA4D2781BF3CBA8UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

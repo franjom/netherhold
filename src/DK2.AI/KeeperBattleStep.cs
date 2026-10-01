@@ -15,9 +15,9 @@ namespace DK2.AI;
 /// that takes the flag down.</summary>
 /// <remarks>
 /// <para>Built: the fight flag's recomputation, the emergency call at a fighter, the spell roll,
-/// both selection arms with their target scans, and the removal's three gates; Thunderbolt and
-/// Heal are cast. A chosen spell the simulation cannot cast (Inferno, Chicken) is counted and
-/// not issued.</para>
+/// both selection arms with their target scans, and the removal's three gates; Thunderbolt, Heal
+/// and Chicken are cast at the creature and Inferno at its position. A chosen spell the simulation
+/// cannot cast (none shipped) is counted and not issued.</para>
 /// <para>Deviates: a cast is a command executed a tick later, so its success is predicted from
 /// the captured permissions and the removal test waits until the call is seen (ADR-0283).</para>
 /// </remarks>
@@ -210,20 +210,34 @@ public sealed class KeeperBattleStep
         if (spell == 0 || target == 0) return allowance;
 
         KeeperSpellDef chosen = _view.Database.KeeperSpellById(spell)!;
-        if (!KeeperSpellRules.TargetsAThing(chosen.TargetSelector) || !KeeperSpellRules.ExecutesOnCreature(spell))
+        bool atAThing = KeeperSpellRules.TargetsAThing(chosen.TargetSelector);
+        if (atAThing ? !KeeperSpellRules.ExecutesOnCreature(spell) : !KeeperSpellRules.ExecutesAtPlace(spell))
         {
-            // Inferno at a place and Chicken at a creature: DK2 would test its permission and
-            // cast; ours has no such command, so nothing is issued and nothing is spent.
+            // A spell DK2 would test and cast that ours has no effect for: nothing is issued or spent.
             _state.UnbuiltSpellChoices++;
             return allowance;
         }
         KeeperCreatureView victim = default;
         foreach (KeeperCreatureView creature in _view.Creatures)
             if (creature.Id == target) { victim = creature; break; }
+        if (!Ready(chosen) || chosen.ManaCost > _view.Mana) return allowance;
+        if (!atAThing)
+        {
+            // 0x004BB8A0 then 0x004BBD30 at the target's position: the allowance goes only when both
+            // succeed, and the cast succeeds wherever the permission passes.
+            if (!victim.InfernoPlaceAllowed) return allowance;
+            _commands.Add(new CastSpellAtPlaceCommand(_view.PlayerId, spell, victim.PosX, victim.PosY));
+            return allowance - 1;
+        }
         // 0x004BBA40's permission, predicted: the row's cooldown, the cost against the mana and the
         // spell's captured validators. The cast's own return is ignored, as DK2 ignores it.
-        bool permitted = spell == KeeperSpellRules.Heal ? victim.HealTargetAllowed : victim.SpellTargetAllowed;
-        if (!Ready(chosen) || chosen.ManaCost > _view.Mana || !permitted) return allowance;
+        bool permitted = spell switch
+        {
+            KeeperSpellRules.Heal => victim.HealTargetAllowed,
+            KeeperSpellRules.Chicken => victim.ChickenTargetAllowed,
+            _ => victim.SpellTargetAllowed,
+        };
+        if (!permitted) return allowance;
         _commands.Add(new CastSpellOnCreatureCommand(_view.PlayerId, spell, target));
         return allowance - 1;
     }

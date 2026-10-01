@@ -79,6 +79,8 @@ public sealed class KeeperView : INavByteGrid
         List<HandItem> hand = world.Player(playerId).Hand;
         KeeperSpellDef? thunderbolt = database.KeeperSpellById(KeeperSpellRules.Thunderbolt);
         KeeperSpellDef? heal = database.KeeperSpellById(KeeperSpellRules.Heal);
+        KeeperSpellDef? chicken = database.KeeperSpellById(KeeperSpellRules.Chicken);
+        KeeperSpellDef? inferno = database.KeeperSpellById(KeeperSpellRules.Inferno);
         WorldSteering? steering = null;
         var route = new List<Fixed16Vector>();
         var creatures = new List<KeeperCreatureView>(world.Creatures.Count);
@@ -118,7 +120,11 @@ public sealed class KeeperView : INavByteGrid
                     && KeeperSpellRules.CreatureTargetAllowed(world, database, this, playerId, thunderbolt, c),
                 c.CombatPitFighter, RoomMembershipRules.IsAttached(c),
                 c.OwnerPlayerId == playerId && c.Activity != CreatureActivity.Dead && heal is not null
-                    && KeeperSpellRules.CreatureTargetAllowed(world, database, this, playerId, heal, c)));
+                    && KeeperSpellRules.CreatureTargetAllowed(world, database, this, playerId, heal, c),
+                c.OwnerPlayerId != playerId && c.Activity != CreatureActivity.Dead && chicken is not null
+                    && KeeperSpellRules.CreatureTargetAllowed(world, database, this, playerId, chicken, c),
+                c.OwnerPlayerId != playerId && c.Activity != CreatureActivity.Dead && inferno is not null
+                    && KeeperSpellRules.PlaceAllowed(world, database, this, playerId, inferno, c.Tile)));
         }
         Creatures = creatures.AsReadOnly();
         CallToArms = world.Player(playerId).CallToArms;

@@ -122,12 +122,11 @@ ignored; selectors 4 and 5 cast at the target's position through
 permission returns the allowance unspent; a cast spends one. At most one
 spell is attempted per call.
 
-Built: the whole walk, with Thunderbolt (ADR-0283) and Heal (ADR-0287,
-`keeper-spell-casting.md` §4) the spell arm casts the simulation executes; a
-chosen Inferno or Chicken is counted and not issued (their casts and effects:
-`keeper-spell-inferno-chicken.md`). Ours predicts the
-permission from the observation and issues the cast a tick later; the original
-runs are Q485 and Q491.
+Built: the whole walk, with Thunderbolt (ADR-0283), Heal (ADR-0287,
+`keeper-spell-casting.md` §4), Chicken and Inferno (ADR-0302,
+`keeper-spell-inferno-chicken.md`) the spell arm casts the simulation executes.
+Ours predicts the permission from the observation and issues the cast a tick
+later; the original runs are Q485, Q491 and Q498.
 
 ## 5. CTA removal — `0x004FEFC0`
 

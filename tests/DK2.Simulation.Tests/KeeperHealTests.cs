@@ -74,7 +74,7 @@ public class KeeperHealTests
         byte spell = KeeperSpellRules.Heal; int id = target.Id; ushort flags = 0;
         switch (change)
         {
-            case 0: spell = 11; break; // Chicken: at a creature, not read end to end
+            case 0: spell = 7; break; // Turncoat: at a creature, not read end to end
             case 1: flags = 4; break;
             case 2: world.Player(Keeper).Mana = 4999; break;
             case 3: id = 999; break;
@@ -198,7 +198,6 @@ public class KeeperHealTests
 
     [Theory]
     [InlineData(0)] // frozen
-    [InlineData(1)] // held
     [InlineData(2)] // a Combat Pit fighter
     [InlineData(3)] // attacking abnormal targets
     public void TheIdleIsSkippedForAFrozenHeldPitOrAbnormalTargetingCreatureButTheHealStillLands(int which)
@@ -220,6 +219,22 @@ public class KeeperHealTests
             .Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, KeeperSpellRules.Heal, target.Id)));
 
         Assert.Equal((FightState, 1500), (target.Dk2StateId, target.Health));
+    }
+
+    /// <summary>0x004ABD60: a forced hit wants its target on the map (layer +0x16 not 2), so a Heal at
+    /// a creature in the hand costs its mana and lands nothing that tick (keeper-spell-inferno-chicken.md).</summary>
+    [Fact]
+    public void AForcedHealMissesACreatureInTheHand()
+    {
+        var (db, world, target) = Setup();
+        target.InHand = true;
+        int mana = world.Player(Keeper).Mana;
+
+        new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()])
+            .Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, KeeperSpellRules.Heal, target.Id)));
+
+        Assert.Equal(300, target.Health);
+        Assert.True(world.Player(Keeper).Mana < mana);
     }
 
     [Fact]

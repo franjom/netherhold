@@ -55,10 +55,10 @@ public static class FearRules
     /// <summary><c>0x0045E4F0</c>, every tick after the creature's fight processing: hand last
     /// tick's intake over, scale it by the heart distance, then split my threat among everyone I
     /// fight and add each visible one's share to its intake. A stunned creature or a chicken
-    /// neither fears nor radiates; here only a fallen one is skipped.</summary>
+    /// neither fears nor radiates; here a chicken and a fallen one are skipped, a stunned one not yet.</summary>
     public static void Radiate(SimulationContext context, ISightBlocker sight, HeartSites hearts, CreatureState me, CreatureDef mine)
     {
-        if (CreatureDeathRules.IsDown(me)) return;
+        if (CreatureDeathRules.IsDown(me) || ChickenRules.IsChicken(me)) return;
         WorldState world = context.World;
 
         int d = Math.Min(FullFearDistance, HeartDistance(world, hearts, me));

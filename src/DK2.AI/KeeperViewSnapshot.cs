@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 13;
+    public const int FormatVersion = 14;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -53,7 +53,7 @@ public static class KeeperViewSnapshot
             w.Write(c.UnderCallToArms);
             w.Write(c.FightTargetOwner); w.Write(c.CallToArmsSiteAllowed); w.Write(c.HeartRouteExists);
             w.Write(c.SpellTargetAllowed); w.Write(c.CombatPitFighter); w.Write(c.AttachedToRoom);
-            w.Write(c.HealTargetAllowed);
+            w.Write(c.HealTargetAllowed); w.Write(c.ChickenTargetAllowed); w.Write(c.InfernoPlaceAllowed);
         }
         w.Write(view.Traps.Count);
         foreach (KeeperTrapView t in view.Traps)
@@ -120,7 +120,7 @@ public static class KeeperViewSnapshot
                 r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt32(),
                 r.ReadUInt16(), r.ReadBoolean(), r.ReadInt32(), r.ReadBoolean(),
                 r.ReadByte(), r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean(),
-                r.ReadBoolean());
+                r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean());
         var traps = new KeeperTrapView[ReadCount(r, 12)];
         for (int i = 0; i < traps.Length; i++)
             traps[i] = new KeeperTrapView(r.ReadByte(), r.ReadByte(), r.ReadInt32(), r.ReadInt32(), r.ReadUInt16());

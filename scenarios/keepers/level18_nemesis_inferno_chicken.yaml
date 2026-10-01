@@ -1,0 +1,60 @@
+# The unaided keeper's Inferno and Chicken on a stock map: the Level 18 setup of
+# level18_nemesis_heal.yaml, with Nemesis (player 4) also given Inferno (9) and Chicken (11) at
+# availability 3 and the mana for them. Its Black Knight holds a hero Knight on the claimed tile
+# between its Lair and its heart, so the fight flag is on and the battle step (0x00503060) runs.
+# The offensive arm walks ids upward: Thunderbolt (6) first, then Inferno, then Chicken, each on
+# its own roll; Inferno and Chicken then wait out their 60-second cooldowns. Inferno is cast at the Knight's
+# position through action 54, as a human's would be: location selector 1 admits Nemesis's own
+# tile, and the stationary shot 15 then runs process 30 for 30 ticks. It burns every creature
+# within one tile of that spot whoever owns it, so Nemesis's own Black Knight burns beside the
+# Knight. That is DK2's behaviour, confirmed by the owner's own cast (Q498). Chicken is cast at the
+# Knight through action 55: target selector 3 admits it, and shot 10's process 15 stamps 240 ticks
+# of ChickenTimer and sets state 96. No cast, roll or flag is scripted.
+#
+# What this run does NOT establish: how often DK2's Nemesis casts either spell, or its timing.
+# No original run of a keeper's Inferno or Chicken has been compared (Q498).
+id: keepers-level18-nemesis-inferno-chicken-001
+question: >
+  Does Nemesis, unaided, cast Inferno and Chicken at a hero its fighter holds, and does the
+  Inferno burn Nemesis's own creature beside the hero, as DK2's does?
+map: campaign:level18
+seed: 12345
+duration_ticks: 60
+viewing_player: 4
+computer_keepers: [4]
+setup:
+  placed_things: true
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 2, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
+    - { id: 4, gold: 10000, mana: 200000, spells: [9, 11] }
+    - { id: 5, gold: 10000, mana: 100 }
+    - { id: 6, gold: 10000, mana: 100 }
+  creatures:
+    - { type: Black Knight, at: [54, 53], player: 4, health: 1500 }
+    - { type: Black Knight, at: [52, 54], player: 4 }
+    - { type: Knight, at: [51, 54], player: 1 }
+observe:
+  - state_hash
+  - events
+expect:
+  - event: cast
+    detail: "player=4 spell=9"
+    because: >
+      The offensive arm reaches Inferno on a turn Thunderbolt's roll fails, and
+      0x004BB8A0's location selector 1 admits the Knight's tile on Nemesis's land.
+  - event: inferno_hit
+    detail: "owner=4"
+    because: >
+      Process 30 (0x004AF660) tests no owner: Nemesis's own Black Knight within a tile of the
+      cast point burns, as the owner's own Goblins burned in their test.
+  - event: cast
+    detail: "player=4 spell=11"
+    because: >
+      Chicken is the last offensive spell in the walk; target selector 3 admits the hero.
+  - event: chickened
+    detail: "state=96"
+    because: >
+      Process 15 (0x004AE2A0) stamps ChickenTimer and requests state 96, which a fighting Knight
+      enters from its own group.

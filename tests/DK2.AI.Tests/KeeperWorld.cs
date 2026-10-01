@@ -91,12 +91,15 @@ internal static class KeeperWorld
             Shot("Create Object", CreateObjectShotId, 2048, 1, 4, 0x80, ShotRules.CreateObjectProcess),
             Shot("Lightning Shot", LightningShotId, 0, 8, 0x104, 0x40, ShotRules.LightningProcess),
             Shot("Modify Health", ModifyHealthShotId, 3686, 128, 0x23, 0x4, ShotRules.ModifyHealthProcess, collide: 3),
+            Shot("Chicken", ChickenShotId, 2048, 16, 0x6, 0x4, ShotRules.ChickenProcess, collide: 2),
+            Shot("Inferno", InfernoShotId, 2048, 30, 0x104, 0x2, ShotRules.InfernoProcess),
         ]);
     }
 
-    /// <summary>Spells 1 to 10 with the shipped ids, costs, flags and selectors, so the battle
+    /// <summary>Spells 1 to 11 with the shipped ids, costs, flags and selectors, so the battle
     /// step's ascending walk over the descriptor count meets what DK2's meets: Thunderbolt (6),
-    /// Inferno (9) and a Chicken-shaped 7 are offensive, Heal (10) supportive, the rest excluded.</summary>
+    /// Inferno (9) and Chicken (11) are offensive, Heal (10) supportive, the rest excluded; 7 stands
+    /// in for an offensive spell with no effect built, which shipped Turncoat is not.</summary>
     private static KeeperSpellDef[] KeeperSpells() =>
     [
         Spell("Sight Of Evil", 1, 5000, KeeperSpellFlags.ExcludedFromBattle, 5, 4),
@@ -111,25 +114,32 @@ internal static class KeeperWorld
         new() { Name = KeeperSpellName.CreateImp, KeeperSpellId = 4, ManaCost = 1500, ManaUpkeepPerSecond = 7, Flags = KeeperSpellFlags.ExcludedFromBattle },
         Spell("Summon Horny", 5, 100000, KeeperSpellFlags.ExcludedFromBattle, 1, 4),
         Spell("Thunderbolt", KeeperSpellRules.Thunderbolt, 6000, KeeperSpellFlags.Offensive, 1, 2, LightningShotId),
-        Spell("Chicken", 7, 10000, KeeperSpellFlags.Offensive, 1, 3),
+        Spell("Unbuilt", 7, 10000, KeeperSpellFlags.Offensive, 1, 3),
         Spell("Tremor", 8, 30000, KeeperSpellFlags.Offensive | KeeperSpellFlags.ExcludedFromBattle, 5, 4),
-        Spell("Inferno", 9, 50000, KeeperSpellFlags.Offensive, 1, 5),
+        Spell("Inferno", KeeperSpellRules.Inferno, 50000, KeeperSpellFlags.Offensive, 1, 5, InfernoShotId, data1: 100, data2: 1),
         new()
         {
             Name = "Heal", KeeperSpellId = KeeperSpellRules.Heal, ManaCost = 5000, ManaUpkeepPerSecond = 0,
             Flags = KeeperSpellFlags.Supportive, LocationSelector = 4, TargetSelector = 1,
             ShotTypeId = ModifyHealthShotId, ShotData1 = 16000, BonusShotTypeId = ModifyHealthShotId, BonusShotData1 = 25000,
         },
+        Spell("Chicken", KeeperSpellRules.Chicken, 10000, KeeperSpellFlags.Offensive, 1, 3, ChickenShotId, data1: 60),
     ];
+
+    /// <summary>Shots 10 and 15 as shipped: Chicken's process 15 on the thing struck, Inferno's process
+    /// 30 before each move of its 30 ticks.</summary>
+    public const byte ChickenShotId = 10, InfernoShotId = 15;
 
     /// <summary>Shot 4 as shipped: process 3 on the thing struck, dying on it, collide class 3.</summary>
     public const byte ModifyHealthShotId = 4;
 
-    private static KeeperSpellDef Spell(string name, byte id, int cost, KeeperSpellFlags flags, byte location, byte target, byte shot = 0) =>
+    private static KeeperSpellDef Spell(string name, byte id, int cost, KeeperSpellFlags flags, byte location, byte target, byte shot = 0,
+        int data1 = 0, int data2 = 0) =>
         new()
         {
             Name = name, KeeperSpellId = id, ManaCost = cost, ManaUpkeepPerSecond = 0, Flags = flags,
             LocationSelector = location, TargetSelector = target, ShotTypeId = shot, BonusShotTypeId = shot,
+            ShotData1 = data1, ShotData2 = data2, BonusShotData1 = data1, BonusShotData2 = data2,
         };
 
     /// <summary>The Call to Arms flag, OBJECTS record 10 as shipped: start state 12, 128 health.</summary>
@@ -294,7 +304,7 @@ internal static class KeeperWorld
 
         vars.Availabilities.Add(new AvailabilityEntry(5, Keeper, 4, 3));
         // Rows for the battle spells, unavailable until a test says otherwise.
-        foreach (int spell in new[] { 3, 6, 7, 9, 10 })
+        foreach (int spell in new[] { 3, 6, 7, 9, 10, 11 })
             vars.Availabilities.Add(new AvailabilityEntry(5, Keeper, spell, 1));
         vars.Misc[VariableTypeId.MaximumManaThreshold] = new MiscVariable(VariableTypeId.MaximumManaThreshold, 200000, 0, 0);
         vars.Misc[VariableTypeId.MinimumImpThreshold] = new MiscVariable(VariableTypeId.MinimumImpThreshold, 4, 0, 0);

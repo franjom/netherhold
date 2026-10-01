@@ -207,4 +207,49 @@ public class KeeperSpellsOnRealDataTests
         Assert.True(possession.ManaCost < createGold.ManaCost);
         Assert.True(possession.ManaUpkeepPerSecond > createGold.ManaUpkeepPerSecond);
     }
+
+    // ---- Inferno and Chicken (keeper-spell-inferno-chicken.md §1) ------------
+
+    /// <summary>
+    /// The two casts are built against these records, so the records are pinned: Inferno a place
+    /// cast (selectors 1 and 5) of shot 15, process 30 before each move of its 30 ticks; Chicken a
+    /// creature cast (1 and 3) of shot 10, process 15 on the hit; both 60 seconds of cooldown.
+    /// </summary>
+    [InstallFact]
+    public void InfernoAndChickenAreTheRecordsTheCastArmsExecute()
+    {
+        GameDatabase database = Database();
+        KeeperSpellDef inferno = database.KeeperSpellById(KeeperSpellRules.Inferno)!;
+        KeeperSpellDef chicken = database.KeeperSpellById(KeeperSpellRules.Chicken)!;
+        Assert.Equal((1, 5, 15, 100, 1, 125, 50000, 0x3C000),
+            (inferno.LocationSelector, inferno.TargetSelector, inferno.ShotTypeId, inferno.ShotData1, inferno.ShotData2,
+             inferno.BonusShotData1, inferno.ManaCost, inferno.CooldownRaw));
+        Assert.Equal((1, 3, 10, 60, 90, 10000, 0x3C000),
+            (chicken.LocationSelector, chicken.TargetSelector, chicken.ShotTypeId, chicken.ShotData1, chicken.BonusShotData1,
+             chicken.ManaCost, chicken.CooldownRaw));
+        Assert.False(KeeperSpellRules.TargetsAThing(inferno.TargetSelector));
+        Assert.True(KeeperSpellRules.TargetsAThing(chicken.TargetSelector));
+
+        ShotDef fire = database.Shots[15], bird = database.Shots[10];
+        Assert.Equal((30, 0x2u, 0x104u, 30, 0), (fire.ProcessType, fire.ShotProcessFlags, fire.Flags, (int)fire.Health, (int)fire.CollideType));
+        Assert.Equal((15, 0x4u, 0x6u, 16, 2), (bird.ProcessType, bird.ShotProcessFlags, bird.Flags, (int)bird.Health, (int)bird.CollideType));
+    }
+
+    /// <summary>
+    /// Who each spell spares, from the creature flags: ten kinds are immune to Chicken, and Inferno
+    /// spares exactly the lava walkers that cannot fly (the owner's casts: Salamanders untouched,
+    /// Fairies and Fireflies burning, Q498).
+    /// </summary>
+    [InstallFact]
+    public void TheShippedRostersOfWhomTheTwoSpare()
+    {
+        GameDatabase database = Database();
+        string[] immune = [.. database.Creatures.Values.Where(c => c.Flags.HasFlag(CreatureFlags.IsImmuneToChicken)).Select(c => c.Name).Order()];
+        Assert.Equal(["Horny", "Jack", "King Reginald", "Lord Of The Land", "Prince Balder", "Prince Felix", "Prince Tristran",
+            "Stone Knight", "Unique Firefly", "Unique Rogue"], immune);
+        string[] spared = [.. database.Creatures.Values
+            .Where(c => c.Flags.HasFlag(CreatureFlags.CanWalkOnLava) && !c.Flags.HasFlag(CreatureFlags.CanFly))
+            .Select(c => c.Name).Order()];
+        Assert.Equal(["Giant", "Horny", "Salamander", "Unique Salamander"], spared);
+    }
 }

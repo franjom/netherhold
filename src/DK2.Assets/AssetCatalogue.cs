@@ -66,6 +66,7 @@ public static class AssetCatalogue
         "pit_fighting",
         "heeding_call_to_arms",
         "being_lifted",
+        "chicken",
     ];
 
     /// <summary>

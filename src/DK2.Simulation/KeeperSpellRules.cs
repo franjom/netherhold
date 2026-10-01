@@ -25,6 +25,14 @@ public static class KeeperSpellRules
     /// <summary>Heal (10): shot 4, the Modify Health process, at a creature target selector 1 admits
     /// on a tile location selector 4 admits (keeper-spell-casting.md §4).</summary>
     public const byte Heal = 10;
+
+    /// <summary>Inferno (9): shot 15, process 30, cast at a place location selector 1 admits, target
+    /// selector 5 admitting anything (keeper-spell-inferno-chicken.md §2, §4).</summary>
+    public const byte Inferno = 9;
+
+    /// <summary>Chicken (11): shot 10, process 15, at a live non-neutral creature (target selector 3)
+    /// on a tile location selector 1 admits (keeper-spell-inferno-chicken.md §2, §3).</summary>
+    public const byte Chicken = 11;
     public const ushort SpellAvailabilityKind = 5;
 
     // Zero is the original helper's result even when creation and payment succeeded.
@@ -56,8 +64,8 @@ public static class KeeperSpellRules
     }
 
     /// <summary>Action 54 through <c>0x004BBD30</c>: permission, the shot at the place, the
-    /// payment and both clocks. Only Call to Arms (3) is read end to end. Returns the original
-    /// helper's success flag.</summary>
+    /// payment and both clocks, for Call to Arms (3) and Inferno (9). The shot is not launched, so an
+    /// Inferno stands where it is made. Returns the original helper's success flag.</summary>
     public static int CastAtPlace(SimulationContext context, CastSpellAtPlaceCommand cast, out KeeperSpellRefusal refusal)
     {
         refusal = CanCastAtPlace(context, cast);
@@ -83,7 +91,7 @@ public static class KeeperSpellRules
     /// cooldown, then the location and target validators the record selects.</summary>
     public static KeeperSpellRefusal CanCastAtPlace(SimulationContext context, CastSpellAtPlaceCommand cast)
     {
-        if (cast.SpellId != CallToArmsRules.SpellId) return KeeperSpellRefusal.UnsupportedSpell;
+        if (!ExecutesAtPlace(cast.SpellId)) return KeeperSpellRefusal.UnsupportedSpell;
         if (cast.Flags != 0) return KeeperSpellRefusal.UnsupportedFlags;
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -106,11 +114,11 @@ public static class KeeperSpellRules
             case 4: if (!LocationFour(world, context.Navigation, at)) return KeeperSpellRefusal.Location; break;
             default: return KeeperSpellRefusal.UnsupportedLocationSelector;
         }
-        if (spell.TargetSelector != 4) return KeeperSpellRefusal.UnsupportedTargetSelector;
-        if (!TargetFour(world, database, cast.PlayerId, at)) return KeeperSpellRefusal.Target;
+        if (spell.TargetSelector is not (4 or 5)) return KeeperSpellRefusal.UnsupportedTargetSelector;
+        if (!PlaceTargetAllowed(world, database, cast.PlayerId, spell, at)) return KeeperSpellRefusal.Target;
         var effect = spell.Shot(availability.Upgraded);
         if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
-        if (shot.ProcessType != ShotRules.CreateObjectProcess) return KeeperSpellRefusal.UnsupportedShotProcess;
+        if (shot.ProcessType is not (ShotRules.CreateObjectProcess or ShotRules.InfernoProcess)) return KeeperSpellRefusal.UnsupportedShotProcess;
         return KeeperSpellRefusal.None;
     }
 
@@ -118,17 +126,27 @@ public static class KeeperSpellRules
     /// of the runtime table at <c>0x006FCE40</c>) rather than at a place (4 and 5).</summary>
     public static bool TargetsAThing(byte targetSelector) => targetSelector is 1 or 2 or 3 or 6;
 
-    /// <summary>The spells whose casts this simulation executes: Call to Arms at a place,
-    /// Thunderbolt and Heal at a creature. Create Imp keeps its own command.</summary>
-    public static bool ExecutesAtPlace(byte spellId) => spellId == CallToArmsRules.SpellId;
-    public static bool ExecutesOnCreature(byte spellId) => spellId is Thunderbolt or Heal;
+    /// <summary>The spells whose casts this simulation executes: Call to Arms and Inferno at a place,
+    /// Thunderbolt, Heal and Chicken at a creature. Create Imp keeps its own command.</summary>
+    public static bool ExecutesAtPlace(byte spellId) => spellId is CallToArmsRules.SpellId or Inferno;
+    public static bool ExecutesOnCreature(byte spellId) => spellId is Thunderbolt or Heal or Chicken;
 
     /// <summary>The place validators of <c>0x004BB8A0</c> for one spell at one tile: its location
-    /// selector (1 or 4 read) and target selector 4. The caller's grid must be current.</summary>
+    /// selector (1 or 4 read) and target selector 4 or 5. The caller's grid must be current.</summary>
     public static bool PlaceAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
         byte playerId, KeeperSpellDef spell, TilePos at) =>
         LocationAllowed(world, database, navigation, playerId, spell, at)
-        && spell.TargetSelector == 4 && TargetFour(world, database, playerId, at);
+        && PlaceTargetAllowed(world, database, playerId, spell, at);
+
+    /// <summary>The place arm of the target validator: 4 (<c>0x005179D0</c>) applies the caster's own
+    /// room exclusions; 5 (<c>0x00517F60</c>) admits anything; any other fails closed.</summary>
+    private static bool PlaceTargetAllowed(WorldState world, GameDatabase database, byte playerId, KeeperSpellDef spell, TilePos at) =>
+        spell.TargetSelector switch
+        {
+            4 => TargetFour(world, database, playerId, at),
+            5 => world.Contains(at),
+            _ => false,
+        };
 
     /// <summary>The creature validators of <c>0x004BBA40</c>: the record's location selector at the
     /// target's tile, then its target selector on the creature.</summary>
@@ -148,12 +166,14 @@ public static class KeeperSpellRules
     };
 
     /// <summary>The target validator the record selects (<c>0x00517730</c>) on a creature: 1
-    /// (<c>0x00517800</c>) and 2 (<c>0x00517930</c>) are read; any other fails closed.</summary>
+    /// (<c>0x00517800</c>), 2 (<c>0x00517930</c>) and 3 (<c>0x00517990</c>) are read; any other fails
+    /// closed.</summary>
     public static bool TargetAllowed(WorldState world, GameDatabase database, byte playerId, KeeperSpellDef spell,
         CreatureState target) => spell.TargetSelector switch
     {
         1 => TargetOne(world, database, playerId, target),
         2 => TargetTwo(playerId, target),
+        3 => target.OwnerPlayerId != PlayerIds.Neutral,
         _ => false,
     };
 
@@ -201,7 +221,7 @@ public static class KeeperSpellRules
     /// cast helper's own maximum-health test: what the command would refuse before paying.</summary>
     public static KeeperSpellRefusal CanCast(SimulationContext context, CastSpellOnCreatureCommand cast)
     {
-        // Thunderbolt and Heal are read end to end; Create Imp retains its own command.
+        // Thunderbolt, Heal and Chicken are read end to end; Create Imp retains its own command.
         if (!ExecutesOnCreature(cast.SpellId)) return KeeperSpellRefusal.UnsupportedSpell;
         // The ordinary packet path is read; bypass/inverted targeting is a separate boundary.
         if (cast.Flags != 0) return KeeperSpellRefusal.UnsupportedFlags;
@@ -226,11 +246,12 @@ public static class KeeperSpellRules
         if (spell.LocationSelector is not (1 or 4)) return KeeperSpellRefusal.UnsupportedLocationSelector;
         context.Navigation.Refresh();
         if (!LocationAllowed(world, database, context.Navigation, cast.PlayerId, spell, target.Tile)) return KeeperSpellRefusal.Location;
-        if (spell.TargetSelector is not (1 or 2)) return KeeperSpellRefusal.UnsupportedTargetSelector;
+        if (spell.TargetSelector is not (1 or 2 or 3)) return KeeperSpellRefusal.UnsupportedTargetSelector;
         if (!TargetAllowed(world, database, cast.PlayerId, spell, target)) return KeeperSpellRefusal.Target;
         var effect = spell.Shot(availability.Upgraded);
         if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
-        if (shot.ProcessType is not (ShotRules.LightningProcess or ShotRules.ModifyHealthProcess)) return KeeperSpellRefusal.UnsupportedShotProcess;
+        if (shot.ProcessType is not (ShotRules.LightningProcess or ShotRules.ModifyHealthProcess or ShotRules.ChickenProcess))
+            return KeeperSpellRefusal.UnsupportedShotProcess;
         // 0x004BC13C, after the permission and before the shot and the payment: a positive Modify
         // Health carrier wants its target strictly below the level-scaled maximum.
         if (shot.ProcessType == ShotRules.ModifyHealthProcess && effect.Data1 > 0

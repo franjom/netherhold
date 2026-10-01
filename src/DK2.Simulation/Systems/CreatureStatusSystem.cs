@@ -11,7 +11,8 @@ namespace DK2.Simulation.Systems;
 /// <summary>The timed-effects update (docs/research/creature-status-effects.md §1, <c>0x0048E160</c>),
 /// once a tick for every creature and skipped whole for an <c>IsHorny</c> definition: each status
 /// word steps down while nonzero; the frozen state ends idle when its word is spent, the speed
-/// effect puts the walk back, poison bleeds its amount a tick while the creature is not frozen. The
+/// effect puts the walk back, poison bleeds its amount a tick while the creature is not frozen, and a
+/// spent chicken timer sends the creature to idle whatever it is doing. The
 /// stun is a state with its own clock (§2, state 255) and counts here too.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-status-effects.md")]
 public sealed class CreatureStatusSystem : ISimulationSystem
@@ -50,6 +51,7 @@ public sealed class CreatureStatusSystem : ISimulationSystem
             if (creature.InvulnerableTicks > 0) creature.InvulnerableTicks--;
             if (creature.InvisibleTicks > 0) creature.InvisibleTicks--;
             if (creature.FrozenTicks > 0) creature.FrozenTicks--;
+            if (creature.ChickenTicks > 0 && --creature.ChickenTicks == 0) ChickenRules.TimerEnded(context, creature);
             if (creature.Activity == CreatureActivity.Frozen && creature.FrozenTicks == 0)
             {
                 Combat.CombatStates.Idle(creature);

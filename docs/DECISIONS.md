@@ -6634,3 +6634,37 @@ is the Angry animation and the test is bit 0 of its file flags, set by 13 shippe
 and the end come from renderer flags (`+0xF1`, `+0xDC`) that are not read, and no capture holds a
 prisoner. Four tests, each failed by a negative control, and a real-data test of the 13. The pin
 holds.
+
+## ADR-0302 — Inferno and Chicken are cast: a fire zone that burns every owner, a chicken kept from fights by its timer
+**Date:** 2026-10-01 · **Status:** accepted · amends ADR-0283, ADR-0287 · Research: `keeper-spell-inferno-chicken.md` · Q498
+
+**Context.** The battle step chose Inferno (9) and Chicken (11) and counted them unbuilt. The binary read
+and its verification are in the research note; the owner's own casts confirmed Inferno's owner-blind
+damage, Salamanders spared, Fairies and Fireflies burning, and a recast timeout.
+
+**Decision.**
+1. `KeeperSpellRules` casts Inferno at a place (location 1, target 5) and Chicken at a creature
+   (location 1, target 3: live, not neutral). Action 54's place cast leaves the shot unlaunched.
+2. Shot process 30 (`InfernoRules.Burn`, `0x004AF660`) runs before each move: every creature of any
+   owner on a non-solid tile with `dx²>>12 + dy²>>12` below `(data2<<12)²>>12`, halved on the first
+   tick, takes data1 through the health routine unless its kind walks on lava without flying, and
+   unless it is held, carried or down. Burning, the source stamp and bridge command 10 are display.
+3. Shot process 15 (`ChickenRules.Strike`, `0x004AE2A0`) stores `ChickenTicks` = data1 × 4 before
+   asking for state 96, unless the kind is `IsImmuneToChicken`. `CreatureStatusSystem` counts it down
+   and at zero sets idle whatever the state. The fight gate, the fear accumulator and the Combat Pit
+   finder read the timer, not the state.
+4. State 96 is the new `Chicken` activity. `ChickenSystem` runs its handler (`0x00463BE0`): the
+   nearest reachable Hatchery of the creature's own keeper, through `StealGoldRules.ToRoom`, after
+   the unused random-tile draw; otherwise a random cardinal neighbour not solid, water or lava, a
+   random point of the 3×3 sub-tile table, and a walk resuming 96.
+5. Two shot corrections from the read: a forced hit misses a target off the map (in a hand or
+   carried), so a Heal at a held creature pays and its forced hit lands nothing; a shot the world stops without
+   `DiesOnSolid` still counts down and dies with its death shot (`0x004AB4B6`).
+6. The observation captures `ChickenTargetAllowed` and `InfernoPlaceAllowed` per foreign creature;
+   the battle step casts Chicken at the creature and Inferno at its position, spending the allowance
+   on a passed permission (schema 14).
+
+**Consequences.** HashVersion 144, pin `0xAFA4D2781BF3CBA8`; snapshot format 144. Approximations:
+the Hatchery is measured from its centroid tile, not DK2's `NavigationPos`, and ties go by room
+order; the tile box clamps to the last column where DK2's reads one past it. Level 18's Nemesis
+casts both unaided and its Inferno burns its own Black Knight. Q498 holds the open parts.

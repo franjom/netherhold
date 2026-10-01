@@ -81,15 +81,17 @@ public sealed class ShotSystem : ISimulationSystem
 
             ShotRules.AreaDamage(context, shot, definition);
 
-            // The lifetime counts down every tick the shot is not stopped by the world; a shot
-            // standing still (an explosion, a cloud) counts down too (Q398).
+            // The lifetime counts down every tick the shot is not destroyed by the world; a shot
+            // standing still (an explosion, a cloud, an Inferno) counts down too (Q398), and so does one
+            // the world stopped without killing (0x004AB4B6, keeper-spell-inferno-chicken.md §4).
             if (shot.Health > 0 && !stopped && (definition.Flags & ShotRules.CountsDown) != 0) shot.Health--;
             if (shot.Health <= 0) Die(context, shot, definition, deathShot: !stopped);
         }
     }
 
     /// <summary>Two half-steps along the velocity, each refused by a solid tile (§4a, §6). False when
-    /// the world stopped the shot this tick.</summary>
+    /// the world stopped the shot this tick and its <c>Flags</c> bit 0 destroyed it; a shot stopped
+    /// without that bit goes on to the countdown and the flying death, as DK2's falls through.</summary>
     private static bool Move(SimulationContext context, ShotState shot, ShotDef definition)
     {
         WorldState world = context.World;
@@ -122,8 +124,9 @@ public sealed class ShotSystem : ISimulationSystem
 
             shot.VelX = 0;
             shot.VelY = 0;
-            if ((definition.Flags & ShotRules.DiesOnSolid) != 0) shot.Health = 0;
             context.Emit(SystemName, "shot_stopped", $"shot={shot.Id} type={definition.ShotId} at={shot.PosX},{shot.PosY}");
+            if ((definition.Flags & ShotRules.DiesOnSolid) == 0) return true;
+            shot.Health = 0;
             return false;
         }
 
