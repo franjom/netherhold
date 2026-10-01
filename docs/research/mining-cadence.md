@@ -157,3 +157,16 @@ each. Ours goes from 1 to 12 in the same tick. Ours has no entry states (13, 15,
 
 So master's early digs are too fast and its rests too short, and the two cancel
 there. Neither the hold nor the idle lengths is built.
+
+## 7. How long a digger stays after its wall falls (2026-10-01)
+
+**Measured (seven seeded Level 1 captures, to tick 1500).** A digger leaves state 14 on a
+multiple of 6 ticks after it entered (461 of 630 exits), so the 6-tick dig action stands.
+From the fall to each digger's exit: DK2 0/1/2/3/4/5 ticks in 25/42/84/40/374/65 cases;
+ours (20-seed replays, seeds 1–7) 1/2/3/4/5/6 in 92/26/45/346/65/61. Means 3.4 and 3.7.
+The one-strike Rock tiles (the 4 peak) agree. DK2 can leave on the fall's own tick and never
+at 6: a strike lands inside the striker's update, so a later digger whose action ends that
+tick already sees the tile gone. Ours applies strikes after every imp has moved
+(`TileWorkSystem`), so that digger waits a whole action. Not changed: it is the order of
+work within a tick, worth 0.3 ticks on average. It matters for the kind-14 window of
+ADR-0305 (`digexit.py`, `ourdigexit.py` in the session scratchpad).
