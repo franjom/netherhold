@@ -69,7 +69,7 @@ shapes.
 record's ~45 `ArtResource` animation blocks to play, counting 84-byte blocks from
 record offset `0x20`. Actions 1 and 2 hold 5, the Imp's block 5 is `Imp_Dig`;
 action 49 holds 30, block 30 is every portal creature's Entrance
-(`portal-creature-action.md`). The filler runs past `0x00495E00`: record 49 is
+(`portal-creature-action.md`); action 41 holds 9, Angry (`0x00495C9C`, prison.md §6.3). The filler runs past `0x00495E00`: record 49 is
 written at `0x00495E0A`–`0x00495EBD`. Formerly a hypothesis from the shape only. Its range stops at `0x25`,
 and records 36, 37 and 38 share one handler (`0x00499300`) and differ only in
 this byte. Not tested, and not named on the strength of a shape.

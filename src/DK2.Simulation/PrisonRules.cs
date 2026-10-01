@@ -58,9 +58,28 @@ public static class PrisonRules
     /// another step — <b>20 in 100</b>. Read from DK2's state 116 (<c>0x74</c>), which
     /// rolls <c>random(100)</c> and enters the decision state 115 under 20. It rolls
     /// only while the prisoner is not already walking, so it is the pause between
-    /// steps, about five ticks. A narrower path takes rolls 10..19 when an unread
-    /// per-creature flag is set, halving it to 10 in 100 — not modelled, Q188.</summary>
+    /// steps, about five ticks. For a creature with <see cref="HasAngryFlourish"/> rolls
+    /// 0..9 play the flourish instead, so only 10..19 step (Q188).</summary>
     public const int WanderPercentPerTick = 20;
+
+    /// <summary>Rolls below this play the Angry flourish for a creature that has it (state 116,
+    /// <c>0x004734E4</c>).</summary>
+    public const int FlourishPercent = 10;
+
+    /// <summary>Whether state 116's <c>CreatureDef_HasArt(9)</c> holds: bit 0 of the Angry
+    /// animation's flags (<c>0x00494A00</c>; 13 shipped creatures, Q188).</summary>
+    public static bool HasAngryFlourish(CreatureDef definition) => (definition.AngryArtFlags & 1) != 0;
+
+    /// <summary>How long action 41 holds a prisoner: state 116 passes <c>rand(3) + 2</c>, the wrapper
+    /// <c>0x00496A30</c> stores one more as the cycle count (<c>+0x3AE</c>), and the runner
+    /// <c>0x00496AA0</c> lets the animation loop until the count runs down, so the Angry animation
+    /// plays <paramref name="variant"/> + 1 times at its frames and rate, rounded up as for action 49.
+    /// LIKELY: the count and the end come from the renderer's flags, which are not read.</summary>
+    public static int FlourishTicks(CreatureDef definition, int variant) =>
+        definition.AngryFrames <= 0 || definition.AngryFramesPerSecond <= 0
+            ? 0
+            : (((variant + 1) * definition.AngryFrames * SimulationTiming.OriginalTicksPerGameSecond)
+               + definition.AngryFramesPerSecond - 1) / definition.AngryFramesPerSecond;
 
     /// <summary>The four orthogonal steps <b>in DK2's own table order</b> — north,
     /// east, south, west — as stored at <c>0x006BC350</c>. The order is behaviour, not

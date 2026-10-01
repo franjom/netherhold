@@ -1633,4 +1633,77 @@ public class PrisonTests
 
         Assert.Equal(250, captive.Health);
     }
+
+    // ---- the Angry flourish (Q188) ------------------------------------------
+
+    private const byte FlourishingId = 12;
+
+    /// <summary>A Goblin with a Firefly's Angry animation: flag bit 0 set, 34 frames at 30.</summary>
+    private static GameDatabase FlourishDb() => Dk2TerrainFixture.Database(
+        Dk2TerrainFixture.Database().CreatureById(GoblinId) with
+        {
+            CreatureId = FlourishingId, Name = "Flourisher",
+            AngryArtFlags = 1, AngryFrames = 34, AngryFramesPerSecond = 30,
+        });
+
+    /// <summary>Action 41 plays the Angry animation rand(3) + 2 + 1 times, at its frames and rate,
+    /// rounded up as action 49's Entrance is (0x00496A30, 0x00496AA0).</summary>
+    [Theory]
+    [InlineData(2, 14)]
+    [InlineData(3, 19)]
+    [InlineData(4, 23)]
+    public void TheFlourishPlaysTheAngryAnimationOneMoreTimeThanItsVariant(int variant, int ticks)
+    {
+        CreatureDef flourisher = FlourishDb().CreatureById(FlourishingId);
+        Assert.Equal(ticks, PrisonRules.FlourishTicks(flourisher, variant));
+        Assert.Equal(0, PrisonRules.FlourishTicks(Db.CreatureById(GoblinId), variant));
+    }
+
+    /// <summary>State 116 with HasArt(9): rolls 0..9 start action 41 and the prisoner stands until it
+    /// ends; only 10..19 step (0x004734E4). The length is LIKELY, read from the cycle count.</summary>
+    [Fact]
+    public void APrisonerWithTheAngryFlagFlourishesAndStandsStillWhileTheLikelyLengthRuns()
+    {
+        GameDatabase db = FlourishDb();
+        WorldState world = World(db);
+        BigPrison(db, world);
+        CreatureState captive = world.SpawnCreature(db, FlourishingId, Rival, CellB);
+        Assert.True(PrisonRules.Imprison(world, db, captive, Keeper, (CellB.Y * world.Width) + CellB.X));
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        int flourishes = 0;
+        for (int i = 0; i < 60 * Second && world.CreatureById(captive.Id) is not null; i++)
+        {
+            TilePos before = captive.Tile;
+            bool holding = world.CurrentTick.Value < captive.ActionUntilTick;
+            int seen = sink.Events.Count;
+            sim.Tick();
+            if (holding)
+            {
+                Assert.Equal(before, captive.Tile);
+                Assert.DoesNotContain(sink.Events.Skip(seen), e => e.Kind == "prisoner_stepped");
+            }
+            flourishes = sink.Events.Count(e => e.Kind == "prisoner_flourish");
+        }
+
+        Assert.True(flourishes > 0, "a flagged prisoner never flourished in a minute");
+    }
+
+    [Fact]
+    public void APrisonerWithoutTheAngryFlagNeverFlourishes()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        BigPrison(db, world);
+        Prisoner(db, world, CellB);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int i = 0; i < 60 * Second; i++) sim.Tick();
+
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "prisoner_flourish");
+        Assert.Contains(sink.Events, e => e.Kind == "prisoner_stepped");
+    }
 }

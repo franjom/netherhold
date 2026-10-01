@@ -284,7 +284,7 @@ records. Both self-contained.
 decision state on `random(100) < 20`, but down one of two paths: when
 `CreatureDef_HasArt(9)` (`0x00494A00`) is non-zero it instead requires 10..19,
 halving the rate. ANSWERED 2026-10-01: record 9 is the Angry animation and the
-test is its file flag bit 0, set by 13 creatures (open-questions.md Q188).
+test is its file flag bit 0, set by 13 creatures (open-questions.md Q188). Built, ADR-0301.
 
 **Q217 — what sets the keeper's casino flag at `player+0x20D`?** The research
 adder's first bonus is gated on a 16-bit field beside the research accumulator
