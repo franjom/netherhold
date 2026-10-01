@@ -85,7 +85,8 @@ second), Arrow and Knives 4915, Firebomb and most others 2048, Grenade 1228.
    **process event 0x40**; then `processedAtStart = 1`.
 2. `health ≤ 0` → the tail (step 8).
 3. Last position and angle := current. If `+0x155` (max range, position units)
-   is set and my distance² from `+0x159` (start) exceeds it → health 0.
+   is set and my distance² from `+0x159` (start) exceeds it → destroyed
+   (`vtable+0x20`, `0x004AB308`).
 4. **Process event 0x2** (before movement); the handler returning 0 ends the
    tick here.
 5. **Collision** (`0x004ABD60`, §4a) — with a thing, or a move along the
@@ -94,7 +95,10 @@ second), Arrow and Knives 4915, Firebomb and most others 2048, Grenade 1228.
 7. **Physics** (`0x004B2030`, §6). Returns 0 = stopped by the world: the
    hit-solid effect (`+0x5E`) and **hit-solid shot** (`+0x60`, inheriting target
    position, data words, caster, target and the possessed flag), sound, **process
-   event 0x8**, and with `Flags` bit 0 → health 0; tick ends. Returns 1 = flying:
+   event 0x8** (returning 0 ends the tick), and with `Flags` bit 0 → destroyed
+   (`vtable+0x20`), tick ends; **without bit 0 it falls through to the countdown
+   below**, as a flying shot does (`0x004AB4B6`, re-read 2026-10-01 for Inferno,
+   `keeper-spell-inferno-chicken.md` §4). Returns 1 = flying, and the fall-through:
    `Flags` bit 2 → `health−−`; health still > 0 → the tail; else **death**: sound,
    death effect (`+0x5B`), **death shot** (`+0x5D`, inheriting), **process event
    0x80**, and if that returns 0 the tick ends.
@@ -205,8 +209,10 @@ Each runs with the shot as `this`; the target is `+0x147`, `t/s` variable 19.
 | 10 | Invulnerable (5) | creature `+0x445` = data1 × t/s — the word the melee blow and §7 refuse |
 | 11 | Mistress and Fairy Freeze (10, 15) | `0x004B32A0(shot, +0x52, owner, 2)`; not `IsHorny` → `0x0048CB60(creature, data1 × t/s)` |
 | 12 | (keeper) | effect 0x2F at the tile; a UI call for the local player |
+| 15 | Chicken (keeper spell 11) — `0x004AE2A0` | a live, non-`IsImmuneToChicken` creature target: `ChickenTimer` `+0x44B` = data1 × t/s, then `SetState(96)` (`keeper-spell-inferno-chicken.md` §3) |
 | 20 | the Invisibles (15) | creature `+0x44F` = data1 × t/s; `0x0045EE60(creature)` drops every attacker's hold on it and its targetable bit clears while the ticks run (`creature-status-effects.md` §2) |
 | 28 | the Guided Bolts | every eighth turn the velocity is re-aimed at the target with the shot's speed; wired to event 0x4 only in the shipped flags — how it homes in flight is UNKNOWN (Q395) |
+| 30 | Inferno (keeper spell 9) — `0x004AF660` | each tick before the move: every creature of any owner on non-solid tiles within data2 tiles, unless `CanWalkOnLava` without `CanFly`, takes data1 and one tick of burning; first tick at half the radius² (`keeper-spell-inferno-chicken.md` §4) |
 | 34 | the Heals, Hail Storm, Skeleton Army | **instant**: the shot is moved onto the target and `+0x14D` forced, so §4a hits it this tick; no target or a room → health 0 |
 | 35 | Drain (25) | `d = min(target health, data1% of its level-scaled Hp)`; the target loses `d` and the caster gains `d`, both through the health routine; refused on a dying target |
 

@@ -695,7 +695,8 @@ among available, un-cooled spells are scanned in id order with different
 supportive/offensive fallback rules (`research/computer-keeper-management.md` §4). For
 each eligible target, `random(100) > 75` stops the scan (24 %); otherwise the selected
 target is overwritten and the scan continues. A refused permission spends nothing. Ours
-issues Thunderbolt and Heal (ADR-0287); Inferno and Chicken choices are counted, not cast.
+issues Thunderbolt and Heal (ADR-0287); Inferno and Chicken choices are counted, not cast
+(their casts and effects are read in `research/keeper-spell-inferno-chicken.md`, Q498).
 
 **CTA removal** (`0x4FEFC0`): when the counter reaches 0, or fewer than
 `RemoveCallToArmsEnemyCreatures` enemies (hearts count) are within

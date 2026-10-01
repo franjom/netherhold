@@ -39,7 +39,7 @@ count that steps down while nonzero; the constructor (`0x004872A0`) zeroes them 
 | `+0x445` invulnerable | Invulnerable (§2) | effect 0x95 every 32 ticks | — |
 | `+0x447` frozen | Freeze (§2) | effect 0x72 every 16 ticks; busy and tinted | a `Possessed` creature gets message 0x16 |
 | `+0x449`, `+0x44D`, `+0x451` | unread | count down | — |
-| `+0x44B` `ChickenTimer` | the chicken spell | count down | `SetState(1)` |
+| `+0x44B` `ChickenTimer` | the chicken spell (process 15, `keeper-spell-inferno-chicken.md` §3) | count down | `SetState(1)`, byte `+0xF2` cleared |
 | `+0x44F` invisible | Invisible (§2) | rendered at alpha 100; busy | — |
 | `+0x453` `TurncoatTimer` | Turncoat | count down | — |
 | `+0x459` speed effect | Haste, Slow (§2) | count down | with `+0x45B` also 0, speed := `def+0x5B4` (walk) |

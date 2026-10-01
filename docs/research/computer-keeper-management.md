@@ -124,7 +124,8 @@ spell is attempted per call.
 
 Built: the whole walk, with Thunderbolt (ADR-0283) and Heal (ADR-0287,
 `keeper-spell-casting.md` §4) the spell arm casts the simulation executes; a
-chosen Inferno or Chicken is counted and not issued. Ours predicts the
+chosen Inferno or Chicken is counted and not issued (their casts and effects:
+`keeper-spell-inferno-chicken.md`). Ours predicts the
 permission from the observation and issues the cast a tick later; the original
 runs are Q485 and Q491.
 
