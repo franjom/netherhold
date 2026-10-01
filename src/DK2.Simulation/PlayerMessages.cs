@@ -18,6 +18,11 @@ public enum PlayerMessageKind : uint
     /// want of mana, which nothing here produces (subtable <c>0x006A0638</c>).</summary>
     ManaShortfall = 53,
 
+    /// <summary>Type 55: training the keeper cannot pay for. Both Training hooks pass Data1 5,
+    /// a 240-second row of subtable <c>0x006A0690</c> (1–4 are 20 seconds and raised by no hook
+    /// built here; 1 alone is under the <c>+0xF56</c> deadline, which is not built).</summary>
+    TrainingUnpaid = 55,
+
     /// <summary>Type 84: a creature could not route to the Call to Arms flag
     /// (<c>0x00455DA0</c>, <c>0x004778E0</c>); fifty seconds, tab, no duplicates.</summary>
     CallToArmsUnreachable = 84,
@@ -35,8 +40,8 @@ public readonly record struct PlayerMessage(
     }
 }
 
-/// <summary>The shared retained queue: the two combat position messages and the two
-/// mana-pressure messages. Any other kind, or a subtype its table lacks, is refused.</summary>
+/// <summary>The shared retained queue: the two combat position messages, the two
+/// mana-pressure messages and unpaid training. Any other kind, or a subtype its table lacks, is refused.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-messages.md")]
 public sealed class PlayerMessageQueue
 {
@@ -50,7 +55,8 @@ public sealed class PlayerMessageQueue
     /// <summary>Kinds whose table flag bit 15 is set: the lifetime comes from a subtype row
     /// selected by Data1, and a duplicate must match Data1 as well as recipient and kind.</summary>
     public static bool HasSubtypes(PlayerMessageKind kind) =>
-        kind is PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall;
+        kind is PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall
+            or PlayerMessageKind.TrainingUnpaid;
 
     public PlayerMessage? Post(WorldState world, byte recipient, PlayerMessageKind kind, int data1, int data2)
     {
@@ -64,7 +70,9 @@ public sealed class PlayerMessageQueue
             PlayerMessageKind.LowManaWarning when data1 == 0 => uint.MaxValue,
             PlayerMessageKind.LowManaWarning when data1 is >= 1 and <= 4 => (uint)SimulationTiming.TicksFromSeconds(20),
             PlayerMessageKind.ManaShortfall when data1 is >= 1 and <= 5 => (uint)SimulationTiming.TicksFromSeconds(20),
-            PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall =>
+            PlayerMessageKind.TrainingUnpaid when data1 is >= 1 and <= 4 => (uint)SimulationTiming.TicksFromSeconds(20),
+            PlayerMessageKind.TrainingUnpaid when data1 == 5 => (uint)SimulationTiming.TicksFromSeconds(240),
+            PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall or PlayerMessageKind.TrainingUnpaid =>
                 throw new ArgumentOutOfRangeException(nameof(data1), data1, $"No subtype row for {kind}."),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };

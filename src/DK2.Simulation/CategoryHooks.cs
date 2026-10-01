@@ -67,6 +67,10 @@ public sealed class HookSlot
     internal EnterHook? Enter { get; init; }
     internal LeaveHook? Leave { get; init; }
 
+    /// <summary>An enter hook that seeds the countdown itself, after a test that may refuse, where
+    /// DK2's does; <see cref="CategoryHooks.RunEnter"/> then skips the shared seed.</summary>
+    public bool SeedsCountdown { get; internal init; }
+
     /// <summary>Whether <see cref="CreatureStateMachine"/> runs code of ours from this slot.</summary>
     public bool IsDispatched => Enter is not null || Leave is not null;
 }
@@ -141,8 +145,26 @@ public static class CategoryHooks
             typeof(CreatureJobSystem), "Pray"),
         Releasing(CreatureStateCategory.Temple, 0x0047B920, Release),
 
-        Claiming(CreatureStateCategory.Training, 0x0047B230, HookStatus.Partial,
-            Seeded + "; " + Claimed + "; the gold refusal with message 55 is not (state-category-hooks.md §3)"),
+        new(CreatureStateCategory.Training, HookKind.Enter, 0x0047B230, HookStatus.Partial,
+            "the gold test with message 55, then the seed, then the claim (ADR-0313); not built: clearing "
+            + "+0xB4, the count behind the floating -20, which ours does not keep")
+        {
+            SeedsCountdown = true,
+            Enter = static (in StateHookContext hooks, CreatureState creature) =>
+            {
+                WorldState world = hooks.World;
+                if (!TrainingRules.CanAfford(world, hooks.Database, creature.OwnerPlayerId))
+                {
+                    world.Messages.Post(world, creature.OwnerPlayerId, PlayerMessageKind.TrainingUnpaid,
+                        TrainingRules.UnpaidMessageVariant, 0);
+                    return false;
+                }
+
+                // Seeded before the claim, so a full room still leaves it written, as DK2's does.
+                creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
+                return RoomCapacityRules.Claim(in hooks, creature);
+            },
+        },
         Arm(CreatureStateCategory.Training, 0x0047B2D0, HookStatus.Partial,
             "experience per turn, the charge every fifth (Q205); not built: at the level cap DK2 returns 1 with "
             + "no charge and no countdown step, where ours still charges, and message 55 when the keeper cannot pay",
@@ -197,8 +219,18 @@ public static class CategoryHooks
         Slot(CreatureStateCategory.CombatPit, HookKind.Update, 0x004B4C20, HookStatus.Stub, "success stub"),
         Releasing(CreatureStateCategory.CombatPit, 0x0047B920, Release),
 
-        Claiming(CreatureStateCategory.Casino, 0x0047ACB0, HookStatus.Partial,
-            Seeded + "; " + Claimed + "; the purse and lever refusals are not (state-category-hooks.md §3.1)"),
+        new(CreatureStateCategory.Casino, HookKind.Enter, 0x0047ACB0, HookStatus.Partial,
+            "the lever test on the keeper's own Casino, the purse test, then the seed, then the claim "
+            + "(ADR-0313); not built: the jackpot party (player +0xF4A) lifting the purse test")
+        {
+            SeedsCountdown = true,
+            Enter = static (in StateHookContext hooks, CreatureState creature) =>
+            {
+                if (CasinoRules.EnterRefusal(hooks.World, hooks.Database, creature) is not null) return false;
+                creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
+                return RoomCapacityRules.Claim(in hooks, creature);
+            },
+        },
         Arm(CreatureStateCategory.Casino, 0x0047AD70, HookStatus.Partial,
             "calm, anger and the purse (ADR-0187, ADR-0188); the jackpot and fearless countdown are not",
             typeof(CreatureJobSystem), "Gamble"),
@@ -247,6 +279,7 @@ public static class CategoryHooks
 
     private static readonly EnterHook?[] Enters = Index(s => s.Enter);
     private static readonly LeaveHook?[] Leaves = Index(s => s.Leave);
+    private static readonly bool[] OwnSeed = OwnSeeds();
 
     /// <summary>Every filled slot of DK2's table, by category, then enter, update, leave.</summary>
     public static IReadOnlyList<HookSlot> Slots => All;
@@ -254,13 +287,26 @@ public static class CategoryHooks
     /// <summary>The target category's enter hook, after the seed every countdown enter hook writes
     /// (variable 19, <see cref="CreatureStateMachine.HookCountdownSeed"/>). Ours has one countdown
     /// field for the six bytes DK2 keeps, so it is seeded on entering any category; only a
-    /// countdown category's update reads it (ADR-0192).</summary>
+    /// countdown category's update reads it (ADR-0192). Training and the Casino seed it in their
+    /// hooks, after the tests that refuse (ADR-0313).</summary>
     internal static bool RunEnter(in StateHookContext hooks, CreatureStateCategory category, CreatureState creature)
     {
-        creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
+        if (!OwnSeed[(int)category]) creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
         EnterHook? enter = Enters[(int)category];
         return enter is null || enter(in hooks, creature);
     }
+
+    /// <summary>Why the category's enter hook refused before its claim, or null: the log's reason
+    /// for a refusal that is not the room's (ADR-0313). The tests are pure, so asking again after
+    /// the hook refused gives its answer.</summary>
+    internal static string? RefusedBeforeClaim(
+        in StateHookContext hooks, CreatureStateCategory category, CreatureState creature) => category switch
+    {
+        CreatureStateCategory.Training =>
+            TrainingRules.CanAfford(hooks.World, hooks.Database, creature.OwnerPlayerId) ? null : "keeper_cannot_pay",
+        CreatureStateCategory.Casino => CasinoRules.EnterRefusal(hooks.World, hooks.Database, creature),
+        _ => null,
+    };
 
     /// <summary>The old category's leave hook, if it has one.</summary>
     internal static void RunLeave(in StateHookContext hooks, CreatureStateCategory category, CreatureState creature) =>
@@ -288,6 +334,17 @@ public static class CategoryHooks
     private static HookSlot Arm(
         CreatureStateCategory category, uint address, HookStatus status, string note, Type arm, string member) =>
         new(category, HookKind.Update, address, status, note) { UpdateArm = arm, UpdateArmMember = member };
+
+    private static bool[] OwnSeeds()
+    {
+        var byCategory = new bool[CreatureStateTable.CategoryCount];
+        foreach (HookSlot slot in All)
+        {
+            if (slot.SeedsCountdown) byCategory[(int)slot.Category] = true;
+        }
+
+        return byCategory;
+    }
 
     private static T?[] Index<T>(Func<HookSlot, T?> pick) where T : class
     {

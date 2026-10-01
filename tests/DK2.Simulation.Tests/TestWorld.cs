@@ -94,6 +94,9 @@ internal static class TestWorld
         // keeper's world cannot be built without them (ADR-0162).
         Set(vars, VariableTypeId.DungeonHeartObjectHealth, 100000);
         Set(vars, VariableTypeId.DungeonHeartHealthRegenerationPerSecond, 25);
+        // Training's cost and the Casino's stake, as shipped: their enter hooks test them (ADR-0313).
+        Set(vars, VariableTypeId.ModifyPlayerColdWhileTrainingPerSecond, -5);
+        Set(vars, VariableTypeId.GamblingModifyCreatureMoneyMoneyPerSecond, -8);
         return vars;
     }
 

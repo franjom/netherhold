@@ -60,10 +60,15 @@ public static class TrainingRules
         -database[VariableTypeId.ModifyPlayerColdWhileTrainingPerSecond];
 
     /// <summary>Whether the keeper can pay for another second of it. The original's
-    /// test is <c>&gt;=</c> against keeper gold, and a keeper who cannot pay <b>loses
-    /// the creature's job</b> — training is the only job poverty evicts you from.</summary>
+    /// test is <c>&gt;=</c> against keeper gold (<c>player+0x7E</c>, <c>Money</c>), and a keeper
+    /// who cannot pay <b>loses the creature's job</b> — training is the only job poverty evicts
+    /// you from. The job handler, the enter hook <c>0x0047B230</c> and the update hook each test it.</summary>
     public static bool CanAfford(WorldState world, GameDatabase database, byte playerId) =>
         GoldStore.Total(world, playerId) >= GoldPerSecond(database);
+
+    /// <summary>Data1 of message 55, <see cref="PlayerMessageKind.TrainingUnpaid"/>, as the enter
+    /// hook <c>0x0047B230</c> and the update hook <c>0x0047B2D0</c> both pass it.</summary>
+    public const int UnpaidMessageVariant = 5;
 
     /// <summary>The per-second experience drain DK2 ships and then disables:
     /// <c>EPLossSecondWhileNotTraining</c>, which is <b>0</b>. The mechanism is live —

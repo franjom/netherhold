@@ -68,7 +68,7 @@ the category operation failed; a return of one means it remains valid.
 | `0x0047AC00` | Sleeping update | State 83 first calls `0x00477B20(1)`. Once per game second by turn modulus, calls the shared lair effect `0x004DFF00`. |
 | `0x0047AC40` | Lair update | Once per game second by turn modulus, calls `0x004DFF00`. |
 | `0x0047AC70` | Sulking update | Does the same lair call, then returns whether `0x004871A0` finds id 5 in creature `+0x26E`. |
-| `0x0047ACB0` | Casino enter | Resolves the room position and its type-15 station. Unless player `+0xF4A` is nonzero, refuses when creature money `+0x3FB` is at most `abs(GamblingModifyCreatureMoneyMoneyPerSecond)` (8). Initializes `+0xB0/+0xB3` and claims. |
+| `0x0047ACB0` | Casino enter | **CONFIRMED** (re-read 2026-10-01). `0x004539B0(15, owner, 0)` on the cell under the creature: only on its keeper's own Casino is room `+0x53` (the lever) tested, and 0 refuses. Otherwise the lever is not asked for, and the claim judges the cell. Then, unless player `+0xF4A` is nonzero, the purse: creature `+0x3FB` at most `abs(GamblingModifyCreatureMoneyMoneyPerSecond)` (8) refuses (signed `JLE`). Then `+0xB0` = variable 19 and `+0xB3` = 0, and the lookup and claim of §3.5, so a claim refusal leaves the seed written. Every refusal returns 0; none raises a message. Built: ADR-0313, the `+0xF4A` party excepted. |
 | `0x0047AD70` | Casino update | Once per second, advances the fearless countdown at creature `+0x4F4`. Station mode byte `+0x4A` selects Smiles or Money. Smiles applies anger -2000; Money applies +100; both charge buckets 5, 0 and 3 with selector 2. It then adds 1 money in Smiles or subtracts 8 in Money. A roll uses jackpot chances 5000/20000 and calls the keeper jackpot routine on result 42. |
 | `0x0047AF20` | Casino leave | Clears the fearless flag (`+0x3EA` bit 13), writes `now + variable19 x 120` to creature `+0x3D7`, and releases. |
 | `0x0047AFB0` | Research / GuardPost enter | Claims the room position; no category-specific side effect. |
@@ -76,7 +76,7 @@ the category operation failed; a return of one means it remains valid.
 | `0x0047B0A0` | Manufacture enter | Increments room/station `+0x8A`, clears state `+0xB9`, and claims. The counter's exact meaning is **UNKNOWN**. |
 | `0x0047B120` | Manufacture leave | Decrements the same `+0x8A` and releases. |
 | `0x0047B190` | Manufacture update | Reads definition `ManufacturePerSecond` (`+0x6BD`), scales levels 2-10 by stat 18, clamps `0..65534`, and credits the keeper through `0x004C3200`; zero returns failure. |
-| `0x0047B230` | Training enter | Refuses and raises message 55 when keeper gold is below `-ModifyPlayerGoldWhileTrainingPerSecond` (5). Otherwise clears `+0xB4`, initializes `+0xB3`, and claims. |
+| `0x0047B230` | Training enter | **CONFIRMED** (re-read 2026-10-01). First the gold: `-ModifyPlayerGoldWhileTrainingPerSecond` (5) against player `+0x7E` (`Money`), `CMP`/`JBE`, so 5 ≤ Money passes. Failing, it raises message 55 to the creature's keeper on every refusal (`0x004C4600(0x37, owner, 5, 0, 1)`: Data1 5, subtable `0x006A0690`, 240 s) and returns 0, writing nothing. Passing, it clears `+0xB4`, sets `+0xB3` = variable 19, then the lookup and claim of §3.5, so a claim refusal leaves the seed written. The update hook raises the same message. Built: ADR-0313. |
 | `0x0047B2D0` | Training update | At the level cap it returns 1 at once: no experience, no charge, no countdown step. Below it, adds level-scaled `ExpPerSecondTraining` every tick. Once per second (`+0xB3`) it checks the keeper can pay 5: if not, message 55 and failure; if so, it charges 5 at the creature's tile (`0x004BA420`), and every fourth charge calls `0x0050FB70` with 20, the floating "−20" (re-read 2026-10-01; this row said 20 gold every fourth check). |
 | `0x0047B430` | Torture enter | Claims, then initializes `+0xAC`. |
 | `0x0047B4A0` | Torture leave | Clears two station occupancy bits, conditionally clears state `+0x6E`, clears creature `+0x3EA` bit 14, and releases. The station helpers' exact contracts are **UNKNOWN**. |
@@ -124,7 +124,7 @@ the category operation failed; a return of one means it remains valid.
   floor-furniture slot, and **a Casino smaller than 3×3 has no lever**, which the owner
   confirms (2026-09-24). Its screenshot shows the lever on the top interior row. It stores
   that tile at `+0x4B/+0x4F`, creates object `0x5F` there, and writes `+0x53` nonzero
-  when the lever exists. **Enter** refuses a Casino whose `+0x53` is 0.
+  when the lever exists. **Enter** refuses the keeper's own Casino whose `+0x53` is 0 (§3).
 - **The settlement** is the room's own update, around `0x004D6783`. It runs only with a
   lever, and on turns divisible by variable 19 × 4, so every four game seconds. For
   each creature on the room's occupant list (`room+0xA`, then `+0x238`) it calls

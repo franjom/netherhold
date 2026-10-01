@@ -220,6 +220,8 @@ public sealed class CreatureJobTests
         GameDatabase db = Db;
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.Casino, new TilePos(3, 3));
+        // The enter hook refuses a Casino with no lever (ADR-0313), and a one-tile room gets none.
+        world.SpawnObject(db, AutoFurnitureRules.CasinoLeverObjectId, Keeper, (3 * world.Width) + 3).AutoPlaced = true;
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         goblin.Anger.Treatment = CreatureAngerRules.UnhappyAt(db.CreatureById(GoblinId));

@@ -6905,3 +6905,42 @@ from 20 wins to 7, all in the ten seeds that afford the Library at 688 and none 
 do not — DK2's four distinct seeded runs split 2/2 on the Library and win 1 of the 2 with it,
 0 of the 2 without. Level 1 is unchanged, 20 of 20 with the same ticks. The Portal's doubled
 first interval after a scripted arrival stays open as Q505.
+
+## ADR-0313 — Training and Casino enter hooks refuse before their claims, as DK2's do
+**Date:** 2026-10-01 · **Status:** accepted · Research: `state-category-hooks.md` §3, §3.1
+
+**Context.** Both hooks only claimed (ADR-0309). Re-read in full: Training (`0x0047B230`) tests
+`5 ≤ Money` first; failing, it raises message 55 to the keeper and returns 0, writing nothing.
+Passing, it seeds `+0xB3` and claims. The Casino (`0x0047ACB0`) tests the lever (`+0x53`), but
+only on its keeper's own Casino. Then the purse (`> 8`; the jackpot party lifts it), then it
+seeds `+0xB0` and claims, with no message. Ours seeded every countdown in `RunEnter`, before
+any hook ran.
+
+**Decision.**
+1. Each slot gets its own `Enter` in DK2's order: test, seed, claim. Training's test is
+   `TrainingRules.CanAfford` unchanged: the same `>=` against the gold `TriggerExecutor` already
+   reads as `Money`. The Casino's is `CasinoRules.EnterRefusal`. Message 55 joins the queue
+   (`TrainingUnpaid`, Data1 5, 240 s, deduplicated per subtype).
+2. A slot marked `SeedsCountdown` seeds in its hook; every other slot keeps the shared seed.
+3. The refused-claim path of ADR-0309 ends the job for these refusals too. It logs the hook's
+   reason: `keeper_cannot_pay message=0x37`, `no_lever`, or `cannot_afford_to_gamble`. Room
+   refusals keep `room_full` / `no_room`. No place is held.
+4. `JobRules.Refused` keeps its gold and purse tests. DK2 asks at the choice *and* at arrival.
+
+**The countdown (step 2).** The seed the old order left on a refused creature was never read.
+`HookFires` runs only while `UpdatingCategory` is a countdown category, and state 1 is none.
+The next such category is entered through a hook that seeds it. But `HookCountdown` is hashed
+and saved, so it is moved, for these two slots only. The Prison and Torture seed after their
+claims in DK2, and still seed before here: the same unread divergence on a full room, left as is.
+
+**Consequences.**
+- `HashVersion` and `FormatVersion` go to 148, for the moved seed. On efa3157, seeds 1–20:
+  Level 1 wins 20/20 and Level 2 7/20, before and after, every event log byte-identical. Level 1
+  builds no Training Room or Casino. Level 2 trains, but no keeper is broke at a trainee's
+  arrival. On ab59255 one was (seed 2, tick 3383: refused with message 55, where before it
+  trained five ticks and lost the job at the charge). No rig builds a Casino: its refusals are
+  exercised by tests alone.
+- Not built: the jackpot party (`+0xF4A`), and the Training enter hook's `+0xB4` clear (ours
+  keeps no count for the floating −20). The Casino's `+0xB3 = 0` is Training's byte, which
+  ours does not keep apart.
+- The Casino finder offers a lever-only 3×3 Casino whose claim must refuse (Q506). Ours does not.

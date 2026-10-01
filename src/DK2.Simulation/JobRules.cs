@@ -134,7 +134,9 @@ public static class JobRules
                 // Two tests, and the GOLD TEST COMES FIRST: the original's condition is
                 // `gold >= cost && level < cap`, in that order, so a broke keeper's
                 // level-9 creature is refused for poverty. Only the logged reason
-                // differs, so getting it wrong is invisible (Q205).
+                // differs, so getting it wrong is invisible (Q205). Not a duplicate of the
+                // enter hook's test (0x0047B230, ADR-0313): DK2 asks at the choice and again
+                // on arrival, and gold spent during the walk is refused only by the second.
                 if (!TrainingRules.CanAfford(world, database, state.OwnerPlayerId))
                     return "keeper_cannot_pay";
 
@@ -158,7 +160,9 @@ public static class JobRules
             case JobType.Drink:
                 // 0x004560F0: more gold in the purse than a second of losing costs, unless
                 // a jackpot party is on (player+0xF4A, unbuilt, so never), and only then a
-                // casino. A creature that has never been paid has an empty purse.
+                // casino. A creature that has never been paid has an empty purse. The enter
+                // hook 0x0047ACB0 tests the purse again on arrival, with the lever (ADR-0313):
+                // keep both.
                 return state.GoldHeld > CasinoRules.Stake(database) ? null : "cannot_afford_to_gamble";
 
             case JobType.Sulk or JobType.Sleep:

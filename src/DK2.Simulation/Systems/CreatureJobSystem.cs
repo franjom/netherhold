@@ -758,21 +758,25 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         Stop(context, creature);
     }
 
-    /// <summary>The job state's enter hook refused its claim <c>0x004E5A70</c> and left the
-    /// creature in state 1 (ADR-0309): the job ends. A room that filled while the creature walked
-    /// raises message <c>0x2A</c> only when no other room of the type has a place
-    /// (<c>0x004C6AE0</c>, ADR-0205); no room underfoot raises none.</summary>
+    /// <summary>The job state's enter hook refused and left the creature in state 1 (ADR-0309):
+    /// the job ends. Training's gold and the Casino's lever and purse are tested before the claim
+    /// (ADR-0313), and only Training's raises a message, 55. Then the claim <c>0x004E5A70</c>: a
+    /// room that filled while the creature walked raises message <c>0x2A</c> only when no other
+    /// room of the type has a place (<c>0x004C6AE0</c>, ADR-0205); no room underfoot raises none.</summary>
     private static bool ClaimRefused(
         SimulationContext context, CreatureState creature, CreatureDef definition, JobType job)
     {
         if (JobRules.StateFor(job) is not int state || creature.Dk2StateId != CreatureStateMachine.Idle) return false;
-        if (!RoomCapacityRules.Claims(CreatureStateTable.Get(state).Category)) return false;
+        CreatureStateCategory category = CreatureStateTable.Get(state).Category;
+        if (!RoomCapacityRules.Claims(category)) return false;
 
         WorldState world = context.World;
         RoomInstance? room = world.Contains(creature.Tile)
             ? RoomIndex.RoomAt(world, context.Database, (creature.Tile.Y * world.Width) + creature.Tile.X)
             : null;
-        string why = room is null ? "reason=no_room message=none"
+        string why = CategoryHooks.RefusedBeforeClaim(context.Hooks, category, creature) is string refused
+            ? $"reason={refused} message={(category == CreatureStateCategory.Training ? "0x37" : "none")}"
+            : room is null ? "reason=no_room message=none"
             : RoomCapacityRules.AnotherHasRoom(world, context.Database, room, creature.Id)
                 ? "reason=room_full message=none" : "reason=room_full message=0x2A";
         context.Emit(SystemName, "job_lost",

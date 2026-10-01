@@ -84,6 +84,7 @@ instructions as well as the decompiled world routine `0x0050A450`.
 | 12, 17, 18, 47 | `0x2032` | 50 seconds |
 | 32, 34, 41, 42 | `0xA000` | selected by Data1; duplicates suppressed per subtype |
 | 35 | `0xE000` | selected by Data1; duplicates allowed |
+| 55 | `0xA000` | subtable `0x006A0690`: 1–4 20 s, 5 240 s; both Training hooks pass 5 (read 2026-10-01) |
 
 Type 41's subtable at `0x006A03D8` gives Treasury 420 seconds, Lair/Hatchery
 180, Graveyard/Prison 600, and the other listed room types 300. Type 42's table
