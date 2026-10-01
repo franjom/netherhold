@@ -147,6 +147,7 @@ public static class KwdCreatures
             EntranceFramesPerSecond = S32(EntranceBlock + 0x48),
             // The Angry block (9): flags at +0x40, type byte at +0x50; the loader leaves the runtime
             // record empty when the type is 0 (no resource), so the flags are taken only with a type.
+            AngryArtType = U8(AngryBlock + 0x50),
             AngryArtFlags = U8(AngryBlock + 0x50) != 0 ? U32(AngryBlock + 0x40) : 0,
             AngryFrames = U8(AngryBlock + 0x50) != 0 ? S32(AngryBlock + 0x44) : 0,
             AngryFramesPerSecond = U8(AngryBlock + 0x50) != 0 ? S32(AngryBlock + 0x48) : 0,

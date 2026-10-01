@@ -1638,13 +1638,28 @@ public class PrisonTests
 
     private const byte FlourishingId = 12;
 
-    /// <summary>A Goblin with a Firefly's Angry animation: flag bit 0 set, 34 frames at 30.</summary>
+    /// <summary>A Goblin with a Firefly's Angry animation: type 6, file flag bit 0 clear, 34 frames at 30.</summary>
     private static GameDatabase FlourishDb() => Dk2TerrainFixture.Database(
         Dk2TerrainFixture.Database().CreatureById(GoblinId) with
         {
             CreatureId = FlourishingId, Name = "Flourisher",
-            AngryArtFlags = 1, AngryFrames = 34, AngryFramesPerSecond = 30,
+            AngryArtType = 6, AngryFrames = 34, AngryFramesPerSecond = 30,
         });
+
+    /// <summary>State 116 sees an Angry type of 1..8 and nothing else: the file's bit 0 does not decide it,
+    /// since <c>0x00504D80</c> sets the runtime bit from the type (Q188).</summary>
+    [Theory]
+    [InlineData(0, 0u, false)]
+    [InlineData(0, 1u, false)]
+    [InlineData(1, 0u, true)]
+    [InlineData(6, 0u, true)]
+    [InlineData(8, 0u, true)]
+    [InlineData(9, 0u, false)]
+    public void TheFlourishFollowsTheAngryTypeNotTheFileBitQ188(byte type, uint flags, bool expected)
+    {
+        CreatureDef def = Dk2TerrainFixture.Database().CreatureById(GoblinId) with { AngryArtType = type, AngryArtFlags = flags };
+        Assert.Equal(expected, PrisonRules.HasAngryFlourish(def));
+    }
 
     /// <summary>Action 41 plays the Angry animation rand(3) + 2 + 1 times, at its frames and rate,
     /// rounded up as action 49's Entrance is (0x00496A30, 0x00496AA0).</summary>
