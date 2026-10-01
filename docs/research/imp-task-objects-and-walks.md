@@ -109,6 +109,12 @@ gold value (`+0x185`) and as 1 when not. All three arms need more than 20 free e
 immediate `PUSH 0xB` exists (the trap `player-task-pool.md` warns about). Nothing else
 raises kind 11: `0x0046CB80` only finds an existing entry.
 
+**In play (owner, 2026-10-01).** A Secret Door looks like any reinforced wall to a rival
+keeper, so an attacker tags it for excavation without knowing; that tag is what files
+kind 11, and an imp then digs it in state 38. A keeper cannot tag its own Secret Door.
+Where `0x00512D20` refuses one's own (the flag test comes before the terrain test) is
+unread.
+
 **The handler.** Called with the tile. Its steps, in order:
 
 1. find the kind-11 entry at the tile (`0x00508200`), else return 0;
