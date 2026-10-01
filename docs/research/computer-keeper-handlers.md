@@ -320,9 +320,8 @@ neither 0 nor 4: both tasks become 4 and allowance becomes zero. Otherwise:
 1. Current equals target, a direct route succeeds, no required bridge is available,
    or the walker fails: copy `NextTask` to `Task`, reset `TaskTimeCounter`.
 2. On solid/taggable terrain, submit action `0x28` only with at least 51 free task
-   entries; water (`+0x17B` bit 7) chooses room 8 when available (state 3), otherwise
-   room 17; lava (bit 8) chooses only 17. An unavailable required bridge ends the
-   task; failed placement/build retries the same tile while allowance remains.
+   entries. Water and lava ask for a bridge; the choice, placement, retry and walk are
+   [`bridge-placement.md` §4](bridge-placement.md#4-task-7-on-water-and-lava-0x004fdc50), built (ADR-0304).
 3. During an attack (`BlibBlubBlob` low nibble nonzero), if `0x004FDB90` finds a
    tile in the current tile's 3x3 neighbourhood whose owner `0x004BF390` calls an
    enemy (the neutral player's unowned land included), convert the encoded

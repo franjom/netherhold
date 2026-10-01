@@ -313,7 +313,8 @@ Evidence and confidence: `docs/research/imp-tasks.md`.
   no code knows what a bridge is (ADR-0016).
 - `BuildRoomCommand` + `RoomBuildSystem` are the command path, alongside
   `TagTilesCommand` + `TileTagSystem`: a tile at a time, in the order the command
-  gives, with every refusal counted by reason in the event log.
+  gives, with every refusal counted by reason in the event log; a several-tile
+  bridge order is first marked whole from the shore (ADR-0304).
 - `GoldStore` is the only way gold moves, and **a player has no gold counter**.
   `TileState.GoldHeld` is where gold is and a keeper's total is the sum over the
   tiles they own (ADR-0015); `CreatureState.GoldHeld` is a carrier's hands

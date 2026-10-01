@@ -363,9 +363,28 @@ public sealed class KeeperView : INavByteGrid
 
     public TerrainDef Terrain(TilePos p) => Database.TerrainById(Tile(p).TerrainId);
 
-    public RoomPlacement CanBuild(TilePos p, RoomDef room) =>
-        InBounds(p) ? RoomRules.CanBuild(Database, Tile(p).ToTileState(), room, PlayerId)
-            : RoomPlacement.OffMap;
+    /// <summary>The simulation's placement verdict, predicted over the captured tiles.</summary>
+    public RoomPlacement CanBuild(TilePos p, RoomDef room)
+    {
+        if (!InBounds(p)) return RoomPlacement.OffMap;
+        TerrainDef terrain = Terrain(p);
+        bool touches = (terrain.IsWater || terrain.IsLava) && TouchesOwnFloor(p);
+        return RoomRules.CanBuild(Database, Tile(p).ToTileState(), room, PlayerId, touches);
+    }
+
+    /// <summary><see cref="OwnFloorRules"/> over the captured tiles (<c>0x00453B30</c>).</summary>
+    public bool TouchesOwnFloor(TilePos p)
+    {
+        ReadOnlySpan<int> dx = OwnFloorRules.NeighbourDx, dy = OwnFloorRules.NeighbourDy;
+        for (int i = 0; i < dx.Length; i++)
+        {
+            var n = new TilePos(p.X + dx[i], p.Y + dy[i]);
+            if (!InBounds(n)) continue;
+            KeeperTileView t = Tile(n);
+            if (OwnFloorRules.IsOwnFloor(Database.TerrainById(t.TerrainId), t.OwnerPlayerId, PlayerId)) return true;
+        }
+        return false;
+    }
 
     /// <summary>Solid and not impenetrable: rock an imp can dig (the original's tile predicate, §5.2).</summary>
     public bool IsDiggable(TilePos p)

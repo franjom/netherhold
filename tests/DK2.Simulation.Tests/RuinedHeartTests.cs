@@ -136,7 +136,7 @@ public sealed class RuinedHeartTests
 
         Assert.Equal(
             RoomPlacement.Occupied,
-            RoomRules.CanBuild(db, world.Tile(at), db.Room(RoomTypeId.Treasury), Keeper));
+            RoomRules.CanBuild(db, world, at, db.Room(RoomTypeId.Treasury), Keeper));
 
         var sim = new GameSimulation(db, world, 11, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();

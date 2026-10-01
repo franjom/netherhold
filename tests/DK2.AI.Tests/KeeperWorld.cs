@@ -32,6 +32,9 @@ internal static class KeeperWorld
     public const byte PrisonFloor = 21;
     public const byte LibraryFloor = 22;
     public const byte Lava = 7;
+    public const byte Water = 5;
+    public const byte WoodenBridgeFloor = 17;
+    public const byte StoneBridgeFloor = 26;
 
     /// <summary>Shot 5, Create Object, and a Lightning shot for Thunderbolt; the flag is object 10.</summary>
     public const byte CreateObjectShotId = 5;
@@ -64,6 +67,11 @@ internal static class KeeperWorld
             Terrain(PrisonFloor, "Prison", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(LibraryFloor, "Library", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(Lava, "Lava", TerrainFlags.Lava, 0),
+            // Water, Lava and both bridges carry their shipped placement-relevant flags: the hazards
+            // are Impenetrable and not Solid, the bridges Ownable rooms (kwd terrainflags).
+            Terrain(Water, "Water", TerrainFlags.Impenetrable | TerrainFlags.Water, 0),
+            Terrain(WoodenBridgeFloor, "Wooden Bridge", TerrainFlags.Ownable | TerrainFlags.Room, 100),
+            Terrain(StoneBridgeFloor, "Stone Bridge", TerrainFlags.Ownable | TerrainFlags.Room, 100),
         ],
         rooms:
         [
@@ -75,6 +83,9 @@ internal static class KeeperWorld
             Room(RoomTypeId.DungeonHeart, "Dungeon Heart", 0, HeartFloor, buildable: false),
             Room(RoomTypeId.Prison, "Prison", 0, PrisonFloor, buildable: false),
             Room(RoomTypeId.Library, "Library", 0, LibraryFloor, buildable: false),
+            // Both bridges as shipped: 0x1083 on each, so either could span water or lava, 200 and 500 a tile.
+            Room(RoomTypeId.WoodenBridge, "Wooden Bridge", 200, WoodenBridgeFloor, buildable: true, BridgeFlags),
+            Room(RoomTypeId.StoneBridge, "Stone Bridge", 500, StoneBridgeFloor, buildable: true, BridgeFlags),
         ],
         creatures:
         [
@@ -302,6 +313,9 @@ internal static class KeeperWorld
             vars.Availabilities.Add(new AvailabilityEntry(1, Keeper, (int)room, 3));
         }
 
+        // Both bridges present but unavailable until a test opens them.
+        vars.Availabilities.Add(new AvailabilityEntry(1, Keeper, (int)RoomTypeId.WoodenBridge, 1));
+        vars.Availabilities.Add(new AvailabilityEntry(1, Keeper, (int)RoomTypeId.StoneBridge, 1));
         vars.Availabilities.Add(new AvailabilityEntry(5, Keeper, 4, 3));
         // Rows for the battle spells, unavailable until a test says otherwise.
         foreach (int spell in new[] { 3, 6, 7, 9, 10, 11 })
@@ -433,13 +447,16 @@ internal static class KeeperWorld
         };
     }
 
-    private static RoomDef Room(RoomTypeId id, string name, ushort cost, byte terrainId, bool buildable)
+    private const RoomFlags BridgeFlags = RoomFlags.PlaceableOnWater | RoomFlags.PlaceableOnLava;
+
+    private static RoomDef Room(RoomTypeId id, string name, ushort cost, byte terrainId, bool buildable,
+        RoomFlags ground = RoomFlags.PlaceableOnLand | RoomFlags.NormalTiles)
     {
         return new()
         {
             Name = name,
             RoomId = (byte)id,
-            Flags = RoomFlags.PlaceableOnLand | RoomFlags.NormalTiles | (buildable ? RoomFlags.Buildable : 0),
+            Flags = ground | (buildable ? RoomFlags.Buildable : 0),
             Cost = cost,
             ReturnPercentage = 50,
             TerrainId = terrainId,

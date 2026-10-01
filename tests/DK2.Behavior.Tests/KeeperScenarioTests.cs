@@ -52,20 +52,30 @@ public class Level10KeeperScenarioTests(ITestOutputHelper output)
 public class Level11AKeeperScenarioTests(ITestOutputHelper output)
 {
     [InstallFact]
-    public void Level11ADrakoChoosesMorganaStartsItsTunnelFromTheLairAndStopsWhereTheLavaStopsIt()
+    public void Level11ADrakoBridgesTheLavaWithStoneThenCallsItsArmyToMorganasHeart()
     {
         Scenario scenario = ScenarioCorpus.Load("keepers/level11a_drako_attack.yaml");
         ScenarioResult run = ScenarioCorpus.Run(scenario, output);
 
-        // The planner picks Morgana (player 6) among four enemies, tags the corridor's first rock
-        // north of the Lair, stores the tunnel at the first step and resumes it with the wait; the
-        // lava two tiles on ends task 7 as 0x004FDC50 would without a Stone Bridge, and no call is cast.
+        // The planner picks Morgana (player 6) among four enemies and tags the corridor's first rock
+        // north of the Lair; the lava two tiles on takes two Stone Bridge tiles, one a tick, each
+        // touching Drako's own floor (0x004FDC50, 0x0044F630, ADR-0304); the tunnel goes on, and the
+        // front casts the call two tiles off Morgana's heart. Lava never takes the Wooden Bridge.
         Assert.Empty(run.ExpectationFailures);
         KeeperAIState state = run.KeeperStates[5];
-        Assert.Equal((1 << 6, 1 << 6, (byte)0, false), (state.PlayersAttackedFlags, state.FirstAttackFlag, state.Breaches[6].TunnelsLeft, state.Breaches[6].HasStoredTunnel));
+        // Morgana first; by tick 200 a later plan has also chosen Raksha (bit 7).
+        Assert.Equal((1 << 6, 1 << 6), (state.PlayersAttackedFlags & (1 << 6), state.FirstAttackFlag & (1 << 6)));
         KeeperCommandEmission tag = Assert.Single(run.KeeperCommandLog, e => e.Command is TagTilesCommand t && t.Tiles.Contains(new TilePos(64, 41)));
         Assert.Equal((byte)5, tag.Command.PlayerId);
-        Assert.DoesNotContain(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand);
+
+        List<(int Tick, BuildRoomCommand Build)> spans = run.KeeperCommandLog
+            .Where(e => e.Command is BuildRoomCommand b && BridgeRules.IsBridge(ScenarioCorpus.Database.RoomById(b.RoomId)))
+            .Select(e => (e.InputTick, (BuildRoomCommand)e.Command)).ToList();
+        Assert.Equal([(47, new TilePos(64, 40)), (48, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
+        Assert.All(spans, s => Assert.Equal((byte)RoomTypeId.StoneBridge, s.Build.RoomId));
+
+        var call = (CastSpellAtPlaceCommand)Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand).Command;
+        Assert.Equal(((byte)CallToArmsRules.SpellId, 64, 34), (call.SpellId, call.X >> 12, call.Y >> 12));
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
 }

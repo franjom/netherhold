@@ -116,6 +116,10 @@ public sealed class KeeperAIState
     public bool WallHug;
     public bool WallHugLeft;
 
+    /// <summary>Ours: the tile task 7 last asked to bridge, whose result the next tick shows; DK2
+    /// builds and steps the walker on one allowance (ADR-0304).</summary>
+    public TilePos? BridgeRequestedAt;
+
     // --- the rectangle being dug and then built on (§5.2 tasks 2 and 3) ---
     public TilePos RectangleOrigin;      // top-left corner
     public int RectangleWidth;
@@ -141,6 +145,7 @@ public sealed class KeeperAIState
         Task = task;
         NextTask = next;
         TaskTimeCounter = 0;
+        BridgeRequestedAt = null; // a span's walk is owed only to the path that asked for it
     }
 }
 

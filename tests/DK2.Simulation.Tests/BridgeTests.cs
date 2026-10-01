@@ -45,6 +45,12 @@ public class BridgeTests
         tile.TerrainId = hazardTerrainId;
         tile.Health = database.TerrainById(hazardTerrainId).StartingHealth;
 
+        // The keeper's own floor to the west, which a span must touch (0x0044F630, Q33).
+        ref TileState shore = ref world.Tile(new TilePos(at.X - 1, at.Y));
+        shore.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        shore.OwnerPlayerId = Keeper;
+        shore.Health = database.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
+
         var sim = new GameSimulation(database, world, 3, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
@@ -58,6 +64,82 @@ public class BridgeTests
         ref TileState tile = ref run.World.Tile(at);
         RoomRules.Place(database, ref tile, database.Room(RoomTypeId.DungeonHeart), Keeper);
         GoldStore.Deposit(run.World, database, Keeper, gold);
+    }
+
+    private static void Lay(Run run, byte terrainId, params TilePos[] tiles)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        foreach (TilePos at in tiles)
+        {
+            ref TileState tile = ref run.World.Tile(at);
+            tile.TerrainId = terrainId;
+            tile.Health = database.TerrainById(terrainId).StartingHealth;
+        }
+    }
+
+    // ---- where a span may start (0x0044F630, 0x004C57F0; Q33) --------------
+
+    [Fact]
+    public void ASpanTouchingNoOwnFloorIsRefused_AHumanOrderIncluded()
+    {
+        Run run = Start(Dk2TerrainFixture.Water, new TilePos(6, 6));
+        GiveHeart(run, new TilePos(1, 1), 1000);
+        var island = new TilePos(9, 6);
+        Lay(run, Dk2TerrainFixture.Water, island);
+
+        run.Tick(BuildRoomCommand.At(Keeper, BridgeId, island));
+
+        Assert.Equal(Dk2TerrainFixture.Water, run.World.Tile(island).TerrainId);
+        Assert.Contains(run.Of("built"), e => e.Detail.Contains("refused=NotTouchingOwnLand=1"));
+    }
+
+    /// <summary>DK2 marks a dragged bridge rectangle before laying it: the tiles touching own floor,
+    /// then the hazard joined to them inside the rectangle (0x004C57F0), so the wave's corner does
+    /// not matter.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ADraggedSpanGrowsFromTheShoreWhicheverEndItIsLaidFrom(bool fromTheShore)
+    {
+        TilePos near = new(6, 6), mid = new(7, 6), far = new(8, 6);
+        Run run = Start(Dk2TerrainFixture.Water, near);
+        GiveHeart(run, new TilePos(1, 1), 1000);
+        Lay(run, Dk2TerrainFixture.Water, mid, far);
+
+        run.Tick(BuildRoomCommand.At(Keeper, BridgeId, fromTheShore ? [near, mid, far] : [far, mid, near]));
+
+        Assert.All([near, mid, far], t => Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, run.World.Tile(t).TerrainId));
+    }
+
+    /// <summary>The mark spreads only through tiles of the order (0x004C57F0 stays inside its
+    /// rectangle): water the order leaves out is not a bridge to the tile beyond it.</summary>
+    [Fact]
+    public void ADraggedSpanDoesNotSpreadThroughWaterOutsideTheOrder()
+    {
+        TilePos near = new(6, 6), skipped = new(7, 6), far = new(8, 6);
+        Run run = Start(Dk2TerrainFixture.Water, near);
+        GiveHeart(run, new TilePos(1, 1), 1000);
+        Lay(run, Dk2TerrainFixture.Water, skipped, far);
+
+        run.Tick(BuildRoomCommand.At(Keeper, BridgeId, far, near));
+
+        Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, run.World.Tile(near).TerrainId);
+        Assert.Equal(Dk2TerrainFixture.Water, run.World.Tile(skipped).TerrainId);
+        Assert.Equal(Dk2TerrainFixture.Water, run.World.Tile(far).TerrainId);
+    }
+
+    [Fact]
+    public void ADraggedSpanStopsWhereItsHazardIsBroken()
+    {
+        TilePos near = new(6, 6), far = new(8, 6); // (7,6) stays rock
+        Run run = Start(Dk2TerrainFixture.Water, near);
+        GiveHeart(run, new TilePos(1, 1), 1000);
+        Lay(run, Dk2TerrainFixture.Water, far);
+
+        run.Tick(BuildRoomCommand.At(Keeper, BridgeId, far, new TilePos(7, 6), near));
+
+        Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, run.World.Tile(near).TerrainId);
+        Assert.Equal(Dk2TerrainFixture.Water, run.World.Tile(far).TerrainId);
     }
 
     // ---- the round trip, both hazards ------------------------------------

@@ -236,7 +236,7 @@ public sealed class KeeperAI
 
             case KeeperTask.DigPath:
                 budget--;
-                DigPath(view, area, commands);
+                DigPath(view, area, commands, ref budget);
                 break;
 
             default:
@@ -485,7 +485,7 @@ public sealed class KeeperAI
 
     // ----------------------------------------------------------------- paths
 
-    private void DigPath(KeeperView view, BuildArea area, List<PlayerCommand> commands)
+    private void DigPath(KeeperView view, BuildArea area, List<PlayerCommand> commands, ref int budget)
     {
         // 0x004FDC50: a target outside MaxBuildArea aborts only a continuation other than 0 or 4,
         // so an attack tunnel or a room's own path digs on past the area.
@@ -496,8 +496,7 @@ public sealed class KeeperAI
         }
         if (State.DigRoomAtCurrent == State.DigRoomAt)
         {
-            State.WallHug = false;
-            State.BeginTask(State.NextTask);
+            EndPath();
             return;
         }
         // During an attack, enemy land in the cursor's 3x3 stores the rest of the tunnel for the
@@ -505,16 +504,30 @@ public sealed class KeeperAI
         if (State.AttackTarget != 0 && view.EnemyLandAround(State.DigRoomAtCurrent))
         {
             KeeperAttackPlanner.StoreTunnel(State);
-            State.WallHug = false;
-            State.BeginTask(State.NextTask);
+            EndPath();
+            return;
+        }
+        // The cursor's own tile comes before any step: water or lava is bridged where it lies.
+        bool hazard = view.IsWater(State.DigRoomAtCurrent) || view.IsLava(State.DigRoomAtCurrent);
+        bool walkOwed = false;
+        if (State.BridgeRequestedAt is TilePos requested)
+        {
+            State.BridgeRequestedAt = null;
+            // A span that landed was paid for by last tick's allowance, which in DK2 also stepped
+            // the walker at once, with no route query between; a refused one is retried below.
+            walkOwed = requested == State.DigRoomAtCurrent && !hazard;
+            if (walkOwed) budget++;
+        }
+        if (hazard)
+        {
+            Bridge(view, commands, ref budget);
             return;
         }
 
         // Once the target is joined to the dungeon (through tags), the path is done.
-        if (view.ReachableFromHeart(throughMyTags: true).Contains(view.IndexOf(State.DigRoomAt)))
+        if (!walkOwed && view.ReachableFromHeart(throughMyTags: true).Contains(view.IndexOf(State.DigRoomAt)))
         {
-            State.WallHug = false;
-            State.BeginTask(State.NextTask);
+            EndPath();
             return;
         }
 
@@ -529,17 +542,68 @@ public sealed class KeeperAI
                 }
                 break;
             case WalkOutcome.Arrived:
-                State.WallHug = false;
-                State.BeginTask(State.NextTask);
+                EndPath();
                 break;
             case WalkOutcome.Moved:
+            case WalkOutcome.Hazard: // the cursor now stands on it; the next pass bridges it
                 break;
-            case WalkOutcome.Hazard: // Bridge planning is missing; BuildRoomCommand already supports it.
             case WalkOutcome.Failed:
+                // DK2's walker returns 0 on a hug that loops back and the task takes NextTask
+                // (0x004FDFA3). Ours abandons instead: our task 2 lacks DK2's one-detour guard and
+                // would detour again at once (ADR-0304, computer-keeper-tasks.md §6).
                 State.WallHug = false;
                 State.BeginTask(KeeperTask.Done);
                 break;
         }
+    }
+
+    /// <summary>Task 7's exit: <c>Task</c> takes <c>NextTask</c>, which is left at 4 (0x004FDC50).</summary>
+    private void EndPath()
+    {
+        State.WallHug = false;
+        State.BeginTask(State.NextTask, KeeperTask.Done);
+    }
+
+    /// <summary>
+    /// Task 7 on water or lava (0x004FDC50, docs/research/computer-keeper-handlers.md §9): water
+    /// takes a Wooden Bridge when it is available, else a Stone one; lava only a Stone one. With
+    /// neither the task ends. A span the placement test refuses is retried on the same tile until
+    /// the allowance is gone, as DK2's loop retries it. A submitted span lands on the next tick
+    /// (ADR-0244), so the allowance ends there too and the walk resumes once it is seen (ADR-0304).
+    /// </summary>
+    private void Bridge(KeeperView view, List<PlayerCommand> commands, ref int budget)
+    {
+        TilePos at = State.DigRoomAtCurrent;
+        RoomDef? bridge = BridgeFor(view, water: view.IsWater(at));
+        if (bridge is null)
+        {
+            EndPath();
+            return;
+        }
+        // DK2's wrapper (0x004C5B40) builds the tile free when one tile's price exceeds the money;
+        // the command charges, so ours waits for the gold instead (ADR-0304).
+        if (view.CanBuild(at, bridge) == RoomPlacement.Allowed && view.Gold >= RoomRules.CostPerTile(bridge))
+        {
+            commands.Add(new BuildRoomCommand(PlayerId, bridge.RoomId, [at]));
+            State.BridgeRequestedAt = at;
+        }
+        budget = 0;
+    }
+
+    /// <summary>The bridge task 7 asks for: DK2's code names rooms 8 and 17 here, not placement flags,
+    /// so lava never takes the Wooden Bridge its flags would allow.</summary>
+    private RoomDef? BridgeFor(KeeperView view, bool water)
+    {
+        if (water && IsRoomAvailable(view, RoomTypeId.WoodenBridge, out RoomDef? wood)) return wood;
+        return IsRoomAvailable(view, RoomTypeId.StoneBridge, out RoomDef? stone) ? stone : null;
+    }
+
+    /// <summary>Availability 3 (0x004BAB20), or the caller's override; a room the database lacks is not.</summary>
+    private bool IsRoomAvailable(KeeperView view, RoomTypeId room, out RoomDef? def)
+    {
+        byte id = (byte)room;
+        if (!view.Database.Rooms.TryGetValue(id, out def)) return false;
+        return _isRoomAvailable?.Invoke(id) ?? view.Availability(1, id) == 3;
     }
 
     private static TilePos? Nearest(KeeperView view, HashSet<int> indices, TilePos to)

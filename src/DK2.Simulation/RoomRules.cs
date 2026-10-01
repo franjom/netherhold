@@ -30,6 +30,14 @@ public enum RoomPlacement
 
     /// <summary>The player cannot pay for it.</summary>
     NotEnoughGold = 6,
+
+    /// <summary>A span over water or lava that touches none of the player's own floor
+    /// (<see cref="OwnFloorRules"/>).</summary>
+    NotTouchingOwnLand = 7,
+
+    /// <summary>A terrain DK2's placement test refuses by id: a Mana Vault, claimed or not, or a
+    /// Hero Gate (<see cref="RoomRules.RefusesByTerrainId"/>).</summary>
+    ReservedTerrain = 8,
 }
 
 /// <summary>Why a room tile could not be sold. Reported, never silently swallowed.</summary>
@@ -88,26 +96,80 @@ public static class RoomRules
     /// <paramref name="room"/> here, and if not, why. The land rule — <b>you build on
     /// ground you already own</b> — is STRONGLY INFERRED: nothing in the ROOMS record
     /// mentions ownership, so it has to come from the tile, and <c>Ownable</c> plus an
-    /// owner id is all the tile carries. Water and lava are exempt because a bridge is
-    /// built out over ground nobody can own.
-    /// <para>Not implemented: the adjacency rule, that a new room tile must touch land
-    /// the keeper already holds (Q33, ANSWERED yes — owner, 2026-08-29). Every tile it
-    /// would reject is rejected here anyway except a bridge.</para></summary>
+    /// owner id is all the tile carries. Water and lava carry no owner; a span over them
+    /// must instead touch the player's own floor, <paramref name="touchesOwnLand"/>
+    /// (<c>0x0044F630</c>, Q33). Not implemented: its refusal of a tile an enemy creature,
+    /// door or trap stands on (<c>0x0044F800</c>, Q501).</summary>
     public static RoomPlacement CanBuild(
-        GameDatabase database, in TileState tile, RoomDef room, byte playerId)
+        GameDatabase database, in TileState tile, RoomDef room, byte playerId, bool touchesOwnLand)
     {
         if (!room.IsBuildable) return RoomPlacement.NotBuildable;
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
+        if (RefusesByTerrainId(terrain.TerrainId)) return RoomPlacement.ReservedTerrain;
         if (terrain.IsRoom) return RoomPlacement.Occupied;
         if (!IsSuitableGround(database, tile, room)) return RoomPlacement.WrongGround;
 
-        // Water and lava carry no owner, so a bridge cannot be asked for one.
-        if (terrain.IsWater || terrain.IsLava) return RoomPlacement.Allowed;
+        if (terrain.IsWater || terrain.IsLava)
+            return touchesOwnLand ? RoomPlacement.Allowed : RoomPlacement.NotTouchingOwnLand;
 
         return terrain.IsOwnable && tile.OwnerPlayerId == playerId
             ? RoomPlacement.Allowed
             : RoomPlacement.NotYourLand;
+    }
+
+    /// <summary>0x0044F630 refuses terrain ids 31–34 and 37 before anything else; DK2's code names the
+    /// ids, which on shipped data are Mana Vault, Claimed Vault and the three Hero Gates
+    /// (<c>RoomsOnRealDataTests</c> guards them). The gates are rooms anyway; the vaults are not.</summary>
+    public static bool RefusesByTerrainId(byte terrainId) => terrainId is >= 31 and <= 34 or 37;
+
+    /// <summary><see cref="CanBuild(GameDatabase, in TileState, RoomDef, byte, bool)"/> for a world
+    /// tile, asking its neighbours for the adjacency; the authoritative placement test.</summary>
+    public static RoomPlacement CanBuild(
+        GameDatabase database, WorldState world, TilePos at, RoomDef room, byte playerId)
+    {
+        if (!world.Contains(at)) return RoomPlacement.OffMap;
+        ref TileState tile = ref world.Tile(at);
+        TerrainDef terrain = database.TerrainById(tile.TerrainId);
+        bool touches = (terrain.IsWater || terrain.IsLava) && OwnFloorRules.Touches(database, world, at, playerId);
+        return CanBuild(database, tile, room, playerId, touches);
+    }
+
+    /// <summary>The water or lava tiles of one bridge order that may be spanned: those passing
+    /// <see cref="CanBuild(GameDatabase, WorldState, TilePos, RoomDef, byte)"/>, then every hazard tile of
+    /// the order orthogonally joined to one through hazard tiles of the order. DK2 marks a dragged
+    /// rectangle this way before its wave lays it (<c>0x004C57F0</c>), so a span grows from the
+    /// shore whatever corner the wave starts at; one tile is the plain test (rooms-and-gold.md).</summary>
+    public static HashSet<TilePos> SpannableTiles(
+        GameDatabase database, WorldState world, IReadOnlyList<TilePos> order, RoomDef room, byte playerId)
+    {
+        var inOrder = new HashSet<TilePos>();
+        foreach (TilePos p in order)
+            if (world.Contains(p) && IsSpannable(database, world.Tile(p), room)) inOrder.Add(p);
+
+        var marked = new HashSet<TilePos>();
+        var frontier = new Queue<TilePos>();
+        foreach (TilePos p in inOrder)
+            if (CanBuild(database, world, p, room, playerId) == RoomPlacement.Allowed && marked.Add(p)) frontier.Enqueue(p);
+
+        ReadOnlySpan<int> dx = OwnFloorRules.NeighbourDx, dy = OwnFloorRules.NeighbourDy;
+        while (frontier.Count > 0)
+        {
+            TilePos p = frontier.Dequeue();
+            for (int i = 0; i < dx.Length; i++)
+            {
+                var n = new TilePos(p.X + dx[i], p.Y + dy[i]);
+                if (inOrder.Contains(n) && marked.Add(n)) frontier.Enqueue(n);
+            }
+        }
+        return marked;
+    }
+
+    /// <summary>Water the room may span, or lava it may span (0x004C57F0's tile test).</summary>
+    private static bool IsSpannable(GameDatabase database, in TileState tile, RoomDef room)
+    {
+        TerrainDef terrain = database.TerrainById(tile.TerrainId);
+        return (terrain.IsWater && room.PlaceableOnWater) || (terrain.IsLava && room.PlaceableOnLava);
     }
 
     /// <summary>Gold this room costs per tile. CONFIRMED (Q32): the owner priced five

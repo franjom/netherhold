@@ -161,9 +161,40 @@ public class RoomTests
         RoomDef bridge = database.Room(RoomTypeId.WoodenBridge);
         RoomDef treasury = database.Room(RoomTypeId.Treasury);
 
-        Assert.Equal(RoomPlacement.Allowed, RoomRules.CanBuild(database, water, bridge, Keeper));
-        Assert.Equal(RoomPlacement.WrongGround, RoomRules.CanBuild(database, water, treasury, Keeper));
-        Assert.Equal(RoomPlacement.WrongGround, RoomRules.CanBuild(database, floor, bridge, Keeper));
+        Assert.Equal(RoomPlacement.Allowed, RoomRules.CanBuild(database, water, bridge, Keeper, touchesOwnLand: true));
+        Assert.Equal(RoomPlacement.WrongGround, RoomRules.CanBuild(database, water, treasury, Keeper, touchesOwnLand: true));
+        Assert.Equal(RoomPlacement.WrongGround, RoomRules.CanBuild(database, floor, bridge, Keeper, touchesOwnLand: true));
+    }
+
+    /// <summary>0x0044F630 refuses terrain ids 31–34 and 37 first: a claimed Mana Vault is the
+    /// keeper's own Ownable floor and still takes no room.</summary>
+    [Fact]
+    public void AClaimedManaVaultTakesNoRoomThoughItIsOwnFloor()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        var vault = new TileState { TerrainId = Dk2TerrainFixture.ClaimedVaultTerrain, OwnerPlayerId = Keeper };
+
+        Assert.True(database.TerrainById(Dk2TerrainFixture.ClaimedVaultTerrain).IsOwnable);
+        Assert.Equal(RoomPlacement.ReservedTerrain,
+            RoomRules.CanBuild(database, vault, database.Room(RoomTypeId.Treasury), Keeper, touchesOwnLand: true));
+    }
+
+    /// <summary>0x0044F630: a span over water or lava needs a neighbour of the player's own floor
+    /// (Q33); the land test asks ownership and never adjacency.</summary>
+    [Theory]
+    [InlineData(Dk2TerrainFixture.Water)]
+    [InlineData(Dk2TerrainFixture.Lava)]
+    public void ASpanOverAHazardMustTouchOwnFloor_LandNeedsOnlyOwnership(byte hazard)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        var tile = new TileState { TerrainId = hazard };
+        var floor = new TileState { TerrainId = Dk2TerrainFixture.ClaimedPath, OwnerPlayerId = Keeper };
+        RoomDef bridge = database.Room(RoomTypeId.WoodenBridge);
+
+        Assert.Equal(RoomPlacement.NotTouchingOwnLand, RoomRules.CanBuild(database, tile, bridge, Keeper, touchesOwnLand: false));
+        Assert.Equal(RoomPlacement.Allowed, RoomRules.CanBuild(database, tile, bridge, Keeper, touchesOwnLand: true));
+        Assert.Equal(RoomPlacement.Allowed,
+            RoomRules.CanBuild(database, floor, database.Room(RoomTypeId.Treasury), Keeper, touchesOwnLand: false));
     }
 
     [Fact]
@@ -176,7 +207,7 @@ public class RoomTests
 
         Assert.Equal(
             RoomPlacement.NotBuildable,
-            RoomRules.CanBuild(database, floor, database.Room(RoomTypeId.DungeonHeart), Keeper));
+            RoomRules.CanBuild(database, floor, database.Room(RoomTypeId.DungeonHeart), Keeper, touchesOwnLand: true));
     }
 
     [Fact]

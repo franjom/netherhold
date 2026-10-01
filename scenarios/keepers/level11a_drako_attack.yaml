@@ -1,27 +1,27 @@
-# The unaided keeper's attack planner on a stock map: level 11A gives Drako (player 5) two
-# Mistresses and a Salamander, IAMinimumCreatures 2, IACreatureSkillLevel 1, IAThreatSuperiority 30,
-# NeverAttack 0, IAFirstEnd 2, IAFirstStart 3, BreachAtXPoints 1, CallToArmsUsage 1 and
-# WaitBeforeAttackingAgain 8. Nobody attacks Drako and no command is scripted: once its imps are
-# bought the attack planner (0x004FAEF0) finds the army ready, passes over the human (player 3,
-# 47 tiles off), Belial (21) and Raksha (20) for Morgana (player 6, 11 tiles off, four imps),
-# chooses her heart as the room with the least of her own strength within five tiles and the
-# Lair as the own non-bridge room nearest that heart's first slab, and starts task 7 from the
-# Lair toward the heart: the corridor's first tile of rock north of the Lair is tagged with
-# action 40. That step's neighbourhood holds unowned rock, which DK2's enemy test counts, so the
-# tunnel is stored and resumed two turns later with the 32-turn attack wait. Two tiles on the
-# corridor meets lava, and Drako's level gives it no Stone Bridge, so task 7 ends there as
-# 0x004FDC50 ends it; the walkers cannot wade lava either, so no front is found and no call is
-# cast. The attack on Morgana stops where the level's lava stops it in both games.
+# The unaided keeper's attack on a stock map: level 11A gives Drako (player 5) two Mistresses and
+# a Salamander, IAMinimumCreatures 2, IACreatureSkillLevel 1, IAThreatSuperiority 30, NeverAttack 0,
+# IAFirstEnd 2, IAFirstStart 3, BreachAtXPoints 1, CallToArmsUsage 1 and WaitBeforeAttackingAgain 8.
+# Nobody attacks Drako and no command is scripted. Once its imps are bought the attack planner
+# (0x004FAEF0) finds the army ready, passes over the human (player 3), Belial and Raksha for Morgana
+# (player 6), chooses her heart as the room with the least of her own strength within five tiles and
+# the Lair as the own non-bridge room nearest that heart's first slab, and starts task 7 from the
+# Lair toward the heart: the corridor's first rock, north of the Lair, is tagged with action 40.
+# Two tiles on, the corridor meets lava. Level 11A leaves Drako both bridges at availability 3
+# (merged VARIABLES; no trigger changes them), and task 7 (0x004FDC50) spans lava only with a Stone
+# Bridge (room 17), placed where the lava touches Drako's own floor (0x0044F630, 0x00453B30). The
+# span takes two tiles, the walker steps on and tags the rock beyond, and once the tunnel opens a
+# route to Morgana's heart the front puts the Call to Arms beside it and Drako's creatures engage it.
 #
-# What this run does NOT establish: DK2's timing, or that the neutral player's land stores the
-# tunnel in the original (Q497). No original run of Drako attacking has been compared.
+# What this run does NOT establish: DK2's timing, which ours delays a tick per command (ADR-0244,
+# ADR-0304); that the neutral player's land stores the tunnel in the original (Q497); or that
+# the original crosses here at all. No original run of Drako attacking has been compared.
 id: keepers-level11a-drako-attack-001
 question: >
-  Does Drako, unaided, choose Morgana as its target and start its tunnel from the Lair toward
-  her heart?
+  Does Drako, unaided, tunnel from its Lair toward Morgana's heart, bridge the lava in the way, and
+  attack her heart?
 map: campaign:level11A
 seed: 12345
-duration_ticks: 60
+duration_ticks: 200
 viewing_player: 5
 computer_keepers: [5]
 setup:
@@ -40,7 +40,36 @@ observe:
 expect:
   - event: tagged
     detail: "player=5 applied=1 rejected=0 span=(64,41)-(64,41)"
+    at_tick: 7
     because: >
       Task 7 (0x004FDC50) tags the rock on the cursor's tile with action 40 when the tile is
       taggable and not yet in the task pool: the first tile of rock north of Drako's Lair, on the
       line from its position (64,43) to Morgana's heart position (65,35).
+  - event: built
+    detail: "player=5 room=Stone Bridge tiles=1 cost=500 refused=0 first=(64,40)"
+    at_tick: 47
+    because: >
+      Lava on the cursor takes only room 17 (0x004FDC50), when it is available; the tile touches the
+      dug and claimed corridor, Drako's own floor, as the placement test requires (0x0044F630).
+  - event: built
+    detail: "player=5 room=Stone Bridge tiles=1 cost=500 refused=0 first=(64,39)"
+    at_tick: 48
+    because: >
+      A laid span steps the walker on the same allowance (0x004FDC50); the next lava tile touches
+      the bridge just laid, which is owned and not solid (0x00453B30).
+  - event: tagged
+    detail: "player=5 applied=1 rejected=0 span=(64,38)-(64,38)"
+    at_tick: 49
+    because: >
+      Past the lava the walker meets rock again and task 7 tags it: the tunnel continues toward
+      Morgana's heart.
+  - event: call_to_arms_raised
+    detail: "tile=64,34"
+    because: >
+      With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
+      heart and attack management casts the call there (0x004FECE0, ADR-0298); before the bridge no
+      walker could route and no call was cast.
+  - event: engaged
+    detail: "player=5 heart=6"
+    because: >
+      Drako's creatures answer the call and attack Morgana's heart (scan E, ADR-0163).

@@ -490,7 +490,7 @@ tick is skipped (the counters still run).
 | **4** | (inline) | **Done**: budget −1, gold check as in Task 0, reset to Task 0 |
 | **5** | `0x4FD660` | **Route to gold**: `DigRoomAtCurrent ←` nearest own room to the deposit (or the heart); `Task ← 7`, `NextTask ← 6` |
 | **6** | `0x4FD750` | **Mine the seam**: tag gold-bearing solid tiles in an expanding square spiral around the deposit until radius > 6, then Task 0 |
-| **7** | `0x4FDC50` | **Dig a path**: process the current cursor before stepping. Tagging needs at least 51 free entries; already tagged rock waits for excavation. Water tries Wooden Bridge (8), then Stone (17) only if Wood is unavailable; lava needs Stone. A successful route query resumes `NextTask`. During an attack, an enemy tile in the cursor's 3×3 neighbourhood stores the remaining tunnel. An out-of-area target aborts only for continuations other than 0/4. Exact flow: `research/computer-keeper-tasks.md` §5 |
+| **7** | `0x4FDC50` | **Dig a path**: process the current cursor before stepping. Tagging needs at least 51 free entries; already tagged rock waits for excavation. Water tries Wooden Bridge (8), then Stone (17) only if Wood is unavailable; lava needs Stone; a refused span is retried on its tile (`research/bridge-placement.md` §4). A successful route query resumes `NextTask`. During an attack, an enemy tile in the cursor's 3×3 neighbourhood stores the remaining tunnel. An out-of-area target aborts only for continuations other than 0/4. Exact flow: `research/computer-keeper-tasks.md` §5 |
 | **8** | — | stop for this tick |
 | 9–15 | — | invalid: reset to Task 4 |
 
@@ -1129,10 +1129,11 @@ The proactive foundation already exists (§12.8). **Future direction, agreed 202
    mood responses, prisoners, specials and research decisions. Acceptance: a verified
    need changes its orders. Reuse §12.3–12.4's existing commands and state.
 4. **Deliberate attacks.** Readiness with its level grants, enemy selection, the attack
-   tunnel, the staging point, the front and the call are built (ADR-0298): Nemesis on
-   Level 18 grants levels, chooses Fabian and creeps the call toward her; Drako on Level 11A
-   chooses Morgana and tunnels until the lava. Left: bridges in task 7, the research move,
-   training moves, trap/door decisions, and the original comparison (Q497).
+   tunnel, the staging point, the front and the call are built (ADR-0298), and task 7's
+   bridges (ADR-0304): Nemesis on Level 18 grants levels, chooses Fabian and creeps the call
+   toward her; Drako on Level 11A chooses Morgana, spans the lava with Stone Bridge, tunnels on
+   and calls its army to her heart. Left: the research move, training moves, trap/door
+   decisions, and the original comparison (Q497).
    Acceptance: the keeper prepares and launches an attack without scripted orders.
 5. **Personalities and comparison.** Load all nine profiles; test deterministic command
    streams and compare an active original keeper on the same stock map with availability
@@ -1171,10 +1172,9 @@ Deviations and approximations, each a candidate ADR:
 - The keeper's own RNG stream and one-tick input delay (§12.1, ADR-0244).
 - "Connected" is a flood fill from the heart over passable tiles and the keeper's own
   tags; the original's connectivity test was not read in that detail.
-- Water and lava currently stop a corridor, although `BuildRoomCommand` already
-  supports bridges. The original's bridge selection and retry are in
-  `research/computer-keeper-handlers.md` §9; its complete placement check remains
-  a simulation dependency (`RoomRules` omits bridge adjacency).
+- Task 7 bridges water and lava through `BuildRoomCommand`, which now applies DK2's
+  adjacency to every player (ADR-0304, `research/bridge-placement.md` §6): a span lands a tick
+  late and at most one a tick, and one the keeper cannot pay for waits instead of being laid free.
 - The room planner's second pass (researchable-but-unavailable rooms, the `0xE5`
   empty-shape dig) is not reproduced. Availability state 2 already exists; the
   research progression that changes it remains incomplete.

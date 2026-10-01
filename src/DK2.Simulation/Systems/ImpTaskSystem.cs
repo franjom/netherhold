@@ -1790,21 +1790,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// when its owner is the keeper, its terrain is Ownable and it is not Solid, so
     /// the keeper's own walls do not start a claim. Level 2 live capture
     /// (level2-live1): the heart's walls touch the dug Lair on three sides, and the
-    /// first claim is the one tile touching the heart's gap, then outward from it.</para>
+    /// first claim is the one tile touching the heart's gap, then outward from it.
+    /// The test is <see cref="OwnFloorRules"/>, shared with bridge placement.</para>
     /// </summary>
     internal static bool TouchesOwnLand(
-        SimulationContext context, WorldState world, TilePos target, byte playerId)
-    {
-        for (int i = 0; i < NeighbourDx.Length; i++)
-        {
-            var neighbour = new TilePos(target.X + NeighbourDx[i], target.Y + NeighbourDy[i]);
-            if (StandsOnOwnLand(context, world, neighbour, playerId)
-                && !context.Database.TerrainById(world.Tile(neighbour).TerrainId).IsSolid)
-                return true;
-        }
-
-        return false;
-    }
+        SimulationContext context, WorldState world, TilePos target, byte playerId) =>
+        OwnFloorRules.Touches(context.Database, world, target, playerId);
 
     /// <summary>
     /// Whether any of the eight tiles around <paramref name="target"/> is

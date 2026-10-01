@@ -266,6 +266,21 @@ public class RoomsOnRealDataTests
         Assert.Equal(0, GoldStore.Capacity(db, new TileState { TerrainId = fallback.TerrainId }));
     }
 
+    /// <summary>The ids 0x0044F630 refuses are, on the install, the two Mana Vault terrains and the
+    /// three Hero Gates, and only the vaults are not rooms already.</summary>
+    [InstallFact]
+    public void TheTerrainIdsThePlacementTestRefusesAreTheVaultsAndTheHeroGates()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        byte[] refused = db.Terrain.Keys.Where(RoomRules.RefusesByTerrainId).OrderBy(id => id).ToArray();
+
+        Assert.Equal(new byte[] { 31, 32, 33, 34, 37 }, refused);
+        Assert.Equal(["Mana Vault", "Claimed Vault"], refused.Take(2).Select(id => db.TerrainById(id).Name));
+        Assert.All(refused.Skip(2), id => Assert.StartsWith("Hero Gate", db.TerrainById(id).Name));
+        Assert.All(refused.Skip(2), id => Assert.True(db.TerrainById(id).IsRoom));
+        Assert.False(db.TerrainById(32).IsRoom);
+    }
+
     [InstallFact]
     public void ARoomCanBeBuiltOnClaimedFloorOnARealCampaignLevel()
     {
@@ -284,11 +299,11 @@ public class RoomsOnRealDataTests
         (int index, byte owner) = FindClaimedFloor(db, world);
         Assert.True(index >= 0, "level1 has no claimed floor tile to build on");
 
-        ref TileState tile = ref world.TileAtIndex(index);
-        Assert.Equal(RoomPlacement.Allowed, RoomRules.CanBuild(db, tile, lair, owner));
+        var at = new DK2.Core.TilePos(index % world.Width, index / world.Width);
+        Assert.Equal(RoomPlacement.Allowed, RoomRules.CanBuild(db, world, at, lair, owner));
         Assert.Equal(
             RoomPlacement.NotYourLand,
-            RoomRules.CanBuild(db, tile, lair, (byte)(owner + 1)));
+            RoomRules.CanBuild(db, world, at, lair, (byte)(owner + 1)));
     }
 
     /// <summary>The first ownable, non-room, non-solid tile with an owner.</summary>

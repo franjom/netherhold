@@ -184,12 +184,10 @@ ROOMS record mentions ownership, so the rule has to come from the tile, and
 because that terrain is not `Ownable` at all; a bridge goes out over ground nobody
 can own.
 
-**Adjacency is CONFIRMED and not implemented (Q33, Q66).** Binary recheck
-2026-09-28: `0x0044F630(x,y,player,room)` rejects occupied room tiles and terrain
-ids 31–34/37. Water/lava placement needs the corresponding room flag,
-`0x00453B30(player)` cardinal adjacency, and no `0x0044F800` obstruction. Land
-instead requires ownership, a clear world `+0x208` predicate and the land flag.
-`RoomRules.CanBuild` still permits starting bridges anywhere on water.
+**Adjacency is CONFIRMED (Q33, Q66) and built** (ADR-0304): a span over water or lava
+must touch the keeper's own floor. The predicate, a dragged span and the keeper's
+bridges are [`bridge-placement.md`](bridge-placement.md); its obstruction test is not
+built (Q501).
 
 ---
 

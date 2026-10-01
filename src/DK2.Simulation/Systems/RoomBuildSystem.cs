@@ -15,10 +15,10 @@ namespace DK2.Simulation.Systems;
 /// from is <see cref="GoldStore"/>.
 /// <para><b>A tile at a time, in the order the command gives</b>: a keeper who
 /// can afford four tiles of a six-tile treasury gets four, and the run says
-/// which two were refused and why. Ours — neither ordering is measured.</para>
-/// <para><b>Deliberate deviation: building is instant.</b> In DK2 an imp walks
-/// over and constructs the tile; no imp task kind for room construction has been
-/// identified (imp-task-priority.md §3), so nothing here times it.</para>
+/// which two were refused and why. Ours — neither ordering is measured — except that a
+/// bridge order is marked whole first, as DK2's drag is (<see cref="RoomRules.SpannableTiles"/>).</para>
+/// <para><b>Deliberate deviation: building is instant</b>; no imp task kind for room
+/// construction has been identified (imp-task-priority.md §3), so nothing times it.</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public sealed class RoomBuildSystem : ISimulationSystem
@@ -50,7 +50,12 @@ public sealed class RoomBuildSystem : ISimulationSystem
         int cost = RoomRules.CostPerTile(room);
         int built = 0;
         int spent = 0;
+        TilePos? first = null;
         var refusals = new Dictionary<RoomPlacement, int>();
+        // A bridge order of several tiles is marked whole first, as DK2 marks a dragged span.
+        HashSet<TilePos>? spans = BridgeRules.IsBridge(room) && command.Tiles.Count > 1
+            ? RoomRules.SpannableTiles(context.Database, world, command.Tiles, room, command.PlayerId)
+            : null;
 
         foreach (TilePos pos in command.Tiles)
         {
@@ -61,7 +66,9 @@ public sealed class RoomBuildSystem : ISimulationSystem
             }
 
             ref TileState tile = ref world.Tile(pos);
-            RoomPlacement verdict = RoomRules.CanBuild(context.Database, tile, room, command.PlayerId);
+            RoomPlacement verdict = spans is not null && spans.Contains(pos)
+                ? RoomRules.CanBuild(context.Database, tile, room, command.PlayerId, touchesOwnLand: true)
+                : RoomRules.CanBuild(context.Database, world, pos, room, command.PlayerId);
             if (verdict != RoomPlacement.Allowed)
             {
                 Count(refusals, verdict);
@@ -79,13 +86,13 @@ public sealed class RoomBuildSystem : ISimulationSystem
             byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
             RoomRules.Place(context.Database, ref tile, room, command.PlayerId);
             SlabChain.Changed(world, context.Database, (pos.Y * world.Width) + pos.X, terrainBefore, ownerBefore);
-            built++;
+            if (built++ == 0) first = pos;
             spent += cost;
         }
 
         context.Emit(SystemName, "built",
             $"player={command.PlayerId} room={room.Name} tiles={built} cost={spent} " +
-            $"refused={Describe(refusals)}");
+            $"refused={Describe(refusals)}" + (first is TilePos f ? $" first=({f.X},{f.Y})" : ""));
 
         // A Combat Pit that took a tile is rebuilt, and its reset throws its fighters out (0x004D7E00).
         if (built > 0)

@@ -6553,7 +6553,8 @@ audited claim by claim.
 
 **Consequences.** Nemesis on Level 18 grants four knights three levels, chooses Fabian, casts
 the call at its Library and creeps it; Drako on Level 11A chooses Morgana, tags the
-corridor's first rock and stops at the lava as `0x004FDC50` would without a Stone Bridge.
+corridor's first rock and stopped at the lava for want of task 7's bridge branch, not of a
+Stone Bridge, which the level gives it (corrected 2026-10-01; built by ADR-0304).
 No simulation state changed: HashVersion stays 141. Deviations: the delay and own RNG
 (ADR-0244); a room's first slab is its first tile and its list order the capture's scan;
 the heart's +3 `CentrePos` lands inside a five-by-five room. Not built: the research move
@@ -6730,3 +6731,41 @@ the rest becomes a floor pile. `UpdateDelivering` puts gold down only once its r
 **Consequences.** Level 1 wins 20 of 20 with win ticks 1756–1964, most 1760–1800 (the
 owner's game 1802), and the Hatchery corner is dug at 213. Level 2 wins 17 of 20; the losses
 include the late-claim seeds, as DK2's seeded Level 2 run also lost.
+
+## ADR-0304 — Task 7 bridges water and lava; a span must touch the builder's own floor
+**Date:** 2026-10-01 · **Status:** accepted · Research: `bridge-placement.md`
+
+**Context.** Task 7 ended at the first water or lava tile, so no keeper crossed a hazard, and
+`RoomRules.CanBuild` let any player start a bridge anywhere on open water although the owner
+confirmed adjacency (Q33). The placement predicate (`0x0044F630`), the drag's span map
+(`0x004C57F0`), the builder and the keeper's wrapper (`0x004C5C30`, `0x004C5B40`) and task 7's
+bridge branch (`0x004FDC50`) were read for this.
+
+**Decision.**
+1. One placement rule for every player: a water or lava span must touch the player's own,
+   Ownable, non-Solid floor (`OwnFloorRules`, shared with claims). A bridge order of several
+   tiles is marked whole first and grows through its connected hazard, as a dragged span does.
+   Terrain ids 31–34 and 37 (the Mana Vaults, the Hero Gates) are refused first, as DK2 does.
+2. `KeeperAI.DigPath` handles the cursor's own tile first: water asks for a Wooden Bridge at
+   availability 3, else a Stone one; lava only a Stone one; neither ends the task as
+   `Task = NextTask`, `NextTask = 4`. A span the observation predicts refused is retried on the
+   same tile and spends the rest of the allowance, as DK2's loop does.
+3. A submitted span is one `BuildRoomCommand`, landing next tick (ADR-0244), so the allowance ends
+   with it; the next turn re-reads the tile. Still water means refused, retried at full price;
+   a bridge means it landed, and the walk DK2 took on the same pass follows at once, costing no
+   allowance and asking no reachability first. A new task forgets the request.
+
+**Why.** The rule is DK2's for humans and keepers alike, so it belongs in the simulation's one
+placement path; the keeper only predicts it. Re-reading the tile is the only way to tell a laid
+span from a refused one across the input delay without a grace period.
+
+**Deviations.** At most one span a tick where DK2 lays one per pass of the allowance. DK2's wrapper
+lays a keeper's unaffordable tile free; our command is charged, so the keeper waits for the gold.
+The obstruction test (`0x0044F800`) is not built (Q501), and the land arm still asks terrain
+solidity rather than world slot `+0x208`. A hug that loops back abandons the task (`Done`) where
+DK2 takes `NextTask`: our task 2 lacks DK2's one-detour guard and would detour again at once.
+
+**Consequences.** Drako on stock Level 11A spans the lava with two Stone Bridge tiles, tunnels on,
+casts Call to Arms beside Morgana's heart and engages it. No simulation state or observation
+field changed: HashVersion stays 146, observation schema 14. The `built` event names its first
+tile. Original comparison: Q497.
