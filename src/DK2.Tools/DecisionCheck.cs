@@ -104,9 +104,11 @@ public static class DecisionCheck
 
             JsonElement dk2 = root.GetProperty("dk2");
             int dk2State = dk2.GetProperty("state").GetInt32();
-            // A walk with no task is the store chooser's.
+            // A walk with no task, or with one the pool does not list it on (the store walk keeps the
+            // old task fields, 0x00464005), is the store chooser's.
             int dk2Kind = dk2State == ImpStates.Resting ? (int)ImpTaskKind.None
-                : dk2.GetProperty("task_id").GetInt32() == 0 ? StoreWalk
+                : dk2.GetProperty("task_id").GetInt32() == 0
+                  || (dk2.TryGetProperty("held", out JsonElement held) && !held.GetBoolean()) ? StoreWalk
                 : dk2.GetProperty("kind").GetInt32();
             int dk2X = dk2.GetProperty("task_x").GetInt32(), dk2Y = dk2.GetProperty("task_y").GetInt32();
             int ourKind = probe.Took ? (int)decider.LastTaskKind : (int)ImpTaskKind.None;
