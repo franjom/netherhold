@@ -630,9 +630,9 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     /// earns nothing and <b>keeps the job</b>, which is the original's shape at
     /// this point rather than an oversight — the cap ejects a creature through
     /// four of the training <i>state</i> handlers, which this project does not
-    /// have, so here it simply stops paying. The creature will re-choose at its
-    /// next gate and the job handler will refuse it then
-    /// (<see cref="JobRules.Refused"/>), so it does leave, one gate late.</para>
+    /// have, so here it earns nothing, though ours still charges where DK2's hook does not
+    /// (CategoryHooks). The job handler refuses it at its next gate (<see cref="JobRules.Refused"/>),
+    /// so it does leave, one gate late.</para>
     /// </summary>
     private void Train(
         SimulationContext context, WorldState world, GameDatabase database,

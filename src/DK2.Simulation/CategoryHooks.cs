@@ -107,7 +107,9 @@ public static class CategoryHooks
 
         Slot(CreatureStateCategory.Manufacture, HookKind.Enter, 0x0047B0A0, HookStatus.NotBuilt,
             "raises station +0x8A and claims; ours counts the makers from UpdatingCategory (ManufactureRules, ADR-0203)"),
-        Arm(CreatureStateCategory.Manufacture, 0x0047B190, HookStatus.Built, "credit per turn (ADR-0203)",
+        Arm(CreatureStateCategory.Manufacture, 0x0047B190, HookStatus.Partial,
+            "credit per turn (ADR-0203); not built: a zero credit failing the hook, and the turn % v19 call "
+            + "to 0x004F2300 (state-category-hooks.md §3.4)",
             typeof(CreatureJobSystem), "Manufacture"),
         Slot(CreatureStateCategory.Manufacture, HookKind.Leave, 0x0047B120, HookStatus.NotBuilt,
             "lowers station +0x8A and releases; ours counts the makers from UpdatingCategory (ADR-0203)"),
@@ -143,7 +145,9 @@ public static class CategoryHooks
 
         Slot(CreatureStateCategory.Training, HookKind.Enter, 0x0047B230, HookStatus.Partial,
             Seeded + "; the gold refusal with message 55 and the claim are not (state-category-hooks.md §3)"),
-        Arm(CreatureStateCategory.Training, 0x0047B2D0, HookStatus.Built, "experience per turn, the charge every fifth (Q205)",
+        Arm(CreatureStateCategory.Training, 0x0047B2D0, HookStatus.Partial,
+            "experience per turn, the charge every fifth (Q205); not built: at the level cap DK2 returns 1 with "
+            + "no charge and no countdown step, where ours still charges, and message 55 when the keeper cannot pay",
             typeof(CreatureJobSystem), "Train"),
         Slot(CreatureStateCategory.Training, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
 

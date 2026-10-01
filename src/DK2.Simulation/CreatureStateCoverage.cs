@@ -9,7 +9,10 @@ namespace DK2.Simulation;
 /// <summary>How far this project has come with one DK2 state.</summary>
 public enum StateStatus : byte
 {
-    /// <summary>A handler exists: <see cref="StateCoverageRow.Handler"/> names it.</summary>
+    /// <summary>Our code enters the state and acts for a creature in it.
+    /// <see cref="StateCoverageRow.Handler"/> names a member that does one or the other: a constant
+    /// for the state, or the method that picks it. Built is not complete: 108's kick to 110 at the
+    /// level cap is missing, for one; the gaps are in the ADRs and <see cref="CategoryHooks.Slots"/>.</summary>
     Built,
 
     /// <summary>Shipped data never enters it; <see cref="StateCoverageRow.Detail"/> cites why.</summary>

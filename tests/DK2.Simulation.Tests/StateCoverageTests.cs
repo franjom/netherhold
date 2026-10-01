@@ -96,7 +96,8 @@ public sealed class AfterEveryOtherTest
 /// <summary>The table against what the simulation suite actually does. Entered implies Built
 /// fails on any offender. Built implies entered keeps an allow-list, each entry with its reason
 /// (<see cref="StateCoverageRow.UnexercisedBecause"/>): a handler nothing here reaches is
-/// worth knowing about, and failing would only invite a throwaway test or a demoted row.</summary>
+/// worth knowing about, and failing would only invite a throwaway test or a demoted row.
+/// Run alone (<c>--filter</c>) they fail on purpose: nothing else has entered a state.</summary>
 [Collection(AfterEveryOtherTest.Name)]
 public class StateCoverageRunTests
 {

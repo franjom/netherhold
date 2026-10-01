@@ -246,9 +246,9 @@ the bit/mask/`+0x3c` columns of §7 come back identical.
 | 31 | `0x0047A9E0` | `0x0047AA70` | `0x0047B920` |
 
 The other ten categories have no hook of any kind, so for those the states
-themselves stay the only evidence. Nothing here is carried into `src/`: the
-generated table keeps only whether a hook exists, because nothing in this project
-calls one.
+themselves stay the only evidence. `CategoryHooks` in `src/` carries every filled slot
+with its address and what is built of it, and `SetState` dispatches the built enter and
+leave hooks from it (ADR-0308).
 
 ## 7.2 What the hooks do
 
