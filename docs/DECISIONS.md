@@ -6864,3 +6864,20 @@ database, so a player still cannot grab gold off unclaimed dirt.
 **Consequences.** Replays put the piles where DK2 does. Level 1 wins 20 of 20; Level 2 19 of 20,
 and its Hatchery at 2692 gets tiles in 4 of 20 runs (DK2 4 of 5). DK2 wins Level 2 in 2 of 5
 seeded runs, ours in 19 of 20, which is open.
+
+## ADR-0311 — The Prison enter hook fires creature event 7 once its claim takes
+**Date:** 2026-10-01 · **Status:** accepted · Research: `state-category-hooks.md` §3, `trigger-walkers.md`
+
+**Context.** `CreatureTriggerEvent.Imprisoned` (7) was defined and never fired. Of the creature
+event filter's 24 call sites in DKII.EXE, one pushes 7: the Prison enter hook `0x0047B740`. It
+claims (`0x004E5A70`), and only when the claim takes does it seed `+0xAB`, fire 7 on the captive
+and return 1; every refusal returns 0 before that.
+
+**Decision.** The Prison Enter slot gets its own delegate: `RoomCapacityRules.Claim`, then
+`FireCreatureEvent(creature, Imprisoned)` on success, else false. The countdown seed stays in
+`RunEnter`. The slot stays `Partial`: our claim lacks the Prison's position tests and capacity
+(Q504), so 7 also fires for a captive dropped on a rim tile, where DK2's claim refuses.
+
+**Consequences.** No shipped level has a condition of type 7 (`kwd trigger-types`: none of
+9,161 records), so the event is inert today and `HashVersion` stays 147. The Level 1 and Level 2 rigs
+(seeds 1-20) win 20/20 and 20/20 before and after, every seed's line identical.

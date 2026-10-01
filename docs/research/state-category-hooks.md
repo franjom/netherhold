@@ -81,7 +81,7 @@ the category operation failed; a return of one means it remains valid.
 | `0x0047B430` | Torture enter | Claims, then initializes `+0xAC`. |
 | `0x0047B4A0` | Torture leave | Clears two station occupancy bits, conditionally clears state `+0x6E`, clears creature `+0x3EA` bit 14, and releases. The station helpers' exact contracts are **UNKNOWN**. |
 | `0x0047B590` | Torture update | Once per second, adds variable 19 to creature `+0x4F6`, applies definition `TortureHpChange` (`+0x79F`) as health, and, when the station's `+0x1D` names the creature, applies definition **`TortureMoodChange` (`+0x7A1`)** to anger bucket 5 with selector 8. Thus the anger amount is per creature, not a global. At the level-scaled `TortureTimeToConvert` threshold it either kills on the variable-234 roll (shipped zero) or calls the conversion helper. |
-| `0x0047B740` | Prison enter | Claims, initializes `+0xAB`, and fires creature trigger event 7. |
+| `0x0047B740` | Prison enter | **CONFIRMED** (re-read 2026-10-01): the lookup and claim of §3.5; any refusal returns 0 with nothing else done, so no seed and **no event 7**. Once the claim takes, it seeds `+0xAB` from variable 19, fires creature trigger event 7 on the captive itself (`ECX` = state `+0x8`, pushes `7, 0, 0`), and returns 1. The claim's overcrowding message `0x2A` is on its success path, so 7 fires there too. Built: ADR-0311. |
 | `0x0047B7C0` | Prison update | Every four game seconds, and only for a creature with nonzero level-scaled `HungerFill` and a room id, applies `4 x PrisonModifyCreatureHealthPerSecond` (-12) and **`ModifyAngerInCompanyOfHatedCreaturesPerSecond` (+150)** to bucket 0 with selector 9. |
 | `0x0047B8C0` | Temple enter | Initializes `+0xAF` and claims. |
 
@@ -146,9 +146,10 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   slap handler `0x0048B8A0`. Its handler `0x0046F1F0` sends a creature to 115 in a Prison,
   63 in a Workshop and 130 in a Torture Chamber; a Horny-flagged one goes to 238. 120 reuses that handler
   through the thunk `0x00470C00`, but it is a captive state: 130 is refused from it,
-  since the two share group 1 and differ in category. (Corrected 2026-09-24; this line
-  first said 120.) **126** (`0x00473920`), after its first tick, goes to 114 on a
-  Prison tile.
+  since the two share group 1 and differ in category. **126** (`0x00473920`), after its
+  first tick, goes to 114 on a Prison tile. 1, 76, 77 (category 7) and 126 (0) are outside
+  14, so each of those entries runs the Prison enter hook and, its claim taking, event 7; the
+  rule admits 114–119 → 77, so a slapped prisoner fires 7 again (STRONGLY INFERRED; 120 → 115 runs none).
 - **114** (`0x00473130`): on a Prison slab that `0x00454110` accepts (for a Prison, any
   interior slab), sets 115 and stores the prison at creature `+0x3CB`; otherwise
   returns 0, which is idle.

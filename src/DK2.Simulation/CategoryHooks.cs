@@ -149,9 +149,19 @@ public static class CategoryHooks
             typeof(CreatureJobSystem), "Train"),
         Releasing(CreatureStateCategory.Training, 0x0047B920, Release),
 
-        Claiming(CreatureStateCategory.Prison, 0x0047B740, HookStatus.Partial,
-            Seeded + "; " + Claimed + "; not built: the claim's position tests and overcrowding roll (Q504) "
-            + "and creature trigger event 7 (state-category-hooks.md §3)"),
+        new(CreatureStateCategory.Prison, HookKind.Enter, 0x0047B740, HookStatus.Partial,
+            Seeded + "; " + Claimed + ", then creature trigger event 7 once it takes (ADR-0311); not built: "
+            + "the claim's position tests and overcrowding roll (Q504)")
+        {
+            Enter = static (in StateHookContext hooks, CreatureState creature) =>
+            {
+                // DK2 returns 0 on a refused claim before event 7. Our claim lacks the Prison's position
+                // tests (Q504), so 7 also fires on a rim tile DK2's claim would refuse.
+                if (!RoomCapacityRules.Claim(in hooks, creature)) return false;
+                hooks.FireCreatureEvent(creature, CreatureTriggerEvent.Imprisoned);
+                return true;
+            },
+        },
         Arm(CreatureStateCategory.Prison, 0x0047B7C0, HookStatus.Built, "the drain every seventeenth turn (ADR-0191)",
             typeof(PrisonSystem), "Wither"),
         Releasing(CreatureStateCategory.Prison, 0x0047B920, Release),

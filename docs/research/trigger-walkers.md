@@ -112,7 +112,9 @@ action clears its own active bit.
 ### Who fires what (2026-09-25, every call site of both filters)
 
 The creature filter `0x0049AA30(creature, type, 0, 0)` has **24 call sites**
-(`PreCall`, 14-instruction windows; 20 functions and 3 unattributed spans).
+(20 functions and 3 unattributed spans). It is `thiscall`, `RET 0xC`, so the type is
+each call's last push; every caller's own pushes were re-read on 2026-10-01 (the table
+first came from `PreCall` windows) and confirm the table: only `0x0047B7A4` pushes 7.
 The player filter `0x004C7A50(player, type, targetType, targetId)` has 12; only
 type 53 reads the pair, comparing it with the record's first two body bytes,
 and `(0, 0xF1)` also calls world slot `+0x358`. The names are the level
@@ -150,7 +152,8 @@ are the two filters; `SimulationContext.FireCreatureEvent` is the systems' hook.
 Wired: 3 at executor construction and from the party spawn, 6 from a new
 engagement (DK2 fires on every fight-start), 15 from the stun, 63/61 from the
 entrance arrival, 16 and 4 from the health system's collapse and death, 13 from
-a gold steal. Not yet wired, their sites above: 5/60, 7, 8, 9, 10, 11, 12, 54,
+a gold steal, 7 from the Prison enter hook once its claim takes (ADR-0311). Not yet
+wired, their sites above: 5/60, 8, 9, 10, 11, 12, 54,
 65/58, 46, 53, 56/57, 59 — each waits on the system that owns
 the moment. An event walk's blocked and partial records are not reported.
 
