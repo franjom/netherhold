@@ -29,8 +29,9 @@ its position to location validation and its tag to target validation.
 
 ## 2. Cast side effects
 
-The position path is built for Call to Arms alone: `KeeperSpellRules.CastAtPlace`
-runs the helper below for spell 3 with selectors 4/4 (`call-to-arms.md`, ADR-0279).
+The position path is built for Call to Arms and Inferno: `KeeperSpellRules.CastAtPlace`
+runs the helper below for spell 3 with selectors 4/4 (`call-to-arms.md`, ADR-0279) and
+spell 9 with 1/5 (`keeper-spell-inferno-chicken.md`, ADR-0302).
 
 Both cast helpers take three stack arguments: spell id, position pointer or
 creature tag, and flags; `RET 0xC` and callers establish this. Their decompiler
@@ -88,12 +89,13 @@ Target 1 normally admits own creatures, with room-owner and Pit-fighter
 exceptions, excluding descriptor flag `0x4000` in its ordinary ownership arm.
 Cast flag bit 2 instead selects foreign nonneutral creatures. Target 2 reverses
 that flag choice; target 3 accepts any live nonneutral creature. Target 6 has
-additional state/status restrictions, or accepts an owned type-9 object.
+additional state/status restrictions, or accepts an owned type-9 object (read in full:
+`functions/00517AB0.md`).
 These predicates are not interchangeable with pickup permission.
 
 **Thunderbolt gates resolved:** see `keeper-spell-thunderbolt.md` §2 for the
 world `+0x20C` predicate, Heart-position helper `0x004DA150`, and shipped
-selectors. Target 6's status fields remain UNKNOWN for other spells.
+selectors. Target 6's tests are read in full (`functions/00517AB0.md`).
 A cast command must follow the selected callbacks rather than substitute
 a generic ownership or range check.
 

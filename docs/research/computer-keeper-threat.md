@@ -247,8 +247,8 @@ sources, corpse records are omitted, and dying creatures retain their threat.
 Trap construction and recharge do not filter this strength calculation. The
 simulation has no additional limbo or trap off-map lifecycle to project yet.
 
-Campaign keepers receive PLAYERS activation order from the harness; observation
-schema 11 stores its reversed active-list walk, casualty-priority masks, pickup
+Campaign keepers receive PLAYERS activation order from the harness; the observation
+stores its reversed active-list walk, casualty-priority masks, pickup
 permissions, the keeper's Call to Arms and mana, each spell row's last cast and, per
 creature, the DK2 state, the state through a walk, the fight gate, level-scaled
 maximum health, `LastDroppedCounter`, whether this keeper's hand holds it, its rank

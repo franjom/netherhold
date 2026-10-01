@@ -38,7 +38,7 @@ the researched subset and blockers are below (2026-09-28).
 **M12** has its proactive task slice in `DK2.AI` (tasks 0–7, digging, rooms,
 gold, imps and slaps), with a captured, serialisable observation. The Level 17 unaided harness and Level 10 same-map
 capture exist; the planner/message review corrections are covered by regression
-tests (ADR-0246). Observation schema 13 carries casualty marks, pickup permissions, the verified player walk, each creature's Call to Arms answer, the keeper's call, the Combat Pit mark, room membership, the Heal permission, every player's status and the call's refused own tiles; live threat assessment
+tests (ADR-0246). Observation schema 14 carries casualty marks, pickup permissions, the verified player walk, each creature's Call to Arms answer, the keeper's call, the Combat Pit mark, room membership, the Heal, Chicken and Inferno permissions, every player's status and the call's refused own tiles; live threat assessment
 projects held/carried and corpse state correctly. The response queue is built and
 tested independently, including the event's whole-tick allowance rule. Combat-message consumption
 and attack response are connected; the remaining reactive decisions and an original command trace remain open. The casualty-priority

@@ -1141,8 +1141,8 @@ The proactive foundation already exists (§12.8). **Future direction, agreed 202
 
 ### 12.8 What exists
 
-`src/DK2.AI` (Unity-bound, `netstandard2.1`), no simulation change, world hash
-untouched. `KeeperAI.Think` runs the budget, the 1,680-tick task timeout, the 240-tick
+`src/DK2.AI` (Unity-bound, `netstandard2.1`) changes no world state itself: what its
+commands cause (Call to Arms, the keeper spells, the level grant) are simulation rules. `KeeperAI.Think` runs the budget, the 1,680-tick task timeout, the 240-tick
 gold untag, imp creation, slapping, and the task machine for tasks 0–7. The other files
 are §12.2's table.
 
@@ -1156,7 +1156,7 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
-Observation schema 9 includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
+The observation (schema 14) includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
 alliances, reverse player activation order, research upgrades, placed trap threat and
 navigation bytes (`research/computer-keeper-threat.md` sections 1 and 2). Tests check frozen
 values, packet round trips and equal command streams;
@@ -1189,7 +1189,8 @@ mana pool, each spell row's last cast, and per creature its target's owner and t
 captured place, route and Thunderbolt-target permissions the battle step predicts with;
 schema 11 its Combat Pit mark and whether it holds a room id; schema 12 the Heal permission
 its validators give an own creature; schema 13 every player's status, the heart room's middle
-as the heart and the call's refused own-room tiles, with route queries over the captured bytes.
+as the heart and the call's refused own-room tiles, with route queries over the captured bytes;
+schema 14 the Chicken and Inferno permissions per foreign creature (ADR-0302).
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
 now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);

@@ -174,7 +174,8 @@ Thunderbolt alone. Do not tune the spell to 466.
 ## 5. Implementation boundary
 
 `KeeperSpellRules` and packet action 55 use the existing process-9 shot path.
-Other spell ids (Heal since ADR-0287, `keeper-spell-casting.md` §4), nonzero flags and
+Other spell ids (Heal since ADR-0287, `keeper-spell-casting.md` §4; Chicken and Inferno
+since ADR-0302, `keeper-spell-inferno-chicken.md`), nonzero flags and
 unimplemented selector/process variants are explicitly refused. Clocks and mana accounting are hashed and saved.
 This note covers the Thunderbolt shot itself; the computer keeper's battle step
 that casts it is `KeeperBattleStep` (ADR-0283), and other keeper effects are in
