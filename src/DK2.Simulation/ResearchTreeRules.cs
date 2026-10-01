@@ -34,7 +34,9 @@ public static class ResearchTreeRules
     public const int ShelfCapacity = 2;
 
     private const int Researchable = 2;
-    private const int Available = 3;
+
+    /// <summary>The availability value a cast needs: AVAILABLE (3) in the keeper's table.</summary>
+    public const int Available = 3;
     private const string SystemName = "Research";
 
     /// <summary>The availability kind that holds a research kind's items: room 1, door 4,

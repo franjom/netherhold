@@ -6882,3 +6882,26 @@ claim refuses. The imp's route is unaffected: `PrisonRules.AdmitsAt` admits it t
 **Consequences.** No shipped level has a condition of type 7 (`kwd trigger-types`: none of
 9,161 records), so the event is inert today and `HashVersion` stays 147. The Level 1 and Level 2 rigs
 (seeds 1-20) win 20/20 and 20/20 before and after, every seed's line identical.
+
+## ADR-0312 — Create Imp follows the position permission and lands its imp as the hand does
+**Date:** 2026-10-01 · **Status:** accepted · Research: `keeper-spell-casting.md` §3, `imps-and-mana.md`, Q505
+
+**Context.** Level 2's win hangs on a tutorial chain that ours ran 150–200 ticks early, and the
+seeded DK2 replays of `l2live2` put the first divergence on the Create Imp casts at ticks 2158–2169.
+DK2 made an imp only where the cast tile was the keeper's own claimed floor: seed 02 (six casts on
+neutral dirt) none, seed 03 one, seed 04 six. Ours made all six every time; without a Library the
+spell is not even researched there. The shipped record selects location 1 and target 4 (bytes
+`0xEF`, `0xDA`), the validators `KeeperSpellRules` already applies to Inferno. DK2's new imps also
+pass states 214, 11 and 10 and look around where they landed (seed 04: four imps made at (14,24)
+reinforce the walls beside them); ours ran a whole-map search and marched to the one marked tile.
+
+**Decision.** `ImpSupplySystem.Buy` refuses a cast whose row is below AVAILABLE or whose tile fails
+`KeeperSpellRules.PlaceAllowed`; a table without the row is read as available. `Spawn` writes the
+hand drop's fields on the new imp (`JustDropped`, the kind just done zeroed, no chooser cap), for
+bought and free imps alike, since both take the same cast (`0x004BBD30`).
+
+**Consequences.** `HashVersion` stays 147: the state has no new field. Level 2 over 20 seeds goes
+from 20 wins to 7, all in the ten seeds that afford the Library at 688 and none in the ten that
+do not — DK2's four distinct seeded runs split 2/2 on the Library and win 1 of the 2 with it,
+0 of the 2 without. Level 1 is unchanged, 20 of 20 with the same ticks. The Portal's doubled
+first interval after a scripted arrival stays open as Q505.

@@ -27,6 +27,14 @@ when player flag `0x1000` is set. Both then call location and target validators.
 The creature helper additionally requires a live creature tag before passing
 its position to location validation and its tag to target validation.
 
+Create Imp (spell 4) selects location 1 and target 4, read from its record
+(`KeeperSpells.kwd` bytes `0xEF` and `0xDA`; Call To Arms 4/4, Inferno 1/5,
+Heal 4/1, Thunderbolt 1/2 read the same way agree with the selectors already
+built). DK2's seeded Level 2 replays confirm the location arm for it: a cast on
+neutral dirt makes nothing, one on the keeper's claimed floor makes an imp
+(`imps-and-mana.md`, ADR-0312). `ImpSupplySystem.Buy` applies both through
+`KeeperSpellRules.PlaceAllowed`.
+
 ## 2. Cast side effects
 
 The position path is built for Call to Arms and Inferno: `KeeperSpellRules.CastAtPlace`

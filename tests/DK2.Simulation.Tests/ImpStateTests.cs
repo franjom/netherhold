@@ -165,7 +165,10 @@ public class ImpStateTests
             [(Select, 0, 0), (Walk, Select, 25), (25, Select, Idle), (26, Select, Idle),
              (Walk, 26, ImpStates.AtTheStore), (Select, 26, Idle), (Walk, Select, 25)],
             StatesSeen(sim, 30, TagTilesCommand.Tag(Keeper, new TilePos(5, 5))).Take(7));
-        Assert.Equal(1000, sim.World.Tile(3, 3).GoldHeld);
+        // The chain starts at a random slab, so either tile may be the one that fills.
+        int[] tiles = [sim.World.Tile(3, 3).GoldHeld, sim.World.Tile(3, 2).GoldHeld];
+        Assert.Equal(1000, tiles.Max());
+        Assert.InRange(tiles.Min(), 90, 92);
         SimEvent first = events.Events.First(e => e.Kind == "gold_delivered");
         Assert.Matches("amount=109[0-2] .* floor=0", first.Detail);
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");

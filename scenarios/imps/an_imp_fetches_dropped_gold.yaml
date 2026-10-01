@@ -42,6 +42,13 @@
 # straight-line distance; this project measures it in steps along the walkable
 # grid (Q25). Everything about the ORDER is read.
 #
+# A FOURTH ORDER, 2026-10-01 (ADR-0312): the three free imps now land as a
+# dropped imp does and look around where they appear, so two of them claim the
+# floor next to the pile and take it IN PASSING (t220 and t298, the walk-over
+# pick-up of ADR-0293) before any Tier B fetch; a claimer carries its gold on
+# (ADR-0288), so the load is not delivered inside this run. The fetch at t295 is
+# the one imp whose look found nothing nearer.
+#
 # One rule here IS read and is applied: an imp will not take gold that is not on
 # its keeper's own ground (or on water). That answers Q144, and it is why the
 # owner's disconnected gem tile never sent any gold home - not because the imps
@@ -100,13 +107,9 @@ expect:
       Fetching sits below marked excavation and claiming in DK2's Tier A order
       (Q24, CONFIRMED), so the keeper's marked walls come first and the pile
       waits. The imps reach it only once the marks are gone.
-  - event: gold_picked_up
-    detail: "amount=1400"
+  - event: gold_picked_up_in_passing
     because: >
-      The Imp's maxGoldHeld, off its own record - the pile is 2000 and 600 is
-      left standing for a second trip.
-  - event: gold_delivered
-    detail: "amount=1400"
-    because: >
-      MaxGoldPerTreasuryTile is 3000, so the whole 1400 goes into the treasury
-      in one visit (ADR-0306). Capacity is per room type, not per keeper.
+      The walk-over pick-up (0x0048904E, ADR-0293): a worker passing within a
+      third of a tile of a pile takes what its hands can hold without choosing
+      it as a job. With the free imps looking around where they land, this is
+      how most of the 2000 leaves the floor.

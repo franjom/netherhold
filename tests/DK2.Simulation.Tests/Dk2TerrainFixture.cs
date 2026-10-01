@@ -660,11 +660,12 @@ internal static class Dk2TerrainFixture
     [
         // Id, shot and bonus shot transcribed from the shipped record and guarded by
         // ResearchTreeOnRealDataTests: shot 2 makes an Imp (1) at level 1, and the bonus shot
-        // an upgraded cast fires, 60, makes one at level 4.
+        // an upgraded cast fires, 60, makes one at level 4. Location selector 1 and target
+        // selector 4 are the shipped record's bytes 0xEF and 0xDA (ADR-0312).
         new()
         {
             Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7,
-            KeeperSpellId = CreateImpSpellId,
+            KeeperSpellId = CreateImpSpellId, LocationSelector = 1, TargetSelector = 4,
             ShotTypeId = 2, ShotData1 = 1, ShotData2 = 1,
             BonusShotTypeId = 60, BonusShotData1 = 1, BonusShotData2 = 4,
         },

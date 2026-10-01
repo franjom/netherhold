@@ -125,6 +125,35 @@ public sealed class ImpSupplySystem : ISimulationSystem
             return;
         }
 
+        // The position permission 0x004BB8A0 (keeper-spell-casting.md §3), as far as the data
+        // selects it for spell 4: the keeper's row must be AVAILABLE, then location selector 1
+        // and target selector 4 at the tile. Level 2 researches Create Imp, and DK2's seeded
+        // replays make an imp only where the cast tile is the keeper's own claimed floor
+        // (ADR-0312). A table without the row is read as available, as a database without
+        // the spell is.
+        if (context.Database.KeeperSpell(KeeperSpellName.CreateImp) is { } spell)
+        {
+            int row = player.Availabilities.FindIndex(
+                a => a.Kind == KeeperSpellRules.SpellAvailabilityKind && a.TypeId == spell.KeeperSpellId);
+            if (row >= 0 && player.Availabilities[row].Value != ResearchTreeRules.Available)
+            {
+                context.Emit(SystemName, "create_imp_refused",
+                    $"player={playerId} cost={cost} reason=not_available");
+                return;
+            }
+
+            if (at is { } tile)
+            {
+                context.Navigation.Refresh();
+                if (!KeeperSpellRules.PlaceAllowed(world, context.Database, context.Navigation, playerId, spell, tile))
+                {
+                    context.Emit(SystemName, "create_imp_refused",
+                        $"player={playerId} cost={cost} at=({tile.X},{tile.Y}) reason=location");
+                    return;
+                }
+            }
+        }
+
         if (Spawn(context, playerId, at) is not { } imp)
         {
             context.Emit(SystemName, "create_imp_refused",
@@ -174,6 +203,15 @@ public sealed class ImpSupplySystem : ISimulationSystem
             made.Level = level;
             made.Health = CreatureLevelRules.MaxHealth(context.Database, imp, level);
         }
+
+        // The cast puts the imp down as the hand does: DK2's new imps pass 214, then 11 and
+        // 10, and look around where they landed (Level 2 seed 04: four imps made at (14,24)
+        // reinforce the walls beside them). The same fields the drop writes (HandSystem):
+        // the one-shot look, the kind just done zeroed, no chooser cap. ADR-0312.
+        made.JustDropped = true;
+        made.LastTaskKind = ImpTaskKind.None;
+        made.TimerTicks = 0;
+        made.WorkerIdle = false;
 
         return made;
     }

@@ -213,6 +213,26 @@ from the roster. One consequence worth knowing before designing anything around
 it: losing imps is expensive in work and free in mana. A keeper who is wiped out
 gets four back for nothing and rebuilds the rest from the cheap end of the curve.
 
+### Where a bought imp may land, and what it does first (ADR-0312)
+
+**The cast goes through the position permission** (`0x004BB8A0`, `keeper-spell-casting.md`
+§3). The Create Imp record selects location 1 and target 4 (`KeeperSpells.kwd`, bytes `0xEF`
+and `0xDA`), so the tile must be the caster's own or an ally's — never neutral or unowned — and
+not solid, with the room exclusions the other place casts share. **CONFIRMED by the seeded
+replays of `l2live2`:** the recording casts six times at (14,24), (14,23), (12,20) and (11,20)
+between ticks 2158 and 2270. Seed 02, where every one of those tiles was still neutral dirt,
+made no imp; seed 03 made one, on the one tile the keeper had claimed; seed 04, with all six
+claimed, made six. The row must also be AVAILABLE: Level 2 researches the spell, and its script
+waits on that (trigger 112, type 29, spell 4). Built in `ImpSupplySystem.Buy`; a table without
+the row is read as available, as a fixture database is.
+
+**The new imp is put down as the hand puts one down.** DK2's imps made at (14,24) pass states
+214, 11 and 10 and spend the drop's one look around the landing tile — they reinforce the walls
+beside them rather than walk nine tiles to the one marked wall. `Spawn` writes the same fields
+the drop writes (`JustDropped`, the kind just done zeroed, no chooser cap), for bought and free
+imps alike. The two ticks of 214 are not modelled: ours decides one tick earlier (HYPOTHESIS that
+nothing depends on it).
+
 ## The drain — what mana is actually for
 
 The mana orb in DK2 shows two rates beneath the counter, one green and one red.

@@ -14,9 +14,9 @@ namespace DK2.Simulation.Commands;
 /// <see cref="ImpSupplyRules.CreateImpCost"/> and Q54.</para>
 /// <para>The original casts onto a tile (packet action 54) and the imp appears there.
 /// <paramref name="At"/> is that tile; without one the imp appears at the dungeon heart.
-/// Deviates: the tile is taken as given. The position cast's location check
-/// (<c>0x004BB8A0</c>, keeper-spell-casting.md §3) is not built for Create Imp, so a
-/// replayed cast is trusted to have passed it in DK2 (HYPOTHESIS for any other source).</para>
+/// The position permission (<c>0x004BB8A0</c>, keeper-spell-casting.md §3) applies as the
+/// data selects it for spell 4: the row AVAILABLE, location 1 and target 4 at the tile, so a
+/// cast onto land the keeper does not own makes nothing (ADR-0312).</para>
 /// </summary>
 public sealed record CreateImpCommand(byte PlayerId, TilePos? At = null) : PlayerCommand(PlayerId)
 {

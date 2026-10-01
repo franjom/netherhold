@@ -236,10 +236,10 @@ public class ImpSupplyTests
         Assert.Contains(run.Of("imp_created"), e => e.Detail.Contains("cost=1500"));
     }
 
-    /// <summary>A cast onto a tile (packet action 54) makes the imp there, not at the heart.
-    /// The tile is trusted: the position cast's location check is not built for Create Imp.</summary>
+    /// <summary>A cast onto a tile (packet action 54) makes the imp there, not at the heart,
+    /// when the tile passes the position permission: here the keeper's own claimed floor.</summary>
     [Fact]
-    public void CreateImpCastOntoATileMakesTheImpThere_TheLocationCheckIsNotBuilt()
+    public void CreateImpCastOntoTheKeepersOwnFloorMakesTheImpThere()
     {
         Run run = WithAHeart(mana: 10_000);
         run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 5);
@@ -250,6 +250,65 @@ public class ImpSupplyTests
         Assert.Equal(5, run.Imps);
         Assert.Contains(run.Of("imp_created"), e => e.Detail.Contains("at=(2,3)"));
         Assert.Contains(run.World.Creatures, c => c.Tile == at);
+    }
+
+    /// <summary>Location selector 1 (<c>0x00517B80</c>) wants land of the caster's own or an
+    /// ally's, never neutral or unowned. DK2's seeded Level 2 replays (ADR-0312): six casts on
+    /// neutral dirt made nothing; the same six on claimed floor made six imps.</summary>
+    [Fact]
+    public void CreateImpIsRefusedOnLandTheKeeperDoesNotOwn()
+    {
+        Run run = WithAHeart(mana: 10_000);
+        run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 5);
+        ref TileState dirt = ref run.World.Tile(6, 3);
+        dirt.TerrainId = Dk2TerrainFixture.DirtPath;
+        dirt.OwnerPlayerId = PlayerIds.Unowned;
+        int before = run.Mana;
+
+        run.Tick(new CreateImpCommand(Keeper, new TilePos(6, 3)));
+
+        Assert.Equal(4, run.Imps);
+        Assert.Equal(before, run.Mana);
+        Assert.Contains(run.Of("create_imp_refused"), e => e.Detail.Contains("at=(6,3) reason=location"));
+        Assert.Empty(run.Of("imp_created"));
+    }
+
+    /// <summary>Level 2 researches Create Imp (its script waits on spell 4 being available), and
+    /// DK2's cast permission reads the keeper's row first. A row below AVAILABLE refuses the cast;
+    /// no row at all is read as available, so a fixture without the table still buys.</summary>
+    [Fact]
+    public void CreateImpIsRefusedWhileTheSpellIsNotYetResearched()
+    {
+        Run run = WithAHeart(mana: 10_000);
+        run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 5);
+        List<AvailabilityState> rows = run.World.Player(Keeper).Availabilities;
+        rows.Add(new AvailabilityState(KeeperSpellRules.SpellAvailabilityKind, Dk2TerrainFixture.CreateImpSpellId, 2));
+
+        run.Tick(new CreateImpCommand(Keeper, new TilePos(2, 3)));
+        Assert.Equal(4, run.Imps);
+        Assert.Contains(run.Of("create_imp_refused"), e => e.Detail.Contains("reason=not_available"));
+
+        rows[^1] = rows[^1] with { Value = ResearchTreeRules.Available };
+        run.Tick(new CreateImpCommand(Keeper, new TilePos(2, 3)));
+        Assert.Equal(5, run.Imps);
+    }
+
+    /// <summary>A new imp lands as a dropped one does and spends its one look around the landing
+    /// tile (DK2 Level 2 seed 04: the four imps cast at (14,24) reinforce the walls beside them
+    /// instead of walking nine tiles to the marked one). The look is what emits either event.</summary>
+    [Fact]
+    public void ACreatedImpLooksAroundWhereItLandedLikeADroppedOne()
+    {
+        Run run = WithAHeart(mana: 10_000);
+        run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 5);
+
+        run.Tick(new CreateImpCommand(Keeper, new TilePos(2, 3)));
+        string made = run.Of("imp_created").Last().Detail;
+        string id = made.Split("imp=")[1].Split(' ')[0];
+        run.Ticks(3);
+
+        Assert.Contains(run.Events.Events, e =>
+            e.Kind is "dropped_onto_work" or "dropped_onto_nothing" && e.Detail.Contains($"imp={id} "));
     }
 
     [Fact]

@@ -37,6 +37,12 @@
 # rather than invented (Q53). A dungeon full of imps is free to run here and is
 # not free in the original.
 #
+# SINCE 2026-10-01 (ADR-0312) the cast follows DK2's permission, and Create Imp
+# is a RESEARCH item in every shipped level (GlobalVariables: availability 2 for
+# all keeper spells; Level 2's Library researches it first, owner 2026-09-29), so
+# a keeper who has not researched it is refused - the Level 1 recording never
+# casts it. This run grants the spell in setup so the price curve can be seen.
+#
 # Needs a Dungeon Keeper 2 installation (DK2_DIR).
 id: imps-never-run-out-001
 question: >
@@ -49,8 +55,9 @@ duration_ticks: 700
 setup:
   players:
     # Player 3 owns the 5x5 dungeon heart at (12..16, 26..30) on this level, and
-    # starts with enough mana for three imps but not four.
-    - { id: 3, gold: 0, mana: 9000 }
+    # starts with enough mana for three imps but not four. Spell 4 is Create Imp,
+    # granted here because this level never researches it.
+    - { id: 3, gold: 0, mana: 9000, spells: [4] }
 commands:
   # Four casts once the free four have arrived, at 20 ticks apart. The last one
   # has nothing to pay with.
