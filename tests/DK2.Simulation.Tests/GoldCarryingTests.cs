@@ -155,11 +155,10 @@ public class GoldCarryingTests
     [Fact]
     public void AFullTileSpillsIntoTheNextOne()
     {
-        // Two dungeon-heart tiles, 1000 each, against a 1090 load: the imp fills
-        // the one it walked to and carries the rest to the next (Q35's spillover,
-        // which falls out of re-routing rather than being coded). (3,3) fills first
-        // because the imp reaches it first coming back — which tile of a store
-        // fills is decided by the walk, not by an index. The run ends inside
+        // Two dungeon-heart tiles, 1000 each, against a 1090 load: state 29 hands the whole
+        // load to the room and the deposit 0x004F3C60 fills the chain from the tile the walk
+        // ended on, the chooser's random chain start, so that tile takes 1000 and the other the
+        // rest in one deposit, with no second walk (ADR-0306). The run ends inside
         // TimeBeforeFreeImpGeneratedSeconds so this stays about one imp's load.
         Run run = AtTheSeam(new TilePos(4, 4));
         PutStoreAt(run, new TilePos(3, 3), RoomTypeId.DungeonHeart);
@@ -172,15 +171,47 @@ public class GoldCarryingTests
         // the imp got home sooner, unloaded, walked back and had already mined
         // two more swings by tick 95. What the test is about is where the load
         // goes, not how long the walk takes.
-        for (int i = 0; i < 95 && run.World.Tile(3, 2).GoldHeld == 0; i++) run.Tick();
+        for (int i = 0; i < 95 && run.Of("gold_delivered").Count() == 0; i++) run.Tick();
 
         // The load is four swings, 1090 to 1092 by which swings the 272s fall on; the
-        // point is that (3,2) takes exactly what (3,3) could not.
+        // point is that the second tile takes exactly what the first could not, in one deposit.
         List<int> loads = run.Of("gold_delivered").Select(Run.Amount).ToList();
-        Assert.Equal(1000, run.World.Tile(3, 3).GoldHeld);
-        Assert.Equal([1000, run.World.Tile(3, 2).GoldHeld], loads);
-        Assert.InRange(run.World.Tile(3, 2).GoldHeld, 90, 92);
+        int[] held = [run.World.Tile(3, 3).GoldHeld, run.World.Tile(3, 2).GoldHeld];
+        Assert.Equal(1000, held.Max());
+        Assert.InRange(held.Min(), 90, 92);
+        Assert.Equal([held.Sum()], loads);
         Assert.Equal(0, run.Imp.GoldHeld);
+    }
+
+    /// <summary>
+    /// <b>A Heart with room takes the whole load, and what its tiles cannot hold goes on the
+    /// floor.</b> The store chooser sends the imp while the Heart holds less than 16 × 1000, but
+    /// state 29 measures it against 16 × the Treasury tile cap, so the imp's hands always empty
+    /// there; the deposit fills the chain and puts the rest down as a neutral pile on the tile it
+    /// started from (0x00466AC0, 0x004F3C60). Level 2's capture: imp 449 hands over 1,470 to a
+    /// Heart at 15,995 at tick 1795 and fetches it back off the floor (ADR-0306).
+    /// </summary>
+    [Fact]
+    public void AHeartWithLittleRoomTakesTheWholeLoad_AndTheRestGoesOnTheFloor()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Run run = AtTheSeam(new TilePos(4, 4));
+        PutStoreAt(run, new TilePos(3, 3), RoomTypeId.DungeonHeart);
+        PutStoreAt(run, new TilePos(3, 2), RoomTypeId.DungeonHeart);
+        run.World.Tile(3, 3).GoldHeld = 990;
+        run.World.Tile(3, 2).GoldHeld = 1000;
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
+        for (int i = 0; i < 95 && !run.Of("gold_delivered").Any(); i++) run.Tick();
+
+        SimEvent delivered = Assert.Single(run.Of("gold_delivered"));
+        Assert.Equal(0, run.Imp.GoldHeld);
+        Assert.Equal(1000, run.World.Tile(3, 3).GoldHeld);
+        ObjectState pile = Assert.Single(run.World.Objects, o => FloorGold.IsPile(database, o));
+        Assert.Equal(PlayerIds.Neutral, pile.OwnerPlayerId);
+        Assert.InRange(pile.GoldHeld, 1080, 1082);
+        Assert.Contains($"floor={pile.GoldHeld}", delivered.Detail);
+        Assert.NotEqual(4, pile.Cell);
     }
 
     [Fact]

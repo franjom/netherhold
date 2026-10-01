@@ -6713,3 +6713,20 @@ its player. The id reuse is not built.
 Raises match DK2 to tick 1500 on Level 1: digs 5–11 of 51 (DK2 5–13 of 53), mines 2–5 of 8
 (DK2 2–5 of 8–9). Ours raises (10,28) in 19 of 20 runs, DK2 in 5 of 7: our first digger leaves
 a tick after the fall, DK2's after 2 to 4. HashVersion 146.
+
+## ADR-0306 — A carrier empties its hands at the store tile it was sent to
+**Date:** 2026-10-01 · **Status:** accepted · Research: `functions/00466AC0.md`, `rooms-and-gold.md`
+
+**Context.** State 29 (`0x00466AC0`) hands the room the smaller of the purse and the room's
+space, a live Heart measured against 16 × 3000, so at a Heart the hands empty in one visit.
+Ours filled the tile underfoot, kept the rest and walked on, and it put the load down on the
+first store tile it crossed. DK2 walks on to the chain tile its chooser picked: imp 454, from
+the north, puts down at (13,30). Built alone, the whole-load deposit cost Level 1 six wins. Every
+carrier finished at (14,26), so none went south and the Hatchery block was dug at 502 (DK2 193–203).
+
+**Decision.** `TryPutDown` deposits the whole amount the room has space for and goes to 10;
+the rest becomes a floor pile. `UpdateDelivering` puts gold down only once its route is done.
+
+**Consequences.** Level 1 wins 20 of 20 with win ticks 1756–1964, most 1760–1800 (the
+owner's game 1802), and the Hatchery corner is dug at 213. Level 2 wins 17 of 20; the losses
+include the late-claim seeds, as DK2's seeded Level 2 run also lost.

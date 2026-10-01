@@ -151,11 +151,11 @@ public class ImpStateTests
     }
 
     [Fact]
-    public void AFullMinerWalksFromTwentySixAndSpillsTheRestThroughTen()
+    public void AFullMinerWalksFromTwentySixAndDepositsAlongTheChainIn29()
     {
-        // 26 calls the store chooser before the swing that would not fit. The first heart
-        // tile takes 1000 of 1363; 29 sets 10 and 10 walks on with the rest, so the second
-        // walk's saved caller is 10.
+        // 26 calls the store chooser once its hands are full. 29 hands the room the whole load,
+        // the chain from the tile reached taking 1000 and the next tile the rest, and sets 10,
+        // which goes back to the seam: no second walk to the store (0x00466AC0, ADR-0306).
         (GameSimulation sim, ListEventSink events) = Start(new TilePos(4, 4));
         OpenTheSeam(sim);
         Store(sim, new TilePos(3, 3), RoomTypeId.DungeonHeart);
@@ -163,10 +163,11 @@ public class ImpStateTests
 
         Assert.Equal(
             [(Select, 0, 0), (Walk, Select, 25), (25, Select, Idle), (26, Select, Idle),
-             (Walk, 26, ImpStates.AtTheStore), (Walk, Select, ImpStates.AtTheStore),
-             (Select, Select, Idle)],
+             (Walk, 26, ImpStates.AtTheStore), (Select, 26, Idle), (Walk, Select, 25)],
             StatesSeen(sim, 30, TagTilesCommand.Tag(Keeper, new TilePos(5, 5))).Take(7));
         Assert.Equal(1000, sim.World.Tile(3, 3).GoldHeld);
+        SimEvent first = events.Events.First(e => e.Kind == "gold_delivered");
+        Assert.Matches("amount=109[0-2] .* floor=0", first.Detail);
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
 

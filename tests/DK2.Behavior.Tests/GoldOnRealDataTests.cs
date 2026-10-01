@@ -158,11 +158,12 @@ public class GoldOnRealDataTests
     }
 
     [InstallFact]
-    public void ALoadTooBigForOneHeartTileSpillsIntoTheNext()
+    public void ALoadTooBigForOneHeartTileFillsTheNextInTheSameVisit()
     {
-        // MaxGoldPerDungeonHeartTile is 1000 against a first load of 1090, so the
-        // first trip alone has to touch two tiles. Which two is decided by where
-        // the imp walked, which is as close to Q35 as observation has got.
+        // MaxGoldPerDungeonHeartTile is 1000 against a first load of 1090. State 29 hands the
+        // Heart the whole load and the deposit fills the chain from the tile the walk ended on,
+        // so the imp leaves empty-handed and two tiles hold the first load (ADR-0306; DK2's
+        // Level 1 captures empty every load in one visit).
         Level? level = Level1();
         Assert.NotNull(level);
 
@@ -170,14 +171,19 @@ public class GoldOnRealDataTests
         level.Sim.Run(400);
 
         List<SimEvent> loads = level.Of("gold_delivered").ToList();
+        Assert.NotEmpty(loads);
+        Assert.All(loads, e => Assert.EndsWith("carrying=0", e.Detail));
+        Assert.Contains(loads, e => Amount(e) > perTile);
 
-        // A split load is one the imp walks away from still carrying something.
-        Assert.Contains(loads, e => !e.Detail.EndsWith("carrying=0", StringComparison.Ordinal));
-
-        var tiles = loads.Select(e => e.Detail.Split("at=")[1].Split(' ')[0]).Distinct().ToList();
-        Assert.True(tiles.Count >= 2, $"every load landed in the same tile: {tiles[0]}");
-        Assert.All(loads, e => Assert.True(Amount(e) <= perTile,
-            $"a tile took {Amount(e)}, over the limit of {perTile}"));
+        WorldState world = level.World;
+        int filled = 0;
+        for (int i = 0; i < world.Width * world.Height; i++)
+        {
+            int gold = world.TileAtIndex(i).GoldHeld;
+            Assert.True(gold <= perTile, $"a tile holds {gold}, over the limit of {perTile}");
+            if (gold > 0) filled++;
+        }
+        Assert.True(filled >= 2, $"the loads landed in {filled} tile(s)");
     }
 
     /// <summary>

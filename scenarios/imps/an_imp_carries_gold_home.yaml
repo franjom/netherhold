@@ -24,11 +24,10 @@
 #                   reads full: maxGoldHeld 1400 less variable 74's 340 (Q50,
 #                   0x00465870, ADR-0296). It sets off on that swing's tick,
 #                   logged at 818 before the swing's gold lands, and carries 1091.
-#   gold_delivered  1000 into (14,26) - MaxGoldPerDungeonHeartTile - and then
-#                   the remaining 91 into the heart tile next door. That spillover is
-#                   not coded anywhere: the imp fills the tile it is standing
-#                   on, finds it still has gold, and looks again. It is the
-#                   closest thing we have to an answer to Q35.
+#   gold_delivered  all 1091 in one visit, carrying=0: state 29 hands the
+#                   heart the whole load and the deposit fills the chain from
+#                   the tile the walk ended on, 1000 a tile
+#                   (MaxGoldPerDungeonHeartTile), the rest in the next (ADR-0306).
 #   ... and round again. Three loads - 1091, 1090, 819 - spread across the
 #   heart tiles as each fills up, and exactly 3000 in total.
 #
@@ -82,13 +81,14 @@ expect:
       swing's tick as both full-state captures show (ADR-0280): the departure is
       logged before the fourth swing's 273 reaches its hands.
   - event: gold_delivered
-    detail: "amount=1000"
+    detail: "amount=1091"
     because: >
-      MaxGoldPerDungeonHeartTile. The tile fills and the imp is still holding
-      91, which is what forces the spill below.
+      State 29 (0x00466AC0) hands a live heart the smaller of the purse and 16 x
+      the treasury tile cap less what it holds, so the hands empty in one visit;
+      the deposit puts 1000 (MaxGoldPerDungeonHeartTile) into a tile and the rest
+      into the next (ADR-0306). DK2's Level 1 captures empty every load at once.
   - event: gold_delivered
-    detail: "amount=91"
+    detail: "carrying=0"
     because: >
-      The remainder goes into the next heart tile. That spillover is coded
-      nowhere - the imp fills the tile it stands on, finds it still has gold and
-      looks again (Q35).
+      Nothing is carried on to a second tile: the spill is the deposit's, not a
+      second walk.

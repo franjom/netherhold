@@ -150,13 +150,14 @@ swings, −60 health apiece and 3000 in total.
 picks the nearest reachable Treasury or Heart below capacity, measuring to its
 `FirstSlab`. It starts at a random chain tile (`0x004E4D90`), follows the links,
 wraps at the tail and takes the first tile below capacity. Ours routes to that
-tile (ADR-0243); `GoldStore.DepositInto` puts the load down where the imp arrives.
+tile (ADR-0243) and puts the load down only there, crossing other store tiles with it;
+state 29 then hands the room the whole amount it has space for (ADR-0306).
 `GoldStore.Deposit`'s tile-index order survives only for the two cases with no
 carrier in them, paying for a room and refunds, and that order is **ours, not
 DK2's**; the withdrawal order is open (Q35). Totals are unaffected either way, and
 on shipped level 1 the observable outcome matches the original: 1000 into one
-heart tile, 363 into the next, and back to the seam
-(`ALoadTooBigForOneHeartTileSpillsIntoTheNext`).
+heart tile, the rest into the next in the same visit, and back to the seam
+(`ALoadTooBigForOneHeartTileFillsTheNextInTheSameVisit`).
 
 ---
 

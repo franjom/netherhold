@@ -106,8 +106,7 @@ expect:
       The Imp's maxGoldHeld, off its own record - the pile is 2000 and 600 is
       left standing for a second trip.
   - event: gold_delivered
-    detail: "tile_total=1500"
+    detail: "amount=1400"
     because: >
-      MaxGoldPerTreasuryTile is 3000, so the whole 1400 fits in one tile and
-      nothing spills. The contrast with the heart's 1000 a tile is the point:
-      capacity is per room type, not per keeper.
+      MaxGoldPerTreasuryTile is 3000, so the whole 1400 goes into the treasury
+      in one visit (ADR-0306). Capacity is per room type, not per keeper.

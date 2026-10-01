@@ -710,25 +710,19 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private void UpdateDelivering(
         SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
+        // Still on the road: the walk ends on the chain tile the chooser picked, and 28 hands to 29
+        // only there, so a carrier crosses other store tiles with its load (Level 1, imp 454 at 224).
+        if (creature.HasRoute) return;
+
         if (TryPutDown(context, creature))
         {
-            // 28 moves to 29, which deposits what fits and sets 10.
+            // 28 moves to 29, which deposits along the room's chain and sets 10 whatever is left.
             StateShadow.Arrive(context, SystemName, creature);
             StateShadow.Move(context, SystemName, creature, ImpStates.PuttingDownGold);
             StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
-
-            if (creature.GoldHeld == 0)
-            {
-                GoIdle(creature);
-                return;
-            }
-
-            // 10 walks on with the remainder, the spill into the next tile (Q35).
-            ToTheStore(creature);
+            GoIdle(creature);
+            return;
         }
-
-        // Still on the road.
-        if (creature.HasRoute) return;
 
         if (TryRouteToSomewhereItFits(context, creature))
         {
@@ -749,32 +743,51 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Puts as much of the load as will fit into the tile the worker is standing
-    /// on, and says whether any of it went in.
-    /// <para>Deposits into <i>this</i> tile rather than through
-    /// <see cref="GoldStore.Deposit"/>, because a carrier's gold lands where the
-    /// carrier is. Which tile of a multi-tile treasury that turns out to be is
-    /// therefore decided by the walk (Q35).</para>
+    /// State 29 (<c>0x00466AC0</c>) on the store tile the worker stands on: false when the tile is
+    /// not a Treasury or live Heart of its keeper. Otherwise it hands over the smaller of its gold and
+    /// the room's space, capacity less what the room holds, the capacity being tiles × the Treasury
+    /// tile cap, and for a live Heart 16 × that same cap (DK2 reads the Treasury's variable there,
+    /// as the Heart's own update does; gold-on-the-floor.md §11). The deposit <c>0x004F3C60</c> fills
+    /// the room's chain from this tile, and what the tiles cannot take goes down as a new neutral
+    /// pile on this tile, at one of eight points drawn at random. Then state 10, whatever is left.
     /// </summary>
     private static bool TryPutDown(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
+        GameDatabase database = context.Database;
         TilePos here = creature.Tile;
         if (!world.Contains(here)) return false;
 
         int index = (here.Y * world.Width) + here.X;
-        ref TileState tile = ref world.TileAtIndex(index);
-        if (tile.OwnerPlayerId != creature.OwnerPlayerId) return false;
+        RoomInstance? room = RoomIndex.RoomAt(world, database, index);
+        if (room is null || room.OwnerPlayerId != creature.OwnerPlayerId) return false;
+        bool liveHeart = room.Definition.TypeId == RoomTypeId.DungeonHeart
+            && !(world.HasPlayer(room.OwnerPlayerId) && world.Player(room.OwnerPlayerId).HeartRuined);
+        if (!liveHeart && room.Definition.TypeId != RoomTypeId.Treasury) return false;
 
-        int put = GoldStore.DepositInto(world, context.Database, index, creature.GoldHeld);
-        if (put <= 0) return false;
-
-        creature.GoldHeld -= put;
-        context.Emit(SystemName, "gold_delivered",
-            $"imp={creature.Id} player={creature.OwnerPlayerId} amount={put} " +
-            $"at=({here.X},{here.Y}) tile_total={tile.GoldHeld} carrying={creature.GoldHeld}");
+        int perTile = database[VariableTypeId.MaxGoldPerTreasuryTile];
+        long capacity = (long)(liveHeart ? 16 : room.TileIndices.Count) * perTile;
+        long stored = room.TileIndices.Sum(t => (long)world.TileAtIndex(t).GoldHeld);
+        long space = capacity - stored;
+        // Unsigned in DK2: a room over its capacity reads as all the room in the world.
+        int put = space == 0 ? 0 : space < 0 ? creature.GoldHeld : (int)Math.Min(space, creature.GoldHeld);
+        if (put > 0)
+        {
+            int left = GoldStore.FillAlongChainFrom(world, database, room, index, put);
+            creature.GoldHeld -= put;
+            if (left > 0 && FloorGold.Drop(world, database, index, left) is ObjectState pile)
+                pile.Cell = OverflowCells[context.Rng.NextInt(OverflowCells.Length)];
+            context.Emit(SystemName, "gold_delivered",
+                $"imp={creature.Id} player={creature.OwnerPlayerId} amount={put - left} " +
+                $"at=({here.X},{here.Y}) floor={left} carrying={creature.GoldHeld}");
+        }
         return true;
     }
+
+    /// <summary>The eight points an overflowing store puts a pile at, in DK2's table order
+    /// (<c>0x006A2FA0</c>: each coordinate 0x3FF, 0x7FF or 0xBFF, never both 0x7FF), as the
+    /// third-of-a-tile cells they lie in.</summary>
+    private static readonly byte[] OverflowCells = [6, 7, 8, 3, 0, 1, 2, 5];
 
     /// <summary>
     /// The carrier picks the nearest reachable store room by its first slab,
