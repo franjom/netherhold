@@ -48,8 +48,8 @@ public class RescueTests
 
         world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, Wheel));
         CreatureState victim = world.SpawnCreature(db, GoblinId, Hero, Cell);
-        Assert.True(PrisonRules.Imprison(world, db, victim, Keeper, Index(world, Cell)));
-        Assert.True(TortureRules.TryStrap(world, db, victim, Keeper, Index(world, Wheel)));
+        Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), victim, Keeper, Index(world, Cell)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), victim, Keeper, Index(world, Wheel)));
         return (world, victim);
     }
 
@@ -193,8 +193,8 @@ public class RescueTests
     {
         GameDatabase db = Db;
         (WorldState world, CreatureState victim) = World(db);
-        TortureRules.Unstrap(victim);
-        PrisonRules.Release(victim);
+        TortureRules.Unstrap(new StateHookContext(world, db), victim);
+        PrisonRules.Release(new StateHookContext(world, db), victim);
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
         CreatureState hero = Rescuer(db, world, Hero, RescueRules.FreesFriendsFlag);
@@ -202,8 +202,8 @@ public class RescueTests
         sim.Tick();
 
         // A comrade strapped on after it arrived: no step, no test.
-        Assert.True(PrisonRules.Imprison(world, db, victim, Keeper, Index(world, Cell)));
-        Assert.True(TortureRules.TryStrap(world, db, victim, Keeper, Index(world, Wheel)));
+        Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), victim, Keeper, Index(world, Cell)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), victim, Keeper, Index(world, Wheel)));
         sim.Run(10);
         Assert.Equal(CreatureActivity.Idle, hero.Activity);
 

@@ -46,7 +46,7 @@ public class CreatureStateMachineTests
     {
         CreatureState creature = Fresh();
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => CreatureStateMachine.TrySetState(creature, notAState));
+            () => CreatureStateMachine.TrySetState(DetachedHooks.Context, creature, notAState));
         Assert.Equal(Idle, creature.Dk2StateId);
     }
 
@@ -67,7 +67,7 @@ public class CreatureStateMachineTests
 
         Assert.Equal(StateTransition.Refused,
             CreatureStateMachine.Classify(creature, LookingForLair));
-        Assert.False(CreatureStateMachine.TrySetState(creature, LookingForLair));
+        Assert.False(CreatureStateMachine.TrySetState(DetachedHooks.Context, creature, LookingForLair));
         Assert.Equal(Sleeping, creature.Dk2StateId);
     }
 
@@ -82,7 +82,7 @@ public class CreatureStateMachineTests
         Assert.Equal(0, creature.StateBeforeUtilityState);
 
         Assert.True(CreatureStateTable.Get(EnRoute).IsUtility);
-        Assert.True(CreatureStateMachine.TrySetState(creature, EnRoute));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, creature, EnRoute));
 
         Assert.Equal(EnRoute, creature.Dk2StateId);
         Assert.Equal(LeavingDungeon, creature.StateBeforeUtilityState);
@@ -97,17 +97,17 @@ public class CreatureStateMachineTests
         // so the save ends up 1 rather than the walk it came from (travel-states.md 3).
         CreatureState creature = Fresh();
         StatePlacement.Place(creature, LeavingDungeon);
-        CreatureStateMachine.BeginTravel(creature, EnRoute, Idle);
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, EnRoute, Idle);
         Assert.Equal(LeavingDungeon, creature.StateBeforeUtilityState);
 
-        Assert.True(CreatureStateMachine.Arrive(creature));
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, creature));
         Assert.Equal(Idle, creature.Dk2StateId);
         Assert.Equal(LeavingDungeon, creature.StateBeforeUtilityState);
 
         // Travel to travel: the save is 1, not the walk it came from.
-        CreatureStateMachine.BeginTravel(creature, EnRoute, Sleeping);
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, EnRoute, Sleeping);
         Assert.Equal(Idle, creature.StateBeforeUtilityState);
-        Assert.True(CreatureStateMachine.TrySetState(creature, EnRouteToRoom));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, creature, EnRouteToRoom));
         Assert.Equal(CreatureStateMachine.Idle, creature.StateBeforeUtilityState);
     }
 
@@ -120,12 +120,12 @@ public class CreatureStateMachineTests
         CreatureState creature = Fresh();
         StatePlacement.Place(creature, HatcheryWalkCaller);
 
-        CreatureStateMachine.BeginTravel(creature, EnRouteToRoom, Eating);
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, EnRouteToRoom, Eating);
         Assert.Equal(EnRouteToRoom, creature.Dk2StateId);
         Assert.Equal(HatcheryWalkCaller, creature.StateBeforeUtilityState);
         Assert.Equal(Eating, creature.UtilityNewState);
 
-        Assert.True(CreatureStateMachine.Arrive(creature));
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, creature));
         Assert.Equal(Eating, creature.Dk2StateId);
         Assert.Equal(CreatureStateMachine.Idle, creature.UtilityNewState);
     }
@@ -143,8 +143,8 @@ public class CreatureStateMachineTests
         {
             CreatureState creature = Fresh();
             StatePlacement.Place(creature, Sleeping);
-            CreatureStateMachine.BeginTravel(creature, EnRoute, resume);
-            if (CreatureStateMachine.Arrive(creature)) allowed++;
+            CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, EnRoute, resume);
+            if (CreatureStateMachine.Arrive(DetachedHooks.Context, creature)) allowed++;
             Assert.Equal(CreatureStateMachine.Idle, creature.UtilityNewState);
         }
 
@@ -159,7 +159,7 @@ public class CreatureStateMachineTests
         // errand rather than against the walk.
         CreatureState creature = Fresh();
         StatePlacement.Place(creature, Idle);
-        CreatureStateMachine.BeginTravel(creature, EnRoute, Sleeping);
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, EnRoute, Sleeping);
 
         Assert.Equal(Sleeping,
             CreatureStateTransitions.ResolveComparisonState(creature.Dk2StateId, Sleeping));
@@ -191,16 +191,16 @@ public class CreatureStateMachineTests
         CreatureState walker = Fresh();
         StatePlacement.Place(walker, Idle);
         Assert.Equal(StateTransition.Allowed, CreatureStateMachine.Classify(walker, EnRouteToRoom));
-        CreatureStateMachine.BeginTravel(walker, EnRouteToRoom, state);
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, walker, EnRouteToRoom, state);
         Assert.Equal(EnRouteToRoom, walker.Dk2StateId);
-        Assert.True(CreatureStateMachine.Arrive(walker));
-        Assert.True(CreatureStateMachine.TrySetState(walker, Idle));
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, walker));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, walker, Idle));
 
         CreatureState standing = Fresh();
         StatePlacement.Place(standing, Idle);
-        Assert.True(CreatureStateMachine.TrySetState(standing, Idle));
-        Assert.True(CreatureStateMachine.TrySetState(standing, state));
-        Assert.True(CreatureStateMachine.TrySetState(standing, Idle));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, standing, Idle));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, standing, state));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, standing, Idle));
     }
 
     [Fact]
@@ -212,31 +212,31 @@ public class CreatureStateMachineTests
         // with no chicken 117 goes to 116.
         CreatureState captive = Fresh();
         StatePlacement.Place(captive, 114);
-        Assert.True(CreatureStateMachine.TrySetState(captive, 115));
-        CreatureStateMachine.BeginTravel(captive, EnRoute, 116);
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, captive, 115));
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, captive, EnRoute, 116);
         Assert.Equal(EnRoute, captive.Dk2StateId);
-        Assert.True(CreatureStateMachine.Arrive(captive));
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, captive));
         Assert.Equal(116, captive.Dk2StateId);
-        Assert.True(CreatureStateMachine.TrySetState(captive, 115));
-        Assert.True(CreatureStateMachine.TrySetState(captive, 117));
-        CreatureStateMachine.BeginTravel(captive, EnRoute, 118);
-        Assert.True(CreatureStateMachine.Arrive(captive));
-        Assert.True(CreatureStateMachine.TrySetState(captive, 119));
-        Assert.True(CreatureStateMachine.TrySetState(captive, 115));
-        Assert.True(CreatureStateMachine.TrySetState(captive, 117));
-        Assert.True(CreatureStateMachine.TrySetState(captive, 116));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, captive, 115));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, captive, 117));
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, captive, EnRoute, 118);
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, captive));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, captive, 119));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, captive, 115));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, captive, 117));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, captive, 116));
 
         // The hand drops a creature into 77, whose handler 0x0046F1F0 sends it to 115 in a
         // Prison and 130 in a Torture Chamber; 130 straps it on and moves to 131. 120 shares
         // that handler through a thunk, but in its own group 130 is refused from it.
         CreatureState dropped = Fresh();
         StatePlacement.Place(dropped, 77);
-        Assert.True(CreatureStateMachine.TrySetState(dropped, 115));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, dropped, 115));
 
         CreatureState victim = Fresh();
         StatePlacement.Place(victim, 77);
-        Assert.True(CreatureStateMachine.TrySetState(victim, 130));
-        Assert.True(CreatureStateMachine.TrySetState(victim, 131));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, victim, 130));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, victim, 131));
         Assert.Equal(StateTransition.Refused, CreatureStateTransitions.Classify(120, 130, CreatureStateMachine.Idle));
     }
 
@@ -248,21 +248,21 @@ public class CreatureStateMachineTests
         // to idle as well. 189's other exit, the Drink job's walk (Q421), goes in 7.
         CreatureState payee = Fresh();
         StatePlacement.Place(payee, Idle);
-        Assert.True(CreatureStateMachine.TrySetState(payee, PaydayRules.FindTheMoneyState));
-        CreatureStateMachine.BeginTravel(payee, EnRoute, PaydayRules.ArrivingState);
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, payee, PaydayRules.FindTheMoneyState));
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, payee, EnRoute, PaydayRules.ArrivingState);
         Assert.Equal(EnRoute, payee.Dk2StateId);
-        Assert.True(CreatureStateMachine.Arrive(payee));
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, payee));
         Assert.Equal(PaydayRules.ArrivingState, payee.Dk2StateId);
-        Assert.True(CreatureStateMachine.TrySetState(payee, PaydayRules.TakeItState));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, payee, PaydayRules.TakeItState));
         Assert.Equal(StateTransition.Allowed, CreatureStateMachine.Classify(payee, EnRouteToRoom));
-        Assert.True(CreatureStateMachine.TrySetState(payee, Idle));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, payee, Idle));
 
         foreach (int state in new[] { PaydayRules.FindTheMoneyState, PaydayRules.ArrivingState })
         {
             CreatureState failing = Fresh();
             StatePlacement.Place(failing, Idle);
-            Assert.True(CreatureStateMachine.TrySetState(failing, state));
-            Assert.True(CreatureStateMachine.TrySetState(failing, Idle));
+            Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, failing, state));
+            Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, failing, Idle));
         }
     }
 
@@ -285,27 +285,27 @@ public class CreatureStateMachineTests
 
         CreatureState imp = Fresh();
         StatePlacement.Place(imp, Idle);
-        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
-        CreatureStateMachine.BeginTravel(imp, EnRoute, entry);
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, imp, ImpStates.TaskSelection));
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, imp, EnRoute, entry);
         Assert.Equal(EnRoute, imp.Dk2StateId);
-        Assert.True(CreatureStateMachine.Arrive(imp));
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, imp));
         Assert.Equal(entry, imp.Dk2StateId);
-        Assert.True(CreatureStateMachine.TrySetState(imp, work));
-        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
-        Assert.True(CreatureStateMachine.TrySetState(imp, Idle));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, imp, work));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, imp, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, imp, Idle));
 
         CreatureState lost = Fresh();
         StatePlacement.Place(lost, Idle);
-        Assert.True(CreatureStateMachine.TrySetState(lost, ImpStates.TaskSelection));
-        CreatureStateMachine.BeginTravel(lost, EnRoute, entry);
-        Assert.True(CreatureStateMachine.TrySetState(lost, Idle));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, lost, ImpStates.TaskSelection));
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, lost, EnRoute, entry);
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, lost, Idle));
 
         // The entry state gives up to 10 as well, when the task has gone on arrival.
         CreatureState late = Fresh();
         StatePlacement.Place(late, Idle);
-        Assert.True(CreatureStateMachine.TrySetState(late, ImpStates.TaskSelection));
-        Assert.True(CreatureStateMachine.TrySetState(late, entry));
-        Assert.True(CreatureStateMachine.TrySetState(late, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, late, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, late, entry));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, late, ImpStates.TaskSelection));
     }
 
     [Fact]
@@ -315,31 +315,31 @@ public class CreatureStateMachineTests
         // the store chooser; 28 moves to 29, which sets 10, and 10 walks on to 28 again.
         CreatureState imp = Fresh();
         StatePlacement.Place(imp, Idle);
-        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
-        CreatureStateMachine.BeginTravel(imp, EnRoute, ImpStates.PickingUpGold);
-        Assert.True(CreatureStateMachine.Arrive(imp));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, imp, ImpStates.TaskSelection));
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, imp, EnRoute, ImpStates.PickingUpGold);
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, imp));
         Assert.Equal(ImpStates.PickingUpGold, imp.Dk2StateId);
-        CreatureStateMachine.BeginTravel(imp, EnRoute, ImpStates.AtTheStore);
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, imp, EnRoute, ImpStates.AtTheStore);
         Assert.Equal(EnRoute, imp.Dk2StateId);
-        Assert.True(CreatureStateMachine.Arrive(imp));
-        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.PuttingDownGold));
-        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
-        CreatureStateMachine.BeginTravel(imp, EnRoute, ImpStates.AtTheStore);
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, imp));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, imp, ImpStates.PuttingDownGold));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, imp, ImpStates.TaskSelection));
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, imp, EnRoute, ImpStates.AtTheStore);
         Assert.Equal(EnRoute, imp.Dk2StateId);
-        Assert.True(CreatureStateMachine.TrySetState(imp, Idle));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, imp, Idle));
 
         CreatureState miner = Fresh();
         StatePlacement.Place(miner, Idle);
-        Assert.True(CreatureStateMachine.TrySetState(miner, ImpStates.TaskSelection));
-        Assert.True(CreatureStateMachine.TrySetState(miner, ImpStates.For(TileWorkKind.MineGold).Work));
-        CreatureStateMachine.BeginTravel(miner, EnRoute, ImpStates.AtTheStore);
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, miner, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, miner, ImpStates.For(TileWorkKind.MineGold).Work));
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, miner, EnRoute, ImpStates.AtTheStore);
         Assert.Equal(EnRoute, miner.Dk2StateId);
 
         CreatureState emptyHanded = Fresh();
         StatePlacement.Place(emptyHanded, Idle);
-        Assert.True(CreatureStateMachine.TrySetState(emptyHanded, ImpStates.TaskSelection));
-        Assert.True(CreatureStateMachine.TrySetState(emptyHanded, ImpStates.PickingUpGold));
-        Assert.True(CreatureStateMachine.TrySetState(emptyHanded, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, emptyHanded, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, emptyHanded, ImpStates.PickingUpGold));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, emptyHanded, ImpStates.TaskSelection));
     }
 
     [Theory]
@@ -354,23 +354,23 @@ public class CreatureStateMachineTests
 
         CreatureState imp = Fresh();
         StatePlacement.Place(imp, Idle);
-        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
-        CreatureStateMachine.BeginTravel(imp, EnRoute, ImpStates.PickingUpObject);
-        Assert.True(CreatureStateMachine.Arrive(imp));
-        CreatureStateMachine.BeginTravel(imp, EnRoute, carrying);
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, imp, ImpStates.TaskSelection));
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, imp, EnRoute, ImpStates.PickingUpObject);
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, imp));
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, imp, EnRoute, carrying);
         Assert.Equal(EnRoute, imp.Dk2StateId);
-        Assert.True(CreatureStateMachine.Arrive(imp));
-        CreatureStateMachine.BeginTravel(imp, EnRoute, carrying);
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, imp));
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, imp, EnRoute, carrying);
         Assert.Equal(EnRoute, imp.Dk2StateId);
-        Assert.True(CreatureStateMachine.Arrive(imp));
+        Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, imp));
         Assert.Equal(carrying, imp.Dk2StateId);
-        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, imp, ImpStates.TaskSelection));
 
         CreatureState empty = Fresh();
         StatePlacement.Place(empty, Idle);
-        Assert.True(CreatureStateMachine.TrySetState(empty, ImpStates.TaskSelection));
-        Assert.True(CreatureStateMachine.TrySetState(empty, ImpStates.PickingUpObject));
-        Assert.True(CreatureStateMachine.TrySetState(empty, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, empty, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, empty, ImpStates.PickingUpObject));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, empty, ImpStates.TaskSelection));
     }
 
     /// <summary>From 10 along walks in 6 and hand-overs, ending with a move to 10.</summary>
@@ -378,16 +378,16 @@ public class CreatureStateMachineTests
     {
         CreatureState imp = Fresh();
         StatePlacement.Place(imp, Idle);
-        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, imp, ImpStates.TaskSelection));
         foreach (int resume in walks)
         {
-            CreatureStateMachine.BeginTravel(imp, EnRoute, resume);
+            CreatureStateMachine.BeginTravel(DetachedHooks.Context, imp, EnRoute, resume);
             Assert.Equal(EnRoute, imp.Dk2StateId);
-            Assert.True(CreatureStateMachine.Arrive(imp));
+            Assert.True(CreatureStateMachine.Arrive(DetachedHooks.Context, imp));
             Assert.Equal(resume, imp.Dk2StateId);
         }
 
-        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, imp, ImpStates.TaskSelection));
     }
 
     [Fact]
@@ -447,7 +447,7 @@ public class CreatureStateMachineTests
                 StateTransition expected = CreatureStateTransitions.Classify(from, to, 0);
                 Assert.Equal(expected, CreatureStateMachine.Classify(creature, to));
 
-                bool took = CreatureStateMachine.TrySetState(creature, to);
+                bool took = CreatureStateMachine.TrySetState(DetachedHooks.Context, creature, to);
                 Assert.Equal(expected == StateTransition.Allowed, took);
                 Assert.Equal(took ? to : from, creature.Dk2StateId);
                 checked_++;

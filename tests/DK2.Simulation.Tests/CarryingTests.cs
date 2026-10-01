@@ -53,10 +53,10 @@ public class CarryingTests
     /// by which time an imp has taken a Tier B reinforce job and the test is
     /// about job switching rather than about carrying.</para>
     /// </summary>
-    private static void Down(CreatureState creature)
+    private static void Down(in StateHookContext hooks, CreatureState creature)
     {
         creature.Health = 0;
-        Assert.True(CreatureDeathRules.Collapse(creature));
+        Assert.True(CreatureDeathRules.Collapse(hooks, creature));
     }
 
     /// <summary>Lays a room tile down without going through the build rules.</summary>
@@ -78,7 +78,7 @@ public class CarryingTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState passenger = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
-        Down(passenger);
+        Down(new StateHookContext(world, db), passenger);
         if (passengerIsCorpse) CreatureDeathRules.BecomeCorpse(world, db, passenger);
         CreatureState carrier = world.SpawnCreature(db, carrierLeavesBody ? GoblinId : ImpId,
             Keeper, new TilePos(2, 3));
@@ -87,7 +87,7 @@ public class CarryingTests
         carrier.Health = 0;
         if (carrierLeavesBody)
         {
-            Down(carrier);
+            Down(new StateHookContext(world, db), carrier);
             carrier.DyingTicks = CreatureDeathRules.DyingWindowTicks(db);
         }
         var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
@@ -119,7 +119,7 @@ public class CarryingTests
         carrier.Health = 0;
         if (carrierLeavesBody)
         {
-            Down(carrier);
+            Down(new StateHookContext(world, db), carrier);
             carrier.DyingTicks = CreatureDeathRules.DyingWindowTicks(db);
         }
         new GameSimulation(db, world, 42, [new CreatureHealthSystem()]).Run(Second);
@@ -161,12 +161,12 @@ public class CarryingTests
         CreatureState foreign = world.SpawnCreature(db, GoblinId, Rival, new TilePos(3, 3));
         foreign.RescuePriorityMask = mask;
         if (foreignFartherAway) foreign.PosX = CreatureState.CentreOf(4);
-        Down(foreign);
+        Down(new StateHookContext(world, db), foreign);
         CreatureState own = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, own));
         own.PosX = CreatureState.CentreOf(3);
         own.PosY = CreatureState.CentreOf(3);
-        Down(own);
+        Down(new StateHookContext(world, db), own);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
         var sim = new GameSimulation(db, world, 42, [new ImpTaskSystem()]);
         sim.Tick(InputFrame.Empty); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
@@ -190,7 +190,7 @@ public class CarryingTests
         // Drop it somewhere else in the room, so the imp has a walk.
         goblin.PosX = CreatureState.CentreOf(3);
         goblin.PosY = CreatureState.CentreOf(3);
-        Down(goblin);
+        Down(new StateHookContext(world, db), goblin);
 
         world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
 
@@ -229,7 +229,7 @@ public class CarryingTests
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
         goblin.PosX = CreatureState.CentreOf(3);
         goblin.PosY = CreatureState.CentreOf(3);
-        Down(goblin);
+        Down(new StateHookContext(world, db), goblin);
 
         world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
 
@@ -251,7 +251,7 @@ public class CarryingTests
         WorldState world = World(db);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
-        Down(goblin);
+        Down(new StateHookContext(world, db), goblin);
         world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
 
         var sink = new ListEventSink();
@@ -273,7 +273,7 @@ public class CarryingTests
         Paint(db, world, RoomTypeId.Lair, lair);
 
         CreatureState theirs = world.SpawnCreature(db, GoblinId, Rival, new TilePos(3, 3));
-        Down(theirs);
+        Down(new StateHookContext(world, db), theirs);
         world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
 
         var sink = new ListEventSink();
@@ -339,7 +339,7 @@ public class CarryingTests
         StatePlacement.Place(goblin, TortureRules.ReleasedState);
         goblin.Health = 0;
 
-        Assert.True(CreatureDeathRules.Collapse(goblin));
+        Assert.True(CreatureDeathRules.Collapse(new StateHookContext(world, db), goblin));
 
         Assert.Equal(CreatureDeathRules.FallingState, goblin.Dk2StateId);
     }
@@ -355,7 +355,7 @@ public class CarryingTests
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
         goblin.PosX = CreatureState.CentreOf(3);
         goblin.PosY = CreatureState.CentreOf(3);
-        Down(goblin);
+        Down(new StateHookContext(world, db), goblin);
         Assert.Equal(CreatureDeathRules.FallingState, goblin.Dk2StateId);
         world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
         var sink = new ListEventSink();
@@ -399,7 +399,7 @@ public class CarryingTests
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
         goblin.PosX = CreatureState.CentreOf(3);
         goblin.PosY = CreatureState.CentreOf(3);
-        Down(goblin);
+        Down(new StateHookContext(world, db), goblin);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
@@ -520,7 +520,7 @@ public class CarryingTests
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, hurt));
         hurt.PosX = CreatureState.CentreOf(2);
         hurt.PosY = CreatureState.CentreOf(1);
-        Down(hurt);
+        Down(new StateHookContext(world, db), hurt);
 
         world.SpawnCreature(db, ImpId, Keeper, new TilePos(3, 2));
 

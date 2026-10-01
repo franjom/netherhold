@@ -83,7 +83,7 @@ public sealed partial class CreatureJobSystem
                 return;
             }
         }
-        if (CreatureStateMachine.TrySetState(creature, ImpStates.Wandering)) creature.WanderStamp = now + WanderStampTicks;
+        if (CreatureStateMachine.TrySetState(context.Hooks, creature, ImpStates.Wandering)) creature.WanderStamp = now + WanderStampTicks;
         else StateShadow.ToIdle(context, SystemName, creature);
     }
 }

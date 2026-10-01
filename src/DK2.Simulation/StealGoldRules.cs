@@ -256,7 +256,7 @@ public static class StealGoldRules
         int w = context.World.Width;
         if (!context.Navigation.TryRouteTo(creature, CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), options))
             return false;
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, resume);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         return true;
     }
 }

@@ -202,13 +202,15 @@ public static class CrateRules
     /// place of its own, so that helps only a room that was already over its capacity.</summary>
     /// <remarks>Ours takes the working creature with the lowest id, where DK2 takes the head of the
     /// room's attached list, whose order is not read.</remarks>
-    public static bool List(WorldState world, GameDatabase database, RoomInstance workshop, ObjectState crate)
+    public static bool List(in StateHookContext hooks, RoomInstance workshop, ObjectState crate)
     {
+        WorldState world = hooks.World;
+        GameDatabase database = hooks.Database;
         int units = database.ObjectById(crate.ObjectTypeId)?.RoomCapacity ?? 0;
         if (!RoomCapacityRules.HasRoom(world, database, workshop, units: units))
         {
             CreatureState? worker = RoomCapacityRules.FirstOccupant(world, workshop);
-            if (worker != null) CreatureStateMachine.TrySetState(worker, CreatureStateMachine.Idle);
+            if (worker != null) CreatureStateMachine.TrySetState(hooks, worker, CreatureStateMachine.Idle);
             if (!RoomCapacityRules.HasRoom(world, database, workshop, units: units)) return false;
         }
 

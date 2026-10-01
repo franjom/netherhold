@@ -78,16 +78,18 @@ public static class JobRules
     /// capacity is the work state's enter hook's, so a full room sends the creature to idle
     /// with its job still remembered.</remarks>
     public static JobType? TryDropOnARoom(
-        WorldState world, GameDatabase database, CreatureState creature, CreatureDef definition, int tileIndex)
+        in StateHookContext hooks, CreatureState creature, CreatureDef definition, int tileIndex)
     {
+        WorldState world = hooks.World;
+        GameDatabase database = hooks.Database;
         if (RoomIndex.RoomAt(world, database, tileIndex) is not { } room) return null;
         if (room.Definition.TypeId is not { } type) return null;
         JobType job = JobOfRoom(type);
         if (job == JobType.None || StateFor(job) is not int state) return null;
         if (definition.HateJobs.Contains(job)) return null;
 
-        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
-        if (!CreatureStateMachine.TrySetState(creature, state)) return null;
+        CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
+        if (!CreatureStateMachine.TrySetState(hooks, creature, state)) return null;
         creature.CurrentJob = job;
         creature.JobTileIndex = tileIndex;
         creature.DroppedToDoJob = job;
@@ -95,7 +97,7 @@ public static class JobRules
         {
             creature.CurrentJob = JobType.None;
             creature.JobTileIndex = -1;
-            CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
+            CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
         }
 
         return job;

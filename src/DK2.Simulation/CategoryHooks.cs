@@ -1,0 +1,257 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.Core;
+using DK2.Data.Model;
+using DK2.Simulation.Systems;
+
+namespace DK2.Simulation;
+
+/// <summary>Which of a category's three hook slots: DK2's tables at <c>0x0069968C</c>,
+/// <c>0x0069969C</c> and <c>0x006996AC</c>, each <c>+category * 0x40</c>.</summary>
+public enum HookKind : byte
+{
+    Enter,
+    Update,
+    Leave,
+}
+
+/// <summary>How much of one DK2 hook body is built here.</summary>
+public enum HookStatus : byte
+{
+    /// <summary>All of it.</summary>
+    Built,
+
+    /// <summary>Part of it; the slot's note says which part is missing.</summary>
+    Partial,
+
+    /// <summary>DK2's success stub <c>0x004B4C20</c> (<c>MOV EAX,1; RET</c>): nothing to build.</summary>
+    Stub,
+
+    /// <summary>None of it; the note gives the reason or the question.</summary>
+    NotBuilt,
+}
+
+/// <summary>One filled slot of DK2's category hook table (<c>state-categories.md</c> §7.1),
+/// with what ours does for it.</summary>
+public sealed class HookSlot
+{
+    internal HookSlot(CreatureStateCategory category, HookKind kind, uint address, HookStatus status, string note)
+    {
+        Category = category;
+        Kind = kind;
+        Address = address;
+        Status = status;
+        Note = note;
+    }
+
+    public CreatureStateCategory Category { get; }
+    public HookKind Kind { get; }
+
+    /// <summary>The DKII.EXE function in the slot.</summary>
+    public uint Address { get; }
+
+    public HookStatus Status { get; }
+
+    /// <summary>What is built, what is not and why, with the question that blocks it.</summary>
+    public string Note { get; }
+
+    /// <summary>For an update slot that is built, where the per-tick arm lives: the systems run
+    /// it off <see cref="CreatureStateMachine.UpdatingCategory"/>, not this table.</summary>
+    public Type? UpdateArm { get; internal init; }
+
+    /// <summary>The member of <see cref="UpdateArm"/>.</summary>
+    public string? UpdateArmMember { get; internal init; }
+
+    internal EnterHook? Enter { get; init; }
+    internal LeaveHook? Leave { get; init; }
+
+    /// <summary>Whether <see cref="CreatureStateMachine"/> runs code of ours from this slot.</summary>
+    public bool IsDispatched => Enter is not null || Leave is not null;
+}
+
+/// <summary>An enter hook. False refuses the move: <c>SetState</c> then leaves the creature in
+/// state 1 with the old category's leave hook already run.</summary>
+internal delegate bool EnterHook(in StateHookContext hooks, CreatureState creature);
+
+/// <summary>A leave hook. DK2 discards its return.</summary>
+internal delegate void LeaveHook(in StateHookContext hooks, CreatureState creature);
+
+/// <summary>DK2's category hooks, indexed by <see cref="CreatureStateCategory"/>, and the enter
+/// and leave dispatch <see cref="CreatureStateMachine"/> runs in <c>SetState</c>'s order
+/// (<c>state-category-hooks.md</c> §5, ADR-0308). Every filled slot of DK2's table has a row in
+/// <see cref="Slots"/>, built or not.</summary>
+[Dk2Behavior(Confidence.Confirmed, "docs/research/state-category-hooks.md")]
+public static class CategoryHooks
+{
+    private const string Seeded = "the countdown seed is built (the shared step in RunEnter)";
+    private const string Release = "0x0047B920 releases the room position; not built: ours derives "
+        + "UsedCapacity from the claiming creatures in the room (ADR-0205)";
+
+    private static readonly HookSlot[] All =
+    [
+        Slot(CreatureStateCategory.Refused, HookKind.Leave, 0x0047A780, HookStatus.NotBuilt,
+            "clears +0x3CD, two vectors and +0x3E6 bit 20; the combined role is UNKNOWN (state-category-hooks.md §2)"),
+        new(CreatureStateCategory.WorkerJob, HookKind.Leave, 0x004647D0, HookStatus.Partial,
+            "the pickup subset is built (ADR-0263); the task removal and completion are not (state-category-hooks.md §2)")
+        {
+            Leave = static (in StateHookContext _, CreatureState creature) => WorkerPickupRules.OnTaskReleased(creature),
+        },
+
+        Slot(CreatureStateCategory.Research, HookKind.Enter, 0x0047AFB0, HookStatus.NotBuilt,
+            "claims the room position; ours claims at arrival instead (RoomCapacityRules, ADR-0205)"),
+        Arm(CreatureStateCategory.Research, 0x0047B000, HookStatus.Built, "credit per turn, bonuses per second (ADR-0186)",
+            typeof(CreatureJobSystem), "Research"),
+        Slot(CreatureStateCategory.Research, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+
+        Slot(CreatureStateCategory.Manufacture, HookKind.Enter, 0x0047B0A0, HookStatus.NotBuilt,
+            "raises station +0x8A and claims; ours counts the makers from UpdatingCategory (ManufactureRules, ADR-0203)"),
+        Arm(CreatureStateCategory.Manufacture, 0x0047B190, HookStatus.Built, "credit per turn (ADR-0203)",
+            typeof(CreatureJobSystem), "Manufacture"),
+        Slot(CreatureStateCategory.Manufacture, HookKind.Leave, 0x0047B120, HookStatus.NotBuilt,
+            "lowers station +0x8A and releases; ours counts the makers from UpdatingCategory (ADR-0203)"),
+
+        Slot(CreatureStateCategory.Lair, HookKind.Enter, 0x004B4C20, HookStatus.Stub, "success stub"),
+        Arm(CreatureStateCategory.Lair, 0x0047AC40, HookStatus.Partial,
+            "anger cools (ADR-0185); the healing predicate in 0x004DFF00 is unread (Q123)",
+            typeof(LairRules), nameof(LairRules.CoolsAngerInLair)),
+
+        Slot(CreatureStateCategory.Eating, HookKind.Update, 0x004B4C20, HookStatus.Stub, "success stub"),
+
+        Slot(CreatureStateCategory.Sleeping, HookKind.Enter, 0x004B4C20, HookStatus.Stub, "success stub"),
+        Arm(CreatureStateCategory.Sleeping, 0x0047AC00, HookStatus.Partial,
+            "anger cools (ADR-0185); state 83's 0x00477B20(1) is not built (state-category-hooks.md §3)",
+            typeof(LairRules), nameof(LairRules.CoolsAngerInLair)),
+        Slot(CreatureStateCategory.Sleeping, HookKind.Leave, 0x0047AB90, HookStatus.NotBuilt,
+            "toggles bed and creature +0xF3 bit 0; the fields are UNKNOWN (state-category-hooks.md §3)"),
+
+        Slot(CreatureStateCategory.Sulking, HookKind.Enter, 0x004B4C20, HookStatus.Stub, "success stub"),
+        Arm(CreatureStateCategory.Sulking, 0x0047AC70, HookStatus.Partial,
+            "anger cools (ADR-0185); its return, 0x004871A0(5), is not built (Q438)",
+            typeof(LairRules), nameof(LairRules.CoolsAngerInLair)),
+
+        Slot(CreatureStateCategory.GuardPost, HookKind.Enter, 0x0047AFB0, HookStatus.NotBuilt,
+            "claims the room position; ours claims at arrival instead (RoomCapacityRules, ADR-0205)"),
+        Slot(CreatureStateCategory.GuardPost, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+
+        Slot(CreatureStateCategory.Temple, HookKind.Enter, 0x0047B8C0, HookStatus.Partial,
+            Seeded + "; the claim is not dispatched (ADR-0205)"),
+        Arm(CreatureStateCategory.Temple, 0x0047B970, HookStatus.Built, "prayer every fifth turn (ADR-0186, ADR-0192)",
+            typeof(CreatureJobSystem), "Pray"),
+        Slot(CreatureStateCategory.Temple, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+
+        Slot(CreatureStateCategory.Training, HookKind.Enter, 0x0047B230, HookStatus.Partial,
+            Seeded + "; the gold refusal with message 55 and the claim are not (state-category-hooks.md §3)"),
+        Arm(CreatureStateCategory.Training, 0x0047B2D0, HookStatus.Built, "experience per turn, the charge every fifth (Q205)",
+            typeof(CreatureJobSystem), "Train"),
+        Slot(CreatureStateCategory.Training, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+
+        Slot(CreatureStateCategory.Prison, HookKind.Enter, 0x0047B740, HookStatus.Partial,
+            Seeded + "; the claim and creature trigger event 7 are not (state-category-hooks.md §3)"),
+        Arm(CreatureStateCategory.Prison, 0x0047B7C0, HookStatus.Built, "the drain every seventeenth turn (ADR-0191)",
+            typeof(PrisonSystem), "Wither"),
+        Slot(CreatureStateCategory.Prison, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+
+        Slot(CreatureStateCategory.Torture, HookKind.Enter, 0x0047B430, HookStatus.Partial,
+            Seeded + "; the claim is not dispatched (ADR-0205)"),
+        Arm(CreatureStateCategory.Torture, 0x0047B590, HookStatus.Partial,
+            "duration, hurt, mood and conversion (ADR-0193); the information is ADR-0230's",
+            typeof(TortureSystem), nameof(TortureSystem.Execute)),
+        Slot(CreatureStateCategory.Torture, HookKind.Leave, 0x0047B4A0, HookStatus.NotBuilt,
+            "clears station bits, state +0x6E, +0x3EA bit 14 and releases; the helpers' contracts are UNKNOWN (§3.3)"),
+
+        Slot(CreatureStateCategory.CombatPit, HookKind.Enter, 0x0047AAE0, HookStatus.Partial,
+            Seeded + "; the CombatPitFighter flag is set at the call site (CombatPitSystem.Move), whose entry "
+            + "test is the current category, not the saved caller's; the claim is not dispatched"),
+        Slot(CreatureStateCategory.CombatPit, HookKind.Update, 0x004B4C20, HookStatus.Stub, "success stub"),
+        Slot(CreatureStateCategory.CombatPit, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+
+        Slot(CreatureStateCategory.Casino, HookKind.Enter, 0x0047ACB0, HookStatus.Partial,
+            Seeded + "; the purse and lever refusals and the claim are not (state-category-hooks.md §3.1)"),
+        Arm(CreatureStateCategory.Casino, 0x0047AD70, HookStatus.Partial,
+            "calm, anger and the purse (ADR-0187, ADR-0188); the jackpot and fearless countdown are not",
+            typeof(CreatureJobSystem), "Gamble"),
+        Slot(CreatureStateCategory.Casino, HookKind.Leave, 0x0047AF20, HookStatus.NotBuilt,
+            "clears fearless, stamps +0x3D7 and releases (state-category-hooks.md §3.1)"),
+
+        Slot(CreatureStateCategory.Combat, HookKind.Enter, 0x0047A810, HookStatus.NotBuilt,
+            "ends the current action and clears the combat words (state-category-hooks.md §2)"),
+        Slot(CreatureStateCategory.Combat, HookKind.Update, 0x0047A870, HookStatus.NotBuilt,
+            "combat experience in 199/200 (CreatureLevelRules: fighting earns none yet)"),
+        Slot(CreatureStateCategory.Combat, HookKind.Leave, 0x0047A980, HookStatus.NotBuilt,
+            "the fight-leave routine 0x0045ADC0, speed mode and +0x3D5 (state-category-hooks.md §2)"),
+
+        Slot(CreatureStateCategory.Dying, HookKind.Update, 0x004B4C20, HookStatus.Stub, "success stub"),
+
+        Slot(CreatureStateCategory.TrapDisarm, HookKind.Leave, 0x00459130, HookStatus.NotBuilt,
+            "clears a trap's +0x115 and creature +0x43D; no disarm state is built (Q455)"),
+
+        new(CreatureStateCategory.CallToArms, HookKind.Enter, 0x00455E70, HookStatus.Built,
+            "the run speed on, 0x004887D0(1, 0)")
+        {
+            Enter = static (in StateHookContext _, CreatureState creature) =>
+            {
+                creature.Running = true;
+                return true;
+            },
+        },
+        new(CreatureStateCategory.CallToArms, HookKind.Leave, 0x00455E90, HookStatus.Built,
+            "the run speed off, 0x004887D0(0, 0)")
+        {
+            Leave = static (in StateHookContext _, CreatureState creature) => creature.Running = false,
+        },
+
+        Slot(CreatureStateCategory.ReportingDanger, HookKind.Leave, 0x004752A0, HookStatus.NotBuilt,
+            "clears RebelActive; why leaving this category ends a rebellion is UNKNOWN (Q411)"),
+
+        Slot(CreatureStateCategory.Unnamed28, HookKind.Update, 0x0047A9B0, HookStatus.NotBuilt,
+            "-10 health a tick unless the owner has won; no category-28 state is built"),
+
+        Slot(CreatureStateCategory.Spectating, HookKind.Enter, 0x0047A9E0, HookStatus.Partial,
+            Seeded + "; the CombatPitFighter clear is at the call site (CombatPitSpectatorRules); the claim is not dispatched"),
+        Arm(CreatureStateCategory.Spectating, 0x0047AA70, HookStatus.Built, "variable 135 to three buckets every fifth turn (ADR-0186)",
+            typeof(CreatureJobSystem), "Spectate"),
+        Slot(CreatureStateCategory.Spectating, HookKind.Leave, 0x0047B920, HookStatus.NotBuilt, Release),
+    ];
+
+    private static readonly EnterHook?[] Enters = Index(s => s.Enter);
+    private static readonly LeaveHook?[] Leaves = Index(s => s.Leave);
+
+    /// <summary>Every filled slot of DK2's table, by category, then enter, update, leave.</summary>
+    public static IReadOnlyList<HookSlot> Slots => All;
+
+    /// <summary>The target category's enter hook, after the seed every countdown enter hook writes
+    /// (variable 19, <see cref="CreatureStateMachine.HookCountdownSeed"/>). Ours has one countdown
+    /// field for the six bytes DK2 keeps, so it is seeded on entering any category; only a
+    /// countdown category's update reads it (ADR-0192).</summary>
+    internal static bool RunEnter(in StateHookContext hooks, CreatureStateCategory category, CreatureState creature)
+    {
+        creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
+        EnterHook? enter = Enters[(int)category];
+        return enter is null || enter(in hooks, creature);
+    }
+
+    /// <summary>The old category's leave hook, if it has one.</summary>
+    internal static void RunLeave(in StateHookContext hooks, CreatureStateCategory category, CreatureState creature) =>
+        Leaves[(int)category]?.Invoke(in hooks, creature);
+
+    private static HookSlot Slot(
+        CreatureStateCategory category, HookKind kind, uint address, HookStatus status, string note) =>
+        new(category, kind, address, status, note);
+
+    private static HookSlot Arm(
+        CreatureStateCategory category, uint address, HookStatus status, string note, Type arm, string member) =>
+        new(category, HookKind.Update, address, status, note) { UpdateArm = arm, UpdateArmMember = member };
+
+    private static T?[] Index<T>(Func<HookSlot, T?> pick) where T : class
+    {
+        var byCategory = new T?[CreatureStateTable.CategoryCount];
+        foreach (HookSlot slot in All)
+        {
+            if (pick(slot) is T hook) byCategory[(int)slot.Category] = hook;
+        }
+
+        return byCategory;
+    }
+}

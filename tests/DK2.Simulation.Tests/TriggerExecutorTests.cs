@@ -1762,7 +1762,7 @@ public class TriggerExecutorTests
         keepers.TriggerId = 9;
         kept.TriggerId = 7;
         kept.GoodJobPlayerId = 4;
-        Assert.True(CreatureStateMachine.TrySetState(hero, 90));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, database), hero, 90));
 
         TriggerRecord[] records =
         [

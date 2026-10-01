@@ -89,7 +89,7 @@ public static class DecisionCheck
                 continue;
             }
 
-            PutIn(decider, ImpStates.TaskSelection);
+            PutIn(new StateHookContext(world, database), decider, ImpStates.TaskSelection);
             decider.TargetTileIndex = -1;
             decider.TimerTicks = 0;
 
@@ -241,11 +241,13 @@ public static class DecisionCheck
         GameDatabase database, WorldState world, CreatureState creature, JsonElement imp, byte player, bool holdsJob,
         List<(CreatureState Holder, TilePos Face)> faces)
     {
+        // A decision check loads a captured state into a world of its own, which runs no triggers.
+        var hooks = new StateHookContext(world, database);
         creature.StopMoving();
         creature.PosX = creature.LastPosX = imp.GetProperty("x").GetInt32();
         creature.PosY = creature.LastPosY = imp.GetProperty("y").GetInt32();
         int state = imp.GetProperty("state").GetInt32();
-        PutIn(creature, state is ImpStates.Resting or ImpStates.Wandering ? state : ImpStates.TaskSelection);
+        PutIn(hooks, creature, state is ImpStates.Resting or ImpStates.Wandering ? state : ImpStates.TaskSelection);
         creature.GoldHeld = imp.GetProperty("gold").GetInt32();
         if (imp.TryGetProperty("level", out JsonElement level) && level.GetInt32() >= CreatureLevelRules.FirstLevel)
         {
@@ -278,7 +280,7 @@ public static class DecisionCheck
             creature.TargetTileIndex = ty * world.Width + tx;
             creature.TargetWork = default;
             CreatureStateMachine.Release(creature);
-            CreatureStateMachine.BeginTravel(creature, WalkState, ImpStates.PickingUpGold);
+            CreatureStateMachine.BeginTravel(hooks, creature, WalkState, ImpStates.PickingUpGold);
             faces.Add((creature, target));
             return;
         }
@@ -318,11 +320,11 @@ public static class DecisionCheck
         if (state == WalkState)
         {
             CreatureStateMachine.Release(creature);
-            CreatureStateMachine.BeginTravel(creature, WalkState, ImpStates.For(work).Entry);
+            CreatureStateMachine.BeginTravel(hooks, creature, WalkState, ImpStates.For(work).Entry);
         }
         else
         {
-            PutIn(creature, ImpStates.For(work).Work);
+            PutIn(hooks, creature, ImpStates.For(work).Work);
         }
 
         if (kind is ImpTaskKind.Excavate or ImpTaskKind.Mine && MiningSlots.Face(face, target) is int f and >= 0)
@@ -376,10 +378,10 @@ public static class DecisionCheck
 
     /// <summary>Loads a state DK2 was in: from no state, which every move is allowed from, so
     /// nothing here is a transition of ours.</summary>
-    private static void PutIn(CreatureState creature, int state)
+    private static void PutIn(in StateHookContext hooks, CreatureState creature, int state)
     {
         CreatureStateMachine.Release(creature);
-        CreatureStateMachine.TrySetState(creature, state);
+        CreatureStateMachine.TrySetState(hooks, creature, state);
     }
 
     private static int[] Ints(JsonElement array)

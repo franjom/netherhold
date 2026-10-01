@@ -106,17 +106,19 @@ public static class TortureRules
     /// <summary>Straps a captive dropped on a free device: 1, 130, 131 (76's enemy-room arm,
     /// ADR-0226). It stays its keeper's captive. Returns whether it took.</summary>
     public static bool TryStrap(
-        WorldState world, GameDatabase database, CreatureState creature, byte keeper, int tileIndex)
+        in StateHookContext hooks, CreatureState creature, byte keeper, int tileIndex)
     {
+        WorldState world = hooks.World;
+        GameDatabase database = hooks.Database;
         ObjectState? device = FreeDeviceAt(world, database, keeper, tileIndex, creature.Id);
         if (device is null || !Holds(device, database.CreatureById(creature.CreatureTypeId))) return false;
 
         creature.PrisonOwnerPlayerId = keeper;
         StrapOn(world, creature, tileIndex);
 
-        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
-        CreatureStateMachine.TrySetState(creature, StrappingState);
-        CreatureStateMachine.TrySetState(creature, TorturedState);
+        CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(hooks, creature, StrappingState);
+        CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
         return true;
     }
 
@@ -124,8 +126,10 @@ public static class TortureRules
     /// 131, the room's drop state (76, <c>0x004E8DA0(0)</c>, ADR-0226), as for a captive, but it
     /// stays its own and is not a prisoner. A Horned Reaper is not strapped. Returns whether it took.</summary>
     public static bool TryStrapOwn(
-        WorldState world, GameDatabase database, CreatureState creature, int tileIndex)
+        in StateHookContext hooks, CreatureState creature, int tileIndex)
     {
+        WorldState world = hooks.World;
+        GameDatabase database = hooks.Database;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         if ((definition.Flags & CreatureFlags.IsHorny) != 0) return false;
         ObjectState? device = FreeDeviceAt(world, database, creature.OwnerPlayerId, tileIndex, creature.Id);
@@ -134,9 +138,9 @@ public static class TortureRules
         StrapOn(world, creature, tileIndex);
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
-        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
-        CreatureStateMachine.TrySetState(creature, StrappingState);
-        CreatureStateMachine.TrySetState(creature, TorturedState);
+        CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(hooks, creature, StrappingState);
+        CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
         return true;
     }
 
@@ -163,23 +167,26 @@ public static class TortureRules
 
     /// <summary>131 found its device gone: 136, and from there 130 and 131 on the device at
     /// <paramref name="tileIndex"/>. Keeps the creature a captive if it was one.</summary>
-    public static void Restrap(WorldState world, CreatureState creature, int tileIndex)
+    public static void Restrap(in StateHookContext hooks, CreatureState creature, int tileIndex)
     {
-        CreatureStateMachine.TrySetState(creature, ReleasedState);
+        WorldState world = hooks.World;
+        CreatureStateMachine.TrySetState(hooks, creature, ReleasedState);
         StrapOn(world, creature, tileIndex);
-        CreatureStateMachine.TrySetState(creature, StrappingState);
-        CreatureStateMachine.TrySetState(creature, TorturedState);
+        CreatureStateMachine.TrySetState(hooks, creature, StrappingState);
+        CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
     }
 
     /// <summary>130 for a creature that walked onto a free device of its own keeper's chamber,
     /// a Mistress with no victim to whip: it straps itself on and moves to 131. It stays its
     /// keeper's own. Returns whether it took; 130 fails to idle otherwise.</summary>
-    public static bool TryStrapSelf(WorldState world, GameDatabase database, CreatureState creature)
+    public static bool TryStrapSelf(in StateHookContext hooks, CreatureState creature)
     {
+        WorldState world = hooks.World;
+        GameDatabase database = hooks.Database;
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         ObjectState? device = FreeDeviceAt(world, database, creature.OwnerPlayerId, here, creature.Id);
         if (device is null || !Holds(device, database.CreatureById(creature.CreatureTypeId))) return false;
-        if (!CreatureStateMachine.TrySetState(creature, TorturedState)) return false;
+        if (!CreatureStateMachine.TrySetState(hooks, creature, TorturedState)) return false;
 
         StrapOn(world, creature, here);
         return true;
@@ -196,10 +203,10 @@ public static class TortureRules
     /// <summary>Takes a creature off its device, giving its state back. A captive is still its
     /// keeper's until something decides otherwise: the hand's drop, or
     /// <see cref="PrisonRules.Release"/>. A creature that got on by itself is idle.</summary>
-    public static void Unstrap(CreatureState creature)
+    public static void Unstrap(in StateHookContext hooks, CreatureState creature)
     {
         if (!IsBeingTortured(creature)) return;
-        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
         if (PrisonRules.IsImprisoned(creature))
         {
             return;

@@ -178,7 +178,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
 
         creature.TargetObjectId = EatingRules.NoChicken;
         EnterTheChain(context, creature);
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToRoom, EatingRules.InHatcheryState);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToRoom, EatingRules.InHatcheryState);
 
         context.Emit(SystemName, "food_sought",
             $"creature={creature.Id} type={definition.Name} " +
@@ -303,7 +303,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
         // 92 hands the bird to the position helper: state 6, resuming in 93. That helper has
         // no already-there shortcut, unlike the room one - so even a bird underfoot is a
         // walk, and it is its arrival that reaches 93 (travel-states.md 2.1, 8).
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, EatingRules.EatState);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, EatingRules.EatState);
 
         int x = chicken.TileIndex % world.Width;
         int y = chicken.TileIndex / world.Width;

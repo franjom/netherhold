@@ -79,7 +79,7 @@ public static class ApproachRules
         CreatureState? target = me.FightTargetKind == FightTargetKind.Creature ? world.CreatureById(me.FightTargetId) : null;
         if (me.FightTargetKind == FightTargetKind.Creature && target is null)
         {
-            CombatRules.Disengage(world, me);
+            CombatRules.Disengage(context.Hooks, me);
             End(me, "target_gone", context);
             return false;
         }
@@ -94,7 +94,7 @@ public static class ApproachRules
             byte previousKind = me.FightTargetKind;
             if (!CombatTargetRules.SelectAVictim(context, sight, hearts, rooms, me, mine, scratch) || !CombatRules.IsFighting(me))
             {
-                if (CombatRules.IsFighting(me)) CombatRules.Disengage(world, me);
+                if (CombatRules.IsFighting(me)) CombatRules.Disengage(context.Hooks, me);
                 End(me, "nobody", context);
                 return false;
             }
@@ -122,7 +122,7 @@ public static class ApproachRules
                 me.RetreatingCreature = target.Id;
                 context.Emit(SystemName, "gives_up_chase", $"creature={me.Id} target={target.Id} ticks={me.ChaseTicks}");
                 me.ChaseTicks = 0;
-                CombatRules.Disengage(world, me);
+                CombatRules.Disengage(context.Hooks, me);
                 End(me, "retreating", context);
                 return false;
             }

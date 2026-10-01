@@ -151,7 +151,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             TilePos flag = context.World.Player(creature.OwnerPlayerId).CallToArms.Tile;
             if (context.Navigation.TryRoute(creature, flag, 0))
             {
-                CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, CallToArmsRules.ArrivedState);
+                CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, CallToArmsRules.ArrivedState);
                 creature.HeedingCallToArms = true;
                 context.Emit(SystemName, "call_to_arms_heeded", $"player={creature.OwnerPlayerId} creature={creature.Id} tile={flag.X},{flag.Y} how=idle");
                 return;
@@ -643,7 +643,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
 
         int before = creature.ExperiencePoints;
         int level = creature.Level;
-        bool promoted = CreatureLevelRules.Grant(database, definition, creature, amount);
+        bool promoted = CreatureLevelRules.Grant(context.Hooks, definition, creature, amount);
 
         if (!promoted)
         {
@@ -710,7 +710,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         int amount = ManufactureRules.PerOriginalTick(database, definition, creature);
         if (amount <= 0) return;
 
-        ObjectState? crate = ManufactureRules.Credit(world, database, creature, amount);
+        ObjectState? crate = ManufactureRules.Credit(context.Hooks, creature, amount);
         if (crate is null) return;
         context.Emit(SystemName, "crate_manufactured",
             $"creature={creature.Id} player={creature.OwnerPlayerId} object={crate.ObjectTypeId} " +
@@ -802,7 +802,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
 
         if (creature.IsRouted)
         {
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToRoom, state);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToRoom, state);
             return;
         }
 

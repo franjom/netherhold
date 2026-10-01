@@ -28,7 +28,7 @@ public class KeeperObservationTests
         CreatureState carried = world.SpawnCreature(db, type, 4, at);
         CreatureState corpse = world.SpawnCreature(db, type, 4, at);
         dying.Health = 0;
-        Assert.True(CreatureStateMachine.TrySetState(dying, CreatureDeathRules.FallingState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), dying, CreatureDeathRules.FallingState));
         held.InHand = true;
         carried.CarriedByCreatureId = standing.Id;
         CreatureStateMachine.Release(corpse);

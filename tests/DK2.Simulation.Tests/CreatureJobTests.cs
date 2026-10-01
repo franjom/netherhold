@@ -573,7 +573,7 @@ public sealed class CreatureJobTests
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         PrisonRules.Imprison(
-            world, db, goblin, Keeper, (Floor.Y * world.Width) + Floor.X);
+            new StateHookContext(world, db), goblin, Keeper, (Floor.Y * world.Width) + Floor.X);
 
         Simulation(db, world).Run(Second * 30);
 

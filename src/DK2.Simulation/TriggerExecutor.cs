@@ -1001,7 +1001,10 @@ public sealed class TriggerExecutor
         if (context == TriggerContext.Creature && record.Type == 15 && run.Creature is not null)
         {
             run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
-            return SetHeroObjective(record.Parameters, run.Creature);
+            // The objective is a state move, whose hooks need the world: an executor built without
+            // one (a trigger-only test) cannot perform it, as with actions 6 and 28.
+            if (_world is null || _database is null) return Unperformed(record, context, run.Partial);
+            return SetHeroObjective(new StateHookContext(_world, _database, this), record.Parameters, run.Creature);
         }
         if (context == TriggerContext.Creature && CreatureOwnsAction(record.Type))
             return Unperformed(record, context, run.Partial);
@@ -1022,7 +1025,7 @@ public sealed class TriggerExecutor
     /// fighter) or a dying creature (body bit 21) is left alone, and the action succeeds anyway.
     /// Otherwise <c>0x0048BE20</c> stores the triple: the objective, the named player (objectives
     /// 22 and 23 keep the creature's own), the action point; then state 1 (<c>0x0048AD30</c>).</summary>
-    private static bool SetHeroObjective(IReadOnlyDictionary<string, long> p, CreatureState creature)
+    private static bool SetHeroObjective(in StateHookContext hooks, IReadOnlyDictionary<string, long> p, CreatureState creature)
     {
         if (creature.OwnerPlayerId != PlayerIds.Good || creature.CombatPitFighter || CreatureDeathRules.IsDying(creature))
             return true;
@@ -1030,7 +1033,7 @@ public sealed class TriggerExecutor
         if (objective is not (22 or 23)) creature.GoodJobPlayerId = Byte(p, "PlayerId");
         creature.GoodJob = (JobType)objective;
         creature.GoodJobActionPointId = unchecked((int)p["ActionPointId"]);
-        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
         return true;
     }
 
@@ -1113,7 +1116,7 @@ public sealed class TriggerExecutor
         {
             if (_world is null || _database is null || run.Player is not byte player)
                 return Unperformed(record, context, partial);
-            PortalRules.CreateScriptedArrival(_world, _database, player,
+            PortalRules.CreateScriptedArrival(new StateHookContext(_world, _database, this), player,
                 Byte(p, "CreatureId"), Byte(p, "Level"));
             return true;
         }
@@ -1290,7 +1293,7 @@ public sealed class TriggerExecutor
 
         if (party is not null && _world is not null && _database is not null)
             return HeroPartyRules.Spawn(
-                _world, _database, _rng, _tree!, party,
+                new StateHookContext(_world, _database, this), _rng, _tree!, party,
                 Byte(p, "ActionPointId"), Byte(p, "PartyType"),
                 id => SetSubtreeActive(id, active: true),
                 created => FireCreatureEvent(created, CreatureTriggerEvent.Created, run.CurrentTick));

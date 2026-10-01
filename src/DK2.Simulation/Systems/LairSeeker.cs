@@ -158,7 +158,7 @@ public sealed class LairSeeker
         // room had nothing left (0x0046F422, 0x0046F7EB); already inside is 1, then 80.
         if (creature.IsRouted)
         {
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToRoom, LairRules.MakingAHomeState);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToRoom, LairRules.MakingAHomeState);
         }
         else
         {

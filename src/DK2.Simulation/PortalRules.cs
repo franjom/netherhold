@@ -27,32 +27,36 @@ public static class PortalRules
     /// availability and keeper capacity, then promote. No Portal still succeeds.
     /// Arrival representation and room ordering limits: portal-creature-action.md, Q473.</summary>
     public static CreatureState? CreateScriptedArrival(
-        WorldState world, GameDatabase database, byte playerId, byte creatureTypeId, byte level)
+        in StateHookContext hooks, byte playerId, byte creatureTypeId, byte level)
     {
+        WorldState world = hooks.World;
+        GameDatabase database = hooks.Database;
         // UNKNOWN: DK2 walks the player's linked room list; our derived room order is
         // ascending tile index. Do not silently try a later portal (0x004DC8F0).
         RoomInstance? portal = RoomIndex.Build(world, database).FirstOrDefault(r =>
             r.OwnerPlayerId == playerId && IsKeeperPortal(r.Definition));
         if (portal is null) return null;
 
-        CreatureState creature = CreateArrival(world, database, portal, creatureTypeId);
+        CreatureState creature = CreateArrival(hooks, portal, creatureTypeId);
         CreatureDef definition = database.CreatureById(creatureTypeId);
-        while (creature.Level < level && CreatureLevelRules.LevelUp(database, definition, creature)) { }
+        while (creature.Level < level && CreatureLevelRules.LevelUp(hooks, definition, creature)) { }
         return creature;
     }
 
     /// <summary>Shared placement and tally for ordinary and scripted portal arrivals.
     /// The caller owns the ordinary clock reset; action 28 leaves that clock alone.</summary>
     internal static CreatureState CreateArrival(
-        WorldState world, GameDatabase database, RoomInstance portal, byte creatureTypeId)
+        in StateHookContext hooks, RoomInstance portal, byte creatureTypeId)
     {
+        WorldState world = hooks.World;
+        GameDatabase database = hooks.Database;
         int entrance = EntranceTileIndex(world, portal);
         CreatureState creature = world.SpawnCreature(database, creatureTypeId, portal.OwnerPlayerId,
             new TilePos(entrance % world.Width, entrance / world.Width));
         world.TileAtIndex(entrance).EntranceCreaturesGenerated++;
         // A keeper portal's creature enters 193 (a Hero Portal's enters 278, not built).
         if (IsKeeperPortal(portal.Definition))
-            CreatureStateMachine.TrySetState(creature, JoiningState, world.CurrentTick.Value);
+            CreatureStateMachine.TrySetState(hooks, creature, JoiningState, world.CurrentTick.Value);
         return creature;
     }
 

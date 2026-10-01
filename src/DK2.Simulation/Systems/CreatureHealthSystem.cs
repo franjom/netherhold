@@ -168,7 +168,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         // 216's handler moves to 217 once the fall's action ends; ours has no animation and
         // lies down on the first second (ADR-0206).
         if (state.Dk2StateId == CreatureDeathRules.FallingState)
-            CreatureStateMachine.TrySetState(state, CreatureDeathRules.DyingState);
+            CreatureStateMachine.TrySetState(context.Hooks, state, CreatureDeathRules.DyingState);
 
         // 217's handler clears CombatPitFighter: a knocked-out loser is no longer a fighter.
         if (state.Dk2StateId == CreatureDeathRules.DyingState) state.CombatPitFighter = false;
@@ -241,8 +241,8 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     private static void Collapse(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
-        if (!CreatureDeathRules.Collapse(state)) return;
-        HeroPartyRules.KnockedOut(context.World, context.Triggers, state);
+        if (!CreatureDeathRules.Collapse(context.Hooks, state)) return;
+        HeroPartyRules.KnockedOut(context.Hooks, state);
 
         // Creature event 16, "dying", from the countdown start 0x0048B770 (trigger-walkers.md,
         // "Who fires what"). Level 2 counts four of its heroes going down this way.

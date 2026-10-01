@@ -22,7 +22,7 @@ public class HandPreparationTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [Keeper, (byte)4]);
         CreatureState fighter = world.SpawnCreature(db, 7, Keeper, new TilePos(2, 2));
         CreatureState enemy = world.SpawnCreature(db, 7, 4, new TilePos(3, 2));
-        Assert.True(CreatureStateMachine.TrySetState(fighter, FightState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), fighter, FightState));
         fighter.FightTargetId = enemy.Id;
         fighter.FightTargetKind = Combat.FightTargetKind.Creature;
         return (db, world, fighter);

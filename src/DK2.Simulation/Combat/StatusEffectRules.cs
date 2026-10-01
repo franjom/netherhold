@@ -214,7 +214,7 @@ public static class StatusEffectRules
     /// creature looks again when it comes round either way.</summary>
     private static void Stand(SimulationContext context, CreatureState creature, int stateId)
     {
-        CombatRules.Disengage(context.World, creature);
+        CombatRules.Disengage(context.Hooks, creature);
         creature.ClearJob();
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;

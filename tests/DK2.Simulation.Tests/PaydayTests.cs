@@ -500,7 +500,7 @@ public class PaydayTests
         Treasury(world, new TilePos(1, 3), 2000);
 
         CreatureState captive = world.SpawnCreature(db, GoblinId, Keeper, Floor);
-        PrisonRules.Imprison(world, db, captive, Keeper, (Floor.Y * world.Width) + Floor.X);
+        PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, (Floor.Y * world.Width) + Floor.X);
 
         GameSimulation sim = Simulation(db, world);
         RunToFirstPayday(sim, db, extraTicks: 200);
@@ -779,7 +779,7 @@ public class PaydayTests
         // Owed from before it was taken, which is the only way a captive can
         // carry a debt: the payday clock skips prisoners entirely.
         captive.WageOwed = 500;
-        PrisonRules.Imprison(world, db, captive, Keeper, (Floor.Y * world.Width) + Floor.X);
+        PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, (Floor.Y * world.Width) + Floor.X);
         CreatureAnger before = captive.Anger;
 
         GameSimulation sim = WithAnger(db, world);

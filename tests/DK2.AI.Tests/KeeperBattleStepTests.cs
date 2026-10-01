@@ -49,15 +49,15 @@ public class KeeperBattleStepTests
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
         CreatureState enemy = Fighter(world, Hero, 12, 15);
-        Engage(own, enemy);
+        Engage(world, own, enemy);
         world.Player(Keeper).Mana = mana;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, CallToArmsRules.SpellId, 3);
         return (world, own, enemy);
     }
 
-    private static void Engage(CreatureState attacker, CreatureState target)
+    private static void Engage(WorldState world, CreatureState attacker, CreatureState target)
     {
-        Assert.True(CreatureStateMachine.TrySetState(attacker, FightState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, Db), attacker, FightState));
         attacker.FightTargetId = target.Id;
         attacker.FightTargetKind = FightTargetKind.Creature;
     }
@@ -99,7 +99,7 @@ public class KeeperBattleStepTests
         Assert.DoesNotContain(fighting, c => c is CreateImpCommand);
 
         // The fight ends: the walk finds no fighter, the flag drops and imps come back.
-        Assert.True(CreatureStateMachine.TrySetState(own, CreatureStateMachine.Idle));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, Db), own, CreatureStateMachine.Idle));
         IReadOnlyList<PlayerCommand> quiet = keeper.Think(Db, world);
         Assert.False(keeper.State.FightGoingOn);
         Assert.DoesNotContain(quiet, c => c is CreateImpCommand);
@@ -191,7 +191,7 @@ public class KeeperBattleStepTests
             for (int x = 3; x <= 5; x++)
                 KeeperWorld.Set(island, Db, new TilePos(x, y), KeeperWorld.DirtPath);
         CreatureState marooned = Fighter(island, Keeper, 4, 4);
-        Engage(marooned, Fighter(island, Hero, 5, 4));
+        Engage(island, marooned, Fighter(island, Hero, 5, 4));
         island.Player(Keeper).Mana = 20000;
         island.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, CallToArmsRules.SpellId, 3);
         AdvanceToTurn(island, 40);
@@ -336,7 +336,7 @@ public class KeeperBattleStepTests
         CreatureState own = Fighter(world, Keeper, 13, 15);
         CreatureState near = Fighter(world, Hero, 14, 15);
         Fighter(world, Hero, 20, 20);
-        Engage(own, near);
+        Engage(world, own, near);
         world.Player(Keeper).Mana = 6001;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Thunderbolt, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
@@ -358,7 +358,7 @@ public class KeeperBattleStepTests
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
         CreatureState enemy = Fighter(world, Hero, 12, 15);
-        Engage(own, enemy);
+        Engage(world, own, enemy);
         world.Player(Keeper).Mana = 6001;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Thunderbolt, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
@@ -379,7 +379,7 @@ public class KeeperBattleStepTests
     {
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
-        Engage(own, Fighter(world, Hero, 14, 15));
+        Engage(world, own, Fighter(world, Hero, 14, 15));
         world.Player(Keeper).Mana = 6001;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Thunderbolt, 3);
         bool any = false;
@@ -398,7 +398,7 @@ public class KeeperBattleStepTests
     {
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
-        Engage(own, Fighter(world, Hero, 14, 15));
+        Engage(world, own, Fighter(world, Hero, 14, 15));
         world.Player(Keeper).Mana = 6001;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Thunderbolt, 3);
         for (ulong seed = 1; seed <= 8; seed++)
@@ -415,7 +415,7 @@ public class KeeperBattleStepTests
     {
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
-        Engage(own, Fighter(world, Hero, 14, 15));
+        Engage(world, own, Fighter(world, Hero, 14, 15));
         own.Health = 700; // below half of 1500, Heal's target, and above the retreat's 300 (ADR-0284)
         world.Player(Keeper).Mana = 20000;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
@@ -441,7 +441,7 @@ public class KeeperBattleStepTests
     {
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 10, 15); // the unowned dirt west of the patch
-        Engage(own, Fighter(world, Hero, 11, 15));
+        Engage(world, own, Fighter(world, Hero, 11, 15));
         own.Health = 700;
         world.Player(Keeper).Mana = 20000;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
@@ -459,11 +459,11 @@ public class KeeperBattleStepTests
     {
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
-        Engage(own, Fighter(world, Hero, 14, 15));
+        Engage(world, own, Fighter(world, Hero, 14, 15));
         KeeperWorld.Set(world, Db, new TilePos(10, 15), KeeperWorld.PrisonFloor, Hero);
         CreatureState captive = Fighter(world, Keeper, 10, 15);
         captive.Health = 700;
-        Assert.True(CreatureStateMachine.TrySetState(captive, PrisonRules.DecidingState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, Db), captive, PrisonRules.DecidingState));
         world.Player(Keeper).Mana = 20000;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 4, preference: 4);
@@ -486,7 +486,7 @@ public class KeeperBattleStepTests
     {
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
-        Engage(own, Fighter(world, Hero, 14, 15));
+        Engage(world, own, Fighter(world, Hero, 14, 15));
         own.Health = 700;
         world.Player(Keeper).Mana = mana;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
@@ -507,7 +507,7 @@ public class KeeperBattleStepTests
         CreatureState wounded = Fighter(world, Keeper, 12, 15);
         wounded.Health = 250; // below the retreat's 300: lifted at step 7, before the battle step
         CreatureState own = Fighter(world, Keeper, 13, 15);
-        Engage(own, Fighter(world, Hero, 14, 15));
+        Engage(world, own, Fighter(world, Hero, 14, 15));
         world.Player(Keeper).Mana = 20000;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
         var keeper = new KeeperAI(Keeper, KeeperWorld.Parameters(speed: 2) with
@@ -536,7 +536,7 @@ public class KeeperBattleStepTests
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
         CreatureState near = Fighter(world, Hero, 14, 15);
-        Engage(own, near);
+        Engage(world, own, near);
         world.Player(Keeper).Mana = 50001;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Inferno, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
@@ -563,7 +563,7 @@ public class KeeperBattleStepTests
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
         CreatureState enemy = Fighter(world, Hero, 12, 15);
-        Engage(own, enemy);
+        Engage(world, own, enemy);
         world.Player(Keeper).Mana = 50001;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Inferno, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
@@ -582,7 +582,7 @@ public class KeeperBattleStepTests
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
         CreatureState near = Fighter(world, Hero, 14, 15);
-        Engage(own, near);
+        Engage(world, own, near);
         world.Player(Keeper).Mana = 10001;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Chicken, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
@@ -602,7 +602,7 @@ public class KeeperBattleStepTests
     {
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
-        Engage(own, Fighter(world, Hero, 14, 15));
+        Engage(world, own, Fighter(world, Hero, 14, 15));
         world.Player(Keeper).Mana = 20000;
         world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, 7, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);

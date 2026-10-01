@@ -42,7 +42,7 @@ public sealed class KeeperSpellSystem : ISimulationSystem
         CreatureState? creature = context.World.CreatureById(grant.CreatureId);
         string refusal = creature is null || creature.Activity == CreatureActivity.Dead ? "missing"
             : creature.OwnerPlayerId != grant.PlayerId ? "owner"
-            : !CreatureLevelRules.LevelUp(context.Database, context.Database.CreatureById(creature.CreatureTypeId), creature) ? "level"
+            : !CreatureLevelRules.LevelUp(context.Hooks, context.Database.CreatureById(creature.CreatureTypeId), creature) ? "level"
             : "";
         context.Emit(Name, refusal.Length == 0 ? "level_granted" : "level_grant_refused",
             $"player={grant.PlayerId} creature={grant.CreatureId}" +

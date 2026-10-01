@@ -420,7 +420,7 @@ public sealed class StructureBlocksTests
 
         Paint(db, world, RoomTypeId.Prison, 1, 1, 3, 3);
         CreatureState captive = world.SpawnCreature(db, GoblinId, Rival, new TilePos(2, 2));
-        PrisonRules.Imprison(world, db, captive, Keeper, (2 * world.Width) + 2);
+        PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, (2 * world.Width) + 2);
         var events = new ListEventSink();
 
         var sim = new GameSimulation(db, world, 42, [new HandSystem()]);

@@ -40,7 +40,7 @@ public sealed class CreatureStatusSystem : ISimulationSystem
                     // 0x00481400, is unread); anyone else asks the room underfoot (ADR-0226).
                     Combat.CombatStates.Enter(context, creature, Combat.CombatStates.GettingUp);
                     context.Emit(SystemName, "recovered", $"creature={creature.Id}");
-                    if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) Combat.CombatStates.Idle(creature);
+                    if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) Combat.CombatStates.Idle(context.Hooks, creature);
                     else DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
                 }
             }
@@ -54,7 +54,7 @@ public sealed class CreatureStatusSystem : ISimulationSystem
             if (creature.ChickenTicks > 0 && --creature.ChickenTicks == 0) ChickenRules.TimerEnded(context, creature);
             if (creature.Activity == CreatureActivity.Frozen && creature.FrozenTicks == 0)
             {
-                Combat.CombatStates.Idle(creature);
+                Combat.CombatStates.Idle(context.Hooks, creature);
                 context.Emit(SystemName, "thawed", $"creature={creature.Id}");
             }
 

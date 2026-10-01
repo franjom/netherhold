@@ -200,7 +200,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             if (context.Navigation.TryRoute(creature, to, Navigation.MoveOptions.Spot))
             {
                 // State 80 walks to the next candidate in 6 and resumes in 80 (0x0046F7D3).
-                CreatureStateMachine.BeginTravel(
+                CreatureStateMachine.BeginTravel(context.Hooks,
                     creature, StateShadow.TravelToPoint, LairRules.MakingAHomeState);
 
                 context.Emit(SystemName, "lair_tile_found",
@@ -293,11 +293,11 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         {
             StateShadow.Move(context, SystemName, creature, CreatureStateMachine.Idle);
             StateShadow.Move(context, SystemName, creature, LairRules.GoingToBedState);
-            WalkToTheBed(creature);
+            WalkToTheBed(context, creature);
         }
         else
         {
-            CreatureStateMachine.BeginTravel(
+            CreatureStateMachine.BeginTravel(context.Hooks,
                 creature, StateShadow.TravelToRoom, LairRules.GoingToBedState);
         }
 
@@ -320,7 +320,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         if (creature.Dk2StateId == StateShadow.TravelToRoom && InBedsRoom(context, creature))
         {
             StateShadow.Arrive(context, SystemName, creature);
-            WalkToTheBed(creature);
+            WalkToTheBed(context, creature);
         }
 
         if (here != LairRules.BedTileIndex(world, context.Database, creature))
@@ -337,10 +337,10 @@ public sealed class CreatureSleepSystem : ISimulationSystem
     }
 
     /// <summary>State 81 walks to the bed in state 6, resuming in 82 (0x0046F8EC).</summary>
-    private static void WalkToTheBed(CreatureState creature)
+    private static void WalkToTheBed(SimulationContext context, CreatureState creature)
     {
         if (creature.Dk2StateId != LairRules.GoingToBedState) return;
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, LairRules.LyingDownState);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, LairRules.LyingDownState);
     }
 
     /// <summary>Whether the creature stands in the room its bed is in, the room helper's
@@ -365,7 +365,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         // 81's walk arrives in 82, which lines the creature up and moves to 83 - or to 1
         // and then 83 if that is refused. A bed placed underfoot walks nowhere, so 81's
         // walk and its arrival fall in this tick, as eating's bird in reach does.
-        WalkToTheBed(creature);
+        WalkToTheBed(context, creature);
         StateShadow.Arrive(context, SystemName, creature);
         if (creature.Dk2StateId == LairRules.LyingDownState)
         {

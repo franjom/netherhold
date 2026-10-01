@@ -51,7 +51,7 @@ public sealed class RescueSystem : ISimulationSystem
 
     private static void Start(SimulationContext context, CreatureState creature, int state)
     {
-        if (!CreatureStateMachine.TrySetState(creature, state)) return;
+        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, state)) return;
         NeedRules.EndJob(creature);
 
         creature.StopMoving();
@@ -69,14 +69,14 @@ public sealed class RescueSystem : ISimulationSystem
         {
             if (creature.HasRoute) return;
             creature.StopMoving();
-            if (!CreatureStateMachine.Arrive(creature)) { Stop(creature); return; }
+            if (!CreatureStateMachine.Arrive(context.Hooks, creature)) { Stop(context, creature); return; }
             creature.RescueTurnsLeft = RescueRules.WaitTurns;
         }
 
         if (creature.RescueTurnsLeft > 0 && --creature.RescueTurnsLeft > 0) return;
 
         RoomInstance? room = RoomIndex.RoomAt(world, database, here);
-        if (room is null || room.Definition.TypeId != RoomTypeId.TortureChamber) { Stop(creature); return; }
+        if (room is null || room.Definition.TypeId != RoomTypeId.TortureChamber) { Stop(context, creature); return; }
 
         CreatureState? nearest = null;
         long best = long.MaxValue;
@@ -94,13 +94,13 @@ public sealed class RescueSystem : ISimulationSystem
 
         if (nearest is not null && context.Navigation.TryRoute(creature, nearest.Tile, Navigation.MoveOptions.ExactSpot))
         {
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, RescueRules.RescuingState);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, RescueRules.RescuingState);
             context.Emit(SystemName, "rescuer_to_victim",
                 $"creature={creature.Id} victim={nearest.Id} at=({nearest.Tile.X},{nearest.Tile.Y})");
             return;
         }
 
-        Stop(creature);
+        Stop(context, creature);
     }
 
     private static bool IsBreakingOut(CreatureState creature) =>
@@ -115,10 +115,10 @@ public sealed class RescueSystem : ISimulationSystem
         {
             if (creature.HasRoute) return;
             creature.StopMoving();
-            if (!CreatureStateMachine.Arrive(creature)) Stop(creature);
+            if (!CreatureStateMachine.Arrive(context.Hooks, creature)) Stop(context, creature);
             return;
         }
-        if (!JailBreakRules.BreakOut(context, SystemName, creature)) Stop(creature);
+        if (!JailBreakRules.BreakOut(context, SystemName, creature)) Stop(context, creature);
         else if (creature.Dk2StateId == ImpStates.Wandering) creature.ClearJob();
     }
 
@@ -126,20 +126,20 @@ public sealed class RescueSystem : ISimulationSystem
     /// returns 0 and the rescuer is idle too.</summary>
     private static void Free(SimulationContext context, CreatureState rescuer, CreatureState victim)
     {
-        CreatureStateMachine.TrySetState(victim, RescueRules.FreedState);
-        TortureRules.Unstrap(victim);
-        PrisonRules.Release(victim);
+        CreatureStateMachine.TrySetState(context.Hooks, victim, RescueRules.FreedState);
+        TortureRules.Unstrap(context.Hooks, victim);
+        PrisonRules.Release(context.Hooks, victim);
         context.Emit(SystemName, "captive_rescued",
             $"creature={rescuer.Id} victim={victim.Id} owner={victim.OwnerPlayerId} " +
             $"at=({victim.Tile.X},{victim.Tile.Y})");
-        Stop(rescuer);
+        Stop(context, rescuer);
     }
 
-    private static void Stop(CreatureState creature)
+    private static void Stop(SimulationContext context, CreatureState creature)
     {
         creature.StopMoving();
         creature.RescueTurnsLeft = 0;
-        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
         creature.ClearJob();
     }
 }

@@ -183,11 +183,11 @@ public static class CreatureDeathRules
     /// carrying the creature to that bed, so a lair tile freed on collapse would be claimed by
     /// somebody else while its owner lay on the floor; the bed is released at death, by
     /// <see cref="Systems.CreatureHealthSystem"/> or <see cref="BecomeCorpse"/>. It keeps its gold too: DK2 drops what a creature carried when the creature is destroyed, not when it collapses (<see cref="FloorGold.DropFrom"/>).</summary>
-    public static bool Collapse(CreatureState creature)
+    public static bool Collapse(in StateHookContext hooks, CreatureState creature)
     {
         if (IsDying(creature)) return false;
 
-        CreatureStateMachine.TrySetState(creature, FallingState);
+        CreatureStateMachine.TrySetState(hooks, creature, FallingState);
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
         creature.TargetTileIndex = -1;
@@ -201,11 +201,12 @@ public static class CreatureDeathRules
     /// not dying or has no bed — a bed sold while its owner lay dying is not replaced, so such a
     /// creature cannot be rescued at all; UNKNOWN whether DK2 agrees (Q107). Adds no health: asleep
     /// in its own bed, the lair heals it at 100 a second (ADR-0049). So the order in <see cref="Systems.CreatureHealthSystem"/> is load-bearing: healing runs before the collapse test, or a rescue would collapse what it saved.</summary>
-    public static bool Rescue(WorldState world, GameDatabase database, CreatureState creature)
+    public static bool Rescue(in StateHookContext hooks, CreatureState creature)
     {
+        WorldState world = hooks.World;
         if (!IsDying(creature)) return false;
 
-        int bed = LairRules.BedTileIndex(world, database, creature);
+        int bed = LairRules.BedTileIndex(world, hooks.Database, creature);
         if (bed < 0) return false;
         if (bed >= world.Width * world.Height) return false;
 
@@ -216,8 +217,8 @@ public static class CreatureDeathRules
         creature.SleepTicks = 0;
         creature.AwakeTicks = 0;
         // 217's way out is SetState(1); ours then lies down in the bed, 83 (ADR-0206).
-        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
-        CreatureStateMachine.TrySetState(creature, LairRules.SleepingState);
+        CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(hooks, creature, LairRules.SleepingState);
         return true;
     }
 }

@@ -195,7 +195,7 @@ public class CrateTests
         Assert.False(RoomCapacityRules.HasRoom(world, db, workshop));
 
         ObjectState made = world.SpawnObject(db, DoorCrate, PlayerIds.Unowned, workshop.TileIndices[0]);
-        Assert.False(CrateRules.List(world, db, workshop, made));
+        Assert.False(CrateRules.List(new StateHookContext(world, db), workshop, made));
         Assert.Equal(PlayerIds.Unowned, made.OwnerPlayerId);
     }
 
@@ -209,7 +209,7 @@ public class CrateTests
         for (int i = 0; i < 4; i++)
         {
             ObjectState crate = world.SpawnObject(db, DoorCrate, PlayerIds.Unowned, workshop.TileIndices[0]);
-            Assert.True(CrateRules.List(world, db, workshop, crate));
+            Assert.True(CrateRules.List(new StateHookContext(world, db), workshop, crate));
             crates.Add(crate);
         }
 
@@ -225,7 +225,7 @@ public class CrateTests
 
         // Enough crates to pass the slots in index order: none is set down on one.
         for (int i = 0; i < 11; i++)
-            Assert.True(CrateRules.List(world, db, workshop, world.SpawnObject(db, DoorCrate, PlayerIds.Unowned, workshop.TileIndices[0])));
+            Assert.True(CrateRules.List(new StateHookContext(world, db), workshop, world.SpawnObject(db, DoorCrate, PlayerIds.Unowned, workshop.TileIndices[0])));
         Assert.All(world.Objects.Where(o => o.ObjectTypeId == DoorCrate), o => Assert.DoesNotContain(o.TileIndex, slots));
     }
 
@@ -239,7 +239,7 @@ public class CrateTests
         ThingProjection.Place(world, db, [Door(DoorAt)]);
         world.Player(Keeper).ManufactureQueue.Clear();
         ObjectState crate = Crate(db, world, DoorCrate, new TilePos(2, 2));
-        Assert.True(CrateRules.List(world, db, Workshop(db, world), crate));
+        Assert.True(CrateRules.List(new StateHookContext(world, db), Workshop(db, world), crate));
         world.SpawnCreature(db, ImpId, Keeper, ImpAt);
         var sink = new ListEventSink();
 
@@ -260,7 +260,7 @@ public class CrateTests
         ThingProjection.Place(world, db, [Door(DoorAt)]);
         world.Player(Keeper).ManufactureQueue.Clear();
         ObjectState crate = Crate(db, world, DoorCrate, new TilePos(2, 2));
-        CrateRules.List(world, db, Workshop(db, world), crate);
+        CrateRules.List(new StateHookContext(world, db), Workshop(db, world), crate);
         world.SpawnCreature(db, ImpId, Keeper, ImpAt);
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
@@ -278,8 +278,8 @@ public class CrateTests
         WorldState world = World(db);
         ThingProjection.Place(world, db, [Door(DoorAt)]);
         world.Player(Keeper).ManufactureQueue.Clear();
-        CrateRules.List(world, db, Workshop(db, world), Crate(db, world, DoorCrate, new TilePos(2, 2)));
-        CrateRules.List(world, db, Workshop(db, world), Crate(db, world, DoorCrate, new TilePos(2, 2)));
+        CrateRules.List(new StateHookContext(world, db), Workshop(db, world), Crate(db, world, DoorCrate, new TilePos(2, 2)));
+        CrateRules.List(new StateHookContext(world, db), Workshop(db, world), Crate(db, world, DoorCrate, new TilePos(2, 2)));
         world.SpawnCreature(db, ImpId, Keeper, ImpAt);
         world.SpawnCreature(db, ImpId, Keeper, new TilePos(7, 2));
         var sink = new ListEventSink();
@@ -347,7 +347,7 @@ public class CrateTests
         ThingProjection.Place(world, db, [Door(DoorAt)]);
         world.Player(Keeper).ManufactureQueue.Clear();
         ObjectState crate = Crate(db, world, DoorCrate, new TilePos(2, 2));
-        CrateRules.List(world, db, Workshop(db, world), crate);
+        CrateRules.List(new StateHookContext(world, db), Workshop(db, world), crate);
         world.SpawnCreature(db, ImpId, Keeper, ImpAt);
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
@@ -368,7 +368,7 @@ public class CrateTests
         ThingProjection.Place(world, db, [Door(DoorAt)]);
         world.Player(Keeper).ManufactureQueue.Clear();
         ObjectState crate = Crate(db, world, DoorCrate, new TilePos(2, 2));
-        CrateRules.List(world, db, Workshop(db, world), crate);
+        CrateRules.List(new StateHookContext(world, db), Workshop(db, world), crate);
         world.SpawnCreature(db, ImpId, Keeper, ImpAt);
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
@@ -394,7 +394,7 @@ public class CrateTests
         ThingProjection.Place(world, db, [Door(DoorAt)]);
         world.Player(Keeper).ManufactureQueue.Clear();
         world.Player(Keeper).Blueprints.Clear();   // so only the drop scan can find it
-        CrateRules.List(world, db, Workshop(db, world), Crate(db, world, DoorCrate, new TilePos(2, 2)));
+        CrateRules.List(new StateHookContext(world, db), Workshop(db, world), Crate(db, world, DoorCrate, new TilePos(2, 2)));
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, DoorAt);
         imp.JustDropped = true;
         var sink = new ListEventSink();

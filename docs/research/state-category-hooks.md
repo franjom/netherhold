@@ -146,11 +146,8 @@ the category operation failed; a return of one means it remains valid.
   destroying it when empty, and the rest from the keeper through
   `0x004BA420(-min(rest, player+0x7E))`. The owner confirms that stingy takings lie
   beneath the lever (2026-09-24).
-- **Built:** mode 0's calm and coin, the purse test at the Drink handler and every
-  second, and the purse itself (ADR-0187). Also the lever, its pull, mode 1 and the
-  settlement (ADR-0188). **Not built:** the jackpot and party, the fearless countdown
-  and the leave hook's `+0x3D7`, the enter hook's lever test (every Casino here has a
-  lever), and the chain's own order (ours is tile-index order).
+- **Built:** ADR-0187 and ADR-0188; what the hooks lack is in `CategoryHooks.Slots`. The
+  settlement walks the chain in tile-index order, not DK2's.
 
 ### 3.2 The captive's states, 114–126 (read 2026-09-24)
 
@@ -245,12 +242,8 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   **Ours:** health at zero releases the victim to the health system (DK2 knocks it out
   and kills it on the device, revealing information); a convert is released rather than
   left on the device, which the owner confirms (Q425: it gets off, beds down, eats).
-- **Built** (ADR-0196): the Mistress's job, 7 into 127, the chamber holding a victim first;
-  127's walk to an unattended victim (6, 128) or onto a free device (6, 130, 131); the whip,
-  128 ↔ 129 through idle, action 63 for 6 turns, a new one every 7th; the chair turning away
-  a creature without `CanBeElectrocuted` (131). **Ours:** tile-level positions, instant
-  facing, no capacity test, and no need interrupting her, as for every job here. **Not
-  built:** the information, and the leave hook's `+0x6E`.
+- **Built:** ADR-0196, its *Ours* list included. **Not built:** the information, and the
+  leave hook's `+0x6E`.
 - **Read 2026-09-24: 77, 136 and the others' way in.** 77 (`0x0046F1F0`), once the landing
   action ends, sends a Horned Reaper (`IsHorny`, definition flag bit 14) to **238** in any
   room; otherwise by the room at `+0x3B9`: Workshop 63, Prison 115, Torture Chamber 130. So
@@ -263,12 +256,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   chamber by `0x004F1F10` (it then re-tests the room for devices, object type 8 or 61),
   and by `0x004E44E0`, which moves every creature attached to a room of the keeper's
   when owner `+0x43E` bit 0 is set: Hatchery 62, 7 113, 10 70, Torture 136, 15 154.
-- **Built** (ADR-0200): a keeper's own creature dropped on a free device of its own
-  chamber, 77, 130, 131, with the hurt and the mood; a Horned Reaper is not strapped
-  (238 is not built). 131 with its device gone goes through 136 onto a free device on its
-  tile or beside it, and stays a captive if it was one. **Ours:** a tie between two side
-  neighbours goes to the lower tile index, and a captive with nothing in reach is let go
-  where DK2 idles it; the `+0x43E` path is not built.
+- **Built:** ADR-0200, its *Ours* list included; 238 and the `+0x43E` path are not.
 - **Read 2026-09-24: who enters 134.** The creature update `0x00488930`, on a turn it has
   moved to a new tile (a local flag), for a creature on the ground, not dying and not
   attached to a room (`+0x3B9` zero), on a room tile, calls `0x004E8660(room, creature)`.
@@ -294,12 +282,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   `0x61`, and `0x60` for 3–10 or `0x3B` for 11. **Read 2026-09-25 (ADR-0230,
   `torture-information.md`):** 3–10 unlock rows of the enemy-information panel, presentation
   only; the candidates are keyed by `JobClass`.
-- **Built** (ADR-0201): the contact test and 134. `ThingProjection` copies the record's
-  `Flags` with the loader's masks. A creature stepping onto a tile of an enemy's chamber
-  with an ally on a device goes to 134, waits two turns, frees an ally on its tile (133,
-  then off the device and out of captivity), or walks to the nearest one and repeats.
-  **Ours:** the test runs for an idle creature or one holding a state id; the walk goes
-  onto the victim's tile; "attached to a room" is read as at a job. 122 is not built.
+- **Built:** ADR-0201 (the contact test and 134), its *Ours* list included; 122 is not.
 
 ### 3.4 The Workshop, category 5 (read 2026-09-24)
 
@@ -381,15 +364,10 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
 - Category 28's drain is real but is not enough evidence for a durable name.
   Categories 7, 18, 21, 27 and 29 have no hooks, so this work names none of the
   six remaining `UnnamedNN` values.
-- The built divergences are an owner decision under Q402. No behavior or hashed
-  state changed in this research branch.
-- **Built on the dispatcher's category (2026-09-24):** Lair, Sleeping and Sulking
-  cooling (ADR-0185); Training, Research, Temple and **Spectating** at work
-  (ADR-0186). Spectating's update `0x0047AA70` was re-read for it: countdown `+0xAB`
-  reloaded from variable 19, then variable 135 to buckets 5, 0 and 3, selector 9,
-  always returning 1. The **Casino** followed (ADR-0187, §3.1), then **Prison**
-  (ADR-0191, §3.2), **Manufacture** (ADR-0203, §3.4) and the **capacity** test and claim
-  (ADR-0205, §3.5). Not built: the rest of the enter and leave hooks.
+- Spectating's update `0x0047AA70` (re-read 2026-09-24): countdown `+0xAB` reloaded from
+  variable 19, then variable 135 to buckets 5, 0 and 3, selector 9; it always returns 1.
+- **What is built, per slot,** is `CategoryHooks.Slots` (ADR-0308); its divergences are the
+  owner's decision under Q402.
 - **Every countdown hook fires every v19 + 1 turns, from entry** (Q424). Casino
   `0x0047AD75`, Spectating `0x0047AA73`, Training `0x0047B368` and Torture `0x0047B596`
   each test the byte, decrement and return while it is nonzero, and at zero reload and
@@ -398,3 +376,25 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   every seventeenth. The Temple's `+0xAF` (`0x0047B970`, seeded by `0x0047B8C0`) is the
   same. **Built** (ADR-0192): one countdown per creature, seeded when `SetState` runs an
   enter hook, so a walk inside one category keeps it.
+
+## 5. How `SetState` runs the hooks — CONFIRMED (`0x00476D30`, re-read 2026-10-01)
+
+Read in full with Ghidra 12.1.4; `travel-states.md` §3 owns the walk rows (a category-2 target runs no hook).
+
+1. **Guards, before the rule:** it returns 0, writing nothing, if a state-object pointer at
+   `+0x04`, `+0x08` (the creature) or `+0x0C` is null, or creature `+0x3E6` bit 0
+   (`InHand`) is set. Then it clears the out flag.
+2. **The rule** (`creature-state-table.md` §2.2). A refusal returns 0 and runs no hook.
+3. **Same category** (the current one, or `+0x40`'s when leaving a walk): commit, no hook.
+4. **Leave:** the old category's leave hook (`+0x40`'s when leaving a walk); its return is
+   discarded. Then a raw `+0x10 = 1` and the out flag set to 1.
+5. **Enter:** the target category's enter hook, which sees state 1. **A zero return returns
+   0 at once:** the creature is left in state 1, already out of its old category, with
+   `+0x18`, `+0x1C` and `+0x44` unwritten.
+6. **Commit:** `+0x10` = target, `+0x18` = the turn, `+0x1C` = `+0x44` = 0, return 1.
+
+A slot is a member pointer: the function at `+0`, a `this` adjustment at `+4` added to the
+state object into `ECX`; a null slot is skipped. The 2→2 recursion's `SetState(1)` is
+judged by the rule too, and no travel state with any resume is refused it (all 4 × 281).
+**Ours** (`CategoryHooks`, ADR-0308) runs steps 2–6 in this order. The guards are not
+modelled (Q503).

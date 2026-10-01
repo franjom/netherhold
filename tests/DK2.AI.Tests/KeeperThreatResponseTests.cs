@@ -257,7 +257,7 @@ public class KeeperThreatResponseTests
         CreatureState weak = Fighter(world, Keeper, 5, 4);
         weak.Health = 750; // exactly half: not strictly above
         CreatureState stunned = Fighter(world, Keeper, 6, 4);
-        Assert.True(CreatureStateMachine.TrySetState(stunned, 255)); // the landing stun, 0x0048F350
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, Db), stunned, 255)); // the landing stun, 0x0048F350
         CreatureState fit = Fighter(world, Keeper, 15, 14);
         Fighter(world, Hero, 16, 15);
         Fighter(world, Hero, 16, 14);
@@ -359,7 +359,7 @@ public class KeeperThreatResponseTests
         Open(world, 3, 3, 9, 9);
         KeeperWorld.Set(world, Db, new TilePos(6, 5), KeeperWorld.PrisonFloor, Hero);
         CreatureState jailed = Fighter(world, Keeper, 6, 5);
-        Assert.True(PrisonRules.Imprison(world, Db, jailed, Hero, (5 * world.Width) + 6));
+        Assert.True(PrisonRules.Imprison(new StateHookContext(world, Db), jailed, Hero, (5 * world.Width) + 6));
         Fighter(world, Hero, 7, 5);
         Fighter(world, Hero, 7, 6);
         Fighter(world, Hero, 7, 7);

@@ -79,8 +79,8 @@ public class TorturerTests
     private static CreatureState Victim(GameDatabase db, WorldState world)
     {
         CreatureState captive = world.SpawnCreature(db, GoblinId, Rival, Cell);
-        Assert.True(PrisonRules.Imprison(world, db, captive, Keeper, Index(world, Cell)));
-        Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
+        Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, Index(world, Cell)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
         captive.Health = 1500;
         return captive;
     }

@@ -175,8 +175,8 @@ public sealed partial class ImpTaskSystem
         creature.TargetObjectId = crate.Id;
         creature.TimerTicks = 0;
         creature.LastTaskKind = TaskKindOf(blueprint.Kind);
-        FromTaskSelection(creature);
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, FetchStateOf(blueprint.Kind));
+        FromTaskSelection(context, creature);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, FetchStateOf(blueprint.Kind));
 
         context.Emit(SystemName, "crate_claimed",
             $"imp={creature.Id} player={creature.OwnerPlayerId} crate={crate.Id} " +
@@ -212,7 +212,7 @@ public sealed partial class ImpTaskSystem
                 CrateRules.Unlist(world, database, room, crate);
             creature.TargetObjectId = -1;
             ObjectCarryRules.PickUp(creature, crate);
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, InstallStateOf(kind));
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, InstallStateOf(kind));
             context.Emit(SystemName, "crate_picked_up",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} crate={crate.Id} " +
                 $"to=({to.X},{to.Y}) steps={creature.Body.PathTotalCount}");
@@ -289,7 +289,7 @@ public sealed partial class ImpTaskSystem
         crate.TileIndex = here;
 
         if (RoomIndex.RoomAt(world, database, here) is { } room && room.Definition.TypeId == RoomTypeId.Workshop
-            && room.OwnerPlayerId == creature.OwnerPlayerId && CrateRules.List(world, database, room, crate))
+            && room.OwnerPlayerId == creature.OwnerPlayerId && CrateRules.List(context.Hooks, room, crate))
         {
             context.Emit(SystemName, "object_stored",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} object={crate.Id} " +
@@ -306,7 +306,7 @@ public sealed partial class ImpTaskSystem
             creature.TargetTileIndex = destination;
             int carrying = creature.UtilityNewState;
             StateShadow.Arrive(context, SystemName, creature);
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, carrying);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, carrying);
             return;
         }
 

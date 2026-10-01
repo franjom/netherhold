@@ -47,7 +47,7 @@ public static class FightReturnRules
         int options = creature.CreatureTypeId == CombatRules.ImpCreatureTypeId ? Navigation.MoveOptions.Loose : Navigation.MoveOptions.Plain;
         if (!context.World.Contains(new TilePos(x >> 12, y >> 12))) return false;
         if (!context.Navigation.TryRouteTo(creature, x, y, options)) return false;
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, CreatureStateMachine.Idle);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, CreatureStateMachine.Idle);
         Clear(creature);
         context.Emit("FightReturn", "returns_to_fight",
             $"creature={creature.Id} to=({x >> 12},{y >> 12}) health={creature.Health}/{max}");

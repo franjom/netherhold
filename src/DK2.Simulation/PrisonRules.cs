@@ -359,9 +359,11 @@ public static class PrisonRules
     /// health". Open, display only: a sixth is one petal of six, the owner counts
     /// two (Q167, Q171).</para></summary>
     public static bool Imprison(
-        WorldState world, GameDatabase database, CreatureState creature,
+        in StateHookContext hooks, CreatureState creature,
         byte playerId, int tileIndex, bool dropped = false)
     {
+        WorldState world = hooks.World;
+        GameDatabase database = hooks.Database;
         if (tileIndex < 0 || tileIndex >= world.Width * world.Height) return false;
 
         LairRules.ReleaseBed(world, database, creature);
@@ -378,9 +380,9 @@ public static class PrisonRules
 
         // Into the captive's states: 114 from an imp; from the hand, 1 and then 114, the Prison's
         // enemy state (76, ADR-0226); then 115 (ADR-0191).
-        if (dropped) CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
-        CreatureStateMachine.TrySetState(creature, AdmittedState);
-        CreatureStateMachine.TrySetState(creature, DecidingState);
+        if (dropped) CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(hooks, creature, AdmittedState);
+        CreatureStateMachine.TrySetState(hooks, creature, DecidingState);
 
         creature.TargetTileIndex = -1;
         creature.TargetWork = default;
@@ -394,13 +396,13 @@ public static class PrisonRules
     /// creature keeps its keeper and everything else, becoming a hostile creature
     /// standing in somebody's dungeon again: the manual's "losing a prison frees every
     /// enemy in it".</summary>
-    public static void Release(CreatureState creature)
+    public static void Release(in StateHookContext hooks, CreatureState creature)
     {
         bool wasCaptive = creature.PrisonOwnerPlayerId != NoPrison;
         creature.PrisonOwnerPlayerId = NoPrison;
 
         // A captive holds only the captive states and the walks between them; freed, it is idle.
-        if (wasCaptive) CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
+        if (wasCaptive) CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
         if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.BeingTortured)
             creature.ClearJob();
     }

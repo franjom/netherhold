@@ -116,7 +116,7 @@ public sealed class PortalSystem : ISimulationSystem
             CreatureDef? arriving = Pick(context, owned, playerId, portal.Definition);
             if (arriving is null) continue;
 
-            CreatureState spawned = PortalRules.CreateArrival(world, database, portal, arriving.CreatureId);
+            CreatureState spawned = PortalRules.CreateArrival(context.Hooks, portal, arriving.CreatureId);
 
             centre.EntranceIdleTicks = 0;
 

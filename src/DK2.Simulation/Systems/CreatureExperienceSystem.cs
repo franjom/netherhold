@@ -56,7 +56,7 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
             int before = state.Level;
             int needed = CreatureLevelRules.ExperienceForNextLevel(database, creature, before);
             int banked = state.ExperiencePoints;
-            if (!CreatureLevelRules.Grant(database, creature, state, gained)) continue;
+            if (!CreatureLevelRules.Grant(context.Hooks, creature, state, gained)) continue;
 
             // "discarded", not "spare": DK2 zeroes the balance on promotion, so
             // the overshoot is gone rather than carried (Q127).

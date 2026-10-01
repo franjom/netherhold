@@ -200,7 +200,7 @@ public static class CallToArmsRules
                 continue;
             }
 
-            if (!CreatureStateMachine.TrySetState(creature, GoingState, context.Tick.Value))
+            if (!CreatureStateMachine.TrySetState(context.Hooks, creature, GoingState, context.Tick.Value))
             {
                 continue;
             }
@@ -253,7 +253,7 @@ public static class CallToArmsRules
                 continue;
             }
 
-            if (!CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle, context.Tick.Value))
+            if (!CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value))
             {
                 continue;
             }

@@ -673,7 +673,7 @@ public class CreatureAngerTests
         {
             CreatureState walker = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
             StatePlacement.Place(walker, from);
-            CreatureStateMachine.BeginTravel(walker, travel, resume);
+            CreatureStateMachine.BeginTravel(new StateHookContext(world, db), walker, travel, resume);
             return CreatureAngerRules.PerSecond(world, db, definition, walker).Treatment;
         }
 

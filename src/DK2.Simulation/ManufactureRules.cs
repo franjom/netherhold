@@ -135,8 +135,10 @@ public static class ManufactureRules
     /// listed there and owned by the keeper; without, it is left belonging to nobody, loose for
     /// an imp to carry (ADR-0214).</remarks>
     public static ObjectState? Credit(
-        WorldState world, GameDatabase database, CreatureState creature, int amount)
+        in StateHookContext hooks, CreatureState creature, int amount)
     {
+        WorldState world = hooks.World;
+        GameDatabase database = hooks.Database;
         ref PlayerState keeper = ref world.Player(creature.OwnerPlayerId);
         keeper.ManufacturePoints = (keeper.ManufacturePoints + amount) & 0xFFFF;
         if (keeper.ManufactureQueue.Count == 0 || keeper.ManufactureQueue[0].Cost > keeper.ManufacturePoints) return null;
@@ -149,11 +151,11 @@ public static class ManufactureRules
         foreach (CreatureState worker in world.Creatures)
         {
             if (worker.OwnerPlayerId != workshop.OwnerPlayerId || !IsAttached(world, workshop, worker)) continue;
-            CreatureStateMachine.TrySetState(worker, CrateRules.CrateMadeState);
+            CreatureStateMachine.TrySetState(hooks, worker, CrateRules.CrateMadeState);
         }
 
         ObjectState crate = world.SpawnObject(database, crateId, PlayerIds.Unowned, workshop.TileIndices[0]);
-        CrateRules.List(world, database, workshop, crate);
+        CrateRules.List(hooks, workshop, crate);
         keeper.ManufacturePoints = 0;
         keeper.ManufactureQueue.RemoveAt(0);
         keeper.ItemsManufactured++;

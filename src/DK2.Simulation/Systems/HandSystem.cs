@@ -64,10 +64,10 @@ public sealed class HandSystem : ISimulationSystem
         // 0x004BFBD0 runs before 0x004BC500 tests the hand: state 75, through idle when the
         // current category is outside its mask, so a full hand still takes a fighter out of
         // its fight and leaves it there (HandRules.PreparationState).
-        if (!CreatureStateMachine.TrySetState(creature, HandRules.PreparationState, context.Tick.Value))
+        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, HandRules.PreparationState, context.Tick.Value))
         {
-            CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle, context.Tick.Value);
-            CreatureStateMachine.TrySetState(creature, HandRules.PreparationState, context.Tick.Value);
+            CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
+            CreatureStateMachine.TrySetState(context.Hooks, creature, HandRules.PreparationState, context.Tick.Value);
         }
         if (world.Player(command.PlayerId).Hand.Count >= HandRules.Capacity(context.Database))
         {
@@ -83,11 +83,11 @@ public sealed class HandSystem : ISimulationSystem
         // body carried up into the hand would be somewhere no rule could reach
         // (ADR-0065).
         DropLoad(context, creature);
-        TortureRules.Unstrap(creature);
+        TortureRules.Unstrap(context.Hooks, creature);
         CombatPitRules.Unmark(world, creature);   // 0x004BC500 clears the fighter and its forced target
         creature.ClearJob();
         // 76, the hand's own state, is not built: ours holds 1 in the hand (ADR-0209).
-        CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
 
         creature.InHand = true;
         creature.PickupTick = context.Tick.Value;
@@ -277,7 +277,7 @@ public sealed class HandSystem : ISimulationSystem
         // named is a torture device in the keeper's own Torture Chamber (ADR-0193).
         if (PrisonRules.IsImprisoned(creature))
         {
-            if (TortureRules.TryStrap(world, context.Database, creature, command.PlayerId, landingTileIndex))
+            if (TortureRules.TryStrap(context.Hooks, creature, command.PlayerId, landingTileIndex))
             {
                 context.Emit(SystemName, "captive_strapped",
                     $"player={command.PlayerId} creature={creature.Id} " +
@@ -294,10 +294,10 @@ public sealed class HandSystem : ISimulationSystem
                 $"tile={command.Tile.X},{command.Tile.Y} reason=dropped_outside " +
                 $"held={hand.Count}");
 
-            PrisonRules.Release(creature);
+            PrisonRules.Release(context.Hooks, creature);
         }
         else if (creature.OwnerPlayerId == command.PlayerId
-                 && TortureRules.TryStrapOwn(world, context.Database, creature, landingTileIndex))
+                 && TortureRules.TryStrapOwn(context.Hooks, creature, landingTileIndex))
         {
             // 77 in a Torture Chamber is 130 for any creature but a Horned Reaper (ADR-0200).
             context.Emit(SystemName, "own_strapped",
@@ -366,7 +366,7 @@ public sealed class HandSystem : ISimulationSystem
             if (!PrisonRules.IsPrisonOf(room, command.PlayerId)) continue;
             if (!room.TileIndices.Contains(here)) continue;
 
-            PrisonRules.Imprison(world, context.Database, creature, command.PlayerId, here, dropped: true);
+            PrisonRules.Imprison(context.Hooks, creature, command.PlayerId, here, dropped: true);
 
             int held = PrisonRules.PrisonerCount(world, room);
             context.Emit(SystemName, "prisoner_returned",

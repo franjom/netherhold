@@ -298,7 +298,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     {
         if (!TryRouteToSomewhereItFits(context, creature)) return false;
         BeginDelivering(creature);
-        ToTheStore(creature);
+        ToTheStore(context, creature);
         return true;
     }
 
@@ -471,7 +471,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         {
             // 26 walks to the store in 6 resuming in 28.
             BeginDelivering(creature);
-            ToTheStore(creature);
+            ToTheStore(context, creature);
             return;
         }
 
@@ -505,7 +505,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             && TryRouteToSomewhereItFits(context, creature))
         {
             BeginDelivering(creature);
-            ToTheStore(creature);
+            ToTheStore(context, creature);
         }
     }
 
@@ -547,8 +547,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.FetchGold;
-        FromTaskSelection(creature);
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, ImpStates.PickingUpGold);
+        FromTaskSelection(context, creature);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, ImpStates.PickingUpGold);
 
         context.Emit(SystemName, "fetch_taken",
             $"imp={creature.Id} player={creature.OwnerPlayerId} " +
@@ -730,7 +730,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             StateShadow.Arrive(context, SystemName, creature);
             StateShadow.Move(context, SystemName, creature, ImpStates.PuttingDownGold);
             StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
-            ToTheStore(creature);
+            ToTheStore(context, creature);
             return;
         }
 
@@ -2041,8 +2041,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.CarryObject;
-        FromTaskSelection(creature);
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, ImpStates.PickingUpObject);
+        FromTaskSelection(context, creature);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, ImpStates.PickingUpObject);
 
         context.Emit(SystemName, "object_claimed",
             $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
@@ -2096,7 +2096,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         }
 
         // 30 walks it to its room in 6, resuming in the state for its kind.
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint,
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint,
             ImpStates.CarryingStateFor(context.Database.ObjectById(thing.ObjectTypeId)!.Flags));
 
         creature.TargetObjectId = -1;
@@ -2142,7 +2142,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 creature.TargetTileIndex = destination;
                 int carrying = creature.UtilityNewState;
                 StateShadow.Arrive(context, SystemName, creature);
-                CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, carrying);
+                CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, carrying);
                 return;
             }
 
@@ -2240,8 +2240,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = corpses ? ImpTaskKind.CarryCorpse : ImpTaskKind.CarryUnconscious;
-        FromTaskSelection(creature);
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint,
+        FromTaskSelection(context, creature);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint,
             corpses ? ImpStates.PickingUpCorpse : ImpStates.PickingUpCasualty);
 
         // Remembered so that the walk and the pick-up agree about which body
@@ -2335,7 +2335,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         }
 
         // 40 walks a corpse to 41; 42 chooses by ownership through 0x0046E610.
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint,
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint,
             CreatureDeathRules.IsCorpse(body) ? ImpStates.CarryingCorpse
             : body.OwnerPlayerId == creature.OwnerPlayerId ? ImpStates.CarryingToLair
             : ImpStates.CarryingToPrison);
@@ -2386,7 +2386,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 creature.TargetTileIndex = destination;
                 int carrying = creature.UtilityNewState;
                 StateShadow.Arrive(context, SystemName, creature);
-                CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, carrying);
+                CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, carrying);
                 return;
             }
 
@@ -2468,7 +2468,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             int cell = creature.TargetTileIndex;
             if (PrisonRules.AdmitsAt(world, context.Database, creature.OwnerPlayerId, cell)
                 && PrisonRules.Imprison(
-                    world, context.Database, body, creature.OwnerPlayerId, cell))
+                    context.Hooks, body, creature.OwnerPlayerId, cell))
             {
                 WalkOn(context, creature, ImpStates.LeavingThePrisoner);
                 WorkerPickupRules.SetEnabled(creature, true);
@@ -2492,7 +2492,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             return;
         }
 
-        if (CreatureDeathRules.Rescue(world, context.Database, body))
+        if (CreatureDeathRules.Rescue(context.Hooks, body))
         {
             context.Emit(SystemName, "creature_rescued",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
@@ -2516,7 +2516,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private static void WalkOn(SimulationContext context, CreatureState creature, int resume)
     {
         if (!CreatureStateMachine.HasState(creature)) return;
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, resume);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         StateShadow.Arrive(context, SystemName, creature);
     }
 
@@ -2565,7 +2565,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         SimulationContext context, CreatureState creature, TileWorkKind kind, bool routed)
     {
         StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
-        CreatureStateMachine.BeginTravel(
+        CreatureStateMachine.BeginTravel(context.Hooks,
             creature, StateShadow.TravelToPoint, ImpStates.For(kind).Entry);
         if (!routed) AtWork(context, creature);
     }
@@ -2592,16 +2592,16 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>State 10 is where a worker's every task starts, and where it rests between them.</summary>
-    private static void FromTaskSelection(CreatureState creature)
+    private static void FromTaskSelection(SimulationContext context, CreatureState creature)
     {
-        CreatureStateMachine.TrySetState(creature, ImpStates.TaskSelection);
+        CreatureStateMachine.TrySetState(context.Hooks, creature, ImpStates.TaskSelection);
     }
 
     /// <summary>The gold-store chooser <c>0x00464400</c>: a walk in 6 resuming in 28, from
     /// whichever of 10, 26 and 27 called it.</summary>
-    private static void ToTheStore(CreatureState creature)
+    private static void ToTheStore(SimulationContext context, CreatureState creature)
     {
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, ImpStates.AtTheStore);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, ImpStates.AtTheStore);
     }
 
     /// <summary>The walk ends in the entry state (13, 15, 21, 25), which turns the imp to face

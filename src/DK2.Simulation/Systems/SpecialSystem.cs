@@ -37,7 +37,7 @@ public sealed class SpecialSystem : ISimulationSystem
                 if (creature.OwnerPlayerId != command.PlayerId || creature.Health <= 0)
                     continue;
                 CreatureDef creatureDef = context.Database.CreatureById(creature.CreatureTypeId);
-                CreatureLevelRules.LevelUp(context.Database, creatureDef, creature);
+                CreatureLevelRules.LevelUp(context.Hooks, creatureDef, creature);
                 CreatureHealthRules.Apply(context.Database, creatureDef, creature,
                     CreatureHealthRules.MaxHealth(context.Database, creatureDef, creature));
                 affected++;

@@ -68,7 +68,7 @@ public class TortureTests
     private static CreatureState Captive(GameDatabase db, WorldState world)
     {
         CreatureState captive = world.SpawnCreature(db, GoblinId, Rival, Cell);
-        Assert.True(PrisonRules.Imprison(world, db, captive, Keeper, Index(world, Cell)));
+        Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, Index(world, Cell)));
         return captive;
     }
 
@@ -121,7 +121,7 @@ public class TortureTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState captive = Captive(db, world);
-        Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
         captive.Health = 1000;
         GameSimulation sim = Simulation(db, world);
 
@@ -143,7 +143,7 @@ public class TortureTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState captive = Captive(db, world);
-        Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
         captive.Health = 1500;
         captive.RescuePriorityMask = 0x8044;
         CreatureState resident = world.SpawnCreature(db, GoblinId, Keeper, Cell);
@@ -174,7 +174,7 @@ public class TortureTests
         WorldState world = World(db);
         CreatureState captive = Captive(db, world);
         Assert.Equal(250, captive.Health);
-        Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
@@ -201,7 +201,7 @@ public class TortureTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState captive = Captive(db, world);
-        Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
         captive.Health = 1500;
         GameSimulation sim = Simulation(db, world);
         sim.Run(10);
@@ -221,9 +221,9 @@ public class TortureTests
         WorldState world = World(db);
         CreatureState first = Captive(db, world);
         CreatureState second = Captive(db, world);
-        Assert.True(TortureRules.TryStrap(world, db, first, Keeper, Index(world, Wheel)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), first, Keeper, Index(world, Wheel)));
 
-        Assert.False(TortureRules.TryStrap(world, db, second, Keeper, Index(world, Wheel)));
+        Assert.False(TortureRules.TryStrap(new StateHookContext(world, db), second, Keeper, Index(world, Wheel)));
         Assert.Null(TortureRules.FreeDeviceAt(world, db, Keeper, Index(world, Wheel), second.Id));
     }
 
@@ -233,7 +233,7 @@ public class TortureTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState captive = Captive(db, world);
-        Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
         GameSimulation sim = Simulation(db, world);
 
         world.RemoveObject(world.Objects.Single(o => o.ObjectTypeId == TortureRules.WheelObjectId).Id);
@@ -251,7 +251,7 @@ public class TortureTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState captive = Captive(db, world);
-        Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
         captive.Health = 1000;
         StatePlacement.Place(captive, CreatureStateMachine.Idle);
 
@@ -327,7 +327,7 @@ public class TortureTests
         var beside = new TilePos(Wheel.X, Wheel.Y - 1);
         world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, beside));
         CreatureState captive = Captive(db, world);
-        Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
@@ -350,7 +350,7 @@ public class TortureTests
         WorldState world = World(db);
         world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, new TilePos(Wheel.X + 1, Wheel.Y - 1)));
         CreatureState captive = Captive(db, world);
-        Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
         GameSimulation sim = Simulation(db, world);
 
         world.RemoveObject(world.Objects.Single(o => o.TileIndex == Index(world, Wheel)).Id);

@@ -241,7 +241,7 @@ public static class CombatPitSpectatorRules
         y = (y & ~0xFFF) | (context.Rng.NextInt(0x555) + 0x555);
         if (context.Navigation.TryRouteTo(creature, x, y, Navigation.MoveOptions.Loose))
         {
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, FacingState);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, FacingState);
             context.Emit(system, "spectator_spot", $"creature={creature.Id} to=({x >> 12},{y >> 12})");
             return true;
         }
@@ -257,7 +257,7 @@ public static class CombatPitSpectatorRules
     private static bool Face(SimulationContext context, string system, CreatureState creature)
     {
         WorldState world = context.World;
-        if (CombatPitRules.AnyoneOn(world, creature.Tile, creature) && CreatureStateMachine.TrySetState(creature, ChoosingState))
+        if (CombatPitRules.AnyoneOn(world, creature.Tile, creature) && CreatureStateMachine.TrySetState(context.Hooks, creature, ChoosingState))
         {
             creature.PitStateEnteredTick = context.Tick.Value;
             return true;
@@ -279,7 +279,7 @@ public static class CombatPitSpectatorRules
         if (action == 69) context.Rng.NextInt(2);
         creature.ActionUntilTick = context.Tick.Value + CheerGuessTicks;
         context.Emit(system, "spectator_cheer", $"creature={creature.Id} action={action}");
-        if (CreatureStateMachine.TrySetState(creature, CheeringState)) creature.PitStateEnteredTick = context.Tick.Value;
+        if (CreatureStateMachine.TrySetState(context.Hooks, creature, CheeringState)) creature.PitStateEnteredTick = context.Tick.Value;
         return true;
     }
 
@@ -315,7 +315,7 @@ public static class CombatPitSpectatorRules
 
     private static bool Choosing(SimulationContext context, CreatureState creature)
     {
-        if (!CreatureStateMachine.TrySetState(creature, ChoosingState)) return false;
+        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, ChoosingState)) return false;
         creature.PitStateEnteredTick = context.Tick.Value;
         return true;
     }

@@ -74,7 +74,7 @@ public static class DropLandingRules
                 return;
             }
 
-            if (JobRules.TryDropOnARoom(world, context.Database, creature, definition, here) is { } job)
+            if (JobRules.TryDropOnARoom(context.Hooks, creature, definition, here) is { } job)
             {
                 context.Emit(system, "dropped_to_job", $"creature={creature.Id} job={job} at=({creature.Tile.X},{creature.Tile.Y})");
                 return;

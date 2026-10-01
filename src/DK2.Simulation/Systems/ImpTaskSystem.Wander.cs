@@ -108,7 +108,7 @@ public sealed partial class ImpTaskSystem
                 return;
             }
         }
-        if (CreatureStateMachine.TrySetState(creature, ImpStates.Wandering)) creature.WanderStamp = now + 32;
+        if (CreatureStateMachine.TrySetState(context.Hooks, creature, ImpStates.Wandering)) creature.WanderStamp = now + 32;
     }
 
     /// <summary>State 87 (<c>0x004808E0</c>): a destination at ring radius 4–7, then each smaller one
@@ -136,7 +136,7 @@ public sealed partial class ImpTaskSystem
         y = (y & ~0xFFF) | oy;
         if (!context.Navigation.TryRouteTo(creature, x, y, Navigation.MoveOptions.Loose)) return false;
         int resume = definition.Flags.HasFlag(CreatureFlags.IsHorny) ? 238 : CreatureStateMachine.Idle;
-        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, resume);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         return true;
     }
 

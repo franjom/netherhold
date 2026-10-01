@@ -30,9 +30,9 @@ public class CombatSpellTests
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState creature = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
         long tick = world.CurrentTick.Value;
-        Assert.True(CreatureStateMachine.TrySetState(creature, 199, tick + stampOffset));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), creature, 199, tick + stampOffset));
         if (allySpell) creature.AttackType = CombatRules.AttackTypes.SpellAtAlly;
-        if (leaveBeforeUpdate) Assert.True(CreatureStateMachine.TrySetState(creature, 1, tick));
+        if (leaveBeforeUpdate) Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), creature, 1, tick));
         Assert.Empty(world.Messages.Entries);
         new GameSimulation(db, world, 1, [new CombatSystem()]).Tick();
         Assert.Equal(expected, world.Messages.Entries.Any(m => m.Kind == PlayerMessageKind.CombatStarted));
@@ -43,8 +43,8 @@ public class CombatSpellTests
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState creature = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
-        CreatureStateMachine.BeginTravel(creature, 6, 199);
-        Assert.True(CreatureStateMachine.Arrive(creature, world.CurrentTick.Value));
+        CreatureStateMachine.BeginTravel(new StateHookContext(world, db), creature, 6, 199);
+        Assert.True(CreatureStateMachine.Arrive(new StateHookContext(world, db), creature, world.CurrentTick.Value));
         Assert.Empty(world.Messages.Entries);
         var sim = new GameSimulation(db, world, 1, [new CombatSystem()]);
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, [new CombatSystem()]);

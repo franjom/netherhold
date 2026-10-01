@@ -186,7 +186,7 @@ public sealed class CombatPitTests
 
         // Owner (2026-09-25): the winner does not stand over the loser; it takes another fighter
         // or walks about. The leave hook 0x0045ADC0 releases it without the victory nibble.
-        CreatureDeathRules.Collapse(b);
+        CreatureDeathRules.Collapse(new StateHookContext(world, db), b);
         sim.Tick();
         Assert.Equal(CombatRules.NoTarget, a.FightTargetId);
         Assert.False(a.AttackAbnormalTargets);
@@ -207,7 +207,7 @@ public sealed class CombatPitTests
         Drop(sim, b, OtherFloor);
         RunUntil(sim, () => a.AttackingId == b.Id);
 
-        CreatureStateMachine.TrySetState(b, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), b, CreatureStateMachine.Idle);
         b.StopMoving();
         sim.Tick();
         Assert.Equal(CombatPitRules.PlacingState, b.Dk2StateId);
@@ -276,14 +276,14 @@ public sealed class CombatPitTests
         CreatureDef def = db.CreatureById(GoblinId);
         goblin.CombatPitFighter = true;
         goblin.Level = 8;
-        Assert.False(CreatureLevelRules.Grant(db, def, goblin, 1_000_000));
+        Assert.False(CreatureLevelRules.Grant(new StateHookContext(world, db), def, goblin, 1_000_000));
         Assert.Equal(0, goblin.ExperiencePoints);
 
         goblin.Level = 7;
-        CreatureStateMachine.TrySetState(goblin, CombatPitRules.ArrivingState);
-        CreatureStateMachine.TrySetState(goblin, CombatPitRules.PlacingState);
-        CreatureStateMachine.TrySetState(goblin, CombatPitRules.WaitingState);
-        Assert.True(CreatureLevelRules.Grant(db, def, goblin, 1_000_000));
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, CombatPitRules.ArrivingState);
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, CombatPitRules.PlacingState);
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, CombatPitRules.WaitingState);
+        Assert.True(CreatureLevelRules.Grant(new StateHookContext(world, db), def, goblin, 1_000_000));
         Assert.Equal(8, goblin.Level);
         Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
     }
@@ -311,8 +311,8 @@ public sealed class CombatPitTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Rim);
-        Assert.True(CreatureStateMachine.TrySetState(goblin, CombatPitRules.ArrivingState));
-        Assert.True(CreatureStateMachine.TrySetState(goblin, CombatPitRules.PlacingState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, CombatPitRules.ArrivingState));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, CombatPitRules.PlacingState));
         goblin.PitStateEnteredTick = -1;
 
         sim.Tick();

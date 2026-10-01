@@ -136,7 +136,7 @@ public sealed class CallToArmsSystem : ISimulationSystem
         TilePos tile = world.Player(creature.OwnerPlayerId).CallToArms.Tile;
         if (context.Navigation.TryRoute(creature, tile, 0))
         {
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, CallToArmsRules.ArrivedState);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, CallToArmsRules.ArrivedState);
             return;
         }
         world.Messages.Post(world, creature.OwnerPlayerId, PlayerMessageKind.CallToArmsUnreachable, 0, 0);
@@ -152,7 +152,7 @@ public sealed class CallToArmsSystem : ISimulationSystem
         if (!CallToArmsRules.IsOn(world, creature.OwnerPlayerId)) { Release(context, creature); return; }
         TilePos tile = world.Player(creature.OwnerPlayerId).CallToArms.Tile;
         if (creature.Tile.X != tile.X && creature.Tile.Y != tile.Y)
-            CreatureStateMachine.TrySetState(creature, CallToArmsRules.GoingState, context.Tick.Value);
+            CreatureStateMachine.TrySetState(context.Hooks, creature, CallToArmsRules.GoingState, context.Tick.Value);
         StateShadow.Move(context, SystemName, creature, CallToArmsRules.MillingState);
     }
 
@@ -173,7 +173,7 @@ public sealed class CallToArmsSystem : ISimulationSystem
             if (!world.Contains(x, y) || (context.Navigation.NavByte(x, y) & 8) != 0) continue;
             (int subX, int subY) = SubTile[context.Rng.NextInt(9)];
             if (!context.Navigation.TryRouteTo(creature, (x << 12) | subX, (y << 12) | subY, 0)) continue;
-            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, CallToArmsRules.MillingState);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, CallToArmsRules.MillingState);
             return;
         }
         creature.HeedingCallToArms = false;

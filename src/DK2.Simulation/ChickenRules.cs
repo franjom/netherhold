@@ -45,7 +45,7 @@ public static class ChickenRules
             return;
         }
         target.ChickenTicks = shot.Data1 * SimulationTiming.OriginalTicksPerGameSecond;
-        bool entered = CreatureStateMachine.TrySetState(target, ChickenState, context.Tick.Value);
+        bool entered = CreatureStateMachine.TrySetState(context.Hooks, target, ChickenState, context.Tick.Value);
         // DK2 moves only a walking state (0x0048A23B), so a route goes with the state it left.
         if (entered) target.StopMoving();
         context.Emit(SystemName, "chickened",
@@ -56,7 +56,7 @@ public static class ChickenRules
     /// is in. Its clearing of the mover byte <c>+0xF2</c> is not modelled (Q416).</summary>
     public static void TimerEnded(SimulationContext context, CreatureState creature)
     {
-        bool idled = CreatureStateMachine.TrySetState(creature, CreatureStateMachine.Idle, context.Tick.Value);
+        bool idled = CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
         if (idled) creature.StopMoving();
         context.Emit(SystemName, "unchickened", $"creature={creature.Id} idle={(idled ? 1 : 0)}");
     }
