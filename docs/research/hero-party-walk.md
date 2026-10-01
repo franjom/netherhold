@@ -62,7 +62,20 @@ The five shipped party jobs take these arms:
   and state are **CONFIRMED** at `0x00462490`-`0x00462544`.
 
 - **22 `Wait` -> `0x00486CC0` -> state 176.** It enters state 176
-  and puts `now + 1` in controller `+0x44`. State 176 plays action 43
+  and puts `now + 1` in controller `+0x44`, the SuspendTime the
+  dispatcher `0x00476FC0` tests first: nonzero, it decrements the
+  field and returns with no hook, needs routine or handler run. The
+  value is the game turn T, not a short delay, so the hero stands
+  T + 1 dispatcher calls (one per turn) before state 176's handler
+  first runs. The writers are exactly these: `SetState` zeroes it on every
+  commit, the state-object constructor zeroes it, `0x00486CC0` arms it, the
+  dispatcher counts it down; the only other reader is the debug dump.
+  Re-entering job 22 (state 1 sends a hero back through state 90) re-arms
+  it at the later turn. Reachable: 6 leaders, 14 followers (they skip the
+  standing job), 127 placed Good creatures and 7 script actions set
+  objective 22 (Q499). Not read: whether a waiting hero's fight response
+  runs inside the skipped dispatcher body or enters through `SetState`.
+  State 176 plays action 43
   while parked; after its deadline it picks a point in the current
   tile, reloads a random 50..84-tick deadline, and walks back to 176.
   Both job words are ignored.
