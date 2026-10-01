@@ -104,7 +104,8 @@ public static class TortureRules
     }
 
     /// <summary>Straps a captive dropped on a free device: 1, 130, 131 (76's enemy-room arm,
-    /// ADR-0226). It stays its keeper's captive. Returns whether it took.</summary>
+    /// ADR-0226). It stays its keeper's captive. Returns whether it took: 130's enter hook claims
+    /// a place (ADR-0309), and a refusal leaves it in 1.</summary>
     public static bool TryStrap(
         in StateHookContext hooks, CreatureState creature, byte keeper, int tileIndex)
     {
@@ -115,16 +116,21 @@ public static class TortureRules
 
         creature.PrisonOwnerPlayerId = keeper;
         StrapOn(world, creature, tileIndex);
+        return EnterTheDevice(hooks, creature);
+    }
 
+    /// <summary>1, 130, 131; false when 130's claim is refused.</summary>
+    private static bool EnterTheDevice(in StateHookContext hooks, CreatureState creature)
+    {
         CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
-        CreatureStateMachine.TrySetState(hooks, creature, StrappingState);
-        CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
-        return true;
+        return CreatureStateMachine.TrySetState(hooks, creature, StrappingState)
+            && CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
     }
 
     /// <summary>A keeper's own creature dropped on a free device of its own chamber: 1, 130 and
     /// 131, the room's drop state (76, <c>0x004E8DA0(0)</c>, ADR-0226), as for a captive, but it
-    /// stays its own and is not a prisoner. A Horned Reaper is not strapped. Returns whether it took.</summary>
+    /// stays its own and is not a prisoner. A Horned Reaper is not strapped. Returns whether it
+    /// took, as <see cref="TryStrap"/>.</summary>
     public static bool TryStrapOwn(
         in StateHookContext hooks, CreatureState creature, int tileIndex)
     {
@@ -138,10 +144,7 @@ public static class TortureRules
         StrapOn(world, creature, tileIndex);
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
-        CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
-        CreatureStateMachine.TrySetState(hooks, creature, StrappingState);
-        CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
-        return true;
+        return EnterTheDevice(hooks, creature);
     }
 
     /// <summary>136's search: a free device that holds this creature, on its own tile or one

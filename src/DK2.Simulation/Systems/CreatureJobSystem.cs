@@ -398,11 +398,11 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) { if (context.Tick.Value < 900) { var g = new WorldPathGrid(database, world, definition); var sb = new System.Text.StringBuilder(); for (int yy = 28; yy <= 41; yy++) { sb.Append(yy).Append(' '); for (int xx = 10; xx <= 24; xx++) sb.Append(xx == creature.Tile.X && yy == creature.Tile.Y ? 'C' : xx == at.X && yy == at.Y ? 'T' : g.IsWalkable(xx, yy) ? '.' : '#'); sb.AppendLine(); } System.Console.Error.WriteLine($"DBG t={context.Tick.Value} {definition.Name} at={creature.Tile} target={at} room={room.Definition.Name}"); System.Console.Error.WriteLine(sb.ToString()); } continue; }
 
             creature.JobTileIndex = target;
-            SetOutInState(context, creature, job);
+            bool entered = SetOutInState(context, creature, job);
 
             // Standing in it already - a creature that rolls Train while stood
             // in the training room. No walk to make, so it is at work now.
-            if (!creature.IsRouted) Arrive(context, creature, definition, job);
+            if (!creature.IsRouted) Arrive(context, creature, definition, job, entered);
             return true;
         }
 
@@ -419,13 +419,16 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         Arrive(context, creature, definition, creature.CurrentJob);
     }
 
+    /// <param name="entered">For a creature already in the room, whether the job state was
+    /// taken; a walk's arrival decides it here.</param>
     private static void Arrive(
-        SimulationContext context, CreatureState creature, CreatureDef definition, JobType job)
+        SimulationContext context, CreatureState creature, CreatureDef definition, JobType job,
+        bool entered = true)
     {
         creature.StopMoving();
 
-        StateShadow.Arrive(context, SystemName, creature);
-        if (ClaimRefused(context, creature, definition, job)) return;
+        if (StateShadow.IsTravelling(creature)) entered = StateShadow.Arrive(context, SystemName, creature);
+        if (!entered && ClaimRefused(context, creature, definition, job)) return;
 
         context.Emit(SystemName, "job_started",
             $"creature={creature.Id} type={definition.Name} " +
@@ -794,19 +797,20 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     /// state as the resume (ADR-0177): state 7 for a walk, or 1 and then the job state
     /// when the creature is already in the room (<c>travel-states.md</c> §8), from the state
     /// the caller is in: idle, or 189 for the Drink handler after pay.</summary>
-    private static void SetOutInState(
+    /// <returns>False when the job state was refused on the spot.</returns>
+    private static bool SetOutInState(
         SimulationContext context, CreatureState creature, JobType job)
     {
-        if (JobRules.StateFor(job) is not int state) return;
+        if (JobRules.StateFor(job) is not int state) return true;
 
         if (creature.IsRouted)
         {
             CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToRoom, state);
-            return;
+            return true;
         }
 
         StateShadow.Move(context, SystemName, creature, CreatureStateMachine.Idle);
-        StateShadow.Move(context, SystemName, creature, state);
+        return StateShadow.TryMove(context, SystemName, creature, state);
     }
 
     /// <summary>

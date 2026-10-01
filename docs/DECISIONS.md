@@ -6833,13 +6833,18 @@ creature stands elsewhere, and a claiming state entered without the hook holds n
    on a full room still remembers its job.
 
 **Consequences.**
-- `HashVersion` and the snapshot format are 147. L1 replays 20/20 and L2 17/20 over seeds
-  1–20, the same seeds as before (L1 never reaches a claiming room). L2 job starts 401→409,
-  room-full losses 3→4; no room or verdict moved.
-- Test fixtures that spawned a torture wheel as a loose object now mark it auto-placed: a
-  chamber with no furniture has no places, so its victim's claim is refused, as DK2's would be.
-- Not built (Q504): the Prison's position tests and overcrowding roll, the release's clamp,
-  and eviction when a sale or merge frees a room (`0x004E39C0`, `0x004D9570`).
+- **A walk keeps the place.** `SetState` runs no hook entering a walk (`0x00476D30`), and the
+  needs routine `0x00477C20` sends a creature to bed straight from its work state, so a trainee
+  walking to bed still counts against the Training Room. This is the change's one visible
+  ripple: on L2 seed 7 a newcomer is refused for it (win 3304→3404), on seed 11 a finder
+  passes a room over (3320→3316). L1 never reaches a claiming room. `HashVersion` 147.
+- `TryStrap` reports a refused claim. A chamber's places are its auto-placed devices; no
+  shipped map places a device as a THINGS object, and all 30 pre-built chambers get a place
+  once furnished (`TortureChamberPlacesOnRealDataTests`). Fixtures mark their wheels so.
+- The Combat Pit enter hook sets `CombatPitFighter` on the floor before it claims, as
+  `0x0047AAE0` does, so a fighter's place adds no units.
+- Not built (Q504): eviction when a sale or merge frees a room, the Prison's position tests
+  and roll, the release's clamp; `exceptId` and `FirstOccupant`'s order are ours.
 
 ## ADR-0310 — The hand's claimed-land rule for gold is the cursor's, not the action's
 **Date:** 2026-10-01 · **Status:** accepted · Research: `hand-of-evil.md`, Q196

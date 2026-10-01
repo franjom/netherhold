@@ -164,9 +164,25 @@ public static class CategoryHooks
             "releases (ADR-0309); not built: the station bits, state +0x6E and +0x3EA bit 14, whose helpers' "
             + "contracts are UNKNOWN (§3.3)"),
 
-        Claiming(CreatureStateCategory.CombatPit, 0x0047AAE0, HookStatus.Partial,
-            Seeded + "; " + Claimed + "; the CombatPitFighter flag is set at the call site (CombatPitSystem.Move), "
-            + "whose entry test is the current category, not the saved caller's"),
+        new(CreatureStateCategory.CombatPit, HookKind.Enter, 0x0047AAE0, HookStatus.Partial,
+            Seeded + "; the CombatPitFighter flag on the pit's floor (DK2 tests the floor height 0x400, ours an "
+            + "interior tile), then the claim, which gives a fighter a "
+            + "place of 0 units (ADR-0309); CombatPitSystem.Move also sets the flag, judged by the current "
+            + "category rather than the saved caller's")
+        {
+            Enter = static (in StateHookContext hooks, CreatureState creature) =>
+            {
+                WorldState world = hooks.World;
+                if (world.Contains(creature.Tile))
+                {
+                    int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
+                    if (CombatPitRules.IsFloor(CombatPitRules.PitAt(world, hooks.Database, here), here))
+                        creature.CombatPitFighter = true;
+                }
+
+                return RoomCapacityRules.Claim(in hooks, creature);
+            },
+        },
         Slot(CreatureStateCategory.CombatPit, HookKind.Update, 0x004B4C20, HookStatus.Stub, "success stub"),
         Releasing(CreatureStateCategory.CombatPit, 0x0047B920, Release),
 

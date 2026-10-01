@@ -246,18 +246,44 @@ public sealed class RoomCapacityTests
 
     [Theory]
     [InlineData(RoomTypeId.TrainingRoom, false)]
+    [InlineData(RoomTypeId.Library, false)]
+    [InlineData(RoomTypeId.GuardRoom, false)]
+    [InlineData(RoomTypeId.Casino, false)]
+    [InlineData(RoomTypeId.Workshop, false)]
+    [InlineData(RoomTypeId.Prison, true)]
+    [InlineData(RoomTypeId.TortureChamber, true)]
     [InlineData(RoomTypeId.Temple, true)]
+    [InlineData(RoomTypeId.CombatPit, true)]
     public void AnotherKeepersRoomIsAdmittedOnlyForTheTypes0x004E7F80Names(RoomTypeId type, bool admitted)
     {
+        // A claiming state is entered on the rival's room; which state does not matter to the
+        // admission test, only to the categories that claim. The Crypt has no room here.
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = World(db);
         Room(db, world, type, 5, 1, size: 5);
         Dk2TerrainFixture.FurnishRooms(db, world);
-        CreatureState stranger = world.SpawnCreature(db, GoblinId, 0, new TilePos(6, 2));
-        int state = type == RoomTypeId.Temple ? JobRules.StateFor(JobType.Praying)!.Value : TrainState;
+        CreatureState stranger = world.SpawnCreature(db, GoblinId, 0, new TilePos(5, 1));
 
-        Assert.Equal(admitted, CreatureStateMachine.TrySetState(Hooks(db, world), stranger, state));
+        Assert.Equal(admitted, CreatureStateMachine.TrySetState(Hooks(db, world), stranger, CombatPitSpectatorRules.ChoosingState));
         Assert.Equal(admitted, stranger.HeldPlace.IsHeld);
+    }
+
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, RoomCapacityRules.Units)]
+    public void APitFighterHoldsAPlaceOfNoUnitsAndARimCreatureOne(bool onTheFloor, int units)
+    {
+        // 0x0047AAE0 sets CombatPitFighter on the pit's floor before it claims, and the claim
+        // links a fighter in without adding to UsedCapacity (0x004E5A70).
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        Room(db, world, RoomTypeId.CombatPit, 5, 1, size: 5);
+        TilePos at = onTheFloor ? new TilePos(7, 3) : new TilePos(5, 1);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
+
+        Assert.True(CreatureStateMachine.TrySetState(Hooks(db, world), goblin, CombatPitRules.ArrivingState));
+        Assert.Equal(onTheFloor, goblin.CombatPitFighter);
+        Assert.Equal(units, goblin.HeldPlace.Units);
     }
 
     [Fact]

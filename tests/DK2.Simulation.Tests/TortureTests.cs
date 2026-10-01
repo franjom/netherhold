@@ -228,6 +228,21 @@ public class TortureTests
     }
 
     [Fact]
+    public void AWheelThatIsNotTheRoomsFurnitureGivesNoPlaceSoTheStrapIsRefused()
+    {
+        // The chamber's places are its auto-placed devices (0x004E3ED0); a loose wheel is none,
+        // so 130's claim is refused and the captive is left in 1 (ADR-0309).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.Objects.Single(o => o.ObjectTypeId == TortureRules.WheelObjectId).AutoPlaced = false;
+        CreatureState captive = Captive(db, world);
+
+        Assert.False(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
+        Assert.Equal(CreatureStateMachine.Idle, captive.Dk2StateId);
+        Assert.False(captive.HeldPlace.IsHeld);
+    }
+
+    [Fact]
     public void AVictimWhoseWheelIsGoneIsLetGo()
     {
         GameDatabase db = Db;

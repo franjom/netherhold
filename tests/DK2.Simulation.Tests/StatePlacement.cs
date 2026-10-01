@@ -8,7 +8,8 @@ namespace DK2.Simulation.Tests;
 
 /// <summary>Puts a creature straight into a state for a test's setup. Not a move: the rule
 /// is not asked. It writes what entering the state would: the id, the saved caller for a
-/// travel state, and otherwise the hook countdown an entered category seeds.</summary>
+/// travel state, and otherwise the hook countdown an entered category seeds. A room place
+/// is released for a category that claims none, and never claimed (ADR-0309).</summary>
 internal static class StatePlacement
 {
     public static void Place(CreatureState creature, int stateId)
@@ -16,6 +17,7 @@ internal static class StatePlacement
         ref readonly CreatureStateDef state = ref CreatureStateTable.Get(stateId);
         if (state.IsUtility) creature.StateBeforeUtilityState = creature.Dk2StateId;
         else creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
+        if (!state.IsUtility && !RoomCapacityRules.Claims(state.Category)) creature.HeldPlace = RoomPlace.None;
         creature.Dk2StateId = stateId;
     }
 

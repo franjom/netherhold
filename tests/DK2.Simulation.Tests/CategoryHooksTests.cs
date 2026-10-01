@@ -99,7 +99,13 @@ public class CategoryHooksTests
         {
             (Cat.WorkerJob, HookKind.Leave), (Cat.CallToArms, HookKind.Enter), (Cat.CallToArms, HookKind.Leave),
         };
-        foreach (Cat claiming in Enum.GetValues<Cat>().Where(RoomCapacityRules.Claims))
+        // The nine claiming enter hooks of state-category-hooks.md §1, ten slots with GuardPost.
+        Cat[] claimers =
+        [
+            Cat.Research, Cat.Manufacture, Cat.GuardPost, Cat.Temple, Cat.Training,
+            Cat.Prison, Cat.Torture, Cat.CombatPit, Cat.Casino, Cat.Spectating,
+        ];
+        foreach (Cat claiming in claimers)
         {
             expected.Add((claiming, HookKind.Enter));
             expected.Add((claiming, HookKind.Leave));

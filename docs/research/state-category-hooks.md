@@ -326,11 +326,12 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   into a per-owner list at `+0x4C`. A Prison past `+0x4B` raises message `0x2A` and may
   call `0x004E2E60` on a roll.
 - **The release** `0x004E5E00`: unlinks, zeroes `+0x3B9`, and subtracts `units` only
-  **while `+0x6B ≥ units`**, so a fighter's release takes a spectator's unit. Its callers
-  besides the leave hooks: the room freed (`0x004E39C0`) and `0x004D9570`, each kicking
-  every occupant to state 1 first; and the guards after a state reset in the death
-  bookkeeping (`0x004883F8`) and at `0x0048D1E2`. A sold tile frees its whole room and a
-  merge frees the absorbed one (`room-slab-chain.md` §3–4), so both evict the occupants.
+  **while `+0x6B ≥ units`**, so a fighter's release takes a spectator's unit. Callers: the
+  leave hooks; the room freed (`0x004E39C0`) and `0x004D9570`, each kicking every occupant
+  to state 1 first; guards after a state reset (`0x004883F8`, `0x0048D1E2`). A sale frees
+  the whole room and a merge the absorbed one (`room-slab-chain.md` §3–4): both evict.
+  **A walk keeps the place** (re-read 2026-10-01): entering category 2 runs no hook, so a
+  creature `0x00477C20` sends to bed from work holds its place until it arrives.
 - **A failed claim** calls `0x004C6AE0`: the nearest other room of the type that passes
   the test and is reachable (`0x004D0E60`), preferring rooms none of whose occupants pass
   `0x0045C640`. Its answer is written to a local nothing reads. So it decides only
@@ -346,11 +347,9 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   **`2 × units`** at both its sites, and falls back on a timer at room `+0x9F` that is unread. The strap
   helper `0x00483B90` also asks for `2 × units`. The torturer's own states 127–129 are
   category 0, which claims nothing, so only the victim holds a place.
-- **Built** (ADR-0205, ADR-0309): the test (`RoomCapacityRules`), every room finder
-  asking it (the torture finders as read), the lookup, and the claim and release as the
-  hooks, with `0x004C6AE0`'s message choice. `UsedCapacity` is the sum of the creatures'
-  held places (`CreatureState.HeldPlace`). Not built: the Prison's position tests and roll,
-  the release's clamp, eviction from a freed room (Q504); the Library and Guard Room extras
+- **Built** (ADR-0205, ADR-0309): the test, every finder asking it, the lookup, and the
+  claim and release as the hooks, with `0x004C6AE0`'s message choice; `UsedCapacity` sums
+  `CreatureState.HeldPlace`. Not built: Q504's gaps; the Library and Guard Room extras
   and the torture fallback timer.
 
 ## 4. Answers and limits
