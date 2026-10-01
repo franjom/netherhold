@@ -27,7 +27,7 @@ DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding  │
 | `DK2.Data.Model` | immutable definitions, no IO — the data/simulation seam |
 | `DK2.Data` | readers for the shipped files (WAD, KWD/KLD, STR, SDT, `.SAV`) |
 | `DK2.Simulation` | all game rules and all mutable state |
-| `DK2.Pathfinding` | a known-divergent stand-in behind `IPathfinder` (ADR-0012, ADR-0155) |
+| `DK2.Pathfinding` | the original's router (`NavMesh`, `MeshRouter`, `Funnel`); `GridPathfinder` survives as `TryFindNearest` (ADR-0155, ADR-0157) |
 | `DK2.Assets` | logical asset keys and their resolution (ADR-0034) |
 | `DK2.Presentation` | world → drawable, renderer-independent (ADR-0035) |
 | `DK2.AI` | the computer keeper as an input source (`docs/KEEPER_AI.md` §12) |
@@ -83,17 +83,8 @@ DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding  │
 
 `SimulationSystems.Default()` is the **one** declaration of order (ADR-0013), and
 order is part of the simulation's definition: two systems touching the same state
-in a different order are a different game. The declared sequence:
-
-```
-HandSystem, TileTagSystem, RoomSellSystem, RoomBuildSystem, AutoFurnitureSystem,
-TempleSacrificeSystem,
-CreatureMovementSystem, FogOfWarSystem, ImpTaskSystem, TileWorkSystem,
-BridgeBurnSystem, ManaRemovalSystem, ManaSystem, ImpSupplySystem, PortalSystem,
-HatcherySystem, CreatureEatSystem, CreatureSleepSystem, CreatureHealthSystem,
-PrisonSystem, PrisonerEatSystem, PrisonerWanderSystem, PaydaySystem,
-CreatureJobSystem, CreatureAngerSystem, CreatureExperienceSystem
-```
+in a different order are a different game. The sequence is the list in that method
+and is not copied here.
 
 The load-bearing constraints, with the per-position reasoning in the file's own
 XML doc: the hand acts before any creature does; marks land before the work that
@@ -300,15 +291,15 @@ job, walks to it and works.
   in the same chooser (ADR-0063/0065/0069).
 - `CreatureMovementSystem` walks. Speed is read as tiles per second, spent per
   tick, with the remainder carried so nothing drifts slow.
-- `DK2.Pathfinding` holds the search behind `IPathfinder` and knows nothing of
+- `DK2.Pathfinding` holds the router behind `IPathfinder` and knows nothing of
   terrain or creatures: `WorldPathGrid` decides what "walkable" means for one
   particular mover, from terrain flags and that creature's own flags.
-- **Routing is ours, not DK2's** (Q5, ADR-0012): eight-connected with 10/14
-  octile costs (ADR-0025, Q48), deterministically tie-broken, and an admitted
-  placeholder behind an interface. DK2's own routing is now read and is a
-  navigation mesh plus a steering system, so this differs in kind and not
-  merely in tie-breaking (ADR-0155, `research/navigation-and-steering.md`). An imp with no reachable job stands still where
-  DK2 would have it wander (Q41).
+- **Routing is DK2's own design**: every creature routes over a triangulated
+  navigation mesh (`MeshRouter`) and moves by the steering tick (ADR-0155,
+  ADR-0157, `research/navigation-and-steering.md`). The eight-connected grid
+  search (`GridPathfinder`) is used only by `TryFindNearest`, the work chooser's
+  "which job is nearest". An imp with no reachable job wanders as DK2's does
+  (ADR-0224, ADR-0228, `ImpTaskSystem.Wander.cs`).
 
 Evidence and confidence: `docs/research/imp-tasks.md`.
 
@@ -364,9 +355,8 @@ that floor off the payroll, all without a rule about claiming, losing or
 building. `scenarios/mana/land_pays_a_keeper.yaml` shows the last of those: the
 rate falls from 38/s to 35/s when three of eight claimed tiles become a treasury.
 
-Nothing spends mana but Create Imp; every other spender is a spell (M7). Nothing
-happens when a heart falls — defeat belongs with objectives at M6 (Q40,
-Q207/Q93). Evidence: `docs/research/mana.md`.
+Spells spend mana (`KeeperSpellSystem`); a falling heart ends the level through
+`DungeonHeartSystem` (ADR-0162). Evidence: `docs/research/mana.md`.
 
 ## Creatures (M4)
 
@@ -452,8 +442,9 @@ assert on the counts (ADR-0101, `docs/research/placed-things.md`).
   **not** placed: the MAP grid already holds their terrain, and all 275 agree with
   it on terrain id — five disagree on *owner*, Q223.
 - Action points, doors, traps, hero parties and effect generators become ordered,
-  hashed and snapshotted state (ADR-0103/0106/0108). Party members remain
-  unspawned templates and do not enter `WorldState.Creatures`.
+  hashed and snapshotted state (ADR-0103/0106/0108). A party's members enter
+  `WorldState.Creatures` when action 14 raises the party (ADR-0197,
+  `HeroSystem`).
 - File order is preserved for every projected record type.
 - Coordinates are **bare tile indices**, not `Fp32` subtile units;
   `InitialHealth` is a **percentage** of the maximum; `RoomThing.RoomType` is a
@@ -479,8 +470,9 @@ and snapshotted.
 - The **name** is not runtime state and is not hashed. **Trigger repeat count** is
   omitted until trigger records are projected, because the original derives it by
   resolving the record.
-- **No action-point behaviour runs**: flag meanings, timer and counter consumers,
-  rectangle-entry cadence and waypoint traversal are Q235–Q238.
+- **Action points are read only by hero jobs and trigger area conditions**: flag
+  meanings, timer and counter consumers, rectangle-entry cadence and waypoint
+  traversal are Q235–Q238.
 
 ## Trigger flags and timers (M6)
 
@@ -511,21 +503,22 @@ flag bytes, 16 timer dwords, one opaque special value. Hashed and snapshotted.
 
 ## Absences with architectural weight
 
-`docs/HANDOFF.md` §"What does not exist" is the full list. Four of them constrain
-design rather than merely waiting their turn:
+`docs/HANDOFF.md` §"What does not exist" is the full list, and
+`dk2tools coverage` reports what is built. Four constrain design:
 
-- **Trigger coverage.** Level 1's recorded play reaches a win, while other
+- **Trigger coverage.** Level 1's recorded play wins headlessly (Q444); other
   campaign levels still depend on unimplemented actions and conditions
   (`docs/RESEARCH_STATUS.md`).
-- **The pathfinder is an admitted placeholder** (ADR-0012, Q5), and since
-  ADR-0155 a *measured* divergence rather than an unknown one. Everything that
-  depends on route length or arrival order is provisional.
-- **Simulation speed has never been measured** (goal 9), so "significantly faster
-  than real time" is an unverified claim about this loop.
-- **The oracle comparison rig is one-sided.** A live-memory reader against a
-  running DKII exists and has settled two facts, but no scenario has been captured
-  from both sides and there is no divergence report, so nothing here is yet
-  checked against DK2 automatically.
+- **Route length and arrival order are measured, not exact.** Routing is built
+  (ADR-0155, ADR-0157) and DK2's own route log agrees on all but a handful of
+  requests (`docs/RESEARCH_STATUS.md`); the residue is open questions, not a
+  placeholder.
+- **Speed is timed, not budgeted.** `RunTimings` (`DK2.Harness`) splits every
+  run into per-system, keeper-AI and hashing time, but no target for "faster
+  than real time" (goal 9) is asserted.
+- **The oracle comparison is per scenario.** Level 1 and Level 2 have captured
+  recordings replayed headlessly (Q444, ADR-0270/0271, `docs/experiments/`);
+  there is no automatic divergence report across all scenarios.
 
 ## Licence boundaries in the tree
 

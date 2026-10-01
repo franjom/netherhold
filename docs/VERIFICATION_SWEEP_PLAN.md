@@ -17,7 +17,7 @@
    - Each copy has its own listing cache (`reverse-engineering/.cache` is keyed on the project
      directory, so this is automatic).
    - A positive control first in each copy: `ScanAll.py 006F2590` must report 226 hits.
-2. **The ledger**, `docs/verification-ledger.md` or a generated CSV. It has one row per built rule:
+2. **The ledger**, the generated CSV `docs/verification-ledger.csv`. It has one row per built rule:
    - the class and its `[Dk2Behavior]` confidence;
    - its research doc and ADR;
    - its tests;
