@@ -275,6 +275,11 @@ public sealed class CreatureState
     /// <c>InitialGoldHeld</c>, which DK2's loader copies and nothing reads.</para></summary>
     public int GoldHeld;
 
+    /// <summary>DK2's <c>CasinoBigWinnerGameTickRemaining</c> (<c>+0x3F2</c>, a word). While it
+    /// is non-zero the walk-over pick-up takes nothing (ADR-0300). Nothing writes it yet: the
+    /// Casino's big win is not built.</summary>
+    public ushort CasinoBigWinnerTicks;
+
     /// <summary>Current health, seeded from the creature record's <c>Hp</c> on spawn and
     /// clamped to <see cref="CreatureHealthRules.MaxHealth"/> — DK2 has no
     /// separate max-health field, the maximum is <c>Hp</c> scaled by the level's
@@ -967,6 +972,7 @@ public sealed class CreatureState
         hash.Add(RouteOptions);
         Body.HashInto(ref hash);
         hash.Add(GoldHeld);
+        hash.Add(CasinoBigWinnerTicks);
         hash.Add(Health);
         hash.Add(HungerTicks);
         hash.Add(HungerNeed);

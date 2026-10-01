@@ -52,6 +52,7 @@ public static class SimulationSystems
         // heeding states run in the thing update, before the payment that keeps it (ADR-0279).
         new CallToArmsSystem(),
         new FogOfWarSystem(),
+        new WalkOverGoldSystem(), // gold underfoot, after movement and before the state choosers (ADR-0300)
         // Work queued and resolved inside one tick, so nothing survives the boundary
         // half-done; bridges burn after the work (Q67), which makes the fire final.
         new ImpTaskSystem(),

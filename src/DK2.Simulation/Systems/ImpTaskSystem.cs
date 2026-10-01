@@ -315,7 +315,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// </summary>
     private static void PickUpGoldInPassing(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (!PlayerIds.IsKeeper(creature.OwnerPlayerId) || creature.GoldHeld >= FullAt(context, creature, definition))
+        // A possessed worker is the creature arm's (WalkOverGoldSystem.IsWorkerArm).
+        if (!WalkOverGoldSystem.IsWorkerArm(context.World, definition, creature)
+            || creature.GoldHeld >= FullAt(context, creature, definition))
             return;
         WorldState world = context.World;
         foreach (ObjectState pile in world.Objects)

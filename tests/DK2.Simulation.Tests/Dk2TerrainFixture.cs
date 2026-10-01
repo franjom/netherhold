@@ -1056,6 +1056,7 @@ internal static class Dk2TerrainFixture
         TimeSleep = 0,
         LairObjectId = 0,
         DecomposeValue = 0,
+        MaxGoldHeld = 0, // the shipped Skeleton's: it never takes gold (creature-table-dump.md)
 
         // Attracted by a Prison, which is the room that makes it.
         Attractions =

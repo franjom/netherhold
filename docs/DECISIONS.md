@@ -6559,3 +6559,39 @@ No simulation state changed: HashVersion stays 141. Deviations: the delay and ow
 the heart's +3 `CentrePos` lands inside a five-by-five room. Not built: the research move
 `0x004FA8D0` (its Library draw is made and the move counted), the training moves, bridges
 in task 7, Inferno and Chicken. Original run: Q497.
+
+## ADR-0300 — Every creature but a keeper's worker takes the loose gold on its tile, whole
+**Date:** 2026-10-01 · **Status:** accepted · amends ADR-0293 · Research: `gold-on-the-floor.md` §12
+
+**Context.** ADR-0293 built the worker arm of the creature update's walk-over pick-up and left
+the other arm (`0x00489246`–`0x0048954B`): every creature that is not a keeper's unpossessed
+worker takes each neutral gold pile on its tile, every tick. The owner confirms the effect, and
+captures show walking Goblins taking whole loose Heart-tile piles in one tick (Q494).
+
+**Decision.**
+1. `WalkOverGoldSystem` runs after `FogOfWarSystem` and before `ImpTaskSystem`, `HeroSystem`
+   and `CreatureJobSystem`, the choosers. DK2 runs the block before the state handler, and its
+   mover after, so across ticks the sequence is move, pick up, choose; ours keeps it inside one
+   tick, as the worker arm does. Earlier systems set states too (the Hand, the Combat Pit, the
+   Call to Arms); of those only state 76 matters here, set at the drop as in DK2. It also lands
+   before `PaydaySystem`: the thing update precedes the player update (ADR-0277).
+2. Who: `IsWorkerArm` is false (not a worker, not a keeper's, or possessed); the worker arm
+   uses the same test, so a possessed worker moves to this arm. Prisoners and dying creatures
+   take: the world update runs every creature (`0x004B7830`, LIKELY) and nothing returns before
+   the block. A corpse does not: DK2's is a separate dead-body thing, ours a creature (ADR-0206).
+3. Nothing is taken while `CasinoBigWinnerTicks` (`+0x3F2`, a new field nothing writes yet) is
+   non-zero, in state 76, or on a Casino or Treasury tile. Any other tile counts, the Heart
+   included; a Heart's own gold is tile state (ADR-0015), so only loose piles are candidates.
+4. The take is `min(pile, MaxGoldHeld(level) - purse)` compared unsigned, then the purse is
+   clamped to the maximum (`0x0048AB60`), written directly: not halved, not `PurseRules`. So a
+   purse over its maximum eats the pile. The walk goes on to the tile's next pile.
+
+**Consequences.** HashVersion 143 (the new field). An enemy's creature or a hero walking your
+corridors keeps your dropped gold, and the keeper's total does not move. A creature in the Hand
+takes nothing; probably faithful, as a held thing is unlinked from the map (`0x004BC500`).
+Deviations: every creature-arm take comes before every worker-arm take, where DK2 runs each
+creature's whole update newest first, so a newer imp and an older Goblin on one pile get it the
+other way round; a keeper's worker that is imprisoned, down or fighting takes nothing, since
+`ImpTaskSystem` skips it before the worker arm (from ADR-0293); a tile's piles go newest first
+(the tile list's order is unread); a pile has no falling phase. Not built: the chicken side arm
+(a neutral Chicken eaten off a Portal or Hatchery tile, action 26).
