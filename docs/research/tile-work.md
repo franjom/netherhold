@@ -364,6 +364,29 @@ The safety is in reachability. `RepairTileHealth` and fill-in have no path
 (Q219), while wall and room repair target terrain whose destination is itself.
 Our `CompletesUpward` names that caller invariant, not a binary guard.
 
+## Room health (Q500)
+
+A room has one health word (`room+0x35`) and imps convert the **room**, not a tile (read
+2026-10-01: `0x004E5300`, `0x004E4B00`, `0x00497BF0`, `0x004EC650`, `0x004ECB70`).
+
+- **Applier `0x004E5300`:** a negative delta subtracts; below 1 the room changes hands and
+  resets to `StartingHealth * tiles`. A positive delta clamps at `MaxHealth * tiles`. Both
+  come from the room's terrain (`+0x1AB`, `+0x1AD`): 10000 each for every shipped room
+  terrain, 2000 for bridges, 100 to 208 for hero gates.
+- **Growth:** a tile added adds one StartingHealth, a merge the other room's (`0x004EC650`).
+- **Damage, action 10 (`0x00497BF0`):** each application subtracts `ConvertRoomHealth`
+  (-4000 / 4 = -1000 a tick) times the imp's rate (`+0x3AF` plus `+0x3B3`) from the whole
+  room, never from tile health. An arm taken when tile word `+8 & 0xFFF` equals the neutral
+  player adds `Unknown_17` (3) times the rate; unread.
+- **Regeneration:** `0x004E4B00` passes the room definition's `HealthGain` (Rooms.kwd `0x41D`,
+  loaded to `+0x439`) while health is under the cap. It is 0 for all 26 shipped rooms: live
+  and inert. `RepairRoomHealth` (+5000 a tick, `0x004981E3`) is the imp's repair.
+- **Ours** is this rule for one tile at an 80% rate: 10000 / 800 = 13 applications. N tiles
+  need about 12.5 N (a 3x3 room about 113 ticks for one imp). One measured room took 24-26
+  ticks (`imp-claim-path.md`, size not recorded); two tiles would fit.
+- **Q92:** "instantly claimed" is the transfer at health 0, all tiles at once; the time to
+  reach it is unobserved.
+
 ## How this was established
 
 - The `maxHealth` column had not been extracted before this milestone; adding it
