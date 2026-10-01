@@ -353,8 +353,8 @@ resistances — at a displacement the first scan never looked at.
 
 **Scanned there, the absence holds.** Four routines touch them and no more: the
 constructor that zeroes them, the builder, the copier `FUN_0051F3B0`, and the
-serializer `FUN_00492230`, whose `(ESI+0x61C, size 2, count 4)` writes the array
-out rather than consulting it. The only other `LEA` on the displacement builds a
+destructor helper `FUN_00492230`, whose `(ESI+0x61C, size 2, count 4)` tears the
+array down rather than consulting it (not a serializer; corrected 2026-10-01). The only other `LEA` on the displacement builds a
 file path on an unrelated object. Control: 226. **No damage path reads it.** Q335.
 
 `0x004E0460` was named here as the next place to look and **that was wrong**: it
