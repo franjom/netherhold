@@ -49,6 +49,7 @@ public sealed class TileWorkSystem : ISimulationSystem
 
             ref TileState tile = ref world.TileAtIndex(order.TileIndex);
             byte before = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
+            bool wasTagged = tile.IsTaggedBy(order.PlayerId);
 
             TileWorkResult result = TileWorkRules.Apply(
                 context.Database, ref tile, order.Kind, order.PlayerId,
@@ -61,15 +62,16 @@ public sealed class TileWorkSystem : ISimulationSystem
             else
                 SlabChain.Changed(world, context.Database, order.TileIndex, before, ownerBefore);
 
-            // A dig or a mine that opens plain path touching the keeper's floor raises DK2's
-            // kind-14 task there (0x00465774, 0x00465b57: 0x00453fc0 then 0x00453b30), which a
-            // worker walking over it takes (ADR-0286). A claim, a conversion, an attacker
-            // breaking it: all of those change the terrain too, and all of them end it.
+            // Any change of terrain ends a kind-14 task: a claim, a conversion, an attacker. A dig
+            // or a mine that leaves nothing to dig keeps its task in the pool; the digger raises
+            // kind 14 from it when its action ends, if no dig walk dropped it first (ADR-0305).
             if (result.Outcome is TileWorkOutcome.Destroyed or TileWorkOutcome.Transformed)
-                tile.FreshlyDug = result.Outcome == TileWorkOutcome.Destroyed && IsExcavation(order.Kind)
-                    && TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, order.PlayerId)
-                    && ImpTaskSystem.TouchesOwnLand(context, world,
-                        new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width), order.PlayerId);
+            {
+                tile.FreshlyDug = false;
+                if (result.Outcome == TileWorkOutcome.Destroyed && IsExcavation(order.Kind)
+                    && wasTagged && !tile.IsTaggedBy(order.PlayerId))
+                    tile.DigTaskOutlivesWallFor |= (ushort)(1 << order.PlayerId);
+            }
 
             CreditGoldMined(context, order, result.GoldReleased);
             int carried = HandTo(context, order, result.GoldReleased, out int putDown);

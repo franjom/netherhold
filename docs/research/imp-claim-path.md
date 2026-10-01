@@ -164,6 +164,13 @@ passes `0x00453FC0` and `0x00453B30` at that moment, and at the end of mining
 (`0x00465B57`); they are removed by `0x00469600` as above and by state 16's completion.
 Nothing else reads them.
 
+**The raise needs the dig task alive** (read 2026-10-01, ADR-0305). The wall's fall does not
+remove its kind-1 or kind-2 task. The digger, when its action ends, tests the id
+(`0x00508070`) and raises nothing if it is gone; any imp's dig walk `0x00469AF0` removes a
+task whose tile is no longer diggable (`0x00469BC8`, `0x00469EBF`). In Level 1, seeds 1 and 6
+raise nothing at (10,28) because an imp chose a dig in that window; seed 4's walk did too,
+but the player's next tag reused the freed id and the digger found it alive.
+
 ## 6. Kind-3 tasks: created and removed (Q3)
 
 - **No task exists before an imp asks.** The only raises of kind 3 are the two handlers

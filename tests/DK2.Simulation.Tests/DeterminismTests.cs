@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 145: the Angry flourish follows the art type, not the file bit (ADR-0301, Q188).
+        // HashVersion 146: a dig task outlives its wall until the digger's action ends (ADR-0305).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xC3DB6013EF7EF967UL, sim.StateHash());
+        Assert.Equal(0x31889C236E089472UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

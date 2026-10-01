@@ -45,6 +45,13 @@ public class ImpClaimsWhatItDugTests
             for (int i = 0; i < limit && World.Tile(at).TerrainId == Dk2TerrainFixture.Rock; i++) Tick();
             Assert.NotEqual(Dk2TerrainFixture.Rock, World.Tile(at).TerrainId);
         }
+
+        /// <summary>Runs until the digger's action ends and it raises kind 14 on the tile, or gives up.</summary>
+        public void UntilRaised(TilePos at, int limit = 20)
+        {
+            for (int i = 0; i < limit && !World.Tile(at).FreshlyDug; i++) Tick();
+            Assert.True(World.Tile(at).FreshlyDug);
+        }
     }
 
     private static Run Start(TilePos impAt)
@@ -78,9 +85,9 @@ public class ImpClaimsWhatItDugTests
         Mark(run, new TilePos(4, 2));
 
         run.UntilDug(new TilePos(4, 2));
-        Assert.True(run.World.Tile(4, 2).FreshlyDug);
+        run.UntilRaised(new TilePos(4, 2));   // when the dig action runs out (ADR-0305)
 
-        run.Ticks(8);   // the dig action runs out (6 ticks at most), then 10 looks
+        run.Ticks(2);   // then 10 looks
 
         SimEvent next = run.Of("job_taken").Last();
         Assert.Contains("priority=Claim ", next.Detail);
@@ -251,12 +258,51 @@ public class ImpClaimsWhatItDugTests
         Run run = Start(new TilePos(3, 2));
         Mark(run, new TilePos(4, 2), new TilePos(5, 2));
         run.UntilDug(new TilePos(4, 2));
-        Assert.True(run.World.Tile(4, 2).FreshlyDug);
+        run.UntilRaised(new TilePos(4, 2));
 
         GameSimulation restored = WorldSnapshot.FromBytes(
             WorldSnapshot.ToBytes(run.Sim), run.Db, Dk2TerrainFixture.DefaultSystems());
 
         Assert.True(restored.World.Tile(4, 2).FreshlyDug);
         Assert.Equal(run.Sim.StateHash(), restored.StateHash());
+    }
+
+    /// <summary>
+    /// The kind-14 task waits for the digger: the wall falls, its dig task stays in the pool,
+    /// and only when the digger's action ends is the task raised (<c>0x004655D0</c>, ADR-0305).
+    /// </summary>
+    [Fact]
+    public void TheJustDugTileIsRaisedWhenTheDiggersActionEnds_NotWhenTheWallFalls()
+    {
+        Run run = Start(new TilePos(3, 2));
+        Mark(run, new TilePos(4, 2));
+
+        run.UntilDug(new TilePos(4, 2));
+        Assert.False(run.World.Tile(4, 2).FreshlyDug);
+        Assert.NotEqual(0, run.World.Tile(4, 2).DigTaskOutlivesWallFor);
+
+        run.UntilRaised(new TilePos(4, 2));
+        Assert.Equal(0, run.World.Tile(4, 2).DigTaskOutlivesWallFor);
+        Assert.Single(run.Of("claim_raised"));
+    }
+
+    /// <summary>
+    /// An imp that runs the dig walk between the wall's fall and the digger's last action drops
+    /// the dead task (<c>0x00469BC8</c>), and the digger then raises nothing: Level 1 seeds 1 and
+    /// 6 in DK2 (ADR-0305). The test above is the control, without the second imp.
+    /// </summary>
+    [Fact]
+    public void AnImpChoosingADigBeforeTheDiggersActionEnds_LeavesTheTileUnraised()
+    {
+        Run run = Start(new TilePos(3, 2));
+        Mark(run, new TilePos(4, 2), new TilePos(1, 4));
+
+        run.UntilDug(new TilePos(4, 2));
+        run.World.SpawnCreature(run.Db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 2));
+        run.Ticks(20);
+
+        Assert.Contains(run.Of("dig_task_dropped"), e => e.Detail.Contains("(4,2)"));
+        Assert.DoesNotContain(run.Of("claim_raised"), e => e.Detail.Contains("(4,2)"));
+        Assert.False(run.World.Tile(4, 2).FreshlyDug);
     }
 }

@@ -6694,3 +6694,22 @@ own tests unchanged. Walks carrying a body or an object are left out, as DK2 req
 to 4 claims on the way a run before tick 700, as DK2 does. It claims the first room first in 17 of
 20 runs and always has two claimers, and the Hatchery block is done by 339–459 (DK2 375–464). The
 checker is unchanged (306/309, 768/799), since it scores choices in state 10.
+
+## ADR-0305 — A just-dug tile is raised when the digger's action ends, if its task survived
+**Date:** 2026-10-01 · **Status:** accepted · Research: `functions/004655D0.md`, `functions/00469AF0.md`
+
+**Context.** Ours raised kind 14 the moment a wall fell. DK2 raises none at (10,28) in Level 1
+seeds 1 and 6. State 14 (`0x004655D0`) raises only after the digger's action ends, and only if
+its task id is still a kind-1 task (`0x00508070`). The fall does not remove the task, but any
+imp's dig walk `0x00469AF0` removes one whose tile can no longer be dug. In seeds 1 and 6 an
+imp chose a dig in that window. Seed 4's did too, but the player's next tag reused the id.
+
+**Decision.** A finished dig or mine marks the tile `DigTaskOutlivesWallFor` (one bit a player).
+The digger's post-action exit raises kind 14 from it, and clears it for a dig; a seam waits for
+the next walk, as state 26 removes kind 1 only. `TryTakeMarkedExcavation` clears every mark of
+its player. The id reuse is not built.
+
+**Consequences.** Level 1 wins 20 of 20; Level 2 19 of 20 (seed 9 runs past the recording).
+Raises match DK2 to tick 1500 on Level 1: digs 5–11 of 51 (DK2 5–13 of 53), mines 2–5 of 8
+(DK2 2–5 of 8–9). Ours raises (10,28) in 19 of 20 runs, DK2 in 5 of 7: our first digger leaves
+a tick after the fall, DK2's after 2 to 4. HashVersion 146.

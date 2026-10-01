@@ -80,10 +80,18 @@ public struct TileState
     /// dig task; so a corridor is dug through and claimed behind the digging
     /// front. STRONGLY INFERRED (Q154, docs/research/imp-task-priority.md §6 —
     /// rank and the eight-neighbour rule read, the trigger inferred).</para>
-    /// <para>Set by <see cref="Systems.TileWorkSystem"/> when excavation destroys
-    /// a tile; cleared by any later change of terrain, which is what a claim is.
-    /// Our representation: the original keeps the task in the keeper's list.</para></summary>
+    /// <para>Set by <see cref="Systems.ImpTaskSystem"/> when the digger's action ends, if
+    /// <see cref="DigTaskOutlivesWallFor"/> still holds its player (ADR-0305); cleared by
+    /// any later change of terrain. The original keeps the task in the keeper's list.</para></summary>
     public bool FreshlyDug;
+
+    /// <summary>
+    /// The players whose dig or mine task still lists this tile after the wall fell, one bit
+    /// per player as in <see cref="TaggedBy"/>. DK2 leaves the kind-1 or kind-2 entry in the
+    /// pool: the digger, when its action ends, raises the kind-14 task only if the entry is
+    /// still there (<c>0x004655D0</c>, <c>0x00465870</c>), and any imp's dig walk drops an
+    /// entry whose tile can no longer be dug (<c>0x00469AF0</c>). ADR-0305.</summary>
+    public ushort DigTaskOutlivesWallFor;
 
     /// <summary>
     /// Health owed to this tile that was too small to apply, carried between
@@ -205,6 +213,7 @@ public struct TileState
         hash.Add(TaggedBy);
         hash.Add(DiscoveredBy);
         hash.Add(FreshlyDug ? (byte)1 : (byte)0);
+        hash.Add(DigTaskOutlivesWallFor);
         hash.Add(TagOrder);
         hash.Add(BurnTicksRemaining);
         hash.Add(EntranceIdleTicks);

@@ -249,8 +249,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             context.Emit(SystemName, "job_abandoned",
                 $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
                 $"{creature.TargetWork} reason=gone");
+            bool atWork = creature.Dk2StateId == ImpStates.For(creature.TargetWork).Work;
+            int dug = creature.TargetTileIndex;
+            TileWorkKind work = creature.TargetWork;
             WorkEnded(context, creature);
             GoIdle(creature);
+            if (atWork && IsExcavation(work)) RaiseClaimOfWhatWasDug(context, creature.OwnerPlayerId, dug, work);
             return;
         }
 
@@ -1185,12 +1189,20 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         long seamX = fromSeam ? (creature.LastTaskTileIndex % width) * 4096L + 2048 : 0;
         long seamY = fromSeam ? (creature.LastTaskTileIndex / width) * 4096L + 2048 : 0;
 
+        // The walk drops every task of its kinds whose tile can no longer be dug (0x00469BC8,
+        // 0x00469EBF), so a digger whose action is still running then raises no kind 14 (ADR-0305).
+        ushort outlived = player <= TileState.MaxTaggingPlayerId ? (ushort)~(1 << player) : ushort.MaxValue;
         _excavation.Clear();
         for (int y = 0; y < world.Height; y++)
         {
             for (int x = 0; x < width; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
+                if ((tile.DigTaskOutlivesWallFor & ~outlived) != 0)
+                {
+                    tile.DigTaskOutlivesWallFor &= outlived;
+                    context.Emit(SystemName, "dig_task_dropped", $"imp={creature.Id} {Describe(world, y * width + x)}");
+                }
                 if (!tile.IsTaggedBy(player)) continue;
                 if (!TileWorkRules.TryTaggedWork(context.Database, tile, player, out TileWorkKind kind)) continue;
                 if (!HasOpenFace(world, context.Database, x, y)) continue;
@@ -1731,6 +1743,30 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         ref TileState tile = ref world.Tile(standing);
         return tile.OwnerPlayerId == playerId
             && context.Database.TerrainById(tile.TerrainId).IsOwnable;
+    }
+
+    /// <summary>
+    /// A digger or miner whose action ended with nothing left to dig: if its task is still in
+    /// the pool, the tile gets the kind-14 task when it is plain path touching the keeper's floor
+    /// (<c>0x004655D0</c>, <c>0x00465870</c>: <c>0x00508070</c>, then <c>0x00453FC0</c> and
+    /// <c>0x00453B30</c>). A digger removes the dig's entry; a miner leaves the seam's to the
+    /// next dig walk, as its own removal tests for kind 1. Level 1 seeds 1 and 6 raise none: an
+    /// imp chose a dig between the wall's fall and the diggers' last action (ADR-0305).
+    /// </summary>
+    private static void RaiseClaimOfWhatWasDug(SimulationContext context, byte playerId, int tileIndex, TileWorkKind work)
+    {
+        if (playerId > TileState.MaxTaggingPlayerId) return;
+        WorldState world = context.World;
+        ref TileState tile = ref world.TileAtIndex(tileIndex);
+        ushort bit = (ushort)(1 << playerId);
+        if ((tile.DigTaskOutlivesWallFor & bit) == 0) return;
+        if (work != TileWorkKind.MineGold) tile.DigTaskOutlivesWallFor &= (ushort)~bit;
+        if (!tile.FreshlyDug && TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId)
+            && TouchesOwnLand(context, world, new TilePos(tileIndex % world.Width, tileIndex / world.Width), playerId))
+        {
+            tile.FreshlyDug = true;
+            context.Emit(SystemName, "claim_raised", $"player={playerId} {Describe(world, tileIndex)}");
+        }
     }
 
     /// <summary>
