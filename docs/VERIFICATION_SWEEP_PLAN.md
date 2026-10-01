@@ -9,14 +9,12 @@
 
 ## 1. Setup
 
-1. **One Ghidra project per worker**, in its own folder under `D:\Ghidra\claude ghidra\`:
-   `D:\Ghidra\claude ghidra\worker-1\`, `worker-2\`, and so on. Each is a copy of
-   `D:\Ghidra\ghidra projects claude\DK2_RE`, opened `-readOnly`. The copies remove the lock that
-   forces headless runs to be sequential.
-   - The helper scripts take the project path as a parameter rather than hardcoding it.
-   - Each copy has its own listing cache (`reverse-engineering/.cache` is keyed on the project
-     directory, so this is automatic).
-   - A positive control first in each copy: `ScanAll.py 006F2590` must report 226 hits.
+1. **Ghidra needs no per-worker setup.** Every runner call and every pyghidra-mcp session works
+   on its own clone of the one project `D:\Ghidra\DK2_RE`, deleted at exit, so workers never
+   collide (`ghidra-queries` skill; `tools/ghidra/ghidra.py --agent <name>`,
+   `tools/ghidra/mcp-serve.py`).
+   - Use the MCP server for single-function reads and the runner for scripted bulk scans.
+   - A positive control first in each run: `ScanAll.py 006F2590` must report 226 hits.
 2. **The ledger**, the generated CSV `docs/verification-ledger.csv`. It has one row per built rule:
    - the class and its `[Dk2Behavior]` confidence;
    - its research doc and ADR;
@@ -32,9 +30,7 @@ and date cells on regeneration; `--check` detects a stale ledger. It finds
 170 attributes on 2026-09-28 (1 Hypothesis, 102 StronglyInferred, 67 Confirmed). `CandidateTests`
 means a lexical source reference, not proof that a test pins the rule. ADRs are
 collected from the source comments and the linked research note; absent citations
-remain blank for review. The existing read-only `verifier-1` Ghidra copy passed the
-226-hit positive control on 2026-09-27. One worker needs one copy; the other three
-copies are needed only when concurrent workers start.
+remain blank for review. The positive control passed on 2026-09-27.
 
 ## 2. The four checks, per rule
 
@@ -43,7 +39,7 @@ copies are needed only when concurrent workers start.
 | A | **Constants against the binary** | A script pairs each constant in a rule with the address cited beside it, disassembles there and looks for the immediate | misread or mistyped numbers |
 | B | **Negative claims** | The ADR-0232 procedure over every doc: `CallScanAll.py`, `ScanAll.py`, and `InsGrep.py` with padded addresses (`0x%08x]`) and the one to three bytes below. Each query includes a known hit | "only", "never", "no reader" that are false |
 | C | **Test strength** | Stryker.NET, scoped to one rule file at a time, over `DK2.Simulation.Tests` | behaviour no test pins; guesses a test hides |
-| D | **Fresh reading** | A reviewer rereads the rule's routines in Ghidra against the doc and the code, without the earlier conclusions. Codex does a share of these in `D:\DungeonKeeperRemake-Codex` for a second opinion | reading errors like the (1, 1) one |
+| D | **Fresh reading** | A reviewer rereads the rule's routines in Ghidra against the doc and the code, without the earlier conclusions. Codex may do a share for a second opinion | reading errors like the (1, 1) one |
 
 A and B are scripted and run first, over everything. C and D are per rule, in the order of §3.
 
@@ -81,13 +77,13 @@ analyzes unrelated test projects.
 
 ## 4. Rules for the sweep
 
-- **At most four workers at once**, each writing its findings to a file as it goes.
+- **At most two subagents at once** (owner rule, 2026-09-30; waves of four hit the session limit), each given whole units, each writing its findings to a file as it goes.
 - **Every finding is verified before anything is fixed.** A fix gets a negative control that fails
   its test, as in ADR-0232.
 - **Behaviour the owner can observe** is batched into one list of questions, not asked piecemeal.
 - **Commits** stage named paths only; never `.claude/`, `CLAUDE.md`,
   `docs/STRUCTURE_REFACTOR_PLAN.md` or `docs/HANDOFF.md`. Question numbers and `HashVersion` are
-  checked against the Codex worktree before one is taken.
+  checked against every worktree (`git worktree list`) before one is taken.
 
 ## 5. After the per-rule checks
 
@@ -112,11 +108,50 @@ or waits; a branch that 72 gates into game state would need the interface modell
 
 ## 6. First steps, in order
 
-1. Copy the Ghidra project into `D:\Ghidra\claude ghidra\worker-1\` … `worker-4\`, and run the
-   positive control in each.
+1. Run the positive control once through the runner.
 2. Write the ledger generator and produce the ledger.
 3. Write check A's script and run it over every rule. Its count of mismatches sizes the rest of
    the sweep.
 4. Run check B over all docs.
 5. Then C and D in the order of §3. If this runs as a multi-agent workflow, it goes in waves of at
-   most four workers.
+   most two workers.
+
+## 7. Function records: blind re-reading
+
+Checks A–D cover built rules. The records in `docs/research/functions/` need their own pass: a
+pilot on 2026-10-01 (26 records) found 3 wrong, 12 correct but incomplete, 9 matching, and 2 wrong
+blind readings; the omissions were early returns, flags and mode parameters, not wording.
+
+1. **Mechanical pass.** `python tools/ghidra/ghidra.py FuncFacts.py reverse-engineering/fn-facts.json
+   reverse-engineering/fn-addrs.txt` dumps each function's operands, callees, `RET n` and callers
+   (one Ghidra start, about 30 s); `python tools/verification/check_function_records.py` checks
+   every address and offset a record cites against that dump and writes
+   `build/verification/function-record-check.csv`. It triages: a cited sibling or caller address
+   shows as `absent`, so SUSPECT means "read this first", not "wrong". "Ghidra has no function
+   here" means the entry is undefined in the project.
+2. **Blind reading.** A verifier gets only the addresses and the pyghidra-mcp tools; it may not
+   read `docs/`, `src/`, `tests/` or the kb tools, and writes its own role, arguments, fields,
+   callees and constants to `build/verification/<run>/<ADDRESS>.blind.md`, with SURE / PROBABLE /
+   GUESS on each claim. The project's Ghidra names came from the records, so a meaning that
+   rests on a name is not independent.
+3. **Comparison.** A second agent classifies each pair AGREE, PARTIAL, CONTRADICT or UNDECIDED
+   and settles every CONTRADICT, and every PARTIAL that could change behaviour, in Ghidra. The
+   blind reader is often the one at fault (argument counts from the decompiler, a pass-through
+   that is not one), so a contradiction is not a verdict until adjudicated.
+4. **Record.** A confirmed error or omission goes into the function's record with a dated
+   History line (AGENTS.md hard rule).
+5. **Impact.** For every finding on a record with `status: BUILT` or an `implements:` line, and for
+   every record whose address `src/` cites, read the implementing code and decide whether it
+   relies on the wrong or missing fact. If it does, file **one row in
+   `docs/research/open-questions.md`** naming the record, the code, what the code assumes and
+   what the binary does, and say what test would pin the fix. A finding that changes a
+   shipped rule that was built on the old reading also bumps the rule's `[Dk2Behavior]`
+   confidence until fixed. If the code is unaffected, say so in the record's History line, so
+   the check is not repeated.
+6. **Order.** Records with `status: READ` and nothing downstream first, because no test or replay
+   covers them; then records with no function in Ghidra; then LIKELY and GUESS; BUILT records
+   last, since their outcomes are already judged against captures. A record marked CONFIRMED
+   that cites only a binary read is STRONGLY INFERRED by `RESEARCH_STATUS.md`; list those for
+   relabelling as the pass reaches them.
+7. **Limits.** At most two agents at once, each given a whole unit (about 13 records); the
+   comparison runs after both blind readings of a unit are written.
