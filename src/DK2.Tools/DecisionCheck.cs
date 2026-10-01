@@ -56,6 +56,18 @@ public static class DecisionCheck
             CreatureState? decider = null;
             JsonElement deciderJson = default;
             var faces = new List<(CreatureState Holder, TilePos Face)>();
+
+            // Who holds which task, from the pool's own worker slots: an imp walking with a task id
+            // need not hold it (a deposit walk keeps the old task fields, 0x00464005).
+            var listed = new HashSet<(int Task, int Slot)>();
+            foreach (JsonElement entry in root.GetProperty("pool").EnumerateArray())
+            {
+                foreach (JsonElement worker in entry.GetProperty("workers").EnumerateArray())
+                {
+                    listed.Add((entry.GetProperty("id").GetInt32(), worker.GetInt32()));
+                }
+            }
+
             foreach (JsonElement imp in root.GetProperty("imps").EnumerateArray())
             {
                 int slot = imp.GetProperty("slot").GetInt32();
@@ -64,7 +76,8 @@ public static class DecisionCheck
                     creature = world.SpawnCreature(database, ImpTypeId, player, new TilePos(0, 0));
                     ours[slot] = creature;
                 }
-                LoadImp(database, world, creature, imp, player, holdsJob: slot != deciderSlot, faces);
+                LoadImp(database, world, creature, imp, player,
+                    holdsJob: slot != deciderSlot && listed.Contains((imp.GetProperty("task_id").GetInt32(), slot)), faces);
                 if (slot == deciderSlot)
                 {
                     decider = creature;
@@ -150,8 +163,20 @@ public static class DecisionCheck
             tile.TaggedBy = 0;
             tile.FreshlyDug = false;
             tile.TagOrder = 0;
+            tile.GoldHeld = 0;
         }
         LoadFloorGold(database, world, tiles);
+
+        // What each Treasury and Heart tile stores (DK2's type-3 object on it), so the store
+        // chooser sees a full Heart as full. A line without stores loads them empty.
+        if (tiles.TryGetProperty("stores", out JsonElement stores))
+        {
+            foreach (JsonElement store in stores.EnumerateArray())
+            {
+                world.Tile(store.GetProperty("x").GetInt32(), store.GetProperty("y").GetInt32()).GoldHeld
+                    += store.GetProperty("gold").GetInt32();
+            }
+        }
 
         // Each kind's list is walked from its head, the newest task first.
         int order = pool.GetArrayLength();
