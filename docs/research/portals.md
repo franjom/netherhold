@@ -267,9 +267,8 @@ to that portal are immediately claimed … that is a game mechanic that works on
 claiming enemy/neutral rooms too, rooms are instantly claimed by imps, not tile
 by tile."*
 
-`TileWorkKind.ConvertRoom` reads `ConvertRoomHealth` = **−4000**. Against a room
-tile's 10000 health that is thirteen applications, four a second, so **3.25
-seconds** — the "instantly" is about the propagation, not the duration.
+`TileWorkKind.ConvertRoom` reads `ConvertRoomHealth` = **−4000** (room health,
+`tile-work.md`, Q500: 13 applications for one tile, about 12.5 per tile of the room).
 `TileWorkRules.Apply` converts the worked tile and `TileWorkSystem` spreads the
 change to the whole `RoomInstance`; the scenario log reports it as
 `room_converted … tiles=9 spread=8`, one tile worked and eight coming with it.

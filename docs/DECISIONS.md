@@ -6635,10 +6635,11 @@ and the end come from renderer flags (`+0xF1`, `+0xDC`) that are not read, and n
 prisoner. Four tests, each failed by a negative control, and a real-data test of the 13. The pin
 holds.
 
-**Amendment 2026-10-01 (function-record sweep).** Point 1 and the count of 13 are wrong. `0x00504D80`
-ORs (type byte != 0) into bit 0 of the runtime flags, which `0x00494A00` tests, so every creature
-with an Angry type of 1..8 has the flourish: 39 of 46, not the 13 whose file bit 0 is set. The shipped
-rule is wrong until `HasAngryFlourish` reads the type (Q188).
+**Amendment 2026-10-01 (function-record sweep; fixed, HashVersion 145).** Point 1 and the count of 13
+were wrong. `0x00504D80` ORs (type byte != 0) into bit 0 of the runtime flags, which `0x00494A00`
+tests, so a creature with an Angry type of 1..8 has the flourish: 39 of 46, not the 13 whose file bit 0
+is set. `CreatureDef.AngryArtType` carries the type and `HasAngryFlourish` reads it. Assumed: every
+shipped Angry resource loads, as there is no loader to fail. Pinned for all 46 by a real-data test.
 
 ## ADR-0302 — Inferno and Chicken are cast: a fire zone that burns every owner, a chicken kept from fights by its timer
 **Date:** 2026-10-01 · **Status:** accepted · amends ADR-0283, ADR-0287 · Research: `keeper-spell-inferno-chicken.md` · Q498

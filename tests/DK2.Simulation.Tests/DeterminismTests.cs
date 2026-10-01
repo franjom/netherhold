@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 143: the Casino big-winner countdown the walk-over pick-up reads (ADR-0300).
+        // HashVersion 145: the Angry flourish follows the art type, not the file bit (ADR-0301, Q188).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xAFA4D2781BF3CBA8UL, sim.StateHash());
+        Assert.Equal(0xC3DB6013EF7EF967UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

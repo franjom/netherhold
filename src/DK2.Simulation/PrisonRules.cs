@@ -66,9 +66,10 @@ public static class PrisonRules
     /// <c>0x004734E4</c>).</summary>
     public const int FlourishPercent = 10;
 
-    /// <summary>Whether state 116's <c>CreatureDef_HasArt(9)</c> holds: bit 0 of the Angry
-    /// animation's flags (<c>0x00494A00</c>; 13 shipped creatures, Q188).</summary>
-    public static bool HasAngryFlourish(CreatureDef definition) => (definition.AngryArtFlags & 1) != 0;
+    /// <summary>Whether state 116's <c>CreatureDef_HasArt(9)</c> holds. <c>0x00494A00</c> tests runtime
+    /// bit 0, which <c>0x00504D80</c> sets for an Angry type of 1..8 (39 shipped creatures, Q188). We have
+    /// no resource loader, so every shipped Angry resource is assumed to load; the file's bit 0 is not read.</summary>
+    public static bool HasAngryFlourish(CreatureDef definition) => definition.AngryArtType is >= 1 and <= 8;
 
     /// <summary>How long action 41 holds a prisoner: state 116 passes <c>rand(3) + 2</c>, the wrapper
     /// <c>0x00496A30</c> stores one more as the cycle count (<c>+0x3AE</c>), and the runner
