@@ -396,5 +396,5 @@ the level row. The worker arm also uses variable 74, which is **340** on every s
 Hand, whether a falling pile (§6) is on the tile list yet, and what the chicken arm does to
 hunger.
 
-**Ours:** the worker arm is built (ADR-0293, `imp-hands-full.md`). The creature arm and the
-walk-over chicken are not: nothing moves floor gold into a non-worker's `GoldHeld`.
+**Ours:** both arms built: workers ADR-0293, the creature arm `WalkOverGoldSystem` (ADR-0300;
+the take compares unsigned, `0x004893B1`). The walk-over chicken is not built.
