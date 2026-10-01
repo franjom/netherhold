@@ -130,8 +130,10 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     public ImpTaskSystem() : this(new GridPathfinder()) { }
 
     /// <summary>Takes the pathfinder explicitly so a replacement for Q5 can be dropped in.</summary>
-    public ImpTaskSystem(IPathfinder pathfinder) =>
+    public ImpTaskSystem(IPathfinder pathfinder)
+    {
         _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
+    }
 
     public string Name => SystemName;
 
@@ -190,6 +192,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         PickUpGoldInPassing(context, creature, definition);
         if (UpdateWander(context, creature, definition)) return;
+
+        // A job walk or a fetch claims a just-dug tile it steps onto too, not only a deposit walk:
+        // Level 1 seeds 3, 4 and 5 open their first room this way from a walk to a dig (ADR-0303).
+        if (creature.Activity is CreatureActivity.MovingToJob or CreatureActivity.FetchingGold
+            && StateShadow.IsTravelling(creature)
+            && TryClaimOnTheWay(context, creature, grid)) return;
 
         if (creature.Activity == CreatureActivity.DeliveringGold)
         {
@@ -293,16 +301,22 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// <summary>DK2's hands test <c>0x00464360(1)</c>: full at <c>MaxGoldHeld</c> scaled by the
     /// imp's level (level 1 unscaled), less variable 74, 340 in every shipped level
     /// (imp-hands-full.md).</summary>
-    private static bool HandsFull(SimulationContext context, CreatureState creature, CreatureDef definition) =>
-        creature.GoldHeld >= FullAt(context, creature, definition);
+    private static bool HandsFull(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        return creature.GoldHeld >= FullAt(context, creature, definition);
+    }
 
-    private static int FullAt(SimulationContext context, CreatureState creature, CreatureDef definition) =>
-        CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level) - HandsMargin(context.Database);
+    private static int FullAt(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        return CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level) - HandsMargin(context.Database);
+    }
 
     /// <summary>Variable 74 (<c>0x006F28B6</c>), the hands test's margin. A database without it is
     /// read as 0, as DK2's global is before a level loads.</summary>
-    private static int HandsMargin(GameDatabase database) =>
-        database.Variables.TryGet(VariableTypeId.GameTicks, out int margin) ? margin : 0;
+    private static int HandsMargin(GameDatabase database)
+    {
+        return database.Variables.TryGet(VariableTypeId.GameTicks, out int margin) ? margin : 0;
+    }
 
     /// <summary>A pile's centre within this of a worker, on both axes and strictly, is picked up
     /// in passing: a third of a tile (<c>0x555</c>).</summary>
@@ -974,20 +988,23 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// </summary>
     private bool TryTakeJobOfKind(
         SimulationContext context, CreatureState creature, CreatureDef definition,
-        WorldPathGrid grid, ImpTaskKind kind) => kind switch
+        WorldPathGrid grid, ImpTaskKind kind)
     {
-        ImpTaskKind.Excavate or ImpTaskKind.Mine => TryTakeMarkedExcavation(context, creature, grid),
-        ImpTaskKind.Claim => TryTakeClaim(context, creature, grid),
-        ImpTaskKind.Reinforce => TryTakeReinforce(context, creature, grid),
-        ImpTaskKind.FetchGold => HandsFull(context, creature, definition)
-            ? TryDepositTheLoad(context, creature)
-            : TryTakeFloorGold(context, creature, definition, grid),
-        ImpTaskKind.CarryObject => TryTakeObject(context, creature, definition, grid),
-        ImpTaskKind.BuildTrap or ImpTaskKind.BuildDoor => TryTakeBlueprint(context, creature, grid),
-        ImpTaskKind.CarryCorpse => TryTakeBody(context, creature, definition, grid, corpses: true),
-        ImpTaskKind.CarryUnconscious => TryTakeBody(context, creature, definition, grid, corpses: false),
-        _ => false,
-    };
+        return kind switch
+        {
+            ImpTaskKind.Excavate or ImpTaskKind.Mine => TryTakeMarkedExcavation(context, creature, grid),
+            ImpTaskKind.Claim => TryTakeClaim(context, creature, grid),
+            ImpTaskKind.Reinforce => TryTakeReinforce(context, creature, grid),
+            ImpTaskKind.FetchGold => HandsFull(context, creature, definition)
+                ? TryDepositTheLoad(context, creature)
+                : TryTakeFloorGold(context, creature, definition, grid),
+            ImpTaskKind.CarryObject => TryTakeObject(context, creature, definition, grid),
+            ImpTaskKind.BuildTrap or ImpTaskKind.BuildDoor => TryTakeBlueprint(context, creature, grid),
+            ImpTaskKind.CarryCorpse => TryTakeBody(context, creature, definition, grid, corpses: true),
+            ImpTaskKind.CarryUnconscious => TryTakeBody(context, creature, definition, grid, corpses: false),
+            _ => false,
+        };
+    }
 
     /// <summary>
     /// The nearest pile of floor gold this worker may pick up, on its own.
@@ -1020,7 +1037,10 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// <summary>
     /// Whether a search may stop here - always, unless a drop scan is running.
     /// </summary>
-    private bool InScanRange(TilePos at) => _only is not TilePos only || at == only;
+    private bool InScanRange(TilePos at)
+    {
+        return _only is not TilePos only || at == only;
+    }
 
     /// <summary>
     /// The task kind DK2 records for a job of this priority.
@@ -1029,13 +1049,16 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// <see cref="ImpTaskKind.Claim"/> because the original's kind 14 raises a
     /// kind 3 at the tile and takes that; the byte it leaves behind is a 3.</para>
     /// </summary>
-    private static ImpTaskKind KindOf(JobPriority priority, TileWorkKind kind) => priority switch
+    private static ImpTaskKind KindOf(JobPriority priority, TileWorkKind kind)
     {
-        _ when kind == TileWorkKind.MineGold => ImpTaskKind.Mine,
-        JobPriority.MarkedExcavation => ImpTaskKind.Excavate,
-        JobPriority.Reinforce => ImpTaskKind.Reinforce,
-        _ => ImpTaskKind.Claim,
-    };
+        return priority switch
+        {
+            _ when kind == TileWorkKind.MineGold => ImpTaskKind.Mine,
+            JobPriority.MarkedExcavation => ImpTaskKind.Excavate,
+            JobPriority.Reinforce => ImpTaskKind.Reinforce,
+            _ => ImpTaskKind.Claim,
+        };
+    }
 
     /// <summary>
     /// Tier B (<c>0x004640bb</c>): the ring scan from the worker over the whole map, started on
@@ -1321,11 +1344,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// A keeper's worker walking to deposit claims a just-dug tile it steps onto (<c>0x00464170</c>,
-    /// from the creature update <c>0x00488930</c>): on entering a new tile, more than two tiles
-    /// (either axis) from its last task tile, with a last task of kind 1–7 or 16, the kind-14
-    /// handler <c>0x00469600</c> runs on the tile underfoot — the only taker of a kind-14 task. The
-    /// code admits job walks too; DK2's captures show it on a deposit walk only (Q489, ADR-0286).
+    /// A keeper's worker on a walk claims a just-dug tile it steps onto (<c>0x00464170</c>, from
+    /// the creature update <c>0x00488930</c>): on entering a new tile, more than two tiles (either
+    /// axis) from its task tile, with a last task of kind 1–7 or 16, the kind-14 handler
+    /// <c>0x00469600</c> runs on the tile underfoot — the only taker of a kind-14 task. Deposit,
+    /// job and fetch walks alike: Level 1 seeds 3–5 open their first room from a walk to a dig
+    /// (Q489, ADR-0303).
     /// </summary>
     private bool TryClaimOnTheWay(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
@@ -2461,8 +2485,10 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// is missing - which is a level referring to an object the OBJECTS table
     /// does not have, and is worth seeing rather than crashing on.
     /// </summary>
-    private static string ObjectName(SimulationContext context, ObjectState thing) =>
-        context.Database.ObjectById(thing.ObjectTypeId)?.Name ?? $"#{thing.ObjectTypeId}";
+    private static string ObjectName(SimulationContext context, ObjectState thing)
+    {
+        return context.Database.ObjectById(thing.ObjectTypeId)?.Name ?? $"#{thing.ObjectTypeId}";
+    }
 
     /// <summary>Routes a worker to one tile by index. Returns false if there is no way.</summary>
     private bool RouteTo(
@@ -2475,8 +2501,10 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>Clears the "body I am walking towards" note.</summary>
-    private static void ForgetBody(CreatureState creature) =>
+    private static void ForgetBody(CreatureState creature)
+    {
         creature.TargetBodyId = -1;
+    }
 
     /// <summary>
     /// Ends the current job and looks again on the next tick.
@@ -2524,13 +2552,17 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>State 10 is where a worker's every task starts, and where it rests between them.</summary>
-    private static void FromTaskSelection(CreatureState creature) =>
+    private static void FromTaskSelection(CreatureState creature)
+    {
         CreatureStateMachine.TrySetState(creature, ImpStates.TaskSelection);
+    }
 
     /// <summary>The gold-store chooser <c>0x00464400</c>: a walk in 6 resuming in 28, from
     /// whichever of 10, 26 and 27 called it.</summary>
-    private static void ToTheStore(CreatureState creature) =>
+    private static void ToTheStore(CreatureState creature)
+    {
         CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, ImpStates.AtTheStore);
+    }
 
     /// <summary>The walk ends in the entry state (13, 15, 21, 25), which turns the imp to face
     /// the tile (<c>0x004654F0</c> for 13) and sets the work state once the turn is done. Ours
@@ -2561,10 +2593,14 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// <c>ImpIdleDelayBeforeReevaluationSeconds</c> — DK2's own name for exactly
     /// this delay.
     /// </summary>
-    private static int IdleDelayTicks(GameDatabase database) =>
-        SimulationTiming.TicksFromSeconds(
+    private static int IdleDelayTicks(GameDatabase database)
+    {
+        return SimulationTiming.TicksFromSeconds(
             database[VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds]);
+    }
 
-    private static string Describe(WorldState world, int tileIndex) =>
-        tileIndex < 0 ? "(none)" : $"({tileIndex % world.Width},{tileIndex / world.Width})";
+    private static string Describe(WorldState world, int tileIndex)
+    {
+        return tileIndex < 0 ? "(none)" : $"({tileIndex % world.Width},{tileIndex / world.Width})";
+    }
 }

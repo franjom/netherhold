@@ -6673,3 +6673,22 @@ damage, Salamanders spared, Fairies and Fireflies burning, and a recast timeout.
 the Hatchery is measured from its centroid tile, not DK2's `NavigationPos`, and ties go by room
 order; the tile box clamps to the last column where DK2's reads one past it. Level 18's Nemesis
 casts both unaided and its Inferno burns its own Black Knight. Q498 holds the open parts.
+
+## ADR-0303 — An imp claims a just-dug tile on the way on any walk, not only a deposit
+**Date:** 2026-10-01 · **Status:** accepted · Research: `functions/00464170.md`, `imp-claim-path.md` §5
+
+**Context.** In Level 1, DK2 claims the first room first in five of seven seeded runs, and ours in
+none of twenty. Our claimer took the corridor north first, so the Hatchery block was claimed late in
+three runs. The checker agrees with every DK2 choice up to tick 700 on seeds 2 and 5, so the gap is
+outside state 10. Seed 5 shows it: imp 452, walking to a dig at (14,32), steps onto just-dug (10,28)
+at tick 142 and holds its claim at 143 without passing 10. That is `0x00464170` on a job walk.
+ADR-0286 had built it for deposit walks only (Q489); the crossings that seemed to refuse it at tick
+136 had dig marks still beside the tile.
+
+**Decision.** `TryClaimOnTheWay` also runs on job and gold-fetch walks (state 6), with the binary's
+own tests unchanged. Walks carrying a body or an object are left out, as DK2 requires empty hands.
+
+**Consequences.** Replays win Level 1 and Level 2 in 20 of 20 each (17 and 12 before). Ours makes 2
+to 4 claims on the way a run before tick 700, as DK2 does. It claims the first room first in 17 of
+20 runs and always has two claimers, and the Hatchery block is done by 339–459 (DK2 375–464). The
+checker is unchanged (306/309, 768/799), since it scores choices in state 10.

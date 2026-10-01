@@ -160,6 +160,30 @@ public class ImpClaimsWhatItDugTests
         Assert.Contains("at=(5,2)", claim.Detail);
     }
 
+    /// <summary>
+    /// <b>A worker walking to a dig claims a just-dug tile it steps onto too</b> (<c>0x00464170</c>,
+    /// ADR-0303). Empty hands, the wall at (1,2) marked: the imp walks west from (7,2) to dig it
+    /// and crosses (5,2), just dug, touching the keeper's floor at (4,2), four tiles from its new
+    /// task. Level 1 seed 5's imp 452 does exactly this at (10,28), tick 143.
+    /// </summary>
+    [Fact]
+    public void AnImpWalkingToADigClaimsTheJustDugTileItStepsOnto()
+    {
+        Run run = Start(new TilePos(7, 2));
+        for (int x = 2; x <= 4; x++) SetTile(run, x, 2, Dk2TerrainFixture.ClaimedPath, Keeper);
+        for (int x = 5; x <= 7; x++) SetTile(run, x, 2, Dk2TerrainFixture.DirtPath, PlayerIds.Unowned);
+        SetTile(run, 1, 2, Dk2TerrainFixture.Rock, PlayerIds.Unowned);
+        run.World.Tile(5, 2).FreshlyDug = true;
+        Mark(run, new TilePos(1, 2));
+
+        run.Ticks(SimulationTiming.TicksFromSeconds(4));
+
+        Assert.Contains(run.Of("job_taken"), e => e.Detail.Contains("(1,2)") && e.Detail.Contains("MarkedExcavation"));
+        SimEvent claim = Assert.Single(run.Of("claimed_on_the_way"));
+        Assert.Contains("at=(5,2)", claim.Detail);
+        Assert.Contains("gold=0", claim.Detail);
+    }
+
     private static void SetTile(Run run, int x, int y, byte terrain, byte owner)
     {
         ref TileState tile = ref run.World.Tile(x, y);
