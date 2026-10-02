@@ -57,6 +57,26 @@ public sealed class RoomBuildSystem : ISimulationSystem
             ? RoomRules.SpannableTiles(context.Database, world, command.Tiles, room, command.PlayerId)
             : null;
 
+        // The drag's pre-check (0x004C5A20, room-slab-chain.md §2): the tiles the placement
+        // predicate accepts are counted first, and the whole drag is refused when their cost
+        // exceeds the keeper's money. Level 3's recording shows it twice: a 12-tile Workshop
+        // (7200) refused at 3290 and again at 7181 gold, then placed whole at 7667 (ADR-0315).
+        int placeable = 0;
+        foreach (TilePos pos in command.Tiles)
+        {
+            if (!world.Contains(pos)) continue;
+            if (Verdict(context, world, spans, pos, room, command.PlayerId) == RoomPlacement.Allowed)
+                placeable++;
+        }
+
+        if (placeable > 0 && cost * placeable > GoldStore.Total(world, command.PlayerId))
+        {
+            context.Emit(SystemName, "built",
+                $"player={command.PlayerId} room={room.Name} tiles=0 cost=0 " +
+                $"refused=NotEnoughGold={placeable} drag_cost={cost * placeable}");
+            return;
+        }
+
         foreach (TilePos pos in command.Tiles)
         {
             if (!world.Contains(pos))
@@ -99,6 +119,13 @@ public sealed class RoomBuildSystem : ISimulationSystem
             foreach (RoomInstance pit in CombatPitRules.PitsUnder(world, context.Database, command.Tiles))
                 CombatPitSystem.Reset(context, pit);
     }
+
+    private static RoomPlacement Verdict(
+        SimulationContext context, WorldState world, HashSet<TilePos>? spans, TilePos pos,
+        RoomDef room, byte playerId) =>
+        spans is not null && spans.Contains(pos)
+            ? RoomRules.CanBuild(context.Database, world.Tile(pos), room, playerId, touchesOwnLand: true)
+            : RoomRules.CanBuild(context.Database, world, pos, room, playerId);
 
     private static void Count(Dictionary<RoomPlacement, int> refusals, RoomPlacement reason) =>
         refusals[reason] = refusals.TryGetValue(reason, out int n) ? n + 1 : 1;

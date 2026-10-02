@@ -42,7 +42,9 @@ flag decides which one it may come out of.
 ### Why this mattered
 
 `PortalRules` had four gates — availability, pool, attraction, capacity — and
-**none of them is this one**. The shipped campaign contains the case:
+**none of them is this one**. (The availability gate has since gone too: the
+pick never reads the creature table, and Level 3 produces creatures its script
+disabled — `portals.md` §"How they compose", ADR-0316.) The shipped campaign contains the case:
 
 > On **Frosty's Castle**, **Frosty's Lair** and **Frosty's Realm**, every keeper
 > from player 3 to player 6 has **nine hero creatures marked AVAILABLE _and_

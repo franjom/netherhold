@@ -9,12 +9,12 @@ namespace DK2.AI;
 
 public sealed class KeeperRoomView
 {
-    internal KeeperRoomView(RoomInstance room)
+    internal KeeperRoomView(WorldState world, RoomInstance room)
         : this(room.Definition, room.OwnerPlayerId, room.TileIndices,
-            room.MinX, room.MinY, room.MaxX, room.MaxY) { }
+            room.MinX, room.MinY, room.MaxX, room.MaxY, FloorSlotsInChainOrder(world, room)) { }
 
     internal KeeperRoomView(RoomDef definition, byte ownerPlayerId, IEnumerable<int> tiles,
-        int minX, int minY, int maxX, int maxY)
+        int minX, int minY, int maxX, int maxY, IEnumerable<int>? floorSlots = null)
     {
         Definition = definition;
         OwnerPlayerId = ownerPlayerId;
@@ -23,6 +23,7 @@ public sealed class KeeperRoomView
         MinY = minY;
         MaxX = maxX;
         MaxY = maxY;
+        FloorSlots = Array.AsReadOnly((floorSlots ?? []).ToArray());
     }
 
     public RoomDef Definition { get; }
@@ -32,4 +33,14 @@ public sealed class KeeperRoomView
     public int MinY { get; }
     public int MaxX { get; }
     public int MaxY { get; }
+
+    /// <summary>The tiles <c>0x004E8210(1, 0)</c> counts and draws among: those the floor-slot test
+    /// <c>0x00454110</c> accepts, in the room's slab-chain order (computer-keeper-management.md §2).</summary>
+    public IReadOnlyList<int> FloorSlots { get; }
+
+    private static IEnumerable<int> FloorSlotsInChainOrder(WorldState world, RoomInstance room)
+    {
+        HashSet<int> accepted = AutoFurnitureRules.FloorSlotSet(world, room);
+        return SlabChain.Order(world, room).Where(accepted.Contains);
+    }
 }

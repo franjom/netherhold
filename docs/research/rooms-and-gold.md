@@ -194,7 +194,10 @@ built (Q501).
 ## What a room costs
 
 `Cost` is charged **per tile**, and a tile is refused if the keeper cannot pay for
-it. **CONFIRMED (Q32):** the owner priced five rooms in the original (2026-08-30)
+it — but a *drag* is judged whole first: `0x004C5A20` counts the placeable tiles and
+refuses the rectangle when their cost exceeds the money (`room-slab-chain.md` §2).
+**CONFIRMED (Level 3 recording):** a 12-tile Workshop (7200) placed nothing at 3290
+and at 7181 gold, all twelve at 7667 (ADR-0315). **CONFIRMED (Q32):** the owner priced five rooms in the original (2026-08-30)
 and stated the charge is per tile — Treasury **200**, Lair **300**, Hatchery
 **300**, Library **600**, Training Room **500**, every one matching the ROOMS
 record exactly. `Cost` could have been per room, or a base that `RecommendedSize`

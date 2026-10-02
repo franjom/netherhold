@@ -6981,6 +6981,89 @@ banked any roll that produced nothing (`portals.md` §4, never read from the bin
 - Not built: `0x004DCF50`, the special arrival outside single player. The boost's decay step
   differs from the capture (Q507).
 
+## ADR-0315 — A room drag is priced whole before a tile is laid
+**Date:** 2026-10-02 · **Status:** accepted · Research: `rooms-and-gold.md`, *What a room costs*; `room-slab-chain.md` §2
+
+**Context.** Level 3's recording: the player drags a 12-tile Workshop at 1009 with 3290 gold
+and again at 1073 with 7181, and DK2 places nothing either time; the same drag at 1100 with
+7667 places all twelve, and a one-tile drag between them costs 600. Ours charged per tile
+and laid what it could afford, so it held four Workshop tiles at 1009 and twelve at 1073,
+91 turns before DK2, and refused the player's third drag as occupied. The pre-check
+`0x004C5A20` counts the tiles the placement predicate accepts and compares their cost with
+the player's money before the wave `0x004C7380` starts (knowledge base; message `0x37`).
+
+**Decision.** `RoomBuildSystem` counts the placeable tiles of a `BuildRoomCommand` first and
+refuses the whole order, charging nothing, when `cost × count` exceeds the keeper's gold.
+The per-tile charge stays for what passes. The count is of placeable tiles, not the
+rectangle's area: the recording cannot tell the two apart (every refused drag was wholly
+placeable) and the record reads "the tiles that may be placed".
+
+**Consequences.** No state changes; `HashVersion` stays 149. `RoomTests` gains the whole-drag
+refusal and the placeable-count pricing; `AKeeperWhoCanAffordSomeTilesGetsSomeTiles` and the
+`build_a_treasury` scenario pinned the refuted partial build and now expect the refusal.
+Level 3's drag at 1009 is now refused as DK2's is; at 1073 ours still places (DK2 had 7181
+against 7200), so the richer economy is the next divergence there. Measured with ADR-0316 on
+2c6ea95, seeds 1–20: Level 1 19/20, wins 1764–2016, unchanged; Level 2 9/20 → 7/20, all in
+the ten Library seeds, wins 2980–3560 (DK2: 1 of 2 Library seeds, at 3421).
+
+## ADR-0316 — A portal does not read the creature-availability table
+**Date:** 2026-10-02 · **Status:** accepted · Research: `portals.md`, *How they compose*; `binary-entrance.md` §1
+
+**Context.** Level 3's trigger 79 fires at the start and makes the Firefly, Goblin and Warlock
+UNAVAILABLE for player 3 — the campaign's only three disabling action-6 records. DK2's portal
+still produced a Firefly at 1002, Goblins at 1506 and 1694 and Warlocks from 2398. Ours sent
+only Trolls, the one pooled type the script never disabled, and reached five creatures at
+2172 against DK2's 1506, which is the condition that starts the level's hero chain. The pick
+`0x004DBF90`, decompiled whole, tests the pool through `0x00506400` (a type's remaining count
+is non-zero), the two creature flags, `Creature_IsAttractedByDungeon` and the capacity. It
+never touches the player's creature table at `+0x4E/+0x52`. The gate was an inference from
+Level 1 unlocking exactly one creature, which Level 1's pool explains on its own.
+
+**Decision.** `PortalSystem.Pick` drops the `IsUnlocked` gate. The table stays per player
+and action 6 still writes it, for its other readers. `ACreatureThisLevelHasNotUnlockedNeverArrives`
+pinned the refuted gate and is replaced by `ACreatureMadeUnavailableStillComesThroughThePortal`.
+
+**Consequences.** No state changes. Every shipped level pools exactly the creatures it marks
+AVAILABLE, so only Level 3's three disables change behaviour. Each portal roll now emits a
+`roll` event naming the candidates and each pooled type's refusing gate. Level 3 against the
+seed 01 recording, with ADR-0315: arrivals 975/1327/1479/1667 (DK2 1002/1354/1506/1694),
+five creatures at 1480 (1506), the hero chain's timer at 1976 (1998), the final party at 3176
+(3198); the win at 3683 is not reached by 3704 because that party's two Thieves outlive DK2's.
+Open: DK2's pool is a draining count the creator decrements (Q474), and the portal tally fell
+from 6 to 5 when the Firefly died at 1796 (Q508), which is why our later arrivals drift late.
+
+## ADR-0317 — The keeper's training moves
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0244 and ADR-0284 · Research: `computer-keeper-management.md` §2; Q509
+
+**Context.** Step 9 of the keeper's tick (`0x00500C20`) drew its 50% roll and asked readiness,
+then counted a move it did not make. `0x004FF5C0` was re-read whole, with its slot helper
+`0x004E8210`: a not-ready army's non-workers go by experience and level to a Combat Pit or a
+Training Room floor slot, through the same hand calls the retreat uses.
+
+**Decision.**
+1. `KeeperTrainingStep` runs at step 9 with the retreat's prepared set and the tick's
+   readiness; the allowance it returns is the tick's. The branches, their order and
+   strictness, the predicates and the allowance are the research table's, unchanged.
+2. Deviations, the retreat's (ADR-0284): the pick-up and drop are commands for the next tick,
+   the drop issued only when the hand is predicted to take the creature; the drop is at the
+   slot's tile, without DK2's `+0x900`; rooms and slots are drawn from the keeper's own stream
+   (ADR-0244), in DK2's order (Training room, Pit room, then per move).
+3. Same-tick predictions where DK2 acts at once: a creature the retreat lifted and dropped is
+   read as landing (76), one the hand refused as prepared (75); a creature readiness levelled
+   is read at its new level, its health carried by the level-up's 12-bit share.
+4. Observation schema 15: each creature's experience and dropped-to-do job, each room's
+   floor slots (`AutoFurnitureRules.FloorSlotSet`) in slab-chain order.
+
+**Consequences.**
+- No simulation state changes: `HashVersion` stays 149.
+- Stock Level 17's Harkan lifts its three Black Knights into its Training Room from input
+  tick 3; Level 10's Asmodeus lifts its creatures into its own. A Pit fighter at or above the
+  skill level is taken out again by the retreat's fifth branch, so at a low skill level the
+  two steps alternate, as the binary's order predicts.
+- The retreat's stock-map scenario moves to Level 17's player 5, which owns no Training Room:
+  on Harkan's map the training move takes the wounded knight first, as DK2's order would.
+- Not compared with the original (Q509). Room list order stays the capture's (ADR-0298).
+
 ## ADR-0319 — The Combat category's leave and enter hooks run in SetState
 **Date:** 2026-10-02 · **Status:** accepted · Research: `combat-category-hooks.md`; Q511
 

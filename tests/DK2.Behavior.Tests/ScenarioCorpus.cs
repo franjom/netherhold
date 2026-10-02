@@ -22,7 +22,8 @@ internal static class ScenarioCorpus
     {
         "keepers/level11a_drako_attack.yaml",
         "keepers/level17_harkan_call_to_arms.yaml",
-        "keepers/level17_harkan_retreat.yaml",
+        "keepers/level17_player5_retreat.yaml",
+        "keepers/level17_harkan_training.yaml",
         "keepers/level17_harkan_unassisted.yaml",
         "keepers/level18_nemesis_attack.yaml",
         "keepers/level18_nemesis_heal.yaml",

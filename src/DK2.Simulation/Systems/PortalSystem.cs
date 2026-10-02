@@ -116,12 +116,17 @@ public sealed class PortalSystem : ISimulationSystem
             // The portal is passed in because the flag gate depends on the room
             // type: a Hero Portal admits a different nine creatures, and a
             // keeper's claimed one admits none of them.
-            CreatureDef? arriving = Pick(context, owned, playerId, portal.Definition);
+            CreatureDef? arriving = Pick(context, owned, playerId, portal.Definition, out string candidates);
+            bool open = PortalRules.PortalsOpen(world, playerId);
+            context.Emit(SystemName, "roll",
+                $"player={playerId} portal_tile={entranceTile} held={held} capacity={capacity} " +
+                $"generated={centre.EntranceCreaturesGenerated} open={open} candidates=[{candidates}] " +
+                $"chosen={arriving?.Name ?? "-"}");
             if (arriving is null) continue;
 
             // Closed portals still draw and decay the boosts; the creator 0x004DC9A0
             // then refuses (PortalsOpen clear), so neither tally nor creature moves.
-            if (!PortalRules.PortalsOpen(world, playerId)) continue;
+            if (!open) continue;
 
             CreatureState spawned = PortalRules.CreateArrival(context.Hooks, portal, arriving.CreatureId);
 
@@ -143,32 +148,49 @@ public sealed class PortalSystem : ISimulationSystem
     /// </remarks>
     private static CreatureDef? Pick(
         SimulationContext context, List<RoomInstance> ownedRooms, byte playerId,
-        RoomDef portal)
+        RoomDef portal, out string candidateNames)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
 
         var candidates = new List<CreatureDef>();
+        var rejected = new List<string>();
         foreach (CreatureDef creature in database.Creatures.Values.OrderBy(c => c.CreatureId))
         {
             // Cheapest gate and the most fundamental: two creature flags, and
             // the only one of the four that does not consult the level at all.
             if (!PortalRules.CanComeFromPortal(creature, portal)) continue;
 
-            if (!PortalRules.IsUnlocked(world, playerId, creature.CreatureId)) continue;
-
+            // No availability test: 0x004DBF90 reads the pool (0x00506400), the two flags, the
+            // attraction and the capacity, never the creature table. Level 3 makes the Firefly,
+            // Goblin and Warlock UNAVAILABLE at its start and its portal still produces them
+            // (ADR-0316). Only creatures the level pools are worth naming when refused.
             int limit = PortalRules.PoolLimit(database, playerId, creature.CreatureId);
             if (limit <= PortalRules.CreatureCountOfType(world, playerId, creature.CreatureId))
+            {
+                rejected.Add($"{creature.Name}:pool");
                 continue;
+            }
 
-            if (!PortalRules.IsAttracted(creature, ownedRooms)) continue;
+            if (!PortalRules.IsAttracted(creature, ownedRooms))
+            {
+                rejected.Add($"{creature.Name}:room");
+                continue;
+            }
 
             // The fifth gate, and the second half of attraction: the room's
             // contribution less one per creature of the type already held.
-            if (!AttractionBudget.Admits(world, creature, ownedRooms, playerId)) continue;
+            if (!AttractionBudget.Admits(world, creature, ownedRooms, playerId))
+            {
+                rejected.Add($"{creature.Name}:budget");
+                continue;
+            }
 
             candidates.Add(creature);
         }
+
+        candidateNames = string.Join(",", candidates.Select(c => c.Name));
+        if (rejected.Count > 0) candidateNames += " rejected=" + string.Join(",", rejected);
 
         // DK2's weighted draw, not a uniform one (0x004DBF90, ADR-0272).
         return PortalChoiceRules.Pick(world, context.Rng, playerId, candidates, ownedRooms);

@@ -137,6 +137,57 @@ public class RoomTests
     }
 
     [Fact]
+    public void ADragTheKeeperCannotAffordWholePlacesNothing()
+    {
+        // The pre-check 0x004C5A20 prices the whole rectangle before the wave lays a tile.
+        // Level 3's recording: a 12-tile Workshop (7200) placed nothing at 3290 gold and
+        // nothing at 7181, then all twelve at 7667 (ADR-0315). Here four Treasury tiles
+        // (800) against 500: nothing is laid and nothing is charged.
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Run run = Start();
+        GiveHeart(run, Keeper, new TilePos(1, 1), 500);
+        TilePos[] drag = [new(2, 2), new(3, 2), new(2, 3), new(3, 3)];
+        foreach (TilePos p in drag)
+        {
+            ref TileState tile = ref run.World.Tile(p);
+            tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+            tile.OwnerPlayerId = Keeper;
+        }
+        Assert.Equal(200, database.Room(RoomTypeId.Treasury).Cost);
+
+        run.Tick(BuildRoomCommand.At(Keeper, TreasuryId, drag));
+
+        Assert.All(drag, p => Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(p).TerrainId));
+        Assert.Equal(500, GoldStore.Total(run.World, Keeper));
+        Assert.Contains(run.Of("built"), e => e.Detail.Contains("NotEnoughGold=4", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TheDragIsPricedOnTheTilesItCouldPlaceNotTheRectangle()
+    {
+        // Two own tiles and one unclaimed: the pre-check counts two (400), which 400 gold
+        // affords, so both are laid and the third is refused on its own account.
+        Run run = Start();
+        GiveHeart(run, Keeper, new TilePos(1, 1), 400);
+        foreach (TilePos p in new TilePos[] { new(2, 2), new(3, 2) })
+        {
+            ref TileState tile = ref run.World.Tile(p);
+            tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+            tile.OwnerPlayerId = Keeper;
+        }
+        ref TileState dirt = ref run.World.Tile(8, 8);
+        dirt.TerrainId = Dk2TerrainFixture.DirtPath;
+        dirt.OwnerPlayerId = 0;
+
+        run.Tick(BuildRoomCommand.At(Keeper, TreasuryId, new TilePos(2, 2), new TilePos(3, 2), new TilePos(8, 8)));
+
+        Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, run.World.Tile(2, 2).TerrainId);
+        Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, run.World.Tile(3, 2).TerrainId);
+        Assert.Equal(Dk2TerrainFixture.DirtPath, run.World.Tile(8, 8).TerrainId);
+        Assert.Contains(run.Of("built"), e => e.Detail.Contains("tiles=2 cost=400 refused=NotYourLand=1", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ARoomDoesNotGoOnTopOfAnotherRoom()
     {
         Run run = Start();
@@ -235,20 +286,21 @@ public class RoomTests
     }
 
     [Fact]
-    public void AKeeperWhoCanAffordSomeTilesGetsSomeTiles()
+    public void AKeeperWhoCanAffordOnlySomeOfADragGetsNoneOfIt()
     {
-        // 300 buys one lair tile of the two asked for. The command is applied in
-        // the order it names its tiles, so the first is the one that lands.
+        // 300 buys one lair tile of the two asked for, and DK2 lays neither: the drag is
+        // priced whole before the wave starts (0x004C5A20, ADR-0315). Until 2026-10-02 this
+        // test pinned the opposite, a first tile landing and the second refused.
         Run run = Start();
         GiveTreasury(run, Keeper, new TilePos(1, 1));
         GoldStore.Deposit(run.World, Dk2TerrainFixture.Database(), Keeper, 300);
 
         run.Tick(BuildRoomCommand.At(Keeper, LairId, new TilePos(2, 2), new TilePos(3, 2)));
 
-        Assert.Equal(Dk2TerrainFixture.LairTerrain, run.World.Tile(2, 2).TerrainId);
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(2, 2).TerrainId);
         Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(3, 2).TerrainId);
-        Assert.Equal(0, GoldStore.Total(run.World, Keeper));
-        Assert.Contains(run.Of("built"), e => e.Detail.Contains("NotEnoughGold=1", StringComparison.Ordinal));
+        Assert.Equal(300, GoldStore.Total(run.World, Keeper));
+        Assert.Contains(run.Of("built"), e => e.Detail.Contains("NotEnoughGold=2", StringComparison.Ordinal));
     }
 
     [Fact]

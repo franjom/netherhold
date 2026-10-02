@@ -446,11 +446,10 @@ tick is skipped (the counters still run).
    Exact filter and remaining virtual-predicate question:
    `research/computer-keeper-management.md` §3.
 9. `random(100) < 50` and budget and army not ready-to-attack → **training moves**
-   (`0x4FF5C0`): a creature within a level-up (experience above ¾ of its next
-   threshold) or at level ≥ `TrainingRoomMaxExperienceLevel` (balance variable 126,
-   global `0x006F28FC`) and below `IACreatureSkillLevel` goes to the Combat Pit (16);
-   others go to the Training Room (7). Each needs its destination room; the
-   health > ¾ gate is on the Combat Pit branch only (`0x004FF5C0`).
+   (`0x4FF5C0`): a creature with experience above ¾ of its next threshold, or at
+   level ≥ `TrainingRoomMaxExperienceLevel` and below `IACreatureSkillLevel`, is
+   dropped on a Combat Pit floor slot; any other on a Training Room's. The rules:
+   `research/computer-keeper-management.md` §2.
 10. If budget: `random(100) < 10` → **traps and doors** (`0x5000A0`, §5.6).
 11. If budget and `Flags` bit 4: **imps**. If `FightGoingOn` is clear: when
     `imps < MaximumImps` **and** `imps < ownedTiles / TilesPerImpRatio`, and Create Imp
@@ -1125,15 +1124,15 @@ The proactive foundation already exists (§12.8). **Future direction, agreed 202
    message families and producers.
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
-3. **Dungeon management.** Add need-driven room expansion/building, training moves,
-   mood responses, prisoners, specials and research decisions. Acceptance: a verified
+3. **Dungeon management.** Add need-driven room expansion/building, mood responses,
+   prisoners, specials and research decisions; the training moves are built (ADR-0317). Acceptance: a verified
    need changes its orders. Reuse §12.3–12.4's existing commands and state.
 4. **Deliberate attacks.** Readiness with its level grants, enemy selection, the attack
    tunnel, the staging point, the front and the call are built (ADR-0298), and task 7's
    bridges (ADR-0304): Nemesis on Level 18 grants levels, chooses Fabian and creeps the call
    toward her; Drako on Level 11A chooses Morgana, spans the lava with Stone Bridge, tunnels on
-   and calls its army to her heart. Left: the research move, training moves, trap/door
-   decisions, and the original comparison (Q497).
+   and calls its army to her heart. Left: the research move, trap/door decisions, and the
+   original comparison (Q497).
    Acceptance: the keeper prepares and launches an attack without scripted orders.
 5. **Personalities and comparison.** Load all nine profiles; test deterministic command
    streams and compare an active original keeper on the same stock map with availability
@@ -1147,7 +1146,8 @@ commands cause (Call to Arms, the keeper spells, the level grant) are simulation
 gold untag, imp creation, slapping, and the task machine for tasks 0–7. The other files
 are §12.2's table.
 
-`KeeperAI.Think` also runs step 7's attack management and step 9's training roll.
+`KeeperAI.Think` also runs step 7's attack management and step 9's training moves
+(`KeeperTrainingStep`, ADR-0317).
 `tests/DK2.AI.Tests` runs `KeeperAITests` against a synthetic 30×30 rock world
 (`KeeperWorld`): the creation-time directions for all four heart positions, the site
 finder's placement and its gap gate, the walker in a straight line and round an
@@ -1157,7 +1157,7 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
-The observation (schema 14) includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
+The observation (schema 15) includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
 alliances, reverse player activation order, research upgrades, placed trap threat and
 navigation bytes (`research/computer-keeper-threat.md` sections 1 and 2). Tests check frozen
 values, packet round trips and equal command streams;
@@ -1190,7 +1190,8 @@ captured place, route and Thunderbolt-target permissions the battle step predict
 schema 11 its Combat Pit mark and whether it holds a room id; schema 12 the Heal permission
 its validators give an own creature; schema 13 every player's status, the heart room's middle
 as the heart and the call's refused own-room tiles, with route queries over the captured bytes;
-schema 14 the Chicken and Inferno permissions per foreign creature (ADR-0302).
+schema 14 the Chicken and Inferno permissions per foreign creature (ADR-0302); schema 15 each
+creature's experience and dropped-to-do job and each room's floor slots in chain order (ADR-0317).
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
 now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);
@@ -1198,6 +1199,6 @@ remaining gaps: `research/creature-pickup.md`. Response dispatch is connected, C
 The attack planner, the front and attack management run through `Think` at task 0 and step 7
 with readiness grants as commands (ADR-0298, `KeeperAttackPlanner`, `KeeperReadiness`).
 Combat messages reach the observation; the battle step casts all four shipped battle spells
-(ADR-0302). The remaining reactive decisions, the remaining message families, personality loader
-and §5.1 step 9 training moves remain unbuilt.
+(ADR-0302). The training moves run at step 9 (ADR-0317). The remaining reactive decisions, the
+remaining message families and the personality loader remain unbuilt (2026-10-02).
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.

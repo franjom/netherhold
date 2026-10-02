@@ -33,6 +33,28 @@ public class Level10KeeperScenarioTests(ITestOutputHelper output)
     }
 
     [InstallFact]
+    public void Level10AsmodeusDropsItsCreaturesOnItsTrainingRoomsInteriorsUnaided()
+    {
+        string install = Dk2InstallGate.Path;
+        Scenario scenario = ScenarioCorpus.Load("keepers/level10_asmodeus_idle.yaml");
+        scenario.DurationTicks = 200;
+        ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+
+        // Skill level 10 and a minimum of 30: never ready, so step 9 moves its creatures (ADR-0317).
+        List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is PickUpCreatureCommand or DropCommand).ToList();
+        Assert.NotEmpty(moves);
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level10")!;
+        byte training = ScenarioCorpus.Database.RoomById((byte)RoomTypeId.TrainingRoom).TerrainId;
+        foreach (DropCommand put in moves.Select(e => e.Command).OfType<DropCommand>())
+            for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    MapTile around = map[put.Tile.X + dx, put.Tile.Y + dy];
+                    Assert.Equal((training, (byte)4), (around.TerrainId, around.PlayerId));
+                }
+    }
+
+    [InstallFact]
     public void KeeperCommandsAreCountedOnlyWhenThereIsATickToApplyThem()
     {
         Scenario scenario = ScenarioCorpus.Load("keepers/level10_asmodeus_idle.yaml");
@@ -109,20 +131,20 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
     }
 
     [InstallFact]
-    public void Level17HarkanLiftsItsWoundedBlackKnightToALairUnaided()
+    public void Level17PlayerFiveLiftsItsWoundedBlackKnightToALairUnaided()
     {
         string install = Dk2InstallGate.Path;
-        Scenario scenario = ScenarioCorpus.Load("keepers/level17_harkan_retreat.yaml");
+        Scenario scenario = ScenarioCorpus.Load("keepers/level17_player5_retreat.yaml");
         GameDatabase database = ScenarioCorpus.Database;
         ScenarioResult run = ScenarioCorpus.Run(scenario, output);
 
         // The retreat's own commands, not a scripted move: the wounded creature is passed over
         // while it seeks its bed and lifted once asleep, each pick-up followed at once by a drop
-        // on one of Harkan's Lair tiles (ADR-0284, the scenario's comment for the turn).
+        // on one of player 5's Lair tiles (ADR-0284, the scenario's comment for the turn).
         Assert.Empty(run.ExpectationFailures);
         List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is PickUpCreatureCommand or DropCommand).ToList();
         Assert.NotEmpty(moves);
-        Assert.All(moves, e => Assert.Equal((byte)4, e.Command.PlayerId));
+        Assert.All(moves, e => Assert.Equal((byte)5, e.Command.PlayerId));
         Assert.All(moves.Chunk(2), pair => Assert.True(pair[0].Command is PickUpCreatureCommand && pair[1].Command is DropCommand
             && pair[0].InputTick == pair[1].InputTick));
         Assert.True(moves[0].InputTick > 1, "the lift waits for the bed, it is not the first tick's");
@@ -131,8 +153,35 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         foreach (DropCommand put in moves.Select(e => e.Command).OfType<DropCommand>())
         {
             MapTile landing = map[put.Tile.X, put.Tile.Y];
-            Assert.Equal((lair, (byte)4), (landing.TerrainId, landing.PlayerId));
+            Assert.Equal((lair, (byte)5), (landing.TerrainId, landing.PlayerId));
         }
+        Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
+    }
+
+    [InstallFact]
+    public void Level17HarkanPutsItsOwnBlackKnightsInItsTrainingRoomUnaided()
+    {
+        string install = Dk2InstallGate.Path;
+        Scenario scenario = ScenarioCorpus.Load("keepers/level17_harkan_training.yaml");
+        GameDatabase database = ScenarioCorpus.Database;
+        ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+
+        // The training moves' own commands on the stock map, nothing added: each pick-up followed
+        // at once by a drop on an interior cell of Harkan's Training Room (ADR-0317).
+        Assert.Empty(run.ExpectationFailures);
+        List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is PickUpCreatureCommand or DropCommand).ToList();
+        Assert.NotEmpty(moves);
+        Assert.All(moves.Chunk(2), pair => Assert.True(pair[0].Command is PickUpCreatureCommand && pair[1].Command is DropCommand
+            && pair[0].InputTick == pair[1].InputTick));
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level17")!;
+        byte training = database.RoomById((byte)RoomTypeId.TrainingRoom).TerrainId;
+        foreach (DropCommand put in moves.Select(e => e.Command).OfType<DropCommand>())
+            for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    MapTile around = map[put.Tile.X + dx, put.Tile.Y + dy];
+                    Assert.Equal((training, (byte)4), (around.TerrainId, around.PlayerId));
+                }
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
 }

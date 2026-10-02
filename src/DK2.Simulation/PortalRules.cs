@@ -7,13 +7,16 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>Where creatures come from: the five gates a portal passes before
-/// producing one — unlocked (<c>Availability</c> kind 2 CREATURE, per level and per
-/// player, so only because a level's VARIABLES are merged in, ADR-0040), in the pool
-/// (<c>CreaturePool</c>, likewise), attracted (<see cref="CreatureAttraction"/>),
-/// within <see cref="AttractionBudget"/> (ADR-0147) and under
-/// <see cref="CreatureCapacity"/>. Gates and numbers CONFIRMED (shipped v1.70 data;
-/// 1999 manual "Portal" p.22); how they compose STRONGLY INFERRED (portals.md, Q86).</summary>
+/// <summary>Where creatures come from: the four gates a portal passes before
+/// producing one — in the pool (<c>CreaturePool</c>, per level and per player, so only
+/// because a level's VARIABLES are merged in, ADR-0040), attracted
+/// (<see cref="CreatureAttraction"/>), within <see cref="AttractionBudget"/> (ADR-0147)
+/// and under <see cref="CreatureCapacity"/>. The creature's <c>Availability</c> row
+/// (kind 2) is not one of them: the pick <c>0x004DBF90</c> never reads it, and Level 3's
+/// recording produces three creatures its script made UNAVAILABLE (ADR-0316).
+/// <see cref="IsUnlocked"/> remains for the table's other readers. Gates and numbers
+/// CONFIRMED (shipped v1.70 data; 1999 manual "Portal" p.22); how they compose STRONGLY
+/// INFERRED (portals.md, Q86).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/portals.md")]
 public static class PortalRules
 {

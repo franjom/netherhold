@@ -77,10 +77,9 @@ public sealed class KeeperAIState
     /// the eight stored ones, empty when their start's X is zero.</summary>
     public readonly KeeperBreachState[] Breaches = Enumerable.Range(0, 16).Select(_ => new KeeperBreachState()).ToArray();
 
-    /// <summary>Ours: the research move (<c>0x004FA8D0</c>) and the training moves (<c>0x004FF5C0</c>)
-    /// the tick would run and this build does not, counted where DK2 would call them.</summary>
+    /// <summary>Ours: the research move (<c>0x004FA8D0</c>) the tick would run and this build does
+    /// not, counted where DK2 would call it.</summary>
     public int UnbuiltResearchMoves;
-    public int UnbuiltTrainingMoves;
 
     /// <summary>The loaders copy <c>BreachAtXPoints</c>, kept to four bits, into every enemy's count.</summary>
     public void InitialiseBreaches(byte breachAtXPoints)

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Data.Model;
 using DK2.Simulation;
 
 namespace DK2.AI;
@@ -17,7 +18,7 @@ namespace DK2.AI;
 /// <param name="CallToArmsSiteAllowed">For an own fighter: the place validators pass at its tile; <paramref name="HeartRouteExists"/>: a walker routes from two tiles east of the heart to it.</param>
 /// <param name="SpellTargetAllowed">For a foreign creature: <c>0x004BBA40</c>'s validators pass for Thunderbolt, <paramref name="ChickenTargetAllowed"/> for Chicken, and <paramref name="InfernoPlaceAllowed"/> <c>0x004BB8A0</c>'s for Inferno at its tile; <paramref name="HealTargetAllowed"/>: for an own creature, for Heal.</param>
 /// <param name="CombatPitFighter">Its <c>+0x3E6</c> bit 15, the Combat Pit's fighter mark.</param>
-/// <param name="AttachedToRoom">Whether it holds a room id (<c>+0x3B9</c>, <see cref="RoomMembershipRules"/>).</param>
+/// <param name="AttachedToRoom">Whether it holds a room id (<c>+0x3B9</c>, <see cref="RoomMembershipRules"/>).</param> <param name="Experience">Experience toward the next level (<c>+0x3FF</c>); <paramref name="DroppedToDoJob"/> is <c>+0x2BC</c>, the job of the room the hand last dropped it on.</param>
 public readonly record struct KeeperCreatureView(
     int Id, byte CreatureTypeId, byte OwnerPlayerId, CreatureActivity Activity,
     int Health, int Level, long LastSlapTick, bool CanSlap,
@@ -27,4 +28,5 @@ public readonly record struct KeeperCreatureView(
     ushort LastDroppedCounter = 0, bool InMyHand = false, int OwnershipRank = -1, bool UnderCallToArms = false,
     byte FightTargetOwner = 0, bool CallToArmsSiteAllowed = false, bool HeartRouteExists = false,
     bool SpellTargetAllowed = false, bool CombatPitFighter = false, bool AttachedToRoom = false,
-    bool HealTargetAllowed = false, bool ChickenTargetAllowed = false, bool InfernoPlaceAllowed = false);
+    bool HealTargetAllowed = false, bool ChickenTargetAllowed = false, bool InfernoPlaceAllowed = false,
+    int Experience = 0, JobType DroppedToDoJob = JobType.None);
