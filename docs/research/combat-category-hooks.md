@@ -39,8 +39,9 @@ word `+0x3D5` = 0.
 `0x0045ADC0` takes no stack argument: it decides from the creature alone.
 
 1. `0x0048F3F0`: `AttackingId` `+0x3F9` = 0 and `AttackAbnormalTargets` cleared, then the
-   unlink `0x0045EF50` (my slot on my creature target freed, `+0x502` = 0). **Every exit from
-   Combat drops the creature's own forced target.**
+   unlink `0x0045EF50`: `+0x502` = 0, and my slot on the target freed only when my attack
+   nibble is 0, 1 or 3 and the target is a live creature (class table `0x006ED540`, thing
+   `+0x12` = 0). **Every exit from Combat drops the creature's own forced target.**
 2. An inline copy of that unlink, dead because `+0x502` is already 0.
 3. Each of my sixteen attacker slots (ranged `+0x514`, then melee `+0x504`, per index): an
    attacker whose `+0x502` is me gets the victory nibble (`+0x529 |= 0xF`) **only if my health
@@ -57,7 +58,7 @@ resume outside 22 (`travel-states.md` §2), because entering a walk runs no hook
 | DK2 word | DK2's name | Writers and readers (scan) | Ours |
 |---|---|---|---|
 | `+0x3D5` | `ReportingTo` (dumper) | written 0 by the constructor and both hooks; read only by the dumper | not modelled; nothing to model |
-| `+0x64`, `+0x66`, `+0x68` | none | three angles mod 2048: `0x004A21C0` adds `0x40` to each, torture sets `+0x64` = `0x600`, the hand pick-up and torture clear them | not modelled. **Not** `CurrentlyDoingJobId`, which is state `+0x64` (creature `+0x2B2`) |
+| `+0x64`, `+0x66`, `+0x68` | none | three words; meaning **UNKNOWN**. `0x004A21C0` adds `0x40` to each and wraps at `0x7FF`, but it may be object code, so that is not shown to be about creatures; torture sets `+0x64` = `0x600`, the hand pick-up and torture clear them | not modelled. **Not** `CurrentlyDoingJobId`, which is state `+0x64` (creature `+0x2B2`) |
 | `+0x95`, `+0x97`, `+0x99` | none | a signed triple: torture and `0x004A7040` write it, `0x0049B9F0` reads it as three ints | not modelled |
 | `+0x502`, slots `+0x504`/`+0x514` | — | the engagement and the attacker slots | `FightTarget*`, `EngagedMelee`/`EngagedRanged` |
 | `+0x3F9`, `+0x3E6` bit 2 | `AttackingId`, `AttackAbnormalTargets` | the forced target | the same names |
@@ -102,10 +103,14 @@ corpus takes a fighter to a resume outside 22, and no hero party's pace was set 
 
 The health routine `0x004B2CE0` loads the dying countdown into health `+0x40`
 (`0x004B2FB2`) **before** it calls the collapse `0x0048B770`, which enters 216 through
-`0x004596D0`. So the leave hook sees health above 0, and a fighter that collapses releases its
+`0x004596D0`. The countdown is `CreatureDyingStateDurationSeconds` × variable 19, 60 × 4 as
+shipped (`creature-death.md` §4; Ghidra holds no bytes for the two globals, which the loader
+fills). Creature types `0x1D`, `0x15` and `0x1C`, and any with `+0x3EA` bit 11, skip that path:
+`0x0048B770` destroys them through the vtable instead. So the leave hook sees health above 0, and a fighter that collapses releases its
 attackers **without** the victory nibble. ADR-0213's pit knockout is this rule, not a pit
 special. DK2 gives the nibble at death instead: `Creature_DeathBookkeeping` calls `0x00487C00`,
-which runs `0x0045E4A0` over every attacker at health 0 or below.
+which runs `0x0045E4A0` over every attacker at health 0 or below. That death comes when the
+dying window ends, the same 60 seconds, unless a rescue or healing ends it first.
 
 Ours books the collapse up to a game second after health reaches 0 and keeps health at or
 below 0 while dying. So the hook's test is ours as: health at or below 0 **and** no dying
