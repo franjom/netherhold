@@ -86,12 +86,19 @@ instructions as well as the decompiled world routine `0x0050A450`.
 | 35 | `0xE000` | selected by Data1; duplicates allowed |
 | 55 | `0xA000` | subtable `0x006A0690`: 1–4 20 s, 5 240 s; both Training hooks pass 5 (read 2026-10-01) |
 
-Type 41's subtable at `0x006A03D8` gives Treasury 420 seconds, Lair/Hatchery
-180, Graveyard/Prison 600, and the other listed room types 300. Type 42's table
-at `0x006A04B8` gives Treasury/Hatchery 240, Lair 90, and the other listed room
-types 300. These bytes are **CONFIRMED**. Unknown-subtype fallback is not a
-general default lifetime: insertion only copies a matching subtype's lifetime;
-a selected zero string discards the new message.
+A type's row is at `0x006A0B00 + 10 × type`. Rows 41, 42 and 43 are `0xA000`
+with subtables `0x006A03D8`, `0x006A04B8` and `0x006A0528`; each entry is
+eight bytes, u16 room type, u16 seconds and an i32 string id, ending in a
+type-0 row. Type 41 gives Treasury 420 seconds, Lair/Hatchery 180,
+Graveyard/Prison 600 and room types 6, 7, 9, 10, 12, 13, 15, 16 300. Type 42
+gives Treasury/Hatchery 240, Lair 90 and types 6, 7 and 9–16 300. Type 43
+gives Prison/Torture 360 and types 1–4, 6, 7, 9, 10 and 13–16 300. These bytes
+are **CONFIRMED** (re-read 2026-10-02). The record starts with timeout zero; a
+matching row sets subtype, string and lifetime. An unmatched type takes the
+terminator's string with timeout and subtype zero: 41 and 43 end in string 0, so
+the record is freed again after any eviction it caused; 42's terminator string
+is nonzero, so the record stays until the next sweep. The duplicate test
+compares Data1 with the stored subtype (`+0x07`), not with Data1.
 
 ### Player suppression state
 
@@ -138,8 +145,9 @@ index or a creature id inferred from the message number.
 | 32, 35 | `0x004E5650` | New/old room owner; room type / room tag | Room ownership transfer; type 33 replaces 32 when the old owner is neutral |
 | 32, 35 | `0x0044FC40` | New/old tile owner; 287 / zero | Mana-vault ownership transfer uses the same message family |
 | 34 | `0x00466080` | Hostile room's owner; room type / room tag | Worker enters state 18 against the room; the keeper resolves the room's position |
-| 41 | `0x00464400` | Imp owner; Treasury type 1 / zero | No Treasury exists and Treasury availability is already 3: a needed room, not an unlock notification |
-| 42 | `0x004E5A70` | Room owner; room type / zero | Capacity failure, including Prison capacity; other room-search producers also emit it |
+| 41, 42, 43 | `0x00464400` | Carrier's owner; Treasury 1 / zero | See [the gold carrier](#the-gold-carrier-and-gold-paid-in) |
+| 41, 42 | `0x004BA420` | The paying player; Treasury 1 / zero | Gold paid in at a tile that no store takes; same section |
+| 42 | `0x004E5A70` | Room owner; room type / zero | Claim failure with no other room of the type having a place (`0x004C6AE0`); also a Prison past `+0x4B` after a successful claim (`0x004E5C72`, Data1 11). No availability, pending-work or timer gate |
 | 47 | `0x004AE120` | Shot owner; shot tile x/y | Shot process 13; shipped `Shots.kwd` record 31 is Turncoat, process flags `0x4` (hit event) |
 
 For 47, `0x004AD1B0` installs the callback at `0x0069E91C` and its process
@@ -152,27 +160,52 @@ For 17/18, Data1 is the anger wrapper's third argument, not its bucket index.
 The keeper recomputes the current largest bucket when choosing a remedy;
 see `computer-keeper-management.md` section 13.
 
-For 41, `0x004C6E70` independently confirms the Treasury-count test in the
-producer. Existing storage with no capacity instead yields 42; storage with
-capacity but no route yields 43. Room availability and room need are separate
-conditions. Additional independently checked branches follow; this is not yet
-an exhaustive classification of computed message types.
+### The gold carrier and gold paid in
+
+Rechecked in instructions 2026-10-02. The carrier's store chooser `0x00464400`
+walks its owner's Treasuries and unruined Hearts (`+0x9A` bit 0 clear). A store
+whose `+0x49` gold is below its capacity (`0x004F4700`) clears a "none has space"
+flag; one whose first slab `0x00471630` reaches with options `0x80` sets a
+"reachable" flag and is a candidate. With no candidate: no Treasury
+(`0x004C6E70(1)`, all Treasury rooms, compared unsigned below 1) posts 41 only
+at availability 3; else no space posts 42; else no reachable store posts 43.
+The Heart counts as a store for 42 and 43 but not for 41. No pending-work or
+timer gate applies; the point test is the route test (`0x00471630`'s record).
+
+`0x004BA420` with a positive amount, flag 0 and a nonzero tile spreads the gold
+over the Treasuries and unruined Heart in equal shares (`0x004F4090` returns
+what a room did not take) until a pass stores nothing. Gold left over then
+posts 41 with no Treasury, 42 with one, when the Treasury availability row
+(`0x004BAB80(1)`, no row reading 1) is not 1, and is dropped as a floor pile.
+State 2 therefore posts here and not in the carrier. The branch for a Treasury
+count of 255 is unreachable. Such calls come from the room-tile sale
+`0x004C5DB0` (its refund at the tile), `0x004C3670`, `0x004C3A20`, action `0x77`
+(`0x0051415F`) and `0x00499E50`/`0x00499F86` (at the Heart); only the sale is
+classified here.
+
+Room availability and room need are separate conditions. Additional
+independently checked branches follow; this is not yet an exhaustive
+classification of computed message types.
 
 | Producer | Room / messages | Discriminating gate |
 |---|---|---|
 | `0x004DED00` | Hatchery / 41, 42, 43 | Availability 3; no room gives 41, unreachable stocked room gives 43, otherwise an empty reachable room more than four seconds past `room+0x9F` gives 42. Pending build or sale suppresses all three. |
-| `0x004E0470` | Lair / 41, 42, 43 | Availability 3; absent/full/unreachable branches. Pending build or sale suppresses only the absent-room 41 branch; 42/43 have no such gate. The full-room branch uses the same strict four-second comparison. |
+| `0x004E0470` | Lair / 41, 42, 43 | Availability 3. A Lair the `0x80` route reaches with a slot is chosen. No Lair gives 41 unless a build or sale is pending; else a Lair with a slot that route option 2 cannot reach gives 43; else a reached full Lair more than four seconds past `room+0x9F` gives 42 (rechecked 2026-10-02). |
 | `0x004D8870` | Combat Pit / 41, 42, 43, 44 | Availability 3 and no pending build/sale for each message. Four-second timing applies to the unusable-place branches. Message 44 carries the room tag; the others carry zero. |
 | `0x0046CF40`, `0x0046D3C0` | Graveyard / 41, 42 | Both require availability 3 for absent-room 41. Only `0x0046CF40` rechecks availability 3 on the failed-capacity 42 branch. |
-| `0x004BA420` | Treasury / 41, 42 | Positive gold left after storage attempts: availability other than 1 permits a request; Treasury count zero selects 41, otherwise 42. This differs from the imp's state-3-only absent-room gate. |
 
 The pending-work predicates `0x004C7340` and `0x004C7360` scan three room-type
 bytes, stride `0x19`, at player `+0x1C2` and `+0xE97`. Their writers are the
 build/sell queues `0x004C6EF0`/`0x004C70A0`; see `room-slab-chain.md` sections
 2 and 4. Any occupied slot suppresses the gated requests, regardless of room type.
-The route helper `0x00471740` obtains a room position and tests a creature route;
-the producer calls above use options `0x80` for the first search and 2 for the
-unreachable-room distinction. These are not merely room-count checks.
+The route helper `0x00471740` takes a room point (`0x004E5000`) and tests the
+creature's route (`0x004D0E60`) to it. Option bits 1, 2 and 7 become creature
+`+0x3E6` bits 17–19, `IgnoringDoors`, `IgnoringLockedRegion` and
+`CheckingAllDoors`: the first search respects every door, the unreachable test
+does not. `room+0x9F` is `GameTickLastOnChangeSize`, the game turn written by
+`Room_Construct` (`0x004E3965`) and by `0x004E4480` (`0x004E4491`), which all
+three tile rebuilds call; "four seconds" is `4 × ticks per second`, compared
+unsigned and strictly. These are not merely room-count checks.
 
 The Library finder `0x004E2500` checks **Lair availability (2)** before posting
 Library (6) messages: `0x004E26A6` pushes 2, `0x004E26AA` calls the availability
@@ -218,14 +251,35 @@ The ownership transfer's argument order was checked in instructions:
 the new owner. Neutral-room acquisition therefore does not take the keeper's
 type-32 Portal/Lair branch.
 
-## 3. Reaction quirk and implementation requirements
+## 3. The room-message arms and implementation requirements
 
-At `0x004FA668`, the type-42 branch calls the gold-untag helper `0x004FA7C0`
-**before** checking whether the requested room is a Treasury. Every room-space
-message attempts to remove the player's task-list-2 tags. If a refused untag
-still targets gold, the helper reports failure. Only for Treasury does that
-failure stop expansion; `0x004FA676` marks that message handled anyway.
-For other rooms the normal expansion policy continues despite failure.
+Read in instructions 2026-10-02 (`0x004FA5B8`–`0x004FA70F`). Both arms first
+clear `NextRoomToBuildSet` when `NextRoomToBuild` is the Portal placeholder 3.
+The request is Data1's low byte; availability is `0x004BAB20` on the keeper's
+player for the request without bit 7.
+
+- **41.** Availability other than 3: handled. A request already set: left
+  unhandled, so the walk retries it each turn while it is retained. Otherwise,
+  unless `CurrentRoomToBuild` names the same type (low seven bits), the request
+  becomes `NextRoomToBuild` with the set bit; handled either way.
+- **42.** `0x004FA7C0` runs first, for every room type: action 41 through the
+  dispatcher `0x0050E5C0` on each kind-2 task, the gold digs. It reports
+  failure only when an action returns 0 on a tile whose terrain (world slot
+  `+0x6C`, `0x00509450`) has `+0x17B` bit 1, Impenetrable (Gems in the shipped
+  data). A failure with Data1's byte equal to 1 marks the message handled and
+  stops. Otherwise `BuildNewRoomWhenMoreSpaceRequired` (`+0x4B2` bits 7–8,
+  loaded as `(byte & 3) << 7`): 0 sets bit 7, expand; 2 marks handled; 1 and 3
+  ask for a new room. The availability, set-bit and same-room tests then follow
+  as for 41, storing the byte with bit 7.
+
+The untag failure branch is unreachable in 1.70, **CONFIRMED** statically: the
+dispatcher returns the handler's result, and the startup constructor `0x00511A80`
+registers `0x005129E0` for id `0x29` in the `{id, handler}` list at `0x006A54B8`,
+which the world-init routine `0x005099A0` copies into the table (cleared at
+`0x00509A90`, copied at `0x00509ABD`–`0x00509AED`); that routine is the only table
+writer found, and the handler always returns 1. The
+second availability call in each arm repeats the first, so its call to the room
+chooser `0x004F93B0` cannot run. The arms spend no allowance.
 
 The keeper skips handled records but can retry unsuccessful reactions while
 their messages remain retained (`0x004FA400`). Consequently a read-and-drain
@@ -262,5 +316,14 @@ Scheduling and the preserved observation window are ADR-0245. Type 84, a creatur
 and 89 with a fifty-second lifetime and no duplicates (`call-to-arms.md`). The keeper consumes
 1 and 6 (ADR-0278): `KeeperThreatResponder` walks the recipient's retained entries
 in queue order, skips handled ones and acknowledges by command. No live original
-message trace has been captured. Room/mood/subtype messages, their suppression
-and remaining producers are unimplemented; unsupported kinds fail explicitly.
+message trace has been captured.
+
+Types 41–43 are retained with their subtype rows (ADR-0327); a type the rows do
+not list, and 41 for a Graveyard (the `+0xF4E` suppression), are refused.
+`RoomNeedRules` posts from the carrier's store chooser, the room sale's refund
+and the Lair finder; `room+0x9F` is `TileState.RoomSizeChangedTick`. The pending
+build/sale gate has nothing to test, since a wave is laid in its command's tick.
+`KeeperRoomRequests` runs both arms. Unbuilt producers: the other finders in
+section 2, the claim failure, the rescue selector and `0x004BA420`'s other
+callers. Mood messages and the remaining suppression fields are unimplemented;
+unsupported kinds fail explicitly.

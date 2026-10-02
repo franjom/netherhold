@@ -45,7 +45,7 @@ public static class SlabChain
         if (tile.TerrainId == terrainBefore && tile.OwnerPlayerId == ownerBefore) return;
         if (database.RoomByTerrain(terrainBefore) is not null) Removed(world, tileIndex, terrainBefore, ownerBefore);
         if (database.RoomByTerrain(tile.TerrainId) is not null) Added(world, tileIndex);
-        else tile.SlabOrder = 0;
+        else (tile.SlabOrder, tile.RoomSizeChangedTick) = (0, 0);
     }
 
     /// <summary><c>0x004ED320</c>, for a tile that has just become room terrain: it joins the room
@@ -151,9 +151,26 @@ public static class SlabChain
         return tiles;
     }
 
+    /// <summary>Relinks a rebuilt room and stamps its size change, as <c>Room_Construct</c> and the
+    /// three tile rebuilds' <c>0x004E4480</c> write the game turn to <c>room+0x9F</c>.</summary>
     private static void Stamp(WorldState world, List<int> chain)
     {
-        foreach (int tile in chain) world.TileAtIndex(tile).SlabOrder = world.NextSlabOrder++;
+        long now = world.CurrentTick.Value;
+        foreach (int tile in chain)
+        {
+            ref TileState state = ref world.TileAtIndex(tile);
+            state.SlabOrder = world.NextSlabOrder++;
+            state.RoomSizeChangedTick = now;
+        }
+    }
+
+    /// <summary>The room's <c>GameTickLastOnChangeSize</c> (<c>room+0x9F</c>); every tile of a room
+    /// carries the stamp of its last rebuild.</summary>
+    public static long SizeChangedTick(WorldState world, RoomInstance room)
+    {
+        long stamp = 0;
+        foreach (int tile in room.TileIndices) stamp = Math.Max(stamp, world.TileAtIndex(tile).RoomSizeChangedTick);
+        return stamp;
     }
 
     private static bool Before(WorldState world, int a, int b)

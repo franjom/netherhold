@@ -48,6 +48,11 @@ internal static class KeeperWorld
     public const byte FighterCreature = 2;
     public const ushort FighterThreat = 50;
 
+    /// <summary>A creature that sleeps in a bed of <see cref="BedObjectId"/>, so a missing or full
+    /// Lair is something its sleep need finds (messages 41 to 43).</summary>
+    public const byte SleeperCreature = 3;
+    public const byte BedObjectId = 22;
+
     public const byte Keeper = 3;
     public static readonly TilePos HeartAt = new(15, 15);
 
@@ -60,8 +65,8 @@ internal static class KeeperWorld
             Terrain(DirtPath, "Dirt Path", TerrainFlags.Ownable, 100, maxHealthType: ClaimedPath),
             Terrain(Gold, "Gold", TerrainFlags.Solid | TerrainFlags.Taggable, 300, destroyedType: DirtPath, gold: 1024),
             Terrain(ClaimedPath, "Claimed Path", TerrainFlags.Ownable, 100),
-            Terrain(TreasuryFloor, "Treasury", TerrainFlags.Ownable | TerrainFlags.Room, 100),
-            Terrain(LairFloor, "Lair", TerrainFlags.Ownable | TerrainFlags.Room, 100),
+            Terrain(TreasuryFloor, "Treasury", TerrainFlags.Ownable | TerrainFlags.Room, 100, destroyedType: ClaimedPath),
+            Terrain(LairFloor, "Lair", TerrainFlags.Ownable | TerrainFlags.Room, 100, destroyedType: ClaimedPath),
             Terrain(HatcheryFloor, "Hatchery", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(HeroPortalFloor, "Hero Portal", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(PortalFloor, "Portal", TerrainFlags.Ownable | TerrainFlags.Room, 100),
@@ -100,10 +105,12 @@ internal static class KeeperWorld
                 | CreatureFlags.CanBeSlapped, hp: 500, threat: 2, JobClass.Scout, FightStyle.NonFighter),
             Creature("Fighter", FighterCreature, CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped
                 | CreatureFlags.CanWalkOnWater, hp: 1500, threat: FighterThreat, JobClass.Fighter, FightStyle.Blocker),
+            Creature("Sleeper", SleeperCreature, CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp, hp: 500, threat: 2,
+                JobClass.Fighter, FightStyle.Blocker) with { LairObjectId = BedObjectId, TimeSleep = 9 },
         ],
         variables: Variables(handCapacity),
         keeperSpells: KeeperSpells(),
-        objects: [Flag(), TrainingDummy()],
+        objects: [Flag(), TrainingDummy(), Bed(), FloorGoldPile()],
         shots:
         [
             Shot("Create Object", CreateObjectShotId, 2048, 1, 4, 0x80, ShotRules.CreateObjectProcess),
@@ -168,6 +175,22 @@ internal static class KeeperWorld
         Name = "Training Dummy", ObjectId = TrainingDummyObjectId, Flags = (ObjectFlags)0x02004000u, Hp = 1, ManaValue = 0,
         RoomCapacity = 0, StartState = 0, PickUpPriority = 176, Width = new Fp32(2297), Height = new Fp32(1228),
         Mass = new Fp32(8192), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
+    };
+
+    /// <summary>A creature bed: <c>TypeLair</c> is the bit the Lair rules read (shipped flags 0x04034020).</summary>
+    private static ObjectDef Bed() => new()
+    {
+        Name = "Creature Bed", ObjectId = BedObjectId, Flags = (ObjectFlags)0x04034020u, Hp = 128, ManaValue = 0,
+        RoomCapacity = 1, StartState = 0, PickUpPriority = 176, Width = new Fp32(2048), Height = new Fp32(256),
+        Mass = new Fp32(8192), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
+    };
+
+    /// <summary>Object 1, "Gold": the floor pile a sale's refund lands in when no store takes it.</summary>
+    private static ObjectDef FloorGoldPile() => new()
+    {
+        Name = "Gold", ObjectId = FloorGold.FloorGoldObjectId, Flags = (ObjectFlags)0x00810140u, Hp = 128, ManaValue = 0,
+        RoomCapacity = 0, StartState = 31, PickUpPriority = 176, Width = new Fp32(256), Height = new Fp32(1228),
+        Mass = new Fp32(16384), Speed = new Fp32(0), NameStringId = 292, TooltipStringId = 292,
     };
 
     /// <summary>Stands each room's auto-placed furniture, as a level's rooms come furnished.</summary>
@@ -372,6 +395,12 @@ internal static class KeeperWorld
         Set(vars, VariableTypeId.CombatPitMaxExperienceLevel, 8);
         Set(vars, VariableTypeId.EPLossSecondWhileNotTraining, 0);
         Set(vars, VariableTypeId.ModifyAngerOfPitSpectatorPerSecond, -275);
+        // What a store holds and a sale refunds, as shipped: the room messages' producers read them.
+        Set(vars, VariableTypeId.MaxGoldPerTreasuryTile, 3000);
+        Set(vars, VariableTypeId.MaxGoldPerDungeonHeartTile, 1000);
+        Set(vars, VariableTypeId.MaxGoldPileOutsideTreasury, 2000);
+        Set(vars, VariableTypeId.RoomSellValuePercentageOfCost, 50);
+        Set(vars, VariableTypeId.CreatureSleepsWhenBelowPercentHealth, 50);
         Set(vars, VariableTypeId.ModifyPlayerColdWhileTrainingPerSecond, -5);
         // The shipped level rows for health and the experience threshold, levels 2 to 10
         // (creature-levels.md §2), so a level-scaled rule differs from its record value.

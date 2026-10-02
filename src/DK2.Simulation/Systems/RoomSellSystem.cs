@@ -93,6 +93,9 @@ public sealed class RoomSellSystem : ISimulationSystem
             FloorGold.Drop(world, context.Database, lastSold, displacedHere);
 
             int banked = GoldStore.Deposit(world, context.Database, command.PlayerId, refund);
+            // Each tile's refund is paid in at its tile (0x004C5DB0 to 0x004BA420); what no store takes
+            // asks for a Treasury.
+            if (banked < refund) RoomNeedRules.GoldLeftOver(context, command.PlayerId);
             refunded += banked;
             lostRefund += refund - banked;
         }

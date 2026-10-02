@@ -145,7 +145,8 @@ cell turns it to bone in 83, so no prisoner ever gets hungry *in* a prison, but
 Puts a loose object — a chicken, a pile of gold — on the floor before tick 0. Here
 because a keeper's hand can hold one (ADR-0075) and nothing in a scenario can lay
 one: a hatchery lays on its own schedule, and waiting for a bird is not the thing
-under test when the thing under test is what happens after it is dropped.
+under test when the thing under test is what happens after it is dropped. `gold: n`
+puts `n` gold in a gold object, so a pile is something an imp can carry.
 
 ### `commands`
 

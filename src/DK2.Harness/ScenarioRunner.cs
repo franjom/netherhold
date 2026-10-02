@@ -553,9 +553,10 @@ public sealed class ScenarioRunner
                 continue;
             }
 
-            world.SpawnObject(
+            ObjectState placed = world.SpawnObject(
                 _database, definition.ObjectId, o.Player,
                 (o.At[1] * world.Width) + o.At[0]);
+            placed.GoldHeld = o.Gold;
         }
 
         if (scenario.Setup.Objects.Count == 0) return;

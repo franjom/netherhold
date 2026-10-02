@@ -100,6 +100,9 @@ public sealed class ScenarioObject
 
     /// <summary>Whose it is.</summary>
     public byte Player { get; set; }
+
+    /// <summary>The gold a gold object holds; zero for anything else.</summary>
+    public int Gold { get; set; }
 }
 
 /// <summary>Initial conditions, applied in this order: the shipped level's own THINGS when

@@ -74,9 +74,8 @@ public sealed class LairSeeker
     /// "functional". Reach is a real route over this creature's own
     /// <see cref="WorldPathGrid"/>, so a lair behind water is reachable for a goblin
     /// and not for a vampire; equal distances fall back to the lowest tile index,
-    /// <see cref="RoomIndex.Build"/>'s own order (ADR-0001). The failure reasons are
-    /// the original's three interface messages — no lair, every lair full, every lair
-    /// unreachable — with no grace period invented.</remarks>
+    /// <see cref="RoomIndex.Build"/>'s own order (ADR-0001). A failure posts the
+    /// original's message, 41, 42 or 43, by its own gates (<see cref="RoomNeedRules.NoLairFor"/>).</remarks>
     public bool TrySetOutForALair(
         SimulationContext context, string systemName,
         CreatureState creature, CreatureDef definition)
@@ -146,6 +145,7 @@ public sealed class LairSeeker
                 $"creature={creature.Id} type={definition.Name} " +
                 $"player={creature.OwnerPlayerId} at=({creature.Tile.X},{creature.Tile.Y}) " +
                 $"reason={reason} lairs={lairs} with_slot={candidates.Count} reachable={reachable}");
+            RoomNeedRules.NoLairFor(context, creature, definition);
             return false;
         }
 

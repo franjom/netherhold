@@ -826,6 +826,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 $"to=({drop.X},{drop.Y}) steps={creature.Body.PathTotalCount}");
             return true;
         }
+        // No store: the chooser's message, 41, 42 or 43 for a Treasury.
+        RoomNeedRules.NoStoreForCarrier(context, creature);
         return false;
     }
 

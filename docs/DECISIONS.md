@@ -7283,3 +7283,41 @@ to ADR-0323's. Level 3 against seed 01: both Thieves take their job the turn aft
 as DK2's do, and fall at 3344 and 3388 (DK2 3330 and about 3390). The win is still not reached:
 it needs the Lord of the Land killed, and ours walks into the heart at 3663 with 3,144 health
 where DK2's dies at 3683 under three Warlocks' 500-point shots and their stun.
+## ADR-0327 — Room messages 41–43 are retained, and the keeper builds or expands to them
+**Date:** 2026-10-02 · **Status:** accepted · `HashVersion` 160 · schema 16 · Q518, Q519 ·
+Research: `computer-keeper-messages.md` §1–§3, `computer-keeper-management.md` §10
+
+**Context.** The keeper's walk acknowledged 41 and 42 without acting, nothing posted them,
+and the planner had no expansion. Re-reading the arms, producers and planner showed the
+existing note on 42's untag wrong: its failure needs a refused untag on Impenetrable
+terrain, and the action table never refuses one.
+
+**Decision.**
+- `PlayerMessageQueue` retains 41, 42 and 43 with their shipped subtype rows. A type the
+  rows do not list, and 41 for a Graveyard (unmodelled `+0xF4E` suppression), are refused.
+- `TileState.RoomSizeChangedTick` is `room+0x9F`, stamped on every room tile by
+  `SlabChain` whenever a rebuild relinks the room. The full-Lair 42 waits on it.
+- `RoomNeedRules` posts from the gold carrier's store chooser (41 at availability 3, 42,
+  43), a sold tile's refund no store takes (41/42 unless availability is 1) and the Lair
+  finder (41, 43 by an ignore-doors route, 42 after four seconds), each by its own gates.
+- `KeeperRoomRequests` runs both arms in queue order, acknowledging only what DK2 marks
+  handled; 42 emits the gold-dig untag once per tick and treats it as accepted, as the
+  action table does. `PlanRoom` takes a request as `0x004FC690` does, leaving Portal
+  behind it, and an `0x80` request runs `RoomExpansion` before any new site.
+- `KeeperRoomView.ChainOrder` carries the slab chain for the expansion's corner ties.
+
+**Deviations, ours.** The pending build/sale gate has nothing to test: our waves complete
+in their command's tick. Untag, build and acknowledgment land a tick later (ADR-0244), so
+a request is predicted from the captured state; the untag result is taken as DK2's always
+is. The messages test reach with DK2's own route checks (`0x00471630`, `0x00471740`), while
+our finders choose with their existing routes, so a choice ours fails where DK2's route test
+passes posts nothing, and the reverse; the target-tile check `0x004B35C0` is not repeated.
+Hero and neutral creatures' Lair searches post 41 to players 1 and 2 (Q519).
+
+**Consequences.** Hash/format 160, pin `0xA846A4DFE0257674`; observation schema 16. Taking
+a request now leaves the Portal placeholder, adding the neutral-portal pass DK2 runs
+between rooms; every existing keeper scenario keeps its expectations. Level 17 Harkan,
+with its stores filled and a floor pile, posts 42 at tick 10, grows its Treasury by
+(12..15, 4) from tick 505 and later stores gold there: a modern-run result (Q518).
+Unbuilt: the other finders' producers, the claim failure, the rescue selector,
+`0x004BA420`'s other callers, mood messages and the rest of the suppression words.

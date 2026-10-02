@@ -18,9 +18,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (ADR-0318), hero gates (ADR-0320) and the traps whose shot is built (ADR-0321)
   run; the Guard Post, disarming and the unread shots remain (traps.md; 2026-10-02).
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
-  PlayerCommands through a detached, serialisable observation (schema 15).
+  PlayerCommands through a detached, serialisable observation (schema 16).
   The proactive task machine (tasks 0–7) digs, expands, builds rooms, manages
-  gold and imps, and crosses water or lava with bridges. Reactive combat
+  gold and imps, and crosses water or lava with bridges. Room messages 41–43
+  are posted by the gold carrier, the room sale's refund and the Lair finder;
+  41 and 42 make the keeper build or expand a room (ADR-0327). Reactive combat
   messages, threat response, wounded retreat, the battle step, Call to Arms,
   Thunderbolt, Heal, Chicken and Inferno run through simulation commands.
   The attack planner selects a target, tunnels, stages and calls its army;
@@ -29,7 +31,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 - Unaided modern scenarios show Harkan moving creatures onto its Training
   Room's floor on Level 17, Nemesis preparing an attack on Level 18, and
   Drako bridging Level 11A's lava and calling its
-  army toward Morgana. These are modern-run results. The Level 10 original
+  army toward Morgana, and Harkan on Level 17 growing its Treasury after its
+  imps find no store (Q518). These are modern-run results. The Level 10 original
   save and modern run do not form an active command-by-command comparison
   (computer-keeper-observations.md, Q497, Q509). M12's same-map original
   comparison and full acceptance criteria remain open.
@@ -42,8 +45,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 ## Next work
 
-1. M12: build the remaining room and mood message producers and decisions.
-   Verify each producer and decision in DKII.EXE, then test the command's
+1. M12: build the remaining room producers (the other finders, the claim
+   failure, the rescue selector; computer-keeper-messages.md §4) and the mood
+   messages and decisions. Verify each in DKII.EXE, then test the command's
    effect through the simulation. The research move, prisoner/special
    decisions, trap/door decisions and personality loader also remain
    (KEEPER_AI.md §12.7). Do not infer an UNKNOWN rule from a name.

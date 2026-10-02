@@ -46,15 +46,18 @@ public sealed class KeeperThreatResponder
     private readonly HashSet<int> _moved = new();
     private readonly Dictionary<int, bool> _marks = new();
     private readonly uint _turn;
+    private readonly KeeperRoomRequests? _rooms;
 
+    /// <param name="rooms">The room messages' arms; without them 41 and 42 are only acknowledged.</param>
     public KeeperThreatResponder(KeeperView view, KeeperAIState state, KeeperAIParameters parameters,
-        SimRandom rng, List<PlayerCommand> commands)
+        SimRandom rng, List<PlayerCommand> commands, KeeperRoomRequests? rooms = null)
     {
         _view = view;
         _state = state;
         _p = parameters;
         _rng = rng;
         _commands = commands;
+        _rooms = rooms;
         // DK2's first game turn is 1; the observation's tick is the turn about to run.
         _turn = unchecked((uint)(view.Tick.Value + 1));
     }
@@ -63,8 +66,9 @@ public sealed class KeeperThreatResponder
 
     /// <summary>Walks the keeper's retained messages in queue order, skipping handled ones. A
     /// combat message is evaluated when a slot is free and acknowledged when the reader
-    /// accepts it, cancelled reservations included; the fight flag is set either way. Every
-    /// other kind is marked handled, as DK2's default branch does.</summary>
+    /// accepts it, cancelled reservations included; the fight flag is set either way. Room
+    /// messages 41 and 42 go to <see cref="KeeperRoomRequests"/> and are acknowledged when it
+    /// handles them. Every other kind is marked handled, as DK2's default branch does.</summary>
     public void HandleMessages()
     {
         foreach (PlayerMessage message in _view.Messages)
@@ -72,6 +76,12 @@ public sealed class KeeperThreatResponder
             if (message.Handled) continue;
             switch (message.Kind)
             {
+                case PlayerMessageKind.RoomNeeded when _rooms is not null:
+                    if (_rooms.RoomNeeded(message)) Acknowledge(message);
+                    break;
+                case PlayerMessageKind.RoomFull when _rooms is not null:
+                    if (_rooms.RoomFull(message)) Acknowledge(message);
+                    break;
                 case PlayerMessageKind.HeartAttacked:
                 case PlayerMessageKind.CombatStarted:
                     // Flags bit 3 (respond to attack) is always on: both loaders write 0xFFFF.
@@ -82,11 +92,14 @@ public sealed class KeeperThreatResponder
                     break;
                 default:
                     // Kinds 0, 13, 22 and 26 would be left in the queue; none is produced yet.
-                    _commands.Add(new AcknowledgePlayerMessageCommand(_view.PlayerId, message.Id));
+                    Acknowledge(message);
                     break;
             }
         }
     }
+
+    private void Acknowledge(PlayerMessage message) =>
+        _commands.Add(new AcknowledgePlayerMessageCommand(_view.PlayerId, message.Id));
 
     /// <summary>The position reader: rerolls imprisonment when the keeper owns a Prison, sums
     /// strength at the tile, records the attacker, seeks a drop tile and reserves the event.

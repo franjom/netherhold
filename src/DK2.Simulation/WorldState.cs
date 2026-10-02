@@ -171,6 +171,12 @@ public struct TileState
     /// <see cref="SlabChain"/> (room-slab-chain.md).</summary>
     public int SlabOrder;
 
+    /// <summary>A room's <c>GameTickLastOnChangeSize</c> (<c>room+0x9F</c>), held on each of its tiles:
+    /// the tick <see cref="SlabChain"/> last rebuilt the room, which <c>Room_Construct</c> and
+    /// <c>Room_OnTilesChanged</c> (<c>0x004E4480</c>) stamp with the game turn. Zero for the map's own
+    /// rooms. The finders' full-room messages wait on it (<see cref="RoomNeedRules"/>).</summary>
+    public long RoomSizeChangedTick;
+
     /// <summary>DK2's room ruin, <c>room+0x9A</c> bit 0, held on each tile of a ruined gate since
     /// rooms here are derived from tiles. Set by trigger action 32 through <c>0x004E9130</c> for the
     /// Hero Gate types 18, 20 and 23; it makes a non-Attackable room convertible (<c>0x00454040</c>).
@@ -228,6 +234,7 @@ public struct TileState
         hash.Add(PitFightSeenTick);
         hash.Add(PrisonDoor);
         hash.Add(SlabOrder);
+        hash.Add(RoomSizeChangedTick);
         hash.Add(RoomRuined);
     }
 }

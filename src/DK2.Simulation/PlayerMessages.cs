@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
@@ -23,6 +24,16 @@ public enum PlayerMessageKind : uint
     /// built here; 1 alone is under the <c>+0xF56</c> deadline, which is not built).</summary>
     TrainingUnpaid = 55,
 
+    /// <summary>Type 41: the keeper has no room of the type in Data1 and needs one (subtable
+    /// <c>0x006A03D8</c>).</summary>
+    RoomNeeded = 41,
+
+    /// <summary>Type 42: every room of the type in Data1 is full (subtable <c>0x006A04B8</c>).</summary>
+    RoomFull = 42,
+
+    /// <summary>Type 43: a room of the type in Data1 has space and no route (subtable <c>0x006A0528</c>).</summary>
+    RoomUnreachable = 43,
+
     /// <summary>Type 84: a creature could not route to the Call to Arms flag
     /// (<c>0x00455DA0</c>, <c>0x004778E0</c>); fifty seconds, tab, no duplicates.</summary>
     CallToArmsUnreachable = 84,
@@ -32,6 +43,9 @@ public readonly record struct PlayerMessage(
     uint Id, byte PlayerId, PlayerMessageKind Kind, int Data1, int Data2,
     uint Age, uint Timeout, bool NeedsTab, bool Handled)
 {
+    /// <summary>The room type a room message (41 to 43) carries in Data1; null for any other kind.</summary>
+    public RoomTypeId? Room => PlayerMessageQueue.IsRoomMessage(Kind) ? (RoomTypeId)Data1 : null;
+
     internal void HashInto(ref Hash64 hash)
     {
         hash.Add(Id); hash.Add(PlayerId); hash.Add((uint)Kind);
@@ -41,7 +55,8 @@ public readonly record struct PlayerMessage(
 }
 
 /// <summary>The shared retained queue: the two combat position messages, the two
-/// mana-pressure messages and unpaid training. Any other kind, or a subtype its table lacks, is refused.</summary>
+/// mana-pressure messages, unpaid training and the three room messages. Any other kind, or a
+/// subtype its table lacks, is refused.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-messages.md")]
 public sealed class PlayerMessageQueue
 {
@@ -56,10 +71,41 @@ public sealed class PlayerMessageQueue
     /// selected by Data1, and a duplicate must match Data1 as well as recipient and kind.</summary>
     public static bool HasSubtypes(PlayerMessageKind kind) =>
         kind is PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall
-            or PlayerMessageKind.TrainingUnpaid;
+            or PlayerMessageKind.TrainingUnpaid || IsRoomMessage(kind);
+
+    public static bool IsRoomMessage(PlayerMessageKind kind) =>
+        kind is PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomFull or PlayerMessageKind.RoomUnreachable;
+
+    /// <summary>A room message as every producer posts it: the room type in Data1, zero in Data2.</summary>
+    public PlayerMessage? PostRoom(WorldState world, byte recipient, PlayerMessageKind kind, RoomTypeId room)
+    {
+        if (!IsRoomMessage(kind)) throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a room message.");
+        return Post(world, recipient, kind, (int)room, 0);
+    }
+
+    /// <summary>The lifetime in seconds of a room message's subtype row: the rows of <c>0x006A03D8</c>
+    /// (41), <c>0x006A04B8</c> (42) and <c>0x006A0528</c> (43), eight bytes each (subtype, seconds,
+    /// string). Null for a type the table does not list.</summary>
+    public static int? RoomLifetimeSeconds(PlayerMessageKind kind, RoomTypeId room) => (kind, (int)room) switch
+    {
+        (PlayerMessageKind.RoomNeeded, 1) => 420,
+        (PlayerMessageKind.RoomNeeded, 2 or 4) => 180,
+        (PlayerMessageKind.RoomNeeded, 11 or 14) => 600,
+        (PlayerMessageKind.RoomNeeded, 6 or 7 or 9 or 10 or 12 or 13 or 15 or 16) => 300,
+        (PlayerMessageKind.RoomFull, 1 or 4) => 240,
+        (PlayerMessageKind.RoomFull, 2) => 90,
+        (PlayerMessageKind.RoomFull, 6 or 7 or 9 or 10 or 11 or 12 or 13 or 14 or 15 or 16) => 300,
+        (PlayerMessageKind.RoomUnreachable, 11 or 12) => 360,
+        (PlayerMessageKind.RoomUnreachable, 1 or 2 or 3 or 4 or 6 or 7 or 9 or 10 or 13 or 14 or 15 or 16) => 300,
+        _ => null,
+    };
 
     public PlayerMessage? Post(WorldState world, byte recipient, PlayerMessageKind kind, int data1, int data2)
     {
+        // 41 for a Graveyard is admitted only through the player's +0xF4E suppression word
+        // (0x004C5530), whose initial value is UNKNOWN (computer-keeper-messages.md section 1).
+        if (kind == PlayerMessageKind.RoomNeeded && data1 == (int)RoomTypeId.Graveyard)
+            throw new NotSupportedException("Message 41 for a Graveyard reads the unmodelled +0xF4E suppression.");
         uint timeout = kind switch
         {
             PlayerMessageKind.HeartAttacked => (uint)SimulationTiming.TicksFromSeconds(120),
@@ -72,7 +118,12 @@ public sealed class PlayerMessageQueue
             PlayerMessageKind.ManaShortfall when data1 is >= 1 and <= 5 => (uint)SimulationTiming.TicksFromSeconds(20),
             PlayerMessageKind.TrainingUnpaid when data1 is >= 1 and <= 4 => (uint)SimulationTiming.TicksFromSeconds(20),
             PlayerMessageKind.TrainingUnpaid when data1 == 5 => (uint)SimulationTiming.TicksFromSeconds(240),
-            PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall or PlayerMessageKind.TrainingUnpaid =>
+            // An unlisted room type would take the table's terminator row: discarded for 41 and 43,
+            // kept for one sweep for 42. Nothing here posts one, so it is refused.
+            _ when IsRoomMessage(kind) && RoomLifetimeSeconds(kind, (RoomTypeId)data1) is int seconds =>
+                (uint)SimulationTiming.TicksFromSeconds(seconds),
+            PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall or PlayerMessageKind.TrainingUnpaid
+                or PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomFull or PlayerMessageKind.RoomUnreachable =>
                 throw new ArgumentOutOfRangeException(nameof(data1), data1, $"No subtype row for {kind}."),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };

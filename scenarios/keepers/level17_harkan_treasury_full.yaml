@@ -1,0 +1,36 @@
+id: keepers-level17-harkan-treasury-full-001
+question: >
+  When Harkan's imps carry gold that no Treasury or Heart can take, does the
+  full-store message make Harkan enlarge its Treasury unaided?
+map: campaign:level17
+seed: 12345
+duration_ticks: 3000
+viewing_player: 4
+computer_keepers: [4]
+setup:
+  placed_things: true
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 2, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
+    # Exactly what Harkan's stores hold here (the run reports any gold with nowhere to
+    # go). The controlled need: nowhere left to put gold.
+    - { id: 4, gold: 75000, mana: 100 }
+    - { id: 5, gold: 10000, mana: 100 }
+  objects:
+    # A floor pile on Harkan's claimed floor beside its Treasury, for its imps to carry.
+    - { type: Gold, at: [11, 5], player: 2, gold: 1500 }
+observe:
+  - state_hash
+  - events
+expect:
+  - event: room_message
+    detail: "player=4 kind=42 room=Treasury"
+    because: >
+      The gold carrier's store chooser 0x00464400 posts 42 for a Treasury when a
+      Treasury exists and neither it nor the Heart has space.
+  - event: built
+    detail: "player=4 room=Treasury"
+    because: >
+      Harkan's BuildNewRoomWhenMoreSpaceRequired is 0, so 0x004FA400 asks for a
+      Treasury with the expansion bit and 0x004FBE00 grows the existing room.

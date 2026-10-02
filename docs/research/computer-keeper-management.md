@@ -238,11 +238,15 @@ bounds. The routine tests north, south, west, then east and retains **every**
 accepted extension. It does not choose one winning strip. West/east use the
 possibly extended north/south limits. Each scan excludes its high endpoint;
 the final planned rectangle includes it. A one-tile extent therefore skips
-that axis's validation loop. The gap line two tiles out allows at most one
-open or already tagged sample per side. Bounds/terrain failures reject that
-side, not earlier accepted sides. If any side survives, start task 2 over the
-combined rectangle with positive X/Y stepping. These are binary predictions;
-an irregular-room experiment would test the extrema and excluded endpoints.
+that axis's validation loop, and an empty loop accepts its side untested. A
+strip tile passes when its terrain is taggable and not impenetrable, has
+`+0x1CB` bit 0, or is the keeper's own with no room on it (solidity untested).
+The gap line two tiles out allows at most one sample that is a kind-1 or kind-2
+task of the keeper (`0x00508290`) or not taggable. Bounds/terrain failures reject
+that side, not earlier accepted sides. If any side survives, start task 2 over the
+combined rectangle with positive X/Y stepping, `NextTask` untouched. These are
+binary predictions, rechecked in instructions 2026-10-02; an irregular-room
+experiment would test the extrema and excluded endpoints.
 
 ## 11. Research slot and job placement — `0x004FA8D0`, `0x00503690`
 

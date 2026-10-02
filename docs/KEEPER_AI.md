@@ -521,8 +521,8 @@ records. Layout, producers, duplicate suppression and expiration are audited in
 | 18 | creature angry: `AngryCreaturesDisposeOf` → **dispose** (`0x4F9520`); else `AngryCreaturesHappy` → make happy |
 | 32 | room captured from a non-neutral owner: if Portal (3) or Hero Portal (25) and `AutomaticallyBuildBiggerLairWhenPortalTakenOver` → schedule a **Lair (2)**, expanding an existing one when `BuildNewRoomWhenMoreSpaceRequired` = 0, a new one when 1, nothing when 2. Neutral acquisition sends 33, handled by the default branch |
 | 35 | room lost: clear a pending Portal build, then re-run room choice |
-| 41 | room needed: schedule it as `NextRoomToBuild` if available |
-| 42 | room needs more space: first attempt to untag all gold-dig tags, for **every room type**, then apply `BuildNewRoomWhenMoreSpaceRequired`. A failed untag on still-gold terrain suppresses Treasury expansion and marks the message handled; other room types continue (message audit §3) |
+| 41 | room needed: unavailable → handled; a request already waiting → left unhandled and retried; else `NextRoomToBuild` unless it is the room being built (message audit §3) |
+| 42 | room needs more space: untag every gold dig first, for **every room type**, then `BuildNewRoomWhenMoreSpaceRequired` 0 expand (bit `0x80`), 2 nothing, 1/3 a new room, through 41's tests. The Treasury-only stop on a refused untag cannot fire in 1.70 (message audit §3) |
 | anything else | marked handled |
 
 The three mood parameter bit-fields read here are `UnhappyCreaturesHappy`,
@@ -624,14 +624,15 @@ creature leaves).
   Prison→Training, Torture→Prison, Temple→Torture, Graveyard→Torture, Casino→Treasury,
   Combat Pit→Prison; rooms with no ideal (Portal, Bridges, Guard Room, Heart) use a
   random own room, avoiding bridges.
-- If `NextRoomToBuild` has the `0x80` "expand" bit but the room cannot be expanded
-  (`0x4FBE00`), the bit is cleared and a new room is built.
-- **Expanding** (`0x4FBE00`): the room's tiles are walked to find its bounding box
-  (using the tiles with the smallest and largest x+y as corners); the four one-tile
-  strips just outside it are tested — every tile diggable rock or own empty floor, at
-  most one gap, the tile beyond it in bounds — and a qualifying strip becomes the dig
-  rectangle (`Task 2`, then `Task 3` places the room), so a room grows by one row or
-  column at a time. Which strip wins when several qualify was not resolved.
+- Taking a request copies `NextRoomToBuild` to `CurrentRoomToBuild` and leaves
+  Portal (3) behind it with the set bit, so the next pass searches for a neutral
+  portal unless a room message replaces it. After the cost test, an `0x80`
+  request enlarges a random unflagged room of its type (`0x4C6460`); with none,
+  or when `0x4FBE00` finds no side, the bit is cleared and a new room is built.
+- **Expanding** (`0x4FBE00`): corners are the chain tiles with the smallest and
+  largest x+y; every side whose strip and gap line pass is kept, and the combined
+  rectangle becomes task 2's dig and task 3's build. Exact rules:
+  `research/computer-keeper-management.md` §10. Built as `RoomExpansion` (ADR-0327).
 - "The Lair", "a Portal", "the Temple" etc. throughout this section mean **a random own
   room of that type** (`0x4C6460` picks uniformly among unflagged rooms of the type
   with the world RNG), not the nearest or the first.
@@ -1057,7 +1058,9 @@ The simulation's `SimulationEvents` sink remains **observation only** (ADR-0006)
 suppression, expiry and explicit acknowledgment commands. It is hashed and
 snapshotted; `KeeperView` copies the recipient's messages without draining them.
 ADR-0245 defines the sweep timing that preserves zero-timeout messages for AI.
-Other types and their producers remain unbuilt, including room and mood messages.
+Room messages 41–43 are retained, posted by the Treasury and Lair paths, and 41/42
+run through `KeeperRoomRequests` (ADR-0327); mood messages and the other room
+producers remain unbuilt (`research/computer-keeper-messages.md` §4).
 `KeeperAI` consumes kinds 1 and 6 through `KeeperThreatResponder`: reservation,
 acknowledgment and the respond-to-attack event as commands (ADR-0278, 2026-09-29).
 Kinds 12, 34 and 47 wait for producers.
@@ -1124,9 +1127,10 @@ The proactive foundation already exists (§12.8). **Future direction, agreed 202
    message families and producers.
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
-3. **Dungeon management.** Add need-driven room expansion/building, mood responses,
-   prisoners, specials and research decisions; the training moves are built (ADR-0317). Acceptance: a verified
-   need changes its orders. Reuse §12.3–12.4's existing commands and state.
+3. **Dungeon management.** Add mood responses, prisoners, specials, research decisions and
+   the other room producers; the training moves (ADR-0317) and the Treasury/Lair room needs
+   (ADR-0327) are built. Acceptance: a verified need changes its orders. Reuse §12.3–12.4's
+   existing commands and state.
 4. **Deliberate attacks.** Readiness with its level grants, enemy selection, the attack
    tunnel, the staging point, the front and the call are built (ADR-0298), and task 7's
    bridges (ADR-0304): Nemesis on Level 18 grants levels, chooses Fabian and creeps the call
@@ -1157,7 +1161,7 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
-The observation (schema 15) includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
+The observation (schema 16) includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
 alliances, reverse player activation order, research upgrades, placed trap threat and
 navigation bytes (`research/computer-keeper-threat.md` sections 1 and 2). Tests check frozen
 values, packet round trips and equal command streams;
@@ -1191,7 +1195,8 @@ schema 11 its Combat Pit mark and whether it holds a room id; schema 12 the Heal
 its validators give an own creature; schema 13 every player's status, the heart room's middle
 as the heart and the call's refused own-room tiles, with route queries over the captured bytes;
 schema 14 the Chicken and Inferno permissions per foreign creature (ADR-0302); schema 15 each
-creature's experience and dropped-to-do job and each room's floor slots in chain order (ADR-0317).
+creature's experience and dropped-to-do job and each room's floor slots in chain order (ADR-0317); schema 16
+every room's tiles in chain order (ADR-0327).
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
 now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);
@@ -1199,6 +1204,7 @@ remaining gaps: `research/creature-pickup.md`. Response dispatch is connected, C
 The attack planner, the front and attack management run through `Think` at task 0 and step 7
 with readiness grants as commands (ADR-0298, `KeeperAttackPlanner`, `KeeperReadiness`).
 Combat messages reach the observation; the battle step casts all four shipped battle spells
-(ADR-0302). The training moves run at step 9 (ADR-0317). The remaining reactive decisions, the
-remaining message families and the personality loader remain unbuilt (2026-10-02).
+(ADR-0302). The training moves run at step 9 (ADR-0317). Room messages 41 and 42 schedule rooms
+and expansions through the planner's request (ADR-0327). The mood and other reactive decisions,
+the remaining message producers and the personality loader remain unbuilt (2026-10-02).
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.

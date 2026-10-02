@@ -213,6 +213,35 @@ public class Level17UnassistedKeeperScenarioTests(ITestOutputHelper output)
     }
 }
 
+/// <summary>Harkan's stores filled exactly and a floor pile for its imps (ADR-0327): a modern-run
+/// result; no original capture of this setup exists (Q518).</summary>
+public class Level17TreasuryNeedScenarioTests(ITestOutputHelper output)
+{
+    [InstallFact]
+    public void HarkanGrowsItsTreasuryNorthwardWhenItsImpsFindNoStore_ModernRunOriginalUnseenQ518()
+    {
+        Scenario scenario = ScenarioCorpus.Load("keepers/level17_harkan_treasury_full.yaml");
+        ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+        Assert.Empty(run.ExpectationFailures);
+
+        // The carrier's store chooser posts 42 once, and the walk acknowledges it on the next input tick.
+        SimEvent full = Assert.Single(run.Events, e => e.Kind == "room_message"
+            && e.Detail.StartsWith("player=4 kind=42 room=Treasury", StringComparison.Ordinal));
+        Assert.Contains(run.KeeperCommandLog, e => e.Command is AcknowledgePlayerMessageCommand { PlayerId: 4 }
+            && e.InputTick == full.Tick.Value + 1);
+
+        // 0x004FBE00 on the stock Treasury (rows 5 to 9): north is the only side whose strip and gap
+        // line pass, west and east being owned wall twice over. Policy 0 builds just that row.
+        List<TilePos> built = run.KeeperCommandLog.Select(e => e.Command).OfType<BuildRoomCommand>()
+            .Where(b => b.RoomId == (byte)RoomTypeId.Treasury).SelectMany(b => b.Tiles).Distinct().OrderBy(t => t.X).ToList();
+        Assert.Equal([new TilePos(12, 4), new TilePos(13, 4), new TilePos(14, 4), new TilePos(15, 4)], built);
+
+        // The added capacity is used: gold is delivered into the new row.
+        Assert.Contains(run.Events, e => e.Kind == "gold_delivered" && e.Detail.Contains("player=4", StringComparison.Ordinal)
+            && built.Any(t => e.Detail.Contains($"at=({t.X},{t.Y})", StringComparison.Ordinal)));
+    }
+}
+
 public class Level18KeeperScenarioTests(ITestOutputHelper output)
 {
     [InstallFact]

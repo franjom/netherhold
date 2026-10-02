@@ -11,14 +11,14 @@ namespace DK2.AI;
 
 /// <summary>A computer keeper, as an input source, not part of the simulation.</summary>
 /// <remarks>
-/// <para>Once per tick <see cref="Think"/> returns the commands this keeper would
-/// issue by hand, for the host to put in the next <see cref="InputFrame"/>. Nothing
-/// in the simulation sees this type, so the world hash is untouched. Source: the
-/// original's <c>ComputerPlayer.cpp</c> (docs/KEEPER_AI.md §5, §12.1).</para>
+/// <para>Once per tick <see cref="Think"/> returns the commands this keeper would issue by hand, for the
+/// host to put in the next <see cref="InputFrame"/>. Nothing in the simulation sees this type, so the
+/// world hash is untouched. Source: the original's <c>ComputerPlayer.cpp</c> (docs/KEEPER_AI.md §5, §12.1).</para>
 /// <para>The proactive foundation of §12.8, the attack response (<see cref="KeeperThreatResponder"/>),
 /// the battle step (<see cref="KeeperBattleStep"/>), the retreat (<see cref="KeeperRetreatStep"/>), the
-/// training moves (<see cref="KeeperTrainingStep"/>) and the attack planner (<see cref="KeeperAttackPlanner"/>).
-/// Not implemented: traps and doors, prisoners, the researcher's portal move, room and mood messages.</para>
+/// training moves (<see cref="KeeperTrainingStep"/>), the attack planner (<see cref="KeeperAttackPlanner"/>) and
+/// room messages 41/42 (<see cref="KeeperRoomRequests"/>). Not implemented: traps and doors, prisoners,
+/// the researcher's portal move and mood messages.</para>
 /// <para>Deviates: randomness is the keeper's own <see cref="SimRandom"/>, not the world's (§12.1).</para>
 /// </remarks>
 public sealed class KeeperAI
@@ -102,14 +102,15 @@ public sealed class KeeperAI
         }
 
         // 3. Gold tags come off when their timer runs out.
-        UntagGold(view, commands);
+        bool goldUntagged = UntagGold(view, commands);
 
         // 4. The attack and Call to Arms countdowns.
         if (State.CannotAttackCounter != 0) State.CannotAttackCounter--;
         if (State.CallToArmsCounter != 0) State.CallToArmsCounter--;
 
         // 5. The message walk, then 6. the head event, which spends the whole tick when it runs.
-        var responder = new KeeperThreatResponder(view, State, _p, _rng, commands);
+        var rooms = new KeeperRoomRequests(view, State, _p, RoomAvailable(view), commands, goldUntagged);
+        var responder = new KeeperThreatResponder(view, State, _p, _rng, commands, rooms);
         responder.HandleMessages();
         budget = responder.Dispatch(budget);
 
@@ -146,10 +147,11 @@ public sealed class KeeperAI
 
     // ----------------------------------------------------------------- housekeeping
 
-    private void UntagGold(KeeperView view, List<PlayerCommand> commands)
+    /// <summary>True when every gold-dig tag came off this tick.</summary>
+    private bool UntagGold(KeeperView view, List<PlayerCommand> commands)
     {
-        if (State.UntagGoldCounter <= 0) return;
-        if (--State.UntagGoldCounter > 0) return;
+        if (State.UntagGoldCounter <= 0) return false;
+        if (--State.UntagGoldCounter > 0) return false;
 
         var tiles = new List<TilePos>();
         for (int i = 0; i < view.TileCount; i++)
@@ -158,7 +160,12 @@ public sealed class KeeperAI
             if (view.IsTaggedByMe(p) && view.IsGoldRock(p)) tiles.Add(p);
         }
         if (tiles.Count > 0) commands.Add(new TagTilesCommand(PlayerId, tiles, false));
+        return true;
     }
+
+    /// <summary>Availability 3 (<c>0x004BAB20</c>), or the caller's override.</summary>
+    private Func<byte, bool> RoomAvailable(KeeperView view) =>
+        _isRoomAvailable ?? (id => view.Availability(RoomNeedRules.RoomAvailabilityKind, id) == RoomNeedRules.Available);
 
     private void CreateImps(KeeperView view, List<PlayerCommand> commands, ref int budget)
     {
@@ -248,15 +255,17 @@ public sealed class KeeperAI
 
     // ----------------------------------------------------------------- rooms
 
-    /// <summary>The room planner (§5.5). True when a task was started.</summary>
+    /// <summary>The room planner (§5.5, <c>0x004FC690</c>). True when a task was started.</summary>
+    /// <remarks>A taken request leaves Portal (3) waiting behind it, so the next pass looks for a
+    /// neutral portal unless a room message replaces the placeholder first; Portal itself is taken
+    /// and cleared. A request with <see cref="KeeperRoomRequests.ExpandBit"/> enlarges a random room of
+    /// its type when <see cref="RoomExpansion"/> finds a side, and is otherwise built anew.</remarks>
     private bool PlanRoom(KeeperView view, BuildArea area)
     {
         if (!State.NextRoomToBuildSet)
         {
             State.CurrentRoomToBuild = 0; // 0x004FC690 clears this before the chooser.
-            byte? chosen = RoomPlanner.ChooseRoom(
-                view, _p, _isRoomAvailable ?? (id => view.Availability(1, id) == 3),
-                State.CurrentRoomToBuild);
+            byte? chosen = RoomPlanner.ChooseRoom(view, _p, RoomAvailable(view), State.CurrentRoomToBuild);
             if (chosen is null)
             {
                 State.NextRoomToBuild = (byte)RoomTypeId.Portal;
@@ -270,23 +279,27 @@ public sealed class KeeperAI
             State.NextRoomToBuildSet = true;
         }
 
-        byte room = State.NextRoomToBuild;
+        byte request = State.NextRoomToBuild;
+        State.CurrentRoomToBuild = request;
+        if (request == (byte)RoomTypeId.Portal) State.NextRoomToBuildSet = false;
+        else State.NextRoomToBuild = (byte)RoomTypeId.Portal;
+        byte room = (byte)(request & ~KeeperRoomRequests.ExpandBit);
+        bool portal = room is (byte)RoomTypeId.Portal or (byte)RoomTypeId.HeroPortal;
 
-        // A neutral room of that type within reach is claimed by digging to it.
-        KeeperRoomView? neutral = RoomPlanner.ClaimableNeutralRoom(view, _p, room, area, out TilePos origin);
+        // A neutral room of that type within reach is claimed by digging to it. DK2 searches with the
+        // request byte, so an expansion request never matches one.
+        KeeperRoomView? neutral = RoomPlanner.ClaimableNeutralRoom(view, _p, portal ? room : request, area, out TilePos origin);
         if (neutral is not null)
         {
             TilePos target = KeeperView.Centre(neutral);
             State.DigRoomAtCurrent = origin;
             State.DigRoomAt = target;
             State.WallHug = false;
-            State.CurrentRoomToBuild = room;
-            State.NextRoomToBuildSet = false;
             State.BeginTask(KeeperTask.DigPath, KeeperTask.Done);
             return true;
         }
 
-        if (room == (byte)RoomTypeId.Portal || room == (byte)RoomTypeId.HeroPortal)
+        if (portal)
         {
             State.NextRoomToBuildSet = false;
             return false;
@@ -296,8 +309,21 @@ public sealed class KeeperAI
         if (RoomRules.CostPerTile(def) * _p.DefaultRoomSize > view.Gold)
             return StartGold(view);
 
-        State.CurrentRoomToBuild = room;
-        State.NextRoomToBuildSet = false;
+        if ((request & KeeperRoomRequests.ExpandBit) != 0)
+        {
+            KeeperRoomView? existing = view.RandomRoomOfType(PlayerId, (RoomTypeId)room, _rng);
+            if (existing is not null && RoomExpansion.Find(view, existing) is RoomSite grown)
+            {
+                // 0x004FBE00 sets task 2 over the grown rectangle and leaves NextTask alone.
+                State.RectangleOrigin = grown.Origin;
+                State.RectangleWidth = grown.Width;
+                State.RectangleHeight = grown.Height;
+                State.BeginTask(KeeperTask.DigRectangle, State.NextTask);
+                return true;
+            }
+            State.CurrentRoomToBuild = room;
+        }
+
         State.SearchDirection = RoomPlanner.DirectionFor(room, State, _rng);
         State.SearchOrigin = RoomPlanner.Origin(view, _p, room, _rng) ?? view.Heart!.Value;
         State.DirectionsTried = 0;
@@ -378,7 +404,8 @@ public sealed class KeeperAI
 
     private void PlaceRoom(KeeperView view, List<PlayerCommand> commands, ref int budget)
     {
-        RoomDef def = view.Database.RoomById(State.CurrentRoomToBuild);
+        // 0x004FD2B0 builds the type without the expansion bit.
+        RoomDef def = view.Database.RoomById((byte)(State.CurrentRoomToBuild & ~KeeperRoomRequests.ExpandBit));
         var build = new List<TilePos>();
         var retag = new List<TilePos>();
         bool allDone = true;
