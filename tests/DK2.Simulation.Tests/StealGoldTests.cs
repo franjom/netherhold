@@ -88,6 +88,42 @@ public class StealGoldTests
     }
 
     [Fact]
+    public void TheArmRoutesThroughTheKeepersClosedDoor_AsItsRouteWordHasNoEightyBit()
+    {
+        // 0x00471740(room, 3): no 0x80, so a foreign door is routed through and fought when met
+        // (door-blocking.md). Level 3's Thieves stood 400 turns at their gate behind the corridor
+        // doors while ours tested the route with the fight's 0x80 (ADR-0324). A rock wall with the
+        // keeper's door as its only gap lies between the Thief and the Treasury.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        Treasury(world, Keeper, 10, 5, [500, 500, 500, 500]);
+        WallWithDoor(db, world, 7, new TilePos(7, 5), Keeper);
+        CreatureState hero = Thief(db, world, Keeper, new TilePos(3, 5));
+        (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
+
+        sim.Tick();
+        sim.Tick();
+
+        Assert.Contains(sink.Events, e => e.Kind == "hero_job" && e.Detail.Contains($"creature={hero.Id} job=StealGold", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TheArmFails_WhenRockWallsTheTreasuryOff()
+    {
+        // The control for the door test: the same wall with no gap at all is not routed through.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        Treasury(world, Keeper, 10, 5, [500, 500, 500, 500]);
+        WallWithDoor(db, world, 7, null, Keeper);
+        CreatureState hero = Thief(db, world, Keeper, new TilePos(3, 5));
+        (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
+
+        sim.Tick();
+        sim.Tick();
+
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "hero_job");
+        Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
+    }
+
+    [Fact]
     public void TheArmFails_AgainstTheHerosOwnPlayer()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
@@ -192,6 +228,21 @@ public class StealGoldTests
         hero.GoodJob = JobType.StealGold;
         hero.GoodJobPlayerId = target;
         return hero;
+    }
+
+    /// <summary>A rock column at <paramref name="x"/> from the top to the bottom of the open world, with
+    /// <paramref name="gap"/>, when given, a claimed tile of <paramref name="owner"/> holding a closed
+    /// Wooden Door as the only way through.</summary>
+    private static void WallWithDoor(GameDatabase db, WorldState world, int x, TilePos? gap, byte owner)
+    {
+        for (int y = 1; y < world.Height - 1; y++)
+            world.Tile(x, y).TerrainId = Dk2TerrainFixture.Rock;
+        if (gap is not TilePos door) return;
+        ref TileState tile = ref world.Tile(door);
+        tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        tile.OwnerPlayerId = owner;
+        ThingProjection.Place(world, db, [new DoorThing(new byte[20])
+            { X = door.X, Y = door.Y, PlayerId = owner, Flags = 0, DoorId = 1, Unknown_0011 = new byte[3] }]);
     }
 
     /// <summary>A 2x2 Treasury at (x, y), gold in tile-index order.</summary>

@@ -78,3 +78,4 @@ The Thief's StealGold is job 13's arm, the same as a hero's. The first keeper's 
   - The feasibility point (`0x004E5000`, unread) is the room's first walkable tile.
   - The walking point (`0x004E4C10`) is a random tile, then the next walkable one; its four cell tests are unread.
 - **Not built:** sound `0x100`, and destroying a carried thing, since no carried steal is built. Option bit 0's tunnelling is built (ADR-0222).
+- **The arm's route word** is 3 (`0x00471740(room, 3)`): no 0x80, so a keeper's closed, untagged door is routed through and fought when met; a door on a tile with tag bit 2 is refused whatever the word (`door-blocking.md`). Until ADR-0324 ours tested the route with the fight's 0x80, and Level 3's Thieves stood 400 turns at their gate behind the corridor doors.

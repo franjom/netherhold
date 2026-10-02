@@ -542,11 +542,19 @@ public static class CombatTargetRules
     /// <paramref name="rangeSq"/>. Standing on the point, or an empty route, is true; no route is
     /// false. Imps route with no door rule, everyone else respects doors.</summary>
     public static bool CanReach(
-        WorldSteering navigation, CreatureState me, CreatureDef definition, int toX, int toY, int rangeSq, List<Fixed16Vector> scratch)
+        WorldSteering navigation, CreatureState me, CreatureDef definition, int toX, int toY, int rangeSq, List<Fixed16Vector> scratch) =>
+        CanReach(navigation, me, definition, toX, toY, rangeSq, scratch,
+            me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Plain : MoveOptions.Loose);
+
+    /// <summary>The same with the caller's route word. The fight's own tests use the Imp's 0 or
+    /// 0x80, which refuses a foreign door; a hero job's arm passes its own word, 3 for StealGold
+    /// (<c>0x00471740(room, 3)</c>), which routes through one (door-blocking.md, ADR-0324).</summary>
+    public static bool CanReach(
+        WorldSteering navigation, CreatureState me, CreatureDef definition, int toX, int toY, int rangeSq,
+        List<Fixed16Vector> scratch, int options)
     {
         if (me.PosX == toX && me.PosY == toY) return true;
 
-        int options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Plain : MoveOptions.Loose;
         scratch.Clear();
         bool routed = navigation.Route(
             new Fixed16Vector(me.PosX << 4, me.PosY << 4),

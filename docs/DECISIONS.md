@@ -7256,3 +7256,30 @@ constructor's zeroed sight cache holds a sight trap's fire on turn 0, as DK2's d
 L1 20/20 and L2 7/20 but move per seed; baseline `1ec9fa5` with only the `Retaliate` fix
 reproduces this branch's every line, and neither level has a trap. Left: the Guard Post,
 disarming (Q455), the reveal, the upkeep (Q59), effects and sounds, the unread shots, heights.
+
+## ADR-0324 — The StealGold arm's route test carries its own word, and routes through a foreign door
+**Date:** 2026-10-02 · **Status:** accepted · Research: `steal-gold.md` §1; `door-blocking.md`, *Route planning*
+
+**Context.** After ADR-0323, Level 3's final party spawns at 3168 and both Thieves stand at
+their gate for 400 turns: the standing job enters, the StealGold arm fails, state 4 waits
+twelve turns, and the loop repeats until another hero breaks the corridor door at 3565. By
+then our Workshop had put doors on the corridor at (26,26) and (26,31). The arm's route test
+in ours was the fight's `CombatTargetRules.CanReach`, whose word is 0x80 for everyone but an
+Imp, and 0x80 refuses a foreign door (`door-blocking.md`). DK2's arm tests the route with
+`0x00471740(room, 3)` (`steal-gold.md` §1, CONFIRMED): no 0x80, so a keeper's closed, untagged
+door is routed through (a door whose tile carries tag bit 2 is refused whatever the word), and
+the Thief fights it when it meets it (ADR-0318). DK2's Thieves took their job the turn after
+spawning. That the doors were our stall's cause is a diagnosis consistent with the result, not
+a reading: whether DK2 had built the same doors by then is not known, as the capture's object
+map ends at slot 1719, around turn 1920.
+
+**Decision.** `CanReach` gains an overload taking the route word; `StealGoldRules.Arm` passes
+its own, 3. The fight's callers keep the Imp's 0 and everyone else's 0x80.
+
+**Consequences.** No state changes. `StealGoldTests` gains the door case and its rock-wall
+control. The other hero arms still use the fight's word; their own words are unread. Measured
+on 7b66fd7 with ADR-0323, seeds 1–20: Level 1 20/20 and Level 2 7/20, seed-for-seed identical
+to ADR-0323's. Level 3 against seed 01: both Thieves take their job the turn after spawning,
+as DK2's do, and fall at 3344 and 3388 (DK2 3330 and about 3390). The win is still not reached:
+it needs the Lord of the Land killed, and ours walks into the heart at 3663 with 3,144 health
+where DK2's dies at 3683 under three Warlocks' 500-point shots and their stun.

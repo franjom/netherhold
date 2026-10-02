@@ -53,8 +53,11 @@ public static class StealGoldRules
         var scratch = new List<Steering.Fixed16Vector>();
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         int w = world.Width;
+        // The route test carries the arm's own word, 3: no 0x80, so a keeper's closed door on
+        // the way is routed through and fought when met (door-blocking.md), where the fight's
+        // 0x80 refused it and left Level 3's Thieves jobless behind the corridor doors (ADR-0324).
         if (!Combat.CombatTargetRules.CanReach(context.Navigation, creature, definition,
-                CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), int.MaxValue, scratch)
+                CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), int.MaxValue, scratch, FeasibleOptions)
             && !((FeasibleOptions & 0x01) != 0 && TunnelRules.CouldTunnel(context, creature)))
             return false;
         return StateShadow.TryMove(context, system, creature, ToTheTreasuryState);
