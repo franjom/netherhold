@@ -149,7 +149,8 @@ pick ray; the position moves only through passable spots.
 `Flags` (`+0x43`): bit 0 dies on hitting solid; bit 1 dies on hitting a thing;
 bit 2 health counts down each tick; bit 4 (`0x004B7E30`, slot `+0x84`) the world
 ends it instead of bouncing (§6); bit 7 the creation effect moves with it; bit 8
-turns a struck creature. Bit 5, in every shipped record, is UNKNOWN (Q395).
+turns a struck creature. Bit 5 launches a trap's shot fired at a target (`0x004A7FD0`,
+`traps.md` §7); the Fireburst, Spike and gas clouds lack it.
 
 `ShotProcessFlags` (`+0x3F`) are **events**: 0x40 first tick, 0x2 before each
 move, 0x4 on hitting a thing, 0x8 on hitting solid, 0x80 at death. `0x004AD730
@@ -192,8 +193,12 @@ every thing **not of my owner** — a creature with `+0x445` clear, any object, 
 takes `d × (R − dist) / R` through the health routine, `R` and `dist` in position
 units, where `d` starts as `data1` and **is overwritten by each result**
 (`0x004AC8BF`), so each later thing in the tick takes less. Object 74's quarter only
-gates the hit; the damage uses `d`. Ours: objects are not hit. Types 1, 3, 4 and
-8 print *"Creature Damage, %d"* and are unread (Q395).
+gates the hit; the damage uses `d`. Ours: objects are not hit. Type 1, the Spike's
+(`0x004AC5A0`, read 2026-10-02): over the tiles from my tile less `data2` to **below** it
+plus `data2` on each axis — half-open, so `data2` 1 is the 2×2 square to the north-west —
+in the map, a creature not of my owner with `+0x445` clear takes `data1` flat and object 74
+`data1 / 2`; no falloff, no trap or door. Types 3, 4 and 8 print *"Creature Damage, %d"* and
+are unread (Q395).
 
 **The Firebomb's explosion hurts nobody in v1.70.** Action 16 writes the spell's two
 words over the definition's defaults with no zero test (`0x00498A9D`), the hit shot
@@ -223,8 +228,15 @@ Each runs with the shot as `this`; the target is `+0x147`, `t/s` variable 19.
 | 35 | Drain (25) | `d = min(target health, data1% of its level-scaled Hp)`; the target loses `d` and the caster gains `d`, both through the health routine; refused on a dying target |
 
 Read since, in `creature-status-effects.md` §2: 29 Reaper Fireball (the stun), 38 Poison
-Spit. Unread: 1, 17 Cyclone, 18 Raise Dead, 31 the gas cloud's, 37 Web, and the buff
-table `0x006E4AC8` (Q394, Q395).
+Spit. Read for the traps (2026-10-02, the table's entries 17 bytes from `0x0069E84F`, the
+handler at +1): **12** `0x004AE120` the Alarm, message 47 to my owner with my tile, plus a
+UI call for the local player; **21** `0x00484940` the Fear, a stub returning 0; **22**
+`0x004AEBD0` the Boulder, object 74 made at me and rolled toward my target point, the trap on
+my tile destroyed; **31** `0x004AF8E0` the gas, a threat at radius 2 that counts nobody and,
+for damage type 0 only, workers kicked to state 210 — every shipped process-31 shot has
+damage type 2; **39** `0x004B02E0` the Jack In The Box, data1 to the worker named by data2,
+then a creature of type 0x2E in state 273, the trap destroyed. Unread: 1, 17 Cyclone, 18
+Raise Dead, 37 Web, and the buff table `0x006E4AC8` (Q394, Q395).
 
 ## 9. The shipped creature shots, compressed
 
@@ -292,6 +304,6 @@ handling; §7 contact and type-2 area arithmetic; §8's ten handlers as tabled.
 first read here as invisibility; it is the dying flag `0x0048B770` sets —
 `creature-status-effects.md` §3, corrected 2026-09-23.)
 
-**UNKNOWN:** Q395 (flags bit 5, events 0x1/0x100, Guided Bolt's wiring, the
+**UNKNOWN:** Q395 (events 0x1/0x100, Guided Bolt's wiring, the
 unread handlers and area types), Q397 (`0x004B32A0` with the never-loaded word
 `+0x52`).

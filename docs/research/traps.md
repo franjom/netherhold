@@ -228,22 +228,22 @@ shots all have a handler, or there is no shot. "Gate only": the selector and cha
 
 | Trap | Sel. | Recharge | Mana | Shot | The shot | Fires here |
 |---|---:|---:|---:|---:|---|---|
-| Gas | 2 | 16 | 0 | 58 | process 31 unbuilt (Q395) | no |
-| Boulder | 1 | 4 | 0 | 26 | process 22 unread | no |
+| Gas | 2 | 16 | 0 | 58 | area damage 2, gas; process 31 counts nobody | yes |
+| Boulder | 1 | 4 | 0 | 26 | process 22 rolls object 74, not built | no |
 | Sentry | 1 | 24 | 250 | 44 | Cannon Ball: launched, contact 7 | yes |
-| Alarm | 1 | 4 | 0 | 13 | process 12, presentation arm unbuilt | no |
+| Alarm | 1 | 4 | 0 | 13 | process 12: message 47 | yes |
 | Fireburst | 1 | 48 | 250 | 14 | stands, area damage 2 | yes |
 | Lightning | 1 | 48 | 375 | 59 | speed 0, process 9 on its first tick | yes |
 | Freeze | 2 | 24 | 250 | 45 | forced hit, process 11 | yes |
-| Fear | 1 | 24 | 125 | 25 | process 21 unread | no |
+| Fear | 1 | 24 | 125 | 25 | process 21 a stub; the threat does it | yes |
 | Trigger | 3 | 16 | 0 | 39 | health 1, no damage, collision or process | yes |
-| Spike | 2 | 16 | 0 | 27 | damage type 1 unread | no |
+| Spike | 2 | 16 | 0 | 27 | damage type 1, the half-open square | yes |
 | Guard Post | 2 | 4 | 0 | 0 | none; the room report is guard-room.md §6 | gate only |
 | Magic Door | 2 | 32 | 500 | 57 | Door Fireball: forced hit, contact 7 | yes |
 | Spare Door 1 | 2 | 30 | 0 | 0 | none | gate only |
 | Hero Sentry | 1 | 24 | 100 | 44 | Cannon Ball | yes |
-| Hero Alarm | 1 | 4 | 50 | 13 | process 12 | no |
-| Jack In The Box | 2 | 4 | 0 | 64 | process 39 unread | no |
+| Hero Alarm | 1 | 4 | 50 | 13 | process 12: message 47 | yes |
+| Jack In The Box | 2 | 4 | 0 | 64 | process 39 makes a creature in state 273, not built | no |
 
 The Magic Door's shot is 57, not the 59 this table once said. Only Cannon Ball and Door
 Fireball carry the launch bit; the Fireburst and the Lightning shot stand where they are made.
@@ -251,10 +251,11 @@ Fireball carry the launch bit; the Fireburst and the Lightning shot stand where 
 ## 13. Shipped placement
 
 **CONFIRMED from data** (`TrapsFireOnRealDataTests`): 959 traps on 39 levels, all completed by
-the loader; 649 fire here (Sentry 115, Hero Sentry 320, Lightning 80, Freeze 41, Fireburst 7,
-Trigger 86) and 4 more run the gate: Level 9's hero Guard Posts at (60,29), (60,35), (57,32)
-and (63,32), all reporting to the hero Guard Room whose first slab is (59,31). None is a Magic
-Door. 36 stand beside a Trigger. One is killed by the owner test
+the loader; 858 fire here (Sentry 115, Hero Sentry 320, Lightning 80, Gas 79, Spike 71, Freeze
+41, Fear 41, Hero Alarm 16, Fireburst 7, Alarm 2, Trigger 86) and 4 more run the gate: Level
+9's hero Guard Posts at (60,29), (60,35), (57,32) and (63,32), all reporting to the hero Guard
+Room whose first slab is (59,31). The 97 Boulders do not fire. None is a Magic Door or a Jack
+In The Box. 36 stand beside a Trigger. One is killed by the owner test
 on its first update: **Level 20's hero Boulder at (12,5), on a Neutral-owned tile** — a prediction,
 not an observation. Level 18's Freeze at (51,54) now freezes a hero standing on it on turn 0
 (the Inferno and Chicken scenario moved off it).
@@ -267,8 +268,9 @@ answer's trap arm and the creature arm's correction; §8 without the owner disco
 `ThreatThing`, as `FearRules` holds neither (Q375); §9; §10's removal and Trigger counts.
 
 Also built (ADR-0326): the upkeep, the no-mana message and its clock, area damage type 2 on
-traps and a shot's collision with a trap. Left: disarming (Q455); the reveal; effects, sounds and animations; the unread shots
-above; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
+traps and a shot's collision with a trap; and (ADR-0328) the Alarm, Fear, Spike and Gas shots.
+Left: disarming (Q455); the reveal; effects, sounds and animations; the Boulder's rolling object
+and the Jack In The Box's creature; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
 swing at a trap (possession is not built).
 
 ## Open questions

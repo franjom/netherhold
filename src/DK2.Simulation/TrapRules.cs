@@ -50,7 +50,8 @@ public static class TrapRules
     public const uint TriggerReachSquared = 0x1000;
 
     /// <summary>Trap 16, the Jack In The Box: the tile selector wants a worker and the propagation
-    /// fires it without a sight test. Its shot's process 39 is unread, so it never fires here.</summary>
+    /// fires it without a sight test. Its shot's process 39 (<c>0x004B02E0</c>) makes a creature of
+    /// type 0x2E in state 273, which is not built, so it never fires here.</summary>
     public const byte JackInTheBoxId = 16;
 
     // ------------------------------------------------------------------ the sine table
@@ -99,8 +100,9 @@ public static class TrapRules
     private static bool ShotBuilt(GameDatabase database, byte shotId, int depth)
     {
         if (shotId == 0 || depth > 4 || !database.Shots.TryGetValue(shotId, out ShotDef? shot)) return false;
-        if (shot.DamageType is not (0 or ShotRules.AreaDamageType or ShotRules.ContactDamageType)) return false;
+        if (shot.DamageType is not (0 or ShotRules.SquareDamageType or ShotRules.AreaDamageType or ShotRules.ContactDamageType)) return false;
         if (shot.ProcessType != 0 && !BuiltProcesses.Contains(shot.ProcessType)) return false;
+        if (shot.ProcessType == ShotRules.GasProcess && shot.DamageType == 0) return false;
         return Chained(database, shot.DeathShotId, depth) && Chained(database, shot.HitSolidShotId, depth)
             && Chained(database, shot.HitLavaShotId, depth) && Chained(database, shot.HitWaterShotId, depth)
             && Chained(database, shot.HitThingShotId, depth);
@@ -114,7 +116,7 @@ public static class TrapRules
         ShotRules.CreateObjectProcess, ShotRules.ModifyHealthProcess, ShotRules.SpeedProcess, ShotRules.ArmourProcess,
         ShotRules.LightningProcess, ShotRules.InvulnerableProcess, ShotRules.FreezeProcess, ShotRules.ChickenProcess,
         ShotRules.InvisibleProcess, ShotRules.ReaperStunProcess, ShotRules.InfernoProcess, ShotRules.InstantProcess,
-        ShotRules.DrainProcess, ShotRules.PoisonProcess,
+        ShotRules.DrainProcess, ShotRules.PoisonProcess, ShotRules.AlarmProcess, ShotRules.FearProcess, ShotRules.GasProcess,
     ];
 
     // ------------------------------------------------------------------ the constructor and completion

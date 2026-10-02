@@ -86,10 +86,15 @@ internal static class Dk2TerrainFixture
         FiringTrap("Magic Door", MagicDoorTrapId, 2, 32, 4, 500, 0x35BA, DoorFireballShotId, 150, 0, 0, 100, 60, 40, 4000, upkeep: 30),
         FiringTrap("Hero Sentry Trap", HeroSentryTrapId, 1, 24, 5, 100, 0x9598, CannonBallShotId, 250, 0, -2048, 74, 45, 30, 3000, upkeep: 50),
         FiringTrap("Guard Post", GuardPostTrapId, 2, 4, 0, 0, 0xC18, 0, 0, 0, 0, 0, 0, 0, 1000, upkeep: 0),
+        FiringTrap("Gas Trap", GasTrapId, 2, 16, 1, 0, 0x3053A, GasTrapCloudShotId, 750, 1, 0, 74, 45, 6, 3000, upkeep: 5),
+        FiringTrap("Alarm Trap", AlarmTrapId, 1, 4, 4, 0, 0x3153A, AlarmShotId, 0, 5, 0, 0, 0, 4, 2000, upkeep: 5),
+        FiringTrap("Fear Trap", FearTrapId, 1, 24, 3, 125, 0x31518, FearShotId, 0, 3, 0, 600, 60, 12, 6000, upkeep: 5),
+        FiringTrap("Spike Trap", SpikeTrapId, 2, 16, 1, 0, 0x53A, SpikeShotId, 750, 1, 0, 74, 45, 8, 4000, upkeep: 5),
     ];
 
     public const byte SentryTrapId = 3, FireburstTrapId = 5, LightningTrapId = 6, FreezeTrapId = 17, TriggerTrapId = 9,
-        MagicDoorTrapId = 12, HeroSentryTrapId = 14, GuardPostTrapId = 11;
+        MagicDoorTrapId = 12, HeroSentryTrapId = 14, GuardPostTrapId = 11, GasTrapId = 1, AlarmTrapId = 4, FearTrapId = 8,
+        SpikeTrapId = 10;
 
     private static TrapDef FiringTrap(string name, byte id, byte selector, int rechargeTicks, int range, int mana, uint flags,
         byte shot, int data1, int data2, int offsetY, ushort threat, int threatSeconds, short gain, ushort health, ushort upkeep = 0) => new()
@@ -1326,10 +1331,16 @@ internal static class Dk2TerrainFixture
         Status("Freeze Trap Shot", FreezeTrapShotId, 4096, 16, 0x3, 0x4, 2, 11),
         Status("Trigger Trap", TriggerTrapShotId, 4096, 1, 0x4, 0x1, 0, 0),
         Status("Door Fireball", DoorFireballShotId, 3686, 60, 0x127, 0x1, 2, 0, damageType: 7),
+        // Read for ADR-0328: the Alarm's message (process 12), the Fear's stub (21), the Spike's square
+        // (damage type 1) and the gas cloud's area damage with its process 31.
+        Status("Alarm", AlarmShotId, 2048, 1, 0x4, 0x40, 0, ShotRules.AlarmProcess, attackCategory: 14),
+        Status("Fear", FearShotId, 3686, 1, 0x24, 0x40, 2, ShotRules.FearProcess, attackCategory: 14),
+        Status("Spike", SpikeShotId, 0, 1, 0x4, 0x1, 2, 0, damageType: 1, attackCategory: 13),
+        Status("Gas Trap Cloud", GasTrapCloudShotId, 4096, 5, 0x4, 0x2, 2, ShotRules.GasProcess, damageType: 2, attackCategory: 7),
     ];
 
     public const byte CannonBallShotId = 44, FireburstShotId = 14, LightningTrapShotId = 59, FreezeTrapShotId = 45,
-        TriggerTrapShotId = 39, DoorFireballShotId = 57;
+        TriggerTrapShotId = 39, DoorFireballShotId = 57, AlarmShotId = 13, FearShotId = 25, SpikeShotId = 27, GasTrapCloudShotId = 58;
 
     private static ShotDef Status(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte collide, byte process, byte damageType = 0, byte attackCategory = 0, byte deathShot = 0) =>
         new(new byte[239])

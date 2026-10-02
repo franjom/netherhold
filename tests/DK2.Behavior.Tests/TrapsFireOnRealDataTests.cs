@@ -74,14 +74,13 @@ public class TrapsFireOnRealDataTests(ITestOutputHelper output)
         output.WriteLine($"guard posts: {string.Join("; ", guardPosts)}");
         output.WriteLine($"owner kills {ownerKills.Count}: {string.Join("; ", ownerKills.Take(40))}");
         Assert.Equal((39, 959, 959), (levels, traps, completed));
-        // Sentry 115, Hero Sentry 320, Lightning 80, Freeze 41, Fireburst 7 and Trigger 86 fire, and the
-        // 4 Guard Posts, whose shot 0 ends the firing at once, run the gate; no level places a Magic Door
-        // trap. The rest wait on their shots' unread handlers.
-        Assert.Equal(653, built);
+        // Everything but the 97 Boulders, whose shot rolls an object (process 22, not built): the 4 Guard
+        // Posts run the gate with shot 0, and no level places a Magic Door or a Jack In The Box.
+        Assert.Equal(862, built);
         Assert.Equal(
-            ["Alarm Trap (not built)", "Boulder Trap (not built)", "Fear Trap (not built)", "Fireburst Trap", "Freeze Trap",
-             "Gas Trap (not built)", "Guard Post", "Hero Alarm Trap (not built)", "Hero Sentry Trap", "Lightning Trap",
-             "Sentry Trap", "Spike Trap (not built)", "Trigger Trap"],
+            ["Alarm Trap", "Boulder Trap (not built)", "Fear Trap", "Fireburst Trap", "Freeze Trap",
+             "Gas Trap", "Guard Post", "Hero Alarm Trap", "Hero Sentry Trap", "Lightning Trap",
+             "Sentry Trap", "Spike Trap", "Trigger Trap"],
             byType.Keys);
         Assert.Equal([2, 97, 41, 7, 41, 79, 4, 16, 320, 80, 115, 71, 86], byType.Values);
         Assert.Equal(36, triggerNeighbours.Count);

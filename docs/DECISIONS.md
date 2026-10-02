@@ -7121,6 +7121,27 @@ and may change fights. Measured on 1aa98db: both rigs identical per seed; the ni
 scenarios on trap levels diverge at their first mana payment (Level 17's keeper pays 95 more a
 second), and no scenario has a shot strike a trap or door.
 
+## ADR-0328 — The Alarm, Fear, Spike and Gas traps fire; the Boulder and the Jack In The Box wait
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `shots.md` §7, §8; `traps.md` §12; Q395, Q450
+
+**Context.** Six trap types did not fire because a handler of their shot was unread. Read now
+(`0x004AD1B0`'s table): process 12 posts message 47 with the shot's tile; 21 is a stub
+returning 0; 31's threat counts nobody and its worker kick needs damage type 0, which no
+shipped shot has; damage type 1 hurts creatures in a half-open square, the 2×2 to the
+north-west for `data2` 1; 22 rolls a boulder object; 39 makes a creature in state 273.
+
+**Decision.** `ShotRules` handles 12 (`PlayerMessageKind.AlarmRaised`, fifty seconds, its row
+`0x2032`), 21 and 31 (nothing), and `SquareDamage` for type 1, its object arm left out as
+objects are not hit. `TrapRules.FiringBuilt` admits them and refuses a process-31 shot of damage
+type 0. The Boulder and the Jack In The Box stay unbuilt: neither a rolling object nor state
+273 exists here, and building on either would be a guess.
+
+**Consequences.** No new field and no hashing change, so no version bump. 858 of the 959
+placed traps fire (649 before ADR-0325) and 4 run the gate, against a prediction of 862 in all.
+Prediction, written before measuring: Levels 1 and 2 hold no traps and stay identical per
+seed; scenarios diverge only where an enemy meets one of the four. Measured on 8d53f95: both
+rigs identical per seed, and every scenario's events identical to ADR-0326's: none meets them.
+
 ## ADR-0317 — The keeper's training moves
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0244 and ADR-0284 · Research: `computer-keeper-management.md` §2; Q509
 

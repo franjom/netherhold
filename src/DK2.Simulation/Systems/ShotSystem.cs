@@ -102,6 +102,7 @@ public sealed class ShotSystem : ISimulationSystem
             }
 
             ShotRules.AreaDamage(context, shot, definition);
+            ShotRules.SquareDamage(context, shot, definition);
 
             // The lifetime counts down every tick the shot is not destroyed by the world; a shot
             // standing still (an explosion, a cloud, an Inferno) counts down too (Q398), and so does one

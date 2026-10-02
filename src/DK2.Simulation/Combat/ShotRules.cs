@@ -66,6 +66,23 @@ public static class ShotRules
     public const byte DrainProcess = 35;
     public const byte PoisonProcess = 38;
 
+    /// <summary>Process 12 (<c>0x004AE120</c>), the Alarm trap's: message 47 to the shot's owner with
+    /// its tile, and a UI call for the local player. Returns 0.</summary>
+    public const byte AlarmProcess = 12;
+
+    /// <summary>Process 21 (<c>0x00484940</c>), the Fear trap's: a stub returning 0. The Fear trap acts
+    /// through its threat (traps.md §8).</summary>
+    public const byte FearProcess = 21;
+
+    /// <summary>Process 31 (<c>0x004AF8E0</c>), the gas clouds': <c>0x004B32A0</c> at radius 2, which
+    /// counts nobody (<c>radius·(radius &gt;&gt; 12)</c> is 0), then, only for damage type 0, a kick of
+    /// workers to state 210 on two draws of a second stream. Every shipped process-31 shot has damage
+    /// type 2, so ours does nothing and the damage-type-0 kick is not built.</summary>
+    public const byte GasProcess = 31;
+
+    /// <summary>Damage type 1 (<c>0x004AC5A0</c>), the Spike's.</summary>
+    public const byte SquareDamageType = 1;
+
     /// <summary>The Disruption shot: its type-3 handler sets the target to five percent or kills it (§8).</summary>
     public const byte DisruptionShotId = 43;
 
@@ -330,6 +347,30 @@ public static class ShotRules
         }
     }
 
+    /// <summary>Damage type 1 each tick (<c>0x004AC5A0</c>): over the tiles from the shot's tile less
+    /// <c>data2</c> to <b>below</b> it plus <c>data2</c> on each axis — half-open, so <c>data2</c> 1 is
+    /// the 2x2 square north-west of the shot's tile — in the map, a creature not of the shot's owner
+    /// with its invulnerable word clear takes <c>data1</c> flat. No falloff and no trap or door; the
+    /// object-74 arm (half) is not built, as objects are not hit here.</summary>
+    public static void SquareDamage(SimulationContext context, ShotState shot, ShotDef definition)
+    {
+        if (definition.DamageType != SquareDamageType || shot.Data1 <= 0) return;
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        int tileX = shot.PosX >> 12, tileY = shot.PosY >> 12;
+        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            CreatureState target = creatures[i];
+            if (target.OwnerPlayerId == shot.OwnerPlayerId || CreatureDeathRules.IsCorpse(target) || !CombatPitRules.IsOnTheMap(target)) continue;
+            TilePos at = target.Tile;
+            if (at.X < tileX - shot.Data2 || at.X >= tileX + shot.Data2 || at.Y < tileY - shot.Data2 || at.Y >= tileY + shot.Data2) continue;
+            if (!world.Contains(at) || StatusEffectRules.IsInvulnerable(target) || CreatureDeathRules.IsDown(target)) continue;
+            int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, shot.Data1);
+            context.Emit(SystemName, "shot_square_hit", $"shot={shot.Id} type={definition.ShotId} target={target.Id} damage={shot.Data1} landed={landed} health={target.Health}");
+        }
+    }
+
     /// <summary>The attack category (shot <c>+0x51</c>) whose area damage spares traps and doors (gas).</summary>
     public const byte GasCategory = 7;
 
@@ -351,6 +392,13 @@ public static class ShotRules
             InfernoRules.Burn(context, shot);
             return;
         }
+        if (definition.ProcessType == AlarmProcess)
+        {
+            world.Messages.Post(world, shot.OwnerPlayerId, PlayerMessageKind.AlarmRaised, shot.PosX >> 12, shot.PosY >> 12);
+            context.Emit(SystemName, "alarm_raised_by_trap", $"shot={shot.Id} player={shot.OwnerPlayerId} at={shot.PosX >> 12},{shot.PosY >> 12}");
+            return;
+        }
+        if (definition.ProcessType is FearProcess or GasProcess) return;
         CreatureState? target = struck ?? (shot.TargetKind == FightTargetKind.Creature ? world.CreatureById(shot.TargetId) : null);
         if (target is null)
         {
