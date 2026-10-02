@@ -382,6 +382,12 @@ public struct PlayerState
     /// <c>+0x13E</c> (call-to-arms.md, ADR-0279).</summary>
     public CallToArmsState CallToArms;
 
+    /// <summary>DK2's player <c>+0x76</c> bit 10, <c>PortalsOpen</c> in its dumper
+    /// (<c>0x004BDCEA</c>), held inverted so a new player starts open, as every Level 2 capture
+    /// does from tick 4. Only action 37 writes it (<c>0x004C892D</c>); while closed the creator
+    /// <c>0x004DC9A0</c> refuses, so a due roll draws and restamps but nothing comes (ADR-0314).</summary>
+    public bool PortalsClosed;
+
     /// <summary>
     /// The Hand of Evil: the <b>things</b> this keeper is holding, in pick-up order.
     /// Things, not creatures (ADR-0075) — DK2 keeps one array of thing ids on the
@@ -438,6 +444,7 @@ public struct PlayerState
         hash.Add(CallToArms.X);
         hash.Add(CallToArms.Y);
         hash.Add(CallToArms.ManaTick);
+        hash.Add(PortalsClosed ? (byte)1 : (byte)0);
         hash.Add(Availabilities.Count);
         foreach (AvailabilityState availability in Availabilities)
             availability.HashInto(ref hash);

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 148;
+    private const int FormatVersion = 149;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -169,6 +169,7 @@ public static class WorldSnapshot
             w.Write(p.CallToArms.X);
             w.Write(p.CallToArms.Y);
             w.Write(p.CallToArms.ManaTick);
+            w.Write(p.PortalsClosed);
             w.Write(p.Availabilities.Count);
             foreach (AvailabilityState availability in p.Availabilities)
             {
@@ -672,6 +673,7 @@ public static class WorldSnapshot
                     r.ReadUInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadBoolean(), r.ReadUInt32()),
                 CallToArms = new CallToArmsState(
                     r.ReadBoolean(), r.ReadInt32(), r.ReadUInt16(), r.ReadUInt16(), r.ReadUInt32()),
+                PortalsClosed = r.ReadBoolean(),
                 Availabilities = [],
                 EntranceInfo = [],
                 ManufactureQueue = [],

@@ -518,25 +518,122 @@ public class PortalTests
         Assert.Empty(world.Creatures);
     }
 
+    /// <summary>The wait is not banked: 0x004DBBE0 restamps the clock at every due roll,
+    /// whatever the roll produced (ADR-0314). This replaced a test that pinned the opposite,
+    /// which was a design choice nothing in the binary supported.</summary>
     [Fact]
-    public void BuildingTheLairLetsTheBankedWaitThrough()
+    public void BuildingTheLairWaitsForTheNextRoll()
     {
         GameDatabase db = Database();
         WorldState world = World(db);
         Portal(db, world, 5, 5);
         GameSimulation sim = Simulation(db, world);
+        int interval = 25 * SimulationTiming.TicksPerSecond;
 
-        // Long past the interval with nothing to attract anything.
-        sim.Run(LongEnough);
+        // Two and a half intervals with nothing to attract anything: two empty rolls,
+        // each restarting the clock, which now stands half an interval in.
+        sim.Run((interval * 5) / 2);
         Assert.Empty(world.Creatures);
+        Assert.Equal(interval / 2, world.Tile(6, 6).EntranceIdleTicks);
 
-        // The clock kept running while the portal was blocked, so the first
-        // goblin is owed and arrives on the next tick rather than 25 seconds
-        // later. That is the whole reason the clock counts up.
+        // The lair does not let a goblin out at once; the next roll does.
         Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+        sim.Run((interval / 2) - 1);
+        Assert.Equal(0, Goblins(world));
         sim.Run(1);
-
         Assert.Equal(1, Goblins(world));
+    }
+
+    // ---- PortalsOpen (action 37) -------------------------------------------
+
+    /// <summary>The negative control: the same portal, open, produces on its first roll.</summary>
+    [Fact]
+    public void AnOpenPortalProducesOnItsFirstRoll()
+    {
+        GameDatabase db = Database();
+        WorldState world = World(db);
+        Portal(db, world, 5, 5);
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+
+        Simulation(db, world).Run(25 * SimulationTiming.TicksPerSecond);
+
+        Assert.True(PortalRules.PortalsOpen(world, Keeper));
+        Assert.Equal(1, Goblins(world));
+        Assert.Equal(1, world.Tile(6, 6).EntranceCreaturesGenerated);
+    }
+
+    /// <summary>Level 2's shape: closed over a due roll, the roll is spent — the clock
+    /// restarts, the tally holds, no creature — and reopening does not hand the roll back.
+    /// The next creature comes one whole interval later.</summary>
+    [Fact]
+    public void AClosedPortalSpendsItsRollAndProducesNothing()
+    {
+        GameDatabase db = Database();
+        WorldState world = World(db);
+        Portal(db, world, 5, 5);
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+        world.Player(Keeper).PortalsClosed = true;
+        GameSimulation sim = Simulation(db, world);
+        int interval = 25 * SimulationTiming.TicksPerSecond;
+
+        sim.Run(interval);
+        Assert.Equal(0, Goblins(world));
+        Assert.Equal(0, world.Tile(6, 6).EntranceIdleTicks);
+        Assert.Equal(0, world.Tile(6, 6).EntranceCreaturesGenerated);
+
+        world.Player(Keeper).PortalsClosed = false;
+        sim.Run(interval - 1);
+        Assert.Equal(0, Goblins(world));
+        sim.Run(1);
+        Assert.Equal(1, Goblins(world));
+    }
+
+    /// <summary>Action 37 (<c>0x004C892D</c>): byte 0 zero closes, anything else opens, and
+    /// only for the player whose tree ran it. Level 2 ships both values.</summary>
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    public void ActionThirtySevenWritesPortalsOpen(byte available, bool closed)
+    {
+        GameDatabase db = Database();
+        WorldState world = World(db);
+        world.Player(Keeper).PortalsClosed = !closed;
+        TriggerRecord[] records =
+        [
+            new ActionTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = 0xFFFF, Type = 37,
+                Parameters = new Dictionary<string, long> { ["Available"] = available },
+            },
+        ];
+        var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 0xFFFF)]);
+
+        TriggerRunResult result = new TriggerExecutor(tree, world.Triggers, world, db).Run(10);
+
+        Assert.Empty(result.Partial);
+        Assert.Equal(closed, world.Player(Keeper).PortalsClosed);
+        Assert.False(world.Player(Rival).PortalsClosed);
+    }
+
+    /// <summary>A closed portal still makes its draw, as DK2's pick runs before the creator
+    /// refuses: the RNG and the boosts move exactly as an open roll's would.</summary>
+    [Fact]
+    public void AClosedRollDrawsAsAnOpenOneDoes()
+    {
+        (ulong, ulong, ulong, ulong) Draws(bool closed)
+        {
+            GameDatabase db = Database();
+            WorldState world = World(db);
+            Portal(db, world, 5, 5);
+            Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+            world.Player(Keeper).PortalsClosed = closed;
+            var sim = new GameSimulation(db, world, seed: 99, [new PortalSystem()]);
+            sim.Run(25 * SimulationTiming.TicksPerSecond);
+            return sim.Rng.SaveState();
+        }
+
+        Assert.Equal(Draws(closed: false), Draws(closed: true));
     }
 
     [Fact]
@@ -974,9 +1071,10 @@ public class PortalTests
         WorldState world = World(db);
         Portal(db, world, 5, 5);
 
-        Simulation(db, world).Run(100);
+        // Short of the first roll, which would restart the clock (ADR-0314).
+        Simulation(db, world).Run(50);
 
-        Assert.Equal(100, world.Tile(6, 6).EntranceIdleTicks);
+        Assert.Equal(50, world.Tile(6, 6).EntranceIdleTicks);
         for (int y = 5; y <= 7; y++)
         {
             for (int x = 5; x <= 7; x++)

@@ -23,8 +23,14 @@ public static class PortalRules
     private const int Researchable = 2;
     private const int Available = 3;
 
+    /// <summary>Whether this keeper's portals let an ordinary arrival out: DK2's
+    /// <c>PortalsOpen</c>, which the creator <c>0x004DC9A0</c> tests first (ADR-0314).</summary>
+    public static bool PortalsOpen(WorldState world, byte playerId) =>
+        !world.Player(playerId).PortalsClosed;
+
     /// <summary>Action 28: use the first owned keeper Portal, bypass attraction, pool,
-    /// availability and keeper capacity, then promote. No Portal still succeeds.
+    /// availability, keeper capacity and closed portals (<c>0x004DC8F0</c> sets
+    /// <c>PortalsOpen</c> for its own call and restores it), then promote. No Portal still succeeds.
     /// Arrival representation and room ordering limits: portal-creature-action.md, Q473.</summary>
     public static CreatureState? CreateScriptedArrival(
         in StateHookContext hooks, byte playerId, byte creatureTypeId, byte level)

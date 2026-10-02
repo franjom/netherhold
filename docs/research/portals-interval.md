@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| Source(s) | `DKII.EXE` v1.70 at `0x004DBBE0` and `FUN_004DBF90` (read 2026-09-07, ADR-0046); three hand-timed runs on the original (owner, 2026-09-07); shipped per-level `VARIABLES` |
-| Observed behaviour | Arrivals from one portal get further apart, permanently. A newly claimed portal runs at full speed however worn out its neighbour is. Nothing a keeper can do speeds a worn portal up except losing it and taking it back |
-| Confidence | **CONFIRMED** — formula, per-portal clock, per-portal tally and the reset. The one-off residual in run 1 is HYPOTHESIS |
-| Implementation | `PortalRules.SpawnIntervalTicks`, `PortalRules.OnOwnerChanged`, `TileState.EntranceCreaturesGenerated`, `TileState.EntranceIdleTicks`; ADR-0086 |
+| Source(s) | `DKII.EXE` v1.70 at `0x004DBBE0` and `FUN_004DBF90` (read 2026-09-07 and again 2026-10-01, ADR-0046), `0x004DC9A0`, `0x004DC8F0`, the player action arm `0x004C892D`; three hand-timed runs on the original (owner, 2026-09-07); three seeded Level 2 captures (`level2-live2-seeds`, 2026-10-01); shipped per-level `VARIABLES` and Level 2's triggers |
+| Observed behaviour | Arrivals from one portal get further apart, permanently. A newly claimed portal runs at full speed however worn out its neighbour is. Nothing a keeper can do speeds a worn portal up except losing it and taking it back. A due roll that produces nothing still restarts the wait |
+| Confidence | **CONFIRMED** — formula, per-portal clock, per-portal tally, the reset, the restamp at every due roll and the `PortalsOpen` gate. The one-off residual in run 1 is unexplained |
+| Implementation | `PortalRules.SpawnIntervalTicks`, `PortalRules.OnOwnerChanged`, `PortalRules.PortalsOpen`, `PlayerState.PortalsClosed`, `TileState.EntranceCreaturesGenerated`, `TileState.EntranceIdleTicks`; ADR-0086, ADR-0314 |
 | Tests | `PortalTests`, `LevelVariablesOnRealDataTests` |
-| Open questions | none; Q86 and Q97 are closed. Q90's weighting is in `portals.md` |
+| Open questions | none on the clock; Q86, Q97 and Q505 are closed. Q90's weighting is in `portals.md`; Q507 (the boost's decay step) |
 
 The mechanic and the other four gates: `portals.md`.
 
@@ -28,8 +28,9 @@ if (now >= dueTicks) <generate>
 **The interval is `(n² + base)` game seconds** — an *addition* of n² seconds,
 not a multiple of the base. `room[0x4D]` is incremented once per creature
 generated (`FUN_004DBF90`, `INC dword ptr [EDI + 0x4D]` at `0x004DC5E3`);
-`room[0x49]` holds the tick of the last generation, stamped at the *actual*
-generation rather than when the portal came due.
+`room[0x49]` holds the tick of the last **due roll**, whether or not that roll
+produced anything (corrected 2026-10-01; this line used to say the stamp moves
+only at a generation — see *A due roll that creates nothing*).
 
 | n | level 1, base 18 | base 25 |
 |---|---|---|
@@ -92,14 +93,97 @@ across a series running out to 59 s (ADR-0089).
 Run 1's fourth gap is 40 s where the formula says 34, and **every gap after it
 is correct again** (41/41, 51/50, 59/61). The cumulative residual steps once,
 from +1 s to +7 s, then stays flat. Noise would wander. This is the signature of
-a **one-off block of about six seconds** — the portal came due, no creature was
-eligible, it waited, and `room[0x49]` was stamped at the actual generation, so
-the delay shifted every later arrival without corrupting a single later gap.
-That is exactly what `portals.md` §4's banked wait predicts. **HYPOTHESIS**; the
-alternative is one mistimed reading, which the owner's caveat allows. Named in
+a **one-off shift of about six seconds** that moved every later arrival without
+corrupting a single later gap. This section used to explain it as a banked
+wait: the portal came due, nothing was eligible, and the stamp moved only at the
+eventual generation. **That explanation is refuted** (2026-10-01): a roll that
+creates nothing restamps at once, so a blocked roll costs a whole interval
+(26 s at n = 1 here), not six seconds. The residual is unexplained; one
+mistimed reading, which the owner's caveat allows, is what is left. Named in
 the test data rather than absorbed by a wider tolerance, because a tolerance
 wide enough to admit it would also admit the refuted formula on three of six
 gaps.
+
+## A due roll that creates nothing (Q505)
+
+Read 2026-10-01 from the binary (pyghidra-mcp, ADR-0046) and checked against
+three seeded Level 2 captures. Confidence is per claim.
+
+**Every due roll restamps the clock. CONFIRMED (binary).** When
+`now >= room[0x49] + (n² + base) × variable19`, `0x004DBBE0` calls the pick
+`0x004DBF90` with 1 and then writes `room[0x49] = now` at `0x004DBC7C`. Nothing
+tests what the pick returned. So the clock restarts at the due tick whether a
+creature came or not, and a portal held up by a missing room, a full dungeon or
+a closed gate waits for its next roll. It does **not** produce the moment the
+obstacle goes. The wait is never banked. Before the due test the routine checks
+only that the room's owner is not `DAT_006F2548` and that the owner's
+`+0x132` (`KilledByPlayerId`) is 0.
+
+**The special-arrival branch is not the campaign's. CONFIRMED (binary).** First
+the due path calls `0x004DCF50`. When it returns non-zero for a room of type 3,
+the routine restamps and returns without the pick. `0x004DCF50` returns 0 at
+once when the mode byte `0x0075AD4B` is 1 (single player, `win-and-defeat.md`).
+In other modes it offers the first type in 0x20..0x2C whose player flag
+`+0xFCE` is clear and which `0x004DD130` accepts, creates it at the Portal,
+sets the flag, and returns 1 whether or not the create succeeded. Not built:
+nothing here runs a non-campaign mode.
+
+**The pick can draw and still create nothing. CONFIRMED (binary).** After the
+draw, `0x004DBF90` calls the creator `0x004DC9A0` and increments `room[0x4D]`
+(`0x004DC5E3`) only when it returns non-zero. It then decays every boost and
+block whenever any type had weight, however the create went. The creator's
+first test (`0x004DC9AB`–`0x004DC9B8`) is the owner's `+0x76` bit 10. When the
+bit is clear it returns 0 before anything else. The player dumper prints that
+bit as **`PortalsOpen`** (`0x004BDCEA`).
+
+**Only the script writes `PortalsOpen`. CONFIRMED (binary).** Player action
+type 37 maps to arm `0x004C892D` (index byte 9 at `0x004C8AB3`, pointer 9 of the
+table at `0x004C8A60`; type 28 maps to `0x004C8851` in the same tables, which
+`portal-creature-action.md` had read). A zero body byte 0 clears bit 10 and any
+other value sets it. The other writer is the action-28 wrapper `0x004DC8F0`. It
+sets the bit for its own call, so a scripted creature comes through a closed
+portal, then clears it again if it was clear (`0x004DC983`–`0x004DC989`).
+`0x004DC9A0` has exactly those two callers.
+
+**Level 2 closes its portal for the scripted Warlock. CONFIRMED (shipped
+triggers).** Condition 3 (*a Portal*) with child condition 4 (*a Library*) runs
+action 37 with `Available=0` and starts timer 0. At timer 0 ≥ 10 s it runs action
+28 (Warlock, level 1) and action 31 (path 60 to action point 4). At timer 0 ≥ 30 s
+it runs action 37 with `Available=1`. The shipped corpus holds 22 type-37
+records, 10 closing and 12 opening.
+
+**The captures show exactly that. CONFIRMED (observation).** Player 3's `+0x76`
+reads `0x…8500` from tick 4: bit 10 is set, the portals start open.
+
+| seed | Library | claim (stamp) | bit 10 cleared | tally 0→1 (scripted) | bit 10 set | roll, nothing | first arrival |
+|---|---|---|---|---|---|---|---|
+| 04 | 688 | 883 | 884 | 924 | 1004 | 967 | 1051 |
+| 03 | 688 | 967 | 968 | 1008 | 1088 | 1051 | 1135 |
+| 02 | none | 686 | never | — | — | — | 766 |
+
+A capture frame's tick is one later than the turn that wrote it, which puts the
+close on the claim turn itself. The Warlock comes 40 ticks (10 s) later, and
+the portal reopens 120 ticks (30 s) after the close. Each skipped roll lands
+inside its seed's closed window, at stamp + (1² + 20) × 4 = 84 ticks, because
+the scripted Warlock already raised `n` to 1. The next roll, 84 ticks later,
+finds the portal open and produces (tally 1→2). Seed 02 never builds a Library,
+so the chain never fires, the bit never clears, and the portal produces at its
+first roll (n = 0, 80 ticks) and at every roll after.
+
+**The closed roll still drew. STRONGLY INFERRED (capture).** The Warlock's
+entrance row first shows a boost at the closed roll (967 in seed 04), and that
+boost falls at each later roll (8.0, 6.0, 4.0 at 967, 1051, 1147). The decay
+loop runs only when the pick found a weighted type, so at 967 the pick had a
+candidate and the creator refused it. It was not an empty pick. The step is
+2.0 per roll, where `PortalChoiceRules` decays 1.0. That is Q507, and it was
+left alone here.
+
+**Ours, before ADR-0314.** Action 37 was reported partial and did nothing, so
+our portals never closed. Our clock also counted up from the last *arrival*, so
+a roll that found nothing banked its wait. Either one alone produces the early
+Warlock. Built now as `PlayerState.PortalsClosed` (DK2's bit, inverted so a new
+player starts open), action 37, the restamp at every roll, and the creator's
+refusal after the draw.
 
 ## The tally never falls
 

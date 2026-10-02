@@ -938,7 +938,7 @@ public class TriggerExecutorTests
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
         Assert.Equal(
-            [(byte)1, (byte)6, (byte)7, (byte)8, (byte)10, (byte)11, (byte)14, (byte)22, (byte)23, (byte)28, (byte)44, (byte)45, (byte)47],
+            [(byte)1, (byte)6, (byte)7, (byte)8, (byte)10, (byte)11, (byte)14, (byte)22, (byte)23, (byte)28, (byte)37, (byte)44, (byte)45, (byte)47],
             performed);
     }
 

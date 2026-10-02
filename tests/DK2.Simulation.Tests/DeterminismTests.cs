@@ -104,7 +104,7 @@ public class DeterminismTests
 
         // HashVersion 148: Training and Casino enter hooks refuse before their claims (ADR-0313).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xCF0197A5CA7ACEB4UL, sim.StateHash());
+        Assert.Equal(0x62BD4E4816875CDDUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

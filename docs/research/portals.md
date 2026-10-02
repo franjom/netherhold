@@ -156,9 +156,13 @@ from a third timed run (`portals-interval.md`).
 
 **Counted up rather than down**, because the interval it is waiting for is not
 fixed: a countdown set at the last spawn would freeze a requirement that has
-since changed. Counting elapsed time against a requirement recomputed each tick
-means a portal blocked for want of a lair **banks** its wait and produces the
-moment the lair appears — `PortalTests.BuildingTheLairLetsTheBankedWaitThrough`.
+since changed. **The wait is not banked** (corrected 2026-10-01, ADR-0314,
+Q505). This paragraph used to say a portal blocked for want of a lair produces
+the moment the lair appears. That was a design choice, never a reading.
+`0x004DBBE0` restamps the clock at every due roll, whatever the roll produced,
+so a blocked portal waits for its next roll —
+`PortalTests.BuildingTheLairWaitsForTheNextRoll`; `portals-interval.md`, *A due
+roll that creates nothing*.
 
 **Only while owned by a keeper.** `PortalSystem` skips any player failing
 `PlayerIds.IsKeeper`, so the clock of an unclaimed portal (167 of the campaign's)

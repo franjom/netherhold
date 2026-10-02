@@ -990,7 +990,7 @@ public sealed class TriggerExecutor
     {
         // Player-owned implemented arms delegate from a creature with its owner as
         // context. The world dispatcher refuses these types (ADR-0162, ADR-0265).
-        if (record.Type is 10 or 11 or 28)
+        if (record.Type is 10 or 11 or 28 or 37)
         {
             if (context is TriggerContext.Player or TriggerContext.Creature)
                 return ExecuteAction(record, context, run);
@@ -1106,7 +1106,7 @@ public sealed class TriggerExecutor
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
     public static bool Performs(byte type) =>
-        type is 1 or 6 or 7 or 8 or 10 or 11 or 14 or 22 or 23 or 28 or 44 or 45 or 47;
+        type is 1 or 6 or 7 or 8 or 10 or 11 or 14 or 22 or 23 or 28 or 37 or 44 or 45 or 47;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -1118,6 +1118,15 @@ public sealed class TriggerExecutor
                 return Unperformed(record, context, partial);
             PortalRules.CreateScriptedArrival(new StateHookContext(_world, _database, this), player,
                 Byte(p, "CreatureId"), Byte(p, "Level"));
+            return true;
+        }
+        if (record.Type == 37)
+        {
+            // 0x004C892D: body byte 0 zero clears PortalsOpen (player +0x76 bit 10), anything
+            // else sets it. Level 2 closes its portals for the scripted Warlock (ADR-0314).
+            if (_world is null || run.Player is not byte player)
+                return Unperformed(record, context, partial);
+            _world.Player(player).PortalsClosed = Byte(p, "Available") == 0;
             return true;
         }
         if (record.Type == 6)

@@ -94,9 +94,6 @@ public sealed class PortalSystem : ISimulationSystem
             int entranceTile = PortalRules.EntranceTileIndex(world, portal);
             ref TileState centre = ref world.TileAtIndex(entranceTile);
 
-            // The clock runs whether or not anything can come out, so a portal
-            // held up by a missing lair or a full dungeon produces as soon as
-            // the obstacle goes.
             centre.EntranceIdleTicks++;
 
             // Per portal, from this portal's own tally — not the keeper's
@@ -107,8 +104,14 @@ public sealed class PortalSystem : ISimulationSystem
             int required = PortalRules.SpawnIntervalTicks(
                 database, centre.EntranceCreaturesGenerated);
 
-            if (held >= capacity) continue;
             if (centre.EntranceIdleTicks < required) continue;
+
+            // A due roll restarts the clock whatever it produces: 0x004DBBE0 stamps
+            // room+0x49 straight after the pick, untested (0x004DBC7C). A portal held
+            // up by a missing lair or a full dungeon waits for its next roll, not the
+            // moment the obstacle goes (ADR-0314).
+            centre.EntranceIdleTicks = 0;
+            if (held >= capacity) continue;
 
             // The portal is passed in because the flag gate depends on the room
             // type: a Hero Portal admits a different nine creatures, and a
@@ -116,9 +119,11 @@ public sealed class PortalSystem : ISimulationSystem
             CreatureDef? arriving = Pick(context, owned, playerId, portal.Definition);
             if (arriving is null) continue;
 
-            CreatureState spawned = PortalRules.CreateArrival(context.Hooks, portal, arriving.CreatureId);
+            // Closed portals still draw and decay the boosts; the creator 0x004DC9A0
+            // then refuses (PortalsOpen clear), so neither tally nor creature moves.
+            if (!PortalRules.PortalsOpen(world, playerId)) continue;
 
-            centre.EntranceIdleTicks = 0;
+            CreatureState spawned = PortalRules.CreateArrival(context.Hooks, portal, arriving.CreatureId);
 
             context.Emit(SystemName, "creature_entered",
                 $"player={playerId} creature={spawned.Id} type={arriving.Name} " +

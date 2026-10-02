@@ -6944,3 +6944,39 @@ claims in DK2, and still seed before here: the same unread divergence on a full 
   keeps no count for the floating −20). The Casino's `+0xB3 = 0` is Training's byte, which
   ours does not keep apart.
 - The Casino finder offers a lever-only 3×3 Casino whose claim must refuse (Q506). Ours does not.
+
+## ADR-0314 — Closed portals and a clock that restarts at every roll
+**Date:** 2026-10-01 · **Status:** accepted · Research: `portals-interval.md`, *A due roll that creates nothing*; Q505
+
+**Context.** DK2's Level 2 portal skips its first due roll after the scripted Warlock. Ours
+produced on it, so the first ordinary Warlock came about 80 ticks early. Read whole: the due
+path `0x004DBBE0` calls the pick `0x004DBF90` and then stamps `room+0x49`, untested
+(`0x004DBC7C`). The pick draws, and the creator `0x004DC9A0` refuses while the owner's
+`+0x76` bit 10, `PortalsOpen`, is clear. Only player action 37 (`0x004C892D`) writes that
+bit, and the action-28 wrapper `0x004DC8F0` sets it for its own call. Level 2 and Level 1 both
+close at the claim and reopen 30 s and 40 s later. Ours ignored action 37, and our clock
+banked any roll that produced nothing (`portals.md` §4, never read from the binary).
+
+**Decision.**
+1. `PlayerState.PortalsClosed` is DK2's bit, inverted so a new player starts open (every
+   capture reads it set from tick 4). It is hashed and saved.
+2. Action 37 is a player-owned arm: a zero `Available` closes, anything else opens.
+3. `PortalSystem` restarts a portal's clock at every due roll, before the capacity test, the
+   pick and the gate. While closed, the pick still draws and decays, and nothing is created.
+4. Action 28 still bypasses the gate, as the wrapper does.
+
+**Consequences.**
+- `HashVersion` and `FormatVersion` go to 149. `BuildingTheLairLetsTheBankedWaitThrough`
+  pinned the refuted rule and is replaced by `BuildingTheLairWaitsForTheNextRoll`.
+- Measured on c700b56, seeds 1–20, before → after. Level 2 wins 7/20 → 9/20, all in the ten
+  Library seeds (DK2: 1 of 2 with the Library). Timers 1 and 15 start at 1455–1495 (DK2
+  1510; before 1364). Timer 12 starts at 1665–1834 (DK2 1776; before 1574).
+- **Known residual, accepted (owner, 2026-10-02): Level 1 wins 20/20 → 19/20.** Win ticks
+  1756–1964 before, 1764–2016 after; seed 5 has not won by the recording's last turn, 2044,
+  and cannot be run longer. DK2 won its six captures at 1791–1902. Level 1's portal now
+  matches DK2 relative to the claim to the tick: +227/+315/+423/+559/+731/+947 against seed
+  01's +228/+316/+424/+560/+732/+948. Before, it ran 152 ticks early, so the old 20/20 rested
+  in part on a wrong clock. Where seed 5 loses its time is unread: the portal's schedule is
+  not it. Re-measure after Q507.
+- Not built: `0x004DCF50`, the special arrival outside single player. The boost's decay step
+  differs from the capture (Q507).
