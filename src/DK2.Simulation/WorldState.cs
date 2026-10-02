@@ -183,6 +183,11 @@ public struct TileState
     /// A heart's ruin is <see cref="PlayerState.HeartRuined"/> (hero-parties-and-effect-generators.md).</summary>
     public bool RoomRuined;
 
+    /// <summary>This tile's part of its room's health deficit: the room's <c>Health</c>
+    /// (<c>room+0x35</c>) is StartingHealth × Size less the sum over its tiles, kept by
+    /// <see cref="RoomHealthRules"/> and <see cref="SlabChain"/>. Zero off a room.</summary>
+    public int RoomHealthLost;
+
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = 15;
 
@@ -236,6 +241,7 @@ public struct TileState
         hash.Add(SlabOrder);
         hash.Add(RoomSizeChangedTick);
         hash.Add(RoomRuined);
+        hash.Add(RoomHealthLost);
     }
 }
 

@@ -7413,3 +7413,38 @@ with its stores filled and a floor pile, posts 42 at tick 10, grows its Treasury
 (12..15, 4) from tick 505 and later stores gold there: a modern-run result (Q518).
 Unbuilt: the other finders' producers, the claim failure, the rescue selector,
 `0x004BA420`'s other callers, mood messages and the rest of the suppression words.
+
+## ADR-0336 — A room has one health, and a conversion beats the whole of it down
+**Date:** 2026-10-02 · **Status:** accepted · amends ADR-0044 · Research: `room-health.md`; Q500, Q92
+
+**Context.** DK2 keeps one health word per room (room `+0x35`) and changes it only through
+`0x004E5300`; ours beat the worked tile's health, 13 applications for any room. Read and
+checked against room `+0x35` in three full-state captures: a built room grows 10000 a tile, the
+Level 1 portal (90000) falls 4000 a tick and changes hands at 90000 after 23 applications. The
+conversion's neutral arm reads variable 136, `ConvertNeutralRoomHealth`, not `Unknown_17`.
+
+**Decision.**
+1. A room's health is a deficit below StartingHealth × Size kept on its tiles
+   (`TileState.RoomHealthLost`, summed). An untouched room reads full however it was laid
+   down, and a tile added or a merge writes nothing: DK2's clamped sums equal the summed deficit
+   while StartingHealth ≤ MaxHealth, which every shipped room terrain meets with equality
+   (`RoomHealthOnRealDataTests`). A tile leaving gives each piece the old room's whole-percent
+   share of its own cap, at least 1 (`0x004ED440`).
+2. `RoomHealthRules.Apply` is the applier: below 1 the room passes whole to the worker's keeper
+   and resets to StartingHealth × Size; a positive delta clamps at MaxHealth × Size.
+   `RoomHealthSystem` adds `HealthGain`, which is 0 in every shipped room.
+3. `ConvertRoom` works the room's health, never a tile's, at the rival or the neutral rate by
+   the worked tile's owner. The whole-room takeover stays. The gate is the world-aware one, so
+   a ruined heart is convertible through the system (ADR-0162), not only by `Applies`.
+4. Not built, both inert on shipped data: the level-start pass for Neutral's rooms
+   (`0x0050B966`) and the map loader's percentage for a pre-placed room (`0x005215BA`).
+
+**Predictions, written before building 3.** One worker at 80%: a rival's room takes 13
+applications for one tile, 25 for two, 113 for a 3×3; a neutral room 3, 5 and 23; a ruined
+heart 313 (13 before). The Level 1 and Level 2 rigs convert exactly one room per seed, the
+neutral portal at (21,28) and (13,38), 17 or 18 ticks after the first work today; it now takes
+23 applications, about 10 ticks later in every seed, so arrivals and everything after can move.
+The scenarios that take a portal move and the rest stay identical.
+
+**Consequences.** Part 1 alone (`HashVersion` 167) changes the pin and nothing else: all 42
+scenarios' events and worlds and both rigs' per-seed event logs are identical to 51b13a4's.

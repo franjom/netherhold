@@ -76,6 +76,7 @@ public static class SimulationSystems
         new ImpSupplySystem(),
         new ResearchSystem(), // the same player frame chooses a research target when it has none
         new PortalSystem(),
+        new RoomHealthSystem(), // the room tick's health step, after the type's own handler (0x004E4B00)
 
         // Laying, once a game second (ADR-0066), before anything eats; then hunger
         // before tiredness, the original's needs order (docs/research/eating.md).
