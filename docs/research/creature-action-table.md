@@ -36,7 +36,7 @@ The record, recovered by walking the filler tracking register values:
 | `+21` | dword | written, meaning UNKNOWN |
 | `+25` | word | **not** a `Text.str` id — §5 |
 | `+27` | byte | 0 for all but four records |
-| `+28` | byte | **1 in every record** |
+| `+28` | byte | **1 in every record**; the end-action test `0x00496D20` reads it, so every action but 21 can be ended |
 
 ## 2. It is indexed by the creature's current action
 

@@ -92,12 +92,13 @@ public class CategoryHooksTests
     }
 
     [Fact]
-    public void SetStateDispatchesWorkerJobsLeaveCallToArmsAndEveryRoomClaimAndRelease()
+    public void SetStateDispatchesWorkerJobsLeaveCallToArmsCombatLeaveAndEveryRoomClaimAndRelease()
     {
         var dispatched = CategoryHooks.Slots.Where(s => s.IsDispatched).Select(s => (s.Category, s.Kind)).ToHashSet();
         var expected = new HashSet<(Cat, HookKind)>
         {
             (Cat.WorkerJob, HookKind.Leave), (Cat.CallToArms, HookKind.Enter), (Cat.CallToArms, HookKind.Leave),
+            (Cat.Combat, HookKind.Leave),
         };
         // The nine claiming enter hooks of state-category-hooks.md §1, ten slots with GuardPost.
         Cat[] claimers =

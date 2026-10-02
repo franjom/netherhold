@@ -263,16 +263,46 @@ public static class CombatRules
 
     /// <summary>Lets go of the engagement: struck out of the target's arrays, target and reach
     /// cleared, and a creature that was fighting stands idle with no job. A swing already begun
-    /// keeps its own target and still lands.</summary>
+    /// keeps its own target and still lands. Out of the Combat category, the release and the
+    /// walk speed are its leave hook's (<see cref="LeaveCombat"/>, ADR-0319).</summary>
     public static void Disengage(in StateHookContext hooks, CreatureState creature)
     {
-        Unlink(hooks.World, creature);
-        if (!InCombat(creature)) return;
+        if (!InCombat(creature))
+        {
+            Unlink(hooks.World, creature);
+            return;
+        }
+
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
         creature.StopMoving();
+        if (CreatureStateMachine.LeavingCategory(creature) == CreatureStateCategory.Combat
+            && CreatureStateMachine.Classify(creature, CreatureStateMachine.Idle) != StateTransition.Refused)
+        {
+            disengaging = true;
+            try { CombatStates.Idle(hooks, creature); }
+            finally { disengaging = false; }
+            return;
+        }
+
+        // Reporting danger (category 26), or a walk saved from outside Combat: no Combat hook runs.
+        Unlink(hooks.World, creature);
         creature.Running = false;
         CombatStates.Idle(hooks, creature);
+    }
+
+    /// <summary>Set while <see cref="Disengage"/> moves a fighter out of Combat: the one route the
+    /// leave hook acts on until every route out runs it.</summary>
+    [ThreadStatic] private static bool disengaging;
+
+    /// <summary>The Combat category's leave hook <c>0x0047A980</c>: the fight-leave routine
+    /// <c>0x0045ADC0</c> as far as ours lets go (<see cref="Unlink"/>), then the walk speed,
+    /// <c>0x004887D0(0, 0)</c>. On the <see cref="Disengage"/> route only.</summary>
+    internal static void LeaveCombat(in StateHookContext hooks, CreatureState creature)
+    {
+        if (!disengaging) return;
+        Unlink(hooks.World, creature);
+        creature.Running = false;
     }
 
     /// <summary><c>0x0045EF50</c>: the engagement is let go and the attacker slot on its target

@@ -6980,3 +6980,21 @@ banked any roll that produced nothing (`portals.md` §4, never read from the bin
   not it. Re-measure after Q507.
 - Not built: `0x004DCF50`, the special arrival outside single player. The boost's decay step
   differs from the capture (Q507).
+
+## ADR-0319 — The Combat category's leave and enter hooks run in SetState
+**Date:** 2026-10-02 · **Status:** accepted · Research: `combat-category-hooks.md`
+
+**Context.** DK2 runs the Combat category's leave hook `0x0047A980` on every move out of
+category 22 and its enter hook `0x0047A810` on every move in. Ours ran neither: a fighter let
+go of its engagement only where the code called `CombatRules.Disengage`. A census of every
+move out of 22 found seven routes that never call it, among them the collapse, the hand
+pick-up and a heal shot (`combat-category-hooks.md` §4).
+
+**Decision.** Built in two commits, so that a moved hash names its routes.
+1. The leave hook is dispatched. On the `Disengage` route it does what `Disengage` did for a
+   fighter (the unlink and the walk speed), so the hash does not move. On every other route
+   it does nothing yet.
+
+**Consequences.**
+- `HashVersion` stays 149. The 40 scenarios' hashes and event logs, and both replay rigs'
+  per-seed lines, are identical to `2c6ea95`.

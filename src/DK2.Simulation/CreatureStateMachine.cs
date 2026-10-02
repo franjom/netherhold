@@ -128,6 +128,16 @@ public static class CreatureStateMachine
         return resume == saved ? resume : null;
     }
 
+    /// <summary>The category whose leave hook a move to another category runs (<c>SetState</c>'s
+    /// step 4): the current state's, or the saved caller's while in a walk. Null for a corpse.</summary>
+    internal static CreatureStateCategory? LeavingCategory(CreatureState creature)
+    {
+        if (!HasState(creature)) return null;
+        int from = CreatureStateTable.Get(creature.Dk2StateId).IsUtility
+            ? creature.StateBeforeUtilityState : creature.Dk2StateId;
+        return from < 0 ? null : CreatureStateTable.Get(from).Category;
+    }
+
     /// <summary>State 1, <c>idle</c> — and the value DK2 leaves in the resume slot between
     /// walks. Its constructor writes 0 and every arrival writes 1, so the slot is never
     /// unset while a creature is travelling (<c>travel-states.md</c> §2.4, §9).</summary>

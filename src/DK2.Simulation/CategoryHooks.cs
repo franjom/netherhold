@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Combat;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation;
@@ -241,8 +242,13 @@ public static class CategoryHooks
             "ends the current action and clears the combat words (state-category-hooks.md §2)"),
         Slot(CreatureStateCategory.Combat, HookKind.Update, 0x0047A870, HookStatus.NotBuilt,
             "combat experience in 199/200 (CreatureLevelRules: fighting earns none yet)"),
-        Slot(CreatureStateCategory.Combat, HookKind.Leave, 0x0047A980, HookStatus.NotBuilt,
-            "the fight-leave routine 0x0045ADC0, speed mode and +0x3D5 (state-category-hooks.md §2)"),
+        new(CreatureStateCategory.Combat, HookKind.Leave, 0x0047A980, HookStatus.Partial,
+            "the engagement let go and the walk speed, on the Disengage route only (ADR-0319); not built: "
+            + "the other routes out, the forced target and the attacker release of 0x0045ADC0 "
+            + "(state-category-hooks.md §2)")
+        {
+            Leave = static (in StateHookContext hooks, CreatureState creature) => CombatRules.LeaveCombat(in hooks, creature),
+        },
 
         Slot(CreatureStateCategory.Dying, HookKind.Update, 0x004B4C20, HookStatus.Stub, "success stub"),
 
