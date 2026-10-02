@@ -251,7 +251,7 @@ shots all have a handler, or there is no shot. "Gate only": the selector and cha
 | Spare Door 1 | 2 | 30 | 0 | 0 | none | gate only |
 | Hero Sentry | 1 | 24 | 100 | 44 | Cannon Ball | yes |
 | Hero Alarm | 1 | 4 | 50 | 13 | process 12: message 47 | yes |
-| Jack In The Box | 2 | 4 | 0 | 64 | process 39 makes a creature in state 273, not built | no |
+| Jack In The Box | 2 | 4 | 0 | 64 | area damage 2; process 39 makes a Jack in state 273 ([jack-in-the-box.md](jack-in-the-box.md)) | yes |
 
 The Magic Door's shot is 57, not the 59 this table once said. Of the trap shots, Cannon Ball,
 Door Fireball, Fear, Boulder and Jack In The Box carry the launch bit; the Fireburst, Lightning,
@@ -278,11 +278,12 @@ answer's trap arm and the creature arm's correction; §8 without the owner disco
 
 Also built (ADR-0326): the upkeep, the no-mana message and its clock, area damage type 2 on
 traps and a shot's collision with a trap; (ADR-0331) the Alarm, Fear, Spike and Gas shots; and
-(ADR-0333) the Boulder and its rolling object, which fires and damages the traps it rolls over.
+(ADR-0333) the Boulder and its rolling object, which fires and damages the traps it rolls over;
+and (ADR-0334) the Jack In The Box, its Jack and its explosion.
 Disarming (§11) is read and unreachable, so nothing is built for it (ADR-0329).
-Left: the reveal; effects, sounds and animations; the Jack In The Box's creature; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
+Left: the reveal; effects, sounds and animations; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
 swing at a trap (possession is not built).
 
 ## Open questions
 
-Q450 (what is left), Q451, Q452, Q455, Q398 (shot order and height), Q513 and Q520 (observations).
+Q450 (what is left), Q451, Q452, Q455, Q398 (shot order and height), Q513, Q520 and Q521 (observations).

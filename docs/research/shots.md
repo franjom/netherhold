@@ -236,7 +236,8 @@ UI call for the local player; **21** `0x00484940` the Fear, a stub returning 0; 
 my tile destroyed (built, [boulder.md](boulder.md)); **31** `0x004AF8E0` the gas, a threat at radius 2 that counts nobody and,
 for damage type 0 only, workers kicked to state 210 — every shipped process-31 shot has
 damage type 2; **39** `0x004B02E0` the Jack In The Box, data1 to the worker named by data2,
-then a creature of type 0x2E in state 273, the trap destroyed. Unread: 1, 17 Cyclone, 18
+then a creature of type 0x2E in state 273, the trap destroyed (built, [jack-in-the-box.md](jack-in-the-box.md),
+which also has the area damage's 32-bit arithmetic). Unread: 1, 17 Cyclone, 18
 Raise Dead, 37 Web, and the buff table `0x006E4AC8` (Q394, Q395).
 
 ## 9. The shipped creature shots, compressed

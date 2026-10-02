@@ -84,6 +84,10 @@ public static class ShotRules
     /// (object 74) at the shot, the trap on its tile destroyed (<see cref="BoulderRules.Launch"/>).</summary>
     public const byte BoulderProcess = 22;
 
+    /// <summary>Process 39 (<c>0x004B02E0</c>), the Jack In The Box's, on the first tick: the victim named
+    /// by the second data word is struck and a Jack set walking (<see cref="JackInTheBoxRules.Spring"/>).</summary>
+    public const byte JackInTheBoxProcess = 39;
+
     /// <summary>Damage type 1 (<c>0x004AC5A0</c>), the Spike's.</summary>
     public const byte SquareDamageType = 1;
 
@@ -286,15 +290,16 @@ public static class ShotRules
     /// A zero radius hurts nobody — the Firebomb's explosion inherits its spell's zero (§7).</summary>
     /// <remarks>Not built: objects of another owner, which DK2 also hits (and which then shrink
     /// <c>d</c>). Ours orders a tile's things as creatures newest-linked first, then its trap, then its
-    /// door, the static things having been linked when made.</remarks>
+    /// door, the static things having been linked when made. The arithmetic is DK2's 32-bit
+    /// (<c>0x004AC773</c>–<c>0x004AC8B7</c>), so a radius of 16 tiles or more wraps as it does there.</remarks>
     public static void AreaDamage(SimulationContext context, ShotState shot, ShotDef definition)
     {
         if (definition.DamageType != AreaDamageType || shot.Data1 <= 0 || shot.Data2 <= 0) return;
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int tiles = shot.Data2;
-        int radius = tiles * Fp32.One;
-        uint radiusSquared = (uint)((radius * radius) >> 12);
+        int radius = unchecked(tiles << 12);
+        uint radiusSquared = unchecked((uint)((radius * radius) >> 12));
         int centreX = shot.PosX >> 12, centreY = shot.PosY >> 12;
         int x0 = Math.Max(0, centreX - tiles), x1 = Math.Min(world.Width - 1, centreX + tiles);
         int y0 = Math.Max(0, centreY - tiles), y1 = Math.Min(world.Height - 1, centreY + tiles);
@@ -332,8 +337,9 @@ public static class ShotRules
             if (damage == 0) continue;
             uint distanceSquared = TrapRules.DistanceSquared(shot.PosX, shot.PosY, px, py);
             if (distanceSquared >= radiusSquared) continue;
-            damage = (int)((radius - Isqrt((long)distanceSquared << 12)) * damage / radius);
-            if (damage <= 0) continue; // the health routine returns at once on a zero delta
+            int root = (int)Isqrt(unchecked((uint)(distanceSquared << 12)));
+            damage = unchecked((radius - root) * damage) / radius;
+            if (damage <= 0) continue; // the health routine returns at once on a zero delta; a wrapped negative is not modelled
             switch (thing)
             {
                 case CreatureState target when !CreatureDeathRules.IsDown(target):
@@ -409,6 +415,11 @@ public static class ShotRules
         if (definition.ProcessType == BoulderProcess)
         {
             BoulderRules.Launch(context, shot);
+            return;
+        }
+        if (definition.ProcessType == JackInTheBoxProcess)
+        {
+            JackInTheBoxRules.Spring(context, shot);
             return;
         }
         CreatureState? target = struck ?? (shot.TargetKind == FightTargetKind.Creature ? world.CreatureById(shot.TargetId) : null);

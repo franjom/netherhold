@@ -91,11 +91,12 @@ internal static class Dk2TerrainFixture
         FiringTrap("Fear Trap", FearTrapId, 1, 24, 3, 125, 0x31518, FearShotId, 0, 3, 0, 600, 60, 12, 6000, upkeep: 5),
         FiringTrap("Spike Trap", SpikeTrapId, 2, 16, 1, 0, 0x53A, SpikeShotId, 750, 1, 0, 74, 45, 8, 4000, upkeep: 5),
         FiringTrap("Boulder Trap", BoulderTrapId, 1, 4, 3, 0, 0x31418, BoulderShotId, 1, 0, 0, 0, 0, 0, 8000),
+        FiringTrap("Jack In The Box", JackInTheBoxTrapId, 2, 4, 1, 0, 0x21408, JackInTheBoxShotId, 10000, 2, 0, 0, 0, 0, 8000),
     ];
 
     public const byte SentryTrapId = 3, FireburstTrapId = 5, LightningTrapId = 6, FreezeTrapId = 17, TriggerTrapId = 9,
         MagicDoorTrapId = 12, HeroSentryTrapId = 14, GuardPostTrapId = 11, GasTrapId = 1, AlarmTrapId = 4, FearTrapId = 8,
-        SpikeTrapId = 10, BoulderTrapId = 2;
+        SpikeTrapId = 10, BoulderTrapId = 2, JackInTheBoxTrapId = 16;
 
     private static TrapDef FiringTrap(string name, byte id, byte selector, int rechargeTicks, int range, int mana, uint flags,
         byte shot, int data1, int data2, int offsetY, ushort threat, int threatSeconds, short gain, ushort health, ushort upkeep = 0) => new()
@@ -1349,11 +1350,19 @@ internal static class Dk2TerrainFixture
         Status("Gas Trap Cloud", GasTrapCloudShotId, 4096, 5, 0x4, 0x2, 2, ShotRules.GasProcess, damageType: 2, attackCategory: 7),
         // The Boulder's shot: launched, a tick long, process 22 on its first tick (boulder.md).
         Status("Boulder", BoulderShotId, 2048, 1, 0x24, 0x40, 3, ShotRules.BoulderProcess),
+        // The Jack In The Box's shot, an area shot running process 39, and the Jack's explosion (jack-in-the-box.md).
+        Status("Jack In The Box", JackInTheBoxShotId, 2048, 1, 0x24, 0x40, 2, ShotRules.JackInTheBoxProcess, damageType: 2, attackCategory: 13),
+        new(new byte[239])
+        {
+            Name = "Jack In The Box - Explode", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = JackExplosionShotId,
+            Speed = 2048, Radius = 819, Health = 5, Flags = 0x104, ShotProcessFlags = 0x1, CollideType = 2, ProcessType = 0,
+            DamageType = 2, AttackCategory = 4, Unknown_0098 = 20000, Unknown_009C = 3,
+        },
     ];
 
     public const byte CannonBallShotId = 44, FireburstShotId = 14, LightningTrapShotId = 59, FreezeTrapShotId = 45,
         TriggerTrapShotId = 39, DoorFireballShotId = 57, AlarmShotId = 13, FearShotId = 25, SpikeShotId = 27, GasTrapCloudShotId = 58,
-        BoulderShotId = 26;
+        BoulderShotId = 26, JackInTheBoxShotId = 64, JackExplosionShotId = 65;
 
     private static ShotDef Status(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte collide, byte process, byte damageType = 0, byte attackCategory = 0, byte deathShot = 0) =>
         new(new byte[239])

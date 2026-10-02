@@ -292,7 +292,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(270, "its handler 0x004B4C20 returns 1 (state-categories.md §7.1); nothing in src/ enters it"));
         rows.Add(Unbuilt(271, "Q410, Q412: two calls in its handler are unread (rebellion.md)"));
         rows.Add(Unbuilt(272, "not read"));
-        rows.Add(Unbuilt(273, "not read"));
+        rows.Add(Built(273, typeof(JackInTheBoxRules), nameof(JackInTheBoxRules.SpringState)));
         rows.Add(Unbuilt(274, "a Crypt state, read in guard-room.md §7 (functions/00483790.md); the Crypt is not built"));
         rows.Add(Unbuilt(275, "a Crypt state, read in guard-room.md §7 (functions/00483870.md); the Crypt is not built"));
         rows.Add(Unbuilt(276, "a Crypt state, read in guard-room.md §7 (functions/004839E0.md); the Crypt is not built"));

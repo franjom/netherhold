@@ -50,9 +50,9 @@ public static class TrapRules
     /// <summary>A Trigger counts and reaches traps within one tile: squared distance <c>&lt;= 0x1000</c>.</summary>
     public const uint TriggerReachSquared = 0x1000;
 
-    /// <summary>Trap 16, the Jack In The Box: the tile selector wants a worker and the propagation
-    /// fires it without a sight test. Its shot's process 39 (<c>0x004B02E0</c>) makes a creature of
-    /// type 0x2E in state 273, which is not built, so it never fires here.</summary>
+    /// <summary>Trap 16, the Jack In The Box: the tile selector wants a worker, the propagation fires
+    /// it without a sight test, and a shot fired at a target carries the target's tag in its second
+    /// data word (<c>0x004A7FD0</c>), which process 39 reads (jack-in-the-box.md).</summary>
     public const byte JackInTheBoxId = 16;
 
     // ------------------------------------------------------------------ the sine table
@@ -89,8 +89,7 @@ public static class TrapRules
         lock (known)
         {
             if (!known.TryGetValue(definition.TrapId, out bool built))
-                known[definition.TrapId] = built = definition.TrapId != JackInTheBoxId
-                    && (definition.ShotTypeId == 0 || ShotBuilt(database, definition.ShotTypeId, 0));
+                known[definition.TrapId] = built = definition.ShotTypeId == 0 || ShotBuilt(database, definition.ShotTypeId, 0);
             return built;
         }
     }
@@ -118,7 +117,7 @@ public static class TrapRules
         ShotRules.LightningProcess, ShotRules.InvulnerableProcess, ShotRules.FreezeProcess, ShotRules.ChickenProcess,
         ShotRules.InvisibleProcess, ShotRules.ReaperStunProcess, ShotRules.InfernoProcess, ShotRules.InstantProcess,
         ShotRules.DrainProcess, ShotRules.PoisonProcess, ShotRules.AlarmProcess, ShotRules.FearProcess, ShotRules.GasProcess,
-        ShotRules.BoulderProcess,
+        ShotRules.BoulderProcess, ShotRules.JackInTheBoxProcess,
     ];
 
     // ------------------------------------------------------------------ the constructor and completion
@@ -549,6 +548,8 @@ public static class TrapRules
         ShotState? shot = Shoot(context, trap, definition, creature.PosX, creature.PosY, creature);
         if (shot != null && (context.Database.Shots[shot.ShotTypeId].Flags & ShotLaunches) != 0)
             ShotRules.Launch(shot, context.Database.Shots[shot.ShotTypeId], creature.PosX, creature.PosY);
+        // DK2 writes the target's thing tag, a slot ours does not model; ours writes its id.
+        if (shot != null && trap.TrapId == JackInTheBoxId) shot.Data2 = creature.Id;
         return shot;
     }
 
@@ -666,7 +667,7 @@ public static class TrapRules
                 if (DistanceSquared(found.PosX, found.PosY, trigger.PosX, trigger.PosY) > limit) continue;
                 if (!database.Traps.TryGetValue(found.TrapId, out TrapDef? definition) || !FiringBuilt(database, definition)) continue;
                 CreatureState? struck = world.CreatureById(trigger.TriggerCreatureId) is { } c && !CreatureDeathRules.IsCorpse(c) ? c : null;
-                if (struck != null && (definition.TriggerType == TriggerSelector
+                if (struck != null && (definition.TriggerType == TriggerSelector || found.TrapId == JackInTheBoxId
                     || LineOfSight.Clear(sight, trigger.PosX, trigger.PosY, struck.PosX, struck.PosY)))
                 {
                     TrapReadiness ready = Readiness(world, found, definition, now);

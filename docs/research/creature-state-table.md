@@ -264,7 +264,7 @@ Two states per row, left then right, so that state `N` sits in row
 | 250 `0xfa` | guarding | `0x00481cf0` | 2661 | 8 · 0 · 0 | 251 `0xfb` | responding to a threat | `0x00475660` | 2664 | 4 · 22 · 3 |
 | 252 `0xfc` | responding to a threat | `0x00458680` | 2664 | 4 · 22 · 3 | 253 `0xfd` | reporting danger | `0x00484940` | 2665 | 11 · 26 · 3 |
 | 254 `0xfe` | reporting danger | `0x004759a0` | 2665 | 11 · 26 · 3 | 255 `0xff` | stunned | `0x004810e0` | 2597 | 3 · 7 · 66 |
-| 256 `0x100` | stunned | `0x004810d0` | 2597 | 3 · 7 · 66 | 257 `0x101` | stunned | `0x00481200` | 2597 | 3 · 7 · 2 |
+| 256 `0x100` | stunned (a jump to 255's; [boulder.md](boulder.md)) | `0x004810d0` | 2597 | 3 · 7 · 66 | 257 `0x101` | stunned | `0x00481200` | 2597 | 3 · 7 · 2 |
 | 258 `0x102` | idle | `0x00474de0` | 2599 | 2 · 0 · 1 | 259 `0x103` | celebrating | `0x00461130` | 2654 | 4 · 22 · 3 |
 | 260 `0x104` | celebrating | `0x00458680` | 2654 | 4 · 22 · 2 | 261 `0x105` | hypnotised | `0x00461860` | 2666 | 8 · 29 · 1 |
 | 262 `0x106` | idle | `0x00474ee0` | 2599 | 2 · 0 · 1 | 263 `0x107` | stunned | `0x004815a0` | 2597 | 3 · 7 · 66 |
@@ -272,7 +272,7 @@ Two states per row, left then right, so that state `N` sits in row
 | 266 `0x10a` | recuperating | `0x00461b50` | 2667 | 8 · 18 · 1 | 267 `0x10b` | destroying rooms | `0x00458620` | 2602 | 8 · 18 · 0 |
 | 268 `0x10c` | destroying rooms | `0x00458680` | 2602 | 8 · 18 · 0 | 269 `0x10d` | idle | `0x004626a0` | 2599 | 3 · 7 · 68 |
 | 270 `0x10e` | idle | `0x004b4c20` | 2599 | 3 · 7 · 0 | 271 `0x10f` | idle | `0x004750b0` | 2599 | 3 · 7 · 0 |
-| 272 `0x110` | *(no label)* | `0x00481d50` | &mdash; | 3 · 7 · 68 | 273 `0x111` | *(no label)* | `0x0046e820` | &mdash; | 3 · 7 · 68 |
+| 272 `0x110` | *(no label)* | `0x00481d50` | &mdash; | 3 · 7 · 68 | 273 `0x111` | *(no label; the Jack's, [jack-in-the-box.md](jack-in-the-box.md))* | `0x0046e820` | &mdash; | 3 · 7 · 68 |
 | 274 `0x112` | *(no label)* | `0x00483790` | &mdash; | 8 · 11 · 0 | 275 `0x113` | *(no label)* | `0x00483870` | &mdash; | 8 · 11 · 0 |
 | 276 `0x114` | *(no label)* | `0x004839e0` | &mdash; | 8 · 11 · 0 | 277 `0x115` | *(no label)* | `0x00483ac0` | &mdash; | 8 · 11 · 0 |
 | 278 `0x116` | joining your Dungeon. | `0x00462730` | 2788 | 1 · 7 · 70 | 279 `0x117` | joining your Dungeon. | `0x004627e0` | 2788 | 1 · 7 · 70 |

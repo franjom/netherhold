@@ -7121,6 +7121,29 @@ and may change fights. Measured on 1aa98db: both rigs identical per seed; the ni
 scenarios on trap levels diverge at their first mana payment (Level 17's keeper pays 95 more a
 second), and no scenario has a shot strike a trap or door.
 
+## ADR-0334 — The Jack In The Box springs a Jack that wears out walking to a heart and explodes
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `jack-in-the-box.md`; `traps.md` §12; Q450, Q521
+
+**Context.** Trap 16's shot runs process 39, which makes a creature in state 273; neither was read.
+Read now: process 39 (`0x004B02E0`), state 273 (`0x0046E820`), the travel state's and the health
+routine's arms for type `0x2E`, and trap 16's write of its target's tag into the shot's second
+data word, which the shot's own area damage then uses as its radius. That arithmetic is 32-bit
+(`0x004AC6D0`) and wraps from 16 tiles. Category 7 has no hooks. No shipped level places the trap.
+
+**Decision.**
+1. `JackInTheBoxRules` and `JackInTheBoxSystem` build process 39, state 273, the toll of a point a
+   tick standing or walking, fifty at the target tile, and the explosion (shot 65), once per Jack.
+2. A creature gains `HeartTargetPlayerId` (`+0x2F5`) and `DeathShotFired`.
+3. Trap 16 writes its target's creature id where DK2 writes its thing tag: we hold no thing slots,
+   so the first strike's reach is ours, not DK2's (named in the research doc).
+4. `ShotRules.AreaDamage` uses DK2's 32-bit arithmetic for every area shot.
+5. The Trigger fires trap 16 at its creature unseen (traps.md §9), which `Propagate` lacked.
+
+**Consequences.** New state, so `HashVersion` 165. Prediction, written before measuring: no shipped
+level places trap 16 and no shipped area shot reaches 16 tiles, so every scenario's events and every
+rig seed stay identical; 959 traps stay `FiringBuilt`. Measured on 1001b9a: all identical, event
+file for event file (L1 20/20, L2 7/20).
+
 ## ADR-0333 — The Boulder rolls, strikes and wears as object process state 17
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 and ADR-0331 · Research: `boulder.md`; `traps.md` §12; Q450, Q513, Q520
 

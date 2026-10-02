@@ -67,6 +67,7 @@ public static class AssetCatalogue
         "heeding_call_to_arms",
         "being_lifted",
         "chicken",
+        "jack_in_the_box",
     ];
 
     /// <summary>
