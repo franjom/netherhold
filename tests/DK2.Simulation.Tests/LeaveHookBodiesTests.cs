@@ -134,8 +134,10 @@ public class LeaveHookBodiesTests
         Assert.True(Combat.FearRules.ShouldWithdraw(world, db, noHeart, me, mine));
 
         me.FearlessUntilTick = world.CurrentTick.Value + 1;
-
         Assert.False(Combat.FearRules.ShouldWithdraw(world, db, noHeart, me, mine));
+
+        me.FearlessUntilTick = world.CurrentTick.Value;
+        Assert.True(Combat.FearRules.ShouldWithdraw(world, db, noHeart, me, mine));
     }
 
     // --- Torture leave (0x0047B4A0) -------------------------------------------------------

@@ -61,9 +61,11 @@ In order, all on the leaving creature (`ESI` = state object, `+0x8` = creature):
 1. `0x004537E0(cell, 0x3D, &out)` (`RET 8`): the first class-2 thing on the creature's own
    map cell whose type `+0x12C` is 61, the Electric Chair; if found, its `+0x92` bit 0 is
    cleared. That bit gates a render-only effect pass (`0x005A3AA0`, the 4000-range mesh
-   points); the chair action at `0x004995B4` sets it every 6 × variable 19 turns. A scan of
-   `+0x92` in both code blocks finds that pass (`0x005A406D`) as the bit's only reader, so
-   these are the chair's sparks, presentation.
+   points); the chair action at `0x004995B4` sets it every 6 × variable 19 turns. A scan of the
+   disassembly of both code blocks for `+0x92` finds, besides this clear (the positive
+   control), the chair action's set and clear (`0x004995EB`, `0x0049970A`), a bit-2 write
+   (`0x0049ADA8`), and one bit-0 reader, that pass (`0x005A406D`): the chair's sparks,
+   presentation.
 2. `0x004F2180(room = rooms[+0x3B9], creature, &out)` (`RET 8`): the room's devices
    (object list `+0xE`, linked by `+0x12A`; types 8 and 61), skipping one whose tile holds
    another creature in 131 or 136; a free one on the creature's own tile is returned at
@@ -92,8 +94,8 @@ read nothing of ours yet; the flag now exists for them. **Built:** steps 3–5 a
 - **Enter:** `INC [player+0x8A]`, then clears state `+0xB9`, then the lookup and claim; a
   refused claim does not take the count back. State `+0xB9` as a byte is written 1 and 2 by
   `0x00470110` and read nowhere in either code block. Its dword uses are other states'
-  data: Training's `0x004857F0` keeps a last position at `+0xB5`/`+0xB9`, written every
-  call and read only once the state is a turn old; the other dword users are not traced.
+  data: Training's `0x004857F0` keeps a last position at `+0xB5`/`+0xB9`, written by
+  every call below the level cap and read only once the state is a turn old; the other dword users are not traced.
   The clear is inert as far as read.
 - **Leave:** `DEC [player+0x8A]` with no floor, then the release and the Crypt tail.
 - **Decay:** with points (`+0x217`) and `TEST EAX,EAX` on the count zero, on turns
