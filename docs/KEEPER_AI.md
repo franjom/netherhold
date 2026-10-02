@@ -1108,7 +1108,19 @@ named quirk the harness can assert on.
 
 ### 12.7 Order of work
 
-The proactive foundation already exists (§12.8). **Future direction, agreed 2026-09-28:** after completing the faithful DK2 AI, preserve it as selectable Classic mode and explore a separate Enhanced keeper using the same observation/command interface. Candidates include better dungeon planning, economy, defence, attacks, adaptation and personalities. Keep enhancements explicit; compare deterministic runs across maps/seeds against Classic, and use human playtesting to judge enjoyment as well as strength. This is outside M12's fidelity target. Remaining M12 plan:
+The proactive foundation already exists (§12.8). **Future direction, agreed 2026-09-28:** after completing the faithful DK2 AI, preserve it as selectable Classic mode and explore a separate Enhanced keeper using the same observation/command interface. Candidates include better dungeon planning, economy, defence, attacks, adaptation and personalities. Keep enhancements explicit; compare deterministic runs across maps/seeds against Classic, and use human playtesting to judge enjoyment as well as strength. This is outside M12's fidelity target.
+
+**Enhanced candidate: temporary lava bridge foothold** (owner's report of YouTube
+multiplayer play, 2026-10-02; HYPOTHESIS pending verification). Build a Wooden Bridge
+to an opposite bank's unclaimed path, drop an imp to claim the first tile, then sell
+the bridge or let it burn. Drop additional imps onto the foothold to accelerate
+expansion. Before implementation, verify the binary and an original-game experiment
+for claim adjacency through the bridge, ownership and claim propagation after its
+removal, and drop legality on disconnected owned land; obtain the clip and timestamp.
+Evaluate cost, burn-time margin, imp survival and the foothold's strategic value.
+Human use does not establish original computer-keeper use; keep this in Enhanced.
+
+Remaining M12 plan:
 
 1. **Binary audit checkpoint reached.** Selection, tasks, parameters, messages and
    management helpers were independently reviewed. This does not close every dependency:
