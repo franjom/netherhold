@@ -160,6 +160,16 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             context.World.Messages.Post(context.World, creature.OwnerPlayerId, PlayerMessageKind.CallToArmsUnreachable, 0, 0);
         }
 
+        // State 89's step 5 (0x004778E0, idle-fallback.md §1): with no lair, the lair attempt
+        // 0x0046F390 comes before the dropped job, the remembered job and either chooser, and
+        // outside the chooser's gate — whatever the mood. CreatureSleepSystem's tired-and-bedless
+        // path is the same attempt on its own 12-tick retry; a creature that turns idle between
+        // the two systems used to roll a job here first and carry its lair grievance into
+        // leaving (Level 3's Goblins, ADR-0328).
+        if (!LairRules.HasBed(context.World, context.Database, creature)
+            && _seeker.TryGoForALair(context, SystemName, creature, definition))
+            return;
+
         // State 89 (0x004778E0) asks the job the hand dropped this creature on before either
         // chooser, whatever the mood, and forgets it only when it is refused (ADR-0215).
         if (creature.DroppedToDoJob != JobType.None)
@@ -187,18 +197,9 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             return;
         }
 
-        // The unhappy chooser tries for a lair first and the happy one does not;
-        // both halves are the original's. The happy path does not need to,
-        // because the idle state's own first act for a bedless creature is the
-        // same attempt (Q150, ADR-0060); the unhappy path is reached from
-        // elsewhere and repeats it.
-        if (mood == CreatureMood.Unhappy
-            && !LairRules.HasBed(context.World, context.Database, creature)
-            && _seeker.TryGoForALair(context, SystemName, creature, definition))
-        {
-            creature.LastUnhappyChoiceTick = now;
-            return;
-        }
+        // The unhappy chooser's own first line is the same lair attempt inside its gate
+        // (creature-anger.md); 89's ungated one above has already made it this tick, so a
+        // second call here could only repeat the same answer.
 
         // While the owner's CallToArmsOn bit is set the dispatcher admits only Leave and Rebel
         // and fails every other job untried (0x00478849, ADR-0145): TryTake's first refusal.

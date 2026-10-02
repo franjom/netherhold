@@ -7349,3 +7349,30 @@ L2 6/20 (7/20; different seeds win). The waiver precedes the slot's flag read, s
 covers a thing-targeting slot too (not built); the friendly arm re-tests the recharge and is
 not waived. Unread: whether the fight-starter's melee retry for a Support (`0x0045A550`)
 ever reaches a Warlock in play.
+
+## ADR-0328 — The idle decision tries for a lair before any job, as state 89 does
+
+**Context.** Level 3 seed01: our Goblins (arrivals 1667, 1899) trained bedless from the
+tick they landed, carried `AngerNoLair` to its limit and left through the portal at 3272
+and 3572, their anger log naming Lair as the only term; in the capture
+(`reverse-engineering/dk2runs/level3-live1/seed01/level3.dk2cap`, a capture reading) the
+Goblins 431 and 433 go idle after their first fight, pass through state 89 and walk to
+the Lair before any job (431: idle 1756, 89 at 1757, travel 1758), stay, reach 2,250
+health, and stand beside the Lord of the Land as he dies at 3683. State 89 (`0x004778E0`,
+`idle-fallback.md` §1, CONFIRMED) runs the lair attempt `0x0046F390` as its step 5, before
+the dropped job, the remembered job and the happy chooser. Ours made that attempt only in
+`CreatureSleepSystem`, on a 12-tick retry timer and only while idle; a creature that turned
+idle between that system and `CreatureJobSystem` — out of a hand drop's stun, or a fight —
+rolled a job first, and the unhappy chooser's attempt sat inside its five-second gate.
+
+**Decision.** `CreatureJobSystem.Choose` makes the attempt first, for every mood and
+outside the gate, immediately after the Call to Arms arm; the unhappy chooser's duplicate
+is removed. The sleep system's tired-and-bedless attempt stays. Docs:
+`lair-acquisition.md` §7; KB `004778E0`.
+
+**Consequences.** Two tests in `LairAcquisitionTests` (content; unhappy inside its gate).
+RNG-free and stateless, no `HashVersion` change; a success skips that tick's roll, so every
+replay with a bedless idle creature shifts. Level 3 seed01: no Goblin leaves, the Lord is
+fought in the corridor at (24,22)–(26,25) from 3564 as DK2's is, and stands at 3704 with
+2,656 health (5,001 before; DK2 kills him at 3683). Rigs: L1 20/20 with every win tick
+moved (1764–1984), L2 6/20 (seeds 7, 9, 10, 15, 18, 19; 6/20 before on other seeds).
