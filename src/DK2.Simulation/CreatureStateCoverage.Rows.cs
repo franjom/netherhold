@@ -118,7 +118,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(98, typeof(GuardRules), nameof(GuardRules.PatrolState)));
         rows.Add(Built(99, typeof(GuardRules), nameof(GuardRules.LostState),
             "no simulation test loses a guard its post"));
-        rows.Add(Unbuilt(100, "read in guard-room.md; not built"));
+        rows.Add(Built(100, typeof(GuardRules), nameof(GuardRules.AtThePostState)));
         rows.Add(Built(101, typeof(JobRules), nameof(JobRules.StateFor)));
         rows.Add(Unbuilt(102, "not read"));
         rows.Add(Unbuilt(103, "not read"));
@@ -293,10 +293,10 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(271, "Q410, Q412: two calls in its handler are unread (rebellion.md)"));
         rows.Add(Unbuilt(272, "not read"));
         rows.Add(Unbuilt(273, "not read"));
-        rows.Add(Unbuilt(274, "not read"));
-        rows.Add(Unbuilt(275, "not read"));
-        rows.Add(Unbuilt(276, "not read"));
-        rows.Add(Unbuilt(277, "not read"));
+        rows.Add(Unbuilt(274, "a Crypt state, read in guard-room.md §7 (functions/00483790.md); the Crypt is not built"));
+        rows.Add(Unbuilt(275, "a Crypt state, read in guard-room.md §7 (functions/00483870.md); the Crypt is not built"));
+        rows.Add(Unbuilt(276, "a Crypt state, read in guard-room.md §7 (functions/004839E0.md); the Crypt is not built"));
+        rows.Add(Unbuilt(277, "a Crypt state, read in guard-room.md §7 (functions/00483AC0.md); the Crypt is not built"));
         rows.Add(Unbuilt(278, "not read"));
         rows.Add(Unbuilt(279, "not read"));
         rows.Add(Unbuilt(280, "not read"));

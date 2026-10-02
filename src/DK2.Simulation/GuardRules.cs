@@ -21,6 +21,9 @@ public static class GuardRules
     /// <summary>State 99, a failed leg: wait a turn, then 97 again.</summary>
     public const int LostState = 99;
 
+    /// <summary>State 100, arrived at a Guard Post: back to the room.</summary>
+    public const int AtThePostState = 100;
+
     /// <summary>No post slot (<c>0x00462BB0</c>'s miss).</summary>
     public const int NoSlot = 8;
 

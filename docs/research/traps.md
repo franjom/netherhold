@@ -69,8 +69,9 @@ by the class constructor `0x004B28D0` (`0x004B28F5`), which also links the class
    goes on.
 3. `+0x10E` counts down when nonzero. Nothing else reads it (the dumper `0x004AA130` aside).
 4. Under construction, being disarmed or dead: skip to step 8 (`0x004A8C6B`).
-5. Guard Post (`0x800`): a room lookup `0x004C61C0(9)` every eighth turn and a creature
-   dispatch to it; not built.
+5. Guard Post (`0x800`): on turns whose sum with the trap's id has bit 3 set, `+0x113` :=
+   the owner's nearest Guard Room (`0x004C61C0(9)`) and the first enemy in reach is reported
+   to it (guard-room.md §6); then on to step 6.
 6. **Turn** (flag `0x80`, §6). The idle effect (`+0xB5`, `+0x84`, `+0x103`); presentation.
 7. **Recharge gate:** at or after `+0xFF`, the selector (§5) answers a creature or nothing.
    Nothing: charge := 0. A creature: charge + 1 (a byte), a sound, and once charge ≥ the
@@ -210,7 +211,8 @@ tile change (`0x00488930`) with `def` flag `0x04000000` scanning table `0x006BC3
 
 **CONFIRMED from shipped `Traps.kwd` and `Shots.kwd`:** zero charge everywhere but Spare Door 1
 (two ticks). "Built" is `TrapRules.FiringBuilt`: the shot's damage type, process and chained
-shots all have a handler.
+shots all have a handler, or there is no shot. "Gate only": the selector and charge run, and
+`0x004A80E0` returns at once for shot 0, so nothing fires and the charge keeps climbing.
 
 | Trap | Sel. | Recharge | Mana | Shot | The shot | Fires here |
 |---|---:|---:|---:|---:|---|---|
@@ -224,9 +226,9 @@ shots all have a handler.
 | Fear | 1 | 24 | 125 | 25 | process 21 unread | no |
 | Trigger | 3 | 16 | 0 | 39 | health 1, no damage, collision or process | yes |
 | Spike | 2 | 16 | 0 | 27 | damage type 1 unread | no |
-| Guard Post | 2 | 4 | 0 | 0 | room and creature dispatch | no |
+| Guard Post | 2 | 4 | 0 | 0 | none; the room report is guard-room.md §6 | gate only |
 | Magic Door | 2 | 32 | 500 | 57 | Door Fireball: forced hit, contact 7 | yes |
-| Spare Door 1 | 2 | 30 | 0 | 0 | none | no |
+| Spare Door 1 | 2 | 30 | 0 | 0 | none | gate only |
 | Hero Sentry | 1 | 24 | 100 | 44 | Cannon Ball | yes |
 | Hero Alarm | 1 | 4 | 50 | 13 | process 12 | no |
 | Jack In The Box | 2 | 4 | 0 | 64 | process 39 unread | no |
@@ -238,19 +240,21 @@ Fireball carry the launch bit; the Fireburst and the Lightning shot stand where 
 
 **CONFIRMED from data** (`TrapsFireOnRealDataTests`): 959 traps on 39 levels, all completed by
 the loader; 649 fire here (Sentry 115, Hero Sentry 320, Lightning 80, Freeze 41, Fireburst 7,
-Trigger 86); none is a Magic Door. 36 stand beside a Trigger. One is killed by the owner test
+Trigger 86) and 4 more run the gate: Level 9's hero Guard Posts at (60,29), (60,35), (57,32)
+and (63,32), all reporting to the hero Guard Room whose first slab is (59,31). None is a Magic
+Door. 36 stand beside a Trigger. One is killed by the owner test
 on its first update: **Level 20's hero Boulder at (12,5), on a Neutral-owned tile** — a prediction,
 not an observation. Level 18's Freeze at (51,54) now freezes a hero standing on it on turn 0
 (the Inferno and Chicken scenario moved off it).
 
 ## Built (ADR-0321) and left
 
-Built: §2's fields; §3 steps 2, 3, 4, 6 (the turn), 7, 9, 10, 12; §4; §5 with the tile chain
+Built: §2's fields; §3 steps 2, 3, 4, 5 (ADR-0325), 6 (the turn), 7, 9, 10, 12; §4; §5 with the tile chain
 noticed once a turn before the traps; §6; §7 for the traps that fire here, with the target's
 answer's trap arm and the creature arm's correction; §8 without the owner discount and
 `ThreatThing`, as `FearRules` holds neither (Q375); §9; §10's removal and Trigger counts.
 
-Left: the Guard Post; disarming (Q455); the reveal; the upkeep (Q59); the no-mana message's
+Left: disarming (Q455); the reveal; the upkeep (Q59); the no-mana message's
 clock; effects, sounds and animations; the unread shots above; heights; `0x0048ED40`'s worker,
 animation and `0x00494700` arms; a trap's damage from creatures and shots.
 

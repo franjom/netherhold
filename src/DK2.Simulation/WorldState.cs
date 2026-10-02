@@ -757,6 +757,11 @@ public sealed class TrapState
     public long SightTurn;
     public int SightTargetId;
 
+    /// <summary><c>+0x113</c>, a Guard Post's room: the owner's Guard Room nearest the trap
+    /// (<c>0x004C61C0(9)</c>), written by the constructor and refreshed by the update. Ours has no
+    /// room ids, so it holds that room's first slab tile, or -1 for DK2's 0.</summary>
+    public int GuardRoomTile = -1;
+
     /// <summary>The trap's position, the tile's centre as the loader <c>0x00520E50</c> puts it.</summary>
     public int PosX => (X << 12) + 0x800;
     public int PosY => (Y << 12) + 0x800;
@@ -785,6 +790,7 @@ public sealed class TrapState
         hash.Add(TriggerCreatureId);
         hash.Add(SightTurn);
         hash.Add(SightTargetId);
+        hash.Add(GuardRoomTile);
     }
 }
 

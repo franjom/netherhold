@@ -635,7 +635,7 @@ public static class FearRules
 
     /// <summary><c>0x004754D0</c>: one of the owner's creatures already raising the alarm or
     /// reporting danger whose destination — or, standing, position — lies within five tiles.</summary>
-    private static bool AlreadyResponding(WorldState world, byte owner, int x, int y)
+    public static bool AlreadyResponding(WorldState world, byte owner, int x, int y)
     {
         IReadOnlyList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)

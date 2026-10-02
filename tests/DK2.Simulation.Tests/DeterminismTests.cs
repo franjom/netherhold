@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 160: every room tile carries its room's last size change (ADR-0327).
+        // HashVersion 161: a Guard Post holds the room it reports to (ADR-0325).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xA846A4DFE0257674UL, sim.StateHash());
+        Assert.Equal(0x1F7722DF305E58E1UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

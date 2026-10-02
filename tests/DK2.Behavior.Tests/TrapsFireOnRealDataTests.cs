@@ -26,6 +26,7 @@ public class TrapsFireOnRealDataTests(ITestOutputHelper output)
         var byType = new SortedDictionary<string, int>();
         var ownerKills = new List<string>();
         var triggerNeighbours = new List<string>();
+        var guardPosts = new List<string>();
 
         foreach (string file in Directory.EnumerateFiles(maps, "*Things.kld").OrderBy(f => f))
         {
@@ -58,6 +59,8 @@ public class TrapsFireOnRealDataTests(ITestOutputHelper output)
                         && db.Traps[t.TrapId].TriggerType == TrapRules.TriggerSelector
                         && Math.Abs(t.X - trap.X) + Math.Abs(t.Y - trap.Y) == 1);
                 Assert.True(trap.UnderConstruction || trap.TriggerCount == expected, $"{level} ({trap.X},{trap.Y}) {def.Name}");
+                if ((def.Flags & TrapRules.GuardPostBranch) != 0)
+                    guardPosts.Add($"{level} ({trap.X},{trap.Y}) p{trap.PlayerId} room {(trap.GuardRoomTile < 0 ? "none" : $"({trap.GuardRoomTile % world.Width},{trap.GuardRoomTile / world.Width})")}");
                 if (trap.TriggerCount != 0) triggerNeighbours.Add($"{level} ({trap.X},{trap.Y}) {def.Name} x{trap.TriggerCount}");
 
                 if (world.Tile(trap.X, trap.Y).OwnerPlayerId != trap.PlayerId)
@@ -68,14 +71,16 @@ public class TrapsFireOnRealDataTests(ITestOutputHelper output)
         output.WriteLine($"levels {levels}, traps {traps}, firing built {built}, completed {completed}");
         foreach (var pair in byType) output.WriteLine($"  {pair.Key}: {pair.Value}");
         output.WriteLine($"beside a Trigger {triggerNeighbours.Count}: {string.Join("; ", triggerNeighbours.Take(40))}");
+        output.WriteLine($"guard posts: {string.Join("; ", guardPosts)}");
         output.WriteLine($"owner kills {ownerKills.Count}: {string.Join("; ", ownerKills.Take(40))}");
         Assert.Equal((39, 959, 959), (levels, traps, completed));
-        // Sentry 115, Hero Sentry 320, Lightning 80, Freeze 41, Fireburst 7 and Trigger 86 fire; no level
-        // places a Magic Door trap. The rest wait on their shots' unread handlers.
-        Assert.Equal(649, built);
+        // Sentry 115, Hero Sentry 320, Lightning 80, Freeze 41, Fireburst 7 and Trigger 86 fire, and the
+        // 4 Guard Posts, whose shot 0 ends the firing at once, run the gate; no level places a Magic Door
+        // trap. The rest wait on their shots' unread handlers.
+        Assert.Equal(653, built);
         Assert.Equal(
             ["Alarm Trap (not built)", "Boulder Trap (not built)", "Fear Trap (not built)", "Fireburst Trap", "Freeze Trap",
-             "Gas Trap (not built)", "Guard Post (not built)", "Hero Alarm Trap (not built)", "Hero Sentry Trap", "Lightning Trap",
+             "Gas Trap (not built)", "Guard Post", "Hero Alarm Trap (not built)", "Hero Sentry Trap", "Lightning Trap",
              "Sentry Trap", "Spike Trap (not built)", "Trigger Trap"],
             byType.Keys);
         Assert.Equal([2, 97, 41, 7, 41, 79, 4, 16, 320, 80, 115, 71, 86], byType.Values);

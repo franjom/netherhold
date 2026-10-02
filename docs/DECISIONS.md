@@ -7069,6 +7069,32 @@ as read; the review also found that step 4's room pick (`0x004C63D0`) counts bri
 index and that a failed pick ends the withdraw with no destination, where `PickRoom` skips
 bridges and falls to step 5 — pre-existing since ADR-0165, left as is here and to be read.
 
+## ADR-0325 — The Guard Post: its room, a patrol's visit and its report
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0212 and ADR-0321 · Research: `guard-room.md` §4, §6, §7; `traps.md` §3; Q450, Q517
+
+**Context.** A guard's deadline in state 98 only ever reset, since `0x00463190` looks for a
+Guard Post and the trap had no room; the trap update's flag-`0x800` arm was unread. Read now:
+trap `+0x113` is written only by the constructor and that arm, both with `0x004C61C0(9)`, the
+owner's Guard Room whose first slab is nearest the trap, anywhere on the map; the arm reports
+the first enemy within v191 tiles to that room with the alarm's dispatch loop (state 254);
+state 100 walks the guard back to a random tile of its room.
+
+**Decision.** `TrapState.GuardRoomTile` holds `+0x113` as that room's first slab tile (rooms
+have no ids), seeded by `TrapRules.Seed` and refreshed by `TrapRules.GuardPost` on turns whose
+sum with the trap's id has bit 3 set. `GuardStep` visits a post past its deadline and runs
+state 100. `TrapRules.ReportToRoom` is combat-alarm.md §3's loop on the held place, with the
+Imp's route flag as read. A trap with shot 0 runs the recharge gate, as DK2's does, and fires
+nothing. The Crypt's states 274–277, which share category 11, are read and not built.
+
+**Consequences.** HashVersion and FormatVersion 161 (158 before master took 160). Prediction,
+written before measuring: only a world with a Guard Post behaves differently, and none of the
+41 scenarios nor Levels 1 and 2 holds one, so every scenario's events and both rigs' per-seed
+lines stay as they are, and the scenarios with traps change hash only. Measured on 1aa98db:
+all 41 event logs and worlds byte-identical; Levels 1 and 2 identical per seed (20/20; 7/20,
+seeds 3, 6, 7, 9, 10, 16, 18). `TrapsFireOnRealDataTests`: 649 traps fire, 653 run the gate (Level 9's four hero
+Guard Posts, all reporting to one hero Guard Room). The alarm's own loop routes the Imp the
+reverse way (Q517), left for its owner. Not built: `state+0x3C` (Q391), the post's effect.
+
 ## ADR-0317 — The keeper's training moves
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0244 and ADR-0284 · Research: `computer-keeper-management.md` §2; Q509
 

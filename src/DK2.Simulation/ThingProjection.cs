@@ -289,7 +289,7 @@ public static class ThingProjection
             Unknown_000F = thing.Unknown_000F,
             UnderConstruction = true,
         };
-        TrapRules.Seed(trap, database.Traps.GetValueOrDefault(thing.TrapId));
+        TrapRules.Seed(world, database, trap, database.Traps.GetValueOrDefault(thing.TrapId));
         world.AddTrap(trap);
         if (thing.NumberOfShots != 0) TrapRules.Complete(world, database, trap);
     }

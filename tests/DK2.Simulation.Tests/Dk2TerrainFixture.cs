@@ -85,10 +85,11 @@ internal static class Dk2TerrainFixture
         FiringTrap("Trigger Trap", TriggerTrapId, 3, 16, 1, 0, 0x2043A, TriggerTrapShotId, 0, 1, 0, 0, 0, 4, 2000),
         FiringTrap("Magic Door", MagicDoorTrapId, 2, 32, 4, 500, 0x35BA, DoorFireballShotId, 150, 0, 0, 100, 60, 40, 4000),
         FiringTrap("Hero Sentry Trap", HeroSentryTrapId, 1, 24, 5, 100, 0x9598, CannonBallShotId, 250, 0, -2048, 74, 45, 30, 3000),
+        FiringTrap("Guard Post", GuardPostTrapId, 2, 4, 0, 0, 0xC18, 0, 0, 0, 0, 0, 0, 0, 1000),
     ];
 
     public const byte SentryTrapId = 3, FireburstTrapId = 5, LightningTrapId = 6, FreezeTrapId = 17, TriggerTrapId = 9,
-        MagicDoorTrapId = 12, HeroSentryTrapId = 14;
+        MagicDoorTrapId = 12, HeroSentryTrapId = 14, GuardPostTrapId = 11;
 
     private static TrapDef FiringTrap(string name, byte id, byte selector, int rechargeTicks, int range, int mana, uint flags,
         byte shot, int data1, int data2, int offsetY, ushort threat, int threatSeconds, short gain, ushort health) => new()
@@ -1368,6 +1369,7 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.UpgradedCallToArmsCostPercentage, 70);
         // Guard duty's two deadlines (guard-room.md), shipped values.
         Set(vars, VariableTypeId.MaxTimeInGuardRoomBeforeWanderingToGuardPostSeconds, 60);
+        Set(vars, VariableTypeId.GuardPostReportingDistanceTiles, 7);
         // The Combat Pit's cap and the damage a fighter takes (combat-pit.md), shipped values.
         Set(vars, VariableTypeId.CombatPitMaxExperienceLevel, 8);
         Set(vars, VariableTypeId.PitPercentageDamageTakenOfNormalCombat, 20);
