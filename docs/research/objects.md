@@ -190,7 +190,7 @@ The dump prints a literal header — **`Union Data:`** — and then one of
 and the field after the union sits at **0x15C**, so the union is exactly
 **18 bytes** of per-kind state reinterpreted by whichever kind the object is.
 The widest member is the Boulder, which fills 0x14A to 0x15B and therefore sets
-that 18.
+that 18 (its fields and its process state 17 are [boulder.md](boulder.md) §2).
 
 That answers the shape question directly: **DK2's object is one type with a
 tagged union, not a family of types with a list each.** Whether ours *stores* it

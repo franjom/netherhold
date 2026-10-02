@@ -74,11 +74,11 @@ public class TrapsFireOnRealDataTests(ITestOutputHelper output)
         output.WriteLine($"guard posts: {string.Join("; ", guardPosts)}");
         output.WriteLine($"owner kills {ownerKills.Count}: {string.Join("; ", ownerKills.Take(40))}");
         Assert.Equal((39, 959, 959), (levels, traps, completed));
-        // Everything but the 97 Boulders, whose shot rolls an object (process 22, not built): the 4 Guard
-        // Posts run the gate with shot 0, and no level places a Magic Door or a Jack In The Box.
-        Assert.Equal(862, built);
+        // Every placed trap, the 97 Boulders included since ADR-0333: the 4 Guard Posts run the gate with
+        // shot 0, and no level places a Magic Door or a Jack In The Box.
+        Assert.Equal(959, built);
         Assert.Equal(
-            ["Alarm Trap", "Boulder Trap (not built)", "Fear Trap", "Fireburst Trap", "Freeze Trap",
+            ["Alarm Trap", "Boulder Trap", "Fear Trap", "Fireburst Trap", "Freeze Trap",
              "Gas Trap", "Guard Post", "Hero Alarm Trap", "Hero Sentry Trap", "Lightning Trap",
              "Sentry Trap", "Spike Trap", "Trigger Trap"],
             byType.Keys);

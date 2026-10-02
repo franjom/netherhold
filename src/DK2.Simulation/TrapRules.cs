@@ -50,9 +50,9 @@ public static class TrapRules
     /// <summary>A Trigger counts and reaches traps within one tile: squared distance <c>&lt;= 0x1000</c>.</summary>
     public const uint TriggerReachSquared = 0x1000;
 
-    /// <summary>Trap 16, the Jack In The Box: the tile selector wants a worker and the propagation
-    /// fires it without a sight test. Its shot's process 39 (<c>0x004B02E0</c>) makes a creature of
-    /// type 0x2E in state 273, which is not built, so it never fires here.</summary>
+    /// <summary>Trap 16, the Jack In The Box: the tile selector wants a worker, the propagation fires
+    /// it without a sight test, and a shot fired at a target carries the target's tag in its second
+    /// data word (<c>0x004A7FD0</c>), which process 39 reads (jack-in-the-box.md).</summary>
     public const byte JackInTheBoxId = 16;
 
     // ------------------------------------------------------------------ the sine table
@@ -89,8 +89,7 @@ public static class TrapRules
         lock (known)
         {
             if (!known.TryGetValue(definition.TrapId, out bool built))
-                known[definition.TrapId] = built = definition.TrapId != JackInTheBoxId
-                    && (definition.ShotTypeId == 0 || ShotBuilt(database, definition.ShotTypeId, 0));
+                known[definition.TrapId] = built = definition.ShotTypeId == 0 || ShotBuilt(database, definition.ShotTypeId, 0);
             return built;
         }
     }
@@ -118,6 +117,7 @@ public static class TrapRules
         ShotRules.LightningProcess, ShotRules.InvulnerableProcess, ShotRules.FreezeProcess, ShotRules.ChickenProcess,
         ShotRules.InvisibleProcess, ShotRules.ReaperStunProcess, ShotRules.InfernoProcess, ShotRules.InstantProcess,
         ShotRules.DrainProcess, ShotRules.PoisonProcess, ShotRules.AlarmProcess, ShotRules.FearProcess, ShotRules.GasProcess,
+        ShotRules.BoulderProcess, ShotRules.JackInTheBoxProcess,
     ];
 
     // ------------------------------------------------------------------ the constructor and completion
@@ -408,6 +408,24 @@ public static class TrapRules
         else if (readiness == TrapReadiness.Ready) Fire(context, trap, definition, target);
     }
 
+    /// <summary><c>0x004A7D90</c>, a boulder rolling over the trap: readiness, then the firing at it
+    /// (<c>0x004A7FD0</c> with the boulder as the target). Ours aims at its position with no target
+    /// thing, as no shot strikes an object here (shots.md §10), so a tile trap's forced hit is lost.</summary>
+    public static void AttemptAt(SimulationContext context, TrapState trap, TrapDef definition, int x, int y)
+    {
+        if (!FiringBuilt(context.Database, definition)) return;
+        TrapReadiness readiness = Readiness(context.World, trap, definition, context.Tick.Value);
+        if (readiness == TrapReadiness.InsufficientMana)
+        {
+            NoMana(context, trap, definition);
+            return;
+        }
+        if (readiness != TrapReadiness.Ready) return;
+        ShotState? shot = Shoot(context, trap, definition, x, y, null);
+        if (shot != null && (context.Database.Shots[shot.ShotTypeId].Flags & ShotLaunches) != 0)
+            ShotRules.Launch(shot, context.Database.Shots[shot.ShotTypeId], x, y);
+    }
+
     /// <summary>Readiness 2, short of mana: the no-mana effect (presentation) and <c>0x004C1A30</c> on
     /// the owner, which posts message 53 with Data1 1 once the player's clock <c>+0xAA</c> is due
     /// and sets it fifteen seconds on. Every site that answers 2 calls it.</summary>
@@ -530,6 +548,8 @@ public static class TrapRules
         ShotState? shot = Shoot(context, trap, definition, creature.PosX, creature.PosY, creature);
         if (shot != null && (context.Database.Shots[shot.ShotTypeId].Flags & ShotLaunches) != 0)
             ShotRules.Launch(shot, context.Database.Shots[shot.ShotTypeId], creature.PosX, creature.PosY);
+        // DK2 writes the target's thing tag, a slot ours does not model; ours writes its id.
+        if (shot != null && trap.TrapId == JackInTheBoxId) shot.Data2 = creature.Id;
         return shot;
     }
 
@@ -584,7 +604,11 @@ public static class TrapRules
     /// sight, then give each one inside a radius a tile smaller (at least one) the threat over that
     /// count, into its <c>TempFear</c> through <c>0x0045C5D0</c>. Its owner discount is the one
     /// <see cref="FearRules"/> does not hold (Q375), and its <c>ThreatThing</c> is not built.</summary>
-    public static void ShareThreat(WorldState world, ISightBlocker sight, TrapState trap, int amount, int radius)
+    public static void ShareThreat(WorldState world, ISightBlocker sight, TrapState trap, int amount, int radius) =>
+        ShareThreat(world, sight, trap.PlayerId, trap.PosX, trap.PosY, amount, radius);
+
+    /// <summary><c>0x004B32A0</c> for any thing: <paramref name="owner"/>'s enemies around a point.</summary>
+    public static void ShareThreat(WorldState world, ISightBlocker sight, byte owner, int x, int y, int amount, int radius)
     {
         IReadOnlyList<CreatureState> creatures = world.Creatures;
         int outer = radius * (radius >> 12);
@@ -592,9 +616,9 @@ public static class TrapRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            if (IsHostileOnMap(world, trap.PlayerId, creature)
-                && (int)DistanceSquared(creature.PosX, creature.PosY, trap.PosX, trap.PosY) < outer
-                && LineOfSight.Clear(sight, trap.PosX, trap.PosY, creature.PosX, creature.PosY))
+            if (IsHostileOnMap(world, owner, creature)
+                && (int)DistanceSquared(creature.PosX, creature.PosY, x, y) < outer
+                && LineOfSight.Clear(sight, x, y, creature.PosX, creature.PosY))
                 count++;
         }
         if (count == 0) return;
@@ -604,9 +628,9 @@ public static class TrapRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            if (IsHostileOnMap(world, trap.PlayerId, creature)
-                && (int)DistanceSquared(creature.PosX, creature.PosY, trap.PosX, trap.PosY) < innerSquared
-                && LineOfSight.Clear(sight, trap.PosX, trap.PosY, creature.PosX, creature.PosY))
+            if (IsHostileOnMap(world, owner, creature)
+                && (int)DistanceSquared(creature.PosX, creature.PosY, x, y) < innerSquared
+                && LineOfSight.Clear(sight, x, y, creature.PosX, creature.PosY))
                 creature.TempFear = unchecked((ushort)(creature.TempFear + share));
         }
     }
@@ -643,7 +667,7 @@ public static class TrapRules
                 if (DistanceSquared(found.PosX, found.PosY, trigger.PosX, trigger.PosY) > limit) continue;
                 if (!database.Traps.TryGetValue(found.TrapId, out TrapDef? definition) || !FiringBuilt(database, definition)) continue;
                 CreatureState? struck = world.CreatureById(trigger.TriggerCreatureId) is { } c && !CreatureDeathRules.IsCorpse(c) ? c : null;
-                if (struck != null && (definition.TriggerType == TriggerSelector
+                if (struck != null && (definition.TriggerType == TriggerSelector || found.TrapId == JackInTheBoxId
                     || LineOfSight.Clear(sight, trigger.PosX, trigger.PosY, struck.PosX, struck.PosY)))
                 {
                     TrapReadiness ready = Readiness(world, found, definition, now);
@@ -662,6 +686,39 @@ public static class TrapRules
                         found.PosY - (int)(((long)Cosine(toward) * 0x1000) >> 16), null);
             }
     }
+
+    /// <summary>A creature whose definition reveals adjacent traps, on entering a new tile (the creature
+    /// update, <c>0x0048A0B4</c>): on each tile of table <c>0x006BC3B0</c> around it, every hidden trap of
+    /// an enemy is revealed (<c>0x004AA110</c>) and the creature's fight counter (<c>+0x3E6</c> bits
+    /// 22–25) set to 10. True when it revealed one.</summary>
+    public static bool RevealAround(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (!definition.Flags.HasFlag(CreatureFlags.RevealsAdjacentTraps)) return false;
+        WorldState world = context.World;
+        TilePos at = creature.Tile;
+        bool revealed = false;
+        foreach ((int dx, int dy) in RevealOffsets)
+        {
+            int x = at.X + dx, y = at.Y + dy;
+            if (!world.Contains(x, y)) continue;
+            foreach (TrapState trap in world.Traps)
+            {
+                if (trap.X != x || trap.Y != y || !trap.Hidden || !CombatRules.IsHostile(world, creature.OwnerPlayerId, trap.PlayerId)) continue;
+                trap.Hidden = false;
+                creature.FightProcessCounter = RevealFightCounter;
+                revealed = true;
+                context.Emit(SystemName, "trap_revealed", $"trap={trap.Id} player={trap.PlayerId} by={creature.Id} at={x},{y}");
+            }
+        }
+        return revealed;
+    }
+
+    /// <summary>What the reveal writes to the fight counter: bits 23 and 25 set, 22 and 24 clear (<c>0x0048A142</c>).</summary>
+    public const byte RevealFightCounter = 10;
+
+    /// <summary>Table <c>0x006BC3B0</c>: the eight neighbours from the north clockwise, then the tile itself.</summary>
+    private static readonly (int X, int Y)[] RevealOffsets =
+        [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, 0)];
 
     /// <summary>The traps' squared distance: each axis squared and shifted down twelve, summed as DK2's
     /// unsigned dword.</summary>

@@ -63,7 +63,7 @@ by the class constructor `0x004B28D0` (`0x004B28F5`), which also links the class
 
 ## 3. The update `0x004A84E0`, in its order
 
-1. Hidden presentation (`0x004A9F10`, a foreign local player's view); not built.
+1. Hidden presentation (`0x004A9F10`, a foreign local player's view); presentation, not built (§11).
 2. **Owner.** Tile word `+8 & 0xFFF` not the trap's owner: the disarmer's `+0x43D` is cleared,
    an unbuilt trap leaves its keeper's blueprint list (`0x005056E0`), health := 0. The update
    goes on.
@@ -202,8 +202,9 @@ then unlinks it from its tile, owner and class lists (`0x004B4D40`, `0x004B4F60`
 are the recovery (§3 step 12), contact damage on a shot's collision (`0x004AC420`, flat, with no
 owner test) and area damage type 2 (`0x004AC6D0`), both shots.md §4a. The swing
 has a trap arm (`0x0049916D`, impact sounds from def `+0xBF`, then the blow flat), but a trap
-becomes a target only as the forced target `+0x3F9`, and every setter (`0x0048F390`'s callers,
-the contact walk `0x0048A2EB`) passes a creature, a door or a heart pillar, possession aside.
+is not a forced target: every setter of `+0x3F9` (`0x0048F390`'s callers, the contact walk
+`0x0048A2EB`) passes a creature, a door or a heart pillar, possession aside. A trap becomes a victim
+through the selector's scan D instead (§11), which is not built.
 The enemies predicate `0x004B5800` (collide types 2 and 3) admits any completed trap, of any
 owner; area damage type 1 hurts none.
 
@@ -224,8 +225,22 @@ store to `+0x115` (the constructor, the states, the hook) writes 0; no instructi
 (its strings name `Water` and `_DESTROYED`), another class. No immediate 204 is pushed for
 SetState or a walk (its one other `0xCC` store is the state table's own id, `0x0047F278`); a
 computed state id was not traced. 204 tests `+0x43D` first and idles without a trap, so
-204–206 are unreachable and readiness's 3 never answers. The reveal: firing with flag `0x2`, `0x004AA110`, and a creature's
-tile change (`0x00488930`) with `def` flag `0x04000000` scanning table `0x006BC3B0`; not built.
+204–206 are unreachable and readiness's 3 never answers.
+
+**The reveal** clears `+0x10C` bit 4. Firing with flag `0x2` does (§7). So does a creature whose
+definition has `RevealsAdjacentTraps` (`+0x686` bit 26: the Troll, Thief, Rogue and Guard) when it has
+entered a new tile since its last update (`0x00488F67`, the position against vtable `+0x2C`): after
+its fight processing and its state's handler (`0x0048A0B4`, before the mover), each tile of table `0x006BC3B0` around it, every hidden trap of a
+player `0x004BF390` calls an enemy is revealed (`0x004AA110`: the bit, then the view) and the creature's
+`+0x3E6` bits 22–25, its fight counter, := 10. **What the bit changes:** a byte scan of `.text` and
+`cseg` for every test of `+0x10C` with `0x10` (the reveal's own as the positive control) finds the
+view `0x004A9F10` and the pick test `0x004AA050`, both against the local player; the minimap's draw (`0x0041CC50`, at
+`0x0041DA4D`); possession's pick predicate `0x00516050` (via world vtable `+0x334`, `0x00515420`) and its target
+scan `0x00515520` (`& 0x30` at `0x00515843`); and
+the victim selector's **scan D** (`0x0045D7F2`, `& 0x30`), which walks each hostile player's `+0xC`
+list — `player + 6 + class·2`, so class 3, the traps (`0x004B4D40`) — and admits a completed,
+revealed trap other than trap 16 within sight. No register load of `+0x10C` lies in the computer
+keeper's code. Built (ADR-0338): the reveal; not built: scan D and the fight against a trap.
 
 ## 12. Shipped definitions and shot coverage
 
@@ -237,7 +252,7 @@ shots all have a handler, or there is no shot. "Gate only": the selector and cha
 | Trap | Sel. | Recharge | Mana | Shot | The shot | Fires here |
 |---|---:|---:|---:|---:|---|---|
 | Gas | 2 | 16 | 0 | 58 | area damage 2, gas; process 31 counts nobody | yes |
-| Boulder | 1 | 4 | 0 | 26 | process 22 rolls object 74, not built | no |
+| Boulder | 1 | 4 | 0 | 26 | process 22 rolls object 74 ([boulder.md](boulder.md)) | yes |
 | Sentry | 1 | 24 | 250 | 44 | Cannon Ball: launched, contact 7 | yes |
 | Alarm | 1 | 4 | 0 | 13 | process 12: message 47 | yes |
 | Fireburst | 1 | 48 | 250 | 14 | stands, area damage 2 | yes |
@@ -251,7 +266,7 @@ shots all have a handler, or there is no shot. "Gate only": the selector and cha
 | Spare Door 1 | 2 | 30 | 0 | 0 | none | gate only |
 | Hero Sentry | 1 | 24 | 100 | 44 | Cannon Ball | yes |
 | Hero Alarm | 1 | 4 | 50 | 13 | process 12: message 47 | yes |
-| Jack In The Box | 2 | 4 | 0 | 64 | process 39 makes a creature in state 273, not built | no |
+| Jack In The Box | 2 | 4 | 0 | 64 | area damage 2; process 39 makes a Jack in state 273 ([jack-in-the-box.md](jack-in-the-box.md)) | yes |
 
 The Magic Door's shot is 57, not the 59 this table once said. Of the trap shots, Cannon Ball,
 Door Fireball, Fear, Boulder and Jack In The Box carry the launch bit; the Fireburst, Lightning,
@@ -260,10 +275,10 @@ Spike, gas and Alarm shots stand where they are made.
 ## 13. Shipped placement
 
 **CONFIRMED from data** (`TrapsFireOnRealDataTests`): 959 traps on 39 levels, all completed by
-the loader; 858 fire here (Sentry 115, Hero Sentry 320, Lightning 80, Gas 79, Spike 71, Freeze
-41, Fear 41, Hero Alarm 16, Fireburst 7, Alarm 2, Trigger 86) and 4 more run the gate: Level
+the loader; 955 fire here (Hero Sentry 320, Sentry 115, Boulder 97, Trigger 86, Lightning 80, Gas
+79, Spike 71, Freeze 41, Fear 41, Hero Alarm 16, Fireburst 7, Alarm 2) and 4 more run the gate: Level
 9's hero Guard Posts at (60,29), (60,35), (57,32) and (63,32), all reporting to the hero Guard
-Room whose first slab is (59,31). The 97 Boulders do not fire. None is a Magic Door or a Jack
+Room whose first slab is (59,31). None is a Magic Door or a Jack
 In The Box. 36 stand beside a Trigger. One is killed by the owner test
 on its first update: **Level 20's hero Boulder at (12,5), on a Neutral-owned tile** — a prediction,
 not an observation. Level 18's Freeze at (51,54) now freezes a hero standing on it on turn 0
@@ -277,12 +292,13 @@ answer's trap arm and the creature arm's correction; §8 without the owner disco
 `ThreatThing`, as `FearRules` holds neither (Q375); §9; §10's removal and Trigger counts.
 
 Also built (ADR-0326): the upkeep, the no-mana message and its clock, area damage type 2 on
-traps and a shot's collision with a trap; and (ADR-0331) the Alarm, Fear, Spike and Gas shots.
+traps and a shot's collision with a trap; (ADR-0331) the Alarm, Fear, Spike and Gas shots; and
+(ADR-0333) the Boulder and its rolling object, which fires and damages the traps it rolls over;
+(ADR-0337) the Jack In The Box, its Jack and its explosion; and (ADR-0338) the reveal.
 Disarming (§11) is read and unreachable, so nothing is built for it (ADR-0329).
-Left: the reveal; effects, sounds and animations; the Boulder's rolling object
-and the Jack In The Box's creature; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
+Left: a creature choosing a revealed trap as its victim (scan D) and fighting it; effects, sounds and animations; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
 swing at a trap (possession is not built).
 
 ## Open questions
 
-Q450 (what is left), Q451, Q452, Q455, Q398 (shot order and height), Q513 (observations).
+Q450 (what is left), Q451, Q452, Q455, Q398 (shot order and height), Q513, Q520 and Q524 (observations).

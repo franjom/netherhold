@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 166: a hatchery's ChickensGenerated, room+0x51 (ADR-0335).
+        // HashVersion 168: the m7/close merge, objects' health and the Boulder's union, a Jack's fields (ADR-0333, ADR-0337).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x32B476C1ECE5CC30UL, sim.StateHash());
+        Assert.Equal(0x958573FFD0B603A6UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

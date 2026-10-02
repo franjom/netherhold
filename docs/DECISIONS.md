@@ -7121,6 +7121,103 @@ and may change fights. Measured on 1aa98db: both rigs identical per seed; the ni
 scenarios on trap levels diverge at their first mana payment (Level 17's keeper pays 95 more a
 second), and no scenario has a shot strike a trap or door.
 
+## ADR-0338 — A Troll, Thief, Rogue or Guard reveals an enemy's hidden traps around it
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `traps.md` §11; `combat-acquisition.md` §6; Q362, Q450
+
+**Context.** A trap with definition flag `0x20` starts hidden; firing with flag `0x2` clears it (built,
+ADR-0321). The creature update's third writer was unread: a creature whose definition has
+`RevealsAdjacentTraps` (the Troll, Thief, Rogue and Guard), on entering a new tile, reveals every
+hidden enemy trap on the nine tiles around it (`0x004AA110`) and sets its fight counter to 10. Of the
+bit's readers, the view (`0x004A9F10`) and the pick test (`0x004AA050`) are the local player's; two are
+possession's; one is the victim selector's scan D, which walks each hostile player's **trap** list
+(`player+0xC`, class 3) and admits only a completed, revealed trap other than trap 16. The computer
+keeper reads no hidden bit.
+
+**Decision.** `TrapRules.RevealAround` runs from the combat pass after the fight processing, as DK2's
+creature update does. No view: what a foreign keeper may see is the presentation's, and `KeeperView`
+keeps listing every trap, as DK2's keeper code tests no hidden bit. Scan D — creatures choosing a
+revealed trap as a victim, and the fight against it — is not built; Q362 is answered as traps.
+
+**Consequences.** No new state, no version bump. Prediction, written before measuring: Levels 1 and 2
+hold no traps, so the rigs stay identical; a scenario's events change only where a Troll, Thief, Rogue
+or Guard enters a tile beside an enemy's hidden trap, which then logs `trap_revealed` and may scan for a
+fight a tick earlier. Measured on b5a4e1f: every scenario's hash and events and every rig seed's events
+identical (L1 20/20, L2 7/20): no revealer meets a hidden enemy trap there.
+
+## ADR-0337 — The Jack In The Box springs a Jack that wears out walking to a heart and explodes
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `jack-in-the-box.md`; `traps.md` §12; Q450, Q524
+
+**Context.** Trap 16's shot runs process 39, which makes a creature in state 273; neither was read.
+Read now: process 39 (`0x004B02E0`), state 273 (`0x0046E820`), the travel state's and the health
+routine's arms for type `0x2E`, and trap 16's write of its target's tag into the shot's second
+data word, which the shot's own area damage then uses as its radius. That arithmetic is 32-bit
+(`0x004AC6D0`) and wraps from 12 tiles. Category 7 has no hooks. No shipped level places the trap.
+
+**Decision.**
+1. `JackInTheBoxRules` and `JackInTheBoxSystem` build process 39, state 273, the toll of a point a
+   tick standing or walking, fifty at the target tile, and the explosion (shot 65), once per Jack.
+2. A creature gains `HeartTargetPlayerId` (`+0x2F5`) and `DeathShotFired`.
+3. Trap 16 writes its target's creature id where DK2 writes its thing tag: we hold no thing slots,
+   so the first strike's reach is ours, not DK2's (named in the research doc).
+4. `ShotRules.AreaDamage` uses DK2's 32-bit arithmetic for every area shot.
+5. The Trigger fires trap 16 at its creature unseen (traps.md §9), which `Propagate` lacked.
+
+**Consequences.** New state, so `HashVersion` 165. Prediction, written before measuring: no shipped
+level places trap 16 and no shipped area shot reaches 12 tiles, so every scenario's events and every
+rig seed stay identical; 959 traps stay `FiringBuilt`. Measured on 1001b9a: all identical, event
+file for event file (L1 20/20, L2 7/20).
+
+## ADR-0333 — The Boulder rolls, strikes and wears as object process state 17
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 and ADR-0331 · Research: `boulder.md`; `traps.md` §12; Q450, Q513, Q520
+
+**Context.** The 97 shipped Boulder traps did not fire: their shot's process 22 makes object 74,
+and nothing modelled a moving object. Read now: process 22 (`0x004AEBD0`), object state 17
+(`0x004A1390`) with its strike, roll, step, four turn handlers and terrain wear, the blocked
+test `0x00453C10`, the floor height `0x004545C0`, and state 256, which jumps to 255's handler.
+Every constant is a shipped variable (157–162) or a definition field.
+
+**Decision.**
+1. `ObjectState` gains the header's `Health` (seeded from `Hp` for every object) and position,
+   and the Boulder's union: direction, speed, wear and the launch signs. `BoulderSystem` runs
+   state 17 after the shots and before the traps, DK2's class-list order.
+2. `ShotRules` runs process 22 through `BoulderRules.Launch`; `FiringBuilt` admits it.
+3. The strike's heart object is the owner's heart health at its centre tile; a trap the boulder
+   crosses fires at its position with no target thing, as no shot strikes an object here.
+4. State 256 is `StatusEffectRules.StunInto(256)`, counted down and ended as 255 is.
+5. Not built: a shot or a slap striking the boulder, creatures steering round it, the heading
+   and every effect. Ours orders a tile's things creatures first, then objects, heart, trap, door.
+
+**Consequences.** New state, so `HashVersion` 164. Prediction, written before measuring: all 959
+placed traps are `FiringBuilt` (955 fire, 4 Guard Posts gate); Levels 1 and 2 hold no traps, so the
+rigs stay identical per seed; of the 42 scenarios only those on Level 17 (player 4's Boulders at
+(10,20) and (13,16)) and Level 11A (nine) can change their events, and only if an enemy comes
+within three tiles of one in sight. Measured on aaebf56: 959 built; every scenario's event log and
+every L1/L2 seed's event file identical (L1 20/20, L2 7/20): no enemy meets those Boulders.
+
+## ADR-0332 — The alarm routes the Imp with the door bit and everyone else without
+**Date:** 2026-10-02 · **Status:** accepted · corrects ADR-0166 · Research: `combat-alarm.md` §2, §3; `guard-room.md` §6; Q517
+
+**Context.** The raiser `0x004752B0` (`0x0047542A`) and state 251's dispatch (`0x0047583F`)
+push `+0x36F == 1 ? 0x80 : 0` as the route word; `+0x36F` is the dumper's `TypeId` and 1 is
+the Imp. `FearRules.RaiseAlarm` and `RespondToThreat` had the reverse since ADR-0166. The
+Guard Post's report (`0x004A89B5`, ADR-0330) already had it right. Bit 7 is the cost
+function's door rule, and the word is kept in `CreatureState.RouteOptions`, which is hashed.
+
+**Decision.** Both `FearRules` sites push `MoveOptions.Loose` for the Imp and
+`MoveOptions.Plain` for anyone else, as the binary does. The raiser needs `JobClass` Scout,
+which the Imp is, and the dispatch skips workers, so in practice the raising Imp now respects
+doors and every responder ignores them.
+
+**Consequences.** No new state; the hash moves through `RouteOptions`, so `HashVersion` 163.
+Prediction, written before measuring: every run with an alarm changes its hash series from
+the first alarm on — of the 42 scenarios only `keepers-level17-harkan-call-to-arms-001`
+(an Imp's alarm at tick 79); of the rigs the L1 seeds 1–6, 11–15, 18 and 20 and the L2 seeds
+1, 3, 6, 7, 9, 10, 15, 16, 18 and 19, all raised by Imps. A route itself differs only where a
+foreign or locked door stands on it, so no rig outcome changes unless one does. Measured on
+51b13a4: every scenario's event log is identical and every rig seed's line too (L1 20/20, L2
+7/20, seeds 3, 6, 7, 9, 10, 16, 18): no alarm route there crosses a door. Every final hash moves
+with the version, which the hash folds in.
+
 ## ADR-0331 — The Alarm, Fear, Spike and Gas traps fire; the Boulder and the Jack In The Box wait
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `shots.md` §7, §8; `traps.md` §12; Q395, Q450
 

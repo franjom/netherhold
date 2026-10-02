@@ -551,11 +551,11 @@ public static class CombatTargetRules
     /// <summary><c>0x0045AFF0</c>: not a distance but a route. Asks the mesh for a path to the
     /// point and sums its legs with the octile length; true when the squared length is under
     /// <paramref name="rangeSq"/>. Standing on the point, or an empty route, is true; no route is
-    /// false. Imps route with no door rule, everyone else respects doors.</summary>
+    /// false. The Imp respects doors (<c>0x80</c>), everyone else routes with 0 (<c>0x0045B03E</c>, ADR-0332).</summary>
     public static bool CanReach(
         WorldSteering navigation, CreatureState me, CreatureDef definition, int toX, int toY, int rangeSq, List<Fixed16Vector> scratch) =>
         CanReach(navigation, me, definition, toX, toY, rangeSq, scratch,
-            me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Plain : MoveOptions.Loose);
+            me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain);
 
     /// <summary>The same with the caller's route word. The fight's own tests use the Imp's 0 or
     /// 0x80, which refuses a foreign door; a hero job's arm passes its own word, 3 for StealGold
