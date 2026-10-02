@@ -70,6 +70,19 @@ it for this repo's own code, for refactoring, and for general programming
 questions. If Context7 has nothing for a tool, say so and read the tool's own
 docs.
 
+## C# code navigation — use the LSP tool
+
+The `LSP` tool (deferred: load it with `ToolSearch select:LSP`) runs Roslyn on
+the solution, and was checked working on 2026-10-02. For "who calls this" or
+"who uses this", prefer `findReferences` over grep: grep for `Name(` misses any
+use without the bracket (a delegate, a `<see cref>`), and `findReferences` does
+not.
+
+**The first cross-file query of a session can be incomplete.** Until Roslyn
+has loaded the solution, `findReferences` returns only same-file hits and
+gives no warning. Run one `workspaceSymbol` query first, then trust the
+results.
+
 ## Architecture
 
 Game simulation must remain independent from Unity wherever practical.
