@@ -7154,7 +7154,7 @@ where the step-off puts it. Rigs (L1 20/20, L2 7/20) are seed-for-seed identical
 `fe5e19e`: neither level runs action 32, and their gate spawns do not move.
 
 ## ADR-0322 — The Casino, Torture and Manufacture leave hooks, and a stored maker count
-**Date:** 2026-10-02 · **Status:** accepted · `HashVersion` 155 · Q512 ·
+**Date:** 2026-10-02 · **Status:** accepted · `HashVersion` 155 · Q514 ·
 Research: `leave-hook-bodies.md`
 
 **Context.** Four slots of `CategoryHooks` only released or were not built, on readings from
@@ -7186,4 +7186,5 @@ the same on both. No scenario or rig level has a Workshop, Casino or Torture Cha
 scenarios' event logs and world dumps are byte-identical to `1ec9fa5` (their hash series move
 from tick 0 by composition), and L1 20/20 and L2 7/20 match seed for seed. Not built: the
 jackpot, the Crypt handovers, the presentation bits, the `ThreatThing` reader of
-`FearlessUntil`, and the other readers of `TortureVoluntary`.
+`FearlessUntil`, the other readers of `TortureVoluntary`, and the death bookkeeping's
+`SetState(1)` (`0x00476C80`), so a maker that dies outright keeps the count raised.

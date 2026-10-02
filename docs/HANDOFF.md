@@ -37,7 +37,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   leave are partially built (ADR-0319, combat-category-hooks.md);
   their unmodelled words and the update hook are listed there. The Casino,
   Torture and Manufacture leave hooks and the stored maker count are built
-  (ADR-0322, leave-hook-bodies.md); the Sleeping leave is presentation only.
+  (ADR-0322, leave-hook-bodies.md); the Sleeping leave is believed presentation only.
   Consult CategoryHooks.Slots for the current status of every hook.
 
 ## Next work

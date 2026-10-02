@@ -831,7 +831,7 @@ public sealed class CreatureState
     /// (<c>combat-pit.md</c> §7).</summary>
     public bool CombatPitFighter;
 
-    /// <summary><c>CasinoGamblingDuration</c>, <c>+0x4F4</c> (a word): Casino seconds left until
+    /// <summary><c>CasinoGamblingDuration</c>, <c>+0x4F4</c> (a word): Casino acts, one every fifth turn, left until
     /// <see cref="CasinoGamblingFearless"/>. The constructor seeds it from variable 203 and nothing
     /// resets it on entering or leaving, so it counts gambling across visits (<c>leave-hook-bodies.md</c>).</summary>
     public int CasinoGamblingDuration;
@@ -847,7 +847,8 @@ public sealed class CreatureState
 
     /// <summary><c>TortureVoluntary</c>, <c>+0x3EA</c> bit 14: set once 127's walk onto a free
     /// device starts (<c>0x00483E65</c>), cleared by the Torture leave hook, which keeps
-    /// <see cref="DroppedToDoJob"/> only while it is set.</summary>
+    /// <see cref="DroppedToDoJob"/> only while it is set. DK2's other readers (Call to Arms,
+    /// combat acquisition) do not read it here yet.</summary>
     public bool TortureVoluntary;
 
     /// <summary><c>AttackAbnormalTargets</c>, <c>+0x3E6</c> bit 2, with <see cref="AttackingId"/>:

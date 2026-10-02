@@ -215,8 +215,8 @@ public static class ManufactureRules
     }
 
     /// <summary>The enter hook <c>0x0047B0A0</c>: the count goes up before the lookup and claim, and
-    /// a refused claim does not take it back. Not modelled: its clear of state <c>+0xB9</c>, which
-    /// nothing reads (<c>leave-hook-bodies.md</c>).</summary>
+    /// a refused claim does not take it back. Not modelled: its clear of the state byte <c>+0xB9</c>,
+    /// which nothing reads as a byte (<c>leave-hook-bodies.md</c>).</summary>
     public static bool Enter(in StateHookContext hooks, CreatureState creature)
     {
         CountMaker(hooks.World, creature, +1);
@@ -224,7 +224,8 @@ public static class ManufactureRules
     }
 
     /// <summary>The leave hook <c>0x0047B120</c>: the count goes down, with no floor, then the
-    /// release.</summary>
+    /// release. A maker that dies outright skips it, where DK2's death runs it through
+    /// <c>SetState(1)</c> (<c>0x00476C80</c>), so its count stays raised (not built).</summary>
     public static void Leave(in StateHookContext hooks, CreatureState creature)
     {
         CountMaker(hooks.World, creature, -1);

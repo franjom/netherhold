@@ -80,7 +80,7 @@ public static class CasinoRules
         return creature.GoldHeld > Stake(database) ? null : "cannot_afford_to_gamble";
     }
 
-    /// <summary>The fearless countdown of the update <c>0x0047AD70</c>, once per Casino second before
+    /// <summary>The fearless countdown of the update <c>0x0047AD70</c>, once per act (every fifth turn) before
     /// the purse test: a nonzero <see cref="CreatureState.CasinoGamblingDuration"/> steps down, and
     /// on reaching zero sets <see cref="CreatureState.CasinoGamblingFearless"/> and reloads from
     /// variable 203. Returns whether it set the flag.</summary>

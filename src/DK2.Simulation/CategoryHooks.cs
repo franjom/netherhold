@@ -112,7 +112,7 @@ public static class CategoryHooks
 
         new(CreatureStateCategory.Manufacture, HookKind.Enter, 0x0047B0A0, HookStatus.Partial,
             "player +0x8A up on the tile's keeper, then " + Claimed + " (ADR-0322); not modelled: the clear "
-            + "of state +0xB9, which nothing reads (leave-hook-bodies.md)")
+            + "of the state byte +0xB9, which nothing reads as a byte (leave-hook-bodies.md)")
         {
             Enter = static (in StateHookContext hooks, CreatureState creature) => ManufactureRules.Enter(in hooks, creature),
         },
@@ -138,8 +138,8 @@ public static class CategoryHooks
             "anger cools (ADR-0185); state 83's 0x00477B20(1) is not built (state-category-hooks.md §3)",
             typeof(LairRules), nameof(LairRules.CoolsAngerInLair)),
         Slot(CreatureStateCategory.Sleeping, HookKind.Leave, 0x0047AB90, HookStatus.NotBuilt,
-            "presentation only: sets the draw bit (thing +0xF3 bit 0) on the lair and the creature, which "
-            + "ours does not keep (leave-hook-bodies.md)"),
+            "believed presentation only: sets the draw bit (thing +0xF3 bit 0) on the lair and the creature, "
+            + "which ours does not keep (leave-hook-bodies.md)"),
 
         Slot(CreatureStateCategory.Sulking, HookKind.Enter, 0x004B4C20, HookStatus.Stub, "success stub"),
         Arm(CreatureStateCategory.Sulking, 0x0047AC70, HookStatus.Partial,

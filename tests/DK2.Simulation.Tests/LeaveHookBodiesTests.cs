@@ -120,6 +120,24 @@ public class LeaveHookBodiesTests
         Assert.False(CasinoRules.IsFearlessFromGambling(world, me));
     }
 
+    [Fact]
+    public void FearlessUntil_KeepsAHurtCreatureFromWithdrawing_UntilItCloses()
+    {
+        // Owner 2: player 1 is Good here, whose heart distance counts as 0 and never withdraws. With no
+        // heart the distance is measured from tile (1, 1), so (12, 12) is more than five tiles out.
+        GameDatabase db = Database();
+        WorldState world = TestWorld.World(db);
+        CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 2, new TilePos(12, 12));
+        CreatureDef mine = db.CreatureById(me.CreatureTypeId);
+        me.Health = 1;
+        var noHeart = new Combat.HeartSites();
+        Assert.True(Combat.FearRules.ShouldWithdraw(world, db, noHeart, me, mine));
+
+        me.FearlessUntilTick = world.CurrentTick.Value + 1;
+
+        Assert.False(Combat.FearRules.ShouldWithdraw(world, db, noHeart, me, mine));
+    }
+
     // --- Torture leave (0x0047B4A0) -------------------------------------------------------
 
     [Fact]
