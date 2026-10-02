@@ -57,8 +57,24 @@ public sealed class ShotSystem : ISimulationSystem
             }
 
             bool stopped = false;
+            bool forced = shot.ForcedCollision;
             CreatureState? hit = ShotRules.FindHit(world, database, shot, definition);
-            if (hit != null)
+            // A forced collision searches nothing; otherwise the nearer of the creature and the trap.
+            int trapDistance = int.MaxValue;
+            TrapState? trapHit = forced ? null : ShotRules.FindTrapHit(world, shot, definition, out trapDistance);
+            if (trapHit != null && hit != null
+                && CombatRules.DistanceSquared(shot.PosX, shot.PosY, hit.PosX, hit.PosY) <= trapDistance) trapHit = null;
+            if (trapHit != null)
+            {
+                // The target word now names a trap, which no creature-side process handler acts on.
+                shot.TargetKind = FightTargetKind.None;
+                shot.TargetId = CombatRules.NoTarget;
+                ShotRules.Chain(context, shot, definition.HitThingShotId);
+                ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, null);
+                ShotRules.ContactDamageTrap(context, shot, definition, trapHit);
+                if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
+            }
+            else if (hit != null)
             {
                 // 0x004ABE7D: the thing struck is written into the target word before anything else.
                 shot.TargetKind = FightTargetKind.Creature;
@@ -86,6 +102,7 @@ public sealed class ShotSystem : ISimulationSystem
             }
 
             ShotRules.AreaDamage(context, shot, definition);
+            ShotRules.SquareDamage(context, shot, definition);
 
             // The lifetime counts down every tick the shot is not destroyed by the world; a shot
             // standing still (an explosion, a cloud, an Inferno) counts down too (Q398), and so does one

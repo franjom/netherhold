@@ -12,11 +12,11 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: advances ADR-0135. `creature-state-table.md` owns the rows (97–100, category 11,
+Questions: advances ADR-0135 (ADR-0212, ADR-0330). `creature-state-table.md` owns the rows (97–100, category 11,
 labels "guarding" and "on patrol to a Guard Post"); `state-category-hooks.md` owns the
 category's enter hook, which only claims the room position.
 
-Confidence: **STRONGLY INFERRED (binary)** for §1–§4; **CONFIRMED (data)** for the Guard
+Confidence: **STRONGLY INFERRED (binary)** for §1–§7; **CONFIRMED (data)** for the Guard
 Post flag.
 
 ---
@@ -98,16 +98,34 @@ The south-east (slot 5, facing 2) and north-east (slot 6, facing 1) corners work
    (`0xDD` through the sound object's vslot `+0x20`, its handle to `+0x2E`) and the state
    is set to 99. Either way the handler returns 1.
 
-## 4. The Guard Post (`0x00463190`)
+## 4. The Guard Post (`0x00463190`) and state 100 (`0x004632A0`)
 
 It walks the keeper's trap list (`creature+0x2A`, head at `+0xC`, next at thing `+0x10`)
 and counts traps that are not blueprints (`+0x10C` bit 5 clear), whose definition has flag
-`0x800` (`def+0x88`) and whose `+0x113` equals the creature's `RoomId` (`+0x3B9`). With at
-least one, it draws `random(count)` and routes to that trap, `0x00471890(&trap position,
-100, 0x80)`, returning 1 on success. **Flag `0x800` is the Guard Post**: in `Traps.kwd` the
-flags dword at record offset `0x1EC` has bit 11 on the Guard Post (`0xC18`) and on no other
-of the 16 records, and OpenKeeper names it `GUARD_POST`. State 100 (`0x004632A0`) sets a
-deadline of the turn + 50 + `random(v152)` and routes back in 98; the rest of it is unread.
+`0x800` (`def+0x88`) and whose `+0x113` equals the creature's `RoomId` (`+0x3B9`). Two ids are
+compared, so a post with no room matches a creature with none. With at least one it draws
+`r = random(count)` and walks the list again: from the `r`-th match on, the first that
+`0x00471890(&trap position, 100, 0x80)` can route to returns 1; past the last, 0. No draw is
+made with no match. **Flag `0x800` is the Guard Post**: in `Traps.kwd` the flags dword at
+record offset `0x1EC` has bit 11 on the Guard Post (`0xC18`) and on no other of the 16
+records, and OpenKeeper names it `GUARD_POST`.
+
+**Trap `+0x113`**, which the trap's own debug dumper `0x004AA130` prints as `NearestRoom`, is
+written by trap code in two places only (writers of `[reg+0x113]` over the disassembled
+`.text` and `cseg`; the positive control's `cseg` hits were short displacements, so for this
+long one the coverage is the disassembled functions): the constructor `0x004A7940`
+(`0x004A7ABC`, `0x004A7AC5`, for flag `0x800`) and the update's Guard Post arm (`0x004A8601`,
+`0x004A860A`, §6). Both
+store `room+0x4`, the id of `0x004C61C0(9, &trap position, &room, 0)` on the trap's owner:
+of the owner's rooms of type 9 (Guard Room), the one whose first slab's centre (`+0x2D`,
+`+0x2E`) is strictly nearest the trap, else 0. So a post reports to the nearest Guard Room
+**anywhere on the map**, not the one it stands in; nothing else writes the word.
+
+**State 100**, arrived at the post: the deadline `state+0xB1` = the turn + 50 +
+`random(v152)` (`0x006F2921`, raw), then `0x004E4D90(room, &point, 1, 0)` on the creature's
+own room (`thing[+0x3B9]`): `random(+0xA7)` steps along the room's slab chain from its first
+slab, with no acceptor, so a uniformly random tile's centre. `0x00471890(&point, 98, 0x80)`;
+the handler returns its result, so a failed route is idle. Nothing tests for `+0x3B9` = 0.
 
 ## 5. State 99
 
@@ -116,12 +134,56 @@ handler (`eating.md`), at 1 or less: return 1. Then on the keeper's Guard Room: 
 return 1; otherwise return 0. So a patrol whose route failed waits one turn and starts again
 from the nearest post.
 
-## 6. Built and not built
+## 6. The post's report to its room (`0x004A85BB`–`0x004A8AA1`)
 
-**Built** (ADR-0212): §1–§3 and §5 as `GuardRules` and `GuardStep`, run by the Guard job
-once a turn. **Not built:** §4, since traps are not built, so the deadline only ever resets
-and state 100 is never entered; the `+0x3E6` bits; the sound. **Ours:** the room test is
-our tile owner and room type; a target off the map is a failed route.
+The trap update (traps.md §3 step 5) runs this arm for flag `0x800` when the trap is
+complete, not being disarmed and alive, then goes on to the turn and the recharge gate.
+
+1. On a turn whose sum with the trap's id (`+0x4`) has **bit 3 set** — eight turns in every
+   sixteen — `+0x113` is refreshed as in §4 (0 when the owner has no Guard Room).
+2. With a room, on `turn & 7 == 0`, world slot `+0x38C` makes effect `0x59`: presentation.
+3. With a room and bit 3 again, **the first enemy**: the owner's player list
+   (`player+0x10FD`, next `+0x3A`), each player `0x004BF390` calls hostile, its creatures
+   (`+0x6`, next `+0x10`), the first strictly within `GuardPostReportingDistanceTiles`
+   (v191, `0x006F2975`, 7) — squared `(v << 12) · v` against each axis squared and shifted 12,
+   signed — in sight (world slot `+0x30C`, `0x00509780`) and attackable (`+0x3EA` bit 6).
+4. **The deficit**: `0x004FAC40` on the owner for the enemy's player at its position,
+   radius `0x5000`, no traps, less three quarters (signed, truncated) of the same for the
+   owner. Not positive: done. `0x004754D0` (any own creature in or walking to 251 or 254
+   within five tiles): done.
+5. **The dispatch**, combat-alarm.md §3's loop with two differences: the room test is
+   `+0x3B9` equal to the post's room only, with no state-6-to-a-job alternative, and each one
+   sent gets **its own** run speed (`0x004887D0(1, def+0x5B8)`). Skipped: `IsWorker`,
+   `IsHorny`; `0x004888C0` (Call to Arms); resolved category 22; `0x0045A6D0(0)` refusing;
+   health not above a quarter of level-scaled `Hp`; `state+0x3C == 2` (Q391); state group 3
+   or 7; state 6 resuming 254; no route (`0x004D0E60`). Sent: `0x00471890(&enemy position,
+   254, flags)` with `0x80` for an Imp (`+0x36F == 1`) and 0 otherwise, `+0x2CC` zeroed, the
+   deficit less its level-scaled `Threat`; negative ends the loop.
+
+The alarm's arm `0x0047583F` computes the same flags, Imp `0x80`; `FearRules`' alarm
+routes the Imp with 0 and everyone else with `0x80`, the reverse (Q517).
+
+## 7. The rest of category 11: the Crypt's states 274–277
+
+Category 11 also holds four unlabelled states of room type 26, the Crypt
+(`creature-state-table.md`). 274 (`0x00483790`): on an own Crypt tile (`0x004539B0(0x1A)`)
+whose room has `+0x49` set and `+0x53` clear, route to `(+0x4B + 1, +0x4D)` resuming 275 and
+register the creature with `0x004D8E60` (the Q375 writer); otherwise, with `+0x55` set,
+`SetState(276)`. 275 (`0x00483870`): with an action running, 1; `RoomId` 0, 0; its room must
+be a Crypt with `+0x49` set and the creature on that tile, else `SetState(274)`; it turns to
+heading `0x600`, then sets the room's `+0x55` by creature type (`0x004D9410`: types 2, 26, 31
+→ 20; 13, 37 → 1; 21 → 40; 29 → 10; others 0) and starts action `0x50`. 276
+(`0x004839E0`): 274's route, else action `0x4C`. 277 (`0x00483AC0`): `SetState(274)`.
+Not built: the Crypt is not.
+
+## 8. Built and not built
+
+**Built** (ADR-0212, ADR-0330): §1–§6 as `GuardRules`, `GuardStep` (run by the Guard job
+once a turn) and `TrapRules` (the post's room and report). **Not built:** the `+0x3E6` bits;
+the sound; the post's effect; `state+0x3C`; §7. **Ours:** the room test is our tile owner and
+room type; a target off the map is a failed route; rooms have no ids, so `+0x113` is the
+room's first slab tile and a creature's `RoomId` its held place (ADR-0309); the trap list and
+the creature lists are walked in our orders (traps oldest first, creatures as the alarm's).
 
 ## Open questions
 

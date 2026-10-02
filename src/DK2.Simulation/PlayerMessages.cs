@@ -19,6 +19,10 @@ public enum PlayerMessageKind : uint
     /// want of mana, which nothing here produces (subtable <c>0x006A0638</c>).</summary>
     ManaShortfall = 53,
 
+    /// <summary>Type 47: an Alarm trap's shot (process 12, <c>0x004AE120</c>); Data1 and Data2 are the
+    /// shot's tile. Row <c>0x2032</c>: fifty seconds, tab, no duplicates.</summary>
+    AlarmRaised = 47,
+
     /// <summary>Type 55: training the keeper cannot pay for. Both Training hooks pass Data1 5,
     /// a 240-second row of subtable <c>0x006A0690</c> (1–4 are 20 seconds and raised by no hook
     /// built here; 1 alone is under the <c>+0xF56</c> deadline, which is not built).</summary>
@@ -55,8 +59,8 @@ public readonly record struct PlayerMessage(
 }
 
 /// <summary>The shared retained queue: the two combat position messages, the two
-/// mana-pressure messages, unpaid training and the three room messages. Any other kind, or a
-/// subtype its table lacks, is refused.</summary>
+/// mana-pressure messages, unpaid training, the three room messages and the Alarm trap's. Any other
+/// kind, or a subtype its table lacks, is refused.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-messages.md")]
 public sealed class PlayerMessageQueue
 {
@@ -111,6 +115,7 @@ public sealed class PlayerMessageQueue
             PlayerMessageKind.HeartAttacked => (uint)SimulationTiming.TicksFromSeconds(120),
             PlayerMessageKind.CombatStarted => 0,
             PlayerMessageKind.CallToArmsUnreachable => (uint)SimulationTiming.TicksFromSeconds(50),
+            PlayerMessageKind.AlarmRaised => (uint)SimulationTiming.TicksFromSeconds(50),
             // Both subtables give every listed variant 20 seconds. Warning row 0 names no
             // string, which discards the message; a variant off the table is refused.
             PlayerMessageKind.LowManaWarning when data1 == 0 => uint.MaxValue,

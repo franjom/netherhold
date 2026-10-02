@@ -84,7 +84,7 @@ public static class BlueprintPlacementRules
         if (!GoldStore.TryWithdraw(world, player, trap.GoldCost)) return Verdict.NotEnoughGold;
 
         var placed = new TrapState { X = at.X, Y = at.Y, TrapId = trapId, PlayerId = player, UnderConstruction = true };
-        TrapRules.Seed(placed, trap);
+        TrapRules.Seed(world, database, placed, trap);
         world.AddTrap(placed);
         ManufactureRules.QueueOne(world, database, player, CrateRules.TrapKind, trapId);
         CrateRules.Register(world, player, new BlueprintRef(CrateRules.TrapKind, world.Traps[^1].Id));

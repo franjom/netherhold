@@ -16,7 +16,7 @@ namespace DK2.Simulation;
 /// keeper — exact, because <b>a keeper has at most one heart, ever</b>. Every imp drains
 /// <see cref="ImpUpkeepPerSecond"/>, kept apart from income because the cap covers only
 /// the income half (Q53).</para>
-/// <para>Not implemented: the three other spell upkeeps (Summon Horny 2000 a second, Possession 25, OneShotReaper 125) and trap drain; Call To Arms is <see cref="CallToArmsRules.UpkeepPerSecond"/>, owner-reported and uninvestigated.
+/// <para>Not implemented: the three other spell upkeeps (Summon Horny 2000 a second, Possession 25, OneShotReaper 125); Call To Arms is <see cref="CallToArmsRules.UpkeepPerSecond"/>, and a completed trap's is <see cref="TrapUpkeepPerSecond"/>.
 /// <b><see cref="TerrainDef.MaxManaGain"/> and <c>DungeonHeartMaxManaIncrease</c> may not justify a mana rule</b>: both read like a ceiling contribution and neither can be
 /// one, the ceiling being 200000 from the first second and never moving (CONFIRMED, Q37).</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/mana.md")]
@@ -107,7 +107,14 @@ public static class ManaRules
     public static int ImpUpkeepPerSecond(GameDatabase database) =>
         database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaUpkeepPerSecond;
 
-    /// <summary>What every player pays per second to keep the imps they have, indexed
+    /// <summary>What one completed trap costs its keeper per second: definition <c>+0x96</c>
+    /// (<c>Traps.kwd</c> <c>0x202</c>, a signed word), added to the player's <c>+0x10D6</c> at
+    /// completion (<c>0x004C1B60</c>) and taken off at its cleanup (<c>0x004C1B90</c>), so the
+    /// sum over the completed traps standing. Owner-measured (Q59): Spike and Sentry 5,
+    /// Fireburst and Freeze 10, Lightning 25.</summary>
+    public static int TrapUpkeepPerSecond(TrapDef definition) => (short)definition.ManaUpkeepPerSecond;
+
+    /// <summary>What every player pays per second to keep the imps and traps they have, indexed
     /// to match <see cref="WorldState.PlayerAtIndex"/>. Charged for <b>every</b> imp,
     /// including the free ones a keeper never paid for — the owner's four starting imps
     /// drain 28 — so the floor is free to fill and not free to keep, which is the
@@ -120,13 +127,26 @@ public static class ManaRules
         uint turn = unchecked((uint)(world.CurrentTick.Value + 1));
         for (int i = 0; i < world.PlayerCount; i++)
             upkeep[i] += CallToArmsRules.UpkeepPerSecond(world, database, world.PlayerAtIndex(i), turn);
-        int perImp = ImpUpkeepPerSecond(database);
-        if (perImp == 0) return upkeep;
 
         Span<int> indexOfOwner = stackalloc int[256];
         indexOfOwner.Fill(-1);
         for (int i = 0; i < world.PlayerCount; i++)
             indexOfOwner[world.PlayerAtIndex(i).PlayerId] = i;
+
+        // +0x10D6: the completed traps' upkeep, summed as Mana_UpkeepPerSecond (0x004C17A0) sums it.
+        // DK2 registers it for any owner but pays keepers alone (0x004B9EC0); this loop pays every
+        // player, so a hero's traps are left out rather than drain what DK2 never charges.
+        IReadOnlyList<TrapState> traps = world.Traps;
+        for (int i = 0; i < traps.Count; i++)
+        {
+            TrapState trap = traps[i];
+            int owner = indexOfOwner[trap.PlayerId];
+            if (owner < 0 || !PlayerIds.IsKeeper(trap.PlayerId) || trap.UnderConstruction || !database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition)) continue;
+            upkeep[owner] += TrapUpkeepPerSecond(definition);
+        }
+
+        int perImp = ImpUpkeepPerSecond(database);
+        if (perImp == 0) return upkeep;
 
         IReadOnlyList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)

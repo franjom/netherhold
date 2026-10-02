@@ -69,13 +69,15 @@ by the class constructor `0x004B28D0` (`0x004B28F5`), which also links the class
    goes on.
 3. `+0x10E` counts down when nonzero. Nothing else reads it (the dumper `0x004AA130` aside).
 4. Under construction, being disarmed or dead: skip to step 8 (`0x004A8C6B`).
-5. Guard Post (`0x800`): a room lookup `0x004C61C0(9)` every eighth turn and a creature
-   dispatch to it; not built.
+5. Guard Post (`0x800`): on turns whose sum with the trap's id has bit 3 set, `+0x113` :=
+   the owner's nearest Guard Room (`0x004C61C0(9)`) and the first enemy in reach is reported
+   to it (guard-room.md §6); then on to step 6.
 6. **Turn** (flag `0x80`, §6). The idle effect (`+0xB5`, `+0x84`, `+0x103`); presentation.
 7. **Recharge gate:** at or after `+0xFF`, the selector (§5) answers a creature or nothing.
    Nothing: charge := 0. A creature: charge + 1 (a byte), a sound, and once charge ≥ the
-   threshold `+0x78`, readiness (§4): 2 plays the no-mana effect and posts message `0x35` at
-   most every 15 s (`0x004A8490` → `0x004C1A30`, player `+0xAA`); 4 fires (§7).
+   threshold `+0x78`, readiness (§4): 2 plays the no-mana effect and posts message 53 with
+   Data1 1 once the owner's clock `+0xAA` is due, setting it 15 s on (`0x004A8490` →
+   `0x004C1A30`; every readiness 2 in §9 does the same); 4 fires (§7).
 8. Animation and `0x004B3AD0` (frame advance); presentation.
 9. **Threat** (§8), every update while `+0x10F` is nonzero.
 10. **Trigger** (selector 3) with `+0x10D` nonzero: `+0x117` cleared unless a live creature,
@@ -89,7 +91,7 @@ by the class constructor `0x004B28D0` (`0x004B28F5`), which also links the class
 
 `0x004A7D10` returns, in order: 1 under construction; 0 before the recharge; 2 when flag
 `0x100` needs mana the owner lacks and the owner is not the hero player (`0x006F254C`);
-3 with a disarmer; otherwise 4. `0x004C1740` allows a zero cost, else `cost <= mana`. A zero
+3 with a disarmer, which v1.70 never has (§11); otherwise 4. `0x004C1740` allows a zero cost, else `cost <= mana`. A zero
 threshold fires on the first detection; short of mana the charge is kept and climbs.
 
 ## 5. The selectors
@@ -170,7 +172,10 @@ trap that has fired once with a nonzero duration shares its threat every update 
 ## 9. The Trigger
 
 **Counts.** Completion `0x004A96D0` (also the loader's for a completed trap) clears bit 5 and
-registers the upkeep (`0x004C1B60`); a Trigger adds one to every own non-Trigger trap within a
+registers the upkeep (`0x004C1B60`: def `+0x96`, `Traps.kwd` `0x202`, onto player `+0x10D6`
+and off the income word `+0x10E2`, so it is paid after the income cap; the keeper's second,
+`0x004C10E0`, pays it with the rest of the drain and clamps mana at 0, nothing more; heroes are
+never paid, Q59); a Trigger adds one to every own non-Trigger trap within a
 tile (`0x004A9720`), any other trap recounts the own Triggers within a tile (`0x004A9A00`). The
 cleanup of a completed trap, a Trigger, subtracts its one, never below 0 (`0x004A9890`). Each
 looks at the first own trap (`0x00453700(3, owner)`) on each tile of the 3×3 square at squared
@@ -192,7 +197,15 @@ trap does nothing.
 `0x004A7B20` updates its sounds, then — unless the world is closing (`[world]+0x4C`) and only
 for a completed trap — releases its upkeep (`0x004C1B90`) and, for a Trigger, `0x004A9890`;
 then unlinks it from its tile, owner and class lists (`0x004B4D40`, `0x004B4F60`, `0x004B4AB0`).
-`0x004B2CE0` adds a signed delta to a trap's health directly.
+`0x004B2CE0` adds a signed delta to a trap's health directly. Of its ~70 call sites
+(`.text`; none in `cseg`, by a byte scan of every executable block), the ones that reach a trap
+are the recovery (§3 step 12), contact damage on a shot's collision (`0x004AC420`, flat, with no
+owner test) and area damage type 2 (`0x004AC6D0`), both shots.md §4a. The swing
+has a trap arm (`0x0049916D`, impact sounds from def `+0xBF`, then the blow flat), but a trap
+becomes a target only as the forced target `+0x3F9`, and every setter (`0x0048F390`'s callers,
+the contact walk `0x0048A2EB`) passes a creature, a door or a heart pillar, possession aside.
+The enemies predicate `0x004B5800` (collide types 2 and 3) admits any completed trap, of any
+owner; area damage type 1 hurts none.
 
 ## 11. Disarm and reveal (Q451, Q455)
 
@@ -201,58 +214,74 @@ States 204–206 are `0x00458DF0`, `0x00458EB0`, `0x00458F60`: travel to the tra
 level-scaled `def+0x5E0` attempts a firing and enters 220 with a 50-tick retry, the other arm
 destroys the trap. The attempt precedes clearing the disarmer, so readiness refuses it (Q451).
 Exit hook `0x00459130` clears both references. `sgmap` names creature `+0x43D`
-`f43D_trapTagId` and `+0x43F` `f43F_durationUntilAttemptingAnotherTrapDisarm`. Who starts it is
-unread (Q455): the 13-block scan for `0x0000043D` (56 hits, positive control 226) does not
-rule out indirect writes. The reveal: firing with flag `0x2`, `0x004AA110`, and a creature's
+`f43D_trapTagId` and `+0x43F` `f43F_durationUntilAttemptingAnotherTrapDisarm`; the trap dumper
+`0x004AA130` prints trap `+0x115` as `BeingDisarmed`. **Nothing starts it in v1.70 (Q455,
+2026-10-02):** over the disassembled `.text` and `cseg`, every creature-code store to `+0x43D`
+(the three states, the exit hook, the constructor, the update's owner arm) and every trap-code
+store to `+0x115` (the constructor, the states, the hook) writes 0; no instruction takes
+`+0x43D`'s address and no wider store covers it. The non-zero stores at `0x004EAD93` and
+`0x004EADCF` are in `0x004EACC0`, which applies a Terrain.kwd record to a terrain definition
+(its strings name `Water` and `_DESTROYED`), another class. No immediate 204 is pushed for
+SetState or a walk (its one other `0xCC` store is the state table's own id, `0x0047F278`); a
+computed state id was not traced. 204 tests `+0x43D` first and idles without a trap, so
+204–206 are unreachable and readiness's 3 never answers. The reveal: firing with flag `0x2`, `0x004AA110`, and a creature's
 tile change (`0x00488930`) with `def` flag `0x04000000` scanning table `0x006BC3B0`; not built.
 
 ## 12. Shipped definitions and shot coverage
 
 **CONFIRMED from shipped `Traps.kwd` and `Shots.kwd`:** zero charge everywhere but Spare Door 1
 (two ticks). "Built" is `TrapRules.FiringBuilt`: the shot's damage type, process and chained
-shots all have a handler.
+shots all have a handler, or there is no shot. "Gate only": the selector and charge run, and
+`0x004A80E0` returns at once for shot 0, so nothing fires and the charge keeps climbing.
 
 | Trap | Sel. | Recharge | Mana | Shot | The shot | Fires here |
 |---|---:|---:|---:|---:|---|---|
-| Gas | 2 | 16 | 0 | 58 | process 31 unbuilt (Q395) | no |
-| Boulder | 1 | 4 | 0 | 26 | process 22 unread | no |
+| Gas | 2 | 16 | 0 | 58 | area damage 2, gas; process 31 counts nobody | yes |
+| Boulder | 1 | 4 | 0 | 26 | process 22 rolls object 74, not built | no |
 | Sentry | 1 | 24 | 250 | 44 | Cannon Ball: launched, contact 7 | yes |
-| Alarm | 1 | 4 | 0 | 13 | process 12, presentation arm unbuilt | no |
+| Alarm | 1 | 4 | 0 | 13 | process 12: message 47 | yes |
 | Fireburst | 1 | 48 | 250 | 14 | stands, area damage 2 | yes |
 | Lightning | 1 | 48 | 375 | 59 | speed 0, process 9 on its first tick | yes |
 | Freeze | 2 | 24 | 250 | 45 | forced hit, process 11 | yes |
-| Fear | 1 | 24 | 125 | 25 | process 21 unread | no |
+| Fear | 1 | 24 | 125 | 25 | process 21 a stub; the threat does it | yes |
 | Trigger | 3 | 16 | 0 | 39 | health 1, no damage, collision or process | yes |
-| Spike | 2 | 16 | 0 | 27 | damage type 1 unread | no |
-| Guard Post | 2 | 4 | 0 | 0 | room and creature dispatch | no |
+| Spike | 2 | 16 | 0 | 27 | damage type 1, the half-open square | yes |
+| Guard Post | 2 | 4 | 0 | 0 | none; the room report is guard-room.md §6 | gate only |
 | Magic Door | 2 | 32 | 500 | 57 | Door Fireball: forced hit, contact 7 | yes |
-| Spare Door 1 | 2 | 30 | 0 | 0 | none | no |
+| Spare Door 1 | 2 | 30 | 0 | 0 | none | gate only |
 | Hero Sentry | 1 | 24 | 100 | 44 | Cannon Ball | yes |
-| Hero Alarm | 1 | 4 | 50 | 13 | process 12 | no |
-| Jack In The Box | 2 | 4 | 0 | 64 | process 39 unread | no |
+| Hero Alarm | 1 | 4 | 50 | 13 | process 12: message 47 | yes |
+| Jack In The Box | 2 | 4 | 0 | 64 | process 39 makes a creature in state 273, not built | no |
 
-The Magic Door's shot is 57, not the 59 this table once said. Only Cannon Ball and Door
-Fireball carry the launch bit; the Fireburst and the Lightning shot stand where they are made.
+The Magic Door's shot is 57, not the 59 this table once said. Of the trap shots, Cannon Ball,
+Door Fireball, Fear, Boulder and Jack In The Box carry the launch bit; the Fireburst, Lightning,
+Spike, gas and Alarm shots stand where they are made.
 
 ## 13. Shipped placement
 
 **CONFIRMED from data** (`TrapsFireOnRealDataTests`): 959 traps on 39 levels, all completed by
-the loader; 649 fire here (Sentry 115, Hero Sentry 320, Lightning 80, Freeze 41, Fireburst 7,
-Trigger 86); none is a Magic Door. 36 stand beside a Trigger. One is killed by the owner test
+the loader; 858 fire here (Sentry 115, Hero Sentry 320, Lightning 80, Gas 79, Spike 71, Freeze
+41, Fear 41, Hero Alarm 16, Fireburst 7, Alarm 2, Trigger 86) and 4 more run the gate: Level
+9's hero Guard Posts at (60,29), (60,35), (57,32) and (63,32), all reporting to the hero Guard
+Room whose first slab is (59,31). The 97 Boulders do not fire. None is a Magic Door or a Jack
+In The Box. 36 stand beside a Trigger. One is killed by the owner test
 on its first update: **Level 20's hero Boulder at (12,5), on a Neutral-owned tile** — a prediction,
 not an observation. Level 18's Freeze at (51,54) now freezes a hero standing on it on turn 0
 (the Inferno and Chicken scenario moved off it).
 
 ## Built (ADR-0321) and left
 
-Built: §2's fields; §3 steps 2, 3, 4, 6 (the turn), 7, 9, 10, 12; §4; §5 with the tile chain
+Built: §2's fields; §3 steps 2, 3, 4, 5 (ADR-0330), 6 (the turn), 7, 9, 10, 12; §4; §5 with the tile chain
 noticed once a turn before the traps; §6; §7 for the traps that fire here, with the target's
 answer's trap arm and the creature arm's correction; §8 without the owner discount and
 `ThreatThing`, as `FearRules` holds neither (Q375); §9; §10's removal and Trigger counts.
 
-Left: the Guard Post; disarming (Q455); the reveal; the upkeep (Q59); the no-mana message's
-clock; effects, sounds and animations; the unread shots above; heights; `0x0048ED40`'s worker,
-animation and `0x00494700` arms; a trap's damage from creatures and shots.
+Also built (ADR-0326): the upkeep, the no-mana message and its clock, area damage type 2 on
+traps and a shot's collision with a trap; and (ADR-0331) the Alarm, Fear, Spike and Gas shots.
+Disarming (§11) is read and unreachable, so nothing is built for it (ADR-0329).
+Left: the reveal; effects, sounds and animations; the Boulder's rolling object
+and the Jack In The Box's creature; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
+swing at a trap (possession is not built).
 
 ## Open questions
 

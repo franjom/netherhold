@@ -64,7 +64,7 @@ for 251 or 254, or in 251 or 254, whose destination (`0x004755C0`: the state's
 the threat. Then the **nearest room of mine** to the threat by distance² to its
 `+0x27/+0x29` tile (all class-9 things on `RoomList`); `0x004E4D90(room, &out, 0,
 0)` gives a position in it (Q391); enter 199 if not already in the combat group;
-route there with `0x00471890(&pos, 251, 0x80)` — Imp word 0 — and stash the
+route there with `0x00471890(&pos, 251, 0x80)` — Imp word 0, which reverses the listing: the Imp gets `0x80`, Q517 — and stash the
 threat's position at `state+0xA7/+0xAB`, the deficit at `+0xAF` and the room's tag
 at `+0xB1`; **run speed**; the definition's `+0x6E3` sound. Return 1.
 
@@ -81,7 +81,7 @@ at `+0xB1`; **run speed**; the definition's `+0x6E3` sound. Return 1.
    **quarter** of its level-scaled `Hp`; `state+0x3C == 2` (UNKNOWN, Q391); its
    state's group tag is 3 (the worker jobs) or 7 (idle, eating, joining, leaving,
    stunned, burning); or it is already en route to 254. Otherwise it is routed to
-   the threat's position with `0x00471890(&pos, 254, 0x80)` (Imp 0), given **the
+   the threat's position with `0x00471890(&pos, 254, 0x80)` (Imp 0, reversed, Q517), given **the
    raiser's run speed** (`def+0x5B8` of the Scout, not its own — a slip), its
    `+0x2CC` zeroed, and the deficit reduced by its level-scaled `Threat`.
 3. **Stand down.** The `+0x6E3` sound; `SetState(1)` then `SetState(252)`; a

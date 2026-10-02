@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 160;
+    private const int FormatVersion = 162;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -147,6 +147,7 @@ public static class WorldSnapshot
             w.Write(p.PlayerId);
             w.Write(p.Mana);
             w.Write(p.OneShotManaSpent);
+            w.Write(p.TrapNoManaMessageAt);
             w.Write(p.GoldMined);
             w.Write(p.KilledByPlayerId);
             w.Write(p.SlapCount);
@@ -532,6 +533,7 @@ public static class WorldSnapshot
             w.Write(trap.TriggerCreatureId);
             w.Write(trap.SightTurn);
             w.Write(trap.SightTargetId);
+            w.Write(trap.GuardRoomTile);
         }
         w.Write(world.NextChainOrder);
 
@@ -688,6 +690,7 @@ public static class WorldSnapshot
                 PlayerId = r.ReadByte(),
                 Mana = r.ReadInt32(),
                 OneShotManaSpent = r.ReadInt32(),
+                TrapNoManaMessageAt = r.ReadInt64(),
                 GoldMined = r.ReadInt32(),
                 KilledByPlayerId = r.ReadByte(),
                 SlapCount = r.ReadInt32(),
@@ -1093,6 +1096,7 @@ public static class WorldSnapshot
                 TriggerCreatureId = r.ReadInt32(),
                 SightTurn = r.ReadInt64(),
                 SightTargetId = r.ReadInt32(),
+                GuardRoomTile = r.ReadInt32(),
             });
         }
         world.NextChainOrder = r.ReadInt32();

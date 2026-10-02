@@ -5,7 +5,9 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Combat;
+using DK2.Simulation.Navigation;
 using DK2.Simulation.Steering;
+using DK2.Simulation.Systems;
 
 namespace DK2.Simulation;
 
@@ -13,9 +15,10 @@ namespace DK2.Simulation;
 /// owner test, the threat clock, the turn toward a target, the recharge gate and its three
 /// selectors, the charge, readiness and the firing (<c>0x004A7FD0</c>, <c>0x004A80E0</c>), the
 /// threat it then shares among nearby enemies every update (<c>0x004B32A0</c>), the Trigger's
-/// propagation (<c>0x004A8E70</c>) and the recovery. A trap fires only when its shot's damage
-/// type and process have a built handler (<see cref="FiringBuilt"/>); the Guard Post's room
-/// branch, disarming, the reveal scan and every effect, sound and animation are not built.</summary>
+/// propagation (<c>0x004A8E70</c>), the Guard Post's report to its room and the recovery. A trap
+/// fires only when its shot's damage type and process have a built handler (<see cref="FiringBuilt"/>);
+/// the reveal scan and every effect, sound and animation are not built, and disarming is unreachable
+/// in v1.70: nothing makes a creature a trap's disarmer (Q455).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/traps.md")]
 public static class TrapRules
 {
@@ -48,7 +51,8 @@ public static class TrapRules
     public const uint TriggerReachSquared = 0x1000;
 
     /// <summary>Trap 16, the Jack In The Box: the tile selector wants a worker and the propagation
-    /// fires it without a sight test. Its shot's process 39 is unread, so it never fires here.</summary>
+    /// fires it without a sight test. Its shot's process 39 (<c>0x004B02E0</c>) makes a creature of
+    /// type 0x2E in state 273, which is not built, so it never fires here.</summary>
     public const byte JackInTheBoxId = 16;
 
     // ------------------------------------------------------------------ the sine table
@@ -76,17 +80,17 @@ public static class TrapRules
     // ------------------------------------------------------------------ scope
 
     /// <summary>Whether this trap's firing is built: a shot whose damage type and process, and
-    /// those of every shot it chains, have a handler here (shots.md). The Guard Post's branch and
-    /// a trap with no shot are not. In the shipped table: Sentry, Fireburst, Lightning, Freeze,
-    /// Trigger, Magic Door and Hero Sentry.</summary>
+    /// those of every shot it chains, have a handler here (shots.md), or no shot, whose firing
+    /// <c>0x004A80E0</c> ends at once. In the shipped table: Sentry, Fireburst, Lightning, Freeze,
+    /// Trigger, Guard Post, Magic Door, Spare Door 1 and Hero Sentry.</summary>
     public static bool FiringBuilt(GameDatabase database, TrapDef definition)
     {
         Dictionary<byte, bool> known = Scope.GetValue(database, _ => []);
         lock (known)
         {
             if (!known.TryGetValue(definition.TrapId, out bool built))
-                known[definition.TrapId] = built = (definition.Flags & GuardPostBranch) == 0
-                    && definition.TrapId != JackInTheBoxId && ShotBuilt(database, definition.ShotTypeId, 0);
+                known[definition.TrapId] = built = definition.TrapId != JackInTheBoxId
+                    && (definition.ShotTypeId == 0 || ShotBuilt(database, definition.ShotTypeId, 0));
             return built;
         }
     }
@@ -97,8 +101,9 @@ public static class TrapRules
     private static bool ShotBuilt(GameDatabase database, byte shotId, int depth)
     {
         if (shotId == 0 || depth > 4 || !database.Shots.TryGetValue(shotId, out ShotDef? shot)) return false;
-        if (shot.DamageType is not (0 or ShotRules.AreaDamageType or ShotRules.ContactDamageType)) return false;
+        if (shot.DamageType is not (0 or ShotRules.SquareDamageType or ShotRules.AreaDamageType or ShotRules.ContactDamageType)) return false;
         if (shot.ProcessType != 0 && !BuiltProcesses.Contains(shot.ProcessType)) return false;
+        if (shot.ProcessType == ShotRules.GasProcess && shot.DamageType == 0) return false;
         return Chained(database, shot.DeathShotId, depth) && Chained(database, shot.HitSolidShotId, depth)
             && Chained(database, shot.HitLavaShotId, depth) && Chained(database, shot.HitWaterShotId, depth)
             && Chained(database, shot.HitThingShotId, depth);
@@ -112,18 +117,132 @@ public static class TrapRules
         ShotRules.CreateObjectProcess, ShotRules.ModifyHealthProcess, ShotRules.SpeedProcess, ShotRules.ArmourProcess,
         ShotRules.LightningProcess, ShotRules.InvulnerableProcess, ShotRules.FreezeProcess, ShotRules.ChickenProcess,
         ShotRules.InvisibleProcess, ShotRules.ReaperStunProcess, ShotRules.InfernoProcess, ShotRules.InstantProcess,
-        ShotRules.DrainProcess, ShotRules.PoisonProcess,
+        ShotRules.DrainProcess, ShotRules.PoisonProcess, ShotRules.AlarmProcess, ShotRules.FearProcess, ShotRules.GasProcess,
     ];
 
     // ------------------------------------------------------------------ the constructor and completion
 
     /// <summary>The constructor's seeding (<c>0x004A7940</c>): health from the definition, hidden
-    /// from its flag <c>0x20</c>; every timer and counter zero.</summary>
-    public static void Seed(TrapState trap, TrapDef? definition)
+    /// from its flag <c>0x20</c>, a Guard Post's room (<c>0x004A7A9C</c>); every timer and counter zero.</summary>
+    public static void Seed(WorldState world, GameDatabase database, TrapState trap, TrapDef? definition)
     {
         if (definition is null) return;
         trap.Health = definition.Health;
         trap.Hidden = (definition.Flags & StartsHidden) != 0;
+        if ((definition.Flags & GuardPostBranch) != 0) trap.GuardRoomTile = NearestGuardRoom(world, RoomIndex.Build(world, database), trap);
+    }
+
+    // ------------------------------------------------------------------ the Guard Post
+
+    /// <summary><c>0x004C61C0(9, &amp;trap position, &amp;room, 0)</c> on the trap's owner: of the
+    /// owner's Guard Rooms, the one whose first slab's centre is strictly nearest the trap, as that
+    /// slab's tile; -1 for none. Anywhere on the map, not only the room the trap stands in. DK2
+    /// walks its room list, ours the rooms in tile order, so only an exact tie could differ.</summary>
+    public static int NearestGuardRoom(WorldState world, IReadOnlyList<RoomInstance> rooms, TrapState trap)
+    {
+        int found = -1;
+        uint best = uint.MaxValue;
+        foreach (RoomInstance room in rooms)
+        {
+            if (room.OwnerPlayerId != trap.PlayerId || room.Definition.TypeId != RoomTypeId.GuardRoom) continue;
+            int first = SlabChain.FirstSlab(world, room);
+            uint distance = DistanceSquared(CreatureState.CentreOf(first % world.Width), CreatureState.CentreOf(first / world.Width),
+                trap.PosX, trap.PosY);
+            if (distance >= best) continue;
+            best = distance;
+            found = first;
+        }
+        return found;
+    }
+
+    /// <summary>Whether a Guard Post's room (<c>+0x113</c>) is the one a creature holds a place in
+    /// (<c>+0x3B9</c>). DK2 compares two ids, so a post with no room matches a creature with none.</summary>
+    public static bool SameRoom(WorldState world, GameDatabase database, TrapState trap, RoomPlace place)
+    {
+        if (trap.GuardRoomTile < 0) return !place.IsHeld;
+        return place.IsHeld && RoomIndex.RoomAt(world, database, trap.GuardRoomTile) is { } room && place.In(room);
+    }
+
+    /// <summary>The update's Guard Post arm (<c>0x004A85BB</c>–<c>0x004A8AA1</c>), on the turns
+    /// whose sum with the trap's id has bit 3 set: refresh the room, then, with one, report the first
+    /// enemy in reach to it. The effect it makes every eighth turn is presentation. The turn is DK2's,
+    /// one past the tick; ours numbers traps in order, where DK2 adds its thing slot, so the phase of
+    /// the eight-in-sixteen window is ours.</summary>
+    private static void GuardPost(SimulationContext context, ISightBlocker sight, TrapState trap, long now, RoomCache rooms)
+    {
+        if (((now + 1 + trap.Id) & 8) == 0) return;
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        trap.GuardRoomTile = NearestGuardRoom(world, rooms.Of(context, trap.PlayerId), trap);
+        if (trap.GuardRoomTile < 0 || PostEnemy(world, database, sight, trap) is not { } enemy) return;
+        ReportToRoom(context, trap, enemy);
+    }
+
+    /// <summary><c>0x004A86A7</c>–<c>0x004A87E2</c>: the first creature of a hostile player, strictly
+    /// within <c>GuardPostReportingDistanceTiles</c>, in sight and attackable. The first, not the
+    /// nearest. Players and creatures in <see cref="FindSightTarget"/>'s order.</summary>
+    private static CreatureState? PostEnemy(WorldState world, GameDatabase database, ISightBlocker sight, TrapState trap)
+    {
+        int reach = database[VariableTypeId.GuardPostReportingDistanceTiles];
+        int limit = (reach << 12) * reach;
+        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        foreach (byte player in world.PlayerIds)
+        {
+            if (!CombatRules.IsHostile(world, trap.PlayerId, player)) continue;
+            for (int i = creatures.Count - 1; i >= 0; i--)
+            {
+                CreatureState creature = creatures[i];
+                if (creature.OwnerPlayerId != player || !IsHostileOnMap(world, trap.PlayerId, creature)) continue;
+                if ((int)DistanceSquared(trap.PosX, trap.PosY, creature.PosX, creature.PosY) >= limit) continue;
+                if (!LineOfSight.Clear(sight, creature.PosX, creature.PosY, trap.PosX, trap.PosY)) continue;
+                if (CombatRules.IsAttackable(creature)) return creature;
+            }
+        }
+        return null;
+    }
+
+    /// <summary><c>0x004A87EA</c>–<c>0x004A8A9B</c>: the enemy's strength near it less three quarters
+    /// of the owner's (<c>0x004FAC40</c> at five tiles), and nobody already responding there
+    /// (<c>0x004754D0</c>); then the owner's creatures holding a place in the post's room run to the
+    /// enemy in state 254 until their level-scaled <c>Threat</c> covers it. combat-alarm.md §3's
+    /// filters, without its job-walk alternative, and with the creature's own run speed.</summary>
+    private static void ReportToRoom(SimulationContext context, TrapState trap, CreatureState enemy)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        int wanted = FearRules.LocalStrength(context, enemy.OwnerPlayerId, enemy.PosX, enemy.PosY)
+            - (FearRules.LocalStrength(context, trap.PlayerId, enemy.PosX, enemy.PosY) * 3 / 4);
+        if (wanted <= 0 || FearRules.AlreadyResponding(world, trap.PlayerId, enemy.PosX, enemy.PosY)) return;
+        if (RoomIndex.RoomAt(world, database, trap.GuardRoomTile) is not { } room) return;
+
+        int sent = 0;
+        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        for (int i = 0; i < creatures.Count && wanted >= 0; i++)
+        {
+            CreatureState c = creatures[i];
+            if (c.OwnerPlayerId != trap.PlayerId || !c.HeldPlace.In(room)) continue;
+            CreatureDef def = database.CreatureById(c.CreatureTypeId);
+            if (def.Flags.HasFlag(CreatureFlags.IsWorker) || def.Flags.HasFlag(CreatureFlags.IsHorny)) continue;
+            if (CallToArmsRules.IsUnderCallToArms(world, c) || NeedRules.ResolvedCategory(c) == CreatureStateCategory.Combat) continue;
+            if (!CombatRules.MayLookForAFight(world, database, c, force: false)) continue;
+            if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4) continue;
+            // state+0x3C == 2 is the alarm's unread test too (Q391).
+            if (CreatureStateTable.Get(c.Dk2StateId).Group is 3 or 7) continue;
+            if (c.Dk2StateId == StateShadow.TravelToPoint && c.UtilityNewState == CombatStates.ReportingDanger) continue;
+            // +0x36F == 1 (the Imp) routes with 0x80, everyone else with 0 (0x004A89B5).
+            int options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
+            if (!context.Navigation.TryRouteTo(c, enemy.PosX, enemy.PosY, options)) continue;
+            c.CurrentJob = JobType.None;
+            c.JobTileIndex = -1;
+            c.Running = true;
+            CombatStates.Travel(context, c, CombatStates.ReportingDanger);
+            c.ReportTicks = 0;
+            c.CombatStateEnteredTick = context.Tick.Value;
+            sent++;
+            wanted -= FearRules.ThreatAtLevel(database, def, c.Level);
+        }
+        if (sent != 0)
+            context.Emit(SystemName, "guard_post_reported", $"trap={trap.Id} player={trap.PlayerId} enemy={enemy.Id} sent={sent} left={wanted}");
     }
 
     /// <summary><c>0x004A96D0</c>: construction done. A Trigger adds itself to every own non-Trigger
@@ -175,6 +294,11 @@ public static class TrapRules
 
     public static bool IsDead(TrapState trap) => trap.Health <= 0;
 
+    /// <summary><c>0x004B2CE0</c> on a trap: the signed delta applied flat. Its callers that reach a
+    /// trap here are the recovery, a shot's contact damage (<c>0x004AC420</c>) and area damage type 2
+    /// (<c>0x004AC6D0</c>); a swing reaches one only through possession, which is not built (traps.md §10).</summary>
+    public static void Damage(TrapState trap, int delta) => trap.Health += delta;
+
     // ------------------------------------------------------------------ the tile chain
 
     /// <summary>The tile chain's order (<c>0x004B5020</c>, <c>0x004B4E70</c>): a creature that has
@@ -215,7 +339,7 @@ public static class TrapRules
 
     /// <summary>One update (<c>0x004A84E0</c>), in its order. A trap whose firing is not built still
     /// loses its owner, counts its clock down and recovers; it does not look for a target.</summary>
-    public static void Update(SimulationContext context, ISightBlocker sight, TrapState trap, TrapDef definition)
+    public static void Update(SimulationContext context, ISightBlocker sight, TrapState trap, TrapDef definition, RoomCache rooms)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -231,6 +355,8 @@ public static class TrapRules
         }
         if (trap.ThreatDuration != 0) trap.ThreatDuration--;
 
+        if (!trap.UnderConstruction && !IsDead(trap) && (definition.Flags & GuardPostBranch) != 0)
+            GuardPost(context, sight, trap, now, rooms);
         if (!trap.UnderConstruction && !IsDead(trap) && FiringBuilt(database, definition))
         {
             if ((definition.Flags & TurnsToTarget) != 0) Turn(world, database, sight, trap, definition, now);
@@ -278,13 +404,31 @@ public static class TrapRules
     {
         TrapReadiness readiness = Readiness(context.World, trap, definition, context.Tick.Value);
         if (readiness == TrapReadiness.InsufficientMana)
-            context.Emit(SystemName, "trap_no_mana", $"trap={trap.Id} player={trap.PlayerId} cost={definition.ManaCostToFire}");
+            NoMana(context, trap, definition);
         else if (readiness == TrapReadiness.Ready) Fire(context, trap, definition, target);
     }
 
+    /// <summary>Readiness 2, short of mana: the no-mana effect (presentation) and <c>0x004C1A30</c> on
+    /// the owner, which posts message 53 with Data1 1 once the player's clock <c>+0xAA</c> is due
+    /// and sets it fifteen seconds on. Every site that answers 2 calls it.</summary>
+    private static void NoMana(SimulationContext context, TrapState trap, TrapDef definition)
+    {
+        context.Emit(SystemName, "trap_no_mana", $"trap={trap.Id} player={trap.PlayerId} cost={definition.ManaCostToFire}");
+        WorldState world = context.World;
+        if (!world.HasPlayer(trap.PlayerId)) return;
+        ref PlayerState player = ref world.Player(trap.PlayerId);
+        long now = context.Tick.Value;
+        if (now < player.TrapNoManaMessageAt) return;
+        world.Messages.Post(world, trap.PlayerId, PlayerMessageKind.ManaShortfall, TrapNoManaSubtype, 0);
+        player.TrapNoManaMessageAt = now + (15L * SimulationTiming.OriginalTicksPerGameSecond);
+    }
+
+    /// <summary>Message 53's Data1 a trap short of mana passes (<c>0x004C1A53</c>).</summary>
+    public const int TrapNoManaSubtype = 1;
+
     public static TrapReadiness Readiness(WorldState world, TrapState trap, TrapDef definition, long now) =>
         TrapActivationRules.Readiness(definition, trap.PlayerId, trap.UnderConstruction, now, trap.RechargeAt,
-            world.HasPlayer(trap.PlayerId) ? world.Player(trap.PlayerId).Mana : 0, beingDisarmed: false);
+            world.HasPlayer(trap.PlayerId) ? world.Player(trap.PlayerId).Mana : 0, beingDisarmed: false); // +0x115 is never set (Q455)
 
     /// <summary>The turn (definition flag <c>0x80</c>): toward the sight finder's target at range plus
     /// two (<c>0x004B2AE0</c>), or, with nobody, ten steps on (<c>0x004B2C10</c>), at most
@@ -504,14 +648,14 @@ public static class TrapRules
                 {
                     TrapReadiness ready = Readiness(world, found, definition, now);
                     if (ready == TrapReadiness.InsufficientMana)
-                        context.Emit(SystemName, "trap_no_mana", $"trap={found.Id} player={found.PlayerId} cost={definition.ManaCostToFire}");
+                        NoMana(context, found, definition);
                     else if (ready == TrapReadiness.Ready) Fire(context, found, definition, struck.Id);
                     continue;
                 }
                 int toward = Bearing.Of(trigger.PosX - found.PosX, trigger.PosY - found.PosY);
                 TrapReadiness readiness = Readiness(world, found, definition, now);
                 if (readiness == TrapReadiness.InsufficientMana)
-                    context.Emit(SystemName, "trap_no_mana", $"trap={found.Id} player={found.PlayerId} cost={definition.ManaCostToFire}");
+                    NoMana(context, found, definition);
                 else if (readiness == TrapReadiness.Ready)
                     Shoot(context, found, definition,
                         found.PosX + (int)(((long)Sine(toward) * 0x1000) >> 16),

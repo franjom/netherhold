@@ -256,6 +256,10 @@ public struct PlayerState
     /// <summary>Cumulative one-shot mana loss, player +0x10F2 (keeper-spell-casting.md).</summary>
     public int OneShotManaSpent;
 
+    /// <summary>Player <c>+0xAA</c>: the turn before which a trap short of mana posts no message
+    /// (<c>0x004C1A30</c>, fifteen seconds on from each post); 0 from <c>Player_Initialise</c>.</summary>
+    public long TrapNoManaMessageAt;
+
     /// <summary>Gold this keeper's creatures have mined, DK2's <c>player+0x15A</c> —
     /// <c>GoldMined</c> in the level-statistics struct embedded at <c>+0x142</c>
     /// (`player-object.md`). Trigger condition type 31 compares it.</summary>
@@ -439,6 +443,7 @@ public struct PlayerState
         hash.Add(AlliedWith);
         hash.Add(Mana);
         hash.Add(OneShotManaSpent);
+        hash.Add(TrapNoManaMessageAt);
         hash.Add(GoldMined);
         hash.Add(KilledByPlayerId);
         hash.Add(SlapCount);
@@ -757,6 +762,11 @@ public sealed class TrapState
     public long SightTurn;
     public int SightTargetId;
 
+    /// <summary><c>+0x113</c>, a Guard Post's room: the owner's Guard Room nearest the trap
+    /// (<c>0x004C61C0(9)</c>), written by the constructor and refreshed by the update. Ours has no
+    /// room ids, so it holds that room's first slab tile, or -1 for DK2's 0.</summary>
+    public int GuardRoomTile = -1;
+
     /// <summary>The trap's position, the tile's centre as the loader <c>0x00520E50</c> puts it.</summary>
     public int PosX => (X << 12) + 0x800;
     public int PosY => (Y << 12) + 0x800;
@@ -785,6 +795,7 @@ public sealed class TrapState
         hash.Add(TriggerCreatureId);
         hash.Add(SightTurn);
         hash.Add(SightTargetId);
+        hash.Add(GuardRoomTile);
     }
 }
 

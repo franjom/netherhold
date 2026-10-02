@@ -7069,6 +7069,98 @@ as read; the review also found that step 4's room pick (`0x004C63D0`) counts bri
 index and that a failed pick ends the withdraw with no destination, where `PickRoom` skips
 bridges and falls to step 5 — pre-existing since ADR-0165, left as is here and to be read.
 
+## ADR-0330 — The Guard Post: its room, a patrol's visit and its report
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0212 and ADR-0321 · Research: `guard-room.md` §4, §6, §7; `traps.md` §3; Q450, Q517
+
+**Context.** A guard's deadline in state 98 only ever reset, since `0x00463190` looks for a
+Guard Post and the trap had no room; the trap update's flag-`0x800` arm was unread. Read now:
+trap `+0x113` is written only by the constructor and that arm, both with `0x004C61C0(9)`, the
+owner's Guard Room whose first slab is nearest the trap, anywhere on the map; the arm reports
+the first enemy within v191 tiles to that room with the alarm's dispatch loop (state 254);
+state 100 walks the guard back to a random tile of its room.
+
+**Decision.** `TrapState.GuardRoomTile` holds `+0x113` as that room's first slab tile (rooms
+have no ids), seeded by `TrapRules.Seed` and refreshed by `TrapRules.GuardPost` on turns whose
+sum with the trap's id has bit 3 set. `GuardStep` visits a post past its deadline and runs
+state 100. `TrapRules.ReportToRoom` is combat-alarm.md §3's loop on the held place, with the
+Imp's route flag as read. A trap with shot 0 runs the recharge gate, as DK2's does, and fires
+nothing. The Crypt's states 274–277, which share category 11, are read and not built.
+
+**Consequences.** HashVersion and FormatVersion 161 (158 before master took 160). Prediction,
+written before measuring: only a world with a Guard Post behaves differently, and none of the
+41 scenarios nor Levels 1 and 2 holds one, so every scenario's events and both rigs' per-seed
+lines stay as they are, and the scenarios with traps change hash only. Measured on 1aa98db:
+all 41 event logs and worlds byte-identical; Levels 1 and 2 identical per seed (20/20; 7/20,
+seeds 3, 6, 7, 9, 10, 16, 18). `TrapsFireOnRealDataTests`: 649 traps fire, 653 run the gate (Level 9's four hero
+Guard Posts, all reporting to one hero Guard Room). The alarm's own loop routes the Imp the
+reverse way (Q517), left for its owner. Not built: `state+0x3C` (Q391), the post's effect.
+
+## ADR-0326 — A trap's upkeep, its no-mana message, and the shots that damage it
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `traps.md` §3, §9, §10; `shots.md` §4a; Q59
+
+**Context.** Q59 measured the upkeep and named its field; its charge, the message a trap short
+of mana posts, and who damages a trap were unread. Read now: `0x004C1B60` puts def `+0x96`
+(`Traps.kwd` `0x202`) on the keeper's drain and off its income word, so it is paid after the
+income cap; `0x004C1A30` posts message 53 with Data1 1 at most every 15 s on player `+0xAA`; of
+`0x004B2CE0`'s 80 call sites, a trap is reached by a shot's collision (`0x004B5800` admits any
+completed trap) and contact damage, and by area damage type 2 (`0x004AC6D0`), whose re-read
+also showed every hit overwrites the damage word for the next.
+
+**Decision.** `ManaRules.TrapUpkeepPerSecond` joins the second's drain for a keeper's completed
+traps, recounted each second (the paired register and release keep DK2's total equal); hero
+traps are left out because DK2 never pays a hero and ours pays every player. `TrapRules.NoMana`
+posts through `PlayerState.TrapNoManaMessageAt`. `ShotRules.FindTrapHit` and
+`ContactDamageTrap` strike traps; `AreaDamage` walks the tile box in order, hits traps and doors
+except for gas, and compounds the damage word. A possessed creature's swing, the only one that
+reaches a trap, is not built; area damage on objects is not built.
+
+**Consequences.** HashVersion and FormatVersion 162 (159 before master took 160). Prediction, written before measuring:
+Levels 1 and 2 hold no traps, so only the compounding can move them, where an area shot strikes
+two things in one tick; L1 unchanged, L2 unchanged or nearly. Scenarios with traps change mana
+and may change fights. Measured on 1aa98db: both rigs identical per seed; the nine keeper
+scenarios on trap levels diverge at their first mana payment (Level 17's keeper pays 95 more a
+second), and no scenario has a shot strike a trap or door.
+
+## ADR-0331 — The Alarm, Fear, Spike and Gas traps fire; the Boulder and the Jack In The Box wait
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `shots.md` §7, §8; `traps.md` §12; Q395, Q450
+
+**Context.** Six trap types did not fire because a handler of their shot was unread. Read now
+(`0x004AD1B0`'s table): process 12 posts message 47 with the shot's tile; 21 is a stub
+returning 0; 31's threat counts nobody and its worker kick needs damage type 0, which no
+shipped shot has; damage type 1 hurts creatures in a half-open square, the 2×2 to the
+north-west for `data2` 1; 22 rolls a boulder object; 39 makes a creature in state 273.
+
+**Decision.** `ShotRules` handles 12 (`PlayerMessageKind.AlarmRaised`, fifty seconds, its row
+`0x2032`), 21 and 31 (nothing), and `SquareDamage` for type 1, its object arm left out as
+objects are not hit. `TrapRules.FiringBuilt` admits them and refuses a process-31 shot of damage
+type 0. The Boulder and the Jack In The Box stay unbuilt: neither a rolling object nor state
+273 exists here, and building on either would be a guess.
+
+**Consequences.** No new field and no hashing change, so no version bump: the pin's world holds
+no trap and the hash's shape is unchanged. The 16 Hero Alarm traps post 47 to the hero player,
+which DK2 may refuse (Q519). 858 of the 959
+placed traps fire (649 before ADR-0330) and 4 run the gate, against a prediction of 862 in all.
+Prediction, written before measuring: Levels 1 and 2 hold no traps and stay identical per
+seed; scenarios diverge only where an enemy meets one of the four. Measured on 8d53f95: both
+rigs identical per seed, and every scenario's events identical to ADR-0326's: none meets them.
+
+## ADR-0329 — Disarming is unreachable in v1.70, so it is recorded and not built
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `traps.md` §11; Q455, Q451
+
+**Context.** States 204–206 and their leave hook were read; who starts them was not (Q455).
+Every store to creature `+0x43D` and trap `+0x115` over `.text` and `cseg` writes 0, nothing
+takes `+0x43D`'s address or covers it with a wider store, and no SetState or walk pushes 204.
+State 204 tests `+0x43D` for a live trap first and idles otherwise.
+
+**Decision.** States 204–206 are marked unreachable in `CreatureStateCoverage`, the TrapDisarm
+leave hook stays not built with that reason, and readiness's disarmer arm stays false. Nothing
+is built on the reading of the states: no path in the binary reaches them. The owner has not
+seen a creature disarm a trap in play (2026-10-02); an observed disarm would point at a path the
+scans cannot see, and reopens Q455.
+
+**Consequences.** No behaviour or state change. Q451 (a failed disarm's firing) is moot unless
+Q455 reopens.
+
 ## ADR-0317 — The keeper's training moves
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0244 and ADR-0284 · Research: `computer-keeper-management.md` §2; Q509
 

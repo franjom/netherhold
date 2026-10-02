@@ -352,8 +352,8 @@ public sealed class ScenarioRunner
             "a dungeon heart; outgoings are Create Imp's cast cost and the 7 a second every imp " +
             "charges its keeper (Q53, confirmed and now read off DK2's own Create Imp record). " +
             "What is missing is every other keeper spell - a summoned Horned Reaper costs 2000 a " +
-            "second and Possession 25, and neither spell exists yet; Call To Arms does - plus research and the " +
-            "mana traps draw, which is reported and uninvestigated. A mana total in this run is " +
+            "second and Possession 25, and neither spell exists yet; Call To Arms and a keeper's " +
+            "trap upkeep do (Q59) - plus research. A mana total in this run is " +
             "close to what a keeper would have, and short of every outgoing but one");
         unsupported.Add(
             "mana is paid once a game second, and a game second is four ticks of 250 ms - read " +
