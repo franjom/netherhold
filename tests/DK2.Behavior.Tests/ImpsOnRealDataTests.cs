@@ -164,9 +164,9 @@ public class ImpsOnRealDataTests
     }
 
     /// <summary>
-    /// <b>A gate is never converted; every other rival room is.</b> DK2's enemy-room test
+    /// <b>A gate is not converted unruined; every other rival room is.</b> DK2's enemy-room test
     /// <c>0x00454040</c> takes a room whose terrain is Attackable, and one that is not only once
-    /// ruined (<c>+0x9A</c> bit 0), which only COLLAPSE_HERO_GATE does and we do not build. In
+    /// ruined (<c>+0x9A</c> bit 0), which only action 32 does (ADR-0320); a fresh level has none. In
     /// Level 1's capture no imp ever targets the heroes' 2x2 gate (ADR-0299).
     /// </summary>
     [InstallFact]

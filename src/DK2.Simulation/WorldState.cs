@@ -171,6 +171,12 @@ public struct TileState
     /// <see cref="SlabChain"/> (room-slab-chain.md).</summary>
     public int SlabOrder;
 
+    /// <summary>DK2's room ruin, <c>room+0x9A</c> bit 0, held on each tile of a ruined gate since
+    /// rooms here are derived from tiles. Set by trigger action 32 through <c>0x004E9130</c> for the
+    /// Hero Gate types 18, 20 and 23; it makes a non-Attackable room convertible (<c>0x00454040</c>).
+    /// A heart's ruin is <see cref="PlayerState.HeartRuined"/> (hero-parties-and-effect-generators.md).</summary>
+    public bool RoomRuined;
+
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = 15;
 
@@ -222,6 +228,7 @@ public struct TileState
         hash.Add(PitFightSeenTick);
         hash.Add(PrisonDoor);
         hash.Add(SlabOrder);
+        hash.Add(RoomRuined);
     }
 }
 

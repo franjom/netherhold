@@ -931,14 +931,15 @@ public class TriggerExecutorTests
     [Fact]
     public void OnlyActionsThatCannotAlterTerrainArePerformed()
     {
-        // 22 is the one that can, and it clears TriggerRun.Rooms after the write.
+        // 22 is the one that can, and it clears TriggerRun.Rooms after the write. 32 ruins a
+        // gate's tiles without touching their terrain, which no room condition reads.
         // Anything added here without doing the same brings back the bug this test
         // was written for: a room condition later in the turn reading the old map.
         byte[] performed = Enumerable.Range(0, 256)
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
         Assert.Equal(
-            [(byte)1, (byte)6, (byte)7, (byte)8, (byte)10, (byte)11, (byte)14, (byte)22, (byte)23, (byte)28, (byte)37, (byte)44, (byte)45, (byte)47],
+            [(byte)1, (byte)6, (byte)7, (byte)8, (byte)10, (byte)11, (byte)14, (byte)22, (byte)23, (byte)28, (byte)32, (byte)37, (byte)44, (byte)45, (byte)47],
             performed);
     }
 
@@ -1086,6 +1087,67 @@ public class TriggerExecutorTests
         var tree = new TriggerTree(records, 5, playerRoots: []);
         return new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
     }
+
+    /// <summary>Action 32 (<c>0x005196BB</c>): the one-based tile's room is ruined when it is a Hero
+    /// Gate, so an imp may then convert it (<c>0x00454040</c>), its terrain unchanged; off a room it
+    /// does nothing and succeeds.</summary>
+    [Fact]
+    public void CollapseHeroGateRuinsTheGateUnderItsOneBasedTile_AndAKeeperMayThenConvertIt()
+    {
+        (WorldState world, GameDatabase database) = AlterWorld();
+        foreach ((int x, int y) in new[] { (3, 2), (4, 2), (3, 3), (4, 3) })
+        {
+            ref TileState tile = ref world.Tile(x, y);
+            tile.TerrainId = Dk2TerrainFixture.HeroGate2By2Terrain;
+            tile.OwnerPlayerId = PlayerIds.Good;
+        }
+        Assert.False(TileWorkRules.Applies(world, database, world.Tile(3, 2), TileWorkKind.ConvertRoom, Keeper));
+
+        TriggerRecord[] records = [LevelTime(5, comparison: 5, seconds: 0, child: 0xFFFF), CollapseRecord(1, x: 5, y: 4)];
+        new TriggerExecutor(new TriggerTree(records, 5, playerRoots: []), world.Triggers, world, database).Run(1);
+
+        foreach ((int x, int y) in new[] { (3, 2), (4, 2), (3, 3), (4, 3) })
+        {
+            Assert.True(world.Tile(x, y).RoomRuined);
+            Assert.Equal(Dk2TerrainFixture.HeroGate2By2Terrain, world.Tile(x, y).TerrainId);
+            Assert.True(TileWorkRules.Applies(world, database, world.Tile(x, y), TileWorkKind.ConvertRoom, Keeper));
+        }
+        Assert.False(world.Tile(2, 2).RoomRuined);
+    }
+
+    [Fact]
+    public void CollapseHeroGateOnATileWithNoRoomDoesNothing()
+    {
+        (WorldState world, GameDatabase database) = AlterWorld();
+        TriggerRecord[] records = [LevelTime(5, comparison: 5, seconds: 0, child: 0xFFFF), CollapseRecord(1, x: 3, y: 3)];
+        TriggerRunResult result = new TriggerExecutor(new TriggerTree(records, 5, playerRoots: []), world.Triggers, world, database).Run(1);
+        Assert.DoesNotContain(Enumerable.Range(0, world.TileCount), i => world.TileAtIndex(i).RoomRuined);
+        Assert.Empty(result.Partial);
+    }
+
+    /// <summary>The ruin has no arm for the Tile gate, so action 32 there changes nothing; a heart
+    /// is ruined in DK2 too, which ours declines and reports.</summary>
+    [Theory]
+    [InlineData(Dk2TerrainFixture.HeroGateTileTerrain, false)]
+    [InlineData(Dk2TerrainFixture.DungeonHeartTerrain, true)]
+    public void CollapseHeroGateLeavesATileGateAlone_AndDeclinesAHeart(byte terrain, bool declined)
+    {
+        (WorldState world, GameDatabase database) = AlterWorld();
+        ref TileState tile = ref world.Tile(3, 3);
+        tile.TerrainId = terrain;
+        tile.OwnerPlayerId = Keeper;
+        TriggerRecord[] records = [LevelTime(5, comparison: 5, seconds: 0, child: 0xFFFF), CollapseRecord(1, x: 4, y: 4)];
+        TriggerRunResult result = new TriggerExecutor(new TriggerTree(records, 5, playerRoots: []), world.Triggers, world, database).Run(1);
+        Assert.False(world.Tile(3, 3).RoomRuined);
+        Assert.Equal(declined, result.Partial.Count > 0);
+    }
+
+    private static TriggerRecord CollapseRecord(ushort id, int x, int y) =>
+        new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 32,
+            Parameters = new Dictionary<string, long> { ["Unreached_0000"] = 0, ["PosX"] = x, ["PosY"] = y },
+        };
 
     private static (WorldState World, GameDatabase Database) AlterWorld()
     {

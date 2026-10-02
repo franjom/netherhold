@@ -15,8 +15,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   levels (docs/experiments/). M6 remains partial: original packet replays run,
   with the remaining timing differences in Q444 and navigation-captures.md.
 - M7 remains partial: combat, hero parties, door contact and the door fight
-  (ADR-0318) run, while trap firing and hero gates remain open (traps.md;
-  2026-10-02).
+  (ADR-0318) and hero gates (ADR-0320) run, while trap firing remains open
+  (traps.md; 2026-10-02).
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 15).
   The proactive task machine (tasks 0–7) digs, expands, builds rooms, manages

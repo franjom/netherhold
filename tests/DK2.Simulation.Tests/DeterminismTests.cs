@@ -104,7 +104,7 @@ public class DeterminismTests
 
         // HashVersion 151: the Combat category's enter and leave hooks run on every route (ADR-0319).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xE459726930E9CA06UL, sim.StateHash());
+        Assert.Equal(0x1149D4B4FA9DC991UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

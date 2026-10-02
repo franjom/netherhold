@@ -97,8 +97,9 @@ The tile under it (world slot `+0x1D4` = `0x00508FE0`: `tiles + (y>>12 × width
 Then every thing on that tile whose class dword `+0x12` is 3 or 4 is finished
 through its vtable slot `+0x20` (a creature's is the health-zeroing
 `0x004B2AD0`, `creature-leaving.md`) and effect 1 is spawned at the position with
-the thing's `+0x28` word. Which two classes 3 and 4 are is UNKNOWN (class 2 is an
-object, `win-and-defeat.md` §3.1). The party's own subtree is armed
+the thing's `+0x28` word. Class 3 is a trap and 4 a door: each constructor links its thing
+into the world list of that type (`0x004A795A`, `0x004A508F`, through `0x004B4A10`); class 2 is
+an object (`win-and-defeat.md` §3.1). The party's own subtree is armed
 (`0x00519A20(word[world+0x4030+PartyId×0x208], 1)`).
 
 ### One creature per occupied slot
@@ -120,20 +121,25 @@ fields `+0x418` and `+0x417` they are copied to (Q258). A slot whose `CreatureId
    `0x004B78D0` → `0x004B7900`: a unique creature (flag bit 27) is given the
    owner at `def+0x5B3` instead; the owner must exist and the world must hold
    fewer than `0x1C0` = 448 creatures, else the handler **returns 0 at once**,
-   keeping the members already made. **The gate step-off** (read 2026-09-26, not
-   built): for a Good creature made on a room tile, `0x00519B20` first moves the
-   point by room type, each time with effect `0xF`:
-   - **19:** a random open neighbour, N, E, S or W (world slot `+0x208`, a bit
-     mask re-rolled with `random(4)` until an open side comes up), halfway from
-     the tile centre to that neighbour's centre; none open, it returns 0;
-   - **20:** the tile named by the room's bytes `+0x2D`, `+0x2E`, plus one;
-   - **23:** the room's centre tile (world slot `+0x1D8`).
+   keeping the members already made. **The gate step-off** (read whole 2026-10-02,
+   built, ADR-0320): only for the Good player `[0x006F254C]` on a tile whose room word is set,
+   by room type, each time with effect `0xF` at the point through world slot `+0x38C`:
+   - **20 (2x2):** the point becomes room `+0x2D`/`+0x2E` (the first slab) plus one tile on each
+     axis, the 2x2's centre point;
+   - **23 (3x1):** the centre of the tile the first slab's chain link (tile `+4`) names (a one-tile
+     chain would name (0,0), unreachable for a shipped gate; ours then leaves the point);
+   - **19 (Tile):** an open-side mask of the four neighbours (world slot `+0x208`, the navigation
+     Solid bit; ours asks terrain solidity, its source but for doors, and does not read past the edge),
+     built **north, west, east, south**; with none open it returns 0 and makes nothing; else
+     `random(4)` (world RNG `+0x15A0`) is drawn until its bit is set, and the side is read from
+     table `0x006BC350`, **north, east, south, west** — so a west opening sends the creature east
+     (DK2's own mismatch). The effect is halfway to that side.
 
-   After creation it sets `GoodJob 19` (`0x0048BE20`), which the party loop
-   overwrites below. If the point moved, it calls `0x004D0F60`. That is not a
-   tile clear: it is a movement helper that six walk routines also call
-   (`0x00471890`, `0x00471A70` and others), and it sets the creature's
-   movement flags.
+   20 and 23 write the point into both stack copies, so the creature is made there and not
+   moved; 19 makes it where asked. Then `0x0048BE20(19, [world+0x84]+0x224E, 0)` sets
+   `GoodJob` 19, which the party loop overwrites, and for 19 alone the creature is routed to the
+   side's centre with `0x004D0F60(..., 6)`. Action 1 reaches the same code (`0x00518BB1`).
+
 3. **King Reginald** (type 21): every player in the world's list (`world+0x7A`,
    link `+0x3A`) is sent notification type **5, variant 1** with the new
    creature's id — speech 1297 *"The King has entered your realm"*, 20 s
@@ -196,13 +202,37 @@ member's pace — and each **follower** (bit 2) gets `MyLeadersId := leader` and
 follower count. (No leader at all and that last write lands on address `0x3E1`;
 no shipped party lacks one.) The handler returns 1.
 
+### Action type 32: a gate's collapse (read 2026-10-02)
+
+World action dispatcher `0x00518AD0` sends type 32 (index 31, jump entry 15) to `0x005196BB`. It
+reads the one-based tile from its dword at `+4` (low word x, high word y), looks it up, and, when
+the tile's room word is set, calls the ruin `0x004E9130(room, 1)`; it returns 1 either way. The
+ruin acts on room types 5 (Dungeon Heart), 18 (Final), 20 (2x2, which first destroys the room's
+objects) and 23 (3x1) only: it sets `room+0x9A` bit 0 and walks the room's slab chain redrawing
+each tile (`0x004522A0`: minimap colour, tile notification 3, neighbour codes through `0x00450470`;
+`0x004EDC10`: the room tile's construction piece, whose gate selectors 11 and 13 do not read the
+ruin). No terrain is written; the direct callees write only the minimap word and the cell byte
+`+0xC`, and the posted tile event's consumers are unread. The heart builder `0x004DB700` is a third
+caller, for a heart loaded at zero health.
+The ruin opens the claim test's second arm (`0x00454040`): a non-Attackable gate converts.
+
+**CONFIRMED (owner, 2026-10-02):** a collapsed gate stays where it is and becomes claimable; an
+embedded gate cannot otherwise be destroyed. Both agree with the read: the shipped gate terrains
+are not Attackable.
+
+**Shipped data (CONFIRMED):** 67 type-32 records on 17 levels name 65 tiles: 61 on 2x2 gates,
+3 on 3x1 gates, and Level 7's (35,41), a Reinforced Wall, where the arm does nothing (a
+prediction). Every shipped party raised on a gate (35 levels) already stands where the step-off
+would put it, so the step-off moves no shipped spawn.
+
 ### What this settles and what it opens
 
 Q254 is answered above. Q257: the runtime record keeps only an 8-byte header of
 the 43-byte file header and the handler reads the trigger id alone, so
 `Unknown_0023`/`Unknown_0027` are not consumed at spawn. Q258 is answered. Left
-UNKNOWN: thing classes 3 and 4; `+0x38`; what `0x004D0F60` does to the moved
-creature beyond its movement flags; where `PositionInParty` and `MyLeadersId` are read
+UNKNOWN: creature `+0x38` (the creature dumper does not print the thing header, and nothing
+else names it, 2026-10-02); the player word at `[world+0x84]+0x224E` the step-off's `GoodJob` names;
+where `PositionInParty` and `MyLeadersId` are read
 (`travel-states.md` §2.3 has one reader).
 
 ### Built (2026-09-24, ADR-0197)
@@ -210,5 +240,7 @@ creature beyond its movement flags; where `PositionInParty` and `MyLeadersId` ar
 `HeroPartyRules.Spawn` follows the list above; `CreatureLevelRules.LevelUp` is step 7's
 arithmetic. Deviations, each named at its site: the creature stands at the tile's centre
 (DK2: its corner); things on the spawn tile are not cleared; no party pace, event 3, gate
-state 269, effects or King notification. The fields the spawn writes are hashed on the
+state 269, effects or King notification. The step-off and action 32 are built (ADR-0320); not
+built: the Tile gate's walk (no shipped map has one), the 2x2 ruin's object destruction (no
+object is placed on a gate) and action 32 on a heart. The fields the spawn writes are hashed on the
 creature under the dumper's names, and `SpawnCount` on the party.

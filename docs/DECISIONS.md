@@ -6607,8 +6607,7 @@ arm we had not recorded: a room whose terrain is not Attackable converts only wh
 bit 0, the ruin, is set, and only trigger action 32 COLLAPSE_HERO_GATE sets it on a gate.
 
 **Decision.** `TileWorkRules`' ConvertRoom requires the terrain to be Attackable. In the shipped
-data that excludes exactly the five gates. The ruined-gate case is not built, because action 32
-is not.
+data that excludes exactly the five gates. The ruined-gate case is built by ADR-0320.
 
 **Consequences.** The checker agrees on 300 of Level 1's 309 choices (288 before): ten late
 reinforce choices and two that followed them. Level 2 is unchanged (732/799), and so are the
@@ -7130,3 +7129,26 @@ hold no door and fire no door event: L1 20/20 and L2 7/20, every seed identical 
 test on its first turn, Level 4's hero Wooden Door at (24,9) (a prediction, Q453). Not built:
 the push-out, the secret-door reveal, the adjacent-door finder `0x00481400`, area damage on
 doors, the linked objects and effects. The pit's forced creature arm keeps ours (Q510).
+
+## ADR-0320 — A collapsed gate is ruined, not removed, and a hero steps off its gate as read
+**Date:** 2026-10-02 · **Status:** accepted · `HashVersion` 153 · Q427 ·
+Research: `hero-parties-and-effect-generators.md`
+
+**Context.** ADR-0299 made a gate convertible only once ruined and left the ruin unbuilt: trigger
+action 32's handler and the creature-maker's gate step-off `0x00519B20` (Q427) were unchecked or
+unbuilt. Both are now read whole, and the owner confirms a collapsed gate stays and is claimable.
+
+**Decision.**
+- Action 32 (`0x005196BB`) ruins the room on its one-based tile through `0x004E9130`, which acts on
+  Hero Gate types 18, 20 and 23. The ruin is `TileState.RoomRuined` on each of the room's tiles,
+  ours since rooms here are derived from tiles; no terrain is written, as read.
+- `ConvertRoom` accepts a non-Attackable room once ruined (`0x00454040`'s second arm).
+- `HeroPartyRules.StepOff` for every Good creature made by actions 1 and 14: a 2x2 gate's
+  first slab plus a tile, a 3x1's next chain tile, a Tile gate's side through DK2's mismatched
+  table, refusing when none is open.
+- Declined, named: action 32 on a heart, the Tile gate's walk, the 2x2 ruin's object destruction.
+
+**Consequences.** `HashVersion`/`FormatVersion` 153. Shipped data: 67 records on 17 levels name
+64 gate tiles and Level 7's Reinforced Wall (inert); every party raised on a gate already stands
+where the step-off puts it. Rigs (L1 20/20, L2 7/20) are seed-for-seed identical to master
+`fe5e19e`: neither level runs action 32, and their gate spawns do not move.

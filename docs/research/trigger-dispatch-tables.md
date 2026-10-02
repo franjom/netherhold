@@ -190,10 +190,9 @@ puts a creature inside solid terrain; read one tile up and left, 67 do.**
 | collapsed | only when `Flag` bit 7 is set — below |
 
 `FUN_00519B20` has a **Good-player-only** preamble: when the owner is the Good
-player (`word[0x006F254C]`) and the target's room type is 19, 20 or 23, it moves
-the spawn to a walkable neighbour picked at random (`WorldTrigger.cpp:1377`) and
-afterwards orders the creature to walk to the tile the record asked for. Every
-other owner reaches the factory `0x004B78D0` at the requested point directly.
+player (`word[0x006F254C]`) and the target's room is a Hero Gate (19, 20 or 23) it
+applies the gate step-off, per gate type (`hero-parties-and-effect-generators.md`,
+ADR-0320). Every other owner reaches the factory `0x004B78D0` at the requested point.
 
 ### The `Flag` byte is the creature's own `Flags` byte
 

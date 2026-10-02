@@ -12,7 +12,8 @@ namespace DK2.Simulation;
 /// each given its level, gold, health, job, flags and trigger root from the member record, and the
 /// party then linked follower-to-leader. Ours differs, stated: creatures stand at tile centres where
 /// DK2 uses the tile's corner; things already on the tile are not cleared; no party pace,
-/// no gate state 269 or effects, no King notification (Q427).</summary>
+/// no gate state 269 or effects, no King notification; the gate step-off moves each creature as
+/// <see cref="StepOff"/> reads (Q427).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
 public static class HeroPartyRules
 {
@@ -61,6 +62,73 @@ public static class HeroPartyRules
         return new TilePos(x, y);
     }
 
+    /// <summary>What the gate step-off decided for one creature.</summary>
+    public enum StepOffResult : byte
+    {
+        /// <summary>Not a hero, or not on a gate the step-off moves from: made where asked.</summary>
+        None,
+        /// <summary>Made at <c>at</c>, which the step-off moved (2x2 and 3x1 gates).</summary>
+        Moved,
+        /// <summary>A Tile gate with no open side: <c>0x00519B20</c> returns 0 and nothing is made.</summary>
+        Refused,
+        /// <summary>A Tile gate: made where asked, and sent to the chosen side (not built: the walk).</summary>
+        Walks,
+    }
+
+    /// <summary>The Good creature's gate step-off in <c>0x00519B20</c>, before the creature is made
+    /// (hero-parties-and-effect-generators.md): on a Hero Gate 2x2 (room 20) the point becomes the
+    /// tile one right and one down of the room's first slab, its centre point (ours: that tile's
+    /// centre); on a 3x1 (23) the centre of the tile after the first slab in the room's chain; on a
+    /// Tile gate (19) a side is drawn as read and the creature walks there. Effect <c>0xF</c> plays
+    /// at the point (presentation).</summary>
+    /// <remarks>The Tile gate's open-side mask is built north, west, east, south, but the drawn bit
+    /// indexes the neighbour table north, east, south, west (<c>0x006BC350</c>): DK2's own mismatch,
+    /// kept. No shipped map holds a Tile gate.</remarks>
+    public static StepOffResult StepOff(
+        WorldState world, GameDatabase database, SimRandom? rng, byte playerId, ref TilePos at, out TilePos side)
+    {
+        side = at;
+        if (playerId != PlayerIds.Good || !world.Contains(at)) return StepOffResult.None;
+        RoomInstance? room = RoomIndex.RoomAt(world, database, (at.Y * world.Width) + at.X);
+        if (room is null) return StepOffResult.None;
+        switch ((RoomTypeId)room.Definition.RoomId)
+        {
+            case RoomTypeId.HeroGate2By2:
+            {
+                int first = SlabChain.FirstSlab(world, room);
+                at = new TilePos((first % world.Width) + 1, (first / world.Width) + 1);
+                return StepOffResult.Moved;
+            }
+            case RoomTypeId.HeroGate3By1:
+            {
+                int[] chain = SlabChain.Order(world, room);
+                if (chain.Length < 2) return StepOffResult.None;
+                at = new TilePos(chain[1] % world.Width, chain[1] / world.Width);
+                return StepOffResult.Moved;
+            }
+            case RoomTypeId.HeroGateTile:
+            {
+                // Mask bits: north, west, east, south, each set when that neighbour is not solid.
+                (int dx, int dy)[] probe = [(0, -1), (-1, 0), (1, 0), (0, 1)];
+                (int dx, int dy)[] table = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+                int mask = 0;
+                for (int i = 0; i < 4; i++)
+                {
+                    int x = at.X + probe[i].dx, y = at.Y + probe[i].dy;
+                    if (world.Contains(x, y) && !database.TerrainById(world.Tile(x, y).TerrainId).IsSolid) mask |= 1 << i;
+                }
+                if (mask == 0) return StepOffResult.Refused;
+                int roll;
+                do roll = rng?.NextInt(4) ?? 0; while ((mask & (1 << roll)) == 0 && rng != null);
+                if ((mask & (1 << roll)) == 0) return StepOffResult.None;
+                side = new TilePos(at.X + table[roll].dx, at.Y + table[roll].dy);
+                return StepOffResult.Walks;
+            }
+            default:
+                return StepOffResult.None;
+        }
+    }
+
     /// <summary>Raise the party. Returns <see langword="false"/> only where DK2 returns 0: a
     /// creature could not be made (the cap, or an unplaceable tile), the members already made
     /// staying. <paramref name="armSubtree"/> is the executor's arming of a trigger subtree and
@@ -88,7 +156,9 @@ public static class HeroPartyRules
             if (!world.Contains(at) || world.Creatures.Count >= CreatureCap) return false;
 
             CreatureDef def = database.CreatureById(type);
-            CreatureState state = world.SpawnCreature(database, type, PlayerIds.Good, at);
+            TilePos made = at;
+            if (StepOff(world, database, rng, PlayerIds.Good, ref made, out _) == StepOffResult.Refused) return false;
+            CreatureState state = world.SpawnCreature(database, type, PlayerIds.Good, made);
 
             // Byte arithmetic, as DK2's: the level-ups to buy, plus one per earlier raising of a
             // random party.

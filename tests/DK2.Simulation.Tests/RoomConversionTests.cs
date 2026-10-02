@@ -168,7 +168,7 @@ public class RoomConversionTests
     }
 
     [Fact]
-    public void EveryRoomTerrainIsConvertibleAndNoNonRoomTerrainIs()
+    public void EveryAttackableRoomTerrainIsConvertible_AGateOnlyOnceRuined_AndNoNonRoomTerrainIs()
     {
         WorldState world = World();
         byte heart = Db.Room(RoomTypeId.DungeonHeart).TerrainId;
@@ -181,10 +181,14 @@ public class RoomConversionTests
             tile.OwnerPlayerId = Rival;
             tile.Health = terrain.StartingHealth;
 
-            bool expected = terrain.IsRoom && !terrain.IsSolid && terrain.TerrainId != heart;
+            bool room = terrain.IsRoom && !terrain.IsSolid && terrain.TerrainId != heart;
             Assert.Equal(
-                expected,
+                room && terrain.IsAttackable,
                 TileWorkRules.Applies(Db, tile, TileWorkKind.ConvertRoom, Keeper));
+
+            // A gate's terrain is not Attackable: its ruin is what opens it (0x00454040, ADR-0320).
+            tile.RoomRuined = true;
+            Assert.Equal(room, TileWorkRules.Applies(Db, tile, TileWorkKind.ConvertRoom, Keeper));
         }
     }
 

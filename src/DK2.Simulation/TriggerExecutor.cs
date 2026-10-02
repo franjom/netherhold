@@ -1106,7 +1106,7 @@ public sealed class TriggerExecutor
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
     public static bool Performs(byte type) =>
-        type is 1 or 6 or 7 or 8 or 10 or 11 or 14 or 22 or 23 or 28 or 37 or 44 or 45 or 47;
+        type is 1 or 6 or 7 or 8 or 10 or 11 or 14 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 47;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -1176,6 +1176,7 @@ public sealed class TriggerExecutor
         if (record.Type == 1) return CreateCreature(record, context, p, run);
         if (record.Type == 14) return CreateParty(record, context, p, run);
         if (record.Type == 22) return AlterTerrain(record, context, p, run);
+        if (record.Type == 32) return CollapseGate(record, context, p, run);
         if (record.Type != 7)
             throw new ArgumentException($"Action type {record.Type} has no arm here.", nameof(record));
 
@@ -1213,8 +1214,11 @@ public sealed class TriggerExecutor
         if (!_world.Contains(at)) return Unperformed(record, context, run.Partial);
 
         byte creatureTypeId = checked((byte)p["CreatureId"]);
-        CreatureState creature = _world.SpawnCreature(
-            _database, creatureTypeId, checked((byte)p["PlayerId"]), at);
+        byte playerId = checked((byte)p["PlayerId"]);
+        // 0x00519B20's gate step-off, for a hero made on a gate (HeroPartyRules.StepOff).
+        if (HeroPartyRules.StepOff(_world, _database, _rng, playerId, ref at, out _) == HeroPartyRules.StepOffResult.Refused)
+            return Unperformed(record, context, run.Partial);
+        CreatureState creature = _world.SpawnCreature(_database, creatureTypeId, playerId, at);
 
         // The player byte selects the record at index PlayerId - 1 and the creature is
         // created with the word at its +0x04, TagId. Passed through as the id itself
@@ -1271,6 +1275,37 @@ public sealed class TriggerExecutor
         // The map this run has already derived is now wrong about this tile.
         run.Rooms = null;
         return true;
+    }
+
+    /// <summary>Action type 32, COLLAPSE_HERO_GATE (<c>0x005196BB</c>): the room on the one-based
+    /// tile is ruined (<c>0x004E9130(room, 1)</c>). The ruin acts on the Dungeon Heart and the Hero
+    /// Gate types 18, 20 and 23 only, sets the room's ruin bit and redraws its tiles; terrain and
+    /// navigation are unchanged, and a ruined gate becomes convertible (ADR-0299). Off the map, on
+    /// no room or on any other type it does nothing, and the arm succeeds either way.</summary>
+    /// <remarks>A heart reached this way is declined: no shipped record names one, and ours keeps
+    /// a heart's ruin per player. The 2x2 arm's destruction of the room's objects has nothing to
+    /// destroy here: no object is placed on a gate.</remarks>
+    private bool CollapseGate(
+        TriggerRecord record, TriggerContext context,
+        IReadOnlyDictionary<string, long> p, TriggerRun run)
+    {
+        if (_world is null || _database is null)
+            return Unperformed(record, context, run.Partial);
+
+        var at = new TilePos(checked((int)p["PosX"]) - 1, checked((int)p["PosY"]) - 1);
+        if (!_world.Contains(at)) return true;
+        RoomInstance? room = RoomIndex.RoomAt(_world, _database, (at.Y * _world.Width) + at.X);
+        if (room is null) return true;
+        switch ((RoomTypeId)room.Definition.RoomId)
+        {
+            case RoomTypeId.DungeonHeart:
+                return Unperformed(record, context, run.Partial);
+            case RoomTypeId.HeroGateFinal or RoomTypeId.HeroGate2By2 or RoomTypeId.HeroGate3By1:
+                foreach (int tile in room.TileIndices) _world.TileAtIndex(tile).RoomRuined = true;
+                return true;
+            default:
+                return true;
+        }
     }
 
     /// <summary>Action type 14, <c>FUN_00519F90</c>: raise hero party <c>PartyId</c> at action point

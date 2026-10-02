@@ -35,6 +35,15 @@ internal static class Dk2TerrainFixture
     public const byte LairTerrain = 11;
     public const byte PortalTerrain = 12;
     public const byte HeroPortalTerrain = 36;
+
+    /// <summary>The two Hero Gates the shipped maps use (terrains 33 and 37, rooms 20 and 23): Ownable
+    /// and Room, never Attackable, so claimable only once ruined (ADR-0299, ADR-0320).</summary>
+    public const byte HeroGate2By2Terrain = 33;
+    public const byte HeroGate3By1Terrain = 37;
+
+    /// <summary>Terrain 29, the Hero Gate [ Tile ] (room 19), marked not used and on no shipped map;
+    /// here so the step-off's side draw can be tested.</summary>
+    public const byte HeroGateTileTerrain = 29;
     public const byte HatcheryTerrain = 13;
     public const byte DungeonHeartTerrain = 14;
     public const byte WoodenBridgeTerrain = 17;
@@ -141,6 +150,9 @@ internal static class Dk2TerrainFixture
             T(TreasuryTerrain, "Treasury", RoomTerrain, 10000, 10000, TreasuryTerrain, ClaimedPath),
             T(LairTerrain, "Lair", RoomTerrain, 10000, 10000, LairTerrain, ClaimedPath),
             T(PortalTerrain, "Portal", RoomTerrain, 10000, 10000, PortalTerrain, ClaimedPath),
+            T(HeroGate2By2Terrain, "Hero Gate [ 2x2 ]", TerrainFlags.Ownable | TerrainFlags.Room, 100, 100, HeroGate2By2Terrain, ClaimedPath),
+            T(HeroGate3By1Terrain, "Hero Gate [ 3x1 ]", TerrainFlags.Ownable | TerrainFlags.Room, 100, 100, HeroGate3By1Terrain, ClaimedPath),
+            T(HeroGateTileTerrain, "Hero Gate [ Tile ]", TerrainFlags.Ownable | TerrainFlags.Room, 100, 100, HeroGateTileTerrain, ClaimedPath),
             T(HeroPortalTerrain, "Hero Portal", RoomTerrain, 10000, 10000, HeroPortalTerrain, ClaimedPath),
             T(HatcheryTerrain, "Hatchery",
               RoomTerrain, 10000, 10000, HatcheryTerrain, ClaimedPath),
@@ -181,6 +193,9 @@ internal static class Dk2TerrainFixture
             // PortalRules.IsEntrance is really identifying.
             R(RoomTypeId.Portal, "Portal", 0, PortalTerrain, 0x1004u, 3, 3,
               TileConstruction.ThreeByThree),
+            R(RoomTypeId.HeroGate2By2, "Hero Gate [ 2x2 ]", 0, HeroGate2By2Terrain, 0x244u, construction: TileConstruction.HeroGate2By2),
+            R(RoomTypeId.HeroGate3By1, "Hero Gate [ 3x1 ]", 0, HeroGate3By1Terrain, 0x244u, construction: TileConstruction.HeroGate3By1),
+            R(RoomTypeId.HeroGateTile, "Hero Gate [ Tile ]", 0, HeroGateTileTerrain, 0x2E4Cu, construction: TileConstruction.HeroGateTile),
             R(RoomTypeId.HeroPortal, "Hero Portal", 0, HeroPortalTerrain, 0x1004u, 3, 3,
               TileConstruction.ThreeByThree),
 
