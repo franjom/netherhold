@@ -115,7 +115,8 @@ state (`CreatureDeathRules.HasDyingState`), the creature that dies outright.
 
 `spFighting` lets an invalid target go and seeks another (§2 step 5), and out of reach unlinks
 and runs `SelectAVictim` again (step 10), without leaving 199; only finding none returns 0, and
-the dispatcher's `SetState(1)` then runs the leave hook (`combat-fight-state.md` §2). The
+the dispatcher `0x00476FC0` then sets state 1, which runs the leave hook (`combat-fight-state.md` §2;
+its function record, re-read 2026-10-02). The
 cannot-cast arm does the same (`combat-spells.md` §9). Ours went through state 1 and back on
 all three, which with the hooks built would release every attacker and end the cast on each
 re-selection. Since ADR-0319 ours unlinks in place, and only a failed re-selection ends the
