@@ -6982,19 +6982,40 @@ banked any roll that produced nothing (`portals.md` §4, never read from the bin
   differs from the capture (Q507).
 
 ## ADR-0319 — The Combat category's leave and enter hooks run in SetState
-**Date:** 2026-10-02 · **Status:** accepted · Research: `combat-category-hooks.md`
+**Date:** 2026-10-02 · **Status:** accepted · Research: `combat-category-hooks.md`; Q511
 
 **Context.** DK2 runs the Combat category's leave hook `0x0047A980` on every move out of
 category 22 and its enter hook `0x0047A810` on every move in. Ours ran neither: a fighter let
 go of its engagement only where the code called `CombatRules.Disengage`. A census of every
 move out of 22 found seven routes that never call it, among them the collapse, the hand
-pick-up and a heal shot (`combat-category-hooks.md` §4).
+pick-up and a heal shot (`combat-category-hooks.md` §4). Read whole, the leave hook's routine
+`0x0045ADC0` also drops the forced target and releases every attacker, with the victory
+nibble only for a creature dead at health 0 or below, which a collapse is not (§5).
 
-**Decision.** Built in two commits, so that a moved hash names its routes.
-1. The leave hook is dispatched. On the `Disengage` route it does what `Disengage` did for a
-   fighter (the unlink and the walk speed), so the hash does not move. On every other route
-   it does nothing yet.
+**Decision.** Built in two commits, so that a moved hash names its causes.
+1. The leave hook is dispatched. In the first commit it acted on the `Disengage` route alone,
+   doing what `Disengage` did inline; the hash did not move.
+2. It now runs on every route out: `0x0045ADC0` (`CombatRules.LeaveFight`), then the walk
+   speed, which also ends a hero party's shared pace. "Dead" is ours at zero health with no
+   dying state, because ours keeps health at 0 while dying where DK2 holds the countdown.
+3. The enter hook stops the creature and ends a running action: the swing, the idle and
+   flourish actions and the tunnel's dig.
+4. A fight re-selects inside 199, as `spFighting` does (§6): an invalid target, out of reach
+   and cannot cast unlink in place, and only a failed re-selection ends the state. The alarm
+   and the withdraw route again after entering 199, since DK2 enters before it routes.
+5. The route helpers' own `0x0045ADC0`, for a walk from 22 to an errand outside it, is in
+   `BeginTravel`.
 
 **Consequences.**
-- `HashVersion` stays 149. The 40 scenarios' hashes and event logs, and both replay rigs'
-  per-seed lines, are identical to `2c6ea95`.
+- `HashVersion` and `FormatVersion` go to 151. The first commit kept 149 with all 40
+  scenarios and both rigs identical to `2c6ea95`.
+- Seven of 40 scenarios' state moves (five event logs), all keeper or Call to Arms fights. Each
+  of decisions 2 (attacker release, other routes), 3 and 4 alone moves them; switched off
+  together they restore all 40.
+- Measured on `2c6ea95`, seeds 1–20, before → after. Level 1 wins 19/20 → 20/20, ticks
+  1764–2016 → 1760–2036 (DK2 1791–1902). Level 2 wins 9/20 → 8/20: seeds 6 and 18 lost,
+  15 gained.
+- Three tests pinned our round trip or a held withdraw and now follow DK2: the alarm walk,
+  the outnumbered imp, and the chase limit, whose runner must stay on its walk.
+- Not modelled: `ReportingTo` and the four other words of §3. Our victory at the collapse
+  stays as it is (Q511).

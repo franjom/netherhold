@@ -279,9 +279,7 @@ public static class CombatRules
         if (CreatureStateMachine.LeavingCategory(creature) == CreatureStateCategory.Combat
             && CreatureStateMachine.Classify(creature, CreatureStateMachine.Idle) != StateTransition.Refused)
         {
-            disengaging = true;
-            try { CombatStates.Idle(hooks, creature); }
-            finally { disengaging = false; }
+            CombatStates.Idle(hooks, creature);
             return;
         }
 
@@ -291,18 +289,64 @@ public static class CombatRules
         CombatStates.Idle(hooks, creature);
     }
 
-    /// <summary>Set while <see cref="Disengage"/> moves a fighter out of Combat: the one route the
-    /// leave hook acts on until every route out runs it.</summary>
-    [ThreadStatic] private static bool disengaging;
+    /// <summary>The Combat category's enter hook <c>0x0047A810</c>: the stop, and a running action
+    /// ended (any but 21, which ours has none of). Its six cleared words are not modelled
+    /// (combat-category-hooks.md §3).</summary>
+    internal static bool EnterCombat(CreatureState creature)
+    {
+        creature.StopMoving();
+        creature.SwingInProgress = false;
+        creature.ActionUntilTick = 0;
+        creature.Tunnel.ActionUntilTick = 0;
+        return true;
+    }
 
-    /// <summary>The Combat category's leave hook <c>0x0047A980</c>: the fight-leave routine
-    /// <c>0x0045ADC0</c> as far as ours lets go (<see cref="Unlink"/>), then the walk speed,
-    /// <c>0x004887D0(0, 0)</c>. On the <see cref="Disengage"/> route only.</summary>
+    /// <summary>The Combat category's leave hook <c>0x0047A980</c>: the fight-leave routine, then
+    /// the walk speed <c>0x004887D0(0, 0)</c>, which is the definition's and so ends a hero party's
+    /// shared pace.</summary>
     internal static void LeaveCombat(in StateHookContext hooks, CreatureState creature)
     {
-        if (!disengaging) return;
-        Unlink(hooks.World, creature);
+        LeaveFight(in hooks, creature);
         creature.Running = false;
+        creature.PartySpeedRaw = 0;
+    }
+
+    /// <summary><c>0x0045ADC0</c> (combat-category-hooks.md §2): my forced target and engagement
+    /// dropped, then every attacker in my slots let go of me, with the victory nibble only if I
+    /// am dead. DK2's health is the dying countdown once a creature is down, so "dead" is ours at
+    /// zero health with no dying state (§5). Also called by a walk out of Combat.</summary>
+    internal static void LeaveFight(in StateHookContext hooks, CreatureState creature)
+    {
+        WorldState world = hooks.World;
+        CombatPitRules.ClearForcedTarget(world, creature);
+        if (AttackerCount(creature) == 0) return;
+        bool dead = creature.Health <= 0 && !CreatureDeathRules.HasDyingState(
+            world, hooks.Database, hooks.Database.CreatureById(creature.CreatureTypeId), creature);
+        for (int i = 0; i < Slots; i++)
+        {
+            ReleaseAttacker(world, creature, creature.EngagedRanged[i], dead);
+            creature.EngagedRanged[i] = NoTarget;
+            ReleaseAttacker(world, creature, creature.EngagedMelee[i], dead);
+            creature.EngagedMelee[i] = NoTarget;
+        }
+    }
+
+    /// <summary>One attacker of <paramref name="me"/>: DK2 clears only its engagement word and keeps
+    /// its attack nibble, so ours keeps <see cref="CreatureState.AttackType"/> too.</summary>
+    private static void ReleaseAttacker(WorldState world, CreatureState me, int attackerId, bool dead)
+    {
+        if (attackerId == NoTarget) return;
+        CreatureState? attacker = world.CreatureById(attackerId);
+        if (attacker is null || attacker.FightTargetKind != FightTargetKind.Creature || attacker.FightTargetId != me.Id) return;
+        if (dead) attacker.AttackType = AttackTypes.Victorious;
+        attacker.FightTargetId = NoTarget;
+        attacker.FightTargetKind = FightTargetKind.None;
+        attacker.FightTargetPlayerId = 0;
+        attacker.FightTargetTileIndex = -1;
+        if (!attacker.AttackAbnormalTargets) return;
+        // 0x0048F3F0's own unlink finds the engagement gone; ours would also wipe the nibble.
+        attacker.AttackingId = NoTarget;
+        attacker.AttackAbnormalTargets = false;
     }
 
     /// <summary><c>0x0045EF50</c>: the engagement is let go and the attacker slot on its target

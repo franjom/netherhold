@@ -75,6 +75,13 @@ public static class CreatureStateMachine
         _ = CreatureStateTable.Get(resumeStateId);
         TrySetState(in hooks, creature, travelStateId);
         creature.UtilityNewState = resumeStateId;
+
+        // Entering a walk runs no hook, so the helpers release a fighter whose errand leaves
+        // Combat themselves, judged by the saved caller even after a refused move (travel-states.md 2).
+        int caller = creature.StateBeforeUtilityState;
+        if (caller >= 0 && CreatureStateTable.Get(caller).Category == CreatureStateCategory.Combat
+            && CreatureStateTable.Get(resumeStateId).Category != CreatureStateCategory.Combat)
+            Combat.CombatRules.LeaveFight(in hooks, creature);
     }
 
     /// <summary>The arrival branch of a travel handler: hand control to the resume state and

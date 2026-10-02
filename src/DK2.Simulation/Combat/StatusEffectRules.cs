@@ -210,8 +210,8 @@ public static class StatusEffectRules
     }
 
     /// <summary>Into a standing state: the engagement let go, the action ended, the route dropped.
-    /// Letting the target go is ours — DK2 changes the state and leaves the attack word; the
-    /// creature looks again when it comes round either way.</summary>
+    /// For a fighter DK2's Combat leave hook lets go too (ADR-0319); for anyone else letting the
+    /// target go is ours, and the creature looks again when it comes round either way.</summary>
     private static void Stand(SimulationContext context, CreatureState creature, int stateId)
     {
         CombatRules.Disengage(context.Hooks, creature);

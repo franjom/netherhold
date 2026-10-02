@@ -64,7 +64,7 @@ game does not have.
 ## 2. The dispatcher, `FUN_00478800`
 
 A 28-way switch from job id to that job's handler. It returns the handler's
-result, and **on success writes the job id to `creature+0x64`** — DK2's own
+result, and **on success writes the job id to the state object's `+0x64`** (creature `+0x2B2`) — DK2's own
 "current job" field, written here and nowhere else.
 
 **Every handler has the same three parts:**

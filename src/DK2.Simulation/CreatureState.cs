@@ -368,8 +368,8 @@ public sealed class CreatureState
     public CreatureMood Mood;
 
     /// <summary>The job this creature is currently doing, or
-    /// <see cref="Data.Model.JobType.None"/> — DK2's own field at
-    /// <c>creature+0x64</c>, written by its job dispatcher the moment a handler
+    /// <see cref="Data.Model.JobType.None"/> — DK2's own <c>CurrentlyDoingJobId</c> at state
+    /// <c>+0x64</c> (creature <c>+0x2B2</c>), written by its job dispatcher the moment a handler
     /// accepts and nowhere else (ADR-0082). Meaningful only while the activity
     /// is <see cref="CreatureActivity.GoingToJob"/> or
     /// <see cref="CreatureActivity.AtWork"/>.</summary>

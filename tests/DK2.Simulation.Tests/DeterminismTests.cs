@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 148: Training and Casino enter hooks refuse before their claims (ADR-0313).
+        // HashVersion 151: the Combat category's enter and leave hooks run on every route (ADR-0319).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x62BD4E4816875CDDUL, sim.StateHash());
+        Assert.Equal(0x2F51C47030E5B38BUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

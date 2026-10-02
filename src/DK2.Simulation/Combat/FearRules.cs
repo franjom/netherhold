@@ -521,8 +521,9 @@ public static class FearRules
         }
         if (destX < 0) return false;
 
-        if (!context.Navigation.TryRouteTo(me, destX, destY, MoveOptions.ExactSpot)
-            && !context.Navigation.TryRouteTo(me, destX, destY, WithdrawFallbackOptions))
+        int withdrawOptions = MoveOptions.ExactSpot;
+        if (!context.Navigation.TryRouteTo(me, destX, destY, withdrawOptions)
+            && !context.Navigation.TryRouteTo(me, destX, destY, withdrawOptions = WithdrawFallbackOptions))
             return false;
 
         ClearTarget(world, me);
@@ -530,7 +531,7 @@ public static class FearRules
         me.CurrentJob = JobType.None;
         me.JobTileIndex = -1;
         me.Running = true;
-        CombatStates.IntoTheGroup(context, me);
+        if (CombatStates.IntoTheGroup(context, me)) context.Navigation.TryRouteTo(me, destX, destY, withdrawOptions);
         CombatStates.Travel(context, me, CombatStates.Withdrawn);
         me.CombatStateEnteredTick = context.Tick.Value;
         FightReturnRules.Stamp(context, me);
@@ -605,7 +606,7 @@ public static class FearRules
         me.AlarmDeficit = deficit;
         me.AlarmRoomTile = nearest.TileIndices[0];
         me.Running = true;
-        CombatStates.IntoTheGroup(context, me);
+        if (CombatStates.IntoTheGroup(context, me)) context.Navigation.TryRouteTo(me, RoomCentreX(nearest), RoomCentreY(nearest), options);
         CombatStates.Travel(context, me, CombatStates.RespondingToThreat);
         me.CombatStateEnteredTick = context.Tick.Value;
         context.Emit(SystemName, "raises_alarm",

@@ -131,13 +131,12 @@ public sealed class CombatSystem : ISimulationSystem
         // A healer holds no attacker slot on its ally, so an ally's death marks nothing.
         if (creature.FightTargetKind == FightTargetKind.Creature && creature.AttackType != CombatRules.AttackTypes.SpellAtAlly)
         {
-            // A pit fighter's opponent knocked out leaves the fight state, and its leave hook
-            // (0x0045ADC0) releases the fighter and its forced target with no victory, as the
-            // knockout's health is the dying countdown and not below 1; the fight ends (ADR-0213).
+            // A knocked-out opponent that was fighting released this fighter through its leave hook
+            // already, with no victory (ADR-0213, ADR-0319); one knocked out outside Combat did not,
+            // and the fight ends here, the forced target going with this fighter's own leave hook.
             CreatureState? dying = world.CreatureById(creature.FightTargetId);
             if (dying != null && creature.CombatPitFighter && CreatureStateMachine.HasState(dying) && CreatureDeathRules.IsDown(dying))
             {
-                CombatPitRules.ClearForcedTarget(world, creature);
                 LetGo(context, creature, "opponent_knocked_out");
                 return;
             }
@@ -163,15 +162,18 @@ public sealed class CombatSystem : ISimulationSystem
 
         if (!FightRules.TargetIsValid(world, creature))
         {
-            // A forced target that fails is let go with the fight: no other is sought (§4).
+            // A forced target that fails is let go with the fight, the leave hook dropping it: no
+            // other is sought (§4).
             if (creature.AttackAbnormalTargets)
             {
-                CombatPitRules.ClearForcedTarget(world, creature);
                 LetGo(context, creature, "forced_target_gone");
                 return;
             }
-            LetGo(context, creature, "target_gone");
-            CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch);
+            // Unlinked in place and another sought, in 199; only none ends the state and runs the
+            // Combat leave hook (§2 steps 5 and 10, ADR-0319).
+            CombatRules.Unlink(world, creature);
+            if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+                LetGo(context, creature, "target_gone");
             return;
         }
 
@@ -214,10 +216,10 @@ public sealed class CombatSystem : ISimulationSystem
         if (creature.FightTargetKind == FightTargetKind.Creature)
         {
             int previous = creature.FightTargetId;
-            CombatRules.Disengage(context.Hooks, creature);
+            CombatRules.Unlink(world, creature);
             if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
             {
-                context.Emit(SystemName, "disengaged", $"creature={creature.Id} player={creature.OwnerPlayerId} reason=nobody_in_reach");
+                LetGo(context, creature, "nobody_in_reach");
                 return;
             }
             if (!CombatRules.IsFighting(creature)) return;
@@ -238,10 +240,10 @@ public sealed class CombatSystem : ISimulationSystem
         WorldState world = context.World;
         byte kind = creature.FightTargetKind;
         int previous = creature.FightTargetId;
-        CombatRules.Disengage(context.Hooks, creature);
+        CombatRules.Unlink(world, creature);
         if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
         {
-            context.Emit(SystemName, "disengaged", $"creature={creature.Id} player={creature.OwnerPlayerId} reason=cannot_cast");
+            LetGo(context, creature, "cannot_cast");
             return;
         }
         if (!CombatRules.IsFighting(creature)) return;

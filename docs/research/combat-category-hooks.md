@@ -74,10 +74,13 @@ the idle, cheer and prisoner flourish actions (`ActionUntilTick`) and the tunnel
 ## 4. The routes out of category 22
 
 From the census; "before" is `2c6ea95`. Category 22 holds 199–203, 251, 252, 259 and 260.
+Since ADR-0319 every row runs the leave hook. New on every row: the attackers released
+(§2 step 3) and the forced target dropped; new on the rows "no" in the third column: the
+engagement unlinked and the walk speed.
 
 | Route (ours) | Moves | Through `Disengage` before | Left set at the move |
 |---|---|---|---|
-| The fight letting go: no target, cannot continue, out of reach, cannot cast, the pit knockout | 199 → 1 | yes | attacker slots |
+| The fight ending: nobody found, cannot continue, the forced target gone, the pit knockout, and (§6) an invalid target, out of reach or cannot cast with no new target | 199 → 1 | yes | attacker slots |
 | The approach ending | 199 → 1 | yes | attacker slots |
 | The flee or withdraw handler returning 0 | 203 → 1 | yes | attacker slots |
 | Stun and freeze (`StatusEffectRules.Stand`) | 199 → 1 → 255/218 | yes | attacker slots |
@@ -92,7 +95,8 @@ From the census; "before" is `2c6ea95`. Category 22 holds 199–203, 251, 252, 2
 | The victory pause ending | 260 → 1 | no | attacker slots |
 | Into a walk resuming 202, 251 or 259 | 199/203 → 6 | — | no hook, and no `0x0045ADC0`: the resume is in 22 |
 
-Call to Arms and the pit's room reset reach no Combat state in the corpus.
+Call to Arms and the pit's room reset reach no Combat state in the corpus. No walk in the
+corpus takes a fighter to a resume outside 22, and no hero party's pace was set at a leave.
 
 ## 5. The collapse gives no victory
 
@@ -107,10 +111,25 @@ Ours books the collapse up to a game second after health reaches 0 and keeps hea
 below 0 while dying. So the hook's test is ours as: health at or below 0 **and** no dying
 state (`CreatureDeathRules.HasDyingState`), the creature that dies outright.
 
+## 6. A fight re-selects inside 199
+
+`spFighting` lets an invalid target go and seeks another (§2 step 5), and out of reach unlinks
+and runs `SelectAVictim` again (step 10), without leaving 199; only finding none returns 0, and
+the dispatcher's `SetState(1)` then runs the leave hook (`combat-fight-state.md` §2). The
+cannot-cast arm does the same (`combat-spells.md` §9). Ours went through state 1 and back on
+all three, which with the hooks built would release every attacker and end the cast on each
+re-selection. Since ADR-0319 ours unlinks in place, and only a failed re-selection ends the
+state. The alarm and the withdraw enter 199 before they route (`combat-alarm.md` §2); ours
+probes the route first, so it routes again after the enter hook's stop.
+
+## 7. Built (ADR-0319)
+
+`CategoryHooks`' Combat enter and leave slots, `CombatRules.EnterCombat`, `LeaveCombat` and
+`LeaveFight`; the route helpers' call in `CreatureStateMachine.BeginTravel`. Not modelled: the
+words of §3 that have no counterpart here. Both slots are therefore Partial.
+
 ## Open questions
 
-- **Our victory at the collapse.** `VictoryRules.TargetDied` gives the nibble when the target
-  is down, at the collapse. DK2 gives it at death (§5), and through the leave hook only to the
-  attackers of a creature dying outright. The two agree only for victims outside category 22.
+- **When an attacker gets the victory nibble:** Q511.
 - **Our unlink clears more than DK2's.** `0x0045EF50` writes `+0x502` and one slot; ours also
   clears the attack type, the reach and the approach flag.

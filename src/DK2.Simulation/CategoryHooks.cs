@@ -238,14 +238,17 @@ public static class CategoryHooks
         Releasing(CreatureStateCategory.Casino, 0x0047AF20,
             "releases (ADR-0309); not built: clearing fearless and stamping +0x3D7 (state-category-hooks.md §3.1)"),
 
-        Slot(CreatureStateCategory.Combat, HookKind.Enter, 0x0047A810, HookStatus.NotBuilt,
-            "ends the current action and clears the combat words (state-category-hooks.md §2)"),
+        new(CreatureStateCategory.Combat, HookKind.Enter, 0x0047A810, HookStatus.Partial,
+            "the stop and the running action ended (ADR-0319); not modelled: ReportingTo +0x3D5 and the "
+            + "six words +0x64-+0x68, +0x95-+0x99 (combat-category-hooks.md §3)")
+        {
+            Enter = static (in StateHookContext _, CreatureState creature) => CombatRules.EnterCombat(creature),
+        },
         Slot(CreatureStateCategory.Combat, HookKind.Update, 0x0047A870, HookStatus.NotBuilt,
             "combat experience in 199/200 (CreatureLevelRules: fighting earns none yet)"),
         new(CreatureStateCategory.Combat, HookKind.Leave, 0x0047A980, HookStatus.Partial,
-            "the engagement let go and the walk speed, on the Disengage route only (ADR-0319); not built: "
-            + "the other routes out, the forced target and the attacker release of 0x0045ADC0 "
-            + "(state-category-hooks.md §2)")
+            "0x0045ADC0 (forced target, engagement, every attacker) and the walk speed, on every route out "
+            + "(ADR-0319); not modelled: ReportingTo +0x3D5, +0x232 bit 7 and +0x233 bit 0 (combat-category-hooks.md §3)")
         {
             Leave = static (in StateHookContext hooks, CreatureState creature) => CombatRules.LeaveCombat(in hooks, creature),
         },

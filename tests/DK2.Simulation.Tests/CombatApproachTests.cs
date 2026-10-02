@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Combat;
+using DK2.Simulation.Steering;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
@@ -61,13 +62,19 @@ public class CombatApproachTests
         sim.Run(3);
         Assert.True(hero.Approaching && evil.Approaching, "both approach");
 
-        // The targets are held in the withdrawal every tick, standing: the chase counters run.
+        // The targets are held on the withdraw walk every tick, in place: the chase counters run. The
+        // route stays loaded, because a withdraw that arrives ends, and its Combat leave hook lets
+        // its attackers go (ADR-0319).
+        var held = new[] { runner, runner2 }.Select(r => (r, r.PosX, r.PosY)).ToArray();
         for (int i = 0; i < 20; i++)
         {
-            foreach (CreatureState r in new[] { runner, runner2 })
+            foreach ((CreatureState r, int x, int y) in held)
             {
                 StatePlacement.As(r, CreatureActivity.Withdrawing);
-                r.StopMoving();
+                (r.PosX, r.PosY) = (x, y);
+                var here = new Fixed16Vector(x << 4, y << 4);
+                var away = new Fixed16Vector((x + (6 * Fp32.One)) << 4, y << 4);
+                RouteWindow.Load(r.Body, [here, away], away, 0);
             }
             sim.Run(1);
         }

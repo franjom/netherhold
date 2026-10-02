@@ -56,10 +56,13 @@ internal static class CombatStates
         CreatureStateMachine.BeginTravel(context.Hooks, me, StateShadow.TravelToPoint, resume);
 
     /// <summary>The withdraw and the alarm's first step: "in the combat group, or
-    /// <c>SetState(199)</c>" (combat-fear.md §5, combat-alarm.md §2).</summary>
-    public static void IntoTheGroup(SimulationContext context, CreatureState me)
+    /// <c>SetState(199)</c>" (combat-fear.md §5, combat-alarm.md §2). True when it entered 199,
+    /// whose enter hook stops the creature: DK2 routes after this, ours probed the route before.</summary>
+    public static bool IntoTheGroup(SimulationContext context, CreatureState me)
     {
-        if (NeedRules.ResolvedCategory(me) != CreatureStateCategory.Combat) StateShadow.Move(context, SystemName, me, Engaging);
+        if (NeedRules.ResolvedCategory(me) == CreatureStateCategory.Combat) return false;
+        StateShadow.Move(context, SystemName, me, Engaging);
+        return true;
     }
 
     /// <summary>The travel state's handover, if the creature is in one.</summary>
