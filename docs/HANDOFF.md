@@ -1,405 +1,121 @@
-# Handoff notes
+# Handoff
 
-Working knowledge that would otherwise live only in chat history (`AGENTS.md`,
-"Session handoff"). It is a reference, not a log: state the current fact; git has
-the history. Budget 500 lines; edit the section a fact belongs to, do not append
-a sitting.
-
----
+Current state and the next useful action live here. Git holds the history. DK2
+facts and their evidence live in docs/research/, decisions in docs/DECISIONS.md,
+and unknowns in docs/research/open-questions.md (AGENTS.md: one fact, one home).
 
 ## Current state
 
-### Counts — never hand-maintained; run these
-
-| Figure | Command |
-|---|---|
-| Tests (and how many skip without an install) | `dotnet test DK2.slnx -c Release`; `DK2_DIR=/nonexistent dotnet test DK2.slnx` is what CI sees |
-| ADRs | `grep -c '^## ADR-' docs/DECISIONS.md` — not in numeric order; 0093–0099 stay reserved (ADR-0100) |
-| Questions | `grep -oE '^\| \*{0,2}Q[0-9]+' docs/research/open-questions.md \| grep -oE '[0-9]+' \| sort -n \| tail -1` — rows are neither ordered nor uniformly formatted |
-| `HashVersion` / `FormatVersion` | `grep -n 'HashVersion = ' src/DK2.Simulation/GameSimulation.cs; grep -n 'FormatVersion = ' src/DK2.Simulation/WorldSnapshot.cs` (kept equal) |
-| Pinned state hash | `grep -n 'Assert.Equal(0x' tests/DK2.Simulation.Tests/DeterminismTests.cs` |
-| Scenarios, research notes | `find scenarios -name '*.yaml' \| wc -l`; `ls docs/research/*.md \| wc -l` |
-| KWD and TRIGGERS coverage | `dk2tools kwd corpus`, `dk2tools kwd trigger-types` (need an install) |
-| What is built vs research only | `dk2tools coverage [--all] [--check]` |
-| The plan's status paragraph | `dk2tools status` regenerates it (and the activity counts in `ARCHITECTURE.md`, `GOAL_ALIGNMENT.md`, `creature-state-table.md`); run it **after** the tests, from a Release build |
-
-### Milestones
-
-The plan's §8 table is the record (revision 2, 2026-09-21: M6, then combat and the
-keeper AI ahead of breadth; M12 keeper AI, M13 skirmish, M14 multiplayer added).
-M0–M4 closed. **M5** has a first clean comparison: two levels' idle trigger events
-match a live capture exactly once the probe's one-tick lag is applied (ADR-0117,
-ADR-0119, `docs/experiments/`). **M6** is partial: every THINGS record reaches the
-world, trigger actions execute (`dk2tools kwd trigger-types`), and a recorded Level 1 play wins headlessly
-with remaining timing differences (Q444, `navigation-captures.md`). **M7** is
-partial: combat (ADR-0163–0170) and hero parties (ADR-0197, 0216, 0218, 0219) are
-built. Trap firing, physical door contact/combat and hero gates remain unbuilt;
-the researched subset and blockers are below (2026-09-28).
-**M12** has its proactive task slice in `DK2.AI` (tasks 0–7, digging, rooms,
-gold, imps and slaps), with a captured, serialisable observation. The Level 17 unaided harness and Level 10 same-map
-capture exist; the planner/message review corrections are covered by regression
-tests (ADR-0246). Observation schema 15 carries casualty marks, pickup permissions, the verified player walk, each creature's Call to Arms answer, the keeper's call, the Combat Pit mark, room membership, the Heal, Chicken and Inferno permissions, every player's status, the call's refused own tiles, experience, dropped-to-do jobs and room floor slots; live threat assessment
-projects held/carried and corpse state correctly. The response queue is built and
-tested independently, including the event's whole-tick allowance rule. Combat-message consumption
-and attack response are connected; the remaining reactive decisions and an original command trace remain open. The casualty-priority
-command and imp reader are built (ADR-0261). Represented pickup gates are captured;
-worker task-exit and prison-delivery flag writes are built (ADR-0263).
-Creature ownership order and the worker idle flag are persisted (ADRs 0273–0274)
-and the mana-pressure lifecycle is live: warnings, the removal scan, the stamp's
-pickup refusal, recovery and expiry through the death bookkeeping (ADR-0277,
-`research/imp-mana-removal.md`; the original run is Q57). The respond-to-attack
-path is connected: kinds 1 and 6 are reserved, acknowledged and dispatched as
-pick-up and drop commands, with DK2's dropped counter persisted (ADR-0278, hash
-137, schema 8; the original run is Q482). DK2's reinforcement moves nobody from
-an owned drop site. Call to Arms is a simulation spell: cast by action 54, the flag
-object's process, recruit, release, the prepaid clock and the 90-a-second upkeep, the
-slap (action 63) and the five readers (ADR-0279, hash 138, schema 9; the original run
-is Q483). The battle step is connected: the fight flag's recomputation, the emergency
-call at a fighter, the spell roll with Thunderbolt as its only executable cast, and the
-removal test, all as commands (ADR-0283, schema 10; the original run is Q485). The
-retreat of the wounded runs at step 7 as pick-up and drop commands, a Lair or the
-heart its destination (ADR-0284, schema 11; the original run is Q486). Heal is a
-simulation spell the battle step casts: shot 4's forced collision and idle, the
-maximum-health refusal before payment (ADR-0287, hash 140, schema 12; the original
-run is Q491; Level 18's Nemesis heals a sleeper unaided). The attack planner is built:
-readiness with its level grants as commands, the target, the tunnel with its stored
-breach, the staging point, the front and the call (ADR-0298, schema 13; the original run
-is Q497; Level 18's Nemesis chooses Fabian and creeps the call). Chicken and Inferno are cast
-and run in the simulation (ADR-0302, hash 144, schema 14; Q498, partly answered by the owner's
-play; Level 18's Nemesis casts both and its Inferno burns its own Black Knight). Task 7 bridges
-water and lava, and every player's span must touch its own floor (ADR-0304,
-`research/bridge-placement.md`): Level 11A's Drako spans the lava with Stone Bridge, tunnels on
-and calls its army to Morgana's heart, uncompared with the original on 2026-10-01 (Q497). Step 9's training moves
-drop not-ready non-workers on a Combat Pit or Training Room floor slot (ADR-0317,
-`research/computer-keeper-management.md` §2): stock Level 17's Harkan and Level 10's
-Asmodeus train their own creatures unaided, uncompared with the original on 2026-10-02 (Q509).
-
-### What exists (present tense; the ADR is the specification)
-
-- **Tiles and work.** Dig, mine, claim, reinforce, repair, attack, convert-room from terrain flags (`TileWorkRules`, ADR-0009); work lands once a tick, `delta × efficiency ÷ 4` (ADR-0089); upward jobs cost the deficit; a dug tile never closes and fill-in is not a DK2 action (Q219); hostile expansion is direct claiming (ADR-0033); tile work assigns neutral ownership to unownable results (ADR-0045). Stance and crowding: ADR-0026/0028/0030.
-- **Rooms.** Derived instances (`RoomInstance`, ADR-0027); placement from placeable-on flags; sell at 50 % (ADR-0029); bridges (ADR-0031/0032), touching own floor (ADR-0304); claimed whole (ADR-0044). Behaviour for Portal, Lair, Hatchery, Prison, Treasury and Heart (gold), Training Room, Library and the research tree (ADR-0247), Temple prayer and sacrifice, Graveyard (ADRs 0042–0090, 0147–0151); Prison on states 114–120 (ADR-0191), the Casino and its lever (ADR-0187–0190), Torture's victims and the Mistress (ADR-0193, 0196, 0200, 0201), the Workshop's points, list and crates (ADR-0203, 0214), guard duty (ADR-0212) and the Combat Pit (ADR-0213). A room's places are its furniture (ADR-0205), held by creatures through the claim and release hooks (ADR-0309). Auto-placed furniture and the per-type attraction budget (ADR-0147).
-- **Keeper spells.** Creature-target Thunderbolt and packet action 55 are built (ADR-0260), and Heal (ADR-0287) and Call to Arms (ADR-0279) are simulation spells; other creature-target spell ids and nonzero flags are refused. Evidence, 19-cast comparison and limits: `research/keeper-spell-thunderbolt.md`. Q470/Q471 remain open. Current hash/snapshot versions and pins: `research/hash-versions.md`.
-- **Gold and mana.** Gold lives in tiles and hands, no player counter (ADR-0015/0019); floor gold is an object (ADR-0055/0056). Mana ceiling 200000 flat, income cap 500/s (ADR-0017). Free imps as a deadline (ADR-0057); Create Imp price and 7 mana/s upkeep (ADR-0021/0022).
-- **Imps.** Two-tier job choice (ADR-0058); carrying bodies, captives and objects (ADR-0063–0065); aimed bonus (ADR-0069).
-- **Creatures.** Health and hunger, own bed, eating, levels and experience through the loader divide (ADR-0083), anger as six banded counters saturating at 65533 (ADR-0081/0087), desertion, the 60 s dying window (ADR-0051), payday as a journey taking its wage from the whole room underfoot (ADR-0220), three mood choosers on a five-second gate (ADR-0082), Hand of Evil (ADR-0062/0075/0077, disposal ADR-0148), knock-out at a sixth (ADR-0071), hazard damage, needs interrupting jobs (ADR-0198), the job a creature is dropped on (ADR-0215) and a chicken or gold dropped onto one (ADR-0217).
-- **The creature state machine** (ADR-0174–0211; `creature-state-table.md`, `travel-states.md`). Every creature holds a DK2 state id from its constructor on: 1 when idle, 10 for a resting imp, none only for a corpse (ADR-0209). `CreatureStateMachine` is the one door (ADR-0174). The activity is no longer stored: `CreatureState.Activity` is derived from the state by `ActivityRules.Of`, so the systems dispatch on the state (ADR-0210/0211). Work effects dispatch on the updating category (ADR-0185/0186). `StateInvariantTests` checks the invariants every tick.
-- **Combat** (ADR-0163–0170; `combat-*.md`, `shots.md`, `creature-status-effects.md`, `spell-friendly-arm.md`). `SelectAVictim` from `ProcessFight`: the dispatch scan for all five fight styles, the heart (scan E, its ring tile standing in for the Arch Pillar, Q363) and the ally scan F; the fight state with its two clocks and `MeleeDamageRules`; the struck creature's answer; fear, back-off, flight and withdrawal; the worker's arm and the alarm; attack spells as action 16 firing shot things; the friendly arm; status effects as countdown words; state 8's approach; a fixed 8-tick victory pause (Q376) and the corpse walk. Scans A, B (thing-targeting spells), C and D are not built (2026-09-23).
-- **Win and defeat** (ADR-0162). `Status` written once, heart health, ruin and killer, actions 10/11, last keeper standing; a ruined heart is claimable and stores no gold. A fallen keeper's dungeon falls (`DefeatRules`: gold, rooms and land on the death turn, workers killed and the rest leaving from the fifth). Alliances are symmetric state (`AllianceSystem`, ADR-0159).
-- **Hero parties** (ADR-0197, ADR-0216, ADR-0218, ADR-0219, ADR-0221). Action 14 raises a party; its leader runs its standing job (Wait, SendToActionPoint, KillCreatures, KillPlayer, StealGold) and followers trail it at the slowest pace (`HeroSystem`). A knocked-out follower leaves the party and a knocked-out leader hands it to the first follower (`HeroPartyRules.KnockedOut`). StealGold takes from player 3's Treasury and escapes to the hero's origin tile (`StealGoldRules`). A walk to a heart aims at a random heart tile (job 19) or the heart's position (state 177's fallback).
-- **Trigger events** (ADR-0204). DK2's creature and player event filters, with every firing site tabled (`trigger-walkers.md`); wired for created, killed, attacked, stunned and sacked, the rest waiting on their systems.
-- **Navigation** (ADR-0155/0157/0158). DK2's mesh router, funnel and four steering forces drive every creature; doors are in the navigation byte and `DoorSystem` opens, closes, locks and picks them (ADR-0159).
-- **M7 doors/traps** (ADR-0250/0251). Barricade opening and stored-orientation probes are corrected; trap definition fields and stateless readiness/charge arithmetic are built. Automatic firing, disarm and door combat remain disabled. Exact blocking reads: `traps.md` §Built subset and remaining reads (Q450/Q455), `door-blocking.md` §Blocking reads before integration (Q453). Owner observations: Q451/Q452/Q454.
-- **Players.** `PlayerIds` 0 unowned, 1 heroes, 2 neutral, 3–7 keepers (ADR-0043); only a keeper is staffed (ADR-0052). `DK2.AI.KeeperAI` is an input source emitting `PlayerCommand`s (`KEEPER_AI.md` §12.8).
-- **World.** Fog of war as simulation state, one bit per keeper in ours (ADR-0076); levels on their own VARIABLES (ADR-0040); FNV-1a state hash with one pin and `ChaosSystem` (ADR-0006).
-- **A level's THINGS and triggers.** `ThingProjection.Place` keeps every record in file order (ADR-0101/0103/0106/0108/0139); `TriggerExecutor` walks the five root kinds once a turn, performs the action types `dk2tools kwd trigger-types` and `dk2tools trigger-run` report as handled (ADR-0107/0152/0160-0162, 0235, 0236) and marks the rest `Partial` or `Unhandled` (ADR-0107/0152/0160–0162); conditions cover the world arms, creature 36/37/49, player counters and the area arms (`trigger-*.md`).
-- **Data and presentation.** WAD, KWD/KLD (18 record types), STR, SDT, KMF, textures, `.SAV` tile grid; `DK2.Convert` writes glTF/GLB, PNG and WAV. `WorldView` is the one translation to drawables; Unity 6 LTS `6000.6.0f1` renders campaign level 1 as boxes (ADR-0034–0036/0104).
-
-### What does not exist
-
-What is built and what is research only: `dk2tools coverage [--all]`, and per creature state
-`dk2tools coverage states`; decisions:
-`docs/DECISIONS.md`; open items: `docs/research/open-questions.md`. Gaps tracked there:
-the category enter and leave hook bodies (`CategoryHooks.Slots`, ADR-0308), effect
-generators (Q255, Q259), vampire reincarnation (Q329), the Combat Pit's state 140
-(Q431), the local player's collapse sequence and alliance propagation (Q358 leftovers,
-Q359), trigger action and condition types (`dk2tools trigger-run` prints each stall;
-ADR-0125).
-Unity: no branch loads the converter's output (Unity ships no runtime glTF
-importer); boxes rather than DK2's walls (Q71).
-
-**A claim that something has NOT happened carries a date** (2026-09-15):
-`dk2tools docs --check` fails any *never / not yet / awaits / still no* line here
-without a `20xx-xx-xx`. Prefer a pointer to a restatement.
-
-### Standing caveats
-
-- **One deliberate departure from shipped data:** `DigRockHealth` −5000 → −500, the owner having measured two swings (ADR-0023, Q20). `ObservedCorrections` is the only place such a number may live.
-- **The portal tally is never zeroed** (ADR-0086; DK2's reset is vtable-only and unread as of 2026-09-08). A worn portal lost and re-claimed is the missing observation.
-- **The pin's world holds two creatures but registers only `ChaosSystem`** (Q206): `HashInto` is guarded, no creature system is.
-- **A trigger timer's unit depends on where you read it**: the `.kld` holds seconds, the loader multiplies by variable 19 at load, the comparison consumes ticks (ADR-0102 amendments). Ours converts in `HasElapsed`; a `.kld` trigger loader must convert exactly once.
-- **Install-gated tests skip, they do not pass** (ADR-0100): `[InstallFact]`/`[InstallTheory]`; `DK2_REQUIRE_INSTALL=1` turns a missing install into a failure; CI sets `DK2_DIR: /nonexistent`.
-- **Simulation speed has never been measured** (still true 2026-09-23; goal 9).
-- **Timing is DK2's own**: `TicksPerSecond = 4`, observed at 3.94 ticks/s live (ADR-0089/0102). `TicksPerSecond` (ours) and `OriginalTicksPerGameSecond` (a fact) are equal and kept separate.
-- **Reference install:** `E:\GogGames\Dungeon Keeper 2` (GOG; `DKII.EXE` MD5 `2f3bbc21eae8c3aa468136baa303036d`, v1.70 STRONGLY INFERRED, Q10). `DK2_DIR` is authoritative when set; an invalid one means no install.
-
----
-
-## Where the code lives
-
-`docs/ARCHITECTURE.md` has the layering, the system order and the per-project
-type lists; the tree is the truth for names. In one line: `DK2.Core` ←
-`DK2.Data.Model` ← `DK2.Data` / `DK2.Simulation` ← `DK2.Pathfinding`, `DK2.Assets`,
-`DK2.Presentation`, `DK2.AI`, `DK2.Convert` ← `DK2.Harness`, `DK2.Tools`, Unity.
-Eight projects import `src/Shared/UnityBound.props` and build netstandard2.1
-(ADR-0002, enforced by `ArchitectureTests`).
-
-| Project | Holds |
-|---|---|
-| `src/DK2.Core` | primitives: `Fp32`, `GameTick`, `TilePos`, `Hash64`, `SimRandom`, `Confidence` |
-| `src/DK2.Data.Model` | immutable definitions, no IO; `GameDatabase` (`this[VariableTypeId]` **throws** on a missing variable) |
-| `src/DK2.Data` | readers for the shipped files (`Kwd/`, `Wad/`, `Save/`, `Text/`), `Dk2Install` |
-| `src/DK2.Simulation` | all rules and mutable state; `Systems/` one class each, order declared once in `SimulationSystems.Default()`; `Combat/`, `Steering/`, `Navigation/`, `Commands/` |
-| `src/DK2.Pathfinding` | the original's router (`NavMesh`, `MeshRouter`, `Funnel`); `GridPathfinder` survives as the work chooser's `TryFindNearest` |
-| `src/DK2.Assets`, `src/DK2.Presentation` | logical asset keys and the provider chain; `WorldView`, `PlayerInputTranslator`, `IRenderTarget` (the Unity seam) |
-| `src/DK2.AI` | the computer keeper as an input source |
-| `src/DK2.Convert`, `src/DK2.Harness`, `src/DK2.Tools` | original art → modern formats; headless scenario runner; the `dk2tools` CLI |
-| `unity/DK2.Unity`, `unity/DK2.Unity.Compile` | the adapter, and a project that compiles it against Unity's module assemblies (outside `DK2.slnx`) |
-
-Tests: `tests/DK2.Simulation.Tests` one file per mechanic, `DeterminismTests` holds
-the pin, `Dk2TerrainFixture` carries DK2's real numbers so rules test in CI;
-`tests/DK2.Behavior.Tests` runs the same rules against the install (`*OnRealDataTests`
-drift guards, every scenario, `CampaignLoadTests`); `tests/DK2.Data.Tests` pins every
-record stride; `tests/DK2.Core.Tests` holds the licence and Flame-identifier guards;
-`tests/DK2.TestSupport` the install gate.
-
-Reference material: `docs/DECISIONS.md`, `docs/research/*.md` (one note per mechanic;
-runtime layouts indexed by `debug-dumpers.md`), `open-questions.md`,
-`observation-checklist.md` (what the owner can settle by playing),
-`docs/RESEARCH-QUEUE.md` (binary reads and the Ghidra command), `RESEARCH_STATUS.md`,
-`EXPERIMENTS.md`, `KEEPER_AI.md`, `GOAL_ALIGNMENT.md`, `CODEX_TASKS.md`,
-`reverse-engineering/README.md` (the only tracked file there), `original-reference/README.md`,
-`unity/README.md`, `THIRD-PARTY-NOTICES.md`.
-
----
-
-## Running things
-
-```
-dotnet build DK2.slnx -c Release                 # one solution; `dotnet build` takes one project, not several
-dotnet test  DK2.slnx -c Release --no-build
-DK2_DIR=/nonexistent dotnet test DK2.slnx        # what CI sees
-dotnet run --project src/DK2.Harness -- run scenarios/smoke/determinism_flat_map.yaml [--out <dir>]
-```
-
-Harness output lands in `build/scenario-runs/<id>/` (gitignored). Scenario format:
-`scenarios/README.md`; `setup.placed_things: true` places a level's THINGS (ADR-0101).
-
-**`dk2tools`** = `src/DK2.Tools/bin/Release/net10.0/DK2.Tools.exe` (or `dotnet run
---project src/DK2.Tools --`). Run it with no arguments for the command list. The
-usage text omits the table dumps: `kwd terrain|terrainflags|terrainmana|rooms|roomflags|creatures|creature <name>|objects|research|map|mapbytes|tagged|creaturebits|fieldsweep|varsweep`.
-`kwd creature <name>` prints a `raw:` line per `Fp32` — transcribe that, never the decimal.
-
-**Unity** (nothing under `unity/` is in `DK2.slnx`; CI has no Unity):
-
-```
-powershell -File unity/sync-assemblies.ps1                    # after ANY change under src/
-dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj  # -p:UnityManagedDir=... if the editor is elsewhere
-"C:\Program Files\Unity 6000.6.0f1\Editor\Unity.exe" -batchmode -quit -nographics -projectPath unity\DK2.Unity -logFile build\unity-smoke.log -executeMethod DK2.Unity.Editor.DungeonSetup.SmokeTest
-```
-
-The smoke test loads campaign level 1 through Unity's Mono runtime and fails unless
-there is one GameObject per tile; it exits 0 with no install. Interactive use and
-controls: `unity/README.md`.
-
-**Ghidra** (12.1.4 at `D:\Ghidra\ghidra_12.1.4_PUBLIC`, one project `D:\Ghidra\DK2_RE`,
-cloned per run; scripts run as PyGhidra; since 2026-09-25): setup and porting notes are
-in `docs/RESEARCH-QUEUE.md`, the queries in the `ghidra-queries` skill
-(`.agents/skills/ghidra-queries/SKILL.md`: runner `tools/ghidra/ghidra.py`, scripts in
-`tools/ghidra/scripts/`, and the pyghidra-mcp server `tools/ghidra/mcp-serve.py`).
-Exports and subject-specific scripts live in `reverse-engineering/` on this machine
-only; `git status --short reverse-engineering/` must be empty before every commit.
-
-**Live memory reader:** `python reverse-engineering/dk2watch.py --seconds 300 --csv D:\run.csv`
-attaches to `DKII-dx.EXE` or `DKII.EXE` with `PROCESS_VM_READ` (the two differ in no
-code or data byte). Load the level first; pass `--delay 0` when the probe waits at
-the front end. `--tags <out.csv>` diffs the player task pool into a command log
-(`player-task-pool.md`); `dk2move.py` logs creature positions and switches on DK2's
-own `nav.log`; the unattended recipe is `navigation-captures.md`, and DK2's
-`-PSAVE`/`-PLOAD` replays a played session. **A capture's turn is one tick late**
-(ADR-0119); a stored timer stamp needs no correction. The campaign registry key that
-unlocks levels is `campaign-progress-registry.md` (160 bytes, one dword per map).
-Level 20 is quiet for only about seven minutes (Q275).
-
-**Reading a condition arm:** `DispatchMap.py` prints `index + 1`; the true type is
-printed + base − 1 (`trigger-dispatch-tables.md`). Get the walker's context first
-(`dk2tools trigger-run`), then check the shipped parameter distribution
-(`kwd trigger-params`) before implementing.
-
-**Plan line:** `dk2tools status` output through Bash redirection loses non-ASCII;
-capture it in PowerShell with `Out-File -Encoding utf8`.
-
----
-
-## Next steps
-
-Order as of 2026-09-23, from the plan's §8 Run column: M6 and M7 first, the keeper
-AI (M12) ahead of breadth.
-
-1. **The heart and defeat.** Q363 and Q358 are read and built (`win-and-defeat.md` §3.1, §7); left are what places the Arch Pillars, the local player's collapse sequence with its Destructors (research only), and Q359 alliance propagation (2026-09-24). The leaving walk is read and built (`creature-leaving.md`, `LeavingRules`).
-2. **Heroes.** Parties spawn (ADR-0197), walk (ADR-0216), re-lead after a knock-out (ADR-0218), steal gold (ADR-0219) and aim at the heart as DK2 does (ADR-0221), 2026-09-25. Dwarf tunnelling 223/224 is built (ADR-0222), Q428 is answered (`hero-party-walk.md`) and Q427's health built (ADR-0234). Left: the gate step-off (Q427, read), effect generators (Q255, Q259).
-3. **Combat's leftovers.** Q376 (the celebration animation's length, KMF frame counts), Q401 (does Haste sometimes miss?), Q395's unread shot handlers and the Guided Bolt, the thing-targeting spells (scan B), scans A/C/D, Q337's possession scalar, Q335 resistance.
-4. **M6 packet replays.** Fidelity is judged by outcomes over many seeds: `dk2tools replay ... --seed N` (`--rng dk2|xoshiro`), scored against the full-state captures of both levels. The work cadence, rest timing and DK2's job choice are built (ADR-0280, ADR-0282); Level 1 digs within a median 8 ticks of DK2, its Hatchery a two-tick knife edge. Level 2 needs availability accumulation, the Dying event and the attached-room gate (ADR-0281) ; whether it wins turns on whether one imp starts claiming early, which varies in DK2 itself (3 of 7 start seeds) and ours (9 of 20), so a recording that places rooms at fixed turns is brittle to it (Q484). The owner's live game `l2nohand` (no imp picked up) is the better test: with claims taken outward from the keeper's floor in DK2's ring order and the store sweep (ADR-0285), its Lair, Library and Hatchery come out whole in most of 20 seeds. Next: Q473/Q474 arrival gaps; `kwd unreached` ranks other actions. The Level 1 entity map is `build/verification/level1-observed-entity-map.csv` (local, ignored). Types 17 and 24 are parked (Q309, Q227); Q220/Q221 are open record layouts.
-5. **Rooms' leftovers:** Casino, Torture, Workshop, Guard Room and Combat Pit are built (item 8); blueprints placed in play (ADR-0231) and spectators (ADR-0227) are built too; left are the pit's captive, 140 (Q431), the Guard Post trap visit, and Temple spell intake `0x87` (2026-10-01). Vampire reincarnation is read (Q111) and waits on Q329.
-6. **Rebel is BUILT** (ADR-0172, `rebellion.md`, 2026-09-23): job 16 tries its own keeper's nearest Portal first — the same walk and the same state as job 10 — and turns the creature Good after 30 ticks only when there is none, carrying `KillPlayer` against the keeper it left. The three `Rebel*Percentage` variables and `RebelMaxFollowers` are read by **nothing in the image**: one occurrence each, at their loader store, against two positive controls. Left: job 19 `KillPlayer` has no handler, creature action 43 and notification type 19 are unbuilt, and Q410–Q413 are the remainder.
-7. **Computer keeper (M12).** Follow `KEEPER_AI.md` section 12.7. Captured observations, gold retention, combat messages/acknowledgments, live threat assessment, the independent response queue and command-driven casualty priority are built. Represented pickup gates are captured separately from hand capacity (ADR-0262). The respond-to-attack event is connected (ADR-0278) and Call to Arms is built as a spell (ADR-0279, `call-to-arms.md`) and the battle step (`0x00503060`) casts it, Thunderbolt and Heal and takes it down (ADR-0283, ADR-0287, `computer-keeper-management.md` §4–5, `keeper-spell-casting.md` §4); the retreat of the wounded (`0x004FF260`) lifts and drops through the same hand commands (ADR-0284, `computer-keeper-threat.md` §4); the attack planner (`0x004FAEF0`), the front and attack management run from task 0 and step 7 with readiness grants as commands (ADR-0298, `computer-keeper-management.md` §6–7; the original run is Q497). Chicken and Inferno are cast too (ADR-0302), task 7 bridges water and lava (ADR-0304) and step 9 makes the training moves (ADR-0317). Next: room/mood producers and the research move; remaining pickup lifecycles are in `creature-pickup.md`. Helper UNKNOWNs still gate affected effects; slap eligibility and planner approximations remain in the design. Working audits under `reverse-engineering/`: `m12-claim-audit.md`, `m12-response-queue-audit.md`, `m12-imprisonment-audit.md`, `m12-pickup-audit.md` (ignored). The Level 17 harness and Level 10 comparison are in `computer-keeper-observations.md`; an active original command trace remains outstanding. Pacing, command delay and independent RNG are ADR-0244.
-8. **The creature state machine** is built (ADR-0174-0230; `creature-state-table.md`, `travel-states.md`, `state-category-hooks.md`): every creature holds a DK2 state id and the activity is derived from it; what is built per state is `dk2tools coverage states` (`CreatureStateCoverage`). `SetState` dispatches the category enter and leave hooks from `CategoryHooks` in DK2's order (ADR-0308, `state-category-hooks.md` §5); the hook bodies built are the WorkerJob pickup subset, Call to Arms, the room claims and releases (ADR-0309; eviction from a freed room is Q504), Prison's trigger event 7 (ADR-0311) and the Training and Casino refusals (ADR-0313). Left: the other hook bodies (the Training update hook's level-cap return and its message 55 when the keeper cannot pay, which ours ends with `cannot_pay` and no message; the Combat, Casino and Torture leaves; each listed in `CategoryHooks.Slots`), `SetState`'s `InHand` guard (Q503), the pit's captive and 140 (Q431), the Guard Post trap visit. **An oracle exists** (Q417, `debug-dumpers.md`): DK2's world log `0x0050EA70` dumps every creature's state id, resume pair and steering body; the owner's dumps are in `docs/research/samples/`, read with `tools/worldlog.py`. Next: the `dk2watch.py` stub, for dumps at chosen ticks.
-9. **M5.** A scenario that cannot assert says why in its file (ADR-0150); runs are under `docs/experiments/` and the gitignored `reverse-engineering/dk2runs/` (tag captures 9–14 were not kept; `EXPERIMENTS.md` is their record).
-10. **Unity:** load the converter's output; DK2's wall pieces (Q71/Q72, `wall-rendering.md`). Modern assets: the standard is `ART_DIRECTION.md`; the next step is the three-asset proof of concept in `ASSET_PIPELINE.md` §10, awaiting the owner's go-ahead as of 2026-09-26 (ADR-0242).
-
-**Known "ours, not DK2's", each flagged at its site**
-
-- Treasury deposit order is tile-index order (`GoldStore`; Q35's withdrawal half unread).
-- Which lair tile a bedless creature walks to (Q157).
-- A nearer imp does not take a task from a farther one (Q155; DK2 does).
-- `ManaSystem` runs for every player, not only keepers (ADR-0052); its warnings and removal scans are keepers' alone, on the payment's shared once-a-second phase rather than DK2's per-player stamp, and the removal countdown runs in one system before it (ADR-0277).
-- `RoomRules` does not model a level's per-room `Availability`; only `PortalRules` reads availability (ADR-0040).
-- Combat: the heart's ring tile stands in for the Arch Pillar (Q363); the victory pause is 8 ticks (Q376); the Flanker offset uses the target's velocity (Q400); haste rescales the speed cap each tick where DK2 pins once.
-
-**Housekeeping**
-
-- No `README.md` at the repository root (2026-09-23).
-- Scenario tick budgets were written against 20 ticks/s; a budget that is too long is cosmetic, an experiment that no longer runs is not (Q316, ADR-0150).
-- Re-run the zero-value audit (ADR-0085) whenever a record type gains a reader; done for the balance table, creatures and objects (Q213), not terrain or rooms.
-
----
-
-## Decisions already made — do not relitigate
-
-`docs/DECISIONS.md` is the index and the argument; where a later ADR reverses an
-earlier one, the earlier entry says so. Standing owner rulings that are not ADRs and
-are CONFIRMED from the original: a keeper has at most one dungeon heart and losing it
-is defeat (Q40); the mana ceiling is 200000 from the first second (Q37); imps gain
-speed with level (Q118c/Q119); the room the editor labels "Hero Portal" is the
-Mercenary Portal (Q211); a Combat Pit loser is knocked out, never killed (Q310); a
-captive is not taken through a portal (2026-09-13).
-
----
-
-## Conventions that are easy to violate by accident
-
-- **A balance constant hardcoded in simulation code is a bug** — read it from `GameDatabase`. The indexer **throws** on a missing variable, so a new reader breaks every synthetic database until the variable is added to `TestWorld.Variables()`, `Dk2TerrainFixture.Variables()` and `ScenarioTests.Variables()`. Add the entry; never default the lookup. The one exception is `ObservedCorrections` (ADR-0023).
-- **A number that does not match how the original plays is not licence to change it.** Reproduce the data, record the discrepancy as a question, let the output show it.
-- **Changing simulation state breaks the pinned hash — that is the design.** Bump `HashVersion`, keep `FormatVersion` equal, update the literal in `DeterminismTests` in the same commit, add a row to `hash-versions.md`. Never loosen the assertion. A field left out of `HashInto` is unguarded, population or not.
-- **New state must be reachable from `WorldState`** — `HashInto` *and* `WorldSnapshot` in the same commit, or it is silently non-deterministic and lost on load.
-- **Nothing in the simulation may read an event back.** `SimulationEvents` is write-only.
-- **Ticks relate to seconds only in `SimulationTiming`.** Rates from a creature record go through `LoaderRatePerTick` (integer divide by 4, floored at 1).
-- **Ask flags, never ids.** A rule keyed on a terrain, room or creature id is a rule about the reference install; the `*OnRealDataTests` guards check each partition against the shipped tables. Room → job from the room table (`JobRules.RoomFor`, ADR-0088).
-- **A decimal printed from an `Fp32` is lossy.** Transcribe the raw value.
-- **A fixture creature inherits nothing.** Every field a mechanic reads must be transcribed for every fixture creature and covered by a drift guard.
-- **Only a keeper is staffed** (ADR-0043/0052); player 2 is neutral; test worlds must not call the hero side "Keeper".
-- **Order in the work queue is behaviour** (ADR-0010): never sort or deduplicate it.
-- **Confidence tags are mandatory** — CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN — and `[Dk2Behavior(Confidence.X, "docs/research/…")]` on the rule type. `Confirmed` is reserved for the running game; a binary read is STRONGLY INFERRED.
-- **Record a shipped variable as "no reader found", never "no reader"**, and say what was scanned; a zero-valued variable with a live reader is *disabled*, not *cut* (ADR-0085).
-- **Every researched mechanic gets `docs/research/<name>.md`**; DK2 facts read from the binary go there in our own words with the address as provenance. Decompiler output is never committed (ADR-0046).
-- **Licence boundaries:** SPDX notice on every source file (`LicenseHeaderTests`); no Flame identifier in `src/`, `tests/` or `unity/`, comments included (ADR-0080); OpenKeeper facts carry provenance; wiki content in our own words with a citation.
-- **Never `git add -A`.** Stage named paths. Nothing from `original-reference/`, no `.kwd`/`.wad`/`.kmf`/`.sav`, nothing from `reverse-engineering/` but its README, no captures or game-data tables.
-- **Put the doubt in the test name**, not only in a doc comment — a test that pins a guess hides it.
-- **A status line is a claim with a date.** Do not hand-edit counts; run the commands in *Current state*.
-- **Question and ADR numbers are taken from committed files** — check the other worktree before taking one (`git worktree list`), and prefer appending to an existing row.
-
----
-
-## Environment gotchas (each of these already cost time)
-
-- **`cat > file` with no stdin hangs the Bash tool**, and so does anything that pipes into `python`. **Long heredocs die** (~150 lines) and heredocs of any length collapse backslash pairs, silently no-opping a patch script. Write scripts with the `Write` tool; a patch script should assert its match count before writing and is not idempotent.
-- **Rewriting a file here drops its BOM** unless you read `utf-8-sig` and write the BOM back; documents are UTF-8 with a BOM, keep it. A merge can leave CRLF working copies — look at the bytes before matching line endings.
-- **`dotnet build` takes one project, not several** — pass `DK2.slnx`. `dk2tools status` lists tests with `-c Release --no-build`, so a Debug-only build makes it report a stale count. A hung `dk2tools` with no CPU is a full stderr pipe.
-- **Another session edits this tree concurrently.** Check `git status --short` and `git log` before any tree-wide edit; leave its uncommitted files alone. Worktrees: `D:/DungeonKeeperRemake` (master) and, while it lives, `D:/DungeonKeeperRemake-spells` (`m12/inferno-chicken`); check `git worktree list`. Codex's own numbers start where the last committed row ends; tell it the next free question number in its prompt.
-- **The commit-msg hook runs `dk2tools docs --message`** and judges the staged commit only (`docs --check` without it covers the tree); question rows ≤ 800 chars, doc comments ≤ 12 lines, research docs ≤ 400 lines, this file ≤ 500, ADRs ≤ 50, commit bodies ≤ 15.
-- **Ghidra scans:** the image has **two** executable blocks — `.text` (`0x401000`–`0x652c00`) and `cseg` (`0x653000`–`0x66bfff`) — so scan all thirteen initialised blocks with a positive control (variable 19's global returns **226** hits); an instruction-text match on `+0x758` also hits `[ESP + 0x758]`; the decompiler drops empty `if` bodies and hides `this` — read the narrowest caller's `MOV ECX`; a `JMP` into a shared `CALL` is dropped by a window read; count the callee's `RET n` before reading a push window.
-- **Flame/OpenKeeper builds** (`original-reference/README.md`): Flame's install step replaces the game's `PATCH.dll` — never pass `-DDK2_DIR` casually, back up first.
-- **`winget search` without `--source winget` prompts** and fails.
-- **Unity:** Hub is an MSIX package; the editor is at `C:\Program Files\Unity 6000.6.0f1`; exit code 198 with `Found 0 entitlement groups` means not activated; never reference `UnityEngine.dll` alongside the module assemblies (CS0433); the `.sln`/`.csproj` under `unity/DK2.Unity` are Unity's and gitignored; re-run `sync-assemblies.ps1` after any change under `src/`.
-- **`pwsh` is not installed.** Use the `PowerShell` tool or `powershell.exe -NoProfile`.
-
----
-
-## Research method that has been working
-
-Cheap to expensive; stop when the question is answered.
-
-0. **Ask the owner, or hand them `observation-checklist.md`.** They have played DK2; anything a player would *see* is settled in a sentence. Ask for quantities by name and for values that differ. Record "no" as CONFIRMED too. An owner's "I'd have to play to verify" can often be mined instead (Q398: three writes with no zero test).
-1. **The shipped data.** `dk2tools kwd …`, the dump notes. Check our own dump before recording a number as absent.
-2. **The binary, via Ghidra** — before filing UNKNOWN (ADR-0046). Find a record loader by `CopyPairs.py` (source = file offset + `0x3F0` for creatures, `0x80` for objects); DK2's ten debug dumpers name ~800 fields (`debug-dumpers.md`) — find the dumper before scanning offsets; when a counter's writer will not be found, find a timer set in units of it; a mechanic with no state handler may live in its state **category**'s update hook (`state-category-hooks.md`).
-2a. **Read the running game's memory** once the addresses are known. What discriminates is **predicting the specific value a mechanism writes**, not looking for activity near a tick. An idle capture beat two played ones; predictions go on record before the run.
-3. **`external-resources.md`**: dk2-tools templates (format facts), Flame's `sgmap` (`dk2tools sgmap`; structure, not behaviour), OpenKeeper as documentation (its mechanics come from the editor manual — cite it for formats, not rates), the wiki in our own words.
-
-**Validate structurally, never on trust.** Record size = `contentSize ÷ itemCount` exactly; sum a template's field widths to the stride; semantic invariants (happy-job chances sum to 100); cross-parser references resolving; known values (Vampire 666 damage).
-
-**Traps with names, each of which has cost a committed claim:**
-
-- *A claim nothing checks may already be false.* Ask what would fail if the rule stopped holding.
-- *A named variable is not evidence the engine consults it.* Count readers first (ADR-0085).
-- *A sweep of keys is not a sweep of values.* Sweep the field across all 66 level files (`kwd varsweep`).
-- *Two correct numbers may never meet.* Check the engine puts them in one place (ADR-0081/0083).
-- *A measured amount is not a cadence* (ADR-0089). *Two wrong constants can cancel*; the residual's sign discriminates.
-- *A negative is a claim about the scope searched.* Say what was swept; a `.text`-only scan misses `cseg`.
-- *A value can pass through a transform, so a single unit is an assumption.* Ask where it is written as well as read (Q233).
-- *An id that appears as no constant may be stored encoded*; discriminate a decode with a set of independently fixed size (Q282).
-- *A near-constant byte makes every record look alike.* Check the corpus distribution first (`kwd trigger-params`).
-- *Do not name a mechanism from the shape of its handling* (Q229, Q232).
-- *A type number is not an arm*: four dispatchers, the walker that reached a record decides which code runs.
-- *An inference across an unread span is a guess.* Dump the gap first.
-- *Read the prologue and epilogue first*; diff sibling arms against one you have read.
-- *A differential experiment needs its null.* *Sample the state, not the duration.* *Rank by the quantity, not its proxy.*
-- *An observation names an outcome, not a mechanism* (Q28). *A field unread is not information lost.* *A correct rule can be inert.*
-- *Ask before building.* Where a rule needs a field the simulation lacks, say so.
-
----
-
-## Live research questions
-
-`open-questions.md` is the record; `RESEARCH-QUEUE.md` the working list. The ones
-that gate work today, by how they are answered:
-
-**Owner, one look at the running game** (`observation-checklist.md`)
-
-| Q | What to watch |
-|---|---|
-| Q376 | how long a creature dances after a kill (ours: 8 ticks) |
-| Q401 | does a Haste cast on a standing ally ever fail to land? |
-| Q202 | slap a creature to Unhappy with a bed available; does sleeping bring it down? |
-| Q177 | does the aimed (drop) bonus carry from one marked tile to the next? The binary says yes |
-| Q118 | how much does water slow a creature (a Vampire in a lake: 25 s to die = per-second hazard, 1.25 s = per-tick) |
-| Q103 | the 240 s / 9 s sleep cycle — corroborated by stopwatch, not settled |
-
-**Binary reads**
-
-| Q | Read |
-|---|---|
-| Q359, Q358 leftovers | the alliance loops' conditions; the Destructor (object 98), the obstacle object 100, the no-entrance wander (state 87) |
-| Q395, Q393, Q397, Q400 | unread shot handlers and the Guided Bolt; `0x00495080(0x1F)` possession modifier; `0x004B32A0`; the approach loop's approximations |
-| Q199 | the pet-dungeon mana cap (+1400 against variable 235's 500) — find its reader |
-| Q197 | portals visible through fog on the minimap — a second mechanism |
-| Q185 | state-record flag byte `+0x18`: bit 0 on 147 of 281 states, untested by its seven readers |
-| Q210 leftovers | creature flag bit 0's attack; bit 1 has no reader found; room table integers `+0x19/+0x1d/+0x21` |
-| `creature+0x3EA` | bits 4 (doubles prayer mana) and 7 gate real behaviour and are UNKNOWN |
-| Q84 | id 66 as the level's player count; `Level17` reads 2 against a pool reaching player 5 |
-| Q35 | which treasury tile a withdrawal drains |
-| Q220, Q221 | a standalone GLOBALS(0) chunk; the 16-byte DeadBody THINGS payload |
-| Q216 | slapping a researcher (needs the research tree to be watchable) |
-
-**Triggers**
-
-| Q | Open |
-|---|---|
-| Q229 | flag id **128** is not a flag — a dword at `+0x72A2` through virtual slot `+0x348`; carried opaque, do not name it first |
-| Q226, Q227 | selectors and fields read without a revealed role, exposed as `Unknown_*`; action type 24 alone has 827 records |
-| Q225 | trigger types the shipped corpus never uses but the executable reads; needs a map made in the original editor |
-
-**Parked UNKNOWNs:** Q58 (Possession upkeep), Q70 (the last 72 bytes of a CREATURES record), Q76, Q78, Q87 (`CreaturePool`: limit or quota), Q102, Q164, Q194, Q208 (the Imp's `ExpPerSecond` is 40× its training rate).
-
----
-
-## Corrections carried forward
-
-Each is a thing a reader would plausibly re-assume; the cited file has the evidence.
-
-- "Five work applications a second" was never DK2's cadence — the fifth is the size of one application; work lands once a tick (ADR-0089). An upward job costs the **deficit** (ADR-0089 reversing ADR-0024).
-- "Filling in" a floor tile back to rock is not a DK2 action (Q219); `FillInHealth` and Claimed Path → Rock were a shape in the data only.
-- The editor's "Hero Portal" is the **Mercenary Portal** and yields mercenaries, never a Dwarf (Q211); portal capacity is `(n − 1) × 5 + 15` over every portal room (Q98); the interval is `(n² + base)` with `n` the portal's own tally, not OpenKeeper's formula (ADR-0086).
-- Anger is six counters banded on the **largest**, not a sum (ADR-0081); `AngerNoPay` has no treasury clause; only the *happy* chooser charges `AngerNoWork` (ADR-0079/0082); Jack never uses its anger values (ADR-0087).
-- `ExpPerSecond` is **combat** experience; "the record's rates are per minute" was a coincidence of 20 × 60 (ADR-0083). Imp work experience is per tick, so an imp reaches level 2 in about 37 s.
-- DK2 stores **one** fog bit per machine (`fog-of-war.md` §10). The save's tile grid is not at a fixed offset; locate it by correlation.
-- The creature state table has **281** records (ADR-0072). The flower above a creature is **health**, six petals (Q108); the Hand cannot pick up a collapsed creature (Q161).
-- `MaxFreeRangeChickensPerPlayer` does not cap a hatchery, one chicken per tile does (Q135); "limit"-named variables are not limits (ADR-0055); "wrongly named" variables are live; variable 112's zero **doubles** converted-creature prayer mana (Q212).
-- In the MAP record player **2** is the unowned marker (`PlayerIds`). Only an imp may be dropped on unclaimed Dirt Path (Q198).
-- A THINGS record's `X`/`Y` are **tile indices**, `InitialHealth` a **percentage**, `RoomThing.RoomType` a **terrain** id (ADR-0101) — all three external transcriptions were wrong.
-- A trigger timer threshold in a `.kld` is in **seconds**, compared in **ticks** (ADR-0102). The banks are **level** state, 128 flags and **16** timers; the byte the external list calls `Flag` is an operation and addressing mode (Q229, Q232).
-- `DispatchMap.py` prints `index + 1`; the true type is `index + base` — 19 for player conditions, 15 for creature actions, 10 for player actions, 1 for world actions.
-- Condition types 29 and 47 return a bare boolean with no `Comparison`; type 29 tests availability strictly `== 3` (ADR-0120). Type 19's `CreatureId` **0** is the owned total minus every worker (ADR-0113). The player object's `+0x5A/+0x62/+0x6A/+0x72` are four availability tables (rooms, doors, traps, spells); their differing entry layouts are in `player-object.md`.
-- **The player task pool is a work pipeline, not a set of marks**: a tile sits in several kind lists and migrates, so entering and leaving are the events; a finished dig and a cancelled one both leave it and the claim that follows separates them (ADR-0131). **A capture records what the game did, never who caused it** — ask for labelled play before attributing anything.
-- The player record base is `playerArray + (id−1) × 4389`; a room's `FirstSlab`/`LastSlab` are the ends of a list, not a bounding box. The runtime map is `world + 0x9DA` (`runtime-map.md`).
-- DK2 claims a floor tile in about twelve ticks, ours in four; reinforcing ≥61 against our 50 (Q292) — a difference of mechanism, not arithmetic.
-- A fixture can build a tile DK2 cannot (Dirt Path with an owner, Claimed Path without one); a test standing on one measures nothing.
-- An owner's "it does not" can be right for a reason the code shows: the Firebomb's explosion inherits a zero radius and hurts nobody (Q398).
+The milestone table and acceptance criteria are in DK2_REIMPLEMENTATION_PLAN.md
+§8. Regenerate its numeric status with dk2tools status after a Release test run;
+do not maintain counts here. For exact build coverage use dk2tools coverage
+--all and dk2tools coverage states.
+
+- M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
+  levels (docs/experiments/). M6 remains partial: original packet replays run,
+  with the remaining timing differences in Q444 and navigation-captures.md.
+- M7 remains partial: combat and hero parties run, while trap firing, physical
+  door contact/combat and hero gates remain open (traps.md, door-blocking.md).
+- M12 remains partial. DK2.AI.KeeperAI is an input source that emits
+  PlayerCommands through a detached, serialisable observation (schema 15).
+  The proactive task machine (tasks 0–7) digs, expands, builds rooms, manages
+  gold and imps, and crosses water or lava with bridges. Reactive combat
+  messages, threat response, wounded retreat, the battle step, Call to Arms,
+  Thunderbolt, Heal, Chicken and Inferno run through simulation commands.
+  The attack planner selects a target, tunnels, stages and calls its army;
+  step 9 sends creatures to Training or a Combat Pit. See KEEPER_AI.md §12.8
+  and the canonical computer-keeper research notes for exact rules.
+- Unaided modern scenarios show Harkan moving creatures onto its Training
+  Room's floor on Level 17, Nemesis preparing an attack on Level 18, and
+  Drako bridging Level 11A's lava and calling its
+  army toward Morgana. These are modern-run results. The Level 10 original
+  save and modern run do not form an active command-by-command comparison
+  (computer-keeper-observations.md, Q497, Q509). M12's same-map original
+  comparison and full acceptance criteria remain open.
+- The creature state machine dispatches category hooks. Combat enter and
+  leave are partially built (ADR-0319, combat-category-hooks.md);
+  their unmodelled words and the update hook are listed there. Consult
+  CategoryHooks.Slots for the current status of every hook.
+
+## Next work
+
+1. M12: build the remaining room and mood message producers and decisions.
+   Verify each producer and decision in DKII.EXE, then test the command's
+   effect through the simulation. The research move, prisoner/special
+   decisions, trap/door decisions and personality loader also remain
+   (KEEPER_AI.md §12.7). Do not infer an UNKNOWN rule from a name.
+2. M12: capture an active original keeper on the same stock map and compare
+   its commands and observable results with the unaided modern scenario.
+   Account for campaign availability and scripting. Q497 and Q509 specify
+   gaps; computer-keeper-observations.md is the comparison record. Close
+   M12 only when the keeper digs, expands, builds to a need, recruits, defends
+   and attacks unaided, with measured differences reported.
+3. M6 and M7: use the plan's run order and the open-question rows for the
+   remaining replay, combat, hero, trap and door work. Avoid reproducing their
+   detailed backlogs here.
+
+After faithful M12, keep it as selectable Classic AI; explore a separate
+Enhanced keeper using the same observation/command interface (KEEPER_AI.md
+§12.7). Enhanced behavior is outside M12's fidelity target.
+
+## Where to work
+
+- src/DK2.Simulation owns game rules and mutable state; it is independent of
+  DK2.AI and Unity. src/DK2.AI observes and emits commands. src/DK2.Harness
+  runs headless scenarios; tests/DK2.AI.Tests and
+  tests/DK2.Behavior.Tests cover keeper decisions and stock maps.
+- docs/ARCHITECTURE.md gives the project boundaries and system order.
+  docs/DECISIONS.md records design choices. docs/research/functions/ is the
+  canonical knowledge base for each DKII.EXE function.
+- The reference install is E:\GogGames\Dungeon Keeper 2. DK2_DIR overrides
+  discovery; an invalid override means no install. Tests marked InstallFact
+  or InstallTheory skip without game data; DK2_REQUIRE_INSTALL=1 makes a
+  missing install fail (ADR-0100).
+
+## Run and verify
+
+    dotnet build DK2.slnx -c Release
+    dotnet test DK2.slnx -c Release --no-build
+    dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj -c Release
+    dotnet run --project src/DK2.Tools -c Release --no-build -- verification-ledger --check
+    dotnet run --project src/DK2.Tools -c Release --no-build -- kb check
+    dotnet run --project src/DK2.Tools -c Release --no-build -- coverage --check
+    dotnet run --project src/DK2.Tools -c Release --no-build -- docs --check
+    dotnet run --project src/DK2.Tools -c Release --no-build -- status --check
+
+Run dk2tools status after the tests when the plan's generated count changes.
+Run dk2tools kb index after changing function records; never edit INDEX.md by
+hand. Check the changed commit with git diff --check. A simulation state
+change requires matching GameSimulation.HashVersion and
+WorldSnapshot.FormatVersion, a new determinism pin, and a hash-versions.md
+row. An observation-format change requires a schema bump.
+
+The Unity compile project is outside DK2.slnx. Run
+unity/sync-assemblies.ps1 after a change under src/ before an editor smoke
+test. Scenario format is in scenarios/README.md; harness output goes under
+build/scenario-runs/ and is ignored.
+
+## Research and workspace notes
+
+- Follow AGENTS.md's source order: DKII.EXE through Ghidra first for a
+  behavior question, then shipped data and original-game experiments.
+  The ghidra-queries skill and docs/RESEARCH-QUEUE.md describe Ghidra
+  12.1.4/PyGhidra. The runner clones the read-only D:\Ghidra\DK2_RE
+  project per run. Keep decompiler output under reverse-engineering/ or
+  scratch, never in tracked files.
+- Read a function's record before querying it. Put each new finding or
+  correction in that record with a dated History line. Write behavioral
+  evidence once in its research note; link from other documents. Distinguish
+  CONFIRMED, STRONGLY INFERRED, HYPOTHESIS and UNKNOWN.
+- An original capture's turn is one tick behind the game's turn
+  (ADR-0119); timer stamps need no correction. The live-memory and save
+  tools are indexed in reverse-engineering/README.md and
+  navigation-captures.md.
+- Check git status and git worktree list before editing: other sessions may
+  be working concurrently. Stage named paths, not git add -A; keep original
+  game files and Ghidra output out of commits. If Git reports dubious
+  ownership in this environment, use a per-command safe.directory setting.
+- Documents and source have budgets enforced by dk2tools docs; AGENTS.md
+  has the limits. Replace stale claims rather than adding dated amendments.
+  PowerShell is available here; pwsh is not. If a local shell rewrites a
+  UTF-8 document, preserve its existing BOM and line endings.
