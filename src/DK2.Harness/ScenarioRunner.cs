@@ -431,6 +431,7 @@ public sealed class ScenarioRunner
                     }
 
                     RoomRules.Place(_database, ref tile, room, r.Player);
+                    tile.KeptManaGain = 0; // a setup room is the map's: laid, not built over paid floor (ADR-0334)
                     placed++;
                 }
             }

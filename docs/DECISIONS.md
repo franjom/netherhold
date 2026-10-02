@@ -7472,3 +7472,46 @@ Thunderbolts on him were refused as a missing creature), **Level 3 seed01 is won
 DK2's 3683; five of the player's later Thunderbolts are still refused for mana (6,000 each)
 that DK2's keeper had. Rigs: L1 20/20 with every win tick
 moved (1764–1984), L2 6/20 (seeds 7, 9, 10, 15, 18, 19; 6/20 before on other seeds).
+
+## ADR-0334 — A room built over claimed floor keeps the floor's mana, as DK2's rate word does
+**Date:** 2026-10-02 · **Status:** accepted · Research: `mana.md`, KB `004559D0`, `00455B90`; Q521
+
+**Context.** Level 3 seed01 after ADR-0328: the player's Thunderbolts from 3559 are refused for
+mana (6,000 each) while DK2 casts fourteen. The capture's player record reads the keeper's
+mana (`+0x82`): 81,002 at 3490 against our 51,000. Its rate word `+0x10E2` fits the capture's
+own tiles exactly, at every sample from tick 4 to 3490: `word + imp and trap upkeep = claimed
+path + reinforced wall + every room tile the keeper built`, with the heart's 25 and the
+portal's 9 counting 0. Ours paid nothing for room tiles — a `ManaGain` of 0 on all 26 room
+terrains, read as "building costs income" since ADR-0017. The binary says why the data
+disagrees: the word is a running sum. `Tile_SetOwner` (`0x004559D0`) moves the tile's current
+terrain's `ManaGain` (and its `MaxManaGain` into the cap word `+0x10DE`) between owners, and
+`Tile_SetTerrain`'s adjustment (`0x00455B90`) swaps the old terrain's gain for the new one's
+only when neither is a Room; a bridge laid adds 1 to the tile's tag of the moment — the neutral
+player's, over water or lava — and a bridge removed takes 1 from its builder. So a room over
+claimed floor keeps the floor's 1, a room the map laid pays 0, a captured room hands its
+captor 0 and leaves the old owner paying. The word also carries the upkeep (the imp and trap
+registrations take it off), which is why the payment `0x004C10E0` adds the upkeep back before
+the cap and removes it after: `min(cap, gross + 30) − upkeep`, as `ManaRules.ApplyOneSecond`
+already paid. An earlier reading of that payment as "the upkeep cancels" was withdrawn by the
+same fit.
+
+**Decision.** `TileState.KeptManaGain`: `RoomRules.Place` records the covered floor's
+`ManaGain` when the builder owned the tile (a room over a room keeps the earlier value), and every
+owner change clears it (`TileWorkRules`' conversion, the room-convert spread, defeat).
+`ManaRules.GainPerSecond` adds it on room tiles; `GainPerSecondByPlayerIndex` raises the cap by
+the owned tiles' `MaxManaGain`. Setup rooms and the tests' map hearts keep 0. Not mirrored (Q521): the
+old owner's leftover for a lost room tile, a map-laid or captured room's 0 once sold, a rival's
+room over foreign floor, the bridge's neutral 1, and the cap bonus following the current terrain
+rather than the owner-change; the kept value is a byte (a vault's 100 fits). Docs:
+`mana.md`, `terrain-room-dump.md`, `hash-versions.md`; KB `004559D0` and `00455B90` (new),
+`0044FC40`, `004C10E0`.
+
+**Consequences.** HashVersion and FormatVersion 165 (163 and 164 are branch m7/close's), pin `0x3112DA3F61990DB7`. Tests:
+`ARoomBuiltOnClaimedFloorKeepsTheFloorsIncome…`, `ARoomTileTakenByARivalPaysTheRivalNothing`,
+the vault cap in `IncomeIsCappedAtMaximumManaGainPerSecond`; the scenario
+`land_pays_a_keeper` reads 38/s before and after its treasury. Measured: Level 3 seed01's keeper now holds 9,547 mana at 800 (DK2 9,405), 12,771 at 1200 (10,662),
+70,662 at 2800 (32,553) and 96,675 at 3490 (81,002) — the mid-game surplus is territory, ours
+claiming and building faster between 2000 and 2400 (gross 316 against 241 a second) and slower after
+3200 (395 against 421); all six Create Imps and thirteen Thunderbolts are paid, and the level is won
+at 3648 (DK2 3683). Rigs: L1 20/20 with every tick identical; L2 7/20 (seed 3 joins at 3616; the
+other six within 20 ticks of before).

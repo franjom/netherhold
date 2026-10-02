@@ -202,6 +202,17 @@ public static class RoomRules
             tile.BurnTicksRemaining = BridgeRules.LifetimeTicks(database, room, covered);
         }
 
+        // Tile_SetTerrain's mana adjustment (0x00455B90) runs only when neither terrain is a
+        // Room, so the floor's gain stays on the builder's rate word under the new room. A room
+        // over another room keeps what that one kept; a room over ground the builder did not
+        // own brings nothing. The bridge's own +1 lands on the tile's tag before the owner is
+        // set - the neutral player, over water or lava - so it is not the builder's and is not
+        // built (ADR-0334, Q521).
+        byte kept = 0;
+        if (!covered.IsRoom && tile.OwnerPlayerId == playerId) kept = (byte)Math.Min(byte.MaxValue, covered.ManaGain);
+        else if (covered.IsRoom && tile.OwnerPlayerId == playerId) kept = tile.KeptManaGain;
+        tile.KeptManaGain = kept;
+
         tile.TerrainId = room.TerrainId;
         tile.Health = terrain.StartingHealth;
         if (!terrain.IsTaggable) tile.TaggedBy = 0;
