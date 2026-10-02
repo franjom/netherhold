@@ -271,7 +271,7 @@ public static class CategoryHooks
         Slot(CreatureStateCategory.Dying, HookKind.Update, 0x004B4C20, HookStatus.Stub, "success stub"),
 
         Slot(CreatureStateCategory.TrapDisarm, HookKind.Leave, 0x00459130, HookStatus.NotBuilt,
-            "clears a trap's +0x115 and creature +0x43D; no disarm state is built (Q455)"),
+            "clears a trap's +0x115 and creature +0x43D; the category is unreachable, as nothing sets +0x43D (Q455)"),
 
         new(CreatureStateCategory.CallToArms, HookKind.Enter, 0x00455E70, HookStatus.Built,
             "the run speed on, 0x004887D0(1, 0)")

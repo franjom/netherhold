@@ -7142,6 +7142,23 @@ Prediction, written before measuring: Levels 1 and 2 hold no traps and stay iden
 seed; scenarios diverge only where an enemy meets one of the four. Measured on 8d53f95: both
 rigs identical per seed, and every scenario's events identical to ADR-0326's: none meets them.
 
+## ADR-0329 — Disarming is unreachable in v1.70, so it is recorded and not built
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `traps.md` §11; Q455, Q451
+
+**Context.** States 204–206 and their leave hook were read; who starts them was not (Q455).
+Every store to creature `+0x43D` and trap `+0x115` over `.text` and `cseg` writes 0, nothing
+takes `+0x43D`'s address or covers it with a wider store, and no SetState or walk pushes 204.
+State 204 tests `+0x43D` for a live trap first and idles otherwise.
+
+**Decision.** States 204–206 are marked unreachable in `CreatureStateCoverage`, the TrapDisarm
+leave hook stays not built with that reason, and readiness's disarmer arm stays false. Nothing
+is built on the reading of the states: no path in the binary reaches them. The owner has not
+seen a creature disarm a trap in play (2026-10-02); an observed disarm would point at a path the
+scans cannot see, and reopens Q455.
+
+**Consequences.** No behaviour or state change. Q451 (a failed disarm's firing) is moot unless
+Q455 reopens.
+
 ## ADR-0317 — The keeper's training moves
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0244 and ADR-0284 · Research: `computer-keeper-management.md` §2; Q509
 

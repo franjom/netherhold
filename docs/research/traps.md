@@ -91,7 +91,7 @@ by the class constructor `0x004B28D0` (`0x004B28F5`), which also links the class
 
 `0x004A7D10` returns, in order: 1 under construction; 0 before the recharge; 2 when flag
 `0x100` needs mana the owner lacks and the owner is not the hero player (`0x006F254C`);
-3 with a disarmer; otherwise 4. `0x004C1740` allows a zero cost, else `cost <= mana`. A zero
+3 with a disarmer, which v1.70 never has (§11); otherwise 4. `0x004C1740` allows a zero cost, else `cost <= mana`. A zero
 threshold fires on the first detection; short of mana the charge is kept and climbs.
 
 ## 5. The selectors
@@ -214,9 +214,14 @@ States 204–206 are `0x00458DF0`, `0x00458EB0`, `0x00458F60`: travel to the tra
 level-scaled `def+0x5E0` attempts a firing and enters 220 with a 50-tick retry, the other arm
 destroys the trap. The attempt precedes clearing the disarmer, so readiness refuses it (Q451).
 Exit hook `0x00459130` clears both references. `sgmap` names creature `+0x43D`
-`f43D_trapTagId` and `+0x43F` `f43F_durationUntilAttemptingAnotherTrapDisarm`. Who starts it is
-unread (Q455): the 13-block scan for `0x0000043D` (56 hits, positive control 226) does not
-rule out indirect writes. The reveal: firing with flag `0x2`, `0x004AA110`, and a creature's
+`f43D_trapTagId` and `+0x43F` `f43F_durationUntilAttemptingAnotherTrapDisarm`. **Nothing starts
+it in v1.70 (Q455, 2026-10-02):** over `.text` and `cseg`, every store to creature `+0x43D` (the
+three states, the exit hook, the constructor, the update's owner arm) and to trap `+0x115` (the
+constructor, the states, the hook) writes 0; no instruction takes `+0x43D`'s address, no wider
+store covers it, and no SetState or walk pushes 204 (its one `0xCC` store is the state table's
+own id, `0x0047F278`). 204 tests `+0x43D` first and idles without a trap, so 204–206 are
+unreachable and readiness's 3 never answers. A save restore could carry a value only if
+something had written one. The reveal: firing with flag `0x2`, `0x004AA110`, and a creature's
 tile change (`0x00488930`) with `def` flag `0x04000000` scanning table `0x006BC3B0`; not built.
 
 ## 12. Shipped definitions and shot coverage
@@ -269,7 +274,8 @@ answer's trap arm and the creature arm's correction; §8 without the owner disco
 
 Also built (ADR-0326): the upkeep, the no-mana message and its clock, area damage type 2 on
 traps and a shot's collision with a trap; and (ADR-0328) the Alarm, Fear, Spike and Gas shots.
-Left: disarming (Q455); the reveal; effects, sounds and animations; the Boulder's rolling object
+Disarming (§11) is read and unreachable, so nothing is built for it (ADR-0329).
+Left: the reveal; effects, sounds and animations; the Boulder's rolling object
 and the Jack In The Box's creature; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
 swing at a trap (possession is not built).
 

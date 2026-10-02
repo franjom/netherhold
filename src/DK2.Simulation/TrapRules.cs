@@ -17,7 +17,8 @@ namespace DK2.Simulation;
 /// threat it then shares among nearby enemies every update (<c>0x004B32A0</c>), the Trigger's
 /// propagation (<c>0x004A8E70</c>), the Guard Post's report to its room and the recovery. A trap
 /// fires only when its shot's damage type and process have a built handler (<see cref="FiringBuilt"/>);
-/// disarming, the reveal scan and every effect, sound and animation are not built.</summary>
+/// the reveal scan and every effect, sound and animation are not built, and disarming is unreachable
+/// in v1.70: nothing makes a creature a trap's disarmer (Q455).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/traps.md")]
 public static class TrapRules
 {
@@ -425,7 +426,7 @@ public static class TrapRules
 
     public static TrapReadiness Readiness(WorldState world, TrapState trap, TrapDef definition, long now) =>
         TrapActivationRules.Readiness(definition, trap.PlayerId, trap.UnderConstruction, now, trap.RechargeAt,
-            world.HasPlayer(trap.PlayerId) ? world.Player(trap.PlayerId).Mana : 0, beingDisarmed: false);
+            world.HasPlayer(trap.PlayerId) ? world.Player(trap.PlayerId).Mana : 0, beingDisarmed: false); // +0x115 is never set (Q455)
 
     /// <summary>The turn (definition flag <c>0x80</c>): toward the sight finder's target at range plus
     /// two (<c>0x004B2AE0</c>), or, with nobody, ten steps on (<c>0x004B2C10</c>), at most
