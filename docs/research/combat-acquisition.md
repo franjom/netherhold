@@ -132,8 +132,11 @@ starts at `0x7FFFFFFF` — **the score the arms are handed.**
 
 **Spell survey** (skipped when the definition is `IsWorker`): the three slots at
 `+0x41B` whose level requirement `0x004943F0(def, i)[1]` is met and whose spell
-id is nonzero, and `0x0048C800(me, def, i)` allows (a Support creature also
-needs `0x00460C50`); the spell definition from the world's `vtable+0xE8`. Its
+id is nonzero, and `0x0048C800(me, def, i)` allows **or** the creature is a
+Support (`def+0x67E == 4`) that `0x00460C50` finds an escape for — the recharge
+is waived for a Support with a tile to back on to (`0x0045CCB2`–`0x0045CCD4`;
+an earlier reading had it as a second requirement; ADR-0325); the spell
+definition from the world's `vtable+0xE8`. Its
 flag byte `+0x27`: bit 2 → a friendly spell (range `+0x31`, bit 7 kept as its
 kind); bit 0 → an **attack spell**, the one whose next-ready time `stamp +
 recharge` is latest kept (`0x004F7AB0` is the recharge in ticks, not a strength

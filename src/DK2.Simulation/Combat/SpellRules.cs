@@ -73,9 +73,13 @@ public static class SpellRules
     /// <summary>The survey's attack choice (§5): over the castable attack slots the creature's level
     /// allows, the one whose <c>stamp + recharge</c> is latest — fresh, the longest recharge. The
     /// slot index, or −1 with <paramref name="chosen"/> null. With <paramref name="skipStatus"/>, as
-    /// against a forced thing, a status spell (flag bit 3) is passed over inside the loop.</summary>
+    /// against a forced thing, a status spell (flag bit 3) is passed over inside the loop. With
+    /// <paramref name="whileRecharging"/> — a Support creature that has a tile to back on to
+    /// (<c>0x0045CB00</c>: <c>FightStyle == 4 &amp;&amp; !0x00460C50() || 0x0048C800()</c>) — a slot
+    /// counts whether or not it has recharged, so the caster keeps its spell nibble, its range and
+    /// the step-back while it waits; a cornered one needs the spell ready.</summary>
     public static int SurveyAttack(GameDatabase database, CreatureState me, CreatureDef definition, long tick, out CreatureSpellDef? chosen,
-        bool skipStatus = false)
+        bool skipStatus = false, bool whileRecharging = false)
     {
         chosen = null;
         int best = -1;
@@ -84,9 +88,9 @@ public static class SpellRules
         for (int i = 0; i < count; i++)
         {
             if (definition.Spells[i].LevelAvailable > me.Level) continue;
-            if (!CanCast(database, me, definition, i, tick)) continue;
-            CreatureSpellDef spell = SpellOf(database, definition, i)!;
-            if (!IsAttack(spell) || (skipStatus && IsStatus(spell))) continue;
+            if (!whileRecharging && !CanCast(database, me, definition, i, tick)) continue;
+            CreatureSpellDef? spell = SpellOf(database, definition, i);
+            if (spell is null || !IsAttack(spell) || (skipStatus && IsStatus(spell))) continue;
             long ready = me.SpellStamps[i] + RechargeTicks(spell);
             if (best >= 0 && ready <= bestReady) continue;
             best = i;

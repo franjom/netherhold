@@ -7321,3 +7321,31 @@ with its stores filled and a floor pile, posts 42 at tick 10, grows its Treasury
 (12..15, 4) from tick 505 and later stores gold there: a modern-run result (Q518).
 Unbuilt: the other finders' producers, the claim failure, the rescue selector,
 `0x004BA420`'s other callers, mood messages and the rest of the suppression words.
+
+## ADR-0325 — A Support creature surveys its attack spell while it recharges
+
+**Context.** On Level 3 our Warlocks threw one Fireball, then walked into the Thieves'
+melee for the 14 ticks the spell needed, fled at fear 60 and withdrew at a tenth of their
+health; two hurt Warlocks met the Lord of the Land, who survived to 3704 with 3,144 health
+where DK2's seed01 kills him at 3683. In the capture three Warlocks engage Thief 426 from
+3310 and it loses nothing to melee. `combat-acquisition.md` §6 read the survey's slot test
+as "castable, and for a Support also `0x00460C50`"; the decompile at `0x0045CCB2` reads
+`(FightStyle == 4 && 0x00460C50() == 0) || 0x0048C800() != 0`.
+
+**Decision.** `SpellRules.SurveyAttack(whileRecharging)` waives the recharge gate when
+`CombatTargetRules.SpellWhileRecharging` holds: a Support creature that `FearRules.Cornered`
+finds an escape tile for. All three survey callers pass it. The caster then keeps nibble 0
+and the spell's range² between casts, and the in-reach tick's cannot-cast path (§9–§10)
+has it stand or step back rather than close to melee. A cornered Support, and every other
+fight style, still needs the spell ready. Docs: `combat-acquisition.md` §6 corrected,
+`combat-spells.md` §5 extended; KB `0045CB00`, `00460C50` (new), `0048C800` (new).
+
+**Consequences.** Test `AWarlockWhoseFireballIsRechargingKeepsTheSpellAndStandsOff…`. The
+rule is RNG-free; the hash pin is unchanged. Level 3 seed01: the Warlocks now cast 17
+times for 12 shots with 33 step-backs and two withdrawals (six, three and five before), but
+the Lord still stands at 3704 with 5,001 health: ours hits him with traps and Imps while
+DK2's Trolls land 500 a blow and he is stunned — the next lead. Rigs: L1 20/20 unchanged,
+L2 6/20 (7/20; different seeds win). The waiver precedes the slot's flag read, so in DK2 it
+covers a thing-targeting slot too (not built); the friendly arm re-tests the recharge and is
+not waived. Unread: whether the fight-starter's melee retry for a Support (`0x0045A550`)
+ever reaches a Warlock in play.
