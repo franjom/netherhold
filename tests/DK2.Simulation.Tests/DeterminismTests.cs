@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 163: the alarm's route word, Imp 0x80 and everyone else 0 (ADR-0332).
+        // HashVersion 164: an object's health and position, and the Boulder's union (ADR-0333).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x32C5033CE0169EF7UL, sim.StateHash());
+        Assert.Equal(0xBA451CA7F1CCFF78UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

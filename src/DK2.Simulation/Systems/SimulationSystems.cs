@@ -51,6 +51,7 @@ public static class SimulationSystems
         new DoorHealthSystem(),
         // Shots fly after the creatures have moved; where DK2's thing list puts them is Q398.
         new ShotSystem(),
+        new BoulderSystem(), // objects (list 2) after shots (1), before traps (3)
         new TrapSystem(), // after the shots, as DK2's class lists run shots (1) before traps (3)
         // The thing pass's second walk: whatever is dead now is removed this turn (0x004B7830).
         new TrapRemovalSystem(),

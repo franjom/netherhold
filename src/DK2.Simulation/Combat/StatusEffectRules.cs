@@ -121,13 +121,19 @@ public static class StatusEffectRules
     /// <summary><c>0x00491830(255)</c> as the landing calls it (ADR-0226): <c>SetState(255)</c>,
     /// action 52 and event 15, with none of <see cref="Stun"/>'s callers' refusals. A refused state
     /// is no stun.</summary>
-    public static bool StunOnLanding(SimulationContext context, CreatureState creature, CreatureDef definition)
+    public static bool StunOnLanding(SimulationContext context, CreatureState creature, CreatureDef definition) =>
+        StunInto(context, creature, definition, CombatStates.Stunned, "landing");
+
+    /// <summary><c>0x00491830(state)</c>: <c>SetState</c>, action 52 and event 15. State 256, the
+    /// boulder's, runs 255's handler (<c>0x004810D0</c> jumps to <c>0x004810E0</c>), so it lies for
+    /// <c>StunDuration</c> and gets up in 257 the same way.</summary>
+    public static bool StunInto(SimulationContext context, CreatureState creature, CreatureDef definition, int state, string by)
     {
-        if (CreatureStateMachine.Classify(creature, CombatStates.Stunned) == StateTransition.Refused) return false;
+        if (CreatureStateMachine.Classify(creature, state) == StateTransition.Refused) return false;
         creature.StunTicks = CombatRules.TicksOf(definition.StunDuration);
-        Stand(context, creature, CombatStates.Stunned);
+        Stand(context, creature, state);
         context.FireCreatureEvent(creature, CreatureTriggerEvent.Stunned);
-        context.Emit(SystemName, "stunned", $"creature={creature.Id} ticks={creature.StunTicks} by=landing");
+        context.Emit(SystemName, "stunned", $"creature={creature.Id} ticks={creature.StunTicks} by={by}");
         return true;
     }
 

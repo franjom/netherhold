@@ -1322,6 +1322,7 @@ public sealed class WorldState
             ObjectTypeId = objectTypeId,
             OwnerPlayerId = ownerPlayerId,
             TileIndex = tileIndex,
+            Health = database.ObjectById(objectTypeId)!.Hp,
         };
 
         _objects.Add(instance);

@@ -275,7 +275,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(254, typeof(CombatStates), nameof(CombatStates.ReportingDanger),
             "no simulation test runs an alarm responder to its arrival at the threat"));
         rows.Add(Built(255, typeof(CombatStates), nameof(CombatStates.Stunned)));
-        rows.Add(Unbuilt(256, "not read"));
+        rows.Add(Built(256, typeof(StatusEffectRules), nameof(StatusEffectRules.StunInto)));
         rows.Add(Built(257, typeof(CombatStates), nameof(CombatStates.GettingUp)));
         rows.Add(Unbuilt(258, "not read"));
         rows.Add(Built(259, typeof(CombatStates), nameof(CombatStates.AtTheBody)));

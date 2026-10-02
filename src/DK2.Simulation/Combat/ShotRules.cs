@@ -80,6 +80,10 @@ public static class ShotRules
     /// type 2, so ours does nothing and the damage-type-0 kick is not built.</summary>
     public const byte GasProcess = 31;
 
+    /// <summary>Process 22 (<c>0x004AEBD0</c>), the Boulder trap's, on the first tick: a rolling boulder
+    /// (object 74) at the shot, the trap on its tile destroyed (<see cref="BoulderRules.Launch"/>).</summary>
+    public const byte BoulderProcess = 22;
+
     /// <summary>Damage type 1 (<c>0x004AC5A0</c>), the Spike's.</summary>
     public const byte SquareDamageType = 1;
 
@@ -402,6 +406,11 @@ public static class ShotRules
             return;
         }
         if (definition.ProcessType is FearProcess or GasProcess) return;
+        if (definition.ProcessType == BoulderProcess)
+        {
+            BoulderRules.Launch(context, shot);
+            return;
+        }
         CreatureState? target = struck ?? (shot.TargetKind == FightTargetKind.Creature ? world.CreatureById(shot.TargetId) : null);
         if (target is null)
         {

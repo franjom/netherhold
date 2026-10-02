@@ -90,11 +90,12 @@ internal static class Dk2TerrainFixture
         FiringTrap("Alarm Trap", AlarmTrapId, 1, 4, 4, 0, 0x3153A, AlarmShotId, 0, 5, 0, 0, 0, 4, 2000, upkeep: 5),
         FiringTrap("Fear Trap", FearTrapId, 1, 24, 3, 125, 0x31518, FearShotId, 0, 3, 0, 600, 60, 12, 6000, upkeep: 5),
         FiringTrap("Spike Trap", SpikeTrapId, 2, 16, 1, 0, 0x53A, SpikeShotId, 750, 1, 0, 74, 45, 8, 4000, upkeep: 5),
+        FiringTrap("Boulder Trap", BoulderTrapId, 1, 4, 3, 0, 0x31418, BoulderShotId, 1, 0, 0, 0, 0, 0, 8000),
     ];
 
     public const byte SentryTrapId = 3, FireburstTrapId = 5, LightningTrapId = 6, FreezeTrapId = 17, TriggerTrapId = 9,
         MagicDoorTrapId = 12, HeroSentryTrapId = 14, GuardPostTrapId = 11, GasTrapId = 1, AlarmTrapId = 4, FearTrapId = 8,
-        SpikeTrapId = 10;
+        SpikeTrapId = 10, BoulderTrapId = 2;
 
     private static TrapDef FiringTrap(string name, byte id, byte selector, int rechargeTicks, int range, int mana, uint flags,
         byte shot, int data1, int data2, int offsetY, ushort threat, int threatSeconds, short gain, ushort health, ushort upkeep = 0) => new()
@@ -385,7 +386,8 @@ internal static class Dk2TerrainFixture
         {
             Name = "Dungeon Heart",
             ObjectId = Navigation.WorldSteering.DungeonHeartObjectId,
-            Flags = ObjectFlags.Obstacle | ObjectFlags.BoulderCanRollThrough,
+            // 0x234000 as shipped: a boulder destroys it (boulder.md).
+            Flags = ObjectFlags.Obstacle | ObjectFlags.BoulderCanRollThrough | ObjectFlags.BoulderDestroys | ObjectFlags.Damageable,
             Hp = 34464, ManaValue = 0, RoomCapacity = 0, StartState = 0, PickUpPriority = 0,
             Width = new Fp32(4096), Height = new Fp32(4096), Mass = new Fp32(8192), Speed = new Fp32(0),
             NameStringId = 0, TooltipStringId = 0,
@@ -466,6 +468,14 @@ internal static class Dk2TerrainFixture
         // furniture, as shipped: what a room's capacity counts (ADR-0205).
         Furniture(TrainingDummyObjectId, "Training Dummy", 0x02004000u, 1, 2297),
         Furniture(29, "Training Target", 0x00014000u, 1, 2048),
+        // The Boulder, OBJECTS record 74 as shipped: rolls through and destroys, 4000 health, a tile
+        // wide, process state 17 (boulder.md).
+        new ObjectDef
+        {
+            Name = "Boulder", ObjectId = BoulderRules.ObjectId, Flags = (ObjectFlags)0x238200u, Hp = 4000, ManaValue = 0,
+            RoomCapacity = 0, StartState = BoulderRules.ProcessState, PickUpPriority = 0, Width = new Fp32(4096),
+            Height = new Fp32(4096), Mass = new Fp32(0), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
+        },
         Furniture(15, "Anvil", 0x02014000u, 128, 2252),
         Furniture(16, "Steel Bucket", 0x02014000u, 128, 2252),
         Furniture(46, "Work Bench", 0x02004000u, 1, 3276),
@@ -1337,10 +1347,13 @@ internal static class Dk2TerrainFixture
         Status("Fear", FearShotId, 3686, 1, 0x24, 0x40, 2, ShotRules.FearProcess, attackCategory: 14),
         Status("Spike", SpikeShotId, 0, 1, 0x4, 0x1, 2, 0, damageType: 1, attackCategory: 13),
         Status("Gas Trap Cloud", GasTrapCloudShotId, 4096, 5, 0x4, 0x2, 2, ShotRules.GasProcess, damageType: 2, attackCategory: 7),
+        // The Boulder's shot: launched, a tick long, process 22 on its first tick (boulder.md).
+        Status("Boulder", BoulderShotId, 2048, 1, 0x24, 0x40, 3, ShotRules.BoulderProcess),
     ];
 
     public const byte CannonBallShotId = 44, FireburstShotId = 14, LightningTrapShotId = 59, FreezeTrapShotId = 45,
-        TriggerTrapShotId = 39, DoorFireballShotId = 57, AlarmShotId = 13, FearShotId = 25, SpikeShotId = 27, GasTrapCloudShotId = 58;
+        TriggerTrapShotId = 39, DoorFireballShotId = 57, AlarmShotId = 13, FearShotId = 25, SpikeShotId = 27, GasTrapCloudShotId = 58,
+        BoulderShotId = 26;
 
     private static ShotDef Status(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte collide, byte process, byte damageType = 0, byte attackCategory = 0, byte deathShot = 0) =>
         new(new byte[239])
@@ -1431,6 +1444,12 @@ internal static class Dk2TerrainFixture
 
         Set(vars, VariableTypeId.CreatureDyingStateDurationSeconds, 60);
         Set(vars, VariableTypeId.TriggerTrapTriggerSpeedTilesPerSecond, 4096);
+        Set(vars, VariableTypeId.BoulderInitialHealth, 4000);
+        Set(vars, VariableTypeId.BoulderSpeedTilesPerSecond, 4915);
+        Set(vars, VariableTypeId.BoulderToCreatureDamagePercentage, 50);
+        Set(vars, VariableTypeId.BoulderSpeedToHealthRatio, 50);
+        Set(vars, VariableTypeId.BoulderFearAmount, 701);
+        Set(vars, VariableTypeId.BoulderFearRange, 4);
 
         // The corpse timer, which nothing reads: a body is an object (M6). Here
         // so CreatureDeathRules.BodyWindowTicks can be pinned rather than only

@@ -118,6 +118,7 @@ public static class TrapRules
         ShotRules.LightningProcess, ShotRules.InvulnerableProcess, ShotRules.FreezeProcess, ShotRules.ChickenProcess,
         ShotRules.InvisibleProcess, ShotRules.ReaperStunProcess, ShotRules.InfernoProcess, ShotRules.InstantProcess,
         ShotRules.DrainProcess, ShotRules.PoisonProcess, ShotRules.AlarmProcess, ShotRules.FearProcess, ShotRules.GasProcess,
+        ShotRules.BoulderProcess,
     ];
 
     // ------------------------------------------------------------------ the constructor and completion
@@ -408,6 +409,24 @@ public static class TrapRules
         else if (readiness == TrapReadiness.Ready) Fire(context, trap, definition, target);
     }
 
+    /// <summary><c>0x004A7D90</c>, a boulder rolling over the trap: readiness, then the firing at it
+    /// (<c>0x004A7FD0</c> with the boulder as the target). Ours aims at its position with no target
+    /// thing, as no shot strikes an object here (shots.md §10), so a tile trap's forced hit is lost.</summary>
+    public static void AttemptAt(SimulationContext context, TrapState trap, TrapDef definition, int x, int y)
+    {
+        if (!FiringBuilt(context.Database, definition)) return;
+        TrapReadiness readiness = Readiness(context.World, trap, definition, context.Tick.Value);
+        if (readiness == TrapReadiness.InsufficientMana)
+        {
+            NoMana(context, trap, definition);
+            return;
+        }
+        if (readiness != TrapReadiness.Ready) return;
+        ShotState? shot = Shoot(context, trap, definition, x, y, null);
+        if (shot != null && (context.Database.Shots[shot.ShotTypeId].Flags & ShotLaunches) != 0)
+            ShotRules.Launch(shot, context.Database.Shots[shot.ShotTypeId], x, y);
+    }
+
     /// <summary>Readiness 2, short of mana: the no-mana effect (presentation) and <c>0x004C1A30</c> on
     /// the owner, which posts message 53 with Data1 1 once the player's clock <c>+0xAA</c> is due
     /// and sets it fifteen seconds on. Every site that answers 2 calls it.</summary>
@@ -584,7 +603,11 @@ public static class TrapRules
     /// sight, then give each one inside a radius a tile smaller (at least one) the threat over that
     /// count, into its <c>TempFear</c> through <c>0x0045C5D0</c>. Its owner discount is the one
     /// <see cref="FearRules"/> does not hold (Q375), and its <c>ThreatThing</c> is not built.</summary>
-    public static void ShareThreat(WorldState world, ISightBlocker sight, TrapState trap, int amount, int radius)
+    public static void ShareThreat(WorldState world, ISightBlocker sight, TrapState trap, int amount, int radius) =>
+        ShareThreat(world, sight, trap.PlayerId, trap.PosX, trap.PosY, amount, radius);
+
+    /// <summary><c>0x004B32A0</c> for any thing: <paramref name="owner"/>'s enemies around a point.</summary>
+    public static void ShareThreat(WorldState world, ISightBlocker sight, byte owner, int x, int y, int amount, int radius)
     {
         IReadOnlyList<CreatureState> creatures = world.Creatures;
         int outer = radius * (radius >> 12);
@@ -592,9 +615,9 @@ public static class TrapRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            if (IsHostileOnMap(world, trap.PlayerId, creature)
-                && (int)DistanceSquared(creature.PosX, creature.PosY, trap.PosX, trap.PosY) < outer
-                && LineOfSight.Clear(sight, trap.PosX, trap.PosY, creature.PosX, creature.PosY))
+            if (IsHostileOnMap(world, owner, creature)
+                && (int)DistanceSquared(creature.PosX, creature.PosY, x, y) < outer
+                && LineOfSight.Clear(sight, x, y, creature.PosX, creature.PosY))
                 count++;
         }
         if (count == 0) return;
@@ -604,9 +627,9 @@ public static class TrapRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            if (IsHostileOnMap(world, trap.PlayerId, creature)
-                && (int)DistanceSquared(creature.PosX, creature.PosY, trap.PosX, trap.PosY) < innerSquared
-                && LineOfSight.Clear(sight, trap.PosX, trap.PosY, creature.PosX, creature.PosY))
+            if (IsHostileOnMap(world, owner, creature)
+                && (int)DistanceSquared(creature.PosX, creature.PosY, x, y) < innerSquared
+                && LineOfSight.Clear(sight, x, y, creature.PosX, creature.PosY))
                 creature.TempFear = unchecked((ushort)(creature.TempFear + share));
         }
     }

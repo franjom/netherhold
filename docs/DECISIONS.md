@@ -7121,6 +7121,33 @@ and may change fights. Measured on 1aa98db: both rigs identical per seed; the ni
 scenarios on trap levels diverge at their first mana payment (Level 17's keeper pays 95 more a
 second), and no scenario has a shot strike a trap or door.
 
+## ADR-0333 — The Boulder rolls, strikes and wears as object process state 17
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 and ADR-0331 · Research: `boulder.md`; `traps.md` §12; Q450, Q513, Q520
+
+**Context.** The 97 shipped Boulder traps did not fire: their shot's process 22 makes object 74,
+and nothing modelled a moving object. Read now: process 22 (`0x004AEBD0`), object state 17
+(`0x004A1390`) with its strike, roll, step, four turn handlers and terrain wear, the blocked
+test `0x00453C10`, the floor height `0x004545C0`, and state 256, which jumps to 255's handler.
+Every constant is a shipped variable (157–162) or a definition field.
+
+**Decision.**
+1. `ObjectState` gains the header's `Health` (seeded from `Hp` for every object) and position,
+   and the Boulder's union: direction, speed, wear and the launch signs. `BoulderSystem` runs
+   state 17 after the shots and before the traps, DK2's class-list order.
+2. `ShotRules` runs process 22 through `BoulderRules.Launch`; `FiringBuilt` admits it.
+3. The strike's heart object is the owner's heart health at its centre tile; a trap the boulder
+   crosses fires at its position with no target thing, as no shot strikes an object here.
+4. State 256 is `StatusEffectRules.StunInto(256)`, counted down and ended as 255 is.
+5. Not built: a shot or a slap striking the boulder, creatures steering round it, the heading
+   and every effect. Ours orders a tile's things creatures first, then objects, heart, trap, door.
+
+**Consequences.** New state, so `HashVersion` 164. Prediction, written before measuring: all 959
+placed traps are `FiringBuilt` (955 fire, 4 Guard Posts gate); Levels 1 and 2 hold no traps, so the
+rigs stay identical per seed; of the 42 scenarios only those on Level 17 (player 4's Boulders at
+(10,20) and (13,16)) and Level 11A (nine) can change their events, and only if an enemy comes
+within three tiles of one in sight. Measured on aaebf56: 959 built; every scenario's event log and
+every L1/L2 seed's event file identical (L1 20/20, L2 7/20): no enemy meets those Boulders.
+
 ## ADR-0332 — The alarm routes the Imp with the door bit and everyone else without
 **Date:** 2026-10-02 · **Status:** accepted · corrects ADR-0166 · Research: `combat-alarm.md` §2, §3; `guard-room.md` §6; Q517
 

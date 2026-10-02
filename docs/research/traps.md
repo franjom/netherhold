@@ -237,7 +237,7 @@ shots all have a handler, or there is no shot. "Gate only": the selector and cha
 | Trap | Sel. | Recharge | Mana | Shot | The shot | Fires here |
 |---|---:|---:|---:|---:|---|---|
 | Gas | 2 | 16 | 0 | 58 | area damage 2, gas; process 31 counts nobody | yes |
-| Boulder | 1 | 4 | 0 | 26 | process 22 rolls object 74, not built | no |
+| Boulder | 1 | 4 | 0 | 26 | process 22 rolls object 74 ([boulder.md](boulder.md)) | yes |
 | Sentry | 1 | 24 | 250 | 44 | Cannon Ball: launched, contact 7 | yes |
 | Alarm | 1 | 4 | 0 | 13 | process 12: message 47 | yes |
 | Fireburst | 1 | 48 | 250 | 14 | stands, area damage 2 | yes |
@@ -260,10 +260,10 @@ Spike, gas and Alarm shots stand where they are made.
 ## 13. Shipped placement
 
 **CONFIRMED from data** (`TrapsFireOnRealDataTests`): 959 traps on 39 levels, all completed by
-the loader; 858 fire here (Sentry 115, Hero Sentry 320, Lightning 80, Gas 79, Spike 71, Freeze
-41, Fear 41, Hero Alarm 16, Fireburst 7, Alarm 2, Trigger 86) and 4 more run the gate: Level
+the loader; 955 fire here (Hero Sentry 320, Sentry 115, Boulder 97, Trigger 86, Lightning 80, Gas
+79, Spike 71, Freeze 41, Fear 41, Hero Alarm 16, Fireburst 7, Alarm 2) and 4 more run the gate: Level
 9's hero Guard Posts at (60,29), (60,35), (57,32) and (63,32), all reporting to the hero Guard
-Room whose first slab is (59,31). The 97 Boulders do not fire. None is a Magic Door or a Jack
+Room whose first slab is (59,31). None is a Magic Door or a Jack
 In The Box. 36 stand beside a Trigger. One is killed by the owner test
 on its first update: **Level 20's hero Boulder at (12,5), on a Neutral-owned tile** — a prediction,
 not an observation. Level 18's Freeze at (51,54) now freezes a hero standing on it on turn 0
@@ -277,12 +277,12 @@ answer's trap arm and the creature arm's correction; §8 without the owner disco
 `ThreatThing`, as `FearRules` holds neither (Q375); §9; §10's removal and Trigger counts.
 
 Also built (ADR-0326): the upkeep, the no-mana message and its clock, area damage type 2 on
-traps and a shot's collision with a trap; and (ADR-0331) the Alarm, Fear, Spike and Gas shots.
+traps and a shot's collision with a trap; (ADR-0331) the Alarm, Fear, Spike and Gas shots; and
+(ADR-0333) the Boulder and its rolling object, which fires and damages the traps it rolls over.
 Disarming (§11) is read and unreachable, so nothing is built for it (ADR-0329).
-Left: the reveal; effects, sounds and animations; the Boulder's rolling object
-and the Jack In The Box's creature; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
+Left: the reveal; effects, sounds and animations; the Jack In The Box's creature; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
 swing at a trap (possession is not built).
 
 ## Open questions
 
-Q450 (what is left), Q451, Q452, Q455, Q398 (shot order and height), Q513 (observations).
+Q450 (what is left), Q451, Q452, Q455, Q398 (shot order and height), Q513 and Q520 (observations).
