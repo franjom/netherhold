@@ -613,7 +613,8 @@ public static class FearRules
         }
         if (nearest is null) return false;
 
-        int options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Plain : MoveOptions.Loose;
+        // +0x36F == 1 (the Imp) routes with 0x80, everyone else with 0 (0x0047542A, Q517).
+        int options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
         if (!context.Navigation.TryRouteTo(me, RoomCentreX(nearest), RoomCentreY(nearest), options)) return false;
 
         ClearTarget(world, me);
@@ -686,7 +687,8 @@ public static class FearRules
             if (c.JobTileIndex < 0 || !room.TileIndices.Contains(c.JobTileIndex)) continue;
             if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4) continue;
 
-            int options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Plain : MoveOptions.Loose;
+            // The Imp with 0x80, everyone else with 0 (0x0047583F); workers are skipped above.
+            int options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
             if (!context.Navigation.TryRouteTo(c, me.AlarmX, me.AlarmY, options)) continue;
             c.CurrentJob = JobType.None;
             c.JobTileIndex = -1;

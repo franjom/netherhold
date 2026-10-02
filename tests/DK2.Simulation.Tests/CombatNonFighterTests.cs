@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Combat;
+using DK2.Simulation.Navigation;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
@@ -179,6 +180,42 @@ public class CombatNonFighterTests
         Assert.Equal(2, goblins.Count(g => g.StateBeforeUtilityState == JobRules.StateFor(JobType.Sulk)
             && (g.UtilityNewState == 254 || g.Dk2StateId is 254 or 199)));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void TheRaisingImpRoutesWithTheDoorBit_AndItsRespondersWithout()
+    {
+        // Q517: 0x0047542A and 0x0047583F push 0x80 for type id 1, the Imp, and 0 for anyone else.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.LairTerrain, 13, 5);
+        int roomTile = (5 * world.Width) + 13;
+        CreatureState[] goblins =
+        [
+            Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 5),
+            Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 14, 5),
+        ];
+        foreach (CreatureState g in goblins)
+        {
+            g.CurrentJob = JobType.Sulk;
+            StatePlacement.As(g, CreatureActivity.AtWork);
+            g.JobTileIndex = roomTile;
+        }
+        CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
+        CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, 12, 12);
+        knight.PosX = imp.PosX + 3700;
+        knight.PosY = imp.PosY;
+        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Run(5);
+        Assert.Equal(CreatureActivity.RaisingAlarm, imp.Activity);
+        Assert.Equal(MoveOptions.Loose, imp.RouteOptions);
+
+        for (int i = 0; i < 40 && !sink.Events.Any(e => e.Kind == "alarm_raised"); i++) sim.Run(1);
+        Assert.Single(sink.Events, e => e.Kind == "alarm_raised");
+        Assert.All(goblins, g => Assert.Equal(CreatureActivity.Reporting, g.Activity));
+        Assert.All(goblins, g => Assert.Equal(MoveOptions.Plain, g.RouteOptions));
     }
 
     [Fact]

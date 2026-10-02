@@ -7121,6 +7121,30 @@ and may change fights. Measured on 1aa98db: both rigs identical per seed; the ni
 scenarios on trap levels diverge at their first mana payment (Level 17's keeper pays 95 more a
 second), and no scenario has a shot strike a trap or door.
 
+## ADR-0332 — The alarm routes the Imp with the door bit and everyone else without
+**Date:** 2026-10-02 · **Status:** accepted · corrects ADR-0166 · Research: `combat-alarm.md` §2, §3; `guard-room.md` §6; Q517
+
+**Context.** The raiser `0x004752B0` (`0x0047542A`) and state 251's dispatch (`0x0047583F`)
+push `+0x36F == 1 ? 0x80 : 0` as the route word; `+0x36F` is the dumper's `TypeId` and 1 is
+the Imp. `FearRules.RaiseAlarm` and `RespondToThreat` had the reverse since ADR-0166. The
+Guard Post's report (`0x004A89B5`, ADR-0330) already had it right. Bit 7 is the cost
+function's door rule, and the word is kept in `CreatureState.RouteOptions`, which is hashed.
+
+**Decision.** Both `FearRules` sites push `MoveOptions.Loose` for the Imp and
+`MoveOptions.Plain` for anyone else, as the binary does. The raiser needs `JobClass` Scout,
+which the Imp is, and the dispatch skips workers, so in practice the raising Imp now respects
+doors and every responder ignores them.
+
+**Consequences.** No new state; the hash moves through `RouteOptions`, so `HashVersion` 163.
+Prediction, written before measuring: every run with an alarm changes its hash series from
+the first alarm on — of the 42 scenarios only `keepers-level17-harkan-call-to-arms-001`
+(an Imp's alarm at tick 79); of the rigs the L1 seeds 1–6, 11–15, 18 and 20 and the L2 seeds
+1, 3, 6, 7, 9, 10, 15, 16, 18 and 19, all raised by Imps. A route itself differs only where a
+foreign or locked door stands on it, so no rig outcome changes unless one does. Measured on
+51b13a4: every scenario's event log is identical and every rig seed's line too (L1 20/20, L2
+7/20, seeds 3, 6, 7, 9, 10, 16, 18): no alarm route there crosses a door. Every final hash moves
+with the version, which the hash folds in.
+
 ## ADR-0331 — The Alarm, Fear, Spike and Gas traps fire; the Boulder and the Jack In The Box wait
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `shots.md` §7, §8; `traps.md` §12; Q395, Q450
 

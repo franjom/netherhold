@@ -160,8 +160,7 @@ complete, not being disarmed and alive, then goes on to the turn and the recharg
    254, flags)` with `0x80` for an Imp (`+0x36F == 1`) and 0 otherwise, `+0x2CC` zeroed, the
    deficit less its level-scaled `Threat`; negative ends the loop.
 
-The alarm's arm `0x0047583F` computes the same flags, Imp `0x80`; `FearRules`' alarm
-routes the Imp with 0 and everyone else with `0x80`, the reverse (Q517).
+The alarm's arm `0x0047583F` computes the same flags, and so does `FearRules` since ADR-0332.
 
 ## 7. The rest of category 11: the Crypt's states 274–277
 
