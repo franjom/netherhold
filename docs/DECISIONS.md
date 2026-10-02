@@ -7121,6 +7121,29 @@ and may change fights. Measured on 1aa98db: both rigs identical per seed; the ni
 scenarios on trap levels diverge at their first mana payment (Level 17's keeper pays 95 more a
 second), and no scenario has a shot strike a trap or door.
 
+## ADR-0335 — A Troll, Thief, Rogue or Guard reveals an enemy's hidden traps around it
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `traps.md` §11; `combat-acquisition.md` §6; Q362, Q450
+
+**Context.** A trap with definition flag `0x20` starts hidden; firing with flag `0x2` clears it (built,
+ADR-0321). The creature update's third writer was unread: a creature whose definition has
+`RevealsAdjacentTraps` (the Troll, Thief, Rogue and Guard), on entering a new tile, reveals every
+hidden enemy trap on the nine tiles around it (`0x004AA110`) and sets its fight counter to 10. Of the
+bit's readers, the view (`0x004A9F10`) and the pick test (`0x004AA050`) are the local player's; two are
+possession's; one is the victim selector's scan D, which walks each hostile player's **trap** list
+(`player+0xC`, class 3) and admits only a completed, revealed trap other than trap 16. The computer
+keeper reads no hidden bit.
+
+**Decision.** `TrapRules.RevealAround` runs from the combat pass after the fight processing, as DK2's
+creature update does. No view: what a foreign keeper may see is the presentation's, and `KeeperView`
+keeps listing every trap, as DK2's keeper code tests no hidden bit. Scan D — creatures choosing a
+revealed trap as a victim, and the fight against it — is not built; Q362 is answered as traps.
+
+**Consequences.** No new state, no version bump. Prediction, written before measuring: Levels 1 and 2
+hold no traps, so the rigs stay identical; a scenario's events change only where a Troll, Thief, Rogue
+or Guard enters a tile beside an enemy's hidden trap, which then logs `trap_revealed` and may scan for a
+fight a tick earlier. Measured on b5a4e1f: every scenario's hash and events and every rig seed's events
+identical (L1 20/20, L2 7/20): no revealer meets a hidden enemy trap there.
+
 ## ADR-0334 — The Jack In The Box springs a Jack that wears out walking to a heart and explodes
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `jack-in-the-box.md`; `traps.md` §12; Q450, Q521
 

@@ -152,7 +152,7 @@ squared distance of `combat-target-selection.md` §2.
 | C | always, unless a live `AttackingId` short-circuits | **my own `+0x504`/`+0x514` — whoever is already attacking me** | `Creeping` weighting (§6.1), alignment discount, `d < best`, attackable, **seen**, not `SneakingAs` my side, sight-or-reach, **and** a route request succeeds |
 | — | no result yet | `PossessedCreatureFollowing` `+0x482` → its `+0x4D0` | re-acquisition, no strategy runs |
 | — | no result yet | **the fight-type dispatch** with the running best | `combat-target-selection.md` §5 |
-| D | still none, not a Turncoat | each hostile player's `+0xC` list — things with `+0x10C & 0x30` clear and `+0xF6 ≠ 0x10`; STRONGLY INFERRED doors (Q362) | within sight and seen; an `IsWorker` only within `0x800` |
+| D | still none, not a Turncoat | each hostile player's `+0xC` list — **traps** (`player + 6 + class·2`, class 3): completed, revealed, not trap 16 (`+0xF6`); not built (Q362, traps.md §11) | within sight and seen; an `IsWorker` only within `0x800` |
 | E | none, **or the target is an `IsWorker`**; not Turncoat, not `IsHorny`, not an Imp | each hostile player's heart: `0x004C5F50` = `player+0xB43` tile → centre; its rooms `+0x36`/`+0x8` of type 5 with `+0x9A` bit 0 **clear** (not a ruin); their objects `+0xE`/`+0x12A` with `TypeId` `+0x12C` == **94, Arch Pillar** | heart centre within sight and seen; pillar `d < best` |
 | F | a friendly spell | own creatures in group 22 with health `+0x40` below a quarter of level-scaled `Hp` (`def+0x692`, table `+0xE1`), not `CombatPitFighter`, not captive or tortured, `0x0049A7A0` castable | seen or reached; then routed; AttackType 3 |
 
@@ -253,7 +253,6 @@ registration, fallback and the two range formulas; the names `SelectAVictim`,
 **CONFIRMED (data):** object 94 is *Arch Pillar*; room type 5 is the Dungeon
 Heart; variable 182 ships 5.
 
-**STRONGLY INFERRED:** `vtable+0x2C` is the previous frame's position; scan D
-walks doors; state 242 is the held creature; state 83 is asleep proper.
+**STRONGLY INFERRED:** `vtable+0x2C` is the previous frame's position; state 242 is the held creature; state 83 is asleep proper.
 
 **UNKNOWN:** §10.

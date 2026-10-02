@@ -687,6 +687,39 @@ public static class TrapRules
             }
     }
 
+    /// <summary>A creature whose definition reveals adjacent traps, on entering a new tile (the creature
+    /// update, <c>0x0048A0B4</c>): on each tile of table <c>0x006BC3B0</c> around it, every hidden trap of
+    /// an enemy is revealed (<c>0x004AA110</c>) and the creature's fight counter (<c>+0x3E6</c> bits
+    /// 22–25) set to 10. True when it revealed one.</summary>
+    public static bool RevealAround(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (!definition.Flags.HasFlag(CreatureFlags.RevealsAdjacentTraps)) return false;
+        WorldState world = context.World;
+        TilePos at = creature.Tile;
+        bool revealed = false;
+        foreach ((int dx, int dy) in RevealOffsets)
+        {
+            int x = at.X + dx, y = at.Y + dy;
+            if (!world.Contains(x, y)) continue;
+            foreach (TrapState trap in world.Traps)
+            {
+                if (trap.X != x || trap.Y != y || !trap.Hidden || !CombatRules.IsHostile(world, creature.OwnerPlayerId, trap.PlayerId)) continue;
+                trap.Hidden = false;
+                creature.FightProcessCounter = RevealFightCounter;
+                revealed = true;
+                context.Emit(SystemName, "trap_revealed", $"trap={trap.Id} player={trap.PlayerId} by={creature.Id} at={x},{y}");
+            }
+        }
+        return revealed;
+    }
+
+    /// <summary>What the reveal writes to the fight counter: bits 23 and 25 set, 22 and 24 clear (<c>0x0048A142</c>).</summary>
+    public const byte RevealFightCounter = 10;
+
+    /// <summary>Table <c>0x006BC3B0</c>: the eight neighbours from the north clockwise, then the tile itself.</summary>
+    private static readonly (int X, int Y)[] RevealOffsets =
+        [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, 0)];
+
     /// <summary>The traps' squared distance: each axis squared and shifted down twelve, summed as DK2's
     /// unsigned dword.</summary>
     public static uint DistanceSquared(int ax, int ay, int bx, int by)

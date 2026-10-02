@@ -85,6 +85,9 @@ public sealed class CombatSystem : ISimulationSystem
             FearRules.Radiate(context, _sight!, _hearts, creature, definition);
 
             TilePos tile = creature.Tile;
+            // 0x0048A0B4, after the fight processing: a creature on a new tile reveals adjacent traps.
+            if (creature.LastFightScanTileIndex != (tile.Y * world.Width) + tile.X && !CreatureDeathRules.IsCorpse(creature))
+                TrapRules.RevealAround(context, creature, definition);
             creature.LastFightScanTileIndex = (tile.Y * world.Width) + tile.X;
         }
     }
