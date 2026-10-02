@@ -7031,3 +7031,35 @@ five creatures at 1480 (1506), the hero chain's timer at 1976 (1998), the final 
 (3198); the win at 3683 is not reached by 3704 because that party's two Thieves outlive DK2's.
 Open: DK2's pool is a draining count the creator decrements (Q474), and the portal tally fell
 from 6 to 5 when the Firefly died at 1796 (Q508), which is why our later arrivals drift late.
+
+## ADR-0317 — The keeper's training moves
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0244 and ADR-0284 · Research: `computer-keeper-management.md` §2; Q509
+
+**Context.** Step 9 of the keeper's tick (`0x00500C20`) drew its 50% roll and asked readiness,
+then counted a move it did not make. `0x004FF5C0` was re-read whole, with its slot helper
+`0x004E8210`: a not-ready army's non-workers go by experience and level to a Combat Pit or a
+Training Room floor slot, through the same hand calls the retreat uses.
+
+**Decision.**
+1. `KeeperTrainingStep` runs at step 9 with the retreat's prepared set and the tick's
+   readiness; the allowance it returns is the tick's. The branches, their order and
+   strictness, the predicates and the allowance are the research table's, unchanged.
+2. Deviations, the retreat's (ADR-0284): the pick-up and drop are commands for the next tick,
+   the drop issued only when the hand is predicted to take the creature; the drop is at the
+   slot's tile, without DK2's `+0x900`; rooms and slots are drawn from the keeper's own stream
+   (ADR-0244), in DK2's order (Training room, Pit room, then per move).
+3. Same-tick predictions where DK2 acts at once: a creature the retreat lifted and dropped is
+   read as landing (76), one the hand refused as prepared (75); a creature readiness levelled
+   is read at its new level, its health carried by the level-up's 12-bit share.
+4. Observation schema 15: each creature's experience and dropped-to-do job, each room's
+   floor slots (`AutoFurnitureRules.FloorSlotSet`) in slab-chain order.
+
+**Consequences.**
+- No simulation state changes: `HashVersion` stays 149.
+- Stock Level 17's Harkan lifts its three Black Knights into its Training Room from input
+  tick 3; Level 10's Asmodeus lifts its creatures into its own. A Pit fighter at or above the
+  skill level is taken out again by the retreat's fifth branch, so at a low skill level the
+  two steps alternate, as the binary's order predicts.
+- The retreat's stock-map scenario moves to Level 17's player 5, which owns no Training Room:
+  on Harkan's map the training move takes the wounded knight first, as DK2's order would.
+- Not compared with the original (Q509). Room list order stays the capture's (ADR-0298).

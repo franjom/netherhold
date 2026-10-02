@@ -69,7 +69,7 @@ public sealed class KeeperAttackPlanner
             {
                 // 0x004C6460(6) draws a random own Library; with one, 0x004FA8D0 frees a portal
                 // slot, a move this build counts and does not make.
-                if (RandomRoomOfType(_view.PlayerId, (byte)RoomTypeId.Library) is not null) _state.UnbuiltResearchMoves++;
+                if (RandomRoomOfType(_view.PlayerId, RoomTypeId.Library) is not null) _state.UnbuiltResearchMoves++;
                 return false;
             }
             if (!_p.IAOnlyAttackAttackers) ordinary = true;
@@ -165,7 +165,7 @@ public sealed class KeeperAttackPlanner
             _state.FirstAttackFlag |= bit;
             end = (_p.IAFirstEnd & 3) switch
             {
-                0 => RandomRoomOfType(best, (byte)RoomTypeId.DungeonHeart),
+                0 => RandomRoomOfType(best, RoomTypeId.DungeonHeart),
                 1 => RandomNonBridgeRoom(best),
                 2 => RoomByOwnStrength(best, weakest: true),
                 _ => RoomByOwnStrength(best, weakest: false),
@@ -175,7 +175,7 @@ public sealed class KeeperAttackPlanner
             {
                 0 => FurthestOwnRoomFromHeart(),
                 1 => RandomNonBridgeRoom(_view.PlayerId),
-                2 => RandomRoomOfType(_view.PlayerId, (byte)RoomTypeId.DungeonHeart),
+                2 => RandomRoomOfType(_view.PlayerId, RoomTypeId.DungeonHeart),
                 _ => NearestNonBridgeRoom(_view.PlayerId, PointOf(FirstSlab(end))),
             };
         }
@@ -319,7 +319,7 @@ public sealed class KeeperAttackPlanner
             if ((_state.PlayersAttackedFlags & bit) == 0) continue;
             // DK2 tests the player slot's address, never null, so an attacked bit is never
             // cleared; a player the world lacks simply has no Heart room to draw.
-            KeeperRoomView? heart = RandomRoomOfType((byte)player, (byte)RoomTypeId.DungeonHeart);
+            KeeperRoomView? heart = RandomRoomOfType((byte)player, RoomTypeId.DungeonHeart);
             if (heart is null) continue;
             int rx = _rng.NextInt(2), ry = _rng.NextInt(2);
             TilePos position = Position(heart);
@@ -406,11 +406,7 @@ public sealed class KeeperAttackPlanner
     /// <summary>A player's room list in DK2's order: <c>Room_Construct</c> (<c>0x004E3800</c>) links a
     /// new room at the head, so the walk runs newest first; the capture's scan order stands in for
     /// the order the level's rooms were made.</summary>
-    private IEnumerable<KeeperRoomView> RoomsOf(byte player)
-    {
-        for (int i = _view.AllRooms.Count - 1; i >= 0; i--)
-            if (_view.AllRooms[i].OwnerPlayerId == player) yield return _view.AllRooms[i];
-    }
+    private IEnumerable<KeeperRoomView> RoomsOf(byte player) => _view.RoomsOf(player);
 
     /// <summary><c>0x004C6010</c>: the player's non-bridge room whose first slab lies nearest a
     /// point by the shifted square, the first kept on a tie.</summary>
@@ -443,14 +439,7 @@ public sealed class KeeperAttackPlanner
         return BridgeRules.IsBridge(drawn.Definition) ? null : drawn;
     }
 
-    /// <summary><c>0x004C6460</c>: a room drawn uniformly among the player's rooms of one type whose
-    /// ruin bit (<c>+0x9A</c> bit 0) is clear; here a fallen keeper's heart is the one ruin.</summary>
-    private KeeperRoomView? RandomRoomOfType(byte player, byte roomId)
-    {
-        List<KeeperRoomView> rooms = RoomsOf(player).Where(r => r.Definition.RoomId == roomId
-            && !(roomId == (byte)RoomTypeId.DungeonHeart && _view.HeartRuined(player))).ToList();
-        return rooms.Count == 0 ? null : rooms[_rng.NextInt(rooms.Count)];
-    }
+    private KeeperRoomView? RandomRoomOfType(byte player, RoomTypeId type) => _view.RandomRoomOfType(player, type, _rng);
 
     /// <summary>IAFirstEnd 2 and 3: the enemy room with the least or the greatest strength of its own
     /// creatures within five tiles of its position; the least from 0x7FFFFFFF strictly below, the

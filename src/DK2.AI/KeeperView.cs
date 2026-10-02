@@ -57,7 +57,7 @@ public sealed class KeeperView : INavByteGrid
         }
         OwnedTiles = owned;
 
-        AllRooms = RoomIndex.Build(world, database).Select(r => new KeeperRoomView(r)).ToList().AsReadOnly();
+        AllRooms = RoomIndex.Build(world, database).Select(r => new KeeperRoomView(world, r)).ToList().AsReadOnly();
         OwnRooms = AllRooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
         // DK2's DungeonHeartPosition (player+0xB43) is the heart thing's tile, the room's middle
         // (0x004C5F60's two writers); a keeper whose heart room is gone keeps no position here.
@@ -124,7 +124,8 @@ public sealed class KeeperView : INavByteGrid
                 c.OwnerPlayerId != playerId && c.Activity != CreatureActivity.Dead && chicken is not null
                     && KeeperSpellRules.CreatureTargetAllowed(world, database, this, playerId, chicken, c),
                 c.OwnerPlayerId != playerId && c.Activity != CreatureActivity.Dead && inferno is not null
-                    && KeeperSpellRules.PlaceAllowed(world, database, this, playerId, inferno, c.Tile)));
+                    && KeeperSpellRules.PlaceAllowed(world, database, this, playerId, inferno, c.Tile),
+                c.ExperiencePoints, c.DroppedToDoJob));
         }
         Creatures = creatures.AsReadOnly();
         CallToArms = world.Player(playerId).CallToArms;
@@ -442,6 +443,23 @@ public sealed class KeeperView : INavByteGrid
         foreach (KeeperRoomView r in OwnRooms)
             if (r.Definition.RoomId == roomId) return r;
         return null;
+    }
+
+    /// <summary>A player's rooms newest first, the order DK2's room list (<c>player+0x36</c>) walks.</summary>
+    public IEnumerable<KeeperRoomView> RoomsOf(byte player)
+    {
+        for (int i = AllRooms.Count - 1; i >= 0; i--)
+            if (AllRooms[i].OwnerPlayerId == player) yield return AllRooms[i];
+    }
+
+    /// <summary><c>0x004C6460</c>: a room drawn uniformly among the player's rooms of one type whose
+    /// ruin bit (<c>+0x9A</c> bit 0) is clear, drawing only when there is one; here a fallen keeper's
+    /// heart is the one ruin. Drawn from the keeper's own stream (ADR-0244).</summary>
+    public KeeperRoomView? RandomRoomOfType(byte player, RoomTypeId type, SimRandom rng)
+    {
+        List<KeeperRoomView> rooms = RoomsOf(player).Where(r => r.Definition.RoomId == (byte)type
+            && !(type == RoomTypeId.DungeonHeart && HeartRuined(player))).ToList();
+        return rooms.Count == 0 ? null : rooms[rng.NextInt(rooms.Count)];
     }
 
     public KeeperRoomView? NearestOwnRoom(TilePos to, bool avoidBridges = false)

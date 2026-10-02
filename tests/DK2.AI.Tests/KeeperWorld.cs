@@ -35,6 +35,8 @@ internal static class KeeperWorld
     public const byte Water = 5;
     public const byte WoodenBridgeFloor = 17;
     public const byte StoneBridgeFloor = 26;
+    public const byte TrainingFloor = 23;
+    public const byte CombatPitFloor = 24;
 
     /// <summary>Shot 5, Create Object, and a Lightning shot for Thunderbolt; the flag is object 10.</summary>
     public const byte CreateObjectShotId = 5;
@@ -66,6 +68,8 @@ internal static class KeeperWorld
             Terrain(HeartFloor, "Dungeon Heart", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(PrisonFloor, "Prison", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(LibraryFloor, "Library", TerrainFlags.Ownable | TerrainFlags.Room, 100),
+            Terrain(TrainingFloor, "Training Room", TerrainFlags.Ownable | TerrainFlags.Room, 100),
+            Terrain(CombatPitFloor, "Combat Pit", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(Lava, "Lava", TerrainFlags.Lava, 0),
             // Water, Lava and both bridges carry their shipped placement-relevant flags: the hazards
             // are Impenetrable and not Solid, the bridges Ownable rooms (kwd terrainflags).
@@ -83,6 +87,9 @@ internal static class KeeperWorld
             Room(RoomTypeId.DungeonHeart, "Dungeon Heart", 0, HeartFloor, buildable: false),
             Room(RoomTypeId.Prison, "Prison", 0, PrisonFloor, buildable: false),
             Room(RoomTypeId.Library, "Library", 0, LibraryFloor, buildable: false),
+            // The shipped flags, 0x13AC and 0x12AC: special tiles, so the dummies stand on the floor slots.
+            Room(RoomTypeId.TrainingRoom, "Training Room", 0, TrainingFloor, buildable: false, (RoomFlags)0x13ACu, [TrainingDummyObjectId, 0, 0, 0]),
+            Room(RoomTypeId.CombatPit, "Combat Pit", 0, CombatPitFloor, buildable: false, (RoomFlags)0x12ACu),
             // Both bridges as shipped: 0x1083 on each, so either could span water or lava, 200 and 500 a tile.
             Room(RoomTypeId.WoodenBridge, "Wooden Bridge", 200, WoodenBridgeFloor, buildable: true, BridgeFlags),
             Room(RoomTypeId.StoneBridge, "Stone Bridge", 500, StoneBridgeFloor, buildable: true, BridgeFlags),
@@ -96,7 +103,7 @@ internal static class KeeperWorld
         ],
         variables: Variables(handCapacity),
         keeperSpells: KeeperSpells(),
-        objects: [Flag()],
+        objects: [Flag(), TrainingDummy()],
         shots:
         [
             Shot("Create Object", CreateObjectShotId, 2048, 1, 4, 0x80, ShotRules.CreateObjectProcess),
@@ -152,6 +159,29 @@ internal static class KeeperWorld
             LocationSelector = location, TargetSelector = target, ShotTypeId = shot, BonusShotTypeId = shot,
             ShotData1 = data1, ShotData2 = data2, BonusShotData1 = data1, BonusShotData2 = data2,
         };
+
+    /// <summary>Object 14, the Training Room's floor furniture: a room's places are its furniture (ADR-0205).</summary>
+    public const byte TrainingDummyObjectId = 14;
+
+    private static ObjectDef TrainingDummy() => new()
+    {
+        Name = "Training Dummy", ObjectId = TrainingDummyObjectId, Flags = (ObjectFlags)0x02004000u, Hp = 1, ManaValue = 0,
+        RoomCapacity = 0, StartState = 0, PickUpPriority = 176, Width = new Fp32(2297), Height = new Fp32(1228),
+        Mass = new Fp32(8192), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
+    };
+
+    /// <summary>Stands each room's auto-placed furniture, as a level's rooms come furnished.</summary>
+    public static void FurnishRooms(GameDatabase database, WorldState world)
+    {
+        var pieces = new List<(int TileIndex, byte ObjectTypeId)>();
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
+            AutoFurnitureRules.DesiredFurniture(world, database, room, pieces);
+            foreach ((int tile, byte type) in pieces)
+                if (database.ObjectById(type) is not null)
+                    world.SpawnObject(database, type, room.OwnerPlayerId, tile).AutoPlaced = true;
+        }
+    }
 
     /// <summary>The Call to Arms flag, OBJECTS record 10 as shipped: start state 12, 128 health.</summary>
     private static ObjectDef Flag() => new()
@@ -337,6 +367,21 @@ internal static class KeeperWorld
         Set(vars, VariableTypeId.EvilCreaturesChaseEnemyDurationSeconds, 7);
         Set(vars, VariableTypeId.CallToArmsFightDistanceTiles, 5);
         Set(vars, VariableTypeId.UpgradedCallToArmsCostPercentage, 70);
+        // The training moves' cap and what the Training Room and Combat Pit read, as shipped.
+        Set(vars, VariableTypeId.TrainingRoomMaxExperienceLevel, 4);
+        Set(vars, VariableTypeId.CombatPitMaxExperienceLevel, 8);
+        Set(vars, VariableTypeId.EPLossSecondWhileNotTraining, 0);
+        Set(vars, VariableTypeId.ModifyAngerOfPitSpectatorPerSecond, -275);
+        Set(vars, VariableTypeId.ModifyPlayerColdWhileTrainingPerSecond, -5);
+        // The shipped level rows for health and the experience threshold, levels 2 to 10
+        // (creature-levels.md §2), so a level-scaled rule differs from its record value.
+        int[] health = [125, 150, 175, 200, 225, 250, 300, 400, 600];
+        int[] experience = [130, 180, 250, 350, 470, 600, 720, 850, 1000];
+        for (int level = 2; level <= 10; level++)
+        {
+            vars.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.Health, health[level - 2], level, false));
+            vars.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.ExperienceForNextLevel, experience[level - 2], level, false));
+        }
         return vars;
     }
 
@@ -450,7 +495,7 @@ internal static class KeeperWorld
     private const RoomFlags BridgeFlags = RoomFlags.PlaceableOnWater | RoomFlags.PlaceableOnLava;
 
     private static RoomDef Room(RoomTypeId id, string name, ushort cost, byte terrainId, bool buildable,
-        RoomFlags ground = RoomFlags.PlaceableOnLand | RoomFlags.NormalTiles)
+        RoomFlags ground = RoomFlags.PlaceableOnLand | RoomFlags.NormalTiles, byte[]? objectIds = null)
     {
         return new()
         {
@@ -462,7 +507,7 @@ internal static class KeeperWorld
             TerrainId = terrainId,
             Construction = id == RoomTypeId.Portal ? TileConstruction.ThreeByThree : TileConstruction.Normal,
             CreatedCreatureId = 0,
-            ObjectIds = [],
+            ObjectIds = objectIds ?? [],
             HealthGain = 0,
             CeilingHeight = new Fp32(0),
             RecommendedSizeX = 1,

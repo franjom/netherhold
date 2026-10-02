@@ -1,0 +1,46 @@
+# The unaided keeper's training moves on a stock map: Level 17 gives Harkan (player 4) a 4x3
+# Training Room at (11..14, 19..21), whose two interior cells (12,20) and (13,20) are its floor
+# slots, IACreatureSkillLevel 4 and IAMinimumCreatures 15 from its own PLAYERS record, and three
+# level-7 Black Knights placed in its Lair. Nothing is added: no creature, room or command.
+# With three non-workers against a minimum of 15 the army is never ready, so step 9 runs on
+# every turn its 50% roll passes. Each Black Knight is below three quarters of its threshold and
+# not below the skill level of 4, so it is a Training candidate; in state 7 (group 9, a walk
+# resolving to the Lair's 80) it passes every predicate; the keeper lifts it through the pick-up a
+# human uses and drops it on a slot drawn among the two cells, one allowance each
+# (computer-keeper-management.md §2, ADR-0317). It lands stunned and, getting up, is given the
+# room's job, Train (ADR-0215, ADR-0226).
+#
+# What this run does NOT establish: DK2's timing or order. At level 7 a Black Knight is above
+# TrainingRoomMaxExperienceLevel, so training refuses it (at_training_cap); chooser 89 then forgets
+# the job and step 9 may lift it again, which longer runs show and no original run has confirmed (Q509).
+id: keepers-level17-harkan-training-001
+question: >
+  Does Harkan, unaided, lift a creature of its own and put it down in its Training Room?
+map: campaign:level17
+seed: 12345
+duration_ticks: 40
+viewing_player: 4
+computer_keepers: [4]
+setup:
+  placed_things: true
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 2, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
+    - { id: 4, gold: 10000, mana: 25000 }
+    - { id: 5, gold: 10000, mana: 100 }
+observe:
+  - state_hash
+  - events
+expect:
+  - event: picked_up
+    detail: "player=4"
+    because: >
+      The training moves (0x004FF5C0) lift a non-worker of the keeper's that is not in the needs
+      group, the Training category, combat, the hand, state 76 or the stunned states, holds no
+      dropped-to-do job and passes the dropped-counter guard, through the hand pick-up 0x004BC500.
+  - event: dropped_to_job
+    detail: "job=Train"
+    because: >
+      In the hand (0x004BCAE0), the creature is dropped by 0x004BC710 on a floor slot of the
+      Training Room that 0x004E8210 drew; getting up there, 0x004E8DA0 gives it the room's job.

@@ -31,25 +31,33 @@ containing an active creature in state 136 or effective category 15
 
 ## 2. Training moves — `0x004FF5C0`
 
-Select one Training Room and one Combat Pit. A room matching the current
-build's low seven id bits is excluded. Walk owned nonworkers while allowance
-remains. Choose the Pit branch if experience is strictly above three quarters
-of its level-scaled next-level requirement, or its level has reached the
-Training Room cap while still below the keeper's attack target level.
-Otherwise choose the Training branch. A missing Pit does not fall back to
-Training for a creature already assigned to the Pit branch.
+Re-read 2026-10-02 (Ghidra 12.1.4, Claude's clone; disassembly for receivers,
+argument counts and branch order). **BUILT** as `KeeperTrainingStep` (ADR-0317).
+Every row is STRONGLY INFERRED from the static read unless marked.
 
-The Pit branch additionally requires health strictly above three quarters of
-the level-scaled maximum; Training has no health comparison. Both apply the
-dropped-counter guard, exclude an existing destination activity, combat category,
-hand/state restrictions, and a nonzero creature dword `+0x2BC`. The latter's
-meaning is **UNKNOWN** here. A selected room's position comes from
-`0x004E8210(1,0)` (floor slots only) and is offset by `0x100` before dropping.
+| # | Claim | Source |
+|---|---|---|
+| 1 | The tick draws `random(100)` from the world stream after specials; `< 50` with allowance calls readiness `0x004FAB10`, and only a not-ready army runs the moves, whose returned allowance replaces the tick's. No allowance skips readiness too. | `0x00500DF4`–`0x00500E38` |
+| 2 | `0x004C6460(7)` then `(16)`: each draws `random(count)` among the player's rooms of the type (room `+0x18`) with `+0x9A` bit 0 clear, and only when the count is nonzero. That bit's meaning for these two types is unread; ours excludes only a ruined heart (ADR-0298). | `0x004FF5E1`, `0x004FF5F0`, `0x004C6460` |
+| 3 | A branch is off while the keeper's `CurrentRoomToBuild` (`+0x98`) masked with `0x7F` is its room type: 16 for the Pit, 7 for Training. It is a type test, not a room test; the routine returns at once when neither branch is on. | `0x004FF5FB`–`0x004FF61D`, `0x004FF71F`, `0x004FF87B` |
+| 4 | Allowance is the byte argument, tested before every creature, the first included. | `0x004FF63B` |
+| 5 | The owner's list from `player+0x06`, next `+0x10`, the retreat's order; a worker (definition `+0x686` bit 0) is skipped. | `0x004FF628`, `0x004FF64D`, `0x004FFA25` |
+| 6 | **Pit branch** when experience `+0x3FF` is above `3T/4` **unsigned and strictly**, `T` being `ExpForNextLevel` (`def+0x6B5`) raw at level 1, otherwise scaled by stat row 13 at the current level and clamped to 0–`0xFFFE`; **or** level `≥` variable 126 (`0x006F28FC`, u8) **and** `<` `IACreatureSkillLevel` (`+0x4B2` bits 19–22). Otherwise **Training**. Experience equal to the bar, or level equal to the skill level, is Training; level equal to variable 126 goes on to the skill test. | `0x004FF65A`–`0x004FF709` |
+| 7 | A Pit-branch creature never falls back to Training: a missing or excluded Pit skips it. | `0x004FF86B`–`0x004FF887` |
+| 8 | Pit only: health `+0x40` signed above `(3 × max) >> 2` (unsigned shift), max health level-scaled from `def+0x692` as `CreatureLevelRules.MaxHealth`. | `0x004FF88D`–`0x004FF8E1` |
+| 9 | Both branches, in order: the dropped-counter guard (`+0x46D` above 300, or game turn at most 300); resolved category (`0x00478050`) not 13 (Training) / 16 (Pit); `+0x2BC` zero; current state's group tag (state record `+0x16`) not 7, the needs group; resolved category not 22; not in this keeper's hand (`0x004BCAE0`); state not 76; not 209/255/256/257 (`0x0048F350`). | `0x004FF731`–`0x004FF7C9`, `0x004FF8E7`–`0x004FF983` |
+| 10 | `+0x2BC` is `DroppedToDoJobId` (ADR-0215): `Room_DropCreature` writes the room record's job `+0x25` or 0 (`0x004E906F`, `0x004E9084`); through the state sub-object (`creature+0x24E`, so `+0x6E`) chooser 89 clears it when the job is refused (`0x00477A57`), as do state 121's handler (`0x004739E0`, three sites) and `0x0047B532`. A creature keeps its dropped job, and is not moved, until one of these clears it. A scan for `+0x2BC` alone misses every clear. | StoreAt `0x2BC` and `0x6E`, `0x004E8DA0`, `0x004778E0` |
+| 11 | Training asks permission `0x0048E6A0(keeper id)` before the slot; the Pit asks for the slot before permission. | `0x004FF7E5`/`0x004FF803`, `0x004FF9A8`/`0x004FF9BF` |
+| 12 | Then `0x004BFBD0` (state 75), `0x004BC500` (lift), and only if `0x004BCAE0` finds it held, `0x004BC710` drops it at the slot. | `0x004FF810`–`0x004FF866`, `0x004FF9C8`–`0x004FFA1A` |
+| 13 | One allowance is spent at `0x004FFA1F` by every path past the predicates: refused permission, no slot, a refused lift, or a drop. | `0x004FFA1F` |
+| 14 | `0x004E8210(1, 0)` with ECX the room walks its slab chain from `FirstSlab` (`+0x2D/+0x2E`, tile `+0x04` next), counts tiles `Room_IsFloorSlot` (`0x00454110`) accepts, draws `random(count)` from the world stream and returns that tile's centre (`tile × 0x1000 + 0x800`, z 0). No slot: 0, no draw. For Training and the Pit the slot is an interior cell. | `0x004E8210`–`0x004E8427` |
+| 15 | The drop adds `0x100` to x and y: `tile × 0x1000 + 0x900`, as the retreat's. | `0x004FF843`, `0x004FF9F7` |
 
-Neither branch attempts a move if its predicates fail. Once the move attempt
-is reached, one allowance is spent even when position selection or hand
-interaction fails. The outer tick has a separate 50% gate and calls readiness
-first; readiness can itself grant levels (`computer-keeper-threat.md` §2).
+Shipped data (CONFIRMED): variable 126 is 4; campaign keepers' `IACreatureSkillLevel` runs
+0 to 10 (Level 17's Harkan 4, its player 5 5, Level 10's Asmodeus 10). A Pit fighter at or above
+the skill level is lifted out by the retreat's fifth branch (`computer-keeper-threat.md` §4)
+one step before this one, so the two alternate when the experience bound sends it back. No original
+run (Q509); stock-map runs: `computer-keeper-observations.md`.
 
 ## 3. Specials — `0x00500520`
 

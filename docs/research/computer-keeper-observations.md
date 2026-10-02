@@ -81,10 +81,20 @@ tick 2408. Whether the original keeper issued other orders remains UNKNOWN.
 
 `scenarios/keepers/level17_harkan_unassisted.yaml` uses the shipped Level 17
 PLAYERS and availability records for Harkan (player 4). Prison (11) is in
-state 3. In the 1,200-tick modern run, the keeper emitted 32 tag commands,
-25 room-build commands, and seven slaps. Imp work dug marked rock, and the
-Prison first built at tick 524; 25 tiles were built by tick 616. Portal
-recruitment occurred independently of the keeper command stream. These are
-CONFIRMED modern-run facts, not an original-game comparison. The scenario
-has no scripted player commands and has regression expectations for digging,
-the Prison build, and portal recruitment.
+state 3. In the 1,200-tick modern run on the training-moves build (2026-10-02),
+the keeper emitted 32 tag commands, 25 room-build commands, nine slaps and 30
+pick-up/drop pairs. Imp work dug marked rock, and the Prison first built at tick
+219; 25 tiles were built by tick 335. The 30 moves are step 9's: its three placed
+level-7 Black Knights four times each, and portal recruits after them, onto the
+Training Room's two interior cells. A Black Knight over the Training cap is refused,
+forgets the job and is lifted again (Q509). Portal recruitment occurred independently
+of the keeper command stream. These are CONFIRMED modern-run facts, not an
+original-game comparison. The scenario has no scripted player commands and has
+regression expectations for digging, the Prison build, and portal recruitment;
+`level17_harkan_training.yaml` asserts the first moves.
+
+On Level 10 the same build has Asmodeus (skill level 10, never ready) lift its
+creatures 13 times into its two Training Rooms' interior cells (22,16) and (32,16)
+from input tick 2. The original save cannot confirm or refute this: its entity
+sections are undecoded (Q182), so where Asmodeus's creatures stood at tick 2408
+is UNKNOWN (Q509).

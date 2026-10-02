@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 14;
+    public const int FormatVersion = 15;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -54,6 +54,7 @@ public static class KeeperViewSnapshot
             w.Write(c.FightTargetOwner); w.Write(c.CallToArmsSiteAllowed); w.Write(c.HeartRouteExists);
             w.Write(c.SpellTargetAllowed); w.Write(c.CombatPitFighter); w.Write(c.AttachedToRoom);
             w.Write(c.HealTargetAllowed); w.Write(c.ChickenTargetAllowed); w.Write(c.InfernoPlaceAllowed);
+            w.Write(c.Experience); w.Write((int)c.DroppedToDoJob);
         }
         w.Write(view.Traps.Count);
         foreach (KeeperTrapView t in view.Traps)
@@ -67,6 +68,8 @@ public static class KeeperViewSnapshot
             w.Write(room.MinX); w.Write(room.MinY); w.Write(room.MaxX); w.Write(room.MaxY);
             w.Write(room.TileIndices.Count);
             foreach (int index in room.TileIndices) w.Write(index);
+            w.Write(room.FloorSlots.Count);
+            foreach (int index in room.FloorSlots) w.Write(index);
         }
         w.Write(view.Messages.Count);
         foreach (PlayerMessage m in view.Messages)
@@ -111,7 +114,7 @@ public static class KeeperViewSnapshot
         for (int i = 0; i < availability.Length; i++)
             availability[i] = new AvailabilityState(r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(),
                 r.ReadInt64());
-        var creatures = new KeeperCreatureView[ReadCount(r, 72)];
+        var creatures = new KeeperCreatureView[ReadCount(r, 80)];
         for (int i = 0; i < creatures.Length; i++)
             creatures[i] = new KeeperCreatureView(r.ReadInt32(), r.ReadByte(), r.ReadByte(),
                 (CreatureActivity)r.ReadInt32(), r.ReadInt32(), r.ReadInt32(), r.ReadInt64(), r.ReadBoolean(),
@@ -120,11 +123,12 @@ public static class KeeperViewSnapshot
                 r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt32(),
                 r.ReadUInt16(), r.ReadBoolean(), r.ReadInt32(), r.ReadBoolean(),
                 r.ReadByte(), r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean(),
-                r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean());
+                r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean(),
+                r.ReadInt32(), (JobType)r.ReadInt32());
         var traps = new KeeperTrapView[ReadCount(r, 12)];
         for (int i = 0; i < traps.Length; i++)
             traps[i] = new KeeperTrapView(r.ReadByte(), r.ReadByte(), r.ReadInt32(), r.ReadInt32(), r.ReadUInt16());
-        var rooms = new KeeperRoomView[ReadCount(r, 22)];
+        var rooms = new KeeperRoomView[ReadCount(r, 26)];
         for (int i = 0; i < rooms.Length; i++)
         {
             RoomDef definition = database.RoomById(r.ReadByte());
@@ -137,7 +141,14 @@ public static class KeeperViewSnapshot
                 if ((uint)indices[j] >= tiles.Length)
                     throw new InvalidDataException("Room tile is outside the observation.");
             }
-            rooms[i] = new KeeperRoomView(definition, owner, indices, minX, minY, maxX, maxY);
+            var slots = new int[ReadCount(r, 4)];
+            for (int j = 0; j < slots.Length; j++)
+            {
+                slots[j] = r.ReadInt32();
+                if (Array.IndexOf(indices, slots[j]) < 0)
+                    throw new InvalidDataException("Floor slot is not a tile of its room.");
+            }
+            rooms[i] = new KeeperRoomView(definition, owner, indices, minX, minY, maxX, maxY, slots);
         }
         var messages = new PlayerMessage[ReadCount(r, 27)];
         for (int i = 0; i < messages.Length; i++)

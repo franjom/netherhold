@@ -16,9 +16,9 @@ namespace DK2.AI;
 /// in the simulation sees this type, so the world hash is untouched. Source: the
 /// original's <c>ComputerPlayer.cpp</c> (docs/KEEPER_AI.md §5, §12.1).</para>
 /// <para>The proactive foundation of §12.8, the attack response (<see cref="KeeperThreatResponder"/>),
-/// the battle step (<see cref="KeeperBattleStep"/>), the retreat (<see cref="KeeperRetreatStep"/>) and the
-/// attack planner (<see cref="KeeperAttackPlanner"/>). Not implemented: traps and doors, prisoners,
-/// training moves, the researcher's portal move, room and mood messages.</para>
+/// the battle step (<see cref="KeeperBattleStep"/>), the retreat (<see cref="KeeperRetreatStep"/>), the
+/// training moves (<see cref="KeeperTrainingStep"/>) and the attack planner (<see cref="KeeperAttackPlanner"/>).
+/// Not implemented: traps and doors, prisoners, the researcher's portal move, room and mood messages.</para>
 /// <para>Deviates: randomness is the keeper's own <see cref="SimRandom"/>, not the world's (§12.1).</para>
 /// </remarks>
 public sealed class KeeperAI
@@ -124,8 +124,9 @@ public sealed class KeeperAI
         if (budget > 0) budget = retreat.Run(budget);
 
         // 9. The training roll, drawn with or without allowance; readiness grants levels as it
-        // tests, and the moves themselves (0x004FF5C0) are unbuilt.
-        if (_rng.NextInt(100) < 50 && budget > 0 && !readiness.ArmyReady()) State.UnbuiltTrainingMoves++;
+        // tests, and a not-ready army gets the training moves (0x004FF5C0).
+        if (_rng.NextInt(100) < 50 && budget > 0 && !readiness.ArmyReady())
+            budget = new KeeperTrainingStep(view, State, _p, _rng, commands, readiness, retreat.Prepared).Run(budget);
 
         // 11. Imps while no fight is on, else the battle step; then 13. slaps.
         if (budget > 0)
