@@ -123,7 +123,9 @@ zero in both columns:
 Three paying terrains out of 41, and they are exactly the ownable non-room
 ones. That partition is what `DK2.Simulation.ManaRules` rests on, and
 `ManaOnRealDataTests` asserts it by exhaustion rather than by spot check. See
-`mana.md`; `MaxManaGain` is Q37.
+`mana.md`; `MaxManaGain` is Q37 — read after all by `Tile_SetOwner` into the
+owner's gain cap (ADR-0334). The table is the terrain's own number; DK2's rate
+word also keeps the floor's 1 under a room built over it (`mana.md`, ADR-0334).
 
 
 ## Room types (Rooms.kwd)

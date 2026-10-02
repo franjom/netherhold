@@ -68,6 +68,7 @@ public static class DefeatRules
             {
                 ref TileState tile = ref world.TileAtIndex(index);
                 tile.OwnerPlayerId = PlayerIds.Neutral;
+                tile.KeptManaGain = 0;
                 if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
             }
             rooms++;
@@ -86,6 +87,7 @@ public static class DefeatRules
             tile.BurnTicksRemaining = 0;
             if (!next.IsTaggable) tile.TaggedBy = 0;
             tile.OwnerPlayerId = next.IsOwnable ? PlayerIds.Neutral : PlayerIds.Unowned;
+            tile.KeptManaGain = 0;
             fallen++;
         }
 

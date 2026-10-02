@@ -191,6 +191,12 @@ public struct TileState
     /// A heart's ruin is <see cref="PlayerState.HeartRuined"/> (hero-parties-and-effect-generators.md).</summary>
     public bool RoomRuined;
 
+    /// <summary>The floor's <c>ManaGain</c> a room tile went on paying when the room was built over
+    /// it: DK2's rate word (<c>player+0x10E2</c>) is adjusted by <c>Tile_SetTerrain</c> only when
+    /// neither terrain is a Room (<c>0x00455B90</c>), so a room laid on claimed floor keeps the 1,
+    /// and a room owned from the start or taken from a rival carries 0 (ADR-0334). Read by <see cref="ManaRules.GainPerSecond"/> on room tiles alone.</summary>
+    public byte KeptManaGain;
+
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = 15;
 
@@ -245,6 +251,7 @@ public struct TileState
         hash.Add(SlabOrder);
         hash.Add(RoomSizeChangedTick);
         hash.Add(RoomRuined);
+        hash.Add(KeptManaGain);
     }
 }
 

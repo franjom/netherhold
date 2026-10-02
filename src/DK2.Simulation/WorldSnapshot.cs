@@ -132,6 +132,7 @@ public static class WorldSnapshot
             w.Write(t.SlabOrder);
             w.Write(t.RoomSizeChangedTick);
             w.Write(t.RoomRuined);
+            w.Write(t.KeptManaGain);
             w.Write(t.TaggedBy);
             w.Write(t.DiscoveredBy);
             w.Write(t.FreshlyDug);
@@ -673,6 +674,7 @@ public static class WorldSnapshot
                 SlabOrder = r.ReadInt32(),
                 RoomSizeChangedTick = r.ReadInt64(),
                 RoomRuined = r.ReadBoolean(),
+                KeptManaGain = r.ReadByte(),
                 TaggedBy = r.ReadUInt16(),
                 DiscoveredBy = r.ReadUInt16(),
                 FreshlyDug = r.ReadBoolean(),

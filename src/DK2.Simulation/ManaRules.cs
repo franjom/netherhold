@@ -22,11 +22,19 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/mana.md")]
 public static class ManaRules
 {
-    /// <summary>Mana per second this tile generates for whoever owns it. Read from the
-    /// terrain, never from a terrain id, so a new claimable floor type would generate
-    /// mana without a line of code changing.</summary>
-    public static int GainPerSecond(GameDatabase database, in TileState tile) =>
-        database.TerrainById(tile.TerrainId).ManaGain;
+    /// <summary>Mana per second this tile generates for whoever owns it: the terrain's
+    /// <c>ManaGain</c>, plus, on a room tile, the floor's gain it kept when the room was built
+    /// over it (<see cref="TileState.KeptManaGain"/>). DK2 keeps the rate as a running word
+    /// (<c>player+0x10E2</c>): <c>Tile_SetOwner</c> (<c>0x004559D0</c>) moves the current
+    /// terrain's gain between owners, and <c>Tile_SetTerrain</c>'s adjustment
+    /// (<c>0x00455B90</c>) runs only when neither the old nor the new terrain is a Room, so a
+    /// room laid on claimed floor keeps the floor's 1 and a room owned from the start pays
+    /// nothing (ADR-0334). Read from the terrain, never from a terrain id.</summary>
+    public static int GainPerSecond(GameDatabase database, in TileState tile)
+    {
+        TerrainDef terrain = database.TerrainById(tile.TerrainId);
+        return terrain.ManaGain + (terrain.IsRoom ? tile.KeptManaGain : 0);
+    }
 
     /// <summary>The most mana any one keeper may gain in a second, whatever they own. The cap is
     /// per keeper, not level-wide: one keeper's dungeon does not throttle another's.
@@ -67,6 +75,9 @@ public static class ManaRules
     public static int[] GainPerSecondByPlayerIndex(WorldState world, GameDatabase database)
     {
         var gain = new int[world.PlayerCount];
+        // Tile_SetOwner moves the terrain's MaxManaGain into the owner's cap word (+0x10DE)
+        // beside its gain: a Claimed Vault raises a keeper's cap by 100 a tile (ADR-0334).
+        var capBonus = new int[world.PlayerCount];
         var hasHeart = new bool[world.PlayerCount];
         byte? heartTerrain = DungeonHeartTerrainId(database);
 
@@ -85,6 +96,7 @@ public static class ManaRules
 
             int perTile = GainPerSecond(database, tile);
             if (perTile != 0) gain[player] += perTile;
+            capBonus[player] += database.TerrainById(tile.TerrainId).MaxManaGain;
 
             // A flag rather than a count: however many tiles a heart covers it is one
             // heart, and a keeper never has two.
@@ -94,7 +106,7 @@ public static class ManaRules
         int fromHeart = hasHeart.Contains(true) ? HeartGainPerSecond(database) : 0;
         int cap = MaxGainPerSecond(database);
         for (int i = 0; i < gain.Length; i++)
-            gain[i] = Math.Min(gain[i] + (hasHeart[i] ? fromHeart : 0), cap);
+            gain[i] = Math.Min(gain[i] + (hasHeart[i] ? fromHeart : 0), cap + capBonus[i]);
 
         return gain;
     }

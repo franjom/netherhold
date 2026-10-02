@@ -6,11 +6,13 @@
 # keeper's dungeon heart. Nothing else on this map is worth anything.
 #
 # Three seconds in, the keeper paves three of those eight tiles into a treasury.
-# The income drops to 35, and it drops for a reason nothing here implements:
-# room terrain has a mana gain of zero in all 26 of the game's rooms, so
-# building on your own floor takes that floor off the payroll. Read the
-# `mana_gained` lines: the rate falls from 38/s to 35/s without a single rule
-# knowing that a treasury was involved.
+# The income stays at 38. Room terrain has a mana gain of zero in all 26 of the
+# game's rooms, but DK2 keeps the rate as a running word and Tile_SetTerrain's
+# adjustment (0x00455B90) is skipped whenever a Room is on either side of the
+# change, so the claimed floor's 1 stays on the books under the treasury
+# (ADR-0334; the Level 3 capture's rate word counts every room tile the keeper
+# built). The rate before the build is pinned here; the later payments also
+# carry the free imps' claims, so the kept floor itself is pinned by ManaTests.
 #
 # The heart's 30 is counted once for the keeper, not once per heart tile - a
 # keeper has at most one dungeon heart ever, and losing it is what defeat is.
@@ -33,7 +35,7 @@
 id: mana-land-pays-a-keeper-001
 question: >
   Is a keeper's mana income the size of their territory - so that claiming
-  ground raises it, and building a room on that same ground lowers it again?
+  ground raises it, and building a room on that same ground keeps it?
 map: flat_16x12
 seed: 5
 duration_ticks: 100
@@ -83,8 +85,9 @@ expect:
   - event: built
     detail: "tiles=3 cost=600"
     because: >
-      Three of those eight tiles are paved. Room terrain has a mana gain of zero
-      in all 26 of the game's rooms, so building on your own floor takes that
-      floor off the payroll - the rate falls without a single rule knowing a
-      treasury was involved. 600 is three tiles at the Treasury's own Cost of
-      200, paid out of the heart.
+      Three of those eight tiles are paved. 600 is three tiles at the Treasury's
+      own Cost of 200, paid out of the heart. The rate does not fall for it: the
+      room keeps the floor's 1 a tile, as DK2's rate word does (0x00455B90
+      adjusts only between two non-room terrains; ADR-0334). By then the free
+      imps have claimed ground of their own, so the later payments read above 38
+      rather than exactly it, which is why no later rate is pinned here.

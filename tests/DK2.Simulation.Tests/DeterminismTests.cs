@@ -104,7 +104,7 @@ public class DeterminismTests
 
         // HashVersion 166: a hatchery's ChickensGenerated, room+0x51 (ADR-0335).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x11AF2D537B0D13F6UL, sim.StateHash());
+        Assert.Equal(0x32B476C1ECE5CC30UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
