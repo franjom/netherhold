@@ -7374,5 +7374,9 @@ is removed. The sleep system's tired-and-bedless attempt stays. Docs:
 RNG-free and stateless, no `HashVersion` change; a success skips that tick's roll, so every
 replay with a bedless idle creature shifts. Level 3 seed01: no Goblin leaves, the Lord is
 fought in the corridor at (24,22)–(26,25) from 3564 as DK2's is, and stands at 3704 with
-2,656 health (5,001 before; DK2 kills him at 3683). Rigs: L1 20/20 with every win tick
+2,656 health (5,001 before; DK2 kills him at 3683) — then, with the replay's entity map
+corrected (its party rule had shadowed the placed Lord from turn 2, so the player's six
+Thunderbolts on him were refused as a missing creature), **Level 3 seed01 is won at 3680**,
+DK2's 3683; five of the player's later Thunderbolts are still refused for mana (6,000 each)
+that DK2's keeper had. Rigs: L1 20/20 with every win tick
 moved (1764–1984), L2 6/20 (seeds 7, 9, 10, 15, 18, 19; 6/20 before on other seeds).
