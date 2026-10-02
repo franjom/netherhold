@@ -124,6 +124,16 @@ fight-starter stores. A friendly slot (bit 2) is the **last** castable one — e
 overwrites the saved slot (`spell-friendly-arm.md` §8.1; an earlier reading said
 first) — with its range² and bit 7; a bit-1 slot is the thing-targeting spell.
 
+**A Support waives the recharge.** The slot test is `(FightStyle == 4 && !0x00460C50())
+|| 0x0048C800()`: a Support creature with an escape tile surveys its attack spell
+whether or not it has recharged, so between casts it keeps nibble 0, the spell's
+range², and §9–§10's step-back instead of closing to melee; only a cornered Support,
+and every other style, needs the spell ready. This is why a Warlock stands off while
+its Fireball cools. The waiver sits before the slot's flags are read, so it covers a
+thing-targeting (bit 1) slot too; the friendly arm re-tests `0x0048C800` at `0x0045CCEB`
+and is not waived. Built for the attack survey as `SpellRules.SurveyAttack(whileRecharging)`
+(ADR-0325); the thing-targeting survey is not built.
+
 ## 6. The spell arm of `spFighting` (nibbles 0 and 2), `0x0045FB65`
 
 Reached in reach — `d < range²` with line of sight (`combat-fight-state.md` §2

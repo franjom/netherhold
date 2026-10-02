@@ -126,6 +126,7 @@ public sealed class TileWorkSystem : ISimulationSystem
             if (other.OwnerPlayerId == order.PlayerId) continue;
 
             other.OwnerPlayerId = order.PlayerId;
+            other.KeptManaGain = 0; // Tile_SetOwner moves the room terrain's 0, not the floor's 1 (ADR-0334)
             spread++;
         }
 

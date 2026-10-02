@@ -112,7 +112,9 @@ again (§9).
 
 The ordinary three-slot spell survey is skipped for a worker. It walks slots
 0 through 2, requiring the slot's level, a nonzero spell id, and the ordinary
-can-cast predicate (`0x0048C800`); a `Support` also passes `0x00460C50`. Every
+can-cast predicate (`0x0048C800`), which a `Support` with an escape tile (`0x00460C50`
+returns 0) is excused on the attack arm only: the friendly arm re-tests `0x0048C800`
+at `0x0045CCEB` for every creature (ADR-0325, `combat-spells.md` §5). Every
 spell whose definition has `Flags & 4` overwrites the saved friendly slot,
 range and kind, so the **last eligible friendly slot wins**. Its squared combat
 range is `(Range >> 12) * Range`; its kind is `(Flags & 0xFF) >> 7`, deliberately
@@ -214,7 +216,7 @@ cleared, the ally not told). The Heal chain is built with it: the instant handle
 moves the shot onto its target, the death shot 4 chains, and the Modify Health handler (type 3,
 `shots.md` §8) heals the lesser of the data word and the missing health.
 
-**Not built, named (Q401):** the Support's escape gate on the survey (`0x00460C50`); the
+**Not built, named (Q401):** the
 `TurncoatTimer`, pit-fighter and torture refusals; the Imp Teleport and Imp Haste paths of
 bits 5 and 6; the possessed-creature overrides. The buff shots fly as ordinary shots, so a
 Haste at 3686 units a tick can pass a standing ally where the 2048-a-tick buffs cannot.

@@ -202,19 +202,19 @@ public static class EatingRules
         return best;
     }
 
-    /// <summary>Whether this room holds <b>any</b> object at all — the original's own
-    /// gate on setting out for a hatchery, and a weaker test than "has a bird".
-    /// <para><c>FUN_004ded00</c> keeps only hatcheries whose <c>ObjectList</c>
-    /// head is non-zero — every object in the room, not the food in it, so a
-    /// <b>Chicken Coop</b> counts. Any hatchery of six tiles or more earns a
-    /// coop and passes for ever, which leaves exactly one case false: a hatchery
-    /// too small to earn a coop can never lay, so nobody walks to it.</para></summary>
-    public static bool HoldsAnyObject(WorldState world, RoomInstance room)
+    /// <summary>Whether a chicken stands in this room: the finder's stocked test.
+    /// <para><c>0x004DED00</c> keeps a hatchery whose <c>ObjectList</c> (<c>room+0x0C</c>)
+    /// is non-empty. Coops are on the separate <c>AutoPlacedObjectList</c> (<c>+0x0E</c>,
+    /// <c>0x004E6220</c>), and the list's two adders found take a Chicken (object 9) on the
+    /// room's floor (<c>0x004DEB70</c>, <c>0x004A1F87</c>); none adds an egg. STRONGLY
+    /// INFERRED: other adders are unclassified (Q522). Ours: a carried or held chicken does
+    /// not count, and the adder's capacity refusal is not modelled.</para></summary>
+    public static bool HoldsAChicken(WorldState world, RoomInstance room)
     {
         IReadOnlyList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
         {
-            if (Contains(room, objects[i].TileIndex)) return true;
+            if (IsEdibleChicken(objects[i]) && Contains(room, objects[i].TileIndex)) return true;
         }
 
         return false;

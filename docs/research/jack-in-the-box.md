@@ -4,9 +4,9 @@ Source(s): DKII.EXE v1.70, pyghidra-mcp listings and decompiles on 2026-10-02; t
 `Traps.kwd`, `Shots.kwd` and `Creatures.kwd` (`JackInTheBoxOnRealDataTests`).
 Original version: DK2 v1.70 (GOG)
 Confidence: STRONGLY INFERRED (binary, static). No shipped level places the trap (traps.md §13),
-so nothing here was seen in play (Q521).
+so nothing here was seen in play (Q524).
 Implementation: `JackInTheBoxRules`, `JackInTheBoxSystem`, `TrapRules` (trap 16's data word),
-`ShotRules.AreaDamage` (ADR-0334).
+`ShotRules.AreaDamage` (ADR-0337).
 Tests: `JackInTheBoxTests`, `JackInTheBoxOnRealDataTests`.
 
 ## 1. The trap and its shot
@@ -50,7 +50,7 @@ hook (`state-categories.md`). Each tick:
 The travel state's handler `0x00470C80` charges a creature of type `0x2E` one more point each tick
 it walks. So a Jack loses a point a tick wherever it is and fifty at its target. Tile `(x+1, y+1)` is
 a corner of the heart's raised 3×3, which ours does not route to; whether DK2's router reaches it
-is not read, and the walk's real end is Q521's.
+is not read, and the walk's real end is Q524's.
 
 ## 4. The explosion
 
@@ -71,7 +71,7 @@ the limit is then `(data2² mod 256) << 12` read signed, so a byte of 128 or mor
 the box and a smaller one a few tiles; 16 gives 0 and hurts nobody. For shot 64 the radius
 is a thing tag, so its first strike's reach turns on the victim's slot.
 
-## 6. Built and not built (ADR-0334)
+## 6. Built and not built (ADR-0337)
 
 **Built:** §1's data word (ours writes the target's creature id: we hold no thing slots, so the
 first strike's reach differs from DK2's); §2 for a creature victim; §3; §4, once per Jack, at its
@@ -81,4 +81,4 @@ creature (a fired-without-target shot names thing 2; ours strikes nobody); the `
 
 ## Open questions
 
-Q521 (the predictions in play), Q450.
+Q524 (the predictions in play), Q450.

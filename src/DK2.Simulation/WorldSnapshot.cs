@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 165;
+    private const int FormatVersion = 168;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -126,11 +126,13 @@ public static class WorldSnapshot
             w.Write(t.EntranceIdleTicks);
             w.Write(t.EntranceCreaturesGenerated);
             w.Write(t.HatchTicks);
+            w.Write(t.ChickensGenerated);
             w.Write(t.PitFightSeenTick);
             w.Write(t.PrisonDoor);
             w.Write(t.SlabOrder);
             w.Write(t.RoomSizeChangedTick);
             w.Write(t.RoomRuined);
+            w.Write(t.KeptManaGain);
             w.Write(t.TaggedBy);
             w.Write(t.DiscoveredBy);
             w.Write(t.FreshlyDug);
@@ -677,11 +679,13 @@ public static class WorldSnapshot
                 EntranceIdleTicks = r.ReadInt32(),
                 EntranceCreaturesGenerated = r.ReadInt32(),
                 HatchTicks = r.ReadInt32(),
+                ChickensGenerated = r.ReadInt32(),
                 PitFightSeenTick = r.ReadInt64(),
                 PrisonDoor = r.ReadByte(),
                 SlabOrder = r.ReadInt32(),
                 RoomSizeChangedTick = r.ReadInt64(),
                 RoomRuined = r.ReadBoolean(),
+                KeptManaGain = r.ReadByte(),
                 TaggedBy = r.ReadUInt16(),
                 DiscoveredBy = r.ReadUInt16(),
                 FreshlyDug = r.ReadBoolean(),

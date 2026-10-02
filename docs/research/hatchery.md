@@ -60,15 +60,35 @@ Two details of the placement:
 
 ## 3. Where an egg appears
 
-Two cases, in this order:
+The lay routine `0x004DE620` first asks whether the room has capacity for one more
+Chicken (`0x004E53B0` with the Chicken's room capacity, `0x004DE669`); read in
+instructions 2026-10-02:
 
-1. **The room has coops.** Count the coops in the room's object list, pick
-   **one at random**, and lay the egg at that coop's position.
-2. **The room has no coops.** Walk the room's tiles counting those with no
-   object on them, pick **one at random**, and lay the egg at that tile's centre.
+1. **Capacity left.** Walk the room's tiles counting those with no object on them,
+   pick **one at random**, and lay the egg at that tile's centre.
+2. **No capacity** (`0x004DE8AE`). Only while the keeper's byte `+0x1C1` is below
+   the global at `0x006F28CB` (§5) and the room has auto-placed objects: count the
+   coops (object 35) on `+0x0E`, pick **one at random**, and lay the egg there.
+
+So the coop is where a full room lays, which fits §5's free-range counter.
+`HatcheryRules.TryLayEgg` still follows an earlier reading (coops first, nothing
+when full): see *Known exceptions*.
 
 The room also keeps a **running count of everything it has produced**, bumped on
-each successful lay.
+each successful lay: `ChickensGenerated`, `room+0x51` (the dumper's name), zeroed by
+the room's init `0x004DE060` and incremented at `0x004DE83A` and `0x004DE9DB`.
+The Hatchery finder reads it: an empty hatchery asks for more room (42) only once
+it has laid (`computer-keeper-messages.md` §2).
+
+A room has two object lists. Coops are pushed onto `AutoPlacedObjectList`
+(`+0x0E`, `0x004E6220`), which the coop path above walks. The finder tests the
+other, `ObjectList` (`+0x0C`, `0x004E5FF0`), whose hatchery adders take only a
+Chicken, object 9: `0x004DEB70` adopts the chickens on the room's tiles and
+`0x004A1F87` adds one standing on its owner's Hatchery. No adder for an egg was
+found, so an egg does not stock a hatchery; that the list holds nothing else is
+STRONGLY INFERRED, its other adders being other rooms' (Q522). Ours counts the
+chickens on the room's tiles that are neither carried nor in the hand
+(`EatingRules.HoldsAChicken`); the adder's capacity refusal is not modelled.
 
 The random pick is behaviour, and it is the first place in this project where
 DK2's own RNG position would matter observably (Q3): two hatcheries of the same
@@ -186,7 +206,8 @@ is the original's:
   a 5x5 hatchery holds more than twenty chickens, so a limit of 12 is not the
   room's limit, and applying it would throttle a room DK2 does not throttle.
 
-**Not built:** the room's produced-count, which nothing reads.
+The produced count is `TileState.ChickensGenerated`, on the room's lowest tile like
+the laying clock; a tile that changes terrain or owner drops it (ADR-0335).
 
 ## Tests
 
@@ -200,12 +221,12 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
 - `MaxFreeRangeChickensPerPlayer` parsed, exposed and not applied (§5) — the
   second of the three balance variables this project has caught not meaning what
   its name implies, after `MaxGoldPileOutsideTreasury`.
+- Ours lays at a coop whenever the room has one and refuses a full room; DK2 lays
+  on a free tile while the room has capacity and at a coop, under the free-range
+  cap, when it has none (§3). Unbuilt as of 2026-10-02.
 
 ## Open questions
 
-- Whether DK2 **refuses** to lay when the flock is full, or lays anyway and lets
-  the surplus rot. The owner reports both continuous production and birds
-  vanishing, so both are in play. Ours refuses — a 3x3 settling at *exactly* nine
-  is a cap rather than the balance point of two rates, and refusing cannot run
-  away. **UNKNOWN**, and it blocks nothing.
+- What `+0x1C1` counts, and which global `0x006F28CB` is, beyond §5's reading of
+  them as the free-range counter and `MaxFreeRangeChickensPerPlayer`.
 - Q134: why the exponent is that value. Does not affect fidelity.

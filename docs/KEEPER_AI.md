@@ -1058,8 +1058,8 @@ The simulation's `SimulationEvents` sink remains **observation only** (ADR-0006)
 suppression, expiry and explicit acknowledgment commands. It is hashed and
 snapshotted; `KeeperView` copies the recipient's messages without draining them.
 ADR-0245 defines the sweep timing that preserves zero-timeout messages for AI.
-Room messages 41–43 are retained, posted by the Treasury and Lair paths, and 41/42
-run through `KeeperRoomRequests` (ADR-0327); mood messages and the other room
+Room messages 41–43 are retained, posted by the Treasury, Lair and Hatchery paths, and
+41/42 run through `KeeperRoomRequests` (ADR-0327, ADR-0335); mood messages and the other room
 producers remain unbuilt (`research/computer-keeper-messages.md` §4).
 `KeeperAI` consumes kinds 1 and 6 through `KeeperThreatResponder`: reservation,
 acknowledgment and the respond-to-attack event as commands (ADR-0278, 2026-09-29).
@@ -1140,8 +1140,8 @@ Remaining M12 plan:
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
 3. **Dungeon management.** Add mood responses, prisoners, specials, research decisions and
-   the other room producers; the training moves (ADR-0317) and the Treasury/Lair room needs
-   (ADR-0327) are built. Acceptance: a verified need changes its orders. Reuse §12.3–12.4's
+   the other room producers; the training moves (ADR-0317) and the Treasury, Lair and Hatchery room
+   needs (ADR-0327, ADR-0335) are built. Acceptance: a verified need changes its orders. Reuse §12.3–12.4's
    existing commands and state.
 4. **Deliberate attacks.** Readiness with its level grants, enemy selection, the attack
    tunnel, the staging point, the front and the call are built (ADR-0298), and task 7's

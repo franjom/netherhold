@@ -152,6 +152,14 @@ public struct TileState
     /// </summary>
     public int HatchTicks;
 
+    /// <summary>A hatchery's <c>ChickensGenerated</c> (<c>room+0x51</c>), on the same tile as
+    /// <see cref="HatchTicks"/>: eggs laid since the room was made. Zeroed by the room's init
+    /// <c>0x004DE060</c>, bumped by each egg <c>0x004DE620</c> creates; the finder's 42 needs it
+    /// nonzero (<see cref="RoomNeedRules.NoHatcheryFor"/>). The same lowest-tile deviation: growth
+    /// below that tile, a merge or its sale loses the count, and a tile that leaves its room
+    /// drops it (<see cref="SlabChain.Changed"/>, Q522).</summary>
+    public int ChickensGenerated;
+
     /// <summary>A Combat Pit's <c>+0x53</c>: the turn <c>0x004D7CF0</c> last found a fight on its
     /// floor, on the room's lowest tile index like <see cref="HatchTicks"/> and zero elsewhere. The
     /// spectators' 144 and job 26 read it for the quiet spell after a fight
@@ -182,6 +190,12 @@ public struct TileState
     /// Hero Gate types 18, 20 and 23; it makes a non-Attackable room convertible (<c>0x00454040</c>).
     /// A heart's ruin is <see cref="PlayerState.HeartRuined"/> (hero-parties-and-effect-generators.md).</summary>
     public bool RoomRuined;
+
+    /// <summary>The floor's <c>ManaGain</c> a room tile went on paying when the room was built over
+    /// it: DK2's rate word (<c>player+0x10E2</c>) is adjusted by <c>Tile_SetTerrain</c> only when
+    /// neither terrain is a Room (<c>0x00455B90</c>), so a room laid on claimed floor keeps the 1,
+    /// and a room owned from the start or taken from a rival carries 0 (ADR-0334). Read by <see cref="ManaRules.GainPerSecond"/> on room tiles alone.</summary>
+    public byte KeptManaGain;
 
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = 15;
@@ -231,11 +245,13 @@ public struct TileState
         hash.Add(EntranceIdleTicks);
         hash.Add(EntranceCreaturesGenerated);
         hash.Add(HatchTicks);
+        hash.Add(ChickensGenerated);
         hash.Add(PitFightSeenTick);
         hash.Add(PrisonDoor);
         hash.Add(SlabOrder);
         hash.Add(RoomSizeChangedTick);
         hash.Add(RoomRuined);
+        hash.Add(KeptManaGain);
     }
 }
 

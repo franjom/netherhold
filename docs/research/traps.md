@@ -240,7 +240,7 @@ scan `0x00515520` (`& 0x30` at `0x00515843`); and
 the victim selector's **scan D** (`0x0045D7F2`, `& 0x30`), which walks each hostile player's `+0xC`
 list — `player + 6 + class·2`, so class 3, the traps (`0x004B4D40`) — and admits a completed,
 revealed trap other than trap 16 within sight. No register load of `+0x10C` lies in the computer
-keeper's code. Built (ADR-0335): the reveal; not built: scan D and the fight against a trap.
+keeper's code. Built (ADR-0338): the reveal; not built: scan D and the fight against a trap.
 
 ## 12. Shipped definitions and shot coverage
 
@@ -294,11 +294,11 @@ answer's trap arm and the creature arm's correction; §8 without the owner disco
 Also built (ADR-0326): the upkeep, the no-mana message and its clock, area damage type 2 on
 traps and a shot's collision with a trap; (ADR-0331) the Alarm, Fear, Spike and Gas shots; and
 (ADR-0333) the Boulder and its rolling object, which fires and damages the traps it rolls over;
-(ADR-0334) the Jack In The Box, its Jack and its explosion; and (ADR-0335) the reveal.
+(ADR-0337) the Jack In The Box, its Jack and its explosion; and (ADR-0338) the reveal.
 Disarming (§11) is read and unreachable, so nothing is built for it (ADR-0329).
 Left: a creature choosing a revealed trap as its victim (scan D) and fighting it; effects, sounds and animations; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
 swing at a trap (possession is not built).
 
 ## Open questions
 
-Q450 (what is left), Q451, Q452, Q455, Q398 (shot order and height), Q513, Q520 and Q521 (observations).
+Q450 (what is left), Q451, Q452, Q455, Q398 (shot order and height), Q513, Q520 and Q524 (observations).
