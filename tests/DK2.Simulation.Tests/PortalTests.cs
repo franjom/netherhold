@@ -785,12 +785,15 @@ public class PortalTests
         Assert.Empty(world.Creatures);
     }
 
-    // ---- gate 2: availability --------------------------------------------
+    // ---- not a gate: availability ----------------------------------------
 
     [Fact]
-    public void ACreatureThisLevelHasNotUnlockedNeverArrives()
+    public void ACreatureMadeUnavailableStillComesThroughThePortal()
     {
-        // UNAVAILABLE (1) rather than AVAILABLE (3).
+        // UNAVAILABLE (1) rather than AVAILABLE (3). The pick 0x004DBF90 never reads the
+        // creature table: Level 3 makes its Firefly, Goblin and Warlock unavailable at the
+        // start and its portal produced all three in the recording (ADR-0316). The pool is
+        // what keeps a level's roster closed.
         GameDatabase db = Database(availability: 1);
         WorldState world = World(db);
         Portal(db, world, 5, 5);
@@ -798,19 +801,19 @@ public class PortalTests
 
         Simulation(db, world).Run(LongEnough);
 
-        Assert.Empty(world.Creatures);
+        Assert.NotEmpty(world.Creatures);
+        Assert.All(world.Creatures, c => Assert.Equal(GoblinId, c.CreatureTypeId));
     }
 
     [Fact]
     public void AvailabilityIsPerPlayerAndNotPerLevel()
     {
+        // The table still exists per player, for the creature panel and the scripts that
+        // write it; the portal just does not consult it.
         GameDatabase db = Database();
 
         Assert.True(PortalRules.IsUnlocked(db, Keeper, GoblinId));
         Assert.False(PortalRules.IsUnlocked(db, Rival, GoblinId));
-
-        // A creature the level never mentions is not unlocked for anybody. That
-        // is what makes level 1 a tutorial rather than a free-for-all.
         Assert.False(PortalRules.IsUnlocked(db, Keeper, 3));
     }
 

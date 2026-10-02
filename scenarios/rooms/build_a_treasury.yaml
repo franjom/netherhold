@@ -3,12 +3,14 @@
 # A keeper starts with a dungeon heart and a thousand gold - and the gold is
 # *in* the heart, because that is the only place a keeper with no treasury can
 # keep any. Six floor tiles are claimed, and the keeper then asks for a six-tile
-# treasury on them at 200 gold a tile. Five is what a thousand gold buys.
+# treasury on them at 200 gold a tile. Five is what a thousand gold buys, and DK2
+# lays none of them: a drag is priced whole before its first tile goes down
+# (0x004C5A20; Level 3's recording refused a 7200 Workshop at 7181 gold, ADR-0315).
 #
-# What to read in the event log: one `built` line naming how many tiles landed,
-# what they cost, and why the last one did not - `NotEnoughGold=1`. The state
-# hash moves on the tick the command lands, because the gold really left the
-# heart and the terrain really changed.
+# What to read in the event log: one `built` line naming no tiles, no cost, and
+# why - `NotEnoughGold=6`, every placeable tile counted. The state hash does not
+# move on the command's tick, because nothing left the heart and no terrain
+# changed. Until 2026-10-02 this scenario expected five tiles and one refusal.
 #
 # What this run does NOT establish, and the report repeats it: whether DK2's
 # room cost is per tile or per room (Q32), whether a room must touch land the
@@ -22,8 +24,8 @@
 id: rooms-build-a-treasury-001
 question: >
   Does a keeper's gold live in tiles rather than in a counter - so that a room
-  is paid for out of a heart or a treasury, and a keeper who cannot pay for the
-  last tile of a room gets the rest of it and a reason?
+  is paid for out of a heart or a treasury - and is a drag the keeper cannot pay
+  for whole refused whole, with a reason, rather than laid as far as the gold goes?
 map: flat_16x12
 seed: 5
 duration_ticks: 20
@@ -59,14 +61,15 @@ commands:
 observe:
   - state_hash
   - events
-# Gold lives in tiles, so a keeper who is one tile short gets five tiles and a
-# reason rather than nothing and an error.
+# Gold lives in tiles, and a drag is all-or-nothing: a keeper who is one tile
+# short gets nothing and a reason naming every tile the drag would have laid.
 expect:
   - event: built
-    detail: "tiles=5 cost=1000 refused=NotEnoughGold=1"
+    detail: "tiles=0 cost=0 refused=NotEnoughGold=6"
     at_tick: 6
     because: >
       Six tiles asked for at the Treasury's own Cost of 200. The heart holds
-      exactly MaxGoldPerDungeonHeartTile - 1000 - which buys five, and the sixth
-      is refused BY NAME. The partial build is the claim: the room is not
-      all-or-nothing.
+      exactly MaxGoldPerDungeonHeartTile - 1000 - which buys five, so the
+      pre-check refuses the whole drag BY NAME and the heart keeps its thousand.
+      The whole-drag refusal is the claim (ADR-0315); the heart as the gold's
+      home is the other.

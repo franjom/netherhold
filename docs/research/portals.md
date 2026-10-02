@@ -65,10 +65,12 @@ Two consequences:
 
 ## How they compose (STRONGLY INFERRED — this is where the risk is)
 
-**Five gates.** Four are re-checked every tick inside `PortalSystem.Pick` —
-the creature's own flags, availability, the pool, attraction — and the fifth,
-capacity, is read once per tick per keeper. The gates follow from the fields;
-their composition does not.
+**Four gates.** Three are re-checked at every roll inside `PortalSystem.Pick` —
+the creature's own flags, the pool, attraction — and the fourth, capacity, is read
+once per tick per keeper. **Availability is not one (ADR-0316):** `0x004DBF90` reads
+the pool (`0x00506400`, remaining count non-zero), the flag bits, the attraction and the
+capacity, never the creature table at `+0x4E/+0x52`. Level 3's trigger 79 disables the
+Firefly, Goblin and Warlock at the start and its portal still produced them (1002, 1506, 1694, 2398).
 
 ### 1. The interval grows with the portal's own tally
 
