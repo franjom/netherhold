@@ -23,9 +23,5 @@ Record the level, since an override may change the global range of five.
 
 ## Q454 — contact with an open enemy door
 
-Keep an unlocked door open with a creature allied to its owner standing beside
-it. Send a hostile non-Imp along the corridor through it and record whether it
-crosses or stops to attack. Repeat with the same door closed. Keep the opening
-creature out of the hostile's immediate path and note if combat selects it
-instead, since that does not test door contact. An open-door attack supports
-the hostile-owner arm described in the door read.
+Answered by the owner on 2026-10-02 (CONFIRMED): an enemy stops to attack a door
+held open. See `door-blocking.md` §1.

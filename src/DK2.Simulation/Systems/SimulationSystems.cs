@@ -46,8 +46,13 @@ public static class SimulationSystems
         new CombatPitSystem(), // the pit's states, after the fight processing as DK2's handler is (ADR-0213)
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
         new CreatureMovementSystem(),
+        // The doors' health after the creatures, as DK2's thing pass updates creatures first; ours
+        // puts it before the shots, whose place in that pass is Q398 (door-blocking.md).
+        new DoorHealthSystem(),
         // Shots fly after the creatures have moved; where DK2's thing list puts them is Q398.
         new ShotSystem(),
+        // The thing pass's second walk: whatever is dead now is removed this turn (0x004B7830).
+        new DoorRemovalSystem(),
         // The Call to Arms flag is an object the shot puts down; its recall, release and the
         // heeding states run in the thing update, before the payment that keeps it (ADR-0279).
         new CallToArmsSystem(),

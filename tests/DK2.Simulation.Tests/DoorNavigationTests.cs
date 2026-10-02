@@ -38,6 +38,9 @@ public class DoorNavigationTests
             world.Tile(new TilePos(5, 1)).TerrainId = Dk2TerrainFixture.DirtPath;
             world.Tile(new TilePos(5, 3)).TerrainId = Dk2TerrainFixture.DirtPath;
         }
+        // A door stands on its owner's floor: the update kills one whose tile is anyone else's.
+        world.Tile(new TilePos(5, 2)).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        world.Tile(new TilePos(5, 2)).OwnerPlayerId = doorOwner;
         ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = 5, Y = 2, PlayerId = doorOwner, Flags = flags, DoorId = doorId, Unknown_0011 = new byte[3] }]);
         return (world, db, world.Doors[0]);
     }

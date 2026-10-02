@@ -273,8 +273,11 @@ public static class CategoryHooks
             Leave = static (in StateHookContext _, CreatureState creature) => creature.Running = false,
         },
 
-        Slot(CreatureStateCategory.ReportingDanger, HookKind.Leave, 0x004752A0, HookStatus.NotBuilt,
-            "clears RebelActive; why leaving this category ends a rebellion is UNKNOWN (Q411)"),
+        new(CreatureStateCategory.ReportingDanger, HookKind.Leave, 0x004752A0, HookStatus.Built,
+            "clears RebelActive; why leaving this category ends a rebellion is UNKNOWN (Q411)")
+        {
+            Leave = static (in StateHookContext _, CreatureState creature) => creature.RebelActive = false,
+        },
 
         Slot(CreatureStateCategory.Unnamed28, HookKind.Update, 0x0047A9B0, HookStatus.NotBuilt,
             "-10 health a tick unless the owner has won; no category-28 state is built"),

@@ -78,6 +78,7 @@ public static class CombatPitRules
         if (creature.AttackingId != CombatRules.NoTarget) ClearForcedTarget(world, creature);
         creature.AttackAbnormalTargets = true;
         creature.AttackingId = targetId;
+        creature.AttackingKind = FightTargetKind.Creature;
         creature.CombatPitFighter = true;
     }
 
@@ -86,6 +87,7 @@ public static class CombatPitRules
     public static void ClearForcedTarget(WorldState world, CreatureState creature)
     {
         creature.AttackingId = CombatRules.NoTarget;
+        creature.AttackingKind = FightTargetKind.Creature;
         creature.AttackAbnormalTargets = false;
         CombatRules.Unlink(world, creature);
     }

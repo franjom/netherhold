@@ -146,6 +146,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         // 89 clears the heeding bit, and with the owner's Call to Arms on walks to the flag
         // resuming 191, or sends message 84 (0x004778E0; call-to-arms.md).
         creature.HeedingCallToArms = false;
+        creature.RebelActive = false; // 89's next write clears RebelActive too (0x0047792A)
         if (CallToArmsRules.IsOn(context.World, creature.OwnerPlayerId))
         {
             TilePos flag = context.World.Player(creature.OwnerPlayerId).CallToArms.Tile;

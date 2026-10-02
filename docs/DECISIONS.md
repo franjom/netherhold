@@ -5530,7 +5530,7 @@ timer. Keep the router's owner comparison separate from opening's alliance test.
 
 **Consequences.** Existing state and save layouts suffice. Regression tests cover
 both axes, barricades, picked locks and allied route refusal. Physical contact,
-door damage and support-loss destruction remain Q453.
+door damage and support-loss destruction were Q453, built by ADR-0318.
 
 ## ADR-0251 — Build trap activation arithmetic before enabling automatic firing
 **Date:** 2026-09-28 · **Status:** accepted · Research: `traps.md`
@@ -7102,3 +7102,31 @@ nibble only for a creature dead at health 0 or below, which a collapse is not (�
   the outnumbered imp, and the chase limit, whose runner must stay on its walk.
 - Not modelled: `ReportingTo` and the four other words of §3. Our victory at the collapse
   stays as it is (Q511).
+## ADR-0318 — A door met is a door fought, and a dead door leaves that turn
+**Date:** 2026-10-02 · **Status:** accepted · `HashVersion` 152 · Q453, Q454, Q510 ·
+Research: `door-blocking.md`
+
+**Context.** ADR-0141, ADR-0159 and ADR-0250 built a door's placement, opening, locking and
+route costs, and left the door's physical side to Q453: the contact in the mover, the forced
+fight it starts, the reach and sight a door changes, its health and its death. The blocking
+reads are now done (`door-blocking.md` §1–7); the owner confirmed two observable consequences.
+
+**Decision.**
+- A door has an `Id` from 1, never reused, with `Health` and `RecoveryDeadline` (DK2's `+0x40`,
+  `+0x11A`); traps get an `Id` too. A blueprint names an id, not a list index.
+- A creature's forced target gains a kind beside `AttackingId`, and a fight target kind
+  `Door`. `RebelActive` is creature state, set by job 16 and cleared by state 89 and category 26's leave.
+- The mover's contact (`0x0048A2EB`) forces the door and skips the step; `SelectAVictim`'s forced
+  arm engages it as read; the swing, a shot (the heart's Q363 stand-in, ours) and the approach's
+  neighbour fallback have door arms; the approach routes with option word 2, as read.
+- `WorldSight` asks the door thing open or shut, and a door on the target's tile switches door
+  blocking off.
+- `DoorHealthSystem` after movement: recovery, the owner kill and the support kill;
+  `DoorRemovalSystem` after the shots removes the dead that turn. Their order against shots is ours.
+
+**Consequences.** `HashVersion`/`FormatVersion` 152, pin `0xE459726930E9CA06`. Levels 1 and 2
+hold no door and fire no door event: L1 20/20 and L2 7/20, every seed identical to master
+`fe5e19e`. The shipped sweep: 940 doors on 46 levels, none unsupported, one killed by the owner
+test on its first turn, Level 4's hero Wooden Door at (24,9) (a prediction, Q453). Not built:
+the push-out, the secret-door reveal, the adjacent-door finder `0x00481400`, area damage on
+doors, the linked objects and effects. The pit's forced creature arm keeps ours (Q510).

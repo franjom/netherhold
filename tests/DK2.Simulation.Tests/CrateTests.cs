@@ -110,7 +110,7 @@ public class CrateTests
         WorldState world = World(db);
         ThingProjection.Place(world, db, [Door(DoorAt), Trap(new TilePos(11, 2))]);
 
-        Assert.Equal([new BlueprintRef(CrateRules.DoorKind, 0)], world.Player(Keeper).Blueprints);
+        Assert.Equal([new BlueprintRef(CrateRules.DoorKind, world.Doors[0].Id)], world.Player(Keeper).Blueprints);
         ManufactureOrder order = Assert.Single(world.Player(Keeper).ManufactureQueue);
         Assert.Equal(CrateRules.DoorKind, order.Kind);
         Assert.True(Assert.Single(world.Traps).UnderConstruction);

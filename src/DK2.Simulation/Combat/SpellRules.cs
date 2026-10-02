@@ -72,8 +72,10 @@ public static class SpellRules
 
     /// <summary>The survey's attack choice (§5): over the castable attack slots the creature's level
     /// allows, the one whose <c>stamp + recharge</c> is latest — fresh, the longest recharge. The
-    /// slot index, or −1 with <paramref name="chosen"/> null.</summary>
-    public static int SurveyAttack(GameDatabase database, CreatureState me, CreatureDef definition, long tick, out CreatureSpellDef? chosen)
+    /// slot index, or −1 with <paramref name="chosen"/> null. With <paramref name="skipStatus"/>, as
+    /// against a forced thing, a status spell (flag bit 3) is passed over inside the loop.</summary>
+    public static int SurveyAttack(GameDatabase database, CreatureState me, CreatureDef definition, long tick, out CreatureSpellDef? chosen,
+        bool skipStatus = false)
     {
         chosen = null;
         int best = -1;
@@ -84,7 +86,7 @@ public static class SpellRules
             if (definition.Spells[i].LevelAvailable > me.Level) continue;
             if (!CanCast(database, me, definition, i, tick)) continue;
             CreatureSpellDef spell = SpellOf(database, definition, i)!;
-            if (!IsAttack(spell)) continue;
+            if (!IsAttack(spell) || (skipStatus && IsStatus(spell))) continue;
             long ready = me.SpellStamps[i] + RechargeTicks(spell);
             if (best >= 0 && ready <= bestReady) continue;
             best = i;

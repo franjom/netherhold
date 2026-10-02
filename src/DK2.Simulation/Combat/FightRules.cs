@@ -37,6 +37,9 @@ public static class FightRules
             case FightTargetKind.Heart:
                 ref PlayerState owner = ref world.Player(me.FightTargetPlayerId);
                 return owner.HeartHealth > 0 && !owner.HeartRuined;
+            case FightTargetKind.Door:
+                // spFighting step 5: a thing target must be live with health above 0.
+                return world.DoorById(me.FightTargetId) is { Health: > 0 };
             default:
                 return false;
         }
@@ -63,15 +66,27 @@ public static class FightRules
             tile = new TilePos(me.FightTargetTileIndex % world.Width, me.FightTargetTileIndex / world.Width);
             return true;
         }
+        else if (me.FightTargetKind == FightTargetKind.Door && world.DoorById(me.FightTargetId) is { } door)
+        {
+            x = CreatureState.CentreOf(door.X);
+            y = CreatureState.CentreOf(door.Y);
+            tile = new TilePos(door.X, door.Y);
+            return true;
+        }
         x = y = 0;
         tile = default;
         return false;
     }
 
-    /// <summary><c>0x0045E8F0</c>: within <c>AttackRangeSquared</c> and seen.</summary>
-    public static bool InRange(ISightBlocker sight, CreatureState me, int targetX, int targetY) =>
-        CombatRules.DistanceSquared(me.PosX, me.PosY, targetX, targetY) < me.AttackRangeSquared
-        && LineOfSight.Clear(sight, me.PosX, me.PosY, targetX, targetY);
+    /// <summary><c>0x0045E8F0</c>: strictly within <c>AttackRangeSquared</c> and seen. A door on the
+    /// target's tile sets the walk's first flag, under which no door stops sight, only a solid tile
+    /// (<c>0x004511A0</c>, door-blocking.md).</summary>
+    public static bool InRange(ISightBlocker sight, CreatureState me, int targetX, int targetY)
+    {
+        if (CombatRules.DistanceSquared(me.PosX, me.PosY, targetX, targetY) >= me.AttackRangeSquared) return false;
+        if (sight is WorldSight world && world.DoorOn(targetX / Fp32.One, targetY / Fp32.One)) sight = world.SolidOnly;
+        return LineOfSight.Clear(sight, me.PosX, me.PosY, targetX, targetY);
+    }
 
     /// <summary>The approach (<c>0x00471D10</c>): a route to the target's position with the plain
     /// option word, requested again only when the target has changed tile.</summary>
@@ -138,6 +153,20 @@ public static class FightRules
             if (blow < 0) CombatMessageRules.HeartDamaged(context, owner.PlayerId);
             context.Emit(SystemName, "heart_hit",
                 $"creature={me.Id} heart={owner.PlayerId} blow={blow} health={owner.HeartHealth}{(killed ? " destroyed" : "")}");
+        }
+        else if (me.SwingTargetKind == FightTargetKind.Door)
+        {
+            // The swing's door arm (0x00498E30): the attacker's melee damage with no bearing bonus,
+            // which is the creature arm's alone, applied flat through the health routine. The two
+            // player modifiers (+0x1090, +0x1091) apply in DK2; ours passes 0, as the creature arm does.
+            DoorState? door = world.DoorById(me.SwingTargetId);
+            if (door is null || door.Health <= 0) return;
+            int blow = MeleeDamageRules.ApplyPlayerModifiers(
+                MeleeDamageRules.Swing(database, mine, me.Level,
+                    me.CombatPitFighter ? MeleeDamageRules.Stance.CombatPitFighter : MeleeDamageRules.Stance.None), 0, 0);
+            if (blow == 0) return;
+            DoorRules.Damage(context, door, -blow, me.OwnerPlayerId);
+            context.Emit(SystemName, "door_hit", $"creature={me.Id} door={door.Id} blow={blow} health={door.Health}");
         }
     }
 
@@ -254,6 +283,12 @@ public static class FightRules
             targetTile = me.FightTargetTileIndex;
             aimX = CombatTargetRules.TileCentreX(world, targetTile);
             aimY = CombatTargetRules.TileCentreY(world, targetTile);
+        }
+        else if (me.SwingTargetKind == FightTargetKind.Door && world.DoorById(me.SwingTargetId) is { Health: > 0 } door)
+        {
+            targetTile = (door.Y * world.Width) + door.X;
+            aimX = CreatureState.CentreOf(door.X);
+            aimY = CreatureState.CentreOf(door.Y);
         }
         else
         {

@@ -125,11 +125,14 @@ caller.
   finds **no test of bit 4 anywhere**. The rebel who reaches the portal is
   marked as a leader that nothing ever asks about.
 
-`RebelActive` does have two readers, and neither is built here:
+`RebelActive` is cleared by state 89's handler `0x004778E0` (`0x0047792A`, right after the Call
+to Arms clear, skipped for a dying creature), by category 26's leave hook and by the
+constructor; a sweep of all 498 listing sites on `+0x3E3`–`+0x3E6` and a raw byte scan of every
+block found no other writer (2026-10-02). It has two readers; the first is built (ADR-0318):
 
 | Site | What it does with the bit |
 |---|---|
-| `0x0048A36C`, inside the per-tick creature update `0x00488930` | admits a branch when the candidate's player is **not** hostile to the creature's and `RebelActive` is set. A rebel is willing to fight its own side. **STRONGLY INFERRED** — a 20-instruction window, not the whole update |
+| `0x0048A36C`, inside the per-tick creature update `0x00488930` | the door contact: a rebel fights its own keeper's shut door (`door-blocking.md` §1). **STRONGLY INFERRED**, read whole 2026-10-02 |
 | `0x00491B18`, in the predicate `0x00491AE0` | one of six clauses that must all hold for it to return 1; a rebelling creature fails it. What the predicate gates is **UNKNOWN**: its only callers are `0x00461980` and `0x00515D50` |
 
 ## 5. The three outcome percentages are dead, and so is the follower cap
@@ -230,10 +233,9 @@ the keeper it left.
 - **`KillPlayer` is remembered, not performed.** DK2 gives the defector a
   standing job naming its old keeper; job 19 has no handler here, and the
   creature fights as any hero creature does.
-- **`RebelActive` and `RebelLeader` are not modelled.** Both of `RebelActive`'s
-  readers are unbuilt (§4) and `RebelLeader` has none, so neither bit would be
-  read by anything. Recorded rather than carried as hashed state nothing asks
-  about.
+- **`RebelLeader` is not modelled**: nothing reads it. `RebelActive` is
+  `CreatureState.RebelActive`, set by job 16 and the defection and cleared by state 89 and
+  category 26's leave (ADR-0318).
 - **Action 43 is not started** — which action it is, is UNKNOWN (§2).
 - **Notification type 19 is not raised**; notifications are not built.
 

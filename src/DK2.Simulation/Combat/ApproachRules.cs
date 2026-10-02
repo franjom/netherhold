@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 using DK2.Simulation.Navigation;
 using DK2.Simulation.Steering;
 
@@ -30,18 +31,49 @@ public static class ApproachRules
     public const int FlankerSpellOffset = 2 * Fp32.One;
     public const int FlankerMeleeOffset = Fp32.One / 4;
 
-    /// <summary>The entry (<c>0x00471D10</c>, §1): a route to the target's position with the plain
-    /// option word; on success the state is entered with its refresh countdown at ten. Failure
-    /// leaves the creature in <c>spFighting</c> to try again next tick.</summary>
+    /// <summary>The entry's option word, 2: the creature's own locked doors are passable (§1).</summary>
+    public const int EntryOptions = 0x02;
+
+    /// <summary>The four neighbours a door's approach tries, in table <c>0x0069A070</c>'s order:
+    /// north, east, south, west.</summary>
+    private static readonly (int X, int Y)[] Neighbours = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+
+    /// <summary>The entry (<c>0x00471D10</c>, §1): a route to the target's position with option word
+    /// 2. For a door that fails, the first of its four neighbour centres a route reaches with option 0,
+    /// pulled a quarter tile back toward the door, is routed to with option 0 (door-blocking.md). On
+    /// success the state is entered with its refresh countdown at ten; failure leaves the creature in
+    /// <c>spFighting</c> to try again next tick.</summary>
     public static bool Enter(SimulationContext context, CreatureState me, int targetX, int targetY)
     {
-        if (!context.Navigation.TryRouteTo(me, targetX, targetY, MoveOptions.Plain)) return false;
+        if (!context.Navigation.TryRouteTo(me, targetX, targetY, EntryOptions)
+            && !(me.FightTargetKind == FightTargetKind.Door && BesideDoor(context, me, targetX, targetY)))
+            return false;
         me.Approaching = true;
         me.RouteRefreshCountdown = RefreshCalls;
         me.ChaseTicks = 0;
         context.Emit(SystemName, "approaches", $"creature={me.Id} target={me.FightTargetId} kind={me.FightTargetKind} to={targetX},{targetY}");
         return true;
     }
+
+    private static bool BesideDoor(SimulationContext context, CreatureState me, int doorX, int doorY)
+    {
+        WorldSteering navigation = context.Navigation;
+        MoverProfile profile = WorldSteering.ProfileOf(context.Database.CreatureById(me.CreatureTypeId), me.OwnerPlayerId, MoveOptions.Plain);
+        var from = new Fixed16Vector(me.PosX << 4, me.PosY << 4);
+        foreach ((int dx, int dy) in Neighbours)
+        {
+            int x = doorX + (dx * Fp32.One), y = doorY + (dy * Fp32.One);
+            Scratch.Clear();
+            if (!navigation.Route(from, new Fixed16Vector(x << 4, y << 4), profile, Scratch)) continue;
+            // The original enters the state whatever this last request answers.
+            navigation.TryRouteTo(me, x - (dx * Fp32.One / 4), y - (dy * Fp32.One / 4), MoveOptions.Plain);
+            return true;
+        }
+        return false;
+    }
+
+    [ThreadStatic] private static List<Fixed16Vector>? _scratch;
+    private static List<Fixed16Vector> Scratch => _scratch ??= [];
 
     /// <summary>Leaves state 8 for <c>spFighting</c>, which runs next tick: the route is dropped.</summary>
     public static void End(CreatureState me, string reason, SimulationContext context)

@@ -49,7 +49,7 @@ public sealed class BlueprintPlacementTests
         Assert.Equal(before - db.Doors[WoodenDoor].GoldCost, GoldStore.Total(world, Keeper));
         ManufactureOrder order = Assert.Single(world.Player(Keeper).ManufactureQueue);
         Assert.Equal((CrateRules.DoorKind, WoodenDoor), (order.Kind, order.TypeId));
-        Assert.Equal([new BlueprintRef(CrateRules.DoorKind, 0)], world.Player(Keeper).Blueprints);
+        Assert.Equal([new BlueprintRef(CrateRules.DoorKind, world.Doors[0].Id)], world.Player(Keeper).Blueprints);
     }
 
     /// <summary>A door needs walls on two opposite sides; a Barricade does not.</summary>
@@ -108,7 +108,7 @@ public sealed class BlueprintPlacementTests
         world.Tile(6, 7).TerrainId = Dk2TerrainFixture.Rock;
         Assert.Equal(BlueprintPlacementRules.Verdict.Solid, BlueprintPlacementRules.PlaceTrap(world, db, new TilePos(6, 7), Keeper, Alarm));
         Assert.Single(world.Traps);
-        Assert.Equal([new BlueprintRef(CrateRules.TrapKind, 0)], world.Player(Keeper).Blueprints);
+        Assert.Equal([new BlueprintRef(CrateRules.TrapKind, world.Traps[0].Id)], world.Player(Keeper).Blueprints);
     }
 
     [Fact]

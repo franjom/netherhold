@@ -70,11 +70,12 @@ internal static class Dk2TerrainFixture
     ];
 
     /// <summary>Two shipped door records: the Wooden Door and the Barricade, whose flags byte
-    /// (0x40) the navigation writer reads as a permanent lock.</summary>
+    /// (0x40) the navigation writer reads as a permanent lock. Their <c>HealthGain</c> is the
+    /// shipped recovery a second, 2 and 1 (<c>TrapRuntimeOnRealDataTests</c>).</summary>
     public static DoorDef[] Doors() =>
     [
-        new() { Name = "Wooden Door", DoorId = 1, Health = 400, GoldCost = 500, ManufactureRequired = 1000, CrateObjectId = WoodenDoorCrateObjectId },
-        new() { Name = "Barricade", DoorId = 6, Health = 800, GoldCost = 750, ManufactureRequired = 1000, Flags = DoorFlags.Barricade },
+        new() { Name = "Wooden Door", DoorId = 1, Health = 400, HealthGain = 2, GoldCost = 500, ManufactureRequired = 1000, CrateObjectId = WoodenDoorCrateObjectId },
+        new() { Name = "Barricade", DoorId = 6, Health = 800, HealthGain = 1, GoldCost = 750, ManufactureRequired = 1000, Flags = DoorFlags.Barricade },
     ];
 
     public static GameDatabase Database(params CreatureDef[] extraCreatures) => new(

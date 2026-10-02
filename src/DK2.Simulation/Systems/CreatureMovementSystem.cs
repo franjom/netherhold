@@ -33,10 +33,23 @@ public sealed class CreatureMovementSystem : ISimulationSystem
 
     public string Name => SystemName;
 
+    // The door contact's SelectAVictim needs the fight's caches; ours, as CombatSystem keeps its own.
+    private readonly List<Fixed16Vector> _scratch = [];
+    private readonly HeartSites _hearts = new();
+    private readonly RoomCache _rooms = new();
+    private WorldSight? _sight;
+    private WorldState? _sightWorld;
+
     public void Execute(SimulationContext context)
     {
         WorldSteering steering = context.Navigation;
         steering.Refresh();
+        if (!ReferenceEquals(_sightWorld, context.World))
+        {
+            _sight = new WorldSight(steering, context.World, context.Database);
+            _sightWorld = context.World;
+        }
+        if (context.World.Doors.Count > 0) _hearts.Refresh(context.World, context.Database);
 
         // Every body on its creature first, with its definition's limits, so a neighbour read by
         // Separation or the crowd probe is where the creature is and as big as it is, whether or
@@ -75,7 +88,7 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             if (creature.CreatureTypeId == ImpTypeId && creature.Dk2StateId is >= 10 and <= 26)
                 continue;
 
-            Advance(context.Database, steering, creature, context.Database.CreatureById(creature.CreatureTypeId));
+            Advance(context, steering, creature, context.Database.CreatureById(creature.CreatureTypeId));
         }
     }
 
@@ -98,8 +111,9 @@ public sealed class CreatureMovementSystem : ISimulationSystem
         return Math.Min(perTick, MaxSpeedPerTick) << 4;
     }
 
-    private static void Advance(GameDatabase database, WorldSteering steering, CreatureState creature, CreatureDef definition)
+    private void Advance(SimulationContext context, WorldSteering steering, CreatureState creature, CreatureDef definition)
     {
+        GameDatabase database = context.Database;
         SteeringBody body = creature.Body;
 
         // The sync keeps only the entity's 1/4096 precision of both position and velocity
@@ -124,9 +138,13 @@ public sealed class CreatureMovementSystem : ISimulationSystem
         creature.Heading = mover.Heading;
 
         int x = body.Pos.X >> 4, y = body.Pos.Y >> 4;
-        // UNKNOWN integration: 0x0048A2EB can cancel this move and force a door fight.
-        // Q453 tracks its thing-target spell survey, reach and destruction dependencies;
-        // do not substitute a solid tile for that combat transition (door-blocking.md).
+        // The door contact (0x0048A2EB) runs on the new position's tile and, when it forces a
+        // door fight, cancels the commit; a door is never a solid tile here (door-blocking.md).
+        if (creature.CreatureTypeId != ImpTypeId && DoorContact(context, creature, definition, x / Fp32.One, y / Fp32.One))
+        {
+            WorldSteering.SyncBody(creature);
+            return;
+        }
         if (!NavBytes.IsSolid(steering.NavByte(x / Fp32.One, y / Fp32.One)))
         {
             creature.PosX = x;
@@ -139,5 +157,31 @@ public sealed class CreatureMovementSystem : ISimulationSystem
 
         // The entity's position is the one that persists; the body's is derived from it again.
         WorldSteering.SyncBody(creature);
+    }
+
+    /// <summary>The walking arm's door contact (<c>0x0048A2EB</c>–<c>0x0048A44A</c>): a completed
+    /// door on the tile, hostile to the mover (no closed test, Q454), or shut and the mover a rebel,
+    /// with the mover not neutral and allowed a forced fight (<c>0x0045A6D0(1)</c>). Any fight is let
+    /// go and any old forced target dropped; the door becomes the forced target, the route is
+    /// stopped and <c>SelectAVictim</c> takes it. DK2 also clears <c>IgnoringDoors</c> and
+    /// <c>IgnoringLockedRegion</c> (bits 17, 18), which nothing here sets.</summary>
+    private bool DoorContact(SimulationContext context, CreatureState creature, CreatureDef definition, int tileX, int tileY)
+    {
+        WorldState world = context.World;
+        if (world.Doors.Count == 0 || world.DoorAt(tileX, tileY) is not { UnderConstruction: false } door) return false;
+        bool hostile = !world.AreAllied(creature.OwnerPlayerId, door.PlayerId);
+        if (!hostile && !(creature.RebelActive && !door.Open)) return false;
+        if (creature.OwnerPlayerId == PlayerIds.Neutral) return false;
+        if (!CombatRules.MayLookForAFight(world, context.Database, creature, force: true)) return false;
+
+        if (CombatRules.InCombat(creature)) CombatRules.Disengage(context.Hooks, creature);
+        if (creature.AttackingId != CombatRules.NoTarget) CombatPitRules.ClearForcedTarget(world, creature);
+        creature.AttackAbnormalTargets = true;
+        creature.AttackingId = door.Id;
+        creature.AttackingKind = FightTargetKind.Door;
+        creature.StopMoving();
+        context.Emit(SystemName, "meets_door", $"creature={creature.Id} door={door.Id} player={creature.OwnerPlayerId} door_player={door.PlayerId}");
+        CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch);
+        return true;
     }
 }

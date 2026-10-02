@@ -11,7 +11,7 @@ initial construction marker, and the trap field named `NumberOfShots` only as a
 Boolean initial-construction marker. The runtime later maintains construction,
 open, lock, disarm, recharge and firing state independently of the authored
 records. Construction, door opening and navigation costs are built. Physical
-door contact and damage are researched in [door-blocking.md](door-blocking.md);
+door contact and damage are researched and built in [door-blocking.md](door-blocking.md);
 trap activation and its implementation limits are in [traps.md](traps.md).
 
 ## Shipped records
@@ -192,6 +192,6 @@ nonzero comparison, so no shipped record needs the unread availability mode.
 | Trap runtime and door contact | See [traps.md](traps.md) and [door-blocking.md](door-blocking.md) |
 | Any semantic meaning for either `Unknown_0008`, door trailing bytes or trap `Unknown_000F` | **UNKNOWN** |
 
-Next work is Q450 and Q453, with owner observations Q451, Q452 and Q454.
+Next work is Q450, with owner observations Q451 and Q452.
 A field absent from the runtime licenses
 only that result; it does not show that a corresponding behavior is absent.

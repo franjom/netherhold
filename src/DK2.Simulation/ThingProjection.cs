@@ -268,6 +268,7 @@ public static class ThingProjection
             LockMode = (byte)((thing.Flags & 0x01) != 0 ? 3 : 0),
             Orientation = BlueprintPlacementRules.Orientation(world, database, new TilePos(thing.X, thing.Y),
                 database.Doors.GetValueOrDefault(thing.DoorId)),
+            Health = database.Doors.GetValueOrDefault(thing.DoorId)?.Health ?? 0,
             Unknown_0011 = thing.Unknown_0011.ToArray(),
         });
 

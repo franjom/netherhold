@@ -586,6 +586,11 @@ public sealed class ActionPointState
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
 public sealed class DoorState
 {
+    /// <summary>The door's id, given by <see cref="WorldState.AddDoor"/> from 1 and never reused,
+    /// so a blueprint, a crate's order and a forced target name it across a removal. Ours: DK2's
+    /// id is a slot in the one thing table every class shares.</summary>
+    public int Id { get; internal set; }
+
     public int X { get; init; }
     public int Y { get; init; }
     public int Unknown_0008 { get; init; }
@@ -618,8 +623,18 @@ public sealed class DoorState
 
     /// <summary>0, 1 or 2, fixed when the door is made
     /// (<see cref="BlueprintPlacementRules.Orientation"/>): which pair of neighbours are its
-    /// walls. Nothing in the simulation reads it yet; the presentation does.</summary>
+    /// walls: 0 north and south, otherwise west and east. The opening probes and the support
+    /// check read it (door-blocking.md).</summary>
     public byte Orientation { get; init; }
+
+    /// <summary>DK2's common health <c>+0x40</c>, seeded from the definition's <c>Health</c>
+    /// (<c>def+0x91</c>) by the constructor <c>0x004A5070</c>. At 0 or below the door is dead
+    /// (<c>0x004B5C30</c>) and removed the same turn (door-blocking.md).</summary>
+    public int Health { get; set; }
+
+    /// <summary>DK2's <c>+0x11A</c>, the recovery deadline: 0 when made, advanced one game second
+    /// each time the update passes it while the definition recovers (door-blocking.md).</summary>
+    public long RecoveryDeadline { get; set; }
 
     /// <summary>How long <see cref="Unknown_0011"/> is. The snapshot writes those bytes
     /// without a length and reads back exactly this many, so a door carrying any other
@@ -642,6 +657,7 @@ public sealed class DoorState
 
     public void HashInto(ref Hash64 hash)
     {
+        hash.Add(Id);
         hash.Add(X);
         hash.Add(Y);
         hash.Add(Unknown_0008);
@@ -654,6 +670,8 @@ public sealed class DoorState
         hash.Add(LockPickTicks);
         hash.Add(Open);
         hash.Add(Orientation);
+        hash.Add(Health);
+        hash.Add(RecoveryDeadline);
         foreach (byte value in Unknown_0011.Span) hash.Add(value);
     }
 }
@@ -665,6 +683,9 @@ public sealed class DoorState
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
 public sealed class TrapState
 {
+    /// <summary>The trap's id, given as <see cref="DoorState.Id"/> is.</summary>
+    public int Id { get; internal set; }
+
     public int X { get; init; }
     public int Y { get; init; }
     public int Unknown_0008 { get; init; }
@@ -676,6 +697,7 @@ public sealed class TrapState
 
     public void HashInto(ref Hash64 hash)
     {
+        hash.Add(Id);
         hash.Add(X);
         hash.Add(Y);
         hash.Add(Unknown_0008);
@@ -810,6 +832,8 @@ public sealed class WorldState
     private readonly List<ActionPointState> _actionPoints = [];
     private readonly List<DoorState> _doors = [];
     private readonly List<TrapState> _traps = [];
+    private int _nextDoorId;
+    private int _nextTrapId;
     private readonly List<HeroPartyState> _heroParties = [];
     private readonly List<EffectGeneratorState> _effectGenerators = [];
     private readonly List<TempleSacrificeState> _templeSacrifices = [];
@@ -1273,15 +1297,64 @@ public sealed class WorldState
         return false;
     }
 
-    /// <summary>The level's doors in THINGS-file order. No door behaviour exists yet.</summary>
+    /// <summary>The standing doors, the level's in THINGS-file order and then those placed in play.</summary>
     public IReadOnlyList<DoorState> Doors => _doors;
 
-    internal void AddDoor(DoorState door) => _doors.Add(door);
+    /// <summary>Adds a door with the next id, which <see cref="DoorState.Id"/> keeps for its life.</summary>
+    internal void AddDoor(DoorState door)
+    {
+        door.Id = ++_nextDoorId;
+        _doors.Add(door);
+        DoorsVersion++;
+    }
 
-    /// <summary>The level's traps in THINGS-file order. No trap behaviour exists yet.</summary>
+    /// <summary>The standing door with this id, or null once it is gone.</summary>
+    public DoorState? DoorById(int id)
+    {
+        foreach (DoorState door in _doors)
+            if (door.Id == id) return door;
+        return null;
+    }
+
+    /// <summary>The standing door on a tile, or null. One door to a tile, as placement allows.</summary>
+    public DoorState? DoorAt(int x, int y)
+    {
+        foreach (DoorState door in _doors)
+            if (door.X == x && door.Y == y) return door;
+        return null;
+    }
+
+    /// <summary>Takes a dead door out of the world (DK2's removal <c>0x004B7BD0</c>).</summary>
+    internal void RemoveDoor(DoorState door)
+    {
+        if (_doors.Remove(door)) DoorsVersion++;
+    }
+
+    /// <summary>Bumped by every add and removal, so a per-tile cache of doors knows when to
+    /// rebuild. Derived, not state: neither hashed nor saved.</summary>
+    public int DoorsVersion { get; private set; }
+
+    /// <summary>The standing traps, the level's in THINGS-file order and then those placed in play.</summary>
     public IReadOnlyList<TrapState> Traps => _traps;
 
-    internal void AddTrap(TrapState trap) => _traps.Add(trap);
+    internal void AddTrap(TrapState trap)
+    {
+        trap.Id = ++_nextTrapId;
+        _traps.Add(trap);
+    }
+
+    /// <summary>The standing trap with this id, or null.</summary>
+    public TrapState? TrapById(int id)
+    {
+        foreach (TrapState trap in _traps)
+            if (trap.Id == id) return trap;
+        return null;
+    }
+
+    /// <summary>The last door and trap ids given, restored by a snapshot so ids stay unique.</summary>
+    internal int NextDoorId { get => _nextDoorId; set => _nextDoorId = value; }
+
+    internal int NextTrapId { get => _nextTrapId; set => _nextTrapId = value; }
 
     /// <summary>The level's unspawned hero-party records in THINGS-file order.</summary>
     public IReadOnlyList<HeroPartyState> HeroParties => _heroParties;
@@ -1464,9 +1537,11 @@ public sealed class WorldState
         foreach (ActionPointState actionPoint in _actionPoints) actionPoint.HashInto(ref hash);
 
         hash.Add(_doors.Count);
+        hash.Add(_nextDoorId);
         foreach (DoorState door in _doors) door.HashInto(ref hash);
 
         hash.Add(_traps.Count);
+        hash.Add(_nextTrapId);
         foreach (TrapState trap in _traps) trap.HashInto(ref hash);
 
         hash.Add(_heroParties.Count);

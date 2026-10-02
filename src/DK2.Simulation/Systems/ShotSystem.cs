@@ -74,6 +74,12 @@ public sealed class ShotSystem : ISimulationSystem
                 ShotRules.ContactDamageHeart(context, shot, definition);
                 if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
             }
+            else if (ShotRules.HitsDoor(world, shot, definition, out DoorState? door))
+            {
+                ShotRules.Chain(context, shot, definition.HitThingShotId);
+                ShotRules.ContactDamageDoor(context, shot, definition, door!);
+                if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
+            }
             else
             {
                 stopped = !Move(context, shot, definition);

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 151;
+    private const int FormatVersion = 152;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -201,7 +201,7 @@ public static class WorldSnapshot
             foreach (BlueprintRef blueprint in p.Blueprints)
             {
                 w.Write(blueprint.Kind);
-                w.Write(blueprint.Index);
+                w.Write(blueprint.Id);
             }
             w.Write(p.Hand.Count);
             foreach (HandItem held in p.Hand)
@@ -362,6 +362,8 @@ public static class WorldSnapshot
             w.Write(c.CombatPitFighter);
             w.Write(c.AttackAbnormalTargets);
             w.Write(c.AttackingId);
+            w.Write(c.AttackingKind);
+            w.Write(c.RebelActive);
             w.Write(c.PitStateEnteredTick);
             w.Write(c.SpectatorPosX);
             w.Write(c.SpectatorPosY);
@@ -473,9 +475,11 @@ public static class WorldSnapshot
             w.Write(actionPoint.WaitTimerTicks);
         }
 
+        w.Write(world.NextDoorId);
         w.Write(world.Doors.Count);
         foreach (DoorState door in world.Doors)
         {
+            w.Write(door.Id);
             w.Write(door.X);
             w.Write(door.Y);
             w.Write(door.Unknown_0008);
@@ -488,12 +492,16 @@ public static class WorldSnapshot
             w.Write(door.LockPickTicks);
             w.Write(door.Open);
             w.Write(door.Orientation);
+            w.Write(door.Health);
+            w.Write(door.RecoveryDeadline);
             w.Write(door.Unknown_0011.ToArray());
         }
 
+        w.Write(world.NextTrapId);
         w.Write(world.Traps.Count);
         foreach (TrapState trap in world.Traps)
         {
+            w.Write(trap.Id);
             w.Write(trap.X);
             w.Write(trap.Y);
             w.Write(trap.Unknown_0008);
@@ -864,6 +872,8 @@ public static class WorldSnapshot
                 CombatPitFighter = r.ReadBoolean(),
                 AttackAbnormalTargets = r.ReadBoolean(),
                 AttackingId = r.ReadInt32(),
+                AttackingKind = r.ReadByte(),
+                RebelActive = r.ReadBoolean(),
                 PitStateEnteredTick = r.ReadInt64(),
                 SpectatorPosX = r.ReadInt32(),
                 SpectatorPosY = r.ReadInt32(),
@@ -998,11 +1008,13 @@ public static class WorldSnapshot
             });
         }
 
+        world.NextDoorId = r.ReadInt32();
         int doorCount = r.ReadInt32();
         for (int i = 0; i < doorCount; i++)
         {
             world.RawDoors.Add(new DoorState
             {
+                Id = r.ReadInt32(),
                 X = r.ReadInt32(),
                 Y = r.ReadInt32(),
                 Unknown_0008 = r.ReadInt32(),
@@ -1015,15 +1027,19 @@ public static class WorldSnapshot
                 LockPickTicks = r.ReadInt32(),
                 Open = r.ReadBoolean(),
                 Orientation = r.ReadByte(),
+                Health = r.ReadInt32(),
+                RecoveryDeadline = r.ReadInt64(),
                 Unknown_0011 = r.ReadBytes(DoorState.Unknown0011Length),
             });
         }
 
+        world.NextTrapId = r.ReadInt32();
         int trapCount = r.ReadInt32();
         for (int i = 0; i < trapCount; i++)
         {
             world.RawTraps.Add(new TrapState
             {
+                Id = r.ReadInt32(),
                 X = r.ReadInt32(),
                 Y = r.ReadInt32(),
                 Unknown_0008 = r.ReadInt32(),

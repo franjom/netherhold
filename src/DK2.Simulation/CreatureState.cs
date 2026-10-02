@@ -668,6 +668,11 @@ public sealed class CreatureState
     /// in the remembered-job triple at <c>creature+0x409</c> (<c>rebellion.md</c> §3).</summary>
     public byte RebelAgainstPlayerId;
 
+    /// <summary><c>RebelActive</c>, <c>+0x3E6</c> bit 3 by DK2's own dumper: set by job 16 and the
+    /// defection, cleared by state 89 (<c>0x0047792A</c>) and category 26's leave hook (<c>0x004752A0</c>); a rebel attacks its own
+    /// keeper's shut door (<c>0x0048A36C</c>, rebellion.md §4, door-blocking.md).</summary>
+    public bool RebelActive;
+
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
     public int TargetTileIndex = -1;
 
@@ -830,9 +835,14 @@ public sealed class CreatureState
     /// the forced target 139 hands both fighters (<c>0x0048F390</c>).</summary>
     public bool AttackAbnormalTargets;
 
-    /// <summary><c>AttackingId</c>, <c>+0x3F9</c>: the forced target's creature id, or
-    /// <see cref="Combat.CombatRules.NoTarget"/>.</summary>
+    /// <summary><c>AttackingId</c>, <c>+0x3F9</c>: the forced target's id, or
+    /// <see cref="Combat.CombatRules.NoTarget"/>. DK2's is any thing's tag; ours names a creature or,
+    /// when <see cref="AttackingKind"/> says so, a door (door-blocking.md).</summary>
     public int AttackingId;
+
+    /// <summary>Which id space <see cref="AttackingId"/> is in: <see cref="Combat.FightTargetKind.Creature"/>
+    /// or <see cref="Combat.FightTargetKind.Door"/>. Ours: DK2 reads the thing's class from the tag.</summary>
+    public byte AttackingKind = Combat.FightTargetKind.Creature;
 
     /// <summary>The turn the current pit state was entered, for the pit states' <c>Age</c>; the
     /// spectators' 142–144 use it too.</summary>
@@ -1106,6 +1116,8 @@ public sealed class CreatureState
         hash.Add(CombatPitFighter);
         hash.Add(AttackAbnormalTargets);
         hash.Add(AttackingId);
+        hash.Add(AttackingKind);
+        hash.Add(RebelActive);
         hash.Add(PitStateEnteredTick);
         hash.Add(SpectatorPosX);
         hash.Add(SpectatorPosY);

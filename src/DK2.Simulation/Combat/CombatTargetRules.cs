@@ -167,6 +167,7 @@ public static class CombatTargetRules
     private static bool Forced(
         SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition, List<Fixed16Vector> scratch)
     {
+        if (me.AttackingKind == FightTargetKind.Door) return ForcedDoor(context, sight, me, definition, scratch);
         CreatureState? target = context.World.CreatureById(me.AttackingId);
         if (target is null || !CreatureStateMachine.HasState(target))
         {
@@ -185,6 +186,71 @@ public static class CombatTargetRules
 
         return Engage(context, me, definition, target, context.Database.CreatureById(target.CreatureTypeId), spellSlot, spell);
     }
+
+    /// <summary>A forced door (door-blocking.md, <c>0x0045CB00</c>): taken with no route, sight or
+    /// final-gate test, and a gone one clears the forced target. The survey skips an attack spell
+    /// with the status bit (flag 3), as against any forced thing. Scan F still runs, so an ally
+    /// wanting the friendly spell outranks the door, and one that cannot be reached means no fight. The forced arm leaves the running best at
+    /// <c>0x7FFFFFFF</c>, so the within-a-tile melee rule never applies: a spell, if any, is cast.</summary>
+    private static bool ForcedDoor(
+        SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition, List<Fixed16Vector> scratch)
+    {
+        DoorState? door = context.World.DoorById(me.AttackingId);
+        if (door is null)
+        {
+            CombatPitRules.ClearForcedTarget(context.World, me);
+            return false;
+        }
+
+        int spellSlot = -1, friendlySlot = -1;
+        CreatureSpellDef? spell = null, friendly = null;
+        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
+        {
+            spellSlot = SpellRules.SurveyAttack(context.Database, me, definition, context.Tick.Value, out spell, skipStatus: true);
+            friendlySlot = SpellRules.SurveyFriendly(context.Database, me, definition, context.Tick.Value, out friendly);
+        }
+
+        if (friendly != null)
+        {
+            CreatureState? ally = FriendlyScan(context, sight, me, definition, friendly,
+                CombatRules.RangeSquared(definition.DistanceCanSee), CombatRules.RangeSquared(definition.DistanceCanHear), scratch);
+            // An ally found outranks the door; one the route refuses ends this call with no fight.
+            if (ally != null) return EngageAlly(context, me, definition, ally, friendlySlot, friendly, scratch);
+        }
+        return EngageDoor(context, me, definition, door, spellSlot, spell);
+    }
+
+    /// <summary>Commit on a door: <c>AttackType</c> 4 at <c>(MeleeRange + 0x800)² >> 12</c>, or
+    /// <c>0xC00</c> for a Secret Door, or 2 at the spell's range; no attacker slots and no event.</summary>
+    private static bool EngageDoor(
+        SimulationContext context, CreatureState me, CreatureDef mine, DoorState door, int spellSlot, CreatureSpellDef? spell)
+    {
+        bool useSpell = spell != null;
+        bool same = me.FightTargetKind == FightTargetKind.Door && me.FightTargetId == door.Id;
+        me.FightTargetKind = FightTargetKind.Door;
+        me.FightTargetId = door.Id;
+        me.FightTargetPlayerId = door.PlayerId;
+        me.FightTargetTileIndex = (door.Y * context.World.Width) + door.X;
+        if (useSpell)
+        {
+            me.AttackType = CombatRules.AttackTypes.SpellAtThing;
+            me.AttackSpellSlot = (byte)spellSlot;
+            me.AttackRangeSquared = SpellRules.RangeSquared(spell!);
+        }
+        else
+        {
+            bool secret = context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && def.Flags.HasFlag(DoorFlags.Secret);
+            me.AttackType = CombatRules.AttackTypes.MeleeAtThing;
+            me.AttackSpellSlot = 0;
+            me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange.Raw + (secret ? SecretDoorReach : DoorReach));
+        }
+        Enter(context, me, mine, same, $"door={door.Id} attack={me.AttackType}");
+        return true;
+    }
+
+    /// <summary>The thing reach a door adds to <c>MeleeRange</c>, and a Secret Door's.</summary>
+    public const int DoorReach = 0x800;
+    public const int SecretDoorReach = 0xC00;
 
     private static bool Choose(
         SimulationContext context, ISightBlocker sight, HeartSites hearts, CreatureState me, CreatureDef definition,

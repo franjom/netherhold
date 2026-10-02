@@ -99,6 +99,7 @@ public class CategoryHooksTests
         {
             (Cat.WorkerJob, HookKind.Leave), (Cat.CallToArms, HookKind.Enter), (Cat.CallToArms, HookKind.Leave),
             (Cat.Combat, HookKind.Enter), (Cat.Combat, HookKind.Leave),
+            (Cat.ReportingDanger, HookKind.Leave), // RebelActive's clear (door-blocking.md)
         };
         // The nine claiming enter hooks of state-category-hooks.md §1, ten slots with GuardPost.
         Cat[] claimers =

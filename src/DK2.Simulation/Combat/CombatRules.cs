@@ -17,6 +17,10 @@ public static class FightTargetKind
     /// routine redirects a pillar's delta to the owner's heart (<c>0x004DA200</c>); here the heart tile
     /// stands in for the pillar, whose placement is unread (Q363).</summary>
     public const byte Heart = 2;
+
+    /// <summary>A door, by <see cref="DoorState.Id"/>: forced on a creature that walks into a hostile
+    /// one (<c>0x0048A2EB</c>) and fought as a thing (door-blocking.md).</summary>
+    public const byte Door = 3;
 }
 
 /// <summary>The engagement record and the rules around it: who may look for a fight, who can be

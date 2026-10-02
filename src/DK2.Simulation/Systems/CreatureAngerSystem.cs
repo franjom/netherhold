@@ -186,8 +186,9 @@ public sealed class CreatureAngerSystem : ISimulationSystem
     /// <remarks>Its three guards refuse silently, and the original returns success either
     /// way it goes — so the chooser never falls through past a rebellion, and a creature
     /// that gets as far as the countdown has spent its selection. What it does <i>not</i>
-    /// reproduce: the <c>RebelActive</c> and <c>RebelLeader</c> flags, both of whose
-    /// readers are unbuilt or absent, and creature action 43.</remarks>
+    /// reproduce: <c>RebelLeader</c>, which nothing reads, and creature action 43.
+    /// <c>RebelActive</c> is set past the guards, as DK2 marks the creature before it looks
+    /// for the exit; the door contact reads it.</remarks>
     private void Rebel(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
@@ -199,6 +200,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
         // rebelled against with itself. DK2 has no such guard - it also has no angry
         // hero creatures to need one.
         if (state.OwnerPlayerId == RebellionRules.DefectsTo) return;
+        state.RebelActive = true;
 
         // The same walk job 10 takes, into the same state: DK2 routes a rebel to the
         // Portal with state 194 "leaving Dungeon", which is what Leave sets. The probe
@@ -272,6 +274,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             state.RebelAgainstPlayerId = was;
             state.CurrentJob = JobType.KillPlayer;
             CreatureStateMachine.TrySetState(context.Hooks, state, CreatureStateMachine.Idle);
+            state.RebelActive = true; // step 4 marks it again (rebellion.md §3)
 
             CreatureDef creature = context.Database.CreatureById(state.CreatureTypeId);
             context.Emit(SystemName, "creature_defected",

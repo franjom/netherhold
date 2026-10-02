@@ -106,37 +106,67 @@ public static class LineOfSight
     }
 }
 
-/// <summary>The per-tile rule as the running game has it: a solid navigation byte stops sight,
-/// and so does a door standing on the tile, unless the door's definition is a barricade, which
-/// the combat scans (flag 1) look over. Nothing else on a tile is consulted.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-acquisition.md")]
+/// <summary>The per-tile rule as the running game has it (<c>0x004511A0</c> with its scans' flags 0
+/// and 1): a solid navigation byte stops sight, and so does a door thing standing on the tile, open,
+/// shut or still a blueprint, unless its definition is a barricade, which the scans look over. With
+/// the first flag set, as the reach test sets it when a door stands on the target's tile, no door
+/// stops sight: <see cref="SolidOnly"/> (door-blocking.md).</summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/door-blocking.md")]
 public sealed class WorldSight : ISightBlocker
 {
     private readonly WorldSteering _navigation;
     private readonly WorldState _world;
     private readonly GameDatabase _database;
+    private readonly SolidSight _solid;
+    private byte[] _doorTiles = [];
+    private int _doorsVersion = -1;
+
+    // A tile's cached door: none, one that stops sight, or a barricade.
+    private const byte NoDoor = 0, BlockingDoor = 1, Barricade = 2;
 
     public WorldSight(WorldSteering navigation, WorldState world, GameDatabase database)
     {
         _navigation = navigation;
         _world = world;
         _database = database;
+        _solid = new SolidSight(navigation);
+    }
+
+    /// <summary>The same walk with the door test switched off: only a solid tile stops it.</summary>
+    public ISightBlocker SolidOnly => _solid;
+
+    /// <summary>Whether any door, barricades included, stands on the tile.</summary>
+    public bool DoorOn(int x, int y)
+    {
+        Sync();
+        return x >= 0 && y >= 0 && x < _world.Width && y < _world.Height && _doorTiles[(y * _world.Width) + x] != NoDoor;
     }
 
     public bool Blocks(int x, int y)
     {
         byte nav = _navigation.NavByte(x, y);
         if (NavBytes.IsSolid(nav)) return true;
-        if (!NavBytes.IsDoor(nav)) return false;
+        Sync();
+        return x >= 0 && y >= 0 && x < _world.Width && y < _world.Height && _doorTiles[(y * _world.Width) + x] == BlockingDoor;
+    }
 
-        IReadOnlyList<DoorState> doors = _world.Doors;
-        for (int i = 0; i < doors.Count; i++)
+    private void Sync()
+    {
+        if (_doorsVersion == _world.DoorsVersion && _doorTiles.Length == _world.TileCount) return;
+        if (_doorTiles.Length != _world.TileCount) _doorTiles = new byte[_world.TileCount];
+        else Array.Clear(_doorTiles, 0, _doorTiles.Length);
+        foreach (DoorState door in _world.Doors)
         {
-            DoorState door = doors[i];
-            if (door.X != x || door.Y != y) continue;
-            return !_database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)
-                || (definition.Flags & DoorFlags.Barricade) == 0;
+            if (!_world.Contains(door.X, door.Y)) continue;
+            bool barricade = _database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)
+                && (definition.Flags & DoorFlags.Barricade) != 0;
+            _doorTiles[(door.Y * _world.Width) + door.X] = barricade ? Barricade : BlockingDoor;
         }
-        return false;
+        _doorsVersion = _world.DoorsVersion;
+    }
+
+    private sealed class SolidSight(WorldSteering navigation) : ISightBlocker
+    {
+        public bool Blocks(int x, int y) => NavBytes.IsSolid(navigation.NavByte(x, y));
     }
 }

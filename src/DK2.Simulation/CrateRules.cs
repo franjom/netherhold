@@ -8,13 +8,13 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>One entry of a keeper's blueprint list (<c>player+0xA21</c>): a door or a trap, by its
-/// index in <see cref="WorldState.Doors"/> or <see cref="WorldState.Traps"/>.</summary>
-public readonly record struct BlueprintRef(byte Kind, int Index)
+/// <see cref="DoorState.Id"/> or <see cref="TrapState.Id"/>, as DK2's list holds thing ids.</summary>
+public readonly record struct BlueprintRef(byte Kind, int Id)
 {
     internal void HashInto(ref Hash64 hash)
     {
         hash.Add(Kind);
-        hash.Add(Index);
+        hash.Add(Id);
     }
 }
 
@@ -70,30 +70,33 @@ public static class CrateRules
         return null;
     }
 
-    /// <summary>The crate object a blueprint needs, or 0.</summary>
-    public static byte CrateFor(GameDatabase database, WorldState world, BlueprintRef blueprint) =>
-        blueprint.Kind == DoorKind
-            ? database.Doors.TryGetValue(world.Doors[blueprint.Index].DoorId, out DoorDef? door) ? door.CrateObjectId : (byte)0
-            : database.Traps.TryGetValue(world.Traps[blueprint.Index].TrapId, out TrapDef? trap) ? trap.CrateObjectId : (byte)0;
+    /// <summary>The crate object a blueprint needs, or 0, also when its thing is gone.</summary>
+    public static byte CrateFor(GameDatabase database, WorldState world, BlueprintRef blueprint)
+    {
+        if (blueprint.Kind == DoorKind)
+            return world.DoorById(blueprint.Id) is { } door && database.Doors.TryGetValue(door.DoorId, out DoorDef? def) ? def.CrateObjectId : (byte)0;
+        return world.TrapById(blueprint.Id) is { } trap && database.Traps.TryGetValue(trap.TrapId, out TrapDef? tdef) ? tdef.CrateObjectId : (byte)0;
+    }
 
     /// <summary>Whether a blueprint entry still names a thing under construction.</summary>
     public static bool IsBlueprint(WorldState world, BlueprintRef blueprint) =>
         blueprint.Kind == DoorKind
-            ? blueprint.Index < world.Doors.Count && world.Doors[blueprint.Index].UnderConstruction
-            : blueprint.Index < world.Traps.Count && world.Traps[blueprint.Index].UnderConstruction;
+            ? world.DoorById(blueprint.Id) is { UnderConstruction: true }
+            : world.TrapById(blueprint.Id) is { UnderConstruction: true };
 
-    /// <summary>The blueprint's tile index.</summary>
+    /// <summary>The blueprint's tile index, or -1 when its thing is gone.</summary>
     public static int TileOf(WorldState world, BlueprintRef blueprint)
     {
-        (int x, int y) = blueprint.Kind == DoorKind
-            ? (world.Doors[blueprint.Index].X, world.Doors[blueprint.Index].Y)
-            : (world.Traps[blueprint.Index].X, world.Traps[blueprint.Index].Y);
-        return (y * world.Width) + x;
+        if (blueprint.Kind == DoorKind)
+            return world.DoorById(blueprint.Id) is { } door ? (door.Y * world.Width) + door.X : -1;
+        return world.TrapById(blueprint.Id) is { } trap ? (trap.Y * world.Width) + trap.X : -1;
     }
 
-    /// <summary>The blueprint's owner.</summary>
+    /// <summary>The blueprint's owner, or 0 when its thing is gone.</summary>
     public static byte OwnerOf(WorldState world, BlueprintRef blueprint) =>
-        blueprint.Kind == DoorKind ? world.Doors[blueprint.Index].PlayerId : world.Traps[blueprint.Index].PlayerId;
+        blueprint.Kind == DoorKind
+            ? world.DoorById(blueprint.Id)?.PlayerId ?? 0
+            : world.TrapById(blueprint.Id)?.PlayerId ?? 0;
 
     /// <summary><c>0x00505680</c>: appends a blueprint unless it is already there or the list is full.</summary>
     public static void Register(WorldState world, byte playerId, BlueprintRef blueprint)
@@ -102,6 +105,12 @@ public static class CrateRules
         List<BlueprintRef> list = world.Player(playerId).Blueprints;
         if (list.Contains(blueprint) || list.Count >= BlueprintCapacity) return;
         list.Add(blueprint);
+    }
+
+    /// <summary><c>0x005056E0</c>: takes a blueprint out of its keeper's list, closing the gap.</summary>
+    public static void Unregister(WorldState world, byte playerId, BlueprintRef blueprint)
+    {
+        if (world.HasPlayer(playerId)) world.Player(playerId).Blueprints.Remove(blueprint);
     }
 
     /// <summary>The blueprint of <paramref name="kind"/> on <paramref name="tileIndex"/> owned by
@@ -113,7 +122,7 @@ public static class CrateRules
         int count = kind == DoorKind ? world.Doors.Count : world.Traps.Count;
         for (int i = 0; i < count; i++)
         {
-            var candidate = new BlueprintRef(kind, i);
+            var candidate = new BlueprintRef(kind, kind == DoorKind ? world.Doors[i].Id : world.Traps[i].Id);
             if (OwnerOf(world, candidate) != playerId || !IsBlueprint(world, candidate)) continue;
             if (TileOf(world, candidate) != tileIndex || CrateFor(database, world, candidate) != crateObjectId) continue;
             return candidate;
@@ -129,9 +138,10 @@ public static class CrateRules
     public static void Build(WorldState world, BlueprintRef blueprint, ObjectState crate)
     {
         world.RemoveObject(crate.Id);
-        if (blueprint.Kind == DoorKind) world.Doors[blueprint.Index].UnderConstruction = false;
-        else world.Traps[blueprint.Index].UnderConstruction = false;
-        world.Player(OwnerOf(world, blueprint)).Blueprints.Remove(blueprint);
+        byte owner = OwnerOf(world, blueprint);
+        if (blueprint.Kind == DoorKind) { if (world.DoorById(blueprint.Id) is { } door) door.UnderConstruction = false; }
+        else if (world.TrapById(blueprint.Id) is { } trap) trap.UnderConstruction = false;
+        Unregister(world, owner, blueprint);
     }
 
     // ------------------------------------------------------------------ the Workshop

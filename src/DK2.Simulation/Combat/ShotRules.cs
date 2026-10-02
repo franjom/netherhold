@@ -14,7 +14,8 @@ namespace DK2.Simulation.Combat;
 /// never its caster (§4a), deals its data word flat on contact (§7), hurts a linear area each tick
 /// when its damage type says so (§7), and chains hit and death shots that inherit its words (§4).
 /// The status process types run on the first tick or the creature struck (§8, <see cref="Process"/>).
-/// Height, the overlap test's exact shape, doors and objects as targets are not modelled (Q398).</summary>
+/// Height, the overlap test's exact shape and objects as targets are not modelled; a door or a heart
+/// aimed at is struck within an object's reach of its tile (Q398, Q363).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/shots.md")]
 public static class ShotRules
 {
@@ -115,7 +116,7 @@ public static class ShotRules
     /// its tag is live, whatever the overlap, and spends the word; otherwise the overlap finder's,
     /// the nearest standing creature the collide class admits — an enemy by alliance, a friend by
     /// owner — that <see cref="Overlaps"/> the shot, never the caster unless it is the target.
-    /// Doors, objects and bodies are not looked for.</summary>
+    /// Doors, objects and bodies are not looked for here; a shot aimed at a door is <see cref="HitsDoor"/>.</summary>
     public static CreatureState? FindHit(WorldState world, GameDatabase database, ShotState shot, ShotDef definition)
     {
         if (shot.ForcedCollision)
@@ -172,6 +173,26 @@ public static class ShotRules
         int reach = CombatRules.ReachSquared(definition.Radius + CombatRules.ObjectReach);
         return CombatRules.DistanceSquared(shot.PosX, shot.PosY,
             CombatTargetRules.TileCentreX(world, shot.TargetTileIndex), CombatTargetRules.TileCentreY(world, shot.TargetTileIndex)) < reach;
+    }
+
+    /// <summary>A shot aimed at a door reaches it as one at a heart does: within its radius and an
+    /// object's reach of the door's tile. Ours: the overlap with a door thing is unread (Q398,
+    /// door-blocking.md §5).</summary>
+    public static bool HitsDoor(WorldState world, ShotState shot, ShotDef definition, out DoorState? door)
+    {
+        door = shot.TargetKind == FightTargetKind.Door ? world.DoorById(shot.TargetId) : null;
+        if (door is null || door.Health <= 0) return false;
+        int reach = CombatRules.ReachSquared(definition.Radius + CombatRules.ObjectReach);
+        return CombatRules.DistanceSquared(shot.PosX, shot.PosY, CreatureState.CentreOf(door.X), CreatureState.CentreOf(door.Y)) < reach;
+    }
+
+    /// <summary>Contact damage on a door: the data word flat, as the health routine applies a door's
+    /// delta (<c>0x004B2CE0</c>).</summary>
+    public static void ContactDamageDoor(SimulationContext context, ShotState shot, ShotDef definition, DoorState door)
+    {
+        if (definition.DamageType != ContactDamageType || shot.Data1 <= 0) return;
+        DoorRules.Damage(context, door, -shot.Data1, shot.OwnerPlayerId);
+        context.Emit(SystemName, "shot_door_hit", $"shot={shot.Id} caster={shot.CasterId} door={door.Id} damage={shot.Data1} health={door.Health}");
     }
 
     /// <summary>Contact damage (§7, <c>0x004AC420</c>): the data word flat, refused while the target's

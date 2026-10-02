@@ -105,7 +105,7 @@ public sealed partial class ImpTaskSystem
             int count = kind == CrateRules.DoorKind ? world.Doors.Count : world.Traps.Count;
             for (int i = 0; i < count; i++)
             {
-                var blueprint = new BlueprintRef(kind, i);
+                var blueprint = new BlueprintRef(kind, kind == CrateRules.DoorKind ? world.Doors[i].Id : world.Traps[i].Id);
                 if (CrateRules.TileOf(world, blueprint) != tile || !CrateRules.IsBlueprint(world, blueprint)) continue;
                 if (CrateRules.OwnerOf(world, blueprint) != creature.OwnerPlayerId || IsHeld(world, creature, blueprint)) continue;
 
@@ -147,7 +147,7 @@ public sealed partial class ImpTaskSystem
         long bestDistance = long.MaxValue;
         for (int i = 0; i < count; i++)
         {
-            var blueprint = new BlueprintRef(kind, i);
+            var blueprint = new BlueprintRef(kind, kind == CrateRules.DoorKind ? world.Doors[i].Id : world.Traps[i].Id);
             if (CrateRules.OwnerOf(world, blueprint) != creature.OwnerPlayerId || !CrateRules.IsBlueprint(world, blueprint)) continue;
             if (CrateRules.CrateFor(database, world, blueprint) != crate.ObjectTypeId) continue;
 

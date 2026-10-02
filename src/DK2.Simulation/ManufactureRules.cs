@@ -82,7 +82,7 @@ public static class ManufactureRules
             if (!door.UnderConstruction) continue;
             if (!database.Doors.TryGetValue(door.DoorId, out DoorDef? def)) continue;
             TryQueue(world, database, door.PlayerId, DoorKind, door.DoorId, (int)def.ManufactureRequired, def.CrateObjectId);
-            CrateRules.Register(world, door.PlayerId, new BlueprintRef(DoorKind, i));
+            CrateRules.Register(world, door.PlayerId, new BlueprintRef(DoorKind, door.Id));
         }
     }
 

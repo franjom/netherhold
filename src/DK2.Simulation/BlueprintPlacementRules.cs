@@ -66,10 +66,11 @@ public static class BlueprintPlacementRules
         {
             X = at.X, Y = at.Y, DoorId = doorId, PlayerId = player, UnderConstruction = true,
             Orientation = Orientation(world, database, at, door),
+            Health = door.Health,
             Unknown_0011 = new byte[DoorState.Unknown0011Length],
         });
         ManufactureRules.QueueOne(world, database, player, CrateRules.DoorKind, doorId);
-        CrateRules.Register(world, player, new BlueprintRef(CrateRules.DoorKind, world.Doors.Count - 1));
+        CrateRules.Register(world, player, new BlueprintRef(CrateRules.DoorKind, world.Doors[^1].Id));
         return Verdict.Allowed;
     }
 
@@ -84,7 +85,7 @@ public static class BlueprintPlacementRules
 
         world.AddTrap(new TrapState { X = at.X, Y = at.Y, TrapId = trapId, PlayerId = player, UnderConstruction = true });
         ManufactureRules.QueueOne(world, database, player, CrateRules.TrapKind, trapId);
-        CrateRules.Register(world, player, new BlueprintRef(CrateRules.TrapKind, world.Traps.Count - 1));
+        CrateRules.Register(world, player, new BlueprintRef(CrateRules.TrapKind, world.Traps[^1].Id));
         return Verdict.Allowed;
     }
 

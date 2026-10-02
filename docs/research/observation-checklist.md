@@ -391,6 +391,6 @@ Instrumentation, measurement tooling or disassembly, and scheduled accordingly.
 
 ## 9. Door contact and traps
 
-Q451 (failed disarm), Q452 (Sentry range) and Q454 (open enemy door contact)
+Q451 (failed disarm) and Q452 (Sentry range; Q454 was answered by the owner)
 have a [shared experiment sheet](../experiments/doors-and-traps.md). Record
 the level and trap/creature types, with video of the action and its control.
