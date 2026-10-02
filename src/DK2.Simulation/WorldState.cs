@@ -152,6 +152,14 @@ public struct TileState
     /// </summary>
     public int HatchTicks;
 
+    /// <summary>A hatchery's <c>ChickensGenerated</c> (<c>room+0x51</c>), on the same tile as
+    /// <see cref="HatchTicks"/>: eggs laid since the room was made. Zeroed by the room's init
+    /// <c>0x004DE060</c>, bumped by each egg <c>0x004DE620</c> creates; the finder's 42 needs it
+    /// nonzero (<see cref="RoomNeedRules.NoHatcheryFor"/>). The same lowest-tile deviation: growth
+    /// below that tile, a merge or its sale loses the count, and a tile that leaves its room
+    /// drops it (<see cref="SlabChain.Changed"/>, Q522).</summary>
+    public int ChickensGenerated;
+
     /// <summary>A Combat Pit's <c>+0x53</c>: the turn <c>0x004D7CF0</c> last found a fight on its
     /// floor, on the room's lowest tile index like <see cref="HatchTicks"/> and zero elsewhere. The
     /// spectators' 144 and job 26 read it for the quiet spell after a fight
@@ -231,6 +239,7 @@ public struct TileState
         hash.Add(EntranceIdleTicks);
         hash.Add(EntranceCreaturesGenerated);
         hash.Add(HatchTicks);
+        hash.Add(ChickensGenerated);
         hash.Add(PitFightSeenTick);
         hash.Add(PrisonDoor);
         hash.Add(SlabOrder);

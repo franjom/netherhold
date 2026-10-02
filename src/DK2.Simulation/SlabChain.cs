@@ -43,6 +43,7 @@ public static class SlabChain
     {
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         if (tile.TerrainId == terrainBefore && tile.OwnerPlayerId == ownerBefore) return;
+        tile.ChickensGenerated = 0;
         if (database.RoomByTerrain(terrainBefore) is not null) Removed(world, tileIndex, terrainBefore, ownerBefore);
         if (database.RoomByTerrain(tile.TerrainId) is not null) Added(world, tileIndex);
         else (tile.SlabOrder, tile.RoomSizeChangedTick) = (0, 0);

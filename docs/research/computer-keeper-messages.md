@@ -189,7 +189,7 @@ classification of computed message types.
 
 | Producer | Room / messages | Discriminating gate |
 |---|---|---|
-| `0x004DED00` | Hatchery / 41, 42, 43 | Availability 3; no room gives 41, unreachable stocked room gives 43, otherwise an empty reachable room more than four seconds past `room+0x9F` gives 42. Pending build or sale suppresses all three. |
+| `0x004DED00` | Hatchery / 41, 42, 43 | Availability 3. Stocked means a non-empty `ObjectList` (`+0x0C`), which holds chickens and no coop (`hatchery.md` §3); a stocked room the `0x80` route reaches is chosen. No room gives 41; else a stocked room route option 2 cannot reach gives 43; else an empty reached room with `ChickensGenerated` (`+0x51`) non-zero, more than four seconds past `room+0x9F`, gives 42. Pending build or sale suppresses all three (rechecked 2026-10-02). |
 | `0x004E0470` | Lair / 41, 42, 43 | Availability 3. A Lair the `0x80` route reaches with a slot is chosen. No Lair gives 41 unless a build or sale is pending; else a Lair with a slot that route option 2 cannot reach gives 43; else a reached full Lair more than four seconds past `room+0x9F` gives 42 (rechecked 2026-10-02). |
 | `0x004D8870` | Combat Pit / 41, 42, 43, 44 | Availability 3 and no pending build/sale for each message. Four-second timing applies to the unusable-place branches. Message 44 carries the room tag; the others carry zero. |
 | `0x0046CF40`, `0x0046D3C0` | Graveyard / 41, 42 | Both require availability 3 for absent-room 41. Only `0x0046CF40` rechecks availability 3 on the failed-capacity 42 branch. |
@@ -320,8 +320,10 @@ message trace has been captured.
 
 Types 41–43 are retained with their subtype rows (ADR-0327); a type the rows do
 not list, and 41 for a Graveyard (the `+0xF4E` suppression), are refused.
-`RoomNeedRules` posts from the carrier's store chooser, the room sale's refund
-and the Lair finder; `room+0x9F` is `TileState.RoomSizeChangedTick`. The pending
+`RoomNeedRules` posts from the carrier's store chooser, the room sale's refund,
+the Lair finder and the Hatchery finder (ADR-0335); `room+0x9F` is
+`TileState.RoomSizeChangedTick` and the Hatchery's `+0x51` is
+`TileState.ChickensGenerated`. The pending
 build/sale gate has nothing to test, since a wave is laid in its command's tick.
 `KeeperRoomRequests` runs both arms. Unbuilt producers: the other finders in
 section 2, the claim failure, the rescue selector and `0x004BA420`'s other

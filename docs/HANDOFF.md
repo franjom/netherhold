@@ -23,8 +23,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   PlayerCommands through a detached, serialisable observation (schema 16).
   The proactive task machine (tasks 0–7) digs, expands, builds rooms, manages
   gold and imps, and crosses water or lava with bridges. Room messages 41–43
-  are posted by the gold carrier, the room sale's refund and the Lair finder;
-  41 and 42 make the keeper build or expand a room (ADR-0327). Reactive combat
+  are posted by the gold carrier, the room sale's refund and the Lair and Hatchery
+  finders; 41 and 42 make the keeper build or expand a room (ADR-0327, ADR-0335). Reactive combat
   messages, threat response, wounded retreat, the battle step, Call to Arms,
   Thunderbolt, Heal, Chicken and Inferno run through simulation commands.
   The attack planner selects a target, tunnels, stages and calls its army;

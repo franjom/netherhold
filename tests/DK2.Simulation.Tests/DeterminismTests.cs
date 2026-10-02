@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 162: a keeper's trap no-mana clock (ADR-0326).
+        // HashVersion 166: a hatchery's ChickensGenerated, room+0x51 (ADR-0335).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x323B5E88EF7AFB82UL, sim.StateHash());
+        Assert.Equal(0x11AF2D537B0D13F6UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

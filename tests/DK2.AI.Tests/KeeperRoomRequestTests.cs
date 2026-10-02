@@ -398,4 +398,45 @@ public class KeeperRoomRequestTests
         Assert.Contains(RoomIndex.Build(world, Db), r => r.OwnerPlayerId == Keeper && r.Definition.TypeId == RoomTypeId.Lair);
         Assert.True(LairRules.HasBed(world, Db, sleeper));
     }
+
+    private static bool Hatchery(RoomInstance r) => r.OwnerPlayerId == Keeper && r.Definition.TypeId == RoomTypeId.Hatchery;
+
+    [Fact]
+    public void AHungryCreatureWithNoHatcheryMakesTheKeeperBuildOneThatLaysAndFeedsIt()
+    {
+        WorldState world = WithTreasury(goldPerTile: 3000);
+        CreatureState eater = world.SpawnCreature(Db, KeeperWorld.EaterCreature, Keeper, new TilePos(14, 14));
+        eater.HungerNeed = 1;
+        var sim = new GameSimulation(Db, world, 1,
+            [new TileTagSystem(), new RoomBuildSystem(), new HatcherySystem(), new CreatureMovementSystem(), new CreatureEatSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+        var keeper = new KeeperAI(Keeper, Policy(1), new SimRandom(9));
+        Play(world, sim, keeper, 600);
+
+        Assert.StartsWith("player=3 kind=41 room=Hatchery", sink.Events.First(e => e.Kind == "room_message").Detail, StringComparison.Ordinal);
+        Assert.Contains(RoomIndex.Build(world, Db), Hatchery);
+        Assert.Contains(sink.Events, e => e.Kind == "chicken_eaten");
+        Assert.Equal(0, eater.HungerNeed);
+    }
+
+    [Fact]
+    public void AnEmptyHatcheryThatHasLaidMakesAPolicyZeroKeeperExpandIt()
+    {
+        WorldState world = WithTreasury(goldPerTile: 3000);
+        for (int y = 14; y <= 16; y++)
+            for (int x = 18; x <= 20; x++)
+                KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.HatcheryFloor, Keeper);
+        world.Tile(18, 14).ChickensGenerated = 1;
+        CreatureState eater = world.SpawnCreature(Db, KeeperWorld.EaterCreature, Keeper, new TilePos(14, 14));
+        eater.HungerNeed = 1;
+        var sim = new GameSimulation(Db, world, 1,
+            [new TileTagSystem(), new RoomBuildSystem(), new CreatureMovementSystem(), new CreatureEatSystem()]);
+        var keeper = new KeeperAI(Keeper, Policy(0), new SimRandom(9));
+        Play(world, sim, keeper, 160);
+
+        PlayerMessage full = Assert.Single(world.Messages.Entries);
+        Assert.Equal((PlayerMessageKind.RoomFull, RoomTypeId.Hatchery, true), (full.Kind, full.Room, full.Handled));
+        Assert.True(Assert.Single(RoomIndex.Build(world, Db), Hatchery).TileCount > 9);
+    }
 }

@@ -7413,3 +7413,30 @@ with its stores filled and a floor pile, posts 42 at tick 10, grows its Treasury
 (12..15, 4) from tick 505 and later stores gold there: a modern-run result (Q518).
 Unbuilt: the other finders' producers, the claim failure, the rescue selector,
 `0x004BA420`'s other callers, mood messages and the rest of the suppression words.
+
+## ADR-0335 — The Hatchery finder posts 41–43, and a coop does not stock a hatchery
+**Date:** 2026-10-02 · **Status:** accepted · `HashVersion` 166 · Q522 ·
+Research: `computer-keeper-messages.md` §2, `hatchery.md` §3, record `0x004DED00`
+
+**Context.** ADR-0327 left the Hatchery finder's messages unbuilt. Re-reading `0x004DED00`
+showed its stocked test is the room's `ObjectList` (`+0x0C`), where coops are not (they are
+on `+0x0E`), and that 42 also needs `ChickensGenerated` (`+0x51`), which nothing modelled.
+`EatingRules.HoldsAnyObject` counted coops, so a birdless hatchery was walked to and 42
+could not fire for any hatchery of six tiles or more.
+
+**Decision.**
+- `EatingRules.HoldsAChicken` is the stocked test, for the walk and the messages alike.
+- `TileState.ChickensGenerated` is `room+0x51` on the lowest tile, as `HatchTicks` is:
+  `HatcheryRules` counts each egg, and `SlabChain.Changed` drops it from a changed tile.
+- `CreatureEatSystem` runs its finder before the already-inside shortcut, as
+  `Hunger_TryToEat` does, and a failure calls `RoomNeedRules.NoHatcheryFor` (41, 43 by an
+  ignore-doors route, 42 for an empty reached room that has laid, past four seconds).
+  `KeeperRoomRequests` answers 41 and 42 as for any room.
+
+**Deviations, ours.** As ADR-0327: no pending-wave gate, and DK2's route tests beside our
+finder's own choice, which measures to the room's centre where DK2 measures to its first
+slab. The count lives on the lowest tile, so growth past that tile or a merge loses it (Q522).
+
+**Consequences.** Hash/format 166, pin `0x11AF2D537B0D13F6`. A hungry creature no longer
+walks to, or waits in, a hatchery holding only coops and eggs. In a test world a keeper
+answers a hungry creature's 41 with a Hatchery, and policy 0 answers an empty one's 42 by growing it.
