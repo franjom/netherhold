@@ -73,29 +73,29 @@ internal static class Dk2TerrainFixture
     public const byte ClaimedVaultTerrain = 32;
 
     /// <summary>The Alarm trap, its crate the Alarm crate (ADR-0214), and the traps whose firing is
-    /// built (ADR-0321) at their shipped values (<c>TrapRuntimeOnRealDataTests</c>), with no crate. The
+    /// built (ADR-0321) and the Guard Post at their shipped values, upkeep included (<c>TrapRuntimeOnRealDataTests</c>), with no crate. The
     /// Freeze is id 17 here, the fixture's Alarm holding the shipped Freeze's 7.</summary>
     public static TrapDef[] Traps() =>
     [
         new() { Name = "Alarm", TrapId = 7, Health = 100, GoldCost = 250, ManufactureRequired = 1000, CrateObjectId = AlarmCrateObjectId, ShotTypeId = 0, ManaUpkeepPerSecond = 0 },
-        FiringTrap("Sentry Trap", SentryTrapId, 1, 24, 5, 250, 0x31598, CannonBallShotId, 250, 0, -2048, 74, 45, 6, 3000),
-        FiringTrap("Fireburst Trap", FireburstTrapId, 1, 48, 1, 250, 0x3053A, FireburstShotId, 2000, 1, -1761, 185, 45, 16, 8000),
-        FiringTrap("Lightning Trap", LightningTrapId, 1, 48, 4, 375, 0x31518, LightningTrapShotId, 400, 0, -2048, 74, 45, 12, 6000),
-        FiringTrap("Freeze Trap", FreezeTrapId, 2, 24, 1, 250, 0x3053A, FreezeTrapShotId, 20, 1, 0, 37, 45, 12, 6000),
-        FiringTrap("Trigger Trap", TriggerTrapId, 3, 16, 1, 0, 0x2043A, TriggerTrapShotId, 0, 1, 0, 0, 0, 4, 2000),
-        FiringTrap("Magic Door", MagicDoorTrapId, 2, 32, 4, 500, 0x35BA, DoorFireballShotId, 150, 0, 0, 100, 60, 40, 4000),
-        FiringTrap("Hero Sentry Trap", HeroSentryTrapId, 1, 24, 5, 100, 0x9598, CannonBallShotId, 250, 0, -2048, 74, 45, 30, 3000),
-        FiringTrap("Guard Post", GuardPostTrapId, 2, 4, 0, 0, 0xC18, 0, 0, 0, 0, 0, 0, 0, 1000),
+        FiringTrap("Sentry Trap", SentryTrapId, 1, 24, 5, 250, 0x31598, CannonBallShotId, 250, 0, -2048, 74, 45, 6, 3000, upkeep: 5),
+        FiringTrap("Fireburst Trap", FireburstTrapId, 1, 48, 1, 250, 0x3053A, FireburstShotId, 2000, 1, -1761, 185, 45, 16, 8000, upkeep: 10),
+        FiringTrap("Lightning Trap", LightningTrapId, 1, 48, 4, 375, 0x31518, LightningTrapShotId, 400, 0, -2048, 74, 45, 12, 6000, upkeep: 25),
+        FiringTrap("Freeze Trap", FreezeTrapId, 2, 24, 1, 250, 0x3053A, FreezeTrapShotId, 20, 1, 0, 37, 45, 12, 6000, upkeep: 10),
+        FiringTrap("Trigger Trap", TriggerTrapId, 3, 16, 1, 0, 0x2043A, TriggerTrapShotId, 0, 1, 0, 0, 0, 4, 2000, upkeep: 5),
+        FiringTrap("Magic Door", MagicDoorTrapId, 2, 32, 4, 500, 0x35BA, DoorFireballShotId, 150, 0, 0, 100, 60, 40, 4000, upkeep: 30),
+        FiringTrap("Hero Sentry Trap", HeroSentryTrapId, 1, 24, 5, 100, 0x9598, CannonBallShotId, 250, 0, -2048, 74, 45, 30, 3000, upkeep: 50),
+        FiringTrap("Guard Post", GuardPostTrapId, 2, 4, 0, 0, 0xC18, 0, 0, 0, 0, 0, 0, 0, 1000, upkeep: 0),
     ];
 
     public const byte SentryTrapId = 3, FireburstTrapId = 5, LightningTrapId = 6, FreezeTrapId = 17, TriggerTrapId = 9,
         MagicDoorTrapId = 12, HeroSentryTrapId = 14, GuardPostTrapId = 11;
 
     private static TrapDef FiringTrap(string name, byte id, byte selector, int rechargeTicks, int range, int mana, uint flags,
-        byte shot, int data1, int data2, int offsetY, ushort threat, int threatSeconds, short gain, ushort health) => new()
+        byte shot, int data1, int data2, int offsetY, ushort threat, int threatSeconds, short gain, ushort health, ushort upkeep = 0) => new()
     {
         Name = name, TrapId = id, Health = health, GoldCost = 1000, ManufactureRequired = 1000, ShotTypeId = shot,
-        ManaUpkeepPerSecond = 0, TriggerType = selector, RechargeSecondsRaw = rechargeTicks * 1024, RangeTiles = range,
+        ManaUpkeepPerSecond = upkeep, TriggerType = selector, RechargeSecondsRaw = rechargeTicks * 1024, RangeTiles = range,
         ManaCostToFire = mana, Flags = flags, ShotData1 = data1, ShotData2 = data2, ShotOffsetY = offsetY, Threat = threat,
         ThreatSecondsRaw = threatSeconds * 4096, HealthGain = gain,
     };

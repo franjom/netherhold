@@ -289,6 +289,11 @@ public static class TrapRules
 
     public static bool IsDead(TrapState trap) => trap.Health <= 0;
 
+    /// <summary><c>0x004B2CE0</c> on a trap: the signed delta applied flat. Its callers that reach a
+    /// trap here are the recovery and area damage type 2 (<c>0x004AC6D0</c>); a swing reaches one only
+    /// through possession, which is not built (traps.md §10).</summary>
+    public static void Damage(TrapState trap, int delta) => trap.Health += delta;
+
     // ------------------------------------------------------------------ the tile chain
 
     /// <summary>The tile chain's order (<c>0x004B5020</c>, <c>0x004B4E70</c>): a creature that has
@@ -394,9 +399,27 @@ public static class TrapRules
     {
         TrapReadiness readiness = Readiness(context.World, trap, definition, context.Tick.Value);
         if (readiness == TrapReadiness.InsufficientMana)
-            context.Emit(SystemName, "trap_no_mana", $"trap={trap.Id} player={trap.PlayerId} cost={definition.ManaCostToFire}");
+            NoMana(context, trap, definition);
         else if (readiness == TrapReadiness.Ready) Fire(context, trap, definition, target);
     }
+
+    /// <summary>Readiness 2, short of mana: the no-mana effect (presentation) and <c>0x004C1A30</c> on
+    /// the owner, which posts message 53 with Data1 1 once the player's clock <c>+0xAA</c> is due
+    /// and sets it fifteen seconds on. Every site that answers 2 calls it.</summary>
+    private static void NoMana(SimulationContext context, TrapState trap, TrapDef definition)
+    {
+        context.Emit(SystemName, "trap_no_mana", $"trap={trap.Id} player={trap.PlayerId} cost={definition.ManaCostToFire}");
+        WorldState world = context.World;
+        if (!world.HasPlayer(trap.PlayerId)) return;
+        ref PlayerState player = ref world.Player(trap.PlayerId);
+        long now = context.Tick.Value;
+        if (now < player.TrapNoManaMessageAt) return;
+        world.Messages.Post(world, trap.PlayerId, PlayerMessageKind.ManaShortfall, TrapNoManaSubtype, 0);
+        player.TrapNoManaMessageAt = now + (15L * SimulationTiming.OriginalTicksPerGameSecond);
+    }
+
+    /// <summary>Message 53's Data1 a trap short of mana passes (<c>0x004C1A53</c>).</summary>
+    public const int TrapNoManaSubtype = 1;
 
     public static TrapReadiness Readiness(WorldState world, TrapState trap, TrapDef definition, long now) =>
         TrapActivationRules.Readiness(definition, trap.PlayerId, trap.UnderConstruction, now, trap.RechargeAt,
@@ -620,14 +643,14 @@ public static class TrapRules
                 {
                     TrapReadiness ready = Readiness(world, found, definition, now);
                     if (ready == TrapReadiness.InsufficientMana)
-                        context.Emit(SystemName, "trap_no_mana", $"trap={found.Id} player={found.PlayerId} cost={definition.ManaCostToFire}");
+                        NoMana(context, found, definition);
                     else if (ready == TrapReadiness.Ready) Fire(context, found, definition, struck.Id);
                     continue;
                 }
                 int toward = Bearing.Of(trigger.PosX - found.PosX, trigger.PosY - found.PosY);
                 TrapReadiness readiness = Readiness(world, found, definition, now);
                 if (readiness == TrapReadiness.InsufficientMana)
-                    context.Emit(SystemName, "trap_no_mana", $"trap={found.Id} player={found.PlayerId} cost={definition.ManaCostToFire}");
+                    NoMana(context, found, definition);
                 else if (readiness == TrapReadiness.Ready)
                     Shoot(context, found, definition,
                         found.PosX + (int)(((long)Sine(toward) * 0x1000) >> 16),

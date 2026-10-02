@@ -256,6 +256,10 @@ public struct PlayerState
     /// <summary>Cumulative one-shot mana loss, player +0x10F2 (keeper-spell-casting.md).</summary>
     public int OneShotManaSpent;
 
+    /// <summary>Player <c>+0xAA</c>: the turn before which a trap short of mana posts no message
+    /// (<c>0x004C1A30</c>, fifteen seconds on from each post); 0 from <c>Player_Initialise</c>.</summary>
+    public long TrapNoManaMessageAt;
+
     /// <summary>Gold this keeper's creatures have mined, DK2's <c>player+0x15A</c> —
     /// <c>GoldMined</c> in the level-statistics struct embedded at <c>+0x142</c>
     /// (`player-object.md`). Trigger condition type 31 compares it.</summary>
@@ -439,6 +443,7 @@ public struct PlayerState
         hash.Add(AlliedWith);
         hash.Add(Mana);
         hash.Add(OneShotManaSpent);
+        hash.Add(TrapNoManaMessageAt);
         hash.Add(GoldMined);
         hash.Add(KilledByPlayerId);
         hash.Add(SlapCount);

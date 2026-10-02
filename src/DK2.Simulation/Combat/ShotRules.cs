@@ -116,7 +116,8 @@ public static class ShotRules
     /// its tag is live, whatever the overlap, and spends the word; otherwise the overlap finder's,
     /// the nearest standing creature the collide class admits — an enemy by alliance, a friend by
     /// owner — that <see cref="Overlaps"/> the shot, never the caster unless it is the target.
-    /// Doors, objects and bodies are not looked for here; a shot aimed at a door is <see cref="HitsDoor"/>.</summary>
+    /// Traps are <see cref="FindTrapHit"/>; doors, objects and bodies are not looked for here; a shot
+    /// aimed at a door is <see cref="HitsDoor"/>.</summary>
     public static CreatureState? FindHit(WorldState world, GameDatabase database, ShotState shot, ShotDef definition)
     {
         if (shot.ForcedCollision)
@@ -161,6 +162,41 @@ public static class ShotRules
     {
         int half = ((definition.Radius << 1) + creatureDef.FootprintRadius.Raw) >> 1;
         return Math.Abs(shot.PosX - creature.PosX) < half && Math.Abs(shot.PosY - creature.PosY) < half;
+    }
+
+    /// <summary>The trap the enemies and both predicates admit (<c>0x004B5800</c>): any completed trap,
+    /// of any owner, that <c>0x004B5590</c> overlaps — counted <c>0x800</c> wide when its owner is the
+    /// shot owner's enemy, else 0 wide (vtable <c>+0x3C</c>, <c>0x00402AD0</c>). The nearest, as
+    /// <see cref="FindHit"/> takes its creature; heights dropped (Q398).</summary>
+    public static TrapState? FindTrapHit(WorldState world, ShotState shot, ShotDef definition, out int distanceSquared)
+    {
+        distanceSquared = int.MaxValue;
+        if (definition.CollideType is not (CollideEnemies or CollideBoth)) return null;
+        TrapState? best = null;
+        foreach (TrapState trap in world.Traps)
+        {
+            if (trap.UnderConstruction) continue;
+            int width = CombatRules.IsHostile(world, shot.OwnerPlayerId, trap.PlayerId) ? EnemyTrapWidth : 0;
+            int half = ((definition.Radius << 1) + width) / 2;
+            if (Math.Abs(shot.PosX - trap.PosX) >= half || Math.Abs(shot.PosY - trap.PosY) >= half) continue;
+            int distance = CombatRules.DistanceSquared(shot.PosX, shot.PosY, trap.PosX, trap.PosY);
+            if (distance >= distanceSquared) continue;
+            best = trap;
+            distanceSquared = distance;
+        }
+        return best;
+    }
+
+    /// <summary>The width <c>0x004B5590</c> gives a trap of an enemy of the shot's owner.</summary>
+    public const int EnemyTrapWidth = 0x800;
+
+    /// <summary>Contact damage on a trap (<c>0x004AC420</c>): the data word flat, with no owner test,
+    /// whoever owns the trap.</summary>
+    public static void ContactDamageTrap(SimulationContext context, ShotState shot, ShotDef definition, TrapState trap)
+    {
+        if (definition.DamageType != ContactDamageType || shot.Data1 <= 0) return;
+        TrapRules.Damage(trap, -shot.Data1);
+        context.Emit(SystemName, "shot_trap_hit", $"shot={shot.Id} caster={shot.CasterId} trap={trap.Id} damage={shot.Data1} health={trap.Health}");
     }
 
     /// <summary>A shot aimed at a heart reaches it within its radius and an object's reach of the
@@ -221,30 +257,81 @@ public static class ShotRules
             $"shot={shot.Id} caster={shot.CasterId} heart={shot.TargetPlayerId} damage={shot.Data1} health={world.Player(shot.TargetPlayerId).HeartHealth}{(killed ? " destroyed" : "")}");
     }
 
-    /// <summary>Area damage each tick (§7, <c>0x004AC6D0</c>): every standing creature not of the
-    /// shot's owner within <c>data2</c> tiles takes <c>data1 × (R − d) / R</c>. A zero radius hurts
-    /// nobody — the Firebomb's explosion inherits its spell's zero (CONFIRMED, §7).</summary>
+    /// <summary>Area damage each tick (§7, <c>0x004AC6D0</c>): over the tiles within <c>data2</c> of the
+    /// shot, clamped to the map, row by row, each tile's things in chain order. A creature not of the
+    /// shot's owner whose invulnerable word is clear, and a trap or door not of the owner unless the
+    /// shot's category is 7 (gas), within <c>data2</c> tiles takes <c>d × (R − dist) / R</c>, where
+    /// <c>d</c> starts as <c>data1</c> and <b>becomes each hit's result</b>, so later things take less.
+    /// A zero radius hurts nobody — the Firebomb's explosion inherits its spell's zero (§7).</summary>
+    /// <remarks>Not built: objects of another owner, which DK2 also hits (and which then shrink
+    /// <c>d</c>). Ours orders a tile's things as creatures newest-linked first, then its trap, then its
+    /// door, the static things having been linked when made.</remarks>
     public static void AreaDamage(SimulationContext context, ShotState shot, ShotDef definition)
     {
         if (definition.DamageType != AreaDamageType || shot.Data1 <= 0 || shot.Data2 <= 0) return;
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        int radius = shot.Data2 * Fp32.One;
-        int radiusSquared = (int)(((long)radius * radius) >> 12);
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
+        int tiles = shot.Data2;
+        int radius = tiles * Fp32.One;
+        uint radiusSquared = (uint)((radius * radius) >> 12);
+        int centreX = shot.PosX >> 12, centreY = shot.PosY >> 12;
+        int x0 = Math.Max(0, centreX - tiles), x1 = Math.Min(world.Width - 1, centreX + tiles);
+        int y0 = Math.Max(0, centreY - tiles), y1 = Math.Min(world.Height - 1, centreY + tiles);
+        bool sparesStatics = definition.AttackCategory == GasCategory;
+
+        List<(int Tile, int Rank, object Thing)> things = [];
+        foreach (CreatureState c in world.Creatures)
         {
-            CreatureState target = creatures[i];
-            if (target.OwnerPlayerId == shot.OwnerPlayerId || CreatureDeathRules.IsDown(target) || StatusEffectRules.IsInvulnerable(target)) continue;
-            int distanceSquared = CombatRules.DistanceSquared(shot.PosX, shot.PosY, target.PosX, target.PosY);
+            if (c.OwnerPlayerId == shot.OwnerPlayerId || CreatureDeathRules.IsCorpse(c) || !CombatPitRules.IsOnTheMap(c)) continue;
+            if (c.Tile.X < x0 || c.Tile.X > x1 || c.Tile.Y < y0 || c.Tile.Y > y1) continue;
+            things.Add(((c.Tile.Y * world.Width) + c.Tile.X, -c.ChainOrder, c));
+        }
+        if (!sparesStatics)
+        {
+            foreach (TrapState t in world.Traps)
+                if (t.PlayerId != shot.OwnerPlayerId && t.X >= x0 && t.X <= x1 && t.Y >= y0 && t.Y <= y1)
+                    things.Add(((t.Y * world.Width) + t.X, 1, t));
+            foreach (DoorState d in world.Doors)
+                if (d.PlayerId != shot.OwnerPlayerId && d.X >= x0 && d.X <= x1 && d.Y >= y0 && d.Y <= y1)
+                    things.Add(((d.Y * world.Width) + d.X, 2, d));
+        }
+        things.Sort((a, b) => a.Tile != b.Tile ? a.Tile.CompareTo(b.Tile) : a.Rank.CompareTo(b.Rank));
+
+        int damage = shot.Data1;
+        foreach ((_, _, object thing) in things)
+        {
+            (int px, int py) = thing switch
+            {
+                CreatureState c => (c.PosX, c.PosY),
+                TrapState t => (t.PosX, t.PosY),
+                DoorState d => (CreatureState.CentreOf(d.X), CreatureState.CentreOf(d.Y)),
+                _ => (0, 0),
+            };
+            if (thing is CreatureState invulnerable && StatusEffectRules.IsInvulnerable(invulnerable)) continue;
+            if (damage == 0) continue;
+            uint distanceSquared = TrapRules.DistanceSquared(shot.PosX, shot.PosY, px, py);
             if (distanceSquared >= radiusSquared) continue;
-            long distance = Isqrt((long)distanceSquared << 12);
-            int damage = (int)(shot.Data1 * (radius - distance) / radius);
-            if (damage <= 0) continue;
-            int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, damage);
-            context.Emit(SystemName, "shot_area_hit", $"shot={shot.Id} type={definition.ShotId} target={target.Id} damage={damage} landed={landed} health={target.Health}");
+            damage = (int)((radius - Isqrt((long)distanceSquared << 12)) * damage / radius);
+            switch (thing)
+            {
+                case CreatureState target when !CreatureDeathRules.IsDown(target):
+                    int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, damage);
+                    context.Emit(SystemName, "shot_area_hit", $"shot={shot.Id} type={definition.ShotId} target={target.Id} damage={damage} landed={landed} health={target.Health}");
+                    break;
+                case TrapState trap:
+                    TrapRules.Damage(trap, -damage);
+                    context.Emit(SystemName, "shot_area_trap_hit", $"shot={shot.Id} type={definition.ShotId} trap={trap.Id} damage={damage} health={trap.Health}");
+                    break;
+                case DoorState door:
+                    DoorRules.Damage(context, door, -damage, shot.OwnerPlayerId);
+                    context.Emit(SystemName, "shot_area_door_hit", $"shot={shot.Id} type={definition.ShotId} door={door.Id} damage={damage} health={door.Health}");
+                    break;
+            }
         }
     }
+
+    /// <summary>The attack category (shot <c>+0x51</c>) whose area damage spares traps and doors (gas).</summary>
+    public const byte GasCategory = 7;
 
     /// <summary>The process handler (§8) for one event, when the definition's flags wire it: on the
     /// creature struck, else the shot's target creature (<c>+0x147</c>, which a hit overwrites). The

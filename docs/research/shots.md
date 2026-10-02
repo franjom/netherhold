@@ -121,14 +121,16 @@ are one. Predicates: **1 friends** (`0x004B58E0`): a creature of my owner that i
 not dying (body bit 21, `creature-death.md`), a closed door of any owner, an Arch Pillar
 (object 94) of another owner or object 74; **2 enemies** (`0x004B5800`): a
 creature whose owner is hostile to mine (`0x004BF390`) and not dying, or a
-Turncoat; the same doors and objects; **3 both**; **4** a dead body (class 6).
+Turncoat; the same doors and objects; **any completed trap**, whoever owns it (re-read
+2026-10-02); **3 both**; **4** a dead body (class 6).
 
 **The overlap test (`0x004B5590`, read 2026-09-23)** is a box, not a circle: on each
 axis the distance between the two things is strictly under **half the sum of their
 radii**, and the height difference under the sum of their heights. The shot's radius
 here is **twice** its `Radius` (`0x004B7E10`), 1638 for every creature shot; a
 creature's is its footprint (STRONGLY INFERRED: the only radius it has); an object of a
-hostile owner counts as 0x800 wide. A door with `+0x10D` or `+0x109` set never
+hostile owner counts as 0x800 wide, and so does a trap of an enemy owner, any other trap 0
+wide (its vtable `+0x3C` returns 0). A door with `+0x10D` or `+0x109` set never
 overlaps; a thing never overlaps itself. Sampled once a tick, so a shot at 3686 units a
 tick can pass a standing creature between two positions where a 2048 one cannot.
 
@@ -182,11 +184,15 @@ owner, 0)` — the melee blow's routine (`combat-fight-state.md` §4), so a hear
 killer is stamped the same way. **Nothing scales with the caster's level.**
 
 **Area, per tick (`0x004AC3C0` by `DamageType`; 1 `0x004AC5A0`, 2 `0x004AC6D0`,
-3 `0x004AC940`, 4 `0x004ACAF0`, 8 `0x004ACCA0`; 0, 5, 6, 7 nothing).** Type 2,
-the gas cloud's, read: over the tiles within ±`data2` of me, every thing **not
-of my owner** — a creature with `+0x445` clear, an object of type 74 (a quarter),
-a door unless my category is 7 — within `data2` tiles takes `data1 × (R − d) /
-R` through the health routine, `R` and `d` in position units. Types 1, 3, 4 and
+3 `0x004AC940`, 4 `0x004ACAF0`, 8 `0x004ACCA0`; 0, 5, 6, 7 nothing).** Type 2
+(`0x004AC6D0`, CONFIRMED from the listing 2026-10-02): over the tiles within
+±`data2` of me, clamped to the map, rows outer, each tile's thing chain in order,
+every thing **not of my owner** — a creature with `+0x445` clear, any object, a
+**trap or a door** unless my `AttackCategory` is 7 (gas) — within `data2` tiles
+takes `d × (R − dist) / R` through the health routine, `R` and `dist` in position
+units, where `d` starts as `data1` and **is overwritten by each result**
+(`0x004AC8BF`), so each later thing in the tick takes less. Object 74's quarter only
+gates the hit; the damage uses `d`. Ours: objects are not hit. Types 1, 3, 4 and
 8 print *"Creature Damage, %d"* and are unread (Q395).
 
 **The Firebomb's explosion hurts nobody in v1.70.** Action 16 writes the spell's two

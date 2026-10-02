@@ -7095,6 +7095,32 @@ seeds 3, 6, 7, 9, 10, 16, 18). `TrapsFireOnRealDataTests`: 649 traps fire, 653 r
 Guard Posts, all reporting to one hero Guard Room). The alarm's own loop routes the Imp the
 reverse way (Q517), left for its owner. Not built: `state+0x3C` (Q391), the post's effect.
 
+## ADR-0326 — A trap's upkeep, its no-mana message, and the shots that damage it
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `traps.md` §3, §9, §10; `shots.md` §4a; Q59
+
+**Context.** Q59 measured the upkeep and named its field; its charge, the message a trap short
+of mana posts, and who damages a trap were unread. Read now: `0x004C1B60` puts def `+0x96`
+(`Traps.kwd` `0x202`) on the keeper's drain and off its income word, so it is paid after the
+income cap; `0x004C1A30` posts message 53 with Data1 1 at most every 15 s on player `+0xAA`; of
+`0x004B2CE0`'s 80 call sites, a trap is reached by a shot's collision (`0x004B5800` admits any
+completed trap) and contact damage, and by area damage type 2 (`0x004AC6D0`), whose re-read
+also showed every hit overwrites the damage word for the next.
+
+**Decision.** `ManaRules.TrapUpkeepPerSecond` joins the second's drain for a keeper's completed
+traps, recounted each second (the paired register and release keep DK2's total equal); hero
+traps are left out because DK2 never pays a hero and ours pays every player. `TrapRules.NoMana`
+posts through `PlayerState.TrapNoManaMessageAt`. `ShotRules.FindTrapHit` and
+`ContactDamageTrap` strike traps; `AreaDamage` walks the tile box in order, hits traps and doors
+except for gas, and compounds the damage word. A possessed creature's swing, the only one that
+reaches a trap, is not built; area damage on objects is not built.
+
+**Consequences.** HashVersion and FormatVersion 162 (159 before master took 160). Prediction, written before measuring:
+Levels 1 and 2 hold no traps, so only the compounding can move them, where an area shot strikes
+two things in one tick; L1 unchanged, L2 unchanged or nearly. Scenarios with traps change mana
+and may change fights. Measured on 1aa98db: both rigs identical per seed; the nine keeper
+scenarios on trap levels diverge at their first mana payment (Level 17's keeper pays 95 more a
+second), and no scenario has a shot strike a trap or door.
+
 ## ADR-0317 — The keeper's training moves
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0244 and ADR-0284 · Research: `computer-keeper-management.md` §2; Q509
 

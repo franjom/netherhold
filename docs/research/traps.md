@@ -75,8 +75,9 @@ by the class constructor `0x004B28D0` (`0x004B28F5`), which also links the class
 6. **Turn** (flag `0x80`, §6). The idle effect (`+0xB5`, `+0x84`, `+0x103`); presentation.
 7. **Recharge gate:** at or after `+0xFF`, the selector (§5) answers a creature or nothing.
    Nothing: charge := 0. A creature: charge + 1 (a byte), a sound, and once charge ≥ the
-   threshold `+0x78`, readiness (§4): 2 plays the no-mana effect and posts message `0x35` at
-   most every 15 s (`0x004A8490` → `0x004C1A30`, player `+0xAA`); 4 fires (§7).
+   threshold `+0x78`, readiness (§4): 2 plays the no-mana effect and posts message 53 with
+   Data1 1 once the owner's clock `+0xAA` is due, setting it 15 s on (`0x004A8490` →
+   `0x004C1A30`; every readiness 2 in §9 does the same); 4 fires (§7).
 8. Animation and `0x004B3AD0` (frame advance); presentation.
 9. **Threat** (§8), every update while `+0x10F` is nonzero.
 10. **Trigger** (selector 3) with `+0x10D` nonzero: `+0x117` cleared unless a live creature,
@@ -171,7 +172,10 @@ trap that has fired once with a nonzero duration shares its threat every update 
 ## 9. The Trigger
 
 **Counts.** Completion `0x004A96D0` (also the loader's for a completed trap) clears bit 5 and
-registers the upkeep (`0x004C1B60`); a Trigger adds one to every own non-Trigger trap within a
+registers the upkeep (`0x004C1B60`: def `+0x96`, `Traps.kwd` `0x202`, onto player `+0x10D6`
+and off the income word `+0x10E2`, so it is paid after the income cap; the keeper's second,
+`0x004C10E0`, pays it with the rest of the drain and clamps mana at 0, nothing more; heroes are
+never paid, Q59); a Trigger adds one to every own non-Trigger trap within a
 tile (`0x004A9720`), any other trap recounts the own Triggers within a tile (`0x004A9A00`). The
 cleanup of a completed trap, a Trigger, subtracts its one, never below 0 (`0x004A9890`). Each
 looks at the first own trap (`0x00453700(3, owner)`) on each tile of the 3×3 square at squared
@@ -193,7 +197,15 @@ trap does nothing.
 `0x004A7B20` updates its sounds, then — unless the world is closing (`[world]+0x4C`) and only
 for a completed trap — releases its upkeep (`0x004C1B90`) and, for a Trigger, `0x004A9890`;
 then unlinks it from its tile, owner and class lists (`0x004B4D40`, `0x004B4F60`, `0x004B4AB0`).
-`0x004B2CE0` adds a signed delta to a trap's health directly.
+`0x004B2CE0` adds a signed delta to a trap's health directly. Of its ~70 call sites
+(`.text`; none in `cseg`, by a byte scan of every executable block), the ones that reach a trap
+are the recovery (§3 step 12), contact damage on a shot's collision (`0x004AC420`, flat, with no
+owner test) and area damage type 2 (`0x004AC6D0`), both shots.md §4a. The swing
+has a trap arm (`0x0049916D`, impact sounds from def `+0xBF`, then the blow flat), but a trap
+becomes a target only as the forced target `+0x3F9`, and every setter (`0x0048F390`'s callers,
+the contact walk `0x0048A2EB`) passes a creature, a door or a heart pillar, possession aside.
+The enemies predicate `0x004B5800` (collide types 2 and 3) admits any completed trap, of any
+owner; area damage type 1 hurts none.
 
 ## 11. Disarm and reveal (Q451, Q455)
 
@@ -254,9 +266,10 @@ noticed once a turn before the traps; §6; §7 for the traps that fire here, wit
 answer's trap arm and the creature arm's correction; §8 without the owner discount and
 `ThreatThing`, as `FearRules` holds neither (Q375); §9; §10's removal and Trigger counts.
 
-Left: disarming (Q455); the reveal; the upkeep (Q59); the no-mana message's
-clock; effects, sounds and animations; the unread shots above; heights; `0x0048ED40`'s worker,
-animation and `0x00494700` arms; a trap's damage from creatures and shots.
+Also built (ADR-0326): the upkeep, the no-mana message and its clock, area damage type 2 on
+traps and a shot's collision with a trap. Left: disarming (Q455); the reveal; effects, sounds and animations; the unread shots
+above; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
+swing at a trap (possession is not built).
 
 ## Open questions
 

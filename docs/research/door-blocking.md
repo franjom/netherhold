@@ -107,7 +107,8 @@ bonus is the creature arm's alone; the door arm only picks a material impact pai
 
 A shot aimed at a door (`ShotRules.HitsDoor`) strikes as the heart's does, within the shot's radius plus an object's reach
 of the door tile (Q363's stand-in; the overlap with a door thing is unread, Q398). Contact
-damage applies flat; area damage reaching a door is unread.
+damage applies flat; area damage type 2 hits a door not of the shot's owner unless the shot
+is gas, flat (shots.md §4a, ADR-0326).
 
 ## 6. Health, recovery and the two kills
 
