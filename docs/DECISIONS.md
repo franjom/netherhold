@@ -5542,7 +5542,8 @@ not establish trap immediate-hit, vertical origin or collision behavior.
 **Decision.** Parse the mapped definition fields and expose stateless readiness
 and charge rules. Preserve raw timing values in data and convert them through
 `SimulationTiming`. Automatic firing is not dispatched until the dependencies
-in Q450 are closed; a Ready result is not a supported-shot verdict.
+in Q450 are closed; a Ready result is not a supported-shot verdict. (Firing is
+dispatched since ADR-0321.)
 
 **Consequences.** All sixteen TRAPS rows and eight DOORS rows have new drift
 guards. No runtime fields or balance variables are added; hash and snapshot
@@ -7188,3 +7189,33 @@ from tick 0 by composition), and L1 20/20 and L2 7/20 match seed for seed. Not b
 jackpot, the Crypt handovers, the presentation bits, the `ThreatThing` reader of
 `FearlessUntil`, the other readers of `TortureVoluntary`, and the death bookkeeping's
 `SetState(1)` (`0x00476C80`), so a maker that dies outright keeps the count raised.
+## ADR-0321 — Traps fire when their shot is built, and the target's answer walks only to a trap
+**Date:** 2026-10-02 · **Status:** accepted · Research: `traps.md`
+
+**Context.** ADR-0251 built readiness and charge and held firing back on Q450's reads: the
+Trigger's countdown and propagation, its count lifecycle, the tile chain's order, the shot's
+immediate hit, height and collision, and the threat distribution. All of them are now read
+(`traps.md` §2–§10, 50 function records). The read of `0x0045AA20`, which a trap's firing calls,
+shows its walk-to-the-attacker arm runs only for a trap (class 3) and its fighting arm only
+for anything else; `FightRules.Retaliate` walked a creature toward a creature attacker.
+
+**Decision.** `TrapSystem` runs the update `0x004A84E0` after the shots, newest trap first, and
+`TrapRemovalSystem` removes the dead before the doors. A trap fires only when its shot's damage
+type, process and chained shots have a handler (`TrapRules.FiringBuilt`): Sentry, Fireburst,
+Lightning, Freeze, Trigger, Magic Door and Hero Sentry; every other trap still loses its owner
+and recovers. The tile chain is a per-creature link order noticed once a turn (ours: DK2 links
+at the move). The threat goes into `TempFear` without the owner discount or `ThreatThing`, as
+`FearRules` holds neither (Q375). The sine table is built from its formula and pinned against
+the binary's entries. `Retaliate`'s not-fighting arm becomes `AnswerTrap`.
+
+Ours, at their sites: players walked by id
+and each one's creatures newest first in the sight finder; a held creature is off the threat's
+lists; only `0x0048ED40`'s `CanFly` arm; trap shots carry caster 0.
+
+**Consequences.** `HashVersion`/`FormatVersion` 156 (154 was this branch's; master took 155 first). Shipped data: 959 traps on 39 levels, 649
+fire here; Level 20's hero Boulder at (12,5) dies on its first update (a prediction). The
+Level 18 Inferno and Chicken scenario moved its creatures off a Nemesis Freeze Trap. The
+constructor's zeroed sight cache holds a sight trap's fire on turn 0, as DK2's does (review). Rigs keep
+L1 20/20 and L2 7/20 but move per seed; baseline `1ec9fa5` with only the `Retaliate` fix
+reproduces this branch's every line, and neither level has a trap. Left: the Guard Post,
+disarming (Q455), the reveal, the upkeep (Q59), effects and sounds, the unread shots, heights.

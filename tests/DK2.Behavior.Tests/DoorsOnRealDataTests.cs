@@ -71,7 +71,7 @@ public class DoorsOnRealDataTests(ITestOutputHelper output)
         Assert.Equal(46, levels);
         Assert.Equal(940, doors);
         Assert.Empty(supportKills);
-        // The read owner test kills this one at once: a hero door on a tile the map leaves unowned.
+        // The read owner test kills this one at once: a hero door on a tile the map gives the Neutral player.
         // Whether it stands in the running game is the prediction's check (door-blocking.md).
         Assert.Equal(["level4 (24,9) Wooden Door p1 tile p2"], ownerKills);
     }

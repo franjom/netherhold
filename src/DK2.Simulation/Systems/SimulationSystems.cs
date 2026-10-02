@@ -51,7 +51,9 @@ public static class SimulationSystems
         new DoorHealthSystem(),
         // Shots fly after the creatures have moved; where DK2's thing list puts them is Q398.
         new ShotSystem(),
+        new TrapSystem(), // after the shots, as DK2's class lists run shots (1) before traps (3)
         // The thing pass's second walk: whatever is dead now is removed this turn (0x004B7830).
+        new TrapRemovalSystem(),
         new DoorRemovalSystem(),
         // The Call to Arms flag is an object the shot puts down; its recall, release and the
         // heeding states run in the thing update, before the payment that keeps it (ADR-0279).

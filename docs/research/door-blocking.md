@@ -63,7 +63,7 @@ gate. The friendly scan F still runs, so an ally wanting a friendly spell outran
 one the route then refuses ends the call with no fight, the door not taken.
 
 The survey drops an attack spell whose flag byte `+0x27` has bit 3 (the status spells) when
-the forced target is not a creature. The running best `local_10` is never set on the forced
+the forced target is not a creature. The running best is never set on the forced
 path and stays `0x7FFFFFFF`, so the within-one-tile melee rule cannot fire: a creature with a
 surveyed attack spell casts at the door (nibble 2, range the spell's), one without swings
 (nibble 4). Melee reach is `(MeleeRange + 0x800)² >> 12`, `0xC00` for a Secret Door (flag
@@ -135,7 +135,7 @@ Update `0x004A55F0`, in its order:
 **CONFIRMED (owner, 2026-10-02):** digging out a wall beside a door destroys the door.
 
 **Shipped data (CONFIRMED):** of 940 placed doors on 46 levels, none fails the support test;
-one fails the owner test — Level 4's hero Wooden Door at (24,9) on an unowned tile, which the
+one fails the owner test — Level 4's hero Wooden Door at (24,9) on a Neutral-owned tile, which the
 read rule kills on the first update (a prediction, not an observation).
 
 ## 7. Death and removal

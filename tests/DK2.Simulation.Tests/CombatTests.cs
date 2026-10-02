@@ -174,20 +174,20 @@ public class CombatTests
         Assert.Equal(goblin.Id, knight.FightTargetId);
     }
 
+    /// <summary><c>0x0045AA20</c>'s walk toward the attacker runs only when the attacker is a trap
+    /// (<c>0x0045AD68</c> compares its class with 3): struck by a creature, one not fighting stays put.</summary>
     [Fact]
-    public void ACreatureNotFightingWalksTowardWhoeverStrikesIt()
+    public void ACreatureNotFightingDoesNotWalkTowardACreatureThatStrikesIt()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        // Touching across a tile boundary, so the walk toward the attacker is a route and not a standstill.
+        // Touching across a tile boundary, so a walk toward the attacker would be a route and not a standstill.
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         demon.PosX = CreatureState.CentreOf(5) + 1800;
         CreatureState bystander = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.Neutral, demon);
         GameSimulation sim = Combat(db, world);
 
         RunUntilSwing(sim, demon);
-        Assert.Equal(CreatureActivity.Idle, bystander.Activity);
-        Assert.True(bystander.IsRouted);
-        Assert.Equal(demon.Tile, bystander.Destination);
+        Assert.False(bystander.IsRouted && bystander.Destination == demon.Tile);
     }
 
     [Fact]

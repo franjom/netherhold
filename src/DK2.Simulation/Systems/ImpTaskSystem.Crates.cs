@@ -263,7 +263,7 @@ public sealed partial class ImpTaskSystem
 
         if (CrateRules.BlueprintAt(world, context.Database, creature.OwnerPlayerId, kind, here, crate.ObjectTypeId) is { } blueprint)
         {
-            CrateRules.Build(world, blueprint, crate);
+            CrateRules.Build(world, context.Database, blueprint, crate);
             context.Emit(SystemName, kind == CrateRules.DoorKind ? "door_built" : "trap_built",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} {Describe(world, creature.TargetTileIndex)}");
         }

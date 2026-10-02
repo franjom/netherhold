@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 155: the Casino, Torture and Manufacture leave hooks and the maker count (ADR-0322).
+        // HashVersion 156: traps fire, and every creature carries its place in its tile's chain (ADR-0321).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x72C7236DC18B69AFUL, sim.StateHash());
+        Assert.Equal(0xA8639EEF2B7A2350UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

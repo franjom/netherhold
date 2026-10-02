@@ -72,11 +72,32 @@ internal static class Dk2TerrainFixture
     public const byte ManaVaultTerrain = 31;
     public const byte ClaimedVaultTerrain = 32;
 
-    /// <summary>The Alarm trap, its crate the Alarm crate (ADR-0214).</summary>
+    /// <summary>The Alarm trap, its crate the Alarm crate (ADR-0214), and the traps whose firing is
+    /// built (ADR-0321) at their shipped values (<c>TrapRuntimeOnRealDataTests</c>), with no crate. The
+    /// Freeze is id 17 here, the fixture's Alarm holding the shipped Freeze's 7.</summary>
     public static TrapDef[] Traps() =>
     [
         new() { Name = "Alarm", TrapId = 7, Health = 100, GoldCost = 250, ManufactureRequired = 1000, CrateObjectId = AlarmCrateObjectId, ShotTypeId = 0, ManaUpkeepPerSecond = 0 },
+        FiringTrap("Sentry Trap", SentryTrapId, 1, 24, 5, 250, 0x31598, CannonBallShotId, 250, 0, -2048, 74, 45, 6, 3000),
+        FiringTrap("Fireburst Trap", FireburstTrapId, 1, 48, 1, 250, 0x3053A, FireburstShotId, 2000, 1, -1761, 185, 45, 16, 8000),
+        FiringTrap("Lightning Trap", LightningTrapId, 1, 48, 4, 375, 0x31518, LightningTrapShotId, 400, 0, -2048, 74, 45, 12, 6000),
+        FiringTrap("Freeze Trap", FreezeTrapId, 2, 24, 1, 250, 0x3053A, FreezeTrapShotId, 20, 1, 0, 37, 45, 12, 6000),
+        FiringTrap("Trigger Trap", TriggerTrapId, 3, 16, 1, 0, 0x2043A, TriggerTrapShotId, 0, 1, 0, 0, 0, 4, 2000),
+        FiringTrap("Magic Door", MagicDoorTrapId, 2, 32, 4, 500, 0x35BA, DoorFireballShotId, 150, 0, 0, 100, 60, 40, 4000),
+        FiringTrap("Hero Sentry Trap", HeroSentryTrapId, 1, 24, 5, 100, 0x9598, CannonBallShotId, 250, 0, -2048, 74, 45, 30, 3000),
     ];
+
+    public const byte SentryTrapId = 3, FireburstTrapId = 5, LightningTrapId = 6, FreezeTrapId = 17, TriggerTrapId = 9,
+        MagicDoorTrapId = 12, HeroSentryTrapId = 14;
+
+    private static TrapDef FiringTrap(string name, byte id, byte selector, int rechargeTicks, int range, int mana, uint flags,
+        byte shot, int data1, int data2, int offsetY, ushort threat, int threatSeconds, short gain, ushort health) => new()
+    {
+        Name = name, TrapId = id, Health = health, GoldCost = 1000, ManufactureRequired = 1000, ShotTypeId = shot,
+        ManaUpkeepPerSecond = 0, TriggerType = selector, RechargeSecondsRaw = rechargeTicks * 1024, RangeTiles = range,
+        ManaCostToFire = mana, Flags = flags, ShotData1 = data1, ShotData2 = data2, ShotOffsetY = offsetY, Threat = threat,
+        ThreatSecondsRaw = threatSeconds * 4096, HealthGain = gain,
+    };
 
     /// <summary>Two shipped door records: the Wooden Door and the Barricade, whose flags byte
     /// (0x40) the navigation writer reads as a permanent lock. Their <c>HealthGain</c> is the
@@ -1295,7 +1316,19 @@ internal static class Dk2TerrainFixture
         // The Heal chain (shots.md §8): the instant shot stands on its target and dies on it, chaining Modify Health.
         Status("Heal Instant Shot", HealInstantShotId, 0, 1, 0x2, 0x2, 1, 34, deathShot: ModifyHealthShotId),
         Status("Modify Health", ModifyHealthShotId, 3686, 128, 0x23, 0x4, 3, 3),
+        // The trap shots, shipped: Cannon Ball and Door Fireball launch (flag 0x20) and hit on contact; the
+        // Fireburst stands and burns an area; the Lightning Trap Shot strikes its target on its first tick;
+        // the Freeze Trap Shot freezes what it hits; the Trigger's does nothing.
+        Status("Cannon Ball", CannonBallShotId, 3276, 50, 0x127, 0x1, 2, 0, damageType: 7),
+        Status("Fireburst", FireburstShotId, 2048, 16, 0x104, 0x1, 2, 0, damageType: 2),
+        Status("Lightning Trap Shot", LightningTrapShotId, 0, 8, 0x104, 0x40, 0, 9),
+        Status("Freeze Trap Shot", FreezeTrapShotId, 4096, 16, 0x3, 0x4, 2, 11),
+        Status("Trigger Trap", TriggerTrapShotId, 4096, 1, 0x4, 0x1, 0, 0),
+        Status("Door Fireball", DoorFireballShotId, 3686, 60, 0x127, 0x1, 2, 0, damageType: 7),
     ];
+
+    public const byte CannonBallShotId = 44, FireburstShotId = 14, LightningTrapShotId = 59, FreezeTrapShotId = 45,
+        TriggerTrapShotId = 39, DoorFireballShotId = 57;
 
     private static ShotDef Status(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte collide, byte process, byte damageType = 0, byte attackCategory = 0, byte deathShot = 0) =>
         new(new byte[239])
@@ -1384,6 +1417,7 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.EPLossSecondWhileNotTraining, 0);
 
         Set(vars, VariableTypeId.CreatureDyingStateDurationSeconds, 60);
+        Set(vars, VariableTypeId.TriggerTrapTriggerSpeedTilesPerSecond, 4096);
 
         // The corpse timer, which nothing reads: a body is an object (M6). Here
         // so CreatureDeathRules.BodyWindowTicks can be pinned rather than only

@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 using DK2.Simulation.Navigation;
 using DK2.Simulation.Steering;
 
@@ -307,10 +308,11 @@ public static class FightRules
             me.CombatPitFighter ? MeleeDamageRules.Stance.CombatPitFighter : MeleeDamageRules.Stance.None,
             Bearing.Of(me.PosX - targetX, me.PosY - targetY), 0, 0);
 
-    /// <summary><c>0x0045AA20</c>, the target's side of a swing beginning. A creature already
-    /// fighting turns on its attacker when it has no live target of its own or its target is
-    /// already fought by more than one; one not fighting, if it may fight at all and is not an Imp,
-    /// walks toward the attacker and acquires it in its own time. Spell survey not built: melee.</summary>
+    /// <summary><c>0x0045AA20</c>, the target's side of a swing beginning, for an attacker that is not a
+    /// trap. A creature already fighting turns on its attacker when it has no live target of its own
+    /// or its target is already fought by more than one. One not fighting does nothing: the arm that
+    /// walks it toward its attacker runs only for a trap (<c>0x0045AD68</c> compares the attacker's
+    /// class with 3; <see cref="AnswerTrap"/>). Spell survey not built: melee.</summary>
     public static void Retaliate(SimulationContext context, CreatureState target, CreatureState attacker)
     {
         WorldState world = context.World;
@@ -352,11 +354,28 @@ public static class FightRules
             return;
         }
 
+    }
+
+    /// <summary><c>0x0045AA20</c>'s second arm (<c>0x0045AD31</c>), for a trap firing at the creature:
+    /// one outside the combat category that may fight (<c>0x0045A6D0(0)</c>), is not an Imp and has a
+    /// route to the trap (<c>0x004D0E60</c>, no door rule) goes to state 1 and walks to the trap's
+    /// position (<c>0x00471890</c>). One in the combat category does nothing.</summary>
+    public static void AnswerTrap(SimulationContext context, CreatureState target, TrapState trap)
+    {
+        if (NeedRules.ResolvedCategory(target) == CreatureStateCategory.Combat) return;
+        if (!CombatRules.MayLookForAFight(context.World, context.Database, target, force: false)) return;
         if (target.CreatureTypeId == CombatRules.ImpCreatureTypeId) return;
+        WorldSteering navigation = context.Navigation;
+        MoverProfile profile = WorldSteering.ProfileOf(context.Database.CreatureById(target.CreatureTypeId), target.OwnerPlayerId, MoveOptions.Plain);
+        RouteScratch.Clear();
+        if (!navigation.Route(new Fixed16Vector(target.PosX << 4, target.PosY << 4), new Fixed16Vector(trap.PosX << 4, trap.PosY << 4), profile, RouteScratch))
+            return;
         target.CurrentJob = JobType.None;
         target.JobTileIndex = -1;
         CombatStates.Idle(context.Hooks, target);
-        if (context.Navigation.TryRoute(target, attacker.Tile, MoveOptions.Plain))
-            context.Emit(SystemName, "turns_toward", $"creature={target.Id} attacker={attacker.Id}");
+        navigation.TryRouteTo(target, trap.PosX, trap.PosY, MoveOptions.Plain);
+        context.Emit(SystemName, "walks_to_trap", $"creature={target.Id} trap={trap.Id}");
     }
+
+    private static readonly List<Fixed16Vector> RouteScratch = [];
 }

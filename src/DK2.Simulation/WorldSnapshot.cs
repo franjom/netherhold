@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 155;
+    private const int FormatVersion = 156;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -370,6 +370,8 @@ public static class WorldSnapshot
             w.Write(c.AttackingId);
             w.Write(c.AttackingKind);
             w.Write(c.RebelActive);
+            w.Write(c.ChainTileIndex);
+            w.Write(c.ChainOrder);
             w.Write(c.PitStateEnteredTick);
             w.Write(c.SpectatorPosX);
             w.Write(c.SpectatorPosY);
@@ -516,7 +518,21 @@ public static class WorldSnapshot
             w.Write(trap.PlayerId);
             w.Write(trap.Unknown_000F);
             w.Write(trap.UnderConstruction);
+            w.Write(trap.Health);
+            w.Write(trap.Heading);
+            w.Write(trap.RechargeAt);
+            w.Write(trap.RecoveryAt);
+            w.Write(trap.Charge);
+            w.Write(trap.TriggerCount);
+            w.Write(trap.Hidden);
+            w.Write(trap.ThreatDuration);
+            w.Write(trap.Threat);
+            w.Write(trap.TriggerCountdown);
+            w.Write(trap.TriggerCreatureId);
+            w.Write(trap.SightTurn);
+            w.Write(trap.SightTargetId);
         }
+        w.Write(world.NextChainOrder);
 
         w.Write(world.HeroParties.Count);
         foreach (HeroPartyState party in world.HeroParties)
@@ -886,6 +902,8 @@ public static class WorldSnapshot
                 AttackingId = r.ReadInt32(),
                 AttackingKind = r.ReadByte(),
                 RebelActive = r.ReadBoolean(),
+                ChainTileIndex = r.ReadInt32(),
+                ChainOrder = r.ReadInt32(),
                 PitStateEnteredTick = r.ReadInt64(),
                 SpectatorPosX = r.ReadInt32(),
                 SpectatorPosY = r.ReadInt32(),
@@ -1060,8 +1078,22 @@ public static class WorldSnapshot
                 PlayerId = r.ReadByte(),
                 Unknown_000F = r.ReadByte(),
                 UnderConstruction = r.ReadBoolean(),
+                Health = r.ReadInt32(),
+                Heading = r.ReadInt32(),
+                RechargeAt = r.ReadInt64(),
+                RecoveryAt = r.ReadInt64(),
+                Charge = r.ReadByte(),
+                TriggerCount = r.ReadByte(),
+                Hidden = r.ReadBoolean(),
+                ThreatDuration = r.ReadByte(),
+                Threat = r.ReadInt32(),
+                TriggerCountdown = r.ReadByte(),
+                TriggerCreatureId = r.ReadInt32(),
+                SightTurn = r.ReadInt64(),
+                SightTargetId = r.ReadInt32(),
             });
         }
+        world.NextChainOrder = r.ReadInt32();
 
         int heroPartyCount = r.ReadInt32();
         for (int i = 0; i < heroPartyCount; i++)

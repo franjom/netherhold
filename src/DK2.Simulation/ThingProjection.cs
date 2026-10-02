@@ -120,7 +120,7 @@ public static class ThingProjection
                     break;
 
                 case TrapThing t:
-                    PlaceTrap(world, t);
+                    PlaceTrap(world, database, t);
                     traps++;
                     break;
 
@@ -272,8 +272,13 @@ public static class ThingProjection
             Unknown_0011 = thing.Unknown_0011.ToArray(),
         });
 
-    private static void PlaceTrap(WorldState world, TrapThing thing) =>
-        world.AddTrap(new TrapState
+    /// <summary>The authored loader <c>0x00520E50</c>: the trap made under construction
+    /// (<c>0x004A7940</c>), then completed through <c>0x004A96D0</c> when the byte parsed as
+    /// <c>NumberOfShots</c> is nonzero. Completion counts Triggers both ways, so the THINGS order
+    /// does not change the counts.</summary>
+    private static void PlaceTrap(WorldState world, GameDatabase database, TrapThing thing)
+    {
+        var trap = new TrapState
         {
             X = thing.X,
             Y = thing.Y,
@@ -282,8 +287,12 @@ public static class ThingProjection
             TrapId = thing.TrapId,
             PlayerId = thing.PlayerId,
             Unknown_000F = thing.Unknown_000F,
-            UnderConstruction = thing.NumberOfShots == 0,
-        });
+            UnderConstruction = true,
+        };
+        TrapRules.Seed(trap, database.Traps.GetValueOrDefault(thing.TrapId));
+        world.AddTrap(trap);
+        if (thing.NumberOfShots != 0) TrapRules.Complete(world, database, trap);
+    }
 
     private static void PlaceHeroParty(WorldState world, HeroPartyThing thing) =>
         world.AddHeroParty(new HeroPartyState

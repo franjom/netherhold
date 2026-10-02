@@ -673,6 +673,13 @@ public sealed class CreatureState
     /// keeper's shut door (<c>0x0048A36C</c>, rebellion.md §4, door-blocking.md).</summary>
     public bool RebelActive;
 
+    /// <summary>Where DK2's tile thing chain holds this creature: the tile it was last linked on
+    /// (<c>-1</c> off the map) and the order of that link. The position setter <c>0x004B5020</c>
+    /// relinks a thing only when it changes tile, at the head of the chain (<c>0x004B4E70</c>), so the
+    /// tile trap's first creature (<c>0x00453AC0</c>) is the one with the highest order (traps.md).</summary>
+    public int ChainTileIndex = -1;
+    public int ChainOrder;
+
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
     public int TargetTileIndex = -1;
 
@@ -1142,6 +1149,8 @@ public sealed class CreatureState
         hash.Add(AttackingId);
         hash.Add(AttackingKind);
         hash.Add(RebelActive);
+        hash.Add(ChainTileIndex);
+        hash.Add(ChainOrder);
         hash.Add(PitStateEnteredTick);
         hash.Add(SpectatorPosX);
         hash.Add(SpectatorPosY);

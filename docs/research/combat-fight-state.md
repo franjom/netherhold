@@ -129,8 +129,10 @@ corrected 2026-09-23 against the disassembly).
 
 ## 5. The target's answer (`0x0045AA20(target, attackerTag, melee)`)
 
-Called on the target when a swing or cast begins at it. Not when the attacker
-is an object (thing class 3).
+Called on the target when a swing or cast begins at it, and by a trap's firing
+(traps.md §7). **Corrected 2026-10-02** (disassembly `0x0045AA66`, `0x0045AD68`): the
+first arm runs only when the attacker is **not** class 3 (a trap), the second only when
+it **is**.
 
 **Target already in the combat group (22):** returns if fleeing (203) or the
 gate `0x0045A6D0(0)` refuses. Otherwise decide whether to **turn on the
@@ -145,10 +147,11 @@ first found is used with nibble 0 and range², else melee with nibble 1 and
 (`0x0045A9A0`) failing clears the target. Then `SetState(199)` unless already in
 the group, or en route toward 199.
 
-**Target not fighting:** if the gate `0x0045A6D0(0)` allows, the target is not an
-Imp, the attacker is a creature and a route to it exists (`0x004D0E60`, no door
-rule): **`SetState(1)`** and route to the attacker's position (`0x00471890`,
-`0x80`, Imp `0`). It walks toward whoever hit it, and acquires in its own time.
+**Target not fighting, attacker a trap:** if the gate `0x0045A6D0(0)` allows, the
+target is not an Imp, the trap's slot is live and a route to it exists (`0x004D0E60`,
+no door rule): **`SetState(1)`** and route to the trap's position (`0x00471890`,
+option 0). A creature struck by a creature while not fighting does nothing here; the
+old reading ("the attacker is a creature") had the class test inverted.
 
 ## 6. When the target dies
 

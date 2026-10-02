@@ -690,10 +690,11 @@ public sealed class DoorState
 }
 
 /// <summary>
-/// One trap projected from a placed THING. Authored bytes remain verbatim; the
-/// construction predicate is the one runtime value currently derived from them.
+/// One trap: projected from a placed THING, whose authored bytes remain verbatim, or placed
+/// in play as a blueprint. The runtime words are DK2's <c>CTrap</c> fields past <c>+0xFF</c>,
+/// zeroed by the constructor <c>0x004A7940</c> and run by the update <c>0x004A84E0</c> (traps.md).
 /// </summary>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/traps.md")]
 public sealed class TrapState
 {
     /// <summary>The trap's id, given as <see cref="DoorState.Id"/> is.</summary>
@@ -708,6 +709,51 @@ public sealed class TrapState
     public byte Unknown_000F { get; init; }
     public bool UnderConstruction { get; set; }
 
+    /// <summary><c>+0x40</c>, seeded from the definition's <c>Health</c> (<c>+0xA2</c>).</summary>
+    public int Health;
+
+    /// <summary><c>+0xF4</c>, 2048 to a turn, zeroed by the class constructor <c>0x004B28D0</c>.</summary>
+    public int Heading;
+
+    /// <summary><c>+0xFF</c> rechargeAtTime: no targeting before this turn.</summary>
+    public long RechargeAt;
+
+    /// <summary><c>+0x107</c> nextHealthGainTick: recovery applies once the turn is past it.</summary>
+    public long RecoveryAt;
+
+    /// <summary><c>+0x10B</c>: turns in a row a target was found, wrapping as a byte.</summary>
+    public byte Charge;
+
+    /// <summary><c>+0x10C</c>'s low nibble: completed own Trigger traps beside this one, which
+    /// suppress the sight and tile selectors.</summary>
+    public byte TriggerCount;
+
+    /// <summary><c>+0x10C</c> bit 4, seeded from definition flag <c>0x20</c>; a firing with flag
+    /// <c>0x2</c> clears it.</summary>
+    public bool Hidden;
+
+    /// <summary><c>+0x10E</c>, counted down each update and read by nothing else.</summary>
+    public byte ThreatDuration;
+
+    /// <summary><c>+0x10F</c>: the threat shared among nearby enemies every update once set; no
+    /// trap code clears it after a firing sets it.</summary>
+    public int Threat;
+
+    /// <summary><c>+0x10D</c> triggeringTime: a Trigger's propagation countdown.</summary>
+    public byte TriggerCountdown;
+
+    /// <summary><c>+0x117</c> triggeringCreature: the creature a Trigger fired at.</summary>
+    public int TriggerCreatureId;
+
+    /// <summary><c>+0x119</c>/<c>+0x11D</c>: the sight finder's turn and answer, reused within a turn
+    /// and offered to the next. The constructor zeroes both, so on turn 0 the finder answers nobody.</summary>
+    public long SightTurn;
+    public int SightTargetId;
+
+    /// <summary>The trap's position, the tile's centre as the loader <c>0x00520E50</c> puts it.</summary>
+    public int PosX => (X << 12) + 0x800;
+    public int PosY => (Y << 12) + 0x800;
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
@@ -719,6 +765,19 @@ public sealed class TrapState
         hash.Add(PlayerId);
         hash.Add(Unknown_000F);
         hash.Add(UnderConstruction);
+        hash.Add(Health);
+        hash.Add(Heading);
+        hash.Add(RechargeAt);
+        hash.Add(RecoveryAt);
+        hash.Add(Charge);
+        hash.Add(TriggerCount);
+        hash.Add(Hidden);
+        hash.Add(ThreatDuration);
+        hash.Add(Threat);
+        hash.Add(TriggerCountdown);
+        hash.Add(TriggerCreatureId);
+        hash.Add(SightTurn);
+        hash.Add(SightTargetId);
     }
 }
 
@@ -847,6 +906,7 @@ public sealed class WorldState
     private readonly List<TrapState> _traps = [];
     private int _nextDoorId;
     private int _nextTrapId;
+    private int _nextChainOrder;
     private readonly List<HeroPartyState> _heroParties = [];
     private readonly List<EffectGeneratorState> _effectGenerators = [];
     private readonly List<TempleSacrificeState> _templeSacrifices = [];
@@ -1368,6 +1428,20 @@ public sealed class WorldState
         return null;
     }
 
+    /// <summary>The first trap of <paramref name="owner"/> on the tile, or null: <c>0x00453700(3, owner)</c>
+    /// over the tile's chain. A tile holds one trap.</summary>
+    public TrapState? TrapAt(int x, int y, byte owner)
+    {
+        foreach (TrapState trap in _traps)
+            if (trap.X == x && trap.Y == y && trap.PlayerId == owner) return trap;
+        return null;
+    }
+
+    internal void RemoveTrap(TrapState trap) => _traps.Remove(trap);
+
+    /// <summary>The last tile-chain link given (<see cref="CreatureState.ChainOrder"/>).</summary>
+    internal int NextChainOrder { get => _nextChainOrder; set => _nextChainOrder = value; }
+
     /// <summary>The last door and trap ids given, restored by a snapshot so ids stay unique.</summary>
     internal int NextDoorId { get => _nextDoorId; set => _nextDoorId = value; }
 
@@ -1559,6 +1633,7 @@ public sealed class WorldState
 
         hash.Add(_traps.Count);
         hash.Add(_nextTrapId);
+        hash.Add(_nextChainOrder);
         foreach (TrapState trap in _traps) trap.HashInto(ref hash);
 
         hash.Add(_heroParties.Count);

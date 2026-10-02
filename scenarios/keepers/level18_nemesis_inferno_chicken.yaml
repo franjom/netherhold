@@ -1,5 +1,6 @@
 # The unaided keeper's Inferno and Chicken on a stock map: the Level 18 setup of
-# level18_nemesis_heal.yaml, with Nemesis (player 4) also given Inferno (9) and Chicken (11) at
+# level18_nemesis_heal.yaml one tile east, off Nemesis's Freeze Trap at (51,54), which fires at a
+# hero standing on it on the first turn now that traps fire (ADR-0321), with Nemesis (player 4) also given Inferno (9) and Chicken (11) at
 # availability 3 and the mana for them. Its Black Knight holds a hero Knight on the claimed tile
 # between its Lair and its heart, so the fight flag is on and the battle step (0x00503060) runs.
 # The offensive arm walks ids upward: Thunderbolt (6) first, then Inferno, then Chicken, each on
@@ -32,9 +33,9 @@ setup:
     - { id: 5, gold: 10000, mana: 100 }
     - { id: 6, gold: 10000, mana: 100 }
   creatures:
-    - { type: Black Knight, at: [54, 53], player: 4, health: 1500 }
-    - { type: Black Knight, at: [52, 54], player: 4 }
-    - { type: Knight, at: [51, 54], player: 1 }
+    - { type: Black Knight, at: [55, 53], player: 4, health: 1500 }
+    - { type: Black Knight, at: [53, 54], player: 4 }
+    - { type: Knight, at: [52, 54], player: 1 }
 observe:
   - state_hash
   - events

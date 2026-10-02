@@ -132,15 +132,15 @@ public static class CrateRules
     }
 
     /// <summary>States 35 and 37: the crate is used up and the thing is built. A door's navigation
-    /// byte is the steering's, which reads the construction flag on its next refresh. The trap's
-    /// completion work past the flag (<c>0x004A96D0</c>) and the Secret Door's terrain update
-    /// (<c>0x00450FF0</c>) are not built.</summary>
-    public static void Build(WorldState world, BlueprintRef blueprint, ObjectState crate)
+    /// byte is the steering's, which reads the construction flag on its next refresh; a trap's
+    /// completion (<c>0x004A96D0</c>) counts its Triggers (<see cref="TrapRules.Complete"/>). The
+    /// Secret Door's terrain update (<c>0x00450FF0</c>) is not built.</summary>
+    public static void Build(WorldState world, GameDatabase database, BlueprintRef blueprint, ObjectState crate)
     {
         world.RemoveObject(crate.Id);
         byte owner = OwnerOf(world, blueprint);
         if (blueprint.Kind == DoorKind) { if (world.DoorById(blueprint.Id) is { } door) door.UnderConstruction = false; }
-        else if (world.TrapById(blueprint.Id) is { } trap) trap.UnderConstruction = false;
+        else if (world.TrapById(blueprint.Id) is { } trap) TrapRules.Complete(world, database, trap);
         Unregister(world, owner, blueprint);
     }
 

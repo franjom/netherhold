@@ -16,17 +16,17 @@ public enum TrapReadiness : byte
     Ready = 4,
 }
 
-/// <summary>The readiness and charge arithmetic read at 0x004A7D10 and 0x004A84E0.
-/// Automatic firing remains UNKNOWN at its integration boundary and is not dispatched (Q450).
-/// A Ready result alone does not establish that a trap's firing path is supported.</summary>
+/// <summary>The readiness and charge arithmetic read at 0x004A7D10 and 0x004A84E0, which
+/// <see cref="TrapRules"/> dispatches each update (ADR-0321). A Ready result alone does not
+/// establish that a trap's firing path is supported: <see cref="TrapRules.FiringBuilt"/> does.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/traps.md")]
 public static class TrapActivationRules
 {
     public const uint UsesMana = 0x100;
 
     public static TrapReadiness Readiness(
-        TrapDef definition, byte owner, bool underConstruction, uint tick,
-        uint rechargeDeadline, int mana, bool beingDisarmed)
+        TrapDef definition, byte owner, bool underConstruction, long tick,
+        long rechargeDeadline, int mana, bool beingDisarmed)
     {
         if (underConstruction) return TrapReadiness.UnderConstruction;
         if (tick < rechargeDeadline) return TrapReadiness.Recharging;

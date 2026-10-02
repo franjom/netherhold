@@ -192,6 +192,7 @@ nonzero comparison, so no shipped record needs the unread availability mode.
 | Trap runtime and door contact | See [traps.md](traps.md) and [door-blocking.md](door-blocking.md) |
 | Any semantic meaning for either `Unknown_0008`, door trailing bytes or trap `Unknown_000F` | **UNKNOWN** |
 
-Next work is Q450, with owner observations Q451 and Q452.
+Trap firing is built for the traps whose shot is (ADR-0321, `traps.md`); Q450 lists what is
+left, with owner observations Q451, Q452 and Q513.
 A field absent from the runtime licenses
 only that result; it does not show that a corresponding behavior is absent.
