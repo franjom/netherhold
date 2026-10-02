@@ -53,6 +53,13 @@ public sealed class RoomInstance
     public int Width => MaxX - MinX + 1;
     public int Height => MaxY - MinY + 1;
 
+    /// <summary>DK2's room position words <c>+0x27/+0x29</c>, aimed at by the withdraw and the alarm:
+    /// the box's centre rounded down, one tile further on each axis for a Dungeon Heart. STRONGLY
+    /// INFERRED: three captured 5×5 hearts read the offset, its writer is unread (Q515; ADR-0323).</summary>
+    public int CentreFieldX => ((MinX + MaxX) / 2) + (Definition.TypeId == RoomTypeId.DungeonHeart ? 1 : 0);
+
+    public int CentreFieldY => ((MinY + MaxY) / 2) + (Definition.TypeId == RoomTypeId.DungeonHeart ? 1 : 0);
+
     /// <summary>Whether the room fills its own bounding box — i.e. it is a solid rectangle.</summary>
     public bool IsRectangular => TileCount == Width * Height;
 

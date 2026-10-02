@@ -187,7 +187,13 @@ A destination, then a run:
 2. **`LairId` (`+0x3B7`) set:** the lair object's position, **no route check**.
 3. Else a random unruined room of type 5 (`0x004C6460`) — the heart — at its
    `+0x27/+0x29` tile **±2 on each axis**, each sign a `random(2)`; routable with
-   word `0x80` (Imp: 0).
+   word `0x80` for an Imp and 0 for anyone else (`(-(type != 1) & 0xFFFFFF80) + 0x80`;
+   the earlier "0x80 (Imp: 0)" had it inverted, corrected 2026-10-02). **A 5×5
+   heart's word is one tile past its centre** (STRONGLY INFERRED: Levels 1, 2 and 3
+   read (15,29), (20,39), (27,37) for hearts at (12,26), (17,36), (24,34); dragged
+   rooms read their floor centre — `RoomInstance.CentreFieldX`, Q515), so three of
+   the four points are wall and the step fails: Level 3's imps landed at the heart
+   6 times in 21 and at a room 15.
 4. Else **three tries** of `0x004C63D0`: `random(NumberOfRooms)` walked over the
    room list **skipping bridges (types 8, 17, 22) without counting down**, so a
    draw past the last non-bridge room finds nothing; the room's `+0x27/+0x29`
@@ -230,9 +236,9 @@ ADR-0208.
 
 **Approximated, named:** the step back is a route three quarters of a tile
 straight away from the target, not a heading impulse (Q373); a state ending
-lets the engagement go rather than leaving the tag (Q373); the room's
-`+0x27/+0x29` is taken as its bounding-box centre; a hero's flag bit 4 is
-absent, so heroes neither withdraw nor count as six tiles out (Q372).
+lets the engagement go rather than leaving the tag (Q373); a hero's flag bit 4 is
+absent, so heroes neither withdraw nor count as six tiles out (Q372). The room
+word `+0x27/+0x29` is `RoomInstance.CentreFieldX/Y` since ADR-0323 (§5 step 3).
 
 **Not built:** hero gates; the stunned and chicken gates; the owner modifiers (Q375);
 `ThreatThing`; the two spell sources of §2; the body bit `+0x10F`.0.

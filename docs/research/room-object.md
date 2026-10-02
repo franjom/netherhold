@@ -12,6 +12,12 @@ it holds, never its unit, writer or rule.
   `player+0x36` is its head. `room-list.md` owns the traversal evidence.
 - `+0x19` points to the loaded `RoomDef`. Furniture placement follows it to the
   definition's `ObjectIds` (`auto-placed-furniture.md`).
+- `+0x27/+0x29` (u16 each) are the room's position words, which the withdraw, the
+  alarm and the threat list aim at. STRONGLY INFERRED from three captures (the
+  writer is unread, Q515): a dragged room reads its bounding box's centre rounded
+  down (Level 3 Treasury 32–36×34–38 → (34,36), Lair 25–29×42–46 → (27,44)); the
+  three captured 5×5 Dungeon Hearts read one tile past it ((24,34) → (27,37);
+  Level 2 (17,36) → (20,39); Level 1 (12,26) → (15,29)). `RoomInstance.CentreFieldX/Y`.
 - `+0x2D/+0x2E` and `+0x2F/+0x30` are the head and tail coordinates of the
   room's slab list. Each 16-byte tile record stores the next coordinates at
   `+0x04/+0x05`; zero ends the list. Furniture and room-removal paths both walk

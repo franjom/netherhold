@@ -264,8 +264,11 @@ public class CombatFearTests
     }
 
     [Fact]
-    public void TheWithdrawalRunsForTheHeart_TwoTilesOffOnEachAxis()
+    public void TheWithdrawalRunsForTheHeartsPositionWord_TwoTilesOffOnEachAxis_IfASmallHeartsWordIsOffsetLikeACapturedOnes()
     {
+        // The heart's +0x27/+0x29 word sits one tile past its centre on the three captured 5×5
+        // hearts (RoomInstance.CentreFieldX, Q515); this fixture's 3×3 heart centred on (3,3) is
+        // aimed at from (4,4) on the assumption that the offset does not depend on the size.
         (GameDatabase db, WorldState world) = OpenWorld();
         PlaceHeart(world, Keeper, 3, 3);
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
@@ -277,8 +280,65 @@ public class CombatFearTests
         Assert.Equal(CreatureActivity.Withdrawing, goblin.Activity);
         Assert.True(goblin.Running);
         TilePos to = goblin.Destination;
-        Assert.Equal(2, Math.Abs(to.X - 3));
-        Assert.Equal(2, Math.Abs(to.Y - 3));
+        Assert.Equal(2, Math.Abs(to.X - 4));
+        Assert.Equal(2, Math.Abs(to.Y - 4));
+    }
+
+    [Fact]
+    public void AHeartPointInTheWallSendsTheWithdrawalToARandomRoomsWordInstead()
+    {
+        // Level 3's imps: three of the heart word's four points are reinforced wall round a 5×5
+        // heart, and the withdraw fell through to a room 15 times in 21 (ADR-0323). Here all four
+        // are rock, so the run ends at a room's own word: the Treasury's (13,14), or the heart's
+        // (4,4) when step 4's draw lands on the heart itself, which is a room of the keeper's too.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceHeart(world, Keeper, 3, 3);
+        foreach ((int x, int y) in new[] { (2, 2), (6, 2), (2, 6), (6, 6) })
+        {
+            ref TileState wall = ref world.Tile(new TilePos(x, y));
+            wall.TerrainId = Dk2TerrainFixture.Rock;
+            wall.OwnerPlayerId = 0;
+        }
+        for (int y = 14; y <= 15; y++)
+        {
+            for (int x = 12; x <= 15; x++)
+            {
+                ref TileState tile = ref world.Tile(new TilePos(x, y));
+                tile.TerrainId = Dk2TerrainFixture.TreasuryTerrain;
+                tile.OwnerPlayerId = Keeper;
+            }
+        }
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 9, 9);
+        goblin.Health = 400;
+        CreatureState demon = Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
+        GameSimulation sim = Combat(db, world);
+
+        sim.Run(1);
+        Assert.Equal(CreatureActivity.Withdrawing, goblin.Activity);
+        Assert.Contains(goblin.Destination, new[] { new TilePos(13, 14), new TilePos(4, 4) });
+        Assert.DoesNotContain(goblin.Destination, new[] { new TilePos(2, 2), new TilePos(6, 2), new TilePos(2, 6), new TilePos(6, 6) });
+    }
+
+    [Fact]
+    public void ARoomsPositionWordIsItsFloorCentre_AndAHeartsOneTileFurther_AsThreeCapturedHeartsRead()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceHeart(world, Keeper, 3, 3);
+        for (int y = 14; y <= 15; y++)
+        {
+            for (int x = 12; x <= 15; x++)
+            {
+                ref TileState tile = ref world.Tile(new TilePos(x, y));
+                tile.TerrainId = Dk2TerrainFixture.TreasuryTerrain;
+                tile.OwnerPlayerId = Keeper;
+            }
+        }
+
+        List<RoomInstance> rooms = RoomIndex.Build(world, db);
+        RoomInstance heart = rooms.Single(r => r.Definition.TypeId == RoomTypeId.DungeonHeart);
+        RoomInstance treasury = rooms.Single(r => r.Definition.TypeId == RoomTypeId.Treasury);
+        Assert.Equal((4, 4), (heart.CentreFieldX, heart.CentreFieldY));
+        Assert.Equal((13, 14), (treasury.CentreFieldX, treasury.CentreFieldY));
     }
 
     [Fact]

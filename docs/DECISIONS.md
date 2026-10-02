@@ -7032,6 +7032,43 @@ five creatures at 1480 (1506), the hero chain's timer at 1976 (1998), the final 
 Open: DK2's pool is a draining count the creator decrements (Q474), and the portal tally fell
 from 6 to 5 when the Firefly died at 1796 (Q508), which is why our later arrivals drift late.
 
+## ADR-0323 — A withdrawal aims at the room's position word, and a heart's sits past its centre
+**Date:** 2026-10-02 · **Status:** accepted · Research: `combat-fear.md` §5; `room-object.md`; Q515
+
+**Context.** Level 3's hero phase diverged before the heart fight. DK2's first Dwarf party
+(1291) stands in the one corridor between the gold seam at (31,20) and the dungeon from 1386
+to 1604; every imp carrying gold meets it, withdraws, re-chooses its mine task and walks back
+into it, so nobody deposits (the Heart sits at 15,500 for 650 turns) and the Dwarves, with no
+target left in sight, go back to their action point and reach the heart only at 1825. Ours
+sent every withdrawing imp to the Heart's corners, so the Dwarves followed the stream into the
+heart's defenders and died at 1605 and 1699, 330 turns early, while our economy ran on. The
+capture shows where DK2's imps landed: the heart 6 times in 21, other rooms 15. The withdraw
+state (`0x004611D0`, read in `combat-fear.md` §5) aims two tiles off the heart's `+0x27/+0x29`
+word on each axis, each sign a `random(2)`, and falls to a random room when the point does not
+route. Three captures put a 5×5 heart's word one tile past its centre — Level 3 (27,37) for the
+heart at (24,34) — so three of its four points are reinforced wall. Ours aimed at the true
+centre, where all four points are heart floor.
+
+**Decision.** `RoomInstance.CentreFieldX/Y` is the room word: the bounding box's centre rounded
+down, one tile further on each axis for a Dungeon Heart — STRONGLY INFERRED, from three captured
+5×5 hearts and no read of the writer (Q515). `FearRules.Withdraw` step 3 draws a heart as
+`0x004C6460` does (`random(count)`, one draw even for one heart), aims at that word ±2 and
+falls through when the point does not route; step 4's room centres use the same word.
+
+**Consequences.** No state changes. `TheWithdrawalRunsForTheHeart_TwoTilesOffOnEachAxis`
+pinned the centre and is replaced by the word version plus the fall-through and the word test.
+The withdraw spends one more random draw, so every replay shifts. Measured on 7b66fd7, seeds
+1–20: Level 1 20/20 (1760–1976, was 1760–2000), Level 2 7/20 (seeds 3, 6, 7, 9, 10, 16, 18;
+was 3, 7, 9, 10, 15, 18, 19), both unchanged in count. Level 3 against seed 01: our imps now
+land on DK2's seven tiles, gold deliveries stop from 1500 to 1700 as DK2's do, the first
+Dwarves die at 1860 and 1892 (DK2 1937 and 1943; before 1605 and 1699), the chain's Dwarf at
+1968 (DK2 1998; before 2096). The win at 3683 is still not reached: the final party's Thieves
+outlive DK2's. Open: why the heart's word is one past its centre (Q515); the hero job's return
+to its action point. Reviewed against the binary (2026-10-02): step 3 and the single draw are
+as read; the review also found that step 4's room pick (`0x004C63D0`) counts bridges into its
+index and that a failed pick ends the withdraw with no destination, where `PickRoom` skips
+bridges and falls to step 5 — pre-existing since ADR-0165, left as is here and to be read.
+
 ## ADR-0317 — The keeper's training moves
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0244 and ADR-0284 · Research: `computer-keeper-management.md` §2; Q509
 

@@ -483,27 +483,43 @@ public static class FearRules
         }
         else
         {
-            HeartSites.Site? heart = hearts.SiteOf(me.OwnerPlayerId);
-            if (heart.HasValue && heart.Value.Standing)
+            // 3. A random unruined heart of mine — 0x004C6460 counts them and draws random(count)
+            // even for one — at its position word (+0x27/+0x29) two tiles off on each axis, each
+            // sign a random(2), when the point routes. The heart's word sits one tile past its
+            // centre (RoomInstance.CentreFieldX), so round a 5×5 heart three of the four points lie
+            // in its wall and the draw falls through to a random room: on Level 3 DK2's imps landed
+            // at the heart 6 times in 21 and at other rooms 15 (ADR-0323).
+            IReadOnlyList<RoomInstance> mineRooms = rooms.Of(context, me.OwnerPlayerId);
+            if (!world.Player(me.OwnerPlayerId).HeartRuined)
             {
-                int ox = rng.NextInt(2) != 0 ? -2 : 2;
-                int oy = rng.NextInt(2) != 0 ? -2 : 2;
-                int x = heart.Value.CentreX + (ox * Fp32.One), y = heart.Value.CentreY + (oy * Fp32.One);
-                if (world.Contains(x / Fp32.One, y / Fp32.One) && CombatTargetRules.CanReach(context.Navigation, me, mine, x, y, int.MaxValue, scratch))
+                var heartsOfMine = new List<RoomInstance>();
+                foreach (RoomInstance room in mineRooms)
+                    if (room.Definition.TypeId == RoomTypeId.DungeonHeart) heartsOfMine.Add(room);
+                if (heartsOfMine.Count > 0)
                 {
-                    destX = x;
-                    destY = y;
+                    RoomInstance heart = heartsOfMine[rng.NextInt(heartsOfMine.Count)];
+                    int ox = rng.NextInt(2) != 0 ? -2 : 2;
+                    int oy = rng.NextInt(2) != 0 ? -2 : 2;
+                    int tx = heart.CentreFieldX + ox, ty = heart.CentreFieldY + oy;
+                    if (world.Contains(tx, ty))
+                    {
+                        int x = CreatureState.CentreOf(tx), y = CreatureState.CentreOf(ty);
+                        if (CombatTargetRules.CanReach(context.Navigation, me, mine, x, y, int.MaxValue, scratch))
+                        {
+                            destX = x;
+                            destY = y;
+                        }
+                    }
                 }
             }
 
             if (destX < 0)
             {
-                IReadOnlyList<RoomInstance> mineRooms = rooms.Of(context, me.OwnerPlayerId);
                 for (int attempt = 0; attempt < 3 && destX < 0 && mineRooms.Count > 0; attempt++)
                 {
                     RoomInstance? room = PickRoom(mineRooms, rng.NextInt(mineRooms.Count));
                     if (room is null) continue;
-                    int x = CreatureState.CentreOf((room.MinX + room.MaxX) / 2), y = CreatureState.CentreOf((room.MinY + room.MaxY) / 2);
+                    int x = CreatureState.CentreOf(room.CentreFieldX), y = CreatureState.CentreOf(room.CentreFieldY);
                     if (!CombatTargetRules.CanReach(context.Navigation, me, mine, x, y, int.MaxValue, scratch)) continue;
                     destX = x;
                     destY = y;
