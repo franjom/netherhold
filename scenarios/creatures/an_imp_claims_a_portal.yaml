@@ -21,7 +21,7 @@
 #
 # What to read in the event log: the single `room_converted` line, naming the
 # room, how many tiles it had, how many the takeover *spread* to, and who it came
-# from. `tiles=9 spread=8` is the mechanic in one line.
+# from. `tiles=9` changing hands at once is the mechanic in one line.
 #
 # The thirteen applications a takeover needs are the data's: ConvertRoomHealth is
 # -4000 a second, work lands five times a second, and a room tile has 10000
@@ -62,7 +62,7 @@ observe:
 # One line is the whole scenario.
 expect:
   - event: room_converted
-    detail: "Portal tiles=9 spread=8 from=2"
+    detail: "Portal tiles=9 from=2"
     because: >
       "Once an imp claims a portal then the entire portal gets claimed, all tiles
       that are assigned to that portal are immediately claimed" - CONFIRMED by

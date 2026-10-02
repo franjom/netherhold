@@ -645,23 +645,23 @@ Under the GPL the per-file notice is what makes `LICENSE` apply to a file rather
 - It answered Q17, which several rules had been resting an open question on — see ADR-0045 for what that cost.
 
 ## ADR-0044 — A room is claimed whole, never tile by tile
-**Date:** 2026-09-04 · **Status:** accepted
+**Date:** 2026-09-04 · **Status:** accepted · amended by ADR-0336 (2026-10-02): items 2–4 now work the room's one health
 
 **Context.** **CONFIRMED by the owner**, unprompted, the day the portal landed: *"once an imp claims a portal then the entire portal gets claimed, all tiles that are assigned to that portal are immediately claimed … that is a game mechanic that works on claiming enemy/neutral rooms too, rooms are instantly claimed by imps, not tile by tile."*
 
 It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and **it was a defect report about something much older.** `TileWorkKind.Claim` applied to room terrain, because room terrain is `Ownable` and not `Solid` and that is all the claim rule asked for, so a rival's treasury came over one tile at a time at `ClaimTileHealth`'s rate and a half-taken portal was a reachable state. Nothing checked it, because nobody had asked.
 **Decision.**
 1. **`Claim` excludes room terrain** (`!terrain.IsRoom`).
-2. **`TileWorkKind.ConvertRoom` takes rooms**, reading `ConvertRoomHealth` — **−4000**, until then an unused entry in `VariableTypeId`. At a fifth of the delta that is 800 an application against a room tile's 10000 health: **thirteen applications**. The propagation is instant, the work is not.
-3. **Completion is room-scoped.** `TileWorkRules.Apply` converts the worked tile; `TileWorkSystem.SpreadTakeover` reads the `RoomInstance` *before* the work lands and hands the rest of it over. It has to be before — a room instance is tiles of one terrain with **one owner** (ADR-0027), so the moment the worked tile changes hands the rest of the room is unreachable from it.
-4. **Only the owner is written on the other tiles.** They were never worked, so resetting their health would repair a room by taking it. A rival who has been chipping at your treasury gets the damage with it — the reasoning that keeps a claimed burning bridge burning (Q68).
+2. **`TileWorkKind.ConvertRoom` takes rooms**, beating down the **room's** one health (ADR-0336): `ConvertRoomHealth` −4000, or `ConvertNeutralRoomHealth` −20000 on a neutral room, a quarter a tick times the worker's rate. The propagation is instant, the work grows with the room.
+3. **Completion is room-scoped**: below 1 the whole room passes to the worker's keeper (`RoomHealthRules`).
+4. **Only owners are written**, never a tile's terrain or health, so a rival who has been chipping at your treasury gets the damage with it — the reasoning that keeps a claimed burning bridge burning (Q68).
 5. **Gold changes hands with the room.** Nothing spills: a tile's capacity is a property of its terrain and the terrain did not change. Exactly what Q40 observed on defeat — rivals claim the rooms *and gold*.
 
 **The mixed direction is the data's, not a choice.** `ClaimTileHealth` is **+825** and builds a floor tile *up* to its maximum; `ConvertRoomHealth` is **−4000** and beats a room *down* to zero. Two jobs that both end in "this is mine now", from opposite directions, which is why `TileWorkRules.CompletesAsTakeover` exists: without it the downward path would send a converted room to its `DestroyedTypeTerrainId` — Claimed Path for every room in the data — and claiming a treasury would demolish it. Demolishing is `AttackRoomHealth`'s job (−1500) and has no work kind yet.
 **Consequences.**
 - **Two things fell out rather than being written.** A worker takes a room by standing **in** it, because the stance rule asks what the tile will be when the job finishes and a takeover leaves it alone (ADR-0028). And an imp holding gold with a rival's treasury next door now **takes it and then uses it**, which prompted the owner to confirm the rule it might have broken: *"imps fill only their own keeper's treasury … for SP my imps NEVER fill anyone's treasure but my own."* That holds structurally — `GoldStore`'s store lookup skips every room whose owner is not the depositor, and it is the only path into a tile's gold — and is asserted both as an ordering (the takeover precedes the first delivery) and as an invariant over every tick.
 - **Two rules are ours rather than the owner's, both flagged:** a dungeon heart **cannot** be taken this way (a heart is beaten down, and Q40's "rivals claim the rooms" happens *after* it falls — Q93), and a multi-tile bridge converts whole (a bridge is a room in every way the data can tell, but the owner said "rooms" — Q94, since **CONFIRMED by the owner, 2026-09-07: yes, like a room**, closing it with no change).
-- Q92's *rate* is still unobserved; only the propagation is confirmed. The thirteen applications are **3.25 s** at four applications a second (ADR-0089); the 2.6 s recorded when this was written assumed five a second.
+- Q92's rate is answered by the capture: a neutral 3×3 portal takes 23 applications (ADR-0336).
 
 ## ADR-0045 — Neutral ownership after tile-work destruction
 **Date:** 2026-09-04 · **Status:** accepted · corrected 2026-09-27
@@ -7448,3 +7448,9 @@ The scenarios that take a portal move and the rest stay identical.
 
 **Consequences.** Part 1 alone (`HashVersion` 167) changes the pin and nothing else: all 42
 scenarios' events and worlds and both rigs' per-seed event logs are identical to 51b13a4's.
+Part 3 moves no state's shape and not the pin, so no further bump. As predicted, every seed of
+both rigs is identical up to the portal's takeover, which now lands 27 or 28 ticks after the
+first work against 17 or 18 (DK2's capture: 24). Level 1 stays 20/20 with its win ticks moved;
+Level 2 goes from 7/20 (3, 6, 7, 9, 10, 16, 18) to 3/20 (7, 9, 19), each change downstream of
+that takeover. Nine scenarios move, each first at a portal's or a bridge's conversion; Level
+11A's call lands in another drawn diagonal off the heart, and its pin follows.

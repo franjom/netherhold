@@ -1365,6 +1365,9 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.ReinforceWallHealth, 50);
         Set(vars, VariableTypeId.RepairWallHealth, 22);
         Set(vars, VariableTypeId.ConvertRoomHealth, -4000);
+        Set(vars, VariableTypeId.ConvertNeutralRoomHealth, -20000);
+        Set(vars, VariableTypeId.AttackRoomHealth, -1500);
+        Set(vars, VariableTypeId.RepairRoomHealth, 20000);
         Set(vars, VariableTypeId.GoldMinedFromGems, 25);
         // Variable 74, the hands test's margin: 340 in every shipped level, absent from the global
         // file (imp-hands-full.md). A level 1 Imp's hands are full at 1400 less this.

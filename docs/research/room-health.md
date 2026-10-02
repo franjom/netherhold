@@ -4,8 +4,8 @@
 |---|---|
 | Source(s) | `DKII.EXE` v1.70 (read 2026-10-01 and 2026-10-02, addresses below); the Level 1 and Level 2 full-state captures (`reverse-engineering/dk2runs/level1-live1/seed01`, `level1-fullstate-20260928`, `level2-fullstate-20260928`), room record `+0x35`; `Rooms.kwd`, `Terrain.kwd`, `Creatures.kwd`, the shipped `*Things.kld` |
 | Confidence | **CONFIRMED** by capture: the applier, growth, the conversion rate and both arms' arithmetic, the takeover and its reset. **STRONGLY INFERRED** (binary): the removal share, action 11 and who starts it, action 12 and that nothing starts it |
-| Implementation | `RoomHealthRules`, `TileState.RoomHealthLost`, `SlabChain`, `Systems/RoomHealthSystem` (ADR-0336) |
-| Tests | `RoomHealthTests`, `RoomHealthOnRealDataTests` |
+| Implementation | `RoomHealthRules`, `TileState.RoomHealthLost`, `SlabChain`, `Systems/RoomHealthSystem`, `Systems/TileWorkSystem` (ADR-0336) |
+| Tests | `RoomHealthTests`, `RoomConversionTests`, `RoomHealthOnRealDataTests` |
 | Open questions | Q523 (job 11's room attack, unbuilt) |
 
 Field names are DK2's own (`room-object.md`, dumper `0x004E70B6`): room `+0x35` `Health`,

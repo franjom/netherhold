@@ -44,21 +44,16 @@ public class RoomConversionTests
     }
 
     /// <summary>
-    /// Works one tile until the conversion lands, and says how many applications
-    /// it took. Bounded so a rule that never completes fails rather than hangs.
-    ///
-    /// <para><b>This exercises the pure rule and NOT the spread to the rest of
-    /// the room</b> — that is <see cref="Systems.TileWorkSystem"/>'s, because it
-    /// needs the world. A test about the other tiles has to go through the
-    /// system.</para>
+    /// Works one tile until the room it is in changes hands, and says how many
+    /// applications it took, at the 80% every worker is born with. Bounded so a
+    /// rule that never completes fails rather than hangs.
     /// </summary>
     private static int WorkUntilTaken(WorldState world, TilePos at, byte playerId)
     {
-        ref TileState tile = ref world.Tile(at);
+        int index = (at.Y * world.Width) + at.X;
         for (int i = 1; i <= 500; i++)
         {
-            TileWorkResult result = TileWorkRules.Apply(
-                Db, ref tile, TileWorkKind.ConvertRoom, playerId);
+            TileWorkResult result = RoomHealthRules.Convert(world, Db, index, playerId);
             if (result.Outcome == TileWorkOutcome.Transformed) return i;
             if (result.Outcome == TileWorkOutcome.Rejected)
                 throw new InvalidOperationException($"ConvertRoom rejected at {at}");
@@ -86,7 +81,7 @@ public class RoomConversionTests
         // One tile, one corner, and not the middle — so "the tile that happened
         // to be worked" cannot be mistaken for "the tile the room is keyed on".
         world.QueueWork(5, 5, TileWorkKind.ConvertRoom, Keeper);
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 30; i++)
         {
             sim.Tick(InputFrame.Empty);
             world.QueueWork(5, 5, TileWorkKind.ConvertRoom, Keeper);
@@ -228,11 +223,10 @@ public class RoomConversionTests
     [Fact]
     public void ATakenRoomStaysTheSameRoomRatherThanBeingDemolished()
     {
-        // ConvertRoomHealth is negative, so the worked tile runs DOWN to zero —
-        // and every room terrain in the data claims to leave Claimed Path when
-        // destroyed. Following that field would demolish the room instead of
-        // taking it, which is AttackRoomHealth's job and a work kind that does
-        // not exist.
+        // ConvertRoomHealth is negative and every room terrain in the data claims to
+        // leave Claimed Path when destroyed. A conversion runs the ROOM's health
+        // down, never a tile's, so nothing follows that field: demolishing is
+        // AttackRoomHealth's job (TileWorkKind.AttackRoom).
         WorldState world = World();
         Paint(world, RoomTypeId.Treasury, 5, 5, 2, 2, Rival);
 
@@ -241,8 +235,7 @@ public class RoomConversionTests
         Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, world.Tile(5, 5).TerrainId);
         Assert.Equal(Keeper, world.Tile(5, 5).OwnerPlayerId);
 
-        // And the worked tile is at full health rather than the zero it was
-        // driven to: a room taken is a room, not a ruin.
+        // And the worked tile's own health was never touched: the room's was.
         Assert.Equal(
             Db.TerrainById(Dk2TerrainFixture.TreasuryTerrain).StartingHealth,
             world.Tile(5, 5).Health);
@@ -260,7 +253,7 @@ public class RoomConversionTests
         Assert.Equal(5000, GoldStore.Total(world, Rival));
 
         var sim = new GameSimulation(Db, world, seed: 1, [new Systems.TileWorkSystem()]);
-        for (int i = 0; i < 40; i++)
+        for (int i = 0; i < 60; i++)
         {
             world.QueueWork(5, 5, TileWorkKind.ConvertRoom, Keeper);
             sim.Tick(InputFrame.Empty);
@@ -271,12 +264,9 @@ public class RoomConversionTests
     }
 
     /// <summary>
-    /// The tiles that came over with the room keep whatever damage they had.
-    ///
-    /// <para>Only the owner is written on them. Resetting their health would mean
-    /// repairing a room by taking it, and a rival who has been chipping at your
-    /// treasury for a minute should not be rewarded with a fresh one. Same
-    /// reasoning as a claimed burning bridge keeping its fire (Q68).</para>
+    /// The tiles that came over with the room keep whatever damage they had: a
+    /// conversion writes owners and the room's health, never a tile's
+    /// (<c>0x00497BF0</c>), as a claimed burning bridge keeps its fire (Q68).
     /// </summary>
     [Fact]
     public void TilesThatCameOverWithTheRoomKeepTheirDamage()
@@ -288,10 +278,8 @@ public class RoomConversionTests
         ref TileState bruised = ref world.Tile(6, 6);
         bruised.Health = 42;
 
-        // Through the system, not WorkUntilTaken: the spread to the rest of the
-        // room is TileWorkSystem's, because it needs the world.
         var sim = new GameSimulation(Db, world, seed: 1, [new Systems.TileWorkSystem()]);
-        for (int i = 0; i < 40; i++)
+        for (int i = 0; i < 60; i++)
         {
             world.QueueWork(5, 5, TileWorkKind.ConvertRoom, Keeper);
             sim.Tick(InputFrame.Empty);
@@ -303,20 +291,71 @@ public class RoomConversionTests
 
     // ---- how long it takes ------------------------------------------------
 
-    [Fact]
-    public void TakingARoomCostsItsWholeHealthAtFourThousandASecond()
+    /// <summary>
+    /// The room's whole health is beaten down, so time grows with its size
+    /// (<c>0x00497BF0</c>, ADR-0336): StartingHealth 10000 a tile against
+    /// <c>ConvertRoomHealth</c> −4000 / 4 × 80% = −800 a tick for a rival's room,
+    /// and <c>ConvertNeutralRoomHealth</c> −20000 / 4 × 80% = −4000 for a neutral
+    /// one. A neutral 3×3 taking 23 is what the Level 1 capture shows for its
+    /// portal (room <c>+0x35</c>: 90000 down by 4000 a tick, Q500).
+    /// </summary>
+    [Theory]
+    [InlineData(1, 1, Rival, 13)]
+    [InlineData(2, 1, Rival, 25)]
+    [InlineData(3, 3, Rival, 113)]
+    [InlineData(1, 1, PlayerIds.Neutral, 3)]
+    [InlineData(2, 1, PlayerIds.Neutral, 5)]
+    [InlineData(3, 3, PlayerIds.Neutral, 23)]
+    public void ConversionTimeScalesWithTheRoomsSize(int width, int height, byte owner, int applications)
     {
-        // ConvertRoomHealth is -4000 a second and work lands five times a second,
-        // so 800 a swing against a room's 10000 health: 13 applications, which is
-        // 2.6 seconds. That is the "instantly" the owner describes — not zero
-        // time, but fast enough that the propagation is what a player notices.
         WorldState world = World();
-        Paint(world, RoomTypeId.Portal, 5, 5, 3, 3, PlayerIds.Neutral);
+        Paint(world, RoomTypeId.Treasury, 5, 5, width, height, owner);
 
-        int applications = WorkUntilTaken(world, new TilePos(5, 5), Keeper);
+        Assert.Equal(applications, WorkUntilTaken(world, new TilePos(5, 5), Keeper));
+        for (int y = 5; y < 5 + height; y++)
+            for (int x = 5; x < 5 + width; x++)
+                Assert.Equal(Keeper, world.Tile(x, y).OwnerPlayerId);
+    }
 
-        Assert.Equal(13, applications);
-        Assert.Equal(-4000, TileWorkRules.PerSecond(Db, TileWorkKind.ConvertRoom));
+    [Fact]
+    public void ATakenRoomIsResetToItsStartingHealthTimesItsSize()
+    {
+        WorldState world = World();
+        Paint(world, RoomTypeId.Treasury, 5, 5, 2, 2, Rival);
+
+        WorkUntilTaken(world, new TilePos(5, 5), Keeper);
+
+        RoomInstance room = RoomAt(world, 5, 5);
+        Assert.Equal(Keeper, room.OwnerPlayerId);
+        Assert.Equal(
+            4 * Db.TerrainById(Dk2TerrainFixture.TreasuryTerrain).StartingHealth,
+            RoomHealthRules.Health(world, Db, room));
+    }
+
+    [Fact]
+    public void TheNeutralRateIsChosenByTheWorkedTilesOwner()
+    {
+        Assert.Equal(-800, RoomHealthRules.ConvertPerApplication(Db, Rival, EfficiencyRules.BaseModifier));
+        Assert.Equal(-4000, RoomHealthRules.ConvertPerApplication(Db, PlayerIds.Neutral, EfficiencyRules.BaseModifier));
+
+        // A slapped or dropped imp, 0xCCC + 0x199: the 4499 of the Level 2 capture.
+        Assert.Equal(-4499, RoomHealthRules.ConvertPerApplication(
+            Db, PlayerIds.Neutral, EfficiencyRules.BaseModifier + EfficiencyRules.BonusModifier));
+    }
+
+    [Fact]
+    public void ADamagedRoomStaysDamagedWhenTheWorkStops_AndTheNextWorkerPicksItUp()
+    {
+        WorldState world = World();
+        Paint(world, RoomTypeId.Treasury, 5, 5, 2, 1, Rival);
+        int index = (5 * world.Width) + 5;
+        for (int i = 0; i < 10; i++) RoomHealthRules.Convert(world, Db, index, Keeper);
+
+        Assert.Equal(20000 - (10 * 800), RoomHealthRules.Health(world, Db, RoomAt(world, 5, 5)));
+        Assert.Equal(Rival, world.Tile(6, 5).OwnerPlayerId);
+
+        // From the other tile, the same room: 12000 left is 15 more.
+        Assert.Equal(15, WorkUntilTaken(world, new TilePos(6, 5), Keeper));
     }
 
     /// <summary>

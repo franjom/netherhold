@@ -174,16 +174,15 @@ public class TileOwnershipTests
     [Fact]
     public void TakingARoomStillTakesIt()
     {
-        // The invariant runs inside the same Convert() a takeover uses, so it
-        // has to not undo one: a converted room stays ownable terrain, so the
-        // owner it was just given survives.
+        // A takeover writes owners only, never terrain (RoomHealthRules), so the
+        // ownership invariant has nothing to undo: the owner it was given survives.
         WorldState world = World();
         var at = new TilePos(9, 9);
         Set(world, at, Dk2TerrainFixture.TreasuryTerrain, Rival);
 
         ref TileState tile = ref world.Tile(at);
         for (int i = 0; i < 100 && tile.OwnerPlayerId != Keeper; i++)
-            TileWorkRules.Apply(Db, ref tile, TileWorkKind.ConvertRoom, Keeper);
+            RoomHealthRules.Convert(world, Db, (at.Y * world.Width) + at.X, Keeper);
 
         Assert.Equal(Keeper, world.Tile(at).OwnerPlayerId);
         Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, world.Tile(at).TerrainId);
