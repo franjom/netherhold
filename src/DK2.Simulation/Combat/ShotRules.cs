@@ -291,7 +291,7 @@ public static class ShotRules
     /// <remarks>Not built: objects of another owner, which DK2 also hits (and which then shrink
     /// <c>d</c>). Ours orders a tile's things as creatures newest-linked first, then its trap, then its
     /// door, the static things having been linked when made. The arithmetic is DK2's 32-bit
-    /// (<c>0x004AC773</c>–<c>0x004AC8B7</c>), so a radius of 16 tiles or more wraps as it does there.</remarks>
+    /// (<c>0x004AC773</c>–<c>0x004AC8B7</c>), so from 12 tiles the squared radius wraps as it does there.</remarks>
     public static void AreaDamage(SimulationContext context, ShotState shot, ShotDef definition)
     {
         if (definition.DamageType != AreaDamageType || shot.Data1 <= 0 || shot.Data2 <= 0) return;

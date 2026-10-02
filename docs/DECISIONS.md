@@ -7151,7 +7151,7 @@ identical (L1 20/20, L2 7/20): no revealer meets a hidden enemy trap there.
 Read now: process 39 (`0x004B02E0`), state 273 (`0x0046E820`), the travel state's and the health
 routine's arms for type `0x2E`, and trap 16's write of its target's tag into the shot's second
 data word, which the shot's own area damage then uses as its radius. That arithmetic is 32-bit
-(`0x004AC6D0`) and wraps from 16 tiles. Category 7 has no hooks. No shipped level places the trap.
+(`0x004AC6D0`) and wraps from 12 tiles. Category 7 has no hooks. No shipped level places the trap.
 
 **Decision.**
 1. `JackInTheBoxRules` and `JackInTheBoxSystem` build process 39, state 273, the toll of a point a
@@ -7163,7 +7163,7 @@ data word, which the shot's own area damage then uses as its radius. That arithm
 5. The Trigger fires trap 16 at its creature unseen (traps.md §9), which `Propagate` lacked.
 
 **Consequences.** New state, so `HashVersion` 165. Prediction, written before measuring: no shipped
-level places trap 16 and no shipped area shot reaches 16 tiles, so every scenario's events and every
+level places trap 16 and no shipped area shot reaches 12 tiles, so every scenario's events and every
 rig seed stay identical; 959 traps stay `FiringBuilt`. Measured on 1001b9a: all identical, event
 file for event file (L1 20/20, L2 7/20).
 

@@ -66,8 +66,9 @@ vtable `+0x74` gate refuses it (unread).
 
 `R = data2 << 12`, `R² >> 12` (32-bit, arithmetic shift), compared unsigned against the squared
 distance; the damage `((data2 << 12) − isqrt(d² << 12)) · d / R`, the shift and product 32-bit and
-the division signed; `0x0065FAE0` is an unsigned integer square root. From 16 tiles, `R²` wraps: 16
-gives 0 and hurts nobody, and in general the radius follows `data2² mod 256`. For shot 64 the radius
+the division signed; `0x0065FAE0` is an unsigned integer square root. From 12 tiles `R²` overflows:
+the limit is then `(data2² mod 256) << 12` read signed, so a byte of 128 or more reaches everything in
+the box and a smaller one a few tiles; 16 gives 0 and hurts nobody. For shot 64 the radius
 is a thing tag, so its first strike's reach turns on the victim's slot.
 
 ## 6. Built and not built (ADR-0334)
@@ -76,7 +77,7 @@ is a thing tag, so its first strike's reach turns on the victim's slot.
 first strike's reach differs from DK2's); §2 for a creature victim; §3; §4, once per Jack, at its
 next update when something other than its own wear killed it; §5's 32-bit arithmetic for every area
 shot, a wrapped negative damage skipped where DK2 would heal. **Not built:** a victim that is not a
-creature (a fired-without-target shot names thing 2); the `+0x46F` bits; effects and sounds.
+creature (a fired-without-target shot names thing 2; ours strikes nobody); the `+0x46F` bits; effects and sounds.
 
 ## Open questions
 

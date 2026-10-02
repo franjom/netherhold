@@ -230,12 +230,13 @@ computed state id was not traced. 204 tests `+0x43D` first and idles without a t
 **The reveal** clears `+0x10C` bit 4. Firing with flag `0x2` does (§7). So does a creature whose
 definition has `RevealsAdjacentTraps` (`+0x686` bit 26: the Troll, Thief, Rogue and Guard) when it has
 entered a new tile since its last update (`0x00488F67`, the position against vtable `+0x2C`): after
-its fight processing (`0x0048A0B4`), each tile of table `0x006BC3B0` around it, every hidden trap of a
+its fight processing and its state's handler (`0x0048A0B4`, before the mover), each tile of table `0x006BC3B0` around it, every hidden trap of a
 player `0x004BF390` calls an enemy is revealed (`0x004AA110`: the bit, then the view) and the creature's
 `+0x3E6` bits 22–25, its fight counter, := 10. **What the bit changes:** a byte scan of `.text` and
 `cseg` for every test of `+0x10C` with `0x10` (the reveal's own as the positive control) finds the
-view `0x004A9F10` and the pick test `0x004AA050`, both against the local player; `0x0041DA4D`, in the
-renderer's range and unread; possession's pick predicate `0x00516050` (via world vtable `+0x334`, `0x00515420`); and
+view `0x004A9F10` and the pick test `0x004AA050`, both against the local player; the minimap's draw (`0x0041CC50`, at
+`0x0041DA4D`); possession's pick predicate `0x00516050` (via world vtable `+0x334`, `0x00515420`) and its target
+scan `0x00515520` (`& 0x30` at `0x00515843`); and
 the victim selector's **scan D** (`0x0045D7F2`, `& 0x30`), which walks each hostile player's `+0xC`
 list — `player + 6 + class·2`, so class 3, the traps (`0x004B4D40`) — and admits a completed,
 revealed trap other than trap 16 within sight. No register load of `+0x10C` lies in the computer

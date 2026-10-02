@@ -472,7 +472,8 @@ public static class FearRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         SimRandom rng = context.Rng;
-        int options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Plain : MoveOptions.Loose;
+        // The Imp with 0x80, everyone else with 0 (0x0046138B, 0x0046142C; ADR-0332).
+        int options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
 
         int destX = -1, destY = -1;
         int bed = LairRules.BedTileIndex(world, database, me);

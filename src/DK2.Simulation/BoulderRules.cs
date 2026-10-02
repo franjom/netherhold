@@ -149,7 +149,7 @@ public static class BoulderRules
 
             foreach (TrapState trap in world.Traps)
             {
-                if (trap.X != x || trap.Y != y || trap.UnderConstruction) continue;
+                if (trap.X != x || trap.Y != y || trap.UnderConstruction || TrapRules.IsDead(trap)) continue; // DK2 destroyed it already
                 if (!database.Traps.TryGetValue(trap.TrapId, out TrapDef? trapDef)) continue;
                 if (trapDef.TriggerType == TrapRules.TriggerSelector && trap.PlayerId == boulder.OwnerPlayerId) continue;
                 if (TrapRules.DistanceSquared(boulder.PosX, boulder.PosY, trap.PosX, trap.PosY) >= ownReach) continue;

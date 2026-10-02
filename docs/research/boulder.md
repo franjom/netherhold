@@ -121,7 +121,8 @@ mirror (ahead `(x, y+1)`, back `−0x1000`); west and east test ahead, then nort
 
 On the boulder's tile: terrain flag `0x100` (lava), wear `+= h/6`; else `0x80` (water) `+= h/10`; else
 a room of type 3, 13 or 16 whose floor height at the boulder (`0x004545C0`) is below `0x1000`,
-`+= h/3`; never past `h` (unsigned). Each with effects and sounds. `0x004545C0` gives 0 on a Portal's
+`+= h/3`; never past `h` (unsigned). Each with effects and sounds; lava also sets `+0x91` bit `0x20`, cleared
+on entry, whose reader is unread. `0x004545C0` gives 0 on a Portal's
 cell piece 4 (its hole), 0 on a Temple's interior cell (`+0xC == 0xFF`, `0x00454110`), `0x400` on a
 Combat Pit's interior and `0x1000` or `0x1200` (the slopes) elsewhere on those rooms, so only those
 cells wear it. The heart, Hatchery, Graveyard and Crypt floors are lowered too, but not tested.

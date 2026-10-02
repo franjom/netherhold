@@ -37,7 +37,9 @@ public static class JackInTheBoxRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         if (!ShotRules.Passable(world, context.Navigation, shot.PosX, shot.PosY)) return;
-        if (shot.Data2 == 0 || world.CreatureById(shot.Data2) is not { } victim || !world.HasPlayer(victim.OwnerPlayerId)) return;
+        // An untargeted shot keeps the definition's word, which DK2 reads as thing slot 2: no creature here.
+        if (shot.TargetKind != FightTargetKind.Creature || shot.Data2 == 0) return;
+        if (world.CreatureById(shot.Data2) is not { } victim || !world.HasPlayer(victim.OwnerPlayerId)) return;
         if (!CombatRules.IsHostile(world, shot.OwnerPlayerId, victim.OwnerPlayerId)) return;
 
         CreatureDef victimDef = database.CreatureById(victim.CreatureTypeId);
