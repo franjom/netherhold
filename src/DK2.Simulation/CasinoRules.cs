@@ -80,6 +80,41 @@ public static class CasinoRules
         return creature.GoldHeld > Stake(database) ? null : "cannot_afford_to_gamble";
     }
 
+    /// <summary>The fearless countdown of the update <c>0x0047AD70</c>, once per Casino second before
+    /// the purse test: a nonzero <see cref="CreatureState.CasinoGamblingDuration"/> steps down, and
+    /// on reaching zero sets <see cref="CreatureState.CasinoGamblingFearless"/> and reloads from
+    /// variable 203. Returns whether it set the flag.</summary>
+    public static bool StepFearlessCountdown(GameDatabase database, CreatureState creature)
+    {
+        if (creature.CasinoGamblingDuration == 0) return false;
+        if (--creature.CasinoGamblingDuration != 0) return false;
+
+        creature.CasinoGamblingFearless = true;
+        creature.CasinoGamblingDuration = (ushort)database[VariableTypeId.GamblingDelayBeforeBecomingFearlessSeconds];
+        return true;
+    }
+
+    /// <summary>The leave hook <c>0x0047AF20</c>: a fearless gambler loses the flag and is fearless
+    /// for variable 19 × variable 203 turns from now (DK2 reads 203, the delay, not 204, the
+    /// duration; both ship as 120). Then the release.</summary>
+    public static void Leave(in StateHookContext hooks, CreatureState creature)
+    {
+        if (creature.CasinoGamblingFearless)
+        {
+            creature.CasinoGamblingFearless = false;
+            creature.FearlessUntilTick = hooks.World.CurrentTick.Value + ((long)SimulationTiming.OriginalTicksPerGameSecond
+                * hooks.Database[VariableTypeId.GamblingDelayBeforeBecomingFearlessSeconds]);
+        }
+
+        RoomCapacityRules.Release(creature);
+    }
+
+    /// <summary>Whether a Casino win still makes this creature fearless: DK2's unsigned
+    /// <c>now &lt; FearlessUntil</c> in the fear counter <c>0x0045EC80</c> and the withdraw test
+    /// <c>0x0045EDA0</c>.</summary>
+    public static bool IsFearlessFromGambling(WorldState world, CreatureState creature) =>
+        world.CurrentTick.Value < creature.FearlessUntilTick;
+
     /// <summary>The setting of the Casino this creature stands in: generous when it has no lever.</summary>
     public static byte SettingUnder(WorldState world, GameDatabase database, CreatureState creature)
     {

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 153;
+    private const int FormatVersion = 155;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -189,6 +189,7 @@ public static class WorldSnapshot
                 w.Write(entrance.Block);
             }
             w.Write(p.ManufacturePoints);
+            w.Write(p.ManufacturingCreatures);
             w.Write(p.InformationGiven);
             w.Write(p.ItemsManufactured);
             w.Write(p.ManufactureQueue.Count);
@@ -361,6 +362,10 @@ public static class WorldSnapshot
             w.Write(c.GuardLostTick);
             w.Write(c.HeedingCallToArms);
             w.Write(c.CombatPitFighter);
+            w.Write(c.CasinoGamblingDuration);
+            w.Write(c.CasinoGamblingFearless);
+            w.Write(c.FearlessUntilTick);
+            w.Write(c.TortureVoluntary);
             w.Write(c.AttackAbnormalTargets);
             w.Write(c.AttackingId);
             w.Write(c.AttackingKind);
@@ -700,6 +705,7 @@ public static class WorldSnapshot
                 players[i].EntranceInfo.Add(new EntranceInfoState(r.ReadByte(), r.ReadInt32(), r.ReadInt32()));
 
             players[i].ManufacturePoints = r.ReadInt32();
+            players[i].ManufacturingCreatures = r.ReadInt32();
             players[i].InformationGiven = r.ReadUInt64();
             players[i].ItemsManufactured = r.ReadInt32();
             int orderCount = r.ReadInt32();
@@ -872,6 +878,10 @@ public static class WorldSnapshot
                 GuardLostTick = r.ReadInt64(),
                 HeedingCallToArms = r.ReadBoolean(),
                 CombatPitFighter = r.ReadBoolean(),
+                CasinoGamblingDuration = r.ReadInt32(),
+                CasinoGamblingFearless = r.ReadBoolean(),
+                FearlessUntilTick = r.ReadInt64(),
+                TortureVoluntary = r.ReadBoolean(),
                 AttackAbnormalTargets = r.ReadBoolean(),
                 AttackingId = r.ReadInt32(),
                 AttackingKind = r.ReadByte(),

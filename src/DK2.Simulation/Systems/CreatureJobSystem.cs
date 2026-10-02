@@ -557,12 +557,14 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     /// at or below the stake fails the hook, which is idle; otherwise the lever's setting
     /// decides the anger and the purse: calm and a coin, or anger and eight lost (ADR-0187,
     /// ADR-0188).</summary>
-    /// <remarks>Not built: the jackpot roll and the fearless countdown
-    /// (<c>state-category-hooks.md</c> §3.1).</remarks>
+    /// <remarks>Not built: the jackpot roll (<c>state-category-hooks.md</c> §3.1).</remarks>
     private static void Gamble(
         SimulationContext context, WorldState world, GameDatabase database,
         CreatureState creature, CreatureDef definition)
     {
+        if (CasinoRules.StepFearlessCountdown(database, creature))
+            context.Emit(SystemName, "gambling_fearless", $"creature={creature.Id} type={definition.Name}");
+
         if (creature.GoldHeld <= CasinoRules.Stake(database))
         {
             context.Emit(SystemName, "job_lost",

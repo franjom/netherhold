@@ -84,6 +84,7 @@ public class CrateTests
         StatePlacement.As(it, CreatureActivity.AtWork);
         StatePlacement.Place(it, JobRules.StateFor(JobType.Manufacture)!.Value);
         it.JobTileIndex = (at.Y * world.Width) + at.X;
+        world.Player(Keeper).ManufacturingCreatures++; // placed, so no enter hook counted it
         return it;
     }
 

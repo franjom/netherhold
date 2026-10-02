@@ -64,22 +64,22 @@ the category operation failed; a return of one means it remains valid.
 |---|---|---|
 | `0x0047A9E0` | Spectating enter | On room type 16, clears creature `+0x3E6` bit 15, `CombatPitFighter` (`AND CH,0x7F`; corrected 2026-09-25, this row said bit 23); initializes `+0xAB`; claims the room position. |
 | `0x0047AAE0` | CombatPit enter | On room type 16 and an exact `0x400` floor height, sets creature `+0x3E6` bit 15, `CombatPitFighter` (`OR 0x8000`; corrected 2026-09-25, this row said bit 23; `combat-pit.md`); initializes `+0xAB`; claims the room position. |
-| `0x0047AB90` | Sleeping leave | If creature `+0x3B7` names a class-2 thing, toggles that thing's `+0xF3` bit 0; then toggles creature `+0xF3` bit 0. The precise bed/occupancy fields are **UNKNOWN**. |
+| `0x0047AB90` | Sleeping leave | Sets the draw bit (`+0xF3` bit 0, RenderInfo `+0xAF`) on the lair `+0x3B7` names and on the creature: presentation only, not built (`leave-hook-bodies.md` §2, CONFIRMED 2026-10-02). |
 | `0x0047AC00` | Sleeping update | State 83 first calls `0x00477B20(1)`. Once per game second by turn modulus, calls the shared lair effect `0x004DFF00`. |
 | `0x0047AC40` | Lair update | Once per game second by turn modulus, calls `0x004DFF00`. |
 | `0x0047AC70` | Sulking update | Does the same lair call, then returns whether `0x004871A0` finds id 5 in creature `+0x26E`. |
 | `0x0047ACB0` | Casino enter | **CONFIRMED** (re-read 2026-10-01). `0x004539B0(15, owner, 0)` on the cell under the creature: only on its keeper's own Casino is room `+0x53` (the lever) tested, and 0 refuses. Otherwise the lever is not asked for, and the claim judges the cell. Then, unless player `+0xF4A` is nonzero, the purse: creature `+0x3FB` at most `abs(GamblingModifyCreatureMoneyMoneyPerSecond)` (8) refuses (signed `JLE`). Then `+0xB0` = variable 19 and `+0xB3` = 0, and the lookup and claim of §3.5, so a claim refusal leaves the seed written. Every refusal returns 0; none raises a message. Built: ADR-0313, the `+0xF4A` party excepted. |
 | `0x0047AD70` | Casino update | Once per second, advances the fearless countdown at creature `+0x4F4`. Station mode byte `+0x4A` selects Smiles or Money. Smiles applies anger -2000; Money applies +100; both charge buckets 5, 0 and 3 with selector 2. It then adds 1 money in Smiles or subtracts 8 in Money. A roll uses jackpot chances 5000/20000 and calls the keeper jackpot routine on result 42. |
-| `0x0047AF20` | Casino leave | Clears the fearless flag (`+0x3EA` bit 13), writes `now + variable19 x 120` to creature `+0x3D7`, and releases. |
+| `0x0047AF20` | Casino leave | Only when `CasinoGamblingFearless` (`+0x3EA` bit 13) is set: clears it and writes `FearlessUntil` (`+0x3D7`) = now + variable 19 × variable 203. Then releases. Built: ADR-0322 (`leave-hook-bodies.md` §1). |
 | `0x0047AFB0` | Research / GuardPost enter | Claims the room position; no category-specific side effect. |
 | `0x0047B000` | Research update | Reads level and definition `ResearchPerSecond` (`+0x6BB`), scales levels 2-10 by stat 17, clamps `0..65534`, and credits the owning keeper through `0x004C2DC0`. See `library-and-research.md` for the canonical rate analysis. |
-| `0x0047B0A0` | Manufacture enter | Increments room/station `+0x8A`, clears state `+0xB9`, and claims. The counter's exact meaning is **UNKNOWN**. |
-| `0x0047B120` | Manufacture leave | Decrements the same `+0x8A` and releases. |
+| `0x0047B0A0` | Manufacture enter | Increments `NumberOfManufacturingCreatures`, **player** `+0x8A` of the tile's keeper; clears state `+0xB9` (unread); claims. Built: ADR-0322 (`leave-hook-bodies.md` §4). |
+| `0x0047B120` | Manufacture leave | Decrements the same player `+0x8A`, with no floor, and releases. Built: ADR-0322. |
 | `0x0047B190` | Manufacture update | Reads definition `ManufacturePerSecond` (`+0x6BD`), scales levels 2-10 by stat 18, clamps `0..65534`, and credits the keeper through `0x004C3200`; zero returns failure. |
 | `0x0047B230` | Training enter | **CONFIRMED** (re-read 2026-10-01). First the gold: `-ModifyPlayerColdWhileTrainingPerSecond` (5) against player `+0x7E` (`Money`), `CMP`/`JBE`, so 5 ≤ Money passes. Failing, it raises message 55 to the creature's keeper on every refusal (`0x004C4600(0x37, owner, 5, 0, 1)`: Data1 5, subtable `0x006A0690`, 240 s) and returns 0, writing nothing. Passing, it clears `+0xB4`, sets `+0xB3` = variable 19, then the lookup and claim of §3.5, so a claim refusal leaves the seed written. The update hook raises the same message. Built: ADR-0313. |
 | `0x0047B2D0` | Training update | At the level cap it returns 1 at once: no experience, no charge, no countdown step. Below it, adds level-scaled `ExpPerSecondTraining` every tick. Once per second (`+0xB3`) it checks the keeper can pay 5: if not, message 55 and failure; if so, it charges 5 at the creature's tile (`0x004BA420`), and every fourth charge calls `0x0050FB70` with 20, the floating "−20" (re-read 2026-10-01; this row said 20 gold every fourth check). |
 | `0x0047B430` | Torture enter | Claims, then initializes `+0xAC`. |
-| `0x0047B4A0` | Torture leave | Clears two station occupancy bits, conditionally clears state `+0x6E`, clears creature `+0x3EA` bit 14, and releases. The station helpers' exact contracts are **UNKNOWN**. |
+| `0x0047B4A0` | Torture leave | Switches off an Electric Chair's sparks and shows the device again (presentation); unless `TortureVoluntary` (`+0x3EA` bit 14), zeroes `DroppedToDoJobId` (state `+0x6E`); clears bit 14; releases. Built but the presentation: ADR-0322 (`leave-hook-bodies.md` §3). |
 | `0x0047B590` | Torture update | Once per second, adds variable 19 to creature `+0x4F6`, applies definition `TortureHpChange` (`+0x79F`) as health, and, when the station's `+0x1D` names the creature, applies definition **`TortureMoodChange` (`+0x7A1`)** to anger bucket 5 with selector 8. Thus the anger amount is per creature, not a global. At the level-scaled `TortureTimeToConvert` threshold it either kills on the variable-234 roll (shipped zero) or calls the conversion helper. |
 | `0x0047B740` | Prison enter | **CONFIRMED** (re-read 2026-10-01): the lookup and claim of §3.5; any refusal returns 0 with nothing else done, so no seed and **no event 7**. Once the claim takes, it seeds `+0xAB` from variable 19, fires creature trigger event 7 on the captive itself (`ECX` = state `+0x8`, pushes `7, 0, 0`), and returns 1. The claim's overcrowding message `0x2A` is on its success path, so 7 fires there too. Built: ADR-0311. |
 | `0x0047B7C0` | Prison update | Every four game seconds, and only for a creature with nonzero level-scaled `HungerFill` and a room id, applies `4 x PrisonModifyCreatureHealthPerSecond` (-12) and **`ModifyAngerInCompanyOfHatedCreaturesPerSecond` (+150)** to bucket 0 with selector 9. |
@@ -134,8 +134,8 @@ the category operation failed; a return of one means it remains valid.
   destroying it when empty, and the rest from the keeper through
   `0x004BA420(-min(rest, player+0x7E))`. The owner confirms that stingy takings lie
   beneath the lever (2026-09-24).
-- **Built:** ADR-0187 and ADR-0188; what the hooks lack is in `CategoryHooks.Slots`. The
-  settlement walks the chain in tile-index order, not DK2's.
+- **Built:** ADR-0187, ADR-0188, ADR-0322 (the fearless countdown); what the hooks lack is
+  in `CategoryHooks.Slots`. The settlement walks the chain in tile-index order, not DK2's.
 
 ### 3.2 The captive's states, 114–126 (read 2026-09-24)
 
@@ -231,8 +231,8 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   **Ours:** health at zero releases the victim to the health system (DK2 knocks it out
   and kills it on the device, revealing information); a convert is released rather than
   left on the device, which the owner confirms (Q425: it gets off, beds down, eats).
-- **Built:** ADR-0196, its *Ours* list included. **Not built:** the information, and the
-  leave hook's `+0x6E`.
+- **Built:** ADR-0196, its *Ours* list included; the leave hook's `+0x6E` is ADR-0322's.
+  **Not built:** the information.
 - **Read 2026-09-24: 77, 136 and the others' way in.** 77 (`0x0046F1F0`), once the landing
   action ends, sends a Horned Reaper (`IsHorny`, definition flag bit 14) to **238** in any
   room; otherwise by the room at `+0x3B9`: Workshop 63, Prison 115, Torture Chamber 130. So
@@ -297,8 +297,8 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   `0x005069E0` is called by `0x004C3670` and `0x004C3A20`. The shipped levels place 3
   door blueprints, in one level, and no trap blueprints.
 - **The decay.** The player update `0x004B9EC0` calls `0x004C3340`: with points, and
-  `player+0x8A` (the Manufacture enter hook's count) zero, once a second the points fall by
-  variable 138 (1), to no lower than 0.
+  `player+0x8A` (the hooks' count, `leave-hook-bodies.md` §4) zero, once a second the
+  points fall by variable 138 (1), to no lower than 0. The count is stored (ADR-0322).
 - **Built** (ADR-0203): all four. **Ours:** the nearest Workshop is judged by its first
   tile. ADR-0214 (`workshop-crates.md`) adds state 68, the crate left to nobody in a full
   Workshop, the Workshop's capacity extra `0x004F6140`, and the carry to a blueprint. The

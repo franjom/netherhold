@@ -110,14 +110,21 @@ public static class CategoryHooks
             typeof(CreatureJobSystem), "Research"),
         Releasing(CreatureStateCategory.Research, 0x0047B920, Release),
 
-        Claiming(CreatureStateCategory.Manufacture, 0x0047B0A0, HookStatus.Partial,
-            Claimed + "; station +0x8A is not: ours counts the makers from UpdatingCategory (ManufactureRules, ADR-0203)"),
+        new(CreatureStateCategory.Manufacture, HookKind.Enter, 0x0047B0A0, HookStatus.Partial,
+            "player +0x8A up on the tile's keeper, then " + Claimed + " (ADR-0322); not modelled: the clear "
+            + "of state +0xB9, which nothing reads (leave-hook-bodies.md)")
+        {
+            Enter = static (in StateHookContext hooks, CreatureState creature) => ManufactureRules.Enter(in hooks, creature),
+        },
         Arm(CreatureStateCategory.Manufacture, 0x0047B190, HookStatus.Partial,
             "credit per turn (ADR-0203); not built: a zero credit failing the hook, and the turn % v19 call "
             + "to 0x004F2300 (state-category-hooks.md §3.4)",
             typeof(CreatureJobSystem), "Manufacture"),
-        Releasing(CreatureStateCategory.Manufacture, 0x0047B120,
-            "releases (ADR-0309); station +0x8A is not lowered: ours counts the makers from UpdatingCategory (ADR-0203)"),
+        new(CreatureStateCategory.Manufacture, HookKind.Leave, 0x0047B120, HookStatus.Partial,
+            "player +0x8A down on the tile's keeper, with no floor (ADR-0322), then " + Release)
+        {
+            Leave = static (in StateHookContext hooks, CreatureState creature) => ManufactureRules.Leave(in hooks, creature),
+        },
 
         Slot(CreatureStateCategory.Lair, HookKind.Enter, 0x004B4C20, HookStatus.Stub, "success stub"),
         Arm(CreatureStateCategory.Lair, 0x0047AC40, HookStatus.Partial,
@@ -131,7 +138,8 @@ public static class CategoryHooks
             "anger cools (ADR-0185); state 83's 0x00477B20(1) is not built (state-category-hooks.md §3)",
             typeof(LairRules), nameof(LairRules.CoolsAngerInLair)),
         Slot(CreatureStateCategory.Sleeping, HookKind.Leave, 0x0047AB90, HookStatus.NotBuilt,
-            "toggles bed and creature +0xF3 bit 0; the fields are UNKNOWN (state-category-hooks.md §3)"),
+            "presentation only: sets the draw bit (thing +0xF3 bit 0) on the lair and the creature, which "
+            + "ours does not keep (leave-hook-bodies.md)"),
 
         Slot(CreatureStateCategory.Sulking, HookKind.Enter, 0x004B4C20, HookStatus.Stub, "success stub"),
         Arm(CreatureStateCategory.Sulking, 0x0047AC70, HookStatus.Partial,
@@ -194,9 +202,12 @@ public static class CategoryHooks
         Arm(CreatureStateCategory.Torture, 0x0047B590, HookStatus.Partial,
             "duration, hurt, mood and conversion (ADR-0193); the information is ADR-0230's",
             typeof(TortureSystem), nameof(TortureSystem.Execute)),
-        Releasing(CreatureStateCategory.Torture, 0x0047B4A0,
-            "releases (ADR-0309); not built: the station bits, state +0x6E and +0x3EA bit 14, whose helpers' "
-            + "contracts are UNKNOWN (§3.3)"),
+        new(CreatureStateCategory.Torture, HookKind.Leave, 0x0047B4A0, HookStatus.Partial,
+            "DroppedToDoJob cleared unless TortureVoluntary, the flag cleared (ADR-0322), then " + Release
+            + "; not modelled: the device's draw bit and the chair's spark bit (leave-hook-bodies.md)")
+        {
+            Leave = static (in StateHookContext hooks, CreatureState creature) => TortureRules.Leave(in hooks, creature),
+        },
 
         new(CreatureStateCategory.CombatPit, HookKind.Enter, 0x0047AAE0, HookStatus.Partial,
             Seeded + "; the CombatPitFighter flag on the pit's floor (DK2 tests the floor height 0x400, ours an "
@@ -233,10 +244,14 @@ public static class CategoryHooks
             },
         },
         Arm(CreatureStateCategory.Casino, 0x0047AD70, HookStatus.Partial,
-            "calm, anger and the purse (ADR-0187, ADR-0188); the jackpot and fearless countdown are not",
+            "the fearless countdown (ADR-0322), calm, anger and the purse (ADR-0187, ADR-0188); the jackpot "
+            + "is not built",
             typeof(CreatureJobSystem), "Gamble"),
-        Releasing(CreatureStateCategory.Casino, 0x0047AF20,
-            "releases (ADR-0309); not built: clearing fearless and stamping +0x3D7 (state-category-hooks.md §3.1)"),
+        new(CreatureStateCategory.Casino, HookKind.Leave, 0x0047AF20, HookStatus.Partial,
+            "a fearless gambler's flag turned into FearlessUntil, now + v19 x v203 (ADR-0322), then " + Release)
+        {
+            Leave = static (in StateHookContext hooks, CreatureState creature) => CasinoRules.Leave(in hooks, creature),
+        },
 
         new(CreatureStateCategory.Combat, HookKind.Enter, 0x0047A810, HookStatus.Partial,
             "the stop and the running action ended (ADR-0319); not modelled: ReportingTo +0x3D5 and the "

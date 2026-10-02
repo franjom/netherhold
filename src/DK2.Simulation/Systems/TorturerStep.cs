@@ -79,6 +79,7 @@ public static class TorturerStep
             && context.Navigation.TryRoute(creature, TilePosOf(world, device.TileIndex), Navigation.MoveOptions.Loose))
         {
             CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, TortureRules.StrappingState);
+            creature.TortureVoluntary = true; // 0x00483E65, once the walk has started
             context.Emit(system, "torturer_to_device",
                 $"creature={creature.Id} device={device.Id} type={device.ObjectTypeId}");
             return true;

@@ -219,4 +219,16 @@ public static class TortureRules
         creature.JobTileIndex = -1;
         creature.ClearJob();
     }
+
+    /// <summary>The leave hook <c>0x0047B4A0</c>, its simulation part: a creature that was not on
+    /// its device by choice forgets the job it was dropped to do (<c>DroppedToDoJobId</c>, state
+    /// <c>+0x6E</c>), then <see cref="CreatureState.TortureVoluntary"/> is cleared, then the release.
+    /// Not modelled: its first two steps, which re-show the device and switch off an Electric
+    /// Chair's sparks (draw and effect bits only, <c>leave-hook-bodies.md</c>).</summary>
+    public static void Leave(in StateHookContext hooks, CreatureState creature)
+    {
+        if (!creature.TortureVoluntary) creature.DroppedToDoJob = JobType.None;
+        creature.TortureVoluntary = false;
+        RoomCapacityRules.Release(creature);
+    }
 }

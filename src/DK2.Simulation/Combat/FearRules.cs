@@ -114,11 +114,13 @@ public static class FearRules
     // ------------------------------------------------------------------ the two checks
 
     /// <summary><c>0x0045EDA0</c>: hurt below a third of my level-scaled health, more than five tiles
-    /// from my heart, not fearless and not a Combat Pit fighter. A hero counts as six tiles away
-    /// only with a creature flag this simulation does not carry, so here a hero never withdraws (Q372).</summary>
+    /// from my heart, not fearless (by definition or a Casino win) and not a Combat Pit fighter. A hero
+    /// counts as six tiles away only with a creature flag this simulation does not carry, so here a
+    /// hero never withdraws (Q372).</summary>
     public static bool ShouldWithdraw(WorldState world, GameDatabase database, HeartSites hearts, CreatureState me, CreatureDef mine)
     {
-        if (me.CombatPitFighter || mine.Flags.HasFlag(CreatureFlags.IsFearless)) return false;
+        if (me.CombatPitFighter || mine.Flags.HasFlag(CreatureFlags.IsFearless)
+            || CasinoRules.IsFearlessFromGambling(world, me)) return false;
         int d = me.OwnerPlayerId == PlayerIds.Good ? 0 : HeartDistance(world, hearts, me);
         if (d <= WithdrawHeartDistance) return false;
         return me.Health < CreatureLevelRules.MaxHealth(database, mine, me.Level) / 3;
@@ -140,7 +142,8 @@ public static class FearRules
     {
         if (me.OverThreatCounter > CounterReset) me.OverThreatCounter = 0;
         if (me.OverThreatCounter > FleeCount) me.OverThreatCounter = FleeCount;
-        if (me.CombatPitFighter || mine.Flags.HasFlag(CreatureFlags.IsFearless))
+        if (me.CombatPitFighter || mine.Flags.HasFlag(CreatureFlags.IsFearless)
+            || CasinoRules.IsFearlessFromGambling(world, me))
         {
             me.OverThreatCounter = 0;
             return false;

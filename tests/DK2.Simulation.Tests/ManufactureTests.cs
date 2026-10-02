@@ -37,6 +37,7 @@ public class ManufactureTests
         StatePlacement.As(it, CreatureActivity.AtWork);
         StatePlacement.Place(it, JobRules.StateFor(JobType.Manufacture)!.Value);
         it.JobTileIndex = (Bench.Y * world.Width) + Bench.X;
+        world.Player(Keeper).ManufacturingCreatures++; // placed, so no enter hook counted it
         return it;
     }
 

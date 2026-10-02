@@ -339,6 +339,11 @@ public struct PlayerState
     /// <summary>DK2's manufacture points, <c>player+0x217</c>, a word (ADR-0203).</summary>
     public int ManufacturePoints;
 
+    /// <summary>DK2's <c>NumberOfManufacturingCreatures</c>, <c>player+0x8A</c> (a dword): raised by
+    /// the Manufacture enter hook and lowered by its leave hook on the keeper who owns the tile the
+    /// maker stands on, with no floor. The decay reads it (<see cref="ManufactureRules.Decay"/>).</summary>
+    public int ManufacturingCreatures;
+
     /// <summary>What this keeper has learned from torture (<c>0x004C2B60</c>'s table, ADR-0230):
     /// bit <c>(k − 3) × 8 + victim's player id</c> for reward <c>k</c> of 3–10.</summary>
     public ulong InformationGiven;
@@ -459,6 +464,7 @@ public struct PlayerState
         foreach (EntranceInfoState entrance in EntranceInfo)
             entrance.HashInto(ref hash);
         hash.Add(ManufacturePoints);
+        hash.Add(ManufacturingCreatures);
         hash.Add(InformationGiven);
         hash.Add(ItemsManufactured);
         hash.Add(ManufactureQueue.Count);
@@ -1155,6 +1161,10 @@ public sealed class WorldState
             Health = database.CreatureById(creatureTypeId).Hp,
 
             GetPaid = PaydayRules.TooCloseToPayday(this, database, ownerPlayerId),
+
+            // 0x0048790C, a word. A table without variable 203 seeds 0, which never fires.
+            CasinoGamblingDuration = database.Variables.TryGet(VariableTypeId.GamblingDelayBeforeBecomingFearlessSeconds,
+                out int fearlessDelay) ? (ushort)fearlessDelay : 0,
         };
 
         // After GetPaid, as in DK2's constructor (0x0048750C, then 0x0048795E).

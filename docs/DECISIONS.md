@@ -7152,3 +7152,38 @@ unbuilt. Both are now read whole, and the owner confirms a collapsed gate stays 
 64 gate tiles and Level 7's Reinforced Wall (inert); every party raised on a gate already stands
 where the step-off puts it. Rigs (L1 20/20, L2 7/20) are seed-for-seed identical to master
 `fe5e19e`: neither level runs action 32, and their gate spawns do not move.
+
+## ADR-0322 — The Casino, Torture and Manufacture leave hooks, and a stored maker count
+**Date:** 2026-10-02 · **Status:** accepted · `HashVersion` 155 · Q512 ·
+Research: `leave-hook-bodies.md`
+
+**Context.** Four slots of `CategoryHooks` only released or were not built, on readings from
+2026-09-23 that called fields UNKNOWN and put the Workshop's count on a room. All four bodies
+and their helpers are now read instruction by instruction.
+
+**Decision.**
+- Casino leave: a `CasinoGamblingFearless` creature loses the flag and gets `FearlessUntil` =
+  now + variable 19 × variable 203 (203 as read, not 204); the update's countdown `+0x4F4`
+  (seeded at construction, never reset) sets the flag; the fear counter and the withdraw
+  test treat `now < FearlessUntil` as fearless.
+- Torture leave: `DroppedToDoJob` cleared unless `TortureVoluntary`, which 127's walk onto a
+  device sets; the device's draw bit and the chair's spark bit are not modelled.
+- Sleeping leave stays NotBuilt: it only sets two draw bits, and ours keeps no draw state.
+- Manufacture: player `+0x8A`, `NumberOfManufacturingCreatures`, stored on the keeper owning
+  the maker's tile, raised by enter before its claim, lowered by leave with no floor; the
+  decay reads it. It replaces the count derived from `UpdatingCategory` (ADR-0203).
+
+**Prediction, written before measuring.** Entering a walk runs no hook, so a maker walking from
+the Workshop to eat or sleep keeps DK2's count up until it arrives; ours dropped it the turn the
+walk began. Workshop points should now decay less while makers are away. Levels 1 and 2 build
+no Workshop, Casino or Torture Chamber, so both rigs should be seed-for-seed unchanged.
+
+**Consequences.** `HashVersion`/`FormatVersion` 155, pin `0x72C7236DC18B69AF`. The prediction
+holds for a walk to bed only: hunger sets 91 from the job's state, which leaves category 5 at
+once in DK2 as in ours. On a fixture Workshop with two makers and a Lair, the stored count saved
+5 points over 5 walking seconds (1,467 decayed against 1,472 in 30 minutes); a hunger run decays
+the same on both. No scenario or rig level has a Workshop, Casino or Torture Chamber: all 41
+scenarios' event logs and world dumps are byte-identical to `1ec9fa5` (their hash series move
+from tick 0 by composition), and L1 20/20 and L2 7/20 match seed for seed. Not built: the
+jackpot, the Crypt handovers, the presentation bits, the `ThreatThing` reader of
+`FearlessUntil`, and the other readers of `TortureVoluntary`.

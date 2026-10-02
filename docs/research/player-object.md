@@ -30,7 +30,7 @@ or a community document.
 | `+0x7E` | **`Money`** | condition type 30 |
 | `+0x82` | **`CurrentMana`** | condition type 32 |
 | `+0x86` | `ManaIncreaseRate` | |
-| `+0x8A`, `+0x8E` | `NumberOfManufacturingCreatures`, `NumberOfResearchingCreatures` | |
+| `+0x8A`, `+0x8E` | `NumberOfManufacturingCreatures`, `NumberOfResearchingCreatures` | `+0x8A` is the Manufacture hooks' count, which the decay reads (`leave-hook-bodies.md` §4) |
 | `+0x92`–`+0xAE` | `LastScanTick`, `PlayerScanTick`, `ManaGainTick`, `LastLowManaWarningTick`, `ImpGenerateTick`, `ImpPopScanTick`, `LastTrapManaWarningTick`, `LastNoManaWarningTick` | |
 | `+0x132` | `KilledByPlayerId` | read by condition type 47 |
 | `+0x134`, `+0x136` | `CreaturePossessed`, `CreatureHeldInPossession` | `+0x134` gates condition type 73 |

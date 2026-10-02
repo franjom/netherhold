@@ -831,6 +831,25 @@ public sealed class CreatureState
     /// (<c>combat-pit.md</c> §7).</summary>
     public bool CombatPitFighter;
 
+    /// <summary><c>CasinoGamblingDuration</c>, <c>+0x4F4</c> (a word): Casino seconds left until
+    /// <see cref="CasinoGamblingFearless"/>. The constructor seeds it from variable 203 and nothing
+    /// resets it on entering or leaving, so it counts gambling across visits (<c>leave-hook-bodies.md</c>).</summary>
+    public int CasinoGamblingDuration;
+
+    /// <summary><c>CasinoGamblingFearless</c>, <c>+0x3EA</c> bit 13: set by the Casino update when
+    /// <see cref="CasinoGamblingDuration"/> runs out; the Casino leave hook turns it into
+    /// <see cref="FearlessUntilTick"/>. Nothing else reads it.</summary>
+    public bool CasinoGamblingFearless;
+
+    /// <summary><c>FearlessUntil</c>, <c>+0x3D7</c>, in our ticks: before it the fear counter and
+    /// the withdraw test treat the creature as fearless (<see cref="Combat.FearRules"/>).</summary>
+    public long FearlessUntilTick;
+
+    /// <summary><c>TortureVoluntary</c>, <c>+0x3EA</c> bit 14: set once 127's walk onto a free
+    /// device starts (<c>0x00483E65</c>), cleared by the Torture leave hook, which keeps
+    /// <see cref="DroppedToDoJob"/> only while it is set.</summary>
+    public bool TortureVoluntary;
+
     /// <summary><c>AttackAbnormalTargets</c>, <c>+0x3E6</c> bit 2, with <see cref="AttackingId"/>:
     /// the forced target 139 hands both fighters (<c>0x0048F390</c>).</summary>
     public bool AttackAbnormalTargets;
@@ -1114,6 +1133,10 @@ public sealed class CreatureState
         hash.Add(GuardLostTick);
         hash.Add(HeedingCallToArms);
         hash.Add(CombatPitFighter);
+        hash.Add(CasinoGamblingDuration);
+        hash.Add(CasinoGamblingFearless);
+        hash.Add(FearlessUntilTick);
+        hash.Add(TortureVoluntary);
         hash.Add(AttackAbnormalTargets);
         hash.Add(AttackingId);
         hash.Add(AttackingKind);

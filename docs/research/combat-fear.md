@@ -37,7 +37,7 @@ dumper prints each by name.
 | `+0x532` | `BackOffTimer` | byte; ticks of backing off left |
 | `+0x533`, `+0x535` | `ThreatThing`, `ThreatThingThreshold` | the tag radiating most at me; read only by the creature update `0x00488930`, which zeroes both |
 | `+0x52A`, `+0x52E` | `OldFightPos`, `OldFightTick` | stamped by the withdraw state; **read by state 1** (§8; "no reader" was wrong, corrected 2026-09-25) |
-| `+0x3D7` | `FearlessUntil` | set only by the casino's big win: `now + var19 × GamblingDelayBeforeBecomingFearlessSeconds` (`0x0047AF20`) |
+| `+0x3D7` | `FearlessUntil` | set only by the Casino leave hook, after 120 Casino seconds have made a creature `CasinoGamblingFearless`: `now + var19 × GamblingDelayBeforeBecomingFearlessSeconds` (`leave-hook-bodies.md` §1, built ADR-0322) |
 
 ## 2. The accumulator (`0x0045E4F0`)
 
@@ -234,8 +234,7 @@ lets the engagement go rather than leaving the tag (Q373); the room's
 `+0x27/+0x29` is taken as its bounding-box centre; a hero's flag bit 4 is
 absent, so heroes neither withdraw nor count as six tiles out (Q372).
 
-**Not built:** hero gates; the casino's
-`FearlessUntil`; the stunned and chicken gates; the owner modifiers (Q375);
+**Not built:** hero gates; the stunned and chicken gates; the owner modifiers (Q375);
 `ThreatThing`; the two spell sources of §2; the body bit `+0x10F`.0.
 
 ## Confidence

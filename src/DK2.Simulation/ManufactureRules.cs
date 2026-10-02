@@ -199,24 +199,44 @@ public static class ManufactureRules
         return false;
     }
 
-    /// <summary><c>0x004C3340</c>, once a game second for each keeper: with points and nobody in the
-    /// Manufacture category (<c>player+0x8A</c>, which its enter and leave hooks count), the points
-    /// fall by <c>ManufacturePointLossWhileNoWorkersPerSecond</c>, to no lower than zero.</summary>
+    /// <summary><c>0x004C3340</c>, once a game second for each keeper: with points and a zero
+    /// <see cref="PlayerState.ManufacturingCreatures"/> (<c>player+0x8A</c>; any nonzero count, a
+    /// negative one included, holds the points), they fall by
+    /// <c>ManufacturePointLossWhileNoWorkersPerSecond</c>, to no lower than zero.</summary>
     public static void Decay(WorldState world, GameDatabase database)
     {
         for (int p = 0; p < world.PlayerCount; p++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(p);
-            if (player.ManufacturePoints == 0 || HasManufacturer(world, player.PlayerId)) continue;
+            if (player.ManufacturePoints == 0 || player.ManufacturingCreatures != 0) continue;
             int loss = database[VariableTypeId.ManufacturePointLossWhileNoWorkersPerSecond];
             player.ManufacturePoints = player.ManufacturePoints <= loss ? 0 : player.ManufacturePoints - loss;
         }
     }
 
-    private static bool HasManufacturer(WorldState world, byte playerId)
+    /// <summary>The enter hook <c>0x0047B0A0</c>: the count goes up before the lookup and claim, and
+    /// a refused claim does not take it back. Not modelled: its clear of state <c>+0xB9</c>, which
+    /// nothing reads (<c>leave-hook-bodies.md</c>).</summary>
+    public static bool Enter(in StateHookContext hooks, CreatureState creature)
     {
-        foreach (CreatureState c in world.Creatures)
-            if (c.OwnerPlayerId == playerId && CreatureStateMachine.UpdatingCategory(c) == CreatureStateCategory.Manufacture) return true;
-        return false;
+        CountMaker(hooks.World, creature, +1);
+        return RoomCapacityRules.Claim(in hooks, creature);
+    }
+
+    /// <summary>The leave hook <c>0x0047B120</c>: the count goes down, with no floor, then the
+    /// release.</summary>
+    public static void Leave(in StateHookContext hooks, CreatureState creature)
+    {
+        CountMaker(hooks.World, creature, -1);
+        RoomCapacityRules.Release(creature);
+    }
+
+    /// <summary>Both hooks change the count of the keeper who owns the tile under the creature
+    /// (<c>0x00455990</c>), not the creature's own. A tile with no keeper of ours is skipped.</summary>
+    private static void CountMaker(WorldState world, CreatureState creature, int by)
+    {
+        if (!world.Contains(creature.Tile)) return;
+        byte owner = world.Tile(creature.Tile).OwnerPlayerId;
+        if (world.HasPlayer(owner)) world.Player(owner).ManufacturingCreatures += by;
     }
 }

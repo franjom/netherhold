@@ -109,7 +109,7 @@ and then clears the target; **1 and 4 → the melee arm `0x004600DD`**:
    unique 0.
 4. **The blow lands once** on `+0x399`, the tag the action was started with,
    **with no range test**: only liveness and `+0x16 ≠ 2`. A sleeping creature
-   (state 83) is woken first (its bed's `+0xF3` bit flipped, its action ended,
+   (state 83) is woken first (its bed's `+0xF3` draw bit set, its action ended,
    state 84 or 1). `+0x445 ≠ 0` on the target ends the swing with nothing.
    Then the arithmetic of combat-damage.md, `0x004B2CE0(target, delta,
    attacker's owner, 0)` — **the health routine takes the attacker's player id
