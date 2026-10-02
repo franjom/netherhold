@@ -142,6 +142,57 @@ public class LairAcquisitionTests
     }
 
     [Fact]
+    public void TheIdleDecisionGoesForALairBeforeAnyJob_EvenInsideTheSleepSystemsRetryWait()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var events = new ListEventSink();
+        CorridorToA3x3Lair(db, world);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        // As after a failed attempt: the sleep system waits twelve ticks before it looks again.
+        goblin.TimerTicks = LairRules.IdleRedecisionTicks;
+        var sim = new GameSimulation(db, world, 42, [
+            new CreatureMovementSystem(), new CreatureSleepSystem(), new CreatureJobSystem(),
+        ]);
+        sim.ObserveWith(events);
+
+        // State 89's step 5 (0x004778E0): the idle decision itself tries for the lair, before
+        // the dropped job and the chooser, so the very first decision sets off (ADR-0328).
+        sim.Run(1);
+        Assert.Equal(CreatureActivity.SeekingLair, goblin.Activity);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "job_taken");
+        Assert.Contains(events.Events, e => e.Kind == "lair_sought" && e.System == "CreatureJob");
+
+        sim.Run(Second * 15);
+        Assert.Equal(new TilePos(7, 2), BedOf(world, db, goblin));
+    }
+
+    [Fact]
+    public void AnUnhappyCreatureInsideItsChoosersGateStillGoesForALair_AsStateEightyNineIsNotGated()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var events = new ListEventSink();
+        CorridorToA3x3Lair(db, world);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        goblin.Anger[AngerBucket.Lair] = CreatureAngerRules.UnhappyAt(db.CreatureById(GoblinId)) + 1;
+        Assert.Equal(CreatureMood.Unhappy, CreatureAngerRules.MoodOf(db.CreatureById(GoblinId), goblin));
+        // The unhappy chooser rolled a moment ago, so its five-second gate is shut; the sleep system is waiting too.
+        goblin.LastUnhappyChoiceTick = world.CurrentTick.Value + 1;
+        goblin.TimerTicks = LairRules.IdleRedecisionTicks;
+        var sim = new GameSimulation(db, world, 42, [
+            new CreatureMovementSystem(), new CreatureSleepSystem(), new CreatureJobSystem(),
+        ]);
+        sim.ObserveWith(events);
+
+        sim.Run(1);
+        Assert.Equal(CreatureActivity.SeekingLair, goblin.Activity);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "job_taken");
+    }
+
+    [Fact]
     public void ALairItCannotWalkToIsNotALairItCanUse()
     {
         GameDatabase db = Db;

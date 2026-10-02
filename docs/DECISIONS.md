@@ -7413,3 +7413,105 @@ with its stores filled and a floor pile, posts 42 at tick 10, grows its Treasury
 (12..15, 4) from tick 505 and later stores gold there: a modern-run result (Q518).
 Unbuilt: the other finders' producers, the claim failure, the rescue selector,
 `0x004BA420`'s other callers, mood messages and the rest of the suppression words.
+
+## ADR-0325 — A Support creature surveys its attack spell while it recharges
+
+**Context.** On Level 3 our Warlocks threw one Fireball, then walked into the Thieves'
+melee for the 14 ticks the spell needed, fled at fear 60 and withdrew at a tenth of their
+health; two hurt Warlocks met the Lord of the Land, who survived to 3704 with 3,144 health
+where DK2's seed01 kills him at 3683. In the capture three Warlocks engage Thief 426 from
+3310 and it loses nothing to melee. `combat-acquisition.md` §6 read the survey's slot test
+as "castable, and for a Support also `0x00460C50`"; the decompile at `0x0045CCB2` reads
+`(FightStyle == 4 && 0x00460C50() == 0) || 0x0048C800() != 0`.
+
+**Decision.** `SpellRules.SurveyAttack(whileRecharging)` waives the recharge gate when
+`CombatTargetRules.SpellWhileRecharging` holds: a Support creature that `FearRules.Cornered`
+finds an escape tile for. All three survey callers pass it. The caster then keeps nibble 0
+and the spell's range² between casts, and the in-reach tick's cannot-cast path (§9–§10)
+has it stand or step back rather than close to melee. A cornered Support, and every other
+fight style, still needs the spell ready. Docs: `combat-acquisition.md` §6 corrected,
+`combat-spells.md` §5 extended; KB `0045CB00`, `00460C50` (new), `0048C800` (new).
+
+**Consequences.** Test `AWarlockWhoseFireballIsRechargingKeepsTheSpellAndStandsOff…`. The
+rule is RNG-free; the hash pin is unchanged. Level 3 seed01: the Warlocks now cast 17
+times for 12 shots with 33 step-backs and two withdrawals (six, three and five before), but
+the Lord still stands at 3704 with 5,001 health: ours hits him with traps and Imps while
+DK2's Trolls land 500 a blow and he is stunned — the next lead. Rigs: L1 20/20 unchanged,
+L2 6/20 (7/20; different seeds win). The waiver precedes the slot's flag read, so in DK2 it
+covers a thing-targeting slot too (not built); the friendly arm re-tests the recharge and is
+not waived. Unread: whether the fight-starter's melee retry for a Support (`0x0045A550`)
+ever reaches a Warlock in play.
+
+## ADR-0328 — The idle decision tries for a lair before any job, as state 89 does
+
+**Context.** Level 3 seed01: our Goblins (arrivals 1667, 1899) trained bedless from the
+tick they landed, carried `AngerNoLair` to its limit and left through the portal at 3272
+and 3572, their anger log naming Lair as the only term; in the capture
+(`reverse-engineering/dk2runs/level3-live1/seed01/level3.dk2cap`, a capture reading) the
+Goblins 431 and 433 go idle after their first fight, pass through state 89 and walk to
+the Lair before any job (431: idle 1756, 89 at 1757, travel 1758), stay, reach 2,250
+health, and stand beside the Lord of the Land as he dies at 3683. State 89 (`0x004778E0`,
+`idle-fallback.md` §1, CONFIRMED) runs the lair attempt `0x0046F390` as its step 5, before
+the dropped job, the remembered job and the happy chooser. Ours made that attempt only in
+`CreatureSleepSystem`, on a 12-tick retry timer and only while idle; a creature that turned
+idle between that system and `CreatureJobSystem` — out of a hand drop's stun, or a fight —
+rolled a job first, and the unhappy chooser's attempt sat inside its five-second gate.
+
+**Decision.** `CreatureJobSystem.Choose` makes the attempt first, for every mood and
+outside the gate, immediately after the Call to Arms arm; the unhappy chooser's duplicate
+is removed. The sleep system's tired-and-bedless attempt stays. Docs:
+`lair-acquisition.md` §7; KB `004778E0`.
+
+**Consequences.** Two tests in `LairAcquisitionTests` (content; unhappy inside its gate).
+RNG-free and stateless, no `HashVersion` change; a success skips that tick's roll, so every
+replay with a bedless idle creature shifts. Level 3 seed01: no Goblin leaves, the Lord is
+fought in the corridor at (24,22)–(26,25) from 3564 as DK2's is, and stands at 3704 with
+2,656 health (5,001 before; DK2 kills him at 3683) — then, with the replay's entity map
+corrected (its party rule had shadowed the placed Lord from turn 2, so the player's six
+Thunderbolts on him were refused as a missing creature), **Level 3 seed01 is won at 3680**,
+DK2's 3683; five of the player's later Thunderbolts are still refused for mana (6,000 each)
+that DK2's keeper had. Rigs: L1 20/20 with every win tick
+moved (1764–1984), L2 6/20 (seeds 7, 9, 10, 15, 18, 19; 6/20 before on other seeds).
+
+## ADR-0334 — A room built over claimed floor keeps the floor's mana, as DK2's rate word does
+**Date:** 2026-10-02 · **Status:** accepted · Research: `mana.md`, KB `004559D0`, `00455B90`; Q521
+
+**Context.** Level 3 seed01 after ADR-0328: the player's Thunderbolts from 3559 are refused for
+mana (6,000 each) while DK2 casts fourteen. The capture's player record reads the keeper's
+mana (`+0x82`): 81,002 at 3490 against our 51,000. Its rate word `+0x10E2` fits the capture's
+own tiles exactly, at every sample from tick 4 to 3490: `word + imp and trap upkeep = claimed
+path + reinforced wall + every room tile the keeper built`, with the heart's 25 and the
+portal's 9 counting 0. Ours paid nothing for room tiles — a `ManaGain` of 0 on all 26 room
+terrains, read as "building costs income" since ADR-0017. The binary says why the data
+disagrees: the word is a running sum. `Tile_SetOwner` (`0x004559D0`) moves the tile's current
+terrain's `ManaGain` (and its `MaxManaGain` into the cap word `+0x10DE`) between owners, and
+`Tile_SetTerrain`'s adjustment (`0x00455B90`) swaps the old terrain's gain for the new one's
+only when neither is a Room; a bridge laid adds 1 to the tile's tag of the moment — the neutral
+player's, over water or lava — and a bridge removed takes 1 from its builder. So a room over
+claimed floor keeps the floor's 1, a room the map laid pays 0, a captured room hands its
+captor 0 and leaves the old owner paying. The word also carries the upkeep (the imp and trap
+registrations take it off), which is why the payment `0x004C10E0` adds the upkeep back before
+the cap and removes it after: `min(cap, gross + 30) − upkeep`, as `ManaRules.ApplyOneSecond`
+already paid. An earlier reading of that payment as "the upkeep cancels" was withdrawn by the
+same fit.
+
+**Decision.** `TileState.KeptManaGain`: `RoomRules.Place` records the covered floor's
+`ManaGain` when the builder owned the tile (a room over a room keeps the earlier value), and every
+owner change clears it (`TileWorkRules`' conversion, the room-convert spread, defeat).
+`ManaRules.GainPerSecond` adds it on room tiles; `GainPerSecondByPlayerIndex` raises the cap by
+the owned tiles' `MaxManaGain`. Setup rooms and the tests' map hearts keep 0. Not mirrored (Q521): the
+old owner's leftover for a lost room tile, a map-laid or captured room's 0 once sold, a rival's
+room over foreign floor, the bridge's neutral 1, and the cap bonus following the current terrain
+rather than the owner-change; the kept value is a byte (a vault's 100 fits). Docs:
+`mana.md`, `terrain-room-dump.md`, `hash-versions.md`; KB `004559D0` and `00455B90` (new),
+`0044FC40`, `004C10E0`.
+
+**Consequences.** HashVersion and FormatVersion 165 (163 and 164 are branch m7/close's), pin `0x3112DA3F61990DB7`. Tests:
+`ARoomBuiltOnClaimedFloorKeepsTheFloorsIncome…`, `ARoomTileTakenByARivalPaysTheRivalNothing`,
+the vault cap in `IncomeIsCappedAtMaximumManaGainPerSecond`; the scenario
+`land_pays_a_keeper` reads 38/s before and after its treasury. Measured: Level 3 seed01's keeper now holds 9,547 mana at 800 (DK2 9,405), 12,771 at 1200 (10,662),
+70,662 at 2800 (32,553) and 96,675 at 3490 (81,002) — the mid-game surplus is territory, ours
+claiming and building faster between 2000 and 2400 (gross 316 against 241 a second) and slower after
+3200 (395 against 421); all six Create Imps and thirteen Thunderbolts are paid, and the level is won
+at 3648 (DK2 3683). Rigs: L1 20/20 with every tick identical; L2 7/20 (seed 3 joins at 3616; the
+other six within 20 ticks of before).

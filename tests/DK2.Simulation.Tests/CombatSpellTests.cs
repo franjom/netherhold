@@ -136,6 +136,34 @@ public class CombatSpellTests
     }
 
     [Fact]
+    public void AWarlockWhoseFireballIsRechargingKeepsTheSpellAndStandsOff_InsteadOfClosingToMelee()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState warlock = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
+        goblin.FrozenTicks = 1000;
+        StatePlacement.As(goblin, CreatureActivity.Frozen);
+        // Fireball cast this very tick: 25 ticks of recharge ahead, and nothing else to throw.
+        warlock.SpellStamps[0] = world.CurrentTick.Value;
+        GameSimulation sim = Combat(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Run(3);
+        // 0x0045CB00's survey waives 0x0048C800 for a Support with an escape tile: the engagement is the spell's.
+        Assert.Equal(CombatRules.AttackTypes.SpellAtCreature, warlock.AttackType);
+        Assert.Equal(0, warlock.AttackSpellSlot);
+        Assert.Contains(warlock.Id, goblin.EngagedRanged);
+        Assert.DoesNotContain(warlock.Id, goblin.EngagedMelee);
+
+        sim.Run(30);
+        // It stood three tiles off until the recharge, then cast; it never walked in or swung.
+        Assert.Equal(new TilePos(5, 10), warlock.Tile);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "swing" && e.Detail.Contains("creature=" + warlock.Id + " "));
+        Assert.Contains(sink.Events, e => e.Kind == "cast" && e.Detail.Contains("creature=" + warlock.Id + " "));
+    }
+
+    [Fact]
     public void ALevelEightWarlockThrowsTheFirebomb_WhoseExplosionInheritsAZeroRadius()
     {
         (GameDatabase db, WorldState world) = OpenWorld();

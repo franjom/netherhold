@@ -178,7 +178,8 @@ public static class CombatTargetRules
         int spellSlot = -1;
         CreatureSpellDef? spell = null;
         if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
-            spellSlot = SpellRules.SurveyAttack(context.Database, me, definition, context.Tick.Value, out spell);
+            spellSlot = SpellRules.SurveyAttack(context.Database, me, definition, context.Tick.Value, out spell,
+                whileRecharging: SpellWhileRecharging(context, me, definition, scratch));
         if (CombatPitRules.IsOnTheMap(target)
             && !CanReach(context.Navigation, me, definition, target.PosX, target.PosY, int.MaxValue, scratch)
             && (spell is null || !LineOfSight.Clear(sight, me.PosX, me.PosY, target.PosX, target.PosY)))
@@ -206,7 +207,8 @@ public static class CombatTargetRules
         CreatureSpellDef? spell = null, friendly = null;
         if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
         {
-            spellSlot = SpellRules.SurveyAttack(context.Database, me, definition, context.Tick.Value, out spell, skipStatus: true);
+            spellSlot = SpellRules.SurveyAttack(context.Database, me, definition, context.Tick.Value, out spell, skipStatus: true,
+                whileRecharging: SpellWhileRecharging(context, me, definition, scratch));
             friendlySlot = SpellRules.SurveyFriendly(context.Database, me, definition, context.Tick.Value, out friendly);
         }
 
@@ -248,6 +250,14 @@ public static class CombatTargetRules
         return true;
     }
 
+    /// <summary>The survey's Support clause (<c>0x0045CB00</c>, combat-spells.md §5): a Support
+    /// creature with a tile to back on to (<c>0x00460C50</c> finds an escape) surveys its attack
+    /// spell whether or not it has recharged, so it keeps the spell nibble and its range while the
+    /// spell cools — standing off and stepping back rather than closing to melee. A cornered one,
+    /// and every other fight style, needs the spell ready.</summary>
+    private static bool SpellWhileRecharging(SimulationContext context, CreatureState me, CreatureDef definition, List<Fixed16Vector> scratch) =>
+        definition.FightStyle == FightStyle.Support && !FearRules.Cornered(context, me, definition, scratch);
+
     /// <summary>The thing reach a door adds to <c>MeleeRange</c>, and a Secret Door's.</summary>
     public const int DoorReach = 0x800;
     public const int SecretDoorReach = 0xC00;
@@ -269,7 +279,8 @@ public static class CombatTargetRules
         CreatureSpellDef? spell = null, friendly = null;
         if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
         {
-            spellSlot = SpellRules.SurveyAttack(database, me, definition, context.Tick.Value, out spell);
+            spellSlot = SpellRules.SurveyAttack(database, me, definition, context.Tick.Value, out spell,
+                whileRecharging: SpellWhileRecharging(context, me, definition, scratch));
             friendlySlot = SpellRules.SurveyFriendly(database, me, definition, context.Tick.Value, out friendly);
         }
 
