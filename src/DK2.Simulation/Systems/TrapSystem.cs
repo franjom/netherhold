@@ -16,7 +16,7 @@ public sealed class TrapSystem : ISimulationSystem
 {
     private WorldSight? _sight;
     private WorldState? _sightWorld;
-    private readonly RoomCache _rooms = new();
+    private RoomCache _rooms = new();
 
     public string Name => "traps";
 
@@ -29,6 +29,7 @@ public sealed class TrapSystem : ISimulationSystem
         if (!ReferenceEquals(_sightWorld, world))
         {
             _sight = new WorldSight(context.Navigation, world, context.Database);
+            _rooms = new RoomCache(); // keyed by tick alone, so a new world needs a new one
             _sightWorld = world;
         }
         IReadOnlyList<TrapState> traps = world.Traps;
