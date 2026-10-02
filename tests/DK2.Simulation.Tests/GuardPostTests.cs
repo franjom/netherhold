@@ -131,11 +131,12 @@ public sealed class GuardPostTests
     }
 
     [Fact]
-    public void APostReportsAnEnemyInReachToItsRoom_AGuardHoldingAPlaceThereRunsToItInStateSixResuming254()
+    public void APostReportsAnEnemyInReachToItsRoom_AGuardHoldingAPlaceThereRunsToItInStateSixResuming254_OnOurTrapIdsPhase()
     {
         // The enemy at (12,6) is in reach (7 tiles) of the post at (9,4) and farther than five
         // tiles from the guard, so the keeper's own strength there is 0 and the deficit is the
-        // enemy's Threat. The post reports on the turns whose sum with its id has bit 3 set.
+        // enemy's Threat. The post reports on the DK2 turns (tick + 1) whose sum with its id has bit 3
+        // set; our trap id stands in for DK2's thing slot, so the window's phase is ours.
         (GameDatabase db, WorldState world) = World();
         TrapState post = Post(db, world, 9, 4);
         CreatureState goblin = Guard(db, world, new TilePos(6, 4));
@@ -147,7 +148,7 @@ public sealed class GuardPostTests
 
         var report = Assert.Single(sink.Events, e => e.Kind == "guard_post_reported");
         Assert.Contains($"trap={post.Id} player={Keeper} enemy={enemy.Id} sent=1", report.Detail);
-        Assert.NotEqual(0, (report.Tick.Value + post.Id) & 8);
+        Assert.NotEqual(0, (report.Tick.Value + 1 + post.Id) & 8);
         Assert.True(goblin.Running);
         Assert.Equal(JobType.None, goblin.CurrentJob);
         Assert.Equal(CreatureActivity.Reporting, goblin.Activity);

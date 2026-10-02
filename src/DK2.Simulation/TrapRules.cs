@@ -129,7 +129,7 @@ public static class TrapRules
         if (definition is null) return;
         trap.Health = definition.Health;
         trap.Hidden = (definition.Flags & StartsHidden) != 0;
-        if ((definition.Flags & GuardPostBranch) != 0) trap.GuardRoomTile = NearestGuardRoom(world, database, trap);
+        if ((definition.Flags & GuardPostBranch) != 0) trap.GuardRoomTile = NearestGuardRoom(world, RoomIndex.Build(world, database), trap);
     }
 
     // ------------------------------------------------------------------ the Guard Post
@@ -138,11 +138,11 @@ public static class TrapRules
     /// owner's Guard Rooms, the one whose first slab's centre is strictly nearest the trap, as that
     /// slab's tile; -1 for none. Anywhere on the map, not only the room the trap stands in. DK2
     /// walks its room list, ours the rooms in tile order, so only an exact tie could differ.</summary>
-    public static int NearestGuardRoom(WorldState world, GameDatabase database, TrapState trap)
+    public static int NearestGuardRoom(WorldState world, IReadOnlyList<RoomInstance> rooms, TrapState trap)
     {
         int found = -1;
         uint best = uint.MaxValue;
-        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        foreach (RoomInstance room in rooms)
         {
             if (room.OwnerPlayerId != trap.PlayerId || room.Definition.TypeId != RoomTypeId.GuardRoom) continue;
             int first = SlabChain.FirstSlab(world, room);
@@ -165,13 +165,15 @@ public static class TrapRules
 
     /// <summary>The update's Guard Post arm (<c>0x004A85BB</c>–<c>0x004A8AA1</c>), on the turns
     /// whose sum with the trap's id has bit 3 set: refresh the room, then, with one, report the first
-    /// enemy in reach to it. The effect it makes every eighth turn is presentation.</summary>
-    private static void GuardPost(SimulationContext context, ISightBlocker sight, TrapState trap, long now)
+    /// enemy in reach to it. The effect it makes every eighth turn is presentation. The turn is DK2's,
+    /// one past the tick; ours numbers traps in order, where DK2 adds its thing slot, so the phase of
+    /// the eight-in-sixteen window is ours.</summary>
+    private static void GuardPost(SimulationContext context, ISightBlocker sight, TrapState trap, long now, RoomCache rooms)
     {
-        if (((now + trap.Id) & 8) == 0) return;
+        if (((now + 1 + trap.Id) & 8) == 0) return;
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        trap.GuardRoomTile = NearestGuardRoom(world, database, trap);
+        trap.GuardRoomTile = NearestGuardRoom(world, rooms.Of(context, trap.PlayerId), trap);
         if (trap.GuardRoomTile < 0 || PostEnemy(world, database, sight, trap) is not { } enemy) return;
         ReportToRoom(context, trap, enemy);
     }
@@ -293,8 +295,8 @@ public static class TrapRules
     public static bool IsDead(TrapState trap) => trap.Health <= 0;
 
     /// <summary><c>0x004B2CE0</c> on a trap: the signed delta applied flat. Its callers that reach a
-    /// trap here are the recovery and area damage type 2 (<c>0x004AC6D0</c>); a swing reaches one only
-    /// through possession, which is not built (traps.md §10).</summary>
+    /// trap here are the recovery, a shot's contact damage (<c>0x004AC420</c>) and area damage type 2
+    /// (<c>0x004AC6D0</c>); a swing reaches one only through possession, which is not built (traps.md §10).</summary>
     public static void Damage(TrapState trap, int delta) => trap.Health += delta;
 
     // ------------------------------------------------------------------ the tile chain
@@ -337,7 +339,7 @@ public static class TrapRules
 
     /// <summary>One update (<c>0x004A84E0</c>), in its order. A trap whose firing is not built still
     /// loses its owner, counts its clock down and recovers; it does not look for a target.</summary>
-    public static void Update(SimulationContext context, ISightBlocker sight, TrapState trap, TrapDef definition)
+    public static void Update(SimulationContext context, ISightBlocker sight, TrapState trap, TrapDef definition, RoomCache rooms)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -354,7 +356,7 @@ public static class TrapRules
         if (trap.ThreatDuration != 0) trap.ThreatDuration--;
 
         if (!trap.UnderConstruction && !IsDead(trap) && (definition.Flags & GuardPostBranch) != 0)
-            GuardPost(context, sight, trap, now);
+            GuardPost(context, sight, trap, now, rooms);
         if (!trap.UnderConstruction && !IsDead(trap) && FiringBuilt(database, definition))
         {
             if ((definition.Flags & TurnsToTarget) != 0) Turn(world, database, sight, trap, definition, now);

@@ -1331,7 +1331,7 @@ internal static class Dk2TerrainFixture
         Status("Freeze Trap Shot", FreezeTrapShotId, 4096, 16, 0x3, 0x4, 2, 11),
         Status("Trigger Trap", TriggerTrapShotId, 4096, 1, 0x4, 0x1, 0, 0),
         Status("Door Fireball", DoorFireballShotId, 3686, 60, 0x127, 0x1, 2, 0, damageType: 7),
-        // Read for ADR-0328: the Alarm's message (process 12), the Fear's stub (21), the Spike's square
+        // Read for ADR-0331: the Alarm's message (process 12), the Fear's stub (21), the Spike's square
         // (damage type 1) and the gas cloud's area damage with its process 31.
         Status("Alarm", AlarmShotId, 2048, 1, 0x4, 0x40, 0, ShotRules.AlarmProcess, attackCategory: 14),
         Status("Fear", FearShotId, 3686, 1, 0x24, 0x40, 2, ShotRules.FearProcess, attackCategory: 14),

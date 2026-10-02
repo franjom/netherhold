@@ -329,6 +329,7 @@ public static class ShotRules
             uint distanceSquared = TrapRules.DistanceSquared(shot.PosX, shot.PosY, px, py);
             if (distanceSquared >= radiusSquared) continue;
             damage = (int)((radius - Isqrt((long)distanceSquared << 12)) * damage / radius);
+            if (damage <= 0) continue; // the health routine returns at once on a zero delta
             switch (thing)
             {
                 case CreatureState target when !CreatureDeathRules.IsDown(target):
@@ -351,7 +352,9 @@ public static class ShotRules
     /// <c>data2</c> to <b>below</b> it plus <c>data2</c> on each axis — half-open, so <c>data2</c> 1 is
     /// the 2x2 square north-west of the shot's tile — in the map, a creature not of the shot's owner
     /// with its invulnerable word clear takes <c>data1</c> flat. No falloff and no trap or door; the
-    /// object-74 arm (half) is not built, as objects are not hit here.</summary>
+    /// object-74 arm (half) is not built, as objects are not hit here. Ours walks the creature list,
+    /// where DK2 walks the tiles and their chains: flat damage, so only the order of events differs; a
+    /// body, a held creature and a dying one are left out as the health routine refuses them.</summary>
     public static void SquareDamage(SimulationContext context, ShotState shot, ShotDef definition)
     {
         if (definition.DamageType != SquareDamageType || shot.Data1 <= 0) return;

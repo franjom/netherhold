@@ -9,7 +9,7 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>The trap shots read for ADR-0328 (traps.md §12, shots.md §7, §8): the Alarm's message, the
+/// <summary>The trap shots read for ADR-0331 (traps.md §12, shots.md §7, §8): the Alarm's message, the
 /// Fear's stub, the Spike's square and the gas cloud.</summary>
 public sealed class TrapShotTests
 {

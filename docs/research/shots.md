@@ -149,7 +149,8 @@ pick ray; the position moves only through passable spots.
 `Flags` (`+0x43`): bit 0 dies on hitting solid; bit 1 dies on hitting a thing;
 bit 2 health counts down each tick; bit 4 (`0x004B7E30`, slot `+0x84`) the world
 ends it instead of bouncing (§6); bit 7 the creation effect moves with it; bit 8
-turns a struck creature. Bit 5 launches a trap's shot fired at a target (`0x004A7FD0`,
+turns a struck creature. Bit 5 launches a shot: a trap's fired at a target (`0x004A7FD0`) and
+a door's, tested in the door code at `0x004A6390` (
 `traps.md` §7); the Fireburst, Spike and gas clouds lack it.
 
 `ShotProcessFlags` (`+0x3F`) are **events**: 0x40 first tick, 0x2 before each

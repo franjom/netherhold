@@ -12,7 +12,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: advances ADR-0135 (ADR-0212, ADR-0325). `creature-state-table.md` owns the rows (97–100, category 11,
+Questions: advances ADR-0135 (ADR-0212, ADR-0330). `creature-state-table.md` owns the rows (97–100, category 11,
 labels "guarding" and "on patrol to a Guard Post"); `state-category-hooks.md` owns the
 category's enter hook, which only claims the room position.
 
@@ -110,9 +110,12 @@ made with no match. **Flag `0x800` is the Guard Post**: in `Traps.kwd` the flags
 record offset `0x1EC` has bit 11 on the Guard Post (`0xC18`) and on no other of the 16
 records, and OpenKeeper names it `GUARD_POST`.
 
-**Trap `+0x113`** is written in two places only (writers of `[reg+0x113]` over `.text` and
-`cseg`, positive control 333 `cseg` hits for `+0x4`–`+0x10`): the constructor `0x004A7940`
-(`0x004A7A9C`, for flag `0x800`) and the update's Guard Post arm (`0x004A85E5`, §6). Both
+**Trap `+0x113`**, which the trap's own debug dumper `0x004AA130` prints as `NearestRoom`, is
+written by trap code in two places only (writers of `[reg+0x113]` over the disassembled
+`.text` and `cseg`; the positive control's `cseg` hits were short displacements, so for this
+long one the coverage is the disassembled functions): the constructor `0x004A7940`
+(`0x004A7ABC`, `0x004A7AC5`, for flag `0x800`) and the update's Guard Post arm (`0x004A8601`,
+`0x004A860A`, §6). Both
 store `room+0x4`, the id of `0x004C61C0(9, &trap position, &room, 0)` on the trap's owner:
 of the owner's rooms of type 9 (Guard Room), the one whose first slab's centre (`+0x2D`,
 `+0x2E`) is strictly nearest the trap, else 0. So a post reports to the nearest Guard Room
@@ -175,7 +178,7 @@ Not built: the Crypt is not.
 
 ## 8. Built and not built
 
-**Built** (ADR-0212, ADR-0325): §1–§6 as `GuardRules`, `GuardStep` (run by the Guard job
+**Built** (ADR-0212, ADR-0330): §1–§6 as `GuardRules`, `GuardStep` (run by the Guard job
 once a turn) and `TrapRules` (the post's room and report). **Not built:** the `+0x3E6` bits;
 the sound; the post's effect; `state+0x3C`; §7. **Ours:** the room test is our tile owner and
 room type; a target off the map is a failed route; rooms have no ids, so `+0x113` is the

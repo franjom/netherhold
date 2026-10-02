@@ -7069,7 +7069,7 @@ as read; the review also found that step 4's room pick (`0x004C63D0`) counts bri
 index and that a failed pick ends the withdraw with no destination, where `PickRoom` skips
 bridges and falls to step 5 — pre-existing since ADR-0165, left as is here and to be read.
 
-## ADR-0325 — The Guard Post: its room, a patrol's visit and its report
+## ADR-0330 — The Guard Post: its room, a patrol's visit and its report
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0212 and ADR-0321 · Research: `guard-room.md` §4, §6, §7; `traps.md` §3; Q450, Q517
 
 **Context.** A guard's deadline in state 98 only ever reset, since `0x00463190` looks for a
@@ -7121,7 +7121,7 @@ and may change fights. Measured on 1aa98db: both rigs identical per seed; the ni
 scenarios on trap levels diverge at their first mana payment (Level 17's keeper pays 95 more a
 second), and no scenario has a shot strike a trap or door.
 
-## ADR-0328 — The Alarm, Fear, Spike and Gas traps fire; the Boulder and the Jack In The Box wait
+## ADR-0331 — The Alarm, Fear, Spike and Gas traps fire; the Boulder and the Jack In The Box wait
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `shots.md` §7, §8; `traps.md` §12; Q395, Q450
 
 **Context.** Six trap types did not fire because a handler of their shot was unread. Read now
@@ -7136,8 +7136,10 @@ objects are not hit. `TrapRules.FiringBuilt` admits them and refuses a process-3
 type 0. The Boulder and the Jack In The Box stay unbuilt: neither a rolling object nor state
 273 exists here, and building on either would be a guess.
 
-**Consequences.** No new field and no hashing change, so no version bump. 858 of the 959
-placed traps fire (649 before ADR-0325) and 4 run the gate, against a prediction of 862 in all.
+**Consequences.** No new field and no hashing change, so no version bump: the pin's world holds
+no trap and the hash's shape is unchanged. The 16 Hero Alarm traps post 47 to the hero player,
+which DK2 may refuse (Q519). 858 of the 959
+placed traps fire (649 before ADR-0330) and 4 run the gate, against a prediction of 862 in all.
 Prediction, written before measuring: Levels 1 and 2 hold no traps and stay identical per
 seed; scenarios diverge only where an enemy meets one of the four. Measured on 8d53f95: both
 rigs identical per seed, and every scenario's events identical to ADR-0326's: none meets them.

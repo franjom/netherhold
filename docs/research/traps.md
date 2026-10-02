@@ -214,14 +214,17 @@ States 204–206 are `0x00458DF0`, `0x00458EB0`, `0x00458F60`: travel to the tra
 level-scaled `def+0x5E0` attempts a firing and enters 220 with a 50-tick retry, the other arm
 destroys the trap. The attempt precedes clearing the disarmer, so readiness refuses it (Q451).
 Exit hook `0x00459130` clears both references. `sgmap` names creature `+0x43D`
-`f43D_trapTagId` and `+0x43F` `f43F_durationUntilAttemptingAnotherTrapDisarm`. **Nothing starts
-it in v1.70 (Q455, 2026-10-02):** over `.text` and `cseg`, every store to creature `+0x43D` (the
-three states, the exit hook, the constructor, the update's owner arm) and to trap `+0x115` (the
-constructor, the states, the hook) writes 0; no instruction takes `+0x43D`'s address, no wider
-store covers it, and no SetState or walk pushes 204 (its one `0xCC` store is the state table's
-own id, `0x0047F278`). 204 tests `+0x43D` first and idles without a trap, so 204–206 are
-unreachable and readiness's 3 never answers. A save restore could carry a value only if
-something had written one. The reveal: firing with flag `0x2`, `0x004AA110`, and a creature's
+`f43D_trapTagId` and `+0x43F` `f43F_durationUntilAttemptingAnotherTrapDisarm`; the trap dumper
+`0x004AA130` prints trap `+0x115` as `BeingDisarmed`. **Nothing starts it in v1.70 (Q455,
+2026-10-02):** over the disassembled `.text` and `cseg`, every creature-code store to `+0x43D`
+(the three states, the exit hook, the constructor, the update's owner arm) and every trap-code
+store to `+0x115` (the constructor, the states, the hook) writes 0; no instruction takes
+`+0x43D`'s address and no wider store covers it. The non-zero stores at `0x004EAD93` and
+`0x004EADCF` are in `0x004EACC0`, which applies a Terrain.kwd record to a terrain definition
+(its strings name `Water` and `_DESTROYED`), another class. No immediate 204 is pushed for
+SetState or a walk (its one other `0xCC` store is the state table's own id, `0x0047F278`); a
+computed state id was not traced. 204 tests `+0x43D` first and idles without a trap, so
+204–206 are unreachable and readiness's 3 never answers. The reveal: firing with flag `0x2`, `0x004AA110`, and a creature's
 tile change (`0x00488930`) with `def` flag `0x04000000` scanning table `0x006BC3B0`; not built.
 
 ## 12. Shipped definitions and shot coverage
@@ -250,8 +253,9 @@ shots all have a handler, or there is no shot. "Gate only": the selector and cha
 | Hero Alarm | 1 | 4 | 50 | 13 | process 12: message 47 | yes |
 | Jack In The Box | 2 | 4 | 0 | 64 | process 39 makes a creature in state 273, not built | no |
 
-The Magic Door's shot is 57, not the 59 this table once said. Only Cannon Ball and Door
-Fireball carry the launch bit; the Fireburst and the Lightning shot stand where they are made.
+The Magic Door's shot is 57, not the 59 this table once said. Of the trap shots, Cannon Ball,
+Door Fireball, Fear, Boulder and Jack In The Box carry the launch bit; the Fireburst, Lightning,
+Spike, gas and Alarm shots stand where they are made.
 
 ## 13. Shipped placement
 
@@ -267,13 +271,13 @@ not an observation. Level 18's Freeze at (51,54) now freezes a hero standing on 
 
 ## Built (ADR-0321) and left
 
-Built: §2's fields; §3 steps 2, 3, 4, 5 (ADR-0325), 6 (the turn), 7, 9, 10, 12; §4; §5 with the tile chain
+Built: §2's fields; §3 steps 2, 3, 4, 5 (ADR-0330), 6 (the turn), 7, 9, 10, 12; §4; §5 with the tile chain
 noticed once a turn before the traps; §6; §7 for the traps that fire here, with the target's
 answer's trap arm and the creature arm's correction; §8 without the owner discount and
 `ThreatThing`, as `FearRules` holds neither (Q375); §9; §10's removal and Trigger counts.
 
 Also built (ADR-0326): the upkeep, the no-mana message and its clock, area damage type 2 on
-traps and a shot's collision with a trap; and (ADR-0328) the Alarm, Fear, Spike and Gas shots.
+traps and a shot's collision with a trap; and (ADR-0331) the Alarm, Fear, Spike and Gas shots.
 Disarming (§11) is read and unreachable, so nothing is built for it (ADR-0329).
 Left: the reveal; effects, sounds and animations; the Boulder's rolling object
 and the Jack In The Box's creature; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's

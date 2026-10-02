@@ -16,6 +16,7 @@ public sealed class TrapSystem : ISimulationSystem
 {
     private WorldSight? _sight;
     private WorldState? _sightWorld;
+    private readonly RoomCache _rooms = new();
 
     public string Name => "traps";
 
@@ -35,7 +36,7 @@ public sealed class TrapSystem : ISimulationSystem
         {
             TrapState trap = traps[i];
             if (context.Database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition))
-                TrapRules.Update(context, _sight!, trap, definition);
+                TrapRules.Update(context, _sight!, trap, definition, _rooms);
         }
     }
 }
