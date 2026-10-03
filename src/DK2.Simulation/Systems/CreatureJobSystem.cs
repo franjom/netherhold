@@ -141,6 +141,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     private void Choose(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        if (creature.Dk2StateId == CreatureStateMachine.Idle) creature.Fleeing = false;
         // State 1's first arm, before it sends the creature to 89: back to a fight it withdrew from.
         if (creature.Dk2StateId == CreatureStateMachine.Idle && Combat.FightReturnRules.TryReturn(context, creature)) return;
 

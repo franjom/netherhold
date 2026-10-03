@@ -54,6 +54,7 @@ public sealed class HeroSystem : ISimulationSystem
             return;
         }
 
+        if (creature.Dk2StateId == CreatureStateMachine.Idle) creature.Fleeing = false;
         bool stays = creature.Dk2StateId switch
         {
             CreatureStateMachine.Idle => Combat.FightReturnRules.TryReturn(context, creature)

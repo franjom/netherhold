@@ -123,7 +123,7 @@ links and snapshots each tile's descending link order. Multiple crossings
 within one turn, corpse equivalence and arbitrary category-hook relinking
 remain limits of that shared approximation.
 
-The 30 focused simulation tests cover casts/refusals, slot allocation,
+The focused simulation tests cover casts/refusals, slot allocation,
 field/hash/save symmetry, RNG order, walls, creature routing and recovery.
 Both complete 42-scenario runs (`build/keeper-spells-tremor-a` and `-b`)
 match byte-for-byte. All hash series differ from the Stage 0 series listed
@@ -140,6 +140,10 @@ No combat-flee setter was identified; do not equate CreatureActivity.Fleeing
 with this bit. Idle `0x004773D0` clears it when its handler executes, not at
 every transition into 1. Broad initialization, record copies and indirect
 writes prevent an absolute-absence conclusion from the census.
+The state dispatcher runs needs before selecting the current handler; a
+successful hunger selection therefore bypasses idle's flag clear. The
+simulation clears at its guarded idle-role handlers after needs, not in the
+earlier recovery pass. See [the dispatcher](functions/00476FC0.md).
 State 210's `0x00481520` ends the current action, starts action 64 and enters
 263. Its `0x004815A0` waits for completion, optionally consumes the
 dumper-named ShouldDelayGetUp (+0x3E6 bit 27) as one handler delay, then

@@ -262,4 +262,64 @@ public sealed class TremorCreatureTests
         public string Name => "tremor-test-probe";
         public void Execute(SimulationContext context) => action(context);
     }
+
+    [Fact]
+    public void AChosenHungerNeedBypassesTheIdleFleeingClear_StronglyInferredFromBinary()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+            [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
+        for (int y = 1; y <= 10; y++)
+            for (int x = 1; x <= 10; x++)
+            {
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+                world.Tile(x, y).OwnerPlayerId = Keeper;
+            }
+        for (int y = 6; y < 9; y++)
+            for (int x = 6; x < 9; x++)
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), Keeper);
+        var food = new TilePos(7, 7);
+        world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, world.TileIndex(food));
+        CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
+        creature.Dk2StateId = CreatureStateMachine.Idle;
+        creature.HungerNeed = 1;
+        creature.Fleeing = true;
+        new GameSimulation(db, world, 42,
+            [new TremorCreatureSystem(), new CreatureEatSystem(), new CreatureJobSystem()]).Tick();
+        Assert.Equal(7, creature.Dk2StateId);
+        Assert.Equal(92, creature.UtilityNewState);
+        Assert.True(creature.Fleeing);
+    }
+
+    [Fact]
+    public void OrdinaryIdleSelectionClearsFleeing_StronglyInferredFromBinary()
+    {
+        var (db, world, creature) = Setup();
+        creature.Fleeing = true;
+        new GameSimulation(db, world, 42, [new CreatureJobSystem()]).Tick();
+        Assert.False(creature.Fleeing);
+    }
+
+    [Fact]
+    public void HeroIdleSelectionClearsFleeingBeforeTheStandingJob_StronglyInferredFromBinary()
+    {
+        var (db, world, creature) = Setup();
+        creature.OwnerPlayerId = PlayerIds.Good;
+        creature.Fleeing = true;
+        new GameSimulation(db, world, 42, [new HeroSystem()]).Tick();
+        Assert.Equal(HeroJobRules.StandingJobState, creature.Dk2StateId);
+        Assert.False(creature.Fleeing);
+    }
+
+    [Fact]
+    public void WorkerIdleSelectionClearsFleeingBeforeTaskSelection_StronglyInferredFromBinary()
+    {
+        var (db, world, creature) = Setup();
+        CreatureState worker = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, creature.Tile);
+        worker.Dk2StateId = CreatureStateMachine.Idle;
+        worker.Fleeing = true;
+        new GameSimulation(db, world, 42, [new ImpTaskSystem()]).Tick();
+        Assert.Equal(10, worker.Dk2StateId);
+        Assert.False(worker.Fleeing);
+    }
 }

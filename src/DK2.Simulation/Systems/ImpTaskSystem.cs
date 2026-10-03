@@ -369,6 +369,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private void UpdateIdle(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
+        if (creature.Dk2StateId == CreatureStateMachine.Idle) creature.Fleeing = false;
         creature.TimerTicks--;
         if (creature.TimerTicks > 0) return;
 

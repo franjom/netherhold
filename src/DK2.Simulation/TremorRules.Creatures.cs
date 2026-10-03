@@ -25,7 +25,6 @@ public static partial class TremorRules
         context.TremorRecoveryCompletedThisTick.Clear();
         foreach (CreatureState creature in context.World.Creatures)
         {
-            if (creature.Dk2StateId == CreatureStateMachine.Idle) creature.Fleeing = false;
             if (!IsRecovering(creature)) continue;
             creature.TremorRoutePaused = true;
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
