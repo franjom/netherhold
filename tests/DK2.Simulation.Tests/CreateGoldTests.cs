@@ -44,7 +44,7 @@ public sealed class CreateGoldTests
     [Theory]
     [InlineData(false, 1000)]
     [InlineData(true, 2000)]
-    public void CastCreatesNeutralFloorGoldAtThePositionPaysOnceAndStampsBothClocks(bool upgraded, int amount)
+    public void CastCreatesNeutralFloorGoldAtThePositionPaysOnceAndStampsBothClocks_StronglyInferredFromBinary(bool upgraded, int amount)
     {
         var (db, world) = Setup();
         world.SetUpgraded(Keeper, 5, SpellId, upgraded);
@@ -74,7 +74,7 @@ public sealed class CreateGoldTests
     [InlineData(4, KeeperSpellRefusal.UnsupportedFlags)]
     [InlineData(5, KeeperSpellRefusal.NoSpellEntry)]
     [InlineData(6, KeeperSpellRefusal.Location)]
-    public void RefusalDoesNotCreateGoldPayOrStamp(int change, KeeperSpellRefusal reason)
+    public void RefusalDoesNotCreateGoldPayOrStamp_StronglyInferredFromBinary(int change, KeeperSpellRefusal reason)
     {
         var (db, world) = Setup();
         CastSpellAtPlaceCommand cast = Cast();
@@ -104,7 +104,7 @@ public sealed class CreateGoldTests
     [Theory]
     [InlineData(RoomTypeId.Prison)]
     [InlineData(RoomTypeId.Portal)]
-    public void OwnSpecialRoomInteriorIsRefused(RoomTypeId kind)
+    public void OwnSpecialRoomInteriorIsRefused_StronglyInferredFromBinary(RoomTypeId kind)
     {
         var (db, world) = Setup();
         byte terrain = db.Rooms.Values.Single(r => r.TypeId == kind).TerrainId;
@@ -126,7 +126,7 @@ public sealed class CreateGoldTests
     [Theory]
     [InlineData(0)]
     [InlineData(250)]
-    public void AFullTreasuryDoesNotRefuseTheCastAndASweepOnlyTakesWhatFits(int space)
+    public void AFullTreasuryDoesNotRefuseTheCastAndASweepOnlyTakesWhatFits_StronglyInferredFromBinary(int space)
     {
         var (db, world) = Setup();
         world.Tile(At).TerrainId = db.Rooms.Values.Single(r => r.TypeId == RoomTypeId.Treasury).TerrainId;
@@ -145,7 +145,7 @@ public sealed class CreateGoldTests
     }
 
     [Fact]
-    public void AlliedLandAndExactManaCostAreEnoughWithoutStoredGold()
+    public void AlliedLandAndExactManaCostAreEnoughWithoutStoredGold_StronglyInferredFromBinary()
     {
         var (db, world) = Setup();
         world.SetAllied(Keeper, Rival, true);
@@ -158,7 +158,7 @@ public sealed class CreateGoldTests
     }
 
     [Fact]
-    public void PendingCastSurvivesASnapshotAndUsesTheDescriptorRatherThanFixedAmounts()
+    public void PendingCastSurvivesASnapshotAndUsesTheDescriptorRatherThanFixedAmounts_StronglyInferredFromBinary()
     {
         var (db, world) = Setup(Spell() with { ManaCost = 321, ShotData2 = 4321 });
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem()]);
