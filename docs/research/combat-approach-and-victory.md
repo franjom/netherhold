@@ -62,7 +62,8 @@ The handler runs these checks in order.
 3. When `0x00460C50` finds an escape tile, `0x0045EC80` advances the same
    `OverThreatCounter` used by `spFighting`. Reaching the threshold computes the
    same `BackOffTimer` and enters state 203. Unlike `spFighting` step 6, state 8
-   does **not** call the low-health withdrawal test `0x0045EDA0`.
+   does **not** call the low-health withdrawal test `0x0045EDA0`, and it zeroes the
+   timer only for an `AlwaysFlee` definition (`combat-fear.md` §3.4).
 4. For a creature target walking toward state 202 or 251, a chase counter at
    `creature+0x53D` advances. It is otherwise cleared. Exceeding variable 213
    `GoodCreaturesChaseEnemyDurationSeconds` (3) for the Good player, or variable

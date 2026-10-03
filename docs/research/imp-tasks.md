@@ -77,8 +77,9 @@ Imp (id 1)  class=Scout style=NonFighter
 - **The Imp has no needs.** `hungerRate` and `timeAwake` are both 32767 — the
   "never" sentinel (Q12) — and `pay` is 0. An imp does not eat, sleep or get
   paid.
-- **`AlwaysFlee` is set.** Combat flight is implemented (`combat-fear.md`); the
-  separate effect of this flag is not established here.
+- **`AlwaysFlee` is set.** Its one reader found is the approach state `0x00470E30`,
+  where it zeroes the flight's back-off (`combat-fear.md` §3.4, ADR-0347). An Imp
+  flees at once from any attacker that is not an Imp (§3.3).
 
 The decimal forms above are lossy; the fixture's first transcription of
 `hungerRate` was 32767 where the raw value is 134213632, which

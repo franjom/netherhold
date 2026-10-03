@@ -137,7 +137,8 @@ public static class FearRules
 
     /// <summary><c>0x0045EC80</c>, the counter: clamped, cleared for the fearless and a pit fighter, up by one each
     /// tick <c>CurrentFear</c> exceeds the threshold and back to zero when it does not; a
-    /// <c>NonFighter</c> with an Imp among its attackers jumps to three. True at three or more.</summary>
+    /// <c>NonFighter</c> with any attacker that is not an Imp (<c>0x0045EC10</c>) jumps to three.
+    /// True at three or more. An Imp fighting an Imp is not forced out (ADR-0347).</summary>
     public static bool OverThreat(WorldState world, GameDatabase database, CreatureState me, CreatureDef mine)
     {
         if (me.OverThreatCounter > CounterReset) me.OverThreatCounter = 0;
@@ -152,20 +153,23 @@ public static class FearRules
         if (me.CurrentFear > FearThreshold(database, mine, me.Level)) me.OverThreatCounter++;
         else me.OverThreatCounter = 0;
 
-        if (mine.FightStyle == FightStyle.NonFighter && ImpAmongAttackers(world, me)) me.OverThreatCounter = FleeCount;
+        if (mine.FightStyle == FightStyle.NonFighter && NonImpAmongAttackers(world, me)) me.OverThreatCounter = FleeCount;
         return me.OverThreatCounter >= FleeCount;
     }
 
-    private static bool ImpAmongAttackers(WorldState world, CreatureState me)
+    /// <summary><c>0x0045EC10</c>: true when a melee or ranged slot, in slot order, holds a live
+    /// thing whose creature type is not the Imp (<c>+0x36F != 1</c>).</summary>
+    private static bool NonImpAmongAttackers(WorldState world, CreatureState me)
     {
         for (int i = 0; i < CombatRules.Slots; i++)
         {
-            if (IsImp(world, me.EngagedMelee[i]) || IsImp(world, me.EngagedRanged[i])) return true;
+            if (IsNonImp(world, me.EngagedMelee[i]) || IsNonImp(world, me.EngagedRanged[i])) return true;
         }
         return false;
 
-        static bool IsImp(WorldState world, int id) =>
-            id != CombatRules.NoTarget && world.CreatureById(id)?.CreatureTypeId == CombatRules.ImpCreatureTypeId;
+        static bool IsNonImp(WorldState world, int id) =>
+            id != CombatRules.NoTarget && world.CreatureById(id) is { } attacker
+            && attacker.CreatureTypeId != CombatRules.ImpCreatureTypeId;
     }
 
     /// <summary><c>0x00460C50</c>: true when every neighbouring tile I can walk to holds a hostile
@@ -222,8 +226,10 @@ public static class FearRules
 
     /// <summary>Into state 203 with <c>BackOffTimer</c> set: between the two BackOff variables,
     /// shorter the more <c>CurrentFear</c> exceeds the threshold, and zero — run at once — for a
-    /// zero threshold, no target, a <c>NonFighter</c>, or a creature target that runs faster.</summary>
-    public static void EnterFlee(SimulationContext context, CreatureState me, CreatureDef mine)
+    /// zero threshold. From the fight state (<c>0x0045F030</c>) also zero for no target, a
+    /// <c>NonFighter</c>, or a creature target that runs faster; from the approach state
+    /// (<c>0x00470E30</c>) only for an <c>AlwaysFlee</c> definition (ADR-0347).</summary>
+    public static void EnterFlee(SimulationContext context, CreatureState me, CreatureDef mine, bool fromApproach = false)
     {
         GameDatabase database = context.Database;
         int threshold = FearThreshold(database, mine, me.Level);
@@ -236,7 +242,11 @@ public static class FearRules
             timer = (byte)(min + (byte)((byte)(max - min) * (4 - q)));
         }
 
-        if (me.FightTargetKind == FightTargetKind.None || mine.FightStyle == FightStyle.NonFighter) timer = 0;
+        if (fromApproach)
+        {
+            if (mine.Flags.HasFlag(CreatureFlags.AlwaysFlee)) timer = 0;
+        }
+        else if (me.FightTargetKind == FightTargetKind.None || mine.FightStyle == FightStyle.NonFighter) timer = 0;
         else if (me.FightTargetKind == FightTargetKind.Creature)
         {
             CreatureState? target = context.World.CreatureById(me.FightTargetId);

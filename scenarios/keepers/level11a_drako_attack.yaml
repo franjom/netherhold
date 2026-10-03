@@ -64,12 +64,13 @@ expect:
       Past the lava the walker meets rock again and task 7 tags it: the tunnel continues toward
       Morgana's heart.
   - event: call_to_arms_raised
-    detail: "tile=64,38"
+    detail: "tile=64,3"
     because: >
       With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
       heart and attack management casts the call there (0x004FECE0, ADR-0298); before the bridge no
-      walker could route and no call was cast. The diagonal is a draw: (64,34) until the portals'
-      conversion took the room's whole health (ADR-0336) and moved the stream.
+      walker could route and no call was cast. The point two tiles off the heart is a draw between
+      (64,34) and (64,38): the portals' conversion (ADR-0336) moved it to (64,38), and Drako's Imp
+      fighting Morgana's instead of fleeing it (ADR-0347) moved it back to (64,34).
   - event: engaged
     detail: "player=5 heart=6"
     because: >

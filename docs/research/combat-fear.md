@@ -107,8 +107,11 @@ heroes back off from an overwhelming enemy and do not run to their gate.
 `OverThreatCounter` over 5 → 0; over 3 → 3. `CombatPitFighter`, `IsFearless` or
 inside `FearlessUntil` → 0, return 0. Else the level-scaled `Fear`
 (`def+0x696`, file `0xF10`, table row 2): `CurrentFear > Fear` → `++`, else → 0.
-A `NonFighter` with an Imp (type 1) among its attackers → 3. **Return 1 at 3 or
-more.** In the flee state the counter then sits at 4 while afraid: clamped to 3,
+A `NonFighter` (`def+0x67E` == 0) with any live creature that is **not** an Imp in
+its melee or ranged slots (`0x0045EC10`: `+0x36F != 1`) → 3. **Return 1 at 3 or
+more.** So an Imp attacked by a hero or a fighter flees at once, and an Imp
+attacked only by Imps does not. (Corrected 2026-10-03: this said "with an Imp among
+its attackers", and ours built it that way until ADR-0347.) In the flee state the counter then sits at 4 while afraid: clamped to 3,
 then incremented.
 
 ### 3.4 The flee entry (`spFighting` after the counter)
@@ -124,11 +127,17 @@ else: q = min(4, CurrentFear / threshold)
 ```
 
 Byte arithmetic throughout; variables 211 and 212 ship as 0 and 30, so the timer
-is 90, 60, 30 or 0 **ticks** — named in seconds, counted once per call of a
+is 120, 90, 60, 30 or 0 **ticks** (120 only when the counter was forced with no fear, q = 0) — named in seconds, counted once per call of a
 handler that runs every tick. Then the timer is **zeroed** when there is no target, when I
 am a `NonFighter`, or when my target is a live creature whose per-tick run speed
 (`def+0x5B8`, the loader's `RunSpeed / var19` floored at 1) **exceeds mine** —
-no point backing away from something faster. `SetState(203)`. The swing action,
+no point backing away from something faster. `SetState(203)`.
+
+**The approach state's flee** (`0x00470E30`, state 8) runs the same counter and the
+same timer formula but its own zeroing: only an `AlwaysFlee` definition (`def+0x686`
+bit 3, the Imp's) gets 0. No target, a `NonFighter` and a faster target keep the
+timer there. It also flees only while `PossessedCreatureFollowing` (`+0x482`) is 0
+(read 2026-10-03, ADR-0347). The swing action,
 if one is current, is not ended by this transition as read (Q373).
 
 **The acquirer's own withdraw** (`SelectAVictim` at `0x0045DEE0`): after the

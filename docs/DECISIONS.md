@@ -7941,3 +7941,33 @@ is required; generic/action counts are updated separately. Existing trees remain
 unchanged, with no graph-rewiring API. Map resizing retains overlapping
 coordinates and requires an explicit fill image for new tiles.
 No editor UI or playability validation is built. New-header synthesis is Q529.
+
+## ADR-0347 — A worker flees any attacker that is not an Imp, and the approach state's flight keeps its back-off
+**Date:** 2026-10-03 · **Status:** accepted · Research: `combat-fear.md` §3.3–§3.4; `functions/0045EC80.md`, `functions/0045EC10.md`, `functions/00470E30.md`; Q530, Q531
+
+**Context.** Level 3 seed01 releases the Lord's party when the last gold in an action point's
+rectangle is mined (condition 42, terrain 6, flags 29–35 → flag 8). DK2 finished the (26,18)
+seam at 3356, ours at 3311, and our Lord fought 130 ticks early. In DK2 hero Thieves picked the
+imps at the seam one by one and each imp fled within a tick (state 203); ours never fled. The
+fear counter `0x0045EC80` sets itself to 3 for a `NonFighter` when `0x0045EC10` is true, and
+`0x0045EC10` is true for a live attacker whose type is **not** the Imp. `combat-fear.md` §3.3
+said "an Imp among its attackers", and ours built that, so our imps fled only other keepers'
+Imps. Separately, the approach state's flight (`0x00470E30`) zeroes the back-off only for
+`AlwaysFlee` (`def+0x686` bit 3), where ours reused the fight state's rule.
+**Decision.** `FearRules.OverThreat` tests `NonImpAmongAttackers`. `EnterFlee` takes
+`fromApproach`: from state 8 only an `AlwaysFlee` definition gets a zero back-off.
+**Consequences.**
+- Our imps flee 27 times in the Level 3 run instead of 5; an Imp near its heart still takes a
+  hostile within a tile, and flees once a non-Imp strikes back. Two Imps now fight.
+- L1 20/20 (seed 15 wins later, 1972). L2 5/20 (seeds 4, 8, 11, 15, 17), party, early group and
+  Lord counts unchanged. L3 seed01 won 3588 (3564 before; DK2 3683).
+- The release is still early (flag 8 at 3307): in this run no Thief reaches the seam while it is
+  mined. The Thief pair from (26,5) spawned at 3144 and at 3244 in our two runs, DK2 at 3198, and
+  not from the timer loop, whose counters match DK2 to the tick (Q530).
+- Level 11A's scenario: Drako's Imp now fights Morgana's at tick 65 instead of both fleeing, and the
+  call is cast at tick 100 two tiles off the heart at (64,34), the other point of the drawn diagonal,
+  where it was (64,38); the expectation names both.
+- The review found a second reader of `0x0045EC10`, the damage routine (`0x004B2EBA`): a stunned
+  creature hit with a non-Imp among its attackers has its stun lengthened by variable 181 (Q531).
+- `AlwaysFlee`'s only reader found is the approach state. The `+0x482` gate is not modelled (no
+  possession). HashVersion unchanged: no new field.

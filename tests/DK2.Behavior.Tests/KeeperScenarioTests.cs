@@ -97,8 +97,10 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         Assert.All(spans, s => Assert.Equal((byte)RoomTypeId.StoneBridge, s.Build.RoomId));
 
         var call = (CastSpellAtPlaceCommand)Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand).Command;
-        // Two tiles off the heart in a drawn diagonal; (64,34) before ADR-0336 moved the stream.
-        Assert.Equal(((byte)CallToArmsRules.SpellId, 64, 38), (call.SpellId, call.X >> 12, call.Y >> 12));
+        // Two tiles off the heart in a drawn diagonal: (64,34) or (64,38) as the stream moves (ADR-0336
+        // took it to 38, ADR-0347's Imp-against-Imp fight back to 34).
+        Assert.Equal(((byte)CallToArmsRules.SpellId, 64), (call.SpellId, call.X >> 12));
+        Assert.Contains(call.Y >> 12, new[] { 34, 38 });
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
 }
