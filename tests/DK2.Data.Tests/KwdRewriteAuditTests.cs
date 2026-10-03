@@ -155,6 +155,21 @@ public class KwdRewriteAuditTests
         finally { Directory.Delete(root,true); }
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void VariableDiscriminatorChangesHaveANamedField(int idByte)
+    {
+        byte[] body=new byte[16];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(body,(int)VariableTypeId.CreaturePool);
+        KwdChunk chunk=KwdLevelFileSetTests.Fixture(KwdRecordType.Variables,body,1);
+        byte[] source=KwdWriter.ToBytes([chunk]),actual=(byte[])source.Clone(); actual[56+idByte]^=0x80;
+        var difference=KwdRewriteAudit.DescribeDifference(source,actual,[chunk])!;
+        Assert.Equal("Id",difference.Field); Assert.Equal(0,difference.RecordIndex); Assert.Equal(56+idByte,difference.Offset);
+    }
+
     private static void DirectoryAlias(string alias,string target)
     {
         if(!OperatingSystem.IsWindows()) { Directory.CreateSymbolicLink(alias,target); return; }

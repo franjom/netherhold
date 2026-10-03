@@ -127,7 +127,8 @@ public static class KwdRewriteAudit
     private static string? ChangedProperty(object? before,object? after,string path,int depth)
     {
         if(Equals(before,after)) return null;
-        if(before is null || after is null || before.GetType()!=after.GetType() || depth>12) return path;
+        if(before is null || after is null || before.GetType()!=after.GetType() || depth>12)
+            return path.Length>0 ? path : before is KwdVariableEntry && after is KwdVariableEntry ? "Id" : "recordType";
         if(before is ReadOnlyMemory<byte> oldBytes && after is ReadOnlyMemory<byte> newBytes)
             return oldBytes.Span.SequenceEqual(newBytes.Span) ? null : path;
         Type type=before.GetType();
