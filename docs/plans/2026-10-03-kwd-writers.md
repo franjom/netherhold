@@ -20,4 +20,6 @@ full gate in `docs/HANDOFF.md` and an independent read-only verifier applying
 
 Each logical commit builds Release without warnings, passes the affected
 projects and `git diff --check`, and records `Milestone:` and `Next:`.
-Record each milestone verdict in the next commit. Do not merge or push.
+Record each milestone verdict in the next commit. After a clean final review,
+merge into master and remove this task's worktree, as the owner authorized.
+Do not push.
