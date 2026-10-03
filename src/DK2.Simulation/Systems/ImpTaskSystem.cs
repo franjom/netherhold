@@ -1026,12 +1026,14 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// The nearest pile of floor gold this worker may pick up, on its own.
-    ///
-    /// <para><see cref="TrySweep"/> asks this question and the reinforce
-    /// question at the same tile, because in Tier B distance is the primary key.
-    /// Here it is asked alone, which is what the drop scan and the same-kind
-    /// retry both need - DK2 has a per-kind entry point for exactly this.</para>
+    /// The dispatcher's kind 7 alone (<c>0x00468520</c>): the ring scan over the whole map with
+    /// the gold handler <c>0x0046B6D0</c>, from <see cref="UnchosenStartSide"/>, the first tile
+    /// that gives a fetch winning. The scan's own tile is unfiltered; every ring tile passes
+    /// <see cref="RingScanVisits"/>, which never admits water, so a pile that fell in water is
+    /// fetched only from under the imp's feet. Level 2 seed01: imp 430, aimed at gold, twice
+    /// walks past the 273 at (9,24) in water for a pile on its own floor (ADR-0343).
+    /// <para><see cref="TrySweep"/> asks the same question beside the reinforce one, because in
+    /// Tier B distance is the primary key; here it is asked alone, for the same-kind retry.</para>
     /// </summary>
     private bool TryTakeFloorGold(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
@@ -1039,18 +1041,19 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         if (HandsFull(context, creature, definition)) return false;
 
         byte player = creature.OwnerPlayerId;
-
-        if (!_pathfinder.TryFindNearest(
-                grid, creature.Tile,
-                at => InScanRange(at) && CanFetchFrom(context, at, player, creature.Id),
-                _route))
-            return false;
-
-        TilePos standing = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
-        if (!CanFetchFrom(context, standing, player, creature.Id)) return false;
-
-        CommitFetch(context, creature, standing);
-        return true;
+        WorldState world = context.World;
+        var rings = new DiamondRings(world, creature.Tile, UnchosenStartSide);
+        while (rings.MoveNext())
+        {
+            TilePos tile = rings.Current;
+            if (!InScanRange(tile)) continue;
+            if (tile != creature.Tile && !RingScanVisits(context, world, tile)) continue;
+            if (!CanFetchFrom(context, tile, player, creature.Id)) continue;
+            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route)) continue;
+            CommitFetch(context, creature, tile);
+            return true;
+        }
+        return false;
     }
 
     /// <summary>
@@ -1164,9 +1167,10 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
     /// <summary>
     /// Where the ring scan starts when its caller passes no chooser (the dispatcher's kinds 6, 7,
-    /// 8 and 16). Not a draw: <c>0x00468d10</c> reads the side from a local only the chooser
-    /// writes (<c>0x00468deb</c>), so it starts on whatever the stack held, and a value above 3
-    /// skips ring 1's first side (<c>0x00468e38</c>). UNKNOWN; ours starts north (ADR-0294).
+    /// 8 and 16). DK2 draws it: <c>0x00468d10</c> stores <c>rand(4)</c> from the world's random
+    /// word in the side slot (<c>0x00468d54</c>, <c>0x00468d60</c>) on every call, and a chooser
+    /// overwrites it (<c>0x00468deb</c>). Ours starts north and draws nothing (ADR-0294, taken on
+    /// a wrong reading of that slot); reinstating the draw is Q526.
     /// </summary>
     private const int UnchosenStartSide = 0;
 

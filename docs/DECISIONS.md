@@ -6439,7 +6439,7 @@ goes with its pile; a fetcher whose pile was taken in passing keeps the load, an
 says so in its name.
 
 ## ADR-0294 — The objects handler per tile, and a ring scan with no chooser draws nothing
-**Date:** 2026-09-30 · **Status:** accepted · Research: `imp-task-objects-and-walks.md` §1
+**Date:** 2026-09-30 · **Status:** accepted; item 2's reading withdrawn 2026-10-03 — `0x00468D10` does draw `rand(4)` at `0x00468D54` and stores it in the side slot (`functions/00468D10.md`); ours still starts north, Q526 · Research: `imp-task-objects-and-walks.md` §1
 
 **Context.** Kind 8 picked the loose object with the shortest walk, refused an imp holding
 gold, and could not be taken from a holder. DK2's objects handler `0x0046B9C0` runs per tile
@@ -7810,3 +7810,32 @@ The Boulder's slap waits for object slapping — the angle's source and the disp
 as its open item; a flat shot may hit a thing whose box the height test would refuse, and the
 Grenade's lob is a straight line. Revisit when a vertical coordinate is introduced for any
 thing.
+
+## ADR-0343 — An aimed gold fetch is the ring scan too, so a pile in water is passed over
+**Date:** 2026-10-03 · **Status:** accepted · Research: `imp-task-priority.md` §2.2 and its kinds table; `functions/00468520.md`, `functions/0046B6D0.md`; Q144
+
+**Context.** DK2's per-kind search `0x00468520` runs kind 7 through the ring scan `0x00468D10`
+with the gold handler `0x0046B6D0`, as it runs kinds 3, 6, 8 and 16; the scan visits a tile only
+when its byte `+0xB` bit `0x20` is clear, which a water tile never is. Ours ran that arm, the
+same-kind retry of a worker the hand aimed at gold, as a nearest-by-route search gated only by the
+handler's own-or-water test, so it waded to piles DK2's scan never reaches. Level 2 seed01: imp 430,
+aimed at gold, chooses at 2283 and 2301 with the 273 at (9,24) in water nearer than any other pile,
+and both times DK2 takes a pile on its own floor; our chooser in that world took the water pile
+(two of the decision checker's 23 non-lost mismatches).
+**Decision.** `TryTakeFloorGold` is the dispatcher's kind-7 arm: `DiamondRings` from the worker on
+our fixed north side (`UnchosenStartSide`), the own tile unfiltered, every ring tile through
+`RingScanVisits` and `CanFetchFrom`, the first tile with a route winning. Water gold is fetched
+only from underfoot.
+**Consequences.**
+- The review re-read `0x00468D10`: it draws `rand(4)` (`0x005558D0` on `world+0x15A0`) into the
+  side slot at `0x00468D54`/`0x00468D60` on every call, and a chooser overwrites it, so DK2's
+  chooserless side is random and ADR-0294's "stale stack" reading was wrong (its status line says
+  so). The water result holds on every side; whether to reinstate the draw is Q526.
+- `ImpFetchesGoldTests`: an aimed imp passes a water pile two tiles off for one on its floor three
+  off, where the nearest-by-route search waded.
+- Checker 776 -> 778 of 799. Rigs: L1 20 seeds tick-identical (19 of 20, seed 13 as before); L3
+  seed01 identical (won 3660, DK2 3683); L2 3 of 20 as before, seed 3's fetch at 2493 moving to
+  the ring-nearer pile and its win from 3484 to 3476. HashVersion unchanged: no state shape moved,
+  and the pin's run has no aimed fetch.
+- Tier B's sweep already carried the filter; only the retry changes, and its "nearest" is now
+  Manhattan rings, as DK2's, not route steps.
