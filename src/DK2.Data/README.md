@@ -44,37 +44,30 @@ levels, which is what `dk2tools kwd trigger-types` prints.
 
 ## Writers
 
-`KwdWriter.Write`, `WriteFile` and `ToBytes` rewrite parsed containers, preserving
-every header byte and LEVEL's understated content size. `CreateFromTemplate`
-requires a parsed chunk as the explicit source for unknown header fields and
-timestamps (ADR-0343); template and input payload arrays are copied.
-`KwdRecordRoundTrip.Join` is the validated inverse of `Split`: it requires the
-template's count, types and strides, including both CREATURES forms, and verifies
-tagged payload lengths. GLOBALS has no established standalone layout and remains
-a LEVEL path discriminator with synthetic coverage (Q220).
-`WriteRecord` on `KwdDoors`, `KwdKeeperSpells`, `KwdObjects` and `KwdTraps`, and
-`KwdTerrainRooms.WriteTerrainRecord` / `WriteRoomRecord`, overlay every decoded field over an explicit
-record image, using reader offsets.
-`MapGrid.WriteTile` overlays all four tile bytes; map resizing is still pending.
-`KwdVariables.ParseRecord` / `WriteRecord` operate on individual typed cells,
-preserving repeated ids and source order that the aggregate table folds.
-Changing between structured payload shapes requires a matching template.
-`KwdPlayers.WriteRecord` overlays player and AI fields. Unchanged boolean encodings
-and unconsumed high bytes survive; `RawBlock` edits are refused. Exhaustive field
-edit tests guard the AI reader/writer layout.
-Unchanged names retain their original padding; unrepresentable edits are refused.
-Other typed overlays, shape editing and the editor UI are still pending.
-`KwdAdditionalRecords.WriteCreatureSpellRecord` overlays creature spells,
-including nested art descriptors and explicit raw fields with exact widths.
-`WriteShotRecord` overlays shots, including their art and light descriptors.
-`WriteEffectRecord` overlays effects and their eight generated-id slots.
-`WriteEffectElementRecord` overlays effect elements and their art descriptors.
-Retained typed models support immutable `with` copies. Their `ToBytes()` remains
-the original image; apply edits with the explicit overlay writers.
-`KwdCreatures.WriteRecord` overlays both strides, preserving filtered list slots,
-inactive Angry payloads, SizeClass's low bits and the raw 88-byte embedded tail.
-List-count changes and edits invisible to the reader are refused. Q526's two
-base-creature names share one value. Exhaustive edits guard the reader/writer layout.
+`KwdWriter.Write`, `WriteFile` and `ToBytes` reproduce parsed containers,
+including unknown header words, timestamps and LEVEL's understated size.
+`CreateFromTemplate` requires a parsed chunk for header provenance (ADR-0343).
+`KwdRecordRoundTrip.Join` validates counts, strides and tagged lengths.
+
+Every typed reader has an overlay writer. `KwdTypedRecords.Read`, `Write` and
+`Rewrite` provide shared dispatch; individual APIs remain available on the
+reader classes. Writers require explicit source images and preserve unknown
+bytes and unchanged string padding. Typed `with` copies retain their source:
+`ToBytes()` returns that original image, while overlay writers encode edits.
+
+VARIABLES edits use individual cells, preserving duplicate ids and order.
+PLAYERS preserve noncanonical booleans and unused high bytes; raw AI block
+edits are refused. CREATURES preserve filtered source slots, conditional
+payloads and the raw 88-byte embedded tail; filtered list-count changes are
+refused. Both base-creature aliases share one value (Q526).
+THINGS cover every tag, including all sixteen hero-party slots; the unshipped
+dead-body layout remains a hypothesis (Q221). TRIGGERS share decoded parameter
+layouts with their reader, reject conflicting alias edits and require an
+independently validated template for type changes.
+LEVEL preserves both metadata boundaries, all messages, paths and tail words.
+`KwdLevel.WritePathRecord` supports GLOBALS only as its known LEVEL path
+discriminator; standalone GLOBALS chunks remain refused (Q220).
+Shape editing and the editor UI are still pending.
 
 ## WAD archives and saved games
 

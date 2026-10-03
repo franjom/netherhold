@@ -7827,19 +7827,13 @@ No simulation state or hash version changes.
 Retained typed models support immutable copies; copying never rewrites their
 source image. Only an explicit overlay writer encodes typed changes.
 
-**Consequences.** A chunk assembled without a container encoding template is
-refused. Raw header bytes remain available. Record-image Split/Join validates
-counts, types, strides and tagged lengths; both CREATURES forms retain every
-trailing byte. GLOBALS' established form remains a LEVEL path row (Q220);
-standalone splitting/joining is refused. DOORS, KEEPERSPELLS, OBJECTS, TRAPS,
-TERRAIN and ROOMS overlays share reader constants and preserve unknown bytes and
-unchanged name padding. MAP tile edits retain all four bytes. VARIABLES overlays
-use individual typed cells, retaining duplicate ids and order; payload shape
-changes require a matching template. PLAYERS overlays preserve noncanonical
-booleans and unconsumed high bytes, with exhaustive edit tests guarding layout;
-raw AI block edits are refused. Other typed
-overlays and shape editing are pending; no editor UI or playability validation
-is built.
-CREATURES overlays support both strides, preserving filtered source slots and
-conditional payloads; filtered list-count changes are refused. Q526's two
-base-creature aliases share one backing byte, preventing contradictory edits.
+**Consequences.** New records require explicit images. Split/Join validates
+counts, strides and tagged lengths; every typed reader has an overlay writer.
+The shared dispatcher audits every shipped record through typed writes.
+Unknown bytes, unchanged padding and the embedded CREATURES tail survive.
+Filtered CREATURES list-count changes and raw PLAYERS AI block edits are refused.
+Trigger views share reader layouts; conflicting aliases and type changes are
+refused. GLOBALS is supported only as a LEVEL path discriminator (Q220).
+The unshipped dead-body layout remains a hypothesis (Q221).
+Q526's base-creature aliases share one value.
+Shape editing is pending; no editor UI or playability validation is built.
