@@ -51,7 +51,7 @@ type-1 piles the neutral owner and the data-driven, nonnegative amount. These
 piles enter the existing flat floor-gold representation, with process state
 zero, as other floor-gold creation paths do. This deliberately collapses the
 original state-1 fall and landing: vertical timing, room-process handover and
-the strict sub-tile landing merge are not implemented here. The existing Q3/M9
+the strict sub-tile landing merge are not implemented here. The existing M9
 position/height boundary remains; repeated casts may leave separate piles
 where the original would merge them. This is a fidelity limitation, not an
 original rule that spell piles cannot merge.
