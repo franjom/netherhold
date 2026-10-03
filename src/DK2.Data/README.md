@@ -82,7 +82,12 @@ Generic field edits freeze trigger identifiers, links and roots, plus the LEVEL
 file manifest. `InsertThing` requires an explicit tagged image; `RemoveThing`
 retains the remaining images and order. Both update count, content size and end
 offset. New nonzero trigger roots must resolve uniquely in a complete level set.
-TRIGGERS structural operations and MAP resizing are still pending.
+`InsertTrigger` accepts an explicit template with a unique, unreferenced nonzero
+id and no tree links. `RemoveTrigger` refuses nodes referenced by next/child
+links or by LEVEL, PLAYERS, THINGS and hero-party member roots. Both require a
+complete LEVEL file set and update the separate generic/action counts.
+Existing trees are retained; graph rewiring remains outside this API.
+MAP resizing is still pending.
 
 ## WAD archives and saved games
 

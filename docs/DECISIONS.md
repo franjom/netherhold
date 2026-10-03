@@ -7841,5 +7841,8 @@ applies transactional typed edits, and saves relative paths under an output root
 Generic edits freeze trigger references and the file manifest.
 THINGS insertion/removal retains source images and updates container counts
 and lengths; new trigger roots must resolve uniquely in a complete level set.
-TRIGGERS structural edits and map resizing are pending.
+Trigger insertion is limited to fresh detached nodes, and deletion to uniquely
+identified nodes without incoming tree links or roots. Complete manifest context
+is required; generic/action counts are updated separately. Existing trees remain
+unchanged, with no graph-rewiring API. Map resizing is pending.
 No editor UI or playability validation is built.

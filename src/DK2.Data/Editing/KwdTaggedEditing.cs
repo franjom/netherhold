@@ -30,6 +30,44 @@ public sealed partial class KwdLevelFileSet
         RemoveTagged(location,chunk);
     }
 
+    public void InsertTrigger(KwdRecordLocation location,TriggerRecord row,KwdRecordImage template)
+    {
+        KwdChunk chunk=RequireType(location,KwdRecordType.Triggers);
+        RequireCompleteManifest();
+        var id=new KwdTriggerId(row.TriggerId);
+        if(id==KwdTriggerId.None || TriggerRows().Any(t=>new KwdTriggerId(t.TriggerId)==id)
+            || ReferenceIds().Contains(id) || new KwdTriggerId(row.NextTriggerId)!=KwdTriggerId.None
+            || new KwdTriggerId(row.ChildTriggerId)!=KwdTriggerId.None)
+            throw new InvalidDataException("New triggers require a unique, unreferenced nonzero id and no tree links.");
+        byte[] bytes=KwdTriggers.WriteRecord(row,template);
+        InsertTagged(location,chunk,new KwdRecordImage(KwdRecordType.Triggers,bytes,row.Tag));
+    }
+
+    public void RemoveTrigger(KwdRecordLocation location)
+    {
+        KwdChunk chunk=RequireType(location,KwdRecordType.Triggers);
+        RequireCompleteManifest();
+        var id=new KwdTriggerId(ReadRecord<TriggerRecord>(location).TriggerId);
+        if(id==KwdTriggerId.None || TriggerRows().Count(t=>new KwdTriggerId(t.TriggerId)==id)!=1)
+            throw new InvalidDataException("Only uniquely identified trigger nodes can be removed.");
+        if(ReferenceIds().Contains(id))
+            throw new InvalidDataException($"Trigger {id.Value} is referenced by a tree link or root and cannot be removed.");
+        RemoveTagged(location,chunk);
+    }
+
+    private IEnumerable<KwdTriggerId> ReferenceIds()
+    {
+        foreach(TriggerRecord trigger in TriggerRows())
+        {
+            yield return new KwdTriggerId(trigger.NextTriggerId);
+            yield return new KwdTriggerId(trigger.ChildTriggerId);
+        }
+        foreach(KwdChunk chunk in _files.Values.SelectMany(c=>c)
+            .Where(c=>c.Type is KwdRecordType.Things or KwdRecordType.Players or KwdRecordType.Level))
+        foreach(object row in KwdTypedRecords.Read(chunk))
+        foreach(KwdTriggerId root in Roots(row)) yield return root;
+    }
+
     private KwdChunk RequireType(KwdRecordLocation location,KwdRecordType type)
     {
         KwdChunk chunk=Chunk(location);
