@@ -12,11 +12,13 @@ namespace DK2.Data.Tests;
 internal static class KwdScalarOverlayChecks
 {
     internal static void Check<T>(KwdRecordType type, int stride, Func<byte[], T> read,
-        Func<T, KwdRecordImage, byte[]> write, string fieldList) where T : class
+        Func<T, KwdRecordImage, byte[]> write, string fieldList, string[]? excludedProperties = null,
+        IReadOnlyDictionary<string, object>? customValues = null) where T : class
     {
         var fields = fieldList.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Split(':'))
             .ToDictionary(f => f[0], f => (Offset: Convert.ToInt32(f[1], 16), Width: int.Parse(f[2])));
-        PropertyInfo[] properties = typeof(T).GetProperties().Where(p => p.SetMethod is not null).ToArray();
+        PropertyInfo[] properties = typeof(T).GetProperties().Where(p => p.SetMethod is not null
+            && !(excludedProperties?.Contains(p.Name) ?? false)).ToArray();
         Assert.Equal(properties.Length, fields.Count);
         byte[] source = Enumerable.Repeat((byte)0x5A, stride).ToArray();
         source[0] = (byte)'a'; source[1] = 0;
@@ -27,7 +29,8 @@ internal static class KwdScalarOverlayChecks
             var field = fields[property.Name];
             T changed = read(source);
             Type scalar = property.PropertyType;
-            object value = scalar == typeof(string) ? "edited"
+            object value = customValues is not null && customValues.TryGetValue(property.Name, out object? custom) ? custom
+                : scalar == typeof(string) ? "edited"
                 : scalar == typeof(int) ? (field.Width == 2 ? 1234 : -12345)
                 : scalar == typeof(uint) ? 0xF1234567u
                 : scalar == typeof(short) ? (short)-1234

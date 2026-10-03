@@ -7838,5 +7838,6 @@ booleans and unconsumed high bytes, with exhaustive edit tests guarding layout;
 raw AI block edits are refused. Other typed
 overlays and shape editing are pending; no editor UI or playability validation
 is built.
-Q526's reader correction gives the base-creature aliases one backing byte,
-preventing contradictory typed edits. The CREATURES overlay is pending.
+CREATURES overlays support both strides, preserving filtered source slots and
+conditional payloads; filtered list-count changes are refused. Q526's two
+base-creature aliases share one backing byte, preventing contradictory edits.

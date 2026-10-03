@@ -18,7 +18,7 @@ namespace DK2.Data.Kwd;
 /// offset anchors (docs/research/kwd-creatures.md). Gameplay fields only; the
 /// ~45 ArtResource blocks are skipped except where a name is useful later.
 /// </summary>
-public static class KwdCreatures
+public static partial class KwdCreatures
 {
     private const int RecordSize = 5449;
     private const int RecordSizeEmbedded = 5537;

@@ -64,8 +64,10 @@ and unconsumed high bytes survive; `RawBlock` edits are refused. Exhaustive fiel
 edit tests guard the AI reader/writer layout.
 Unchanged names retain their original padding; unrepresentable edits are refused.
 Other typed overlays, shape editing and the editor UI are still pending.
-Q526 corrected CREATURES' clone-id projection to the base-creature byte;
-its two typed names share one backing value. Its overlay is still pending.
+`KwdCreatures.WriteRecord` overlays both strides, preserving filtered list slots,
+inactive Angry payloads, SizeClass's low bits and the raw 88-byte embedded tail.
+List-count changes and edits invisible to the reader are refused. Q526's two
+base-creature names share one value. Exhaustive edits guard the reader/writer layout.
 
 ## WAD archives and saved games
 
