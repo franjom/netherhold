@@ -17,11 +17,11 @@ internal static class KwdScalarOverlayChecks
     {
         var fields = fieldList.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Split(':'))
             .ToDictionary(f => f[0], f => (Offset: Convert.ToInt32(f[1], 16), Width: int.Parse(f[2])));
-        PropertyInfo[] properties = typeof(T).GetProperties().Where(p => p.SetMethod is not null
-            && !(excludedProperties?.Contains(p.Name) ?? false)).ToArray();
-        Assert.Equal(properties.Length, fields.Count);
         byte[] source = Enumerable.Repeat((byte)0x5A, stride).ToArray();
         source[0] = (byte)'a'; source[1] = 0;
+        PropertyInfo[] properties = read(source).GetType().GetProperties().Where(p => p.SetMethod is not null
+            && !(excludedProperties?.Contains(p.Name) ?? false)).ToArray();
+        Assert.Equal(properties.Length, fields.Count);
         var template = new KwdRecordImage(type, source);
         Assert.Equal(source, write(read(source), template));
         foreach (PropertyInfo property in properties)

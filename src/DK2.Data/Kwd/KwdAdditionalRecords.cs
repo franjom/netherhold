@@ -151,7 +151,7 @@ public static partial class KwdAdditionalRecords
 }
 
 /// <summary>Field reader for all twelve THINGS payload tags.</summary>
-public static class KwdThings
+public static partial class KwdThings
 {
     public static List<ThingRecord> Parse(IEnumerable<KwdChunk> chunks)
     {

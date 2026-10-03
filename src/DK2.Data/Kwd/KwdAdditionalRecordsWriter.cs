@@ -154,7 +154,7 @@ public static partial class KwdAdditionalRecords
         return image;
     }
 
-    private static void WriteU16s(byte[] image, int offset, int count, IReadOnlyList<ushort> values)
+    internal static void WriteU16s(byte[] image, int offset, int count, IReadOnlyList<ushort> values)
     {
         if (values is null || values.Count != count)
             throw new InvalidDataException($"Field at +0x{offset:X} requires exactly {count} ushort slots.");
@@ -182,7 +182,7 @@ public static partial class KwdAdditionalRecords
         image[offset + 82] = row.Unknown_0052; image[offset + 83] = row.Unknown_0053;
     }
 
-    private static void WriteRaw(byte[] image, int offset, int width, ReadOnlyMemory<byte> value)
+    internal static void WriteRaw(byte[] image, int offset, int width, ReadOnlyMemory<byte> value)
     {
         if (value.Length != width)
             throw new InvalidDataException($"Raw field at +0x{offset:X} requires exactly {width} bytes.");

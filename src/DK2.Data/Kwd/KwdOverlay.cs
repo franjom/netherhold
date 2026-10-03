@@ -2,12 +2,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Buffers.Binary;
 using DK2.Data.Model;
 
 namespace DK2.Data.Kwd;
 
 internal static class KwdOverlay
 {
+    internal static byte[] TaggedImage(KwdRecordImage template, KwdRecordType type, int tag, int payloadSize)
+    {
+        byte[] bytes = template.ToBytes();
+        if (template.Type != type || template.Tag != tag || bytes.Length != payloadSize + 8
+            || BinaryPrimitives.ReadInt32LittleEndian(bytes) != tag
+            || BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(4)) != payloadSize)
+            throw new InvalidDataException($"{type}: an explicit tag {tag}, {payloadSize}-byte payload template is required.");
+        return bytes;
+    }
+
     internal static byte[] Image(KwdRecordImage template, KwdRecordType type, int stride)
     {
         if (template.Type != type || template.Tag is not null || template.ConsumedLength != stride)
