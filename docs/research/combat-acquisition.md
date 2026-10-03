@@ -190,8 +190,8 @@ passes `0`.
    `0x004611D0(state)` tried, else target restored and the fight-starter.
 5. **Thing target:** `AttackRangeSquared` `+0x4FE` = `(MeleeRange + x)² >> 12`
    by the thing's class (`+0x12`): `0x800` for a door (4), `0xC00` for a secret
-   door (flag bit 5), `0x400` for a trap (3, `0x0045E065`), `0x800` for any other
-   class, an object (2) among them (`0x0045E098`); or the spell's range²; then
+   door (flag bit 5), `0x400` for a trap (3, `0x0045E065`), `0x800` for an object
+   (2) or any class but 0, 3, 4 and 6 (`0x0045E098`; a body, 6, takes its own arm); or the spell's range²; then
    `SetState(199)` unless already in group 22 and not en route to a threat.
 
 ## 7. The engagement record (`+0x4FE`…)

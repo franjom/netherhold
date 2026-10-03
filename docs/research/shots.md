@@ -287,7 +287,7 @@ handler 3's `SetState(1)` with its four exclusions (`keeper-spell-casting.md` §
 the aim's half-height are dropped, the overlap box's height test with them; the finder
 takes the nearest overlap where DK2 takes tile order;
 doors, objects and bodies as things hit — a shot sent at a heart strikes within a
-quarter tile of its tile (Q363); process types 28 (guided), 34 (instant) and the unread
+quarter tile of its tile (ours, a stand-in: Q363); process types 28 (guided), 34 (instant) and the unread
 ones (Q394, Q395); a stopped or standing shot counts its lifetime down where DK2's physics returns 0 and does
 not; the events 0x1/0x100 and the effects. DK2's thing order between creatures and
 shots is unread: ours flies a shot from the tick after it is made.

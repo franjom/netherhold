@@ -708,14 +708,17 @@ public static class CombatTargetRules
         return true;
     }
 
-    /// <summary>The heart as a thing target: a spell at a thing when the surveyed spell deals damage
-    /// (a status spell takes melee against a thing, combat-spells.md §2), else melee at an object's
-    /// reach — the pillar is class 2, so half a tile (<c>0x0045E098</c>); no slots.</summary>
+    /// <summary>The heart as a thing target, through the commit's class-blind choice
+    /// (<c>0x0045DE6E</c>): melee within a tile unless a Support, else a spell at a thing when the
+    /// surveyed spell deals damage (a status spell takes melee against a thing, combat-spells.md §2),
+    /// else melee at an object's reach — the pillar is class 2, so half a tile (<c>0x0045E098</c>); no slots.</summary>
     private static bool EngageHeart(
         SimulationContext context, CreatureState me, CreatureDef mine, byte owner, int tile, int spellSlot = -1, CreatureSpellDef? spell = null)
     {
         bool same = me.FightTargetKind == FightTargetKind.Heart && me.FightTargetTileIndex == tile;
-        bool useSpell = spell != null && !SpellRules.IsStatus(spell);
+        int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, TileCentreX(context.World, tile), TileCentreY(context.World, tile));
+        bool useSpell = spell != null && !SpellRules.IsStatus(spell)
+            && !(distance < MeleeDecisionDistance && mine.FightStyle != FightStyle.Support);
         me.FightTargetKind = FightTargetKind.Heart;
         me.FightTargetId = CombatRules.NoTarget;
         me.FightTargetPlayerId = owner;

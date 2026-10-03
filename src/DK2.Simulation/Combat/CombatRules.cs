@@ -51,7 +51,7 @@ public static class CombatRules
 
     /// <summary>What <c>SelectAVictim</c>'s melee commit adds to <c>MeleeRange</c> for a thing, by its
     /// class (<c>+0x12</c>, <c>0x0045DFC3</c>–<c>0x0045E0A5</c>): a trap (3) a quarter tile; a door (4)
-    /// half, a Secret Door three quarters; any other class, an object (2) among them, half.</summary>
+    /// half, a Secret Door three quarters; an object (2) or any class but 0, 3, 4 and 6 (a body's own arm), half.</summary>
     public const int TrapReach = 0x400;
     public const int ThingReach = 0x800;
 

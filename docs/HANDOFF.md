@@ -19,7 +19,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
   the reveal (ADR-0338), the Guard Post (ADR-0330), trap upkeep and damage (ADR-0326)
   and creatures fighting a revealed trap (scan D, ADR-0340) run; disarming is deferred under
-  ADR-0329's scoped inference (Q455); shot heights go to M9 and the Boulder's slap to the hand
+  ADR-0329's scoped inference (Q455); shot heights go to M9 and the Boulder's slap to object slapping
   (ADR-0341). Left: the owner's observations in experiments/doors-and-traps.md — Q520's wall is
   disputed, Q513, Q524 and Q362 unwatched (2026-10-03).
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits

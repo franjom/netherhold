@@ -7656,8 +7656,9 @@ scans unless it returned `0xEA60`. The approach's door fallback is class 4 only 
 **Decision.** `CombatTargetRules.Choose` runs DK2's order: the arm (NonFighter included), the route
 check, `ScanTraps`, E, F, then the commit; `EngageTrap` commits on `FightTargetKind.Trap` (4).
 `FightRules` validates, positions, swings at and casts at a trap; its blow goes through
-`TrapRules.Damage` and the dead trap through the existing removal. Two corrections ride with it: the
-heart's melee reach is `MeleeRange + 0x800` (the Arch Pillar is class 2; ours had the trap's `0x400`),
+`TrapRules.Damage` and the dead trap through the existing removal. Three corrections ride with it: the
+heart's melee reach is `MeleeRange + 0x800` (the Arch Pillar is class 2; ours had the trap's `0x400`)
+and its commit takes the class-blind melee rule (`0x0045DE6E`: within a tile, not a Support),
 and the creature route check keeps an attack spell's seen target with no distance test, as the binary has
 none. Not modelled: the Turncoat skip (`+0x453`), the game's player order (a tie between two players'
 traps takes the lower id), the impact pair (presentation).
@@ -7671,11 +7672,13 @@ Measured, seeds 1–20 (base 05d3ab6; the route-word fix 1d7d105 reverted on it 
 L1 20/20 → 20/20, eleven win ticks moved; L2 7/20 → 8/20 (seeds 1 and 6 join, 18 drops). With the
 heart reach alone reverted the rigs are seed-for-seed the base's, and every changed seed's first
 divergence is a hero Dwarf's heart engagement (reach² 1730 → 3317): the heart reach is the whole rig
-effect. Scenarios: Levels 8 and 11A move by the heart reach; Level 17's five by the route check (a
+effect. The reach is CONFIRMED; its effect on win ticks is not, as it is measured to our ring-tile
+stand-in for the pillar (Q363), and the two should be checked together. The heart's melee rule leaves the rigs unchanged. Scenarios: Levels 8 and 11A move by the heart reach,
+11A also by the melee rule (a Salamander within a tile of the heart melees instead of casting); Level 17's five by the route check (a
 Wizard keeps a seen target at t0); Level 18 by the trap fight (a Salamander, then a Troll, take on a
 rival's Sentry). None compared against an original capture.
 
-## ADR-0341 — M7 leaves shot heights to M9 and the Boulder's slap to the keeper's hand
+## ADR-0341 — M7 leaves shot heights to M9 and the Boulder's slap to object slapping
 **Date:** 2026-10-03 · **Status:** accepted · scopes the plan's M7 row · Research: `shots.md` §4a, §6, §10; `boulder.md` §3; Q398, Q520
 
 **Context.** M7's definition of done is combat resolution, hero parties, hero gates, traps and doors.
@@ -7683,13 +7686,15 @@ Its row also listed shot heights (Q398). No thing in the simulation has a vertic
 creatures, objects, traps and shots are planar. Height is the moving-thing stepper's (`0x004B2030`)
 gravity for a shot with mass (the Grenade alone of the creature shots), the lobbed launch, the aim's
 half-height and the overlap box's height test (`0x004B5590`) — one physics layer shared by every
-thing class. The Boulder's slap (`Object_ReactToSlap`, `0x0049C558`) is read, but nothing in the
-simulation can slap or pick up anything: the keeper's hand is not modelled for creatures either.
+thing class. The Boulder's slap arm of `Object_ReactToSlap` (`0x0049C4ED`) is read: it rolls the boulder
+along the slap's angle and costs it 400. Ours slaps creatures (`SlapCreatureCommand`) and the Call to Arms
+flag (action 63) only; no command slaps any other object, and none carries the angle slap action 6
+(`0x004C0FE0`) passes, whose source is unread. The dispatcher's knockback and Hero Lair arms are unbuilt too.
 
 **Decision.** Shot height is not M7 work: it moves to M9 (Fidelity) as a named approximation of the
 flight, with Q398 its row; M7's combat is resolved in the plane, as every built shot already flies.
-The Boulder's slap waits for the keeper's hand (possession and hand work, M8); nothing is built for it
-now. Disarming stays deferred under ADR-0329.
+The Boulder's slap waits for object slapping — the angle's source and the dispatcher's other arms
+(M8's hand and object work); nothing is built for it now. Disarming stays deferred under ADR-0329.
 
 **Consequences.** M7's row loses shot heights and keeps the owner's observations (Q513, Q520, Q524)
 as its open item; a flat shot may hit a thing whose box the height test would refuse, and the
