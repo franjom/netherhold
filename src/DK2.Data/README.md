@@ -69,6 +69,18 @@ LEVEL preserves both metadata boundaries, all messages, paths and tail words.
 discriminator; standalone GLOBALS chunks remain refused (Q220).
 Shape editing and the editor UI are still pending.
 
+## Editing
+
+`DK2.Data.Editing.KwdLevelFileSet.Load(levelFile, contentRoot)` loads the LEVEL
+manifest and its referenced KWD/KLD files. Paths stay relative to the explicit
+content root; extensionless references use `.kwd`, with case-insensitive lookup.
+`Create` accepts explicit chunk templates for hand-built sets.
+`ReadRecord<T>` and `EditRecord<T>` use a `KwdRecordLocation`; snapshots and input
+images are isolated. A failed edit leaves the set unchanged.
+`ToBytes` and `Save(outputRoot)` preserve file paths and serialize owned images.
+Generic field edits freeze trigger identifiers, links and roots, plus the LEVEL
+file manifest. Dedicated structural operations are still pending.
+
 ## WAD archives and saved games
 
 `WadArchive` reads DK2's "DWFB" version 2 archives — CONFIRMED against all five WADs

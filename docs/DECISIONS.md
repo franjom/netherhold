@@ -7836,4 +7836,8 @@ Trigger views share reader layouts; conflicting aliases and type changes are
 refused. GLOBALS is supported only as a LEVEL path discriminator (Q220).
 The unshipped dead-body layout remains a hypothesis (Q221).
 Q526's base-creature aliases share one value.
-Shape editing is pending; no editor UI or playability validation is built.
+The DK2.Data editing surface owns a level's manifest and referenced file images,
+applies transactional typed edits, and saves relative paths under an output root.
+Generic edits freeze trigger references and the file manifest.
+Tagged insertion/removal and map resizing are pending.
+No editor UI or playability validation is built.

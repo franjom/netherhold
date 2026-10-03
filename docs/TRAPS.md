@@ -15,6 +15,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
   nothing. Normalise to `\n` before matching and restore the endings on write.
 - A file restored with `mv` keeps its old mtime, and the next build may skip it.
 - `apply_patch` rejects a delete and add of the same path in one patch; use an update or separate patches.
+- In a sibling worktree, `apply_patch` cannot create parent directories; create them with an approved native filesystem command first.
 
 ## Builds, tests and dk2tools
 
