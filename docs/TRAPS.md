@@ -21,6 +21,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 ## Builds, tests and dk2tools
 
 - Unity-loadable DK2.Data targets netstandard2.1; newer Path helpers such as TrimEndingDirectorySeparator are unavailable there.
+- InvalidDataException is not an IOException; command error handling must catch both to report format refusals.
 
 - Typed KWD properties can be wider than their file fields: derive overlay test values and range checks from the reader's width, not the model's CLR type.
 - Test discovery can intermittently undercount even in an isolated `status` run; compare the suite totals and repeat discovery before accepting a changed count.

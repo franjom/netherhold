@@ -1151,6 +1151,9 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length >= 2 && args[1] == "rewrite":
+        return KwdRewriteCommand.Run(args[2..],Console.Out,Console.Error);
+
     case "kwd" when args.Length == 2 && args[1] == "corpus":
     {
         KwdCorpusAudit.Result audit = KwdCorpusAudit.Run(Dk2Install.Require());
@@ -2691,6 +2694,7 @@ static int Usage()
     Console.WriteLine("  kwd trigger-params <tag> <type|*> [name]  value distribution of one trigger parameter");
     Console.WriteLine("  kwd triggers <file> [tag] [type]        one level's triggers, their links and parameters");
     Console.WriteLine("  kwd corpus                             parse and round-trip the shipped KWD/KLD corpus");
+    Console.WriteLine("  kwd rewrite <file|dir> <outdir>          typed rewrite with per-file first-difference diagnostics");
     Console.WriteLine("  kwd things [level|file.kld]            placed entities of one level, or the corpus");
     Console.WriteLine("  kwd parties                            how shipped HERO_PARTY records map onto the 24 runtime slots");
     Console.WriteLine("  kwd roots                              every trigger root in the campaign, by the walker that owns it");
