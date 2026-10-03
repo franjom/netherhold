@@ -121,6 +121,39 @@ public static partial class KwdAdditionalRecords
         return image;
     }
 
+    public static byte[] WriteEffectElementRecord(EffectElementDef row, KwdRecordImage template)
+    {
+        byte[] image = KwdOverlay.Image(template, KwdRecordType.EffectElements, EffectElementSize);
+        KwdOverlay.Ascii(image, 0, 32, row.Name, Ascii(image, 0, 32), trimmed: true);
+        WriteArt(image, 32, row.ArtResource);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(116), row.Mass);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(120), row.AirFriction);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(124), row.Elasticity);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(128), row.MinSpeedXy);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(132), row.MaxSpeedXy);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(136), row.MinSpeedYz);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(140), row.MaxSpeedYz);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(144), row.MinScale);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(148), row.MaxScale);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(152), row.ScaleRatio);
+        BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(156), row.Flags);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(160), row.EffectElementId);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(162), row.MinHp);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(164), row.MaxHp);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(166), row.DeathElementId);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(168), row.HitSolidElementId);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(170), row.HitWaterElementId);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(172), row.HitLavaElementId);
+        image[174] = row.Red;
+        image[175] = row.Green;
+        image[176] = row.Blue;
+        image[177] = row.RandomColorIndex;
+        image[178] = row.TableColorIndex;
+        image[179] = row.FadePercentage;
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(180), row.NextEffectId);
+        return image;
+    }
+
     private static void WriteU16s(byte[] image, int offset, int count, IReadOnlyList<ushort> values)
     {
         if (values is null || values.Count != count)

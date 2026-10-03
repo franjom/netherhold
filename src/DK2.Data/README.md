@@ -68,6 +68,7 @@ Other typed overlays, shape editing and the editor UI are still pending.
 including nested art descriptors and explicit raw fields with exact widths.
 `WriteShotRecord` overlays shots, including their art and light descriptors.
 `WriteEffectRecord` overlays effects and their eight generated-id slots.
+`WriteEffectElementRecord` overlays effect elements and their art descriptors.
 Retained typed models support immutable `with` copies. Their `ToBytes()` remains
 the original image; apply edits with the explicit overlay writers.
 `KwdCreatures.WriteRecord` overlays both strides, preserving filtered list slots,
