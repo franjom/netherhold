@@ -600,6 +600,10 @@ public static class TileWorkRules
         byte ownerBefore = tile.OwnerPlayerId;
         if (takeOwnership && next.IsOwnable) tile.OwnerPlayerId = playerId;
 
+        // Tile_SetOwner (0x004559D0) hands the new owner the current terrain's ManaGain alone, so
+        // a room tile changing hands brings its new owner nothing of the floor it was built on.
+        if (tile.OwnerPlayerId != ownerBefore) tile.KeptManaGain = 0;
+
         // A portal changing hands restarts it: for both portal types DK2's
         // ownership-change handler stamps the clock and zeros the generation
         // tally, so a rival taking a worn-out portal gets the base interval

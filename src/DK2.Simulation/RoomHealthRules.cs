@@ -99,6 +99,7 @@ public static class RoomHealthRules
             ref TileState tile = ref world.TileAtIndex(index);
             if (tile.OwnerPlayerId == playerId) continue;
             tile.OwnerPlayerId = playerId;
+            tile.KeptManaGain = 0; // Tile_SetOwner moves the room terrain's 0, not the floor's 1 (ADR-0334)
             if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
         }
     }

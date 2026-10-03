@@ -117,13 +117,14 @@ public class ManaOnRealDataTests
         Assert.Equal(30, db[VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond]);
 
         // And the 30 is the keeper's, not the tile's: heart terrain generates
-        // nothing of its own, so paving claimed floor into a heart costs income
-        // exactly as any other room does.
+        // nothing of its own, and a heart is laid by the map, never built over
+        // paid floor (ADR-0334).
         Assert.Equal(0, db.TerrainById(heart.TerrainId).ManaGain);
         Assert.Equal(heart.TerrainId, ManaRules.DungeonHeartTerrainId(db));
     }
 
-    /// <summary>No room in the game generates mana, which is why building costs income.</summary>
+    /// <summary>No room terrain generates mana of its own; a built room keeps the floor's gain
+    /// on the rate word instead (ADR-0334), so building costs no income.</summary>
     [InstallFact]
     public void NoRoomGeneratesMana()
     {

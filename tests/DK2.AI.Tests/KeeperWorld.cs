@@ -53,6 +53,10 @@ internal static class KeeperWorld
     public const byte SleeperCreature = 3;
     public const byte BedObjectId = 22;
 
+    /// <summary>A creature that grows hungry and eats one chicken, so a missing or empty Hatchery is
+    /// something its need finds (messages 41 to 43); the coop, egg and chicken are the shipped records.</summary>
+    public const byte EaterCreature = 4;
+
     public const byte Keeper = 3;
     public static readonly TilePos HeartAt = new(15, 15);
 
@@ -107,10 +111,13 @@ internal static class KeeperWorld
                 | CreatureFlags.CanWalkOnWater, hp: 1500, threat: FighterThreat, JobClass.Fighter, FightStyle.Blocker),
             Creature("Sleeper", SleeperCreature, CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp, hp: 500, threat: 2,
                 JobClass.Fighter, FightStyle.Blocker) with { LairObjectId = BedObjectId, TimeSleep = 9 },
+            Creature("Eater", EaterCreature, CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp, hp: 500, threat: 2,
+                JobClass.Fighter, FightStyle.Blocker) with { HungerFill = 1, HpFromChicken = 100 },
         ],
         variables: Variables(handCapacity),
         keeperSpells: KeeperSpells(),
-        objects: [Flag(), TrainingDummy(), Bed(), FloorGoldPile()],
+        objects: [Flag(), TrainingDummy(), Bed(), FloorGoldPile(), Hatchery(HatcheryRules.CoopObjectId, 0x00004000u, 0, 3252),
+            Hatchery(HatcheryRules.EggObjectId, 0x00018602u, 0, 128), Hatchery(HatcheryRules.ChickenObjectId, 0x00230782u, 1, 128)],
         shots:
         [
             Shot("Create Object", CreateObjectShotId, 2048, 1, 4, 0x80, ShotRules.CreateObjectProcess),
@@ -191,6 +198,14 @@ internal static class KeeperWorld
         Name = "Gold", ObjectId = FloorGold.FloorGoldObjectId, Flags = (ObjectFlags)0x00810140u, Hp = 128, ManaValue = 0,
         RoomCapacity = 0, StartState = 31, PickUpPriority = 176, Width = new Fp32(256), Height = new Fp32(1228),
         Mass = new Fp32(16384), Speed = new Fp32(0), NameStringId = 292, TooltipStringId = 292,
+    };
+
+    /// <summary>The coop, egg and chicken with their shipped flags, capacity and width.</summary>
+    private static ObjectDef Hatchery(byte id, uint flags, byte capacity, int width) => new()
+    {
+        Name = $"Hatchery object {id}", ObjectId = id, Flags = (ObjectFlags)flags, Hp = 128, ManaValue = 0,
+        RoomCapacity = capacity, StartState = 0, PickUpPriority = 176, Width = new Fp32(width), Height = new Fp32(128),
+        Mass = new Fp32(8192), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
     };
 
     /// <summary>Stands each room's auto-placed furniture, as a level's rooms come furnished.</summary>
@@ -381,6 +396,7 @@ internal static class KeeperWorld
         vars.Misc[VariableTypeId.DungeonHeartHealthRegenerationPerSecond] = new MiscVariable(VariableTypeId.DungeonHeartHealthRegenerationPerSecond, 25, 0, 0);
         // What the hand and a fight read once creatures exist, at the shipped values.
         Set(vars, VariableTypeId.MaxNumberOfThingsInHand, handCapacity);
+        Set(vars, VariableTypeId.ChickenGenerationTimePerHatchery, 16);
         Set(vars, VariableTypeId.CreatureDyingStateDurationSeconds, 60);
         Set(vars, VariableTypeId.BackOffMinimumDurationSeconds, 0);
         Set(vars, VariableTypeId.BackOffMaximumDurationSeconds, 30);

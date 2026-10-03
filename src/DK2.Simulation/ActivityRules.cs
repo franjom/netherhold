@@ -84,6 +84,7 @@ public static class ActivityRules
         EatingRules.FindHatcheryState or EatingRules.InHatcheryState or EatingRules.AfterMealState => CreatureActivity.SeekingFood,
         EatingRules.EatState => CreatureActivity.FetchingChicken,
         ChickenRules.ChickenState => CreatureActivity.Chicken,
+        JackInTheBoxRules.SpringState => CreatureActivity.JackInTheBox,
         >= PrisonRules.AdmittedState and <= 121 => CreatureActivity.Imprisoned,
         TortureRules.TorturerFacingState or TortureRules.TorturerWhippingState => CreatureActivity.AtWork,
         GuardRules.PatrolState or GuardRules.LostState or 100 => CreatureActivity.AtWork,

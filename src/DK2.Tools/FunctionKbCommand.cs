@@ -186,6 +186,7 @@ static class FunctionKbCommand
             IEnumerable<string> files = staged ? Repo.StagedFiles(root) : Repo.ChangedFiles(root, baseRef);
             var changes = new List<(string, string[])>();
             var today = DateOnly.FromDateTime(DateTime.Now);
+            bool merging = Repo.RunGit(root, "rev-parse", "-q", "--verify", "MERGE_HEAD").Trim().Length > 0;
             foreach (string relative in files)
             {
                 if (!(relative.StartsWith("docs/", StringComparison.Ordinal) || relative.StartsWith("src/", StringComparison.Ordinal))) continue;
@@ -198,7 +199,9 @@ static class FunctionKbCommand
                 // A record new in this change has no base blob; RunGit swallows git's error and GitLines yields [].
                 string[] baseLines = Repo.GitLines(root, $"{baseRef}:{relative}");
                 var before = baseLines.Length == 0 ? null : FunctionKb.Parse(relative, baseLines, []);
-                findings.AddRange(FunctionKb.HistoryRequired(now, before, today));
+                string[] mergedLines = merging ? Repo.GitLines(root, $"MERGE_HEAD:{relative}") : [];
+                var merged = mergedLines.Length == 0 ? null : FunctionKb.Parse(relative, mergedLines, []);
+                findings.AddRange(FunctionKb.HistoryRequired(now, before, today, merged));
             }
             findings.AddRange(FunctionKb.MissingRecords(changes, recorded));
         }

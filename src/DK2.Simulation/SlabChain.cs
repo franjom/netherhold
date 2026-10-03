@@ -43,6 +43,7 @@ public static class SlabChain
     {
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         if (tile.TerrainId == terrainBefore && tile.OwnerPlayerId == ownerBefore) return;
+        tile.ChickensGenerated = 0;
 
         // The tile's part of the old room's deficit goes with the old room; whatever it joins, it
         // joins as a fresh tile (0x004EC5A0, 0x004EC650).

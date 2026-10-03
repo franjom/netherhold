@@ -258,8 +258,17 @@ public static class HatcheryRules
     }
 
     private static ObjectState Lay(
-        WorldState world, GameDatabase database, RoomInstance hatchery, int tileIndex) =>
-        world.SpawnObject(database, EggObjectId, hatchery.OwnerPlayerId, tileIndex);
+        WorldState world, GameDatabase database, RoomInstance hatchery, int tileIndex)
+    {
+        // 0x004DE620 bumps room+0x51 on every egg it creates, on both paths.
+        world.TileAtIndex(hatchery.TileIndices[0]).ChickensGenerated++;
+        return world.SpawnObject(database, EggObjectId, hatchery.OwnerPlayerId, tileIndex);
+    }
+
+    /// <summary>The room's <c>ChickensGenerated</c> (<c>room+0x51</c>): eggs laid since it was made
+    /// (<see cref="TileState.ChickensGenerated"/>).</summary>
+    public static int ChickensGenerated(WorldState world, RoomInstance hatchery) =>
+        hatchery.TileIndices.Count == 0 ? 0 : world.TileAtIndex(hatchery.TileIndices[0]).ChickensGenerated;
 
     /// <summary>Turns an egg into a chicken on the same tile, and hands back the chicken.
     /// Throws if handed something that is not an egg.

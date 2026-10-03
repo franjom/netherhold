@@ -88,20 +88,6 @@ public sealed class CreatureEatSystem : ISimulationSystem
                     // The busy test comes after the stamp, so a busy creature spends the try.
                     if (NeedRules.IsBusy(context.World, creature, context.Tick.Value)) break;
 
-                    // Standing in one already? Then there is no walk to make and
-                    // the search runs here and now.
-                    if (EatingRules.HatcheryUnder(world, database, creature) is not null)
-                    {
-                        // The room helper's own shortcut: already inside means no walk,
-                        // SetState(1) and then the resume state (travel-states.md 2.2).
-                        EnterTheChain(context, creature);
-                        Shadow(context, creature, CreatureStateMachine.Idle);
-                        Shadow(context, creature, EatingRules.InHatcheryState);
-                        creature.StopMoving();
-                        Seeking(context, creature, definition);
-                        break;
-                    }
-
                     TrySetOutForAHatchery(context, creature, definition);
                     break;
             }
@@ -109,16 +95,14 @@ public sealed class CreatureEatSystem : ISimulationSystem
     }
 
     /// <summary>Chooses a hatchery and sets off for it, or says why not.</summary>
-    /// <remarks>Rooms are visited nearest first by squared distance to the room's
-    /// centre, and the first this creature can actually reach over its own
-    /// <see cref="WorldPathGrid"/> wins — so a hatchery behind water is reachable for
-    /// a goblin and not for a vampire, exactly as a lair is. Equal distances fall back
-    /// to the lowest tile index, <see cref="RoomIndex.Build"/>'s own order (ADR-0001).
-    /// A hatchery with no birds in it is still a hatchery and the finder does not look
-    /// at the flock; what the original tests is whether the room holds any object at
-    /// all (<see cref="EatingRules.HoldsAnyObject"/>), which a coop satisfies, so the
-    /// one thing it rules out is a room too small to earn a coop and therefore too
-    /// small ever to lay.</remarks>
+    /// <remarks>Only a hatchery holding a chicken is a candidate
+    /// (<see cref="EatingRules.HoldsAChicken"/>). Rooms are visited nearest first by squared
+    /// distance to the room's centre, and the first this creature can reach wins; equal
+    /// distances fall back to the lowest tile index (ADR-0001). Ours: DK2 measures to the
+    /// room's first slab and breaks ties by its room list. The finder runs before the
+    /// already-inside shortcut, as <c>Hunger_TryToEat</c> calls it before state 91, so a
+    /// creature in an empty hatchery does not enter the chain. A failure posts the original's
+    /// 41, 42 or 43 by its own gates (<see cref="RoomNeedRules.NoHatcheryFor"/>).</remarks>
     private bool TrySetOutForAHatchery(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
@@ -133,11 +117,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
             if (room.TileIndices.Count == 0) continue;
             hatcheries++;
 
-            // The original's own gate: a hatchery with nothing in it is not
-            // walked to. Its object list, not its flock - a coop counts - so
-            // this excludes exactly one thing, a room too small to earn a coop
-            // and therefore too small ever to lay (EatingRules.HoldsAnyObject).
-            if (!EatingRules.HoldsAnyObject(world, room)) continue;
+            if (!EatingRules.HoldsAChicken(world, room)) continue;
 
             candidates.Add((
                 EatingRules.DistanceSquared(world, creature.Tile, CentreTileIndex(world, room)),
@@ -149,12 +129,18 @@ public sealed class CreatureEatSystem : ISimulationSystem
                 ? a.Distance.CompareTo(b.Distance)
                 : a.FirstTile.CompareTo(b.FirstTile));
 
-        var grid = new WorldPathGrid(database, world, definition);
+        int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         RoomInstance? chosen = null;
         int arrival = -1;
 
         foreach ((_, _, RoomInstance room) in candidates)
         {
+            if (EatingRules.Contains(room, here))
+            {
+                chosen = room;
+                break;
+            }
+
             int target = ArrivalTile(world, room);
             var at = new TilePos(target % world.Width, target / world.Width);
             if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) continue;
@@ -172,8 +158,21 @@ public sealed class CreatureEatSystem : ISimulationSystem
                 $"need={creature.HungerNeed} " +
                 $"reason={(hatcheries == 0 ? "no_hatchery"
                     : candidates.Count == 0 ? "hatchery_empty" : "unreachable")} " +
-                $"hatcheries={hatcheries} with_objects={candidates.Count}");
+                $"hatcheries={hatcheries} with_chickens={candidates.Count}");
+            RoomNeedRules.NoHatcheryFor(context, creature, definition);
             return false;
+        }
+
+        if (arrival < 0)
+        {
+            // The room helper's own shortcut: already inside means no walk,
+            // SetState(1) and then the resume state (travel-states.md 2.2).
+            EnterTheChain(context, creature);
+            Shadow(context, creature, CreatureStateMachine.Idle);
+            Shadow(context, creature, EatingRules.InHatcheryState);
+            creature.StopMoving();
+            Seeking(context, creature, definition);
+            return true;
         }
 
         creature.TargetObjectId = EatingRules.NoChicken;

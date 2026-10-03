@@ -147,13 +147,15 @@ public class ManaTests
     }
 
     /// <summary>
-    /// <b>Building on your own floor costs you income.</b> Room terrain has a
-    /// mana gain of zero in every one of the game's 26 rooms, so paving claimed
-    /// path over into a treasury takes that tile off the payroll. Nothing here
-    /// implements that as a rule — it falls straight out of the terrain table.
+    /// <b>Building on your own floor does not cost you income.</b> Room terrain has a
+    /// mana gain of zero in every one of the game's 26 rooms, but DK2 keeps the rate as a
+    /// running word: <c>Tile_SetTerrain</c>'s adjustment (<c>0x00455B90</c>) is skipped
+    /// whenever the old or the new terrain is a Room, so the claimed floor's 1 stays on the
+    /// books under the treasury (ADR-0334; the Level 3 capture's rate word counts every room
+    /// tile the keeper built). A room tile owned from the start pays nothing.
     /// </summary>
     [Fact]
-    public void ARoomTilePaysNothing_SoBuildingCostsIncome()
+    public void ARoomBuiltOnClaimedFloorKeepsTheFloorsIncome_AndOneOwnedFromTheStartPaysNothing()
     {
         Run run = Start();
         GameDatabase database = Dk2TerrainFixture.Database();
@@ -161,9 +163,30 @@ public class ManaTests
 
         RoomRules.Place(database, ref run.World.Tile(1, 1), treasury, Keeper);
         RoomRules.Place(database, ref run.World.Tile(2, 1), treasury, Keeper);
+        // Laid in the map rather than built: no floor was ever paid for under it.
+        run.World.Tile(5, 1).TerrainId = treasury.TerrainId;
+        run.World.Tile(5, 1).OwnerPlayerId = Keeper;
 
         run.Seconds(1);
-        Assert.Equal(7, run.Mana(Keeper));
+        Assert.Equal(ClaimedTilesOnTheFixtureMap, run.Mana(Keeper));
+    }
+
+    /// <summary>A rival who takes a room tile gets the room terrain's 0 (<c>Tile_SetOwner</c>
+    /// moves the current terrain's gain, <c>0x004559D0</c>). Ours drops the kept floor gain on
+    /// the owner change; DK2's old owner keeps paying for it, which ours does not mirror (Q521).</summary>
+    [Fact]
+    public void ARoomTileTakenByARivalPaysTheRivalNothing()
+    {
+        Run run = Start();
+        GameDatabase database = Dk2TerrainFixture.Database();
+        RoomRules.Place(database, ref run.World.Tile(1, 1), database.Room(RoomTypeId.Treasury), Keeper);
+        Assert.Equal(1, ManaRules.GainPerSecond(database, run.World.Tile(1, 1)));
+
+        // The rival's imps convert the tile: applications until the takeover completes.
+        for (int i = 0; i < 5000 && run.World.Tile(1, 1).OwnerPlayerId == Keeper; i++)
+            RoomHealthRules.Convert(run.World, database, run.World.Width + 1, Rival);
+        Assert.Equal(Rival, run.World.Tile(1, 1).OwnerPlayerId);
+        Assert.Equal(0, ManaRules.GainPerSecond(database, run.World.Tile(1, 1)));
     }
 
     /// <summary>
@@ -243,8 +266,8 @@ public class ManaTests
 
     /// <summary>
     /// Heart terrain generates no mana of its own — the 30 is the keeper's, not
-    /// the tile's. Paving claimed floor into a heart therefore costs income the
-    /// same way any other room does.
+    /// the tile's — and a heart is laid by the map, never built over paid floor,
+    /// so its tiles keep nothing (ADR-0334).
     /// </summary>
     [Fact]
     public void HeartTerrainItselfPaysNothing()
@@ -262,7 +285,11 @@ public class ManaTests
         GameDatabase database = Dk2TerrainFixture.Database();
         RoomDef heart = database.Room(RoomTypeId.DungeonHeart);
         foreach (TilePos p in tiles)
+        {
             RoomRules.Place(database, ref run.World.Tile(p), heart, player);
+            // A heart is laid in the map, never built over paid floor: nothing kept (ADR-0334).
+            run.World.Tile(p).KeptManaGain = 0;
+        }
     }
 
     // ---- the two limits ------------------------------------------------
@@ -273,12 +300,18 @@ public class ManaTests
         GameDatabase database = Dk2TerrainFixture.Database();
         int cap = database[VariableTypeId.MaximumManaGainPerSecond];
 
-        // More claimed vaults than the cap could ever pay for: 100 mana each.
-        WorldState world = AllOneTerrain(database, 12, 12, Dk2TerrainFixture.ClaimedVaultTerrain, Keeper);
+        // More claimed path than the cap pays for: 576 tiles at 1 against 500.
+        WorldState world = AllOneTerrain(database, 24, 24, Dk2TerrainFixture.ClaimedPath, Keeper);
 
         int[] gain = ManaRules.GainPerSecondByPlayerIndex(world, database);
         Assert.Equal(cap, gain[0]);
-        Assert.True(144 * 100 > cap, "the fixture must actually exceed the cap");
+        Assert.True(576 > cap, "the fixture must actually exceed the cap");
+
+        // A Claimed Vault carries MaxManaGain 100 beside its 100 of gain, and Tile_SetOwner
+        // (0x004559D0) adds it to the owner's cap word (+0x10DE) as it adds the gain to the rate
+        // word: 144 vaults raise the cap to 500 + 14400, so their whole 14400 is paid (ADR-0334).
+        WorldState vaults = AllOneTerrain(database, 12, 12, Dk2TerrainFixture.ClaimedVaultTerrain, Keeper);
+        Assert.Equal(144 * 100, ManaRules.GainPerSecondByPlayerIndex(vaults, database)[0]);
     }
 
     [Fact]

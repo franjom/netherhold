@@ -172,10 +172,12 @@ public static partial class FunctionKb
 
     static string Cell(string text) => text.Replace("|", "\\|");   // a pipe in a role would split the row
 
-    /// <summary>A header that differs from its base, or a record with no base, needs a History line dated today.</summary>
-    public static IEnumerable<string> HistoryRequired(FunctionRecord now, FunctionRecord? before, DateOnly today)
+    /// <summary>A header that differs from its base, or a record with no base, needs a History line dated today.
+    /// In a merge, a header equal to the incoming side's (<paramref name="merged"/>, MERGE_HEAD) was dated there.</summary>
+    public static IEnumerable<string> HistoryRequired(FunctionRecord now, FunctionRecord? before, DateOnly today, FunctionRecord? merged = null)
     {
         if (before is not null && before.HeaderKey == now.HeaderKey) yield break;
+        if (merged is not null && merged.HeaderKey == now.HeaderKey) yield break;
         string date = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         if (now.History.Any(h => h.Date == date)) yield break;
         yield return before is null

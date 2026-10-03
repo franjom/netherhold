@@ -303,8 +303,8 @@ its arguments.
   - **and a failing handler does not stall.** The creature update
     (`FUN_00476fc0`) calls the state's own handler and, when it returns 0,
     **`SetState(1)`** — so a creature whose handler fails is dropped to state 1
-    and asks again a second later. `FUN_004ded00`'s discarded out-parameter is
-    the last unexplained thing in the attempt.
+    and asks again a second later. `FUN_004ded00`'s out-parameter, which the
+    attempt discards, is the chosen room; the 91 handler asks again.
 - ~~What object flag `0x4000` means~~ — **answered 2026-09-11**: bit 14 is
   `ObjectFlags.Obstacle`, which `ObjectDef.cs` has always named (§6 step 4).
 - **Whether hunger really outranks sleep in play.** It does in the routine's

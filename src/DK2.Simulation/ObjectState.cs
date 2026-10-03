@@ -103,6 +103,28 @@ public sealed class ObjectState
     /// <summary>The process is ending, <c>+0x14F</c>: a recall or handover moves to the release.</summary>
     public bool ProcessEnding;
 
+    /// <summary>Health, the header's <c>+0x40</c>: seeded from the definition's <c>Hp</c>
+    /// (<c>def+0x104</c>, <c>0x0049B1C0</c>) and lost only to a boulder here (<see cref="BoulderRules"/>).</summary>
+    public int Health;
+
+    /// <summary>The position, the header's <c>+0x1A/+0x1E</c>, in 1/4096 tiles. Kept only for an
+    /// object that moves, the boulder; every other object stands at its tile's centre and leaves it 0.</summary>
+    public int PosX, PosY;
+
+    /// <summary><b>Union member: the Boulder</b> (object 74, objects.md §7), <c>+0x14A/+0x14E</c>:
+    /// the rolling direction, each axis in 1/4096 of a unit; zero on every other object.</summary>
+    public int RollX, RollY;
+
+    /// <summary><b>Union member: the Boulder</b>, <c>+0x152</c>: the base speed, position units a tick.</summary>
+    public int RollSpeed;
+
+    /// <summary><b>Union member: the Boulder</b>, <c>+0x156</c>: the wear it has taken; at its health it breaks.</summary>
+    public int Wear;
+
+    /// <summary><b>Union member: the Boulder</b>, <c>+0x15B/+0x15A</c>: the launch direction's signs,
+    /// which break a tie between two free sides.</summary>
+    public sbyte RollSignX, RollSignY;
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
@@ -123,5 +145,14 @@ public sealed class ObjectState
         hash.Add(ProcessDeadline);
         hash.Add(ProcessCount);
         hash.Add(ProcessEnding);
+        hash.Add(Health);
+        hash.Add(PosX);
+        hash.Add(PosY);
+        hash.Add(RollX);
+        hash.Add(RollY);
+        hash.Add(RollSpeed);
+        hash.Add(Wear);
+        hash.Add(RollSignX);
+        hash.Add(RollSignY);
     }
 }

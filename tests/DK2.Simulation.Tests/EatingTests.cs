@@ -215,19 +215,14 @@ public class EatingTests
     }
 
     [Fact]
-    public void AnEmptyHatcheryIsNotAFailureAndTheGoblinWaitsInIt()
+    public void ACoopIsNotAChickenSoTheGoblinStaysPutUntilABirdIsInTheHatchery()
     {
-        // The original's own answer: its search state re-enters itself when
-        // nothing turns up. The room lays, so standing in it is the right thing
-        // to do.
+        // The finder tests the room's ObjectList (+0x0C); a coop is on the
+        // auto-placed list (+0x0E), so a birdless hatchery is not walked to.
         GameDatabase db = Db;
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);
         Hatchery(db, world, 6, 6, 3, 3, Keeper);
-
-        // A coop, because the original will not set out for a hatchery whose
-        // object list is empty and a coop is what normally fills it. Birdless,
-        // not empty - see TheGoblinWillNotWalkToAHatcheryThatHoldsNothingAtAll.
         world.SpawnObject(
             db, HatcheryRules.CoopObjectId, Keeper, (6 * world.Width) + 6);
 
@@ -236,26 +231,37 @@ public class EatingTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        sim.Run(Second * 40);
-
-        Assert.Equal(CreatureActivity.SeekingFood, goblin.Activity);
-        Assert.True(EatingRules.HatcheryUnder(world, db, goblin) is not null);
-        Assert.DoesNotContain(sink.Events, e => e.Kind == "food_attempt_failed");
-
-        // And a bird laid while it stands there is eaten without a new decision.
-        Chicken(db, world, 8, 8);
         sim.Run(Second * 5);
+
+        Assert.Equal(CreatureActivity.Idle, goblin.Activity);
+        Assert.Contains(sink.Events, e => e.Kind == "food_attempt_failed" && e.Detail.Contains("reason=hatchery_empty"));
+
+        Chicken(db, world, 8, 8);
+        sim.Run(Second * 40);
         Assert.Equal(0, goblin.HungerNeed);
+    }
+
+    [Fact]
+    public void AGoblinStandingInABirdlessHatcheryDoesNotEnterTheChain()
+    {
+        // Hunger_TryToEat runs the finder before state 91, so the room helper's
+        // already-inside shortcut is never reached for an empty room.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Floor(world, 1, 1, 10, 10);
+        Hatchery(db, world, 6, 6, 3, 3, Keeper);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 7));
+        MakeHungry(goblin);
+        Simulation(db, world).Run(Second * 3);
+
+        Assert.Equal(CreatureActivity.Idle, goblin.Activity);
+        Assert.Equal(1, goblin.HungerNeed);
     }
 
     [Fact]
     public void TheGoblinWillNotWalkToAHatcheryThatHoldsNothingAtAll()
     {
-        // The original's gate is the room's OBJECT LIST rather than its flock,
-        // and the room dump names that field. A coop satisfies it, so this rules
-        // out exactly one thing: a hatchery too small to earn a coop, which can
-        // therefore never lay. Walking to one would be walking somewhere food
-        // will never appear.
         GameDatabase db = Db;
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 167;
+    private const int FormatVersion = 169;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -126,12 +126,14 @@ public static class WorldSnapshot
             w.Write(t.EntranceIdleTicks);
             w.Write(t.EntranceCreaturesGenerated);
             w.Write(t.HatchTicks);
+            w.Write(t.ChickensGenerated);
             w.Write(t.PitFightSeenTick);
             w.Write(t.PrisonDoor);
             w.Write(t.SlabOrder);
             w.Write(t.RoomSizeChangedTick);
             w.Write(t.RoomRuined);
             w.Write(t.RoomHealthLost);
+            w.Write(t.KeptManaGain);
             w.Write(t.TaggedBy);
             w.Write(t.DiscoveredBy);
             w.Write(t.FreshlyDug);
@@ -242,6 +244,8 @@ public static class WorldSnapshot
             w.Write(c.PosY);
             w.Write(c.Heading);
             w.Write(c.RouteOptions);
+            w.Write(c.HeartTargetPlayerId);
+            w.Write(c.DeathShotFired);
             w.Write(c.GoldHeld);
             w.Write(c.CasinoBigWinnerTicks);
             w.Write(c.Health);
@@ -469,6 +473,15 @@ public static class WorldSnapshot
             w.Write(o.ProcessDeadline);
             w.Write(o.ProcessCount);
             w.Write(o.ProcessEnding);
+            w.Write(o.Health);
+            w.Write(o.PosX);
+            w.Write(o.PosY);
+            w.Write(o.RollX);
+            w.Write(o.RollY);
+            w.Write(o.RollSpeed);
+            w.Write(o.Wear);
+            w.Write(o.RollSignX);
+            w.Write(o.RollSignY);
         }
 
         w.Write(world.ActionPoints.Count);
@@ -667,12 +680,14 @@ public static class WorldSnapshot
                 EntranceIdleTicks = r.ReadInt32(),
                 EntranceCreaturesGenerated = r.ReadInt32(),
                 HatchTicks = r.ReadInt32(),
+                ChickensGenerated = r.ReadInt32(),
                 PitFightSeenTick = r.ReadInt64(),
                 PrisonDoor = r.ReadByte(),
                 SlabOrder = r.ReadInt32(),
                 RoomSizeChangedTick = r.ReadInt64(),
                 RoomRuined = r.ReadBoolean(),
                 RoomHealthLost = r.ReadInt32(),
+                KeptManaGain = r.ReadByte(),
                 TaggedBy = r.ReadUInt16(),
                 DiscoveredBy = r.ReadUInt16(),
                 FreshlyDug = r.ReadBoolean(),
@@ -773,6 +788,8 @@ public static class WorldSnapshot
                 PosY = r.ReadInt32(),
                 Heading = r.ReadInt32(),
                 RouteOptions = r.ReadInt32(),
+                HeartTargetPlayerId = r.ReadByte(),
+                DeathShotFired = r.ReadBoolean(),
                 GoldHeld = r.ReadInt32(),
                 CasinoBigWinnerTicks = r.ReadUInt16(),
                 Health = r.ReadInt32(),
@@ -1019,6 +1036,15 @@ public static class WorldSnapshot
                 ProcessDeadline = r.ReadInt64(),
                 ProcessCount = r.ReadByte(),
                 ProcessEnding = r.ReadBoolean(),
+                Health = r.ReadInt32(),
+                PosX = r.ReadInt32(),
+                PosY = r.ReadInt32(),
+                RollX = r.ReadInt32(),
+                RollY = r.ReadInt32(),
+                RollSpeed = r.ReadInt32(),
+                Wear = r.ReadInt32(),
+                RollSignX = r.ReadSByte(),
+                RollSignY = r.ReadSByte(),
             });
         }
 

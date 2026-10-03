@@ -271,6 +271,140 @@ public class RoomNeedMessageTests
         Assert.Null(GoblinFindsNoLair(reachable));
     }
 
+    // ---- the Hatchery finder (0x004DED00) ------------------------------------------------
+
+    private static PlayerMessage? GoblinFindsNoHatchery(WorldState world, int ticksBefore = 0)
+    {
+        CreatureState goblin = world.SpawnCreature(Db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
+        CreatureDef definition = Db.CreatureById(goblin.CreatureTypeId);
+        PlayerMessage? posted = null;
+        var sim = new GameSimulation(Db, world, 1, [new Probe(c =>
+        {
+            if (c.Tick.Value == ticksBefore) posted = RoomNeedRules.NoHatcheryFor(c, goblin, definition);
+        })]);
+        sim.Run(ticksBefore + 1);
+        return posted;
+    }
+
+    private static void Put(WorldState world, byte objectId, int x, int y) =>
+        world.SpawnObject(Db, objectId, Keeper, (y * world.Width) + x);
+
+    /// <summary>A one-tile Hatchery at (3, 3), reachable, holding no chicken, stamped at tick 0, that
+    /// has laid <paramref name="laid"/> eggs.</summary>
+    private static WorldState WithAnEmptyHatchery(int laid = 1)
+    {
+        WorldState world = World();
+        Availability(world, RoomTypeId.Hatchery, 3);
+        Room(world, RoomTypeId.Hatchery, 3, 3);
+        world.Tile(3, 3).ChickensGenerated = laid;
+        return world;
+    }
+
+    [Fact]
+    public void NoHatcheryAsksForOneAtAvailabilityThreeAndNothingOtherwise()
+    {
+        WorldState world = World();
+        Availability(world, RoomTypeId.Hatchery, 3);
+        PlayerMessage needed = GoblinFindsNoHatchery(world)!.Value;
+        Assert.Equal((PlayerMessageKind.RoomNeeded, RoomTypeId.Hatchery, 4, 0), (needed.Kind, needed.Room, needed.Data1, needed.Data2));
+
+        WorldState researchable = World();
+        Availability(researchable, RoomTypeId.Hatchery, 2);
+        Assert.Null(GoblinFindsNoHatchery(researchable));
+        Assert.Empty(researchable.Messages.Entries);
+    }
+
+    [Fact]
+    public void AReachableHatcheryWithAChickenIsTheFindersChoiceAndPostsNothing()
+    {
+        WorldState world = WithAnEmptyHatchery();
+        Put(world, HatcheryRules.ChickenObjectId, 3, 3);
+        Assert.Null(GoblinFindsNoHatchery(world, ticksBefore: (4 * Second) + 1));
+        Assert.Empty(world.Messages.Entries);
+    }
+
+    [Fact]
+    public void AnEmptyHatcheryPostsFullOnlyStrictlyMoreThanFourSecondsAfterItsLastSizeChange()
+    {
+        Assert.Null(GoblinFindsNoHatchery(WithAnEmptyHatchery(), ticksBefore: 4 * Second));
+        PlayerMessage full = GoblinFindsNoHatchery(WithAnEmptyHatchery(), ticksBefore: (4 * Second) + 1)!.Value;
+        Assert.Equal((PlayerMessageKind.RoomFull, RoomTypeId.Hatchery), (full.Kind, full.Room));
+
+        WorldState rebuilt = WithAnEmptyHatchery();
+        rebuilt.Tile(3, 3).RoomSizeChangedTick = 10;
+        Assert.Null(GoblinFindsNoHatchery(rebuilt, ticksBefore: (4 * Second) + 10));
+    }
+
+    [Fact]
+    public void AnEmptyHatcheryThatHasNeverLaidPostsNothingHoweverLongItHasStood()
+    {
+        Assert.Null(GoblinFindsNoHatchery(WithAnEmptyHatchery(laid: 0), ticksBefore: 60 * Second));
+    }
+
+    [Fact]
+    public void ACoopDoesNotStockAHatcheryNorAsInferredFromTheAddersFoundDoesAnEgg()
+    {
+        WorldState world = WithAnEmptyHatchery();
+        Put(world, HatcheryRules.CoopObjectId, 3, 3);
+        Put(world, HatcheryRules.EggObjectId, 3, 3);
+        PlayerMessage full = GoblinFindsNoHatchery(world, ticksBefore: (4 * Second) + 1)!.Value;
+        Assert.Equal((PlayerMessageKind.RoomFull, RoomTypeId.Hatchery), (full.Kind, full.Room));
+    }
+
+    [Fact]
+    public void AStockedHatcheryNoRouteReachesPostsUnreachableBeforeAnEmptyOnesFull()
+    {
+        WorldState world = WithAnEmptyHatchery();
+        Room(world, RoomTypeId.Hatchery, 9, 8); // in the rock, no way in
+        Put(world, HatcheryRules.ChickenObjectId, 9, 8);
+        PlayerMessage unreachable = GoblinFindsNoHatchery(world, ticksBefore: (4 * Second) + 1)!.Value;
+        Assert.Equal((PlayerMessageKind.RoomUnreachable, RoomTypeId.Hatchery), (unreachable.Kind, unreachable.Room));
+
+        WorldState emptyOnly = World();
+        Availability(emptyOnly, RoomTypeId.Hatchery, 3);
+        Room(emptyOnly, RoomTypeId.Hatchery, 9, 8);
+        Assert.Null(GoblinFindsNoHatchery(emptyOnly, ticksBefore: (4 * Second) + 1));
+    }
+
+    [Fact]
+    public void AHungryGoblinWithNoHatcheryPostsOneRetainedRequest()
+    {
+        WorldState world = World();
+        Availability(world, RoomTypeId.Hatchery, 3);
+        CreatureState goblin = world.SpawnCreature(Db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
+        goblin.HungerNeed = 1;
+        new GameSimulation(Db, world, 1, [new CreatureEatSystem()]).Run(5 * Second);
+
+        PlayerMessage needed = Assert.Single(world.Messages.Entries);
+        Assert.Equal((PlayerMessageKind.RoomNeeded, RoomTypeId.Hatchery, false), (needed.Kind, needed.Room, needed.Handled));
+    }
+
+    [Fact]
+    public void LayingCountsEachEggOnTheRoomAndATileThatLeavesItDropsTheCount()
+    {
+        WorldState world = World();
+        Room(world, RoomTypeId.Hatchery, 3, 3);
+        RoomInstance hatchery = RoomIndex.Build(world, Db).Single(r => r.Definition.TypeId == RoomTypeId.Hatchery);
+        HatcheryRules.TryLayEgg(world, Db, hatchery, new SimRandom(1));
+        Assert.Equal(1, HatcheryRules.ChickensGenerated(world, hatchery));
+
+        ref TileState tile = ref world.Tile(3, 3);
+        byte terrain = tile.TerrainId, owner = tile.OwnerPlayerId;
+        RoomRules.Place(Db, ref tile, Db.Room(RoomTypeId.Lair), Keeper);
+        SlabChain.Changed(world, Db, (3 * world.Width) + 3, terrain, owner);
+        Assert.Equal(0, world.Tile(3, 3).ChickensGenerated);
+    }
+
+    [Fact]
+    public void TheEggCountIsHashedAndSurvivesASnapshot()
+    {
+        GameSimulation a = new(Db, World(), 1), b = new(Db, World(), 1);
+        a.World.Tile(1, 1).ChickensGenerated = 3;
+        Assert.NotEqual(a.StateHash(), b.StateHash());
+        GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(a), Db, []);
+        Assert.Equal((3, a.StateHash()), (copy.World.Tile(1, 1).ChickensGenerated, copy.StateHash()));
+    }
+
     // ---- the size-change stamp, room+0x9F ------------------------------------------------
 
     [Fact]

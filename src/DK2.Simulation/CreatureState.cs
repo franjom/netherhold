@@ -215,6 +215,10 @@ public enum CreatureActivity
     /// time; the timer <see cref="CreatureState.ChickenTicks"/>, not this state, keeps it out of
     /// fights (keeper-spell-inferno-chicken.md §3).</summary>
     Chicken = 35,
+
+    /// <summary>A Jack In The Box's Jack: DK2's state 273 (<see cref="JackInTheBoxRules.SpringState"/>),
+    /// walking to its victim's keeper's heart and wearing out on the way (jack-in-the-box.md).</summary>
+    JackInTheBox = 36,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -268,6 +272,13 @@ public sealed class CreatureState
     /// (<see cref="Navigation.MoveOptions"/>): its door bits stay with the creature, as
     /// <c>creature+0x3E6</c> bits 17–19 do, and drive every later re-request and wall probe.</summary>
     public int RouteOptions;
+
+    /// <summary>State 273's player, <c>+0x2F5</c> (the state's <c>+0xA7</c> word): whose heart the Jack
+    /// walks to. Written by process 39; zero on every other creature.</summary>
+    public byte HeartTargetPlayerId;
+
+    /// <summary>A Jack's death shot (65) has been made: DK2 makes it in the health routine that kills it.</summary>
+    public bool DeathShotFired;
 
     /// <summary>Gold in this creature's hands: mined into its own hands up to
     /// <see cref="Data.Model.CreatureDef.MaxGoldHeld"/>, carried to a place its
@@ -1022,6 +1033,8 @@ public sealed class CreatureState
         hash.Add(PosY);
         hash.Add(Heading);
         hash.Add(RouteOptions);
+        hash.Add(HeartTargetPlayerId);
+        hash.Add(DeathShotFired);
         Body.HashInto(ref hash);
         hash.Add(GoldHeld);
         hash.Add(CasinoBigWinnerTicks);

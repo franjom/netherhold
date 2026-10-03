@@ -351,10 +351,10 @@ Which rooms have behaviour, and which are inert terrain their owner holds:
 
 **Mana income is territory**, and no code says so. Three terrain types out of 41
 pay anything, and they are exactly the ownable non-room ones — so claiming ground
-raises income, losing it lowers it, and building a room on your own floor takes
-that floor off the payroll, all without a rule about claiming, losing or
-building. `scenarios/mana/land_pays_a_keeper.yaml` shows the last of those: the
-rate falls from 38/s to 35/s when three of eight claimed tiles become a treasury.
+raises income and losing it lowers it, without a rule about claiming or losing.
+Building a room on your own floor does not lower it: DK2's rate word keeps the
+floor's 1 under a built room (`TileState.KeptManaGain`, ADR-0334), and
+`scenarios/mana/land_pays_a_keeper.yaml` reads 38/s before its treasury.
 
 Spells spend mana (`KeeperSpellSystem`); a falling heart ends the level through
 `DungeonHeartSystem` (ADR-0162). Evidence: `docs/research/mana.md`.

@@ -28,7 +28,7 @@ were answered by the owner from playing the original.
 | Claimed Path 1, Reinforced Wall 1, Claimed Vault 100 | **CONFIRMED** — `dk2tools kwd terrainmana` against the install |
 | The unit is per second | **STRONGLY INFERRED** — `MaximumManaGainPerSecond` caps the total, and a cap shares the unit of the thing it caps |
 | Only tiles the player *owns* pay them | **STRONGLY INFERRED** — all three paying terrains are `Ownable`, and the unclaimed forms pay nothing |
-| A room tile pays nothing, so building costs income | **CONFIRMED** — `ManaGain` is 0 on all 26 room terrains |
+| A room tile pays its terrain's 0, but a room built over claimed floor keeps the floor's 1 | **CONFIRMED (binary + Level 3 capture, ADR-0334)** — `ManaGain` is 0 on all 26 room terrains, and `Tile_SetTerrain`'s adjustment (`0x00455B90`) is skipped when a Room is on either side, so the rate word keeps the floor's 1; the capture's word counts every room tile the keeper built and none the map laid |
 | A dungeon heart pays its keeper a flat 30 a second | **STRONGLY INFERRED** — the variable is named for it, and the per-heart/per-tile ambiguity is dissolved by the one-heart rule below |
 | **A keeper has at most one dungeon heart, ever, and losing it is defeat** | **CONFIRMED** — observed in the original; the ROOMS record agrees from its side, the heart being unbuildable |
 | **A keeper's mana ceiling is 200000 from the first second and never moves** | **CONFIRMED** — observed in the original (Q37, Q37a) |
@@ -37,7 +37,7 @@ were answered by the owner from playing the original.
 | **The gain cap is `MaximumManaGainPerSecond` = 500 as displayed** | **CONFIRMED for skirmish** (owner, 2026-09-06: regen sat at +500) — **CONTRADICTED for My Pet Dungeon** (owner, same day: +1400 and more), and **no level's VARIABLES overrides it** (all 66 files read). Mechanism UNKNOWN; see the last section and Q199 |
 | An imp costs its keeper 7 mana a second | **CONFIRMED** (owner, 2026-08-30, Q53) — four imps read −28 on the orb, five read −35 |
 | Mana is paid once a game second rather than smoothly | **OURS, not DK2's** (ADR-0017) — invisible in totals, visible only in the shape of the counter |
-| `TerrainDef.MaxManaGain` and `DungeonHeartMaxManaIncrease` are **not** ceiling contributions | **CONFIRMED by elimination** (Q37a) — the ceiling never moves, so nothing can contribute to it. What they *are* has no candidate left; both are read by nothing |
+| `TerrainDef.MaxManaGain` and `DungeonHeartMaxManaIncrease` are **not** ceiling contributions | **CONFIRMED** (Q37a) — the ceiling never moves. `MaxManaGain` is read after all: `Tile_SetOwner` (`0x004559D0`) adds it to the owner's gain-cap word `+0x10DE` beside the gain, so a Claimed Vault raises its keeper's income cap by 100 a tile (ADR-0334); `DungeonHeartMaxManaIncrease` is still read by nothing |
 | What the original does when a keeper cannot pay its imps | **UNKNOWN** (Q57) — ours floors mana at zero and carries on |
 | What defeat does when a heart falls | **ANSWERED, NOT BUILT** (Q40) — the owner has described it; scheduled with objectives at M6 |
 
@@ -99,15 +99,31 @@ written:
   heard of claiming.
 - **Losing land loses the income with it**, immediately, because the sum is over
   what is owned right now rather than over a running total.
-- **Building a room on your own floor costs you income**, because room terrain
-  pays zero. A keeper who paves their whole dungeon has no mana, and nothing
-  anywhere implements that as a rule: it is a consequence of two data tables
-  agreeing.
+- **Building a room on your own floor does not cost you income** — a correction
+  (ADR-0334). Room terrain pays zero, but DK2 keeps the rate as a running word,
+  `player+0x10E2`, moved by two routines: `Tile_SetOwner` (`0x004559D0`) hands
+  the tile's *current* terrain's `ManaGain` from the old owner to the new, and
+  `Tile_SetTerrain`'s adjustment (`0x00455B90`) swaps the old terrain's gain for
+  the new one's only when **neither is a Room**. A room laid over claimed floor
+  therefore keeps the floor's 1 on the books; a room the map laid, the heart and
+  the portal pay 0 (they were owned with their room terrain); a room taken by a
+  rival hands the rival 0, and the old owner goes on paying for it. The Level 3
+  capture's word reads `claimed + reinforced + every room tile the keeper built`
+  less its upkeep, to the tile, with the heart's 25 and the portal's 9 at 0. A
+  bridge laid over water or lava adds 1 - to the tile's tag at that moment,
+  which is the neutral player's, so no keeper gains it; its removal debits the
+  builder. Ours keeps the floor's gain on the tile (`TileState.KeptManaGain`)
+  and clears it when the tile changes hands; the old owner's leftover, the
+  bridge's neutral 1 and a map-laid or captured room's 0 after it is sold are
+  not mirrored (Q521).
+- **The word carries the upkeep too.** The imp and trap registrations
+  (`0x004C1AE0`–`0x004C1B90`) take their upkeep off `+0x10E2` as they put it on
+  the drain, which is why the once-a-second payment adds the upkeep back before
+  the cap and takes it off after (`0x004C10E0`): the cap sits over the gross.
 
-That last one is the mana scenario's whole point
-(`scenarios/mana/land_pays_a_keeper.yaml`): the reported rate falls from 38/s to
-35/s when three of eight claimed tiles become a treasury, and no rule in the
-codebase knows a treasury was involved.
+The mana scenario (`scenarios/mana/land_pays_a_keeper.yaml`) pins the 38/s
+before its treasury; the free imps' claims move the later rate, so the kept
+floor is pinned by `ManaTests` rather than by the scenario.
 
 ### The dungeon heart's thirty
 
@@ -129,8 +145,8 @@ acquire a second — asserted against the install in
 `ADungeonHeartCannotBeBuilt_WhichIsWhyAKeeperOnlyEverHasOne`.
 
 Note what the 30 is *not*: heart terrain has a `ManaGain` of zero like every
-other room terrain, so the 30 belongs to the keeper and not to the tiles. Paving
-claimed floor into a heart therefore costs income exactly as any other room does.
+other room terrain, so the 30 belongs to the keeper and not to the tiles. A heart
+is laid by the map, never built, so its 25 tiles never kept a floor's 1 (ADR-0334).
 
 ### Why per second
 

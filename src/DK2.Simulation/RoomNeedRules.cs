@@ -8,10 +8,10 @@ using DK2.Simulation.Navigation;
 
 namespace DK2.Simulation;
 
-/// <summary>The room messages 41 to 43 posted where a Treasury or a Lair is looked for and not
-/// found: the gold carrier's store chooser, the gold a sale could not store and the Lair finder
-/// (computer-keeper-messages.md section 2). Each producer has its own gates; they are not one rule.</summary>
-/// <remarks>Not built here: the other room finders (Hatchery, Combat Pit, Graveyard, Library,
+/// <summary>The room messages 41 to 43 posted where a Treasury, a Lair or a Hatchery is looked for
+/// and not found: the gold carrier's store chooser, the gold a sale could not store, the Lair finder
+/// and the Hatchery finder (computer-keeper-messages.md section 2). Each producer has its own gates.</summary>
+/// <remarks>Not built here: the other room finders (Combat Pit, Graveyard, Library,
 /// Casino, Temple, Torture, Training, Workshop), the claim failure <c>0x004E5A70</c>, the rescue
 /// selector <c>0x0046D810</c> and <c>0x004BA420</c>'s callers other than the room sale.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-messages.md")]
@@ -101,6 +101,42 @@ public static class RoomNeedRules
                 return Post(context, player, PlayerMessageKind.RoomUnreachable, RoomTypeId.Lair);
 
         return fullAndSettled ? Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Lair) : null;
+    }
+
+    /// <summary>The Hatchery finder found none (<c>0x004DED00</c>), with Hatchery availability 3: no
+    /// Hatchery posts 41; else one holding a chicken that no route ignoring doors reaches posts 43;
+    /// else an empty one the respect-doors route reaches, that has laid an egg and is more than
+    /// <see cref="FullRoomGraceSeconds"/> past its last size change, posts 42. A reachable one holding
+    /// a chicken is one DK2 would have chosen. Data1 is Hatchery.</summary>
+    /// <remarks>DK2 withholds all three while a build or sale wave is queued (<c>0x004C7340</c>,
+    /// <c>0x004C7360</c>); as for the Lair, ours never has one queued between ticks.</remarks>
+    public static PlayerMessage? NoHatcheryFor(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        WorldState world = context.World;
+        byte player = creature.OwnerPlayerId;
+        if (world.Availability(player, RoomAvailabilityKind, (int)RoomTypeId.Hatchery) != Available) return null;
+
+        var hatcheries = RoomIndex.Build(world, context.Database)
+            .Where(r => EatingRules.IsHatcheryOf(r, player) && r.TileIndices.Count > 0).ToList();
+        if (hatcheries.Count == 0) return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Hatchery);
+
+        bool emptyAndSettled = false;
+        long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
+        foreach (RoomInstance hatchery in hatcheries)
+        {
+            if (!CanReachRoom(context, creature, definition, hatchery, MoveOptions.Loose)) continue;
+            if (EatingRules.HoldsAChicken(world, hatchery)) return null;
+            if (HatcheryRules.ChickensGenerated(world, hatchery) != 0
+                && world.CurrentTick.Value - SlabChain.SizeChangedTick(world, hatchery) > grace)
+                emptyAndSettled = true;
+        }
+
+        foreach (RoomInstance hatchery in hatcheries)
+            if (EatingRules.HoldsAChicken(world, hatchery)
+                && !CanReachRoom(context, creature, definition, hatchery, IgnoreDoors))
+                return Post(context, player, PlayerMessageKind.RoomUnreachable, RoomTypeId.Hatchery);
+
+        return emptyAndSettled ? Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Hatchery) : null;
     }
 
     /// <summary>The unreachable test's option word, 2: own locked doors passed, no door rule.</summary>

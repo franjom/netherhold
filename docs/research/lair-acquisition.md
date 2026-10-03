@@ -225,6 +225,15 @@ the §5 gate, both halves), `Capacity` (the room's tile count), `HasFreeSlot`,
 `ReleaseBed`, `BedStillValid`, `AsleepInOwnBed`, `WantsToSleep`,
 `HasSleptEnough`, and `IdleRedecisionTicks` (12).
 
+**ADR-0328.** The idle decision itself makes the attempt first, as state 89's step 5
+does (`idle-fallback.md` §1): `CreatureJobSystem.Choose` tries for a lair before the
+dropped job, the remembered job and either chooser, outside the chooser's gate. Until
+then only `CreatureSleepSystem`'s 12-tick retry did, and a creature that turned idle
+between the two systems rolled a job first; Level 3's Goblins trained bedless from
+arrival, reached `AngerNoLair`'s limit and left through the portal, where DK2's
+(capture slot 431: idle at 1756, state 89, then the lair walk at 1757) went for a bed
+before their first job.
+
 **Ours, and marked as such in the code:** the idle retry cadence (12 ticks); the
 arrival tile — room centre, where the original's travel-to-room step
 (`FUN_00471A70`, read in travel-states.md §2.2) walks to a random tile of the room,

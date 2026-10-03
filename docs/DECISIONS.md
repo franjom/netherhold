@@ -7121,6 +7121,103 @@ and may change fights. Measured on 1aa98db: both rigs identical per seed; the ni
 scenarios on trap levels diverge at their first mana payment (Level 17's keeper pays 95 more a
 second), and no scenario has a shot strike a trap or door.
 
+## ADR-0338 — A Troll, Thief, Rogue or Guard reveals an enemy's hidden traps around it
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `traps.md` §11; `combat-acquisition.md` §6; Q362, Q450
+
+**Context.** A trap with definition flag `0x20` starts hidden; firing with flag `0x2` clears it (built,
+ADR-0321). The creature update's third writer was unread: a creature whose definition has
+`RevealsAdjacentTraps` (the Troll, Thief, Rogue and Guard), on entering a new tile, reveals every
+hidden enemy trap on the nine tiles around it (`0x004AA110`) and sets its fight counter to 10. Of the
+bit's readers, the view (`0x004A9F10`) and the pick test (`0x004AA050`) are the local player's; two are
+possession's; one is the victim selector's scan D, which walks each hostile player's **trap** list
+(`player+0xC`, class 3) and admits only a completed, revealed trap other than trap 16. The computer
+keeper reads no hidden bit.
+
+**Decision.** `TrapRules.RevealAround` runs from the combat pass after the fight processing, as DK2's
+creature update does. No view: what a foreign keeper may see is the presentation's, and `KeeperView`
+keeps listing every trap, as DK2's keeper code tests no hidden bit. Scan D — creatures choosing a
+revealed trap as a victim, and the fight against it — is not built; Q362 is answered as traps.
+
+**Consequences.** No new state, no version bump. Prediction, written before measuring: Levels 1 and 2
+hold no traps, so the rigs stay identical; a scenario's events change only where a Troll, Thief, Rogue
+or Guard enters a tile beside an enemy's hidden trap, which then logs `trap_revealed` and may scan for a
+fight a tick earlier. Measured on b5a4e1f: every scenario's hash and events and every rig seed's events
+identical (L1 20/20, L2 7/20): no revealer meets a hidden enemy trap there.
+
+## ADR-0337 — The Jack In The Box springs a Jack that wears out walking to a heart and explodes
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `jack-in-the-box.md`; `traps.md` §12; Q450, Q524
+
+**Context.** Trap 16's shot runs process 39, which makes a creature in state 273; neither was read.
+Read now: process 39 (`0x004B02E0`), state 273 (`0x0046E820`), the travel state's and the health
+routine's arms for type `0x2E`, and trap 16's write of its target's tag into the shot's second
+data word, which the shot's own area damage then uses as its radius. That arithmetic is 32-bit
+(`0x004AC6D0`) and wraps from 12 tiles. Category 7 has no hooks. No shipped level places the trap.
+
+**Decision.**
+1. `JackInTheBoxRules` and `JackInTheBoxSystem` build process 39, state 273, the toll of a point a
+   tick standing or walking, fifty at the target tile, and the explosion (shot 65), once per Jack.
+2. A creature gains `HeartTargetPlayerId` (`+0x2F5`) and `DeathShotFired`.
+3. Trap 16 writes its target's creature id where DK2 writes its thing tag: we hold no thing slots,
+   so the first strike's reach is ours, not DK2's (named in the research doc).
+4. `ShotRules.AreaDamage` uses DK2's 32-bit arithmetic for every area shot.
+5. The Trigger fires trap 16 at its creature unseen (traps.md §9), which `Propagate` lacked.
+
+**Consequences.** New state, so `HashVersion` 165. Prediction, written before measuring: no shipped
+level places trap 16 and no shipped area shot reaches 12 tiles, so every scenario's events and every
+rig seed stay identical; 959 traps stay `FiringBuilt`. Measured on 1001b9a: all identical, event
+file for event file (L1 20/20, L2 7/20).
+
+## ADR-0333 — The Boulder rolls, strikes and wears as object process state 17
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 and ADR-0331 · Research: `boulder.md`; `traps.md` §12; Q450, Q513, Q520
+
+**Context.** The 97 shipped Boulder traps did not fire: their shot's process 22 makes object 74,
+and nothing modelled a moving object. Read now: process 22 (`0x004AEBD0`), object state 17
+(`0x004A1390`) with its strike, roll, step, four turn handlers and terrain wear, the blocked
+test `0x00453C10`, the floor height `0x004545C0`, and state 256, which jumps to 255's handler.
+Every constant is a shipped variable (157–162) or a definition field.
+
+**Decision.**
+1. `ObjectState` gains the header's `Health` (seeded from `Hp` for every object) and position,
+   and the Boulder's union: direction, speed, wear and the launch signs. `BoulderSystem` runs
+   state 17 after the shots and before the traps, DK2's class-list order.
+2. `ShotRules` runs process 22 through `BoulderRules.Launch`; `FiringBuilt` admits it.
+3. The strike's heart object is the owner's heart health at its centre tile; a trap the boulder
+   crosses fires at its position with no target thing, as no shot strikes an object here.
+4. State 256 is `StatusEffectRules.StunInto(256)`, counted down and ended as 255 is.
+5. Not built: a shot or a slap striking the boulder, creatures steering round it, the heading
+   and every effect. Ours orders a tile's things creatures first, then objects, heart, trap, door.
+
+**Consequences.** New state, so `HashVersion` 164. Prediction, written before measuring: all 959
+placed traps are `FiringBuilt` (955 fire, 4 Guard Posts gate); Levels 1 and 2 hold no traps, so the
+rigs stay identical per seed; of the 42 scenarios only those on Level 17 (player 4's Boulders at
+(10,20) and (13,16)) and Level 11A (nine) can change their events, and only if an enemy comes
+within three tiles of one in sight. Measured on aaebf56: 959 built; every scenario's event log and
+every L1/L2 seed's event file identical (L1 20/20, L2 7/20): no enemy meets those Boulders.
+
+## ADR-0332 — The alarm routes the Imp with the door bit and everyone else without
+**Date:** 2026-10-02 · **Status:** accepted · corrects ADR-0166 · Research: `combat-alarm.md` §2, §3; `guard-room.md` §6; Q517
+
+**Context.** The raiser `0x004752B0` (`0x0047542A`) and state 251's dispatch (`0x0047583F`)
+push `+0x36F == 1 ? 0x80 : 0` as the route word; `+0x36F` is the dumper's `TypeId` and 1 is
+the Imp. `FearRules.RaiseAlarm` and `RespondToThreat` had the reverse since ADR-0166. The
+Guard Post's report (`0x004A89B5`, ADR-0330) already had it right. Bit 7 is the cost
+function's door rule, and the word is kept in `CreatureState.RouteOptions`, which is hashed.
+
+**Decision.** Both `FearRules` sites push `MoveOptions.Loose` for the Imp and
+`MoveOptions.Plain` for anyone else, as the binary does. The raiser needs `JobClass` Scout,
+which the Imp is, and the dispatch skips workers, so in practice the raising Imp now respects
+doors and every responder ignores them.
+
+**Consequences.** No new state; the hash moves through `RouteOptions`, so `HashVersion` 163.
+Prediction, written before measuring: every run with an alarm changes its hash series from
+the first alarm on — of the 42 scenarios only `keepers-level17-harkan-call-to-arms-001`
+(an Imp's alarm at tick 79); of the rigs the L1 seeds 1–6, 11–15, 18 and 20 and the L2 seeds
+1, 3, 6, 7, 9, 10, 15, 16, 18 and 19, all raised by Imps. A route itself differs only where a
+foreign or locked door stands on it, so no rig outcome changes unless one does. Measured on
+51b13a4: every scenario's event log is identical and every rig seed's line too (L1 20/20, L2
+7/20, seeds 3, 6, 7, 9, 10, 16, 18): no alarm route there crosses a door. Every final hash moves
+with the version, which the hash folds in.
+
 ## ADR-0331 — The Alarm, Fear, Spike and Gas traps fire; the Boulder and the Jack In The Box wait
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0321 · Research: `shots.md` §7, §8; `traps.md` §12; Q395, Q450
 
@@ -7414,6 +7511,135 @@ with its stores filled and a floor pile, posts 42 at tick 10, grows its Treasury
 Unbuilt: the other finders' producers, the claim failure, the rescue selector,
 `0x004BA420`'s other callers, mood messages and the rest of the suppression words.
 
+## ADR-0325 — A Support creature surveys its attack spell while it recharges
+
+**Context.** On Level 3 our Warlocks threw one Fireball, then walked into the Thieves'
+melee for the 14 ticks the spell needed, fled at fear 60 and withdrew at a tenth of their
+health; two hurt Warlocks met the Lord of the Land, who survived to 3704 with 3,144 health
+where DK2's seed01 kills him at 3683. In the capture three Warlocks engage Thief 426 from
+3310 and it loses nothing to melee. `combat-acquisition.md` §6 read the survey's slot test
+as "castable, and for a Support also `0x00460C50`"; the decompile at `0x0045CCB2` reads
+`(FightStyle == 4 && 0x00460C50() == 0) || 0x0048C800() != 0`.
+
+**Decision.** `SpellRules.SurveyAttack(whileRecharging)` waives the recharge gate when
+`CombatTargetRules.SpellWhileRecharging` holds: a Support creature that `FearRules.Cornered`
+finds an escape tile for. All three survey callers pass it. The caster then keeps nibble 0
+and the spell's range² between casts, and the in-reach tick's cannot-cast path (§9–§10)
+has it stand or step back rather than close to melee. A cornered Support, and every other
+fight style, still needs the spell ready. Docs: `combat-acquisition.md` §6 corrected,
+`combat-spells.md` §5 extended; KB `0045CB00`, `00460C50` (new), `0048C800` (new).
+
+**Consequences.** Test `AWarlockWhoseFireballIsRechargingKeepsTheSpellAndStandsOff…`. The
+rule is RNG-free; the hash pin is unchanged. Level 3 seed01: the Warlocks now cast 17
+times for 12 shots with 33 step-backs and two withdrawals (six, three and five before), but
+the Lord still stands at 3704 with 5,001 health: ours hits him with traps and Imps while
+DK2's Trolls land 500 a blow and he is stunned — the next lead. Rigs: L1 20/20 unchanged,
+L2 6/20 (7/20; different seeds win). The waiver precedes the slot's flag read, so in DK2 it
+covers a thing-targeting slot too (not built); the friendly arm re-tests the recharge and is
+not waived. Unread: whether the fight-starter's melee retry for a Support (`0x0045A550`)
+ever reaches a Warlock in play.
+
+## ADR-0328 — The idle decision tries for a lair before any job, as state 89 does
+
+**Context.** Level 3 seed01: our Goblins (arrivals 1667, 1899) trained bedless from the
+tick they landed, carried `AngerNoLair` to its limit and left through the portal at 3272
+and 3572, their anger log naming Lair as the only term; in the capture
+(`reverse-engineering/dk2runs/level3-live1/seed01/level3.dk2cap`, a capture reading) the
+Goblins 431 and 433 go idle after their first fight, pass through state 89 and walk to
+the Lair before any job (431: idle 1756, 89 at 1757, travel 1758), stay, reach 2,250
+health, and stand beside the Lord of the Land as he dies at 3683. State 89 (`0x004778E0`,
+`idle-fallback.md` §1, CONFIRMED) runs the lair attempt `0x0046F390` as its step 5, before
+the dropped job, the remembered job and the happy chooser. Ours made that attempt only in
+`CreatureSleepSystem`, on a 12-tick retry timer and only while idle; a creature that turned
+idle between that system and `CreatureJobSystem` — out of a hand drop's stun, or a fight —
+rolled a job first, and the unhappy chooser's attempt sat inside its five-second gate.
+
+**Decision.** `CreatureJobSystem.Choose` makes the attempt first, for every mood and
+outside the gate, immediately after the Call to Arms arm; the unhappy chooser's duplicate
+is removed. The sleep system's tired-and-bedless attempt stays. Docs:
+`lair-acquisition.md` §7; KB `004778E0`.
+
+**Consequences.** Two tests in `LairAcquisitionTests` (content; unhappy inside its gate).
+RNG-free and stateless, no `HashVersion` change; a success skips that tick's roll, so every
+replay with a bedless idle creature shifts. Level 3 seed01: no Goblin leaves, the Lord is
+fought in the corridor at (24,22)–(26,25) from 3564 as DK2's is, and stands at 3704 with
+2,656 health (5,001 before; DK2 kills him at 3683) — then, with the replay's entity map
+corrected (its party rule had shadowed the placed Lord from turn 2, so the player's six
+Thunderbolts on him were refused as a missing creature), **Level 3 seed01 is won at 3680**,
+DK2's 3683; five of the player's later Thunderbolts are still refused for mana (6,000 each)
+that DK2's keeper had. Rigs: L1 20/20 with every win tick
+moved (1764–1984), L2 6/20 (seeds 7, 9, 10, 15, 18, 19; 6/20 before on other seeds).
+
+## ADR-0334 — A room built over claimed floor keeps the floor's mana, as DK2's rate word does
+**Date:** 2026-10-02 · **Status:** accepted · Research: `mana.md`, KB `004559D0`, `00455B90`; Q521
+
+**Context.** Level 3 seed01 after ADR-0328: the player's Thunderbolts from 3559 are refused for
+mana (6,000 each) while DK2 casts fourteen. The capture's player record reads the keeper's
+mana (`+0x82`): 81,002 at 3490 against our 51,000. Its rate word `+0x10E2` fits the capture's
+own tiles exactly, at every sample from tick 4 to 3490: `word + imp and trap upkeep = claimed
+path + reinforced wall + every room tile the keeper built`, with the heart's 25 and the
+portal's 9 counting 0. Ours paid nothing for room tiles — a `ManaGain` of 0 on all 26 room
+terrains, read as "building costs income" since ADR-0017. The binary says why the data
+disagrees: the word is a running sum. `Tile_SetOwner` (`0x004559D0`) moves the tile's current
+terrain's `ManaGain` (and its `MaxManaGain` into the cap word `+0x10DE`) between owners, and
+`Tile_SetTerrain`'s adjustment (`0x00455B90`) swaps the old terrain's gain for the new one's
+only when neither is a Room; a bridge laid adds 1 to the tile's tag of the moment — the neutral
+player's, over water or lava — and a bridge removed takes 1 from its builder. So a room over
+claimed floor keeps the floor's 1, a room the map laid pays 0, a captured room hands its
+captor 0 and leaves the old owner paying. The word also carries the upkeep (the imp and trap
+registrations take it off), which is why the payment `0x004C10E0` adds the upkeep back before
+the cap and removes it after: `min(cap, gross + 30) − upkeep`, as `ManaRules.ApplyOneSecond`
+already paid. An earlier reading of that payment as "the upkeep cancels" was withdrawn by the
+same fit.
+
+**Decision.** `TileState.KeptManaGain`: `RoomRules.Place` records the covered floor's
+`ManaGain` when the builder owned the tile (a room over a room keeps the earlier value), and every
+owner change clears it (`TileWorkRules`' conversion, the room-convert spread, defeat).
+`ManaRules.GainPerSecond` adds it on room tiles; `GainPerSecondByPlayerIndex` raises the cap by
+the owned tiles' `MaxManaGain`. Setup rooms and the tests' map hearts keep 0. Not mirrored (Q521): the
+old owner's leftover for a lost room tile, a map-laid or captured room's 0 once sold, a rival's
+room over foreign floor, the bridge's neutral 1, and the cap bonus following the current terrain
+rather than the owner-change; the kept value is a byte (a vault's 100 fits). Docs:
+`mana.md`, `terrain-room-dump.md`, `hash-versions.md`; KB `004559D0` and `00455B90` (new),
+`0044FC40`, `004C10E0`.
+
+**Consequences.** HashVersion and FormatVersion 165 (163 and 164 are branch m7/close's), pin `0x3112DA3F61990DB7`. Tests:
+`ARoomBuiltOnClaimedFloorKeepsTheFloorsIncome…`, `ARoomTileTakenByARivalPaysTheRivalNothing`,
+the vault cap in `IncomeIsCappedAtMaximumManaGainPerSecond`; the scenario
+`land_pays_a_keeper` reads 38/s before and after its treasury. Measured: Level 3 seed01's keeper now holds 9,547 mana at 800 (DK2 9,405), 12,771 at 1200 (10,662),
+70,662 at 2800 (32,553) and 96,675 at 3490 (81,002) — the mid-game surplus is territory, ours
+claiming and building faster between 2000 and 2400 (gross 316 against 241 a second) and slower after
+3200 (395 against 421); all six Create Imps and thirteen Thunderbolts are paid, and the level is won
+at 3648 (DK2 3683). Rigs: L1 20/20 with every tick identical; L2 7/20 (seed 3 joins at 3616; the
+other six within 20 ticks of before).
+
+## ADR-0335 — The Hatchery finder posts 41–43, and a coop does not stock a hatchery
+**Date:** 2026-10-02 · **Status:** accepted · `HashVersion` 166 · Q522 ·
+Research: `computer-keeper-messages.md` §2, `hatchery.md` §3, record `0x004DED00`
+
+**Context.** ADR-0327 left the Hatchery finder's messages unbuilt. Re-reading `0x004DED00`
+showed its stocked test is the room's `ObjectList` (`+0x0C`), where coops are not (they are
+on `+0x0E`), and that 42 also needs `ChickensGenerated` (`+0x51`), which nothing modelled.
+`EatingRules.HoldsAnyObject` counted coops, so a birdless hatchery was walked to and 42
+could not fire for any hatchery of six tiles or more.
+
+**Decision.**
+- `EatingRules.HoldsAChicken` is the stocked test, for the walk and the messages alike.
+- `TileState.ChickensGenerated` is `room+0x51` on the lowest tile, as `HatchTicks` is:
+  `HatcheryRules` counts each egg, and `SlabChain.Changed` drops it from a changed tile.
+- `CreatureEatSystem` runs its finder before the already-inside shortcut, as
+  `Hunger_TryToEat` does, and a failure calls `RoomNeedRules.NoHatcheryFor` (41, 43 by an
+  ignore-doors route, 42 for an empty reached room that has laid, past four seconds).
+  `KeeperRoomRequests` answers 41 and 42 as for any room.
+
+**Deviations, ours.** As ADR-0327: no pending-wave gate, and DK2's route tests beside our
+finder's own choice, which measures to the room's centre where DK2 measures to its first
+slab. The count lives on the lowest tile, so growth past that tile or a merge loses it (Q522).
+
+**Consequences.** Hash/format 166, pin `0x32B476C1ECE5CC30`. A hungry creature no longer
+walks to, or waits in, a hatchery holding only coops and eggs. In a test world a keeper
+answers a hungry creature's 41 with a Hatchery, and policy 0 answers an empty one's 42 by growing it.
+
 ## ADR-0336 — A room has one health, and a conversion beats the whole of it down
 **Date:** 2026-10-02 · **Status:** accepted · amends ADR-0044 · Research: `room-health.md`; Q500, Q92
 
@@ -7454,6 +7680,10 @@ first work against 17 or 18 (DK2's capture: 24). Level 1 stays 20/20 with its wi
 Level 2 goes from 7/20 (3, 6, 7, 9, 10, 16, 18) to 3/20 (7, 9, 19), each change downstream of
 that takeover. Nine scenarios move, each first at a portal's or a bridge's conversion; Level
 11A's call lands in another drawn diagonal off the heart, and its pin follows.
+Re-measured after merging master cb72d01 (`HashVersion` 169, against cb72d01 itself): every rig
+seed and all nine moved scenarios still diverge first at that conversion; Level 1 is 19/20 (seed
+13 reaches turn 2044 still fighting the Lord, who dies at 1940 on master) and Level 2 goes from
+7/20 (3, 7, 9, 10, 15, 18, 19) to 4/20 (1, 7, 10, 18).
 
 ## ADR-0339 — Heroes knock rooms down tile by tile; repair is built and never started
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0336 · Research: `room-health.md` §4–7; Q500, Q523, Q525
