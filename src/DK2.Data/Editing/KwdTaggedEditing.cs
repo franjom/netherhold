@@ -111,7 +111,7 @@ public sealed partial class KwdLevelFileSet
 
     private static IEnumerable<KwdTriggerId> Roots(object row)
     {
-        if(RootTrigger(row) is ushort root) yield return new KwdTriggerId(root);
+        if(RootTrigger(row) is KwdTriggerId root) yield return root;
         if(row is HeroPartyThing party)
             foreach(GoodCreatureThing member in party.Members) yield return new KwdTriggerId(member.TriggerId);
     }

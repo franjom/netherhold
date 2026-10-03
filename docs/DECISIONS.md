@@ -7844,5 +7844,6 @@ and lengths; new trigger roots must resolve uniquely in a complete level set.
 Trigger insertion is limited to fresh detached nodes, and deletion to uniquely
 identified nodes without incoming tree links or roots. Complete manifest context
 is required; generic/action counts are updated separately. Existing trees remain
-unchanged, with no graph-rewiring API. Map resizing is pending.
+unchanged, with no graph-rewiring API. Map resizing retains overlapping
+coordinates and requires an explicit fill image for new tiles.
 No editor UI or playability validation is built.

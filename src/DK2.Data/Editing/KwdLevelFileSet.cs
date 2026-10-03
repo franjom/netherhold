@@ -134,11 +134,11 @@ public sealed partial class KwdLevelFileSet
         return current;
     }
 
-    private static ushort? RootTrigger(object row) => row switch
+    private static KwdTriggerId? RootTrigger(object row) => row switch
     {
-        ObjectThing r=>r.TriggerId, DoorThing r=>r.TriggerId, ActionPointThing r=>r.TriggerId,
-        NeutralCreatureThing r=>r.TriggerId, GoodCreatureThing r=>r.TriggerId, KeeperCreatureThing r=>r.TriggerId,
-        HeroPartyThing r=>r.TriggerId, PlayerDef r=>r.TriggerId, LevelDef r=>r.TriggerId,
+        ObjectThing r=>new(r.TriggerId), DoorThing r=>new(r.TriggerId), ActionPointThing r=>new(r.TriggerId),
+        NeutralCreatureThing r=>new(r.TriggerId), GoodCreatureThing r=>new(r.TriggerId), KeeperCreatureThing r=>new(r.TriggerId),
+        HeroPartyThing r=>new(r.TriggerId), PlayerDef r=>new(r.TriggerId), LevelDef r=>new(r.TriggerId),
         _=>null,
     };
 

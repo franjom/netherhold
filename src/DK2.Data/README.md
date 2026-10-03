@@ -87,7 +87,11 @@ id and no tree links. `RemoveTrigger` refuses nodes referenced by next/child
 links or by LEVEL, PLAYERS, THINGS and hero-party member roots. Both require a
 complete LEVEL file set and update the separate generic/action counts.
 Existing trees are retained; graph rewiring remains outside this API.
-MAP resizing is still pending.
+`ReadMap` and `RepaintMap` use `KwdChunkLocation` and `TilePos`.
+`ResizeMap` takes `KwdMapDimensions` and an explicit four-byte fill image.
+It retains overlapping coordinates, fills new cells from that image, and rewrites
+width, height and container lengths. Resizing does not relocate placed entities.
+The API does not validate level playability.
 
 ## WAD archives and saved games
 

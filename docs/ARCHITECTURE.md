@@ -25,7 +25,7 @@ DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding  │
 |---|---|
 | `DK2.Core` | primitives, no game rules: `Fp32`, `GameTick`, `TilePos`, `Hash64`, `SimRandom`, `Confidence`, `Dk2BehaviorAttribute` |
 | `DK2.Data.Model` | immutable definitions, no IO — the data/simulation seam |
-| `DK2.Data` | readers for the shipped files (WAD, KWD/KLD, STR, SDT, `.SAV`) |
+| `DK2.Data` | readers for WAD, KWD/KLD, STR, SDT and `.SAV`; KWD/KLD writers and level file-set editing |
 | `DK2.Simulation` | all game rules and all mutable state |
 | `DK2.Pathfinding` | the original's router (`NavMesh`, `MeshRouter`, `Funnel`); `GridPathfinder` survives as `TryFindNearest` (ADR-0155, ADR-0157) |
 | `DK2.Assets` | logical asset keys and their resolution (ADR-0034) |
