@@ -222,9 +222,9 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(201, "its handler 0x00484940 returns 0 (hero-party-walk.md); nothing in src/ enters it"));
         rows.Add(Built(202, typeof(CombatStates), nameof(CombatStates.Withdrawn)));
         rows.Add(Built(203, typeof(CombatStates), nameof(CombatStates.Fleeing)));
-        rows.Add(Unreachable(204, "Q455 (STRONGLY INFERRED): no instruction stores a non-zero trap id in creature +0x43D, which 204 tests first, and none enters 204 (traps.md §11)"));
-        rows.Add(Unreachable(205, "Q455 (STRONGLY INFERRED): entered only from 204, which cannot start (traps.md §11)"));
-        rows.Add(Unreachable(206, "Q455 (STRONGLY INFERRED): entered only from 205, after 204 (traps.md §11)"));
+        rows.Add(Unreachable(204, "Q455 (STRONGLY INFERRED): no fresh stock v1.70 game initiator found; restored saves are outside this scope (traps.md §11)"));
+        rows.Add(Unreachable(205, "Q455 (STRONGLY INFERRED): no fresh stock v1.70 game path from 204; restored saves are outside this scope (traps.md §11)"));
+        rows.Add(Unreachable(206, "Q455 (STRONGLY INFERRED): no fresh stock v1.70 game path from 205; restored saves are outside this scope (traps.md §11)"));
         rows.Add(Unbuilt(207, "not read"));
         rows.Add(Unbuilt(208, "not read"));
         rows.Add(Unbuilt(209, "not read"));

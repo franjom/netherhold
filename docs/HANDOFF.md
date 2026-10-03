@@ -17,7 +17,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap but the Boulder (ADR-0321,
   ADR-0331), the Guard Post (ADR-0330), trap upkeep and damage (ADR-0326) run;
-  disarming is unreachable in v1.70 (ADR-0329). Left: the Boulder's rolling object
+  disarming is deferred under ADR-0329's scoped inference (Q455). Left: the Boulder's rolling object
   74, the Jack In The Box's creature, the reveal, shot heights (traps.md; 2026-10-02).
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 16).
