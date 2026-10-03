@@ -94,3 +94,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
   end eats the seed and the replay desyncs on turn 1.
 - A doc's "all N records" counts one record type: "every hero has `DestroysRooms`" was true of
   trigger-created creatures and false of party members (825 of 4,545).
+- A clean unstaged diff checks no committed changes; run `git diff --check <base> HEAD` and `--cached` before committing new files.

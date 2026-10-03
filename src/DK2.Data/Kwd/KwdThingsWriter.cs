@@ -178,4 +178,3 @@ public static partial class KwdThings
         return image;
     }
 }
-

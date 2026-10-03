@@ -77,4 +77,3 @@ public static partial class KwdLevel
         if (value.Length < characters) { image[at + encoded.Length] = 0; image[at + encoded.Length + 1] = 0; }
     }
 }
-
