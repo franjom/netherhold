@@ -13,6 +13,7 @@ public readonly record struct KwdRecordLocation(string RelativePath, int ChunkIn
 public sealed partial class KwdLevelFileSet
 {
     private readonly Dictionary<string,KwdChunk[]> _files=new(StringComparer.OrdinalIgnoreCase);
+    private bool _editing;
     private KwdLevelFileSet() { }
     public IReadOnlyList<string> Files => _files.Keys.ToArray();
 
@@ -66,7 +67,7 @@ public sealed partial class KwdLevelFileSet
     public T ReadRecord<T>(KwdRecordLocation location)
     {
         KwdChunk chunk=Chunk(location);
-        IReadOnlyList<object> rows=KwdTypedRecords.Read(chunk);
+        IReadOnlyList<object> rows=KwdTypedRecords.Read(Clone(chunk));
         if((uint)location.RecordIndex>=(uint)rows.Count) throw new ArgumentOutOfRangeException(nameof(location));
         if(rows[location.RecordIndex] is not T row) throw new InvalidDataException("The requested typed record does not match the file image.");
         return row;
@@ -74,12 +75,18 @@ public sealed partial class KwdLevelFileSet
 
     public void EditRecord<T>(KwdRecordLocation location,Func<T,T> edit)
     {
+        RefuseNestedMutation();
         KwdChunk chunk=Chunk(location);
-        T original=ReadRecord<T>(location);
-        T changed=edit(original);
-        if(changed is null || changed.GetType()!=original!.GetType())
+        // Collections and raw slices can expose mutable backing storage.
+        // Keep the validation baseline separate from the callback's projection.
+        T baseline=ReadRecord<T>(location);
+        T changed;
+        _editing=true;
+        try { changed=edit(ReadRecord<T>(location)); }
+        finally { _editing=false; }
+        if(changed is null || changed.GetType()!=baseline!.GetType())
             throw new InvalidDataException("A typed edit must retain its record type.");
-        RefuseReferenceChanges(original,changed);
+        RefuseReferenceChanges(baseline,changed);
         var images=KwdRecordRoundTrip.Split(chunk);
         KwdRecordImage template=images[location.RecordIndex];
         images[location.RecordIndex]=new KwdRecordImage(chunk.Type,KwdTypedRecords.Write(changed,template,chunk),template.Tag);
@@ -107,7 +114,16 @@ public sealed partial class KwdLevelFileSet
         return chunks[location.ChunkIndex];
     }
 
-    private void Replace(KwdRecordLocation location,KwdChunk chunk) => FileChunks(location.RelativePath)[location.ChunkIndex]=chunk;
+    private void Replace(KwdRecordLocation location,KwdChunk chunk)
+    {
+        RefuseNestedMutation();
+        FileChunks(location.RelativePath)[location.ChunkIndex]=chunk;
+    }
+
+    private void RefuseNestedMutation()
+    {
+        if(_editing) throw new InvalidOperationException("Nested mutations during a typed edit callback are not supported.");
+    }
     private static KwdChunk Clone(KwdChunk chunk) => chunk with { Content=chunk.Content.ToArray(),HeaderBlock=chunk.HeaderBlock.ToArray() };
 
     private static string Normalize(string path)

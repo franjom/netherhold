@@ -76,7 +76,8 @@ manifest and its referenced KWD/KLD files. Paths stay relative to the explicit
 content root; extensionless references use `.kwd`, with case-insensitive lookup.
 `Create` accepts explicit chunk templates for hand-built sets.
 `ReadRecord<T>` and `EditRecord<T>` use a `KwdRecordLocation`; snapshots and input
-images are isolated. A failed edit leaves the set unchanged.
+images are isolated. A failed edit leaves the set unchanged; callbacks receive
+an independent projection and nested mutations are refused.
 `ToBytes` and `Save(outputRoot)` preserve file paths and serialize owned images.
 Generic field edits freeze trigger identifiers, links and roots, plus the LEVEL
 file manifest. `InsertThing` requires an explicit tagged image; `RemoveThing`
