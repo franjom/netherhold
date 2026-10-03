@@ -23,6 +23,27 @@ namespace DK2.Data.Kwd;
 /// at 0x341, <c>maxAngle</c>, the three effect ids, the sound category.</para></remarks>
 public static class KwdObjects
 {
+    public static byte[] WriteRecord(ObjectDef record, KwdRecordImage template)
+    {
+        byte[] bytes = KwdOverlay.Image(template, KwdRecordType.Objects, RecordSize);
+        KwdOverlay.Ascii(bytes, OffsetName, 32, record.Name, Name(bytes, OffsetName), trimmed: true);
+        void Fp(int offset, Fp32 value) => BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), value.Raw);
+        void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
+        bytes[OffsetObjectId] = record.ObjectId;
+        bytes[OffsetRoomCapacity] = record.RoomCapacity;
+        bytes[OffsetStartState] = record.StartState;
+        bytes[OffsetPickUpPriority] = record.PickUpPriority;
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(OffsetFlags), (uint)record.Flags);
+        U16(OffsetHp, record.Hp);
+        U16(OffsetManaValue, record.ManaValue);
+        U16(OffsetNameStringId, record.NameStringId);
+        U16(OffsetTooltipStringId, record.TooltipStringId);
+        Fp(OffsetWidth, record.Width);
+        Fp(OffsetHeight, record.Height);
+        Fp(OffsetMass, record.Mass);
+        Fp(OffsetSpeed, record.Speed);
+        return bytes;
+    }
     private const int RecordSize = 894;
 
     // The gameplay tail. Everything before 0x32C is art.

@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Reflection;
+using DK2.Core;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
 
@@ -32,6 +33,7 @@ internal static class KwdScalarOverlayChecks
                 : scalar == typeof(short) ? (short)-1234
                 : scalar == typeof(ushort) ? (ushort)1234
                 : scalar == typeof(byte) ? (byte)13
+                : scalar == typeof(Fp32) ? new Fp32(-12345)
                 : scalar.IsEnum ? Enum.ToObject(scalar, 0x81)
                 : throw new InvalidOperationException($"No scalar edit value for {property.Name}.");
             property.SetValue(changed, value);
