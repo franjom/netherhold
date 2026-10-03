@@ -67,6 +67,11 @@ independently validated template for type changes.
 LEVEL preserves both metadata boundaries, all messages, paths and tail words.
 `KwdLevel.WritePathRecord` supports GLOBALS only as its known LEVEL path
 discriminator; standalone GLOBALS chunks remain refused (Q220).
+`KwdRewriteAudit.Run(input, outdir)` applies every typed overlay and writes KWD/KLD
+files with their relative directory structure. It reports exact identity or the
+first differing byte, chunk, record index and decoded field; opaque bytes use
+their raw offset. Output must be outside an input directory and cannot replace
+the source file. The command and install-gated test share this audit.
 The editor UI is still pending.
 
 ## Editing
