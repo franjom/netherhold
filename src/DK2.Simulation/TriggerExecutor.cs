@@ -61,7 +61,8 @@ public sealed class TriggerRunResult
     /// incomplete. Every action type this executor does not perform is here, because DK2's
     /// dispatcher succeeds at it and descending is the faithful answer — see
     /// <see cref="TriggerExecutor"/>. Types 1 and 14 are the incomplete cases rather than
-    /// the missing ones: 14 arms a party's subtrees and creates no creatures, and 1 creates
+    /// the missing ones: 14 raises its party (<see cref="CreateParty"/>) and lands here only
+    /// without a world or its THINGS, when it arms the subtrees and raises no one; 1 creates
     /// a creature without the flag byte the same arm writes onto it.</summary>
     public IReadOnlyList<BlockedTrigger> Partial { get; }
 

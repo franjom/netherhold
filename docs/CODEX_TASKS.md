@@ -87,8 +87,8 @@ or `unity/`**). See `docs/research/external-resources.md`.
   OpenKeeper, whose reading is its own guess and has been wrong here before.
 - **Research prose follows `AGENTS.md`**: a DK2 fact goes in one section of one
   `docs/research/` note with its confidence tag and evidence, and every DKII.EXE
-  function read gets its record in `docs/research/functions/`. Footage analysis
-  (Brief 4) is the exception: it produces input, not prose.
+  function read gets its record in `docs/research/functions/`. That includes
+  footage analysis (Brief 4): its observations are written up the same way.
 - **A moved hash follows the protocol**: `HashVersion` and `FormatVersion`
   bumped, a `hash-versions.md` row and the `DeterminismTests` literal, all in the
   commit that moved it, with the scenario or seed that moved named and a
@@ -533,7 +533,9 @@ Produce a document with these four parts, in this order:
    phrased so someone with Ghidra open can answer them one at a time. End with
    one sentence naming which question matters most and why.
 
-DO NOT edit any file. DO NOT commit. DO NOT open a pull request.
+Write the document as a `docs/research/` note that follows AGENTS.md (one fact,
+one home; every claim on the confidence ladder; the evidence named), and update
+the open-question rows it answers. DO NOT commit. DO NOT open a pull request.
 Do not invent DK2 behaviour: if the footage does not show it, it is UNKNOWN.
 ````
 
@@ -548,8 +550,9 @@ Do not invent DK2 behaviour: if the footage does not show it, it is UNKNOWN.
 `docs/research/observation-checklist.md` is the standing list of everything else
 the owner can settle by playing.
 
-### And what this brief must never become
+### What this brief must keep
 
-Codex analysing footage produces **research input**, not research prose.
-`docs/research/` stays off limits: the write-up is where the confidence ladder is
-enforced and where the evidence rank is recorded.
+The observations stay separate from the inferences, and each carries its rung on
+the confidence ladder. Codex writes them up in `docs/research/` like any other
+research (AGENTS.md: one fact, one home; the evidence rank recorded); what it must
+not do is let an inference about our code pass as an observation of DK2.

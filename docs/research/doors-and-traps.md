@@ -192,7 +192,8 @@ nonzero comparison, so no shipped record needs the unread availability mode.
 | Trap runtime and door contact | See [traps.md](traps.md) and [door-blocking.md](door-blocking.md) |
 | Any semantic meaning for either `Unknown_0008`, door trailing bytes or trap `Unknown_000F` | **UNKNOWN** |
 
-Trap firing is built for the traps whose shot is (ADR-0321, `traps.md`); Q450 lists what is
+Every shipped trap fires (ADR-0321, ADR-0331, ADR-0333, ADR-0337; `traps.md`), with its upkeep
+(ADR-0326), the reveal (ADR-0338) and scan D (ADR-0340); disarming is deferred (ADR-0329, Q455). Q450 lists what is
 left, with owner observations Q451, Q452 and Q513.
 A field absent from the runtime licenses
 only that result; it does not show that a corresponding behavior is absent.

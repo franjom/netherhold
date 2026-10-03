@@ -33,15 +33,28 @@ public sealed class CreatureStatusSystem : ISimulationSystem
 
             if (creature.Activity == CreatureActivity.Stunned)
             {
-                if (creature.StunTicks > 0) creature.StunTicks--;
-                if (creature.StunTicks == 0)
+                if (creature.Dk2StateId == Combat.CombatStates.GettingUp)
                 {
-                    // 257 while getting up; ours has no get-up action. A worker idles (its arm,
-                    // 0x00481400, is unread); anyone else asks the room underfoot (ADR-0226).
-                    Combat.CombatStates.Enter(context, creature, Combat.CombatStates.GettingUp);
-                    context.Emit(SystemName, "recovered", $"creature={creature.Id}");
-                    if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) Combat.CombatStates.Idle(context.Hooks, creature);
-                    else DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
+                    // 257 (0x00481200) holds while its get-up action plays (0x00496D00), then runs the
+                    // victim-or-door pick 0x00481400 (not built) and asks the room underfoot (ADR-0226,
+                    // ADR-0345). A worker idles instead.
+                    if (context.Tick.Value >= creature.ActionUntilTick)
+                    {
+                        context.Emit(SystemName, "recovered", $"creature={creature.Id}");
+                        if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) Combat.CombatStates.Idle(context.Hooks, creature);
+                        else DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
+                    }
+                }
+                else
+                {
+                    if (creature.StunTicks > 0) creature.StunTicks--;
+                    if (creature.StunTicks == 0)
+                    {
+                        // The stun's end: action 53 (getting up) and SetState(257).
+                        Combat.CombatStates.Enter(context, creature, Combat.CombatStates.GettingUp);
+                        creature.ActionUntilTick = context.Tick.Value + DropLandingRules.GetUpTicks(definition);
+                        context.Emit(SystemName, "getting_up", $"creature={creature.Id} until={creature.ActionUntilTick}");
+                    }
                 }
             }
 

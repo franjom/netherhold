@@ -170,6 +170,9 @@ no doors" and "this build cannot see doors" are the same output without it.
 
 Each authored-state collection is hashed and snapshotted (ADR-0103/0106/0108).
 
+A placed Good creature's `Objective`, target player and action point become its standing job
+at placement, the triple the loader hands `0x0048BE20` (ADR-0344; `verification-2026-09-26.md` §6).
+
 ## Summary of confidence
 
 | claim | confidence | evidence |

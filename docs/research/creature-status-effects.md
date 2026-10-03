@@ -113,9 +113,10 @@ returns 0 before the action and event 15. The rule refuses 255 from 216–218, 2
 `def+0x74C`, file `0xED0` × ticks-a-second by the loader (`0x00493B57`), parsed as
 `CreatureDef.StunDuration` — with effect 101 stuck on it from the first tick;
 when the time is up, action 53 (getting up) and `SetState(257)`, whose handler
-(`0x00481200`) returns 1 while an action is current (STRONGLY INFERRED: then
-idle); `+0x3CB` := 0. States 209, 255, 256 and 257 are the stunned family
-(`0x0048F350`): while in one, **damage doubles** (§3).
+(`0x00481200`) returns 1 while an action is current, then runs `0x00481400` and the
+room drop `0x004E8DA0(0)` (CONFIRMED, `hand-drop-landing.md` §3); `+0x3CB` := 0.
+States 209, 255, 256 and 257 are the stunned family (`0x0048F350`): while in one,
+**damage doubles** (§3).
 
 **Poison Spit** (type 38, `0x004B0270` → `0x0048CC50(creature, ShotData2,
 ShotData1)`). `+0x45D` = `ShotData2` (10 ticks), `+0x45F` = `ShotData1` (200),

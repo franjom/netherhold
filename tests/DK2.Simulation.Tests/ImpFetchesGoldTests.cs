@@ -494,4 +494,45 @@ public class ImpFetchesGoldTests
         Assert.Equal(500, GoldStore.Total(run.World, Keeper));
         Assert.Empty(run.Of("fetch_taken"));
     }
+
+    /// <summary>
+    /// <b>The same-kind retry skips water.</b> DK2's kind-7 search is the ring scan with the gold
+    /// handler (<c>0x00468520</c>), and the scan's filter never visits a water tile, so an imp aimed
+    /// at gold passes a pile that fell in water two tiles off for one on its own floor three off,
+    /// as imp 430 did twice in the Level 2 capture (ADR-0343). Water gold is fetched only from
+    /// underfoot. Before the change the nearest-by-route search waded straight to it.
+    /// </summary>
+    [Fact]
+    public void AnImpAimedAtGold_PassesAPileInWater_ForOneOnItsOwnFloorFartherOff()
+    {
+        Run run = Start(new TilePos(2, 2));
+        TerrainDef path = run.Db.TerrainById(Dk2TerrainFixture.ClaimedPath);
+        foreach (int x in new[] { 4, 5 })
+        {
+            ref TileState floor = ref run.World.Tile(x, 2);
+            floor.TerrainId = path.TerrainId;
+            floor.Health = path.StartingHealth;
+            floor.OwnerPlayerId = Keeper;
+        }
+        WallsAlreadyReinforced(run);
+
+        TerrainDef waterDef = run.Db.TerrainById(Dk2TerrainFixture.Water);
+        ref TileState water = ref run.World.Tile(2, 4);
+        water.TerrainId = waterDef.TerrainId;
+        water.Health = waterDef.StartingHealth;
+        water.OwnerPlayerId = PlayerIds.Unowned;
+
+        FloorGold.PutDown(run.World, run.Db, Index(run.World, new TilePos(2, 4)), 0, 273);
+        FloorGold.PutDown(run.World, run.Db, Index(run.World, new TilePos(5, 2)), 0, 300);
+
+        // Aimed at gold by the hand, and back from its first pile: the same-kind retry runs.
+        run.Imp.LastTaskKind = ImpTaskKind.FetchGold;
+        run.Imp.DroppedTask = ImpTaskKind.FetchGold;
+
+        run.Ticks(1);
+        run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
+
+        SimEvent taken = Assert.Single(run.Of("fetch_taken"));
+        Assert.Contains("(5,2)", taken.Detail);
+    }
 }

@@ -220,6 +220,11 @@ public class CreatureStatusEffectTests
         Assert.False(CombatRules.MayLookForAFight(world, db, dry, force: false));
 
         sim.Run(20);
+        // Then 257, getting up, for the Goblin's eleven ticks: still the stunned family, still doubled.
+        Assert.Equal(257, dry.Dk2StateId);
+        Assert.Equal(CreatureActivity.Stunned, dry.Activity);
+        Assert.Equal(256, StatusEffectRules.DamageMultiplier(world, db, dry));
+        sim.Run(DropLandingRules.GetUpTicks(def));
         Assert.Equal(CreatureActivity.Idle, dry.Activity);
         Assert.Equal(128, StatusEffectRules.DamageMultiplier(world, db, dry));
     }

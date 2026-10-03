@@ -43,6 +43,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `verification-ledger --check` goes stale on any rule, ADR or test change, and the commit hook
   does not run it.
 - `docs --check` covers unstaged files too: everything changed since HEAD.
+- Renaming a research-doc heading breaks every function record whose `evidence:` anchors to it;
+  `kb check` fails the commit. Repoint the anchors and give each record a dated History line.
 - A dk2tools command can behave differently under `dotnet run` and under the hook's
   `dotnet <dll>`: the console code page differs. Decode a child process's output explicitly
   (git writes UTF-8; `Repo.RunGit` does since 2026-10-03).

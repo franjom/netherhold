@@ -98,9 +98,15 @@ public static class ThingProjection
                     break;
 
                 case GoodCreatureThing t:
-                    PlaceCreature(
+                    CreatureState good = PlaceCreature(
                         world, database, t, t.CreatureId, PlayerIds.Good,
                         t.InitialHealth, t.TriggerId, RescueRules.GoodCreatureFlagMask);
+                    // The loader's 0x0048BE20 call (0x0052077C): the record's Objective, its target
+                    // player and its action point become the standing Good job, the triple the party
+                    // spawn copies for a member (ADR-0344). HeroSystem runs it when the hero idles.
+                    good.GoodJob = (JobType)t.Objective;
+                    good.GoodJobPlayerId = t.ObjectiveTargetPlayerId;
+                    good.GoodJobActionPointId = t.ObjectiveTargetActionPointId;
                     creatures++;
                     break;
 
@@ -190,7 +196,7 @@ public static class ThingProjection
         }
     }
 
-    private static void PlaceCreature(
+    private static CreatureState PlaceCreature(
         WorldState world,
         GameDatabase database,
         CreatureThing thing,
@@ -221,6 +227,7 @@ public static class ThingProjection
         CreatureDef def = database.CreatureById(creatureTypeId);
         int max = CreatureLevelRules.MaxHealth(database, def, state.Level);
         state.Health = max * initialHealthPercent / FullHealthPercent;
+        return state;
     }
 
     private static void PlaceObject(WorldState world, GameDatabase database, ObjectThing thing)

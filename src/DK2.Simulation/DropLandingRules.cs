@@ -20,11 +20,31 @@ public static class DropLandingRules
     public const int LandingState = 76;
 
     /// <summary>State 250 (<c>0x00481CF0</c>), "guarding": plays action 43 until 50 turns past the
-    /// state word <c>+0x7E</c>, then idle.</summary>
+    /// state word <c>+0x7E</c>, then idle. The word is <c>creature+0x2CC</c>, which the room drop
+    /// stamps with now on its way in, so the stand is 50 turns from getting up.</summary>
     public const int StandingState = 250;
 
     /// <summary>250's length past <c>+0x7E</c>, in turns (<c>0x32</c>).</summary>
     public const int StandTicks = 50;
+
+    /// <summary>257's hold (<c>0x00481200</c>, <c>0x00496D00</c>): the ticks its get-up action 53
+    /// plays, which is the creature's animation, not a definition field. Measured in the Level 1–3
+    /// captures as the longest 257 run that ends in a room drop, the same in every run of a type:
+    /// Warlock (5) 8, Goblin (7) 11, Troll (10) 5, Firefly (12) 13, the Lord of the Land (29) 4 and
+    /// type 14 4, the Dwarf by Level 2's party and its zero StunDuration (Q527).</summary>
+    public static int GetUpTicks(CreatureDef definition) => definition.CreatureId switch
+    {
+        5 => 8,
+        7 => 11,
+        10 => 5,
+        12 => 13,
+        14 => 4,
+        29 => 4,
+        _ => GetUpTicksGuess,
+    };
+
+    /// <summary>A type the captures never stunned: the measured middle, a guess (Q527).</summary>
+    public const int GetUpTicksGuess = 8;
 
     /// <summary>What <c>0x004E8DA0(0)</c> leaves in <c>FightProcessCounter</c> on its way to 250:
     /// bits 22 and 24 of the flag dword cleared, 23 and 25 set.</summary>
@@ -87,6 +107,9 @@ public static class DropLandingRules
             StateShadow.ToIdle(context, system, creature);
             return;
         }
+        // 0x004E8DA0 writes now into creature+0x2CC, the state record's +0x7E, before its Call to
+        // Arms test and KickToState(250).
+        creature.StateDeadlineTick = context.Tick.Value;
         // With the owner's Call to Arms on the creature idles instead, and idle walks to the flag.
         if (CallToArmsRules.IsOn(world, creature.OwnerPlayerId))
         {

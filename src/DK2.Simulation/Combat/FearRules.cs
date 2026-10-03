@@ -462,8 +462,8 @@ public static class FearRules
     /// <summary>The withdraw state (<c>0x004611D0</c>): a destination — my lair, else my heart two
     /// tiles off on each axis, else one of three random rooms of mine that is not a bridge, else a
     /// random neighbouring tile I can see — then a run to it, arriving idle. A hero would go to a
-    /// hero gate, which this simulation has not, so a hero never withdraws (Q372). True when the
-    /// creature is on its way and out of the fight.</summary>
+    /// hero gate; that walk is not built (gates themselves are, ADR-0320), so a hero never withdraws
+    /// (Q372). True when the creature is on its way and out of the fight.</summary>
     public static bool Withdraw(
         SimulationContext context, ISightBlocker sight, HeartSites hearts, RoomCache rooms, CreatureState me, CreatureDef mine,
         List<Fixed16Vector> scratch)
