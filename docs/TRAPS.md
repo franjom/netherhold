@@ -16,6 +16,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A file restored with `mv` keeps its old mtime, and the next build may skip it.
 - `apply_patch` rejects a delete and add of the same path in one patch; use an update or separate patches.
 - In a sibling worktree, `apply_patch` cannot create parent directories; create them with an approved native filesystem command first.
+- Windows Python defaults to a legacy code page here; use `encoding='utf-8-sig'` when reading repository Markdown.
 
 ## Builds, tests and dk2tools
 
