@@ -213,7 +213,7 @@ public static partial class KwdThings
 }
 
 /// <summary>Field reader for the two 16-byte TRIGGERS payload tags.</summary>
-public static class KwdTriggers
+public static partial class KwdTriggers
 {
     public static List<TriggerRecord> Parse(IEnumerable<KwdChunk> chunks)
     {
@@ -227,8 +227,8 @@ public static class KwdTriggers
                 if (r.Length != 16) throw new InvalidDataException($"TRIGGERS tag {tagged.Tag} payload is {r.Length}, expected 16.");
                 TriggerRecord record = tagged.Tag switch
                 {
-                    213 => new GenericTriggerRecord(r) { BodyValue = KwdAdditionalRecords.U32(r, 4), Parameters = GenericParameters(r[14], r), Body = r.AsMemory(0, 8), TriggerId = KwdAdditionalRecords.U16(r, 8), NextTriggerId = KwdAdditionalRecords.U16(r, 10), ChildTriggerId = KwdAdditionalRecords.U16(r, 12), Type = r[14], RepeatCount = r[15] },
-                    214 => new ActionTriggerRecord(r) { BodyWord4 = KwdAdditionalRecords.U16(r, 4), BodyWord6 = KwdAdditionalRecords.U16(r, 6), BodyDword0 = KwdAdditionalRecords.U32(r, 0), BodyDword4 = KwdAdditionalRecords.U32(r, 4), Parameters = ActionParameters(r[14], r), Body = r.AsMemory(0, 8), TriggerId = KwdAdditionalRecords.U16(r, 8), NextTriggerId = KwdAdditionalRecords.U16(r, 10), ChildTriggerId = KwdAdditionalRecords.U16(r, 12), Type = r[14], RepeatCount = r[15] },
+                    213 => new GenericTriggerRecord(r) { BodyValue = KwdAdditionalRecords.U32(r, 4), Parameters = ReadParameters(GenericParameterLayout(r[14]), r), Body = r.AsMemory(0, 8), TriggerId = KwdAdditionalRecords.U16(r, 8), NextTriggerId = KwdAdditionalRecords.U16(r, 10), ChildTriggerId = KwdAdditionalRecords.U16(r, 12), Type = r[14], RepeatCount = r[15] },
+                    214 => new ActionTriggerRecord(r) { BodyWord4 = KwdAdditionalRecords.U16(r, 4), BodyWord6 = KwdAdditionalRecords.U16(r, 6), BodyDword0 = KwdAdditionalRecords.U32(r, 0), BodyDword4 = KwdAdditionalRecords.U32(r, 4), Parameters = ReadParameters(ActionParameterLayout(r[14]), r), Body = r.AsMemory(0, 8), TriggerId = KwdAdditionalRecords.U16(r, 8), NextTriggerId = KwdAdditionalRecords.U16(r, 10), ChildTriggerId = KwdAdditionalRecords.U16(r, 12), Type = r[14], RepeatCount = r[15] },
                     _ => throw new InvalidDataException($"Unknown TRIGGERS tag {tagged.Tag}."),
                 };
                 result.Add(record);
@@ -237,12 +237,12 @@ public static class KwdTriggers
         return result;
     }
 
-    private static IReadOnlyDictionary<string, long> GenericParameters(byte type, byte[] r)
+    private static IReadOnlyDictionary<string, ParameterField> GenericParameterLayout(byte type)
     {
-        var p = new Dictionary<string, long>();
-        void B(string name, int at) => p[name] = r[at];
-        void W(string name, int at) => p[name] = KwdAdditionalRecords.U16(r, at);
-        void S(string name, int at) => p[name] = KwdAdditionalRecords.I32(r, at);
+        var p = new Dictionary<string, ParameterField>();
+        void B(string name, int at) => p[name] = new ParameterField(at, 1, false);
+        void W(string name, int at) => p[name] = new ParameterField(at, 2, false);
+        void S(string name, int at) => p[name] = new ParameterField(at, 4, true);
         void Unread() { S("Unreached_0000", 0); S("Unreached_0004", 4); }
 
         // Byte 1 is the flag read, byte 3 the flag compared against. Read off the handler at
@@ -286,13 +286,13 @@ public static class KwdTriggers
         return p;
     }
 
-    private static IReadOnlyDictionary<string, long> ActionParameters(byte type, byte[] r)
+    private static IReadOnlyDictionary<string, ParameterField> ActionParameterLayout(byte type)
     {
-        var p = new Dictionary<string, long>();
-        void B(string name, int at) => p[name] = r[at];
-        void W(string name, int at) => p[name] = KwdAdditionalRecords.U16(r, at);
-        void D(string name, int at) => p[name] = KwdAdditionalRecords.U32(r, at);
-        void S16(string name, int at) => p[name] = KwdAdditionalRecords.I16(r, at);
+        var p = new Dictionary<string, ParameterField>();
+        void B(string name, int at) => p[name] = new ParameterField(at, 1, false);
+        void W(string name, int at) => p[name] = new ParameterField(at, 2, false);
+        void D(string name, int at) => p[name] = new ParameterField(at, 4, false);
+        void S16(string name, int at) => p[name] = new ParameterField(at, 2, true);
         void Unread() { D("Unreached_0000", 0); D("Unreached_0004", 4); }
 
         if (type == 22) { B("TerrainId", 0); B("PlayerId", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
