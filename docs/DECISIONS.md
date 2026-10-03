@@ -7810,3 +7810,21 @@ The Boulder's slap waits for object slapping — the angle's source and the disp
 as its open item; a flat shot may hit a thing whose box the height test would refuse, and the
 Grenade's lob is a straight line. Revisit when a vertical coordinate is introduced for any
 thing.
+## ADR-0343 — KWD writers preserve source images and require explicit templates
+**Date:** 2026-10-03 — **Status:** in progress
+
+**Context.** The level editor needs byte-exact output before it can edit records.
+Reader projections alone cannot recover unknown header words, timestamps or tails.
+
+**Decision.** Keep parsed container words and write over retained record images.
+Unedited files reproduce their source bytes, including LEVEL's understated size.
+New chunks require a parsed header template: copy its unknown words, checkTwo and
+timestamps, then calculate lengths and counts. This selects observed bytes rather
+than guessing a clock encoding or choosing undocumented zero values. Copying old
+timestamps for a new chunk is an editor policy, not a claim about DK2's editor.
+Corpus evidence is in `research/kwd-container.md` §Writer header evidence.
+No simulation state or hash version changes.
+
+**Consequences.** A chunk assembled without a container encoding template is
+refused. Raw header bytes remain available. Record overlays and shape editing
+will follow in later milestones; no editor UI or playability validation is built.

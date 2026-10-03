@@ -40,6 +40,19 @@ KLD is the same container, level-scoped: 12 editor KWDs, 66 map KWDs and 330
 KLDs, 408 files. `dk2tools kwd corpus` reproduces the file and record counts and
 an install-gated regression test asserts them.
 
+## Writer header evidence
+
+CONFIRMED by a 2026-10-03 little-endian header dump of all 408 reference files
+(409 chunks). Every chunkEndOffset equals the complete chunk length, relative
+to that chunk's start. All 66 LEVEL chunks use checkTwo = sig+3; the other
+343 use sig+2. General headers are 28 bytes and their unknown u32 is always 1;
+MAP has an 8-byte dimensions header. TRIGGERS has a 32-byte header with two
+counts and an unknown u32 of 1 at +8. LEVEL has a 28-byte header, a u16 count
+and u16 value at +0/+2, and 10649 at +4. All LEVEL files understate contentSize;
+their remaining bytes belong to that chunk. Created timestamps contain varied
+opaque bytes; GlobalVariables' created timestamp is entirely zero. No rule for
+generating a valid new timestamp is established. ADR-0343 requires a template.
+
 ## Update 2026-09-04 (every record type's size, and two that have none)
 
 **Method:** read the field *order and widths* out of OpenKeeper's reader, sum

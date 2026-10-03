@@ -42,6 +42,14 @@ install-gated test so the status claim and the assertion cannot drift apart.
 `KwdTriggerCorpusAudit` enumerates the trigger types actually present in the shipped
 levels, which is what `dk2tools kwd trigger-types` prints.
 
+## Writers
+
+`KwdWriter.Write`, `WriteFile` and `ToBytes` rewrite parsed containers, preserving
+every header byte and LEVEL's understated content size. `CreateFromTemplate`
+requires a parsed chunk as the explicit source for unknown header fields and
+timestamps (ADR-0343); template and input payload arrays are copied.
+Container writing does not yet provide typed record edits or an editor UI.
+
 ## WAD archives and saved games
 
 `WadArchive` reads DK2's "DWFB" version 2 archives — CONFIRMED against all five WADs

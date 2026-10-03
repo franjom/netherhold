@@ -42,7 +42,7 @@ public static class KwdReader
         {
             uint signature = U32();
             uint byteSize = U32();
-            _ = U32(); // chunk end offset (unreliable across variants; not needed)
+            uint chunkEndOffset = U32();
             uint checkOne = U32();
             uint headerBlockSize = U32();
 
@@ -94,6 +94,8 @@ public static class KwdReader
                 ItemCount = itemCount,
                 Content = content,
                 HeaderBlock = headerBlock,
+                ContainerHeader = new KwdContainerHeader(chunkEndOffset, checkTwo,
+                    contentSize, content.Length),
             });
         }
 
