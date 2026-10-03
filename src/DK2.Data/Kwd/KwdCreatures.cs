@@ -51,7 +51,7 @@ public static class KwdCreatures
 
     private static CreatureDef ParseRecord(byte[] rec, int b)
     {
-        // Primitive readers, offset-addressed relative to the record base.
+        // CloneCreatureId overlaps ShuffleSpeed; independent overlays await Q526.
         ushort U16(int off) => BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + off));
         short S16(int off) => BinaryPrimitives.ReadInt16LittleEndian(rec.AsSpan(b + off));
         uint U32(int off) => BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + off));
