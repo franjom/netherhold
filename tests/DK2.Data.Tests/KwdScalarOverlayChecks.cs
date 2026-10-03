@@ -34,11 +34,14 @@ internal static class KwdScalarOverlayChecks
                 : scalar == typeof(ushort) ? (ushort)1234
                 : scalar == typeof(byte) ? (byte)13
                 : scalar == typeof(Fp32) ? new Fp32(-12345)
+                : scalar == typeof(IReadOnlyList<byte>) ? Enumerable.Range(1, field.Width).Select(i => (byte)i).ToArray()
                 : scalar.IsEnum ? Enum.ToObject(scalar, 0x81)
                 : throw new InvalidOperationException($"No scalar edit value for {property.Name}.");
             property.SetValue(changed, value);
             byte[] written = write(changed, template);
-            Assert.Equal(value, property.GetValue(read(written)));
+            object? reread = property.GetValue(read(written));
+            if (value is IEnumerable<byte> bytes) Assert.Equal(bytes, Assert.IsAssignableFrom<IEnumerable<byte>>(reread));
+            else Assert.Equal(value, reread);
             Assert.False(source.SequenceEqual(written));
             for (int i = 0; i < stride; i++)
                 if (i < field.Offset || i >= field.Offset + field.Width) Assert.Equal(source[i], written[i]);
