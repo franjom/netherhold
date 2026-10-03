@@ -20,14 +20,12 @@
 # priority, so they find the portal exactly as they find floor to claim.
 #
 # What to read in the event log: the single `room_converted` line, naming the
-# room, how many tiles it had, how many the takeover *spread* to, and who it came
-# from. `tiles=9` changing hands at once is the mechanic in one line.
+# room, how many tiles it had, and who it came from. `tiles=9` changing hands at once is the mechanic in one line.
 #
-# The thirteen applications a takeover needs are the data's: ConvertRoomHealth is
-# -4000 a second, work lands five times a second, and a room tile has 10000
-# health. 10000 / 800 = 12.5, so thirteen swings — about 2.6 seconds. That is
-# the "instantly" the owner describes: not zero time, but fast enough that the
-# propagation is what a player notices.
+# The applications a takeover needs are the data's: the portal is neutral, so
+# ConvertNeutralRoomHealth (-20000 a second, -4000 a tick at 80%) beats down its
+# one health, 10000 a tile, 90000 in all: 23 applications, as DK2's capture shows.
+# The "instantly" the owner describes is the propagation, not the duration.
 #
 # No creature arrives, and that is not a failure: a synthetic map carries no
 # level VARIABLES, so this keeper has no creature pool and no creature

@@ -49,8 +49,9 @@ public static class RoomAttackRules
 
     /// <summary>
     /// State 267: while the tile underfoot is a room, one action-11 application a turn, landing in
-    /// the next turn's tile work as DK2's action runner lands it before the state handler. The
-    /// action that knocks the tile down still ran that turn, so the state ends on the turn after.
+    /// the next turn's tile work. STRONGLY INFERRED: action 11 is one blow an action, and how long a
+    /// hero's blow runs is unread; once a turn is action 10's measured cadence. The state ends the
+    /// turn after the tile falls.
     /// <see cref="CreatureState.StateDeadlineTick"/> holds the turn of the last application queued.
     /// </summary>
     public static bool DestroyRoomTile(SimulationContext context, CreatureState creature)

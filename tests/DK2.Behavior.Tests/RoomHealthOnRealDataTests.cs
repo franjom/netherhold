@@ -47,5 +47,11 @@ public class RoomHealthOnRealDataTests
         Assert.Equal(-4000, db[VariableTypeId.ConvertRoomHealth]);
         Assert.Equal(-1500, db[VariableTypeId.AttackRoomHealth]);
         Assert.Equal(20000, db[VariableTypeId.RepairRoomHealth]);
+
+        // DK2 divides each by variable 19 (4) at load with a truncating IDIV; ours shifts the product
+        // down by 14 instead, which is the same only while each is a multiple of four.
+        foreach (VariableTypeId v in new[] { VariableTypeId.ConvertNeutralRoomHealth, VariableTypeId.ConvertRoomHealth,
+                                             VariableTypeId.AttackRoomHealth, VariableTypeId.RepairRoomHealth })
+            Assert.Equal(0, db[v] % 4);
     }
 }

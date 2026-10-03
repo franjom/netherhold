@@ -273,8 +273,8 @@ to that portal are immediately claimed … that is a game mechanic that works on
 claiming enemy/neutral rooms too, rooms are instantly claimed by imps, not tile
 by tile."*
 
-`TileWorkKind.ConvertRoom` reads `ConvertRoomHealth` = **−4000** (room health,
-`tile-work.md`, Q500: 13 applications for one tile, about 12.5 per tile of the room).
+`TileWorkKind.ConvertRoom` beats the room's one health down, at −20000 a second for a neutral
+room: an unclaimed portal takes 23 applications at 80% (`room-health.md` §3, Q500).
 The worked tile's room has one health, and `TileWorkSystem` hands the whole
 `RoomInstance` over when it falls below 1 (`room-health.md` §3, ADR-0336); the scenario
 log reports it as `room_converted … tiles=9`.

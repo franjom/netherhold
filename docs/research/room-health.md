@@ -36,6 +36,7 @@ Hero Stone Bridge 208, the gates 100 (the FrontEnd gate 144). A room's cap is th
 | a tile leaves | `0x004ED440` | each piece gets the old room's share, below |
 | the room tick | `0x004E4B00` | under the cap, `+HealthGain` (Rooms.kwd `0x41D`): 0 in all 26 rooms |
 | level start, Neutral's rooms | `0x0050B966` | `+Health / Size`, clamped: changes nothing while start = max |
+| a takeover, its neighbours | `0x004C5BE0` → `0x004EC900` | adjacent rooms of the same type and owner are absorbed, healths summed and clamped |
 | a pre-placed room thing | `0x005215BA` | scaled to its percentage word if not 100; the heart is built by `0x004DB700` instead |
 | action 10, conversion | `0x00497BF0` | §3 |
 | action 12, repair | `0x00498120` | §6 |
@@ -63,7 +64,9 @@ point, never the tile:
   `[0x006F2574]`;
 - the delta is `(value << 12) × rate >> 12 >> 12`, the rate being imp `+0x3AF` plus `+0x3B3`
   (`tile-work-efficiency.md`), a floor;
-- `0x004E5300` applies it with the imp's owner. The action continues while the gate holds.
+- `0x004E5300` applies it with the imp's owner. Action 10 is a mode-3 action: the runner
+  (`0x00496AA0`) calls the handler once per action and reads its 0 as "struck", holding the action
+  until the animation ends (`mining-cadence.md` §5). The captures show one application a tick.
 
 **`0x006F257C` is variable 136, `ConvertNeutralRoomHealth`, not `Unknown_17`.** The per-second
 handler `Variables_SetPerSecond` (`0x0051CB80`) divides by variable 19 and routes id 136 to
@@ -102,7 +105,9 @@ installed as action record 11 at `0x004952CF`). It damages the **tile's** health
 - anyone else applies `AttackRoomHealth / 4 × rate` (−300 at 80%) with no experience or message.
 
 A room tile's own health is its terrain's 10000 (2000 a bridge): three applications by a hero,
-34 by anyone else at 80%. At 0 `Tile_ApplyWork` calls `Player_SellRoomTile` on the tile's owner
+34 by anyone else at 80%. Action 11 is mode 3 too, one blow an action; how long a hero's blow
+animation runs is unread, and ours strikes once a turn by analogy with action 10 (STRONGLY
+INFERRED). At 0 `Tile_ApplyWork` calls `Player_SellRoomTile` on the tile's owner
 with pay flag 0, so the tile is unmade the way a sale unmakes it with **no refund**, then turns
 into its destroyed terrain (Claimed Path, the owner's; a bridge leaves its water or lava,
 `BridgeRules.RevertsTo`). The room goes **tile by tile**, the survivors keeping their share of

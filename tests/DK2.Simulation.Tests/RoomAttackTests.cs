@@ -146,7 +146,7 @@ public class RoomAttackTests
     }
 
     [Fact]
-    public void AHeroWithDestroysRoomsKnocksDownTheRoomTileItStepsOnto_ThenGoesBackToIdle()
+    public void AHeroWithDestroysRoomsKnocksDownTheRoomTileItStepsOnto_ThenGoesBackToIdle_OneBlowATurnIsInferred()
     {
         WorldState world = World();
         Paint(world, RoomTypeId.Treasury, 5, 5, 3, Keeper);
@@ -180,6 +180,24 @@ public class RoomAttackTests
 
         Assert.DoesNotContain(sink.Events, e => e.Kind == "room_attack_begun");
         Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, world.Tile(5, 5).TerrainId);
+    }
+
+    [Fact]
+    public void APitFighterOrAHeroThatMayNotLookForAFightDoesNotStop()
+    {
+        WorldState world = World();
+        Paint(world, RoomTypeId.Treasury, 5, 5, 3, Keeper);
+        (GameSimulation sim, CreatureState knight, ListEventSink sink) = KnightSteppingInto(world, 5, 5);
+        knight.CombatPitFighter = true;
+        for (int i = 0; i < 4; i++) sim.Tick(InputFrame.Empty);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "room_attack_begun");
+
+        WorldState world2 = World();
+        Paint(world2, RoomTypeId.Treasury, 5, 5, 3, Keeper);
+        (GameSimulation sim2, CreatureState chicken, ListEventSink sink2) = KnightSteppingInto(world2, 5, 5);
+        chicken.ChickenTicks = 100;   // a chicken may not look for a fight (0x0045A6D0)
+        for (int i = 0; i < 4; i++) sim2.Tick(InputFrame.Empty);
+        Assert.DoesNotContain(sink2.Events, e => e.Kind == "room_attack_begun");
     }
 
     [Fact]
