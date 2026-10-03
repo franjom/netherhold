@@ -67,8 +67,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
    detailed backlogs here.
 4. Goal 7: `codex/kwd-writers` in `D:\DungeonKeeperRemake-kwd-writers` is an
    independently reviewed partial checkpoint. Container and record-image
-   milestones passed; the typed milestone stopped under the brief's byte-exact
-   rule at Q526. Continue from its latest commit's `Next:`. ADR-0343 and
+   milestones passed; the typed milestone continues after Q526's reader
+   correction. Continue from its latest commit's `Next:`. ADR-0343 and
    `src/DK2.Data/README.md` describe the retained writer surface.
 
 After faithful M12, keep it as selectable Classic AI; explore a separate

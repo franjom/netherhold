@@ -31,6 +31,7 @@ public sealed record CreatureJobAlternative(JobType Job, ushort MoodChange, usho
 /// </summary>
 public sealed record CreatureDef
 {
+    private byte _baseCreatureId;
     public required string Name { get; init; }
     public required byte CreatureId { get; init; }
 
@@ -38,7 +39,7 @@ public sealed record CreatureDef
     /// The ordinary creature archetype represented by a unique definition
     /// (CREATURES record offset <c>0xD3B</c>); zero for non-unique definitions.
     /// </summary>
-    public byte UniqueBaseCreatureId { get; init; }
+    public byte UniqueBaseCreatureId { get => _baseCreatureId; init => _baseCreatureId = value; }
 
     public required CreatureFlags Flags { get; init; }
 
@@ -190,7 +191,8 @@ public sealed record CreatureDef
     public required Fp32 SlapFearlessDuration { get; init; }
     public required short PossessionManaCost { get; init; }
     public required byte LairObjectId { get; init; }
-    public required byte CloneCreatureId { get; init; }
+    /// <summary>The same source byte as UniqueBaseCreatureId (Q526); editing either view updates both.</summary>
+    public required byte CloneCreatureId { get => _baseCreatureId; init => _baseCreatureId = value; }
 
     // String table references (localised text)
     public required ushort NameStringId { get; init; }

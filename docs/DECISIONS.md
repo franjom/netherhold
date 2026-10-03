@@ -7838,5 +7838,5 @@ booleans and unconsumed high bytes, with exhaustive edit tests guarding layout;
 raw AI block edits are refused. Other typed
 overlays and shape editing are pending; no editor UI or playability validation
 is built.
-CREATURES overlays stopped on Q526's conflicting reader projections; no partial
-writer is retained. Resolve the source field before continuing milestone 3.
+Q526's reader correction gives the base-creature aliases one backing byte,
+preventing contradictory typed edits. The CREATURES overlay is pending.

@@ -14,6 +14,9 @@ comments do.
 ## OpenKeeper
 - https://github.com/tonihele/OpenKeeper — GNU GPL version 3 or later,
   Copyright (C) 2014–2016 OpenKeeper, Toni Helenius and contributors.
+- **Creature field ordering (facts only):** `KwdFile.java` at
+  `fb70fbc404361f271e5ff43eb5e0ec29ae5a4d5d` corroborated Q526's adjacent fields;
+  the correction is grounded in DKII.EXE. No code copied.
 - **Disarming review (facts only):** `Creature`, `Trap`, `Settings` and
   `PossessionCameraState` at `fb70fbc404361f271e5ff43eb5e0ec29ae5a4d5d` were
   consulted for the independent cross-check in `docs/research/traps.md` §11.

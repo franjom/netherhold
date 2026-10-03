@@ -29,13 +29,13 @@ Original version: DK2 v1.70 (GOG)
 
 Every offset below is read by `KwdCreatures`; the full per-field dump for the
 other record types is `kwd-record-fields.md`.
-The previous clone-id offset is disputed (Q526); the binary speed-width check is
-in [the loader record](functions/00492320.md#writer-offset-check).
+The base-creature byte follows the shuffle-speed dword (Q526); its binary copy
+is in [the loader record](functions/00492320.md#writer-offset-check).
 
 ```
 0x000  char[32]   name
 0x0CFF u16        introductionStringId   0x0D01 fp32  perceptionRange
-0x0D37 fp32       shuffleSpeed
+0x0D37 fp32       shuffleSpeed           0x0D3B u8    baseCreatureId (both typed views)
 0x0DAC Attraction[2]  (8 bytes each: u32 present, u16 roomId, u16 roomSize)
 0x0DC4 Spell[3]       (24 bytes each; spellId at +22, levelAvailable at +23)
 0x0E0C Resistance[4]  (2 bytes each: u8 attackType, u8 value)

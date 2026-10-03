@@ -22,6 +22,8 @@ public static class KwdCreatures
 {
     private const int RecordSize = 5449;
     private const int RecordSizeEmbedded = 5537;
+    private const int OffsetShuffleSpeed = 0xD37;
+    private const int OffsetBaseCreatureId = 0xD3B;
 
     /// <summary>Animation block 30, Entrance, which action 49 plays (<c>0x006E4739</c> = 30).</summary>
     private const int EntranceBlock = 0x20 + (30 * 84);
@@ -51,7 +53,7 @@ public static class KwdCreatures
 
     private static CreatureDef ParseRecord(byte[] rec, int b)
     {
-        // CloneCreatureId overlaps ShuffleSpeed; independent overlays await Q526.
+        // Primitive readers, offset-addressed relative to the record base.
         ushort U16(int off) => BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + off));
         short S16(int off) => BinaryPrimitives.ReadInt16LittleEndian(rec.AsSpan(b + off));
         uint U32(int off) => BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + off));
@@ -131,7 +133,7 @@ public static class KwdCreatures
         {
             Name = Str(0x00, 32),
             CreatureId = U8(0xF4B),
-            UniqueBaseCreatureId = U8(0xD3B),
+            UniqueBaseCreatureId = U8(OffsetBaseCreatureId),
             Flags = (CreatureFlags)U32(0xEFC),
 
             // The record's last four bytes, and part of the 72-byte tail Q70
@@ -154,7 +156,7 @@ public static class KwdCreatures
 
             Speed = Fp(0xEB4),
             RunSpeed = Fp(0xEB8),
-            ShuffleSpeed = Fp(0xD37),
+            ShuffleSpeed = Fp(OffsetShuffleSpeed),
             Height = Fp(0xEA4),
             EyeHeight = Fp(0xEB0),
             DistanceCanSee = Fp(0xEC8),
@@ -228,7 +230,7 @@ public static class KwdCreatures
             SlapFearlessDuration = Fp(0xEDC),
             PossessionManaCost = S16(0xEE8),
             LairObjectId = U8(0xF52),
-            CloneCreatureId = U8(0xD38),
+            CloneCreatureId = U8(OffsetBaseCreatureId),
 
             NameStringId = U16(0xF24),
             TooltipStringId = U16(0xF26),

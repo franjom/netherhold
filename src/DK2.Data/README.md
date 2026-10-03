@@ -64,8 +64,8 @@ and unconsumed high bytes survive; `RawBlock` edits are refused. Exhaustive fiel
 edit tests guard the AI reader/writer layout.
 Unchanged names retain their original padding; unrepresentable edits are refused.
 Other typed overlays, shape editing and the editor UI are still pending.
-CREATURES overlays stopped at the reader's overlapping speed and clone-id
-projections (Q526); no partial writer is retained.
+Q526 corrected CREATURES' clone-id projection to the base-creature byte;
+its two typed names share one backing value. Its overlay is still pending.
 
 ## WAD archives and saved games
 
