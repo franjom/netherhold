@@ -73,6 +73,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Editor and plugins
 
+- Context-mode subprocess writes are discarded with its sandbox; use native tools for persistent build logs and artifacts.
+
 - A context-mode upgrade can arrive without `node_modules`, and FTS5 search then silently returns
   only old content; `ctx_doctor` names it. Install `better-sqlite3@^12` out of tree with
   `npm install --prefix <scratch>` and copy `node_modules` into the new plugin version's folder.

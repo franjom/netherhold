@@ -31,7 +31,7 @@ public sealed class CreatureStatusSystem : ISimulationSystem
             CreatureState creature = creatures[i];
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
-            if (creature.Activity == CreatureActivity.Stunned)
+            if (creature.Activity == CreatureActivity.Stunned && !TremorRules.IsRecovering(creature))
             {
                 if (creature.Dk2StateId == Combat.CombatStates.GettingUp)
                 {

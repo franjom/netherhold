@@ -63,6 +63,7 @@ public static class ShotRules
     public const byte ChickenProcess = 15;
     /// <summary>Type 30, <c>0x004AF660</c>: the keeper's Inferno before each move (<see cref="InfernoRules"/>).</summary>
     public const byte InfernoProcess = 30;
+    public const byte TremorProcess = 27;
     public const byte DrainProcess = 35;
     public const byte PoisonProcess = 38;
 
@@ -399,6 +400,11 @@ public static class ShotRules
     {
         if ((definition.ShotProcessFlags & eventBit) == 0) return;
         WorldState world = context.World;
+        if (definition.ProcessType == TremorProcess)
+        {
+            TremorRules.Start(context, shot);
+            return;
+        }
         if (definition.ProcessType == CreateObjectProcess)
         {
             CreateObject(context, shot);

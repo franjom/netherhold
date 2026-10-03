@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 169;
+    private const int FormatVersion = 170;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -363,6 +363,9 @@ public static class WorldSnapshot
             w.Write(c.Tunnel.ActionUntilTick);
             w.Write(c.WanderStamp);
             w.Write(c.ActionUntilTick);
+            w.Write(c.Fleeing);
+            w.Write(c.ShouldDelayGetUp);
+            w.Write(c.TremorRoutePaused);
             w.Write(c.OldFightTileX);
             w.Write(c.OldFightTileY);
             w.Write(c.OldFightTick);
@@ -550,6 +553,14 @@ public static class WorldSnapshot
             w.Write(trap.GuardRoomTile);
         }
         w.Write(world.NextChainOrder);
+        foreach (TremorState tremor in world.Tremors)
+        {
+            w.Write(tremor.WorldX);
+            w.Write(tremor.WorldY);
+            w.Write(tremor.StartedAt);
+            w.Write(tremor.DurationTicks);
+            w.Write(tremor.Radius);
+        }
 
         w.Write(world.HeroParties.Count);
         foreach (HeroPartyState party in world.HeroParties)
@@ -912,6 +923,9 @@ public static class WorldSnapshot
                 },
                 WanderStamp = r.ReadInt64(),
                 ActionUntilTick = r.ReadInt64(),
+                Fleeing = r.ReadBoolean(),
+                ShouldDelayGetUp = r.ReadBoolean(),
+                TremorRoutePaused = r.ReadBoolean(),
                 OldFightTileX = r.ReadInt32(),
                 OldFightTileY = r.ReadInt32(),
                 OldFightTick = r.ReadInt64(),
@@ -1128,6 +1142,14 @@ public static class WorldSnapshot
             });
         }
         world.NextChainOrder = r.ReadInt32();
+        for (int i = 0; i < WorldState.TremorSlotCount; i++)
+        {
+            world.TremorSlots[i] = new TremorState
+            {
+                WorldX = r.ReadInt32(), WorldY = r.ReadInt32(), StartedAt = r.ReadUInt32(),
+                DurationTicks = r.ReadUInt16(), Radius = r.ReadUInt16(),
+            };
+        }
 
         int heroPartyCount = r.ReadInt32();
         for (int i = 0; i < heroPartyCount; i++)

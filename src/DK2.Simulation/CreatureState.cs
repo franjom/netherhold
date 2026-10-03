@@ -826,8 +826,14 @@ public sealed class CreatureState
     public long WanderStamp;
 
     /// <summary>When the creature action playing now ends (DK2's running action, <c>0x00496D00</c>);
-    /// ours for the idle actions 43 and 44, whose length is UNKNOWN.</summary>
+    /// used by idle actions and the captured knockdown/get-up animation clock.</summary>
     public long ActionUntilTick;
+    /// <summary>Original state-flags word +0x3EA bit 20, separate from the combat fleeing state.</summary>
+    public bool Fleeing;
+    /// <summary>Original state-flags word +0x3E6 bit 27, consumed by recovery state 263.</summary>
+    public bool ShouldDelayGetUp;
+    /// <summary>Ours: retains the recovery's route pause until a state permits general steering again.</summary>
+    public bool TremorRoutePaused;
 
     /// <summary>DK2's <c>OldFightPos</c> (<c>+0x52A</c>, <c>+0x52C</c>, a tile; 0 for none) and
     /// <c>OldFightTick</c> (<c>+0x52E</c>): where a creature withdrew from a fight, and when
@@ -1148,6 +1154,9 @@ public sealed class CreatureState
         hash.Add(Tunnel.ActionUntilTick);
         hash.Add(WanderStamp);
         hash.Add(ActionUntilTick);
+        hash.Add(Fleeing ? (byte)1 : (byte)0);
+        hash.Add(ShouldDelayGetUp ? (byte)1 : (byte)0);
+        hash.Add(TremorRoutePaused ? (byte)1 : (byte)0);
         hash.Add(OldFightTileX);
         hash.Add(OldFightTileY);
         hash.Add(OldFightTick);

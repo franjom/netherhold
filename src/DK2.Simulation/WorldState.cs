@@ -936,6 +936,9 @@ public sealed class EffectGeneratorState
 public sealed class WorldState
 {
     private readonly TileState[] _tiles;
+    internal const int TremorSlotCount = 8;
+    internal TremorState[] TremorSlots { get; } = new TremorState[TremorSlotCount];
+    public IReadOnlyList<TremorState> Tremors => TremorSlots;
     private readonly PlayerState[] _players; // kept sorted by PlayerId, for stable hashing
     private readonly List<TileWorkOrder> _pendingWork = [];
     private readonly List<CreatureState> _creatures = [];
@@ -1003,6 +1006,7 @@ public sealed class WorldState
     }
 
     public ref TileState Tile(TilePos p) => ref Tile(p.X, p.Y);
+    public int TileIndex(TilePos p) => (p.Y * Width) + p.X;
 
     public ref TileState TileAtIndex(int index) => ref _tiles[index];
 
@@ -1641,6 +1645,7 @@ public sealed class WorldState
         hash.Add(Width);
         hash.Add(Height);
         hash.Add(FogOfWarEnabled ? (byte)1 : (byte)0);
+        foreach (TremorState tremor in TremorSlots) tremor.HashInto(ref hash);
         hash.Add(_tiles.Length);
         foreach (TileState t in _tiles) t.HashInto(ref hash);
         hash.Add(NextSlabOrder);

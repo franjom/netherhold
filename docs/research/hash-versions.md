@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**170** — `0x08B3B3184DD609AE`. Eight world Tremor records and creature `Fleeing`, `ShouldDelayGetUp` and retained-route pause; the fixed records and false flags change hash composition even without a cast. See ADR-0350 and `keeper-spell-tremor.md`.
+
 **169** — `0x1D8367ACE6D6D7CB`. Master's 168 merged into the room-health branch: both shapes, a room tile's `RoomHealthLost` and its `KeptManaGain` (ADR-0336, ADR-0334). **167** — `0x5127FACEAEC8EA6B`. A room's health, DK2's `room+0x35`, held as each room tile's `RoomHealthLost` (ADR-0336); no behaviour moves, as an untouched room's deficit is zero. **168** — `0x958573FFD0B603A6`. The m7/close merge (its 163–165 were taken first): an object's health and position and the Boulder's roll, speed, wear and signs (ADR-0333); a creature's heart player (`+0x2F5`) and death-shot flag (ADR-0337); the alarm's route word (ADR-0332) and area damage's 32-bit arithmetic change behaviour, not shape. **166** — `0x32B476C1ECE5CC30`. A hatchery's `ChickensGenerated`, `room+0x51`, on its lowest tile; a coop no longer stocks a hatchery, and the Hatchery finder posts 41–43 (ADR-0338; 163–165 were taken first). **165** — `0x3112DA3F61990DB7`. A tile's `KeptManaGain`, the floor's mana a room built over it keeps paying (ADR-0337); a Claimed Vault's `MaxManaGain` raises its owner's gain cap. **162** — `0x323B5E88EF7AFB82`. A keeper's trap no-mana clock, player `+0xAA` (ADR-0326; 159 before master took 160); trap upkeep, trap and door area damage and trap collision change behaviour, not shape. **161** — `0x1F7722DF305E58E1`. A Guard Post's room, trap `+0x113` (ADR-0330); it was 158 before master took 160. No scenario's event log or world changes (measured on 1aa98db). **160** — `0xA846A4DFE0257674`. A room tile's `RoomSizeChangedTick`, DK2's `room+0x9F` stamped at every rebuild; room messages 41–43 are retained (ADR-0327). **156** — `0xA8639EEF2B7A2350`. A trap's runtime words (health, heading, recharge and recovery deadlines, charge, Trigger count, hidden, threat and its clock, the Trigger's countdown and creature, the sight cache), a creature's tile-chain link and its counter (ADR-0321). **155** — `0x72C7236DC18B69AF`. A creature's Casino fearless countdown, flag and `FearlessUntil`, its `TortureVoluntary`, and a keeper's `NumberOfManufacturingCreatures` (ADR-0322). **153** — `0x1149D4B4FA9DC991`. A tile's `RoomRuined`, the ruin trigger action 32 writes on a Hero Gate (ADR-0320). **152** — `0xE459726930E9CA06`. A door's id, health and recovery deadline, a trap's id, both id counters, a creature's forced-target kind and `RebelActive`; blueprints name ids (ADR-0318). **149** — `0x62BD4E4816875CDD`. A keeper's `PortalsClosed` (DK2's `PortalsOpen`, player `+0x76` bit 10), written by action 37; a portal's clock restarts at every due roll (ADR-0314). **148** — `0xCF0197A5CA7ACEB4`. Training and Casino enter hooks refuse before their claims (ADR-0313); no new field: the countdown seed moves after their tests. No scenario's series and no rig log changes on efa3157. **147** — `0x75745303F30520A9`. A creature's held room place (ADR-0309). **146** — `0x31889C236E089472`. A tile's dig task that outlives its wall (ADR-0305). **145** — `0xC3DB6013EF7EF967`. The Angry flourish follows the art type (ADR-0301, Q188); no new field. **144** — `0xAFA4D2781BF3CBA8`. A creature's chicken timer (ADR-0302). **143** — `0x6A93081534CC88BD`. The Casino big-winner countdown the walk-over pick-up reads (ADR-0300). **142** — `0x5C3E476976F79986`. The payday clock armed by a keeper's first non-worker (ADR-0295). **141** — `0x1B3AF57D6F23BE5E`. A tile's mark order, and the gold an imp keeps in its hands (ADR-0288). **140** — `0x25381F6E02610FEC`. A shot's forced-collision word (ADR-0287). **151** — `0x2F51C47030E5B38B`. The Combat category's enter and leave hooks on every route in and out, and a fight's re-selection kept inside 199 (ADR-0319); no new field. **149** — `0x62BD4E4816875CDD`. A keeper's `PortalsClosed` (DK2's `PortalsOpen`, player `+0x76` bit 10), written by action 37; a portal's clock restarts at every due roll (ADR-0314). **148** — `0xCF0197A5CA7ACEB4`. Training and Casino enter hooks refuse before their claims (ADR-0313); no new field: the countdown seed moves after their tests. No scenario's series and no rig log changes on efa3157. **147** — `0x75745303F30520A9`. A creature's held room place (ADR-0309). **146** — `0x31889C236E089472`. A tile's dig task that outlives its wall (ADR-0305). **145** — `0xC3DB6013EF7EF967`. The Angry flourish follows the art type (ADR-0301, Q188); no new field. **144** — `0xAFA4D2781BF3CBA8`. A creature's chicken timer (ADR-0302). **143** — `0x6A93081534CC88BD`. The Casino big-winner countdown the walk-over pick-up reads (ADR-0300). **142** — `0x5C3E476976F79986`. The payday clock armed by a keeper's first non-worker (ADR-0295). **141** — `0x1B3AF57D6F23BE5E`. A tile's mark order, and the gold an imp keeps in its hands (ADR-0288). **140** — `0x25381F6E02610FEC`. A shot's forced-collision word (ADR-0287).
 **139** — `0xF3B644CAA2F6FE61`. A worker's last task tile, and the job choice of ADR-0282.
 **138** — `0xB858D2093C84A232`. The Call to Arms, its flag's process states and the heeding bit (ADR-0279).
@@ -297,104 +299,4 @@ wage owed, the failed-attempt counter and `SkipNextPayment` — and the next
 payday deadline on the player. The pinned world has no treasury and its
 creatures are level 1, so the value moved on composition.
 
-**30** — `0x2E7E116CA573398B`. Two commits arrived at 30 from 28, with 29 spent
-on a branch:
-
-- The Hand of Evil stopped holding creature ids and started holding **things**
-  (ADR-0075, Q196). The owner confirmed a keeper can pick up a chicken — with a
-  screenshot of four held at once — so a hand slot carries a kind beside its id,
-  and an object carries `ObjectState.InHand` the way a creature carries
-  `CreatureState.InHand`. Composition only: every hand is empty for the whole
-  run, and the world holds no objects.
-- Fog of war: every tile gained a per-keeper discovery mask and the world gained
-  the boolean game setting that makes it active. Both are persisted simulation
-  state in `DKII.EXE` — its world save writes the live tile's fog byte — so both
-  enter the hash. This fixture leaves fog **disabled** and every discovery mask
-  at zero. `docs/research/fog-of-war.md`.
-
-Did not move it: the prisoner eating of ADR-0074, one commit earlier — the
-fixture imprisons nobody and `PrisonerEatSystem` draws no randomness.
-
-**29** — exists only on the fog-of-war branch. It was taken there while the hand
-work was being written in the main tree, which is exactly the collision a
-version number exists to catch: two branches numbering the same save format
-differently, either of which would read the other's file and be wrong. The hand
-went to 30 rather than fighting over 29.
-
-**28** — `0x19A512BB12A71575`. The aimed bonus turned out to be two fields
-rather than one (ADR-0069). `JustDropped` is now only a one-shot ticket for the
-drop scan; the Efficiency bonus is the new `DroppedTask`, which holds the
-**kind** of work the drop found and which DK2 clears in exactly one place.
-`CreatureState` also gained `LastTaskKind`.
-
-Did not move it: the behaviour. Nothing in this fixture is picked up, so
-`DroppedTask` is `None` for the whole run and the retry branch that decides
-whether an aimed worker keeps its bonus is never entered.
-
-**27** — `0x0D75C57C1848268C`. Eating (ADR-0067). The hunger clock stopped
-saturating and started accumulating — `ChickensNeeded` became `HungerNeed`, and
-the periodic tick **adds** `HungerFill` rather than setting it — and
-`CreatureState` gained `FoodAttemptTicks`. `docs/research/eating.md`.
-
-Did not move it, and that is the point: `CreatureEatSystem` was registered
-**above** `CreatureSleepSystem` in the same commit, which changes the order every
-creature is offered its needs in, and the run is identical. Imps neither eat nor
-sleep, so this fixture cannot see it — the next fixture with a goblin in it will.
-
-**26** — `0x154E9041172A7F7F`. Reason not recorded here; see git history.
-
-**23, 24, 25** — no pinned value recorded. 23 was carrying (ADR-0063):
-`CreatureState` gained `CarriedCreatureId`, `CarriedByCreatureId` and
-`TargetBodyId`, all `-1` for every creature in this fixture. Death changed shape
-in the same commit and did not move the value: a creature that leaves a body
-becomes a corpse instead of being removed, and the fixture kills nobody. 24 and
-25 are not recorded here; see git history.
-
-**22** — `0xDFF77147B12A64C3`. The Hand of Evil (ADR-0062). `CreatureState`
-gained `InHand`, `PickupTick`, `LastSlapTick`, `WorkFasterTicks` and
-`JustDropped`, and `PlayerState` gained the hand itself.
-
-Did not move it: Efficiency became a real multiplier on every work application
-in the same commit and the suite passed unchanged, because
-`EfficiencyRules.Scale` returns its input at the default 80%, which is the rate
-every worker here is at.
-
-**21** — `0x6AF149EE8E20D98A`. The angry chooser stopped keeping its draw and
-started keeping a timestamp (Q122, ADR-0061): `CreatureState.AngryChoice` became
-`LastAngryChoiceTick`, because what the original keeps between selections is
-when the last one succeeded and nothing else.
-
-**20** — `0x5E96E634C7E5037D`. Every tile gained a `FreshlyDug` bit (Q154), set
-when excavation destroys it and cleared by the next change of terrain, so that
-an imp claims the tile it has just dug before it looks for the next mark. The
-fixture digs, so the bit is set on real tiles here.
-
-Did not move it: the mover's two-phase diagonal walk (ADR-0059), which landed in
-the same commit — the fixture has no off-centre diagonal leg in it.
-
-**19** — `0x12E5615E803C5796`. The free-imp supply stopped keeping a countdown
-and started keeping a **deadline**, which is what the original does (Q56).
-`PlayerState.FreeImpCountdownTicks` became `NextFreeImpTick`, and the fixture's
-keeper — who has a dungeon heart and starts with no imps — is staffed on tick
-zero instead of five seconds in.
-
-**18** — `0x55BEDDA879B4A281`. An object gained the union's Gold member,
-`ObjectState.GoldHeld` (Q31, Q65), because gold on the floor is an object —
-type 1, "Gold", carrying its amount in the same four bytes a bed reads a
-creature id out of. Composition only: the world has no objects.
-
-**17** — `0x6B5ECAD0E9EDB2F0`. The world gained an **object** list and a
-creature **lost** a field (Q130). A bed is now a thing standing on a tile — an
-`ObjectState` whose `CreatureId` says whose it is — where it used to be
-`CreatureState.LairTileIndex` saying which tile was mine. DK2 keeps the relation
-on the object (`docs/research/objects.md` §7), so there is one copy of the fact
-instead of two.
-
-**16** — `0x092072D0E7C9B04E`. `CreatureState` gained `ExperiencePoints`
-(Q124). `docs/research/creature-levels.md`.
-
-**15** — `0x38CCE7E988729817`. The `Level` field itself (Q119), whose arithmetic
-is a proven no-op at level 1: composition only.
-
-**14** — `0x5DB64D0C91D99368`; **13** — `0xAEAF871CC4814DA1`; **12** — `0x9D2695B2F62707D2`;
-**11** — `0x12E4F45E48ACEB9B`; **10** — `0x06F71648486D0FEC`; **9** — `0x4F824667CDA7EF25`. Reasons for 9–14: see git history.
+[Versions 9–30](hash-versions-early.md) retain the earlier pins and their reasons.

@@ -48,6 +48,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
+            if (context.TremorRecoveryCompletedThisTick.Contains(creature)) continue;
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
 

@@ -75,6 +75,13 @@ public sealed class CreatureMovementSystem : ISimulationSystem
         foreach (CreatureState creature in context.World.Creatures)
         {
             if (HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) continue;
+            if (TremorRules.IsRecovering(creature) || context.TremorRecoveryCompletedThisTick.Contains(creature)) continue;
+            if (creature.TremorRoutePaused)
+            {
+                if (!CreatureStateMachine.HasState(creature)
+                    || (CreatureStateTable.Get(creature.Dk2StateId).Flags & CreatureStateFlags.Unread0) == 0) continue;
+                creature.TremorRoutePaused = false;
+            }
 
             // Only a creature in a walking state is moved (the state table's bit at 0x0048A23B).
             // Ours: one with a route loaded, arrived or not, so the arrival tick still takes its

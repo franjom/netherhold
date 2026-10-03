@@ -19,6 +19,7 @@ public enum KeeperSpellRefusal
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-thunderbolt.md")]
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-create-gold.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-tremor.md")]
 public static class KeeperSpellRules
 {
     public const byte Thunderbolt = 6;
@@ -115,13 +116,14 @@ public static class KeeperSpellRules
         {
             case 1: if (!LocationOne(world, database, context.Navigation, cast.PlayerId, at)) return KeeperSpellRefusal.Location; break;
             case 4: if (!LocationFour(world, context.Navigation, at)) return KeeperSpellRefusal.Location; break;
+            case 5: break;
             default: return KeeperSpellRefusal.UnsupportedLocationSelector;
         }
         if (spell.TargetSelector is not (4 or 5)) return KeeperSpellRefusal.UnsupportedTargetSelector;
         if (!PlaceTargetAllowed(world, database, cast.PlayerId, spell, at)) return KeeperSpellRefusal.Target;
         var effect = spell.Shot(availability.Upgraded);
         if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
-        if (shot.ProcessType is not (ShotRules.CreateObjectProcess or ShotRules.InfernoProcess)) return KeeperSpellRefusal.UnsupportedShotProcess;
+        if (shot.ProcessType is not (ShotRules.CreateObjectProcess or ShotRules.InfernoProcess or ShotRules.TremorProcess)) return KeeperSpellRefusal.UnsupportedShotProcess;
         return KeeperSpellRefusal.None;
     }
 
@@ -129,13 +131,13 @@ public static class KeeperSpellRules
     /// of the runtime table at <c>0x006FCE40</c>) rather than at a place (4 and 5).</summary>
     public static bool TargetsAThing(byte targetSelector) => targetSelector is 1 or 2 or 3 or 6;
 
-    /// <summary>The spells whose casts this simulation executes: Call to Arms, Inferno and Create Gold at a place,
+    /// <summary>The spells whose casts this simulation executes: Call to Arms, Inferno, Create Gold and Tremor at a place,
     /// Thunderbolt, Heal and Chicken at a creature. Create Imp keeps its own command.</summary>
-    public static bool ExecutesAtPlace(byte spellId) => spellId is CallToArmsRules.SpellId or Inferno or CreateGold;
+    public static bool ExecutesAtPlace(byte spellId) => spellId is CallToArmsRules.SpellId or Inferno or CreateGold or TremorRules.SpellId;
     public static bool ExecutesOnCreature(byte spellId) => spellId is Thunderbolt or Heal or Chicken;
 
     /// <summary>The place validators of <c>0x004BB8A0</c> for one spell at one tile: its location
-    /// selector (1 or 4 read) and target selector 4 or 5. The caller's grid must be current.</summary>
+    /// selector (1, 4 or 5 read) and target selector 4 or 5. The caller's grid must be current.</summary>
     public static bool PlaceAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
         byte playerId, KeeperSpellDef spell, TilePos at) =>
         LocationAllowed(world, database, navigation, playerId, spell, at)
@@ -165,6 +167,7 @@ public static class KeeperSpellRules
     {
         1 => LocationOne(world, database, navigation, playerId, at),
         4 => LocationFour(world, navigation, at),
+        5 => true,
         _ => false,
     };
 

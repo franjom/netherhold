@@ -101,6 +101,7 @@ public static class ActivityRules
         CombatStates.RespondingToThreat or CombatStates.StandingDown => CreatureActivity.RaisingAlarm,
         CombatStates.ReportingDanger => CreatureActivity.Reporting,
         >= CombatStates.Stunned and <= CombatStates.GettingUp => CreatureActivity.Stunned,
+        TremorRules.KnockdownState or TremorRules.WaitingState or TremorRules.GettingUpState => CreatureActivity.Stunned,
         CombatStates.AtTheBody => CreatureActivity.GoingToBody,
         CombatStates.Celebrating => CreatureActivity.Celebrating,
         CrateRules.CrateMadeState => CreatureActivity.AtWork,

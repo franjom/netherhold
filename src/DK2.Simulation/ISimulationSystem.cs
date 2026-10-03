@@ -29,6 +29,8 @@ public sealed class SimulationContext
     public GameDatabase Database { get; }
     public WorldState World { get; }
     public SimRandom Rng { get; }
+    // Recomputed each recovery pass; never an input to the following turn.
+    internal HashSet<CreatureState> TremorRecoveryCompletedThisTick { get; } = [];
 
     /// <summary>The mesh, the router and the steering probes over <see cref="World"/>. Systems
     /// request routes through it; the movement system steps bodies against it.</summary>

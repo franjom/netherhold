@@ -103,6 +103,8 @@ public readonly record struct TileWorkResult(
 {
 }
 
+public readonly record struct TileHealthDamage(int Amount);
+
 /// <summary>
 /// A queued unit of work: "player P applies one application of kind K to tile I",
 /// consumed by <see cref="Systems.TileWorkSystem"/> in queue order.
@@ -130,6 +132,19 @@ public readonly record struct TileWorkOrder(
 /// </summary>
 public static class TileWorkRules
 {
+    /// <summary>Health damage without mining yield, using the shared terrain conversion; the caller checks eligibility.</summary>
+    public static TileWorkResult ApplyDamage(GameDatabase database, ref TileState tile, TileHealthDamage damage)
+    {
+        int applied = -Math.Min(damage.Amount, tile.Health);
+        tile.Health += applied;
+        if (tile.Health > 0)
+            return new TileWorkResult(applied == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed,
+                applied, 0, 0, tile.TerrainId);
+        int spilled = Convert(database, ref tile, BridgeRules.RevertsTo(database, tile),
+            tile.OwnerPlayerId, takeOwnership: false);
+        return new TileWorkResult(TileWorkOutcome.Destroyed, applied, 0, spilled, tile.TerrainId);
+    }
+
     /// <summary>The global variable each kind draws its per-application health
     /// delta from. CONFIRMED — these are DK2's own variable names.</summary>
     public static VariableTypeId Variable(TileWorkKind kind) => kind switch

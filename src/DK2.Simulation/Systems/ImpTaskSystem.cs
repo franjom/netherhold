@@ -155,6 +155,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             if (i < 0) break;
             CreatureState creature = creatures[i];
             below = creature.Id;
+            if (context.TremorRecoveryCompletedThisTick.Contains(creature)) continue;
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
 

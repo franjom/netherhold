@@ -43,6 +43,7 @@ public static class SimulationSystems
         // Acquisition before state handlers and steering, as ProcessFight sits in DK2's update.
         new CreatureStatusSystem(), // the status countdowns (0x0048E160) before the fight reads their words
         new CombatSystem(),
+        new TremorCreatureSystem(), // recovery handler before steering; world Tremor runs after the entity pass
         new CombatPitSystem(), // the pit's states, after the fight processing as DK2's handler is (ADR-0213)
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
         new JackInTheBoxSystem(), // state 273 and the travel toll, before the mover as DK2's state dispatcher is
@@ -113,6 +114,7 @@ public static class SimulationSystems
         new CreatureAngerSystem(),
 
         new CreatureExperienceSystem(),
-        new DungeonHeartSystem(), // last, as the verdict is the last thing DK2's player frame does
+        new DungeonHeartSystem(), // verdict is the last thing DK2's player frame does
+        new TremorSystem(), // world records after the entity and player passes
     ];
 }

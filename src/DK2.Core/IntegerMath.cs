@@ -25,14 +25,21 @@ public static class IntegerMath
     public static int SquareRoot(int value)
     {
         if (value <= 0) return 0;
+        return SquareRoot((uint)value);
+    }
+
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-tremor.md")]
+    public static int SquareRoot(uint value)
+    {
+        if (value == 0) return 0;
 
         int highest = 0;
-        for (int v = value; v > 1; v >>= 1) highest++;
+        for (uint v = value; v > 1; v >>= 1) highest++;
 
         int guess = SquareRootSeed[highest];
         while (true)
         {
-            int quotient = value / guess;
+            int quotient = (int)(value / (uint)guess);
             if (quotient >= guess) return guess;
             guess = (guess + quotient) >> 1;
         }

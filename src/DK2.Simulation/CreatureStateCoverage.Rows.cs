@@ -228,7 +228,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(207, "not read"));
         rows.Add(Unbuilt(208, "not read"));
         rows.Add(Unbuilt(209, "not read"));
-        rows.Add(Unbuilt(210, "not read"));
+        rows.Add(Built(210, typeof(TremorRules), nameof(TremorRules.KnockdownState)));
         rows.Add(Unbuilt(211, "its handler 0x00458680 waits out an action, then idles (functions/00458680.md); not built"));
         rows.Add(Unbuilt(212, "not read"));
         rows.Add(Unbuilt(213, "not read"));
@@ -282,8 +282,8 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(260, typeof(CombatStates), nameof(CombatStates.Celebrating)));
         rows.Add(Unbuilt(261, "partly read in travel-states.md 2.4; not built"));
         rows.Add(Unbuilt(262, "not read"));
-        rows.Add(Unbuilt(263, "not read"));
-        rows.Add(Unbuilt(264, "its handler 0x00458680 waits out an action, then idles (functions/00458680.md); not built"));
+        rows.Add(Built(263, typeof(TremorRules), nameof(TremorRules.WaitingState)));
+        rows.Add(Built(264, typeof(TremorRules), nameof(TremorRules.GettingUpState)));
         rows.Add(Unbuilt(265, "partly read in imp-task-objects-and-walks.md 3, steering-behaviours.md; not built"));
         rows.Add(Unbuilt(266, "not read"));
         rows.Add(Built(267, typeof(RoomAttackRules), nameof(RoomAttackRules.DestroyRoomTile)));
