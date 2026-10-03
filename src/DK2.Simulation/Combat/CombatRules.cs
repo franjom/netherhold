@@ -21,6 +21,10 @@ public static class FightTargetKind
     /// <summary>A door, by <see cref="DoorState.Id"/>: forced on a creature that walks into a hostile
     /// one (<c>0x0048A2EB</c>) and fought as a thing (door-blocking.md).</summary>
     public const byte Door = 3;
+
+    /// <summary>A trap, by <see cref="TrapState.Id"/>: chosen by <c>SelectAVictim</c>'s scan D when it
+    /// is completed and revealed (traps.md §11) and fought as a thing.</summary>
+    public const byte Trap = 4;
 }
 
 /// <summary>The engagement record and the rules around it: who may look for a fight, who can be
@@ -45,9 +49,11 @@ public static class CombatRules
     public const int StandingScanPeriod = 10;
     public const int ImpStandingScanPeriod = 4;
 
-    /// <summary>The fight-starter's melee reach against a thing rather than a creature: an
-    /// object adds a quarter tile to <c>MeleeRange</c>, a door half, a secret door three quarters.</summary>
-    public const int ObjectReach = 0x400;
+    /// <summary>What <c>SelectAVictim</c>'s melee commit adds to <c>MeleeRange</c> for a thing, by its
+    /// class (<c>+0x12</c>, <c>0x0045DFC3</c>–<c>0x0045E0A5</c>): a trap (3) a quarter tile; a door (4)
+    /// half, a Secret Door three quarters; an object (2) or any class but 0, 3, 4 and 6 (a body's own arm), half.</summary>
+    public const int TrapReach = 0x400;
+    public const int ThingReach = 0x800;
 
     /// <summary>The low nibble of <c>creature+0x529</c>, which <c>spFighting</c> switches on to
     /// start action 16 (spell) or 17 (melee) — combat-entry.md §3.</summary>

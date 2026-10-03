@@ -23,8 +23,8 @@ public static class FightRules
 {
     private const string SystemName = "combat";
 
-    /// <summary>Whether the engagement still has something to hit: a live, attackable creature, or a
-    /// heart that stands. A Combat Pit fighter needs only a live target on the map, attackable or not,
+    /// <summary>Whether the engagement still has something to hit: a live, attackable creature, a
+    /// heart that stands, or a door or trap with health. A Combat Pit fighter needs only a live target on the map, attackable or not,
     /// since its opponent, a fighter too, is never attackable (combat-pit.md §4).</summary>
     public static bool TargetIsValid(WorldState world, CreatureState me)
     {
@@ -41,6 +41,9 @@ public static class FightRules
             case FightTargetKind.Door:
                 // spFighting step 5: a thing target must be live with health above 0.
                 return world.DoorById(me.FightTargetId) is { Health: > 0 };
+            case FightTargetKind.Trap:
+                // The same step for a trap: one sold, broken or removed by the owner test is gone.
+                return world.TrapById(me.FightTargetId) is { Health: > 0 };
             default:
                 return false;
         }
@@ -72,6 +75,13 @@ public static class FightRules
             x = CreatureState.CentreOf(door.X);
             y = CreatureState.CentreOf(door.Y);
             tile = new TilePos(door.X, door.Y);
+            return true;
+        }
+        else if (me.FightTargetKind == FightTargetKind.Trap && world.TrapById(me.FightTargetId) is { } trap)
+        {
+            x = trap.PosX;
+            y = trap.PosY;
+            tile = new TilePos(trap.X, trap.Y);
             return true;
         }
         x = y = 0;
@@ -168,6 +178,20 @@ public static class FightRules
             if (blow == 0) return;
             DoorRules.Damage(context, door, -blow, me.OwnerPlayerId);
             context.Emit(SystemName, "door_hit", $"creature={me.Id} door={door.Id} blow={blow} health={door.Health}");
+        }
+        else if (me.SwingTargetKind == FightTargetKind.Trap)
+        {
+            // The swing's trap arm (0x0049916D): as the door's, the impact pair from the trap's
+            // definition (+0xBF, presentation), then the blow flat through the health routine, which
+            // adds it to a trap with no refusal. The trap goes when the world next removes the dead.
+            TrapState? trap = world.TrapById(me.SwingTargetId);
+            if (trap is null || trap.Health <= 0) return;
+            int blow = MeleeDamageRules.ApplyPlayerModifiers(
+                MeleeDamageRules.Swing(database, mine, me.Level,
+                    me.CombatPitFighter ? MeleeDamageRules.Stance.CombatPitFighter : MeleeDamageRules.Stance.None), 0, 0);
+            if (blow == 0) return;
+            TrapRules.Damage(trap, -blow);
+            context.Emit(SystemName, "trap_hit", $"creature={me.Id} trap={trap.Id} blow={blow} health={trap.Health}");
         }
     }
 
@@ -290,6 +314,13 @@ public static class FightRules
             targetTile = (door.Y * world.Width) + door.X;
             aimX = CreatureState.CentreOf(door.X);
             aimY = CreatureState.CentreOf(door.Y);
+        }
+        else if (me.SwingTargetKind == FightTargetKind.Trap && world.TrapById(me.SwingTargetId) is { Health: > 0 } trap)
+        {
+            // The shot strikes the trap through the enemies predicate's overlap (ShotRules.FindTrapHit).
+            targetTile = (trap.Y * world.Width) + trap.X;
+            aimX = trap.PosX;
+            aimY = trap.PosY;
         }
         else
         {

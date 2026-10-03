@@ -297,7 +297,7 @@ public static class TrapRules
 
     /// <summary><c>0x004B2CE0</c> on a trap: the signed delta applied flat. Its callers that reach a
     /// trap here are the recovery, a shot's contact damage (<c>0x004AC420</c>) and area damage type 2
-    /// (<c>0x004AC6D0</c>); a swing reaches one only through possession, which is not built (traps.md §10).</summary>
+    /// (<c>0x004AC6D0</c>) and the swing's trap arm (<c>0x0049916D</c>) on a trap scan D chose (traps.md §10).</summary>
     public static void Damage(TrapState trap, int delta) => trap.Health += delta;
 
     // ------------------------------------------------------------------ the tile chain

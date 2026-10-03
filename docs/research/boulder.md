@@ -54,11 +54,19 @@ y and x signs: 18 bytes, the widest member.
 
 The object update `0x0049BD20` runs it through the state runner `0x0049EED0`, then the stepper
 `0x004B2030`, which moves only `+0x104`/`+0x110` (zero on a boulder); its decay needs definition bit 0
-or 1, which `0x238200` lacks. So nothing breaks a boulder at a wall but §6's tenth a turn (Q520). A slap (`Object_ReactToSlap`,
-`0x0049C558`) turns it to the hand's heading (`+0xF4`, `+0x14E`) and costs `BoulderSlapDamage` (240,
-400) through the health routine: ten slaps break it, as the owner recalls from a level played as golf.
-Unread: whether a diagonal launch can carry it into a solid corner tile, as the handlers test only the
-tile ahead on their own axis.
+or 1, which `0x238200` lacks. So nothing breaks a boulder at a wall but §6's tenth a turn (Q520). A slap (`Object_ReactToSlap`
+`0x0049C2A0`, its object-74 arm `0x0049C4ED`–`0x0049C56A`, read 2026-10-03) sets the roll to the slap's
+angle (`+0x14A` := sin·`0x1000` >> 16, `+0x14E` := −cos·`0x1000` >> 16, the signs untouched), writes the
+angle to the heading `+0xF4`/`+0x102`, and costs `BoulderSlapDamage` (240, `0x006F29F8`, 400) through the
+health routine with the boulder's own owner: ten slaps break it, as the owner recalls from a level played as golf.
+The angle is slap action 6's (`0x004C0FE0`), whose source is unread.
+**A slanted roll can enter a solid tile** (read 2026-10-03). The handlers run only on a centre line and
+test only the tile ahead on that axis; the step moves through `0x004B5560` → `0x004B5020`, which relinks
+the tile chains and tests no terrain. A launch at 45° (`+0x14A`, `+0x14E` = ±2896) from a tile centre
+whose two side tiles are free reaches neither centre line in its first tick at 3·1228 a tick, and crosses
+both tile boundaries at once into the diagonal tile, solid or not. At that tile's centre the later axis's
+handler runs: going north with rock ahead and the free tile to the west, it turns west, wearing a tenth.
+So it clips the corner and rolls on; nothing breaks it there. Ours does the same (`BoulderTests`).
 
 ## 4. The strike (`0x004A0930`)
 
@@ -158,8 +166,8 @@ The heart object is the owner's heart health at its centre tile (shots.md §7, Q
 fires at the boulder's position with no target thing.
 
 **Not built:** a shot striking the boulder (its predicate admits object 74, shots.md §4a; contact and
-area damage then quarter or halve), and so a trap's forced hit on it; the slap (`Object_ReactToSlap`,
-`BoulderSlapDamage` 240); creatures steering round a rolling boulder (unread); the heading, spin,
+area damage then quarter or halve), and so a trap's forced hit on it; the slap (ADR-0341: ours slaps creatures and
+the Call to Arms flag only, and carries no angle); creatures steering round a rolling boulder (unread); the heading, spin,
 effects and sounds.
 
 ## Open questions

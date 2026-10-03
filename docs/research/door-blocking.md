@@ -105,7 +105,7 @@ bonus is the creature arm's alone; the door arm only picks a material impact pai
 `def+0xB3`; both player modifiers (`player+0x1090`, `+0x1091`) apply; then
 `0x004B2CE0(-blow, attacker owner, 0)`, which applies a door's delta flat.
 
-A shot aimed at a door (`ShotRules.HitsDoor`) strikes as the heart's does, within the shot's radius plus an object's reach
+A shot aimed at a door (`ShotRules.HitsDoor`) strikes as the heart's does, within the shot's radius plus a quarter tile (ours, a stand-in)
 of the door tile (Q363's stand-in; the overlap with a door thing is unread, Q398). Contact
 damage applies flat; area damage type 2 hits a door not of the shot's owner unless the shot
 is gas, flat (shots.md §4a, ADR-0326).

@@ -201,10 +201,11 @@ then unlinks it from its tile, owner and class lists (`0x004B4D40`, `0x004B4F60`
 (`.text`; none in `cseg`, by a byte scan of every executable block), the ones that reach a trap
 are the recovery (§3 step 12), contact damage on a shot's collision (`0x004AC420`, flat, with no
 owner test) and area damage type 2 (`0x004AC6D0`), both shots.md §4a. The swing
-has a trap arm (`0x0049916D`, impact sounds from def `+0xBF`, then the blow flat), but a trap
+has a trap arm (`0x0049916D`: the impact pair from def `+0xBF` through `0x004998A0`, presentation;
+both player modifiers; then the blow flat through `0x004B2CE0` with the attacker's owner), but a trap
 is not a forced target: every setter of `+0x3F9` (`0x0048F390`'s callers, the contact walk
 `0x0048A2EB`) passes a creature, a door or a heart pillar, possession aside. A trap becomes a victim
-through the selector's scan D instead (§11), which is not built.
+through the selector's scan D (§11). The trap's `+0x34` (`0x00628BC0`) accepts every hit.
 The enemies predicate `0x004B5800` (collide types 2 and 3) admits any completed trap, of any
 owner; area damage type 1 hurts none.
 
@@ -269,7 +270,22 @@ scan `0x00515520` (`& 0x30` at `0x00515843`); and
 the victim selector's **scan D** (`0x0045D7F2`, `& 0x30`), which walks each hostile player's `+0xC`
 list — `player + 6 + class·2`, so class 3, the traps (`0x004B4D40`) — and admits a completed,
 revealed trap other than trap 16 within sight. No register load of `+0x10C` lies in the computer
-keeper's code. Built (ADR-0338): the reveal; not built: scan D and the fight against a trap.
+keeper's code.
+
+**Scan D and the fight** (`0x0045CB00`, read 2026-10-03). It runs only when the fight-type arm's
+creature is gone or failed the route check (`0x0045D74A`; the NonFighter arm falls through too unless it
+returned `0xEA60`), and not for a Turncoat (`+0x453`). The running best restarts at `0x7FFFFFFF`
+(`0x0045D79E`); players come from the game's list (`player+0x10FD`, next `+0x3A`), each hostile one
+(`0x004BF390`) by its owner list, newest linked first (`0x004B4C30` links at the head), next `+0x10`.
+A trap is passed over with `+0x10C & 0x30` or `+0xF6 == 16`; `d` is the squared distance of §5 (each
+axis squared, `>> 12`, summed); a creature whose definition is `IsWorker` needs `d < 0x800`; the trap
+must beat the best strictly, have `d <= sight²` (inclusive, `0x0045D877`) and be seen (`0x004512F0`).
+A trap target skips the heart scan (the class test at `0x0045D91B`). The commit (`0x0045DDA8`): the gate
+`d/3 < hear²`, or `< sight²` and seen; melee when `d < 0x1000` and not a Support, else the surveyed
+spell unless its flag bit 3 sends it to melee against a thing, else melee; for class 3 the melee reach
+is `(MeleeRange + 0x400)² >> 12` (`0x0045E065`) and a spell's its range. spFighting treats the trap as
+any thing: valid while live with health above 0; no re-selection out of reach; the approach's door
+fallback is class 4 only (`0x00471D68`). Built (ADR-0338): the reveal; (ADR-0340) scan D and the fight.
 
 ## 12. Shipped definitions and shot coverage
 
@@ -323,9 +339,11 @@ answer's trap arm and the creature arm's correction; §8 without the owner disco
 Also built (ADR-0326): the upkeep, the no-mana message and its clock, area damage type 2 on
 traps and a shot's collision with a trap; (ADR-0331) the Alarm, Fear, Spike and Gas shots; and
 (ADR-0333) the Boulder and its rolling object, which fires and damages the traps it rolls over;
-(ADR-0337) the Jack In The Box, its Jack and its explosion; and (ADR-0338) the reveal.
+(ADR-0337) the Jack In The Box, its Jack and its explosion; (ADR-0338) the reveal; and (ADR-0340)
+scan D and a creature's fight against a revealed trap, melee and spell.
 Disarming remains unbuilt under the scoped reachability inference in §11 (ADR-0329).
-Left: a creature choosing a revealed trap as its victim (scan D) and fighting it; effects, sounds and animations; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
+Left: scan D's Turncoat skip and the game's player order (a tie between players); effects, sounds and
+animations; heights (Q398, M9 under ADR-0341); `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
 swing at a trap (possession is not built).
 
 ## Open questions

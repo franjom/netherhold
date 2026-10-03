@@ -155,8 +155,8 @@ squared distance of `combat-target-selection.md` §2.
 | C | always, unless a live `AttackingId` short-circuits | **my own `+0x504`/`+0x514` — whoever is already attacking me** | `Creeping` weighting (§6.1), alignment discount, `d < best`, attackable, **seen**, not `SneakingAs` my side, sight-or-reach, **and** a route request succeeds |
 | — | no result yet | `PossessedCreatureFollowing` `+0x482` → its `+0x4D0` | re-acquisition, no strategy runs |
 | — | no result yet | **the fight-type dispatch** with the running best | `combat-target-selection.md` §5 |
-| D | still none, not a Turncoat | each hostile player's `+0xC` list — **traps** (`player + 6 + class·2`, class 3): completed, revealed, not trap 16 (`+0xF6`); not built (Q362, traps.md §11) | within sight and seen; an `IsWorker` only within `0x800` |
-| E | none, **or the target is an `IsWorker`**; not Turncoat, not `IsHorny`, not an Imp | each hostile player's heart: `0x004C5F50` = `player+0xB43` tile → centre; its rooms `+0x36`/`+0x8` of type 5 with `+0x9A` bit 0 **clear** (not a ruin); their objects `+0xE`/`+0x12A` with `TypeId` `+0x12C` == **94, Arch Pillar** | heart centre within sight and seen; pillar `d < best` |
+| D | still none after the route check, not a Turncoat | each hostile player's `+0xC` list — **traps** (`player + 6 + class·2`, class 3), newest first: completed, revealed, not trap 16 (`+0xF6`); its own best from `0x7FFFFFFF` (traps.md §11) | `d <= sight²` and seen; an `IsWorker` only under `0x800` |
+| E | none, **or the target is an `IsWorker` creature** (a trap skips it); not Turncoat, not `IsHorny`, not an Imp | each hostile player's heart: `0x004C5F50` = `player+0xB43` tile → centre; its rooms `+0x36`/`+0x8` of type 5 with `+0x9A` bit 0 **clear** (not a ruin); their objects `+0xE`/`+0x12A` with `TypeId` `+0x12C` == **94, Arch Pillar** | heart centre within sight and seen; pillar `d < best` |
 | F | a friendly spell | own creatures in group 22 with health `+0x40` below a quarter of level-scaled `Hp` (`def+0x692`, table `+0xE1`), not `CombatPitFighter`, not captive or tortured, `0x0049A7A0` castable | seen or reached; then routed; AttackType 3 |
 
 **Scan E is the heart's blow.** A creature that can see an enemy heart's centre
@@ -174,9 +174,10 @@ passes `0`.
 
 ### 6.2 After the scans
 
-1. **Route check.** A creature target must answer a route request
-   (`0x004D0E60`, `0x80`/`0`); failing that, a creature with an attack spell
-   keeps a target it can see, anyone else drops it.
+1. **Route check**, between the dispatch and scan D (`0x0045D704`–`0x0045D77F`).
+   A creature target must answer a route request (`0x004D0E60`, `0x80` for an
+   Imp, else `0`); failing that, a creature with an attack spell keeps a target
+   it can see (no distance test), anyone else drops it and scan D looks on.
 2. **Final gate** on a third of the distance: `d/3 < hear²`, or `d/3 < sight²`
    and seen. Never binding on shipped ranges.
 3. **Commit.** `+0x502` = tag; `+0x529` = spell slot `<< 4` | old nibble. Then
@@ -188,8 +189,9 @@ passes `0`.
    (Q364): false → the fight-starter (§8) and return 1; true → target cleared,
    `0x004611D0(state)` tried, else target restored and the fight-starter.
 5. **Thing target:** `AttackRangeSquared` `+0x4FE` = `(MeleeRange + x)² >> 12`
-   with `x` = `0x800` for a door, `0xC00` for a secret door (flag bit 5),
-   `0x400` for an object, `0x800` otherwise, or the spell's range²; then
+   by the thing's class (`+0x12`): `0x800` for a door (4), `0xC00` for a secret
+   door (flag bit 5), `0x400` for a trap (3, `0x0045E065`), `0x800` for an object
+   (2) or any class but 0, 3, 4 and 6 (`0x0045E098`; a body, 6, takes its own arm); or the spell's range²; then
    `SetState(199)` unless already in group 22 and not en route to a threat.
 
 ## 7. The engagement record (`+0x4FE`…)
@@ -222,22 +224,24 @@ already in group 22. With no target left, the nibble is restored.
 ## 9. Built and not built (ADR-0163)
 
 **Built (ADR-0163, extended by ADR-0164):** `CombatSystem` running `ProcessFight`'s
-gate and throttle; `SelectAVictim` for the **four fighting arms** — the dispatch
-scan with each arm's score (`CombatRules.Score`), the alignment discount,
-`IsAttackable`, sight and reach, the route check, the final gate, melee commit,
-registration, `AttackRangeSquared`, and `CreatureActivity.Fighting` for state 199;
-**scan E**, with the heart's ring tile standing in for its Arch Pillar (Q363).
+gate and throttle; `SelectAVictim`'s five arms (the NonFighter since ADR-0166) —
+the dispatch scan with each arm's score (`CombatRules.Score`), the alignment
+discount, `IsAttackable`, sight and reach, the route check, the final gate, the
+commit, registration, `AttackRangeSquared`, the fight-starter's event 6, and
+`CreatureActivity.Fighting` for state 199; the spell survey and scan F
+(ADR-0167, ADR-0170); scan D and the fight against a trap (ADR-0340); **scan E**,
+with the heart's ring tile standing in for its Arch Pillar (Q363).
 `LineOfSight` reproduces §5's walk; `CombatTargetRules.CanReach` §5's route sum.
 What a fighting creature then does is combat-fight-state.md.
 
-**Not built:** the `NonFighter` arm and the `Creeping` weighting; the spell survey
-and scans B and F; scan C (who attacks me) and scan A; doors (D); `SneakingAs`; the
-trigger event. The flee check is built since ADR-0165 (combat-fear.md §3.4).
+**Not built:** the `Creeping` weighting; the thing-targeting survey and scan B;
+scan C (who attacks me) and scan A; the Turncoat skips; `SneakingAs`. The flee
+check is built since ADR-0165 (combat-fear.md §3.4).
 
 ## 10. What is left
 
 Q360 sleeping and lair-walk creatures unattackable (owner); Q361 the Call to
-Arms radius; Q362 scan D's list; Q363's leftover, the pillars' placement; Q364
+Arms radius; Q363's leftover, the pillars' placement; Q364
 `0x0045EDA0`, `+0x16 == 2`, `vtable+0x2C`; Q365 the spell survey; Q366 creature
 trigger event 6.
 

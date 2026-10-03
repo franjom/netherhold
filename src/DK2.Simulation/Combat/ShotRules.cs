@@ -15,7 +15,7 @@ namespace DK2.Simulation.Combat;
 /// when its damage type says so (§7), and chains hit and death shots that inherit its words (§4).
 /// The status process types run on the first tick or the creature struck (§8, <see cref="Process"/>).
 /// Height, the overlap test's exact shape and objects as targets are not modelled; a door or a heart
-/// aimed at is struck within an object's reach of its tile (Q398, Q363).</summary>
+/// aimed at is struck within a quarter tile of its tile (Q398, Q363).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/shots.md")]
 public static class ShotRules
 {
@@ -224,26 +224,30 @@ public static class ShotRules
         context.Emit(SystemName, "shot_trap_hit", $"shot={shot.Id} caster={shot.CasterId} trap={trap.Id} damage={shot.Data1} health={trap.Health}");
     }
 
-    /// <summary>A shot aimed at a heart reaches it within its radius and an object's reach of the
+    /// <summary>The quarter tile the two stand-ins below add to a shot's radius. DK2 hits a door or a
+    /// pillar by the overlap box (§4a), which is not built for them (Q363, Q398).</summary>
+    private const int StandInReach = 0x400;
+
+    /// <summary>A shot aimed at a heart reaches it within its radius and a quarter tile of the
     /// heart tile it was sent at (Q363's stand-in for the Arch Pillar it would strike).</summary>
     public static bool HitsHeart(WorldState world, ShotState shot, ShotDef definition)
     {
         if (shot.TargetKind != FightTargetKind.Heart || shot.TargetTileIndex < 0) return false;
         ref PlayerState owner = ref world.Player(shot.TargetPlayerId);
         if (owner.HeartHealth <= 0 || owner.HeartRuined) return false;
-        int reach = CombatRules.ReachSquared(definition.Radius + CombatRules.ObjectReach);
+        int reach = CombatRules.ReachSquared(definition.Radius + StandInReach);
         return CombatRules.DistanceSquared(shot.PosX, shot.PosY,
             CombatTargetRules.TileCentreX(world, shot.TargetTileIndex), CombatTargetRules.TileCentreY(world, shot.TargetTileIndex)) < reach;
     }
 
-    /// <summary>A shot aimed at a door reaches it as one at a heart does: within its radius and an
-    /// object's reach of the door's tile. Ours: the overlap with a door thing is unread (Q398,
+    /// <summary>A shot aimed at a door reaches it as one at a heart does: within its radius and a
+    /// quarter tile of the door's tile. Ours: the overlap with a door thing is unread (Q398,
     /// door-blocking.md §5).</summary>
     public static bool HitsDoor(WorldState world, ShotState shot, ShotDef definition, out DoorState? door)
     {
         door = shot.TargetKind == FightTargetKind.Door ? world.DoorById(shot.TargetId) : null;
         if (door is null || door.Health <= 0) return false;
-        int reach = CombatRules.ReachSquared(definition.Radius + CombatRules.ObjectReach);
+        int reach = CombatRules.ReachSquared(definition.Radius + StandInReach);
         return CombatRules.DistanceSquared(shot.PosX, shot.PosY, CreatureState.CentreOf(door.X), CreatureState.CentreOf(door.Y)) < reach;
     }
 

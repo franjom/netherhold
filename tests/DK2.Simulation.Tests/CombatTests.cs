@@ -227,9 +227,40 @@ public class CombatTests
         Assert.Equal(Rival, demon.FightTargetPlayerId);
         Assert.Equal((5 * world.Width) + 10, demon.FightTargetTileIndex);
         Assert.Equal(CombatRules.AttackTypes.MeleeAtThing, demon.AttackType);
+        // The pillar is an object, class 2, and takes the commit's default half tile (0x0045E098), not a trap's quarter.
+        int reach = db.CreatureById(demon.CreatureTypeId).MeleeRange.Raw + 0x800;
+        Assert.Equal((reach * reach) >> 12, demon.AttackRangeSquared);
 
         sim.Run(120);
         Assert.True(world.Player(Rival).HeartHealth < before, $"heart {world.Player(Rival).HeartHealth}");
+    }
+
+    /// <summary>The commit's melee rule is blind to the target's class (<c>0x0045DE6E</c>): a caster that
+    /// is not a Support closes to melee on the heart's pillar within a tile, and casts from further off.</summary>
+    [Theory]
+    [InlineData(0x0C00, CombatRules.AttackTypes.MeleeAtThing)]
+    [InlineData(0x2000, CombatRules.AttackTypes.SpellAtThing)]
+    public void ACasterThatIsNotASupportMeleesTheHeartWithinATile(int offset, byte expected)
+    {
+        CreatureDef caster = Dk2TerrainFixture.Goblin() with
+        {
+            Name = "Caster", CreatureId = 61, FightStyle = FightStyle.Blitzer, Spells = Dk2TerrainFixture.Warlock().Spells,
+        };
+        GameDatabase db = Dk2TerrainFixture.Database(caster);
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        for (int y = 1; y < world.Height - 1; y++)
+            for (int x = 1; x < world.Width - 1; x++)
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+        RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
+        for (int y = 3; y <= 7; y++)
+            for (int x = 10; x <= 14; x++)
+                RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Rival);
+        CreatureState me = world.SpawnCreature(db, 61, Keeper, new TilePos(9, 5));
+        me.PosX = CreatureState.CentreOf(10) - offset;
+        new GameSimulation(db, world, 1, [new CombatSystem()]).Run(1);
+
+        Assert.Equal(FightTargetKind.Heart, me.FightTargetKind);
+        Assert.Equal(expected, me.AttackType);
     }
 
     [Fact]

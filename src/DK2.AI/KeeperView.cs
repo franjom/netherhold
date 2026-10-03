@@ -134,7 +134,7 @@ public sealed class KeeperView : INavByteGrid
     }
 
     /// <summary>The engagement target's owner as the battle step reads it: the creature's owner
-    /// while it lives, the heart's or the door's owner for a thing, 0 with no target.</summary>
+    /// while it lives, the heart's, door's or trap's owner for a thing, 0 with no target.</summary>
     private static byte FightTargetOwner(WorldState world, CreatureState creature)
     {
         if (!CreatureStateMachine.HasState(creature)) return 0;
@@ -145,6 +145,7 @@ public sealed class KeeperView : INavByteGrid
                 return target is null || target.Activity == CreatureActivity.Dead ? (byte)0 : target.OwnerPlayerId;
             case DK2.Simulation.Combat.FightTargetKind.Heart:
             case DK2.Simulation.Combat.FightTargetKind.Door:
+            case DK2.Simulation.Combat.FightTargetKind.Trap:
                 return creature.FightTargetPlayerId;
             default:
                 return 0;

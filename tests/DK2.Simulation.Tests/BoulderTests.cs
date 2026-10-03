@@ -49,6 +49,37 @@ public class BoulderTests
         return sim;
     }
 
+    /// <summary>Q520's corner, a binary prediction not yet watched: the handlers test only the tile ahead on
+    /// a centre line and the position setter tests no terrain (boulder.md §3), so a 45° roll past two
+    /// free side tiles enters the solid diagonal tile, turns at its centre toward the free side and rolls on.</summary>
+    [Fact]
+    public void Predicted_ADiagonalRollPastAFreeCornerEntersTheSolidTile_TurnsAtItsCentre_AndDoesNotBreak()
+    {
+        (GameDatabase db, WorldState world) = Open(corridor: false);
+        world.Tile(6, Row - 1).TerrainId = Dk2TerrainFixture.Rock;
+        world.Tile(6, Row - 2).TerrainId = Dk2TerrainFixture.Rock;
+        world.Tile(7, Row - 1).TerrainId = Dk2TerrainFixture.Rock;
+        ObjectState boulder = Rolling(db, world, 5, Row);
+        boulder.RollX = 2896;
+        boulder.RollY = -2896;
+        boulder.RollSignY = -1;
+        int health = boulder.Health;
+        var sink = new ListEventSink();
+        GameSimulation sim = Sim(db, world, sink);
+
+        sim.Run(1);
+        Assert.Equal((6, Row - 1), (boulder.PosX >> 12, boulder.PosY >> 12));
+        for (int i = 0; i < 3 && !sink.Events.Any(e => e.Kind == "boulder_turned"); i++) sim.Run(1);
+
+        SimEvent turned = Assert.Single(sink.Events, e => e.Kind == "boulder_turned");
+        Assert.Contains($"at=6,{Row - 1} roll=-4096,0", turned.Detail);
+        Assert.Equal(health / 10, boulder.Wear);
+        Assert.Contains(boulder, world.Objects);
+        sim.Run(2);
+        Assert.Equal(Row - 1, boulder.PosY >> 12);
+        Assert.True(boulder.PosX >> 12 < 6);
+    }
+
     [Fact]
     public void ABoulderTrapFiresAtAnEnemy_ItsShotMakesABoulderThatDestroysTheTrap_RollsToTheEnemy_AndKnocksItIntoTwoFiftySix()
     {
