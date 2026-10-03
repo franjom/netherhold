@@ -67,7 +67,7 @@ independently validated template for type changes.
 LEVEL preserves both metadata boundaries, all messages, paths and tail words.
 `KwdLevel.WritePathRecord` supports GLOBALS only as its known LEVEL path
 discriminator; standalone GLOBALS chunks remain refused (Q220).
-Shape editing and the editor UI are still pending.
+The editor UI is still pending.
 
 ## Editing
 
@@ -79,7 +79,10 @@ content root; extensionless references use `.kwd`, with case-insensitive lookup.
 images are isolated. A failed edit leaves the set unchanged.
 `ToBytes` and `Save(outputRoot)` preserve file paths and serialize owned images.
 Generic field edits freeze trigger identifiers, links and roots, plus the LEVEL
-file manifest. Dedicated structural operations are still pending.
+file manifest. `InsertThing` requires an explicit tagged image; `RemoveThing`
+retains the remaining images and order. Both update count, content size and end
+offset. New nonzero trigger roots must resolve uniquely in a complete level set.
+TRIGGERS structural operations and MAP resizing are still pending.
 
 ## WAD archives and saved games
 

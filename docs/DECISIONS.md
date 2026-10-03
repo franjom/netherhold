@@ -7839,5 +7839,7 @@ Q526's base-creature aliases share one value.
 The DK2.Data editing surface owns a level's manifest and referenced file images,
 applies transactional typed edits, and saves relative paths under an output root.
 Generic edits freeze trigger references and the file manifest.
-Tagged insertion/removal and map resizing are pending.
+THINGS insertion/removal retains source images and updates container counts
+and lengths; new trigger roots must resolve uniquely in a complete level set.
+TRIGGERS structural edits and map resizing are pending.
 No editor UI or playability validation is built.
