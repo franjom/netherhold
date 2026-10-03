@@ -55,6 +55,7 @@ a LEVEL path discriminator with synthetic coverage (Q220).
 `WriteRecord` on `KwdDoors`, `KwdKeeperSpells`, `KwdObjects` and `KwdTraps`, and
 `KwdTerrainRooms.WriteTerrainRecord` / `WriteRoomRecord`, overlay every decoded field over an explicit
 record image, using reader offsets.
+`MapGrid.WriteTile` overlays all four tile bytes; map resizing is still pending.
 Unchanged names retain their original padding; unrepresentable edits are refused.
 Other typed overlays, shape editing and the editor UI are still pending.
 

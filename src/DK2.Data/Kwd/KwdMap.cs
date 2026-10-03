@@ -17,6 +17,15 @@ namespace DK2.Data.Kwd;
 /// </summary>
 public static class MapGrid
 {
+    public static byte[] WriteTile(MapTile tile, KwdRecordImage template)
+    {
+        byte[] bytes = KwdOverlay.Image(template, KwdRecordType.Map, 4);
+        bytes[0] = tile.TerrainId;
+        bytes[1] = tile.PlayerId;
+        bytes[2] = tile.Flags;
+        bytes[3] = tile.Unknown;
+        return bytes;
+    }
     public static LevelMap? Parse(IEnumerable<KwdChunk> chunks)
     {
         foreach (KwdChunk chunk in chunks)

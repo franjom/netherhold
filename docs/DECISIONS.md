@@ -7830,8 +7830,7 @@ refused. Raw header bytes remain available. Record-image Split/Join validates
 counts, types, strides and tagged lengths; both CREATURES forms retain every
 trailing byte. GLOBALS' established form remains a LEVEL path row (Q220);
 standalone splitting/joining is refused. DOORS, KEEPERSPELLS, OBJECTS, TRAPS,
-TERRAIN and ROOMS
-overlays share reader constants and preserve unknown bytes and unchanged name
-padding. Other typed
+TERRAIN and ROOMS overlays share reader constants and preserve unknown bytes and
+unchanged name padding. MAP tile edits retain all four bytes. Other typed
 overlays and shape editing are pending; no editor UI or playability validation
 is built.
