@@ -7831,6 +7831,8 @@ counts, types, strides and tagged lengths; both CREATURES forms retain every
 trailing byte. GLOBALS' established form remains a LEVEL path row (Q220);
 standalone splitting/joining is refused. DOORS, KEEPERSPELLS, OBJECTS, TRAPS,
 TERRAIN and ROOMS overlays share reader constants and preserve unknown bytes and
-unchanged name padding. MAP tile edits retain all four bytes. Other typed
+unchanged name padding. MAP tile edits retain all four bytes. VARIABLES overlays
+use individual typed cells, retaining duplicate ids and order; payload shape
+changes require a matching template. Other typed
 overlays and shape editing are pending; no editor UI or playability validation
 is built.

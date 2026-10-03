@@ -56,6 +56,9 @@ a LEVEL path discriminator with synthetic coverage (Q220).
 `KwdTerrainRooms.WriteTerrainRecord` / `WriteRoomRecord`, overlay every decoded field over an explicit
 record image, using reader offsets.
 `MapGrid.WriteTile` overlays all four tile bytes; map resizing is still pending.
+`KwdVariables.ParseRecord` / `WriteRecord` operate on individual typed cells,
+preserving repeated ids and source order that the aggregate table folds.
+Changing between structured payload shapes requires a matching template.
 Unchanged names retain their original padding; unrepresentable edits are refused.
 Other typed overlays, shape editing and the editor UI are still pending.
 

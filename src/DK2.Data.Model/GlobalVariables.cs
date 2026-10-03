@@ -4,28 +4,31 @@
 
 namespace DK2.Data.Model;
 
+/// <summary>One typed VARIABLES cell, before table merging or duplicate-id folding.</summary>
+public abstract record KwdVariableEntry;
+
 /// <summary>Creature availability pool entry (variable id 1).</summary>
-public sealed record CreaturePoolEntry(int CreatureId, int Value, int PlayerId);
+public sealed record CreaturePoolEntry(int CreatureId, int Value, int PlayerId) : KwdVariableEntry;
 
 /// <summary>Room/creature/trap/door/spell availability entry (variable id 2).</summary>
-public sealed record AvailabilityEntry(ushort Kind, ushort PlayerId, int TypeId, int Value);
+public sealed record AvailabilityEntry(ushort Kind, ushort PlayerId, int TypeId, int Value) : KwdVariableEntry;
 
 /// <summary>Temple sacrifice recipe (variable id 43).</summary>
 public sealed record SacrificeEntry(
     byte Type1, byte Id1, byte Type2, byte Id2, byte Type3, byte Id3,
-    byte RewardType, byte SpeechId, int RewardValue);
+    byte RewardType, byte SpeechId, int RewardValue) : KwdVariableEntry;
 
 /// <summary>Per-creature, per-level stat override (variable ids 65 / 224).</summary>
-public sealed record CreatureStatEntry(int StatId, int Value, int Level, bool FirstPerson);
+public sealed record CreatureStatEntry(int StatId, int Value, int Level, bool FirstPerson) : KwdVariableEntry;
 
 /// <summary>One entry of the research list (variable id 17), in the order research takes
 /// them. <paramref name="Kind"/> is a research kind — 1 room, 2 door, 3 trap, 4 spell —
 /// which is <b>not</b> an availability kind (docs/research/research-tree.md §1).
 /// <paramref name="Cost"/> is research points; every shipped entry costs 1000.</summary>
-public sealed record ResearchEntry(int Kind, int TypeId, int Cost);
+public sealed record ResearchEntry(int Kind, int TypeId, int Cost) : KwdVariableEntry;
 
 /// <summary>Plain global rule value — the vast majority of VARIABLES records.</summary>
-public sealed record MiscVariable(VariableTypeId Id, int Value, int Unk1, int Unk2);
+public sealed record MiscVariable(VariableTypeId Id, int Value, int Unk1, int Unk2) : KwdVariableEntry;
 
 /// <summary>
 /// DK2's global game-rule table, as decoded from VARIABLES(230) records.
