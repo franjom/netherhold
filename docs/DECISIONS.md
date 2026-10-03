@@ -7942,7 +7942,7 @@ unchanged, with no graph-rewiring API. Map resizing retains overlapping
 coordinates and requires an explicit fill image for new tiles.
 No editor UI or playability validation is built. New-header synthesis is Q529.
 
-## ADR-0348 — Build keeper spells only after their complete effect paths are read
+## ADR-0350 — Build keeper spells only after their complete effect paths are read
 **Date:** 2026-10-03 · **Status:** in progress
 
 **Context.** Seven keeper spells remain outside the simulation's cast boundary.

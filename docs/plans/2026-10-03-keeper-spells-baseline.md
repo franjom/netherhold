@@ -1,7 +1,7 @@
 # Keeper spells: stage 0 baseline
 
 Measured 2026-10-03 at `d3abf248e6d81d906f75a10b2f301a44bf3da78d`.
-Decision and staged predictions: ADR-0348. HashVersion/FormatVersion: 169.
+Decision and staged predictions: ADR-0350. HashVersion/FormatVersion: 169.
 Command: `dotnet run --project src/DK2.Harness -c Release --no-build -- run scenarios --out build/keeper-spells-baseline`.
 `DK2_DIR=E:/GogGames/Dungeon Keeper 2`. All 42 runs completed; exit 0.
 Series are retained under that ignored output directory. SHA-256 below hashes

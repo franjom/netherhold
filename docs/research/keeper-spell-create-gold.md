@@ -84,4 +84,4 @@ other object types/tiles, foreign pile ownership, and a moved pile's snapshot
 continuation and position hash sensitivity.
 
 No new state fields or serialization layout were introduced. Baseline scenario
-comparison belongs to ADR-0348; this document is the evidence home.
+comparison belongs to ADR-0350; this document is the evidence home.
