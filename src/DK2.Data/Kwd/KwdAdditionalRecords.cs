@@ -14,7 +14,7 @@ namespace DK2.Data.Kwd;
 /// constrained by the v1.70 shipped strides. Trigger parameter access is also
 /// checked against DKII.EXE; see docs/research/trigger-semantics.md.
 /// </summary>
-public static class KwdAdditionalRecords
+public static partial class KwdAdditionalRecords
 {
     public const int CreatureSpellSize = 266;
     public const int ShotSize = 239;

@@ -64,6 +64,8 @@ and unconsumed high bytes survive; `RawBlock` edits are refused. Exhaustive fiel
 edit tests guard the AI reader/writer layout.
 Unchanged names retain their original padding; unrepresentable edits are refused.
 Other typed overlays, shape editing and the editor UI are still pending.
+`KwdAdditionalRecords.WriteCreatureSpellRecord` overlays creature spells,
+including nested art descriptors and explicit raw fields with exact widths.
 Retained typed models support immutable `with` copies. Their `ToBytes()` remains
 the original image; apply edits with the explicit overlay writers.
 `KwdCreatures.WriteRecord` overlays both strides, preserving filtered list slots,

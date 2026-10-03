@@ -38,12 +38,25 @@ internal static class KwdScalarOverlayChecks
                 : scalar == typeof(byte) ? (byte)13
                 : scalar == typeof(Fp32) ? new Fp32(-12345)
                 : scalar == typeof(IReadOnlyList<byte>) ? Enumerable.Range(1, field.Width).Select(i => (byte)i).ToArray()
+                : scalar == typeof(IReadOnlyList<ushort>) ? Enumerable.Range(1, field.Width / 2).Select(i => (ushort)i).ToArray()
+                : scalar == typeof(ReadOnlyMemory<byte>) ? new ReadOnlyMemory<byte>(Enumerable.Range(1, field.Width).Select(i => (byte)i).ToArray())
+                : scalar == typeof(KwdArtResource) ? new KwdArtResource("edited", 0xF1234567,
+                    new byte[12], 13, 14, 15, 16)
+                : scalar == typeof(KwdLight) ? new KwdLight(-1, -2, -3, -4, 0xF1234567, 13, 14, 15, 16)
                 : scalar.IsEnum ? Enum.ToObject(scalar, 0x81)
                 : throw new InvalidOperationException($"No scalar edit value for {property.Name}.");
             property.SetValue(changed, value);
             byte[] written = write(changed, template);
             object? reread = property.GetValue(read(written));
             if (value is IEnumerable<byte> bytes) Assert.Equal(bytes, Assert.IsAssignableFrom<IEnumerable<byte>>(reread));
+            else if (value is IEnumerable<ushort> words) Assert.Equal(words, Assert.IsAssignableFrom<IEnumerable<ushort>>(reread));
+            else if (value is ReadOnlyMemory<byte> memory) Assert.Equal(memory.ToArray(), Assert.IsType<ReadOnlyMemory<byte>>(reread).ToArray());
+            else if (value is KwdArtResource art)
+            {
+                var actual = Assert.IsType<KwdArtResource>(reread);
+                Assert.Equal(art with { Unknown_0044 = ReadOnlyMemory<byte>.Empty }, actual with { Unknown_0044 = ReadOnlyMemory<byte>.Empty });
+                Assert.Equal(art.Unknown_0044.ToArray(), actual.Unknown_0044.ToArray());
+            }
             else Assert.Equal(value, reread);
             Assert.False(source.SequenceEqual(written));
             for (int i = 0; i < stride; i++)
