@@ -19,16 +19,23 @@ public static class KwdRewriteAudit
     public static Result Run(string input,string outputDirectory)
     {
         string source=Path.GetFullPath(input),output=Path.GetFullPath(outputDirectory);
+        RefuseLinkedPath(source); RefuseLinkedPath(output);
         bool directory=Directory.Exists(source);
         if(!directory && !File.Exists(source)) throw new FileNotFoundException("Rewrite input does not exist.",source);
         if(directory && Within(output,source)) throw new InvalidDataException("Rewrite output must be outside the input directory.");
         string root=directory ? source : Path.GetDirectoryName(source)!;
-        string[] files=directory ? Directory.EnumerateFiles(source,"*",SearchOption.AllDirectories)
+        string[] files=directory ? EnumeratePlainFiles(source)
             .Where(IsKwd).OrderBy(p=>p,StringComparer.OrdinalIgnoreCase).ToArray() : [source];
         if(files.Any(f=>!IsKwd(f))) throw new InvalidDataException("Rewrite accepts KWD/KLD files.");
         foreach(string file in files)
-            if(string.Equals(file,Path.Combine(output,Path.GetRelativePath(root,file)),StringComparison.OrdinalIgnoreCase))
+        {
+            string destination=Path.Combine(output,Path.GetRelativePath(root,file));
+            RefuseLinkedPath(destination);
+            if(string.Equals(file,destination,StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException("Rewrite output would overwrite its source file.");
+            if(File.Exists(destination) || Directory.Exists(destination))
+                throw new InvalidDataException($"Rewrite destination already exists: {destination}");
+        }
         var results=new List<FileResult>(); var counts=new Dictionary<KwdRecordType,int>();
         foreach(string file in files)
         {
@@ -45,7 +52,8 @@ public static class KwdRewriteAudit
             byte[] actual=KwdWriter.ToBytes(rewritten);
             string relative=Path.GetRelativePath(root,file),destination=Path.Combine(output,relative);
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            File.WriteAllBytes(destination,actual);
+            using(var target=new FileStream(destination,FileMode.CreateNew,FileAccess.Write,FileShare.None))
+                target.Write(actual,0,actual.Length);
             results.Add(new(relative,chunks.Count,records,DescribeDifference(original,actual,chunks)));
         }
         return new(results.ToArray(),counts);
@@ -150,6 +158,32 @@ public static class KwdRewriteAudit
             if(difference is not null) return difference;
         }
         return null;
+    }
+
+    private static IEnumerable<string> EnumeratePlainFiles(string root)
+    {
+        var pending=new Stack<string>(); pending.Push(root);
+        while(pending.Count>0)
+        {
+            string directory=pending.Pop(); RefuseLinkedPath(directory);
+            foreach(string file in Directory.EnumerateFiles(directory))
+                if(IsKwd(file)) { RefuseLinkedPath(file); yield return file; }
+            foreach(string child in Directory.EnumerateDirectories(directory)) pending.Push(child);
+        }
+    }
+
+    private static void RefuseLinkedPath(string path)
+    {
+        for(string? current=path;current is not null;current=Path.GetDirectoryName(current))
+        {
+            try
+            {
+                if((File.GetAttributes(current)&FileAttributes.ReparsePoint)!=0)
+                    throw new InvalidDataException($"Rewrite refuses linked paths: {current}");
+            }
+            catch(FileNotFoundException) { }
+            catch(DirectoryNotFoundException) { }
+        }
     }
 
     private static bool IsKwd(string file)=>Path.GetExtension(file).Equals(".kwd",StringComparison.OrdinalIgnoreCase)

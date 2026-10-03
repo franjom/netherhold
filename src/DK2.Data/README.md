@@ -71,7 +71,9 @@ discriminator; standalone GLOBALS chunks remain refused (Q220).
 files with their relative directory structure. It reports exact identity or the
 first differing byte, chunk, record index and decoded field; opaque bytes use
 their raw offset. Output must be outside an input directory and cannot replace
-the source file. The command and install-gated test share this audit:
+the source file. Linked input/output paths and existing destination files are
+refused before writing; existing plain output directories remain usable.
+The command and install-gated test share this audit:
 
     dk2tools kwd rewrite <file|dir> <outdir>
 

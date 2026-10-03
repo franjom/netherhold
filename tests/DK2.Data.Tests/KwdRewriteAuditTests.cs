@@ -5,6 +5,7 @@
 using DK2.Data.Kwd;
 using DK2.Data.Model;
 using DK2.TestSupport;
+using System.Diagnostics;
 
 namespace DK2.Data.Tests;
 
@@ -97,6 +98,71 @@ public class KwdRewriteAuditTests
             }
         }
         finally { if(Directory.Exists(output)) Directory.Delete(output,true); }
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void LinkedInputsAndOutputsAreRefusedBeforeAnyWrites(int mode)
+    {
+        string root=Path.Combine(Path.GetTempPath(),"dk2-rewrite-link-"+Guid.NewGuid());
+        try
+        {
+            string input=Path.Combine(root,"input"),output=Path.Combine(root,"out"),alias=Path.Combine(root,"alias");
+            Directory.CreateDirectory(input); byte[] bytes=KwdWriter.ToBytes([DoorChunk()]);
+            string source=Path.Combine(input,"doors.kwd"); File.WriteAllBytes(source,bytes);
+            File.SetLastWriteTimeUtc(source,new DateTime(2001,1,1,0,0,0,DateTimeKind.Utc));
+            if(mode==3)
+            {
+                Directory.CreateDirectory(output); File.WriteAllBytes(Path.Combine(output,"extra.kwd"),bytes);
+                DirectoryAlias(Path.Combine(input,"linked"),output);
+            }
+            else DirectoryAlias(alias,input);
+            string sourceArgument=mode==2 ? alias : mode==4 ? Path.Combine(alias,"doors.kwd") : input;
+            string outputArgument=mode==0 ? alias : mode==1 ? Path.Combine(alias,"child") : output;
+            Assert.Throws<InvalidDataException>(()=>KwdRewriteAudit.Run(sourceArgument,outputArgument));
+            Assert.Equal(bytes,File.ReadAllBytes(source));
+            Assert.Equal(2001,File.GetLastWriteTimeUtc(source).Year);
+            Assert.False(Directory.Exists(Path.Combine(input,"child")));
+            Assert.False(File.Exists(Path.Combine(output,"doors.kwd")));
+        }
+        finally
+        {
+            string link=mode==3 ? Path.Combine(root,"input","linked") : Path.Combine(root,"alias");
+            if(Directory.Exists(link)) Directory.Delete(link);
+            Directory.Delete(root,true);
+        }
+    }
+
+    [Fact]
+    public void ExistingDestinationFilesAreRefusedBeforeAnyFileIsWritten()
+    {
+        string root=Path.Combine(Path.GetTempPath(),"dk2-rewrite-existing-"+Guid.NewGuid());
+        try
+        {
+            string input=Path.Combine(root,"input"),output=Path.Combine(root,"out");
+            Directory.CreateDirectory(input); Directory.CreateDirectory(output);
+            byte[] bytes=KwdWriter.ToBytes([DoorChunk()]);
+            File.WriteAllBytes(Path.Combine(input,"a.kwd"),bytes); File.WriteAllBytes(Path.Combine(input,"b.kwd"),bytes);
+            File.WriteAllBytes(Path.Combine(output,"b.kwd"),[13]);
+            Assert.Throws<InvalidDataException>(()=>KwdRewriteAudit.Run(input,output));
+            Assert.False(File.Exists(Path.Combine(output,"a.kwd")));
+            Assert.Equal(new byte[]{13},File.ReadAllBytes(Path.Combine(output,"b.kwd")));
+        }
+        finally { Directory.Delete(root,true); }
+    }
+
+    private static void DirectoryAlias(string alias,string target)
+    {
+        if(!OperatingSystem.IsWindows()) { Directory.CreateSymbolicLink(alias,target); return; }
+        var start=new ProcessStartInfo("powershell") { UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true };
+        start.ArgumentList.Add("-NoProfile"); start.ArgumentList.Add("-NonInteractive"); start.ArgumentList.Add("-Command");
+        start.ArgumentList.Add($"New-Item -ItemType Junction -Path '{alias.Replace("'","''")}' -Target '{target.Replace("'","''")}' -ErrorAction Stop | Out-Null");
+        using var process=Process.Start(start)!; string error=process.StandardError.ReadToEnd();
+        process.WaitForExit(); Assert.True(process.ExitCode==0,error);
     }
 
     private static KwdChunk DoorChunk()=>KwdLevelFileSetTests.Fixture(KwdRecordType.Doors,new byte[616*2],2);

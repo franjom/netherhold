@@ -7832,6 +7832,8 @@ counts, strides and tagged lengths; every typed reader has an overlay writer.
 The shared dispatcher audits every shipped record through typed writes.
 `kwd rewrite` and its install-gated test share `KwdRewriteAudit`, including
 per-file identity and first-difference diagnostics from decoded properties.
+Rewrite refuses linked paths and existing destination files, and creates
+outputs exclusively so aliases cannot overwrite source files.
 Unknown bytes, unchanged padding and the embedded CREATURES tail survive.
 Filtered CREATURES list-count changes and raw PLAYERS AI block edits are refused.
 Trigger views share reader layouts; conflicting aliases and type changes are

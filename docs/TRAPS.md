@@ -7,6 +7,9 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Path.GetFullPath is lexical and does not detect junction or symlink aliases; output guards must inspect filesystem links.
+- Unlink temporary Windows junctions before recursively deleting their targets; a dangling junction can make .NET cleanup fail with access denied.
+
 - A long heredoc fails in the Bash tool, and any heredoc collapses backslash pairs: write a patch
   script to a file and run it. A heredoc also ends an `&&` chain; what follows runs regardless.
 - Rewriting a file through `utf-8-sig` in and `utf-8` out drops its BOM; keep the BOM and the
