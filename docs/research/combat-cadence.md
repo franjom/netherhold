@@ -132,24 +132,18 @@ fixed-point add, divide and multiply, and the flag arms are mutually exclusive
 
 ## 5. Is `FUN_00492320` live?
 
-It has **0 callers and 0 absolute occurrences** across every initialised block,
-and the `0x1939` checksum loop occurs once in the image, so there is no inlined
-twin to find. The swing `FUN_00498E30` looked the same until its entry was
-corrected, and it is reached through a table filled at runtime (`combat.md` §6.0) — so
-"unreferenced" here is not evidence of dead code.
+CONFIRMED by fresh xrefs and raw disassembly on 2026-10-03: direct calls occur
+at `0051F293`, `0051F2B9`, and `0051F35B`. The earlier absence-of-callers claim
+was false.
 
-The positive argument is stronger than the parallel: `FUN_00494EF0` reads
-`def+0x5C6` as an integer and re-promotes it, so *something* converts seconds to
-ticks at load, and this routine is the only code in the image that does. The
-same argument already carries `training.md` §4, which reads its pairs as the
-loader's.
-
-**Residual doubt.** If instead it is linker-retained dead code from a build
-where the definition was assembled differently, the *layout* it encodes still
-holds — `FUN_0051F3B0` confirms that independently — but the file-to-runtime
-*mapping* for `def+0x5CA` would be inherited from a stale twin. One owner
-observation discriminates: a Troll's gate interval is 1 tick and a Bile Demon's
-is 5, so **a Troll should swing about five times as often as a Bile Demon**.
+Its role as the live loader remains STRONGLY INFERRED: `FUN_00494EF0` reads
+`def+0x5C6` as an integer and re-promotes it, while this builder converts the
+file's seconds to ticks. `training.md` §4 also uses its converted pairs.
+The callers' wider runtime reachability has not been audited here, so the
+function record remains LIKELY. An original-game cadence experiment would
+independently check the mapping: a Troll's gate interval is 1 tick and a Bile
+Demon's is 5, predicting about five times as many Troll swings under equal
+uninterrupted attack conditions.
 
 ## 6. What this project builds
 
