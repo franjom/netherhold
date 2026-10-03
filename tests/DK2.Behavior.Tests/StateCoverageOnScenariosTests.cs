@@ -23,15 +23,16 @@ public sealed class AfterEveryOtherTest
 public class StateCoverageOnScenariosTests
 {
     [Fact]
-    public void EveryStateTheScenarioSuiteEntersIsBuilt()
+    public void EveryStateTheScenarioSuiteEntersIsBuiltOrHasAnExplicitUnbuiltHandlerBoundary()
     {
         Assert.True(StateEntryLog.Enabled, $"{StateEntryLog.SwitchName} is off in this test project.");
         string[] offenders = StateEntryLog.Entered()
             .Where(id => CreatureStateCoverage.Get(id).Status != StateStatus.Built)
+            .Where(id => ActivityRules.Of(new CreatureState { Dk2StateId = id }) != CreatureActivity.UnbuiltHandler)
             .Select(id => $"{id} ({CreatureStateCoverage.Get(id).Status}), first by {StateEntryLog.FirstEnteredBy(id)}")
             .ToArray();
 
-        Assert.True(offenders.Length == 0, "Entered but not Built:\n" + string.Join("\n", offenders));
+        Assert.True(offenders.Length == 0, "Entered without Built coverage or an explicit unbuilt-handler boundary:\n" + string.Join("\n", offenders));
     }
 
     /// <summary>The evidence for 160–162, 166–168 and 170–172 (ADR-0223), checked on the shipped

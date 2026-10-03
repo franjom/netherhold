@@ -7980,7 +7980,11 @@ existing shot boundary; see `research/keeper-spell-create-gold.md` for evidence
 and retained height/room-timing limits. No state fields or hash version changed.
 The full gate passed (3,237 no-install tests passed, 393 skipped); all 42
 scenario series are byte-identical to stage 0. All three Stage 1 corrections
-are independently approved. Stage 2 has traced the complete effect and recovery
-paths and builds the definition-based integer action clock. Tremor itself is
-unbuilt pending world/state integration; see `research/keeper-spell-tremor.md`
-and Q533. The prerequisite adds no hashed state or snapshot fields.
+are independently approved. Stage 2 builds Tremor's world slots, wall effects,
+creature reaction, recovery and definition-based integer action clock at
+HashVersion/FormatVersion 170; its integration corrections are under review.
+All 42 scenarios preserve their event/world outputs; hash composition changes
+every series. See `research/keeper-spell-tremor.md` and Q533 for evidence and
+limits, including the explicitly unbuilt Neutral and Horny idle controllers.
+The coverage gates admit these explicit `UnbuiltHandler` destinations while
+retaining Unbuilt counts; other entered unbuilt states still fail the gate.

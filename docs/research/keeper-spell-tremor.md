@@ -226,3 +226,18 @@ owns the gate, initialization and commit addresses; [the physical updater](funct
 records its limited audit. Preserve this distinction when integrating
 recovery; do not invent a stop in the knockdown starter. The general choice
 of mover for every other state remains outside this focused read.
+
+### Special-role idle boundary
+
+After mood refusal and fight-return refusal, the newly built Fleeing idle
+path selects Neutral state 5 (deadline now + 12), Horny state 238, or keeper
+state 89. It returns without executing the destination's handler that turn.
+States 5 and 238 retain ResearchOnly coverage: their controller work is not
+built here. `UnbuiltHandler` is a simulation boundary, not original behavior;
+it makes Activity access safe and prevents substituting keeper job selection
+while preserving the selected raw state. Other existing systems remain active.
+This limitation includes Neutral idle actions and Horny's health drain,
+wandering, Chicken interaction, forced targeting and fade. Their confirmed
+reads and remaining implementation dependencies live in
+[special-role-idle.md](special-role-idle.md). Selection and snapshot continuation
+are tested; this does not claim those controllers are playable.

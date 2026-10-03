@@ -82,6 +82,15 @@ public class StateCoverageTableTests
             if (r.Status != StateStatus.Built) Assert.Null(r.UnexercisedBecause);
         });
     }
+
+    [Theory]
+    [InlineData(Systems.CreatureJobSystem.NeutralIdleState)]
+    [InlineData(Systems.CreatureJobSystem.HornyIdleState)]
+    public void AnExplicitUnbuiltHandlerBoundaryDoesNotClaimBuiltCoverage(int stateId)
+    {
+        Assert.Equal(StateStatus.Unbuilt, CreatureStateCoverage.Get(stateId).Status);
+        Assert.Equal(CreatureActivity.UnbuiltHandler, new CreatureState { Dk2StateId = stateId }.Activity);
+    }
 }
 
 /// <summary>Runs after every parallel test collection in the assembly (xUnit runs collections
@@ -93,8 +102,8 @@ public sealed class AfterEveryOtherTest
     public const string Name = "state coverage, after every other test";
 }
 
-/// <summary>The table against what the simulation suite actually does. Entered implies Built
-/// fails on any offender. Built implies entered keeps an allow-list, each entry with its reason
+/// <summary>The table against what the simulation suite actually does. Entered requires Built
+/// or an explicit unbuilt-handler boundary. Built implies entered keeps an allow-list with a reason
 /// (<see cref="StateCoverageRow.UnexercisedBecause"/>): a handler nothing here reaches is
 /// worth knowing about, and failing would only invite a throwaway test or a demoted row.
 /// Run alone (<c>--filter</c>) they fail on purpose: nothing else has entered a state.</summary>
@@ -102,15 +111,16 @@ public sealed class AfterEveryOtherTest
 public class StateCoverageRunTests
 {
     [Fact]
-    public void EveryStateTheSimulationSuiteEntersIsBuilt()
+    public void EveryStateTheSimulationSuiteEntersIsBuiltOrHasAnExplicitUnbuiltHandlerBoundary()
     {
         Assert.True(StateEntryLog.Enabled, $"{StateEntryLog.SwitchName} is off in this test project.");
         string[] offenders = StateEntryLog.Entered()
             .Where(id => CreatureStateCoverage.Get(id).Status != StateStatus.Built)
+            .Where(id => ActivityRules.Of(new CreatureState { Dk2StateId = id }) != CreatureActivity.UnbuiltHandler)
             .Select(id => $"{id} ({CreatureStateCoverage.Get(id).Status}), first by {StateEntryLog.FirstEnteredBy(id)}")
             .ToArray();
 
-        Assert.True(offenders.Length == 0, "Entered but not Built:\n" + string.Join("\n", offenders));
+        Assert.True(offenders.Length == 0, "Entered without Built coverage or an explicit unbuilt-handler boundary:\n" + string.Join("\n", offenders));
     }
 
     [Fact]

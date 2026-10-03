@@ -15,14 +15,14 @@ public sealed class TremorCreatureTests
     private const byte CreatureType = Dk2TerrainFixture.WarlockCreatureId;
     private const int TravelState = 6;
 
-    private static (GameDatabase Db, WorldState World, CreatureState Creature) Setup()
+    private static (GameDatabase Db, WorldState World, CreatureState Creature) Setup(CreatureFlags extraFlags = default)
     {
         GameDatabase basis = Dk2TerrainFixture.Database();
         var knockdown = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 26, FramesPerSecond = 30 };
         var getUp = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 51, FramesPerSecond = 30 };
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c => c.CreatureId == CreatureType
-                ? c with { KnockdownAnimation = knockdown, GetUpAnimation = getUp } : c),
+                ? c with { KnockdownAnimation = knockdown, GetUpAnimation = getUp, Flags = c.Flags | extraFlags } : c),
             basis.Variables, objects: basis.Objects.Values, shots: basis.Shots.Values);
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
@@ -495,5 +495,33 @@ public sealed class TremorCreatureTests
         new GameSimulation(db, world, 42, [new ImpTaskSystem()]).Tick();
         Assert.Equal(10, worker.Dk2StateId);
         Assert.False(worker.Fleeing);
+    }
+
+    [Theory]
+    [InlineData(false, 5)]
+    [InlineData(true, 238)]
+    public void SpecialRoleIdleSelectsItsOwnUnbuiltHandlerWithoutKeeperJobs_StronglyInferredFromBinary(bool horny, int destination)
+    {
+        var (db, world, creature) = Setup(horny ? CreatureFlags.IsHorny : default);
+        if (!horny) creature.OwnerPlayerId = PlayerIds.Neutral;
+        creature.Fleeing = true;
+        var random = new SimRandom(42);
+        var initialRandomState = random.SaveState();
+        ISimulationSystem[] systems = [new CreatureJobSystem(), new CreatureAngerSystem()];
+        var sim = new GameSimulation(db, world, random, systems);
+        sim.Tick();
+        Assert.False(creature.Fleeing);
+        Assert.Equal(destination, creature.Dk2StateId);
+        Assert.Equal(CreatureActivity.UnbuiltHandler, creature.Activity);
+        if (!horny) Assert.Equal(CreatureJobSystem.NothingToDoTicks, creature.StateDeadlineTick);
+        var copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, systems);
+        Assert.Equal(sim.StateHash(), copy.StateHash());
+        sim.Run(8);
+        copy.Run(8);
+        Assert.Equal(destination, creature.Dk2StateId);
+        Assert.Equal(JobType.None, creature.CurrentJob);
+        Assert.Equal(0, creature.LastHappyChoiceTick);
+        Assert.Equal(sim.StateHash(), copy.StateHash());
+        Assert.Equal(initialRandomState, random.SaveState());
     }
 }

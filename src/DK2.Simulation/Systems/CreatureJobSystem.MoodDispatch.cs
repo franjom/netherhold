@@ -9,14 +9,23 @@ namespace DK2.Simulation.Systems;
 public sealed partial class CreatureJobSystem
 {
     public const int IdleChooserState = 89;
+    public const int NeutralIdleState = 5;
+    public const int HornyIdleState = 238;
 
     private void DispatchFleeingIdle(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (TryDispatchMoodPrelude(context, creature, definition)) return;
         creature.Fleeing = false;
         if (Combat.FightReturnRules.TryReturn(context, creature)) return;
-        // One handler per turn: state 1 requests 89, whose job work runs on a later turn.
-        CreatureStateMachine.TrySetState(context.Hooks, creature, IdleChooserState, context.Tick.Value);
+        int destination;
+        if (creature.OwnerPlayerId == PlayerIds.Neutral)
+        {
+            creature.StateDeadlineTick = context.Tick.Value + NothingToDoTicks;
+            destination = NeutralIdleState;
+        }
+        else destination = definition.Flags.HasFlag(CreatureFlags.IsHorny) ? HornyIdleState : IdleChooserState;
+        // One handler per turn. The special-role controllers remain explicitly unbuilt.
+        CreatureStateMachine.TrySetState(context.Hooks, creature, destination, context.Tick.Value);
     }
 
     private bool TryDispatchMoodPrelude(SimulationContext context, CreatureState creature, CreatureDef definition)

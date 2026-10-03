@@ -219,6 +219,10 @@ public enum CreatureActivity
     /// <summary>A Jack In The Box's Jack: DK2's state 273 (<see cref="JackInTheBoxRules.SpringState"/>),
     /// walking to its victim's keeper's heart and wearing out on the way (jack-in-the-box.md).</summary>
     JackInTheBox = 36,
+
+    /// <summary>A reachable original state whose handler remains unbuilt. This boundary
+    /// prevents substituting ordinary keeper job selection; it does not simulate that handler.</summary>
+    UnbuiltHandler = 37,
 }
 
 /// <summary>One creature in the world.</summary>

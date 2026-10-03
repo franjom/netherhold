@@ -22,7 +22,7 @@ namespace DK2.Assets;
 public static class AssetCatalogue
 {
     /// <summary>
-    /// The creature animation variants the project can currently distinguish: 21
+    /// The creature animation variants the project can currently distinguish:
     /// names mirroring <c>DK2.Simulation.CreatureActivity</c> one for one, so no
     /// activity is undrawable and no key is unaskable. Deliberately a copy, not a
     /// reference — this assembly sits beside the simulation, not above it; the
@@ -68,6 +68,7 @@ public static class AssetCatalogue
         "being_lifted",
         "chicken",
         "jack_in_the_box",
+        "unbuilt_handler",
     ];
 
     /// <summary>

@@ -91,6 +91,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             // on none of it while it is off the ground. It rolls when it lands.
             // A pit fighter's idle goes back to the pit before any chooser (0x004773D0).
             if (after == CreatureMood.Angry
+                && state.Activity != CreatureActivity.UnbuiltHandler
                 && !HandRules.IsHeld(state)
                 && !PrisonRules.IsImprisoned(state)
                 && !state.CombatPitFighter

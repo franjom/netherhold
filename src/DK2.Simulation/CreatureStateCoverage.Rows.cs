@@ -18,7 +18,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(2, "not read"));
         rows.Add(Built(3, typeof(CreatureJobSystem), nameof(CreatureJobSystem.DoingNothingState)));
         rows.Add(Built(4, typeof(HeroJobRules), nameof(HeroJobRules.WaitFailedState)));
-        rows.Add(Unbuilt(5, "not read"));
+        rows.Add(Unbuilt(5, "read in special-role-idle.md; Fleeing idle selects it, but its controller is not built"));
         rows.Add(Built(6, typeof(StateShadow), nameof(StateShadow.TravelToPoint)));
         rows.Add(Built(7, typeof(StateShadow), nameof(StateShadow.TravelToRoom)));
         rows.Add(Unbuilt(8, "read in combat-approach-and-victory.md; not built"));
@@ -256,11 +256,11 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(235, "not read"));
         rows.Add(Unbuilt(236, "not read"));
         rows.Add(Unbuilt(237, "not read"));
-        rows.Add(Unbuilt(238, "read in job-selection.md §6.2; not built (ADR-0200)"));
-        rows.Add(Unbuilt(239, "not read"));
-        rows.Add(Unbuilt(240, "not read"));
+        rows.Add(Unbuilt(238, "read in special-role-idle.md; Fleeing idle selects it, but its controller is not built"));
+        rows.Add(Unbuilt(239, "read in special-role-idle.md; not built"));
+        rows.Add(Unbuilt(240, "read in special-role-idle.md; not built"));
         rows.Add(Unbuilt(241, "its handler 0x004B4C20 returns 1 (state-categories.md §7.1); nothing in src/ enters it"));
-        rows.Add(Unbuilt(242, "not read"));
+        rows.Add(Unbuilt(242, "read in special-role-idle.md; not built"));
         rows.Add(Unbuilt(243, "not read"));
         rows.Add(Unbuilt(244, "not read"));
         rows.Add(Unbuilt(245, "not read"));

@@ -48,7 +48,8 @@ public sealed class StateCoverageRow
 
 /// <summary>Every one of DK2's 281 states with its status here, the one source that
 /// <c>dk2tools coverage states</c> counts and the coverage tests hold to what the code does:
-/// a state the suites enter must be Built, and a Built state they do not enter must say why.</summary>
+/// an entered state must be Built or explicitly mapped to UnbuiltHandler, and an unexercised
+/// Built state must say why. UnbuiltHandler destinations retain Unbuilt coverage.</summary>
 /// <remarks>Read from the code and the research notes on 2026-10-01, not inferred from the
 /// activity labels (<see cref="ActivityRules"/>), which are not a fidelity measure.</remarks>
 public static partial class CreatureStateCoverage
