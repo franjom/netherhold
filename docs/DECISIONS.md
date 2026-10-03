@@ -7829,5 +7829,7 @@ No simulation state or hash version changes.
 refused. Raw header bytes remain available. Record-image Split/Join validates
 counts, types, strides and tagged lengths; both CREATURES forms retain every
 trailing byte. GLOBALS' established form remains a LEVEL path row (Q220);
-standalone splitting/joining is refused. Typed overlays and shape editing follow
-in later milestones; no editor UI or playability validation is built.
+standalone splitting/joining is refused. The DOORS overlay shares its reader's
+constants and preserves unknown bytes and unchanged name padding. Other typed
+overlays and shape editing are pending; no editor UI or playability validation
+is built.

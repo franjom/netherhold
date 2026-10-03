@@ -11,12 +11,26 @@ namespace DK2.Data.Kwd;
 /// <summary>Parser for the verified fields of 616-byte DOORS(140) records.</summary>
 public static class KwdDoors
 {
+    public static byte[] WriteRecord(DoorDef record, KwdRecordImage template)
+    {
+        byte[] bytes = KwdOverlay.Image(template, KwdRecordType.Doors, RecordSize);
+        KwdOverlay.Ascii(bytes, 0, 32, record.Name, Name(bytes, 0), trimmed: true);
+        bytes[OffsetDoorId] = record.DoorId;
+        bytes[OffsetCrateObjectId] = record.CrateObjectId;
+        bytes[OffsetFlags] = (byte)record.Flags;
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(OffsetHealth), record.Health);
+        BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(OffsetHealthGain), record.HealthGain);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(OffsetGoldCost), record.GoldCost);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(OffsetManufactureRequired), record.ManufactureRequired);
+        return bytes;
+    }
     private const int RecordSize = 616;
 
     // Six 84-byte art resources follow the 32-byte name. The gameplay tail is
     // verified against all eight shipped records and the manual's six prices.
     private const int OffsetFlags = 0x228;
     private const int OffsetHealth = 0x22C;
+    private const int OffsetHealthGain = 0x21C;
     private const int OffsetGoldCost = 0x22E;
     private const int OffsetManufactureRequired = 0x234;
     private const int OffsetDoorId = 0x244;
@@ -49,7 +63,7 @@ public static class KwdDoors
         DoorId = record[at + OffsetDoorId],
         CrateObjectId = record[at + OffsetCrateObjectId],
         Health = U16(record, at + OffsetHealth),
-        HealthGain = BinaryPrimitives.ReadInt16LittleEndian(record.AsSpan(at + 0x21C)),
+        HealthGain = BinaryPrimitives.ReadInt16LittleEndian(record.AsSpan(at + OffsetHealthGain)),
         GoldCost = U16(record, at + OffsetGoldCost),
         ManufactureRequired = BinaryPrimitives.ReadUInt32LittleEndian(
             record.AsSpan(at + OffsetManufactureRequired)),

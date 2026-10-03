@@ -52,7 +52,10 @@ timestamps (ADR-0343); template and input payload arrays are copied.
 template's count, types and strides, including both CREATURES forms, and verifies
 tagged payload lengths. GLOBALS has no established standalone layout and remains
 a LEVEL path discriminator with synthetic coverage (Q220).
-These layers do not yet provide typed record edits or an editor UI.
+`KwdDoors.WriteRecord` overlays every decoded door field over an explicit record
+image, using the reader's offset constants. Unchanged names retain their original
+padding; unrepresentable edits are refused. Other typed overlays, shape editing
+and the editor UI are still pending.
 
 ## WAD archives and saved games
 
