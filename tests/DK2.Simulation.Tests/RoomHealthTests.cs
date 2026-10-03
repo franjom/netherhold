@@ -197,6 +197,25 @@ public class RoomHealthTests
         Assert.Equal(RoomHealthRules.Cap(db, room), RoomHealthRules.Health(world, db, room));
     }
 
+    /// <summary>Action 12, which nothing in v1.70 starts (room-health.md §6): +5000 × 80% = 3999 a
+    /// blow into the keeper's own room, stopping at MaxHealth × Size.</summary>
+    [Fact]
+    public void RepairStopsAtTheCap_AndOnlyMendsTheKeepersOwnRoom()
+    {
+        WorldState world = World();
+        for (int x = 5; x <= 6; x++) Build(world, x, 5, Keeper);
+        RoomInstance room = RoomAt(world, 5, 5);
+        RoomHealthRules.Set(world, Db, room, 10000);
+        int index = (5 * world.Width) + 5;
+
+        Assert.Equal(TileWorkOutcome.Rejected, RoomHealthRules.Repair(world, Db, index, Rival).Outcome);
+
+        Assert.Equal(3999, RoomHealthRules.Repair(world, Db, index, Keeper).HealthDelta);
+        for (int i = 0; i < 5; i++) RoomHealthRules.Repair(world, Db, index, Keeper);
+        Assert.Equal(RoomHealthRules.Cap(Db, room), Health(world, 5, 5));
+        Assert.Equal(TileWorkOutcome.NoChange, RoomHealthRules.Repair(world, Db, index, Keeper).Outcome);
+    }
+
     [Fact]
     public void ADamagedRoomSurvivesASnapshotRoundTrip()
     {

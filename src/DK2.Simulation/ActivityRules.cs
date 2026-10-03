@@ -63,6 +63,7 @@ public static class ActivityRules
         TunnelRules.TunnellingState => CreatureActivity.AtWork,
         TunnelRules.AdvancingState => CreatureActivity.GoingToJob,
         TunnelRules.HandBackState => CreatureActivity.Idle,
+        RoomAttackRules.DestroyingRoomsState => CreatureActivity.AtWork,
         13 or 15 or 17 or 19 or 21 or 23 or 25 => CreatureActivity.MovingToJob,
         14 or 16 or 18 or 20 or 22 or 24 or 26 => CreatureActivity.Working,
         ImpStates.PickingUpGold => CreatureActivity.FetchingGold,

@@ -287,13 +287,13 @@ thirteen initialised blocks, and each reader placed in the task-handler table at
 
 | task record | handler | rate it reads |
 |---|---|---|
-| 1 | `FUN_00496E00` | `DigRockHealth` (8), `DigOwnWallHealth` (9), `DigEnemyWallHealth` (10), `RepairRoomHealth` (16) |
+| 1 | `FUN_00496E00` | `DigRockHealth` (8), `DigOwnWallHealth` (9), `DigEnemyWallHealth` (10) |
 | 2 | `LAB_004971D0` | `MineGoldHealth` (7) |
 | 4 | `FUN_004974C0` | `ClaimTileHealth` (4) |
 | 5, 6 | `FUN_00497670`, `FUN_004977F0` | `AttackTileHealth` (5) |
 | 7 | `LAB_00497960` | `ReinforceWallHealth` (12) |
 | **8** | `LAB_00497AC0` | **`RepairWallHealth` (13)** |
-| 10 | `LAB_00497BF0` | `ConvertRoomHealth` (14), `Unknown_17` (17) |
+| 10 | `LAB_00497BF0` | `ConvertRoomHealth` (14), `ConvertNeutralRoomHealth` (136) |
 | 11 | `LAB_00497DF0` | `AttackRoomHealth` (15) |
 | 12 | `LAB_00498120` | `RepairRoomHealth` (16) |
 
@@ -324,7 +324,7 @@ thirteen initialised blocks, and each reader placed in the task-handler table at
 | 14 | `ConvertRoomHealth` | -4000 | `0x006F2574` (u32; load-time `/ 4`) |
 | 15 | `AttackRoomHealth` | -1500 | `0x006F2578` (u32; load-time `/ 4`) |
 | 16 | `RepairRoomHealth` | 20000 | `0x006F2580` (u32; load-time `/ 4`) |
-| 17 | `Unknown_17` | 3 | `0x006F257C` (u32) — **found 2026-09-07 (Q219) and it HAS a reader**, at `0x00497C89`, in the same task-record-10 handler that reads `ConvertRoomHealth`. So it is a tile-work rate used by the room-conversion path, and the dash here was "not looked for" rather than "absent" |
+| 17 | `Unknown_17` | 3 | — : the research list (`0x0051DB00`); no rate handler stores it. `0x006F257C` is variable 136 (`Variables_SetPerSecond`, `room-health.md` §3) |
 | 18 | `ChickenGenerationTimePerHatchery` | 16 | `0x006F258C` (u32) |
 | 19 | `?` | ? | `0x006F2590` (u32) |
 | 20 | `GoldMinedFromGems` | 25 | `0x006F2594` (u32) |

@@ -137,6 +137,24 @@ public static class RoomHealthRules
         return new TileWorkResult(outcome, delta, 0, 0, tile.TerrainId);
     }
 
+    /// <summary>One application of action 12 (<c>0x00498120</c>) by <paramref name="playerId"/>'s
+    /// worker: while the room under the tile is the player's and below its cap
+    /// (<see cref="NeedsRepair"/>), <see cref="RepairPerApplication"/> into its health, clamped.</summary>
+    public static TileWorkResult Repair(
+        WorldState world, GameDatabase database, int tileIndex, byte playerId, int efficiency = EfficiencyRules.BaseModifier)
+    {
+        ref TileState tile = ref world.TileAtIndex(tileIndex);
+        if (!TileWorkRules.Applies(database, tile, TileWorkKind.RepairRoom, playerId)
+            || RoomIndex.RoomAt(world, database, tileIndex) is not { } room)
+            return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
+        if (!NeedsRepair(world, database, room, playerId))
+            return new TileWorkResult(TileWorkOutcome.NoChange, 0, 0, 0, tile.TerrainId);
+
+        int before = Health(world, database, room);
+        Apply(world, database, room, RepairPerApplication(database, efficiency), playerId);
+        return new TileWorkResult(TileWorkOutcome.Progressed, Health(world, database, room) - before, 0, 0, tile.TerrainId);
+    }
+
     /// <summary>One repair application (action 12, <c>0x00498120</c>): <c>RepairRoomHealth</c> the
     /// same way.</summary>
     public static int RepairPerApplication(GameDatabase database, int efficiency) =>

@@ -41,6 +41,9 @@ public sealed class HeroSystem : ISimulationSystem
 
     private static void Turn(SimulationContext context, CreatureState creature)
     {
+        // The creature update's room arm runs before any state handler, whatever the state.
+        if (RoomAttackRules.TryBegin(context, SystemName, creature)) return;
+
         if (StateShadow.IsTravelling(creature))
         {
             if (!IsHeroResume(creature.UtilityNewState)) return;
@@ -76,6 +79,7 @@ public sealed class HeroSystem : ISimulationSystem
             TunnelRules.TunnellingState => TunnelRules.Tunnel(context, SystemName, creature),
             TunnelRules.AdvancingState => TunnelRules.Advance(context, creature),
             TunnelRules.HandBackState => TunnelRules.HandBack(context, SystemName, creature),
+            RoomAttackRules.DestroyingRoomsState => RoomAttackRules.DestroyRoomTile(context, creature),
             _ => true,
         };
         if (!stays) StateShadow.ToIdle(context, SystemName, creature);
@@ -113,5 +117,6 @@ public sealed class HeroSystem : ISimulationSystem
         or HeroJobRules.AtThePointState or HeroJobRules.RoamingState or HeroJobRules.HuntingState
         or HeroJobRules.AtTheHeartState or HeroJobRules.FollowingState
         or StealGoldRules.InTheTreasuryState or StealGoldRules.AtTheGoldState or StealGoldRules.EscapingState
-        or TunnelRules.TunnellingState or TunnelRules.AdvancingState or TunnelRules.HandBackState;
+        or TunnelRules.TunnellingState or TunnelRules.AdvancingState or TunnelRules.HandBackState
+        or RoomAttackRules.DestroyingRoomsState;
 }

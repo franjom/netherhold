@@ -4,9 +4,9 @@
 |---|---|
 | Source(s) | `DKII.EXE` v1.70 (read 2026-10-01 and 2026-10-02, addresses below); the Level 1 and Level 2 full-state captures (`reverse-engineering/dk2runs/level1-live1/seed01`, `level1-fullstate-20260928`, `level2-fullstate-20260928`), room record `+0x35`; `Rooms.kwd`, `Terrain.kwd`, `Creatures.kwd`, the shipped `*Things.kld` |
 | Confidence | **CONFIRMED** by capture: the applier, growth, the conversion rate and both arms' arithmetic, the takeover and its reset. **STRONGLY INFERRED** (binary): the removal share, action 11 and who starts it, action 12 and that nothing starts it |
-| Implementation | `RoomHealthRules`, `TileState.RoomHealthLost`, `SlabChain`, `Systems/RoomHealthSystem`, `Systems/TileWorkSystem` (ADR-0336) |
-| Tests | `RoomHealthTests`, `RoomConversionTests`, `RoomHealthOnRealDataTests` |
-| Open questions | Q523 (job 11's room attack, unbuilt) |
+| Implementation | `RoomHealthRules`, `TileState.RoomHealthLost`, `SlabChain`, `Systems/RoomHealthSystem`, `Systems/TileWorkSystem` (ADR-0336); `RoomAttackRules`, `Systems/HeroSystem`, `TileWorkKind.AttackRoom` and `RepairRoom` (ADR-0339) |
+| Tests | `RoomHealthTests`, `RoomConversionTests`, `RoomAttackTests`, `RoomHealthOnRealDataTests` |
+| Open questions | Q523 (job 11's room attack, unbuilt), Q525 (Level 2's party walk) |
 
 Field names are DK2's own (`room-object.md`, dumper `0x004E70B6`): room `+0x35` `Health`,
 `+0x1D` `PlayerId`, `+0xA7` `Size`, `+0x9A` bit 0 `Destroyed`. Terrain `+0x1AB` is
@@ -119,8 +119,9 @@ Three state handlers, and nothing else: all 109 calls of the four action starter
   `Combat_MayLookForFight(0)`, on a tile owned by neither Good nor Neutral whose room is
   `Buildable` and `PlaceableOnLand`, walks to that tile's centre (`0x004585C0`) and resumes in
   267. `0x00458620` then starts action 11 there while the tile has a room, and ends when it has
-  none. That is the only fixed-bit reader of `DestroysRooms`, and every shipped hero party
-  member sets it (`trigger-dispatch-tables.md`): heroes break the rooms they walk across.
+  none. That is the only fixed-bit reader of `DestroysRooms`. Party members get it from `Flags2`
+  bit 0, which 825 of the 4,545 shipped Good members set, and every creature a trigger creates
+  has it (`trigger-dispatch-tables.md`): those heroes break the rooms they walk across.
 - **States 179–181 (attacking rooms), from job 11.** `Job_DestroyEnemyRooms` (`0x004582C0`, the
   dispatcher's only arm for job 11) picks a target keeper and a room (`0x0050EA20`,
   `0x004C60E0`, unread), and 179–181 walk there and run action 11 tile after tile; a leader in

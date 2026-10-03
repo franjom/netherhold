@@ -275,9 +275,9 @@ by tile."*
 
 `TileWorkKind.ConvertRoom` reads `ConvertRoomHealth` = **−4000** (room health,
 `tile-work.md`, Q500: 13 applications for one tile, about 12.5 per tile of the room).
-`TileWorkRules.Apply` converts the worked tile and `TileWorkSystem` spreads the
-change to the whole `RoomInstance`; the scenario log reports it as
-`room_converted … tiles=9 spread=8`, one tile worked and eight coming with it.
+The worked tile's room has one health, and `TileWorkSystem` hands the whole
+`RoomInstance` over when it falls below 1 (`room-health.md` §3, ADR-0336); the scenario
+log reports it as `room_converted … tiles=9`.
 The portal's clock starts at the claim, not before it (`OnOwnerChanged`).
 
 The mixed direction is the data's: `ClaimTileHealth` is **+825** and builds floor
@@ -285,7 +285,7 @@ The mixed direction is the data's: `ClaimTileHealth` is **+825** and builds floo
 `TileWorkRules.CompletesAsTakeover` — without it the downward path would send a
 converted room to its `DestroyedTypeTerrainId` (Claimed Path, for every room in
 the data) and claiming a treasury would demolish it. Demolishing is
-`AttackRoomHealth`'s job (−1500) and still has no work kind.
+`AttackRoomHealth`'s job (−1500), tile by tile, and only heroes do it (ADR-0339).
 
 Two consequences that fell out rather than being designed:
 

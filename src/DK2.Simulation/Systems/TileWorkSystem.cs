@@ -98,8 +98,9 @@ public sealed class TileWorkSystem : ISimulationSystem
             worker, context.Database.CreatureById(worker.CreatureTypeId));
     }
 
-    /// <summary>One application of room-scoped work: action 10's conversion against the room under
-    /// the tile (<c>0x00497BF0</c>), at the rival or the neutral rate by the tile's owner.</summary>
+    /// <summary>One application of room-scoped work against the room under the tile: action 10's
+    /// conversion (<c>0x00497BF0</c>), at the rival or the neutral rate by the tile's owner, or
+    /// action 12's repair (<c>0x00498120</c>).</summary>
     /// <remarks>CONFIRMED (owner, 2026-09-04, and the captures): one tile is worked and the room
     /// changes hands whole when its health falls below 1, so a portal is never half-taken. No tile's
     /// terrain or health is written: a rival who chipped at your treasury's tiles hands them over
@@ -110,8 +111,10 @@ public sealed class TileWorkSystem : ISimulationSystem
         WorldState world = context.World;
         GameDatabase database = context.Database;
         RoomInstance? room = RoomIndex.RoomAt(world, database, order.TileIndex);
-        TileWorkResult result = RoomHealthRules.Convert(
-            world, database, order.TileIndex, order.PlayerId, EfficiencyOf(context, order.WorkerCreatureId));
+        int efficiency = EfficiencyOf(context, order.WorkerCreatureId);
+        TileWorkResult result = order.Kind == TileWorkKind.RepairRoom
+            ? RoomHealthRules.Repair(world, database, order.TileIndex, order.PlayerId, efficiency)
+            : RoomHealthRules.Convert(world, database, order.TileIndex, order.PlayerId, efficiency);
 
         if (result.Outcome == TileWorkOutcome.Transformed && room is not null)
             context.Emit(SystemName, "room_converted",

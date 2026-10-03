@@ -197,9 +197,9 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(176, typeof(HeroJobRules), nameof(HeroJobRules.WaitingState)));
         rows.Add(Built(177, typeof(HeroJobRules), nameof(HeroJobRules.HuntingState)));
         rows.Add(Built(178, typeof(HeroJobRules), nameof(HeroJobRules.AtTheHeartState)));
-        rows.Add(Unbuilt(179, "not read"));
-        rows.Add(Unbuilt(180, "not read"));
-        rows.Add(Unbuilt(181, "not read"));
+        rows.Add(Unbuilt(179, "read (room-health.md §5): job 11's walk to a target keeper's room; 0x0050EA20 and 0x004C60E0 unread, Q523"));
+        rows.Add(Unbuilt(180, "read (room-health.md §5): action 11 underfoot, then 181; a leader hands job 11 on; Q523"));
+        rows.Add(Unbuilt(181, "read (room-health.md §5): action 11 until the tile falls, then the next room; Q523"));
         rows.Add(Unbuilt(182, "not read"));
         rows.Add(Unbuilt(183, "not read"));
         rows.Add(Unbuilt(184, "not read"));
@@ -286,8 +286,8 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(264, "its handler 0x00458680 waits out an action, then idles (functions/00458680.md); not built"));
         rows.Add(Unbuilt(265, "partly read in imp-task-objects-and-walks.md 3, steering-behaviours.md; not built"));
         rows.Add(Unbuilt(266, "not read"));
-        rows.Add(Unbuilt(267, "not read"));
-        rows.Add(Unbuilt(268, "its handler 0x00458680 waits out an action, then idles (functions/00458680.md); not built"));
+        rows.Add(Built(267, typeof(RoomAttackRules), nameof(RoomAttackRules.DestroyRoomTile)));
+        rows.Add(Unbuilt(268, "its handler 0x00458680 waits out an action, then idles; no SetState or walk pushes 0x10C (room-health.md §5); +0xDF stores and room tables unscanned"));
         rows.Add(Unbuilt(269, "partly read in hero-parties-and-effect-generators.md; not built"));
         rows.Add(Unbuilt(270, "its handler 0x004B4C20 returns 1 (state-categories.md §7.1); nothing in src/ enters it"));
         rows.Add(Unbuilt(271, "Q410, Q412: two calls in its handler are unread (rebellion.md)"));

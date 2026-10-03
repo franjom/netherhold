@@ -463,7 +463,7 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 **Amendment, 2026-09-25 (owner, and the binary).** *The floor half was wrong; the bridge half stands.* The owner, watching a fight with a rival keeper: an imp jumps on the enemy's claimed tile **until it becomes unclaimed dirt, then claims it for its own keeper**. The 2026-09-03 answer was about a bridge, which is a room, and rooms still change hands in one step (ADR-0044). Extending it to "any of a keeper's ground" was ours.
 - **`AttackTile` is DK2's hostile-floor predicate `0x00454000`**: owner anyone but the worker's keeper (neutral and unowned included), `Ownable` and `Attackable`, neither `Solid` nor `Room`. Claimed Path is the only shipped terrain it admits. `Claim` now excludes that ground.
 - The imp's claim priority tries `Claim`, then `AttackTile`, then `ConvertRoom`. The predicates partition the tiles, so the order is not a priority. The attack ends at Claimed Path's destroyed type, Dirt Path, unowned; the next search makes that an ordinary claim.
-- `AttackTileHealth` (−140) has its user, and the invasion hypothesis above is withdrawn. Rooms fall to `AttackRoomHealth` (handler 11), which is unbuilt, so nothing destroys a room tile yet: the treasury-spill and bridge-destroy tests pin the rules, not a mechanic.
+- `AttackTileHealth` (−140) has its user, and the invasion hypothesis above is withdrawn. Room tiles fall to `AttackRoomHealth` (action 11), which only heroes start (ADR-0337); an imp converts a room whole (ADR-0336).
 - Hash-neutral: no state changed, and the pinned run has no hostile floor.
 
 ## ADR-0034 — An asset is named by a logical key, and a provider chain resolves it
@@ -7454,3 +7454,38 @@ first work against 17 or 18 (DK2's capture: 24). Level 1 stays 20/20 with its wi
 Level 2 goes from 7/20 (3, 6, 7, 9, 10, 16, 18) to 3/20 (7, 9, 19), each change downstream of
 that takeover. Nine scenarios move, each first at a portal's or a bridge's conversion; Level
 11A's call lands in another drawn diagonal off the heart, and its pin follows.
+
+## ADR-0339 — Heroes knock rooms down tile by tile; repair is built and never started
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0336 · Research: `room-health.md` §4–7; Q500, Q523, Q525
+
+**Context.** `AttackRoomHealth` has one reader, action 11 (`0x00497DF0`). It hits the tile's own
+health, not the room's, through the tile applier, which unmakes a fallen room tile as a sale with
+no refund. A Good-player creature applies −3750 a blow with no rate; anyone else −1500 / 4 × its
+rate. Only states 180, 181 and 267 start it. 267 comes from the creature update, when a Good
+creature with `DestroysRooms` steps onto a keeper's buildable land room; 179–181 come from job 11.
+Action 12 (`RepairRoomHealth`) has no starter at all.
+
+**Decision.**
+1. `TileWorkKind.AttackRoom` is action 11's application: gated on a `Buildable` room, ×10 with
+   no rate for the Good player, through the tile path, so the tile falls to its destroyed
+   terrain (a bridge to its water or lava), its gold spills and the rest of the room keeps its
+   share of health (ADR-0336).
+2. `RoomAttackRules` is the creature update's arm and state 267: on stepping onto such a tile the
+   hero walks to its centre and strikes once a turn until it is no room, then idles. Not an imp
+   task, so it has no place in the imp's order.
+3. Job 11's states 179–181 are not built: the target keeper and room choosers `0x0050EA20` and
+   `0x004C60E0` are unread (Q523). Messages 0x22, 0x24 and 0x25 are not built.
+4. `TileWorkKind.RepairRoom` is action 12's application, gated by `0x004E6C00` and clamped at the
+   cap. Nothing queues it, as nothing in DK2 starts it.
+
+**Predictions, written before measuring 2.** DK2's Level 1 and Level 2 captures lose no room tile,
+so both rigs stay identical per seed if our heroes stay out of the keeper's rooms as DK2's do.
+Scenarios where a hero walks onto a keeper's room move; the rest stay identical.
+
+**Consequences.** No new field and the pin holds, so no version bump. Level 1 and all 42 scenarios
+are identical to ADR-0336's. Level 2 is not: in ten seeds party 1's Dwarves (`Flags2` bit 0, the
+only `DestroysRooms` heroes on the level) step into the keeper's Hatchery and Lair from about tick
+2307 and knock tiles down, the first difference in each seed; wins go from 3/20 (7, 9, 19) to 5/20
+(1, 9, 16, 18, 19). DK2's own run of that packet never puts a `DestroysRooms` hero on a keeper's
+room (`level2-live2/seed01`, every frame): its party 1 stays by its gate until about 3170. The
+prediction failed upstream of this mechanic, in that party's walk (Q525).
