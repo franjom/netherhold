@@ -70,6 +70,8 @@ Raw census captures: `reverse-engineering/.cache/tremor9f1.txt`,
 - [00480A00](functions/00480A00.md): Creature_FindWanderPoint.
 - [004B1DF0](functions/004B1DF0.md): Thing_InitMovementFields.
 - [004B28D0](functions/004B28D0.md): Thing_InitClass.
+- [004B4120](functions/004B4120.md): RenderBlock_ClassInitialize.
+- [004B5E10](functions/004B5E10.md): Thing_ConstructBase.
 - [004B3610](functions/004B3610.md): RenderInfo_Reset.
 - [004B37D0](functions/004B37D0.md): Animation_InstallResource.
 - [0048E160](functions/0048E160.md): Creature_UpdateTimedEffects.
