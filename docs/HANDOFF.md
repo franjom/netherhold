@@ -65,6 +65,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 3. M6 and M7: use the plan's run order and the open-question rows for the
    remaining replay, combat, hero, trap and door work. Avoid reproducing their
    detailed backlogs here.
+4. Goal 7: `codex/kwd-writers` in `D:\DungeonKeeperRemake-kwd-writers` is an
+   independently reviewed partial checkpoint. Container and record-image
+   milestones passed; the typed milestone stopped under the brief's byte-exact
+   rule at Q526. Continue from its latest commit's `Next:`. ADR-0343 and
+   `src/DK2.Data/README.md` describe the retained writer surface.
 
 After faithful M12, keep it as selectable Classic AI; explore a separate
 Enhanced keeper using the same observation/command interface (KEEPER_AI.md
