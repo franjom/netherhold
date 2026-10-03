@@ -461,6 +461,7 @@ public static class ShotRules
         }
     }
 
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-create-gold.md")]
     private static void CreateObject(SimulationContext context, ShotState shot)
     {
         WorldState world = context.World;
@@ -478,7 +479,13 @@ public static class ShotRules
         }
         ObjectState made = world.SpawnObject(context.Database, (byte)shot.Data1, shot.OwnerPlayerId, tile.Y * world.Width + tile.X);
         made.ProcessState = definition.StartState;
-        if (definition.IsGold) made.GoldHeld = shot.Data2;
+        if (made.ObjectTypeId == FloorGold.FloorGoldObjectId)
+        {
+            made.GoldHeld = Math.Max(0, shot.Data2);
+            made.OwnerPlayerId = PlayerIds.Neutral;
+            // The shared floor-gold model collapses falling and landing (keeper-spell-create-gold.md §3).
+            made.ProcessState = 0;
+        }
         context.Emit(SystemName, "shot_object_created", $"shot={shot.Id} object={made.Id} type={shot.Data1} tile={tile.X},{tile.Y}");
     }
 

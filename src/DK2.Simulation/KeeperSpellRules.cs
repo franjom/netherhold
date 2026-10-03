@@ -18,9 +18,12 @@ public enum KeeperSpellRefusal
 }
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-thunderbolt.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-create-gold.md")]
 public static class KeeperSpellRules
 {
     public const byte Thunderbolt = 6;
+
+    public const byte CreateGold = 13;
 
     /// <summary>Heal (10): shot 4, the Modify Health process, at a creature target selector 1 admits
     /// on a tile location selector 4 admits (keeper-spell-casting.md §4).</summary>
@@ -64,7 +67,7 @@ public static class KeeperSpellRules
     }
 
     /// <summary>Action 54 through <c>0x004BBD30</c>: permission, the shot at the place, the
-    /// payment and both clocks, for Call to Arms (3) and Inferno (9). The shot is not launched, so an
+    /// payment and both clocks, for Call to Arms (3), Inferno (9) and Create Gold (13). The shot is not launched, so an
     /// Inferno stands where it is made. Returns the original helper's success flag.</summary>
     public static int CastAtPlace(SimulationContext context, CastSpellAtPlaceCommand cast, out KeeperSpellRefusal refusal)
     {
@@ -126,9 +129,9 @@ public static class KeeperSpellRules
     /// of the runtime table at <c>0x006FCE40</c>) rather than at a place (4 and 5).</summary>
     public static bool TargetsAThing(byte targetSelector) => targetSelector is 1 or 2 or 3 or 6;
 
-    /// <summary>The spells whose casts this simulation executes: Call to Arms and Inferno at a place,
+    /// <summary>The spells whose casts this simulation executes: Call to Arms, Inferno and Create Gold at a place,
     /// Thunderbolt, Heal and Chicken at a creature. Create Imp keeps its own command.</summary>
-    public static bool ExecutesAtPlace(byte spellId) => spellId is CallToArmsRules.SpellId or Inferno;
+    public static bool ExecutesAtPlace(byte spellId) => spellId is CallToArmsRules.SpellId or Inferno or CreateGold;
     public static bool ExecutesOnCreature(byte spellId) => spellId is Thunderbolt or Heal or Chicken;
 
     /// <summary>The place validators of <c>0x004BB8A0</c> for one spell at one tile: its location

@@ -7974,5 +7974,9 @@ Per-scenario hash series and final hashes: `plans/2026-10-03-keeper-spells-basel
 Level 1/2 seeds 1–20 cannot be measured here: their gitignored scratchpad
 drivers and recorded packets are absent from this isolated worktree.
 
-**Current boundary.** Stage 0 measured all 42 scenarios without expectation
-failures. No spell has been added and no hash version has changed.
+**Current boundary.** Stage 0 independently verified all 42 scenario series.
+Stage 1 enables Create Gold through the existing cast and floor-gold paths;
+see `research/keeper-spell-create-gold.md` for the evidence and the retained
+flat landing/merge limitation. No state fields or hash version have changed.
+The full gate passed (3,208 no-install tests passed, 393 skipped); all 42
+scenario series are byte-identical to stage 0. Stage 1 awaits independent review.
