@@ -122,6 +122,41 @@ public class PathfindingTests
 
     // ---- eight-connected movement (Q28) and octile cost (Q48) --------------
 
+    /// <summary>Two floors touching only at a corner, both orthogonal neighbours solid.</summary>
+    private static readonly TextGrid CornerOnly = new(
+        "..##",
+        "..##",
+        "##..",
+        "##..");
+
+    /// <summary>The same, with one of the two corner tiles opened.</summary>
+    private static readonly TextGrid OneSideOpen = new(
+        "..##",
+        "..##",
+        "#...",
+        "##..");
+
+    /// <summary>
+    /// A corner-only gap is not a route: DK2's region fill (<c>0x004C91A0</c>) walks edge neighbours
+    /// only, so its pre-check refuses the pair; our mesh router refuses it; and the Level 2 capture
+    /// agrees: six imps at ticks 3063-3082 pass a tagged wall whose spare slots lay only behind such a
+    /// gap and dig the next wall instead. The grid search used to let a creature squeeze through
+    /// (Q28); it agrees with the mesh now (ADR-0339).
+    /// </summary>
+    [Fact]
+    public void ACornerOnlyGap_IsNotARoute_AsTheMeshRefusesIt()
+    {
+        var path = new List<TilePos>();
+        var finder = new GridPathfinder();
+
+        Assert.False(finder.TryFindPath(CornerOnly, new TilePos(0, 0), new TilePos(3, 3), path));
+        Assert.False(finder.TryFindNearest(CornerOnly, new TilePos(0, 0), p => p == new TilePos(3, 3), path));
+
+        // One open side beside the corner and the diagonal step is allowed again, as the mesh routes it.
+        Assert.True(finder.TryFindPath(OneSideOpen, new TilePos(0, 0), new TilePos(3, 3), path));
+        Assert.Equal([new TilePos(1, 1), new TilePos(2, 2), new TilePos(3, 3)], path);
+    }
+
     /// <summary>
     /// <b>A creature crosses on the bias.</b> CONFIRMED (Q28, owner): DK2
     /// creatures are eight-connected. Four diagonal steps beat the eight
@@ -137,28 +172,6 @@ public class PathfindingTests
         Assert.Equal(
             [new TilePos(1, 1), new TilePos(2, 2), new TilePos(3, 3), new TilePos(4, 4)],
             path);
-    }
-
-    /// <summary>
-    /// <b>Corners may be cut.</b> This is the specific thing Q28 asked and the
-    /// owner answered: a creature will pass diagonally between two solid tiles.
-    /// The grid below gives it no other option — (1,0) and (0,1) are both wall,
-    /// so the only route from (0,0) to (1,1) is through the pinch.
-    /// </summary>
-    [Fact]
-    public void ADiagonalBetweenTwoSolidTiles_IsAllowed()
-    {
-        var pinch = new TextGrid(
-            ".#...",
-            "#....",
-            ".....",
-            ".....",
-            ".....");
-
-        var path = new List<TilePos>();
-
-        Assert.True(new GridPathfinder().TryFindPath(pinch, new TilePos(0, 0), new TilePos(1, 1), path));
-        Assert.Equal([new TilePos(1, 1)], path);
     }
 
     /// <summary>

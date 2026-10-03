@@ -11,7 +11,7 @@ namespace DK2.Pathfinding;
 /// <para><b>DK2 does not route on a grid.</b> It searches a triangulated navigation mesh and follows
 /// the result with a steering system (Q5, ADR-0155, docs/research/navigation-and-steering.md). This
 /// class stands in until that is rebuilt or the divergence is accepted; it is not the original.</para>
-/// <para>Eight-connected and corners may be cut — CONFIRMED by observation (Q28). Octile step cost,
+/// <para>Eight-connected; a corner is cut only past an open side, as DK2's edge-only region fill and our mesh refuse a corner-only gap (Q28, ADR-0339). Octile step cost,
 /// <b>10 orthogonal and 14 diagonal</b> — STRONGLY INFERRED (Q48): a diagonal covers root-2
 /// tile-widths, and <c>CreatureMovementSystem</c> charges the same 14/10, because a router and a
 /// mover that disagree produce creatures that arrive early. No terrain weighting — CONFIRMED (Q30).
@@ -87,11 +87,8 @@ public sealed class GridPathfinder : IPathfinder
                 int nx = cx + NeighbourDx[i];
                 int ny = cy + NeighbourDy[i];
                 if (!InBounds(grid, nx, ny) || !grid.IsWalkable(nx, ny)) continue;
+                if (i >= 4 && CornerOnly(grid, cx, cy, i)) continue;
 
-                // No corner-cutting check: the original lets a creature pass
-                // diagonally between two solid tiles (Q28, owner-confirmed), so a
-                // diagonal neighbour is reachable whatever its two orthogonal
-                // neighbours are.
                 int nextCost = _cost[current] + NeighbourCost[i];
                 int n = (ny * _width) + nx;
                 bool seen = _stamp[n] == _generation;
@@ -151,6 +148,7 @@ public sealed class GridPathfinder : IPathfinder
                 int nx = cx + NeighbourDx[i];
                 int ny = cy + NeighbourDy[i];
                 if (!InBounds(grid, nx, ny) || !grid.IsWalkable(nx, ny)) continue;
+                if (i >= 4 && CornerOnly(grid, cx, cy, i)) continue;
 
                 int nextCost = _cost[current] + NeighbourCost[i];
                 int n = (ny * _width) + nx;
@@ -165,6 +163,15 @@ public sealed class GridPathfinder : IPathfinder
 
         return false;
     }
+
+    /// <summary>
+    /// A diagonal step whose two orthogonal neighbours are both unwalkable is no step: DK2's region
+    /// fill (<c>0x004C91A0</c>) walks edge neighbours only, so its route pre-check (<c>0x004C9400</c>)
+    /// refuses two floors that touch at one vertex; the Level 2 capture's dig sides at 3063-3082 agree,
+    /// and so does our mesh router (ADR-0157). One open side is enough, as for the mesh (ADR-0339).
+    /// </summary>
+    private static bool CornerOnly(IPathGrid grid, int cx, int cy, int i) =>
+        !grid.IsWalkable(cx + NeighbourDx[i], cy) && !grid.IsWalkable(cx, cy + NeighbourDy[i]);
 
     /// <summary>
     /// Octile distance: the exact cost of the cheapest unobstructed route, so it
