@@ -13,7 +13,33 @@ namespace DK2.Data.Kwd;
 /// keeper-spell-thunderbolt.md. Unknown bytes remain unparsed.</summary>
 public static class KwdKeeperSpells
 {
+    public static byte[] WriteRecord(KeeperSpellDef record, KwdRecordImage template)
+    {
+        byte[] bytes = KwdOverlay.Image(template, KwdRecordType.KeeperSpells, RecordSize);
+        KwdOverlay.Ascii(bytes, 0, 32, record.Name, Name(bytes, 0), trimmed: false);
+        void I32(int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), value);
+        if (record.ManaUpkeepPerSecond < 0 || record.ManaUpkeepPerSecond > ushort.MaxValue)
+            throw new InvalidDataException("KEEPERSPELLS mana upkeep must fit its unsigned 16-bit field.");
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(OffsetManaUpkeepPerSecond), (ushort)record.ManaUpkeepPerSecond);
+        I32(OffsetManaCost, record.ManaCost);
+        I32(OffsetCooldown, record.CooldownRaw);
+        I32(OffsetShotData1, record.ShotData1);
+        I32(OffsetShotData2, record.ShotData2);
+        I32(OffsetBonusShotData1, record.BonusShotData1);
+        I32(OffsetBonusShotData2, record.BonusShotData2);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(OffsetFlags), (uint)record.Flags);
+        bytes[OffsetKeeperSpellId] = record.KeeperSpellId;
+        bytes[OffsetLocationSelector] = record.LocationSelector;
+        bytes[OffsetTargetSelector] = record.TargetSelector;
+        bytes[OffsetShotTypeId] = record.ShotTypeId;
+        bytes[OffsetBonusShotTypeId] = record.BonusShotTypeId;
+        return bytes;
+    }
     private const int RecordSize = 406;
+    private const int OffsetCooldown = 0xCC;
+    private const int OffsetLocationSelector = 0xEF;
+    private const int OffsetTargetSelector = 0xDA;
+    private const int OffsetFlags = 0xDC;
 
     /// <summary>Mana per second the spell's result costs while it exists.</summary>
     // Found here by scanning for the measured 7; OpenKeeper independently names the
@@ -64,11 +90,11 @@ public static class KwdKeeperSpells
         ManaCost =
             BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetManaCost)),
         KeeperSpellId = rec[b + OffsetKeeperSpellId],
-        CooldownRaw = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + 0xCC)),
-        LocationSelector = rec[b + 0xEF],
-        TargetSelector = rec[b + 0xDA],
+        CooldownRaw = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetCooldown)),
+        LocationSelector = rec[b + OffsetLocationSelector],
+        TargetSelector = rec[b + OffsetTargetSelector],
         // 0x004F7CE0 copies runtime +0x54 from its intermediate at 0x154, which is file + 0x78.
-        Flags = (KeeperSpellFlags)BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + 0xDC)),
+        Flags = (KeeperSpellFlags)BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + OffsetFlags)),
         ShotTypeId = rec[b + OffsetShotTypeId],
         ShotData1 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetShotData1)),
         ShotData2 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetShotData2)),

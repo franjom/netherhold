@@ -17,6 +17,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Builds, tests and dk2tools
 
+- Typed KWD properties can be wider than their file fields: derive overlay test values and range checks from the reader's width, not the model's CLR type.
+
 - A one-project build leaves the harness's copies of dependency DLLs stale; build `DK2.slnx`
   before any `--no-build` run.
 - `dk2tools status` lists tests from a Release build (`--list-tests -c Release --no-build`): run
