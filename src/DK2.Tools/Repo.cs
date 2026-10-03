@@ -42,6 +42,10 @@ static class Repo
             WorkingDirectory = root,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            // git writes UTF-8; the console's code page (the hook's, not dotnet run's) would mangle a
+            // record's non-ASCII header and call it changed.
+            StandardOutputEncoding = System.Text.Encoding.UTF8,
+            StandardErrorEncoding = System.Text.Encoding.UTF8,
         };
         foreach (string a in arguments) psi.ArgumentList.Add(a);
 

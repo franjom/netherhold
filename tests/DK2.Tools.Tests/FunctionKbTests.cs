@@ -244,6 +244,19 @@ public sealed class FunctionKbTests
         Assert.EndsWith("is new and has no History line dated 2026-10-01", born, StringComparison.Ordinal);
     }
 
+    /// <summary>A merge brings in records the other side dated on its own day; one whose header equals
+    /// MERGE_HEAD's copy is inherited, and only a header the merge itself changes needs today's line.</summary>
+    [Fact]
+    public void AMergedInRecordIsDatedByTheSideThatWroteIt()
+    {
+        var theirs = Record("0050EA70");
+        var today = new DateOnly(2026, 10, 03);
+        Assert.Empty(FunctionKb.HistoryRequired(theirs, null, today, merged: theirs));
+
+        var changedInTheMerge = theirs with { Confidence = "DISPUTED" };
+        Assert.Single(FunctionKb.HistoryRequired(changedInTheMerge, null, today, merged: theirs));
+    }
+
     [Fact]
     public void HeadingsSlugLikeGitHub()
     {

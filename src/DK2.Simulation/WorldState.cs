@@ -191,6 +191,11 @@ public struct TileState
     /// A heart's ruin is <see cref="PlayerState.HeartRuined"/> (hero-parties-and-effect-generators.md).</summary>
     public bool RoomRuined;
 
+    /// <summary>This tile's part of its room's health deficit: the room's <c>Health</c>
+    /// (<c>room+0x35</c>) is StartingHealth × Size less the sum over its tiles, kept by
+    /// <see cref="RoomHealthRules"/> and <see cref="SlabChain"/>. Zero off a room.</summary>
+    public int RoomHealthLost;
+
     /// <summary>The floor's <c>ManaGain</c> a room tile went on paying when the room was built over
     /// it: DK2's rate word (<c>player+0x10E2</c>) is adjusted by <c>Tile_SetTerrain</c> only when
     /// neither terrain is a Room (<c>0x00455B90</c>), so a room laid on claimed floor keeps the 1,
@@ -251,6 +256,7 @@ public struct TileState
         hash.Add(SlabOrder);
         hash.Add(RoomSizeChangedTick);
         hash.Add(RoomRuined);
+        hash.Add(RoomHealthLost);
         hash.Add(KeptManaGain);
     }
 }

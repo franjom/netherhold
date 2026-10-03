@@ -291,8 +291,8 @@ public class PortalTests
         // the same path an imp drives.
         while (world.Tile(1, 1).OwnerPlayerId == Keeper)
         {
-            TileWorkResult result = TileWorkRules.Apply(
-                db, ref world.Tile(1, 1), TileWorkKind.ConvertRoom, Rival);
+            TileWorkResult result = RoomHealthRules.Convert(
+                world, db, world.Width + 1, Rival);
             Assert.NotEqual(TileWorkOutcome.Rejected, result.Outcome);
         }
 

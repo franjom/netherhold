@@ -220,6 +220,13 @@ Check each one that applies before you write a conclusion down.
 - **`ForceGaps` can name a function late.** An unbalanced epilogue means the
   real entry is earlier, so "nothing references it" may be about the wrong
   address.
+- **Ghidra's caller list misses callers in unanalysed code, and an address scan cannot see a
+  direct call** (it encodes a relative displacement). Use `CallScanAll.py` for "who calls this".
+- **`InsGrep` prints absolute operands zero-padded and indexed ones unpadded.** `0x6f2960` matches
+  nothing; write `0x006f2960]`, search `[reg*n + 0x...]` forms too, and keep the known hit in the
+  query as its control.
+- **`ReadsAt.py` matches instruction text,** so `+0x758` also hits a `[ESP + 0x758]` stack local.
+  Check the base register before counting a reader.
 - **No writer does not mean zero.** Read the initialised `.data` bytes
   (`Bytes.py`) before calling a global zero.
 - **Look for the debug dumper.** `DKII.EXE` prints many of its own field names

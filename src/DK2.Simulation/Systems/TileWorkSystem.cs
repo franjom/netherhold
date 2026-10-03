@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Systems;
 
@@ -37,30 +38,27 @@ public sealed class TileWorkSystem : ISimulationSystem
         for (int i = 0; i < count; i++)
         {
             TileWorkOrder order = world.PendingWork[i];
-
-            // The room this tile belongs to, read BEFORE the work lands and only
-            // for the one kind of work whose outcome is room-scoped. It has to be
-            // before: a room instance is tiles of one terrain with one owner
-            // (ADR-0027), so the moment the worked tile changes hands it becomes
-            // a room of its own and the rest of the room is unreachable from it.
-            RoomInstance? convertingRoom = TileWorkRules.CompletesAsTakeover(order.Kind)
-                ? RoomIndex.RoomAt(world, context.Database, order.TileIndex)
-                : null;
-
             ref TileState tile = ref world.TileAtIndex(order.TileIndex);
             byte before = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
             bool wasTagged = tile.IsTaggedBy(order.PlayerId);
 
-            TileWorkResult result = TileWorkRules.Apply(
-                context.Database, ref tile, order.Kind, order.PlayerId,
-                EfficiencyOf(context, order.WorkerCreatureId));
-
-            // A room taken whole keeps its chain; anything else that made or unmade a room tile, a
-            // rival breaking one down, goes through the chain's own insert and replay.
-            if (convertingRoom is not null && result.Outcome == TileWorkOutcome.Transformed)
-                SpreadTakeover(context, order, convertingRoom);
+            TileWorkResult result;
+            if (TileWorkRules.IsRoomScoped(order.Kind))
+            {
+                // The room's one health takes the work (0x004E5300); a room taken whole keeps its
+                // chain, so the slab chain is not replayed.
+                result = WorkRoom(context, order);
+            }
             else
+            {
+                result = TileWorkRules.Apply(
+                    context.Database, ref tile, order.Kind, order.PlayerId,
+                    EfficiencyOf(context, order.WorkerCreatureId));
+
+                // Anything that made or unmade a room tile, a rival breaking one down, goes
+                // through the chain's own insert and replay.
                 SlabChain.Changed(world, context.Database, order.TileIndex, before, ownerBefore);
+            }
 
             // Any change of terrain ends a kind-14 task: a claim, a conversion, an attacker. A dig
             // or a mine that leaves nothing to dig keeps its task in the pool; the digger raises
@@ -100,40 +98,30 @@ public sealed class TileWorkSystem : ISimulationSystem
             worker, context.Database.CreatureById(worker.CreatureTypeId));
     }
 
-    /// <summary>Hands the rest of a converted room to its new owner, all at
-    /// once.</summary>
-    /// <remarks>CONFIRMED (owner, 2026-09-04): "rooms are instantly claimed by imps,
-    /// not tile by tile" — one tile is worked and the room changes hands, so a keeper
-    /// never claims a portal nine times or leaves one half-taken. Only the owner is
-    /// written, not the terrain or the health: the worked tile had its health,
-    /// accumulated work and remainder reset by <see cref="TileWorkRules.Apply"/>,
-    /// while the others were never worked, so resetting theirs would repair a room by
-    /// taking it — a rival who chipped at your treasury and then claims it gets the
-    /// damage with it, as a claimed burning bridge keeps burning (Q68). Gold is left
-    /// where it is: a treasury's contents change hands with the treasury (Q40), and
-    /// nothing spills because capacity belongs to the terrain, which did not change.</remarks>
-    private static void SpreadTakeover(
-        SimulationContext context, TileWorkOrder order, RoomInstance room)
+    /// <summary>One application of room-scoped work against the room under the tile: action 10's
+    /// conversion (<c>0x00497BF0</c>), at the rival or the neutral rate by the tile's owner, or
+    /// action 12's repair (<c>0x00498120</c>).</summary>
+    /// <remarks>CONFIRMED (owner, 2026-09-04, and the captures): one tile is worked and the room
+    /// changes hands whole when its health falls below 1, so a portal is never half-taken. No tile's
+    /// terrain or health is written: a rival who chipped at your treasury's tiles hands them over
+    /// chipped, as a claimed burning bridge keeps burning (Q68), and a treasury's gold changes
+    /// hands with it (Q40).</remarks>
+    private static TileWorkResult WorkRoom(SimulationContext context, TileWorkOrder order)
     {
         WorldState world = context.World;
-        int spread = 0;
+        GameDatabase database = context.Database;
+        RoomInstance? room = RoomIndex.RoomAt(world, database, order.TileIndex);
+        int efficiency = EfficiencyOf(context, order.WorkerCreatureId);
+        TileWorkResult result = order.Kind == TileWorkKind.RepairRoom
+            ? RoomHealthRules.Repair(world, database, order.TileIndex, order.PlayerId, efficiency)
+            : RoomHealthRules.Convert(world, database, order.TileIndex, order.PlayerId, efficiency);
 
-        foreach (int index in room.TileIndices)
-        {
-            if (index == order.TileIndex) continue;
-
-            ref TileState other = ref world.TileAtIndex(index);
-            if (other.OwnerPlayerId == order.PlayerId) continue;
-
-            other.OwnerPlayerId = order.PlayerId;
-            other.KeptManaGain = 0; // Tile_SetOwner moves the room terrain's 0, not the floor's 1 (ADR-0334)
-            spread++;
-        }
-
-        context.Emit(SystemName, "room_converted",
-            $"({order.TileIndex % world.Width},{order.TileIndex / world.Width}) " +
-            $"player={order.PlayerId} {room.Definition.Name} " +
-            $"tiles={room.TileCount} spread={spread} from={room.OwnerPlayerId}");
+        if (result.Outcome == TileWorkOutcome.Transformed && room is not null)
+            context.Emit(SystemName, "room_converted",
+                $"({order.TileIndex % world.Width},{order.TileIndex / world.Width}) " +
+                $"player={order.PlayerId} {room.Definition.Name} " +
+                $"tiles={room.TileCount} from={room.OwnerPlayerId}");
+        return result;
     }
 
     /// <summary>

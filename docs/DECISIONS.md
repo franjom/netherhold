@@ -269,7 +269,7 @@
 - What stands: **which** terrain a tile becomes is still `MaxHealthTypeTerrainId` selected by the work (Q18), and claiming is still 4 applications — which is why the two rules were indistinguishable there, Dirt Path shipping at **1** health so that its gap (659) and maximum (660) are within one swing of each other.
 
 ## ADR-0025 — Movement is eight-connected, and a diagonal costs √2
-**Date:** 2026-08-30 · **Status:** accepted · supersedes the four-connected choice on `GridPathfinder` since M2 · amended 2026-09-05 by ADR-0059: a diagonal leg is walked surplus-first
+**Date:** 2026-08-30 · **Status:** accepted · supersedes the four-connected choice on `GridPathfinder` since M2 · amended 2026-09-05 by ADR-0059: a diagonal leg is walked surplus-first · amended 2026-10-03 by ADR-0339: a corner-only gap is no step
 
 **Context.** `GridPathfinder` was four-connected as the conservative option, because whether DK2 lets a creature squeeze diagonally between two solid tiles was UNKNOWN. The owner watched the original (Q28): it **will**, so every route this project produced was an overestimate, in the system every other system depends on.
 **Decision.**
@@ -463,7 +463,7 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 **Amendment, 2026-09-25 (owner, and the binary).** *The floor half was wrong; the bridge half stands.* The owner, watching a fight with a rival keeper: an imp jumps on the enemy's claimed tile **until it becomes unclaimed dirt, then claims it for its own keeper**. The 2026-09-03 answer was about a bridge, which is a room, and rooms still change hands in one step (ADR-0044). Extending it to "any of a keeper's ground" was ours.
 - **`AttackTile` is DK2's hostile-floor predicate `0x00454000`**: owner anyone but the worker's keeper (neutral and unowned included), `Ownable` and `Attackable`, neither `Solid` nor `Room`. Claimed Path is the only shipped terrain it admits. `Claim` now excludes that ground.
 - The imp's claim priority tries `Claim`, then `AttackTile`, then `ConvertRoom`. The predicates partition the tiles, so the order is not a priority. The attack ends at Claimed Path's destroyed type, Dirt Path, unowned; the next search makes that an ordinary claim.
-- `AttackTileHealth` (−140) has its user, and the invasion hypothesis above is withdrawn. Rooms fall to `AttackRoomHealth` (handler 11), which is unbuilt, so nothing destroys a room tile yet: the treasury-spill and bridge-destroy tests pin the rules, not a mechanic.
+- `AttackTileHealth` (−140) has its user, and the invasion hypothesis above is withdrawn. Room tiles fall to `AttackRoomHealth` (action 11), which only heroes start (ADR-0337); an imp converts a room whole (ADR-0336).
 - Hash-neutral: no state changed, and the pinned run has no hostile floor.
 
 ## ADR-0034 — An asset is named by a logical key, and a provider chain resolves it
@@ -645,23 +645,23 @@ Under the GPL the per-file notice is what makes `LICENSE` apply to a file rather
 - It answered Q17, which several rules had been resting an open question on — see ADR-0045 for what that cost.
 
 ## ADR-0044 — A room is claimed whole, never tile by tile
-**Date:** 2026-09-04 · **Status:** accepted
+**Date:** 2026-09-04 · **Status:** accepted · amended by ADR-0336 (2026-10-02): items 2–4 now work the room's one health
 
 **Context.** **CONFIRMED by the owner**, unprompted, the day the portal landed: *"once an imp claims a portal then the entire portal gets claimed, all tiles that are assigned to that portal are immediately claimed … that is a game mechanic that works on claiming enemy/neutral rooms too, rooms are instantly claimed by imps, not tile by tile."*
 
 It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and **it was a defect report about something much older.** `TileWorkKind.Claim` applied to room terrain, because room terrain is `Ownable` and not `Solid` and that is all the claim rule asked for, so a rival's treasury came over one tile at a time at `ClaimTileHealth`'s rate and a half-taken portal was a reachable state. Nothing checked it, because nobody had asked.
 **Decision.**
 1. **`Claim` excludes room terrain** (`!terrain.IsRoom`).
-2. **`TileWorkKind.ConvertRoom` takes rooms**, reading `ConvertRoomHealth` — **−4000**, until then an unused entry in `VariableTypeId`. At a fifth of the delta that is 800 an application against a room tile's 10000 health: **thirteen applications**. The propagation is instant, the work is not.
-3. **Completion is room-scoped.** `TileWorkRules.Apply` converts the worked tile; `TileWorkSystem.SpreadTakeover` reads the `RoomInstance` *before* the work lands and hands the rest of it over. It has to be before — a room instance is tiles of one terrain with **one owner** (ADR-0027), so the moment the worked tile changes hands the rest of the room is unreachable from it.
-4. **Only the owner is written on the other tiles.** They were never worked, so resetting their health would repair a room by taking it. A rival who has been chipping at your treasury gets the damage with it — the reasoning that keeps a claimed burning bridge burning (Q68).
+2. **`TileWorkKind.ConvertRoom` takes rooms**, beating down the **room's** one health (ADR-0336): `ConvertRoomHealth` −4000, or `ConvertNeutralRoomHealth` −20000 on a neutral room, a quarter a tick times the worker's rate. The propagation is instant, the work grows with the room.
+3. **Completion is room-scoped**: below 1 the whole room passes to the worker's keeper (`RoomHealthRules`).
+4. **Only owners are written**, never a tile's terrain or health, so a rival who has been chipping at your treasury gets the damage with it — the reasoning that keeps a claimed burning bridge burning (Q68).
 5. **Gold changes hands with the room.** Nothing spills: a tile's capacity is a property of its terrain and the terrain did not change. Exactly what Q40 observed on defeat — rivals claim the rooms *and gold*.
 
 **The mixed direction is the data's, not a choice.** `ClaimTileHealth` is **+825** and builds a floor tile *up* to its maximum; `ConvertRoomHealth` is **−4000** and beats a room *down* to zero. Two jobs that both end in "this is mine now", from opposite directions, which is why `TileWorkRules.CompletesAsTakeover` exists: without it the downward path would send a converted room to its `DestroyedTypeTerrainId` — Claimed Path for every room in the data — and claiming a treasury would demolish it. Demolishing is `AttackRoomHealth`'s job (−1500) and has no work kind yet.
 **Consequences.**
 - **Two things fell out rather than being written.** A worker takes a room by standing **in** it, because the stance rule asks what the tile will be when the job finishes and a takeover leaves it alone (ADR-0028). And an imp holding gold with a rival's treasury next door now **takes it and then uses it**, which prompted the owner to confirm the rule it might have broken: *"imps fill only their own keeper's treasury … for SP my imps NEVER fill anyone's treasure but my own."* That holds structurally — `GoldStore`'s store lookup skips every room whose owner is not the depositor, and it is the only path into a tile's gold — and is asserted both as an ordering (the takeover precedes the first delivery) and as an invariant over every tick.
 - **Two rules are ours rather than the owner's, both flagged:** a dungeon heart **cannot** be taken this way (a heart is beaten down, and Q40's "rivals claim the rooms" happens *after* it falls — Q93), and a multi-tile bridge converts whole (a bridge is a room in every way the data can tell, but the owner said "rooms" — Q94, since **CONFIRMED by the owner, 2026-09-07: yes, like a room**, closing it with no change).
-- Q92's *rate* is still unobserved; only the propagation is confirmed. The thirteen applications are **3.25 s** at four applications a second (ADR-0089); the 2.6 s recorded when this was written assumed five a second.
+- Q92's rate is answered by the capture: a neutral 3×3 portal takes 23 applications (ADR-0336).
 
 ## ADR-0045 — Neutral ownership after tile-work destruction
 **Date:** 2026-09-04 · **Status:** accepted · corrected 2026-09-27
@@ -7639,6 +7639,116 @@ slab. The count lives on the lowest tile, so growth past that tile or a merge lo
 **Consequences.** Hash/format 166, pin `0x32B476C1ECE5CC30`. A hungry creature no longer
 walks to, or waits in, a hatchery holding only coops and eggs. In a test world a keeper
 answers a hungry creature's 41 with a Hatchery, and policy 0 answers an empty one's 42 by growing it.
+
+## ADR-0336 — A room has one health, and a conversion beats the whole of it down
+**Date:** 2026-10-02 · **Status:** accepted · amends ADR-0044 · Research: `room-health.md`; Q500, Q92
+
+**Context.** DK2 keeps one health word per room (room `+0x35`) and changes it only through
+`0x004E5300`; ours beat the worked tile's health, 13 applications for any room. Read and
+checked against room `+0x35` in three full-state captures: a built room grows 10000 a tile, the
+Level 1 portal (90000) falls 4000 a tick and changes hands at 90000 after 23 applications. The
+conversion's neutral arm reads variable 136, `ConvertNeutralRoomHealth`, not `Unknown_17`.
+
+**Decision.**
+1. A room's health is a deficit below StartingHealth × Size kept on its tiles
+   (`TileState.RoomHealthLost`, summed). An untouched room reads full however it was laid
+   down, and a tile added or a merge writes nothing: DK2's clamped sums equal the summed deficit
+   while StartingHealth ≤ MaxHealth, which every shipped room terrain meets with equality
+   (`RoomHealthOnRealDataTests`). A tile leaving gives each piece the old room's whole-percent
+   share of its own cap, at least 1 (`0x004ED440`).
+2. `RoomHealthRules.Apply` is the applier: below 1 the room passes whole to the worker's keeper
+   and resets to StartingHealth × Size; a positive delta clamps at MaxHealth × Size.
+   `RoomHealthSystem` adds `HealthGain`, which is 0 in every shipped room.
+3. `ConvertRoom` works the room's health, never a tile's, at the rival or the neutral rate by
+   the worked tile's owner. The whole-room takeover stays. The gate is the world-aware one, so
+   a ruined heart is convertible through the system (ADR-0162), not only by `Applies`.
+4. Not built, both inert on shipped data: the level-start pass for Neutral's rooms
+   (`0x0050B966`) and the map loader's percentage for a pre-placed room (`0x005215BA`).
+
+**Predictions, written before building 3.** One worker at 80%: a rival's room takes 13
+applications for one tile, 25 for two, 113 for a 3×3; a neutral room 3, 5 and 23; a ruined
+heart 313 (13 before). The Level 1 and Level 2 rigs convert exactly one room per seed, the
+neutral portal at (21,28) and (13,38), 17 or 18 ticks after the first work today; it now takes
+23 applications, about 10 ticks later in every seed, so arrivals and everything after can move.
+The scenarios that take a portal move and the rest stay identical.
+
+**Consequences.** Part 1 alone (`HashVersion` 167) changes the pin and nothing else: all 42
+scenarios' events and worlds and both rigs' per-seed event logs are identical to 51b13a4's.
+Part 3 moves no state's shape and not the pin, so no further bump. As predicted, every seed of
+both rigs is identical up to the portal's takeover, which now lands 27 or 28 ticks after the
+first work against 17 or 18 (DK2's capture: 24). Level 1 stays 20/20 with its win ticks moved;
+Level 2 goes from 7/20 (3, 6, 7, 9, 10, 16, 18) to 3/20 (7, 9, 19), each change downstream of
+that takeover. Nine scenarios move, each first at a portal's or a bridge's conversion; Level
+11A's call lands in another drawn diagonal off the heart, and its pin follows.
+Re-measured after merging master cb72d01 (`HashVersion` 169, against cb72d01 itself): every rig
+seed and all nine moved scenarios still diverge first at that conversion; Level 1 is 19/20 (seed
+13 reaches turn 2044 still fighting the Lord, who dies at 1940 on master) and Level 2 goes from
+7/20 (3, 7, 9, 10, 15, 18, 19) to 4/20 (1, 7, 10, 18).
+
+## ADR-0342 — Heroes knock rooms down tile by tile; repair is built and never started
+**Date:** 2026-10-02 · **Status:** accepted · advances ADR-0336 · Research: `room-health.md` §4–7; Q500, Q523, Q525
+
+**Context.** `AttackRoomHealth` has one reader, action 11 (`0x00497DF0`). It hits the tile's own
+health, not the room's, through the tile applier, which unmakes a fallen room tile as a sale with
+no refund. A Good-player creature applies −3750 a blow with no rate; anyone else −1500 / 4 × its
+rate. Only states 180, 181 and 267 start it. 267 comes from the creature update, when a Good
+creature with `DestroysRooms` steps onto a keeper's buildable land room; 179–181 come from job 11.
+Action 12 (`RepairRoomHealth`) has no starter at all.
+
+**Decision.**
+1. `TileWorkKind.AttackRoom` is action 11's application: gated on a `Buildable` room, ×10 with
+   no rate for the Good player, through the tile path, so the tile falls to its destroyed
+   terrain (a bridge to its water or lava), its gold spills and the rest of the room keeps its
+   share of health (ADR-0336).
+2. `RoomAttackRules` is the creature update's arm and state 267: on stepping onto such a tile the
+   hero walks to its centre and strikes once a turn until it is no room, then idles. Not an imp
+   task, so it has no place in the imp's order.
+3. Job 11's states 179–181 are not built: the target keeper and room choosers `0x0050EA20` and
+   `0x004C60E0` are unread (Q523). Messages 0x22, 0x24 and 0x25 are not built.
+4. `TileWorkKind.RepairRoom` is action 12's application, gated by `0x004E6C00` and clamped at the
+   cap. Nothing queues it, as nothing in DK2 starts it.
+
+**Predictions, written before measuring 2.** DK2's Level 1 and Level 2 captures lose no room tile,
+so both rigs stay identical per seed if our heroes stay out of the keeper's rooms as DK2's do.
+Scenarios where a hero walks onto a keeper's room move; the rest stay identical.
+
+**Consequences.** No new field and the pin holds, so no version bump. Level 1 and all 42 scenarios
+are identical to ADR-0336's. Level 2 is not: in ten seeds party 1's Dwarves (`Flags2` bit 0, the
+only `DestroysRooms` heroes on the level) step into the keeper's Hatchery and Lair from about tick
+2307 and knock tiles down, the first difference in each seed; wins go from 3/20 (7, 9, 19) to 5/20
+(1, 9, 16, 18, 19). DK2's own run of that packet never puts a `DestroysRooms` hero on a keeper's
+room (`level2-live2/seed01`, every frame): its party 1 stays by its gate until about 3170. The
+prediction failed upstream of this mechanic, in that party's walk (Q525).
+
+## ADR-0339 — The grid search cuts a corner only past an open side, as the route query does
+**Date:** 2026-10-03 · **Status:** accepted · amends ADR-0025 · Research: `imp-task-priority.md` §2.2; `steering-behaviours.md` §7; `navigation-and-steering.md`; Q28
+
+**Context.** ADR-0025 let `GridPathfinder` step diagonally between two solid tiles, from the owner's
+observation of a creature crossing such a corner (Q28). The route layer never allows it: DK2's
+pre-check `0x004C9400` compares region ids, and the fill that assigns them (`0x004C91A0`, read
+2026-10-03) walks only a triangle's three edge neighbours, so two floors touching at one vertex never
+share a region; our mesh router, built on the original's algorithm (ADR-0157), has no route through
+one either. The grid survives
+behind `TryFindNearest`, which chooses an imp's work and tests a dig side's reachability
+(`0x00469AF0` via `0x00471630`). The Level 2 capture (l2live2 seed01, 3063-3082) shows the cost: a
+tagged wall's one reachable side held three diggers, its other sides lay behind a corner-only gap,
+and six DK2 imps passed it for the next wall, consistent with that refusal; our chooser, put in that
+world, took the gap each time (decision checker: six of the 31 non-lost mismatches).
+**Decision.** A diagonal step is refused when both of its orthogonal neighbours are unwalkable; one
+open side admits it, as the mesh does. Q28's observed crossing was not a route; whether it was
+steering's (the mover commits a step by the tile it lands in) stays the open half of Q28.
+**Consequences.**
+- `GridPathfinder.CornerOnly` in both searches; `PathfindingTests` pins the gap refused and one open
+  side restored, `MeshRouterTests` pins the mesh's agreement.
+- The Level 2 decision checker: 768 -> 776 of 799 the same (the six dig sides and two kind verdicts
+  at 3083 and 3103 that followed from them). Rigs on the same build: L1 20/20 (unchanged), L3 seed01
+  won at 3676 (identical run), L2 6/20 against 7: seeds 1, 3, 9, 15 and 19 are tick-identical, and 7,
+  10 and 18 first differ at 2168-2179 where an imp's stand for the dig at (12,15) moves off the hideout
+  side it could only reach through the corner; seed 7's later fight then goes the other way. DK2's own
+  seeded replays of this packet reach the party in one of three distinct seeds, so the count is
+  within that variance, not a verdict on the rule.
+- Routes elsewhere are unchanged unless they squeezed through a corner, which the walk could not
+  follow anyway: such a target was skipped by the mover (ADR-0157), so an imp now never takes it.
 
 ## ADR-0340 — A creature with nobody to fight attacks an enemy's revealed trap (scan D)
 **Date:** 2026-10-03 · **Status:** accepted · advances ADR-0338, ADR-0163 · Research: `traps.md` §10–§11; `combat-acquisition.md` §6; Q362

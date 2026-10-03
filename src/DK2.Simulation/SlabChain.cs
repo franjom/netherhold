@@ -44,7 +44,13 @@ public static class SlabChain
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         if (tile.TerrainId == terrainBefore && tile.OwnerPlayerId == ownerBefore) return;
         tile.ChickensGenerated = 0;
-        if (database.RoomByTerrain(terrainBefore) is not null) Removed(world, tileIndex, terrainBefore, ownerBefore);
+
+        // The tile's part of the old room's deficit goes with the old room; whatever it joins, it
+        // joins as a fresh tile (0x004EC5A0, 0x004EC650).
+        int lost = tile.RoomHealthLost;
+        tile.RoomHealthLost = 0;
+        if (database.RoomByTerrain(terrainBefore) is { } before)
+            Removed(world, database, tileIndex, terrainBefore, ownerBefore, before, lost);
         if (database.RoomByTerrain(tile.TerrainId) is not null) Added(world, tileIndex);
         else (tile.SlabOrder, tile.RoomSizeChangedTick) = (0, 0);
     }
@@ -79,8 +85,11 @@ public static class SlabChain
     /// <summary><c>0x004ED7B0</c>, for a tile that has just stopped being a tile of the room with
     /// <paramref name="terrain"/> and <paramref name="owner"/>: the room's other tiles are taken in
     /// their old chain order and inserted again one by one by <see cref="Added"/>'s rule, among only
-    /// those already re-inserted. A cut room comes back as several.</summary>
-    public static void Removed(WorldState world, int tileIndex, byte terrain, byte owner)
+    /// those already re-inserted. A cut room comes back as several, and <c>0x004ED440</c> gives each
+    /// the old room's share of health (<see cref="RoomHealthRules.SharePercent"/>);
+    /// <paramref name="lost"/> is the leaving tile's part of the old deficit.</summary>
+    public static void Removed(
+        WorldState world, GameDatabase database, int tileIndex, byte terrain, byte owner, RoomDef room, int lost)
     {
         var old = new HashSet<int>();
         for (int d = 0; d < Dx.Length; d++)
@@ -88,6 +97,12 @@ public static class SlabChain
             int n = Neighbour(world, tileIndex, d);
             if (n >= 0 && !old.Contains(n) && Same(world, n, terrain, owner)) Fill(world, n, terrain, owner, old);
         }
+
+        // The share is taken of the room as it was, the leaving tile still counted (0x004ED54F).
+        int size = old.Count + 1;
+        foreach (int tile in old) lost += world.TileAtIndex(tile).RoomHealthLost;
+        int health = (RoomHealthRules.StartPerTile(database, room) * size) - lost;
+        int percent = RoomHealthRules.SharePercent(health, RoomHealthRules.MaxPerTile(database, room) * size);
 
         int[] order = [.. old];
         Sort(world, order);
@@ -127,7 +142,11 @@ public static class SlabChain
             }
         }
 
-        foreach (List<int> chain in chains) Stamp(world, chain);
+        foreach (List<int> chain in chains)
+        {
+            Stamp(world, chain);
+            RoomHealthRules.SetPiece(world, database, room, chain, percent);
+        }
     }
 
     /// <summary>What a saved game's load does to the chains (<c>0x0044F4C0</c>, <c>0x00452BD0</c>):

@@ -129,6 +129,7 @@ Every fact has exactly **one** canonical location. Everywhere else links to it.
 | evidence for a DK2 behaviour | one section of one `docs/research/*.md` |
 | an open unknown, and how to close it | one row in `open-questions.md` |
 | something surprising about *this* code | a comment in the code |
+| a tooling, encoding or process trap that cost time | one line in `docs/TRAPS.md` |
 | why this change, now | the commit message |
 | where the project currently stands | `docs/HANDOFF.md` |
 | what a DKII.EXE function is, and how that verdict changed | its record in `docs/research/functions/` |
@@ -202,6 +203,13 @@ CI (`.github/workflows/ci.yml`) builds and tests on Linux and Windows with no DK
 violation and merely **notes** a stale status line — almost every commit changes
 one of that line’s numbers, and blocking each one would teach everybody to pass
 `--no-verify`, which would switch off the budget check too.
+
+### Traps go where every agent reads them
+
+When a tool, an encoding, a shell quirk or a process step costs you time, add one line to
+`docs/TRAPS.md` in the same change, and read that file before long work. Claude's memory and
+Codex's memory are private to each agent and neither reads the other's; the repository is the
+only place a lesson reaches the next session of either. Delete the line when its cause is fixed.
 
 ### What is worth recording
 

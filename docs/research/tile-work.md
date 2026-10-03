@@ -106,10 +106,8 @@ imp nothing to do, where the original mines a marked gem face indefinitely from
 one mark. STRONGLY INFERRED, on the same flag the mark is validated against.
 
 Two exceptions where the terrain stays and only the owner changes.
-`TileWorkKind.ConvertRoom` runs health *down* but means the opposite of
-destruction, so `CompletesAsTakeover` converts the tile to its own terrain —
-resetting health and remainder while keeping a burning bridge burning
-(`portals.md`, ADR-0044). And a **claim of ground already of the claimable
+`TileWorkKind.ConvertRoom` runs the *room's* health down (`room-health.md`), so the
+terrain is untouched and a burning bridge keeps burning (`portals.md`, ADR-0336). And a **claim of ground already of the claimable
 kind** keeps its terrain, because following `MaxHealthTypeTerrainId` would turn a
 rival's Claimed Path into Rock, a transition nothing in DK2 triggers (Q18, Q219;
 `TileWorkRules.UpwardDestination`, keyed on `Ownable`, so floor, bridge and room
@@ -366,26 +364,8 @@ Our `CompletesUpward` names that caller invariant, not a binary guard.
 
 ## Room health (Q500)
 
-A room has one health word (`room+0x35`) and imps convert the **room**, not a tile (read
-2026-10-01: `0x004E5300`, `0x004E4B00`, `0x00497BF0`, `0x004EC650`, `0x004ECB70`).
-
-- **Applier `0x004E5300`:** a negative delta subtracts; below 1 the room changes hands and
-  resets to `StartingHealth * tiles`. A positive delta clamps at `MaxHealth * tiles`. Both
-  come from the room's terrain (`+0x1AB`, `+0x1AD`): 10000 each for every shipped room
-  terrain, 2000 for bridges, 100 to 208 for hero gates.
-- **Growth:** a tile added adds one StartingHealth, a merge the other room's (`0x004EC650`).
-- **Damage, action 10 (`0x00497BF0`):** each application subtracts `ConvertRoomHealth`
-  (-4000 / 4 = -1000 a tick) times the imp's rate (`+0x3AF` plus `+0x3B3`) from the whole
-  room, never from tile health. An arm taken when tile word `+8 & 0xFFF` equals the neutral
-  player adds `Unknown_17` (3) times the rate; unread.
-- **Regeneration:** `0x004E4B00` passes the room definition's `HealthGain` (Rooms.kwd `0x41D`,
-  loaded to `+0x439`) while health is under the cap. It is 0 for all 26 shipped rooms: live
-  and inert. `RepairRoomHealth` (+5000 a tick, `0x004981E3`) is the imp's repair.
-- **Ours** is this rule for one tile at an 80% rate: 10000 / 800 = 13 applications. N tiles
-  need about 12.5 N (a 3x3 room about 113 ticks for one imp). One measured room took 24-26
-  ticks (`imp-claim-path.md`, size not recorded); two tiles would fit.
-- **Q92:** "instantly claimed" is the transfer at health 0, all tiles at once; the time to
-  reach it is unobserved.
+A room has one health word (`room+0x35`) and imps convert the **room**, not a tile; a
+hero's room attack works the tile's own health instead. Moved to `room-health.md`.
 
 ## How this was established
 

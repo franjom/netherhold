@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 168: the m7/close merge, objects' health and the Boulder's union, a Jack's fields (ADR-0333, ADR-0337).
+        // HashVersion 169: master's 168 merged with a room's health on its tiles (ADR-0336).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x958573FFD0B603A6UL, sim.StateHash());
+        Assert.Equal(0x1D8367ACE6D6D7CBUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -357,9 +357,9 @@ request; the door bits are inert until doors enter the navigation byte.
   `Separation`'s second term; run and shuffle speeds and the timed multipliers;
   the per-state movement gate.
 - Two floor tiles that touch only at a corner: no route, ours or DK2's
-  (`0x004C9400` refuses before any search), but the mover commits a step by
-  the tile it lands in, so a steered crossing is not forbidden. Q28 recorded a
-  crossing from play; which mechanism it was is the open half. The Level 7
+  (`0x004C9400` refuses before any search; its fill `0x004C91A0` is edge-only),
+  `GridPathfinder` included since ADR-0339; but the mover commits a step by the
+  tile it lands in, so a steered crossing is not forbidden. The Level 7
   capture cannot say: its cache holds no corner-only floor pair, and none of
   its 289 diagonal tile changes in 41,654 steps passed between two solid tiles.
   Level 10's capture (216,882 steps) has none either, but its three such

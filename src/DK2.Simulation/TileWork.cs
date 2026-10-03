@@ -41,15 +41,30 @@ public enum TileWorkKind
     RepairWall = 8,
 
     /// <summary>
-    /// Take a room that belongs to somebody else — a rival's or a neutral one.
-    /// <c>ConvertRoomHealth</c>, −4000, thirteen applications.
-    /// <para>The only kind whose outcome is not confined to its own tile: one tile
-    /// is worked and the whole room instance changes hands at once — CONFIRMED
-    /// (owner, 2026-09-04) "rooms are instantly claimed by imps, not tile by tile".
-    /// <see cref="TileWorkRules.Apply"/> converts the worked tile and
-    /// <see cref="Systems.TileWorkSystem"/> spreads it (Q92, ADR-0044).</para>
+    /// Take a room that belongs to somebody else — a rival's or a neutral one: action 10
+    /// (<c>0x00497BF0</c>). <c>ConvertRoomHealth</c> (−4000), or <c>ConvertNeutralRoomHealth</c>
+    /// (−20000) on a neutral tile, against the <b>room's</b> health, never the tile's.
+    /// <para>Room-scoped: one tile is worked and the whole room changes hands when its health
+    /// falls below 1 — CONFIRMED (owner, 2026-09-04) "rooms are instantly claimed by imps, not tile
+    /// by tile", and in the captures. <see cref="Systems.TileWorkSystem"/> applies it through
+    /// <see cref="RoomHealthRules"/>, not <see cref="TileWorkRules.Apply"/> (Q92, ADR-0336).</para>
     /// </summary>
     ConvertRoom = 10,
+
+    /// <summary>
+    /// Knock down a tile of somebody's room: action 11 (<c>0x00497DF0</c>), <c>AttackRoomHealth</c>
+    /// (−1500) against the <b>tile's</b> health, which a hero applies ten times over with no rate.
+    /// The tile falls to its destroyed terrain as if sold with no refund; the room goes tile by tile
+    /// (room-health.md §4, ADR-0342). Started by heroes, never by an imp.
+    /// </summary>
+    AttackRoom = 11,
+
+    /// <summary>
+    /// Restore one's own room: action 12 (<c>0x00498120</c>), <c>RepairRoomHealth</c> (+20000) into
+    /// the room's health while it is below MaxHealth × Size. Nothing in v1.70 starts action 12, so
+    /// nothing here queues it (room-health.md §6, ADR-0342).
+    /// </summary>
+    RepairRoom = 12,
 }
 
 /// <summary>What one application of work did to a tile.</summary>
@@ -128,6 +143,8 @@ public static class TileWorkRules
         TileWorkKind.Reinforce => VariableTypeId.ReinforceWallHealth,
         TileWorkKind.RepairWall => VariableTypeId.RepairWallHealth,
         TileWorkKind.ConvertRoom => VariableTypeId.ConvertRoomHealth,
+        TileWorkKind.AttackRoom => VariableTypeId.AttackRoomHealth,
+        TileWorkKind.RepairRoom => VariableTypeId.RepairRoomHealth,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown tile work kind."),
     };
 
@@ -157,6 +174,16 @@ public static class TileWorkRules
         return perSecond * efficiency >> SimulationTiming.WorkApplicationShift;
     }
 
+    /// <summary>What a creature of the Good player applies in action 11's first arm: the cached
+    /// <c>AttackRoomHealth</c> (the tabled value over variable 19, a truncating divide) times
+    /// <see cref="HeroAttackRoomMultiplier"/>, with no rate: −1500 / 4 × 10 = −3750.</summary>
+    public static int HeroAttackRoomPerApplication(GameDatabase database) =>
+        database[VariableTypeId.AttackRoomHealth] / SimulationTiming.OriginalTicksPerGameSecond * HeroAttackRoomMultiplier;
+
+    /// <summary>The engine's own ×10 in action 11's hero arm (<c>0x00497EC1</c>: LEA ×5, SHL 1).</summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/room-health.md")]
+    public const int HeroAttackRoomMultiplier = 10;
+
     /// <summary>
     /// Which callers can raise health into a different
     /// <see cref="TerrainDef.MaxHealthTypeTerrainId"/>. DK2's applier has no such
@@ -167,16 +194,18 @@ public static class TileWorkRules
         kind is TileWorkKind.Claim or TileWorkKind.Reinforce;
 
     /// <summary>
-    /// Whether the work ends by taking the tile over rather than destroying it,
-    /// despite running its health <i>down</i> to zero. Only
+    /// Whether the work ends by taking the room over rather than destroying the tile,
+    /// despite running a health <i>down</i> to zero. Only
     /// <see cref="TileWorkKind.ConvertRoom"/> does; the mixed direction is the
     /// data's (<c>ClaimTileHealth</c> +825 up, <c>ConvertRoomHealth</c> −4000
-    /// down). Without it a converted room would follow its
-    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/> — Claimed Path for every
-    /// room terrain — and claiming a treasury would demolish it. Not
-    /// implemented: <c>AttackRoomHealth</c> (−1500).</summary>
+    /// down). It runs the room's health down, not the tile's, so the terrain at
+    /// completion is the terrain now.</summary>
     public static bool CompletesAsTakeover(TileWorkKind kind) =>
         kind is TileWorkKind.ConvertRoom;
+
+    /// <summary>Kinds applied to a room's one health (<see cref="RoomHealthRules"/>) rather than
+    /// to a tile's: they need the world, so <see cref="Apply"/> refuses them.</summary>
+    public static bool IsRoomScoped(TileWorkKind kind) => kind is TileWorkKind.ConvertRoom or TileWorkKind.RepairRoom;
 
     /// <summary>The per-second health delta the balance table gives this kind of work,
     /// after <see cref="ObservedCorrections"/> and unscaled by Efficiency. The sign is
@@ -277,6 +306,14 @@ public static class TileWorkRules
                 && (ruinedHeart || terrain.TerrainId != ManaRules.DungeonHeartTerrainId(database)),
 
             TileWorkKind.AttackTile => IsHostileFloor(terrain, tile, playerId),
+
+            // Action 11 asks only for a room whose definition is Buildable (def +0x43D bit 0x80),
+            // whoever holds it; who may start it is the hero rule's (RoomAttackRules).
+            TileWorkKind.AttackRoom => database.RoomByTerrain(tile.TerrainId) is { IsBuildable: true },
+
+            // Action 12's tile part: a room of the worker's keeper; the room's health below its cap
+            // is RoomHealthRules.NeedsRepair (0x004E6C00).
+            TileWorkKind.RepairRoom => terrain.IsRoom && tile.OwnerPlayerId == playerId,
 
             // Reinforcing turns rock into a wall; the data says which rock can.
             // The original splits it by health — reinforce below half MaxHealth
@@ -394,6 +431,9 @@ public static class TileWorkRules
         byte playerId,
         int efficiency = EfficiencyRules.BaseModifier)
     {
+        if (IsRoomScoped(kind))
+            throw new ArgumentException($"{kind} works a room's health; apply it through RoomHealthRules.", nameof(kind));
+
         if (TryResolveDigTask(database, tile, kind, playerId, out TileWorkKind currentKind))
             kind = currentKind;
 
@@ -402,7 +442,9 @@ public static class TileWorkRules
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
 
-        int delta = PerApplication(database, kind, efficiency);
+        int delta = kind == TileWorkKind.AttackRoom && playerId == PlayerIds.Good
+            ? HeroAttackRoomPerApplication(database)
+            : PerApplication(database, kind, efficiency);
 
         if (delta < 0)
         {
@@ -417,18 +459,6 @@ public static class TileWorkRules
                 return new TileWorkResult(
                     applied == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed,
                     applied, gold, 0, tile.TerrainId);
-            }
-
-            // A takeover ran down but means the opposite: the terrain stays and
-            // only the owner changes. Converting to the tile's own terrain resets
-            // health and remainder while keeping a burning bridge burning, since
-            // the terrain did not change (Q67, Q68).
-            if (CompletesAsTakeover(kind))
-            {
-                int kept = Convert(
-                    database, ref tile, tile.TerrainId, playerId, takeOwnership: true);
-                return new TileWorkResult(
-                    TileWorkOutcome.Transformed, applied, gold, kept, tile.TerrainId);
             }
 
             // Through BridgeRules, not straight to the destroyed-type field: a

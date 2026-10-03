@@ -9,7 +9,7 @@
 #   t276-324  dig the three tiles (DigOwnWall through the keeper's own
 #             reinforced wall, then Dig through rock)
 #   t343-396  claim the floor they opened, spreading from land already held
-#   t465      take the portal - `room_converted ... tiles=9 spread=8 from=2`.
+#   t465      take the portal - `room_converted ... tiles=9 from=2`.
 #             One tile was worked; eight came with it. CONFIRMED by the owner:
 #             rooms are claimed whole, never tile by tile (Q92).
 #   t552+     reinforce the new walls, which is priority 3 doing its job
@@ -82,9 +82,9 @@ observe:
 # the second one was wrong in this very file until Q86 was read off the binary.
 expect:
   - event: room_converted
-    detail: "Portal tiles=9 spread=8 from=2"
+    detail: "Portal tiles=9 from=2"
     because: >
-      One tile is worked and eight come with it, off the neutral player. Rooms
+      One tile is worked and all nine change hands, off the neutral player. Rooms
       are claimed whole, never tile by tile - CONFIRMED by the owner (Q92).
   - event: creature_entered
     detail: "interval=72"

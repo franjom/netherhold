@@ -184,7 +184,7 @@ public class ManaTests
 
         // The rival's imps convert the tile: applications until the takeover completes.
         for (int i = 0; i < 5000 && run.World.Tile(1, 1).OwnerPlayerId == Keeper; i++)
-            TileWorkRules.Apply(database, ref run.World.Tile(1, 1), TileWorkKind.ConvertRoom, Rival);
+            RoomHealthRules.Convert(run.World, database, run.World.Width + 1, Rival);
         Assert.Equal(Rival, run.World.Tile(1, 1).OwnerPlayerId);
         Assert.Equal(0, ManaRules.GainPerSecond(database, run.World.Tile(1, 1)));
     }
