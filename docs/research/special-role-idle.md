@@ -72,6 +72,10 @@ Raw census captures: `reverse-engineering/.cache/tremor9f1.txt`,
 - [004B28D0](functions/004B28D0.md): Thing_InitClass.
 - [004B4120](functions/004B4120.md): RenderBlock_ClassInitialize.
 - [004B5E10](functions/004B5E10.md): Thing_ConstructBase.
+- [004B5A10](functions/004B5A10.md): ThingPool_Construct.
+- [004B5B80](functions/004B5B80.md): Thing_BaseCleanup.
+- [00635EC0](functions/00635EC0.md): Array_ConstructWithCleanup.
+- [00635E50](functions/00635E50.md): Array_CleanupReverse.
 - [004B3610](functions/004B3610.md): RenderInfo_Reset.
 - [004B37D0](functions/004B37D0.md): Animation_InstallResource.
 - [0048E160](functions/0048E160.md): Creature_UpdateTimedEffects.

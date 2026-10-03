@@ -104,3 +104,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A clean unstaged diff checks no committed changes; run `git diff --check <base> HEAD` and `--cached` before committing new files.
 - Snapshot tests need the supported xoshiro RNG; scripted `IRandomAlgorithm` test doubles intentionally have no save format (ADR-0275).
 - PowerShell can report failure when a native command writes diagnostics to stderr; finish redirected native runs with `exit $LASTEXITCODE` to preserve the program's exit code.
+- Ghidra can omit callback arguments from a decompiler signature; check caller pushes and callee stack cleanup before assigning constructor versus cleanup roles.
