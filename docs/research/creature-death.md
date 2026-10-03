@@ -317,7 +317,7 @@ blocked this for five sittings.
 | Rescue | **Built** (ADR-0063). `CreatureDeathRules.Rescue` had been written, tested and callerless for five sittings so the gap would be visible; kind 13 is its caller |
 | Prison for enemies | **Built** (ADR-0064, `docs/research/prison.md`): an imp drags an unconscious enemy to a cell, it withers at `PrisonModifyCreatureHealthPerSecond` (−3) a game second, and at nothing it rises as a **Skeleton for the jailer**. A prisoner arrives at **max / 6** health (Q167, ADR-0071). `MotionlessInPrisonSeconds` (8) is still parsed and unread |
 | The Vampire | **Built (ADR-0151).** A Graveyard keeps the room dump's per-instance `DecomposeValue` dword; burial adds the corpse's value, and shipped variable 25 sets 1000 as the threshold for its `CreatedCreatureId`, Vampire. Five Goblins contribute 5 × 200, independently agreeing with the five-corpse account (Q165) |
-| Chickens for the dying | **Not built.** A keeper keeps a *prisoner* alive by dropping chickens on it, so a prisoner's countdown always runs out here (ADR-0064) |
+| Chickens for the dying | **Built** (ADR-0064; `prison.md`, `PrisonRules` states 117–118). A hungry prisoner walks to a chicken in its cell and eats it, which pays off the hunger that drives the drain, so a keeper keeps a prisoner alive by dropping chickens into the cell |
 
 **The petals are health** (Q108), and there are **six** of them (Q171, CONFIRMED
 by the owner with a screenshot). Petals empty as a creature is hurt and fill
