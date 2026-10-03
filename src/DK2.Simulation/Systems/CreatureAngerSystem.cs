@@ -93,7 +93,8 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             if (after == CreatureMood.Angry
                 && !HandRules.IsHeld(state)
                 && !PrisonRules.IsImprisoned(state)
-                && !state.CombatPitFighter)
+                && !state.CombatPitFighter
+                && !context.TremorMoodDispatchedThisTick.Contains(state))
                 Decide(context, creature, state);
         }
     }
@@ -189,25 +190,32 @@ public sealed class CreatureAngerSystem : ISimulationSystem
     /// reproduce: <c>RebelLeader</c>, which nothing reads, and creature action 43.
     /// <c>RebelActive</c> is set past the guards, as DK2 marks the creature before it looks
     /// for the exit; the door contact reads it.</remarks>
-    private void Rebel(
-        SimulationContext context, CreatureDef creature, CreatureState state)
+    private bool Rebel(
+        SimulationContext context, CreatureDef creature, CreatureState state, bool deferLeavingHandler = false)
     {
-        if (!RebellionRules.CanRebel(state)) return;
-        if (RebellionRules.IsDefecting(state)) return;
+        if (!RebellionRules.CanRebel(state)) return false;
+        if (RebellionRules.IsDefecting(state)) return false;
 
         // Ours, not DK2's: a creature already on the side it would defect to has
         // nowhere to go, and running the countdown again would overwrite the keeper it
         // rebelled against with itself. DK2 has no such guard - it also has no angry
         // hero creatures to need one.
-        if (state.OwnerPlayerId == RebellionRules.DefectsTo) return;
+        if (state.OwnerPlayerId == RebellionRules.DefectsTo) return false;
         state.RebelActive = true;
 
         // The same walk job 10 takes, into the same state: DK2 routes a rebel to the
         // Portal with state 194 "leaving Dungeon", which is what Leave sets. The probe
         // comes first and matters: job 10 sets that state blind, where job 16 only goes
         // if it can get there, so a rebel with no way out never gives up its bed.
-        if (CanReachAnExit(context, creature, state)
-            && Leave(context, creature, state)) return;
+        if (CanReachAnExit(context, creature, state))
+        {
+            if (deferLeavingHandler)
+            {
+                StartLeaveSelection(context, state);
+                return true;
+            }
+            if (Leave(context, creature, state)) return true;
+        }
 
         CreatureStateMachine.TrySetState(context.Hooks, state, CreatureStateMachine.Idle);
         state.RebelCountdownTicks = RebellionRules.DefectDelayTicks;
@@ -216,6 +224,30 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             $"creature={state.Id} type={creature.Name} " +
             $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
             $"anger={state.Anger.Max} defects_in={RebellionRules.DefectDelayTicks}");
+        return true;
+    }
+
+    internal bool TryStartMoodJob(
+        SimulationContext context, CreatureDef definition, CreatureState creature, JobType job)
+    {
+        if (job == JobType.Rebel)
+        {
+            bool accepted = Rebel(context, definition, creature, deferLeavingHandler: true);
+            if (accepted && creature.RebelCountdownTicks > 0)
+                context.TremorRebellionStartedThisTick.Add(creature);
+            return accepted;
+        }
+        if (job != JobType.Leave) return false;
+        // Job 10 accepts before states 194–196 try to find an exit.
+        StartLeaveSelection(context, creature);
+        return true;
+    }
+
+    private static void StartLeaveSelection(SimulationContext context, CreatureState creature)
+    {
+        CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
+        if (LeavingRules.Start(context, creature, SystemName))
+            LairRules.ReleaseBed(context.World, context.Database, creature);
     }
 
     /// <summary>Is there a Portal of this creature's own keeper it can walk to?
@@ -248,6 +280,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
         for (int i = context.World.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState state = context.World.Creatures[i];
+            if (context.TremorRebellionStartedThisTick.Contains(state)) continue;
             if (state.RebelCountdownTicks <= 0) continue;
 
             if (CreatureDeathRules.IsDown(state))

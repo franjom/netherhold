@@ -26,6 +26,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
 
     private readonly IPathfinder _pathfinder;
     private readonly LairSeeker _seeker;
+    private readonly CreatureAngerSystem _moodJobs;
     private readonly List<TilePos> _route = [];
     private readonly List<(JobType Job, int Low, int High)> _ranges = [];
 
@@ -35,6 +36,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     {
         _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
         _seeker = new LairSeeker(_pathfinder);
+        _moodJobs = new CreatureAngerSystem(_pathfinder);
     }
 
     public string Name => SystemName;
@@ -141,7 +143,11 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     private void Choose(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.Dk2StateId == CreatureStateMachine.Idle) creature.Fleeing = false;
+        if (creature.Fleeing && creature.Dk2StateId == CreatureStateMachine.Idle)
+        {
+            DispatchFleeingIdle(context, creature, definition);
+            return;
+        }
         // State 1's first arm, before it sends the creature to 89: back to a fight it withdrew from.
         if (creature.Dk2StateId == CreatureStateMachine.Idle && Combat.FightReturnRules.TryReturn(context, creature)) return;
 

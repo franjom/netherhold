@@ -29,7 +29,7 @@ public sealed partial class CreatureJobSystem
     /// <summary>89 after its mood chooser: the fallback, then 3.</summary>
     private static void NothingChosen(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.Dk2StateId != CreatureStateMachine.Idle) return;
+        if (creature.Dk2StateId is not (CreatureStateMachine.Idle or IdleChooserState)) return;
         if (Fallback(context, creature, definition)) return;
         creature.StateDeadlineTick = context.Tick.Value + NothingToDoTicks;
         StateShadow.Move(context, SystemName, creature, DoingNothingState);

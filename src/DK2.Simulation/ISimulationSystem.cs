@@ -31,6 +31,9 @@ public sealed class SimulationContext
     public SimRandom Rng { get; }
     // Recomputed each recovery pass; never an input to the following turn.
     internal HashSet<CreatureState> TremorRecoveryCompletedThisTick { get; } = [];
+    // Cleared before every turn; suppresses a second mood selection later in that turn.
+    internal HashSet<CreatureState> TremorMoodDispatchedThisTick { get; } = [];
+    internal HashSet<CreatureState> TremorRebellionStartedThisTick { get; } = [];
 
     /// <summary>The mesh, the router and the steering probes over <see cref="World"/>. Systems
     /// request routes through it; the movement system steps bodies against it.</summary>

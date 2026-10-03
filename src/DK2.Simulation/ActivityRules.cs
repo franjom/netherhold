@@ -52,7 +52,7 @@ public static class ActivityRules
 
     private static CreatureActivity? Standing(CreatureState creature, int state) => state switch
     {
-        CreatureStateMachine.Idle or Systems.CreatureJobSystem.DoingNothingState or ImpStates.TaskSelection or ImpStates.AfterDrop or ImpStates.Resting or ImpStates.Wandering => CreatureActivity.Idle,
+        CreatureStateMachine.Idle or Systems.CreatureJobSystem.IdleChooserState or Systems.CreatureJobSystem.DoingNothingState or ImpStates.TaskSelection or ImpStates.AfterDrop or ImpStates.Resting or ImpStates.Wandering => CreatureActivity.Idle,
         HeroJobRules.WaitFailedState or HeroJobRules.StandingJobState or HeroJobRules.WaitingState
             or HeroJobRules.NoPointState or HeroJobRules.FollowingState => CreatureActivity.Idle,
         >= HeroJobRules.ToThePointState and <= HeroJobRules.RoamingState => CreatureActivity.AtWork,

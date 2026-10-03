@@ -296,7 +296,149 @@ public sealed class TremorCreatureTests
     {
         var (db, world, creature) = Setup();
         creature.Fleeing = true;
-        new GameSimulation(db, world, 42, [new CreatureJobSystem()]).Tick();
+        var sim = new GameSimulation(db, world, 42, [new CreatureJobSystem()]);
+        sim.Tick();
+        Assert.False(creature.Fleeing);
+        Assert.Equal(CreatureJobSystem.IdleChooserState, creature.Dk2StateId);
+        sim.Tick();
+        Assert.Equal(CreatureJobSystem.DoingNothingState, creature.Dk2StateId);
+    }
+
+    [Theory]
+    [InlineData(JobType.Leave)]
+    [InlineData(JobType.Rebel)]
+    public void AcceptedAngryJobBypassesIdleFleeingClear_StronglyInferredFromBinary(JobType job)
+    {
+        var (db, world, creature) = MoodSetup(job, JobType.None);
+        var sim = new GameSimulation(db, world, 42, [new CreatureJobSystem(), new CreatureAngerSystem()]);
+        sim.Tick();
+        Assert.True(creature.Fleeing);
+        if (job == JobType.Rebel)
+        {
+            Assert.Equal(CreatureStateMachine.Idle, creature.Dk2StateId);
+            Assert.Equal(RebellionRules.DefectDelayTicks, creature.RebelCountdownTicks);
+            sim.Tick();
+            Assert.Equal(RebellionRules.DefectDelayTicks - 1, creature.RebelCountdownTicks);
+        }
+    }
+
+    [Fact]
+    public void FailedAngryThenAcceptedUnhappyJobBypassesIdleFleeingClear_StronglyInferredFromBinary()
+    {
+        var (db, world, creature) = MoodSetup(JobType.None, JobType.Leave);
+        new GameSimulation(db, world, 42, [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
+        Assert.True(creature.Fleeing);
+        Assert.Equal(194, creature.Dk2StateId);
+    }
+
+    [Fact]
+    public void BothMoodSelectorsRefusingRunOnlyIdleHandler_StronglyInferredFromBinary()
+    {
+        var (db, world, creature) = MoodSetup(JobType.None, JobType.None);
+        new GameSimulation(db, world, 42, [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
+        Assert.False(creature.Fleeing);
+        Assert.Equal(89, creature.Dk2StateId);
+    }
+
+    [Fact]
+    public void AcceptedLeaveDoesNotRunItsNewHandlerInTheSelectionTurn_StronglyInferredFromBinary()
+    {
+        var (db, world, creature) = MoodSetup(JobType.Leave, JobType.None);
+        RoomRules.Place(db, ref world.Tile(creature.Tile), db.Room(RoomTypeId.Portal), Keeper);
+        new GameSimulation(db, world, 42, [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
+        Assert.Same(creature, world.CreatureById(creature.Id));
+        Assert.Equal(LeavingRules.ChoosingState, creature.Dk2StateId);
+        Assert.True(creature.Fleeing);
+    }
+
+    private static (GameDatabase Db, WorldState World, CreatureState Creature) MoodSetup(JobType angry, JobType unhappy)
+    {
+        GameDatabase basis = Dk2TerrainFixture.Database();
+        byte type = Dk2TerrainFixture.GoblinCreatureId;
+        var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
+            basis.Creatures.Values.Select(c => c.CreatureId == type
+                ? c with
+                {
+                    AngryJobs = angry == JobType.None ? [] : [new(angry, 0, 0, 100)],
+                    UnhappyJobs = unhappy == JobType.None ? [] : [new(unhappy, 0, 0, 100)]
+                } : c), basis.Variables, objects: basis.Objects.Values, shots: basis.Shots.Values);
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+            [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
+        for (int y = 1; y < 15; y++)
+            for (int x = 1; x < 15; x++)
+            {
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+                world.Tile(x, y).OwnerPlayerId = Keeper;
+            }
+        CreatureState creature = world.SpawnCreature(db, type, Keeper, new TilePos(2, 2));
+        creature.Dk2StateId = CreatureStateMachine.Idle;
+        creature.Fleeing = true;
+        creature.Anger.Lair = CreatureAngerRules.Ceiling + 1;
+        new GameSimulation(db, world, 42, []).Run(3);
+        return (db, world, creature);
+    }
+
+    [Fact]
+    public void UnhappyAcceptanceBypassesIdleWithoutAnAngryRoll_StronglyInferredFromBinary()
+    {
+        var (db, world, creature) = MoodSetup(JobType.Rebel, JobType.Leave);
+        creature.Anger.Lair = CreatureAngerRules.UnhappyAt(db.CreatureById(creature.CreatureTypeId));
+        var draws = new Draws((100, 0));
+        new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
+        Assert.True(creature.Fleeing);
+        Assert.Equal(194, creature.Dk2StateId);
+        Assert.Equal(0, draws.Remaining);
+    }
+
+    [Fact]
+    public void RefusedAngryJobFallsThroughToUnhappy_StronglyInferredFromBinary()
+    {
+        var (db, world, creature) = MoodSetup(JobType.Sulk, JobType.Leave);
+        var draws = new Draws((100, 0), (100, 0));
+        new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
+        Assert.True(creature.Fleeing);
+        Assert.Equal(194, creature.Dk2StateId);
+        Assert.Equal(0, creature.LastAngryChoiceTick);
+        Assert.Equal(3, creature.LastUnhappyChoiceTick);
+        Assert.Equal(0, draws.Remaining);
+    }
+
+    [Fact]
+    public void ClosedAngryGateStillTriesUnhappy_StronglyInferredFromBinary()
+    {
+        var (db, world, creature) = MoodSetup(JobType.Rebel, JobType.Leave);
+        creature.LastAngryChoiceTick = 1;
+        var draws = new Draws((100, 0));
+        new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
+        Assert.True(creature.Fleeing);
+        Assert.Equal(194, creature.Dk2StateId);
+        Assert.Equal(0, draws.Remaining);
+    }
+
+    [Fact]
+    public void CallToArmsSkipsMoodSelectorsBeforeIdle_StronglyInferredFromBinary()
+    {
+        var (db, world, creature) = MoodSetup(JobType.Rebel, JobType.Leave);
+        creature.HeedingCallToArms = true;
+        var draws = new Draws();
+        new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
+        Assert.False(creature.Fleeing);
+        Assert.Equal(CreatureJobSystem.IdleChooserState, creature.Dk2StateId);
+        Assert.Equal(0, draws.Remaining);
+    }
+
+    [Fact]
+    public void MoodPreludeDoesNotRepeatAndItsMarkerResetsNextTurn_StronglyInferredFromBinary()
+    {
+        var (db, world, creature) = MoodSetup(JobType.None, JobType.None);
+        var draws = new Draws((100, 0), (100, 0), (100, 0), (100, 0));
+        var sim = new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]);
+        sim.Tick();
+        Assert.Equal(2, draws.Remaining);
+        creature.Dk2StateId = CreatureStateMachine.Idle;
+        creature.Fleeing = true;
+        sim.Tick();
+        Assert.Equal(0, draws.Remaining);
         Assert.False(creature.Fleeing);
     }
 

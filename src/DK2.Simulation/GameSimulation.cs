@@ -99,6 +99,8 @@ public sealed class GameSimulation
     {
         _context.Tick = World.CurrentTick;
         _context.Input = input;
+        _context.TremorMoodDispatchedThisTick.Clear();
+        _context.TremorRebellionStartedThisTick.Clear();
 
         // Close the previous turn's observation window before this turn's producers.
         // This preserves zero-timeout messages for an external keeper (ADR-0245).

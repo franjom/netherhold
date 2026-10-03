@@ -105,7 +105,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(86, "read in imp-idle-and-wandering.md; not built"));
         rows.Add(Built(87, typeof(ImpStates), nameof(ImpStates.Wandering)));
         rows.Add(Unreachable(88, "Q415 (STRONGLY INFERRED): no SetState, wrapper, +0xDF store or room-table site enters it, travel-states.md §7"));
-        rows.Add(Unbuilt(89, "read in idle-fallback.md, combat-pit-spectators.md 1; not built"));
+        rows.Add(Built(89, typeof(CreatureJobSystem), nameof(CreatureJobSystem.IdleChooserState)));
         rows.Add(Built(90, typeof(HeroJobRules), nameof(HeroJobRules.StandingJobState)));
         rows.Add(Built(91, typeof(EatingRules), nameof(EatingRules.FindHatcheryState)));
         rows.Add(Built(92, typeof(EatingRules), nameof(EatingRules.InHatcheryState)));
