@@ -5,44 +5,67 @@ worth giving it, phrased so they can be pasted directly.
 
 ## The division that makes sense
 
-**Codex: verification, breadth, second opinions, and footage.** Read-only
-auditing, data sweeps over the 1,236 shipped files, independent re-derivation of
-something already derived, and turning a recording of the running game into a
-question list.
+**Codex has the same reach as Claude here.** `~/.codex/config.toml` carries
+`pyghidra-mcp` (DKII.EXE, on its own clone of the canonical Ghidra project) and
+`dk2kb` (the function records); it reads `AGENTS.md` and `docs/TRAPS.md`; and
+since 2026-09-25 it has landed simulation slices with their ADRs, hash bumps and
+commits: the fog reveal, the keeper's threat evaluation, Thunderbolt, Call to
+Arms, the battle step and the pickup gates. So the split is by **independence**,
+not by kind of work.
 
-**Not Codex: prose in `docs/research/`, the `reverse-engineering/` quarantine,
-the determinism hash, and commits.** The first degrades an evidence discipline
-that took months to build; the second is a licence boundary rather than a style
-one; the third has a bump-and-re-pin protocol that makes the gate meaningless if
-got wrong; the fourth has conventions no prompt reliably conveys.
+- **Give Codex** a slice one worktree can finish without editing files another
+  session is in: a format task outside the simulation, a self-contained mechanic,
+  a read-only audit, or footage.
+- **One agent at a time, whoever it is:** `CategoryHooks`, `ImpTaskSystem`,
+  `GameSimulation`'s hash, the replay rigs' scratchpad drivers, and anything that
+  waits on an owner capture. Numbers can be coordinated across worktrees; a merge
+  conflict in those files is the real cost.
+- **What Codex lacks:** Claude's private memory (anything it needs must be in the
+  repository, which is why `docs/TRAPS.md` exists) and Claude's `reviewer`
+  subagent. A Codex brief has its own verifier read `.claude/agents/reviewer.md`
+  and apply that method; Brief 10 below is the template for a simulation slice.
 
 **Ranked by what they have actually produced:** Brief 4 (reversed shipped
-behaviour three weeks old), Brief 1 (the characteristic-defect audit), Brief 8
-(fog of war, via its own stop rule), Brief 6 and Brief 5 (two shipped tables
-nothing read), Brief 3 (corroboration).
+behaviour three weeks old), the M12 keeper slices (2026-09-28/29), Brief 1 (the
+characteristic-defect audit), Brief 8 (fog of war, via its own stop rule),
+Brief 6 and Brief 5 (two shipped tables nothing read), Brief 3 (corroboration).
 
 ## Setup
 
 Codex reads `AGENTS.md`: the rank of evidence, the ADR-0046 quarantine, the
-recording budgets and the twelve goals are all there.
+recording budgets and the twelve goals are all there. It reads `docs/TRAPS.md`
+before long work and adds a line there when something costs it time.
 
 The gate is the same for work from any source, and must be green before anything
-lands:
+lands (`docs/HANDOFF.md` §"Run and verify" is the canonical list):
 
 ```
 dotnet build DK2.slnx -c Release                            # zero warnings
-dotnet test  DK2.slnx -c Release                            # green; expect skips
-dotnet run --project src/DK2.Harness -- run scenarios       # every scenario
+dotnet test  DK2.slnx -c Release --no-build                 # green; expect skips
+dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj -c Release
+dotnet run --project src/DK2.Tools -c Release --no-build -- verification-ledger --check
+dotnet run --project src/DK2.Tools -c Release --no-build -- kb check
+dotnet run --project src/DK2.Tools -c Release --no-build -- coverage --check
+dotnet run --project src/DK2.Tools -c Release --no-build -- docs --check
+dotnet run --project src/DK2.Tools -c Release --no-build -- status --check
 ```
+
+Run `status` (to regenerate the plan's line) after the tests, never after a bare
+build. `--no-build` can run stale dependency DLLs after a one-project build, so
+build the solution first.
 
 Expect **skips** in the test run: every `[InstallFact]`/`[InstallTheory]` test
 skips without a DK2 install (ADR-0100). A skip count of zero means the runner
 found game data it should not have.
 
-Anything that **writes** gets its own git worktree on a `codex/<topic>` branch.
-Read-only auditing can run against the main tree any time. Check
-`git worktree list` before taking an ADR or question number: two worktrees pick
-the same next number, which is why `docs/DECISIONS.md` is not in numeric order.
+Anything that **writes** gets its own git worktree on a `codex/<topic>` branch,
+with the hooks installed (`git config core.hooksPath .githooks`). Read-only
+auditing can run against the main tree any time. Before taking an ADR number, a
+question number or a `HashVersion`, check master, `git worktree list` and each
+worktree's `DECISIONS.md`, `open-questions.md` and `hash-versions.md`: two
+worktrees pick the same next number, which is why `docs/DECISIONS.md` is not in
+numeric order. `kb_upsert` writes the main tree, not your worktree; in a worktree,
+edit the record by hand, then `kb check` and `kb index` there.
 
 **Reference checkouts, both outside this repository:** `D:\OpenKeeper` (GPLv3 —
 facts only, provenance in `THIRD-PARTY-NOTICES.md`) and `D:\Flame`
@@ -62,11 +85,25 @@ or `unity/`**). See `docs/research/external-resources.md`.
   shipped data files; the running game, which outranks a misread disassembly for
   anything a player can watch; then Flame for **structure only**; then
   OpenKeeper, whose reading is its own guess and has been wrong here before.
-- **Nothing in `docs/research/`.** Findings go in the branch README and in the
-  code's own XML docs; the research write-up is where the confidence ladder and
-  the evidence rank are enforced.
-- **Do not bump `GameSimulation.HashVersion` or re-pin the determinism literal.**
-  If the work needs it, stop and report. A correct stop is a successful outcome.
+- **Research prose follows `AGENTS.md`**: a DK2 fact goes in one section of one
+  `docs/research/` note with its confidence tag and evidence, and every DKII.EXE
+  function read gets its record in `docs/research/functions/`. Footage analysis
+  (Brief 4) is the exception: it produces input, not prose.
+- **A moved hash follows the protocol**: `HashVersion` and `FormatVersion`
+  bumped, a `hash-versions.md` row and the `DeterminismTests` literal, all in the
+  commit that moved it, with the scenario or seed that moved named and a
+  prediction written before measuring. A read-only brief that finds it needs one
+  stops and reports; a correct stop is a successful outcome.
+- **Commits**: stage named paths only (never `git add -A`; another session may
+  be editing), trailer `Assisted-by: <model>` (e.g. `Assisted-by: GPT-6`), never
+  `Co-Authored-By`, never `--no-verify`. Do not merge into master: the owner
+  merges.
+- **Verify before reporting.** A brief that writes ends with an independent
+  verifier on the whole diff (`.claude/agents/reviewer.md`'s method, its own
+  Ghidra copy); fix what it confirms, give evidence for what you reject, and
+  re-run the gate.
+- **Ask the owner** about observable DK2 behaviour before recording it as
+  UNKNOWN; they have played it.
 - **Do not invent DK2 behaviour.** If no source shows it, it is UNKNOWN and the
   code says so. **Report a field you could not pin rather than filling it in** —
   the most useful output any of these briefs has produced was a negative result.
@@ -88,12 +125,25 @@ or `unity/`**). See `docs/research/external-resources.md`.
 | 6 | `Doors.kwd` and `Traps.kwd` | `KwdDoors.cs`, `KwdTraps.cs`, `DoorDef`, `TrapDef`, loaded by `GameDatabaseLoader`; `DoorsAndTrapsDefinitionsOnRealDataTests`, `TrapsOnRealDataTests`, `src/DK2.Data/README.md` §"Door and trap definitions" | **Done** |
 | 7 | Fog of war — read-only research | absorbed by Brief 8; `docs/research/fog-of-war.md` | **Done** |
 | 8 | Build fog of war | its stop rule fired: fog is **simulation** state (Q190 answered, ADR-0076). `FogOfWarSystem`, a discovery bit per keeper on `TileState`, hashed and snapshotted, the viewer-aware presentation boundary, `scenarios/fog/`, `FogOfWarOnRealDataTests` | **Done** |
+| 9 | KWD/KLD writers from the typed model (goal 7) | — | **Open** (2026-10-03): outside the simulation, nothing blocks it |
+| 10 | The remaining keeper spells (M8) | — | **Open** (2026-10-03): six of thirteen spells are built |
 
-Merged Codex branches: `codex/doors-traps`, `codex/fog-of-war`,
-`codex/m1-record-types` (all 18 KWD record types, ADR-0091),
-`codex/trigger-semantics` (trigger parameter reads verified against DKII.EXE,
-ADR-0092) and `codex/action-points` (action points as ordered world state,
-ADR-0103).
+Merged Codex branches: `codex/doors-traps`, `codex/fog-of-war`, `codex/fog-reveal`
+(Q429, Q430, Q434), `codex/m7-doors-traps`, `codex/m1-record-types` (all 18 KWD
+record types, ADR-0091), `codex/trigger-semantics` (trigger parameter reads
+verified against DKII.EXE, ADR-0092) and `codex/action-points` (action points as
+ordered world state, ADR-0103). Landed outside a brief: the M12 keeper slices of
+2026-09-28/29 (threat evaluation, message retention, Thunderbolt, Call to Arms,
+the battle step, pickup gates, casualty priority) and the 2026-09-30 tooling
+(pyghidra-mcp per agent, one record per function).
+
+**Other independent work worth a brief** (2026-10-03, not yet written up): the
+simulation speed budget (`GOAL_ALIGNMENT.md` gap 4: `RunTimings` measures, nothing
+asserts); loading converted glTF art in the Unity view and catalogue entries for
+sound and music (goal 4); specials beyond Increase Level (`specials.md`); building
+Vampire reincarnation (Q111 is read, Q329 open, needs Q165's Graveyard); one unbuilt
+room-state category at a time (Casino, Research, Temple, Training, Manufacture:
+never two in `CategoryHooks` at once); M12 message producers on Brief 10's pattern.
 
 ---
 
@@ -279,6 +329,123 @@ anything that is about C# rather than about Dungeon Keeper 2.
 
 ---
 
+## Brief 9 — KWD/KLD writers from the typed model (goal 7)
+
+The level editor's first half. Readers exist for all 18 record types, and
+`KwdRecordRoundTrip` proves every shipped record image byte for byte, but
+nothing turns a typed record back into bytes (`GOAL_ALIGNMENT.md` row 7). It
+touches no simulation state, so no hash, and no DK2 behaviour is decided.
+
+````text
+Build writers that turn this project's typed KWD/KLD records back into DK2's
+on-disk bytes. Read AGENTS.md, docs/TRAPS.md, src/DK2.Data/README.md, ADR-0091
+and src/DK2.Data/Kwd/ (KwdReader, KwdChunk, KwdRecordRoundTrip and each typed
+reader) first.
+
+WORKTREE: create your own, `codex/kwd-writers` from master; never edit the main
+tree. Install the hooks (git config core.hooksPath .githooks).
+
+THE PROMISE: for every record of every shipped KWD/KLD file (the global
+databases and all 66 levels), parse -> typed -> write gives exactly the bytes
+KwdRecordRoundTrip extracts, and a whole file rewritten from typed records is
+byte-identical to the shipped one. Nothing is "close enough".
+
+RULES
+- A byte the typed model does not carry must not be invented on write. Where a
+  typed record drops bytes, carry them (a raw tail or a raw field) rather than
+  writing a default; say which records needed it. If a field's meaning is
+  unknown, it stays raw. Never zero a byte because no reader names it.
+- One writer per record type, beside its reader, sharing its offsets: the
+  reader and the writer must not be two copies of one layout (one table both
+  use, or a test that fails if they disagree).
+- Tests: install-gated ([InstallFact]/[InstallTheory]) for the shipped corpus;
+  plus hand-built records that write and read back with no install. Never commit
+  shipped bytes, decoded text or a converted file.
+- A dk2tools command that rewrites one level to a scratch directory and reports
+  the first differing byte per file, so a regression names its record.
+- An ADR for the writer API (where it lives, what it promises), with the next
+  free number across master and every worktree.
+
+GATE: the full list in docs/CODEX_TASKS.md §Setup, all green, before each commit.
+Commit named paths only, trailer `Assisted-by: <your model>`, never
+Co-Authored-By, never --no-verify. Do not merge.
+
+VERIFY: spawn an independent verifier on the whole diff. It applies
+.claude/agents/reviewer.md's method to the format claims (offsets, strides,
+chunk headers against the readers and the shipped bytes), reruns the gate and
+the corpus round trip itself, and reports findings with severity and
+file:line. Fix what it confirms, give evidence for what you reject, re-run.
+
+REPORT: records and files proven byte-identical, records that needed raw bytes
+and why, test totals with skips, the verifier's findings and what you did.
+````
+
+---
+
+## Brief 10 — the remaining keeper spells (M8)
+
+`KeeperSpells.kwd` ships thirteen spells. Built: Create Imp (its own command),
+Thunderbolt, Heal and Chicken at a creature, Call to Arms and Inferno at a place
+(`KeeperSpellRules.ExecutesOnCreature`, `ExecutesAtPlace`). Unbuilt: Create Gold,
+Tremor, Turncoat, Summon Horny, OneShotReaper, Sight of Evil (deliberately absent,
+Q194, `fog-of-war.md`) and Possession (out of scope: it needs input and
+presentation). Only Create Imp has its research upgrade built (ADR-0247).
+
+````text
+Build the unbuilt keeper spells, one per commit and ADR, in this order:
+Create Gold, Tremor, Turncoat, Summon Horny, OneShotReaper; then Sight of
+Evil only if the read shows it changes simulation state (fog is simulation
+state, ADR-0076). Possession is out of scope.
+
+Read AGENTS.md, docs/TRAPS.md, docs/research/keeper-spell-casting.md,
+keeper-spell-thunderbolt.md, keeper-spell-inferno-chicken.md, shots.md,
+fog-of-war.md, ADR-0247, ADR-0260, ADR-0279, ADR-0287 and ADR-0302 first, and
+KeeperSpellRules, KeeperSpellSystem and SpellRules in src/DK2.Simulation.
+
+WORKTREE: your own, `codex/keeper-spells` from master. Hooks installed.
+
+FOR EACH SPELL
+1. Read it in DKII.EXE before building: the cast validation (0x004BB8A0 and
+   the target-selector accessor, 0x005177B0), its shot and the shot's process
+   handler, every effect it applies, its duration or timer (Turncoat's), its
+   cost and cooldown, and its research upgrade levels. Prologue and epilogue
+   first; count each callee's arguments; read each call's MOV ECX. Name
+   fields from DK2's debug dumper where one exists (debug-dumpers.md). A
+   function record for every function read.
+2. Write the prediction into the ADR before building: which scenarios cast it
+   (probably none) and so whether any hash series moves.
+3. Build through the existing cast boundary; every number from GameDatabase.
+   Do not invent a rule a read did not show: leave it unbuilt with a question
+   row, and ask the owner what the spell visibly does.
+4. Tests: cast accepted and refused per validator branch, the effect and its
+   timing, the upgrade levels, a snapshot round trip for any new state. Put
+   the doubt in the test name where a test rests on inference.
+5. A moved hash: HashVersion + FormatVersion, a hash-versions.md row and the
+   DeterminismTests literal in the same commit, naming what moved. Measure
+   master's baseline first, including the Level 1 and Level 2 replay rigs if
+   you can run them; say so if you cannot.
+
+NUMBERS: take the next free ADR, question and HashVersion across master and
+every worktree (git worktree list; each one's DECISIONS.md, open-questions.md,
+hash-versions.md), before each commit.
+
+GATE: docs/CODEX_TASKS.md §Setup, all green, before each commit. Named paths
+only, `Assisted-by: <your model>`, never Co-Authored-By, never --no-verify. Do
+not merge.
+
+VERIFY: an independent verifier on the whole diff with its own pyghidra-mcp
+copy, applying .claude/agents/reviewer.md: each address re-read, each field
+mapping, each confidence level against its evidence, each "nothing reads X"
+scan for cseg coverage and a positive control, and the C# against its records.
+Fix confirmed findings, give evidence for rejected ones, re-run the gate, and
+re-verify once if a record or mapping changed.
+
+REPORT: per spell, read / built / left with reasons; hash and replays before
+and after; the verifier's findings and what you did; owner questions asked.
+````
+
+---
+
 ## Brief 3 — independent re-derivation (cross-check)
 
 Point it at a specific decompiled function and ask it to derive a formula
@@ -375,8 +542,6 @@ Do not invent DK2 behaviour: if the footage does not show it, it is UNKNOWN.
 - **Q152 — does regeneration continue in combat, in the Hand of Evil, under
   possession?** Three ten-second looks. The combat case is the one that changes a
   game: an imp regenerates 67 a second.
-- **Q149 — is the ~1.4 s before a free imp appears simulation or animation?** Low
-  stakes; nothing in the simulation depends on it.
 - **A prediction to break**, from Q150: a big empty lair, and a Troll that beds
   down before it trains.
 
