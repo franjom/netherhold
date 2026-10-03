@@ -52,6 +52,14 @@ y and x signs: 18 bytes, the widest member.
 3. The terrain wear (`0x004A10E0`, §7).
 4. Health `≤` wear: destroyed (vtable `+0x20`), a sound. Returns 1.
 
+The object update `0x0049BD20` runs it through the state runner `0x0049EED0`, then the stepper
+`0x004B2030`, which moves only `+0x104`/`+0x110` (zero on a boulder); its decay needs definition bit 0
+or 1, which `0x238200` lacks. So nothing breaks a boulder at a wall but §6's tenth a turn (Q520). A slap (`Object_ReactToSlap`,
+`0x0049C558`) turns it to the hand's heading (`+0xF4`, `+0x14E`) and costs `BoulderSlapDamage` (240,
+400) through the health routine: ten slaps break it, as the owner recalls from a level played as golf.
+Unread: whether a diagonal launch can carry it into a solid corner tile, as the handlers test only the
+tile ahead on their own axis.
+
 ## 4. The strike (`0x004A0930`)
 
 For each offset of table `0x006BC3B0` — N, NE, E, SE, S, SW, W, NW, then (0,0) — each thing in that

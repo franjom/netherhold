@@ -91,7 +91,7 @@ by the class constructor `0x004B28D0` (`0x004B28F5`), which also links the class
 
 `0x004A7D10` returns, in order: 1 under construction; 0 before the recharge; 2 when flag
 `0x100` needs mana the owner lacks and the owner is not the hero player (`0x006F254C`);
-3 with a disarmer, which v1.70 never has (§11); otherwise 4. `0x004C1740` allows a zero cost, else `cost <= mana`. A zero
+3 with a disarmer (reachability scope: §11); otherwise 4. `0x004C1740` allows a zero cost, else `cost <= mana`. A zero
 threshold fires on the first detection; short of mana the charge is kept and climbs.
 
 ## 5. The selectors
@@ -216,16 +216,45 @@ level-scaled `def+0x5E0` attempts a firing and enters 220 with a 50-tick retry, 
 destroys the trap. The attempt precedes clearing the disarmer, so readiness refuses it (Q451).
 Exit hook `0x00459130` clears both references. `sgmap` names creature `+0x43D`
 `f43D_trapTagId` and `+0x43F` `f43F_durationUntilAttemptingAnotherTrapDisarm`; the trap dumper
-`0x004AA130` prints trap `+0x115` as `BeingDisarmed`. **Nothing starts it in v1.70 (Q455,
-2026-10-02):** over the disassembled `.text` and `cseg`, every creature-code store to `+0x43D`
-(the three states, the exit hook, the constructor, the update's owner arm) and every trap-code
-store to `+0x115` (the constructor, the states, the hook) writes 0; no instruction takes
-`+0x43D`'s address and no wider store covers it. The non-zero stores at `0x004EAD93` and
-`0x004EADCF` are in `0x004EACC0`, which applies a Terrain.kwd record to a terrain definition
-(its strings name `Water` and `_DESTROYED`), another class. No immediate 204 is pushed for
-SetState or a walk (its one other `0xCC` store is the state table's own id, `0x0047F278`); a
-computed state id was not traced. 204 tests `+0x43D` first and idles without a trap, so
-204–206 are unreachable and readiness's 3 never answers.
+`0x004AA130` prints trap `+0x115` as `BeingDisarmed`.
+
+### Reachability review — 2026-10-02 (Q455)
+
+**STRONGLY INFERRED: no initiator from a fresh v1.70 game using shipped data and normal
+inputs.** The independent review repeated `StoreAt`, field-access and raw call scans across
+both `.text` and `cseg` (742,900 listed instructions). Direct creature `+0x43D` and trap
+`+0x115` assignments still only clear them. Non-zero same-offset assignments belong to
+other classes; see [terrain loader](functions/004EACC0.md). A separate Capstone scan of
+both sections' raw bytes checked displacement accesses and overlapping writes, including
+bytes outside the listing; it found no additional candidates at valid instruction starts.
+The constructor clears the required trap reference, and state 204 rejects an absent one.
+
+**CONFIRMED from disassembly: the advertised NUM 0 route is inert.** The original
+[manual §15.2](https://retrogamer.biz/wp-content/uploads/2016/06/Dungeon-Keeper-2-Manual.pdf)
+advertises this control; it does not establish the patched executable's behavior. The
+[default binding](functions/005604C0.md), [key handler](functions/00405010.md) and
+[action 36 handler](functions/005169E0.md) close that path without relying on missing
+literal SetState calls. Raw references to the three handlers are their dispatch-table
+registrations; apparent immediate 204 calls checked in the creature update are effects.
+Computed state entry alone would still lack the required trap reference. Valid spell-slot
+cooldown writes do not overlap it; see [slot lookup](functions/004943F0.md).
+
+**The unrestricted claim is withdrawn.** The [creature loader](functions/00488640.md) and
+[trap loader](functions/004A7C60.md) restore ranges containing the disarm references.
+These bulk writes evade an exact-offset store scan. This establishes a restoration path,
+not a stock save containing a valid disarm or a fresh-game initiator. Arbitrary computed
+addresses were not exhaustively proved safe, and no controlled disarming experiment ran.
+
+Shipped `Creatures.kwd` enables bit `0x40` for Troll, Rogue and their unique variants;
+15 of 16 `Traps.kwd` records enable bit `0x10`. Those capabilities do not establish an
+execution path. Flame's pinned layout agrees with the offsets, but its names are not
+reachability evidence. OpenKeeper exposes the flags and possession binding; its
+`PossessionCameraState.onAction` implements run/creep only, providing no disarm oracle.
+Offline inspection of 32 existing Level 1–3 captures found no state 204–206 or non-zero
+disarm reference in 82,830 frames, including 387,606 trap-record samples and 32,095 living
+capable-creature samples while traps existed. Coexistence does not establish an encounter;
+these are supporting observations, not a controlled test.
+Binary identity: MD5 `2f3bbc21eae8c3aa468136baa303036d`, matching the Ghidra project.
 
 **The reveal** clears `+0x10C` bit 4. Firing with flag `0x2` does (§7). So does a creature whose
 definition has `RevealsAdjacentTraps` (`+0x686` bit 26: the Troll, Thief, Rogue and Guard) when it has
@@ -295,7 +324,7 @@ Also built (ADR-0326): the upkeep, the no-mana message and its clock, area damag
 traps and a shot's collision with a trap; (ADR-0331) the Alarm, Fear, Spike and Gas shots; and
 (ADR-0333) the Boulder and its rolling object, which fires and damages the traps it rolls over;
 (ADR-0337) the Jack In The Box, its Jack and its explosion; and (ADR-0338) the reveal.
-Disarming (§11) is read and unreachable, so nothing is built for it (ADR-0329).
+Disarming remains unbuilt under the scoped reachability inference in §11 (ADR-0329).
 Left: a creature choosing a revealed trap as its victim (scan D) and fighting it; effects, sounds and animations; heights; `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
 swing at a trap (possession is not built).
 

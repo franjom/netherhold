@@ -18,7 +18,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
   the reveal (ADR-0338), the Guard Post (ADR-0330), trap upkeep and damage (ADR-0326)
-  run; disarming is unreachable in v1.70 (ADR-0329). Left: creatures attacking a
+  run; disarming is deferred under ADR-0329's scoped inference (Q455). Left: creatures attacking a
   revealed trap (scan D, Q362), shot heights (traps.md; 2026-10-02).
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 16).

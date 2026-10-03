@@ -14,6 +14,10 @@ comments do.
 ## OpenKeeper
 - https://github.com/tonihele/OpenKeeper — GNU GPL version 3 or later,
   Copyright (C) 2014–2016 OpenKeeper, Toni Helenius and contributors.
+- **Disarming review (facts only):** `Creature`, `Trap`, `Settings` and
+  `PossessionCameraState` at `fb70fbc404361f271e5ff43eb5e0ec29ae5a4d5d` were
+  consulted for the independent cross-check in `docs/research/traps.md` §11.
+  No code copied; reachability conclusions come from DKII.EXE.
 - **KMF format research (facts only, no code copied):** chunk hierarchy,
   material strings and numeric fields, static and animated vertex layouts,
   detail-level triangle lists, packed animation geometry, UV scaling, and the
