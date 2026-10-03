@@ -89,8 +89,8 @@ public sealed class ObjectState
     public byte ResearchTypeId;
 
     /// <summary>The object's process state, DK2's <c>+0x13A</c>, run by the table
-    /// <c>0x0049E686</c> fills; only the Call to Arms flag uses it here
-    /// (<see cref="CallToArmsRules"/>). Zero on every other object.</summary>
+    /// <c>0x0049E686</c> fills; the Call to Arms flag and spell-created floor gold use it
+    /// (<see cref="CallToArmsRules"/>, <see cref="FloorGoldLandingRules"/>). Zero on other objects.</summary>
     public byte ProcessState;
 
     /// <summary>The process's next turn, <c>+0x14A</c>: the flag recalls its creatures when the
@@ -108,7 +108,7 @@ public sealed class ObjectState
     public int Health;
 
     /// <summary>The position, the header's <c>+0x1A/+0x1E</c>, in 1/4096 tiles. Kept only for an
-    /// object that moves, the boulder; every other object stands at its tile's centre and leaves it 0.</summary>
+    /// boulder or spell-created floor gold; other floor piles use their tile/cell centre.</summary>
     public int PosX, PosY;
 
     /// <summary><b>Union member: the Boulder</b> (object 74, objects.md §7), <c>+0x14A/+0x14E</c>:

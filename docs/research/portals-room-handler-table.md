@@ -4,9 +4,9 @@
 |---|---|
 | Source(s) | `DKII.EXE` v1.70, initialised `.data` at base `0x006a1e9f`, read 2026-09-07 under ADR-0046 |
 | Evidence | Every record's leading type byte equals its own id, which re-confirms the base and the 41-byte stride independently of how they were found. All 26 records are present and in id order |
-| Confidence | **CONFIRMED**: base, stride, the ten slots, all twelve indexing sites, and slot `+0x25` as a `JobType`. The three integers at `+0x19`, `+0x1d` and `+0x21` are **UNKNOWN** |
+| Confidence | **CONFIRMED**: base, stride, the ten slots, all twelve indexing sites, and slot `+0x25` as a `JobType`. The distinction between `+0x19` and `+0x1d` remains **UNKNOWN**; `+0x21` is identified in [the getter's record](functions/004E6CD0.md) |
 | Implementation | `JobRules.RoomFor` (`Confidence.Confirmed` because of this table); `PortalRules.OnOwnerChanged` for the portal's reset. ADR-0086 amendment 1, **ADR-0088** |
-| Open questions | what the three integers are (Q210 (b) is closed; the integers are not) |
+| Open questions | the distinction between `+0x19` and `+0x1d` (Q210 (b) is closed) |
 
 Opened while chasing the portal's tally reset, which is why it lives beside
 `portals.md`. It is a table about **rooms**, not about portals.
@@ -42,7 +42,7 @@ the slot**. Thirteen indexing sites in twelve callers:
 | `+0x15` | `FUN_004E4B00` | **the per-tick handler**, `0x004DBBE0` for a portal |
 | `+0x19` | `FUN_004E6C90` (accessor), `FUN_004E8DA0` | a creature state id, below |
 | `+0x1d` | `FUN_004E6D10` (accessor) | a creature state id, below |
-| `+0x21` | `FUN_004E6CD0` (accessor) | integer, **UNKNOWN** |
+| `+0x21` | `FUN_004E6CD0` (accessor) | object process state; see [the getter's record](functions/004E6CD0.md) |
 | `+0x25` | `FUN_004E8DA0` (twice) | **the job this room offers** |
 
 `FUN_004E4B00` reads `+0x15`, calls it `thiscall` on the room, and **treats the
@@ -83,7 +83,7 @@ contradicted here.
 fallback `0x00478680`, after the mood chooser fails (`combat-pit-spectators.md` §1). This table is **one dispatch path, not the whole map**; a
 room with no job slot is not a room with no purpose (`job-selection.md`).
 
-## The three unidentified integers, for all 26 rooms
+## The handler integers, for all 26 rooms
 
 | id | room | `+0x19` | `+0x1d` | `+0x21` | `+0x25` |
 |---|---|---|---|---|---|
@@ -117,7 +117,7 @@ small (3–6) everywhere except the two portals, which carry **52**.
 accessors' results go straight to `SetState` (`0x0046EF7F`, `0x0046F127`,
 `0x004E9035`), and the values name each room's working state (Hatchery 92
 *eating*, Library 53 *researching*, Temple 101). What separates the two slots is
-UNKNOWN. `+0x21`, read by `FUN_004E6CD0`, is still **UNKNOWN**.
+UNKNOWN. For `+0x21`, see [the getter's record](functions/004E6CD0.md).
 
 **Rows 18–24 being empty is consistent with the shipped data** rather than a gap
 in the dump: those are the hero gates and the Mercenary Gate, two of which the

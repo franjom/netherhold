@@ -13,10 +13,9 @@ namespace DK2.Simulation;
 /// (docs/research/gold-on-the-floor.md). A pile is object <b>1</b>, "Gold",
 /// carrying the amount in <see cref="ObjectState.GoldHeld"/>, created wherever
 /// gold leaves a player's books for the world.</para>
-/// <para>Piles merge only where a miner puts its overflow down (<see cref="PutDown"/>);
-/// every other path makes a new object, so a creature carrying 3000 leaves three piles.
-/// <see cref="MaxPile"/> is exposed <b>unenforced</b>. Not implemented: sub-tile
-/// position, which is also why this class takes no <see cref="SimRandom"/> (Q3).</para>
+/// <para><see cref="PutDown"/> merges miner overflow; <see cref="FloorGoldLandingRules"/>
+/// merges spell-created piles at their landing position. Other paths make new objects.
+/// <see cref="MaxPile"/> remains unenforced; legacy piles use their tile/cell centre.</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/gold-on-the-floor.md")]
 public static class FloorGold
@@ -128,12 +127,8 @@ public static class FloorGold
         return pile;
     }
 
-    /// <summary>The same, for the callers with no reason to name an owner — every one of them so
-    /// far, because nothing yet reads a floor pile's owner. Which owner is UNKNOWN (Q136): the
-    /// original gives every floor pile one global player id fixed at load, emphatically not the
-    /// room's owner or the dead creature's keeper. <see cref="PlayerIds.Neutral"/> is used because
-    /// that is what an unclaimed thing belongs to here (ADR-0043); the day an imp may fetch a
-    /// rival's dropped gold, this field decides it.</summary>
+    /// <summary>The neutral-owner overload, matching the floor-pile creation sites
+    /// (gold-on-the-floor.md §8, Q136). Fetch tasks test this owner.</summary>
     public static ObjectState? Drop(
         WorldState world, GameDatabase database, int tileIndex, int amount) =>
         Drop(world, database, tileIndex, amount, PlayerIds.Neutral);

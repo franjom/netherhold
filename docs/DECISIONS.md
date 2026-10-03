@@ -7975,8 +7975,9 @@ Level 1/2 seeds 1–20 cannot be measured here: their gitignored scratchpad
 drivers and recorded packets are absent from this isolated worktree.
 
 **Current boundary.** Stage 0 independently verified all 42 scenario series.
-Stage 1 enables Create Gold through the existing cast and floor-gold paths;
-see `research/keeper-spell-create-gold.md` for the evidence and the retained
-flat landing/merge limitation. No state fields or hash version have changed.
-The full gate passed (3,208 no-install tests passed, 393 skipped); all 42
-scenario series are byte-identical to stage 0. Stage 1 awaits independent review.
+Stage 1 builds Create Gold's cast and horizontal landing/merge through the
+existing shot boundary; see `research/keeper-spell-create-gold.md` for evidence
+and retained height/room-timing limits. No state fields or hash version changed.
+The full gate passed (3,237 no-install tests passed, 393 skipped); all 42
+scenario series are byte-identical to stage 0. The reference and confidence
+corrections are independently approved; the landing correction awaits review.

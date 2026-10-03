@@ -20,6 +20,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `apply_patch` rejects a delete and add of the same path in one patch; use an update or separate patches.
 - `apply_patch` Add File can overwrite an existing path; check existence and update existing function records so their history survives.
 - A fixed TRX LogFileName with one results directory overwrites each solution project's results; use the logger's default distinct names.
+- KB evidence fragments match Markdown headings, not HTML anchors; changing an evidence header also requires a dated History line.
 - In a sibling worktree, `apply_patch` cannot create parent directories; create them with an approved native filesystem command first.
 - Windows Python defaults to a legacy code page here; use `encoding='utf-8-sig'` when reading repository Markdown.
 

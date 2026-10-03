@@ -483,8 +483,9 @@ public static class ShotRules
         {
             made.GoldHeld = Math.Max(0, shot.Data2);
             made.OwnerPlayerId = PlayerIds.Neutral;
-            // The shared floor-gold model collapses falling and landing (keeper-spell-create-gold.md §3).
-            made.ProcessState = 0;
+            made.PosX = shot.PosX;
+            made.PosY = shot.PosY;
+            FloorGoldLandingRules.Land(context, made);
         }
         context.Emit(SystemName, "shot_object_created", $"shot={shot.Id} object={made.Id} type={shot.Data1} tile={tile.X},{tile.Y}");
     }

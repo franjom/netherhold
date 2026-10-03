@@ -429,6 +429,11 @@ public sealed class HandSystem : ISimulationSystem
         hand.RemoveAt(hand.Count - 1);
         thing.InHand = false;
         thing.TileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
+        if (FloorGoldLandingRules.HasPosition(thing))
+        {
+            thing.PosX = CreatureState.CentreOf(command.Tile.X);
+            thing.PosY = CreatureState.CentreOf(command.Tile.Y);
+        }
 
         context.Emit(SystemName, "object_dropped",
             $"player={command.PlayerId} object={thing.Id} " +
@@ -437,7 +442,10 @@ public sealed class HandSystem : ISimulationSystem
 
         if (DropDeliveryRules.RecipientOf(world, context.Database, thing, command.TargetCreatureId)
             is not { } recipient)
+        {
+            if (FloorGoldLandingRules.HasPosition(thing)) FloorGoldLandingRules.Land(context, thing);
             return;
+        }
 
         DropDelivery given = DropDeliveryRules.Deliver(world, context.Database, thing, recipient);
         context.Emit(SystemName, "object_delivered",
