@@ -47,7 +47,7 @@ the category operation failed; a return of one means it remains valid.
 |---|---|---|
 | `0x00455E70` | CallToArms enter | Calls the creature speed-mode setter `0x004887D0(1, 0)` and succeeds. |
 | `0x00455E90` | CallToArms leave | Calls the same setter with `(0, 0)`, restoring the ordinary mode. |
-| `0x00459130` | TrapDisarm leave | Resolves creature `+0x43D`; if it is a live class-3 thing, clears that thing's `+0x115` word, then always clears `+0x43D`: the disarmed trap (`+0x43D`, `sgmap`'s `f43D_trapTagId`) and its disarmer. The category is unreachable in v1.70 (`traps.md` §11, Q455). |
+| `0x00459130` | TrapDisarm leave | Resolves creature `+0x43D`; if it is a live class-3 thing, clears that thing's `+0x115` word, then always clears `+0x43D`: the disarmed trap (`+0x43D`, `sgmap`'s `f43D_trapTagId`) and its disarmer. Reachability and save-restoration limits: `traps.md` §11, Q455. |
 | `0x004647D0` | WorkerJob leave | Ends two possible current-action words; while in travel states 6/7, dispatches on resume `+0xDF`. Removes/completes player tasks using state `+0x8A/+0x94/+0x96`, or restores worker bits in the branches detailed in `creature-pickup.md`. That pickup subset is built (ADR-0263); full task cleanup remains incomplete. |
 | `0x004752A0` | ReportingDanger leave | Clears creature `+0x3E6` bit 3, **`RebelActive`** (DK2's own dumper name, `rebellion.md` §4). Why leaving this category should cancel a rebellion is **UNKNOWN** (Q411). |
 | `0x0047A780` | Refused leave | Calls `0x0048FD70` with a local `0x1000`, clears creature `+0x3CD`, zeroes the vectors at `+0x104` and `+0x110`, and clears `+0x3E6` bit 20. The combined role is **UNKNOWN**. |
