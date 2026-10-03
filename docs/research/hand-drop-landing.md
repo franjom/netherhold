@@ -40,7 +40,7 @@ Anything else, a Library or a Lair included, returns 1.
 ## 3. The stun, 255 → 257 — CONFIRMED
 
 255 stands for `StunDuration` (`creature-status-effects.md` §2), then 257 (`0x00481200`):
-1. It returns 1 while an action is current (`0x00496D00`): the get-up, action 53, which 255's end started. Its length is the creature's animation, not a definition field. In the Level 1–3 captures the longest 257 run of a type that ends in a room drop is the same in every run: Warlock (5) 8 ticks, Goblin (7) 11, Troll (10) 5, Firefly (12) 13, Lord of the Land (29) 4, type 14 4 (the Dwarf, by Level 2's party and its zero `StunDuration`); a fight can cut it short (257 → 8 or 199).
+1. It returns 1 while an action is current (`0x00496D00`): the get-up, action 53, which 255's end started. Action 53 plays animation block 27, Getup (`0x006E47AD` = 27), so the hold is that animation's frames at its rate: `ceil(frames × 4 / rate) + 1` ticks, the +1 being the tick the handler sees the action end, as for the Entrance animation (`portal-creature-action.md`). That `+20` selects the block is STRONGLY INFERRED (`creature-action-table.md` §3), and the formula is fitted (STRONGLY INFERRED): it reproduces every 257 run the Level 1–3 captures measured (the longest of a type that ends in a room drop, the same in every run): Warlock (5) 51 frames, 8 ticks; Goblin (7) 69, 11; Troll (10) 29, 5; Firefly (12) 84, 13; Dwarf (14) 16, 4; Lord of the Land (29) 22, 4. A fight can cut it short (257 → 8 or 199).
 2. It steps a little along its facing: the definition's vector `0x00494650(def, 2)` (`def+0x6EC+0x18`) turned by the heading `+0xF4`, taken if the terrain there is not solid (terrain table byte `+0x17B` bit 0 clear) and the cell test `0x00454110` gives the same answer for the tile there as for its own.
 3. It runs `0x00481400` (`SelectAVictim`, else a neighbouring enemy door as the forced target; `door-blocking.md` §8) and returns 1 if that found something; otherwise **`0x004E8DA0(0)`**. So a shot's stun ends the same way as a drop's.
 
@@ -70,5 +70,5 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 - **Unbuilt drop states.** On getting up, the rooms whose drop state is not built (Treasury 188, Lair 79, Hatchery 92, Portal 197, Heart 71, Prison 114, Crypt 274) idle. The Combat Pit's 137 is built (ADR-0227).
 - **Workers.** A worker's getting up idles; `0x00481400` (read, `door-blocking.md` §8) is not built, in 257 or in 76.
 - **Not modelled:** the landing's sound, fall and pit scatter; 257's step along the facing; the casino-winner gate. The Call To Arms branch is built (ADR-0279).
-- **257's hold** is `ActionUntilTick`, set at the stun's end to the per-type table `DropLandingRules.GetUpTicks` read off the captures; a type never captured gets a guess of 8 (Q527). DK2 plays the animation.
+- **257's hold** is `ActionUntilTick`, set at the stun's end to `DropLandingRules.GetUpTicks`, the Getup animation's length (ADR-0348, Q527). DK2 plays the animation itself.
 - **One word for `+0x7E`:** `StateDeadlineTick`, stamped with now by `AfterGettingUp` on the way into 250, as `0x004E8DA0` stamps `+0x2CC`.

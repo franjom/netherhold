@@ -884,6 +884,7 @@ internal static class Dk2TerrainFixture
         MeleeRecharge = Fp32.FromDouble(1.3),
         // A test value, not the shipped Goblin's: five seconds stunned by Lightning (creature-status-effects.md §2).
         StunDuration = Fp32.FromDouble(5),
+        GetUpFrames = 69, GetUpFramesPerSecond = 30, // the shipped Goblin-Getup: 11 ticks
         Pay = 500,
         Fear = 50,
         Threat = 37,
@@ -1567,6 +1568,7 @@ internal static class Dk2TerrainFixture
         // keeper's world cannot be built without them (ADR-0162).
         Set(vars, VariableTypeId.DungeonHeartObjectHealth, 100000);
         Set(vars, VariableTypeId.DungeonHeartHealthRegenerationPerSecond, 25);
+        Set(vars, VariableTypeId.StunTimePercentageIncreaseWhenHit, 25); // shipped (ADR-0348)
         // Variable 224's shipped MeleeDamage record, the possession bonus (Q337).
         vars.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.MeleeDamage, 60, 0, FirstPerson: true));
         return vars;

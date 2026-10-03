@@ -7971,3 +7971,27 @@ Imps. Separately, the approach state's flight (`0x00470E30`) zeroes the back-off
   creature hit with a non-Imp among its attackers has its stun lengthened by variable 181 (Q531).
 - `AlwaysFlee`'s only reader found is the approach state. The `+0x482` gate is not modelled (no
   possession). HashVersion unchanged: no new field.
+
+## ADR-0348 — The get-up lasts the Getup animation, and a hit lengthens a stun
+**Date:** 2026-10-03 · **Status:** accepted · Research: `hand-drop-landing.md` §3; `creature-status-effects.md` §2; `functions/00481200.md`, `functions/00481360.md`, `functions/0045EC10.md`; Q527, Q531
+
+**Context.** ADR-0345 held state 257 for a per-type table measured in the captures, with a guess
+of 8 ticks for every type no capture stunned (Q527). The action table's filler `0x004950C0` puts
+animation block 27 in action 53's record (`0x006E47AD` = 27), and every creature's block 27 is
+its Getup animation, at 30 frames a second. The ADR-0347 review found the fear helper's second
+caller, the damage routine (`0x004B2EBA`, calling `0x00481360` at `0x004B2EC9`): a stunned creature hit with a live non-Imp among its
+attackers runs `0x00481360`, which lengthens the stun by variable 181 (Q531). Ours parsed
+variable 181 and read it nowhere.
+**Decision.** `CreatureDef` carries the Getup block's frames and rate, parsed and written at
+record offsets `0x940` and `0x944`. `DropLandingRules.GetUpTicks` is `ceil(frames × 4 / rate) + 1`,
+the +1 the tick the handler sees the action end, as for the Entrance animation; a fit to six
+captures (STRONGLY INFERRED), as is `+20` naming the block. The table and its guess are gone. `StatusEffectRules.Hurt` lengthens the stun left in 255 or 256 by variable
+181 percent of itself, capped at `StunDuration`.
+**Consequences.**
+- The formula gives every captured length: Warlock 8, Goblin 11, Troll 5, Firefly 13, Dwarf 4,
+  Lord of the Land 4; an install-gated test pins all six. A Knight now gets up in 4, not 8.
+- L1 20/20, tick-identical. L2 6/20 (seeds 4, 7, 8, 11, 15, 17; 17 seeds tick-identical, seed 7
+  now wins). L3 seed01 won 3588, as before; it first differs at 3510, a Knight's get-up.
+- 257's and 209's handlers do not read the moved start turn, so ours lengthens only 255 and 256.
+  The fixture's Goblin carries the shipped Getup art and variable 181 its shipped 25.
+  HashVersion unchanged: `CreatureDef` is data, and no state field changed.

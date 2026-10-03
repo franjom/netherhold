@@ -69,6 +69,13 @@ public sealed record CreatureDef
     /// <inheritdoc cref="EntranceFrames"/>
     public int EntranceFramesPerSecond { get; init; }
 
+    /// <summary>The Getup animation's frame count and rate (animation block 27, the one action 53
+    /// plays while state 257 waits for it). Zero when the creature has none, as the Horny.</summary>
+    public int GetUpFrames { get; init; }
+
+    /// <inheritdoc cref="GetUpFrames"/>
+    public int GetUpFramesPerSecond { get; init; }
+
     /// <summary>The Angry animation (block 9, the one action 41 plays): its file flags and its
     /// frame count and rate. Zero when the creature has none, as the Imp; the loader copies a block
     /// only when its resource is present (<c>0x00492320</c>, <c>0x00504D80</c>). Bit 0 of the flags

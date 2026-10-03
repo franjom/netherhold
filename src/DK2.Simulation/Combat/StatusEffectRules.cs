@@ -60,7 +60,23 @@ public static class StatusEffectRules
         if (definition.Flags.HasFlag(CreatureFlags.IsHorny) || definition.Flags.HasFlag(CreatureFlags.OnlyAttackableByHorny)) return 0;
         if (HandRules.IsHeld(target)) return 0;
         int scaled = (int)((long)damage * DamageMultiplier(world, database, target) / Base);
+        if (IsStunned(target) && FearRules.NonImpAmongAttackers(world, target)) LengthenStun(database, definition, target);
         return CreatureHealthRules.Apply(database, definition, target, -scaled);
+    }
+
+    /// <summary><c>0x00481360</c>, from the damage routine (<c>0x004B2EBA</c>) for a stunned creature
+    /// with a live non-Imp among its attackers: the stun left grows by
+    /// <c>StunTimePercentageIncreaseWhenHit</c> (variable 181, 25) percent of itself, toward zero, and
+    /// never past the full <c>StunDuration</c>. DK2 moves the state's start turn (<c>+0x18</c>); ours
+    /// counts the stun left down, so the same arithmetic acts on <c>StunTicks</c>. 257 and 209 pass the
+    /// same test in DK2, but neither handler reads the start turn, so only 255 and 256 change (ADR-0348).</summary>
+    public static void LengthenStun(GameDatabase database, CreatureDef definition, CreatureState target)
+    {
+        if (target.Dk2StateId is not (CombatStates.Stunned or 256) || target.StunTicks <= 0) return;
+        int full = CombatRules.TicksOf(definition.StunDuration);
+        int left = target.StunTicks;
+        int more = left * database[VariableTypeId.StunTimePercentageIncreaseWhenHit] / 100;
+        target.StunTicks = left + more > full ? full : left + more;
     }
 
     /// <summary>Haste and Slow (<c>0x0048CAD0</c>, §2): refused while a speed effect runs; else the

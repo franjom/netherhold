@@ -115,6 +115,10 @@ returns 0 before the action and event 15. The rule refuses 255 from 216–218, 2
 when the time is up, action 53 (getting up) and `SetState(257)`, whose handler
 (`0x00481200`) returns 1 while an action is current, then runs `0x00481400` and the
 room drop `0x004E8DA0(0)` (CONFIRMED, `hand-drop-landing.md` §3); `+0x3CB` := 0.
+**A hit lengthens the stun.** The damage routine (tests at `0x004B2EA9` and `0x004B2EBA`, call at `0x004B2EC9`), for a creature in the
+stunned family with a live non-Imp among its attackers (`0x0045EC10`), calls `0x00481360`:
+the stun left grows by variable 181 `StunTimePercentageIncreaseWhenHit` (25) percent of
+itself, toward zero, capped at `StunDuration` (ADR-0348).
 States 209, 255, 256 and 257 are the stunned family (`0x0048F350`): while in one,
 **damage doubles** (§3).
 

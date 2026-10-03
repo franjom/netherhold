@@ -58,14 +58,17 @@ public class DropLandingTests
         Assert.NotEqual(DropLandingRules.StandingState, goblin.Dk2StateId);
     }
 
-    /// <summary>The get-up length is the creature's animation, read off the captures per type;
-    /// a type the captures never stunned gets the measured middle, a guess (Q527).</summary>
-    [Fact]
-    public void GetUpTicks_IsTheCapturedLengthPerType_AndAGuessForAnUnmeasuredType()
+    /// <summary>The get-up length is the Getup animation's frames at its rate in four-tick seconds,
+    /// rounded up, plus one; with no art it is one tick (ADR-0348).</summary>
+    [Theory]
+    [InlineData(69, 30, 11)]
+    [InlineData(51, 30, 8)]
+    [InlineData(16, 30, 4)]
+    [InlineData(0, 0, 1)]
+    public void GetUpTicks_IsTheGetupAnimationRoundedUpPlusOne(int frames, int fps, int ticks)
     {
-        GameDatabase db = Dk2TerrainFixture.Database();
-        Assert.Equal(11, DropLandingRules.GetUpTicks(db.CreatureById(GoblinId)));
-        Assert.Equal(DropLandingRules.GetUpTicksGuess, DropLandingRules.GetUpTicks(db.CreatureById(Dk2TerrainFixture.MistressCreatureId)));
+        CreatureDef goblin = Dk2TerrainFixture.Database().CreatureById(GoblinId);
+        Assert.Equal(ticks, DropLandingRules.GetUpTicks(goblin with { GetUpFrames = frames, GetUpFramesPerSecond = fps }));
     }
 
     [Fact]

@@ -36,6 +36,8 @@ public static partial class KwdCreatures
         S32(0xE98, row.EntranceOffsetY);
         S32(EntranceBlock + 0x44, row.EntranceFrames);
         S32(EntranceBlock + 0x48, row.EntranceFramesPerSecond);
+        S32(GetUpBlock + 0x44, row.GetUpFrames);
+        S32(GetUpBlock + 0x48, row.GetUpFramesPerSecond);
         S32(0xEB4, row.Speed.Raw);
         S32(0xEB8, row.RunSpeed.Raw);
         S32(OffsetShuffleSpeed, row.ShuffleSpeed.Raw);

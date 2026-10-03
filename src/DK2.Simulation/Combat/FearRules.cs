@@ -159,7 +159,7 @@ public static class FearRules
 
     /// <summary><c>0x0045EC10</c>: true when a melee or ranged slot, in slot order, holds a live
     /// thing whose creature type is not the Imp (<c>+0x36F != 1</c>).</summary>
-    private static bool NonImpAmongAttackers(WorldState world, CreatureState me)
+    public static bool NonImpAmongAttackers(WorldState world, CreatureState me)
     {
         for (int i = 0; i < CombatRules.Slots; i++)
         {
