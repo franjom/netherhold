@@ -85,6 +85,18 @@ public class KwdLevelWriterTests
             Assert.Equal(chunk.Content,KwdLevel.WriteRecord(KwdLevel.Parse([chunk])!,chunk));
     }
 
+    [Fact]
+    public void OpaqueExtendedMetadataCanContainThePathMarkerWithoutSelectingTheBaseLayout()
+    {
+        byte[] bytes=new byte[25683+8+72+8];
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(25603),222);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(25607),80);
+        KwdChunk chunk=Chunk(bytes,25683);
+        LevelDef row=KwdLevel.Parse([chunk])!;
+        Assert.Equal(80,row.Unknown_6403.Length);
+        Assert.Equal(bytes,KwdLevel.WriteRecord(row,chunk));
+    }
+
     private static KwdLevelFilePath ReadPath(byte[] path)
     {
         byte[] bytes=new byte[25603+8+72+8]; path.CopyTo(bytes,25611);

@@ -97,6 +97,24 @@ public class KwdEditingOwnershipTests
         Assert.Equal(14,editor.ReadRecord<ObjectThing>(location).MoneyAmount);
     }
 
+    [Fact]
+    public void OpaqueLevelEditsKeepTheirMetadataBoundaryAndRoundTrip()
+    {
+        byte[] bytes=new byte[25683+8+72];
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(25683),222);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(25687),72);
+        var editor=KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> {
+            ["level.kwd"]=[KwdLevelFileSetTests.Fixture(KwdRecordType.Level,bytes,1)] });
+        byte[] raw=new byte[80];
+        BinaryPrimitives.WriteUInt32LittleEndian(raw,222);
+        BinaryPrimitives.WriteUInt32LittleEndian(raw.AsSpan(4),72);
+        editor.EditRecord<LevelDef>(new("level.kwd",0,0),row=>row with { Unknown_6403=raw });
+        Assert.Equal(raw,editor.ReadRecord<LevelDef>(new("level.kwd",0,0)).Unknown_6403.ToArray());
+        byte[] result=editor.Chunks("level.kwd")[0].Content;
+        for(int i=0;i<bytes.Length;i++)
+            if(i<25603 || i>=25683) Assert.Equal(bytes[i],result[i]);
+    }
+
     private static KwdLevelFileSet LevelSet()=>KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> {
         ["level.kwd"]=[KwdLevelFileSetTests.Level(["file.kwd"])] });
 }
