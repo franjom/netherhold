@@ -352,7 +352,7 @@ lookup in the same change.
 
 **Everything else that spends mana.** Create Imp is the only spell implemented,
 because it is the only one whose effect is a mechanic that already exists.
-Thunderbolt and Call to Arms followed; Possession, Sight of Evil and the rest have not. Two fields of
+Thunderbolt, Call to Arms, Heal, Inferno and Chicken followed (ADR-0260, ADR-0279, ADR-0287, ADR-0302); Possession, Sight of Evil and the rest have not. Two fields of
 `KeeperSpells.kwd` are parsed — the cast cost at `0x11C` and the upkeep at `0x00E2`
 (Q55) — so the upkeeps of the four other persistent spells sit in the database
 being read by nothing, waiting for the spells themselves.

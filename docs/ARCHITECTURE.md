@@ -36,7 +36,7 @@ DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding  │
 | `DK2.Tools` | the `dk2tools` CLI |
 | `unity/DK2.Unity` | the adapter; `unity/DK2.Unity.Compile` builds it against Unity's modules |
 
-`docs/HANDOFF.md` §"Where the code lives" lists the types in each.
+`docs/HANDOFF.md` §"Where to work" says which project a change belongs in.
 
 - **Eight assemblies target netstandard2.1** so Unity can load them: `DK2.Core`,
   `DK2.Data.Model`, `DK2.Data`, `DK2.Pathfinding`, `DK2.Simulation`,
@@ -103,7 +103,7 @@ rather than to match something nobody has measured.
 
 ## World state
 
-`WorldState` is the whole mutable game. Its collections, in hash order:
+`WorldState` is the whole mutable game. Its main collections (`HashInto` is the full list, in hash order):
 
 | | |
 |---|---|
@@ -113,8 +113,8 @@ rather than to match something nobody has measured.
 | `Creatures` (`CreatureState`) | in spawn order, which decides who gets a job |
 | `Objects` (`ObjectState`) | in placement order (ADR-0054) |
 | `ActionPoints` (`ActionPointState`) | in THINGS-file order, because several original lookups walk the collection linearly (ADR-0103) |
-| `Doors`, `Traps` | verbatim authored state in THINGS-file order, without behaviour (ADR-0106) |
-| `HeroParties`, `EffectGenerators` | verbatim authored state in THINGS-file order, without spawn/generation behaviour (ADR-0108) |
+| `Doors`, `Traps` | authored state in THINGS-file order (ADR-0106); a door is fought and a gate collapses (ADR-0318, ADR-0320), traps fire (ADR-0321, ADR-0331) |
+| `HeroParties`, `EffectGenerators` | authored state in THINGS-file order (ADR-0108); action 14 raises a party (ADR-0197), a generator still generates nothing (Q255) |
 | `TempleSacrifices` (`TempleSacrificeState`) | a sorted persistent three-offering ring per derived Temple anchor (ADR-0149) |
 | `Triggers` (`TriggerState`) | the level-global flag and timer banks (ADR-0102) |
 | `Messages` (`PlayerMessageQueue`) | retained combat messages; observation and expiry boundary in ADR-0245 |
@@ -248,9 +248,9 @@ Unity code. It is outside `DK2.slnx` on purpose. See `unity/README.md`.
 (`dotnet run --project src/DK2.Harness -- run scenarios`). The runner reports
 every part of a scenario it could not honour — unknown keys, unapplied setup,
 observations nothing produces yet — so a run can never look more complete than it
-is, and `TextRenderer` writes a `world.txt` per scenario. No scenario carries an
-expectation block and `docs/experiments/` holds no oracle-versus-ours run, so the
-corpus is a regression suite against ourselves and not yet against DK2. See
+is, and `TextRenderer` writes a `world.txt` per scenario. A scenario that asserts
+carries an `expect:` block in game seconds (ADR-0150); `docs/experiments/` holds
+the oracle-versus-ours idle runs, and the packet replays are ADR-0339's rig. See
 `scenarios/README.md`.
 
 ## Tile work (M3)
@@ -329,8 +329,7 @@ load too big for one treasury tile spills into the next — because the carrier
 puts down what fits and looks again, not because anything implements spillover.
 
 Which rooms have behaviour, and which are inert terrain their owner holds:
-`docs/HANDOFF.md` §"What exists". Evidence:
-`docs/research/rooms-and-gold.md`.
+`dk2tools coverage`. Evidence: `docs/research/rooms-and-gold.md`.
 
 ## Mana (M3)
 
@@ -364,8 +363,9 @@ Spells spend mana (`KeeperSpellSystem`); a falling heart ends the level through
 Every rate comes from the record or the balance table; none is in the code.
 `CreatureState` carries position in fixed point, activity, target, timer, route,
 health, hunger, anger, level and experience — and only because a mechanic reads
-each. It has **30 activities against the 281 states read from the binary**
-(ADR-0072), which is the honest measure of how much of the creature loop exists.
+each. Every creature holds one of **DK2's 281 state ids** and its activity is
+derived from it (ADR-0209, ADR-0210); `dk2tools coverage states` is the measure
+of how much of the creature loop exists.
 
 Three shapes matter to a change:
 
@@ -380,12 +380,10 @@ Three shapes matter to a change:
   three of its longest-lived defects. A bed exists only while owned, so occupancy
   needs no bookkeeping at all.
 
-**⚠ The lair *relation* is right and the way a creature reaches it is not.** The
-original acquires a lair by walking to the nearest reachable one with a free slot
-and testing tiles on arrival, attempted by any idle bedless creature whatever its
-mood; `CreatureSleepSystem` claims a bed on the first tick one is free, from
-anywhere. The replacement rule is fully read and awaits building
-(`docs/research/lair-acquisition.md`).
+A bedless idle creature tries for a lair before any job, whatever its mood, walks
+to the nearest reachable room with a free tile and takes the tile on arrival
+(`LairSeeker`, `CreatureSleepSystem`; ADR-0060, ADR-0328,
+`docs/research/lair-acquisition.md`).
 
 The Hand of Evil is part of the input path rather than a creature mechanic:
 `PlayerState.Hand` is a list of `HandItem`, creature or object, and
@@ -393,7 +391,8 @@ The Hand of Evil is part of the input path rather than a creature mechanic:
 `SlapCreatureCommand` are `PlayerCommand`s that
 hash into the replay like every other (ADR-0062/0075/0077).
 
-Which needs, jobs and consequences are built: `docs/HANDOFF.md` §"What exists".
+Which needs, jobs and consequences are built: `dk2tools coverage` and
+`dk2tools coverage states`.
 
 ## Players and territory
 
@@ -409,9 +408,10 @@ Which needs, jobs and consequences are built: `docs/HANDOFF.md` §"What exists".
   *machine* (`fog-of-war.md` §10), so the per-keeper mask is ours. Off by
   default.
 - Levels play on their own VARIABLES layered over the global table (ADR-0040).
-- `DK2.AI.KeeperAI` is an **input source** that emits `PlayerCommand`s (step 1 of
-  `docs/KEEPER_AI.md` §12.7): it digs to gold, sites and places rooms in the
-  shipped order, and changes no simulation surface.
+- `DK2.AI.KeeperAI` is an **input source** that emits `PlayerCommand`s from a
+  detached observation (`KeeperView`, `KeeperViewSnapshot.FormatVersion`) and
+  changes no simulation surface; what it does is `docs/HANDOFF.md` §"Current
+  state" and `docs/KEEPER_AI.md` §12.
 
 ## Objects (M6)
 
@@ -504,8 +504,8 @@ flag bytes, 16 timer dwords, one opaque special value. Hashed and snapshotted.
 
 ## Absences with architectural weight
 
-`docs/HANDOFF.md` §"What does not exist" is the full list, and
-`dk2tools coverage` reports what is built. Four constrain design:
+`dk2tools coverage` reports what is built and what is research only;
+`docs/HANDOFF.md` §"Current state" has the milestone gaps. Four constrain design:
 
 - **Trigger coverage.** Level 1's recorded play wins headlessly (Q444); other
   campaign levels still depend on unimplemented actions and conditions
@@ -517,9 +517,10 @@ flag bytes, 16 timer dwords, one opaque special value. Hashed and snapshotted.
 - **Speed is timed, not budgeted.** `RunTimings` (`DK2.Harness`) splits every
   run into per-system, keeper-AI and hashing time, but no target for "faster
   than real time" (goal 9) is asserted.
-- **The oracle comparison is per scenario.** Level 1 and Level 2 have captured
-  recordings replayed headlessly (Q444, ADR-0270/0271, `docs/experiments/`);
-  there is no automatic divergence report across all scenarios.
+- **The oracle comparison is per scenario.** Levels 1, 2 and 3 have recorded
+  packets replayed headlessly over 20 seeds (Q444, ADR-0339; idle captures in
+  `docs/experiments/`); there is no automatic divergence report across all
+  scenarios.
 
 ## Licence boundaries in the tree
 

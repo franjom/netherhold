@@ -351,18 +351,17 @@ duration in ticks and not a live mechanism disabled by its value (Q160, binary,
 
 **Built.** Objects and creatures share one LIFO array. A prisoner returned to the
 dropper's prison is re-imprisoned; elsewhere it is freed. **Both** disposal tiles
-exist as of 2026-09-15: ordinary and converted goodly creatures go through a
+exist: ordinary and converted goodly creatures go through a
 portal's hole with their gold, an Imp is refused there and goes through the
 Heart's platform instead, and a captive is refused both (`DisposalRules`,
-ADR-0148; `structure-blocks.md` §4.2). What is assumed inside that is Q312.
+ADR-0148; `structure-blocks.md` §4.2). What is assumed inside that is Q312. A drop
+onto a room enters the room's drop state (`DropLandingRules.RoomDropState`; ADR-0215,
+ADR-0226, ADR-0227); which rooms' states idle here is in `hand-drop-landing.md`.
 
 **Not built:**
 
 - **The knock-back** and every other physical consequence of a slap, and **the
   speed boost** (§5).
-- **Dropping onto a room**, which the original tracks with a flag of its own
-  (`WasLastDroppedOnARoom`) and which is how a creature is put into a Library or a
-  Training Room. The prison cell is the one room drop that is built.
 - **Dropping onto enemy ground.** The original's drop handler changes the
   creature's owner under a condition, and that branch proves only that the
   *handler* does not refuse — the gate is the input layer's (Q196), so whatever

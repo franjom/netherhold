@@ -63,8 +63,9 @@ CI or on a contributor's machine.
 asserts an exact literal. Its job is to catch the silent killers of
 cross-machine reproducibility — string hashing, dictionary iteration order,
 struct layout drift — which every other determinism test would happily pass,
-because they compare two runs *in the same process*. CI runs it on Linux and
-Windows, which is what turns the local property into a cross-platform one.
+because they compare two runs *in the same process*. `ci.yml` declares it for
+Linux and Windows, but no CI runs today (the repository has no remote), so the
+cross-platform property rests on local runs (`docs/ARCHITECTURE.md`).
 
 Changing simulation state deliberately will break it. That is correct: bump
 `GameSimulation.HashVersion`, bump `WorldSnapshot.FormatVersion` to match, and

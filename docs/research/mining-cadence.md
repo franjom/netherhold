@@ -116,13 +116,10 @@ keeps the action until its animation reports done (`+0xDC` = 0). So one action i
 one application, and its length is animation time. Why only the first swing is
 long is in the animation engine, unread.
 
-**Not built, and why (Q481).** Built together, the cadence and the uncorrected
-rock match this capture's early imp time. Over turns 1–635, walking is 968
-ticks against 976, digging 365 against 367 and mining 374 against 413. But
-Level 1's packet no longer wins: its Hatchery at 324 lands on ground not yet
-dug or claimed. Level 2 replays to the end without a win. Committed master wins
-both, so its two errors cancel. The patch is kept in the ignored
-`reverse-engineering/worktree-archive/work-cadence-wip/`.
+**Built (ADR-0280, ADR-0282; Q481).** Built alone, the cadence and the uncorrected rock matched
+this capture's early imp time (turns 1–635: walking 968 ticks against 976, digging 365 against
+367, mining 374 against 413) but lost Level 1's packet, whose Hatchery at 324 landed on ground
+not yet dug or claimed; what else had to move is Q481's answer (§6, ADR-0282).
 
 ## 6. Level 1's full-state playback: rest, and how long a work state holds (2026-09-28)
 

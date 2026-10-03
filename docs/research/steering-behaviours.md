@@ -317,8 +317,8 @@ quarter of the walk and capped at four tiles a tick, with the countdown at
 `max_force` keeps the reset's `0x18000`.
 
 Ours (`CreatureMovementSystem`, `WorldSteering`): the main update's arm for every
-creature with a route loaded, at the level-scaled walk speed. Run and shuffle,
-the timed multipliers and the per-state gate are not built.
+creature with a route loaded, at the level-scaled walk speed, or the run speed when set running
+(the fight and the withdrawal, `MaxSpeedOf`). Shuffle, the timed multipliers and the per-state gate are not built.
 
 ### 7.6 The state's option word (`0x004D0F60`)
 

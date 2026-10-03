@@ -1039,15 +1039,14 @@ methods on `KeeperAI` rather than a separate type.
 | 62 slap | `SlapCreatureCommand` | none |
 | place room tile by tile | one `BuildRoomCommand` per tile | The command lacks DK2's payment-bypass mode when gold falls below one tile's price (handler research section 6). |
 | spell 4 Create Imp | `CreateImpCommand` | none |
-| spells 1 Sight of Evil, 3 Call to Arms (+63 remove), 13 Create Gold, battle spells | — | **`CastKeeperSpellCommand(spellId, tile, target)`** |
+| spells 3 Call to Arms (+63 remove), the battle spells, Heal, Chicken, Inferno | `CastSpellAtPlaceCommand`, `CastSpellOnCreatureCommand`, `RemoveCallToArmsCommand` (ADR-0279, 0283, 0287, 0302) | 1 Sight of Evil and 13 Create Gold have no cast rule yet (`dk2tools coverage`) |
 | place trap / door | `PlaceTrapCommand`, `PlaceDoorCommand` | placement exists (ADR-0231); AI site choice remains |
 | pay a creature by minting gold on it | — | needs a treasury-withdrawal rule as well as a command |
 | claim a neutral room | digging a path to it, then `ConvertRoom` work | none (ADR-0044) |
 
 Every row marked **bold** adds simulation state or a new effect, so each bumps
 `GameSimulation.HashVersion` and `WorldSnapshot.FormatVersion` together and wants its
-own ADR — the standing rule in `docs/HANDOFF.md`, *Conventions that are easy to violate
-by accident*.
+own ADR — the standing rule in `docs/HANDOFF.md`, *Run and verify*.
 
 ### 12.4 Messages: retained simulation state
 

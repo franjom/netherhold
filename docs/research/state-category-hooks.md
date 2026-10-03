@@ -232,7 +232,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   and kills it on the device, revealing information); a convert is released rather than
   left on the device, which the owner confirms (Q425: it gets off, beds down, eats).
 - **Built:** ADR-0196, its *Ours* list included; the leave hook's `+0x6E` is ADR-0322's.
-  **Not built:** the information.
+  The information is ADR-0230 (`TortureInformationRules`); not built: its panel, reward 11's reveal, the speech.
 - **Read 2026-09-24: 77, 136 and the others' way in.** 77 (`0x0046F1F0`), once the landing
   action ends, sends a Horned Reaper (`IsHorny`, definition flag bit 14) to **238** in any
   room; otherwise by the room at `+0x3B9`: Workshop 63, Prison 115, Torture Chamber 130. So
@@ -302,8 +302,8 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
 - **Built** (ADR-0203): all four. **Ours:** the nearest Workshop is judged by its first
   tile. ADR-0214 (`workshop-crates.md`) adds state 68, the crate left to nobody in a full
   Workshop, the Workshop's capacity extra `0x004F6140`, and the carry to a blueprint. The
-  order kind is 0 for a door and 1 for a trap. Not built: blueprints placed in play
-  (`0x004C33B0`, `0x004C3860`) and the removals.
+  order kind is 0 for a door and 1 for a trap. Blueprints placed in play
+  (`0x004C33B0`, `0x004C3860`) are built (ADR-0231); not built: the removals.
 
 ### 3.5 Capacity: the test, the claim and the finders (read 2026-09-25)
 

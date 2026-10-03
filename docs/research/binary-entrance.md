@@ -229,7 +229,7 @@ stretched interval. What would remove the doubt is whether **other** creature
 types kept arriving across those three and a half minutes: if they did, the
 portal was firing and declining to pick an angel, which is the cap.
 
-Still unimplemented, and now worth implementing. What it means:
+Built (ADR-0147, below). What it means:
 
 > **It is a second, independent explanation for the owner's observation that
 > arrivals slow down** — not an interval that stretches, but eligibility

@@ -196,8 +196,8 @@ worker credits the keeper's one pool of points (ADR-0203).
   refuses. The pick-up leaves it alone.
 - **What it does.** A creature dropped in the Workshop keeps going back to it after every crate
   until the queue is empty.
-- **Ours:** the Library, Training Room, Guard Room, Workshop, Temple and Casino. The escape and
-  Torture clears are not built.
+- **Ours:** the Library, Training Room, Guard Room, Workshop, Temple and Casino. The Torture
+  clear is built (ADR-0322); the escape's is not.
 
 ## 6. Kinds 9 and 10: a crate to a blueprint
 

@@ -79,7 +79,7 @@ per axis. No numeric comparison can be tighter than one step.
 | **hand-touched source** (manual 3D work) | private store (§11) | never in this repo | versioned |
 | **modern outputs**: meshes, LODs, textures, clips | `build/modern/<category>/<subject>/<version>/` | never | immutable per version, content-addressed |
 | **manifest** | `art/manifests/<category>/<subject>.yaml` | **yes** | edited by people |
-| **scripts** | `tools/blender/`, `dk2tools art …` | **yes** | code |
+| **scripts** | `tools/blender/`, `dk2tools art …` (neither exists yet) | **yes** | code |
 | **validation report** | beside the outputs; summary in the manifest | summary only | per version |
 
 The canonical animation reference is the KMF file itself, pinned by hash, plus

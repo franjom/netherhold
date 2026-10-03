@@ -162,7 +162,7 @@ rename list.
 
 ## Phase 2 — Fix the orphaned doc block in `WorldState.cs`
 
-A real defect, currently committed, at `src/DK2.Simulation/WorldState.cs:82-85`:
+A real defect, currently committed, at `src/DK2.Simulation/WorldState.cs:96-100`:
 
 ```csharp
 /// <summary>

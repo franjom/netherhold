@@ -28,7 +28,7 @@ report what you find, and the caller fixes it.
      address (`0050EA70.md`), not `function_*.md`. `INDEX.md` is generated,
      so if it was edited by hand, that is a finding.
    - **Research prose:** the rest of `docs/research/`, plus
-     `docs/open-questions.md`, ADRs, and `docs/DECISIONS.md`.
+     `docs/research/open-questions.md`, ADRs, and `docs/DECISIONS.md`.
    - **Mirroring code:** files under `src/` that a record's `implements:`
      line points to, and any `src/` change that touches a `FUN_`, a field
      offset, or a mechanic.

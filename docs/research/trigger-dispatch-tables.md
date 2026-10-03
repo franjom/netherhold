@@ -71,8 +71,8 @@ modes**, but their counting partitions are different:
 0 — so implementing the availability half would have moved nothing. The
 `player+0xC`/`+0x22` are the trap owned-list head and total. ADR-0141 builds
 both count modes from projected construction state and the live object list;
-availability remains declined. Door navigation and trap firing are separate,
-still-unbuilt mechanics (Q249).
+availability remains declined. Door contact and trap firing are built separately
+(ADR-0318, ADR-0321; Q249).
 
 ## Action type 6 writes availability
 

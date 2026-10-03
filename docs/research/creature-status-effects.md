@@ -2,7 +2,7 @@
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-23 (the field sweeps
-  were begun by Codex in its worktree; every fact here was read again). Addresses
+  were begun by Codex; every fact here was read again). Addresses
   are **facts about the binary in our own words**; no decompiler output enters this
   repository (ADR-0046). Field names are DK2's own where its dumper prints them
   (`creature-object.md`); the rest are named by what they do.
