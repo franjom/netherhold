@@ -38,7 +38,8 @@ internal static class CombatStates
     /// <summary>255, stunned; the rule refuses it from the dying and frozen states.</summary>
     public const int Stunned = 255;
 
-    /// <summary>257, getting up from a stun; idle when its action ends.</summary>
+    /// <summary>257, getting up from a stun: holds while action 53 plays, then the room drop
+    /// (<see cref="DropLandingRules.AfterGettingUp"/>).</summary>
     public const int GettingUp = 257;
 
     /// <summary>259, at the body a victor walked to.</summary>

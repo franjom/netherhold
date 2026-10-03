@@ -342,7 +342,8 @@ public class NeedInterruptTests
 
         Assert.Equal(CreatureActivity.SeekingFood, goblin.Activity);
         if (onARoom) Assert.InRange(ticks, NeedRules.DroppedOnARoomGraceTicks - 2, NeedRules.DroppedOnARoomGraceTicks + 4);
-        else Assert.InRange(ticks, 0, SimulationTiming.TicksPerSecond + 4);
+        // Off a room: the stun, the get-up (257 holds for the type's eleven ticks, ADR-0344), then food.
+        else Assert.InRange(ticks, 0, SimulationTiming.TicksPerSecond + DropLandingRules.GetUpTicks(db.CreatureById(QuickGoblin)) + 4);
     }
 
     private static CreatureState Fresh(int state)

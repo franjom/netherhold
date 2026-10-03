@@ -7839,3 +7839,35 @@ only from underfoot.
   and the pin's run has no aimed fetch.
 - Tier B's sweep already carried the filter; only the retry changes, and its "nearest" is now
   Manhattan rings, as DK2's, not route steps.
+
+## ADR-0344 — A stunned creature gets up for its type's ticks, then stands fifty turns from getting up
+**Date:** 2026-10-03 · **Status:** accepted · Research: `hand-drop-landing.md` §3–§4; `creature-status-effects.md` §2; `functions/00481200.md`, `functions/00481CF0.md`, `functions/004E8DA0.md`; Q527
+
+**Context.** Level 1 seed 13 was the one Level 1 seed that lost. The packet drops six Goblins at
+(15,14) at 1700–1703 as the Lord arrives; in DK2's seven captures each lies 76 × 1, 255 × 4,
+257 × 11, then stands in 250 until the Lord comes into sight at 1728–1730, all six engage, the
+threat is shared six ways, nobody flees for more than a few ticks, and the Lord dies about 1780.
+Ours skipped 257's hold and entered 250 with a stale `StateDeadlineTick`: three Goblins idled at
+once and wandered off, one engaged alone, fled for 90 ticks with the Lord chasing, and the Lord's
+KillPlayer walk was re-issued at 1830 and 1995. Re-read by disassembly: 257 (`0x00481200`)
+returns 1 while an action is current (`0x00496D00`), the get-up action 53; and `0x004E8DA0`
+writes now into `creature+0x2CC`, the state record's `+0x7E` (`0x24E + 0x7E`), just before
+`KickToState(250)`, so 250's `+0x7E + 50 > now` is fifty turns from getting up.
+hand-drop-landing.md §4's "`SetState` does not write `+0x7E`" was wrong, and ours inherited it.
+**Decision.** At the stun's end `CreatureStatusSystem` enters 257 and holds it on
+`ActionUntilTick` for `DropLandingRules.GetUpTicks`, a per-type table read off the Level 1–3
+captures (Warlock 8, Goblin 11, Troll 5, Firefly 13, the Lord of the Land (29) 4, type 14 (the Dwarf) 4; an unmeasured
+type 8, a guess, Q527), then runs the room drop. `AfterGettingUp` stamps `StateDeadlineTick` with
+now on its way into 250. 257's step along the facing and `0x00481400`'s victim-or-door pick stay
+unbuilt.
+**Consequences.**
+- L1: 20 of 20 (seed 13 wins at 1800, the Lord dead at 1776; DK2 about 1780). Over the 20 seeds
+  the Lord's death moved from 1742–2006 to 1749–1801, the six seeds past 1890 falling to
+  1753–1801; seed 13's flee events 26 → 7.
+- L2: 4 of 20 (seeds 1, 10, 18, 19; 3 of 20 before: 1, 3, 7), the DK2-like variance of ADR-0339.
+- L3 seed01: won at 3564 (3660 before; DK2 3683); the run diverges at the first drop's get-up
+  (1731). The Lord's own fight is a separate gap: DK2's Lord fights from 3510 to 3680 and is
+  stunned four times on the way; ours dies 27 ticks after his KillPlayer walk is issued.
+- Tests: `DropLandingTests` no longer pre-stamps the word (that hid the gap); the stun tests
+  count 257 as the stunned family, damage doubled. HashVersion unchanged: no new field, and the
+  pin's run has no stun.
