@@ -7979,5 +7979,6 @@ Stage 1 builds Create Gold's cast and horizontal landing/merge through the
 existing shot boundary; see `research/keeper-spell-create-gold.md` for evidence
 and retained height/room-timing limits. No state fields or hash version changed.
 The full gate passed (3,237 no-install tests passed, 393 skipped); all 42
-scenario series are byte-identical to stage 0. The reference and confidence
-corrections are independently approved; the landing correction awaits review.
+scenario series are byte-identical to stage 0. All three Stage 1 corrections
+are independently approved. Stage 2 is a research checkpoint, unbuilt:
+see `research/keeper-spell-tremor.md` and Q531 for the remaining core paths.

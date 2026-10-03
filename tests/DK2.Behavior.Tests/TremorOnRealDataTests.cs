@@ -1,0 +1,30 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.Data;
+using DK2.TestSupport;
+
+namespace DK2.Behavior.Tests;
+
+public sealed class TremorOnRealDataTests
+{
+    [InstallFact]
+    public void ShippedTremorHasTheResearchedDescriptorAndCarrierValues()
+    {
+        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var spell = db.KeeperSpellById(8)!;
+        Assert.Equal("Tremor", spell.Name);
+        Assert.Equal((30000, 0, 0), (spell.ManaCost, spell.ManaUpkeepPerSecond, spell.CooldownRaw));
+        Assert.Equal(((byte)5, (byte)4), (spell.LocationSelector, spell.TargetSelector));
+        Assert.Equal(0x14u, (uint)spell.Flags);
+        Assert.Equal(((byte)24, 5, 3), spell.Shot(false));
+        Assert.Equal(((byte)24, 7, 3), spell.Shot(true));
+        var shot = db.Shots[spell.ShotTypeId];
+        Assert.Equal((byte)27, shot.ProcessType);
+        Assert.Equal(0x40u, shot.ShotProcessFlags);
+        Assert.Equal(4u, shot.Flags);
+        Assert.Equal(10, shot.Health);
+        Assert.Equal(((byte)0, (byte)2), (shot.DamageType, shot.CollideType));
+    }
+}
