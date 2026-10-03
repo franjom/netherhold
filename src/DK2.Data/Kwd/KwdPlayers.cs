@@ -20,7 +20,7 @@ namespace DK2.Data.Kwd;
 /// bytes the game never reads (<c>0x05-0x07</c>, <c>0x3A-0x41</c>, <c>0x84-0x85</c> and the high
 /// bytes of the three u16s) hold uninitialised editor memory in most shipped records and are left
 /// alone, reachable through <see cref="KeeperAIParameters.RawBlock"/>.</para></summary>
-public static class KwdPlayers
+public static partial class KwdPlayers
 {
     /// <summary>Bytes per player record.</summary>
     public const int RecordSize = 205;

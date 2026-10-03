@@ -59,6 +59,9 @@ record image, using reader offsets.
 `KwdVariables.ParseRecord` / `WriteRecord` operate on individual typed cells,
 preserving repeated ids and source order that the aggregate table folds.
 Changing between structured payload shapes requires a matching template.
+`KwdPlayers.WriteRecord` overlays player and AI fields. Unchanged boolean encodings
+and unconsumed high bytes survive; `RawBlock` edits are refused. Exhaustive field
+edit tests guard the AI reader/writer layout.
 Unchanged names retain their original padding; unrepresentable edits are refused.
 Other typed overlays, shape editing and the editor UI are still pending.
 
