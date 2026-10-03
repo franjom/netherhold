@@ -4,8 +4,8 @@ Read 2026-10-03 from DKII.EXE v1.70 through isolated PyGhidra MCP project
 copies. Disassembly checks the callback arguments, slot selection, bounds,
 expiry comparison and update order. Binary behavior is STRONGLY INFERRED;
 the shipped descriptor and the dumper's field names are CONFIRMED.
-The integer action clock is built. Tremor integration is written but has not
-been committed or verified; the boundary below records binary evidence.
+The integer action clock and Tremor integration are committed. Independent
+review found remaining corrections; the boundary below records binary evidence.
 
 ## 1. Descriptor and cast
 
