@@ -76,6 +76,59 @@ public static partial class KwdAdditionalRecords
         return image;
     }
 
+    public static byte[] WriteEffectRecord(EffectDef row, KwdRecordImage template)
+    {
+        byte[] image = KwdOverlay.Image(template, KwdRecordType.Effects, EffectSize);
+        KwdOverlay.Ascii(image, 0, 32, row.Name, Ascii(image, 0, 32), trimmed: true);
+        WriteArt(image, 32, row.ArtResource);
+        WriteLight(image, 116, row.Light);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(140), row.Mass);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(144), row.AirFriction);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(148), row.Elasticity);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(152), row.Radius);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(156), row.MinSpeedXy);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(160), row.MaxSpeedXy);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(164), row.MinSpeedYz);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(168), row.MaxSpeedYz);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(172), row.MinScale);
+        BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(176), row.MaxScale);
+        BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(180), row.Flags);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(184), row.EffectId);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(186), row.MinHp);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(188), row.MaxHp);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(190), row.FadeDuration);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(192), row.NextEffectId);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(194), row.DeathEffectId);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(196), row.HitSolidEffectId);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(198), row.HitWaterEffectId);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(200), row.HitLavaEffectId);
+        WriteU16s(image, 202, 8, row.GenerateIds);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(218), row.OuterOriginRange);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(220), row.LowerHeightLimit);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(222), row.UpperHeightLimit);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(224), row.OrientationRange);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(226), row.SpriteSpinRateRange);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(228), row.WhirlpoolRate);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(230), row.DirectionalSpread);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(232), row.CircularPathRate);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(234), row.InnerOriginRange);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(236), row.GenerateRandomness);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(238), row.Unknown_00EE);
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(240), row.Unknown_00F0);
+        image[242] = row.GenerationType;
+        image[243] = row.ElementsPerTurn;
+        BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(244), row.Unknown_00F4);
+        return image;
+    }
+
+    private static void WriteU16s(byte[] image, int offset, int count, IReadOnlyList<ushort> values)
+    {
+        if (values is null || values.Count != count)
+            throw new InvalidDataException($"Field at +0x{offset:X} requires exactly {count} ushort slots.");
+        for (int i = 0; i < count; i++)
+            BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(offset + i * 2), values[i]);
+    }
+
     private static void WriteLight(byte[] image, int offset, KwdLight row)
     {
         BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(offset), row.X);
