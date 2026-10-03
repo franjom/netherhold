@@ -52,6 +52,10 @@ y and x signs: 18 bytes, the widest member.
 3. The terrain wear (`0x004A10E0`, §7).
 4. Health `≤` wear: destroyed (vtable `+0x20`), a sound. Returns 1.
 
+The object update `0x0049BD20` runs it through the state runner `0x0049EED0`, then the stepper
+`0x004B2030`, which moves only `+0x104`/`+0x110` (zero on a boulder); its decay needs definition bit 0
+or 1, which `0x238200` lacks. So nothing breaks a boulder at a wall but §6's tenth a turn (Q520).
+
 ## 4. The strike (`0x004A0930`)
 
 For each offset of table `0x006BC3B0` — N, NE, E, SE, S, SW, W, NW, then (0,0) — each thing in that
