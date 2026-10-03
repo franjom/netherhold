@@ -147,8 +147,9 @@ Action 55's record at `0x006E47D3` has a null handler and selects animation slot
 35 through the action table's `+0x14` byte. The action start stamps the game turn
 at `creature+0x3A5`, but the generic action updater does not compare that stamp
 for this record. Instead it keeps the action while the creature's animation
-instance at `+0xDC` exists and clears the entire action block when that instance
-ends.
+advance rate at `+0xDC` is nonzero and clears the entire action block when that
+rate reaches zero. The embedded animation object begins at body +0x44;
+see [Tremor's clock](keeper-spell-tremor.md#4-build-boundary-and-next-read).
 
 On the same creature tick, state 260 then observes no action, returns false, and
 the state dispatcher enters state 1, idle. Thus the celebration lasts **one

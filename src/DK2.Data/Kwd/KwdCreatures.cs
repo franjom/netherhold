@@ -129,6 +129,21 @@ public static partial class KwdCreatures
                 altJobs.Add(new CreatureJobAlternative(job, U16(off + 4), U16(off + 6)));
         }
 
+        CreatureAnimationTiming AnimationTiming(int slot)
+        {
+            int offset = 0x20 + (slot * 84);
+            byte type = U8(offset + 0x50);
+            return new CreatureAnimationTiming
+            {
+                ResourceType = type,
+                Flags = (CreatureAnimationFlags)U32(offset + 0x40),
+                FrameCount = type == 6 ? U16(offset + 0x44) : (ushort)0,
+                FramesPerSecond = type == 6 ? U16(offset + 0x48) : (ushort)0,
+                StartSegmentFrames = type == 6 ? U8(offset + 0x51) : (byte)0,
+                EndSegmentFrames = type == 6 ? U8(offset + 0x52) : (byte)0,
+            };
+        }
+
         return new CreatureDef
         {
             Name = Str(0x00, 32),
@@ -153,6 +168,10 @@ public static partial class KwdCreatures
             AngryArtFlags = U8(AngryBlock + 0x50) != 0 ? U32(AngryBlock + 0x40) : 0,
             AngryFrames = U8(AngryBlock + 0x50) != 0 ? S32(AngryBlock + 0x44) : 0,
             AngryFramesPerSecond = U8(AngryBlock + 0x50) != 0 ? S32(AngryBlock + 0x48) : 0,
+            KnockdownAnimation = AnimationTiming(24),
+            GetUpAnimation = AnimationTiming(27),
+            KnockdownFallbackAnimation = AnimationTiming(4),
+            GetUpFallbackAnimation = AnimationTiming(1),
 
             Speed = Fp(0xEB4),
             RunSpeed = Fp(0xEB8),

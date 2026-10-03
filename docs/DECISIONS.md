@@ -7942,7 +7942,7 @@ unchanged, with no graph-rewiring API. Map resizing retains overlapping
 coordinates and requires an explicit fill image for new tiles.
 No editor UI or playability validation is built. New-header synthesis is Q529.
 
-## ADR-0347 — Build keeper spells only after their complete effect paths are read
+## ADR-0348 — Build keeper spells only after their complete effect paths are read
 **Date:** 2026-10-03 · **Status:** in progress
 
 **Context.** Seven keeper spells remain outside the simulation's cast boundary.
@@ -7980,5 +7980,7 @@ existing shot boundary; see `research/keeper-spell-create-gold.md` for evidence
 and retained height/room-timing limits. No state fields or hash version changed.
 The full gate passed (3,237 no-install tests passed, 393 skipped); all 42
 scenario series are byte-identical to stage 0. All three Stage 1 corrections
-are independently approved. Stage 2 is a research checkpoint, unbuilt:
-see `research/keeper-spell-tremor.md` and Q531 for the remaining core paths.
+are independently approved. Stage 2 has traced the complete effect and recovery
+paths and builds the definition-based integer action clock. Tremor itself is
+unbuilt pending world/state integration; see `research/keeper-spell-tremor.md`
+and Q533. The prerequisite adds no hashed state or snapshot fields.

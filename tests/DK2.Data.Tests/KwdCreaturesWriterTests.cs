@@ -31,7 +31,8 @@ public class KwdCreaturesWriterTests
             "AngerSlap:F30:2 AngerInHand:F32:2 DropDeliveryCalm:FCB:2 TortureHpChange:107F:2 TortureMoodChange:1081:2 TortureTimeToConvert:EF4:4 " +
             "GuardDuration:ED4:4 IdleDuration:ED8:4 SlapFearlessDuration:EDC:4 PossessionManaCost:EE8:2 LairObjectId:F52:1 " +
             "CloneCreatureId:D3B:1 NameStringId:F24:2 TooltipStringId:F26:2 IntroductionStringId:CFF:2",
-            excludedProperties: ["Attractions", "Spells", "Resistances", "HappyJobs", "UnhappyJobs", "AngryJobs", "HateJobs", "AlternativeJobs"],
+            excludedProperties: ["Attractions", "Spells", "Resistances", "HappyJobs", "UnhappyJobs", "AngryJobs", "HateJobs", "AlternativeJobs",
+                "KnockdownAnimation", "GetUpAnimation", "KnockdownFallbackAnimation", "GetUpFallbackAnimation"],
             customValues: new Dictionary<string, object> { ["SizeClass"] = 13 });
 
     [Fact]
@@ -138,6 +139,43 @@ public class KwdCreaturesWriterTests
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { AlternativeJobs = alternatives }, image));
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original,
             new KwdRecordImage(KwdRecordType.Creatures, new byte[5448])));
+    }
+
+    [Theory]
+    [InlineData(5449, 24)] [InlineData(5449, 27)] [InlineData(5449, 4)] [InlineData(5449, 1)]
+    [InlineData(5537, 24)] [InlineData(5537, 27)] [InlineData(5537, 4)] [InlineData(5537, 1)]
+    public void AnimationMetadataPreservesUnknownUpperWordsAndOtherArtBytes(int stride, int slot)
+    {
+        byte[] source = Source(stride);
+        int offset = 0x20 + (slot * 84);
+        source[offset + 0x50] = 6;
+        CreatureDef original = Read(source);
+        var timing = new CreatureAnimationTiming
+        {
+            ResourceType = 6, Flags = CreatureAnimationFlags.StartSegment | CreatureAnimationFlags.EndSegment,
+            FrameCount = 51, FramesPerSecond = 30, StartSegmentFrames = 6, EndSegmentFrames = 14,
+        };
+        CreatureDef changed = slot switch
+        {
+            24 => original with { KnockdownAnimation = timing },
+            27 => original with { GetUpAnimation = timing },
+            4 => original with { KnockdownFallbackAnimation = timing },
+            _ => original with { GetUpFallbackAnimation = timing },
+        };
+        byte[] written = KwdCreatures.WriteRecord(changed, new KwdRecordImage(KwdRecordType.Creatures, source));
+        CreatureDef reread = Read(written);
+        Assert.Equal(timing, slot switch
+        {
+            24 => reread.KnockdownAnimation, 27 => reread.GetUpAnimation,
+            4 => reread.KnockdownFallbackAnimation, _ => reread.GetUpFallbackAnimation,
+        });
+        Assert.Equal(source, KwdCreatures.WriteRecord(original, new KwdRecordImage(KwdRecordType.Creatures, source)));
+        for (int i = 0; i < stride; i++)
+        {
+            int relative = i - offset;
+            bool known = relative is >= 0x40 and <= 0x45 or >= 0x48 and <= 0x49 or >= 0x50 and <= 0x52;
+            if (!known) Assert.Equal(source[i], written[i]);
+        }
     }
 
     [InstallFact]

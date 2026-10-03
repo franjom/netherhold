@@ -36,6 +36,21 @@ public static partial class KwdCreatures
         S32(0xE98, row.EntranceOffsetY);
         S32(EntranceBlock + 0x44, row.EntranceFrames);
         S32(EntranceBlock + 0x48, row.EntranceFramesPerSecond);
+        void AnimationTiming(int slot, CreatureAnimationTiming timing)
+        {
+            int offset = 0x20 + (slot * 84);
+            U8(offset + 0x50, timing.ResourceType);
+            U32(offset + 0x40, (uint)timing.Flags);
+            if (timing.ResourceType != 6) return;
+            U16(offset + 0x44, timing.FrameCount);
+            U16(offset + 0x48, timing.FramesPerSecond);
+            U8(offset + 0x51, timing.StartSegmentFrames);
+            U8(offset + 0x52, timing.EndSegmentFrames);
+        }
+        AnimationTiming(24, row.KnockdownAnimation);
+        AnimationTiming(27, row.GetUpAnimation);
+        AnimationTiming(4, row.KnockdownFallbackAnimation);
+        AnimationTiming(1, row.GetUpFallbackAnimation);
         S32(0xEB4, row.Speed.Raw);
         S32(0xEB8, row.RunSpeed.Raw);
         S32(OffsetShuffleSpeed, row.ShuffleSpeed.Raw);

@@ -22,6 +22,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   ADR-0329's scoped inference (Q455); shot heights go to M9 and the Boulder's slap to object slapping
   (ADR-0341). Left: the owner's observations in experiments/doors-and-traps.md — Q520's wall is
   disputed, Q513, Q524 and Q362 unwatched (2026-10-03).
+- Keeper-spell work (ADR-0348) builds Create Gold. Tremor's effect and recovery
+  paths are read and its integer action clock is built; world/state integration
+  is next. See research/keeper-spell-tremor.md and Q533; the other six spells
+  remain outside the new cast boundary.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 16).
   The proactive task machine (tasks 0–7) digs, expands, builds rooms, manages

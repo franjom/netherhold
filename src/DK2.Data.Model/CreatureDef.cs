@@ -85,6 +85,11 @@ public sealed record CreatureDef
     /// <inheritdoc cref="AngryArtFlags"/>
     public int AngryFramesPerSecond { get; init; }
 
+    public CreatureAnimationTiming KnockdownAnimation { get; init; }
+    public CreatureAnimationTiming GetUpAnimation { get; init; }
+    public CreatureAnimationTiming KnockdownFallbackAnimation { get; init; }
+    public CreatureAnimationTiming GetUpFallbackAnimation { get; init; }
+
     // Movement / perception
     public required Fp32 Speed { get; init; }
     public required Fp32 RunSpeed { get; init; }

@@ -1,10 +1,10 @@
-# Tremor — world effect traced, creature control unfinished
+# Tremor — effect and recovery traced, integration pending
 
 Read 2026-10-03 from DKII.EXE v1.70 through isolated PyGhidra MCP project
 copies. Disassembly checks the callback arguments, slot selection, bounds,
 expiry comparison and update order. Binary behavior is STRONGLY INFERRED;
 the shipped descriptor and the dumper's field names are CONFIRMED.
-This is a research checkpoint, not a completed simulation implementation.
+The integer action clock is built; the Tremor mechanic is not yet integrated.
 
 ## 1. Descriptor and cast
 
@@ -27,7 +27,9 @@ world effect at the shot's position through `0x00510290`. Its duration is
 the low 16 bits of data1 times variable 19; its radius is data2 shifted 12,
 also narrowed to 16 bits. It returns zero. The ordinary values therefore
 request 20 turns and a radius of 12,288 position units; upgraded 28 turns.
-The shot's ten-turn health is not the world effect's duration.
+The shot's ten-turn health is not the world effect's duration. The first-tick
+event's zero return is ignored at `0x004AB27D`–`0x004AB290`; the shot tick
+continues and the callback is not repeated on later turns.
 
 ## 2. World record and area
 
@@ -80,25 +82,88 @@ and neutral walls do not take this branch. Despite the variable's name,
 this caller does not divide by turns per second.
 
 The update also invokes world slot +0x388 with id 43 and the neutral tag.
-`0x0050E490` forwards all six arguments to the object at world-context +0x10,
-slot +0x90, or returns zero if that object is absent. That receiver has not
-been identified: the call must not yet be classified as either simulation
-damage or presentation. The shipped shot 43 is Disruption, but the numeric
-id alone does not establish what this forwarding interface creates.
+`0x0050E490` forwards six arguments to context +0x10, slot +0x90, or returns
+zero if that component is absent. The session attach window in `0x00525370`
+passes component 0x006D3CC8 to `0x00527040`. Its static initializer
+`0x0043A5E0` calls `0x0043A740`, installing vtable 0x0066CC94; the destructor
+`0x0043AA30` corroborates that table. This establishes the concrete receiver.
+
+Slot +0x90 is `0x00440420`: bounds, solidity and view-visibility gates precede
+slot +0x98 (`0x00440350`). That allocator creates separate 0x159-byte effect
+objects through `0x00434700` and `0x004347E0`, linked into component +0x336.
+The definition getter `0x00440BC0` uses a separate 0x94-byte record array;
+the initializer uses the presentation random seed 0x006D6450, rather than
+the world seed. Shipped Effects.kwd identifies effect 43 as **Tremor Rocks**,
+checked by `TremorOnRealDataTests`. This is the presentation effect interface,
+not the shot-43 Disruption interface. The allocator's transitive rendering
+helpers were not all audited; this read does not assert they have no other
+side effects. Flame supplied structural lookup addresses only; the call,
+instance, vtable and allocation facts above were checked in DKII.EXE.
 
 ## 4. Build boundary and next read
 
-Tremor remains unsupported by KeeperSpellRules; no fields, commands, state
-hashes or snapshot layout changed. Its research upgrade is described by the
+Tremor remains unsupported by KeeperSpellRules; no world state fields, commands,
+state hashes or snapshot layout changed. Its research upgrade is described by the
 data but is not built. The existing 42-scenario prediction therefore remains
 unchanged. Read-only descriptor validation is in `TremorOnRealDataTests`.
 
-Q531 tracks the remaining core paths. `0x004764A0` was decompiled whole and
+Q533 tracks the remaining integration. `0x004764A0` was decompiled whole and
 its branch ranges disassembled: it gates dying, unattackable, captive and
 state-table cases, manipulates the dumper-named Fleeing bit, routes with
 resume state 1/options 0x80, and can enter state 210 on a five-percent branch.
-The function record holds those details. Before implementation, follow the
-Fleeing readers and recovery states, validate its route arithmetic against
-the instructions, and identify the +0x90 receiver. The owner was asked what
-Tremor visibly does to friendly and enemy creatures. No experiment result
-has been supplied; no health-damage or recovery rule is assumed.
+The function record holds those details. The idle handler `0x004773D0`
+clears Fleeing when it executes; a matching clear mask in the inspected tail
+of `0x0047A780` instead writes +0x3E6 and is unrelated to that flag.
+State 210's `0x00481520` ends the current action, starts action 64 and enters
+263. Its `0x004815A0` waits for completion, optionally consumes +0x3E6 bit 27
+as one handler delay, then starts get-up action 53 and enters 264. These
+handlers supply no fixed duration; they wait for the action clock below.
+Full assembly resolves the route arithmetic and stack aliases; the exact
+formulas and retry order are in the `0x004764A0` function record. Preserve
+its repeated X normalization, logical shifts and asymmetric search bounds.
+The owner was asked what Tremor visibly does to friendly and enemy creatures.
+No experiment result has been supplied; the creature behavior remains
+STRONGLY INFERRED from the binary pending an original-game comparison.
+
+### Animation clock
+
+Action table initializer `0x004950C0` selects slot 24 for action 64 and slot
+27 for action 53; both have null handlers, mode 3 and no fixed timer.
+`0x00494860`/`0x00494880` resolve missing slots to 4 and 1 respectively,
+without recursively checking the fallback. `0x00496700` starts the resolved
+resource in the embedded animation object at body +0x44; `0x004969D0` with
+variant 1 clears looping. It retains the requested slot number even when
+the resource comes from a fallback. Missing resources can still start an
+action: their zero rate completes it at the next action-runner poll.
+
+`0x00496AA0` mode 3 waits for body +0xDC (animation object +0x98), a normalized
+advance rate, not an instance pointer. `0x00496D00` reports the current action.
+The creature updater `0x00488930` runs actions before its state handler;
+this read does not newly establish the animation-update ordering.
+
+Type-6 resource compaction in `0x00504D80` narrows the file frame count and FPS
+at art +0x44/+0x48 to words. Flags come from +0x40; segment lengths from bytes
++0x51/+0x52. `CreatureAnimationTiming` carries these definition values without
+a rendering handle. Parsing metadata assumes a present descriptor loads,
+as the existing entrance/angry metadata do; failed asset loads are not modeled.
+
+`0x004B37D0` resets playback, `0x004B41E0` computes its rate, and `0x004B3AD0`
+advances type-6 resources through `0x004B3C10`. `AnimationTimingRules` models
+ordinary immediate nonlooping playback at the original four turns/second.
+For an unsegmented clip, duration = trunc(frames*4096/FPS),
+step = min(4095, trunc(16777216/(duration*4))). Phase advances to 4096;
+the following update zeroes the rate. The hold is ceil(4096/step)+1 turns.
+Resource flags 8/16 enable start/end segments. Segment transitions divide
+overshoot by next-duration/previous-duration using fixed-point division at
+each step. The function record preserves equality and carry-clamp branches;
+the implementation simulates them rather than adding rounded durations.
+The action clock does not model arbitrary rate changes or queued clips.
+
+Derived get-up holds match all six independent Q527 captures: Warlock 8,
+Goblin 11, Troll 5, Firefly 13, Dwarf 4, Lord of the Land 4. Corresponding
+knockdown holds are 5, 7, 5, 3, 3, 5. Horny's missing knockdown and fallback
+slot 4 complete at the next poll; its get-up falls back to segmented slot 1
+(30 frames/30 FPS, start 6/end 14) and derives nine turns. These descriptor
+and timing checks extend `TremorOnRealDataTests`; pure clock regressions
+are in `AnimationTimingTests`. Neither the existing drop clock nor victory
+clock is changed by this integration prerequisite.

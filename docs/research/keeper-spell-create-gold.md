@@ -70,7 +70,7 @@ represented point is the cell centre or, without a cell, the tile centre.
 A Hand drop updates a spell pile's coordinates before landing or delivery.
 This collapses the state-1 vertical fall into the current flat model; M9's
 height boundary remains. Room states are recorded, but their original object
-update lifecycle is not run. Deposit timing is tracked separately in Q530.
+update lifecycle is not run. Deposit timing is tracked separately in Q532.
 
 Treasury and Heart deposits retain the shared gold-store representation and
 capacity rules (ADR-0015). StoreSweepSystem deposits only what fits on its
@@ -84,4 +84,4 @@ other object types/tiles, foreign pile ownership, and a moved pile's snapshot
 continuation and position hash sensitivity.
 
 No new state fields or serialization layout were introduced. Baseline scenario
-comparison belongs to ADR-0347; this document is the evidence home.
+comparison belongs to ADR-0348; this document is the evidence home.

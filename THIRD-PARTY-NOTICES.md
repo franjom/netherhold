@@ -90,6 +90,12 @@ comments do.
   source; a name is not a copyrightable work and a citation is not a copy
   (ADR-0080). `FlameIdentifierTests` enforces the source-tree half.
 
+- **Tremor component lookup (facts only):** Flame's session-component layout,
+  view-component constructor/destructor addresses and effect-vtable structure
+  were consulted on 2026-10-03. Every retained call, instance, vtable and
+  allocation fact was checked in DKII.EXE; see `docs/research/keeper-spell-tremor.md`
+  section 3. No code or identifiers were reused in source or tests.
+
 ## YamlDotNet
 - https://github.com/aaubry/YamlDotNet — MIT License, Copyright (c) Antoine Aubry
   and contributors
