@@ -8,7 +8,7 @@ using DK2.Data.Model;
 namespace DK2.Data.Kwd;
 
 /// <summary>One exact on-disk record image, independent of its typed projection.</summary>
-public sealed class KwdRecordImage : KwdRoundTripRecord
+public sealed record KwdRecordImage : KwdRoundTripRecord
 {
     public KwdRecordImage(KwdRecordType type, byte[] bytes, int? tag = null) : base(bytes)
     {

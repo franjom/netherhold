@@ -7824,6 +7824,8 @@ than guessing a clock encoding or choosing undocumented zero values. Copying old
 timestamps for a new chunk is an editor policy, not a claim about DK2's editor.
 Corpus evidence is in `research/kwd-container.md` §Writer header evidence.
 No simulation state or hash version changes.
+Retained typed models support immutable copies; copying never rewrites their
+source image. Only an explicit overlay writer encodes typed changes.
 
 **Consequences.** A chunk assembled without a container encoding template is
 refused. Raw header bytes remain available. Record-image Split/Join validates

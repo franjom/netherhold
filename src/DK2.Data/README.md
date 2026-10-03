@@ -64,6 +64,8 @@ and unconsumed high bytes survive; `RawBlock` edits are refused. Exhaustive fiel
 edit tests guard the AI reader/writer layout.
 Unchanged names retain their original padding; unrepresentable edits are refused.
 Other typed overlays, shape editing and the editor UI are still pending.
+Retained typed models support immutable `with` copies. Their `ToBytes()` remains
+the original image; apply edits with the explicit overlay writers.
 `KwdCreatures.WriteRecord` overlays both strides, preserving filtered list slots,
 inactive Angry payloads, SizeClass's low bits and the raw 88-byte embedded tail.
 List-count changes and edits invisible to the reader are refused. Q526's two

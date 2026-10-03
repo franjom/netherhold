@@ -9,7 +9,7 @@ namespace DK2.Data.Model;
 /// is deliberate: editor padding and still-unknown fields must round-trip
 /// without being normalised or silently dropped.
 /// </summary>
-public abstract class KwdRoundTripRecord
+public abstract record KwdRoundTripRecord
 {
     private readonly byte[] _sourceBytes;
 
@@ -35,7 +35,7 @@ public sealed record KwdLight(
     int X, int Y, int Z, int Radius, uint Flags,
     byte Red, byte Green, byte Blue, byte Alpha);
 
-public sealed class CreatureSpellDef : KwdRoundTripRecord
+public sealed record CreatureSpellDef : KwdRoundTripRecord
 {
     public CreatureSpellDef(byte[] sourceBytes) : base(sourceBytes) { }
     public required string Name { get; init; }
@@ -61,7 +61,7 @@ public sealed class CreatureSpellDef : KwdRoundTripRecord
     public required ReadOnlyMemory<byte> Unknown_00EF { get; init; }
 }
 
-public sealed class ShotDef : KwdRoundTripRecord
+public sealed record ShotDef : KwdRoundTripRecord
 {
     public ShotDef(byte[] sourceBytes) : base(sourceBytes) { }
     public required string Name { get; init; }
@@ -96,7 +96,7 @@ public sealed class ShotDef : KwdRoundTripRecord
     public int BurnDuration { get; init; }
 }
 
-public sealed class EffectDef : KwdRoundTripRecord
+public sealed record EffectDef : KwdRoundTripRecord
 {
     public EffectDef(byte[] sourceBytes) : base(sourceBytes) { }
     public required string Name { get; init; }
@@ -124,7 +124,7 @@ public sealed class EffectDef : KwdRoundTripRecord
     public ushort Unknown_00F4 { get; init; }
 }
 
-public sealed class EffectElementDef : KwdRoundTripRecord
+public sealed record EffectElementDef : KwdRoundTripRecord
 {
     public EffectElementDef(byte[] sourceBytes) : base(sourceBytes) { }
     public required string Name { get; init; }
@@ -147,13 +147,13 @@ public sealed class EffectElementDef : KwdRoundTripRecord
     public ushort NextEffectId { get; init; }
 }
 
-public abstract class ThingRecord : KwdRoundTripRecord
+public abstract record ThingRecord : KwdRoundTripRecord
 {
     protected ThingRecord(int tag, byte[] sourceBytes) : base(sourceBytes) => Tag = tag;
     public int Tag { get; }
 }
 
-public sealed class ObjectThing : ThingRecord
+public sealed record ObjectThing : ThingRecord
 {
     public ObjectThing(byte[] bytes) : base(194, bytes) { }
     public int X { get; init; } public int Y { get; init; }
@@ -162,7 +162,7 @@ public sealed class ObjectThing : ThingRecord
     public ushort TriggerId { get; init; } public byte ObjectId { get; init; } public byte PlayerId { get; init; }
 }
 
-public sealed class TrapThing : ThingRecord
+public sealed record TrapThing : ThingRecord
 {
     public TrapThing(byte[] bytes) : base(195, bytes) { }
     public int X { get; init; } public int Y { get; init; } public int Unknown_0008 { get; init; }
@@ -170,7 +170,7 @@ public sealed class TrapThing : ThingRecord
     public byte PlayerId { get; init; } public byte Unknown_000F { get; init; }
 }
 
-public sealed class DoorThing : ThingRecord
+public sealed record DoorThing : ThingRecord
 {
     public DoorThing(byte[] bytes) : base(196, bytes) { }
     public int X { get; init; } public int Y { get; init; } public int Unknown_0008 { get; init; }
@@ -178,7 +178,7 @@ public sealed class DoorThing : ThingRecord
     public byte Flags { get; init; } public required ReadOnlyMemory<byte> Unknown_0011 { get; init; }
 }
 
-public sealed class ActionPointThing : ThingRecord
+public sealed record ActionPointThing : ThingRecord
 {
     public ActionPointThing(byte[] bytes) : base(197, bytes) { }
     public int StartX { get; init; } public int StartY { get; init; }
@@ -188,21 +188,21 @@ public sealed class ActionPointThing : ThingRecord
     public byte NextWaypointId { get; init; } public required string Name { get; init; }
 }
 
-public abstract class CreatureThing : ThingRecord
+public abstract record CreatureThing : ThingRecord
 {
     protected CreatureThing(int tag, byte[] bytes) : base(tag, bytes) { }
     public int X { get; init; } public int Y { get; init; } public int Z { get; init; }
     public ushort GoldHeld { get; init; } public byte Level { get; init; } public byte Flags { get; init; }
 }
 
-public sealed class NeutralCreatureThing : CreatureThing
+public sealed record NeutralCreatureThing : CreatureThing
 {
     public NeutralCreatureThing(byte[] bytes) : base(198, bytes) { }
     public int InitialHealth { get; init; } public ushort TriggerId { get; init; }
     public byte CreatureId { get; init; } public byte Unknown_0017 { get; init; }
 }
 
-public sealed class GoodCreatureThing : CreatureThing
+public sealed record GoodCreatureThing : CreatureThing
 {
     public GoodCreatureThing(byte[] bytes) : base(199, bytes) { }
     public int ObjectiveTargetActionPointId { get; init; } public int InitialHealth { get; init; }
@@ -211,14 +211,14 @@ public sealed class GoodCreatureThing : CreatureThing
     public byte WanderRadius { get; init; } public byte PartyId { get; init; } public byte Flags2 { get; init; }
 }
 
-public sealed class KeeperCreatureThing : CreatureThing
+public sealed record KeeperCreatureThing : CreatureThing
 {
     public KeeperCreatureThing(byte[] bytes) : base(200, bytes) { }
     public int InitialHealth { get; init; } public int ObjectiveTargetActionPointId { get; init; }
     public ushort TriggerId { get; init; } public byte CreatureId { get; init; } public byte PlayerId { get; init; }
 }
 
-public sealed class HeroPartyThing : ThingRecord
+public sealed record HeroPartyThing : ThingRecord
 {
     public HeroPartyThing(byte[] bytes) : base(201, bytes) { }
     public required string Name { get; init; } public ushort TriggerId { get; init; }
@@ -226,14 +226,14 @@ public sealed class HeroPartyThing : ThingRecord
     public required IReadOnlyList<GoodCreatureThing> Members { get; init; }
 }
 
-public sealed class DeadBodyThing : ThingRecord
+public sealed record DeadBodyThing : ThingRecord
 {
     public DeadBodyThing(byte[] bytes) : base(202, bytes) { }
     public int X { get; init; } public int Y { get; init; } public int Z { get; init; }
     public ushort GoldHeld { get; init; } public byte CreatureId { get; init; } public byte PlayerId { get; init; }
 }
 
-public sealed class EffectGeneratorThing : ThingRecord
+public sealed record EffectGeneratorThing : ThingRecord
 {
     public EffectGeneratorThing(byte[] bytes) : base(203, bytes) { }
     public int X { get; init; } public int Y { get; init; }
@@ -244,7 +244,7 @@ public sealed class EffectGeneratorThing : ThingRecord
     public required ReadOnlyMemory<byte> Unknown_001E { get; init; }
 }
 
-public sealed class RoomThing : ThingRecord
+public sealed record RoomThing : ThingRecord
 {
     public RoomThing(byte[] bytes) : base(204, bytes) { }
     public int X { get; init; } public int Y { get; init; } public int Unknown_0008 { get; init; }
@@ -252,7 +252,7 @@ public sealed class RoomThing : ThingRecord
     public ushort InitialHealth { get; init; } public byte RoomType { get; init; } public byte PlayerId { get; init; }
 }
 
-public sealed class CameraThing : ThingRecord
+public sealed record CameraThing : ThingRecord
 {
     public CameraThing(byte[] bytes) : base(205, bytes) { }
     public int X { get; init; } public int Y { get; init; } public int Z { get; init; }
@@ -266,7 +266,7 @@ public sealed class CameraThing : ThingRecord
     public ushort CameraId { get; init; }
 }
 
-public abstract class TriggerRecord : KwdRoundTripRecord
+public abstract record TriggerRecord : KwdRoundTripRecord
 {
     protected TriggerRecord(int tag, byte[] bytes) : base(bytes) => Tag = tag;
     public int Tag { get; }
@@ -281,7 +281,7 @@ public abstract class TriggerRecord : KwdRoundTripRecord
     public required IReadOnlyDictionary<string, long> Parameters { get; init; }
 }
 
-public sealed class GenericTriggerRecord : TriggerRecord
+public sealed record GenericTriggerRecord : TriggerRecord
 {
     public GenericTriggerRecord(byte[] bytes) : base(213, bytes) { }
     public byte BodyByte0 => Body.Span[0]; public byte BodyByte1 => Body.Span[1];
@@ -289,7 +289,7 @@ public sealed class GenericTriggerRecord : TriggerRecord
     public uint BodyValue { get; init; }
 }
 
-public sealed class ActionTriggerRecord : TriggerRecord
+public sealed record ActionTriggerRecord : TriggerRecord
 {
     public ActionTriggerRecord(byte[] bytes) : base(214, bytes) { }
     public byte BodyByte0 => Body.Span[0]; public byte BodyByte1 => Body.Span[1];
@@ -298,7 +298,7 @@ public sealed class ActionTriggerRecord : TriggerRecord
     public uint BodyDword0 { get; init; } public uint BodyDword4 { get; init; }
 }
 
-public sealed class LevelDef : KwdRoundTripRecord
+public sealed record LevelDef : KwdRoundTripRecord
 {
     public LevelDef(byte[] bytes) : base(bytes) { }
     public required string Name { get; init; } public required string Description { get; init; }
