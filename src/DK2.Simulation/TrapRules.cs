@@ -17,8 +17,9 @@ namespace DK2.Simulation;
 /// threat it then shares among nearby enemies every update (<c>0x004B32A0</c>), the Trigger's
 /// propagation (<c>0x004A8E70</c>), the Guard Post's report to its room and the recovery. A trap
 /// fires only when its shot's damage type and process have a built handler (<see cref="FiringBuilt"/>);
-/// the reveal scan and every effect, sound and animation are not built, and disarming is unreachable
-/// in v1.70: nothing makes a creature a trap's disarmer (Q455).</summary>
+/// the reveal around a creature is built (<see cref="RevealAround"/>); every effect, sound and animation
+/// is not built. Disarming remains deferred
+/// under ADR-0329's scoped inference; reachability evidence and limits are Q455.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/traps.md")]
 public static class TrapRules
 {
