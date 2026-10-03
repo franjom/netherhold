@@ -18,8 +18,37 @@ namespace DK2.Data.Kwd;
 /// </summary>
 public static class KwdTerrainRooms
 {
+    public static byte[] WriteTerrainRecord(TerrainDef record, KwdRecordImage template)
+    {
+        byte[] bytes = KwdOverlay.Image(template, KwdRecordType.Terrain, TerrainRecordSize);
+        KwdOverlay.Ascii(bytes, 0, 32, record.Name, ReadName(bytes, 0, 32), trimmed: false);
+        void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(TerrainLayout.Depth), record.Depth.Raw);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(TerrainLayout.Flags), (uint)record.Flags);
+        BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(TerrainLayout.Damage), record.Damage);
+        U16(TerrainLayout.Gold, record.GoldValue);
+        U16(TerrainLayout.Mana, record.ManaGain);
+        U16(TerrainLayout.MaxMana, record.MaxManaGain);
+        U16(TerrainLayout.Tooltip, record.TooltipStringId);
+        U16(TerrainLayout.NameString, record.NameStringId);
+        bytes[TerrainLayout.Id] = record.TerrainId;
+        U16(TerrainLayout.StartingHealth, record.StartingHealth);
+        bytes[TerrainLayout.MaxHealthType] = record.MaxHealthTypeTerrainId;
+        bytes[TerrainLayout.DestroyedType] = record.DestroyedTypeTerrainId;
+        U16(TerrainLayout.MaxHealth, record.MaxHealth);
+        return bytes;
+    }
     private const int TerrainRecordSize = 552;
     private const int RoomRecordSize = 1055;
+
+    private static class TerrainLayout
+    {
+        internal const int Depth = 0x188, Flags = 0x190, Damage = 0x194;
+        internal const int Gold = 0x19A, Mana = 0x19C, MaxMana = 0x19E;
+        internal const int Tooltip = 0x1A0, NameString = 0x1A2, Id = 0x1D6;
+        internal const int StartingHealth = 0x1D7, MaxHealthType = 0x1D9, DestroyedType = 0x1DA;
+        internal const int MaxHealth = 0x1FF;
+    }
 
     public static List<TerrainDef> ParseTerrain(IEnumerable<KwdChunk> chunks)
     {
@@ -72,19 +101,19 @@ public static class KwdTerrainRooms
         return new TerrainDef
         {
             Name = ReadName(rec, b + 0x000, 32),
-            Depth = new Fp32(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + 0x188))),
-            Flags = (TerrainFlags)U32(0x190),
-            Damage = BinaryPrimitives.ReadInt16LittleEndian(rec.AsSpan(b + 0x194)),
-            GoldValue = U16(0x19A),
-            ManaGain = U16(0x19C),
-            MaxManaGain = U16(0x19E),
-            TooltipStringId = U16(0x1A0),
-            NameStringId = U16(0x1A2),
-            TerrainId = U8(0x1D6),
-            StartingHealth = U16(0x1D7),
-            MaxHealthTypeTerrainId = U8(0x1D9),
-            DestroyedTypeTerrainId = U8(0x1DA),
-            MaxHealth = U16(0x1FF),
+            Depth = new Fp32(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + TerrainLayout.Depth))),
+            Flags = (TerrainFlags)U32(TerrainLayout.Flags),
+            Damage = BinaryPrimitives.ReadInt16LittleEndian(rec.AsSpan(b + TerrainLayout.Damage)),
+            GoldValue = U16(TerrainLayout.Gold),
+            ManaGain = U16(TerrainLayout.Mana),
+            MaxManaGain = U16(TerrainLayout.MaxMana),
+            TooltipStringId = U16(TerrainLayout.Tooltip),
+            NameStringId = U16(TerrainLayout.NameString),
+            TerrainId = U8(TerrainLayout.Id),
+            StartingHealth = U16(TerrainLayout.StartingHealth),
+            MaxHealthTypeTerrainId = U8(TerrainLayout.MaxHealthType),
+            DestroyedTypeTerrainId = U8(TerrainLayout.DestroyedType),
+            MaxHealth = U16(TerrainLayout.MaxHealth),
         };
     }
 
