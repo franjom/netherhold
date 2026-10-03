@@ -7826,5 +7826,8 @@ Corpus evidence is in `research/kwd-container.md` §Writer header evidence.
 No simulation state or hash version changes.
 
 **Consequences.** A chunk assembled without a container encoding template is
-refused. Raw header bytes remain available. Record overlays and shape editing
-will follow in later milestones; no editor UI or playability validation is built.
+refused. Raw header bytes remain available. Record-image Split/Join validates
+counts, types, strides and tagged lengths; both CREATURES forms retain every
+trailing byte. GLOBALS' established form remains a LEVEL path row (Q220);
+standalone splitting/joining is refused. Typed overlays and shape editing follow
+in later milestones; no editor UI or playability validation is built.

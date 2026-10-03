@@ -48,7 +48,11 @@ levels, which is what `dk2tools kwd trigger-types` prints.
 every header byte and LEVEL's understated content size. `CreateFromTemplate`
 requires a parsed chunk as the explicit source for unknown header fields and
 timestamps (ADR-0343); template and input payload arrays are copied.
-Container writing does not yet provide typed record edits or an editor UI.
+`KwdRecordRoundTrip.Join` is the validated inverse of `Split`: it requires the
+template's count, types and strides, including both CREATURES forms, and verifies
+tagged payload lengths. GLOBALS has no established standalone layout and remains
+a LEVEL path discriminator with synthetic coverage (Q220).
+These layers do not yet provide typed record edits or an editor UI.
 
 ## WAD archives and saved games
 

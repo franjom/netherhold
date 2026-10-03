@@ -45,7 +45,7 @@ public static class KwdCorpusAudit
             foreach (KwdChunk chunk in KwdReader.ReadFile(file))
             {
                 List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
-                byte[] roundTrip = images.SelectMany(image => image.ToBytes()).ToArray();
+                byte[] roundTrip = KwdRecordRoundTrip.Join(chunk, images);
                 if (!roundTrip.SequenceEqual(chunk.Content))
                     throw new InvalidDataException($"{file}: {chunk.Type} record images did not round-trip.");
 
