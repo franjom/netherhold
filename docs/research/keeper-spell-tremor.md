@@ -49,8 +49,9 @@ requests an effect-service handle. No owner is stored in this record.
 
 The world frame `0x0050A450` calls the Tremor update `0x00510440` after
 entities and players. For every nonzero radius, age below Duration is active;
-at equality or later it clears Radius and requests the closing display.
-The remaining fields are retained. Active slots are visited in slot order.
+at equality or later it clears Radius and replaces the display handle with
+the closing display's returned handle. WorldX, WorldY, StartedAt and Duration
+are retained. Active slots are visited in slot order.
 
 Each active turn calls `0x00510370` once. It draws from the world random
 stream over the square `(2r+1)^2`, where r is Radius shifted right 12,
