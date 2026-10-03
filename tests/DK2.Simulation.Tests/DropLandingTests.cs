@@ -21,7 +21,7 @@ public class DropLandingTests
     /// cannot fight, 2–3 s in the shipped data), up in 257 for the Goblin's eleven ticks (every
     /// Level 1–3 capture), then 250 for fifty turns from getting up, then idle. The state word
     /// <c>+0x7E</c> is stamped by the drop (<c>0x004E8DA0</c>), so a stale deadline from long ago
-    /// does not shorten the stand (ADR-0344; before it, three of Level 1 seed 13's six Goblins
+    /// does not shorten the stand (ADR-0345; before it, three of Level 1 seed 13's six Goblins
     /// idled at once).</summary>
     [Fact]
     public void AnOwnCreatureDroppedOnPlainFloor_IsStunned_GetsUpForElevenTicks_ThenStandsFiftyFromGettingUp_WhateverTheOldDeadline()

@@ -1,7 +1,7 @@
 # Where a dropped creature lands: states 76, 255, 257, 250 and 77
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25; 257 and 250 re-read by disassembly on 2026-10-03.
-- **Built:** ADR-0226, `DropLandingRules`; 257's hold and 250's stamp ADR-0344.
+- **Built:** ADR-0226, `DropLandingRules`; 257's hold and 250's stamp ADR-0345.
 - Corrects:
   - ADR-0193 and `state-category-hooks.md` §3.2: a hand drop enters 76, not 77.
   - Q201's "the only site pushing a stunned state is the flee routine".
@@ -62,7 +62,7 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 
 **250** (`0x00481CF0`, "guarding") returns 1 while an action is current; else, while `+0x7E + 50 > now` (unsigned), it starts action 43 if the creature has it (`0x004966C0`, `0x00496700`) and returns 1; otherwise 0, which is idle.
 - So a dropped creature stands for **50 turns from getting up**, or until a fight takes it. Level 1's six Goblins at (15,14): 76 × 1, 255 × 4, 257 × 11, then 250 until the Lord comes into sight at 1728–1730.
-- (Until 2026-10-03 this section said `SetState` does not write `+0x7E` and the stand could reach 62 turns; the stamp above was missed, and ours inherited the gap: ADR-0344.)
+- (Until 2026-10-03 this section said `SetState` does not write `+0x7E` and the stand could reach 62 turns; the stamp above was missed, and ours inherited the gap: ADR-0345.)
 
 ## Differences in ours
 

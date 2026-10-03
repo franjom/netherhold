@@ -37,7 +37,7 @@ public sealed class CreatureStatusSystem : ISimulationSystem
                 {
                     // 257 (0x00481200) holds while its get-up action plays (0x00496D00), then runs the
                     // victim-or-door pick 0x00481400 (not built) and asks the room underfoot (ADR-0226,
-                    // ADR-0344). A worker idles instead.
+                    // ADR-0345). A worker idles instead.
                     if (context.Tick.Value >= creature.ActionUntilTick)
                     {
                         context.Emit(SystemName, "recovered", $"creature={creature.Id}");

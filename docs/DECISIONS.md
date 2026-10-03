@@ -913,7 +913,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 2. Tier B — position first, only when Tier A is empty: one nearest-first search asking at every standing tile *is there a wall to reinforce from here?* then *is there gold under my feet?* A wall beats gold on the same tile; a nearer pile beats a farther wall.
 - Gold sits below claiming and is not ordered against reinforcing at all.
 - Kind 14 — claim the tile you have just dug, before anything else, once no neighbour still carries a dig task — first in the original's table. Built the same day (Q154): `TileState.FreshlyDug` stands in for the original's task (set when excavation destroys a tile, cleared by the next terrain change); `JobPriority.ClaimFreshlyDug` is Tier A's first step with the eight-neighbour test on every tagged kind but mining. `HashVersion`/`FormatVersion` 19 → 20. Rank and neighbour rule read; raising at dig completion STRONGLY INFERRED. Exposed the mover defect fixed in ADR-0059.
-- Not built: task stealing by distance (Q155); kinds 8, 9/10, 12, 13 (objects, traps/doors, corpses, carrying creatures — later ADR-0063/0064/0065).
+- Not built: task stealing by distance (Q155; built later, ADR-0289); kinds 8, 9/10, 12, 13 (objects, traps/doors, corpses, carrying creatures — later ADR-0063/0064/0065).
 
 **Consequences.**
 - `ImpTaskSystem.TryTakeJob` is Tier A; `TrySweep` is Tier B, a single pathfinder search with a two-part predicate. `JobPriority.Reinforce` is in no ordered list.
@@ -969,7 +969,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 7. the timestamp stamped only on success.
 - Built 1–7. `CreatureState.AngryChoice` → `CreatureState.LastAngryChoiceTick`; the lair finder moves from `CreatureSleepSystem` into `LairSeeker`, shared by the idle and angry paths.
 - Stop: an unbuilt job ends the selection. The original's fall-through is for jobs whose start routine fails (no training room, no shrine); falling through an unbuilt `Rebel` to a built `Leave` would make half of every angry Goblin a deserter DK2 would not produce. The creature says so, stands, and rolls again when its gate opens. The fall-through itself is built and reachable (a table summing below 100 leaves rolls matching nothing).
-- Ours: five game seconds is `5 × SimulationTiming.TicksPerSecond` (the original: `5 × variable 19` = 20 ticks; ours was 5 × 20 = 100 ticks then — now 5 × 4 = 20, ADR-0089); the selection is offered once a game second (the original at every "think"); `Leave` releases the bed when it starts (Q121) and a leaving creature is carried rather than re-choosing.
+- Ours: five game seconds is `5 × SimulationTiming.TicksPerSecond` (the original: `5 × variable 19` = 20 ticks; ours was 5 × 20 = 100 ticks then — now 5 × 4 = 20, ADR-0089); the selection is offered once a game second (the original at every "think"); `Leave` releases the bed when it starts and a leaving creature is carried rather than re-choosing.
 
 **Consequences.**
 - An angry Goblin now leaves. A Vampire never leaves: its table is `Rebel(100%)`.
@@ -1114,7 +1114,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 **Consequences.**
 - One test in `PrisonTests` with both halves on one map: a Skeleton at its arrival health for sixty seconds, a Goblin not. `CreatureNeedsOnRealDataTests` counts the never-withering set against the install's `HungerFill == 0` set.
 - No hash change (every prisoner in existing tests and scenarios is a Goblin).
-- Not built: the four-second lump — the original reloads a counter with `ticksPerSecond << 2` and applies `PrisonModifyCreatureHealthPerSecond << 2` (−12 every four game seconds vs our −3 every one; same average); the same routine applies `ModifyAngerInCompanyOfHatedCreaturesPerSecond` (150) under reason 9 (reason channel unmodelled); prisoners could not yet move (ADR-0073).
+- Not built then (built later, ADR-0171): the four-second lump — the original reloads a counter with `ticksPerSecond << 2` and applies `PrisonModifyCreatureHealthPerSecond << 2` (−12 every four game seconds vs our −3 every one; same average); the same routine applies `ModifyAngerInCompanyOfHatedCreaturesPerSecond` (150) under reason 9 (reason channel unmodelled); prisoners could not yet move (ADR-0073).
 
 
 ## ADR-0069 — The aimed bonus is a task kind, and it lasts as long as that kind of work
@@ -1316,7 +1316,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 **Consequences.**
 - `PaydayRules` (interval, first payday, wage, paying-room test, single-tile withdrawal); `PaydaySystem` (clock and collecting, registered after the needs systems and before `CreatureAngerSystem`); `CreatureState.WageOwed` / `PayAttemptsFailed` / `SkipNextPayment`; `PlayerState.NextPaydayTick`; `CreatureActivity.SeekingWages`.
 - Divergences, each stated: three states folded into one activity (`SeekingWages`), as `SeekingFood` folds the hunger walk. The arrival tile is the room's gold-bearing tile nearest the creature, because the original searches the arrival tile's *object list* for a gold pile and gold here is a field on the tile (ADR-0015) — ours makes the empty-tile case rarer, not impossible, since somebody else can empty the tile during the walk. The Dungeon Heart is admitted unconditionally where the original tests one undecoded flag bit beside the type test; the heart matters because a keeper's first treasury is bought out of it. `NextPaydayTick == 0` means "not scheduled yet" and the system seeds it, where the original seeds it in an initialiser and reads zero as *never* — `WorldState.FromMap` has no `GameDatabase` to seed from, and nothing needs *never*. A prisoner is not on the payroll: the original's loop walks the player's own creature chain and a captive has been moved off it, so our skip is explicit.
-- **Not built here, and it is the important one: nothing charges `AngerNoPay`.** Both ends exist — the owner's consequence (Q9: unhappy, then angry, then leaves, or rebels if converted) and the anger ladder (ADR-0053) — and the connecting routine was not found in the payday path, so it was not invented. Wrong *visibly*: `wages_unreachable` fires twice per creature per payday and the scenario header says nobody gets angry about it. Standing hypothesis: the needs routine, in `AngerNoFood`'s shape. **Code now: `AngerNoPay` is charged on the debt alone (see ADR-0079).**
+- **Not built here (built in ADR-0079): nothing charged `AngerNoPay`.** Both ends exist — the owner's consequence (Q9: unhappy, then angry, then leaves, or rebels if converted) and the anger ladder (ADR-0053) — and the connecting routine was not found in the payday path, so it was not invented. Wrong *visibly*: `wages_unreachable` fires twice per creature per payday and the scenario header says nobody gets angry about it. Standing hypothesis: the needs routine, in `AngerNoFood`'s shape. **Code now: `AngerNoPay` is charged on the debt alone (see ADR-0079).**
 - `PayDayCutOffTimeSeconds` is unread. Q9 guessed a window for reaching the treasury; it is live (three references) but neither reader is in the payday path, which is evidence against that reading. Left UNKNOWN.
 - 13 tests in `PaydayTests`, and `scenarios/creatures/a_keeper_meets_its_wage_bill.yaml` — two keepers, one with gold and one without.
 - Two fixture lessons kept in the scenario header: with an imp per keeper, two imps spend twelve thousand ticks re-claiming every tile including each other's treasuries, and since gold belongs to whoever owns the tile the broke keeper ended the run holding the other's money (correct behaviour, useless scenario). And with no lairs every Goblin spent the run in the lair search and was never idle when payday fell — **a creature has to have somewhere to live before it can be paid**, because the collecting decision only fires on an idle creature, here and in the original.
@@ -1420,7 +1420,7 @@ Legal basis: copyright protects expression, not names, titles or short phrases, 
 **Consequences.**
 - **Seven more dead balance variables, a whole family**: `MotionlessWhileResearching/Manufacturing/Praying/TrainingSeconds`, `StateCounterWhileGuarding`, `CasinoModifyCreatureGoldPerSecond` and `MinimumJobDurationSeconds` are each written by the loader stub and read by nothing — count from five to twelve. The last is a cross-check rather than a curiosity: all three choosers gate on a hardcoded `5 × variable 19` while the shipped variable that looks like it should govern job length sits unread, which is **evidence that there is no job timer**, not merely the absence of one.
 - **Praying is the one job with an effect**, and since ADR-0081 the Temple is the only source in DK2 that drains an anger bucket it did not fill — every other calm reaches bucket 5 alone, so a month of unpaid wages in bucket 4 has exactly one cure. −275 from all six buckets and +33 health, once a game second, both verified live against the seven dead ones beside them.
-- Research, Train, Guard and Drink are chosen, walked to and stood in, logged `effect=unbuilt`. Not a stub: every second at a job is a second not idle and not taking `AngerNoWork`, which is the half the choosers depend on. Missing is production; training's rate carried the per-second/per-minute ambiguity, so it was left for its own read (Q205). **Code now: training pays, and the per-minute reading is withdrawn (see ADR-0083).**
+- Research, Train, Guard and Drink are chosen, walked to and stood in, logged `effect=unbuilt` (each built since: training ADR-0083, Research ADR-0090, Drink ADR-0187, Guard ADR-0212 with its post's report ADR-0330). Not a stub: every second at a job is a second not idle and not taking `AngerNoWork`, which is the half the choosers depend on. Missing is production; training's rate carried the per-second/per-minute ambiguity, so it was left for its own read (Q205). **Code now: training pays, and the per-minute reading is withdrawn (see ADR-0083).**
 - **M4 is seven of seven**: portal spawn, lair claim, hunger→hatchery, sleep, payday, job selection with logged reasons, and training — the one item *selected* but not yet *worth* anything.
 - 19 tests in `CreatureJobTests`; `two_keepers_find_work_for_a_goblin.yaml`, whose log is the mechanic in five lines: one keeper's Goblins take Train and go; the other's are refused, take 50 a second, cross to Unhappy at 5m28s with `worst=Work` naming the bucket, and are never charged again because the unhappy chooser does not charge it. Its first draft inverted its own demonstration — the Vampire, placed to be the third creature for two beds, was nearer the lairs than the Goblins, so it got a bed and one of them did not (correct behaviour, nothing being reserved, ADR-0060); the Goblins now start standing on the beds.
 - **The determinism pin could not see any of this (Q206).** These fields moved the pinned value through `HashVersion` alone, because the gate's world spawned no creatures at all — so no creature field had ever moved it, and the hash-history notes explaining a move by what the fixture's creatures were doing described creatures that were not there. Fixed on 2026-09-10, well after the fact: the gate's world now holds two.
@@ -2143,7 +2143,7 @@ compares (`+0x488`) is unread — an honest gap beats a silent false.
 match. Types 27 and 28 were read and *not* built: the base offsets prove them
 door and trap availability, but all ten shipped records use the counting mode
 whose partition bit is unidentified (Q281), so the half that was easy is inert.
-Type 70 was read and not built for the same reason — its walk adds two filters
+Type 70 was read and not built for the same reason (built later, ADR-0124) — its walk adds two filters
 type 39's counter lacks (Q280). Q278–Q281 record what each one waits on.
 
 ## ADR-0122 — Read condition type 64 and decline it until parties spawn
@@ -3585,7 +3585,7 @@ locked own door only otherwise, and never when option bit 1 is set.
 - `MeshRouter.TransitionCost(to, from, mover)` gains the door arms as read, and
   the search passes the tile walked into as `to` in both directions, which the
   original's two push orders do and the earlier code did not.
-- The alliance test is "same owner": alliances are unbuilt.
+- The alliance test is "same owner": alliances were unbuilt (built in ADR-0159).
 
 **Consequences.**
 - Replaying Level 7's log, every one of the 968 door-blocked searches now
@@ -3711,7 +3711,7 @@ A ruined heart stores no gold and can be claimed.
 **Consequences.** Every campaign level's win is reachable by the executor.
 Snapshot format and `HashVersion` advance to 67; six test fixtures gain the two
 heart variables the shipped global table always carries. Not built and named
-so: what a defeat does to creatures, rooms and gold (Q358), and alliance
+so: what a defeat does to creatures, rooms and gold (Q358, built below), and alliance
 propagation of verdicts (Q359). Nothing in the tick order damages a heart until
 combat lands.
 
@@ -3815,7 +3815,7 @@ creature's fight processing. `CreatureActivity.Fleeing` is state 203,
 back is a short route away from the target, and a state ending lets the
 engagement go — both named as approximations (Q373). Heroes fear in full and
 never withdraw for want of a creature flag and hero gates (Q372); the Scout's
-alarm (Q374) and three per-type owner modifiers (Q375) are not built.
+alarm (Q374; built in ADR-0166, routed as read in ADR-0332) and three per-type owner modifiers (Q375) are not built.
 
 **Consequences.** Frightened creatures back off and run; a fight near one's own
 heart holds and one far from it breaks. `HashVersion` 70; the fixture's Knight and
@@ -4138,7 +4138,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Decision.**
 1. **`SeekingWages` retires.** The decision moves idle to 187; 187 walks in 6 resuming in 188; arrival hands over to 188, which moves to 189; 189 takes the money and drops to idle, paid, part-paid or empty. The whole chain is legal under the rule (`ThePaydayChainIsLegalFromIdleAndEachStateDropsBackToIt`).
 2. **A creature standing on the gold still takes the walk.** 187 has no shortcut; it always calls the position helper, so 6 and 188 run on the tick it is paid.
-3. **Not built:** 188's ownership re-check and its wait on the region test `0x004B2AE0` (Q371), and 189's Drink hand-off (Q421).
+3. **Not built:** 188's ownership re-check and its wait on the region test `0x004B2AE0` (Q371), and 189's Drink hand-off (Q421; built later, ADR-0189).
 
 **Consequences.**
 - 187, 188 and 189 last less than a tick, so the traces pin them through the saved caller and the resume slot. With the wrong resume, without `SeekingWages` in the retired set, without the release, or with the standing creature skipping the walk, a named test fails.
@@ -4185,7 +4185,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 1. **`ObjectCarryRules.HomeRoomFor` reads the three flags**, in the helper's order. Q169 is moot and closed. The fixture carries the Spell Book, the Reveal Map Special and the Alarm crate, pinned against the shipped records.
 2. **`FetchingObject` and `CarryingObject` retire.** 10 walks in 6 to 30; 30 takes the object and walks in 6 to 31 (spell book), 33 (Special) or 32 (crate); the carry state stores it and sets 10, or re-routes to itself through the helper.
 3. **Ours, kept:** an invalid carried id, no route and a taken tile all put the object down and drop to idle.
-4. **Not built:** trap and door crates for a placed trap or door (34–37), and what delivering a Special or a spell book does in the Library.
+4. **Not built:** trap and door crates for a placed trap or door (34–37; built later, ADR-0214), and what delivering a Special or a spell book does in the Library.
 
 **Consequences.**
 - Negative controls, one at a time: a Special to the Workshop, the book and Special states swapped, the pickup resuming in the carry state, dropping the two activities, and no spell-book branch each fail a named test.
@@ -4229,7 +4229,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Decision.**
 1. **`CreatureJobSystem.Working` switches on `UpdatingCategory`**: Training (13), Research (4) and Temple (12) as before, with their cadences unchanged. A job with no state id, Torture (Q419), has no category and no effect.
 2. **Spectating (31) is built.** Its update `0x0047AA70`, re-read for this, applies `ModifyAngerOfPitSpectatorPerSecond` (−275) to Treatment, Company and Work once a game second (`JobRules.SpectatorCalm`). The test fixture gains the Combat Pit and variable 135, transcribed from the shipped records.
-3. **Not built:** Manufacture, whose adder is unread; the Casino, Torture and Prison hooks; every enter and leave hook, including the room-position claim.
+3. **Not built:** Manufacture, whose adder is unread (its maker count: ADR-0322); the Casino (ADR-0187), Torture (ADR-0193) and Prison (ADR-0191) hooks; every enter and leave hook (dispatched since ADR-0308), including the room-position claim (ADR-0309).
 
 **Consequences.**
 - Four test setups that put a creature at work by hand now give it its job's state. Negative controls, one at a time: no Spectating case, a spectator calming Pay, and Research dispatched as Manufacture each fail a named test.
@@ -4244,7 +4244,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 1. **`PurseRules.Receive`** is `0x0048AE70`. State 189 puts half of what it took in the purse, and the rest is gone. `CreatureLevelRules.MaxGoldHeld` scales the cap (to 120 %). `InitialGoldHeld` is only copied by the loader, so every purse starts empty.
 2. **The Drink handler's gate:** more than 8 in the purse (`abs(GamblingModifyCreatureMoneyMoneyPerSecond)`), then a casino. `job-selection.md` had read it as "a casino or money"; corrected.
 3. **The Casino's update hook** (category 17), in the room's default mode: once a game second, a purse at or below 8 fails the hook and the creature goes idle. Otherwise −2000 goes to Treatment, Company and Work, and one gold into the purse.
-4. **Not built:** the second mode, reached only by a keeper's toggle (Q423); the jackpot and its party; the fearless countdown and the leave hook; the enter hook's station test; Q421's hand-off from payday.
+4. **Not built:** the second mode, reached only by a keeper's toggle (Q423; built later, ADR-0188); the jackpot and its party; the fearless countdown and the leave hook (ADR-0322); the enter hook's station test; Q421's hand-off from payday (ADR-0189).
 
 **Consequences.**
 - An unpaid creature no longer drinks: the Goblin's shipped unhappy table is Drink alone, and before its first payday it now finds nothing. The fixture Goblin gains its shipped `MaxGoldHeld` (5000), the MaxGoldHeld stat row, and variables 199–202, with drift guards on the install.
@@ -4411,7 +4411,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 
 **Consequences.**
 - A hungry trainee breaks off for the hatchery; a creature on a torture device, in a prison or a Combat Pit does not; one walking to eat is not sent to bed.
-- Ours, stated: tiredness is judged at the decision rather than latched when due; the wounded attempt shares the tired path's gate; pay is tried every tick. Not built: the cannot-sleep drain, and the busy test's creature fields beyond our activity filters.
+- Ours, stated: tiredness is judged at the decision rather than latched when due; the wounded attempt shares the tired path's gate; pay is tried every tick. Not built: the cannot-sleep drain (built later, ADR-0199), and the busy test's creature fields beyond our activity filters.
 - Seventeen tests. Negative controls: idle-only hunger, idle-only pay, no mask, no group-7 skip, no walk resolution, the Casino clock ignored, eating via idle, the job kept, pay via idle, and sleep ungated each fail a named test.
 - `HashVersion` and `FormatVersion` **102**, pin `0x91DAFF09144DBA4F`.
 
@@ -4451,7 +4451,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 2. `RescueRules.StartsARescue` is the contact test. `RescueSystem` runs it when a creature's tile changes (`CreatureState.ContactTileIndex`) and steps 134, now a retired activity, `Rescuing`. After `RescueRules.WaitTurns` turns (variable 19 halved) it frees an ally on its own tile. The victim goes to 133, then off the device and out of captivity. Otherwise the creature walks in 6 to the nearest ally, resuming 134, or idles.
 
 **Consequences.**
-- Ours, stated: the test runs for an idle creature or one holding a state id, not one still on our own activities. The walk ends on the victim's tile. "Not attached to a room" is read as not at a job. Heroes do not walk in our simulation yet, so a rescue needs a creature brought to the chamber. Not built: the Prison's 122, and the information a victim gives on dying (`0x004F2370`, read).
+- Ours, stated: the test runs for an idle creature or one holding a state id, not one still on our own activities. The walk ends on the victim's tile. "Not attached to a room" is read as not at a job. Heroes do not walk in our simulation yet, so a rescue needs a creature brought to the chamber. Not built: the Prison's 122 (built later, ADR-0229), and the information a victim gives on dying (`0x004F2370`, read; built later, ADR-0230).
 - New hashed and snapshotted fields `ContactTileIndex` and `RescueTurnsLeft`. `HashVersion` and `FormatVersion` **103**, pin `0x1A5F99A4C9E39974`.
 - Eight tests. Negative controls: no flag test, no worker test, an allied chamber, a victim of any side, testing every tick, no wait, no walk, the victim kept on the device, and flags copied unmasked each fail a named test.
 
@@ -4465,7 +4465,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 2. `CreatureState.DroppedOnARoom`, set by the hand's drop from the landing tile, and `NeedRules.IsBusy`: dropped on a room and under `DroppedOnARoomGraceTicks` (five seconds) since the drop. Eat, sleep and pay test it after their own stamps.
 
 **Consequences.**
-- Ours, stated: the grace counts from the drop, where DK2 counts from leaving state 76 (the landing action). The alert timer, possession, the Call To Arms, rebels and the Casino's big winner are recorded, not built.
+- Ours, stated: the grace counts from the drop, where DK2 counts from leaving state 76 (the landing action). The alert timer, possession, the Call To Arms (built later, ADR-0279), rebels and the Casino's big winner are recorded, not built.
 - `HashVersion` and `FormatVersion` **104**, pin `0xFB68B3CB26783D05`.
 - Three tests (one a two-row theory). Negative controls: pay every tick, no grace, grace everywhere, and eating that ignores the busy test each fail a named test.
 
@@ -4480,7 +4480,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 3. `JobRules.Refused` refuses Manufacture only with an empty list; `EffectIsBuilt` includes it. `CreatureJobSystem` credits through `ManufactureRules.Credit` every original turn and runs `ManufactureRules.Decay` once a second.
 
 **Consequences.**
-- On shipped data the list is nearly always empty: 3 door blueprints are placed, in one level. The source that matters, blueprints placed in play, is not built, nor is carrying a crate to its blueprint.
+- On shipped data the list is nearly always empty: 3 door blueprints are placed, in one level. The source that matters, blueprints placed in play, was not built (built later, ADR-0231), nor was carrying a crate to its blueprint (ADR-0214).
 - Ours, stated: the nearest Workshop by its first tile, no capacity test, the crate always the keeper's, and state 68 not entered.
 - The fixture gains the shipped Workshop (terrain 19) and the Wooden Door's crate (52). `HashVersion` and `FormatVersion` **105**, pin `0xDBC19E3981F90A36`.
 - Six tests, one on real data. Negative controls: points kept on completion, no loader division, crates not counted, no decay, decay with workers present, the job always refused, and no crate made each fail a named test.
@@ -4513,7 +4513,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Consequences.**
 - A room too small for furniture trains, researches, gambles and manufactures nobody. A 3x3 Training Room has one dummy and two places.
 - The fixture carries the shipped furniture of the Training Room, Workshop, Casino and Torture Chamber walls, and the Library's list is corrected to `[64, 0, 0, 58]`. `Dk2TerrainFixture.Furnish` stands one piece in a one-tile test room, a state DK2 cannot reach. The scenario's Training Room is 3x3.
-- Ours, stated: `UsedCapacity` is derived, not counted. The Library, Workshop and Guard Room extras, the Prison and Combat Pit arms and the torture fallback timer are not built. Three bodies on one arrival tile never settle, because our walks all end on the room's centre.
+- Ours, stated: `UsedCapacity` is derived, not counted (counted since ADR-0309). The Library, Workshop and Guard Room extras, the Prison arm and the torture fallback timer are not built (the Combat Pit arm: ADR-0309). Three bodies on one arrival tile never settle, because our walks all end on the room's centre.
 - No hashed state changed. Nine tests, one on real data. Negative controls: a room never full, the torture finder asking one place, the victim chamber tested, no arrival claim, a fallback always found, every body claiming, the arriving creature counted and the Training Room's +1 dropped each fail a named test.
 
 ## ADR-0206 — Dying is states 216 and 217; a corpse holds no state
@@ -4627,7 +4627,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Consequences.**
 - **Two of a rectangular room's four corners are posts in DK2.** The north-west corner's mask is the ninth pair, found at index 8, which is also the miss value, so no caller can tell it from a tile that is no post. The south-west corner's offset is read four bytes into the direction table, and its y lands in the source-path string after the table, so the route fails and the guard goes idle. Both are built as read, and the test names say they are unconfirmed in play.
 - Variables 152 and 30 are stored raw by the loader, so both deadlines are in turns: 75 + random(60) after reaching a post, 75 + random(5) on each reset.
-- Not built: the Guard Post visit at the deadline (`0x00463190`, state 100), because traps are not built. The `+0x3E6` bits 22–25 and the failed leg's sound are not modelled either.
+- Not built: the Guard Post visit at the deadline (`0x00463190`, state 100), because traps were not built (both built later, ADR-0321, ADR-0330). The `+0x3E6` bits 22–25 and the failed leg's sound are not modelled either.
 - The fixture carries the shipped Guard Room (terrain 18, cost 600, flags `0x10A4`) and variables 152 and 30.
 - Nine tests. Negative controls: the mask bits swapped, the spiral's sign, slot 7 given a y inside the table, the wall's opening facing, one step per leg, no room gate and the leg point read like the post's each fail a named test. Three first survived and exposed thin tests (a spiral that found its post before turning, no inner corner, no leg point checked), since fixed.
 
@@ -4647,8 +4647,8 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Consequences.**
 - **The knockout ends the fight with no victory**, CONFIRMED by the owner (2026-09-25): the winner takes another fighter or walks about, and the mentor announces the fight over. The loser's leave hook `0x0045ADC0` releases every attacker, and gives the victory nibble only to one whose target's health is below 1, which a knockout's is not. (The first build of this ADR had the winner swinging at the unconscious loser; the owner's memory sent the reading back to the leave hook.)
 - **A waiting fighter's anger rises every turn**: `angerNoWork` into buckets 0 and 3 each turn it waits in 139.
-- **Nothing enters 140**, the victor's celebration: no literal, no computed id, no room record names it. It is not built.
-- Not built: a captive dropped in the pit (ours holds captivity in `PrisonOwnerPlayerId`, which DK2's pit writes for every fighter), 142–144, action `0x2C` at the cap, scan A for a dead forced target, the room's sounds and messages, and state 76.
+- **Nothing enters 140**, the victor's celebration: no literal, no computed id, no room record names it. It is not built; whole-image scans found no gameplay entry, and a save load can restore it (Q431, open).
+- Not built: a captive dropped in the pit (ours holds captivity in `PrisonOwnerPlayerId`, which DK2's pit writes for every fighter), 142–144 (built later, ADR-0227), action `0x2C` at the cap, scan A for a dead forced target, the room's sounds and messages, and state 76.
 - `state-category-hooks.md` named the pit's and the spectators' enter-hook bit as 23; it is 15, `CombatPitFighter`. `+0x16 == 2` is "off the map" (Q364).
 - Eleven tests. Eighteen negative controls each fail a named test: attackability, the forced branch, the blow's stance, the damage taken, the knocked-out target, the enemy-first search, the pick-up clear, the sale's reset, idle's return, the step's floor, the anger, the experience cap, the cap's move to 1, the same-turn wait, 141's wait, the knockout not counting as a death, 138 on the rim and the drop on the rim. The rim case first survived, and its test was added.
 
@@ -4683,7 +4683,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - a crate is listed while its keeper owns it and it lies on one of the keeper's Workshop tiles;
   - rooms are taken in `RoomIndex` order, distances are to a room's first tile, and tiles are walked in index order;
   - the task hold is read from the other imps' states.
-- Not built: blueprints placed in play, state 76's crate branch, the five unread list removers, the trap's completion past its flag, the Secret Door's terrain update, the sounds, message `0x1A` and the maker's effects.
+- Not built: blueprints placed in play (built later, ADR-0231), state 76's crate branch, the five unread list removers, the trap's completion past its flag, the Secret Door's terrain update, the sounds, message `0x1A` and the maker's effects.
 - Sixteen tests. Eighteen negative controls each fail a named test: the kinds swapped, the trap loader pushing, no registration, no 68, the crate never listed, no Workshop extra, one crate a tile, oldest first, the slots ignored, no Tier A handler, the hold ignored, a built entry kept, no unlisting, no build, no loose branch, no drop-scan step, a crate carried home but not listed, and a short walk treated as arrival.
 
 ## ADR-0215 — The job a creature is dropped on
@@ -4701,9 +4701,9 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Consequences.**
 - A creature dropped in the Workshop goes back to it after every crate until the queue is empty, whatever its table says.
 - Not built:
-  - the escape (121) and Torture-leave clears;
+  - the escape (121) clear (the Torture-leave clear: ADR-0322);
   - the Hatchery, Treasury, Lair, Portal, Heart, Prison and Crypt drop states;
-  - the no-room drop arm, state 250;
+  - the no-room drop arm, state 250 (built later, ADR-0226);
   - `ReturnToJobId` (`+0x68`), which only the Guard job writes.
 - Three tests. Six negative controls each fail a named test: no drop arm, the hated job ignored, no retry, a retry never forgotten, no bonus, and the job not remembered.
 
@@ -4720,7 +4720,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 5. New hashed fields `StateDeadlineTick`, `WaypointDeadlineTick`, `PartySpeedRaw`.
 
 **Consequences.**
-- Not built, named at the sites: StealGold's states (the arm fails and retries), the Dwarf tunnelling of 223/224, state 1's pending-point walk, the knock-out re-lead of a party (`0x004B2FDF`), the heart room's own point `0x004E4D90` (ours aims at the first heart tile).
+- Not built, named at the sites: StealGold's states (the arm fails and retries; built later, ADR-0219), the Dwarf tunnelling of 223/224 (ADR-0222), state 1's pending-point walk, the knock-out re-lead of a party (`0x004B2FDF`; ADR-0218), the heart room's own point `0x004E4D90` (ours aimed at the first heart tile; built later, ADR-0221).
 - Eleven tests; negative controls: a reachable direction 0 and a waypoint chain that never advances each fail a named test.
 - **Review corrections (2026-09-25), checked against the binary:**
   - **A hero worker is a hero.** State 1 (`0x004773D0`) sends a hero to 90 before it tests the worker flag. So `HeroSystem` now runs hero Dwarves and the imp task system skips them. Its 10 goes straight to 1, since the task-less wander `10 → 12 → 87 → 1` is not built.
@@ -4781,7 +4781,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 
 **Consequences.**
 - **Kept as DK2 has it:** a job against a player other than the first keeper, or naming none, walks to player 3's gold and never takes any.
-- **Ours:** the ring follows tile-index order; the room points are approximations of unread helpers; tunnelling is not built.
+- **Ours:** the ring follows tile-index order; the room points are approximations of unread helpers; tunnelling was not built (built later, ADR-0222).
 - **Not built:** the Library and Workshop steals (160–162, 166–168) and the second gold steal (170–172), all read in the research doc.
 - **Found:** payday calls the same take, so it drains the whole Treasury, not one tile (Q435). Not changed here.
 - **Tests and controls.** Seven tests. Nine negative controls each fail a named test: a one-tile take, 163 raiding the job's player, the choice written back, the purse not halved, no escape walk, no recruiting, no origin, 164 testing player 3, and no own-player test in the arm.
@@ -4923,7 +4923,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Consequences.**
 - **Tests changed to the new sequence.** Seven tests and one scenario now wait out the stun. `AFreezeIsTwoEighteen_…` ends in 250 off a room.
 - The need-grace test uses a Goblin with the shipped one-second stun, since the fixture's five seconds is a deliberate test value.
-- **Not built:** the other rooms' drop states on getting up (they idle), the worker arm `0x00481400`, Call To Arms, `+0x2CC`, and the landing's sound, fall and pit scatter.
+- **Not built:** the other rooms' drop states on getting up (they idle; the pit's: ADR-0227), the worker arm `0x00481400`, Call To Arms (built later, ADR-0279), `+0x2CC`, and the landing's sound, fall and pit scatter.
 - Three new tests. Six negative controls each fail a named test: no stun, no 250, a zero-length 250, a freed prisoner stunned, a worker stunned, and the room ignored on getting up.
 - No new state; `HashVersion` stays **117**.
 
@@ -5090,7 +5090,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Consequences.**
 - **Gold at placement.** Placing a blueprint costs gold at once, then Workshop points for the crate. **Confirmed by the owner (2026-09-26).**
 - **Not built:**
-  - the door's orientation;
+  - the door's orientation (built later, ADR-0233);
   - the spend statistic `player+0x177`;
   - message `0x37`, the cost display and the sounds;
   - the computer keeper's placement;
@@ -5177,7 +5177,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 
 **Consequences.**
 - **Not built:**
-  - the step-off;
+  - the step-off (built later, ADR-0320);
   - the level decrement;
   - `+0x3AF`;
   - the level-up effect and sound.
@@ -5261,7 +5261,6 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - The door test's name now says it assumes the default camera.
   - No new test pins the `Broken` change; it is inert.
 - **Negative control:** a stat match that never fires fails `InfluenceGetsHalfOfPossessionsBonus`.
-- Codex's next question number is now **Q440**.
 - No new state; `HashVersion` stays **122**.
 
 ## ADR-0238 — Without its record the possession bonus is 100, and the level time limit's gate is the window's focus
@@ -5947,8 +5946,8 @@ every pick-up and drop and keeps the keeper's state outside the world hash.
 **Deviations, ours.** Commands land a tick later, so an attempt's outcome is
 predicted from captured permissions; a creature predicted to move is excluded
 from later attempts, as DK2's is by its hand state, and one a full hand refuses
-stays a candidate. The fight flag is recorded but does not route step 11 to the
-unbuilt battle step, which is what clears it. The imprisonment reroll emits only
+stays a candidate. The fight flag is recorded but did not route step 11 to the
+battle step (built later, ADR-0283), which clears it. The imprisonment reroll emits only
 bits that change against the mark pending this tick. `HandRules` now refuses an
 own creature held in another keeper's Prison, the one stored room membership the
 simulation keeps (`0x0047B740` calls `0x004E5A70`). Unrepresented: the
@@ -6070,7 +6069,7 @@ walking steps, merged mining into digging, and went straight to the tiers.
 becomes bistable on when the fourth imp first chooses: DK2's recording has a
 standing claimer, and most of our seeds do not (Q484).
 
-**Limits.** The seam-slot occupancy test and task stealing (Q155) are not built.
+**Limits.** The seam-slot occupancy test and task stealing (Q155; built later, ADR-0289) are not built.
 
 ## ADR-0283 — Connect the keeper's battle step: the fight flag, the emergency call and the spell roll as commands
 **Date:** 2026-09-29 · **Status:** accepted
@@ -6091,7 +6090,7 @@ and Thunderbolt (ADR-0260) are the casts they need.
    file `0xDC`). The call bit, counters and stored position are AI state.
 3. Casts are the existing commands: action 54 at the fighter's position, action
    55 at a creature, action 63 for the removal. A chosen spell the simulation
-   cannot cast (Heal, Inferno, Chicken) is counted in `UnbuiltSpellChoices`, not issued.
+   cannot cast (then Heal, Inferno, Chicken; cast since ADR-0287, ADR-0302) is counted in `UnbuiltSpellChoices`, not issued.
 4. Observation schema 10 adds the mana pool, each row's last-cast tick and, per
    creature, its target's owner, the place validators at its tile, the route from
    the heart's staging point and Thunderbolt's target permission, computed by the
@@ -6109,7 +6108,7 @@ or 78. The route test's water flag is a stale global in DK2, taken as off. The
 keeper's own RNG (ADR-0244).
 
 **Limits.** Heal, Inferno and Chicken casts, the attack planner's front
-(`0x004FECE0`, `0x004FE9C0`) and the retreat are not built. No original run (Q485).
+(`0x004FECE0`, `0x004FE9C0`) and the retreat were built later (ADR-0287, ADR-0302, ADR-0298, ADR-0284). No original run (Q485).
 
 ## ADR-0287 — Cast the keeper's Heal through the shared shot process, and let the battle step issue it
 **Date:** 2026-09-29 · **Status:** accepted · Research: `keeper-spell-casting.md` §4
@@ -6144,7 +6143,7 @@ show the heal, so a second cast at the same creature can be issued and refused a
 its maximum with nothing paid. A creature's room owner is read from the floor under
 it, as no room id is kept on a creature. The keeper's own RNG (ADR-0244).
 
-**Limits.** Inferno and Chicken are not built. The health routine's vtable `+0x74`
+**Limits.** Inferno and Chicken were built later (ADR-0302). The health routine's vtable `+0x74`
 predicate is unread. No original run (Q491).
 
 ## ADR-0284 — Connect the keeper's retreat of the wounded as pick-up and drop commands
@@ -6193,7 +6192,7 @@ not stored, and the unrepresented `0x0048E6A0` gates of `creature-pickup.md` bou
 the prediction.
 
 **Limits.** No original run (Q486). The attack planner's front, training moves and
-the remaining battle spells are not built.
+the remaining battle spells were built later (the front ADR-0298, the moves ADR-0317, the spells ADR-0302).
 
 ## ADR-0285 — An imp claims outward from its keeper's floor in DK2's ring order, and a store sweeps in loose gold
 **Date:** 2026-09-29 · **Status:** accepted
@@ -6226,8 +6225,8 @@ over 20 seeds: an early claimer (before tick 200) in 9, against DK2's 3 of 7.
 No state is added; the determinism fixture does not reach these rules, so the
 pin stands.
 
-**Limits.** The claim handler's theft of a farther imp's claim (Q155) and its
-`tile+0xB` bit `0x20` pre-filter (Q487) are not built. The Heart's `+0x51` gate
+**Limits.** The claim handler's theft of a farther imp's claim (Q155) was built later (ADR-0289); its
+`tile+0xB` bit `0x20` pre-filter (Q487) is not built. The Heart's `+0x51` gate
 (Q472) is taken as always on. A pile keeps its object where DK2 remakes it.
 
 ## ADR-0286 — A just-dug tile is claimed on the way to a deposit, never by choosing
@@ -6336,7 +6335,7 @@ kept a task a nearer one walked past (Q155). The binary answers every part of it
 mine steals are near DK2's; claim steals are not (Level 1 12 a game against 5.1, Level 2
 13 against 31), and the decision checker (Level 1 277 of 309, Level 2 683 of 799) puts the
 difference in Tier B's reinforce choices and Level 2's gold fetches (Q493), not in the claim
-rules. Not built: the drop scan's dig handler (`0x0046A550`), gold and objects stealing, and
+rules. Not built: the drop scan's dig handler (`0x0046A550`), gold stealing (still not built) and object stealing (built later, ADR-0294), and
 the loser walking its old route on. `TaskStealingTests` pins the rules, each
 negative-controlled.
 
@@ -6434,7 +6433,7 @@ walk-over pick-up (`0x0048904E`) runs before the state handler, and the hands te
 
 **Consequences.** The checker agrees on 732 of Level 2's 799 choices (646 with gold loaded
 before) and 288 of Level 1's 309; replays win 20 of 20 and 8 of 20. Gold at an imp's feet
-never waits to be fetched. Not built: the non-workers' arm. Not read: whether a kind-7 task
+never waits to be fetched. Not built: the non-workers' arm (built later, ADR-0300). Not read: whether a kind-7 task
 goes with its pile; a fetcher whose pile was taken in passing keeps the load, and the test
 says so in its name.
 
@@ -6544,7 +6543,7 @@ audited claim by claim.
 2. Readiness grants are `GrantCreatureLevelCommand`, executed by `KeeperSpellSystem` through
    the ordinary level-up for an own living creature; `KeeperReadiness` predicts the granted
    level for the tick and grants once per creature. The tick's training roll draws and
-   calls readiness; the moves themselves stay unbuilt and are counted.
+   calls readiness; the moves themselves are counted (built later, ADR-0317).
 3. Observation schema 13: every player's status, the heart room's middle as `Heart`, the
    call's refused own-room tiles and route queries over the captured bytes; rooms carry
    DK2's `CentrePos` and first slab, and the planner walks them newest first.
@@ -6559,8 +6558,8 @@ Stone Bridge, which the level gives it (corrected 2026-10-01; built by ADR-0304)
 No simulation state changed: HashVersion stays 141. Deviations: the delay and own RNG
 (ADR-0244); a room's first slab is its first tile and its list order the capture's scan;
 the heart's +3 `CentrePos` lands inside a five-by-five room. Not built: the research move
-`0x004FA8D0` (its Library draw is made and the move counted), the training moves, bridges
-in task 7, Inferno and Chicken. Original run: Q497.
+`0x004FA8D0` (its Library draw is made and the move counted); built later: the training moves (ADR-0317), bridges
+in task 7 (ADR-0304), Inferno and Chicken (ADR-0302). Original run: Q497.
 
 ## ADR-0300 — Every creature but a keeper's worker takes the loose gold on its tile, whole
 **Date:** 2026-10-01 · **Status:** accepted · amends ADR-0293 · Research: `gold-on-the-floor.md` §12
@@ -6800,9 +6799,9 @@ state 1 and unstamped. Our code already ran leave before enter, so nothing had t
 - Not modelled: `SetState`'s guards. It refuses every move for a held creature (`InHand`, Q503) or
   one whose state object lacks its pointers. The 2→2 recursion's own rule check is skipped. That
   is safe because no travel state, with any resume, is refused state 1; a test checks all four.
-- No enter hook refuses yet, so the refusal path is inert. The first ones will be Training's gold,
-  the Casino's purse and lever, and the claims, all listed as not built in `CategoryHooks.Slots`.
-  So will the Prison's event 7 and the Combat, Casino and Torture leaves.
+- No enter hook refused yet, so the refusal path was inert. The first were Training's gold and
+  the Casino's purse and lever (ADR-0313), and the claims (ADR-0309); then the Prison's event 7
+  (ADR-0311) and the Combat (ADR-0319), Casino and Torture (ADR-0322) leaves.
 - A trigger executor built without a world reports action 15 unperformed, as it does actions 6
   and 28. Tests whose creature belongs to no world use `DetachedHooks`, a real synthetic world.
 - The Combat Pit and Spectating enter effects stay at their call sites. Moving them would change
@@ -7136,7 +7135,7 @@ keeper reads no hidden bit.
 **Decision.** `TrapRules.RevealAround` runs from the combat pass after the fight processing, as DK2's
 creature update does. No view: what a foreign keeper may see is the presentation's, and `KeeperView`
 keeps listing every trap, as DK2's keeper code tests no hidden bit. Scan D — creatures choosing a
-revealed trap as a victim, and the fight against it — is not built; Q362 is answered as traps.
+revealed trap as a victim, and the fight against it — was built later (ADR-0340); Q362 is answered as traps.
 
 **Consequences.** No new state, no version bump. Prediction, written before measuring: Levels 1 and 2
 hold no traps, so the rigs stay identical; a scenario's events change only where a Troll, Thief, Rogue
@@ -7230,7 +7229,7 @@ north-west for `data2` 1; 22 rolls a boulder object; 39 makes a creature in stat
 **Decision.** `ShotRules` handles 12 (`PlayerMessageKind.AlarmRaised`, fifty seconds, its row
 `0x2032`), 21 and 31 (nothing), and `SquareDamage` for type 1, its object arm left out as
 objects are not hit. `TrapRules.FiringBuilt` admits them and refuses a process-31 shot of damage
-type 0. The Boulder and the Jack In The Box stay unbuilt: neither a rolling object nor state
+type 0. The Boulder and the Jack In The Box waited (built later, ADR-0333, ADR-0337): neither a rolling object nor state
 273 exists here, and building on either would be a guess.
 
 **Consequences.** No new field and no hashing change, so no version bump: the pin's world holds
@@ -7508,7 +7507,7 @@ a request now leaves the Portal placeholder, adding the neutral-portal pass DK2 
 between rooms; every existing keeper scenario keeps its expectations. Level 17 Harkan,
 with its stores filled and a floor pile, posts 42 at tick 10, grows its Treasury by
 (12..15, 4) from tick 505 and later stores gold there: a modern-run result (Q518).
-Unbuilt: the other finders' producers, the claim failure, the rescue selector,
+Unbuilt: the other finders' producers (the Hatchery's: ADR-0335), the claim failure, the rescue selector,
 `0x004BA420`'s other callers, mood messages and the rest of the suppression words.
 
 ## ADR-0325 — A Support creature surveys its attack spell while it recharges
@@ -7840,7 +7839,36 @@ only from underfoot.
 - Tier B's sweep already carried the filter; only the retry changes, and its "nearest" is now
   Manhattan rings, as DK2's, not route steps.
 
-## ADR-0344 — A stunned creature gets up for its type's ticks, then stands fifty turns from getting up
+## ADR-0344 — A placed hero takes its record's Objective as its standing job
+**Date:** 2026-10-03 · **Status:** accepted · extends ADR-0216 · Research: `verification-2026-09-26.md` §6, `hero-parties-and-effect-generators.md`, `placed-things.md` §6; Q275
+
+**Context.** The level loader calls `0x0048BE20` at `0x0052077C` for every placed Good creature
+with the record's `Objective` (`+0x4F`), the tag of player index `ObjectiveTargetPlayerId − 1`
+(`+0x4E`; 0 when the byte is zero) and the action point (`+0x44`): the triple
+the party spawn writes for a member and action 15 writes by script. Ours copied it for members
+(ADR-0216) and for action 15 but not at placement, so a placed hero's `GoodJob` stayed `None` and
+the 1,025 shipped placed Good creatures (296 KillPlayer, 600 SendToActionPoint, 127 Wait, 2
+KillCreatures) idled until a script gave them one. The owner saw placed
+heroes act with no trigger on Level 20 (Q275).
+
+**Decision.** `ThingProjection` sets `GoodJob`, `GoodJobPlayerId` and `GoodJobActionPointId` on a
+placed Good creature from its record, as `HeroPartyRules` sets them on a member; `HeroSystem` runs
+the standing job as it runs a member's, through the job rules already built. A job those rules
+lack leaves the hero idle, as before. The three arguments are CONFIRMED in the disassembly; that
+DK2's player tag is our player id is inferred, as `HeroJobRules` records.
+
+**Predictions, written before measuring.** Levels 1 and 3 place no Good creature, so their replays
+are identical. Level 2 places eight (four Wait, four SendToActionPoint), so its replay moves from
+the first turn one of them is idle; whether DK2's own capture shows them walking is unmeasured.
+
+**Consequences.** No new field, and the determinism pin (a fixture world, not a level) holds, so no
+version bump. All 3,466 tests
+pass, the capture comparisons among them; `PlacedHeroObjectiveOnRealDataTests` pins Level 2's
+eight and the empty Levels 1 and 3. The Level 2 20-seed rig was not re-run in this session:
+re-measure it before reading its win count against ADR-0342's 5/20. Predicted, not measured: from
+Level 6a on, placed KillPlayer heroes walk to a keeper's heart from the start.
+
+## ADR-0345 — A stunned creature gets up for its type's ticks, then stands fifty turns from getting up
 **Date:** 2026-10-03 · **Status:** accepted · Research: `hand-drop-landing.md` §3–§4; `creature-status-effects.md` §2; `functions/00481200.md`, `functions/00481CF0.md`, `functions/004E8DA0.md`; Q527
 
 **Context.** Level 1 seed 13 was the one Level 1 seed that lost. The packet drops six Goblins at
