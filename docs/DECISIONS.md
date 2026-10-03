@@ -7809,3 +7809,32 @@ The Boulder's slap waits for object slapping — the angle's source and the disp
 as its open item; a flat shot may hit a thing whose box the height test would refuse, and the
 Grenade's lob is a straight line. Revisit when a vertical coordinate is introduced for any
 thing.
+
+## ADR-0344 — A placed hero takes its record's Objective as its standing job
+**Date:** 2026-10-03 · **Status:** accepted · extends ADR-0216 · Research: `verification-2026-09-26.md` §6, `hero-parties-and-effect-generators.md`, `placed-things.md` §6; Q275
+
+**Context.** The level loader calls `0x0048BE20` at `0x0052077C` for every placed Good creature
+with the record's `Objective` (`+0x4F`), the tag of player index `ObjectiveTargetPlayerId − 1`
+(`+0x4E`; 0 when the byte is zero) and the action point (`+0x44`): the triple
+the party spawn writes for a member and action 15 writes by script. Ours copied it for members
+(ADR-0216) and for action 15 but not at placement, so a placed hero's `GoodJob` stayed `None` and
+the 1,025 shipped placed Good creatures (296 KillPlayer, 600 SendToActionPoint, 127 Wait, 2
+KillCreatures) idled until a script gave them one. The owner saw placed
+heroes act with no trigger on Level 20 (Q275).
+
+**Decision.** `ThingProjection` sets `GoodJob`, `GoodJobPlayerId` and `GoodJobActionPointId` on a
+placed Good creature from its record, as `HeroPartyRules` sets them on a member; `HeroSystem` runs
+the standing job as it runs a member's, through the job rules already built. A job those rules
+lack leaves the hero idle, as before. The three arguments are CONFIRMED in the disassembly; that
+DK2's player tag is our player id is inferred, as `HeroJobRules` records.
+
+**Predictions, written before measuring.** Levels 1 and 3 place no Good creature, so their replays
+are identical. Level 2 places eight (four Wait, four SendToActionPoint), so its replay moves from
+the first turn one of them is idle; whether DK2's own capture shows them walking is unmeasured.
+
+**Consequences.** No new field, and the determinism pin (a fixture world, not a level) holds, so no
+version bump. All 3,466 tests
+pass, the capture comparisons among them; `PlacedHeroObjectiveOnRealDataTests` pins Level 2's
+eight and the empty Levels 1 and 3. The Level 2 20-seed rig was not re-run in this session:
+re-measure it before reading its win count against ADR-0342's 5/20. Predicted, not measured: from
+Level 6a on, placed KillPlayer heroes walk to a keeper's heart from the start.
