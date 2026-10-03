@@ -45,7 +45,7 @@ Q47); `DKII.EXE` v1.70 for the priority order (`imp-task-priority.md`).
 | Where an imp breaks off mining to go and unload | **CONFIRMED, BUILT** (Q50, ADR-0296) — when the hands test reads full, `MaxGoldHeld(level)` less 340: four swings and 1090 gold at level 1 |
 | An imp with a part-load tops up from a pile it passes | **READ** (Q142) — until its hands hold a level-scaled share of `MaxGoldHeld`; ours gets the same outcome because a loaded imp is delivering before selection runs |
 | An imp with nowhere to unload keeps mining | **CONFIRMED** (Q31) — but the floor lump it should leave is NOT IMPLEMENTED, so the overflow is lost (Q138, Q140) |
-| Routing: connectivity and step cost | **CONFIRMED** eight-connected with cut corners (Q28); **CONFIRMED** no terrain weighting (Q30); **STRONGLY INFERRED** octile 10/14 (Q48). Tie-breaking is ours. The original's algorithm is **not a grid search at all** (Q5, ADR-0155): a triangulated navigation mesh followed by a steering system. Q28 and Q30 stand, because they were observed rather than inferred |
+| Routing: connectivity and step cost | **CONFIRMED** eight-connected (Q28, observed); **STRONGLY INFERRED** a corner cut only past an open side (the region fill `0x004C91A0` walks the three neighbour slots, read as edge neighbours; ADR-0339); **CONFIRMED** no terrain weighting (Q30); **STRONGLY INFERRED** octile 10/14 (Q48). Tie-breaking is ours. The original's algorithm is **not a grid search at all** (Q5, ADR-0155): a triangulated navigation mesh followed by a steering system. Q28 and Q30 stand, because they were observed rather than inferred |
 
 **STRONGLY INFERRED:** workers on separate reinforcing faces each apply their
 own health increment to the same wall, so more faces shorten completion time.
@@ -300,7 +300,7 @@ as the final tie-break.
 
 | Choice | Status |
 |---|---|
-| Eight-connected, corners may be cut | **CONFIRMED** by observation (Q28): a creature passes diagonally between two solid tiles. Four-connected was the earlier, conservative choice and overestimated every route |
+| Eight-connected, a corner cut only past one open side | **CONFIRMED** eight-connected by observation (Q28); **STRONGLY INFERRED** that a corner-only gap is no route: the region fill `0x004C91A0` walks only the three neighbour slots, read as edge neighbours, so `0x004C9400` refuses the pair; our mesh refuses it, and the Level 2 capture's dig sides at 3063-3082 are consistent with the imps' reachability inheriting it (ADR-0339). Four-connected was the earlier, conservative choice and overestimated every route |
 | Octile 10/14 | **STRONGLY INFERRED** (Q48): speed is tiles per second through world space, so a diagonal step must take √2 as long; the mover charges the same. At four ticks a second the ratio no longer survives rounding, so `ImpTests.WalkingOnTheBias_TakesRootTwoTimesAsLong` asserts within one tick — DK2 steps at the same rate and has the same quantisation (ADR-0089) |
 | No terrain weighting | **CONFIRMED** (Q30, owner 2026-08-29): the shortest path wins even through water |
 | Tie-breaking | Ours. Reproducible, which the determinism gate needs — arbitrary otherwise |

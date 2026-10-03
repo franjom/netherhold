@@ -101,7 +101,7 @@ Facts established and recorded; nothing in `src/` turns on them yet.
 | **Why arrivals slow as a dungeon fills** (Q97) | The symptom is CONFIRMED. Two mechanisms produce it — the implemented interval scaling, and a draining eligibility weight the binary suggests — and they differ in whether lair size matters |
 | **What a room does** | Rooms with behaviour are listed by `dk2tools coverage`. The ROOMS record carries art, size and cost and says nothing about behaviour, so for a room not yet built what is missing is the *shape*: capacity, per-creature eligibility, and what a room does with the state it changes. Do not assume capacity equals tile count — a temple's is its rim, `2(w+h) − 4` (Q60) |
 | **Which rooms a keeper may build on a level** | `Availability` kind 1 says so and `RoomRules` does not model it: a keeper here can build any buildable room on any level |
-| **Destroying a room somebody else holds** | Read and built (ADR-0339, `room-health.md` §4–5): heroes knock a keeper's buildable rooms down tile by tile as they walk across them. Job 11's room attack (Q523) and the room messages are not built |
+| **Destroying a room somebody else holds** | Read and built (ADR-0342, `room-health.md` §4–5): heroes knock a keeper's buildable rooms down tile by tile as they walk across them. Job 11's room attack (Q523) and the room messages are not built |
 | **What defeat does** (Q40) | Built (ADR-0162, ADR-0207, `DefeatRules`, Q358): creatures leave by the nearest portal, rooms and gold go neutral, the heart stays as a ruin. Left: the Destructor (object 100) |
 | **Audio event semantics** | Untouched |
 

@@ -360,8 +360,8 @@ somewhere asks it for a route to a tile's centre, and `CreatureMovementSystem`
 runs the mover's tick (steering-behaviours.md §7.5). `GridPathfinder` survives
 only behind `IPathfinder.TryFindNearest`, which chooses work by walking
 distance where DK2 chooses by kind lists and ring scans (ADR-0058); the route
-to what it chose comes from the mesh, and a target the grid reaches but the
-mesh cannot — two floor tiles touching at a corner (Q28) — is skipped.
+to what it chose comes from the mesh, which skips what it cannot reach; since
+ADR-0339 the grid also refuses the mesh's one gap, a corner-only pair (Q28).
 
 The parts of ADR-0012 that were measured against the game still hold as
 observations: a route runs straight where it can (Q341) and no terrain is

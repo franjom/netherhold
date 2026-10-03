@@ -55,14 +55,14 @@ public enum TileWorkKind
     /// Knock down a tile of somebody's room: action 11 (<c>0x00497DF0</c>), <c>AttackRoomHealth</c>
     /// (−1500) against the <b>tile's</b> health, which a hero applies ten times over with no rate.
     /// The tile falls to its destroyed terrain as if sold with no refund; the room goes tile by tile
-    /// (room-health.md §4, ADR-0339). Started by heroes, never by an imp.
+    /// (room-health.md §4, ADR-0342). Started by heroes, never by an imp.
     /// </summary>
     AttackRoom = 11,
 
     /// <summary>
     /// Restore one's own room: action 12 (<c>0x00498120</c>), <c>RepairRoomHealth</c> (+20000) into
     /// the room's health while it is below MaxHealth × Size. Nothing in v1.70 starts action 12, so
-    /// nothing here queues it (room-health.md §6, ADR-0339).
+    /// nothing here queues it (room-health.md §6, ADR-0342).
     /// </summary>
     RepairRoom = 12,
 }

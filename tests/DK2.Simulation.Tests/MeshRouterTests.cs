@@ -89,6 +89,20 @@ public class MeshRouterTests
         Assert.Equal(leaves, MeshRouter.TransitionCost(NavBytes.Floor, door, mover) != 0);
     }
 
+    /// <summary>The cross-check behind ADR-0339: the mesh has no route through a corner-only gap, as
+    /// DK2's edge-only region fill (<c>0x004C91A0</c>) gives none, and routes once one side of the
+    /// corner is open, which is the rule <c>GridPathfinder</c> now follows.</summary>
+    [Fact]
+    public void ACornerOnlyGapHasNoRoute_AndOneOpenSideRestoresIt()
+    {
+        var waypoints = new List<NavPoint>();
+        var cornerOnly = new MeshRouter(NavMesh.Build(new Grid(["######", "#..###", "#..###", "###..#", "###..#", "######"])));
+        Assert.False(cornerOnly.TryRoute(NavPoint.FromTileCentre(1, 1), NavPoint.FromTileCentre(4, 4), MoverProfile.Walker, waypoints));
+
+        var oneSideOpen = new MeshRouter(NavMesh.Build(new Grid(["######", "#..###", "#..###", "##...#", "###..#", "######"])));
+        Assert.True(oneSideOpen.TryRoute(NavPoint.FromTileCentre(1, 1), NavPoint.FromTileCentre(4, 4), MoverProfile.Walker, waypoints));
+    }
+
     [Fact]
     public void APortalHoleIsEnteredOnlyWithOptionBitTwo()
     {

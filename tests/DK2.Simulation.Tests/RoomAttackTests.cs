@@ -8,7 +8,7 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Tests;
 
 /// <summary>Action 11, <c>0x00497DF0</c>: a room knocked down tile by tile through the tile's own
-/// health, and the hero who does it on stepping in (state 267). room-health.md §4–5, ADR-0339.</summary>
+/// health, and the hero who does it on stepping in (state 267). room-health.md §4–5, ADR-0342.</summary>
 public class RoomAttackTests
 {
     private const byte Keeper = 3;

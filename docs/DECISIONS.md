@@ -269,7 +269,7 @@
 - What stands: **which** terrain a tile becomes is still `MaxHealthTypeTerrainId` selected by the work (Q18), and claiming is still 4 applications — which is why the two rules were indistinguishable there, Dirt Path shipping at **1** health so that its gap (659) and maximum (660) are within one swing of each other.
 
 ## ADR-0025 — Movement is eight-connected, and a diagonal costs √2
-**Date:** 2026-08-30 · **Status:** accepted · supersedes the four-connected choice on `GridPathfinder` since M2 · amended 2026-09-05 by ADR-0059: a diagonal leg is walked surplus-first
+**Date:** 2026-08-30 · **Status:** accepted · supersedes the four-connected choice on `GridPathfinder` since M2 · amended 2026-09-05 by ADR-0059: a diagonal leg is walked surplus-first · amended 2026-10-03 by ADR-0339: a corner-only gap is no step
 
 **Context.** `GridPathfinder` was four-connected as the conservative option, because whether DK2 lets a creature squeeze diagonally between two solid tiles was UNKNOWN. The owner watched the original (Q28): it **will**, so every route this project produced was an overestimate, in the system every other system depends on.
 **Decision.**
@@ -7685,7 +7685,7 @@ seed and all nine moved scenarios still diverge first at that conversion; Level 
 13 reaches turn 2044 still fighting the Lord, who dies at 1940 on master) and Level 2 goes from
 7/20 (3, 7, 9, 10, 15, 18, 19) to 4/20 (1, 7, 10, 18).
 
-## ADR-0339 — Heroes knock rooms down tile by tile; repair is built and never started
+## ADR-0342 — Heroes knock rooms down tile by tile; repair is built and never started
 **Date:** 2026-10-02 · **Status:** accepted · advances ADR-0336 · Research: `room-health.md` §4–7; Q500, Q523, Q525
 
 **Context.** `AttackRoomHealth` has one reader, action 11 (`0x00497DF0`). It hits the tile's own
@@ -7719,3 +7719,33 @@ only `DestroysRooms` heroes on the level) step into the keeper's Hatchery and La
 (1, 9, 16, 18, 19). DK2's own run of that packet never puts a `DestroysRooms` hero on a keeper's
 room (`level2-live2/seed01`, every frame): its party 1 stays by its gate until about 3170. The
 prediction failed upstream of this mechanic, in that party's walk (Q525).
+
+## ADR-0339 — The grid search cuts a corner only past an open side, as the route query does
+**Date:** 2026-10-03 · **Status:** accepted · amends ADR-0025 · Research: `imp-task-priority.md` §2.2; `steering-behaviours.md` §7; `navigation-and-steering.md`; Q28
+
+**Context.** ADR-0025 let `GridPathfinder` step diagonally between two solid tiles, from the owner's
+observation of a creature crossing such a corner (Q28). The route layer never allows it: DK2's
+pre-check `0x004C9400` compares region ids, and the fill that assigns them (`0x004C91A0`, read
+2026-10-03) walks only a triangle's three edge neighbours, so two floors touching at one vertex never
+share a region; our mesh router, built on the original's algorithm (ADR-0157), has no route through
+one either. The grid survives
+behind `TryFindNearest`, which chooses an imp's work and tests a dig side's reachability
+(`0x00469AF0` via `0x00471630`). The Level 2 capture (l2live2 seed01, 3063-3082) shows the cost: a
+tagged wall's one reachable side held three diggers, its other sides lay behind a corner-only gap,
+and six DK2 imps passed it for the next wall, consistent with that refusal; our chooser, put in that
+world, took the gap each time (decision checker: six of the 31 non-lost mismatches).
+**Decision.** A diagonal step is refused when both of its orthogonal neighbours are unwalkable; one
+open side admits it, as the mesh does. Q28's observed crossing was not a route; whether it was
+steering's (the mover commits a step by the tile it lands in) stays the open half of Q28.
+**Consequences.**
+- `GridPathfinder.CornerOnly` in both searches; `PathfindingTests` pins the gap refused and one open
+  side restored, `MeshRouterTests` pins the mesh's agreement.
+- The Level 2 decision checker: 768 -> 776 of 799 the same (the six dig sides and two kind verdicts
+  at 3083 and 3103 that followed from them). Rigs on the same build: L1 20/20 (unchanged), L3 seed01
+  won at 3676 (identical run), L2 6/20 against 7: seeds 1, 3, 9, 15 and 19 are tick-identical, and 7,
+  10 and 18 first differ at 2168-2179 where an imp's stand for the dig at (12,15) moves off the hideout
+  side it could only reach through the corner; seed 7's later fight then goes the other way. DK2's own
+  seeded replays of this packet reach the party in one of three distinct seeds, so the count is
+  within that variance, not a verdict on the rule.
+- Routes elsewhere are unchanged unless they squeezed through a corner, which the walk could not
+  follow anyway: such a target was skipped by the mover (ADR-0157), so an imp now never takes it.

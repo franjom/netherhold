@@ -10,7 +10,7 @@ namespace DK2.Simulation;
 /// <summary>A hero knocking down the rooms it walks across: the creature update's arm
 /// <c>0x00488F61</c>–<c>0x0048902E</c>, the walk <c>0x004585C0</c> and state 267's handler
 /// <c>0x00458620</c>, which runs action 11 (<see cref="TileWorkKind.AttackRoom"/>) on the tile
-/// underfoot until it is no room (room-health.md §5, ADR-0339).</summary>
+/// underfoot until it is no room (room-health.md §5, ADR-0342).</summary>
 /// <remarks>Job 11's states 179–181, the other starter of action 11, are not built (Q523).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/room-health.md")]
 public static class RoomAttackRules

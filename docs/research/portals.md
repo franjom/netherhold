@@ -285,7 +285,7 @@ The mixed direction is the data's: `ClaimTileHealth` is **+825** and builds floo
 `TileWorkRules.CompletesAsTakeover` — without it the downward path would send a
 converted room to its `DestroyedTypeTerrainId` (Claimed Path, for every room in
 the data) and claiming a treasury would demolish it. Demolishing is
-`AttackRoomHealth`'s job (−1500), tile by tile, and only heroes do it (ADR-0339).
+`AttackRoomHealth`'s job (−1500), tile by tile, and only heroes do it (ADR-0342).
 
 Two consequences that fell out rather than being designed:
 
