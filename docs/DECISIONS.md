@@ -7941,3 +7941,38 @@ is required; generic/action counts are updated separately. Existing trees remain
 unchanged, with no graph-rewiring API. Map resizing retains overlapping
 coordinates and requires an explicit fill image for new tiles.
 No editor UI or playability validation is built. New-header synthesis is Q529.
+
+## ADR-0347 — Build keeper spells only after their complete effect paths are read
+**Date:** 2026-10-03 · **Status:** in progress
+
+**Context.** Seven keeper spells remain outside the simulation's cast boundary.
+The task requires staged binary research, implementation and independent review.
+
+**Decision.** Extend the existing command/shot boundary one spell at a time.
+Keep unread effects explicitly unbuilt; ask the owner about observable gaps.
+Every stage carries its evidence, function records, tests and snapshot/hash
+changes, and passes the complete gate before a fresh verifier reviews its commit.
+Possession covers simulation and engine-neutral actions; its view is out of scope.
+
+**Stages.** 0 baseline; 1 Create Gold; 2 Tremor; 3 Turncoat and reversion;
+4 Summon Horny; 5 OneShotReaper; 6 Sight of Evil/Q194; 7 Possession (split
+enter/leave and actions if needed); 8 research upgrades and final documentation.
+
+**Prediction before implementation.** No existing scenario explicitly casts any
+of the seven spells, and keeper AI expansion is outside this task. Create Gold's
+AI path remains unbuilt. Each spell should therefore preserve the existing
+scenario series unless it changes shared behavior or introduces hashed state.
+New hashed state changes every series through the version/composition change;
+record that separately from a spell's behavioral effects. Possession modifiers
+already used by combat must preserve their existing behavior until possession
+is entered. Check these predictions after each stage.
+
+**Baseline.** Base `d3abf248e6d81d906f75a10b2f301a44bf3da78d`;
+HashVersion and FormatVersion 169. Release build: zero warnings/errors;
+no-install suite: 3,193 passed, 0 failed, 392 skipped (3,585 total).
+Per-scenario hash series and final hashes: `plans/2026-10-03-keeper-spells-baseline.md`.
+Level 1/2 seeds 1–20 cannot be measured here: their gitignored scratchpad
+drivers and recorded packets are absent from this isolated worktree.
+
+**Current boundary.** Stage 0 measured all 42 scenarios without expectation
+failures. No spell has been added and no hash version has changed.
