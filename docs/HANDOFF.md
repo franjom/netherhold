@@ -18,8 +18,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
   the reveal (ADR-0338), the Guard Post (ADR-0330), trap upkeep and damage (ADR-0326)
-  run; disarming is deferred under ADR-0329's scoped inference (Q455). Left: creatures attacking a
-  revealed trap (scan D, Q362), shot heights (traps.md; 2026-10-02).
+  and creatures fighting a revealed trap (scan D, ADR-0340) run; disarming is deferred under
+  ADR-0329's scoped inference (Q455); shot heights go to M9 and the Boulder's slap to the hand
+  (ADR-0341). Left: the owner's observations in experiments/doors-and-traps.md — Q520's wall is
+  disputed, Q513, Q524 and Q362 unwatched (2026-10-03).
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 16).
   The proactive task machine (tasks 0–7) digs, expands, builds rooms, manages

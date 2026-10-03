@@ -57,8 +57,13 @@ The object update `0x0049BD20` runs it through the state runner `0x0049EED0`, th
 or 1, which `0x238200` lacks. So nothing breaks a boulder at a wall but §6's tenth a turn (Q520). A slap (`Object_ReactToSlap`,
 `0x0049C558`) turns it to the hand's heading (`+0xF4`, `+0x14E`) and costs `BoulderSlapDamage` (240,
 400) through the health routine: ten slaps break it, as the owner recalls from a level played as golf.
-Unread: whether a diagonal launch can carry it into a solid corner tile, as the handlers test only the
-tile ahead on their own axis.
+**A slanted roll can enter a solid tile** (read 2026-10-03). The handlers run only on a centre line and
+test only the tile ahead on that axis; the step moves through `0x004B5560` → `0x004B5020`, which relinks
+the tile chains and tests no terrain. A launch at 45° (`+0x14A`, `+0x14E` = ±2896) from a tile centre
+whose two side tiles are free reaches neither centre line in its first tick at 3·1228 a tick, and crosses
+both tile boundaries at once into the diagonal tile, solid or not. At that tile's centre the later axis's
+handler runs: going north with rock ahead and the free tile to the west, it turns west, wearing a tenth.
+So it clips the corner and rolls on; nothing breaks it there. Ours does the same (`BoulderTests`).
 
 ## 4. The strike (`0x004A0930`)
 

@@ -117,12 +117,12 @@ public sealed class HeartSites
 
 /// <summary>DK2's <c>SelectAVictim</c> (<c>0x0045CB00</c>, its own name) for the four fighting arms:
 /// the shared scan over every creature in the game with each arm's score, the acceptance by sight
-/// or by a walkable route, the heart scan (§6 scan E), the route check on the winner, the final
-/// gate, and the fight-starter that registers the engagement and sets the reach
-/// (docs/research/combat-acquisition.md §6–§8), and the withdrawal of a hurt creature in place of
-/// the fight (combat-fear.md §3), and the attack-spell survey that lets a caster engage at its
-/// spell's range (combat-spells.md §5, ADR-0167). Not built and named there: the friendly and
-/// thing-targeting surveys, the scan over who is already attacking me and the door scan.</summary>
+/// or by a walkable route, the route check on the winner, the trap scan (§6 scan D), the heart scan
+/// (scan E), the friendly scan (F), the final gate, and the fight-starter that registers the
+/// engagement and sets the reach (docs/research/combat-acquisition.md §6–§8), and the withdrawal of
+/// a hurt creature in place of the fight (combat-fear.md §3), and the attack-spell survey that lets
+/// a caster engage at its spell's range (combat-spells.md §5, ADR-0167). Not built and named there:
+/// the thing-targeting survey and scans A, B and C.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-acquisition.md")]
 public static class CombatTargetRules
 {
@@ -145,13 +145,8 @@ public static class CombatTargetRules
         {
             if (!Forced(context, sight, me, definition, scratch)) return false;
         }
-        else if (definition.FightStyle == FightStyle.NonFighter)
-        {
-            if (!NonFighter(context, sight, hearts, rooms, me, definition, scratch, out CreatureState? chosen)) return false;
-            if (chosen is null) return true;
-            if (!Commit(context, sight, me, definition, chosen, scratch)) return false;
-        }
-        else if (!Choose(context, sight, hearts, me, definition, scratch)) return false;
+        else if (!Choose(context, sight, hearts, rooms, me, definition, scratch, out bool left)) return false;
+        else if (left) return true;
 
         // The acquirer's own withdraw check (0x0045DEE0): a hurt creature far from its heart lets
         // the target it just chose go and runs instead; finding nowhere to run, it fights.
@@ -262,11 +257,14 @@ public static class CombatTargetRules
     public const int DoorReach = 0x800;
     public const int SecretDoorReach = 0xC00;
 
+    /// <summary>The scans in <c>0x0045CB00</c>'s order: the arm's choice, the route check on it, the traps
+    /// (scan D) when nothing is left, the hearts (E), the friendly spell (F), then the commit. True with
+    /// <paramref name="left"/> when the NonFighter arm took the creature out of the fight (<c>0xEA60</c>).</summary>
     private static bool Choose(
-        SimulationContext context, ISightBlocker sight, HeartSites hearts, CreatureState me, CreatureDef definition,
-        List<Fixed16Vector> scratch)
+        SimulationContext context, ISightBlocker sight, HeartSites hearts, RoomCache rooms, CreatureState me, CreatureDef definition,
+        List<Fixed16Vector> scratch, out bool left)
     {
-
+        left = false;
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int sightSq = CombatRules.RangeSquared(definition.DistanceCanSee);
@@ -285,12 +283,33 @@ public static class CombatTargetRules
         }
 
         int best = int.MaxValue;
-        CreatureState? chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+        CreatureState? chosen;
+        if (definition.FightStyle == FightStyle.NonFighter)
+        {
+            if (NonFighter(context, sight, hearts, rooms, me, definition, scratch, out chosen) && chosen is null)
+            {
+                left = true;
+                return true;
+            }
+        }
+        else chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+
+        // The route check on the arm's creature (0x0045D74A), before the thing scans: unwalkable, it is
+        // dropped unless an attack spell can see it, and the scans below look on.
+        if (chosen != null && !CanReach(context.Navigation, me, definition, chosen.PosX, chosen.PosY, int.MaxValue, scratch)
+            && (spell is null || !LineOfSight.Clear(sight, me.PosX, me.PosY, chosen.PosX, chosen.PosY)))
+            chosen = null;
+
+        // Scan D: an enemy's revealed trap, when no creature is left. DK2 skips it for a Turncoat (+0x453),
+        // which is not modelled.
+        TrapState? trap = null;
+        int trapDistance = 0;
+        if (chosen is null) trap = ScanTraps(world, sight, me, definition, sightSq, out trapDistance);
 
         // Scan E: the enemy heart outranks nothing but a worker, and only an Imp or a Horned
-        // Reaper never looks at it.
-        bool heartMayEnter = chosen is null
-            || database.CreatureById(chosen.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker);
+        // Reaper never looks at it; a trap outranks it (the class test at 0x0045D91B).
+        bool heartMayEnter = trap is null
+            && (chosen is null || database.CreatureById(chosen.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker));
         int heartTile = -1;
         byte heartOwner = 0;
         if (heartMayEnter && me.CreatureTypeId != CombatRules.ImpCreatureTypeId && !definition.Flags.HasFlag(CreatureFlags.IsHorny))
@@ -311,8 +330,76 @@ public static class CombatTargetRules
             return EngageHeart(context, me, definition, heartOwner, heartTile, spellSlot, spell);
         }
 
+        if (trap != null) return EngageTrap(context, sight, me, definition, trap, trapDistance, sightSq, hearSq, spellSlot, spell);
         if (chosen is null) return false;
-        return Commit(context, sight, me, definition, chosen, scratch, spellSlot, spell);
+        return Commit(context, sight, me, definition, chosen, spellSlot, spell);
+    }
+
+    /// <summary>Scan D (<c>0x0045D7A5</c>–<c>0x0045D8D8</c>): each hostile player's traps, newest linked
+    /// first (the owner list is prepend, <c>0x004B4C61</c>); one hidden or under construction
+    /// (<c>+0x10C &amp; 0x30</c>) or a Jack In The Box (trap 16) is passed over. The nearest by the
+    /// squared distance, strictly, within sight inclusive and seen; a worker takes one only under
+    /// <see cref="WorkerTrapDistance"/>. The players' order is the game's list, unread, here ascending
+    /// id; it decides only a tie between two players' traps.</summary>
+    public static TrapState? ScanTraps(
+        WorldState world, ISightBlocker sight, CreatureState me, CreatureDef definition, int sightSq, out int distance)
+    {
+        TrapState? chosen = null;
+        int best = int.MaxValue;
+        bool worker = definition.Flags.HasFlag(CreatureFlags.IsWorker);
+        IReadOnlyList<TrapState> traps = world.Traps;
+        for (int i = traps.Count - 1; i >= 0; i--)
+        {
+            TrapState trap = traps[i];
+            if (trap.Hidden || trap.UnderConstruction || trap.TrapId == TrapRules.JackInTheBoxId) continue;
+            if (!CombatRules.IsHostile(world, me.OwnerPlayerId, trap.PlayerId)) continue;
+            int d = CombatRules.DistanceSquared(me.PosX, me.PosY, trap.PosX, trap.PosY);
+            if (worker && d >= WorkerTrapDistance) continue;
+            // Walking newest first, an equal distance keeps the earlier find, and a lower player's.
+            if (d > best || (d == best && trap.PlayerId >= chosen!.PlayerId) || d > sightSq) continue;
+            if (!LineOfSight.Clear(sight, me.PosX, me.PosY, trap.PosX, trap.PosY)) continue;
+            best = d;
+            chosen = trap;
+        }
+        distance = best;
+        return chosen;
+    }
+
+    /// <summary>The worker's limit in scan D, squared (<c>0x0045D86A</c>): <c>0x800</c>, about 0.7 of a tile.</summary>
+    public const int WorkerTrapDistance = 0x800;
+
+    /// <summary>Commit on a trap (<c>0x0045DDA8</c>–<c>0x0045E0BA</c>): the final gate on a third of the
+    /// distance; then melee within a tile unless a Support, else the surveyed spell unless its status
+    /// bit (3) sends it to melee against a thing, else melee. Melee is <c>AttackType</c> 4 at
+    /// <c>(MeleeRange + 0x400)² >> 12</c>; a spell 2 at its range. No attacker slots and no event.</summary>
+    private static bool EngageTrap(
+        SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef mine, TrapState trap, int distance,
+        int sightSq, int hearSq, int spellSlot, CreatureSpellDef? spell)
+    {
+        int third = distance / 3;
+        if (third >= hearSq && (third >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, trap.PosX, trap.PosY)))
+            return false;
+
+        bool melee = spell is null || (distance < MeleeDecisionDistance && mine.FightStyle != FightStyle.Support) || SpellRules.IsStatus(spell);
+        bool same = me.FightTargetKind == FightTargetKind.Trap && me.FightTargetId == trap.Id;
+        me.FightTargetKind = FightTargetKind.Trap;
+        me.FightTargetId = trap.Id;
+        me.FightTargetPlayerId = trap.PlayerId;
+        me.FightTargetTileIndex = (trap.Y * context.World.Width) + trap.X;
+        if (melee)
+        {
+            me.AttackType = CombatRules.AttackTypes.MeleeAtThing;
+            me.AttackSpellSlot = 0;
+            me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange.Raw + CombatRules.TrapReach);
+        }
+        else
+        {
+            me.AttackType = CombatRules.AttackTypes.SpellAtThing;
+            me.AttackSpellSlot = (byte)spellSlot;
+            me.AttackRangeSquared = SpellRules.RangeSquared(spell!);
+        }
+        Enter(context, me, mine, same, $"trap={trap.Id} attack={me.AttackType}");
+        return true;
     }
 
     /// <summary>Scan F (spell-friendly-arm.md §8.2—§8.3): a self-only spell offers the caster alone, in the
@@ -374,24 +461,16 @@ public static class CombatTargetRules
         return true;
     }
 
-    /// <summary>The acquirer's common tail on a chosen creature: the winner must be walkable to — a
-    /// creature with an attack spell may keep one it can only see, and none here has one, so the
-    /// route decides — then the last gate on a third of the distance: within hearing, or within
-    /// sight and seen. Then the fight-starter.</summary>
+    /// <summary>The acquirer's common tail on a chosen creature, its route already checked in
+    /// <see cref="Choose"/>: the last gate on a third of the distance, within hearing or within sight
+    /// and seen. Then the fight-starter.</summary>
     private static bool Commit(
         SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition, CreatureState chosen,
-        List<Fixed16Vector> scratch, int spellSlot = -1, CreatureSpellDef? spell = null)
+        int spellSlot = -1, CreatureSpellDef? spell = null)
     {
         int sightSq = CombatRules.RangeSquared(definition.DistanceCanSee);
         int hearSq = CombatRules.RangeSquared(definition.DistanceCanHear);
         int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, chosen.PosX, chosen.PosY);
-        if (!CanReach(context.Navigation, me, definition, chosen.PosX, chosen.PosY, int.MaxValue, scratch))
-        {
-            // A creature with an attack spell keeps a target it can only see (§6.2 step 1).
-            if (spell is null || distance >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, chosen.PosX, chosen.PosY))
-                return false;
-        }
-
         int third = distance / 3;
         if (third >= hearSq && (third >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, chosen.PosX, chosen.PosY)))
             return false;
@@ -631,7 +710,7 @@ public static class CombatTargetRules
 
     /// <summary>The heart as a thing target: a spell at a thing when the surveyed spell deals damage
     /// (a status spell takes melee against a thing, combat-spells.md §2), else melee at an object's
-    /// reach; no slots.</summary>
+    /// reach — the pillar is class 2, so half a tile (<c>0x0045E098</c>); no slots.</summary>
     private static bool EngageHeart(
         SimulationContext context, CreatureState me, CreatureDef mine, byte owner, int tile, int spellSlot = -1, CreatureSpellDef? spell = null)
     {
@@ -651,7 +730,7 @@ public static class CombatTargetRules
         {
             me.AttackType = CombatRules.AttackTypes.MeleeAtThing;
             me.AttackSpellSlot = 0;
-            me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange.Raw + CombatRules.ObjectReach);
+            me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange.Raw + CombatRules.ThingReach);
         }
         Enter(context, me, mine, same, $"heart={owner} tile={tile} attack={me.AttackType}");
         return true;

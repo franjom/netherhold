@@ -227,6 +227,9 @@ public class CombatTests
         Assert.Equal(Rival, demon.FightTargetPlayerId);
         Assert.Equal((5 * world.Width) + 10, demon.FightTargetTileIndex);
         Assert.Equal(CombatRules.AttackTypes.MeleeAtThing, demon.AttackType);
+        // The pillar is an object, class 2, and takes the commit's default half tile (0x0045E098), not a trap's quarter.
+        int reach = db.CreatureById(demon.CreatureTypeId).MeleeRange.Raw + 0x800;
+        Assert.Equal((reach * reach) >> 12, demon.AttackRangeSquared);
 
         sim.Run(120);
         Assert.True(world.Player(Rival).HeartHealth < before, $"heart {world.Player(Rival).HeartHealth}");
