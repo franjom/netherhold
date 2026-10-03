@@ -29,6 +29,12 @@ public sealed class TremorOnRealDataTests
         Assert.Equal(((byte)0, (byte)2), (shot.DamageType, shot.CollideType));
         Assert.Equal("Tremor Rocks", db.Effects[43].Name);
         Assert.Equal((ushort)43, db.Effects[43].EffectId);
+    }
+
+    [InstallFact]
+    public void ShippedRecoveryTimingMatchesCapturedHoldsAndFallbacks_StronglyInferredFromBinary()
+    {
+        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         foreach (var (id, knockdownTicks, getUpTicks) in new[]
         {
             (5, 5, 8), (7, 7, 11), (10, 5, 5), (12, 3, 13), (14, 3, 4), (29, 5, 4),
