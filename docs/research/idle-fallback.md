@@ -79,10 +79,11 @@ through 89.
 
 ## 5. Ours
 
-- 89's order is ours through `CreatureJobSystem.Choose`: the fight return, the dropped-on job,
-  the mood's chooser, then the fallback and 3. It runs for content and unhappy creatures in
-  state 1. Ours keeps the unhappy table in `Choose`, where DK2's 89 runs the happy chooser for
-  any mood. The angry creature stays with `CreatureAngerSystem`.
+- The newly entered raw89 path runs the dispatcher mood prelude before `Choose`,
+  then the happy chooser for every mood and the fallback to3. See
+  [its function record](functions/004778E0.md). The existing raw1 path still combines
+  selection with idle, uses the unhappy table for unhappy creatures, and leaves
+  angry selection to `CreatureAngerSystem`.
 - **The refusal log** now reports every refusal, since passes are rare.
 - **Guessed:** that every creature has actions 43 and 44, and their length
   (`ImpTaskSystem.IdleActionGuessTicks` = 8).

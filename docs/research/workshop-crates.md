@@ -173,9 +173,9 @@ So **every crate made sends every worker in that Workshop to idle for a moment**
 1. Call To Arms.
 2. The lair.
 3. `DroppedToDoJobId` (`+0x6E`), the job of the room the hand dropped it on.
-4. `ReturnToJobId` (`+0x68`), whose only writer outside the constructor sets it to 6 (Guard,
-   `0x00462850`).
-5. The happy or unhappy chooser.
+4. `ReturnToJobId` (`+0x68`); see [the Guard starter record](functions/00462850.md)
+   for its saved-post reuse and scoped writer census.
+5. The happy chooser, after the dispatcher's earlier mood selectors refused.
 
 For a Workshop creature that means Manufacture again. The shipped Troll's content table is
 Manufacture alone, and a creature dropped in the Workshop retries that job first.

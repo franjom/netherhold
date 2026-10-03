@@ -442,6 +442,38 @@ public sealed class TremorCreatureTests
         Assert.False(creature.Fleeing);
     }
 
+    [Theory]
+    [InlineData(CreatureMood.Angry, 5)]
+    [InlineData(CreatureMood.Unhappy, 3)]
+    public void State89RunsHappyAfterItsMoodPreludeRefuses_StronglyInferredFromBinary(CreatureMood mood, int rolls)
+    {
+        var (db, world, creature) = MoodSetup(JobType.None, JobType.None);
+        CreatureDef definition = db.CreatureById(creature.CreatureTypeId);
+        if (mood == CreatureMood.Unhappy) creature.Anger.Lair = CreatureAngerRules.UnhappyAt(definition);
+        var draws = new Draws(Enumerable.Repeat((100, 0), rolls).ToArray());
+        var sim = new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]);
+        sim.Tick();
+        Assert.Equal(CreatureJobSystem.IdleChooserState, creature.Dk2StateId);
+        int before = creature.Anger.Work;
+        sim.Tick();
+        Assert.Equal(CreatureJobSystem.DoingNothingState, creature.Dk2StateId);
+        Assert.Equal(before + SimulationTiming.LoaderRatePerTick(definition.AngerNoWork), creature.Anger.Work);
+        Assert.Equal(0, draws.Remaining);
+    }
+
+    [Fact]
+    public void AcceptedMoodPreludeBypassesState89Handler_StronglyInferredFromBinary()
+    {
+        var (db, world, creature) = MoodSetup(JobType.Rebel, JobType.None);
+        creature.Dk2StateId = CreatureJobSystem.IdleChooserState;
+        creature.Fleeing = false;
+        var draws = new Draws((100, 0));
+        new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
+        Assert.True(creature.RebelActive);
+        Assert.Equal(RebellionRules.DefectDelayTicks, creature.RebelCountdownTicks);
+        Assert.Equal(0, draws.Remaining);
+    }
+
     [Fact]
     public void HeroIdleSelectionClearsFleeingBeforeTheStandingJob_StronglyInferredFromBinary()
     {

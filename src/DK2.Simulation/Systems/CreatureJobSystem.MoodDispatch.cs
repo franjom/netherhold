@@ -12,6 +12,15 @@ public sealed partial class CreatureJobSystem
 
     private void DispatchFleeingIdle(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        if (TryDispatchMoodPrelude(context, creature, definition)) return;
+        creature.Fleeing = false;
+        if (Combat.FightReturnRules.TryReturn(context, creature)) return;
+        // One handler per turn: state 1 requests 89, whose job work runs on a later turn.
+        CreatureStateMachine.TrySetState(context.Hooks, creature, IdleChooserState, context.Tick.Value);
+    }
+
+    private bool TryDispatchMoodPrelude(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
         context.TremorMoodDispatchedThisTick.Add(creature);
         CreatureMood mood = CreatureAngerRules.MoodOf(definition, creature);
         bool eligible = creature.OwnerPlayerId != PlayerIds.Neutral
@@ -22,14 +31,10 @@ public sealed partial class CreatureJobSystem
         // Unmodeled body flags and possessed-following are scoped in the Tremor research.
         if (eligible && mood != CreatureMood.Content)
         {
-            if (mood == CreatureMood.Angry && TryChooseDispatchedMood(context, creature, definition, mood)) return;
-            if (TryChooseDispatchedMood(context, creature, definition, CreatureMood.Unhappy)) return;
+            if (mood == CreatureMood.Angry && TryChooseDispatchedMood(context, creature, definition, mood)) return true;
+            if (TryChooseDispatchedMood(context, creature, definition, CreatureMood.Unhappy)) return true;
         }
-
-        creature.Fleeing = false;
-        if (Combat.FightReturnRules.TryReturn(context, creature)) return;
-        // One handler per turn: state 1 requests 89, whose job work runs on a later turn.
-        CreatureStateMachine.TrySetState(context.Hooks, creature, IdleChooserState, context.Tick.Value);
+        return false;
     }
 
     private bool TryChooseDispatchedMood(

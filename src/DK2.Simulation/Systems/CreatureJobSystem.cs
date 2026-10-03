@@ -143,6 +143,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     private void Choose(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        if (creature.Dk2StateId == IdleChooserState && TryDispatchMoodPrelude(context, creature, definition)) return;
         if (creature.Fleeing && creature.Dk2StateId == CreatureStateMachine.Idle)
         {
             DispatchFleeingIdle(context, creature, definition);
@@ -186,7 +187,8 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             creature.DroppedToDoJob = JobType.None;
         }
 
-        CreatureMood mood = CreatureAngerRules.MoodOf(definition, creature);
+        CreatureMood mood = creature.Dk2StateId == IdleChooserState
+            ? CreatureMood.Content : CreatureAngerRules.MoodOf(definition, creature);
 
         // An angry creature is CreatureAngerSystem's, and has been since
         // ADR-0061. Two systems rolling on two tables in one second would be
