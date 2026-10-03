@@ -7810,8 +7810,8 @@ The Boulder's slap waits for object slapping — the angle's source and the disp
 as its open item; a flat shot may hit a thing whose box the height test would refuse, and the
 Grenade's lob is a straight line. Revisit when a vertical coordinate is introduced for any
 thing.
-## ADR-0343 — KWD writers preserve source images and require explicit templates
-**Date:** 2026-10-03 — **Status:** in progress
+## ADR-0346 — KWD writers preserve source images and require explicit templates
+**Date:** 2026-10-03 — **Status:** accepted
 
 **Context.** The level editor needs byte-exact output before it can edit records.
 Reader projections alone cannot recover unknown header words, timestamps or tails.
@@ -7830,12 +7830,14 @@ source image. Only an explicit overlay writer encodes typed changes.
 **Consequences.** New records require explicit images. Split/Join validates
 counts, strides and tagged lengths; every typed reader has an overlay writer.
 The shared dispatcher audits every shipped record through typed writes.
+`kwd rewrite` and its install-gated test share `KwdRewriteAudit`, including
+per-file identity and first-difference diagnostics from decoded properties.
 Unknown bytes, unchanged padding and the embedded CREATURES tail survive.
 Filtered CREATURES list-count changes and raw PLAYERS AI block edits are refused.
 Trigger views share reader layouts; conflicting aliases and type changes are
 refused. GLOBALS is supported only as a LEVEL path discriminator (Q220).
 The unshipped dead-body layout remains a hypothesis (Q221).
-Q526's base-creature aliases share one value.
+Q528's base-creature aliases share one value.
 The DK2.Data editing surface owns a level's manifest and referenced file images,
 applies transactional typed edits, and saves relative paths under an output root.
 Generic edits freeze trigger references and the file manifest.
@@ -7846,4 +7848,4 @@ identified nodes without incoming tree links or roots. Complete manifest context
 is required; generic/action counts are updated separately. Existing trees remain
 unchanged, with no graph-rewiring API. Map resizing retains overlapping
 coordinates and requires an explicit fill image for new tiles.
-No editor UI or playability validation is built.
+No editor UI or playability validation is built. New-header synthesis is Q529.

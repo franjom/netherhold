@@ -46,7 +46,7 @@ levels, which is what `dk2tools kwd trigger-types` prints.
 
 `KwdWriter.Write`, `WriteFile` and `ToBytes` reproduce parsed containers,
 including unknown header words, timestamps and LEVEL's understated size.
-`CreateFromTemplate` requires a parsed chunk for header provenance (ADR-0343).
+`CreateFromTemplate` requires a parsed chunk for header provenance (ADR-0346).
 `KwdRecordRoundTrip.Join` validates counts, strides and tagged lengths.
 
 Every typed reader has an overlay writer. `KwdTypedRecords.Read`, `Write` and
@@ -59,7 +59,7 @@ VARIABLES edits use individual cells, preserving duplicate ids and order.
 PLAYERS preserve noncanonical booleans and unused high bytes; raw AI block
 edits are refused. CREATURES preserve filtered source slots, conditional
 payloads and the raw 88-byte embedded tail; filtered list-count changes are
-refused. Both base-creature aliases share one value (Q526).
+refused. Both base-creature aliases share one value (Q528).
 THINGS cover every tag, including all sixteen hero-party slots; the unshipped
 dead-body layout remains a hypothesis (Q221). TRIGGERS share decoded parameter
 layouts with their reader, reject conflicting alias edits and require an

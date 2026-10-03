@@ -29,7 +29,7 @@ Original version: DK2 v1.70 (GOG)
 
 Every offset below is read by `KwdCreatures`; the full per-field dump for the
 other record types is `kwd-record-fields.md`.
-The base-creature byte follows the shuffle-speed dword (Q526); its binary copy
+The base-creature byte follows the shuffle-speed dword (Q528); its binary copy
 is in [the loader record](functions/00492320.md#writer-offset-check).
 
 ```

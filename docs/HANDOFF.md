@@ -66,9 +66,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
    remaining replay, combat, hero, trap and door work. Avoid reproducing their
    detailed backlogs here.
 4. Goal 7: `codex/kwd-writers` in `D:\DungeonKeeperRemake-kwd-writers` is an
-   independently reviewed checkpoint. Container, record-image and typed-overlay
-   milestones passed; the editing surface is in progress.
-   Continue from its latest commit's `Next:`. ADR-0343 and
+   independently reviewed checkpoint. Container, record-image, typed-overlay
+   and editing milestones passed; the rewrite command and final docs are built,
+   with milestone 5 and whole-branch reviews pending.
+   Continue from its latest commit's `Next:`. ADR-0346 and
    `src/DK2.Data/README.md` describe the retained writer surface.
 
 After faithful M12, keep it as selectable Classic AI; explore a separate

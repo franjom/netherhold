@@ -191,7 +191,7 @@ public sealed record CreatureDef
     public required Fp32 SlapFearlessDuration { get; init; }
     public required short PossessionManaCost { get; init; }
     public required byte LairObjectId { get; init; }
-    /// <summary>The same source byte as UniqueBaseCreatureId (Q526); editing either view updates both.</summary>
+    /// <summary>The same source byte as UniqueBaseCreatureId (Q528); editing either view updates both.</summary>
     public required byte CloneCreatureId { get => _baseCreatureId; init => _baseCreatureId = value; }
 
     // String table references (localised text)
