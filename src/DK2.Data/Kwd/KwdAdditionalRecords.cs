@@ -335,7 +335,7 @@ public static partial class KwdTriggers
 }
 
 /// <summary>Reader for LEVEL metadata and its typed 72-byte file-reference table.</summary>
-public static class KwdLevel
+public static partial class KwdLevel
 {
     private const int BaseMetadataSize = 25603;
     private const int ExtendedMetadataSize = 25683;
