@@ -270,7 +270,7 @@ room's `+0x423` sound.
 
 - The drop of an own non-worker creature on an interior tile of the keeper's own Combat Pit
   → 1 → 137 (`HandSystem`).
-- 137, 138, 139 and 141 (`CombatPitStep`), idle's return to 138, the pairing, the per-turn
+- 137, 138, 139 and 141 (`CombatPitSystem`), idle's return to 138, the pairing, the per-turn
   anger, the one-step wander.
 - The forced target through `ProcessFight`, `SelectAVictim` and the fight state; the pit
   fighter's attackability, its blow and its damage taken; the knockout's release of the winner

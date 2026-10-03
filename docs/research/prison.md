@@ -107,7 +107,7 @@ priority, two destinations. Three consequences reproduced here:
   floor while the imp claims the whole map first.
 - **Capacity is checked at delivery, not before pickup** (owner, 2026-09-13), **BUILT** 2026-09-15: `DeliveryTileIn` picks a free cell or a full prison's rim, `AdmitsAt` decides at the door, and the refused body is left bleeding. Tie-breaking and which rim tile remain UNKNOWN (ADR-0148).
 - **The rescue window is a real deadline.** That run used to capture ten ticks
-  inside the window; **as of 2026-09-15 it does not capture at all** — the
+  inside the window; **it does not capture at all** — the
   goblin dies at tick 243 while the imp still claims, and the run records zero
   `creature_imprisoned` (Q315). **Cause confirmed:** ADR-0089 cut the window
   from 1200 ticks to 240 while claiming still takes longer, so the rule is not

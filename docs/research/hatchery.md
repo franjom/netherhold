@@ -223,7 +223,7 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
   its name implies, after `MaxGoldPileOutsideTreasury`.
 - Ours lays at a coop whenever the room has one and refuses a full room; DK2 lays
   on a free tile while the room has capacity and at a coop, under the free-range
-  cap, when it has none (§3). Unbuilt as of 2026-10-02.
+  cap, when it has none (§3). Unbuilt.
 
 ## Open questions
 

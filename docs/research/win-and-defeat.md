@@ -293,8 +293,8 @@ condition type 25 counts it out is still UNKNOWN.
 - Actions 10 and 11 performed for the player of a player or creature tree,
   refused with `Unhandled` in a world tree; 12 and 13 stay `Unhandled`.
 - `HeartHealth`, `HeartLastAttackerPlayerId`, `HeartDiedTick`, `HeartRuined`;
-  `WorldState.DamageHeart` is the death handler's stamp. Nothing calls it from
-  the tick order yet — combat is unbuilt.
+  `WorldState.DamageHeart` is the death handler's stamp, called by the melee blow
+  (`FightRules`), a shot's contact (`ShotRules`) and the Boulder (ADR-0164, ADR-0333).
 - `DungeonHeartSystem`, last in the tick: regeneration once a second, ruin one
   turn after death, verdict from the killer's side, last keeper standing.
 - A ruined heart has no gold capacity (`GoldStore`) and is claimable

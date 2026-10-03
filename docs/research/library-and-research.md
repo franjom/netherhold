@@ -249,11 +249,11 @@ measuring it. A variable looks dead when it is looked for in the wrong mechanism
 
 - **The research tree** was listed here until 2026-09-28. It is now read and
   built: see [research-tree.md](research-tree.md).
-- **The casino bonus.** Needs a Casino, and **what sets `player+0x20D` is
+- **The casino bonus.** **What sets `player+0x20D` is
   UNKNOWN** (Q217) — it is a 16-bit field beside the accumulator, tested for
   non-zero, and the variable's *name* is the only evidence for reading it as a
   big-win flag. A name is not a reader.
-- **The tortured-type bonus.** Needs a Torture Chamber and a per-keeper list of
+- **The tortured-type bonus.** Needs a per-keeper list of
   the types tortured there (one per type, own creatures only count; §3).
 - **The negative path.** The adder clamp-subtracts a negative credit, and
   nothing has been found that passes it one (Q218).

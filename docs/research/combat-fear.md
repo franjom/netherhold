@@ -240,7 +240,7 @@ lets the engagement go rather than leaving the tag (Q373); a hero's flag bit 4 i
 absent, so heroes neither withdraw nor count as six tiles out (Q372). The room
 word `+0x27/+0x29` is `RoomInstance.CentreFieldX/Y` since ADR-0323 (§5 step 3).
 
-**Not built:** hero gates; the stunned and chicken gates; the owner modifiers (Q375);
+**Not built:** hero gates; the stunned gate (a chicken is skipped, ADR-0302); the owner modifiers (Q375);
 `ThreatThing`; the two spell sources of §2; the body bit `+0x10F`.0.
 
 ## Confidence

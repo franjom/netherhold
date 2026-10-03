@@ -284,9 +284,8 @@ for that keeper's whole workforce, leaving only quitting and revolting.
 candidate for *a keeper whose dungeon heart has fallen*, and it is nothing of the
 kind. Defeat needs a different candidate (Q93, Q207).
 
-**Not built, and it cannot be**: nothing in this simulation has a Call To Arms,
-so there is no state to drive the gate from. Recorded at
-`CreatureJobSystem` instead, so it lands when Call To Arms does.
+**Built** (ADR-0279): `CreatureJobSystem` admits only Leave and Rebel while the owner's
+Call To Arms is on, as this gate does.
 
 ### 6.2 `def+0x686 & 0x4000` is `IsHorny` — CONFIRMED
 

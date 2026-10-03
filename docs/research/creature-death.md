@@ -186,10 +186,10 @@ from the damage sink, so it is read there.
 
 **DK2 never records a killer**, which is how the monk half works at all. This
 document used to say that exit *"needs the killer's identity"* — right about the
-problem, wrong about the shape of the answer. **Still not implemented here**, and
+problem, wrong about the shape of the answer. **Still not implemented here** (Q111), and
 since ADR-0151 the destination is no longer the reason: a Graveyard tallies and
-raises (Q165). What is left is that **nothing kills a vampire**, because there is
-no combat (M7).
+raises (Q165); since ADR-0164 combat kills. What is left is the reincarnation
+itself (`CreatureDeathRules`).
 
 **OpenKeeper does not implement or even read `CanBeResurrected`.**
 

@@ -31,7 +31,7 @@ A party has sixteen `GoodCreatureThing` slots in shipped records. They describe
 an unspawned party, not creatures standing in the level. Projection stores those
 records under `HeroPartyState.Members`; it does not call `SpawnCreature`, and the
 projection's creature count remains unchanged. Action type 14 is the route that
-would spawn a party, but its behaviour is not implemented (Q254).
+spawns a party, built as `HeroPartyRules` (ADR-0197, Q254).
 
 `TriggerTree` still independently builds its 24 reduced party slots from the
 source `HeroPartyThing` sequence. The same records therefore have two homes for

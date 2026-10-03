@@ -30,7 +30,7 @@ reads recorded in `gold-on-the-floor.md`.
 | A treasury tile holds 3000; a dungeon-heart tile holds 1000 | **CONFIRMED** — two variables, named for those two rooms |
 | A keeper's gold is the sum of what their tiles hold | **STRONGLY INFERRED** — every limit DK2 sets on gold is per tile |
 | A room is built on land the player already owns | **STRONGLY INFERRED** — observed, and the tile carries no other candidate |
-| A new room tile must touch land the keeper already holds | **CONFIRMED (Q33), NOT IMPLEMENTED** — the gap is bridges |
+| A new room tile must touch land the keeper already holds | **CONFIRMED (Q33), BUILT** — a bridge span must touch the builder's own floor (`RoomRules.CanBuild`, ADR-0304) |
 | `Cost` is per tile, and the ROOMS record's number is the price | **CONFIRMED** (Q32) — five rooms priced in the original, all five matching |
 | Which tile of a treasury a deposit lands in | **READ from the binary** (Q35); ours differs |
 | `RecommendedSizeX/Y` gates what a room *does*, not what may be built | **STRONGLY INFERRED, BUILT** (Q36, Q45, ADR-0027); the Prison contradicts it, Q179 |

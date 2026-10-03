@@ -120,8 +120,7 @@ labels. Timings from a warm cache: the 15 listing walks take 1–3 s each
 (Jython under 11.0.1: 1–8 s; first 12.1.4 port: 10–50 s). The byte scans take
 1–2 s (first port: up to 158 s). All 38 run in one headless call in about
 75 s, including the cache build and Ghidra's start-up. Those that differ show
-only the decompiler's presentation. Those differ only in the
-decompiler's presentation, listed below. 12.1.4 also sometimes merges
+only the decompiler's presentation, listed below. 12.1.4 also sometimes merges
 adjacent stack locals into one array (`auStack_58[3]`) and adds a "type
 propagation not settling" warning on `FUN_005099a0`.
 

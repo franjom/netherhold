@@ -39,7 +39,7 @@ were answered by the owner from playing the original.
 | Mana is paid once a game second rather than smoothly | **OURS, not DK2's** (ADR-0017) — invisible in totals, visible only in the shape of the counter |
 | `TerrainDef.MaxManaGain` and `DungeonHeartMaxManaIncrease` are **not** ceiling contributions | **CONFIRMED** (Q37a) — the ceiling never moves. `MaxManaGain` is read after all: `Tile_SetOwner` (`0x004559D0`) adds it to the owner's gain-cap word `+0x10DE` beside the gain, so a Claimed Vault raises its keeper's income cap by 100 a tile (ADR-0334); `DungeonHeartMaxManaIncrease` is still read by nothing |
 | What the original does when a keeper cannot pay its imps | **UNKNOWN** (Q57) — ours floors mana at zero and carries on |
-| What defeat does when a heart falls | **ANSWERED, NOT BUILT** (Q40) — the owner has described it; scheduled with objectives at M6 |
+| What defeat does when a heart falls | **ANSWERED, BUILT** (Q40, ADR-0162; `win-and-defeat.md` §7) |
 
 ---
 
@@ -231,18 +231,14 @@ the binary alone (Q57 is the missing original run).
 
 Read this before adding to `ManaRules`.
 
-- **Spells other than Create Imp, Thunderbolt and Call to Arms.** Possess, Summon
+- **Spells other than Create Imp, Thunderbolt, Call to Arms, Heal, Inferno and Chicken.** Possess, Summon
   Horny and research/possession upkeep (`ManaCostInFirstPersonPerSecond`) all
   spend mana in DK2 and none of them exists here; the same spell column that gave
   the imp its 7 holds 2000 a second for Summon Horny. Call To Arms' 90 is charged
   after its prepaid period (`call-to-arms.md`, ADR-0279). Trap drain is owner-reported and uninvestigated.
-- **Nothing happens when a heart falls.** Losing your dungeon heart is defeat in
-  DK2, and the owner has described what defeat does (Q40): the defeated keeper's
-  creatures leave through the nearest portal and rival keepers claim their rooms
-  and gold. None of it is built — no player is eliminated, nothing happens to
-  their creatures, rooms, land or gold. A keeper whose heart is beaten down here
-  stops earning its 30 a second and plays on, and every scenario with a heart on
-  the map says so. It belongs with objectives and win conditions at M6.
+- **A heart's fall is built** (ADR-0162; `win-and-defeat.md` §7): the verdict, the ruin,
+  the defeated keeper's workers killed and the rest walked to a portal (Q40). Not built
+  there: alliances ending games together (Q359).
 - **`MaxManaGain` and `DungeonHeartMaxManaIncrease` are read by nothing.**
   `MaxManaGain` is non-zero on exactly one terrain in the whole table, where it
   repeats `ManaGain`; `DungeonHeartMaxManaIncrease` is 32000 against a flat

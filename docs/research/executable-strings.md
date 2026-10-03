@@ -102,8 +102,8 @@ scaffolding (`State`, `StateGroup`, `StateUtils`, `RunAway`, `ImpUtils`):**
 - **`ProceduralMesh.cpp` is the wall renderer** (Q71/Q72, wall-piece selection
   and runtime deformation), and it being *procedural* supports what
   `wall-rendering.md` inferred rather than proved.
-- **`Specials.cpp`** is the level specials — the one route to imps the project
-  records as unimplemented in `ImpSupplyRules`.
+- **`Specials.cpp`** is the level specials — of which only Increase Level is built
+  (`specials.md`); the Receive Imps route to imps is not (`imps-and-mana.md`).
 - **Nothing names the main loop.** No `Main.cpp`, `Game.cpp` or `Time.cpp`, so
   only files carrying asserts appear. Q1's route is the four timer imports, not
   a filename.

@@ -5,7 +5,7 @@ deliberately does not:
 
 | for | go to |
 |---|---|
-| what the code currently does | `docs/HANDOFF.md` §*What exists* |
+| what the code currently does | `docs/HANDOFF.md` §*Current state*, and `dk2tools coverage` |
 | every open unknown, and how to close it | `docs/research/open-questions.md` |
 | built against the long-term goals | `docs/GOAL_ALIGNMENT.md` |
 | the system-by-system table | `DK2_REIMPLEMENTATION_PLAN.md` §3 *Reverse-engineering status* |
@@ -65,7 +65,9 @@ HYPOTHESIS / UNKNOWN (AGENTS.md). **CONFIRMED is reserved for the running game**
 | Trigger parameter views follow DKII.EXE's reads, not the editor's labels | ADR-0092 | `trigger-semantics.md` |
 | Trigger flags and timers are level state, and the byte called `Flag` is an opcode | ADR-0102 | `trigger-state.md` |
 | **Action points are ordered world state**: all 1,152 shipped points enter `WorldState` in THINGS-file order with the rectangle, ids/link, the five loader-copied flag bits and the saved runtime words. There is **no** availability field — the earlier shared `Available` interpretation is refuted | ADR-0103 | `action-points.md` |
-| **Doors and traps retain authored state**; construction, opening and route costs are built. Door contact and the door fight are built, and traps whose shot is built fire | ADR-0106, ADR-0159, ADR-0250/0251, ADR-0318, ADR-0321 | `doors-and-traps.md`, `door-blocking.md`, `traps.md` |
+| **Doors and traps retain authored state**; construction, opening and route costs are built. Door contact and the door fight, hero gates, every shipped trap's firing, the Boulder, the Jack In The Box, the reveal, trap upkeep and damage, the Guard Post and creatures fighting a revealed trap are built; disarming is deferred (ADR-0329, Q455) | ADR-0106, ADR-0159, ADR-0250/0251, ADR-0318, ADR-0320, ADR-0321, ADR-0326, ADR-0330, ADR-0331, ADR-0333, ADR-0337, ADR-0338, ADR-0340 | `doors-and-traps.md`, `door-blocking.md`, `traps.md` |
+| The Temple keeps the newest three offerings per room anchor and scans the 44 recipes for an exact ordered suffix | ADR-0149 | `sacrifice.md` |
+| Every creature holds one of DK2's 281 state ids, its activity is derived from the state, and `SetState` dispatches the category hooks from one table | ADR-0209, ADR-0210, ADR-0308 | `creature-state-table.md`, `CategoryHooks.Slots` |
 | **Hero parties and effect generators are ordered world state without behaviour**: all 220 parties from the 48-level campaign, every nested member field and the one generator enter `WorldState` verbatim; party members are not placed creatures | ADR-0108 | `hero-parties-and-effect-generators.md` |
 | The 1999 manual is a corroborating source, never an overriding one | ADR-0037 | `manual-1999.md` |
 | DKII.EXE may be decompiled and its output may not enter the repository; binary facts rank **below** owner observation and never reach CONFIRMED alone | ADR-0046 | `binary-entrance.md` |
@@ -78,11 +80,9 @@ Facts established and recorded; nothing in `src/` turns on them yet.
 
 | What | Research note |
 |---|---|
-| **Temple sacrifice.** A room retains the newest three creature/object/keeper-spell offerings and scans 44 recipes in file order for an exact ordered suffix. Shipped rewards create 21 creature types or 23 neutral crate/special objects; creature results inherit the integer average level of creature ingredients. Variable 112 is converted-creature prayer mana, not sacrifice | `sacrifice.md`, Q311 |
 | **Level scripting.** The shipped corpus holds **3,753 generic trigger records** (tag 213, **46** types) and **5,408 action records** (tag 214, **38** types). *51 is the highest action type **id**, not a count of types.* Semantics are read for the shipped types; four unshipped action types have no body read, and the transcribed selectors and unread fields are Q225–Q227 | `trigger-semantics.md`, `dk2tools kwd trigger-types` |
 | **The balance variable → global map.** The engine caches 181 of 240 variables in dedicated globals through a jump table indexed by `id − 3`, which makes *"what code reads variable N"* an answerable question | `balance-variables-in-the-binary.md` |
 | **The original's own source-file names.** Every assert carries its `__FILE__`, so the executable lists DK2's 72 translation units — and its creature AI is one file per state (`LairState.cpp`, `HungerState.cpp`, …) | `source-file-map.md`, `executable-strings.md` |
-| **The creature state table** — 281 records, and the state-category records that decide whether a transition is legal at all | `creature-state-table.md` |
 | **The saved-game format.** A `.SAV`/`.QSAV` opens with a 0x134-byte header (level name at `0xC2`, game tick at `0x102`), then a fixed block, then the tile grid at `0x8861` — row-major, 10 bytes a tile, with terrain, owner, room instance id and health identified. Player gold is at `0x2dd4`. Entities are typed sections that serialise themselves; there is **no** 189-byte entity record | `sav-format.md` |
 | **File formats:** WAD, KWD/KLD, KMF, STR, textures, video. `.str` string tables, all 92, decode through their `MBToUni.dat` code page (`src/DK2.Data/Text/Dk2StringTable.cs`); ids are table-local and zero-based and the header's second word is a file id running 1000..1091 | `wad-format.md`, `kwd-container.md` |
 | **The Mentor's speech and the notification system.** One entry point turns an event into a spoken line plus subtitle, addressed as **(type, variant)** through a 100-entry table; a speech reference is stored **negated with a 10000 bias**, which is why no line's id appears as a constant. Type 89 is the taunt pool (27 of 33 authored `silly` lines); the idle taunt is keyed to **cursor stillness in real milliseconds**, not game time. Six recorded lines have no code path at all (Q282) | `mentor-speech-and-notifications.md` |
@@ -100,7 +100,7 @@ Facts established and recorded; nothing in `src/` turns on them yet.
 | **Torture and conversion** | The three torture fields are read (ADR-0193, 0196, 0200; `TortureRules`, `TortureSystem`); DK2 keeps torture's state on the creature, not on the room |
 | **Why arrivals slow as a dungeon fills** (Q97) | The symptom is CONFIRMED. Two mechanisms produce it — the implemented interval scaling, and a draining eligibility weight the binary suggests — and they differ in whether lair size matters |
 | **What a room does** | Rooms with behaviour are listed by `dk2tools coverage`. The ROOMS record carries art, size and cost and says nothing about behaviour, so for a room not yet built what is missing is the *shape*: capacity, per-creature eligibility, and what a room does with the state it changes. Do not assume capacity equals tile count — a temple's is its rim, `2(w+h) − 4` (Q60) |
-| **Which rooms a keeper may build on a level** | `Availability` kind 1 says so and `RoomRules` does not model it: a keeper here can build any buildable room on any level |
+| **Which rooms a keeper may build on a level** | `Availability` kind 1 says so; the computer keeper's need rules and a creature's idle job read it (`RoomNeedRules`, `CreatureJobSystem`), `RoomRules` does not: a player's build command can place any buildable room on any level |
 | **Destroying a room somebody else holds** | Read and built (ADR-0342, `room-health.md` §4–5): heroes knock a keeper's buildable rooms down tile by tile as they walk across them. Job 11's room attack (Q523) and the room messages are not built |
 | **What defeat does** (Q40) | Built (ADR-0162, ADR-0207, `DefeatRules`, Q358): creatures leave by the nearest portal, rooms and gold go neutral, the heart stays as a ruin. Left: the Destructor (object 100) |
 | **Audio event semantics** | Untouched |
