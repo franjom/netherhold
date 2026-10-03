@@ -50,6 +50,27 @@ public sealed class AnimationTimingTests
     }
 
     [Fact]
+    public void InitialZeroRateCompletesAtTheNextPoll_StronglyInferredFromBinary()
+    {
+        var animation = new CreatureAnimationTiming
+        {
+            ResourceType = 6, FrameCount = 1025, FramesPerSecond = 1,
+        };
+        Assert.Equal(1, AnimationTimingRules.ActionHoldTicks(animation));
+    }
+
+    [Fact]
+    public void SegmentZeroRateCompletesAtTheTransitionPoll_StronglyInferredFromBinary()
+    {
+        var animation = new CreatureAnimationTiming
+        {
+            ResourceType = 6, Flags = CreatureAnimationFlags.StartSegment,
+            FrameCount = 1025, FramesPerSecond = 1, StartSegmentFrames = 1,
+        };
+        Assert.Equal(4, AnimationTimingRules.ActionHoldTicks(animation));
+    }
+
+    [Fact]
     public void MissingAnimationCompletesAtTheNextPoll_StronglyInferredFromBinary() =>
         Assert.Equal(1, AnimationTimingRules.ActionHoldTicks(default));
 }

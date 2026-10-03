@@ -152,7 +152,9 @@ advances type-6 resources through `0x004B3C10`. `AnimationTimingRules` models
 ordinary immediate nonlooping playback at the original four turns/second.
 For an unsegmented clip, duration = trunc(frames*4096/FPS),
 step = min(4095, trunc(16777216/(duration*4))). Phase advances to 4096;
-the following update zeroes the rate. The hold is ceil(4096/step)+1 turns.
+the following update zeroes the rate. For positive step the hold is
+ceil(4096/step)+1 turns. An initial zero step completes at the next poll;
+a segment transition installing zero step completes at that transition's poll.
 Resource flags 8/16 enable start/end segments. Segment transitions divide
 overshoot by next-duration/previous-duration using fixed-point division at
 each step. The function record preserves equality and carry-clamp branches;

@@ -35,8 +35,8 @@ public static class AnimationTimingRules
         {
             ticks++;
             if (complete) return ticks;
-            int step = Math.Min(One - 1, Divide(One, checked(duration * SimulationTiming.OriginalTicksPerGameSecond)));
-            if (step <= 0) throw new InvalidOperationException("Animation has no finite action duration.");
+            int step = AdvanceRate(duration);
+            if (step == 0) return ticks;
             phase += step;
             if (phase < One) continue;
             if (segment == Segment.Start)
@@ -44,6 +44,7 @@ public static class AnimationTimingRules
                 phase = Carry(phase - One, duration, mainDuration);
                 duration = mainDuration;
                 segment = Segment.Main;
+                if (AdvanceRate(duration) == 0) return ticks;
                 if (phase <= One) continue;
                 if (!hasEnd)
                 {
@@ -56,6 +57,7 @@ public static class AnimationTimingRules
                 phase = Math.Min(One, Carry(phase - One, duration, endDuration));
                 duration = endDuration;
                 segment = Segment.End;
+                if (AdvanceRate(duration) == 0) return ticks;
                 continue;
             }
             complete = true;
@@ -64,6 +66,9 @@ public static class AnimationTimingRules
 
     private static int Duration(int frames, int framesPerSecond) =>
         checked((int)(((long)frames * One) / framesPerSecond));
+
+    private static int AdvanceRate(int duration) =>
+        Math.Min(One - 1, Divide(One, checked(duration * SimulationTiming.OriginalTicksPerGameSecond)));
 
     private static int Carry(int overshoot, int previousDuration, int nextDuration) =>
         Divide(overshoot, Divide(nextDuration, previousDuration));
