@@ -116,7 +116,7 @@ public sealed class PossessionModifierTests
         var creature = new CreatureState { Possessed = true, InfluencedByPossessed = true, CombatPitFighter = true };
         Assert.Equal(6553, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.StanceOf(creature)));
         creature.Possessed = false;
-        Assert.Equal(5324, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.StanceOf(creature)));
+        Assert.Equal(3276, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.StanceOf(creature)));
         creature.InfluencedByPossessed = false;
         Assert.Equal(8192, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.StanceOf(creature)));
     }
@@ -134,7 +134,7 @@ public sealed class PossessionModifierTests
 
     [Theory]
     [InlineData(-101, MeleeDamageRules.Stance.Possessed, 42949632)]
-    [InlineData(-201, MeleeDamageRules.Stance.InfluencedByPossessed, 21474816)]
+    [InlineData(-101, MeleeDamageRules.Stance.InfluencedByPossessed, 21474816)]
     public void NegativeDamageNumeratorUsesTheOriginalZeroExtendedFixedDivide(
         int value, MeleeDamageRules.Stance stance, int factor)
     {

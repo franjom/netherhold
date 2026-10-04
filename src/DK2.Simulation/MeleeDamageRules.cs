@@ -28,7 +28,7 @@ public static class MeleeDamageRules
         Possessed = 1,
 
         /// <summary>Attacker flags bit 3 of the second word, <c>InfluencedByPossessed</c>. Gets
-        /// half the possession bonus, by dividing through 200 rather than 100.</summary>
+        /// half the possessed factor, by dividing through 200 rather than 100.</summary>
         InfluencedByPossessed = 2,
 
         /// <summary>Attacker flags bit 15, <c>CombatPitFighter</c>.</summary>
@@ -53,22 +53,22 @@ public static class MeleeDamageRules
         : creature.InfluencedByPossessed ? Stance.InfluencedByPossessed
         : creature.CombatPitFighter ? Stance.CombatPitFighter : Stance.None;
 
-    /// <summary>The stance multiplier in 12.12 fixed point: <c>(ceiling + value) / ceiling</c>,
+    /// <summary>The stance multiplier in 12.12 fixed point: <c>(100 + value) / denominator</c>,
     /// built by a fixed-point add and divide, so it truncates.</summary>
     public static int StanceMultiplier(GameDatabase database, Stance stance) => stance switch
     {
-        Stance.Possessed => Ratio(100, PossessionIncreasePercent(database)),
-        Stance.InfluencedByPossessed => Ratio(200, PossessionIncreasePercent(database)),
+        Stance.Possessed => Ratio(PossessionIncreasePercent(database)),
+        Stance.InfluencedByPossessed => Ratio(PossessionIncreasePercent(database), denominator: 200),
         Stance.CombatPitFighter =>
-            Ratio(100, database[VariableTypeId.CombatPitMeleeDamageModifierPercentage]),
+            Ratio(database[VariableTypeId.CombatPitMeleeDamageModifierPercentage]),
         _ => One,
     };
 
-    private static int Ratio(int ceiling, int add)
+    private static int Ratio(int add, int denominator = 100)
     {
-        int numerator = unchecked((ceiling + add) << 12);
+        int numerator = unchecked((100 + add) << 12);
         // The fixed-divide helper zero-extends its 32-bit numerator before the 64-bit shift.
-        return unchecked((int)(((ulong)(uint)numerator << 12) / (uint)(ceiling << 12)));
+        return unchecked((int)(((ulong)(uint)numerator << 12) / (uint)(denominator << 12)));
     }
 
     /// <summary>The record's <c>MeleeDamage</c> at this level, before any stance applies.</summary>

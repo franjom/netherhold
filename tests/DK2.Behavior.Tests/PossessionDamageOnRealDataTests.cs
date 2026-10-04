@@ -11,7 +11,7 @@ namespace DK2.Behavior.Tests;
 
 /// <summary>The possession bonus the shipped data gives (Q337, ADR-0237): variable 224's
 /// <c>MeleeDamage</c> record, 60, so a possessed creature hits for x1.6 and one influenced by
-/// possession for x1.3.</summary>
+/// possession for x0.8 before fixed-point truncation.</summary>
 public class PossessionDamageOnRealDataTests
 {
     [InstallFact]
@@ -21,7 +21,7 @@ public class PossessionDamageOnRealDataTests
 
         Assert.Equal(60, MeleeDamageRules.PossessionIncreasePercent(db));
         Assert.Equal(6553, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.Possessed));
-        Assert.Equal(5324, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.InfluencedByPossessed));
+        Assert.Equal(3276, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.InfluencedByPossessed));
     }
 
     /// <summary>DK2 writes variable 224 record by record, so a level's own records override only

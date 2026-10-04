@@ -38,12 +38,12 @@ statement, and it is what unblocked the rest of this page.
 
 `FUN_00494D00`'s three arms are **mutually exclusive** — `if / else if / else if`,
 not three factors folded together, which is how `combat.md` §5.1 read them. Each
-arm builds `(ceiling + value) / ceiling` and the default is 1.0:
+arm builds `(100 + value) / denominator` and the default is 1.0:
 
-| arm | attacker flag | ceiling | value | multiplier |
+| arm | attacker flag | denominator | value | multiplier |
 |---|---|---|---|---|
 | A | `+0x3E6` bit 7 — **`Possessed`** | 100 | `global+0x31B` | `(100 + v) / 100` |
-| B | `+0x3EA` bit 3 — **`InfluencedByPossessed`** | 200 | `global+0x31B` | `(200 + v) / 200` |
+| B | `+0x3EA` bit 3 — **`InfluencedByPossessed`** | 200 | `global+0x31B` | `(100 + v) / 200` |
 | C | `+0x3E6` bit 15 — **`CombatPitFighter`** | 100 | `global+0x482` | `(100 + w) / 100` |
 | — | none | — | — | `1.0` |
 
@@ -55,10 +55,12 @@ there, which is the cheapest lesson on this page.
 it ships **100** — so a Combat Pit fighter deals **double** damage, not "100 % of
 normal". The name reads like a scale and the arithmetic is an increment.
 
-**Arms A and B share one value and halve it by changing the ceiling.** With one
-`v` the pair yields `+v %` and `+v/2 %`. The shipped table has exactly such a
-pair: variable 98 `FirstPersonStatIncreasePercentage` = **12** and variable 113
-`PossessionFriendlyStatIncreasePercentage` = **6**.
+**Arms A and B share one numerator; influence halves the whole possessed factor.**
+The independent 2026-10-04 assembly read confirms denominator `200<<12` at
+`0x00494DA8`, numerator baseline `100<<12` at `0x00494DC2`, and the add at
+`0x00494DD8`. The earlier half-bonus reading confused these separate operands.
+Variables 98 `FirstPersonStatIncreasePercentage` = **12** and 113
+`PossessionFriendlyStatIncreasePercentage` = **6** do not supply this formula.
 
 **But neither of those globals is ever read.** `0x006F28E0` and `0x006F28F2` each
 appear once in the whole image — in their own setter.
@@ -68,7 +70,8 @@ ADR-0237; `verification-2026-09-26.md` §1). The handler `0x0051DC70` stores eac
 `CreatureFirstPersonStats` record's value as a word at `0x006F2863 + 2 × statId`, and stat 4 is
 `MeleeDamage`. The VARIABLES dispatcher `0x00521790` reaches it; the chunk table `0x0051E0A0`
 registers that dispatcher (`0x0051E1D7`). The shipped value is **60**: a possessed creature hits
-for **×1.6**, and one influenced by possession for **×1.3**. An address scan and a `+0x31B`
+for **×1.6**, and one influenced by possession for **×0.8**, with raw 12.12
+factors6553 and3276. An address scan and a `+0x31B`
 displacement search both miss it, because the store is base plus index.
 
 **Without that record the value is 100, not 0.** The world initialiser `0x005099A0` zeroes the

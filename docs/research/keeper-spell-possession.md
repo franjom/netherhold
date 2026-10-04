@@ -69,11 +69,10 @@ door-blocking.md for the shared walker.
 0x0051DC70 stores the low16 bits at global+0x313+2*StatId, ignores Level and
 lets the last record win. Accessor0x00495080 reads a signed word.
 
-Melee damage0x00494D00 uses stat4 (shipped60): possessed factor
-(100+a)/100; influenced factor (200+a)/200. The possession arm wins over
-influence and the pit arm. The shipped fixed-point factors are6553 and5324.
-The prior standalone stance rule now reads actual creature flags at the
-combat consumers. See combat-damage.md for the rest of the damage pipeline.
+Melee damage0x00494D00 now derives stance from actual creature flags at the
+combat consumers. The possession arm wins over influence and the pit arm;
+see [combat-damage.md §2](combat-damage.md#2-the-multiplier-and-all-three-flags-are-already-named-in-our-own-notes)
+for the independently corrected influence numerator and the damage pipeline.
 
 Melee recharge0x00494EF0 and spell recharge0x004F7AB0 use stat31
 (shipped25): possessed (100+a)/100, then variable210's unsigned byte/100;
@@ -150,4 +149,3 @@ All42 scenarios completed with178 artifacts. Against both Stage0 and Stage6:
 other differences. This matches ADR-0350's composition prediction.
 Pin changes174→175, 0x8213FCEC0D1B3EA0→0x6F9C6A3B4D22F803.
 Original Level1/2 seeds1–20 remain unavailable as established in Stage0.
-Fresh independent Stage7a review is pending; no next part starts before it.

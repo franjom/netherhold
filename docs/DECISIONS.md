@@ -5243,7 +5243,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Decision.**
 1. **The possession bonus is variable 224's `MeleeDamage` record, shipped 60** (Q337).
    - `0x0051DC70` stores it at `0x006F2863 + 2 × statId`, which for stat 4 is `global+0x31B`.
-   - `MeleeDamageRules.PossessionIncreasePercent` now reads it, in place of variable 98, which has no reader. A possessed creature hits for ×1.6 and an influenced one for ×1.3.
+   - `MeleeDamageRules.PossessionIncreasePercent` reads it in place of variable 98. Preserve the original stance arithmetic, including influence's reduction; see `combat-damage.md` §2 (corrected 2026-10-04).
    - This corrects ADR-0232, which re-confirmed "no store at all" for that address. The store is base plus index, which neither an address scan nor a displacement search can see.
    - The link the verifier left inferred is closed: the chunk table `0x0051E0A0` registers the VARIABLES dispatcher `0x00521790` (`0x0051E1D7`).
 2. **`PrisonJailBroken` is set once per creature released,** and cleared when the lock toggle unlocks. Ours set it after every release pass. Nothing reads it.
@@ -5260,7 +5260,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - `MeleeDamageTests` pins the multipliers on the fixture, which now carries the record.
   - The door test's name now says it assumes the default camera.
   - No new test pins the `Broken` change; it is inert.
-- **Negative control:** a stat match that never fires fails `InfluenceGetsHalfOfPossessionsBonus`.
+- **Negative control:** a stat match that never fires fails `InfluenceGetsHalfOfPossessionsFactor`.
 - No new state; `HashVersion` stays **122**.
 
 ## ADR-0238 — Without its record the possession bonus is 100, and the level time limit's gate is the window's focus

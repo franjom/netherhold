@@ -44,16 +44,16 @@ public class MeleeDamageTests
             MeleeDamageRules.Swing(Db(), Goblin(), 1, MeleeDamageRules.Stance.CombatPitFighter));
     }
 
-    /// <summary>Influence gets half of possession's bonus, by dividing through 200 rather than 100
-    /// — one shipped value serving two effects.</summary>
+    /// <summary>Influence halves the whole possessed factor, including its baseline.</summary>
     [Fact]
-    public void InfluenceGetsHalfOfPossessionsBonus()
+    public void InfluenceGetsHalfOfPossessionsFactor()
     {
         GameDatabase db = Db();
         Assert.Equal(6553, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.Possessed));
         Assert.Equal(
-            5324,
+            3276,
             MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.InfluencedByPossessed));
+        Assert.Equal(135, MeleeDamageRules.Swing(db, Goblin(), 1, MeleeDamageRules.Stance.InfluencedByPossessed));
     }
 
     /// <summary>Without a variable-224 <c>MeleeDamage</c> record the table keeps the world

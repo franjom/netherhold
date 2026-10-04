@@ -48,8 +48,8 @@
   - Stat 4 is `MeleeDamage`: variable 65's twin handler `0x0051DC40` fills the 2-D table at
     `global+0xCF`, and stat 4's row starts at `global+0x117`, which is `combat-damage.md`'s
     `statRow[MeleeDamage]`.
-- **Consequence:** with `(ceiling + v) / ceiling`, a possessed creature's melee is **×1.6** and
-  one influenced by possession **×1.3**. Ours gives ×1.12 and ×1.06.
+- **Consequence:** the shipped60 supplies both stance arms. See `combat-damage.md` §2
+  for their formulas, including the influence numerator corrected on2026-10-04.
 - **Why the audit missed it:** the audit scanned for the absolute address and for
   `+0x31B` displacements. This store reaches the address as base plus index, and neither
   search can see that.
