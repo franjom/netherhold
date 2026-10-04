@@ -100,6 +100,17 @@ public sealed class PossessionActionTests
     }
 
     [Fact]
+    public void ANegativeCoordinateChangesTileByArithmeticShift_FromBinary()
+    {
+        var (_, world, me, sim) = Setup();
+        sim.Tick(InputFrame.Of(Move(100, me.PosY, 1, 1)));
+        int before = me.ChainOrder;
+        sim.Tick(InputFrame.Of(Move(-100, me.PosY, 1, 1)));
+        Assert.NotEqual(before, me.ChainOrder);
+        Assert.False(me.TileLink.IsLinked);
+    }
+
+    [Fact]
     public void NoPossessedPointerLeavesPoseAlone()
     {
         var (_, world, me, sim) = Setup();

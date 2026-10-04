@@ -92,7 +92,7 @@ public sealed class PossessionUpkeepTests
     }
 
     [Theory]
-    [InlineData(2, GoblinCost, 0)]          // 0 % → below 1 → 0
+    [InlineData(2, GoblinCost, 0)]          // 0 %: a zero product (the below-1 clamp only bites on a negative row, which GameDatabase drops)
     [InlineData(3, GoblinCost, 199)]        // 133 % truncates 199.5
     [InlineData(4, GoblinCost, 300)]
     [InlineData(10, GoblinCost, 45000)]
