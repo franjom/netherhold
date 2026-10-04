@@ -33,7 +33,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   pass review. Auxiliary reset width, view assignment and spell-value accessor
   pass review, as does the object callback record correction (2026-10-04).
   Possessed movement (action25) is built (Stage7b1, hash176); melee, spells
-  and followers (action26) are Stage7b2. The owner chose the binary upkeep rule.
+  and followers (action26) are Stage7b2. Possession upkeep is built to the
+  binary rule the owner chose (Q58 answered).
   See research/keeper-spell-sight.md and research/keeper-spell-possession.md.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 16).

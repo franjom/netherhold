@@ -36,7 +36,7 @@
 - [x] Run focused tests and observe the existing unsupported-spell failure.
 - [x] Implement process26 and target6 through existing casting; implement set/clear using the audited setter and existing category hooks.
 - [x] Test and implement autonomous pause, continuing actions/status, influence line of sight and strict deadline, stat precedence/truncations and snapshot round trip.
-- [ ] Add upkeep (owner chose the binary rule, 2026-10-04); preserve LEVEL flag, creature/level scaling, upgraded percentage and strict insufficient-mana exit if approved.
+- [x] Add upkeep (owner chose the binary rule, 2026-10-04); preserve LEVEL flag, creature/level scaling, upgraded percentage and strict insufficient-mana exit if approved.
 - [x] Run focused tests, complete gate and all42 scenarios; explain any change against Stage0 and bump hash/save together.
 - [x] Commit named paths and obtain a fresh independent Part7a verifier; fix each confirmed finding separately (nine corrections independently approved; upkeep still awaits the owner).
 

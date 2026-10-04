@@ -7991,4 +7991,4 @@ Its binary/runtime and documentation reviews pass (2026-10-04).
 Stage7a builds Possession lifecycle/modifiers; see `research/keeper-spell-possession.md`.
 Its review and corrections pass. Stage7b1 builds possessed movement (action25,
 hash176); action26 melee/spells/followers are Stage7b2. The owner chose the
-binary-read upkeep rule (2026-10-04).
+binary-read upkeep rule (2026-10-04); it is built (Q58).

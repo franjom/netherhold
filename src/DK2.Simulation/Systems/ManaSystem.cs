@@ -36,6 +36,7 @@ public sealed class ManaSystem : ISimulationSystem
         WorldState world = context.World;
         int[] gain = ManaRules.GainPerSecondByPlayerIndex(world, context.Database);
         int[] upkeep = ManaRules.UpkeepPerSecondByPlayerIndex(world, context.Database);
+        int[] impAndTrapUpkeep = ManaRules.ImpAndTrapUpkeepPerSecondByPlayerIndex(world, context.Database);
 
         for (int i = 0; i < world.PlayerCount; i++)
         {
@@ -55,6 +56,11 @@ public sealed class ManaSystem : ISimulationSystem
             // runs for keepers alone: the hero and neutral tags return before it (0x004B9EC0).
             // A Call to Arms the mana left cannot keep fades its flag, and DK2's update returns
             // there, before the warning block (0x004C10E0).
+            // Possession is checked first, against the mana the imps and traps leave (0x004C10E0).
+            if (PlayerIds.IsKeeper(player.PlayerId) && PossessionRules.AfterPayment(context, SystemName, ref player, impAndTrapUpkeep[i]))
+            {
+                continue;
+            }
             if (PlayerIds.IsKeeper(player.PlayerId) && CallToArmsRules.AfterPayment(context, SystemName, ref player))
             {
                 continue;

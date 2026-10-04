@@ -1403,6 +1403,8 @@ internal static class Dk2TerrainFixture
         // Call to Arms (call-to-arms.md): the fight gate's radius and the upgraded upkeep's percentage.
         Set(vars, VariableTypeId.CallToArmsFightDistanceTiles, 5);
         Set(vars, VariableTypeId.UpgradedCallToArmsCostPercentage, 70);
+        // Possession's upgraded upkeep percentage (keeper-spell-possession.md §Upkeep), shipped value.
+        Set(vars, VariableTypeId.UpgradedPossessionCostPercentage, 70);
         // Guard duty's two deadlines (guard-room.md), shipped values.
         Set(vars, VariableTypeId.MaxTimeInGuardRoomBeforeWanderingToGuardPostSeconds, 60);
         Set(vars, VariableTypeId.GuardPostReportingDistanceTiles, 7);

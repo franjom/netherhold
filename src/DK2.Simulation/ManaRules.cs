@@ -16,7 +16,7 @@ namespace DK2.Simulation;
 /// keeper — exact, because <b>a keeper has at most one heart, ever</b>. Every imp drains
 /// <see cref="ImpUpkeepPerSecond"/>, kept apart from income because the cap covers only
 /// the income half (Q53).</para>
-/// <para>Normal Horny upkeep is <see cref="ReaperRules.UpkeepPerSecond"/>; the one-shot variant is excluded by the binary. Possession upkeep remains unbuilt. Call To Arms is <see cref="CallToArmsRules.UpkeepPerSecond"/>, and a completed trap's is <see cref="TrapUpkeepPerSecond"/>.
+/// <para>Normal Horny upkeep is <see cref="ReaperRules.UpkeepPerSecond"/>; the one-shot variant is excluded by the binary. Possession is <see cref="PossessionRules.UpkeepPerSecond"/>. Call To Arms is <see cref="CallToArmsRules.UpkeepPerSecond"/>, and a completed trap's is <see cref="TrapUpkeepPerSecond"/>.
 /// <b><see cref="TerrainDef.MaxManaGain"/> and <c>DungeonHeartMaxManaIncrease</c> may not justify a mana rule</b>: both read like a ceiling contribution and neither can be
 /// one, the ceiling being 200000 from the first second and never moving (CONFIRMED, Q37).</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/mana.md")]
@@ -133,16 +133,24 @@ public static class ManaRules
     /// pressure the imp economy is built around.</summary>
     public static int[] UpkeepPerSecondByPlayerIndex(WorldState world, GameDatabase database)
     {
-        var upkeep = new int[world.PlayerCount];
+        int[] upkeep = ImpAndTrapUpkeepPerSecondByPlayerIndex(world, database);
         // A standing Call to Arms past its prepaid turns is part of the same second's drain
         // (0x004C17A0); the turn is the payment's, one past the tick.
         uint turn = unchecked((uint)(world.CurrentTick.Value + 1));
         for (int i = 0; i < world.PlayerCount; i++)
         {
+            upkeep[i] += PossessionRules.UpkeepPerSecond(world, database, world.PlayerAtIndex(i));
             upkeep[i] += CallToArmsRules.UpkeepPerSecond(world, database, world.PlayerAtIndex(i), turn);
             upkeep[i] += ReaperRules.UpkeepPerSecond(world, database, world.PlayerAtIndex(i));
         }
+        return upkeep;
+    }
 
+    /// <summary>The imp (<c>+0x10D2</c>) and completed-trap (<c>+0x10D6</c>) part of the drain,
+    /// which <c>0x004C10E0</c> also holds back from the mana a possession must be paid from.</summary>
+    public static int[] ImpAndTrapUpkeepPerSecondByPlayerIndex(WorldState world, GameDatabase database)
+    {
+        var upkeep = new int[world.PlayerCount];
         Span<int> indexOfOwner = stackalloc int[256];
         indexOfOwner.Fill(-1);
         for (int i = 0; i < world.PlayerCount; i++)

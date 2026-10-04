@@ -102,7 +102,7 @@ the simulation mirrors that boundary when composing its status cap.
 The getter's supplementary primary read is recorded at
 [0x0048D000](functions/0048D000.md).
 
-## Upkeep — CONFIRMED path, owner decision pending (Q58)
+## Upkeep — CONFIRMED, built (Q58)
 
 0x004C17A0 charges a live possessed creature only while global0x006F2957
 bit0 is set. There is no camera, local-player or actual-owner equality gate
@@ -128,11 +128,18 @@ Balance0x006F28E2 (5) had no direct reader in both code blocks with its setter
 as positive control; this is not an assertion about all indirect aliases.
 Spell2's25 is not the amount used by the audited charge branch.
 
-The owner was asked to choose the binary-confirmed LEVEL/creature rule or
-leave upkeep unbuilt pending an original-game observation, and to identify
-the creature/level in the no-drain observation. No answer has been received.
-Stage7a currently makes no possession upkeep charge; this is an explicit
-unbuilt boundary, not evidence of free possession in DK2.
+The owner chose the binary-read rule (2026-10-04). An Imp's cost is 0, which
+may explain the no-drain observation; the creature they possessed was not
+identified. Re-read 2026-10-04 (claude): the stat-27 row is
+`[0x006E4154]+0x2B5+2·level`, the shared per-level table at row
+`+0xE1+(stat−1)·18`; the upgrade percentage is the byte at 0x006F29D3;
+the payment's check precedes Call to Arms and the Reaper; the live test is
+slot byte 0x006ED540 and class +0x12 = 0. A zero charge still compares, so a
+possessed Imp ends when mana falls below the imp and trap upkeep.
+Built in `PossessionRules.UpkeepPerSecond`/`AfterPayment`, summed in
+`ManaRules.UpkeepPerSecondByPlayerIndex`, checked first in ManaSystem. LEVEL
+bit2 is `LevelDef.Flags` (+0x638C) & 4; with no LEVEL record nothing is
+charged. The +0x4A7 term (variable116, shipped 0) is not represented.
 
 ## Regeneration and implementation boundary
 
