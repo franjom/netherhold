@@ -107,10 +107,14 @@ public sealed class ScenarioRunner
     public ScenarioResult Run(Scenario scenario)
     {
         GlobalVariables? levelVariables = ResolveLevelVariables(scenario.Map);
-        return levelVariables is null
+        string? levelName = LevelNameOf(scenario.Map);
+        LevelDef? level = levelName is null || _installDir is null
+            ? null
+            : GameDatabaseLoader.LoadCampaignLevel(_installDir, levelName);
+        return levelVariables is null && level is null
             ? RunAgainstThisDatabase(scenario, null)
-            : new ScenarioRunner(_database.ForLevel(levelVariables), _installDir)
-                .RunAgainstThisDatabase(scenario, LevelNameOf(scenario.Map));
+            : new ScenarioRunner(_database.ForLevel(levelVariables, level), _installDir)
+                .RunAgainstThisDatabase(scenario, levelVariables is null ? null : levelName);
     }
 
     /// <summary>The level's own VARIABLES, for a scenario that names a campaign map.</summary>

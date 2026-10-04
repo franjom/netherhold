@@ -7976,10 +7976,8 @@ drivers and recorded packets are absent from this isolated worktree.
 
 **Current boundary.** Stage 0 independently verified all 42 scenario series.
 Stage 1 builds Create Gold's cast and horizontal landing/merge through the
-existing shot boundary; see `research/keeper-spell-create-gold.md` for evidence
-and retained height/room-timing limits. No state fields or hash version changed.
-All 42 scenario series are byte-identical to stage 0; Stage 1 and its corrections
-are independently approved. Stage 2 builds Tremor's world slots, wall effects,
+existing shot boundary; see `research/keeper-spell-create-gold.md`.
+Stage1 and its corrections are independently approved. Stage2 builds Tremor's world slots, wall effects,
 creature reaction, recovery and definition-based integer action clock at
 HashVersion/FormatVersion 170; its integration corrections are independently approved.
 All 42 scenarios preserve their event/world outputs; hash composition changes
@@ -7990,5 +7988,7 @@ Stage 3 builds Turncoat as a temporary combat allegiance, preserving actual
 ownership because the binary never calls the ownership setter on this path.
 See `research/keeper-spell-turncoat.md`; Stage 3 and its corrections are independently approved.
 Stage 4 builds normal Summon Horny creation, arrival, upkeep and departure at
-HashVersion/FormatVersion173; see `research/keeper-spell-reaper.md`. Its correction review
-is pending; Horny's idle controllers remain explicitly unbuilt.
+HashVersion/FormatVersion173; its corrections are independently approved.
+Stage5 builds OneShotReaper's variant, LEVEL-selected level, timer and one-use
+flag at hash/save174; independent review is pending. Evidence and retained
+boundaries are in `research/keeper-spell-reaper.md`; Horny's idle AI stays unbuilt.

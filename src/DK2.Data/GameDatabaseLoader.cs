@@ -133,11 +133,13 @@ public static class GameDatabaseLoader
 
     /// <summary>
     /// The database as one campaign level plays it: the install's definitions
-    /// with that level's VARIABLES applied over the global table.
+    /// with that level's VARIABLES applied over the global table and its LEVEL metadata.
     ///
     /// The shape a caller wants in one call, and the one to prefer over
     /// <see cref="Load"/> whenever a level is named.
     /// </summary>
     public static GameDatabase LoadForCampaignLevel(string installDir, string levelName) =>
-        Load(installDir).ForLevel(LoadCampaignVariables(installDir, levelName));
+        Load(installDir).ForLevel(
+            LoadCampaignVariables(installDir, levelName),
+            LoadCampaignLevel(installDir, levelName));
 }

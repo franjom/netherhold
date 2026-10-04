@@ -30,6 +30,7 @@ public sealed class CreatureStatusSystem : ISimulationSystem
         {
             CreatureState creature = creatures[i];
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+            ReaperRules.AdvanceTimer(context, creature, definition);
 
             if (creature.Activity == CreatureActivity.Stunned && !TremorRules.IsRecovering(creature))
             {

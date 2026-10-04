@@ -277,6 +277,7 @@ public struct PlayerState
 
     /// <summary>Cumulative one-shot mana loss, player +0x10F2 (keeper-spell-casting.md).</summary>
     public int OneShotManaSpent;
+    public bool OneShotReaperUsed;
 
     /// <summary>Player <c>+0xAA</c>: the turn before which a trap short of mana posts no message
     /// (<c>0x004C1A30</c>, fifteen seconds on from each post); 0 from <c>Player_Initialise</c>.</summary>
@@ -465,6 +466,7 @@ public struct PlayerState
         hash.Add(AlliedWith);
         hash.Add(Mana);
         hash.Add(OneShotManaSpent);
+        hash.Add(OneShotReaperUsed);
         hash.Add(TrapNoManaMessageAt);
         hash.Add(GoldMined);
         hash.Add(KilledByPlayerId);

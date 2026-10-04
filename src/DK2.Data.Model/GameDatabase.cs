@@ -27,12 +27,14 @@ public sealed class GameDatabase
         IEnumerable<CreatureSpellDef>? creatureSpells = null,
         IEnumerable<ShotDef>? shots = null,
         IEnumerable<EffectDef>? effects = null,
-        IEnumerable<EffectElementDef>? effectElements = null)
+        IEnumerable<EffectElementDef>? effectElements = null,
+        LevelDef? level = null)
     {
         Terrain = terrain.ToDictionary(t => t.TerrainId);
         Rooms = rooms.ToDictionary(r => r.RoomId);
         Creatures = creatures.ToDictionary(c => c.CreatureId);
         Variables = variables;
+        Level = level;
         KeeperSpells = (keeperSpells ?? []).ToDictionary(
             s => s.Name, StringComparer.OrdinalIgnoreCase);
 
@@ -152,6 +154,9 @@ public sealed class GameDatabase
 
     public GlobalVariables Variables { get; }
 
+    /// <summary>The active level's metadata, or null when no level was supplied.</summary>
+    public LevelDef? Level { get; }
+
     /// <summary>The one terrain type flagged <see cref="TerrainFlags.Water"/>, or null if this data
     /// set has none. Found by flag rather than by id, for the reason every gameplay rule asks the
     /// flags: an id would be a fact about the reference install. The shipped table has exactly one
@@ -177,26 +182,22 @@ public sealed class GameDatabase
     /// <summary>Global rule value by id — the simulation's only source of balance numbers.</summary>
     public int this[VariableTypeId id] => Variables[id];
 
-    /// <summary>The same definitions with one level's own VARIABLES applied over the global table —
-    /// see <see cref="GlobalVariables.MergedWith"/> for what "applied" means and why it is not a
-    /// union. A new instance rather than a mutation, because a <see cref="GameDatabase"/> is
-    /// immutable and a running simulation holds one: a level's numbers must not leak into another
-    /// level's run. The definitions themselves are shared, so this costs a few dictionary rebuilds
-    /// over about 130 records. Returns <c>this</c> when the level carries no variables of its own,
-    /// so a caller can pass whatever the loader found without checking.</summary>
+    /// <summary>Applies level VARIABLES and metadata without mutating this database.
+    /// Missing variables retain the current table; missing metadata retains the current level.
+    /// Returns this instance when neither is supplied. See <see cref="GlobalVariables.MergedWith"/>.</summary>
     /// <remarks><b>Every record collection has to be passed through here.</b> This rebuilds the
     /// database from parts, so a collection added to the constructor and forgotten here is silently
     /// absent from every campaign level while present everywhere else — which happened to
     /// <see cref="Objects"/>. <c>ObjectsOnRealDataTests.ForLevelKeepsEveryRecordCollection</c>
     /// exists so the next record cannot repeat it.</remarks>
-    public GameDatabase ForLevel(GlobalVariables? levelVariables) =>
-        levelVariables is null
+    public GameDatabase ForLevel(GlobalVariables? levelVariables, LevelDef? level = null) =>
+        levelVariables is null && level is null
             ? this
             : new GameDatabase(
                 Terrain.Values,
                 Rooms.Values,
                 Creatures.Values,
-                Variables.MergedWith(levelVariables),
+                levelVariables is null ? Variables : Variables.MergedWith(levelVariables),
                 KeeperSpells.Values,
                 Objects.Values,
                 Doors.Values,
@@ -204,7 +205,8 @@ public sealed class GameDatabase
                 CreatureSpells.Values,
                 Shots.Values,
                 Effects.Values,
-                EffectElements.Values);
+                EffectElements.Values,
+                level ?? Level);
 
     public TerrainDef TerrainById(byte id) => Terrain.TryGetValue(id, out TerrainDef? t)
         ? t

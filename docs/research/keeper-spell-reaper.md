@@ -29,6 +29,11 @@ now+50×variable19. It clears the physical combat-control bits after creation.
 The nonzero-data branch writes low16(data1×variable19) to ReaperTimer `+4E9`,
 sets IsOneShotReaper and chooses a different level; its build is Stage5.
 
+The chosen level is low8(global `0x006F295C`), loaded from the LEVEL body byte
+`+0x6403` through configuration `+0x6537`. See [0056C100](functions/0056C100.md)
+and [0051E6D0](functions/0051E6D0.md). The creation branch calls ordinary
+level-up target-minus-one times; selected levels0/1 perform no grants.
+
 ## 2. Arrival and departure
 
 **CONFIRMED.** The state age is a dword at creature `+26A` (state object `+1C`).
@@ -76,13 +81,43 @@ and [004B2CE0](functions/004B2CE0.md). Normal creation assigns no expiry timer.
 OneShotReaper is excluded from these upkeep/dismissal paths despite its125 field.
 The campaign talisman count remains **UNKNOWN**, tracked only in Q447.
 
+**CONFIRMED.** A successful spell14 position cast sets player `+0x76` bit0x1000
+after the shot, payment and clocks; its permission refuses that bit. Only spell5
+tests the owned-Reaper restriction, so a timed Reaper can coexist with a normal
+one. The first owned Reaper controls upkeep; a newer timed Reaper can therefore
+suppress normal upkeep until removal. Initialization clears the used bit.
+See [004BBD30](functions/004BBD30.md) and [004B8640](functions/004B8640.md).
+The scoped direct-offset/bit scan, including cseg, found the cast setter,
+permission/interface readers and initialization clear. Examined expiry/removal
+bodies do not reset it; indirect writes and save serialization were not exhaustively
+audited. Interface readers are [00424840](functions/00424840.md),
+[00424EC0](functions/00424EC0.md) and [00424FD0](functions/00424FD0.md).
+
+The creature-update prefix [00488930](functions/00488930.md) tests IsHorny
+and the nonzero timer word, decrements it, and requests242 at zero. It ignores
+the state-change result and clears combat/movement either way. This precedes
+held/down/suspension guards and owner result does not pause it. Countdown does
+not require IsOneShotReaper; an initially zero timer stays zero. Accepted expiry
+runs departure age1 that same turn, without an immediate health change. The
+ordinary99-second variant spends396 creature updates, then removes30 updates
+after expiry through the shared fade.
+SetState's InHand guard is mirrored locally by the Reaper state request; the
+general omitted-guard audit remains Q503. The hand adapter's retained state1
+differs from original state76 (ADR-0209), so this does not claim that broader
+state integration has been completed.
+
 ## 4. Build and verification boundary
 
-**BUILT, STRONGLY INFERRED mapping.** Stage4 exposes spell5 with data1=0:
+**BUILT, STRONGLY INFERRED mapping.** Stages4/5 expose spell5 and spell14:
 creation, arrival235/236/237, upkeep and departure242, using the integer clock.
 **Implementation:** `ReaperRules`, `ReaperSystem` and `ReaperRemovalSystem`.
-The shared arm's nonzero-data casts remain refused until Stage5. Hash/save173
-preserves the lifecycle fields and corrected constructor defaults; pin `901D3950F7F8504D`.
+The shared nonzero-data arm uses LEVEL metadata, the timer and variant flag;
+successful spell14 casts retain a player used flag across actor removal.
+Missing extended LEVEL metadata is an explicit adapter refusal, rather than a
+guessed level. The original legacy-layout fallback has not been established.
+The existing shot allocator has no allocation-failure boundary; creature-pool
+failure after a successful cast still spends the use. Hash/save174 preserves
+the player flag and prior lifecycle state; pin `8213FCEC0D1B3EA0`.
 Constructor [004872A0](functions/004872A0.md) initializes combat bits on;
 the summon callback clears them, leaving authored Horny's fight acquisition enabled.
 
@@ -91,9 +126,8 @@ UnbuiltHandler/ResearchOnly; see `special-role-idle.md`. This build does not
 claim a complete playable Horny AI. Height, visual effects and sounds retain
 the existing presentation boundary. General animation reuse/bypass cases
 outside ordinary fresh Reaper action installation are not newly modeled.
-The complete no-install gate passed3375 tests, zero failures and395 skips;
-Release and Unity compilation have zero warnings/errors. All42 scenario runs
-preserve stage0, Stage3 and initial Stage4 event/world artifacts:94 files identical,
-84 changed only in hash series/report hashes from version173.
-Initial independent review requested two corrections. The constructor-default
-correction is independently approved; the Q448 correction awaits its separate review.
+The complete Stage5 no-install gate passed3407 tests, zero failures and396 skips;
+Release and Unity compilation have zero warnings/errors. All42 Stage5 scenarios
+preserve stage0 and corrected Stage4 event/world artifacts:94 files identical,
+84 changed only in hash series/report hashes from version174.
+Stage4's two corrections are independently approved. Stage5 review is pending.

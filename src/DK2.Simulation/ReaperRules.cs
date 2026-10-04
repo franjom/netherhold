@@ -11,6 +11,7 @@ namespace DK2.Simulation;
 public static class ReaperRules
 {
     public const byte SpellId = 5;
+    public const byte OneShotSpellId = 14;
     public const byte ProcessType = 33;
     public const int ArrivingState = 235;
     public const int MaterializingState = 236;
@@ -52,6 +53,13 @@ public static class ReaperRules
         reaper.ReaperCanAcquireFight = reaper.ReaperIsAttackable = false;
         reaper.StopMoving();
         reaper.Body.Vel = default;
+    }
+
+    public static void AdvanceTimer(SimulationContext context, CreatureState reaper, CreatureDef definition)
+    {
+        if (CreatureStateMachine.HasState(reaper) && definition.Flags.HasFlag(CreatureFlags.IsHorny)
+            && reaper.ReaperTicks != 0 && --reaper.ReaperTicks == 0)
+            Depart(context, reaper);
     }
 
     public static void RunLifecycle(SimulationContext context)
@@ -119,7 +127,8 @@ public static class ReaperRules
 
     public static void Create(SimulationContext context, ShotState shot)
     {
-        if (shot.Data1 != 0) return;
+        int targetLevel = shot.Data1 == 0 ? 10 : context.Database.Level?.OneShotReaperLevel ?? -1;
+        if (targetLevel < 0) return;
         WorldState world = context.World;
         var at = new TilePos(shot.PosX >> 12, shot.PosY >> 12);
         context.Navigation.Refresh();
@@ -131,7 +140,12 @@ public static class ReaperRules
         reaper.PosX = reaper.LastPosX = shot.PosX;
         reaper.PosY = reaper.LastPosY = shot.PosY;
         EnterState(context, reaper, ReaperState.Arriving);
-        for (int level = 1; level < 10; level++) CreatureLevelRules.LevelUp(context.Hooks, definition, reaper);
+        if (shot.Data1 != 0)
+        {
+            reaper.ReaperTicks = unchecked((ushort)(shot.Data1 * SimulationTiming.OriginalTicksPerGameSecond));
+            reaper.IsOneShotReaper = true;
+        }
+        for (int level = 1; level < targetLevel; level++) CreatureLevelRules.LevelUp(context.Hooks, definition, reaper);
         reaper.ReaperCanAcquireFight = reaper.ReaperIsAttackable = false;
         reaper.HornyTick = unchecked((uint)(context.Tick.Value + 1 + 50 * SimulationTiming.OriginalTicksPerGameSecond));
         context.Emit("reaper", "created", $"creature={reaper.Id} player={reaper.OwnerPlayerId} level={reaper.Level}");
@@ -139,6 +153,7 @@ public static class ReaperRules
 
     private static void EnterState(SimulationContext context, CreatureState reaper, ReaperState state)
     {
+        if (reaper.InHand) return;
         if (CreatureStateMachine.TrySetState(context.Hooks, reaper, (int)state, context.Tick.Value))
             reaper.ReaperStateAgeTicks = 0;
     }

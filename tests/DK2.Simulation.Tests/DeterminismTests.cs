@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 173: restore constructor combat-bit defaults; summon creation clears them (ADR-0350).
+        // HashVersion 174: preserve the player's OneShotReaper-used flag (ADR-0350).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x901D3950F7F8504DUL, sim.StateHash());
+        Assert.Equal(0x8213FCEC0D1B3EA0UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

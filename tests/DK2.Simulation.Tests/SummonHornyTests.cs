@@ -14,7 +14,7 @@ public sealed class SummonHornyTests
 {
     private const byte Keeper = 3, HornyType = 201, SpellId = 5;
 
-    private static (GameDatabase Db, WorldState World, TilePos At) Setup()
+    internal static (GameDatabase Db, WorldState World, TilePos At) Setup()
     {
         GameDatabase basis = Dk2TerrainFixture.Database();
         CreatureDef horny = basis.CreatureById(Dk2TerrainFixture.GoblinCreatureId) with

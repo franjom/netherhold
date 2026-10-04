@@ -14,7 +14,8 @@ public enum KeeperSpellRefusal
 {
     None, UnsupportedSpell, UnsupportedFlags, MissingDefinition, MissingPlayer,
     NoSpellEntry, Cooldown, Mana, MissingCreature, UnsupportedLocationSelector,
-    Location, UnsupportedTargetSelector, Target, MissingShot, UnsupportedShotProcess, TargetAtMaxHealth, ExistingReaper
+    Location, UnsupportedTargetSelector, Target, MissingShot, UnsupportedShotProcess, TargetAtMaxHealth, ExistingReaper,
+    OneShotReaperUsed, MissingLevelDefinition
 }
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-thunderbolt.md")]
@@ -89,6 +90,7 @@ public static class KeeperSpellRules
         {
             LastCastTick = context.Tick.Value, LastCheckedTick = context.Tick.Value
         };
+        if (cast.SpellId == ReaperRules.OneShotSpellId) player.OneShotReaperUsed = true;
         return 1;
     }
 
@@ -113,6 +115,8 @@ public static class KeeperSpellRules
             return KeeperSpellRefusal.Cooldown;
         if (cast.SpellId == ReaperRules.SpellId && ReaperRules.OwnedReaper(world, database, player) is not null)
             return KeeperSpellRefusal.ExistingReaper;
+        if (cast.SpellId == ReaperRules.OneShotSpellId && player.OneShotReaperUsed)
+            return KeeperSpellRefusal.OneShotReaperUsed;
         var at = new TilePos(cast.X >> 12, cast.Y >> 12);
         context.Navigation.Refresh();
         switch (spell.LocationSelector)
@@ -127,7 +131,8 @@ public static class KeeperSpellRules
         var effect = spell.Shot(availability.Upgraded);
         if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
         if (shot.ProcessType is not (ShotRules.CreateObjectProcess or ShotRules.InfernoProcess or ShotRules.TremorProcess or ReaperRules.ProcessType)) return KeeperSpellRefusal.UnsupportedShotProcess;
-        if (shot.ProcessType == ReaperRules.ProcessType && effect.Data1 != 0) return KeeperSpellRefusal.UnsupportedShotProcess;
+        if (shot.ProcessType == ReaperRules.ProcessType && effect.Data1 != 0 && database.Level?.OneShotReaperLevel is null)
+            return KeeperSpellRefusal.MissingLevelDefinition;
         return KeeperSpellRefusal.None;
     }
 
@@ -135,9 +140,9 @@ public static class KeeperSpellRules
     /// of the runtime table at <c>0x006FCE40</c>) rather than at a place (4 and 5).</summary>
     public static bool TargetsAThing(byte targetSelector) => targetSelector is 1 or 2 or 3 or 6;
 
-    /// <summary>The spells whose casts this simulation executes: Call to Arms, Inferno, Create Gold, Tremor and normal Summon Horny at a place,
+    /// <summary>The spells whose casts this simulation executes: Call to Arms, Inferno, Create Gold, Tremor and both Reaper spells at a place,
     /// Thunderbolt, Heal, Chicken and Turncoat at a creature. Create Imp keeps its own command.</summary>
-    public static bool ExecutesAtPlace(byte spellId) => spellId is CallToArmsRules.SpellId or Inferno or CreateGold or TremorRules.SpellId or ReaperRules.SpellId;
+    public static bool ExecutesAtPlace(byte spellId) => spellId is CallToArmsRules.SpellId or Inferno or CreateGold or TremorRules.SpellId or ReaperRules.OneShotSpellId or ReaperRules.SpellId;
     public static bool ExecutesOnCreature(byte spellId) => spellId is Thunderbolt or Heal or Chicken or TurncoatRules.SpellId;
 
     /// <summary>The place validators of <c>0x004BB8A0</c> for one spell at one tile: its location

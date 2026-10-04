@@ -321,6 +321,8 @@ public sealed record LevelDef : KwdRoundTripRecord
     public required IReadOnlyList<ushort> IntroductionOverrideTextIds { get; init; }
     public required string TerrainPath { get; init; }
     public required ReadOnlyMemory<byte> Unknown_6403 { get; init; }
+    /// <summary>The chosen OneShotReaper level, or null when extended LEVEL metadata is absent.</summary>
+    public byte? OneShotReaperLevel => Unknown_6403.IsEmpty ? null : Unknown_6403.Span[0];
     public required IReadOnlyList<KwdLevelFilePath> Paths { get; init; }
     public required IReadOnlyList<uint> UnknownPathTail { get; init; }
 }
