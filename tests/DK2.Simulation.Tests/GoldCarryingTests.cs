@@ -150,6 +150,28 @@ public class GoldCarryingTests
         Assert.Equal(3000, loads.Sum());
     }
 
+    [Fact]
+    public void TwoMinersStrikingTheSeamsLastSwingInOneTick_OnlyTheOneWhoseGoldLandsLeavesFull()
+    {
+        // DK2 asks the hands test after the strike has landed (0x00465870), so of two imps holding
+        // 818 that strike a seam's last 60 health in one tick, the second frees nothing and is not
+        // full: it does not walk to the store on gold it never got, but stays to its action's end
+        // and finds the seam gone (ADR-0349). Only one imp leaves on the fall tick.
+        Run run = AtTheSeam(new TilePos(4, 5));
+        GameDatabase database = Dk2TerrainFixture.Database();
+        run.World.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(4, 5));
+        PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
+        run.World.Tile(5, 5).Health = 60;
+        foreach (CreatureState imp in run.World.Creatures) imp.GoldHeld = 818;
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
+        run.Ticks(30);
+
+        GameTick fell = Assert.Single(run.Of("gold_mined")).Tick;
+        Assert.Single(run.Of("delivering"), e => e.Tick == fell);
+        Assert.Contains(run.Of("job_abandoned"), e => e.Detail.Contains("(5,5) MineGold reason=gone"));
+    }
+
     // ---- where the load lands (Q35) --------------------------------------
 
     [Fact]

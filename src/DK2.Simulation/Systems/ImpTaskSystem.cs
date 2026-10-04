@@ -523,12 +523,36 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private static bool MinersHandsFull(
         SimulationContext context, CreatureState creature, CreatureDef definition, int pendingStrikes = 0)
     {
-        ref TileState tile = ref context.World.TileAtIndex(creature.TargetTileIndex);
+        TileState tile = pendingStrikes > 0
+            ? TileWhenTheLastStrikeLands(context, creature.TargetTileIndex)
+            : context.World.TileAtIndex(creature.TargetTileIndex);
         int yield = TileWorkRules.GoldYield(
             context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
         if (yield <= 0) return false;
         int held = creature.GoldHeld + (pendingStrikes * yield);
         return held > 0 && held >= FullAt(context, creature, definition);
+    }
+
+    /// <summary>
+    /// The tile as the strike queued last will find it. <see cref="TileWorkSystem"/> applies this
+    /// tick's queue in order once every imp has chosen, so a miner queued earlier can bring the
+    /// seam down first and the last strike frees nothing. DK2 asks the hands test after the
+    /// strike has landed (<c>0x00465870</c>), so that miner holds what it holds, reaches the
+    /// seam's end and raises kind 14: Level 1 seed 2's imp 452 empties (14,24) holding 818, digs
+    /// on, and claims the tile on its way to the store once full (ADR-0349).
+    /// </summary>
+    private static TileState TileWhenTheLastStrikeLands(SimulationContext context, int tileIndex)
+    {
+        List<TileWorkOrder> queue = context.World.RawPendingWork;
+        TileState tile = context.World.TileAtIndex(tileIndex);
+        for (int i = 0; i < queue.Count - 1; i++)
+        {
+            TileWorkOrder order = queue[i];
+            if (order.TileIndex != tileIndex || TileWorkRules.IsRoomScoped(order.Kind)) continue;
+            TileWorkRules.Apply(context.Database, ref tile, order.Kind, order.PlayerId,
+                TileWorkSystem.EfficiencyOf(context, order.WorkerCreatureId));
+        }
+        return tile;
     }
 
     /// <summary>

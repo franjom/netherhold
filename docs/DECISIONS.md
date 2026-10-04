@@ -7996,6 +7996,32 @@ captures (STRONGLY INFERRED), as is `+20` naming the block. The table and its gu
   The fixture's Goblin carries the shipped Getup art and variable 181 its shipped 25.
   HashVersion unchanged: `CreatureDef` is data, and no state field changed.
 
+## ADR-0349 — A miner whose strike lands on an emptied seam is not full, and reaches the seam's end
+**Date:** 2026-10-04 · **Status:** accepted · Research: `functions/00465870.md`, `imp-claim-path.md` §5; Q526
+
+**Context.** Q526's start-side draw (parked) loses Level 1 seeds 1 and 2 because the Hatchery
+block is never claimed while it is dug. DK2 claims it in every seed. In DK2's seed 2 capture,
+imp 452 alone mines (14,24); its own strike brings the seam down and leaves it holding 818,
+not full. It reaches state 10 at 158, digs on, walks to the store full at 194, claims (14,24)
+on the way (`0x00464170`, state 15 at 200) and from then on claims the corridor and the block.
+State 26 (`0x00465870`, CONFIRMED by disassembly) asks the hands test, which reads only the
+purse, after the strike has landed. A miner that is not full whose tile is no longer a seam
+falls through to the seam's end (`0x00465A6F`), which raises kind 14. In our seed 1 three
+miners shared that seam, and the one at 818 left for the store on the fall tick. ADR-0296's
+second check counts the strike just queued as held, but an earlier imp's strike that tick had
+brought the seam down, so this strike freed nothing. No capture shows DK2 in that simultaneous
+case; the rule above decides it.
+**Decision.** That check predicts the yield on the tile as the queued strike will find it: this
+tick's earlier orders on the tile are applied in queue order to a copy, as `TileWorkSystem`
+will apply them. A strike that frees nothing does not fill the hands. The miner then reaches
+the seam's end and raises kind 14, as in DK2.
+**Consequences.**
+- Level 1 seed 1 raises kind 14 at (14,24) at 171, and imp 2 claims it on its way to the store at
+  214 holding 1,090. That is the same pattern as DK2's seed 2 capture (200, 1,091); the seed
+  numbers name different games. L1 20/20; seeds 1, 12 and 17 change.
+- L2 5/20 (seed 4, first different at 2215 on this case, now loses; seed 3 also changes). DK2's own
+  seeds win 4 of 18. L3 seed01 is tick-identical (3588). HashVersion unchanged: no state field.
+
 ## ADR-0350 — Build keeper spells only after their complete effect paths are read
 **Date:** 2026-10-03 · **Status:** accepted (2026-10-04)
 
