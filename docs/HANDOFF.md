@@ -29,8 +29,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   presentation-only boundary and documentation correction pass independent
   review (2026-10-04). Possession's Stage7a review requires separate corrections
   (2026-10-04); influence damage and CTA/Chicken pauses pass limited reviews.
-  Integer speed/clamp pass review. Fixed-product narrowing is corrected,
-  pending review (2026-10-04).
+  Integer speed/clamp and fixed-product narrowing pass review. Pit percentage
+  byte width is corrected, pending review (2026-10-04).
   Upkeep awaits the owner choice (2026-10-04); commands remain Stage7b.
   See research/keeper-spell-sight.md and research/keeper-spell-possession.md.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits

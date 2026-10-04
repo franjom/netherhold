@@ -60,7 +60,7 @@ public static class MeleeDamageRules
         Stance.Possessed => Ratio(PossessionIncreasePercent(database)),
         Stance.InfluencedByPossessed => Ratio(PossessionIncreasePercent(database), denominator: 200),
         Stance.CombatPitFighter =>
-            Ratio(database[VariableTypeId.CombatPitMeleeDamageModifierPercentage]),
+            Ratio(unchecked((byte)database[VariableTypeId.CombatPitMeleeDamageModifierPercentage])),
         _ => One,
     };
 

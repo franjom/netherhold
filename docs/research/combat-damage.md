@@ -58,9 +58,12 @@ The bit names are **not new work**: all three were already in this project's
 `creature-object.md` bit tables. §5.1 called them UNKNOWN because it never looked
 there, which is the cheapest lesson on this page.
 
-`global+0x482` is **variable 225 `CombatPitMeleeDamageModifierPercentage`**, and
-it ships **100** — so a Combat Pit fighter deals **double** damage, not "100 % of
-normal". The name reads like a scale and the arithmetic is an increment.
+`global+0x482` is **variable 225 `CombatPitMeleeDamageModifierPercentage`**.
+CONFIRMED from fresh assembly (2026-10-04): its setter at `0x0051D645`
+stores only AL at `0x006F29D2`; the damage reader at `0x00494E1D`
+zero-extends that byte. Authored values therefore wrap modulo 256:
+356 becomes 100, 256 becomes 0, and −1 becomes 255. It ships **100**, so a
+Combat Pit fighter deals **double** damage. The arithmetic is an increment.
 
 **Arms A and B share one numerator; influence halves the whole possessed factor.**
 The independent 2026-10-04 assembly read confirms denominator `200<<12` at

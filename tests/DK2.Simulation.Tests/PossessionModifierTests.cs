@@ -121,6 +121,19 @@ public sealed class PossessionModifierTests
         Assert.Equal(8192, MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.StanceOf(creature)));
     }
 
+    [Theory]
+    [InlineData(356, 8192)]
+    [InlineData(256, 4096)]
+    [InlineData(-1, 14540)]
+    public void CombatPitDamageReadsTheOriginalUnsignedByte(int value, int expectedFactor)
+    {
+        GameDatabase db = Database();
+        db.Variables.Misc[VariableTypeId.CombatPitMeleeDamageModifierPercentage] =
+            new(VariableTypeId.CombatPitMeleeDamageModifierPercentage, value, 0, 0);
+        Assert.Equal(expectedFactor,
+            MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.CombatPitFighter));
+    }
+
     [Fact]
     public void NegativeDamageStatNarrowsTheFixedProductBeforeIntegerConversion_StronglyInferredFromBinary()
     {
