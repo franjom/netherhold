@@ -29,7 +29,14 @@ out-pointer it returns:
 |---|---|
 | `0x0043D750` | `*out = *this + *arg` |
 | `0x00441990` | `*out = (*this << 12) / *arg` — a 12.12 **divide** |
-| `0x004363F0` | `*out = (*this * *arg) >> 12` — a 12.12 **multiply** |
+| `0x004363F0` | Signed 64-bit product, shifted 12 and narrowed into the 32-bit output — a 12.12 **multiply** |
+
+CONFIRMED from fresh assembly (2026-10-04): `0x00436411–0x00436421`
+stores only the low 32 bits of the shifted product. The damage accessor reloads
+that signed result and shifts 12 at `0x00494ED3`. Combining both shifts in a
+wide intermediate loses this narrowing. With authored stat −101 and base 100,
+the original integer result is −1. `Fp32`'s multiplication operator mirrors
+the helper; `MeleeDamageRules.Swing` preserves the separate integer conversion.
 
 That single correction turns §5.1's unreadable multiplier into an arithmetic
 statement, and it is what unblocked the rest of this page.
@@ -95,7 +102,9 @@ level 10 is **600 %** — a level-10 King Reginald swings for 5580 before anythi
 else applies.
 
 ```
-damage = (multiplier * base) >> 12          ; 12.12, truncating
+fixedBase = low32(base << 12)
+fixedProduct = low32((signed64(multiplier) * fixedBase) >> 12)
+damage = arithmeticShiftRight(fixedProduct, 12)
 ```
 
 ## 4. What the swing then does to it, in order

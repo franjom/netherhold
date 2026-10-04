@@ -83,6 +83,10 @@ influenced (100+a)/200. Each 12.12 operation truncates separately, before
 the existing work-rate division. Percentage70 produces3583, not a combined
 rational result. 0x00441990 zero-extends its32-bit numerator before shifting
 into64 bits; authored negative numerators retain this behavior.
+The final product is also narrowed to 32 bits before its signed integer
+conversion: `0x0049505B–0x0049506D` and `0x004F7C3B–0x004F7C42` call the
+multiply helper and then shift its stored result. See combat-damage.md §1
+for that shared boundary; authored stat −101 with interval 100 returns −1.
 The melee/spell readiness predicates are0x0048C9B0/0x0048C800, with zero
 stamp ready and a strict stamp+interval<now comparison.
 Possession bypasses hit/shot wind-up in0x00498E30,0x00498870 and0x004984D0;
@@ -94,6 +98,8 @@ retain the low32-bit product, then divide unsigned by100 (possessed) or200
 are set. Setter0x0048D010 clamps unsigned to0xFFF before storing body speed
 shifted4. The preceding setters also clamp before this arm reads the speed;
 the simulation mirrors that boundary when composing its status cap.
+The getter's supplementary primary read is recorded at
+[0x0048D000](functions/0048D000.md).
 
 ## Upkeep — CONFIRMED path, owner decision pending (Q58)
 

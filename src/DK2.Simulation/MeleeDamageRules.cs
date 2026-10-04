@@ -77,10 +77,10 @@ public static class MeleeDamageRules
             attacker.MeleeDamage,
             CreatureLevelRules.Percent(database, CreatureStatId.MeleeDamage, level));
 
-    /// <summary>What the melee-damage accessor returns: a <b>positive</b> figure, which the swing
-    /// then negates.</summary>
+    /// <summary>The accessor's signed integer result, which the swing then negates.</summary>
     public static int Swing(GameDatabase database, CreatureDef attacker, int level, Stance stance) =>
-        (int)(((long)StanceMultiplier(database, stance) * BaseDamage(database, attacker, level)) >> 12);
+        (new Fp32(StanceMultiplier(database, stance))
+            * new Fp32(unchecked(BaseDamage(database, attacker, level) << 12))).Raw >> 12;
 
     /// <summary>The bearing bonus's percentage, 0 to 51, from the raw angle between the two things.
     /// A turn is 2048, and the angle is reflected about half a turn before the divide, so the bonus

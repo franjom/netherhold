@@ -122,6 +122,22 @@ public sealed class PossessionModifierTests
     }
 
     [Fact]
+    public void NegativeDamageStatNarrowsTheFixedProductBeforeIntegerConversion_StronglyInferredFromBinary()
+    {
+        GameDatabase db = Database();
+        db.Variables.CreatureStats.Add(new((int)CreatureStatId.MeleeDamage, -101, 0, true));
+        CreatureDef definition = Dk2TerrainFixture.Goblin() with { MeleeDamage = 100 };
+        Assert.Equal(-1, MeleeDamageRules.Swing(db, definition, 1, MeleeDamageRules.Stance.Possessed));
+    }
+
+    [Fact]
+    public void NegativeRechargeStatNarrowsTheFixedProductBeforeIntegerConversion_StronglyInferredFromBinary()
+    {
+        var creature = new CreatureState { Possessed = true };
+        Assert.Equal(-1, CombatRules.RechargeTicks(Database(stat: -101), creature, 100));
+    }
+
+    [Fact]
     public void FirstPersonWordIgnoresLevelKeepsLastRowAndRetainsInitializerDefault()
     {
         GameDatabase db = Database(65561);

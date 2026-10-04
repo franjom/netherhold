@@ -280,7 +280,7 @@ public static class CombatRules
     }
 
     public static int RechargeTicks(GameDatabase database, CreatureState creature, int rechargeTicks) =>
-        unchecked((int)(((long)rechargeTicks * RechargeMultiplier(database, creature).Raw) >> 12));
+        (RechargeMultiplier(database, creature) * new Fp32(unchecked(rechargeTicks << 12))).Raw >> 12;
 
     /// <summary>The cooldown divisor Gate B and the spell gate share (<c>0x0043D750</c> over
     /// <c>+0x3AF</c>/<c>+0x3B3</c>): the interval in ticks × 4096 over the creature's work rate and

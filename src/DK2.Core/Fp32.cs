@@ -18,5 +18,10 @@ public readonly record struct Fp32(int Raw)
 
     public static Fp32 FromDouble(double value) => new((int)Math.Round(value * 4096.0));
 
+    /// <summary>Signed 12.12 multiplication, narrowed to 32 bits after the shift;
+    /// see docs/research/combat-damage.md §1.</summary>
+    public static Fp32 operator *(Fp32 left, Fp32 right) =>
+        new(unchecked((int)(((long)left.Raw * right.Raw) >> 12)));
+
     public override string ToString() => ToDouble().ToString("0.###");
 }
