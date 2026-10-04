@@ -64,7 +64,10 @@ public sealed class KeeperView : INavByteGrid
         int heartIndex = ImpSupplyRules.HeartTileOf(world, database, playerId);
         Heart = HeartOf(playerId) ?? (heartIndex < 0 ? null : FromIndex(heartIndex));
         KeeperSpellDef? callToArms = database.KeeperSpellById(CallToArmsRules.SpellId);
-        KeeperSpellDef? sight = database.KeeperSpellById(KeeperSpellRules.SightOfEvil);
+        // The Sight step reads its refusals only when the spell is at availability 3 in this capture.
+        KeeperSpellDef? sight = Availability(KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.SightOfEvil) == 3
+            ? database.KeeperSpellById(KeeperSpellRules.SightOfEvil)
+            : null;
         foreach (KeeperRoomView room in OwnRooms)
             foreach (int index in room.TileIndices)
             {
@@ -263,7 +266,8 @@ public sealed class KeeperView : INavByteGrid
         InBounds(at) && !NavBytes.IsSolid(Tile(at).NavigationByte) && !_callRefusedTiles.Contains(IndexOf(at));
 
     /// <summary>The place validators of a Sight of Evil cast at a tile (<c>0x004BB8A0</c>): location 5
-    /// admits anything, so only target 4's exclusions on the keeper's own room tiles refuse.</summary>
+    /// admits anything, so only target 4's exclusions on the keeper's own room tiles refuse; captured
+    /// only while spell 1 is at availability 3, the one case the Sight step asks.</summary>
     public bool SightPlaceAllowed(TilePos at) => InBounds(at) && !_sightRefusedTiles.Contains(IndexOf(at));
 
     /// <summary>A tile whose owner <c>0x004BF390</c> calls an enemy: not this keeper and not allied,

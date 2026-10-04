@@ -179,6 +179,17 @@ public class KeeperSightTests
     }
 
     [Fact]
+    public void TheRefusalsAreCapturedOnlyWhileTheSpellIsAvailable()
+    {
+        WorldState world = Idle(2);
+        for (int y = 13; y <= 17; y++)
+            for (int x = 13; x <= 17; x++)
+                KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.HeartFloor, Keeper);
+
+        Assert.True(new KeeperView(Db, world, Keeper).SightPlaceAllowed(new TilePos(16, 16)));
+    }
+
+    [Fact]
     public void ARunCastsThroughTheSimulationWhichCharges()
     {
         WorldState world = Idle();
