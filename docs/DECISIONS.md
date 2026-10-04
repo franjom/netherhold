@@ -8034,3 +8034,39 @@ from the isolated worktree and were not measured.
    `0x004BC290` is unbuilt (Q537); Q152's held-creature part stays open.
 
 **Consequences.** 12 of the 13 keeper spells cast in the simulation.
+
+## ADR-0352 — The computer keeper casts Create Gold and Sight of Evil where DK2's does
+**Date:** 2026-10-04 · **Status:** in progress
+
+**Context.** ADR-0350 put twelve keeper spells in the simulation; our keeper cast six.
+A census of every cast call the tick reaches (`KEEPER_AI.md` §5.10,
+`research/computer-keeper-spell-sites.md`) finds two unbuilt sites: the gold step's
+Create Gold and step 14's Sight of Evil. The battle scan's flag words exclude every
+spell ADR-0350 added, in shipped and level data; the third cast path is never reached (Q537).
+
+**Decision.**
+1. **Create Gold.** The gold step follows `0x004FD590` and the list it reads: every
+   step rescans, `CurrentGoldArea` stays 0, a stored deposit is copied into
+   `DigRoomAt` for tasks 5 and 6, and with none stored the keeper casts spell 13 at the
+   heart's centre plus (1, 1) when it is at availability 3. No allowance is spent and
+   the cast is issued whenever DK2 calls it: the simulation's own location check
+   refuses it on a 5 × 5 Heart (Q540).
+2. **Sight of Evil.** The simulation casts spell 1 with an empty effect: permission,
+   payment, one-shot mana and both clocks, no shot and no region (ADR-0350 stage 6).
+   The keeper's step draws the position and its mode roll in DK2's order, tests the
+   tile's owner in mode 2 and availability, and spends one allowance on a cast its
+   captured permission predicts will pass.
+3. The battle step is unchanged.
+
+**Prediction.** No non-keeper scenario casts spell 1 or 13, so 32 stay exact in both
+stages. Stage 1: Levels 17 and 18 (spell 13 at 3) issue Create Gold only below
+`TendancyMoney` (2,000 / 3,000), every cast refused, so the cast moves no world; the
+rescan-every-step list can move gold routing wherever the gold step runs. Stage 2:
+Harkan (mode 1), Level 17's player 5 (mode 1) and Nemesis (mode 2) pay 5,000 mana per
+cast once they hold it, so the five Level 17 and three Level 18 keeper scenarios may
+move through later mana-gated casts; Drako (mode 0) and Asmodeus (spells at 2) do not.
+
+**Deviations.** The keeper's own stream (ADR-0244) keeps DK2's draw order, not its
+values. The prisoner step before Sight is unbuilt, so a Prison selection that would
+take the last allowance does not stop ours. Sight's shot (process 25, 64 updates, no
+collision) is not created.
