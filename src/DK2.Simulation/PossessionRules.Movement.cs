@@ -18,7 +18,7 @@ public static partial class PossessionRules
     public static void Move(SimulationContext context, CreatureState creature, PossessionPose pose)
     {
         uint packed = unchecked((uint)(ushort)pose.Position.Z.Raw | ((uint)pose.Heading.Raw << 16));
-        TilePos before = creature.Tile;
+        int beforeX = creature.PosX >> 12, beforeY = creature.PosY >> 12;
         if (packed == 0)
         {
             creature.PosX = creature.LastPosX = pose.Position.X.Raw;
@@ -34,7 +34,8 @@ public static partial class PossessionRules
             creature.Heading = pose.Heading.Value;
         }
 
-        if (creature.Tile == before) return;
+        // DK2 compares the coordinates' bits 12 and up, an arithmetic shift, not a truncation.
+        if (creature.PosX >> 12 == beforeX && creature.PosY >> 12 == beforeY) return;
         WorldState world = context.World;
         creature.ChainTileIndex = world.Contains(creature.Tile)
             ? creature.Tile.Y * world.Width + creature.Tile.X : -1;

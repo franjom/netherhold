@@ -110,6 +110,16 @@ public sealed class PossessionActionTests
     }
 
     [Fact]
+    public void PossessedCreatureThatNoLongerExistsIgnoresTheMove()
+    {
+        var (_, world, me, sim) = Setup();
+        world.Player(Keeper).PossessedCreatureId = me.Id + 1000;
+        int x = me.PosX;
+        sim.Tick(InputFrame.Of(Move(45000, 46000, 100, 1)));
+        Assert.Equal(x, me.PosX);
+    }
+
+    [Fact]
     public void PoseHeightAndPreviousHeightSurviveSnapshot()
     {
         var (db, _, me, sim) = Setup();

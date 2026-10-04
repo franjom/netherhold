@@ -13,8 +13,3 @@ public readonly record struct FpPosition3(Fp32 X, Fp32 Y, Fp32 Z)
         hash.Add(Z.Raw);
     }
 }
-
-public readonly record struct Dk2Angle(ushort Raw)
-{
-    public int Value => Raw & 0x7FF;
-}

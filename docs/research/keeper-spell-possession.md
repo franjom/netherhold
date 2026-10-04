@@ -199,8 +199,10 @@ replacement. The first survivor is taken. A later one replaces the best only if
 it is strictly nearer horizontally from the pose **and** best·dot <
 (candidate·dot × 300) / 256, truncating toward zero. The dots are the
 4096-normalised 3D directions from the pose against the aim. This is not
-nearest-distance, and it is not a total order. (4) A target with SneakingAs
-+0x4A3 allied to its owner (0x004BF3D0) clears it. Objects branch by type:
+nearest-distance, and it is not a total order. (4) SneakingAs +0x4A3 is the
+possessed creature's: when it is nonzero and [target owner]->0x004BF3D0(sneakingAs)
+is nonzero, the possessed creature's own +0x4A3 is zeroed (0x0051496E; the spell
+arm repeats it at 0x00515156). Objects branch by type:
 gold 1–3 is the pick-up, 9 the chicken arm, 14 process state 18, 15/16/46 a
 shared arm at 0x00514C31; other picked types fall to the attack. A creature
 in state 131 (on a torture device) is not struck but is stamped. Otherwise it
@@ -212,13 +214,15 @@ blow is action 17's swing 0x00498E30 into 0x00494D00. No target and def+0x686 bi
 0 runs a dig/claim arm (actions 4/6 on the pose tile, 2/1 on the facing tile from
 table 0x006BC350). It is LIKELY by listing, not built.
 
-The pick predicate 0x00516050 — CONFIRMED. For the same owner it accepts only
-objects within reach 0x005162E0: gold 1–3 while carried gold +0x3FB is below
-the level-scaled def+0x69C, or types 9, 14, 15, 16, 46, 64. For another owner it
-accepts objects without definition flag +0xF4 bit 20 within reach (also type 94),
-traps unless +0x10C bit 4, any other non-creature class, and creatures not dying
-(+0x3E6 bit 21, vtable +0x28). Reach uses the creature's heading +0xF4, not the
-aim: within 0x80, and horizontal distance² ≤ 1.2 × the summed vtable +0x3C sizes.
+The pick predicate 0x00516050 — CONFIRMED. Equal owners branch at 0x00516065.
+Same owner: objects only, within reach 0x005162E0, typed through 0x005162A0:
+gold 1–3 while carried gold +0x3FB is strictly below the level-scaled def+0x69C,
+or types 9, 14, 15, 16, 46, 64; every other type is refused. Another owner:
+objects whose definition lacks +0xF4 bit 20, within reach, typed through
+0x00516228: the same gold check, the same types and 94; traps unless +0x10C
+bit 4; creatures not dying (+0x3E6 bit 21, vtable +0x28); any other class.
+Reach uses the creature's heading +0xF4, not the aim: within 0x80 (no wrap),
+and horizontal distance² ≤ 1.2 × the summed vtable +0x3C sizes.
 
 **Spell, bit 27 clear — CONFIRMED.** Slot 3 is the follower arm, not a spell.
 0x00515D50 scores friendly creatures within 7 tiles as below. Below variable 223
@@ -273,8 +277,11 @@ the map edge; the caster as its own friendly candidate; +0x155's comparison unit
 branches, the 0x2000 height cap, the 0x7FF heading mask, the previous-position
 copy and the tile-chain relink. A possessed thing is always a creature here, so
 the zero branch's class test always passes. The setter's floor raise has no
-counterpart, because the floor is height 0 (M9/Q398). Fog is not called
-directly: FogOfWarSystem reveals from each creature's position every tick.
+counterpart, because the floor is height 0 (M9/Q398). Nothing but possession
+(and a save restore) writes PosZ/LastPosZ, so a creature leaving possession keeps its last Z (an M9
+note). Fog is not called directly: FogOfWarSystem covers 0x0048CC90's circle
+pass (PerceptionRange) every tick for every player; the line-of-sight square of
+radius def+0x77B is not modelled (fog-reveal-sources.md §3.1).
 Action26 (melee, spells and the follower arm) and the per-tile
 mixed-class link order its melee search needs are Stage7b2. That stage must
 update the link order wherever a position or layer changes, not only on spawn.

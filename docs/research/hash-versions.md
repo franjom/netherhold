@@ -15,7 +15,7 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**176** — `0x207022305EFDD86A`. A creature's height and previous height, written by possessed movement (action 25); the move command is built. All42 scenarios keep their event/world outputs and change hash composition only; see `keeper-spell-possession.md`. ADR-0350.
+**176** — `0x207022305EFDD86A`. A creature's height and previous height, written by possessed movement (action 25); the move command is built. All 42 scenarios keep their event/world outputs and change hash composition only; see `keeper-spell-possession.md`. ADR-0350.
 
 **175** — `0x6F9C6A3B4D22F803`. Creature possession/influence flags and influence deadline; entry/exit and stat modifiers are built. All42 scenarios change hash composition only; see `keeper-spell-possession.md`. ADR-0350.
 
