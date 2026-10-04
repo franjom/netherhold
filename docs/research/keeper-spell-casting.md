@@ -177,7 +177,8 @@ shot's first update (ours lands the same tick); the original run (Q491).
 
 The shipped KeeperSpells records are ids 1–11, 13 and 14. Research upgrades a spell
 when its record has a bonus shot (`0x004C3000`, research-tree.md §2); the grant
-`0x004E0F00` is the only caller of the Upgraded setter `0x004BB070`. Every cast path
+`0x004E0F00` is the only caller of the Upgraded setter `0x004BB070` (call xrefs;
+direct stores to a row's +0x0D were not scanned). Every cast path
 (`0x004BBD30`, `0x004BBF90`, and the unbuilt third path `0x004BC290`, Q537) then
 takes the bonus shot and data. Besides the casts, which read it inline, the flag's reader `0x004BB0D0` is
 called only by the Possession and Call to Arms upkeep, research and the interface.
