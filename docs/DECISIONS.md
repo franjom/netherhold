@@ -7943,10 +7943,10 @@ coordinates and requires an explicit fill image for new tiles.
 No editor UI or playability validation is built. New-header synthesis is Q529.
 
 ## ADR-0350 — Build keeper spells only after their complete effect paths are read
-**Date:** 2026-10-03 · **Status:** in progress
+**Date:** 2026-10-03 · **Status:** accepted (2026-10-04)
 
-**Context.** Seven keeper spells remain outside the simulation's cast boundary.
-The task requires staged binary research, implementation and independent review.
+**Context.** Seven keeper spells remained outside the simulation's cast boundary.
+The task required staged binary research, implementation and independent review.
 
 **Decision.** Extend the existing command/shot boundary one spell at a time.
 Keep unread effects explicitly unbuilt; ask the owner about observable gaps.
@@ -7954,38 +7954,29 @@ Every stage carries its evidence, function records, tests and snapshot/hash
 changes, and passes the complete gate before a fresh verifier reviews its commit.
 Possession covers simulation and engine-neutral actions; its view is out of scope.
 
-**Stages.** 0 baseline; 1 Create Gold; 2 Tremor; 3 Turncoat and reversion;
-4 Summon Horny; 5 OneShotReaper; 6 Sight of Evil/Q194; 7 Possession (split
-enter/leave and actions if needed); 8 research upgrades and final documentation.
+**Prediction, and how it held.** No scenario casts the seven spells and keeper AI
+expansion is outside the task, so each stage should keep every scenario's events
+and world, changing hash series only through new hashed state. It held at every
+stage: all 42 scenarios kept `events.log`/`world.txt`; the series moved only at
+the hash bumps 170–177. Base `d3abf248`, HashVersion 169
+(`plans/2026-10-03-keeper-spells-baseline.md`); Level 1/2 seed rigs are absent
+from the isolated worktree and were not measured.
 
-**Prediction before implementation.** No existing scenario explicitly casts any
-of the seven spells, and keeper AI expansion is outside this task. Create Gold's
-AI path remains unbuilt. Each spell should therefore preserve the existing
-scenario series unless it changes shared behavior or introduces hashed state.
-New hashed state changes every series through the version/composition change;
-record that separately from a spell's behavioral effects. Possession modifiers
-already used by combat must preserve their existing behavior until possession
-is entered. Check these predictions after each stage.
+**Stages** (evidence and limits in each `research/keeper-spell-*.md`).
+1. Create Gold: the shot/landing boundary makes neutral floor gold; AI path unbuilt.
+2. Tremor: world slots, wall effects, creature reaction/recovery, integer action clock.
+3. Turncoat: temporary combat allegiance; actual ownership kept; reversion built.
+4–5. Summon Horny and OneShotReaper: creation, arrival, upkeep, departure; the
+   one-use variant's LEVEL level, timer and player flag. Idle controllers unbuilt.
+6. Sight of Evil: presentation only, unbuilt (Q194, Q534).
+7. Possession: lifecycle and modifiers, movement (hash 176), action-26 melee and
+   spells over a mixed-class tile link order (hash 177; unbuilt arms Q535/Q536),
+   the binary upkeep rule the owner chose (Q58), recharge modifiers (Q393).
+8. Research upgrades: ADR-0247's grant already covers every spell with a bonus
+   shot, and the casts already take the bonus data, so nothing new was built and
+   nothing hashed changed (no bump). `KeeperSpellUpgradeTests` reaches each
+   upgrade by research; Horny and OneShotReaper have no bonus shot. The upgrade
+   table is `research/keeper-spell-casting.md` §5. The third cast path
+   `0x004BC290` is unbuilt (Q537); Q152's held-creature part stays open.
 
-**Baseline.** Base `d3abf248e6d81d906f75a10b2f301a44bf3da78d`;
-HashVersion and FormatVersion 169. Release build: zero warnings/errors;
-no-install suite: 3,193 passed, 0 failed, 392 skipped (3,585 total).
-Per-scenario hash series and final hashes: `plans/2026-10-03-keeper-spells-baseline.md`.
-Level 1/2 seeds 1–20 cannot be measured here: their gitignored scratchpad
-drivers and recorded packets are absent from this isolated worktree.
-
-**Current boundary.** Stages0–6 and their corrections are independently approved.
-Create Gold uses the existing shot/landing boundary; Tremor builds world slots,
-wall effects, creature reaction/recovery and the integer action clock.
-Turncoat changes temporary combat allegiance, preserving actual ownership.
-Normal and one-use Horny build creation, arrival, upkeep and departure;
-the one-use variant adds LEVEL-selected level, timer and player flag.
-Evidence and limits: `research/keeper-spell-create-gold.md`,
-`research/keeper-spell-tremor.md`, `research/keeper-spell-turncoat.md` and
-`research/keeper-spell-reaper.md`. Neutral and Horny idle controllers remain
-explicitly unbuilt. All 42 scenarios preserve event/world outputs; new hash
-composition changes every series. Stage6 leaves Sight unbuilt as presentation
-(`research/keeper-spell-sight.md`, Q534). Stage7 builds Possession
-(`research/keeper-spell-possession.md`): lifecycle/modifiers, movement (hash176),
-action26 melee/spells over a mixed-class tile link order (hash177; unbuilt arms
-Q535/Q536) and the binary upkeep rule the owner chose (Q58).
+**Consequences.** 12 of the 13 keeper spells cast in the simulation.

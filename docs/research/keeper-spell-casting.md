@@ -172,3 +172,31 @@ spending one allowance on a passed permission.
 the owner of the floor under it, as no room id is kept on a creature.
 **UNKNOWN:** the vtable `+0x74` predicate; DK2's timing between the cast and the
 shot's first update (ours lands the same tick); the original run (Q491).
+
+## 5. The thirteen spells, built and upgraded (2026-10-04)
+
+The shipped KeeperSpells records are ids 1–11, 13 and 14. Research upgrades a spell
+when its record has a bonus shot (`0x004C3000`, research-tree.md §2); the grant
+`0x004E0F00` is the only caller of the Upgraded setter `0x004BB070`. Every cast path
+(`0x004BBD30`, `0x004BBF90`, and the unbuilt third path `0x004BC290`, Q537) then
+takes the bonus shot and data. Besides the casts, which read it inline, the flag's reader `0x004BB0D0` is
+called only by the Possession and Call to Arms upkeep, research and the interface.
+
+| Id | Spell | Built | Upgraded form (normal → upgraded) |
+|---|---|---|---|
+| 1 | Sight Of Evil | no: presentation (`keeper-spell-sight.md`, Q194/Q534) | radius data1 5 → 7 |
+| 2 | Possession | simulation side, ADR-0350 | same shot; upkeep × variable 226 (70 %) |
+| 3 | Call To Arms | ADR-0279 | same shot; upkeep × variable 227 (70 %) |
+| 4 | Create Imp | ADR-0247 | shot 2 level 1 → shot 60 level 4 |
+| 5 | Summon Horny | ADR-0350 | no bonus shot: never upgraded |
+| 6 | Thunderbolt | ADR-0283 | data1 0x96 → 0xC8 |
+| 7 | Turncoat | ADR-0350 | data1 25 → 40 |
+| 8 | Tremor | ADR-0350 | data1 5 → 7 (20 → 28 turns) |
+| 9 | Inferno | ADR-0302 | bonus data (`keeper-spell-inferno-chicken.md`) |
+| 10 | Heal | ADR-0287 | bonus data (§4) |
+| 11 | Chicken | ADR-0302 | bonus data (`keeper-spell-inferno-chicken.md`) |
+| 13 | Create Gold | ADR-0350 | gold 1,000 → 2,000 |
+| 14 | OneShotReaper | ADR-0350 | no bonus shot: never upgraded |
+
+`KeeperSpellUpgradeTests` reaches each upgrade by research; the spells' own tests
+cover the upgraded effects, and `ResearchTreeOnRealDataTests` pins the shipped shots.

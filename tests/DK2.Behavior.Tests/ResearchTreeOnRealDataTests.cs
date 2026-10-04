@@ -90,4 +90,21 @@ public class ResearchTreeOnRealDataTests
         Assert.All(db.Variables.Research.Where(e => e.Kind == ResearchTreeRules.KindSpell),
             e => Assert.NotNull(db.KeeperSpellById(e.TypeId)));
     }
+
+    /// <summary>ADR-0350 spells' normal and bonus shots, as KeeperSpellUpgradeTests and each
+    /// spell's own tests transcribe them (Create Gold and Tremor are pinned in their own files).
+    /// Turncoat's upgrade is data1 25 to 40 and Sight's 5 to 7. Possession's shot and data do
+    /// not change: its upgrade is only the upkeep percentage (variable 226).</summary>
+    [InstallTheory]
+    [InlineData(7, 31, 25, 0, 31, 40, 0)]
+    [InlineData(2, 32, 0, 0, 32, 0, 0)]
+    [InlineData(1, 33, 5, 0, 33, 7, 0)]
+    public void TheTaskSpellsBonusShotsAreTheShippedOnes(
+        int id, int shot, int data1, int data2, int bonus, int bonus1, int bonus2)
+    {
+        KeeperSpellDef spell = Database().KeeperSpellById(id)!;
+
+        Assert.Equal(((byte)shot, data1, data2), spell.Shot(upgraded: false));
+        Assert.Equal(((byte)bonus, bonus1, bonus2), spell.Shot(upgraded: true));
+    }
 }

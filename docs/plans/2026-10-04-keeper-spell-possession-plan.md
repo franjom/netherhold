@@ -64,5 +64,5 @@
 
 ## Final integration
 
-- [ ] Continue Stage8 research upgrades and documentation after Part7 passes.
+- [x] Continue Stage8 research upgrades and documentation after Part7 passes (no new build: grant and bonus data already generic; KeeperSpellUpgradeTests; no hash bump).
 - [ ] Run the user's final verifier over the entire branch.

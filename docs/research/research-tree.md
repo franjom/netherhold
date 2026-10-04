@@ -163,7 +163,9 @@ Other upgrade effects live in code, spell by spell. Mana upkeep for Possession
 (2) and Call To Arms (3) is scaled by `UpgradedPossessionCostPercentage` and
 `UpgradedCallToArmsCostPercentage` (70) when upgraded (`0x004C10E0`,
 `0x004C17A0`). The interface shows an upgraded icon (`0x00412FC0`, +0x1B) and a
-grade in the tooltip (`0x0042EA70`).
+grade in the tooltip (`0x0042EA70`). The flag's reader `0x004BB0D0` has no other callers than these and research
+(xrefs, 2026-10-04); the casts read the byte inline. Each spell's upgraded form is listed in
+[keeper-spell-casting.md](keeper-spell-casting.md) §5.
 
 ## 6. What the cast check does not check
 

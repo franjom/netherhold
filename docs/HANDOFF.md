@@ -22,20 +22,14 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   ADR-0329's scoped inference (Q455); shot heights go to M9 and the Boulder's slap to object slapping
   (ADR-0341). Left: the owner's observations in experiments/doors-and-traps.md — Q520's wall is
   disputed, Q513, Q524 and Q362 unwatched (2026-10-03).
-- Keeper-spell work (ADR-0350): Create Gold, Tremor and Turncoat are independently
-  approved, including normal Horny's creation/lifecycle/upkeep. OneShotReaper's
-  creation/timer/one-use flag and its correction are independently approved.
-  Horny's idle AI remains unbuilt. See research/keeper-spell-reaper.md. Sight's
-  presentation-only boundary and documentation correction pass independent
-  review (2026-10-04). Possession's Stage7a review requires separate corrections
-  (2026-10-04); influence damage and CTA/Chicken pauses pass limited reviews.
-  Integer speed/clamp, fixed-product narrowing and pit percentage byte width
-  pass review. Auxiliary reset width, view assignment and spell-value accessor
-  pass review, as does the object callback record correction (2026-10-04).
-  Possessed movement (action25, hash176) and action26 melee/spells over a
-  mixed-class per-tile link order (hash177) are built; unbuilt arms are Q535/Q536. Possession upkeep is built to the
-  binary rule the owner chose (Q58 answered).
-  See research/keeper-spell-sight.md and research/keeper-spell-possession.md.
+- Keeper spells (ADR-0350, accepted 2026-10-04): Create Gold, Tremor, Turncoat,
+  Summon Horny, OneShotReaper and Possession's simulation side are built, so 12 of
+  the 13 spells cast; Sight of Evil is presentation only (Q194, Q534). Research
+  grants every upgrade through ResearchTreeRules (KeeperSpellUpgradeTests); the
+  upgraded effects are the bonus data and Possession's 70 % upkeep. Left unbuilt:
+  Horny's idle AI, the possessed action arms in Q535/Q536, the third cast path
+  (Q537) and the held-creature regeneration in Q152. Next: the branch's final
+  verifier, then merge. Evidence: research/keeper-spell-*.md.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 16).
   The proactive task machine (tasks 0–7) digs, expands, builds rooms, manages

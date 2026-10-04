@@ -352,13 +352,13 @@ public sealed class ScenarioRunner
         if (gain.All(g => g == 0)) return;
 
         unsupported.Add(
-            "mana here has both halves of the economy but not all of either. Income is land and " +
-            "a dungeon heart; outgoings are Create Imp's cast cost and the 7 a second every imp " +
-            "charges its keeper (Q53, confirmed and now read off DK2's own Create Imp record). " +
-            "What is missing is every other keeper spell - a summoned Horned Reaper costs 2000 a " +
-            "second and Possession 25, and neither spell exists yet; Call To Arms and a keeper's " +
-            "trap upkeep do (Q59) - plus research. A mana total in this run is " +
-            "close to what a keeper would have, and short of every outgoing but one");
+            "mana here has both halves of the economy. Income is land and " +
+            "a dungeon heart; outgoings are the keeper spells' cast costs and upkeep (every " +
+            "spell but Sight of Evil is built, ADR-0350: a summoned Horned Reaper costs 2000 a " +
+            "second, Possession its creature's charge), the 7 a second every imp charges its " +
+            "keeper (Q53) and a keeper's trap upkeep (Q59). A scenario pays only for what it " +
+            "casts, so a mana total in this run is what a keeper would have only if it casts " +
+            "what that keeper would");
         unsupported.Add(
             "mana is paid once a game second, and a game second is four ticks of 250 ms - read " +
             "from the binary and stopwatched by the owner, so Q1 is settled and the wall-clock " +
