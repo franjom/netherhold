@@ -6438,7 +6438,7 @@ goes with its pile; a fetcher whose pile was taken in passing keeps the load, an
 says so in its name.
 
 ## ADR-0294 — The objects handler per tile, and a ring scan with no chooser draws nothing
-**Date:** 2026-09-30 · **Status:** accepted; item 2's reading withdrawn 2026-10-03 — `0x00468D10` does draw `rand(4)` at `0x00468D54` and stores it in the side slot (`functions/00468D10.md`); ours still starts north, Q526 · Research: `imp-task-objects-and-walks.md` §1
+**Date:** 2026-09-30 · **Status:** accepted; item 2's reading withdrawn 2026-10-03 — `0x00468D10` does draw `rand(4)` at `0x00468D54` and stores it in the side slot (`functions/00468D10.md`); item 2 superseded by ADR-0351 · Research: `imp-task-objects-and-walks.md` §1
 
 **Context.** Kind 8 picked the loose object with the shortest walk, refused an imp holding
 gold, and could not be taken from a holder. DK2's objects handler `0x0046B9C0` runs per tile
@@ -7996,6 +7996,32 @@ captures (STRONGLY INFERRED), as is `+20` naming the block. The table and its gu
   The fixture's Goblin carries the shipped Getup art and variable 181 its shipped 25.
   HashVersion unchanged: `CreatureDef` is data, and no state field changed.
 
+## ADR-0349 — A miner whose strike lands on an emptied seam is not full, and reaches the seam's end
+**Date:** 2026-10-04 · **Status:** accepted · Research: `functions/00465870.md`, `imp-claim-path.md` §5; Q526
+
+**Context.** Q526's start-side draw (parked) loses Level 1 seeds 1 and 2 because the Hatchery
+block is never claimed while it is dug. DK2 claims it in every seed. In DK2's seed 2 capture,
+imp 452 alone mines (14,24); its own strike brings the seam down and leaves it holding 818,
+not full. It reaches state 10 at 158, digs on, walks to the store full at 194, claims (14,24)
+on the way (`0x00464170`, state 15 at 200) and from then on claims the corridor and the block.
+State 26 (`0x00465870`, CONFIRMED by disassembly) asks the hands test, which reads only the
+purse, after the strike has landed. A miner that is not full whose tile is no longer a seam
+falls through to the seam's end (`0x00465A6F`), which raises kind 14. In our seed 1 three
+miners shared that seam, and the one at 818 left for the store on the fall tick. ADR-0296's
+second check counts the strike just queued as held, but an earlier imp's strike that tick had
+brought the seam down, so this strike freed nothing. No capture shows DK2 in that simultaneous
+case; the rule above decides it.
+**Decision.** That check predicts the yield on the tile as the queued strike will find it: this
+tick's earlier orders on the tile are applied in queue order to a copy, as `TileWorkSystem`
+will apply them. A strike that frees nothing does not fill the hands. The miner then reaches
+the seam's end and raises kind 14, as in DK2.
+**Consequences.**
+- Level 1 seed 1 raises kind 14 at (14,24) at 171, and imp 2 claims it on its way to the store at
+  214 holding 1,090. That is the same pattern as DK2's seed 2 capture (200, 1,091); the seed
+  numbers name different games. L1 20/20; seeds 1, 12 and 17 change.
+- L2 5/20 (seed 4, first different at 2215 on this case, now loses; seed 3 also changes). DK2's own
+  seeds win 4 of 18. L3 seed01 is tick-identical (3588). HashVersion unchanged: no state field.
+
 ## ADR-0350 — Build keeper spells only after their complete effect paths are read
 **Date:** 2026-10-03 · **Status:** accepted (2026-10-04)
 
@@ -8034,6 +8060,28 @@ from the isolated worktree and were not measured.
    `0x004BC290` is unbuilt (Q537); Q152's held-creature part stays open.
 
 **Consequences.** 12 of the 13 keeper spells cast in the simulation.
+
+## ADR-0351 — Every ring scan draws its start side
+**Date:** 2026-10-04 · **Status:** accepted · Research: `functions/00468D10.md`, `functions/00468520.md`, `imp-claim-path.md` §2; Q526
+
+**Context.** `0x00468D10` calls the game's draw `0x005558D0(4, world+0x15A0, …)` at `0x00468D54`
+and stores the result in the side slot (`0x00468D60`), which a chooser then overwrites
+(`0x00468DEB`). So every ring scan call draws once, and the kinds 6, 7, 8 and 16 scans, which
+pass no chooser, start on a random side. ADR-0294 had dropped the draw on a wrong reading of that
+slot. Built on 2026-10-03, the draw lost Level 1 seeds 1 and 2: the Hatchery block got one imp
+and nothing on it was claimed by the 466 order. ADR-0349 supplies the second claimer DK2 has.
+**Decision.** Ours draws `rand(4)` on every ring scan call, chooser or not. The chooserless arms
+start on the drawn side; the claim scans draw and then use their chooser's side.
+**Consequences.**
+- L1 19/20: seed 1 wins again; seed 2 builds a 3-tile Hatchery at 466 and loses, a known
+  residual. Observed in the replay: its second claimer appears at 294, claims the corridor north
+  (14,23)–(14,18), already dug by then, and reaches the block at 394. Observed in DK2's seed 2
+  capture: (14,21) is still gold at 249 and the claimer turns to the block. Unverified: that the
+  residual is our faster digging north rather than a claim rule.
+- L2 3/20 (DK2's own seeds: 4 of 18). L3 seed01 won 3608 (DK2 3683; ours was 3588).
+- The fetch scenario's seed no longer fetches its pile (the rest goes in passing), so its
+  expectation is dropped; a test asserts both sides of two equal piles occur over seeds. The
+  kind-8 arm draws before the objects handler's refusals, as in DK2 (no change in the rigs). HashVersion unchanged: no state field.
 
 ## ADR-0352 — The computer keeper casts Create Gold and Sight of Evil where DK2's does
 **Date:** 2026-10-04 · **Status:** accepted (2026-10-04)

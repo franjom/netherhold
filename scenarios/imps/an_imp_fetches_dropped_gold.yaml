@@ -101,12 +101,11 @@ expect:
       Selling a treasury tile with gold in it puts the gold on the claimed floor
       that replaces it, deducted from the keeper's spendable total until somebody
       fetches it back (CONFIRMED, owner 2026-09-03).
-  - event: fetch_taken
-    detail: "priority=FetchFloorGold"
-    because: >
-      Fetching sits below marked excavation and claiming in DK2's Tier A order
-      (Q24, CONFIRMED), so the keeper's marked walls come first and the pile
-      waits. The imps reach it only once the marks are gone.
+  # Fetching sits below marked excavation and claiming in DK2's Tier A order (Q24, CONFIRMED),
+  # so the pile waits for the marks. With every ring scan drawing its start side (ADR-0351), this
+  # seed's imps no longer fetch the pile: its last 530 goes in passing. So the fetch is not
+  # expected here; ImpFetchesGoldTests.MiningComesBeforeFetching and
+  # TheGoldIsStillFetchedOnceTheDiggingIsDone pin the order.
   - event: gold_picked_up_in_passing
     because: >
       The walk-over pick-up (0x0048904E, ADR-0293): a worker passing within a

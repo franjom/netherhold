@@ -87,7 +87,7 @@ public sealed class TileWorkSystem : ISimulationSystem
     /// every worker is born at, so every measurement this project took before
     /// Efficiency existed still holds exactly.</para>
     /// </summary>
-    private static int EfficiencyOf(SimulationContext context, int workerCreatureId)
+    internal static int EfficiencyOf(SimulationContext context, int workerCreatureId)
     {
         if (workerCreatureId < 0) return EfficiencyRules.BaseModifier;
 

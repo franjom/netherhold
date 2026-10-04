@@ -523,12 +523,36 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private static bool MinersHandsFull(
         SimulationContext context, CreatureState creature, CreatureDef definition, int pendingStrikes = 0)
     {
-        ref TileState tile = ref context.World.TileAtIndex(creature.TargetTileIndex);
+        TileState tile = pendingStrikes > 0
+            ? TileWhenTheLastStrikeLands(context, creature.TargetTileIndex)
+            : context.World.TileAtIndex(creature.TargetTileIndex);
         int yield = TileWorkRules.GoldYield(
             context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
         if (yield <= 0) return false;
         int held = creature.GoldHeld + (pendingStrikes * yield);
         return held > 0 && held >= FullAt(context, creature, definition);
+    }
+
+    /// <summary>
+    /// The tile as the strike queued last will find it. <see cref="TileWorkSystem"/> applies this
+    /// tick's queue in order once every imp has chosen, so a miner queued earlier can bring the
+    /// seam down first and the last strike frees nothing. DK2 asks the hands test after the
+    /// strike has landed (<c>0x00465870</c>), so that miner holds what it holds, reaches the
+    /// seam's end and raises kind 14: Level 1 seed 2's imp 452 empties (14,24) holding 818, digs
+    /// on, and claims the tile on its way to the store once full (ADR-0349).
+    /// </summary>
+    private static TileState TileWhenTheLastStrikeLands(SimulationContext context, int tileIndex)
+    {
+        List<TileWorkOrder> queue = context.World.RawPendingWork;
+        TileState tile = context.World.TileAtIndex(tileIndex);
+        for (int i = 0; i < queue.Count - 1; i++)
+        {
+            TileWorkOrder order = queue[i];
+            if (order.TileIndex != tileIndex || TileWorkRules.IsRoomScoped(order.Kind)) continue;
+            TileWorkRules.Apply(context.Database, ref tile, order.Kind, order.PlayerId,
+                TileWorkSystem.EfficiencyOf(context, order.WorkerCreatureId));
+        }
+        return tile;
     }
 
     /// <summary>
@@ -969,7 +993,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         TilePos at = creature.Tile;
         byte player = creature.OwnerPlayerId;
         bool handsFree = !HandsFull(context, creature, definition);
-        var rings = new DiamondRings(world, at, ClaimStartSide(context, world, at, player));
+        var rings = new DiamondRings(world, at, ChosenStartSide(context, ClaimStartSide(context, world, at, player)));
         try
         {
             while (rings.MoveNext())
@@ -1030,7 +1054,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
     /// <summary>
     /// The dispatcher's kind 7 alone (<c>0x00468520</c>): the ring scan over the whole map with
-    /// the gold handler <c>0x0046B6D0</c>, from <see cref="UnchosenStartSide"/>, the first tile
+    /// the gold handler <c>0x0046B6D0</c>, from <see cref="DrawnStartSide"/>, the first tile
     /// that gives a fetch winning. The scan's own tile is unfiltered; every ring tile passes
     /// <see cref="RingScanVisits"/>, which never admits water, so a pile that fell in water is
     /// fetched only from under the imp's feet. Level 2 seed01: imp 430, aimed at gold, twice
@@ -1045,7 +1069,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         byte player = creature.OwnerPlayerId;
         WorldState world = context.World;
-        var rings = new DiamondRings(world, creature.Tile, UnchosenStartSide);
+        var rings = new DiamondRings(world, creature.Tile, DrawnStartSide(context));
         while (rings.MoveNext())
         {
             TilePos tile = rings.Current;
@@ -1100,7 +1124,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         bool handsFree = !HandsFull(context, creature, definition);
         TilePos at = creature.Tile;
 
-        var rings = new DiamondRings(world, at, ClaimStartSide(context, world, at, player));
+        var rings = new DiamondRings(world, at, ChosenStartSide(context, ClaimStartSide(context, world, at, player)));
         while (rings.MoveNext())
         {
             TilePos tile = rings.Current;
@@ -1170,20 +1194,27 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
     /// <summary>
     /// Where the ring scan starts when its caller passes no chooser (the dispatcher's kinds 6, 7,
-    /// 8 and 16). DK2 draws it: <c>0x00468d10</c> stores <c>rand(4)</c> from the world's random
-    /// word in the side slot (<c>0x00468d54</c>, <c>0x00468d60</c>) on every call, and a chooser
-    /// overwrites it (<c>0x00468deb</c>). Ours starts north and draws nothing (ADR-0294, taken on
-    /// a wrong reading of that slot); reinstating the draw is Q526.
+    /// 8 and 16): <c>rand(4)</c>. <c>0x00468d10</c> draws it from the world's random word into the
+    /// side slot on entry, before anything else (<c>0x00468d54</c>, <c>0x00468d60</c>), on every
+    /// call (ADR-0351, Q526; ADR-0294 had dropped it on a wrong reading of that slot).
     /// </summary>
-    private const int UnchosenStartSide = 0;
+    private static int DrawnStartSide(SimulationContext context) => context.Rng.NextInt(4);
+
+    /// <summary>A scan with a chooser still makes <see cref="DrawnStartSide"/>'s draw on entry; the
+    /// chooser then overwrites the side (<c>0x00468deb</c>).</summary>
+    private static int ChosenStartSide(SimulationContext context, int chosen)
+    {
+        DrawnStartSide(context);
+        return chosen;
+    }
 
     /// <summary>The dispatcher's kinds 6 and 16 (<c>0x00468520</c>): the ring scan over the whole
-    /// map with the reinforce handler alone, started on <see cref="UnchosenStartSide"/>, not the chooser's.
+    /// map with the reinforce handler alone, started on <see cref="DrawnStartSide"/>, not the chooser's.
     /// ADR-0292.</summary>
     private bool TryTakeReinforce(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
         WorldState world = context.World;
-        var rings = new DiamondRings(world, creature.Tile, UnchosenStartSide);
+        var rings = new DiamondRings(world, creature.Tile, DrawnStartSide(context));
         while (rings.MoveNext())
         {
             TilePos tile = rings.Current;
@@ -1429,7 +1460,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         WorldState world = context.World;
         TilePos at = creature.Tile;
-        var rings = new DiamondRings(world, at, ClaimStartSide(context, world, at, creature.OwnerPlayerId));
+        var rings = new DiamondRings(world, at, ChosenStartSide(context, ClaimStartSide(context, world, at, creature.OwnerPlayerId)));
         while (rings.MoveNext())
             if (TryClaimAt(context, creature, grid, rings.Current)) return true;
         return false;
@@ -1937,7 +1968,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
     /// <summary>
     /// DK2's imp task <b>kind 8</b> (<c>0x00468520</c>): the ring scan over the whole map from a
-    /// side of <see cref="UnchosenStartSide"/> with the objects handler <see cref="TryObjectAt"/> on each tile, the
+    /// side of <see cref="DrawnStartSide"/> with the objects handler <see cref="TryObjectAt"/> on each tile, the
     /// first tile that gives a job winning; inside the drop scan, that one tile.
     /// <para><b>Second in Tier A</b>, above marked excavation and above claiming
     /// (<c>imp-task-priority.md</c> §4, ADR-0065) - so an imp that finds a book
@@ -1947,12 +1978,15 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         SimulationContext context, CreatureState creature, CreatureDef definition,
         WorldPathGrid grid)
     {
+        // The kind-8 arm (0x004686D6) scans with no gate, so the draw comes first; the refusals
+        // below are the objects handler's (0x0046B9C0), run on the scan's own tile (ADR-0351).
+        int side = _only is null ? DrawnStartSide(context) : 0;
         if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) return false;
         if (creature.CarriedObjectId >= 0 || creature.CarriedCreatureId >= 0) return false;
         if (_only is TilePos only) return TryObjectAt(context, creature, grid, only);
 
         WorldState world = context.World;
-        var rings = new DiamondRings(world, creature.Tile, UnchosenStartSide);
+        var rings = new DiamondRings(world, creature.Tile, side);
         while (rings.MoveNext())
         {
             TilePos tile = rings.Current;

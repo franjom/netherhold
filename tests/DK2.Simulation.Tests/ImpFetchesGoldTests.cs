@@ -42,7 +42,7 @@ public class ImpFetchesGoldTests
         public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
     }
 
-    private static Run Start(TilePos impAt, int imps = 1)
+    private static Run Start(TilePos impAt, int imps = 1, ulong seed = 99)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
@@ -51,7 +51,7 @@ public class ImpFetchesGoldTests
         for (int i = 0; i < imps; i++)
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt);
 
-        var sim = new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems());
+        var sim = new GameSimulation(database, world, seed, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
         return new Run(sim, sink);
@@ -493,6 +493,38 @@ public class ImpFetchesGoldTests
 
         Assert.Equal(500, GoldStore.Total(run.World, Keeper));
         Assert.Empty(run.Of("fetch_taken"));
+    }
+
+    /// <summary>Q526, ADR-0351: a chooserless ring scan draws its start side (<c>rand(4)</c> at
+    /// <c>0x00468d54</c>) on every call, so an aimed imp between two piles equally far off, west and
+    /// east on its own floor, takes either one as the draws fall. Ours started north every time, and
+    /// so always took the same pile.</summary>
+    [Fact]
+    public void AnImpAimedAtGold_BetweenTwoPilesEquallyFar_TakesEitherAsItsStartSideIsDrawn()
+    {
+        var taken = new HashSet<string>();
+        for (ulong seed = 1; seed <= 16; seed++)
+        {
+            Run run = Start(new TilePos(4, 2), seed: seed);
+            TerrainDef path = run.Db.TerrainById(Dk2TerrainFixture.ClaimedPath);
+            for (int x = 2; x <= 6; x++)
+            {
+                ref TileState floor = ref run.World.Tile(x, 2);
+                floor.TerrainId = path.TerrainId;
+                floor.Health = path.StartingHealth;
+                floor.OwnerPlayerId = Keeper;
+            }
+            WallsAlreadyReinforced(run);
+            FloorGold.PutDown(run.World, run.Db, Index(run.World, new TilePos(2, 2)), 0, 300);
+            FloorGold.PutDown(run.World, run.Db, Index(run.World, new TilePos(6, 2)), 0, 300);
+            run.Imp.LastTaskKind = ImpTaskKind.FetchGold;
+            run.Imp.DroppedTask = ImpTaskKind.FetchGold;
+
+            run.Ticks(2);
+            if (run.Of("fetch_taken").FirstOrDefault() is { } fetch)
+                taken.Add(fetch.Detail.Contains("(2,2)") ? "west" : fetch.Detail.Contains("(6,2)") ? "east" : fetch.Detail);
+        }
+        Assert.Equal(new HashSet<string> { "west", "east" }, taken);
     }
 
     /// <summary>
