@@ -217,7 +217,7 @@ moves the shot onto its target, the death shot 4 chains, and the Modify Health h
 `shots.md` §8) heals the lesser of the data word and the missing health.
 
 **Not built, named (Q401):** the
-`TurncoatTimer`, pit-fighter and torture refusals; the Imp Teleport and Imp Haste paths of
+pit-fighter and torture refusals; the Imp Teleport and Imp Haste paths of
 bits 5 and 6; the possessed-creature overrides. The buff shots fly as ordinary shots, so a
 Haste at 3686 units a tick can pass a standing ally where the 2048-a-tick buffs cannot.
 
