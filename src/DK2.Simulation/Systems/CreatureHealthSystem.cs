@@ -304,6 +304,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             CarryRules.DropWhatever(context.World, state);
             ObjectCarryRules.DropWhatever(context.World, state);
             CreatureDeathRules.BecomeCorpse(context.World, context.Database, state);
+            context.World.RelinkAsBody(state);
             return;
         }
 

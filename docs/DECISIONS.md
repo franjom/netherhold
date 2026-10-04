@@ -7983,12 +7983,9 @@ the one-use variant adds LEVEL-selected level, timer and player flag.
 Evidence and limits: `research/keeper-spell-create-gold.md`,
 `research/keeper-spell-tremor.md`, `research/keeper-spell-turncoat.md` and
 `research/keeper-spell-reaper.md`. Neutral and Horny idle controllers remain
-explicitly unbuilt. All42 scenarios preserve event/world outputs; new hash
-composition changes every series. Current hash/save175.
-Stage6 records Sight's temporary presentation layer and intentionally leaves
-simulation casting unbuilt; see `research/keeper-spell-sight.md` and Q534.
-Its binary/runtime and documentation reviews pass (2026-10-04).
-Stage7a builds Possession lifecycle/modifiers; see `research/keeper-spell-possession.md`.
-Its review and corrections pass. Stage7b1 builds possessed movement (action25,
-hash176); action26 melee/spells/followers are Stage7b2. The owner chose the
-binary-read upkeep rule (2026-10-04); it is built (Q58).
+explicitly unbuilt. All 42 scenarios preserve event/world outputs; new hash
+composition changes every series. Stage6 leaves Sight unbuilt as presentation
+(`research/keeper-spell-sight.md`, Q534). Stage7 builds Possession
+(`research/keeper-spell-possession.md`): lifecycle/modifiers, movement (hash176),
+action26 melee/spells over a mixed-class tile link order (hash177; unbuilt arms
+Q535/Q536) and the binary upkeep rule the owner chose (Q58).

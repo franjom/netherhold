@@ -54,6 +54,10 @@ public sealed class CombatSystem : ISimulationSystem
                 {
                     if (FightRules.CastFires(creature, definition, context.Tick.Value)) FightRules.FireSpell(context, creature, definition);
                 }
+                else if (creature.SwingKind == SpellRules.FreeAimCast)
+                {
+                    if (FightRules.CastFires(creature, definition, context.Tick.Value)) FightRules.FireFreeAim(context, creature, definition);
+                }
                 else if (CombatRules.BlowLands(creature, definition, context.Tick.Value))
                 {
                     FightRules.LandBlow(context, creature, definition);

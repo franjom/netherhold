@@ -642,6 +642,11 @@ public sealed class DoorState
     public int Unknown_0008 { get; init; }
     public ushort TriggerId { get; init; }
     public byte DoorId { get; init; }
+
+    /// <summary>The mixed-class tile chain link (<see cref="ThingTileLink"/>), given once by
+    /// <see cref="WorldState.AddDoor"/>: DK2 constructs a door on layer 0 (<c>0x004A50BF</c>).</summary>
+    public ThingTileLink TileLink { get; internal set; } = ThingTileLink.None;
+
     public byte PlayerId { get; init; }
     public byte Flags { get; init; }
     public bool UnderConstruction { get; set; }
@@ -709,6 +714,7 @@ public sealed class DoorState
         hash.Add(Unknown_0008);
         hash.Add(TriggerId);
         hash.Add(DoorId);
+        TileLink.HashInto(ref hash);
         hash.Add(PlayerId);
         hash.Add(Flags);
         hash.Add(UnderConstruction);
@@ -738,6 +744,10 @@ public sealed class TrapState
     public int Unknown_0008 { get; init; }
     public byte NumberOfShots { get; init; }
     public byte TrapId { get; init; }
+
+    /// <summary>The mixed-class tile chain link (<see cref="ThingTileLink"/>), given once by
+    /// <see cref="WorldState.AddTrap"/>: DK2 constructs a trap on layer 0 (<c>0x004A7998</c>).</summary>
+    public ThingTileLink TileLink { get; internal set; } = ThingTileLink.None;
     public byte PlayerId { get; init; }
     public byte Unknown_000F { get; init; }
     public bool UnderConstruction { get; set; }
@@ -800,6 +810,7 @@ public sealed class TrapState
         hash.Add(Unknown_0008);
         hash.Add(NumberOfShots);
         hash.Add(TrapId);
+        TileLink.HashInto(ref hash);
         hash.Add(PlayerId);
         hash.Add(Unknown_000F);
         hash.Add(UnderConstruction);
@@ -949,6 +960,7 @@ public sealed class WorldState
     private int _nextDoorId;
     private int _nextTrapId;
     private int _nextChainOrder;
+    private int _nextTileLinkOrder;
     private readonly List<HeroPartyState> _heroParties = [];
     private readonly List<EffectGeneratorState> _effectGenerators = [];
     private readonly List<TempleSacrificeState> _templeSacrifices = [];
@@ -1275,6 +1287,8 @@ public sealed class WorldState
 
         _creatures.Add(creature);
         _creaturesByOwnership.Insert(0, creature);
+        creature.LinkWorld = this;
+        Relink(creature);
         return creature;
     }
 
@@ -1294,6 +1308,8 @@ public sealed class WorldState
         {
             if (_creatures[i].Id != id) continue;
             _creaturesByOwnership.Remove(_creatures[i]);
+            _creatures[i].LinkWorld = null;
+            _creatures[i].TileLink = ThingTileLink.None;
             _creatures.RemoveAt(i);
             // DK2's death handler unlinks the dead from every engagement list it was on; a
             // creature that was fighting it notices the empty target on its next fight process.
@@ -1351,6 +1367,8 @@ public sealed class WorldState
         };
 
         _objects.Add(instance);
+        instance.LinkWorld = this;
+        Relink(instance);
         return instance;
     }
 
@@ -1363,6 +1381,8 @@ public sealed class WorldState
         for (int i = 0; i < _objects.Count; i++)
         {
             if (_objects[i].Id != id) continue;
+            _objects[i].LinkWorld = null;
+            _objects[i].TileLink = ThingTileLink.None;
             _objects.RemoveAt(i);
             return true;
         }
@@ -1404,6 +1424,8 @@ public sealed class WorldState
     {
         var shot = new ShotState { Id = _nextShotId++, ShotTypeId = shotTypeId, OwnerPlayerId = ownerPlayerId, PosX = x, PosY = y };
         _shots.Add(shot);
+        shot.LinkWorld = this;
+        Relink(shot);
         return shot;
     }
 
@@ -1412,6 +1434,8 @@ public sealed class WorldState
         for (int i = 0; i < _shots.Count; i++)
         {
             if (_shots[i].Id != id) continue;
+            _shots[i].LinkWorld = null;
+            _shots[i].TileLink = ThingTileLink.None;
             _shots.RemoveAt(i);
             return true;
         }
@@ -1425,6 +1449,7 @@ public sealed class WorldState
     internal void AddDoor(DoorState door)
     {
         door.Id = ++_nextDoorId;
+        door.TileLink = NewLink(Contains(door.X, door.Y) ? (door.Y * Width) + door.X : -1);
         _doors.Add(door);
         DoorsVersion++;
     }
@@ -1461,6 +1486,7 @@ public sealed class WorldState
     internal void AddTrap(TrapState trap)
     {
         trap.Id = ++_nextTrapId;
+        trap.TileLink = NewLink(Contains(trap.X, trap.Y) ? (trap.Y * Width) + trap.X : -1);
         _traps.Add(trap);
     }
 
@@ -1485,6 +1511,58 @@ public sealed class WorldState
 
     /// <summary>The last tile-chain link given (<see cref="CreatureState.ChainOrder"/>).</summary>
     internal int NextChainOrder { get => _nextChainOrder; set => _nextChainOrder = value; }
+
+    /// <summary>The last mixed-class link order given (<see cref="ThingTileLink.Order"/>).</summary>
+    internal int NextTileLinkOrder { get => _nextTileLinkOrder; set => _nextTileLinkOrder = value; }
+
+    /// <summary>The tile whose mixed-class chain holds a creature: its position's tile while on the
+    /// map, -1 while held or carried (layer 2, <c>0x004B4F60</c>).</summary>
+    private int ChainTileOf(CreatureState creature) =>
+        creature.InHand || creature.CarriedByCreatureId >= 0 ? -1 : TileIndexAt(creature.PosX, creature.PosY);
+
+    private int ChainTileOf(ObjectState thing) =>
+        thing.InHand || thing.CarriedByCreatureId >= 0 || (uint)thing.TileIndex >= (uint)_tiles.Length ? -1 : thing.TileIndex;
+
+    // DK2 takes the tile as the position's bits 12 and up (0x004B505C); off the map is off the chain here.
+    private int TileIndexAt(int x, int y) => Contains(x >> 12, y >> 12) ? ((y >> 12) * Width) + (x >> 12) : -1;
+
+    private ThingTileLink NewLink(int tile) => tile < 0 ? ThingTileLink.None : new(tile, ++_nextTileLinkOrder);
+
+    // 0x004B5020: a thing that changes tile moves to the head of the new tile's chain; one that does
+    // not keeps its place. Leaving the map (hand, carrier) unlinks; returning links at the head.
+    private ThingTileLink Moved(ThingTileLink link, int tile) => tile == link.TileIndex ? link : NewLink(tile);
+
+    /// <summary>Keeps the creature's <see cref="CreatureState.TileLink"/> current; its position, hand
+    /// and carry setters call this, so no caller has to.</summary>
+    internal void Relink(CreatureState creature)
+    {
+        if (ReferenceEquals(creature.LinkWorld, this)) creature.TileLink = Moved(creature.TileLink, ChainTileOf(creature));
+    }
+
+    internal void Relink(ObjectState thing)
+    {
+        if (ReferenceEquals(thing.LinkWorld, this)) thing.TileLink = Moved(thing.TileLink, ChainTileOf(thing));
+    }
+
+    internal void Relink(ShotState shot)
+    {
+        if (ReferenceEquals(shot.LinkWorld, this)) shot.TileLink = Moved(shot.TileLink, TileIndexAt(shot.PosX, shot.PosY));
+    }
+
+    /// <summary>A creature that dies leaves the chain (<c>0x0048846F</c>) and its body is a new thing
+    /// constructed on layer 0 (<c>0x004B0F9B</c>); ours keeps the creature as the body (ADR-0206), so
+    /// it is linked afresh at the head of its tile.</summary>
+    internal void RelinkAsBody(CreatureState creature)
+    {
+        if (ReferenceEquals(creature.LinkWorld, this)) creature.TileLink = NewLink(ChainTileOf(creature));
+    }
+
+    /// <summary>Restores a loaded thing's ownership without relinking: its link was saved.</summary>
+    internal void AttachLoaded(CreatureState creature) => creature.LinkWorld = this;
+
+    internal void AttachLoaded(ObjectState thing) => thing.LinkWorld = this;
+
+    internal void AttachLoaded(ShotState shot) => shot.LinkWorld = this;
 
     /// <summary>The last door and trap ids given, restored by a snapshot so ids stay unique.</summary>
     internal int NextDoorId { get => _nextDoorId; set => _nextDoorId = value; }
@@ -1679,6 +1757,7 @@ public sealed class WorldState
         hash.Add(_traps.Count);
         hash.Add(_nextTrapId);
         hash.Add(_nextChainOrder);
+        hash.Add(_nextTileLinkOrder);
         foreach (TrapState trap in _traps) trap.HashInto(ref hash);
 
         hash.Add(_heroParties.Count);

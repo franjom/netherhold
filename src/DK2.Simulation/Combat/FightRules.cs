@@ -269,7 +269,7 @@ public static class FightRules
     /// past the start plus the slot's delay — strictly, so a zero delay fires the next tick.
     /// Possession bypasses the delay.</summary>
     public static bool CastFires(CreatureState me, CreatureDef mine, long tick) =>
-        me.SwingInProgress && me.SwingKind == SpellRules.SpellCast
+        me.SwingInProgress && me.SwingKind is SpellRules.SpellCast or SpellRules.FreeAimCast
         && me.SwingSpellSlot < mine.Spells.Count
         && (me.Possessed || tick > me.SwingStartTick + SpellRules.DelayTicks(mine, me.SwingSpellSlot));
 
@@ -333,6 +333,53 @@ public static class FightRules
         ShotRules.Launch(shot, shotDef, aimX, aimY);
         context.Emit(SystemName, "shot_fired",
             $"creature={me.Id} spell={spell.CreatureSpellId} shot={shot.Id} type={shotDef.ShotId} aim={aimX},{aimY} vel={shot.VelX},{shot.VelY} data1={shot.Data1}");
+    }
+
+    /// <summary><c>CreatureAction_Begin(17 or 16, …)</c> as action 26 calls it (<c>0x00496700</c>):
+    /// the action replaces the current one and records its target and start turn. No stamp, no
+    /// stop and no answer from the target: those are <c>spFighting</c>'s, and action 26 stamps itself.
+    /// The begin's refusal needs an authored zero interruption byte, which shipped data has not.</summary>
+    public static void BeginPossessedAction(
+        SimulationContext context, CreatureState me, byte kind, int slot, byte targetKind, int targetId)
+    {
+        me.SwingInProgress = true;
+        me.SwingKind = kind;
+        me.SwingSpellSlot = (byte)slot;
+        me.SwingStartTick = context.Tick.Value;
+        me.SwingTargetKind = targetKind;
+        me.SwingTargetId = targetId;
+        me.SwingTargetPlayerId = 0;
+        context.Emit(SystemName, kind == SpellRules.MeleeSwing ? "possessed_swing" : "possessed_cast",
+            $"creature={me.Id} slot={slot} kind={targetKind} target={targetId}");
+    }
+
+    /// <summary><c>0x00496980(15, point, slot, pitch, range)</c>: the free-aim cast at a point.</summary>
+    public static void BeginFreeAim(
+        SimulationContext context, CreatureState me, int slot, int x, int y, int z, int pitch, int range)
+    {
+        BeginPossessedAction(context, me, SpellRules.FreeAimCast, slot, FightTargetKind.None, CombatRules.NoTarget);
+        me.SwingPointX = x;
+        me.SwingPointY = y;
+        me.SwingPointZ = z;
+        me.SwingPitch = pitch;
+        me.SwingRange = range;
+    }
+
+    /// <summary>Action 15's shot (<c>0x004984D0</c>): the spell's shot from the caster's own position,
+    /// with no horizontal muzzle offset when possessed, the spell's two data words, launched at the
+    /// action's point. Height, pitch, the range word (<c>+0x155</c>), the possessed flag
+    /// (<c>+0x151</c>) and SniperMode's doubling are not represented: shots fly flat (Q398).</summary>
+    public static void FireFreeAim(SimulationContext context, CreatureState me, CreatureDef mine)
+    {
+        me.SwingInProgress = false;
+        me.SwingKind = SpellRules.MeleeSwing;
+        CreatureSpellDef? spell = SpellRules.SpellOf(context.Database, mine, me.SwingSpellSlot);
+        if (spell is null || !context.Database.Shots.TryGetValue(spell.ShotTypeId, out ShotDef? shotDef)) return;
+        ShotState shot = ShotRules.Spawn(context.World, shotDef, me.OwnerPlayerId, me.PosX, me.PosY, (int)spell.ShotData1, (int)spell.ShotData2,
+            me.Id, FightTargetKind.None, CombatRules.NoTarget, 0, -1, me.SwingPointX, me.SwingPointY);
+        ShotRules.Launch(shot, shotDef, me.SwingPointX, me.SwingPointY);
+        context.Emit(SystemName, "shot_fired",
+            $"creature={me.Id} spell={spell.CreatureSpellId} shot={shot.Id} type={shotDef.ShotId} aim={me.SwingPointX},{me.SwingPointY} vel={shot.VelX},{shot.VelY} data1={shot.Data1}");
     }
 
     private static int Blow(GameDatabase database, CreatureState me, CreatureDef mine, int targetX, int targetY) =>

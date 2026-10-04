@@ -16,8 +16,38 @@ public sealed class ShotState
     public int Id;
     public byte ShotTypeId;
     public byte OwnerPlayerId;
-    public int PosX;
-    public int PosY;
+    /// <summary>The position; a property so that every write keeps <see cref="TileLink"/> current.</summary>
+    public int PosX
+    {
+        get => _posX;
+        set
+        {
+            if (_posX == value) return;
+            _posX = value;
+            LinkWorld?.Relink(this);
+        }
+    }
+
+    public int PosY
+    {
+        get => _posY;
+        set
+        {
+            if (_posY == value) return;
+            _posY = value;
+            LinkWorld?.Relink(this);
+        }
+    }
+
+    private int _posX, _posY;
+
+    /// <summary>The world whose tile chain holds this shot, set while it is in that world's list.</summary>
+    internal WorldState? LinkWorld;
+
+    /// <summary>The mixed-class tile chain link (<see cref="ThingTileLink"/>): DK2 constructs a shot on
+    /// layer 0 (<c>0x004AACF3</c>), so a possessed melee pick can meet it.</summary>
+    public ThingTileLink TileLink { get; internal set; } = ThingTileLink.None;
+
     public int VelX;
     public int VelY;
 
@@ -54,6 +84,7 @@ public sealed class ShotState
         hash.Add(OwnerPlayerId);
         hash.Add(PosX);
         hash.Add(PosY);
+        TileLink.HashInto(ref hash);
         hash.Add(VelX);
         hash.Add(VelY);
         hash.Add(Health);

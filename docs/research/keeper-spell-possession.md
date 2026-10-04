@@ -3,7 +3,7 @@
 Primary source: DKII.EXE v1.70, private PyGhidra reads on 2026-10-04;
 shipped KeeperSpells, Shots, Creatures and LEVEL records. Function records
 hold each read's scope and dated history. Stage7a implements the creature
-lifecycle and modifiers; Stage7b actions and the owner's upkeep choice remain.
+lifecycle, modifiers and upkeep; Stage7b the possessed actions 25 and 26.
 
 ## Cast and target — CONFIRMED
 
@@ -188,8 +188,10 @@ bits 20–30. Dword1 has Y in bits 0–19 and pitch in bits 20–30. Dword2 has 
 bits 0–13, an 11-bit angle at 14 that no arm here reads, melee at bit 27 and the
 slot in bits 28–31 (arithmetic shift). The aim vector, shared by every arm, is
 sin yaw, −cos yaw and −cos pitch from the 16.16 tables 0x006C1488/0x006C1C88,
-each taken as table/16. The horizontal part is not scaled by pitch. It is
-normalised to length 4096 through Math_Isqrt, skipped at zero magnitude.
+each entry times 4096 shifted right 16 (a floor), the cosines negated after the
+shift. The horizontal part is not scaled by pitch. Normalising to 4096 sums the
+32-bit squares shifted 12, takes Math_Isqrt of 16 times the sum, shifts it right
+4 and divides each component times 16 by that, truncating; zero length skips it.
 
 **Melee, bit 27 set — CONFIRMED.** (1) Gate 0x0048C9B0 or nothing. (2) Stamp
 +0x427 = now **before** searching. (3) World +0x334, 0x00515420. Around the pose's
@@ -252,9 +254,11 @@ creatures (+6), traps (+0xC), doors (+0xE), then objects (+0xA, type 94 only),
 each list linked at +0x10. Distance is horizontal from the creature's own position, not
 the pose: < 0x5B000 (91 tiles²) for creatures and objects, < 0x31000 (7 tiles)
 for traps and doors. Every candidate needs the cone from the pose and a sight line
-0x004512F0 from the creature. Doors aim at a point one unit nearer the pose and
-are skipped when +0x109 is set or the cell's byte +0xB bit 0 is set. Traps skip
-+0x10C & 0x30, creatures dying ones. The caster is not excluded.
+0x004512F0 from the creature. A door is sighted at a point one tile (its 4096-length
+direction from the pose) nearer the pose and is skipped when +0x109 (under
+construction) or the cell's byte +0xB bit 0 is set. Traps skip +0x10C & 0x30,
+creatures dying ones (bit 21 or the death query). The caster is not excluded. The
+threshold is unsigned (variable × 0x800) / 360.
 
 **Free-aim launch, 0x004984D0 — CONFIRMED.** Possessed, the shot has no wind-up
 and no horizontal muzzle offset. Z adds the slot entry's +0xE. 0x004B7CD0
@@ -267,13 +271,27 @@ and launch at the action's point.
 0x004B5020 unlinks it (prev +0xA, next +0xC) and pushes it on the **head** of the
 new tile's chain for its layer +0x16. One chain mixes creatures, objects, traps and
 doors, so melee meets the latest arrival first across classes. Because 0x00516670
-is order-dependent, the simulation needs a persisted per-tile link order. The
-spell scan instead uses per-player class lists, whose insertion order is UNREAD.
+is order-dependent, the simulation needs a persisted per-tile link order. Every
+constructor pushes at the head of layer 0 (0x004B4E70 with a zero argument):
+creatures 0x00487350, objects 0x0049B272, shots 0x004AAD53, doors 0x004A50C0, traps
+0x004A7999 and dead bodies 0x004B0F9B. Hand_Drop and the carry drop relink on
+0x004B5580's layer, 0 for a thing off the map; pick-up and the death bookkeeping
+(0x0048846F) unlink through 0x004B4F60. A body (class 6, 0x004B0F20) is linked to the
+neutral player (0x004B0FAA). The pick has no class filter, so a shot or body in the
+cone is a candidate. The spell scan's per-player lists are newest first
+(0x004B4C30 prepends).
+
+Action begin 0x00496700 refuses only while another action than 0 or 21 runs whose
+interruption byte (0x006E41B4 + 0x1D·id) is zero; shipped bytes are all 1. It ends
+the current action first. Neither action 26 nor the begin tells the target: the
+answer 0x0045AA20 has only spFighting and trap callers. An object's radius
+(vtable 0x0066D654 slot +0x3C, 0x00402AD0) is 0. The gold arm's last call,
+0x0050FB70, forwards to the world's sink (presentation, LIKELY).
 
 UNREAD: arm 0x00514C31; the dig/claim arm's detail; the SniperMode toggle and its
-command; the dword2 angle; 0x00516050's third argument (melee passes 1); chain
-insertion at creation and each class's layer; 0x00508FC0 has no bounds test at
-the map edge; the caster as its own friendly candidate; +0x155's comparison units.
+command; the dword2 angle; 0x00516050's third argument (melee passes 1);
+0x00508FC0 has no bounds test at the map edge; the caster as its own friendly
+candidate; +0x155's comparison units; action 17 on an object, shot or body.
 
 **Build boundary (2026-10-04).** Stage7b1 builds action25 as
 `MovePossessedCreatureCommand` (`PossessionRules.Move`): both packed-word
@@ -285,9 +303,21 @@ counterpart, because the floor is height 0 (M9/Q398). Nothing but possession
 note). Fog is not called directly: FogOfWarSystem covers 0x0048CC90's circle
 pass (PerceptionRange) every tick for every player; the line-of-sight square of
 radius def+0x77B is not modelled (fog-reveal-sources.md §3.1).
-Action26 (melee, spells and the follower arm) and the per-tile
-mixed-class link order its melee search needs are Stage7b2. That stage must
-update the link order wherever a position or layer changes, not only on spawn.
+
+Stage7b2 builds action26 as `ActPossessedCreatureCommand` (`PossessionRules.Act`).
+The link order is `ThingTileLink` on creatures, objects, traps, doors and shots,
+kept by `WorldState` from the position, hand and carry setters, so every tile
+change relinks; a corpse is relinked as a new body. Melee builds the gate, the
+stamps, the pick, the swing on creatures, traps and doors, state131's stamp-only
+case, the gold pick-up and types 15/16/46 (impact only). Spells build the gates,
+the scan, self, teleport, speed (`StatusEffectRules.ModifySpeed`), action16 and
+action15 (`FightRules.BeginFreeAim`/`FireFreeAim`; the shot flies flat at the
+point's X/Y), shot type30's refusal and the slot stamp. Unbuilt (Q535): the
+follower arm (no state246), dig/claim, the chicken, type14, action17 on an object,
+shot or body, and action16 at a type-94 object; each stamps as DK2 does and starts
+nothing. Not represented (Q536): SneakingAs, hypnosis, +0x4D0/+0x4D2, SniperMode,
+the secret-door cell bit and heights. A slot outside the creature's spells is
+refused by `SpellOf`'s bound; spell level is not tested, as in the listing.
 
 ## Stage7a verification
 

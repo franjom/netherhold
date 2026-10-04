@@ -1285,7 +1285,42 @@ internal static class Dk2TerrainFixture
         Friendly("Cast Armour", ArmourSpellId, 0x104, SpellRules.ArmourBuff, ArmourShotId, 80, 50),
         Friendly("Invisible", InvisibleSpellId, 0x84, SpellRules.InvisibleBuff, InvisibleShotId, 15, 0),
         Friendly("Heal", HealSpellId, 0x104, SpellRules.HealBuff, HealInstantShotId, 3000, 0),
+        // Flag carriers for the possessed spell arm's branches (keeper-spell-possession.md); not
+        // shipped records: teleport (bit 5), speed (bit 6) and an attack firing shot type 30.
+        new(new byte[266])
+        {
+            Name = "Test Teleport", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = TeleportTestSpellId,
+            Flags = 0x20, Range = 0, RechargeTime = 20480, ShotTypeId = 0, Unknown_00EF = default,
+        },
+        new(new byte[266])
+        {
+            Name = "Test Speed", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = SpeedTestSpellId,
+            Flags = 0x40, Range = 0, RechargeTime = 20480, ShotTypeId = 0, ShotData1 = 150, ShotData2 = 15, Unknown_00EF = default,
+        },
+        new(new byte[266])
+        {
+            Name = "Test Homing", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = HomingTestSpellId,
+            Flags = 0x101, Range = 16384, RechargeTime = 20480, ShotTypeId = LightningShotId, Unknown_00EF = default,
+        },
     ];
+
+    public const byte TeleportTestSpellId = 40;
+    public const byte SpeedTestSpellId = 41;
+    public const byte HomingTestSpellId = 42;
+    public const byte PossessorCreatureId = 24;
+
+    /// <summary>A Goblin carrying the three test flag spells, for the possessed spell arm. Pass it to
+    /// <see cref="Database"/>; not a shipped creature.</summary>
+    public static CreatureDef Possessor() => Goblin() with
+    {
+        Name = "Possessor", CreatureId = PossessorCreatureId, LairObjectId = 0,
+        Spells =
+        [
+            new CreatureSpellSlot(TeleportTestSpellId, 1, new Fp32(4096), 1),
+            new CreatureSpellSlot(SpeedTestSpellId, 1, new Fp32(4096), 1),
+            new CreatureSpellSlot(HomingTestSpellId, 1, new Fp32(4096), 1),
+        ],
+    };
 
     /// <summary>A friendly spell (bit 2) with a four-tile range and a five-second recharge.</summary>
     private static CreatureSpellDef Friendly(string name, byte id, uint flags, byte alternativeShot, byte shot, uint data1, uint data2) =>
@@ -1405,6 +1440,10 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.UpgradedCallToArmsCostPercentage, 70);
         // Possession's upgraded upkeep percentage (keeper-spell-possession.md §Upkeep), shipped value.
         Set(vars, VariableTypeId.UpgradedPossessionCostPercentage, 70);
+        // The possessed spell scan's starting threshold (45 x 2048 / 360 = 256) and the follower cap.
+        Set(vars, VariableTypeId.FirstPersonAccuracyAngleDegrees, 45);
+        Set(vars, VariableTypeId.MaximumGroupNumberOfFollowers, 8);
+        Set(vars, VariableTypeId.FirstPersonRechargeModifyPercentage, 100);
         // Guard duty's two deadlines (guard-room.md), shipped values.
         Set(vars, VariableTypeId.MaxTimeInGuardRoomBeforeWanderingToGuardPostSeconds, 60);
         Set(vars, VariableTypeId.GuardPostReportingDistanceTiles, 7);

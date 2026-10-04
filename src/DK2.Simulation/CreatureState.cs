@@ -259,10 +259,42 @@ public sealed class CreatureState
     /// starts at the origin.
     /// <para>Sub-tile because travel time is gameplay; fixed point rather than
     /// floating so the same walk arrives on the same tick everywhere
-    /// (ADR-0001).</para></summary>
-    public int PosX;
-    public int PosY;
+    /// (ADR-0001).</para>
+    /// <para>A property so that every write keeps <see cref="TileLink"/> current.</para></summary>
+    public int PosX
+    {
+        get => _posX;
+        set
+        {
+            if (_posX == value) return;
+            _posX = value;
+            LinkWorld?.Relink(this);
+        }
+    }
+
+    public int PosY
+    {
+        get => _posY;
+        set
+        {
+            if (_posY == value) return;
+            _posY = value;
+            LinkWorld?.Relink(this);
+        }
+    }
+
     public int PosZ;
+
+    private int _posX, _posY;
+    private bool _inHand;
+    private int _carriedByCreatureId = -1;
+
+    /// <summary>The world whose tile chain holds this creature, set while it is in that world's list.</summary>
+    internal WorldState? LinkWorld;
+
+    /// <summary>The mixed-class tile chain link (<see cref="ThingTileLink"/>); off the map while held
+    /// or carried. Written only by <see cref="WorldState"/> and a snapshot restore.</summary>
+    public ThingTileLink TileLink { get; internal set; } = ThingTileLink.None;
 
     /// <summary>DK2's steering body, which the original embeds in the creature at <c>+0x124</c>
     /// (docs/research/steering-behaviours.md §7.5): velocity, the route window, the stuck history
@@ -489,7 +521,16 @@ public sealed class CreatureState
     /// every system that would make it act tests <see cref="HandRules.IsHeld"/> beside
     /// <see cref="CreatureDeathRules.IsDown"/>. It does keep getting hungry and minding its mood,
     /// which is how <c>AngerInHand</c> reaches it (ADR-0062).</summary>
-    public bool InHand;
+    public bool InHand
+    {
+        get => _inHand;
+        set
+        {
+            if (_inHand == value) return;
+            _inHand = value;
+            LinkWorld?.Relink(this);
+        }
+    }
 
     /// <summary>The tick this creature was last picked up <b>or put down</b> — DK2's
     /// <c>PickupTick</c>, which its drop handler writes as well as its pick-up handler, so the name
@@ -583,7 +624,16 @@ public sealed class CreatureState
     /// needs to be seen as held so nobody else crosses the dungeon for it. Kept
     /// in step by <see cref="CarryRules.PickUp"/> and
     /// <see cref="CarryRules.PutDown"/>, the only two writers of either.</summary>
-    public int CarriedByCreatureId = -1;
+    public int CarriedByCreatureId
+    {
+        get => _carriedByCreatureId;
+        set
+        {
+            if (_carriedByCreatureId == value) return;
+            _carriedByCreatureId = value;
+            LinkWorld?.Relink(this);
+        }
+    }
 
     /// <summary>The id of the body this worker is walking towards, or -1 for none.
     /// Separate from <see cref="CarriedCreatureId"/> because the target can go
@@ -915,9 +965,19 @@ public sealed class CreatureState
 
     /// <summary>What the current action is: 0 the melee swing (action 17), 1 a spell cast (action
     /// 16) from <see cref="SwingSpellSlot"/>, whose shot leaves <c>ShotDelay</c> ticks after
-    /// <see cref="SwingStartTick"/> (combat-spells.md §7).</summary>
+    /// <see cref="SwingStartTick"/> (combat-spells.md §7), 2 a possessed free-aim cast (action 15).</summary>
     public byte SwingKind;
     public byte SwingSpellSlot;
+
+    /// <summary>Action 15's parameters (<c>0x00496980</c> into the action block): the aimed point
+    /// <c>+0x38D</c> (pose plus the unnormalised aim, 1/4096 tiles), the pitch and the range
+    /// <c>+0x3A1</c> (0x3000 or 0). The shot flies flat, so only the point's X and Y are read
+    /// (keeper-spell-possession.md, Possessed actions; Q398).</summary>
+    public int SwingPointX;
+    public int SwingPointY;
+    public int SwingPointZ;
+    public int SwingPitch;
+    public int SwingRange;
 
     /// <summary>Where the creature stood at the start of the last movement tick — the previous
     /// position DK2's <c>vtable+0x2C</c> returns, which a shot's aim leads by (shots.md §7).</summary>
@@ -1203,6 +1263,7 @@ public sealed class CreatureState
         hash.Add(RebelActive);
         hash.Add(ChainTileIndex);
         hash.Add(ChainOrder);
+        TileLink.HashInto(ref hash);
         hash.Add(PitStateEnteredTick);
         hash.Add(SpectatorPosX);
         hash.Add(SpectatorPosY);
@@ -1210,6 +1271,11 @@ public sealed class CreatureState
         hash.Add(AttackSpellSlot);
         hash.Add(SwingKind);
         hash.Add(SwingSpellSlot);
+        hash.Add(SwingPointX);
+        hash.Add(SwingPointY);
+        hash.Add(SwingPointZ);
+        hash.Add(SwingPitch);
+        hash.Add(SwingRange);
         hash.Add(LastPosX);
         hash.Add(LastPosY);
         hash.Add(LastPosZ);

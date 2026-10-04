@@ -183,14 +183,19 @@ public static class StealGoldRules
 
     /// <summary><c>0x004C61C0(1, position, out, 0)</c> on one player: its Treasury whose first tile's
     /// centre is nearest, by DK2's truncated squares, the first on a tie.</summary>
-    public static RoomInstance? NearestTreasury(SimulationContext context, byte player, CreatureState from)
+    public static RoomInstance? NearestTreasury(SimulationContext context, byte player, CreatureState from) =>
+        NearestRoomOfType(context, player, RoomTypeId.Treasury, from);
+
+    /// <summary><c>0x004C61C0(type, position, out, 0)</c> on one player: its room of that type whose
+    /// first tile's centre is nearest, by DK2's truncated squares, the first on a tie.</summary>
+    public static RoomInstance? NearestRoomOfType(SimulationContext context, byte player, RoomTypeId type, CreatureState from)
     {
         WorldState world = context.World;
         RoomInstance? best = null;
         uint bestDistance = uint.MaxValue;
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
-            if (room.OwnerPlayerId != player || room.Definition.RoomId != (byte)RoomTypeId.Treasury) continue;
+            if (room.OwnerPlayerId != player || room.Definition.RoomId != (byte)type) continue;
             int anchor = room.TileIndices[0];
             long dx = Math.Abs((long)CreatureState.CentreOf(anchor % world.Width) - from.PosX);
             long dy = Math.Abs((long)CreatureState.CentreOf(anchor / world.Width) - from.PosY);

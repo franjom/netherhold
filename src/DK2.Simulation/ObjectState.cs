@@ -33,7 +33,27 @@ public sealed class ObjectState
     /// <summary>The tile it stands on, as an index into <see cref="WorldState"/>'s tiles.
     /// <b>A tile rather than a position</b>, for now: DK2 gives an object a sub-tile
     /// position and a <c>MoveTo</c> block because chickens wander and boulders roll, so the finer position arrives with the first mechanic that moves one.</summary>
-    public int TileIndex;
+    public int TileIndex
+    {
+        get => _tileIndex;
+        set
+        {
+            if (_tileIndex == value) return;
+            _tileIndex = value;
+            LinkWorld?.Relink(this);
+        }
+    }
+
+    private int _tileIndex;
+    private int _carriedByCreatureId = -1;
+    private bool _inHand;
+
+    /// <summary>The world whose tile chain holds this object, set while it is in that world's list.</summary>
+    internal WorldState? LinkWorld;
+
+    /// <summary>The mixed-class tile chain link (<see cref="ThingTileLink"/>) on <see cref="TileIndex"/>;
+    /// off the map while held or carried. Written only by <see cref="WorldState"/> and a snapshot restore.</summary>
+    public ThingTileLink TileLink { get; internal set; } = ThingTileLink.None;
 
     /// <summary><b>Union member: <c>Lair</c>.</b> Which creature owns this bed, 0 for
     /// nobody's, and zero on every object that is not a bed. DK2's own
@@ -53,7 +73,16 @@ public sealed class ObjectState
     /// <summary>The id of the worker carrying this object, or -1 — the other end of
     /// <see cref="CreatureState.CarriedObjectId"/>. Both ends are stored (ADR-0063): the
     /// carrier is asked what it holds on arrival, the object whether anybody already has it, so two imps do not cross the dungeon for one book.</summary>
-    public int CarriedByCreatureId = -1;
+    public int CarriedByCreatureId
+    {
+        get => _carriedByCreatureId;
+        set
+        {
+            if (_carriedByCreatureId == value) return;
+            _carriedByCreatureId = value;
+            LinkWorld?.Relink(this);
+        }
+    }
 
     /// <summary>A per-object countdown, in ticks. Today only an <b>egg</b> uses it, for
     /// the two seconds before it hatches. DK2 keeps it in the object's union
@@ -65,7 +94,16 @@ public sealed class ObjectState
     /// <see cref="CarriedByCreatureId"/> on purpose: an imp carrying a chicken walks
     /// through the dungeon with it, a keeper holding one has removed it from the world.
     /// <b>Nothing may find, eat or decay a held object</b>, and every search that could see it tests this first, because <see cref="TileIndex"/> stays where the object was lifted from. Which keeper holds it is in <see cref="PlayerState.Hand"/>.</summary>
-    public bool InHand;
+    public bool InHand
+    {
+        get => _inHand;
+        set
+        {
+            if (_inHand == value) return;
+            _inHand = value;
+            LinkWorld?.Relink(this);
+        }
+    }
 
     /// <summary>Placed and owned by a room layout, rather than by a level record,
     /// creature or keeper. DK2 keeps this as a dword on the object instance and a
@@ -148,6 +186,7 @@ public sealed class ObjectState
         hash.Add(Health);
         hash.Add(PosX);
         hash.Add(PosY);
+        TileLink.HashInto(ref hash);
         hash.Add(RollX);
         hash.Add(RollY);
         hash.Add(RollSpeed);

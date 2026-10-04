@@ -35,6 +35,7 @@ public static class SpellRules
     /// <summary>What the current action is (<see cref="CreatureState.SwingKind"/>).</summary>
     public const byte MeleeSwing = 0;
     public const byte SpellCast = 1;
+    public const byte FreeAimCast = 2;
 
     /// <summary>The spell in a slot, or null when the slot is empty or names no definition.</summary>
     public static CreatureSpellDef? SpellOf(GameDatabase database, CreatureDef definition, int slot)

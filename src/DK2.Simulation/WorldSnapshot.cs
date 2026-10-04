@@ -29,7 +29,15 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 176;
+    private const int FormatVersion = 177;
+
+    private static void WriteLink(BinaryWriter w, ThingTileLink link)
+    {
+        w.Write(link.TileIndex);
+        w.Write(link.Order);
+    }
+
+    private static ThingTileLink ReadLink(BinaryReader r) => new(r.ReadInt32(), r.ReadInt32());
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -384,12 +392,18 @@ public static class WorldSnapshot
             w.Write(c.RebelActive);
             w.Write(c.ChainTileIndex);
             w.Write(c.ChainOrder);
+            WriteLink(w, c.TileLink);
             w.Write(c.PitStateEnteredTick);
             w.Write(c.SpectatorPosX);
             w.Write(c.SpectatorPosY);
             w.Write(c.AttackSpellSlot);
             w.Write(c.SwingKind);
             w.Write(c.SwingSpellSlot);
+            w.Write(c.SwingPointX);
+            w.Write(c.SwingPointY);
+            w.Write(c.SwingPointZ);
+            w.Write(c.SwingPitch);
+            w.Write(c.SwingRange);
             w.Write(c.LastPosX);
             w.Write(c.LastPosY);
             w.Write(c.LastPosZ);
@@ -455,6 +469,7 @@ public static class WorldSnapshot
             w.Write(s.OwnerPlayerId);
             w.Write(s.PosX);
             w.Write(s.PosY);
+            WriteLink(w, s.TileLink);
             w.Write(s.VelX);
             w.Write(s.VelY);
             w.Write(s.Health);
@@ -496,6 +511,7 @@ public static class WorldSnapshot
             w.Write(o.Health);
             w.Write(o.PosX);
             w.Write(o.PosY);
+            WriteLink(w, o.TileLink);
             w.Write(o.RollX);
             w.Write(o.RollY);
             w.Write(o.RollSpeed);
@@ -529,6 +545,7 @@ public static class WorldSnapshot
             w.Write(door.Unknown_0008);
             w.Write(door.TriggerId);
             w.Write(door.DoorId);
+            WriteLink(w, door.TileLink);
             w.Write(door.PlayerId);
             w.Write(door.Flags);
             w.Write(door.UnderConstruction);
@@ -551,6 +568,7 @@ public static class WorldSnapshot
             w.Write(trap.Unknown_0008);
             w.Write(trap.NumberOfShots);
             w.Write(trap.TrapId);
+            WriteLink(w, trap.TileLink);
             w.Write(trap.PlayerId);
             w.Write(trap.Unknown_000F);
             w.Write(trap.UnderConstruction);
@@ -570,6 +588,7 @@ public static class WorldSnapshot
             w.Write(trap.GuardRoomTile);
         }
         w.Write(world.NextChainOrder);
+        w.Write(world.NextTileLinkOrder);
         foreach (TremorState tremor in world.Tremors)
         {
             w.Write(tremor.WorldX);
@@ -961,12 +980,18 @@ public static class WorldSnapshot
                 RebelActive = r.ReadBoolean(),
                 ChainTileIndex = r.ReadInt32(),
                 ChainOrder = r.ReadInt32(),
+                TileLink = ReadLink(r),
                 PitStateEnteredTick = r.ReadInt64(),
                 SpectatorPosX = r.ReadInt32(),
                 SpectatorPosY = r.ReadInt32(),
                 AttackSpellSlot = r.ReadByte(),
                 SwingKind = r.ReadByte(),
                 SwingSpellSlot = r.ReadByte(),
+                SwingPointX = r.ReadInt32(),
+                SwingPointY = r.ReadInt32(),
+                SwingPointZ = r.ReadInt32(),
+                SwingPitch = r.ReadInt32(),
+                SwingRange = r.ReadInt32(),
                 LastPosX = r.ReadInt32(),
                 LastPosY = r.ReadInt32(),
                 LastPosZ = r.ReadInt32(),
@@ -1020,6 +1045,7 @@ public static class WorldSnapshot
             ReadBody(r, creature.Body);
             Navigation.WorldSteering.SyncBody(creature);
             world.RawCreatures.Add(creature);
+            world.AttachLoaded(creature);
         }
 
         // Creatures are put back with their stored ids rather than re-spawned,
@@ -1035,13 +1061,14 @@ public static class WorldSnapshot
         int shotCount = r.ReadInt32();
         for (int i = 0; i < shotCount; i++)
         {
-            world.RawShots.Add(new ShotState
+            var shot = new ShotState
             {
                 Id = r.ReadInt32(),
                 ShotTypeId = r.ReadByte(),
                 OwnerPlayerId = r.ReadByte(),
                 PosX = r.ReadInt32(),
                 PosY = r.ReadInt32(),
+                TileLink = ReadLink(r),
                 VelX = r.ReadInt32(),
                 VelY = r.ReadInt32(),
                 Health = r.ReadInt32(),
@@ -1056,7 +1083,9 @@ public static class WorldSnapshot
                 TargetX = r.ReadInt32(),
                 TargetY = r.ReadInt32(),
                 ForcedCollision = r.ReadBoolean(),
-            });
+            };
+            world.RawShots.Add(shot);
+            world.AttachLoaded(shot);
         }
         world.NextShotId = nextShotId;
 
@@ -1064,7 +1093,7 @@ public static class WorldSnapshot
         int objectCount = r.ReadInt32();
         for (int i = 0; i < objectCount; i++)
         {
-            world.RawObjects.Add(new ObjectState
+            var loaded = new ObjectState
             {
                 Id = r.ReadInt32(),
                 ObjectTypeId = r.ReadByte(),
@@ -1087,13 +1116,16 @@ public static class WorldSnapshot
                 Health = r.ReadInt32(),
                 PosX = r.ReadInt32(),
                 PosY = r.ReadInt32(),
+                TileLink = ReadLink(r),
                 RollX = r.ReadInt32(),
                 RollY = r.ReadInt32(),
                 RollSpeed = r.ReadInt32(),
                 Wear = r.ReadInt32(),
                 RollSignX = r.ReadSByte(),
                 RollSignY = r.ReadSByte(),
-            });
+            };
+            world.RawObjects.Add(loaded);
+            world.AttachLoaded(loaded);
         }
 
         // Restored rather than re-derived, for the reason the creature counter
@@ -1131,6 +1163,7 @@ public static class WorldSnapshot
                 Unknown_0008 = r.ReadInt32(),
                 TriggerId = r.ReadUInt16(),
                 DoorId = r.ReadByte(),
+                TileLink = ReadLink(r),
                 PlayerId = r.ReadByte(),
                 Flags = r.ReadByte(),
                 UnderConstruction = r.ReadBoolean(),
@@ -1156,6 +1189,7 @@ public static class WorldSnapshot
                 Unknown_0008 = r.ReadInt32(),
                 NumberOfShots = r.ReadByte(),
                 TrapId = r.ReadByte(),
+                TileLink = ReadLink(r),
                 PlayerId = r.ReadByte(),
                 Unknown_000F = r.ReadByte(),
                 UnderConstruction = r.ReadBoolean(),
@@ -1176,6 +1210,7 @@ public static class WorldSnapshot
             });
         }
         world.NextChainOrder = r.ReadInt32();
+        world.NextTileLinkOrder = r.ReadInt32();
         for (int i = 0; i < WorldState.TremorSlotCount; i++)
         {
             world.TremorSlots[i] = new TremorState

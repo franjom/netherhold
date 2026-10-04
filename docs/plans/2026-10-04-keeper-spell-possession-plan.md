@@ -48,9 +48,10 @@
 
 - [x] Close action25/26 target selection and action timing in the binary before implementation.
 - [x] 7b1: movement (action25) tests, implementation, hash176 and snapshot; facts in keeper-spell-possession.md §Possessed actions.
-- [ ] 7b2: write failing melee miss/hit, spell-slot/refusal/cooldown, link-order and snapshot tests.
-- [ ] Implement the minimal researched command paths; keep pickup, follower UI and presentation branches explicitly outside the requested actions.
-- [ ] Run focused tests, complete gate and all42 scenarios; commit and obtain a fresh verifier.
+- [x] 7b2: write failing melee miss/hit, spell-slot/refusal/cooldown, link-order and snapshot tests.
+- [x] Implement the researched command paths (melee, spell scan, free aim, teleport, speed, gold pick-up, mixed-class link order, hash177); follower, dig/claim, chicken, type14 and object/shot/body attacks stay unbuilt (Q535).
+- [x] Run focused tests, complete gate and all42 scenarios.
+- [ ] Commit and obtain a fresh verifier.
 
 ### Action implementation contract
 

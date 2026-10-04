@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 176: a possessed creature's height and previous height (ADR-0350).
+        // HashVersion 177: the mixed-class tile chain link and the free-aim cast's parameters.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x207022305EFDD86AUL, sim.StateHash());
+        Assert.Equal(0x3C779015EE115C66UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
