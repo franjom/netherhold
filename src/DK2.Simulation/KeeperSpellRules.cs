@@ -22,11 +22,17 @@ public enum KeeperSpellRefusal
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-create-gold.md")]
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-tremor.md")]
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-turncoat.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-sight.md")]
 public static class KeeperSpellRules
 {
     public const byte Thunderbolt = 6;
 
     public const byte CreateGold = 13;
+
+    /// <summary>Sight of Evil (1): cast at a place through location 5 and target 4. Its shot's only
+    /// effect is the local player's presentation region (keeper-spell-sight.md §2), so the cast pays
+    /// and stamps its clocks and makes nothing (ADR-0352).</summary>
+    public const byte SightOfEvil = 1;
 
     /// <summary>Heal (10): shot 4, the Modify Health process, at a creature target selector 1 admits
     /// on a tile location selector 4 admits (keeper-spell-casting.md §4).</summary>
@@ -82,8 +88,9 @@ public static class KeeperSpellRules
         int row = player.Availabilities.FindIndex(a => a.Kind == SpellAvailabilityKind && a.TypeId == cast.SpellId);
         AvailabilityState availability = player.Availabilities[row];
         var effect = spell.Shot(availability.Upgraded);
-        ShotRules.Spawn(world, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
-            cast.X, cast.Y, effect.Data1, effect.Data2, 0, FightTargetKind.None, -1, cast.PlayerId, -1, cast.X, cast.Y);
+        if (cast.SpellId != SightOfEvil)
+            ShotRules.Spawn(world, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
+                cast.X, cast.Y, effect.Data1, effect.Data2, 0, FightTargetKind.None, -1, cast.PlayerId, -1, cast.X, cast.Y);
         player.Mana -= spell.ManaCost;
         player.OneShotManaSpent += spell.ManaCost;
         player.Availabilities[row] = availability with
@@ -130,6 +137,7 @@ public static class KeeperSpellRules
         if (!PlaceTargetAllowed(world, database, cast.PlayerId, spell, at)) return KeeperSpellRefusal.Target;
         var effect = spell.Shot(availability.Upgraded);
         if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
+        if (cast.SpellId == SightOfEvil) return KeeperSpellRefusal.None;
         if (shot.ProcessType is not (ShotRules.CreateObjectProcess or ShotRules.InfernoProcess or ShotRules.TremorProcess or ReaperRules.ProcessType)) return KeeperSpellRefusal.UnsupportedShotProcess;
         if (shot.ProcessType == ReaperRules.ProcessType && effect.Data1 != 0 && database.Level?.OneShotReaperLevel is null)
             return KeeperSpellRefusal.MissingLevelDefinition;
@@ -140,9 +148,9 @@ public static class KeeperSpellRules
     /// of the runtime table at <c>0x006FCE40</c>) rather than at a place (4 and 5).</summary>
     public static bool TargetsAThing(byte targetSelector) => targetSelector is 1 or 2 or 3 or 6;
 
-    /// <summary>The spells whose casts this simulation executes: Call to Arms, Inferno, Create Gold, Tremor and both Reaper spells at a place,
+    /// <summary>The spells whose casts this simulation executes: Sight of Evil (empty effect), Call to Arms, Inferno, Create Gold, Tremor and both Reaper spells at a place,
     /// Thunderbolt, Heal, Chicken and Turncoat at a creature. Create Imp keeps its own command.</summary>
-    public static bool ExecutesAtPlace(byte spellId) => spellId is CallToArmsRules.SpellId or Inferno or CreateGold or TremorRules.SpellId or ReaperRules.OneShotSpellId or ReaperRules.SpellId;
+    public static bool ExecutesAtPlace(byte spellId) => spellId is SightOfEvil or CallToArmsRules.SpellId or Inferno or CreateGold or TremorRules.SpellId or ReaperRules.OneShotSpellId or ReaperRules.SpellId;
     public static bool ExecutesOnCreature(byte spellId) => spellId is Thunderbolt or Heal or Chicken or TurncoatRules.SpellId or PossessionRules.SpellId;
 
     /// <summary>The place validators of <c>0x004BB8A0</c> for one spell at one tile: its location

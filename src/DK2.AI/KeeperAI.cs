@@ -137,6 +137,10 @@ public sealed class KeeperAI
         }
         if (budget > 0) Slap(view, commands, ref budget);
 
+        // 14. DK2's prisoner step (0x005006D0) comes first and is unbuilt here, so a Prison selection
+        // that would take the last allowance does not hold Sight back (ADR-0352).
+        if (budget > 0 && (_p.UseSightOfEvil & SightModeMask) != 0) SightOfEvil(view, commands, ref budget);
+
         // 15. The task machine, while the budget lasts.
         int guard = 64;
         while (budget > 0 && guard-- > 0 && State.Task != KeeperTask.Stop)
@@ -197,6 +201,38 @@ public sealed class KeeperAI
             commands.Add(new SlapCreatureCommand(PlayerId, c.Id));
             budget--;
         }
+    }
+
+    /// <summary><c>UseSightOfEvil</c> as the tick tests it: bits 20-21 of <c>+0x4B6</c>.</summary>
+    private const int SightModeMask = 3;
+
+    /// <summary>Step 14's Sight of Evil (<c>0x005003A0</c>): a random map position, drawn before the
+    /// mode test; mode 1 casts on <c>random(100) &lt; 2</c>, mode 2 on <c>random(100) &lt; 20</c> at an
+    /// enemy's tile; spell 1 must be at availability 3. The cast is issued whenever DK2 calls it, and
+    /// spends one allowance when its permission, predicted from the capture, passes.</summary>
+    private void SightOfEvil(KeeperView view, List<PlayerCommand> commands, ref int budget)
+    {
+        int x = _rng.NextInt(view.Width << 12);
+        int y = _rng.NextInt(view.Height << 12);
+        var at = new TilePos(x >> 12, y >> 12);
+        switch (_p.UseSightOfEvil & SightModeMask)
+        {
+            case 1:
+                if ((uint)_rng.NextInt(100) >= 2) return;
+                break;
+            case 2:
+                if ((uint)_rng.NextInt(100) >= 20 || !view.IsEnemyLand(at)) return;
+                break;
+            default:
+                return;
+        }
+        if (view.Availability(KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.SightOfEvil) != 3) return;
+        commands.Add(new CastSpellAtPlaceCommand(PlayerId, KeeperSpellRules.SightOfEvil, x, y));
+        // 0x004BB8A0 inside 0x004BBD30: the cost against the mana, the cooldown, then location 5 and target 4.
+        KeeperSpellDef? spell = view.Database.KeeperSpellById(KeeperSpellRules.SightOfEvil);
+        if (spell is not null && (spell.ManaCost == 0 || spell.ManaCost <= view.Mana)
+            && KeeperBattleStep.Ready(view, spell) && view.SightPlaceAllowed(at))
+            budget--;
     }
 
     // ----------------------------------------------------------------- the task machine

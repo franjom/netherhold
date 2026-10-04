@@ -201,8 +201,8 @@ impenetrable rock discard it.
 - **How DK2 packs per-keeper discovery in multiplayer.** One bit per tile per
   keeper is our representation — and §11 shows DK2 keeps one bit for one
   viewpoint instead.
-- **Sight of Evil** is a separate presentation region, intentionally unbuilt;
-  see `keeper-spell-sight.md`. **Reveal Map** remains Q194.
+- **Sight of Evil** is a separate presentation region, unbuilt; its cast pays
+  and stamps its clocks (ADR-0352, `keeper-spell-sight.md` §4). **Reveal Map** remains Q194.
 
 ## 9. Watched in play — CONFIRMED by the owner, 2026-09-06 (two screenshots)
 

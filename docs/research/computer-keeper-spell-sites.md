@@ -20,7 +20,7 @@ Every call reached from the computer-keeper tick `0x00500C20`:
 | `0x0050361D`, `0x0050362D` | battle step | a scanned thing spell | yes (ADR-0283/0287/0302) |
 | `0x0050365F`, `0x00503672` | battle step | a scanned place spell | yes (ADR-0302) |
 | `0x004FD64E` | gold step `0x004FD590` | 13 Create Gold (§2) | yes (ADR-0352) |
-| `0x005004B1`, `0x005004F9` | Sight step `0x005003A0` | 1 Sight of Evil (§3) | no: ADR-0352 stage 2 |
+| `0x005004B1`, `0x005004F9` | Sight step `0x005003A0` | 1 Sight of Evil (§3) | yes (ADR-0352) |
 
 The other callers are not the computer keeper's. `0x004BB55F` in `Player_KeeperTick`
 casts spell 4 with bypass flag 1 for every player (the free imp, `imps-and-mana.md`).
@@ -94,3 +94,8 @@ nonzero (`0x005010A9..0x005010D6`). Its allowance is a stack byte (`RET 4`).
 
 The cast's permission (location 5, target 4), shot, payment and clocks are
 `keeper-spell-sight.md` §1; its visible effect is that document's §2.
+
+**Built** (ADR-0352) as `KeeperAI.SightOfEvil`. The draws come from the keeper's own
+stream (ADR-0244) in DK2's order. The cast is issued whenever DK2 calls it; its allowance
+follows the permission predicted from the capture: mana, cooldown and the own-room tiles
+Sight's target 4 refuses (observation schema 17). The prisoner step before it is unbuilt.

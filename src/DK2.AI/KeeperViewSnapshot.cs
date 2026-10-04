@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 16;
+    public const int FormatVersion = 17;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -86,6 +86,9 @@ public static class KeeperViewSnapshot
         int[] refused = view.CallRefusedTiles.ToArray();
         w.Write(refused.Length);
         foreach (int index in refused) w.Write(index);
+        int[] sightRefused = view.SightRefusedTiles.ToArray();
+        w.Write(sightRefused.Length);
+        foreach (int index in sightRefused) w.Write(index);
         w.Flush();
         return stream.ToArray();
     }
@@ -172,10 +175,18 @@ public static class KeeperViewSnapshot
             if ((uint)refused[i] >= tiles.Length)
                 throw new InvalidDataException("Refused tile is outside the observation.");
         }
+        var sightRefused = new int[ReadCount(r, 4)];
+        for (int i = 0; i < sightRefused.Length; i++)
+        {
+            sightRefused[i] = r.ReadInt32();
+            if ((uint)sightRefused[i] >= tiles.Length)
+                throw new InvalidDataException("Refused tile is outside the observation.");
+        }
         if (stream.Position != stream.Length)
             throw new InvalidDataException("Trailing keeper observation data.");
         return new KeeperView(database, player, tick, status, alliedWith, playerIds, width, height, gold, imps,
-            heart, tiles, availability, creatures, traps, rooms, messages, callToArms, mana, statuses, refused, heartRuined);
+            heart, tiles, availability, creatures, traps, rooms, messages, callToArms, mana, statuses, refused, heartRuined,
+            sightRefused);
     }
 
     private static int ReadCount(BinaryReader r, int minimumEntryBytes)

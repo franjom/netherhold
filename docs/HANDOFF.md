@@ -23,21 +23,22 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (ADR-0341). Left: the owner's observations in experiments/doors-and-traps.md — Q520's wall is
   disputed, Q513, Q524 and Q362 unwatched (2026-10-03).
 - Keeper spells (ADR-0350, accepted 2026-10-04): Create Gold, Tremor, Turncoat,
-  Summon Horny, OneShotReaper and Possession's simulation side are built, so 12 of
-  the 13 spells cast; Sight of Evil is presentation only (Q194, Q534). Research
+  Summon Horny, OneShotReaper and Possession's simulation side are built, and Sight
+  of Evil casts with an empty effect (ADR-0352), its region presentation (Q194, Q534). Research
   grants every upgrade through ResearchTreeRules (KeeperSpellUpgradeTests); the
   upgraded effects are the bonus data and Possession's 70 % upkeep. Left unbuilt:
   Horny's idle AI, the possessed action arms in Q535/Q536, the third cast path
-  (Q537) and the held-creature regeneration in Q152. Next: the branch's final
-  verifier, then merge. Evidence: research/keeper-spell-*.md.
+  (action 56 only, Q537) and the held-creature regeneration in Q152.
+  Evidence: research/keeper-spell-*.md.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
-  PlayerCommands through a detached, serialisable observation (schema 16).
+  PlayerCommands through a detached, serialisable observation (schema 17).
   The proactive task machine (tasks 0–7) digs, expands, builds rooms, manages
   gold and imps, and crosses water or lava with bridges. Room messages 41–43
   are posted by the gold carrier, the room sale's refund and the Lair and Hatchery
   finders; 41 and 42 make the keeper build or expand a room (ADR-0327, ADR-0335). Reactive combat
   messages, threat response, wounded retreat, the battle step, Call to Arms,
-  Thunderbolt, Heal, Chicken and Inferno run through simulation commands.
+  Thunderbolt, Heal, Chicken and Inferno run through simulation commands, and the
+  gold step's Create Gold and step 14's Sight of Evil are cast where DK2's are (ADR-0352).
   The attack planner selects a target, tunnels, stages and calls its army;
   step 9 sends creatures to Training or a Combat Pit. See KEEPER_AI.md §12.8
   and the canonical computer-keeper research notes for exact rules.

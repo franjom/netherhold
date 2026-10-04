@@ -84,22 +84,16 @@ their scoped or provisional roles. They do not establish a clock-unit mapping.
 
 ## 4. Build and observation boundary
 
-**PRESENTATION ONLY: intentionally unbuilt in Stage6.** The task excludes
-presentation; permanent simulation discovery would reproduce the wrong effect.
-No simulation cast, shot handler, fog state, hash or snapshot field is added.
-Hash/save174 and the determinism pin remain unchanged. The modern presentation
-view currently has no temporary Sight region and no separate explored layer.
+**The cast is a simulation cast with an empty effect (ADR-0352).** `KeeperSpellRules`
+accepts spell 1 at a place: the permission (mana, cooldown, location 5, target 4), the
+payment, the one-shot mana word and both clocks, so later mana and cooldown tests see what
+DK2's see. No shot is made: process 25's only effect is §2's local region, and its
+64-update shot has no collision. The region, its clock (Q534) and any fog or discovery
+effect stay unbuilt; the modern view has no temporary Sight region.
 
 `KeeperView` captures raw terrain/owners/navigation, all rooms and all creatures,
 without filtering `DiscoveredBy`. Sight therefore grants it no additional
 information in the current adapter. This does not settle every original AI
-fog policy; Q190 retains that boundary. The original computer Sight step is
-[005003A0](functions/005003A0.md), without newly implementing its M12 policy.
-
-Stage5 and its History correction are independently approved. Stage6's Release
-and Unity builds have zero warnings/errors; the no-install suite passes3407,
-fails0 and skips396. Ledger,750-record KB,coverage and documentation checks pass.
-All42 scenario runs produce178 artifacts identical to Stage5. Against Stage0,
-94 remain exact and84 differ only in hash composition; no new behavior changes.
-Independent binary/runtime review passes. Its duplicate evidence/History finding
-is corrected; fresh limited correction review is pending (2026-10-04).
+fog policy; Q190 retains that boundary. The computer keeper's Sight step
+([005003A0](functions/005003A0.md)) is `computer-keeper-spell-sites.md` §3, built in
+`KeeperAI` (ADR-0352).

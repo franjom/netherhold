@@ -8068,6 +8068,11 @@ move through later mana-gated casts; Drako (mode 0) and Asmodeus (spells at 2) d
 Stage 1 measured: all 42 identical. The prediction missed that no keeper scenario enters
 the gold step (a probe saw none); a short keeper's cost arm finds a seam first, so the
 cast needs a map without reachable gold. Unit runs cover it.
+Stage 2 measured (hash 178 moves every series): 32 scenarios and Drako keep events and
+world; the eight Level 17/18 runs move as predicted (0–30 Sight casts each, refused ones
+when mana is short). Asmodeus also moves, which the prediction missed: research makes
+spell 1 available at t1961 and he casts 14 times; before that the position draws alone,
+taken before the availability test as DK2 takes them, shift his stream.
 
 **Deviations.** The keeper's own stream (ADR-0244) keeps DK2's draw order, not its
 values. The prisoner step before Sight is unbuilt, so a Prison selection that would

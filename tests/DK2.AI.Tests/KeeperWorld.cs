@@ -125,6 +125,7 @@ internal static class KeeperWorld
             Shot("Modify Health", ModifyHealthShotId, 3686, 128, 0x23, 0x4, ShotRules.ModifyHealthProcess, collide: 3),
             Shot("Chicken", ChickenShotId, 2048, 16, 0x6, 0x4, ShotRules.ChickenProcess, collide: 2),
             Shot("Inferno", InfernoShotId, 2048, 30, 0x104, 0x2, ShotRules.InfernoProcess),
+            Shot("Sight Of Evil", SightShotId, 2048, 64, 0x4, 0x42, SightProcess),
         ]);
     }
 
@@ -134,7 +135,7 @@ internal static class KeeperWorld
     /// in for an offensive spell with no effect built, which shipped Turncoat is not.</summary>
     private static KeeperSpellDef[] KeeperSpells() =>
     [
-        Spell("Sight Of Evil", 1, 5000, KeeperSpellFlags.ExcludedFromBattle, 5, 4),
+        Spell("Sight Of Evil", KeeperSpellRules.SightOfEvil, 5000, KeeperSpellFlags.ExcludedFromBattle, 5, 4, SightShotId, data1: 5),
         Spell("Possession", 2, 500, KeeperSpellFlags.ExcludedFromBattle, 5, 6),
         new()
         {
@@ -163,6 +164,9 @@ internal static class KeeperWorld
     /// <summary>Shots 10 and 15 as shipped: Chicken's process 15 on the thing struck, Inferno's process
     /// 30 before each move of its 30 ticks.</summary>
     public const byte ChickenShotId = 10, InfernoShotId = 15;
+
+    /// <summary>Shot 33 as shipped: process 25, whose only effect is the local presentation region.</summary>
+    public const byte SightShotId = 33, SightProcess = 25;
 
     /// <summary>Shot 4 as shipped: process 3 on the thing struck, dying on it, collide class 3.</summary>
     public const byte ModifyHealthShotId = 4;
@@ -388,7 +392,7 @@ internal static class KeeperWorld
         vars.Availabilities.Add(new AvailabilityEntry(1, Keeper, (int)RoomTypeId.StoneBridge, 1));
         vars.Availabilities.Add(new AvailabilityEntry(5, Keeper, 4, 3));
         // Rows for the battle spells, unavailable until a test says otherwise.
-        foreach (int spell in new[] { 3, 6, 7, 9, 10, 11, KeeperSpellRules.CreateGold })
+        foreach (int spell in new[] { KeeperSpellRules.SightOfEvil, 3, 6, 7, 9, 10, 11, KeeperSpellRules.CreateGold })
             vars.Availabilities.Add(new AvailabilityEntry(5, Keeper, spell, 1));
         vars.Misc[VariableTypeId.MaximumManaThreshold] = new MiscVariable(VariableTypeId.MaximumManaThreshold, 200000, 0, 0);
         vars.Misc[VariableTypeId.MinimumImpThreshold] = new MiscVariable(VariableTypeId.MinimumImpThreshold, 4, 0, 0);

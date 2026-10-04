@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**178** — `0x030F88C2BFE9ADEB`. A Sight of Evil cast (spell 1) is accepted at a place: permission, payment, one-shot mana and both clocks, with no shot made; no new field. The pinned world casts nothing, so the value moved on the version alone. ADR-0352.
+
 **177** — `0x3C779015EE115C66`. The mixed-class tile chain link on creatures, objects, traps, doors and shots with its world counter, and action 15's point, pitch and range on the creature; the possessed action command (action 26) is built. Scenario event/world outputs are unchanged; see `keeper-spell-possession.md`, Possessed actions.
 
 **176** — `0x207022305EFDD86A`. A creature's height and previous height, written by possessed movement (action 25); the move command is built. All 42 scenarios keep their event/world outputs and change hash composition only; see `keeper-spell-possession.md`. ADR-0350.

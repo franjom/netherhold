@@ -354,7 +354,7 @@ public sealed class ScenarioRunner
         unsupported.Add(
             "mana here has both halves of the economy. Income is land and " +
             "a dungeon heart; outgoings are the keeper spells' cast costs and upkeep (every " +
-            "spell but Sight of Evil is built, ADR-0350: a summoned Horned Reaper costs 2000 a " +
+            "spell is built, ADR-0350 and ADR-0352 (Sight of Evil pays and makes no region): a summoned Horned Reaper costs 2000 a " +
             "second, Possession its creature's charge), the 7 a second every imp charges its " +
             "keeper (Q53) and a keeper's trap upkeep (Q59). A scenario pays only for what it " +
             "casts, so a mana total in this run is what a keeper would have only if it casts " +

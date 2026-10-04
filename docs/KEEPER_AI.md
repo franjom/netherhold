@@ -759,7 +759,7 @@ The battle scan cannot pick any spell added by ADR-0350 in shipped or level data
 | battle step | 3 Call to Arms | threat, lava, mana > cost, turn % 40, route (§5.7) | yes, ADR-0283 |
 | battle step | scanned: Thunderbolt, Heal, Chicken, Inferno | flag word bits 2/3, not 4; rolls (§5.7) | yes, ADR-0283/0287/0302 |
 | gold step (`0x004FD590`) | 13 Create Gold | no stored deposit, availability 3; no allowance | yes, ADR-0352 |
-| step 14 (`0x005003A0`) | 1 Sight of Evil | `UseSightOfEvil` mode and roll, enemy tile in mode 2, availability 3; one allowance on success | no: ADR-0352 stage 2 |
+| step 14 (`0x005003A0`) | 1 Sight of Evil | `UseSightOfEvil` mode and roll, enemy tile in mode 2, availability 3; one allowance on success | yes, ADR-0352 |
 
 The third cast path (`0x004BC290`) is action 56's alone; the keeper never issues it.
 
@@ -1058,7 +1058,7 @@ methods on `KeeperAI` rather than a separate type.
 | 62 slap | `SlapCreatureCommand` | none |
 | place room tile by tile | one `BuildRoomCommand` per tile | The command lacks DK2's payment-bypass mode when gold falls below one tile's price (handler research section 6). |
 | spell 4 Create Imp | `CreateImpCommand` | none |
-| spells 3 Call to Arms (+63 remove), the battle spells, Heal, Chicken, Inferno | `CastSpellAtPlaceCommand`, `CastSpellOnCreatureCommand`, `RemoveCallToArmsCommand` (ADR-0279, 0283, 0287, 0302) | 13 Create Gold casts (ADR-0350); 1 Sight of Evil has no simulation cast; the keeper's casts of both are ADR-0352's stages (§5.10) |
+| spells 3 Call to Arms (+63 remove), the battle spells, Heal, Chicken, Inferno | `CastSpellAtPlaceCommand`, `CastSpellOnCreatureCommand`, `RemoveCallToArmsCommand` (ADR-0279, 0283, 0287, 0302) | none: the keeper casts 13 Create Gold and 1 Sight of Evil, whose simulation cast has an empty effect (ADR-0352, §5.10) |
 | place trap / door | `PlaceTrapCommand`, `PlaceDoorCommand` | placement exists (ADR-0231); AI site choice remains |
 | pay a creature by minting gold on it | — | needs a treasury-withdrawal rule as well as a command |
 | claim a neutral room | digging a path to it, then `ConvertRoom` work | none (ADR-0044) |
@@ -1192,7 +1192,7 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
-The observation (schema 16) includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
+The observation (schema 17) includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
 alliances, reverse player activation order, research upgrades, placed trap threat and
 navigation bytes (`research/computer-keeper-threat.md` sections 1 and 2). Tests check frozen
 values, packet round trips and equal command streams;
@@ -1227,7 +1227,7 @@ its validators give an own creature; schema 13 every player's status, the heart 
 as the heart and the call's refused own-room tiles, with route queries over the captured bytes;
 schema 14 the Chicken and Inferno permissions per foreign creature (ADR-0302); schema 15 each
 creature's experience and dropped-to-do job and each room's floor slots in chain order (ADR-0317); schema 16
-every room's tiles in chain order (ADR-0327).
+every room's tiles in chain order (ADR-0327); schema 17 the own-room tiles where Sight's target 4 refuses (ADR-0352).
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
 now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);

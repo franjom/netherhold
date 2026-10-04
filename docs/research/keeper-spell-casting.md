@@ -185,7 +185,7 @@ called only by the Possession and Call to Arms upkeep, research and the interfac
 
 | Id | Spell | Built | Upgraded form (normal → upgraded) |
 |---|---|---|---|
-| 1 | Sight Of Evil | no: presentation (`keeper-spell-sight.md`, Q194/Q534) | radius data1 5 → 7 |
+| 1 | Sight Of Evil | cast with an empty effect, ADR-0352 (`keeper-spell-sight.md` §4) | radius data1 5 → 7 |
 | 2 | Possession | simulation side, ADR-0350 | same shot; upkeep × variable 226 (70 %) |
 | 3 | Call To Arms | ADR-0279 | same shot; upkeep × variable 227 (70 %) |
 | 4 | Create Imp | ADR-0247 | shot 2 level 1 → shot 60 level 4 |

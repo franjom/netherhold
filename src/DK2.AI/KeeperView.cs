@@ -64,11 +64,15 @@ public sealed class KeeperView : INavByteGrid
         int heartIndex = ImpSupplyRules.HeartTileOf(world, database, playerId);
         Heart = HeartOf(playerId) ?? (heartIndex < 0 ? null : FromIndex(heartIndex));
         KeeperSpellDef? callToArms = database.KeeperSpellById(CallToArmsRules.SpellId);
-        if (callToArms is not null)
-            foreach (KeeperRoomView room in OwnRooms)
-                foreach (int index in room.TileIndices)
-                    if (!KeeperSpellRules.PlaceAllowed(world, database, this, playerId, callToArms, FromIndex(index)))
-                        _callRefusedTiles.Add(index);
+        KeeperSpellDef? sight = database.KeeperSpellById(KeeperSpellRules.SightOfEvil);
+        foreach (KeeperRoomView room in OwnRooms)
+            foreach (int index in room.TileIndices)
+            {
+                if (callToArms is not null && !KeeperSpellRules.PlaceAllowed(world, database, this, playerId, callToArms, FromIndex(index)))
+                    _callRefusedTiles.Add(index);
+                if (sight is not null && !KeeperSpellRules.PlaceAllowed(world, database, this, playerId, sight, FromIndex(index)))
+                    _sightRefusedTiles.Add(index);
+            }
         // Each owner's acquisition-ordered list, the order DK2's keeper walks (ADR-0273).
         var ranks = new Dictionary<int, int>();
         foreach (byte owner in world.PlayerIds)
@@ -167,8 +171,9 @@ public sealed class KeeperView : INavByteGrid
         KeeperTileView[] tiles, AvailabilityState[] availability,
         KeeperCreatureView[] creatures, KeeperTrapView[] traps, KeeperRoomView[] rooms, PlayerMessage[] messages,
         CallToArmsState callToArms = default, int mana = 0, byte[]? statuses = null, IEnumerable<int>? callRefusedTiles = null,
-        bool[]? heartRuined = null)
+        bool[]? heartRuined = null, IEnumerable<int>? sightRefusedTiles = null)
     {
+        if (sightRefusedTiles is not null) _sightRefusedTiles.UnionWith(sightRefusedTiles);
         CallToArms = callToArms;
         Database = database;
         PlayerId = playerId;
@@ -203,6 +208,7 @@ public sealed class KeeperView : INavByteGrid
     /// ruin bit <c>+0x9A</c> the random room draw skips.</summary>
     public bool HeartRuined(byte playerId) => playerId < _heartRuined.Length && _heartRuined[playerId];
     internal IEnumerable<int> CallRefusedTiles => _callRefusedTiles.OrderBy(i => i);
+    internal IEnumerable<int> SightRefusedTiles => _sightRefusedTiles.OrderBy(i => i);
 
     /// <summary>Every player's status (<c>player+0x19A</c>) by id, 0 for an id the world lacks.</summary>
     public byte StatusOf(byte playerId) => playerId < _statuses.Length ? _statuses[playerId] : (byte)0;
@@ -256,6 +262,10 @@ public sealed class KeeperView : INavByteGrid
     public bool CallToArmsPlaceAllowed(TilePos at) =>
         InBounds(at) && !NavBytes.IsSolid(Tile(at).NavigationByte) && !_callRefusedTiles.Contains(IndexOf(at));
 
+    /// <summary>The place validators of a Sight of Evil cast at a tile (<c>0x004BB8A0</c>): location 5
+    /// admits anything, so only target 4's exclusions on the keeper's own room tiles refuse.</summary>
+    public bool SightPlaceAllowed(TilePos at) => InBounds(at) && !_sightRefusedTiles.Contains(IndexOf(at));
+
     /// <summary>A tile whose owner <c>0x004BF390</c> calls an enemy: not this keeper and not allied,
     /// unowned land included, since DK2 holds it for the neutral player.</summary>
     public bool IsEnemyLand(TilePos at) => InBounds(at) && !AreAllied(Tile(at).OwnerPlayerId);
@@ -288,6 +298,7 @@ public sealed class KeeperView : INavByteGrid
     private readonly byte[] _statuses = new byte[8];
     private readonly bool[] _heartRuined = new bool[8];
     private readonly HashSet<int> _callRefusedTiles = new();
+    private readonly HashSet<int> _sightRefusedTiles = new();
     private MeshRouter? _router;
     private readonly List<NavPoint> _waypoints = new();
 
