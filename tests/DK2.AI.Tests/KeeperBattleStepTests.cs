@@ -600,17 +600,25 @@ public class KeeperBattleStepTests
     [Fact]
     public void AnUnbuiltOffensiveChoiceIsCountedAndNotIssued()
     {
+        const byte unsupportedSpell = 12;
+        KeeperSpellDef unbuilt = Db.KeeperSpellById(7)! with
+        {
+            Name = "Synthetic unsupported", KeeperSpellId = unsupportedSpell,
+        };
+        var db = new GameDatabase(Db.Terrain.Values, Db.Rooms.Values, Db.Creatures.Values, Db.Variables,
+            Db.KeeperSpells.Values.Append(unbuilt), Db.Objects.Values, Db.Doors.Values, Db.Traps.Values,
+            Db.CreatureSpells.Values, Db.Shots.Values, Db.Effects.Values, Db.EffectElements.Values);
         WorldState world = World();
         CreatureState own = Fighter(world, Keeper, 13, 15);
         Engage(world, own, Fighter(world, Hero, 14, 15));
         world.Player(Keeper).Mana = 20000;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, 7, 3);
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(KeeperSpellRules.SpellAvailabilityKind, unsupportedSpell, 3));
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
         keeper.State.FightGoingOn = true;
 
-        IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
+        IReadOnlyList<PlayerCommand> commands = keeper.Think(db, world);
 
-        // The offensive arm's first eligible spell is the stand-in 7, at a creature; no command
+        // The offensive arm's first eligible spell is a synthetic unsupported creature spell; no command
         // casts it here, so nothing is issued and nothing is spent.
         Assert.DoesNotContain(commands, c => c is CastSpellOnCreatureCommand or CastSpellAtPlaceCommand);
         Assert.Equal(1, keeper.State.UnbuiltSpellChoices);

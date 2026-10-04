@@ -20,6 +20,7 @@ public enum KeeperSpellRefusal
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-thunderbolt.md")]
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-create-gold.md")]
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-tremor.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-turncoat.md")]
 public static class KeeperSpellRules
 {
     public const byte Thunderbolt = 6;
@@ -132,9 +133,9 @@ public static class KeeperSpellRules
     public static bool TargetsAThing(byte targetSelector) => targetSelector is 1 or 2 or 3 or 6;
 
     /// <summary>The spells whose casts this simulation executes: Call to Arms, Inferno, Create Gold and Tremor at a place,
-    /// Thunderbolt, Heal and Chicken at a creature. Create Imp keeps its own command.</summary>
+    /// Thunderbolt, Heal, Chicken and Turncoat at a creature. Create Imp keeps its own command.</summary>
     public static bool ExecutesAtPlace(byte spellId) => spellId is CallToArmsRules.SpellId or Inferno or CreateGold or TremorRules.SpellId;
-    public static bool ExecutesOnCreature(byte spellId) => spellId is Thunderbolt or Heal or Chicken;
+    public static bool ExecutesOnCreature(byte spellId) => spellId is Thunderbolt or Heal or Chicken or TurncoatRules.SpellId;
 
     /// <summary>The place validators of <c>0x004BB8A0</c> for one spell at one tile: its location
     /// selector (1, 4 or 5 read) and target selector 4 or 5. The caller's grid must be current.</summary>
@@ -227,7 +228,7 @@ public static class KeeperSpellRules
     /// cast helper's own maximum-health test: what the command would refuse before paying.</summary>
     public static KeeperSpellRefusal CanCast(SimulationContext context, CastSpellOnCreatureCommand cast)
     {
-        // Thunderbolt, Heal and Chicken are read end to end; Create Imp retains its own command.
+        // The researched creature casts share this boundary; Create Imp retains its own command.
         if (!ExecutesOnCreature(cast.SpellId)) return KeeperSpellRefusal.UnsupportedSpell;
         // The ordinary packet path is read; bypass/inverted targeting is a separate boundary.
         if (cast.Flags != 0) return KeeperSpellRefusal.UnsupportedFlags;
@@ -256,7 +257,7 @@ public static class KeeperSpellRules
         if (!TargetAllowed(world, database, cast.PlayerId, spell, target)) return KeeperSpellRefusal.Target;
         var effect = spell.Shot(availability.Upgraded);
         if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
-        if (shot.ProcessType is not (ShotRules.LightningProcess or ShotRules.ModifyHealthProcess or ShotRules.ChickenProcess))
+        if (shot.ProcessType is not (ShotRules.LightningProcess or ShotRules.ModifyHealthProcess or ShotRules.ChickenProcess or TurncoatRules.ProcessType))
             return KeeperSpellRefusal.UnsupportedShotProcess;
         // 0x004BC13C, after the permission and before the shot and the payment: a positive Modify
         // Health carrier wants its target strictly below the level-scaled maximum.

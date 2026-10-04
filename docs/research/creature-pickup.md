@@ -73,7 +73,8 @@ prison walks clear and restore the bits within one tick; this does not reproduce
 their original duration. Of the stored room association only a Prison's is kept
 (`PrisonOwnerPlayerId`, written as `0x0047B740` calls `0x004E5A70` on entry), so an
 own creature in another keeper's cells is refused; other rooms' membership,
-teleport/combat writers, Turncoat and the disguise tag remain unimplemented.
+teleport/combat writers and the disguise tag remain unimplemented. The Turncoat
+owner-hand refusal is built; see `keeper-spell-turncoat.md`.
 A tile's room is not substituted for that association. The existing
 zero-health refusal remains a simulation adaptation before its delayed collapse.
 The keeper's attack response and its retreat of the wounded consume this permission

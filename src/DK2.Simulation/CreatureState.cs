@@ -943,6 +943,10 @@ public sealed class CreatureState
     /// fight gate, the fear accumulator and the Combat Pit finder (keeper-spell-inferno-chicken.md §3).</summary>
     public int ChickenTicks;
 
+    /// <summary>Original +0x453 countdown and +0x455 combat-side tag; actual ownership is unchanged.</summary>
+    public ushort TurncoatTicks;
+    public ushort TurncoatPlayerId;
+
     /// <summary>State 8, the walk to a fight, as a flag on the fighting creature; while set
     /// <see cref="Combat.ApproachRules"/> runs instead of <c>spFighting</c>. <see cref="RouteRefreshCountdown"/>
     /// is the state's <c>+0xF5</c>, <see cref="ChaseTicks"/> the creature's <c>+0x53D</c>, and
@@ -1197,6 +1201,8 @@ public sealed class CreatureState
         hash.Add(PoisonOwner);
         hash.Add(StunTicks);
         hash.Add(ChickenTicks);
+        hash.Add(TurncoatTicks);
+        hash.Add(TurncoatPlayerId);
         hash.Add(Approaching);
         hash.Add(RouteRefreshCountdown);
         hash.Add(ChaseTicks);

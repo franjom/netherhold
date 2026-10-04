@@ -300,8 +300,7 @@ public static class CombatTargetRules
             && (spell is null || !LineOfSight.Clear(sight, me.PosX, me.PosY, chosen.PosX, chosen.PosY)))
             chosen = null;
 
-        // Scan D: an enemy's revealed trap, when no creature is left. DK2 skips it for a Turncoat (+0x453),
-        // which is not modelled.
+        // Scan D: an enemy's revealed trap, when no creature is left; skipped during Turncoat.
         TrapState? trap = null;
         int trapDistance = 0;
         if (chosen is null) trap = ScanTraps(world, sight, me, definition, sightSq, out trapDistance);
@@ -344,6 +343,11 @@ public static class CombatTargetRules
     public static TrapState? ScanTraps(
         WorldState world, ISightBlocker sight, CreatureState me, CreatureDef definition, int sightSq, out int distance)
     {
+        if (TurncoatRules.IsActive(me))
+        {
+            distance = int.MaxValue;
+            return null;
+        }
         TrapState? chosen = null;
         int best = int.MaxValue;
         bool worker = definition.Flags.HasFlag(CreatureFlags.IsWorker);
@@ -406,11 +410,12 @@ public static class CombatTargetRules
     /// Combat category and wanting it; any other walks the caster's own creatures — the caster
     /// included, allies never — for the nearest that is not captive, wants the spell, is in the
     /// Combat category, has under a quarter of its level-scaled health, and is seen within sight or
-    /// reached within hearing. The Turncoat gate and the pit and torture refusals are not modelled.</summary>
+    /// reached within hearing. Turncoat skips this scan; pit and torture refusals are not modelled.</summary>
     private static CreatureState? FriendlyScan(
         SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition, CreatureSpellDef spell,
         int sightSq, int hearSq, List<Fixed16Vector> scratch)
     {
+        if (TurncoatRules.IsActive(me)) return null;
         GameDatabase database = context.Database;
         if (SpellRules.IsSelfOnly(spell))
             return CombatRules.InCombat(me) && SpellRules.BuffApplies(database, definition, me, spell) ? me : null;
@@ -512,7 +517,7 @@ public static class CombatTargetRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
-            if (candidate.Id == me.Id || !CombatRules.IsHostile(world, me.OwnerPlayerId, candidate.OwnerPlayerId)) continue;
+            if (candidate.Id == me.Id || !TurncoatRules.AreCombatEnemies(world, me, candidate)) continue;
             CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
             int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
 
@@ -574,7 +579,7 @@ public static class CombatTargetRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
-            if (!CombatRules.IsHostile(world, me.OwnerPlayerId, candidate.OwnerPlayerId)) continue;
+            if (!TurncoatRules.AreCombatEnemies(world, me, candidate)) continue;
 
             CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
             int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
@@ -603,6 +608,7 @@ public static class CombatTargetRules
         WorldState world, ISightBlocker sight, HeartSites hearts, CreatureState me, int sightSq, ref int best, out byte owner)
     {
         owner = 0;
+        if (TurncoatRules.IsActive(me)) return -1;
         int chosen = -1;
         for (int s = 0; s < hearts.Sites.Count; s++)
         {

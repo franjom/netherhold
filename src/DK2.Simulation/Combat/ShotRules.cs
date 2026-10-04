@@ -164,9 +164,11 @@ public static class ShotRules
             CreatureState candidate = creatures[i];
             // Never the caster, unless caster and target are one (§4a): a self-cast Invisible lands.
             bool selfTarget = shot.TargetKind == FightTargetKind.Creature && shot.TargetId == shot.CasterId;
-            if ((candidate.Id == shot.CasterId && !selfTarget) || CreatureDeathRules.IsDown(candidate)) continue;
-            bool friend = candidate.OwnerPlayerId == shot.OwnerPlayerId;
-            bool enemy = CombatRules.IsHostile(world, shot.OwnerPlayerId, candidate.OwnerPlayerId);
+            if ((candidate.Id == shot.CasterId && !selfTarget) || CreatureDeathRules.IsCorpse(candidate)) continue;
+            bool standing = !CreatureDeathRules.IsDown(candidate);
+            bool friend = standing && candidate.OwnerPlayerId == shot.OwnerPlayerId;
+            bool enemy = (standing && CombatRules.IsHostile(world, shot.OwnerPlayerId, candidate.OwnerPlayerId))
+                || TurncoatRules.IsActive(candidate);
             if (mode == CollideEnemies && !enemy) continue;
             if (mode == CollideFriends && !friend) continue;
             if (mode == CollideBoth && !friend && !enemy) continue;
@@ -464,6 +466,7 @@ public static class ShotRules
             case DrainProcess: StatusEffectRules.Drain(context, target, definitionOfTarget, world.CreatureById(shot.CasterId), shot.Data1); break;
             case PoisonProcess: StatusEffectRules.Poison(context, target, shot.Data2, shot.Data1, shot.OwnerPlayerId); break;
             case ChickenProcess: ChickenRules.Strike(context, shot, target, definitionOfTarget); break;
+            case TurncoatRules.ProcessType: TurncoatRules.Strike(context, shot, target, definitionOfTarget); break;
         }
     }
 

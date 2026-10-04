@@ -151,7 +151,7 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
    place. A target no longer live → return 1.
 7. **The nearest attacker** (`0x0045C690`): over my melee then ranged slots, the
    lowest distance — an eighth off across the alignments, the `Creeping`
-   percentage applied — that is `IsAttackable`, not my `+0x4A3`, seen within
+   percentage applied — that is `IsAttackable`, not disguised as my effective combat side, seen within
    sight (Imp: a tile) or reached within hearing (Imp: nothing), and routable.
    A different one from my target: unlink, take it, register with my attack
    nibble; registration refused → clear the target, return 0.

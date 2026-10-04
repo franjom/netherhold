@@ -187,7 +187,11 @@ public static class CreatureDeathRules
     {
         if (IsDying(creature)) return false;
 
-        CreatureStateMachine.TrySetState(hooks, creature, FallingState);
+        if (CreatureStateMachine.TrySetState(hooks, creature, FallingState))
+        {
+            creature.TurncoatTicks = 0;
+            creature.TurncoatPlayerId = 0;
+        }
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
         creature.TargetTileIndex = -1;

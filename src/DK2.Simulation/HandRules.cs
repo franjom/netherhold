@@ -76,7 +76,7 @@ public static class HandRules
         if (creature.CombatPitFighter)
             return world.Contains(creature.Tile)
                 && world.Tile(creature.Tile.X, creature.Tile.Y).OwnerPlayerId == playerId;
-        if (creature.Dk2StateId is 51 or 52) return false;
+        if (creature.Dk2StateId is 51 or 52 || TurncoatRules.IsActive(creature)) return false;
         if (definition.Flags.HasFlag(CreatureFlags.IsWorker) && (creature.Flags & 9) == 0) return false;
         // The stored room must be nobody's or the owner's. A Prison writes that membership on
         // entry (0x0047B740 calls 0x004E5A70), so an own creature in another keeper's cells is

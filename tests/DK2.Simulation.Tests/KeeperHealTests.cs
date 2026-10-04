@@ -74,7 +74,7 @@ public class KeeperHealTests
         byte spell = KeeperSpellRules.Heal; int id = target.Id; ushort flags = 0;
         switch (change)
         {
-            case 0: spell = 7; break; // Turncoat: at a creature, not read end to end
+            case 0: spell = byte.MaxValue; break; // Synthetic unsupported spell.
             case 1: flags = 4; break;
             case 2: world.Player(Keeper).Mana = 4999; break;
             case 3: id = 999; break;
