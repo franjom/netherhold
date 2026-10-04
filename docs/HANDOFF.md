@@ -28,8 +28,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Horny's idle AI remains unbuilt. See research/keeper-spell-reaper.md. Sight's
   presentation-only boundary and documentation correction pass independent
   review (2026-10-04). Possession's Stage7a review requires separate corrections
-  (2026-10-04); influence damage passes limited review. CTA/Chicken state pauses
-  are corrected, pending review (2026-10-04).
+  (2026-10-04); influence damage and CTA/Chicken pauses pass limited reviews.
+  Integer speed/clamp are corrected, pending review (2026-10-04).
   Upkeep awaits the owner choice (2026-10-04); commands remain Stage7b.
   See research/keeper-spell-sight.md and research/keeper-spell-possession.md.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits

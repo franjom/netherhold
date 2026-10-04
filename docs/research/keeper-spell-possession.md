@@ -87,8 +87,13 @@ The melee/spell readiness predicates are0x0048C9B0/0x0048C800, with zero
 stamp ready and a strict stamp+interval<now comparison.
 Possession bypasses hit/shot wind-up in0x00498E30,0x00498870 and0x004984D0;
 influence does not. Actions continue independently of paused state dispatch.
-The update's speed arm uses stat21 (shipped200), giving possessed×3 and
-influenced×1.5 after its preceding modifiers. The body cap mirrors this arm.
+The speed arms at0x0048990E–0x00489918/0x0048993F–0x00489949 use stat21
+(shipped200). They multiply the current entity-unit speed by100+stat,
+retain the low32-bit product, then divide unsigned by100 (possessed) or200
+(influenced), truncating before the setter. Possession wins when both flags
+are set. Setter0x0048D010 clamps unsigned to0xFFF before storing body speed
+shifted4. The preceding setters also clamp before this arm reads the speed;
+the simulation mirrors that boundary when composing its status cap.
 
 ## Upkeep — CONFIRMED path, owner decision pending (Q58)
 

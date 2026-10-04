@@ -257,20 +257,55 @@ public sealed class PossessionTests
     }
 
     [Theory]
-    [InlineData(true, false, 12288)]
-    [InlineData(false, true, 6144)]
-    [InlineData(true, true, 12288)]
+    [InlineData(true, false, 4095)]
+    [InlineData(false, true, 2826)]
+    [InlineData(true, true, 4095)]
+    [InlineData(false, false, 1884)]
     public void BodySpeedUsesTheSpeedStatAndPossessionPriority_StronglyInferredFromBinary(
-        bool possessed, bool influenced, int expectedMultiplier)
+        bool possessed, bool influenced, int expectedEntitySpeed)
     {
         var (db, world, target) = Setup();
+        target = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, target.Tile);
         db.Variables.CreatureStats.Add(new((int)CreatureStatId.Speed, 200, 1, true));
         target.Possessed = possessed;
         target.InfluencedByPossessed = influenced;
         var sim = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
         sim.Tick(InputFrame.Empty);
-        int ordinary = CreatureMovementSystem.MaxSpeedOf(db, db.CreatureById(target.CreatureTypeId), target.Level);
-        Assert.Equal((int)((long)ordinary * expectedMultiplier >> 12), target.Body.MaxSpeed);
+        Assert.Equal(expectedEntitySpeed << 4, target.Body.MaxSpeed);
+    }
+
+    [Theory]
+    [InlineData(33, false, 134)]
+    [InlineData(33, true, 67)]
+    [InlineData(-101, false, 4095)]
+    [InlineData(-100, false, 0)]
+    [InlineData(100, true, 101)]
+    public void PossessionSpeedTruncatesIntegerUnitsAndClampsUnsignedProducts(
+        int stat, bool influenced, int expectedEntitySpeed)
+    {
+        var (basis, world, target) = Setup();
+        basis.Variables.CreatureStats.Add(new((int)CreatureStatId.Speed, stat, 0, true));
+        var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
+            basis.Creatures.Values.Select(d => d.CreatureId == target.CreatureTypeId
+                ? d with { Speed = new Fp32(404) } : d), basis.Variables);
+        target.Possessed = !influenced;
+        target.InfluencedByPossessed = influenced;
+        var sim = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(expectedEntitySpeed << 4, target.Body.MaxSpeed);
+    }
+
+    [Fact]
+    public void PossessionScalesTheAlreadyClampedPrecedingSpeedEffect()
+    {
+        var (db, world, target) = Setup();
+        db.Variables.CreatureStats.Add(new((int)CreatureStatId.Speed, -50, 0, true));
+        target.Possessed = true;
+        target.SpeedEffectTicks = 5;
+        target.SpeedPercent = 600;
+        var sim = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(2047 << 4, target.Body.MaxSpeed);
     }
 
     [Theory]

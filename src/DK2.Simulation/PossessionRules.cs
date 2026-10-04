@@ -14,12 +14,15 @@ public static class PossessionRules
     public const byte SpellId = 2;
     public const byte ProcessType = 26;
 
-    public static Fp32 SpeedMultiplier(GameDatabase database, CreatureState creature)
+    public static void ApplySpeedModifier(GameDatabase database, CreatureState creature)
     {
-        if (!creature.Possessed && !creature.InfluencedByPossessed) return new(Fp32.One);
-        int numerator = unchecked((100 + database.FirstPersonStat(CreatureStatId.Speed)) << 12);
-        int ceiling = creature.Possessed ? 100 : 200;
-        return new(unchecked((int)(((ulong)(uint)numerator << 12) / (uint)(ceiling << 12))));
+        if (!creature.Possessed && !creature.InfluencedByPossessed) return;
+        const uint limit = Systems.CreatureMovementSystem.MaxSpeedPerTick;
+        // The original's preceding setters already clamp before the entity-speed getter.
+        uint speed = Math.Min(unchecked((uint)(creature.Body.MaxSpeed >> 4)), limit);
+        uint product = unchecked(speed * (uint)(100 + database.FirstPersonStat(CreatureStatId.Speed)));
+        uint scaled = product / (creature.Possessed ? 100U : 200U);
+        creature.Body.MaxSpeed = (int)Math.Min(scaled, limit) << 4;
     }
 
     public static void Strike(SimulationContext context, CreatureState target)
