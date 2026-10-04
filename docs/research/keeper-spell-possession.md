@@ -42,7 +42,8 @@ for218. 0x004BE090 clears carried/dragged things through 0x0048B3A0 and
 When entering a live creature it also saves its gold into player+0xE93.
 Linked hypnosis/follower cleanup, the follower count, that gold bookkeeping
 field and presentation notifications are not represented by Stage7a.
-Action20, 0x00514560, toggles the third-person presentation bit; it is unbuilt.
+Action20, 0x00514560, assigns the third-person presentation bit from packet
+bit0, preserving the other flags; it is unbuilt.
 The ownership-conversion path 0x0049AC80 also calls the possession setters;
 its full conversion semantics are outside this stage.
 
