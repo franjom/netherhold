@@ -31,8 +31,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (2026-10-04); influence damage and CTA/Chicken pauses pass limited reviews.
   Integer speed/clamp, fixed-product narrowing and pit percentage byte width
   pass review. Auxiliary reset width, view assignment and spell-value accessor
-  pass review. The final object callback record correction awaits review (2026-10-04).
-  Upkeep awaits the owner choice (2026-10-04); commands remain Stage7b.
+  pass review, as does the object callback record correction (2026-10-04).
+  Possessed movement (action25) is built (Stage7b1, hash176); melee, spells
+  and followers (action26) are Stage7b2. The owner chose the binary upkeep rule.
   See research/keeper-spell-sight.md and research/keeper-spell-possession.md.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 16).

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 175;
+    private const int FormatVersion = 176;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -243,6 +243,7 @@ public static class WorldSnapshot
             w.Write(c.TriggerRepeat);
             w.Write(c.PosX);
             w.Write(c.PosY);
+            w.Write(c.PosZ);
             w.Write(c.Heading);
             w.Write(c.RouteOptions);
             w.Write(c.HeartTargetPlayerId);
@@ -391,6 +392,7 @@ public static class WorldSnapshot
             w.Write(c.SwingSpellSlot);
             w.Write(c.LastPosX);
             w.Write(c.LastPosY);
+            w.Write(c.LastPosZ);
             w.Write(c.ArmourTicks);
             w.Write(c.InvulnerableTicks);
             w.Write(c.FrozenTicks);
@@ -813,6 +815,7 @@ public static class WorldSnapshot
                 TriggerRepeat = r.ReadByte(),
                 PosX = r.ReadInt32(),
                 PosY = r.ReadInt32(),
+                PosZ = r.ReadInt32(),
                 Heading = r.ReadInt32(),
                 RouteOptions = r.ReadInt32(),
                 HeartTargetPlayerId = r.ReadByte(),
@@ -966,6 +969,7 @@ public static class WorldSnapshot
                 SwingSpellSlot = r.ReadByte(),
                 LastPosX = r.ReadInt32(),
                 LastPosY = r.ReadInt32(),
+                LastPosZ = r.ReadInt32(),
                 ArmourTicks = r.ReadInt32(),
                 InvulnerableTicks = r.ReadInt32(),
                 FrozenTicks = r.ReadInt32(),

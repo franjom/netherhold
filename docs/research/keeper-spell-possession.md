@@ -155,6 +155,123 @@ the typed influence deadline are hashed and saved together (version175).
 Camera, input devices and Unity remain outside this task. Pending actions
 must carry pose/aim/slot semantics rather than an AI target-tag shortcut.
 
+## Possessed actions (Stage7b)
+
+Read 2026-10-04 from Codex's quarantine captures, re-checked with pyghidra-mcp:
+listings of 0x005146B0 and 0x00514830–0x005153CC, bytes at 0x006BC3B0 and the
+object jump table at 0x005153D0, and whole reads of the helpers named below.
+
+**Action25 movement, 0x005146B0 — CONFIRMED.** The packet holds X (+0), Y (+4),
+a packed word (+8) and the player tag (+0x10); player+0x134 is the possessed
+thing, and zero does nothing. A nonzero packed word sets the position to X, Y and
+its low 16 bits (unsigned) as Z, and the heading +0xF4 to its high 16 bits masked
+0x7FF, for any class. A zero word acts only on a live creature (slot byte at
+0x006ED540, class +0x12 = 0): position (X, Y, 0), the same unclamped point copied
+to the last position +0xF6, heading untouched. Either branch then calls the fog
+update 0x0048CC90 for a creature whose tile X or Y (bits 12 up) changed. The
+setter 0x004B5020 stores a layer-2 thing raw. Otherwise it raises Z to the floor
+height from 0x004545C0 (kept at +0x26). Above 0x3000 it sets Z to 0x2000, not
+0x3000; exactly 0x3000 stays.
+
+**Action26 packet, 0x00514830 — CONFIRMED.** Dword0 has X in bits 0–19 and yaw in
+bits 20–30. Dword1 has Y in bits 0–19 and pitch in bits 20–30. Dword2 has Z in
+bits 0–13, an 11-bit angle at 14 that no arm here reads, melee at bit 27 and the
+slot in bits 28–31 (arithmetic shift). The aim vector, shared by every arm, is
+sin yaw, −cos yaw and −cos pitch from the 16.16 tables 0x006C1488/0x006C1C88,
+each taken as table/16. The horizontal part is not scaled by pitch. It is
+normalised to length 4096 through Math_Isqrt, skipped at zero magnitude.
+
+**Melee, bit 27 set — CONFIRMED.** (1) Gate 0x0048C9B0 or nothing. (2) Stamp
++0x427 = now **before** searching. (3) World +0x334, 0x00515420. Around the pose's
+tile it visits (0,−1), (1,−1), (1,0), (1,1), (0,1), (−1,1), (−1,0), (−1,−1), then
+the own tile (0,0) last. On each tile it walks the layer-0 chain (cell word 0 via
+0x00508FC0, next +0xC), skipping the attacker itself. A candidate must pass
+0x00516050, then the strict cone 0x00516950: the bearing from the pose, unwrapped
+to within half a turn of yaw, strictly inside yaw ± 0x155. 0x00516670 then decides
+replacement. The first survivor is taken. A later one replaces the best only if
+it is strictly nearer horizontally from the pose **and** best·dot <
+(candidate·dot × 300) / 256, truncating toward zero. The dots are the
+4096-normalised 3D directions from the pose against the aim. This is not
+nearest-distance, and it is not a total order. (4) A target with SneakingAs
++0x4A3 allied to its owner (0x004BF3D0) clears it. Objects branch by type:
+gold 1–3 is the pick-up, 9 the chicken arm, 14 process state 18, 15/16/46 a
+shared arm at 0x00514C31; other picked types fall to the attack. A creature
+in state 131 (on a torture device) is not struck but is stamped. Otherwise it
+calls CreatureAction_Begin(17, target). On success, HypnotisedCreature +0x4A7
+(creature targets only) is pointed at the target and NHypnotisedAttacks +0x4DB is
+counted. PossessedTargetAttackTime +0x4D2 and PossessedTargetTag +0x4D0 are
+written, and +0x427 is stamped again. A refused start keeps the first stamp. The
+blow is action 17's swing 0x00498E30 into 0x00494D00. No target and def+0x686 bit
+0 runs a dig/claim arm (actions 4/6 on the pose tile, 2/1 on the facing tile from
+table 0x006BC350). It is LIKELY by listing, not built.
+
+The pick predicate 0x00516050 — CONFIRMED. For the same owner it accepts only
+objects within reach 0x005162E0: gold 1–3 while carried gold +0x3FB is below
+the level-scaled def+0x69C, or types 9, 14, 15, 16, 46, 64. For another owner it
+accepts objects without definition flag +0xF4 bit 20 within reach (also type 94),
+traps unless +0x10C bit 4, any other non-creature class, and creatures not dying
+(+0x3E6 bit 21, vtable +0x28). Reach uses the creature's heading +0xF4, not the
+aim: within 0x80, and horizontal distance² ≤ 1.2 × the summed vtable +0x3C sizes.
+
+**Spell, bit 27 clear — CONFIRMED.** Slot 3 is the follower arm, not a spell.
+0x00515D50 scores friendly creatures within 7 tiles as below. Below variable 223
+(MaximumGroupNumberOfFollowers, 8), a successful 0x00461980 counts +0x488. It
+never stamps (unbuilt). Other slots: refused by 0x0048C800 (strict, so equality
+refuses) → nothing. The spell id from 0x004943F0 is zero, or the record is
+missing → return, no stamp. The target is world +0x338, 0x00515520, friendly = flags
+bit 2; flags bit 7 replaces it with self after the scan. Bit 5 (teleport) runs
+Player_NearestRoomOfType(keeper, 5 Dungeon Heart) from the creature, and on success
+action25 with a zero packed word at that tile's centre, between effects 0x141/0x142.
+Bit 6 runs 0x0048CAD0(data1, data2) and sets SpeedBlurTimer +0x4DD = data1 when
+data1 > 100. Otherwise a target means Begin(16, slot, target). No target means
+BeginAt(15, pose + unnormalised aim, slot, pitch, range). range = 0x3000 when
+spell Range +0x31 plus SniperMode (+0x3E6 bit 31) is nonzero, else 0. Shot type
+30 without a target starts nothing. Every path past the record lookup, refused
+starts included, then stamps +0x41B + 4·(slot & 0xFF) = now.
+
+**Spell target scan 0x00515520 — CONFIRMED.** The best score starts at variable 187
+FirstPersonAccuracyAngleDegrees (0x006F296E, 45) × 2048 / 360 = 256 and is replaced
+on a signed strictly lower score = 4096 − dot(normalised(thing − pose), aim).
+Players come in list order (world +0x7A, next +0x3A). One qualifies by
+Player_IsEnemy(owner, player), inverted for friendly spells. Per player, in order:
+creatures (+6), traps (+0xC), doors (+0xE), then objects (+0xA, type 94 only),
+each list linked at +0x10. Distance is horizontal from the creature's own position, not
+the pose: < 0x5B000 (91 tiles²) for creatures and objects, < 0x31000 (7 tiles)
+for traps and doors. Every candidate needs the cone from the pose and a sight line
+0x004512F0 from the creature. Doors aim at a point one unit nearer the pose and
+are skipped when +0x109 is set or the cell's byte +0xB bit 0 is set. Traps skip
++0x10C & 0x30, creatures dying ones. The caster is not excluded.
+
+**Free-aim launch, 0x004984D0 — CONFIRMED.** Possessed, the shot has no wind-up
+and no horizontal muzzle offset. Z adds the slot entry's +0xE. 0x004B7CD0
+spawns spell +0x44 at heading +0xF4. The data words are ShotData1/2, and +0x151 is
+the possessed flag. +0x165 is set under SniperMode, which doubles contact damage in
+0x004AC420. Range goes to +0x155, the start to +0x159. 0x004AB830/0x004AB8A0 aim
+and launch at the action's point.
+
+**Tile chain order — CONFIRMED.** When a thing not on layer 2 changes tile,
+0x004B5020 unlinks it (prev +0xA, next +0xC) and pushes it on the **head** of the
+new tile's chain for its layer +0x16. One chain mixes creatures, objects, traps and
+doors, so melee meets the latest arrival first across classes. Because 0x00516670
+is order-dependent, the simulation needs a persisted per-tile link order. The
+spell scan instead uses per-player class lists, whose insertion order is UNREAD.
+
+UNREAD: arm 0x00514C31; the dig/claim arm's detail; the SniperMode toggle and its
+command; the dword2 angle; 0x00516050's third argument (melee passes 1); chain
+insertion at creation and each class's layer; 0x00508FC0 has no bounds test at
+the map edge; the caster as its own friendly candidate; +0x155's comparison units.
+
+**Build boundary (2026-10-04).** Stage7b1 builds action25 as
+`MovePossessedCreatureCommand` (`PossessionRules.Move`): both packed-word
+branches, the 0x2000 height cap, the 0x7FF heading mask, the previous-position
+copy and the tile-chain relink. A possessed thing is always a creature here, so
+the zero branch's class test always passes. The setter's floor raise has no
+counterpart, because the floor is height 0 (M9/Q398). Fog is not called
+directly: FogOfWarSystem reveals from each creature's position every tick.
+Action26 (melee, spells and the follower arm) and the per-tile
+mixed-class link order its melee search needs are Stage7b2. That stage must
+update the link order wherever a position or layer changes, not only on spawn.
+
 ## Stage7a verification
 
 Release and Unity compile: zero warnings/errors. No-install suite:3460 passed,

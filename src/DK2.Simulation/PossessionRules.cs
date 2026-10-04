@@ -9,7 +9,7 @@ using DK2.Simulation.Combat;
 namespace DK2.Simulation;
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-possession.md")]
-public static class PossessionRules
+public static partial class PossessionRules
 {
     public const byte SpellId = 2;
     public const byte ProcessType = 26;

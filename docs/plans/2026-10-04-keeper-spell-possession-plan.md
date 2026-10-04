@@ -36,9 +36,9 @@
 - [x] Run focused tests and observe the existing unsupported-spell failure.
 - [x] Implement process26 and target6 through existing casting; implement set/clear using the audited setter and existing category hooks.
 - [x] Test and implement autonomous pause, continuing actions/status, influence line of sight and strict deadline, stat precedence/truncations and snapshot round trip.
-- [ ] Add upkeep only after the owner chooses; preserve LEVEL flag, creature/level scaling, upgraded percentage and strict insufficient-mana exit if approved.
+- [ ] Add upkeep (owner chose the binary rule, 2026-10-04); preserve LEVEL flag, creature/level scaling, upgraded percentage and strict insufficient-mana exit if approved.
 - [x] Run focused tests, complete gate and all42 scenarios; explain any change against Stage0 and bump hash/save together.
-- [ ] Commit named paths and obtain a fresh independent Part7a verifier; fix each confirmed finding separately.
+- [x] Commit named paths and obtain a fresh independent Part7a verifier; fix each confirmed finding separately (nine corrections independently approved; upkeep still awaits the owner).
 
 ## Part7b: possessed actions
 
@@ -46,10 +46,20 @@
 
 **Interfaces:** Movement carries a pose in fixed-point units and heading. Attack/cast carry the researched aim/slot semantics, not an invented target-tag shortcut.
 
-- [ ] Close action25/26 target selection and action timing in the binary before implementation.
-- [ ] Write failing movement, melee miss/hit, spell-slot/refusal/cooldown and snapshot tests.
+- [x] Close action25/26 target selection and action timing in the binary before implementation.
+- [x] 7b1: movement (action25) tests, implementation, hash176 and snapshot; facts in keeper-spell-possession.md §Possessed actions.
+- [ ] 7b2: write failing melee miss/hit, spell-slot/refusal/cooldown, link-order and snapshot tests.
 - [ ] Implement the minimal researched command paths; keep pickup, follower UI and presentation branches explicitly outside the requested actions.
 - [ ] Run focused tests, complete gate and all42 scenarios; commit and obtain a fresh verifier.
+
+### Action implementation contract
+
+- Commands carry typed fixed-point pose/aim and spell slot; attack selection remains simulation-owned. Preserve action25's packed-word zero branch and masked heading.
+- Track mixed-class tile insertion with a separate persisted link order, leaving the legacy trap-chain ordering alone; update at actual position/layer mutations. Reuse action/shot damage consumers, with separate possession entry. Melee stamps before searching; spells stamp after their branch even when action start refuses. Cooldown equality refuses.
+- Model the requested pose height and free aim explicitly in state, hash and snapshot. Existing vertical physics/collision remains the documented M9/Q398 boundary; do not substitute an AI-target cast for free aim.
+- Shipped action interruption bytes are all1; preserve replacement of represented actions. The generic engine refuses a zero interruption byte, which this simulation's data model does not author.
+- Preserve the melee neighborhood order, strict cone ±0x155 and replacement conjunction. Preserve spell player/class list order and minimize the signed score `4096 − normalized ray dot`, starting from the authored angular threshold. Tests distinguish both from nearest-distance selection.
+- Keep pickup, followers, Hero Lair controls and presentation explicitly unbuilt. Owner choice is still required for upkeep.
 
 ## Final integration
 

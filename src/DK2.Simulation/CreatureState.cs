@@ -262,6 +262,7 @@ public sealed class CreatureState
     /// (ADR-0001).</para></summary>
     public int PosX;
     public int PosY;
+    public int PosZ;
 
     /// <summary>DK2's steering body, which the original embeds in the creature at <c>+0x124</c>
     /// (docs/research/steering-behaviours.md §7.5): velocity, the route window, the stuck history
@@ -922,6 +923,7 @@ public sealed class CreatureState
     /// position DK2's <c>vtable+0x2C</c> returns, which a shot's aim leads by (shots.md §7).</summary>
     public int LastPosX;
     public int LastPosY;
+    public int LastPosZ;
 
     /// <summary>The status words of creature-status-effects.md §1, tick countdowns stepped by
     /// <see cref="Systems.CreatureStatusSystem"/>: armour <c>+0x443</c> (damage halved), invulnerable
@@ -1064,6 +1066,7 @@ public sealed class CreatureState
         hash.Add(TriggerRepeat);
         hash.Add(PosX);
         hash.Add(PosY);
+        hash.Add(PosZ);
         hash.Add(Heading);
         hash.Add(RouteOptions);
         hash.Add(HeartTargetPlayerId);
@@ -1209,6 +1212,7 @@ public sealed class CreatureState
         hash.Add(SwingSpellSlot);
         hash.Add(LastPosX);
         hash.Add(LastPosY);
+        hash.Add(LastPosZ);
         hash.Add(ArmourTicks);
         hash.Add(InvulnerableTicks);
         hash.Add(FrozenTicks);

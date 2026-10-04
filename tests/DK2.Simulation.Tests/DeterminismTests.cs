@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 175: possession/influence flags and influence deadline (ADR-0350).
+        // HashVersion 176: a possessed creature's height and previous height (ADR-0350).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x6F9C6A3B4D22F803UL, sim.StateHash());
+        Assert.Equal(0x207022305EFDD86AUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

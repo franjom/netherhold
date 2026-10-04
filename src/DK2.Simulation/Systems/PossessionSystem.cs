@@ -16,8 +16,14 @@ public sealed class PossessionSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         foreach (PlayerCommand command in context.Input.All)
-            if (command is LeavePossessionCommand leave && context.World.HasPlayer(leave.PlayerId))
-                PossessionRules.Leave(context, ref context.World.Player(leave.PlayerId));
+        {
+            if (!context.World.HasPlayer(command.PlayerId)) continue;
+            ref PlayerState player = ref context.World.Player(command.PlayerId);
+            if (command is LeavePossessionCommand) PossessionRules.Leave(context, ref player);
+            else if (command is MovePossessedCreatureCommand move
+                && context.World.CreatureById(player.PossessedCreatureId) is { } creature)
+                PossessionRules.Move(context, creature, move.Pose);
+        }
         context.Navigation.Refresh();
         var sight = new WorldSight(context.Navigation, context.World, context.Database);
         foreach (CreatureState creature in context.World.Creatures)

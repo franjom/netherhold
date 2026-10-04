@@ -7,6 +7,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Quarantined research .txt files may contain decompiler output; never preview their prefixes. Extract only facts or explicitly identified assembly sections.
+
 - BitReaders.py takes an offset without `0x` (for example `3ea`); a prefixed offset silently searches for `+0x0x3ea` and returns no matches.
 
 - Path.GetFullPath is lexical and does not detect junction or symlink aliases; output guards must inspect filesystem links.

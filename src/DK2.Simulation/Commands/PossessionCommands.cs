@@ -11,3 +11,13 @@ public sealed record LeavePossessionCommand(byte PlayerId) : PlayerCommand(Playe
 {
     public override void HashInto(ref Hash64 hash) => base.HashInto(ref hash);
 }
+
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-possession.md")]
+public sealed record MovePossessedCreatureCommand(byte PlayerId, PossessionPose Pose) : PlayerCommand(PlayerId)
+{
+    public override void HashInto(ref Hash64 hash)
+    {
+        base.HashInto(ref hash);
+        Pose.HashInto(ref hash);
+    }
+}
