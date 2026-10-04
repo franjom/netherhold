@@ -8075,6 +8075,8 @@ spell 1 available at t1961 and he casts 14 times; before that the position draws
 taken before the availability test as DK2 takes them, shift his stream.
 
 **Deviations.** The keeper's own stream (ADR-0244) keeps DK2's draw order, not its
-values. The prisoner step before Sight is unbuilt, so a Prison selection that would
-take the last allowance does not stop ours. Sight's shot (process 25, 64 updates, no
-collision) is not created.
+values. The prisoner step before Sight (`0x005006D0`) is unbuilt: in DK2 a keeper with a
+Prison draws its rolls and may spend the last allowance there first. The gold gate tests
+our task state, not the task pool's kind-2 count; the cost arm with nothing stored takes
+the fresh scan's first deposit (Q539). Sight's shot (process 25, 64 updates, no
+collision) and the thing slot it would take are not created.
