@@ -87,8 +87,8 @@ therefore does not skip the previous plan's room on this path.
    fall back to the owned-boundary search; both require an owned room as origin.
    Accepted rooms start Task 7 / NextTask 4.
 3. Let `price = roomDefinition(CurrentRoomToBuild & 0x7F).u16[+0x43F]`. If
-   `player.Money < price * DefaultRoomSize` and the unnamed word at
-   `player[+0x1105]+0x467C` is zero, start the gold selector instead of a room.
+   `player.Money < price * DefaultRoomSize` and the task pool's kind-2 (mine a seam)
+   count `player[+0x1105]+0x467C` is zero, start the gold selector instead of a room.
 4. Otherwise start `Task=1`. Rooms below id 6 use `DefendDirection`; later rooms use
    `OpenDirection + random(3) - 1`, modulo four. Select an origin from an ideal-room
    table or a random owned non-bridge room, subject to `PlaceRoomsNextToIdeal` and
@@ -123,7 +123,8 @@ estimate above; id 3 also consults the per-tile price.
 `+0x36 RoomList`, `+0x7E Money`; room definition R `+0x43F` price.
 **Strongly inferred:** keeper `+0x0A/+0x0E` world/player pointers; room
 `+0x08/+0x18/+0x27/+0x2D/+0x2E` next/type/position. The two gates at
-`player[+0x1105]+0x467A/+0x467C` have **UNKNOWN** names.
+`player[+0x1105]+0x467A/+0x467C` are the task pool's kind-1 and kind-2 counts
+(`+0x4678 + kind × 2`, [00508200](functions/00508200.md)): dig and mine tasks pending.
 
 ### Callees
 

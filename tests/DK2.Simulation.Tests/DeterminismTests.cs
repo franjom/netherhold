@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 177: the mixed-class tile chain link and the free-aim cast's parameters.
+        // HashVersion 178: a Sight of Evil cast pays and stamps its clocks (ADR-0352).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x3C779015EE115C66UL, sim.StateHash());
+        Assert.Equal(0x030F88C2BFE9ADEBUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

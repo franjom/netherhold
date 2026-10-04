@@ -474,8 +474,9 @@ tick is skipped (the counters still run).
     The accessor includes idle creatures and excludes ordinary research/training;
     it is not a working-state test (`research/computer-keeper-management.md` §8).
 14. If budget: **prisoners** (`0x5006D0`, §5.8); if that returned budget and
-    `UseSightOfEvil` ≠ 0: **Sight of Evil** (`0x5003A0`): a random map tile; mode 1
-    casts at 2 %/tick anywhere, mode 2 at 20 %/tick only on enemy-owned tiles.
+    `UseSightOfEvil` ≠ 0: **Sight of Evil** (`0x5003A0`): a random map position, drawn
+    before the mode test; mode 1 casts at 2 %/tick anywhere, mode 2 at 20 %/tick only on
+    enemy-owned tiles; a cast that succeeds costs one allowance (§5.10).
 15. **The task machine** (§5.2), looped while budget remains.
 
 ### 5.2 The task machine — `Task` values
@@ -654,9 +655,10 @@ solid rock, and spacing zero does not add the extra strip.
 in `GoldDeposits`; its stale admission cutoff means these are not always the four
 nearest. It uses an unweighted centroid, correcting away from terrain flag bit 1;
 the stored amount is total gold (`research/computer-keeper-management.md` §12).
-The gold step takes `GoldDeposits[CurrentGoldArea]` → Task 5;
-with none known and **Create Gold** available, it casts Create Gold one tile off the
-heart.
+The gold step copies a stored deposit into `DigRoomAt` → Task 5; with
+none stored it rescans and, with **Create Gold** available, casts it at the heart's
+centre plus (1, 1), a tile a 5 × 5 Heart's own cast check refuses. It always rescans
+and leaves `CurrentGoldArea` at 0 (§5.10).
 
 ### 5.6 Traps and doors (`0x5000A0`, `0x4FFD80`)
 
@@ -743,6 +745,23 @@ exists; the hand puts it down in a random own Lair or at the heart. Built as
 | 15 + 5×(portals − 1) | make-room step | portal creature cap: balance variable 73 (`0x006F28B4`, 15 in shipped data) plus the adjacent byte per extra portal, whose id is HYPOTHESIS (OpenKeeper lists variable 177 = 5 by that name) |
 | 4 ticks = 1 game second = 1 s | everything | the LEVEL record's ticks-per-second field is 4 in all 66 shipped levels, and a tick is **250 ms**: binary-read and stopwatched by the owner (Q1, ADR-0089; `research/balance-variables-in-the-binary.md`). So 1,680 ticks = 7 minutes, 240 = 1 minute, 300 = 75 s, 40 = 10 s. Measured live at 3.93–3.95 ticks/s in steady state |
 | `seed = seed × 0x19660D + 0x3C6EF35F`, `rotl(seed, 19) mod n` | RNG | every `random(n)` here draws from the **world's** stream (seed at world `+0x15A0`), so the AI is deterministic given the world state |
+
+### 5.10 Where the keeper casts spells
+
+Every call to a cast helper that the tick reaches, from a census over both code blocks;
+evidence, Q537 and the shipped flag words: `research/computer-keeper-spell-sites.md`.
+The battle scan cannot pick any spell added by ADR-0350 in shipped or level data.
+
+| Site | Spell | Gate | Built |
+|---|---|---|---|
+| step 11 (`0x00500F9F`) | 4 Create Imp | imp counts, availability, ± 2 tiles off the heart | yes, ADR-0247 |
+| attack management | 3 Call to Arms | the front (§5.7) | yes, ADR-0298 |
+| battle step | 3 Call to Arms | threat, lava, mana > cost, turn % 40, route (§5.7) | yes, ADR-0283 |
+| battle step | scanned: Thunderbolt, Heal, Chicken, Inferno | flag word bits 2/3, not 4; rolls (§5.7) | yes, ADR-0283/0287/0302 |
+| gold step (`0x004FD590`) | 13 Create Gold | no stored deposit, availability 3; no allowance | yes, ADR-0352 |
+| step 14 (`0x005003A0`) | 1 Sight of Evil | `UseSightOfEvil` mode and roll, enemy tile in mode 2, availability 3; one allowance on success | yes, ADR-0352 |
+
+The third cast path (`0x004BC290`) is action 56's alone; the keeper never issues it.
 
 ---
 
@@ -1039,7 +1058,7 @@ methods on `KeeperAI` rather than a separate type.
 | 62 slap | `SlapCreatureCommand` | none |
 | place room tile by tile | one `BuildRoomCommand` per tile | The command lacks DK2's payment-bypass mode when gold falls below one tile's price (handler research section 6). |
 | spell 4 Create Imp | `CreateImpCommand` | none |
-| spells 3 Call to Arms (+63 remove), the battle spells, Heal, Chicken, Inferno | `CastSpellAtPlaceCommand`, `CastSpellOnCreatureCommand`, `RemoveCallToArmsCommand` (ADR-0279, 0283, 0287, 0302) | 1 Sight of Evil and 13 Create Gold have no cast rule yet (`dk2tools coverage`) |
+| spells 3 Call to Arms (+63 remove), the battle spells, Heal, Chicken, Inferno | `CastSpellAtPlaceCommand`, `CastSpellOnCreatureCommand`, `RemoveCallToArmsCommand` (ADR-0279, 0283, 0287, 0302) | none: the keeper casts 13 Create Gold and 1 Sight of Evil, whose simulation cast has an empty effect (ADR-0352, §5.10) |
 | place trap / door | `PlaceTrapCommand`, `PlaceDoorCommand` | placement exists (ADR-0231); AI site choice remains |
 | pay a creature by minting gold on it | — | needs a treasury-withdrawal rule as well as a command |
 | claim a neutral room | digging a path to it, then `ConvertRoom` work | none (ADR-0044) |
@@ -1158,7 +1177,8 @@ Remaining M12 plan:
 
 `src/DK2.AI` (Unity-bound, `netstandard2.1`) changes no world state itself: what its
 commands cause (Call to Arms, the keeper spells, the level grant) are simulation rules. `KeeperAI.Think` runs the budget, the 1,680-tick task timeout, the 240-tick
-gold untag, imp creation, slapping, and the task machine for tasks 0–7. The other files
+gold untag, imp creation, slapping, and the task machine for tasks 0–7, whose gold step casts
+Create Gold (ADR-0352). The other files
 are §12.2's table.
 
 `KeeperAI.Think` also runs step 7's attack management and step 9's training moves
@@ -1172,7 +1192,7 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
-The observation (schema 16) includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
+The observation (schema 17) includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
 alliances, reverse player activation order, research upgrades, placed trap threat and
 navigation bytes (`research/computer-keeper-threat.md` sections 1 and 2). Tests check frozen
 values, packet round trips and equal command streams;
@@ -1207,7 +1227,7 @@ its validators give an own creature; schema 13 every player's status, the heart 
 as the heart and the call's refused own-room tiles, with route queries over the captured bytes;
 schema 14 the Chicken and Inferno permissions per foreign creature (ADR-0302); schema 15 each
 creature's experience and dropped-to-do job and each room's floor slots in chain order (ADR-0317); schema 16
-every room's tiles in chain order (ADR-0327).
+every room's tiles in chain order (ADR-0327); schema 17 the own-room tiles where Sight's target 4 refuses (ADR-0352).
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
 now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);

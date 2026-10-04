@@ -119,7 +119,8 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         // A later fight still running on a later such turn draws another call: which fights last
         // that long depends on the run's draws, so every call is checked, not their number.
         Assert.Empty(run.ExpectationFailures);
-        List<KeeperCommandEmission> casts = run.KeeperCommandLog.Where(e => e.Command is CastSpellAtPlaceCommand).ToList();
+        List<KeeperCommandEmission> casts = run.KeeperCommandLog
+            .Where(e => e.Command is CastSpellAtPlaceCommand { SpellId: CallToArmsRules.SpellId }).ToList();
         List<KeeperCommandEmission> removals = run.KeeperCommandLog.Where(e => e.Command is RemoveCallToArmsCommand).ToList();
         Assert.NotEmpty(casts);
         var call = (CastSpellAtPlaceCommand)casts[0].Command;
@@ -293,9 +294,11 @@ public class Level18AttackKeeperScenarioTests(ITestOutputHelper output)
         // flags end holding more than her bit.
         KeeperAIState state = run.KeeperStates[4];
         Assert.Equal((1 << 5, 1 << 5, (byte)0), (state.PlayersAttackedFlags & (1 << 5), state.FirstAttackFlag & (1 << 5), state.Breaches[5].TunnelsLeft));
-        List<CastSpellAtPlaceCommand> casts = run.KeeperCommandLog.Select(e => e.Command).OfType<CastSpellAtPlaceCommand>().ToList();
+        // Nemesis also casts Sight of Evil at 20 % of her turns (ADR-0352); the call is spell 3.
+        List<CastSpellAtPlaceCommand> casts = run.KeeperCommandLog.Select(e => e.Command).OfType<CastSpellAtPlaceCommand>()
+            .Where(c => c.SpellId == CallToArmsRules.SpellId).ToList();
         Assert.NotEmpty(casts);
-        Assert.All(casts, c => Assert.Equal(((byte)4, (byte)3), (c.PlayerId, c.SpellId)));
+        Assert.All(casts, c => Assert.Equal((byte)4, c.PlayerId));
         Assert.Equal((60, 66), (casts[0].X >> 12, casts[0].Y >> 12));
         Assert.True(casts.Select(c => (c.X >> 12, c.Y >> 12)).Distinct().Count() > 1, "the call never crept");
         Assert.Contains(run.Events, e => e.Kind == "call_to_arms_slapped" && e.Detail.Contains("player=4"));
