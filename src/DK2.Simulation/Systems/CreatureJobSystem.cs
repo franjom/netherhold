@@ -259,7 +259,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         if (JobRules.ChargesNoWorkAnger(mood) && charge != 0)
         {
             CreatureAngerRules.Apply(
-                context.World, definition, creature, AngerBucket.Work, charge);
+                context.World, definition, creature, AngerBucket.Work, charge, AngerComplaint.NoWork);
 
             context.Emit(SystemName, "no_work",
                 $"creature={creature.Id} type={definition.Name} " +
@@ -589,7 +589,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         }
 
         byte setting = CasinoRules.SettingUnder(world, database, creature);
-        CreatureAngerRules.Apply(world, definition, creature, CasinoRules.AngerPerSecond(database, setting));
+        CreatureAngerRules.Apply(world, definition, creature, CasinoRules.AngerPerSecond(database, setting), AngerComplaint.Money);
 
         int change = CasinoRules.PursePerSecond(database, setting);
         int won = change >= 0
@@ -612,7 +612,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         // fill (ADR-0081). Six calls, one per bucket, at -275 each; then 33
         // health, clamped by the health rules to what is actually missing.
         CreatureAnger before = creature.Anger;
-        CreatureAngerRules.Apply(world, definition, creature, JobRules.PrayingCalm(database));
+        CreatureAngerRules.Apply(world, definition, creature, JobRules.PrayingCalm(database), CreatureAngerRules.PrayingComplaints);
         int healed = CreatureHealthRules.Apply(
             database, definition, creature, JobRules.PrayingHeal(database));
 
@@ -631,7 +631,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         CreatureState creature, CreatureDef definition)
     {
         CreatureAnger before = creature.Anger;
-        CreatureAngerRules.Apply(world, definition, creature, JobRules.SpectatorCalm(database));
+        CreatureAngerRules.Apply(world, definition, creature, JobRules.SpectatorCalm(database), AngerComplaint.General);
         if (before.Equals(creature.Anger)) return;
 
         context.Emit(SystemName, "spectated",

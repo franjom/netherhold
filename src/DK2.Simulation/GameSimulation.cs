@@ -20,7 +20,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 178;
+    private const ulong HashVersion = 179;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationContext _context;
@@ -107,7 +107,7 @@ public sealed class GameSimulation
         foreach (PlayerCommand command in input.All)
             if (command is Commands.AcknowledgePlayerMessageCommand ack)
                 World.Messages.Acknowledge(ack.PlayerId, ack.MessageId);
-        World.Messages.Sweep();
+        World.Messages.Sweep(World, Database);
 
         // DK2's first game turn is 1; our next-tick clock starts at 0.
         int dk2Turn = unchecked((int)(World.CurrentTick.Value + 1));

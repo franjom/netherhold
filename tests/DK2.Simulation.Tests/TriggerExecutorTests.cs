@@ -1686,7 +1686,7 @@ public class TriggerExecutorTests
             world.Triggers, world, database).Run(1);
 
         Assert.Equal(0, CreatureAngerRules.Apply(
-            world, definition, creature, AngerBucket.Treatment, 3000));
+            world, definition, creature, AngerBucket.Treatment, 3000, AngerComplaint.Slapped));
         Assert.Equal(0, creature.Anger.Treatment);
     }
 

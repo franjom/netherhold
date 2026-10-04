@@ -8162,3 +8162,7 @@ in the corpus takes a neutral Portal, so it posts 33 (acknowledged) and a 35 to 
 neutral player; both arms are unreachable. Stage 5: keeper runs whose creatures want a
 missing or full room move; which ones is measured. Stage 6: inert; no scenario destroys
 another player's solid wall, wrecks a room or fires an Alarm.
+
+**Measured.** Stage 1 (hash 179): worlds unchanged in all 42; events differ only in the
+message ids room-message events print, since 17s now take ids (nine runs); Asmodeus and
+Harkan (treasury-full) gain one acknowledgement each, at t620 and t652, as predicted.

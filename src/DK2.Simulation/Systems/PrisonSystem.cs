@@ -185,7 +185,7 @@ public sealed class PrisonSystem : ISimulationSystem
             // interval (ADR-0171).
             CreatureAngerRules.Apply(
                 context.World, definition, creature, AngerBucket.Company,
-                PrisonRules.CellAngerPerApplication(context.Database));
+                PrisonRules.CellAngerPerApplication(context.Database), AngerComplaint.General);
 
             creature.Health += wither;
             if (creature.Health > 0) continue;

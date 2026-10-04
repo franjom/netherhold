@@ -370,7 +370,7 @@ event exists in our simulation):
 |---|---|---|---|---|
 | 1, 6 | all | position reader | yes (ADR-0278) | — |
 | 12 | none | position reader | no: marked handled | `0x00452F60`'s post (ours); action 9 (not ours) |
-| 17, 18 | none | make happy, dispose | no | — (`0x004D6A40`, the percentage site, is not ours) |
+| 17, 18 | every anger path of ours (`CreatureAngerRules`, `AngerComplaint`) | make happy, dispose | no: marked handled | — (`0x004D6A40`, the percentage site, is not ours) |
 | 32/33, 35 | none | Lair request, chooser | no | — (`0x0044FC40`'s terrains 31/32 are not ours) |
 | 34 | none | room reader | no | hero blow (ours); job 11 (Q523, not ours) |
 | 41, 42 | carrier, sale refund, Lair, Hatchery | room request | yes (ADR-0327) | the other finders, rescue, claim failure, Lair-bed and Graveyard counts, `0x004BA420`'s other callers |

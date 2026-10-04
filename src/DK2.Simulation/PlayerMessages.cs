@@ -12,6 +12,14 @@ public enum PlayerMessageKind : uint
     HeartAttacked = 1,
     CombatStarted = 6,
 
+    /// <summary>Type 17: a creature's anger band rose to unhappy (<c>0x00478B80</c>); Data1 is the
+    /// wrapper's <see cref="AngerComplaint"/>, Data2 the creature. Row <c>0x2032</c>: fifty
+    /// seconds, tab, no duplicates, so one unexpired 17 per player stands for every creature.</summary>
+    CreatureUnhappy = 17,
+
+    /// <summary>Type 18: the band rose to angry; otherwise as <see cref="CreatureUnhappy"/>.</summary>
+    CreatureAngry = 18,
+
     /// <summary>Type 52: Data1 is the warning stage 1–4 (subtable <c>0x006A0610</c>).</summary>
     LowManaWarning = 52,
 
@@ -116,6 +124,8 @@ public sealed class PlayerMessageQueue
             PlayerMessageKind.CombatStarted => 0,
             PlayerMessageKind.CallToArmsUnreachable => (uint)SimulationTiming.TicksFromSeconds(50),
             PlayerMessageKind.AlarmRaised => (uint)SimulationTiming.TicksFromSeconds(50),
+            PlayerMessageKind.CreatureUnhappy or PlayerMessageKind.CreatureAngry =>
+                (uint)SimulationTiming.TicksFromSeconds(50),
             // Both subtables give every listed variant 20 seconds. Warning row 0 names no
             // string, which discards the message; a variant off the table is refused.
             PlayerMessageKind.LowManaWarning when data1 == 0 => uint.MaxValue,
@@ -158,15 +168,32 @@ public sealed class PlayerMessageQueue
         if (index >= 0) _entries[index] = _entries[index] with { Handled = true };
     }
 
-    internal void Sweep()
+    /// <summary><c>0x004C41E0</c>: ages every record, frees a 17 or 18 whose creature still exists
+    /// and has left that band, frees one at its timeout and clears NeedsTab past age 199.</summary>
+    internal void Sweep(WorldState world, GameDatabase database)
     {
         for (int i = _entries.Count - 1; i >= 0; i--)
         {
             PlayerMessage message = _entries[i];
             uint age = unchecked(message.Age + 1);
-            if (age >= message.Timeout) _entries.RemoveAt(i);
+            if (age >= message.Timeout || LeftItsBand(world, database, message)) _entries.RemoveAt(i);
             else _entries[i] = message with { Age = age, NeedsTab = message.NeedsTab && age < 200 };
         }
+    }
+
+    /// <summary>DK2 tests the thing its Data2 tag names, when that is a creature: a corpse is
+    /// still one, so ours tests any creature record the id names. A creature no longer in the
+    /// world leaves the message to its timeout.</summary>
+    private static bool LeftItsBand(WorldState world, GameDatabase database, PlayerMessage message)
+    {
+        CreatureMood band = message.Kind switch
+        {
+            PlayerMessageKind.CreatureUnhappy => CreatureMood.Unhappy,
+            PlayerMessageKind.CreatureAngry => CreatureMood.Angry,
+            _ => CreatureMood.Content,
+        };
+        if (band == CreatureMood.Content || world.CreatureById(message.Data2) is not CreatureState creature) return false;
+        return CreatureAngerRules.MoodOf(database.CreatureById(creature.CreatureTypeId), creature) != band;
     }
 
     internal void HashInto(ref Hash64 hash)
