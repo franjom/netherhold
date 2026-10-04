@@ -132,7 +132,7 @@ public static class FightRules
 
     /// <summary>The blow (<c>0x00498E30</c> past its gate): the swing's own target, whether or not
     /// the engagement has moved on; a creature no longer standing, or invulnerable, takes nothing; the
-    /// health change is <see cref="MeleeDamageRules.Blow"/> with no stance, the bearing from target to
+    /// health change is <see cref="MeleeDamageRules.Blow"/> with the attacker's stance, the bearing from target to
     /// attacker and no player modifier, through <see cref="StatusEffectRules.Hurt"/>'s multipliers.
     /// A heart takes it flat through <see cref="WorldState.DamageHeart"/>, as DK2's health routine
     /// hands a pillar's blow to the owner's heart (<c>0x004DA200</c>, Q363); DK2 also raises the
@@ -174,7 +174,7 @@ public static class FightRules
             if (door is null || door.Health <= 0) return;
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 MeleeDamageRules.Swing(database, mine, me.Level,
-                    me.CombatPitFighter ? MeleeDamageRules.Stance.CombatPitFighter : MeleeDamageRules.Stance.None), 0, 0);
+                    MeleeDamageRules.StanceOf(me)), 0, 0);
             if (blow == 0) return;
             DoorRules.Damage(context, door, -blow, me.OwnerPlayerId);
             context.Emit(SystemName, "door_hit", $"creature={me.Id} door={door.Id} blow={blow} health={door.Health}");
@@ -188,7 +188,7 @@ public static class FightRules
             if (trap is null || trap.Health <= 0) return;
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 MeleeDamageRules.Swing(database, mine, me.Level,
-                    me.CombatPitFighter ? MeleeDamageRules.Stance.CombatPitFighter : MeleeDamageRules.Stance.None), 0, 0);
+                    MeleeDamageRules.StanceOf(me)), 0, 0);
             if (blow == 0) return;
             TrapRules.Damage(trap, -blow);
             context.Emit(SystemName, "trap_hit", $"creature={me.Id} trap={trap.Id} blow={blow} health={trap.Health}");
@@ -266,11 +266,12 @@ public static class FightRules
     }
 
     /// <summary>Action 16's wind-up (combat-spells.md §7 step 2): the shot leaves once the turn is
-    /// past the start plus the slot's delay — strictly, so a zero delay fires the next tick.</summary>
+    /// past the start plus the slot's delay — strictly, so a zero delay fires the next tick.
+    /// Possession bypasses the delay.</summary>
     public static bool CastFires(CreatureState me, CreatureDef mine, long tick) =>
         me.SwingInProgress && me.SwingKind == SpellRules.SpellCast
         && me.SwingSpellSlot < mine.Spells.Count
-        && tick > me.SwingStartTick + SpellRules.DelayTicks(mine, me.SwingSpellSlot);
+        && (me.Possessed || tick > me.SwingStartTick + SpellRules.DelayTicks(mine, me.SwingSpellSlot));
 
     /// <summary>Action 16's shot (combat-spells.md §7 steps 3–7): from the caster's position — the
     /// slot's origin vector is not carried (Q398) — at the target's centre led by its last move
@@ -336,7 +337,7 @@ public static class FightRules
 
     private static int Blow(GameDatabase database, CreatureState me, CreatureDef mine, int targetX, int targetY) =>
         MeleeDamageRules.Blow(database, mine, me.Level,
-            me.CombatPitFighter ? MeleeDamageRules.Stance.CombatPitFighter : MeleeDamageRules.Stance.None,
+            MeleeDamageRules.StanceOf(me),
             Bearing.Of(me.PosX - targetX, me.PosY - targetY), 0, 0);
 
     /// <summary><c>0x0045AA20</c>, the target's side of a swing beginning, for an attacker that is not a

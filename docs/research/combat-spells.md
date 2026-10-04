@@ -103,12 +103,9 @@ No spell id → no. Never cast (stamp 0) → yes. Otherwise the recharge `R` fro
 quarter long; the divisor Gate B uses too, `combat-fight-state.md` §4) — and the
 answer is **`stamp + scaled < now`**, strict.
 
-`0x004F7AB0(spellDef, creature)`: unpossessed, `+0x2D` as it stands. `Possessed`
-(`+0x3E6` bit 7): `R × (100 + a) / 100 × FirstPersonRechargeModifyPercentage / 100`
-(variable 210, ships 100). `InfluencedByPossessed` (`+0x3EA` bit 3): `R × (100 + a)
-/ 200`. `a` is `0x00495080(0x1F)`, an accessor of index 31 in a table that is
-**not** the balance table (its 31 is `DelayBeforePayReevaluationSeconds`) —
-UNKNOWN, Q393. The sibling `0x0048C8B0` gives the same recharge as a percentage
+`0x004F7AB0(spellDef, creature)` supplies the possession-adjusted interval;
+its table and truncations are confirmed and built (Q393), with evidence in
+`keeper-spell-possession.md` §Modifiers. The sibling `0x0048C8B0` gives the same recharge as a percentage
 elapsed, 100 when ready, for the possession display.
 
 ## 5. Which spell the survey picks (corrects `combat-acquisition.md` §6)
@@ -219,8 +216,8 @@ by `0x00460DA0` (a route to the spot and the terrain flag) and applied by
 
 **Built (ADR-0167, `HashVersion` 72):** the survey's attack choice (§5) in
 `SpellRules.SurveyAttack`, run by `CombatTargetRules.Choose` for every non-worker; the
-fight-starter's nibble in `Engage` and `EngageHeart`; the cooldown gate §4 without
-the haste words (Q393); the spell arm §6 as `FightRules.StartCast`, stamping the
+fight-starter's nibble in `Engage` and `EngageHeart`; the cooldown gate §4 with
+the work-rate divisor; the spell arm §6 as `FightRules.StartCast`, stamping the
 slot at the start; action 16 §7 as `CastFires`/`FireSpell`, firing when the turn is
 past start + delay, with the lead on the target's last move, from the caster's own
 position — the slot's origin vector is not carried (Q398); the cannot-cast
@@ -230,8 +227,10 @@ itself is `shots.md` §10.
 
 **Built since (ADR-0170):** the ally arm §8 and the friendly survey
 (`spell-friendly-arm.md`). **Not built:** the thing-targeting
-survey; the possession recharge modifiers (Q393); the approach's part-way point for a
+survey; the approach's part-way point for a
 spell nibble (`combat-fight-state.md` §2 step 10).
+Possession modifiers and its wind-up bypass are built under ADR-0350;
+see `keeper-spell-possession.md`.
 
 ## Confidence
 
@@ -244,5 +243,5 @@ direction; §6, §8, §9 and §10 in order; §7's every step and both asserts.
 **STRONGLY INFERRED:** the names of bits 0–3 (from the roster and the two places
 each is tested); `vtable+0x2C` as the previous position; class 9 as a room.
 
-**UNKNOWN:** Q392 the shot thing; Q393 the index-31 accessor and the haste/slow
-words; Q394 bits 5–8, bit 7's use and the buff table at `0x006E4AC8`.
+**UNKNOWN:** Q392 the shot thing; Q394 bits5–8, bit7's use and the buff
+table at `0x006E4AC8`.

@@ -32,6 +32,7 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
 
         foreach (CreatureState creature in world.Creatures)
         {
+            if (creature.Possessed) continue;
             if (!PrisonRules.IsImprisoned(creature)) continue;
             if (TortureRules.IsBeingTortured(creature)) continue;   // on a device, not in a cell
             if (JailBreakRules.IsEscaping(creature)) continue;      // walking out, in 121 (ADR-0229)

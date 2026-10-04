@@ -39,6 +39,7 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
 
         foreach (CreatureState state in world.Creatures)
         {
+            if (state.Possessed) continue;
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
             // Nothing earns while held in the hand (a held creature worked

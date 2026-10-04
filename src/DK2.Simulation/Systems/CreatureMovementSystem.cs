@@ -70,10 +70,13 @@ public sealed class CreatureMovementSystem : ISimulationSystem
                 ? Math.Min(SimulationTiming.LoaderRatePerTick(creature.PartySpeedRaw), MaxSpeedPerTick) << 4
                 : MaxSpeedOf(context.Database, definition, creature.Level, creature.Running);
             creature.Body.MaxSpeed = StatusEffectRules.SpeedCap(context.Database, definition, creature, cap);
+            creature.Body.MaxSpeed = unchecked((int)((long)creature.Body.MaxSpeed
+                * PossessionRules.SpeedMultiplier(context.Database, creature).Raw >> 12));
         }
 
         foreach (CreatureState creature in context.World.Creatures)
         {
+            if (creature.Possessed) continue;
             if (HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) continue;
             if (TremorRules.IsRecovering(creature) || context.TremorRecoveryCompletedThisTick.Contains(creature)) continue;
             if (creature.TremorRoutePaused)

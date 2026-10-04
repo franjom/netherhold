@@ -7974,7 +7974,7 @@ Per-scenario hash series and final hashes: `plans/2026-10-03-keeper-spells-basel
 Level 1/2 seeds 1–20 cannot be measured here: their gitignored scratchpad
 drivers and recorded packets are absent from this isolated worktree.
 
-**Current boundary.** Stages0–5 and their corrections are independently approved.
+**Current boundary.** Stages0–6 and their corrections are independently approved.
 Create Gold uses the existing shot/landing boundary; Tremor builds world slots,
 wall effects, creature reaction/recovery and the integer action clock.
 Turncoat changes temporary combat allegiance, preserving actual ownership.
@@ -7984,8 +7984,9 @@ Evidence and limits: `research/keeper-spell-create-gold.md`,
 `research/keeper-spell-tremor.md`, `research/keeper-spell-turncoat.md` and
 `research/keeper-spell-reaper.md`. Neutral and Horny idle controllers remain
 explicitly unbuilt. All42 scenarios preserve event/world outputs; new hash
-composition changes every series. Current hash/save174.
+composition changes every series. Current hash/save175.
 Stage6 records Sight's temporary presentation layer and intentionally leaves
 simulation casting unbuilt; see `research/keeper-spell-sight.md` and Q534.
-Its binary/runtime review passes; a documentation correction awaits fresh review
-(2026-10-04). Possession is next.
+Its binary/runtime and documentation reviews pass (2026-10-04).
+Stage7a builds Possession lifecycle/modifiers; see `research/keeper-spell-possession.md`.
+Its review is pending. Upkeep awaits the owner choice; actions are Stage7b.

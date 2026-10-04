@@ -472,6 +472,7 @@ public static class ShotRules
             case PoisonProcess: StatusEffectRules.Poison(context, target, shot.Data2, shot.Data1, shot.OwnerPlayerId); break;
             case ChickenProcess: ChickenRules.Strike(context, shot, target, definitionOfTarget); break;
             case TurncoatRules.ProcessType: TurncoatRules.Strike(context, shot, target, definitionOfTarget); break;
+            case PossessionRules.ProcessType: PossessionRules.Strike(context, target); break;
         }
     }
 

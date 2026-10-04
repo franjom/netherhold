@@ -186,12 +186,12 @@ public sealed class KeeperSpellTests
     [Fact]
     public void SyntheticSelectorsFailClosedAndUpgradedShotIdComesFromTheDefinition()
     {
-        foreach (KeeperSpellDef spell in new[] { Spell() with { LocationSelector = 5 }, Spell() with { TargetSelector = 6 } })
+        foreach (KeeperSpellDef spell in new[] { Spell() with { LocationSelector = 9 }, Spell() with { TargetSelector = 9 } })
         {
             var (db, world, target) = Setup(spell);
             var boundary = new Boundary();
             new GameSimulation(db, world, 1, [boundary]).Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id)));
-            Assert.Equal(spell.LocationSelector == 5 ? KeeperSpellRefusal.UnsupportedLocationSelector
+            Assert.Equal(spell.LocationSelector == 9 ? KeeperSpellRefusal.UnsupportedLocationSelector
                 : KeeperSpellRefusal.UnsupportedTargetSelector, boundary.Refusal);
             Assert.Empty(world.Shots);
         }

@@ -29,6 +29,7 @@ public sealed class RescueSystem : ISimulationSystem
         for (int i = 0; i < world.Creatures.Count; i++)
         {
             CreatureState creature = world.Creatures[i];
+            if (creature.Possessed) continue;
             if (HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) continue;
 
             int here = (creature.Tile.Y * world.Width) + creature.Tile.X;

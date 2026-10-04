@@ -48,6 +48,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
+            if (creature.Possessed) continue;
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
 

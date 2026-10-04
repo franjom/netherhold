@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 174;
+    private const int FormatVersion = 175;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -404,6 +404,9 @@ public static class WorldSnapshot
             w.Write(c.ChickenTicks);
             w.Write(c.TurncoatTicks);
             w.Write(c.TurncoatPlayerId);
+            w.Write(c.Possessed);
+            w.Write(c.InfluencedByPossessed);
+            w.Write(c.NextPossessionInfluenceTick.Value);
             w.Write(c.ReaperTicks);
             w.Write(c.HornyTick);
             w.Write(c.IsOneShotReaper);
@@ -976,6 +979,9 @@ public static class WorldSnapshot
                 ChickenTicks = r.ReadInt32(),
                 TurncoatTicks = r.ReadUInt16(),
                 TurncoatPlayerId = r.ReadUInt16(),
+                Possessed = r.ReadBoolean(),
+                InfluencedByPossessed = r.ReadBoolean(),
+                NextPossessionInfluenceTick = new GameTick(r.ReadInt64()),
                 ReaperTicks = r.ReadUInt16(),
                 HornyTick = r.ReadUInt32(),
                 IsOneShotReaper = r.ReadBoolean(),

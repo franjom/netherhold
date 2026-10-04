@@ -34,6 +34,7 @@ public sealed class TortureSystem : ISimulationSystem
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = world.Creatures[i];
+            if (creature.Possessed) continue;
             if (!TortureRules.IsBeingTortured(creature)) continue;
             if (HandRules.IsHeld(creature)) continue;
 

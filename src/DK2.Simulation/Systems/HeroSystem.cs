@@ -30,6 +30,7 @@ public sealed class HeroSystem : ISimulationSystem
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
+            if (creature.Possessed) continue;
             if (context.TremorRecoveryCompletedThisTick.Contains(creature)) continue;
             if (!HeroJobRules.IsHero(creature)) continue;
             if (HandRules.IsHeld(creature) || PrisonRules.IsImprisoned(creature)) continue;

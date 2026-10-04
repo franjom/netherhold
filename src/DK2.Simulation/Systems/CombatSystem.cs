@@ -47,23 +47,21 @@ public sealed class CombatSystem : ISimulationSystem
         {
             CreatureState creature = creatures[i];
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+            // Action handlers continue while possession pauses state dispatch.
+            if (creature.SwingInProgress)
+            {
+                if (creature.SwingKind == SpellRules.SpellCast)
+                {
+                    if (FightRules.CastFires(creature, definition, context.Tick.Value)) FightRules.FireSpell(context, creature, definition);
+                }
+                else if (CombatRules.BlowLands(creature, definition, context.Tick.Value))
+                {
+                    FightRules.LandBlow(context, creature, definition);
+                }
+            }
+
             if (!CreatureDeathRules.IsPossessed(world, creature))
             {
-                // The swing is an action, not the state: its handler lands the blow whatever the
-                // creature is doing by then (Gate A, 0x00498E30); a cast's handler fires its shot
-                // the same way (action 16, 0x00498870).
-                if (creature.SwingInProgress)
-                {
-                    if (creature.SwingKind == SpellRules.SpellCast)
-                    {
-                        if (FightRules.CastFires(creature, definition, context.Tick.Value)) FightRules.FireSpell(context, creature, definition);
-                    }
-                    else if (CombatRules.BlowLands(creature, definition, context.Tick.Value))
-                    {
-                        FightRules.LandBlow(context, creature, definition);
-                    }
-                }
-
                 switch (creature.Activity)
                 {
                     case CreatureActivity.Fighting: Fight(context, creature, definition); break;
@@ -208,7 +206,7 @@ public sealed class CombatSystem : ISimulationSystem
                 else
                     CannotCast(context, creature, definition, x, y);
             }
-            else if (CombatRules.SwingMayBegin(creature, definition, tick))
+            else if (CombatRules.SwingMayBegin(context.Database, creature, definition, tick))
             {
                 FightRules.StartSwing(context, _sight!, creature, definition, _scratch);
             }

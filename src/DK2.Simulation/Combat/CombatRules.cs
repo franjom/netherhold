@@ -80,9 +80,9 @@ public static class CombatRules
             or CreatureActivity.RaisingAlarm or CreatureActivity.Reporting
             or CreatureActivity.Celebrating or CreatureActivity.GoingToBody;
 
-    /// <summary>What the job systems leave alone: the combat group, and a creature standing frozen or
-    /// stunned (creature-status-effects.md §2).</summary>
-    public static bool Preoccupied(CreatureState creature) => InCombat(creature) || StatusEffectRules.IsIncapacitated(creature);
+    /// <summary>What the job systems leave alone: possession, the combat group and incapacitation.</summary>
+    public static bool Preoccupied(CreatureState creature) =>
+        creature.Possessed || InCombat(creature) || StatusEffectRules.IsIncapacitated(creature);
 
     /// <summary>The engagement's registration on its target: the first free slot of the melee or
     /// the ranged array. False when all eight are taken, and then the attacker does not engage.</summary>
@@ -256,11 +256,31 @@ public static class CombatRules
     public static int TicksOf(Fp32 seconds) => (seconds.Raw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
 
     /// <summary>Gate B (<c>0x0048C9B0</c>): a melee swing may begin when <c>MeleeRecharge</c> ticks
-    /// have passed since the last one began. Haste and slow, which divide the interval, are not
-    /// modelled.</summary>
-    public static bool SwingMayBegin(CreatureState creature, CreatureDef definition, long tick) =>
+    /// have passed since the last one began, after possession scaling and the work-rate divisor.</summary>
+    public static bool SwingMayBegin(GameDatabase database, CreatureState creature, CreatureDef definition, long tick) =>
         creature.TimeLastUsedMelee == 0
-        || creature.TimeLastUsedMelee + Scaled(TicksOf(definition.MeleeRecharge), creature, definition) < tick;
+        || creature.TimeLastUsedMelee + Scaled(
+            RechargeTicks(database, creature, TicksOf(definition.MeleeRecharge)), creature, definition) < tick;
+
+    /// <summary>Possession's recharge factor, with each fixed-point division truncated separately.</summary>
+    public static Fp32 RechargeMultiplier(GameDatabase database, CreatureState creature)
+    {
+        if (!creature.Possessed && !creature.InfluencedByPossessed) return new(Fp32.One);
+        int stat = database.FirstPersonStat(CreatureStatId.MeleeRecharge);
+        int numerator = unchecked((100 + stat) << 12);
+        int ceiling = creature.Possessed ? 100 : 200;
+        int factor = unchecked((int)(((ulong)(uint)numerator << 12) / (uint)(ceiling << 12)));
+        if (creature.Possessed)
+        {
+            int percent = unchecked((byte)database[VariableTypeId.FirstPersonRechargeModifyPercentage]);
+            int percentageFactor = (percent << 12) / 100;
+            factor = unchecked((int)(((long)factor * percentageFactor) >> 12));
+        }
+        return new(factor);
+    }
+
+    public static int RechargeTicks(GameDatabase database, CreatureState creature, int rechargeTicks) =>
+        unchecked((int)(((long)rechargeTicks * RechargeMultiplier(database, creature).Raw) >> 12));
 
     /// <summary>The cooldown divisor Gate B and the spell gate share (<c>0x0043D750</c> over
     /// <c>+0x3AF</c>/<c>+0x3B3</c>): the interval in ticks × 4096 over the creature's work rate and
@@ -270,9 +290,10 @@ public static class CombatRules
         (int)(((long)ticks << 12) / EfficiencyRules.Modifier(creature, definition));
 
     /// <summary>Gate A (<c>0x00498E30</c>): the blow lands <see cref="CreatureDef.MeleeHitDelay"/>
-    /// ticks after the swing began, the original's <c>now &gt; start + interval - 1</c>.</summary>
+    /// ticks after the swing began, the original's <c>now &gt; start + interval - 1</c>.
+    /// Possession bypasses this wind-up; influence does not.</summary>
     public static bool BlowLands(CreatureState creature, CreatureDef definition, long tick) =>
-        tick >= creature.SwingStartTick + TicksOf(definition.MeleeHitDelay);
+        creature.Possessed || tick >= creature.SwingStartTick + TicksOf(definition.MeleeHitDelay);
 
     /// <summary>Lets go of the engagement: struck out of the target's arrays, target and reach
     /// cleared, and a creature that was fighting stands idle with no job. A swing already begun

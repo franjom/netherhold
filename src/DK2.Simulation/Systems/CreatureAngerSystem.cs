@@ -55,6 +55,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState state = world.Creatures[i];
+            if (state.Possessed) continue;
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
             if (CreatureDeathRules.IsDown(state)) continue;

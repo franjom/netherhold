@@ -948,6 +948,11 @@ public sealed class CreatureState
     public ushort TurncoatTicks;
     public ushort TurncoatPlayerId;
 
+    /// <summary>Original +0x3E6 bit7, +0x3EA bit3 and NextPossessionInfluenceTick +0x3EE.</summary>
+    public bool Possessed;
+    public bool InfluencedByPossessed;
+    public GameTick NextPossessionInfluenceTick;
+
     /// <summary>Original ReaperTimer +0x4E9, HornyTick +0x4C9, runtime +0x3EA bits 18/19,
     /// and presentation alpha +0x8F used by the departure lifecycle.</summary>
     public ushort ReaperTicks;
@@ -1217,6 +1222,9 @@ public sealed class CreatureState
         hash.Add(ChickenTicks);
         hash.Add(TurncoatTicks);
         hash.Add(TurncoatPlayerId);
+        hash.Add(Possessed);
+        hash.Add(InfluencedByPossessed);
+        hash.Add(NextPossessionInfluenceTick.Value);
         hash.Add(ReaperTicks);
         hash.Add(HornyTick);
         hash.Add(IsOneShotReaper);

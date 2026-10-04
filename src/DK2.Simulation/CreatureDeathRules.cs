@@ -87,9 +87,8 @@ public static class CreatureDeathRules
         creature.CreatureId is 21 or 28 or 29 || state.DieInstantly;
 
     /// <summary>Whether any keeper is possessing this creature. Its own gate in DK2
-    /// (<c>0x004B2F37</c>): a possessed creature dies outright. Always false today, because
-    /// <see cref="WorldState.PlayerState.PossessedCreatureId"/> is an interface act nothing
-    /// here performs — the same standing as condition type 73 (ADR-0121).</summary>
+    /// (<c>0x004B2F37</c>): a possessed creature dies outright. PossessionRules
+    /// maintains the keeper pointer together with the creature's flag.</summary>
     public static bool IsPossessed(WorldState world, CreatureState state)
     {
         for (int i = 0; i < world.PlayerCount; i++)

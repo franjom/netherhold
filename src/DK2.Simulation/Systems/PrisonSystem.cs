@@ -73,6 +73,7 @@ public sealed class PrisonSystem : ISimulationSystem
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
+            if (creature.Possessed) continue;
             if (!PrisonRules.IsImprisoned(creature) || !JailBreakRules.IsEscaping(creature)) continue;
             if (HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) continue;
             if (StateShadow.IsTravelling(creature))
@@ -154,6 +155,7 @@ public sealed class PrisonSystem : ISimulationSystem
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = world.Creatures[i];
+            if (creature.Possessed) continue;
             if (!PrisonRules.IsImprisoned(creature)) continue;
             if (HandRules.IsHeld(creature)) continue;
             if (creature.Health <= 0) continue;   // SlayTheFallen's, on the second

@@ -10,7 +10,7 @@ namespace DK2.Simulation.Combat;
 /// <summary>A creature's spells as the fight uses them — docs/research/combat-spells.md: the three
 /// slots, the cooldown gate (<c>0x0048C800</c>), and the survey's choice of attack spell (§5).
 /// The friendly survey and the applicability table are docs/research/spell-friendly-arm.md
-/// (§1—§8). The thing-targeting spells are not built; Q393's possession modifiers are not.</summary>
+/// (§1—§8). The thing-targeting spells are not built.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-spells.md")]
 public static class SpellRules
 {
@@ -67,7 +67,8 @@ public static class SpellRules
         CreatureSpellDef? spell = SpellOf(database, definition, slot);
         if (spell is null) return false;
         long stamp = me.SpellStamps[slot];
-        return stamp == 0 || stamp + CombatRules.Scaled(RechargeTicks(spell), me, definition) < tick;
+        return stamp == 0 || stamp + CombatRules.Scaled(
+            CombatRules.RechargeTicks(database, me, RechargeTicks(spell)), me, definition) < tick;
     }
 
     /// <summary>The survey's attack choice (§5): over the castable attack slots the creature's level

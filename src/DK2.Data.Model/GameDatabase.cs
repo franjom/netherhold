@@ -65,8 +65,7 @@ public sealed class GameDatabase
         Array.Fill(_statPercent, (byte)100);
         foreach (CreatureStatEntry e in Variables.CreatureStats)
         {
-            // First-person rows describe possession, which is a different
-            // scaling table for the same stats, and nothing reads it yet.
+            // First-person rows use their separate signed-word table.
             if (e.FirstPerson) continue;
             if (e.StatId < 0 || e.StatId >= StatCount) continue;
             if (e.Level < 1 || e.Level > MaxCreatureLevel) continue;
@@ -112,6 +111,18 @@ public sealed class GameDatabase
         return _wideStatPercent.TryGetValue((id, level), out int wide)
             ? wide
             : _statPercent[(id * (MaxCreatureLevel + 1)) + level];
+    }
+
+    /// <summary>The first-person signed-word table: level is ignored and the last row wins.
+    /// Unspecified entries retain the world initializer's 100.</summary>
+    public int FirstPersonStat(CreatureStatId stat)
+    {
+        int id = (int)stat;
+        if (id < 0 || id >= StatCount) return 100;
+        int value = 100;
+        foreach (CreatureStatEntry entry in Variables.CreatureStats)
+            if (entry.FirstPerson && entry.StatId == id) value = unchecked((short)entry.Value);
+        return value;
     }
 
     public IReadOnlyDictionary<byte, TerrainDef> Terrain { get; }

@@ -143,7 +143,7 @@ public static class KeeperSpellRules
     /// <summary>The spells whose casts this simulation executes: Call to Arms, Inferno, Create Gold, Tremor and both Reaper spells at a place,
     /// Thunderbolt, Heal, Chicken and Turncoat at a creature. Create Imp keeps its own command.</summary>
     public static bool ExecutesAtPlace(byte spellId) => spellId is CallToArmsRules.SpellId or Inferno or CreateGold or TremorRules.SpellId or ReaperRules.OneShotSpellId or ReaperRules.SpellId;
-    public static bool ExecutesOnCreature(byte spellId) => spellId is Thunderbolt or Heal or Chicken or TurncoatRules.SpellId;
+    public static bool ExecutesOnCreature(byte spellId) => spellId is Thunderbolt or Heal or Chicken or TurncoatRules.SpellId or PossessionRules.SpellId;
 
     /// <summary>The place validators of <c>0x004BB8A0</c> for one spell at one tile: its location
     /// selector (1, 4 or 5 read) and target selector 4 or 5. The caller's grid must be current.</summary>
@@ -181,7 +181,7 @@ public static class KeeperSpellRules
     };
 
     /// <summary>The target validator the record selects (<c>0x00517730</c>) on a creature: 1
-    /// (<c>0x00517800</c>), 2 (<c>0x00517930</c>) and 3 (<c>0x00517990</c>) are read; any other fails
+    /// (<c>0x00517800</c>), 2 (<c>0x00517930</c>), 3 (<c>0x00517990</c>) and6 are read; any other fails
     /// closed.</summary>
     public static bool TargetAllowed(WorldState world, GameDatabase database, byte playerId, KeeperSpellDef spell,
         CreatureState target) => spell.TargetSelector switch
@@ -189,8 +189,16 @@ public static class KeeperSpellRules
         1 => TargetOne(world, database, playerId, target),
         2 => TargetTwo(playerId, target),
         3 => target.OwnerPlayerId != PlayerIds.Neutral,
+        6 => TargetSix(database, playerId, target),
         _ => false,
     };
+
+    private static bool TargetSix(GameDatabase database, byte playerId, CreatureState target) =>
+        !StatusEffectRules.IsStunned(target) && !HandRules.IsHeld(target)
+        && target.Dk2StateId is not (193 or 278 or 279 or 280)
+        && !target.CombatPitFighter && !ChickenRules.IsChicken(target)
+        && !database.CreatureById(target.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsHorny)
+        && !target.RebelActive && target.OwnerPlayerId == playerId;
 
     /// <summary>Target 1, flags zero: a creature holding a room id is admitted when that room is the
     /// caster's; a Combat Pit fighter when the room under it is; otherwise the caster's own creature,
@@ -257,15 +265,15 @@ public static class KeeperSpellRules
             return KeeperSpellRefusal.Cooldown;
         if (spell.ManaCost != 0 && spell.ManaCost > player.Mana) return KeeperSpellRefusal.Mana;
         CreatureState? target = world.CreatureById(cast.CreatureId);
-        if (target is null || target.Activity == CreatureActivity.Dead) return KeeperSpellRefusal.MissingCreature;
-        if (spell.LocationSelector is not (1 or 4)) return KeeperSpellRefusal.UnsupportedLocationSelector;
+        if (target is null || !CreatureStateMachine.HasState(target)) return KeeperSpellRefusal.MissingCreature;
+        if (spell.LocationSelector is not (1 or 4 or 5)) return KeeperSpellRefusal.UnsupportedLocationSelector;
         context.Navigation.Refresh();
         if (!LocationAllowed(world, database, context.Navigation, cast.PlayerId, spell, target.Tile)) return KeeperSpellRefusal.Location;
-        if (spell.TargetSelector is not (1 or 2 or 3)) return KeeperSpellRefusal.UnsupportedTargetSelector;
+        if (spell.TargetSelector is not (1 or 2 or 3 or 6)) return KeeperSpellRefusal.UnsupportedTargetSelector;
         if (!TargetAllowed(world, database, cast.PlayerId, spell, target)) return KeeperSpellRefusal.Target;
         var effect = spell.Shot(availability.Upgraded);
         if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
-        if (shot.ProcessType is not (ShotRules.LightningProcess or ShotRules.ModifyHealthProcess or ShotRules.ChickenProcess or TurncoatRules.ProcessType))
+        if (shot.ProcessType is not (ShotRules.LightningProcess or ShotRules.ModifyHealthProcess or ShotRules.ChickenProcess or TurncoatRules.ProcessType or PossessionRules.ProcessType))
             return KeeperSpellRefusal.UnsupportedShotProcess;
         // 0x004BC13C, after the permission and before the shot and the payment: a positive Modify
         // Health carrier wants its target strictly below the level-scaled maximum.

@@ -315,11 +315,8 @@ public struct PlayerState
     /// <c>CreaturePossessed</c>. Zero means not possessing, and condition type 73 returns
     /// <b>false outright</b> on zero without reading its comparison
     /// (<c>0x004C8500</c>).</summary>
-    /// <remarks><b>Nothing sets it.</b> Possession is an interface act this project does
-    /// not have, so every keeper reads as not possessing — the answer DK2 gives for a
-    /// keeper who is not. What the arm compares when a keeper <i>is</i> possessing, the
-    /// possessed creature's <c>+0x488</c>, is UNKNOWN (Q279), so type 73 declines rather
-    /// than guesses the moment this stops being zero.</remarks>
+    /// <remarks>Set and cleared by PossessionRules. Condition73's follower-count
+    /// comparison remains unbuilt (Q279).</remarks>
     public int PossessedCreatureId;
 
     /// <summary>

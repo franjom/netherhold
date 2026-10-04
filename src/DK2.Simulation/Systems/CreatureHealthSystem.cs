@@ -44,7 +44,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             // dancing states set, so a prisoner does get hungry (ADR-0074).
             if (PrisonRules.IsImprisoned(state))
             {
-                Hunger(context, database.CreatureById(state.CreatureTypeId), state);
+                if (!state.Possessed) Hunger(context, database.CreatureById(state.CreatureTypeId), state);
                 continue;
             }
 
@@ -86,8 +86,11 @@ public sealed class CreatureHealthSystem : ISimulationSystem
                 continue;
             }
 
-            Hunger(context, creature, state);
-            CannotSleep(context, database, creature, state);
+            if (!state.Possessed)
+            {
+                Hunger(context, creature, state);
+                CannotSleep(context, database, creature, state);
+            }
 
             // Healing sources add: nothing in the data or in OpenKeeper makes them
             // exclusive, and the own-land term is zero for 44 of the 46 creatures
@@ -96,7 +99,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             // otherwise King Reginald, at 400 a second on his own land, would be
             // unkillable at home.
             int regen = CreatureHealthRules.OwnLandRegenPerSecond(world, creature, state)
-                        + CreatureHealthRules.LairHealPerSecond(world, database, state);
+                        + (state.Possessed ? 0 : CreatureHealthRules.LairHealPerSecond(world, database, state));
 
             if (regen != 0)
             {
@@ -262,6 +265,8 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     internal static void Die(
         SimulationContext context, string system, CreatureDef creature, CreatureState state)
     {
+        if (state.Possessed && context.World.HasPlayer(state.OwnerPlayerId))
+            PossessionRules.Leave(context, ref context.World.Player(state.OwnerPlayerId));
         context.FireCreatureEvent(state, CreatureTriggerEvent.Killed);
 
         // A dead creature gives up its bed, or a lair leaks a tile forever.

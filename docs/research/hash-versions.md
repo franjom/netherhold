@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**175** — `0x6F9C6A3B4D22F803`. Creature possession/influence flags and influence deadline; entry/exit and stat modifiers are built. All42 scenarios change hash composition only; see `keeper-spell-possession.md`. ADR-0350.
+
 **174** — `0x8213FCEC0D1B3EA0`. Player OneShotReaper-used flag survives removal and snapshots; variant creation and its countdown are built. Every scenario hash changes composition; see `keeper-spell-reaper.md`. ADR-0350.
 
 **173** — `0x901D3950F7F8504D`. Restore constructor combat-bit defaults; the summon callback explicitly clears them. Authored Horny keeps fight acquisition. Every scenario's hashes change composition; see `keeper-spell-reaper.md`. ADR-0350.
