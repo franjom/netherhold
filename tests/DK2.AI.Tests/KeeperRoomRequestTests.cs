@@ -159,6 +159,71 @@ public class KeeperRoomRequestTests
         Assert.Equal((byte)0x81, accepted.NextRoomToBuild);
     }
 
+    // ---- 32 and 35 ------------------------------------------------------------------------
+
+    private static PlayerMessage Ownership(WorldState world, PlayerMessageKind kind, RoomTypeId room) =>
+        world.Messages.PostOwnership(world, Keeper, kind, room, 0)!.Value;
+
+    [Theory]
+    [InlineData(0, Lair | KeeperRoomRequests.ExpandBit)]
+    [InlineData(1, Lair)]
+    [InlineData(3, Lair)]
+    public void ACapturedPortalAsksForABiggerLairByThePolicy(int policy, int request)
+    {
+        WorldState world = KeeperWorld.World(Db);
+        var state = new KeeperAIState();
+        (KeeperRoomRequests rooms, _) = Arms(world, state, Policy(policy));
+        Assert.True(rooms.RoomCaptured(Ownership(world, PlayerMessageKind.RoomCaptured, RoomTypeId.HeroPortal)));
+        Assert.Equal(((byte)request, true), (state.NextRoomToBuild, state.NextRoomToBuildSet));
+    }
+
+    [Fact]
+    public void PolicyTwoHandlesACapturedPortalWithoutARequest()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        var state = new KeeperAIState();
+        (KeeperRoomRequests rooms, _) = Arms(world, state, Policy(2));
+        Assert.True(rooms.RoomCaptured(Ownership(world, PlayerMessageKind.RoomCaptured, RoomTypeId.Portal)));
+        Assert.False(state.NextRoomToBuildSet);
+    }
+
+    [Fact]
+    public void AnyOther32OrAKeeperWithoutTheFlagLeavesItUnhandledAndAsksNothing()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        var state = new KeeperAIState();
+        (KeeperRoomRequests rooms, _) = Arms(world, state, Policy(1));
+        Assert.False(rooms.RoomCaptured(Ownership(world, PlayerMessageKind.RoomCaptured, RoomTypeId.Treasury)));
+        (KeeperRoomRequests without, _) = Arms(world, state, Policy(1) with { AutomaticallyBuildBiggerLairWhenPortalTakenOver = false });
+        Assert.False(without.RoomCaptured(Ownership(world, PlayerMessageKind.RoomCaptured, RoomTypeId.Portal)));
+        Assert.False(state.NextRoomToBuildSet);
+    }
+
+    [Fact]
+    public void ALostRoomReleasesThePortalPlaceholderAndRunsTheChooser()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        var state = new KeeperAIState { NextRoomToBuild = Portal, NextRoomToBuildSet = true };
+        (KeeperRoomRequests rooms, _) = Arms(world, state, Policy(1));
+        Assert.True(rooms.RoomLost(Ownership(world, PlayerMessageKind.RoomLost, RoomTypeId.Lair)));
+        Assert.Equal((Treasury, true), (state.NextRoomToBuild, state.NextRoomToBuildSet));
+    }
+
+    [Fact]
+    public void ALostRoomWaitsBehindARealRequestAndStoresThePlaceholderWhenNothingIsLeft()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        var waiting = new KeeperAIState { NextRoomToBuild = Lair, NextRoomToBuildSet = true };
+        (KeeperRoomRequests rooms, _) = Arms(world, waiting, Policy(1));
+        Assert.False(rooms.RoomLost(Ownership(world, PlayerMessageKind.RoomLost, RoomTypeId.Lair)));
+        Assert.Equal(Lair, waiting.NextRoomToBuild);
+
+        var done = new KeeperAIState();
+        (KeeperRoomRequests none, _) = Arms(world, done, Policy(1), available: _ => false);
+        Assert.False(none.RoomLost(Ownership(world, PlayerMessageKind.RoomLost, RoomTypeId.Lair)));
+        Assert.Equal((Portal, true, true), (done.NextRoomToBuild, done.NextRoomToBuildSet, done.AllRoomsBuilt));
+    }
+
     // ---- the walk -----------------------------------------------------------------------
 
     [Fact]

@@ -69,6 +69,43 @@ public sealed class KeeperRoomRequests
         return Request(request);
     }
 
+    /// <summary>Message 32, a room taken from a non-neutral owner: a Portal or Hero Portal under
+    /// <c>AutomaticallyBuildBiggerLairWhenPortalTakenOver</c> asks for a Lair, enlarged under policy
+    /// 0, new under 1 and 3, nothing under 2 (handled), through 41's tests. Any other 32 is left
+    /// unhandled, not marked. It does not release the Portal placeholder.</summary>
+    public bool RoomCaptured(PlayerMessage message)
+    {
+        if (!_p.AutomaticallyBuildBiggerLairWhenPortalTakenOver
+            || message.Data1 is not ((int)RoomTypeId.Portal or (int)RoomTypeId.HeroPortal))
+            return false;
+        byte request = (byte)RoomTypeId.Lair;
+        switch (_p.BuildNewRoomWhenMoreSpaceRequired & 3)
+        {
+            case 0: request |= ExpandBit; break;
+            case 2: return true;
+        }
+        return Request(request);
+    }
+
+    /// <summary>Message 35, a room lost: the placeholder is released and the chooser
+    /// <c>0x004F93B0</c> runs; handled only when it sets a request. With a request already set it
+    /// returns at once; with nothing to choose it stores the Portal placeholder and
+    /// <c>AllRoomsBuilt</c>, unhandled, so the walk retries while the message lasts.</summary>
+    public bool RoomLost(PlayerMessage message)
+    {
+        ReleasePortalPlaceholder();
+        if (_state.NextRoomToBuildSet) return false;
+        _state.NextRoomToBuildSet = true;
+        if (RoomPlanner.ChooseRoom(_view, _p, _isAvailable, _state.CurrentRoomToBuild) is byte chosen)
+        {
+            _state.NextRoomToBuild = chosen;
+            return true;
+        }
+        _state.NextRoomToBuild = (byte)RoomTypeId.Portal;
+        _state.AllRoomsBuilt = true;
+        return false;
+    }
+
     /// <summary>A waiting Portal request is the planner's all-built placeholder: a room message
     /// replaces it rather than waiting behind it.</summary>
     private void ReleasePortalPlaceholder()

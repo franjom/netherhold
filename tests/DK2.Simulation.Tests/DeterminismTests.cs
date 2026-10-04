@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 180: the keeper mints a wage into its hand (ADR-0353).
+        // HashVersion 181: the room transfer posts messages 32 to 35 (ADR-0353).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x68CC6F319486D231UL, sim.StateHash());
+        Assert.Equal(0x402E9BC4C3C96C2AUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

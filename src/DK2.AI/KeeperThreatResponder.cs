@@ -71,7 +71,7 @@ public sealed class KeeperThreatResponder
     /// <summary>Walks the keeper's retained messages in queue order, skipping handled ones. A
     /// combat message is evaluated when a slot is free and acknowledged when the reader
     /// accepts it, cancelled reservations included; the fight flag is set either way. Room
-    /// messages 41 and 42 go to <see cref="KeeperRoomRequests"/> and mood messages 17 and 18 to
+    /// messages 32, 35, 41 and 42 go to <see cref="KeeperRoomRequests"/> and mood messages 17 and 18 to
     /// <see cref="KeeperMoodRemedies"/>, each acknowledged when its arm handles it. Every other
     /// kind is marked handled, as DK2's default branch does.</summary>
     public void HandleMessages()
@@ -86,6 +86,12 @@ public sealed class KeeperThreatResponder
                     break;
                 case PlayerMessageKind.RoomFull when _rooms is not null:
                     if (_rooms.RoomFull(message)) Acknowledge(message);
+                    break;
+                case PlayerMessageKind.RoomCaptured when _rooms is not null:
+                    if (_rooms.RoomCaptured(message)) Acknowledge(message);
+                    break;
+                case PlayerMessageKind.RoomLost when _rooms is not null:
+                    if (_rooms.RoomLost(message)) Acknowledge(message);
                     break;
                 case PlayerMessageKind.CreatureUnhappy when _mood is not null:
                     if (_mood.Unhappy(message)) Acknowledge(message);

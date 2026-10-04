@@ -36,6 +36,20 @@ public enum PlayerMessageKind : uint
     /// built here; 1 alone is under the <c>+0xF56</c> deadline, which is not built).</summary>
     TrainingUnpaid = 55,
 
+    /// <summary>Type 32: a room taken from a non-neutral owner, to the new owner; Data1 the room type,
+    /// Data2 the room (subtable <c>0x006A0060</c>, <see cref="PlayerMessageQueue.OwnershipLifetimeSeconds"/>).</summary>
+    RoomCaptured = 32,
+
+    /// <summary>Type 33: as 32 when the old owner was the neutral player (<c>0x006A00F8</c>).</summary>
+    NeutralRoomCaptured = 33,
+
+    /// <summary>Type 34: a room under attack, to its owner; Data1 the room type, Data2 the room
+    /// (<c>0x006A0190</c>, 30 seconds).</summary>
+    RoomAttacked = 34,
+
+    /// <summary>Type 35: a room lost, to its old owner (<c>0x006A0220</c>); duplicates allowed.</summary>
+    RoomLost = 35,
+
     /// <summary>Type 41: the keeper has no room of the type in Data1 and needs one (subtable
     /// <c>0x006A03D8</c>).</summary>
     RoomNeeded = 41,
@@ -56,7 +70,8 @@ public readonly record struct PlayerMessage(
     uint Age, uint Timeout, bool NeedsTab, bool Handled)
 {
     /// <summary>The room type a room message (41 to 43) carries in Data1; null for any other kind.</summary>
-    public RoomTypeId? Room => PlayerMessageQueue.IsRoomMessage(Kind) ? (RoomTypeId)Data1 : null;
+    public RoomTypeId? Room => PlayerMessageQueue.IsRoomMessage(Kind) || PlayerMessageQueue.IsOwnershipMessage(Kind)
+        ? (RoomTypeId)Data1 : null;
 
     internal void HashInto(ref Hash64 hash)
     {
@@ -66,9 +81,9 @@ public readonly record struct PlayerMessage(
     }
 }
 
-/// <summary>The shared retained queue: the two combat position messages, the two
-/// mana-pressure messages, unpaid training, the three room messages and the Alarm trap's. Any other
-/// kind, or a subtype its table lacks, is refused.</summary>
+/// <summary>The shared retained queue: the two combat position messages, the mood pair, the
+/// room-ownership family, the two mana-pressure messages, unpaid training, the three room messages
+/// and the Alarm trap's. Any other kind, or a subtype its table lacks, is refused.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-messages.md")]
 public sealed class PlayerMessageQueue
 {
@@ -83,7 +98,29 @@ public sealed class PlayerMessageQueue
     /// selected by Data1, and a duplicate must match Data1 as well as recipient and kind.</summary>
     public static bool HasSubtypes(PlayerMessageKind kind) =>
         kind is PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall
-            or PlayerMessageKind.TrainingUnpaid || IsRoomMessage(kind);
+            or PlayerMessageKind.TrainingUnpaid || IsRoomMessage(kind) || IsOwnershipMessage(kind);
+
+    /// <summary>The room-ownership family 32 to 35, whose subtables share one shape.</summary>
+    public static bool IsOwnershipMessage(PlayerMessageKind kind) =>
+        kind is PlayerMessageKind.RoomCaptured or PlayerMessageKind.NeutralRoomCaptured
+            or PlayerMessageKind.RoomAttacked or PlayerMessageKind.RoomLost;
+
+    /// <summary>The lifetime of a 32 to 35 subtype row: room types 1 to 4, 6 to 17, 22 and 287 at 20
+    /// seconds, 34's without 287 at 30. Null for a type off the table, which takes the terminator's
+    /// nonzero string and timeout zero, so the record lasts until the next sweep.</summary>
+    public static int? OwnershipLifetimeSeconds(PlayerMessageKind kind, int room)
+    {
+        bool listed = room is (>= 1 and <= 4) or (>= 6 and <= 17) or 22
+            || (room == 287 && kind != PlayerMessageKind.RoomAttacked);
+        return !listed ? null : kind == PlayerMessageKind.RoomAttacked ? 30 : 20;
+    }
+
+    /// <summary>A 32 to 35 message as the producers post it: the room type and the room.</summary>
+    public PlayerMessage? PostOwnership(WorldState world, byte recipient, PlayerMessageKind kind, RoomTypeId room, int roomTag)
+    {
+        if (!IsOwnershipMessage(kind)) throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a room-ownership message.");
+        return Post(world, recipient, kind, (int)room, roomTag);
+    }
 
     public static bool IsRoomMessage(PlayerMessageKind kind) =>
         kind is PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomFull or PlayerMessageKind.RoomUnreachable;
@@ -137,6 +174,8 @@ public sealed class PlayerMessageQueue
             // kept for one sweep for 42. Nothing here posts one, so it is refused.
             _ when IsRoomMessage(kind) && RoomLifetimeSeconds(kind, (RoomTypeId)data1) is int seconds =>
                 (uint)SimulationTiming.TicksFromSeconds(seconds),
+            _ when IsOwnershipMessage(kind) =>
+                OwnershipLifetimeSeconds(kind, data1) is int lasts ? (uint)SimulationTiming.TicksFromSeconds(lasts) : 0,
             PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall or PlayerMessageKind.TrainingUnpaid
                 or PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomFull or PlayerMessageKind.RoomUnreachable =>
                 throw new ArgumentOutOfRangeException(nameof(data1), data1, $"No subtype row for {kind}."),
@@ -145,7 +184,8 @@ public sealed class PlayerMessageQueue
         if (timeout == uint.MaxValue) return null;
         if (world.Player(recipient).Status != PlayerStatus.Playing || !world.Triggers.NotificationsEnabled)
             return null;
-        if (Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained) return retained;
+        if (kind != PlayerMessageKind.RoomLost
+            && Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained) return retained;
         if (_entries.Count == Capacity) _entries.RemoveAt(0);
         var added = new PlayerMessage(_nextId, recipient, kind, data1, data2, 0, timeout, true, false);
         _nextId = unchecked(_nextId + 1);
