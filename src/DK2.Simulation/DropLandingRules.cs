@@ -27,24 +27,18 @@ public static class DropLandingRules
     /// <summary>250's length past <c>+0x7E</c>, in turns (<c>0x32</c>).</summary>
     public const int StandTicks = 50;
 
-    /// <summary>257's hold (<c>0x00481200</c>, <c>0x00496D00</c>): the ticks its get-up action 53
-    /// plays, which is the creature's animation, not a definition field. Measured in the Level 1–3
-    /// captures as the longest 257 run that ends in a room drop, the same in every run of a type:
-    /// Warlock (5) 8, Goblin (7) 11, Troll (10) 5, Firefly (12) 13, the Lord of the Land (29) 4 and
-    /// type 14 4, the Dwarf by Level 2's party and its zero StunDuration (Q527).</summary>
-    public static int GetUpTicks(CreatureDef definition) => definition.CreatureId switch
-    {
-        5 => 8,
-        7 => 11,
-        10 => 5,
-        12 => 13,
-        14 => 4,
-        29 => 4,
-        _ => GetUpTicksGuess,
-    };
-
-    /// <summary>A type the captures never stunned: the measured middle, a guess (Q527).</summary>
-    public const int GetUpTicksGuess = 8;
+    /// <summary>257's hold (<c>0x00481200</c>, <c>0x00496D00</c>): the ticks action 53 plays the
+    /// creature's Getup animation (block 27, <c>0x006E47AD</c>), its frames at its rate in four-tick
+    /// seconds, rounded up, plus one tick, the tick the handler sees the action end, as for the
+    /// Entrance animation. STRONGLY INFERRED: the formula is fitted, and reproduces every 257 run the
+    /// Level 1–3 captures measured: Warlock 8, Goblin 11, Troll 5, Firefly 13, Dwarf 4, Lord of the
+    /// Land 4 (Q527, ADR-0348). A creature with no Getup art waits one tick.</summary>
+    public static int GetUpTicks(CreatureDef definition) =>
+        (definition.GetUpFrames <= 0 || definition.GetUpFramesPerSecond <= 0
+            ? 0
+            : ((definition.GetUpFrames * SimulationTiming.OriginalTicksPerGameSecond)
+               + definition.GetUpFramesPerSecond - 1) / definition.GetUpFramesPerSecond)
+        + 1;
 
     /// <summary>What <c>0x004E8DA0(0)</c> leaves in <c>FightProcessCounter</c> on its way to 250:
     /// bits 22 and 24 of the flag dword cleared, 23 and 25 set.</summary>

@@ -20,18 +20,27 @@ public class CombatNonFighterTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
 
+    /// <summary>Near its heart the arm takes any hostile within a tile, so the Imp engages and swings;
+    /// once the Goblin strikes back, a non-Imp is among its attackers and the counter
+    /// (<c>0x0045EC10</c>, ADR-0347) sends it into flight with no back-off. Before ADR-0347 this test
+    /// asserted a lasting fight.</summary>
     [Fact]
-    public void AnImpNearItsHeartFightsAnythingWithinATile()
+    public void AnImpNearItsHeartTakesAnythingWithinATile_AndFleesOnceANonImpStrikesBack()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         PlaceRoom(world, Keeper, Dk2TerrainFixture.DungeonHeartTerrain, 12, 12);
         CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 14, 12);
         CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, imp);
         GameSimulation sim = Combat(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
 
         sim.Run(5);
-        Assert.Equal(CreatureActivity.Fighting, imp.Activity);
-        Assert.Equal(goblin.Id, imp.FightTargetId);
+        int engaged = sink.Events.ToList().FindIndex(e => e.Kind == "engaged" && e.Detail.Contains($"creature={imp.Id} ") && e.Detail.Contains($"target={goblin.Id} "));
+        int struck = sink.Events.ToList().FindIndex(e => e.Kind == "swing" && e.Detail.Contains($"creature={goblin.Id} ") && e.Detail.Contains($"target={imp.Id} "));
+        int fled = sink.Events.ToList().FindIndex(e => e.Kind == "flees" && e.Detail.Contains($"creature={imp.Id} "));
+        Assert.True(engaged >= 0 && struck > engaged && fled > struck, $"engaged {engaged}, struck {struck}, fled {fled}");
+        Assert.EndsWith("backoff=0", sink.Events[fled].Detail);
     }
 
     [Fact]
@@ -50,12 +59,12 @@ public class CombatNonFighterTests
     }
 
     [Fact]
-    public void AnImpAwayFromItsHeartAcquiresAnEnemyImp_WhichThenFleesItsImpAttacker()
+    public void AnImpAwayFromItsHeartAcquiresAnEnemyImp_AndAnImpAttackerDoesNotForceItsTargetToFlee()
     {
         // The escape byte (Q390): a candidate whose base creature type is the Imp's is judged by the
-        // shared template wherever the worker stands — so enemy Imps engage each other anywhere. A
-        // NonFighter with an Imp among its attackers then flees at once (combat-fear.md §2), so the
-        // engagement is the fact to pin, not a lasting fight.
+        // shared template wherever the worker stands — so enemy Imps engage each other anywhere. The
+        // counter's NonFighter rule (0x0045EC10) forces flight only for an attacker that is NOT an
+        // Imp, so two Imps fight; before ADR-0347 ours had the test the other way round.
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
         CreatureState rival = Touching(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, imp);
@@ -65,7 +74,68 @@ public class CombatNonFighterTests
 
         sim.Run(5);
         Assert.Contains(sink.Events, e => e.Kind == "engaged" && e.Detail.Contains("creature=" + imp.Id) && e.Detail.Contains("target=" + rival.Id));
-        Assert.Contains(sink.Events, e => e.Kind == "flees" && e.Detail.Contains("creature=" + rival.Id));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "flees" && e.Detail.Contains("fear=0 "));
+    }
+
+    /// <summary><c>0x0045EC80</c> with <c>0x0045EC10</c>: a <c>NonFighter</c> whose attackers include
+    /// a live creature that is not an Imp is over threat at once, with no fear at all; one attacked
+    /// only by an Imp is not.</summary>
+    [Theory]
+    [InlineData(Dk2TerrainFixture.GoblinCreatureId, true)]
+    [InlineData(Dk2TerrainFixture.ImpCreatureId, false)]
+    public void ANonFighterIsOverThreatAtOnceOnlyWhenAnAttackerIsNotAnImp(byte attackerType, bool overThreat)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
+        CreatureState attacker = Spawn(db, world, attackerType, Rival, 13, 12);
+        imp.EngagedMelee[2] = attacker.Id;
+        imp.CurrentFear = 0;
+
+        Assert.Equal(overThreat, FearRules.OverThreat(world, db, imp, db.CreatureById(imp.CreatureTypeId)));
+        Assert.Equal(overThreat ? 3 : 0, imp.OverThreatCounter);
+    }
+
+    /// <summary>The approach state's flight (<c>0x00470E30</c>) zeroes the back-off only for an
+    /// <c>AlwaysFlee</c> definition; the fight state's rule (no target, a NonFighter, a faster
+    /// target) is its own. A Goblin, not AlwaysFlee, with no target and fear just over its
+    /// threshold (q = 1) keeps 90 ticks from the approach, where the fight state zeroes it.</summary>
+    [Fact]
+    public void TheApproachStatesFlightZeroesTheBackOffOnlyForAnAlwaysFleeCreature()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+        CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 6, 6);
+        CreatureDef goblinDef = db.CreatureById(goblin.CreatureTypeId);
+        Assert.False(goblinDef.Flags.HasFlag(CreatureFlags.AlwaysFlee));
+        Assert.True(db.CreatureById(imp.CreatureTypeId).Flags.HasFlag(CreatureFlags.AlwaysFlee));
+        goblin.FightTargetKind = FightTargetKind.None;
+        goblin.CurrentFear = (ushort)(FearRules.FearThreshold(db, goblinDef, goblin.Level) + 1);
+        imp.FightTargetKind = FightTargetKind.None;
+        imp.CurrentFear = (ushort)(FearRules.FearThreshold(db, db.CreatureById(imp.CreatureTypeId), imp.Level) + 1);
+        int min = db.Variables[VariableTypeId.BackOffMinimumDurationSeconds];
+        int max = db.Variables[VariableTypeId.BackOffMaximumDurationSeconds];
+        int expected = min + ((max - min) * 3);
+        Assert.NotEqual(0, expected);
+        byte fromApproach = 255, fromFight = 255, impFromApproach = 255;
+        new GameSimulation(db, world, 1, [new Probe(context =>
+        {
+            FearRules.EnterFlee(context, goblin, goblinDef, fromApproach: true);
+            fromApproach = goblin.BackOffTimer;
+            FearRules.EnterFlee(context, goblin, goblinDef);
+            fromFight = goblin.BackOffTimer;
+            FearRules.EnterFlee(context, imp, db.CreatureById(imp.CreatureTypeId), fromApproach: true);
+            impFromApproach = imp.BackOffTimer;
+        })]).Tick();
+
+        Assert.Equal(expected, fromApproach);
+        Assert.Equal(0, fromFight);
+        Assert.Equal(0, impFromApproach);
+    }
+
+    private sealed class Probe(Action<SimulationContext> body) : ISimulationSystem
+    {
+        public string Name => "probe";
+        public void Execute(SimulationContext context) => body(context);
     }
 
     [Fact]

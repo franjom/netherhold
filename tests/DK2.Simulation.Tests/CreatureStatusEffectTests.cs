@@ -338,6 +338,40 @@ public class CreatureStatusEffectTests
 
     // ------------------------------------------------------------------ helpers
 
+    /// <summary><c>0x00481360</c> from the damage routine (ADR-0348, Q531): a stunned creature hit
+    /// with a non-Imp among its attackers has a quarter of its stun left added, never past the full
+    /// <c>StunDuration</c>; with only an Imp attacking, nothing changes.</summary>
+    [Theory]
+    [InlineData(Dk2TerrainFixture.GoblinCreatureId, 8, 10)]
+    [InlineData(Dk2TerrainFixture.GoblinCreatureId, 18, 20)]
+    [InlineData(Dk2TerrainFixture.ImpCreatureId, 8, 8)]
+    public void AHitOnAStunnedCreatureLengthensItsStunOnlyWithANonImpAttacker(byte attackerType, int left, int after) =>
+        HitWhileStunned(attackerType, 255, left, after);
+
+    /// <summary>256 runs 255's handler (<c>0x004810D0</c> jumps to <c>0x004810E0</c>), so it lengthens
+    /// too; 257's handler never reads the start turn, so its counter is untouched.</summary>
+    [Theory]
+    [InlineData(256, 8, 10)]
+    [InlineData(257, 8, 8)]
+    public void TheBoulderStunLengthensAndGettingUpDoesNot(int state, int left, int after) =>
+        HitWhileStunned(Dk2TerrainFixture.GoblinCreatureId, state, left, after);
+
+    private static void HitWhileStunned(byte attackerType, int state, int left, int after)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 8, 10);
+        CreatureState attacker = Spawn(db, world, attackerType, Rival, 9, 10);
+        CreatureDef def = db.CreatureById(goblin.CreatureTypeId);
+        Assert.Equal(20, CombatRules.TicksOf(def.StunDuration));
+        goblin.Dk2StateId = state;
+        goblin.StunTicks = left;
+        goblin.EngagedMelee[0] = attacker.Id;
+
+        StatusEffectRules.Hurt(world, db, def, goblin, 10);
+
+        Assert.Equal(after, goblin.StunTicks);
+    }
+
     private static (GameDatabase, WorldState) OpenWorld()
     {
         GameDatabase db = Dk2TerrainFixture.Database();

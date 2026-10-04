@@ -27,7 +27,8 @@ public static partial class KwdCreatures
         void U32(int offset, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(offset), value);
         void S32(int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(offset), value);
         uint ReadU32(int offset) => BinaryPrimitives.ReadUInt32LittleEndian(image.AsSpan(offset));
-        KwdOverlay.Ascii(image, 0, 32, row.Name, ParseRecord(image, 0).Name, trimmed: false);
+        CreatureDef original = ParseRecord(image, 0);
+        KwdOverlay.Ascii(image, 0, 32, row.Name, original.Name, trimmed: false);
         U8(0xF4B, (byte)row.CreatureId);
         U8(OffsetBaseCreatureId, (byte)row.UniqueBaseCreatureId);
         U32(0xEFC, (uint)row.Flags);
@@ -48,7 +49,12 @@ public static partial class KwdCreatures
             U8(offset + 0x52, timing.EndSegmentFrames);
         }
         AnimationTiming(24, row.KnockdownAnimation);
+        // Slot 27 is the Getup block, read two ways (Q538): GetUpAnimation's U16 words (ADR-0350)
+        // and GetUpFrames/GetUpFramesPerSecond as S32 (ADR-0348). The S32 view is written only when
+        // it was changed, so an unchanged view never clobbers the upper words; changed, it wins.
         AnimationTiming(27, row.GetUpAnimation);
+        if (row.GetUpFrames != original.GetUpFrames) S32(GetUpBlock + 0x44, row.GetUpFrames);
+        if (row.GetUpFramesPerSecond != original.GetUpFramesPerSecond) S32(GetUpBlock + 0x48, row.GetUpFramesPerSecond);
         AnimationTiming(4, row.KnockdownFallbackAnimation);
         AnimationTiming(1, row.GetUpFallbackAnimation);
         AnimationTiming(35, row.ReaperSummonAnimation);

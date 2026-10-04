@@ -31,6 +31,9 @@ public static partial class KwdCreatures
     /// <summary>Animation block 9, Angry, which action 41 plays (<c>0x006E4651</c> = 9).</summary>
     private const int AngryBlock = 0x20 + (9 * 84);
 
+    /// <summary>Animation block 27, Getup, which action 53 plays (<c>0x006E47AD</c> = 27).</summary>
+    private const int GetUpBlock = 0x20 + (27 * 84);
+
     public static List<CreatureDef> Parse(IEnumerable<KwdChunk> chunks)
     {
         var result = new List<CreatureDef>();
@@ -162,6 +165,9 @@ public static partial class KwdCreatures
             EntranceOffsetY = S32(0xE98),
             EntranceFrames = S32(EntranceBlock + 0x44),
             EntranceFramesPerSecond = S32(EntranceBlock + 0x48),
+            // The Getup animation (block 27), which action 53 plays while state 257 waits.
+            GetUpFrames = S32(GetUpBlock + 0x44),
+            GetUpFramesPerSecond = S32(GetUpBlock + 0x48),
             // The Angry block (9): flags at +0x40, type byte at +0x50; the loader leaves the runtime
             // record empty when the type is 0 (no resource), so the flags are taken only with a type.
             AngryArtType = U8(AngryBlock + 0x50),

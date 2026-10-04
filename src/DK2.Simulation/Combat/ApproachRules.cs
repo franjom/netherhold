@@ -141,7 +141,7 @@ public static class ApproachRules
         if (!FearRules.Cornered(context, me, mine, scratch) && FearRules.OverThreat(world, database, me, mine))
         {
             me.Approaching = false;
-            FearRules.EnterFlee(context, me, mine);
+            FearRules.EnterFlee(context, me, mine, fromApproach: true);
             return false;
         }
 
