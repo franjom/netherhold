@@ -3,10 +3,10 @@
 | | |
 |---|---|
 | Source(s) | The owner playing DK2 v1.70 with three screenshots and a three-save series (2026-09-06); shipped `Terrain.kwd` and `CREATURES`; `Text.str` read with this project's `Dk2StringTable`; `DKII.EXE` v1.70 (the map renderer's fog gate, the world-save coordinator, `FUN_00451c90`) |
-| Confidence | **CONFIRMED**: the terrain substitution, the six-tile radius, that reveal-through-fog terrain shows through, monotonic discovery, and one bit for one viewpoint. **STRONGLY INFERRED**: that fog is simulation state, the strict-circle footprint, that the setting is a boolean. **UNKNOWN**: whether any AI consults fog, what the five setup labels select, the two reveal spells, the minimap's portals |
+| Confidence | **CONFIRMED**: the terrain substitution, the six-tile radius, that reveal-through-fog terrain shows through, monotonic discovery, and one bit for one viewpoint. **STRONGLY INFERRED**: that fog is simulation state, the strict-circle footprint, that the setting is a boolean. **UNKNOWN**: whether any AI consults fog, what the five setup labels select, RevealMap, the minimap's portals |
 | Implementation | `Systems/FogOfWarSystem`, `TileState.DiscoveredBy` / `IsDiscoveredBy` / `SetDiscoveredBy`, `WorldState.FogOfWarEnabled`, `TerrainDef.IsRevealedThroughFog`, `WorldView` (constructed with a viewing player). ADR-0076 |
 | Tests | `FogOfWarTests`, `FogOfWarOnRealDataTests`, `FogOfWarViewTests`; `Dk2SaveReader` for the save-side evidence |
-| Open questions | Q190's AI half, Q192 (the setup labels), Q193's mechanism, Q194 (Sight of Evil, Reveal Map), Q197 (portals on the minimap) |
+| Open questions | Q190's AI half, Q192 (the setup labels), Q193's mechanism, Q194 (Reveal Map; Sight answered in `keeper-spell-sight.md`), Q197 (portals on the minimap) |
 | Reveal sources | Every writer of both discovery bits, and the second, *explored* bit this file's §11 missed: `fog-reveal-sources.md` (Q429, Q430) |
 
 ## 1. The substitution — CONFIRMED
@@ -201,8 +201,8 @@ impenetrable rock discard it.
 - **How DK2 packs per-keeper discovery in multiplayer.** One bit per tile per
   keeper is our representation — and §11 shows DK2 keeps one bit for one
   viewpoint instead.
-- **Sight of Evil and Reveal Map** (Q194), deliberately absent. They can write
-  through the same discovery seam when researched.
+- **Sight of Evil** is a separate presentation region, intentionally unbuilt;
+  see `keeper-spell-sight.md`. **Reveal Map** remains Q194.
 
 ## 9. Watched in play — CONFIRMED by the owner, 2026-09-06 (two screenshots)
 

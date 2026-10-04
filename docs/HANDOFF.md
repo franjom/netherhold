@@ -24,9 +24,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   disputed, Q513, Q524 and Q362 unwatched (2026-10-03).
 - Keeper-spell work (ADR-0350): Create Gold, Tremor and Turncoat are independently
   approved, including normal Horny's creation/lifecycle/upkeep. OneShotReaper's
-  creation/timer/one-use flag passes review; its History correction awaits review (2026-10-04).
-  Horny's idle AI remains unbuilt. See research/keeper-spell-reaper.md. Sight of Evil and
-  Possession remain outside the new cast boundary.
+  creation/timer/one-use flag and its correction are independently approved.
+  Horny's idle AI remains unbuilt. See research/keeper-spell-reaper.md. Sight's
+  presentation-only boundary is recorded; review is pending (2026-10-04).
+  See research/keeper-spell-sight.md. Possession is next.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 16).
   The proactive task machine (tasks 0–7) digs, expands, builds rooms, manages

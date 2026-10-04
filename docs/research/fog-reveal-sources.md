@@ -249,10 +249,9 @@ Each negative gives the range it covers.
 - **Nothing clears the scanned bit.** The range is §3's scans.
 - **No spell writes either bit directly.** The writer set of the explored
   bit is closed over the direct and helper forms scanned. Its callers are §3.1
-  and §3.2–§3.9, and none of them is a keeper-spell handler. Sight of Evil
-  (Q194) must therefore work through one of them (a shot or a created entity
-  running §3.1 is the candidate) or not touch either bit. **This has not been
-  read.**
+  and §3.2–§3.9, and none of them is a keeper-spell handler. Sight's process25
+  and local presentation region have now been read; see `keeper-spell-sight.md`.
+  Reveal Map remains Q194.
 - **Terrain flags.** A scan for tests of the runtime flag dword `+0x17B`
   covered direct tests, `+0x17C` byte tests, and a load followed within 6
   instructions by a test of the register or its high byte. It found

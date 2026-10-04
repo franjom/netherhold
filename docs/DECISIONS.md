@@ -7974,21 +7974,17 @@ Per-scenario hash series and final hashes: `plans/2026-10-03-keeper-spells-basel
 Level 1/2 seeds 1–20 cannot be measured here: their gitignored scratchpad
 drivers and recorded packets are absent from this isolated worktree.
 
-**Current boundary.** Stage 0 independently verified all 42 scenario series.
-Stage 1 builds Create Gold's cast and horizontal landing/merge through the
-existing shot boundary; see `research/keeper-spell-create-gold.md`.
-Stage1 and its corrections are independently approved. Stage2 builds Tremor's world slots, wall effects,
-creature reaction, recovery and definition-based integer action clock at
-HashVersion/FormatVersion 170; its integration corrections are independently approved.
-All 42 scenarios preserve their event/world outputs; hash composition changes
-every series. See `research/keeper-spell-tremor.md` and Q533 for evidence and
-limits, including the explicitly unbuilt Neutral and Horny idle controllers.
-Coverage admits these explicit `UnbuiltHandler` destinations, retaining Unbuilt counts.
-Stage 3 builds Turncoat as a temporary combat allegiance, preserving actual
-ownership because the binary never calls the ownership setter on this path.
-See `research/keeper-spell-turncoat.md`; Stage 3 and its corrections are independently approved.
-Stage 4 builds normal Summon Horny creation, arrival, upkeep and departure at
-HashVersion/FormatVersion173; its corrections are independently approved.
-Stage5 builds OneShotReaper's variant, LEVEL-selected level, timer and one-use
-flag at hash/save174; runtime/binary review passes, a History correction awaits review. Evidence and retained
-boundaries are in `research/keeper-spell-reaper.md`; Horny's idle AI stays unbuilt.
+**Current boundary.** Stages0–5 and their corrections are independently approved.
+Create Gold uses the existing shot/landing boundary; Tremor builds world slots,
+wall effects, creature reaction/recovery and the integer action clock.
+Turncoat changes temporary combat allegiance, preserving actual ownership.
+Normal and one-use Horny build creation, arrival, upkeep and departure;
+the one-use variant adds LEVEL-selected level, timer and player flag.
+Evidence and limits: `research/keeper-spell-create-gold.md`,
+`research/keeper-spell-tremor.md`, `research/keeper-spell-turncoat.md` and
+`research/keeper-spell-reaper.md`. Neutral and Horny idle controllers remain
+explicitly unbuilt. All42 scenarios preserve event/world outputs; new hash
+composition changes every series. Current hash/save174.
+Stage6 records Sight's temporary presentation layer and intentionally leaves
+simulation casting unbuilt; see `research/keeper-spell-sight.md` and Q534.
+Its independent review is pending (2026-10-04). Possession is next.

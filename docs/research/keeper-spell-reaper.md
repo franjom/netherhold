@@ -130,5 +130,4 @@ The complete Stage5 no-install gate passed3407 tests, zero failures and396 skips
 Release and Unity compilation have zero warnings/errors. All42 Stage5 scenarios
 preserve stage0 and corrected Stage4 event/world artifacts:94 files identical,
 84 changed only in hash series/report hashes from version174.
-Stages4/5 runtime and binary claims are independently approved. Stage5's
-duplicate History correction awaits its separate limited review.
+Stages4/5 and their corrections are independently approved.
