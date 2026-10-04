@@ -15,8 +15,8 @@ public enum PlayerMessageKind : uint
     /// <summary>Type 52: Data1 is the warning stage 1–4 (subtable <c>0x006A0610</c>).</summary>
     LowManaWarning = 52,
 
-    /// <summary>Type 53: Data1 3 is a creature chosen for removal; 1 is possession ended for
-    /// want of mana, which nothing here produces (subtable <c>0x006A0638</c>).</summary>
+    /// <summary>Type 53: Data1 3 is a creature chosen for removal; 5 is possession ended for
+    /// want of mana, posted by <c>0x004C10E0</c> (subtable <c>0x006A0638</c>).</summary>
     ManaShortfall = 53,
 
     /// <summary>Type 47: an Alarm trap's shot (process 12, <c>0x004AE120</c>); Data1 and Data2 are the

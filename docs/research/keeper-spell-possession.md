@@ -139,7 +139,10 @@ possessed Imp ends when mana falls below the imp and trap upkeep.
 Built in `PossessionRules.UpkeepPerSecond`/`AfterPayment`, summed in
 `ManaRules.UpkeepPerSecondByPlayerIndex`, checked first in ManaSystem. LEVEL
 bit2 is `LevelDef.Flags` (+0x638C) & 4; with no LEVEL record nothing is
-charged. The +0x4A7 term (variable116, shipped 0) is not represented.
+charged. The +0x4A7 term (variable116, shipped 0) is not represented. The
+forced end posts message 53 with Data1 5, Data2 0 (pushes at 0x004C13C8–0x004C13CE;
+EDI is zeroed at 0x004C1385). GameDatabase drops a negative stat row, as for every
+stat, so the signed product only reaches the clamp below 1 through a zero row.
 
 ## Regeneration and implementation boundary
 

@@ -15,6 +15,10 @@ public sealed class PossessionUpkeepTests
     private const byte Keeper = PlayerIds.FirstKeeper, SpellId = PossessionRules.SpellId;
     private const short GoblinCost = 150;
 
+    /// <summary>A made-up stat-27 row for levels 2–10: a zero entry and an oversized one reach
+    /// both clamps (GameDatabase drops a negative row, as it does for every stat).</summary>
+    private static readonly int[] Stat27Row = [0, 133, 200, 250, 300, 350, 400, 500, 30000];
+
     private static LevelDef Level(ushort flags) => new(Array.Empty<byte>())
     {
         Name = "", Description = "", Author = "", Email = "", Information = "",
@@ -29,6 +33,9 @@ public sealed class PossessionUpkeepTests
         short cost = GoblinCost)
     {
         GameDatabase basis = Dk2TerrainFixture.Database();
+        GlobalVariables vars = Dk2TerrainFixture.Variables();
+        for (int i = 0; i < Stat27Row.Length; i++)
+            vars.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.PossessionManaCost, Stat27Row[i], i + 2, false));
         var spell = new KeeperSpellDef
         {
             Name = "Possession", KeeperSpellId = SpellId, ManaCost = 500, ManaUpkeepPerSecond = 25,
@@ -36,7 +43,7 @@ public sealed class PossessionUpkeepTests
         };
         GameDatabase db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.GoblinCreatureId
-                ? c with { PossessionManaCost = cost } : c), basis.Variables,
+                ? c with { PossessionManaCost = cost } : c), vars,
             basis.KeeperSpells.Values.Where(k => k.KeeperSpellId != SpellId).Append(spell),
             objects: basis.Objects.Values, shots: basis.Shots.Values).ForLevel(null, Level(levelFlags));
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
@@ -85,14 +92,22 @@ public sealed class PossessionUpkeepTests
     }
 
     [Theory]
-    [InlineData(2)]
-    [InlineData(4)]
-    [InlineData(10)]
-    public void HigherLevelsScaleByStat27WithASignedDivide_FromBinary(int level)
+    [InlineData(2, GoblinCost, 0)]          // 0 % → below 1 → 0
+    [InlineData(3, GoblinCost, 199)]        // 133 % truncates 199.5
+    [InlineData(4, GoblinCost, 300)]
+    [InlineData(10, GoblinCost, 45000)]
+    [InlineData(10, 3000, 0xFFFE)]          // 900000 clamped to 0xFFFE
+    public void HigherLevelsScaleByStat27WithASignedDivideAndClamp_FromBinary(int level, short cost, int expected)
     {
-        var (db, world, _) = Setup(level: level);
-        int percent = db.StatPercent(CreatureStatId.PossessionManaCost, level);
-        Assert.Equal(Math.Clamp(percent * GoblinCost / 100, 0, 0xFFFE), Charge(db, world));
+        var (db, world, _) = Setup(level: level, cost: cost);
+        Assert.Equal(expected, Charge(db, world));
+    }
+
+    [Fact]
+    public void UpgradedPercentageAppliesAfterTheLevelScale_FromBinary()
+    {
+        var (db, world, _) = Setup(upgraded: true, level: 3);
+        Assert.Equal(70 * 199 / 100, Charge(db, world));
     }
 
     [Fact]
@@ -145,6 +160,8 @@ public sealed class PossessionUpkeepTests
         PayWithMarginAfterPayment(db, world, -1);
         Assert.Equal(0, world.Player(Keeper).PossessedCreatureId);
         Assert.False(me.Possessed);
+        PlayerMessage posted = Assert.Single(world.Messages.Entries, m => m.Kind == PlayerMessageKind.ManaShortfall);
+        Assert.Equal((PossessionRules.PossessionEndedSubtype, 0), (posted.Data1, posted.Data2));
     }
 
     [Fact]

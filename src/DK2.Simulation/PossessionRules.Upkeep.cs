@@ -13,6 +13,9 @@ public static partial class PossessionRules
     /// (<c>0x0056C100</c>, <c>0x0051E6D0</c>): only then is possession charged.</summary>
     public const ushort UpkeepLevelFlag = 0x0004;
 
+    /// <summary>Message 53's Data1 when possession ends for want of mana (<c>0x004C13CB</c>).</summary>
+    public const int PossessionEndedSubtype = 5;
+
     /// <summary>The per-second possession charge (<c>0x004C17A0</c>, repeated in <c>0x004C10E0</c>):
     /// the creature's unsigned <c>PossessionManaCost</c> at level 1, otherwise scaled by its level
     /// row (stat 27) through a signed divide and clamped to 0..0xFFFE; then
@@ -39,7 +42,8 @@ public static partial class PossessionRules
 
     /// <summary>After a keeper's payment (<c>0x004C10E0</c>), before Call to Arms and the Reaper:
     /// mana less the imp and trap upkeep strictly below the charge ends the possession through
-    /// action 21 and ends the update. Equality keeps it. True when the possession ended.</summary>
+    /// action 21, posts message 53 with Data1 5 and Data2 0 (0x004C13C8) and ends the update.
+    /// Equality keeps it. True when the possession ended.</summary>
     public static bool AfterPayment(SimulationContext context, string system, ref PlayerState player, int impAndTrapUpkeep)
     {
         // A zero charge (an Imp) still compares: mana below the imp and trap upkeep ends it.
@@ -50,6 +54,7 @@ public static partial class PossessionRules
         if (player.Mana - impAndTrapUpkeep >= upkeep) return false;
         int creatureId = player.PossessedCreatureId;
         Leave(context, ref player);
+        context.World.Messages.Post(context.World, player.PlayerId, PlayerMessageKind.ManaShortfall, PossessionEndedSubtype, 0);
         context.Emit(system, "possession_unaffordable",
             $"player={player.PlayerId} creature={creatureId} upkeep={upkeep} mana={player.Mana}");
         return true;
