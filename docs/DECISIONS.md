@@ -8128,3 +8128,37 @@ Prison draws its rolls and may spend the last allowance there first. The gold ga
 our task state, not the task pool's kind-2 count; the cost arm with nothing stored takes
 the fresh scan's first deposit (Q539). Sight's shot (process 25, 64 updates, no
 collision) and the thing slot it would take are not created.
+
+## ADR-0353 — The keeper's remaining messages: mood, room ownership, threat and room producers
+**Date:** 2026-10-04 · **Status:** in progress
+
+**Context.** The keeper's walk (`0x004FA400`) reads types 1, 6, 12, 17, 18, 32–35, 41,
+42 and 47; ours consumes 1, 6, 41 and 42 and marks the rest handled. A census of all 151
+calls of the insert (`research/computer-keeper-messages.md` §2, §4) lists every
+producer, whether our simulation has its event, and the arms' rules.
+
+**Decision.** Build what is read, in stages, producers in the simulation and reactions
+as ordinary commands, messages retained with explicit acknowledgement:
+1. Mood: the anger wrapper posts 17/18 on an upward band change with its selector as
+   Data1; the sweep frees one whose creature has left the band.
+2. Make happy by the current largest bucket: pay (a partial withdrawal from the
+   Treasuries and Heart, minted as gold dropped on the creature), a Hatchery chicken,
+   the Lair or a job room; failure is handled below three event tasks.
+3. Dispose: a Temple floor slot when `AngryDisposalMethod` is 1, else a Temple, a
+   Portal or a Hero Portal; none leaves it for retry.
+4. Room ownership: 32/33 and 35 from the room transfer, and both arms.
+5. The other room producers our simulation has events for.
+6. Threat: 12 from the tile-work applier, 34 from the hero's room blow and its room
+   reader, and 47 (the Alarm, already posted) to the position reader.
+7. Documents and the same-map comparison protocol.
+
+**Prediction** (outcomes; HashVersion moves every hash series). Stage 1: 17s reach
+Harkan on Level 17 treasury-full (four creatures, t651–679) and Asmodeus on Level 10
+(five), so those two runs gain acknowledgements; no keeper creature turns angry in any
+run, and other scenarios keep events and world. Stage 2: Harkan's first 17 has Lair as
+its largest bucket, so he lifts the creature into a Lair if he owns one; Asmodeus's
+`UnhappyCreaturesHappy` is clear. Stage 3: inert, no keeper 18. Stage 4: every transfer
+in the corpus takes a neutral Portal, so it posts 33 (acknowledged) and a 35 to the
+neutral player; both arms are unreachable. Stage 5: keeper runs whose creatures want a
+missing or full room move; which ones is measured. Stage 6: inert; no scenario destroys
+another player's solid wall, wrecks a room or fires an Alarm.

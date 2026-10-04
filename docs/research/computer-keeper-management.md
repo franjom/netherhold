@@ -315,19 +315,46 @@ stack variables during this scan. Behaviour at gold on the map border remains
 Implementation limits: room distance uses the bounding-box centre rather than
 the original stored room position; the flood walk explicitly bounds neighbours.
 
-## 13. Make-happy grievance selection — `0x004F9710`
+## 13. Mood remedies — make happy `0x004F9710`, dispose `0x004F9520`
 
-The retained message identifies the creature through Data2, but its Data1
-complaint selector does not choose the remedy. The routine returns success for
-a missing creature or current mood zero. Otherwise `0x004F9772..0x004F9786`
-passes creature `+0x26E` to `0x004871B0`, then dispatches on its result.
-That helper scans six current anger counters, replacing the selected index only
-for a strictly larger value; ties keep the lowest index.
+Read whole 2026-10-04. **Make happy** returns success (handled) for a type other
+than 17/18, a creature tag naming nothing, or band (`+0x28A`) zero. Otherwise
+`0x004F9772..0x004F9786` passes creature `+0x26E` to `0x004871B0`, which scans the
+six counters and replaces its index only for a strictly larger value: ties keep
+the lowest index. The remedy is chosen by that **current** bucket, never by the
+message's Data1 selector or a bucket cached at insertion. A discriminating case
+retains a hunger message while Lair anger becomes the largest: the Lair is chosen.
 
-The remedy mapping is therefore by current bucket: 0/4/5 pay gold, 1 give food,
-2 move to Lair, 3 move to a job room. It must not use the sender's complaint
-selector or a bucket cached when the message was inserted. The wrapper
-`0x00478B80` sends its third argument as Data1; the bucket is its first argument.
-The independently checked callers agree with the distinction in
-`state-categories.md` section 7.2. A discriminating case retains a hunger message
-while Lair anger becomes the largest counter: the keeper chooses the Lair.
+- **0, 4, 5 — pay.** Needs a Treasury (`0x004C6460(1)`, a random one; the draw is
+  the only use). The wage is `Pay` (def `+0x69A`) at level 1, else `Pay` times the
+  level table's percentage over 100: our `PaydayRules.Wage`. `Player_ChangeGold`
+  takes it with flag 0 and no tile: share = remaining / (Treasuries + 1); each
+  Treasury or unruined Heart in the room list gives min(share, its gold), or up to
+  the whole remainder when the share is 0, walking its slab chain from the first
+  slab one gold pile per slab (`0x004F4510`); passes repeat until one takes
+  nothing. It returns what it took, which may be less than the wage. Zero fails.
+  Otherwise `0x004B7A90` makes a gold object holding that amount, flags `+0x146`
+  bit 4, puts it in the hand, earmarks it for the creature (`+0x142`) and, when
+  the hand holds it, drops it at the creature's position: the landing pays it
+  (`hand-drop-earmark.md`).
+- **1 — a chicken.** A random Hatchery's object-list head (`+0x0C`); none fails.
+  The chicken is lifted, unlinked from the room (`0x004E6130`), earmarked and
+  dropped on the creature.
+- **2 — the Lair.** A random Lair; no slot or capacity test. If the creature may
+  be lifted (`0x0048E6A0`), `0x004BFBD0` prepares it, the hand lifts it and, when
+  held, drops it at the room's position (`+0x27`) plus `0x900` on both axes.
+- **3 — a job room.** For each happy-table entry in order (def `+0x628`, count
+  `+0x78B`), job ids below 10 map through `JobRooms` (`KEEPER_AI.md` §2.3; the room
+  byte only, so job 7 is the Torture Chamber): a random room of that type, then
+  the dropped-counter guard (`+0x46D` above 300, or game turn below 301) and
+  `0x0048E6A0`; the first that passes is lifted and dropped as for the Lair.
+
+A failed remedy returns handled only while `NumberOfEventTasks` (keeper `+0`
+bits 18–21) is below 3; it never queues an event itself.
+
+**Dispose** takes Data2's creature. With `AngryDisposalMethod` (`+0x4B6` bit 18)
+and a Temple, it draws a floor slot (`0x004E8210(1, 0)`) and, when the creature
+may be lifted and the hand holds it, drops it there plus `0x100`: success.
+Otherwise, or if that failed, it takes a random Temple, else a Portal, else a Hero
+Portal (none: returns 0, unhandled and retried) and drops at that room's position
+plus `0x900`. A refused lift returns 0.

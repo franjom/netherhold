@@ -817,7 +817,8 @@ The third cast path (`0x004BC290`) is action 56's alone; the keeper never issues
 - **Remaining message producers and suppression initialization** are open; the
   independently checked senders and retention rules are in
   `research/computer-keeper-messages.md`. In particular 41 means room needed,
-  and 47 is emitted by the Turncoat shot process.
+  and 47 is emitted by the Alarm trap's shot (process 12); the census of every
+  producer is in its section 2.
 - **Which creature stat the make-room step minimises** — the descriptor byte at
   `+0x787` of the in-memory creature descriptor (Flame names neither it nor the job
   count next to it at `+0x78B`). The candidate ordering is therefore known in form,
