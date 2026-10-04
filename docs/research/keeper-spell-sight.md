@@ -101,4 +101,5 @@ and Unity builds have zero warnings/errors; the no-install suite passes3407,
 fails0 and skips396. Ledger,750-record KB,coverage and documentation checks pass.
 All42 scenario runs produce178 artifacts identical to Stage5. Against Stage0,
 94 remain exact and84 differ only in hash composition; no new behavior changes.
-Independent Stage6 review is pending (2026-10-04).
+Independent binary/runtime review passes. Its duplicate evidence/History finding
+is corrected; fresh limited correction review is pending (2026-10-04).

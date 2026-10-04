@@ -7987,4 +7987,5 @@ explicitly unbuilt. All42 scenarios preserve event/world outputs; new hash
 composition changes every series. Current hash/save174.
 Stage6 records Sight's temporary presentation layer and intentionally leaves
 simulation casting unbuilt; see `research/keeper-spell-sight.md` and Q534.
-Its independent review is pending (2026-10-04). Possession is next.
+Its binary/runtime review passes; a documentation correction awaits fresh review
+(2026-10-04). Possession is next.

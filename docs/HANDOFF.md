@@ -26,7 +26,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   approved, including normal Horny's creation/lifecycle/upkeep. OneShotReaper's
   creation/timer/one-use flag and its correction are independently approved.
   Horny's idle AI remains unbuilt. See research/keeper-spell-reaper.md. Sight's
-  presentation-only boundary is recorded; review is pending (2026-10-04).
+  presentation-only boundary passes binary/runtime review; its documentation
+  correction awaits fresh review (2026-10-04).
   See research/keeper-spell-sight.md. Possession is next.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 16).
