@@ -182,10 +182,103 @@ public sealed class PossessionActTests
         return trap;
     }
 
+    /// <summary>A standing door of the fixture's first non-barricade type, which stops sight on its tile.</summary>
+    private static DoorState PlaceDoor(GameDatabase db, WorldState world, TilePos at, byte owner)
+    {
+        ref TileState tile = ref world.Tile(at);
+        tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        tile.OwnerPlayerId = owner;
+        byte doorId = db.Doors.Values.First(d => (d.Flags & DoorFlags.Barricade) == 0).DoorId;
+        ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = at.X, Y = at.Y, PlayerId = owner, DoorId = doorId, Unknown_0011 = new byte[3] }]);
+        DoorState door = world.Doors[^1];
+        Assert.False(door.UnderConstruction);
+        return door;
+    }
+
+    [Theory]
+    [InlineData(East + PossessionRules.AimConeHalfWidth, false)]
+    [InlineData(East - PossessionRules.AimConeHalfWidth, false)]
+    [InlineData(East + PossessionRules.AimConeHalfWidth - 1, true)]
+    [InlineData(East - PossessionRules.AimConeHalfWidth + 1, true)]
+    public void ATargetBearingExactlyOnTheConesEdgeIsRefused_BothEndsStrict_StronglyInferredFromBinary(int yaw, bool struck)
+    {
+        var (db, world) = Open();
+        CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
+        // Straight east of the pose: bearing exactly East, so the yaw puts it on or inside an edge.
+        CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
+        GameSimulation sim = Sim(db, world);
+        sim.Tick(InputFrame.Of(Act(me, melee: true, yaw: (ushort)yaw)));
+        Assert.Equal(struck, me.SwingInProgress && me.SwingTargetId == enemy.Id);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AHiddenEnemyTrapIsNotAMeleeTarget_StronglyInferredFromBinary(bool hidden)
+    {
+        var (db, world) = Open();
+        CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
+        TrapState trap = PlaceTrap(db, world, new TilePos(11, 10), Rival);
+        trap.Hidden = hidden;
+        GameSimulation sim = Sim(db, world);
+        sim.Tick(InputFrame.Of(Act(me, melee: true)));
+        Assert.Equal(!hidden, me.SwingInProgress && me.SwingTargetKind == FightTargetKind.Trap && me.SwingTargetId == trap.Id);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AThingOfTheCreaturesOwnOwnerIsNotAMeleeTarget_StronglyInferredFromBinary(bool trap)
+    {
+        var (db, world) = Open();
+        CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
+        if (trap) PlaceTrap(db, world, new TilePos(11, 10), Keeper);
+        else world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
+        GameSimulation sim = Sim(db, world);
+        long now = sim.CurrentTick.Value;
+        sim.Tick(InputFrame.Of(Act(me, melee: true)));
+        Assert.Equal(now, me.TimeLastUsedMelee);
+        Assert.False(me.SwingInProgress);
+    }
+
+    [Fact]
+    public void ANearerWorseAimedCandidateReplacesWithinThe300Over256Margin_StronglyInferredFromBinary()
+    {
+        var (db, world) = Open();
+        CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
+        // A on (11, 10), met third: 10 degrees off the aim, dot ~4034. B on the pose's own tile, met
+        // last: nearer, 25 degrees off, dot ~3712. 4034 < 3712 x 300 / 256 = 4350, so B replaces A;
+        // a plain "better aimed" test (x 256 / 256) would keep A.
+        CreatureState a = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
+        CreatureState b = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
+        Place(a, me.PosX + 4000, me.PosY - 705);
+        Place(b, me.PosX + 2000, me.PosY - 933);
+        GameSimulation sim = Sim(db, world);
+        sim.Tick(InputFrame.Of(Act(me, melee: true)));
+        Assert.Equal(b.Id, me.SwingTargetId);
+    }
+
+    [Fact]
+    public void ACandidateAtEqualDistanceDoesNotReplace_StronglyInferredFromBinary()
+    {
+        var (db, world) = Open();
+        CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
+        // Mirror images on one tile: equal distance, equal aim. The later arrival is met first and
+        // kept; the other is not strictly nearer.
+        CreatureState second = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
+        CreatureState first = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
+        Place(first, me.PosX + 2400, me.PosY - 1800);
+        Place(second, me.PosX + 2400, me.PosY + 1800);
+        Assert.True(first.TileLink.Order > second.TileLink.Order);
+        GameSimulation sim = Sim(db, world);
+        sim.Tick(InputFrame.Of(Act(me, melee: true)));
+        Assert.Equal(first.Id, me.SwingTargetId);
+    }
+
     [Theory]
     [InlineData(East, 100)]
     [InlineData(0x600, 0)]
-    public void GoldPickUpTakesTwiceTheLackCappedAt100AndPursesHalf_ReachUsesTheHeading_StronglyInferredFromBinary(
+    public void GoldPickUpTakesTwiceTheLackCappedAt100AndPursesHalf_ReachHeadingHalfOnly_StronglyInferredFromBinary(
         ushort heading, int taken)
     {
         var (db, world) = Open();
@@ -198,6 +291,27 @@ public sealed class PossessionActTests
         sim.Tick(InputFrame.Of(Act(me, melee: true)));
         Assert.Equal(250 - taken, pile.GoldHeld);
         Assert.Equal(taken / 2, me.GoldHeld);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GoldReachEndsAtSixFifthsOfTheRadius_FootprintRadiusStandsInForTheUnreadSize_Hypothesis(bool atTheEdge)
+    {
+        var (db, world) = Open();
+        CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
+        // The bound is read (6/5 of the summed radii, the object's 0); the creature's size is its
+        // vtable +0x3C, unread, for which the footprint stands in.
+        int bound = db.CreatureById(me.CreatureTypeId).FootprintRadius.Raw * 6 / 5;
+        int edge = 0;
+        while (((long)(edge + 1) * (edge + 1) >> 12) <= bound) edge++;
+        int pileX = CreatureState.CentreOf(11);
+        me.PosX = pileX - (atTheEdge ? edge : edge + 1);
+        ObjectState pile = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (10 * world.Width) + 11);
+        pile.GoldHeld = 250;
+        GameSimulation sim = Sim(db, world);
+        sim.Tick(InputFrame.Of(Act(me, melee: true)));
+        Assert.Equal(atTheEdge, pile.GoldHeld < 250);
     }
 
     [Fact]
@@ -261,6 +375,80 @@ public sealed class PossessionActTests
         Assert.Equal(SpellRules.FreeAimCast, me.SwingKind);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TheSpellScanSkipsADownEnemy_StronglyInferredFromBinary(bool down)
+    {
+        var (db, world) = Open();
+        CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 5, 10);
+        CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(8, 10));
+        if (down) enemy.Health = 0;
+        GameSimulation sim = Sim(db, world);
+        sim.Tick(InputFrame.Of(Act(me, melee: false, slot: 0)));
+        Assert.Equal(down ? (SpellRules.FreeAimCast, FightTargetKind.None) : (SpellRules.SpellCast, FightTargetKind.Creature),
+            (me.SwingKind, me.SwingTargetKind));
+    }
+
+    // 0x31000 is seven tiles squared in DistanceSquared's units (49 x 4096), and the test is strict.
+    [Theory]
+    [InlineData(false, 6, true)]
+    [InlineData(false, 7, false)]
+    [InlineData(false, 9, false)]
+    [InlineData(true, 6, true)]
+    [InlineData(true, 7, false)]
+    [InlineData(true, 9, false)]
+    public void TrapsAndDoorsAreScannedOnlyWithinSevenTiles_StronglyInferredFromBinary(bool door, int tiles, bool targeted)
+    {
+        var (db, world) = Open();
+        CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 2, 10);
+        var at = new TilePos(2 + tiles, 10);
+        if (door) PlaceDoor(db, world, at, Rival);
+        else PlaceTrap(db, world, at, Rival);
+        GameSimulation sim = Sim(db, world);
+        sim.Tick(InputFrame.Of(Act(me, melee: false, slot: 0)));
+        byte kind = door ? FightTargetKind.Door : FightTargetKind.Trap;
+        Assert.Equal(targeted ? (SpellRules.SpellCast, kind) : (SpellRules.FreeAimCast, FightTargetKind.None),
+            (me.SwingKind, me.SwingTargetKind));
+    }
+
+    [Fact]
+    public void ADoorIsSightedFromOneTileNearerThePose_SoItsOwnBlockingTileDoesNotHideIt_StronglyInferredFromBinary()
+    {
+        var (db, world) = Open();
+        CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 5, 10);
+        DoorState door = PlaceDoor(db, world, new TilePos(8, 10), Rival);
+        GameSimulation sim = Sim(db, world);
+        sim.Tick(InputFrame.Of(Act(me, melee: false, slot: 0)));
+        Assert.Equal((SpellRules.SpellCast, FightTargetKind.Door, door.Id), (me.SwingKind, me.SwingTargetKind, me.SwingTargetId));
+    }
+
+    [Fact]
+    public void AFriendlySpellScansTheCastersOwnSide_StronglyInferredFromBinary()
+    {
+        var (db, world) = Open();
+        // The Priest's slot 0 is Haste, a friendly spell (flag bit 2).
+        CreatureState me = Possess(db, world, Dk2TerrainFixture.PriestCreatureId, 5, 10);
+        Assert.True(SpellRules.IsFriendly(SpellRules.SpellOf(db, db.CreatureById(me.CreatureTypeId), 0)!));
+        CreatureState ally = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 10));
+        GameSimulation sim = Sim(db, world);
+        sim.Tick(InputFrame.Of(Act(me, melee: false, slot: 0)));
+        Assert.Equal((SpellRules.SpellCast, FightTargetKind.Creature, ally.Id), (me.SwingKind, me.SwingTargetKind, me.SwingTargetId));
+    }
+
+    [Fact]
+    public void ASelfOnlySpellTargetsTheCasterWhateverTheScanFound_StronglyInferredFromBinary()
+    {
+        var (db, world) = Open();
+        // The Thief's slot 0 is Invisible: friendly and self-only (flag bit 7).
+        CreatureState me = Possess(db, world, Dk2TerrainFixture.ThiefCreatureId, 5, 10);
+        Assert.True(SpellRules.IsSelfOnly(SpellRules.SpellOf(db, db.CreatureById(me.CreatureTypeId), 0)!));
+        world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 10));
+        GameSimulation sim = Sim(db, world);
+        sim.Tick(InputFrame.Of(Act(me, melee: false, slot: 0)));
+        Assert.Equal((SpellRules.SpellCast, FightTargetKind.Creature, me.Id), (me.SwingKind, me.SwingTargetKind, me.SwingTargetId));
+    }
+
     [Fact]
     public void ASlotStillRechargingAtEqualityDoesNothingAndKeepsItsStamp_StronglyInferredFromBinary()
     {
@@ -296,8 +484,10 @@ public sealed class PossessionActTests
         Assert.False(me.SwingInProgress);
     }
 
+    // SpellRules.SpellOf already refuses slot 3 (Slots is 3), so this cannot tell UseSlot's
+    // follower-arm return from the slot bound: the guard is inert until a follower arm is built.
     [Fact]
-    public void SlotThreeIsTheFollowerArmWhichNeverStamps_FollowerArmUnbuilt()
+    public void SlotThreeNeverStamps_RefusedByTheSlotBoundFirst_FollowerArmGuardUntested()
     {
         var (db, world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 10, 10);

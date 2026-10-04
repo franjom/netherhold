@@ -282,8 +282,9 @@ cone is a candidate. The spell scan's per-player lists are newest first
 (0x004B4C30 prepends).
 
 Action begin 0x00496700 refuses only while another action than 0 or 21 runs whose
-interruption byte (0x006E41B4 + 0x1D·id) is zero; shipped bytes are all 1. It ends
-the current action first. Neither action 26 nor the begin tells the target: the
+interruption byte (0x006E41B4 + 0x1D·id: record +28 of the action table at
+0x006E4198, which 0x004950C0 fills) is zero; creature-action-table.md §1 records
+that byte as 1 in all 81 records. It ends the current action first. Neither action 26 nor the begin tells the target: the
 answer 0x0045AA20 has only spFighting and trap callers. An object's radius
 (vtable 0x0066D654 slot +0x3C, 0x00402AD0) is 0. The gold arm's last call,
 0x0050FB70, forwards to the world's sink (presentation, LIKELY).
@@ -318,6 +319,14 @@ shot or body, and action16 at a type-94 object; each stamps as DK2 does and star
 nothing. Not represented (Q536): SneakingAs, hypnosis, +0x4D0/+0x4D2, SniperMode,
 the secret-door cell bit and heights. A slot outside the creature's spells is
 refused by `SpellOf`'s bound; spell level is not tested, as in the listing.
+Approximations: an object's position is its PosX/PosY when either is non-zero,
+else its tile's centre (`ObjectPosition`); at level load the per-tile link order
+follows our THINGS projection order, not DK2's constructor order; the gold
+reach uses the creature's footprint radius for its unread vtable +0x3C size, so
+its tests pin the heading half and the 6/5 bound, not the size. The teleport
+arm's previous-position writes (+0xF6..+0xFE) are action25's zero-word branch,
+which `PossessionRules.Move` already builds: X, Y and 0 copied to
+LastPosX/LastPosY/LastPosZ.
 
 ## Stage7a verification
 

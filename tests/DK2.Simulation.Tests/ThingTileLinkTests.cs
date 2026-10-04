@@ -69,10 +69,77 @@ public sealed class ThingTileLinkTests
         var (db, world) = Open();
         ShotState shot = world.SpawnShot(Dk2TerrainFixture.FireballShotId, Keeper, CreatureState.CentreOf(7), CreatureState.CentreOf(7));
         Assert.Equal((7 * world.Width) + 7, shot.TileLink.TileIndex);
-        int order = shot.TileLink.Order;
-        shot.PosY += 4096;
-        Assert.Equal((8 * world.Width) + 7, shot.TileLink.TileIndex);
-        Assert.True(shot.TileLink.Order > order);
+        TrapState trap = PlaceTrap(db, world, new TilePos(9, 7));
+        Assert.Equal((7 * world.Width) + 9, trap.TileLink.TileIndex);
+        Assert.True(trap.TileLink.Order > shot.TileLink.Order);
+        DoorState door = PlaceDoor(db, world, new TilePos(11, 7));
+        Assert.Equal((7 * world.Width) + 11, door.TileLink.TileIndex);
+        Assert.True(door.TileLink.Order > trap.TileLink.Order);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AShotRelinksWhenEitherAxisCrossesATile_StronglyInferredFromBinary(bool alongX)
+    {
+        var (db, world) = Open();
+        ShotState shot = world.SpawnShot(Dk2TerrainFixture.FireballShotId, Keeper, CreatureState.CentreOf(7), CreatureState.CentreOf(7));
+        ObjectState pile = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (7 * world.Width) + 7);
+        if (alongX) shot.PosX += 4096;
+        else shot.PosY += 4096;
+        Assert.Equal(alongX ? (7 * world.Width) + 8 : (8 * world.Width) + 7, shot.TileLink.TileIndex);
+        Assert.True(shot.TileLink.Order > pile.TileLink.Order);
+    }
+
+    [Fact]
+    public void AnObjectRelinksWhenItsTileOrItsHandChanges_StronglyInferredFromBinary()
+    {
+        var (db, world) = Open();
+        ObjectState pile = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (5 * world.Width) + 5);
+        CreatureState c = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 6));
+        pile.TileIndex = (6 * world.Width) + 5;
+        Assert.Equal((6 * world.Width) + 5, pile.TileLink.TileIndex);
+        Assert.True(pile.TileLink.Order > c.TileLink.Order);
+        int before = pile.TileLink.Order;
+        pile.InHand = true;
+        Assert.Equal(ThingTileLink.None, pile.TileLink);
+        pile.InHand = false;
+        Assert.True(pile.TileLink.Order > before);
+    }
+
+    [Fact]
+    public void ACreatureThatDiesIntoABodyIsLinkedAfreshAtTheHead_StronglyInferredFromBinary()
+    {
+        var (db, world) = Open();
+        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
+        ObjectState pile = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (5 * world.Width) + 5);
+        Assert.True(pile.TileLink.Order > goblin.TileLink.Order);
+        goblin.Health = 0;
+        Assert.True(CreatureDeathRules.Collapse(new StateHookContext(world, db), goblin));
+        goblin.DyingTicks = CreatureDeathRules.DyingWindowTicks(db);
+        new GameSimulation(db, world, 42, [new CreatureHealthSystem()]).Run(SimulationTiming.TicksPerSecond);
+        Assert.True(CreatureDeathRules.IsCorpse(goblin));
+        Assert.Equal((5 * world.Width) + 5, goblin.TileLink.TileIndex);
+        Assert.True(goblin.TileLink.Order > pile.TileLink.Order);
+    }
+
+    private static TrapState PlaceTrap(GameDatabase db, WorldState world, TilePos at)
+    {
+        ref TileState tile = ref world.Tile(at);
+        tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        tile.OwnerPlayerId = Rival;
+        ThingProjection.Place(world, db, [new TrapThing(new byte[16]) { X = at.X, Y = at.Y, TrapId = Dk2TerrainFixture.SentryTrapId, PlayerId = Rival, NumberOfShots = 1 }]);
+        return world.Traps[^1];
+    }
+
+    private static DoorState PlaceDoor(GameDatabase db, WorldState world, TilePos at)
+    {
+        ref TileState tile = ref world.Tile(at);
+        tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        tile.OwnerPlayerId = Rival;
+        byte doorId = db.Doors.Values.First(d => (d.Flags & DoorFlags.Barricade) == 0).DoorId;
+        ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = at.X, Y = at.Y, PlayerId = Rival, DoorId = doorId, Unknown_0011 = new byte[3] }]);
+        return world.Doors[^1];
     }
 
     [Fact]

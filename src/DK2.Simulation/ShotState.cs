@@ -16,7 +16,8 @@ public sealed class ShotState
     public int Id;
     public byte ShotTypeId;
     public byte OwnerPlayerId;
-    /// <summary>The position; a property so that every write keeps <see cref="TileLink"/> current.</summary>
+    /// <summary>The position; a property so that every write keeps <see cref="TileLink"/> current. Each
+    /// axis write relinks on its own, so a diagonal crossing takes two link orders (<see cref="WorldState.Relink(CreatureState)"/>).</summary>
     public int PosX
     {
         get => _posX;

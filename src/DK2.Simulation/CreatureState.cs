@@ -260,7 +260,8 @@ public sealed class CreatureState
     /// <para>Sub-tile because travel time is gameplay; fixed point rather than
     /// floating so the same walk arrives on the same tick everywhere
     /// (ADR-0001).</para>
-    /// <para>A property so that every write keeps <see cref="TileLink"/> current.</para></summary>
+    /// <para>A property so that every write keeps <see cref="TileLink"/> current; each axis write relinks
+    /// on its own, so a diagonal crossing takes two link orders (<see cref="WorldState.Relink(CreatureState)"/>).</para></summary>
     public int PosX
     {
         get => _posX;

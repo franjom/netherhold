@@ -1533,7 +1533,10 @@ public sealed class WorldState
     private ThingTileLink Moved(ThingTileLink link, int tile) => tile == link.TileIndex ? link : NewLink(tile);
 
     /// <summary>Keeps the creature's <see cref="CreatureState.TileLink"/> current; its position, hand
-    /// and carry setters call this, so no caller has to.</summary>
+    /// and carry setters call this, so no caller has to. A diagonal crossing written PosX then PosY
+    /// relinks at each write and takes two orders (one if the corner tile is off the map), so merging
+    /// or reordering a caller's X and Y writes can change the hashed <see cref="ThingTileLink.Order"/>
+    /// values; the chain's relative order is unaffected.</summary>
     internal void Relink(CreatureState creature)
     {
         if (ReferenceEquals(creature.LinkWorld, this)) creature.TileLink = Moved(creature.TileLink, ChainTileOf(creature));

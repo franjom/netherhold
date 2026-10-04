@@ -37,9 +37,15 @@ public static partial class PossessionRules
     public const uint TeleportSpellFlag = 0x20;
     public const uint SpeedSpellFlag = 0x40;
 
-    /// <summary>The object types the dispatch names (<c>0x005153D0</c>/<c>0x005153E8</c>).</summary>
-    public const byte ChickenObjectId = 9;
-    public const byte ProcessStateObjectId = 14;
+    /// <summary>Object types the pick and the dispatch name by id, with the shipped Objects.kwd names;
+    /// gold 1 and 3 are <see cref="FloorGold"/>'s and the chicken <see cref="HatcheryRules"/>'.</summary>
+    private const byte GoldBagObjectId = 2;
+    private const byte TrainingDummyObjectId = 14;
+    private const byte AnvilObjectId = 15;
+    private const byte SteelBucketObjectId = 16;
+    private const byte WorkBenchObjectId = 46;
+    private const byte BookCaseObjectId = 64;
+    private const byte ArchPillarObjectId = 94;
 
     internal readonly record struct Vec3(int X, int Y, int Z)
     {
@@ -138,6 +144,8 @@ public static partial class PossessionRules
                 context.Emit(ActSystem, "possessed_melee_unbuilt", $"creature={me.Id} class={target.Class}");
                 break;
         }
+        // DK2's second stamp. It writes the same tick as the first, so no test can tell it from its
+        // absence; it is kept to mirror the binary.
         me.TimeLastUsedMelee = now;
     }
 
@@ -148,10 +156,10 @@ public static partial class PossessionRules
     {
         switch (thing.ObjectTypeId)
         {
-            case 1 or 2 or 3:
+            case FloorGold.FloorGoldObjectId or GoldBagObjectId or FloorGold.TreasuryPileObjectId:
                 TakeGold(context, me, mine, thing);
                 break;
-            case 15 or 16 or 46:
+            case AnvilObjectId or SteelBucketObjectId or WorkBenchObjectId:
                 context.Emit(ActSystem, "possessed_impact", $"creature={me.Id} object={thing.Id}");
                 break;
             default:
@@ -244,9 +252,11 @@ public static partial class PossessionRules
                 if (!InReach(me, mine, thing.At)) return false;
                 return o.ObjectTypeId switch
                 {
-                    1 or 2 or 3 => (uint)me.GoldHeld < (uint)CreatureLevelRules.MaxGoldHeld(database, mine, me.Level),
-                    9 or 14 or 15 or 16 or 46 or 64 => true,
-                    94 => !sameOwner,
+                    FloorGold.FloorGoldObjectId or GoldBagObjectId or FloorGold.TreasuryPileObjectId =>
+                        (uint)me.GoldHeld < (uint)CreatureLevelRules.MaxGoldHeld(database, mine, me.Level),
+                    HatcheryRules.ChickenObjectId or TrainingDummyObjectId or AnvilObjectId or SteelBucketObjectId
+                        or WorkBenchObjectId or BookCaseObjectId => true,
+                    ArchPillarObjectId => !sameOwner,
                     _ => false,
                 };
             default:
@@ -386,7 +396,7 @@ public static partial class PossessionRules
             for (int o = world.Objects.Count - 1; o >= 0; o--)
             {
                 ObjectState thing = world.Objects[o];
-                if (thing.OwnerPlayerId != player || thing.ObjectTypeId != 94) continue;
+                if (thing.OwnerPlayerId != player || thing.ObjectTypeId != ArchPillarObjectId) continue;
                 Vec3 at = ObjectPosition(world, thing);
                 if (!Scores(at, at, CreatureAndObjectScanLimit, out int score)) continue;
                 best = score;
