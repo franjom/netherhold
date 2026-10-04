@@ -17,8 +17,8 @@ Every call reached from the computer-keeper tick `0x00500C20`:
 | `0x00500F9F` | tick step 11 | 4 Create Imp at the heart ± 2 | yes (ADR-0247) |
 | `0x004FED48` | attack management `0x004FECE0` | 3 Call to Arms at the front | yes (ADR-0298) |
 | `0x0050320D` | battle step `0x00503060` | 3 Call to Arms near a fighter | yes (ADR-0283) |
-| `0x0050361D`, `0x0050362D` | battle step | a scanned thing spell | yes (ADR-0283/0287/0302) |
-| `0x0050365F`, `0x00503672` | battle step | a scanned place spell | yes (ADR-0302) |
+| `0x0050362D`, after permission `0x0050361D` | battle step | a scanned thing spell | yes (ADR-0283/0287/0302) |
+| `0x00503672`, after permission `0x0050365F` | battle step | a scanned place spell | yes (ADR-0302) |
 | `0x004FD64E` | gold step `0x004FD590` | 13 Create Gold (§2) | yes (ADR-0352) |
 | `0x005004B1`, `0x005004F9` | Sight step `0x005003A0` | 1 Sight of Evil (§3) | yes (ADR-0352) |
 
@@ -42,7 +42,7 @@ no level file carries keeper-spell records, so no level overrides the word.
 handler. The keeper issues actions only through `World_DispatchAction` (`0x0050E5C0`),
 eleven calls in its range, each with a literal id: 40 at `0x004FD0D7`, `0x004FD410`,
 `0x004FDEF3` and `0x004FD750`'s three (`EBP` set at `0x004FD77C`), 41 at `0x004FA849`
-and `0x00500D13`, 62 at `0x00503008`, 63 at `0x004FF22C`, 88 at `0x0050061D`. No caller
+and `0x00500D13`, 62 at `0x00503008`, 63 at `0x004FF22C`, 88 (activate a Special) at `0x0050061D`. No caller
 of the dispatcher anywhere stores 54, 55 or 56; those come from input packets.
 
 ## 2. The gold step — `0x004FD590`
