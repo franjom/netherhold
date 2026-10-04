@@ -49,8 +49,10 @@ of the dispatcher anywhere stores 54, 55 or 56; those come from input packets.
 
 Reached from the tick's task 0 (`0x00501167`) and task 4 (`0x005011DC`) only, when
 `Flags` bit 1, player gold (`+0x7E`) below `TendancyMoney` (`+0x4AF`) and the player's
-pending gold-dig count (`+0x1105` → `+0x467C`) zero; task 0 also requires that no task
-was started. It spends no allowance and its cast's return is ignored.
+pending gold-dig count zero; task 0 also requires that no task was started. It spends no
+allowance and its cast's return is ignored. The count is the word at `[player+0x1105]+0x467C`:
+the task pool's per-kind counts sit at `+0x4678 + kind × 2` ([00508200](functions/00508200.md)),
+which `TaskPool_Raise` increments (`0x00507E02`), and kind 2 is a marked seam to mine.
 
 - **Deposit arm.** If `GoldDeposits[CurrentGoldArea]`'s amount dword (`+0x32` + 8 ×
   index) is nonzero: copy its x/y words into `DigRoomAt` (`+0x72/+0x74`), set
