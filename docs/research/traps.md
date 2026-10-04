@@ -344,7 +344,7 @@ scan D and a creature's fight against a revealed trap, melee and spell.
 Disarming remains unbuilt under the scoped reachability inference in §11 (ADR-0329).
 Left: scan D's Turncoat skip and the game's player order (a tie between players); effects, sounds and
 animations; heights (Q398, M9 under ADR-0341); `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
-swing at a trap (possession is not built).
+swing at a trap is built (`keeper-spell-possession.md`, Possessed actions).
 
 ## Open questions
 

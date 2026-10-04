@@ -341,9 +341,9 @@ lookup in the same change.
   it disagrees with the owner's report of no drain at all. The likely explanation is
   that the mana orb is not on screen in first person, which would make the
   observation an absence of HUD rather than an absence of drain. Nothing here
-  depends on it; possession arrives at M7.
+  depends on it. Possession is built (ADR-0350, Q58): an Imp's charge is 0.
 - **Other spell upkeeps.** Normal Horny is charged; the one-shot variant is excluded
-  from that binary path (`keeper-spell-reaper.md`). Possession remains unbuilt.
+  from that binary path (`keeper-spell-reaper.md`). Possession's per-creature upkeep is built (`keeper-spell-possession.md` §Upkeep).
   Call To Arms' 90 is charged (`call-to-arms.md`, ADR-0279).
 
 ---
