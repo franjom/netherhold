@@ -19,7 +19,7 @@ Every call reached from the computer-keeper tick `0x00500C20`:
 | `0x0050320D` | battle step `0x00503060` | 3 Call to Arms near a fighter | yes (ADR-0283) |
 | `0x0050361D`, `0x0050362D` | battle step | a scanned thing spell | yes (ADR-0283/0287/0302) |
 | `0x0050365F`, `0x00503672` | battle step | a scanned place spell | yes (ADR-0302) |
-| `0x004FD64E` | gold step `0x004FD590` | 13 Create Gold (§2) | no: ADR-0352 stage 1 |
+| `0x004FD64E` | gold step `0x004FD590` | 13 Create Gold (§2) | yes (ADR-0352) |
 | `0x005004B1`, `0x005004F9` | Sight step `0x005003A0` | 1 Sight of Evil (§3) | no: ADR-0352 stage 2 |
 
 The other callers are not the computer keeper's. `0x004BB55F` in `Player_KeeperTick`
@@ -73,6 +73,11 @@ even when empty, rescans and sets Task 5, and never casts.
 **The cast is refused on a shipped Heart.** Location selector 1 rejects the Heart's
 inner three by three (`keeper-spell-thunderbolt.md` §2); the centre plus (1, 1) of a
 5 × 5 Heart is in it. The refused cast creates nothing and charges nothing.
+
+**Built** (ADR-0352) as `KeeperAI.GoldStep`: the keeper issues the cast whenever DK2
+calls it and the simulation's validators refuse it. Our gates keep `WantsGold`'s task
+test for the pending gold-dig count, and the cost arm with nothing stored takes the
+fresh scan's first deposit (Q539).
 
 ## 3. The Sight step — `0x005003A0`
 

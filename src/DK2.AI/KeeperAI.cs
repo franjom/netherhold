@@ -209,7 +209,7 @@ public sealed class KeeperAI
                 budget--;
                 // The attack planner first; the room planner when it declines (Flags bit 0 is
                 // always on); the gold step when neither started a task.
-                if (!attack.Plan() && !PlanRoom(view, area) && WantsGold(view)) StartGold(view);
+                if (!attack.Plan() && !PlanRoom(view, area) && WantsGold(view)) GoldStep(view, commands);
                 break;
 
             case KeeperTask.FindSite:
@@ -229,7 +229,7 @@ public sealed class KeeperAI
             case KeeperTask.Done:
                 budget--;
                 State.BeginTask(KeeperTask.Decide);
-                if (WantsGold(view)) StartGold(view);
+                if (WantsGold(view)) GoldStep(view, commands);
                 break;
 
             case KeeperTask.RouteToGold:
@@ -307,7 +307,7 @@ public sealed class KeeperAI
 
         RoomDef def = view.Database.RoomById(room);
         if (RoomRules.CostPerTile(def) * _p.DefaultRoomSize > view.Gold)
-            return StartGold(view);
+            return RouteToStoredGold(view, takeFreshScan: true);
 
         if ((request & KeeperRoomRequests.ExpandBit) != 0)
         {
@@ -449,44 +449,66 @@ public sealed class KeeperAI
         && State.Task is not (KeeperTask.RouteToGold or KeeperTask.MineSeam)
         && State.NextTask != KeeperTask.MineSeam;
 
-    /// <summary>The gold step (§5.5): pick a known deposit, or scan for one. True when a task started.</summary>
-    private bool StartGold(KeeperView view)
+    /// <summary>The gold step (<c>0x004FD590</c>, §5.10): a stored deposit becomes task 5's target;
+    /// with none stored the keeper casts Create Gold beside the heart, spending no allowance and
+    /// ignoring the result. Both arms rescan and leave the index at 0, so the stored list is always
+    /// the previous scan's. True when a task started.</summary>
+    private bool GoldStep(KeeperView view, List<PlayerCommand> commands)
     {
-        if (State.GoldDeposits.Count == 0)
+        if (RouteToStoredGold(view)) return true;
+        if (view.Availability(KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.CreateGold) == 3)
         {
-            State.GoldDeposits.AddRange(GoldScanner.Scan(view));
-            State.CurrentGoldArea = 0;
+            // The centre of the tile diagonally south-east of the heart's centre (0x004FD619): inside
+            // a 5x5 Heart's refused middle, so the simulation refuses it there (Q540).
+            TilePos heart = view.Heart!.Value;
+            commands.Add(new CastSpellAtPlaceCommand(PlayerId, KeeperSpellRules.CreateGold,
+                ((heart.X + 1) << 12) + HalfTile, ((heart.Y + 1) << 12) + HalfTile));
         }
-        if (State.GoldDeposits.Count == 0) return false; // the original casts Create Gold here; no such command yet
-        State.CurrentGoldArea %= State.GoldDeposits.Count;
-        State.BeginTask(KeeperTask.RouteToGold);
+        return false;
+    }
+
+    /// <summary>Half a tile in 1/4096 tile: a tile's centre.</summary>
+    private const int HalfTile = 0x800;
+
+    /// <summary>The arm the gold step and the room planner's cost test share (<c>0x004FD590</c>,
+    /// <c>0x004FC9AE</c>): copy the stored first deposit into <see cref="KeeperAIState.DigRoomAt"/>,
+    /// rescan, and start task 5 with <c>NextTask</c> kept. Without a stored deposit only the rescan
+    /// runs; the cost test then takes the fresh scan's first, where DK2 routes to (0, 0) (Q539).</summary>
+    private bool RouteToStoredGold(KeeperView view, bool takeFreshScan = false)
+    {
+        GoldDeposit? stored = StoredDeposit();
+        State.CurrentGoldArea = 0;
+        State.GoldDeposits.Clear();
+        State.GoldDeposits.AddRange(GoldScanner.Scan(view));
+        if (stored is null && takeFreshScan) stored = StoredDeposit();
+        if (stored is not GoldDeposit deposit) return false;
+        State.DigRoomAt = deposit.Centre;
+        State.BeginTask(KeeperTask.RouteToGold, State.NextTask);
         return true;
     }
 
+    /// <summary>The slot <c>CurrentGoldArea</c> names, when its gold total is nonzero.</summary>
+    private GoldDeposit? StoredDeposit() =>
+        State.CurrentGoldArea < State.GoldDeposits.Count && State.GoldDeposits[State.CurrentGoldArea].GoldAmount != 0
+            ? State.GoldDeposits[State.CurrentGoldArea]
+            : null;
+
+    /// <summary>Task 5 (<c>0x004FD660</c>): dig from the own room nearest the target the gold step
+    /// stored, then mine it (task 6).</summary>
     private void RouteToGold(KeeperView view)
     {
-        if (State.GoldDeposits.Count == 0)
-        {
-            State.BeginTask(KeeperTask.Decide);
-            return;
-        }
-        GoldDeposit deposit = State.GoldDeposits[State.CurrentGoldArea % State.GoldDeposits.Count];
-        KeeperRoomView? from = view.NearestOwnRoom(deposit.Centre);
+        KeeperRoomView? from = view.NearestOwnRoom(State.DigRoomAt);
         State.DigRoomAtCurrent = from is null ? view.Heart!.Value : KeeperView.Centre(from);
-        State.DigRoomAt = deposit.Centre;
         State.WallHug = false;
         State.MineRadius = 0;
         State.BeginTask(KeeperTask.DigPath, KeeperTask.MineSeam);
     }
 
+    /// <summary>Task 6 (<c>0x004FD750</c>): tag gold in a square ring around the stored target,
+    /// one radius a pass.</summary>
     private void MineSeam(KeeperView view, List<PlayerCommand> commands)
     {
-        if (State.GoldDeposits.Count == 0)
-        {
-            State.BeginTask(KeeperTask.Decide);
-            return;
-        }
-        TilePos c = State.GoldDeposits[State.CurrentGoldArea % State.GoldDeposits.Count].Centre;
+        TilePos c = State.DigRoomAt;
         int r = State.MineRadius;
         var tiles = new List<TilePos>();
         for (int y = c.Y - r; y <= c.Y + r; y++)
@@ -505,8 +527,6 @@ public sealed class KeeperAI
         if (++State.MineRadius > MineMaxRadius)
         {
             State.MineRadius = 0;
-            State.CurrentGoldArea = (State.CurrentGoldArea + 1) % State.GoldDeposits.Count;
-            State.GoldDeposits.Clear(); // rescanned next time, as the original does at each gold step
             State.BeginTask(KeeperTask.Decide);
         }
     }

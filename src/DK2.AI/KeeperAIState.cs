@@ -132,8 +132,11 @@ public sealed class KeeperAIState
     public bool NextRoomToBuildSet;
     public bool AllRoomsBuilt;
 
-    /// <summary>The four nearest gold seams (centroid and tile count), refreshed by the gold step.</summary>
+    /// <summary>The previous scan's four retained seams (not always the four nearest), rescanned at
+    /// every gold step and room-cost test; tasks 5 and 6 work from <see cref="DigRoomAt"/> instead.</summary>
     public readonly List<GoldDeposit> GoldDeposits = new();
+
+    /// <summary>DK2's <c>+0x9A</c>, which only creation and the two gold arms write, always as 0.</summary>
     public int CurrentGoldArea;
 
     /// <summary>Radius of the square being tagged around the current deposit (task 6).</summary>

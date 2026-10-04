@@ -8065,6 +8065,9 @@ rescan-every-step list can move gold routing wherever the gold step runs. Stage 
 Harkan (mode 1), Level 17's player 5 (mode 1) and Nemesis (mode 2) pay 5,000 mana per
 cast once they hold it, so the five Level 17 and three Level 18 keeper scenarios may
 move through later mana-gated casts; Drako (mode 0) and Asmodeus (spells at 2) do not.
+Stage 1 measured: all 42 identical. The prediction missed that no keeper scenario enters
+the gold step (a probe saw none); a short keeper's cost arm finds a seam first, so the
+cast needs a map without reachable gold. Unit runs cover it.
 
 **Deviations.** The keeper's own stream (ADR-0244) keeps DK2's draw order, not its
 values. The prisoner step before Sight is unbuilt, so a Prison selection that would

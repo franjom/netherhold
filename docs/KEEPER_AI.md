@@ -758,7 +758,7 @@ The battle scan cannot pick any spell added by ADR-0350 in shipped or level data
 | attack management | 3 Call to Arms | the front (§5.7) | yes, ADR-0298 |
 | battle step | 3 Call to Arms | threat, lava, mana > cost, turn % 40, route (§5.7) | yes, ADR-0283 |
 | battle step | scanned: Thunderbolt, Heal, Chicken, Inferno | flag word bits 2/3, not 4; rolls (§5.7) | yes, ADR-0283/0287/0302 |
-| gold step (`0x004FD590`) | 13 Create Gold | no stored deposit, availability 3; no allowance | no: ADR-0352 stage 1 |
+| gold step (`0x004FD590`) | 13 Create Gold | no stored deposit, availability 3; no allowance | yes, ADR-0352 |
 | step 14 (`0x005003A0`) | 1 Sight of Evil | `UseSightOfEvil` mode and roll, enemy tile in mode 2, availability 3; one allowance on success | no: ADR-0352 stage 2 |
 
 The third cast path (`0x004BC290`) is action 56's alone; the keeper never issues it.
@@ -1177,7 +1177,8 @@ Remaining M12 plan:
 
 `src/DK2.AI` (Unity-bound, `netstandard2.1`) changes no world state itself: what its
 commands cause (Call to Arms, the keeper spells, the level grant) are simulation rules. `KeeperAI.Think` runs the budget, the 1,680-tick task timeout, the 240-tick
-gold untag, imp creation, slapping, and the task machine for tasks 0–7. The other files
+gold untag, imp creation, slapping, and the task machine for tasks 0–7, whose gold step casts
+Create Gold (ADR-0352). The other files
 are §12.2's table.
 
 `KeeperAI.Think` also runs step 7's attack management and step 9's training moves
