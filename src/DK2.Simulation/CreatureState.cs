@@ -958,8 +958,8 @@ public sealed class CreatureState
     public byte ReaperActionId;
     /// <summary>Original state age +0x26A, a dword; reset by each accepted state change.</summary>
     public uint ReaperStateAgeTicks;
-    public bool ReaperCanAcquireFight;
-    public bool ReaperIsAttackable;
+    public bool ReaperCanAcquireFight = true;
+    public bool ReaperIsAttackable = true;
 
     /// <summary>State 8, the walk to a fight, as a flag on the fighting creature; while set
     /// <see cref="Combat.ApproachRules"/> runs instead of <c>spFighting</c>. <see cref="RouteRefreshCountdown"/>

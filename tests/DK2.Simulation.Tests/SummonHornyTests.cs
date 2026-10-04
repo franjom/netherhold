@@ -72,6 +72,21 @@ public sealed class SummonHornyTests
         Assert.Equal(201u, reaper.HornyTick);
         Assert.Equal(0, reaper.ReaperTicks);
         Assert.False(reaper.IsOneShotReaper);
+        Assert.False(reaper.ReaperCanAcquireFight);
+        Assert.False(reaper.ReaperIsAttackable);
+    }
+
+    [Fact]
+    public void AuthoredReaperCanAcquireFightBeforeAnySummonGreeting_ConfirmedFromBinary()
+    {
+        var (db, world, at) = Setup();
+        CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
+        Assert.True(CombatRules.MayLookForAFight(world, db, reaper, force: false));
+        Assert.True(reaper.ReaperCanAcquireFight);
+        Assert.True(reaper.ReaperIsAttackable);
+        reaper.ReaperCanAcquireFight = false;
+        Assert.False(CombatRules.MayLookForAFight(world, db, reaper, force: false));
+        Assert.True(CombatRules.MayLookForAFight(world, db, reaper, force: true));
     }
 
     [Fact]
@@ -291,8 +306,8 @@ public sealed class SummonHornyTests
             case nameof(CreatureState.ReaperAlpha): reaper.ReaperAlpha = 1; break;
             case nameof(CreatureState.ReaperActionId): reaper.ReaperActionId = 46; break;
             case nameof(CreatureState.ReaperStateAgeTicks): reaper.ReaperStateAgeTicks = 1; break;
-            case nameof(CreatureState.ReaperCanAcquireFight): reaper.ReaperCanAcquireFight = true; break;
-            case nameof(CreatureState.ReaperIsAttackable): reaper.ReaperIsAttackable = true; break;
+            case nameof(CreatureState.ReaperCanAcquireFight): reaper.ReaperCanAcquireFight = false; break;
+            case nameof(CreatureState.ReaperIsAttackable): reaper.ReaperIsAttackable = false; break;
             default: throw new ArgumentOutOfRangeException(nameof(fieldName));
         }
         Assert.NotEqual(before, sim.StateHash());

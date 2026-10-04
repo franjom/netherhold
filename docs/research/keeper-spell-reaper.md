@@ -81,16 +81,19 @@ The campaign talisman count remains **UNKNOWN**, tracked only in Q447.
 **BUILT, STRONGLY INFERRED mapping.** Stage4 exposes spell5 with data1=0:
 creation, arrival235/236/237, upkeep and departure242, using the integer clock.
 **Implementation:** `ReaperRules`, `ReaperSystem` and `ReaperRemovalSystem`.
-The shared arm's nonzero-data casts remain refused until Stage5. Hash/save172
-adds the lifecycle fields symmetrically; pin `7C8753E946D1DCA4`.
+The shared arm's nonzero-data casts remain refused until Stage5. Hash/save173
+preserves the lifecycle fields and corrected constructor defaults; pin `901D3950F7F8504D`.
+Constructor [004872A0](functions/004872A0.md) initializes combat bits on;
+the summon callback clears them, leaving authored Horny's fight acquisition enabled.
 
 Full Horny idle/wander/Chicken/forced-target controllers remain explicitly
 UnbuiltHandler/ResearchOnly; see `special-role-idle.md`. This build does not
 claim a complete playable Horny AI. Height, visual effects and sounds retain
 the existing presentation boundary. General animation reuse/bypass cases
 outside ordinary fresh Reaper action installation are not newly modeled.
-The complete no-install gate passed3374 tests, zero failures and395 skips;
+The complete no-install gate passed3375 tests, zero failures and395 skips;
 Release and Unity compilation have zero warnings/errors. All42 scenario runs
-preserve stage0 and Stage3 event/world artifacts:94 files identical,84 changed
-only in hash series/report hashes from version172. All178 artifacts match a
-second run byte-for-byte. Independent review is pending.
+preserve stage0, Stage3 and initial Stage4 event/world artifacts:94 files identical,
+84 changed only in hash series/report hashes from version173.
+Initial independent review requested two corrections;
+the constructor-default correction awaits verification and the Q448 correction follows separately.

@@ -7990,5 +7990,5 @@ Stage 3 builds Turncoat as a temporary combat allegiance, preserving actual
 ownership because the binary never calls the ownership setter on this path.
 See `research/keeper-spell-turncoat.md`; Stage 3 and its corrections are independently approved.
 Stage 4 builds normal Summon Horny creation, arrival, upkeep and departure at
-HashVersion/FormatVersion172; see `research/keeper-spell-reaper.md`. Its review
+HashVersion/FormatVersion173; see `research/keeper-spell-reaper.md`. Its correction review
 is pending; Horny's idle controllers remain explicitly unbuilt.

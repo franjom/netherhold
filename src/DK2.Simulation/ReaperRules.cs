@@ -132,6 +132,7 @@ public static class ReaperRules
         reaper.PosY = reaper.LastPosY = shot.PosY;
         EnterState(context, reaper, ReaperState.Arriving);
         for (int level = 1; level < 10; level++) CreatureLevelRules.LevelUp(context.Hooks, definition, reaper);
+        reaper.ReaperCanAcquireFight = reaper.ReaperIsAttackable = false;
         reaper.HornyTick = unchecked((uint)(context.Tick.Value + 1 + 50 * SimulationTiming.OriginalTicksPerGameSecond));
         context.Emit("reaper", "created", $"creature={reaper.Id} player={reaper.OwnerPlayerId} level={reaper.Level}");
     }
