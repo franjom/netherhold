@@ -95,5 +95,5 @@ The complete no-install gate passed3375 tests, zero failures and395 skips;
 Release and Unity compilation have zero warnings/errors. All42 scenario runs
 preserve stage0, Stage3 and initial Stage4 event/world artifacts:94 files identical,
 84 changed only in hash series/report hashes from version173.
-Initial independent review requested two corrections;
-the constructor-default correction awaits verification and the Q448 correction follows separately.
+Initial independent review requested two corrections. The constructor-default
+correction is independently approved; the Q448 correction awaits its separate review.
