@@ -50,6 +50,9 @@ The full creature update, 0x00488930, continues the action runner, timed
 effects, own-land regeneration and fear while possessed. It skips
 ProcessFight, state/category dispatch and general AI steering. The earlier
 physical pass remains; possession is not a blanket freeze of the creature.
+The state-dispatch guard at0x0048A026–0x0048A030 also pauses retained Call to
+Arms and Chicken handlers and their travel-arrival branches. Flag-object
+recall and Chicken's timed countdown continue independently.
 0x00487C70 exits possession before body conversion and owner unlinking.
 The death gate at 0x004B2F37 in 0x004B2CE0 skips the dying window.
 

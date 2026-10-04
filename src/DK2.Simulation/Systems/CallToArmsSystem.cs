@@ -51,6 +51,7 @@ public sealed class CallToArmsSystem : ISimulationSystem
         _creatures.AddRange(world.Creatures);
         foreach (CreatureState creature in _creatures)
         {
+            if (creature.Possessed) continue;
             if (!CreatureStateMachine.HasState(creature) || HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) continue;
             if (StateShadow.IsTravelling(creature))
             {

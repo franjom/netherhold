@@ -315,6 +315,70 @@ public sealed class PossessionTests
         Assert.NotEqual(before, sim.StateHash());
     }
 
+    [Theory]
+    [InlineData(CallToArmsRules.GoingState)]
+    [InlineData(CallToArmsRules.ArrivedState)]
+    [InlineData(CallToArmsRules.MillingState)]
+    [InlineData(6)]
+    public void PossessionPausesCallToArmsStateAndArrivalWithoutRandomDraws(int state)
+    {
+        var (db, world, target) = Setup();
+        target.Possessed = true;
+        target.Dk2StateId = state;
+        target.UtilityNewState = CallToArmsRules.ArrivedState;
+        var sim = new GameSimulation(db, world, 1, [new CallToArmsSystem()]);
+        var random = sim.Rng.SaveState();
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(state, target.Dk2StateId);
+        Assert.Equal(CallToArmsRules.ArrivedState, target.UtilityNewState);
+        Assert.False(target.HasRoute);
+        Assert.Equal(random, sim.Rng.SaveState());
+    }
+
+    [Fact]
+    public void PossessionKeepsTheCallToArmsFlagRecallRunning()
+    {
+        var (db, world, target) = Setup();
+        target.Possessed = true;
+        target.HeedingCallToArms = true;
+        target.Dk2StateId = CallToArmsRules.ArrivedState;
+        ObjectState flag = world.SpawnObject(db, CallToArmsRules.ObjectTypeId, Keeper,
+            target.Tile.Y * world.Width + target.Tile.X);
+        flag.ProcessState = CallToArmsRules.Recalling;
+        flag.ProcessDeadline = -1;
+        world.Player(Keeper).CallToArms = new(true, flag.Id, (ushort)target.Tile.X,
+            (ushort)target.Tile.Y, 100);
+        var sim = new GameSimulation(db, world, 1, [new CallToArmsSystem()]);
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(CallToArmsRules.ArrivedState, target.Dk2StateId);
+        Assert.Equal(1, flag.ProcessCount);
+        Assert.Equal(SimulationTiming.OriginalTicksPerGameSecond, flag.ProcessDeadline);
+    }
+
+    [Theory]
+    [InlineData(ChickenRules.ChickenState)]
+    [InlineData(6)]
+    public void PossessionPausesChickenStateAndArrivalWhileItsCountdownContinues(int state)
+    {
+        var (db, world, target) = Setup();
+        target.Possessed = true;
+        target.Dk2StateId = state;
+        target.UtilityNewState = ChickenRules.ChickenState;
+        target.ChickenTicks = 5;
+        var sim = new GameSimulation(db, world, 1, [new CreatureStatusSystem(), new ChickenSystem()]);
+        var random = sim.Rng.SaveState();
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(state, target.Dk2StateId);
+        Assert.Equal(ChickenRules.ChickenState, target.UtilityNewState);
+        Assert.Equal(4, target.ChickenTicks);
+        Assert.False(target.HasRoute);
+        Assert.Equal(random, sim.Rng.SaveState());
+        sim.Run(4);
+        Assert.Equal(0, target.ChickenTicks);
+        Assert.Equal(CreatureStateMachine.Idle, target.Dk2StateId);
+        Assert.True(target.Possessed);
+    }
+
     [Fact]
     public void AStoredActionStillLandsWhilePossessedWithoutAutonomousFightAcquisition()
     {
