@@ -8036,7 +8036,7 @@ from the isolated worktree and were not measured.
 **Consequences.** 12 of the 13 keeper spells cast in the simulation.
 
 ## ADR-0352 — The computer keeper casts Create Gold and Sight of Evil where DK2's does
-**Date:** 2026-10-04 · **Status:** in progress
+**Date:** 2026-10-04 · **Status:** accepted (2026-10-04)
 
 **Context.** ADR-0350 put twelve keeper spells in the simulation; our keeper cast six.
 A census of every cast call the tick reaches (`KEEPER_AI.md` §5.10,
