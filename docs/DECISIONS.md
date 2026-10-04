@@ -7990,5 +7990,5 @@ See `research/keeper-spell-turncoat.md`; Stage 3 and its corrections are indepen
 Stage 4 builds normal Summon Horny creation, arrival, upkeep and departure at
 HashVersion/FormatVersion173; its corrections are independently approved.
 Stage5 builds OneShotReaper's variant, LEVEL-selected level, timer and one-use
-flag at hash/save174; independent review is pending. Evidence and retained
+flag at hash/save174; runtime/binary review passes, a History correction awaits review. Evidence and retained
 boundaries are in `research/keeper-spell-reaper.md`; Horny's idle AI stays unbuilt.
