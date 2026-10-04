@@ -37,6 +37,7 @@ internal static class KeeperWorld
     public const byte StoneBridgeFloor = 26;
     public const byte TrainingFloor = 23;
     public const byte CombatPitFloor = 24;
+    public const byte TempleFloor = 27;
 
     /// <summary>Shot 5, Create Object, and a Lightning shot for Thunderbolt; the flag is object 10.</summary>
     public const byte CreateObjectShotId = 5;
@@ -82,6 +83,7 @@ internal static class KeeperWorld
             Terrain(LibraryFloor, "Library", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(TrainingFloor, "Training Room", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(CombatPitFloor, "Combat Pit", TerrainFlags.Ownable | TerrainFlags.Room, 100),
+            Terrain(TempleFloor, "Temple", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(Lava, "Lava", TerrainFlags.Lava, 0),
             // Water, Lava and both bridges carry their shipped placement-relevant flags: the hazards
             // are Impenetrable and not Solid, the bridges Ownable rooms (kwd terrainflags).
@@ -102,6 +104,7 @@ internal static class KeeperWorld
             // The shipped flags, 0x13AC and 0x12AC: special tiles, so the dummies stand on the floor slots.
             Room(RoomTypeId.TrainingRoom, "Training Room", 0, TrainingFloor, buildable: false, (RoomFlags)0x13ACu, [TrainingDummyObjectId, 0, 0, 0]),
             Room(RoomTypeId.CombatPit, "Combat Pit", 0, CombatPitFloor, buildable: false, (RoomFlags)0x12ACu),
+            Room(RoomTypeId.Temple, "Temple", 0, TempleFloor, buildable: false),
             // Both bridges as shipped: 0x1083 on each, so either could span water or lava, 200 and 500 a tile.
             Room(RoomTypeId.WoodenBridge, "Wooden Bridge", 200, WoodenBridgeFloor, buildable: true, BridgeFlags),
             Room(RoomTypeId.StoneBridge, "Stone Bridge", 500, StoneBridgeFloor, buildable: true, BridgeFlags),

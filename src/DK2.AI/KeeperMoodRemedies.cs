@@ -10,7 +10,7 @@ using DK2.Simulation.Commands;
 namespace DK2.AI;
 
 /// <summary>The mood arms of the keeper's message walk (<c>0x004FA400</c>): make happy
-/// (<c>0x004F9710</c>) for 17, and for 18 as the personality chooses
+/// (<c>0x004F9710</c>) for 17, and dispose (<c>0x004F9520</c>) or make happy for 18 as the personality chooses
 /// (computer-keeper-management.md §13). Each returns whether DK2 marks the message handled.</summary>
 /// <remarks>Deviates: the hand's moves are commands applied next tick, so their outcome is
 /// predicted from the captured permission and hand count, as the threat responder's are; and our
@@ -47,12 +47,32 @@ public sealed class KeeperMoodRemedies
     /// <summary>Message 17: make happy when <c>UnhappyCreaturesHappy</c>, else handled.</summary>
     public bool Unhappy(PlayerMessage message) => !_p.UnhappyCreaturesHappy || MakeHappy(message);
 
-    /// <summary>Message 18: dispose when <c>AngryCreaturesDisposeOf</c> (not built yet: handled),
-    /// else make happy when <c>AngryCreaturesHappy</c>, else handled.</summary>
+    /// <summary>Message 18: dispose when <c>AngryCreaturesDisposeOf</c>, else make happy when
+    /// <c>AngryCreaturesHappy</c>, else handled.</summary>
     public bool Angry(PlayerMessage message)
     {
-        if (_p.AngryCreaturesDisposeOf) return true;
+        if (_p.AngryCreaturesDisposeOf) return Dispose(message.Data2);
         return !_p.AngryCreaturesHappy || MakeHappy(message);
+    }
+
+    /// <summary><c>0x004F9520</c>: with <c>AngryDisposalMethod</c> 1 a random Temple's floor slot;
+    /// otherwise, or when that move fails, a random Temple, else Portal, else Hero Portal at its
+    /// position. None, or a refused lift, leaves the message unhandled for a retry. DK2 reads the
+    /// creature without a test; ours treats one no longer in the world as a refused lift.</summary>
+    public bool Dispose(int creatureId)
+    {
+        if (Creature(creatureId) is not KeeperCreatureView creature) return false;
+        if (_p.AngryDisposalMethod == 1
+            && _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Temple, _rng) is KeeperRoomView temple
+            && temple.FloorSlots.Count > 0)
+        {
+            TilePos slot = _view.FromIndex(temple.FloorSlots[_rng.NextInt(temple.FloorSlots.Count)]);
+            if (Lift(creature)) { _commands.Add(new DropCommand(_view.PlayerId, slot)); return true; }
+        }
+        KeeperRoomView? room = _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Temple, _rng)
+            ?? _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Portal, _rng)
+            ?? _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.HeroPortal, _rng);
+        return MoveTo(creature, room);
     }
 
     /// <summary><c>0x004F9710</c>: by the creature's current largest bucket, never the message's
@@ -118,11 +138,18 @@ public sealed class KeeperMoodRemedies
     /// job room's: refused by <c>0x0048E6A0</c>, or not held after the lift, fails.</summary>
     private bool MoveTo(KeeperCreatureView creature, KeeperRoomView? room)
     {
-        if (room is null || !creature.PickupPermitted) return false;
-        _commands.Add(new PickUpCreatureCommand(_view.PlayerId, creature.Id));
-        if (!creature.CanPickUp) return false;
+        if (room is null || !Lift(creature)) return false;
         _commands.Add(new DropCommand(_view.PlayerId, _view.PositionOf(room)));
         return true;
+    }
+
+    /// <summary><c>0x0048E6A0</c>, then <c>0x004BFBD0</c> and the hand: whether the creature is
+    /// predicted held. A refused permission issues nothing.</summary>
+    private bool Lift(KeeperCreatureView creature)
+    {
+        if (!creature.PickupPermitted) return false;
+        _commands.Add(new PickUpCreatureCommand(_view.PlayerId, creature.Id));
+        return creature.CanPickUp;
     }
 
     /// <summary><c>JobRooms</c> at <c>0x006ED490</c>, its room byte only (KEEPER_AI.md §2.3).</summary>

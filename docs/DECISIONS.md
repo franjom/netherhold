@@ -8168,4 +8168,5 @@ message ids room-message events print, since 17s now take ids (nine runs); Asmod
 Harkan (treasury-full) gain one acknowledgement each, at t620 and t652, as predicted.
 Stage 2 (hash 180, schema 18): only treasury-full moves. At t652 Harkan lifts Troll 47,
 its Lair bucket largest, into his Lair at (13, 13); the Lair draw then shifts his stream,
-so later keeper choices differ, as any added draw does (ADR-0244).
+so later keeper choices differ, as any added draw does (ADR-0244). Stage 3: all 42
+unchanged, as predicted.

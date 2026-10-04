@@ -185,6 +185,74 @@ public class KeeperMoodRemediesTests
         Assert.IsType<PickUpCreatureCommand>(commands[0]);
     }
 
+    private static KeeperAIParameters Disposing(byte method) =>
+        KeeperWorld.Parameters() with { AngryCreaturesDisposeOf = true, AngryDisposalMethod = method, AngryCreaturesHappy = true };
+
+    [Fact]
+    public void DisposalMethodOneDropsTheAngryCreatureOnATempleFloorSlot()
+    {
+        var (world, creature) = Moody(AngerBucket.Lair, amount: 40000);
+        Paint(world, KeeperWorld.TempleFloor, 10, 10);
+        var (handled, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
+            Disposing(1));
+
+        Assert.True(handled);
+        Assert.Equal<PlayerCommand>([new PickUpCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, new TilePos(11, 11))], commands);
+    }
+
+    [Fact]
+    public void DisposalMethodZeroStillTakesATempleFirstAtItsPosition()
+    {
+        var (world, creature) = Moody(AngerBucket.Lair, amount: 40000);
+        Paint(world, KeeperWorld.TempleFloor, 10, 10);
+        Paint(world, KeeperWorld.PortalFloor, 20, 10);
+        var (handled, commands, view) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
+            Disposing(0));
+
+        Assert.True(handled);
+        KeeperRoomView temple = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == RoomTypeId.Temple);
+        Assert.Equal(new DropCommand(Keeper, view.PositionOf(temple)), commands[^1]);
+    }
+
+    [Theory]
+    [InlineData(KeeperWorld.PortalFloor, RoomTypeId.Portal)]
+    [InlineData(KeeperWorld.HeroPortalFloor, RoomTypeId.HeroPortal)]
+    public void WithoutATempleTheCreatureIsDroppedAtAPortalOrElseAHeroPortal(byte floor, RoomTypeId type)
+    {
+        var (world, creature) = Moody(AngerBucket.Lair, amount: 40000);
+        Paint(world, floor, 20, 10);
+        var (handled, commands, view) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
+            Disposing(1));
+
+        Assert.True(handled);
+        KeeperRoomView portal = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == type);
+        Assert.Equal<PlayerCommand>([new PickUpCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, view.PositionOf(portal))], commands);
+    }
+
+    [Fact]
+    public void WithNowhereToDisposeAtThe18StaysUnhandledForRetry()
+    {
+        var (world, creature) = Moody(AngerBucket.Lair, amount: 40000);
+        var (handled, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
+            Disposing(1));
+
+        Assert.False(handled);
+        Assert.Empty(commands);
+    }
+
+    [Fact]
+    public void ADisposalWhoseLiftIsRefusedStaysUnhandled()
+    {
+        var (world, creature) = Moody(AngerBucket.Lair, amount: 40000);
+        Paint(world, KeeperWorld.PortalFloor, 20, 10);
+        creature.InHand = true;
+        var (handled, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
+            Disposing(0));
+
+        Assert.False(handled);
+        Assert.Empty(commands);
+    }
+
     [Fact]
     public void TheWalkAcknowledgesAHandled17AndRetriesAnUnhandledOne()
     {
