@@ -6438,7 +6438,7 @@ goes with its pile; a fetcher whose pile was taken in passing keeps the load, an
 says so in its name.
 
 ## ADR-0294 — The objects handler per tile, and a ring scan with no chooser draws nothing
-**Date:** 2026-09-30 · **Status:** accepted; item 2's reading withdrawn 2026-10-03 — `0x00468D10` does draw `rand(4)` at `0x00468D54` and stores it in the side slot (`functions/00468D10.md`); ours still starts north, Q526 · Research: `imp-task-objects-and-walks.md` §1
+**Date:** 2026-09-30 · **Status:** accepted; item 2's reading withdrawn 2026-10-03 — `0x00468D10` does draw `rand(4)` at `0x00468D54` and stores it in the side slot (`functions/00468D10.md`); item 2 superseded by ADR-0351 · Research: `imp-task-objects-and-walks.md` §1
 
 **Context.** Kind 8 picked the loose object with the shortest walk, refused an imp holding
 gold, and could not be taken from a holder. DK2's objects handler `0x0046B9C0` runs per tile
@@ -8060,3 +8060,25 @@ from the isolated worktree and were not measured.
    `0x004BC290` is unbuilt (Q537); Q152's held-creature part stays open.
 
 **Consequences.** 12 of the 13 keeper spells cast in the simulation.
+
+## ADR-0351 — Every ring scan draws its start side
+**Date:** 2026-10-04 · **Status:** accepted · Research: `functions/00468D10.md`, `functions/00468520.md`, `imp-claim-path.md` §2; Q526
+
+**Context.** `0x00468D10` calls the game's draw `0x005558D0(4, world+0x15A0, …)` at `0x00468D54`
+and stores the result in the side slot (`0x00468D60`), which a chooser then overwrites
+(`0x00468DEB`). So every ring scan call draws once, and the kinds 6, 7, 8 and 16 scans, which
+pass no chooser, start on a random side. ADR-0294 had dropped the draw on a wrong reading of that
+slot. Built on 2026-10-03, the draw lost Level 1 seeds 1 and 2: the Hatchery block got one imp
+and nothing on it was claimed by the 466 order. ADR-0349 supplies the second claimer DK2 has.
+**Decision.** Ours draws `rand(4)` on every ring scan call, chooser or not. The chooserless arms
+start on the drawn side; the claim scans draw and then use their chooser's side.
+**Consequences.**
+- L1 19/20: seed 1 wins again; seed 2 builds a 3-tile Hatchery at 466 and loses, a known
+  residual. Observed in the replay: its second claimer appears at 294, claims the corridor north
+  (14,23)–(14,18), already dug by then, and reaches the block at 394. Observed in DK2's seed 2
+  capture: (14,21) is still gold at 249 and the claimer turns to the block. Unverified: that the
+  residual is our faster digging north rather than a claim rule.
+- L2 3/20 (DK2's own seeds: 4 of 18). L3 seed01 won 3608 (DK2 3683; ours was 3588).
+- The fetch scenario's seed no longer fetches its pile (the rest goes in passing), so its
+  expectation is dropped; a test asserts both sides of two equal piles occur over seeds. The
+  kind-8 arm draws before the objects handler's refusals, as in DK2 (no change in the rigs). HashVersion unchanged: no state field.
