@@ -69,6 +69,7 @@ public static class AssetCatalogue
         "chicken",
         "jack_in_the_box",
         "unbuilt_handler",
+        "reaper_arriving",
     ];
 
     /// <summary>

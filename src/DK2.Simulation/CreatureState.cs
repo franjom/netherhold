@@ -223,6 +223,7 @@ public enum CreatureActivity
     /// <summary>A reachable original state whose handler remains unbuilt. This boundary
     /// prevents substituting ordinary keeper job selection; it does not simulate that handler.</summary>
     UnbuiltHandler = 37,
+    ReaperArriving = 38,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -947,6 +948,19 @@ public sealed class CreatureState
     public ushort TurncoatTicks;
     public ushort TurncoatPlayerId;
 
+    /// <summary>Original ReaperTimer +0x4E9, HornyTick +0x4C9, runtime +0x3EA bits 18/19,
+    /// and presentation alpha +0x8F used by the departure lifecycle.</summary>
+    public ushort ReaperTicks;
+    public uint HornyTick;
+    public bool IsOneShotReaper;
+    public bool ReaperComplete;
+    public byte ReaperAlpha = byte.MaxValue;
+    public byte ReaperActionId;
+    /// <summary>Original state age +0x26A, a dword; reset by each accepted state change.</summary>
+    public uint ReaperStateAgeTicks;
+    public bool ReaperCanAcquireFight;
+    public bool ReaperIsAttackable;
+
     /// <summary>State 8, the walk to a fight, as a flag on the fighting creature; while set
     /// <see cref="Combat.ApproachRules"/> runs instead of <c>spFighting</c>. <see cref="RouteRefreshCountdown"/>
     /// is the state's <c>+0xF5</c>, <see cref="ChaseTicks"/> the creature's <c>+0x53D</c>, and
@@ -1203,6 +1217,15 @@ public sealed class CreatureState
         hash.Add(ChickenTicks);
         hash.Add(TurncoatTicks);
         hash.Add(TurncoatPlayerId);
+        hash.Add(ReaperTicks);
+        hash.Add(HornyTick);
+        hash.Add(IsOneShotReaper);
+        hash.Add(ReaperComplete);
+        hash.Add(ReaperAlpha);
+        hash.Add(ReaperActionId);
+        hash.Add(ReaperStateAgeTicks);
+        hash.Add(ReaperCanAcquireFight);
+        hash.Add(ReaperIsAttackable);
         hash.Add(Approaching);
         hash.Add(RouteRefreshCountdown);
         hash.Add(ChaseTicks);

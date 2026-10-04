@@ -51,6 +51,7 @@ public static class CreatureStateMachine
 
         if (!Enter(in hooks, creature, targetStateId)) return false;
         creature.StateEnteredTick = currentTick;
+        creature.ReaperStateAgeTicks = 0;
         return true;
     }
 

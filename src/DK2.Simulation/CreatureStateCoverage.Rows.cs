@@ -253,14 +253,14 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(232, "partly read in travel-states.md 2.4; not built"));
         rows.Add(Unbuilt(233, "not read"));
         rows.Add(Unbuilt(234, "partly read in fog-reveal-sources.md 3.9, doors-and-traps.md; not built"));
-        rows.Add(Unbuilt(235, "not read"));
-        rows.Add(Unbuilt(236, "not read"));
-        rows.Add(Unbuilt(237, "not read"));
+        rows.Add(Built(235, typeof(ReaperRules), nameof(ReaperRules.RunLifecycle)));
+        rows.Add(Built(236, typeof(ReaperRules), nameof(ReaperRules.RunLifecycle)));
+        rows.Add(Built(237, typeof(ReaperRules), nameof(ReaperRules.RunLifecycle)));
         rows.Add(Unbuilt(238, "read in special-role-idle.md; Fleeing idle selects it, but its controller is not built"));
         rows.Add(Unbuilt(239, "read in special-role-idle.md; not built"));
         rows.Add(Unbuilt(240, "read in special-role-idle.md; not built"));
         rows.Add(Unbuilt(241, "its handler 0x004B4C20 returns 1 (state-categories.md §7.1); nothing in src/ enters it"));
-        rows.Add(Unbuilt(242, "read in special-role-idle.md; not built"));
+        rows.Add(Built(242, typeof(ReaperRules), nameof(ReaperRules.RunLifecycle)));
         rows.Add(Unbuilt(243, "not read"));
         rows.Add(Unbuilt(244, "not read"));
         rows.Add(Unbuilt(245, "not read"));

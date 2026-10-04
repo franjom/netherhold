@@ -7978,16 +7978,17 @@ drivers and recorded packets are absent from this isolated worktree.
 Stage 1 builds Create Gold's cast and horizontal landing/merge through the
 existing shot boundary; see `research/keeper-spell-create-gold.md` for evidence
 and retained height/room-timing limits. No state fields or hash version changed.
-The full gate passed (3,237 no-install tests passed, 393 skipped); all 42
-scenario series are byte-identical to stage 0. All three Stage 1 corrections
+All 42 scenario series are byte-identical to stage 0; Stage 1 and its corrections
 are independently approved. Stage 2 builds Tremor's world slots, wall effects,
 creature reaction, recovery and definition-based integer action clock at
 HashVersion/FormatVersion 170; its integration corrections are independently approved.
 All 42 scenarios preserve their event/world outputs; hash composition changes
 every series. See `research/keeper-spell-tremor.md` and Q533 for evidence and
 limits, including the explicitly unbuilt Neutral and Horny idle controllers.
-The coverage gates admit these explicit `UnbuiltHandler` destinations while
-retaining Unbuilt counts; other entered unbuilt states still fail the gate.
+Coverage admits these explicit `UnbuiltHandler` destinations, retaining Unbuilt counts.
 Stage 3 builds Turncoat as a temporary combat allegiance, preserving actual
 ownership because the binary never calls the ownership setter on this path.
-See `research/keeper-spell-turncoat.md`; its independent review is pending.
+See `research/keeper-spell-turncoat.md`; Stage 3 and its corrections are independently approved.
+Stage 4 builds normal Summon Horny creation, arrival, upkeep and departure at
+HashVersion/FormatVersion172; see `research/keeper-spell-reaper.md`. Its review
+is pending; Horny's idle controllers remain explicitly unbuilt.

@@ -51,7 +51,7 @@ Tests cover normal/upgraded casts, overwrite and word narrowing, immunity,
 combat leave hooks, preserved job/room/party/owner roster, death cleanup,
 same-turn selection at expiration, pickup permission, a stopped combat walk
 and snapshot continuation. Independent
-verification is pending.
+verification approved the implementation and its three documentation corrections through commit94b1b2d0.
 
 Disguise remains unbuilt: its watcher and selector checks use effective sides
 ([0048EE90](functions/0048EE90.md), [0045C690](functions/0045C690.md)). This

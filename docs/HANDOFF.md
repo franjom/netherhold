@@ -22,10 +22,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   ADR-0329's scoped inference (Q455); shot heights go to M9 and the Boulder's slap to object slapping
   (ADR-0341). Left: the owner's observations in experiments/doors-and-traps.md — Q520's wall is
   disputed, Q513, Q524 and Q362 unwatched (2026-10-03).
-- Keeper-spell work (ADR-0350) builds Create Gold and integrates Tremor's world
-  records, creature response and recovery clock. Stage 2 awaits review (2026-10-03)
-  before Turncoat. See research/keeper-spell-tremor.md and Q533;
-  the other five spells remain outside the new cast boundary.
+- Keeper-spell work (ADR-0350): Create Gold, Tremor and Turncoat are independently
+  approved. Normal Summon Horny's creation/lifecycle/upkeep is built, awaiting
+  review; its idle AI remains unbuilt. See research/keeper-spell-reaper.md.
+  OneShotReaper, Sight of Evil and Possession remain outside the new cast boundary.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 16).
   The proactive task machine (tasks 0–7) digs, expands, builds rooms, manages

@@ -51,6 +51,8 @@ public static partial class KwdCreatures
         AnimationTiming(27, row.GetUpAnimation);
         AnimationTiming(4, row.KnockdownFallbackAnimation);
         AnimationTiming(1, row.GetUpFallbackAnimation);
+        AnimationTiming(35, row.ReaperSummonAnimation);
+        AnimationTiming(8, row.ReaperSummonFallbackAnimation);
         S32(0xEB4, row.Speed.Raw);
         S32(0xEB8, row.RunSpeed.Raw);
         S32(OffsetShuffleSpeed, row.ShuffleSpeed.Raw);

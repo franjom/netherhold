@@ -18,6 +18,48 @@ public static class AnimationTimingRules
     public static int GetUpHoldTicks(CreatureDef definition) => ActionHoldTicks(
         definition.GetUpAnimation.ResourceType != 0 ? definition.GetUpAnimation : definition.GetUpFallbackAnimation);
 
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-reaper.md")]
+    public static int FirstCycleHoldTicks(CreatureAnimationTiming animation)
+    {
+        if (animation.ResourceType != 6) return 1;
+        int mainDuration = Duration(animation.FrameCount, animation.FramesPerSecond);
+        bool hasStart = (animation.Flags & CreatureAnimationFlags.StartSegment) != 0;
+        bool hasEnd = (animation.Flags & CreatureAnimationFlags.EndSegment) != 0;
+        int startDuration = hasStart ? Duration(animation.StartSegmentFrames, animation.FramesPerSecond) : 0;
+        int endDuration = hasEnd ? Duration(animation.EndSegmentFrames, animation.FramesPerSecond) : 0;
+        Segment segment = hasStart ? Segment.Start : Segment.Main;
+        int duration = hasStart ? startDuration : mainDuration;
+        int phase = 0;
+        int ticks = 0;
+        while (true)
+        {
+            ticks++;
+            int step = AdvanceRate(duration);
+            if (step == 0) return ticks;
+            phase += step;
+            if (phase < One) continue;
+            if (segment == Segment.Start)
+            {
+                phase = Carry(phase - One, duration, mainDuration);
+                duration = mainDuration;
+                segment = Segment.Main;
+                if (AdvanceRate(duration) == 0) return ticks;
+                if (phase <= One) continue;
+                if (!hasEnd)
+                {
+                    phase = One;
+                    continue;
+                }
+                phase = Math.Min(One, Carry(phase - One, duration, endDuration));
+                duration = endDuration;
+                segment = Segment.End;
+                if (AdvanceRate(duration) == 0) return ticks;
+                continue;
+            }
+            return ticks;
+        }
+    }
+
     public static int ActionHoldTicks(CreatureAnimationTiming animation)
     {
         if (animation.ResourceType != 6) return 1;

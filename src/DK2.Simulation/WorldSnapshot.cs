@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 171;
+    private const int FormatVersion = 172;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -403,6 +403,15 @@ public static class WorldSnapshot
             w.Write(c.ChickenTicks);
             w.Write(c.TurncoatTicks);
             w.Write(c.TurncoatPlayerId);
+            w.Write(c.ReaperTicks);
+            w.Write(c.HornyTick);
+            w.Write(c.IsOneShotReaper);
+            w.Write(c.ReaperComplete);
+            w.Write(c.ReaperAlpha);
+            w.Write(c.ReaperActionId);
+            w.Write(c.ReaperStateAgeTicks);
+            w.Write(c.ReaperCanAcquireFight);
+            w.Write(c.ReaperIsAttackable);
             w.Write(c.Approaching);
             w.Write(c.RouteRefreshCountdown);
             w.Write(c.ChaseTicks);
@@ -965,6 +974,15 @@ public static class WorldSnapshot
                 ChickenTicks = r.ReadInt32(),
                 TurncoatTicks = r.ReadUInt16(),
                 TurncoatPlayerId = r.ReadUInt16(),
+                ReaperTicks = r.ReadUInt16(),
+                HornyTick = r.ReadUInt32(),
+                IsOneShotReaper = r.ReadBoolean(),
+                ReaperComplete = r.ReadBoolean(),
+                ReaperAlpha = r.ReadByte(),
+                ReaperActionId = r.ReadByte(),
+                ReaperStateAgeTicks = r.ReadUInt32(),
+                ReaperCanAcquireFight = r.ReadBoolean(),
+                ReaperIsAttackable = r.ReadBoolean(),
                 Approaching = r.ReadBoolean(),
                 RouteRefreshCountdown = r.ReadInt32(),
                 ChaseTicks = r.ReadInt32(),

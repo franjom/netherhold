@@ -89,6 +89,8 @@ public sealed record CreatureDef
     public CreatureAnimationTiming GetUpAnimation { get; init; }
     public CreatureAnimationTiming KnockdownFallbackAnimation { get; init; }
     public CreatureAnimationTiming GetUpFallbackAnimation { get; init; }
+    public CreatureAnimationTiming ReaperSummonAnimation { get; init; }
+    public CreatureAnimationTiming ReaperSummonFallbackAnimation { get; init; }
 
     // Movement / perception
     public required Fp32 Speed { get; init; }

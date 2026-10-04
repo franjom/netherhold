@@ -409,6 +409,7 @@ public sealed class WorldView
         CreatureActivity.Chicken => "chicken",
         CreatureActivity.JackInTheBox => "jack_in_the_box",
         CreatureActivity.UnbuiltHandler => "unbuilt_handler",
+        CreatureActivity.ReaperArriving => "reaper_arriving",
         _ => throw new ArgumentOutOfRangeException(
             nameof(activity), activity, "No animation key for this activity."),
     };

@@ -402,6 +402,11 @@ public static class ShotRules
     {
         if ((definition.ShotProcessFlags & eventBit) == 0) return;
         WorldState world = context.World;
+        if (definition.ProcessType == ReaperRules.ProcessType)
+        {
+            ReaperRules.Create(context, shot);
+            return;
+        }
         if (definition.ProcessType == TremorProcess)
         {
             TremorRules.Start(context, shot);

@@ -172,6 +172,8 @@ public static partial class KwdCreatures
             GetUpAnimation = AnimationTiming(27),
             KnockdownFallbackAnimation = AnimationTiming(4),
             GetUpFallbackAnimation = AnimationTiming(1),
+            ReaperSummonAnimation = AnimationTiming(35),
+            ReaperSummonFallbackAnimation = AnimationTiming(8),
 
             Speed = Fp(0xEB4),
             RunSpeed = Fp(0xEB8),

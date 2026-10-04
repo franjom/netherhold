@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**172** — `0x7C8753E946D1DCA4`. Reaper arrival, grace deadline, action, fade and combat-control state, plus the timer/variant words for the shared creation arm. Every scenario hash changes composition; see `keeper-spell-reaper.md` for stage-0 comparisons. ADR-0350.
+
 **171** — `0xE109C983710B8617`. Creature Turncoat countdown and retained combat-side tag, both unsigned words; actual ownership stays unchanged. Every scenario hash changes composition; behavioral comparisons against stage 0 are in `keeper-spell-turncoat.md`. ADR-0350.
 
 **170** — `0x08B3B3184DD609AE`. Eight world Tremor records and creature `Fleeing`, `ShouldDelayGetUp` and retained-route pause; the fixed records and false flags change hash composition even without a cast. See ADR-0350 and `keeper-spell-tremor.md`.

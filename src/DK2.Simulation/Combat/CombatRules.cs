@@ -161,6 +161,7 @@ public static class CombatRules
     /// modelled: torture.</summary>
     public static bool IsAttackable(CreatureState creature) =>
         !CreatureDeathRules.IsDown(creature)
+        && creature.Activity != CreatureActivity.ReaperArriving
         && !creature.CombatPitFighter
         && !PrisonRules.IsImprisoned(creature)
         && creature.Activity != CreatureActivity.Leaving
@@ -175,9 +176,11 @@ public static class CombatRules
     /// destination unless forced, and under its keeper's Call to Arms one farther than
     /// <c>CallToArmsFightDistanceTiles</c> from the flag unless forced (Q361), and a chicken
     /// (<c>ChickenTimer</c> <c>+0x44B</c> running). Not modelled: hypnosis, the threat-response state
-    /// and the Horned Reaper's states.</summary>
+    /// and Horny's non-arrival scratch guard.</summary>
     public static bool MayLookForAFight(WorldState world, GameDatabase database, CreatureState creature, bool force) =>
         !PrisonRules.IsImprisoned(creature)
+        && (!database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsHorny)
+            || ((force || creature.ReaperCanAcquireFight) && creature.Activity != CreatureActivity.ReaperArriving))
         && (force || CallToArmsRules.WithinFightDistance(world, database, creature))
         && creature.Activity != CreatureActivity.Sleeping
         && (creature.Activity != CreatureActivity.Leaving || force)

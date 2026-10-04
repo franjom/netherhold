@@ -59,6 +59,10 @@ public sealed class ManaSystem : ISimulationSystem
             {
                 continue;
             }
+            if (PlayerIds.IsKeeper(player.PlayerId) && ReaperRules.AfterPayment(context, player))
+            {
+                continue;
+            }
 
             if (PlayerIds.IsKeeper(player.PlayerId))
             {

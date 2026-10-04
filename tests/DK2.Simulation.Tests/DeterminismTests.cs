@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 171: Turncoat's countdown and retained combat-side tag (ADR-0350).
+        // HashVersion 172: Reaper creation, arrival, upkeep and departure state (ADR-0350).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xE109C983710B8617UL, sim.StateHash());
+        Assert.Equal(0x7C8753E946D1DCA4UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

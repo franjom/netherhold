@@ -32,7 +32,8 @@ public class KwdCreaturesWriterTests
             "GuardDuration:ED4:4 IdleDuration:ED8:4 SlapFearlessDuration:EDC:4 PossessionManaCost:EE8:2 LairObjectId:F52:1 " +
             "CloneCreatureId:D3B:1 NameStringId:F24:2 TooltipStringId:F26:2 IntroductionStringId:CFF:2",
             excludedProperties: ["Attractions", "Spells", "Resistances", "HappyJobs", "UnhappyJobs", "AngryJobs", "HateJobs", "AlternativeJobs",
-                "KnockdownAnimation", "GetUpAnimation", "KnockdownFallbackAnimation", "GetUpFallbackAnimation"],
+                "KnockdownAnimation", "GetUpAnimation", "KnockdownFallbackAnimation", "GetUpFallbackAnimation",
+                "ReaperSummonAnimation", "ReaperSummonFallbackAnimation"],
             customValues: new Dictionary<string, object> { ["SizeClass"] = 13 });
 
     [Fact]
@@ -144,6 +145,7 @@ public class KwdCreaturesWriterTests
     [Theory]
     [InlineData(5449, 24)] [InlineData(5449, 27)] [InlineData(5449, 4)] [InlineData(5449, 1)]
     [InlineData(5537, 24)] [InlineData(5537, 27)] [InlineData(5537, 4)] [InlineData(5537, 1)]
+    [InlineData(5449, 35)] [InlineData(5449, 8)] [InlineData(5537, 35)] [InlineData(5537, 8)]
     public void AnimationMetadataPreservesUnknownUpperWordsAndOtherArtBytes(int stride, int slot)
     {
         byte[] source = Source(stride);
@@ -160,6 +162,8 @@ public class KwdCreaturesWriterTests
             24 => original with { KnockdownAnimation = timing },
             27 => original with { GetUpAnimation = timing },
             4 => original with { KnockdownFallbackAnimation = timing },
+            35 => original with { ReaperSummonAnimation = timing },
+            8 => original with { ReaperSummonFallbackAnimation = timing },
             _ => original with { GetUpFallbackAnimation = timing },
         };
         byte[] written = KwdCreatures.WriteRecord(changed, new KwdRecordImage(KwdRecordType.Creatures, source));
@@ -167,7 +171,9 @@ public class KwdCreaturesWriterTests
         Assert.Equal(timing, slot switch
         {
             24 => reread.KnockdownAnimation, 27 => reread.GetUpAnimation,
-            4 => reread.KnockdownFallbackAnimation, _ => reread.GetUpFallbackAnimation,
+            4 => reread.KnockdownFallbackAnimation,
+            35 => reread.ReaperSummonAnimation, 8 => reread.ReaperSummonFallbackAnimation,
+            _ => reread.GetUpFallbackAnimation,
         });
         Assert.Equal(source, KwdCreatures.WriteRecord(original, new KwdRecordImage(KwdRecordType.Creatures, source)));
         for (int i = 0; i < stride; i++)

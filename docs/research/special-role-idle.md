@@ -9,9 +9,9 @@ The Tremor Fleeing idle integration mirrors role selection in
 [004773D0](functions/004773D0.md): neutral state5 with deadline now+12,
 Horny state238, then an end to that handler turn. These destinations have
 explicit UnbuiltHandler activity, which prevents ordinary keeper selection.
-They remain ResearchOnly. The neutral inner routine and Horny controllers
-have been read, but no downstream handler implementation or validation is
-claimed by this research.
+They remain ResearchOnly. The neutral inner routine and Horny idle controllers
+have been read but remain unbuilt. Arrival235/236/237 and departure242 are
+separately built; see `keeper-spell-reaper.md` for that lifecycle boundary.
 
 The known dependencies include actual action availability and animation
 metadata, the unusual wander search and original room/slab linked order,

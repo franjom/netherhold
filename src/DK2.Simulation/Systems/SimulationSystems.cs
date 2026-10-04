@@ -44,6 +44,7 @@ public static class SimulationSystems
         new CreatureStatusSystem(), // the status countdowns (0x0048E160) before the fight reads their words
         new CombatSystem(),
         new TremorCreatureSystem(), // recovery handler before steering; world Tremor runs after the entity pass
+        new ReaperSystem(),
         new CombatPitSystem(), // the pit's states, after the fight processing as DK2's handler is (ADR-0213)
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
         new JackInTheBoxSystem(), // state 273 and the travel toll, before the mover as DK2's state dispatcher is
@@ -58,6 +59,7 @@ public static class SimulationSystems
         // The thing pass's second walk: whatever is dead now is removed this turn (0x004B7830).
         new TrapRemovalSystem(),
         new DoorRemovalSystem(),
+        new ReaperRemovalSystem(),
         // The Call to Arms flag is an object the shot puts down; its recall, release and the
         // heeding states run in the thing update, before the payment that keeps it (ADR-0279).
         new CallToArmsSystem(),

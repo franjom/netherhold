@@ -53,6 +53,8 @@ public static class ActivityRules
     private static CreatureActivity? Standing(CreatureState creature, int state) => state switch
     {
         Systems.CreatureJobSystem.NeutralIdleState or Systems.CreatureJobSystem.HornyIdleState => CreatureActivity.UnbuiltHandler,
+        ReaperRules.ArrivingState or ReaperRules.MaterializingState or ReaperRules.GreetingState => CreatureActivity.ReaperArriving,
+        ReaperRules.DepartingState => CreatureActivity.Leaving,
         CreatureStateMachine.Idle or Systems.CreatureJobSystem.IdleChooserState or Systems.CreatureJobSystem.DoingNothingState or ImpStates.TaskSelection or ImpStates.AfterDrop or ImpStates.Resting or ImpStates.Wandering => CreatureActivity.Idle,
         HeroJobRules.WaitFailedState or HeroJobRules.StandingJobState or HeroJobRules.WaitingState
             or HeroJobRules.NoPointState or HeroJobRules.FollowingState => CreatureActivity.Idle,
