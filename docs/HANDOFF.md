@@ -30,7 +30,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   review (2026-10-04). Possession's Stage7a review requires separate corrections
   (2026-10-04); influence damage and CTA/Chicken pauses pass limited reviews.
   Integer speed/clamp, fixed-product narrowing and pit percentage byte width
-  pass review. Auxiliary reset width passes review; three function-record
+  pass review. Auxiliary reset width and view assignment pass review; two function-record
   corrections remain (2026-10-04).
   Upkeep awaits the owner choice (2026-10-04); commands remain Stage7b.
   See research/keeper-spell-sight.md and research/keeper-spell-possession.md.

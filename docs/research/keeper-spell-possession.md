@@ -116,7 +116,7 @@ CREATURES+0xEE8. The parser's signed short must be reinterpreted as unsigned
 at consumption. Imp0; Firefly/Skeleton/Dwarf50; Goblin/Warlock/Troll150;
 Bile Demon/Mistress300; Vampire600; Horny500. Level1 keeps the base;
 higher levels multiply the signed level-stat word, truncate/100 and clamp
-0..65534. Upgraded availability, through0x004BB0D0, applies variable226
+0..65534. A nonzero DWORD returned by0x004BB0D0 for spell id2 applies variable226
 UpgradedPossessionCostPercentage (70) with another truncation. A nonzero
 creature+0x4A7 additionally adds variable116 (shipped0).
 
