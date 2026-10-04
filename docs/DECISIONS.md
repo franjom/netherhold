@@ -8172,3 +8172,5 @@ so later keeper choices differ, as any added draw does (ADR-0244). Stage 3: all 
 unchanged, as predicted. Stage 4 (hash 181): worlds unchanged; message ids shift; the keepers
 that take a neutral Portal acknowledge its 33 (four Level 17 runs). Missed: Asmodeus takes
 one at t23, but Level 10 posts no message of any kind before t479, so the 33 is refused.
+Stage 5, the claim's 42 (hash 182): only treasury-full's world moves; Harkan's Training Room
+fills at t737 and, under policy 0, he lays two more Training tiles at t817 and t820.

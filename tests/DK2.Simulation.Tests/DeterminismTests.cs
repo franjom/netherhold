@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 181: the room transfer posts messages 32 to 35 (ADR-0353).
+        // HashVersion 182: the claim posts 42 when no room of the type has a place (ADR-0353).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x402E9BC4C3C96C2AUL, sim.StateHash());
+        Assert.Equal(0xDC5ABB62C9123E6FUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

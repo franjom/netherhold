@@ -174,6 +174,8 @@ public sealed class PlayerMessageQueue
             // kept for one sweep for 42. Nothing here posts one, so it is refused.
             _ when IsRoomMessage(kind) && RoomLifetimeSeconds(kind, (RoomTypeId)data1) is int seconds =>
                 (uint)SimulationTiming.TicksFromSeconds(seconds),
+            // 42's terminator row names a string, so an unlisted room keeps its record until the next sweep.
+            PlayerMessageKind.RoomFull when RoomLifetimeSeconds(kind, (RoomTypeId)data1) is null => 0,
             _ when IsOwnershipMessage(kind) =>
                 OwnershipLifetimeSeconds(kind, data1) is int lasts ? (uint)SimulationTiming.TicksFromSeconds(lasts) : 0,
             PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall or PlayerMessageKind.TrainingUnpaid

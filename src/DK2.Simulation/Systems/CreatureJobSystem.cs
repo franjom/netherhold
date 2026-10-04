@@ -792,8 +792,8 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         string why = CategoryHooks.RefusedBeforeClaim(context.Hooks, category, creature) is string refused
             ? $"reason={refused} message={(category == CreatureStateCategory.Training ? "0x37" : "none")}"
             : room is null ? "reason=no_room message=none"
-            : RoomCapacityRules.AnotherHasRoom(world, context.Database, room, creature.Id)
-                ? "reason=room_full message=none" : "reason=room_full message=0x2A";
+            : RoomCapacityRules.RaisesFull(world, context.Database, room, creature)
+                ? "reason=room_full message=0x2A" : "reason=room_full message=none";
         context.Emit(SystemName, "job_lost",
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} job={job} " +
