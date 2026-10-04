@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**180** — `0x68CC6F319486D231`. `MintWageCommand`: the keeper's wage spent from the stores in shares and put in its hand as a pile; no new field. ADR-0353 stage 2.
+
 **179** — `0x2D8E29670FC89364`. The anger wrapper posts 17 and 18 on an upward band change and the sweep frees one whose creature left the band; no new field. ADR-0353 stage 1.
 
 **178** — `0x030F88C2BFE9ADEB`. A Sight of Evil cast (spell 1) is accepted at a place: permission, payment, one-shot mana and both clocks, with no shot made; no new field. The pinned world casts nothing, so the value moved on the version alone. ADR-0352.

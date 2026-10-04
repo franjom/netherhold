@@ -1061,7 +1061,7 @@ methods on `KeeperAI` rather than a separate type.
 | spell 4 Create Imp | `CreateImpCommand` | none |
 | spells 3 Call to Arms (+63 remove), the battle spells, Heal, Chicken, Inferno | `CastSpellAtPlaceCommand`, `CastSpellOnCreatureCommand`, `RemoveCallToArmsCommand` (ADR-0279, 0283, 0287, 0302) | none: the keeper casts 13 Create Gold and 1 Sight of Evil, whose simulation cast has an empty effect (ADR-0352, §5.10) |
 | place trap / door | `PlaceTrapCommand`, `PlaceDoorCommand` | placement exists (ADR-0231); AI site choice remains |
-| pay a creature by minting gold on it | — | needs a treasury-withdrawal rule as well as a command |
+| pay a creature by minting gold on it | `MintWageCommand`, then `DropCommand` naming the creature | none: `GoldStore.Spend` is the withdrawal (ADR-0353) |
 | claim a neutral room | digging a path to it, then `ConvertRoom` work | none (ADR-0044) |
 
 Every row marked **bold** adds simulation state or a new effect, so each bumps

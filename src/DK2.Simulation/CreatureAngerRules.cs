@@ -104,9 +104,12 @@ public static class CreatureAngerRules
 
     /// <summary>Where this creature sits on the ladder, from the largest bucket and never from their
     /// sum (ADR-0081): two half-grievances leave it unhappy where a pool would say angry.</summary>
-    public static CreatureMood MoodOf(CreatureDef creature, CreatureState state)
+    public static CreatureMood MoodOf(CreatureDef creature, CreatureState state) => MoodOf(creature, state.Anger);
+
+    /// <summary>The band of a set of counters, for an observation that holds a copy.</summary>
+    public static CreatureMood MoodOf(CreatureDef creature, in CreatureAnger anger)
     {
-        int worst = state.Anger.Max;
+        int worst = anger.Max;
         if (worst > AngryAt(creature)) return CreatureMood.Angry;
         if (worst >= UnhappyAt(creature)) return CreatureMood.Unhappy;
         return CreatureMood.Content;

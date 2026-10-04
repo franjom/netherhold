@@ -41,8 +41,45 @@ public sealed class HandSystem : ISimulationSystem
                 case PickUpObjectCommand lift: PickUpObject(context, lift); break;
                 case DropCommand drop: Drop(context, drop); break;
                 case SlapCreatureCommand slap: Slap(context, slap); break;
+                case MintWageCommand mint: MintWage(context, mint); break;
             }
         }
+    }
+
+    /// <summary>The pay remedy's gold (<see cref="MintWageCommand"/>): the wage spent from the
+    /// stores, a pile of object 1 for the neutral player holding what was taken (<c>0x004B7A90</c>),
+    /// then the hand. Not modelled: the pile's <c>+0x146</c> bit 4, whose reader is unread.</summary>
+    private static void MintWage(SimulationContext context, MintWageCommand command)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        CreatureState? creature = world.CreatureById(command.CreatureId);
+        if (creature is null || creature.OwnerPlayerId != command.PlayerId
+            || !RoomIndex.Build(world, database).Any(r => r.OwnerPlayerId == command.PlayerId
+                && r.Definition.TypeId == RoomTypeId.Treasury))
+        {
+            context.Emit(SystemName, "wage_refused", $"player={command.PlayerId} creature={command.CreatureId}");
+            return;
+        }
+
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        int wage = PaydayRules.Wage(database, definition, creature.Level);
+        int taken = GoldStore.Spend(world, database, command.PlayerId, wage);
+        if (FloorGold.Drop(world, database, 0, taken) is not ObjectState pile)
+        {
+            context.Emit(SystemName, "wage_refused", $"player={command.PlayerId} creature={creature.Id} reason=no_gold");
+            return;
+        }
+
+        List<HandItem> hand = world.Player(command.PlayerId).Hand;
+        bool held = hand.Count < HandRules.Capacity(database);
+        if (held)
+        {
+            pile.InHand = true;
+            hand.Add(HandItem.Of(pile));
+        }
+        context.Emit(SystemName, "wage_minted",
+            $"player={command.PlayerId} creature={creature.Id} wage={wage} gold={taken} object={pile.Id} held={held}");
     }
 
     // ---------------------------------------------------------------- pick up

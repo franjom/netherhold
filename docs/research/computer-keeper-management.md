@@ -358,3 +358,7 @@ may be lifted and the hand holds it, drops it there plus `0x100`: success.
 Otherwise, or if that failed, it takes a random Temple, else a Portal, else a Hero
 Portal (none: returns 0, unhandled and retried) and drops at that room's position
 plus `0x900`. A refused lift returns 0.
+
+Ours: `KeeperMoodRemedies` with `MintWageCommand` and `GoldStore.Spend` (ADR-0353). The
+Hatchery's list head is taken as its newest chicken (`EatingRules.NewestChicken`); our
+object drop needs the keeper's own tile where DK2's does not (Q541).

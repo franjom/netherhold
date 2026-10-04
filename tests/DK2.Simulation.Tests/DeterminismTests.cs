@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 179: the anger wrapper posts messages 17 and 18 (ADR-0353).
+        // HashVersion 180: the keeper mints a wage into its hand (ADR-0353).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x2D8E29670FC89364UL, sim.StateHash());
+        Assert.Equal(0x68CC6F319486D231UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

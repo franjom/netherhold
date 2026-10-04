@@ -57,6 +57,9 @@ internal static class KeeperWorld
     /// something its need finds (messages 41 to 43); the coop, egg and chicken are the shipped records.</summary>
     public const byte EaterCreature = 4;
 
+    /// <summary>A creature with a wage and a happy table of Research then Train, for the mood remedies.</summary>
+    public const byte MoodyCreature = 5;
+
     public const byte Keeper = 3;
     public static readonly TilePos HeartAt = new(15, 15);
 
@@ -113,6 +116,12 @@ internal static class KeeperWorld
                 JobClass.Fighter, FightStyle.Blocker) with { LairObjectId = BedObjectId, TimeSleep = 9 },
             Creature("Eater", EaterCreature, CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp, hp: 500, threat: 2,
                 JobClass.Fighter, FightStyle.Blocker) with { HungerFill = 1, HpFromChicken = 100 },
+            Creature("Moody", MoodyCreature, CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp, hp: 500, threat: 2,
+                JobClass.Fighter, FightStyle.Blocker) with
+            {
+                Pay = 100, HungerFill = 1,
+                HappyJobs = [new(JobType.Research, 0, 0, 50), new(JobType.Train, 0, 0, 50)],
+            },
         ],
         variables: Variables(handCapacity),
         keeperSpells: KeeperSpells(),

@@ -161,7 +161,8 @@ public struct CreatureAnger : IEquatable<CreatureAnger>
     /// <summary>
     /// The bucket the mood is currently coming from, which is what a report
     /// wants to name: <i>why</i> this creature is cross, not merely how much.
-    /// Ties go to the lower index, as the original's scan does.
+    /// Ties go to the lower index, as the original's scan does: <c>0x004871B0</c>,
+    /// which the keeper's make-happy remedy dispatches on.
     /// </summary>
     public AngerBucket Worst
     {

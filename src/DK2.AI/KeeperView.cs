@@ -84,6 +84,7 @@ public sealed class KeeperView : INavByteGrid
             foreach (CreatureState listed in world.OwnedCreatures(owner)) ranks[listed.Id] = rank++;
         }
         List<HandItem> hand = world.Player(playerId).Hand;
+        HandCount = hand.Count;
         KeeperSpellDef? thunderbolt = database.KeeperSpellById(KeeperSpellRules.Thunderbolt);
         KeeperSpellDef? heal = database.KeeperSpellById(KeeperSpellRules.Heal);
         KeeperSpellDef? chicken = database.KeeperSpellById(KeeperSpellRules.Chicken);
@@ -132,7 +133,7 @@ public sealed class KeeperView : INavByteGrid
                     && KeeperSpellRules.CreatureTargetAllowed(world, database, this, playerId, chicken, c),
                 c.OwnerPlayerId != playerId && c.Activity != CreatureActivity.Dead && inferno is not null
                     && KeeperSpellRules.PlaceAllowed(world, database, this, playerId, inferno, c.Tile),
-                c.ExperiencePoints, c.DroppedToDoJob));
+                c.ExperiencePoints, c.DroppedToDoJob, c.Anger));
         }
         Creatures = creatures.AsReadOnly();
         CallToArms = world.Player(playerId).CallToArms;
@@ -174,8 +175,9 @@ public sealed class KeeperView : INavByteGrid
         KeeperTileView[] tiles, AvailabilityState[] availability,
         KeeperCreatureView[] creatures, KeeperTrapView[] traps, KeeperRoomView[] rooms, PlayerMessage[] messages,
         CallToArmsState callToArms = default, int mana = 0, byte[]? statuses = null, IEnumerable<int>? callRefusedTiles = null,
-        bool[]? heartRuined = null, IEnumerable<int>? sightRefusedTiles = null)
+        bool[]? heartRuined = null, IEnumerable<int>? sightRefusedTiles = null, int handCount = 0)
     {
+        HandCount = handCount;
         if (sightRefusedTiles is not null) _sightRefusedTiles.UnionWith(sightRefusedTiles);
         CallToArms = callToArms;
         Database = database;
@@ -339,6 +341,9 @@ public sealed class KeeperView : INavByteGrid
     /// <summary>The keeper's mana pool (<c>player+0x82</c>), which the battle step's cast tests.</summary>
     public int Mana { get; }
     public int ImpCount { get; }
+
+    /// <summary>Things in this keeper's hand, against <see cref="HandRules.Capacity"/>.</summary>
+    public int HandCount { get; }
 
     /// <summary>The navigation byte captured for a tile (<see cref="INavByteGrid"/>).</summary>
     public byte NavByte(int x, int y) => _tiles[(y * Width) + x].NavigationByte;

@@ -12,11 +12,12 @@ public sealed class KeeperRoomView
     internal KeeperRoomView(WorldState world, RoomInstance room)
         : this(room.Definition, room.OwnerPlayerId, room.TileIndices,
             room.MinX, room.MinY, room.MaxX, room.MaxY, FloorSlotsInChainOrder(world, room),
-            SlabChain.Order(world, room)) { }
+            SlabChain.Order(world, room),
+            room.Definition.TypeId == RoomTypeId.Hatchery ? EatingRules.NewestChicken(world, room)?.Id ?? -1 : -1) { }
 
     internal KeeperRoomView(RoomDef definition, byte ownerPlayerId, IEnumerable<int> tiles,
         int minX, int minY, int maxX, int maxY, IEnumerable<int>? floorSlots = null,
-        IEnumerable<int>? chainOrder = null)
+        IEnumerable<int>? chainOrder = null, int objectListHead = -1)
     {
         Definition = definition;
         OwnerPlayerId = ownerPlayerId;
@@ -27,6 +28,7 @@ public sealed class KeeperRoomView
         MaxY = maxY;
         FloorSlots = Array.AsReadOnly((floorSlots ?? []).ToArray());
         ChainOrder = chainOrder is null ? TileIndices : Array.AsReadOnly(chainOrder.ToArray());
+        ObjectListHead = objectListHead;
     }
 
     public RoomDef Definition { get; }
@@ -44,6 +46,10 @@ public sealed class KeeperRoomView
     /// <summary>Every tile in slab-chain order, <c>FirstSlab</c> first: the walk the expansion's
     /// corner search (<c>0x004FBE00</c>) makes, whose first extreme wins a tie.</summary>
     public IReadOnlyList<int> ChainOrder { get; }
+
+    /// <summary>A Hatchery's object-list head (<c>+0x0C</c>), the chicken make-happy lifts
+    /// (<see cref="EatingRules.NewestChicken"/>); -1 with none and for every other room.</summary>
+    public int ObjectListHead { get; }
 
     private static IEnumerable<int> FloorSlotsInChainOrder(WorldState world, RoomInstance room)
     {

@@ -16,9 +16,9 @@ namespace DK2.AI;
 /// world hash is untouched. Source: the original's <c>ComputerPlayer.cpp</c> (docs/KEEPER_AI.md §5, §12.1).</para>
 /// <para>The proactive foundation of §12.8, the attack response (<see cref="KeeperThreatResponder"/>),
 /// the battle step (<see cref="KeeperBattleStep"/>), the retreat (<see cref="KeeperRetreatStep"/>), the
-/// training moves (<see cref="KeeperTrainingStep"/>), the attack planner (<see cref="KeeperAttackPlanner"/>) and
-/// room messages 41/42 (<see cref="KeeperRoomRequests"/>). Not implemented: traps and doors, prisoners,
-/// the researcher's portal move and mood messages.</para>
+/// training moves (<see cref="KeeperTrainingStep"/>), the attack planner (<see cref="KeeperAttackPlanner"/>), room
+/// messages 41/42 (<see cref="KeeperRoomRequests"/>) and mood messages 17/18 (<see cref="KeeperMoodRemedies"/>).
+/// Not implemented: traps and doors, prisoners and the researcher's portal move.</para>
 /// <para>Deviates: randomness is the keeper's own <see cref="SimRandom"/>, not the world's (§12.1).</para>
 /// </remarks>
 public sealed class KeeperAI
@@ -110,7 +110,8 @@ public sealed class KeeperAI
 
         // 5. The message walk, then 6. the head event, which spends the whole tick when it runs.
         var rooms = new KeeperRoomRequests(view, State, _p, RoomAvailable(view), commands, goldUntagged);
-        var responder = new KeeperThreatResponder(view, State, _p, _rng, commands, rooms);
+        var mood = new KeeperMoodRemedies(view, State, _p, _rng, commands);
+        var responder = new KeeperThreatResponder(view, State, _p, _rng, commands, rooms, mood);
         responder.HandleMessages();
         budget = responder.Dispatch(budget);
 
