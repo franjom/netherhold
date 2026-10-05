@@ -299,7 +299,12 @@ whole-map kind has come up empty.
 - **After the pick-up (state 27, `0x00466850`, read 2026-09-29):** the piles
   within `0x555` of the imp are taken up to the level-scaled cap, stopping once
   full. Full hands then go to the store chooser, falling back to 10 when no store
-  has room; a part-load goes to 10 and stays in the hands.
+  has room; a part-load goes to 10 and stays in the hands. **The pick-up takes no
+  time** (Q143, re-read 2026-10-04, CONFIRMED). State 27 starts no action and waits on
+  none: there is no call to `0x00496980` or `0x00496D00` in `0x00466850`–`0x00466A37`.
+  It takes the piles in the first turn it runs. The cap is the level-scaled `def+0x69C`
+  less what the imp carries (`+0x3FB`). Whether the walk's arrival adds a turn before 27
+  runs was not read.
 - **Who deposits at all:** the store chooser has five call sites (a raw scan of
   every executable block): state 26 mining, state 27 above, the dispatcher's kind
   7 and kind 15, and state 76 (the hand-drop landing). An imp with gold and

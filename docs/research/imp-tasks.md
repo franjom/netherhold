@@ -289,8 +289,18 @@ enemy → Prison; ADR-0063, ADR-0064), carrying corpses (kind 12, ADR-0063),
 carrying loose objects to their room (kind 8, ADR-0065), fetching floor gold
 (kind 7, ADR-0056 as amended, ADR-0058 for its Tier B place; an imp refuses gold
 that is not on its keeper's own ground or water, Q144), and claiming the tile just
-dug (kind 14, Q154). Open around fetching: Q143 (whether the pick-up costs time),
-Q145 (whether it interrupts a swing).
+dug (kind 14, Q154). Picking gold up takes no time (Q143, `imp-task-priority.md` §5).
+
+**Fetching does not interrupt a swing** (Q145, read 2026-10-04). Dig state 14
+(`0x004655D0`) waits while a swing runs, then swings again while the wall stands and
+its task lives; it never looks for gold. Mining state 26 (`0x00465870`) is the same, but
+full hands send the imp to deposit before the next strike. The dispatcher `0x00476FC0`
+runs no needs or mood chooser for a worker, and category 3 has no update hook, so nothing in
+the imp's own turn picks a new job until the tile is done. CONFIRMED for the imp's own turn.
+STRONGLY INFERRED that no outside routine kicks a digger when gold appears: no such kick was
+scanned for. The owner's gem observation fits state 26: a gem face never runs out, so the imp
+leaves it when its hands are full, to deposit, not to fetch. Ours finishes the tile, which
+matches.
 
 ## Routing is ours, not DK2's
 

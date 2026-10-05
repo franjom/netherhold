@@ -285,7 +285,7 @@ are grouped; the count beside each type is its shipped record count.
 | 3 (22), 4 (37), 6 (158), 8 (88), 10 (4), 12 (2), 13 (4), 16 (30), 46 (1), 56 (1), 57 (1), 58 (1), 60 (1), 65 (1), 72 (137) | body `00..07` **N** |
 | 19 (205), 20 (2) | `Comparison:u8@00` **B**, `CreatureId:u8@01` **B**, `Value:s32@04` **B**; `02..03` **N** |
 | 22 (26) | `Comparison:u8@00` **B**, `PlayerId:u8@03` **B**, `Value:s32@04` **B**; `01..02` **N** |
-| 23 (1) | `Comparison:u8@00` **B**, `Unknown:u8@02` **U**, `Value:s32@04` **B**; `01,03` **N** |
+| 23 (1) | `Comparison:u8@00` **B**, `PlayerId:u8@02` **B** (0 = total killed; `trigger-dispatch-tables.md`, "Four player arms"), `Value:s32@04` **B**; `01,03` **N** |
 | 24 (24), 25 (85), 68 (5) | `Comparison:u8@00` **B**, `RoomId:u8@01` **B**, `Value:s32@04` **B**; `02..03` **N** |
 | 27 (3), 28 (7) | `Comparison:u8@00` **B**, `TargetId:u8@01` **T**, `Flag:u8@02` **T**, `Value:s32@04` **B**; `03` **N** |
 | 29 (80) | `TargetId:u8@01` **T**; all other body bytes **N** |
@@ -325,9 +325,9 @@ have **no shipped-data corroboration**; Q225 keeps custom-map verification open.
 | 16 (109) | `ActionPointId:u8@00`, `Available:u8@01`, `Value:s16@04` — all **B**; `02..03,06..07` **N** |
 | 17 (291) | `ActionPointId:u8@00`, `Available:u8@01` — both **B**; `02..07` **N** |
 | 18 (27) | `PlayerOneId:u8@00`, `PlayerTwoId:u8@01`, `Available:u8@02` — all **B**; `03..07` **N** |
-| 22 (160) | `TerrainId:u8@00`, `PlayerId:u8@01`, `PosX:u16@04`, `PosY:u16@06` — all **B**; `02..03` **N**. **Both coordinates are one-based**: the arm `DEC`s each before the lookup (ADR-0136) |
+| 22 (160) | `TerrainId:u8@00`, `PlayerId:u8@01`, `PosX:u16@04`, `PosY:u16@06` — all **B**; `02..03` **N**. **Both coordinates are one-based**: the arm `DEC`s each before the lookup (ADR-0136); the arm's room-tile paths are `trigger-action-arms.md` |
 | 23 (86) | `TimerId:u8@00` **B**, `Value:u32@04` **B**; `01..03` **N** |
-| 24 (827) | `SpeechId:u32@00` **B**, `Unknown:u32@04` **U** |
+| 24 (827) | `SpeechId:u32@00` **B**, `SpeakOnly:u8@04` **B** (zero also posts a message record; `trigger-action-arms.md`); `05..07` **N** |
 | 26 (100) | `ActionPointId:u8@00` **C**; `01..07` **N** |
 | 27 (18) | `ActionPointId:u8@00`, `Available:u8@01`, `Angle:s16@02`, `Time:u32@04` — all **B** |
 | 28 (10) | `CreatureId:u8@00`, `Level:u8@01` — both **B**; `02..07` **N** |
@@ -336,15 +336,15 @@ have **no shipped-data corroboration**; Q225 keeps custom-map verification open.
 | 32 (67) | `PosX:u16@04`, `PosY:u16@06` — both **B**; `00..03` **N** |
 | 33 (72), 37 (22), 38 (34), 44 (2), 45 (18), 51 (13) | `Available:u8@00` **B**; `01..07` **N** |
 | 34 (2) | body `00..07` **N** |
-| 35 (27) | `Unknown:u8@00` **U**; `01..07` **N** |
+| 35 (27) | `Mode:u8@00` **B** (0 vanish, 1 die; `trigger-action-arms.md`); `01..07` **N** |
 | 42 (59), 47 (84) | `TargetId:u8@00` **T**; `01..07` **N** |
 | 49 (3) | `PlayerId:u8@01`, `PosX:u16@04`, `PosY:u16@06` — all **B**; `00,02..03` **N** |
 | 50 (3) | `Value:u32@04` **T**; `00..03` **N** |
 
 For unshipped action types, 3, 5, 25 and 29 have no body read. Type 36 reads
-only `Available:u8@00`; types 39/40 read an unknown byte at `00`, player id at
-`01`, and two coordinates at `04/06`; type 41 reads an unknown word at `00`
-and the coordinates; type 46 reads availability and the coordinates; type 48
+only `Available:u8@00`; types 39/40 read a door/trap type at `00`, player id at
+`01`, and two coordinates at `04/06`; type 41 reads an effect id word at `00`
+and the coordinates (`trigger-action-arms.md`); type 46 reads availability and the coordinates; type 48
 reads generator id and availability. These cases are binary-read but lack a
 retail corpus example; Q225 records the verification method.
 

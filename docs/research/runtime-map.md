@@ -28,7 +28,7 @@ established from the save path, now with a way to reach one live.
 | | |
 |---|---|
 | `+0x06` | `u16` **health** — read, written and clamped by the applier |
-| `+0x08` | `u16` `id:12 | flags:4`. **Bit 14 gates movement** and bit 13 is Q309; the low 12 bits are an id that is **not** the terrain one (`structure-blocks.md` §5.4) |
+| `+0x08` | `u16` `id:12 | flags:4`. **Bit 14 gates movement** and bit 13 is Q309. The low 12 bits are the **owner**, the player object's entity-table slot: `0x00455990` resolves them, and only `Tile_SetOwner` `0x004559D0` was found writing them. `Tile_SetTerrain` `0x0044FC40` passes the neutral player `[0x006F2548]` whenever the new terrain lacks `Ownable` (`+0x17B` bit 2, `0x0044FDBF`), and the map loader `0x0051EC60` sets every tile through it, so unclaimed ground names the neutral player (Q514; STRONGLY INFERRED, no direct-store scan). The room id is at `+0x02` (`0x004559B0`) |
 | `+0x0A` | `u8` terrain id, indexing the terrain table at `0x006DA4A8` |
 | `+0x0B` | `u8` flags: bit 6 is the fog gate (`fog-of-war.md`), bit 0 is read by the tag adder |
 

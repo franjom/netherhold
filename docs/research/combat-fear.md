@@ -57,17 +57,22 @@ Called once a tick per creature from the creature update (`0x00488930`), after
 3. **My threat.** The level-scaled `Threat` stat (`def+0x698`, file `0xF12`,
    table row 3 — level 1 unscaled). Divided by my **engagements**: the nonzero
    slots of both arrays plus one if `Attacking` (`+0x502`) is set. None → return.
-4. **Two owner modifiers**, both counts of creature types held in some class-26
-   object of the player (`player+0x108E`, `+0x108F`; the writer `0x004D8E60`
-   keeps one byte per type at `player+0x1089 + type`): the share is scaled by
-   `(100 + 30·a)/100` and then, when the second is positive, by `(100 + 40·a)/100`
-   — **with the first count in both**, a DK2 slip. Which object and which types
-   is UNKNOWN (Q375); this simulation holds none, so the factor is 1.
+4. **Two owner modifiers**, counts of the owner's **Crypts** (room type 26) by
+   occupant: `0x004D8E60(room, occupant)` moves a Crypt's occupant (`room+0x53`)
+   between 18 group bytes at `player+0x108A + group`, the group chosen by creature
+   type (callers: the shared leave `0x0047B920`, `0x0047AF20`, `0x0047B120`,
+   `0x0047B4A0`, Crypt states 274 and 276). `a` = `+0x108E`, Crypts holding a
+   **Vampire** (8); the second, `+0x108F`, an **Unique Vampire** (42). The share
+   is scaled by `(100 + 30·a)/100` and then, when the second is positive, by
+   `(100 + 40·a)/100` — **with the first count in both**, a DK2 slip (read at
+   `0x0045E638`, `0x0045E667`). This simulation holds no Crypt occupant, so the
+   factor is 1 (Q375 for whether a shipped level fills a Crypt).
 5. **Give.** For my target (if a live thing) and every nonzero slot: live, with
    `+0x12` clear, and a **line of sight** from my position to its
    (`0x004512F0(world+0x9DA, mine, theirs, 0, 1)`): the receiver's
-   `TempFear += share × (10 − r)/10` where `r` is *its* owner's `+0x108D` count
-   when positive; a share above its `ThreatThingThreshold` records my tag as its
+   `TempFear += share × (10 − r)/10` where `r` is *its* owner's `+0x108D` count,
+   Crypts holding the **Maiden of the Nest** (45), when positive (read at
+   `0x0045E6F2`, `0x0045E7BF`, `0x0045E876`, and `0x0045C5D3` below); a share above its `ThreatThingThreshold` records my tag as its
    `ThreatThing`. A thing target takes the write into its own bytes.
 
 **A second entry, `0x0045C5D0(creature, amount, source)`**, adds `amount` to
@@ -98,9 +103,13 @@ otherwise, anyone else measures Chebyshev tiles to `DungeonHeartPosition`; not
 `IsFearless` (`def+0x686` bit 18); the turn past `FearlessUntil`; **more than 5
 tiles**; and health under a third of the level-scaled `Hp` (`0x0048F250`). In
 `spFighting` the state must also be a turn old; then the withdraw state (§5)
-takes over and, succeeding, the handler returns 1. What bit 4 marks is UNKNOWN
-(Q372); without it a hero never withdraws. The owner's observation agrees: campaign
-heroes back off from an overwhelming enemy and do not run to their gate.
+takes over and, succeeding, the handler returns 1. **Bit 4 is never set in the shipped
+game** (read 2026-10-04): its one setter `0x0048E060` is called only by trigger action 1
+(`0x00518C3F`) and the neutral, Good and keeper placed-creature loaders (`0x005203C2`,
+`0x005207D7`, `0x00520B1E`), each copying bit 4 of the authored `Flags` byte; the
+constructor writes `0x09` and hero-party creation does not copy the bit. No placed creature
+or type-1 action sets it (`trigger-dispatch-tables.md`); party members' `Flags` do, uncopied.
+So a hero never withdraws and never runs to its gate, as the owner saw and as ours does.
 
 ### 3.3 The counter (`0x0045EC80`)
 
@@ -156,8 +165,12 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
 5. The counter (§3.3). **Not afraid, or no target → `SetState(199)`**, back to
    the fight, unless `PossessedCreatureFollowing` is set.
 6. The gate `0x0045A6D0(0)` refusing → return 0: **the state ends** and the
-   dispatcher (`0x00476FC0`) sets state 1, idle, with the target tag left in
-   place. A target no longer live → return 1.
+   dispatcher (`0x00476FC0`) sets state 1, idle, whose Combat leave hook clears
+   the target (`combat-category-hooks.md` §2). A target no longer live → return 1.
+   The handler calls no action routine, and `SetState(203)` from the fight runs no
+   hook (same category), so a swing in progress still lands: the action runs in
+   `CreatureAction_Run` `0x00496AA0`, called from `Creature_Update` (`0x00489A68`)
+   whatever the state (STRONGLY INFERRED: earlier exits of the update unread).
 7. **The nearest attacker** (`0x0045C690`): over my melee then ranged slots, the
    lowest distance — an eighth off across the alignments, the `Creeping`
    percentage applied — that is `IsAttackable`, not disguised as my effective combat side, seen within
@@ -170,8 +183,9 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
    along my heading (`+0xF4`, the sine and cosine tables at `0x006C1C88` and
    `0x006C1488`), allowed when a route to the point exists and the tile at
    `(x, y+vy)` or `(x+vx, y)` is not solid, else `±0x3000` along whichever axis
-   routes; applied by `0x004B1F60` into the body's `+0x110` accumulator, with the
-   shuffle speed set. Impossible: cornered (§3.1) → `SetState(199)`, else
+   routes; `0x004B1F60` adds it to the creature's `+0x110/+0x114/+0x118`
+   accumulator, after the shuffle speed is set (`0x004887D0(2, 0)`). What spends
+   the accumulator is unread (Q373). Impossible: cornered (§3.1) → `SetState(199)`, else
    `BackOffTimer = 0`.
 9. **The run.** `0x00460B50`: a keeper's creature (not neutral, not Good) with a
    live target standing strictly inside one of its owner's rooms grown by
@@ -244,9 +258,8 @@ INFERRED). `CreatureActivity.Fleeing` is state 203, `Withdrawing` state 6 toward
 ADR-0208.
 
 **Approximated, named:** the step back is a route three quarters of a tile
-straight away from the target, not a heading impulse (Q373); a state ending
-lets the engagement go rather than leaving the tag (Q373); a hero's flag bit 4 is
-absent, so heroes neither withdraw nor count as six tiles out (Q372). The room
+straight away from the target, not a heading impulse (Q373); a hero's flag bit 4 is
+absent, as in every shipped level (§3.2). The room
 word `+0x27/+0x29` is `RoomInstance.CentreFieldX/Y` since ADR-0323 (§5 step 3).
 
 **Not built:** hero gates; the stunned gate (a chicken is skipped, ADR-0302); the owner modifiers (Q375);
@@ -264,7 +277,9 @@ return, §6.
 **STRONGLY INFERRED:** the
 run speed scaled by the Speed row; `+0x12` clear meaning a live thing.
 
-**UNKNOWN:** Q372–Q375.
+**CONFIRMED (binary, 2026-10-04):** bit 4's writers (§3.2); the Crypt counts (§2 step 4).
+
+**UNKNOWN:** Q373 (the step back's accumulator), Q375 (a filled Crypt in play).
 
 ## 8. The walk back (read 2026-09-25, ADR-0225)
 

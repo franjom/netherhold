@@ -199,20 +199,47 @@ torch fields and the art flag, none of which `KwdTerrainRooms` parses today.
 ## 6. When the refresh runs
 
 The simulation posts bridge commands through `0x00517480`, the only caller of
-the enqueue `0x00527150`, from 62 call sites. The command table at
-`0x0066D0D8` holds four torch commands:
+the enqueue `0x00527150`, from 62 call sites. The command id is the record's
+word at `+0xC`. **Dispatch is synchronous — CONFIRMED (2026-10-05):** CBridge's
+vtable slot `+0x28` (`0x0066CCBC`) is `0x0043B1E0`, which calls the handler
+from the table at `CBridge+0x2CA` (ids below `0x17`) at once and then forwards
+the record to the next sink's slot `+0x28` (`0x0043B20F`). That the session's
+sink is the CBridge is STRONGLY INFERRED. The command table at `0x0066D0D8`
+(copied by `0x0043AAD0`) holds these torch and gate commands:
 
 | Id | Handler | What it does |
 |---|---|---|
-| 3 | `0x00447C70` → `0x004484A0` | Refreshes the tile's bridge state, then calls vt`+0xB8`. Gated by `CBridge+0x12E3`, which handler 7 (`0x00447D50`) sets and handler 2 clears |
+| 2 | `0x00447B20` | Destroys every bridge light and clears the gate `CBridge+0x12E3`. Its only poster is the map teardown `0x0044F280` (`0x0044F33C`) |
+| 3 | `0x00447C70` → `0x004484A0` | Refreshes the tile's bridge state, then calls vt`+0xB8`. Runs only when the gate is set **and** record `+4` is non-zero |
 | 4 | `0x00447CA0` | Calls vt`+0xB8` directly, ungated |
-| 16 | `0x00448710` | Recolours the torch lights on a tile from the room or variables 52–54. Poster **UNKNOWN** (Q445) |
+| 7 | `0x00447D50` | Sets the gate (`0x00447D99`), clears bit 13 of every bridge grid word, makes three global lights and one effect, then sweeps every tile for terrain `+0x17B` bit 0 work through world vt`+0x1F8`. **It places no torches**: no call to vt`+0xB8`, `0x004484A0` or `0x00439B90` before its `RET 4` (`0x004482A1`) |
+| 16 | `0x00448710` | Recolours the torch lights on a tile: room definition `+0x456/+0x458/+0x45A`, or variables 52–54 when the tile has no room |
 | 17 | `0x004488A0` | Re-runs `0x004484A0` over the 3×3 around a door |
+| 19 | `0x00448800` | Posted per room tile with command 16's posters (below); not read |
 
-- **Terrain setter `0x0044FC40`.** When a tile becomes non-solid, it posts
-  command 4 for each qualifying neighbour and for the qualifying tiles two steps
-  away (`0x00450108`, `0x0045019D`). When its argument 5 is set, it posts
-  command 3 for the tile itself (`0x00450288`).
+- **Terrain setter `0x0044FC40`.** When the new terrain is not Solid, it posts
+  command 4 for each of the four neighbours, N, E, S, W from `0x006BC350`, that
+  passes `0x00452D80` (Torch flag; "not a door" is inferred from world
+  vt`+0x21C`), then for the qualifying tiles two steps away (`0x00450108`,
+  `0x0045019D`). When its argument 5 is set, it posts command 3 with `+4 = 1`
+  for the tile itself (`0x00450288`).
+- **Command 16 — CONFIRMED (2026-10-05, Q445).** Its only posters are the two
+  room-change closers, `0x004F04F0` (after a build: the player's wave
+  `0x004C7380`, the computer keeper `0x004C5B40`, trigger dispatch
+  `0x005195F0`) and `0x004F09B0` (after a sell or destruction: the sell wave
+  `0x004C7160`, trigger dispatch `0x005194FC`/`0x00519637`, action 11 at
+  `0x00497EF2`/`0x004980A9`, and the unread `0x005128D4`). Each sets EBP to
+  `0x10` before its loop (`0x004F053D`, `0x004F0A30`), which hid the id from a
+  pre-call window, and posts 16 for every in-bounds tile of the changed
+  rectangle grown by one tile, y outer, x inner (`0x004F058D`, `0x004F0A83`).
+  Then, for each Buildable room touching the rectangle, it refreshes the room's
+  tiles through `0x004522A0` (command 3), calls `0x004EF1F0` and, when the
+  room's definition `+0x482` is non-zero (the flag of §2), posts command 19
+  per room tile (`0x004F07CA`, `0x004F0CCB`) and calls `0x004F0E30`. That a torch therefore takes a new
+  colour when a room is built, sold or destroyed beside it is STRONGLY
+  INFERRED. The other 60 sites post other ids, the five register-loaded ones
+  included (`0x0048A66B` 8, `0x0048F33B` `0x12`, `0x004A6604` `0x11`,
+  `0x004AEDD1` and `0x004AF8BC` `0x0A`).
 - **Callers of the setter:** the KWD map loader `0x0051EC60` (×3), the save
   loader `0x00452BD0`, the health applier `0x00452F60` (dig, claim, reinforce),
   the room split `0x004ED7B0`, heart and defeat (`0x004DA4E0`, `0x004DAA10`,
@@ -220,20 +247,43 @@ the enqueue `0x00527150`, from 62 call sites. The command table at
   `0x00518AD0` (×4).
 - **Room path.** `0x004F0E30` calls vt`+0xB8` directly on every `Torch` wall
   next to a room slab, then posts command 3. Its callers are the wall-phase
-  setter `0x004ECDB0`, `0x004F04F0` and `0x004F09B0`.
+  setter `0x004ECDB0`, `0x004F04F0`, `0x004F09B0` and `0x004D6762` (in
+  `0x004D6750`).
 - **Other command-3 posters:** `0x004522A0`, `0x00454B80`, `0x00454C90`,
   `0x00454D40`, `0x00454E00`, `0x00454F10`, `0x004A5070`, `0x004A5290` and
   `0x004D5FA0`.
-- **Command-17 posters:** `0x00467460`, `0x004A5290`, `0x004C3670`,
-  `0x0050B5B0` and `0x00520F40`. Three more sites have `0x11` near the call:
-  `0x00467869`, `0x004A6604` and `0x004AEDD1`.
+- **Command-17 posters:** `0x00467460`, `0x00467869`, `0x004A5290`,
+  `0x004A6604`, `0x004C3670`, `0x0050B5B0` and `0x00520F40`.
+
+### Level start (Q446)
+
+**CONFIRMED:** GameAction_LoadLevel `0x00513870` calls the teardown
+`0x0044F280` (`0x00513923`, command 2: gate closed), later the level initialiser
+(`0x00513C42`), then posts command 7 (`0x00513C94`). GameSession_Run
+`0x00525370` posts 7 at `0x0052574D` after the KWD load `0x0050E620`
+(`0x0052565A`), and the save rebuild `0x0050B3C0` at `0x0050B51B`. The KWD
+per-tile callback `0x0051EC60` calls the setter with argument 5 = 1 on all three
+of its paths. The CMap tile constructor `0x00452B30` zeroes each tile (terrain
+byte `+0xA` = 0) before the map is read.
+
+**STRONGLY INFERRED:** the map is read between `0x00513923` and `0x00513C42`,
+row by row with x inside y (`room-slab-chain.md` §6), through `0x0051EC60`.
+`0x0051E0A0` installs that callback only when `[session+0x7239]` bit `0x4` is
+set (otherwise `0x0051EB50`/`0x0051EE60`), and which path a new-level load
+takes is unchecked. On that reading every command 3 posted during the load is
+dropped at the closed gate, and command 4 runs during it.
+
+**HYPOTHESIS:** level-start torches come only from those command-4 refreshes.
+Not excluded: other vt`+0xB8` callers, command 3 posted after the gate opens,
+the `0x004D6762` room path, and handler 6. How an unloaded tile (terrain 0)
+reads to `0x00439B90` was not read, so the winner at an inside corner is open.
 
 ## 7. What is still open
 
 | | What | How to close it |
 |---|---|---|
-| Q445 | Who posts command 16 (recolour) | No window before any of the 62 calls holds `0x10`. The two sites that load the id from a register, `0x004F058D` and `0x004F0A83`, are the candidates; read where their id comes from |
-| Q446 | Which wall wins a floor tile it shares with another, and how torches appear at level start | Walls race for floor tiles, so the refresh order decides. The loader's order and the command-3 gate (`CBridge+0x12E3`) at level start were not traced. Oracle: the owner describes an inside corner and a long straight wall on a fresh level |
+| Q446 | Which wall wins a floor tile it shares with another at level start | The gate and its posters are read (§6, Level start). Read how terrain 0 reads to `0x00439B90`, which callback a new-level load installs, and whether `0x004ED1A0` reaches `0x004F0E30`. Oracle: the owner describes an inside corner and a long straight wall on a fresh level |
+| — | Command 19's handler `0x00448800` | Read it |
 | — | Why the terrain setter also refreshes tiles two steps away | Probably so a torch that loses its wall can move to the next eligible wall; read the setter's loop |
 | — | The meaning of light flag bits `0x2` and `0x40` in `0x4052` | Engine-side; matters only for matching the lighting |
 | — | The loader-side gate dwords at intermediate `+0x64..+0x78` (§4) | Read the room loader's caller; a level override is the likely reading |

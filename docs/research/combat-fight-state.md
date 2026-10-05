@@ -40,7 +40,9 @@ x, y, 1)`) — the "your creature is fighting" notice. Then it tail-calls
 current state id, `+0x18` the turn entered. `EDI` is the engagement record
 `creature+0x4FE` throughout (combat-entry.md §6).
 
-1. **A dead target is dropped**, as in §1. Two steering body bits are cleared
+1. **A dead target is dropped**, as in §1: "dead" is a freed slot (`[0x006ED540 + tag]`
+   is 0, `0x0045F05C`), not health, so a collapsed target is kept until step 5
+   (`combat-category-hooks.md` §5). Two steering body bits are cleared
    (`body+0x10E` bit 7, `+0x10F` bit 0); the approach sets the first again (§3).
 2. **Assertions**, then return 0: possessed; not a fighter (`Flags +0x46F` bit 0)
    and not `AttackAbnormalTargets`.
@@ -86,8 +88,10 @@ correction that `+0xDF`/`+0xEB` hold state 199 are in
 
 ## 4. The swing, two clocks
 
-In reach, `0x004B2AE0(&out, &targetPos)` must return a zero word (a region
-test, UNKNOWN). Then the **AttackType switch** (`0x004602C0`): nibbles 0 and 2
+In reach, the turn step `0x004B2AE0(&out, &targetPos)` (`0x0045FB3E`) turns the creature
+toward the target, writing its heading `+0xF4` by at most the turn rate, and returns the angle
+left (`tunnelling.md` §3); a nonzero word returns 1 (`0x0045FB47`), so the creature strikes only
+once it faces the target, as ours (`Bearing.TurnToward`). Then the **AttackType switch** (`0x004602C0`): nibbles 0 and 2
 → the spell arm `0x0045FB65`; 3 → the ally-spell arm `0x00460011`, which casts
 and then clears the target; **1 and 4 → the melee arm `0x004600DD`**:
 
@@ -110,7 +114,8 @@ and then clears the target; **1 and 4 → the melee arm `0x004600DD`**:
 4. **The blow lands once** on `+0x399`, the tag the action was started with,
    **with no range test**: only liveness and `+0x16 ≠ 2`. A sleeping creature
    (state 83) is woken first (its bed's `+0xF3` draw bit set, its action ended,
-   state 84 or 1). `+0x445 ≠ 0` on the target ends the swing with nothing.
+   state 84 or 1). `InvulnerableTimer` (`+0x445`, set by the Invulnerable shot `0x004AE180`) nonzero
+   on the target ends the swing with nothing (`0x00499044`).
    Then the arithmetic of combat-damage.md, `0x004B2CE0(target, delta,
    attacker's owner, 0)` — **the health routine takes the attacker's player id
    as the source**, which is what stamps a heart's killer — and the routine

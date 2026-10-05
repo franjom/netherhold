@@ -110,10 +110,19 @@ is `CreatureDying` (`+0x3E6` bit 21). Otherwise it makes two passes.
 1. **Explored: an occluded square.** For a creature the local player owns, the
    radius is the definition's `DistanceCanSee` in whole tiles (`def+0x77B`,
    rounded by the loader), clamped to 2..7. The shipped value is 4 for every
-   creature. `0x0044E920` first fills a 15×15
-   line-of-sight buffer around the creature's tile, one ring at a time
-   (`0x0044E7F0`). The pass then explores every tile of the square that the
-   buffer marks visible. The 15×15 buffer is why the clamp stops at 7. For a
+   creature. `0x0044E920` first fills a 15×15 visible grid (`map+0xACF`, centre
+   `+0xB3F`) around the creature's tile, and the pass explores every tile of the
+   square that the grid marks visible; the grid's size is why the clamp stops at 7.
+   The fill is angular shadowcasting over a table the map builds at load
+   (`0x0044E9E0`): 225 11-byte entries at `map+0x124` (Flame's `CMapEntry`; `+1`/`+2`
+   first and last slot, `+3`/`+7` dx, dy), sorted on a key that is unread, of which
+   `map+0xBB4` = 78 are used. It opens all 256 slots of `map+0x24` and runs
+   `0x0044E7F0` on entries 1..77 in order: an off-map cell closes its slot range;
+   otherwise the cell is visible if any slot in its range (inclusive, wrapping at 256)
+   is still open, and then, visible or not, `0x004511A0(x, y, 0, 1)` closes the range
+   if the cell blocks. HYPOTHESIS: 78 cells are a nearest-first subset, so a larger
+   radius adds few or none; with a Euclidean key the (±4, ±4) corners of the shipped
+   radius would never be explored — a capture can test that. For a
    creature the local player does not own, the radius is 1, but only while
    `+0x475` counts down and `+0x476` names the local player (§3.7). Otherwise
    there is no pass.
@@ -208,7 +217,14 @@ the elapsed ticks has cases 56–62. Each case calls `0x0049D150(r)` with
   66 levels, so the window closes at elapsed tick 36, and the switch needs 56.
   **The save agrees — CONFIRMED.** In `fow_1.SAV`, 72 Gold tiles lie within 15
   tiles of player 3's heart, and none is explored. 18 of them are scanned.
-  Q434 asks what, if anything, makes the disc live.
+- **Nothing in play raises variable 19 (Q434, 2026-10-05).** Its two writers run
+  only while a level file loads: the `Variables_SetMisc` stub `0x0051CDCA` (id 19,
+  dispatched only by the file-record handler `0x00521790` through world `+0x1F24`,
+  reached from `World_LoadLevelKwd` and `GameAction_LoadLevel`) and
+  `0x0051E708`, which copies the LEVEL record's `TicksPerSecond` (`+0x12B6`, file
+  offset `0x1182`). No trigger or per-turn path reaches either, no shipped file
+  carries id 19, and every level ships 4: the disc needs an edited level with
+  `TicksPerSecond` of 7 or more.
 
 ### 3.5 Room ownership change — `0x004E5650`
 
@@ -286,7 +302,7 @@ unconditional writer becomes "for every keeper".
 | Source | Hook | State we lack |
 |---|---|---|
 | Split the layers | `TileState`: add an `ExploredBy` mask beside `DiscoveredBy` (scanned). `WorldView` substitutes *Fog Of War* when neither bit is set, *Claim Scan* when only scanned is set, and passes `RevealThroughFogOfWar` terrain when scanned. Hash and snapshot both (HashVersion bump) | none |
-| §3.1 explored square | `FogOfWarSystem`: `DistanceCanSee` in whole tiles, clamped 2..7 | **the 15×15 line-of-sight buffer**, since `0x0044E7F0`'s ring rule is unread; the `+0x475`/`+0x476` tag |
+| §3.1 explored square | `FogOfWarSystem`: `DistanceCanSee` in whole tiles, clamped 2..7 | **the 15×15 line-of-sight buffer**: the slot rule is read, the table generator in `0x0044E9E0` (slot ranges, sort key) is not; the `+0x475`/`+0x476` tag |
 | §3.1 scanned circle | already built. Fix the per-term `>>12` truncation and keep the exact position. Exclude a creature with a prison owner. `InHand` stays ours | none |
 | §3.1 cadence | tile-change and event-driven in DK2, every tick in ours. The same sets result, because both layers only grow except §3.2/§3.6 | possession |
 | §3.2 terrain change | `TileWork.Convert` (and `RoomRules.Place`/`Unmake`, `DefeatRules`): explore for the new owner; un-explore for every other keeper when the old terrain has `UnexploreIfDugByAnotherPlayer` | none. `TerrainFlags` already parses it |

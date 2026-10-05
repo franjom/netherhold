@@ -64,6 +64,16 @@ ticks-a-second; `+0x3BF` = 1. Haste Creature and Imp Haste: 150 % for 15 s (60
 ticks); Slow: 20 % for 15 s. When the ticks run out the speed is set back to the
 definition's walk. The animation flag `+0x4DD` and body bits 16/23 are display.
 
+**The haste is held, not reapplied (2026-10-04).** Every tick `Creature_Update`
+`0x00488930` clears `+0x3BF`, keeps the speed the getter `vtable+0x90` returns, lets the
+tick's modifiers set scaled speeds through the setter `vtable+0x8C`, and at the end
+sets the kept speed back unless `+0x3BF` was set during the tick. A Haste or Slow write
+therefore persists while modifiers last one tick. `Creature_SetSpeedMode` `0x004887D0`
+(22 call sites, among them `spFighting` at `0x0045FFC9` and `0x0045FFF6` and the flee
+state at `0x00460806` and `0x00460880`) writes the definition's walk, run or third speed
+and sets `+0x3BF`, so it replaces the hasted speed while `+0x459` keeps counting.
+Which of those calls a hasted creature reaches in a given game was not traced.
+
 **Freeze** (`0x0048CB60(creature, ticks)`, type 11). Refused for `IsHorny` and
 while already frozen. `+0x447` = `ShotData1` × ticks-a-second (Mistress Freeze 10 s
 → 40 ticks, Fairy Freeze 15 s → 60); the current action is ended (`0x00496D00` /
@@ -191,10 +201,11 @@ by the work rate was corrected first (`combat-fight-state.md` §4). On state ids
 the rule refuses it, and gets up through 257 to 1.
 
 **Not built, named (Q399):** the per-player byte `+0x1095`, the Stone
-Knight's blow path, the stun's early end `0x00481360`, state 257's length, the ignite
+Knight's blow path, state 257's length, the ignite
 and every other display, the fear-over-time pair, the unread words. Ours lets the
 engagement go on freeze and stun where DK2 only changes the state, and scales the
-cap every tick where DK2 pins the body speed once.
+cap every tick where DK2 writes the body speed once and the next speed-mode change
+replaces it (§2). The hit's lengthening of the stun, `0x00481360`, is built (ADR-0348).
 
 ## Confidence
 

@@ -12,12 +12,26 @@ it holds, never its unit, writer or rule.
   `player+0x36` is its head. `room-list.md` owns the traversal evidence.
 - `+0x19` points to the loaded `RoomDef`. Furniture placement follows it to the
   definition's `ObjectIds` (`auto-placed-furniture.md`).
-- `+0x27/+0x29` (u16 each) are the room's position words, which the withdraw, the
-  alarm and the threat list aim at. STRONGLY INFERRED from three captures (the
-  writer is unread, Q515): a dragged room reads its bounding box's centre rounded
-  down (Level 3 Treasury 32–36×34–38 → (34,36), Lair 25–29×42–46 → (27,44)); the
-  three captured 5×5 Dungeon Hearts read one tile past it ((24,34) → (27,37);
-  Level 2 (17,36) → (20,39); Level 1 (12,26) → (15,29)). `RoomInstance.CentreFieldX/Y`.
+- `+0x27/+0x29` (u16 each) are the room's position words (`CentrePos`), which the
+  withdraw, the alarm, the threat list and a Vampire's reincarnation aim at. The
+  writer is `Room_UpdateCentrePos` (`0x004E4590`). It picks a rule by room type
+  through the index bytes at `0x004E4AD8` and the jump table at `0x004E4AC0`
+  (binary, 2026-10-04, Q515). CONFIRMED:
+  - Heart (5): `FirstSlab` +3 on each axis (`0x004E45D0`), and `NavigationPos` +1.
+  - Portal and Hero Portal (3, 0x19): `FirstSlab` +1.
+  - Types 0x12–0x18: `FirstSlab` itself.
+  - Every other type: the centroid of the slab chain, or a spiral out from it to
+    one of the room's own tiles.
+
+  `Room_Construct` zeroes both words (`0x004E389A`). A dragged room therefore
+  reads the centre of its box rounded down (Level 3 Treasury 32–36×34–38 →
+  (34,36), Lair 25–29×42–46 → (27,44)). The three captured 5×5 Dungeon Hearts
+  read their first slab +3, which is one tile past their centre ((24,34) →
+  (27,37); Level 2 (17,36) → (20,39); Level 1 (12,26) → (15,29)), and Level 3's
+  Portal reads its first slab +1, its true centre (26,29). `FirstSlab` is the
+  head of the slab chain. That a placed heart's chain starts at its low corner is
+  STRONGLY INFERRED from those captures; the loader's tile order is unread.
+  `RoomInstance.CentreFieldX/Y`.
 - `+0x2D/+0x2E` and `+0x2F/+0x30` are the head and tail coordinates of the
   room's slab list. Each 16-byte tile record stores the next coordinates at
   `+0x04/+0x05`; zero ends the list. Furniture and room-removal paths both walk
@@ -27,7 +41,23 @@ it holds, never its unit, writer or rule.
 - `+0x92/+0x96` hold the two wall-furniture alignment phases. They start at
   minus one and take the coordinate parity of the first eligible slab in list
   order (`auto-placed-furniture.md`).
-- `+0xA7` is the slab count, confirmed against live rooms in `room-list.md`.
+- `+0xA7` (word) is the slab count, confirmed against live rooms in `room-list.md`.
+- **Every room starts from zero, and a sold tile makes new rooms** (binary,
+  2026-10-04).
+  - Every room is built by `Room_Construct` (`0x004E3800`), whose only caller
+    is the allocator `0x004EC490`. It zeroes `+0x49..+0x66`, which is every
+    type's overlay, before the type's own constructor slot runs.
+  - Taking one tile out of a room (`Room_RemoveTile` `0x004ED440`, reached from
+    a sale through `0x004C5DB0`) frees the room at `0x004ED9FA` and rebuilds
+    what is left through `0x004ED320`. Each tile either joins a neighbouring
+    piece (`0x004EC650`) or starts a new room (`0x004EC5A0` → `0x004EC490` →
+    `Room_Construct`). CONFIRMED.
+  - Only three types have overlay state copied across the rebuild: type 8
+    (`+0x49`), the Prison (`+0x59/+0x5D`) and the Casino (`+0x53`). Every
+    other type's overlay, for example the Graveyard's `DecomposeValue` or the
+    Hatchery's `ChickensGenerated`, starts again from its constructor.
+  - A merge (`Room_Absorb` `0x004ECB70`) writes no overlay field. The surviving
+    room keeps its own overlay and the absorbed room's is dropped with it.
 
 ## Dumper fields
 

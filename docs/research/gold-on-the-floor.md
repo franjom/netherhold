@@ -276,23 +276,23 @@ Read 2026-09-28. STRONGLY INFERRED from the binary; the outcome matches the
 owner's Level 2 play. They dropped 20,000+ on one Heart tile. The Heart took
 16,000, the rest lay on that tile, and it drained into the Heart as they spent.
 
-- **The overflow.** The deposit `0x004F3C60` walks the room's tiles along its
-  chain from the given tile, filling each tile's store pile (object 3) to 3000, or
-  to 1000 on a Heart's rim tiles (`0x004DA1B0`). What is left after a full pass
-  becomes a floor pile (object 1, neutral) on the starting tile, at one of §7's
-  eight points.
-- **The sweep.** `0x004F47E0` walks the room's tiles. Every gold-flagged object
-  there that is not a store pile (def `+0xF4` bit `0x40`) is deposited through
-  `0x004F3C60` and destroyed. A pile the store cannot take therefore comes straight
-  back down, less what fitted. For a Heart it runs only when room `+0x51` is
-  non-zero (unread, Q472).
-- **When.** The Treasury update `0x004F39A0` runs the sweep every 16th turn
-  (`turn & 0xF == 0`, four seconds) while the room is not full. The Heart's update
-  `0x004D9690` does the same, but compares its gold with 16 × 3000, the Treasury
-  tile cap, where its capacity is 16 × 1000. So that test always passes, and the
-  sweep runs whether the Heart is full or not.
-- **`0x004F3C40`**, reached through a virtual slot, recounts the store, zeroes it
-  and sweeps floor piles (object 1) in with `0x004F3B60`. Probably a rebuild path.
+- **The overflow.** The deposit `0x004F3C60` walks the room's tiles along its chain from
+  the given tile, filling each tile's store pile (object 3) to 3000, or to 1000 on a Heart's
+  rim tiles (`0x004DA1B0`). What is left after a full pass becomes a floor pile (object 1,
+  neutral) on the starting tile, at one of §7's eight points.
+- **The sweep.** `0x004F47E0` walks the room's tiles; each gold-flagged object not a store
+  pile (def `+0xF4` bit `0x40`) is deposited through `0x004F3C60` and destroyed, so what the
+  store cannot take comes straight back down. For a Heart it needs room `+0x51` non-zero.
+- **Heart `+0x51` is `SuckGold`** (Q472, read 2026-10-04): the dumper's overlay (`room-object.md`).
+  Heart init `0x004D9610` (slot `+0x01` of the type-5 record `0x006A1F6C`) sets it to 1. Its
+  one clearer `0x004F38C0` zeroes it and turns each store pile into a floor pile of the same
+  gold, debiting the keeper. It runs from the room-freed hook `0x004D9670` (slot `+0x05`, via
+  `Room_OnFreed` `0x004E39C0` only), the heart-destroyed turn (`0x004DAA10`) and the Treasury's
+  ownership-change hook `0x004F3C40` (slot `+0x0D`). A save-game load was not checked.
+- **When.** The Treasury update `0x004F39A0` sweeps every 16th turn while not full. The Heart's
+  `0x004D9690` returns at once on byte `+0x9A` bit 0, else sweeps when `turn & 0xF == 0` and
+  GoldTally `+0x49` differs from 16 × 3000, the Treasury cap (`0x004D96A4`–`0x004D96D1`): that
+  always passes: with `+0x51` set and that bit clear, it sweeps every 4 s, full or not.
 
 **Seen in a capture (2026-09-29, level2-live1).** The owner dropped a 36,400 pile
 on a Heart rim tile at turn 1020. At capture tick 1023, which is turn 1024, the
@@ -302,7 +302,7 @@ Hand drops onto the floor beside the Heart had merged into that pile first.
 Built as `StoreSweepSystem` (ADR-0285): every turn divisible by 16, each loose pile on
 a keeper's Treasury or Heart tile goes in along the chain from its own tile
 (`GoldStore.FillAlongChainFrom`). Deviates: the pile keeps its object; the "not full"
-test is left out, as a full store takes nothing; `+0x51` is taken as non-zero (Q472).
+test is left out, as a full store takes nothing; `SuckGold` is taken as set.
 
 ## 12. A creature takes loose gold it walks over (read 2026-09-30)
 

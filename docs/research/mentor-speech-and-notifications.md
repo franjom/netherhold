@@ -94,7 +94,9 @@ Type **5** is a variant list, 20 s each: 1 → 1297 *"The King has entered your 
 every player when a hero party spawns King Reginald (`hero-parties-and-effect-generators.md`);
 2 → 1298 *"The King is killing your creatures"*, 3 → 1299 *"The King is dying!"*, 4 → 1300
 *"The King has been slain by your minions"*, their raisers unread. Type 6 is the "your creature
-is fighting" notice (`combat-fight-state.md` §1), its row unread.
+is fighting" notice (`combat-fight-state.md` §1), its row unread. Type **19** (row
+`0x006A0BBE`, flags `0x6032`, 50 s, no variant list) → 506 *"Your creatures are rebelling!"*,
+raised by a defection (`rebellion.md` §3, read 2026-10-04).
 
 ### The encoding, and why it matters
 

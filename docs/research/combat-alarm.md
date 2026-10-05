@@ -79,7 +79,10 @@ at `+0xB1`; **run speed**; the definition's `+0x6E3` sound. Return 1.
    in states 190–192); in the combat group; the gate `0x0045A6D0(0)` refuses; its
    `RoomId` (`+0x3B9`) is not the alarm's room and it is not in state 6 heading for
    a job there (`state+0x68 == 6`, `+0x6C` the room); its health is not above a
-   **quarter** of its level-scaled `Hp`; `state+0x3C == 2` (UNKNOWN, Q391); its
+   **quarter** of its level-scaled `Hp`; it is **angry**, `state+0x3C == 2` (the mood
+   band, creature `+0x28A` of Q269: `Anger_Add` `0x00487030` writes it through the
+   state's anger block at `+0x20`, `0x00478BA8`; the state object is creature `+0x24E`,
+   `0x00520AE2`); its
    state's group tag is 3 (the worker jobs) or 7 (idle, eating, joining, leaving,
    stunned, burning); or it is already en route to 254. Otherwise it is routed to
    the threat's position with `0x00471890(&pos, 254, flags)`, the raiser's rule (`0x0047583F`), given **the
@@ -88,7 +91,10 @@ at `+0xB1`; **run speed**; the definition's `+0x6E3` sound. Return 1.
 3. **Stand down.** The `+0x6E3` sound; `SetState(1)` then `SetState(252)`; a
    worker starts action 79 (`0x004969D0(0x4F, 1, 0, 0, 0)`) — the alarm animation.
    State 252's handler (`0x00458680`) returns 1 only while an action is current, so
-   a non-worker is idle at once and a worker when the action ends (length unread).
+   a non-worker is idle at once and a worker when the action ends. Action 79's record
+   (`0x006E4A8B`, filled in `0x004950C0`) has no handler, animation block 29 and mode 3,
+   so `CreatureAction_Run` `0x00496AA0` ends it when the animation stops, as action 55
+   (`combat-approach-and-victory.md` §7); what a worker's block 29 plays is unread (Q391).
 
 ## 4. Answering: state 6 to state 254, "reporting danger" (`0x004759A0`)
 
@@ -116,7 +122,7 @@ responder's own run speed; §4 with `CreatureActivity.Reporting` covering both t
 walk and the thirty ticks.
 
 **Not built, named:** step 1's eight-tile test and action 79 (state 252 ends at
-once here); Call to Arms; the Turncoat side; `state+0x3C`; the `+0x6E3` sounds;
+once here); Call to Arms; the Turncoat side; the angry skip (`state+0x3C`); the `+0x6E3` sounds;
 Jack, the other NonFighter.
 
 ## 6. The escape byte
@@ -251,5 +257,5 @@ the walk speed; state 6's arrival.
 "nearest room" is over all rooms, not guard rooms only; that `RoomId` is the room
 a creature works in.
 
-**UNKNOWN:** Q391 (`0x004E4D90`'s spot, `state+0x3C`,
-action 79's length).
+**UNKNOWN:** Q391 (what a worker's animation block 29 plays, so action 79's length;
+`0x004E4D90`'s spot is read but not used by ours).

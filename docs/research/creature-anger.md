@@ -151,10 +151,8 @@ saturate at `0xFFFD` — anger does not bank below zero. The percentage sibling
 
 ### Which bucket takes what
 
-Buckets 1–4 are certain: exactly one creature-record field feeds each, and every
-one of the sixty call sites agrees. They are exactly the four the need-anger
-routine charges (`payday.md` §6), so the bucket taxonomy and the routine agree
-without being made to. Buckets 5 and 0 are **Q202**.
+Buckets 1–4 are certain: one creature-record field feeds each, all sixty call sites agree, and they are the four the need-anger routine charges (`payday.md` §6).
+**No consumer separates 5 from 0** (Q202, 2026-10-04). The largest-bucket helper `0x004871B0` feeds the mood icon `0x00596590`, whose icons (`0x00596850`, pointers `0x006BE510`) are 0 and 5 `SJ-Mistreat`, 1 `SJ-Hungry`, 2 `SJ-Rest`, 3 `SJ-Busy`, 4 `SJ-PayDay`, and the computer keeper's remedy `0x004F9710`, which pays gold for 0, 4 and 5.
 
 | Bucket | What reaches it |
 |---|---|
@@ -390,11 +388,11 @@ and `RebelMaxFollowers` are read by nothing, so job 16 holds no roll.
 
 ## Open questions
 
-- **Q202**: buckets 0 and 5's taxonomy, and the whole-routine guard flag.
+- The whole-routine guard flag's UI label (Q202's buckets 0 and 5 are settled above).
 - The chooser's per-creature abort flag is **`InHand`**, and Q204's `IsHorny`
   diversion lands an angry Horned Reaper in state 238, losing 10 health a tick
   (`rebellion.md` §7.1). Step 1 above is corrected accordingly.
 - **Q116 ANSWERED** (`rebellion.md` §6): both accounts were right one level
   apart. The table picks the job; portal-then-Good is inside job 16.
 - Whether awake creatures receive the in-lair *heal* as well as the calm (Q123).
-- Q410-Q413, rebellion's own remainder (`rebellion.md`).
+- Q411, rebellion's own remainder (`rebellion.md`).

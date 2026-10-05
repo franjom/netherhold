@@ -10,7 +10,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: answers Q263, Q358 and Q363, closes the state half of Q40, Q93 and Q207,
+Questions: answers Q129, Q263, Q358 and Q363, closes the state half of Q40, Q93 and Q207,
 opens Q359. Built as ADR-0162, amended 2026-09-23 for the defeat's consequences.
 
 ---
@@ -39,6 +39,18 @@ The codes, from the eleven call sites (`PreCall.py`):
 
 Readers that test `Status == 2` sit in the interface (`0x00403B29`,
 `0x0040BEB9`, `0x0047A9B6`): the won-game sequence.
+
+**Players 1 and 2 stay at 0 in every shipped level (Q519, 2026-10-05).** Seven of the eleven
+call sites skip them: the frame tail `0x004BB2A0` is reached only after `0x004B9EC0` has returned
+for the neutral and hero players (`0x004B9F22`, `0x004B9F3A`), and the alliance loops and
+`0x0050A6A2` test `Number >= 3`. Four filter nothing: the `WIN_GAME`/`LOSE_GAME` arms
+(`0x004C8666`, `0x004C8679`), whose `this` can be player 1 or 2 because their own roots are walked
+before that return (`0x004B9EEC`), and game actions `0x54`/`0x55` (`0x005060E0`, `0x00506100`), which
+take the player from the packet (`+0x10`); the one `0x54` sender read, `0x0040A937`, uses the local
+player. No shipped `WIN_GAME`/`LOSE_GAME` is reachable from a hero, neutral, party or world root: all
+87 hang under keepers (80 under player 3's root, 1 under a player-3 creature, 6 under players 4 and 5
+in King Of The Hill). So the message gate `0x004C4600` (`+0x19A` non-zero refuses) admits players 1
+and 2, as ours does.
 
 ## 2. `WIN_GAME` and `LOSE_GAME` are the player dispatcher's first two arms
 
@@ -88,6 +100,20 @@ health is `object+0x40`; its maximum is variable 174 `DungeonHeartObjectHealth`
 (100000, `[0x006F294B]` — the one id in that dispatcher stored raw rather than
 divided by variable 19); its regeneration is variable 131
 `DungeonHeartHealthRegenerationPerSecond` (25, `[0x006F2902]`).
+
+**The start is 100000, not the OBJECTS record's 34464 (Q129, read 2026-10-05).**
+`Object_Init` (`0x0049B1C0`) seeds every object's `+0x40` from the definition's
+16-bit `Hp` (`def+0x104`, 0x0049B27F), so for an instant the heart holds 34464.
+`DungeonHeart_Build` (`0x004DB700`) then adds `var174 − health` through `0x004B2CE0`
+(0x004DB920–0x004DB936), whose object arm adds flat (§3.1), so the heart holds
+100000. The builder next takes `trunc(health × (100 − pct) / 100)` off through
+`0x004DA200` (signed `IMUL` by `0xAE147AE1`, then `SAR 5` plus the sign bit, at
+0x004DB952); `pct` is the heart room thing's percentage word, passed by the THINGS
+loader at 0x0052156D. With `pct` 0 the builder ruins the room (`0x004E9130(1)` sets
+`room+0x9A` bit 0) and 0x004DB77D skips the heart block: a ruined heart room with no
+heart object. Level 7's heart (1) should start at 1000 — STRONGLY INFERRED, as it
+assumes bit 4 of `player+0x76` is clear at load and the heart is `Damageable`. Ours
+ignores the percentage: Level 7 and Level 8 start at 100000.
 
 **The room frame.** `0x004D9A60` is the Dungeon Heart room's update. Its body at
 `0x004D9EFB` walks the room's object list (`word[room+0xE]`, next at

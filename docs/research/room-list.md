@@ -7,7 +7,7 @@
 | Confidence | **CONFIRMED** — the walk was read out of a live process and each room's own `PlayerId` agrees with it |
 | Implementation | `RoomLog` replays a captured log; `RoomInstance` is our model |
 | Tests | `RoomLogTests` |
-| Open questions | Q289 answered below; Q291 — why the bounds trail the slab count while a room is built |
+| Open questions | none; Q289 and Q291 answered below |
 
 ## The walk
 
@@ -63,13 +63,25 @@ enclose exactly its slab count — which also confirms `Size` is the slab count.
 
 ### But not while the room is being built
 
-**Imps build a room slab by slab**, and for six consecutive samples the lair's
-`Size` ran *ahead* of what its bounds enclose — 3 slabs inside a 2-slab box,
-then 9 inside 6, then 12 inside 9 — which no bounding box can do. The two
-fields are not updated together (Q291). A replay must therefore wait for a room
-to settle, and measure what to place against what it has already placed rather
-than against the previous row; a 15-slab lair then arrives as 1 slab and later
-14, rather than as one slab and six refusals.
+**Imps build a room slab by slab.** For six consecutive samples the lair's
+`Size` ran *ahead* of the box its two ends span: 3 slabs inside a 2-slab box,
+then 9 inside 6, then 12 inside 9. The fields are updated together (binary,
+2026-10-04, Q291). The box is what misleads, because the two ends are only the
+list's first and last tiles. `Room_AddTile` (`0x004EC650`) appends a slab in
+one consecutive run (`0x004EC791`–`0x004EC7A0`): it writes the old tail's next
+link, sets `LastSlab` to the new tile and increments the word `Size`.
+`Room_Absorb` (`0x004ECB70`) moves `LastSlab` and adds `Size` in the same call.
+CONFIRMED. While a placement is being finished, the newest slab is the tail and
+the first slab is the head. Those two tiles can be close together however many
+slabs lie on the chain between them, so the box they span says nothing about
+`Size`. In the settled rooms above, the two ends happen to sit at opposite
+corners. Nothing read here guarantees that for every room: a later merge or
+sale reorders the chain. STRONGLY INFERRED: run 10's rows were not re-derived
+tile by tile. A replay
+therefore still waits for a room to settle and measures what to place against
+what it has already placed. A 15-slab lair then arrives as 1 slab and later
+14, rather than as one slab and six refusals. Counting the tiles by walking
+the chain (tile `+0x04/+0x05`) would remove the wait.
 
 ## Rooms are not imp tasks
 

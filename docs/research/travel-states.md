@@ -179,11 +179,26 @@ makes the transition rule judge the drop to 1 by where it was going.
 **8 and 9 use 6 as a subroutine.** State 9 tail-jumps into `0x00470C80`, so 6's arrival
 resumes it. State 9 is 6 with a timeout.
 
-**Both movers share a near-destination flag.** Inside `0x200` squared (≈0.35 tile) they
-clear `creature+0xF1` bit 0 (6 also sets `+0x3DB = 1`); outside they set it. State 7
-computes this from dwords at `+0xE3`/`+0xE7`, which under its own layout hold the room
-id, `+0xE5` and bytes of the point, so its flag is computed from a meaningless value.
-The arithmetic is CONFIRMED; what the flag drives is UNKNOWN (Q416).
+**Both movers share a near-destination flag.** When the squared distance
+`(dx²>>12) + (dy²>>12)` is below `0x200` (about 0.35 tile) they clear `creature+0xF1`
+bit 0 (6 also sets `+0x3DB = 1`); otherwise they set it. State 7 computes this from
+dwords at `+0xE3`/`+0xE7`, which under its own layout hold the room id, `+0xE5` and
+bytes of the point, so its flag is computed from a meaningless value. The arithmetic
+is CONFIRMED. `+0xF1` is the flag byte of the animation object at creature `+0x44`, and
+bit 0 is its loop bit: `0x004969D0` clears it for a count below two, and the action
+runner `0x00496AA0` clears it on the last counted cycle. So near the destination the
+walk cycle finishes instead of looping (STRONGLY INFERRED, 2026-10-04).
+
+**The other movement fields** (InsGrep over every disassembled instruction, 2026-10-04).
+`+0x3DB` is DK2's `MovementEnd` (`creature-object.md`): set by 6 (`0x00470DB6`), tested and
+cleared by both helpers (`0x004718CD`/`0x004718E4`, `0x00471B2E`/`0x00471B45`), which then
+also clear `+0xF2` (the animation object's `+0xAE`, meaning unread). `+0x47C` is
+`MoveFromWorkCounter`, a word: zeroed by both helpers and the constructor, incremented every
+tick by the creature update (`0x0048A487`) and read only by the debug dumper (`0x0049110A`),
+so it drives nothing (STRONGLY INFERRED from the negative scan). **The hold at `+20` == 4**
+(`0x00496DE0`) is animation block 4, a hit-recoil block (`Recoil(hff)` or `Recoil(hfb)` by
+creature), carried by actions 19 and 21: a walk pauses during a hit recoil (STRONGLY INFERRED
+from the block names). Type 46's drain and state 7's flag input are unread further (Q416).
 
 **Who may interrupt a walk** (dispatcher `0x00476FC0`, needs routine `0x00477C20`):
 every category decision looks **through** the walk, and every group decision does
@@ -195,7 +210,7 @@ not.
 - The needs routine returns early for group 7, again the travel state's own group, so
   it runs mid-walk. Its hunger branch then tests the category mask and `!= 8` on the
   `+0xDF`-resolved category, so a creature walking to a hatchery is **not** re-asked.
-  The sleep and pay branches were not read here.
+  The sleep and pay branches use the same resolved category (`creature-needs-routine.md` §2).
 
 ## 6. State 88, "waiting" — CONFIRMED (body); entry UNKNOWN
 
@@ -206,7 +221,7 @@ not.
 It is **not a travel state**: no route, no body, no stop. It is a **timed park with a
 resume slot**. Category 2 buys it three things: the entry save of `+0x40`, invisibility
 to the category hooks, and being judged by its destination in the transition rule.
-Action 43 is also what job 16 starts on a creature that cannot reach a portal (Q413).
+Action 43, one `Idle1` cycle, is also what job 16 starts on a creature that cannot reach a portal (`rebellion.md` §2).
 
 ## 7. Nothing enters states 9 or 88 — STRONGLY INFERRED (Q415)
 

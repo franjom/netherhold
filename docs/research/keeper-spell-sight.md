@@ -50,8 +50,13 @@ unexplored tile in both terrain-rendering paths
 [0043C310](functions/0043C310.md) and [0043CC30](functions/0043CC30.md).
 [0043B220](functions/0043B220.md) retains the region through equality and clears
 the start/end stamps only when unsigned bridge-clock now is greater than end.
-Active updates request redraw6, including expiry. The shipped interval is64
-bridge-clock units; its conversion to simulation ticks/seconds remains Q534.
+Active updates request redraw6, including expiry. **The bridge clock is the game
+turn (Q534, 2026-10-05; CONFIRMED).** The presentation is the bridge's sink:
+[00527040](functions/00527040.md) stores the container at sink+4, so `bridge[1]+4` is
+`[container+4]`, the word [00517490](functions/00517490.md) returns as the turn (set to
+1 at `0x00526254`). The 64 units are 64 turns, and the region shows while turn ≤
+start+64. At four turns a second that is 16 game seconds (the loop rate is
+`trigger-state.md` §6's, STRONGLY INFERRED).
 
 ## 3. Discovery and explored state
 

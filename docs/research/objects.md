@@ -123,15 +123,9 @@ project something.
 
 ## 5. Two things recorded rather than explained
 
-**The Dungeon Heart's health reads 34464** (Q129), and 34464 is exactly
-100000 − 65536: the signature of a five-digit number typed into a 16-bit field.
-The same arithmetic appears in `KeeperSpells`, where Summon Horny's 100000 comes
-back as 34464 read as a u16 — but **there the truncation was ours** and reading
-32 bits fixed it. Here it is not: the four bytes at 0x348 read `0x000086A0`
-either way, so the *file* carries the truncated value. A shipped data quirk, not
-a parser bug, and ADR-0023 already deliberately disbelieves one shipped number —
-but that correction was proved from behaviour first, and nobody has done that
-here.
+**The Dungeon Heart's `Hp` reads 34464** (Q129), 100000 − 65536, and the file
+carries it that way (the bytes at 0x348 are `0x000086A0`). The game does not use it:
+the heart builder replaces it with variable 174's 100000 (`win-and-defeat.md` §3).
 
 **`TypeFood` falls on the Torture Pendulum** (65) as well as the Chicken (Q128).
 Either a data-entry accident or a broader meaning for the bit.
