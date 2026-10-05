@@ -162,7 +162,7 @@ own-spot fallback. Read while building:
 - **The ring scan** starts at rand(8r) and runs to the end, not wrapping.
 - **The fallback** runs only when the last tile tried was (0, 0).
 - **Room branch order:** after the last eligible room, every later room of any type is tried.
-- **The picker's rolls** come from a second random stream (`+0x568`).
+- **The picker's rolls** come from the simulation stream, world `+0x15A0` (the decompiler's `+0x568` is a dword index on an `int*`; corrected 2026-10-05).
 - **The room point** is `0x004E8430`: a random one of the room's tiles passing `0x00454110` and `0x00454230`.
 - **`0x00453600`** rejects a tile holding an object flagged Obstacle (bit 14).
 
