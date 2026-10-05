@@ -73,7 +73,9 @@ public static class CreatureAngerRules
     }
 
     /// <summary>The wrapper's tail: with the band moved off <paramref name="before"/>, band 1
-    /// posts 17 and band 2 posts 18. The caller has already tested the amount.</summary>
+    /// posts 17 and band 2 posts 18. The caller has already tested the amount. Not built:
+    /// the creature trigger event 11 DK2 fires after 18 (<c>0x00478C17</c>); no anger site holds
+    /// the trigger executor.</summary>
     private static void PostMoodChange(
         WorldState world, CreatureDef creature, CreatureState state, CreatureMood before, AngerComplaint complaint)
     {
