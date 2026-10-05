@@ -61,6 +61,22 @@ public sealed record PickUpObjectCommand(byte PlayerId, int ObjectId)
     }
 }
 
+/// <summary>The computer keeper's pay remedy (<c>0x004F9710</c>, buckets 0/4/5): takes the creature's
+/// level-scaled wage from the Treasuries and Heart as <see cref="GoldStore.Spend"/> does, which may
+/// give less, and puts it in the hand as a new pile of gold, ready for a <see cref="DropCommand"/>
+/// naming the creature. Refused without a Treasury, for a creature not the keeper's, or when
+/// nothing is taken. With a full hand the pile is left on tile 0, where DK2's factory makes it
+/// (<see cref="Systems.HandSystem"/>). No human gesture does this.</summary>
+public sealed record MintWageCommand(byte PlayerId, int CreatureId)
+    : PlayerCommand(PlayerId)
+{
+    public override void HashInto(ref Hash64 hash)
+    {
+        base.HashInto(ref hash);
+        hash.Add(CreatureId);
+    }
+}
+
 /// <summary>Slaps a creature: it hurts (<c>SlapDamage</c>), it angers (<c>AngerSlap</c>, +3000 for
 /// a Goblin and −5000 for Jack, whose whole record runs backwards), and it makes a worker work
 /// faster for 25 s (<see cref="EfficiencyRules.SlapBonusSeconds"/>). There is no cooldown — every

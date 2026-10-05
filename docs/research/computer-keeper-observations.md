@@ -98,3 +98,42 @@ creatures 13 times into its two Training Rooms' interior cells (22,16) and (32,1
 from input tick 2. The original save cannot confirm or refute this: its entity
 sections are undecoded (Q182), so where Asmodeus's creatures stood at tick 2408
 is UNKNOWN (Q509).
+
+## Same-map comparison protocol (ADR-0353; Q497, Q509)
+
+Nothing in this file is yet a command-by-command comparison. This is the run that would
+make one; it is written for the owner, who runs DK2, and for whoever compares.
+
+**Map and keeper.** Stock Level 17, Harkan (player 4), with the shipped PLAYERS record
+and availability: the modern counterpart is `scenarios/keepers/level17_harkan_unassisted.yaml`
+extended to 2,400 ticks (ten minutes at four turns a second, the Level 10 save's length).
+Level 17 is chosen because its Prison is in state 3, ours lifts its Black Knights into
+Training from the first ticks (Q509), and its portal feeds the room and mood messages. Q497's attack wants a
+second run on Level 11A (Drako, player 4) under the same protocol.
+
+**In DK2.** v1.70 (`May 12 2000`), started from the command line with
+`-level Level17 -PSAVE m12l17`, so the packet recorder (`navigation-captures.md`) writes
+`PacketRecord\m12l17.sav`. Then remove the input: no tagging, building, hand, spells or
+possession for ten minutes; the camera is free. Take world logs (`0x0050EA70`, the Cheat
+Engine recipe in `debug-dumpers.md`) about every two and a half minutes and one at the end;
+each records its `GameTick`, every creature's position, state and `Anger:` block, every
+room, and the `PlayerMessageQueue:` with each record's type, recipient, Data1/Data2 and
+handled bit (`computer-keeper-messages.md` §1; the pool is world `+0x2E54`). Save at the end
+for the tile grid (`Dk2SaveReader`). Note, with the clock, any room appearing and any
+creature the keeper lifts.
+
+**What to compare,** per minute of game time, with differences reported, not tuned away:
+
+| Quantity | DK2 source | Ours |
+|---|---|---|
+| keeper commands by kind: tag, room tile (type, tile), Create Imp, slap, pick-up/drop (creature, tile), cast | the packet record, if player 4's actions travel in it; else inferred from consecutive world logs | `keeper-commands.tsv` |
+| rooms by type, tile count and first tile; tiles dug; tiles owned | world logs, the final save | `world.txt`, `events.log` |
+| creatures by type and level; Training and Lair occupants | world logs | `events.log` |
+| player 4's messages: type, Data, handled, when first seen | `PlayerMessageQueue:` | room messages in `events.log`; the others are not logged yet |
+
+The first record settles the command column: with the human idle, any command it holds
+for player 4 is the keeper's; none means the keeper's actions bypass the packet stream and
+the world logs are the only source. The seeds differ, so compare when and where, not
+equality: rooms at the same spots, tiles dug at nearly the same time, the same rooms built
+(fidelity by outcomes). Two of ours to check first: Harkan's Training drops (Q509) and,
+where a creature turns unhappy, whether he pays it or drops it in its Lair (ADR-0353).

@@ -13,9 +13,9 @@ namespace DK2.AI;
 /// position reader (<c>0x004F9B90</c>) and the respond-to-attack event (<c>0x004FE0B0</c>),
 /// each emitting commands the simulation validates on the next tick.</summary>
 /// <remarks>
-/// <para>Built: message kinds 1 and 6, the imprisonment reroll, threat assessment, the event
-/// reservation, both event arms and the whole-tick allowance. Kinds 12, 34 and 47 have no
-/// producer here, and the room reader waits for 34.</para>
+/// <para>Built: message kinds 1, 6, 12 and 47 through the position reader and 34 through the room
+/// reader, the imprisonment reroll, threat assessment, the event reservation, both event arms and
+/// the whole-tick allowance.</para>
 /// <para>Deviates: picks and drops are commands executed one tick later, so an attempt's outcome
 /// is predicted from the captured permissions, and only a creature predicted to move leaves the
 /// tick's candidates, as DK2's does by its hand state. Not represented: the spiral's furniture-slot
@@ -47,11 +47,15 @@ public sealed class KeeperThreatResponder
     private readonly Dictionary<int, bool> _marks = new();
     private readonly uint _turn;
     private readonly KeeperRoomRequests? _rooms;
+    private readonly KeeperMoodRemedies? _mood;
 
     /// <param name="rooms">The room messages' arms; without them 41 and 42 are only acknowledged.</param>
+    /// <param name="mood">The mood arms; without them 17 and 18 are only acknowledged.</param>
     public KeeperThreatResponder(KeeperView view, KeeperAIState state, KeeperAIParameters parameters,
-        SimRandom rng, List<PlayerCommand> commands, KeeperRoomRequests? rooms = null)
+        SimRandom rng, List<PlayerCommand> commands, KeeperRoomRequests? rooms = null,
+        KeeperMoodRemedies? mood = null)
     {
+        _mood = mood;
         _view = view;
         _state = state;
         _p = parameters;
@@ -67,8 +71,9 @@ public sealed class KeeperThreatResponder
     /// <summary>Walks the keeper's retained messages in queue order, skipping handled ones. A
     /// combat message is evaluated when a slot is free and acknowledged when the reader
     /// accepts it, cancelled reservations included; the fight flag is set either way. Room
-    /// messages 41 and 42 go to <see cref="KeeperRoomRequests"/> and are acknowledged when it
-    /// handles them. Every other kind is marked handled, as DK2's default branch does.</summary>
+    /// messages 32, 35, 41 and 42 go to <see cref="KeeperRoomRequests"/> and mood messages 17 and 18 to
+    /// <see cref="KeeperMoodRemedies"/>, each acknowledged when its arm handles it. Every other
+    /// kind is marked handled, as DK2's default branch does.</summary>
     public void HandleMessages()
     {
         foreach (PlayerMessage message in _view.Messages)
@@ -82,8 +87,27 @@ public sealed class KeeperThreatResponder
                 case PlayerMessageKind.RoomFull when _rooms is not null:
                     if (_rooms.RoomFull(message)) Acknowledge(message);
                     break;
+                case PlayerMessageKind.RoomCaptured when _rooms is not null:
+                    if (_rooms.RoomCaptured(message)) Acknowledge(message);
+                    break;
+                case PlayerMessageKind.RoomLost when _rooms is not null:
+                    if (_rooms.RoomLost(message)) Acknowledge(message);
+                    break;
+                case PlayerMessageKind.CreatureUnhappy when _mood is not null:
+                    if (_mood.Unhappy(message)) Acknowledge(message);
+                    break;
+                case PlayerMessageKind.CreatureAngry when _mood is not null:
+                    if (_mood.Angry(message)) Acknowledge(message);
+                    break;
+                case PlayerMessageKind.RoomAttacked:
+                    if (_state.Responses.TryReceive(() => EvaluateRoom(message.Data2)))
+                        _commands.Add(new AcknowledgePlayerMessageCommand(_view.PlayerId, message.Id));
+                    _state.FightGoingOn = true;
+                    break;
                 case PlayerMessageKind.HeartAttacked:
                 case PlayerMessageKind.CombatStarted:
+                case PlayerMessageKind.WallBreached:
+                case PlayerMessageKind.AlarmRaised:
                     // Flags bit 3 (respond to attack) is always on: both loaders write 0xFFFF.
                     var target = new TilePos(message.Data1, message.Data2);
                     if (_state.Responses.TryReceive(() => EvaluatePosition(target)))
@@ -116,6 +140,26 @@ public sealed class KeeperThreatResponder
         TilePos? site = ThreatEvaluator.DropSite(target, false, _view.IsThreatDropCandidate);
         return ThreatEvaluator.Response(target, site, threat.Enemy, threat.Allied,
             _p.BAThreatSuperiority, _p.BARemoveIfCantReinforce, false);
+    }
+
+    /// <summary>The room reader <c>0x004FA000</c>: the imprisonment reroll with no Prison test, then
+    /// the room variant's strength, drop site and residual at the room's position (<c>+0x27</c>).
+    /// DK2 reads the tagged room without a test; ours treats one no longer standing as cancelled.</summary>
+    public KeeperThreatResponse? EvaluateRoom(int roomTag)
+    {
+        RerollImprisonment();
+        KeeperRoomView? room = _view.AllRooms.FirstOrDefault(r => _view.IndexOf(_view.FirstSlabOf(r)) == roomTag);
+        if (room is null) return null;
+        TilePos target = _view.PositionOf(room);
+        KeeperThreatAssessment threat = ThreatEvaluator.Assess(_view, target, true, TrapsStartFights);
+        if (threat.AttackingPlayer is byte attacker)
+        {
+            _state.AttackingPlayerId = attacker;
+            _state.HaveBeenAttacked = true;
+        }
+        TilePos? site = ThreatEvaluator.DropSite(target, true, _view.IsThreatDropCandidate);
+        return ThreatEvaluator.Response(target, site, threat.Enemy, threat.Allied,
+            _p.BAThreatSuperiority, _p.BARemoveIfCantReinforce, true);
     }
 
     /// <summary>Every enemy player's creatures in list order: <c>random(100) &lt;

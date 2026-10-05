@@ -132,29 +132,48 @@ type-41/room-14 suppression solely from the direct writer.
 
 ## 2. Producers and payloads
 
-These are independently traced producers, not a claim that every call site of
-the queue has been classified. Data2 is a tag where stated, not a stable array
-index or a creature id inferred from the message number.
+### The census (2026-10-04)
 
-| Type | Producer | Recipient and payload | Result |
-|---|---|---|---|
-| 1 | `0x004DA200` | Heart owner; heart tile x/y | Negative heart-health delta while not invulnerable; see `win-and-defeat.md` §3.1 |
-| 6 | `0x0045EB20` | Attacking creature's owner; its tile x/y | State-199 update with entry stamp equal to current turn, excluding ally-spell mode 3 |
-| 12 | `0x00498BB0` | Hostile target tile's owner; target x/y | Terrain work calls `0x004508D0`, tests return zero, then emits when owner differs; exact helper-result semantics remain UNKNOWN |
-| 17, 18 | `0x00478B80`, `0x00478C30` | Creature owner; caller's grievance code / creature tag | Positive anger input changes mood to unhappy/angry; never-angry creatures are excluded |
-| 32, 35 | `0x004E5650` | New/old room owner; room type / room tag | Room ownership transfer; type 33 replaces 32 when the old owner is neutral |
-| 32, 35 | `0x0044FC40` | New/old tile owner; 287 / zero | Mana-vault ownership transfer uses the same message family |
-| 34 | `0x00466080` | Hostile room's owner; room type / room tag | Worker enters state 18 against the room; the keeper resolves the room's position |
-| 41, 42, 43 | `0x00464400` | Carrier's owner; Treasury 1 / zero | See [the gold carrier](#the-gold-carrier-and-gold-paid-in) |
-| 41, 42 | `0x004BA420` | The paying player; Treasury 1 / zero | Gold paid in at a tile that no store takes; same section |
-| 42 | `0x004E5A70` | Room owner; room type / zero | Claim failure with no other room of the type having a place (`0x004C6AE0`); also a Prison past `+0x4B` after a successful claim (`0x004E5C72`, Data1 11). No availability, pending-work or timer gate |
-| 47 | `0x004AE120` | Shot owner; shot tile x/y | Shot process 13; shipped `Shots.kwd` record 31 is Turncoat, process flags `0x4` (hit event) |
+`0x004C4600` takes five stack arguments (`RET 0x14`): type, recipient, Data1, Data2
+and an allocate flag. A rel32 scan of both executable blocks (`.text` and `cseg`)
+finds **151 call sites** and no absolute reference; every known producer is among
+them (the positive control). Each site pushes its type as an immediate; shared call
+tails were read for every function holding a type the walk reads. The only
+wrappers that pass a type on are the anger pair below. Data2 is a thing tag where
+stated, not a stable index. Every type the keeper's walk (`0x004FA400`, §3) reads:
 
-For 47, `0x004AD1B0` installs the callback at `0x0069E91C` and its process
-number at `0x0069E92C`. The shipped record's name/id/process/flags are
-**CONFIRMED**; calling this a general damage notification would be incorrect.
-See `shots.md` for process-event dispatch. The full Turncoat effect is outside
-this message audit.
+| Type | Producer | Recipient; Data1 / Data2 | Gate | Ours |
+|---|---|---|---|---|
+| 1 | `0x004DA200` | Heart owner; heart x / y | Negative heart-health delta, not invulnerable (`win-and-defeat.md` §3.1) | built |
+| 6 | `0x0045EB20` | Attacker's owner; its x / y | State 199 entered this turn, attack mode not 3 | built |
+| 12 | `0x00452F60` (`0x0045313E`) | Tile owner; x / y | Work brings to zero a tile whose terrain is Solid and Ownable and whose owner is not the worker's player; then player events `0x38`/`0x39` | built (`TileWorkSystem.PostThreat`); events `0x38`/`0x39` not |
+| 12 | `0x00498BB0` | Tile owner; x / y | Creature action 9, the breach check (`trigger-walkers.md`) | action 9 unbuilt |
+| 17, 18 | `0x00478B80`, 60 sites | Creature owner (`+0x28`); selector / creature tag | Not never-angry; the add changed the band and the amount is positive; band 1 posts 17, band 2 posts 18 and fires trigger event 11 | posts §4; event 11 not fired |
+| 17, 18 | `0x00478C30`, one site (`0x004D6A68`) | as above | The percentage adder `0x004870E0`, same tests | site unbuilt |
+| 32 or 33, 35 | `0x004E5650` | New owner 32 (33 when the old owner is neutral), old owner 35; room type / room tag | Whole-room transfer | §4 |
+| 32, 35 | `0x0044FC40` | New / old owner; 287 / 0 | The tile set to terrain 31 or 32 (it makes object 101 or 108 there) changes owner; skipped under world `+0x7239` bit 6 | unbuilt |
+| 34 | `0x00466080` | Room owner; room type / room tag | A worker takes state 18 against an enemy room (job 11, Q523) | job 11 unbuilt |
+| 34 | `0x00497DF0` (`0x00497F29`) | Tile owner; room type / room tag | A Good creature's action-11 blow that leaves the tile a room (`room-health.md` §4) | built (`TileWorkSystem.PostThreat`) |
+| 41, 42, 43 | rows below | Room's owner; room type / 0 | Per producer | §4 |
+| 47 | `0x004AE120` | Shot owner; x / y | Shot process 12, the Alarm trap's shot (`shots.md`; entries of 17 bytes from `0x0069E84F`) | built |
+
+The 41 and 42 producers: the carrier `0x00464400`, `0x004BA420` (below), the Lair,
+Hatchery, Combat Pit, captive Pit, Graveyard, Library, Casino, Temple, Torture,
+Training and Workshop finders (below), the rescue selector `0x0046D810`, the claim
+failure `0x004E5A70` (Data1 room type; also a Prison past `+0x4B` after a
+successful claim, `0x004E5C72`, Data1 11; no availability, pending-work or timer
+gate), a Lair occupant with no bed slot (`0x0046F4F0`: 42 Lair, then state 1) and the
+Graveyard count `0x004DDCA0` (42 Graveyard when its places do not exceed the
+owner's flagged creatures).
+
+Rows 32, 33 and 35 are `0xA000`/`0xA000`/`0xE000` with subtables `0x006A0060`,
+`0x006A00F8` and `0x006A0220`: room types 1–4, 6–17, 22 and 287 at 20 seconds. Row
+34 (`0x006A0190`) lists the same types without 287 at 30 seconds. Each ends in a
+terminator with a nonzero string, so an unlisted type, a Hero Portal (25) among them,
+is kept until the next sweep. 17 and 18 are `0x2032` (fifty seconds, no subtype, no
+duplicates): one unexpired 17 for a player suppresses another creature's.
+Their string is computed from the creature (`-9999 - (def word + 1 + Data1)`),
+so they are retained. Every other type reaches the walk's default arm.
 
 For 17/18, Data1 is the anger wrapper's third argument, not its bucket index.
 The keeper recomputes the current largest bucket when choosing a remedy;
@@ -183,9 +202,7 @@ count of 255 is unreachable. Such calls come from the room-tile sale
 (`0x0051415F`) and `0x00499E50`/`0x00499F86` (at the Heart); only the sale is
 classified here.
 
-Room availability and room need are separate conditions. Additional
-independently checked branches follow; this is not yet an exhaustive
-classification of computed message types.
+Room availability and room need are separate conditions. The finders' branches:
 
 | Producer | Room / messages | Discriminating gate |
 |---|---|---|
@@ -218,15 +235,27 @@ wait strictly more than four seconds after `room+0x9F`; `room+0xA3 == 0`
 selects 44 instead. This quirk needs a test with differing Lair/Library availability.
 
 The Casino (`0x004D75F0`), Temple (`0x004F1A20`), Torture (`0x004F2B80`),
-Training (`0x004F3560`) and Workshop (`0x004F6200`) finders also gate messages
-on availability 3 and pending build/sale. After the no-room 41 branch, the
-message precedence is unreachable 43, capacity 42, room-tagged 44. Capacity
-failures wait strictly more than four seconds after `room+0x9F`; a zero
-`room+0xA3` redirects that failure to 44. Workshop's existing-room failures
-also require nonzero player byte `+0xA1C`. Torture substitutes type 99 for 41
-when creature byte `+0x36F` is 4 and its owner equals the searched player.
-The captive Pit finder `0x004D8510` only posts 42/43/44 when a Pit already exists;
-it does not request a missing Pit. The shared capacity predicate is in
+Training (`0x004F3560`) and Workshop (`0x004F6200`) finders (read 2026-10-04)
+return a room the `0x80` route reaches with a place before any message. Otherwise,
+at availability 3 and behind the pending build/sale tests: no room 41; else a room
+with a place that route option 2 cannot reach 43; else a reached room without a
+place, more than four seconds past `room+0x9F`, 42 when its `+0xA3` is set and 44
+naming the last such room when not. `+0xA3` is written by each type's
+after-tile-change pass: a Training Dummy (14) or Target (29) attached
+(`0x004F2EA0`), a Torture Wheel or Electric Chair (`0x004F1F10`), an Anvil, Steel
+Bucket or Work Bench (`0x004F5530`), any interior tile for a Library, Combat Pit or
+(inferred) Casino; a Temple's is only zeroed, so a full Temple posts 44, never 42.
+It is stored when the pass runs, at a rebuild; ours reads the furniture live, which agrees:
+the player cannot place it, it follows the room's size (owner, 2026-10-05).
+Torture's place is two creatures' units (one unit free is silent) and its missing
+room is 99 when creature type `+0x36F` is 4, the Mistress, and its owner `+0x28` is
+the searching player (ours always searches for the owner). A Casino with a lever
+(`+0x53`) is a candidate without a place, and its 43 wants both; with player
+`+0xF4A` set it reads only rooms with `+0x41` (both unread). Workshop's 43/42/44
+also need player byte `+0xA1C`. Row 44 is `0xA000` with subtable `0x006A08E0`:
+types 1, 2 and 4 at 120 s, 6, 7 and 9–16 at 240 s, a terminator with a string.
+`0x004D8510` is the spectator finder (`combat-pit-spectators.md`): with a Pit and a
+fight on it posts 43/42/44, never 41. The shared capacity predicate is in
 `state-category-hooks.md` §3.5; Library storage and Workshop crate gates are
 in `library-and-research.md` §7 and `workshop-crates.md` §3.
 
@@ -281,6 +310,25 @@ writer found, and the handler always returns 1. The
 second availability call in each arm repeats the first, so its call to the room
 chooser `0x004F93B0` cannot run. The arms spend no allowance.
 
+The other arms (read 2026-10-04). 1, 6, 12 and 47 run the position reader
+`0x004F9B90` when `Flags` bit 3 is set, 34 the room reader `0x004FA000`; a
+nonzero return marks the message handled, and keeper `+0` bit 3
+(`FightGoingOn`) is set even when the flag is clear. 17 calls make-happy
+(`0x004F9710`) when `UnhappyCreaturesHappy` (`+0x4B6` bit 15) is set, else is
+marked handled. 18 calls dispose (`0x004F9520`, Data2) when
+`AngryCreaturesDisposeOf` (bit 17) is set, else make-happy when
+`AngryCreaturesHappy` (bit 16), else is marked handled; either remedy's nonzero
+return marks it. 32 acts only when `AutomaticallyBuildBiggerLairWhenPortalTakenOver`
+(`+0x4B2` bit 1) is set and Data1 is 3 or 25; otherwise it is **left unhandled**,
+not marked. Then `BuildNewRoomWhenMoreSpaceRequired` 2 marks it handled, and the
+request is a Lair, with bit 7 (expand) when that parameter is 0: Lair availability
+other than 3 marks it handled, a request already set leaves it unhandled, and
+otherwise it becomes `NextRoomToBuild` unless `CurrentRoomToBuild` names the same
+type, handled. 32 does not clear the Portal placeholder. 35 clears it as 41 does,
+then marks the message handled when the chooser `0x004F93B0` returns nonzero.
+0, 13, 22 and 26 are left unhandled; every other type, 33 among them, is marked.
+The remedies are in `computer-keeper-management.md` §13.
+
 The keeper skips handled records but can retry unsuccessful reactions while
 their messages remain retained (`0x004FA400`). Consequently a read-and-drain
 event list would change both retry behavior and duplicate suppression. A typed
@@ -325,7 +373,19 @@ the Lair finder and the Hatchery finder (ADR-0335); `room+0x9F` is
 `TileState.RoomSizeChangedTick` and the Hatchery's `+0x51` is
 `TileState.ChickensGenerated`. The pending
 build/sale gate has nothing to test, since a wave is laid in its command's tick.
-`KeeperRoomRequests` runs both arms. Unbuilt producers: the other finders in
-section 2, the claim failure, the rescue selector and `0x004BA420`'s other
-callers. Mood messages and the remaining suppression fields are unimplemented;
-unsupported kinds fail explicitly.
+`KeeperRoomRequests` runs both arms. Unsupported kinds fail explicitly.
+
+Coverage of the walk's types (2026-10-04, ADR-0353; "ours" means the producing
+event exists in our simulation):
+
+| Type | Producers built | Consumer | Consumer built | What blocks the rest |
+|---|---|---|---|---|
+| 1, 6 | all | position reader | yes (ADR-0278) | — |
+| 12 | `0x00452F60`'s post | position reader | yes (`KeeperThreatResponder`) | action 9 (not ours) |
+| 17, 18 | every anger path of ours (`CreatureAngerRules`, `AngerComplaint`) | make happy, dispose | yes (`KeeperMoodRemedies`) | — (`0x004D6A40`, the percentage site, is not ours) |
+| 32/33, 35 | the room transfer and the defeat handover (`RoomHealthRules.PostTransfer`) | Lair request, chooser | yes (`KeeperRoomRequests`) | — (`0x0044FC40`'s terrains 31/32 are not ours) |
+| 34 | the hero blow | room reader `0x004FA000` | yes (`EvaluateRoom`) | job 11 (Q523, not ours) |
+| 41, 42 | carrier, sale refund, Lair, Hatchery, the claim's 42, the Training, Temple, Torture and Casino finders, Library and Workshop at 41 (`RoomNeedRules.NoJobRoomFor`) | room request | yes (ADR-0327) | Q542 rescue, Q543 finder gates, Q544 Graveyard; Lair-bed state 79 has no entry; door and trap sales, action 0x77 and `0x00499E50` are not ours |
+| 47 | Alarm | position reader | yes (`KeeperThreatResponder`) | — |
+
+The suppression fields in section 1 remain unimplemented.

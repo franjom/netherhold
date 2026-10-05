@@ -255,6 +255,54 @@ public static class GoldStore
     }
 
 
+    /// <summary>The spend of <c>Player_ChangeGold</c> (<c>0x004BA420</c>) with flag 0 and no tile:
+    /// passes over the player's Treasuries and unruined Heart, each giving min(remaining over
+    /// Treasuries + 1, its gold), or up to the whole remainder when that share is 0, from its
+    /// tiles in slab-chain order (<c>0x004F4510</c>), until a pass takes nothing. Returns what it
+    /// took, which may be less than asked (computer-keeper-management.md §13).</summary>
+    /// <remarks>Deviates: rooms in <see cref="RoomIndex"/> order, not the player's room list
+    /// (ADR-0327).</remarks>
+    public static int Spend(WorldState world, GameDatabase database, byte playerId, int amount)
+    {
+        var stores = new List<RoomInstance>();
+        int treasuries = 0;
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
+            if (room.OwnerPlayerId != playerId) continue;
+            if (room.Definition.TypeId == RoomTypeId.Treasury) treasuries++;
+            else if (room.Definition.TypeId != RoomTypeId.DungeonHeart || world.Player(playerId).HeartRuined) continue;
+            stores.Add(room);
+        }
+
+        int remaining = amount, taken = 0, divisor = treasuries + 1;
+        while (remaining > 0)
+        {
+            int share = remaining / divisor, pass = 0;
+            foreach (RoomInstance room in stores)
+            {
+                int held = 0;
+                foreach (int tile in room.TileIndices) held += world.TileAtIndex(tile).GoldHeld;
+                int take = Math.Min(share == 0 ? remaining : share, held);
+                TakeAlongChain(world, room, take);
+                remaining -= take; taken += take; pass += take;
+            }
+            if (pass == 0) break;
+        }
+        return taken;
+    }
+
+    private static void TakeAlongChain(WorldState world, RoomInstance room, int amount)
+    {
+        foreach (int tile in SlabChain.Order(world, room))
+        {
+            if (amount <= 0) return;
+            ref TileState state = ref world.TileAtIndex(tile);
+            int take = Math.Min(state.GoldHeld, amount);
+            state.GoldHeld -= take;
+            amount -= take;
+        }
+    }
+
     /// <summary>
     /// Takes exactly <paramref name="amount"/> from this player's tiles, or
     /// takes nothing and returns false.

@@ -37,6 +37,7 @@ internal static class KeeperWorld
     public const byte StoneBridgeFloor = 26;
     public const byte TrainingFloor = 23;
     public const byte CombatPitFloor = 24;
+    public const byte TempleFloor = 27;
 
     /// <summary>Shot 5, Create Object, and a Lightning shot for Thunderbolt; the flag is object 10.</summary>
     public const byte CreateObjectShotId = 5;
@@ -56,6 +57,9 @@ internal static class KeeperWorld
     /// <summary>A creature that grows hungry and eats one chicken, so a missing or empty Hatchery is
     /// something its need finds (messages 41 to 43); the coop, egg and chicken are the shipped records.</summary>
     public const byte EaterCreature = 4;
+
+    /// <summary>A creature with a wage and a happy table of Research then Train, for the mood remedies.</summary>
+    public const byte MoodyCreature = 5;
 
     public const byte Keeper = 3;
     public static readonly TilePos HeartAt = new(15, 15);
@@ -79,6 +83,7 @@ internal static class KeeperWorld
             Terrain(LibraryFloor, "Library", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(TrainingFloor, "Training Room", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(CombatPitFloor, "Combat Pit", TerrainFlags.Ownable | TerrainFlags.Room, 100),
+            Terrain(TempleFloor, "Temple", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(Lava, "Lava", TerrainFlags.Lava, 0),
             // Water, Lava and both bridges carry their shipped placement-relevant flags: the hazards
             // are Impenetrable and not Solid, the bridges Ownable rooms (kwd terrainflags).
@@ -99,6 +104,7 @@ internal static class KeeperWorld
             // The shipped flags, 0x13AC and 0x12AC: special tiles, so the dummies stand on the floor slots.
             Room(RoomTypeId.TrainingRoom, "Training Room", 0, TrainingFloor, buildable: false, (RoomFlags)0x13ACu, [TrainingDummyObjectId, 0, 0, 0]),
             Room(RoomTypeId.CombatPit, "Combat Pit", 0, CombatPitFloor, buildable: false, (RoomFlags)0x12ACu),
+            Room(RoomTypeId.Temple, "Temple", 0, TempleFloor, buildable: false),
             // Both bridges as shipped: 0x1083 on each, so either could span water or lava, 200 and 500 a tile.
             Room(RoomTypeId.WoodenBridge, "Wooden Bridge", 200, WoodenBridgeFloor, buildable: true, BridgeFlags),
             Room(RoomTypeId.StoneBridge, "Stone Bridge", 500, StoneBridgeFloor, buildable: true, BridgeFlags),
@@ -113,6 +119,12 @@ internal static class KeeperWorld
                 JobClass.Fighter, FightStyle.Blocker) with { LairObjectId = BedObjectId, TimeSleep = 9 },
             Creature("Eater", EaterCreature, CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp, hp: 500, threat: 2,
                 JobClass.Fighter, FightStyle.Blocker) with { HungerFill = 1, HpFromChicken = 100 },
+            Creature("Moody", MoodyCreature, CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp, hp: 500, threat: 2,
+                JobClass.Fighter, FightStyle.Blocker) with
+            {
+                Pay = 100, HungerFill = 1,
+                HappyJobs = [new(JobType.Research, 0, 0, 50), new(JobType.Train, 0, 0, 50)],
+            },
         ],
         variables: Variables(handCapacity),
         keeperSpells: KeeperSpells(),

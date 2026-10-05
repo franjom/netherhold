@@ -133,7 +133,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             if (anger != 0)
             {
                 CreatureAngerRules.Apply(
-                    world, definition, creature, AngerBucket.Hunger, anger);
+                    world, definition, creature, AngerBucket.Hunger, anger, AngerComplaint.NoFood);
                 context.Emit(SystemName, "prisoner_no_food",
                     $"creature={creature.Id} type={definition.Name} " +
                     $"player={creature.OwnerPlayerId} " +

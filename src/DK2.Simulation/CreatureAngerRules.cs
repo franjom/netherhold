@@ -57,21 +57,48 @@ public static class CreatureAngerRules
         return state.Anger[bucket] - before;
     }
 
+    /// <summary>The anger wrapper <c>0x00478B80(bucket, amount, complaint)</c>: the add behind the
+    /// world switch, then, when the amount is positive and the band changed, message 17 at
+    /// unhappy or 18 at angry to the creature's owner, Data1 the complaint and Data2 the creature
+    /// (<see cref="PostMoodChange"/>). A never-angry creature takes nothing and posts nothing.</summary>
     public static int Apply(
         WorldState world, CreatureDef creature, CreatureState state,
-        AngerBucket bucket, int delta) =>
-        world.Triggers.CreatureAngerEnabled
-            ? Apply(creature, state, bucket, delta)
-            : 0;
+        AngerBucket bucket, int delta, AngerComplaint complaint)
+    {
+        if (!world.Triggers.CreatureAngerEnabled || !CanBeAngered(creature)) return 0;
+        CreatureMood before = MoodOf(creature, state);
+        int applied = Apply(creature, state, bucket, delta);
+        if (delta > 0) PostMoodChange(world, creature, state, before, complaint);
+        return applied;
+    }
+
+    /// <summary>The wrapper's tail: with the band moved off <paramref name="before"/>, band 1
+    /// posts 17 and band 2 posts 18. The caller has already tested the amount. Not built:
+    /// the creature trigger event 11 DK2 fires after 18 (<c>0x00478C17</c>); no anger site holds
+    /// the trigger executor.</summary>
+    private static void PostMoodChange(
+        WorldState world, CreatureDef creature, CreatureState state, CreatureMood before, AngerComplaint complaint)
+    {
+        CreatureMood after = MoodOf(creature, state);
+        if (after == before) return;
+        PlayerMessageKind? kind = after switch
+        {
+            CreatureMood.Unhappy => PlayerMessageKind.CreatureUnhappy,
+            CreatureMood.Angry => PlayerMessageKind.CreatureAngry,
+            _ => null,
+        };
+        if (kind is PlayerMessageKind posted && world.HasPlayer(state.OwnerPlayerId))
+            world.Messages.Post(world, state.OwnerPlayerId, posted, (int)complaint, state.Id);
+    }
 
     /// <summary>Wipes one grievance to zero: DK2's <c>0x00486F80(bucket)</c>, which adds the
     /// counter's own negation through the same clamp, behind the same world switch. Called
     /// with the lair bucket as a bed goes down (state 80) and the pay bucket once a wage is
     /// taken in full (state 189), so both are forgotten at once rather than cooled
-    /// (<c>payday.md</c> §4.4, <c>lair-acquisition.md</c> §9.1).</summary>
+    /// (<c>payday.md</c> §4.4, <c>lair-acquisition.md</c> §9.1). A negative amount posts nothing.</summary>
     public static int Forget(
         WorldState world, CreatureDef creature, CreatureState state, AngerBucket bucket) =>
-        Apply(world, creature, state, bucket, -state.Anger[bucket]);
+        world.Triggers.CreatureAngerEnabled ? Apply(creature, state, bucket, -state.Anger[bucket]) : 0;
 
     /// <summary>The anger a creature must <b>exceed</b> to be angry: the ceiling itself. No variable
     /// states it — it is the owner's 2:1 ratio, angry at twice the time unhappy took.</summary>
@@ -79,9 +106,12 @@ public static class CreatureAngerRules
 
     /// <summary>Where this creature sits on the ladder, from the largest bucket and never from their
     /// sum (ADR-0081): two half-grievances leave it unhappy where a pool would say angry.</summary>
-    public static CreatureMood MoodOf(CreatureDef creature, CreatureState state)
+    public static CreatureMood MoodOf(CreatureDef creature, CreatureState state) => MoodOf(creature, state.Anger);
+
+    /// <summary>The band of a set of counters, for an observation that holds a copy.</summary>
+    public static CreatureMood MoodOf(CreatureDef creature, in CreatureAnger anger)
     {
-        int worst = state.Anger.Max;
+        int worst = anger.Max;
         if (worst > AngryAt(creature)) return CreatureMood.Angry;
         if (worst >= UnhappyAt(creature)) return CreatureMood.Unhappy;
         return CreatureMood.Content;
@@ -144,12 +174,46 @@ public static class CreatureAngerRules
         }
     }
 
+    /// <summary>A whole delta as one wrapper call per non-zero bucket in index order, each with the
+    /// same complaint: the Casino (2), spectating (9).</summary>
     public static void Apply(
-        WorldState world, CreatureDef creature, CreatureState state, CreatureAnger delta)
+        WorldState world, CreatureDef creature, CreatureState state, CreatureAnger delta, AngerComplaint complaint)
     {
-        if (!world.Triggers.CreatureAngerEnabled) return;
-        Apply(creature, state, delta);
+        for (int i = 0; i < CreatureAnger.Count; i++)
+        {
+            var bucket = (AngerBucket)i;
+            if (delta[bucket] != 0) Apply(world, creature, state, bucket, delta[bucket], complaint);
+        }
     }
+
+    /// <summary>The same with a complaint per bucket, indexed by bucket: the Temple's six calls
+    /// (<see cref="PrayingComplaints"/>) and the per-second needs (<see cref="NeedComplaints"/>).</summary>
+    public static void Apply(
+        WorldState world, CreatureDef creature, CreatureState state, CreatureAnger delta,
+        IReadOnlyList<AngerComplaint> complaints)
+    {
+        for (int i = 0; i < CreatureAnger.Count; i++)
+        {
+            var bucket = (AngerBucket)i;
+            if (delta[bucket] != 0) Apply(world, creature, state, bucket, delta[bucket], complaints[i]);
+        }
+    }
+
+    /// <summary>The Temple hook <c>0x0047B970</c>: buckets 0 to 5 with complaints 9, 1, 0, 3, 2, 9.</summary>
+    public static readonly IReadOnlyList<AngerComplaint> PrayingComplaints =
+    [
+        AngerComplaint.General, AngerComplaint.NoFood, AngerComplaint.NoLair,
+        AngerComplaint.NoWork, AngerComplaint.Money, AngerComplaint.General,
+    ];
+
+    /// <summary><see cref="PerSecond"/>'s sources: the need-anger routine <c>0x00478D00</c> charges
+    /// Lair with 0, food with 1 and pay with 2, and the in-lair calm <c>0x004DFF00</c> passes 0.
+    /// Buckets 0 and 3 take no per-second charge; their entries are never read.</summary>
+    public static readonly IReadOnlyList<AngerComplaint> NeedComplaints =
+    [
+        AngerComplaint.General, AngerComplaint.NoFood, AngerComplaint.NoLair,
+        AngerComplaint.NoWork, AngerComplaint.Money, AngerComplaint.NoLair,
+    ];
 
     /// <summary>Whether this creature can be angered at all — one flag read from the record. False
     /// for the Skeleton and Jack, the two carrying <see cref="CreatureFlags2.NeverAngered"/>, whose
@@ -168,7 +232,7 @@ public static class CreatureAngerRules
         Apply(creature, state, AngerBucket.Treatment, creature.AngerSlap);
 
     public static int Slap(WorldState world, CreatureDef creature, CreatureState state) =>
-        Apply(world, creature, state, AngerBucket.Treatment, creature.AngerSlap);
+        Apply(world, creature, state, AngerBucket.Treatment, creature.AngerSlap, AngerComplaint.Slapped);
 
     /// <summary>Being held in the Hand of Evil: <c>AngerInHand</c>, which <b>calms</b> most
     /// creatures (−250 for a Goblin, −500 for a Warlock) and annoys Jack (+500). A rate, not a
@@ -178,7 +242,7 @@ public static class CreatureAngerRules
         Apply(creature, state, AngerBucket.Treatment, creature.AngerInHand);
 
     public static int Held(WorldState world, CreatureDef creature, CreatureState state) =>
-        Apply(world, creature, state, AngerBucket.Treatment, creature.AngerInHand);
+        Apply(world, creature, state, AngerBucket.Treatment, creature.AngerInHand, AngerComplaint.Held);
 
     /// <summary>How long an angry creature must wait between selections that came to something:
     /// <b>five game seconds</b>, the original's <c>5 x</c> variable 19 (Q122, ADR-0061). What the

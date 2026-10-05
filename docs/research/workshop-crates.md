@@ -119,7 +119,7 @@ crates also refuses a manufacturer.**
 The room-position selector `0x004E8210`, independently checked 2026-09-28,
 also uses the two slot tests below. Its first two arguments enable floor and
 wall slots respectively. It counts qualifying slabs, draws a uniform index
-using world `+0x568`, then walks the slab chain again to select that slab's
+using the simulation stream, world `+0x15A0` (decompiler `+0x568`, a dword index), then walks the slab chain again to select that slab's
 centre at height zero. A slab passing both tests counts once. A wall selection
 also writes the side output. No qualifying slab means failure. Thus the
 keeper's `(1,0)` training request selects floor slots, while `(1,1)` prisoner

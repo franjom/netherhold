@@ -220,6 +220,19 @@ public static class EatingRules
         return false;
     }
 
+    /// <summary>The head of the room's object list as <see cref="HoldsAChicken"/> reads the list:
+    /// <c>0x004E5FF0</c> pushes onto the head, so the chicken most recently added, which ours takes
+    /// to be the newest by id; null with none. STRONGLY INFERRED: a chicken re-adopted after
+    /// leaving the room would head DK2's list and not ours.</summary>
+    public static ObjectState? NewestChicken(WorldState world, RoomInstance room)
+    {
+        ObjectState? newest = null;
+        foreach (ObjectState thing in world.Objects)
+            if (IsEdibleChicken(thing) && Contains(room, thing.TileIndex) && (newest is null || thing.Id > newest.Id))
+                newest = thing;
+        return newest;
+    }
+
     /// <summary>Whether a tile index belongs to this room.</summary>
     public static bool Contains(RoomInstance room, int tileIndex)
     {

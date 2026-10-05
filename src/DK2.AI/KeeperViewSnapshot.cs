@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 17;
+    public const int FormatVersion = 18;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -55,6 +55,7 @@ public static class KeeperViewSnapshot
             w.Write(c.SpellTargetAllowed); w.Write(c.CombatPitFighter); w.Write(c.AttachedToRoom);
             w.Write(c.HealTargetAllowed); w.Write(c.ChickenTargetAllowed); w.Write(c.InfernoPlaceAllowed);
             w.Write(c.Experience); w.Write((int)c.DroppedToDoJob);
+            for (int b = 0; b < CreatureAnger.Count; b++) w.Write(c.Anger[(AngerBucket)b]);
         }
         w.Write(view.Traps.Count);
         foreach (KeeperTrapView t in view.Traps)
@@ -71,6 +72,7 @@ public static class KeeperViewSnapshot
             w.Write(room.FloorSlots.Count);
             foreach (int index in room.FloorSlots) w.Write(index);
             foreach (int index in room.ChainOrder) w.Write(index);
+            w.Write(room.ObjectListHead);
         }
         w.Write(view.Messages.Count);
         foreach (PlayerMessage m in view.Messages)
@@ -89,6 +91,7 @@ public static class KeeperViewSnapshot
         int[] sightRefused = view.SightRefusedTiles.ToArray();
         w.Write(sightRefused.Length);
         foreach (int index in sightRefused) w.Write(index);
+        w.Write(view.HandCount);
         w.Flush();
         return stream.ToArray();
     }
@@ -118,8 +121,9 @@ public static class KeeperViewSnapshot
         for (int i = 0; i < availability.Length; i++)
             availability[i] = new AvailabilityState(r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(),
                 r.ReadInt64());
-        var creatures = new KeeperCreatureView[ReadCount(r, 80)];
+        var creatures = new KeeperCreatureView[ReadCount(r, 104)];
         for (int i = 0; i < creatures.Length; i++)
+        {
             creatures[i] = new KeeperCreatureView(r.ReadInt32(), r.ReadByte(), r.ReadByte(),
                 (CreatureActivity)r.ReadInt32(), r.ReadInt32(), r.ReadInt32(), r.ReadInt64(), r.ReadBoolean(),
                 r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt32(), r.ReadUInt16(),
@@ -129,10 +133,14 @@ public static class KeeperViewSnapshot
                 r.ReadByte(), r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean(),
                 r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean(),
                 r.ReadInt32(), (JobType)r.ReadInt32());
+            var anger = new CreatureAnger();
+            for (int b = 0; b < CreatureAnger.Count; b++) anger[(AngerBucket)b] = r.ReadInt32();
+            creatures[i] = creatures[i] with { Anger = anger };
+        }
         var traps = new KeeperTrapView[ReadCount(r, 12)];
         for (int i = 0; i < traps.Length; i++)
             traps[i] = new KeeperTrapView(r.ReadByte(), r.ReadByte(), r.ReadInt32(), r.ReadInt32(), r.ReadUInt16());
-        var rooms = new KeeperRoomView[ReadCount(r, 26)];
+        var rooms = new KeeperRoomView[ReadCount(r, 30)];
         for (int i = 0; i < rooms.Length; i++)
         {
             RoomDef definition = database.RoomById(r.ReadByte());
@@ -156,7 +164,7 @@ public static class KeeperViewSnapshot
             for (int j = 0; j < chain.Length; j++) chain[j] = r.ReadInt32();
             if (!new HashSet<int>(chain).SetEquals(indices) || chain.Distinct().Count() != chain.Length)
                 throw new InvalidDataException("A room's chain order is not its tiles.");
-            rooms[i] = new KeeperRoomView(definition, owner, indices, minX, minY, maxX, maxY, slots, chain);
+            rooms[i] = new KeeperRoomView(definition, owner, indices, minX, minY, maxX, maxY, slots, chain, r.ReadInt32());
         }
         var messages = new PlayerMessage[ReadCount(r, 27)];
         for (int i = 0; i < messages.Length; i++)
@@ -182,11 +190,12 @@ public static class KeeperViewSnapshot
             if ((uint)sightRefused[i] >= tiles.Length)
                 throw new InvalidDataException("Refused tile is outside the observation.");
         }
+        int handCount = r.ReadInt32();
         if (stream.Position != stream.Length)
             throw new InvalidDataException("Trailing keeper observation data.");
         return new KeeperView(database, player, tick, status, alliedWith, playerIds, width, height, gold, imps,
             heart, tiles, availability, creatures, traps, rooms, messages, callToArms, mana, statuses, refused, heartRuined,
-            sightRefused);
+            sightRefused, handCount);
     }
 
     private static int ReadCount(BinaryReader r, int minimumEntryBytes)

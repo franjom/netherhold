@@ -126,8 +126,8 @@ public sealed class CombatPitSystem : ISimulationSystem
         // def+0x6C7 as loaded: the file's per-second figure over four, every turn (ADR-0228).
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         int anger = SimulationTiming.LoaderRatePerTick(definition.AngerNoWork);
-        CreatureAngerRules.Apply(world, definition, creature, AngerBucket.Company, anger);
-        CreatureAngerRules.Apply(world, definition, creature, AngerBucket.Work, anger);
+        CreatureAngerRules.Apply(world, definition, creature, AngerBucket.Company, anger, AngerComplaint.General);
+        CreatureAngerRules.Apply(world, definition, creature, AngerBucket.Work, anger, AngerComplaint.NoWork);
 
         RoomInstance? room = pit ?? RoomIndex.RoomAt(world, database, here);
         if (room is null) return true;

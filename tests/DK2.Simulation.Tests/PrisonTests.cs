@@ -42,10 +42,10 @@ public class PrisonTests
         db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
 
     private static GameSimulation Simulation(
-        GameDatabase db, WorldState world, ListEventSink? sink = null)
+        GameDatabase db, WorldState world, ListEventSink? sink = null, ISimulationSystem? last = null)
     {
-        var sim = new GameSimulation(db, world, seed: 42,
-        [
+        var systems = new List<ISimulationSystem>
+        {
             new HandSystem(),
             new RoomSellSystem(),
             new CreatureMovementSystem(),
@@ -55,7 +55,9 @@ public class PrisonTests
             new PrisonSystem(),
             new PrisonerEatSystem(),
             new PrisonerWanderSystem(),
-        ]);
+        };
+        if (last is not null) systems.Add(last);
+        var sim = new GameSimulation(db, world, seed: 42, systems);
         if (sink is not null) sim.ObserveWith(sink);
         return sim;
     }
@@ -120,6 +122,21 @@ public class PrisonTests
     {
         creature.Health = 0;
         Assert.True(CreatureDeathRules.Collapse(hooks, creature));
+    }
+
+    /// <summary>Imprisons a second captive in <see cref="CellB"/> the first tick the imp is
+    /// carrying, so the 3x3 prison fills during the walk.</summary>
+    private sealed class FillWhenCarrying(GameDatabase db, CreatureState imp) : ISimulationSystem
+    {
+        private bool _filled;
+        public string Name => "FillWhenCarrying";
+
+        public void Execute(SimulationContext context)
+        {
+            if (_filled || imp.Activity != CreatureActivity.CarryingBody) return;
+            _filled = true;
+            Prisoner(db, context.World, CellB);
+        }
     }
 
     private static CreatureState Prisoner(
@@ -192,13 +209,12 @@ public class PrisonTests
         WorldState world = World(db);
         Prison(db, world);
         Prisoner(db, world, CellA);
-        Prisoner(db, world, CellB);
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
         Down(new StateHookContext(world, db), enemy);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
         imp.Flags = 0x20;
         var sink = new ListEventSink();
-        GameSimulation sim = Simulation(db, world, sink);
+        GameSimulation sim = Simulation(db, world, sink, new FillWhenCarrying(db, imp));
 
         // The walk into 48 is 47's, so 47 is the saved caller the id is handed back with.
         Assert.Equal(
@@ -233,27 +249,24 @@ public class PrisonTests
     }
 
     [Fact]
-    public void AnImpCarriesToAFullPrisonAndIsTurnedAwayAtTheDoor()
+    public void APrisonThatFillsDuringTheCarryTurnsTheBodyAwayAtTheDoor()
     {
-        // CONFIRMED (owner, 2026-09-13): capacity is checked at delivery, not
-        // before the pickup. The imp drags the body to the prison, admission
-        // fails, and it is left bleeding on the rim (ADR-0148). This test used
-        // to assert the opposite under the manual's wording, which says where
-        // an imp goes and not when it gives up.
+        // CONFIRMED (owner, 2026-09-13 and 2026-10-05): a prison that fills while
+        // the imp carries a victim to it refuses at delivery, and the body is left
+        // bleeding on the rim (ADR-0148).
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
 
-        // Full is TWO on a 3x3, not one per tile (Q166).
+        // Full is TWO on a 3x3, not one per tile (Q166): one now, one mid-walk.
         Prisoner(db, world, CellA);
-        Prisoner(db, world, CellB);
 
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
         Down(new StateHookContext(world, db), enemy);
-        world.SpawnCreature(db, ImpId, Keeper, Floor);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
 
         var sink = new ListEventSink();
-        GameSimulation sim = Simulation(db, world, sink);
+        GameSimulation sim = Simulation(db, world, sink, new FillWhenCarrying(db, imp));
         for (int i = 0; i < 30 * Second; i++) sim.Tick();
 
         Assert.False(PrisonRules.IsImprisoned(enemy));
@@ -272,10 +285,35 @@ public class PrisonTests
     }
 
     [Fact]
+    public void NoImpSetsOffForAnEnemyWhileEveryPrisonIsAlreadyFull()
+    {
+        // The rescue selector 0x0046D810 raises no task when no Prison has a place,
+        // and the owner never saw an imp carry a body to a full prison (ADR-0354).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        Prisoner(db, world, CellA);
+        Prisoner(db, world, CellB);
+
+        CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
+        Down(new StateHookContext(world, db), enemy);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+
+        GameSimulation sim = Simulation(db, world);
+        for (int i = 0; i < 20 * Second; i++)
+        {
+            sim.Tick();
+            Assert.NotEqual(CreatureActivity.FetchingBody, imp.Activity);
+            Assert.NotEqual(CreatureActivity.CarryingBody, imp.Activity);
+        }
+
+        Assert.Equal(new TilePos(1, 1), enemy.Tile);
+    }
+
+    [Fact]
     public void APrisonWithSpaceTakesTheBodyAFullerOneWouldRefuse()
     {
-        // The other half of the same observation: a full prison does not stop
-        // the imp, and a prison with space is where the body actually goes.
+        // A full prison is passed over for one with space, where the body goes.
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);

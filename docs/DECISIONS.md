@@ -3252,7 +3252,7 @@ so a rival's heart is refused the way a rival's portal already was. A captive is
 refused both, which is now CONFIRMED rather than the conservative fallback it was
 chosen as.
 
-**Decision 2: capacity is checked at delivery.** `PrisonRules.DeliveryTileIn`
+**Decision 2: capacity is checked at delivery** (amended by ADR-0354: not when every prison is already full). `PrisonRules.DeliveryTileIn`
 gives a free cell where one exists and the nearest full prison's **rim** where
 none does, so the imp sets off either way; `PrisonRules.AdmitsAt` decides at the
 door, and a prison that filled during the walk turns the body away. The manual's
@@ -3263,7 +3263,8 @@ is still -1 and still nobody setting off.
 
 - A keeper whose prisons are full now has imps that carry and are refused,
   leaving bodies on the rim. That is work where there was none, and it is what
-  DK2 does.
+  DK2 does. **Amended by ADR-0354:** only a Prison that fills during the carry
+  refuses; with every Prison already full, no imp sets off.
 - `HashVersion` is untouched: no world state is added, and no scenario moved.
 
 **Assumptions, stated rather than hidden.**
@@ -8128,3 +8129,77 @@ Prison draws its rolls and may spend the last allowance there first. The gold ga
 our task state, not the task pool's kind-2 count; the cost arm with nothing stored takes
 the fresh scan's first deposit (Q539). Sight's shot (process 25, 64 updates, no
 collision) and the thing slot it would take are not created.
+
+## ADR-0353 — The keeper's remaining messages: mood, room ownership, threat and room producers
+**Date:** 2026-10-04 · **Status:** accepted 2026-10-05 after two verifier passes
+
+**Context.** The keeper's walk (`0x004FA400`) reads types 1, 6, 12, 17, 18, 32–35, 41, 42
+and 47; ours consumed 1, 6, 41 and 42. A census of all 151 insert calls
+(`computer-keeper-messages.md` §2, §4) lists each producer of a type the walk reads, and the arms.
+
+**Decision.** Build what is read, in stages, producers in the simulation and reactions
+as ordinary commands, messages retained with explicit acknowledgement:
+1. Mood: the anger wrapper posts 17/18 on an upward band change with its selector as
+   Data1; the sweep frees one whose creature has left the band.
+2. Make happy by the current largest bucket: pay (a partial withdrawal from the
+   Treasuries and Heart, minted as gold dropped on the creature), a Hatchery chicken,
+   the Lair or a job room; failure is handled below three event tasks.
+3. Dispose: a Temple floor slot when `AngryDisposalMethod` is 1, else a Temple, a
+   Portal or a Hero Portal; none leaves it for retry.
+4. Room ownership: 32/33 and 35 from the room transfer, and both arms. 5. The other
+   room producers our simulation has events for.
+6. Threat: 12 from the tile-work applier, 34 from the hero's room blow and its room
+   reader, and 47 (the Alarm, already posted) to the position reader.
+7. Documents and the same-map comparison protocol.
+
+**Prediction** (outcomes; HashVersion moves every hash series). Stage 1: 17s reach
+Harkan on Level 17 treasury-full (four creatures, t651–679) and Asmodeus on Level 10
+(five), so those two runs gain acknowledgements; no keeper creature turns angry in any
+run, and other scenarios keep events and world. Stage 2: Harkan's first 17 has Lair as
+its largest bucket, so he lifts the creature into a Lair if he owns one; Asmodeus's
+`UnhappyCreaturesHappy` is clear. Stage 3: inert, no keeper 18. Stage 4: every transfer
+in the corpus takes a neutral Portal, so it posts 33 (acknowledged) and a 35 to the
+neutral player; both arms are unreachable. Stage 5: keeper runs whose creatures want a
+missing or full room move; which ones is measured. Stage 6: inert; no scenario destroys
+another player's solid wall, wrecks a room or fires an Alarm.
+
+**Measured.** Stage 1 (hash 179): worlds unchanged in all 42; events differ only in the
+message ids room-message events print, since 17s now take ids (nine runs); Asmodeus and
+Harkan (treasury-full) gain one acknowledgement each, at t620 and t652, as predicted.
+Stage 2 (hash 180, schema 18): only treasury-full moves. At t652 Harkan lifts Troll 47,
+its Lair bucket largest, into his Lair at (13, 13); the Lair draw then shifts his stream,
+so later keeper choices differ, as any added draw does (ADR-0244). Stage 3: all 42
+unchanged, as predicted. Stage 4 (hash 181): worlds unchanged; message ids shift; the keepers
+that take a neutral Portal acknowledge its 33 (four Level 17 runs). Missed: Asmodeus takes
+one at t23, but Level 10 posts no message of any kind before t479, so the 33 is refused.
+Stage 5, the claim's 42 (hash 182): only treasury-full's world moves; Harkan's Training Room
+fills at t737 and, under policy 0, he lays two more Training tiles at t817 and t820.
+The finders (hash 183): only treasury-full's world moves; a creature that wants to pray at
+t803 brings Harkan a 41 Temple that takes his planner's next slot, so his Torture Chamber
+(t2805 before) is not laid. Elsewhere the new 41s add events and acknowledgements only.
+Stage 6 (hash 184): all 42 unchanged, as predicted.
+Unbuilt, for want of a read field or state: rescue (Q542), finder gates (Q543), Graveyard (Q544).
+
+## ADR-0354 — No carry to a full Prison; a refused body goes to the room point
+**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0148 Decision 2
+
+**Context.** ADR-0148 sent an imp to a full Prison's rim, reading the owner's 2026-09-13
+note as "capacity is checked only at the door". The owner has since said (2026-10-05) that
+the rim answer is for a Prison that fills while the imp carries, and that they never saw an
+imp carry a body when the Prison was already full. The rescue selector `0x0046D810` agrees:
+with no Prison holding a place it raises no task (result 3). State 47 (`0x00468270`) puts a
+refused body down on the room point `0x004E8430`: a uniform draw from the world stream
+among the room's tiles, in slab-chain order, that are neither a floor slot (`0x00454110`)
+nor a wall slot (`0x00454230`).
+
+**Decision.** `CarryRules.TryDestinationFor` takes an enemy body only to a free cell
+(`PrisonRules.FreeTileIn`); with none, nobody sets off. The door check stays (ADR-0148).
+A refused body is set on `PrisonRules.RefusedBodyPoint`, our 47's walk elided as 44's is.
+ADR-0148's guard against re-carrying a refused body is removed: with every Prison full
+there is no destination, and once a cell frees the body is carried in, as DK2's selector
+would. Not built: the selector's 41/42/43 (Q542) and state 44's retry of another Prison.
+
+**Prediction.** Only runs with a `not_admitted` drop move: the chicken-in-a-prison run.
+**Measured** (hash 185): only that run moved. Its body refused at t215 (its cell taken by
+a wandering prisoner) lies at rim tile (7, 5), not (5, 4), and is imprisoned at t225, not
+t218; every expectation holds.

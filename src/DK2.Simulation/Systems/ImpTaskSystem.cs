@@ -2498,9 +2498,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         // Somebody else's creature goes into a cell rather than a bed - kind
         // 13's other branch, and the only route into a prison there is
-        // (ADR-0064). Admission is decided HERE, at the door: a prison that was
-        // full when the imp set off, or filled up during the walk, turns the
-        // body away and it is left on the rim (ADR-0148).
+        // (ADR-0064). Admission is decided HERE, at the door: a prison that
+        // filled up during the walk turns the body away onto the rim (ADR-0148);
+        // with every prison already full no imp sets off (ADR-0354).
         if (body.OwnerPlayerId != creature.OwnerPlayerId)
         {
             // Our one walk ends at the cell, so 43's inner leg to 44 and 44's own walks fall
@@ -2522,9 +2522,19 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             }
             else
             {
+                // 47 walks to the room point and 48 puts the body down there; our walk is elided,
+                // as 44's is, so the body is set on the point.
+                if (RoomIndex.RoomAt(world, context.Database, cell) is RoomInstance prison
+                    && PrisonRules.IsPrisonOf(prison, creature.OwnerPlayerId)
+                    && PrisonRules.RefusedBodyPoint(world, context.Database, prison, context.Rng) is int point)
+                {
+                    body.PosX = CreatureState.CentreOf(point % world.Width);
+                    body.PosY = CreatureState.CentreOf(point / world.Width);
+                }
+
                 context.Emit(SystemName, "body_dropped",
                     $"imp={creature.Id} body={body.Id} " +
-                    $"at=({creature.Tile.X},{creature.Tile.Y}) reason=not_admitted");
+                    $"at=({body.Tile.X},{body.Tile.Y}) reason=not_admitted");
                 WalkOn(context, creature, ImpStates.TakingTheRefusedBody);
                 WorkerPickupRules.SetEnabled(creature, true);
                 WalkOn(context, creature, ImpStates.PuttingDownTheRefusedBody);

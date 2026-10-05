@@ -80,15 +80,17 @@ public class RoomNeedMessageTests
     }
 
     [Fact]
-    public void AnUnlistedRoomAndTheSuppressedGraveyardRequestAreRefused()
+    public void AnUnlistedRoomAndTheSuppressedGraveyardRequestAreRefusedBut42KeepsItsTerminatorRecord()
     {
         WorldState world = World();
         Assert.Throws<ArgumentOutOfRangeException>(() => world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomNeeded, RoomTypeId.Portal));
-        Assert.Throws<ArgumentOutOfRangeException>(() => world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomFull, RoomTypeId.Portal));
         Assert.Throws<ArgumentOutOfRangeException>(() => world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomUnreachable, RoomTypeId.DungeonHeart));
         Assert.Throws<NotSupportedException>(() => world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomNeeded, RoomTypeId.Graveyard));
         Assert.Throws<ArgumentOutOfRangeException>(() => world.Messages.PostRoom(world, Keeper, PlayerMessageKind.CombatStarted, RoomTypeId.Lair));
         Assert.Empty(world.Messages.Entries);
+
+        // 42's terminator row names a string: the record stays, with timeout zero, until the next sweep.
+        Assert.Equal(0u, world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomFull, RoomTypeId.Portal)!.Value.Timeout);
     }
 
     [Fact]

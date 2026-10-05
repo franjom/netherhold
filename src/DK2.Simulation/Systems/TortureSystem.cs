@@ -78,7 +78,8 @@ public sealed class TortureSystem : ISimulationSystem
 
         // Only a creature tortured in its own keeper's chamber takes the mood: selector 8, bucket 5.
         if (creature.OwnerPlayerId == keeper)
-            CreatureAngerRules.Apply(world, definition, creature, AngerBucket.Treatment, definition.TortureMoodChange);
+            CreatureAngerRules.Apply(world, definition, creature, AngerBucket.Treatment, definition.TortureMoodChange,
+                AngerComplaint.Tortured);
 
         if (creature.Health <= 0)
         {
