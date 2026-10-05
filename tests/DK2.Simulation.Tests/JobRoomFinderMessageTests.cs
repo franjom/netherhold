@@ -145,6 +145,19 @@ public class JobRoomFinderMessageTests
         Assert.False(AutoFurnitureRules.TryTotalCapacity(world, temple, out _));
     }
 
+    /// <summary>0x004D6ED0 sets +0xA3 when a lever spot exists; ours takes that as any interior tile.</summary>
+    [Fact]
+    public void ACasinoCountsAsEquippedWithAnInteriorTile_InferredFromItsLeverSpot()
+    {
+        WorldState world = World();
+        Room(world, RoomTypeId.Casino, 5, 1);
+        Assert.True(RoomNeedRules.IsEquipped(world, RoomIndex.RoomAt(world, Db, 2 * world.Width + 6)!));
+
+        WorldState strip = World();
+        for (int x = 5; x < 8; x++) RoomRules.Place(Db, ref strip.Tile(x, 1), Db.Room(RoomTypeId.Casino), Keeper);
+        Assert.False(RoomNeedRules.IsEquipped(strip, RoomIndex.RoomAt(strip, Db, 1 * strip.Width + 6)!));
+    }
+
     [Fact]
     public void ARoomWithAPlaceBehindRockPosts43AndOneWithAReachablePlacePostsNothing()
     {

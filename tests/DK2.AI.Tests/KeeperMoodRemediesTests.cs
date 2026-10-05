@@ -64,7 +64,7 @@ public class KeeperMoodRemediesTests
     }
 
     [Fact]
-    public void EqualHungerAndLairAngerTakeTheLowerBucketAndFeedIt()
+    public void EqualHungerAndLairAngerFeedTheHatcherysListHead_OursTakesTheHeadAsTheHighestIdChicken()
     {
         var (world, creature) = Moody(AngerBucket.Lair);
         creature.Anger.Hunger = 20000;
