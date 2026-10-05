@@ -498,4 +498,56 @@ public class KeeperThreatResponseTests
         Assert.Equal(Run(42), Run(42));
         Assert.NotEqual(Run(42), Run(43));
     }
+    [Theory]
+    [InlineData(PlayerMessageKind.WallBreached)]
+    [InlineData(PlayerMessageKind.AlarmRaised)]
+    public void WallBreachAndAlarmGoThroughThePositionReaderAtTheirTile(PlayerMessageKind kind)
+    {
+        WorldState world = KeeperWorld.World(Db);
+        world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
+        Fighter(world, Keeper, 14, 15);
+        Fighter(world, Hero, 16, 15);
+        PlayerMessage message = Attack(world, 16, 15, kind);
+        KeeperAI keeper = NewKeeper(speed: 3);
+
+        IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
+
+        Assert.Equal(message.Id, Assert.Single(commands.OfType<AcknowledgePlayerMessageCommand>()).MessageId);
+        Assert.True(keeper.State.HaveBeenAttacked);
+        Assert.Equal(Hero, keeper.State.AttackingPlayerId);
+    }
+
+    [Fact]
+    public void ARoomAttackRerollsImprisonmentWithNoPrisonAndReadsTheRoomByItsFirstSlab()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        for (int x = 13; x <= 14; x++) KeeperWorld.Set(world, Db, new TilePos(x, 13), KeeperWorld.LairFloor, Keeper);
+        Fighter(world, Keeper, 14, 15);
+        CreatureState hero = Fighter(world, Hero, 14, 14);
+        int tag = (13 * world.Width) + 13;
+        PlayerMessage message = world.Messages.Post(world, Keeper, PlayerMessageKind.RoomAttacked, (int)RoomTypeId.Lair, tag)!.Value;
+        KeeperAI keeper = NewKeeper(imprison: 100);
+
+        IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
+
+        Assert.Equal(message.Id, Assert.Single(commands.OfType<AcknowledgePlayerMessageCommand>()).MessageId);
+        Assert.Equal(hero.Id, Assert.Single(commands.OfType<SetRescuePriorityCommand>()).CreatureId);
+        Assert.Equal(Hero, keeper.State.AttackingPlayerId);
+    }
+
+    /// <summary>DK2 dereferences the tag with no test; ours cancels when no room has it.</summary>
+    [Fact]
+    public void ARoomAttackNamingNoStandingRoomIsHandledAsCancelled_OursGuardsWhatDk2DoesNot()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        Fighter(world, Hero, 14, 14);
+        PlayerMessage message = world.Messages.Post(world, Keeper, PlayerMessageKind.RoomAttacked, (int)RoomTypeId.Lair, 1)!.Value;
+        KeeperAI keeper = NewKeeper();
+
+        IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
+
+        Assert.Equal(message.Id, Assert.Single(commands.OfType<AcknowledgePlayerMessageCommand>()).MessageId);
+        Assert.False(keeper.State.HaveBeenAttacked);
+        Assert.Equal(0, keeper.State.Responses.Count);
+    }
 }

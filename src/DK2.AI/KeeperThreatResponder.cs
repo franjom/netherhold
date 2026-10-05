@@ -13,9 +13,9 @@ namespace DK2.AI;
 /// position reader (<c>0x004F9B90</c>) and the respond-to-attack event (<c>0x004FE0B0</c>),
 /// each emitting commands the simulation validates on the next tick.</summary>
 /// <remarks>
-/// <para>Built: message kinds 1 and 6, the imprisonment reroll, threat assessment, the event
-/// reservation, both event arms and the whole-tick allowance. Kinds 12, 34 and 47 have no
-/// producer here, and the room reader waits for 34.</para>
+/// <para>Built: message kinds 1, 6, 12 and 47 through the position reader and 34 through the room
+/// reader, the imprisonment reroll, threat assessment, the event reservation, both event arms and
+/// the whole-tick allowance.</para>
 /// <para>Deviates: picks and drops are commands executed one tick later, so an attempt's outcome
 /// is predicted from the captured permissions, and only a creature predicted to move leaves the
 /// tick's candidates, as DK2's does by its hand state. Not represented: the spiral's furniture-slot
@@ -99,8 +99,15 @@ public sealed class KeeperThreatResponder
                 case PlayerMessageKind.CreatureAngry when _mood is not null:
                     if (_mood.Angry(message)) Acknowledge(message);
                     break;
+                case PlayerMessageKind.RoomAttacked:
+                    if (_state.Responses.TryReceive(() => EvaluateRoom(message.Data2)))
+                        _commands.Add(new AcknowledgePlayerMessageCommand(_view.PlayerId, message.Id));
+                    _state.FightGoingOn = true;
+                    break;
                 case PlayerMessageKind.HeartAttacked:
                 case PlayerMessageKind.CombatStarted:
+                case PlayerMessageKind.WallBreached:
+                case PlayerMessageKind.AlarmRaised:
                     // Flags bit 3 (respond to attack) is always on: both loaders write 0xFFFF.
                     var target = new TilePos(message.Data1, message.Data2);
                     if (_state.Responses.TryReceive(() => EvaluatePosition(target)))
@@ -133,6 +140,26 @@ public sealed class KeeperThreatResponder
         TilePos? site = ThreatEvaluator.DropSite(target, false, _view.IsThreatDropCandidate);
         return ThreatEvaluator.Response(target, site, threat.Enemy, threat.Allied,
             _p.BAThreatSuperiority, _p.BARemoveIfCantReinforce, false);
+    }
+
+    /// <summary>The room reader <c>0x004FA000</c>: the imprisonment reroll with no Prison test, then
+    /// the room variant's strength, drop site and residual at the room's position (<c>+0x27</c>).
+    /// DK2 reads the tagged room without a test; ours treats one no longer standing as cancelled.</summary>
+    public KeeperThreatResponse? EvaluateRoom(int roomTag)
+    {
+        RerollImprisonment();
+        KeeperRoomView? room = _view.AllRooms.FirstOrDefault(r => _view.IndexOf(_view.FirstSlabOf(r)) == roomTag);
+        if (room is null) return null;
+        TilePos target = _view.PositionOf(room);
+        KeeperThreatAssessment threat = ThreatEvaluator.Assess(_view, target, true, TrapsStartFights);
+        if (threat.AttackingPlayer is byte attacker)
+        {
+            _state.AttackingPlayerId = attacker;
+            _state.HaveBeenAttacked = true;
+        }
+        TilePos? site = ThreatEvaluator.DropSite(target, true, _view.IsThreatDropCandidate);
+        return ThreatEvaluator.Response(target, site, threat.Enemy, threat.Allied,
+            _p.BAThreatSuperiority, _p.BARemoveIfCantReinforce, true);
     }
 
     /// <summary>Every enemy player's creatures in list order: <c>random(100) &lt;

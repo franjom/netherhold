@@ -12,6 +12,11 @@ public enum PlayerMessageKind : uint
     HeartAttacked = 1,
     CombatStarted = 6,
 
+    /// <summary>Type 12: work brought down a Solid, Ownable tile of the recipient's that another
+    /// player's worker was working (<c>0x0045313E</c>); Data1 and Data2 are the tile. Row
+    /// <c>0x2032</c>: fifty seconds, tab, no duplicates. The name is ours.</summary>
+    WallBreached = 12,
+
     /// <summary>Type 17: a creature's anger band rose to unhappy (<c>0x00478B80</c>); Data1 is the
     /// wrapper's <see cref="AngerComplaint"/>, Data2 the creature. Row <c>0x2032</c>: fifty
     /// seconds, tab, no duplicates, so one unexpired 17 per player stands for every creature.</summary>
@@ -169,7 +174,7 @@ public sealed class PlayerMessageQueue
             PlayerMessageKind.HeartAttacked => (uint)SimulationTiming.TicksFromSeconds(120),
             PlayerMessageKind.CombatStarted => 0,
             PlayerMessageKind.CallToArmsUnreachable => (uint)SimulationTiming.TicksFromSeconds(50),
-            PlayerMessageKind.AlarmRaised => (uint)SimulationTiming.TicksFromSeconds(50),
+            PlayerMessageKind.AlarmRaised or PlayerMessageKind.WallBreached => (uint)SimulationTiming.TicksFromSeconds(50),
             PlayerMessageKind.CreatureUnhappy or PlayerMessageKind.CreatureAngry =>
                 (uint)SimulationTiming.TicksFromSeconds(50),
             // Both subtables give every listed variant 20 seconds. Warning row 0 names no

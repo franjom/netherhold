@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 183: the job-room finders post 41 to 44 (ADR-0353).
+        // HashVersion 184: messages 12 and 34 from tile work (ADR-0353 stage 6)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x683FC33F7E712118UL, sim.StateHash());
+        Assert.Equal(0xB22ED6D42A6AD975UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -146,14 +146,14 @@ stated, not a stable index. Every type the keeper's walk (`0x004FA400`, §3) rea
 |---|---|---|---|---|
 | 1 | `0x004DA200` | Heart owner; heart x / y | Negative heart-health delta, not invulnerable (`win-and-defeat.md` §3.1) | built |
 | 6 | `0x0045EB20` | Attacker's owner; its x / y | State 199 entered this turn, attack mode not 3 | built |
-| 12 | `0x00452F60` (`0x0045313E`) | Tile owner; x / y | Work brings to zero a tile whose terrain is Solid and Ownable and whose owner is not the worker's player; then player events `0x38`/`0x39` | event built, post unbuilt |
+| 12 | `0x00452F60` (`0x0045313E`) | Tile owner; x / y | Work brings to zero a tile whose terrain is Solid and Ownable and whose owner is not the worker's player; then player events `0x38`/`0x39` | built (`TileWorkSystem.PostThreat`); events `0x38`/`0x39` not |
 | 12 | `0x00498BB0` | Tile owner; x / y | Creature action 9, the breach check (`trigger-walkers.md`) | action 9 unbuilt |
 | 17, 18 | `0x00478B80`, 60 sites | Creature owner (`+0x28`); selector / creature tag | Not never-angry; the add changed the band and the amount is positive; band 1 posts 17, band 2 posts 18 and fires trigger event 11 | §4 |
 | 17, 18 | `0x00478C30`, one site (`0x004D6A68`) | as above | The percentage adder `0x004870E0`, same tests | site unbuilt |
 | 32 or 33, 35 | `0x004E5650` | New owner 32 (33 when the old owner is neutral), old owner 35; room type / room tag | Whole-room transfer | §4 |
 | 32, 35 | `0x0044FC40` | New / old owner; 287 / 0 | The tile set to terrain 31 or 32 (it makes object 101 or 108 there) changes owner; skipped under world `+0x7239` bit 6 | unbuilt |
 | 34 | `0x00466080` | Room owner; room type / room tag | A worker takes state 18 against an enemy room (job 11, Q523) | job 11 unbuilt |
-| 34 | `0x00497DF0` (`0x00497F29`) | Tile owner; room type / room tag | A Good creature's action-11 blow that leaves the tile a room (`room-health.md` §4) | §4 |
+| 34 | `0x00497DF0` (`0x00497F29`) | Tile owner; room type / room tag | A Good creature's action-11 blow that leaves the tile a room (`room-health.md` §4) | built (`TileWorkSystem.PostThreat`) |
 | 41, 42, 43 | rows below | Room's owner; room type / 0 | Per producer | §4 |
 | 47 | `0x004AE120` | Shot owner; x / y | Shot process 12, the Alarm and Hero Alarm traps (`shots.md`; entries of 17 bytes from `0x0069E84F`) | built |
 
@@ -378,11 +378,11 @@ event exists in our simulation):
 | Type | Producers built | Consumer | Consumer built | What blocks the rest |
 |---|---|---|---|---|
 | 1, 6 | all | position reader | yes (ADR-0278) | — |
-| 12 | none | position reader | no: marked handled | `0x00452F60`'s post (ours); action 9 (not ours) |
+| 12 | `0x00452F60`'s post | position reader | yes (`KeeperThreatResponder`) | action 9 (not ours) |
 | 17, 18 | every anger path of ours (`CreatureAngerRules`, `AngerComplaint`) | make happy, dispose | yes (`KeeperMoodRemedies`) | — (`0x004D6A40`, the percentage site, is not ours) |
 | 32/33, 35 | the room transfer and the defeat handover (`RoomHealthRules.PostTransfer`) | Lair request, chooser | yes (`KeeperRoomRequests`) | — (`0x0044FC40`'s terrains 31/32 are not ours) |
-| 34 | none | room reader | no | hero blow (ours); job 11 (Q523, not ours) |
+| 34 | the hero blow | room reader `0x004FA000` | yes (`EvaluateRoom`) | job 11 (Q523, not ours) |
 | 41, 42 | carrier, sale refund, Lair, Hatchery, the claim's 42, the Training, Temple, Torture and Casino finders, Library and Workshop at 41 (`RoomNeedRules.NoJobRoomFor`) | room request | yes (ADR-0327) | Q542 rescue, Q543 finder gates, Q544 Graveyard; Lair-bed state 79 has no entry; door and trap sales, action 0x77 and `0x00499E50` are not ours |
-| 47 | Alarm | position reader | no: marked handled | — |
+| 47 | Alarm | position reader | yes (`KeeperThreatResponder`) | — |
 
 The suppression fields in section 1 remain unimplemented.

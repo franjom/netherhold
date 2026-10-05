@@ -8132,10 +8132,9 @@ collision) and the thing slot it would take are not created.
 ## ADR-0353 — The keeper's remaining messages: mood, room ownership, threat and room producers
 **Date:** 2026-10-04 · **Status:** in progress
 
-**Context.** The keeper's walk (`0x004FA400`) reads types 1, 6, 12, 17, 18, 32–35, 41,
-42 and 47; ours consumes 1, 6, 41 and 42 and marks the rest handled. A census of all 151
-calls of the insert (`research/computer-keeper-messages.md` §2, §4) lists every
-producer, whether our simulation has its event, and the arms' rules.
+**Context.** The keeper's walk (`0x004FA400`) reads types 1, 6, 12, 17, 18, 32–35, 41, 42
+and 47; ours consumed 1, 6, 41 and 42. A census of all 151 insert calls
+(`computer-keeper-messages.md` §2, §4) lists each producer, whether ours has its event, the arms.
 
 **Decision.** Build what is read, in stages, producers in the simulation and reactions
 as ordinary commands, messages retained with explicit acknowledgement:
@@ -8146,8 +8145,8 @@ as ordinary commands, messages retained with explicit acknowledgement:
    the Lair or a job room; failure is handled below three event tasks.
 3. Dispose: a Temple floor slot when `AngryDisposalMethod` is 1, else a Temple, a
    Portal or a Hero Portal; none leaves it for retry.
-4. Room ownership: 32/33 and 35 from the room transfer, and both arms.
-5. The other room producers our simulation has events for.
+4. Room ownership: 32/33 and 35 from the room transfer, and both arms. 5. The other
+   room producers our simulation has events for.
 6. Threat: 12 from the tile-work applier, 34 from the hero's room blow and its room
    reader, and 47 (the Alarm, already posted) to the position reader.
 7. Documents and the same-map comparison protocol.
@@ -8177,5 +8176,6 @@ fills at t737 and, under policy 0, he lays two more Training tiles at t817 and t
 The finders (hash 183): only treasury-full's world moves; a creature that wants to pray at
 t803 brings Harkan a 41 Temple that takes his planner's next slot, so his Torture Chamber
 (t2805 before) is not laid. Elsewhere the new 41s add events and acknowledgements only.
+Stage 6 (hash 184): all 42 unchanged, as predicted.
 Unbuilt for want of a read field or modelled state: the rescue selector (Q542), the
 finders' remaining gates (Q543) and the Graveyard's messages (Q544).
