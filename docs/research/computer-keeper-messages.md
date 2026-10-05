@@ -245,6 +245,7 @@ after-tile-change pass: a Training Dummy (14) or Target (29) attached
 (`0x004F2EA0`), a Torture Wheel or Electric Chair (`0x004F1F10`), an Anvil, Steel
 Bucket or Work Bench (`0x004F5530`), any interior tile for a Library, Combat Pit or
 (inferred) Casino; a Temple's is only zeroed, so a full Temple posts 44, never 42.
+It is stored when the pass runs, at a rebuild; ours reads the furniture live.
 Torture's place is two creatures' units (one unit free is silent) and its missing
 room is 99 when creature type `+0x36F` is 4, the Mistress, and its owner `+0x28` is
 the searching player (ours always searches for the owner). A Casino with a lever
