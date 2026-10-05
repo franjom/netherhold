@@ -139,6 +139,91 @@ public static class RoomNeedRules
         return emptyAndSettled ? Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Hatchery) : null;
     }
 
+    /// <summary>The creature type <c>0x004F2B80</c> tests (<c>+0x36F == 4</c>): the Mistress, whose
+    /// missing Torture Chamber is message 99, not 41. Ours does not carry 99.</summary>
+    public const byte MistressCreatureId = 4;
+
+    /// <summary>A job-room finder found no room (computer-keeper-messages.md §2): Training
+    /// <c>0x004F3560</c>, Temple <c>0x004F1A20</c>, Torture <c>0x004F2B80</c>, Casino <c>0x004D75F0</c>
+    /// with its availability row, Library <c>0x004E2500</c> with the Lair's, and Workshop
+    /// <c>0x004F6200</c>. No room posts 41; else a room with space no route ignoring doors reaches posts
+    /// 43; else a reached full room past <see cref="FullRoomGraceSeconds"/> posts 42 when its
+    /// <c>+0xA3</c> holds (<see cref="IsEquipped"/>), 44 naming it when not.</summary>
+    /// <remarks>Built only to 41 for the Library (storage and research-point gates read, their state
+    /// not kept here) and the Workshop (player byte <c>+0xA1C</c> unread); the Casino's party branch
+    /// (player <c>+0xF4A</c>) is taken as off. The Mistress posts 99 for a missing chamber, which ours
+    /// does not carry. 44 names the last flagged room in our room order, not DK2's room list.</remarks>
+    public static PlayerMessage? NoJobRoomFor(
+        SimulationContext context, CreatureState creature, CreatureDef definition, RoomTypeId wants)
+    {
+        if (wants is not (RoomTypeId.TrainingRoom or RoomTypeId.Temple or RoomTypeId.TortureChamber
+            or RoomTypeId.Casino or RoomTypeId.Library or RoomTypeId.Workshop)) return null;
+        WorldState world = context.World;
+        byte player = creature.OwnerPlayerId;
+        RoomTypeId row = wants == RoomTypeId.Library ? RoomTypeId.Lair : wants;
+        if (world.Availability(player, RoomAvailabilityKind, (int)row) != Available) return null;
+
+        var rooms = RoomIndex.Build(world, context.Database)
+            .Where(r => r.OwnerPlayerId == player && r.Definition.TypeId == wants && r.TileIndices.Count > 0).ToList();
+        if (rooms.Count == 0)
+            return wants == RoomTypeId.TortureChamber && creature.CreatureTypeId == MistressCreatureId
+                ? null : Post(context, player, PlayerMessageKind.RoomNeeded, wants);
+        if (wants is RoomTypeId.Library or RoomTypeId.Workshop) return null;
+
+        bool full = false;
+        RoomInstance? unequipped = null;
+        long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
+        foreach (RoomInstance room in rooms)
+        {
+            if (!CanReachRoom(context, creature, definition, room, MoveOptions.Loose)) continue;
+            if (HasPlace(world, context.Database, room, creature)) return null; // DK2 would have taken it
+            if (wants == RoomTypeId.TortureChamber && RoomCapacityRules.HasRoom(world, context.Database, room, creature.Id)) continue;
+            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, room) <= grace) continue;
+            if (IsEquipped(world, room)) full = true;
+            else unequipped = room;
+        }
+
+        foreach (RoomInstance room in rooms)
+            if (HasPlace(world, context.Database, room, creature, forUnreachable: true)
+                && !CanReachRoom(context, creature, definition, room, IgnoreDoors))
+                return Post(context, player, PlayerMessageKind.RoomUnreachable, wants);
+        if (full) return Post(context, player, PlayerMessageKind.RoomFull, wants);
+        return unequipped is null ? null
+            : Post(context, player, PlayerMessageKind.RoomUnequipped, wants, SlabChain.FirstSlab(world, unequipped));
+    }
+
+    /// <summary>The finder's place test: two creatures' units for a Torture Chamber; a Casino passes
+    /// with a lever (<c>+0x53</c>) as well, except for 43, which wants both.</summary>
+    private static bool HasPlace(WorldState world, GameDatabase database, RoomInstance room, CreatureState creature,
+        bool forUnreachable = false)
+    {
+        int units = room.Definition.TypeId == RoomTypeId.TortureChamber ? 2 * RoomCapacityRules.Units : RoomCapacityRules.Units;
+        bool place = RoomCapacityRules.HasRoom(world, database, room, creature.Id, units);
+        if (room.Definition.TypeId != RoomTypeId.Casino) return place;
+        bool lever = CasinoRules.Lever(world, room) is not null;
+        return forUnreachable ? place && lever : place || lever;
+    }
+
+    /// <summary>Room <c>+0xA3</c> as each type's after-tile-change pass sets it: a Training Dummy (14)
+    /// or Target (29) attached (<c>0x004F2EA0</c>), a Torture Wheel or Electric Chair
+    /// (<c>0x004F1F10</c>), any interior tile for a Casino (<c>0x004D6ED0</c>); a Temple's is always 0.</summary>
+    public static bool IsEquipped(WorldState world, RoomInstance room) => room.Definition.TypeId switch
+    {
+        RoomTypeId.TrainingRoom => HasAttached(world, room, 14, 29),
+        RoomTypeId.TortureChamber => HasAttached(world, room, TortureRules.WheelObjectId, TortureRules.ElectricChairObjectId),
+        RoomTypeId.Casino => room.InteriorTileCount > 0,
+        _ => false,
+    };
+
+    private static bool HasAttached(WorldState world, RoomInstance room, byte first, byte second)
+    {
+        foreach (ObjectState thing in world.Objects)
+            if (thing.AutoPlaced && (thing.ObjectTypeId == first || thing.ObjectTypeId == second)
+                && EatingRules.Contains(room, thing.TileIndex))
+                return true;
+        return false;
+    }
+
     /// <summary>The unreachable test's option word, 2: own locked doors passed, no door rule.</summary>
     private const int IgnoreDoors = 0x02;
 
@@ -163,11 +248,11 @@ public static class RoomNeedRules
     }
 
     /// <summary>Posts, and reports a new record; a retained duplicate comes back unchanged and unreported.</summary>
-    private static PlayerMessage? Post(SimulationContext context, byte player, PlayerMessageKind kind, RoomTypeId room)
+    private static PlayerMessage? Post(SimulationContext context, byte player, PlayerMessageKind kind, RoomTypeId room, int roomTag = 0)
     {
         IReadOnlyList<PlayerMessage> entries = context.World.Messages.Entries;
         uint lastBefore = entries.Count == 0 ? 0 : entries[^1].Id;
-        PlayerMessage? posted = context.World.Messages.PostRoom(context.World, player, kind, room);
+        PlayerMessage? posted = context.World.Messages.PostRoom(context.World, player, kind, room, roomTag);
         if (posted is PlayerMessage message && message.Id != lastBefore && entries[^1].Id == message.Id)
             context.Emit(nameof(RoomNeedRules), "room_message",
                 $"player={player} kind={(int)kind} room={room} id={message.Id}");

@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**183** — `0x683FC33F7E712118`. The Training, Temple, Torture, Casino, Library and Workshop finders post 41, 43, 42 or the new 44 (its subtable) when they find no room; no new field. ADR-0353 stage 5.
+
 **182** — `0xDC5ABB62C9123E6F`. The claim 0x004E5A70 posts 42 when no other room of the type has a place the creature can reach, and for a Prison past its limit; a 42 for a type off its subtable keeps its terminator record a sweep; no new field. ADR-0353 stage 5.
 
 **181** — `0x402E9BC4C3C96C2A`. The room transfer and the defeat handover post 35 to the old owner and 32 or 33 to the new, with the 32 to 35 subtables; no new field. ADR-0353 stage 4.

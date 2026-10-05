@@ -8174,3 +8174,8 @@ that take a neutral Portal acknowledge its 33 (four Level 17 runs). Missed: Asmo
 one at t23, but Level 10 posts no message of any kind before t479, so the 33 is refused.
 Stage 5, the claim's 42 (hash 182): only treasury-full's world moves; Harkan's Training Room
 fills at t737 and, under policy 0, he lays two more Training tiles at t817 and t820.
+The finders (hash 183): only treasury-full's world moves; a creature that wants to pray at
+t803 brings Harkan a 41 Temple that takes his planner's next slot, so his Torture Chamber
+(t2805 before) is not laid. Elsewhere the new 41s add events and acknowledgements only.
+Unbuilt for want of a read field or modelled state: the rescue selector (Q542), the
+finders' remaining gates (Q543) and the Graveyard's messages (Q544).

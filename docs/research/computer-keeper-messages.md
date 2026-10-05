@@ -235,15 +235,24 @@ wait strictly more than four seconds after `room+0x9F`; `room+0xA3 == 0`
 selects 44 instead. This quirk needs a test with differing Lair/Library availability.
 
 The Casino (`0x004D75F0`), Temple (`0x004F1A20`), Torture (`0x004F2B80`),
-Training (`0x004F3560`) and Workshop (`0x004F6200`) finders also gate messages
-on availability 3 and pending build/sale. After the no-room 41 branch, the
-message precedence is unreachable 43, capacity 42, room-tagged 44. Capacity
-failures wait strictly more than four seconds after `room+0x9F`; a zero
-`room+0xA3` redirects that failure to 44. Workshop's existing-room failures
-also require nonzero player byte `+0xA1C`. Torture substitutes type 99 for 41
-when creature byte `+0x36F` is 4 and its owner equals the searched player.
-The captive Pit finder `0x004D8510` only posts 42/43/44 when a Pit already exists;
-it does not request a missing Pit. The shared capacity predicate is in
+Training (`0x004F3560`) and Workshop (`0x004F6200`) finders (read 2026-10-04)
+return a room the `0x80` route reaches with a place before any message. Otherwise,
+at availability 3 and behind the pending build/sale tests: no room 41; else a room
+with a place that route option 2 cannot reach 43; else a reached room without a
+place, more than four seconds past `room+0x9F`, 42 when its `+0xA3` is set and 44
+naming the last such room when not. `+0xA3` is written by each type's
+after-tile-change pass: a Training Dummy (14) or Target (29) attached
+(`0x004F2EA0`), a Torture Wheel or Electric Chair (`0x004F1F10`), an Anvil, Steel
+Bucket or Work Bench (`0x004F5530`), any interior tile for a Library, Combat Pit or
+(inferred) Casino; a Temple's is only zeroed, so a full Temple posts 44, never 42.
+Torture's place is two creatures' units (one unit free is silent) and its missing
+room is 99 when creature type `+0x36F` is 4, the Mistress. A Casino with a lever
+(`+0x53`) is a candidate without a place, and its 43 wants both; with player
+`+0xF4A` set it reads only rooms with `+0x41` (both unread). Workshop's 43/42/44
+also need player byte `+0xA1C`. Row 44 is `0xA000` with subtable `0x006A08E0`:
+types 1, 2 and 4 at 120 s, 6, 7 and 9–16 at 240 s, a terminator with a string.
+`0x004D8510` is the spectator finder (`combat-pit-spectators.md`): with a Pit and a
+fight on it posts 43/42/44, never 41. The shared capacity predicate is in
 `state-category-hooks.md` §3.5; Library storage and Workshop crate gates are
 in `library-and-research.md` §7 and `workshop-crates.md` §3.
 
@@ -373,7 +382,7 @@ event exists in our simulation):
 | 17, 18 | every anger path of ours (`CreatureAngerRules`, `AngerComplaint`) | make happy, dispose | yes (`KeeperMoodRemedies`) | — (`0x004D6A40`, the percentage site, is not ours) |
 | 32/33, 35 | the room transfer and the defeat handover (`RoomHealthRules.PostTransfer`) | Lair request, chooser | yes (`KeeperRoomRequests`) | — (`0x0044FC40`'s terrains 31/32 are not ours) |
 | 34 | none | room reader | no | hero blow (ours); job 11 (Q523, not ours) |
-| 41, 42 | carrier, sale refund, Lair, Hatchery, the claim's 42 (`RoomCapacityRules.Claim`) | room request | yes (ADR-0327) | the other finders, rescue, Lair-bed and Graveyard counts, `0x004BA420`'s other callers |
+| 41, 42 | carrier, sale refund, Lair, Hatchery, the claim's 42, the Training, Temple, Torture and Casino finders, Library and Workshop at 41 (`RoomNeedRules.NoJobRoomFor`) | room request | yes (ADR-0327) | Q542 rescue, Q543 finder gates, Q544 Graveyard; Lair-bed state 79 has no entry; door and trap sales, action 0x77 and `0x00499E50` are not ours |
 | 47 | Alarm | position reader | no: marked handled | — |
 
 The suppression fields in section 1 remain unimplemented.

@@ -325,6 +325,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         if (refused is null && !TrySetOut(context, creature, definition, job, wants!.Value))
         {
             refused = "no_room";
+            RoomNeedRules.NoJobRoomFor(context, creature, definition, wants.Value);
         }
 
         if (refused is not null)

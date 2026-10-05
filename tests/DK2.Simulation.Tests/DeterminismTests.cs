@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 182: the claim posts 42 when no room of the type has a place (ADR-0353).
+        // HashVersion 183: the job-room finders post 41 to 44 (ADR-0353).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xDC5ABB62C9123E6FUL, sim.StateHash());
+        Assert.Equal(0x683FC33F7E712118UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
