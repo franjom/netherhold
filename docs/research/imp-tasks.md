@@ -24,7 +24,7 @@ Q47); `DKII.EXE` v1.70 for the priority order (`imp-task-priority.md`).
 |---|---|
 | Imp and Dwarf are the game's workers, identified by a flag rather than by id | **CONFIRMED** — `IsWorker` falls on exactly those two (`ImpsOnRealDataTests.TheWorkerFlag_FallsOnExactlyTheImpAndTheDwarf`) |
 | A marked tile is dug, mined or dug-through according to its terrain flags and owner | **CONFIRMED** — the four kinds are mutually exclusive on the shipped data |
-| An idle worker re-evaluates every `ImpIdleDelayBeforeReevaluationSeconds` (5) | **CONFIRMED** — the variable names exactly this |
+| A worker whose search finds nothing rests in state 12 for 240 + rand(240) ticks, then searches again | **CONFIRMED** (binary, `0x00464110`; `imp-idle-and-wandering.md` §2). States 10 and 12 do not read `ImpIdleDelayBeforeReevaluationSeconds` |
 | Creature `speed` is in tiles per second | **STRONGLY INFERRED** (Q29) — see below |
 | Walkability follows `CanWalkOnWater` / `CanWalkOnLava` | **STRONGLY INFERRED** — the flags exist for nothing else |
 | **Job priority is two tiers: marked excavation then claiming, each whole-map; then the nearest of reinforcing and floor gold, wall first on a tie** | **READ from the binary and CONFIRMED by the owner twice** — the order in 2026-08 (Q24, ADR-0018), and that a marked wall beats gold near or far on 2026-09-05 (Q147). Gold's place is DK2's (Q146, ADR-0058); the distance metric is ours (Q25). `imp-task-priority.md` |
@@ -89,7 +89,7 @@ Global variables that name imps directly (`dk2tools kwd vars`):
 
 | id | variable | value | read by |
 |---|---|---|---|
-| 30 | `ImpIdleDelayBeforeReevaluationSeconds` | 5 | `ImpTaskSystem` |
+| 30 | `ImpIdleDelayBeforeReevaluationSeconds` | 5 | `GuardStep` (`guard-room.md`); not the imp's states 10 and 12 |
 | 94 | `MinimumImpThreshold` | 4 | `ImpSupplyRules` (`imps-and-mana.md`) |
 | 95 | `TimeBeforeFreeImpGeneratedSeconds` | 5 | `ImpSupplyRules` |
 | 110 | `InsufficientManaImpEvaluationPeriodSeconds` | 10 | nothing (Q57) |
@@ -143,8 +143,9 @@ Once per tick, for every creature flagged `IsWorker`, in spawn order:
 3. If it has gold in its hands and no job, it looks for somewhere to put the gold
    before it looks for work. The idle timer gates the search, so an imp with
    nowhere to unload does not sweep the dungeon every tick.
-4. If it is idle, it counts down; at zero it searches. A search that finds nothing
-   resets the count to `ImpIdleDelayBeforeReevaluationSeconds`.
+4. If it is idle (state 12), it rests until its deadline, then searches (state 10). A
+   search that finds nothing sets the deadline to now + 240 + rand(240) ticks
+   (`0x00464110`); a throttled one to now + 20 + rand(80) (`imp-idle-and-wandering.md` §2).
 5. If it is walking and is now in the working position for its job — **on** the
    target tile for floor work, orthogonally **beside** it for a wall (ADR-0028) —
    it starts working. If it has walked its whole route and is still not in

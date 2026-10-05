@@ -278,8 +278,8 @@ owner's Level 2 play. They dropped 20,000+ on one Heart tile. The Heart took
 
 - **The overflow.** The deposit `0x004F3C60` walks the room's tiles along its chain from
   the given tile, filling each tile's store pile (object 3) to 3000, or to 1000 on a Heart's
-  rim tiles (`0x004DA1B0`). What is left after a full pass becomes a floor pile (object 1,
-  neutral) on the starting tile, at one of §7's eight points.
+  rim tiles (`0x004DA1B0`); a pile it has to create costs a rand(0x800) on the world stream
+  (line `0x14F`, the pile's `+0xF4`/`+0x102`), which ours does not draw. What is left after a full pass is a neutral floor pile (object 1) on the starting tile, at one of §7's eight points.
 - **The sweep.** `0x004F47E0` walks the room's tiles; each gold-flagged object not a store
   pile (def `+0xF4` bit `0x40`) is deposited through `0x004F3C60` and destroyed, so what the
   store cannot take comes straight back down. For a Heart it needs room `+0x51` non-zero.
@@ -322,11 +322,11 @@ changed tile. The block has two arms.
 **The worker arm** (`0x0048904E`–`0x00489241`) is for a creature that is not Possessed
 (`+0x3E6` bit 7), whose definition is a worker (`+0x686` bit 0), and whose owner is a
 keeper (`player+0x10FC` at least 3). It works only while the purse is below `MaxGoldHeld`
-less variable 74 (`0x006F28B6`), the margin the imp's hands test `0x00464360` uses. It
-takes the **first** neutral gold pile whose centre lies strictly within `0x555` (a third of
-a tile) of the worker on both axes, once per tick. The take is what the purse lacks against
-the full maximum, or the whole pile if that is less. So an imp picks up gold it passes on
-the way to any job, outside the fetch state 27 (§9).
+less variable 74 (`0x006F28B6`), the margin the imp's hands test `0x00464360` uses. It walks
+only its own tile's thing list and takes the **first** neutral pile strictly within `0x555` of
+it on both axes, once per tick: what the purse lacks against the full maximum, or the whole
+pile if less. The claim on the way (`0x00464170`) runs before it, on a tile change only. So an
+imp picks up gold it passes on the way to any job, outside the fetch state 27 (§9).
 
 **The creature arm** (`0x00489246`–`0x0048954B`) takes everyone else: non-workers of any
 owner (a keeper's fighters, an enemy's, heroes, neutrals), possessed creatures, and hero or

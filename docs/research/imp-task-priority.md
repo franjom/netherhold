@@ -99,15 +99,15 @@ callback `0x00469340` chooses it: it grades the four neighbours in the order
 north, east, south, west (`0x00469460`, ranked by the byte table at
 `0x00698628`: a marked wall or seam 1, a rival's room 3, a rival's floor 4,
 unowned floor 5 — each only if it touches the keeper's floor — a wall to
-reinforce or repair 12, anything else 127) and keeps the first of the best. For
-the other kinds, which pass no chooser, nothing sets the side: the scan reads it
-from a local only the chooser writes (`0x00468DEB`, read at `0x00468E34`), so it
-starts on whatever the stack held, and a value above 3 skips ring 1's first side
-(`0x00468E38`). There is no draw (ADR-0294). A tile whose byte `+0xB` has bit `0x20` **set** is
-skipped unless it carries a dig or mine task. The bit is clear on tiles touching
+reinforce or repair 12, anything else 127) and keeps the first of the best. Every
+call first draws rand(4) on the world stream (`0x00468D54`) into the side slot
+(`0x00468D60`), and the chooser overwrites it (`0x00468DEB`) when one is passed, so
+the other kinds (6, 7, 8, 16) start on a random side (ADR-0351). In the rings a tile
+whose byte `+0xB` has bit `0x20` **set** is skipped unless it carries a dig or mine
+task; the own tile reaches the handler untested (`0x00468DA0`). The bit is clear on tiles touching
 anything the keeper owns, walls included (level2-live1), so for claims it is
 implied by the handler's own adjacency test; its writers are unread (Q487).
-Built for claims (ADR-0285); the drop scan's rings are still squares here (Q488).
+Built as `DiamondRings` for claims (ADR-0285), Tier B (ADR-0291) and the drop scan (ADR-0292).
 
 ### 2.3 The dispatch, and the two per-tile chains
 
@@ -192,7 +192,8 @@ The routine is not a Ghidra-defined function — it was read from the
 disassembly. In order:
 
 **(0) The cap.** Past the special-owner exit, a keeper's per-player counter
-(`player+0x7A`, zeroed each player frame) is tested: at 4 or more, the imp goes
+(`player+0x7A`, zeroed each player frame) is tested: at 4 or more (and `+0x9E`, the last
+search's turn, below now + 40, true for any past turn), the imp goes
 to 12 with its deadline at now + 20 + rand(80), the draw taken once 12 accepts
 it; otherwise the counter goes up and selection runs. A just-dropped imp skips
 this (read 2026-09-29, `0x00463E2C`–`0x00463E9C`).
@@ -203,7 +204,8 @@ argument: every task handler writes its own kind there as it takes a task
 corpse 12, carry 13), the claim state writes 3 again on finishing, and state 11
 zeroes it on a drop. When it is non-zero: if it equals `+0x9D` (the aimed kind of
 ADR-0069, `hand-of-evil.md` §6) that kind is searched whole-map first, and on
-failure `+0x9D` is cleared. Then its 36-byte record (`006986a0` + kind × 36) is
+failure `+0x9D` is cleared and it falls through, so a failed aimed claim is searched
+again by column 5 below: a second ring scan and rand(4) (`0x00463DF0`). Then its 36-byte record (`006986a0` + kind × 36) is
 read. Six dwords select searches: kinds 14, 13, 12, 9, 1, and the kind itself.
 In the shipped table **only the last is ever set, and only for kinds 1–5**; 6, 7,
 16 set only dwords this code never reads. So after a dig, a mine or a claim the
@@ -247,9 +249,6 @@ chain** as its per-tile callback: reinforce/fix → gold → objects → kind 11
 
 ### 4.1 Rescue is sixth to an idle imp and fourth to a dropped one
 
-Worth stating outright, because the Tier A position reads alarmingly on its own
-and the answer is two sections apart from the question.
-
 **An idle imp ranks carrying the unconscious 6th of 7**, and Tier A is
 unforgiving: the loop at `0x0046408B` walks the table strictly in order, passes
 `0x7FFFFFFF` as the radius every time, and stops at the first kind that takes.
@@ -291,14 +290,14 @@ whole-map kind has come up empty.
   the value is still unread).
 - **When to stop fetching (Q142, read):** `FUN_00464360(1)` tests the hands:
   full at the **level-scaled `MaxGoldHeld`** (level 1 unscaled; higher levels
-  through the MaxGoldHeld row) less variable 74, which ships no value. The kind
+  through the MaxGoldHeld row) less variable 74 (340 on every shipped level). The kind
   dispatcher's kind 7 (`0x00468520`) sends full hands to the **store chooser**
   (`FUN_00464400`); only the aimed retry reaches that arm. Tier B calls the gold
   handler `0x0046b6d0` directly, which makes the same test and only declines.
   So an imp tops up a part-load until its hands are full.
 - **After the pick-up (state 27, `0x00466850`, read 2026-09-29):** the piles
-  within `0x555` of the imp are taken up to the level-scaled cap, stopping once
-  full. Full hands then go to the store chooser, falling back to 10 when no store
+  strictly within `0x555` of the imp are taken, each min(pile, cap less held), stopping once
+  `0x00464360(1)` says full (cap less variable 74); other piles on the tile stay. Full hands then go to the store chooser, falling back to 10 when no store
   has room; a part-load goes to 10 and stays in the hands. **The pick-up takes no
   time** (Q143, re-read 2026-10-04, CONFIRMED). State 27 starts no action and waits on
   none: there is no call to `0x00496980` or `0x00496D00` in `0x00466850`–`0x00466A37`.

@@ -146,18 +146,18 @@ swings, −60 health apiece and 3000 in total.
 
 ### Which tile the load lands in (Q35)
 
-**READ from the binary (2026-09-05; `0x00464400` re-read 2026-09-26).** The carrier
-picks the nearest reachable Treasury or Heart below capacity, measuring to its
-`FirstSlab`. It starts at a random chain tile (`0x004E4D90`), follows the links,
-wraps at the tail and takes the first tile below capacity. Ours routes to that
-tile (ADR-0243) and puts the load down only there, crossing other store tiles with it;
-state 29 then hands the room the whole amount it has space for (ADR-0306).
-`GoldStore.Deposit`'s tile-index order survives only for the two cases with no
-carrier in them, paying for a room and refunds, and that order is **ours, not
-DK2's**; the withdrawal order is open (Q35). Totals are unaffected either way, and
-on shipped level 1 the observable outcome matches the original: 1000 into one
-heart tile, the rest into the next in the same visit, and back to the seam
-(`ALoadTooBigForOneHeartTileFillsTheNextInTheSameVisit`).
+**READ from the binary (2026-09-05; `0x00464400` re-read 2026-09-26 and 2026-10-05).** The carrier
+picks the nearest reachable Treasury or Heart below capacity, measuring to its `FirstSlab`. It
+starts at a random chain tile (`0x004E4D90`, one rand(`+0xA7`)), follows the links, wrapping, and
+takes the first tile with no class-2 thing on it, or with a store pile (kind 3) below
+`[0x006F25A4]`, the Treasury cap of 3000, on a Heart too; back at the start it gives up and tries
+no other room. It walks to one of the tile's eight outer third-cells, `0x00698C20[rand(8)]`. Ours
+(ADR-0243) takes the first tile with space (a Heart rim tile below 1000), tries the next room on
+failure and draws no rand(8). It puts the load down only there, crossing other store tiles with
+it; state 29 then hands the room the whole amount it has space for (ADR-0306).
+`GoldStore.Deposit`'s tile-index order (paying for a room, refunds) is **ours, not DK2's**; the
+withdrawal order is open (Q35). On shipped level 1 the outcome matches: 1000 into one heart tile,
+the rest into the next in the same visit (`ALoadTooBigForOneHeartTileFillsTheNextInTheSameVisit`).
 
 ---
 

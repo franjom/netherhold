@@ -84,7 +84,7 @@ about which activity each names rather than whether they exist.
 
 A second accessor at `0x00508300` sums `+0x469A` (a byte) with the words at
 `+0x4650`, `+0x4652` and `+0x4654` — `NumberOfFreeTasks`, `NextUniqueId` and
-`FreeListHead` by the dumper's names. `FUN_00512D20` compares `+0x4650` against
+`FreeListHead` by the dumper's names (the raise bumps `+0x4652` but never stores it: an entry's id is its slot's preset `+0x21`, `0x00507BB0`). `FUN_00512D20` compares `+0x4650` against
 **20** and marks through the pool only when it is above that.
 
 ### The pool is a pipeline, not a set of marks
