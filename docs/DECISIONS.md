@@ -8130,7 +8130,7 @@ the fresh scan's first deposit (Q539). Sight's shot (process 25, 64 updates, no
 collision) and the thing slot it would take are not created.
 
 ## ADR-0353 — The keeper's remaining messages: mood, room ownership, threat and room producers
-**Date:** 2026-10-04 · **Status:** in progress
+**Date:** 2026-10-04 · **Status:** accepted 2026-10-05 after two verifier passes
 
 **Context.** The keeper's walk (`0x004FA400`) reads types 1, 6, 12, 17, 18, 32–35, 41, 42
 and 47; ours consumed 1, 6, 41 and 42. A census of all 151 insert calls
