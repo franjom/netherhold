@@ -239,8 +239,8 @@ ruin acts on room types 5 (Dungeon Heart), 18 (Final), 20 (2x2, which first dest
 objects) and 23 (3x1) only: it sets `room+0x9A` bit 0 and walks the room's slab chain redrawing
 each tile (`0x004522A0`: minimap colour, tile notification 3, neighbour codes through `0x00450470`;
 `0x004EDC10`: the room tile's construction piece, whose gate selectors 11 and 13 do not read the
-ruin). No terrain is written; the direct callees write only the minimap word and the cell byte
-`+0xC`, and the posted tile event's consumers are unread. The heart builder `0x004DB700` is a third
+ruin). The callees read so far write only the minimap word and the cell byte `+0xC` (on a 3×3
+by `0x00450470`); four piece builders and the posted tile event's consumers are unread. The heart builder `0x004DB700` is a third
 caller, for a heart loaded at zero health.
 The ruin opens the claim test's second arm (`0x00454040`): a non-Attackable gate converts.
 

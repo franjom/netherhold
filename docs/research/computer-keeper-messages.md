@@ -305,8 +305,8 @@ The untag failure branch is unreachable in 1.70, **CONFIRMED** statically: the
 dispatcher returns the handler's result, and the startup constructor `0x00511A80`
 registers `0x005129E0` for id `0x29` in the `{id, handler}` list at `0x006A54B8`,
 which the world-init routine `0x005099A0` copies into the table (cleared at
-`0x00509A90`, copied at `0x00509ABD`–`0x00509AED`); that routine is the only table
-writer found, and the handler always returns 1. The
+`0x00509A90`, copied at `0x00509ABD`–`0x00509AED`); `GameAction_LoadLevel` clears and
+copies the same list again (`0x005139BC`–`0x005139EC`), and the handler always returns 1. The
 second availability call in each arm repeats the first, so its call to the room
 chooser `0x004F93B0` cannot run. The arms spend no allowance.
 

@@ -183,7 +183,7 @@ agrees: `ExpPerSecond` is read only by the update hook of state **category 22**
 |---|---|---|---|
 | `ImpExperienceGainPerSecond` (20) | balance table, global `0x006F295E` | **raw**, added once per original tick | **80** |
 | `ExpPerSecondTraining` (record) | creature record | divided by variable 19 at load, floored at 1 | the tabled figure, less the truncation |
-| `ExpPerSecond` (record) | creature record | divided by variable 19 at load | combat only; unreachable for a worker |
+| `ExpPerSecond` (record) | creature record | divided by variable 19 at load | combat only (states 199/200, `0x0047A870`); a worker earns it only when good, so the hero Dwarf does and the Imp never |
 
 **The Imp's `ExpPerSecond` of 1200 against a balance-table 20 is a coincidence,
 not a unit.** 20 × 60 = 1200 was written down here as evidence that the record's

@@ -56,6 +56,7 @@ current Level 1–3 baselines.
 | `VictoryRules.cs:109` | `BodyStandSquared`'s comment calls `0x004B2AE0` a position test; it is a turn step (Q400) |
 | `GateWalk.cs:40` | The `0x1000` cap is pushed by `0x004D0320` (`0x004D0967`), not held in `0x004D0150` |
 | `TriggerExecutor.cs` (~737) | Types 20 and 21 are declined, but their mood-class writer is known (Q269): build them |
+| `CategoryHooks.cs:262` | When the states 199/200 combat-experience hook is built, its gate is "not a worker, or good" (`0x0047A870`): the hero Dwarf earns `ExpPerSecond`, the Imp never |
 
 ## Asset pipeline (presentation only)
 

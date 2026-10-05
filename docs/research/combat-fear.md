@@ -35,7 +35,7 @@ dumper prints each by name.
 | `+0x526` | `CurrentFear` | word; last tick's intake, scaled by the heart distance |
 | `+0x528` | `OverThreatCounter` | byte; ticks over the threshold, clamped |
 | `+0x532` | `BackOffTimer` | byte; ticks of backing off left |
-| `+0x533`, `+0x535` | `ThreatThing`, `ThreatThingThreshold` | the tag radiating most at me; read only by the creature update `0x00488930`, which zeroes both |
+| `+0x533`, `+0x535` | `ThreatThing`, `ThreatThingThreshold` | the tag radiating most at me; the creature update `0x00488930` zeroes both; the threshold is also read by the accumulators `0x0045C5D0` and `0x0045E4F0`, and is only ever 0 |
 | `+0x52A`, `+0x52E` | `OldFightPos`, `OldFightTick` | stamped by the withdraw state; **read by state 1** (§8; "no reader" was wrong, corrected 2026-09-25) |
 | `+0x3D7` | `FearlessUntil` | set only by the Casino leave hook, after 120 of the Casino update's acts (150 game seconds) have made a creature `CasinoGamblingFearless`: `now + var19 × GamblingDelayBeforeBecomingFearlessSeconds` (`leave-hook-bodies.md` §1, built ADR-0322) |
 

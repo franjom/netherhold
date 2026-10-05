@@ -69,7 +69,8 @@ The five shipped party jobs take these arms:
   T + 1 dispatcher calls (one per turn) before state 176's handler
   first runs. The writers are exactly these: `SetState` zeroes it on every
   commit, the state-object constructor zeroes it, `0x00486CC0` arms it, the
-  dispatcher counts it down; the only other reader is the debug dump.
+  dispatcher counts it down. The animation chooser `0x0048BE50` also reads it
+  (`0x0048BF88`): while it is non-zero the hero keeps its current animation.
   Re-entering job 22 (state 1 sends a hero back through state 90) re-arms
   it at the later turn. Reachable: 6 leaders, 14 followers (they skip the
   standing job), 127 placed Good creatures and 7 script actions set
@@ -205,8 +206,9 @@ field, while a non-zero one is passed straight to `0x0048D010`. Fight
 entry uses mode 1 and zero, so it replaces the party cap with that
 creature's run speed. Later mode-0 calls restore that creature's own
 walk speed, not the party minimum.
-The shared party pace is therefore never restored. **CONFIRMED** by
-`0x004887D0`-`0x0048882D`, fight call `0x0045EBC9`, and the call sweep.
+The shared party pace is therefore not restored by any call read. **CONFIRMED** by
+`0x004887D0`-`0x0048882D`, fight call `0x0045EBC9`, and the call sweep, which does not
+reach the 22 calls through vtable `+0x8C` (`0x0048D010`); four of those were read.
 
 The level-stat arm at `0x00494BA4` divides its argument by variable 19
 and writes only definition `+0x5B4` at `0x00494BB7`. It neither calls

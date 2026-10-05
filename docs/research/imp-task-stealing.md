@@ -231,8 +231,8 @@ unlinks. So within kind 0, creatures are updated **newest first**, and a reused 
 to the front. Imps created by the same drop or portal in the same tick are updated in
 reverse creation order, and a thief older than its victim has its victim reselect in the
 same tick; a thief newer than its victim leaves it until the next tick. STRONGLY INFERRED
-that `[0x006E504C]` is world `+0x08`: the walker takes `LEA ECX,[world+8]` and the
-constructor is the only writer of eight zeroed heads.
+that `[0x006E504C]` is world `+0x08`: the walker takes `LEA ECX,[world+8]`, and the
+global is written only by the constructor `0x004B5A10` and the teardown `0x004B5FD0`.
 
 ## 9. What differs from the earlier reading
 
