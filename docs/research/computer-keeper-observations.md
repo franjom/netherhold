@@ -137,3 +137,52 @@ the world logs are the only source. The seeds differ, so compare when and where,
 equality: rooms at the same spots, tiles dug at nearly the same time, the same rooms built
 (fidelity by outcomes). Two of ours to check first: Harkan's Training drops (Q509) and,
 where a creature turns unhappy, whether he pays it or drops it in its Lair (ADR-0353).
+
+## First same-map comparison: Level 17, Harkan, 2,400 ticks (2026-10-05)
+
+Captured with the owner idle (full-state recorder plus `-PSAVE m12l17`; the driver and the
+decoder are local, gitignored tools). Ours is `level17_harkan_unassisted.yaml` run for 2,400
+ticks. The captures are not in the repository (about 26 MB); the numbers below are the record.
+
+**The packet record holds no action.** 2,403 turns, 0 actions, with the human idle (parsed with
+a port of `PacketLog`'s framing). So Harkan's actions bypass the packet stream: STRONGLY
+INFERRED, and the world state and the message queue are the only source for what he does.
+
+**Same start.** Player 4's gold at tick 1 is 10,000, as the scenario sets. Both sides convert
+their two Portals at nearly the same time (DK2 ticks 40 and 164; ours 36 and 149).
+
+**Different order, and a starved keeper on our side.**
+
+| | DK2 | ours |
+|---|---|---|
+| first gold tagged / mined | `GoldMined` 3,000 by tick 160, 30,000 by tick 700 (seam at (16..22, 2..3)) | footprint tag at tick 5 is a 25-tile Prison at (10,23)-(14,27); the seam is first tagged at tick 1,693 and mined at 1,970 |
+| gold | 10,000 -> 26,250 (tick 480) -> 31,410 (tick 855) | spent on Prison tiles (750 each) and out of gold from about tick 448 |
+| Prison | first tile at tick 855, centre (16,22), 25 tiles | first tile at tick 232, centre (12,23) |
+| after the Prison | gold 31,410 -> 0 by tick 1,920 on a Training Room growth (12 -> 20 tiles, about tick 1,200) and a stone bridge (tick 1,414) | about 1,180 `BuildRoomCommand`s refused `NotEnoughGold` (ticks 448-1,690), no Training growth, no bridge |
+
+DK2's Harkan digs gold first and builds when he has it; ours built first and starved, and the
+cause is the scenario, not the keeper: `placed_things` pays the PLAYERS record's 10,000 into the
+heart and `setup.players` deposits another 10,000, so ours held 20,000 and passed the room
+planner's `750 x DefaultRoomSize 25 = 18,750` test that DK2's 10,000 fails (KEEPER_AI.md §5.5).
+With `setup.players` gold at 0, ours tags the same seam from tick 3 and mines from tick 91,
+and the refused-command loop is gone. Ten keeper scenarios on campaign maps added gold this
+way; since 2026-10-05 a scenario's gold replaces the record's (`scenarios/README.md`).
+
+**What remains (Q546).** Ours mines four seam tiles by tick 284 (DK2's Harkan: eight of
+(16..22, 2..3) by tick 480, two more by 855), then an untag at tick 286 clears the seam, and
+from tick 158 ours tags a one-tile path along the map edge and builds no Prison; DK2 builds
+it at 855.
+
+**Why the path (traced 2026-10-05).** Harkan's room passes alternate the unaffordable Prison
+(-> the seam) with a neutral-Portal search. Ours claims its second Portal at tick 149 and, at
+tick 153, picks the neutral Portal at (53,6), about 40 tiles east: Harkan's
+`NeutralRoomRangeFromHeart` is 100, so the range test passes as KEEPER_AI.md §5.5 reads it.
+Player 5 claims that Portal at tick 161; a Task 7 bound for Task 4 does not abort, so the dig
+continues. Undiggable rock at (32..42, 7) starts a wall hug that follows the map edge: with
+`LineWalker` rebuilt to `0x00502230`/`0x005027D0` and re-measured, ours still tags about
+700 tiles from tick 158 to 2,236 (untags at 286 and 1,242). Whether one of the walker's
+listed deviations (computer-keeper-tasks.md §5) lengthens that hug is open. In DK2 (capture ticks, one behind the game's turn, ADR-0119) Harkan claims his
+second Portal at 164 and player 5 takes (53,6) at 165, and Harkan never digs east.
+HYPOTHESIS: DK2's next Portal pass fell after 165, so it found no neutral Portal; nothing
+here shows when that pass ran. Our Portal claims are earlier (36 vs 40, 149 vs 164); why is
+UNKNOWN.

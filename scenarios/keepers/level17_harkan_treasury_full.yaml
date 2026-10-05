@@ -13,9 +13,10 @@ setup:
     - { id: 1, gold: 0, mana: 0 }
     - { id: 2, gold: 0, mana: 0 }
     - { id: 3, gold: 0, mana: 0 }
-    # Exactly what Harkan's stores hold here (the run reports any gold with nowhere to
-    # go). The controlled need: nowhere left to put gold.
-    - { id: 4, gold: 75000, mana: 100 }
+    # Replaces the level's 10,000 (placed_things pays the record in). 75,000 left room: an imp
+    # stored 1,400 at tick 10. 85,000 is what this ran with while the harness added the
+    # level's gold on top. The controlled need: nowhere left to put gold.
+    - { id: 4, gold: 85000, mana: 100 }
     - { id: 5, gold: 10000, mana: 100 }
   objects:
     # A floor pile on Harkan's claimed floor beside its Treasury, for its imps to carry.

@@ -20,28 +20,22 @@ public enum WalkOutcome
     /// <summary>The current point is the target.</summary>
     Arrived,
 
-    /// <summary>Ran off the map, or hugged an obstacle all the way round without finding a way on.</summary>
+    /// <summary>Ran off the map, or hugged an obstacle back to where the hug began.</summary>
     Failed,
 }
 
 public readonly record struct WalkStep(WalkOutcome Outcome, TilePos Tile);
 
-/// <summary>Provisional corridor digger; discrepancies are audited in computer-keeper-tasks.md §5.</summary>
-/// <remarks>
-/// <para>From <see cref="KeeperAIState.DigRoomAtCurrent"/>, step one tile at a time
-/// along whichever axis is further from <see cref="KeeperAIState.DigRoomAt"/>. The
-/// first solid, water or lava tile met is handed back if it is diggable rock or a
-/// hazard.</para>
-/// <para>An undiggable obstacle is walked around: continue the straight line through
-/// it to find the far side, trial-walk both ways round and take the one that gets
-/// closer to the target, then follow the obstacle's edge (clockwise table, turning
-/// toward the wall), digging any diggable rock met, until the far side is reached and
-/// the straight walk resumes. Returning to where the hug began fails the task.</para>
-/// </remarks>
+/// <summary>Task 7's line and wall walker, <c>0x00502230</c>, with its side chooser
+/// <c>0x005027D0</c>. The rules, and where ours still differs, are in
+/// computer-keeper-tasks.md §5.</summary>
+/// <remarks>An undiggable obstacle starts a hug <b>from the cursor, not the obstacle</b>, and
+/// coming back to that cursor fails the walk. Until 2026-10-05 the hug began on the obstacle
+/// tile, which it never stands on, so the loop test could not fire.</remarks>
 public static class LineWalker
 {
-    /// <summary>Current trial bound; the binary audit establishes 25, pending the traversal correction.</summary>
-    public const int TrialSegments = 24;
+    /// <summary>A trial stops after this many segments (<c>0x00502AE9</c>, <c>0x00502E42</c>).</summary>
+    public const int TrialSegments = 25;
 
     public static WalkStep Step(KeeperView view, KeeperAIState s)
     {
@@ -49,7 +43,7 @@ public static class LineWalker
         {
             WalkStep straight = StraightWalk(view, s);
             if (straight.Outcome != WalkOutcome.Moved) return straight;
-            // Moved into hugging mode; fall through and hug at once.
+            // A hug was started; DK2 hugs in the same call.
         }
         return Hug(view, s);
     }
@@ -58,15 +52,12 @@ public static class LineWalker
     {
         TilePos pos = s.DigRoomAtCurrent;
         TilePos target = s.DigRoomAt;
-        int stepDx = 0, stepDy = 0;
+        int stepDx, stepDy;
 
         while (true)
         {
-            if (pos == target)
-            {
-                s.DigRoomAtCurrent = pos;
-                return new WalkStep(WalkOutcome.Arrived, pos);
-            }
+            // DK2 returns 0 here without moving the cursor.
+            if (pos == target) return new WalkStep(WalkOutcome.Arrived, pos);
             (stepDx, stepDy) = Toward(pos, target);
             pos = new TilePos(pos.X + stepDx, pos.Y + stepDy);
             if (!view.InBounds(pos)) return new WalkStep(WalkOutcome.Failed, pos);
@@ -84,155 +75,190 @@ public static class LineWalker
             return new WalkStep(WalkOutcome.Hazard, pos);
         }
 
-        // Undiggable rock. Continue the line through it to find the far side.
+        // Undiggable rock. Continue the line through it to find the exit.
         TilePos exit = pos;
-        while (true)
+        do
         {
             (int ex, int ey) = Toward(exit, target);
             exit = new TilePos(exit.X + ex, exit.Y + ey);
             if (!view.InBounds(exit)) return new WalkStep(WalkOutcome.Failed, exit);
-            if (view.IsDiggable(exit) || !view.IsSolid(exit) || view.IsLava(exit)) break;
-            if (exit == target) break;
         }
+        while (!view.IsDiggable(exit) && view.IsSolid(exit) && !view.IsLava(exit));
 
+        TilePos cursor = s.DigRoomAtCurrent;
         s.WallHug = true;
-        s.WallHugStart = pos;
+        s.WallHugStart = cursor;
         s.WallHugEnd = exit;
         s.WallHugDistance = KeeperView.DistanceSquared(pos, target);
-        s.WallHugHeading = KeeperDirections.HeadingOf(stepDx, stepDy);
-        s.DigRoomAtCurrent = pos;
-        s.WallHugLeft = Trial(view, pos, exit, target, s.WallHugDistance, s.WallHugHeading);
-        s.WallHugHeading = (s.WallHugHeading + (s.WallHugLeft ? 1 : -1)) & 3;
-        return new WalkStep(WalkOutcome.Moved, pos);
+        int heading = KeeperDirections.HeadingOf(stepDx, stepDy);
+        s.WallHugLeft = ChooseSide(view, cursor, exit, target, s.WallHugDistance, heading);
+        s.WallHugHeading = (heading + (s.WallHugLeft ? 1 : -1)) & 3;
+        return new WalkStep(WalkOutcome.Moved, cursor);
     }
 
     private static WalkStep Hug(KeeperView view, KeeperAIState s)
     {
         TilePos pos = s.DigRoomAtCurrent;
         int heading = s.WallHugHeading;
-        int guard = view.Width * view.Height * 4;
+        int rotate = s.WallHugLeft ? 1 : -1;
+        int guard = view.Width * view.Height * 4; // DK2 has none; a cycle missing the start would spin
 
-        while (pos != s.WallHugEnd && guard-- > 0)
+        while (pos != s.WallHugEnd)
         {
+            if (guard-- <= 0) return new WalkStep(WalkOutcome.Failed, pos);
             int d = KeeperView.DistanceSquared(pos, s.DigRoomAt);
             if (d <= s.WallHugDistance) s.WallHugDistance = d;
 
-            // Turn toward the wall first; if that is open ground, take it.
-            int turn = (heading + (s.WallHugLeft ? -1 : 1)) & 3;
-            TilePos next = Neighbour(pos, turn);
-            int chosen;
-            if (view.IsDiggable(next))
+            // Turn toward the wall first.
+            int chosen = (heading - rotate) & 3;
+            TilePos next = Neighbour(pos, chosen);
+            if (view.IsDiggable(next)) return Dig(s, next, chosen);
+            if (!HugOpen(view, next))
             {
-                s.DigRoomAtCurrent = next;
-                s.WallHugHeading = turn;
-                return new WalkStep(WalkOutcome.Dig, next);
-            }
-            if (Open(view, next))
-            {
-                chosen = turn;
-            }
-            else
-            {
-                // Otherwise rotate away from the wall until something opens.
-                int dir = heading;
+                // Otherwise rotate away from the wall, from the current heading.
+                chosen = heading;
                 bool found = false;
                 for (int i = 0; i < 4; i++)
                 {
-                    next = Neighbour(pos, dir);
-                    if (view.IsDiggable(next))
-                    {
-                        s.DigRoomAtCurrent = next;
-                        s.WallHugHeading = dir;
-                        return new WalkStep(WalkOutcome.Dig, next);
-                    }
-                    if (Open(view, next))
+                    next = Neighbour(pos, chosen);
+                    if (view.IsDiggable(next)) return Dig(s, next, chosen);
+                    if (HugOpen(view, next))
                     {
                         found = true;
                         break;
                     }
-                    dir = (dir + (s.WallHugLeft ? 1 : -1)) & 3;
+                    chosen = (chosen + rotate) & 3;
                 }
-                if (!found)
-                {
-                    s.DigRoomAtCurrent = pos;
-                    return new WalkStep(WalkOutcome.Failed, pos);
-                }
-                chosen = dir;
+                if (!found) return new WalkStep(WalkOutcome.Failed, pos);
             }
 
-            pos = Neighbour(pos, chosen);
+            pos = next;
             heading = chosen;
-            if (pos == s.WallHugStart)
-            {
-                s.DigRoomAtCurrent = pos;
-                return new WalkStep(WalkOutcome.Failed, pos);
-            }
+            // DK2 leaves the cursor where it was and returns 0.
+            if (pos == s.WallHugStart) return new WalkStep(WalkOutcome.Failed, pos);
         }
 
         s.DigRoomAtCurrent = pos;
         s.WallHugHeading = heading;
         s.WallHug = false;
-        return new WalkStep(guard > 0 ? WalkOutcome.Moved : WalkOutcome.Failed, pos);
+        return new WalkStep(WalkOutcome.Moved, pos);
+    }
+
+    private static WalkStep Dig(KeeperAIState s, TilePos tile, int heading)
+    {
+        s.DigRoomAtCurrent = tile;
+        s.WallHugHeading = heading;
+        return new WalkStep(WalkOutcome.Dig, tile);
     }
 
     /// <summary>
-    /// Walk both ways round from <paramref name="start"/> toward <paramref name="end"/>,
-    /// up to <see cref="TrialSegments"/> segments each (a segment ends where the
-    /// hug would dig), and report whether the "+1" turn gets closer to the target.
+    /// <c>0x005027D0</c>: true for the heading-plus-one side. Each side walks up to
+    /// <see cref="TrialSegments"/> segments from <paramref name="start"/>; a segment ends where
+    /// the hug would dig, and the next starts on that tile. A first side that loops back to the
+    /// start chooses the other at once, a second that loops chooses the first. A first that
+    /// reaches the exit bounds the second by its segment count; otherwise the smaller minimum
+    /// squared distance to the target wins, ties to the second side.
     /// </summary>
-    private static bool Trial(KeeperView view, TilePos start, TilePos end, TilePos target, int startDistance, int heading)
+    public static bool ChooseSide(KeeperView view, TilePos start, TilePos end, TilePos target, int distance, int heading)
     {
-        int plus = TrialOneWay(view, start, end, target, startDistance, heading, left: true);
-        int minus = TrialOneWay(view, start, end, target, startDistance, heading, left: false);
-        return plus < minus;
+        int bound = 50; // 0x32, replaced by the first side's count when it arrives
+        int first = Trial(view, start, end, target, distance, heading, plus: true, int.MaxValue,
+            out bool firstLooped, out bool firstArrived, out int firstSegments);
+        if (firstLooped) return false;
+        if (firstArrived) bound = firstSegments;
+        int second = Trial(view, start, end, target, distance, heading, plus: false, bound,
+            out bool secondLooped, out _, out _);
+        if (secondLooped) return true;
+        if (second < 0) return true; // ran past the first side's segment count
+        return first < second;
     }
 
-    private static int TrialOneWay(KeeperView view, TilePos start, TilePos end, TilePos target, int startDistance, int heading, bool left)
+    /// <summary>One side's walk: the minimum squared distance seen, 0 on reaching the exit, or
+    /// -1 when the segment bound ran out first (only the second side has one).</summary>
+    private static int Trial(KeeperView view, TilePos start, TilePos end, TilePos target, int distance,
+        int heading, bool plus, int bound, out bool looped, out bool arrived, out int segments)
     {
-        int best = startDistance;
-        TilePos pos = start;
-        int h = (heading + (left ? 1 : -1)) & 3;
+        looped = false;
+        arrived = false;
+        int rotate = plus ? 1 : -1;
+        int h = (heading + rotate) & 3;
+        int best = distance;
+        TilePos segmentStart = start;
         int guard = view.Width * view.Height * 4;
 
-        for (int segment = 0; segment < TrialSegments && pos != end && guard > 0; segment++)
+        for (segments = 0; ; )
         {
-            while (pos != end && guard-- > 0)
+            if (segments > bound) return -1;
+            TilePos pos = segmentStart;
+            while (true)
             {
-                best = Math.Min(best, KeeperView.DistanceSquared(pos, target));
-                int turn = (h + (left ? -1 : 1)) & 3;
-                TilePos next = Neighbour(pos, turn);
-                int chosen = -1;
-                if (view.IsDiggable(next) || Open(view, next))
+                if (pos == end)
                 {
-                    chosen = turn;
+                    arrived = true;
+                    return 0;
                 }
-                else
+                if (guard-- <= 0) return best;
+                int d = KeeperView.DistanceSquared(pos, target);
+                if (d <= best) best = d;
+
+                int chosen = (h - rotate) & 3;
+                TilePos next = Neighbour(pos, chosen);
+                // Only the second side's first attempt also tests lava (0x00502C2A).
+                if (view.IsDiggable(next) && (plus || !view.IsLava(next)))
                 {
-                    int dir = h;
+                    segmentStart = next;
+                    h = chosen;
+                    break;
+                }
+                if (!TrialOpen(view, next))
+                {
+                    chosen = h;
+                    bool found = false;
+                    bool dig = false;
                     for (int i = 0; i < 4; i++)
                     {
-                        next = Neighbour(pos, dir);
-                        if (view.IsDiggable(next) || Open(view, next))
+                        next = Neighbour(pos, chosen);
+                        if (view.IsDiggable(next) && !view.IsLava(next))
                         {
-                            chosen = dir;
+                            dig = true;
                             break;
                         }
-                        dir = (dir + (left ? 1 : -1)) & 3;
+                        if (TrialOpen(view, next))
+                        {
+                            found = true;
+                            break;
+                        }
+                        chosen = (chosen + rotate) & 3;
+                    }
+                    if (!found)
+                    {
+                        // A dig ends the segment on that tile; blocked all round, four turns bring
+                        // the heading back and DK2 ends it on the tile ahead.
+                        segmentStart = dig ? next : Neighbour(pos, chosen);
+                        h = chosen;
+                        break;
                     }
                 }
-                if (chosen < 0) return best;
-                pos = Neighbour(pos, chosen);
+                pos = next;
                 h = chosen;
-                if (pos == start) return best;
-                if (view.IsDiggable(pos)) break; // a segment ends where digging would happen
+                if (pos == start)
+                {
+                    looped = true;
+                    return best;
+                }
             }
+            if (++segments >= TrialSegments) return best;
         }
-        if (pos == end) return 0;
-        return best;
     }
 
-    private static bool Open(KeeperView view, TilePos p) =>
+    /// <summary>The hug's open test: terrain neither solid nor lava (<c>+0x17B</c> bits 0 and 8).</summary>
+    private static bool HugOpen(KeeperView view, TilePos p) =>
         view.InBounds(p) && !view.IsSolid(p) && !view.IsLava(p);
+
+    /// <summary>The trial's open test is the navigation query (world vtable <c>+0x208</c>), which
+    /// ours stands in for with terrain solidity.</summary>
+    private static bool TrialOpen(KeeperView view, TilePos p) =>
+        view.InBounds(p) && !view.IsSolid(p);
 
     private static TilePos Neighbour(TilePos p, int heading)
     {
@@ -240,10 +266,12 @@ public static class LineWalker
         return new TilePos(p.X + dx, p.Y + dy);
     }
 
+    /// <summary>DK2's step is <c>(diff &gt;&gt; 31) * 2 + 1</c>: never zero, +1 on a zero
+    /// difference, so the exit search cannot stall on the target.</summary>
     private static (int Dx, int Dy) Toward(TilePos from, TilePos to)
     {
         int dx = to.X - from.X, dy = to.Y - from.Y;
-        if (Math.Abs(dy) < Math.Abs(dx)) return (Math.Sign(dx), 0);
-        return (0, Math.Sign(dy));
+        if (Math.Abs(dy) < Math.Abs(dx)) return (dx < 0 ? -1 : 1, 0);
+        return (0, dy < 0 ? -1 : 1);
     }
 }

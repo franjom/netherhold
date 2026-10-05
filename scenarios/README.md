@@ -94,6 +94,11 @@ to keep it in gets a report line saying how much had nowhere to go rather than a
 silent number. Give the player a `Treasury` or a `Dungeon Heart` in `setup.rooms`
 first. Mana is a player-level pool and needs no room.
 
+With `placed_things: true` the level's PLAYERS record already pays each keeper's starting
+gold into its heart. A positive `gold` here **replaces** that amount rather than adding to
+it; `0` leaves the level's own. (Until 2026-10-05 it was added on top, which gave Level 17's
+Harkan 20,000 where DK2 gives 10,000.)
+
 ### `setup.rooms`
 
 Lays room terrain down before tick 0, owned by `player` (default 0). `size` is

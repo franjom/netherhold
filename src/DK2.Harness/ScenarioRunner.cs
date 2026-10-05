@@ -202,12 +202,12 @@ public sealed class ScenarioRunner
 
         // The level's own contents before the scenario's, so a scenario that
         // asks for both is adding to the shipped level rather than racing it.
-        PlaceShippedThings(scenario, world, unsupported);
+        HashSet<byte> goldPaidByLevel = PlaceShippedThings(scenario, world, unsupported);
 
         // Rooms first, gold second: gold has to be stored somewhere, and a
         // treasury is the only somewhere there is.
         PlaceRooms(scenario, world, unsupported);
-        PlaceResources(scenario, world, unsupported);
+        PlaceResources(scenario, world, unsupported, goldPaidByLevel);
         SpawnCreatures(scenario, world, unsupported);
 
         TriggerTree? triggers = ResolveShippedTriggers(scenario, campaignLevel);
@@ -507,7 +507,8 @@ public sealed class ScenarioRunner
     /// Applies starting mana, and stores starting gold — which can only go where
     /// there is room for it.
     /// </summary>
-    private void PlaceResources(Scenario scenario, WorldState world, List<string> unsupported)
+    private void PlaceResources(Scenario scenario, WorldState world, List<string> unsupported,
+        HashSet<byte> goldPaidByLevel)
     {
         foreach (ScenarioPlayer p in scenario.Setup.Players)
         {
@@ -520,7 +521,7 @@ public sealed class ScenarioRunner
                     world.Player(p.Id).Availabilities.Add(new AvailabilityState(KeeperSpellRules.SpellAvailabilityKind, spell, 3));
             }
 
-            if (p.Gold <= 0) continue;
+            if (p.Gold <= 0 || goldPaidByLevel.Contains(p.Id)) continue;
 
             int stored = GoldStore.Deposit(world, _database, p.Id, p.Gold);
             if (stored == p.Gold) continue;
@@ -810,15 +811,20 @@ public sealed class ScenarioRunner
     /// than ignored on a synthetic map: a scenario that says <c>placed_things: true</c> over
     /// <c>flat_24x20</c> is asking for something that does not exist, and silently giving it an
     /// empty level would make the scenario look like it had run.</summary>
-    private void PlaceShippedThings(Scenario scenario, WorldState world, List<string> unsupported)
+    /// <returns>The players whose starting gold the level's heart record paid in, with the
+    /// scenario's <c>setup.players[].gold</c> standing in for the record's amount. Their gold is
+    /// not deposited a second time: adding it on top gave Harkan 20,000 where DK2 gives 10,000,
+    /// enough to pass the room planner's cost test DK2's keeper fails.</returns>
+    private HashSet<byte> PlaceShippedThings(Scenario scenario, WorldState world, List<string> unsupported)
     {
-        if (!scenario.Setup.PlacedThings) return;
+        var paid = new HashSet<byte>();
+        if (!scenario.Setup.PlacedThings) return paid;
 
         if (!scenario.Map.StartsWith(CampaignPrefix, StringComparison.OrdinalIgnoreCase))
         {
             unsupported.Add(
                 $"setup.placed_things needs a '{CampaignPrefix}' map; '{scenario.Map}' has no THINGS file");
-            return;
+            return paid;
         }
 
         string level = scenario.Map[CampaignPrefix.Length..].Trim();
@@ -830,10 +836,21 @@ public sealed class ScenarioRunner
             ?? throw new InvalidOperationException(
                 $"No THINGS file for campaign level '{level}' under Data/editor/maps.");
 
-        // The players too: a heart's record pays its keeper's starting gold in.
+        // The players too: a heart's record pays its keeper's starting gold in. A scenario's
+        // positive gold replaces the record's amount; zero leaves the level's own.
         List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(_installDir, level);
-        ThingProjectionResult result = ThingProjection.Place(
-            world, _database, things, players?.ToDictionary(p => p.PlayerId, p => p.StartingGold));
+        Dictionary<byte, int>? startingGold = players?.ToDictionary(p => p.PlayerId, p => p.StartingGold);
+        if (startingGold is not null)
+            foreach (ScenarioPlayer p in scenario.Setup.Players)
+                if (p.Gold > 0 && startingGold.ContainsKey(p.Id))
+                {
+                    startingGold[p.Id] = p.Gold;
+                    paid.Add(p.Id);
+                }
+        ThingProjectionResult result = ThingProjection.Place(world, _database, things, startingGold);
+        // The record pays only through a placed heart; without one the scenario's deposit stands.
+        paid.RemoveWhere(id => !RoomIndex.Build(world, _database).Any(
+            r => r.OwnerPlayerId == id && r.Definition.TypeId == RoomTypeId.DungeonHeart));
 
         // Reported, not swallowed. Doors, traps, hero parties and effect
         // generators have nowhere to go yet, so a scenario built on a level
@@ -842,6 +859,7 @@ public sealed class ScenarioRunner
             unsupported.Add(
                 $"{level}: {result.NotYetProjected} placed things this build cannot project yet "
                 + "(doors, traps, hero parties, effect generators)");
+        return paid;
     }
 
     private TriggerTree? ResolveShippedTriggers(Scenario scenario, string? campaignLevel)

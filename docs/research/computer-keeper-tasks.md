@@ -148,7 +148,18 @@ can introduce one is UNKNOWN.
 ## 5. Corridor execution and wall-hug audit
 
 Independent instruction check, 2026-09-28; **STRONGLY INFERRED** without a
-matching original command trace. The current `LineWalker` approximation differs.
+matching original command trace. `LineWalker` follows both functions since 2026-10-05
+(records `0x00502230`, `0x005027D0`). Where ours still differs:
+
+- Navigation solidity (world vtable `+0x208`, nonzero is blocked), used by the exit search
+  and the trial's open test, is stood in for by terrain solidity.
+- DK2 has no map-bounds test in the straight walk or the exit search; ours fails the walk
+  off the map. Its hug has no step guard; ours fails after width x height x 4 steps.
+- A hug blocked on all four sides returns 1 with the cursor on the tile ahead
+  (`0x00502760`); ours fails the walk.
+- The trial's player-tag exclusion is not modelled: the caller passes 0, and a diggable
+  tile whose tag word (`+0x08 & 0xFFF`) is 0 would count as not diggable. No tile of the
+  Level 17 capture carries tag 0 at tick 1; the other shipped maps are unchecked.
 
 `0x004FDC50` spends allowance on the **current cursor tile before advancing**:
 water/lava attempt a bridge, taggable terrain attempts a dig tag, other terrain
