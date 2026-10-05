@@ -140,7 +140,8 @@ public static class RoomNeedRules
     }
 
     /// <summary>The creature type <c>0x004F2B80</c> tests (<c>+0x36F == 4</c>): the Mistress, whose
-    /// missing Torture Chamber is message 99, not 41. Ours does not carry 99.</summary>
+    /// missing Torture Chamber is message 99, not 41, when its owner (<c>+0x28</c>) is the searching
+    /// player, as it always is here: ours searches for the creature's owner. Ours does not carry 99.</summary>
     public const byte MistressCreatureId = 4;
 
     /// <summary>A job-room finder found no room (computer-keeper-messages.md §2): Training
