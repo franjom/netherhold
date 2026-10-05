@@ -240,9 +240,10 @@ public class Level17TreasuryNeedScenarioTests(ITestOutputHelper output)
             .Where(b => b.RoomId == (byte)RoomTypeId.Treasury).SelectMany(b => b.Tiles).Distinct().OrderBy(t => t.X).ToList();
         Assert.Equal([new TilePos(12, 4), new TilePos(13, 4), new TilePos(14, 4), new TilePos(15, 4)], built);
 
-        // The added capacity is used: gold is delivered into the new row.
-        Assert.Contains(run.Events, e => e.Kind == "gold_delivered" && e.Detail.Contains("player=4", StringComparison.Ordinal)
-            && built.Any(t => e.Detail.Contains($"at=({t.X},{t.Y})", StringComparison.Ordinal)));
+        // Whether a later load lands in the new row is left open: it depends on what Harkan spends
+        // meanwhile. Since ADR-0355 a Heart rim tile takes a carrier whatever it holds, and in this
+        // run the Heart absorbs every later load; before it, the loads reached the new row only
+        // through a loop of Heart overflow piles fetched and carried back.
     }
 }
 

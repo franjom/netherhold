@@ -112,8 +112,9 @@ divided by variable 19); its regeneration is variable 131
 loader at 0x0052156D. With `pct` 0 the builder ruins the room (`0x004E9130(1)` sets
 `room+0x9A` bit 0) and 0x004DB77D skips the heart block: a ruined heart room with no
 heart object. Level 7's heart (1) should start at 1000 — STRONGLY INFERRED, as it
-assumes bit 4 of `player+0x76` is clear at load and the heart is `Damageable`. Ours
-ignores the percentage: Level 7 and Level 8 start at 100000.
+assumes bit 4 of `player+0x76` is clear at load and the heart is `Damageable`. Built as
+ADR-0360 (`ThingProjection.BuildHeart`): Level 7's rival heart starts at 1000, Level 8's is a
+ruin and its starting gold is not paid.
 
 **The room frame.** `0x004D9A60` is the Dungeon Heart room's update. Its body at
 `0x004D9EFB` walks the room's object list (`word[room+0xE]`, next at

@@ -63,10 +63,21 @@ public static class PortalRules
         CreatureState creature = world.SpawnCreature(database, creatureTypeId, portal.OwnerPlayerId,
             new TilePos(entrance % world.Width, entrance / world.Width));
         world.TileAtIndex(entrance).EntranceCreaturesGenerated++;
+        creature.PortalEntranceTile = entrance;
         // A keeper portal's creature enters 193 (a Hero Portal's enters 278, not built).
         if (IsKeeperPortal(portal.Definition))
             CreatureStateMachine.TrySetState(hooks, creature, JoiningState, world.CurrentTick.Value);
         return creature;
+    }
+
+    /// <summary>A creature's death gives its portal's slot back: <c>Creature_DeathBookkeeping</c>
+    /// (<c>0x00487C70</c>, <c>0x00488150</c>–<c>0x00488170</c>) decrements the tally of the portal
+    /// that stamped it, never below zero, with no test that the room is still a portal (Q508).</summary>
+    public static void ArrivalDied(WorldState world, CreatureState creature)
+    {
+        if (creature.PortalEntranceTile < 0) return;
+        ref TileState tile = ref world.TileAtIndex(creature.PortalEntranceTile);
+        if (tile.EntranceCreaturesGenerated > 0) tile.EntranceCreaturesGenerated--;
     }
 
     /// <summary>State 193, joining your Dungeon (<c>0x00459C20</c>).</summary>

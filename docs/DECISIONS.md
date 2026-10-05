@@ -8203,3 +8203,118 @@ would. Not built: the selector's 41/42/43 (Q542) and state 44's retry of another
 **Measured** (hash 185): only that run moved. Its body refused at t215 (its cell taken by
 a wandering prisoner) lies at rim tile (7, 5), not (5, 4), and is imprisoned at t225, not
 t218; every expectation holds.
+
+## ADR-0355 — The gold carrier's store tile, and the draws a store pile takes
+**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0243 and ADR-0285
+
+**Context.** The 2026-10-05 verification audit re-read the store chooser `0x00464400` and the
+deposits `0x004F3C60` and `0x004F4090` blind (`build/verification/2026-10-05/blind/`). Ours
+differed in four ways:
+
+1. The chooser takes the first chain tile with **no object on it**, or whose store pile holds
+   less than the **Treasury** tile cap (3000, on a Heart too), not the first with space. Back
+   at its random start tile it fails, and no other room is tried.
+2. It walks the carrier to one of eight points of that tile, `0x00698C20[rand(8)]` (line
+   `0x2FC`), not to the tile's centre.
+3. Each store pile a deposit creates draws rand(0x800) on the world stream (lines `0x14F` and
+   `0x207`). Ours keeps store gold as tile state and drew nothing.
+4. The sweep `0x004F47E0` deposits each loose pile and **destroys it**, so a leftover goes back
+   down as a new pile at one of eight points (rand(8)); and the Treasury sweeps only while not
+   full (`0x004F39A0`). Ours kept the pile and swept a full Treasury.
+
+**Decision.** `GoldStore.DepositTileAlongChain` tests DK2's acceptance; a tile holding gold is
+a tile with a pile, because `0x004F4510` deletes a pile its last gold leaves.
+The Heart builder's objects (`0x004DB700`: Arch Pillars on chain tiles 7, 16 and 18, the heart
+and its obstacle on 12), which ours does not keep as objects, make those tiles refuse a carrier.
+`TryRouteToSomewhereItFits` tries only the nearest reachable room, draws the walk point and
+fails without a message when the tile or the walk fails. `GoldStore.PutOn` draws for each
+new pile; `GoldStore.DepositFrom` is the whole of `0x004F3C60`, shared by state 29 and the
+sweep. `StoreSweepSystem` walks each store's chain, gates the Treasury on its tally and
+destroys each swept pile. The starting gold paid at load (ADR-0270) draws nothing: when
+DK2's world stream is seeded relative to the THINGS load is unread. Not modelled: the room
+effect `0x004F3C60` plays before the draw when the room definition's `+0x425` is set, and
+whether that effect draws.
+
+**Prediction.** Every run with a gold carrier or a store sweep moves from its first new
+store pile on. The Level 1 and 2 rigs move by stream shift; neither should change its
+outcome distribution beyond seed variance.
+
+## ADR-0356 — A failed aimed claim retry searches for a claim twice
+**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0351
+
+**Context.** State 10 (`0x00463DF0`) runs the aimed retry and, when it fails, clears the aim
+at `0x00463EEC` and falls straight into the per-kind record at `0x00463EF3`. For a claim,
+column 5 runs the claim search again, and its ring scan draws a second rand(4)
+(`0x00468D54`, ADR-0351). Ours used `else if`, so it searched once.
+
+**Decision.** `TryTakeJob` falls through. A dig or mine repeat draws nothing; a claim repeat
+draws one rand(4) more after every failed aimed claim retry.
+
+## ADR-0357 — Mana above the ceiling is clamped, not drained
+**Date:** 2026-10-05 · **Status:** accepted
+
+**Context.** Q545. `0x004C10E0` adds the second's net to the player's mana; a net that is not
+negative then cuts it to the ceiling `+0x10EA` in one step (`0x004C11DD`–`0x004C11E7`), and a
+negative net only floors it at zero (`0x004C11CB`–`0x004C11D1`).
+`ExcessManaDecreaseRatePerSecond` has no absolute-address reader but its loader (a
+table-relative reader is not excluded). Ours drained the excess at
+that variable's 5 a second, an inference never read.
+
+**Decision.** `ManaRules.ApplyOneSecond` adds the net and clamps as DK2 does;
+`ExcessDrainPerSecond` is removed.
+
+## ADR-0358 — A portal creature's death lowers its portal's tally
+**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0271
+
+**Context.** Q508. `Portal_CreateArrival` (`0x004DC9A0`) stamps the portal room's tag into the
+creature's `+0x4EB`, and `Creature_DeathBookkeeping` (`0x00487C70`, `0x00488150`–`0x00488170`)
+decrements that room's tally when it is above zero, with no test that the room is still a
+portal. Level 3 seed 01 shows it: the tally fell 6 → 5 as the portal-born Firefly died.
+
+**Decision.** `CreatureState.PortalEntranceTile` holds the portal's centre tile, which holds
+our tally; `CreatureHealthSystem.Die` calls `PortalRules.ArrivalDied`. Deviates: DK2 stamps a
+room tag, so a portal rebuilt on the same tile is a new room there and the same one here.
+
+## ADR-0359 — A carried body's clocks stand still
+**Date:** 2026-10-05 · **Status:** accepted
+
+**Context.** Q164. The corpse lifetime counts down in `0x004B12D0` only while the body's
+carried flag `+0x138` is clear (take-hold `0x0048B4A0` sets it, the drop `0x0048B500` clears
+it). The dying handler `0x004599D0` skips the rescue countdown while BeingDragged `+0x3C7` is
+set (`0x00459BE8`). Ours ran both clocks while carried.
+
+**Decision.** `CreatureHealthSystem.Dying` and `Rotting` count nothing while the body is
+carried.
+
+## ADR-0360 — The heart's start is its room record's percentage
+**Date:** 2026-10-05 · **Status:** accepted
+
+**Context.** Q129. `DungeonHeart_Build` (`0x004DB700`) raises the new heart to variable 174
+and takes off `trunc(health × (100 − pct) / 100)` through `0x004DA200`, `pct` being the heart
+room record's percentage. A percentage of 0 ruins the room (`0x004E9130(1)`) and skips the
+whole heart block, the starting-gold payment included. Ours ignored the percentage.
+
+**Decision.** `ThingProjection.BuildHeart` applies it. Level 7's rival heart starts at 1000
+and Level 8's is a ruin with no heart and no starting gold paid. STRONGLY INFERRED for the
+damage, which assumes the heart is `Damageable` at load and `player+0x76` bit 4 clear.
+
+## ADR-0361 — Creature trigger roots run before action points, newest first
+**Date:** 2026-10-05 · **Status:** accepted · Corrects Q246
+
+**Context.** Q330. The frame's entity pass `0x004B7830` walks list 0 (creatures) to its end
+before list 5 (action points), and the linker `0x004B4A10` puts each new thing at a list's
+head, so each class runs newest first and the points in reverse THINGS order. A corpse is a
+dead body in list 6, with no tree. Ours walked the points first, oldest first.
+
+**Decision.** `TriggerExecutor.Run` walks creatures newest first, skipping corpses, then the
+points newest first. Deviates: DK2 walks a creature's tree inside that creature's update
+(`0x00488930` → `0x0048A480`), interleaved with the creature's own work; ours keeps one
+trigger pass before the systems.
+
+**Measured, ADR-0355 to ADR-0361 together** (hash 186), against master `82b128fe`: Level 1
+packet rig 20/20 wins (master 19/20), Level 2 4/20 (master 3/20; seeds 3, 13, 14, 17), Level 3
+seed 01 won at 3572 (master 3608, DK2 3683). Every scenario's expectations hold. One
+modern-run assertion went: Level 17's Harkan no longer carries gold into its new Treasury row
+within the run, because a Heart rim tile now takes a carrier and the Heart absorbs every
+later load (`Level17TreasuryNeedScenarioTests`). The Sulk state's only simulation coverage
+was a chance entry in the busy-dungeon test; it has its own test now.

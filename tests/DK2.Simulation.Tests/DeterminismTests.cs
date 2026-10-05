@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 185: no carry to a full Prison; a refused body goes to the room point (ADR-0354)
+        // HashVersion 186: the binary sweep's divergences, first batch (ADR-0355 to ADR-0361)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xD840FA98E806236EUL, sim.StateHash());
+        Assert.Equal(0x540CF5C4A50095C3UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

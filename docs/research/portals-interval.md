@@ -214,7 +214,7 @@ from 6 to 5 on the tick the portal-born Firefly reached health 0, and the next
 roll came 188 ticks later instead of 232. A portal does wear out while its
 creatures live, and recovers one step for each of them that dies. Whether
 leaving the dungeon, or being dropped back into the portal, goes through the
-same bookkeeping is unread.
+same bookkeeping is unread. Built as ADR-0358 (`PortalRules.ArrivalDied`).
 
 ## The reset is an ownership change, and nothing else
 

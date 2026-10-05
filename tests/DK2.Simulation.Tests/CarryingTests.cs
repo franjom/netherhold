@@ -603,30 +603,34 @@ public class CarryingTests
         Assert.False(CarryRules.CanCarry(db.CreatureById(ImpId), imp, corpse));
     }
 
-    [Fact]
-    public void ARottedCorpseTakesItselfOutOfWhateverArmsWereHoldingIt()
+    /// <summary>Q164: a body's clocks stand still while it is carried. The corpse lifetime counts
+    /// down in <c>0x004B12D0</c> only while the carried flag <c>+0x138</c> is clear, and the
+    /// dying handler <c>0x004599D0</c> skips the rescue countdown while BeingDragged is set
+    /// (<c>0x00459BE8</c>). Ours let a corpse rot in an imp's arms.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ABodysClockStandsStillWhileItIsCarried_AndRunsAgainOnceItIsPutDown(bool corpse)
     {
-        // A long walk to a distant graveyard really can outlast the corpse, and
-        // when it does the carrier must not be left pointing at a creature that
-        // no longer exists (Q164).
         GameDatabase db = Db;
         WorldState world = World(db);
-        Paint(db, world, RoomTypeId.Graveyard, new TilePos(1, 1));
-
-        CreatureState corpse = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
-        CreatureDeathRules.BecomeCorpse(world, db, corpse);
+        CreatureState body = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(3, 3));
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
+        if (corpse) CreatureDeathRules.BecomeCorpse(world, db, body);
+        else Down(new StateHookContext(world, db), body);
+        int window = corpse ? CreatureDeathRules.BodyWindowTicks(db) : CreatureDeathRules.DyingWindowTicks(db);
+        body.DyingTicks = window - 1;
+        CarryRules.PickUp(imp, body);
 
-        GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 10 * Second && imp.CarriedCreatureId < 0; i++) sim.Tick();
-        Assert.True(imp.CarriedCreatureId >= 0);
+        sim.Run(Second * 3);
+        Assert.Contains(body, world.Creatures);
+        Assert.Equal(window - 1, body.DyingTicks);
 
-        // Wind the corpse clock to the end while it is being carried.
-        corpse.DyingTicks = CreatureDeathRules.BodyWindowTicks(db);
+        CarryRules.PutDown(imp, body);
         sim.Run(Second * 2);
-
-        Assert.DoesNotContain(world.Creatures, c => c.Id == corpse.Id);
-        Assert.Equal(-1, imp.CarriedCreatureId);
+        if (corpse) Assert.DoesNotContain(body, world.Creatures); // rotted away
+        else Assert.True(CreatureDeathRules.IsCorpse(body));      // died, and is now a corpse
     }
 
     // ---- the round trip ---------------------------------------------------

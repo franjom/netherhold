@@ -147,7 +147,8 @@ public static class ThingProjection
                 // them, with no exceptions. Projecting one as a placement would
                 // build every dungeon heart and hero gate twice.
                 case RoomThing t:
-                    if (startingGold is not null) PayStartingGold(world, database, t, startingGold, paid);
+                    if (BuildHeart(world, database, t) && startingGold is not null)
+                        PayStartingGold(world, database, t, startingGold, paid);
                     rooms++;
                     break;
 
@@ -163,6 +164,31 @@ public static class ThingProjection
         return new ThingProjectionResult(
             creatures, objects, actionPoints, doors, traps,
             heroParties, effectGenerators, rooms, skipped);
+    }
+
+    /// <summary>The heart's start from its room record (Q129, win-and-defeat.md §3): the builder
+    /// <c>0x004DB700</c> raises the heart to variable 174, then takes off
+    /// <c>trunc(health × (100 − pct) / 100)</c> through <c>0x004DA200</c>, <c>pct</c> being
+    /// <see cref="RoomThing.InitialHealth"/>. A 0 ruins the room and skips the whole heart block,
+    /// the starting gold included, and this returns false. STRONGLY INFERRED: assumes the heart is
+    /// <c>Damageable</c> at load and <c>player+0x76</c> bit 4 clear, which <c>0x004DA200</c> tests.</summary>
+    private static bool BuildHeart(WorldState world, GameDatabase database, RoomThing thing)
+    {
+        if (database.RoomByTerrain(thing.RoomType)?.TypeId != RoomTypeId.DungeonHeart) return true;
+        if (!world.Contains(new TilePos(thing.X, thing.Y))) return true;
+        RoomInstance? heart = RoomIndex.RoomAt(world, database, (thing.Y * world.Width) + thing.X);
+        if (heart is null || !world.HasPlayer(heart.OwnerPlayerId)) return true;
+
+        ref PlayerState owner = ref world.Player(heart.OwnerPlayerId);
+        int pct = thing.InitialHealth;
+        if (pct == 0)
+        {
+            owner.HeartHealth = 0;
+            owner.HeartRuined = true;
+            return false;
+        }
+        owner.HeartHealth -= (int)((long)owner.HeartHealth * (100 - pct) / 100);
+        return true;
     }
 
     /// <summary>

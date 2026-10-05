@@ -279,7 +279,7 @@ owner's Level 2 play. They dropped 20,000+ on one Heart tile. The Heart took
 - **The overflow.** The deposit `0x004F3C60` walks the room's tiles along its chain from
   the given tile, filling each tile's store pile (object 3) to 3000, or to 1000 on a Heart's
   rim tiles (`0x004DA1B0`); a pile it has to create costs a rand(0x800) on the world stream
-  (line `0x14F`, the pile's `+0xF4`/`+0x102`), which ours does not draw. What is left after a full pass is a neutral floor pile (object 1) on the starting tile, at one of §7's eight points.
+  (line `0x14F`, the pile's `+0xF4`/`+0x102`; ADR-0355). What is left after a full pass is a neutral floor pile (object 1) on the starting tile, at one of §7's eight points.
 - **The sweep.** `0x004F47E0` walks the room's tiles; each gold-flagged object not a store
   pile (def `+0xF4` bit `0x40`) is deposited through `0x004F3C60` and destroyed, so what the
   store cannot take comes straight back down. For a Heart it needs room `+0x51` non-zero.
@@ -299,10 +299,8 @@ on a Heart rim tile at turn 1020. At capture tick 1023, which is turn 1024, the
 sixteen rim piles were topped to 1,000 (+15,500) and a 20,900 pile lay on the tile.
 Hand drops onto the floor beside the Heart had merged into that pile first.
 
-Built as `StoreSweepSystem` (ADR-0285): every turn divisible by 16, each loose pile on
-a keeper's Treasury or Heart tile goes in along the chain from its own tile
-(`GoldStore.FillAlongChainFrom`). Deviates: the pile keeps its object; the "not full"
-test is left out, as a full store takes nothing; `SuckGold` is taken as set.
+Built as `StoreSweepSystem` (ADR-0285, ADR-0355) as read above, through `GoldStore.DepositFrom`;
+a full Treasury is not swept. Deviates: `SuckGold` is taken as set.
 
 ## 12. A creature takes loose gold it walks over (read 2026-09-30)
 

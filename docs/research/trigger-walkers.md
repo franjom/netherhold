@@ -54,8 +54,9 @@ body (`0x004B0F20`), 7 `0x004B19A0`; kind 9 is never linked. So **every creature
 updates, walking its root at `0x0048A480`, before any action point**, and each
 class runs **newest first**. The THINGS handler `0x005211A0` creates one point per
 record, so points run in reverse file order (file order of the handler calls is
-STRONGLY INFERRED). Q246's "points interleave with creatures" was wrong. Ours walks
-points first, then creatures, oldest first, in a pass of its own before the systems.
+STRONGLY INFERRED). Q246's "points interleave with creatures" was wrong. Built as
+ADR-0361, in our trigger pass before the systems; a creature's tree is not yet walked inside
+its own update.
 
 `FUN_004C2310` walks the player list from world `+0x7A` through link `+0x3A`,
 calling the player frame `FUN_004B9EC0` on each.

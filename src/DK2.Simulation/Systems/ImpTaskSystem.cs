@@ -800,10 +800,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         int put = space == 0 ? 0 : space < 0 ? creature.GoldHeld : (int)Math.Min(space, creature.GoldHeld);
         if (put > 0)
         {
-            int left = GoldStore.FillAlongChainFrom(world, database, room, index, put);
+            int left = put - GoldStore.DepositFrom(world, database, room, index, put, context.Rng);
             creature.GoldHeld -= put;
-            if (left > 0 && FloorGold.Drop(world, database, index, left) is ObjectState pile)
-                pile.Cell = OverflowCells[context.Rng.NextInt(OverflowCells.Length)];
             context.Emit(SystemName, "gold_delivered",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} amount={put - left} " +
                 $"at=({here.X},{here.Y}) floor={left} carrying={creature.GoldHeld}");
@@ -811,14 +809,20 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         return true;
     }
 
-    /// <summary>The eight points an overflowing store puts a pile at, in DK2's table order
-    /// (<c>0x006A2FA0</c>: each coordinate 0x3FF, 0x7FF or 0xBFF, never both 0x7FF), as the
-    /// third-of-a-tile cells they lie in.</summary>
-    private static readonly byte[] OverflowCells = [6, 7, 8, 3, 0, 1, 2, 5];
+    /// <summary>The eight walk points of <c>0x00698C20</c>, the outer cells of a 3×3 grid on
+    /// {0x2AA, 0x7FF, 0xD54} in the table's order, the centre never.</summary>
+    private static readonly (int X, int Y)[] StoreWalkPoints =
+    [
+        (0x2AA, 0x2AA), (0x7FF, 0x2AA), (0xD54, 0x2AA), (0x2AA, 0x7FF),
+        (0xD54, 0x7FF), (0x2AA, 0xD54), (0x7FF, 0xD54), (0xD54, 0xD54),
+    ];
 
     /// <summary>
-    /// The carrier picks the nearest reachable store room by its first slab,
-    /// then a random start and the first free tile along that room's chain.
+    /// The gold-store chooser <c>0x00464400</c>: the nearest reachable store room by its first slab,
+    /// a random chain tile and the first tile along the chain that takes a carrier
+    /// (<see cref="GoldStore.DepositTileAlongChain"/>), then a walk to one of eight points of that
+    /// tile drawn on the world stream (line 0x2FC). Only the nearest room is tried: no tile, or a
+    /// walk that fails, is a plain failure with no message; the messages are for no room at all.
     /// </summary>
     private bool TryRouteToSomewhereItFits(SimulationContext context, CreatureState creature)
     {
@@ -845,9 +849,11 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             int[] chain = SlabChain.Order(world, room);
             int start = chain[context.Rng.NextInt(chain.Length)];
             int target = GoldStore.DepositTileAlongChain(world, context.Database, room, start);
-            if (target < 0) continue;
+            if (target < 0) return false;
             TilePos drop = new(target % w, target / w);
-            if (!context.Navigation.TryRoute(creature, drop, Navigation.MoveOptions.ExactSpot)) continue;
+            (int px, int py) = StoreWalkPoints[context.Rng.NextInt(StoreWalkPoints.Length)];
+            if (!context.Navigation.TryRouteTo(creature, (drop.X << 12) | px, (drop.Y << 12) | py, Navigation.MoveOptions.ExactSpot))
+                return false;
             context.Emit(SystemName, "delivering",
                 $"imp={creature.Id} player={player} gold={creature.GoldHeld} " +
                 $"to=({drop.X},{drop.Y}) steps={creature.Body.PathTotalCount}");
@@ -894,8 +900,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                     $"task={creature.DroppedTask} reason=no_more_of_that_kind");
                 creature.DroppedTask = ImpTaskKind.None;
             }
-            else if (last is ImpTaskKind.Excavate or ImpTaskKind.Mine or ImpTaskKind.Claim
-                     && TryTakeJobOfKind(context, creature, definition, grid, last))
+
+            // Not an else: a failed aimed retry falls through to the per-kind record
+            // (0x00463EEC → 0x00463EF3), so a claim is searched for a second time and its
+            // ring scan draws a second rand(4) (0x00468D54). A dig or mine repeat draws nothing.
+            if (last is ImpTaskKind.Excavate or ImpTaskKind.Mine or ImpTaskKind.Claim
+                && TryTakeJobOfKind(context, creature, definition, grid, last))
             {
                 return true;
             }
@@ -963,10 +973,10 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         // Tier B: position first.
         if (TrySweep(context, creature, definition, grid)) return true;
 
-        // Nothing anywhere. DK2 zeroes LastTaskType at exactly this point, and
-        // it matters: with no kind to match, the DroppedTask comparison above can
-        // never fire again, so an aimed worker that runs out of work keeps its
-        // bonus rather than losing it. The original's arithmetic, not a choice.
+        // Nothing anywhere. DK2's only zeroing of the last kind is the one above the drop
+        // scan (0x00464010), so it is already None here; with no kind to match, the
+        // DroppedTask comparison can never fire again, and an aimed worker that runs out of
+        // work keeps its bonus rather than losing it. The write below is a guard, not DK2's.
         creature.LastTaskKind = ImpTaskKind.None;
         return false;
     }
@@ -1452,7 +1462,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// east, east to south, south to west, west to north, both corners visited — starting at the
     /// side <see cref="ClaimStartSide"/> picks. The first tile the handler accepts is taken: the
     /// claim predicates, then a route to it (a tile with no route is passed over).
-    /// <para>Not built: taking a held claim from a farther imp (Q155), and the <c>+0xB</c> bit
+    /// <para>A claim held by a farther imp is taken through <see cref="TryJobOn"/> and
+    /// <see cref="HolderToTakeFrom"/> (Q155, ADR-0289). Not built: the <c>+0xB</c> bit
     /// <c>0x20</c> pre-filter (Q487). imp-task-priority.md §2.2, ADR-0285.</para>
     /// </summary>
     private bool TryTakeClaim(SimulationContext context, CreatureState creature, WorldPathGrid grid)

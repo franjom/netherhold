@@ -180,6 +180,31 @@ public class PortalCreatureActionTests
         Assert.Equal(ticks, PortalRules.JoiningTicks(
             Dk2TerrainFixture.Database().CreatureById(7) with { EntranceFrames = frames, EntranceFramesPerSecond = fps }));
 
+    /// <summary>Q508: a portal creature's death lowers its portal's tally, never below zero
+    /// (<c>0x00487C70</c>, <c>0x00488150</c>–<c>0x00488170</c>). Ours never lowered it.</summary>
+    [Theory]
+    [InlineData(9, 9)]
+    [InlineData(-1, 0)]
+    public void APortalCreaturesDeath_GivesItsPortalASlotBack(int tallyBeforeDeath, int expectedAfter)
+    {
+        var (db, world) = Setup();
+        Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
+        Run(db, world, 1);
+        CreatureState creature = world.Creatures.Last();
+        ref TileState centre = ref world.Tile(6, 6);
+        Assert.Equal(1, centre.EntranceCreaturesGenerated);
+        Assert.Equal((6 * world.Width) + 6, creature.PortalEntranceTile);
+        if (tallyBeforeDeath >= 0) centre.EntranceCreaturesGenerated = tallyBeforeDeath + 1;
+        else centre.EntranceCreaturesGenerated = 0;
+
+        creature.DieInstantly = true;
+        creature.Health = 0;
+        new GameSimulation(db, world, 42, [new Systems.CreatureHealthSystem()]).Run(8);
+
+        Assert.Equal(CreatureActivity.Dead, creature.Activity);
+        Assert.Equal(expectedAfter, world.Tile(6, 6).EntranceCreaturesGenerated);
+    }
+
     private static TriggerRunResult Run(GameDatabase db, WorldState world, byte level)
     {
         var tree = new TriggerTree(Records(level), 0,

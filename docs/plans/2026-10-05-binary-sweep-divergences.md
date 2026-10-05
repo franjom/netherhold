@@ -4,7 +4,9 @@ The research branch `research/binary-open-questions` answered about 60 open ques
 `DKII.EXE` and recorded each place where our code does something the binary does not. This is the
 work list for the follow-up branch. The evidence lives in the cited question row and its research
 doc; this file only lists and orders the work. Every item was graded CONFIRMED or STRONGLY INFERRED
-by an independent reviewer; none is built yet.
+by an independent reviewer.
+
+**Progress:** rows marked built are on branch `fix/binary-sweep-divergences`.
 
 **Owner decision (2026-10-05):** one follow-up branch, after this research is committed. Each change
 gets its ADR, tests (a negative control that fails without it) and a replay-rig run against the
@@ -14,11 +16,11 @@ current Level 1–3 baselines.
 
 | Q | Ours | DK2 | Where |
 |---|---|---|---|
-| Q508 | Never lowers a portal's `EntranceCreaturesGenerated` | A portal creature's death decrements its portal's tally (`0x00487C70`) | `PortalRules`, `PortalSystem` |
-| Q164 | Rot and rescue clocks run while a body is carried | Both pause while carried (`0x004B12D0`, `0x004599D0`, `0x004B2CE0`) | `CreatureHealthSystem` |
-| Q545 | Mana above the ceiling drains at 5/s | Clamped to the ceiling in one step (`0x004C10E0`) | `ManaRules` |
-| Q330 | Trigger roots: action points first, then creatures, oldest first | Creatures (list 0) before action points (list 5), each newest first; a creature's tree runs inside its update | `TriggerExecutor.Run` |
-| Q129 | Heart room `InitialHealth` percentage ignored | Level 7's heart starts at 1000; Level 8's heart room is ruined at load with no heart object | `ThingProjection` |
+| Q508 (**built, ADR-0358**) | Never lowers a portal's `EntranceCreaturesGenerated` | A portal creature's death decrements its portal's tally (`0x00487C70`) | `PortalRules`, `PortalSystem` |
+| Q164 (**built, ADR-0359**) | Rot and rescue clocks run while a body is carried | Both pause while carried (`0x004B12D0`, `0x004599D0`, `0x004B2CE0`) | `CreatureHealthSystem` |
+| Q545 (**built, ADR-0357**) | Mana above the ceiling drains at 5/s | Clamped to the ceiling in one step (`0x004C10E0`) | `ManaRules` |
+| Q330 (**built, ADR-0361**) | Trigger roots: action points first, then creatures, oldest first | Creatures (list 0) before action points (list 5), each newest first; a creature's tree runs inside its update | `TriggerExecutor.Run` |
+| Q129 (**built, ADR-0360**) | Heart room `InitialHealth` percentage ignored | Level 7's heart starts at 1000; Level 8's heart room is ruined at load with no heart object | `ThingProjection` |
 | Q514 | Non-ownable tiles keep the map's owner (3,629 shipped tiles) or get owner 0 | Forced to the neutral player `[0x006F2548]` | `WorldState.FromMap`, `RoomRules.cs:281`, `DefeatRules.cs:89`, `TriggerExecutor.cs:1271` |
 | Q301 | Trigger action 22 declines room tiles; owner 0 for non-ownable terrain; no effect 0x146 | Sells the old room tile without refund, builds the new one free and untested | `TriggerExecutor.AlterTerrain` |
 | Q255/Q259 | No effect generators, so no draws | Every level gets a map-wide effect-90 generator drawing from the simulation seed (RNG fidelity gap, `dk2-random.md`) | new; `EffectGeneratorState` hashes three fields DK2 discards |
@@ -67,16 +69,16 @@ fix changes how many world-stream draws a tick takes, and so moves every later d
 | Function | Ours | DK2 | Where | Draws |
 |---|---|---|---|---|
 | `0x0046AEA0` | A free side whose walk fails is passed over; nothing is dropped | Deletes the wall's kind-6/16 entry (`0x00508040`), a pre-existing one included, then tries the next side | `TryReinforceAt`, `ImpTaskSystem.cs:1149-1166` | no |
-| `0x00464400` | First chain tile with space (`SpaceIn > 0`, Heart rim at 1000); on failure the next room; walks to the tile | Tile with no class-2 thing or a kind-3 pile under the Treasury cap (3000, Heart too); back at the start returns 0; walks to `0x00698C20[rand(8)]` | `GoldStore.DepositTileAlongChain`, `GoldStore.cs:158-170`; `TryRouteToSomewhereItFits`, `ImpTaskSystem.cs:841-855` | **yes**: +1 rand(8) per store choice |
-| `0x004F3C60` | A store tile's gold is tile state; no pile is created | rand(0x800) (line `0x14F`) after each store pile it creates | `GoldStore.FillAlongChainFrom`, `GoldStore.cs:191-205`; `StoreSweepSystem.cs:53` | **yes**: +1 per new store pile |
+| `0x00464400` (**built, ADR-0355**) | First chain tile with space (`SpaceIn > 0`, Heart rim at 1000); on failure the next room; walks to the tile | Tile with no class-2 thing or a kind-3 pile under the Treasury cap (3000, Heart too); back at the start returns 0; walks to `0x00698C20[rand(8)]` | `GoldStore.DepositTileAlongChain`, `GoldStore.cs:158-170`; `TryRouteToSomewhereItFits`, `ImpTaskSystem.cs:841-855` | **yes**: +1 rand(8) per store choice |
+| `0x004F3C60` (**built, ADR-0355**) | A store tile's gold is tile state; no pile is created | rand(0x800) (line `0x14F`) after each store pile it creates | `GoldStore.FillAlongChainFrom`, `GoldStore.cs:191-205`; `StoreSweepSystem.cs:53` | **yes**: +1 per new store pile |
 | `0x004651A0` | No cast on a walk | Casts a ready bit-`0x40` ability (Imp Haste) on every walk start, `noTeleport` or not | the imp's walk start (Q401) | no draw seen; speed |
-| `0x00463DF0` | Failed aimed kind-3 retry: one claim search (`else if`) | Falls through to column 5: a second `SearchKind(3)` and a second rand(4) (`0x00468D54`) | `TryTakeJob`, `ImpTaskSystem.cs:885-901` | **yes**: +1 rand(4) per failed aimed claim retry |
+| `0x00463DF0` (**built, ADR-0356**) | Failed aimed kind-3 retry: one claim search (`else if`) | Falls through to column 5: a second `SearchKind(3)` and a second rand(4) (`0x00468D54`) | `TryTakeJob`, `ImpTaskSystem.cs:885-901` | **yes**: +1 rand(4) per failed aimed claim retry |
 | `0x00468D10` | Own tile filtered by `RingScanVisits` in Tier B and the drop scan | Own tile reaches the chain untested (`0x00468DA0`) | `TrySweep` ~`ImpTaskSystem.cs:1131`; `TryTakeDroppedJob` ~`1003` | no |
 | `0x0046B9C0` | Shared latch tested before the crate branch; a blueprint take goes through the kind-8 route check and steal | Crate branch `0x00468910` first; its success returns at once | `TryObjectAt`, `ImpTaskSystem.cs:2031-2035` | no |
 | `0x0048904E` | Any world object within the box; picks up before the claim on the way, which is gated on activity | Own tile's thing list only, first pile, break; the claim on the way first, on a tile change and category not 22 | `PickUpGoldInPassing`, `ImpTaskSystem.cs:345-359`; order `195` against `200-202` | no |
 | `0x00466850` | Every pile on the tile, to the full limit | min(pile, room) per pile within ±`0x555`, stopping once `0x00464360(1)` reports full (limit less variable 74) | `TakeFromPilesOn`, `ImpTaskSystem.cs:662-663`, `697-712` | no |
-| comment | `ImpTaskSystem.cs:966`: DK2 zeroes the last kind after Tier B | The only zeroing is `0x00464010`, before the drop scan | `ImpTaskSystem.cs:966` | no |
-| comment | `ImpTaskSystem.cs:1455`: held-claim stealing not built | Built (`TryJobOn` → `HolderToTakeFrom`) | `ImpTaskSystem.cs:1455` | no |
+| comment (**fixed**) | `ImpTaskSystem.cs:966`: DK2 zeroes the last kind after Tier B | The only zeroing is `0x00464010`, before the drop scan | `ImpTaskSystem.cs:966` | no |
+| comment (**fixed**) | `ImpTaskSystem.cs:1455`: held-claim stealing not built | Built (`TryJobOn` → `HolderToTakeFrom`) | `ImpTaskSystem.cs:1455` | no |
 
 ## Asset pipeline (presentation only)
 

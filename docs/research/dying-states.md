@@ -74,8 +74,7 @@ other room. Not read: what `+0x16` == 2 is, and what destroys the body when `+0x
 out. That only carrying sets `+0x138` is STRONGLY INFERRED: the other `+0x6C` call sites
 were not classified.
 
-**Ours diverges.** `DeadBodyDiesAfterSeconds` and the dying countdown both run while an
-imp carries the body (Q164). The fix is not built.
+**Built** as ADR-0359: neither countdown runs while the body is carried (Q164).
 
 ## Open questions
 

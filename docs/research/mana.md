@@ -185,9 +185,8 @@ Read 2026-10-04 (Q39, Q76, QNEW-mana). CONFIRMED from the binary unless marked.
   but its loader store (`0x0051CEF5`) in a whole-file absolute-address scan; a
   table-relative reader is not excluded. So mana above 200000 is cut back in one step at the
   next non-negative second. It does not drain at 5 a second. The 5/s drain this document
-  inferred has no support in the binary. Ours still drains (`ManaRules`,
-  `ManaAboveTheThresholdDrainsBackToIt`), and whether anything else uses the variable is
-  QNEW-mana.
+  inferred has no support in the binary. Built as ADR-0357 (`ManaRules.ApplyOneSecond`);
+  whether anything else uses the variable is Q545's open half.
 
 `DungeonHeartMaxManaIncrease` (32000) and `TerrainDef.MaxManaGain` (100, on
 Claimed Vault alone) both look exactly like contributions to a computed

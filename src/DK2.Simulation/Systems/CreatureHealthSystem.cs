@@ -176,6 +176,10 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         // 217's handler clears CombatPitFighter: a knocked-out loser is no longer a fighter.
         if (state.Dk2StateId == CreatureDeathRules.DyingState) state.CombatPitFighter = false;
 
+        // The window stands still while the body is carried: 0x004599D0 skips the countdown
+        // while BeingDragged (+0x3C7) is set (0x00459BE8), Q164.
+        if (state.CarriedByCreatureId >= 0) return;
+
         state.DyingTicks += SimulationTiming.TicksPerSecond;
 
         if (!CreatureDeathRules.DyingWindowElapsed(context.Database, state)) return;
@@ -188,15 +192,15 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     /// owner's <i>"if that timer runs out and no one carries the corpse it just
     /// disappears"</i> (Q99).
     ///
-    /// <para><b>Even in an imp's arms.</b> A corpse being carried to a graveyard
-    /// that is too far away rots on the way, and the imp arrives holding
-    /// nothing. UNKNOWN whether the original pauses the clock for a carried body
-    /// (Q164); this does not, because the alternative is a corpse that keeps for
-    /// ever as long as somebody is walking with it.</para>
+    /// <para><b>Not in an imp's arms.</b> The body's lifetime (<c>+0x40</c>) counts down in
+    /// <c>0x004B12D0</c> only while its carried flag <c>+0x138</c> is clear; take-hold
+    /// <c>0x0048B4A0</c> sets it and the drop <c>0x0048B500</c> clears it (Q164).</para>
     /// </summary>
     private static void Rotting(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
+        if (state.CarriedByCreatureId >= 0) return;
+
         state.DyingTicks += SimulationTiming.TicksPerSecond;
 
         if (!CreatureDeathRules.BodyWindowElapsed(context.Database, state)) return;
@@ -288,6 +292,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         // DK2's own quirk.
         int carried = state.GoldHeld;
         int dropped = FloorGold.DropFrom(context.World, context.Database, state);
+        PortalRules.ArrivalDied(context.World, state);
 
         context.Emit(system, "creature_died",
             $"creature={state.Id} type={creature.Name} " +

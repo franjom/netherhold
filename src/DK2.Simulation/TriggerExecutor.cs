@@ -471,21 +471,16 @@ public sealed class TriggerExecutor
             Walk(unchecked((short)slot.TriggerId), 1, TriggerContext.World, run);
         }
 
-        // Before the players and after the parties, because the frame walks the world's
-        // eight entity lists there (0x0050A7D7). Action points and creatures share that
-        // pass. Their relative order here remains ours (Q330), while each projected
-        // class preserves THINGS order.
-        foreach (TriggerAreaRoot root in _areaRoots)
+        // The frame's entity pass (0x004B7830): list 0, the creatures, then list 5, the action
+        // points, each newest first since the linker 0x004B4A10 adds at the head (Q330, ADR-0361).
+        // A corpse is a dead body, list 6, with no tree. An arrival added by action 28 mid-walk
+        // waits for the next turn, as the snapshot does here. Deviates: DK2 walks a creature's
+        // tree inside its own update (0x00488930 -> 0x0048A480), ours in this pass.
+        CreatureState[] creatures = _world?.Creatures.ToArray() ?? [];
+        for (int i = creatures.Length - 1; i >= 0; i--)
         {
-            run.Area = root.Point;
-            Walk(unchecked((short)root.Point.TriggerId), root.Repeat, TriggerContext.Area, run);
-        }
-        run.Area = null;
-
-        // A creature's action 28 can append an arrival while this walk is running.
-        foreach (CreatureState creature in _world?.Creatures.ToArray() ?? [])
-        {
-            if (creature.TriggerId == 0) continue;
+            CreatureState creature = creatures[i];
+            if (creature.TriggerId == 0 || creature.Dk2StateId == CreatureStateMachine.NoState) continue;
             run.Creature = creature;
             run.Player = creature.OwnerPlayerId;
             Walk(
@@ -494,6 +489,14 @@ public sealed class TriggerExecutor
         }
         run.Creature = null;
         run.Player = null;
+
+        for (int i = _areaRoots.Length - 1; i >= 0; i--)
+        {
+            TriggerAreaRoot root = _areaRoots[i];
+            run.Area = root.Point;
+            Walk(unchecked((short)root.Point.TriggerId), root.Repeat, TriggerContext.Area, run);
+        }
+        run.Area = null;
 
         // Last in the turn, and in the player context: 0x0050A7F5 calls the loop that
         // gives every player its frame, and the frame walks that player's own root.

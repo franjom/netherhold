@@ -1877,10 +1877,45 @@ public class TriggerExecutorTests
         Assert.Equal(CreatureDeathRules.DyingState, dying.Dk2StateId);
     }
 
+    /// <summary>Q330: the frame's entity pass (<c>0x004B7830</c>) walks list 0, the creatures, to
+    /// its end before list 5, the action points, and each list newest first, so the points run in
+    /// reverse THINGS order. Each root here writes flag 5 only if the one before it in DK2's order
+    /// has: the creature, then the second point, then the first. Ours walked the points first,
+    /// oldest first, then the creatures.</summary>
+    [Fact]
+    public void CreatureRootsRunBeforeActionPointRoots_AndEachClassNewestFirst()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        ThingProjection.Place(world, database,
+        [
+            new ActionPointThing(new byte[56]) { StartX = 2, StartY = 2, EndX = 2, EndY = 2, ActionPointId = 1, TriggerId = 20, Name = "first" },
+            new ActionPointThing(new byte[56]) { StartX = 3, StartY = 3, EndX = 3, EndY = 3, ActionPointId = 2, TriggerId = 30, Name = "second" },
+        ]);
+        CreatureState creature = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(5, 5));
+        creature.TriggerId = 10;
+
+        TriggerRecord[] records =
+        [
+            Condition(10, repeat: 1, child: 0xFFFF, next: 0, FlagEquals(5, 0)), Action(1, 5, 0x0A, 1),
+            Condition(30, repeat: 1, child: 0xFFFE, next: 0, FlagEquals(5, 1)), Action(2, 5, 0x0A, 3),
+            Condition(20, repeat: 1, child: 0xFFFD, next: 0, FlagEquals(5, 3)), Action(3, 5, 0x0A, 2),
+        ];
+        new TriggerExecutor(new TriggerTree(records, 0), world.Triggers, world, database).Run(1);
+
+        Assert.Equal(2, world.Triggers.Read(5));
+    }
+
+    private static Dictionary<string, long> FlagEquals(byte flag, int value) => new()
+    {
+        ["Comparison"] = 3, ["FlagId"] = flag, ["Flag"] = 1,
+        ["IndirectFlagId"] = 0, ["Value"] = value,
+    };
+
     private static TriggerRecord Objective(ushort id, byte objective, byte player, int actionPoint) =>
         new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 15, RepeatCount = 0, ChildTriggerId = 0xFFFF,
+            Body = new byte[8], TriggerId = id, Type = 15, RepeatCount = 0, ChildTriggerId = 0,
             Parameters = new Dictionary<string, long>
             {
                 ["PlayerId"] = player, ["ObjectiveType"] = objective, ["ActionPointId"] = actionPoint,

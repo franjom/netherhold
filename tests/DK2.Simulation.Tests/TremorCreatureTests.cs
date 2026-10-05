@@ -331,6 +331,22 @@ public sealed class TremorCreatureTests
         Assert.Equal(194, creature.Dk2StateId);
     }
 
+    /// <summary>An unhappy creature whose table is Sulk, with a bed of its own in a Lair, takes the
+    /// job and is put in its state, 0x55 (<see cref="JobRules.StateFor"/>), here on the bed tile.</summary>
+    [Fact]
+    public void AnUnhappyCreatureWithABedTakesSulk_AndEntersItsState()
+    {
+        var (db, world, creature) = MoodSetup(JobType.None, JobType.Sulk);
+        foreach (TilePos at in new[] { new TilePos(2, 2), new TilePos(3, 2), new TilePos(2, 3), new TilePos(3, 3) })
+            RoomRules.Place(db, ref world.Tile(at), db.Room(RoomTypeId.Lair), Keeper);
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, creature));
+
+        var sim = new GameSimulation(db, world, 42, [new CreatureJobSystem(), new CreatureAngerSystem()]);
+        for (int i = 0; i < 40 && creature.Dk2StateId != JobRules.StateFor(JobType.Sulk); i++) sim.Tick();
+
+        Assert.Equal(JobRules.StateFor(JobType.Sulk), creature.Dk2StateId);
+    }
+
     [Fact]
     public void BothMoodSelectorsRefusingRunOnlyIdleHandler_StronglyInferredFromBinary()
     {

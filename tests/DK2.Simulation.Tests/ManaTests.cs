@@ -328,44 +328,34 @@ public class ManaTests
     }
 
     /// <summary>
-    /// The threshold is a ceiling mana settles back to, not a clamp. Nothing in
-    /// the simulation can push mana above it yet — a special or a spell would —
-    /// but <c>ExcessManaDecreaseRatePerSecond</c> exists precisely because
-    /// something can, so the drain is implemented rather than assumed away.
+    /// The ceiling is a clamp (Q545): a second whose net is not negative cuts mana above it back
+    /// in one step (<c>0x004C10E0</c>, <c>0x004C11DD</c>–<c>0x004C11E7</c>). Ours drained the
+    /// excess at <c>ExcessManaDecreaseRatePerSecond</c>, 5 a second, which the binary never reads.
     /// </summary>
     [Fact]
-    public void ManaAboveTheThresholdDrainsBackToIt()
+    public void ManaAboveTheCeiling_IsCutBackInOneStep_ByASecondThatEarns()
     {
         Run run = Start();
-        GameDatabase database = Dk2TerrainFixture.Database();
-        int threshold = database[VariableTypeId.MaximumManaThreshold];
-        int drain = database[VariableTypeId.ExcessManaDecreaseRatePerSecond];
+        int threshold = Dk2TerrainFixture.Database()[VariableTypeId.MaximumManaThreshold];
 
-        run.World.Player(Keeper).Mana = threshold + (drain * 3);
-
+        run.World.Player(Keeper).Mana = threshold + 50000;
         run.Seconds(1);
-        Assert.Equal(threshold + (drain * 2), run.Mana(Keeper));
 
-        run.Seconds(2);
-        Assert.Equal(threshold, run.Mana(Keeper));
-
-        // And it stops there rather than draining through the floor.
-        run.Seconds(5);
         Assert.Equal(threshold, run.Mana(Keeper));
     }
 
-    /// <summary>Nothing accrues while mana is above the ceiling, land or no land.</summary>
+    /// <summary>A negative net only floors mana at zero, so above the ceiling it falls by the
+    /// upkeep alone and stays above (<c>0x004C11CB</c>–<c>0x004C11D1</c>).</summary>
     [Fact]
-    public void LandEarnsNothingWhileManaIsOverTheCeiling()
+    public void ManaAboveTheCeiling_FallsOnlyByTheNet_OnASecondThatCosts()
     {
-        Run run = Start();
         GameDatabase database = Dk2TerrainFixture.Database();
         int threshold = database[VariableTypeId.MaximumManaThreshold];
+        var player = new PlayerState { PlayerId = Keeper, Mana = threshold + 1000 };
 
-        run.World.Player(Keeper).Mana = threshold + 100;
-        run.Seconds(1);
+        ManaRules.ApplyOneSecond(database, ref player, gainPerSecond: 10, upkeepPerSecond: 38);
 
-        Assert.True(run.Mana(Keeper) < threshold + 100);
+        Assert.Equal(threshold + 972, player.Mana);
     }
 
     // ---- reporting and persistence -------------------------------------

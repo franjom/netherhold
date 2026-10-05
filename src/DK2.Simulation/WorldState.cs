@@ -125,16 +125,16 @@ public struct TileState
     public int EntranceIdleTicks;
 
     /// <summary>
-    /// How many creatures this portal has generated, on the same tile as
+    /// How many of this portal's creatures are still alive, on the same tile as
     /// <see cref="EntranceIdleTicks"/> and zero elsewhere: the <c>n</c> in the arrival
-    /// interval, climbing while the owner holds it. CONFIRMED (Q86, docs/research/portals.md).
+    /// interval. CONFIRMED (Q86, Q508, docs/research/portals-interval.md).
     /// <para>DK2 keeps it at <c>room+0x4D</c>, increments it once per creature generated,
     /// and computes <c>(n² + EntranceGenerationSpeedSeconds)</c> game seconds at
     /// <c>0x004DBBE0</c>. Per portal, not per keeper: a second portal claimed after five
-    /// arrivals started again at 25 s, not 50 (owner, 2026-09-07). It never decrements —
-    /// of 129 references to a <c>+0x4D</c> field, none is a <c>DEC</c> or <c>SUB</c>, so
-    /// a portal does not speed up when creatures die. An ownership change is the one
-    /// thing that resets it: the room type's handler stamps the clock and zeros the tally
+    /// arrivals started again at 25 s, not 50 (owner, 2026-09-07). A death of one of its
+    /// creatures lowers it by one (<see cref="PortalRules.ArrivalDied"/>), so a portal speeds
+    /// up again as its creatures die. An ownership change resets it: the room type's handler
+    /// stamps the clock and zeros the tally
     /// (<c>ARivalTakingAWornPortalGetsItAtTheBaseInterval</c>).</para></summary>
     public int EntranceCreaturesGenerated;
 

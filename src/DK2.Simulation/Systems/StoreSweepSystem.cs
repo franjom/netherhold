@@ -9,16 +9,16 @@ namespace DK2.Simulation.Systems;
 
 /// <summary>A Treasury or a Dungeon Heart takes in the loose gold lying on its own tiles every
 /// 16th turn (docs/research/gold-on-the-floor.md §11): the sweep <c>0x004F47E0</c>, run by the
-/// Treasury update <c>0x004F39A0</c> and the Heart's <c>0x004D9690</c> on <c>turn &amp; 0xF == 0</c>,
-/// deposits each pile through <c>0x004F3C60</c> along the room's chain from the pile's tile, and
-/// what does not fit goes back down there.
+/// Treasury update <c>0x004F39A0</c> while the room is not full and by the Heart's
+/// <c>0x004D9690</c> unless ruined, on <c>turn &amp; 0xF == 0</c>. It walks the room's chain from
+/// its first slab and hands each loose pile to the deposit <c>0x004F3C60</c> from the pile's tile
+/// (<see cref="GoldStore.DepositFrom"/>), then destroys the pile: what does not fit goes back
+/// down as a new pile at one of eight points, a draw on the world stream each time.
 /// <para>Level 2 live capture (level2-live1): the owner dropped a 36,400 pile on a Heart tile at
 /// 1020; at 1023, turn 1024, the Heart's sixteen rim piles filled to 1,000 and 20,900 lay on the
 /// tile. Ours left all of it loose, and the Library at 1055 lacked the gold for up to eight tiles.</para>
-/// <para>Deviates: the pile keeps its object and loses what went in, where DK2 destroys it and
-/// makes a new one at one of eight points of the tile. The update's "not full" test is left out,
-/// since a full store takes nothing either way. Not built: a Heart sweeps only while room
-/// <c>+0x51</c> is non-zero (Q472, unread), taken here as always.</para></summary>
+/// <para>Deviates: rooms in <see cref="RoomIndex"/> order, not the player's room list (ADR-0327);
+/// a Heart sweeps only while <c>SuckGold</c> (<c>+0x51</c>) is set, taken here as always.</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/gold-on-the-floor.md")]
 public sealed class StoreSweepSystem : ISimulationSystem
 {
@@ -33,30 +33,62 @@ public sealed class StoreSweepSystem : ISimulationSystem
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        List<ObjectState>? piles = null;
+        if (!AnyLoosePileInAStore(world, database)) return;
+
+        List<ObjectState> onTile = [];
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
+            if (!PlayerIds.IsKeeper(room.OwnerPlayerId) || !Sweeps(world, database, room)) continue;
+            foreach (int tile in SlabChain.Order(world, room))
+            {
+                // The tile's chain, head first: the newest link first (0x004B5020).
+                onTile.Clear();
+                foreach (ObjectState thing in world.Objects)
+                    if (IsLoosePile(thing) && thing.TileLink.TileIndex == tile) onTile.Add(thing);
+                onTile.Sort((a, b) => b.TileLink.Order.CompareTo(a.TileLink.Order));
+
+                foreach (ObjectState pile in onTile)
+                {
+                    int before = pile.GoldHeld;
+                    int stored = GoldStore.DepositFrom(world, database, room, tile, before, context.Rng);
+                    FloorGold.Take(world, database, pile, before);
+                    context.Emit(Name, "swept",
+                        $"player={room.OwnerPlayerId} room={room.Definition.Name} " +
+                        $"at=({tile % world.Width},{tile / world.Width}) " +
+                        $"stored={stored} left={before - stored}");
+                }
+            }
+        }
+    }
+
+    /// <summary>The Treasury's gate, its tally below its capacity (<c>0x004F4700</c>); the Heart's
+    /// update tests the tally against 16 × the Treasury cap, which a Heart never reaches, so a live
+    /// Heart always sweeps and a ruined one never.</summary>
+    private static bool Sweeps(WorldState world, GameDatabase database, RoomInstance room)
+    {
+        switch (room.Definition.TypeId)
+        {
+            case RoomTypeId.DungeonHeart:
+                return !(world.HasPlayer(room.OwnerPlayerId) && world.Player(room.OwnerPlayerId).HeartRuined);
+            case RoomTypeId.Treasury:
+                long held = 0;
+                foreach (int tile in room.TileIndices) held += world.TileAtIndex(tile).GoldHeld;
+                return held < (long)room.TileIndices.Count * database[VariableTypeId.MaxGoldPerTreasuryTile];
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsLoosePile(ObjectState thing) =>
+        thing.ObjectTypeId == FloorGold.FloorGoldObjectId && !thing.InHand
+        && thing.CarriedByCreatureId < 0 && thing.GoldHeld > 0;
+
+    // A cheap first pass, so the room index is built only on a turn with something to sweep.
+    private static bool AnyLoosePileInAStore(WorldState world, GameDatabase database)
+    {
         foreach (ObjectState thing in world.Objects)
-        {
-            if (thing.ObjectTypeId != FloorGold.FloorGoldObjectId || thing.InHand
-                || thing.CarriedByCreatureId >= 0 || thing.GoldHeld <= 0)
-                continue;
-            if (GoldStore.Capacity(database, world.TileAtIndex(thing.TileIndex)) == 0) continue;
-            (piles ??= []).Add(thing);
-        }
-        if (piles is null) return;
-
-        foreach (ObjectState pile in piles)
-        {
-            RoomInstance? room = RoomIndex.RoomAt(world, database, pile.TileIndex);
-            if (room is null || !PlayerIds.IsKeeper(room.OwnerPlayerId)) continue;
-
-            int before = pile.GoldHeld;
-            int stored = before - GoldStore.FillAlongChainFrom(world, database, room, pile.TileIndex, before);
-            if (stored <= 0) continue;
-            FloorGold.Take(world, database, pile, stored);
-            context.Emit(Name, "swept",
-                $"player={room.OwnerPlayerId} room={room.Definition.Name} " +
-                $"at=({pile.TileIndex % world.Width},{pile.TileIndex / world.Width}) " +
-                $"stored={stored} left={before - stored}");
-        }
+            if (IsLoosePile(thing) && GoldStore.Capacity(database, world.TileAtIndex(thing.TileIndex)) > 0)
+                return true;
+        return false;
     }
 }

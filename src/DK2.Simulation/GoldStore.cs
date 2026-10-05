@@ -153,34 +153,55 @@ public static class GoldStore
         return (int)Math.Min(space, int.MaxValue);
     }
 
-    /// <summary>The carrier's tile search after it picks a room (<c>0x00464400</c>):
-    /// start at a random chain tile and follow the links, wrapping once.</summary>
+    /// <summary>The carrier's tile search after it picks a room (<c>0x00464400</c>): from a random
+    /// chain tile follow the links, wrapping, to the first tile that takes a carrier; -1 once back
+    /// at the start. A tile takes one when nothing lies on it, or when its store pile holds less
+    /// than the Treasury tile cap, on a Heart too, so a full Heart rim tile (1000) passes. Ours
+    /// keeps a store pile as <see cref="TileState.GoldHeld"/>; DK2 deletes a pile its last gold
+    /// leaves (<c>0x004F4510</c>, vtable <c>+0x20</c>), so a tile holding gold has a pile. A Heart's
+    /// builder <c>0x004DB700</c> stands objects on its chain tiles 7, 16 and 18 (Arch Pillars) and
+    /// 12 (the heart, its obstacle and the arches), which ours does not keep as objects; those
+    /// tiles never take a carrier.</summary>
     public static int DepositTileAlongChain(WorldState world, GameDatabase database,
         RoomInstance room, int startTile)
     {
         int[] chain = SlabChain.Order(world, room);
         int start = Array.IndexOf(chain, startTile);
         if (start < 0) return -1;
+        int cap = database[VariableTypeId.MaxGoldPerTreasuryTile];
+        var occupied = new HashSet<int>();
+        foreach (ObjectState thing in world.Objects)
+            if (thing.TileLink.IsLinked) occupied.Add(thing.TileLink.TileIndex);
+        if (room.Definition.TypeId == RoomTypeId.DungeonHeart)
+            foreach (int position in HeartBuilderTiles)
+                if (position < chain.Length) occupied.Add(chain[position]);
+
         for (int step = 0; step < chain.Length; step++)
         {
             int tile = chain[(start + step) % chain.Length];
-            if (SpaceIn(world, database, tile, room) > 0) return tile;
+            int held = world.TileAtIndex(tile).GoldHeld;
+            if (held > 0 ? held < cap : !occupied.Contains(tile)) return tile;
         }
         return -1;
     }
 
+    /// <summary>The chain positions <c>0x004DB700</c> stands its objects on: Arch Pillars (94) at 7,
+    /// 16 and 18, and the heart (13), its obstacle (100) and decorations at 12.</summary>
+    private static readonly int[] HeartBuilderTiles = [7, 12, 16, 18];
+
     /// <summary>Fills one room's tiles in chain order from its head, and returns what did not fit:
     /// the room deposit <c>0x004F4090</c>, which walks the chain once and, in a heart, skips the
-    /// platform (<c>0x004DA1B0</c>).</summary>
-    public static int FillAlongChain(WorldState world, GameDatabase database, RoomInstance room, int amount)
+    /// platform (<c>0x004DA1B0</c>). <paramref name="rng"/> is the world stream, for the draw a new
+    /// store pile takes (<see cref="PutOn"/>); null at level load, where DK2's draws are not
+    /// modelled (the stream's seeding against the THINGS load is unread).</summary>
+    public static int FillAlongChain(
+        WorldState world, GameDatabase database, RoomInstance room, int amount, SimRandom? rng = null)
     {
         int left = amount;
         foreach (int tile in SlabChain.Order(world, room))
         {
             if (left <= 0) break;
-            int put = Math.Min(SpaceIn(world, database, tile, room), left);
-            world.TileAtIndex(tile).GoldHeld += put;
-            left -= put;
+            left -= PutOn(world, database, room, tile, left, rng);
         }
         return Math.Max(0, left);
     }
@@ -189,19 +210,53 @@ public static class GoldStore
     /// the deposit <c>0x004F3C60</c> the store sweep hands a loose pile to, from the pile's tile
     /// (gold-on-the-floor.md §11).</summary>
     public static int FillAlongChainFrom(
-        WorldState world, GameDatabase database, RoomInstance room, int startTile, int amount)
+        WorldState world, GameDatabase database, RoomInstance room, int startTile, int amount, SimRandom rng)
     {
         int[] chain = SlabChain.Order(world, room);
         int start = Math.Max(0, Array.IndexOf(chain, startTile));
         int left = amount;
         for (int step = 0; step < chain.Length && left > 0; step++)
-        {
-            int tile = chain[(start + step) % chain.Length];
-            int put = Math.Min(SpaceIn(world, database, tile, room), left);
-            world.TileAtIndex(tile).GoldHeld += put;
-            left -= put;
-        }
+            left -= PutOn(world, database, room, chain[(start + step) % chain.Length], left, rng);
         return Math.Max(0, left);
+    }
+
+    /// <summary>The whole deposit <c>0x004F3C60</c>: nothing at all into a ruined Heart; otherwise
+    /// <see cref="FillAlongChainFrom"/>, and what the tiles cannot take goes down as a new neutral
+    /// pile on <paramref name="tile"/> at one of eight points drawn on the world stream (line 0x196,
+    /// table <c>0x006A2FA0</c>). Returns what went into the store.</summary>
+    public static int DepositFrom(
+        WorldState world, GameDatabase database, RoomInstance room, int tile, int amount, SimRandom rng)
+    {
+        if (amount <= 0) return 0;
+        if (room.Definition.TypeId == RoomTypeId.DungeonHeart
+            && world.HasPlayer(room.OwnerPlayerId) && world.Player(room.OwnerPlayerId).HeartRuined)
+            return 0;
+        int left = FillAlongChainFrom(world, database, room, tile, amount, rng);
+        if (left > 0 && FloorGold.Drop(world, database, tile, left) is ObjectState pile)
+            pile.Cell = OverflowCells[rng.NextInt(OverflowCells.Length)];
+        return amount - left;
+    }
+
+    /// <summary>The eight points a deposit's leftover is put at, in DK2's table order
+    /// (<c>0x006A2FA0</c>: each coordinate 0x3FF, 0x7FF or 0xBFF, never both 0x7FF), as the
+    /// third-of-a-tile cells they lie in.</summary>
+    private static readonly byte[] OverflowCells = [6, 7, 8, 3, 0, 1, 2, 5];
+
+    /// <summary>One tile of either deposit: a storing tile (a Treasury's, a live Heart's rim) with
+    /// no store pile gets one, and creating it draws rand(0x800) on the world stream for the pile's
+    /// angle (<c>0x004F3C60</c> source line 0x14F, <c>0x004F4090</c> line 0x207), before the gold goes in.
+    /// The room effect DK2 plays first when the room's definition names one (<c>+0x425</c>) is not
+    /// modelled, nor whether it draws.</summary>
+    private static int PutOn(
+        WorldState world, GameDatabase database, RoomInstance room, int tile, int amount, SimRandom? rng)
+    {
+        int capacity = Capacity(world, database, tile, room);
+        if (capacity == 0) return 0;
+        ref TileState state = ref world.TileAtIndex(tile);
+        if (state.GoldHeld == 0) rng?.NextInt(0x800);
+        int put = Math.Min(Math.Max(0, capacity - state.GoldHeld), amount);
+        state.GoldHeld += put;
+        return put;
     }
 
     /// <summary>

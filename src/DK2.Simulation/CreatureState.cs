@@ -932,6 +932,14 @@ public sealed class CreatureState
     /// combat acquisition) do not read it here yet.</summary>
     public bool TortureVoluntary;
 
+    /// <summary><c>+0x4EB</c>: the portal this creature came out of, as the portal's centre tile,
+    /// which holds its tally (<see cref="TileState.EntranceCreaturesGenerated"/>), or -1.
+    /// <c>Portal_CreateArrival</c> (<c>0x004DC9A0</c>) stamps it on both arms and nothing else
+    /// writes it, so a converted creature keeps it; its death lowers that tally
+    /// (<see cref="PortalRules.ArrivalDied"/>, Q508). Deviates: DK2 stamps the room's tag, so a
+    /// portal destroyed and rebuilt on the same tile is a new room there and the same one here.</summary>
+    public int PortalEntranceTile = -1;
+
     /// <summary><c>AttackAbnormalTargets</c>, <c>+0x3E6</c> bit 2, with <see cref="AttackingId"/>:
     /// the forced target 139 hands both fighters (<c>0x0048F390</c>).</summary>
     public bool AttackAbnormalTargets;
@@ -1258,6 +1266,7 @@ public sealed class CreatureState
         hash.Add(CasinoGamblingFearless);
         hash.Add(FearlessUntilTick);
         hash.Add(TortureVoluntary);
+        hash.Add(PortalEntranceTile);
         hash.Add(AttackAbnormalTargets);
         hash.Add(AttackingId);
         hash.Add(AttackingKind);

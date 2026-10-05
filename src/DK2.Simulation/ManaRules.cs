@@ -58,16 +58,14 @@ public static class ManaRules
         return null;
     }
 
-    /// <summary>The level at which mana stops accruing and starts draining back.
-    /// <b>200000 for every keeper</b>, CONFIRMED by observation, and it does not grow
-    /// with the dungeon. A soft ceiling rather than a clamp:
-    /// <c>ExcessManaDecreaseRatePerSecond</c> only means something if mana can be above it, which a lump sum such as <c>SpecialIncreaseManaAmount</c> (50000) can do.</summary>
+    /// <summary>The mana ceiling, player <c>+0x10EA</c>: <b>200000 for every keeper</b>,
+    /// CONFIRMED by observation, and it does not grow with the dungeon. A clamp, not a soft
+    /// ceiling: a lump sum such as <c>SpecialIncreaseManaAmount</c> (50000) can lift mana above
+    /// it, and the next second whose net is not negative cuts it back in one step
+    /// (<see cref="ApplyOneSecond"/>, Q545). <c>ExcessManaDecreaseRatePerSecond</c> has no
+    /// absolute-address reader but its loader; a table-relative one is not excluded.</summary>
     public static int Threshold(GameDatabase database) =>
         database[VariableTypeId.MaximumManaThreshold];
-
-    /// <summary>How fast mana above <see cref="Threshold"/> drains away.</summary>
-    public static int ExcessDrainPerSecond(GameDatabase database) =>
-        database[VariableTypeId.ExcessManaDecreaseRatePerSecond];
 
     /// <summary>What every player in the world gains per second, indexed to match
     /// <see cref="WorldState.PlayerAtIndex"/>. One pass over the map rather than one per
@@ -191,29 +189,17 @@ public static class ManaRules
     /// keeper's income cap; but the owner's screenshot of a full keeper reads exactly
     /// 200000 with +400 and −297 on the orb, so income beating upkeep pins them at the
     /// top rather than 297 short.</para>
-    /// <para>Mana floors at zero. The independently tested mana-pressure rules
-    /// are not connected to this payment path yet (ADR-0266).</para></summary>
+    /// <para>The net is added, then <c>0x004C10E0</c> (<c>0x004C11C1</c>–<c>0x004C11E7</c>)
+    /// clamps it: a net that is not negative cuts mana to the ceiling in one step, however far
+    /// above it a lump sum left it; a negative net only floors it at zero, so mana above the
+    /// ceiling falls by the upkeep alone (Q545).</para></summary>
     public static int ApplyOneSecond(
         GameDatabase database, ref PlayerState player, int gainPerSecond, int upkeepPerSecond = 0)
     {
-        int threshold = Threshold(database);
         int before = player.Mana;
-        long mana;
-
-        if (before > threshold)
-        {
-            // Above the ceiling nothing accrues, whatever the land is worth; the excess
-            // bleeds off at its own rate and upkeep comes out too.
-            mana = Math.Max(threshold, (long)before - ExcessDrainPerSecond(database))
-                   - upkeepPerSecond;
-        }
-        else
-        {
-            // Netted, THEN clamped, in that order: clamping first and taking upkeep
-            // afterwards would park a full keeper 297 below the ceiling for ever
-            // instead of pinned to it. See the doc comment for the observation.
-            mana = Math.Min(threshold, (long)before + gainPerSecond - upkeepPerSecond);
-        }
+        long net = (long)gainPerSecond - upkeepPerSecond;
+        long mana = before + net;
+        if (net >= 0) mana = Math.Min(mana, Threshold(database));
 
         player.Mana = (int)Math.Max(0, mana);
         return player.Mana - before;
