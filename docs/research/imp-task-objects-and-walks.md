@@ -134,18 +134,15 @@ unread.
    searches kind 1 whole-map first (`imp-task-priority.md` §4). A failed walk goes to the
    next side.
 
-**The id it passes is not the task's.** Both slot calls, the read at `0x0046CD06` and
-the write at `0x0046CF17`, take the dword at `[EBP-0x43]` (bytes `8B 55 BD` at
-`0x0046CCFC`), which no instruction of the function writes. The entry's id is at
-`[EBP-0x8]` (filled by `0x00508200`). `0x00508110` and `0x00508160` index the pool by the
-id and act only when that entry is allocated and its own id equals it. So kind 11 reads
-and writes the side slot of whatever entry the stale word names, and, when it names none,
-reads zero (free) and writes nothing. What the word holds is whatever an earlier call left
-at that depth; the chain `0x00469580` calls reinforce, gold and objects just before at the
-same depth, and the objects handler's frame leaves that byte range unwritten. CONFIRMED
-that the id is unwritten; the value, and so whether kind 11 ever steals or ever records a
-worker, is not settled (STRONGLY INFERRED: usually no entry matches, so the task has no
-holder and any number of imps can take it).
+**The id it passes is the entry's own (Q496, 2026-10-05).** Both slot calls, the read at
+`0x0046CD06` and the write at `0x0046CF17`, take the dword at `[EBP-0x43]`. That is filled
+through a pointer: at `0x0046CC39` the handler calls `0x005081C0(id, EBP-0x64)`, which copies
+the found entry's 36 bytes (`REP MOVSD`, 9 dwords) when it is allocated (`+0x23`) and its id
+word (`+0x21`) matches, and `EBP-0x64 + 0x21` is `EBP-0x43`. `0x00508110` and `0x00508160`
+use only the low 16 bits, so both calls address the kind-11 entry itself: it records a
+holder, and a second imp is refused or kicks under the `0x32` slack (`0x0046CE4F`, kick at
+`0x0046CE63`). CONFIRMED. An earlier frame scan missed the callee's write and called the word
+unwritten.
 
 **The work.** State 38 (`0x00467650`): the entry must still be kind 11 (`0x00508070`)
 and the imp within one tile of it on both axes, else the leave hook runs and it goes to 10
@@ -162,9 +159,8 @@ is STRONGLY INFERRED from the flag's meaning; what notification `0x11` does was 
 by the loader and by door installation for Secret Doors; file a marked tile carrying it as
 kind 11 ahead of the rock/gold split, under the same 20-entry floor; add the handler to
 Tier B after objects and to the drop chain, with the steps above, the stance point and
-`+0x98` = 1; states 38 and 39 as read. Build the slot calls to the unwritten id only
-once its value is known (Q496); until then reading it as "no holder" is the inferred
-behaviour, and it should be named as a guess in the test that pins it.
+`+0x98` = 1; states 38 and 39 as read. Build the slot calls on the entry's own id
+(Q496): kind 11 has a holder, with the dig handler's kick and slack.
 
 ## 3. A kicked imp stops where it stands
 

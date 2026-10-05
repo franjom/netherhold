@@ -237,8 +237,21 @@ my tile destroyed (built, [boulder.md](boulder.md)); **31** `0x004AF8E0` the gas
 for damage type 0 only, workers kicked to state 210 — every shipped process-31 shot has
 damage type 2; **39** `0x004B02E0` the Jack In The Box, data1 to the worker named by data2,
 then a creature of type 0x2E in state 273, the trap destroyed (built, [jack-in-the-box.md](jack-in-the-box.md),
-which also has the area damage's 32-bit arithmetic). Unread: 1, 17 Cyclone, 18
-Raise Dead, 37 Web, and the buff table `0x006E4AC8` (Q394, Q395).
+which also has the area damage's 32-bit arithmetic). Since recorded: **1** `0x004AD7A0`
+(creature creation) and **17** `0x004AE990` (area knockdown). **37** `0x004B0050` the
+Web (2026-10-04): `0x004B32A0` fear at the shot, then over the tiles within `+0x141`
+of it, each creature strictly inside that radius other than the thing tagged at `+0x16D`
+gets `0x0048CAD0(−90, +0x13D)`, `+0x4DD` = 0, and body bit 15 cleared and bit 16 set.
+`0x0048CAD0` divides unsigned, so −90 writes the top speed (variable 19 `<< 12`), not a
+slow. Slow sets the same bit 16, which `creature-status-effects.md` §2 reads as display;
+what, if anything, holds a webbed creature is unread (HYPOTHESIS).
+Unread: **18** Raise Dead (`0x004AE880`, not a defined function in the project), the
+buff table `0x006E4AC8` and area damage types 3, 4 and 8 (Q394, Q395).
+
+**The events.** `0x004AD730`'s five direct callers raise 0x40 (`0x004AB281`), 0x2
+(`0x004AB30F`), 0x8 (`0x004AB4A5`), 0x80 (`0x004AB662`) and 0x4 (`0x004ABFC1`): none raises
+0x1 or 0x100 through it (other readers of those bits were not searched). Type 28's
+handler `0x004AF3A0` is referenced only from its table slot (`0x0069EA2C`).
 
 ## 9. The shipped creature shots, compressed
 
@@ -289,8 +302,11 @@ takes the nearest overlap where DK2 takes tile order;
 objects and bodies as things hit (doors since ADR-0318, traps since ADR-0326) — a shot sent at a heart strikes within a
 quarter tile of its tile (ours, a stand-in: Q363); process types 28 (guided), 34 (instant) and the unread
 ones (Q394, Q395); a stopped or standing shot counts its lifetime down where DK2's physics returns 0 and does
-not; the events 0x1/0x100 and the effects. DK2's thing order between creatures and
-shots is unread: ours flies a shot from the tick after it is made.
+not; the effects. **Thing order (2026-10-04):** `0x004B7830` updates list 0 (creatures)
+before list 1 (shots, kind 1 from `0x004AAC90`), each newest first (`0x004B4A10` links at
+the head, the next pointer read after each update), so a creature-fired shot should move
+the turn it is made (STRONGLY INFERRED: the factory's fire path was not traced), as ours
+does; ours walks `world.Shots` oldest first where DK2 walks newest first.
 
 ## Confidence
 
@@ -306,6 +322,9 @@ handling; §7 contact and type-2 area arithmetic; §8's ten handlers as tabled.
 first read here as invisibility; it is the dying flag `0x0048B770` sets —
 `creature-status-effects.md` §3, corrected 2026-09-23.)
 
-**UNKNOWN:** Q395 (events 0x1/0x100, Guided Bolt's wiring, the
-unread handlers and area types), Q397 (`0x004B32A0` with the never-loaded word
+**CONFIRMED (binary, 2026-10-04):** §8's Web body and the five raised events; §10's list
+order and shot kind.
+
+**UNKNOWN:** Q395 (how the Guided Bolt homes in flight, handler 18, body bit 16, area
+types 3, 4, 8), Q397 (`0x004B32A0` with the never-loaded word
 `+0x52`).

@@ -62,8 +62,9 @@ Three facts shape everything downstream:
    different UV layout; the `Dejected_Pose` meshes differ the same way. How those
    correspond to the main family is Q443.
 3. **The playback rate is not in the file.** `GlbWriter` assumes 30 frames a
-   second, and the per-frame key byte is unread (Q442). Frame counts are exact;
-   durations are not known until Q442 closes.
+   second with `STEP` keys; DK2 interpolates linearly between key entries and
+   takes a clip's length from the art descriptor
+   (`docs/research/kmf-animation-playback.md`, Q442). Frame counts are exact.
 
 Precision: animated positions are packed as signed 10-bit components scaled by
 the clip's geometry scale, so the reference carries roughly 1/512 of that scale

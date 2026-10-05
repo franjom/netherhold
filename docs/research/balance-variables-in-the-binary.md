@@ -96,7 +96,7 @@ went wrong is worth keeping.
 | Global | `0x006F2590` — the slot immediately after `ChickenGenerationTimePerHatchery` |
 | Read by | **223 instructions**, across the whole binary. 225 of the 226 raw occurrences of that address in `.text` are **direct absolute operands**, so there is no array-indexing inflation: it really is read from 223 places |
 | Used as | a **multiplier 28 times** and a **divisor 22 times** (`IMUL`, `DIV`, `IDIV`); the rest load it into a register first |
-| Written by | ~~exactly one instruction in the whole of `.text` — its own dispatch stub~~ **Two.** Its dispatch stub, and one store in the **level loader** (2026-09-05). The raw `.text` scan behind this table listed both stores; the row counted one |
+| Written by | **Two**, both at level load: its dispatch stub `0x0051CDCA` (a VARIABLES record with id 19; none ships) and `0x0051E708` in `Level_ApplyRuntimeConfiguration`, which copies the **LEVEL record's `TicksPerSecond`** (runtime `+0x12B6`, file `0x1182`). No trigger or per-turn path reaches either (Q434, `fog-reveal-sources.md` §3.4). The first write-up counted one of the two stores in its own scan |
 | Lives in | the **uninitialised** part of `.data`, so the image carries no default: it is zero until something writes it |
 | Supplied by | ~~nothing~~ **The LEVEL record of every level file**, not a VARIABLES record — which is why the id-19 file scan below found nothing, and was right about what it looked for |
 

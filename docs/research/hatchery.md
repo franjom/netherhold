@@ -80,11 +80,31 @@ the room's init `0x004DE060` and incremented at `0x004DE83A` and `0x004DE9DB`.
 The Hatchery finder reads it: an empty hatchery asks for more room (42) only once
 it has laid (`computer-keeper-messages.md` §2).
 
+**What a change of shape does to the count** (binary, 2026-10-04, Q522):
+- *Growth.* `Room_AddTile` (`0x004EC650`) links the new tile into the room of
+  its first neighbour, and that room keeps its count.
+- *Merge.* `Room_Absorb` (`0x004ECB70`) writes no overlay field. The surviving
+  room keeps its count and the absorbed room's count is dropped with it.
+- *Losing a tile, by sale or otherwise.* `Room_RemoveTile` (`0x004ED440`) frees
+  the room and builds what is left as new rooms. A new Hatchery goes through
+  `Room_Construct` and then `0x004DE060`, so its count restarts at 0 and its
+  laying clock at that turn. The rebuild copies overlay state across only for
+  types 8, 11 and 15 (`room-object.md`). CONFIRMED.
+
+Ours keeps the count on the room's lowest tile (ADR-0335). It therefore also
+loses the count when that one tile changes, but keeps it when any other tile is
+sold, which DK2 does not.
+
 A room has two object lists. Coops are pushed onto `AutoPlacedObjectList`
 (`+0x0E`, `0x004E6220`), which the coop path above walks. The finder tests the
 other, `ObjectList` (`+0x0C`, `0x004E5FF0`), whose hatchery adders take only a
-Chicken, object 9: `0x004DEB70` adopts the chickens on the room's tiles and
-`0x004A1F87` adds one standing on its owner's Hatchery. No adder for an egg was
+Chicken, object 9. `0x004DEB70` adopts the chickens on the room's tiles. It
+runs from the Hatchery's tile pass `0x004DE560`, which first recomputes the
+generation interval `+0x4D` from `Size`, and from its ownership-change slot
+`0x004DE5D0`, which first empties `+0x0C` through `0x004E6130` (2026-10-04). It
+gives a chicken owned by someone else to the room's owner, and lists it only
+when the chicken's room word `+0x138` is 0. `0x004A1F87` adds a chicken standing
+on its owner's Hatchery. No adder for an egg was
 found, so an egg does not stock a hatchery; that the list holds nothing else is
 STRONGLY INFERRED, its other adders being other rooms' (Q522). Ours counts the
 chickens on the room's tiles that are neither carried nor in the hand

@@ -71,8 +71,16 @@ bit 5), from `0x0045A6B0`, the melee-range getter. No attacker slot is taken (`0
 registers only on a creature, as does the event-6 call in the fight-starter `0x0045A550`).
 `SetState(199)` unless already in category 22.
 
-The same shape holds for a forced *creature* (the Combat Pit): ours picks melee within a tile
-and runs no scan F there (Q510).
+**A forced creature** (the Combat Pit; read 2026-10-04) takes the same jump (`0x0045CF05` to
+`0x0045D704`), so the best stays `0x7FFFFFFF` and the commit (`0x0045DE6E`) casts a surveyed
+attack spell, status spells included (the survey's filter is for a forced thing only), else
+swings (nibble 1); the far-target gate is skipped. Two steps differ from a door. The route check
+`0x004D0E60` runs (`0x0045D74A`): refused, the target is kept only with a surveyed spell and line
+of sight, else it is dropped for the call and scan D (traps) runs. Scan E runs when the forced
+creature is `IsWorker` (or none is left), I am not an Imp, my `+0x453` is 0 and my `def+0x686`
+bit 14 is clear (`0x0045D8DE`-`0x0045D93E`); with the best at `0x7FFFFFFF` any enemy heart in
+sight then wins. Scan F runs as for a door, when a friendly spell was surveyed. Ours picks melee
+within a tile and runs no scan F there (Q510).
 
 ## 3. Approach and reach
 

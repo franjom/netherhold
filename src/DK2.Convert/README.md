@@ -43,8 +43,7 @@ mesh for existing callers and as a fallback if a later frame has an invalid geom
 lookup.
 
 `CTRL` values, section-size meanings, the static-header unknown field, material flag
-meanings, sprite detail-factor semantics, animation interpolation/key-frame
-semantics, and group (`GROP`) semantics are **UNKNOWN** here. They are retained,
+meanings, sprite detail-factor semantics, and group (`GROP`) semantics are **UNKNOWN** here. They are retained,
 identified, or skipped only where they cannot affect decoded geometry; no meaning is
 guessed.
 
@@ -155,11 +154,14 @@ Animated positions are emitted as glTF morph targets with a `WEIGHTS` animation
 channel. This is the closer reading of KMF because its sprite topology, material, UVs,
 and normals remain fixed while the per-frame lookup changes only each vertex position.
 Frame zero is the base mesh and every later frame is a position-delta target. Keys
-select those poses with `STEP` interpolation because KMF's interpolation and key-frame
-metadata remain **UNKNOWN**; interpolating between them would invent behaviour.
+select those poses with `STEP` interpolation. **This diverges from DK2**: the byte
+after each `GEOM` position is that entry's key frame, and the engine interpolates
+linearly between consecutive entries (`docs/research/kmf-animation-playback.md` §1);
+`KmfReader` still drops the byte.
 
-The output rate is **30 frames per second**. It is not read from KMF and is an assumed
-value, therefore **UNKNOWN** with respect to original DK2 behaviour. If any later
+The output rate is **30 frames per second**, an assumed value. DK2 takes a clip's
+length from the creature art descriptor's FPS and frame count, in game turns
+(STRONGLY INFERRED, `docs/research/kmf-animation-playback.md` §3). If any later
 frame cannot be decoded, or an externally constructed animation does not match the
 frame-zero topology, `GlbWriter` deliberately emits the valid frame-zero mesh without
 an animation channel.

@@ -108,9 +108,21 @@ shipped (`creature-death.md` §4; Ghidra holds no bytes for the two globals, whi
 fills). Creature types `0x1D`, `0x15` and `0x1C`, and any with `+0x3EA` bit 11, skip that path:
 `0x0048B770` destroys them through the vtable instead. So the leave hook sees health above 0, and a fighter that collapses releases its
 attackers **without** the victory nibble. ADR-0213's pit knockout is this rule, not a pit
-special. DK2 gives the nibble at death instead: `Creature_DeathBookkeeping` calls `0x00487C00`,
-which runs `0x0045E4A0` over every attacker at health 0 or below. That death comes when the
-dying window ends, the same 60 seconds, unless a rescue or healing ends it first.
+special.
+
+**A victim outside 22 gives none either** (read 2026-10-04). `spFighting`'s dead-target test
+(`0x0045EB20`, `0x0045F055`) is the live-slot byte `[0x006ED540 + tag]`, not health, so a
+collapsed victim stays the target until step 5 (`combat-fight-state.md` §2): there a creature
+target must have `IsAttackable` (`0x0045F2DB`), which the recompute `0x0045A8B0` clears for
+`CreatureDying` (`+0x3E6` bit 21, set by `0x0048B770`). The attacker unlinks, freeing its slot on
+the victim, and seeks another target with no nibble. A `CombatPitFighter` attacker skips that test
+(`0x0045F2D6`). Only three routines write `+0x529 |= 0xF`, each when the victim's health is at
+or below 0 while the attacker still holds it: `0x0045E4A0`, run by `0x00487C00` from
+`Creature_DeathBookkeeping`; the victim's own fight-leave `0x0045ADC0`; and the invisibility drop
+`0x0045EE60`. When a collapsed victim dies sixty seconds later, no attacker holds it. So the nibble
+comes from a victim that dies outright (STRONGLY INFERRED: the destroy path from `0x0048B770` to
+the death bookkeeping is not traced). Ours still gives it at the collapse of a victim outside 22
+(`VictoryRules.TargetDied`), Q511.
 
 Ours books the collapse up to a game second after health reaches 0 and keeps health at or
 below 0 while dying. So the hook's test is ours as: health at or below 0 **and** no dying

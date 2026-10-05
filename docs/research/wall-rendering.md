@@ -103,12 +103,44 @@ only ever reading `build/converted`.
 
 ---
 
+## Piece selection in DKII.EXE (Q71)
+
+Read 2026-10-05 in Ghidra. **CONFIRMED** for the dispatch below; which art slot
+is which piece is **STRONGLY INFERRED**.
+
+- The terrain renderer `0x0043C310` asks `0x0043E320` for the tile's piece list
+  and submits each entry through its render sink's vt`+0xF0` / vt`+0xF4`.
+- `0x0043E320`: an unexplored, unrevealed tile is drawn as terrain `0x1B` (or
+  `0x26` in one tile-flag case). A terrain without the room flag (`+0x17B` bit
+  `0x10`) goes to `0x0043E860`, **not read**. A room terrain goes to
+  `0x00443610`.
+- `0x00443610` switches on the room definition's `TileConstruction` byte
+  (`+0x452`): 2 Quad, 3 3×3, 4 3×3 rotated, 5 Normal, 7 DoubleQuad, 8 5×5
+  rotated, 9–13 the hero gates each have their own builder; 1 Complete uses one
+  art slot (`+0x2A`); 6 CenterPool draws nothing here. Arms 1, 5, 7, 9, 12 and 13
+  then call the wall chooser `0x00444F10`.
+- `0x00444F10`, per side (N, E, S, W): when the neighbour outside the room is a
+  wall, it picks a mesh from the room definition's art slots `+0x13C`, `+0x157`,
+  `+0x172`, `+0x18D` or `+0x1A8`, by whether the neighbouring sides continue the
+  wall (ends and corners) and, in a room with a wall-furniture phase (room
+  `+0x92`/`+0x96` ≥ 0), by x or y parity plus the phase — the phase the torches
+  use (`wall-torches.md` §2). Room type `0x12` picks by offset from the room
+  origin (`+0x2D`/`+0x2E`) and reads `+0x121`; type `0x15` adds no wall; type
+  `0x17` picks by the gate's orientation (`+0x9B`) and reads slot
+  `+0x7F + index·0x1B`.
+
+So the article's "depends on the size of the room" is the `TileConstruction`
+arms and the neighbour tests, not a size test in the wall chooser. Plain rock
+and earth walls (`0x0043E860`) and the deformation (Q72) remain unread; no
+CRT `rand` caller read so far (`0x0042F040`, `0x0059F940`, `0x005B2450`,
+`0x005D7360`) touches terrain.
+
+---
+
 ## Open questions this raises
 
-- **Q71 — what picks a wall piece?** "Depends on the size of the room" is the
-  observation; the rule is unknown. Needed before a Unity view can look like DK2
-  rather than like Minecraft. Cheapest route: the ROOMS record's art fields, once
-  M6 parses them, cross-checked against the article's training-room screenshots.
+- **Q71 — what picks a wall piece?** Room walls: above. Open: the art-slot names
+  in `Rooms.kwd`, and plain terrain's `0x0043E860`.
 - **Q72 — is the wall deformation deterministic per tile?** If a keeper digs a
   wall and rebuilds it, does the same tile deform the same way? If yes, it is a
   function of tile position (a hash — which is how `PlaceholderProvider` derives
@@ -120,8 +152,8 @@ only ever reading `build/converted`.
 
 Confidence: **CONFIRMED** (facts 1–5, from the author's own wireframe and mesh
 extraction) / **HYPOTHESIS** (runtime vertex deformation — the author's stated
-inference, with his own alternative recorded) / **UNKNOWN** (the piece-selection
-rule, textures, lighting, floor edges).
+inference, with his own alternative recorded) / **UNKNOWN** (plain-terrain
+pieces, textures, lighting, floor edges).
 
 Implementation: nothing yet. `AssetCatalogue` and `TileView` carry the two notes
 above.

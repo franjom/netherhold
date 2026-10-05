@@ -8,7 +8,8 @@ action type 14 raises a party, read to its last instruction on 2026-09-24.
 
 The 48-level campaign contains 220 hero parties, and the shipped corpus contains
 one effect generator; every parsed field now enters ordered, hashed and
-snapshotted world state verbatim; the spawn is read (last section) and generation remains UNKNOWN.
+snapshotted world state verbatim; the spawn is read (last section), and DK2's generation is read
+(§ Effect generators in DK2) but not built.
 Across the complete 66-level shipped sweep, 35 levels contain a party.
 
 ## Record shapes
@@ -41,9 +42,36 @@ Q256 records it rather than this change rewiring the tree.
 ## Behaviour
 
 Parties spawn (ADR-0197; `HeroPartyRules`, the last section here is its brief).
-Effect generators do not generate or choose effects; their fields, cadence and
-consumption are UNKNOWN (Q255, Q259). Verbatim storage of the generator loses no
-information; its conservative risk is hashing a value or bit DK2 discards.
+Ours stores generators and generates nothing. Three of the stored fields are ones
+DK2 discards (below), and ours hashes them.
+
+## Effect generators in DK2 (read 2026-10-05, Q255, Q259)
+
+**Loader — CONFIRMED.** The THINGS tag-203 handler (`0x00521380`) reads the 36-byte
+body and copies `X`, `Y` (as tile centres), `+0x10` → `Width`, `+0x12` → `Height`, `+0x1D`
+→ `Id`, and, once the creator `0x004B81E0` succeeds, `+0x1C` → `Frequency` and the four
+words at `+0x14` → the effect ids. Body `+0x08`, `+0x0C` and the six bytes at `+0x1E` are
+never read. The runtime object (vtable `0x0066D814`; field names from its dumper
+`0x004B1CF0`) adds the next due turn `+0x2E`, `Flags +0x3B` (0) and `Active +0x3C` (1);
+init `0x004B19A0`, save `0x004B19F0`.
+
+**Update — CONFIRMED.** `0x004B1B60` (vtable `+0x14`, outside any defined function):
+when `Active` and turn > due, `slot = rand(4)` from the simulation seed
+(`EffectGenerator.cpp` line 173); an empty slot returns without restamping, so it
+draws again next turn. Otherwise `rand(Width << 12)` and `rand(Height << 12)` place a
+point from the generator's corner; world slot `+0x20C`(point) non-zero returns, again
+without restamping; else `rand(0x800)` gives the angle, world slot `+0x38C` makes the
+effect for the neutral player, and due = turn + `Frequency` × variable 19. So
+`Frequency` is seconds and the four ids are picked uniformly, an empty slot costing a
+turn. What `+0x20C` tests and what `+0x38C` builds are unread.
+
+**Every level has one more — CONFIRMED.** `Level_InitTriggersAndStart` adds a generator
+at `0x0050C265` (unless world `+0x7239` bit `0x40`): position (`0x1800`, `0x1800`,
+`0x2000`), width and height the map's minus 2, `Frequency` 1, effect 90 in slot 0
+only. Its id is the node count of the list at world `+0x16` (PLAUSIBLE). The only
+authored generator is Level 17's, yet `dk2-random.md`'s Level 1 census logs 2,982
+draws at line 173: this level-start generator makes them. Ours draws for neither,
+one more entry in the seed-stream gap that document records.
 
 Adding both collections changes the state shape even in an empty world, so
 `HashVersion` and snapshot `FormatVersion` are 47. The pin is recorded in

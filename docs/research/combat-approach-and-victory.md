@@ -84,9 +84,16 @@ If the reach test did not finish the approach, `+0xF5` is decremented. A nonzero
 value delegates immediately to the shared movement handler `0x00470C80`.
 
 At zero, the handler builds a fresh destination from the target's current
-position. A Flanker uses a point behind the target's heading when that point is
-valid: two tiles for attack nibble 0, one quarter tile otherwise. Other fight
-styles use the exact target position.
+position. A Flanker (`def+0x67E` = 3) chasing a creature (kind 0) uses a point
+behind the target's heading `h` (target `+0xF4`, 2048 to a turn): `d` = `0x2000`
+(two tiles) when the attack nibble (`+0x529 & 0xF`) is 0, else `0x400` (a quarter
+tile), and the point is `(tx − (d·S[h])>>16, ty + (d·C[h])>>16)` with 64-bit
+products. `S` (`0x006C1488`) and `C` (`0x006C1C88`, `S` shifted 512 entries) are
+2048-entry 16.16 sine and cosine tables (`S[1]` = 201, `C[0]` = `0x10000`; the
+other entries inferred from that shape). The heading's forward vector is
+`(sin h, −cos h)` (0 is −y, `0x200` +x), so the point is `d` behind the target's
+facing, moving or not. A point `0x004B35C0` rejects is replaced by the target's
+position. Other fight styles use the exact target position.
 
 Unless the stored destination already equals the attacker's current position,
 it requests a new route with `0x004D0F60(..., 0)`. Success stores the fresh
@@ -130,10 +137,13 @@ route-and-enter helper: the creature travels in state 6 and resumes in state
 ## 6. Arrival at the body (state 259, `0x00461130`)
 
 State 259 first requires the remembered tag to remain live and to identify a
-dead-body thing (kind 6). Failure clears `+0xA7` and ends the state. While the
-position/region test `0x004B2AE0` is nonzero it keeps waiting.
+dead-body thing (kind 6). Failure clears `+0xA7` and ends the state. It then
+calls the turn step `0x004B2AE0` toward the body: the heading `+0xF4` turns by at
+most the turn rate (`def+0x6A0`) and the angle still left is returned. While that
+is nonzero it keeps waiting. There is no distance test: state 6 hands over to 259
+on route arrival or its other exits (STRONGLY INFERRED from the route helper).
 
-When that test reaches zero, it enters state 260 and starts action 55 at the
+When the creature faces the body, it enters state 260 and starts action 55 at the
 creature's own position, exactly like the ordinary victory branch. It neither
 destroys, picks up, nor otherwise changes the body in this handler: the body is
 where the creature goes to perform the victory pause.
@@ -144,8 +154,10 @@ State 260's handler `0x00458680` only asks whether a current action exists
 (`0x00496D00`) and returns that result. Its state record is group 4, category 22
 Combat, flag 2.
 
-Action 55's record at `0x006E47D3` has a null handler and selects animation slot
-35 through the action table's `+0x14` byte. The action start stamps the game turn
+Action 55's record at `0x006E47D3` has a null handler, mode 0, duration 0, and
+selects animation slot 35 through the action table's `+0x14` byte (`0x004950C0`).
+Both starts (`0x00460FE0`, `0x00461130`) use `0x00496A30(55, 1, …)`: count 2 and
+the loop bit cleared, so the clip plays once. The action start stamps the game turn
 at `creature+0x3A5`, but the generic action updater does not compare that stamp
 for this record. Instead it keeps the action while the creature's animation
 advance rate at `+0xDC` is nonzero and clears the entire action block when that
@@ -155,7 +167,35 @@ see [Tremor's clock](keeper-spell-tremor.md#4-build-boundary-and-next-read).
 On the same creature tick, state 260 then observes no action, returns false, and
 the state dispatcher enters state 1, idle. Thus the celebration lasts **one
 animation instance**, with no fixed simulation-turn timer in the victory code.
-Its absolute duration for each creature remains Q376.
+
+**Per creature (Q376).** `0x00494880` falls back from slot 35 to slot 8 when slot
+35's runtime bit 0 is clear; `0x00504D80` sets that bit for any nonzero type, so a
+type-6 slot 35 is used whatever its file flag bit 0. A type-0 clip still starts the
+action and ends at the next poll. Applying Tremor's clock (`ActionHoldTicks`) to the
+shipped `Creatures.kwd`, a creature that starts the pause on turn T is idle from
+T + H:
+
+| H | creatures (clip slot) |
+|---|---|
+| 22 | Thief, Rogue, Unique Rogue (35) |
+| 19 | Bile Demon, Unique Bile Demon (8) |
+| 18 | Horny (35); Salamander, Unique Salamander (8) |
+| 17 | Mistress, Unique Mistress, Maiden of the Nest (8) |
+| 15 | Vampire, Unique Vampire (35) |
+| 14 | Skeleton, Unique Skeleton (8) |
+| 13 | Guard, Royal Guard (8) |
+| 12 | Elven Archer, Dark Angel, Unique Dark Angel (8) |
+| 11 | Goblin, Unique Goblin, Fairy (8) |
+| 9 | Giant (8) |
+| 8 | Firefly, Unique Firefly, Princes Tristran, Felix and Balder (8) |
+| 7 | Knight (35); Warlock, Unique Warlock, Wizard, Black Knight, Unique Black Knight, Lord of the Land (8) |
+| 6 | Monk (8) |
+| 5 | Imp (35); Troll, Unique Troll (8) |
+| 4 | Dwarf, Dark Elf, Unique Dark Elf (8) |
+| 1 | King Reginald, Stone Knight, Jack (slot 8 has type 0) |
+
+No clip used has start or end segments. The same computation reproduces the six
+Q527 get-up holds.
 
 `ProcessFight` treats category 22 as already fighting and therefore does not run
 `SelectAVictim` during state 260. The later attackability recomputation does not
@@ -182,10 +222,10 @@ and does not turn on a blow (§5—§7). On state ids (ADR-0208): the fight is 1
 to a body state 6 resuming 259, the celebration 260, then state 1.
 
 **Deviations, named (Q400):** the pause lasts a fixed **8 ticks** (`VictoryRules.PauseTicks`)
-where DK2 plays animation slot 35 once (Q376); behind the target is read from its
-velocity, not its facing, and a standing target gives its own position; freeze, stun and a
-changed choice let the engagement go where DK2 leaves the attack word; the body's arrival
-is half a tile squared where `0x004B2AE0` is unread; a corpse is looked for under any
+where DK2's lasts 1 to 22 turns by creature (§7, Q376); behind the target is read from its
+velocity, not its heading, and a standing target gives its own position (§3); freeze, stun and a
+changed choice let the engagement go where DK2 leaves the attack word; the body is reached at
+half a tile squared with no turn, where DK2 has no distance test and turns to face it (§6); a corpse is looked for under any
 owner; a failed route to a body celebrates at once; `AttackAbnormalTargets` is not
 modelled.
 
@@ -197,10 +237,11 @@ shape and `RET 0x0C` of `0x00471D10` and `0x00471890`; the state fields written;
 the direct route calls; the 10-call refresh; variables 213/214; action 55's null
 handler; the animation-instance end condition; state 1 after a false handler;
 category 22 suppressing a new fight scan; state 260 not being excluded from
-attackability.
+attackability; action 55's mode 0 and (55, 1) start, the 35→8 fallback and its
+availability bit; the Flanker formula and the tables' sampled entries; the turn step
+in state 259.
 
 **STRONGLY INFERRED:** the neutral-player list searched by `0x00460FE0` is the
-dead-body list — state 259 requires kind 6 before using the selected entry.
-
-**UNKNOWN:** Q376, the absolute duration of animation slot 35 for each creature.
-The binary establishes the end condition but not one universal tick count.
+dead-body list — state 259 requires kind 6 before using the selected entry; the
+per-creature turn counts in §7 (Tremor's clock, validated by six get-up captures; no
+capture of action 55); state 259 being reached on route arrival or state 6's other exits.

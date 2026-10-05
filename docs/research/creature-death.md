@@ -5,7 +5,8 @@ Source(s):
 - The reference install's `Creatures.kwd`, `Objects.kwd`, `Rooms.kwd` and
   `GlobalVariables.kwd`, via `DK2.Data`
 - `DKII.EXE` v1.70: the common creature-health routine and the two dying-state
-  handlers, read 2026-09-07 (Q110)
+  handlers, read 2026-09-07 (Q110); the reincarnation `0x0048FFC0` and the
+  Graveyard's burial, gate and Vampire routines, read 2026-10-04 (§2.3, `graveyard.md` §2)
 - OpenKeeper `HealthSystem.processHealthDepleted`, under ADR-0003's second
   amendment
 - The DK2 wiki, **Dungeon Keeper 2 section only**, via the MediaWiki API
@@ -147,30 +148,9 @@ Everything else already pointed the same way:
 **A corpse is not an object, nor a creature state:** DK2 makes a `CDeadBody` thing
 (`dying-states.md` §2). Ours keeps the creature in `CreatureActivity.Dead`, with no state id.
 
-### 2.2 Where a vampire comes back — the Graveyard (Q113)
+### 2.2 Where a vampire comes back
 
-The owner's first wording was *"they reincarnate at their sarcophagus"*, which
-this project read as the vampire's own bed, because its `LairObjectId` had been
-pinned as a coffin. The owner retracted it the same day: *"sarchopagus at the
-graveyard, I made a wrong claim earlier."*
-
-Two shipped facts back the correction:
-
-- The **Graveyard's `CreatedCreatureId` is 8 — the Vampire.** Only two rooms in
-  the table create a creature at all; the other is the Prison, whose 9 is the
-  Skeleton.
-- The **Graveyard's object ids are 31–34**; the Vampire's `LairObjectId` is
-  **26**. Two different objects.
-
-The executable settles the vocabulary: `Object.cpp`'s union names `Lair` and
-`TombStone` among its object kinds, and the words *sarcophagus* and *coffin*
-appear nowhere in its strings. A bed is a `Lair` object whatever art it wears.
-The vampire's coffin-shaped bed and the graveyard's sarcophagus are two objects
-that look alike, and reading one as the other was a pun rather than a finding.
-
-So reincarnation puts the creature on a **Graveyard** tile, which needs a
-Graveyard under the keeper's control — which the DK2 wiki also gives as a third
-permanent-death condition.
+In a Graveyard, not its own bed: `graveyard.md` §1 (Q113, Q329).
 
 ### 2.3 The vampire — routine found 2026-09-16 (Q111)
 
@@ -178,11 +158,27 @@ permanent-death condition.
 so the owner's rule is data-driven rather than a name check, and the vampire having
 no dead body stops being an oddity: there is no corpse because it is not finished.
 
-**`FUN_0048FFC0` is the reincarnation, and the owner's sentence is its guard
-list** (binary, 2026-09-16): level 1 is permanent, a Monk's kill is permanent,
-and it comes back at the level-scaled maximum one level down. The routine, its
-guards and how the Monk's blow reaches it are in `combat.md` §6.3 — it is reached
-from the damage sink, so it is read there.
+**`FUN_0048FFC0` is the reincarnation.** It comes back at the level-scaled
+maximum health, one level down. The owner's sentence names two of its guards,
+and a whole-routine read on 2026-10-04 found three more. The guards, in order:
+
+1. The creature is **not on an interior Temple cell**: `0x00453A20(13)` tests
+   the cell's room type, and `Room_IsFloorSlot` `0x00454110` accepts only a
+   cell whose `+0x0C` is 0xFF. A hit returns at once.
+2. The owner's **Graveyard capacity gate** `0x004DDCA0`, called on
+   `creature+0x2A`, passes (`graveyard.md` §2). With no Graveyard the capacity is 0 and it
+   fails.
+3. `Player_RandomRoomOfType(14)` (`0x004C6460`) finds a Graveyard whose
+   `+0x9A` bit 0 is clear.
+4. The level byte `+0x403` is above 1.
+5. The Monk bit (`+0x3EA` bit 2) is clear.
+
+Then it moves the creature to that Graveyard's `CentrePos` (`graveyard.md` §1), sets health,
+levels down and sets state 1. It returns 0 on every path (`0x0049010B`), so the
+caller's own health copy after `0x004B31B7` never runs. A failed guard simply
+leaves the creature at health 0 or below. That the death then goes ahead as
+for any creature is STRONGLY INFERRED; the path after it was not re-read. How
+the Monk's blow reaches the routine is in `combat.md` §6.3.
 
 **DK2 never records a killer**, which is how the monk half works at all. This
 document used to say that exit *"needs the killer's identity"* — right about the
@@ -203,9 +199,10 @@ final, only a Monk makes it final regardless — and adds a **third permanent-de
 condition the owner did not mention: no Graveyard.** So a vampire dies for good
 if it is level 1, *or* a Monk killed it, *or* its keeper controls no Graveyard at
 that moment. The third is the only one that is a property of the dungeon rather
-than of the creature or its killer. Two of the three are now read from the binary
-(§2.3); **the Graveyard condition is not in `FUN_0048FFC0`'s guards** and is
-either elsewhere or wrong (Q329).
+than of the creature or its killer. All three are read from the binary (§2.3).
+The Graveyard condition is stricter than the wiki says (Q329): the vampire
+needs a Graveyard, and also free Graveyard capacity (`graveyard.md` §2). The binary adds a
+fourth case the wiki does not mention: no return from an interior Temple cell.
 
 **On health the wiki is not followed.** Its *lead* says a resurrected vampire
 returns at full health, but the lead is game-agnostic prose covering all four
@@ -396,5 +393,6 @@ Two corollaries:
 
 ## Open questions
 
-- **Q329**: the wiki's third permanent-death condition — no Graveyard — is not
-  among `FUN_0048FFC0`'s guards (§2.3).
+- Q329 and Q318–Q321 are answered from the binary (§2.3, `graveyard.md` §2). For the owner
+  to confirm in play: a Vampire killed with no Graveyard, or with every
+  Graveyard full, stays dead; one killed standing inside a Temple stays dead.

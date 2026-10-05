@@ -31,11 +31,13 @@ The record, recovered by walking the filler tracking register values:
 | offset | width | what is known |
 |---|---|---|
 | `+0` | dword | **the handler**, installed for 24 of the 81 |
-| `+4`, `+8`, `+12`, `+16` | dword | written, meaning UNKNOWN |
+| `+4` | dword | the handler's `this` offset into the creature (§6) |
+| `+8`, `+12` | dword | written, meaning UNKNOWN; `+12` is −1 or 0 |
+| `+16` | dword | the record's own index (§6) |
 | `+20` | byte | a small id, 3 to `0x25`; §3 |
-| `+21` | dword | written, meaning UNKNOWN |
-| `+25` | word | **not** a `Text.str` id — §5 |
-| `+27` | byte | 0 for all but four records |
+| `+21` | dword | the mode, read by the runner (§6) |
+| `+25` | word | a sound id in the creature's bank, **not** a `Text.str` id — §5 |
+| `+27` | byte | 0 for all but four records; nonzero skips the animation start (§6) |
 | `+28` | byte | **1 in every record**; the end-action test `0x00496D20` reads it, so every action but 21 can be ended |
 
 ## 2. It is indexed by the creature's current action
@@ -159,7 +161,7 @@ routine means **§3's name describes an arm, not the function** — and once 21 
 25 are known to be *leave possession* and *the possession stream*, the three stop
 being unrelated (`game-actions.md` §3).
 
-## 5. The `+25` word is not a label
+## 5. The `+25` word is a sound id, not a label
 
 `creature-state-table.md` recovered that table's labels because its `+0x14` word
 is a `Text.str` id. The same move fails here: this table's `+25` values —
@@ -168,13 +170,30 @@ is a `Text.str` id. The same move fails here: this table's `+25` values —
 the multiplayer menu bank, so either the field is not a string id or it indexes a
 different file. Recorded so the next reader does not spend the hour again.
 
+**It is a sound id** (read 2026-10-04). `FUN_00496700` reads it at `0x004968BC` and, when
+the animation flag is set (`0x004968AC`/`0x004968B6`) and the word is nonzero, calls the
+object at `[0x0075B468]` through vtable `+0x20` with the creature's handle `+0x2E`, the
+definition's bank `def+0x6E3`, the id and the position `+0x1A`, keeping the returned handle
+in `+0x2E`. The other two users of the record lookup `FUN_00496DC0` (`0x0040C290`, on a turn
+modulus, and `0x0045A200`) read only this word, for the same call. The call shape is
+CONFIRMED; that it plays a sound is STRONGLY INFERRED (the target is unresolved;
+`def+0x6E3` is the bank the alarm plays from, `combat-alarm.md` §2).
+
 ## 6. What this leaves
 
 - The enumeration has **no name** here, and 57 of the 81 records carry no
   handler. Whether those are unused or handled by their `+20` alone is UNKNOWN.
-- Why index 21 is singled out is UNKNOWN.
-- `+4`, `+8`, `+12`, `+16`, `+21`, `+25` are all written and none is read by any
-  site found so far.
+- Why index 21 is singled out is UNKNOWN. The runner `0x00496AA0`, `0x00496D00` and
+  `FUN_00496700` treat it as no action, no literal site starts it, and its record carries
+  animation block 4, a hit recoil.
+- The fields, re-read 2026-10-04: `+4` is the handler's `this` offset and `+21` the mode,
+  both read by the runner (its record); `+16` is the record's own index (every literal store
+  equals it; records 0–5 and 42–44 re-checked); `+25` is §5's sound id. `+8` and `+12`
+  (−1 or 0) have no reader in the indexed operands of the table, the three callers of
+  `FUN_00496DC0` and `0x004997A6`; the record pointers built in `FUN_00496700`
+  (`0x00496750`) and `0x00496DCB` were not followed through every use. `+27` is not
+  simply a duration (the runner compares it with the action's age, its record): a nonzero
+  value makes `FUN_00496700` skip the animation start (`0x00496791`–`0x00496799`).
 
 ## Confidence
 
@@ -187,7 +206,9 @@ attack and that `FUN_00514830` starts it with a literal `0x11`.
 
 **CONFIRMED (negative):** `+25` is not a `Text.str` id.
 
+**CONFIRMED (2026-10-04):** `+16` is the record's index; `+25` is passed to the creature's sound call (§5).
+
 **STRONGLY INFERRED:** that `+20` selects a creature animation block (§3; two actions checked by name).
 
-**UNKNOWN:** the table's own name, the other six fields, index 21, and what the
+**UNKNOWN:** the table's own name, `+8` and `+12`, why index 21 is excluded, and what the
 57 handler-less records do.

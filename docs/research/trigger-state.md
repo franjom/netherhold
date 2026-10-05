@@ -58,7 +58,7 @@ engines with separate banks at once. **Q231.**
 | flags | `+0x3F70` | 128 bytes |
 | timers | `+0x3FF0` | **16 dwords** |
 | 24 trigger slots | `+0x4030` | 24 x 0x208 bytes |
-| special target | `+0x72A2` (dword), companion set to 1 at `+0x72A6` | — |
+| level score (id 128, §4) | `+0x72A2` (dword), `LevelScoreSet` at `+0x72A6` | — |
 
 The flag bank's width is **derived from the gap**: the timer bank begins `0x80`
 bytes after it. That is also what makes id 128 the first id past the end, and
@@ -101,15 +101,19 @@ zero-extends. So a flag driven below zero reads back as 128..255, and a conditio
 comparing it against 0 sees a **large positive** number rather than a negative
 one. Reproduced, not corrected.
 
-## 4. Flag id 128 is not a flag
+## 4. Flag id 128 is the level score
 
-Both dispatchers compare the id against 128 and, on a match, divert to a separate
-dword at `+0x72A2`, set a companion at `+0x72A6` to 1, and make a virtual call
-through slot `+0x348`. Unlike a flag it takes the operand's **full 32 bits**.
-
-**What it is remains UNKNOWN (Q229).** It is modelled as an opaque value rather
-than given a plausible name, because naming a thing from the shape of its
-handling is the move that has been wrong repeatedly in this project.
+Q229, read 2026-10-04. The world dumper names `+0x72A2` `LevelScore` and `+0x72A6`
+`LevelScoreSet` (`world-object.md`). Action 7 with id 128 (`0x00518AD0` case 7) sets,
+adds or subtracts the operand's **full 32 bits**, no floor, sets `+0x72A6` to 1 and
+returns slot `+0x348` (`0x00509670`, the `LevelScoreSet` getter). Condition 1 with
+id 128 (`0x00518270`) compares slot `+0x340` (`0x00509650`, `LevelScore`) with Value
+**directly**, ignoring the literal bit. Slot `+0x344` (`0x00511650`) adds, floored at
+0; the MpdScore readers call it (`player-object.md`, score block). The HUD `0x00427BA0`
+shows widget `0x2E` while `+0x348` is non-zero (shows the score: STRONGLY INFERRED).
+**CONFIRMED** otherwise. `TriggerState.Write` mirrors action 7. Ours differs: id 128
+with the literal bit clear reads `IndirectFlagId`; an `IndirectFlagId` of 128 reads
+`SpecialValue`, where DK2 reads byte `+0x3F70 + 0x80`; no `+0x344` adder.
 
 No shipped level writes a flag id **above** 128; in the original such an id would
 index past the flag bank and into the timers, and this reimplementation refuses

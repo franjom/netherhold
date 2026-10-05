@@ -377,9 +377,9 @@ interface object; the keeper-spell table remains immutable in this simulation.
 ADR-0121 built 46, 52, 71 and 73. Types 71 and 73 read player fields nothing
 writes yet — the slap tally and the possessed creature — so both answer from
 state rather than from a constant, and type 73 **declines** rather than guesses
-the moment possession stops being zero. Whether `NumberOfSlaps` counts slaps
-given or received is unread (Q278), and the possessed creature's `+0x488` is
-unread (Q279).
+the moment possession stops being zero. `NumberOfSlaps` counts slaps on the
+player's own things (`player-object.md`, Q278); the possessed creature's `+0x488`
+is unread (Q279).
 
 Declined and why: 22/23 combat, 20 `creature+0x28A` (Q269), 27/28 only when
 `Comparison == 0` asks unread availability, 64 party spawning and party

@@ -21,7 +21,7 @@ or a community document.
 
 | offset | name | note |
 |---|---|---|
-| `+0x04` | `TagId` | the player id the trigger walker pairs with a root |
+| `+0x04` | `TagId` | the player's thing-table id; the id the trigger walker pairs with a root. Equal to `Number` on a level load (below, Q271) |
 | `+0x06`, `+0x16` | `ThingsOwnedList[]`, `TotalNumberOfOwnedThings[]` | eight-entry arrays, one slot per thing category — words then dwords. **Category 0 is creatures**, and condition type 19 walks both |
 | `+0x36` | `RoomList` | head of the owned-room list, walked through the object table at `0x006EE540` |
 | `+0x3C` | `OwnedArea` | four values |
@@ -39,13 +39,13 @@ or a community document.
 | `+0x19A`, `+0x19E` | `Status`, `ObjectiveTextId` | `Status` is 0/1/2/3 = playing/conquered/won/lost, written once (`win-and-defeat.md` §1); but see the kill tally below |
 | `+0x1BE`–`+0x1C1` | `ObjectiveActionPointId`, `NumberOfThingsInHand`, `MaxNumberOfThingsInHand`, `FreeRangeChickenCount` | |
 | `+0x20D` | `CasinoBigWinnerGameTickRemaining` | |
-| `+0x20F`, `+0x213` | `ResearchCompleted`, `ResearchPoint` | **contradicts a comment in `WorldState.PlayerState`** — Q265 |
+| `+0x20F`, `+0x213` | `ResearchCompleted`, `ResearchPoint` | points accumulated and the 1-based entry being researched (Q265): `Research_AddPoints` `0x004C2DC0` adds to `+0x20F`, zeroes it on payment and passes `+0x213` to `0x004C30F0`, `0x005070A0` and `0x00507040(+0x20F, +0x213)`; `0x004C3000` writes `+0x213`. The completed count is `+0x17B`. `WorldState.PlayerState` agrees |
 | `+0x217` | `ManufactureCompleted` | |
 | `+0xB35`–`+0xB3F` | `GemX`, `GemY`, `GemId`, `DungeonArea` | |
 | `+0xB43`, `+0xB47` | `DungeonHeartPosition`, `EntranceLastSackedCreatureTypeId` | |
 | `+0xB4F`, `+0xB53` | `LastPayDayTime`, `WorldPayDayTime` | |
 | `+0xE93` | `PossessedCreatureInitialGold` | |
-| `+0xEE2`, `+0xEE6` | `GameTickDied`, **`NumberOfSlaps`** | `+0xEE6` is condition type 71 |
+| `+0xEE2`, `+0xEE6` | `GameTickDied`, **`NumberOfSlaps`** | `+0xEE6` is condition type 71; credited to the slapped thing's owner (below, Q278) |
 | `+0xF4A` | `DiscoInfernoCount` | |
 | `+0xFCE` | `CreatureUsed[]` | an array |
 | `+0x10D2`–`+0x10F2` | `MaintainImpManaPerSecond`, `MaintainTrapManaPerSecond`, `MaxManaGainPerSecond`, `ManaGainPerSecond`, `BasicManaPerSecond`, `MaxMana`, `OneShotManaGain`, `OneShotManaLoss` | |
@@ -70,9 +70,11 @@ one spell array was a mis-transcription of four loops that share a format string
 ## The score block, and what it is made of
 
 Twelve dwords at `+0x142`, `+0x146` … `+0x16E` are summed into a weighted total
-in the function containing `0x004BF211`, each multiplied by one of twelve
-hardcoded dwords at `0x0069F300`: **1000, 40, 50, 5, 500, 5, 1, 2, 5, 20, 40,
-50** — `+0x152` takes the 500, out of order in the emitted code.
+at `0x004BF211`–`0x004BF2EA` in the level-end routine `0x004BE630`. The table at
+`0x0069F300` holds **1000, 40, 50, 5, 5, 1, 2, 5, 20, 40, 50, 500**; the first
+eleven weight the other eleven fields in address order (`+0x16E` as 20.12 fixed
+point). `+0x152` is added **unweighted at the sum** (`ADD` at `0x004BF2EA`), and the
+500 at `0x0069F32C` has no reference anywhere (read 2026-10-04).
 
 The player dumper prints none of them, but the **level-statistics** dumper
 (`debug-dumpers.md`) prints a struct whose first twelve fields land on those
@@ -84,7 +86,7 @@ offsets exactly. `+0x142` is the struct's `+0x00`:
 | `+0x146` | `EnemyCreaturesKilled` | 40 |
 | `+0x14A` | `HeroesDestroyed` | 50 |
 | `+0x14E` | `RoomsTakenOver` | 5 |
-| `+0x152` | `RoomExtraPoints` | 500 |
+| `+0x152` | `RoomExtraPoints` | unweighted at the sum |
 | `+0x156` | `LandOwned` | 5 |
 | `+0x15A` | **`GoldMined`** | 1 |
 | `+0x15E` | `ManaStored` | 2 |
@@ -97,12 +99,57 @@ So **condition type 31 tests how much gold this keeper has mined** (Q260). The
 credit at `0x004973CF` adds to the owning player from a creature, which is what
 mining is.
 
-**There are two scoring systems and they are not the same one.** `Variables.kwd`
-holds `MpdScore*` at ids 228–233 — 50, 5, 1, 10, 20, 40 — naming five of the
-same concepts. Four agree with the table above (hero 50, land 5, gold 1,
-creature 20) and **`MpdScoreItemManufactured` is 10 where the table has 5**, so
-the hardcoded weights are not those variables read at load. Which system a
-shipped level scores by is unknown (Q267).
+**There are two scoring systems, split by game mode (Q267, read 2026-10-04).**
+`Variables.kwd` holds `MpdScore*` at ids 228–233 (50, 5, 1, 10, 20, 40; globals
+`0x006F29D5`–`0x006F29E9`). Each is read only at its event: hero killed
+`0x004882FB` and `0x004BEA05`, land owned `0x00455A70`/`0x00455ACB`, gold slab
+mined `0x004973A7`, item manufactured `0x004F5439`, creature entered `0x004DCB81`,
+id 233 `0x004F28B9`. Each read is gated by the mode byte `[0x0075AD4B] == 4` and the
+player's `Number >= 3`, and passes the variable to world slot `+0x344`
+(`0x00511650`), which adds it to `LevelScore` (`+0x72A2`, floored at 0;
+`trigger-state.md` §4). The table above is read only at `0x004BF211`, which
+`0x004BEF14`–`0x004BEF26` enters in modes 1 and 4; mode 4 stores the sum at
+`0x00759C4B`, the others hand it to `0x00561BF0`. So in mode 4 both run, and mode 1
+uses the table alone. **CONFIRMED** for the readers, gates and arithmetic; that
+mode 1 is single-player campaign and mode 4 My Pet Dungeon is STRONGLY INFERRED
+(no mode data read). Ours builds neither.
+
+## TagId and Number are equal on a level load (Q271, read 2026-10-04)
+
+`Number` (`+0x10FC`) has one writer, `Players_Create` `0x004C1E20`, which stores
+index + 1 in each of the seven records. `TagId` (`+0x04`) is the thing-table id,
+given by the base constructor `0x00507850`: the first free slot from the cursor
+`0x006A481C`, or the forced id `0x006A4820` while `0x006F2540` is set (save restore).
+`GameAction_LoadLevel` resets the cursor to 1 (`0x00507A30` at `0x00513994`) and
+calls `Players_Create` at `0x00513A4B` with only memsets and copies between; the
+vector constructor `0x00635EC0` builds the records in index order through
+`0x004B8450`, which calls `0x00507850`. So player *i* gets `TagId` *i*+1 = `Number`,
+given that slots 1–7 are empty then (STRONGLY INFERRED). Activation
+(`0x004C2340`, `0x004C2460`) selects by `Number` and returns `TagId`; neither writes
+either field. **Unread:** the save-restore path and the second `Players_Create`
+caller, `0x00509B3E` in world slot `+4` (`0x005099A0`). Ours keeps one id per
+player, which matches on a level load; Q305 follows for level load only.
+
+## NumberOfSlaps counts slaps on the player's own things (Q278, read 2026-10-04)
+
+Every increment of `+0xEE6` goes to the owner of the thing acted on
+(`[thing+0x2A]`), never to a slapper argument. A literal search for `0xee6` finds
+eight functions, four of which increment:
+
+- `Hand_SlapCreature` `0x0048B8A0`, two sites. Its second argument, a player
+  record, supplies only the damage source's `TagId`. States `0xD1`/`0xFF` count and
+  return early. No count: `IsHorny` (sent to state `0xF2`), states `0x4C`/`0x65`/`0xC1`,
+  a room owned by another keeper, a refused `SetState`, room type 12 (damage only).
+- `0x004A7E70`, a trap's reaction (by shape, a slap): increments at its end
+  unconditionally.
+- `Object_ReactToSlap` `0x0049C2A0`: increments before anything else.
+- `0x004A8E70`, a trap's spreading pass, credits the owner of each other trap it
+  triggers. It is not obviously a slap.
+
+`Player_Initialise` `0x004B8640` zeroes it. The HUD `0x00427BA0` shows widget
+`0x31` while world `+0x72B8` (slot `+0x36C`; action 50 sets it through `+0x370`)
+minus the local player's `+0xEE6` is not negative. Ours slaps (`HandSystem.Slap`)
+but never increments `SlapCount`, so condition 71 reads 0.
 
 ## The kill tally at `+0x19E`, and why the dumper's name for it is entry 0
 

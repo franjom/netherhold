@@ -67,6 +67,15 @@ after (`0x00489A4D`). `0x0048F350` is the stunned states 209, 255, 256 and 257;
   and the state's flag byte lacks bit 3, `+0x48` is set to now and `HungerFill` is
   added to `+0x4C`. With bit 3 set the stamp is not moved, so the time still
   passes: a helping overdue on leaving the state lands at once.
+- **When the clock starts** (Q102, read 2026-10-04, CONFIRMED). At spawn.
+  `CreatureState_Construct` `0x00476B40` is called only from `Creature_Construct`
+  (`0x004873C5`). It stamps `+0x48` with the current turn rounded down to a multiple of 8,
+  ORed with the creature's entity id & 7, so creatures are staggered across 8 turns.
+  `+0x4C` starts at 0, and the same stamp goes into `+0x50`, `+0x54`, `+0x5C` and `+0x60`.
+  Two later writes move the stamp: the clock above (`0x00477D2D`) and eating a chicken
+  (`0x00463760`, at `0x004639B8`). No other store to the state object's `+0x48` was found in
+  `.text`, so a pick-up or drop does not reset it (cseg was not scanned). Ours starts the
+  clock at spawn with no stagger.
 - **The attempt.** When `+0x4C` has reached `HungerFill`, the mask admits it, and at
   least 4 turns have passed since `+0x50`: `+0x50` is set to now, and unless
   the busy test refuses, `0x004633D0` tries to eat. Success returns 1.

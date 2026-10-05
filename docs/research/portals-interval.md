@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| Source(s) | `DKII.EXE` v1.70 at `0x004DBBE0` and `FUN_004DBF90` (read 2026-09-07 and again 2026-10-01, ADR-0046), `0x004DC9A0`, `0x004DC8F0`, the player action arm `0x004C892D`; three hand-timed runs on the original (owner, 2026-09-07); three seeded Level 2 captures (`level2-live2-seeds`, 2026-10-01); shipped per-level `VARIABLES` and Level 2's triggers |
-| Observed behaviour | Arrivals from one portal get further apart, permanently. A newly claimed portal runs at full speed however worn out its neighbour is. Nothing a keeper can do speeds a worn portal up except losing it and taking it back. A due roll that produces nothing still restarts the wait |
+| Source(s) | `DKII.EXE` v1.70 at `0x004DBBE0` and `FUN_004DBF90` (read 2026-09-07 and again 2026-10-01, ADR-0046), `0x004DC9A0`, `0x004DC8F0`, the player action arm `0x004C892D`, the death bookkeeping `0x00487C70` (2026-10-04); three hand-timed runs on the original (owner, 2026-09-07); three seeded Level 2 captures (`level2-live2-seeds`, 2026-10-01); shipped per-level `VARIABLES` and Level 2's triggers |
+| Observed behaviour | Arrivals from one portal get further apart as it produces, and one step closer again each time a creature it produced dies. A newly claimed portal runs at full speed however worn out its neighbour is. A due roll that produces nothing still restarts the wait |
 | Confidence | **CONFIRMED** — formula, per-portal clock, per-portal tally, the reset, the restamp at every due roll and the `PortalsOpen` gate. The one-off residual in run 1 is unexplained |
 | Implementation | `PortalRules.SpawnIntervalTicks`, `PortalRules.OnOwnerChanged`, `PortalRules.PortalsOpen`, `PlayerState.PortalsClosed`, `TileState.EntranceCreaturesGenerated`, `TileState.EntranceIdleTicks`; ADR-0086, ADR-0314 |
 | Tests | `PortalTests`, `LevelVariablesOnRealDataTests` |
-| Open questions | none on the clock; Q86, Q97 and Q505 are closed. Q90's weighting is in `portals.md`; Q507 (the boost's decay step) |
+| Open questions | none on the clock; Q86, Q97, Q505 and Q508 (the decrement on death) are closed; whether leaving the dungeon also decrements is unread. Q90's weighting is in `portals.md`; Q507 (the boost's decay step) |
 
 The mechanic and the other four gates: `portals.md`.
 
@@ -185,21 +185,36 @@ Warlock. Built now as `PlayerState.PortalsClosed` (DK2's bit, inverted so a new
 player starts open), action 37, the restamp at every roll, and the creator's
 refusal after the draw.
 
-## The tally never falls
+## The tally falls when one of the portal's creatures dies (Q508)
 
-**Nothing in the executable decrements `room[0x4D]`.** There are **129**
-references to a `+0x4D` field across every structure in the binary and **not one
-is a `DEC` or a `SUB`**. The portal's own unit holds exactly two increments
-(both on the generate path), two stores of literal zero, and two reads. So the
-counter only climbs or is zeroed wholesale, and three things follow:
+The portal's own unit only ever raises `room[0x4D]`: two increments on the
+generate path (`0x004DC5E3`, `0x004DC94F`) and two stores of zero (construction
+`0x004DBBA1`, ownership change `0x004DBBD1`). The decrement is somewhere else, in
+the death bookkeeping `0x00487C70` (binary, 2026-10-04). An earlier scan here
+looked only for a `DEC` or `SUB` on memory, so it missed it: the routine loads
+the dword into a register, decrements the register and stores it back.
 
-1. **A portal does not speed up when the population falls.** Killing a creature
-   and throwing one back into the portal are exactly equivalent: both remove a
-   creature, neither can lower `n`.
-2. **A portal wears out.** On a base-25 level the fifteenth creature takes 250 s
-   where the refuted formula said 187.
-3. The refuted formula counted *living* non-workers, so it accelerated on every
-   death where the original does not.
+- **The arrival is stamped with its portal.** `Portal_CreateArrival`
+  (`0x004DC9A0`) writes the portal room's tag (`room+0x04`) into the creature's
+  word `+0x4EB` on both arms: `0x004DCC40` for a keeper portal, `0x004DCC99` for a
+  hero portal. `Creature_Construct` zeroes it (`0x004878EC`). CONFIRMED.
+- **A death gives the slot back.** At `0x00488150`–`0x00488170`,
+  `Creature_DeathBookkeeping` reads `+0x4EB`. When it is non-zero and that
+  thing's dword `+0x4D` is above zero, it decrements the dword. The tally never
+  goes below zero. Nothing checks that the thing is still a portal. CONFIRMED.
+- **A converted creature keeps its stamp.** The text scans for writers of
+  `+0x4EB` found only the three writes above; the other hits are on the computer
+  player's struct. A creature that changes owner would therefore still lower its
+  old portal's tally when it dies. STRONGLY INFERRED: a struct copy or a save
+  load would not show up in those scans.
+
+So `n` counts the portal's arrivals that are still alive, plus any that left by a
+route other than death. That fits the Level 3 seed 01 capture: the tally went
+from 6 to 5 on the tick the portal-born Firefly reached health 0, and the next
+roll came 188 ticks later instead of 232. A portal does wear out while its
+creatures live, and recovers one step for each of them that dies. Whether
+leaving the dungeon, or being dropped back into the portal, goes through the
+same bookkeeping is unread.
 
 ## The reset is an ownership change, and nothing else
 

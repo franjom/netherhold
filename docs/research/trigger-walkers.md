@@ -42,6 +42,21 @@ zero. **Creatures and action points are both in it**: their frames are slot
 `0x14` of their own vtables and are referenced from nowhere else in the
 executable.
 
+**Which list, and so the per-turn order (Q330, read 2026-10-04).** The lists are
+walked 0 to 7, each to its end before the next. A thing's list is the `kind`
+argument of the linker `0x004B4A10`, which pushes the thing at the **head** of
+`[0x006E504C] + 2 * kind`; that global is world `+0x08` (stored by `0x004B5A10`,
+called with `LEA ECX,[ESI+0x8]` at `0x00513A59` and `0x00509B50`).
+`Creature_Construct` links kind **0** (`PUSH EBX`, zero, at `0x004872C0`, through
+`0x004B1DF0` and `0x004B28D0`); the action point `0x004B0420` links kind **5**
+(`0x004B0423`). Other kinds: 3 trap (`0x004A7940`), 4 door (`0x004A5070`), 6 dead
+body (`0x004B0F20`), 7 `0x004B19A0`; kind 9 is never linked. So **every creature
+updates, walking its root at `0x0048A480`, before any action point**, and each
+class runs **newest first**. The THINGS handler `0x005211A0` creates one point per
+record, so points run in reverse file order (file order of the handler calls is
+STRONGLY INFERRED). Q246's "points interleave with creatures" was wrong. Ours walks
+points first, then creatures, oldest first, in a pass of its own before the systems.
+
 `FUN_004C2310` walks the player list from world `+0x7A` through link `+0x3A`,
 calling the player frame `FUN_004B9EC0` on each.
 
@@ -156,6 +171,22 @@ a gold steal, 7 from the Prison enter hook once its claim takes (ADR-0311). Not 
 wired, their sites above: 5/60, 8, 9, 10, 11, 12, 54,
 65/58, 46, 53, 56/57, 59 — each waits on the system that owns
 the moment. An event walk's blocked and partial records are not reported.
+
+### Objects carry a root too, reached only by an event (Q285, read 2026-10-04)
+
+The object dumper `0x0049D310` prints `TriggerRoot` (`+0x144`, a signed word) and
+`TriggerRootRepeatCount` (`+0x137`). The object's owner setter `0x0049C850` (vtable
+data at `0x0066D678`) calls `0x004A3F50(18, 0, 0)` when an object owned by the
+neutral player `[0x006F2548]` gets a new owner. `0x004A3F50` is the creature filter's
+shape over the object's root: for each active record of the event's type on the
+top-level chain it walks the children through `0x004A3E90` with the record's own
+`+0x0F`. That walker uses the world condition dispatcher `0x00518270` (type 18 is
+answered false) and the world action dispatcher, and returns 0. **CONFIRMED.** No
+per-turn walk reaches `+0x144`. Its writer is **not found**: literal searches of the
+decompiled code for stores and reads at `+0x144` hit only the dumper. Neither the object
+THINGS handler `0x00520BB0` nor the door handler `0x00520F40` reads its record's
+trigger word. Our reach count (`dk2tools kwd unreached`) has no object roots, and the
+executor no event 18 (Q285).
 
 ## A tree's context decides only part of its meaning
 

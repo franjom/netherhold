@@ -30,7 +30,12 @@ Confidence: **STRONGLY INFERRED (binary)**.
   fall), then sets **217** and places the body on the floor.
 - **217's handler** `0x004599D0` plays the fall in two phases (`state+0xA7` 1, then
   2). Each turn it calls the health routine in its dying-countdown mode
-  (`0x004B2CE0` with −1, §4). A creature whose health is back above zero leaves it:
+  (`0x004B2CE0` with −1, §4), but only while the creature's `BeingDragged` (`+0x3C7`,
+  read through vtable `+0x74`, `0x004B5DE0`) is 0 (`0x00459BE8`–`0x00459C00`). The health
+  routine refuses any change to a dragged creature as well (`0x004B2E08`). So **the rescue
+  window stops while an imp carries the creature** (Q164, read 2026-10-04). The take-hold
+  `0x0048B4A0` sets the flag through `+0x6C` (`0x004B5DF0`); the drop `0x0048B500` clears it
+  through `+0x70` (`0x004B5E00`). A creature whose health is back above zero leaves it:
   `0x0048AD30(1)`, then the lair-trip chooser `0x0046F390`.
 - **Death.** The countdown ending destroys the creature. With `DeadBodyOnDestroy`
   set, a `CDeadBody` thing is left in its place. So a corpse holds no creature
@@ -51,6 +56,26 @@ the flag set, makes a dead-body thing. A corpse is neither an object record
 (`objects.md` §4) nor a creature in a state. Ours keeps the corpse as the same
 creature in `CreatureActivity.Dead`, holding no state id, the one creature that has
 none.
+
+**The corpse clock stops while the body is carried** (Q164, read 2026-10-04,
+CONFIRMED). The countdown is the body's `+0x40`. `DeadBody_Construct` `0x004B0F20` sets it
+to `DeadBodyDiesAfterSeconds` × ticks per second, 60 × 4 turns (`0x004B0FAF`). It is the
+only reader of `0x006F25A0` besides the loader. The body's vtable (`0x0066D904`) has a
+carried flag `+0x138`: `+0x6C` `0x004B80F0` sets it, `+0x70` `0x004B8100` clears it (the
+constructor calls this), `+0x74` `0x004B8110` returns it. The carrier's take-hold
+`0x0048B4A0` stores the thing in creature `+0x3C5` and calls `+0x6C` for classes 6, 2 and 0.
+The drop `0x0048B500` calls `+0x70`. The body's update `0x004B12D0` (vtable `+0x14`) asks
+`+0x74` (`0x004B1649`). While the flag is set it does not decrement. Otherwise it decrements
+once when dword `+0x16` is not 2 and the body is in no room (word `+0x132` zero,
+`0x004B1654`–`0x004B1664`). On the not-falling arm it decrements again when `+0x132` names a
+Graveyard (type 14, `0x004B166B`–`0x004B168E`). The falling arm (`0x004B1693`) moves the body
+and does not decrement. So a corpse ages on open floor and in a Graveyard, and not in any
+other room. Not read: what `+0x16` == 2 is, and what destroys the body when `+0x40` runs
+out. That only carrying sets `+0x138` is STRONGLY INFERRED: the other `+0x6C` call sites
+were not classified.
+
+**Ours diverges.** `DeadBodyDiesAfterSeconds` and the dying countdown both run while an
+imp carries the body (Q164). The fix is not built.
 
 ## Open questions
 

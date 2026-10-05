@@ -195,8 +195,9 @@ position and radius to its consumers, and the movement-side separation path
 works in that continuous space. This accounts for the observed routing around
 beds, bookcases and anvils without a furniture write to the tile cache.
 
-The slab word's separate bit 14 path is room/terrain geometry: its low 12 bits
-are the room id, four sites clear bit 14, and no independent setter exists.
+The slab word's separate bit 14 path is room/terrain geometry: four sites clear
+bit 14, and no independent setter exists. Its low 12 bits are the tile's owner,
+not the room: the room id is the low 12 bits of `+0x2` (`runtime-map.md`, Q514).
 It is therefore written with the room id and punched out for structures
 (STRONGLY INFERRED); this is not an object predicate either.
 
