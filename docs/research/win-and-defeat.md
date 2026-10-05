@@ -46,8 +46,8 @@ for the neutral and hero players (`0x004B9F22`, `0x004B9F3A`), and the alliance 
 `0x0050A6A2` test `Number >= 3`. Four filter nothing: the `WIN_GAME`/`LOSE_GAME` arms
 (`0x004C8666`, `0x004C8679`), whose `this` can be player 1 or 2 because their own roots are walked
 before that return (`0x004B9EEC`), and game actions `0x54`/`0x55` (`0x005060E0`, `0x00506100`), which
-take the player from the packet (`+0x10`); the one `0x54` sender read, `0x0040A937`, uses the local
-player. No shipped `WIN_GAME`/`LOSE_GAME` is reachable from a hero, neutral, party or world root: all
+take the player from the packet (`+0x10`); the one `0x54` sender read, `0x0040A937` (the "do not
+fear the reaper" cheat, `game-actions.md` §3.1), uses the local player. No shipped `WIN_GAME`/`LOSE_GAME` is reachable from a hero, neutral, party or world root: all
 87 hang under keepers (80 under player 3's root, 1 under a player-3 creature, 6 under players 4 and 5
 in King Of The Hill). So the message gate `0x004C4600` (`+0x19A` non-zero refuses) admits players 1
 and 2, as ours does.

@@ -186,3 +186,10 @@ second Portal at 164 and player 5 takes (53,6) at 165, and Harkan never digs eas
 HYPOTHESIS: DK2's next Portal pass fell after 165, so it found no neutral Portal; nothing
 here shows when that pass ran. Our Portal claims are earlier (36 vs 40, 149 vs 164); why is
 UNKNOWN.
+
+**Owner, a second game (2026-10-05).** Played normally for over ten minutes with the map
+revealed (the cheat, `game-actions.md` §3.1): Harkan digs east only along the straight gold
+row by his base, never on toward the top-right keeper, and then southeast toward the hero
+fortification in the map's centre. OBSERVED, one game with a playing human; it agrees with
+the idle capture, where Harkan owned no tile in x 24-51 of the top rows (y 0-13), sampled
+from tick 1 to 2,400.
