@@ -48,8 +48,9 @@ public static class CarryRules
     /// <item>Collapsed, the carrier's keeper's own — its own bed, not any free lair tile; it kept
     /// that bed through the collapse so this walk would have a destination
     /// (<see cref="CreatureDeathRules.Collapse"/>).</item>
-    /// <item>Collapsed, somebody else's — a free cell in the worker's keeper's nearest Prison,
-    /// or the rim of a full one (<see cref="PrisonRules.DeliveryTileIn"/>, ADR-0064).</item>
+    /// <item>Collapsed, somebody else's — a free cell in the worker's keeper's nearest Prison
+    /// with space (<see cref="PrisonRules.FreeTileIn"/>, ADR-0064); none when every Prison is
+    /// full (ADR-0354).</item>
     /// <item>A corpse — the keeper's nearest Graveyard tile.</item></list></summary>
     public static int TryDestinationFor(
         WorldState world, GameDatabase database, CreatureState worker, CreatureState body)
@@ -58,24 +59,12 @@ public static class CarryRules
             return NearestGraveyardTile(world, database, worker);
 
         // A collapsed enemy goes to the WORKER's keeper's prison, not the
-        // body's (kind 13's other branch). A keeper with no prison leaves it
-        // lying where it fell; a keeper whose prisons are all full still sends
-        // the imp, and the refusal happens at the door (ADR-0148).
+        // body's (kind 13's other branch). A keeper with no prison, or whose
+        // prisons are all full, leaves it lying where it fell: the rescue
+        // selector 0x0046D810 raises no task without a place (ADR-0354). One that
+        // fills during the walk refuses at the door, onto the rim (ADR-0148).
         if (body.OwnerPlayerId != worker.OwnerPlayerId)
-        {
-            int cell = PrisonRules.DeliveryTileIn(
-                world, database, worker.OwnerPlayerId, worker.Tile);
-
-            // Ours: a body already lying at a prison that will not take it stays
-            // there, rather than being carried round and round the room it was
-            // refused at. The end state is the owner's - left on the rim.
-            if (cell >= 0
-                && !PrisonRules.AdmitsAt(world, database, worker.OwnerPlayerId, cell)
-                && PrisonRules.StandsInPrisonOf(world, database, body, worker.OwnerPlayerId))
-                return -1;
-
-            return cell;
-        }
+            return PrisonRules.FreeTileIn(world, database, worker.OwnerPlayerId, worker.Tile);
 
         return LairRules.BedTileIndex(world, database, body);
     }

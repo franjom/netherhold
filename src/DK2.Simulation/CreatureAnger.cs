@@ -39,6 +39,37 @@ public enum AngerBucket
     Treatment = 5,
 }
 
+/// <summary>The anger wrapper's third argument (<c>0x00478B80</c>), sent as a 17/18 message's
+/// Data1 and indexing the creature's complaint speech; it is not the bucket. Values are read off
+/// the wrapper's sixty call sites; the names are ours, after the sites that pass them
+/// (computer-keeper-messages.md, the census). 6 and 7 are passed by sites not built here.</summary>
+public enum AngerComplaint : byte
+{
+    /// <summary>The need-anger routine's Lair charge and the in-lair calm.</summary>
+    NoLair = 0,
+
+    /// <summary>The need-anger routine's food charge and the prisoner's failed search.</summary>
+    NoFood = 1,
+
+    /// <summary>The need-anger routine's pay charge, the Casino and a delivered drop.</summary>
+    Money = 2,
+
+    /// <summary>The happy chooser's failed pass, and a waiting pit fighter's work charge.</summary>
+    NoWork = 3,
+
+    /// <summary>The hand's slap.</summary>
+    Slapped = 4,
+
+    /// <summary>Being held in the hand (<c>0x00488DB2</c>).</summary>
+    Held = 5,
+
+    /// <summary>The Torture Chamber's act.</summary>
+    Tortured = 8,
+
+    /// <summary>Company in a cell, the Temple, spectating and a waiting pit fighter's company charge.</summary>
+    General = 9,
+}
+
 /// <summary>
 /// A creature's anger: <b>six independent counters, not one number</b>, banded
 /// by the <b>largest</b> of them and never by their sum. The original's anger-add
@@ -130,7 +161,8 @@ public struct CreatureAnger : IEquatable<CreatureAnger>
     /// <summary>
     /// The bucket the mood is currently coming from, which is what a report
     /// wants to name: <i>why</i> this creature is cross, not merely how much.
-    /// Ties go to the lower index, as the original's scan does.
+    /// Ties go to the lower index, as the original's scan does: <c>0x004871B0</c>,
+    /// which the keeper's make-happy remedy dispatches on.
     /// </summary>
     public AngerBucket Worst
     {

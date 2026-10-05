@@ -817,7 +817,8 @@ The third cast path (`0x004BC290`) is action 56's alone; the keeper never issues
 - **Remaining message producers and suppression initialization** are open; the
   independently checked senders and retention rules are in
   `research/computer-keeper-messages.md`. In particular 41 means room needed,
-  and 47 is emitted by the Turncoat shot process.
+  and 47 is emitted by the Alarm trap's shot (process 12); the census of every
+  producer is in its section 2.
 - **Which creature stat the make-room step minimises** — the descriptor byte at
   `+0x787` of the in-memory creature descriptor (Flame names neither it nor the job
   count next to it at `+0x78B`). The candidate ordering is therefore known in form,
@@ -1041,6 +1042,7 @@ the simulation's stream. The delay and separate stream are deliberate deviations
 | `RoomPlanner` | §5.5's room choice, ideal neighbours, directions, claimable neutral rooms | **exists** |
 | `KeeperAIPersonality` | the nine skirmish rows of §3.2 as typed static data, producing a `KeeperAIParameters` plus the computed `RoomList` | **does not exist**; the values are decoded in `reverse-engineering/` |
 | `ThreatEvaluator` | Pure strength, drop-site and response arithmetic (§5.4) | **exists**; live inputs and messages arrive through `KeeperThreatResponder` (ADR-0278, `research/computer-keeper-threat.md` section 5) |
+| `KeeperMoodRemedies` | §5.3's make happy and dispose for 17/18, as pick-up, mint and drop commands | **exists** (ADR-0353) |
 | `KeeperAttackPlanner`, `KeeperReadiness` | §5.5's attack planner, front and management; the readiness grants as commands | **exist** (ADR-0298) |
 | `TrapPlacer` | §5.6 | **does not exist** |
 | `IWorldView` | a general agent observation interface | **not added**: `KeeperView` supplies the current keeper boundary; extend it with verified observations as §12.4 grows |
@@ -1060,7 +1062,7 @@ methods on `KeeperAI` rather than a separate type.
 | spell 4 Create Imp | `CreateImpCommand` | none |
 | spells 3 Call to Arms (+63 remove), the battle spells, Heal, Chicken, Inferno | `CastSpellAtPlaceCommand`, `CastSpellOnCreatureCommand`, `RemoveCallToArmsCommand` (ADR-0279, 0283, 0287, 0302) | none: the keeper casts 13 Create Gold and 1 Sight of Evil, whose simulation cast has an empty effect (ADR-0352, §5.10) |
 | place trap / door | `PlaceTrapCommand`, `PlaceDoorCommand` | placement exists (ADR-0231); AI site choice remains |
-| pay a creature by minting gold on it | — | needs a treasury-withdrawal rule as well as a command |
+| pay a creature by minting gold on it | `MintWageCommand`, then `DropCommand` naming the creature | none: `GoldStore.Spend` is the withdrawal (ADR-0353) |
 | claim a neutral room | digging a path to it, then `ConvertRoom` work | none (ADR-0044) |
 
 Every row marked **bold** adds simulation state or a new effect, so each bumps
@@ -1076,12 +1078,13 @@ The simulation's `SimulationEvents` sink remains **observation only** (ADR-0006)
 suppression, expiry and explicit acknowledgment commands. It is hashed and
 snapshotted; `KeeperView` copies the recipient's messages without draining them.
 ADR-0245 defines the sweep timing that preserves zero-timeout messages for AI.
-Room messages 41–43 are retained, posted by the Treasury, Lair and Hatchery paths, and
-41/42 run through `KeeperRoomRequests` (ADR-0327, ADR-0335); mood messages and the other room
-producers remain unbuilt (`research/computer-keeper-messages.md` §4).
-`KeeperAI` consumes kinds 1 and 6 through `KeeperThreatResponder`: reservation,
-acknowledgment and the respond-to-attack event as commands (ADR-0278, 2026-09-29).
-Kinds 12, 34 and 47 wait for producers.
+Every type the walk reads is now retained and consumed (ADR-0353; coverage and what is
+left unproduced: `research/computer-keeper-messages.md` §4). Room messages 41–44 come from the
+Treasury, Lair and Hatchery paths, the claim and the job-room finders, 32/33 and 35 from a room
+changing hands, and 41/42/32/35 run through `KeeperRoomRequests` (ADR-0327, ADR-0335).
+Mood messages 17/18 come from every anger path and run through `KeeperMoodRemedies`.
+`KeeperThreatResponder` takes 1, 6, 12 and 47 to the position reader and 34 to the room
+reader: reservation, acknowledgment and the respond-to-attack event as commands (ADR-0278).
 
 Alliances, player status, and trap and door instances now exist (ADR-0159,
 ADR-0162, ADR-0231). Per-player spell availability is stored and can change through
@@ -1157,9 +1160,9 @@ Remaining M12 plan:
    message families and producers.
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
-3. **Dungeon management.** Add mood responses, prisoners, specials, research decisions and
-   the other room producers; the training moves (ADR-0317) and the Treasury, Lair and Hatchery room
-   needs (ADR-0327, ADR-0335) are built. Acceptance: a verified need changes its orders. Reuse §12.3–12.4's
+3. **Dungeon management.** Add prisoners, specials and research decisions; the training moves
+   (ADR-0317), the room needs (ADR-0327, ADR-0335) and every message the walk reads, with make
+   happy and dispose (ADR-0353), are built. Acceptance: a verified need changes its orders. Reuse §12.3–12.4's
    existing commands and state.
 4. **Deliberate attacks.** Readiness with its level grants, enemy selection, the attack
    tunnel, the staging point, the front and the call are built (ADR-0298), and task 7's
@@ -1192,7 +1195,7 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
-The observation (schema 17) includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
+The observation (schema 18) includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
 alliances, reverse player activation order, research upgrades, placed trap threat and
 navigation bytes (`research/computer-keeper-threat.md` sections 1 and 2). Tests check frozen
 values, packet round trips and equal command streams;
@@ -1227,7 +1230,8 @@ its validators give an own creature; schema 13 every player's status, the heart 
 as the heart and the call's refused own-room tiles, with route queries over the captured bytes;
 schema 14 the Chicken and Inferno permissions per foreign creature (ADR-0302); schema 15 each
 creature's experience and dropped-to-do job and each room's floor slots in chain order (ADR-0317); schema 16
-every room's tiles in chain order (ADR-0327); schema 17 the own-room tiles where Sight's target 4 refuses (ADR-0352).
+every room's tiles in chain order (ADR-0327); schema 17 the own-room tiles where Sight's target 4 refuses (ADR-0352); schema 18 each
+creature's anger buckets, each room's object list and the hand's count (ADR-0353).
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
 now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);
@@ -1236,6 +1240,6 @@ The attack planner, the front and attack management run through `Think` at task 
 with readiness grants as commands (ADR-0298, `KeeperAttackPlanner`, `KeeperReadiness`).
 Combat messages reach the observation; the battle step casts all four shipped battle spells
 (ADR-0302). The training moves run at step 9 (ADR-0317). Room messages 41 and 42 schedule rooms
-and expansions through the planner's request (ADR-0327). The mood and other reactive decisions,
-the remaining message producers and the personality loader remain unbuilt (2026-10-02).
+and expansions through the planner's request (ADR-0327); make happy and dispose answer 17/18 and
+the readers 12, 34 and 47 (ADR-0353). The personality loader remains unbuilt (2026-10-05).
 Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.

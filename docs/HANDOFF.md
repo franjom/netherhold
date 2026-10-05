@@ -31,11 +31,13 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (action 56 only, Q537) and the held-creature regeneration in Q152.
   Evidence: research/keeper-spell-*.md.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
-  PlayerCommands through a detached, serialisable observation (schema 17).
+  PlayerCommands through a detached, serialisable observation (schema 18).
   The proactive task machine (tasks 0–7) digs, expands, builds rooms, manages
-  gold and imps, and crosses water or lava with bridges. Room messages 41–43
-  are posted by the gold carrier, the room sale's refund and the Lair and Hatchery
-  finders; 41 and 42 make the keeper build or expand a room (ADR-0327, ADR-0335). Reactive combat
+  gold and imps, and crosses water or lava with bridges. Every message type its
+  walk reads is produced where ours has the event and consumed (ADR-0353): room
+  messages 41–44 and 32–35 make it build, expand or re-choose a room (ADR-0327,
+  ADR-0335), 17/18 make it pay, feed, move or dispose of a creature, and 12, 34
+  and 47 start a threat response; the unproduced rest is Q542–Q544. Reactive combat
   messages, threat response, wounded retreat, the battle step, Call to Arms,
   Thunderbolt, Heal, Chicken and Inferno run through simulation commands, and the
   gold step's Create Gold and step 14's Sight of Evil are cast where DK2's are (ADR-0352).
@@ -59,16 +61,17 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 ## Next work
 
-1. M12: build the remaining room producers (the other finders, the claim
-   failure, the rescue selector; computer-keeper-messages.md §4) and the mood
-   messages and decisions. Verify each in DKII.EXE, then test the command's
+1. M12: the message producers left unbuilt wait on unread fields or unmodelled
+   state (Q542 rescue, Q543 finder gates, Q544 Graveyard; computer-keeper-messages.md
+   §4). Verify each in DKII.EXE, then test the command's
    effect through the simulation. The research move, prisoner/special
    decisions, trap/door decisions and personality loader also remain
    (KEEPER_AI.md §12.7). Do not infer an UNKNOWN rule from a name.
 2. M12: capture an active original keeper on the same stock map and compare
    its commands and observable results with the unaided modern scenario.
    Account for campaign availability and scripting. Q497 and Q509 specify
-   gaps; computer-keeper-observations.md is the comparison record. Close
+   gaps; the protocol (map, captures, what to compare) is the last section of
+   computer-keeper-observations.md, which is also the comparison record. Close
    M12 only when the keeper digs, expands, builds to a need, recruits, defends
    and attacks unaided, with measured differences reported.
 3. M6 and M7: use the plan's run order and the open-question rows for the

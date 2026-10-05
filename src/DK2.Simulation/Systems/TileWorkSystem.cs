@@ -71,12 +71,37 @@ public sealed class TileWorkSystem : ISimulationSystem
                     tile.DigTaskOutlivesWallFor |= (ushort)(1 << order.PlayerId);
             }
 
+            PostThreat(context, order, result, before, ownerBefore);
             CreditGoldMined(context, order, result.GoldReleased);
             int carried = HandTo(context, order, result.GoldReleased, out int putDown);
             Report(context, order, result, before, world, carried, putDown);
         }
 
         world.RawPendingWork.RemoveRange(0, count);
+    }
+
+    /// <summary>The keeper messages tile work raises: 12 to the owner of a Solid, Ownable tile another
+    /// player's work brought down (<c>0x0045313E</c>, tile x and y), and 34 to the owner of a room a
+    /// Good creature's blow left standing (action 11, <c>0x00497F29</c>: room type, room).</summary>
+    /// <remarks>Not built: the player events <c>0x38</c>/<c>0x39</c> that follow 12, and 36/37 for a
+    /// blow that unmade the tile.</remarks>
+    private static void PostThreat(
+        SimulationContext context, TileWorkOrder order, TileWorkResult result, byte before, byte ownerBefore)
+    {
+        WorldState world = context.World;
+        int x = order.TileIndex % world.Width, y = order.TileIndex / world.Width;
+        if (result.Outcome == TileWorkOutcome.Destroyed && ownerBefore != order.PlayerId && world.HasPlayer(ownerBefore))
+        {
+            TerrainDef terrain = context.Database.TerrainById(before);
+            if (terrain.IsSolid && terrain.IsOwnable)
+                world.Messages.Post(world, ownerBefore, PlayerMessageKind.WallBreached, x, y);
+        }
+
+        if (order.Kind == TileWorkKind.AttackRoom && order.PlayerId == PlayerIds.Good
+            && RoomIndex.RoomAt(world, context.Database, order.TileIndex) is RoomInstance room
+            && world.HasPlayer(room.OwnerPlayerId))
+            world.Messages.PostOwnership(world, room.OwnerPlayerId, PlayerMessageKind.RoomAttacked,
+                (RoomTypeId)room.Definition.RoomId, SlabChain.FirstSlab(world, room));
     }
 
     /// <summary>

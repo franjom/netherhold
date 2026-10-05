@@ -15,6 +15,20 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**185** — `0xD840FA98E806236E`. No imp sets off for an enemy while every Prison is full; a body refused at the door is put down on the room point 0x004E8430 draws from the world stream; no new field. ADR-0354.
+
+**184** — `0xB22ED6D42A6AD975`. Tile work posts 12 to the owner of a Solid, Ownable tile another player's work brought down and 34 to the owner of a room a Good creature's blow left standing; no new field. ADR-0353 stage 6.
+
+**183** — `0x683FC33F7E712118`. The Training, Temple, Torture, Casino, Library and Workshop finders post 41, 43, 42 or the new 44 (its subtable) when they find no room; no new field. ADR-0353 stage 5.
+
+**182** — `0xDC5ABB62C9123E6F`. The claim 0x004E5A70 posts 42 when no other room of the type has a place the creature can reach, and for a Prison past its limit; a 42 for a type off its subtable keeps its terminator record a sweep; no new field. ADR-0353 stage 5.
+
+**181** — `0x402E9BC4C3C96C2A`. The room transfer and the defeat handover post 35 to the old owner and 32 or 33 to the new, with the 32 to 35 subtables; no new field. ADR-0353 stage 4.
+
+**180** — `0x68CC6F319486D231`. `MintWageCommand`: the keeper's wage spent from the stores in shares and put in its hand as a pile; no new field. ADR-0353 stage 2.
+
+**179** — `0x2D8E29670FC89364`. The anger wrapper posts 17 and 18 on an upward band change and the sweep frees one whose creature left the band; no new field. ADR-0353 stage 1.
+
 **178** — `0x030F88C2BFE9ADEB`. A Sight of Evil cast (spell 1) is accepted at a place: permission, payment, one-shot mana and both clocks, with no shot made; no new field. The pinned world casts nothing, so the value moved on the version alone. ADR-0352.
 
 **177** — `0x3C779015EE115C66`. The mixed-class tile chain link on creatures, objects, traps, doors and shots with its world counter, and action 15's point, pitch and range on the creature; the possessed action command (action 26) is built. Scenario event/world outputs are unchanged; see `keeper-spell-possession.md`, Possessed actions.

@@ -72,7 +72,8 @@ public static class DropDeliveryRules
         }
 
         CreatureAngerRules.Apply(
-            world, definition, creature, AngerBucket.Treatment, -(int)(ushort)definition.DropDeliveryCalm);
+            world, definition, creature, AngerBucket.Treatment, -(int)(ushort)definition.DropDeliveryCalm,
+            AngerComplaint.Money);
         world.RemoveObject(thing.Id);
         return result;
     }

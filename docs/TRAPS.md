@@ -109,3 +109,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Ghidra can omit callback arguments from a decompiler signature; check caller pushes and callee stack cleanup before assigning constructor versus cleanup roles.
 - After a failed multi-file apply_patch, inspect each target before retrying: earlier files may already contain the change.
 - Handoff pending-work checks require a date on the same physical line; a date on the preceding wrapped line does not satisfy them.
+- A decompiler offset on a global typed `int*` is a dword index: `DAT_006ed484 + 0x568` is world byte `+0x15A0`, the simulation stream. Four docs called it a second RNG stream until the disassembly (`ADD EAX,0x15A0`) was read (2026-10-05).

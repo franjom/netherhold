@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Navigation;
 
 namespace DK2.Simulation;
 
@@ -72,8 +73,12 @@ public static class RoomCapacityRules
     /// <summary>A claiming enter hook's room lookup and claim (<c>0x0047AFB0</c>,
     /// <c>0x004E7F80</c>, <c>0x004E5A70</c>). False refuses the enter, which leaves the creature
     /// in state 1: no room underfoot, another keeper's room of a type 0x004E7F80 does not admit,
-    /// or no place free. Only the last raises message <c>0x2A</c>, and only when
-    /// <see cref="AnotherHasRoom"/> finds none.</summary>
+    /// or no place free. Only the last raises message 42 (<c>0x2A</c>) to the room's owner, and only
+    /// when <see cref="AnotherHasRoom"/> finds none; a Guard Room skips that search unless every
+    /// creature holding a place in it stands in it. A Prison over its <see cref="PrisonRules.Capacity"/>
+    /// after a claim also raises 42 (<c>0x004E5C72</c>); its release roll is not built (Q504). DK2
+    /// compares unit sums (<c>+0x4B &lt; +0x6B</c>); ours counts occupants, the same while every
+    /// claim takes one <see cref="Units"/>.</summary>
     internal static bool Claim(in StateHookContext hooks, CreatureState creature)
     {
         WorldState world = hooks.World;
@@ -90,9 +95,38 @@ public static class RoomCapacityRules
             return true;
         }
 
-        if (!HasRoom(world, hooks.Database, room, creature.Id)) return false;
+        if (!HasRoom(world, hooks.Database, room, creature.Id))
+        {
+            if (RaisesFull(world, hooks.Database, room, creature))
+                PostFull(world, room, (RoomTypeId)room.Definition.RoomId);
+            return false;
+        }
         creature.HeldPlace = new RoomPlace(tile, Units);
+        if (room.Definition.TypeId == RoomTypeId.Prison && Occupants(world, room) > PrisonRules.Capacity(room))
+            PostFull(world, room, RoomTypeId.Prison);
         return true;
+    }
+
+    /// <summary>Whether a refused claim raises 42: a Guard Room with a place-holder standing outside
+    /// it raises it at once; otherwise only when <see cref="AnotherHasRoom"/> finds nothing.</summary>
+    internal static bool RaisesFull(WorldState world, GameDatabase database, RoomInstance room, CreatureState creature) =>
+        !SearchesElsewhere(world, room) || !AnotherHasRoom(world, database, room, creature);
+
+    /// <summary>The failure tail's Guard Room test in <c>0x004E5A70</c>: it searches other rooms only
+    /// when every creature holding a place in it stands on one of its tiles.</summary>
+    private static bool SearchesElsewhere(WorldState world, RoomInstance room)
+    {
+        if (room.Definition.TypeId != RoomTypeId.GuardRoom) return true;
+        foreach (CreatureState c in world.Creatures)
+            if (c.HeldPlace.In(room) && !(world.Contains(c.Tile) && room.Contains((c.Tile.Y * world.Width) + c.Tile.X)))
+                return false;
+        return true;
+    }
+
+    private static void PostFull(WorldState world, RoomInstance room, RoomTypeId type)
+    {
+        if (world.HasPlayer(room.OwnerPlayerId))
+            world.Messages.PostRoom(world, room.OwnerPlayerId, PlayerMessageKind.RoomFull, type);
     }
 
     /// <summary>The release <c>0x004E5E00</c>, behind the leave hooks' <c>+0x3B9</c> test.</summary>
@@ -108,21 +142,30 @@ public static class RoomCapacityRules
             or RoomTypeId.CombatPit or RoomTypeId.Crypt;
 
     /// <summary>The claim's fallback <c>0x004C6AE0</c>: whether another of the keeper's rooms
-    /// of <paramref name="full"/>'s type has a place; <paramref name="full"/> itself fails the
-    /// same test, so it need not be skipped. It only decides whether message
-    /// <c>0x2A</c> is raised; either way the creature goes to state 1. Ours skips its
-    /// reachability test (<c>0x004D0E60</c>) and its preference for rooms none of whose
-    /// occupants the alignment objection test <c>0x0045C640</c> objects to, neither changing
-    /// the answer's use.</summary>
+    /// of <paramref name="full"/>'s type has a place the creature can route to (<c>0x004D0E60</c>,
+    /// options <c>0x80</c>); <paramref name="full"/> itself fails the place test, so it need not be
+    /// skipped. It only decides whether message 42 is raised; either way the creature goes to
+    /// state 1. Its preference among rooms by the alignment objection test <c>0x0045C640</c> does
+    /// not change the answer. Deviates: the route goes to the room's first slab, not to its
+    /// floor-slot position <c>+0x2B</c> (<c>0x004E4590</c>), which ours does not keep.</summary>
     public static bool AnotherHasRoom(
-        WorldState world, GameDatabase database, RoomInstance full, int exceptId)
+        WorldState world, GameDatabase database, RoomInstance full, CreatureState creature)
     {
+        WorldSteering? steering = null;
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
             if (room.OwnerPlayerId != full.OwnerPlayerId || room.Definition.TypeId != full.Definition.TypeId)
                 continue;
-            if (room.TileIndices.Count == 0) continue;
-            if (HasRoom(world, database, room, exceptId)) return true;
+            if (room.TileIndices.Count == 0 || !HasRoom(world, database, room, creature.Id)) continue;
+            int first = SlabChain.FirstSlab(world, room);
+            var to = new TilePos(first % world.Width, first / world.Width);
+            if (creature.Tile == to) return true;
+            steering ??= new WorldSteering(database, world);
+            if (steering.Route(new Steering.Fixed16Vector(creature.PosX << 4, creature.PosY << 4),
+                    new Steering.Fixed16Vector(CreatureState.CentreOf(to.X) << 4, CreatureState.CentreOf(to.Y) << 4),
+                    WorldSteering.ProfileOf(definition, creature.OwnerPlayerId, MoveOptions.Loose), [], refresh: false))
+                return true;
         }
 
         return false;

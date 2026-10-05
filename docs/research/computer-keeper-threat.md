@@ -272,8 +272,9 @@ spiral and debits threat either way. Commands land a tick later, so outcomes are
 predicted from the captured permissions and a creature moved this tick leaves the
 tick's candidates; `0x004888C0` is captured whole now that the call exists
 (`call-to-arms.md`). The retreat of the wounded runs after the removal test
-(§4, `KeeperRetreatStep`). Not represented: the spiral's `0x00454110` exclusion and
-the room reader (no kind 34 producer).
+(§4, `KeeperRetreatStep`). Kinds 12 and 47 take the position reader and 34 the room reader
+(`EvaluateRoom`, ADR-0353), which cancels a tag naming no standing room where DK2
+reads it untested. Not represented: the spiral's `0x00454110` exclusion.
 `KeeperThreatResponseTests` distinguish the owned-payload no-move, the withdrawal
 walk and its counter gate, refused permission, the full queue, the cancelled
 reservation, the imprisonment reroll, the spiral's order and a live type 6 from

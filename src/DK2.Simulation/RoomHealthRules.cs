@@ -90,10 +90,12 @@ public static class RoomHealthRules
     }
 
     /// <summary>The part of <c>Room_TransferOwnership</c> (<c>0x004E5650</c>) built here: every tile
-    /// to the new owner, and a portal's clock restarted (<see cref="PortalRules.OnOwnerChanged"/>).
-    /// Gold stays where it is, a treasury's with the treasury (Q40). It never writes the health.</summary>
+    /// to the new owner, a portal's clock restarted (<see cref="PortalRules.OnOwnerChanged"/>) and
+    /// both keepers told (<see cref="PostTransfer"/>). Gold stays where it is, a treasury's with the
+    /// treasury (Q40). It never writes the health.</summary>
     private static void TransferOwnership(WorldState world, GameDatabase database, RoomInstance room, byte playerId)
     {
+        PostTransfer(world, room, room.OwnerPlayerId, playerId);
         foreach (int index in room.TileIndices)
         {
             ref TileState tile = ref world.TileAtIndex(index);
@@ -102,6 +104,20 @@ public static class RoomHealthRules
             tile.KeptManaGain = 0; // Tile_SetOwner moves the room terrain's 0, not the floor's 1 (ADR-0334)
             if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
         }
+    }
+
+    /// <summary>The transfer's messages: 35 to the old owner (<c>0x004E58F4</c>), then 32 to the new,
+    /// or 33 when the old owner is the neutral player (<c>0x004E5931</c>); Data1 the room type and
+    /// Data2 the room, which DK2 gives as its thing tag and ours as its first slab's tile.</summary>
+    internal static void PostTransfer(WorldState world, RoomInstance room, byte oldOwner, byte newOwner)
+    {
+        int tag = SlabChain.FirstSlab(world, room);
+        var type = (RoomTypeId)room.Definition.RoomId;
+        if (world.HasPlayer(oldOwner))
+            world.Messages.PostOwnership(world, oldOwner, PlayerMessageKind.RoomLost, type, tag);
+        if (world.HasPlayer(newOwner))
+            world.Messages.PostOwnership(world, newOwner,
+                oldOwner == PlayerIds.Neutral ? PlayerMessageKind.NeutralRoomCaptured : PlayerMessageKind.RoomCaptured, type, tag);
     }
 
     /// <summary>The variable action 10 (<c>0x00497BF0</c>) reads for a tile with this owner: a

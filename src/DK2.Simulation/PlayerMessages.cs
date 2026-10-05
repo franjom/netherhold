@@ -12,6 +12,19 @@ public enum PlayerMessageKind : uint
     HeartAttacked = 1,
     CombatStarted = 6,
 
+    /// <summary>Type 12: work brought down a Solid, Ownable tile of the recipient's that another
+    /// player's worker was working (<c>0x0045313E</c>); Data1 and Data2 are the tile. Row
+    /// <c>0x2032</c>: fifty seconds, tab, no duplicates. The name is ours.</summary>
+    WallBreached = 12,
+
+    /// <summary>Type 17: a creature's anger band rose to unhappy (<c>0x00478B80</c>); Data1 is the
+    /// wrapper's <see cref="AngerComplaint"/>, Data2 the creature. Row <c>0x2032</c>: fifty
+    /// seconds, tab, no duplicates, so one unexpired 17 per player stands for every creature.</summary>
+    CreatureUnhappy = 17,
+
+    /// <summary>Type 18: the band rose to angry; otherwise as <see cref="CreatureUnhappy"/>.</summary>
+    CreatureAngry = 18,
+
     /// <summary>Type 52: Data1 is the warning stage 1–4 (subtable <c>0x006A0610</c>).</summary>
     LowManaWarning = 52,
 
@@ -28,6 +41,20 @@ public enum PlayerMessageKind : uint
     /// built here; 1 alone is under the <c>+0xF56</c> deadline, which is not built).</summary>
     TrainingUnpaid = 55,
 
+    /// <summary>Type 32: a room taken from a non-neutral owner, to the new owner; Data1 the room type,
+    /// Data2 the room (subtable <c>0x006A0060</c>, <see cref="PlayerMessageQueue.OwnershipLifetimeSeconds"/>).</summary>
+    RoomCaptured = 32,
+
+    /// <summary>Type 33: as 32 when the old owner was the neutral player (<c>0x006A00F8</c>).</summary>
+    NeutralRoomCaptured = 33,
+
+    /// <summary>Type 34: a room under attack, to its owner; Data1 the room type, Data2 the room
+    /// (<c>0x006A0190</c>, 30 seconds).</summary>
+    RoomAttacked = 34,
+
+    /// <summary>Type 35: a room lost, to its old owner (<c>0x006A0220</c>); duplicates allowed.</summary>
+    RoomLost = 35,
+
     /// <summary>Type 41: the keeper has no room of the type in Data1 and needs one (subtable
     /// <c>0x006A03D8</c>).</summary>
     RoomNeeded = 41,
@@ -37,6 +64,11 @@ public enum PlayerMessageKind : uint
 
     /// <summary>Type 43: a room of the type in Data1 has space and no route (subtable <c>0x006A0528</c>).</summary>
     RoomUnreachable = 43,
+
+    /// <summary>Type 44: a reached, full room of the type in Data1 whose <c>+0xA3</c> is zero (no
+    /// fitting furniture or no interior tile, by type), Data2 the room (subtable <c>0x006A08E0</c>).
+    /// The name is ours; the message's text is unread.</summary>
+    RoomUnequipped = 44,
 
     /// <summary>Type 84: a creature could not route to the Call to Arms flag
     /// (<c>0x00455DA0</c>, <c>0x004778E0</c>); fifty seconds, tab, no duplicates.</summary>
@@ -48,7 +80,8 @@ public readonly record struct PlayerMessage(
     uint Age, uint Timeout, bool NeedsTab, bool Handled)
 {
     /// <summary>The room type a room message (41 to 43) carries in Data1; null for any other kind.</summary>
-    public RoomTypeId? Room => PlayerMessageQueue.IsRoomMessage(Kind) ? (RoomTypeId)Data1 : null;
+    public RoomTypeId? Room => PlayerMessageQueue.IsRoomMessage(Kind) || PlayerMessageQueue.IsOwnershipMessage(Kind)
+        ? (RoomTypeId)Data1 : null;
 
     internal void HashInto(ref Hash64 hash)
     {
@@ -58,9 +91,9 @@ public readonly record struct PlayerMessage(
     }
 }
 
-/// <summary>The shared retained queue: the two combat position messages, the two
-/// mana-pressure messages, unpaid training, the three room messages and the Alarm trap's. Any other
-/// kind, or a subtype its table lacks, is refused.</summary>
+/// <summary>The shared retained queue: the two combat position messages, the mood pair, the
+/// room-ownership family, the two mana-pressure messages, unpaid training, the three room messages
+/// and the Alarm trap's. Any other kind, or a subtype its table lacks, is refused.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-messages.md")]
 public sealed class PlayerMessageQueue
 {
@@ -75,16 +108,40 @@ public sealed class PlayerMessageQueue
     /// selected by Data1, and a duplicate must match Data1 as well as recipient and kind.</summary>
     public static bool HasSubtypes(PlayerMessageKind kind) =>
         kind is PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall
-            or PlayerMessageKind.TrainingUnpaid || IsRoomMessage(kind);
+            or PlayerMessageKind.TrainingUnpaid || IsRoomMessage(kind) || IsOwnershipMessage(kind);
+
+    /// <summary>The room-ownership family 32 to 35, whose subtables share one shape.</summary>
+    public static bool IsOwnershipMessage(PlayerMessageKind kind) =>
+        kind is PlayerMessageKind.RoomCaptured or PlayerMessageKind.NeutralRoomCaptured
+            or PlayerMessageKind.RoomAttacked or PlayerMessageKind.RoomLost;
+
+    /// <summary>The lifetime of a 32 to 35 subtype row: room types 1 to 4, 6 to 17, 22 and 287 at 20
+    /// seconds, 34's without 287 at 30. Null for a type off the table, which takes the terminator's
+    /// nonzero string and timeout zero, so the record lasts until the next sweep.</summary>
+    public static int? OwnershipLifetimeSeconds(PlayerMessageKind kind, int room)
+    {
+        bool listed = room is (>= 1 and <= 4) or (>= 6 and <= 17) or 22
+            || (room == 287 && kind != PlayerMessageKind.RoomAttacked);
+        return !listed ? null : kind == PlayerMessageKind.RoomAttacked ? 30 : 20;
+    }
+
+    /// <summary>A 32 to 35 message as the producers post it: the room type and the room.</summary>
+    public PlayerMessage? PostOwnership(WorldState world, byte recipient, PlayerMessageKind kind, RoomTypeId room, int roomTag)
+    {
+        if (!IsOwnershipMessage(kind)) throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a room-ownership message.");
+        return Post(world, recipient, kind, (int)room, roomTag);
+    }
 
     public static bool IsRoomMessage(PlayerMessageKind kind) =>
-        kind is PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomFull or PlayerMessageKind.RoomUnreachable;
+        kind is PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomFull or PlayerMessageKind.RoomUnreachable
+            or PlayerMessageKind.RoomUnequipped;
 
-    /// <summary>A room message as every producer posts it: the room type in Data1, zero in Data2.</summary>
-    public PlayerMessage? PostRoom(WorldState world, byte recipient, PlayerMessageKind kind, RoomTypeId room)
+    /// <summary>A room message as the producers post it: the room type in Data1; zero in Data2, or
+    /// for 44 the room (ours: its first slab's tile).</summary>
+    public PlayerMessage? PostRoom(WorldState world, byte recipient, PlayerMessageKind kind, RoomTypeId room, int roomTag = 0)
     {
         if (!IsRoomMessage(kind)) throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a room message.");
-        return Post(world, recipient, kind, (int)room, 0);
+        return Post(world, recipient, kind, (int)room, kind == PlayerMessageKind.RoomUnequipped ? roomTag : 0);
     }
 
     /// <summary>The lifetime in seconds of a room message's subtype row: the rows of <c>0x006A03D8</c>
@@ -101,6 +158,8 @@ public sealed class PlayerMessageQueue
         (PlayerMessageKind.RoomFull, 6 or 7 or 9 or 10 or 11 or 12 or 13 or 14 or 15 or 16) => 300,
         (PlayerMessageKind.RoomUnreachable, 11 or 12) => 360,
         (PlayerMessageKind.RoomUnreachable, 1 or 2 or 3 or 4 or 6 or 7 or 9 or 10 or 13 or 14 or 15 or 16) => 300,
+        (PlayerMessageKind.RoomUnequipped, 1 or 2 or 4) => 120,
+        (PlayerMessageKind.RoomUnequipped, 6 or 7 or 9 or 10 or 11 or 12 or 13 or 14 or 15 or 16) => 240,
         _ => null,
     };
 
@@ -115,7 +174,9 @@ public sealed class PlayerMessageQueue
             PlayerMessageKind.HeartAttacked => (uint)SimulationTiming.TicksFromSeconds(120),
             PlayerMessageKind.CombatStarted => 0,
             PlayerMessageKind.CallToArmsUnreachable => (uint)SimulationTiming.TicksFromSeconds(50),
-            PlayerMessageKind.AlarmRaised => (uint)SimulationTiming.TicksFromSeconds(50),
+            PlayerMessageKind.AlarmRaised or PlayerMessageKind.WallBreached => (uint)SimulationTiming.TicksFromSeconds(50),
+            PlayerMessageKind.CreatureUnhappy or PlayerMessageKind.CreatureAngry =>
+                (uint)SimulationTiming.TicksFromSeconds(50),
             // Both subtables give every listed variant 20 seconds. Warning row 0 names no
             // string, which discards the message; a variant off the table is refused.
             PlayerMessageKind.LowManaWarning when data1 == 0 => uint.MaxValue,
@@ -127,6 +188,10 @@ public sealed class PlayerMessageQueue
             // kept for one sweep for 42. Nothing here posts one, so it is refused.
             _ when IsRoomMessage(kind) && RoomLifetimeSeconds(kind, (RoomTypeId)data1) is int seconds =>
                 (uint)SimulationTiming.TicksFromSeconds(seconds),
+            // 42's terminator row names a string, so an unlisted room keeps its record until the next sweep.
+            PlayerMessageKind.RoomFull or PlayerMessageKind.RoomUnequipped when RoomLifetimeSeconds(kind, (RoomTypeId)data1) is null => 0,
+            _ when IsOwnershipMessage(kind) =>
+                OwnershipLifetimeSeconds(kind, data1) is int lasts ? (uint)SimulationTiming.TicksFromSeconds(lasts) : 0,
             PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall or PlayerMessageKind.TrainingUnpaid
                 or PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomFull or PlayerMessageKind.RoomUnreachable =>
                 throw new ArgumentOutOfRangeException(nameof(data1), data1, $"No subtype row for {kind}."),
@@ -135,7 +200,8 @@ public sealed class PlayerMessageQueue
         if (timeout == uint.MaxValue) return null;
         if (world.Player(recipient).Status != PlayerStatus.Playing || !world.Triggers.NotificationsEnabled)
             return null;
-        if (Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained) return retained;
+        if (kind != PlayerMessageKind.RoomLost
+            && Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained) return retained;
         if (_entries.Count == Capacity) _entries.RemoveAt(0);
         var added = new PlayerMessage(_nextId, recipient, kind, data1, data2, 0, timeout, true, false);
         _nextId = unchecked(_nextId + 1);
@@ -158,15 +224,32 @@ public sealed class PlayerMessageQueue
         if (index >= 0) _entries[index] = _entries[index] with { Handled = true };
     }
 
-    internal void Sweep()
+    /// <summary><c>0x004C41E0</c>: ages every record, frees a 17 or 18 whose creature still exists
+    /// and has left that band, frees one at its timeout and clears NeedsTab past age 199.</summary>
+    internal void Sweep(WorldState world, GameDatabase database)
     {
         for (int i = _entries.Count - 1; i >= 0; i--)
         {
             PlayerMessage message = _entries[i];
             uint age = unchecked(message.Age + 1);
-            if (age >= message.Timeout) _entries.RemoveAt(i);
+            if (age >= message.Timeout || LeftItsBand(world, database, message)) _entries.RemoveAt(i);
             else _entries[i] = message with { Age = age, NeedsTab = message.NeedsTab && age < 200 };
         }
+    }
+
+    /// <summary>DK2 tests the thing its Data2 tag names, when that is a creature: a corpse is
+    /// still one, so ours tests any creature record the id names. A creature no longer in the
+    /// world leaves the message to its timeout.</summary>
+    private static bool LeftItsBand(WorldState world, GameDatabase database, PlayerMessage message)
+    {
+        CreatureMood band = message.Kind switch
+        {
+            PlayerMessageKind.CreatureUnhappy => CreatureMood.Unhappy,
+            PlayerMessageKind.CreatureAngry => CreatureMood.Angry,
+            _ => CreatureMood.Content,
+        };
+        if (band == CreatureMood.Content || world.CreatureById(message.Data2) is not CreatureState creature) return false;
+        return CreatureAngerRules.MoodOf(database.CreatureById(creature.CreatureTypeId), creature) != band;
     }
 
     internal void HashInto(ref Hash64 hash)
