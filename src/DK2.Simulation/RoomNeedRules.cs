@@ -208,8 +208,9 @@ public static class RoomNeedRules
     /// <summary>Room <c>+0xA3</c> as each type's after-tile-change pass sets it: a Training Dummy (14)
     /// or Target (29) attached (<c>0x004F2EA0</c>), a Torture Wheel or Electric Chair
     /// (<c>0x004F1F10</c>), any interior tile for a Casino (<c>0x004D6ED0</c>); a Temple's is always 0.</summary>
-    /// <remarks>Deviates: DK2 stores the flag when the pass runs, at a rebuild; ours reads the
-    /// furniture now, so 42 and 44 can differ while an object is placed or removed between rebuilds.</remarks>
+    /// <remarks>DK2 stores the flag when the pass runs, at a rebuild; ours reads the furniture now.
+    /// The same in practice: the player cannot place this furniture, which follows the room's size
+    /// (owner, 2026-10-05), and <see cref="Systems.AutoFurnitureSystem"/> changes it only with the shape.</remarks>
     public static bool IsEquipped(WorldState world, RoomInstance room) => room.Definition.TypeId switch
     {
         RoomTypeId.TrainingRoom => HasAttached(world, room, 14, 29),
