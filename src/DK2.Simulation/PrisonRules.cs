@@ -223,8 +223,8 @@ public static class PrisonRules
     /// straight-line distance from <paramref name="from"/> (Q25) and the lowest free
     /// tile index wins inside one — row-major, stable, the tie-break
     /// <see cref="LairRules"/> uses.
-    /// <para>Not by itself a reason to set off: that is
-    /// <see cref="DeliveryTileIn"/>, which walks to a full prison too.</para></summary>
+    /// <para>The carry's destination: with none, no imp sets off (ADR-0354: the owner, 2026-10-05,
+    /// and the rescue selector <c>0x0046D810</c>'s no-place result).</para></summary>
     public static int FreeTileIn(
         WorldState world, GameDatabase database, byte playerId, TilePos from)
     {
@@ -253,53 +253,18 @@ public static class PrisonRules
         return best;
     }
 
-    /// <summary>Where a carried enemy is taken: a free cell when one of this keeper's
-    /// prisons has one, and otherwise the <b>rim</b> of the nearest prison that has
-    /// none. -1 only when the keeper has no prison at all.
-    /// <para>DK2 checks capacity at the door, not before the pickup: an imp drags a
-    /// downed enemy to a full prison, admission fails and the body is left bleeding on
-    /// the rim, while a prison with space is preferred over one without (CONFIRMED,
-    /// owner 2026-09-13; ADR-0148). Which rim tile and how ties between eligible
-    /// prisons break are UNKNOWN; nearest by the same measure as everywhere else.</para></summary>
-    public static int DeliveryTileIn(
-        WorldState world, GameDatabase database, byte playerId, TilePos from)
+    /// <summary>Where a refused body is put down (state 47, <c>0x00468270</c>): the room point
+    /// <c>0x004E8430</c>, a uniform draw from the world stream among the Prison's tiles in slab-chain
+    /// order that are neither a floor slot (<c>0x00454110</c>) nor a wall slot (<c>0x00454230</c>),
+    /// so a rim tile; null with none, where DK2 puts it down where the imp stands.</summary>
+    public static int? RefusedBodyPoint(WorldState world, GameDatabase database, RoomInstance room, SimRandom rng)
     {
-        int free = FreeTileIn(world, database, playerId, from);
-        if (free >= 0) return free;
-
-        int best = -1;
-        long bestDistance = long.MaxValue;
-
-        foreach (RoomInstance room in RoomIndex.Build(world, database))
-        {
-            if (!IsPrisonOf(room, playerId)) continue;
-
-            foreach (int tileIndex in room.TileIndices)
-            {
-                if (room.IsInterior(tileIndex)) continue;
-
-                long dx = (tileIndex % world.Width) - from.X;
-                long dy = (tileIndex / world.Width) - from.Y;
-                long distance = (dx * dx) + (dy * dy);
-                if (distance >= bestDistance) continue;
-
-                bestDistance = distance;
-                best = tileIndex;
-            }
-        }
-
-        return best;
-    }
-
-    /// <summary>Whether <paramref name="creature"/> is standing on a tile of one of
-    /// <paramref name="playerId"/>'s prisons, cell or rim.</summary>
-    public static bool StandsInPrisonOf(
-        WorldState world, GameDatabase database, CreatureState creature, byte playerId)
-    {
-        int tileIndex = (creature.Tile.Y * world.Width) + creature.Tile.X;
-        RoomInstance? room = RoomIndex.RoomAt(world, database, tileIndex);
-
-        return room is not null && IsPrisonOf(room, playerId);
+        var slots = new HashSet<int>();
+        AutoFurnitureRules.FurnitureSlots(world, database, room, slots);
+        var open = new List<int>();
+        foreach (int tile in SlabChain.Order(world, room))
+            if (!slots.Contains(tile)) open.Add(tile);
+        return open.Count == 0 ? null : open[rng.NextInt(open.Count)];
     }
 
     /// <summary>Whether a prisoner may be put into this tile <i>now</i>: it is a cell —

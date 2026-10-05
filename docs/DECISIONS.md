@@ -3252,7 +3252,7 @@ so a rival's heart is refused the way a rival's portal already was. A captive is
 refused both, which is now CONFIRMED rather than the conservative fallback it was
 chosen as.
 
-**Decision 2: capacity is checked at delivery.** `PrisonRules.DeliveryTileIn`
+**Decision 2: capacity is checked at delivery** (amended by ADR-0354: not when every prison is already full). `PrisonRules.DeliveryTileIn`
 gives a free cell where one exists and the nearest full prison's **rim** where
 none does, so the imp sets off either way; `PrisonRules.AdmitsAt` decides at the
 door, and a prison that filled during the walk turns the body away. The manual's
@@ -3263,7 +3263,8 @@ is still -1 and still nobody setting off.
 
 - A keeper whose prisons are full now has imps that carry and are refused,
   leaving bodies on the rim. That is work where there was none, and it is what
-  DK2 does.
+  DK2 does. **Amended by ADR-0354:** only a Prison that fills during the carry
+  refuses; with every Prison already full, no imp sets off.
 - `HashVersion` is untouched: no world state is added, and no scenario moved.
 
 **Assumptions, stated rather than hidden.**
@@ -8177,5 +8178,28 @@ The finders (hash 183): only treasury-full's world moves; a creature that wants 
 t803 brings Harkan a 41 Temple that takes his planner's next slot, so his Torture Chamber
 (t2805 before) is not laid. Elsewhere the new 41s add events and acknowledgements only.
 Stage 6 (hash 184): all 42 unchanged, as predicted.
-Unbuilt for want of a read field or modelled state: the rescue selector (Q542), the
-finders' remaining gates (Q543) and the Graveyard's messages (Q544).
+Unbuilt, for want of a read field or state: rescue (Q542), finder gates (Q543), Graveyard (Q544).
+
+## ADR-0354 — No carry to a full Prison; a refused body goes to the room point
+**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0148 Decision 2
+
+**Context.** ADR-0148 sent an imp to a full Prison's rim, reading the owner's 2026-09-13
+note as "capacity is checked only at the door". The owner has since said (2026-10-05) that
+the rim answer is for a Prison that fills while the imp carries, and that they never saw an
+imp carry a body when the Prison was already full. The rescue selector `0x0046D810` agrees:
+with no Prison holding a place it raises no task (result 3). State 47 (`0x00468270`) puts a
+refused body down on the room point `0x004E8430`: a uniform draw from the world stream
+among the room's tiles, in slab-chain order, that are neither a floor slot (`0x00454110`)
+nor a wall slot (`0x00454230`).
+
+**Decision.** `CarryRules.TryDestinationFor` takes an enemy body only to a free cell
+(`PrisonRules.FreeTileIn`); with none, nobody sets off. The door check stays (ADR-0148).
+A refused body is set on `PrisonRules.RefusedBodyPoint`, our 47's walk elided as 44's is.
+ADR-0148's guard against re-carrying a refused body is removed: with every Prison full
+there is no destination, and once a cell frees the body is carried in, as DK2's selector
+would. Not built: the selector's 41/42/43 (Q542) and state 44's retry of another Prison.
+
+**Prediction.** Only runs with a `not_admitted` drop move: the chicken-in-a-prison run.
+**Measured** (hash 185): only that run moved. Its body refused at t215 (its cell taken by
+a wandering prisoner) lies at rim tile (7, 5), not (5, 4), and is imprisoned at t225, not
+t218; every expectation holds.

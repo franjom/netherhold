@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 184: messages 12 and 34 from tile work (ADR-0353 stage 6)
+        // HashVersion 185: no carry to a full Prison; a refused body goes to the room point (ADR-0354)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xB22ED6D42A6AD975UL, sim.StateHash());
+        Assert.Equal(0xD840FA98E806236EUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

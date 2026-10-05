@@ -5,7 +5,7 @@
 | Source(s) | `DKII.EXE` v1.70 (facts in our own words, ADR-0046) — `FUN_004e70a0` and `FUN_00490240` (the shipped debug dumps), `FUN_0047b7c0` (the drain), `FUN_004e2e70` (`prison.cpp`'s jail break), `FUN_00473550` / `FUN_00473750` (the food hunt), `Room.cpp:1717` (the step), the state and category tables; 1999 manual p.23; owner play 2026-09-05 to 2026-09-13 |
 | Implementation | `PrisonRules`, `Systems/PrisonSystem`, `Systems/PrisonerWanderSystem`, `Systems/PrisonerEatSystem`, the enemy branch of `CarryRules.TryDestinationFor`, the ownership exception in `HandRules.CanPickUp`, `CreatureState.PrisonOwnerPlayerId`, `EatingRules.EatInPrison`. Decisions: ADR-0064, ADR-0070 to ADR-0075 |
 | Tests | `PrisonTests`, `EatingTests`; `scenarios/creatures/an_imp_drags_an_enemy_to_prison.yaml`, `scenarios/creatures/a_keeper_drops_a_chicken_in_a_prison.yaml` |
-| Confidence | **CONFIRMED**: the drain and its hunger gate, the capacity rule, the arrival health, the wander loop, the food race, the jail-break trigger, that only an imp captures, that an available prison is preferred over a full one, and that an all-full result leaves the enemy on a prison rim. **STRONGLY INFERRED**: the Skeleton on death and a lost prison freeing its enemies — the manual states each. **UNKNOWN**: the pick-up handler's real ownership gate (Q161), tie-breaking among eligible prisons and the exact rejection rim tile, what the two refused creature states are, which shipped field the occupancy byte is |
+| Confidence | **CONFIRMED**: the drain and its hunger gate, the capacity rule, the arrival health, the wander loop, the food race, the jail-break trigger, that only an imp captures, that an available prison is preferred over a full one, and that a prison filling during the carry leaves the body on its rim (with every prison already full no imp sets off: owner recollection and `0x0046D810`, ADR-0354). **STRONGLY INFERRED**: the Skeleton on death and a lost prison freeing its enemies — the manual states each. **UNKNOWN**: the pick-up handler's real ownership gate (Q161), tie-breaking among eligible prisons and what the two refused creature states are, which shipped field the occupancy byte is |
 | Known exceptions | Ours drains in single seconds without the accompanying anger, rolls the jail break once a second (Q168), frees prisoners where they stand rather than at the door, and has no keeper-set door bar, torture chamber or combat pit — §5 |
 | Open questions | Q161 (the pick-up handler's real ownership gate), Q164, Q166, Q168 (our jail-break cadence), Q171, Q184, Q185, Q186, Q188 |
 
@@ -105,7 +105,7 @@ priority, two destinations. Three consequences reproduced here:
 - **Capture sits below claiming.** An imp takes no prisoners while there is
   unclaimed ground: in `an_imp_drags_an_enemy_to_prison` the goblin lies on the
   floor while the imp claims the whole map first.
-- **Capacity is checked at delivery, not before pickup** (owner, 2026-09-13), **BUILT** 2026-09-15: `DeliveryTileIn` picks a free cell or a full prison's rim, `AdmitsAt` decides at the door, and the refused body is left bleeding. Tie-breaking and which rim tile remain UNKNOWN (ADR-0148).
+- **Capacity is checked before the pickup and again at the door** (owner, 2026-09-13 and 2026-10-05; ADR-0148, ADR-0354): with every Prison full no imp sets off (`0x0046D810`'s no-place result); a Prison that fills during the carry refuses at the door (`AdmitsAt`), and the body is put down on the room point `0x004E8430`, a random tile that is neither floor nor wall slot, so the rim (`PrisonRules.RefusedBodyPoint`).
 - **The rescue window is a real deadline.** That run used to capture ten ticks
   inside the window; **it does not capture at all** — the
   goblin dies at tick 243 while the imp still claims, and the run records zero
@@ -123,7 +123,7 @@ From the manual (p.23) and the shipped variables:
 | *"any creatures that perish in Prison will rise as Skeletons under your control"* | `RoomDef.CreatedCreatureId` = **9** | yes, and the skeleton is the **jailer's** — but *perish* means **starved**: one slain leaves a body on the rim (ADR-0140) |
 | Chickens dropped on a prisoner keep it alive | `manual-1999.md` §Hatchery | yes (ADR-0074, ADR-0075, §7) |
 | The door bar stops further deliveries | `SafeCreatureCapacity` on the room | **no** — no keeper-set limit here |
-| Full prison | owner play, 2026-09-13 | yes as of ADR-0148 — the imp carries to the prison and the rejected enemy is left on its rim |
+| Full prison | owner play, 2026-09-13 and 2026-10-05 | yes (ADR-0148, ADR-0354): already full, no imp sets off; filled during the carry, the body is put down on the room point, a rim tile |
 | Jail break on overcrowding | `OvercrowdingJailBreakPercentagePerExtraCreature` = **50** | the rule is built; its once-a-second cadence contradicts DK2's one roll per over-capacity insertion (Q168) |
 | Jail break on selling part of a prison in use | manual | yes, by a different route — below |
 | Losing a prison frees every enemy, and keeps every friendly | manual | yes |
@@ -216,7 +216,7 @@ support (Q171).
   than by one, so "extra" is in those units and which shipped field that byte is
   remains UNKNOWN; and an overcrowding event is raised on every over-capacity
   insertion regardless of the roll.
-- **A refused body is not picked up again** — ours, not DK2's, or an imp would carry it round the prison for ever.
+- **A refused body waits for a free cell**: with every Prison full it has no destination, and once a cell frees an imp carries it in (ADR-0354; ADR-0148's guard is gone).
 - **No keeper-set door bar.** `SafeCreatureCapacity` has no interface here, so
   overcrowding is only ever a keeper dropping a prisoner into a full prison.
 - **Freed where they stand**, not at the door (§4).
