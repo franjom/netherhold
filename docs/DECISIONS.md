@@ -8134,7 +8134,7 @@ collision) and the thing slot it would take are not created.
 
 **Context.** The keeper's walk (`0x004FA400`) reads types 1, 6, 12, 17, 18, 32–35, 41, 42
 and 47; ours consumed 1, 6, 41 and 42. A census of all 151 insert calls
-(`computer-keeper-messages.md` §2, §4) lists each producer, whether ours has its event, the arms.
+(`computer-keeper-messages.md` §2, §4) lists each producer of a type the walk reads, and the arms.
 
 **Decision.** Build what is read, in stages, producers in the simulation and reactions
 as ordinary commands, messages retained with explicit acknowledgement:

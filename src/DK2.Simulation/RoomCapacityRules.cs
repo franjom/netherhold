@@ -76,7 +76,9 @@ public static class RoomCapacityRules
     /// or no place free. Only the last raises message 42 (<c>0x2A</c>) to the room's owner, and only
     /// when <see cref="AnotherHasRoom"/> finds none; a Guard Room skips that search unless every
     /// creature holding a place in it stands in it. A Prison over its <see cref="PrisonRules.Capacity"/>
-    /// after a claim also raises 42 (<c>0x004E5C72</c>); its release roll is not built (Q504).</summary>
+    /// after a claim also raises 42 (<c>0x004E5C72</c>); its release roll is not built (Q504). DK2
+    /// compares unit sums (<c>+0x4B &lt; +0x6B</c>); ours counts occupants, the same while every
+    /// claim takes one <see cref="Units"/>.</summary>
     internal static bool Claim(in StateHookContext hooks, CreatureState creature)
     {
         WorldState world = hooks.World;
