@@ -155,7 +155,7 @@ stated, not a stable index. Every type the keeper's walk (`0x004FA400`, §3) rea
 | 34 | `0x00466080` | Room owner; room type / room tag | A worker takes state 18 against an enemy room (job 11, Q523) | job 11 unbuilt |
 | 34 | `0x00497DF0` (`0x00497F29`) | Tile owner; room type / room tag | A Good creature's action-11 blow that leaves the tile a room (`room-health.md` §4) | built (`TileWorkSystem.PostThreat`) |
 | 41, 42, 43 | rows below | Room's owner; room type / 0 | Per producer | §4 |
-| 47 | `0x004AE120` | Shot owner; x / y | Shot process 12, the Alarm and Hero Alarm traps (`shots.md`; entries of 17 bytes from `0x0069E84F`) | built |
+| 47 | `0x004AE120` | Shot owner; x / y | Shot process 12, the Alarm trap's shot (`shots.md`; entries of 17 bytes from `0x0069E84F`) | built |
 
 The 41 and 42 producers: the carrier `0x00464400`, `0x004BA420` (below), the Lair,
 Hatchery, Combat Pit, captive Pit, Graveyard, Library, Casino, Temple, Torture,
