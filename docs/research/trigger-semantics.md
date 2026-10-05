@@ -64,7 +64,7 @@ complete dispatch family is:
 
 The event filters at `0x004C7A50` and `0x0049AA30` account for types whose
 occurrence is the condition: they match a record's type byte against an event id
-and run its children without evaluating it, so its eight-byte body is never read.
+and run its children unevaluated; only type 53's body is read (`0x004C7A9F`, `trigger-walkers.md`).
 Treating the world switch's default arm as proof that such a type was unsupported
 would therefore be wrong. Which code walks which tree, and how often, is
 `trigger-walkers.md`.
@@ -257,8 +257,8 @@ Types 20 and 21 are one arm shape used twice. Both walk `ThingsOwnedList[0]`,
 filter by `CreatureId` when non-zero, exclude workers **always** (unlike type 19),
 and require `creature+0x28A` to be **0** (type 20, `0x004C7C4C`) or **2** (type 21,
 `0x004C7CC4`): the **mood class**, 0 Happy, 1 Unhappy, 2 Angry (Q269, tooltip text
-ids 2340/2342/2344), so type 20 counts happy creatures and 21 angry ones. No store
-to it is found; type 20 stays declined until the writer is read. 21 ships no records.
+ids 2340/2342/2344), so type 20 counts happy creatures and 21 angry ones. Written by
+`Anger_Add` `0x00487030` (Q269), whose bands ours matches: both are buildable. 21 ships no records.
 Types 27, 28, 46, 52, 71, 73 and area 70 are in `trigger-dispatch-tables.md`.
 
 ## Parameter provenance

@@ -182,8 +182,9 @@ shape over the object's root: for each active record of the event's type on the
 top-level chain it walks the children through `0x004A3E90` with the record's own
 `+0x0F`. That walker uses the world condition dispatcher `0x00518270` (type 18 is
 answered false) and the world action dispatcher, and returns 0. **CONFIRMED.** No
-per-turn walk reaches `+0x144`. Its writer is **not found**: literal searches of the
-decompiled code for stores and reads at `+0x144` hit only the dumper. Neither the object
+per-turn walk reaches `+0x144`. Its only writer found is the object initialiser `0x0049B1C0`, which zeroes it
+(`0x0049B390`); no store of a non-zero value turned up in instruction scans of `.text`
+and `cseg` (whole-record copies not checked). Neither the object
 THINGS handler `0x00520BB0` nor the door handler `0x00520F40` reads its record's
 trigger word. Our reach count (`dk2tools kwd unreached`) has no object roots, and the
 executor no event 18 (Q285).

@@ -81,8 +81,8 @@ order and hands it to the **gate re-walk `0x004CF490`** (diagnostic prefix
   zero counting as between. The gates a straight route sees through all go.
 - **Selected endpoint.** The one nearer the funnel polyline's current point
   (ties take the second); a nearer next point advances the cursor first.
-- **The cap** is a literal **`0x1000`** in `0x004D0150`, sixteen tiles in
-  router units; the mover's `0x2000` never reaches it. A kept gate within a
+- **The cap** is a literal **`0x1000`** pushed by `0x004D0320` (`0x004D0967`) and passed
+  on by `0x004D0150`: sixteen tiles in router units; the mover's `0x2000` never reaches it. A kept gate within a
   tile of the polyline is cut to fifteen tiles from its selected endpoint if
   it is sixteen or longer (`0x004CFC50`). Otherwise the *line* through the two
   polyline points around the cursor is intersected with it (`0x004CFFD0`: Q14

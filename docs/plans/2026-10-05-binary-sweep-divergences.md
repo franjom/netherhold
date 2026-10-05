@@ -49,6 +49,14 @@ current Level 1–3 baselines.
 | Q14 | Throws on CREATURES record sizes other than 5449/5537 | Accepts any size, zero-fills to 5449 | `KwdCreatures` |
 | Q227 | Fields named `Unknown_*`; action 24's second field read as a dword | Roles now known; DK2 reads only its low byte | `KwdAdditionalRecords` |
 
+## Stale code comments (verification audit, 2026-10-05)
+
+| Where | Fix |
+|---|---|
+| `VictoryRules.cs:109` | `BodyStandSquared`'s comment calls `0x004B2AE0` a position test; it is a turn step (Q400) |
+| `GateWalk.cs:40` | The `0x1000` cap is pushed by `0x004D0320` (`0x004D0967`), not held in `0x004D0150` |
+| `TriggerExecutor.cs` (~737) | Types 20 and 21 are declined, but their mood-class writer is known (Q269): build them |
+
 ## Asset pipeline (presentation only)
 
 | Q | Ours | DK2 | Where |

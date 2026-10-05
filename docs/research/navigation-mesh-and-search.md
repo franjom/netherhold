@@ -80,8 +80,8 @@ triangles** over a fixed canvas of **-256 to 1280 tiles** (`0x004C8F30`), far
 outside any map, both stamped `+0xC = 0x0F`; every other slot is marked dead
 with `+0xC = 0xFF`. The two are stored as `(3,1,0)` and `(1,3,2)` over corners
 `0..3`: **clockwise** in the cross product's terms, where our builder winds the
-other way. Only the edge function's endpoint order sees the difference, and
-`GateWalk` allows for it. The whole-map path then inserts **the map itself as
+other way. The edge function's endpoint order, `LocateEndpoint` and
+`NavMesh.FanToward` all depend on the winding, and each is written for ours. The whole-map path then inserts **the map itself as
 one rectangle of navigation byte 0** (`0x004CE99D`), so the map border is an
 ordinary constraint and everything past it keeps `0x0F`, which is solid.
 

@@ -13,7 +13,7 @@ Source(s):
     whole-map handler `0x0046BD70`, the drop scan's per-tile handler `0x0046C1A0` (through
     the switch `0x004687C0`), kind 8's handler `0x0046B9C0` and its crate branch
     `0x00468910`, and the task table's find `0x00508200`, raise `0x00507BB0`, holder
-    `0x00508110`, claim `0x00508160` and release `0x00508040`.
+    `0x00508110`, claim `0x00508160` and entry delete `0x00508040` (through `0x00507EF0`).
   - **The blueprint list** at `player+0xA21`: its read `0x00505750`, add `0x00505680` and
     remove `0x005056E0`, with the callers of each.
   - **States 32, 34, 35, 36 and 37**: `0x00466DF0`, `0x00467040`, `0x004671B0`,

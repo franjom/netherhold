@@ -23,10 +23,11 @@ carries seven copies nothing writes, and a global model under per-player truth
 lets one keeper's script clobber another's. Four readings agree that the banks
 belong to a single level-wide object:
 
-1. **Only two functions index either bank**, and both are trigger dispatchers:
-   the world generic dispatcher `0x00518270` and the world action dispatcher
-   `0x00518AD0`. The remaining sites are `LEA`s in what look like save, load and
-   reset routines.
+1. **Two trigger dispatchers index either bank**: the world generic dispatcher
+   `0x00518270` and the world action dispatcher `0x00518AD0`. Two more only read
+   the flag bank: the world-log dump `0x0050F130` and `0x0050F3D0`, which sums all
+   128 flags with the trigger records and timers (a sync checksum by shape). The
+   remaining sites are `LEA`s in what look like save, load and reset routines.
 2. **Every call site of the action dispatcher loads `this` from a global
    pointer** — `MOV ECX, [0x006E5050]` at `0x004A3F19` and `0x004B0D3B`, and
    `MOV ECX, [0x006E5054]` at `0x004C8A45`.
