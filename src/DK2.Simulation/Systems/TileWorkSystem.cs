@@ -71,6 +71,13 @@ public sealed class TileWorkSystem : ISimulationSystem
                     tile.DigTaskOutlivesWallFor = tile.DigTaskOutlivesWallFor.With(order.PlayerId);
             }
 
+            // Each work action pays its maker once per hit whose tile test passed; the room attack
+            // (action 11, 0x00497DF0) pays only a Good creature (ADR-0386).
+            if (result.Outcome != TileWorkOutcome.Rejected
+                && (order.Kind != TileWorkKind.AttackRoom || order.PlayerId == PlayerIds.Good)
+                && world.CreatureById(order.WorkerCreatureId) is { } worker)
+                CreatureExperienceSystem.AwardWork(context, worker);
+
             PostThreat(context, order, result, before, ownerBefore);
             CreditGoldMined(context, order, result.GoldReleased);
             int carried = HandTo(context, order, result.GoldReleased, out int putDown);

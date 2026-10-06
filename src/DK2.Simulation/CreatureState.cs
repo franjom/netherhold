@@ -498,11 +498,8 @@ public sealed class CreatureState
 
     /// <summary>Experience banked towards the <b>next</b> level, not a lifetime total —
     /// see <see cref="CreatureLevelRules.Grant"/> (Q127).
-    /// <para>A working imp earns 80 a game second, so its second level costs
-    /// 3000 / 80 = 37.5 seconds of work (Q124, ADR-0083 item 6). Trap:
-    /// <c>ImpExperienceGainPerSecond</c> is 20 per <i>original tick</i> (250 ms,
-    /// ADR-0089) despite the name — see
-    /// <see cref="CreatureLevelRules.WorkExperiencePerOriginalTick"/>.</para></summary>
+    /// <para>A working imp earns 20 a work hit, so its second level costs 150 hits (Q124,
+    /// ADR-0386) — see <see cref="CreatureLevelRules.WorkExperiencePerHit"/>.</para></summary>
     public int ExperiencePoints;
 
     /// <summary>The tick on which this creature last <b>successfully</b> chose an angry

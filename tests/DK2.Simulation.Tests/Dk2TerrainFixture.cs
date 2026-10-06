@@ -1514,8 +1514,8 @@ internal static class Dk2TerrainFixture
 
         // What an imp earns for working (Q124, CONFIRMED by the owner: "imps
         // get experience by working... they get exp and passively their level
-        // raises"). The name lies: 20 is per ORIGINAL TICK, so 80 a game second
-        // (Q79), and the 3000 to level 2 is 37.5 seconds of digging.
+        // raises"). The name lies: 20 is per work hit (Q79, ADR-0386), so the 3000 to level 2
+        // is 150 hits.
         Set(vars, VariableTypeId.ImpExperienceGainPerSecond, 20);
 
         // The hatchery's two shipped numbers. The generation time is here for

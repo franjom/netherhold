@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 190: the binary sweep's divergences, fourth batch, the imp's (ADR-0378 to ADR-0382)
+        // HashVersion 191: Imp Haste on a task walk, work experience per hit (ADR-0385, ADR-0386)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xEE1C266107F94AAFUL, sim.StateHash());
+        Assert.Equal(0xC5322686209DAEB0UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Pathfinding;
+using DK2.Simulation.Combat;
 
 namespace DK2.Simulation.Systems;
 
@@ -579,7 +580,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.FetchGold;
         FromTaskSelection(context, creature);
-        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, ImpStates.PickingUpGold);
+        BeginTaskWalk(context, creature, ImpStates.PickingUpGold);
 
         context.Emit(SystemName, "fetch_taken",
             $"imp={creature.Id} player={creature.OwnerPlayerId} " +
@@ -2140,7 +2141,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.CarryObject;
         FromTaskSelection(context, creature);
-        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, ImpStates.PickingUpObject);
+        BeginTaskWalk(context, creature, ImpStates.PickingUpObject);
 
         context.Emit(SystemName, "object_claimed",
             $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
@@ -2194,7 +2195,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         }
 
         // 30 walks it to its room in 6, resuming in the state for its kind.
-        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint,
+        BeginTaskWalk(context, creature,
             ImpStates.CarryingStateFor(context.Database.ObjectById(thing.ObjectTypeId)!.Flags));
 
         creature.TargetObjectId = -1;
@@ -2240,7 +2241,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 creature.TargetTileIndex = destination;
                 int carrying = creature.UtilityNewState;
                 StateShadow.Arrive(context, SystemName, creature);
-                CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, carrying);
+                BeginTaskWalk(context, creature, carrying);
                 return;
             }
 
@@ -2339,7 +2340,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         creature.TimerTicks = 0;
         creature.LastTaskKind = corpses ? ImpTaskKind.CarryCorpse : ImpTaskKind.CarryUnconscious;
         FromTaskSelection(context, creature);
-        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint,
+        BeginTaskWalk(context, creature,
             corpses ? ImpStates.PickingUpCorpse : ImpStates.PickingUpCasualty);
 
         // Remembered so that the walk and the pick-up agree about which body
@@ -2433,7 +2434,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         }
 
         // 40 walks a corpse to 41; 42 chooses by ownership through 0x0046E610.
-        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint,
+        BeginTaskWalk(context, creature,
             CreatureDeathRules.IsCorpse(body) ? ImpStates.CarryingCorpse
             : body.OwnerPlayerId == creature.OwnerPlayerId ? ImpStates.CarryingToLair
             : ImpStates.CarryingToPrison);
@@ -2484,7 +2485,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 creature.TargetTileIndex = destination;
                 int carrying = creature.UtilityNewState;
                 StateShadow.Arrive(context, SystemName, creature);
-                CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, carrying);
+                BeginTaskWalk(context, creature, carrying);
                 return;
             }
 
@@ -2617,12 +2618,47 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         GoIdle(creature);
     }
 
+    /// <summary>An imp task's walk, which DK2 starts through the walk wrapper <c>0x004651A0</c>
+    /// (45 call sites, every imp task handler; not the wander, state 87): its ability scan, then
+    /// the walk. Ours begins the walk only once a route is found, where DK2 scans before routing.</summary>
+    private static void BeginTaskWalk(SimulationContext context, CreatureState creature, int resume)
+    {
+        CastOnTheWalk(context, creature);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
+    }
+
+    /// <summary>
+    /// The walk wrapper's ability scan (<c>0x004651A0</c>, ADR-0385): slots 0 to 2 within the
+    /// creature's level, with a spell, and ready by <c>0x0048C800</c>. A teleport slot (flag
+    /// <c>0x20</c>) ends the scan; a speed slot (<c>0x40</c>, the Imp's Imp Haste in slot 0) is cast on
+    /// the spot: the slot stamped, then <c>0x0048CAD0</c> with the record's two words, refused while a
+    /// speed effect runs. The teleport itself is not built (Q418), and the speed-blur display word
+    /// <c>+0x4DD</c> is not kept.
+    /// </summary>
+    private static void CastOnTheWalk(SimulationContext context, CreatureState creature)
+    {
+        GameDatabase database = context.Database;
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        long now = context.Tick.Value;
+        int count = Math.Min(definition.Spells.Count, SpellRules.Slots);
+        for (int slot = 0; slot < count; slot++)
+        {
+            if (definition.Spells[slot].LevelAvailable > creature.Level) continue;
+            if (!SpellRules.CanCast(database, creature, definition, slot, now)) continue;
+            CreatureSpellDef spell = SpellRules.SpellOf(database, definition, slot)!;
+            if ((spell.Flags & PossessionRules.TeleportSpellFlag) != 0) break;
+            if ((spell.Flags & PossessionRules.SpeedSpellFlag) == 0) continue;
+            creature.SpellStamps[slot] = now;
+            StatusEffectRules.ModifySpeed(context, creature, unchecked((int)spell.ShotData1), unchecked((int)spell.ShotData2));
+        }
+    }
+
     /// <summary>A walk of DK2's that ours does not make: 6 resuming in the state, arrived at on
     /// the same tick.</summary>
     private static void WalkOn(SimulationContext context, CreatureState creature, int resume)
     {
         if (!CreatureStateMachine.HasState(creature)) return;
-        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
+        BeginTaskWalk(context, creature, resume);
         StateShadow.Arrive(context, SystemName, creature);
     }
 
@@ -2671,8 +2707,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         SimulationContext context, CreatureState creature, TileWorkKind kind, bool routed)
     {
         StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
-        CreatureStateMachine.BeginTravel(context.Hooks,
-            creature, StateShadow.TravelToPoint, ImpStates.For(kind).Entry);
+        BeginTaskWalk(context,
+            creature, ImpStates.For(kind).Entry);
         if (!routed) AtWork(context, creature);
     }
 
@@ -2707,7 +2743,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// whichever of 10, 26 and 27 called it.</summary>
     private static void ToTheStore(SimulationContext context, CreatureState creature)
     {
-        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, ImpStates.AtTheStore);
+        BeginTaskWalk(context, creature, ImpStates.AtTheStore);
     }
 
     /// <summary>The walk ends in the entry state (13, 15, 21, 25), which turns the imp to face
