@@ -219,17 +219,18 @@ DK2's ticks are capture ticks (ADR-0119).
 **Same route to Morgana.** Both dig north from the Lair, bridge (64,40) and (64,39), meet
 Morgana's reinforced (64,38) and put the call to arms on it.
 
-| | DK2 | ours (ADR-0377) |
-|---|---|---|
-| (64,41) dug | 52 | 47 |
-| Morgana reinforces (64,38) | 64 | 62 |
-| bridges (64,40), (64,39) | 66, 70 | 62, 63 |
-| (64,38) dug through | 387 | 229 |
-| (64,38) claimed by Drako | 638 | 273 (Morgana retakes it at 325) |
-| call to arms at (64,38) | 700 | 418 |
-| Morgana defeated | 1,378 (status 1) | 847 (heart ruined) |
-| bridge (47,43), (46,43) | 457, 461 | 99, 100 |
-| bridge (64,46) | 1,155 | 420 |
+| | DK2 | ours (ADR-0377) | ours (ADR-0384) |
+|---|---|---|---|
+| (64,41) dug | 52 | 47 | 47 |
+| Morgana reinforces (64,38) | 64 | 62 | 62 |
+| bridges (64,40), (64,39) | 66, 70 | 62, 63 | 62, 63 |
+| (64,38) dug through | 387 | 229 | 229 |
+| (64,38) claimed by Drako | 638 | 273 (Morgana retakes it at 325) | 241 |
+| Belial's first tile (48,43) | dug 443 | tagged 68 | dug 281 |
+| bridge (47,43), (46,43) | 457, 461 | 99, 100 | 297, 299 |
+| call to arms at (64,38) | 700 | 418 | 308 |
+| bridge (64,46) | 1,155 | 420 | 707 |
+| Morgana defeated | 1,378 (status 1) | 847 (heart ruined) | 730 |
 
 **Raksha was an ally.** Before ADR-0377 ours attacked every keeper in turn: Morgana at tick 1,
 Raksha at 66 (a tunnel north from (50,43) with eight bridge tiles), Belial at 273 and the human
@@ -237,10 +238,13 @@ at 318. Level 11A's first turn runs trigger action 18 for 7-6, 7-4 and 7-5, whic
 with the other keepers (`trigger-action-arms.md`); the capture shows the bytes set on turn 2,
 and DK2's Drako never digs toward her. Ours left the action unperformed.
 
-**Still early.** Ours tags the first tile of Belial's tunnel, (48,43), at 68; DK2 digs it at 443,
-so its tunnel starts near 430, after Morgana's wall is dug (Q557). Ours also lays (57,39) and (57,38) at 164,
-which DK2 never builds. The breach at (64,38) is dug 158 ticks sooner and first claimed 365 sooner.
-Not yet separated from the earlier second tunnel.
+**The tunnel ended at its last tag (ADR-0384).** Ours tagged (64,38) at 64 and ended Morgana's
+tunnel there: a flood from the heart through its own tags reached her heart. DK2's task 7 waits
+on a tagged tile until it is dug and ends only when the target routes to the cursor, so its
+Belial tunnel follows Morgana's wall. Since ADR-0384 ours does the same, and the bridges at
+(57,38) and (57,39) move from 164 to 871 (DK2 has none in 2,400 ticks). What remains is the wall
+itself: our imps dig (64,38) 158 ticks sooner and claim it 397 sooner, and everything after
+follows.
 
 **Not scripted.** Level 11A's triggers give Drako no dig, build or attack order: they set
 alliances, give Raksha three creatures and drive speech and the camera. The tunnels, bridges

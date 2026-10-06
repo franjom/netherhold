@@ -4,7 +4,7 @@ question: >
   without scripted player commands?
 map: campaign:level17
 seed: 12345
-duration_ticks: 1200
+duration_ticks: 1400
 viewing_player: 4
 computer_keepers: [4]
 setup:
@@ -36,7 +36,8 @@ expect:
     because: >
       Once the seam pays for it, the planner digs and builds the Prison, the first
       available missing room (0x004F93B0). DK2's Harkan builds it too, at tick 855
-      centred on (16,22); ours builds earlier and elsewhere (Q555).
+      centred on (16,22); ours grows its Training Room first (359-685) and lays the
+      Prison from 1,291 at (17..19, 18..20) (Q555).
   - event: creature_entered
     detail: "player=4"
     because: >

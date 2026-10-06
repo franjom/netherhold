@@ -311,6 +311,31 @@ public class KeeperAITests
         Assert.Equal(portal, keeper.State.DigRoomAt);
     }
 
+    /// <summary>Task 7 (<c>0x004FDC50</c>) tags the rock its cursor stands on and stays there until
+    /// the tile is dug; only then does the walker step on. Ours used to walk past its tag.</summary>
+    [Fact]
+    public void TheTunnelWaitsOnItsTaggedRockUntilItIsDug()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        KeeperWorld.Set(world, Db, new TilePos(25, 15), KeeperWorld.PortalFloor, PlayerIds.Neutral);
+        var keeper = new KeeperAI(KeeperWorld.Keeper, KeeperWorld.Parameters(), new SimRandom(7), _ => false);
+
+        // The tag is never applied here, so every pass asks for the same tile again.
+        HashSet<TilePos> Tagged(int passes)
+        {
+            var tiles = new HashSet<TilePos>();
+            for (int i = 0; i < passes; i++)
+                foreach (TagTilesCommand tag in keeper.Think(Db, world).OfType<TagTilesCommand>()) tiles.UnionWith(tag.Tiles);
+            return tiles;
+        }
+        TilePos first = Assert.Single(Tagged(8));
+        Assert.Equal((KeeperTask.DigPath, first), (keeper.State.Task, keeper.State.DigRoomAtCurrent));
+
+        KeeperWorld.Set(world, Db, first, KeeperWorld.DirtPath, PlayerIds.Neutral);
+        TilePos second = Assert.Single(Tagged(8));
+        Assert.NotEqual(first, second);
+    }
+
     [Fact]
     public void PortalSearchUsesOnePoolAndDoesNotRetryAnOutOfAreaCandidate()
     {
