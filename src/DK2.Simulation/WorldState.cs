@@ -568,376 +568,6 @@ public readonly record struct HandItem(HandItemKind Kind, int Id)
 }
 
 /// <summary>
-/// One action point as DK2 constructs it from a placed THING. The rectangle, ids
-/// and flags are level-authored data; the passage count and wait timer are
-/// runtime fields and stay mutable even though their consumers are not yet
-/// identified. There is deliberately no <c>Available</c> field — the four trigger
-/// actions once thought to write one use their byte as input to separate
-/// operations and never write the action-point object (ADR-0103).
-/// </summary>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/action-points.md")]
-public sealed class ActionPointState
-{
-    /// <summary>The five source flag bits DK2's loader copies: 0, 2, 3, 4 and 5.</summary>
-    public const byte LoadedFlagMask = 0x3D;
-
-    public byte Id { get; init; }
-    public ushort StartX { get; init; }
-    public ushort StartY { get; init; }
-    public ushort EndX { get; init; }
-    public ushort EndY { get; init; }
-    public ushort TriggerId { get; init; }
-    public byte NextWaypointId { get; init; }
-    public byte Flags { get; init; }
-
-    /// <summary>Runtime counter initialised to zero. Its modifying path remains Q236.</summary>
-    public ushort PassageCount { get; set; }
-
-    /// <summary>
-    /// The authored wait delay multiplied by DK2's four-Hz tick rate at load.
-    /// <para>Scales by the <b>original</b> rate while the trigger threshold beside
-    /// it scales by ours; the two are equal today. Both reproduce the same loader
-    /// idiom — one multiply by variable 19 at load — but this is a stored field
-    /// mirroring the original's saved block, so it keeps the original's number
-    /// whatever our step rate becomes, while
-    /// <see cref="TriggerState.HasElapsed"/> builds a deadline against <i>our</i>
-    /// clock and must scale by <see cref="SimulationTiming.TicksPerSecond"/>. If
-    /// <c>TicksPerSecond</c> ever stops being 4, do not make one match the other:
-    /// whatever decrements this counter has to say which clock it counts in.</para>
-    /// </summary>
-    public ushort WaitTimerTicks { get; set; }
-
-    public void HashInto(ref Hash64 hash)
-    {
-        hash.Add(Id);
-        hash.Add(StartX);
-        hash.Add(StartY);
-        hash.Add(EndX);
-        hash.Add(EndY);
-        hash.Add(TriggerId);
-        hash.Add(NextWaypointId);
-        hash.Add(Flags);
-        hash.Add(PassageCount);
-        hash.Add(WaitTimerTicks);
-    }
-}
-
-/// <summary>
-/// One door projected from a placed THING. Authored bytes remain verbatim; the
-/// construction predicate is the one runtime value currently derived from them.
-/// </summary>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
-public sealed class DoorState
-{
-    /// <summary>The door's id, given by <see cref="WorldState.AddDoor"/> from 1 and never reused,
-    /// so a blueprint, a crate's order and a forced target name it across a removal. Ours: DK2's
-    /// id is a slot in the one thing table every class shares.</summary>
-    public int Id { get; internal set; }
-
-    public int X { get; init; }
-    public int Y { get; init; }
-    public int Unknown_0008 { get; init; }
-    public ushort TriggerId { get; init; }
-    public byte DoorId { get; init; }
-
-    /// <summary>The mixed-class tile chain link (<see cref="ThingTileLink"/>), given once by
-    /// <see cref="WorldState.AddDoor"/>: DK2 constructs a door on layer 0 (<c>0x004A50BF</c>).</summary>
-    public ThingTileLink TileLink { get; internal set; } = ThingTileLink.None;
-
-    public byte PlayerId { get; init; }
-    public byte Flags { get; init; }
-    public bool UnderConstruction { get; set; }
-
-    /// <summary>DK2's <c>+0x111</c>: 0 opens for every allied creature, 1 for none of the
-    /// workers, 2 for workers only, 3 for nobody. The loader seeds 3 from authored flag bit 0,
-    /// and the owner's lock command toggles it between 0 and 3 — modes 1 and 2 have their arms
-    /// in the update but no caller in v1.70 (doors-and-traps.md).</summary>
-    public byte LockMode { get; set; }
-
-    /// <summary>DK2's <c>+0x115</c>: ticks left on a picked lock, counted down one per update
-    /// (<c>0x004A56A1</c>) and, while it is not zero, <b>forcing the door open</b> ahead of every
-    /// other rule including lock mode 3 (<c>0x004A5D52</c>).</summary>
-    /// <remarks><b>Nothing sets it.</b> The one writer is <c>0x004A6DF0</c>, reached from the
-    /// effect handler <c>0x00474F80</c> that a creature ability dispatches through a descriptor
-    /// table; which ability owns that descriptor is UNKNOWN, and abilities are not built, so a
-    /// lock here is never picked. The duration it writes is the product of two globals in
-    /// uninitialised data, <c>[0x006F28D3] * [0x006F2590]</c>, so its value is unread as
-    /// well.</remarks>
-    public int LockPickTicks { get; set; }
-
-    /// <summary>DK2's <c>+0x10D</c>, recomputed every tick by <see cref="Systems.DoorSystem"/>:
-    /// while open the tile's navigation byte is plain floor for everyone.</summary>
-    public bool Open { get; set; }
-
-    /// <summary>0, 1 or 2, fixed when the door is made
-    /// (<see cref="BlueprintPlacementRules.Orientation"/>): which pair of neighbours are its
-    /// walls: 0 north and south, otherwise west and east. The opening probes and the support
-    /// check read it (door-blocking.md).</summary>
-    public byte Orientation { get; init; }
-
-    /// <summary>DK2's common health <c>+0x40</c>, seeded from the definition's <c>Health</c>
-    /// (<c>def+0x91</c>) by the constructor <c>0x004A5070</c>. At 0 or below the door is dead
-    /// (<c>0x004B5C30</c>) and removed the same turn (door-blocking.md).</summary>
-    public int Health { get; set; }
-
-    /// <summary>DK2's <c>+0x11A</c>, the recovery deadline: 0 when made, advanced one game second
-    /// each time the update passes it while the definition recovers (door-blocking.md).</summary>
-    public long RecoveryDeadline { get; set; }
-
-    /// <summary>How long <see cref="Unknown_0011"/> is. The snapshot writes those bytes
-    /// without a length and reads back exactly this many, so a door carrying any other
-    /// number would desync the stream and silently corrupt everything after it.</summary>
-    public const int Unknown0011Length = 3;
-
-    /// <summary>Bytes 17..19 of the record, kept together because nothing yet says they
-    /// are separate fields (Q252).</summary>
-    public required ReadOnlyMemory<byte> Unknown_0011
-    {
-        get => _unknown0011;
-        init => _unknown0011 = value.Length == Unknown0011Length
-            ? value
-            : throw new ArgumentException(
-                $"A door's trailing unknown is {Unknown0011Length} bytes, not {value.Length}.",
-                nameof(Unknown_0011));
-    }
-
-    private readonly ReadOnlyMemory<byte> _unknown0011;
-
-    public void HashInto(ref Hash64 hash)
-    {
-        hash.Add(Id);
-        hash.Add(X);
-        hash.Add(Y);
-        hash.Add(Unknown_0008);
-        hash.Add(TriggerId);
-        hash.Add(DoorId);
-        TileLink.HashInto(ref hash);
-        hash.Add(PlayerId);
-        hash.Add(Flags);
-        hash.Add(UnderConstruction);
-        hash.Add(LockMode);
-        hash.Add(LockPickTicks);
-        hash.Add(Open);
-        hash.Add(Orientation);
-        hash.Add(Health);
-        hash.Add(RecoveryDeadline);
-        foreach (byte value in Unknown_0011.Span) hash.Add(value);
-    }
-}
-
-/// <summary>
-/// One trap: projected from a placed THING, whose authored bytes remain verbatim, or placed
-/// in play as a blueprint. The runtime words are DK2's <c>CTrap</c> fields past <c>+0xFF</c>,
-/// zeroed by the constructor <c>0x004A7940</c> and run by the update <c>0x004A84E0</c> (traps.md).
-/// </summary>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/traps.md")]
-public sealed class TrapState
-{
-    /// <summary>The trap's id, given as <see cref="DoorState.Id"/> is.</summary>
-    public int Id { get; internal set; }
-
-    public int X { get; init; }
-    public int Y { get; init; }
-    public int Unknown_0008 { get; init; }
-    public byte NumberOfShots { get; init; }
-    public byte TrapId { get; init; }
-
-    /// <summary>The mixed-class tile chain link (<see cref="ThingTileLink"/>), given once by
-    /// <see cref="WorldState.AddTrap"/>: DK2 constructs a trap on layer 0 (<c>0x004A7998</c>).</summary>
-    public ThingTileLink TileLink { get; internal set; } = ThingTileLink.None;
-    public byte PlayerId { get; init; }
-    public byte Unknown_000F { get; init; }
-    public bool UnderConstruction { get; set; }
-
-    /// <summary><c>+0x40</c>, seeded from the definition's <c>Health</c> (<c>+0xA2</c>).</summary>
-    public int Health;
-
-    /// <summary><c>+0xF4</c>, 2048 to a turn, zeroed by the class constructor <c>0x004B28D0</c>.</summary>
-    public int Heading;
-
-    /// <summary><c>+0xFF</c> rechargeAtTime: no targeting before this turn.</summary>
-    public long RechargeAt;
-
-    /// <summary><c>+0x107</c> nextHealthGainTick: recovery applies once the turn is past it.</summary>
-    public long RecoveryAt;
-
-    /// <summary><c>+0x10B</c>: turns in a row a target was found, wrapping as a byte.</summary>
-    public byte Charge;
-
-    /// <summary><c>+0x10C</c>'s low nibble: completed own Trigger traps beside this one, which
-    /// suppress the sight and tile selectors.</summary>
-    public byte TriggerCount;
-
-    /// <summary><c>+0x10C</c> bit 4, seeded from definition flag <c>0x20</c>; a firing with flag
-    /// <c>0x2</c> clears it.</summary>
-    public bool Hidden;
-
-    /// <summary><c>+0x10E</c>, counted down each update and read by nothing else.</summary>
-    public byte ThreatDuration;
-
-    /// <summary><c>+0x10F</c>: the threat shared among nearby enemies every update once set; no
-    /// trap code clears it after a firing sets it.</summary>
-    public int Threat;
-
-    /// <summary><c>+0x10D</c> triggeringTime: a Trigger's propagation countdown.</summary>
-    public byte TriggerCountdown;
-
-    /// <summary><c>+0x117</c> triggeringCreature: the creature a Trigger fired at.</summary>
-    public int TriggerCreatureId;
-
-    /// <summary><c>+0x119</c>/<c>+0x11D</c>: the sight finder's turn and answer, reused within a turn
-    /// and offered to the next. The constructor zeroes both, so on turn 0 the finder answers nobody.</summary>
-    public long SightTurn;
-    public int SightTargetId;
-
-    /// <summary><c>+0x113</c>, a Guard Post's room: the owner's Guard Room nearest the trap
-    /// (<c>0x004C61C0(9)</c>), written by the constructor and refreshed by the update. Ours has no
-    /// room ids, so it holds that room's first slab tile, or -1 for DK2's 0.</summary>
-    public int GuardRoomTile = -1;
-
-    /// <summary>The trap's position, the tile's centre as the loader <c>0x00520E50</c> puts it.</summary>
-    public int PosX => (X << 12) + 0x800;
-    public int PosY => (Y << 12) + 0x800;
-
-    public void HashInto(ref Hash64 hash)
-    {
-        hash.Add(Id);
-        hash.Add(X);
-        hash.Add(Y);
-        hash.Add(Unknown_0008);
-        hash.Add(NumberOfShots);
-        hash.Add(TrapId);
-        TileLink.HashInto(ref hash);
-        hash.Add(PlayerId);
-        hash.Add(Unknown_000F);
-        hash.Add(UnderConstruction);
-        hash.Add(Health);
-        hash.Add(Heading);
-        hash.Add(RechargeAt);
-        hash.Add(RecoveryAt);
-        hash.Add(Charge);
-        hash.Add(TriggerCount);
-        hash.Add(Hidden);
-        hash.Add(ThreatDuration);
-        hash.Add(Threat);
-        hash.Add(TriggerCountdown);
-        hash.Add(TriggerCreatureId);
-        hash.Add(SightTurn);
-        hash.Add(SightTargetId);
-        hash.Add(GuardRoomTile);
-    }
-}
-
-/// <summary>
-/// One authored member of a hero party: the template action 14 raises a creature from
-/// (<see cref="HeroPartyRules"/>), not a creature placed in the level (ADR-0108). Every
-/// parsed field is retained verbatim.
-/// </summary>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
-public sealed class HeroPartyMemberState
-{
-    public int X { get; init; }
-    public int Y { get; init; }
-    public int Z { get; init; }
-    public ushort GoldHeld { get; init; }
-    public byte Level { get; init; }
-    public byte Flags { get; init; }
-    public int ObjectiveTargetActionPointId { get; init; }
-    public int InitialHealth { get; init; }
-    public ushort TriggerId { get; init; }
-    public byte ObjectiveTargetPlayerId { get; init; }
-    public byte Objective { get; init; }
-    public byte CreatureId { get; init; }
-    /// <summary>The two bytes once stored as an unknown tail: copied by the spawn to the
-    /// creature's <c>WanderRadius</c> (<c>+0x418</c>) and <c>PartyId</c> (<c>+0x417</c>). Every
-    /// shipped member carries its own party's id and a zero radius (Q258).</summary>
-    public byte WanderRadius { get; init; }
-    public byte PartyId { get; init; }
-    public byte Flags2 { get; init; }
-
-    public void HashInto(ref Hash64 hash)
-    {
-        hash.Add(X); hash.Add(Y); hash.Add(Z); hash.Add(GoldHeld);
-        hash.Add(Level); hash.Add(Flags); hash.Add(ObjectiveTargetActionPointId);
-        hash.Add(InitialHealth); hash.Add(TriggerId); hash.Add(ObjectiveTargetPlayerId);
-        hash.Add(Objective); hash.Add(CreatureId);
-        hash.Add(WanderRadius); hash.Add(PartyId);
-        hash.Add(Flags2);
-    }
-}
-
-/// <summary>
-/// One hero party projected verbatim in THINGS-file order. It is authored
-/// state only: parties do not spawn, and their members are not placed creatures.
-/// </summary>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
-public sealed class HeroPartyState
-{
-    public required string Name { get; init; }
-    public ushort TriggerId { get; init; }
-    public byte PartyId { get; init; }
-    public int Unknown_0023 { get; init; }
-    public int Unknown_0027 { get; init; }
-    public required IReadOnlyList<HeroPartyMemberState> Members { get; init; }
-
-    /// <summary>How often action 14 has raised this party — DK2's byte at
-    /// <c>world+0x70F0+PartyId</c>, added to a random party's member levels on each raising.</summary>
-    public byte SpawnCount { get; set; }
-
-    public void HashInto(ref Hash64 hash)
-    {
-        hash.Add(Name); hash.Add(TriggerId); hash.Add(PartyId);
-        hash.Add(Unknown_0023); hash.Add(Unknown_0027); hash.Add(SpawnCount);
-        hash.Add(Members.Count);
-        foreach (HeroPartyMemberState member in Members) member.HashInto(ref hash);
-    }
-}
-
-/// <summary>
-/// One effect generator projected verbatim in THINGS-file order. Generation
-/// behaviour is UNKNOWN and deliberately absent (ADR-0108).
-/// </summary>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
-public sealed class EffectGeneratorState
-{
-    public const int Unknown001ELength = 6;
-
-    public int X { get; init; }
-    public int Y { get; init; }
-    public int Unknown_0008 { get; init; }
-    public int Unknown_000C { get; init; }
-    public ushort Unknown_0010 { get; init; }
-    public ushort Unknown_0012 { get; init; }
-    public required IReadOnlyList<ushort> EffectIds { get; init; }
-    public byte Frequency { get; init; }
-    public byte GeneratorId { get; init; }
-    public required ReadOnlyMemory<byte> Unknown_001E
-    {
-        get => _unknown001E;
-        init => _unknown001E = value.Length == Unknown001ELength
-            ? value
-            : throw new ArgumentException(
-                $"An effect generator's trailing unknown is {Unknown001ELength} bytes, not {value.Length}.",
-                nameof(Unknown_001E));
-    }
-
-    private readonly ReadOnlyMemory<byte> _unknown001E;
-
-    /// <summary>The fields the THINGS loader <c>0x00521380</c> reads (Q259): position, the spawn
-    /// rectangle's width and height (<c>Unknown_0010</c>, <c>Unknown_0012</c>), the four effect ids,
-    /// the frequency and the id. Body <c>+0x08</c>, <c>+0x0C</c> and the six bytes at <c>+0x1E</c>
-    /// are never read, so they are kept for the round trip and not hashed.</summary>
-    public void HashInto(ref Hash64 hash)
-    {
-        hash.Add(X); hash.Add(Y);
-        hash.Add(Unknown_0010); hash.Add(Unknown_0012);
-        hash.Add(EffectIds.Count);
-        foreach (ushort effectId in EffectIds) hash.Add(effectId);
-        hash.Add(Frequency); hash.Add(GeneratorId);
-    }
-}
-
-/// <summary>
 /// All mutable simulation state for one level. Owns no behaviour — systems act
 /// on it. Everything reachable from here is hashed and snapshotted; anything
 /// not reachable from here does not exist as far as determinism is concerned,
@@ -955,10 +585,8 @@ public sealed class WorldState
     private readonly List<CreatureState> _creaturesByOwnership = [];
     private readonly List<ObjectState> _objects = [];
     private readonly List<ActionPointState> _actionPoints = [];
-    private readonly List<DoorState> _doors = [];
-    private readonly List<TrapState> _traps = [];
-    private int _nextDoorId;
-    private int _nextTrapId;
+    private readonly DoorRegistry _doors = new();
+    private readonly TrapRegistry _traps = new();
     private int _nextChainOrder;
     private int _nextTileLinkOrder;
     private readonly List<HeroPartyState> _heroParties = [];
@@ -1443,69 +1071,43 @@ public sealed class WorldState
     }
 
     /// <summary>The standing doors, the level's in THINGS-file order and then those placed in play.</summary>
-    public IReadOnlyList<DoorState> Doors => _doors;
+    public IReadOnlyList<DoorState> Doors => _doors.All;
 
     /// <summary>Adds a door with the next id, which <see cref="DoorState.Id"/> keeps for its life.</summary>
     internal void AddDoor(DoorState door)
     {
-        door.Id = ++_nextDoorId;
         door.TileLink = NewLink(Contains(door.X, door.Y) ? (door.Y * Width) + door.X : -1);
         _doors.Add(door);
-        DoorsVersion++;
     }
 
     /// <summary>The standing door with this id, or null once it is gone.</summary>
-    public DoorState? DoorById(int id)
-    {
-        foreach (DoorState door in _doors)
-            if (door.Id == id) return door;
-        return null;
-    }
+    public DoorState? DoorById(int id) => _doors.ById(id);
 
     /// <summary>The standing door on a tile, or null. One door to a tile, as placement allows.</summary>
-    public DoorState? DoorAt(int x, int y)
-    {
-        foreach (DoorState door in _doors)
-            if (door.X == x && door.Y == y) return door;
-        return null;
-    }
+    public DoorState? DoorAt(int x, int y) => _doors.At(x, y);
 
     /// <summary>Takes a dead door out of the world (DK2's removal <c>0x004B7BD0</c>).</summary>
-    internal void RemoveDoor(DoorState door)
-    {
-        if (_doors.Remove(door)) DoorsVersion++;
-    }
+    internal void RemoveDoor(DoorState door) => _doors.Remove(door);
 
     /// <summary>Bumped by every add and removal, so a per-tile cache of doors knows when to
     /// rebuild. Derived, not state: neither hashed nor saved.</summary>
-    public int DoorsVersion { get; private set; }
+    public int DoorsVersion => _doors.Version;
 
     /// <summary>The standing traps, the level's in THINGS-file order and then those placed in play.</summary>
-    public IReadOnlyList<TrapState> Traps => _traps;
+    public IReadOnlyList<TrapState> Traps => _traps.All;
 
     internal void AddTrap(TrapState trap)
     {
-        trap.Id = ++_nextTrapId;
         trap.TileLink = NewLink(Contains(trap.X, trap.Y) ? (trap.Y * Width) + trap.X : -1);
         _traps.Add(trap);
     }
 
     /// <summary>The standing trap with this id, or null.</summary>
-    public TrapState? TrapById(int id)
-    {
-        foreach (TrapState trap in _traps)
-            if (trap.Id == id) return trap;
-        return null;
-    }
+    public TrapState? TrapById(int id) => _traps.ById(id);
 
     /// <summary>The first trap of <paramref name="owner"/> on the tile, or null: <c>0x00453700(3, owner)</c>
     /// over the tile's chain. A tile holds one trap.</summary>
-    public TrapState? TrapAt(int x, int y, PlayerId owner)
-    {
-        foreach (TrapState trap in _traps)
-            if (trap.X == x && trap.Y == y && trap.PlayerId == owner) return trap;
-        return null;
-    }
+    public TrapState? TrapAt(int x, int y, PlayerId owner) => _traps.At(x, y, owner);
 
     internal void RemoveTrap(TrapState trap) => _traps.Remove(trap);
 
@@ -1568,9 +1170,9 @@ public sealed class WorldState
     internal void AttachLoaded(ShotState shot) => shot.LinkWorld = this;
 
     /// <summary>The last door and trap ids given, restored by a snapshot so ids stay unique.</summary>
-    internal int NextDoorId { get => _nextDoorId; set => _nextDoorId = value; }
+    internal int NextDoorId { get => _doors.NextId; set => _doors.NextId = value; }
 
-    internal int NextTrapId { get => _nextTrapId; set => _nextTrapId = value; }
+    internal int NextTrapId { get => _traps.NextId; set => _traps.NextId = value; }
 
     /// <summary>The level's unspawned hero-party records in THINGS-file order.</summary>
     public IReadOnlyList<HeroPartyState> HeroParties => _heroParties;
@@ -1700,8 +1302,8 @@ public sealed class WorldState
     internal List<CreatureState> RawCreatures => _creatures;
     internal List<ObjectState> RawObjects => _objects;
     internal List<ActionPointState> RawActionPoints => _actionPoints;
-    internal List<DoorState> RawDoors => _doors;
-    internal List<TrapState> RawTraps => _traps;
+    internal List<DoorState> RawDoors => _doors.Raw;
+    internal List<TrapState> RawTraps => _traps.Raw;
     internal List<HeroPartyState> RawHeroParties => _heroParties;
     internal List<EffectGeneratorState> RawEffectGenerators => _effectGenerators;
     internal List<TempleSacrificeState> RawTempleSacrifices => _templeSacrifices;
@@ -1755,15 +1357,15 @@ public sealed class WorldState
         hash.Add(_actionPoints.Count);
         foreach (ActionPointState actionPoint in _actionPoints) actionPoint.HashInto(ref hash);
 
-        hash.Add(_doors.Count);
-        hash.Add(_nextDoorId);
-        foreach (DoorState door in _doors) door.HashInto(ref hash);
+        hash.Add(_doors.All.Count);
+        hash.Add(_doors.NextId);
+        foreach (DoorState door in _doors.All) door.HashInto(ref hash);
 
-        hash.Add(_traps.Count);
-        hash.Add(_nextTrapId);
+        hash.Add(_traps.All.Count);
+        hash.Add(_traps.NextId);
         hash.Add(_nextChainOrder);
         hash.Add(_nextTileLinkOrder);
-        foreach (TrapState trap in _traps) trap.HashInto(ref hash);
+        foreach (TrapState trap in _traps.All) trap.HashInto(ref hash);
 
         hash.Add(_heroParties.Count);
         foreach (HeroPartyState party in _heroParties) party.HashInto(ref hash);
