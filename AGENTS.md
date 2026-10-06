@@ -195,7 +195,7 @@ ratio) fails only if your change made it worse — a one-line fix to a long
 document is not the moment to demand a split. `--all` reports the backlog
 (78 items today, mostly oversized comment blocks). `--message <file>` checks
 a commit body, for a commit-msg hook. Budgets live in one place,
-`DocBudgets` in `src/DK2.Tools/Program.cs`; changing one there without changing
+`DocBudgets` in `src/DK2.Tools/Commands/DocsCommand.cs`; changing one there without changing
 this table is a bug.
 
 **Install the hook once per clone:** `git config core.hooksPath .githooks`.
