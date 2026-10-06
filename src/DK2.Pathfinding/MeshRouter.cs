@@ -33,6 +33,7 @@ public sealed class MeshRouter
     private readonly List<NavPoint> _pathA = [];
     private readonly List<NavPoint> _pathB = [];
     private readonly GateRecord[] _records = new GateRecord[GateWalk.MaxRecords + 1];
+    private readonly FunnelBuffers _funnel = new();
 
     public MeshRouter(NavMesh mesh) => _mesh = mesh ?? throw new ArgumentNullException(nameof(mesh));
 
@@ -57,8 +58,8 @@ public sealed class MeshRouter
 
         _pathA.Clear();
         _pathB.Clear();
-        int lengthA = Funnel.Reduce(_mesh, from, to, _corridorA, _pathA);
-        int lengthB = Funnel.Reduce(_mesh, to, from, _corridorB, _pathB);
+        int lengthA = Funnel.Reduce(_mesh, from, to, _corridorA, _pathA, _funnel);
+        int lengthB = Funnel.Reduce(_mesh, to, from, _corridorB, _pathB, _funnel);
 
         List<int> route = _corridorA;
         if (lengthA > lengthB)
@@ -71,7 +72,7 @@ public sealed class MeshRouter
         }
 
         _pathA.Clear();
-        Funnel.Reduce(_mesh, from, to, route, _pathA);
+        Funnel.Reduce(_mesh, from, to, route, _pathA, _funnel);
         int count = GateWalk.Run(_mesh, from, to, route, _pathA, _records, GateWalk.Cap);
         GateWalk.Select(_records, count, to, GateWalk.Midpoint, waypoints);
         return true;

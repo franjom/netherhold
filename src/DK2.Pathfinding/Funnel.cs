@@ -19,11 +19,18 @@ public static class Funnel
     /// <summary>Appends the turn points strictly between <paramref name="from"/> and
     /// <paramref name="to"/>, then <paramref name="to"/> itself, and returns the accumulated
     /// Euclidean length through the original's integer square root.</summary>
-    public static int Reduce(NavMesh mesh, NavPoint from, NavPoint to, List<int> corridor, List<NavPoint> waypoints)
+    public static int Reduce(NavMesh mesh, NavPoint from, NavPoint to, List<int> corridor, List<NavPoint> waypoints) =>
+        Reduce(mesh, from, to, corridor, waypoints, new FunnelBuffers());
+
+    /// <summary>The same reduction with the bound arrays taken from <paramref name="buffers"/>, so a
+    /// router that funnels several corridors a request allocates them once.</summary>
+    public static int Reduce(
+        NavMesh mesh, NavPoint from, NavPoint to, List<int> corridor, List<NavPoint> waypoints, FunnelBuffers buffers)
     {
         int gates = corridor.Count - 1;
-        var left = new NavPoint[gates + 2];
-        var right = new NavPoint[gates + 2];
+        int count = gates + 2;
+        buffers.Ensure(count);
+        NavPoint[] left = buffers.Left, right = buffers.Right;
         left[0] = right[0] = from;
         for (int k = 0; k < gates; k++)
         {
@@ -35,7 +42,7 @@ public static class Funnel
         NavPoint apex = from, fl = from, fr = from;
         int apexIndex = 0, leftIndex = 0, rightIndex = 0;
 
-        for (int i = 1; i < left.Length; i++)
+        for (int i = 1; i < count; i++)
         {
             NavPoint pl = left[i], pr = right[i];
 
@@ -104,4 +111,21 @@ public static class Funnel
 
     private static int Orient(NavPoint a, NavPoint b, NavPoint c) =>
         NavMesh.Orient(a.X, a.Y, b.X, b.Y, c.X, c.Y);
+}
+
+/// <summary>The left and right bound arrays <see cref="Funnel.Reduce(NavMesh, NavPoint, NavPoint, List{int}, List{NavPoint}, FunnelBuffers)"/>
+/// works in. Only the first <c>gates + 2</c> entries of a call are read, and every one of those is
+/// written first, so what an earlier call left beyond them is never seen.</summary>
+public sealed class FunnelBuffers
+{
+    internal NavPoint[] Left { get; private set; } = [];
+    internal NavPoint[] Right { get; private set; } = [];
+
+    internal void Ensure(int count)
+    {
+        if (Left.Length >= count) return;
+        int size = Math.Max(count, Left.Length * 2);
+        Left = new NavPoint[size];
+        Right = new NavPoint[size];
+    }
 }

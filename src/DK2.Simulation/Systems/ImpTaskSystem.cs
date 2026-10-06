@@ -794,7 +794,9 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         int perTile = database[VariableTypeId.MaxGoldPerTreasuryTile];
         long capacity = (long)(liveHeart ? 16 : room.TileIndices.Count) * perTile;
-        long stored = room.TileIndices.Sum(t => (long)world.TileAtIndex(t).GoldHeld);
+        IReadOnlyList<int> roomTiles = room.TileIndices;
+        long stored = 0;
+        for (int i = 0; i < roomTiles.Count; i++) stored = checked(stored + world.TileAtIndex(roomTiles[i]).GoldHeld);
         long space = capacity - stored;
         // Unsigned in DK2: a room over its capacity reads as all the room in the world.
         int put = space == 0 ? 0 : space < 0 ? creature.GoldHeld : (int)Math.Min(space, creature.GoldHeld);
@@ -807,6 +809,14 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 $"at=({here.X},{here.Y}) floor={left} carrying={creature.GoldHeld}");
         }
         return true;
+    }
+
+    private static bool HasSpaceForGold(WorldState world, GameDatabase database, RoomInstance room)
+    {
+        IReadOnlyList<int> tiles = room.TileIndices;
+        for (int i = 0; i < tiles.Count; i++)
+            if (GoldStore.SpaceIn(world, database, tiles[i]) > 0) return true;
+        return false;
     }
 
     /// <summary>The eight walk points of <c>0x00698C20</c>, the outer cells of a 3×3 grid on
@@ -834,7 +844,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         {
             if (room.OwnerPlayerId != player || room.Definition.TypeId is not
                 (RoomTypeId.Treasury or RoomTypeId.DungeonHeart)) continue;
-            if (!room.TileIndices.Any(tile => GoldStore.SpaceIn(world, context.Database, tile) > 0)) continue;
+            if (!HasSpaceForGold(world, context.Database, room)) continue;
             int first = SlabChain.FirstSlab(world, room);
             long dx = CreatureState.CentreOf(first % w) - (long)creature.PosX;
             long dy = CreatureState.CentreOf(first / w) - (long)creature.PosY;
