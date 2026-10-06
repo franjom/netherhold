@@ -14,4 +14,8 @@
     <ProjectReference Include="../DK2.Simulation/DK2.Simulation.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="DK2.Tools.Tests" />
+  </ItemGroup>
+
 </Project>
