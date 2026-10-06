@@ -220,19 +220,19 @@ runs every computer keeper, as the last column does.
 **Same route to Morgana.** Both dig north from the Lair, bridge (64,40) and (64,39), meet
 Morgana's reinforced (64,38) and put the call to arms on it.
 
-| | DK2 | ours (ADR-0377) | ours (ADR-0384) | ours (ADR-0387, keepers 4–7) |
-|---|---|---|---|---|
-| (64,41) dug | 52 | 47 | 47 | 47 |
-| Morgana reinforces (64,38) | 64 | 62 | 62 | 62 |
-| bridges (64,40), (64,39) | 66, 70 | 62, 63 | 62, 63 | 62, 63 |
-| Morgana repairs (64,38) from | 101 | — | — | 92 |
-| (64,38) dug through | 387 | 229 | 229 | 362 |
-| (64,38) claimed by Drako | 638 | 273 (Morgana retakes it at 325) | 241 | 375 (Morgana retakes it at 472; Drako again at 724) |
-| Belial's first tile (48,43) | dug 443 | tagged 68 | dug 281 | dug 433 |
-| bridge (47,43), (46,43) | 457, 461 | 99, 100 | 297, 299 | 446, 448 |
-| call to arms | 700 at (64,38) | 418 | 308 | 544 at (64,34) |
-| bridge (64,46) | 1,155 | 420 | 707 | 855 |
-| Morgana defeated | 1,378 (status 1) | 847 (heart ruined) | 730 | 1,004 (heart ruined) |
+| | DK2 | ours (ADR-0377) | ours (ADR-0384) | ours (ADR-0387, keepers 4–7) | ours (ADR-0388) |
+|---|---|---|---|---|---|
+| (64,41) dug | 52 | 47 | 47 | 47 | 47 |
+| Morgana reinforces (64,38) | 64 | 62 | 62 | 62 | 62 |
+| bridges (64,40), (64,39) | 66, 70 | 62, 63 | 62, 63 | 62, 63 | 62, 63 |
+| Morgana repairs (64,38) from | 101 | — | — | 92 | 92 |
+| (64,38) dug through | 387 | 229 | 229 | 362 | 362 |
+| (64,38) claimed by Drako | 638 | 273 (Morgana retakes it at 325) | 241 | 375 (Morgana retakes it at 472; Drako again at 724) | 399, after a fight from 368 |
+| Belial's first tile (48,43) | dug 443 | tagged 68 | dug 281 | dug 433 | dug 433 |
+| bridge (47,43), (46,43) | 457, 461 | 99, 100 | 297, 299 | 446, 448 | 446, 448 |
+| call to arms | 700 at (64,38) | 418 | 308 | 544 at (64,34) | 540 at (64,34) |
+| bridge (64,46) | 1,155 | 420 | 707 | 855 | 832 |
+| Morgana defeated | 1,378 (status 1) | 847 (heart ruined) | 730 | 1,004 (heart ruined) | 887 (heart ruined) |
 
 **Raksha was an ally.** Before ADR-0377 ours attacked every keeper in turn: Morgana at tick 1,
 Raksha at 66 (a tunnel north from (50,43) with eight bridge tiles), Belial at 273 and the human
@@ -252,6 +252,11 @@ Belial tunnel follows Morgana's wall. Since ADR-0384 ours does the same, and the
 Ours had no repair job, and ran Morgana's AI not at all, so her imps were reinforcing elsewhere.
 With both the wall falls at 362. What remains (Q563): Drako claims the hole at 375 where DK2's imps
 fight Morgana's in it until 638, and our call goes to (64,34) at 544, DK2's to (64,38) at 700.
+
+**The hole is fought over (ADR-0388).** Ours let Drako's imp take Morgana's imp's claim of the
+hole, though each keeper has its own task pool, and two imps on one tile out of reach never closed
+in. With both fixed they fight from 368, but our Morgana lifts her wounded imp out at 391 and the
+hole is Drako's at 399; DK2's wounded imps show the slap reaction and fight on to 638 (Q563).
 
 **Not scripted.** Level 11A's triggers give Drako no dig, build or attack order: they set
 alliances, give Raksha three creatures and drive speech and the camera. The tunnels, bridges

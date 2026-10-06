@@ -62,10 +62,10 @@ expect:
       Past the lava the walker meets rock again and task 7 tags it: the tunnel continues toward
       Morgana's heart. Morgana's imp reinforced the tile at 62, so Drako's imps dig an enemy wall,
       and from 92 one of Morgana's imps repairs it from her side (kind 16, ADR-0387); it falls at
-      362. DK2: repair from 101, the wall falls at 387.
+      362. DK2: repair from 101, the wall falls at 387. The imps then fight in the hole (ADR-0388).
   - event: call_to_arms_raised
     detail: "tile=64,34"
-    at_tick: 544
+    at_tick: 540
     because: >
       With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
       heart and attack management casts the call there (0x004FECE0, ADR-0298). The point is a draw
@@ -73,4 +73,5 @@ expect:
   - event: engaged
     detail: "player=5 heart=6"
     because: >
-      Drako's creatures answer the call and attack Morgana's heart (scan E, ADR-0163); first at 587.
+      Drako's creatures attack Morgana's heart (scan E, ADR-0163); first at 458, a Mistress,
+      before the call.

@@ -83,8 +83,10 @@ public static class MiningSlots
     public static CreatureState? Holder(WorldState world, int targetIndex, byte slot, int askingCreatureId)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
+        int pool = TaskStealing.PoolOf(world, askingCreatureId);
         foreach (CreatureState other in world.Creatures)
             if (other.Id != askingCreatureId && other.TargetTileIndex == targetIndex && other.WorkSlot == slot
+                && TaskStealing.InPool(pool, other)
                 && other.TargetWork is TileWorkKind.Dig or TileWorkKind.MineGold
                     or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall)
                 return other;

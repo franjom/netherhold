@@ -294,7 +294,7 @@
 - **Rejecting the face rather than the tile is what makes the fourth imp leave.** The search carries on to the next standing tile — another side of the same block, or another block — and falls through to the next job priority if nothing is left. Nothing waits.
 - **A worker's face is derived, not stored**: the end of its route if it is still walking, the tile under it if it has arrived. Counting the *intended* face stops four imps setting off for the same side and discovering the crowd on arrival; deriving it keeps a field out of the determinism hash and makes it impossible for the face to disagree with the route.
 - **The asking creature is excluded from the count**, or a worker on a full face would drop its own job the instant it re-evaluated it.
-- **Counted across every player**: two keepers' imps on the same side of a block are in each other's way exactly as much as one keeper's would be. (ADR-0030 keeps this and replaces its stated reason.)
+- **Counted across every player**: two keepers' imps on the same side of a block are in each other's way exactly as much as one keeper's would be. (ADR-0030 keeps this and replaces its stated reason.) *Superseded by ADR-0388: each keeper has its own task pool, so the count is per keeper.*
 **Consequences.**
 - The limits are observed and visible in the task holder slots; no balance value supplies them. `ImpCrowding` keeps the job-specific limits.
 - Imps now spread: a crowd on one marked tile pushes the surplus onto other faces and then into other jobs.
@@ -396,7 +396,7 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 - **A test had been passing for the wrong reason.** `AnImpDoesNotCountItselfOutOfItsOwnFace` ticked four times past its crowding assertions and checked three imps still held the block — but three imps swinging together put 300 damage into a plain wall's 165, so the block had already fallen and the tile had become claimable floor, and the assertion actually read **three imps claiming one tile**, which the original does not do.
 - **Also CONFIRMED the same day:** *"imps claim tiles adjacent to claimed tiles"* — Q42 exactly as implemented since ADR-0028, the ownership condition on the target's neighbour rather than on the imp's feet. **Whether "adjacent" includes diagonals is UNKNOWN** and now matters, because movement is eight-connected (ADR-0025) so a corner-touching tile is reachable. Orthogonal is what is implemented, matching the way work spreads (Q27). Q66.
 - Visible in the scenarios: `imps-carry-gold-home-001` previously had both imps claim the tile they had just mined out; now one claims it and the other reinforces, so its hash moved.
-- ADR-0026's claim that the cap counts across every player still holds; its stated *reason* is replaced by this one.
+- ADR-0026's claim that the cap counts across every player still holds; its stated *reason* is replaced by this one. *Superseded by ADR-0388: the count is per keeper.*
 - No new state, so no `HashVersion` bump.
 
 ## ADR-0031 — A bridge reverts to the hazard it spanned, and the MAP record says which
@@ -8775,3 +8775,29 @@ had run Drako's AI alone): Morgana repairs from 92 (DK2 101), the wall falls at 
 Belial tunnel's first tile at 433 (443), its bridges at 446/448 (457/461), the call at 544 (700),
 Morgana at 1,004 (1,378). The scenario now runs those keepers on the record's gold. Q563 holds the
 rest.
+
+## ADR-0388 — A rival's imp holds no task of this keeper's, and the fight approach walks within a tile
+**Date:** 2026-10-06 · **Status:** accepted · Advances Q563; supersedes the every-player count of ADR-0026 and ADR-0030
+
+**Context.** With ADR-0387 the Level 11A wall falls at 362, DK2's at 387, but Drako claimed the
+hole 13 ticks later where DK2's imps fight in it until 638. Two faults. At 364 Drako's imp stole
+Morgana's imp's claim of the hole (`task_stolen: imp=11 from=18`): DK2's task pool is the keeper's
+own (`player+0x1105`), so a rival's imp can neither hold, crowd nor lose a slot of it, while ours
+compared any worker on the tile. Then the two imps, 0.58 tile apart on one tile and out of reach,
+looped in state 8 without moving: our route request gives a creature on its target's tile a
+finished route, where DK2's gate walk `0x004CF490` returns a one-point route, the target itself
+(`0x004D0320`, `0x004D0240` have no shortcut either).
+
+**Decision.** Every holder scan (`MiningSlots.Holder`, `ImpCrowding.FaceIsFull`, the claim and
+reinforce steals, `ForgetReinforceTask`, the object and crate holders) counts only the asker's
+keeper's workers (`TaskStealing.SharesTaskPool`). The approach's three route requests use
+`TryRouteToStance`, which loads the one point on the same tile. Deviates: `TryRouteTo` keeps the
+finished route for every other caller; removing it there fails eleven simulation tests and a scenario that pin a creature
+already in its room taking the job without a walk, which DK2 may check in its callers (Q565).
+
+**Measured** (hash 193), Level 11A with keepers 4 to 7: the imps fight in the hole from 368
+(DK2 389) and Drako claims it at 399 (DK2 638; 375 before); Morgana's keeper lifts her wounded imp
+out by hand at 391, where DK2's wounded imps show state 77, the slap reaction, and fight on. The call is at 540 (700),
+the bridge at (64,46) at 832 (1,155), Morgana falls at 887 (1,378; 1,004 before). Levels 1 and 2
+on the seed rig, against 885ec6d8: Level 1 19/20 both (seed 6 lost before, 8 now), Level 2 2/20
+(1/20 before). Level 3 was not run.

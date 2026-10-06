@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**193** — `0xC5E69C4191F2E3A6`. Only a keeper's own workers hold, crowd or lose its tasks; the fight approach walks to a target on its own tile (one-point route, `0x004CF490`); no new field. ADR-0388.
+
 **192** — `0x40EF9AF6D79DA685`. Imps repair their keeper's damaged wall (kind 16, `0x00453E30`), and a work application truncates the tabled rate over four before flooring it times the work rate (`0x0051CBA0`); no new field. ADR-0387.
 
 **191** — `0xC5322686209DAEB0`. An imp task walk runs the walk wrapper's ability scan and casts Imp Haste from level 4 (`0x004651A0`); work experience is paid once per work hit, not per tick of work. No new field. ADR-0385, ADR-0386.
