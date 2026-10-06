@@ -85,7 +85,7 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         // front casts the call two tiles off Morgana's heart. Lava never takes the Wooden Bridge.
         Assert.Empty(run.ExpectationFailures);
         KeeperAIState state = run.KeeperStates[5];
-        // Morgana first; by tick 200 a later plan has also chosen Raksha (bit 7).
+        // Morgana first; a later plan may also choose Raksha (bit 7), which is not asserted.
         Assert.Equal((1 << 6, 1 << 6), (state.PlayersAttackedFlags & (1 << 6), state.FirstAttackFlag & (1 << 6)));
         KeeperCommandEmission tag = Assert.Single(run.KeeperCommandLog, e => e.Command is TagTilesCommand t && t.Tiles.Contains(new TilePos(64, 41)));
         Assert.Equal((byte)5, tag.Command.PlayerId);
@@ -207,6 +207,13 @@ public class Level17UnassistedKeeperScenarioTests(ITestOutputHelper output)
         Assert.NotEmpty(first.KeeperCommandLog);
         Assert.Equal(first.KeeperCommandLog.Select(Fingerprint),
             second.KeeperCommandLog.Select(Fingerprint));
+
+        // Q546: Harkan's record gives MaxBuildArea (1,1)-(40,64), which refuses the neutral Portals at
+        // (53,6) and (16,70) that ours tunnelled to while it planned over the whole map. The original
+        // capture shows no Harkan tile east of x = 23 in the top rows (computer-keeper-observations.md).
+        Assert.All(first.KeeperCommandLog.Select(e => e.Command).OfType<TagTilesCommand>()
+                .Where(t => t.PlayerId == 4 && t.Tagged).SelectMany(t => t.Tiles),
+            p => Assert.True(p.X is >= 1 and <= 40 && p.Y is >= 1 and <= 64, $"tagged {p} outside (1,1)-(40,64)"));
 
         static (int Tick, ulong Hash) Fingerprint(KeeperCommandEmission emission)
         {

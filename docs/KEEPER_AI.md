@@ -866,7 +866,8 @@ The third cast path (`0x004BC290`) is action 56's alone; the keeper never issues
 4. Does an AI keeper ever pay creatures by dropping gold on them, or feed one a chicken
    by hand? (Predicted: yes — that is how it handles unhappiness.)
 5. Does an AI keeper slap idle creatures? (Predicted by accessor 5; research and
-   training categories are excluded. See management audit §8.)
+   training categories are excluded. See management audit §8.) Seen in the Level 17
+   capture (2026-10-06): idle creatures and walkers, and of imps only idle ones or reinforcers.
 6. In skirmish, does choosing the same personality on "Spiral" and on another map feel
    different? (The remap table says Spiral silently plays Conqueror for three
    personalities.)
@@ -1231,7 +1232,8 @@ as the heart and the call's refused own-room tiles, with route queries over the 
 schema 14 the Chicken and Inferno permissions per foreign creature (ADR-0302); schema 15 each
 creature's experience and dropped-to-do job and each room's floor slots in chain order (ADR-0317); schema 16
 every room's tiles in chain order (ADR-0327); schema 17 the own-room tiles where Sight's target 4 refuses (ADR-0352); schema 18 each
-creature's anger buckets, each room's object list and the hand's count (ADR-0353).
+creature's anger buckets, each room's object list and the hand's count (ADR-0353); schema 19 each
+creature's activity code (ADR-0376).
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
 is captured separately from hand capacity; worker task exits and prison delivery
 now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);

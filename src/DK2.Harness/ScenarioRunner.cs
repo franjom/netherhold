@@ -848,8 +848,10 @@ public sealed class ScenarioRunner
                     paid.Add(p.Id);
                 }
         ThingProjectionResult result = ThingProjection.Place(world, _database, things, startingGold);
-        // The record pays only through a placed heart; without one the scenario's deposit stands.
-        paid.RemoveWhere(id => !RoomIndex.Build(world, _database).Any(
+        // The record pays only through a placed, unruined heart (ADR-0360); otherwise the
+        // scenario's deposit stands.
+        List<RoomInstance> rooms = RoomIndex.Build(world, _database);
+        paid.RemoveWhere(id => world.Player(id).HeartRuined || !rooms.Any(
             r => r.OwnerPlayerId == id && r.Definition.TypeId == RoomTypeId.DungeonHeart));
 
         // Reported, not swallowed. Doors, traps, hero parties and effect

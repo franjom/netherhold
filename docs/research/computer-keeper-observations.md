@@ -183,9 +183,7 @@ continues. Undiggable rock at (32..42, 7) starts a wall hug that follows the map
 700 tiles from tick 158 to 2,236 (untags at 286 and 1,242). Whether one of the walker's
 listed deviations (computer-keeper-tasks.md §5) lengthens that hug is open. In DK2 (capture ticks, one behind the game's turn, ADR-0119) Harkan claims his
 second Portal at 164 and player 5 takes (53,6) at 165, and Harkan never digs east.
-HYPOTHESIS: DK2's next Portal pass fell after 165, so it found no neutral Portal; nothing
-here shows when that pass ran. Our Portal claims are earlier (36 vs 40, 149 vs 164); why is
-UNKNOWN.
+The race reading first offered here was wrong; *What it was* below gives the cause.
 
 **Owner, a second game (2026-10-05).** Played normally for over ten minutes with the map
 revealed (the cheat, `game-actions.md` §3.1): Harkan digs east only along the straight gold
@@ -193,3 +191,21 @@ row by his base, never on toward the top-right keeper, and then southeast toward
 fortification in the map's centre. OBSERVED, one game with a playing human; it agrees with
 the idle capture, where Harkan owned no tile in x 24-51 of the top rows (y 0-13), sampled
 from tick 1 to 2,400.
+
+**Why our Portal claims run early (2026-10-06).** A slap, not the cadence. Harkan's
+second Portal is reached over neutral path (2..5, 2), claimed one tile at a time by one imp.
+DK2 takes 13 ticks a tile ((3,2) 105, (4,2) 118, (5,2) 131): state 10 for 1 tick, 3 walking,
+state 15 for 1, state 16 with the tile flipping on its 7th tick and holding 1 more, then 10
+again. Ours takes 11 (99, 110, 121), and 26 for the Portal against 30 (149 against 164).
+Walk, entry and application ticks match (first at E+2, then every tick); ours adds 185 an
+application where DK2 adds 164, so its tile flips on the 4th, not the 5th, and its imp
+leaves a tick sooner. Our Harkan slapped that imp at tick 86 (90 % for 100 ticks); DK2's
+slaps only an imp with no task or one reinforcing (`computer-keeper-management.md` §8), so
+its claimer stays at 80 %. Ours slaps any working creature: that is the early claim.
+
+**What it was (2026-10-06, ADR-0376).** Not the race: DK2's Harkan claims his second Portal
+before player 5 too. His record's `MaxBuildArea` is (1,1)-(40,64), and the room planner
+(`0x004FC690`) refuses a neutral Portal outside it before any range test, so (53,6) and (16,70)
+are never candidates; ours planned over the whole map. With the area and the slap gate built,
+ours tags nothing outside the area, claims the second Portal at 159 and builds its Prison at
+476 centred on (12,25), against DK2's 855 on (16,22) (Q555).

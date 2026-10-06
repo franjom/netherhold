@@ -133,7 +133,9 @@ public sealed class KeeperView : INavByteGrid
                     && KeeperSpellRules.CreatureTargetAllowed(world, database, this, playerId, chicken, c),
                 c.OwnerPlayerId != playerId && c.Activity != CreatureActivity.Dead && inferno is not null
                     && KeeperSpellRules.PlaceAllowed(world, database, this, playerId, inferno, c.Tile),
-                c.ExperiencePoints, c.DroppedToDoJob, c.Anger));
+                c.ExperiencePoints, c.DroppedToDoJob, c.Anger,
+                hasState ? CreatureActivityRules.Code(database.CreatureById(c.CreatureTypeId), c) : 0,
+                c.SpeedEffectTicks > 0));
         }
         Creatures = creatures.AsReadOnly();
         CallToArms = world.Player(playerId).CallToArms;

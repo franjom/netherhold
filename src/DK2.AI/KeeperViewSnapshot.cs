@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 18;
+    public const int FormatVersion = 19;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -56,6 +56,7 @@ public static class KeeperViewSnapshot
             w.Write(c.HealTargetAllowed); w.Write(c.ChickenTargetAllowed); w.Write(c.InfernoPlaceAllowed);
             w.Write(c.Experience); w.Write((int)c.DroppedToDoJob);
             for (int b = 0; b < CreatureAnger.Count; b++) w.Write(c.Anger[(AngerBucket)b]);
+            w.Write(c.ActivityCode); w.Write(c.SpeedChanging);
         }
         w.Write(view.Traps.Count);
         foreach (KeeperTrapView t in view.Traps)
@@ -121,7 +122,7 @@ public static class KeeperViewSnapshot
         for (int i = 0; i < availability.Length; i++)
             availability[i] = new AvailabilityState(r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(),
                 r.ReadInt64());
-        var creatures = new KeeperCreatureView[ReadCount(r, 104)];
+        var creatures = new KeeperCreatureView[ReadCount(r, 109)];
         for (int i = 0; i < creatures.Length; i++)
         {
             creatures[i] = new KeeperCreatureView(r.ReadInt32(), r.ReadByte(), r.ReadByte(),
@@ -135,7 +136,7 @@ public static class KeeperViewSnapshot
                 r.ReadInt32(), (JobType)r.ReadInt32());
             var anger = new CreatureAnger();
             for (int b = 0; b < CreatureAnger.Count; b++) anger[(AngerBucket)b] = r.ReadInt32();
-            creatures[i] = creatures[i] with { Anger = anger };
+            creatures[i] = creatures[i] with { Anger = anger, ActivityCode = r.ReadInt32(), SpeedChanging = r.ReadBoolean() };
         }
         var traps = new KeeperTrapView[ReadCount(r, 12)];
         for (int i = 0; i < traps.Length; i++)

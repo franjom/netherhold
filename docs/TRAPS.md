@@ -110,3 +110,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - After a failed multi-file apply_patch, inspect each target before retrying: earlier files may already contain the change.
 - Handoff pending-work checks require a date on the same physical line; a date on the preceding wrapped line does not satisfy them.
 - A decompiler offset on a global typed `int*` is a dword index: `DAT_006ed484 + 0x568` is world byte `+0x15A0`, the simulation stream. Four docs called it a second RNG stream until the disassembly (`ADD EAX,0x15A0`) was read (2026-10-05).
+- A `__fastcall` whose argument is a creature's state object (`+0x24E`) reads state-object offsets: `0x00478A20`'s `+0x98` is creature `+0x2E6` (the task kind), not creature `+0x98`; check `+0x10` against the state at `+0x25E` before reading a capture.

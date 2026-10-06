@@ -129,11 +129,12 @@ Q481. The numbers below are imp runs in each state, from both captures.
 **The idle actions last 20 and 25 ticks (CONFIRMED as outcomes).** After a
 wander trip, state 12 lasts 1 tick (a wander at once), 20 ticks (31 cases) or
 25 to 26 ticks (17 cases). A 2:1 split matches 12's roll: 25-74 plays action 43
-and 75-99 plays action 44, so 43 is the 20 and 44 the 25 (STRONGLY INFERRED). Ours
-plays both for a guessed 8. The imp's animation blocks do not give these lengths:
+and 75-99 plays action 44, so 43 is the 20 and 44 the 25 (STRONGLY INFERRED). ADR-0280
+holds them 19 and 24 ticks (`ImpTaskSystem.IdleAction43Ticks`), 20 and 25 with the
+hand-over; before it ours played both for a guessed 8. The imp's animation blocks do not give these lengths:
 its two long ones are 171 and 172 frames at 30 fps, 23 ticks each.
 
-**Resting too briefly broke the hand drop.** With the parked cadence build, three
+**Resting too briefly broke the hand drop** (before ADR-0280). With the parked cadence build, three
 of our imps take (10,28) together at 41-48 while DK2's are still resting or
 wandering. So (14,32), which DK2 digs from 61, falls at 236, and the player's drop
 there at 221 is refused as unwalkable. With 43 at 19 and 44 at 24 ticks (our
@@ -142,18 +143,17 @@ because its tiles are dug 50-100 ticks late and claimed 100 late.
 
 **A dig holds after the strike (CONFIRMED as outcomes).** A dirt or rock dig runs
 6 ticks in state 14, with its one strike at E+2 (34 of 40 in Level 1, 62 in Level
-2). The imp stays until E+5 and leaves at E+6. Ours leaves once the tile is gone:
-2-3 ticks on master and 4 with the cadence. A claim applies every tick from E+2
-and leaves one tick after the last: 6 ticks (four applications) or 8 (five). Master
-matches that; the cadence build takes 8 where DK2 takes 6. Mining runs 8-9 in
-Level 1, against 5-6 on master and 9-11 with the cadence.
+2). The imp stays until E+5 and leaves at E+6. A claim applies every tick from E+2
+and leaves one tick after the last: 6 ticks (four applications) or 8 (five). Mining
+runs 8-9 in Level 1. ADR-0280 builds the hold (`WorkCadence.ActionTicks`: dig 6,
+claim 2); before it ours left once the tile was gone.
 
 **DK2's idle loop takes two more ticks.** It runs 1, then 10, then 12, one tick
-each. Ours goes from 1 to 12 in the same tick. Ours has no entry states (13, 15,
-21, 25) either, which each last one tick in DK2.
+each, and each entry state (13, 15, 21, 25) lasts one tick. ADR-0280 builds both
+(`WorkCadence`, `ImpTaskSystem.UpdateIdle`).
 
-So master's early digs are too fast and its rests too short, and the two cancel
-there. Neither the hold nor the idle lengths is built.
+Before ADR-0280 (2026-09-29) ours dug too fast early and rested too briefly, and the
+two cancelled; that ADR builds the hold, the idle lengths and the entry states together.
 
 ## 7. How long a digger stays after its wall falls (2026-10-01)
 

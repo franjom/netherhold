@@ -8532,3 +8532,30 @@ that is INFERRED to be variable 19 (not traced); not built, since nothing reads 
 **Measured, ADR-0370 to ADR-0375 together** (hash 188): the Level 1 (20/20), Level 2 (4/20) and
 Level 3 (won at 3564) rigs are identical to batch two, tick for tick; none of the three levels
 reaches a Graveyard, a Vampire, conditions 20, 21 or 71, or flag 128.
+
+## ADR-0376 — The keeper slaps on DK2's activity code and plans inside its record's build area
+**Date:** 2026-10-06 · **Status:** accepted · Research: `computer-keeper-management.md` §8,
+`computer-keeper-observations.md` (*First same-map comparison*); Q546
+
+**Context.** On Level 17 ours tunnelled to neutral Portals at (53,6) and (16,70); DK2's Harkan
+never does. Two causes. `KeeperAI` planned over the whole map, while the PLAYERS record
+unpacker loads `MaxBuildArea` (keeper `+0x12`) from block `0x92`, and Harkan's (1,1)-(40,64)
+fails both Portals at `0x004FC690`'s first gate. And ours slapped any working creature, where
+`0x00502F00` asks `0x00478A20` for 5: a worker with no task or a reinforce task, a non-worker
+by its category's entry in `0x006996C4` (filled at `0x004798F0`). The slap sped our Portal
+claimer to 90 %.
+
+**Decision.** `KeeperAI` takes the record's `MaxBuildArea`. Deviates: a record with no rectangle
+gives the whole map, where `0x004F8750` would store zeros; none of the 121 shipped computer
+records has one. `CreatureActivityRules.Code` reproduces `0x00478A20`; the observation carries it
+(schema 19) and the slap step asks for 5. The `SpeedChangeTimer` test reads our speed
+effect (`0x0048CAD0`'s timer) and, because our slap does not start that timer as DK2's does,
+also refuses a creature slapped within 400 ticks. Deviates: the state object's `+0x3C`
+overrides are not modelled.
+
+**Consequences.** Level 17's Harkan tags nothing outside (1,1)-(40,64) and claims his second
+Portal at 159 (DK2 164, ours 149 before). He now builds the Prison at 476, centred on (12,25);
+DK2's is at 855 on (16,22) (Q555). The changed slap targets change the keeper's allowance and random stream.
+On Level 11A a slap takes tick 49's allowance, the tag past the bridge lands at 50, the imp that
+dug it at once on master has taken another job, Morgana reinforces the tile first, and the call
+moves from 104 to 247; the scenario runs 300 ticks. One AI test takes seed 2. No simulation state changes: no HashVersion bump.

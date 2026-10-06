@@ -31,7 +31,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (action 56 only, Q537) and the held-creature regeneration in Q152.
   Evidence: research/keeper-spell-*.md.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
-  PlayerCommands through a detached, serialisable observation (schema 18).
+  PlayerCommands through a detached, serialisable observation (schema 19).
   The proactive task machine (tasks 0–7) digs, expands, builds rooms, manages
   gold and imps, and crosses water or lava with bridges. Every message type its
   walk reads is produced where ours has the event and consumed (ADR-0353): room

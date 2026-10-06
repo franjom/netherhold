@@ -21,7 +21,7 @@ question: >
   attack her heart?
 map: campaign:level11A
 seed: 12345
-duration_ticks: 200
+duration_ticks: 300
 viewing_player: 5
 computer_keepers: [5]
 setup:
@@ -59,10 +59,15 @@ expect:
       the bridge just laid, which is owned and not solid (0x00453B30).
   - event: tagged
     detail: "player=5 applied=1 rejected=0 span=(64,38)-(64,38)"
-    at_tick: 49
+    at_tick: 50
     because: >
       Past the lava the walker meets rock again and task 7 tags it: the tunnel continues toward
-      Morgana's heart.
+      Morgana's heart. A tick after the second span, because tick 49's allowance went on a slap
+      of an imp on a reinforce task (0x00502F00 asks 0x00478A20 for 5; computer-keeper-management.md section 8).
+      That tick decides the call's time: tagged at 49, Drako's imp 31 took the dig at once and
+      cleared (64,38) at 57, before Morgana's imp finished reinforcing it at 62, and the call went
+      up at 104; tagged at 50, imp 31 has taken another job, the tile becomes Morgana's wall, the
+      dig lasts to 245 and the call goes up at 247. Hence 300 ticks.
   - event: call_to_arms_raised
     detail: "tile=64,3"
     because: >

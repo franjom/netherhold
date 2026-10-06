@@ -29,12 +29,11 @@ public sealed class KeeperAI
     /// <summary>Ticks after tagging before every gold tag is removed (§5.9).</summary>
     public const int UntagGoldAfterTicks = 240;
 
-    /// <summary>
-    /// Temporary approximation, refuted by the binary audit: DK2 checks the shared
-    /// speed timer and activity accessor, not elapsed time since the last slap.
-    /// Replacement dependencies: docs/research/computer-keeper-management.md §8.
-    /// </summary>
-    public const int SlapCooldownTicks = 300;
+    /// <summary>The slap step asks <c>SpeedChangeTimer</c> (<c>+0x459</c>) to be zero. Ours runs it for
+    /// a speed effect (<c>0x0048CAD0</c>) but a slap does not start it, though DK2's sets it to
+    /// variable 19 x 100 = 400 when it is zero (hand-of-evil.md §4); so the time since the last slap
+    /// stands in for the slap's part (computer-keeper-management.md §8).</summary>
+    public const int SlapSpeedChangeTicks = 400;
 
     /// <summary>The gold seam is mined in an expanding square until this radius (§5.2, task 6).</summary>
     public const int MineMaxRadius = 6;
@@ -82,7 +81,7 @@ public sealed class KeeperAI
             return commands;
         if (view.Heart is not TilePos heart) return commands;
 
-        BuildArea area = _area ?? BuildArea.WholeMap(view.Width, view.Height);
+        BuildArea area = _area ?? RecordArea(_p, view);
         if (!_directionsFixed)
         {
             (State.DefendDirection, State.OpenDirection) = KeeperDirections.AtCreation(heart, view.Width, view.Height);
@@ -187,17 +186,28 @@ public sealed class KeeperAI
         budget--;
     }
 
+    /// <summary><c>MaxBuildArea</c> (keeper <c>+0x12</c>), which the PLAYERS record unpacker loads
+    /// from block <c>0x92</c> and the personality setter sets to the whole map (KEEPER_AI.md §2.3).
+    /// Level 17's Harkan has (1,1)-(40,64), which refuses the neutral Portals at (53,6) and (16,70)
+    /// (Q546). Deviates: a record with no rectangle gets the whole map where DK2 would store zeros;
+    /// none of the 121 shipped computer records has one.</summary>
+    private static BuildArea RecordArea(KeeperAIParameters p, KeeperView view) =>
+        p.MaxBuildAreaMaxX == 0 && p.MaxBuildAreaMaxY == 0
+            ? BuildArea.WholeMap(view.Width, view.Height)
+            : new BuildArea(p.MaxBuildAreaMinX, p.MaxBuildAreaMinY, p.MaxBuildAreaMaxX, p.MaxBuildAreaMaxY);
+
     private void Slap(KeeperView view, List<PlayerCommand> commands, ref int budget)
     {
         long now = view.Tick.Value;
         foreach (KeeperCreatureView c in view.Creatures)
         {
             if (budget <= 0) return;
-            if (c.OwnerPlayerId != PlayerId || c.Activity != CreatureActivity.Working) continue;
+            // 0x00502F00: the activity code, health above half, the speed timer, then 1 in 100.
+            if (c.OwnerPlayerId != PlayerId || c.ActivityCode != CreatureActivityRules.Slappable) continue;
             if (!c.CanSlap) continue;
             CreatureDef def = view.Database.CreatureById(c.CreatureTypeId);
             if (c.Health * 2 <= CreatureLevelRules.MaxHealth(view.Database, def, c.Level)) continue;
-            if (c.LastSlapTick != 0 && now - c.LastSlapTick < SlapCooldownTicks) continue;
+            if (c.SpeedChanging || (c.LastSlapTick != 0 && now - c.LastSlapTick < SlapSpeedChangeTicks)) continue;
             if (_rng.NextInt(100) >= 1) continue;
             commands.Add(new SlapCreatureCommand(PlayerId, c.Id));
             budget--;
