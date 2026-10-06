@@ -150,8 +150,8 @@ busy test, `0x00477BDA`) until the defection.
 `RebelActive` is cleared by state 89's handler `0x004778E0` (`0x0047792A`, right after the Call
 to Arms clear, skipped for a dying creature), by category 26's leave hook and by the
 constructor; a sweep of all 498 listing sites on `+0x3E3`–`+0x3E6` and a raw byte scan of every
-block found no other writer (2026-10-02). Its readers include these five (`BitReaders` and
-`InsGrep` on `+0x3E6` bit 3, 2026-10-04); the door contact is built (ADR-0318):
+block found no other writer (2026-10-02). Its readers include these five (`BitReaders.py` and
+`InsGrep.py` on `+0x3E6` bit 3, 2026-10-04); the door contact is built (ADR-0318):
 
 | Site | What it does with the bit |
 |---|---|
