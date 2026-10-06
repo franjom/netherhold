@@ -28,10 +28,8 @@ public sealed class ImpSupplySystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        foreach (PlayerCommand command in context.Input.All)
-        {
-            if (command is CreateImpCommand create) Buy(context, create.PlayerId, create.At);
-        }
+        foreach (CreateImpCommand create in context.Commands<CreateImpCommand>())
+            Buy(context, create.PlayerId, create.At);
 
         TopUp(context);
     }

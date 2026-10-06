@@ -17,9 +17,8 @@ public sealed class SpecialSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        foreach (PlayerCommand input in context.Input.All)
+        foreach (ActivateSpecialCommand command in context.Commands<ActivateSpecialCommand>())
         {
-            if (input is not ActivateSpecialCommand command) continue;
             ObjectState? item = context.World.ObjectById(command.ObjectId);
             if (item is null) continue;
             ObjectDef? definition = context.Database.ObjectById(item.ObjectTypeId);

@@ -29,11 +29,8 @@ public sealed class RoomBuildSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        foreach (PlayerCommand command in context.Input.All)
-        {
-            if (command is not BuildRoomCommand build) continue;
+        foreach (BuildRoomCommand build in context.Commands<BuildRoomCommand>())
             Apply(context, build);
-        }
     }
 
     private static void Apply(SimulationContext context, BuildRoomCommand command)

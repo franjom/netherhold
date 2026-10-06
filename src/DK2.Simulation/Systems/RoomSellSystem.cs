@@ -29,11 +29,8 @@ public sealed class RoomSellSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        foreach (PlayerCommand command in context.Input.All)
-        {
-            if (command is not SellRoomCommand sell) continue;
+        foreach (SellRoomCommand sell in context.Commands<SellRoomCommand>())
             Apply(context, sell);
-        }
     }
 
     private static void Apply(SimulationContext context, SellRoomCommand command)

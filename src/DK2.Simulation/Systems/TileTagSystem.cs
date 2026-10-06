@@ -30,13 +30,8 @@ public sealed class TileTagSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        foreach (PlayerCommand command in context.Input.All)
+        foreach (TagTilesCommand tag in context.Commands<TagTilesCommand>())
         {
-            if (command is not TagTilesCommand tag)
-            {
-                continue;
-            }
-
             Apply(context, tag);
         }
     }

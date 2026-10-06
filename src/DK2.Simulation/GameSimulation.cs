@@ -104,9 +104,8 @@ public sealed class GameSimulation
 
         // Close the previous turn's observation window before this turn's producers.
         // This preserves zero-timeout messages for an external keeper (ADR-0245).
-        foreach (PlayerCommand command in input.All)
-            if (command is Commands.AcknowledgePlayerMessageCommand ack)
-                World.Messages.Acknowledge(ack.PlayerId, ack.MessageId);
+        foreach (Commands.AcknowledgePlayerMessageCommand ack in _context.Commands<Commands.AcknowledgePlayerMessageCommand>())
+            World.Messages.Acknowledge(ack.PlayerId, ack.MessageId);
         World.Messages.Sweep(World, Database);
 
         // DK2's first game turn is 1; our next-tick clock starts at 0.

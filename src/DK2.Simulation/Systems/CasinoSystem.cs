@@ -45,9 +45,8 @@ public sealed class CasinoSystem : ISimulationSystem
     /// A tile with no lever of theirs does nothing.</summary>
     private static void PullLevers(SimulationContext context)
     {
-        foreach (PlayerCommand command in context.Input.All)
+        foreach (PullCasinoLeverCommand request in context.Commands<PullCasinoLeverCommand>())
         {
-            if (command is not PullCasinoLeverCommand request) continue;
             WorldState world = context.World;
             if (!world.Contains(request.Tile)) continue;
             int tile = (request.Tile.Y * world.Width) + request.Tile.X;

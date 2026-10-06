@@ -36,9 +36,8 @@ public sealed class CallToArmsSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        foreach (PlayerCommand command in context.Input.All)
+        foreach (RemoveCallToArmsCommand remove in context.Commands<RemoveCallToArmsCommand>())
         {
-            if (command is not RemoveCallToArmsCommand remove) continue;
             if (!CallToArmsRules.Remove(context, SystemName, remove.PlayerId))
                 context.Emit(SystemName, "refused", $"player={remove.PlayerId} command=remove_call_to_arms");
         }

@@ -44,7 +44,23 @@ public sealed class SimulationContext
     public GameTick Tick { get; internal set; }
 
     /// <summary>Commands issued for the tick currently being executed.</summary>
-    public InputFrame Input { get; internal set; }
+    public InputFrame Input
+    {
+        get => _input;
+        internal set
+        {
+            _input = value;
+            _commands.Reset(value.All);
+        }
+    }
+
+    private InputFrame _input;
+    private readonly CommandIndex _commands = new();
+
+    /// <summary>The tick's commands of type <typeparamref name="T"/>, in input order. A system that
+    /// handles one command type reads this; one whose types must keep their order among each other
+    /// (the hand, keeper spells, blueprints, possession) reads <see cref="Input"/>.</summary>
+    public IReadOnlyList<T> Commands<T>() where T : PlayerCommand => _commands.Of<T>();
 
     public void Emit(string system, string kind, string detail) =>
         Events.Emit(new SimEvent(Tick, system, kind, detail));

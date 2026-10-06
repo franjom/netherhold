@@ -45,9 +45,8 @@ public sealed class DoorSystem : ISimulationSystem
     /// owner.</summary>
     private static void Lock(SimulationContext context)
     {
-        foreach (PlayerCommand command in context.Input.All)
+        foreach (LockDoorCommand request in context.Commands<LockDoorCommand>())
         {
-            if (command is not LockDoorCommand request) continue;
             foreach (DoorState door in context.World.Doors)
             {
                 if (door.X != request.Tile.X || door.Y != request.Tile.Y) continue;

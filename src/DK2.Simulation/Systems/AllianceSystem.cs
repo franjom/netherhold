@@ -21,9 +21,8 @@ public sealed class AllianceSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        foreach (PlayerCommand command in context.Input.All)
+        foreach (SetAllianceCommand alliance in context.Commands<SetAllianceCommand>())
         {
-            if (command is not SetAllianceCommand alliance) continue;
             if (!Known(context, alliance.PlayerId) || !Known(context, alliance.OtherPlayerId)) continue;
             if (alliance.PlayerId >= 8 || alliance.OtherPlayerId >= 8) continue;
             context.World.SetAllied(alliance.PlayerId, alliance.OtherPlayerId.Value, alliance.Allied);
