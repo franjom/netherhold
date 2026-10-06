@@ -567,4 +567,129 @@ public class ImpFetchesGoldTests
         SimEvent taken = Assert.Single(run.Of("fetch_taken"));
         Assert.Contains("(5,2)", taken.Detail);
     }
+
+    /// <summary>
+    /// <b>The scan's own tile is not filtered</b> (<c>0x00468D10</c> calls the chain on its centre
+    /// at <c>0x00468DA0</c> with no <c>+0xB</c> test, ADR-0378): an imp standing in water on its
+    /// keeper's tile takes the pile under it through Tier B. The filter never admits water.
+    /// </summary>
+    [Fact]
+    public void TierBOffersThePileUnderfoot_EvenInWater()
+    {
+        Run run = Start(new TilePos(2, 2));
+        TerrainDef waterDef = run.Db.TerrainById(Dk2TerrainFixture.Water);
+        ref TileState water = ref run.World.Tile(2, 2);
+        water.TerrainId = waterDef.TerrainId;
+        water.Health = waterDef.StartingHealth;
+        WallsAlreadyReinforced(run);
+        // Cell 0, a third of a tile off the centre on both axes: out of reach in passing.
+        FloorGold.PutDown(run.World, run.Db, Index(run.World, new TilePos(2, 2)), 0, 273);
+
+        run.Ticks(3);
+
+        SimEvent taken = Assert.Single(run.Of("fetch_taken"));
+        Assert.Contains("(2,2)", taken.Detail);
+    }
+
+    /// <summary>
+    /// <b>State 27 stops at the first pile that fills the hands</b> (<c>0x00466850</c>, ADR-0381):
+    /// the first pile leaves the imp at 1,300, past the hands test's 1,060 (1,400 less variable
+    /// 74), so the second pile on the tile stays whole. Ours took 100 more from it.
+    /// </summary>
+    [Fact]
+    public void TheTakeStopsAtThePileThatFillsTheHands()
+    {
+        Run run = Start(new TilePos(2, 2));
+        WallsAlreadyReinforced(run);
+        run.Imp.GoldHeld = 0;
+        // Cells 0 and 2, row 0: out of reach in passing from the tile's centre.
+        FloorGold.PutDown(run.World, run.Db, Index(run.World, new TilePos(3, 2)), 0, 1300);
+        ObjectState second = FloorGold.PutDown(run.World, run.Db, Index(run.World, new TilePos(3, 2)), 2, 300)!;
+
+        run.Ticks(SimulationTiming.TicksFromSeconds(3));
+
+        Assert.Single(run.Of("gold_picked_up"));
+        Assert.Equal(1300, run.Imp.GoldHeld);
+        Assert.Equal(300, second.GoldHeld);
+    }
+
+    /// <summary>
+    /// <b>The walk-over pick-up reads only the imp's own tile</b> (<c>0x0048904E</c>, ADR-0377):
+    /// a pile just over the tile edge, inside the third-of-a-tile box, is not taken in passing.
+    /// </summary>
+    [Fact]
+    public void ThePickUpInPassingIgnoresAPileOnTheNextTile()
+    {
+        Run run = Start(new TilePos(2, 2));
+        WallsAlreadyReinforced(run);
+        run.Imp.GoldHeld = 0;
+        run.Imp.PosX = (2 * 4096) + 4000;
+        // Cell 3 of (3,2): its centre is 778 east of the imp and level with it.
+        FloorGold.PutDown(run.World, run.Db, Index(run.World, new TilePos(3, 2)), 3, 200);
+
+        run.Tick();
+
+        Assert.Empty(run.Of("gold_picked_up_in_passing"));
+    }
+
+    /// <summary>
+    /// <b>A free side the imp cannot reach deletes the wall's task</b> (<c>0x0046AEA0</c>,
+    /// <c>0x00508040</c>; state 22 then finds it gone, <c>0x004663C4</c>; ADR-0379): the second
+    /// imp, farther than the holder of the wall's west side, tries the east side, a pocket of the
+    /// keeper's floor it has no way to, and the holder loses the task. Ours passed it over. Ours
+    /// drops the holder at once; DK2 at the holder's next check (ADR-0379).
+    /// </summary>
+    [Fact]
+    public void AnUnreachableFreeSideTakesTheWallsTaskFromItsHolder_AtOnceWhereDK2WaitsForItsCheck()
+    {
+        Run run = Start(new TilePos(3, 2));
+        // The pocket (5,2) east of the wall at (4,2), walled in by reinforced rock.
+        ref TileState pocket = ref run.World.Tile(5, 2);
+        pocket.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        pocket.Health = run.Db.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
+        pocket.OwnerPlayerId = Keeper;
+        WallsAlreadyReinforced(run);
+        ref TileState wall = ref run.World.Tile(4, 2);
+        wall.TerrainId = Dk2TerrainFixture.Rock;
+        wall.Health = run.Db.TerrainById(Dk2TerrainFixture.Rock).StartingHealth;
+        wall.OwnerPlayerId = PlayerIds.Unowned;
+
+        run.Ticks(4);
+        CreatureState holder = run.Imp;
+        Assert.Contains(run.Of("job_taken"), e => e.Detail.Contains("imp=" + holder.Id) && e.Detail.Contains("Reinforce"));
+        run.World.SpawnCreature(run.Db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 2));
+
+        run.Ticks(4);
+
+        Assert.Contains(run.Of("task_forgotten"), e => e.Detail.Contains("imp=" + holder.Id));
+    }
+
+    /// <summary>
+    /// <b>A solid side is not a side</b> (<c>0x0046AEA0</c>, ADR-0379): the keeper's own
+    /// reinforced wall east of the wall being reinforced is never walked to, so it deletes nothing
+    /// and the holder keeps its task.
+    /// </summary>
+    [Fact]
+    public void AnOwnedWallBesideIsNotASide_AndTakesNothingFromTheHolder()
+    {
+        Run run = Start(new TilePos(3, 2));
+        WallsAlreadyReinforced(run);
+        ref TileState east = ref run.World.Tile(5, 2);
+        TerrainDef reinforced = run.Db.TerrainById(Dk2TerrainFixture.ReinforcedWall);
+        east.TerrainId = reinforced.TerrainId;
+        east.Health = reinforced.MaxHealth;
+        east.OwnerPlayerId = Keeper;
+        ref TileState wall = ref run.World.Tile(4, 2);
+        wall.TerrainId = Dk2TerrainFixture.Rock;
+        wall.Health = run.Db.TerrainById(Dk2TerrainFixture.Rock).StartingHealth;
+        wall.OwnerPlayerId = PlayerIds.Unowned;
+
+        run.Ticks(4);
+        Assert.Contains(run.Of("job_taken"), e => e.Detail.Contains("imp=" + run.Imp.Id) && e.Detail.Contains("Reinforce"));
+        run.World.SpawnCreature(run.Db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 2));
+
+        run.Ticks(4);
+
+        Assert.Empty(run.Of("task_forgotten"));
+    }
 }

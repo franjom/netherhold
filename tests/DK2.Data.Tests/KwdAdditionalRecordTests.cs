@@ -111,6 +111,16 @@ public class KwdAdditionalRecordTests
         TriggerRecord action26 = Trigger(214, 26, [7, 1, 2, 3, 4, 5, 6, 7]);
         Assert.Equal(7, action26.Parameters["ActionPointId"]);
         Assert.DoesNotContain("TargetId", action26.Parameters.Keys);
+
+        // Q227: the roles DKII.EXE gives the fields once read as Unknown_* (ADR-0382).
+        Assert.Equal(5, Trigger(213, 23, [1, 2, 5, 3, 4, 0, 0, 0]).Parameters["PlayerSlot"]);
+        TriggerRecord action24 = Trigger(214, 24, [9, 0, 0, 0, 1, 0xff, 0xff, 0xff]);
+        Assert.Equal(1, action24.Parameters["SpeakOnly"]);
+        Assert.Equal(9, action24.Parameters["SpeechId"]);
+        Assert.Equal(1, Trigger(214, 35, [1, 2, 3, 4, 5, 6, 7, 8]).Parameters["DeathKind"]);
+        Assert.Equal(3, Trigger(214, 39, [3, 4, 0, 0, 1, 0, 2, 0]).Parameters["DoorId"]);
+        Assert.Equal(6, Trigger(214, 40, [6, 4, 0, 0, 1, 0, 2, 0]).Parameters["TrapId"]);
+        Assert.Equal(0x0102, Trigger(214, 41, [2, 1, 0, 0, 1, 0, 2, 0]).Parameters["EffectId"]);
     }
 
     [InstallFact]

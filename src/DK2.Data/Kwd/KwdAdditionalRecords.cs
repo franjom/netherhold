@@ -256,7 +256,8 @@ public static partial class KwdTriggers
         else if (type is 3 or 4 or 6 or 8 or 10 or 12 or 13 or 16 or 33 or 43 or 46 or 56 or 57 or 58 or 59 or 60 or 61 or 65 or 72) Unread();
         else if (type is 19 or 20 or 21) { B("Comparison", 0); B("CreatureId", 1); W("Unreached_0002", 2); S("Value", 4); }
         else if (type == 22) { B("Comparison", 0); W("Unreached_0001", 1); B("PlayerId", 3); S("Value", 4); }
-        else if (type == 23) { B("Comparison", 0); B("Unreached_0001", 1); B("Unknown_0002", 2); B("Unreached_0003", 3); S("Value", 4); }
+        // Condition 23's byte 2: 0 counts the total killed, n player n's slot (0x004C7DF0, Q227).
+        else if (type == 23) { B("Comparison", 0); B("Unreached_0001", 1); B("PlayerSlot", 2); B("Unreached_0003", 3); S("Value", 4); }
         else if (type is 24 or 25 or 26 or 68) { B("Comparison", 0); B("RoomId", 1); W("Unreached_0002", 2); S("Value", 4); }
         else if (type is 27 or 28) { B("Comparison", 0); B("TargetId", 1); B("Flag", 2); B("Unreached_0003", 3); S("Value", 4); }
         else if (type == 29) { B("Unreached_0000", 0); B("TargetId", 1); W("Unreached_0002", 2); S("Unreached_0004", 4); }
@@ -295,6 +296,9 @@ public static partial class KwdTriggers
         void S16(string name, int at) => p[name] = new ParameterField(at, 2, true);
         void Unread() { D("Unreached_0000", 0); D("Unreached_0004", 4); }
 
+        // Q227 (trigger-action-arms.md): action 24 reads only the low byte of its second dword
+        // (0x004C8688; 0 speaks and posts the message record, non-zero only speaks); 35's byte is
+        // 0 vanish, 1 death fall; 39 and 40 name a door and a trap type; 41 an effect id.
         if (type == 22) { B("TerrainId", 0); B("PlayerId", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
         else if (type == 32) { D("Unreached_0000", 0); W("PosX", 4); W("PosY", 6); }
         else if (type == 49) { B("Unreached_0000", 0); B("PlayerId", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
@@ -309,7 +313,7 @@ public static partial class KwdTriggers
         else if (type == 26) { B("ActionPointId", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
         else if (type is 42 or 47) { B("TargetId", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
         else if (type == 4) { W("ObjectiveId", 0); W("Unreached_0002", 2); B("ActionPointId", 4); B("Unreached_0005", 5); W("Unreached_0006", 6); }
-        else if (type == 24) { D("SpeechId", 0); D("Unknown_0004", 4); }
+        else if (type == 24) { D("SpeechId", 0); B("SpeakOnly", 4); B("Unreached_0005", 5); W("Unreached_0006", 6); }
         else if (type == 25) Unread();
         else if (type == 30) { D("Value", 0); D("Unreached_0004", 4); }
         else if (type == 34) Unread();
@@ -326,9 +330,9 @@ public static partial class KwdTriggers
         else if (type is 3 or 5) Unread();
         else if (type == 2) { B("ObjectId", 0); B("PlayerId", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
         else if (type is 10 or 11 or 20 or 21 or 29 or 43) Unread();
-        else if (type == 35) { B("Unknown_0000", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
-        else if (type is 39 or 40) { B("Unknown_0000", 0); B("PlayerId", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
-        else if (type == 41) { W("Unknown_0000", 0); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
+        else if (type == 35) { B("DeathKind", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
+        else if (type is 39 or 40) { B(type == 39 ? "DoorId" : "TrapId", 0); B("PlayerId", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
+        else if (type == 41) { W("EffectId", 0); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
         else { D("Unknown_0000", 0); D("Unknown_0004", 4); }
         return p;
     }

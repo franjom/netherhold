@@ -324,6 +324,25 @@ public class CrateTests
         Assert.DoesNotContain(world.Objects, o => o.Id == crate.Id);
     }
 
+    /// <summary>The objects handler asks a crate's blueprint branch (<c>0x00468910</c>) before the
+    /// latch it shares with books (<c>0x0046B9C0</c>, ADR-0380): a book with no Library, earlier
+    /// in the tile's list, does not hide the trap crate after it from its blueprint.</summary>
+    [Fact]
+    public void ABookWithNoLibraryDoesNotHideACrateFromItsBlueprint()
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db);
+        ThingProjection.Place(world, db, [Trap(new TilePos(11, 2))]);
+        world.SpawnObject(db, Dk2TerrainFixture.SpellBookObjectId, PlayerIds.Unowned, (2 * world.Width) + 5);
+        Crate(db, world, TrapCrate, new TilePos(5, 2), PlayerIds.Unowned);
+        world.SpawnCreature(db, ImpId, Keeper, ImpAt);
+        var sink = new ListEventSink();
+
+        Simulation(db, world, sink).Run(Second * 2);
+
+        Assert.Contains(sink.Events, e => e.Kind == "crate_claimed" && e.Detail.Contains("how=loose"));
+    }
+
     [Fact]
     public void ALooseCrateNoBlueprintNeedsIsCarriedIntoTheWorkshop_AndJoinsIt()
     {

@@ -192,18 +192,20 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         // answer and judged by another.
         var grid = new WorldPathGrid(context.Database, context.World, definition);
 
+        // The worker arm of the gold block (0x0048904E) tries the claim on the way (0x00464170)
+        // before its pick-up: a worker-job state, or a walk resuming one (0x00478050 == 3), with
+        // no object or creature carried; a wander walk resumes idle and never claims. Level 1
+        // seeds 3, 4 and 5 open their first room this way from a walk to a dig (ADR-0303, ADR-0377).
+        bool claimed = CreatureStateMachine.HasState(creature)
+            && NeedRules.ResolvedCategory(creature) == CreatureStateCategory.WorkerJob
+            && creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0
+            && TryClaimOnTheWay(context, creature, grid);
         PickUpGoldInPassing(context, creature, definition);
+        if (claimed) return;
         if (UpdateWander(context, creature, definition)) return;
-
-        // A job walk or a fetch claims a just-dug tile it steps onto too, not only a deposit walk:
-        // Level 1 seeds 3, 4 and 5 open their first room this way from a walk to a dig (ADR-0303).
-        if (creature.Activity is CreatureActivity.MovingToJob or CreatureActivity.FetchingGold
-            && StateShadow.IsTravelling(creature)
-            && TryClaimOnTheWay(context, creature, grid)) return;
 
         if (creature.Activity == CreatureActivity.DeliveringGold)
         {
-            if (TryClaimOnTheWay(context, creature, grid)) return;
             UpdateDelivering(context, creature, grid);
             return;
         }
@@ -331,9 +333,10 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// <summary>
     /// The worker arm of DK2's walk-over pick-up (<c>0x0048904E</c>), which the creature update
     /// runs every tick before the state handler, so state 10 then sees the gold in the hands. A
-    /// keeper's worker below the hands test's mark takes the first neutral pile whose centre is
-    /// within <see cref="PassingReach"/>, as much as it lacks against the level's full maximum
-    /// (imp-hands-full.md, gold-on-the-floor.md §12, ADR-0293).
+    /// keeper's worker below the hands test's mark takes the first neutral pile on its own tile
+    /// whose centre is within <see cref="PassingReach"/>, as much as it lacks against the level's
+    /// full maximum (imp-hands-full.md, gold-on-the-floor.md §12, ADR-0293, ADR-0377). DK2 walks
+    /// the tile's thing list; ours its objects in world order.
     /// </summary>
     private static void PickUpGoldInPassing(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
@@ -342,10 +345,11 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             || creature.GoldHeld >= FullAt(context, creature, definition))
             return;
         WorldState world = context.World;
+        int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         foreach (ObjectState pile in world.Objects)
         {
-            if (!FloorGold.IsPile(context.Database, pile) || pile.InHand || pile.CarriedByCreatureId >= 0
-                || pile.OwnerPlayerId != PlayerIds.Neutral || pile.TileIndex < 0)
+            if (pile.TileIndex != here || !FloorGold.IsPile(context.Database, pile) || pile.InHand
+                || pile.CarriedByCreatureId >= 0 || pile.OwnerPlayerId != PlayerIds.Neutral)
                 continue;
             (long px, long py) = PileCentre(world, pile);
             if (Math.Abs(px - creature.PosX) >= PassingReach || Math.Abs(py - creature.PosY) >= PassingReach) continue;
@@ -659,9 +663,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         }
 
         StateShadow.Arrive(context, SystemName, creature);
-        int room = CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level) - creature.GoldHeld;
-        int taken = TakeFromPilesOn(context, creature.TargetTileIndex, room);
-        creature.GoldHeld += taken;
+        int taken = TakeFromPilesOn(context, creature, definition, creature.TargetTileIndex);
 
         context.Emit(SystemName, "gold_picked_up",
             $"imp={creature.Id} player={creature.OwnerPlayerId} amount={taken} " +
@@ -686,26 +688,31 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Takes up to <paramref name="room"/> off the piles on one tile, oldest
-    /// first, and returns how much came off.
+    /// State 27's take (<c>0x00466850</c>): the neutral piles on one tile, each up to what the
+    /// hands lack against the level's full maximum, stopping after the first pile that leaves
+    /// them full by the hands test (<see cref="HandsFull"/>, the limit less variable 74), so the
+    /// rest stay. Adds to the purse and returns how much came off.
     ///
-    /// <para>Oldest first — spawn order, as everything else in this project
-    /// iterates, because it is reproducible. Ours: a creature's death leaves up
-    /// to three piles on one tile (ADR-0055), so which one an imp empties first
-    /// is a real question that nobody has watched.</para>
+    /// <para>Oldest first, spawn order, where DK2 walks the tile's thing list. Not built: DK2
+    /// takes only the piles strictly within <c>0x555</c> of the imp, which walks to the pile's
+    /// own point; ours walks to the tile centre, so the box would leave a corner pile out of
+    /// reach for good (ADR-0381).</para>
     /// </summary>
-    private static int TakeFromPilesOn(SimulationContext context, int tileIndex, int room)
+    private static int TakeFromPilesOn(SimulationContext context, CreatureState creature, CreatureDef definition, int tileIndex)
     {
-        if (room <= 0) return 0;
-
         var piles = new List<ObjectState>();
         FloorGold.PilesOn(context.World, context.Database, tileIndex, piles);
 
         int taken = 0;
         foreach (ObjectState pile in piles)
         {
-            if (taken >= room) break;
-            taken += FloorGold.Take(context.World, context.Database, pile, room - taken);
+            if (pile.OwnerPlayerId != PlayerIds.Neutral) continue;
+            int lacks = CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level) - creature.GoldHeld;
+            if (lacks <= 0) break;
+            int took = FloorGold.Take(context.World, context.Database, pile, lacks);
+            creature.GoldHeld += took;
+            taken += took;
+            if (HandsFull(context, creature, definition)) break;
         }
 
         return taken;
@@ -1010,7 +1017,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             {
                 TilePos tile = rings.Current;
                 if (Math.Abs(tile.X - at.X) + Math.Abs(tile.Y - at.Y) > DropScanTiles) return false;
-                if (!RingScanVisits(context, world, tile)) continue;
+                if (!RingScanVisits(context, world, tile, at)) continue;
                 _only = tile;
                 if (TryExcavationAt(context, creature, grid, tile, player)) return true;
                 if (TryClaimAt(context, creature, grid, tile)) return true;
@@ -1084,7 +1091,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         {
             TilePos tile = rings.Current;
             if (!InScanRange(tile)) continue;
-            if (tile != creature.Tile && !RingScanVisits(context, world, tile)) continue;
+            if (!RingScanVisits(context, world, tile, creature.Tile)) continue;
             if (!CanFetchFrom(context, tile, player, creature.Id)) continue;
             if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route)) continue;
             CommitFetch(context, creature, tile);
@@ -1138,7 +1145,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         while (rings.MoveNext())
         {
             TilePos tile = rings.Current;
-            if (!RingScanVisits(context, world, tile)) continue;
+            if (!RingScanVisits(context, world, tile, at)) continue;
             if (TryReinforceAt(context, creature, grid, tile)) return true;
             if (handsFree && CanFetchFrom(context, tile, player, creature.Id)
                 && _pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route))
@@ -1153,8 +1160,10 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// <summary>
     /// The reinforce handler (<c>0x0046aea0</c>) on one wall: its four sides from the one
     /// <see cref="MiningSlots.StartSide"/> gives for the worker, each a stand of the keeper's own
-    /// floor; the first whose face is free, or held by a farther worker, and which the worker can
-    /// reach is taken. imp-task-stealing.md §4.
+    /// floor, not solid (an owned reinforced wall beside it is not a side); the first whose face is free, or held by a farther worker, and which the worker can
+    /// reach is taken. A free side it cannot reach deletes the wall's task (<c>0x00508040</c>),
+    /// whoever else holds a side, and the next side is tried (<see cref="ForgetReinforceTask"/>).
+    /// imp-task-stealing.md §4.
     /// </summary>
     private bool TryReinforceAt(SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos wall)
     {
@@ -1164,11 +1173,17 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         for (int turn = 0; turn < 4; turn++, side = (side + step) & 3)
         {
             var stand = new TilePos(wall.X + SideDx[side], wall.Y + SideDy[side]);
-            if (!world.Contains(stand)) continue;
+            // A side counts only when it is not solid (and the keeper's, which TryJobOn tests).
+            if (!world.Contains(stand) || context.Database.TerrainById(world.Tile(stand).TerrainId).IsSolid) continue;
             if (!TryJobOn(context, grid, stand, wall, creature.OwnerPlayerId, JobPriority.Reinforce, creature.Id,
                           out int tileIndex, out TileWorkKind kind))
                 continue;
-            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == stand, _route)) continue;
+            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == stand, _route))
+            {
+                if (!ImpCrowding.FaceIsFull(world, context.Database, tileIndex, stand, creature.Id, false, kind))
+                    ForgetReinforceTask(context, tileIndex, creature.Id);
+                continue;
+            }
             CommitJob(context, creature, tileIndex, kind, JobPriority.Reinforce);
             return true;
         }
@@ -1176,13 +1191,36 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
+    /// The wall's kind-6 task deleted (<c>0x00508040</c>) after a walk to a free side failed
+    /// (<c>0x0046AEA0</c>): every other worker holding a side of it loses the task and goes to 10,
+    /// as state 22's check <c>0x00508070(+0x8A, 6)</c> at <c>0x004663C4</c> sends it once no
+    /// action, or action 0x15, is playing. Ours drops them at once; DK2 drops a reinforcer at its
+    /// next check, and a walker presumably on arrival (unread) (ADR-0379).
+    /// </summary>
+    private static void ForgetReinforceTask(SimulationContext context, int wallIndex, int askingCreatureId)
+    {
+        foreach (CreatureState other in context.World.Creatures)
+        {
+            if (other.Id == askingCreatureId || other.TargetTileIndex != wallIndex
+                || other.TargetWork != TileWorkKind.Reinforce)
+                continue;
+            context.Emit(SystemName, "task_forgotten",
+                $"imp={other.Id} by={askingCreatureId} {Describe(context.World, wallIndex)} {other.TargetWork}");
+            LoseTask(context, other);
+        }
+    }
+
+    /// <summary>
     /// The ring scan's tile filter (<c>0x00468d10</c>): tile byte <c>+0xB</c> bit <c>0x20</c>,
     /// recomputed by <c>0x004502d0</c>, is clear when the tile or one of its four neighbours is
     /// owned, the tile is not water or lava, and it or a neighbour is open floor. A set tile is
-    /// visited only when it carries a dig or mine mark (Q487).
+    /// visited only when it carries a dig or mine mark (Q487). The scan's own centre is not
+    /// filtered: <c>0x00468D10</c> calls the chain on it at <c>0x00468DA0</c> with no <c>+0xB</c>
+    /// test, which only the ring loops make (<c>0x00468E99</c>, <c>0x00468F71</c>; ADR-0378).
     /// </summary>
-    private static bool RingScanVisits(SimulationContext context, WorldState world, TilePos at)
+    private static bool RingScanVisits(SimulationContext context, WorldState world, TilePos at, TilePos centre)
     {
+        if (at == centre) return true;
         ref TileState tile = ref world.Tile(at);
         if (tile.IsTaggedByAnyone) return true;
         TerrainDef terrain = context.Database.TerrainById(tile.TerrainId);
@@ -1228,7 +1266,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         while (rings.MoveNext())
         {
             TilePos tile = rings.Current;
-            if (RingScanVisits(context, world, tile) && TryReinforceAt(context, creature, grid, tile)) return true;
+            if (RingScanVisits(context, world, tile, creature.Tile) && TryReinforceAt(context, creature, grid, tile)) return true;
         }
         return false;
     }
@@ -1369,6 +1407,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         context.Emit(SystemName, "task_stolen",
             $"imp={taker.Id} from={holder.Id} {Describe(context.World, tileIndex)} {holder.TargetWork} " +
             $"holder_state={holder.Dk2StateId}");
+        LoseTask(context, holder);
+    }
+
+    /// <summary>A worker whose task is gone: no job, back to 10 (<c>0x0048AD30(10)</c>).</summary>
+    private static void LoseTask(SimulationContext context, CreatureState holder)
+    {
         holder.ClearJob();
         if (CreatureStateMachine.HasState(holder))
         {
@@ -1999,7 +2043,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         while (rings.MoveNext())
         {
             TilePos tile = rings.Current;
-            if (RingScanVisits(context, world, tile) && TryObjectAt(context, creature, grid, tile)) return true;
+            if (RingScanVisits(context, world, tile, creature.Tile) && TryObjectAt(context, creature, grid, tile)) return true;
         }
         return false;
     }
@@ -2011,6 +2055,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// or a Workshop, a book (<c>0x08</c>) a Library; a failed search skips the rest of the tile's
     /// specials, or of its crates and books together. The tile's one task is taken from a holder
     /// strictly farther from the object, the holder kicked first (imp-task-objects-and-walks.md §1).
+    /// A crate's blueprint branch (<c>0x00468910</c>) runs before the shared latch is tested, and
+    /// its success returns at once: no route check, no task, no holder taken from (ADR-0380).
     /// Not built: a special already standing in its room is not skipped (ours keeps no room id).
     /// </summary>
     private bool TryObjectAt(SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos at)
@@ -2027,7 +2073,6 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             if (thing.TileIndex != index || !ObjectCarryRules.IsLoose(context.Database, thing)) continue;
             ObjectFlags flags = context.Database.ObjectById(thing.ObjectTypeId)!.Flags;
 
-            BlueprintRef? blueprint = null;
             if (flags.HasFlag(ObjectFlags.TypeSpecial))
             {
                 if (specialsFailed) continue;
@@ -2039,10 +2084,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             }
             else if (flags.HasFlag(ObjectFlags.TypeCrate) || flags.HasFlag(ObjectFlags.TypeSpellBook))
             {
+                if (flags.HasFlag(ObjectFlags.TypeCrate)
+                    && BlueprintForLooseCrate(context, creature, grid, thing) is { } blueprint
+                    && CommitCrateFetch(context, creature, blueprint, thing, "loose"))
+                    return true;
                 if (othersFailed) continue;
-                if (flags.HasFlag(ObjectFlags.TypeCrate))
-                    blueprint = BlueprintForLooseCrate(context, creature, grid, thing);
-                if (blueprint is null && ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing) < 0)
+                if (ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing) < 0)
                 {
                     othersFailed = true;
                     continue;
@@ -2065,7 +2112,6 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 holder.TargetObjectId = -1;
             }
 
-            if (blueprint is { } forCrate) return CommitCrateFetch(context, creature, forCrate, thing, "loose");
             CommitObjectFetch(context, creature, thing, at);
             return true;
         }

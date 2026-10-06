@@ -191,6 +191,31 @@ public class ImpClaimsWhatItDugTests
         Assert.Contains("gold=0", claim.Detail);
     }
 
+    /// <summary>
+    /// <b>The claim on the way runs before the walk-over pick-up</b> (<c>0x0048904E</c> calls
+    /// <c>0x00464170</c> before its gold test, ADR-0377): stepping onto (5,2) from the east, the
+    /// imp claims it and takes the pile at its east cell in the same tick, claim first.
+    /// </summary>
+    [Fact]
+    public void TheClaimOnTheWayComesBeforeThePickUpInPassing()
+    {
+        Run run = Start(new TilePos(7, 2));
+        for (int x = 2; x <= 4; x++) SetTile(run, x, 2, Dk2TerrainFixture.ClaimedPath, Keeper);
+        for (int x = 5; x <= 7; x++) SetTile(run, x, 2, Dk2TerrainFixture.DirtPath, PlayerIds.Unowned);
+        SetTile(run, 1, 2, Dk2TerrainFixture.Rock, PlayerIds.Unowned);
+        run.World.Tile(5, 2).FreshlyDug = true;
+        FloorGold.PutDown(run.World, run.Db, (2 * run.World.Width) + 5, 5, 100);
+        Mark(run, new TilePos(1, 2));
+
+        run.Ticks(SimulationTiming.TicksFromSeconds(4));
+
+        SimEvent claim = Assert.Single(run.Of("claimed_on_the_way"));
+        SimEvent pickUp = Assert.Single(run.Of("gold_picked_up_in_passing"));
+        Assert.Equal(claim.Tick, pickUp.Tick);
+        List<string> order = [.. run.Events.Events.Select(e => e.Kind).Where(k => k is "claimed_on_the_way" or "gold_picked_up_in_passing")];
+        Assert.Equal(["claimed_on_the_way", "gold_picked_up_in_passing"], order);
+    }
+
     private static void SetTile(Run run, int x, int y, byte terrain, byte owner)
     {
         ref TileState tile = ref run.World.Tile(x, y);

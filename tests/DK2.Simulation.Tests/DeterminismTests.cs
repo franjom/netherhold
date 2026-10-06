@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 188: the binary sweep's divergences, third batch (ADR-0370 to ADR-0375)
+        // HashVersion 189: the binary sweep's divergences, fourth batch, the imp's (ADR-0377 to ADR-0381)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xCAAC539B930BB381UL, sim.StateHash());
+        Assert.Equal(0xFE655F271EBBEB12UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
