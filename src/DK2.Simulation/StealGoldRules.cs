@@ -34,9 +34,9 @@ public static class StealGoldRules
     /// in, whose id byte (<c>+0x10FC</c>, written index + 1 by <c>0x004C1E20</c>) is 3.</summary>
     public const byte RaidedPlayer = PlayerIds.FirstKeeper;
 
-    private const int FeasibleOptions = 0x03;
-    private const int TreasuryOptions = 0x69;
-    private const int GoldOptions = 0x68;
+    private const Navigation.MoveOptions FeasibleOptions = (Navigation.MoveOptions)0x03;
+    private const Navigation.MoveOptions TreasuryOptions = (Navigation.MoveOptions)0x69;
+    private const Navigation.MoveOptions GoldOptions = (Navigation.MoveOptions)0x68;
 
     /// <summary>The arm (<c>0x00481FA0</c>): a job player other than the hero's own (the strongest when
     /// it names none, not written back), a Treasury of that player's (<c>0x004C61C0</c>) the hero
@@ -58,7 +58,7 @@ public static class StealGoldRules
         // 0x80 refused it and left Level 3's Thieves jobless behind the corridor doors (ADR-0324).
         if (!Combat.CombatTargetRules.CanReach(context.Navigation, creature, definition,
                 CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), int.MaxValue, scratch, FeasibleOptions)
-            && !((FeasibleOptions & 0x01) != 0 && TunnelRules.CouldTunnel(context, creature)))
+            && !(((int)FeasibleOptions & 0x01) != 0 && TunnelRules.CouldTunnel(context, creature)))
             return false;
         return StateShadow.TryMove(context, system, creature, ToTheTreasuryState);
     }
@@ -111,7 +111,7 @@ public static class StealGoldRules
     public static bool InTheTreasury(SimulationContext context, string system, CreatureState creature)
     {
         WorldState world = context.World;
-        byte player = HeroJobRules.IsHero(creature) ? creature.GoodJobPlayerId : creature.OwnerPlayerId;
+        PlayerId player = HeroJobRules.IsHero(creature) ? creature.GoodJobPlayerId : creature.OwnerPlayerId;
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         RoomInstance? room = RoomIndex.RoomAt(world, context.Database, here);
         if (room is null || room.OwnerPlayerId != player || room.Definition.RoomId != (byte)RoomTypeId.Treasury)
@@ -183,12 +183,12 @@ public static class StealGoldRules
 
     /// <summary><c>0x004C61C0(1, position, out, 0)</c> on one player: its Treasury whose first tile's
     /// centre is nearest, by DK2's truncated squares, the first on a tie.</summary>
-    public static RoomInstance? NearestTreasury(SimulationContext context, byte player, CreatureState from) =>
+    public static RoomInstance? NearestTreasury(SimulationContext context, PlayerId player, CreatureState from) =>
         NearestRoomOfType(context, player, RoomTypeId.Treasury, from);
 
     /// <summary><c>0x004C61C0(type, position, out, 0)</c> on one player: its room of that type whose
     /// first tile's centre is nearest, by DK2's truncated squares, the first on a tie.</summary>
-    public static RoomInstance? NearestRoomOfType(SimulationContext context, byte player, RoomTypeId type, CreatureState from)
+    public static RoomInstance? NearestRoomOfType(SimulationContext context, PlayerId player, RoomTypeId type, CreatureState from)
     {
         WorldState world = context.World;
         RoomInstance? best = null;
@@ -210,7 +210,7 @@ public static class StealGoldRules
     /// <summary><c>0x00471A70(room, resume, options)</c>: already in the room, 1 and then the resume
     /// state; otherwise a point in it (<c>0x004E4C10</c>) and state 7, or with option bit 0 a tunnel
     /// to the room's first tile (<c>0x00485AB0</c>).</summary>
-    internal static bool ToRoom(SimulationContext context, string system, CreatureState creature, RoomInstance room, int resume, int options)
+    internal static bool ToRoom(SimulationContext context, string system, CreatureState creature, RoomInstance room, int resume, Navigation.MoveOptions options)
     {
         WorldState world = context.World;
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
@@ -222,7 +222,7 @@ public static class StealGoldRules
         int w = world.Width;
         int first = SlabChain.FirstSlab(world, room);
         if (RoomPoint(context, creature, room) is not int tile)
-            return (options & 0x01) != 0 && TunnelRules.Fallback(context, system, creature, first % w, first / w, resume);
+            return ((int)options & 0x01) != 0 && TunnelRules.Fallback(context, system, creature, first % w, first / w, resume);
         return TunnelRules.RouteOrTunnel(context, system, creature, CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w),
             StateShadow.TravelToRoom, resume, options, first % w, first / w);
     }
@@ -259,7 +259,7 @@ public static class StealGoldRules
         return null;
     }
 
-    private static bool Walk(SimulationContext context, CreatureState creature, int tile, int resume, int options)
+    private static bool Walk(SimulationContext context, CreatureState creature, int tile, int resume, Navigation.MoveOptions options)
     {
         int w = context.World.Width;
         if (!context.Navigation.TryRouteTo(creature, CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), options))

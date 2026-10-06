@@ -67,7 +67,7 @@ public static class GraveyardRules
     /// resurrected must number fewer than the summed capacity of its Graveyards, each a Graveyard's
     /// floor slots (<c>Room_ComputeTotalCapacity</c>, type 14). Failing, it posts 42 for the
     /// Graveyard when the owner has one at all.</summary>
-    public static bool HasRoomForAnother(SimulationContext context, byte owner)
+    public static bool HasRoomForAnother(SimulationContext context, PlayerId owner)
     {
         WorldState world = context.World;
         int capacity = 0;

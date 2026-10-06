@@ -142,10 +142,10 @@ public static class WorldSnapshot
             w.Write(t.RoomRuined);
             w.Write(t.RoomHealthLost);
             w.Write(t.KeptManaGain);
-            w.Write(t.TaggedBy);
-            w.Write(t.DiscoveredBy);
+            w.Write(t.TaggedBy.Bits);
+            w.Write(t.DiscoveredBy.Bits);
             w.Write(t.FreshlyDug);
-            w.Write(t.DigTaskOutlivesWallFor);
+            w.Write(t.DigTaskOutlivesWallFor.Bits);
             w.Write(t.TagOrder);
         }
 
@@ -155,7 +155,7 @@ public static class WorldSnapshot
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState p = ref world.PlayerAtIndex(i);
-            w.Write(p.PlayerId);
+            w.Write(p.PlayerId.Value);
             w.Write(p.Mana);
             w.Write(p.OneShotManaSpent);
             w.Write(p.OneShotReaperUsed);
@@ -188,7 +188,7 @@ public static class WorldSnapshot
             w.Write(p.Availabilities.Count);
             foreach (AvailabilityState availability in p.Availabilities)
             {
-                w.Write(availability.Kind);
+                w.Write((ushort)availability.Kind);
                 w.Write(availability.TypeId);
                 w.Write(availability.Value);
                 w.Write(availability.Upgraded);
@@ -236,7 +236,7 @@ public static class WorldSnapshot
         {
             w.Write(o.TileIndex);
             w.Write((int)o.Kind);
-            w.Write(o.PlayerId);
+            w.Write(o.PlayerId.Value);
             w.Write(o.WorkerCreatureId);
         }
 
@@ -253,7 +253,7 @@ public static class WorldSnapshot
             w.Write(c.PosY);
             w.Write(c.PosZ);
             w.Write(c.Heading);
-            w.Write(c.RouteOptions);
+            w.Write((int)c.RouteOptions);
             w.Write(c.HeartTargetPlayerId);
             w.Write(c.DeathShotFired);
             w.Write(c.GoldHeld);
@@ -324,17 +324,17 @@ public static class WorldSnapshot
             w.Write(c.WorkSlot);
             w.Write(c.TimerTicks);
             w.Write(c.FightTargetId);
-            w.Write(c.AttackType);
+            w.Write((byte)c.AttackType);
             w.Write(c.AttackRangeSquared);
             w.Write(c.FightProcessCounter);
             w.Write(c.LastFightScanTileIndex);
-            w.Write(c.FightTargetKind);
+            w.Write((byte)c.FightTargetKind);
             w.Write(c.FightTargetPlayerId);
             w.Write(c.FightTargetTileIndex);
             w.Write(c.TimeLastUsedMelee);
             w.Write(c.SwingInProgress);
             w.Write(c.SwingStartTick);
-            w.Write(c.SwingTargetKind);
+            w.Write((byte)c.SwingTargetKind);
             w.Write(c.SwingTargetId);
             w.Write(c.SwingTargetPlayerId);
             w.Write(c.TempFear);
@@ -389,7 +389,7 @@ public static class WorldSnapshot
             w.Write(c.PortalEntranceTile);
             w.Write(c.AttackAbnormalTargets);
             w.Write(c.AttackingId);
-            w.Write(c.AttackingKind);
+            w.Write((byte)c.AttackingKind);
             w.Write(c.RebelActive);
             w.Write(c.ChainTileIndex);
             w.Write(c.ChainOrder);
@@ -478,7 +478,7 @@ public static class WorldSnapshot
             w.Write(s.Data1);
             w.Write(s.Data2);
             w.Write(s.CasterId);
-            w.Write(s.TargetKind);
+            w.Write((byte)s.TargetKind);
             w.Write(s.TargetId);
             w.Write(s.TargetPlayerId);
             w.Write(s.TargetTileIndex);
@@ -736,10 +736,10 @@ public static class WorldSnapshot
                 RoomRuined = r.ReadBoolean(),
                 RoomHealthLost = r.ReadInt32(),
                 KeptManaGain = r.ReadByte(),
-                TaggedBy = r.ReadUInt16(),
-                DiscoveredBy = r.ReadUInt16(),
+                TaggedBy = new PlayerMask(r.ReadUInt16()),
+                DiscoveredBy = new PlayerMask(r.ReadUInt16()),
                 FreshlyDug = r.ReadBoolean(),
-                DigTaskOutlivesWallFor = r.ReadUInt16(),
+                DigTaskOutlivesWallFor = new PlayerMask(r.ReadUInt16()),
                 TagOrder = r.ReadInt32(),
             };
         }
@@ -786,7 +786,7 @@ public static class WorldSnapshot
             int availabilityCount = r.ReadInt32();
             for (int a = 0; a < availabilityCount; a++)
                 players[i].Availabilities.Add(new AvailabilityState(
-                    r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt64(), r.ReadInt64()));
+                    (AvailabilityKind)r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt64(), r.ReadInt64()));
             int entranceCount = r.ReadInt32();
             for (int a = 0; a < entranceCount; a++)
                 players[i].EntranceInfo.Add(new EntranceInfoState(r.ReadByte(), r.ReadInt32(), r.ReadInt32()));
@@ -837,7 +837,7 @@ public static class WorldSnapshot
                 PosY = r.ReadInt32(),
                 PosZ = r.ReadInt32(),
                 Heading = r.ReadInt32(),
-                RouteOptions = r.ReadInt32(),
+                RouteOptions = (Navigation.MoveOptions)r.ReadInt32(),
                 HeartTargetPlayerId = r.ReadByte(),
                 DeathShotFired = r.ReadBoolean(),
                 GoldHeld = r.ReadInt32(),
@@ -910,17 +910,17 @@ public static class WorldSnapshot
                 WorkSlot = r.ReadByte(),
                 TimerTicks = r.ReadInt32(),
                 FightTargetId = r.ReadInt32(),
-                AttackType = r.ReadByte(),
+                AttackType = (Combat.CombatRules.AttackMode)r.ReadByte(),
                 AttackRangeSquared = r.ReadInt32(),
                 FightProcessCounter = r.ReadByte(),
                 LastFightScanTileIndex = r.ReadInt32(),
-                FightTargetKind = r.ReadByte(),
+                FightTargetKind = (Combat.FightTargetKind)r.ReadByte(),
                 FightTargetPlayerId = r.ReadByte(),
                 FightTargetTileIndex = r.ReadInt32(),
                 TimeLastUsedMelee = r.ReadInt64(),
                 SwingInProgress = r.ReadBoolean(),
                 SwingStartTick = r.ReadInt64(),
-                SwingTargetKind = r.ReadByte(),
+                SwingTargetKind = (Combat.FightTargetKind)r.ReadByte(),
                 SwingTargetId = r.ReadInt32(),
                 SwingTargetPlayerId = r.ReadByte(),
                 TempFear = r.ReadUInt16(),
@@ -978,7 +978,7 @@ public static class WorldSnapshot
                 PortalEntranceTile = r.ReadInt32(),
                 AttackAbnormalTargets = r.ReadBoolean(),
                 AttackingId = r.ReadInt32(),
-                AttackingKind = r.ReadByte(),
+                AttackingKind = (Combat.FightTargetKind)r.ReadByte(),
                 RebelActive = r.ReadBoolean(),
                 ChainTileIndex = r.ReadInt32(),
                 ChainOrder = r.ReadInt32(),
@@ -1078,7 +1078,7 @@ public static class WorldSnapshot
                 Data1 = r.ReadInt32(),
                 Data2 = r.ReadInt32(),
                 CasterId = r.ReadInt32(),
-                TargetKind = r.ReadByte(),
+                TargetKind = (Combat.FightTargetKind)r.ReadByte(),
                 TargetId = r.ReadInt32(),
                 TargetPlayerId = r.ReadByte(),
                 TargetTileIndex = r.ReadInt32(),

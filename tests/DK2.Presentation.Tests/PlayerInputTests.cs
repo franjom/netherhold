@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Presentation;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
@@ -41,13 +42,13 @@ public class PlayerInputTests
     public void BuildGestureKeepsTheRoomSelectedWhenTheDragStarted()
     {
         Translate(PlayerToolMode.BuildRoom, new TilePos(1, 2),
-            PointerButtonTransition.Pressed, roomId: 7);
+            PointerButtonTransition.Pressed, roomId: (RoomTypeId)7);
 
         BuildRoomCommand command = Assert.IsType<BuildRoomCommand>(Assert.Single(
             Translate(PlayerToolMode.BuildRoom, new TilePos(2, 3),
-                PointerButtonTransition.Released, roomId: 12).All));
+                PointerButtonTransition.Released, roomId: (RoomTypeId)12).All));
 
-        Assert.Equal((byte)7, command.RoomId);
+        Assert.Equal((RoomTypeId)7, command.RoomId);
         // DK2's build wave: from the corner released, a diagonal at a time (room-slab-chain.md §2).
         Assert.Equal(
             [new TilePos(2, 3), new TilePos(2, 2), new TilePos(1, 3), new TilePos(1, 2)],
@@ -150,7 +151,7 @@ public class PlayerInputTests
         TilePos? tile,
         PointerButtonTransition transition,
         PlayerInputSnapshot? snapshot = null,
-        byte roomId = 0) =>
+        RoomTypeId roomId = default) =>
         _translator.Translate(
             new PlayerIntent(Keeper, tool, tile, transition, roomId),
             snapshot ?? new PlayerInputSnapshot(false));

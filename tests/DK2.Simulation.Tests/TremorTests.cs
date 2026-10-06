@@ -39,7 +39,7 @@ public sealed class TremorTests
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper, (byte)(Keeper + 1)]);
         world.Player(Keeper).Mana = spell.ManaCost * 3;
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, spell.KeeperSpellId, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, spell.KeeperSpellId, 3));
         world.Tile(At).TerrainId = Dk2TerrainFixture.DirtPath;
         return (db, world);
     }
@@ -53,7 +53,7 @@ public sealed class TremorTests
     public void CastPaysOnceAndKeepsTheResearchedDuration_StronglyInferredFromBinary(bool upgraded)
     {
         var (db, world) = Setup();
-        world.SetUpgraded(Keeper, 5, 8, upgraded);
+        world.SetUpgraded(Keeper, AvailabilityKind.Spell, 8, upgraded);
         ISimulationSystem[] systems = [new KeeperSpellSystem(), new ShotSystem(), new TremorSystem()];
         var sim = new GameSimulation(db, world, 1, systems);
         sim.Run(3);

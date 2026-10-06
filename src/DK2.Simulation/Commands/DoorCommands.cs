@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Commands;
 
@@ -18,7 +19,7 @@ namespace DK2.Simulation.Commands;
 /// <para>Ours, not DK2's: naming the door by its tile. The original's interface hands the handler
 /// a thing id chosen by a click, and how a click becomes that id belongs to the UI layer.</para>
 /// </summary>
-public sealed record LockDoorCommand(byte PlayerId, TilePos Tile) : PlayerCommand(PlayerId)
+public sealed record LockDoorCommand(PlayerId PlayerId, TilePos Tile) : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
     {

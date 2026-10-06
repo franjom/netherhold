@@ -314,7 +314,7 @@ public sealed class HandSystem : ISimulationSystem
         // named is a torture device in the keeper's own Torture Chamber (ADR-0193).
         if (PrisonRules.IsImprisoned(creature))
         {
-            if (TortureRules.TryStrap(context.Hooks, creature, command.PlayerId, landingTileIndex))
+            if (TortureRules.TryStrap(context.Hooks, creature, command.PlayerId.Value, landingTileIndex))
             {
                 context.Emit(SystemName, "captive_strapped",
                     $"player={command.PlayerId} creature={creature.Id} " +
@@ -493,7 +493,7 @@ public sealed class HandSystem : ISimulationSystem
     }
 
     private static void EmitSacrifice(
-        SimulationContext context, byte playerId, string offeredKind, byte offeredTypeId,
+        SimulationContext context, PlayerId playerId, string offeredKind, byte offeredTypeId,
         TilePos tile, int held, SacrificeResult result)
     {
         string kind = result.SpeechId == TempleSacrificeRules.GoldSpeechId
@@ -522,7 +522,7 @@ public sealed class HandSystem : ISimulationSystem
         }
 
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-        SlapOutcome outcome = OutcomeOf(world, context.Database, definition, creature, command.PlayerId);
+        SlapOutcome outcome = OutcomeOf(world, context.Database, definition, creature, command.PlayerId.Value);
         if (outcome == SlapOutcome.Nothing)
         {
             context.Emit(SystemName, "slap_ignored",

@@ -51,7 +51,7 @@ public class KeeperBattleStepTests
         CreatureState enemy = Fighter(world, Hero, 12, 15);
         Engage(world, own, enemy);
         world.Player(Keeper).Mana = mana;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, CallToArmsRules.SpellId, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, CallToArmsRules.SpellId, 3);
         return (world, own, enemy);
     }
 
@@ -167,7 +167,7 @@ public class KeeperBattleStepTests
         Assert.Null(Call(waiting.Think(Db, world)));
         Assert.Equal(1, waiting.State.CannotAttackCounter);
 
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, CallToArmsRules.SpellId, 2);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, CallToArmsRules.SpellId, 2);
         KeeperAI unavailable = NewKeeper();
         unavailable.State.FightGoingOn = true;
         Assert.Null(Call(unavailable.Think(Db, world)));
@@ -193,7 +193,7 @@ public class KeeperBattleStepTests
         CreatureState marooned = Fighter(island, Keeper, 4, 4);
         Engage(island, marooned, Fighter(island, Hero, 5, 4));
         island.Player(Keeper).Mana = 20000;
-        island.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, CallToArmsRules.SpellId, 3);
+        island.SetAvailability(Keeper, AvailabilityKind.Spell, CallToArmsRules.SpellId, 3);
         AdvanceToTurn(island, 40);
         Assert.False(Assert.Single(new KeeperView(Db, island, Keeper).Creatures, c => c.Id == marooned.Id).HeartRouteExists);
         KeeperAI cutOff = NewKeeper();
@@ -338,7 +338,7 @@ public class KeeperBattleStepTests
         Fighter(world, Hero, 20, 20);
         Engage(world, own, near);
         world.Player(Keeper).Mana = 6001;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Thunderbolt, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Thunderbolt, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
         keeper.State.FightGoingOn = true;
 
@@ -360,7 +360,7 @@ public class KeeperBattleStepTests
         CreatureState enemy = Fighter(world, Hero, 12, 15);
         Engage(world, own, enemy);
         world.Player(Keeper).Mana = 6001;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Thunderbolt, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Thunderbolt, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
         keeper.State.FightGoingOn = true;
 
@@ -381,7 +381,7 @@ public class KeeperBattleStepTests
         CreatureState own = Fighter(world, Keeper, 13, 15);
         Engage(world, own, Fighter(world, Hero, 14, 15));
         world.Player(Keeper).Mana = 6001;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Thunderbolt, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Thunderbolt, 3);
         bool any = false;
         for (ulong seed = 1; seed <= 8; seed++)
         {
@@ -400,7 +400,7 @@ public class KeeperBattleStepTests
         CreatureState own = Fighter(world, Keeper, 13, 15);
         Engage(world, own, Fighter(world, Hero, 14, 15));
         world.Player(Keeper).Mana = 6001;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Thunderbolt, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Thunderbolt, 3);
         for (ulong seed = 1; seed <= 8; seed++)
         {
             KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4, useKeeperSpells: 4, seed: seed);
@@ -418,7 +418,7 @@ public class KeeperBattleStepTests
         Engage(world, own, Fighter(world, Hero, 14, 15));
         own.Health = 700; // below half of 1500, Heal's target, and above the retreat's 300 (ADR-0284)
         world.Player(Keeper).Mana = 20000;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Heal, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 4, preference: 4);
         keeper.State.FightGoingOn = true;
 
@@ -444,7 +444,7 @@ public class KeeperBattleStepTests
         Engage(world, own, Fighter(world, Hero, 11, 15));
         own.Health = 700;
         world.Player(Keeper).Mana = 20000;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Heal, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 4, preference: 4);
         keeper.State.FightGoingOn = true;
 
@@ -465,7 +465,7 @@ public class KeeperBattleStepTests
         captive.Health = 700;
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, Db), captive, PrisonRules.DecidingState));
         world.Player(Keeper).Mana = 20000;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Heal, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 4, preference: 4);
         keeper.State.FightGoingOn = true;
 
@@ -489,7 +489,7 @@ public class KeeperBattleStepTests
         Engage(world, own, Fighter(world, Hero, 14, 15));
         own.Health = 700;
         world.Player(Keeper).Mana = mana;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Heal, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 4, preference: 4);
         keeper.State.FightGoingOn = true;
 
@@ -509,7 +509,7 @@ public class KeeperBattleStepTests
         CreatureState own = Fighter(world, Keeper, 13, 15);
         Engage(world, own, Fighter(world, Hero, 14, 15));
         world.Player(Keeper).Mana = 20000;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Heal, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Heal, 3);
         var keeper = new KeeperAI(Keeper, KeeperWorld.Parameters(speed: 2) with
         {
             UseKeeperSpells = 0, AttackingVsDefensiveSpellPreference = 4, SpellPreference = 4,
@@ -538,7 +538,7 @@ public class KeeperBattleStepTests
         CreatureState near = Fighter(world, Hero, 14, 15);
         Engage(world, own, near);
         world.Player(Keeper).Mana = 50001;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Inferno, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Inferno, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
         keeper.State.FightGoingOn = true;
 
@@ -565,7 +565,7 @@ public class KeeperBattleStepTests
         CreatureState enemy = Fighter(world, Hero, 12, 15);
         Engage(world, own, enemy);
         world.Player(Keeper).Mana = 50001;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Inferno, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Inferno, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
         keeper.State.FightGoingOn = true;
 
@@ -584,7 +584,7 @@ public class KeeperBattleStepTests
         CreatureState near = Fighter(world, Hero, 14, 15);
         Engage(world, own, near);
         world.Player(Keeper).Mana = 10001;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Chicken, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Chicken, 3);
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
         keeper.State.FightGoingOn = true;
 
@@ -612,7 +612,7 @@ public class KeeperBattleStepTests
         CreatureState own = Fighter(world, Keeper, 13, 15);
         Engage(world, own, Fighter(world, Hero, 14, 15));
         world.Player(Keeper).Mana = 20000;
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(KeeperSpellRules.SpellAvailabilityKind, unsupportedSpell, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, unsupportedSpell, 3));
         KeeperAI keeper = SpellCaster(attackingVsDefensive: 0, preference: 4);
         keeper.State.FightGoingOn = true;
 
@@ -629,7 +629,7 @@ public class KeeperBattleStepTests
     public void TheObservationCarriesTheBattleFieldsAcrossAPacketAndTheCommandsRepeat()
     {
         (WorldState world, CreatureState own, CreatureState enemy) = Battle();
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Thunderbolt, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Thunderbolt, 3);
         AdvanceToTurn(world, 40);
         var captured = new KeeperView(Db, world, Keeper);
         KeeperView restored = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(captured), Db);
@@ -639,7 +639,7 @@ public class KeeperBattleStepTests
         Assert.Equal((Hero, true, true, false, true), (fighter.FightTargetOwner, fighter.CallToArmsSiteAllowed, fighter.HeartRouteExists, fighter.SpellTargetAllowed, fighter.HealTargetAllowed));
         KeeperCreatureView foe = Assert.Single(restored.Creatures, c => c.Id == enemy.Id);
         Assert.Equal(((byte)0, false, false, false, false), (foe.FightTargetOwner, foe.CallToArmsSiteAllowed, foe.HeartRouteExists, foe.SpellTargetAllowed, foe.HealTargetAllowed));
-        Assert.Equal(captured.AvailabilityRow(5, 3), restored.AvailabilityRow(5, 3));
+        Assert.Equal(captured.AvailabilityRow(AvailabilityKind.Spell, 3), restored.AvailabilityRow(AvailabilityKind.Spell, 3));
 
         Hash64 first = Hash64.Start(), second = Hash64.Start();
         KeeperAI a = NewKeeper(seed: 3), b = NewKeeper(seed: 3);
@@ -659,7 +659,7 @@ public class KeeperBattleStepTests
         Fighter(world, Keeper, 13, 15);
         Fighter(world, Hero, 12, 15); // one against one: nobody flees and the fight lasts
         world.Player(Keeper).Mana = 25000;
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, CallToArmsRules.SpellId, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, CallToArmsRules.SpellId, 3);
         var sim = new GameSimulation(Db, world, 1,
         [
             new HandSystem(), new RescuePrioritySystem(), new KeeperSpellSystem(), new CombatSystem(),

@@ -126,7 +126,7 @@ public static class GoldStore
     }
 
     /// <summary>Everything <paramref name="playerId"/> can spend.</summary>
-    public static int Total(WorldState world, byte playerId)
+    public static int Total(WorldState world, PlayerId playerId)
     {
         long total = 0;
         for (int i = 0; i < world.TileCount; i++)
@@ -144,7 +144,7 @@ public static class GoldStore
     /// the whole reason <see cref="RoomIndex.Build"/> exists alongside
     /// <see cref="RoomIndex.RoomAt"/>.
     /// </summary>
-    public static int SpaceFor(WorldState world, GameDatabase database, byte playerId)
+    public static int SpaceFor(WorldState world, GameDatabase database, PlayerId playerId)
     {
         long space = 0;
         foreach ((int index, RoomInstance room) in StoreTilesOf(world, database, playerId))
@@ -266,7 +266,7 @@ public static class GoldStore
     /// A shortfall is the caller's problem to report. Nothing here invents a
     /// destination for gold that has nowhere to go.
     /// </summary>
-    public static int Deposit(WorldState world, GameDatabase database, byte playerId, int amount)
+    public static int Deposit(WorldState world, GameDatabase database, PlayerId playerId, int amount)
     {
         if (amount <= 0) return 0;
 
@@ -295,7 +295,7 @@ public static class GoldStore
     /// order is <b>ours, not DK2's</b> — see the note on the class.
     /// </summary>
     private static List<(int Index, RoomInstance Room)> StoreTilesOf(
-        WorldState world, GameDatabase database, byte playerId)
+        WorldState world, GameDatabase database, PlayerId playerId)
     {
         var result = new List<(int, RoomInstance)>();
 
@@ -317,7 +317,7 @@ public static class GoldStore
     /// took, which may be less than asked (computer-keeper-management.md §13).</summary>
     /// <remarks>Deviates: rooms in <see cref="RoomIndex"/> order, not the player's room list
     /// (ADR-0327).</remarks>
-    public static int Spend(WorldState world, GameDatabase database, byte playerId, int amount)
+    public static int Spend(WorldState world, GameDatabase database, PlayerId playerId, int amount)
     {
         var stores = new List<RoomInstance>();
         int treasuries = 0;
@@ -365,7 +365,7 @@ public static class GoldStore
     /// All-or-nothing on purpose: a room that half charges for itself would be a
     /// worse bug than one that refuses to be built.
     /// </summary>
-    public static bool TryWithdraw(WorldState world, byte playerId, int amount)
+    public static bool TryWithdraw(WorldState world, PlayerId playerId, int amount)
     {
         if (amount <= 0) return true;
         if (Total(world, playerId) < amount) return false;

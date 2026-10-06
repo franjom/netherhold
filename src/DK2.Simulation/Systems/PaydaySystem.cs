@@ -68,7 +68,7 @@ public sealed class PaydaySystem : ISimulationSystem
             if (player.NextPaydayTick.Value == 0) continue;
             if (now < player.NextPaydayTick.Value) continue;
 
-            byte playerId = player.PlayerId;
+            PlayerId playerId = player.PlayerId;
             int billed = 0;
             int creatures = 0;
             int skipped = 0;

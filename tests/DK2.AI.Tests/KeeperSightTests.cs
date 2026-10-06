@@ -28,8 +28,8 @@ public class KeeperSightTests
         WorldState world = KeeperWorld.World(Db);
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
         foreach (RoomTypeId room in new[] { RoomTypeId.Treasury, RoomTypeId.Lair, RoomTypeId.Hatchery })
-            world.SetAvailability(Keeper, 1, (byte)room, 1);
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.SightOfEvil, (byte)sight);
+            world.SetAvailability(Keeper, AvailabilityKind.Room, (byte)room, 1);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.SightOfEvil, (byte)sight);
         return world;
     }
 
@@ -150,7 +150,7 @@ public class KeeperSightTests
     {
         int seed = SeedWhere(d => d.Roll < 2 && Math.Max(Math.Abs((d.X >> 12) - 15), Math.Abs((d.Y >> 12) - 15)) > 2);
         WorldState world = Idle();
-        world.SetAvailability(Keeper, 1, (byte)RoomTypeId.Treasury, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Room, (byte)RoomTypeId.Treasury, 3);
         world.Player(Keeper).Mana = mana;
         KeeperAI keeper = Keeper1(1, new SimRandom((ulong)seed));
 

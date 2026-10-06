@@ -30,7 +30,7 @@ public class CombatAcquisitionTests
 
         Assert.Equal(CreatureActivity.Fighting, demon.Activity);
         Assert.Equal(near.Id, demon.FightTargetId);
-        Assert.Equal(CombatRules.AttackTypes.MeleeAtCreature, demon.AttackType);
+        Assert.Equal(CombatRules.AttackMode.MeleeAtCreature, demon.AttackType);
         Assert.Equal(
             CombatRules.MeleeReachSquared(db.CreatureById(demon.CreatureTypeId), db.CreatureById(near.CreatureTypeId)),
             demon.AttackRangeSquared);

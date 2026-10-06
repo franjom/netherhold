@@ -91,7 +91,7 @@ public sealed class KeeperAttackPlanner
     {
         int count = _view.Database.KeeperSpells.Count;
         for (int id = 1; id <= count; id++)
-            if (_view.Availability(KeeperSpellRules.SpellAvailabilityKind, id) == 2) return true;
+            if (_view.Availability(AvailabilityKind.Spell, id) == 2) return true;
         return false;
     }
 
@@ -133,12 +133,12 @@ public sealed class KeeperAttackPlanner
         int bestDistance = int.MaxValue;
         int own = TotalStrength(_view.PlayerId);
         TilePos ownHeart = HeartPosition(_view.PlayerId);
-        foreach (byte player in _view.PlayerOrder)
+        foreach (PlayerId player in _view.PlayerOrder)
         {
             if (_view.StatusOf(player) is PlayerStatus.Conquered or PlayerStatus.Lost) continue;
-            if (player is PlayerIds.Good or PlayerIds.Neutral || _view.AreAllied(player)) continue;
-            if (player >= _state.Breaches.Length) continue;
-            if (_state.Breaches[player].TunnelsLeft == 0)
+            if (player.Value is PlayerIds.Good or PlayerIds.Neutral || _view.AreAllied(player.Value)) continue;
+            if (player.Value >= _state.Breaches.Length) continue;
+            if (_state.Breaches[player.Value].TunnelsLeft == 0)
             {
                 _state.AttackTarget = 0;
                 if (ResumeStoredTunnel(player, withWait: true)) return true;
@@ -152,7 +152,7 @@ public sealed class KeeperAttackPlanner
             if (distance < bestDistance)
             {
                 bestDistance = distance;
-                best = player;
+                best = player.Value;
             }
         }
         if (best == 0) return false;
@@ -206,9 +206,9 @@ public sealed class KeeperAttackPlanner
 
     /// <summary>The first stored tunnel of an enemy becomes the task; the ordinary walk then sets the
     /// attack wait and clears it again when another of that enemy's tunnels remains.</summary>
-    private bool ResumeStoredTunnel(byte player, bool withWait)
+    private bool ResumeStoredTunnel(PlayerId player, bool withWait)
     {
-        KeeperBreachState breach = _state.Breaches[player];
+        KeeperBreachState breach = _state.Breaches[player.Value];
         for (int i = 0; i < KeeperBreachState.Slots; i++)
         {
             if (breach.Start[i].X == 0) continue;
@@ -282,7 +282,7 @@ public sealed class KeeperAttackPlanner
             return allowance;
         }
         if (_state.CannotAttackCounter != 0 || !FindFront()) return allowance;
-        if (_view.Availability(KeeperSpellRules.SpellAvailabilityKind, CallToArmsRules.SpellId) == 3) TryCastTheCall();
+        if (_view.Availability(AvailabilityKind.Spell, CallToArmsRules.SpellId) == 3) TryCastTheCall();
         return allowance - 1;
     }
 
@@ -379,7 +379,7 @@ public sealed class KeeperAttackPlanner
     /// <summary>The whole owned list's level-scaled threat, workers and held creatures included; an
     /// own creature granted a level this tick counts at the level predicted, as DK2's test sees
     /// the grant already applied.</summary>
-    private int TotalStrength(byte player)
+    private int TotalStrength(PlayerId player)
     {
         int sum = 0;
         foreach (KeeperCreatureView creature in Owned(player))
@@ -393,7 +393,7 @@ public sealed class KeeperAttackPlanner
     }
 
     /// <summary>A player's <c>DungeonHeartPosition</c>, tile (0, 0) for a player without a heart.</summary>
-    private TilePos HeartPosition(byte player) => _view.HeartOf(player) ?? new TilePos(0, 0);
+    private TilePos HeartPosition(PlayerId player) => _view.HeartOf(player) ?? new TilePos(0, 0);
 
     private static Fixed16Vector PointOf(TilePos tile) => new(CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y));
 
@@ -406,11 +406,11 @@ public sealed class KeeperAttackPlanner
     /// <summary>A player's room list in DK2's order: <c>Room_Construct</c> (<c>0x004E3800</c>) links a
     /// new room at the head, so the walk runs newest first; the capture's scan order stands in for
     /// the order the level's rooms were made.</summary>
-    private IEnumerable<KeeperRoomView> RoomsOf(byte player) => _view.RoomsOf(player);
+    private IEnumerable<KeeperRoomView> RoomsOf(PlayerId player) => _view.RoomsOf(player);
 
     /// <summary><c>0x004C6010</c>: the player's non-bridge room whose first slab lies nearest a
     /// point by the shifted square, the first kept on a tie.</summary>
-    private KeeperRoomView? NearestNonBridgeRoom(byte player, Fixed16Vector point)
+    private KeeperRoomView? NearestNonBridgeRoom(PlayerId player, Fixed16Vector point)
     {
         KeeperRoomView? best = null;
         uint bestDistance = uint.MaxValue;
@@ -431,7 +431,7 @@ public sealed class KeeperAttackPlanner
 
     /// <summary><c>0x004C63D0</c>: an index drawn over the whole room list; a bridge at that index
     /// yields nothing, since the walk past it never stops.</summary>
-    private KeeperRoomView? RandomNonBridgeRoom(byte player)
+    private KeeperRoomView? RandomNonBridgeRoom(PlayerId player)
     {
         List<KeeperRoomView> rooms = RoomsOf(player).ToList();
         if (rooms.Count == 0) return null;
@@ -439,12 +439,12 @@ public sealed class KeeperAttackPlanner
         return BridgeRules.IsBridge(drawn.Definition) ? null : drawn;
     }
 
-    private KeeperRoomView? RandomRoomOfType(byte player, RoomTypeId type) => _view.RandomRoomOfType(player, type, _rng);
+    private KeeperRoomView? RandomRoomOfType(PlayerId player, RoomTypeId type) => _view.RandomRoomOfType(player, type, _rng);
 
     /// <summary>IAFirstEnd 2 and 3: the enemy room with the least or the greatest strength of its own
     /// creatures within five tiles of its position; the least from 0x7FFFFFFF strictly below, the
     /// greatest from zero strictly above, so all-zero strengths leave the greatest unset.</summary>
-    private KeeperRoomView? RoomByOwnStrength(byte player, bool weakest)
+    private KeeperRoomView? RoomByOwnStrength(PlayerId player, bool weakest)
     {
         IReadOnlyList<KeeperThreatSource> sources = ThreatEvaluator.Sources(_view);
         KeeperRoomView? best = null;
@@ -486,7 +486,7 @@ public sealed class KeeperAttackPlanner
     }
 
     /// <summary>An owner's creature list in DK2's order; a corpse is a different thing there.</summary>
-    private IEnumerable<KeeperCreatureView> Owned(byte player) =>
+    private IEnumerable<KeeperCreatureView> Owned(PlayerId player) =>
         _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
             .OrderBy(c => c.OwnershipRank);
 

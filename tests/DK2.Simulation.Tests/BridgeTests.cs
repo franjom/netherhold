@@ -23,7 +23,7 @@ public class BridgeTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = 4;
 
-    private static byte BridgeId => (byte)RoomTypeId.WoodenBridge;
+    private static RoomTypeId BridgeId => RoomTypeId.WoodenBridge;
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {

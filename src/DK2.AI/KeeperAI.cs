@@ -42,14 +42,14 @@ public sealed class KeeperAI
     private readonly SimRandom _rng;
     private readonly Func<byte, bool>? _isRoomAvailable;
     private readonly BuildArea? _area;
-    private readonly byte[]? _playerActivationOrder;
+    private readonly PlayerId[]? _playerActivationOrder;
     private bool _directionsFixed;
     private readonly KeeperRouteCache _routes = new();
 
     public KeeperAI(
-        byte playerId, KeeperAIParameters parameters, SimRandom rng,
+        PlayerId playerId, KeeperAIParameters parameters, SimRandom rng,
         Func<byte, bool>? isRoomAvailable = null, BuildArea? buildArea = null,
-        IEnumerable<byte>? playerActivationOrder = null)
+        IEnumerable<PlayerId>? playerActivationOrder = null)
     {
         PlayerId = playerId;
         _p = parameters;
@@ -60,7 +60,7 @@ public sealed class KeeperAI
         State.InitialiseBreaches(parameters.BreachAtXPoints);
     }
 
-    public byte PlayerId { get; }
+    public PlayerId PlayerId { get; }
     public KeeperAIState State { get; } = new();
 
     /// <summary>How many routing meshes this keeper has built: one per change of the navigation
@@ -169,11 +169,11 @@ public sealed class KeeperAI
 
     /// <summary>Availability 3 (<c>0x004BAB20</c>), or the caller's override.</summary>
     private Func<byte, bool> RoomAvailable(KeeperView view) =>
-        _isRoomAvailable ?? (id => view.Availability(RoomNeedRules.RoomAvailabilityKind, id) == RoomNeedRules.Available);
+        _isRoomAvailable ?? (id => view.Availability(AvailabilityKind.Room, id) == RoomNeedRules.Available);
 
     private void CreateImps(KeeperView view, List<PlayerCommand> commands, ref int budget)
     {
-        if (view.Availability(5, 4) != 3) return;
+        if (view.Availability(AvailabilityKind.Spell, 4) != 3) return;
         int imps = view.ImpCount;
         int perTiles = Math.Max(1, (int)_p.TilesPerImpRatio);
         if (imps >= _p.MaximumImps || imps >= view.OwnedTiles / perTiles) return;
@@ -237,7 +237,7 @@ public sealed class KeeperAI
             default:
                 return;
         }
-        if (view.Availability(KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.SightOfEvil) != 3) return;
+        if (view.Availability(AvailabilityKind.Spell, KeeperSpellRules.SightOfEvil) != 3) return;
         commands.Add(new CastSpellAtPlaceCommand(PlayerId, KeeperSpellRules.SightOfEvil, x, y));
         // 0x004BB8A0 inside 0x004BBD30: the cost against the mana, the cooldown, then location 5 and target 4.
         KeeperSpellDef? spell = view.Database.KeeperSpellById(KeeperSpellRules.SightOfEvil);
@@ -478,7 +478,7 @@ public sealed class KeeperAI
             return;
         }
         foreach (TilePos tile in build)
-            commands.Add(new BuildRoomCommand(PlayerId, def.RoomId, [tile]));
+            commands.Add(new BuildRoomCommand(PlayerId, (RoomTypeId)def.RoomId, [tile]));
         if (retag.Count > 0)
         {
             commands.Add(new TagTilesCommand(PlayerId, retag, true));
@@ -503,7 +503,7 @@ public sealed class KeeperAI
     private bool GoldStep(KeeperView view, List<PlayerCommand> commands)
     {
         if (RouteToStoredGold(view)) return true;
-        if (view.Availability(KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.CreateGold) == 3)
+        if (view.Availability(AvailabilityKind.Spell, KeeperSpellRules.CreateGold) == 3)
         {
             // The centre of the tile diagonally south-east of the heart's centre (0x004FD619): inside
             // a 5x5 Heart's refused middle, so the simulation refuses it there (Q540).
@@ -679,7 +679,7 @@ public sealed class KeeperAI
         // the command charges, so ours waits for the gold instead (ADR-0304).
         if (view.CanBuild(at, bridge) == RoomPlacement.Allowed && view.Gold >= RoomRules.CostPerTile(bridge))
         {
-            commands.Add(new BuildRoomCommand(PlayerId, bridge.RoomId, [at]));
+            commands.Add(new BuildRoomCommand(PlayerId, (RoomTypeId)bridge.RoomId, [at]));
             State.BridgeRequestedAt = at;
         }
         budget = 0;
@@ -697,8 +697,8 @@ public sealed class KeeperAI
     private bool IsRoomAvailable(KeeperView view, RoomTypeId room, out RoomDef? def)
     {
         byte id = (byte)room;
-        if (!view.Database.Rooms.TryGetValue(id, out def)) return false;
-        return _isRoomAvailable?.Invoke(id) ?? view.Availability(1, id) == 3;
+        if (!view.Database.Rooms.TryGetValue((RoomTypeId)id, out def)) return false;
+        return _isRoomAvailable?.Invoke(id) ?? view.Availability(AvailabilityKind.Room, id) == 3;
     }
 
     private static TilePos? Nearest(KeeperView view, HashSet<int> indices, TilePos to)

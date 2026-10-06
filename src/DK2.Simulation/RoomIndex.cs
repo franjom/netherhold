@@ -82,7 +82,7 @@ public static class RoomIndex
         WorldState world,
         RoomDef definition,
         byte terrainId,
-        byte ownerPlayerId,
+        PlayerId ownerPlayerId,
         int startIndex,
         bool[]? visited)
     {

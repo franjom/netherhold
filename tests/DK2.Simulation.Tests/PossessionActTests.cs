@@ -407,7 +407,7 @@ public sealed class PossessionActTests
         else PlaceTrap(db, world, at, Rival);
         GameSimulation sim = Sim(db, world);
         sim.Tick(InputFrame.Of(Act(me, melee: false, slot: 0)));
-        byte kind = door ? FightTargetKind.Door : FightTargetKind.Trap;
+        FightTargetKind kind = door ? FightTargetKind.Door : FightTargetKind.Trap;
         Assert.Equal(targeted ? (SpellRules.SpellCast, kind) : (SpellRules.FreeAimCast, FightTargetKind.None),
             (me.SwingKind, me.SwingTargetKind));
     }

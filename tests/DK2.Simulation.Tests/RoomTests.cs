@@ -44,8 +44,8 @@ public class RoomTests
         return new Run(sim, sink);
     }
 
-    private static byte TreasuryId => (byte)RoomTypeId.Treasury;
-    private static byte LairId => (byte)RoomTypeId.Lair;
+    private static RoomTypeId TreasuryId => RoomTypeId.Treasury;
+    private static RoomTypeId LairId => RoomTypeId.Lair;
 
     /// <summary>Gives the keeper somewhere to keep money, without going through the build rules.</summary>
     private static void GiveTreasury(Run run, byte player, params TilePos[] tiles)
@@ -265,7 +265,7 @@ public class RoomTests
     public void BuildingAnUnknownRoomIsRefusedRatherThanThrowing()
     {
         Run run = Start();
-        run.Tick(new BuildRoomCommand(Keeper, 200, [new TilePos(2, 2)]));
+        run.Tick(new BuildRoomCommand(Keeper, (RoomTypeId)200, [new TilePos(2, 2)]));
 
         Assert.Contains(run.Of("build_refused"), e => e.Detail.Contains("no_such_room", StringComparison.Ordinal));
     }

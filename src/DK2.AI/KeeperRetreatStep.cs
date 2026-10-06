@@ -113,7 +113,7 @@ public sealed class KeeperRetreatStep
     }
 
     /// <summary>An owner's creature list in DK2's order, held ones included; a corpse is a different thing there.</summary>
-    private IEnumerable<KeeperCreatureView> Owned(byte player) =>
+    private IEnumerable<KeeperCreatureView> Owned(PlayerId player) =>
         _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
             .OrderBy(c => c.OwnershipRank);
 }

@@ -293,7 +293,7 @@ public class RoomSellTests
 
         run.Tick(
             SellRoomCommand.Rect(Keeper, 1, 1, 2, 1),
-            BuildRoomCommand.At(Keeper, (byte)RoomTypeId.Treasury, new TilePos(2, 2)));
+            BuildRoomCommand.At(Keeper, RoomTypeId.Treasury, new TilePos(2, 2)));
 
         Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, run.World.Tile(2, 2).TerrainId);
         Assert.Equal(100, GoldStore.Total(run.World, Keeper));

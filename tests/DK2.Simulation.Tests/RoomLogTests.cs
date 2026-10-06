@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Tests;
@@ -39,8 +40,8 @@ public class RoomLogTests
         RoomLog log = Read(Row(41, "build", room: 7, size: 6, 10, 20, 12, 21));
 
         BuildRoomCommand build = Only<BuildRoomCommand>(log.At(40));
-        Assert.Equal(4, build.RoomId);
-        Assert.Equal(3, build.PlayerId);
+        Assert.Equal((RoomTypeId)4, build.RoomId);
+        Assert.Equal(3, build.PlayerId.Value);
         Assert.Equal(
             [
                 new TilePos(10, 20), new TilePos(11, 20), new TilePos(12, 20),
@@ -196,7 +197,7 @@ public class RoomLogTests
             Row(41, "build", room: 7, size: 1, 10, 20, 10, 20, player: 2, owner: 3));
 
         Assert.Equal(1, log.Tally.Disowned);
-        Assert.Equal(3, Only<BuildRoomCommand>(log.At(40)).PlayerId);
+        Assert.Equal(new PlayerId(3), Only<BuildRoomCommand>(log.At(40)).PlayerId);
     }
 
     [Fact]

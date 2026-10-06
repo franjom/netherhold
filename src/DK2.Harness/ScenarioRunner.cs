@@ -69,7 +69,7 @@ public sealed record ScenarioResult(
 
     /// <summary>Each computer keeper's own state at the end of the run, by player id: what it
     /// decided, which no command shows (the attack target, the flags, the stored tunnels).</summary>
-    public IReadOnlyDictionary<byte, KeeperAIState> KeeperStates { get; init; } = new Dictionary<byte, KeeperAIState>();
+    public IReadOnlyDictionary<PlayerId, KeeperAIState> KeeperStates { get; init; } = new Dictionary<PlayerId, KeeperAIState>();
 
     /// <summary>Where the run's wall-clock time went. Not part of the report: see <see cref="RunTimings"/>.</summary>
     public RunTimings? Timings { get; init; }
@@ -298,7 +298,7 @@ public sealed class ScenarioRunner
                 continue;
             }
             result.Add(new KeeperAI(id, player.Ai, new SimRandom(scenario.Seed ^ id),
-                playerActivationOrder: players!.Select(p => p.PlayerId)));
+                playerActivationOrder: players!.Select(p => new PlayerId(p.PlayerId))));
         }
         return result;
     }
@@ -515,10 +515,10 @@ public sealed class ScenarioRunner
             world.Player(p.Id).Mana = p.Mana;
             foreach (int spell in p.Spells)
             {
-                if (world.Player(p.Id).Availabilities.Exists(a => a.Kind == KeeperSpellRules.SpellAvailabilityKind && a.TypeId == spell))
-                    world.SetAvailability(p.Id, KeeperSpellRules.SpellAvailabilityKind, spell, 3);
+                if (world.Player(p.Id).Availabilities.Exists(a => a.Kind == AvailabilityKind.Spell && a.TypeId == spell))
+                    world.SetAvailability(p.Id, AvailabilityKind.Spell, spell, 3);
                 else
-                    world.Player(p.Id).Availabilities.Add(new AvailabilityState(KeeperSpellRules.SpellAvailabilityKind, spell, 3));
+                    world.Player(p.Id).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, spell, 3));
             }
 
             if (p.Gold <= 0 || goldPaidByLevel.Contains(p.Id)) continue;
@@ -754,7 +754,7 @@ public sealed class ScenarioRunner
             return false;
         }
 
-        into.Add(new BuildRoomCommand(c.Player, room.RoomId, tiles));
+        into.Add(new BuildRoomCommand(c.Player, (RoomTypeId)room.RoomId, tiles));
         return true;
     }
 

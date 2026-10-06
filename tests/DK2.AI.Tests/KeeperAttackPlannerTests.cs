@@ -35,7 +35,7 @@ public class KeeperAttackPlannerTests
         Dungeon(world, Enemy, EnemyHeart);
         if (other) Dungeon(world, Other, OtherHeart);
         if (open) KeeperWorld.Set(world, Db, new TilePos(15, 10), KeeperWorld.DirtPath);
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, CallToArmsRules.SpellId, 3);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, CallToArmsRules.SpellId, 3);
         world.Player(Keeper).Mana = 20000;
         return world;
     }
@@ -190,7 +190,7 @@ public class KeeperAttackPlannerTests
     {
         WorldState world = World();
         Fighter(world, Keeper, 15, 15); Fighter(world, Keeper, 16, 15);
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Thunderbolt, availability);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Thunderbolt, availability);
         (KeeperAttackPlanner planner, KeeperAIState state, _) = Planner(world, Attacker() with { IAAllSpellsResearched = gate });
 
         Assert.Equal(attacks, planner.Plan());
@@ -202,7 +202,7 @@ public class KeeperAttackPlannerTests
     {
         WorldState world = World();
         Fighter(world, Keeper, 15, 15); Fighter(world, Keeper, 16, 15);
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.Thunderbolt, 2);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Thunderbolt, 2);
         for (int x = 13; x <= 14; x++) KeeperWorld.Set(world, Db, new TilePos(x, 20), KeeperWorld.LibraryFloor, Keeper);
         var rng = new SimRandom(5);
         var view = new KeeperView(Db, world, Keeper);

@@ -43,7 +43,7 @@ public static class TunnelRules
     /// option bit 0 fall back to a tunnel toward <paramref name="tunnelX"/>, <paramref name="tunnelY"/>.</summary>
     public static bool RouteOrTunnel(
         SimulationContext context, string system, CreatureState creature, int x, int y,
-        int travelState, int resume, int options, int tunnelX, int tunnelY)
+        int travelState, int resume, Navigation.MoveOptions options, int tunnelX, int tunnelY)
     {
         if (context.World.Contains(new TilePos(x / Fp32.One, y / Fp32.One))
             && !IsSolid(context, x >> 12, y >> 12)
@@ -52,7 +52,7 @@ public static class TunnelRules
             CreatureStateMachine.BeginTravel(context.Hooks, creature, travelState, resume);
             return true;
         }
-        if ((options & 0x01) == 0) return false;
+        if (((int)options & 0x01) == 0) return false;
         return Fallback(context, system, creature, tunnelX, tunnelY, resume);
     }
 
@@ -389,7 +389,7 @@ public static class TunnelRules
         return false;
     }
 
-    private static bool Walk(SimulationContext context, CreatureState creature, int x, int y, int resume, int options)
+    private static bool Walk(SimulationContext context, CreatureState creature, int x, int y, int resume, Navigation.MoveOptions options)
     {
         if (!context.World.Contains(new TilePos(x >> 12, y >> 12)) || IsSolid(context, x >> 12, y >> 12)) return false;
         if (!context.Navigation.TryRouteTo(creature, x, y, options)) return false;

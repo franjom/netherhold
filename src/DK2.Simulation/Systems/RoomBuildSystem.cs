@@ -43,7 +43,7 @@ public sealed class RoomBuildSystem : ISimulationSystem
         if (!context.Database.Rooms.TryGetValue(command.RoomId, out RoomDef? room))
         {
             context.Emit(SystemName, "build_refused",
-                $"player={command.PlayerId} room={command.RoomId} reason=no_such_room");
+                $"player={command.PlayerId} room={(byte)command.RoomId} reason=no_such_room");
             return;
         }
 
@@ -122,7 +122,7 @@ public sealed class RoomBuildSystem : ISimulationSystem
 
     private static RoomPlacement Verdict(
         SimulationContext context, WorldState world, HashSet<TilePos>? spans, TilePos pos,
-        RoomDef room, byte playerId) =>
+        RoomDef room, PlayerId playerId) =>
         spans is not null && spans.Contains(pos)
             ? RoomRules.CanBuild(context.Database, world.Tile(pos), room, playerId, touchesOwnLand: true)
             : RoomRules.CanBuild(context.Database, world, pos, room, playerId);

@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.AI.Tests;
 
@@ -65,8 +66,8 @@ public class ThreatEvaluatorTests
             new(4, centre, centre, 40, 0, true, 3),
             new(5, centre, centre, 50, 0, true, 4)
         ];
-        byte[] order = [1, 2, 3, 4, 5];
-        bool Allied(byte player) => player is 3 or 5;
+        PlayerId[] order = [1, 2, 3, 4, 5];
+        bool Allied(PlayerId player) => player.Value is 3 or 5;
         Assert.Equal(new KeeperThreatAssessment(70, 50, 4),
             ThreatEvaluator.Assess(sources, order, Allied, target, false, true));
         Assert.Equal(new KeeperThreatAssessment(20, 30, 2),
@@ -79,7 +80,7 @@ public class ThreatEvaluatorTests
     public void AttackerIsLastNonzeroEnemyInSuppliedPlayerOrder()
     {
         KeeperThreatSource[] sources = [new(1, 2048, 2048, 10, 0), new(2, 2048, 2048, 20, 0)];
-        Assert.Equal((byte)1, ThreatEvaluator.Assess(sources, new byte[] { 2, 1, 4 },
+        Assert.Equal((byte)1, ThreatEvaluator.Assess(sources, new PlayerId[] { 2, 1, 4 },
             _ => false, new TilePos(0, 0), false, false).AttackingPlayer);
     }
 

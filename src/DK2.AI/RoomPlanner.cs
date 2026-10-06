@@ -36,7 +36,7 @@ public static class RoomPlanner
         {
             if (id == 0 || Array.IndexOf(NeverBuilt, id) >= 0) continue;
             if (id == (currentRoomToBuild & 0x7F)) continue;
-            if (!view.Database.Rooms.TryGetValue(id, out RoomDef? def)) continue;
+            if (!view.Database.Rooms.TryGetValue((RoomTypeId)id, out RoomDef? def)) continue;
             if (!def.IsBuildable || !isAvailable(id)) continue;
             if (view.OwnRoomOfType(id) is not null) continue;
             return id;

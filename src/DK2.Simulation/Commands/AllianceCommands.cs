@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Commands;
 
@@ -17,13 +18,13 @@ namespace DK2.Simulation.Commands;
 /// <para>Ours, not DK2's: one command with a flag where the original has two handlers, the same
 /// shape <see cref="TagTilesCommand"/> uses.</para>
 /// </summary>
-public sealed record SetAllianceCommand(byte PlayerId, byte OtherPlayerId, bool Allied)
+public sealed record SetAllianceCommand(PlayerId PlayerId, PlayerId OtherPlayerId, bool Allied)
     : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
     {
         base.HashInto(ref hash);
-        hash.Add(OtherPlayerId);
+        hash.Add(OtherPlayerId.Value);
         hash.Add(Allied);
     }
 }

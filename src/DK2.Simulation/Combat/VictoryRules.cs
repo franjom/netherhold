@@ -52,7 +52,7 @@ public static class VictoryRules
         me.FightTargetKind = FightTargetKind.None;
         me.FightTargetPlayerId = 0;
         me.FightTargetTileIndex = -1;
-        if (victory) me.AttackType = CombatRules.AttackTypes.Victorious;
+        if (victory) me.AttackType = CombatRules.AttackMode.Victorious;
         me.AttackRangeSquared = 0;
         me.Approaching = false;
         me.StopMoving();

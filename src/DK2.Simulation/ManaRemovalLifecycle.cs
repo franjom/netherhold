@@ -26,7 +26,7 @@ public static class ManaRemovalLifecycle
 
     /// <summary>Owned creatures whose definition carries both the worker and the evil bit, held
     /// ones included (<c>0x004C15C0</c>).</summary>
-    public static uint EvilWorkers(WorldState world, GameDatabase database, byte playerId)
+    public static uint EvilWorkers(WorldState world, GameDatabase database, PlayerId playerId)
     {
         uint count = 0;
         foreach (CreatureState creature in world.OwnedCreatures(playerId))
@@ -38,7 +38,7 @@ public static class ManaRemovalLifecycle
         definition.Flags.HasFlag(CreatureFlags.IsWorker) && definition.Flags.HasFlag(CreatureFlags.IsEvil);
 
     /// <summary>The owner's creatures in acquisition order, as the selector walks them.</summary>
-    public static List<ManaRemovalCandidate> Candidates(WorldState world, GameDatabase database, byte playerId)
+    public static List<ManaRemovalCandidate> Candidates(WorldState world, GameDatabase database, PlayerId playerId)
     {
         var candidates = new List<ManaRemovalCandidate>();
         foreach (CreatureState creature in world.OwnedCreatures(playerId))
@@ -54,7 +54,7 @@ public static class ManaRemovalLifecycle
     /// <summary>The tile the selector measures from: DK2's <c>DungeonHeartPosition</c>
     /// (<c>player+0xB43</c>), which <see cref="Combat.HeartSites.PositionOf"/> derives from the
     /// heart's tiles, or the initialiser's (1, 1) for a keeper that has none.</summary>
-    public static (ushort X, ushort Y) HeartTile(WorldState world, GameDatabase database, byte playerId)
+    public static (ushort X, ushort Y) HeartTile(WorldState world, GameDatabase database, PlayerId playerId)
     {
         int index = Combat.HeartSites.PositionOf(world, database, playerId);
         if (index < 0) return (InitialHeartTile, InitialHeartTile);
@@ -64,7 +64,7 @@ public static class ManaRemovalLifecycle
     /// <summary>One removal scan for <paramref name="playerId"/> (<c>0x004C1BC0</c>): the chosen
     /// creature loses its corpse bit, takes the stamp — a second selection refreshes it — and
     /// message 53 subtype 3 is posted. Null when the floor holds or nobody qualifies.</summary>
-    public static CreatureState? Select(SimulationContext context, byte playerId, uint now, uint minimumWorkers)
+    public static CreatureState? Select(SimulationContext context, PlayerId playerId, uint now, uint minimumWorkers)
     {
         WorldState world = context.World;
         (ushort x, ushort y) = HeartTile(world, context.Database, playerId);
@@ -75,7 +75,7 @@ public static class ManaRemovalLifecycle
         CreatureState chosen = world.CreatureById(id.Value)!;
         chosen.CorpseSuppressed = true;
         chosen.ManaRemovalStamp = now;
-        world.Messages.Post(world, playerId, PlayerMessageKind.ManaShortfall, RemovalSubtype, 0);
+        world.Messages.Post(world, playerId.Value, PlayerMessageKind.ManaShortfall, RemovalSubtype, 0);
         return chosen;
     }
 }

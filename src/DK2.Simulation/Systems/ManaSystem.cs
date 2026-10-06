@@ -57,20 +57,20 @@ public sealed class ManaSystem : ISimulationSystem
             // A Call to Arms the mana left cannot keep fades its flag, and DK2's update returns
             // there, before the warning block (0x004C10E0).
             // Possession is checked first, against the mana the imps and traps leave (0x004C10E0).
-            if (PlayerIds.IsKeeper(player.PlayerId) && PossessionRules.AfterPayment(context, SystemName, ref player, impAndTrapUpkeep[i]))
+            if (PlayerIds.IsKeeper(player.PlayerId.Value) && PossessionRules.AfterPayment(context, SystemName, ref player, impAndTrapUpkeep[i]))
             {
                 continue;
             }
-            if (PlayerIds.IsKeeper(player.PlayerId) && CallToArmsRules.AfterPayment(context, SystemName, ref player))
+            if (PlayerIds.IsKeeper(player.PlayerId.Value) && CallToArmsRules.AfterPayment(context, SystemName, ref player))
             {
                 continue;
             }
-            if (PlayerIds.IsKeeper(player.PlayerId) && ReaperRules.AfterPayment(context, player))
+            if (PlayerIds.IsKeeper(player.PlayerId.Value) && ReaperRules.AfterPayment(context, player))
             {
                 continue;
             }
 
-            if (PlayerIds.IsKeeper(player.PlayerId))
+            if (PlayerIds.IsKeeper(player.PlayerId.Value))
             {
                 Pressure(context, ref player, gain[i] - upkeep[i]);
             }
@@ -82,7 +82,7 @@ public sealed class ManaSystem : ISimulationSystem
     private static void Pressure(SimulationContext context, ref PlayerState player, int netRate)
     {
         GameDatabase database = context.Database;
-        byte playerId = player.PlayerId;
+        PlayerId playerId = player.PlayerId;
         uint now = ManaRemovalLifecycle.Turn(context.Tick);
         uint minimum = (uint)database[VariableTypeId.MinimumImpThreshold];
         ManaPressureResult result = ManaPressureRules.Advance(
@@ -95,7 +95,7 @@ public sealed class ManaSystem : ISimulationSystem
 
         if (result.Warning != 0)
         {
-            context.World.Messages.Post(context.World, playerId, PlayerMessageKind.LowManaWarning, result.Warning, 0);
+            context.World.Messages.Post(context.World, playerId.Value, PlayerMessageKind.LowManaWarning, result.Warning, 0);
             context.Emit(SystemName, "mana_warning",
                 $"player={playerId} stage={result.Warning} mana={player.Mana} net={netRate}/s turn={now}");
         }

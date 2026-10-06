@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
@@ -18,7 +19,7 @@ namespace DK2.Simulation;
 /// No concrete commands exist yet — the first ones (tag for digging, claim,
 /// build room) arrive with M3.
 /// </summary>
-public abstract record PlayerCommand(byte PlayerId)
+public abstract record PlayerCommand(PlayerId PlayerId)
 {
     /// <summary>
     /// Contributes this command to a replay hash. Every command must declare
@@ -28,7 +29,7 @@ public abstract record PlayerCommand(byte PlayerId)
     public virtual void HashInto(ref Hash64 hash)
     {
         hash.Add(GetType().Name);
-        hash.Add(PlayerId);
+        hash.Add(PlayerId.Value);
     }
 }
 

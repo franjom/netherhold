@@ -91,10 +91,10 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         Assert.Equal((byte)5, tag.Command.PlayerId);
 
         List<(int Tick, BuildRoomCommand Build)> spans = run.KeeperCommandLog
-            .Where(e => e.Command is BuildRoomCommand b && BridgeRules.IsBridge(ScenarioCorpus.Database.RoomById(b.RoomId)))
+            .Where(e => e.Command is BuildRoomCommand b && BridgeRules.IsBridge(ScenarioCorpus.Database.Room(b.RoomId)))
             .Select(e => (e.InputTick, (BuildRoomCommand)e.Command)).ToList();
         Assert.Equal([(47, new TilePos(64, 40)), (48, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
-        Assert.All(spans, s => Assert.Equal((byte)RoomTypeId.StoneBridge, s.Build.RoomId));
+        Assert.All(spans, s => Assert.Equal(RoomTypeId.StoneBridge, s.Build.RoomId));
 
         var call = (CastSpellAtPlaceCommand)Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand).Command;
         // Two tiles off the heart in a drawn diagonal: (64,34) or (64,38) as the stream moves (ADR-0336
@@ -238,13 +238,13 @@ public class Level17TreasuryNeedScenarioTests(ITestOutputHelper output)
         // The carrier's store chooser posts 42 once, and the walk acknowledges it on the next input tick.
         SimEvent full = Assert.Single(run.Events, e => e.Kind == "room_message"
             && e.Detail.StartsWith("player=4 kind=42 room=Treasury", StringComparison.Ordinal));
-        Assert.Contains(run.KeeperCommandLog, e => e.Command is AcknowledgePlayerMessageCommand { PlayerId: 4 }
+        Assert.Contains(run.KeeperCommandLog, e => e.Command is AcknowledgePlayerMessageCommand { PlayerId.Value: 4 }
             && e.InputTick == full.Tick.Value + 1);
 
         // 0x004FBE00 on the stock Treasury (rows 5 to 9): north is the only side whose strip and gap
         // line pass, west and east being owned wall twice over. Policy 0 builds just that row.
         List<TilePos> built = run.KeeperCommandLog.Select(e => e.Command).OfType<BuildRoomCommand>()
-            .Where(b => b.RoomId == (byte)RoomTypeId.Treasury).SelectMany(b => b.Tiles).Distinct().OrderBy(t => t.X).ToList();
+            .Where(b => b.RoomId == RoomTypeId.Treasury).SelectMany(b => b.Tiles).Distinct().OrderBy(t => t.X).ToList();
         Assert.Equal([new TilePos(12, 4), new TilePos(13, 4), new TilePos(14, 4), new TilePos(15, 4)], built);
 
         // Whether a later load lands in the new row is left open: it depends on what Harkan spends

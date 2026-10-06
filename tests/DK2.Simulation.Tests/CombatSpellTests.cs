@@ -31,7 +31,7 @@ public class CombatSpellTests
         CreatureState creature = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
         long tick = world.CurrentTick.Value;
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), creature, 199, tick + stampOffset));
-        if (allySpell) creature.AttackType = CombatRules.AttackTypes.SpellAtAlly;
+        if (allySpell) creature.AttackType = CombatRules.AttackMode.SpellAtAlly;
         if (leaveBeforeUpdate) Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), creature, 1, tick));
         Assert.Empty(world.Messages.Entries);
         new GameSimulation(db, world, 1, [new CombatSystem()]).Tick();
@@ -80,7 +80,7 @@ public class CombatSpellTests
         sim.Run(3);
         Assert.Equal(CreatureActivity.Fighting, warlock.Activity);
         Assert.Equal(goblin.Id, warlock.FightTargetId);
-        Assert.Equal(CombatRules.AttackTypes.SpellAtCreature, warlock.AttackType);
+        Assert.Equal(CombatRules.AttackMode.SpellAtCreature, warlock.AttackType);
         Assert.Equal(0, warlock.AttackSpellSlot);
         Assert.Equal((16384 >> 12) * 16384, warlock.AttackRangeSquared);
         Assert.Contains(warlock.Id, goblin.EngagedRanged);
@@ -151,7 +151,7 @@ public class CombatSpellTests
 
         sim.Run(3);
         // 0x0045CB00's survey waives 0x0048C800 for a Support with an escape tile: the engagement is the spell's.
-        Assert.Equal(CombatRules.AttackTypes.SpellAtCreature, warlock.AttackType);
+        Assert.Equal(CombatRules.AttackMode.SpellAtCreature, warlock.AttackType);
         Assert.Equal(0, warlock.AttackSpellSlot);
         Assert.Contains(warlock.Id, goblin.EngagedRanged);
         Assert.DoesNotContain(warlock.Id, goblin.EngagedMelee);
@@ -176,7 +176,7 @@ public class CombatSpellTests
         sim.ObserveWith(sink);
 
         sim.Run(3);
-        Assert.Equal(CombatRules.AttackTypes.SpellAtCreature, warlock.AttackType);
+        Assert.Equal(CombatRules.AttackMode.SpellAtCreature, warlock.AttackType);
         Assert.Equal(1, warlock.AttackSpellSlot);
 
         sim.Run(40);

@@ -3,16 +3,17 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
 /// <summary>The persistent decomposition tally belonging to one derived Graveyard room.</summary>
 public sealed class GraveyardState
 {
-    internal GraveyardState(int anchorTileIndex, byte ownerPlayerId)
+    internal GraveyardState(int anchorTileIndex, PlayerId ownerPlayerId)
     {
         AnchorTileIndex = anchorTileIndex;
-        OwnerPlayerId = ownerPlayerId;
+        OwnerPlayerId = ownerPlayerId.Value;
     }
 
     /// <summary>The room's deterministic identity; see ADR-0151.</summary>

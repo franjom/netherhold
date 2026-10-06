@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using DK2.Assets;
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Simulation;
 
 namespace DK2.Presentation;
@@ -180,10 +181,10 @@ public sealed class TextRenderer
     /// keepers, so extending this into letters would buy nothing and would cost
     /// the disjointness the room alphabet depends on.</para>
     /// </summary>
-    public static char PlayerGlyph(byte playerId) => playerId switch
+    public static char PlayerGlyph(PlayerId playerId) => playerId.Value switch
     {
         0 => UnownedFloorGlyph,
-        <= 9 => (char)('0' + playerId),
+        <= 9 => (char)('0' + playerId.Value),
         _ => UnknownPlayerGlyph,
     };
 

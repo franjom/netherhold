@@ -48,7 +48,7 @@ public sealed class PossessionUpkeepTests
             objects: basis.Objects.Values, shots: basis.Shots.Values).ForLevel(null, Level(levelFlags));
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, SpellId, 3, Upgraded: upgraded));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, SpellId, 3, Upgraded: upgraded));
         CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
         me.Level = level;
         me.Possessed = true;

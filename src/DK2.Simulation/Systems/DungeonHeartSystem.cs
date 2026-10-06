@@ -34,7 +34,7 @@ public sealed class DungeonHeartSystem : ISimulationSystem
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(i);
-            if (!PlayerIds.IsKeeper(player.PlayerId)) continue;
+            if (!PlayerIds.IsKeeper(player.PlayerId.Value)) continue;
 
             if (ImpSupplyRules.HeartTileOf(world, database, player.PlayerId) >= 0)
                 RoomFrame(context, ref player, max, regen, secondEnds);
@@ -42,7 +42,7 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             // The frame's tail: a stamped killer is the whole condition, and the
             // verdict depends only on which side struck the blow.
             if (player.KilledByPlayerId == 0) continue;
-            byte fallen = player.PlayerId;
+            byte fallen = player.PlayerId.Value;
             if (DefeatRules.IsDeathTurn(context.Tick, player.HeartDiedTick)) DefeatRules.OnDeathTurn(context, fallen);
             if (DefeatRules.CreaturesGo(context.Tick, player.HeartDiedTick)) DefeatRules.ScatterCreatures(context, fallen);
 
@@ -94,9 +94,9 @@ public sealed class DungeonHeartSystem : ISimulationSystem
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(i);
-            if (!PlayerIds.IsKeeper(player.PlayerId) || PlayerStatus.HasEnded(player.Status)) continue;
+            if (!PlayerIds.IsKeeper(player.PlayerId.Value) || PlayerStatus.HasEnded(player.Status)) continue;
             standing++;
-            survivor = player.PlayerId;
+            survivor = player.PlayerId.Value;
         }
 
         if (standing == 1 && world.EndGame(survivor, PlayerStatus.Won))

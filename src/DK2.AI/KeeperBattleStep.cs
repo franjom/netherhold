@@ -103,9 +103,9 @@ public sealed class KeeperBattleStep
             int centreY = ((_state.CallToArmsY >> 12) << 12) + (Fp32.One / 2);
             int limit = _p.RemoveCallToArmsWithinRange * _p.RemoveCallToArmsWithinRange * Fp32.One;
             int enemies = 0;
-            foreach (byte player in _view.PlayerOrder)
+            foreach (PlayerId player in _view.PlayerOrder)
             {
-                if (_view.AreAllied(player)) continue;
+                if (_view.AreAllied(player.Value)) continue;
                 foreach (KeeperCreatureView creature in Owned(player))
                     if (!OffMap(creature) && KeeperThreatResponder.ShiftedDistance(creature.PosX, creature.PosY, centreX, centreY) < limit)
                         enemies++;
@@ -147,7 +147,7 @@ public sealed class KeeperBattleStep
         KeeperSpellDef? spell = _view.Database.KeeperSpellById(CallToArmsRules.SpellId);
         if (spell is null || spell.ManaCost >= _view.Mana) return false;
         if (_turn % CastTurnModulus != 0) return false;
-        if (_view.Availability(KeeperSpellRules.SpellAvailabilityKind, CallToArmsRules.SpellId) != 3) return false;
+        if (_view.Availability(AvailabilityKind.Spell, CallToArmsRules.SpellId) != 3) return false;
         if (!fighter.HeartRouteExists) return false;
         // 0x004BBD30's own permission, predicted from the capture: the row's cooldown and the two
         // validators at the fighter's tile; the cost was tested above, more strictly.
@@ -246,7 +246,7 @@ public sealed class KeeperBattleStep
     /// the excluded flag clear, in that order.</summary>
     private KeeperSpellDef? Eligible(byte id, KeeperSpellFlags arm)
     {
-        if (_view.Availability(KeeperSpellRules.SpellAvailabilityKind, id) != 3) return null;
+        if (_view.Availability(AvailabilityKind.Spell, id) != 3) return null;
         KeeperSpellDef? spell = _view.Database.KeeperSpellById(id);
         if (spell is null || !Ready(spell)) return null;
         if ((spell.Flags & arm) == 0 || (spell.Flags & KeeperSpellFlags.ExcludedFromBattle) != 0) return null;
@@ -258,7 +258,7 @@ public sealed class KeeperBattleStep
     /// <summary><c>0x004BE390</c>: no cooldown left on the keeper's row for the spell.</summary>
     internal static bool Ready(KeeperView view, KeeperSpellDef spell)
     {
-        AvailabilityState? row = view.AvailabilityRow(KeeperSpellRules.SpellAvailabilityKind, spell.KeeperSpellId);
+        AvailabilityState? row = view.AvailabilityRow(AvailabilityKind.Spell, spell.KeeperSpellId);
         if (row is not AvailabilityState entry || entry.LastCastTick == 0) return true;
         long cooldown = (uint)unchecked(spell.CooldownRaw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
         return view.Tick.Value - entry.LastCastTick >= cooldown;
@@ -275,7 +275,7 @@ public sealed class KeeperBattleStep
         && CreatureStateTable.Get(creature.ResolvedStateId).Category == CreatureStateCategory.Combat;
 
     /// <summary>An owner's creature list in DK2's order; a corpse is a different thing there.</summary>
-    private IEnumerable<KeeperCreatureView> Owned(byte player) =>
+    private IEnumerable<KeeperCreatureView> Owned(PlayerId player) =>
         _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
             .OrderBy(c => c.OwnershipRank);
 

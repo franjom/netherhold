@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using DK2.Assets;
 using DK2.Core;
 using DK2.Data;
@@ -69,7 +70,7 @@ namespace DK2.Unity
         private AssetProviderChain _assets;
         private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
         private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
-        private byte[] _roomIds = Array.Empty<byte>();
+        private RoomTypeId[] _roomIds = Array.Empty<RoomTypeId>();
         private double _tickDebt;
         private string _failure;
         private string _loadedFrom;
@@ -124,8 +125,7 @@ namespace DK2.Unity
             }
 
             _simulation = new GameSimulation(database, world, seed, SimulationSystems.Default());
-            _roomIds = new List<byte>(database.Rooms.Keys).ToArray();
-            Array.Sort(_roomIds);
+            _roomIds = database.Rooms.Keys.OrderBy(id => (byte)id).ToArray();
             SelectKnownRoom();
 
             // The chain the plan specifies (§7.2). Both roots are relative to
@@ -184,7 +184,7 @@ namespace DK2.Unity
 
             TilePos? tile = ScreenToTile(Input.mousePosition);
             var intent = new PlayerIntent(
-                (byte)viewingPlayerId, tool, tile, button, (byte)selectedRoomId);
+                (byte)viewingPlayerId, tool, tile, button, (RoomTypeId)selectedRoomId);
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
                 _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database);
             InputFrame frame = _input.Translate(intent, snapshot);
@@ -231,18 +231,18 @@ namespace DK2.Unity
         private void SelectKnownRoom()
         {
             if (_roomIds.Length == 0) return;
-            if (Array.IndexOf(_roomIds, (byte)selectedRoomId) >= 0) return;
-            selectedRoomId = _roomIds[0];
+            if (Array.IndexOf(_roomIds, (RoomTypeId)selectedRoomId) >= 0) return;
+            selectedRoomId = (byte)_roomIds[0];
         }
 
         private void SelectAdjacentRoom(int direction)
         {
             if (_roomIds.Length == 0) return;
 
-            int index = Array.IndexOf(_roomIds, (byte)selectedRoomId);
+            int index = Array.IndexOf(_roomIds, (RoomTypeId)selectedRoomId);
             if (index < 0) index = 0;
             index = (index + direction + _roomIds.Length) % _roomIds.Length;
-            selectedRoomId = _roomIds[index];
+            selectedRoomId = (byte)_roomIds[index];
         }
 
         private void ControlCamera()

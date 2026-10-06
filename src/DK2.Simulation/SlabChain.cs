@@ -39,7 +39,7 @@ public static class SlabChain
 
     /// <summary>Call after <paramref name="tileIndex"/> changed terrain or owner, with what it was
     /// before: it leaves the room it was in and joins the one it is now in, if either is a room.</summary>
-    public static void Changed(WorldState world, GameDatabase database, int tileIndex, byte terrainBefore, byte ownerBefore)
+    public static void Changed(WorldState world, GameDatabase database, int tileIndex, byte terrainBefore, PlayerId ownerBefore)
     {
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         if (tile.TerrainId == terrainBefore && tile.OwnerPlayerId == ownerBefore) return;
@@ -89,7 +89,7 @@ public static class SlabChain
     /// the old room's share of health (<see cref="RoomHealthRules.SharePercent"/>);
     /// <paramref name="lost"/> is the leaving tile's part of the old deficit.</summary>
     public static void Removed(
-        WorldState world, GameDatabase database, int tileIndex, byte terrain, byte owner, RoomDef room, int lost)
+        WorldState world, GameDatabase database, int tileIndex, byte terrain, PlayerId owner, RoomDef room, int lost)
     {
         var old = new HashSet<int>();
         for (int d = 0; d < Dx.Length; d++)
@@ -211,7 +211,7 @@ public static class SlabChain
         return world.Contains(x, y) ? (y * world.Width) + x : -1;
     }
 
-    private static bool Same(WorldState world, int tile, byte terrain, byte owner)
+    private static bool Same(WorldState world, int tile, byte terrain, PlayerId owner)
     {
         ref TileState t = ref world.TileAtIndex(tile);
         return t.TerrainId == terrain && t.OwnerPlayerId == owner;
@@ -219,7 +219,7 @@ public static class SlabChain
 
     /// <summary>The tiles of one room, orthogonally connected, not entering <paramref name="taken"/>,
     /// which gains them.</summary>
-    private static List<int> Fill(WorldState world, int start, byte terrain, byte owner, HashSet<int> taken)
+    private static List<int> Fill(WorldState world, int start, byte terrain, PlayerId owner, HashSet<int> taken)
     {
         var tiles = new List<int> { start };
         taken.Add(start);

@@ -98,8 +98,8 @@ public static class ShotRules
     /// <summary>A new shot from a definition, its data words the caller's (a spell's two words, or the
     /// parent's for a chained shot), its lifetime the definition's health, not yet moving.</summary>
     public static ShotState Spawn(
-        WorldState world, ShotDef definition, byte owner, int x, int y, int data1, int data2, int casterId,
-        byte targetKind, int targetId, byte targetPlayerId, int targetTileIndex, int targetX, int targetY)
+        WorldState world, ShotDef definition, PlayerId owner, int x, int y, int data1, int data2, int casterId,
+        FightTargetKind targetKind, int targetId, PlayerId targetPlayerId, int targetTileIndex, int targetX, int targetY)
     {
         ShotState shot = world.SpawnShot(definition.ShotId, owner, x, y);
         shot.Health = definition.Health;
@@ -108,7 +108,7 @@ public static class ShotRules
         shot.CasterId = casterId;
         shot.TargetKind = targetKind;
         shot.TargetId = targetId;
-        shot.TargetPlayerId = targetPlayerId;
+        shot.TargetPlayerId = targetPlayerId.Value;
         shot.TargetTileIndex = targetTileIndex;
         shot.TargetX = targetX;
         shot.TargetY = targetY;

@@ -111,7 +111,7 @@ public static partial class TremorRules
         int halfDamage = context.Database[VariableTypeId.TremorDamagePerTerrainTilePerSecond] / 2;
         var damage = new TileHealthDamage(halfDamage + context.Rng.NextInt(halfDamage));
         byte before = tile.TerrainId;
-        byte ownerBefore = tile.OwnerPlayerId;
+        PlayerId ownerBefore = tile.OwnerPlayerId;
         TileWorkResult result = TileWorkRules.ApplyDamage(context.Database, ref tile, damage);
         if (result.Outcome == TileWorkOutcome.Destroyed)
         {

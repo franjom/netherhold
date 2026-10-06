@@ -20,8 +20,8 @@ public sealed class KeeperView : INavByteGrid
     private readonly KeeperTileView[] _tiles;
     private readonly AvailabilityState[] _availability;
 
-    public KeeperView(GameDatabase database, WorldState world, byte playerId,
-        IEnumerable<byte>? playerActivationOrder = null)
+    public KeeperView(GameDatabase database, WorldState world, PlayerId playerId,
+        IEnumerable<PlayerId>? playerActivationOrder = null)
     {
         Database = database;
         PlayerId = playerId;
@@ -65,7 +65,7 @@ public sealed class KeeperView : INavByteGrid
         Heart = HeartOf(playerId) ?? (heartIndex < 0 ? null : FromIndex(heartIndex));
         KeeperSpellDef? callToArms = database.KeeperSpellById(CallToArmsRules.SpellId);
         // The Sight step reads its refusals only when the spell is at availability 3 in this capture.
-        KeeperSpellDef? sight = Availability(KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.SightOfEvil) == 3
+        KeeperSpellDef? sight = Availability(AvailabilityKind.Spell, KeeperSpellRules.SightOfEvil) == 3
             ? database.KeeperSpellById(KeeperSpellRules.SightOfEvil)
             : null;
         foreach (KeeperRoomView room in OwnRooms)
@@ -78,7 +78,7 @@ public sealed class KeeperView : INavByteGrid
             }
         // Each owner's acquisition-ordered list, the order DK2's keeper walks (ADR-0273).
         var ranks = new Dictionary<int, int>();
-        foreach (byte owner in world.PlayerIds)
+        foreach (PlayerId owner in world.PlayerIds)
         {
             int rank = 0;
             foreach (CreatureState listed in world.OwnedCreatures(owner)) ranks[listed.Id] = rank++;
@@ -169,10 +169,10 @@ public sealed class KeeperView : INavByteGrid
 
     /// <summary>The route test's mover (<c>0x004D1700</c> with options 1, 0, 0, 0): the player's
     /// own locked doors pass, no lava; its water flag is a stale global, taken as off.</summary>
-    public static MoverProfile StagingWalker(byte playerId) =>
-        new(false, false, playerId, RespectDoors: false, PassOwnLockedDoors: true, EntersPortalHole: false);
+    public static MoverProfile StagingWalker(PlayerId playerId) =>
+        new(false, false, playerId.Value, RespectDoors: false, PassOwnLockedDoors: true, EntersPortalHole: false);
 
-    internal KeeperView(GameDatabase database, byte playerId, GameTick tick, byte status, byte alliedWith, byte[] playerIds,
+    internal KeeperView(GameDatabase database, PlayerId playerId, GameTick tick, byte status, byte alliedWith, PlayerId[] playerIds,
         int width, int height, int gold, int impCount, TilePos? heart,
         KeeperTileView[] tiles, AvailabilityState[] availability,
         KeeperCreatureView[] creatures, KeeperTrapView[] traps, KeeperRoomView[] rooms, PlayerMessage[] messages,
@@ -213,17 +213,17 @@ public sealed class KeeperView : INavByteGrid
 
     /// <summary>Whether a player's heart is a ruin (<see cref="PlayerState.HeartRuined"/>), the room
     /// ruin bit <c>+0x9A</c> the random room draw skips.</summary>
-    public bool HeartRuined(byte playerId) => playerId < _heartRuined.Length && _heartRuined[playerId];
+    public bool HeartRuined(PlayerId playerId) => playerId.Value < _heartRuined.Length && _heartRuined[playerId.Value];
     internal IEnumerable<int> CallRefusedTiles => _callRefusedTiles.OrderBy(i => i);
     internal IEnumerable<int> SightRefusedTiles => _sightRefusedTiles.OrderBy(i => i);
 
     /// <summary>Every player's status (<c>player+0x19A</c>) by id, 0 for an id the world lacks.</summary>
-    public byte StatusOf(byte playerId) => playerId < _statuses.Length ? _statuses[playerId] : (byte)0;
+    public byte StatusOf(PlayerId playerId) => playerId.Value < _statuses.Length ? _statuses[playerId.Value] : (byte)0;
 
     /// <summary>A player's <c>DungeonHeartPosition</c>: the middle of its Dungeon Heart room, or null
     /// when it has none; the attack planner reads a missing one as tile (0, 0), as DK2's zeroed
     /// field would be.</summary>
-    public TilePos? HeartOf(byte playerId)
+    public TilePos? HeartOf(PlayerId playerId)
     {
         foreach (KeeperRoomView room in AllRooms)
             if (room.OwnerPlayerId == playerId && room.Definition.RoomId == (byte)RoomTypeId.DungeonHeart)
@@ -314,14 +314,14 @@ public sealed class KeeperView : INavByteGrid
     internal KeeperRouteCache? RouteCache { get; set; }
 
     public GameDatabase Database { get; }
-    public byte PlayerId { get; }
+    public PlayerId PlayerId { get; }
     public GameTick Tick { get; }
     public byte Status { get; }
     public byte AlliedWith { get; }
-    public IReadOnlyList<byte> PlayerOrder { get; }
+    public IReadOnlyList<PlayerId> PlayerOrder { get; }
 
-    public bool AreAllied(byte otherId) => otherId == PlayerId
-        || (otherId < 8 && (AlliedWith & (1 << otherId)) != 0);
+    public bool AreAllied(PlayerId otherId) => otherId == PlayerId
+        || (otherId.Value < 8 && (AlliedWith & (1 << otherId.Value)) != 0);
     public IReadOnlyList<KeeperCreatureView> Creatures { get; }
     public IReadOnlyList<KeeperTrapView> Traps { get; }
     public IReadOnlyList<PlayerMessage> Messages { get; }
@@ -351,7 +351,7 @@ public sealed class KeeperView : INavByteGrid
     public byte NavByte(int x, int y) => _tiles[(y * Width) + x].NavigationByte;
 
     /// <summary>The availability row for a kind and type, or null when the player has none.</summary>
-    public AvailabilityState? AvailabilityRow(ushort kind, int typeId)
+    public AvailabilityState? AvailabilityRow(AvailabilityKind kind, int typeId)
     {
         foreach (AvailabilityState entry in _availability)
             if (entry.Kind == kind && entry.TypeId == typeId) return entry;
@@ -372,14 +372,14 @@ public sealed class KeeperView : INavByteGrid
         return _tiles[IndexOf(p)];
     }
 
-    public int Availability(ushort kind, int typeId)
+    public int Availability(AvailabilityKind kind, int typeId)
     {
         foreach (AvailabilityState entry in _availability)
             if (entry.Kind == kind && entry.TypeId == typeId) return entry.Value;
         return 1;
     }
 
-    public bool IsUpgraded(ushort kind, int typeId)
+    public bool IsUpgraded(AvailabilityKind kind, int typeId)
     {
         foreach (AvailabilityState entry in _availability)
             if (entry.Kind == kind && entry.TypeId == typeId) return entry.Upgraded;
@@ -470,7 +470,7 @@ public sealed class KeeperView : INavByteGrid
     }
 
     /// <summary>A player's rooms newest first, the order DK2's room list (<c>player+0x36</c>) walks.</summary>
-    public IEnumerable<KeeperRoomView> RoomsOf(byte player)
+    public IEnumerable<KeeperRoomView> RoomsOf(PlayerId player)
     {
         for (int i = AllRooms.Count - 1; i >= 0; i--)
             if (AllRooms[i].OwnerPlayerId == player) yield return AllRooms[i];
@@ -479,7 +479,7 @@ public sealed class KeeperView : INavByteGrid
     /// <summary><c>0x004C6460</c>: a room drawn uniformly among the player's rooms of one type whose
     /// ruin bit (<c>+0x9A</c> bit 0) is clear, drawing only when there is one; here a fallen keeper's
     /// heart is the one ruin. Drawn from the keeper's own stream (ADR-0244).</summary>
-    public KeeperRoomView? RandomRoomOfType(byte player, RoomTypeId type, SimRandom rng)
+    public KeeperRoomView? RandomRoomOfType(PlayerId player, RoomTypeId type, SimRandom rng)
     {
         List<KeeperRoomView> rooms = RoomsOf(player).Where(r => r.Definition.RoomId == (byte)type
             && !(type == RoomTypeId.DungeonHeart && HeartRuined(player))).ToList();

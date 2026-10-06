@@ -45,7 +45,7 @@ public class DoorNavigationTests
         return (world, db, world.Doors[0]);
     }
 
-    private static bool Routes(WorldState world, GameDatabase db, byte owner, int options)
+    private static bool Routes(WorldState world, GameDatabase db, byte owner, MoveOptions options)
     {
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, owner, new TilePos(2, 2));
         return new WorldSteering(db, world).TryRoute(imp, Beyond, options);

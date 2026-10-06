@@ -41,11 +41,11 @@ public sealed class BridgeBurnSystem : ISimulationSystem
             byte becomes = BridgeRules.RevertsTo(context.Database, tile);
             TerrainDef next = context.Database.TerrainById(becomes);
 
-            byte ownerBefore = tile.OwnerPlayerId;
+            PlayerId ownerBefore = tile.OwnerPlayerId;
             tile.TerrainId = becomes;
             tile.Health = next.StartingHealth;
             tile.Flags = BridgeRules.SpansWater;
-            if (!next.IsTaggable) tile.TaggedBy = 0;
+            if (!next.IsTaggable) tile.TaggedBy = PlayerMask.None;
             // The water or lava left behind belongs to the neutral player, as every terrain write
             // read so far gives it through Tile_SetTerrain (0x0044FDBF, ADR-0362). STRONGLY
             // INFERRED: the burn's own writer is unread.

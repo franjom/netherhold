@@ -398,13 +398,13 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private bool Throttled(SimulationContext context, CreatureState creature)
     {
         long now = context.Tick.Value;
-        byte owner = (byte)creature.OwnerPlayerId;
-        if (_selectionTick[owner] != now)
+        PlayerId owner = (byte)creature.OwnerPlayerId;
+        if (_selectionTick[owner.Value] != now)
         {
-            _selectionTick[owner] = now;
-            _selections[owner] = 0;
+            _selectionTick[owner.Value] = now;
+            _selections[owner.Value] = 0;
         }
-        if (_selections[owner] >= SelectionsPerTick
+        if (_selections[owner.Value] >= SelectionsPerTick
             && StateShadow.TryMove(context, SystemName, creature, ImpStates.Resting))
         {
             creature.StateDeadlineTick = now + ThrottleBaseTicks + context.Rng.NextInt(ThrottleRandomTicks);
@@ -412,7 +412,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 $"imp={creature.Id} player={creature.OwnerPlayerId} until={creature.StateDeadlineTick}");
             return true;
         }
-        _selections[owner]++;
+        _selections[owner.Value]++;
         return false;
     }
 
@@ -597,7 +597,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// fell in would be unrecoverable for good.</para>
     /// </summary>
     private static bool CanFetchFrom(
-        SimulationContext context, TilePos at, byte playerId, int askingCreatureId)
+        SimulationContext context, TilePos at, PlayerId playerId, int askingCreatureId)
     {
         WorldState world = context.World;
         if (!world.Contains(at)) return false;
@@ -827,7 +827,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private bool TryRouteToSomewhereItFits(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
-        byte player = creature.OwnerPlayerId;
+        PlayerId player = creature.OwnerPlayerId;
         int w = world.Width;
         var rooms = new List<(long Distance, RoomInstance Room)>();
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
@@ -1001,7 +1001,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         // order (Q488, ADR-0292). The kinds without a per-tile form search the one tile.
         WorldState world = context.World;
         TilePos at = creature.Tile;
-        byte player = creature.OwnerPlayerId;
+        PlayerId player = creature.OwnerPlayerId;
         bool handsFree = !HandsFull(context, creature, definition);
         var rings = new DiamondRings(world, at, ChosenStartSide(context, ClaimStartSide(context, world, at, player)));
         try
@@ -1077,7 +1077,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     {
         if (HandsFull(context, creature, definition)) return false;
 
-        byte player = creature.OwnerPlayerId;
+        PlayerId player = creature.OwnerPlayerId;
         WorldState world = context.World;
         var rings = new DiamondRings(world, creature.Tile, DrawnStartSide(context));
         while (rings.MoveNext())
@@ -1130,7 +1130,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
         WorldState world = context.World;
-        byte player = creature.OwnerPlayerId;
+        PlayerId player = creature.OwnerPlayerId;
         bool handsFree = !HandsFull(context, creature, definition);
         TilePos at = creature.Tile;
 
@@ -1199,7 +1199,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         }
         return owned && open;
 
-        static bool IsOwned(byte owner) => owner is not (PlayerIds.Unowned or PlayerIds.Neutral);
+        static bool IsOwned(PlayerId owner) => owner.Value is not (PlayerIds.Unowned or PlayerIds.Neutral);
     }
 
     /// <summary>
@@ -1246,7 +1246,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private bool TryTakeMarkedExcavation(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
         WorldState world = context.World;
-        byte player = creature.OwnerPlayerId;
+        PlayerId player = creature.OwnerPlayerId;
         int width = world.Width;
         bool fromSeam = creature.LastTaskKind == ImpTaskKind.Mine && creature.LastTaskTileIndex >= 0;
         long seamX = fromSeam ? (creature.LastTaskTileIndex % width) * 4096L + 2048 : 0;
@@ -1254,16 +1254,15 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
         // The walk drops every task of its kinds whose tile can no longer be dug (0x00469BC8,
         // 0x00469EBF), so a digger whose action is still running then raises no kind 14 (ADR-0305).
-        ushort outlived = player <= TileState.MaxTaggingPlayerId ? (ushort)~(1 << player) : ushort.MaxValue;
         _excavation.Clear();
         for (int y = 0; y < world.Height; y++)
         {
             for (int x = 0; x < width; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
-                if ((tile.DigTaskOutlivesWallFor & ~outlived) != 0)
+                if (tile.DigTaskOutlivesWallFor.Contains(player))
                 {
-                    tile.DigTaskOutlivesWallFor &= outlived;
+                    tile.DigTaskOutlivesWallFor = tile.DigTaskOutlivesWallFor.Without(player);
                     context.Emit(SystemName, "dig_task_dropped", $"imp={creature.Id} {Describe(world, y * width + x)}");
                 }
                 if (!tile.IsTaggedBy(player)) continue;
@@ -1296,7 +1295,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// (Q140). Q155, ADR-0289.
     /// </summary>
     private bool TryExcavationAt(
-        SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos target, byte player)
+        SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos target, PlayerId player)
     {
         WorldState world = context.World;
         int targetIndex = target.Y * world.Width + target.X;
@@ -1555,7 +1554,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// in the order north, east, south, west, each graded by <see cref="ClaimSideGrade"/>, and the
     /// first of the lowest grades wins.
     /// </summary>
-    private static int ClaimStartSide(SimulationContext context, WorldState world, TilePos at, byte playerId)
+    private static int ClaimStartSide(SimulationContext context, WorldState world, TilePos at, PlayerId playerId)
     {
         int best = 0, bestGrade = int.MaxValue;
         for (int k = 0; k < 4; k++)
@@ -1582,7 +1581,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// unowned floor 5; a wall to reinforce or repair (not gold, below MaxHealth, unowned or the
     /// keeper's own, touching its floor: <c>0x00453dc0</c>, <c>0x00453e30</c>) 12; anything else 127.
     /// </summary>
-    private static int ClaimSideGrade(SimulationContext context, WorldState world, TilePos at, byte playerId)
+    private static int ClaimSideGrade(SimulationContext context, WorldState world, TilePos at, PlayerId playerId)
     {
         if (!world.Contains(at)) return 127;
         ref TileState tile = ref world.Tile(at);
@@ -1672,7 +1671,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         WorldPathGrid grid,
         TilePos standing,
         TilePos target,
-        byte playerId,
+        PlayerId playerId,
         JobPriority priority,
         int askingCreatureId,
         out int tileIndex,
@@ -1800,7 +1799,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// can hold at all.
     /// </summary>
     private static bool StandsOnOwnLand(
-        SimulationContext context, WorldState world, TilePos standing, byte playerId)
+        SimulationContext context, WorldState world, TilePos standing, PlayerId playerId)
     {
         if (!world.Contains(standing)) return false;
 
@@ -1817,14 +1816,13 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// next dig walk, as its own removal tests for kind 1. Level 1 seeds 1 and 6 raise none: an
     /// imp chose a dig between the wall's fall and the diggers' last action (ADR-0305).
     /// </summary>
-    private static void RaiseClaimOfWhatWasDug(SimulationContext context, byte playerId, int tileIndex, TileWorkKind work)
+    private static void RaiseClaimOfWhatWasDug(SimulationContext context, PlayerId playerId, int tileIndex, TileWorkKind work)
     {
         if (playerId > TileState.MaxTaggingPlayerId) return;
         WorldState world = context.World;
         ref TileState tile = ref world.TileAtIndex(tileIndex);
-        ushort bit = (ushort)(1 << playerId);
-        if ((tile.DigTaskOutlivesWallFor & bit) == 0) return;
-        if (work != TileWorkKind.MineGold) tile.DigTaskOutlivesWallFor &= (ushort)~bit;
+        if (!tile.DigTaskOutlivesWallFor.Contains(playerId)) return;
+        if (work != TileWorkKind.MineGold) tile.DigTaskOutlivesWallFor = tile.DigTaskOutlivesWallFor.Without(playerId);
         if (!tile.FreshlyDug && TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId)
             && TouchesOwnLand(context, world, new TilePos(tileIndex % world.Width, tileIndex / world.Width), playerId))
         {
@@ -1845,7 +1843,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// The test is <see cref="OwnFloorRules"/>, shared with bridge placement.</para>
     /// </summary>
     internal static bool TouchesOwnLand(
-        SimulationContext context, WorldState world, TilePos target, byte playerId) =>
+        SimulationContext context, WorldState world, TilePos target, PlayerId playerId) =>
         OwnFloorRules.Touches(context.Database, world, target, playerId);
 
     /// <summary>
@@ -1858,7 +1856,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// every tagged kind but <see cref="TileWorkKind.MineGold"/>.
     /// </summary>
     private static bool ADigIsStillMarkedAround(
-        SimulationContext context, WorldState world, TilePos target, byte playerId)
+        SimulationContext context, WorldState world, TilePos target, PlayerId playerId)
     {
         for (int dy = -1; dy <= 1; dy++)
         {
@@ -1888,7 +1886,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// the argument and what would change it.</para>
     /// </summary>
     private static bool TouchesOwnFloor(
-        SimulationContext context, WorldState world, TilePos target, byte playerId)
+        SimulationContext context, WorldState world, TilePos target, PlayerId playerId)
     {
         ReadOnlySpan<int> dx = [1, -1, 0, 0];
         ReadOnlySpan<int> dy = [0, 0, 1, -1];

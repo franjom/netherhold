@@ -95,7 +95,7 @@ public static class LairRules
 
     /// <summary>Whether this tile is lair terrain held by this keeper.</summary>
     public static bool IsLairTileOf(
-        WorldState world, GameDatabase database, int tileIndex, byte ownerPlayerId)
+        WorldState world, GameDatabase database, int tileIndex, PlayerId ownerPlayerId)
     {
         if (tileIndex < 0 || tileIndex >= world.TileCount) return false;
         ref TileState tile = ref world.TileAtIndex(tileIndex);
@@ -110,7 +110,7 @@ public static class LairRules
     /// alignment is a preference between <i>rooms</i>
     /// (<see cref="HoldsBedOfOtherAlignment"/>).</summary>
     public static bool IsFreeLairTile(
-        WorldState world, GameDatabase database, int tileIndex, byte ownerPlayerId) =>
+        WorldState world, GameDatabase database, int tileIndex, PlayerId ownerPlayerId) =>
         IsLairTileOf(world, database, tileIndex, ownerPlayerId)
         && !BedTaken(world, database, tileIndex);
 
@@ -228,7 +228,7 @@ public static class LairRules
     /// </summary>
     public static bool TryFindFreeTile(
         WorldState world, GameDatabase database, RoomInstance room, TilePos from,
-        byte ownerPlayerId, SimRandom rng, out int tileIndex, out TileFound how)
+        PlayerId ownerPlayerId, SimRandom rng, out int tileIndex, out TileFound how)
     {
         int here = (from.Y * world.Width) + from.X;
         if (IsFreeLairTile(world, database, here, ownerPlayerId))

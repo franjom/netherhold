@@ -35,7 +35,7 @@ public sealed class PortalSystem : ISimulationSystem
 
         for (int i = 0; i < world.PlayerCount; i++)
         {
-            byte playerId = world.PlayerAtIndex(i).PlayerId;
+            PlayerId playerId = world.PlayerAtIndex(i).PlayerId;
 
             // Only a keeper's portals run. An unclaimed portal belongs to the
             // neutral player (PlayerIds.Neutral) — 167 of the campaign's are —
@@ -43,14 +43,14 @@ public sealed class PortalSystem : ISimulationSystem
             // full interval for the first arrival (Q86). This clause decides
             // only the clock: no shipped level grants a creature pool or
             // availability below player 3, so Pick would refuse every candidate.
-            if (!PlayerIds.IsKeeper(playerId)) continue;
+            if (!PlayerIds.IsKeeper(playerId.Value)) continue;
 
             RunPortalsOf(context, rooms, playerId);
         }
     }
 
     private static void RunPortalsOf(
-        SimulationContext context, List<RoomInstance> rooms, byte playerId)
+        SimulationContext context, List<RoomInstance> rooms, PlayerId playerId)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -147,7 +147,7 @@ public sealed class PortalSystem : ISimulationSystem
     /// any carries weight, even a single one.</para>
     /// </remarks>
     private static CreatureDef? Pick(
-        SimulationContext context, List<RoomInstance> ownedRooms, byte playerId,
+        SimulationContext context, List<RoomInstance> ownedRooms, PlayerId playerId,
         RoomDef portal, out string candidateNames)
     {
         WorldState world = context.World;

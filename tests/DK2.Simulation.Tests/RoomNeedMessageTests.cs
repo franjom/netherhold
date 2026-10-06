@@ -24,8 +24,8 @@ public class RoomNeedMessageTests
     private static void Availability(WorldState world, RoomTypeId room, int value)
     {
         List<AvailabilityState> rows = world.Player(Keeper).Availabilities;
-        rows.RemoveAll(a => a.Kind == RoomNeedRules.RoomAvailabilityKind && a.TypeId == (int)room);
-        if (value != 1) rows.Add(new AvailabilityState(RoomNeedRules.RoomAvailabilityKind, (int)room, value));
+        rows.RemoveAll(a => a.Kind == AvailabilityKind.Room && a.TypeId == (int)room);
+        if (value != 1) rows.Add(new AvailabilityState(AvailabilityKind.Room, (int)room, value));
     }
 
     private static void Room(WorldState world, RoomTypeId room, int x, int y, int gold = 0)

@@ -65,7 +65,7 @@ public sealed class SimulationContext
     public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type) =>
         Triggers?.FireCreatureEvent(creature, type, TriggerTurn);
 
-    public void FirePlayerEvent(byte playerId, PlayerTriggerEvent type, byte targetType = 0, byte targetId = 0) =>
+    public void FirePlayerEvent(PlayerId playerId, PlayerTriggerEvent type, byte targetType = 0, byte targetId = 0) =>
         Triggers?.FirePlayerEvent(playerId, type, TriggerTurn, targetType, targetId);
 }
 

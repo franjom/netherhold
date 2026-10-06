@@ -20,7 +20,7 @@ public sealed class KeeperSpellTests
     public void CastCreatesTheSelectedShotPaysAndStampsBothClocksButReturnsZero(bool upgraded, int damage)
     {
         var (db, world, target) = Setup();
-        world.SetUpgraded(Keeper, 5, 6, upgraded);
+        world.SetUpgraded(Keeper, AvailabilityKind.Spell, 6, upgraded);
         var boundary = new Boundary();
         var sim = new GameSimulation(db, world, 9, [boundary, new ShotSystem()]);
         sim.Run(7);
@@ -85,7 +85,7 @@ public sealed class KeeperSpellTests
     public void AThunderboltNotYetAvailableStillCasts_ForTheInterfaceGatesAvailability(int value)
     {
         var (db, world, target) = Setup();
-        world.SetAvailability(Keeper, 5, 6, value);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, 6, value);
         var boundary = new Boundary();
         new GameSimulation(db, world, 1, [boundary]).Tick(
             InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id)));
@@ -160,7 +160,7 @@ public sealed class KeeperSpellTests
         var (db, world, target) = Setup();
         world.SetAllied(Keeper, Rival, true);
         world.Tile(target.Tile).OwnerPlayerId = Rival;
-        world.Tile(target.Tile).DiscoveredBy = 0;
+        world.Tile(target.Tile).DiscoveredBy = PlayerMask.None;
         var boundary = new Boundary();
         new GameSimulation(db, world, 1, [boundary]).Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id)));
         Assert.Equal(KeeperSpellRefusal.None, boundary.Refusal);
@@ -196,7 +196,7 @@ public sealed class KeeperSpellTests
             Assert.Empty(world.Shots);
         }
         var (bonusDb, bonusWorld, bonusTarget) = Setup(Spell() with { BonusShotTypeId = 71 });
-        bonusWorld.SetUpgraded(Keeper, 5, 6, true);
+        bonusWorld.SetUpgraded(Keeper, AvailabilityKind.Spell, 6, true);
         new GameSimulation(bonusDb, bonusWorld, 1, [new KeeperSpellSystem()])
             .Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, bonusTarget.Id)));
         Assert.Equal((71, 200), ((int)Assert.Single(bonusWorld.Shots).ShotTypeId, Assert.Single(bonusWorld.Shots).Data1));
@@ -331,7 +331,7 @@ public sealed class KeeperSpellTests
             basis.Variables, [spell ?? Spell()], objects: basis.Objects.Values, shots: [Shot(21), Shot(71)]);
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         world.Player(Keeper).Mana = 12000;
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, 6, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, 6, 3));
         world.Tile(10, 10).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(10, 10).OwnerPlayerId = Keeper;
         CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));

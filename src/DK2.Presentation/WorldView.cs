@@ -21,7 +21,7 @@ public readonly struct TileView
         TilePos position,
         AssetRef ground,
         AssetRef furniture,
-        byte ownerPlayerId,
+        PlayerId ownerPlayerId,
         bool tagged,
         bool solid,
         int goldHeld,
@@ -30,7 +30,7 @@ public readonly struct TileView
         Position = position;
         Ground = ground;
         Furniture = furniture;
-        OwnerPlayerId = ownerPlayerId;
+        OwnerPlayerId = ownerPlayerId.Value;
         Tagged = tagged;
         Solid = solid;
         GoldHeld = goldHeld;
@@ -80,7 +80,7 @@ public readonly struct CreatureView
 {
     public CreatureView(
         int id,
-        byte ownerPlayerId,
+        PlayerId ownerPlayerId,
         int posX,
         int posY,
         AssetRef mesh,
@@ -88,7 +88,7 @@ public readonly struct CreatureView
         int goldHeld)
     {
         Id = id;
-        OwnerPlayerId = ownerPlayerId;
+        OwnerPlayerId = ownerPlayerId.Value;
         PosX = posX;
         PosY = posY;
         Mesh = mesh;
@@ -135,11 +135,11 @@ public readonly struct CreatureView
 /// </summary>
 public readonly struct ObjectView
 {
-    public ObjectView(int id, byte objectTypeId, byte ownerPlayerId, TilePos tile, AssetRef mesh, int goldHeld)
+    public ObjectView(int id, byte objectTypeId, PlayerId ownerPlayerId, TilePos tile, AssetRef mesh, int goldHeld)
     {
         Id = id;
         ObjectTypeId = objectTypeId;
-        OwnerPlayerId = ownerPlayerId;
+        OwnerPlayerId = ownerPlayerId.Value;
         Tile = tile;
         Mesh = mesh;
         GoldHeld = goldHeld;
@@ -203,12 +203,17 @@ public sealed class WorldView
     /// existing single-player front ends; multiplayer callers must select the
     /// keeper whose screen they are producing.
     /// </summary>
-    public WorldView(GameDatabase database, byte viewingPlayerId = 1)
+    public WorldView(GameDatabase database)
+        : this(database, PlayerIds.Good)
+    {
+    }
+
+    public WorldView(GameDatabase database, PlayerId viewingPlayerId)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         if (viewingPlayerId > TileState.MaxTaggingPlayerId)
             throw new ArgumentOutOfRangeException(nameof(viewingPlayerId));
-        _viewingPlayerId = viewingPlayerId;
+        _viewingPlayerId = viewingPlayerId.Value;
         _fogTerrain = database.Terrain.Values.FirstOrDefault(t =>
             string.Equals(t.Name, "Fog Of War", StringComparison.OrdinalIgnoreCase));
 

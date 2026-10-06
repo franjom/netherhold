@@ -201,8 +201,8 @@ public class InputLogTests
 
         Assert.Collection(
             log.At(40).All,
-            c => Assert.Equal(2, ((TagTilesCommand)c).PlayerId),
-            c => Assert.Equal(5, ((TagTilesCommand)c).PlayerId));
+            c => Assert.Equal(new PlayerId(2), ((TagTilesCommand)c).PlayerId),
+            c => Assert.Equal(new PlayerId(5), ((TagTilesCommand)c).PlayerId));
     }
 
     [Fact]

@@ -25,7 +25,7 @@ public static class TrapActivationRules
     public const uint UsesMana = 0x100;
 
     public static TrapReadiness Readiness(
-        TrapDef definition, byte owner, bool underConstruction, long tick,
+        TrapDef definition, PlayerId owner, bool underConstruction, long tick,
         long rechargeDeadline, int mana, bool beingDisarmed)
     {
         if (underConstruction) return TrapReadiness.UnderConstruction;

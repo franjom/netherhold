@@ -75,7 +75,7 @@ public static class ObjectCarryRules
     /// (Q166): DK2 stores <c>UsedObjectCapacity</c> on the room and each object definition carries
     /// its own <c>RoomCapacity</c>, so the original's accounting is finer and has not been read.</summary>
     public static int FreeTileFor(
-        WorldState world, GameDatabase database, byte playerId, RoomTypeId type, TilePos from)
+        WorldState world, GameDatabase database, PlayerId playerId, RoomTypeId type, TilePos from)
     {
         int best = -1;
         long bestDistance = long.MaxValue;
@@ -197,10 +197,10 @@ public static class ObjectCarryRules
     /// the keeper, which is what takes it out of <see cref="IsLoose"/> and stops it being fetched
     /// again for ever.</summary>
     public static void Deliver(
-        CreatureState worker, ObjectState thing, byte playerId, int tileIndex)
+        CreatureState worker, ObjectState thing, PlayerId playerId, int tileIndex)
     {
         PutDown(worker, thing);
         thing.TileIndex = tileIndex;
-        thing.OwnerPlayerId = playerId;
+        thing.OwnerPlayerId = playerId.Value;
     }
 }

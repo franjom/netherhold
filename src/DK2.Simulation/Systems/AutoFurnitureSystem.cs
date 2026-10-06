@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Systems;
 
@@ -15,8 +16,8 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         WorldState world = context.World;
-        var desired = new List<(byte Owner, int Tile, byte Type)>();
-        var unmatched = new HashSet<(byte Owner, int Tile, byte Type)>();
+        var desired = new List<(PlayerId Owner, int Tile, byte Type)>();
+        var unmatched = new HashSet<(PlayerId Owner, int Tile, byte Type)>();
         var roomFurniture = new List<(int TileIndex, byte ObjectTypeId)>();
 
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
@@ -42,7 +43,7 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
         }
 
         foreach (int id in remove) world.RemoveObject(id);
-        foreach ((byte owner, int tile, byte type) in desired)
+        foreach ((PlayerId owner, int tile, byte type) in desired)
         {
             if (!unmatched.Contains((owner, tile, type))) continue;
             // HatcherySystem owns coop creation and its coops_placed event;

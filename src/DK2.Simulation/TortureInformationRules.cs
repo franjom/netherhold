@@ -24,7 +24,7 @@ public static class TortureInformationRules
     /// Artisan 3 then 7, Thinker 4 then 9, Fighter 5 then 8, a Scout none; then 10; each only while
     /// the chamber's keeper has not been given it about the victim's keeper (<c>0x004C2BC0</c>).
     /// Then 11. A hero victim gives 11 alone.</summary>
-    public static List<int> Candidates(WorldState world, CreatureDef victim, byte victimOwner, byte chamberOwner)
+    public static List<int> Candidates(WorldState world, CreatureDef victim, PlayerId victimOwner, PlayerId chamberOwner)
     {
         var list = new List<int>(4);
         if (victimOwner != PlayerIds.Good)
@@ -49,7 +49,7 @@ public static class TortureInformationRules
 
     /// <summary><c>0x004C2BC0(k, victim's keeper, chamber's keeper)</c>: true for a keeper about
     /// itself, otherwise the stored flag.</summary>
-    public static bool Given(WorldState world, int reward, byte chamberOwner, byte victimOwner)
+    public static bool Given(WorldState world, int reward, PlayerId chamberOwner, PlayerId victimOwner)
     {
         if (chamberOwner == victimOwner) return true;
         if (reward is < 3 or > 10) return false;
@@ -58,7 +58,7 @@ public static class TortureInformationRules
 
     /// <summary><c>rand(n)</c> over <see cref="Candidates"/>; a reward other than 11 is marked
     /// given (<c>0x004C2B60</c>). Returns the reward.</summary>
-    public static int Give(WorldState world, SimRandom rng, CreatureDef victim, byte victimOwner, byte chamberOwner)
+    public static int Give(WorldState world, SimRandom rng, CreatureDef victim, PlayerId victimOwner, PlayerId chamberOwner)
     {
         List<int> candidates = Candidates(world, victim, victimOwner, chamberOwner);
         int reward = candidates[rng.NextInt(candidates.Count)];
@@ -66,5 +66,5 @@ public static class TortureInformationRules
         return reward;
     }
 
-    private static ulong Bit(int reward, byte victimOwner) => 1UL << (((reward - 3) * 8) + (victimOwner & 7));
+    private static ulong Bit(int reward, PlayerId victimOwner) => 1UL << (((reward - 3) * 8) + (victimOwner.Value & 7));
 }

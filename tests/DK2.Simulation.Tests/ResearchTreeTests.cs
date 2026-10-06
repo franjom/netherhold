@@ -14,8 +14,8 @@ namespace DK2.Simulation.Tests;
 public sealed class ResearchTreeTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private const ushort SpellKind = 5;
-    private const ushort DoorKind = 4;
+    private const AvailabilityKind SpellKind = AvailabilityKind.Spell;
+    private const AvailabilityKind DoorKind = AvailabilityKind.Door;
     private const int Researchable = 2;
     private const int Available = 3;
     private const int CreateImp = Dk2TerrainFixture.CreateImpSpellId;

@@ -22,13 +22,12 @@ public static class PortalRules
 {
     // Availability kinds and values, decoded from the shipped table and corroborated
     // by OpenKeeper: UNAVAILABLE 1, RESEARCHABLE 2, AVAILABLE 3 (kwd-variables.md).
-    private const ushort KindCreature = 2;
     private const int Researchable = 2;
     private const int Available = 3;
 
     /// <summary>Whether this keeper's portals let an ordinary arrival out: DK2's
     /// <c>PortalsOpen</c>, which the creator <c>0x004DC9A0</c> tests first (ADR-0314).</summary>
-    public static bool PortalsOpen(WorldState world, byte playerId) =>
+    public static bool PortalsOpen(WorldState world, PlayerId playerId) =>
         !world.Player(playerId).PortalsClosed;
 
     /// <summary>Action 28: use the first owned keeper Portal, bypass attraction, pool,
@@ -36,7 +35,7 @@ public static class PortalRules
     /// <c>PortalsOpen</c> for its own call and restores it), then promote. No Portal still succeeds.
     /// Arrival representation and room ordering limits: portal-creature-action.md, Q473.</summary>
     public static CreatureState? CreateScriptedArrival(
-        in StateHookContext hooks, byte playerId, byte creatureTypeId, byte level)
+        in StateHookContext hooks, PlayerId playerId, byte creatureTypeId, byte level)
     {
         WorldState world = hooks.World;
         GameDatabase database = hooks.Database;
@@ -124,7 +123,7 @@ public static class PortalRules
     /// test so a path search can use it as a goal predicate without a <see cref="RoomIndex"/>;
     /// no <see cref="CanProduce"/>.</summary>
     public static bool IsExitTile(
-        WorldState world, GameDatabase database, TilePos at, byte playerId)
+        WorldState world, GameDatabase database, TilePos at, PlayerId playerId)
     {
         if (!world.Contains(at)) return false;
 
@@ -141,7 +140,7 @@ public static class PortalRules
     /// <see cref="RoomInstance.IsCentrePlatform"/> also makes; no
     /// <see cref="CanProduce"/>, as for <see cref="IsExitTile"/>.</summary>
     public static bool IsHoleTile(
-        WorldState world, GameDatabase database, TilePos at, byte playerId)
+        WorldState world, GameDatabase database, TilePos at, PlayerId playerId)
     {
         if (!IsExitTile(world, database, at, playerId)) return false;
 
@@ -240,7 +239,7 @@ public static class PortalRules
     /// INFERRED (docs/research/binary-entrance.md §3). By
     /// <see cref="CreatureFlags.IsWorker"/> as <see cref="ImpSupplyRules.ImpCount"/>
     /// does, so the Dwarf is out too.</summary>
-    public static int CreatureCount(WorldState world, GameDatabase database, byte playerId)
+    public static int CreatureCount(WorldState world, GameDatabase database, PlayerId playerId)
     {
         int count = 0;
         IReadOnlyList<CreatureState> creatures = world.Creatures;
@@ -255,7 +254,7 @@ public static class PortalRules
     }
 
     /// <summary>How many of one creature type this keeper holds.</summary>
-    public static int CreatureCountOfType(WorldState world, byte playerId, byte creatureTypeId)
+    public static int CreatureCountOfType(WorldState world, PlayerId playerId, byte creatureTypeId)
     {
         int count = 0;
         IReadOnlyList<CreatureState> creatures = world.Creatures;
@@ -290,25 +289,25 @@ public static class PortalRules
     /// kind 2, state AVAILABLE (3) or RESEARCHABLE (2); a creature the level never
     /// mentions is unavailable. <c>PortalOnRealDataTests</c> and
     /// <c>docs/research/portals.md</c> hold why both states count.</summary>
-    public static bool IsUnlocked(WorldState world, byte playerId, byte creatureTypeId) =>
-        world.Availability(playerId, KindCreature, creatureTypeId)
+    public static bool IsUnlocked(WorldState world, PlayerId playerId, byte creatureTypeId) =>
+        world.Availability(playerId, AvailabilityKind.Creature, creatureTypeId)
             is Available or Researchable;
 
     /// <summary>Reads the immutable level definition before a world exists.</summary>
-    public static bool IsUnlocked(GameDatabase database, byte playerId, byte creatureTypeId) =>
-        database.Variables.AvailabilitiesOf(playerId).Any(a =>
-            a.Kind == KindCreature && a.TypeId == creatureTypeId && a.Value is Available or Researchable);
+    public static bool IsUnlocked(GameDatabase database, PlayerId playerId, byte creatureTypeId) =>
+        database.Variables.AvailabilitiesOf(playerId.Value).Any(a =>
+            (AvailabilityKind)a.Kind == AvailabilityKind.Creature && a.TypeId == creatureTypeId && a.Value is Available or Researchable);
 
     /// <summary>The most of this creature type the keeper's pool allows at once, or 0
     /// if the pool does not mention it — a standing limit, not a draining quota
     /// (STRONGLY INFERRED; <c>docs/research/portals.md</c> §2 has both cases and Q87).
     /// Last entry wins on a duplicate type, which no shipped level has.</summary>
-    public static int PoolLimit(GameDatabase database, byte playerId, byte creatureTypeId)
+    public static int PoolLimit(GameDatabase database, PlayerId playerId, byte creatureTypeId)
     {
         int limit = 0;
         foreach (CreaturePoolEntry entry in database.Variables.CreaturePool)
         {
-            if (entry.PlayerId == playerId && entry.CreatureId == creatureTypeId)
+            if (entry.PlayerId == playerId.Value && entry.CreatureId == creatureTypeId)
                 limit = entry.Value;
         }
         return limit;

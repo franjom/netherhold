@@ -143,7 +143,7 @@ public sealed class RuinedHeartTests
         sim.ObserveWith(sink);
 
         sim.Tick(InputFrame.Of(
-            BuildRoomCommand.At(Keeper, (byte)RoomTypeId.Treasury, at)));
+            BuildRoomCommand.At(Keeper, RoomTypeId.Treasury, at)));
 
         Assert.Equal(Dk2TerrainFixture.DungeonHeartTerrain, world.Tile(at).TerrainId);
         Assert.Contains(sink.Events, e =>

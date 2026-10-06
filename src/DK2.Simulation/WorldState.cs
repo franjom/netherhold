@@ -55,7 +55,7 @@ public struct TileState
     /// rather than a shared tag list. The bitmask is our representation, not a
     /// claim about the original's storage.
     /// </summary>
-    public ushort TaggedBy;
+    public PlayerMask TaggedBy;
 
     /// <summary>When this tile was last marked, from <see cref="WorldState.NextTagOrder"/>; 0
     /// unmarked. DK2 files a marked tile at the head of its keeper's task list for the kind
@@ -69,7 +69,7 @@ public struct TileState
     /// DK2's packing. DK2 persists its live tile fog bit in saved games, so the
     /// information is simulation state and must be hashed and snapshotted.
     /// </summary>
-    public ushort DiscoveredBy;
+    public PlayerMask DiscoveredBy;
 
     /// <summary>
     /// Whether this tile is floor that a worker <b>dug out</b> and nobody has
@@ -91,7 +91,7 @@ public struct TileState
     /// pool: the digger, when its action ends, raises the kind-14 task only if the entry is
     /// still there (<c>0x004655D0</c>, <c>0x00465870</c>), and any imp's dig walk drops an
     /// entry whose tile can no longer be dug (<c>0x00469AF0</c>). ADR-0305.</summary>
-    public ushort DigTaskOutlivesWallFor;
+    public PlayerMask DigTaskOutlivesWallFor;
 
     /// <summary>
     /// Health owed to this tile that was too small to apply, carried between
@@ -203,35 +203,32 @@ public struct TileState
     public byte KeptManaGain;
 
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
-    public const int MaxTaggingPlayerId = 15;
+    public const int MaxTaggingPlayerId = PlayerMask.MaxPlayerId;
 
-    public readonly bool IsTaggedBy(byte playerId) =>
-        playerId <= MaxTaggingPlayerId && (TaggedBy & (ushort)(1 << playerId)) != 0;
+    public readonly bool IsTaggedBy(PlayerId playerId) => TaggedBy.Contains(playerId);
 
-    public readonly bool IsTaggedByAnyone => TaggedBy != 0;
+    public readonly bool IsTaggedByAnyone => !TaggedBy.IsEmpty;
 
-    public readonly bool IsDiscoveredBy(byte playerId) =>
-        playerId <= MaxTaggingPlayerId && (DiscoveredBy & (ushort)(1 << playerId)) != 0;
+    public readonly bool IsDiscoveredBy(PlayerId playerId) => DiscoveredBy.Contains(playerId);
 
-    public void SetDiscoveredBy(byte playerId)
+    public void SetDiscoveredBy(PlayerId playerId)
     {
         if (playerId > MaxTaggingPlayerId)
             throw new ArgumentOutOfRangeException(
                 nameof(playerId), playerId,
                 $"Tile discovery only tracks player ids 0..{MaxTaggingPlayerId}.");
 
-        DiscoveredBy |= (ushort)(1 << playerId);
+        DiscoveredBy = DiscoveredBy.With(playerId);
     }
 
-    public void SetTaggedBy(byte playerId, bool tagged)
+    public void SetTaggedBy(PlayerId playerId, bool tagged)
     {
         if (playerId > MaxTaggingPlayerId)
             throw new ArgumentOutOfRangeException(
                 nameof(playerId), playerId,
                 $"Tile tags only track player ids 0..{MaxTaggingPlayerId}.");
 
-        ushort bit = (ushort)(1 << playerId);
-        TaggedBy = tagged ? (ushort)(TaggedBy | bit) : (ushort)(TaggedBy & ~bit);
+        TaggedBy = tagged ? TaggedBy.With(playerId) : TaggedBy.Without(playerId);
     }
 
     public readonly void HashInto(ref Hash64 hash)
@@ -241,10 +238,10 @@ public struct TileState
         hash.Add(Flags);
         hash.Add(Health);
         hash.Add(GoldHeld);
-        hash.Add(TaggedBy);
-        hash.Add(DiscoveredBy);
+        hash.Add(TaggedBy.Bits);
+        hash.Add(DiscoveredBy.Bits);
         hash.Add(FreshlyDug ? (byte)1 : (byte)0);
-        hash.Add(DigTaskOutlivesWallFor);
+        hash.Add(DigTaskOutlivesWallFor.Bits);
         hash.Add(TagOrder);
         hash.Add(BurnTicksRemaining);
         hash.Add(EntranceIdleTicks);
@@ -272,7 +269,7 @@ public struct TileState
 /// </summary>
 public struct PlayerState
 {
-    public byte PlayerId;
+    public PlayerId PlayerId;
     public int Mana;
 
     /// <summary>Cumulative one-shot mana loss, player +0x10F2 (keeper-spell-casting.md).</summary>
@@ -459,7 +456,7 @@ public struct PlayerState
 
     public readonly void HashInto(ref Hash64 hash)
     {
-        hash.Add(PlayerId);
+        hash.Add(PlayerId.Value);
         hash.Add(AlliedWith);
         hash.Add(Mana);
         hash.Add(OneShotManaSpent);
@@ -530,12 +527,12 @@ public readonly record struct EntranceInfoState(byte CreatureTypeId, int Boost, 
     }
 }
 
-public readonly record struct AvailabilityState(ushort Kind, int TypeId, int Value, bool Upgraded = false,
+public readonly record struct AvailabilityState(AvailabilityKind Kind, int TypeId, int Value, bool Upgraded = false,
     long LastCastTick = 0, long LastCheckedTick = 0)
 {
     internal void HashInto(ref Hash64 hash)
     {
-        hash.Add(Kind);
+        hash.Add((ushort)Kind);
         hash.Add(TypeId);
         hash.Add(Value);
         hash.Add(Upgraded ? (byte)1 : (byte)0);
@@ -1027,13 +1024,13 @@ public sealed class WorldState
     public bool Contains(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height;
     public bool Contains(TilePos p) => Contains(p.X, p.Y);
 
-    public IReadOnlyList<byte> PlayerIds => _players.Select(p => p.PlayerId).ToArray();
+    public IReadOnlyList<PlayerId> PlayerIds => _players.Select(p => p.PlayerId).ToArray();
 
     public int PlayerCount => _players.Length;
 
     public ref PlayerState PlayerAtIndex(int index) => ref _players[index];
 
-    public ref PlayerState Player(byte playerId)
+    public ref PlayerState Player(PlayerId playerId)
     {
         for (int i = 0; i < _players.Length; i++)
             if (_players[i].PlayerId == playerId)
@@ -1042,7 +1039,7 @@ public sealed class WorldState
     }
 
     /// <summary>Returns a keeper's availability state, or 1 when no row exists.</summary>
-    public int Availability(byte playerId, ushort kind, int typeId)
+    public int Availability(PlayerId playerId, AvailabilityKind kind, int typeId)
     {
         foreach (AvailabilityState entry in Player(playerId).Availabilities)
             if (entry.Kind == kind && entry.TypeId == typeId)
@@ -1051,7 +1048,7 @@ public sealed class WorldState
     }
 
     /// <summary>Changes an existing availability row. A missing row is a successful no-op.</summary>
-    public void SetAvailability(byte playerId, ushort kind, int typeId, int value)
+    public void SetAvailability(PlayerId playerId, AvailabilityKind kind, int typeId, int value)
     {
         ref PlayerState player = ref Player(playerId);
         for (int i = 0; i < player.Availabilities.Count; i++)
@@ -1065,7 +1062,7 @@ public sealed class WorldState
 
     /// <summary>A row's <see cref="AvailabilityState.Upgraded"/>, or false when no row
     /// exists — DK2's <c>0x004BB0D0</c> returns 0 for an absent entry.</summary>
-    public bool IsUpgraded(byte playerId, ushort kind, int typeId)
+    public bool IsUpgraded(PlayerId playerId, AvailabilityKind kind, int typeId)
     {
         foreach (AvailabilityState entry in Player(playerId).Availabilities)
             if (entry.Kind == kind && entry.TypeId == typeId)
@@ -1075,7 +1072,7 @@ public sealed class WorldState
 
     /// <summary>Sets an existing row's <see cref="AvailabilityState.Upgraded"/>; a missing
     /// row is a no-op, as DK2's writer <c>0x004BB070</c> is.</summary>
-    public void SetUpgraded(byte playerId, ushort kind, int typeId, bool upgraded)
+    public void SetUpgraded(PlayerId playerId, AvailabilityKind kind, int typeId, bool upgraded)
     {
         ref PlayerState player = ref Player(playerId);
         for (int i = 0; i < player.Availabilities.Count; i++)
@@ -1088,13 +1085,13 @@ public sealed class WorldState
     }
 
     /// <summary>Whether any row of one kind has the requested state.</summary>
-    public bool HasAvailability(byte playerId, ushort kind, int value) =>
+    public bool HasAvailability(PlayerId playerId, AvailabilityKind kind, int value) =>
         Player(playerId).Availabilities.Any(a => a.Kind == kind && a.Value == value);
 
     /// <summary>Ends the game for one player — DK2's <c>0x004BE630</c>, which returns at
     /// once if <c>Status</c> is already set, so the first verdict stands. Returns whether
     /// this call was the one that ended it (ADR-0162).</summary>
-    public bool EndGame(byte playerId, byte status)
+    public bool EndGame(PlayerId playerId, byte status)
     {
         ref PlayerState player = ref Player(playerId);
         if (PlayerStatus.HasEnded(player.Status)) return false;
@@ -1110,16 +1107,16 @@ public sealed class WorldState
     /// <c>GameTickDied</c> are stamped as the object death handler does (<c>0x0049B5E0</c>, type 13
     /// arm); the ruin and the verdict follow in <see cref="Systems.DungeonHeartSystem"/>. Not modelled
     /// (2026-09-23): the <c>DungeonHeartIsInvulnerable</c> player flag, whose writer is unread.</summary>
-    public bool DamageHeart(byte playerId, int amount, byte attackerPlayerId)
+    public bool DamageHeart(PlayerId playerId, int amount, PlayerId attackerPlayerId)
     {
         ref PlayerState player = ref Player(playerId);
         if (player.HeartHealth <= 0) return false;
-        player.HeartLastAttackerPlayerId = attackerPlayerId;
+        player.HeartLastAttackerPlayerId = attackerPlayerId.Value;
         player.HeartHealth -= amount;
         if (player.HeartHealth > 0) return false;
 
         player.HeartHealth = 0;
-        player.KilledByPlayerId = attackerPlayerId;
+        player.KilledByPlayerId = attackerPlayerId.Value;
         player.HeartDiedTick = CurrentTick;
         return true;
     }
@@ -1127,10 +1124,10 @@ public sealed class WorldState
     /// <summary>The positive half of the same routine, as the heart room's frame calls it
     /// (<c>0x004D9EFB</c>): the owner's own tag is the source, so a regenerating heart's last
     /// source reads as its keeper until the next blow. The caller has already capped the amount.</summary>
-    public void RegenerateHeart(byte playerId, int amount)
+    public void RegenerateHeart(PlayerId playerId, int amount)
     {
         ref PlayerState player = ref Player(playerId);
-        player.HeartLastAttackerPlayerId = playerId;
+        player.HeartLastAttackerPlayerId = playerId.Value;
         player.HeartHealth += amount;
     }
 
@@ -1138,20 +1135,20 @@ public sealed class WorldState
     /// the original's <c>0x004BF3D0</c>, which answers yes for the same player without reading
     /// the array and otherwise returns the byte at <c>player+0x1AE+other</c>. The door update
     /// asks it of every creature standing at a door (doors-and-traps.md).</summary>
-    public bool AreAllied(byte playerId, byte otherId) =>
+    public bool AreAllied(PlayerId playerId, byte otherId) =>
         playerId == otherId
         || (otherId < 8 && (Player(playerId).AlliedWith & (1 << otherId)) != 0);
 
     /// <summary>Make or break an alliance. <b>Always symmetric</b>: the original's two handlers
     /// write both players' arrays, and nothing else writes them, so a one-sided alliance is a
     /// state DK2 cannot reach.</summary>
-    public void SetAllied(byte playerId, byte otherId, bool allied)
+    public void SetAllied(PlayerId playerId, byte otherId, bool allied)
     {
         if (playerId == otherId) return;
         if (playerId >= 8 || otherId >= 8)
             throw new ArgumentOutOfRangeException(nameof(playerId), "The alliance array holds eight players.");
         Write(ref Player(playerId), otherId, allied);
-        Write(ref Player(otherId), playerId, allied);
+        Write(ref Player(otherId), playerId.Value, allied);
 
         static void Write(ref PlayerState player, byte other, bool allied)
         {
@@ -1187,7 +1184,7 @@ public sealed class WorldState
         _pendingWork.Add(order);
     }
 
-    public void QueueWork(int x, int y, TileWorkKind kind, byte playerId)
+    public void QueueWork(int x, int y, TileWorkKind kind, PlayerId playerId)
     {
         if (!Contains(x, y))
             throw new ArgumentOutOfRangeException(nameof(x), $"({x},{y}) is outside the map.");
@@ -1207,7 +1204,7 @@ public sealed class WorldState
     /// <summary>Most recently acquired first; held and dying creatures remain owned.
     /// Corpses are separate things in DK2 and are excluded here (ADR-0273).</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-ownership.md")]
-    public IEnumerable<CreatureState> OwnedCreatures(byte playerId)
+    public IEnumerable<CreatureState> OwnedCreatures(PlayerId playerId)
     {
         foreach (CreatureState creature in _creaturesByOwnership)
             if (creature.OwnerPlayerId == playerId && CreatureStateMachine.HasState(creature))
@@ -1215,19 +1212,19 @@ public sealed class WorldState
     }
 
     /// <summary>Changes the owner and places the creature first in its new owner's list.</summary>
-    public void ChangeCreatureOwner(CreatureState creature, byte playerId)
+    public void ChangeCreatureOwner(CreatureState creature, PlayerId playerId)
     {
         if (!_creatures.Contains(creature))
             throw new ArgumentException("Creature does not belong to this world.", nameof(creature));
         if (creature.OwnerPlayerId == playerId) return;
-        creature.OwnerPlayerId = playerId;
+        creature.OwnerPlayerId = playerId.Value;
         _creaturesByOwnership.Remove(creature);
         _creaturesByOwnership.Insert(0, creature);
     }
 
     /// <summary>Changes the owner as DK2's owner change does, which also arms the new owner's
     /// payday clock on its first non-worker (<c>0x0048D24E</c>, <see cref="PaydayRules.ArmOnGain"/>).</summary>
-    public void ChangeCreatureOwner(GameDatabase database, CreatureState creature, byte playerId)
+    public void ChangeCreatureOwner(GameDatabase database, CreatureState creature, PlayerId playerId)
     {
         ChangeCreatureOwner(creature, playerId);
         PaydayRules.ArmOnGain(this, database, creature);
@@ -1256,7 +1253,7 @@ public sealed class WorldState
     /// in their reports.
     /// </summary>
     public CreatureState SpawnCreature(
-        GameDatabase database, byte creatureTypeId, byte ownerPlayerId, TilePos at)
+        GameDatabase database, byte creatureTypeId, PlayerId ownerPlayerId, TilePos at)
     {
         if (!Contains(at))
             throw new ArgumentOutOfRangeException(nameof(at), at, "Spawn tile is outside the map.");
@@ -1265,7 +1262,7 @@ public sealed class WorldState
         {
             Id = _nextCreatureId++,
             CreatureTypeId = creatureTypeId,
-            OwnerPlayerId = ownerPlayerId,
+            OwnerPlayerId = ownerPlayerId.Value,
             PosX = CreatureState.CentreOf(at.X),
             PosY = CreatureState.CentreOf(at.Y),
             LastPosX = CreatureState.CentreOf(at.X),
@@ -1347,7 +1344,7 @@ public sealed class WorldState
     /// object every later rule would have to tolerate.
     /// </summary>
     public ObjectState SpawnObject(
-        GameDatabase database, byte objectTypeId, byte ownerPlayerId, int tileIndex)
+        GameDatabase database, byte objectTypeId, PlayerId ownerPlayerId, int tileIndex)
     {
         if ((uint)tileIndex >= (uint)_tiles.Length)
             throw new ArgumentOutOfRangeException(
@@ -1364,7 +1361,7 @@ public sealed class WorldState
         {
             Id = _nextObjectId++,
             ObjectTypeId = objectTypeId,
-            OwnerPlayerId = ownerPlayerId,
+            OwnerPlayerId = ownerPlayerId.Value,
             TileIndex = tileIndex,
             Health = database.ObjectById(objectTypeId)!.Hp,
         };
@@ -1423,9 +1420,9 @@ public sealed class WorldState
     internal List<ShotState> RawShots => _shots;
 
     /// <summary>A new shot at a position, with the next id; the caller fills the rest.</summary>
-    public ShotState SpawnShot(byte shotTypeId, byte ownerPlayerId, int x, int y)
+    public ShotState SpawnShot(byte shotTypeId, PlayerId ownerPlayerId, int x, int y)
     {
-        var shot = new ShotState { Id = _nextShotId++, ShotTypeId = shotTypeId, OwnerPlayerId = ownerPlayerId, PosX = x, PosY = y };
+        var shot = new ShotState { Id = _nextShotId++, ShotTypeId = shotTypeId, OwnerPlayerId = ownerPlayerId.Value, PosX = x, PosY = y };
         _shots.Add(shot);
         shot.LinkWorld = this;
         Relink(shot);
@@ -1503,7 +1500,7 @@ public sealed class WorldState
 
     /// <summary>The first trap of <paramref name="owner"/> on the tile, or null: <c>0x00453700(3, owner)</c>
     /// over the tile's chain. A tile holds one trap.</summary>
-    public TrapState? TrapAt(int x, int y, byte owner)
+    public TrapState? TrapAt(int x, int y, PlayerId owner)
     {
         foreach (TrapState trap in _traps)
             if (trap.X == x && trap.Y == y && trap.PlayerId == owner) return trap;
@@ -1588,7 +1585,7 @@ public sealed class WorldState
     /// <summary>Persistent offering histories, ordered by their Temple room anchor.</summary>
     public IReadOnlyList<TempleSacrificeState> TempleSacrifices => _templeSacrifices;
 
-    internal TempleSacrificeState TempleSacrificeAt(int anchorTileIndex, byte ownerPlayerId)
+    internal TempleSacrificeState TempleSacrificeAt(int anchorTileIndex, PlayerId ownerPlayerId)
     {
         int index = 0;
         while (index < _templeSacrifices.Count
@@ -1612,7 +1609,7 @@ public sealed class WorldState
     /// <summary>Persistent decomposition tallies, ordered by their Graveyard room anchor.</summary>
     public IReadOnlyList<GraveyardState> Graveyards => _graveyards;
 
-    internal GraveyardState GraveyardAt(int anchorTileIndex, byte ownerPlayerId)
+    internal GraveyardState GraveyardAt(int anchorTileIndex, PlayerId ownerPlayerId)
     {
         int index = 0;
         while (index < _graveyards.Count && _graveyards[index].AnchorTileIndex < anchorTileIndex)
@@ -1631,7 +1628,7 @@ public sealed class WorldState
         return created;
     }
 
-    public bool HasPlayer(byte playerId)
+    public bool HasPlayer(PlayerId playerId)
     {
         foreach (PlayerState p in _players)
             if (p.PlayerId == playerId) return true;
@@ -1684,7 +1681,7 @@ public sealed class WorldState
                     ? database[VariableTypeId.DungeonHeartObjectHealth]
                     : 0,
                 Availabilities = database.Variables.AvailabilitiesOf(id)
-                    .Select(a => new AvailabilityState(a.Kind, a.TypeId, a.Value))
+                    .Select(a => new AvailabilityState((AvailabilityKind)a.Kind, a.TypeId, a.Value))
                     .ToList(),
             })
             .ToArray();

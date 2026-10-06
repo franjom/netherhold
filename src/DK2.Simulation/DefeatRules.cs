@@ -41,7 +41,7 @@ public static class DefeatRules
     /// debited), then the rooms to neutral (<c>0x004E5650</c>), then every owned tile without a room
     /// to its destroyed terrain owned by neutral (<c>0x0044FC40</c>; an unownable result carries no
     /// owner, ADR-0045). Reinforced walls therefore fall to rock and claimed paths to dirt.</summary>
-    public static void OnDeathTurn(SimulationContext context, byte playerId)
+    public static void OnDeathTurn(SimulationContext context, PlayerId playerId)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -86,7 +86,7 @@ public static class DefeatRules
             tile.TerrainId = terrain.DestroyedTypeTerrainId;
             tile.Health = next.StartingHealth;
             tile.BurnTicksRemaining = 0;
-            if (!next.IsTaggable) tile.TaggedBy = 0;
+            if (!next.IsTaggable) tile.TaggedBy = PlayerMask.None;
             tile.OwnerPlayerId = PlayerIds.Neutral;
             tile.KeptManaGain = 0;
             fallen++;
@@ -100,7 +100,7 @@ public static class DefeatRules
     /// prison is left alone; a worker is killed outright with the killer as source; anyone else not
     /// already leaving drops its fight, job and bed and sets off for the nearest entrance of
     /// anyone (<see cref="LeavingRules"/>), the loser's own having gone neutral on the death turn.</summary>
-    public static void ScatterCreatures(SimulationContext context, byte playerId)
+    public static void ScatterCreatures(SimulationContext context, PlayerId playerId)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;

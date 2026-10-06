@@ -17,9 +17,6 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-messages.md")]
 public static class RoomNeedRules
 {
-    /// <summary>The availability kind of a room row (<c>0x004BAB20</c>).</summary>
-    public const ushort RoomAvailabilityKind = 1;
-
     /// <summary>The availability state a buildable room has.</summary>
     public const int Available = 3;
 
@@ -34,7 +31,7 @@ public static class RoomNeedRules
     public static PlayerMessage? NoStoreForCarrier(SimulationContext context, CreatureState carrier)
     {
         WorldState world = context.World;
-        byte player = carrier.OwnerPlayerId;
+        PlayerId player = carrier.OwnerPlayerId;
         CreatureDef definition = context.Database.CreatureById(carrier.CreatureTypeId);
         bool treasury = false, space = false, reachable = false;
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
@@ -50,7 +47,7 @@ public static class RoomNeedRules
         }
 
         if (!treasury)
-            return world.Availability(player, RoomAvailabilityKind, (int)RoomTypeId.Treasury) == Available
+            return world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Treasury) == Available
                 ? Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Treasury)
                 : null;
         if (!space) return Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Treasury);
@@ -60,10 +57,10 @@ public static class RoomNeedRules
     /// <summary>Gold paid in at a tile that no Treasury or Heart could take (<c>0x004BA420</c>, after its
     /// spread over the stores): when the Treasury's availability is anything but 1, 41 with no Treasury
     /// and 42 with one. Data1 is Treasury.</summary>
-    public static PlayerMessage? GoldLeftOver(SimulationContext context, byte player)
+    public static PlayerMessage? GoldLeftOver(SimulationContext context, PlayerId player)
     {
         WorldState world = context.World;
-        if (world.Availability(player, RoomAvailabilityKind, (int)RoomTypeId.Treasury) == 1) return null;
+        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Treasury) == 1) return null;
         bool treasury = RoomIndex.Build(world, context.Database)
             .Any(r => r.OwnerPlayerId == player && r.Definition.TypeId == RoomTypeId.Treasury);
         return Post(context, player, treasury ? PlayerMessageKind.RoomFull : PlayerMessageKind.RoomNeeded, RoomTypeId.Treasury);
@@ -79,8 +76,8 @@ public static class RoomNeedRules
     public static PlayerMessage? NoLairFor(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
-        byte player = creature.OwnerPlayerId;
-        if (world.Availability(player, RoomAvailabilityKind, (int)RoomTypeId.Lair) != Available) return null;
+        PlayerId player = creature.OwnerPlayerId;
+        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Lair) != Available) return null;
 
         var lairs = RoomIndex.Build(world, context.Database)
             .Where(r => r.OwnerPlayerId == player && LairRules.IsLairRoom(context.Database, r)).ToList();
@@ -113,11 +110,11 @@ public static class RoomNeedRules
     public static PlayerMessage? NoHatcheryFor(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
-        byte player = creature.OwnerPlayerId;
-        if (world.Availability(player, RoomAvailabilityKind, (int)RoomTypeId.Hatchery) != Available) return null;
+        PlayerId player = creature.OwnerPlayerId;
+        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Hatchery) != Available) return null;
 
         var hatcheries = RoomIndex.Build(world, context.Database)
-            .Where(r => EatingRules.IsHatcheryOf(r, player) && r.TileIndices.Count > 0).ToList();
+            .Where(r => EatingRules.IsHatcheryOf(r, player.Value) && r.TileIndices.Count > 0).ToList();
         if (hatcheries.Count == 0) return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Hatchery);
 
         bool emptyAndSettled = false;
@@ -160,9 +157,9 @@ public static class RoomNeedRules
         if (wants is not (RoomTypeId.TrainingRoom or RoomTypeId.Temple or RoomTypeId.TortureChamber
             or RoomTypeId.Casino or RoomTypeId.Library or RoomTypeId.Workshop)) return null;
         WorldState world = context.World;
-        byte player = creature.OwnerPlayerId;
+        PlayerId player = creature.OwnerPlayerId;
         RoomTypeId row = wants == RoomTypeId.Library ? RoomTypeId.Lair : wants;
-        if (world.Availability(player, RoomAvailabilityKind, (int)row) != Available) return null;
+        if (world.Availability(player, AvailabilityKind.Room, (int)row) != Available) return null;
 
         var rooms = RoomIndex.Build(world, context.Database)
             .Where(r => r.OwnerPlayerId == player && r.Definition.TypeId == wants && r.TileIndices.Count > 0).ToList();
@@ -229,12 +226,12 @@ public static class RoomNeedRules
     }
 
     /// <summary>The unreachable test's option word, 2: own locked doors passed, no door rule.</summary>
-    private const int IgnoreDoors = 0x02;
+    private const Navigation.MoveOptions IgnoreDoors = (Navigation.MoveOptions)0x02;
 
     /// <summary><c>0x00471740</c>: a point in the room (<c>0x004E5000</c>, the first standable tile along
     /// its chain) and the creature's route test to it (<c>0x004D0E60</c>) with the given options.</summary>
     private static bool CanReachRoom(SimulationContext context, CreatureState creature, CreatureDef definition,
-        RoomInstance room, int options)
+        RoomInstance room, Navigation.MoveOptions options)
     {
         int? point = StealGoldRules.FirstStandable(context.World, context.Database, definition, room);
         if (point is not int tile) return false;
@@ -243,7 +240,7 @@ public static class RoomNeedRules
     }
 
     /// <summary><c>0x004D0E60</c> without loading a route: the creature's position to the tile's centre.</summary>
-    private static bool CanRoute(SimulationContext context, CreatureState creature, CreatureDef definition, TilePos tile, int options)
+    private static bool CanRoute(SimulationContext context, CreatureState creature, CreatureDef definition, TilePos tile, Navigation.MoveOptions options)
     {
         if (creature.Tile == tile) return true;
         var from = new Steering.Fixed16Vector(creature.PosX << 4, creature.PosY << 4);
@@ -252,11 +249,11 @@ public static class RoomNeedRules
     }
 
     /// <summary>Posts, and reports a new record; a retained duplicate comes back unchanged and unreported.</summary>
-    internal static PlayerMessage? Post(SimulationContext context, byte player, PlayerMessageKind kind, RoomTypeId room, int roomTag = 0)
+    internal static PlayerMessage? Post(SimulationContext context, PlayerId player, PlayerMessageKind kind, RoomTypeId room, int roomTag = 0)
     {
         IReadOnlyList<PlayerMessage> entries = context.World.Messages.Entries;
         uint lastBefore = entries.Count == 0 ? 0 : entries[^1].Id;
-        PlayerMessage? posted = context.World.Messages.PostRoom(context.World, player, kind, room, roomTag);
+        PlayerMessage? posted = context.World.Messages.PostRoom(context.World, player.Value, kind, room, roomTag);
         if (posted is PlayerMessage message && message.Id != lastBefore && entries[^1].Id == message.Id)
             context.Emit(nameof(RoomNeedRules), "room_message",
                 $"player={player} kind={(int)kind} room={room} id={message.Id}");

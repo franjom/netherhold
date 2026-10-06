@@ -76,7 +76,7 @@ public enum PlayerMessageKind : uint
 }
 
 public readonly record struct PlayerMessage(
-    uint Id, byte PlayerId, PlayerMessageKind Kind, int Data1, int Data2,
+    uint Id, PlayerId PlayerId, PlayerMessageKind Kind, int Data1, int Data2,
     uint Age, uint Timeout, bool NeedsTab, bool Handled)
 {
     /// <summary>The room type a room message (41 to 43) carries in Data1; null for any other kind.</summary>
@@ -85,7 +85,7 @@ public readonly record struct PlayerMessage(
 
     internal void HashInto(ref Hash64 hash)
     {
-        hash.Add(Id); hash.Add(PlayerId); hash.Add((uint)Kind);
+        hash.Add(Id); hash.Add(PlayerId.Value); hash.Add((uint)Kind);
         hash.Add(Data1); hash.Add(Data2); hash.Add(Age); hash.Add(Timeout);
         hash.Add(NeedsTab); hash.Add(Handled);
     }
@@ -218,7 +218,7 @@ public sealed class PlayerMessageQueue
         return null;
     }
 
-    internal void Acknowledge(byte player, uint id)
+    internal void Acknowledge(PlayerId player, uint id)
     {
         int index = _entries.FindIndex(m => m.Id == id && m.PlayerId == player);
         if (index >= 0) _entries[index] = _entries[index] with { Handled = true };
@@ -263,7 +263,7 @@ public sealed class PlayerMessageQueue
         writer.Write(_nextId); writer.Write(_entries.Count);
         foreach (PlayerMessage m in _entries)
         {
-            writer.Write(m.Id); writer.Write(m.PlayerId); writer.Write((uint)m.Kind);
+            writer.Write(m.Id); writer.Write(m.PlayerId.Value); writer.Write((uint)m.Kind);
             writer.Write(m.Data1); writer.Write(m.Data2); writer.Write(m.Age); writer.Write(m.Timeout);
             writer.Write(m.NeedsTab); writer.Write(m.Handled);
         }

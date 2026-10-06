@@ -33,7 +33,7 @@ public sealed class OneShotReaperTests
                 IntroductionOverrideObjects = ReadOnlyMemory<byte>.Empty, IntroductionOverrideTextIds = [],
                 TerrainPath = "", Unknown_6403 = new byte[] { level }, Paths = [], UnknownPathTail = [],
             } : null);
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, SpellId, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, SpellId, 3));
         return (db, world, at);
     }
 

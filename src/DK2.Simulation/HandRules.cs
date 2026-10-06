@@ -53,14 +53,14 @@ public static class HandRules
     /// <summary>Creature permission plus hand capacity. Remaining binary gates needing
     /// missing lifecycle state are listed in hand-of-evil.md §3.</summary>
     public static bool CanPickUp(
-        WorldState world, GameDatabase database, CreatureState creature, byte playerId)
+        WorldState world, GameDatabase database, CreatureState creature, PlayerId playerId)
         => HasPickupPermission(world, database, creature, playerId)
             && world.Player(playerId).Hand.Count < Capacity(database);
 
     /// <summary>The represented creature-permission gates, independent of hand capacity.
     /// State exclusions inspect the current state, not a travel resume slot.</summary>
     public static bool HasPickupPermission(
-        WorldState world, GameDatabase database, CreatureState creature, byte playerId)
+        WorldState world, GameDatabase database, CreatureState creature, PlayerId playerId)
     {
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         // Permission also covers original states whose simulation activity is not implemented.
@@ -72,7 +72,7 @@ public static class HandRules
         if (!definition.Flags.HasFlag(CreatureFlags.CanBePickedUp)) return false;
         if (creature.Dk2StateId is 76 or 193) return false;
         if (creature.OwnerPlayerId != playerId)
-            return creature.IsTool || creature.PrisonOwnerPlayerId == playerId;
+            return creature.IsTool || creature.PrisonOwnerPlayerId == playerId.Value;
         if (creature.CombatPitFighter)
             return world.Contains(creature.Tile)
                 && world.Tile(creature.Tile.X, creature.Tile.Y).OwnerPlayerId == playerId;
@@ -81,7 +81,7 @@ public static class HandRules
         // The stored room must be nobody's or the owner's. A Prison writes that membership on
         // entry (0x0047B740 calls 0x004E5A70), so an own creature in another keeper's cells is
         // refused; other rooms' membership is not stored here (creature-pickup.md).
-        return !PrisonRules.IsImprisoned(creature) || creature.PrisonOwnerPlayerId == playerId;
+        return !PrisonRules.IsImprisoned(creature) || creature.PrisonOwnerPlayerId == playerId.Value;
     }
 
     /// <summary>Whether this object is in somebody's hand.</summary>
@@ -95,7 +95,7 @@ public static class HandRules
     /// the claimed-land rule is the cursor's (<see cref="MayReachObject"/>). An object in an
     /// imp's arms is refused, ours in form and DK2's in effect.</summary>
     public static bool CanPickUpObject(
-        WorldState world, GameDatabase database, ObjectState thing, byte playerId)
+        WorldState world, GameDatabase database, ObjectState thing, PlayerId playerId)
     {
         ObjectDef? definition = database.ObjectById(thing.ObjectTypeId);
         if (definition is null || !definition.CanBePickedUp) return false;
@@ -108,7 +108,7 @@ public static class HandRules
     /// <b>gold only from the keeper's own claimed tile</b> (owner, Q196), a rival's floor
     /// refusing too. An input rule: DK2's own replay of <c>l2live2</c> (seed 2, ticks 232 to
     /// 234) lifts two piles off unclaimed dirt, as the recorded action carries no test (ADR-0310).</summary>
-    public static bool MayReachObject(WorldState world, GameDatabase database, ObjectState thing, byte playerId) =>
+    public static bool MayReachObject(WorldState world, GameDatabase database, ObjectState thing, PlayerId playerId) =>
         database.ObjectById(thing.ObjectTypeId)?.IsGold != true
         || world.TileAtIndex(thing.TileIndex).OwnerPlayerId == playerId;
 
@@ -116,7 +116,7 @@ public static class HandRules
     /// (owner, Q198); creatures have one exception, <see cref="CanDropCreatureOn"/>. Where the rule
     /// lives in the original is UNREAD — the drop handler has no ownership test, so the gate is in
     /// the input layer and this reproduces an observation, not a routine. Trap: it is not <c>CanBeDroppedOnAnyLand</c>, set on one record with no reader in the executable.</summary>
-    public static bool CanDropObjectOn(WorldState world, TilePos tile, byte playerId) =>
+    public static bool CanDropObjectOn(WorldState world, TilePos tile, PlayerId playerId) =>
         world.Contains(tile) && world.Tile(tile.X, tile.Y).OwnerPlayerId == playerId;
 
     /// <summary>Where a keeper may put a <b>creature</b> down: <b>a tile it owns</b>, and for a
@@ -126,7 +126,7 @@ public static class HandRules
     /// the owner said <i>imps</i> — worker behaviour is keyed on the flag throughout, and the
     /// difference is unreachable today (docs/research/imp-tasks.md).</summary>
     public static bool CanDropCreatureOn(
-        WorldState world, GameDatabase database, TilePos tile, byte playerId,
+        WorldState world, GameDatabase database, TilePos tile, PlayerId playerId,
         CreatureDef mover)
     {
         if (!world.Contains(tile)) return false;
@@ -141,7 +141,7 @@ public static class HandRules
     /// (<see cref="DisposalRules"/>) or a walkable one, and then <see cref="CanDropCreatureOn"/>.</summary>
     public static bool DropLands(
         WorldState world, GameDatabase database, CreatureState creature, CreatureDef definition,
-        TilePos tile, byte playerId)
+        TilePos tile, PlayerId playerId)
     {
         if (!world.Contains(tile)) return false;
         bool disposed = !PrisonRules.IsImprisoned(creature)
@@ -168,7 +168,7 @@ public static class HandRules
     /// <see cref="CreatureFlags.IsHorny"/> runs another routine and never reaches the work bonus
     /// (Q158).</summary>
     public static bool CanSlap(
-        GameDatabase database, CreatureState creature, byte playerId)
+        GameDatabase database, CreatureState creature, PlayerId playerId)
     {
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         if (!definition.Flags.HasFlag(CreatureFlags.CanBeSlapped)) return false;
@@ -179,7 +179,7 @@ public static class HandRules
         // "a keeper can't slap its own creature in someone else's dungeon" (owner,
         // 2026-09-11, ADR-0140). Anything at liberty is its owner's as before.
         if (PrisonRules.IsImprisoned(creature))
-            return creature.PrisonOwnerPlayerId == playerId
+            return creature.PrisonOwnerPlayerId == playerId.Value
                    && !CreatureDeathRules.IsDown(creature);
 
         if (creature.OwnerPlayerId != playerId) return false;

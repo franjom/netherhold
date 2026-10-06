@@ -88,7 +88,7 @@ public static class ManufactureRules
 
     /// <summary><c>0x005066E0(kind, type)</c> for one blueprint placed in play (ADR-0231): an order
     /// while the keeper's blueprints of the type outnumber its crates and orders of it.</summary>
-    public static void QueueOne(WorldState world, GameDatabase database, byte playerId, byte kind, byte typeId)
+    public static void QueueOne(WorldState world, GameDatabase database, PlayerId playerId, byte kind, byte typeId)
     {
         if (kind == TrapKind)
         {
@@ -100,9 +100,9 @@ public static class ManufactureRules
     }
 
     private static void TryQueue(
-        WorldState world, GameDatabase database, byte playerId, byte kind, byte typeId, int cost, byte crateId)
+        WorldState world, GameDatabase database, PlayerId playerId, byte kind, byte typeId, int cost, byte crateId)
     {
-        if (!PlayerIds.IsKeeper(playerId) || !world.HasPlayer(playerId)) return;
+        if (!PlayerIds.IsKeeper(playerId.Value) || !world.HasPlayer(playerId)) return;
         List<ManufactureOrder> queue = world.Player(playerId).ManufactureQueue;
         if (queue.Count >= QueueCapacity) return;
 
@@ -237,7 +237,7 @@ public static class ManufactureRules
     private static void CountMaker(WorldState world, CreatureState creature, int by)
     {
         if (!world.Contains(creature.Tile)) return;
-        byte owner = world.Tile(creature.Tile).OwnerPlayerId;
+        PlayerId owner = world.Tile(creature.Tile).OwnerPlayerId;
         if (world.HasPlayer(owner)) world.Player(owner).ManufacturingCreatures += by;
     }
 }

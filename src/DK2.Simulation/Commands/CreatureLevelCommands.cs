@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Commands;
 
@@ -11,7 +12,7 @@ namespace DK2.Simulation.Commands;
 /// issues as a command so the effect is hashed with the input (ADR-0298). Refused for a creature
 /// that is not the player's, dead, finished or at the top level. No human action corresponds.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-threat.md")]
-public sealed record GrantCreatureLevelCommand(byte PlayerId, int CreatureId) : PlayerCommand(PlayerId)
+public sealed record GrantCreatureLevelCommand(PlayerId PlayerId, int CreatureId) : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
     {

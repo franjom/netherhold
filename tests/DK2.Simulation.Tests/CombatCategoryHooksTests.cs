@@ -73,7 +73,7 @@ public class CombatCategoryHooksTests
 
         Assert.Equal(Collapsed, goblin.Dk2StateId);
         Assert.Equal(FightTargetKind.None, demon.FightTargetKind);
-        Assert.NotEqual(CombatRules.AttackTypes.Victorious, demon.AttackType);
+        Assert.NotEqual(CombatRules.AttackMode.Victorious, demon.AttackType);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class CombatCategoryHooksTests
         imp.Health = 0;
         Assert.True(CreatureStateMachine.TrySetState(hooks, imp, CreatureStateMachine.Idle));
 
-        Assert.Equal(CombatRules.AttackTypes.Victorious, demon.AttackType);
+        Assert.Equal(CombatRules.AttackMode.Victorious, demon.AttackType);
         Assert.Equal(FightTargetKind.None, demon.FightTargetKind);
     }
 
@@ -151,7 +151,7 @@ public class CombatCategoryHooksTests
         Assert.True(CreatureDeathRules.Collapse(hooks, loser));
 
         // ADR-0213: no victory, and the fight is over for the winner.
-        Assert.NotEqual(CombatRules.AttackTypes.Victorious, winner.AttackType);
+        Assert.NotEqual(CombatRules.AttackMode.Victorious, winner.AttackType);
         Assert.Equal(FightTargetKind.None, winner.FightTargetKind);
         Assert.Equal(CombatRules.NoTarget, winner.AttackingId);
         Assert.False(winner.AttackAbnormalTargets);
@@ -194,7 +194,7 @@ public class CombatCategoryHooksTests
         if (me.Dk2StateId != Engaging) Assert.True(CreatureStateMachine.TrySetState(hooks, me, Engaging));
         me.FightTargetId = target.Id;
         me.FightTargetKind = FightTargetKind.Creature;
-        me.AttackType = CombatRules.AttackTypes.MeleeAtCreature;
+        me.AttackType = CombatRules.AttackMode.MeleeAtCreature;
         me.Running = true;
         Assert.True(CombatRules.Register(target, me.Id, ranged: false));
     }

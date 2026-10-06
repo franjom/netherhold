@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Systems;
@@ -25,11 +26,11 @@ public sealed class AllianceSystem : ISimulationSystem
             if (command is not SetAllianceCommand alliance) continue;
             if (!Known(context, alliance.PlayerId) || !Known(context, alliance.OtherPlayerId)) continue;
             if (alliance.PlayerId >= 8 || alliance.OtherPlayerId >= 8) continue;
-            context.World.SetAllied(alliance.PlayerId, alliance.OtherPlayerId, alliance.Allied);
+            context.World.SetAllied(alliance.PlayerId, alliance.OtherPlayerId.Value, alliance.Allied);
         }
     }
 
-    private static bool Known(SimulationContext context, byte playerId)
+    private static bool Known(SimulationContext context, PlayerId playerId)
     {
         for (int i = 0; i < context.World.PlayerCount; i++)
             if (context.World.PlayerAtIndex(i).PlayerId == playerId) return true;

@@ -29,11 +29,11 @@ public class KeeperViewTests
             {
                 X = 15, Y = 15, PlayerId = owner, TrapId = 3, NumberOfShots = 0,
             }]);
-        byte[] activation = [1, 3, 2];
+        PlayerId[] activation = [1, 3, 2];
         var captured = new KeeperView(db, world, KeeperWorld.Keeper, activation);
         activation[0] = 2;
         KeeperView restored = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(captured), db);
-        Assert.Equal(new byte[] { 2, 3, 1 }, restored.PlayerOrder);
+        Assert.Equal(new PlayerId[] { 2, 3, 1 }, restored.PlayerOrder);
         Assert.Equal(new KeeperThreatAssessment(148, 0, 1),
             ThreatEvaluator.Assess(restored, KeeperWorld.HeartAt, false, true));
         Assert.Equal(new KeeperThreatAssessment(0, 0, null),
@@ -135,7 +135,7 @@ public class KeeperViewTests
         GameDatabase db = KeeperWorld.Database();
         WorldState world = KeeperWorld.World(db);
         world.Player(KeeperWorld.Keeper).AlliedWith = 1 << 4;
-        world.SetUpgraded(KeeperWorld.Keeper, 5, 4, true);
+        world.SetUpgraded(KeeperWorld.Keeper, AvailabilityKind.Spell, 4, true);
         var captured = new KeeperView(db, world, KeeperWorld.Keeper);
         byte[] packet = KeeperViewSnapshot.ToBytes(captured);
         KeeperView restored = KeeperViewSnapshot.FromBytes(packet, db);
@@ -143,16 +143,16 @@ public class KeeperViewTests
         for (byte player = 0; player <= 8; player++)
             Assert.Equal(world.AreAllied(KeeperWorld.Keeper, player), restored.AreAllied(player));
         Assert.Equal(world.PlayerIds.Where(id => id != PlayerIds.Unowned).Reverse(), restored.PlayerOrder);
-        Assert.True(restored.IsUpgraded(5, 4));
-        Assert.False(restored.IsUpgraded(5, 255));
+        Assert.True(restored.IsUpgraded(AvailabilityKind.Spell, 4));
+        Assert.False(restored.IsUpgraded(AvailabilityKind.Spell, 255));
 
         world.Player(KeeperWorld.Keeper).AlliedWith = 0;
-        world.SetUpgraded(KeeperWorld.Keeper, 5, 4, false);
+        world.SetUpgraded(KeeperWorld.Keeper, AvailabilityKind.Spell, 4, false);
         Assert.True(captured.AreAllied(4));
-        Assert.True(captured.IsUpgraded(5, 4));
+        Assert.True(captured.IsUpgraded(AvailabilityKind.Spell, 4));
         var current = new KeeperView(db, world, KeeperWorld.Keeper);
         Assert.False(current.AreAllied(4));
-        Assert.False(current.IsUpgraded(5, 4));
+        Assert.False(current.IsUpgraded(AvailabilityKind.Spell, 4));
     }
 
     [Fact]
@@ -227,7 +227,7 @@ public class KeeperViewTests
         var sim = new GameSimulation(db, world, 1, []);
         sim.Tick();
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 17;
-        world.SetAvailability(KeeperWorld.Keeper, 5, 4, 1);
+        world.SetAvailability(KeeperWorld.Keeper, AvailabilityKind.Spell, 4, 1);
         world.Player(KeeperWorld.Keeper).Status = PlayerStatus.Lost;
         var changed = new TilePos(13, 13);
         KeeperWorld.Set(world, db, changed, KeeperWorld.TreasuryFloor, KeeperWorld.Keeper);
@@ -237,8 +237,8 @@ public class KeeperViewTests
         Assert.Equal(GameTick.Zero.Next, current.Tick);
         Assert.Equal(900, old.Gold);
         Assert.Equal(17, current.Gold);
-        Assert.Equal(3, old.Availability(5, 4));
-        Assert.Equal(1, current.Availability(5, 4));
+        Assert.Equal(3, old.Availability(AvailabilityKind.Spell, 4));
+        Assert.Equal(1, current.Availability(AvailabilityKind.Spell, 4));
         Assert.Equal(PlayerStatus.Playing, old.Status);
         Assert.Equal(PlayerStatus.Lost, current.Status);
         Assert.False(old.HasRoom(changed));
@@ -254,7 +254,7 @@ public class KeeperViewTests
         WorldState world = KeeperWorld.World(db);
         world.Player(KeeperWorld.Keeper).Mana = 20000;
         var captured = new KeeperView(db, world, KeeperWorld.Keeper);
-        world.SetAvailability(KeeperWorld.Keeper, 5, 4, 1);
+        world.SetAvailability(KeeperWorld.Keeper, AvailabilityKind.Spell, 4, 1);
         var sim = new GameSimulation(db, world, 1, []);
         ulong before = sim.StateHash();
         KeeperAIParameters p = KeeperWorld.Parameters(maxImps: 4) with { TilesPerImpRatio = 10 };

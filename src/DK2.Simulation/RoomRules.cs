@@ -101,7 +101,7 @@ public static class RoomRules
     /// (<c>0x0044F630</c>, Q33). Not implemented: its refusal of a tile an enemy creature,
     /// door or trap stands on (<c>0x0044F800</c>, Q501).</summary>
     public static RoomPlacement CanBuild(
-        GameDatabase database, in TileState tile, RoomDef room, byte playerId, bool touchesOwnLand)
+        GameDatabase database, in TileState tile, RoomDef room, PlayerId playerId, bool touchesOwnLand)
     {
         if (!room.IsBuildable) return RoomPlacement.NotBuildable;
 
@@ -126,7 +126,7 @@ public static class RoomRules
     /// <summary><see cref="CanBuild(GameDatabase, in TileState, RoomDef, byte, bool)"/> for a world
     /// tile, asking its neighbours for the adjacency; the authoritative placement test.</summary>
     public static RoomPlacement CanBuild(
-        GameDatabase database, WorldState world, TilePos at, RoomDef room, byte playerId)
+        GameDatabase database, WorldState world, TilePos at, RoomDef room, PlayerId playerId)
     {
         if (!world.Contains(at)) return RoomPlacement.OffMap;
         ref TileState tile = ref world.Tile(at);
@@ -141,7 +141,7 @@ public static class RoomRules
     /// rectangle this way before its wave lays it (<c>0x004C57F0</c>), so a span grows from the
     /// shore whatever corner the wave starts at; one tile is the plain test (rooms-and-gold.md).</summary>
     public static HashSet<TilePos> SpannableTiles(
-        GameDatabase database, WorldState world, IReadOnlyList<TilePos> order, RoomDef room, byte playerId)
+        GameDatabase database, WorldState world, IReadOnlyList<TilePos> order, RoomDef room, PlayerId playerId)
     {
         var inOrder = new HashSet<TilePos>();
         foreach (TilePos p in order)
@@ -184,7 +184,7 @@ public static class RoomRules
     /// a tile's health belongs to what it now is. Dig markers go, room terrain not
     /// being taggable.</summary>
     public static void Place(
-        GameDatabase database, ref TileState tile, RoomDef room, byte playerId)
+        GameDatabase database, ref TileState tile, RoomDef room, PlayerId playerId)
     {
         TerrainDef covered = database.TerrainById(tile.TerrainId);
         TerrainDef terrain = database.TerrainById(room.TerrainId);
@@ -215,8 +215,8 @@ public static class RoomRules
 
         tile.TerrainId = room.TerrainId;
         tile.Health = terrain.StartingHealth;
-        if (!terrain.IsTaggable) tile.TaggedBy = 0;
-        if (terrain.IsOwnable) tile.OwnerPlayerId = playerId;
+        if (!terrain.IsTaggable) tile.TaggedBy = PlayerMask.None;
+        if (terrain.IsOwnable) tile.OwnerPlayerId = playerId.Value;
     }
 
     /// <summary>Whether <paramref name="playerId"/> may sell the room on this tile,
@@ -226,7 +226,7 @@ public static class RoomRules
     /// hearts and hero gates. A bridge stands on ground nobody but the neutral player
     /// holds, so ownership is not asked.</summary>
     public static RoomSale CanSell(
-        GameDatabase database, in TileState tile, byte playerId, out RoomDef? room)
+        GameDatabase database, in TileState tile, PlayerId playerId, out RoomDef? room)
     {
         room = RoomOn(database, tile);
         if (room is null) return RoomSale.NoRoomHere;
@@ -272,7 +272,7 @@ public static class RoomRules
         tile.TerrainId = revertsTo;
         tile.Health = next.StartingHealth;
         tile.BurnTicksRemaining = 0;
-        if (!next.IsTaggable) tile.TaggedBy = 0;
+        if (!next.IsTaggable) tile.TaggedBy = PlayerMask.None;
 
         // Unownable ground belongs to the neutral player, as Tile_SetTerrain gives it
         // (0x0044FDBF, Q514); keeping a stale byte was a four-month defect (Q95, ADR-0045).

@@ -265,7 +265,7 @@ The simulation is integer-only by decision (ADR-0001) and its records mirror DKI
 
 The rule: **a value that has a domain meaning gets a domain type when it crosses a signature.** Raw bytes and ints may live inside a record that mirrors the binary; they should not travel through rules, systems and commands unwrapped.
 
-Existing types to reuse before inventing anything: `TilePos`, `GameTick`, `Fp32` (DK2.Core), the reserved ids in `PlayerIds`, and the enums for kinds and flags (`CreatureFlags`, `RoomTypeId`, `ImpTaskKind`, ...). A new `byte kind` parameter beside an existing enum is a defect, not a shortcut.
+Existing types to reuse before inventing anything: `TilePos`, `GameTick`, `Fp32` (DK2.Core), `PlayerId` (a byte converts in, never out by accident; the reserved ids stay in `PlayerIds`), `PlayerMask` (one bit per player), and the enums for kinds and flags (`CreatureFlags`, `RoomTypeId`, `AvailabilityKind`, `MoveOptions`, `ImpTaskKind`, ...). A new `byte kind` parameter beside an existing enum is a defect, not a shortcut.
 
 Where a domain type is warranted:
 

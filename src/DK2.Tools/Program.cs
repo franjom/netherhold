@@ -2811,11 +2811,11 @@ static int RunTriggerCsv(
             foreach (TilePos at in watched)
             {
                 ref TileState tile = ref world.Tile(at);
-                var now = (tile.TerrainId, tile.Health, tile.OwnerPlayerId, tile.TaggedBy);
+                var now = (tile.TerrainId, tile.Health, tile.OwnerPlayerId, tile.TaggedBy.Bits);
                 if (seen.TryGetValue(at, out (byte, int, byte, ushort) was) && was == now) continue;
                 seen[at] = now;
                 tileWriter?.WriteLine(
-                    $"{turn},{at.X},{at.Y},{tile.TerrainId},{tile.Health},{tile.OwnerPlayerId},{tile.TaggedBy}");
+                    $"{turn},{at.X},{at.Y},{tile.TerrainId},{tile.Health},{tile.OwnerPlayerId},{tile.TaggedBy.Bits}");
             }
 
             if (creatureWriter is not null)

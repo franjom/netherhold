@@ -117,7 +117,7 @@ public static class FloorGold
     /// negative is refused with <see langword="null"/> rather than spawning an empty pile, which
     /// the original would never have on the floor: a pile that reaches zero is destroyed.</summary>
     public static ObjectState? Drop(
-        WorldState world, GameDatabase database, int tileIndex, int amount, byte ownerPlayerId)
+        WorldState world, GameDatabase database, int tileIndex, int amount, PlayerId ownerPlayerId)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (amount <= 0) return null;

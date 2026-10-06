@@ -68,7 +68,7 @@ public sealed class TileWorkSystem : ISimulationSystem
                 tile.FreshlyDug = false;
                 if (result.Outcome == TileWorkOutcome.Destroyed && IsExcavation(order.Kind)
                     && wasTagged && !tile.IsTaggedBy(order.PlayerId))
-                    tile.DigTaskOutlivesWallFor |= (ushort)(1 << order.PlayerId);
+                    tile.DigTaskOutlivesWallFor = tile.DigTaskOutlivesWallFor.With(order.PlayerId);
             }
 
             PostThreat(context, order, result, before, ownerBefore);
@@ -86,7 +86,7 @@ public sealed class TileWorkSystem : ISimulationSystem
     /// <remarks>Not built: the player events <c>0x38</c>/<c>0x39</c> that follow 12, and 36/37 for a
     /// blow that unmade the tile.</remarks>
     private static void PostThreat(
-        SimulationContext context, TileWorkOrder order, TileWorkResult result, byte before, byte ownerBefore)
+        SimulationContext context, TileWorkOrder order, TileWorkResult result, byte before, PlayerId ownerBefore)
     {
         WorldState world = context.World;
         int x = order.TileIndex % world.Width, y = order.TileIndex / world.Width;
@@ -94,7 +94,7 @@ public sealed class TileWorkSystem : ISimulationSystem
         {
             TerrainDef terrain = context.Database.TerrainById(before);
             if (terrain.IsSolid && terrain.IsOwnable)
-                world.Messages.Post(world, ownerBefore, PlayerMessageKind.WallBreached, x, y);
+                world.Messages.Post(world, ownerBefore.Value, PlayerMessageKind.WallBreached, x, y);
         }
 
         if (order.Kind == TileWorkKind.AttackRoom && order.PlayerId == PlayerIds.Good

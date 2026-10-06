@@ -28,7 +28,7 @@ public static class PortalChoiceRules
 
     /// <summary><c>0x004DBD90</c>: gives each admitted type without a row one, boosted unless
     /// it is Lair-attracted or the game has not passed tick 1 (the level-start pass).</summary>
-    public static void Notice(WorldState world, byte playerId, IReadOnlyList<CreatureDef> admitted)
+    public static void Notice(WorldState world, PlayerId playerId, IReadOnlyList<CreatureDef> admitted)
     {
         ref PlayerState player = ref world.Player(playerId);
         foreach (CreatureDef creature in admitted)
@@ -45,7 +45,7 @@ public static class PortalChoiceRules
     /// <summary>A type's weight in 1/4096 before the modifiers, and whether it counts as a
     /// candidate at all (a zero weight here drops it).</summary>
     public static int BaseWeight(
-        WorldState world, CreatureDef creature, IReadOnlyList<RoomInstance> keeperRooms, byte playerId)
+        WorldState world, CreatureDef creature, IReadOnlyList<RoomInstance> keeperRooms, PlayerId playerId)
     {
         if (IsLairAttracted(creature)) return creature.LairObjectId == GoblinLairObjectId ? 3 * One : One;
 
@@ -71,7 +71,7 @@ public static class PortalChoiceRules
     /// none carries weight, then takes 1.0 off every boost and block. One draw per call that
     /// found a candidate.</summary>
     public static CreatureDef? Pick(
-        WorldState world, SimRandom rng, byte playerId, IReadOnlyList<CreatureDef> admitted,
+        WorldState world, SimRandom rng, PlayerId playerId, IReadOnlyList<CreatureDef> admitted,
         IReadOnlyList<RoomInstance> keeperRooms)
     {
         Notice(world, playerId, admitted);

@@ -32,12 +32,12 @@ public sealed class SlabChainTests
         return (db, world, new GameSimulation(db, world, 1, [new RoomBuildSystem(), new RoomSellSystem()]));
     }
 
-    private static byte Prison(GameDatabase db) => db.Room(RoomTypeId.Prison).RoomId;
+    private static RoomTypeId Prison(GameDatabase db) => RoomTypeId.Prison;
 
     private static RoomInstance Drag(GameDatabase db, WorldState world, GameSimulation sim, RoomTypeId type,
         int x1, int y1, int x2, int y2)
     {
-        Run(sim, BuildRoomCommand.Rect(Keeper, db.Room(type).RoomId, x1, y1, x2, y2));
+        Run(sim, BuildRoomCommand.Rect(Keeper, type, x1, y1, x2, y2));
         return RoomOn(db, world, new TilePos(x1, y1));
     }
 

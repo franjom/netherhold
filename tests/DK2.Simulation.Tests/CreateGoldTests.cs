@@ -30,7 +30,7 @@ public sealed class CreateGoldTests
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         world.Player(Keeper).Mana = 45000;
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, SpellId, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, SpellId, 3));
         world.Tile(At).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(At).OwnerPlayerId = Keeper;
         return (db, world);
@@ -50,7 +50,7 @@ public sealed class CreateGoldTests
     public void CastCreatesNeutralFloorGoldAtThePositionPaysOnceAndStampsBothClocks_StronglyInferredFromBinary(bool upgraded, int amount)
     {
         var (db, world) = Setup();
-        world.SetUpgraded(Keeper, 5, SpellId, upgraded);
+        world.SetUpgraded(Keeper, AvailabilityKind.Spell, SpellId, upgraded);
         var sim = new GameSimulation(db, world, 1, Systems());
         sim.Run(7);
         sim.Tick(InputFrame.Of(Cast()));

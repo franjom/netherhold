@@ -189,12 +189,12 @@ public static class StatusEffectRules
     /// <summary>Poison Spit (<c>0x0048CC50</c>, §2): <paramref name="amount"/> a tick for
     /// <paramref name="ticks"/> ticks while not frozen, credited to <paramref name="owner"/>. Refused
     /// on a creature already down.</summary>
-    public static bool Poison(SimulationContext context, CreatureState creature, int ticks, int amount, byte owner)
+    public static bool Poison(SimulationContext context, CreatureState creature, int ticks, int amount, PlayerId owner)
     {
         if (ticks <= 0 || amount <= 0 || CreatureDeathRules.IsDown(creature)) return false;
         creature.PoisonTicks = ticks;
         creature.PoisonAmount = amount;
-        creature.PoisonOwner = owner;
+        creature.PoisonOwner = owner.Value;
         context.Emit(SystemName, "poisoned", $"creature={creature.Id} amount={amount} ticks={ticks} owner={owner}");
         return true;
     }

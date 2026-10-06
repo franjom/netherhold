@@ -23,5 +23,11 @@ public readonly record struct Fp32(int Raw)
     public static Fp32 operator *(Fp32 left, Fp32 right) =>
         new(unchecked((int)(((long)left.Raw * right.Raw) >> 12)));
 
+    public static Fp32 operator +(Fp32 left, Fp32 right) => new(unchecked(left.Raw + right.Raw));
+
+    public static Fp32 operator -(Fp32 left, Fp32 right) => new(unchecked(left.Raw - right.Raw));
+
+    public static Fp32 operator -(Fp32 value) => new(unchecked(-value.Raw));
+
     public override string ToString() => ToDouble().ToString("0.###");
 }

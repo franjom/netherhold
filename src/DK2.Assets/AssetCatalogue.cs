@@ -118,9 +118,9 @@ public static class AssetCatalogue
     /// </summary>
     public static IEnumerable<AssetRef> ForRooms(GameDatabase database)
     {
-        foreach (byte id in Sorted(database.Rooms.Keys))
+        foreach (byte id in Sorted(database.Rooms.Keys.Select(k => (byte)k)))
         {
-            RoomDef room = database.Rooms[id];
+            RoomDef room = database.Rooms[(RoomTypeId)id];
             yield return AssetRef.ForRoom(room.Name, AssetKind.Texture);
             yield return AssetRef.ForRoom(room.Name, AssetKind.Mesh);
         }

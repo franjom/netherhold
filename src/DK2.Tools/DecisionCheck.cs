@@ -162,7 +162,7 @@ public static class DecisionCheck
             tile.TerrainId = (byte)terrain[i];
             tile.OwnerPlayerId = (byte)owner[i];
             tile.Health = health[i];
-            tile.TaggedBy = 0;
+            tile.TaggedBy = PlayerMask.None;
             tile.FreshlyDug = false;
             tile.TagOrder = 0;
             tile.GoldHeld = 0;

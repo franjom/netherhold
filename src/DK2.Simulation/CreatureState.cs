@@ -310,7 +310,7 @@ public sealed class CreatureState
     /// <summary>The option word of this creature's last route request
     /// (<see cref="Navigation.MoveOptions"/>): its door bits stay with the creature, as
     /// <c>creature+0x3E6</c> bits 17–19 do, and drive every later re-request and wall probe.</summary>
-    public int RouteOptions;
+    public Navigation.MoveOptions RouteOptions;
 
     /// <summary>State 273's player, <c>+0x2F5</c> (the state's <c>+0xA7</c> word): whose heart the Jack
     /// walks to. Written by process 39; zero on every other creature.</summary>
@@ -772,8 +772,8 @@ public sealed class CreatureState
 
     /// <summary>How the engagement attacks — the low nibble of <c>creature+0x529</c>: 0 spell at a
     /// creature, 1 melee at a creature, 2 spell at a thing, 3 spell at an ally, 4 melee at a thing
-    /// (<see cref="Combat.CombatRules.AttackTypes"/>). The high nibble, the spell slot, is not kept.</summary>
-    public byte AttackType;
+    /// (<see cref="Combat.CombatRules.AttackMode"/>). The high nibble, the spell slot, is not kept.</summary>
+    public Combat.CombatRules.AttackMode AttackType;
 
     /// <summary>DK2's own <c>AttackRangeSquared</c> (<c>+0x4FE</c>): how close the engagement has to
     /// get, in squared 1/4096 units — melee reach plus half the target's footprint, squared.</summary>
@@ -790,7 +790,7 @@ public sealed class CreatureState
 
     /// <summary>What <see cref="FightTargetId"/> or <see cref="FightTargetTileIndex"/> names
     /// (<see cref="Combat.FightTargetKind"/>): a creature, or an enemy dungeon heart.</summary>
-    public byte FightTargetKind;
+    public Combat.FightTargetKind FightTargetKind;
 
     /// <summary>For a heart target, the heart's owner and the heart tile stood in for its pillar
     /// (Q363); -1 and 0 otherwise.</summary>
@@ -806,7 +806,7 @@ public sealed class CreatureState
     /// which the blow lands on whether or not the engagement has moved since.</summary>
     public bool SwingInProgress;
     public long SwingStartTick;
-    public byte SwingTargetKind;
+    public Combat.FightTargetKind SwingTargetKind;
     public int SwingTargetId;
     public byte SwingTargetPlayerId;
 
@@ -951,7 +951,7 @@ public sealed class CreatureState
 
     /// <summary>Which id space <see cref="AttackingId"/> is in: <see cref="Combat.FightTargetKind.Creature"/>
     /// or <see cref="Combat.FightTargetKind.Door"/>. Ours: DK2 reads the thing's class from the tag.</summary>
-    public byte AttackingKind = Combat.FightTargetKind.Creature;
+    public Combat.FightTargetKind AttackingKind = Combat.FightTargetKind.Creature;
 
     /// <summary>The turn the current pit state was entered, for the pit states' <c>Age</c>; the
     /// spectators' 142–144 use it too.</summary>
@@ -1137,7 +1137,7 @@ public sealed class CreatureState
         hash.Add(PosY);
         hash.Add(PosZ);
         hash.Add(Heading);
-        hash.Add(RouteOptions);
+        hash.Add((int)RouteOptions);
         hash.Add(HeartTargetPlayerId);
         hash.Add(DeathShotFired);
         Body.HashInto(ref hash);
@@ -1204,17 +1204,17 @@ public sealed class CreatureState
         hash.Add(WorkSlot);
         hash.Add(TimerTicks);
         hash.Add(FightTargetId);
-        hash.Add(AttackType);
+        hash.Add((byte)AttackType);
         hash.Add(AttackRangeSquared);
         hash.Add(FightProcessCounter);
         hash.Add(LastFightScanTileIndex);
-        hash.Add(FightTargetKind);
+        hash.Add((byte)FightTargetKind);
         hash.Add(FightTargetPlayerId);
         hash.Add(FightTargetTileIndex);
         hash.Add(TimeLastUsedMelee);
         hash.Add(SwingInProgress);
         hash.Add(SwingStartTick);
-        hash.Add(SwingTargetKind);
+        hash.Add((byte)SwingTargetKind);
         hash.Add(SwingTargetId);
         hash.Add(SwingTargetPlayerId);
         hash.Add(TempFear);
@@ -1269,7 +1269,7 @@ public sealed class CreatureState
         hash.Add(PortalEntranceTile);
         hash.Add(AttackAbnormalTargets);
         hash.Add(AttackingId);
-        hash.Add(AttackingKind);
+        hash.Add((byte)AttackingKind);
         hash.Add(RebelActive);
         hash.Add(ChainTileIndex);
         hash.Add(ChainOrder);

@@ -21,7 +21,7 @@ public static class AttractionBudget
     /// <summary>Whether the budget still admits this type for this keeper.</summary>
     public static bool Admits(
         WorldState world, CreatureDef creature,
-        IReadOnlyList<RoomInstance> keeperRooms, byte playerId)
+        IReadOnlyList<RoomInstance> keeperRooms, PlayerId playerId)
     {
         if (creature.Attractions.Count == 0) return true;
 

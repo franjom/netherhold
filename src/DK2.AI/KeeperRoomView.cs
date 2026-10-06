@@ -15,12 +15,12 @@ public sealed class KeeperRoomView
             SlabChain.Order(world, room),
             room.Definition.TypeId == RoomTypeId.Hatchery ? EatingRules.NewestChicken(world, room)?.Id ?? -1 : -1) { }
 
-    internal KeeperRoomView(RoomDef definition, byte ownerPlayerId, IEnumerable<int> tiles,
+    internal KeeperRoomView(RoomDef definition, PlayerId ownerPlayerId, IEnumerable<int> tiles,
         int minX, int minY, int maxX, int maxY, IEnumerable<int>? floorSlots = null,
         IEnumerable<int>? chainOrder = null, int objectListHead = -1)
     {
         Definition = definition;
-        OwnerPlayerId = ownerPlayerId;
+        OwnerPlayerId = ownerPlayerId.Value;
         TileIndices = Array.AsReadOnly(tiles.ToArray());
         MinX = minX;
         MinY = minY;

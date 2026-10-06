@@ -28,7 +28,7 @@ public static class TempleSacrificeRules
     public const byte FailedSpeechId = 1;
     public const byte GoldSpeechId = 7;
 
-    public static bool IsTemple(RoomInstance? room, byte playerId) =>
+    public static bool IsTemple(RoomInstance? room, PlayerId playerId) =>
         room is not null
         && room.Definition.TypeId == RoomTypeId.Temple
         && room.OwnerPlayerId == playerId;

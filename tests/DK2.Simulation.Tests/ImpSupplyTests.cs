@@ -282,7 +282,7 @@ public class ImpSupplyTests
         Run run = WithAHeart(mana: 10_000);
         run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 5);
         List<AvailabilityState> rows = run.World.Player(Keeper).Availabilities;
-        rows.Add(new AvailabilityState(KeeperSpellRules.SpellAvailabilityKind, Dk2TerrainFixture.CreateImpSpellId, 2));
+        rows.Add(new AvailabilityState(AvailabilityKind.Spell, Dk2TerrainFixture.CreateImpSpellId, 2));
 
         run.Tick(new CreateImpCommand(Keeper, new TilePos(2, 3)));
         Assert.Equal(4, run.Imps);

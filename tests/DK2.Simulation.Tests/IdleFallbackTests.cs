@@ -15,7 +15,7 @@ public sealed class IdleFallbackTests
     private const byte Rival = 5;
     private const byte Idler = 54;
     private const byte NoTrainer = 55;
-    private const ushort RoomKind = 1;
+    private const AvailabilityKind RoomKind = AvailabilityKind.Room;
     private const int Available = 3;
     private const int Engaging = 199;   // the fight state, category 22
 

@@ -4,6 +4,7 @@
 
 using System.Globalization;
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Simulation.Commands;
 
 namespace DK2.Simulation;
@@ -136,7 +137,7 @@ public sealed class RoomLog
         TilePos[] lost = [.. have.Where(t => !want.Contains(t))];
         placed[row.Room] = want;
 
-        if (gained.Length > 0) return new BuildRoomCommand(row.Player, row.Type, Sorted(gained));
+        if (gained.Length > 0) return new BuildRoomCommand(row.Player, (RoomTypeId)row.Type, Sorted(gained));
         if (lost.Length > 0) return new SellRoomCommand(row.Player, Sorted(lost));
         tally.Unsettled++;
         return null;

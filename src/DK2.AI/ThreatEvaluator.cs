@@ -46,7 +46,7 @@ public static class ThreatEvaluator
     }
 
     public static int LocalStrength(IEnumerable<KeeperThreatSource> sources,
-        byte playerId, int centreX, int centreY, int radius, bool includeTraps)
+        PlayerId playerId, int centreX, int centreY, int radius, bool includeTraps)
     {
         int sum = 0;
         foreach (KeeperThreatSource source in sources)
@@ -60,16 +60,16 @@ public static class ThreatEvaluator
     }
 
     public static KeeperThreatAssessment Assess(IReadOnlyList<KeeperThreatSource> sources,
-        IEnumerable<byte> playerOrder, Func<byte, bool> allied, TilePos target,
+        IEnumerable<PlayerId> playerOrder, Func<PlayerId, bool> allied, TilePos target,
         bool roomMessage, bool trapsStartFights)
     {
         int enemy = 0, friendly = 0;
         byte? attacker = null;
         int x = target.X * Fp32.One + Fp32.One / 2;
         int y = target.Y * Fp32.One + Fp32.One / 2;
-        foreach (byte player in playerOrder)
+        foreach (PlayerId player in playerOrder)
         {
-            bool friend = allied(player);
+            bool friend = allied(player.Value);
             int radius = roomMessage ? 5 : friend ? 4 : 10;
             int strength = LocalStrength(sources, player, x, y, radius * Fp32.One,
                 !roomMessage && trapsStartFights);
@@ -77,7 +77,7 @@ public static class ThreatEvaluator
             else
             {
                 enemy = unchecked(enemy + strength);
-                if (strength != 0) attacker = player;
+                if (strength != 0) attacker = player.Value;
             }
         }
         return new KeeperThreatAssessment(enemy, friendly, attacker);

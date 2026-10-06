@@ -31,7 +31,7 @@ public sealed class GameDatabase
         LevelDef? level = null)
     {
         Terrain = terrain.ToDictionary(t => t.TerrainId);
-        Rooms = rooms.ToDictionary(r => r.RoomId);
+        Rooms = rooms.ToDictionary(r => (RoomTypeId)r.RoomId);
         Creatures = creatures.ToDictionary(c => c.CreatureId);
         Variables = variables;
         Level = level;
@@ -126,7 +126,7 @@ public sealed class GameDatabase
     }
 
     public IReadOnlyDictionary<byte, TerrainDef> Terrain { get; }
-    public IReadOnlyDictionary<byte, RoomDef> Rooms { get; }
+    public IReadOnlyDictionary<RoomTypeId, RoomDef> Rooms { get; }
 
     /// <summary>The room each room-terrain type belongs to. Rooms own their terrain in the data —
     /// the ROOMS record names a terrain id and the TERRAIN record flags that type <c>Room</c> — so
@@ -223,11 +223,11 @@ public sealed class GameDatabase
         ? t
         : throw new KeyNotFoundException($"No TERRAIN definition with id {id}.");
 
-    public RoomDef RoomById(byte id) => Rooms.TryGetValue(id, out RoomDef? r)
-        ? r
-        : throw new KeyNotFoundException($"No ROOMS definition with id {id}.");
+    public RoomDef RoomById(byte id) => Room((RoomTypeId)id);
 
-    public RoomDef Room(RoomTypeId id) => RoomById((byte)id);
+    public RoomDef Room(RoomTypeId id) => Rooms.TryGetValue(id, out RoomDef? r)
+        ? r
+        : throw new KeyNotFoundException($"No ROOMS definition with id {(byte)id}.");
 
     /// <summary>The room a room-terrain tile belongs to, or null if that terrain is not a room.</summary>
     public RoomDef? RoomByTerrain(byte terrainId) =>

@@ -42,7 +42,7 @@ public static class PaydayRules
     /// The 120 is compared raw with turns, so the window is 30 s. The subtraction is unsigned, so a
     /// passed deadline never sets it, nor does an unarmed clock (zero) after turn 0. Ours leaves
     /// turn 0 out too: whether DK2 builds a level's creatures on turn 0 is unread (payday.md §2.1).</summary>
-    public static bool TooCloseToPayday(WorldState world, GameDatabase database, byte ownerPlayerId)
+    public static bool TooCloseToPayday(WorldState world, GameDatabase database, PlayerId ownerPlayerId)
     {
         if (!world.HasPlayer(ownerPlayerId)) return false;
         long deadline = world.Player(ownerPlayerId).NextPaydayTick.Value;
@@ -79,7 +79,7 @@ public static class PaydayRules
     /// <see cref="RoomTypeId.DungeonHeart"/> of its own keeper (the original searches types 1 and
     /// 5). The heart's further condition is on an undecoded flag byte, so it is admitted
     /// unconditionally (ADR-0078); it also pays for the first treasury (ADR-0015).</summary>
-    public static bool IsPayingRoomOf(RoomInstance room, byte playerId) =>
+    public static bool IsPayingRoomOf(RoomInstance room, PlayerId playerId) =>
         room.OwnerPlayerId == playerId
         && room.Definition.TypeId is RoomTypeId.Treasury or RoomTypeId.DungeonHeart;
 

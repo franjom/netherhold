@@ -138,7 +138,7 @@ public class CombatTests
 
         Assert.Contains(sink.Events, e => e.Kind == "target_down" && e.Detail.Contains("victim=" + goblin.Id));
         Assert.DoesNotContain(sink.Events, e => e.Kind is "target_died" or "celebrates");
-        Assert.NotEqual(CombatRules.AttackTypes.Victorious, demon.AttackType);
+        Assert.NotEqual(CombatRules.AttackMode.Victorious, demon.AttackType);
     }
 
     [Fact]
@@ -249,7 +249,7 @@ public class CombatTests
         Assert.Equal(FightTargetKind.Heart, demon.FightTargetKind);
         Assert.Equal(Rival, demon.FightTargetPlayerId);
         Assert.Equal((5 * world.Width) + 10, demon.FightTargetTileIndex);
-        Assert.Equal(CombatRules.AttackTypes.MeleeAtThing, demon.AttackType);
+        Assert.Equal(CombatRules.AttackMode.MeleeAtThing, demon.AttackType);
         // The pillar is an object, class 2, and takes the commit's default half tile (0x0045E098), not a trap's quarter.
         int reach = db.CreatureById(demon.CreatureTypeId).MeleeRange.Raw + 0x800;
         Assert.Equal((reach * reach) >> 12, demon.AttackRangeSquared);
@@ -261,9 +261,9 @@ public class CombatTests
     /// <summary>The commit's melee rule is blind to the target's class (<c>0x0045DE6E</c>): a caster that
     /// is not a Support closes to melee on the heart's pillar within a tile, and casts from further off.</summary>
     [Theory]
-    [InlineData(0x0C00, CombatRules.AttackTypes.MeleeAtThing)]
-    [InlineData(0x2000, CombatRules.AttackTypes.SpellAtThing)]
-    public void ACasterThatIsNotASupportMeleesTheHeartWithinATile(int offset, byte expected)
+    [InlineData(0x0C00, CombatRules.AttackMode.MeleeAtThing)]
+    [InlineData(0x2000, CombatRules.AttackMode.SpellAtThing)]
+    public void ACasterThatIsNotASupportMeleesTheHeartWithinATile(int offset, CombatRules.AttackMode expected)
     {
         CreatureDef caster = Dk2TerrainFixture.Goblin() with
         {
@@ -290,9 +290,9 @@ public class CombatTests
     /// <c>0x7FFFFFFF</c> (<c>0x0045CF05</c>), so a surveyed spell is cast even within a tile, where
     /// an ordinary target gets melee. Ours had the shortcut for a forced creature too.</summary>
     [Theory]
-    [InlineData(false, CombatRules.AttackTypes.MeleeAtCreature)]
-    [InlineData(true, CombatRules.AttackTypes.SpellAtCreature)]
-    public void AForcedCreatureTargetWithinATileGetsTheSpell(bool forced, byte expected)
+    [InlineData(false, CombatRules.AttackMode.MeleeAtCreature)]
+    [InlineData(true, CombatRules.AttackMode.SpellAtCreature)]
+    public void AForcedCreatureTargetWithinATileGetsTheSpell(bool forced, CombatRules.AttackMode expected)
     {
         CreatureDef caster = Dk2TerrainFixture.Goblin() with
         {

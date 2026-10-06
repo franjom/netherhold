@@ -31,7 +31,7 @@ public static class HeroJobRules
 
     /// <summary>A route whose failure may ask a party's Dwarf to tunnel (option bit 0). Ours has no
     /// tunnelling, so the bit changes nothing.</summary>
-    public const int TunnelOption = 0x01;
+    public const Navigation.MoveOptions TunnelOption = (Navigation.MoveOptions)0x01;
 
     /// <summary>The nine sub-tile points at <c>0x00698EC8</c>: a 3×3 grid at 682, 2047 and 3412.</summary>
     private static readonly (int X, int Y)[] SubTile =
@@ -61,7 +61,7 @@ public static class HeroJobRules
         int bestSum = 0;
         for (int p = 0; p < world.PlayerCount; p++)
         {
-            byte id = world.PlayerAtIndex(p).PlayerId;
+            byte id = world.PlayerAtIndex(p).PlayerId.Value;
             int sum = 0;
             foreach (CreatureState c in world.Creatures)
                 if (c.OwnerPlayerId == id && CreatureStateMachine.HasState(c))
@@ -75,7 +75,7 @@ public static class HeroJobRules
 
     /// <summary>The job's player, or the strongest written back into the triple when it names none
     /// (the arms of jobs 18 and 19). Ours holds the player id where DK2 holds its tag.</summary>
-    public static byte? TargetPlayer(WorldState world, GameDatabase database, CreatureState creature)
+    public static PlayerId? TargetPlayer(WorldState world, GameDatabase database, CreatureState creature)
     {
         if (creature.GoodJobPlayerId != 0) return creature.GoodJobPlayerId;
         if (StrongestPlayer(world, database) is not byte chosen) return null;
@@ -177,7 +177,7 @@ public static class HeroJobRules
     private static bool HuntFirst(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
-        if (TargetPlayer(world, context.Database, creature) is not byte player) return false;
+        if (TargetPlayer(world, context.Database, creature) is not PlayerId player) return false;
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         var scratch = new List<Steering.Fixed16Vector>();
         foreach (CreatureState prey in world.Creatures)
@@ -185,7 +185,7 @@ public static class HeroJobRules
             if (prey.OwnerPlayerId != player || !CreatureStateMachine.HasState(prey)) continue;
             if (!Combat.CombatTargetRules.CanReach(context.Navigation, creature, definition, prey.PosX, prey.PosY, int.MaxValue, scratch))
                 continue;
-            return prey.Id != creature.Id && Walk(context, creature, prey.PosX, prey.PosY, HuntingState, 0x41);
+            return prey.Id != creature.Id && Walk(context, creature, prey.PosX, prey.PosY, HuntingState, (Navigation.MoveOptions)0x41);
         }
         return false;
     }
@@ -195,7 +195,7 @@ public static class HeroJobRules
     public static bool Hunt(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
-        byte player = creature.GoodJobPlayerId;
+        PlayerId player = creature.GoodJobPlayerId;
         var theirs = new List<CreatureState>();
         foreach (CreatureState c in world.Creatures)
             if (c.OwnerPlayerId == player && CreatureStateMachine.HasState(c)) theirs.Add(c);
@@ -213,7 +213,7 @@ public static class HeroJobRules
     /// handler returns 0 — so the hero idles there and runs the job again.</summary>
     private static bool ToTheHeart(SimulationContext context, CreatureState creature, JobType _)
     {
-        if (TargetPlayer(context.World, context.Database, creature) is not byte player) return false;
+        if (TargetPlayer(context.World, context.Database, creature) is not PlayerId player) return false;
         return HeartWalk(context, creature, player, TunnelOption);
     }
 
@@ -223,7 +223,7 @@ public static class HeroJobRules
     /// steps on while its cell test <c>0x00454110</c> rejects; the test accepts every tile of a
     /// heart (type 5), so the point is the random tile. Ours walks the room's slab chain
     /// (<see cref="SlabChain"/>) and accepts any room's tile.</summary>
-    private static bool HeartWalk(SimulationContext context, CreatureState creature, byte player, int options)
+    private static bool HeartWalk(SimulationContext context, CreatureState creature, PlayerId player, Navigation.MoveOptions options)
     {
         WorldState world = context.World;
         int position = Combat.HeartSites.PositionOf(world, context.Database, player);
@@ -235,7 +235,7 @@ public static class HeroJobRules
 
     /// <summary>State 177's fallback (<c>0x004625F7</c>): straight to the centre of the player's
     /// <c>DungeonHeartPosition</c> tile, options 0, no room asked.</summary>
-    private static bool HeartPositionWalk(SimulationContext context, CreatureState creature, byte player)
+    private static bool HeartPositionWalk(SimulationContext context, CreatureState creature, PlayerId player)
     {
         int position = Combat.HeartSites.PositionOf(context.World, context.Database, player);
         if (position < 0) return false;
@@ -327,6 +327,6 @@ public static class HeroJobRules
 
     /// <summary>DK2's <c>0x00471890(point, resume, options)</c>: route, then state 6 resuming; with
     /// option bit 0 a failed route falls back to tunnelling (<see cref="TunnelRules"/>).</summary>
-    private static bool Walk(SimulationContext context, CreatureState creature, int x, int y, int resume, int options) =>
+    private static bool Walk(SimulationContext context, CreatureState creature, int x, int y, int resume, Navigation.MoveOptions options) =>
         TunnelRules.RouteOrTunnel(context, "Hero", creature, x, y, Systems.StateShadow.TravelToPoint, resume, options, x >> 12, y >> 12);
 }

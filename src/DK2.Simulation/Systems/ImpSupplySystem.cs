@@ -59,7 +59,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(i);
-            byte playerId = player.PlayerId;
+            PlayerId playerId = player.PlayerId;
 
             // Only a keeper is topped up (Q91). Nobody, the hero side and the
             // neutral player own real terrain but keep no imp-staffed dungeon -
@@ -67,7 +67,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
             // heart would have staffed it. The deadline is deliberately NOT
             // cleared for anyone declined, which is what makes a full-strength
             // keeper's next replacement immediate.
-            if (!PlayerIds.IsKeeper(playerId)) continue;
+            if (!PlayerIds.IsKeeper(playerId.Value)) continue;
 
             if (ImpSupplyRules.ImpCount(world, database, playerId) >= minimum) continue;
 
@@ -94,7 +94,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
     /// than a refused one — the same rule <see cref="GoldStore.TryWithdraw"/>
     /// follows for rooms.
     /// </summary>
-    private static void Buy(SimulationContext context, byte playerId, TilePos? at)
+    private static void Buy(SimulationContext context, PlayerId playerId, TilePos? at)
     {
         WorldState world = context.World;
         if (!world.HasPlayer(playerId))
@@ -108,7 +108,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
         // much mana the id happens to be holding (Q91). Refused before the cost
         // is even looked up, and refused *distinctly* from "no such player":
         // Neutral exists, owns terrain, and still may not have imps.
-        if (!PlayerIds.IsKeeper(playerId))
+        if (!PlayerIds.IsKeeper(playerId.Value))
         {
             context.Emit(SystemName, "create_imp_refused",
                 $"player={playerId} reason=not_a_keeper");
@@ -134,7 +134,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
         if (context.Database.KeeperSpell(KeeperSpellName.CreateImp) is { } spell)
         {
             int row = player.Availabilities.FindIndex(
-                a => a.Kind == KeeperSpellRules.SpellAvailabilityKind && a.TypeId == spell.KeeperSpellId);
+                a => a.Kind == AvailabilityKind.Spell && a.TypeId == spell.KeeperSpellId);
             if (row >= 0 && player.Availabilities[row].Value != ResearchTreeRules.Available)
             {
                 context.Emit(SystemName, "create_imp_refused",
@@ -173,7 +173,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
     /// <remarks>The type is found by name, <c>Imp</c> — not by id, and not by the
     /// worker flag, because the Dwarf carries it too and is not what Create Imp
     /// makes.</remarks>
-    private static CreatureState? Spawn(SimulationContext context, byte playerId, TilePos? at = null)
+    private static CreatureState? Spawn(SimulationContext context, PlayerId playerId, TilePos? at = null)
     {
         WorldState world = context.World;
         TilePos tile;
@@ -219,7 +219,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
     /// <summary>The level a Create Imp cast makes for <paramref name="playerId"/>: the second
     /// datum of the spell's shot, or of its bonus shot when the keeper's row is upgraded. Level
     /// 1 for a database without the spell.</summary>
-    public static int ImpLevel(SimulationContext context, byte playerId)
+    public static int ImpLevel(SimulationContext context, PlayerId playerId)
     {
         if (context.Database.KeeperSpell(KeeperSpellName.CreateImp) is not { } spell)
             return CreatureLevelRules.FirstLevel;

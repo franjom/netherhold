@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Commands;
 
@@ -18,18 +19,18 @@ namespace DK2.Simulation.Commands;
 /// whose exact rule is UNKNOWN (does a drag starting on a tagged tile untag
 /// everything it touches?) and belongs to the UI layer.</para>
 /// </summary>
-public sealed record TagTilesCommand(byte PlayerId, IReadOnlyList<TilePos> Tiles, bool Tagged)
+public sealed record TagTilesCommand(PlayerId PlayerId, IReadOnlyList<TilePos> Tiles, bool Tagged)
     : PlayerCommand(PlayerId)
 {
-    public static TagTilesCommand Tag(byte playerId, params TilePos[] tiles) =>
+    public static TagTilesCommand Tag(PlayerId playerId, params TilePos[] tiles) =>
         new(playerId, tiles, true);
 
-    public static TagTilesCommand Untag(byte playerId, params TilePos[] tiles) =>
+    public static TagTilesCommand Untag(PlayerId playerId, params TilePos[] tiles) =>
         new(playerId, tiles, false);
 
     /// <summary>Every tile in a rectangle, in row-major order.</summary>
     public static TagTilesCommand Rect(
-        byte playerId, int x0, int y0, int x1, int y1, bool tagged = true)
+        PlayerId playerId, int x0, int y0, int x1, int y1, bool tagged = true)
     {
         var tiles = new List<TilePos>();
         if (!tagged)

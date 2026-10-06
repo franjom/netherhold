@@ -60,7 +60,7 @@ public static partial class PossessionRules
     {
         CreatureDef mine = context.Database.CreatureById(me.CreatureTypeId);
         if (command.Melee) Melee(context, me, mine, command.Aim);
-        else UseSlot(context, sight, command.PlayerId, me, mine, command.Aim, command.Slot.Value);
+        else UseSlot(context, sight, command.PlayerId.Value, me, mine, command.Aim, command.Slot.Value);
     }
 
     // ------------------------------------------------------------------ the aim
@@ -329,7 +329,7 @@ public static partial class PossessionRules
         context.Emit(ActSystem, "possessed_teleport", $"creature={me.Id} heart_tile={anchor}");
     }
 
-    internal readonly record struct SpellTarget(byte Kind, int Id, ObjectState? Object);
+    internal readonly record struct SpellTarget(FightTargetKind Kind, int Id, ObjectState? Object);
 
     /// <summary><c>0x00515520</c>: players in list order, those hostile to the creature's owner (the
     /// friendly ones for a friendly spell); per player its creatures, traps, doors and type-94 objects,
@@ -359,8 +359,8 @@ public static partial class PossessionRules
 
         for (int i = 0; i < world.PlayerCount; i++)
         {
-            byte player = world.PlayerAtIndex(i).PlayerId;
-            bool qualifies = CombatRules.IsHostile(world, me.OwnerPlayerId, player);
+            PlayerId player = world.PlayerAtIndex(i).PlayerId;
+            bool qualifies = CombatRules.IsHostile(world, me.OwnerPlayerId, player.Value);
             if (friendly) qualifies = !qualifies;
             if (!qualifies) continue;
 

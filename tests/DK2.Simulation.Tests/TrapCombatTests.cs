@@ -83,7 +83,7 @@ public class TrapCombatTests
         Assert.Equal(FightTargetKind.Trap, goblin.FightTargetKind);
         Assert.Equal(alarm.Id, goblin.FightTargetId);
         Assert.Equal(Rival, goblin.FightTargetPlayerId);
-        Assert.Equal(CombatRules.AttackTypes.MeleeAtThing, goblin.AttackType);
+        Assert.Equal(CombatRules.AttackMode.MeleeAtThing, goblin.AttackType);
         // 0x0045E065: a trap adds a quarter tile to MeleeRange, half what a door or an object adds.
         Assert.Equal(((def.MeleeRange.Raw + 0x400) * (def.MeleeRange.Raw + 0x400)) >> 12, goblin.AttackRangeSquared);
 
@@ -228,7 +228,7 @@ public class TrapCombatTests
 
         sim.Run(1);
         Assert.Equal(FightTargetKind.Trap, warlock.FightTargetKind);
-        Assert.Equal(CombatRules.AttackTypes.SpellAtThing, warlock.AttackType);
+        Assert.Equal(CombatRules.AttackMode.SpellAtThing, warlock.AttackType);
         for (int i = 0; i < 200 && !sink.Events.Any(e => e.Kind == "shot_trap_hit"); i++) sim.Run(1);
         Assert.Contains(sink.Events, e => e.Kind == "shot_trap_hit" && e.Detail.Contains($"trap={trap.Id}"));
     }

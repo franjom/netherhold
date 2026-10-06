@@ -279,10 +279,10 @@ public class ImpClaimsWhatItDugTests
 
         run.UntilDug(new TilePos(4, 2));
         Assert.False(run.World.Tile(4, 2).FreshlyDug);
-        Assert.NotEqual(0, run.World.Tile(4, 2).DigTaskOutlivesWallFor);
+        Assert.False(run.World.Tile(4, 2).DigTaskOutlivesWallFor.IsEmpty);
 
         run.UntilRaised(new TilePos(4, 2));
-        Assert.Equal(0, run.World.Tile(4, 2).DigTaskOutlivesWallFor);
+        Assert.True(run.World.Tile(4, 2).DigTaskOutlivesWallFor.IsEmpty);
         Assert.Single(run.Of("claim_raised"));
     }
 

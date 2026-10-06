@@ -107,7 +107,7 @@ public class CombatApproachTests
 
         // The blow lands before spFighting runs on the same tick, so the unlink is already made.
         Assert.Contains(sink.Events, e => e.Kind == "target_died" && e.Detail.Contains("victim=" + goblin.Id));
-        Assert.Equal(CombatRules.AttackTypes.Victorious, demon.AttackType);
+        Assert.Equal(CombatRules.AttackMode.Victorious, demon.AttackType);
         Assert.Equal(CreatureActivity.Fighting, demon.Activity);
 
         sim.Run(1);
@@ -238,7 +238,7 @@ public class CombatApproachTests
         CreatureState flanker = Spawn(db, world, Dk2TerrainFixture.SkeletonCreatureId, Keeper, 3, 8);
         CreatureState target = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 8);
         target.Heading = 0x200; // facing +x
-        flanker.AttackType = CombatRules.AttackTypes.MeleeAtCreature;
+        flanker.AttackType = CombatRules.AttackMode.MeleeAtCreature;
         (int X, int Y) aim = default;
         new GameSimulation(db, world, 1, [new Probe(context => { context.Navigation.Refresh(); ApproachRules.Destination(context, flanker,
             db.CreatureById(flanker.CreatureTypeId), target, target.PosX, target.PosY, out aim.X, out aim.Y); })]).Tick(InputFrame.Empty);

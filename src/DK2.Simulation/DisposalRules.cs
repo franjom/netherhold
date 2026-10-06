@@ -21,7 +21,7 @@ public static class DisposalRules
     /// and for the same reason: the owner said <i>imps</i>, the flag also admits the Dwarf,
     /// and the difference is unreachable today.</summary>
     public static bool Disposes(
-        WorldState world, GameDatabase database, CreatureDef mover, TilePos at, byte playerId)
+        WorldState world, GameDatabase database, CreatureDef mover, TilePos at, PlayerId playerId)
     {
         if (mover.Flags.HasFlag(CreatureFlags.IsWorker))
             return IsHeartCentreTile(world, database, at, playerId);
@@ -34,7 +34,7 @@ public static class DisposalRules
     /// that <see cref="StructureBlocks"/> makes unwalkable. CONFIRMED (owner, 2026-09-15, two
     /// screenshots), which also settles that a heart is <b>always 5x5</b>, never smaller.</summary>
     public static bool IsHeartCentreTile(
-        WorldState world, GameDatabase database, TilePos at, byte playerId)
+        WorldState world, GameDatabase database, TilePos at, PlayerId playerId)
     {
         if (!world.Contains(at)) return false;
 

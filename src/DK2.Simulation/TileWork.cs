@@ -113,13 +113,13 @@ public readonly record struct TileHealthDamage(int Amount);
 /// did: in DK2 the imp that freed the gold is the imp that carries it away
 /// (Q31). Work with no worker has its gold reported and dropped.</param>
 public readonly record struct TileWorkOrder(
-    int TileIndex, TileWorkKind Kind, byte PlayerId, int WorkerCreatureId = -1)
+    int TileIndex, TileWorkKind Kind, PlayerId PlayerId, int WorkerCreatureId = -1)
 {
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(TileIndex);
         hash.Add((int)Kind);
-        hash.Add(PlayerId);
+        hash.Add(PlayerId.Value);
         hash.Add(WorkerCreatureId);
     }
 }
@@ -266,18 +266,18 @@ public static class TileWorkRules
     /// never a terrain id — a rule written against terrain id 2 would be a rule
     /// about the reference install, not about DK2.
     /// </summary>
-    public static bool Applies(GameDatabase database, in TileState tile, TileWorkKind kind, byte playerId)
+    public static bool Applies(GameDatabase database, in TileState tile, TileWorkKind kind, PlayerId playerId)
         => Applies(database, tile, kind, playerId, ruinedHeart: false);
 
     /// <summary>The same, knowing whether the tile's owner has lost their heart: a
     /// ruined heart is claimable like any room (Q93, ADR-0162), a live one never is.</summary>
     public static bool Applies(
-        WorldState world, GameDatabase database, in TileState tile, TileWorkKind kind, byte playerId)
+        WorldState world, GameDatabase database, in TileState tile, TileWorkKind kind, PlayerId playerId)
         => Applies(database, tile, kind, playerId,
                    world.HasPlayer(tile.OwnerPlayerId) && world.Player(tile.OwnerPlayerId).HeartRuined);
 
     private static bool Applies(
-        GameDatabase database, in TileState tile, TileWorkKind kind, byte playerId, bool ruinedHeart)
+        GameDatabase database, in TileState tile, TileWorkKind kind, PlayerId playerId, bool ruinedHeart)
     {
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
 
@@ -351,7 +351,7 @@ public static class TileWorkRules
     /// <c>Attackable</c>, neither <c>Solid</c> nor <c>Room</c>. The original's own
     /// predicate (<c>0x00454000</c>), which both attack handlers re-test after every
     /// application. Claimed Path is the one shipped terrain it admits.</summary>
-    private static bool IsHostileFloor(TerrainDef terrain, in TileState tile, byte playerId) =>
+    private static bool IsHostileFloor(TerrainDef terrain, in TileState tile, PlayerId playerId) =>
         tile.OwnerPlayerId != playerId
         && terrain.IsOwnable && terrain.IsAttackable
         && !terrain.IsSolid && !terrain.IsRoom;
@@ -390,7 +390,7 @@ public static class TileWorkRules
         GameDatabase database,
         in TileState tile,
         TileWorkKind requested,
-        byte playerId,
+        PlayerId playerId,
         out TileWorkKind resolved)
     {
         if (requested is not (TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall))
@@ -415,7 +415,7 @@ public static class TileWorkRules
     /// marked rock is dug, marked gold mined, a marked wall dug through at one rate
     /// if it is yours and another if it is not, all from flags and owner.</summary>
     public static bool TryTaggedWork(
-        GameDatabase database, in TileState tile, byte playerId, out TileWorkKind kind)
+        GameDatabase database, in TileState tile, PlayerId playerId, out TileWorkKind kind)
     {
         foreach (TileWorkKind candidate in TaggedWorkKinds)
         {
@@ -443,7 +443,7 @@ public static class TileWorkRules
         GameDatabase database,
         ref TileState tile,
         TileWorkKind kind,
-        byte playerId,
+        PlayerId playerId,
         int efficiency = EfficiencyRules.BaseModifier)
     {
         if (IsRoomScoped(kind))
@@ -529,7 +529,7 @@ public static class TileWorkRules
     /// would either overfill its hands or leave gold it could have carried, both
     /// visible. Mutates nothing.
     /// </summary>
-    public static int GoldYield(GameDatabase database, in TileState tile, TileWorkKind kind, byte playerId)
+    public static int GoldYield(GameDatabase database, in TileState tile, TileWorkKind kind, PlayerId playerId)
     {
         if (!Applies(database, tile, kind, playerId)) return 0;
 
@@ -597,7 +597,7 @@ public static class TileWorkRules
         GameDatabase database,
         ref TileState tile,
         byte newTerrainId,
-        byte playerId,
+        PlayerId playerId,
         bool takeOwnership)
     {
         TerrainDef next = database.TerrainById(newTerrainId);
@@ -610,10 +610,10 @@ public static class TileWorkRules
         // burning wooden bridge takes it fire and all, because putting the fire
         // out by taking the tile would reward the claim (Q67, Q68).
         if (terrainChanged) tile.BurnTicksRemaining = 0;
-        if (!next.IsTaggable) tile.TaggedBy = 0;
+        if (!next.IsTaggable) tile.TaggedBy = PlayerMask.None;
 
-        byte ownerBefore = tile.OwnerPlayerId;
-        if (takeOwnership && next.IsOwnable) tile.OwnerPlayerId = playerId;
+        PlayerId ownerBefore = tile.OwnerPlayerId;
+        if (takeOwnership && next.IsOwnable) tile.OwnerPlayerId = playerId.Value;
 
         // Tile_SetOwner (0x004559D0) hands the new owner the current terrain's ManaGain alone, so
         // a room tile changing hands brings its new owner nothing of the floor it was built on.

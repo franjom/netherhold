@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Commands;
 
@@ -10,7 +11,7 @@ namespace DK2.Simulation.Commands;
 /// <paramref name="Y"/> are DK2's position units, 4096 a tile, as the packet carries them.
 /// Only Call to Arms (spell 3) is read end to end; other ids are refused (ADR-0279).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/call-to-arms.md")]
-public sealed record CastSpellAtPlaceCommand(byte PlayerId, byte SpellId, int X, int Y, ushort Flags = 0)
+public sealed record CastSpellAtPlaceCommand(PlayerId PlayerId, byte SpellId, int X, int Y, ushort Flags = 0)
     : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
@@ -27,7 +28,7 @@ public sealed record CastSpellAtPlaceCommand(byte PlayerId, byte SpellId, int X,
 /// (<c>0x005136E0</c> through the slap action 6 and <c>0x0049C2A0</c>). Refused when the
 /// keeper has no standing flag or it is already going (ADR-0279).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/call-to-arms.md")]
-public sealed record RemoveCallToArmsCommand(byte PlayerId) : PlayerCommand(PlayerId)
+public sealed record RemoveCallToArmsCommand(PlayerId PlayerId) : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash) => base.HashInto(ref hash);
 }
@@ -35,7 +36,7 @@ public sealed record RemoveCallToArmsCommand(byte PlayerId) : PlayerCommand(Play
 /// <summary>Packet action 55: a keeper spell cast at a creature. Thunderbolt (6, ADR-0260) and
 /// Heal (10, ADR-0287) are read end to end; other ids and nonzero flags are refused.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-thunderbolt.md")]
-public sealed record CastSpellOnCreatureCommand(byte PlayerId, byte SpellId, int CreatureId, ushort Flags = 0)
+public sealed record CastSpellOnCreatureCommand(PlayerId PlayerId, byte SpellId, int CreatureId, ushort Flags = 0)
     : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)

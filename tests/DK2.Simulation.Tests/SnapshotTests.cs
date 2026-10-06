@@ -96,13 +96,13 @@ public class SnapshotTests
         level.Availabilities.Add(new AvailabilityEntry(5, 1, 7, 1));
         GameDatabase database = TestWorld.Database().ForLevel(level);
         WorldState world = TestWorld.World(database);
-        world.SetAvailability(1, 5, 7, 3);
+        world.SetAvailability(1, AvailabilityKind.Spell, 7, 3);
         var original = new GameSimulation(database, world, 1);
 
         GameSimulation restored = WorldSnapshot.FromBytes(
             WorldSnapshot.ToBytes(original), database);
 
-        Assert.Equal(3, restored.World.Availability(1, 5, 7));
+        Assert.Equal(3, restored.World.Availability(1, AvailabilityKind.Spell, 7));
         Assert.Equal(original.StateHash(), restored.StateHash());
     }
 

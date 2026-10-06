@@ -18,11 +18,11 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public sealed class RoomInstance
 {
-    internal RoomInstance(RoomDef definition, byte ownerPlayerId, int[] tileIndices,
+    internal RoomInstance(RoomDef definition, PlayerId ownerPlayerId, int[] tileIndices,
                           int minX, int minY, int maxX, int maxY)
     {
         Definition = definition;
-        OwnerPlayerId = ownerPlayerId;
+        OwnerPlayerId = ownerPlayerId.Value;
         TileIndices = tileIndices;
         MinX = minX;
         MinY = minY;

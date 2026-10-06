@@ -29,8 +29,8 @@ public class KeeperBridgeTests
         WorldState world = KeeperWorld.World(Db);
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
         for (int i = 1; i <= length; i++) KeeperWorld.Set(world, Db, North(i), hazard);
-        world.SetAvailability(Keeper, 1, (int)RoomTypeId.WoodenBridge, wood);
-        world.SetAvailability(Keeper, 1, (int)RoomTypeId.StoneBridge, stone);
+        world.SetAvailability(Keeper, AvailabilityKind.Room, (int)RoomTypeId.WoodenBridge, wood);
+        world.SetAvailability(Keeper, AvailabilityKind.Room, (int)RoomTypeId.StoneBridge, stone);
         return world;
     }
 
@@ -64,7 +64,7 @@ public class KeeperBridgeTests
         if (expected is RoomTypeId room)
         {
             Assert.NotNull(build);
-            Assert.Equal((byte)room, build!.RoomId);
+            Assert.Equal(room, build!.RoomId);
             Assert.Equal([North(1)], build.Tiles);
             Assert.Equal(KeeperTask.DigPath, keeper.State.Task);
         }

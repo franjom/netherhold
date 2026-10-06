@@ -40,7 +40,7 @@ public sealed class SightOfEvilCastTests
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         world.Player(Keeper).Mana = 45000;
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, KeeperSpellRules.SightOfEvil, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, KeeperSpellRules.SightOfEvil, 3));
         return (db, world);
     }
 

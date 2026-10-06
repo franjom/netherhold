@@ -4,6 +4,7 @@
 
 using System.Buffers.Binary;
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
 
@@ -114,7 +115,7 @@ public sealed class PacketLog
                     break;
                 case 47:
                     commands.Add(BuildRoomCommand.Rect(
-                        player, checked((byte)a.First), second.X, second.Y,
+                        player, (RoomTypeId)checked((byte)a.First), second.X, second.Y,
                         PackedTile(a.Third).X, PackedTile(a.Third).Y));
                     break;
                 case 49:

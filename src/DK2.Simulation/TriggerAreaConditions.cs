@@ -93,7 +93,7 @@ public static class TriggerAreaConditions
     /// being the player id is STRONGLY INFERRED, not read (Q247).</para>
     /// </remarks>
     private static int Matching(
-        ActionPointState area, WorldState world, GameDatabase database, byte player, byte terrain)
+        ActionPointState area, WorldState world, GameDatabase database, PlayerId player, byte terrain)
     {
         if (player == 0 && terrain == 0) return Size(area);
 
@@ -126,7 +126,7 @@ public static class TriggerAreaConditions
     /// (Q271).</para>
     /// </remarks>
     private static int Things(
-        ActionPointState area, WorldState world, byte thingType, byte player, byte typeId)
+        ActionPointState area, WorldState world, byte thingType, PlayerId player, byte typeId)
     {
         int count = 0;
         foreach (TilePos pos in Tiles(area, world))
@@ -141,7 +141,7 @@ public static class TriggerAreaConditions
 
         return count;
 
-        bool Matches(byte owner, byte type) =>
+        bool Matches(PlayerId owner, byte type) =>
             (player == 0 || owner == player) && (typeId == 0 || type == typeId);
     }
 
@@ -152,7 +152,7 @@ public static class TriggerAreaConditions
     /// selects objects instead; that branch is declined because object possession is not
     /// represented (Q280).</remarks>
     private static bool PossessedCreatureExists(
-        ActionPointState area, WorldState world, byte player, byte typeId)
+        ActionPointState area, WorldState world, PlayerId player, byte typeId)
     {
         foreach (CreatureState creature in world.Creatures)
         {
@@ -160,7 +160,7 @@ public static class TriggerAreaConditions
             if (player != 0 && creature.OwnerPlayerId != player) continue;
             if (typeId != 0 && creature.CreatureTypeId != typeId) continue;
 
-            foreach (byte playerId in world.PlayerIds)
+            foreach (PlayerId playerId in world.PlayerIds)
                 if (world.Player(playerId).PossessedCreatureId == creature.Id) return true;
         }
 
@@ -182,7 +182,7 @@ public static class TriggerAreaConditions
     /// running off the grid costs DK2 nothing. Ours skips those tiles, which is the same
     /// answer.</para>
     /// </remarks>
-    private static int Tagged(ActionPointState area, WorldState world, byte player)
+    private static int Tagged(ActionPointState area, WorldState world, PlayerId player)
     {
         int count = 0;
         foreach (TilePos pos in Tiles(area, world))

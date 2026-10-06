@@ -17,7 +17,7 @@ public static class TurncoatRules
     public static bool IsActive(CreatureState creature) => creature.TurncoatTicks != 0;
 
     public static bool AreCombatEnemies(WorldState world, CreatureState attacker, CreatureState target) =>
-        !world.AreAllied(CombatPlayer(world, attacker).PlayerId, CombatPlayer(world, target).PlayerId);
+        !world.AreAllied(CombatPlayer(world, attacker).PlayerId, CombatPlayer(world, target).PlayerId.Value);
 
     private static ref PlayerState CombatPlayer(WorldState world, CreatureState creature) =>
         ref world.Player(IsActive(creature) ? unchecked((byte)creature.TurncoatPlayerId) : creature.OwnerPlayerId);

@@ -63,7 +63,7 @@ public static class TrainingRules
     /// test is <c>&gt;=</c> against keeper gold (<c>player+0x7E</c>, <c>Money</c>), and a keeper
     /// who cannot pay <b>loses the creature's job</b> — training is the only job poverty evicts
     /// you from. The job handler, the enter hook <c>0x0047B230</c> and the update hook each test it.</summary>
-    public static bool CanAfford(WorldState world, GameDatabase database, byte playerId) =>
+    public static bool CanAfford(WorldState world, GameDatabase database, PlayerId playerId) =>
         GoldStore.Total(world, playerId) >= GoldPerSecond(database);
 
     /// <summary>Data1 of message 55, <see cref="PlayerMessageKind.TrainingUnpaid"/>, as the enter

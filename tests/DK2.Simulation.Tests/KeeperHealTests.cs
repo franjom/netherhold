@@ -24,7 +24,7 @@ public class KeeperHealTests
     public void TheCastHealsTheLesserOfTheDataWordAndTheMissingHealthPaysAndStampsBothClocks(bool upgraded, int amount)
     {
         var (db, world, target) = Setup(Spell() with { ShotData1 = 500, BonusShotData1 = 700 });
-        world.SetUpgraded(Keeper, 5, KeeperSpellRules.Heal, upgraded);
+        world.SetUpgraded(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Heal, upgraded);
         target.Health = 300;
         var boundary = new Boundary();
         var sim = new GameSimulation(db, world, 9, [boundary, new ShotSystem()]);
@@ -374,7 +374,7 @@ public class KeeperHealTests
             basis.Variables, [spell ?? Spell()], objects: basis.Objects.Values, shots: [Shot()]);
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         world.Player(Keeper).Mana = 12000;
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, KeeperSpellRules.Heal, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, KeeperSpellRules.Heal, 3));
         for (int y = 8; y <= 12; y++)
             for (int x = 8; x <= 12; x++)
             {

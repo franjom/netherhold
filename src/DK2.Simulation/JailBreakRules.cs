@@ -129,7 +129,7 @@ public static class JailBreakRules
     /// random point of the tile south of the door, or with no door to a random rim tile
     /// (<c>0x004E8430</c>). The room is marked broken (<c>0x004E2D40(1)</c>). Ours releases only
     /// prisoners, where DK2 takes every creature of the side standing there.</summary>
-    public static void Release(SimulationContext context, string system, RoomInstance room, byte player, bool all)
+    public static void Release(SimulationContext context, string system, RoomInstance room, PlayerId player, bool all)
     {
         WorldState world = context.World;
         int door = DoorTile(world, room);

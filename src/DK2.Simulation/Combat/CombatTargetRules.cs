@@ -16,9 +16,9 @@ public sealed class HeartSites
 {
     public readonly struct Site
     {
-        public Site(byte owner, int centreX, int centreY, int[] ringTiles, bool standing)
+        public Site(PlayerId owner, int centreX, int centreY, int[] ringTiles, bool standing)
         {
-            Owner = owner;
+            Owner = owner.Value;
             CentreX = centreX;
             CentreY = centreY;
             RingTiles = ringTiles;
@@ -42,7 +42,7 @@ public sealed class HeartSites
     public IReadOnlyList<Site> Sites => _sites;
 
     /// <summary>The site of this player's heart, standing or fallen; none for a player without one.</summary>
-    public Site? SiteOf(byte owner)
+    public Site? SiteOf(PlayerId owner)
     {
         for (int i = 0; i < _sites.Count; i++)
             if (_sites[i].Owner == owner) return _sites[i];
@@ -52,7 +52,7 @@ public sealed class HeartSites
     /// <summary>DK2's <c>DungeonHeartPosition</c> (<c>player+0xB43</c>, <c>0x004C5F50</c>) as ours
     /// derives it: the centre tile of the bounding box of the player's heart tiles, as
     /// <see cref="Refresh"/> computes it; -1 for a player with none.</summary>
-    public static int PositionOf(WorldState world, GameDatabase database, byte playerId)
+    public static int PositionOf(WorldState world, GameDatabase database, PlayerId playerId)
     {
         byte? heartTerrain = ManaRules.DungeonHeartTerrainId(database);
         if (heartTerrain is null) return -1;
@@ -81,7 +81,7 @@ public sealed class HeartSites
         for (int p = 0; p < world.PlayerCount; p++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(p);
-            if (!PlayerIds.IsKeeper(player.PlayerId)) continue;
+            if (!PlayerIds.IsKeeper(player.PlayerId.Value)) continue;
             bool standing = !player.HeartRuined && player.HeartHealth > 0;
 
             int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
@@ -232,18 +232,18 @@ public static class CombatTargetRules
         me.FightTargetTileIndex = (door.Y * context.World.Width) + door.X;
         if (useSpell)
         {
-            me.AttackType = CombatRules.AttackTypes.SpellAtThing;
+            me.AttackType = CombatRules.AttackMode.SpellAtThing;
             me.AttackSpellSlot = (byte)spellSlot;
             me.AttackRangeSquared = SpellRules.RangeSquared(spell!);
         }
         else
         {
             bool secret = context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && def.Flags.HasFlag(DoorFlags.Secret);
-            me.AttackType = CombatRules.AttackTypes.MeleeAtThing;
+            me.AttackType = CombatRules.AttackMode.MeleeAtThing;
             me.AttackSpellSlot = 0;
-            me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange.Raw + (secret ? SecretDoorReach : DoorReach));
+            me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange + new Fp32(secret ? SecretDoorReach : DoorReach));
         }
-        Enter(context, me, mine, same, $"door={door.Id} attack={me.AttackType}");
+        Enter(context, me, mine, same, $"door={door.Id} attack={(byte)me.AttackType}");
         return true;
     }
 
@@ -312,7 +312,7 @@ public static class CombatTargetRules
         bool heartMayEnter = trap is null
             && (chosen is null || database.CreatureById(chosen.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker));
         int heartTile = -1;
-        byte heartOwner = 0;
+        PlayerId heartOwner = 0;
         if (heartMayEnter && me.CreatureTypeId != CombatRules.ImpCreatureTypeId && !definition.Flags.HasFlag(CreatureFlags.IsHorny))
             heartTile = ScanHearts(world, sight, hearts, me, sightSq, ref best, out heartOwner);
 
@@ -394,17 +394,17 @@ public static class CombatTargetRules
         me.FightTargetTileIndex = (trap.Y * context.World.Width) + trap.X;
         if (melee)
         {
-            me.AttackType = CombatRules.AttackTypes.MeleeAtThing;
+            me.AttackType = CombatRules.AttackMode.MeleeAtThing;
             me.AttackSpellSlot = 0;
-            me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange.Raw + CombatRules.TrapReach);
+            me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange + new Fp32(CombatRules.TrapReach));
         }
         else
         {
-            me.AttackType = CombatRules.AttackTypes.SpellAtThing;
+            me.AttackType = CombatRules.AttackMode.SpellAtThing;
             me.AttackSpellSlot = (byte)spellSlot;
             me.AttackRangeSquared = SpellRules.RangeSquared(spell!);
         }
-        Enter(context, me, mine, same, $"trap={trap.Id} attack={me.AttackType}");
+        Enter(context, me, mine, same, $"trap={trap.Id} attack={(byte)me.AttackType}");
         return true;
     }
 
@@ -451,7 +451,7 @@ public static class CombatTargetRules
     {
         if (ally.Id != me.Id && !CanReach(context.Navigation, me, mine, ally.PosX, ally.PosY, int.MaxValue, scratch)) return false;
         bool same = me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId == ally.Id
-            && me.AttackType == CombatRules.AttackTypes.SpellAtAlly;
+            && me.AttackType == CombatRules.AttackMode.SpellAtAlly;
         if (me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId != CombatRules.NoTarget && !same)
         {
             CreatureState? previous = context.World.CreatureById(me.FightTargetId);
@@ -461,10 +461,10 @@ public static class CombatTargetRules
         me.FightTargetId = ally.Id;
         me.FightTargetPlayerId = 0;
         me.FightTargetTileIndex = -1;
-        me.AttackType = CombatRules.AttackTypes.SpellAtAlly;
+        me.AttackType = CombatRules.AttackMode.SpellAtAlly;
         me.AttackSpellSlot = (byte)slot;
         me.AttackRangeSquared = SpellRules.RangeSquared(spell);
-        Enter(context, me, mine, same, $"ally={ally.Id} attack={me.AttackType} slot={slot}");
+        Enter(context, me, mine, same, $"ally={ally.Id} attack={(byte)me.AttackType} slot={slot}");
         return true;
     }
 
@@ -607,7 +607,7 @@ public static class CombatTargetRules
     /// Pillar objects, each a proxy whose blow the health routine hands to the heart; the ring
     /// tile is the stand-in until their placement is read (Q363).</summary>
     private static int ScanHearts(
-        WorldState world, ISightBlocker sight, HeartSites hearts, CreatureState me, int sightSq, ref int best, out byte owner)
+        WorldState world, ISightBlocker sight, HeartSites hearts, CreatureState me, int sightSq, ref int best, out PlayerId owner)
     {
         owner = 0;
         if (TurncoatRules.IsActive(me)) return -1;
@@ -649,7 +649,7 @@ public static class CombatTargetRules
     /// (<c>0x00471740(room, 3)</c>), which routes through one (door-blocking.md, ADR-0324).</summary>
     public static bool CanReach(
         WorldSteering navigation, CreatureState me, CreatureDef definition, int toX, int toY, int rangeSq,
-        List<Fixed16Vector> scratch, int options)
+        List<Fixed16Vector> scratch, Navigation.MoveOptions options)
     {
         if (me.PosX == toX && me.PosY == toY) return true;
 
@@ -687,7 +687,7 @@ public static class CombatTargetRules
         int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, target.PosX, target.PosY);
         bool useSpell = spell != null && (forced || !(distance < MeleeDecisionDistance && mine.FightStyle != FightStyle.Support));
         bool same = me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId == target.Id;
-        bool wasRanged = me.AttackType is CombatRules.AttackTypes.SpellAtCreature or CombatRules.AttackTypes.SpellAtThing;
+        bool wasRanged = me.AttackType is CombatRules.AttackMode.SpellAtCreature or CombatRules.AttackMode.SpellAtThing;
         if (same && wasRanged != useSpell) CombatRules.Unregister(target, me.Id);
         if ((!same || wasRanged != useSpell) && !CombatRules.Register(target, me.Id, ranged: useSpell)) return false;
 
@@ -702,17 +702,17 @@ public static class CombatTargetRules
         me.FightTargetTileIndex = -1;
         if (useSpell)
         {
-            me.AttackType = CombatRules.AttackTypes.SpellAtCreature;
+            me.AttackType = CombatRules.AttackMode.SpellAtCreature;
             me.AttackSpellSlot = (byte)spellSlot;
             me.AttackRangeSquared = SpellRules.RangeSquared(spell!);
         }
         else
         {
-            me.AttackType = CombatRules.AttackTypes.MeleeAtCreature;
+            me.AttackType = CombatRules.AttackMode.MeleeAtCreature;
             me.AttackSpellSlot = 0;
             me.AttackRangeSquared = CombatRules.MeleeReachSquared(mine, theirs);
         }
-        Enter(context, me, mine, same, $"target={target.Id} attack={me.AttackType}");
+        Enter(context, me, mine, same, $"target={target.Id} attack={(byte)me.AttackType}");
         return true;
     }
 
@@ -721,7 +721,7 @@ public static class CombatTargetRules
     /// surveyed spell deals damage (a status spell takes melee against a thing, combat-spells.md §2),
     /// else melee at an object's reach — the pillar is class 2, so half a tile (<c>0x0045E098</c>); no slots.</summary>
     private static bool EngageHeart(
-        SimulationContext context, CreatureState me, CreatureDef mine, byte owner, int tile, int spellSlot = -1, CreatureSpellDef? spell = null)
+        SimulationContext context, CreatureState me, CreatureDef mine, PlayerId owner, int tile, int spellSlot = -1, CreatureSpellDef? spell = null)
     {
         bool same = me.FightTargetKind == FightTargetKind.Heart && me.FightTargetTileIndex == tile;
         int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, TileCentreX(context.World, tile), TileCentreY(context.World, tile));
@@ -729,21 +729,21 @@ public static class CombatTargetRules
             && !(distance < MeleeDecisionDistance && mine.FightStyle != FightStyle.Support);
         me.FightTargetKind = FightTargetKind.Heart;
         me.FightTargetId = CombatRules.NoTarget;
-        me.FightTargetPlayerId = owner;
+        me.FightTargetPlayerId = owner.Value;
         me.FightTargetTileIndex = tile;
         if (useSpell)
         {
-            me.AttackType = CombatRules.AttackTypes.SpellAtThing;
+            me.AttackType = CombatRules.AttackMode.SpellAtThing;
             me.AttackSpellSlot = (byte)spellSlot;
             me.AttackRangeSquared = SpellRules.RangeSquared(spell!);
         }
         else
         {
-            me.AttackType = CombatRules.AttackTypes.MeleeAtThing;
+            me.AttackType = CombatRules.AttackMode.MeleeAtThing;
             me.AttackSpellSlot = 0;
-            me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange.Raw + CombatRules.ThingReach);
+            me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange + new Fp32(CombatRules.ThingReach));
         }
-        Enter(context, me, mine, same, $"heart={owner} tile={tile} attack={me.AttackType}");
+        Enter(context, me, mine, same, $"heart={owner} tile={tile} attack={(byte)me.AttackType}");
         return true;
     }
 

@@ -45,7 +45,6 @@ public static class KeeperSpellRules
     /// <summary>Chicken (11): shot 10, process 15, at a live non-neutral creature (target selector 3)
     /// on a tile location selector 1 admits (keeper-spell-inferno-chicken.md §2, §3).</summary>
     public const byte Chicken = 11;
-    public const ushort SpellAvailabilityKind = 5;
 
     // Zero is the original helper's result even when creation and payment succeeded.
     // The separate refusal describes our command outcome, never the original return.
@@ -58,7 +57,7 @@ public static class KeeperSpellRules
         KeeperSpellDef spell = context.Database.KeeperSpellById(cast.SpellId)!;
         CreatureState target = world.CreatureById(cast.CreatureId)!;
         ref PlayerState player = ref world.Player(cast.PlayerId);
-        int row = player.Availabilities.FindIndex(a => a.Kind == SpellAvailabilityKind && a.TypeId == cast.SpellId);
+        int row = player.Availabilities.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == cast.SpellId);
         AvailabilityState availability = player.Availabilities[row];
         var effect = spell.Shot(availability.Upgraded);
         ShotState shot = ShotRules.Spawn(world, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
@@ -85,7 +84,7 @@ public static class KeeperSpellRules
         WorldState world = context.World;
         KeeperSpellDef spell = context.Database.KeeperSpellById(cast.SpellId)!;
         ref PlayerState player = ref world.Player(cast.PlayerId);
-        int row = player.Availabilities.FindIndex(a => a.Kind == SpellAvailabilityKind && a.TypeId == cast.SpellId);
+        int row = player.Availabilities.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == cast.SpellId);
         AvailabilityState availability = player.Availabilities[row];
         var effect = spell.Shot(availability.Upgraded);
         if (cast.SpellId != SightOfEvil)
@@ -113,7 +112,7 @@ public static class KeeperSpellRules
         if (spell is null) return KeeperSpellRefusal.MissingDefinition;
         if (!world.HasPlayer(cast.PlayerId)) return KeeperSpellRefusal.MissingPlayer;
         ref PlayerState player = ref world.Player(cast.PlayerId);
-        int row = player.Availabilities.FindIndex(a => a.Kind == SpellAvailabilityKind && a.TypeId == cast.SpellId);
+        int row = player.Availabilities.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == cast.SpellId);
         if (row < 0) return KeeperSpellRefusal.NoSpellEntry;
         AvailabilityState availability = player.Availabilities[row];
         if (spell.ManaCost != 0 && spell.ManaCost > player.Mana) return KeeperSpellRefusal.Mana;
@@ -156,13 +155,13 @@ public static class KeeperSpellRules
     /// <summary>The place validators of <c>0x004BB8A0</c> for one spell at one tile: its location
     /// selector (1, 4 or 5 read) and target selector 4 or 5. The caller's grid must be current.</summary>
     public static bool PlaceAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
-        byte playerId, KeeperSpellDef spell, TilePos at) =>
+        PlayerId playerId, KeeperSpellDef spell, TilePos at) =>
         LocationAllowed(world, database, navigation, playerId, spell, at)
         && PlaceTargetAllowed(world, database, playerId, spell, at);
 
     /// <summary>The place arm of the target validator: 4 (<c>0x005179D0</c>) applies the caster's own
     /// room exclusions; 5 (<c>0x00517F60</c>) admits anything; any other fails closed.</summary>
-    private static bool PlaceTargetAllowed(WorldState world, GameDatabase database, byte playerId, KeeperSpellDef spell, TilePos at) =>
+    private static bool PlaceTargetAllowed(WorldState world, GameDatabase database, PlayerId playerId, KeeperSpellDef spell, TilePos at) =>
         spell.TargetSelector switch
         {
             4 => TargetFour(world, database, playerId, at),
@@ -173,14 +172,14 @@ public static class KeeperSpellRules
     /// <summary>The creature validators of <c>0x004BBA40</c>: the record's location selector at the
     /// target's tile, then its target selector on the creature.</summary>
     public static bool CreatureTargetAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
-        byte playerId, KeeperSpellDef spell, CreatureState target) =>
+        PlayerId playerId, KeeperSpellDef spell, CreatureState target) =>
         LocationAllowed(world, database, navigation, playerId, spell, target.Tile)
         && TargetAllowed(world, database, playerId, spell, target);
 
     /// <summary>The location validator the record selects (<c>0x005176B0</c>) at one tile: 1
     /// (<c>0x00517B80</c>) and 4 (<c>0x00517F10</c>) are read; any other fails closed.</summary>
     public static bool LocationAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
-        byte playerId, KeeperSpellDef spell, TilePos at) => spell.LocationSelector switch
+        PlayerId playerId, KeeperSpellDef spell, TilePos at) => spell.LocationSelector switch
     {
         1 => LocationOne(world, database, navigation, playerId, at),
         4 => LocationFour(world, navigation, at),
@@ -191,7 +190,7 @@ public static class KeeperSpellRules
     /// <summary>The target validator the record selects (<c>0x00517730</c>) on a creature: 1
     /// (<c>0x00517800</c>), 2 (<c>0x00517930</c>), 3 (<c>0x00517990</c>) and6 are read; any other fails
     /// closed.</summary>
-    public static bool TargetAllowed(WorldState world, GameDatabase database, byte playerId, KeeperSpellDef spell,
+    public static bool TargetAllowed(WorldState world, GameDatabase database, PlayerId playerId, KeeperSpellDef spell,
         CreatureState target) => spell.TargetSelector switch
     {
         1 => TargetOne(world, database, playerId, target),
@@ -201,7 +200,7 @@ public static class KeeperSpellRules
         _ => false,
     };
 
-    private static bool TargetSix(GameDatabase database, byte playerId, CreatureState target) =>
+    private static bool TargetSix(GameDatabase database, PlayerId playerId, CreatureState target) =>
         !StatusEffectRules.IsStunned(target) && !HandRules.IsHeld(target)
         && target.Dk2StateId is not (193 or 278 or 279 or 280)
         && !target.CombatPitFighter && !ChickenRules.IsChicken(target)
@@ -212,7 +211,7 @@ public static class KeeperSpellRules
     /// caster's; a Combat Pit fighter when the room under it is; otherwise the caster's own creature,
     /// unless its kind is <c>IsHorny</c>. This simulation keeps no room id on a creature, so an
     /// attached creature's room owner is read from the floor it stands on.</summary>
-    private static bool TargetOne(WorldState world, GameDatabase database, byte playerId, CreatureState target)
+    private static bool TargetOne(WorldState world, GameDatabase database, PlayerId playerId, CreatureState target)
     {
         if (RoomMembershipRules.IsAttached(target))
             return world.Contains(target.Tile) && world.Tile(target.Tile).OwnerPlayerId == playerId;
@@ -226,7 +225,7 @@ public static class KeeperSpellRules
 
     /// <summary>Target 2, flags zero: a creature owned by neither the caster nor neutral; allies and
     /// dying creatures included.</summary>
-    private static bool TargetTwo(byte playerId, CreatureState target) =>
+    private static bool TargetTwo(PlayerId playerId, CreatureState target) =>
         target.OwnerPlayerId != playerId && target.OwnerPlayerId != PlayerIds.Neutral;
 
     /// <summary>Location 4 (<c>0x00517F10</c>): no ownership; the navigation grid's solid bit
@@ -239,7 +238,7 @@ public static class KeeperSpellRules
 
     /// <summary>Target 4 at a place (<c>0x005179D0</c>): a room of the caster's own applies the
     /// Portal, Heart, Prison, Temple and Combat Pit interior exclusions; anything else passes.</summary>
-    private static bool TargetFour(WorldState world, GameDatabase database, byte playerId, TilePos at)
+    private static bool TargetFour(WorldState world, GameDatabase database, PlayerId playerId, TilePos at)
     {
         if (!world.Contains(at)) return false;
         int index = at.Y * world.Width + at.X;
@@ -262,7 +261,7 @@ public static class KeeperSpellRules
         if (spell is null) return KeeperSpellRefusal.MissingDefinition;
         if (!world.HasPlayer(cast.PlayerId)) return KeeperSpellRefusal.MissingPlayer;
         ref PlayerState player = ref world.Player(cast.PlayerId);
-        int row = player.Availabilities.FindIndex(a => a.Kind == SpellAvailabilityKind && a.TypeId == cast.SpellId);
+        int row = player.Availabilities.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == cast.SpellId);
         // Availability is not tested: neither action 55 nor 0x004BBF90 reads it, and the
         // interface or the computer keeper gates it, as for Create Imp (ADR-0247, ADR-0260
         // amended). The entry is still needed: it holds the clocks and the Upgraded flag.
@@ -291,12 +290,12 @@ public static class KeeperSpellRules
         return KeeperSpellRefusal.None;
     }
 
-    private static bool LocationOne(WorldState world, GameDatabase database, INavByteGrid navigation, byte playerId, TilePos at)
+    private static bool LocationOne(WorldState world, GameDatabase database, INavByteGrid navigation, PlayerId playerId, TilePos at)
     {
         if (!world.Contains(at)) return false;
         int index = at.Y * world.Width + at.X;
-        byte owner = world.TileAtIndex(index).OwnerPlayerId;
-        if (owner == PlayerIds.Neutral || !world.AreAllied(playerId, owner)) return false;
+        PlayerId owner = world.TileAtIndex(index).OwnerPlayerId;
+        if (owner == PlayerIds.Neutral || !world.AreAllied(playerId, owner.Value)) return false;
         if ((navigation.NavByte(at.X, at.Y) & 8) != 0) return false;
         RoomInstance? room = RoomIndex.RoomAt(world, database, index);
         return room is null || !RoomExcludes(world, room, at, index);

@@ -41,30 +41,30 @@ public static class ResearchTreeRules
 
     /// <summary>The availability kind that holds a research kind's items: room 1, door 4,
     /// trap 3, spell 5 — or 0 for a kind the original's switches have no arm for.</summary>
-    public static ushort AvailabilityKindOf(int researchKind) => researchKind switch
+    public static AvailabilityKind AvailabilityKindOf(int researchKind) => researchKind switch
     {
-        KindRoom => 1,
-        KindDoor => 4,
-        KindTrap => 3,
-        KindSpell => 5,
-        _ => 0,
+        KindRoom => AvailabilityKind.Room,
+        KindDoor => AvailabilityKind.Door,
+        KindTrap => AvailabilityKind.Trap,
+        KindSpell => AvailabilityKind.Spell,
+        _ => AvailabilityKind.None,
     };
 
     /// <summary><c>0x004C30F0</c>: whether the entry's item is still RESEARCHABLE. A kind with no
     /// arm answers yes, as the original's switch falls through to <c>return 1</c>.</summary>
-    public static bool IsResearchable(WorldState world, byte playerId, ResearchEntry entry)
+    public static bool IsResearchable(WorldState world, PlayerId playerId, ResearchEntry entry)
     {
-        ushort kind = AvailabilityKindOf(entry.Kind);
-        return kind == 0 || world.Availability(playerId, kind, entry.TypeId) == Researchable;
+        AvailabilityKind kind = AvailabilityKindOf(entry.Kind);
+        return kind == AvailabilityKind.None || world.Availability(playerId, kind, entry.TypeId) == Researchable;
     }
 
     /// <summary>The upgrade phase's test (<c>0x004C3000</c>, second pass): a spell that is
     /// AVAILABLE, not yet upgraded, and whose record has a bonus shot.</summary>
     public static bool IsUpgradeTarget(
-        WorldState world, GameDatabase database, byte playerId, ResearchEntry entry)
+        WorldState world, GameDatabase database, PlayerId playerId, ResearchEntry entry)
     {
         if (entry.Kind != KindSpell) return false;
-        ushort kind = AvailabilityKindOf(KindSpell);
+        AvailabilityKind kind = AvailabilityKindOf(KindSpell);
         return world.Availability(playerId, kind, entry.TypeId) == Available
             && !world.IsUpgraded(playerId, kind, entry.TypeId)
             && database.KeeperSpellById(entry.TypeId)?.CanBeUpgraded == true;
@@ -72,7 +72,7 @@ public static class ResearchTreeRules
 
     /// <summary><c>0x004C3000</c>: the first entry still RESEARCHABLE, else the first upgrade
     /// target, else none. Clearing a target that was set sends message 0x18.</summary>
-    public static void ChooseTarget(SimulationContext context, byte playerId)
+    public static void ChooseTarget(SimulationContext context, PlayerId playerId)
     {
         WorldState world = context.World;
         List<ResearchEntry> list = context.Database.Variables.Research;
@@ -102,7 +102,7 @@ public static class ResearchTreeRules
     /// <summary>The adder's second half (<c>0x004C2DC0</c> after the credit): re-choose when the
     /// target has stopped qualifying, and when the points reach its cost, deliver it and start
     /// the next. Nothing is spent when no Library can take it; the next credit tries again.</summary>
-    public static void Advance(SimulationContext context, byte playerId)
+    public static void Advance(SimulationContext context, PlayerId playerId)
     {
         WorldState world = context.World;
         List<ResearchEntry> list = context.Database.Variables.Research;
@@ -124,13 +124,13 @@ public static class ResearchTreeRules
 
     /// <summary>Why a target that is no longer RESEARCHABLE is kept: it is a live upgrade
     /// target, or its kind is one the original's check does not branch on.</summary>
-    private static bool StillWanted(SimulationContext context, byte playerId, ResearchEntry entry) =>
+    private static bool StillWanted(SimulationContext context, PlayerId playerId, ResearchEntry entry) =>
         entry.Kind is < KindRoom or > KindSpell
         || (entry.Kind == KindSpell && IsUpgradeTarget(context.World, context.Database, playerId, entry));
 
     /// <summary><c>0x004C6CF0</c> then <c>0x004E0870</c>: a random one of the keeper's Libraries
     /// takes the result if it has a shelf. False when there is no Library or no shelf.</summary>
-    private static bool Deliver(SimulationContext context, byte playerId, ResearchEntry entry)
+    private static bool Deliver(SimulationContext context, PlayerId playerId, ResearchEntry entry)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -149,7 +149,7 @@ public static class ResearchTreeRules
             return false;
         }
 
-        if (AvailabilityKindOf(entry.Kind) == 0) return false;
+        if (AvailabilityKindOf(entry.Kind) == AvailabilityKind.None) return false;
         Grant(context, library, entry);
         return true;
     }
@@ -160,8 +160,8 @@ public static class ResearchTreeRules
     private static void Grant(SimulationContext context, RoomInstance library, ResearchEntry entry)
     {
         WorldState world = context.World;
-        byte owner = library.OwnerPlayerId;
-        ushort kind = AvailabilityKindOf(entry.Kind);
+        PlayerId owner = library.OwnerPlayerId;
+        AvailabilityKind kind = AvailabilityKindOf(entry.Kind);
 
         if (world.Availability(owner, kind, entry.TypeId) == Available
             && !world.IsUpgraded(owner, kind, entry.TypeId))
@@ -186,10 +186,10 @@ public static class ResearchTreeRules
     /// <summary><c>0x004E12A0</c>: a Library takes a book. It becomes the room owner's, and
     /// unless it is a Special its item becomes AVAILABLE. A spell book for a spell the keeper
     /// already has is destroyed instead. Returns whether the book was kept.</summary>
-    public static bool Shelve(WorldState world, GameDatabase database, byte ownerPlayerId, ObjectState book)
+    public static bool Shelve(WorldState world, GameDatabase database, PlayerId ownerPlayerId, ObjectState book)
     {
-        book.OwnerPlayerId = ownerPlayerId;
-        ushort kind = AvailabilityKindOf(book.ResearchKind);
+        book.OwnerPlayerId = ownerPlayerId.Value;
+        AvailabilityKind kind = AvailabilityKindOf(book.ResearchKind);
 
         if (book.ObjectTypeId == BookObjectTypeId && book.ResearchKind == KindSpell
             && world.Availability(ownerPlayerId, kind, book.ResearchTypeId) == Available)
@@ -209,9 +209,9 @@ public static class ResearchTreeRules
     /// <remarks>Not yet called: nothing in this project takes a shelved book out of a Library
     /// (a sold or captured Library, a book picked up). The rule is here so the first such path
     /// has it to call.</remarks>
-    public static void Unshelved(WorldState world, byte ownerPlayerId, ObjectState book)
+    public static void Unshelved(WorldState world, PlayerId ownerPlayerId, ObjectState book)
     {
-        ushort kind = AvailabilityKindOf(book.ResearchKind);
+        AvailabilityKind kind = AvailabilityKindOf(book.ResearchKind);
         if (kind == 0) return;
 
         foreach (ObjectState other in world.Objects)

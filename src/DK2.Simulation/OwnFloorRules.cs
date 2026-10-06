@@ -24,12 +24,12 @@ public static class OwnFloorRules
     public static ReadOnlySpan<int> NeighbourDy => Dy;
 
     /// <summary>One neighbour's test: owned by <paramref name="playerId"/>, Ownable, not Solid.</summary>
-    public static bool IsOwnFloor(TerrainDef terrain, byte ownerPlayerId, byte playerId) =>
+    public static bool IsOwnFloor(TerrainDef terrain, PlayerId ownerPlayerId, PlayerId playerId) =>
         ownerPlayerId == playerId && terrain.IsOwnable && !terrain.IsSolid;
 
     /// <summary>True when any in-bounds orthogonal neighbour of <paramref name="at"/> is
     /// <paramref name="playerId"/>'s own floor.</summary>
-    public static bool Touches(GameDatabase database, WorldState world, TilePos at, byte playerId)
+    public static bool Touches(GameDatabase database, WorldState world, TilePos at, PlayerId playerId)
     {
         for (int i = 0; i < NeighbourDx.Length; i++)
         {

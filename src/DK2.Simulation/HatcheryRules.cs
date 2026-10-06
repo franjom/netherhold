@@ -289,7 +289,7 @@ public static class HatcheryRules
                 $"Object {egg.Id} is type {egg.ObjectTypeId}, not an egg.", nameof(egg));
 
         int tile = egg.TileIndex;
-        byte owner = egg.OwnerPlayerId;
+        PlayerId owner = egg.OwnerPlayerId;
 
         world.RemoveObject(egg.Id);
         return world.SpawnObject(database, ChickenObjectId, owner, tile);

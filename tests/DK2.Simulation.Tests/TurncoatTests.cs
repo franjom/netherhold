@@ -44,7 +44,7 @@ public sealed class TurncoatTests
         world.Tile(at).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(at).OwnerPlayerId = Keeper;
         world.Player(Keeper).Mana = 45000;
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, SpellId, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, SpellId, 3));
         CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, at);
         return (db, world, target);
     }
@@ -55,7 +55,7 @@ public sealed class TurncoatTests
     public void CastUsesTheEnemyCreaturePathAndPaysOnce_StronglyInferredFromBinary(bool upgraded, ushort ticks)
     {
         var (db, world, target) = Setup();
-        world.SetUpgraded(Keeper, 5, SpellId, upgraded);
+        world.SetUpgraded(Keeper, AvailabilityKind.Spell, SpellId, upgraded);
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
         sim.Run(7);
         var cast = new CastSpellOnCreatureCommand(Keeper, SpellId, target.Id);

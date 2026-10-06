@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Commands;
 
@@ -15,7 +16,7 @@ namespace DK2.Simulation.Commands;
 /// 1 to 0. Ours, not DK2's: naming the lever by its tile, as <see cref="LockDoorCommand"/>
 /// names a door.</para>
 /// </summary>
-public sealed record PullCasinoLeverCommand(byte PlayerId, TilePos Tile) : PlayerCommand(PlayerId)
+public sealed record PullCasinoLeverCommand(PlayerId PlayerId, TilePos Tile) : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
     {

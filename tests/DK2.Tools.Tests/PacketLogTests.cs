@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Buffers.Binary;
+using DK2.Data.Model;
 using DK2.Simulation.Commands;
 using DK2.Tools;
 
@@ -64,7 +65,7 @@ public sealed class PacketLogTests
             Assert.Throws<InvalidDataException>(() => packet.At(2, map));
             map.Add(1128, 2, 1, PacketEntityKind.Object);
             var command = Assert.IsType<ActivateSpecialCommand>(Assert.Single(packet.At(2, map).All));
-            Assert.Equal((3, 1), (command.PlayerId, command.ObjectId));
+            Assert.Equal((new PlayerId(3), 1), (command.PlayerId, command.ObjectId));
         }
         finally
         {

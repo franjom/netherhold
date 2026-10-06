@@ -84,7 +84,7 @@ public static class ManaRules
         Span<int> indexOfOwner = stackalloc int[256];
         indexOfOwner.Fill(-1);
         for (int i = 0; i < world.PlayerCount; i++)
-            indexOfOwner[world.PlayerAtIndex(i).PlayerId] = i;
+            indexOfOwner[world.PlayerAtIndex(i).PlayerId.Value] = i;
 
         for (int i = 0; i < world.TileCount; i++)
         {
@@ -152,7 +152,7 @@ public static class ManaRules
         Span<int> indexOfOwner = stackalloc int[256];
         indexOfOwner.Fill(-1);
         for (int i = 0; i < world.PlayerCount; i++)
-            indexOfOwner[world.PlayerAtIndex(i).PlayerId] = i;
+            indexOfOwner[world.PlayerAtIndex(i).PlayerId.Value] = i;
 
         // +0x10D6: the completed traps' upkeep, summed as Mana_UpkeepPerSecond (0x004C17A0) sums it.
         // DK2 registers it for any owner but pays keepers alone (0x004B9EC0); this loop pays every

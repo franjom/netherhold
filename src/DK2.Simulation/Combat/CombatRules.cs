@@ -8,23 +8,23 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Combat;
 
 /// <summary>What an engagement's target is: DK2 keeps one tag and reads the thing's class.</summary>
-public static class FightTargetKind
+public enum FightTargetKind : byte
 {
-    public const byte None = 0;
-    public const byte Creature = 1;
+    None = 0,
+    Creature = 1,
 
     /// <summary>An enemy dungeon heart, which DK2 attacks through its Arch Pillar objects — the health
     /// routine redirects a pillar's delta to the owner's heart (<c>0x004DA200</c>); here the heart tile
     /// stands in for the pillar, whose placement is unread (Q363).</summary>
-    public const byte Heart = 2;
+    Heart = 2,
 
     /// <summary>A door, by <see cref="DoorState.Id"/>: forced on a creature that walks into a hostile
     /// one (<c>0x0048A2EB</c>) and fought as a thing (door-blocking.md).</summary>
-    public const byte Door = 3;
+    Door = 3,
 
     /// <summary>A trap, by <see cref="TrapState.Id"/>: chosen by <c>SelectAVictim</c>'s scan D when it
     /// is completed and revealed (traps.md §11) and fought as a thing.</summary>
-    public const byte Trap = 4;
+    Trap = 4,
 }
 
 /// <summary>The engagement record and the rules around it: who may look for a fight, who can be
@@ -57,17 +57,17 @@ public static class CombatRules
 
     /// <summary>The low nibble of <c>creature+0x529</c>, which <c>spFighting</c> switches on to
     /// start action 16 (spell) or 17 (melee) — combat-entry.md §3.</summary>
-    public static class AttackTypes
+    public enum AttackMode : byte
     {
-        public const byte SpellAtCreature = 0;
-        public const byte MeleeAtCreature = 1;
-        public const byte SpellAtThing = 2;
-        public const byte SpellAtAlly = 3;
-        public const byte MeleeAtThing = 4;
+        SpellAtCreature = 0,
+        MeleeAtCreature = 1,
+        SpellAtThing = 2,
+        SpellAtAlly = 3,
+        MeleeAtThing = 4,
 
         /// <summary>The death unlink's mark: my target has died, and <c>spFighting</c> takes the victory
         /// arm on its next tick (combat-approach-and-victory.md §5).</summary>
-        public const byte Victorious = 0xF;
+        Victorious = 0xF,
     }
 
     public static bool IsFighting(CreatureState creature) => creature.Activity == CreatureActivity.Fighting;
@@ -246,10 +246,12 @@ public static class CombatRules
     /// <summary>The fight-starter's melee reach: my <c>MeleeRange</c> plus half the target's
     /// footprint, squared and shifted down twelve.</summary>
     public static int MeleeReachSquared(CreatureDef me, CreatureDef target) =>
-        ReachSquared(me.MeleeRange.Raw + (target.FootprintRadius.Raw >> 1));
+        ReachSquared(me.MeleeRange + new Fp32(target.FootprintRadius.Raw >> 1));
 
     /// <summary>The same reach against a thing: <c>MeleeRange</c> plus the thing's allowance.</summary>
     public static int ReachSquared(int reach) => unchecked(reach * reach) >> 12;
+
+    public static int ReachSquared(Fp32 reach) => ReachSquared(reach.Raw);
 
     /// <summary>Seconds in the record to ticks, as the loader converts both melee clocks
     /// (combat-cadence.md §3): multiply by the tick rate, shift the fixed point away, truncate.</summary>
@@ -372,7 +374,7 @@ public static class CombatRules
         if (attackerId == NoTarget) return;
         CreatureState? attacker = world.CreatureById(attackerId);
         if (attacker is null || attacker.FightTargetKind != FightTargetKind.Creature || attacker.FightTargetId != me.Id) return;
-        if (dead) attacker.AttackType = AttackTypes.Victorious;
+        if (dead) attacker.AttackType = AttackMode.Victorious;
         attacker.FightTargetId = NoTarget;
         attacker.FightTargetKind = FightTargetKind.None;
         attacker.FightTargetPlayerId = 0;

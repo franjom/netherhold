@@ -23,7 +23,6 @@ public sealed partial class CreatureJobSystem
     private const int WanderStampTicks = 0x84;
 
     /// <summary>Availability kind 1 is a room; 3 is "available" (<c>0x004BAB20</c>).</summary>
-    private const ushort RoomKind = 1;
     private const int Available = 3;
 
     /// <summary>89 after its mood chooser: the fallback, then 3.</summary>
@@ -42,7 +41,7 @@ public sealed partial class CreatureJobSystem
     private static bool Fallback(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
-        byte owner = creature.OwnerPlayerId;
+        PlayerId owner = creature.OwnerPlayerId;
         if (!definition.Flags.HasFlag(CreatureFlags.NotTrainWhenIdle) && RoomAvailable(world, owner, RoomTypeId.TrainingRoom)
             && TryTake(context, creature, definition, JobType.Train, roll: -1, "idle", report: false))
             return true;
@@ -53,8 +52,8 @@ public sealed partial class CreatureJobSystem
             && TryTake(context, creature, definition, JobType.Drink, roll: -1, "idle", report: false);
     }
 
-    private static bool RoomAvailable(WorldState world, byte player, RoomTypeId type) =>
-        world.Availability(player, RoomKind, (int)type) == Available;
+    private static bool RoomAvailable(WorldState world, PlayerId player, RoomTypeId type) =>
+        world.Availability(player, AvailabilityKind.Room, (int)type) == Available;
 
     /// <summary>State 3 (<c>0x00477680</c> and <c>0x004776C0</c>): wait out a playing action; at the
     /// deadline, idle. Otherwise, after a wander (<c>+0xA7</c> set), roll: under 25 wander again,

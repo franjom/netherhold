@@ -214,7 +214,7 @@ public static class PrisonRules
         creature.PrisonOwnerPlayerId != NoPrison;
 
     /// <summary>Whether <paramref name="room"/> is a prison belonging to <paramref name="playerId"/>.</summary>
-    public static bool IsPrisonOf(RoomInstance room, byte playerId) =>
+    public static bool IsPrisonOf(RoomInstance room, PlayerId playerId) =>
         room.OwnerPlayerId == playerId && room.Definition.TypeId == RoomTypeId.Prison;
 
     /// <summary>A free tile in <paramref name="playerId"/>'s nearest prison, or -1
@@ -226,7 +226,7 @@ public static class PrisonRules
     /// <para>The carry's destination: with none, no imp sets off (ADR-0354: the owner, 2026-10-05,
     /// and the rescue selector <c>0x0046D810</c>'s no-place result).</para></summary>
     public static int FreeTileIn(
-        WorldState world, GameDatabase database, byte playerId, TilePos from)
+        WorldState world, GameDatabase database, PlayerId playerId, TilePos from)
     {
         int best = -1;
         long bestDistance = long.MaxValue;
@@ -272,7 +272,7 @@ public static class PrisonRules
     /// is under <see cref="Capacity"/>, and nobody is standing on it. Asked at the door
     /// so that a prison which filled during the walk turns the body away.</summary>
     public static bool AdmitsAt(
-        WorldState world, GameDatabase database, byte playerId, int tileIndex)
+        WorldState world, GameDatabase database, PlayerId playerId, int tileIndex)
     {
         if (tileIndex < 0 || tileIndex >= world.Width * world.Height) return false;
 
@@ -325,7 +325,7 @@ public static class PrisonRules
     /// two (Q167, Q171).</para></summary>
     public static bool Imprison(
         in StateHookContext hooks, CreatureState creature,
-        byte playerId, int tileIndex, bool dropped = false)
+        PlayerId playerId, int tileIndex, bool dropped = false)
     {
         WorldState world = hooks.World;
         GameDatabase database = hooks.Database;
@@ -333,7 +333,7 @@ public static class PrisonRules
 
         LairRules.ReleaseBed(world, database, creature);
 
-        creature.PrisonOwnerPlayerId = playerId;
+        creature.PrisonOwnerPlayerId = playerId.Value;
         creature.PosX = CreatureState.CentreOf(tileIndex % world.Width);
         creature.PosY = CreatureState.CentreOf(tileIndex / world.Width);
         creature.Body.Vel = Steering.Fixed16Vector.Zero;

@@ -207,7 +207,7 @@ public class ManaOnRealDataTests
 
         for (int i = 0; i < world.PlayerCount; i++)
         {
-            byte player = world.PlayerAtIndex(i).PlayerId;
+            byte player = world.PlayerAtIndex(i).PlayerId.Value;
             int expected = 0;
             bool heart = false;
             for (int t = 0; t < world.TileCount; t++)

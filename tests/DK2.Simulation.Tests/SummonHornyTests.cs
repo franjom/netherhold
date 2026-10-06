@@ -51,7 +51,7 @@ public sealed class SummonHornyTests
         world.Tile(at).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(at).OwnerPlayerId = Keeper;
         world.Player(Keeper).Mana = 200000;
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, SpellId, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, SpellId, 3));
         return (db, world, at);
     }
 

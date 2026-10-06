@@ -3,12 +3,13 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Commands;
 
 /// <summary>Places a door blueprint on one of this keeper's tiles (<c>0x004C33B0</c>, reached from
 /// game action <c>0x00513210</c>; ADR-0231).</summary>
-public sealed record PlaceDoorCommand(byte PlayerId, TilePos Tile, byte DoorId) : PlayerCommand(PlayerId)
+public sealed record PlaceDoorCommand(PlayerId PlayerId, TilePos Tile, byte DoorId) : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
     {
@@ -20,7 +21,7 @@ public sealed record PlaceDoorCommand(byte PlayerId, TilePos Tile, byte DoorId) 
 }
 
 /// <summary>Places a trap blueprint on one of this keeper's tiles (<c>0x004C3860</c>; ADR-0231).</summary>
-public sealed record PlaceTrapCommand(byte PlayerId, TilePos Tile, byte TrapId) : PlayerCommand(PlayerId)
+public sealed record PlaceTrapCommand(PlayerId PlayerId, TilePos Tile, byte TrapId) : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
     {

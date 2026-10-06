@@ -366,7 +366,7 @@ internal static class KeeperWorld
         tile.TerrainId = terrainId;
         tile.OwnerPlayerId = owner;
         tile.Health = database.TerrainById(terrainId).StartingHealth;
-        tile.TaggedBy = 0;
+        tile.TaggedBy = PlayerMask.None;
     }
 
     /// <summary>
@@ -385,7 +385,7 @@ internal static class KeeperWorld
             tile.TerrainId = ClaimedPath;
             tile.OwnerPlayerId = playerId;
             tile.Health = database.TerrainById(ClaimedPath).StartingHealth;
-            tile.TaggedBy = 0;
+            tile.TaggedBy = PlayerMask.None;
             dug++;
         }
         return dug;

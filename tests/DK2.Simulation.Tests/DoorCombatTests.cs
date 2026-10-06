@@ -104,7 +104,7 @@ public class DoorCombatTests
         for (int i = 0; i < 1200 && world.Doors.Count > 0; i++) sim.Run(1);
 
         Assert.Contains(sink.Events, e => e.Kind == "engaged" && e.Detail.Contains($"creature={warlock.Id}")
-            && e.Detail.Contains($"attack={CombatRules.AttackTypes.SpellAtThing}"));
+            && e.Detail.Contains($"attack={(byte)CombatRules.AttackMode.SpellAtThing}"));
         Assert.Contains(sink.Events, e => e.Kind == "shot_door_hit");
         Assert.Empty(world.Doors);
     }

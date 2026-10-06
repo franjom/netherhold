@@ -99,16 +99,16 @@ public static class CrateRules
             : world.TrapById(blueprint.Id)?.PlayerId ?? 0;
 
     /// <summary><c>0x00505680</c>: appends a blueprint unless it is already there or the list is full.</summary>
-    public static void Register(WorldState world, byte playerId, BlueprintRef blueprint)
+    public static void Register(WorldState world, PlayerId playerId, BlueprintRef blueprint)
     {
-        if (!PlayerIds.IsKeeper(playerId) || !world.HasPlayer(playerId)) return;
+        if (!PlayerIds.IsKeeper(playerId.Value) || !world.HasPlayer(playerId)) return;
         List<BlueprintRef> list = world.Player(playerId).Blueprints;
         if (list.Contains(blueprint) || list.Count >= BlueprintCapacity) return;
         list.Add(blueprint);
     }
 
     /// <summary><c>0x005056E0</c>: takes a blueprint out of its keeper's list, closing the gap.</summary>
-    public static void Unregister(WorldState world, byte playerId, BlueprintRef blueprint)
+    public static void Unregister(WorldState world, PlayerId playerId, BlueprintRef blueprint)
     {
         if (world.HasPlayer(playerId)) world.Player(playerId).Blueprints.Remove(blueprint);
     }
@@ -117,7 +117,7 @@ public static class CrateRules
     /// <paramref name="playerId"/> and needing <paramref name="crateObjectId"/>, or null: states
     /// 35 and 37 walk the keeper's own traps or doors for the one on their tile.</summary>
     public static BlueprintRef? BlueprintAt(
-        WorldState world, GameDatabase database, byte playerId, byte kind, int tileIndex, byte crateObjectId)
+        WorldState world, GameDatabase database, PlayerId playerId, byte kind, int tileIndex, byte crateObjectId)
     {
         int count = kind == DoorKind ? world.Doors.Count : world.Traps.Count;
         for (int i = 0; i < count; i++)
@@ -138,7 +138,7 @@ public static class CrateRules
     public static void Build(WorldState world, GameDatabase database, BlueprintRef blueprint, ObjectState crate)
     {
         world.RemoveObject(crate.Id);
-        byte owner = OwnerOf(world, blueprint);
+        PlayerId owner = OwnerOf(world, blueprint);
         if (blueprint.Kind == DoorKind) { if (world.DoorById(blueprint.Id) is { } door) door.UnderConstruction = false; }
         else if (world.TrapById(blueprint.Id) is { } trap) TrapRules.Complete(world, database, trap);
         Unregister(world, owner, blueprint);

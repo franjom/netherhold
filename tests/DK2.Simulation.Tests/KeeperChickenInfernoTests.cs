@@ -260,8 +260,8 @@ public class KeeperChickenInfernoTests
                     Shot(BoltId, 0, ShotRules.CountsDown, 3)]);
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         world.Player(Keeper).Mana = 100000;
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, KeeperSpellRules.Inferno, 3));
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, KeeperSpellRules.Chicken, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, KeeperSpellRules.Inferno, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, KeeperSpellRules.Chicken, 3));
         for (int y = 8; y <= 12; y++)
             for (int x = 3; x <= 16; x++)
             {

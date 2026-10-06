@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Commands;
 
@@ -12,7 +13,7 @@ namespace DK2.Simulation.Commands;
 /// gone, somebody else's, already in a hand, down, or the hand is full
 /// (<see cref="HandRules.CanPickUp"/>); a refused command emits nothing, as every command
 /// here.</summary>
-public sealed record PickUpCreatureCommand(byte PlayerId, int CreatureId)
+public sealed record PickUpCreatureCommand(PlayerId PlayerId, int CreatureId)
     : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
@@ -32,7 +33,7 @@ public sealed record PickUpCreatureCommand(byte PlayerId, int CreatureId)
 /// keeps it in the keeper record (<c>+0x196</c>) rather than passing it to the handler, and only
 /// a chicken or gold dropped onto a creature reads it (<see cref="DropDeliveryRules"/>,
 /// ADR-0217).</para></summary>
-public sealed record DropCommand(byte PlayerId, TilePos Tile, int TargetCreatureId = 0)
+public sealed record DropCommand(PlayerId PlayerId, TilePos Tile, int TargetCreatureId = 0)
     : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
@@ -51,7 +52,7 @@ public sealed record DropCommand(byte PlayerId, TilePos Tile, int TargetCreature
 /// creatures preferred — is UI, not simulation. Refused when the object is gone, already held, in
 /// an imp's arms, the hand is full, or its definition lacks
 /// <see cref="Data.Model.ObjectDef.CanBePickedUp"/>, 26 of the 145 records (<see cref="HandRules.CanPickUpObject"/>).</summary>
-public sealed record PickUpObjectCommand(byte PlayerId, int ObjectId)
+public sealed record PickUpObjectCommand(PlayerId PlayerId, int ObjectId)
     : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
@@ -67,7 +68,7 @@ public sealed record PickUpObjectCommand(byte PlayerId, int ObjectId)
 /// naming the creature. Refused without a Treasury, for a creature not the keeper's, or when
 /// nothing is taken. With a full hand the pile is left on tile 0, where DK2's factory makes it
 /// (<see cref="Systems.HandSystem"/>). No human gesture does this.</summary>
-public sealed record MintWageCommand(byte PlayerId, int CreatureId)
+public sealed record MintWageCommand(PlayerId PlayerId, int CreatureId)
     : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
@@ -83,7 +84,7 @@ public sealed record MintWageCommand(byte PlayerId, int CreatureId)
 /// slap counts however fast they come, because the original's <c>LastSlapTick</c> window guards
 /// only its knock-back impulse (<see cref="HandRules.KnockBackWindowSeconds"/>). The work bonus
 /// does not compound: a second slap rewrites it rather than adding to it (Q114).</summary>
-public sealed record SlapCreatureCommand(byte PlayerId, int CreatureId)
+public sealed record SlapCreatureCommand(PlayerId PlayerId, int CreatureId)
     : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)

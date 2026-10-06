@@ -134,7 +134,7 @@ public sealed class CombatSystem : ISimulationSystem
 
         // Step 1: a target that has died is dropped with the 0xF nibble (§6); the victory arm runs next tick.
         // A healer holds no attacker slot on its ally, so an ally's death marks nothing.
-        if (creature.FightTargetKind == FightTargetKind.Creature && creature.AttackType != CombatRules.AttackTypes.SpellAtAlly)
+        if (creature.FightTargetKind == FightTargetKind.Creature && creature.AttackType != CombatRules.AttackMode.SpellAtAlly)
         {
             // A knocked-out opponent that was fighting released this fighter through its leave hook
             // already, with no victory (ADR-0213, ADR-0319); one knocked out outside Combat did not,
@@ -160,7 +160,7 @@ public sealed class CombatSystem : ISimulationSystem
         // Step 3: no target — a victim is sought, or the victory arm taken.
         if (creature.FightTargetKind == FightTargetKind.None)
         {
-            if (creature.AttackType == CombatRules.AttackTypes.Victorious)
+            if (creature.AttackType == CombatRules.AttackMode.Victorious)
             {
                 VictoryRules.Victory(context, creature, definition);
                 return;
@@ -201,13 +201,13 @@ public sealed class CombatSystem : ISimulationSystem
         if (FightRules.InRange(_sight!, creature, x, y))
         {
             creature.StopMoving();
-            if (creature.AttackType == CombatRules.AttackTypes.SpellAtAlly)
+            if (creature.AttackType == CombatRules.AttackMode.SpellAtAlly)
             {
                 // The ally arm (combat-spells.md §8): cast once when the cooldown allows, else stand.
                 if (SpellRules.CanCast(context.Database, creature, definition, creature.AttackSpellSlot, tick))
                     FightRules.CastOnAlly(context, creature, definition);
             }
-            else if (creature.AttackType is CombatRules.AttackTypes.SpellAtCreature or CombatRules.AttackTypes.SpellAtThing)
+            else if (creature.AttackType is CombatRules.AttackMode.SpellAtCreature or CombatRules.AttackMode.SpellAtThing)
             {
                 // The spell arm (combat-spells.md §6): cast when the cooldown allows, else §9.
                 if (SpellRules.CanCast(context.Database, creature, definition, creature.AttackSpellSlot, tick))
@@ -248,7 +248,7 @@ public sealed class CombatSystem : ISimulationSystem
     private void CannotCast(SimulationContext context, CreatureState creature, CreatureDef definition, int targetX, int targetY)
     {
         WorldState world = context.World;
-        byte kind = creature.FightTargetKind;
+        FightTargetKind kind = creature.FightTargetKind;
         int previous = creature.FightTargetId;
         CombatRules.Unlink(world, creature);
         if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
@@ -258,7 +258,7 @@ public sealed class CombatSystem : ISimulationSystem
         }
         if (!CombatRules.IsFighting(creature)) return;
         if (creature.FightTargetKind != kind || creature.FightTargetId != previous) return;
-        if (creature.AttackType is not (CombatRules.AttackTypes.SpellAtCreature or CombatRules.AttackTypes.SpellAtThing)) return;
+        if (creature.AttackType is not (CombatRules.AttackMode.SpellAtCreature or CombatRules.AttackMode.SpellAtThing)) return;
 
         int distance = CombatRules.DistanceSquared(creature.PosX, creature.PosY, targetX, targetY);
         int sightSq = CombatRules.RangeSquared(definition.DistanceCanSee);

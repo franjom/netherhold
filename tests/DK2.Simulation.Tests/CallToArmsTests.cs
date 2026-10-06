@@ -33,7 +33,7 @@ public sealed class CallToArmsTests
         }
 
         world.Player(Keeper).Mana = mana;
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, CallToArmsRules.SpellId, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, CallToArmsRules.SpellId, 3));
         return (db, world);
     }
 
@@ -299,7 +299,7 @@ public sealed class CallToArmsTests
         Assert.Equal(0, ManaRules.UpkeepPerSecondByPlayerIndex(world, db)[keeper]);
         sim.Tick();
         Assert.Equal(90, ManaRules.UpkeepPerSecondByPlayerIndex(world, db)[keeper]);
-        world.SetUpgraded(Keeper, 5, CallToArmsRules.SpellId, true);
+        world.SetUpgraded(Keeper, AvailabilityKind.Spell, CallToArmsRules.SpellId, true);
         Assert.Equal(63, ManaRules.UpkeepPerSecondByPlayerIndex(world, db)[keeper]);
         world.RemoveObject(world.Player(Keeper).CallToArms.ObjectId);
         Assert.Equal(0, ManaRules.UpkeepPerSecondByPlayerIndex(world, db)[keeper]);
@@ -375,7 +375,7 @@ public sealed class CallToArmsTests
     {
         var (db, world) = Setup(rivalStrip: true);
         world.Player(Rival).Mana = 20000;
-        world.Player(Rival).Availabilities.Add(new AvailabilityState(5, CallToArmsRules.SpellId, 3));
+        world.Player(Rival).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, CallToArmsRules.SpellId, 3));
         CreatureState ours = Goblin(world, db, 10, 10);
         CreatureState theirs = Goblin(world, db, 16, 10, Rival);
         GameSimulation sim = Sim(db, world, new ManaSystem());

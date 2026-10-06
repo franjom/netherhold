@@ -32,7 +32,7 @@ public static class ApproachRules
     public const int FlankerMeleeOffset = Fp32.One / 4;
 
     /// <summary>The entry's option word, 2: the creature's own locked doors are passable (§1).</summary>
-    public const int EntryOptions = 0x02;
+    public const Navigation.MoveOptions EntryOptions = (Navigation.MoveOptions)0x02;
 
     /// <summary>The four neighbours a door's approach tries, in table <c>0x0069A070</c>'s order:
     /// north, east, south, west.</summary>
@@ -51,7 +51,7 @@ public static class ApproachRules
         me.Approaching = true;
         me.RouteRefreshCountdown = RefreshCalls;
         me.ChaseTicks = 0;
-        context.Emit(SystemName, "approaches", $"creature={me.Id} target={me.FightTargetId} kind={me.FightTargetKind} to={targetX},{targetY}");
+        context.Emit(SystemName, "approaches", $"creature={me.Id} target={me.FightTargetId} kind={(byte)me.FightTargetKind} to={targetX},{targetY}");
         return true;
     }
 
@@ -123,7 +123,7 @@ public static class ApproachRules
             // The target stays in place for the choice: the engage helper keeps the route for the
             // same target and drops it for a new one, which ends the approach anyway.
             int previous = me.FightTargetId;
-            byte previousKind = me.FightTargetKind;
+            FightTargetKind previousKind = me.FightTargetKind;
             if (!CombatTargetRules.SelectAVictim(context, sight, hearts, rooms, me, mine, scratch) || !CombatRules.IsFighting(me))
             {
                 if (CombatRules.IsFighting(me)) CombatRules.Disengage(context.Hooks, me);
@@ -213,7 +213,7 @@ public static class ApproachRules
         x = targetX;
         y = targetY;
         if (mine.FightStyle != FightStyle.Flanker || target is null) return;
-        long offset = me.AttackType == CombatRules.AttackTypes.SpellAtCreature ? FlankerSpellOffset : FlankerMeleeOffset;
+        long offset = me.AttackType == CombatRules.AttackMode.SpellAtCreature ? FlankerSpellOffset : FlankerMeleeOffset;
         int bx = (int)(targetX - ((offset * TrapRules.Sine(target.Heading)) >> 16));
         int by = (int)(targetY + ((offset * TrapRules.Cosine(target.Heading)) >> 16));
         if (!ShotRules.Passable(context.World, context.Navigation, bx, by)) return;

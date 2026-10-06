@@ -20,9 +20,9 @@ public static class KeeperViewSnapshot
         using var stream = new MemoryStream();
         using var w = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         w.Write(Magic); w.Write(FormatVersion);
-        w.Write(view.PlayerId); w.Write(view.Tick.Value); w.Write(view.Status); w.Write(view.AlliedWith);
+        w.Write(view.PlayerId.Value); w.Write(view.Tick.Value); w.Write(view.Status); w.Write(view.AlliedWith);
         w.Write(view.PlayerOrder.Count);
-        foreach (byte player in view.PlayerOrder) w.Write(player);
+        foreach (PlayerId player in view.PlayerOrder) w.Write(player.Value);
         w.Write(view.Width); w.Write(view.Height); w.Write(view.Gold); w.Write(view.ImpCount);
         w.Write(view.Mana);
         w.Write(view.Heart.HasValue);
@@ -30,13 +30,13 @@ public static class KeeperViewSnapshot
         for (int i = 0; i < view.TileCount; i++)
         {
             KeeperTileView tile = view.Tile(view.FromIndex(i));
-            w.Write(tile.TerrainId); w.Write(tile.OwnerPlayerId); w.Write(tile.TaggedBy);
+            w.Write(tile.TerrainId); w.Write(tile.OwnerPlayerId); w.Write(tile.TaggedBy.Bits);
             w.Write(tile.NavigationByte);
         }
         w.Write(view.AvailabilityEntries.Count);
         foreach (AvailabilityState entry in view.AvailabilityEntries)
         {
-            w.Write(entry.Kind); w.Write(entry.TypeId); w.Write(entry.Value); w.Write(entry.Upgraded);
+            w.Write((ushort)entry.Kind); w.Write(entry.TypeId); w.Write(entry.Value); w.Write(entry.Upgraded);
             w.Write(entry.LastCastTick);
         }
         w.Write(view.Creatures.Count);
@@ -78,7 +78,7 @@ public static class KeeperViewSnapshot
         w.Write(view.Messages.Count);
         foreach (PlayerMessage m in view.Messages)
         {
-            w.Write(m.Id); w.Write(m.PlayerId); w.Write((uint)m.Kind);
+            w.Write(m.Id); w.Write(m.PlayerId.Value); w.Write((uint)m.Kind);
             w.Write(m.Data1); w.Write(m.Data2); w.Write(m.Age); w.Write(m.Timeout);
             w.Write(m.NeedsTab); w.Write(m.Handled);
         }
@@ -103,11 +103,11 @@ public static class KeeperViewSnapshot
         using var r = new BinaryReader(stream, Encoding.UTF8);
         if (r.ReadUInt32() != Magic || r.ReadInt32() != FormatVersion)
             throw new InvalidDataException("Unsupported keeper observation format.");
-        byte player = r.ReadByte();
+        PlayerId player = r.ReadByte();
         var tick = new GameTick(r.ReadInt64());
         byte status = r.ReadByte();
         byte alliedWith = r.ReadByte();
-        var playerIds = new byte[ReadCount(r, 1)];
+        var playerIds = new PlayerId[ReadCount(r, 1)];
         for (int i = 0; i < playerIds.Length; i++) playerIds[i] = r.ReadByte();
         int width = r.ReadInt32(), height = r.ReadInt32();
         if (width <= 0 || height <= 0 || (long)width * height > bytes.Length / 5)
@@ -117,10 +117,10 @@ public static class KeeperViewSnapshot
         TilePos? heart = r.ReadBoolean() ? new TilePos(r.ReadInt32(), r.ReadInt32()) : null;
         var tiles = new KeeperTileView[width * height];
         for (int i = 0; i < tiles.Length; i++)
-            tiles[i] = new KeeperTileView(r.ReadByte(), r.ReadByte(), r.ReadUInt16(), r.ReadByte());
+            tiles[i] = new KeeperTileView(r.ReadByte(), r.ReadByte(), new PlayerMask(r.ReadUInt16()), r.ReadByte());
         var availability = new AvailabilityState[ReadCount(r, 19)];
         for (int i = 0; i < availability.Length; i++)
-            availability[i] = new AvailabilityState(r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(),
+            availability[i] = new AvailabilityState((AvailabilityKind)r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(),
                 r.ReadInt64());
         var creatures = new KeeperCreatureView[ReadCount(r, 109)];
         for (int i = 0; i < creatures.Length; i++)
@@ -145,7 +145,7 @@ public static class KeeperViewSnapshot
         for (int i = 0; i < rooms.Length; i++)
         {
             RoomDef definition = database.RoomById(r.ReadByte());
-            byte owner = r.ReadByte();
+            PlayerId owner = r.ReadByte();
             int minX = r.ReadInt32(), minY = r.ReadInt32(), maxX = r.ReadInt32(), maxY = r.ReadInt32();
             var indices = new int[ReadCount(r, 4)];
             for (int j = 0; j < indices.Length; j++)

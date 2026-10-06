@@ -85,7 +85,7 @@ public static class HeroPartyRules
     /// indexes the neighbour table north, east, south, west (<c>0x006BC350</c>): DK2's own mismatch,
     /// kept. No shipped map holds a Tile gate.</remarks>
     public static StepOffResult StepOff(
-        WorldState world, GameDatabase database, SimRandom? rng, byte playerId, ref TilePos at, out TilePos side)
+        WorldState world, GameDatabase database, SimRandom? rng, PlayerId playerId, ref TilePos at, out TilePos side)
     {
         side = at;
         if (playerId != PlayerIds.Good || !world.Contains(at)) return StepOffResult.None;

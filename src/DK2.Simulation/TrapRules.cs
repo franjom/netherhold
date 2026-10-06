@@ -187,9 +187,9 @@ public static class TrapRules
         int reach = database[VariableTypeId.GuardPostReportingDistanceTiles];
         int limit = (reach << 12) * reach;
         IReadOnlyList<CreatureState> creatures = world.Creatures;
-        foreach (byte player in world.PlayerIds)
+        foreach (PlayerId player in world.PlayerIds)
         {
-            if (!CombatRules.IsHostile(world, trap.PlayerId, player)) continue;
+            if (!CombatRules.IsHostile(world, trap.PlayerId, player.Value)) continue;
             for (int i = creatures.Count - 1; i >= 0; i--)
             {
                 CreatureState creature = creatures[i];
@@ -231,7 +231,7 @@ public static class TrapRules
             if (CreatureStateTable.Get(c.Dk2StateId).Group is 3 or 7) continue;
             if (c.Dk2StateId == StateShadow.TravelToPoint && c.UtilityNewState == CombatStates.ReportingDanger) continue;
             // +0x36F == 1 (the Imp) routes with 0x80, everyone else with 0 (0x004A89B5).
-            int options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
+            Navigation.MoveOptions options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
             if (!context.Navigation.TryRouteTo(c, enemy.PosX, enemy.PosY, options)) continue;
             c.CurrentJob = JobType.None;
             c.JobTileIndex = -1;
@@ -323,7 +323,7 @@ public static class TrapRules
 
     /// <summary><c>0x00453AC0</c>: the first creature in the tile's chain whose owner is neither the
     /// trap's nor neutral and who is not some trap's disarmer. No alliance test.</summary>
-    public static CreatureState? FirstOnTile(WorldState world, int x, int y, byte trapOwner)
+    public static CreatureState? FirstOnTile(WorldState world, int x, int y, PlayerId trapOwner)
     {
         int tile = (y * world.Width) + x;
         CreatureState? first = null;
@@ -512,9 +512,9 @@ public static class TrapRules
         }
 
         IReadOnlyList<CreatureState> creatures = world.Creatures;
-        foreach (byte player in world.PlayerIds)
+        foreach (PlayerId player in world.PlayerIds)
         {
-            if (!CombatRules.IsHostile(world, trap.PlayerId, player)) continue;
+            if (!CombatRules.IsHostile(world, trap.PlayerId, player.Value)) continue;
             for (int i = creatures.Count - 1; i >= 0; i--)
             {
                 CreatureState creature = creatures[i];
@@ -609,7 +609,7 @@ public static class TrapRules
         ShareThreat(world, sight, trap.PlayerId, trap.PosX, trap.PosY, amount, radius);
 
     /// <summary><c>0x004B32A0</c> for any thing: <paramref name="owner"/>'s enemies around a point.</summary>
-    public static void ShareThreat(WorldState world, ISightBlocker sight, byte owner, int x, int y, int amount, int radius)
+    public static void ShareThreat(WorldState world, ISightBlocker sight, PlayerId owner, int x, int y, int amount, int radius)
     {
         IReadOnlyList<CreatureState> creatures = world.Creatures;
         int outer = radius * (radius >> 12);
@@ -638,8 +638,8 @@ public static class TrapRules
 
     /// <summary>A creature a player list walk reaches: on the map, not yet a body (class 6 in DK2).
     /// One held in a hand is on its owner's list in DK2; ours leaves it out.</summary>
-    private static bool IsHostileOnMap(WorldState world, byte owner, CreatureState creature) =>
-        CombatRules.IsHostile(world, owner, creature.OwnerPlayerId) && !CreatureDeathRules.IsCorpse(creature)
+    private static bool IsHostileOnMap(WorldState world, PlayerId owner, CreatureState creature) =>
+        CombatRules.IsHostile(world, owner.Value, creature.OwnerPlayerId) && !CreatureDeathRules.IsCorpse(creature)
         && CombatPitRules.IsOnTheMap(creature);
 
     // ------------------------------------------------------------------ the Trigger

@@ -19,7 +19,7 @@ namespace DK2.Simulation.Tests;
 public sealed class KeeperSpellUpgradeTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private const ushort SpellKind = 5;
+    private const AvailabilityKind SpellKind = AvailabilityKind.Spell;
     private const int Available = 3;
     private const byte SightOfEvil = 1, CreateGold = 13;
     private static readonly TilePos GoldAt = new(10, 10);

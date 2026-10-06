@@ -54,7 +54,7 @@ public static class CallToArmsRules
         && flag.ProcessState != Releasing;
     }
 
-    public static bool IsOn(WorldState world, byte playerId)
+    public static bool IsOn(WorldState world, PlayerId playerId)
     {
         return world.HasPlayer(playerId) && world.Player(playerId).CallToArms.On;
     }
@@ -116,7 +116,7 @@ public static class CallToArmsRules
         }
 
         int upkeep = spell.ManaUpkeepPerSecond;
-        if (player.Availabilities.Exists(a => a.Kind == KeeperSpellRules.SpellAvailabilityKind && a.TypeId == SpellId && a.Upgraded))
+        if (player.Availabilities.Exists(a => a.Kind == AvailabilityKind.Spell && a.TypeId == SpellId && a.Upgraded))
         {
             upkeep = (database[VariableTypeId.UpgradedCallToArmsCostPercentage] * upkeep & 0xFFFF) / 100;
         }
@@ -170,7 +170,7 @@ public static class CallToArmsRules
     /// <summary>The recruiting walk over the owner's list: no worker, no Reaper on its timer,
     /// nobody joining, fighting, reporting danger or held captive, nobody already heeding; a
     /// route to the flag and the transition to 190 set the bit.</summary>
-    private static void Recruit(SimulationContext context, string system, byte playerId, TilePos tile)
+    private static void Recruit(SimulationContext context, string system, PlayerId playerId, TilePos tile)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -228,7 +228,7 @@ public static class CallToArmsRules
     /// <summary>The release (<c>0x004BDFC0</c>): the clock and the flag bit go, and every owned
     /// non-worker under the call that is neither captive nor joining is idled and loses its bit
     /// only when idle took it.</summary>
-    public static void Deactivate(SimulationContext context, string system, byte playerId)
+    public static void Deactivate(SimulationContext context, string system, PlayerId playerId)
     {
         WorldState world = context.World;
         ref PlayerState player = ref world.Player(playerId);
@@ -289,7 +289,7 @@ public static class CallToArmsRules
 
     /// <summary>The slap that removes the flag (action 63 through <c>0x0049C2A0</c>): refused while
     /// activating, releasing or fading; otherwise the flag goes to its releasing state.</summary>
-    public static bool Remove(SimulationContext context, string system, byte playerId)
+    public static bool Remove(SimulationContext context, string system, PlayerId playerId)
     {
         WorldState world = context.World;
         if (!world.HasPlayer(playerId))

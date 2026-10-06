@@ -40,7 +40,7 @@ public sealed class PossessionTests
         world.Tile(at).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(at).OwnerPlayerId = Keeper;
         world.Player(Keeper).Mana = 1500;
-        world.Player(Keeper).Availabilities.Add(new AvailabilityState(5, SpellId, 3));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, SpellId, 3));
         CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, at);
         return (db, world, target);
     }

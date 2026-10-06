@@ -114,7 +114,7 @@ public class CombatFriendlySpellTests
         sim.Run(30);
         Assert.True(SpellRules.BuffApplies(db, goblin, fighter, heal), "the Heal predicate alone would accept half health");
         Assert.DoesNotContain(sink.Events, e => e.Kind == "casts_on_ally");
-        Assert.NotEqual(CombatRules.AttackTypes.SpellAtAlly, priest.AttackType);
+        Assert.NotEqual(CombatRules.AttackMode.SpellAtAlly, priest.AttackType);
     }
 
     [Fact]

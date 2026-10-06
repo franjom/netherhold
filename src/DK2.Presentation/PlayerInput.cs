@@ -35,11 +35,11 @@ public enum PointerButtonTransition : byte
 /// coordinates to a tile and records button edges; no camera or engine type crosses here.
 /// </summary>
 public readonly record struct PlayerIntent(
-    byte PlayerId,
+    PlayerId PlayerId,
     PlayerToolMode Tool,
     TilePos? PointerTile,
     PointerButtonTransition PrimaryButton,
-    byte RoomId = 0);
+    RoomTypeId RoomId = 0);
 
 public enum PlayerInputTargetKind : byte
 {
@@ -74,7 +74,7 @@ public sealed class PlayerInputSnapshot
     /// (<see cref="HandRules.MayReachObject"/>).
     /// </summary>
     public static PlayerInputSnapshot Capture(
-        WorldView view, WorldState world, byte playerId, GameDatabase? database = null)
+        WorldView view, WorldState world, PlayerId playerId, GameDatabase? database = null)
     {
         if (view is null) throw new ArgumentNullException(nameof(view));
         if (world is null) throw new ArgumentNullException(nameof(world));
@@ -216,8 +216,8 @@ public sealed class PlayerInputTranslator
     }
 
     private readonly record struct DragStart(
-        byte PlayerId,
+        PlayerId PlayerId,
         PlayerToolMode Tool,
         TilePos Tile,
-        byte RoomId);
+        RoomTypeId RoomId);
 }

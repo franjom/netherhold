@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
@@ -25,10 +26,10 @@ public sealed class TempleSacrificeState
 
     private readonly SacrificeIngredient[] _entries = new SacrificeIngredient[Capacity];
 
-    internal TempleSacrificeState(int anchorTileIndex, byte ownerPlayerId)
+    internal TempleSacrificeState(int anchorTileIndex, PlayerId ownerPlayerId)
     {
         AnchorTileIndex = anchorTileIndex;
-        OwnerPlayerId = ownerPlayerId;
+        OwnerPlayerId = ownerPlayerId.Value;
     }
 
     /// <summary>The room's deterministic identity; see ADR-0149.</summary>

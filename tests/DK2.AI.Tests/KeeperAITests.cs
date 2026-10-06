@@ -236,8 +236,8 @@ public class KeeperAITests
     {
         WorldState world = KeeperWorld.World(Db);
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
-        foreach (byte room in new byte[] { 1, 2, 4 }) world.SetAvailability(KeeperWorld.Keeper, 1, room, 4);
-        world.SetAvailability(KeeperWorld.Keeper, 5, 4, 1);
+        foreach (byte room in new byte[] { 1, 2, 4 }) world.SetAvailability(KeeperWorld.Keeper, AvailabilityKind.Room, room, 4);
+        world.SetAvailability(KeeperWorld.Keeper, AvailabilityKind.Spell, 4, 1);
 
         KeeperAIParameters parameters = KeeperWorld.Parameters(speed: 2, maxImps: 4)
             with { TilesPerImpRatio = 10 };
@@ -245,8 +245,8 @@ public class KeeperAITests
         IReadOnlyList<PlayerCommand> closed = keeper.Think(Db, world);
         Assert.DoesNotContain(closed, c => c is TagTilesCommand or BuildRoomCommand or CreateImpCommand);
 
-        world.SetAvailability(KeeperWorld.Keeper, 1, 1, 3);
-        world.SetAvailability(KeeperWorld.Keeper, 5, 4, 3);
+        world.SetAvailability(KeeperWorld.Keeper, AvailabilityKind.Room, 1, 3);
+        world.SetAvailability(KeeperWorld.Keeper, AvailabilityKind.Spell, 4, 3);
         var opened = new List<PlayerCommand>();
         for (int tick = 0; tick < 8; tick++) opened.AddRange(keeper.Think(Db, world));
         Assert.Contains(opened, c => c is TagTilesCommand);

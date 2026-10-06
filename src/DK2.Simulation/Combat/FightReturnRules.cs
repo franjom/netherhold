@@ -44,7 +44,7 @@ public static class FightReturnRules
         if (((max * 3) >> 2) >= creature.Health) return false;
 
         int x = CreatureState.CentreOf(creature.OldFightTileX), y = CreatureState.CentreOf(creature.OldFightTileY);
-        int options = creature.CreatureTypeId == CombatRules.ImpCreatureTypeId ? Navigation.MoveOptions.Loose : Navigation.MoveOptions.Plain;
+        Navigation.MoveOptions options = creature.CreatureTypeId == CombatRules.ImpCreatureTypeId ? Navigation.MoveOptions.Loose : Navigation.MoveOptions.Plain;
         if (!context.World.Contains(new TilePos(x >> 12, y >> 12))) return false;
         if (!context.Navigation.TryRouteTo(creature, x, y, options)) return false;
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, CreatureStateMachine.Idle);

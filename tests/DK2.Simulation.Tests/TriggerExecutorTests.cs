@@ -1670,14 +1670,14 @@ public class TriggerExecutorTests
             new TriggerTree([AvailabilityAction(1, Keeper, kind, 7, available: 2)], 0xFFFF),
             world.Triggers, world, database).Run(1);
 
-        Assert.Equal(3, world.Availability(Keeper, kind, 7));
+        Assert.Equal(3, world.Availability(Keeper, (AvailabilityKind)kind, 7));
         Assert.Empty(enabled.Partial);
 
         new TriggerExecutor(
             new TriggerTree([AvailabilityAction(2, Keeper, kind, 7, available: 0)], 0xFFFE),
             world.Triggers, world, database).Run(2);
 
-        Assert.Equal(1, world.Availability(Keeper, kind, 7));
+        Assert.Equal(1, world.Availability(Keeper, (AvailabilityKind)kind, 7));
     }
 
     [Fact]

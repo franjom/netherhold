@@ -227,7 +227,7 @@ public static class ThingProjection
         GameDatabase database,
         CreatureThing thing,
         byte creatureTypeId,
-        byte ownerPlayerId,
+        PlayerId ownerPlayerId,
         int initialHealthPercent,
         ushort triggerId,
         byte flagMask)

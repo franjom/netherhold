@@ -45,7 +45,7 @@ public static class FearRules
     public const int StepBackLength = 0x3000;
 
     /// <summary>The withdraw walk's option words: the exact spot, then the same with no door rule.</summary>
-    private const int WithdrawFallbackOptions = 0x68;
+    private const Navigation.MoveOptions WithdrawFallbackOptions = (Navigation.MoveOptions)0x68;
 
     private static readonly (int Dx, int Dy)[] Neighbours =
         [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
@@ -318,7 +318,7 @@ public static class FearRules
             }
             me.FightTargetKind = FightTargetKind.Creature;
             me.FightTargetId = nearest.Id;
-            me.AttackType = CombatRules.AttackTypes.MeleeAtCreature;
+            me.AttackType = CombatRules.AttackMode.MeleeAtCreature;
             target = nearest;
         }
 
@@ -385,7 +385,7 @@ public static class FearRules
 
     /// <summary><c>0x004FAC40</c> over creatures: the summed level-scaled <c>Threat</c> of a player's
     /// standing creatures within five tiles of a point.</summary>
-    public static int LocalStrength(SimulationContext context, byte playerId, int x, int y)
+    public static int LocalStrength(SimulationContext context, PlayerId playerId, int x, int y)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -483,7 +483,7 @@ public static class FearRules
         GameDatabase database = context.Database;
         SimRandom rng = context.Rng;
         // The Imp with 0x80, everyone else with 0 (0x0046138B, 0x0046142C; ADR-0332).
-        int options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
+        Navigation.MoveOptions options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
 
         int destX = -1, destY = -1;
         int bed = LairRules.BedTileIndex(world, database, me);
@@ -551,7 +551,7 @@ public static class FearRules
         }
         if (destX < 0) return false;
 
-        int withdrawOptions = MoveOptions.ExactSpot;
+        Navigation.MoveOptions withdrawOptions = MoveOptions.ExactSpot;
         if (!context.Navigation.TryRouteTo(me, destX, destY, withdrawOptions)
             && !context.Navigation.TryRouteTo(me, destX, destY, withdrawOptions = WithdrawFallbackOptions))
             return false;
@@ -625,7 +625,7 @@ public static class FearRules
         if (nearest is null) return false;
 
         // +0x36F == 1 (the Imp) routes with 0x80, everyone else with 0 (0x0047542A, Q517).
-        int options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
+        Navigation.MoveOptions options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
         if (!context.Navigation.TryRouteTo(me, RoomCentreX(nearest), RoomCentreY(nearest), options)) return false;
 
         ClearTarget(world, me);
@@ -647,7 +647,7 @@ public static class FearRules
 
     /// <summary><c>0x004754D0</c>: one of the owner's creatures already raising the alarm or
     /// reporting danger whose destination — or, standing, position — lies within five tiles.</summary>
-    public static bool AlreadyResponding(WorldState world, byte owner, int x, int y)
+    public static bool AlreadyResponding(WorldState world, PlayerId owner, int x, int y)
     {
         IReadOnlyList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
@@ -699,7 +699,7 @@ public static class FearRules
             if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4) continue;
 
             // The Imp with 0x80, everyone else with 0 (0x0047583F); workers are skipped above.
-            int options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
+            Navigation.MoveOptions options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
             if (!context.Navigation.TryRouteTo(c, me.AlarmX, me.AlarmY, options)) continue;
             c.CurrentJob = JobType.None;
             c.JobTileIndex = -1;
@@ -781,7 +781,7 @@ public sealed class RoomCache
     private long _tick = -1;
     private readonly List<RoomInstance> _owned = [];
 
-    public IReadOnlyList<RoomInstance> Of(SimulationContext context, byte owner)
+    public IReadOnlyList<RoomInstance> Of(SimulationContext context, PlayerId owner)
     {
         if (_rooms is null || _tick != context.Tick.Value)
         {

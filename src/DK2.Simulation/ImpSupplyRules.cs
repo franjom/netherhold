@@ -32,7 +32,7 @@ public static class ImpSupplyRules
     /// the original's tally moves only when a thing gains or loses an owner. DK2 keeps two counts,
     /// this one and the imp portrait's, which visibly excludes held imps; reusing the interface
     /// count would let a player hold one imp and farm a fifth, and nothing here enforces it (Q148).</summary>
-    public static int ImpCount(WorldState world, GameDatabase database, byte playerId)
+    public static int ImpCount(WorldState world, GameDatabase database, PlayerId playerId)
     {
         int count = 0;
         IReadOnlyList<CreatureState> creatures = world.Creatures;
@@ -51,7 +51,7 @@ public static class ImpSupplyRules
     /// then 4500" gives the rise. The four free imps do not raise the cost and the price falls back
     /// when imps die, which rules out counting how many a keeper has ever bought: a function of the
     /// current roster needs no counter and cannot drift from one.</summary>
-    public static int CreateImpCost(WorldState world, GameDatabase database, byte playerId)
+    public static int CreateImpCost(WorldState world, GameDatabase database, PlayerId playerId)
     {
         int baseCost = CreateImpBaseCost(database);
         int over = ImpCount(world, database, playerId) - MinimumImps(database);
@@ -69,7 +69,7 @@ public static class ImpSupplyRules
     /// STRONGLY INFERRED — imps are created at the heart in the original and a keeper without one
     /// has lost (Q40), so "no heart, no imps" needs no extra rule. Which heart tile is UNKNOWN
     /// (Q52: only 16 of a 5×5 heart's 25 tiles are ordinary floor); the first in tile order is ours.</summary>
-    public static int HeartTileOf(WorldState world, GameDatabase database, byte playerId)
+    public static int HeartTileOf(WorldState world, GameDatabase database, PlayerId playerId)
     {
         byte? heartTerrain = ManaRules.DungeonHeartTerrainId(database);
         if (heartTerrain is null) return -1;

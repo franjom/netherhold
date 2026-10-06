@@ -35,7 +35,7 @@ public static partial class PossessionRules
             cost = scaled < 1 ? 0u : scaled < 0xFFFE ? (uint)scaled : 0xFFFEu;
         }
 
-        if (player.Availabilities.Exists(a => a.Kind == KeeperSpellRules.SpellAvailabilityKind && a.TypeId == SpellId && a.Upgraded))
+        if (player.Availabilities.Exists(a => a.Kind == AvailabilityKind.Spell && a.TypeId == SpellId && a.Upgraded))
             cost = (uint)(byte)database[VariableTypeId.UpgradedPossessionCostPercentage] * cost / 100;
         return (int)cost;
     }
@@ -54,7 +54,7 @@ public static partial class PossessionRules
         if (player.Mana - impAndTrapUpkeep >= upkeep) return false;
         int creatureId = player.PossessedCreatureId;
         Leave(context, ref player);
-        context.World.Messages.Post(context.World, player.PlayerId, PlayerMessageKind.ManaShortfall, PossessionEndedSubtype, 0);
+        context.World.Messages.Post(context.World, player.PlayerId.Value, PlayerMessageKind.ManaShortfall, PossessionEndedSubtype, 0);
         context.Emit(system, "possession_unaffordable",
             $"player={player.PlayerId} creature={creatureId} upkeep={upkeep} mana={player.Mana}");
         return true;

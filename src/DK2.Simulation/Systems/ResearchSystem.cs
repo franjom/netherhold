@@ -24,7 +24,7 @@ public sealed class ResearchSystem : ISimulationSystem
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(i);
-            if (!PlayerIds.IsKeeper(player.PlayerId) || player.ResearchTarget != 0) continue;
+            if (!PlayerIds.IsKeeper(player.PlayerId.Value) || player.ResearchTarget != 0) continue;
             ResearchTreeRules.ChooseTarget(context, player.PlayerId);
         }
     }

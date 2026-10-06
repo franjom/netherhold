@@ -148,7 +148,7 @@ public static partial class TremorRules
 
     private static bool Route(SimulationContext context, CreatureState creature, EscapePoint target) =>
         TunnelRules.RouteOrTunnel(context, CreatureSystem, creature, x: target.X.Raw, y: target.Y.Raw,
-            travelState: StateShadow.TravelToPoint, resume: CreatureStateMachine.Idle, options: 0x80,
+            travelState: StateShadow.TravelToPoint, resume: CreatureStateMachine.Idle, options: Navigation.MoveOptions.Loose,
             tunnelX: target.Tile.X, tunnelY: target.Tile.Y);
 
     private readonly record struct EscapePoint(Fp32 X, Fp32 Y)

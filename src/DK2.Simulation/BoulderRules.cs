@@ -210,7 +210,7 @@ public static class BoulderRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        byte owner = world.Tile(x, y).OwnerPlayerId;
+        PlayerId owner = world.Tile(x, y).OwnerPlayerId;
         if (!world.HasPlayer(owner) || !DisposalRules.IsHeartCentreTile(world, database, new TilePos(x, y), owner)) return;
         if (database.ObjectById(Navigation.WorldSteering.DungeonHeartObjectId) is not { } heartDef) return;
         if (!heartDef.Flags.HasFlag(ObjectFlags.BoulderDestroys)) return;

@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Commands;
 
@@ -18,7 +19,7 @@ namespace DK2.Simulation.Commands;
 /// data selects it for spell 4: the row AVAILABLE, location 1 and target 4 at the tile, so a
 /// cast onto land the keeper does not own makes nothing (ADR-0312).</para>
 /// </summary>
-public sealed record CreateImpCommand(byte PlayerId, TilePos? At = null) : PlayerCommand(PlayerId)
+public sealed record CreateImpCommand(PlayerId PlayerId, TilePos? At = null) : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
     {

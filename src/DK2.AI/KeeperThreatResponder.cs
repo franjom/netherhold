@@ -168,10 +168,10 @@ public sealed class KeeperThreatResponder
     /// world ends up as DK2's does after the last roll.</summary>
     private void RerollImprisonment()
     {
-        int bit = 1 << (_view.PlayerId - 1);
-        foreach (byte player in _view.PlayerOrder)
+        int bit = 1 << (_view.PlayerId.Value - 1);
+        foreach (PlayerId player in _view.PlayerOrder)
         {
-            if (_view.AreAllied(player)) continue;
+            if (_view.AreAllied(player.Value)) continue;
             foreach (KeeperCreatureView creature in Owned(player))
             {
                 bool mark = _rng.NextInt(100) < _p.ImprisonPercentage;
@@ -233,7 +233,7 @@ public sealed class KeeperThreatResponder
         _moved.Add(creature.Id);
     }
 
-    private IEnumerable<KeeperCreatureView> Owned(byte player) =>
+    private IEnumerable<KeeperCreatureView> Owned(PlayerId player) =>
         _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0)
             .OrderBy(c => c.OwnershipRank);
 

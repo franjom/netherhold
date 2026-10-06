@@ -183,7 +183,7 @@ public sealed class TremorCreatureTests
             {
                 if (context.Tick.Value != 0) return;
                 context.Navigation.Refresh();
-                Assert.True(context.Navigation.TryRoute(creature, destination, 0x80));
+                Assert.True(context.Navigation.TryRoute(creature, destination, DK2.Simulation.Navigation.MoveOptions.Loose));
                 creature.Dk2StateId = TremorRules.KnockdownState;
             }), new TremorCreatureSystem(), new CreatureMovementSystem()]);
         int xBefore = creature.PosX, yBefore = creature.PosY;

@@ -228,10 +228,12 @@ public static class FightRules
         List<Fixed16Vector> scratch)
     {
         WorldState world = context.World;
-        byte kind = me.FightTargetKind, attack = me.AttackType, slot = me.AttackSpellSlot, player = me.FightTargetPlayerId;
+        FightTargetKind kind = me.FightTargetKind;
+        CombatRules.AttackMode attack = me.AttackType;
+        byte slot = me.AttackSpellSlot, player = me.FightTargetPlayerId;
         int id = me.FightTargetId, tile = me.FightTargetTileIndex, range = me.AttackRangeSquared;
         CreatureState? old = kind == FightTargetKind.Creature ? world.CreatureById(id) : null;
-        bool ranged = attack is CombatRules.AttackTypes.SpellAtCreature or CombatRules.AttackTypes.SpellAtThing;
+        bool ranged = attack is CombatRules.AttackMode.SpellAtCreature or CombatRules.AttackMode.SpellAtThing;
         if (old != null) CombatRules.Unregister(old, me.Id);
         me.FightTargetKind = FightTargetKind.None;
         me.FightTargetId = CombatRules.NoTarget;
@@ -245,7 +247,7 @@ public static class FightRules
         me.AttackType = attack;
         me.AttackSpellSlot = slot;
         me.AttackRangeSquared = range;
-        if (old != null && attack != CombatRules.AttackTypes.SpellAtAlly) CombatRules.Register(old, me.Id, ranged);
+        if (old != null && attack != CombatRules.AttackMode.SpellAtAlly) CombatRules.Register(old, me.Id, ranged);
         return true;
     }
 
@@ -340,7 +342,7 @@ public static class FightRules
     /// stop and no answer from the target: those are <c>spFighting</c>'s, and action 26 stamps itself.
     /// The begin's refusal needs an authored zero interruption byte, which shipped data has not.</summary>
     public static void BeginPossessedAction(
-        SimulationContext context, CreatureState me, byte kind, int slot, byte targetKind, int targetId)
+        SimulationContext context, CreatureState me, byte kind, int slot, FightTargetKind targetKind, int targetId)
     {
         me.SwingInProgress = true;
         me.SwingKind = kind;
@@ -350,7 +352,7 @@ public static class FightRules
         me.SwingTargetId = targetId;
         me.SwingTargetPlayerId = 0;
         context.Emit(SystemName, kind == SpellRules.MeleeSwing ? "possessed_swing" : "possessed_cast",
-            $"creature={me.Id} slot={slot} kind={targetKind} target={targetId}");
+            $"creature={me.Id} slot={slot} kind={(byte)targetKind} target={targetId}");
     }
 
     /// <summary><c>0x00496980(15, point, slot, pitch, range)</c>: the free-aim cast at a point.</summary>
@@ -420,7 +422,7 @@ public static class FightRules
             target.FightTargetId = attacker.Id;
             target.FightTargetPlayerId = 0;
             target.FightTargetTileIndex = -1;
-            target.AttackType = CombatRules.AttackTypes.MeleeAtCreature;
+            target.AttackType = CombatRules.AttackMode.MeleeAtCreature;
             if (!CombatRules.Register(attacker, target.Id, ranged: false))
             {
                 target.FightTargetKind = FightTargetKind.None;

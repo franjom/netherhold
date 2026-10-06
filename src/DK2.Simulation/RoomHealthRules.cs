@@ -68,7 +68,7 @@ public static class RoomHealthRules
     /// </summary>
     [Dk2Behavior(Confidence.Confirmed, "docs/research/room-health.md")]
     public static RoomHealthOutcome Apply(
-        WorldState world, GameDatabase database, RoomInstance room, int delta, byte playerId)
+        WorldState world, GameDatabase database, RoomInstance room, int delta, PlayerId playerId)
     {
         int health = Health(world, database, room);
         if (delta >= 0)
@@ -93,14 +93,14 @@ public static class RoomHealthRules
     /// to the new owner, a portal's clock restarted (<see cref="PortalRules.OnOwnerChanged"/>) and
     /// both keepers told (<see cref="PostTransfer"/>). Gold stays where it is, a treasury's with the
     /// treasury (Q40). It never writes the health.</summary>
-    private static void TransferOwnership(WorldState world, GameDatabase database, RoomInstance room, byte playerId)
+    private static void TransferOwnership(WorldState world, GameDatabase database, RoomInstance room, PlayerId playerId)
     {
         PostTransfer(world, room, room.OwnerPlayerId, playerId);
         foreach (int index in room.TileIndices)
         {
             ref TileState tile = ref world.TileAtIndex(index);
             if (tile.OwnerPlayerId == playerId) continue;
-            tile.OwnerPlayerId = playerId;
+            tile.OwnerPlayerId = playerId.Value;
             tile.KeptManaGain = 0; // Tile_SetOwner moves the room terrain's 0, not the floor's 1 (ADR-0334)
             if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
         }
@@ -109,28 +109,28 @@ public static class RoomHealthRules
     /// <summary>The transfer's messages: 35 to the old owner (<c>0x004E58F4</c>), then 32 to the new,
     /// or 33 when the old owner is the neutral player (<c>0x004E5931</c>); Data1 the room type and
     /// Data2 the room, which DK2 gives as its thing tag and ours as its first slab's tile.</summary>
-    internal static void PostTransfer(WorldState world, RoomInstance room, byte oldOwner, byte newOwner)
+    internal static void PostTransfer(WorldState world, RoomInstance room, PlayerId oldOwner, PlayerId newOwner)
     {
         int tag = SlabChain.FirstSlab(world, room);
         var type = (RoomTypeId)room.Definition.RoomId;
         if (world.HasPlayer(oldOwner))
-            world.Messages.PostOwnership(world, oldOwner, PlayerMessageKind.RoomLost, type, tag);
+            world.Messages.PostOwnership(world, oldOwner.Value, PlayerMessageKind.RoomLost, type, tag);
         if (world.HasPlayer(newOwner))
-            world.Messages.PostOwnership(world, newOwner,
+            world.Messages.PostOwnership(world, newOwner.Value,
                 oldOwner == PlayerIds.Neutral ? PlayerMessageKind.NeutralRoomCaptured : PlayerMessageKind.RoomCaptured, type, tag);
     }
 
     /// <summary>The variable action 10 (<c>0x00497BF0</c>) reads for a tile with this owner: a
     /// neutral tile <c>ConvertNeutralRoomHealth</c> (136, <c>0x006F257C</c>), anyone else's
     /// <c>ConvertRoomHealth</c> (14).</summary>
-    public static VariableTypeId ConvertVariable(byte tileOwner) =>
+    public static VariableTypeId ConvertVariable(PlayerId tileOwner) =>
         tileOwner == PlayerIds.Neutral ? VariableTypeId.ConvertNeutralRoomHealth : VariableTypeId.ConvertRoomHealth;
 
     /// <summary>One conversion application at <paramref name="efficiency"/> 4096ths: the tabled
     /// per-second value over variable 19, times the rate, floored (−5000 × 0xCCC ≫ 12 = −4000, the
     /// captures' step).</summary>
     [Dk2Behavior(Confidence.Confirmed, "docs/research/room-health.md")]
-    public static int ConvertPerApplication(GameDatabase database, byte tileOwner, int efficiency) =>
+    public static int ConvertPerApplication(GameDatabase database, PlayerId tileOwner, int efficiency) =>
         database[ConvertVariable(tileOwner)] * efficiency >> SimulationTiming.WorkApplicationShift;
 
     /// <summary>
@@ -140,7 +140,7 @@ public static class RoomHealthRules
     /// the rate for the tile's owner goes to the room under it. No tile's terrain or health changes.
     /// </summary>
     public static TileWorkResult Convert(
-        WorldState world, GameDatabase database, int tileIndex, byte playerId, int efficiency = EfficiencyRules.BaseModifier)
+        WorldState world, GameDatabase database, int tileIndex, PlayerId playerId, int efficiency = EfficiencyRules.BaseModifier)
     {
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         if (!TileWorkRules.Applies(world, database, tile, TileWorkKind.ConvertRoom, playerId)
@@ -158,7 +158,7 @@ public static class RoomHealthRules
     /// worker: while the room under the tile is the player's and below its cap
     /// (<see cref="NeedsRepair"/>), <see cref="RepairPerApplication"/> into its health, clamped.</summary>
     public static TileWorkResult Repair(
-        WorldState world, GameDatabase database, int tileIndex, byte playerId, int efficiency = EfficiencyRules.BaseModifier)
+        WorldState world, GameDatabase database, int tileIndex, PlayerId playerId, int efficiency = EfficiencyRules.BaseModifier)
     {
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         if (!TileWorkRules.Applies(database, tile, TileWorkKind.RepairRoom, playerId)
@@ -179,7 +179,7 @@ public static class RoomHealthRules
 
     /// <summary><c>Room_NeedsRepair</c> (<c>0x004E6C00</c>): the room is the player's and below its
     /// cap. Action 12's gate; nothing in v1.70 starts action 12 (Q500).</summary>
-    public static bool NeedsRepair(WorldState world, GameDatabase database, RoomInstance room, byte playerId) =>
+    public static bool NeedsRepair(WorldState world, GameDatabase database, RoomInstance room, PlayerId playerId) =>
         room.OwnerPlayerId == playerId && Health(world, database, room) < Cap(database, room);
 
     /// <summary>

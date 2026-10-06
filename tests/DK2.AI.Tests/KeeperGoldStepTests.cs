@@ -27,8 +27,8 @@ public class KeeperGoldStepTests
         WorldState world = KeeperWorld.World(Db);
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 100;
         foreach (RoomTypeId room in new[] { RoomTypeId.Treasury, RoomTypeId.Lair, RoomTypeId.Hatchery })
-            world.SetAvailability(Keeper, 1, (byte)room, 1);
-        world.SetAvailability(Keeper, KeeperSpellRules.SpellAvailabilityKind, KeeperSpellRules.CreateGold, (byte)createGold);
+            world.SetAvailability(Keeper, AvailabilityKind.Room, (byte)room, 1);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.CreateGold, (byte)createGold);
         return world;
     }
 

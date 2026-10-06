@@ -114,12 +114,12 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// the owner, the two definition flags that unlock water and lava, and the three door bits of
     /// the state's option word (<see cref="MoveOptions"/>: 7 respect doors, 1 pass own locked
     /// doors, 2 enter a portal's hole).</summary>
-    public static MoverProfile ProfileOf(CreatureDef definition, byte owner, int options) =>
+    public static MoverProfile ProfileOf(CreatureDef definition, PlayerId owner, MoveOptions options) =>
         new(definition.Flags.HasFlag(CreatureFlags.CanWalkOnWater), definition.Flags.HasFlag(CreatureFlags.CanWalkOnLava),
-            owner,
-            RespectDoors: (options & 0x80) != 0,
-            PassOwnLockedDoors: (options & 0x02) != 0,
-            EntersPortalHole: (options & 0x04) != 0);
+            owner.Value,
+            RespectDoors: ((int)options & 0x80) != 0,
+            PassOwnLockedDoors: ((int)options & 0x02) != 0,
+            EntersPortalHole: ((int)options & 0x04) != 0);
 
     /// <summary>The body's position from the creature's, as the original does before every mover
     /// update (<c>0x004D59A0</c>): the entity's 1/4096 units shifted up four.</summary>
@@ -132,17 +132,17 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// a finished route and is treated as arrived. False when the mesh has no route. The word's
     /// door bits reach the cost function through <see cref="ProfileOf"/>; most requests in a
     /// running game are the imp pass, which passes none of them (Q357).</summary>
-    public bool TryRoute(CreatureState creature, TilePos to, int options) =>
+    public bool TryRoute(CreatureState creature, TilePos to, MoveOptions options) =>
         TryRouteTo(creature, CreatureState.CentreOf(to.X), CreatureState.CentreOf(to.Y), options);
 
     /// <summary>The same request aimed at a position rather than a tile centre — what the fight
     /// state does with its target's own position (<c>0x00471D10</c>). A creature already on the
     /// position's tile gets a finished route.</summary>
-    public bool TryRouteTo(CreatureState creature, int x, int y, int options)
+    public bool TryRouteTo(CreatureState creature, int x, int y, MoveOptions options)
     {
         SyncBody(creature);
         creature.RouteOptions = options;
-        byte flags = MoveOptions.PathFlagsOf(options);
+        byte flags = options.PathFlags();
         var target = new Fixed16Vector(x << 4, y << 4);
         if (creature.Tile == new TilePos(x / Fp32.One, y / Fp32.One))
         {
@@ -158,7 +158,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// reinforce handlers route to <c>0x00698A80</c> and <c>0x00698AE0</c>'s points): as
     /// <see cref="TryRouteTo"/>, except that a creature already on that tile steps to the point
     /// rather than getting a finished route (ADR-0289).</summary>
-    public bool TryRouteToStance(CreatureState creature, long x, long y, int options)
+    public bool TryRouteToStance(CreatureState creature, long x, long y, MoveOptions options)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));
         if (creature.Tile != new TilePos((int)(x / Fp32.One), (int)(y / Fp32.One)))
@@ -166,7 +166,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         SyncBody(creature);
         creature.RouteOptions = options;
         var target = new Fixed16Vector((int)x << 4, (int)y << 4);
-        RouteWindow.Load(creature.Body, [target], target, MoveOptions.PathFlagsOf(options));
+        RouteWindow.Load(creature.Body, [target], target, options.PathFlags());
         return true;
     }
 

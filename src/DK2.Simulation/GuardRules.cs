@@ -38,7 +38,7 @@ public static class GuardRules
         [0x600, 0x600, 0xA00, 0x600, 0xA00, 0xA00, 0x600, 0xA00, 0x600, 0x600, 0xA00, 0x600, 0xA00, 0xA00, 0x600, 0xA00, 0x445C3A44];
 
     /// <summary>Whether (x, y) is a tile of <paramref name="owner"/>'s Guard Room.</summary>
-    public static bool IsOwnGuardRoom(WorldState world, GameDatabase database, int x, int y, byte owner)
+    public static bool IsOwnGuardRoom(WorldState world, GameDatabase database, int x, int y, PlayerId owner)
     {
         if (!world.Contains(new TilePos(x, y))) return false;
         ref TileState tile = ref world.Tile(x, y);
@@ -47,7 +47,7 @@ public static class GuardRules
 
     /// <summary><c>0x00462BB0</c>: the post slot of (x, y), or <see cref="NoSlot"/>. The tile
     /// may hold any room; the mask counts the keeper's Guard Room around it.</summary>
-    public static int Slot(WorldState world, GameDatabase database, int x, int y, byte owner, out int facing)
+    public static int Slot(WorldState world, GameDatabase database, int x, int y, PlayerId owner, out int facing)
     {
         facing = 0;
         if (!world.Contains(new TilePos(x, y)) || RoomRules.RoomOn(database, world.Tile(x, y)) is null) return NoSlot;
@@ -67,7 +67,7 @@ public static class GuardRules
 
     /// <summary>State 97's square spiral from (x, y): the first tile whose slot is not
     /// <see cref="NoSlot"/>, or (0, 0) once a leg reaches twice the map's larger side.</summary>
-    public static TilePos NearestPost(WorldState world, GameDatabase database, int x, int y, byte owner)
+    public static TilePos NearestPost(WorldState world, GameDatabase database, int x, int y, PlayerId owner)
     {
         if (IsPost(world, database, x, y, owner)) return new TilePos(x, y);
         int limit = 2 * Math.Max(world.Width, world.Height);
@@ -85,7 +85,7 @@ public static class GuardRules
         }
     }
 
-    private static bool IsPost(WorldState world, GameDatabase database, int x, int y, byte owner) =>
+    private static bool IsPost(WorldState world, GameDatabase database, int x, int y, PlayerId owner) =>
         world.Contains(new TilePos(x, y)) && Slot(world, database, x, y, owner, out _) != NoSlot;
 
     /// <summary>State 97's target for a post of <paramref name="slot"/>: the offsets are read
@@ -106,7 +106,7 @@ public static class GuardRules
     /// <paramref name="facing"/>: the tile it ends on and the new facing.</summary>
     /// <remarks>DK2's loop has no bound; ours stops after as many steps as the map has tiles,
     /// which a room cannot reach.</remarks>
-    public static (TilePos To, int Facing) Leg(WorldState world, GameDatabase database, int x, int y, int facing, byte owner)
+    public static (TilePos To, int Facing) Leg(WorldState world, GameDatabase database, int x, int y, int facing, PlayerId owner)
     {
         (int dx, int dy, int wx, int wy, int blocked, int opens) = Heading(facing);
         for (int n = 0; n < world.Width * world.Height; n++)

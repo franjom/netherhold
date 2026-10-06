@@ -224,7 +224,7 @@ internal sealed class ChaosSystem : ISimulationSystem
 }
 
 /// <summary>Test-only command, to exercise the input path of the gate.</summary>
-internal sealed record AddManaCommand(byte PlayerId, int Amount) : PlayerCommand(PlayerId)
+internal sealed record AddManaCommand(PlayerId PlayerId, int Amount) : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
     {

@@ -125,7 +125,7 @@ public sealed record TriggerPartySlot(
 /// walks a player's root with that player as the condition dispatcher's <c>this</c>
 /// (<c>0x004B9F10</c>), so a root without its owner cannot answer a single one of the 30
 /// player-owned condition types.</summary>
-public readonly record struct TriggerPlayerRoot(byte PlayerId, ushort TriggerId);
+public readonly record struct TriggerPlayerRoot(PlayerId PlayerId, ushort TriggerId);
 
 /// <summary>Immutable records and the root arguments used by the world walker.</summary>
 /// <remarks>
@@ -304,7 +304,7 @@ internal sealed class TriggerRun(int currentTick)
     /// <summary>The player whose tree is being walked, or null outside one. It is the
     /// player condition dispatcher's <c>this</c>, so every player-owned type needs it.
     /// </summary>
-    public byte? Player { get; set; }
+    public PlayerId? Player { get; set; }
 
     /// <summary>The creature whose tree is being walked, or null outside one.</summary>
     public CreatureState? Creature { get; set; }
@@ -409,7 +409,7 @@ public sealed class TriggerExecutor
     /// same scan from the player's root. Type 53 alone reads the pair: its record's first two body
     /// bytes must equal <paramref name="targetType"/> and <paramref name="targetId"/>.</summary>
     public void FirePlayerEvent(
-        byte playerId, PlayerTriggerEvent type, int currentTick, byte targetType = 0, byte targetId = 0)
+        PlayerId playerId, PlayerTriggerEvent type, int currentTick, byte targetType = 0, byte targetId = 0)
     {
         if (_tree is null) return;
         foreach (TriggerPlayerRoot root in _tree.PlayerRoots)
@@ -742,7 +742,7 @@ public sealed class TriggerExecutor
         IReadOnlyDictionary<string, long> parameters,
         WorldState world,
         GameDatabase database,
-        byte playerId,
+        PlayerId playerId,
         TriggerRun run) => type switch
     {
         19 => CreatureCount(parameters, world, database, playerId),
@@ -762,7 +762,7 @@ public sealed class TriggerExecutor
     };
 
     private static int DoorCount(
-        IReadOnlyDictionary<string, long> parameters, WorldState world, byte playerId)
+        IReadOnlyDictionary<string, long> parameters, WorldState world, PlayerId playerId)
     {
         byte flags = Byte(parameters, "Flag");
         IEnumerable<DoorState> owned = world.Doors.Where(door => door.PlayerId == playerId);
@@ -784,7 +784,7 @@ public sealed class TriggerExecutor
         IReadOnlyDictionary<string, long> parameters,
         WorldState world,
         GameDatabase database,
-        byte playerId)
+        PlayerId playerId)
     {
         byte flags = Byte(parameters, "Flag");
         IEnumerable<TrapState> owned = world.Traps.Where(trap => trap.PlayerId == playerId);
@@ -838,7 +838,7 @@ public sealed class TriggerExecutor
     /// <see cref="TriggerState.Compare"/>, whose <c>Comparison</c> byte this type does not
     /// even read.</summary>
     private static bool KilledBy(
-        IReadOnlyDictionary<string, long> parameters, WorldState world, byte playerId)
+        IReadOnlyDictionary<string, long> parameters, WorldState world, PlayerId playerId)
     {
         byte killer = world.Player(playerId).KilledByPlayerId;
         if (killer == 0) return false;
@@ -856,14 +856,13 @@ public sealed class TriggerExecutor
     /// that distinction load-bearing: 271 shipped kind-5 entries hold 1, and one holds 4.
     /// </summary>
     private static bool SpellAvailable(
-        IReadOnlyDictionary<string, long> parameters, WorldState world, byte playerId)
+        IReadOnlyDictionary<string, long> parameters, WorldState world, PlayerId playerId)
     {
-        const ushort KindSpell = 5;
         const int Available = 3;
         byte wanted = Byte(parameters, "TargetId");
         return wanted == 0
-            ? world.HasAvailability(playerId, KindSpell, Available)
-            : world.Availability(playerId, KindSpell, wanted) == Available;
+            ? world.HasAvailability(playerId, AvailabilityKind.Spell, Available)
+            : world.Availability(playerId, AvailabilityKind.Spell, wanted) == Available;
     }
 
     /// <summary>Condition type 52 — <b>how many of this keeper's creatures have reached
@@ -880,7 +879,7 @@ public sealed class TriggerExecutor
         IReadOnlyDictionary<string, long> parameters,
         WorldState world,
         GameDatabase database,
-        byte playerId)
+        PlayerId playerId)
     {
         byte level = Byte(parameters, "Level");
         int count = 0;
@@ -904,7 +903,7 @@ public sealed class TriggerExecutor
     /// sets the field, so today this is always false and the decline below is unreachable;
     /// it exists so that adding possession turns type 73 into an honest gap rather than a
     /// silent wrong answer.</remarks>
-    private static bool Possessing(WorldState world, byte playerId) =>
+    private static bool Possessing(WorldState world, PlayerId playerId) =>
         world.Player(playerId).PossessedCreatureId != 0;
 
     /// <summary>Condition type 19 — how many creatures this keeper owns
@@ -920,7 +919,7 @@ public sealed class TriggerExecutor
         IReadOnlyDictionary<string, long> parameters,
         WorldState world,
         GameDatabase database,
-        byte playerId)
+        PlayerId playerId)
     {
         byte wanted = Byte(parameters, "CreatureId");
         int count = 0;
@@ -948,7 +947,7 @@ public sealed class TriggerExecutor
     /// worker test holds even with a type named, unlike type 19.</summary>
     private static int MoodCount(
         IReadOnlyDictionary<string, long> parameters, WorldState world, GameDatabase database,
-        byte playerId, CreatureMood mood)
+        PlayerId playerId, CreatureMood mood)
     {
         byte wanted = Byte(parameters, "CreatureId");
         int count = 0;
@@ -974,7 +973,7 @@ public sealed class TriggerExecutor
         IReadOnlyDictionary<string, long> parameters,
         WorldState world,
         GameDatabase database,
-        byte playerId,
+        PlayerId playerId,
         TriggerRun run)
     {
         byte roomId = Byte(parameters, "RoomId");
@@ -1141,7 +1140,7 @@ public sealed class TriggerExecutor
         List<BlockedTrigger> partial = run.Partial;
         if (record.Type == 28)
         {
-            if (_world is null || _database is null || run.Player is not byte player)
+            if (_world is null || _database is null || run.Player is not PlayerId player)
                 return Unperformed(record, context, partial);
             PortalRules.CreateScriptedArrival(new StateHookContext(_world, _database, this), player,
                 Byte(p, "CreatureId"), Byte(p, "Level"));
@@ -1151,7 +1150,7 @@ public sealed class TriggerExecutor
         {
             // 0x004C892D: body byte 0 zero clears PortalsOpen (player +0x76 bit 10), anything
             // else sets it. Level 2 closes its portals for the scripted Warlock (ADR-0314).
-            if (_world is null || run.Player is not byte player)
+            if (_world is null || run.Player is not PlayerId player)
                 return Unperformed(record, context, partial);
             _world.Player(player).PortalsClosed = Byte(p, "Available") == 0;
             return true;
@@ -1162,7 +1161,7 @@ public sealed class TriggerExecutor
             byte kind = Byte(p, "AvailabilityKind");
             if (kind is >= 1 and <= 5)
                 _world.SetAvailability(
-                    Byte(p, "PlayerId"), kind, Byte(p, "TypeId"),
+                    Byte(p, "PlayerId"), (AvailabilityKind)kind, Byte(p, "TypeId"),
                     Byte(p, "Available") == 0 ? 1 : 3);
             return true;
         }
@@ -1173,7 +1172,7 @@ public sealed class TriggerExecutor
         }
         if (record.Type is 10 or 11)
         {
-            if (_world is null || run.Player is not byte player)
+            if (_world is null || run.Player is not PlayerId player)
                 return Unperformed(record, context, partial);
             _world.EndGame(player, record.Type == 10 ? PlayerStatus.Won : PlayerStatus.Lost);
             return true;
@@ -1241,7 +1240,7 @@ public sealed class TriggerExecutor
         if (!_world.Contains(at)) return Unperformed(record, context, run.Partial);
 
         byte creatureTypeId = checked((byte)p["CreatureId"]);
-        byte playerId = checked((byte)p["PlayerId"]);
+        PlayerId playerId = checked((byte)p["PlayerId"]);
         // 0x00519B20's gate step-off, for a hero made on a gate (HeroPartyRules.StepOff).
         if (HeroPartyRules.StepOff(_world, _database, _rng, playerId, ref at, out _) == HeroPartyRules.StepOffResult.Refused)
             return Unperformed(record, context, run.Partial);
@@ -1291,7 +1290,7 @@ public sealed class TriggerExecutor
         TerrainDef next = _database.TerrainById(terrainId);
         RoomDef? room = next.IsRoom ? _database.RoomByTerrain(terrainId) : null;
         if (next.IsRoom && room is null) return Unperformed(record, context, run.Partial);
-        byte player = checked((byte)p["PlayerId"]);
+        PlayerId player = checked((byte)p["PlayerId"]);
         int index = (at.Y * _world.Width) + at.X;
 
         if (_database.TerrainById(tile.TerrainId).IsRoom)
@@ -1323,12 +1322,12 @@ public sealed class TriggerExecutor
         return true;
     }
 
-    private static void SetTerrain(ref TileState tile, TerrainDef terrain, byte owner)
+    private static void SetTerrain(ref TileState tile, TerrainDef terrain, PlayerId owner)
     {
         tile.TerrainId = terrain.TerrainId;
         tile.Health = terrain.StartingHealth;
-        tile.OwnerPlayerId = owner;
-        if (!terrain.IsTaggable) tile.TaggedBy = 0;
+        tile.OwnerPlayerId = owner.Value;
+        if (!terrain.IsTaggable) tile.TaggedBy = PlayerMask.None;
     }
 
     /// <summary>Action type 32, COLLAPSE_HERO_GATE (<c>0x005196BB</c>): the room on the one-based

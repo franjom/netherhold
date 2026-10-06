@@ -63,7 +63,7 @@ public sealed class ShotState
     public int Data2;
 
     public int CasterId;
-    public byte TargetKind;
+    public Combat.FightTargetKind TargetKind;
     public int TargetId;
     public byte TargetPlayerId;
     public int TargetTileIndex = -1;
@@ -93,7 +93,7 @@ public sealed class ShotState
         hash.Add(Data1);
         hash.Add(Data2);
         hash.Add(CasterId);
-        hash.Add(TargetKind);
+        hash.Add((byte)TargetKind);
         hash.Add(TargetId);
         hash.Add(TargetPlayerId);
         hash.Add(TargetTileIndex);

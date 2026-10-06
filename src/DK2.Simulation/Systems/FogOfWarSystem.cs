@@ -44,7 +44,7 @@ public sealed class FogOfWarSystem : ISimulationSystem
     private static void Reveal(
         WorldState world,
         GameDatabase database,
-        byte playerId,
+        PlayerId playerId,
         int centreX,
         int centreY,
         int radius)
