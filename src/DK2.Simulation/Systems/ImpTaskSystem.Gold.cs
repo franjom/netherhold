@@ -42,15 +42,19 @@ public sealed partial class ImpTaskSystem
         return database.Variables.TryGet(VariableTypeId.GameTicks, out int margin) ? margin : 0;
     }
 
-    /// <summary>A pile's centre within this of a worker, on both axes and strictly, is picked up
-    /// in passing: a third of a tile (<c>0x555</c>).</summary>
-    private const int PassingReach = 0x555;
+    /// <summary>A pile's centre within this of a worker, on both axes and strictly, is in its
+    /// reach: a third of a tile (<c>0x555</c>), for the pick-up in passing and for state 27's
+    /// take (<c>0x00466850</c>).</summary>
+    private const int PileReach = 0x555;
+
+    private static bool InReach(CreatureState creature, (long X, long Y) pile) =>
+        Math.Abs(pile.X - creature.PosX) < PileReach && Math.Abs(pile.Y - creature.PosY) < PileReach;
 
     /// <summary>
     /// The worker arm of DK2's walk-over pick-up (<c>0x0048904E</c>), which the creature update
     /// runs every tick before the state handler, so state 10 then sees the gold in the hands. A
     /// keeper's worker below the hands test's mark takes the first neutral pile on its own tile
-    /// whose centre is within <see cref="PassingReach"/>, as much as it lacks against the level's
+    /// whose centre is within <see cref="PileReach"/>, as much as it lacks against the level's
     /// full maximum (imp-hands-full.md, gold-on-the-floor.md §12, ADR-0293, ADR-0378). DK2 walks
     /// the tile's thing list; ours its objects in world order.
     /// </summary>
@@ -67,8 +71,7 @@ public sealed partial class ImpTaskSystem
             if (pile.TileIndex != here || !FloorGold.IsPile(context.Database, pile) || pile.InHand
                 || pile.CarriedByCreatureId >= 0 || pile.OwnerPlayerId != PlayerIds.Neutral)
                 continue;
-            (long px, long py) = PileCentre(world, pile);
-            if (Math.Abs(px - creature.PosX) >= PassingReach || Math.Abs(py - creature.PosY) >= PassingReach) continue;
+            if (!InReach(creature, PileCentre(world, pile))) continue;
 
             int lacks = CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level) - creature.GoldHeld;
             int taken = FloorGold.Take(world, context.Database, pile, lacks);
@@ -103,7 +106,8 @@ public sealed partial class ImpTaskSystem
 
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = default;
-        context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.ExactSpot);
+        (long px, long py) = PointOfFirstPile(context, tileIndex);
+        context.Navigation.TryRouteToStance(creature, px, py, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.FetchGold;
         FromTaskSelection(context, creature);
@@ -114,6 +118,26 @@ public sealed partial class ImpTaskSystem
             $"{Describe(world, tileIndex)} " +
             $"gold={FloorGold.OnTile(world, context.Database, tileIndex)} " +
             $"priority={FetchPriority} steps={_route.Count}");
+    }
+
+    /// <summary>
+    /// Where the fetch walks: the point of the tile's first neutral pile, as the gold handler
+    /// (<c>0x0046B6D0</c>) walks to the position of the pile whose task it took, so state 27's
+    /// box (<see cref="PileReach"/>) holds it. Through <see cref="Navigation.WorldSteering.TryRouteToStance"/>,
+    /// which steps to the point from the same tile, since the route request has no same-tile
+    /// shortcut (imp-walk-arrival.md). The tile centre if no pile is neutral (ADR-0388).
+    /// </summary>
+    private static (long X, long Y) PointOfFirstPile(SimulationContext context, int tileIndex)
+    {
+        WorldState world = context.World;
+        foreach (ObjectState pile in world.Objects)
+        {
+            if (pile.TileIndex == tileIndex && FloorGold.IsPile(context.Database, pile)
+                && pile.OwnerPlayerId == PlayerIds.Neutral)
+                return PileCentre(world, pile);
+        }
+
+        return (CreatureState.CentreOf(tileIndex % world.Width), CreatureState.CentreOf(tileIndex / world.Width));
     }
 
     /// <summary>
@@ -150,8 +174,8 @@ public sealed partial class ImpTaskSystem
     }
 
     /// <summary>
-    /// One tick of going to get gold: arrive, fill your hands, become a carrier.
-    /// <para><b>The pick-up is instant on arrival</b> rather than costing a work
+    /// One tick of going to get gold: walk to the pile's point, fill your hands, become a carrier.
+    /// <para><b>The pick-up is instant when the walk ends</b> rather than costing a work
     /// period. Picking gold up is not work — nothing is damaged, no health delta
     /// applies, and the balance table has no number for it — so charging it a
     /// swing would be inventing a duration. Whether the original animates a
@@ -164,9 +188,11 @@ public sealed partial class ImpTaskSystem
     {
         WorldState world = context.World;
 
-        // Somebody else emptied it, or it was never there.
-        if (creature.TargetTileIndex < 0
-            || FloorGold.OnTile(world, context.Database, creature.TargetTileIndex) <= 0)
+        // No pile test: the walk is state 6, which does not look at the pile, and 27 runs when
+        // it ends even with the pile gone. The pick-up in passing takes it at the pile's point,
+        // and 27 still sends full hands to the store (Level 3 seed01, imp 443 at 2343). Whether
+        // 27's task check (0x00508070) fails once another imp has emptied the tile is not read.
+        if (creature.TargetTileIndex < 0)
         {
             context.Emit(SystemName, "fetch_abandoned",
                 $"imp={creature.Id} {Describe(world, Math.Max(0, creature.TargetTileIndex))} " +
@@ -176,12 +202,13 @@ public sealed partial class ImpTaskSystem
             return;
         }
 
-        // Still on the road.
+        // Still on the road: state 27 runs when the walk to the pile's point ends, not when the
+        // tile is entered (Level 3 seed01: each fetch's gold came 1-7 ticks after entering, 4-15
+        // units from the pile).
+        if (creature.HasRoute) return;
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (here != creature.TargetTileIndex)
         {
-            if (creature.HasRoute) return;
-
             context.Emit(SystemName, "fetch_abandoned",
                 $"imp={creature.Id} {Describe(world, creature.TargetTileIndex)} " +
                 "reason=out_of_reach");
@@ -216,15 +243,13 @@ public sealed partial class ImpTaskSystem
     }
 
     /// <summary>
-    /// State 27's take (<c>0x00466850</c>): the neutral piles on one tile, each up to what the
-    /// hands lack against the level's full maximum, stopping after the first pile that leaves
-    /// them full by the hands test (<see cref="HandsFull"/>, the limit less variable 74), so the
-    /// rest stay. Adds to the purse and returns how much came off.
+    /// State 27's take (<c>0x00466850</c>): the neutral piles on one tile strictly within
+    /// <see cref="PileReach"/> of the imp, each up to what the hands lack against the level's
+    /// full maximum, stopping after the first pile that leaves them full by the hands test
+    /// (<see cref="HandsFull"/>, the limit less variable 74), so the rest stay. Adds to the purse
+    /// and returns how much came off (ADR-0382, ADR-0388).
     ///
-    /// <para>Oldest first, spawn order, where DK2 walks the tile's thing list. Not built: DK2
-    /// takes only the piles strictly within <c>0x555</c> of the imp, which walks to the pile's
-    /// own point; ours walks to the tile centre, so the box would leave a corner pile out of
-    /// reach for good (ADR-0382).</para>
+    /// <para>Oldest first, spawn order, where DK2 walks the tile's thing list.</para>
     /// </summary>
     private static int TakeFromPilesOn(SimulationContext context, CreatureState creature, CreatureDef definition, int tileIndex)
     {
@@ -234,7 +259,7 @@ public sealed partial class ImpTaskSystem
         int taken = 0;
         foreach (ObjectState pile in piles)
         {
-            if (pile.OwnerPlayerId != PlayerIds.Neutral) continue;
+            if (pile.OwnerPlayerId != PlayerIds.Neutral || !InReach(creature, PileCentre(context.World, pile))) continue;
             int lacks = CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level) - creature.GoldHeld;
             if (lacks <= 0) break;
             int took = FloorGold.Take(context.World, context.Database, pile, lacks);

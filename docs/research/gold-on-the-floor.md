@@ -207,8 +207,8 @@ question was really about.
 **An imp fetches a pile and carries it to a treasury once its hands are full**
 (ADR-0056, ADR-0288), so the drops above are a delay rather than a loss. State 27
 (`0x00466850`) takes the piles within `0x555` up to the level-scaled cap, stopping at the
-first that fills the hands (ours has no box: it walks to the tile centre, ADR-0382), then
-calls the store chooser only for full hands; a part-load goes back to 10 and is
+first that fills the hands; the walk ends at the pile's point, where §12's pick-up usually
+takes it first (ADR-0382, ADR-0388). 27 then calls the store chooser only for full hands; a part-load goes back to 10 and is
 carried until more gold fills it, a dig or a mine ends with nothing more to excavate
 (kind 15), or the imp is dropped on a store. **Where that sits in its priorities is
 Tier B, below marked excavation and claiming** — not, as ADR-0056 first had it,

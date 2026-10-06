@@ -8775,3 +8775,32 @@ had run Drako's AI alone): Morgana repairs from 92 (DK2 101), the wall falls at 
 Belial tunnel's first tile at 433 (443), its bridges at 446/448 (457/461), the call at 544 (700),
 Morgana at 1,004 (1,378). The scenario now runs those keepers on the record's gold. Q563 holds the
 rest.
+
+## ADR-0388 — The gold fetch walks to the pile's point and takes within its box
+**Date:** 2026-10-06 · **Status:** accepted · Completes ADR-0382 · Research: `gold-on-the-floor.md` §8, §12
+
+**Context.** The gold handler `0x0046B6D0` walks an imp to the pile's own position (`0x0046B90A`:
+the pile's `+0x1A`, word `0xE8`, resume 27), and state 27 (`0x00466850`) runs when that walk
+(state 6, which tests no pile or task) ends, taking only the piles strictly within `0x555` of the
+imp on both axes. Ours walked to the tile centre, took on stepping onto the tile, took every pile
+on it, and abandoned the walk when the tile's gold went. Five captures (Level 1, Level 2 seeds 1
+to 3, Level 3) hold 34 walks that ended in 27, all on a bare tile: in 22 the imp's gold rose that
+tick, 4 to 15 units from the pile and 1 to 7 ticks after entering the tile, taken by the walk-over
+pick-up (`0x0048904E`, STRONGLY INFERRED: 27's own handler had not run yet); in 12 the pile was
+already gone and nothing was taken. Imp 443 (Level 3) shows 27 holding 1,092 at 2343 and walks to
+the store at 2344.
+
+**Decision.** `CommitFetch` routes to the first neutral pile's point through `TryRouteToStance`
+(the route request has no same-tile shortcut, `imp-walk-arrival.md`); `UpdateFetching` waits for
+the route to end and has no pile test before it; `TakeFromPilesOn` takes only piles inside the box.
+Deviates: a pile's point is its third-of-a-tile cell centre (`ObjectState` has no position), so
+two piles in neighbouring cells are never both in the box; the first pile is in world order, not
+the first whose task is free (per-pile tasks are not built, Q155); ours runs 27 in the tick the
+walk ends, DK2 on the next; 27 takes on the target tile and abandons an imp that ended elsewhere,
+where DK2 takes around wherever it stands; 27's task check (`0x00508070`) is not read, so whether
+it fails on an emptied tile is unknown (with empty hands the outcome is the same); the wrapper's
+teleport for a walk over two tiles is not built (Q418).
+
+**Measured** (hash 193) against master `885ec6d8` (Level 1 19/20, Level 2 1/20, Level 3 seed 01
+won at 3604): Level 1 18/20 (seeds 8 and 16 lost, seed 6 now won), Level 2 4/20 (seeds 3, 5, 10
+and 13), Level 3 won at 3556, further from DK2's 3683.

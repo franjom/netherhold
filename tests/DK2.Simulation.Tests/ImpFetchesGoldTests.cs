@@ -122,7 +122,9 @@ public class ImpFetchesGoldTests
         Assert.Equal(0, FloorGold.Total(run.World, run.Db));
         Assert.Equal(0, GoldStore.Total(run.World, Keeper));
         Assert.Equal(900, run.Imp.GoldHeld);
-        Assert.Contains(run.Of("gold_picked_up"), e => e.Detail.Contains("amount=900"));
+        // The walk ends at the pile's point, where the pick-up in passing takes it before state
+        // 27 runs, as DK2's imps do (ADR-0388).
+        Assert.Contains(run.Of("gold_picked_up_in_passing"), e => e.Detail.Contains("gold=900"));
         Assert.Empty(run.Of("gold_delivered"));
     }
 
@@ -146,7 +148,10 @@ public class ImpFetchesGoldTests
         Assert.Equal(0, run.Imp.GoldHeld);
 
         Assert.Contains(run.Of("fetch_taken"), e => e.Detail.Contains($"gold={hands}"));
-        Assert.Contains(run.Of("gold_picked_up"), e => e.Detail.Contains($"amount={hands}"));
+        // The pick-up in passing fills the hands at the pile's point; state 27 then takes nothing
+        // and sends the full hands to the store, as DK2's imp 443 does (Level 3 seed01, 2343).
+        Assert.Contains(run.Of("gold_picked_up_in_passing"), e => e.Detail.Contains($"gold={hands}"));
+        Assert.Contains(run.Of("gold_picked_up"), e => e.Detail.Contains("amount=0") && e.Detail.Contains($"carrying={hands}"));
         Assert.Contains(run.Of("gold_delivered"), e => e.Detail.Contains($"amount={hands}"));
     }
 
@@ -453,11 +458,14 @@ public class ImpFetchesGoldTests
     }
 
     /// <summary>
-    /// A pile somebody else emptied is not chased. The imp gives the job up and
-    /// looks for another rather than standing on a bare tile.
+    /// A pile somebody else emptied is still walked to: the walk is state 6, which does not look
+    /// at the pile, and state 27 runs at its end with nothing to take. In five DK2 captures, 12
+    /// of the 34 walks that ended in 27 arrived at a bare tile with nothing taken (ADR-0388).
+    /// 27's task check (<c>0x00508070</c>) is not read; with empty hands a failed check also
+    /// ends in 10, so this outcome holds either way.
     /// </summary>
     [Fact]
-    public void APileThatVanishesMidWalkIsAbandoned()
+    public void APileThatVanishesMidWalkIsStillWalkedTo_AndTwentySevenTakesNothing_TaskCheckUnread()
     {
         Run run = Start(new TilePos(1, 1));
         Treasury(run, new TilePos(3, 3));
@@ -470,10 +478,58 @@ public class ImpFetchesGoldTests
         Assert.Equal(CreatureActivity.FetchingGold, run.Imp.Activity);
 
         run.World.RemoveObject(pile.Id);
-        run.Ticks(3);
+        run.Ticks(12);
 
-        Assert.Contains(run.Of("fetch_abandoned"), e => e.Detail.Contains("reason=gone"));
-        Assert.NotEqual(CreatureActivity.FetchingGold, run.Imp.Activity);
+        Assert.DoesNotContain(run.Of("fetch_abandoned"), e => e.Detail.Contains("reason=gone"));
+        SimEvent took = Assert.Single(run.Of("gold_picked_up"));
+        Assert.Contains("amount=0", took.Detail);
+        Assert.Contains("(3,1)", took.Detail);
+    }
+
+    /// <summary>
+    /// State 27 runs when the walk to the pile's point ends, not when the imp steps onto the
+    /// tile: a pile in the far column is still out of the box at the tile's edge. DK2's fetch
+    /// gold came 1-7 ticks after the tile was entered (Level 3 seed01, ADR-0388).
+    /// </summary>
+    [Fact]
+    public void TheTakeWaitsForTheWalkToThePilesPoint()
+    {
+        Run run = Start(new TilePos(1, 1));
+        Treasury(run, new TilePos(3, 3));
+        WallsAlreadyReinforced(run);
+
+        int tile = Index(run.World, new TilePos(3, 1));
+        FloorGold.Drop(run.World, run.Db, tile, 300)!.Cell = 5;
+
+        run.Ticks(12);
+
+        SimEvent took = run.Of("gold_picked_up").First();
+        Assert.Contains("left=0", took.Detail);
+        Assert.Equal(300, run.Imp.GoldHeld);
+    }
+
+    /// <summary>
+    /// State 27 takes only the piles strictly within a third of a tile of the imp
+    /// (<c>0x00466850</c>), and the walk goes to the first pile's point, so a pile in the
+    /// tile's far cell stays for the next fetch (ADR-0388).
+    /// </summary>
+    [Fact]
+    public void TwentySevenLeavesAPileOutsideItsBox()
+    {
+        Run run = Start(new TilePos(1, 1));
+        Treasury(run, new TilePos(3, 3));
+        WallsAlreadyReinforced(run);
+
+        int tile = Index(run.World, new TilePos(3, 1));
+        FloorGold.Drop(run.World, run.Db, tile, 300)!.Cell = 0;
+        FloorGold.Drop(run.World, run.Db, tile, 200)!.Cell = 8;
+
+        run.Ticks(12);
+
+        Assert.Contains(run.Of("gold_picked_up_in_passing"), e => e.Detail.Contains("gold=300"));
+        SimEvent took = run.Of("gold_picked_up").First();
+        Assert.Contains("amount=0", took.Detail);
+        Assert.Contains("left=200", took.Detail);
     }
 
     /// <summary>
