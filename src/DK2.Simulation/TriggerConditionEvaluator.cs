@@ -66,10 +66,17 @@ public static class TriggerConditionEvaluator
         IReadOnlyDictionary<string, long> parameters,
         TriggerState state)
     {
-        int left = ReadFlag(state, Byte(parameters, "FlagId"));
+        // Id 128 is the level score, compared with Value whatever the literal bit says
+        // (0x00518270, trigger-state.md §4, Q229). An indirect id of 128 reads the byte past the
+        // flag bank in DK2; no shipped level uses one, and ours declines it rather than guess.
+        if (Byte(parameters, "FlagId") == TriggerState.SpecialFlagId)
+            return Result(TriggerState.Compare(Byte(parameters, "Comparison"), state.SpecialValue, Int(parameters, "Value")));
+        int left = state.Read(Byte(parameters, "FlagId"));
+        if ((Byte(parameters, "Flag") & 1) == 0 && Byte(parameters, "IndirectFlagId") == TriggerState.SpecialFlagId)
+            return TriggerConditionResult.NotEvaluated;
         int right = (Byte(parameters, "Flag") & 1) != 0
             ? Int(parameters, "Value")
-            : ReadFlag(state, Byte(parameters, "IndirectFlagId"));
+            : state.Read(Byte(parameters, "IndirectFlagId"));
 
         return Result(TriggerState.Compare(Byte(parameters, "Comparison"), left, right));
     }
@@ -125,9 +132,6 @@ public static class TriggerConditionEvaluator
             Byte(parameters, "Comparison"),
             currentTick,
             SimulationTiming.TicksFromSeconds(Int(parameters, "Value"))));
-
-    private static int ReadFlag(TriggerState state, byte id) =>
-        id == TriggerState.SpecialFlagId ? state.SpecialValue : state.Read(id);
 
     private static byte Byte(IReadOnlyDictionary<string, long> parameters, string name) =>
         checked((byte)parameters[name]);

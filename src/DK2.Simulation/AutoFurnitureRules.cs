@@ -254,6 +254,23 @@ public static class AutoFurnitureRules
         return new HashSet<int>(slots);
     }
 
+    /// <summary>How many floor slots a room has (<c>0x00454110</c> over its tiles): a Graveyard's
+    /// <c>TotalCapacity</c>.</summary>
+    public static int FloorSlotCount(WorldState world, RoomInstance room)
+    {
+        var slots = new List<int>();
+        FloorSlots(world, room, new HashSet<int>(room.TileIndices), slots);
+        return slots.Count;
+    }
+
+    /// <summary>Whether a room tile is a floor slot (<c>Room_IsFloorSlot</c> <c>0x00454110</c>).</summary>
+    public static bool IsFloorSlot(WorldState world, RoomInstance room, int tileIndex)
+    {
+        var slots = new List<int>();
+        FloorSlots(world, room, new HashSet<int>(room.TileIndices), slots);
+        return slots.Contains(tileIndex);
+    }
+
     /// <summary>The floor-furniture slots: interior tiles, and for the checkerboard rooms only
     /// those of the parity of the leftmost one (<c>FUN_004EF5E0</c>). In index order.</summary>
     private static void FloorSlots(

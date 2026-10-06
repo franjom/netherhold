@@ -1381,6 +1381,11 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(
             new[] { 105, 110, 115, 120, 130, 140, 150, 200, 300 },
             Enumerable.Range(2, 9).Select(l => db.StatPercent(CreatureStatId.TortureTimeToConvert, l)));
+        // A corpse's burial value above level 1 (0x004DD470, ADR-0370): 100% at every level, so
+        // the scaling is live but changes nothing on shipped data.
+        Assert.Equal(
+            Enumerable.Repeat(100, 9),
+            Enumerable.Range(2, 9).Select(l => db.StatPercent(CreatureStatId.DecomposeValue, l)));
         Assert.Equal(6000, CreatureLevelRules.MaxGoldHeld(db, goblin, 10));
         Assert.Equal(8, CasinoRules.Stake(db));
         Assert.Equal(1, CasinoRules.PursePerSecond(db, CasinoRules.Generous));

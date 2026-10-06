@@ -81,7 +81,7 @@ constant exists in the binary. `CreatureRecord_ReadFromFile` (`0x00568E30`) copi
 fields to staging at `file + 0x3F0` and reads nothing past `0x1548`;
 `CreatureDef_BuildFromRecord` (`0x00492320`) reads no staging offset above `0x1935` and,
 while `[ECX+0xA3C7]` is zero, checksums exactly `0x1939` staging bytes (0x0049235A).
-**The 88-byte tail is never read (Q14).** Ours throws on a size other than 5449 or 5537.
+**The 88-byte tail is never read (Q14).** Ours reads any size, zero-filled to 5449 (ADR-0375).
 
 **The last 72 bytes (Q70).** `0x14F1`–`0x1544` is one 84-byte ArtResource (OpenKeeper's
 `UniqueResource`): name to `0x1530`, flags and data `0x1531`–`0x1540`, type `0x1541`,
@@ -103,7 +103,7 @@ the resource. Who requests art slot 50 is unread.
 the divisor). No reader of mood or mana was found (STRONGLY INFERRED): the list accessors
 `0x004944D0`, `0x00494550`, `0x004945D0` and all eight of their callers use only chance
 and job, and the def offsets of all eight entries are touched only by the initialiser,
-serialiser, loader and copy. Ours reads both as unsigned and uses neither.
+serialiser, loader and copy. Ours reads both as signed (ADR-0375) and uses neither.
 
 ## Significant finding — job selection is partly data-driven
 

@@ -639,27 +639,32 @@ public class TriggerExecutorTests
         Assert.Equal(1, world.Triggers.Read(3));
     }
 
-    /// <summary>Two shipped records ask type <b>20</b>, and it is declined, not answered:
-    /// its arm (<c>0x004C7C23</c>) is type 19's walk plus a filter on <c>creature+0x28A</c>,
-    /// a three-valued field nothing here models (Q269). Answering it would over-count, and
-    /// both records compare with <c>&gt;=</c>, so they would fire early.</summary>
-    [Fact]
-    public void ConditionTwentyIsDeclinedBecauseItsExtraFilterIsUnknown()
+    /// <summary>Q269: types 20 and 21 count the player's non-workers, of the named type, whose mood
+    /// band (<c>+0x28A</c>, written by <c>Anger_Add</c>) is happy or angry (<c>0x004C7B20</c> arms
+    /// 0x14 and 0x15). Ours declined both.</summary>
+    [Theory]
+    [InlineData(20, false, 1)]
+    [InlineData(20, true, 0)]
+    [InlineData(21, true, 1)]
+    [InlineData(21, false, 0)]
+    public void ConditionsTwentyAndTwentyOneCountHappyAndAngryCreatures(byte type, bool angry, int flag)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = CreatureWorld(database);
+        CreatureDef goblin = database.CreatureById(GoblinId);
+        foreach (CreatureState c in world.Creatures.Where(c => c.CreatureTypeId == GoblinId))
+            c.Anger.Lair = angry ? CreatureAngerRules.AngryAt(goblin) + 1 : 0;
 
         TriggerRecord[] records =
         [
-            CreatureCondition(5, type: 20, creatureId: GoblinId, comparison: 5, threshold: 1),
+            CreatureCondition(5, type: type, creatureId: GoblinId, comparison: 5, threshold: 1),
             Action(1, 3, 0x0A, 1),
         ];
         var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
-        TriggerRunResult result =
-            new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+        TriggerRunResult result = new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
 
-        Assert.Equal(0, world.Triggers.Read(3));
-        Assert.Equal([new BlockedTrigger(213, 20, 5, TriggerContext.Player)], result.Blocked);
+        Assert.Equal(flag, world.Triggers.Read(3));
+        Assert.Empty(result.Blocked);
     }
 
     /// <summary>Condition type <b>52</b> counts creatures at or above a level, and the

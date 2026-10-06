@@ -29,26 +29,71 @@ public static class GraveyardRules
             state => !current.Contains((state.AnchorTileIndex, state.OwnerPlayerId)));
     }
 
+    /// <summary>A burial (<c>0x004DD470</c>, graveyard.md §2): the corpse's <c>DecomposeValue</c>, above
+    /// level 1 scaled by stat 19 and kept within 0 to 0xFFFE, is added first. Then, when the owner's
+    /// gate passes (<see cref="HasRoomForAnother"/>) and the tally has reached
+    /// <c>DecomposeValueNeededForVampire</c>, the tally is zeroed, the excess lost, and one creature is
+    /// raised (<c>0x004DD820</c>): the room's <c>CreatedCreatureId</c> at a random tile of the room,
+    /// one draw of its tile count along the chain (<c>0x004E4D90</c>). DK2 puts it on the room's last
+    /// Graveyard Crypt (object 75) when one is listed, after a draw; no shipped level places one.
+    /// Not modelled: effect <c>0x138</c>, state 198 and message 72 on the new creature.</summary>
     public static GraveyardBurialResult Bury(
-        WorldState world, GameDatabase database, RoomInstance graveyard,
-        int decomposeValue, int burialTileIndex)
+        SimulationContext context, RoomInstance graveyard, CreatureDef corpse, int corpseLevel)
     {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
         Reconcile(world, database);
-        GraveyardState state = world.GraveyardAt(
-            graveyard.TileIndices[0], graveyard.OwnerPlayerId);
-        state.Add(decomposeValue);
+        GraveyardState state = world.GraveyardAt(graveyard.TileIndices[0], graveyard.OwnerPlayerId);
+        int value = corpseLevel == 1
+            ? corpse.DecomposeValue
+            : Math.Clamp(corpse.DecomposeValue * CreatureLevelRules.Percent(database, CreatureStatId.DecomposeValue, corpseLevel) / 100, 0, 0xFFFE);
+        state.Add(value);
 
-        int needed = database[VariableTypeId.DecomposeValueNeededForVampire];
-        byte creatureTypeId = graveyard.Definition.CreatedCreatureId;
-        if (needed <= 0 || state.DecomposeValue < needed || creatureTypeId == 0)
+        if (!HasRoomForAnother(context, graveyard.OwnerPlayerId)
+            || (uint)state.DecomposeValue < (uint)database[VariableTypeId.DecomposeValueNeededForVampire])
             return new GraveyardBurialResult(state.DecomposeValue, -1, 0);
 
-        // UNKNOWN in DK2: ours spends one threshold and raises at most one creature
-        // per burial, at the tile which received the last corpse (Q318-Q320).
-        state.Spend(needed);
+        state.Zero();
+        byte creatureTypeId = graveyard.Definition.CreatedCreatureId;
+        if (creatureTypeId == 0) return new GraveyardBurialResult(state.DecomposeValue, -1, 0);
+        int[] chain = SlabChain.Order(world, graveyard);
+        int tile = chain[context.Rng.NextInt(chain.Length)];
         CreatureState creature = world.SpawnCreature(
-            database, creatureTypeId, graveyard.OwnerPlayerId,
-            new(burialTileIndex % world.Width, burialTileIndex / world.Width));
+            database, creatureTypeId, graveyard.OwnerPlayerId, new(tile % world.Width, tile / world.Width));
         return new GraveyardBurialResult(state.DecomposeValue, creature.Id, creatureTypeId);
     }
+
+    /// <summary>The capacity gate <c>0x004DDCA0</c>: the owner's living creatures that can be
+    /// resurrected must number fewer than the summed capacity of its Graveyards, each a Graveyard's
+    /// floor slots (<c>Room_ComputeTotalCapacity</c>, type 14). Failing, it posts 42 for the
+    /// Graveyard when the owner has one at all.</summary>
+    public static bool HasRoomForAnother(SimulationContext context, byte owner)
+    {
+        WorldState world = context.World;
+        int capacity = 0;
+        bool any = false;
+        foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
+        {
+            if (room.OwnerPlayerId != owner || room.Definition.TypeId != RoomTypeId.Graveyard) continue;
+            any = true;
+            capacity += AutoFurnitureRules.FloorSlotCount(world, room);
+        }
+
+        int resurrectable = 0;
+        foreach (CreatureState creature in world.Creatures)
+            if (creature.OwnerPlayerId == owner && creature.Health >= 1
+                && creature.Dk2StateId != CreatureStateMachine.NoState
+                && CreatureDeathRules.CanBeResurrected(context.Database.CreatureById(creature.CreatureTypeId)))
+                resurrectable++;
+
+        if (resurrectable < capacity) return true;
+        if (any) RoomNeedRules.Post(context, owner, PlayerMessageKind.RoomFull, RoomTypeId.Graveyard);
+        return false;
+    }
+
+    /// <summary>A sale frees the room and rebuilds what is left as new rooms with nothing copied for a
+    /// Graveyard (room-object.md), so any sale of one of its tiles loses the tally (Q321).</summary>
+    public static void Forget(WorldState world, RoomInstance graveyard) =>
+        world.RawGraveyards.RemoveAll(state =>
+            state.AnchorTileIndex == graveyard.TileIndices[0] && state.OwnerPlayerId == graveyard.OwnerPlayerId);
 }

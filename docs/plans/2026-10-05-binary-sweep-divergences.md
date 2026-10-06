@@ -36,19 +36,19 @@ current Level 1–3 baselines.
 | Q399 (**deferred: map our `Running` writes to the 22 callers first**) | Haste scales the speed cap every tick | Written once; the next `SetSpeedMode` restores definition speed | `StatusEffectRules.SpeedCap` |
 | Q398 (**built, ADR-0367**) | Shots updated oldest first | Each thing list newest first | `ShotSystem` (its summary, and `shots.md`'s "its tick after the creatures have moved", are stale) |
 | Q376 (**built, ADR-0368**) | Slot-35 presence from file flag bit 0 | Present when the type is non-zero, or flag bit 0 | `ReaperRules.cs:121` |
-| Q318–Q321 | Vampire on the last burial tile; subtract 1000 keeping the excess; no capacity gate; tally survives a partial sale | Last Graveyard Crypt; zero the tally; capacity gate `0x004DDCA0`; any sale rebuilds the room at 0 | `GraveyardRules` |
-| Q329 | No Vampire reincarnation (Q111) | Five guards; no Graveyard or no capacity makes the death permanent | `CreatureDeathRules` |
-| Q269 | Trigger condition 20 declined (ADR-0113) | Mood class `+0x28A` is `Anger_Add`'s band, which `CreatureAngerRules` already builds | `TriggerConditionEvaluator` |
+| Q318–Q321 (**built, ADR-0370**) | Vampire on the last burial tile; subtract 1000 keeping the excess; no capacity gate; tally survives a partial sale | Last Graveyard Crypt; zero the tally; capacity gate `0x004DDCA0`; any sale rebuilds the room at 0 | `GraveyardRules` |
+| Q329 (**built, ADR-0371**) | No Vampire reincarnation (Q111) | Five guards; no Graveyard or no capacity makes the death permanent | `CreatureDeathRules` |
+| Q269 (**built, ADR-0372**) | Trigger condition 20 declined (ADR-0113) | Mood class `+0x28A` is `Anger_Add`'s band, which `CreatureAngerRules` already builds | `TriggerConditionEvaluator` |
 
 ## Triggers and data
 
 | Q | Ours | DK2 | Where |
 |---|---|---|---|
-| Q229 | Flag 128 with the literal bit clear reads `IndirectFlagId`; indirect 128 reads `SpecialValue`; no MpdScore adder | Compares LevelScore with Value; indirect 128 reads bank byte `+0x3F70+0x80`; slot `+0x344` adds | `TriggerConditionEvaluator` |
-| Q278 | `HandSystem.Slap` never counts | `+0xEE6` credited to the slapped thing's owner (creature, trap, object) | `HandSystem`, `PlayerState.SlapCount` |
+| Q229 (**built, ADR-0374**) | Flag 128 with the literal bit clear reads `IndirectFlagId`; indirect 128 reads `SpecialValue`; no MpdScore adder | Compares LevelScore with Value; indirect 128 reads bank byte `+0x3F70+0x80`; slot `+0x344` adds | `TriggerConditionEvaluator` |
+| Q278 (**built, ADR-0373**) | `HandSystem.Slap` never counts | `+0xEE6` credited to the slapped thing's owner (creature, trap, object) | `HandSystem`, `PlayerState.SlapCount` |
 | Q285 | No object trigger roots, no event 18 on claiming a neutral object | Object `+0x144` roots, event filter `0x004A3F50` | trigger walkers, `kwd unreached` |
-| Q11 | JobPreference mood/mana read as `U16`/`ushort` | Signed 16-bit | `KwdCreatures`, `CreatureDef` |
-| Q14 | Throws on CREATURES record sizes other than 5449/5537 | Accepts any size, zero-fills to 5449 | `KwdCreatures` |
+| Q11 (**built, ADR-0375**) | JobPreference mood/mana read as `U16`/`ushort` | Signed 16-bit | `KwdCreatures`, `CreatureDef` |
+| Q14 (**built, ADR-0375**) | Throws on CREATURES record sizes other than 5449/5537 | Accepts any size, zero-fills to 5449 | `KwdCreatures` |
 | Q227 | Fields named `Unknown_*`; action 24's second field read as a dword | Roles now known; DK2 reads only its low byte | `KwdAdditionalRecords` |
 
 ## Stale code comments (verification audit, 2026-10-05)
@@ -57,7 +57,7 @@ current Level 1–3 baselines.
 |---|---|
 | `VictoryRules.cs:109` (**fixed**) | `BodyStandSquared`'s comment calls `0x004B2AE0` a position test; it is a turn step (Q400) |
 | `GateWalk.cs:40` (**fixed**) | The `0x1000` cap is pushed by `0x004D0320` (`0x004D0967`), not held in `0x004D0150` |
-| `TriggerExecutor.cs` (~737) | Types 20 and 21 are declined, but their mood-class writer is known (Q269): build them |
+| `TriggerExecutor.cs` (~737) (**fixed, ADR-0372**) | Types 20 and 21 are declined, but their mood-class writer is known (Q269): build them |
 | `CategoryHooks.cs:262` (**fixed**) | When the states 199/200 combat-experience hook is built, its gate is "not a worker, or good" (`0x0047A870`): the hero Dwarf earns `ExpPerSecond`, the Imp never |
 
 ## ImpTaskSystem (blind re-read, 2026-10-05)

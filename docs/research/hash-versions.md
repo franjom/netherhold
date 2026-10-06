@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**188** — `0xCAAC539B930BB381`. The binary sweep's third fixes: the Graveyard's level-scaled burial, capacity gate, zeroed tally, random Vampire tile and tally lost on a sale; Vampire reincarnation; trigger conditions 20 and 21; slaps counted for the slapped creature's owner; flag 128 as the level score. No new field. ADR-0370 to ADR-0375.
+
 **187** — `0xDCB551C8DB3F790C`. The binary sweep's second fixes: non-ownable ground to the neutral player, trigger action 22's sale and room build, no victory at a collapse, the forced creature target's spell, combat experience, shots newest first, the victory pause by clip, the Flanker's heading and the turn to the body; three effect-generator fields DK2 never reads leave the hash. No new field. ADR-0362 to ADR-0369.
 
 **186** — `0x540CF5C4A50095C3`. The binary sweep's first fixes: the carrier's store tile and walk point, a draw per new store pile, the sweep's destroy and Treasury gate, the claim search's fall-through, the mana clamp, the portal tally on death, carried bodies' clocks, the heart's start, and the trigger root order; new field `CreatureState.PortalEntranceTile`. ADR-0355 to ADR-0361.

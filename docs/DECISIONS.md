@@ -8432,3 +8432,103 @@ reads (`+0x08`, `+0x0C`, the six bytes at `+0x1E`) are no longer hashed.
 packet rig 20/20 (20/20), Level 2 4/20 (4/20; seeds 1, 3, 10, 17), Level 3 seed 01 won at 3564
 (3572; DK2 3683). Every scenario's expectations hold. Tests that celebrated over a collapsed
 Goblin now kill it outright, since only an outright death gives the victory.
+
+## ADR-0370 — The Graveyard's burial, gate and Vampire as DK2 has them
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0151
+
+**Context.** Q318–Q321 (`graveyard.md` §2). The burial `0x004DD470` adds the corpse's
+`DecomposeValue`, above level 1 scaled by stat 19 and kept within 0 to 0xFFFE, before any
+test. The gate `0x004DDCA0` passes while the owner's living `CanBeResurrected` creatures
+number fewer than the summed capacity of its Graveyards, and posts 42 for the Graveyard when
+it fails and one exists; `Room_ComputeTotalCapacity` (`0x004E3ED0`, type 14) makes that
+capacity the room's floor slots. When the gate passes and the tally has reached the
+threshold, the tally is zeroed (the excess lost) and `0x004DD820` raises one creature: on the
+room's last Graveyard Crypt (object 75) after a draw, else at a random tile drawn along the
+chain (`0x004E4D90`). No shipped level places a crypt. Any sale rebuilds the room with its
+tally at 0. Ours subtracted 1000, had no gate, raised on the last burial tile and kept the
+tally of a part-sold room. The shipped stat-19 row is 100% at every level, so only the 0xFFFE
+clamp changes a shipped burial.
+
+**Decision.** `GraveyardRules.Bury` takes the corpse and its level, `HasRoomForAnother` is
+the gate (`AutoFurnitureRules.FloorSlotCount`), `Forget` drops a tally when a Graveyard tile is
+sold (the sale command and trigger action 22; other tile-removal routes and a merge keeping the
+survivor's tally were not checked). Not modelled: effect `0x138`, state 198 (not
+built) and message 72 on the new creature; the crypt branch, which no level reaches.
+
+## ADR-0371 — A Vampire reincarnates at a Graveyard
+**Date:** 2026-10-06 · **Status:** accepted · Closes Q111's build
+
+**Context.** Q329 (`creature-death.md` §2.3). The health routine's death block calls
+`0x0048FFC0` for a `CanBeResurrected` creature. Its guards, in order: not on an interior
+Temple cell; the owner's Graveyard gate passes; `Player_RandomRoomOfType(14)` draws a
+Graveyard; a level above 1; the Monk's mark (`+0x3EA` bit 2) clear. It then moves the creature
+to that Graveyard's position words and gives it its current level's maximum health. The
+decrement `0x0048AFA0` indexes the old level for both maxima, so that health stays above the
+new level's maximum, and it zeroes the experience `+0x3FF`. Then the Combat Pit mark is cleared
+and the creature enters state 1.
+
+**Decision.** `CreatureDeathRules.TryReincarnate`, tried by `CreatureHealthSystem` where it
+books a run-out health, before the collapse or the death. Not built: the Monk's mark, which
+ours never sets, so a Monk's kill does not yet make a Vampire's death permanent; the room draw's
+skip of a Graveyard with `+0x9A` bit 0 (meaning unread). Differences kept: the position words
+are our STRONGLY INFERRED `CentreFieldX/Y` (Q515); DK2 tries this on every health write that
+kills, ours once a game second, so a Vampire can stand at 0 health for up to a second and the
+direct kills of `ManaRemovalSystem` and `PrisonSystem` do not reach it.
+
+## ADR-0372 — Trigger conditions 20 and 21 count moods
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0113
+
+**Context.** Q269. The player dispatcher `0x004C7B20` (arms 0x14 and 0x15) counts the
+player's creatures, of `CreatureId` when non-zero, that are not workers and whose mood band
+`+0x28A` (written by `Anger_Add`) is 0, happy, or 2, angry, and compares the count with Value.
+Ours declined both.
+
+**Decision.** `TriggerExecutor.MoodCount` on `CreatureAngerRules.MoodOf`.
+
+## ADR-0373 — A slap is counted for the slapped creature's owner, by the slap's arm
+**Date:** 2026-10-06 · **Status:** accepted
+
+**Context.** Q278. `Hand_SlapCreature` (`0x0048B8A0`) adds one to `[thing+0x2A]+0xEE6`
+(`NumberOfSlaps`) of the slapped thing's owner; condition type 71 reads it. Its arms: a Horny
+goes to state 242 uncounted; states 76, 101 and 193 return at once; 209 and 255 take damage and
+count without anger or bonus. Then the room the creature holds (`+0x3B9`), not the one under
+it, decides: one the slapper does not own returns; a Torture Chamber takes damage only; with
+no held room, states 67, 120, 132 and 197 return. Every return skips the damage, anger and bonus
+as well as the count. The rest count after a state move (67, 77 or 120), unless it is refused.
+Ours never counted and applied every slap in full. The trap and object writers have no
+counterpart here: ours slaps only creatures.
+
+**Decision.** `HandSystem.Slap` chooses the arm on `HeldPlace` and increments
+`PlayerState.SlapCount` of the creature's owner where DK2 does. Not built: the state moves (so a
+refused move is still counted), a Horny's state 242 (ours slaps it in full, uncounted).
+
+## ADR-0374 — Flag 128 is the level score in a condition
+**Date:** 2026-10-06 · **Status:** accepted
+
+**Context.** Q229 (`trigger-state.md` §4). Condition 1 on id 128 compares `LevelScore` with
+Value directly, whatever the literal bit (`0x00518270`). An indirect id of 128 reads the byte
+past the flag bank. Ours read `IndirectFlagId` with the bit clear, and an indirect 128 read the
+score.
+
+**Decision.** `TriggerConditionEvaluator.EvaluateFlag` compares the score with Value for id 128
+and declines an indirect 128, which no shipped level uses. Not built: the `MpdScore` adder
+`+0x344`.
+
+## ADR-0375 — Creature records of any size; signed job-table words
+**Date:** 2026-10-06 · **Status:** accepted
+
+**Context.** Q14: the chunk reader `0x0056A250` zero-fills a 5449-byte record and reads the
+file's record into it, so DK2 accepts any size (LIKELY: the rest of the routine is unread, and
+a record over 5449 bytes is read into a scratch buffer of unread size); ours threw on all but
+5449 and 5537. Q11: the
+job tables' mood and mana words are signed 16-bit (`0x00492320`); ours read them unsigned. No
+reader of either word is known.
+
+**Decision.** `KwdCreatures.Parse` copies up to 5449 bytes of each record into a zeroed buffer;
+`CreatureJobPreference` and `CreatureJobAlternative` carry `short`. `KwdCreaturesWriter` still
+writes only 5449- or 5537-byte templates. The loader divides both words, unsigned, by a local
+that is INFERRED to be variable 19 (not traced); not built, since nothing reads them.
+
+**Measured, ADR-0370 to ADR-0375 together** (hash 188): the Level 1 (20/20), Level 2 (4/20) and
+Level 3 (won at 3564) rigs are identical to batch two, tick for tick; none of the three levels
+reaches a Graveyard, a Vampire, conditions 20, 21 or 71, or flag 128.

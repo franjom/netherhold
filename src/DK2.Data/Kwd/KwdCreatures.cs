@@ -41,15 +41,20 @@ public static partial class KwdCreatures
         {
             if (chunk.Type != KwdRecordType.Creatures) continue;
 
+            // Any record size (Q14): the chunk reader 0x0056A250 zero-fills a 5449-byte record and
+            // reads the file's record into it, and nothing reads past 0x1548; the 5537-byte variant
+            // is one shipped case.
             int recordSize = chunk.ItemCount == 0 ? RecordSize : chunk.Content.Length / chunk.ItemCount;
-            if (recordSize != RecordSize && recordSize != RecordSizeEmbedded)
-                throw new InvalidDataException(
-                    $"CREATURES record size {recordSize} is neither {RecordSize} nor {RecordSizeEmbedded}.");
             if (chunk.Content.Length != recordSize * chunk.ItemCount)
                 throw new InvalidDataException("CREATURES content size does not divide into records.");
 
+            var staged = new byte[RecordSize];
             for (int i = 0; i < chunk.ItemCount; i++)
-                result.Add(ParseRecord(chunk.Content, i * recordSize));
+            {
+                Array.Clear(staged, 0, staged.Length);
+                Array.Copy(chunk.Content, i * recordSize, staged, 0, Math.Min(recordSize, RecordSize));
+                result.Add(ParseRecord(staged, 0));
+            }
         }
         return result;
     }
@@ -106,7 +111,7 @@ public static partial class KwdCreatures
                 int off = baseOff + i * 12;
                 var job = (JobType)U32(off);
                 if (job != JobType.None)
-                    list.Add(new CreatureJobPreference(job, U16(off + 4), U16(off + 6), U8(off + 8)));
+                    list.Add(new CreatureJobPreference(job, S16(off + 4), S16(off + 6), U8(off + 8)));
             }
             return list;
         }
@@ -129,7 +134,7 @@ public static partial class KwdCreatures
             int off = 0xE7C + i * 8;
             var job = (JobType)U32(off);
             if (job != JobType.None)
-                altJobs.Add(new CreatureJobAlternative(job, U16(off + 4), U16(off + 6)));
+                altJobs.Add(new CreatureJobAlternative(job, S16(off + 4), S16(off + 6)));
         }
 
         CreatureAnimationTiming AnimationTiming(int slot)

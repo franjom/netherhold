@@ -252,7 +252,7 @@ public static class RoomNeedRules
     }
 
     /// <summary>Posts, and reports a new record; a retained duplicate comes back unchanged and unreported.</summary>
-    private static PlayerMessage? Post(SimulationContext context, byte player, PlayerMessageKind kind, RoomTypeId room, int roomTag = 0)
+    internal static PlayerMessage? Post(SimulationContext context, byte player, PlayerMessageKind kind, RoomTypeId room, int roomTag = 0)
     {
         IReadOnlyList<PlayerMessage> entries = context.World.Messages.Entries;
         uint lastBefore = entries.Count == 0 ? 0 : entries[^1].Id;

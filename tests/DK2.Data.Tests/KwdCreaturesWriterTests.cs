@@ -70,7 +70,7 @@ public class KwdCreaturesWriterTests
                 T[] changed = list.ToArray();
                 changed[0] = (T)typeof(T).GetMethod("<Clone>$")!.Invoke(list[0], null)!;
                 var property = properties[i]; Type type = property.PropertyType;
-                object value = type == typeof(uint) ? 13u : type == typeof(ushort) ? (ushort)13
+                object value = type == typeof(uint) ? 13u : type == typeof(ushort) ? (ushort)13 : type == typeof(short) ? (short)-13
                     : type == typeof(byte) ? (byte)13 : type == typeof(Fp32) ? new Fp32(-12345)
                     : type.IsEnum ? Enum.ToObject(type, 13) : throw new InvalidOperationException(property.Name);
                 property.SetValue(changed[0], value);
@@ -191,6 +191,24 @@ public class KwdCreaturesWriterTests
         var creatures = KwdCreatures.Parse([chunk]); var images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(46, creatures.Count);
         for (int i = 0; i < creatures.Count; i++) Assert.Equal(images[i].ToBytes(), KwdCreatures.WriteRecord(creatures[i], images[i]));
+    }
+
+    /// <summary>Q14: DK2's chunk reader takes a CREATURES record of any size, zero-filled to 5449
+    /// (<c>0x0056A250</c>). Ours threw on anything but 5449 or 5537.</summary>
+    [Theory]
+    [InlineData(5000)] [InlineData(5600)]
+    public void ARecordOfAnySizeIsRead(int size) => Assert.Equal("a", Read(Source(size)).Name);
+
+    /// <summary>Q11: a job table's mood and mana words are signed (<c>0x00492320</c>).</summary>
+    [Fact]
+    public void AJobPreferencesMoodAndManaAreSigned()
+    {
+        byte[] source = Source(5449);
+        BinaryPrimitives.WriteUInt32LittleEndian(source.AsSpan(0xE14), 13);
+        BinaryPrimitives.WriteInt16LittleEndian(source.AsSpan(0xE18), -2);
+        BinaryPrimitives.WriteInt16LittleEndian(source.AsSpan(0xE1A), -3);
+        CreatureJobPreference first = Read(source).HappyJobs[0];
+        Assert.Equal((-2, -3), ((int)first.MoodChange, (int)first.ManaChange));
     }
 
     private static byte[] Source(int size)

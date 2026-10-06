@@ -148,8 +148,8 @@ public static partial class KwdCreatures
             WriteFiltered(name, values, offset, count, 12, off => ReadU32(off) != 0, (off, value) =>
             {
                 if (value.Job == JobType.None) throw new InvalidDataException("CREATURES active preference job cannot be None.");
-                U32(off, (uint)value.Job); U16(off + 4, value.MoodChange);
-                U16(off + 6, value.ManaChange); U8(off + 8, value.ChancePercent);
+                U32(off, (uint)value.Job); S16(off + 4, value.MoodChange);
+                S16(off + 6, value.ManaChange); U8(off + 8, value.ChancePercent);
             });
         Preferences("HappyJobs", row.HappyJobs, 0xE14, 3);
         Preferences("UnhappyJobs", row.UnhappyJobs, 0xE38, 2);
@@ -162,7 +162,7 @@ public static partial class KwdCreatures
         WriteFiltered("AlternativeJobs", row.AlternativeJobs, 0xE7C, 3, 8, off => ReadU32(off) != 0, (off, value) =>
         {
             if (value.Job == JobType.None) throw new InvalidDataException("CREATURES active alternative job cannot be None.");
-            U32(off, (uint)value.Job); U16(off + 4, value.MoodChange); U16(off + 6, value.ManaChange);
+            U32(off, (uint)value.Job); S16(off + 4, value.MoodChange); S16(off + 6, value.ManaChange);
         });
         return image;
     }

@@ -2484,9 +2484,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 return;
             }
 
-            GraveyardBurialResult result = GraveyardRules.Bury(
-                world, context.Database, graveyard,
-                definition.DecomposeValue, creature.TargetTileIndex);
+            GraveyardBurialResult result = GraveyardRules.Bury(context, graveyard, definition, body.Level);
             string raised = result.SpawnedCreatureId < 0
                 ? "raised=none"
                 : $"raised={context.Database.CreatureById(result.SpawnedCreatureTypeId).Name} " +

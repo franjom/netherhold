@@ -324,6 +324,54 @@ public class HandTests
         Assert.Equal(5 * slap, goblin.Anger.Treatment);
     }
 
+    /// <summary>Q278: a slap adds one to the slapped creature's owner's <c>NumberOfSlaps</c>
+    /// (<c>+0xEE6</c>, <c>0x0048B8A0</c>), which condition type 71 reads. Ours never counted.</summary>
+    [Fact]
+    public void ASlapIsCountedForTheSlappedCreaturesOwner()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, goblin.Id)));
+
+        Assert.Equal(2, world.Player(Keeper).SlapCount);
+    }
+
+    /// <summary>The arms of <c>Hand_SlapCreature</c> (<c>0x0048B8A0</c>, ADR-0373) read the room the
+    /// creature holds (<c>+0x3B9</c>), not the one under it: a rival's held room and states 67, 120,
+    /// 132 and 197 with no room return before any effect; a held Torture Chamber takes damage only.
+    /// The short arm's states 209 and 255 name no activity in ours, so no creature reaches it.</summary>
+    [Theory]
+    [InlineData("rival room held", 0, false, false)]
+    [InlineData("torture chamber held", 0, true, false)]
+    [InlineData("state 120, no room", 0, false, false)]
+    [InlineData("standing in a rival room, holding none", 1, true, true)]
+    public void ASlapsArmIsChosenByTheHeldRoomAndTheState(string arm, int counted, bool hurt, bool angered)
+    {
+        const byte Rival = PlayerIds.FirstKeeper + 1;
+        GameDatabase db = Db;
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        RoomTypeId type = arm.StartsWith("torture") ? RoomTypeId.TortureChamber : RoomTypeId.Lair;
+        byte roomOwner = arm.StartsWith("torture") ? Keeper : Rival;
+        for (int y = 5; y < 8; y++)
+            for (int x = 5; x < 8; x++)
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), roomOwner);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 6));
+        if (arm.EndsWith("held")) goblin.HeldPlace = new RoomPlace((6 * world.Width) + 6, 0);
+        if (arm.StartsWith("state 120")) goblin.Dk2StateId = 120;
+        int health = goblin.Health, anger = goblin.Anger.Max;
+
+        new GameSimulation(db, world, 42, [new HandSystem()])
+            .Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, goblin.Id)));
+
+        Assert.Equal(counted, world.Player(Keeper).SlapCount);
+        Assert.Equal(hurt, goblin.Health < health);
+        Assert.Equal(angered, goblin.Anger.Max > anger);
+    }
+
     [Fact]
     public void SixSlapsMakeAGoblinSulkAndElevenMakeItLeave()
     {

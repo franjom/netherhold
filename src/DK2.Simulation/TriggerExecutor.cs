@@ -746,6 +746,8 @@ public sealed class TriggerExecutor
         TriggerRun run) => type switch
     {
         19 => CreatureCount(parameters, world, database, playerId),
+        20 => MoodCount(parameters, world, database, playerId, CreatureMood.Content),
+        21 => MoodCount(parameters, world, database, playerId, CreatureMood.Angry),
         24 => Rooms(parameters, world, database, playerId, run).Sum(room => room.TileCount),
         25 when Byte(parameters, "Comparison") != 0 =>
             Rooms(parameters, world, database, playerId, run).Count(),
@@ -937,6 +939,27 @@ public sealed class TriggerExecutor
             count++;
         }
 
+        return count;
+    }
+
+    /// <summary>Condition types 20 and 21 (<c>0x004C7B20</c>, arms 0x14 and 0x15): the player's
+    /// creatures, of <c>CreatureId</c> when it is non-zero, that are not workers and whose mood band
+    /// (<c>+0x28A</c>, written by <c>Anger_Add</c>) is 0, happy, or 2, angry (Q269, ADR-0372). The
+    /// worker test holds even with a type named, unlike type 19.</summary>
+    private static int MoodCount(
+        IReadOnlyDictionary<string, long> parameters, WorldState world, GameDatabase database,
+        byte playerId, CreatureMood mood)
+    {
+        byte wanted = Byte(parameters, "CreatureId");
+        int count = 0;
+        foreach (CreatureState creature in world.Creatures)
+        {
+            if (creature.OwnerPlayerId != playerId || creature.Dk2StateId == CreatureStateMachine.NoState) continue;
+            if (wanted != 0 && creature.CreatureTypeId != wanted) continue;
+            CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+            if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
+            if (CreatureAngerRules.MoodOf(definition, creature) == mood) count++;
+        }
         return count;
     }
 
@@ -1273,6 +1296,8 @@ public sealed class TriggerExecutor
 
         if (_database.TerrainById(tile.TerrainId).IsRoom)
         {
+            if (RoomIndex.RoomAt(_world, _database, index) is { Definition.TypeId: RoomTypeId.Graveyard } graveyard)
+                GraveyardRules.Forget(_world, graveyard);
             byte soldTerrain = tile.TerrainId, soldOwner = tile.OwnerPlayerId;
             int displaced = RoomRules.Unmake(_database, ref tile);
             SlabChain.Changed(_world, _database, index, soldTerrain, soldOwner);

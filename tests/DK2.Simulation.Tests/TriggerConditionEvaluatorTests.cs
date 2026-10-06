@@ -123,6 +123,26 @@ public class TriggerConditionEvaluatorTests
             TriggerConditionEvaluator.Evaluate(record, state, currentTick: 0));
     }
 
+    /// <summary>Q229: on id 128, the level score, the condition compares with Value whatever the
+    /// literal bit says (<c>0x00518270</c>). Ours read <c>IndirectFlagId</c> with the bit clear.</summary>
+    [Fact]
+    public void FlagId128ComparesTheLevelScoreWithValueEvenWithTheLiteralBitClear()
+    {
+        var state = new TriggerState { SpecialValue = 5 };
+        TriggerRecord record = Condition(1, new Dictionary<string, long>
+        {
+            ["Comparison"] = 3,
+            ["FlagId"] = TriggerState.SpecialFlagId,
+            ["Flag"] = 0,
+            ["IndirectFlagId"] = 0,
+            ["Value"] = 5,
+        });
+
+        Assert.Equal(
+            TriggerConditionResult.Satisfied,
+            TriggerConditionEvaluator.Evaluate(record, state, currentTick: 0));
+    }
+
     [Fact]
     public void AnUnstartedTimerConditionIsFalseEvenForNotEqual()
     {

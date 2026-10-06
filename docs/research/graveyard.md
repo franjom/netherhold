@@ -102,6 +102,6 @@ The tally lives in the room's dword `+0x49`, which the room dumper names
     dropped.
 
 All of the above is CONFIRMED (instruction level) except where a line says
-otherwise. Ours (`GraveyardRules`, ADR-0151) subtracts 1000 instead of zeroing,
-raises the Vampire on the last burial tile instead of the crypt, has no
-capacity gate, and keeps the tally when part of the room is sold.
+otherwise. Built as ADR-0370 (`GraveyardRules`): the gate's capacity is the room's floor slots
+(`Room_ComputeTotalCapacity` `0x004E3ED0`, type 14), the Vampire stands on a random tile since
+no level places a crypt, and effect 0x138, state 198 and message 72 are not modelled.

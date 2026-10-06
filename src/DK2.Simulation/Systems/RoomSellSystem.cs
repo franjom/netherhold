@@ -76,6 +76,11 @@ public sealed class RoomSellSystem : ISimulationSystem
             // destroyed-type field, so it is counted and reported.
             if (BridgeRules.IsBridge(room)) bridges++;
 
+            // A Graveyard sold even in part is rebuilt with its tally at 0 (Q321).
+            if (room.TypeId == RoomTypeId.Graveyard
+                && RoomIndex.RoomAt(world, context.Database, (pos.Y * world.Width) + pos.X) is RoomInstance graveyard)
+                GraveyardRules.Forget(world, graveyard);
+
             // Unmake first, then bank. The other order would let a refund land on
             // the tile being sold and spill straight back out again.
             byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;

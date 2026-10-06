@@ -158,8 +158,8 @@ In a Graveyard, not its own bed: `graveyard.md` §1 (Q113, Q329).
 so the owner's rule is data-driven rather than a name check, and the vampire having
 no dead body stops being an oddity: there is no corpse because it is not finished.
 
-**`FUN_0048FFC0` is the reincarnation.** It comes back at the level-scaled
-maximum health, one level down. The owner's sentence names two of its guards,
+**`FUN_0048FFC0` is the reincarnation.** It comes back one level down with the
+maximum health of the level it died at. The owner's sentence names two of its guards,
 and a whole-routine read on 2026-10-04 found three more. The guards, in order:
 
 1. The creature is **not on an interior Temple cell**: `0x00453A20(13)` tests
@@ -173,8 +173,10 @@ and a whole-routine read on 2026-10-04 found three more. The guards, in order:
 4. The level byte `+0x403` is above 1.
 5. The Monk bit (`+0x3EA` bit 2) is clear.
 
-Then it moves the creature to that Graveyard's `CentrePos` (`graveyard.md` §1), sets health,
-levels down and sets state 1. It returns 0 on every path (`0x0049010B`), so the
+Then it moves the creature to that Graveyard's `CentrePos` (`graveyard.md` §1), sets health
+to its current level's maximum, levels down (`0x0048AFA0`, whose rescale indexes the old level
+for both maxima, so health stays above the new maximum, and which zeroes the experience
+`+0x3FF`), clears the Combat Pit mark and sets state 1. It returns 0 on every path (`0x0049010B`), so the
 caller's own health copy after `0x004B31B7` never runs. A failed guard simply
 leaves the creature at health 0 or below. That the death then goes ahead as
 for any creature is STRONGLY INFERRED; the path after it was not re-read. How
@@ -182,10 +184,8 @@ the Monk's blow reaches the routine is in `combat.md` §6.3.
 
 **DK2 never records a killer**, which is how the monk half works at all. This
 document used to say that exit *"needs the killer's identity"* — right about the
-problem, wrong about the shape of the answer. **Still not implemented here** (Q111), and
-since ADR-0151 the destination is no longer the reason: a Graveyard tallies and
-raises (Q165); since ADR-0164 combat kills. What is left is the reincarnation
-itself (`CreatureDeathRules`).
+problem, wrong about the shape of the answer. **Built** as ADR-0371
+(`CreatureDeathRules.TryReincarnate`), without the Monk's mark, which ours never sets.
 
 **OpenKeeper does not implement or even read `CanBeResurrected`.**
 
@@ -207,7 +207,8 @@ fourth case the wiki does not mention: no return from an interior Temple cell.
 **On health the wiki is not followed.** Its *lead* says a resurrected vampire
 returns at full health, but the lead is game-agnostic prose covering all four
 titles and the DK2 section says nothing about health. §2.3 settles it from the
-binary anyway: `FUN_0048FFC0` writes the level-scaled maximum.
+binary anyway: `FUN_0048FFC0` writes the maximum of the level the vampire died at, which is
+above its new level's maximum.
 
 **Two numbers the wiki gave that the shipped data confirms exactly**, both pinned
 by tests:

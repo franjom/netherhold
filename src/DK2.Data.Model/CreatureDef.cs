@@ -16,10 +16,11 @@ public sealed record CreatureSpellSlot(byte CreatureSpellId, byte LevelAvailable
 public sealed record CreatureResistance(AttackType AttackType, byte Value);
 
 /// <summary>Weighted job choice used by the mood-driven job tables.</summary>
-public sealed record CreatureJobPreference(JobType Job, ushort MoodChange, ushort ManaChange, byte ChancePercent);
+/// <remarks>Mood and mana are signed 16-bit (<c>0x00492320</c>, Q11); no reader of either is known.</remarks>
+public sealed record CreatureJobPreference(JobType Job, short MoodChange, short ManaChange, byte ChancePercent);
 
 /// <summary>Secondary job option with mood/mana effects.</summary>
-public sealed record CreatureJobAlternative(JobType Job, ushort MoodChange, ushort ManaChange);
+public sealed record CreatureJobAlternative(JobType Job, short MoodChange, short ManaChange);
 
 /// <summary>
 /// Gameplay-relevant creature definition parsed from CREATURES(170) records.

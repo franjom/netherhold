@@ -24,7 +24,7 @@ public sealed class GraveyardState
 
     internal void Add(int value) => DecomposeValue += value;
 
-    internal void Spend(int value) => DecomposeValue -= value;
+    internal void Zero() => DecomposeValue = 0;
 
     internal void Restore(int decomposeValue)
     {

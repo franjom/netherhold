@@ -522,16 +522,31 @@ public sealed class HandSystem : ISimulationSystem
         }
 
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        SlapOutcome outcome = OutcomeOf(world, context.Database, definition, creature, command.PlayerId);
+        if (outcome == SlapOutcome.Nothing)
+        {
+            context.Emit(SystemName, "slap_ignored",
+                $"player={command.PlayerId} creature={creature.Id}");
+            return;
+        }
 
-        creature.LastSlapTick = context.Tick.Value;
-
-        // Rewritten, not added to: ten slaps are worth one, which the owner
-        // established by trying (docs/research/tile-work.md).
-        creature.WorkFasterTicks = EfficiencyRules.SlapBonusTicks;
-
-        int hurt = CreatureHealthRules.Apply(
-            context.Database, definition, creature, -definition.SlapDamage);
-        int anger = CreatureAngerRules.Slap(world, definition, creature);
+        int hurt, anger = 0;
+        if (outcome == SlapOutcome.DamageOnly)
+            hurt = CreatureHealthRules.Apply(context.Database, definition, creature, -definition.SlapDamage);
+        else
+        {
+            creature.LastSlapTick = context.Tick.Value;
+            if (outcome is SlapOutcome.Full or SlapOutcome.Uncounted)
+            {
+                // Rewritten, not added to: ten slaps are worth one, which the owner
+                // established by trying (docs/research/tile-work.md).
+                creature.WorkFasterTicks = EfficiencyRules.SlapBonusTicks;
+                anger = CreatureAngerRules.Slap(world, definition, creature);
+            }
+            hurt = CreatureHealthRules.Apply(context.Database, definition, creature, -definition.SlapDamage);
+            if (outcome != SlapOutcome.Uncounted && world.HasPlayer(creature.OwnerPlayerId))
+                world.Player(creature.OwnerPlayerId).SlapCount++;
+        }
 
         context.Emit(SystemName, "slapped",
             $"player={command.PlayerId} creature={creature.Id} " +
@@ -540,6 +555,46 @@ public sealed class HandSystem : ISimulationSystem
 
         // A slap can be the last one. Collapsing is CreatureHealthSystem's to
         // notice, on this same tick, and nothing here short-circuits it.
+    }
+
+    /// <summary>What <c>Hand_SlapCreature</c> (<c>0x0048B8A0</c>) does with a slap.</summary>
+    private enum SlapOutcome : byte
+    {
+        /// <summary>Returns before the slap's tick, damage, anger, bonus and count.</summary>
+        Nothing,
+        /// <summary>The Torture Chamber arm: damage, then return.</summary>
+        DamageOnly,
+        /// <summary>States 209 and 255: the slap's tick, damage, events and count, no anger or bonus.</summary>
+        Short,
+        /// <summary>The main path, counted after the state move.</summary>
+        Full,
+        /// <summary>A Horny: DK2 puts it in state 242 and returns, which ours does not build, so
+        /// ours slaps it in full and does not count it.</summary>
+        Uncounted,
+    }
+
+    /// <summary>The arms of <c>Hand_SlapCreature</c> (<c>0x0048B8A0</c>, Q278, ADR-0373). States 76,
+    /// 101 and 193 return at once; 209 and 255 take the short path. Then the room the creature
+    /// holds (<c>+0x3B9</c>, <see cref="CreatureState.HeldPlace"/>), not the one under it, decides:
+    /// one the slapper does not own returns; a Torture Chamber (type 12) takes damage only. With no
+    /// room, states 67, 120, 132 and 197 return. Only the main path and the short path add to the
+    /// owner's <c>NumberOfSlaps</c> (<c>+0xEE6</c>), which condition type 71 reads. A Horny is
+    /// tested before all of it (<see cref="SlapOutcome.Uncounted"/>). Ours makes
+    /// no state move (67, 77 or 120), so a slap DK2 counts only when that move is accepted is
+    /// always counted here.</summary>
+    private static SlapOutcome OutcomeOf(WorldState world, GameDatabase database, CreatureDef definition, CreatureState creature, byte slapper)
+    {
+        if (definition.Flags.HasFlag(CreatureFlags.IsHorny)) return SlapOutcome.Uncounted;
+        if (creature.Dk2StateId is 76 or 101 or 193) return SlapOutcome.Nothing;
+        if (creature.Dk2StateId is 209 or 255) return SlapOutcome.Short;
+        RoomInstance? room = creature.HeldPlace.IsHeld
+            ? RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex)
+            : null;
+        if (room is null)
+            return creature.Dk2StateId is 67 or 120 or 132 or 197 ? SlapOutcome.Nothing : SlapOutcome.Full;
+        if (room.OwnerPlayerId != slapper) return SlapOutcome.Nothing;
+        if (room.Definition.TypeId == RoomTypeId.TortureChamber) return SlapOutcome.DamageOnly;
+        return SlapOutcome.Full;
     }
 
     // ------------------------------------------------------------------ clocks

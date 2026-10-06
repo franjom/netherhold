@@ -102,9 +102,51 @@ public static class CreatureDeathRules
     /// and sleeps to recover at the cost of one level; killed at level 1, or by a monk, it is
     /// permanently dead. The data agrees — the Graveyard's <c>CreatedCreatureId</c> is 8, the
     /// Vampire, and its object ids 31-34 are not the Vampire's <c>LairObjectId</c> of 26, so
-    /// reincarnation is a Graveyard tile and not <see cref="Rescue"/>. Not implemented (Q111): no simulation reader, and the monk exception needs the killer's identity, which needs combat.</summary>
+    /// reincarnation is a Graveyard tile and not <see cref="Rescue"/> (<see cref="TryReincarnate"/>).</summary>
     public static bool CanBeResurrected(CreatureDef creature) =>
         creature.Flags.HasFlag(CreatureFlags.CanBeResurrected);
+
+    /// <summary>The reincarnation <c>0x0048FFC0</c> (creature-death.md §2.3, Q329), tried for a
+    /// <see cref="CanBeResurrected"/> creature whose health has run out. Its guards, in order: not on
+    /// an interior Temple cell; the owner's Graveyard gate passes
+    /// (<see cref="GraveyardRules.HasRoomForAnother"/>); a Graveyard drawn at random among the
+    /// owner's (<c>0x004C6460</c>, one draw when there is any); a level above 1. Then the creature
+    /// stands at that Graveyard's centre field, is given its current level's full health, goes one
+    /// level down (<c>Creature_LevelDown</c> <c>0x0048AFA0</c>, whose rescale indexes the old level
+    /// both times, so the health stays above the new maximum, and which zeroes the experience), loses
+    /// its Combat Pit mark, and enters state 1. False leaves it to die.
+    /// <para>Not built: the Monk's mark (<c>+0x3EA</c> bit 2), which ours never sets; the draw's skip
+    /// of a room with <c>+0x9A</c> bit 0 (unread). The centre field is STRONGLY INFERRED (Q515), and
+    /// ours tries this once a second where DK2 tries it on every health write that kills.</para></summary>
+    public static bool TryReincarnate(SimulationContext context, CreatureDef definition, CreatureState creature)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        TilePos at = creature.Tile;
+        if (world.Contains(at)
+            && RoomIndex.RoomAt(world, database, (at.Y * world.Width) + at.X) is { Definition.TypeId: RoomTypeId.Temple } temple
+            && AutoFurnitureRules.IsFloorSlot(world, temple, (at.Y * world.Width) + at.X))
+            return false;
+        if (!GraveyardRules.HasRoomForAnother(context, creature.OwnerPlayerId)) return false;
+
+        var graveyards = new List<RoomInstance>();
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+            if (room.OwnerPlayerId == creature.OwnerPlayerId && room.Definition.TypeId == RoomTypeId.Graveyard)
+                graveyards.Add(room);
+        if (graveyards.Count == 0) return false;
+        RoomInstance graveyard = graveyards[context.Rng.NextInt(graveyards.Count)];
+        if (creature.Level <= 1) return false;
+
+        creature.StopMoving();
+        creature.PosX = CreatureState.CentreOf(graveyard.CentreFieldX);
+        creature.PosY = CreatureState.CentreOf(graveyard.CentreFieldY);
+        creature.Health = CreatureHealthRules.MaxHealth(database, definition, creature);
+        creature.Level--;
+        creature.ExperiencePoints = 0;
+        creature.CombatPitFighter = false;
+        CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
+        return true;
+    }
 
     /// <summary>Whether this creature is in the collapsed, rescuable window.</summary>
     public static bool IsDying(CreatureState creature) =>

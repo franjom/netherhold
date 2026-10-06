@@ -122,6 +122,15 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             // Four gates, not one: no body, possessed, standing in a Prison or a
             // Torture Chamber, or DieInstantly out of doors (Q303). Everything else
             // gets its sixty seconds.
+            // A Vampire's run-out health first tries the reincarnation (0x0048FFC0, Q329).
+            if (CreatureDeathRules.CanBeResurrected(creature) && CreatureDeathRules.TryReincarnate(context, creature, state))
+            {
+                context.Emit(SystemName, "creature_reincarnated",
+                    $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} " +
+                    $"level={state.Level} at=({state.Tile.X},{state.Tile.Y})");
+                continue;
+            }
+
             if (CreatureDeathRules.HasDyingState(world, database, creature, state))
                 Collapse(context, creature, state);
             else

@@ -112,9 +112,7 @@ id 128 (`0x00518270`) compares slot `+0x340` (`0x00509650`, `LevelScore`) with V
 **directly**, ignoring the literal bit. Slot `+0x344` (`0x00511650`) adds, floored at
 0; the MpdScore readers call it (`player-object.md`, score block). The HUD `0x00427BA0`
 shows widget `0x2E` while `+0x348` is non-zero (shows the score: STRONGLY INFERRED).
-**CONFIRMED** otherwise. `TriggerState.Write` mirrors action 7. Ours differs: id 128
-with the literal bit clear reads `IndirectFlagId`; an `IndirectFlagId` of 128 reads
-`SpecialValue`, where DK2 reads byte `+0x3F70 + 0x80`; no `+0x344` adder.
+**CONFIRMED** otherwise. `TriggerState.Write` mirrors action 7. Built as ADR-0374: the condition compares the score with Value, an indirect 128 is declined; the `+0x344` adder is not built.
 
 No shipped level writes a flag id **above** 128; in the original such an id would
 index past the flag bank and into the timers, and this reimplementation refuses
