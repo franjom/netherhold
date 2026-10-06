@@ -8746,4 +8746,6 @@ not inside the callback, and without the per-tick loop's held, imprisoned, down 
 2558 (DK2 661, 1371, 2082, 2540; ours was 305, 670, 1357, 2077). Level 3 is won at 3612 (DK2
 3683). Level 1 falls to 19/20 (seed 6 lost; seeds 8, 11 and 17 win near 1930) and Level 2 to 2/20
 (seeds 5 and 17): the early levels had been covering residuals elsewhere. Haste alone, on the
-old rate, gave Level 1 20/20, Level 2 2/20 and no Level 3 win by the capture's end.
+old rate, gave Level 1 20/20, Level 2 2/20 and no Level 3 win by the capture's end. After the
+merge with ADR-0384, Level 17's Harkan lays his Prison from 1,643 (1,291 before; DK2 855, Q555),
+so `level17_harkan_unassisted` runs 1,800 ticks.
