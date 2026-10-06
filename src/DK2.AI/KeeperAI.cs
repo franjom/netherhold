@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
 
@@ -619,26 +620,39 @@ public sealed class KeeperAI
             return;
         }
 
-        // Once the target is joined to the dungeon (through tags), the path is done.
-        if (!walkOwed && view.ReachableFromHeart(throughMyTags: true).Contains(view.IndexOf(State.DigRoomAt)))
+        TilePos cursor = State.DigRoomAtCurrent;
+        if (!walkOwed)
         {
-            EndPath();
-            return;
+            // Rock on the cursor is tagged and then waited on: the cursor does not move until the
+            // tile is dug, and every pass meanwhile spends an allowance (0x004FDE91).
+            if (view.Terrain(cursor).IsTaggable)
+            {
+                // DK2 skips the tag when 0x00508290 finds a task of kind 1 or 2 at the tile; ours
+                // assumes a tile it tagged is one.
+                if (!view.IsTaggedByMe(cursor))
+                {
+                    commands.Add(new TagTilesCommand(PlayerId, [cursor], true));
+                    State.UntagGoldCounter = UntagGoldAfterTicks;
+                }
+                budget = 0;
+                return;
+            }
+            // Open ground: the path is done once the target routes to the cursor (0x00452970).
+            if (TargetRoutesToCursor(view))
+            {
+                State.DigRoomAtCurrent = State.DigRoomAt;
+                EndPath();
+                return;
+            }
         }
 
         WalkStep step = LineWalker.Step(view, State);
         switch (step.Outcome)
         {
-            case WalkOutcome.Dig:
-                if (view.Terrain(step.Tile).IsTaggable && !view.IsTaggedByMe(step.Tile))
-                {
-                    commands.Add(new TagTilesCommand(PlayerId, [step.Tile], true));
-                    State.UntagGoldCounter = UntagGoldAfterTicks;
-                }
-                break;
             case WalkOutcome.Arrived:
                 EndPath();
                 break;
+            case WalkOutcome.Dig:    // the cursor now stands on the rock; the next pass tags it
             case WalkOutcome.Moved:
             case WalkOutcome.Hazard: // the cursor now stands on it; the next pass bridges it
                 break;
@@ -651,6 +665,18 @@ public sealed class KeeperAI
                 break;
         }
     }
+
+    /// <summary>Task 7's route test, <c>0x00452970</c> → <c>0x004D1700</c>: from the target's tile
+    /// centre to the cursor's, for this keeper, with option 1 (its own locked doors pass) and no
+    /// water, lava or portal hole. DK2 leaves the water global from the previous query; ours
+    /// refuses water. Deviates: a target on a solid tile never routes. Our search never judges
+    /// the triangle a route starts in, so from gold or rock it leaves through any side, and
+    /// Level 17's seam (19,2) routed past walls to the Portal; DK2's Harkan digs to it, so its
+    /// query probably fails there (inferred from the outcome, Q561).</summary>
+    private bool TargetRoutesToCursor(KeeperView view) =>
+        !view.IsSolid(State.DigRoomAt) && view.CanRoute(CreatureState.CentreOf(State.DigRoomAt.X), CreatureState.CentreOf(State.DigRoomAt.Y),
+            CreatureState.CentreOf(State.DigRoomAtCurrent.X), CreatureState.CentreOf(State.DigRoomAtCurrent.Y),
+            new MoverProfile(CanWalkOnWater: false, CanWalkOnLava: false, Owner: PlayerId.Value, PassOwnLockedDoors: true));
 
     /// <summary>Task 7's exit: <c>Task</c> takes <c>NextTask</c>, which is left at 4 (0x004FDC50).</summary>
     private void EndPath()

@@ -8668,6 +8668,34 @@ packet rig 20/20 (20/20; seeds 4, 7, 10, 11, 13 and 19 move by 8 to 24 ticks), L
 (4/20; seeds 1, 3, 10, 13, 14 against 1, 3, 10, 17), Level 3 seed 01 won at 3592 (3564; DK2 3683).
 Every scenario's expectations hold.
 
+## ADR-0384 — Task 7 waits on each tagged tile and ends on DK2's route test
+**Date:** 2026-10-06 · **Status:** accepted · Research: `computer-keeper-tasks.md` §5,
+`computer-keeper-observations.md` (*Level 11A*); Q557, Q561
+
+**Context.** On Level 11A ours started Drako's tunnel to Belial at tick 68; DK2's digs its
+first tile at 443. Task 7 (`0x004FDC50`) works on the cursor's own tile: rock is tagged and
+then waited on, without stepping, until it is dug; only open ground asks `0x00452970` whether
+the target routes to the cursor. Ours tagged as the walker stepped, walked on past the tag,
+and ended once a flood from the heart through its own tags reached the target. A tunnel
+therefore ended as soon as its last rock was tagged.
+
+**Decision.** `KeeperAI.DigPath` follows DK2's order: rock on the cursor is tagged if it is
+not already, and the pass ends; open ground ends the task when the target routes to the
+cursor, with option 1 and no water, lava or portal hole; otherwise the walker steps, and the
+tile it steps onto is handled next pass. Deviates: a target on a solid tile never routes. Our
+search never judges the triangle a route starts in, so Level 17's gold target (19,2) routed
+past walls to the Portal and Harkan stopped digging; DK2's Harkan digs to it, so its query
+probably fails there (inferred from the outcome, Q561). Water
+stands in for DK2's stale water flag; the 51-free-entry pool test is not modelled. No
+simulation state changes: no HashVersion bump.
+
+**Consequences.** Level 11A: Belial's first tunnel tile is dug at 281 (DK2 443), its bridges
+at 297 and 299 (DK2 457, 461), the call at 308 (700), Morgana falls at 730 (1,378); the bridges
+at (57,38) and (57,39) move from 164 to 871. The scenario's ticks move (tag 12, spans 89 and
+90, call 279) and it runs 320 ticks. Level 17: Harkan digs to his seam one tile at a time and
+mines from 85, then grows his Training Room (359-685) before his Prison (1,291); DK2 builds
+the Prison at 855 first (Q555). The scenario runs 1,400 ticks.
+
 ## ADR-0385 — An imp task walk casts Imp Haste as it sets off
 **Date:** 2026-10-06 · **Status:** accepted · Research: `travel-state-call-sites.md` §3; Q401, Q418
 

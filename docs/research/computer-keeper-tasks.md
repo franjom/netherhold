@@ -172,10 +172,16 @@ retries the same tile. The dig pool must have **at least 51 free entries**:
 
 The route request (`0x004FDF3B..0x004FDF8D`) passes the target and cursor tile
 centres, player tag, then options `1,0,0,0` through `0x00452970` to
-`0x004D1700`. It uses the mesh router and current navigation bytes; the current
-AI's heart flood-fill through dig tags is not equivalent. The wrapper sets
+`0x004D1700`. It uses the mesh router and current navigation bytes. The wrapper sets
 query globals `0x006EC9D0/D4/D8/DC/E0`, but does not initialize `E4`; that flag
-retains a prior query's value. A decision to isolate query context needs an ADR.
+retains a prior query's value.
+
+Built 2026-10-06 (ADR-0384, Q557): `KeeperAI.DigPath` waits on a tagged cursor and ends
+only on this route test. Until then ours ended the task when a flood from the heart through
+its own dig tags reached the target, so a tunnel ended once its last tile was tagged.
+Deviations: ours refuses water in place of the stale `E4`; a target on a solid tile never
+routes, because our search never judges the triangle a route starts in (Q561); the
+51-free-entry pool test is not modelled.
 
 In `0x00502230`, the first obstruction establishes distance/heading and the
 straight-line exit. **The saved route cursor is still the start**: instructions
