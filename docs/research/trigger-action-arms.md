@@ -1,9 +1,23 @@
-# Trigger action arms read whole: 22, 24, 35, 39, 40 and 41 (Q301, Q227)
+# Trigger action arms read whole: 18, 22, 24, 35, 39, 40 and 41 (Q301, Q227)
 
 **Scope:** what these action arms do past the body fields `trigger-semantics.md`
 lists. Which dispatcher owns which type is `trigger-walkers.md`, "A tree's context
 decides only part of its meaning". Read in DKII.EXE on 2026-10-04 and checked by a
 second reader on 2026-10-05.
+
+## Action 18 makes or breaks an alliance
+
+The world arm (`0x00519376`, read 2026-10-06) takes body byte 00 and byte 01 as two
+player ids and finds each record at `[world+0x84] + 0x1125*(id-1)`. With byte 02
+**zero** it writes 1 at `+0x1AE + other.Number` in both records (an alliance); any
+other value writes 0 in both. It returns 1 either way. The reader names byte 02
+`Available`, so `Available=0` in a dump means *ally*.
+
+Level 11A's first turn runs it for 7-6, 7-4 and 7-5: Raksha starts allied with the
+other three keepers. The M12 capture shows those bytes set on turn 2. Built
+(ADR-0377).
+
+**CONFIRMED.**
 
 ## Action 22 writes terrain, and on a room tile it sells and builds (Q301)
 

@@ -15,7 +15,9 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**190** — `PIN`. The binary sweep's fourth fixes, the imp's: the claim on the way before the walk-over pick-up, on any walk, and the pick-up from the imp's own tile only; the ring scan's own tile unfiltered; a failed walk to a free reinforce side deletes the wall's task; a crate's blueprint before the shared latch; state 27's take stopping at the pile that fills the hands. No new field. ADR-0378 to ADR-0382.
+**190** — `0xEE1C266107F94AAF`. The binary sweep's fourth fixes, the imp's: the claim on the way before the walk-over pick-up, from a worker job only, and the pick-up from the imp's own tile only; the ring scan's own tile unfiltered; a failed walk to a free reinforce side deletes the wall's task; a crate's blueprint before the shared latch; state 27's take stopping at the pile that fills the hands. No new field. ADR-0378 to ADR-0382.
+
+**189** — `0xFE655F271EBBEB12`. Trigger action 18 makes or breaks an alliance (`0x00519376`), where it was left unperformed; no new field. ADR-0377.
 
 **188** — `0xCAAC539B930BB381`. The binary sweep's third fixes: the Graveyard's level-scaled burial, capacity gate, zeroed tally, random Vampire tile and tally lost on a sale; Vampire reincarnation; trigger conditions 20 and 21; slaps counted for the slapped creature's owner; flag 128 as the level score. No new field. ADR-0370 to ADR-0375.
 
