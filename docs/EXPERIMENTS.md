@@ -7,7 +7,8 @@ Controlled experiments comparing our simulation against original DK2 v1.70
   drives both the original game and our simulation).
 - Recorded runs live in `docs/experiments/<run-id>/README.md` (one write-up per
   capture; the capture CSVs are not committed, see "Recorded runs"), plus
-  `docs/experiments/doors-and-traps.md`.
+  `docs/experiments/doors-and-traps.md`. The packet replays' seed spread against
+  DK2's seeded playbacks is `docs/experiments/2026-10-06-packet-replay-seeds/`.
 - Divergences are triaged as: our bug / unknown mechanic / accepted deviation
   (accepted ones need a written justification here).
 

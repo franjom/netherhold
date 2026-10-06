@@ -13,7 +13,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 - M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
   levels (docs/experiments/). M6 remains partial: original packet replays run,
-  with the remaining timing differences in Q444 and navigation-captures.md.
+  with the remaining timing differences in Q444 and navigation-captures.md. The
+  seed spread of the Level 1–3 replays against DK2's own seeds (2026-10-06) is in
+  experiments/2026-10-06-packet-replay-seeds/; the open difference is Q567.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
