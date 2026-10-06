@@ -14,10 +14,8 @@ namespace DK2.Simulation.Systems;
 /// pit — the shipped <c>TrainingRoomMaxExperienceLevel</c> and
 /// <c>CombatPitMaxExperienceLevel</c> — with level 10 needing real fights.</para>
 /// <para>The working half and the fighting half are here (<see cref="CombatExperiencePerOriginalTick"/>,
-/// ADR-0366); training pays through the Train job (ADR-0083). A working imp
-/// gains 80 a game second, so its second level costs 3000 / 80 = 37.5 seconds
-/// (ADR-0083 item 6, <c>CreatureLevelTests</c>). Trap: the rate variable
-/// <c>ImpExperienceGainPerSecond</c> is 20 per <i>original tick</i>.</para>
+/// ADR-0366); training pays through the Train job (ADR-0083); work pays 20 a hit through
+/// <see cref="AwardWork"/> (ADR-0386), so an imp's second level costs 150 hits.</para>
 /// </summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
 public sealed class CreatureExperienceSystem : ISimulationSystem
@@ -48,25 +46,39 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
             if (CreatureEligibility.IsExcluded(state, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) continue;
             if (state.Activity == CreatureActivity.Leaving) continue;
 
-            int gained = CreatureLevelRules.WorkExperiencePerOriginalTick(
-                database, creature, state) + CombatExperiencePerOriginalTick(world, database, creature, state);
+            int gained = CombatExperiencePerOriginalTick(world, database, creature, state);
             if (gained == 0) continue;
-
-            int before = state.Level;
-            int needed = CreatureLevelRules.ExperienceForNextLevel(database, creature, before);
-            int banked = state.ExperiencePoints;
-            if (!CreatureLevelRules.Grant(context.Hooks, creature, state, gained)) continue;
-
-            // "discarded", not "spare": DK2 zeroes the balance on promotion, so
-            // the overshoot is gone rather than carried (Q127).
-            context.Emit(SystemName, "creature_level_up",
-                $"creature={state.Id} type={creature.Name} " +
-                $"player={state.OwnerPlayerId} {before}->{state.Level} " +
-                $"discarded={banked + gained - needed} " +
-                $"next_at={CreatureLevelRules.ExperienceForNextLevel(database, creature, state.Level)} " +
-                $"health={state.Health}/{CreatureHealthRules.MaxHealth(database, creature, state)} " +
-                $"speed={CreatureLevelRules.SpeedRaw(database, creature, state.Level)}");
+            Award(context, creature, state, gained);
         }
+    }
+
+    /// <summary>One work hit's experience (<see cref="CreatureLevelRules.WorkExperiencePerHit"/>,
+    /// ADR-0386), paid by <see cref="TileWorkSystem"/> for every hit whose work applied, to the
+    /// creature that made it, worker or not (the room attack's reader pays a hero too).</summary>
+    internal static void AwardWork(SimulationContext context, CreatureState state)
+    {
+        if (state.Level >= CreatureLevelRules.MaxLevel) return;
+        Award(context, context.Database.CreatureById(state.CreatureTypeId), state,
+            CreatureLevelRules.WorkExperiencePerHit(context.Database));
+    }
+
+    private static void Award(SimulationContext context, CreatureDef creature, CreatureState state, int gained)
+    {
+        GameDatabase database = context.Database;
+        int before = state.Level;
+        int needed = CreatureLevelRules.ExperienceForNextLevel(database, creature, before);
+        int banked = state.ExperiencePoints;
+        if (!CreatureLevelRules.Grant(context.Hooks, creature, state, gained)) return;
+
+        // "discarded", not "spare": DK2 zeroes the balance on promotion, so
+        // the overshoot is gone rather than carried (Q127).
+        context.Emit(SystemName, "creature_level_up",
+            $"creature={state.Id} type={creature.Name} " +
+            $"player={state.OwnerPlayerId} {before}->{state.Level} " +
+            $"discarded={banked + gained - needed} " +
+            $"next_at={CreatureLevelRules.ExperienceForNextLevel(database, creature, state.Level)} " +
+            $"health={state.Health}/{CreatureHealthRules.MaxHealth(database, creature, state)} " +
+            $"speed={CreatureLevelRules.SpeedRaw(database, creature, state.Level)}");
     }
 
     /// <summary>The Combat category's update <c>0x0047A870</c>: in state 199 or 200, a creature that is

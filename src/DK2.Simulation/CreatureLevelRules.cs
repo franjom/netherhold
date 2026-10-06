@@ -54,23 +54,13 @@ public static class CreatureLevelRules
     public static int SpeedRaw(GameDatabase database, CreatureDef creature, int level) =>
         Scale(creature.Speed.Raw, Percent(database, CreatureStatId.Speed, level));
 
-    /// <summary>What a worker earns for one of the original's ticks of work (250 ms, ADR-0089): the
-    /// raw <c>ImpExperienceGainPerSecond</c> of 20, undivided — 80 a game second, so level 2 costs
-    /// 3000 / 80 = 37.5 s. Trap: the name is wrong by a factor of four, this being the one rate of
-    /// its family the loader does not divide through
-    /// <see cref="SimulationTiming.LoaderRatePerTick"/>. Per tick of work, not per job: DK2 reads it
-    /// at nine sites in the imp's task unit, each guarded by a tile-property predicate, so an idle
-    /// imp earns nothing. STRONGLY INFERRED (closed call chain, Q79, Q124).</summary>
-    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-levels.md")]
-    public static int WorkExperiencePerOriginalTick(
-        GameDatabase database, CreatureDef creature, CreatureState state)
-    {
-        if (state.Level >= MaxLevel) return 0;
-        if (!creature.Flags.HasFlag(CreatureFlags.IsWorker)) return 0;
-        if (state.Activity != CreatureActivity.Working) return 0;
-
-        return database[VariableTypeId.ImpExperienceGainPerSecond];
-    }
+    /// <summary>What one work hit earns (ADR-0386): the raw, undivided <c>ImpExperienceGainPerSecond</c>
+    /// of 20. Its nine readers are the work actions' callbacks (dig <c>0x00496E00</c>, mining
+    /// <c>0x004971D0</c>, claim <c>0x004974C0</c>, reinforce <c>0x00497960</c>, and the floor attack,
+    /// conversion, room attack and repair), each paying once per hit whose tile test passes.</summary>
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
+    public static int WorkExperiencePerHit(GameDatabase database) =>
+        database[VariableTypeId.ImpExperienceGainPerSecond];
 
     /// <summary>Adds experience and promotes at most one level, reproducing DK2's adder
     /// (<c>FUN_00457880</c>, Q127). Returns true if a level was gained. A threshold of zero refuses

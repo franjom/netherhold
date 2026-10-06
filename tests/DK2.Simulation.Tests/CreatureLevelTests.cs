@@ -170,75 +170,54 @@ public class CreatureLevelTests
     // ---- earning a level (Q124) -------------------------------------------
 
     [Fact]
-    public void TheOwnersRule_AnImpEarnsExperienceOnlyWhileItIsWorking()
+    public void TheOwnersRule_AnImpEarnsExperienceForEachWorkHit()
     {
-        // CONFIRMED (owner, 2026-09-04, Q124): "imps get experience by working,
-        // while they do their usual things around the dungeon, digging,
-        // reinforcing walls, mining gold, etc. they get exp and passively their
-        // level raises." Both halves are asserted: an idle imp earns nothing.
+        // CONFIRMED (owner, 2026-09-04, Q124): "imps get experience by working". DK2 pays the raw
+        // ImpExperienceGainPerSecond, 20, once per work action whose tile test passes (the nine
+        // readers are the action callbacks, dig 0x00496E00 first), not once per tick of work
+        // (ADR-0386). Ten seconds standing in a work state pay nothing; one dig hit pays 20; a hit
+        // on impenetrable rock is refused and pays nothing; an idle imp earns nothing.
         GameDatabase db = Db;
         WorldState world = World(db);
 
         CreatureState worker = world.SpawnCreature(
-            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
         CreatureState idler = world.SpawnCreature(
-            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 3));
-
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
         StatePlacement.As(worker, CreatureActivity.Working);
         StatePlacement.As(idler, CreatureActivity.Idle);
 
-        new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]).Run(Second * 10);
+        world.QueueWork(new TileWorkOrder((2 * world.Width) + 4, TileWorkKind.Dig, Keeper, worker.Id));
+        world.QueueWork(new TileWorkOrder(2 * world.Width, TileWorkKind.Dig, Keeper, worker.Id));
+        new GameSimulation(db, world, 42, [new TileWorkSystem(), new CreatureExperienceSystem()]).Run(Second * 10);
 
-        // 20 A TICK, NOT A SECOND, and DK2's original tick rather than ours:
-        // ImpExperienceGainPerSecond is misnamed by a factor of four (Q79). All
-        // nine read sites in the imp's task unit award it raw with no divide by
-        // variable 19, each beside a work accrual that happens once an original
-        // tick. So ten game seconds is forty awards, not ten.
-        Assert.Equal(10 * 20 * SimulationTiming.OriginalTicksPerGameSecond,
-                     worker.ExperiencePoints);
-        Assert.Equal(800, worker.ExperiencePoints);
+        Assert.Equal(20, worker.ExperiencePoints);
         Assert.Equal(0, idler.ExperiencePoints);
-        Assert.Equal(1, worker.Level);                   // 3000 buys the level, not 800
+        Assert.Equal(1, worker.Level);
     }
 
     [Fact]
-    public void AnImpThatWorksForThirtySevenAndAHalfSecondsReachesLevelTwoAndSpeedsUp()
+    public void TheHitThatReachesThreeThousandBuysLevelTwoAndSpeedsTheImpUp()
     {
-        // The rate is 20 an ORIGINAL TICK (Q79), so 80 a game second, and the
-        // second level costs 3000 / 80 = 37.5 seconds of work, landing
-        // mid-second: the 150th award falls on sim tick 749. The trap is
-        // ImpExperienceGainPerSecond's name — read as 20 a second it gives 150.
+        // 3000 buys the second level: 150 hits at 20 (ADR-0386). The balance is zeroed on
+        // promotion, not reduced, so the overshoot is gone.
         GameDatabase db = Db;
         CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
         WorldState world = World(db);
-
         CreatureState state = world.SpawnCreature(
-            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
-        StatePlacement.As(state, CreatureActivity.Working);
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
+        state.ExperiencePoints = 2980;
+        Assert.Equal(7536, CreatureLevelRules.SpeedRaw(db, imp, state.Level));
         var events = new ListEventSink();
-
-        var sim = new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]);
+        var sim = new GameSimulation(db, world, 42, [new TileWorkSystem(), new CreatureExperienceSystem()]);
         sim.ObserveWith(events);
 
-        // Thirty-seven seconds is 148 awards - two short - and it is still
-        // level 1 with the record's speed.
-        sim.Run(Second * 37);
-        Assert.Equal(1, state.Level);
-        Assert.Equal(148 * 20, state.ExperiencePoints);
-        Assert.Equal(7536, CreatureLevelRules.SpeedRaw(db, imp, state.Level));
+        world.QueueWork(new TileWorkOrder((2 * world.Width) + 4, TileWorkKind.Dig, Keeper, state.Id));
+        sim.Run(1);
 
-        // Two more ticks carries the last two awards - one an award, now that
-        // a tick is one of the original's - and the 150th lands exactly on 3000.
-        sim.Run(2);
         Assert.Equal(2, state.Level);
         Assert.Equal(7912, CreatureLevelRules.SpeedRaw(db, imp, state.Level));
-
-        // Zero because the balance is ZEROED on promotion, not because 3000
-        // came off a total of exactly 3000; here the two happen to agree.
         Assert.Equal(0, state.ExperiencePoints);
-
-        // And the event says what it cost and what the next one costs, so a
-        // log is enough to follow a creature up the curve.
         SimEvent up = Assert.Single(events.Events, e => e.Kind == "creature_level_up");
         Assert.Contains("1->2", up.Detail);
         Assert.Contains("next_at=3900", up.Detail);   // 130% of 3000

@@ -64,6 +64,24 @@ public class RoomAttackTests
         Assert.Equal(34, Attack(world, 5, 5, Rival));
     }
 
+    /// <summary>Action 11's experience award is in its Good arm only (<c>0x00497DF0</c>, ADR-0386):
+    /// a hero's blow pays it 20; a rival keeper's creature knocking down a room earns nothing.</summary>
+    [Fact]
+    public void OnlyAGoodAttackerEarnsExperienceFromARoomBlow()
+    {
+        WorldState world = World();
+        Paint(world, RoomTypeId.Treasury, 5, 5, 3, Keeper);
+        CreatureState hero = world.SpawnCreature(Db, Dk2TerrainFixture.ImpCreatureId, PlayerIds.Good, new TilePos(5, 4));
+        CreatureState rival = world.SpawnCreature(Db, Dk2TerrainFixture.ImpCreatureId, Rival, new TilePos(7, 4));
+        world.QueueWork(new TileWorkOrder((5 * world.Width) + 5, TileWorkKind.AttackRoom, PlayerIds.Good, hero.Id));
+        world.QueueWork(new TileWorkOrder((5 * world.Width) + 7, TileWorkKind.AttackRoom, Rival, rival.Id));
+
+        new GameSimulation(Db, world, seed: 1, [new Systems.TileWorkSystem()]).Tick(InputFrame.Empty);
+
+        Assert.Equal(20, hero.ExperiencePoints);
+        Assert.Equal(0, rival.ExperiencePoints);
+    }
+
     [Fact]
     public void OnlyABuildableRoomCanBeKnockedDown()
     {

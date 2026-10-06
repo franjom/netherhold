@@ -196,7 +196,7 @@ Maiden Of The Nest is the only creature in the game carrying 25.
 never trains and never fights: its 1200 is unreachable, because nothing puts a
 worker into a category-22 state. **Unexplained, and recorded as such.**
 
-## 6. Q79: imp experience is per tick of work, not per job — CONFIRMED
+## 6. Q79: imp experience is per work hit, not per job — CONFIRMED (corrected 2026-10-06)
 
 The owner (2026-09-07): *"imps are fast little buggers, but I am inclined to say
 per job done, job being excavating tiles, mining gold, claiming tiles,
@@ -225,8 +225,7 @@ terrain definition table `DAT_006DA4A8`:
 
 **None of them means "the job just finished."** They mean *"is this still a
 valid target for the work I am about to do."* The work applied immediately after
-is the accrual `tile-work.md` establishes runs **once an original tick**, so the
-experience shares that cadence. The handlers are entries in the general 81-record **creature
+is one application, so the experience shares the work's cadence (§6.2's correction). The handlers are entries in the general 81-record **creature
 action table** at `0x006E4198` (creature-action-table.md), stride `0x1D`, filled by a second static initialiser
 `FUN_004950C0` — not creature state handlers: no state in the 281-record table
 points into `0x00496`–`0x00498`.
@@ -235,9 +234,8 @@ points into `0x00496`–`0x00498`.
 
 It is **the one rate in the family that is not divided by variable 19**. Its four
 siblings on the creature record are converted to per-tick by the loader; this
-one is a global, is read raw, and is added raw. **20 a tick is 80 a game
-second**, so an imp reaches level 2 in **37.5 seconds** of continuous work
-(3000 / 80), not the 150 asserted here for three weeks.
+one is a global, is read raw, and is added raw: **20 a work hit**, so level 2 costs
+150 hits (§6.2's correction; it was once read as 20 a tick, 37.5 s of work).
 
 ### 6.2 The cadence — CONFIRMED, and the chain is closed
 
@@ -254,8 +252,14 @@ elsewhere here: the prison drain's 16-tick countdown (Q173), the slap timer's
 100 decrements over 25 game seconds (Q159, CONFIRMED by the owner off the status
 bar), and the ticks-in-state counter it increments once per call.
 
-So `FUN_00488930` is the **per-tick creature update**, the task handler runs once
-a tick, and **20 a tick is 80 a game second**.
+So `FUN_00488930` is the **per-tick creature update**. **Corrected 2026-10-06 (ADR-0386):
+the handler does not run once a tick.** The Level 3 capture's own imps gain exactly 20 on 17 %
+of their digging ticks, 63 % of claiming and 38 % of mining, which is the work's own cadence
+(the hit gaps of ADR-0280), not every tick: all nine work actions (ids 1, 2, 4, 5, 7, 8, 10, 11, 12) are mode 3,
+which `FUN_004950C0` writes at record `+0x15`, and the runner `0x00496AA0` calls a mode-3
+handler once per action, then holds while the animation runs. So an imp earns 20 a work hit, and a
+working imp in that capture first reaches level 2 at tick 661, where the per-tick reading gave
+ours 305.
 
 **One correction falls out.** `FUN_00485880`, the `EPLossSecondWhileNotTraining`
 hook of §8, is **per tick** rather than per second: it is called from

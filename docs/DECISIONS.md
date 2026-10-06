@@ -1437,7 +1437,7 @@ Legal basis: copyright protects expression, not names, titles or short phrases, 
 3. **The payment hangs off the state's category, not the state.** None of the six training states awards anything. The 32 category records at `0x00699688` each carry an enter hook at `+0x04`, an update hook at `+0x14` and a leave hook at `+0x24`, and the per-tick dispatcher calls the current category's update hook before the state's own handler. Category 13 is training; its update hook is the payment. All 32 records are now decoded (Q186).
 4. **Training bills the keeper five gold a game second, and poverty ends the job.** `ModifyPlayerColdWhileTrainingPerSecond` is −5 and "Cold" is the shipped spelling of gold. The original tests the keeper's gold before entering the state and before every charge, and returning failure from a category update hook makes the dispatcher put the creature back to idle. Training is the only job in DK2 a keeper can be evicted from by being poor. `JobRules.Refused` makes that test too, and *before* the level test, because that is the order in the handler.
 5. **`CreatureLevelRules.TryLevelUp` is replaced by `Grant`, and Q127's two readings were both wrong.** DK2 promotes **once** and **zeroes** the balance — the overshoot is discarded, not carried, and a large award cannot buy two levels. A negative award larger than the balance is a **no-op**, not a clamp. An `ExpForNextLevel` of zero refuses everything, losses included.
-6. **Q79: imp experience is per tick of work, not per job.** `ImpExperienceGainPerSecond` is read at nine sites, all in the imp's task unit, all awarding the raw 20 with no divide, each guarded by a predicate that decompiles to *"is this tile still a valid target"* rather than *"the job finished"*. It is the one rate in the family **not** divided by variable 19, so its name is wrong by a factor of four in the opposite direction to everything around it: **80 a game second**, and an imp reaches level 2 in about **37 seconds** of work rather than the 150 asserted in a test name for three weeks. (The owner leaned "per job done" and named exactly the right activities.)
+6. **Q79: imp experience is per tick of work, not per job.** `ImpExperienceGainPerSecond` is read at nine sites, all in the imp's task unit, all awarding the raw 20 with no divide, each guarded by a predicate that decompiles to *"is this tile still a valid target"* rather than *"the job finished"*. It is the one rate in the family **not** divided by variable 19, so its name is wrong by a factor of four in the opposite direction to everything around it: **80 a game second**, and an imp reaches level 2 in about **37 seconds** of work rather than the 150 asserted in a test name for three weeks. (The owner leaned "per job done" and named exactly the right activities.) *Amended by ADR-0386: per work hit, not per tick.*
 7. **Both awards are paid on the original's tick, not once a game second** — `SimulationTiming.OnOriginalTick`. Because the promotion zeroes the balance, four awards of ten and one award of forty leave different numbers behind on any second that crosses a threshold. The cadence is behaviour.
 
 **Consequences.**
@@ -8695,3 +8695,57 @@ at (57,38) and (57,39) move from 164 to 871. The scenario's ticks move (tag 12, 
 90, call 279) and it runs 320 ticks. Level 17: Harkan digs to his seam one tile at a time and
 mines from 85, then grows his Training Room (359-685) before his Prison (1,291); DK2 builds
 the Prison at 855 first (Q555). The scenario runs 1,400 ticks.
+
+## ADR-0385 — An imp task walk casts Imp Haste as it sets off
+**Date:** 2026-10-06 · **Status:** accepted · Research: `travel-state-call-sites.md` §3; Q401, Q418
+
+**Context.** Every imp task handler walks through `0x004651A0` (45 call sites; the wander, state
+87, does not). Before routing it scans the creature's ability slots 0 to 2: a slot within the
+creature's level, with a spell, and ready by `0x0048C800`. A teleport slot (record flag `0x20`)
+ends the scan; a speed slot (`0x40`) is cast on the spot: the slot stamped, `0x0048CAD0` with the
+record's `+0x1F`/`+0x23`, refused while a speed effect runs, and the display word `+0x4DD`. The
+shipped Imp carries Imp Haste (150 %, 15 s, 5 s recharge) in slot 0 at level 4 and Imp Teleport
+in slot 1 at level 8, so a DK2 Imp from level 4 walks hasted after most task choices. The Imp is
+the only creature with either flag. Ours never cast it.
+
+**Decision.** `ImpTaskSystem.BeginTaskWalk` runs `CastOnTheWalk` before every task walk's
+`BeginTravel` (not the wander's), through `SpellRules.CanCast` and `StatusEffectRules.ModifySpeed`.
+Deviates: ours begins a walk only once a route is found, where DK2 scans before routing, so a walk
+whose route fails casts in DK2 and not in ours; `+0x4DD` (display) is not kept; the teleport is not
+built (Q418). The haste itself keeps ADR-0168's approximation (Q399: ours scales the cap every
+tick, running included). The 45 call sites were not mapped one to one: the dig, claim and
+reinforce handlers hold two to four each, read as their alternative walks (a free or a held side,
+reinforce or repair), which ours starts through one `CommitJob`; if any is a second walk inside one
+task, DK2 may cast there and ours does not (Q562).
+
+**Measured** with ADR-0386, below.
+
+## ADR-0386 — Work experience is paid once per work hit
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0083 item 6
+
+**Context.** Measuring ADR-0385 on Level 3 showed our Imps reaching level 4 at 1357, DK2's at 2082.
+`ImpExperienceGainPerSecond` (20, `0x006F295E`) has nine readers, every one a work action's
+callback (dig `0x00496E00`, the mining strike `0x004971D0`, claim `0x004974C0`, attack floor
+`0x00497670`, reinforce `0x00497960`, conversion `0x00497BF0`, room attack `0x00497DF0`, repair
+`0x00498120` and one more), each paying the raw 20 once when its tile test passes, before the
+work. All nine actions are mode 3 (`0x004950C0` writes 3 at record `+0x15`), which the runner
+`0x00496AA0` calls once per action. ADR-0083 read the callbacks as running every tick and paid 20
+per tick of work. The Level 3
+capture's imps gain exactly 20 on 17 % of their digging ticks, 63 % of claiming and 38 % of
+mining: once per work application. DK2's imps first reach levels 2, 3, 4 and 5 at 661, 1371,
+2082 and 2540; ours did at 305, 670, 1357 and 2077.
+
+**Decision.** `TileWorkSystem` pays `CreatureLevelRules.WorkExperiencePerHit` to the maker of every
+work order whose outcome is not `Rejected` (`CreatureExperienceSystem.AwardWork`), worker or not
+(the room attack's reader pays only a Good creature, so ours skips a non-Good `AttackRoom`); the
+per-tick work pay is gone. Deviates: ours pays when the queued order resolves later in the tick,
+not inside the callback, and without the per-tick loop's held, imprisoned, down and leaving gates.
+
+**Measured, ADR-0385 and ADR-0386 together** (hash 191), against `1939bebd` (Level 1 20/20, Level
+2 5/20, Level 3 seed 01 won at 3592): our Imps first reach levels 2 to 5 at 635, 1388, 2097 and
+2558 (DK2 661, 1371, 2082, 2540; ours was 305, 670, 1357, 2077). Level 3 is won at 3612 (DK2
+3683). Level 1 falls to 19/20 (seed 6 lost; seeds 8, 11 and 17 win near 1930) and Level 2 to 2/20
+(seeds 5 and 17): the early levels had been covering residuals elsewhere. Haste alone, on the
+old rate, gave Level 1 20/20, Level 2 2/20 and no Level 3 win by the capture's end. After the
+merge with ADR-0384, Level 17's Harkan lays his Prison from 1,643 (1,291 before; DK2 855, Q555),
+so `level17_harkan_unassisted` runs 1,800 ticks.

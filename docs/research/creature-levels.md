@@ -120,7 +120,7 @@ prove the correction from behaviour, which nobody has done for these.
 ## 3. Implementation
 
 `CreatureLevelRules` (`Clamp`, `Scale`, `Percent`, `MaxHealth`, `SpeedRaw`,
-`WorkExperiencePerOriginalTick`, `Grant`, `ExperienceForNextLevel`), plus
+`WorkExperiencePerHit`, `Grant`, `ExperienceForNextLevel`), plus
 `CreatureState.Level` and `ExperiencePoints`, both hashed and snapshotted.
 
 - **A promotion** goes through `CreatureLevelRules.LevelUp`, DK2's `0x0048B120`, from
@@ -137,15 +137,15 @@ prove the correction from behaviour, which nobody has done for these.
   what the owner saw on screen.
 - Run speed is computed and unread.
 
-`CreatureExperienceSystem` runs on the original's tick, registered **last** so a
-creature is paid for a tick it actually worked. Nothing earns while held, while
-imprisoned, while down (ADR-0051) or while leaving.
+`TileWorkSystem` pays work experience per hit (`CreatureExperienceSystem.AwardWork`, ADR-0386).
+`CreatureExperienceSystem` pays combat experience on the original's tick, registered **last**;
+nothing earns there while held, imprisoned, down (ADR-0051) or leaving.
 
-- **A worker earns `ImpExperienceGainPerSecond` per original tick while its
-  activity is `Working`** — digging, claiming, reinforcing, mining — so **80 a
-  game second** (Q79). An **idle imp earns nothing**.
-- **37.5 seconds of work buys level 2** (3000 / 80), and roughly **29 minutes**
-  of continuous work buys level 10.
+- **A worker earns `ImpExperienceGainPerSecond` once per work hit** whose tile
+  test passes — digging, claiming, reinforcing, mining, converting, attacking or
+  repairing a room — not per tick of work (Q79, ADR-0386, corrected 2026-10-06 from
+  the Level 3 capture). An **idle imp earns nothing**.
+- **150 work hits buy level 2** (3000 / 20).
 - **A non-worker earns by TRAINING** (ADR-0083): its record's
   `ExpPerSecondTraining` through `SimulationTiming.LoaderRatePerTick`, scaled by
   stat 16, per original tick, capped at `TrainingRoomMaxExperienceLevel` and
@@ -181,7 +181,7 @@ agrees: `ExpPerSecond` is read only by the update hook of state **category 22**
 
 | Rate | Where | Unit as stored | Per game second |
 |---|---|---|---|
-| `ImpExperienceGainPerSecond` (20) | balance table, global `0x006F295E` | **raw**, added once per original tick | **80** |
+| `ImpExperienceGainPerSecond` (20) | balance table, global `0x006F295E` | **raw**, added once per work hit | as many hits as the work makes |
 | `ExpPerSecondTraining` (record) | creature record | divided by variable 19 at load, floored at 1 | the tabled figure, less the truncation |
 | `ExpPerSecond` (record) | creature record | divided by variable 19 at load | combat only (states 199/200, `0x0047A870`); a worker earns it only when good, so the hero Dwarf does (owner-confirmed in play, 2026-10-05) and the Imp never; built (ADR-0366) |
 
@@ -195,8 +195,8 @@ treating two matching numbers as corroboration, check that the engine ever puts
 them in the same place.**
 
 `ImpExperienceGainPerSecond` is the one rate in the family the loader does *not*
-divide, so its name is wrong by a factor of four in the opposite direction:
-**80 a game second**, not 20 (Q79, ADR-0083 item 6).
+divide, and it is not a per-second rate at all: 20 a work hit (Q79, ADR-0386, which
+corrects ADR-0083 item 6's 80 a game second).
 
 ### 4.2 The adder's clauses (Q127)
 

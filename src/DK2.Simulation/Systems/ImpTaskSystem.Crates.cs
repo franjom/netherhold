@@ -176,7 +176,7 @@ public sealed partial class ImpTaskSystem
         creature.TimerTicks = 0;
         creature.LastTaskKind = TaskKindOf(blueprint.Kind);
         FromTaskSelection(context, creature);
-        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, FetchStateOf(blueprint.Kind));
+        BeginTaskWalk(context, creature, FetchStateOf(blueprint.Kind));
 
         context.Emit(SystemName, "crate_claimed",
             $"imp={creature.Id} player={creature.OwnerPlayerId} crate={crate.Id} " +
@@ -212,7 +212,7 @@ public sealed partial class ImpTaskSystem
                 CrateRules.Unlist(world, database, room, crate);
             creature.TargetObjectId = -1;
             ObjectCarryRules.PickUp(creature, crate);
-            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, InstallStateOf(kind));
+            BeginTaskWalk(context, creature, InstallStateOf(kind));
             context.Emit(SystemName, "crate_picked_up",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} crate={crate.Id} " +
                 $"to=({to.X},{to.Y}) steps={creature.Body.PathTotalCount}");
@@ -306,7 +306,7 @@ public sealed partial class ImpTaskSystem
             creature.TargetTileIndex = destination;
             int carrying = creature.UtilityNewState;
             StateShadow.Arrive(context, SystemName, creature);
-            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, carrying);
+            BeginTaskWalk(context, creature, carrying);
             return;
         }
 
