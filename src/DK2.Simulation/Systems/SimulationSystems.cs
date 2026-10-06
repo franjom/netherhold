@@ -160,6 +160,7 @@ public static class SimulationSystems
         // the second it looked and a wage credited now is owed when AngerNoPay is
         // charged (ADR-0079). Experience last: nothing that died or left is promoted (Q124).
         new PaydaySystem(),
+        new CasinoJackpotSystem(), // the drunk timer, a winner's deadline and its states 152, 155-157 (ADR-0396)
 
         new HeroSystem(), // a hero's standing job and its party walk, instead of the choosers (ADR-0216)
         new CreatureJobSystem(),

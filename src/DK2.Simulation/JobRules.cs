@@ -159,11 +159,11 @@ public static class JobRules
 
             case JobType.Drink:
                 // 0x004560F0: more gold in the purse than a second of losing costs, unless
-                // a jackpot party is on (player+0xF4A, unbuilt, so never), and only then a
-                // casino. A creature that has never been paid has an empty purse. The enter
-                // hook 0x0047ACB0 tests the purse again on arrival, with the lever (ADR-0313):
-                // keep both.
-                return state.GoldHeld > CasinoRules.Stake(database) ? null : "cannot_afford_to_gamble";
+                // a jackpot party is on (player+0xF4A, ADR-0396), and only then a casino. A
+                // creature that has never been paid has an empty purse. The enter hook
+                // 0x0047ACB0 tests the purse again on arrival, with the lever (ADR-0313): keep both.
+                return world.Player(state.OwnerPlayerId).CasinoParties != 0
+                    || state.GoldHeld > CasinoRules.Stake(database) ? null : "cannot_afford_to_gamble";
 
             case JobType.Sulk or JobType.Sleep:
                 // Its handler wants a bed of its own before it walks anywhere (RoomFor).

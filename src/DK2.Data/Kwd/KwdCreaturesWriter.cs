@@ -59,6 +59,9 @@ public static partial class KwdCreatures
         AnimationTiming(1, row.GetUpFallbackAnimation);
         AnimationTiming(35, row.ReaperSummonAnimation);
         AnimationTiming(8, row.ReaperSummonFallbackAnimation);
+        // ArtSlots views the same blocks: only a slot it changed is written, so it wins over a view above.
+        for (int slot = 0; slot < row.ArtSlots.Count && slot < original.ArtSlots.Count; slot++)
+            if (row.ArtSlots[slot] != original.ArtSlots[slot]) AnimationTiming(slot, row.ArtSlots[slot]);
         S32(0xEB4, row.Speed.Raw);
         S32(0xEB8, row.RunSpeed.Raw);
         S32(OffsetShuffleSpeed, row.ShuffleSpeed.Raw);

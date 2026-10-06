@@ -67,8 +67,8 @@ public static class CasinoRules
     /// <summary>Why the enter hook <c>0x0047ACB0</c> refuses this creature before its claim, or
     /// null. On the keeper's own Casino (<c>0x004539B0(15, owner, 0)</c>) a room with no lever
     /// (<c>+0x53</c> zero) refuses; anywhere else the lever is not asked for and the claim judges
-    /// the room. Then a purse at or below the stake refuses: the jackpot party that lifts that test
-    /// (<c>player+0xF4A</c>) is not built, so it never does.</summary>
+    /// the room. Then, unless the keeper has a jackpot party on (<c>player+0xF4A</c>, ADR-0396), a
+    /// purse at or below the stake refuses.</summary>
     public static string? EnterRefusal(WorldState world, GameDatabase database, CreatureState creature)
     {
         if (world.Contains(creature.Tile)
@@ -77,7 +77,8 @@ public static class CasinoRules
             && Lever(world, room) is null)
             return "no_lever";
 
-        return creature.GoldHeld > Stake(database) ? null : "cannot_afford_to_gamble";
+        return world.Player(creature.OwnerPlayerId).CasinoParties != 0
+            || creature.GoldHeld > Stake(database) ? null : "cannot_afford_to_gamble";
     }
 
     /// <summary>The fearless countdown of the update <c>0x0047AD70</c>, once per act (every fifth turn) before

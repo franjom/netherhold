@@ -219,8 +219,11 @@ public sealed class CreatureJobTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Paint(db, world, RoomTypeId.Casino, new TilePos(3, 3));
-        // The enter hook refuses a Casino with no lever (ADR-0313), and a one-tile room gets none.
+        // The enter hook refuses a Casino with no lever (ADR-0313), and 145 one (ADR-0396): a 3x3,
+        // its lever on the centre as the room's set-up places it.
+        for (int y = 2; y <= 4; y++)
+        for (int x = 2; x <= 4; x++)
+            Paint(db, world, RoomTypeId.Casino, new TilePos(x, y));
         world.SpawnObject(db, AutoFurnitureRules.CasinoLeverObjectId, Keeper, (3 * world.Width) + 3).AutoPlaced = true;
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
@@ -264,10 +267,7 @@ public sealed class CreatureJobTests
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.Casino, Floor);
 
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
-        goblin.CurrentJob = JobType.Drink;
-        StatePlacement.As(goblin, CreatureActivity.AtWork);
-        StatePlacement.Place(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
+        CreatureState goblin = Drinking(db, world);
         goblin.GoldHeld = 100;
         goblin.Anger.Treatment = 10_000;
         goblin.Anger.Company = 10_000;
@@ -296,10 +296,7 @@ public sealed class CreatureJobTests
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.Casino, Floor);
 
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
-        goblin.CurrentJob = JobType.Drink;
-        StatePlacement.As(goblin, CreatureActivity.AtWork);
-        StatePlacement.Place(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
+        CreatureState goblin = Drinking(db, world);
         goblin.GoldHeld = 8;
         goblin.Anger.Work = 10_000;
 
@@ -314,6 +311,21 @@ public sealed class CreatureJobTests
         Assert.Equal(10_000, goblin.Anger.Work);
         Assert.Contains(sink.Events, e => e.Kind == "job_lost"
             && e.Detail.Contains("reason=cannot_afford_to_gamble"));
+    }
+
+    /// <summary>A gambler in 147, waiting out a drink that outlasts the test, standing where it last
+    /// stood, so its own handler holds it and only the category's hook acts (ADR-0396).</summary>
+    private static CreatureState Drinking(GameDatabase db, WorldState world)
+    {
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.CurrentJob = JobType.Drink;
+        StatePlacement.As(goblin, CreatureActivity.AtWork);
+        StatePlacement.Place(goblin, CasinoStep.DrinkingState);
+        goblin.HeldPlace = new RoomPlace((Floor.Y * world.Width) + Floor.X, RoomCapacityRules.Units);
+        goblin.ActionUntilTick = long.MaxValue;
+        goblin.CasinoPosX = goblin.PosX;
+        goblin.CasinoPosY = goblin.PosY;
+        return goblin;
     }
 
     // ---- the one job with an effect ---------------------------------------

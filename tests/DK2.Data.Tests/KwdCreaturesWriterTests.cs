@@ -33,7 +33,7 @@ public class KwdCreaturesWriterTests
             "CloneCreatureId:D3B:1 NameStringId:F24:2 TooltipStringId:F26:2 IntroductionStringId:CFF:2",
             excludedProperties: ["Attractions", "Spells", "Resistances", "HappyJobs", "UnhappyJobs", "AngryJobs", "HateJobs", "AlternativeJobs",
                 "KnockdownAnimation", "GetUpAnimation", "KnockdownFallbackAnimation", "GetUpFallbackAnimation",
-                "ReaperSummonAnimation", "ReaperSummonFallbackAnimation"],
+                "ReaperSummonAnimation", "ReaperSummonFallbackAnimation", "ArtSlots"],
             customValues: new Dictionary<string, object> { ["SizeClass"] = 13 });
 
     [Fact]
@@ -176,6 +176,27 @@ public class KwdCreaturesWriterTests
             _ => reread.GetUpFallbackAnimation,
         });
         Assert.Equal(source, KwdCreatures.WriteRecord(original, new KwdRecordImage(KwdRecordType.Creatures, source)));
+        for (int i = 0; i < stride; i++)
+        {
+            int relative = i - offset;
+            bool known = relative is >= 0x40 and <= 0x45 or >= 0x48 and <= 0x49 or >= 0x50 and <= 0x52;
+            if (!known) Assert.Equal(source[i], written[i]);
+        }
+    }
+
+    [Theory]
+    [InlineData(5449, 19)] [InlineData(5537, 37)] [InlineData(5537, 28)]
+    public void AnArtSlotEditedThroughTheSlotListIsWrittenToItsBlockAlone(int stride, int slot)
+    {
+        byte[] source = Source(stride);
+        int offset = 0x20 + (slot * 84);
+        source[offset + 0x50] = 6;
+        CreatureDef original = Read(source);
+        var timing = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 40, FramesPerSecond = 20 };
+        CreatureAnimationTiming[] slots = original.ArtSlots.ToArray();
+        slots[slot] = timing;
+        byte[] written = KwdCreatures.WriteRecord(original with { ArtSlots = slots }, new KwdRecordImage(KwdRecordType.Creatures, source));
+        Assert.Equal(timing, Read(written).ArtSlot(slot));
         for (int i = 0; i < stride; i++)
         {
             int relative = i - offset;

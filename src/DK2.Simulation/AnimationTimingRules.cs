@@ -29,6 +29,48 @@ public static class AnimationTimingRules
     public static CreatureAnimationTiming SlotOrFallback(CreatureAnimationTiming slot, CreatureAnimationTiming fallback) =>
         slot.ResourceType != 0 ? slot : fallback;
 
+    /// <summary><c>CreatureDef_HasArt</c> (<c>0x00494A00</c>): the slot's own record is present, with
+    /// no fallback.</summary>
+    public static bool HasArt(CreatureDef definition, int slot) => definition.ArtSlot(slot).ResourceType != 0;
+
+    /// <summary><c>0x00494880</c>: a missing slot's fallback, unchecked (casino.md §7). Slots 37 to 41
+    /// fall back to 1; the rest by the binary's literal switch, 0 for a slot it does not list.</summary>
+    public static int ResolveArtSlot(CreatureDef definition, int slot)
+    {
+        if (HasArt(definition, slot)) return slot;
+        return slot switch
+        {
+            >= 37 and <= 41 => 1,
+            2 or 4 or 10 or 20 or 21 or 27 or 29 or 32 or 33 or 34 => 1,
+            3 => 10,
+            6 or 9 or 14 or 15 or 22 => 5,
+            13 or 23 or 28 or 35 => 8,
+            16 or 17 or 18 or 19 or 25 or 26 or 30 => 9,
+            24 => 4,
+            31 or 36 => 20,
+            _ => 0,
+        };
+    }
+
+    /// <summary><c>0x00494860</c>'s record tested for bit 0, as states 146, 152 and 153 ask: whether
+    /// the slot, or its fallback when it is missing, is present.</summary>
+    public static bool ResolvesPresent(CreatureDef definition, int slot) =>
+        HasArt(definition, ResolveArtSlot(definition, slot));
+
+    /// <summary>How long an action started through <c>0x004969D0</c> with <paramref name="count"/>
+    /// holds, playing its art slot resolved: count 0 or 1 plays once (<see cref="ActionHoldTicks"/>),
+    /// a count of 2 or more loops <paramref name="count"/> + 1 times at the clip's frames and rate,
+    /// rounded up, as the prison's flourish does (ADR-0301). LIKELY: the runner's end after the
+    /// cycles is the renderer's flags, which are not read.</summary>
+    public static int CountedHoldTicks(CreatureDef definition, int slot, int count)
+    {
+        CreatureAnimationTiming animation = definition.ArtSlot(ResolveArtSlot(definition, slot));
+        if (count < 2) return ActionHoldTicks(animation);
+        if (animation.ResourceType != 6 || animation.FramesPerSecond == 0) return 1;
+        long frames = (long)(count + 1) * animation.FrameCount * SimulationTiming.OriginalTicksPerGameSecond;
+        return (int)((frames + animation.FramesPerSecond - 1) / animation.FramesPerSecond);
+    }
+
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-reaper.md")]
     public static int FirstCycleHoldTicks(CreatureAnimationTiming animation)
     {

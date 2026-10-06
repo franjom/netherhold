@@ -29,16 +29,28 @@ public sealed class CasinoSystem : ISimulationSystem
     {
         PullLevers(context);
 
+        // The room update 0x004D6270: the jackpot party's part every turn, then, with no party on at
+        // the turn's start, the settlement.
         long period = (long)CasinoRules.SettlementSeconds * SimulationTiming.TicksPerSecond;
-        if ((context.Tick.Value + 1) % period != 0) return;
-
+        bool settles = (context.Tick.Value + 1) % period == 0;
         WorldState world = context.World;
+        if (!settles && !AnyParty(world)) return;   // the room scan is a flood fill; most turns need none
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
-            if (room.Definition.TypeId != RoomTypeId.Casino) continue;
-            if (CasinoRules.Lever(world, room) is not { } lever) continue;
+            if (room.Definition.TypeId != RoomTypeId.Casino || room.TileIndices.Count == 0) continue;
+            if (CasinoJackpotRules.RoomUpdate(context, SystemName, room)) continue;
+            if (!settles || CasinoRules.Lever(world, room) is not { } lever) continue;
             Settle(context, room, lever);
         }
+    }
+
+    /// <summary>Whether a Casino has a party or its music still on: only then does the room update act
+    /// between settlements.</summary>
+    private static bool AnyParty(WorldState world)
+    {
+        for (int i = 0; i < world.TileCount; i++)
+            if (world.TileAtIndex(i).CasinoParty != 0) return true;
+        return false;
     }
 
     /// <summary>The owner's lever command (<c>0x00513E50</c>): a lever of this player's, toggled.

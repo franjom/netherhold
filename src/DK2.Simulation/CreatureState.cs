@@ -224,6 +224,9 @@ public enum CreatureActivity
     /// prevents substituting ordinary keeper job selection; it does not simulate that handler.</summary>
     UnbuiltHandler = 37,
     ReaperArriving = 38,
+
+    /// <summary>A Casino jackpot's winner: its celebration (152) and the walk to collect (155–157).</summary>
+    CollectingWinnings = 39,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -960,6 +963,33 @@ public sealed class CreatureState
     public int SpectatorPosX;
     public int SpectatorPosY;
 
+    /// <summary>The Casino object a gambler plays at or drinks from, creature <c>+0x2FF</c> (state
+    /// <c>+0xB1</c>); <see cref="NoCasinoObject"/> for none. The finders skip an object another occupant
+    /// names (casino.md §3).</summary>
+    public int CasinoObjectId = NoCasinoObject;
+
+    /// <summary>DK2's <c>+0x2FF</c> of 0: no Casino object.</summary>
+    public const int NoCasinoObject = -1;
+
+    /// <summary>State <c>+0xAC</c>: 146 and 148 turn to face <see cref="CasinoObjectId"/> before they play.</summary>
+    public bool CasinoFacing;
+
+    /// <summary>State <c>+0xB4</c>/<c>+0xB8</c>: where a Casino wait last saw the creature; moved, its
+    /// action ends (147, 149, 151).</summary>
+    public int CasinoPosX;
+    public int CasinoPosY;
+
+    /// <summary>The drunk timer <c>+0x4CE</c>, turns: 146 sets it, the creature update counts it down;
+    /// 146's count of drunk occupants is its one simulation reader (casino.md §4).</summary>
+    public int DrunkTicks;
+
+    /// <summary>A jackpot winner's deadline <c>+0x3F2</c>, turns: counted down each turn; at zero the
+    /// keeper's creatures are angered (casino.md §10). Zero when the creature has no winnings owed.</summary>
+    public int JackpotDeadlineTicks;
+
+    /// <summary>A jackpot winner's winnings still to collect, <c>+0x3F4</c>.</summary>
+    public int JackpotWinnings;
+
     /// <summary>The turn each of the three spell slots was last cast at — DK2's <c>+0x41B + 4i</c>;
     /// zero means never, and a cast stamps it when the action starts, not when the shot leaves
     /// (combat-spells.md §4, §6).</summary>
@@ -1274,6 +1304,13 @@ public sealed class CreatureState
         hash.Add(PitStateEnteredTick);
         hash.Add(SpectatorPosX);
         hash.Add(SpectatorPosY);
+        hash.Add(CasinoObjectId);
+        hash.Add(CasinoFacing);
+        hash.Add(CasinoPosX);
+        hash.Add(CasinoPosY);
+        hash.Add(DrunkTicks);
+        hash.Add(JackpotDeadlineTicks);
+        hash.Add(JackpotWinnings);
         for (int i = 0; i < SpellStamps.Length; i++) hash.Add(SpellStamps[i]);
         hash.Add(AttackSpellSlot);
         hash.Add(SwingKind);

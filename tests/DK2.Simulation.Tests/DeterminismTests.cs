@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 195: a capped trainee goes 108, 110, idle (ADR-0393)
+        // HashVersion 196: the Casino's states, its jackpot and its winner (ADR-0396)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x95D304A3DA5B37B4UL, sim.StateHash());
+        Assert.Equal(0xC44B4149D9B1725DUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

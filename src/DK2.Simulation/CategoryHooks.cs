@@ -231,9 +231,9 @@ public static class CategoryHooks
         Slot(CreatureStateCategory.CombatPit, HookKind.Update, 0x004B4C20, HookStatus.Stub, "success stub"),
         Releasing(CreatureStateCategory.CombatPit, 0x0047B920, Release),
 
-        new(CreatureStateCategory.Casino, HookKind.Enter, 0x0047ACB0, HookStatus.Partial,
-            "the lever test on the keeper's own Casino, the purse test, then the seed, then the claim "
-            + "(ADR-0313); not built: the jackpot party (player +0xF4A) lifting the purse test")
+        new(CreatureStateCategory.Casino, HookKind.Enter, 0x0047ACB0, HookStatus.Built,
+            "the lever test on the keeper's own Casino, the purse test unless a jackpot party is on "
+            + "(player +0xF4A, ADR-0396), then the seed, then the claim (ADR-0313)")
         {
             SeedsCountdown = true,
             Enter = static (in StateHookContext hooks, CreatureState creature) =>
@@ -243,9 +243,9 @@ public static class CategoryHooks
                 return RoomCapacityRules.Claim(in hooks, creature);
             },
         },
-        Arm(CreatureStateCategory.Casino, 0x0047AD70, HookStatus.Partial,
-            "the fearless countdown (ADR-0322), calm, anger and the purse (ADR-0187, ADR-0188); the jackpot "
-            + "is not built",
+        Arm(CreatureStateCategory.Casino, 0x0047AD70, HookStatus.Built,
+            "the fearless countdown (ADR-0322), calm, anger and the purse (ADR-0187, ADR-0188), and the "
+            + "jackpot roll (ADR-0396)",
             typeof(CreatureJobSystem), "Gamble"),
         new(CreatureStateCategory.Casino, HookKind.Leave, 0x0047AF20, HookStatus.Partial,
             "a fearless gambler's flag turned into FearlessUntil, now + v19 x v203 (ADR-0322), then " + Release)

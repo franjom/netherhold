@@ -390,7 +390,16 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         // holding one (0x004F29A0), which asks no capacity, before any other (0x004F2B80),
         // which asks for two places. Every other finder asks for one, so a full room is
         // passed over (0x004F3560, 0x004F1A20, 0x004C6610; ADR-0205).
-        if (job == JobType.Torture && candidates.Any(c => HoldsAVictim(world, c.Room)))
+        // The Casino finder's party branch (0x004D75F0, casino.md §9): only a Casino with a party on and
+        // a place or a lever, the last in room order that the creature reaches, with no distance ranking.
+        bool party = job == JobType.Drink && world.Player(creature.OwnerPlayerId).CasinoParties != 0;
+        if (party)
+        {
+            candidates.RemoveAll(c => !CasinoJackpotRules.IsPartyOn(world, c.Room)
+                || !(RoomCapacityRules.HasRoom(world, database, c.Room, creature.Id) || CasinoRules.Lever(world, c.Room) is not null));
+            candidates.Reverse();
+        }
+        else if (job == JobType.Torture && candidates.Any(c => HoldsAVictim(world, c.Room)))
             candidates.RemoveAll(c => !HoldsAVictim(world, c.Room));
         else
         {
@@ -398,10 +407,11 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             candidates.RemoveAll(c => !RoomCapacityRules.HasRoom(world, database, c.Room, creature.Id, units));
         }
 
-        candidates.Sort((a, b) =>
-            a.Distance != b.Distance
-                ? a.Distance.CompareTo(b.Distance)
-                : a.FirstTile.CompareTo(b.FirstTile));
+        if (!party)
+            candidates.Sort((a, b) =>
+                a.Distance != b.Distance
+                    ? a.Distance.CompareTo(b.Distance)
+                    : a.FirstTile.CompareTo(b.FirstTile));
 
         foreach ((_, _, RoomInstance room) in candidates)
         {
@@ -499,6 +509,18 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             return;
         }
 
+        // A gambler's hook runs, then its state's handler: 145-151 and 153 (ADR-0396).
+        if (job == JobType.Drink)
+        {
+            if (CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Casino
+                && CreatureStateMachine.HookFires(creature, CreatureStateMachine.HookCountdownSeed)
+                && !Gamble(context, world, database, creature, definition))
+                return;
+            if (creature.CurrentJob != JobType.Drink) return;   // the jackpot's winner
+            if (originalTick && !CasinoStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            return;
+        }
+
         // Guard's category has no update hook either: 97, 98 and 99 are the whole of it (ADR-0212).
         if (job == JobType.Guard)
         {
@@ -568,9 +590,8 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     /// <summary>One act of the Casino's update hook <c>0x0047AD70</c>, every fifth turn. A purse
     /// at or below the stake fails the hook, which is idle; otherwise the lever's setting
     /// decides the anger and the purse: calm and a coin, or anger and eight lost (ADR-0187,
-    /// ADR-0188).</summary>
-    /// <remarks>Not built: the jackpot roll (<c>state-category-hooks.md</c> §3.1).</remarks>
-    private static void Gamble(
+    /// ADR-0188); then the jackpot roll (ADR-0396). False when the hook failed.</summary>
+    private static bool Gamble(
         SimulationContext context, WorldState world, GameDatabase database,
         CreatureState creature, CreatureDef definition)
     {
@@ -585,7 +606,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
                 $"at=({creature.Tile.X},{creature.Tile.Y}) reason=cannot_afford_to_gamble " +
                 $"purse={creature.GoldHeld}");
             Stop(context, creature);
-            return;
+            return false;
         }
 
         byte setting = CasinoRules.SettingUnder(world, database, creature);
@@ -600,6 +621,11 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} setting={setting} won={won} purse={creature.GoldHeld} " +
             $"anger={creature.Anger.Max} [{creature.Anger}]");
+
+        int chance = CasinoJackpotRules.Chance(database, setting);
+        if (chance > 0 && context.Rng.NextInt(chance) == CasinoJackpotRules.WinningRoll)
+            CasinoJackpotRules.Jackpot(context, SystemName, creature);
+        return true;
     }
 
     /// <summary>One act of the Temple's update hook <c>0x0047B970</c>, every fifth turn.</summary>

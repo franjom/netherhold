@@ -73,6 +73,24 @@ public enum PlayerMessageKind : uint
     /// <summary>Type 84: a creature could not route to the Call to Arms flag
     /// (<c>0x00455DA0</c>, <c>0x004778E0</c>); fifty seconds, tab, no duplicates.</summary>
     CallToArmsUnreachable = 84,
+
+    /// <summary>Type 73: a Casino jackpot, Data1 the winner (<c>0x004D6AA0</c>); fifty seconds, tab, no
+    /// duplicates. The names of 73 to 91 are ours; their texts are unread (casino.md §11).</summary>
+    CasinoJackpot = 73,
+
+    /// <summary>Type 75: more than two of a Casino's occupants are drunk (state 146).</summary>
+    CasinoDrinking = 75,
+
+    /// <summary>Type 77: a jackpot winner cannot collect: no route to a Treasury (155) or too little
+    /// gold (157).</summary>
+    JackpotUnpaid = 77,
+
+    /// <summary>Type 89, a variant list (<c>0x006A09D8</c>), duplicates allowed: 146 posts variant 11,
+    /// more than ten drunk occupants, which lasts 20 seconds.</summary>
+    CasinoRowdy = 89,
+
+    /// <summary>Type 91: a jackpot winner's deadline ran out (<c>0x004D6A40</c>).</summary>
+    JackpotMissed = 91,
 }
 
 public readonly record struct PlayerMessage(
@@ -108,7 +126,8 @@ public sealed class PlayerMessageQueue
     /// selected by Data1, and a duplicate must match Data1 as well as recipient and kind.</summary>
     public static bool HasSubtypes(PlayerMessageKind kind) =>
         kind is PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall
-            or PlayerMessageKind.TrainingUnpaid || IsRoomMessage(kind) || IsOwnershipMessage(kind);
+            or PlayerMessageKind.TrainingUnpaid or PlayerMessageKind.CasinoRowdy
+        || IsRoomMessage(kind) || IsOwnershipMessage(kind);
 
     /// <summary>The room-ownership family 32 to 35, whose subtables share one shape.</summary>
     public static bool IsOwnershipMessage(PlayerMessageKind kind) =>
@@ -184,6 +203,9 @@ public sealed class PlayerMessageQueue
             PlayerMessageKind.ManaShortfall when data1 is >= 1 and <= 5 => (uint)SimulationTiming.TicksFromSeconds(20),
             PlayerMessageKind.TrainingUnpaid when data1 is >= 1 and <= 4 => (uint)SimulationTiming.TicksFromSeconds(20),
             PlayerMessageKind.TrainingUnpaid when data1 == 5 => (uint)SimulationTiming.TicksFromSeconds(240),
+            PlayerMessageKind.CasinoJackpot or PlayerMessageKind.CasinoDrinking or PlayerMessageKind.JackpotUnpaid
+                or PlayerMessageKind.JackpotMissed => (uint)SimulationTiming.TicksFromSeconds(50),
+            PlayerMessageKind.CasinoRowdy when data1 == CasinoStep.RowdyVariant => (uint)SimulationTiming.TicksFromSeconds(20),
             // An unlisted room type would take the table's terminator row: discarded for 41 and 43,
             // kept for one sweep for 42. Nothing here posts one, so it is refused.
             _ when IsRoomMessage(kind) && RoomLifetimeSeconds(kind, (RoomTypeId)data1) is int seconds =>
@@ -200,7 +222,7 @@ public sealed class PlayerMessageQueue
         if (timeout == uint.MaxValue) return null;
         if (world.Player(recipient).Status != PlayerStatus.Playing || !world.Triggers.NotificationsEnabled)
             return null;
-        if (kind != PlayerMessageKind.RoomLost
+        if (kind is not (PlayerMessageKind.RoomLost or PlayerMessageKind.CasinoRowdy)
             && Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained) return retained;
         if (_entries.Count == Capacity) _entries.RemoveAt(0);
         var added = new PlayerMessage(_nextId, recipient, kind, data1, data2, 0, timeout, true, false);

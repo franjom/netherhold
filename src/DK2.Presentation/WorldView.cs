@@ -463,6 +463,7 @@ public sealed class WorldView
         CreatureActivity.Frozen => "frozen",
         CreatureActivity.Stunned => "stunned",
         CreatureActivity.Celebrating => "celebrating",
+        CreatureActivity.CollectingWinnings => "collecting_winnings",
         CreatureActivity.GoingToBody => "going_to_body",
         CreatureActivity.BeingTortured => "being_tortured",
         CreatureActivity.Rescuing => "rescuing",

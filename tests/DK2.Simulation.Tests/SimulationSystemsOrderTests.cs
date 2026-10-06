@@ -68,6 +68,7 @@ public class SimulationSystemsOrderTests
             "PrisonerEatSystem",
             "PrisonerWanderSystem",
             "PaydaySystem",
+            "CasinoJackpotSystem",
             "HeroSystem",
             "CreatureJobSystem",
             "CreatureAngerSystem",

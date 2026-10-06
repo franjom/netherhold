@@ -144,7 +144,23 @@ public static class AutoFurnitureRules
     /// <summary>The wall-furniture slots (<c>0x00454230</c>): room tiles with a straight wall on a
     /// side, of the parity of the first such tile in each orientation.</summary>
     private static void WallSlots(
-        WorldState world, GameDatabase database, RoomInstance room, HashSet<int> roomTiles, List<int> slots)
+        WorldState world, GameDatabase database, RoomInstance room, HashSet<int> roomTiles, List<int> slots) =>
+        WallSlots(world, database, room, roomTiles, slots, sides: null);
+
+    /// <summary>The side of a wall slot's wall, 0 to 3 for north, east, south and west (the wall pass's
+    /// side byte, <c>casino.md</c> §3); -1 for a tile that is no wall slot of the room.</summary>
+    public static int WallSide(WorldState world, GameDatabase database, RoomInstance room, int tileIndex)
+    {
+        var slots = new List<int>();
+        var sides = new List<int>();
+        WallSlots(world, database, room, new HashSet<int>(room.TileIndices), slots, sides);
+        int at = slots.IndexOf(tileIndex);
+        return at < 0 ? -1 : sides[at];
+    }
+
+    private static void WallSlots(
+        WorldState world, GameDatabase database, RoomInstance room, HashSet<int> roomTiles, List<int> slots,
+        List<int>? sides)
     {
         int? horizontalPhase = null;
         int? verticalPhase = null;
@@ -164,6 +180,7 @@ public static class AutoFurnitureRules
                 if ((coordinate & 1) != phase) continue;
 
                 slots.Add(tile);
+                sides?.Add(direction);
                 break;
             }
         }

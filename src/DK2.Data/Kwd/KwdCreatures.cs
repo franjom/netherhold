@@ -152,6 +152,9 @@ public static partial class KwdCreatures
             };
         }
 
+        var artSlots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+        for (int slot = 0; slot < artSlots.Length; slot++) artSlots[slot] = AnimationTiming(slot);
+
         return new CreatureDef
         {
             Name = Str(0x00, 32),
@@ -185,6 +188,7 @@ public static partial class KwdCreatures
             GetUpFallbackAnimation = AnimationTiming(1),
             ReaperSummonAnimation = AnimationTiming(35),
             ReaperSummonFallbackAnimation = AnimationTiming(8),
+            ArtSlots = artSlots,
 
             Speed = Fp(0xEB4),
             RunSpeed = Fp(0xEB8),

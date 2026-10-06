@@ -71,6 +71,7 @@ public static class AssetCatalogue
         "jack_in_the_box",
         "unbuilt_handler",
         "reaper_arriving",
+        "collecting_winnings",
     ];
 
     /// <summary>

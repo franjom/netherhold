@@ -167,6 +167,14 @@ public struct TileState
     /// forgets it.</summary>
     public long PitFightSeenTick;
 
+    /// <summary>A Casino's jackpot party, on the room's lowest tile like <see cref="HatchTicks"/>:
+    /// <see cref="CasinoJackpotRules.PartyBit"/> is room <c>+0x41</c>, <see cref="CasinoJackpotRules.MusicBit"/>
+    /// room <c>+0x3D</c>; <see cref="CasinoPartyStartTick"/> is <c>+0x45</c> (casino.md §8–§9).</summary>
+    public byte CasinoParty;
+
+    /// <inheritdoc cref="CasinoParty"/>
+    public long CasinoPartyStartTick;
+
     /// <summary>A Prison's door, on the room's lowest tile like <see cref="HatchTicks"/>: its
     /// <c>Activation</c>, <c>DoorOpen</c> and <c>PrisonJailBroken</c> as the bits of
     /// <see cref="JailBreakRules.Activated"/>, <see cref="JailBreakRules.Open"/> and
@@ -249,6 +257,8 @@ public struct TileState
         hash.Add(HatchTicks);
         hash.Add(ChickensGenerated);
         hash.Add(PitFightSeenTick);
+        hash.Add(CasinoParty);
+        hash.Add(CasinoPartyStartTick);
         hash.Add(PrisonDoor);
         hash.Add(SlabOrder);
         hash.Add(RoomSizeChangedTick);
@@ -428,6 +438,11 @@ public struct PlayerState
     /// <c>0x004DC9A0</c> refuses, so a due roll draws and restamps but nothing comes (ADR-0314).</summary>
     public bool PortalsClosed;
 
+    /// <summary>Player <c>+0xF4A</c>, the count of this keeper's Casinos with a jackpot party on:
+    /// while nonzero, job 9 and the Casino's enter hook skip the purse test and the finder takes its
+    /// party branch (casino.md §9).</summary>
+    public int CasinoParties;
+
     /// <summary>
     /// The Hand of Evil: the <b>things</b> this keeper is holding, in pick-up order.
     /// Things, not creatures (ADR-0075) — DK2 keeps one array of thing ids on the
@@ -487,6 +502,7 @@ public struct PlayerState
         hash.Add(CallToArms.Y);
         hash.Add(CallToArms.ManaTick);
         hash.Add(PortalsClosed ? (byte)1 : (byte)0);
+        hash.Add(CasinoParties);
         hash.Add(Availabilities.Count);
         foreach (AvailabilityState availability in Availabilities)
             availability.HashInto(ref hash);

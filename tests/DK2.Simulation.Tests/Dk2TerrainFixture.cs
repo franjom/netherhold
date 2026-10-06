@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -1571,6 +1571,13 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.GamblingModifyCreatureMoneyMoneyPerSecond, -8);
         Set(vars, VariableTypeId.GamblingModifyCreatureAngerSmilesPerSecond, -2000);
         Set(vars, VariableTypeId.GamblingModifyCreatureAngerMoneyPerSecond, 100);
+        // The jackpot, as shipped (ADR-0396): its odds a second on each setting, the winner's deadline
+        // in seconds, the missed deadline's anger percentage, and the least it pays.
+        Set(vars, VariableTypeId.GamblingCreatureJackpotChanceSmilesPerSecond, 5000);
+        Set(vars, VariableTypeId.GamblingCreatureJackpotChanceMoneyPerSecond, 20000);
+        Set(vars, VariableTypeId.GamblingJackpotPayTimeLimit, 240);
+        Set(vars, VariableTypeId.GamblingJackpotPayTimeLimitMissedAngerPercentageModifier, 100);
+        Set(vars, VariableTypeId.GamblingJackpotBasicAmount, 1000);
         // A convert never dies of it, as shipped (ADR-0193).
         Set(vars, VariableTypeId.TortureChanceOfDyingWhenConverted, 0);
         Set(vars, VariableTypeId.FirstPersonStatIncreasePercentage, 12);

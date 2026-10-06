@@ -8989,3 +8989,28 @@ searched site has set `+0x82`; whether one can come first is unread. No hash cha
 the call at 455-696 (was 472-608, DK2 700), on DK2's (64,38) in 8 (was 1); Morgana falls
 858-1,093 (808-1,052, DK2 1,378). Level 17: the Prison's site is a draw over Harkan's rooms, DK2's
 in 6 (3 on master); there it is laid from (16,22) as DK2's, first tile 557-868 (DK2 855).
+
+## ADR-0396 — A gambler moves among the Casino's furniture, and a jackpot starts a party and a collection
+**Date:** 2026-10-06 · **Status:** accepted · Completes ADR-0187, ADR-0313 · Raises Q568 · Research: `casino.md`
+
+**Context.** A gambler stood in state 145 while the Casino's hook charged it; 146–153 and the jackpot
+were unread. Read whole: 145 (`0x00456160`) chooses a party, a free table, a free alcove or a bare
+tile and walks there; 146–151 face the object, play an action and return; the hook's roll calls
+`0x004D6AA0`, which kicks the room's other gamblers into 153, counts a party on the keeper
+(`+0xF4A`, which lifts the purse tests) and sends the winner through 152 and 155–157 to a Treasury;
+the room update ends the party after 90 seconds, and a missed deadline angers the keeper's creatures.
+
+**Decision.** `CasinoStep` runs 145–151 and 153, `CasinoJackpotRules` the jackpot, the party and
+152, 155–157, with `CasinoJackpotSystem` for the drunk timer and the deadline. Action lengths come
+from the creature's art: `CreatureDef.ArtSlots` holds every block and `AnimationTimingRules`
+resolves a missing slot by DK2's switch; a counted action plays count + 1 times (LIKELY, as the
+prison's flourish). DK2's literals stay literals: 25 % and 45 seconds drunk (the shipped drink
+variables have no reader), 90 seconds of party, 10 of celebration. Deviates: a kicked creature's
+new state runs from the next turn; sounds, the wheel's spin (its draw kept), the drunk walk and
+effects are not kept; DK2's room object order breaks a finder tie, ours the world's; the party
+branch's finder messages are not built. A drinker stands 45°–135° from its alcove whatever its
+wall, so a south wall's alcove refuses the walk (Q568).
+
+**Measured** (hash 196) against master `95daa5f6`, both sides run: Level 1 20/20 and 20/20, Level
+2 2/20 and 2/20 (seeds 14 and 17), Level 3 seed 01 won at 3560 and 3560 (DK2 3683). No shipped
+level of the three has a Casino, so every run is identical.

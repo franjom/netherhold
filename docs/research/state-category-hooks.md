@@ -68,7 +68,7 @@ the category operation failed; a return of one means it remains valid.
 | `0x0047AC00` | Sleeping update | State 83 first calls `0x00477B20(1)`. Once per game second by turn modulus, calls the shared lair effect `0x004DFF00`. |
 | `0x0047AC40` | Lair update | Once per game second by turn modulus, calls `0x004DFF00`. |
 | `0x0047AC70` | Sulking update | Does the same lair call, then returns whether `0x004871A0` finds id 5 in creature `+0x26E`. |
-| `0x0047ACB0` | Casino enter | **CONFIRMED** (re-read 2026-10-01). `0x004539B0(15, owner, 0)` on the cell under the creature: only on its keeper's own Casino is room `+0x53` (the lever) tested, and 0 refuses. Otherwise the lever is not asked for, and the claim judges the cell. Then, unless player `+0xF4A` is nonzero, the purse: creature `+0x3FB` at most `abs(GamblingModifyCreatureMoneyMoneyPerSecond)` (8) refuses (signed `JLE`). Then `+0xB0` = variable 19 and `+0xB3` = 0, and the lookup and claim of §3.5, so a claim refusal leaves the seed written. Every refusal returns 0; none raises a message. Built: ADR-0313, the `+0xF4A` party excepted. |
+| `0x0047ACB0` | Casino enter | **CONFIRMED** (re-read 2026-10-01). `0x004539B0(15, owner, 0)` on the cell under the creature: only on its keeper's own Casino is room `+0x53` (the lever) tested, and 0 refuses. Otherwise the lever is not asked for, and the claim judges the cell. Then, unless player `+0xF4A` is nonzero, the purse: creature `+0x3FB` at most `abs(GamblingModifyCreatureMoneyMoneyPerSecond)` (8) refuses (signed `JLE`). Then `+0xB0` = variable 19 and `+0xB3` = 0, and the lookup and claim of §3.5, so a claim refusal leaves the seed written. Every refusal returns 0; none raises a message. Built: ADR-0313; the party, ADR-0396. |
 | `0x0047AD70` | Casino update | Once per second, advances the fearless countdown at creature `+0x4F4`. Station mode byte `+0x4A` selects Smiles or Money. Smiles applies anger -2000; Money applies +100; both charge buckets 5, 0 and 3 with selector 2. It then adds 1 money in Smiles or subtracts 8 in Money. A roll uses jackpot chances 5000/20000 and calls the keeper jackpot routine on result 42. |
 | `0x0047AF20` | Casino leave | Only when `CasinoGamblingFearless` (`+0x3EA` bit 13) is set: clears it and writes `FearlessUntil` (`+0x3D7`) = now + variable 19 × variable 203. Then releases. Built: ADR-0322 (`leave-hook-bodies.md` §1). |
 | `0x0047AFB0` | Research / GuardPost enter | Claims the room position; no category-specific side effect. |
@@ -107,14 +107,8 @@ the category operation failed; a return of one means it remains valid.
   That is 1 in 5000 a second on Smiley and 1 in 20000 on $, so the stingy setting
   pays out *less* often; `manual-1999.md`'s "higher on the stingy setting" misreads
   the range as odds.
-- **The jackpot** `0x004D6AA0`, on the keeper, runs only if none of the keeper's
-  creatures holds a `+0x3F2` timer. It gives every other creature in the room
-  complaints 1 and `0x99`. It increments player `+0xF4A`, the count DK2's dumper
-  names `DiscoInfernoCount`, which lifts the purse test in both the Drink job and
-  this enter hook. It sets the winner's `+0x3F2` to variable 207 × variable 19
-  ticks, and its `+0x3F4` to the larger of `0x004BE290()` (on the keeper) and
-  variable 209 (1000). The payout path and variable 208's missed-deadline anger
-  (applied to bucket 5 with selector 9 by `0x004D6A40`) are not traced further.
+- **The jackpot** `0x004D6AA0`, the party and the winner's collection: `casino.md` §8–§10
+  (ADR-0396).
 - **The lever's place.** The set-up `0x004D6ED0` walks the room's slab chain from
   `room+0x2D/+0x2E` and takes the first slab `0x00454110` accepts whose north-west,
   north and north-east neighbours it does not. The predicate wants a room slab whose

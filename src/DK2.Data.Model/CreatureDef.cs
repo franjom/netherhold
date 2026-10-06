@@ -100,6 +100,18 @@ public sealed record CreatureDef
     public CreatureAnimationTiming ReaperSummonAnimation { get; init; }
     public CreatureAnimationTiming ReaperSummonFallbackAnimation { get; init; }
 
+    /// <summary>Every art block, by slot (the file's 84-byte blocks from <c>0x20</c>, slots 0 to
+    /// <see cref="ArtSlotCount"/> − 1), for the actions that name a slot by number. The named
+    /// properties above are views of the same blocks. Empty for a hand-built definition.</summary>
+    public IReadOnlyList<CreatureAnimationTiming> ArtSlots { get; init; } = [];
+
+    /// <summary>The art blocks the creature file holds: 39, from <c>0x20</c> to <c>0xCEC</c>.</summary>
+    public const int ArtSlotCount = 39;
+
+    /// <summary>One art block, or an absent one when the slot is past <see cref="ArtSlots"/>.</summary>
+    public CreatureAnimationTiming ArtSlot(int slot) =>
+        slot >= 0 && slot < ArtSlots.Count ? ArtSlots[slot] : default;
+
     // Movement / perception
     public required Fp32 Speed { get; init; }
     public required Fp32 RunSpeed { get; init; }

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 195;
+    private const int FormatVersion = 196;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -136,6 +136,8 @@ public static class WorldSnapshot
             w.Write(t.HatchTicks);
             w.Write(t.ChickensGenerated);
             w.Write(t.PitFightSeenTick);
+            w.Write(t.CasinoParty);
+            w.Write(t.CasinoPartyStartTick);
             w.Write(t.PrisonDoor);
             w.Write(t.SlabOrder);
             w.Write(t.RoomSizeChangedTick);
@@ -185,6 +187,7 @@ public static class WorldSnapshot
             w.Write(p.CallToArms.Y);
             w.Write(p.CallToArms.ManaTick);
             w.Write(p.PortalsClosed);
+            w.Write(p.CasinoParties);
             w.Write(p.Availabilities.Count);
             foreach (AvailabilityState availability in p.Availabilities)
             {
@@ -397,6 +400,13 @@ public static class WorldSnapshot
             w.Write(c.PitStateEnteredTick);
             w.Write(c.SpectatorPosX);
             w.Write(c.SpectatorPosY);
+            w.Write(c.CasinoObjectId);
+            w.Write(c.CasinoFacing);
+            w.Write(c.CasinoPosX);
+            w.Write(c.CasinoPosY);
+            w.Write(c.DrunkTicks);
+            w.Write(c.JackpotDeadlineTicks);
+            w.Write(c.JackpotWinnings);
             w.Write(c.AttackSpellSlot);
             w.Write(c.SwingKind);
             w.Write(c.SwingSpellSlot);
@@ -730,6 +740,8 @@ public static class WorldSnapshot
                 HatchTicks = r.ReadInt32(),
                 ChickensGenerated = r.ReadInt32(),
                 PitFightSeenTick = r.ReadInt64(),
+                CasinoParty = r.ReadByte(),
+                CasinoPartyStartTick = r.ReadInt64(),
                 PrisonDoor = r.ReadByte(),
                 SlabOrder = r.ReadInt32(),
                 RoomSizeChangedTick = r.ReadInt64(),
@@ -776,6 +788,7 @@ public static class WorldSnapshot
                 CallToArms = new CallToArmsState(
                     r.ReadBoolean(), r.ReadInt32(), r.ReadUInt16(), r.ReadUInt16(), r.ReadUInt32()),
                 PortalsClosed = r.ReadBoolean(),
+                CasinoParties = r.ReadInt32(),
                 Availabilities = [],
                 EntranceInfo = [],
                 ManufactureQueue = [],
@@ -986,6 +999,13 @@ public static class WorldSnapshot
                 PitStateEnteredTick = r.ReadInt64(),
                 SpectatorPosX = r.ReadInt32(),
                 SpectatorPosY = r.ReadInt32(),
+                CasinoObjectId = r.ReadInt32(),
+                CasinoFacing = r.ReadBoolean(),
+                CasinoPosX = r.ReadInt32(),
+                CasinoPosY = r.ReadInt32(),
+                DrunkTicks = r.ReadInt32(),
+                JackpotDeadlineTicks = r.ReadInt32(),
+                JackpotWinnings = r.ReadInt32(),
                 AttackSpellSlot = r.ReadByte(),
                 SwingKind = r.ReadByte(),
                 SwingSpellSlot = r.ReadByte(),

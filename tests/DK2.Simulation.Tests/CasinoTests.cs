@@ -56,6 +56,7 @@ public class CasinoTests
         goblin.CurrentJob = JobType.Drink;
         StatePlacement.As(goblin, CreatureActivity.AtWork);
         StatePlacement.Place(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
+        goblin.HeldPlace = new RoomPlace(Index(world, Gambling), RoomCapacityRules.Units);   // the enter hook's claim
         goblin.GoldHeld = purse;
         return goblin;
     }
