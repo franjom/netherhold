@@ -22,11 +22,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   the reveal (ADR-0338), the Guard Post (ADR-0330), trap upkeep and damage (ADR-0326)
   and creatures fighting a revealed trap (scan D, ADR-0340) run; disarming is deferred under
   ADR-0329's scoped inference (Q455); shot heights go to M9 and the Boulder's slap to object slapping
-  (ADR-0341). Left: the owner's observations in experiments/doors-and-traps.md — Q520's wall is
-  disputed, Q513, Q524 and Q362 unwatched (2026-10-03).
+  (ADR-0341). Left: Q513 and the owner observations pending in
+  experiments/doors-and-traps.md.
 - Keeper spells (ADR-0350, accepted 2026-10-04): Create Gold, Tremor, Turncoat,
   Summon Horny, OneShotReaper and Possession's simulation side are built, and Sight
-  of Evil casts with an empty effect (ADR-0352), its region presentation (Q194, Q534). Research
+  of Evil casts with an empty effect (ADR-0352), its region presentation (Q194). Research
   grants every upgrade through ResearchTreeRules (KeeperSpellUpgradeTests); the
   upgraded effects are the bonus data and Possession's 70 % upkeep. Left unbuilt:
   Horny's idle AI, the possessed action arms in Q535/Q536, the third cast path
@@ -53,8 +53,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   imps find no store (Q518). Two idle captures of DK2's own keepers on the same
   maps (Level 17, 2026-10-05; Level 11A, 2026-10-06) are compared in
   computer-keeper-observations.md, whose last section is the M12 acceptance
-  table: every verb agrees in kind; the open timing differences are Q509, Q555
-  and Q563 (Q497 and Q509 are answered).
+  table: every verb agrees in kind; the open timing differences are Q509's
+  re-lift delay, Q555 and Q563.
+- Goal 7's writer/editor API is complete and verified (ADR-0346,
+  `src/DK2.Data/README.md`); the editor UI and playability validation are
+  future work.
 - The creature state machine dispatches category hooks. Combat enter and
   leave are partially built (ADR-0319, combat-category-hooks.md);
   their unmodelled words and the update hook are listed there. The Casino,
@@ -78,10 +81,12 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 3. M6 and M7: use the plan's run order and the open-question rows for the
    remaining replay, combat, hero, trap and door work. Avoid reproducing their
    detailed backlogs here.
-4. Goal 7's writer/editor API is complete and independently verified across all
-   five milestones and the whole branch; all review findings are resolved.
-   ADR-0346 and `src/DK2.Data/README.md` describe the surface and format limits.
-   The editor UI and playability validation remain future work.
+4. M6: the owner records Level 4 live (planned 2026-10-07), elevated:
+   `reverse-engineering\dk2runs\level2-seeds\run.ps1 -Live -Level level4
+   -Packet l4live -Map 50x64 -LastTick 30000 -OutName level4-live1`. The
+   2026-10-06 attempt was deleted: the recorder stopped at tick 3069 when the
+   tick read 3068 next. If that recurs without a save load, find what steps
+   DK2's tick back before trusting the recorder's reload check.
 
 After faithful M12, keep it as selectable Classic AI; explore a separate
 Enhanced keeper using the same observation/command interface (KEEPER_AI.md

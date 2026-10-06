@@ -36,8 +36,10 @@ Static vertices contain a 16-bit index into a `GEOM` array of float XYZ position
 Animated vertices instead index `ITAB`; a per-index, per-frame byte in `VGEO` is
 added to that base to select a `GEOM` entry. Animated positions pack signed 10-bit X,
 Y, and Z components into a 32-bit word and multiply the normalized result by the
-animation geometry scale. `ITAB` supplies one base table per block of 128 frames;
-frame `n` uses table `n / 128` and its own `VGEO` byte. `KmfReader` exposes every
+animation geometry scale. The byte after each animated `GEOM` position is that entry's
+key frame within its 128-frame block. `ITAB` supplies one base table per block of 128 frames;
+frame `n` uses table `n / 128` and its own `VGEO` byte, and a frame between two keys lies on
+the line from entry g to g + 1 (ADR-0390). `KmfReader` exposes every
 decoded frame through `KmfAnimation`, while `KmfModel.Mesh` remains the frame-zero
 mesh for existing callers and as a fallback if a later frame has an invalid geometry
 lookup.
@@ -153,15 +155,16 @@ point primitive.
 Animated positions are emitted as glTF morph targets with a `WEIGHTS` animation
 channel. This is the closer reading of KMF because its sprite topology, material, UVs,
 and normals remain fixed while the per-frame lookup changes only each vertex position.
-Frame zero is the base mesh and every later frame is a position-delta target. Keys
-select those poses with `STEP` interpolation. **This diverges from DK2**: the byte
-after each `GEOM` position is that entry's key frame, and the engine interpolates
-linearly between consecutive entries (`docs/research/kmf-animation-playback.md` §1);
-`KmfReader` still drops the byte.
+Frame zero is the base mesh and every later frame is a position-delta target. Each
+integer frame is evaluated as DK2's key interpolation does, and the weights are keyed
+`LINEAR`, so a viewer's blend between sampled frames is DK2's pose (ADR-0390).
 
-The output rate is **30 frames per second**, an assumed value. DK2 takes a clip's
-length from the creature art descriptor's FPS and frame count, in game turns
-(STRONGLY INFERRED, `docs/research/kmf-animation-playback.md` §3). If any later
+One pass runs from the first frame to the last over the creature art descriptor's frame
+count divided by its FPS, in seconds; that descriptor count differs from the KMF's in 300 of
+906 creature clips, and the pass follows the descriptor. A KMF with no descriptor
+(objects, rooms) is keyed at an assumed **30 frames per second**. That the descriptor's
+clock is what times the drawn frame is STRONGLY INFERRED (Q442,
+`docs/research/kmf-animation-playback.md` §3). If any later
 frame cannot be decoded, or an externally constructed animation does not match the
 frame-zero topology, `GlbWriter` deliberately emits the valid frame-zero mesh without
 an animation channel.
