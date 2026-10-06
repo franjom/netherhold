@@ -21,7 +21,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - After a merge, autocrlf leaves CRLF working copies: a patch matching `"\n"`-joined text finds
   nothing. Normalise to `\n` before matching and restore the endings on write.
 - A file restored with `mv` keeps its old mtime, and the next build may skip it.
-- Git Bash `sed -i` rewrites a CRLF file as LF, and `grep -c $'\r$'` there still counts every line: count `\r\n` bytes to check.
+- Git Bash `sed -i` rewrites a CRLF file as LF, and `grep -c $'\r$'` there is no CRLF check (it reported 0 on a CRLF file): count `\r\n` bytes instead.
 - `apply_patch` rejects a delete and add of the same path in one patch; use an update or separate patches.
 - `apply_patch` Add File can overwrite an existing path; check existence and update existing function records so their history survives.
 - A fixed TRX LogFileName with one results directory overwrites each solution project's results; use the logger's default distinct names.
