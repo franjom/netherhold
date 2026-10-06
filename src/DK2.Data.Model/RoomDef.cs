@@ -22,9 +22,12 @@ public enum RoomFlags : uint
     NormalTiles = 1u << 6,
     Buildable = 1u << 7,
     SpecialWalls = 1u << 8,
-    Attackable = 1u << 9,
-    Unk10 = 1u << 10,
-    Unk11 = 1u << 11,
+
+    /// <summary>Bits 9 to 11 add 255 to the torch light's red, green and blue (the room loader,
+    /// <c>0x004EBCD5..0x004EBD2A</c>; wall-torches.md §4). ufdada names bit 9 Attackable.</summary>
+    TorchRedHigh = 1u << 9,
+    TorchGreenHigh = 1u << 10,
+    TorchBlueHigh = 1u << 11,
     HasFlame = 1u << 12,
     IsGood = 1u << 13,
 }
@@ -85,6 +88,10 @@ public sealed record RoomDef
     public required ushort NameStringId { get; init; }
     public required ushort TooltipStringId { get; init; }
 
+    /// <summary>The torch a wall facing this room's floor carries (wall-torches.md §4). Absent
+    /// from a hand-built definition, which gets the balance defaults' torch.</summary>
+    public RoomTorch? Torch { get; init; }
+
     public bool IsBuildable => Flags.HasFlag(RoomFlags.Buildable);
     public bool PlaceableOnLand => Flags.HasFlag(RoomFlags.PlaceableOnLand);
     public bool PlaceableOnWater => Flags.HasFlag(RoomFlags.PlaceableOnWater);
@@ -104,3 +111,18 @@ public sealed record RoomDef
     public RoomTypeId? TypeId =>
         Enum.IsDefined(typeof(RoomTypeId), (RoomTypeId)RoomId) ? (RoomTypeId)RoomId : null;
 }
+
+/// <summary>
+/// A room's wall torch, read from its ROOMS record (wall-torches.md §4, CONFIRMED against the
+/// shipped file). Colours include the +255 of flags 9 to 11.
+/// </summary>
+/// <param name="Red">File byte <c>0x397</c>, plus 255 with <see cref="RoomFlags.TorchRedHigh"/>.</param>
+/// <param name="Green">File byte <c>0x398</c>, plus 255 with <see cref="RoomFlags.TorchGreenHigh"/>.</param>
+/// <param name="Blue">File byte <c>0x399</c>, plus 255 with <see cref="RoomFlags.TorchBlueHigh"/>.</param>
+/// <param name="Intensity">File word <c>0x36E</c>, kept by DK2 as one byte.</param>
+/// <param name="Height">File word <c>0x380</c>, in 1/4096 tile.</param>
+/// <param name="Radius">File dword <c>0x3C3</c>, in 1/4096 tile, before the light setter's clamp.</param>
+/// <param name="ArtName">The torch art resource at <c>0x3C7</c>.</param>
+/// <param name="HasArt">The name is non-empty, the loader's test for the art flag (<c>0x004EBE58</c>); false is a light with no mesh.</param>
+public sealed record RoomTorch(
+    int Red, int Green, int Blue, byte Intensity, int Height, int Radius, string ArtName, bool HasArt);

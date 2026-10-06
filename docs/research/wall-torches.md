@@ -117,7 +117,8 @@ supplies them. Otherwise they come from the balance defaults.
 **Room flags 9–11 are torch-colour high bits.** `RoomFlags` in
 `src/DK2.Data.Model/RoomDef.cs` names bit 9 `Attackable` (ufdada's bit order)
 and bits 10–11 `Unk10`/`Unk11`. The loader (`0x004EBCD5..0x004EBD2A`) uses them
-to add 255 to red, green and blue. Nothing in `src/` reads them.
+to add 255 to red, green and blue. `RoomFlags` now names them `TorchRedHigh`, `TorchGreenHigh`
+and `TorchBlueHigh`, and `RoomTorch` folds them in (ADR-0390).
 
 **Mesh.**
 - **F has no room:** the bridge's default `Torch1` mesh at `CBridge+0x382`,
@@ -166,7 +167,8 @@ art `Torch1`.
 | 25 Hero Portal | 200,67,10 | 128 | | 8192 | *(none)* |
 
 Hero Stone Bridge has a mesh but a zero light. The art names were read from the
-file. The art flag byte was read by the first pass only.
+file. The art flag is set by the loader for any non-empty art name; the file's art flags are
+not read (`0x004EBE58..0x004EBEE4`, re-read 2026-10-06).
 
 ## 5. The layer: an engine object, not a game thing
 
@@ -191,10 +193,10 @@ file. The art flag byte was read by the first pass only.
   a negative search: it shows nothing reads torch light, not that light has no
   effect anywhere.
 
-**For this project:** `WorldView` works out torches from terrain, rooms and
-Q446's refresh order, and emits them alongside `TileView`. ADR-0035 already
-keeps this kind of decision out of the renderers. `RoomDef` will need the five
-torch fields and the art flag, none of which `KwdTerrainRooms` parses today.
+**For this project (built, ADR-0390):** `TorchLayout` in `DK2.Presentation`
+keeps the torches, since the winner of a shared floor depends on refresh order;
+`ScenePresenter` pushes them through `IRenderTarget`'s torch methods, and
+`RoomDef.Torch` carries the five fields and the art switch.
 
 ## 6. When the refresh runs
 
@@ -284,7 +286,7 @@ reads to `0x00439B90` was not read, so the winner at an inside corner is open.
 |---|---|---|
 | Q446 | Which wall wins a floor tile it shares with another at level start | The gate and its posters are read (§6, Level start). Read how terrain 0 reads to `0x00439B90`, which callback a new-level load installs, and whether `0x004ED1A0` reaches `0x004F0E30`. Oracle: the owner describes an inside corner and a long straight wall on a fresh level |
 | — | Command 19's handler `0x00448800` | Read it |
-| — | Why the terrain setter also refreshes tiles two steps away | Probably so a torch that loses its wall can move to the next eligible wall; read the setter's loop |
+| — | Why the terrain setter also refreshes tiles two steps away | Read 2026-10-06: the loop is (±2, 0), (0, ±2), each gated by world vt`+0x1FC` (unread, probably a bounds test) and `0x00452D80` (`0x00450125..0x004501B3`); why is still a guess |
 | — | The meaning of light flag bits `0x2` and `0x40` in `0x4052` | Engine-side; matters only for matching the lighting |
 | — | The loader-side gate dwords at intermediate `+0x64..+0x78` (§4) | Read the room loader's caller; a level override is the likely reading |
 | — | `0x004559B0`, called three times in the refresh | Not read; probably the tile's room lookup |

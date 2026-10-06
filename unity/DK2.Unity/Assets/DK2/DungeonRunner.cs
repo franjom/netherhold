@@ -138,7 +138,7 @@ namespace DK2.Unity
             _scene = new DungeonScene(transform, world.Width);
             _worldView = new WorldView(database, (byte)viewingPlayerId);
             _presenter = new ScenePresenter(
-                _worldView, _assets, _scene);
+                _worldView, _assets, _scene, new TorchLayout(database));
 
             _presenter.Present(world);
             LookAt(world);

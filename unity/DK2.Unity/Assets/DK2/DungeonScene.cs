@@ -43,6 +43,7 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
+        private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private readonly int _worldWidth;
 
@@ -161,6 +162,52 @@ namespace DK2.Unity
             _objects.Remove(objectId);
         }
 
+        /// <summary>A wall torch: a point light, and its mesh when it has one. How DK2's light
+        /// numbers map onto Unity's (colour over 255, intensity over 128) is this renderer's
+        /// choice, not a claim about the original (ADR-0390).</summary>
+        public void CreateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh)
+        {
+            // Unity's fake null makes ?? unsafe on its objects, hence the explicit tests.
+            GameObject go = Instantiate(mesh, $"torch {floorTileIndex}");
+            if (go == null) go = new GameObject($"torch {floorTileIndex}");
+            else go.transform.localScale = new Vector3(0.1f, 0.25f, 0.1f); // a placeholder cube is a whole tile
+            go.transform.SetParent(_root, false);
+            go.transform.localPosition = new Vector3(
+                torch.PosX / (float)Fp32.One, torch.Height / (float)Fp32.One, torch.PosY / (float)Fp32.One);
+            go.transform.localRotation = Quaternion.Euler(0f, torch.Yaw * 360f / 2048f, 0f);
+            Light light = go.AddComponent<Light>();
+            light.type = LightType.Point;
+            ApplyTorchLight(light, torch);
+            _torches[floorTileIndex] = go;
+        }
+
+        public void UpdateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh)
+        {
+            if (!_torches.TryGetValue(floorTileIndex, out GameObject go) || go == null)
+            {
+                CreateTorch(floorTileIndex, torch, mesh);
+                return;
+            }
+
+            Light light = go.GetComponent<Light>();
+            if (light != null) ApplyTorchLight(light, torch);
+        }
+
+        public void RemoveTorch(int floorTileIndex)
+        {
+            if (_torches.TryGetValue(floorTileIndex, out GameObject go) && go != null)
+                Object.Destroy(go);
+
+            _torches.Remove(floorTileIndex);
+        }
+
+        private static void ApplyTorchLight(Light light, in TorchView torch)
+        {
+            light.color = new Color(torch.Red / 255f, torch.Green / 255f, torch.Blue / 255f);
+            light.intensity = torch.Intensity / 128f;
+            light.range = torch.Radius / (float)Fp32.One;
+        }
+
         /// <summary>
         /// Nothing to do: this target draws one object per thing rather than
         /// batching. A combined-mesh target would rebuild here, which is why the
@@ -177,11 +224,13 @@ namespace DK2.Unity
             foreach (GameObject go in _furniture.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _creatures.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _objects.Values) if (go != null) Object.Destroy(go);
+            foreach (GameObject go in _torches.Values) if (go != null) Object.Destroy(go);
 
             _tiles.Clear();
             _furniture.Clear();
             _creatures.Clear();
             _objects.Clear();
+            _torches.Clear();
         }
 
         private void ApplyFurniture(int tileIndex, in TileView tile, in ResolvedAsset furniture)

@@ -20,6 +20,21 @@ public class KwdTerrainRoomsTests
     private static List<TerrainDef> Terrain() =>
         KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(Path.Combine(EditorDir(), "Terrain.kwd")));
 
+    /// <summary>The torch fields against wall-torches.md §4's table of the shipped file: colour
+    /// with the +255 high bits, intensity, height, radius and the torch art switch.</summary>
+    [InstallFact]
+    public void Rooms_CarryTheirWallTorch()
+    {
+        List<RoomDef> all = Rooms();
+        RoomTorch T(byte id) => all.Single(x => x.RoomId == id).Torch!;
+
+        Assert.Equal(new RoomTorch(349, 200, 50, 180, 6144, 6144, "Torch1", true), T(1));
+        Assert.Equal(new RoomTorch(193, 165, 103, 128, 6144, 10240, "Torch1", true), T(9));
+        Assert.Equal(new RoomTorch(50, 150, 160, 70, 6144, 7372, "", false), T(13));
+        Assert.Equal(new RoomTorch(299, 299, 299, 128, 4096, 10240, "", false), T(18));
+        Assert.Equal(new RoomTorch(0, 0, 0, 0, 0, 0, "Torch1", true), T(22));
+    }
+
     private static List<RoomDef> Rooms() =>
         KwdTerrainRooms.ParseRooms(KwdReader.ReadFile(Path.Combine(EditorDir(), "Rooms.kwd")));
 

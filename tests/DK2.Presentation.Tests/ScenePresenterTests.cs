@@ -85,6 +85,12 @@ public class ScenePresenterTests
             ObjectRemoves++;
         }
 
+        public void CreateTorch(int i, in TorchView t, in ResolvedAsset m) => Calls.Add($"create-torch {i} {m.Reference}");
+
+        public void UpdateTorch(int i, in TorchView t, in ResolvedAsset m) => Calls.Add($"update-torch {i}");
+
+        public void RemoveTorch(int i) => Calls.Add($"remove-torch {i}");
+
         public void Flush()
         {
             Calls.Add("flush");
@@ -123,6 +129,37 @@ public class ScenePresenterTests
             new WorldView(database), AssetProviderChain.Standard(), target);
 
         return new Rig(database, simulation, presenter, target);
+    }
+
+    /// <summary>
+    /// With a <see cref="TorchLayout"/>, the torches come after the tiles, once each in floor-tile
+    /// order; an unchanged world pushes none, and a resync draws them all again (ADR-0390).
+    /// </summary>
+    [InstallFact]
+    public void TorchesArePushedAfterTheTiles_OnceEach_AndAgainAfterAResync()
+    {
+        if (BuildRig() is not { } rig) return;
+        var target = new RecordingTarget();
+        var presenter = new ScenePresenter(new WorldView(rig.Database), AssetProviderChain.Standard(),
+            target, new TorchLayout(rig.Database));
+
+        presenter.Present(rig.Simulation.World);
+        List<string> torches = target.Calls.Where(c => c.StartsWith("create-torch", StringComparison.Ordinal)).ToList();
+        List<int> floors = torches.Select(c => int.Parse(c.Split(' ')[1])).ToList();
+        Assert.NotEmpty(floors);
+        Assert.Equal(floors.OrderBy(i => i), floors);
+        Assert.True(target.Calls.FindLastIndex(c => c.StartsWith("create-tile", StringComparison.Ordinal))
+            < target.Calls.FindIndex(c => c.StartsWith("create-torch", StringComparison.Ordinal)));
+        Assert.Equal(floors.Count, presenter.TorchesPushed);
+
+        target.Clear();
+        presenter.Present(rig.Simulation.World);
+        Assert.Equal(0, presenter.TorchesPushed);
+
+        target.Clear();
+        presenter.Resync();
+        presenter.Present(rig.Simulation.World);
+        Assert.Equal(torches, target.Calls.Where(c => c.StartsWith("create-torch", StringComparison.Ordinal)));
     }
 
     /// <summary>

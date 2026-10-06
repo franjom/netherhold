@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System;
 using System.Collections.Generic;
 using DK2.Data.Model;
 
@@ -80,8 +81,41 @@ public static class AssetCatalogue
     {
         foreach (AssetRef reference in ForTerrain(database)) yield return reference;
         foreach (AssetRef reference in ForRooms(database)) yield return reference;
+        foreach (AssetRef reference in ForTorches(database)) yield return reference;
         foreach (AssetRef reference in ForCreatures(database)) yield return reference;
         foreach (AssetRef reference in ForObjects(database)) yield return reference;
+    }
+
+    /// <summary>The bridge's own torch art, which a wall torch over a floor with no room carries
+    /// (wall-torches.md §4).</summary>
+    public const string DefaultTorchArt = "Torch1";
+
+    /// <summary>A wall torch's mesh, keyed by its art name so the rooms that share one share it.</summary>
+    public static AssetRef TorchMesh(string artName) =>
+        AssetRef.ForRoom("torch", AssetKind.Mesh, artName);
+
+    /// <summary>
+    /// One mesh per distinct torch art: the bridge default and every room's whose torch art flag
+    /// is set, in ordinal name order; none for a database with no Torch-flagged terrain.
+    /// </summary>
+    public static IEnumerable<AssetRef> ForTorches(GameDatabase database)
+    {
+        foreach (string art in TorchArt(database)) yield return TorchMesh(art);
+    }
+
+    /// <summary>The torch art names <see cref="ForTorches"/> lists, for a converter to follow.</summary>
+    public static IReadOnlyList<string> TorchArt(GameDatabase database)
+    {
+        var names = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        bool torchWalls = false;
+        foreach (TerrainDef terrain in database.Terrain.Values)
+            torchWalls |= (terrain.Flags & TerrainFlags.Torch) != 0;
+        if (!torchWalls) return new List<string>();
+        names.Add(DefaultTorchArt);
+        foreach (RoomDef room in database.Rooms.Values)
+            if (room.Torch is { HasArt: true } torch && !string.IsNullOrWhiteSpace(torch.ArtName))
+                names.Add(torch.ArtName);
+        return new List<string>(names);
     }
 
     /// <summary>One visual per terrain type; a hazard terrain also gets an effect key.</summary>

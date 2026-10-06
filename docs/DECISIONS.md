@@ -8828,3 +8828,36 @@ a backwards key and a last entry with no g + 1 also hold g, which matches DK2 on
 every shipped KMF, they fall on the key's own frame, where DK2 multiplies a zero numerator by a
 float read outside its table, assumed finite; a KMF with no descriptor (objects, rooms) keeps 30
 fps; the link from the animation phase to the drawn time is unread (Q442).
+
+## ADR-0390 — Wall torches are a stateful presentation layer
+**Date:** 2026-10-06 · **Status:** accepted · Presentation only · Amends ADR-0036 · Research: `wall-torches.md`; Q445, Q446
+
+**Context.** DK2's wall torches are engine lights the simulation never reads, placed by CBridge
+slot `+0xB8` (`0x00439B90`): a Torch-flagged wall that is not a door lights each floor face, N, E,
+S, W, that is not solid or a door, passes the parity (x odd for N/S, y even for E/W) and holds no
+torch yet, so the first wall refreshed takes a floor two walls share. The terrain setter
+(`0x0044FC40`) refreshes the tile and the qualifying walls beside it and two steps away; the
+room-change closers recolour (command 16, `0x00448710`, colour only). Colour, intensity, radius
+(clamped to `0x2780`), height and art come from the floor's room (`Rooms.kwd` `0x36E`..`0x3C7`,
+flags 9 to 11 adding 255) or the balance defaults. Ours had no torches.
+
+**Decision.** `RoomDef.Torch` reads the room's torch; `TorchLayout` (`DK2.Presentation`) keeps the
+torches, laying a level out once and then repeating the setter's refreshes for each tile whose
+terrain changed, and recolouring the tile and its neighbours when its room changed;
+`ScenePresenter` pushes them after the tiles through three new `IRenderTarget` methods
+(`CreateTorch`, `UpdateTorch`, `RemoveTorch`), and the Unity scene draws a point light with the
+mesh. The meshes are catalogued per art name (`room.torch.mesh.<art>`); a room has torch art
+when its torch art name is non-empty, the loader's own test. State rather than a `WorldView`
+method, because a floor's winner depends on refresh order. Deviates: the level start runs the
+setter's neighbour refreshes in row order with every tile already loaded and no refresh of the
+tile itself (its command 3 is dropped at the closed gate), where DK2 refreshes during the load
+(HYPOTHESIS, Q446); in a running game the tile's own refresh is assumed posted, after its
+neighbours'; changes are found by terrain id once per frame and replayed in tile order, not in
+the order the setter ran, and a setter call that changes no id is missed; a floor's room is read
+from its terrain, where DK2 reads the tile's room word, which may still be empty while a level
+loads (unread); the two-step refresh's world gate (vt `+0x1FC`) is taken for a bounds test; the
+Torture Chamber's and Casino's furniture phase is not kept, so they use the plain parity, and so
+the room-change closers' other refreshes (`0x004F0E30`, command 3) are left out as no-ops
+(STRONGLY INFERRED); the terrain-art gate (inert in shipped data) is not tested; a door's own
+refreshes (command 17) are not followed; the Unity light's colour over 255 and intensity over 128
+are a renderer's choice.

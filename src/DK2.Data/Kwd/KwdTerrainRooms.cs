@@ -80,6 +80,8 @@ public static class KwdTerrainRooms
         internal const int Cost = 0x378, Id = 0x392, Return = 0x393, Terrain = 0x394;
         internal const int Construction = 0x395, Creature = 0x396, Objects = 0x39A, Order = 0x3C2;
         internal const int SizeX = 0x41B, SizeY = 0x41C, Health = 0x41D;
+        internal const int TorchIntensity = 0x36E, TorchHeight = 0x380, TorchRgb = 0x397;
+        internal const int TorchRadius = 0x3C3, TorchArt = 0x3C7;
     }
 
     public static List<TerrainDef> ParseTerrain(IEnumerable<KwdChunk> chunks)
@@ -176,6 +178,22 @@ public static class KwdTerrainRooms
             RecommendedSizeX = U8(RoomLayout.SizeX),
             RecommendedSizeY = U8(RoomLayout.SizeY),
             HealthGain = U16(RoomLayout.Health),
+            Torch = Torch(),
         };
+
+        RoomTorch Torch()
+        {
+            var flags = (RoomFlags)U32(RoomLayout.Flags);
+            int High(RoomFlags bit) => (flags & bit) != 0 ? 255 : 0;
+            return new RoomTorch(
+                U8(RoomLayout.TorchRgb) + High(RoomFlags.TorchRedHigh),
+                U8(RoomLayout.TorchRgb + 1) + High(RoomFlags.TorchGreenHigh),
+                U8(RoomLayout.TorchRgb + 2) + High(RoomFlags.TorchBlueHigh),
+                (byte)U16(RoomLayout.TorchIntensity),
+                U16(RoomLayout.TorchHeight),
+                (int)U32(RoomLayout.TorchRadius),
+                ReadName(rec, b + RoomLayout.TorchArt, 64),
+                rec[b + RoomLayout.TorchArt] != 0);
+        }
     }
 }

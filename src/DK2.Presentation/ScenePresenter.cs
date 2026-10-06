@@ -129,6 +129,9 @@ public sealed class ScenePresenter
     private readonly WorldView _view;
     private readonly IAssetProvider _assets;
     private readonly IRenderTarget _target;
+    private readonly TorchLayout? _torches;
+    private readonly HashSet<int> _torchesDrawn = [];
+    private bool _redrawTorches;
 
     private TileVisual[] _lastTiles = [];
     private bool[] _tileCreated = [];
@@ -140,10 +143,17 @@ public sealed class ScenePresenter
     private readonly HashSet<int> _seenObjects = [];
 
     public ScenePresenter(WorldView view, IAssetProvider assets, IRenderTarget target)
+        : this(view, assets, target, null)
+    {
+    }
+
+    /// <summary>With <paramref name="torches"/>, the wall torches are pushed too (ADR-0390).</summary>
+    public ScenePresenter(WorldView view, IAssetProvider assets, IRenderTarget target, TorchLayout? torches)
     {
         _view = view ?? throw new ArgumentNullException(nameof(view));
         _assets = assets ?? throw new ArgumentNullException(nameof(assets));
         _target = target ?? throw new ArgumentNullException(nameof(target));
+        _torches = torches;
     }
 
     /// <summary>How many tiles were pushed by the most recent <see cref="Present"/>.</summary>
@@ -154,6 +164,9 @@ public sealed class ScenePresenter
 
     /// <summary>How many objects were pushed by the most recent <see cref="Present"/>.</summary>
     public int ObjectsPushed { get; private set; }
+
+    /// <summary>How many torches were pushed by the most recent <see cref="Present"/>.</summary>
+    public int TorchesPushed { get; private set; }
 
     /// <summary>
     /// Forgets everything, so the next <see cref="Present"/> creates the whole
@@ -166,6 +179,8 @@ public sealed class ScenePresenter
         _tileCreated = [];
         _lastCreatures.Clear();
         _lastObjects.Clear();
+        _torchesDrawn.Clear();
+        _redrawTorches = true;
     }
 
     /// <summary>
@@ -183,6 +198,7 @@ public sealed class ScenePresenter
         TilesPushed = 0;
         CreaturesPushed = 0;
         ObjectsPushed = 0;
+        TorchesPushed = 0;
 
         if (_lastTiles.Length != world.TileCount)
         {
@@ -191,6 +207,7 @@ public sealed class ScenePresenter
         }
 
         PresentTiles(world);
+        PresentTorches(world);
 
         // Objects before creatures, because a creature stands on an object and
         // the text renderer draws them in that precedence -- one order, decided
@@ -225,6 +242,41 @@ public sealed class ScenePresenter
                 _tileCreated[index] = true;
                 TilesPushed++;
             }
+        }
+    }
+
+    /// <summary>The torches after the tiles they hang on, in floor-tile order.</summary>
+    private void PresentTorches(WorldState world)
+    {
+        if (_torches is null) return;
+        IReadOnlyList<int> changed = _torches.Update(world);
+        if (_redrawTorches)
+        {
+            _redrawTorches = false;
+            var all = new List<int>();
+            for (int i = 0; i < world.TileCount; i++)
+                if (_torches.At(i) is not null || _torchesDrawn.Contains(i)) all.Add(i);
+            changed = all;
+        }
+
+        foreach (int index in changed)
+        {
+            if (_torches.At(index) is TorchView torch)
+            {
+                ResolvedAsset mesh = Resolve(torch.Mesh);
+                if (_torchesDrawn.Add(index)) _target.CreateTorch(index, torch, mesh);
+                else _target.UpdateTorch(index, torch, mesh);
+            }
+            else if (_torchesDrawn.Remove(index))
+            {
+                _target.RemoveTorch(index);
+            }
+            else
+            {
+                continue;
+            }
+
+            TorchesPushed++;
         }
     }
 

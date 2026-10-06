@@ -8,7 +8,7 @@ namespace DK2.Presentation;
 
 /// <summary>What a renderer has to be able to do, without naming an engine.</summary>
 /// <remarks>
-/// <para>Nine methods with no logic in them (ADR-0036). Diffing, asset resolution,
+/// <para>Twelve methods with no logic in them (ADR-0036; the torches, ADR-0390). Diffing, asset resolution,
 /// coordinate policy and push order are all <see cref="ScenePresenter"/>'s and are
 /// tested here; the adapter cannot be.</para>
 /// <para>Arguments are <see cref="ResolvedAsset"/>, not a path: a target must draw
@@ -65,6 +65,18 @@ public interface IRenderTarget
 
     /// <summary>An object is gone: a bed sold, an egg hatched, a pile emptied.</summary>
     void RemoveObject(int objectId);
+
+    /// <summary>
+    /// A wall torch has been lit over a floor tile: a light, and its mesh unless
+    /// <see cref="TorchView.Mesh"/> is empty. Named by the floor tile, which holds at most one.
+    /// </summary>
+    void CreateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh);
+
+    /// <summary>A torch's colour changed: a room was built or sold beside it.</summary>
+    void UpdateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh);
+
+    /// <summary>A torch is gone: its wall was dug or the floor filled.</summary>
+    void RemoveTorch(int floorTileIndex);
 
     /// <summary>
     /// Every push is finished. A target that batches — one combined mesh per

@@ -55,6 +55,7 @@ public static class AssetConverter
         var run = new Run(root, meshes, textures);
         run.ConvertTerrain(database, art);
         run.ConvertRooms(database, art);
+        run.ConvertTorches(database);
         run.ConvertCreatures(database, art);
         run.ConvertObjects(database, art);
 
@@ -164,6 +165,13 @@ public static class AssetConverter
                         source, "animation KMF");
                 }
             }
+        }
+
+        /// <summary>One mesh per distinct torch art, in the catalogue's order.</summary>
+        public void ConvertTorches(GameDatabase database)
+        {
+            foreach (string name in AssetCatalogue.TorchArt(database))
+                ConvertKmf(AssetCatalogue.TorchMesh(name), new Dk2ArtResource(name, 0), "torch mesh");
         }
 
         public void ConvertObjects(GameDatabase database, Dk2ArtCatalogue art)
