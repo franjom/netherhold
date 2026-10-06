@@ -150,8 +150,8 @@ current direction (N, W, S, E table order):
 
 1. Skip at most `2 * side` tiles that are already tagged or belong to a room.
 2. Require an in-map landing tile; reject a solid tile whose descriptor combination
-   marks it unsuitable. Record the approach endpoints in `JoinPathStart/End`.
-3. If `TilesLeftBetweenRooms` is nonzero, advance that many further suitable tiles.
+   marks it unsuitable. Store the origin in `JoinPathEnd` (`+0x86`).
+3. If `TilesLeftBetweenRooms` is nonzero, advance that many suitable tiles; store the stop in `+0x82`.
 4. Test a `side * side` area centred across the approach line and extending forward.
    Every tile must be in-map and be taggable, owned without a room, or carry
    terrain descriptor `+0x1CB` bit 0; interior solidity is not tested.

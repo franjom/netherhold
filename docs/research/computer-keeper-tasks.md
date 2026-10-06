@@ -212,12 +212,25 @@ the rectangle decrements it (`0x004FD205`, `0x004FD22F`, `0x004FD24F`).
 The unchanged failure return could cause immediate repeated attempts in the task
 loop; whether that failure is reachable in ordinary play is **UNKNOWN**.
 
+**STRONGLY INFERRED (decompile and disassembly, 2026-10-06):** the zero cursor is the site
+search's. On success `0x005012A0` stores its origin in `JoinPathEnd` (`+0x86`), the tile where
+its outward walk and spacing stopped in `JoinPathStart` (`+0x82`, `side/2` along the square's
+near edge, inside it), the square's unflipped corner in `DigRoomAt` and zero in
+`DigRoomAtCurrent`. So a searched site gets its path, from the origin to `+0x82`, before its
+rectangle is tagged, with no test that the site is already joined. An expansion (`0x004FBE00`)
+writes a nonzero cursor but never `+0x82`; it skips the path only when `+0x82` is already
+nonzero, as any earlier searched site leaves it. What initialises `+0x82`, and whether an
+expansion can come before any site search, is **UNREAD**. Task 2 dispatches action `0x28` on
+every rectangle tile and retries one whose dispatch returns zero; what that handler returns
+for an open or already tagged tile is **UNREAD**. Built 2026-10-06 (ADR-0395, Q566). Level 17's capture confirms the order: Harkan's path tile
+(15,20) enters his pool at 381, the Prison's 25 tiles at 500.
+
 Task 3's blocked/foreign-tile flag bypasses cursor advancement
 (`0x004FD42A..0x004FD437`). Build attempts also return without advancing
 (`0x004FD550..0x004FD577`). On the next pass, a newly built owned tile advances
-only if the placement predicate now refuses it and navigation is open. Our
-current `PlaceRoom` scans the whole footprint and can skip a blocked leading
-tile; it does not reproduce this cursor discipline.
+only if the placement predicate now refuses it and navigation is open. Built 2026-10-06
+(ADR-0395, Q555): ours walks the same cursor from the rectangle's corner, but builds one tile
+a tick, since our build lands a tick later. Before, it built any ready tile in the footprint.
 
 ## 7. Site search audit
 

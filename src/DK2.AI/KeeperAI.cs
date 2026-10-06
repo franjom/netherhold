@@ -266,8 +266,7 @@ public sealed class KeeperAI
                 break;
 
             case KeeperTask.DigRectangle:
-                budget--;
-                DigRectangle(view, commands);
+                DigRectangle(view, commands, ref budget);
                 break;
 
             case KeeperTask.PlaceRoom:
@@ -366,6 +365,9 @@ public sealed class KeeperAI
                 State.RectangleOrigin = grown.Origin;
                 State.RectangleWidth = grown.Width;
                 State.RectangleHeight = grown.Height;
+                State.RectangleStart = grown.Origin;
+                State.RectangleStepX = State.RectangleStepY = 1;
+                State.JoinPathPending = false; // the cursor is the rectangle's corner: no path
                 State.BeginTask(KeeperTask.DigRectangle, State.NextTask);
                 return true;
             }
@@ -380,13 +382,19 @@ public sealed class KeeperAI
 
     private void FindSite(KeeperView view, BuildArea area)
     {
-        RoomSite? site = SiteFinder.Find(view, State.SearchOrigin, State.SearchDirection,
+        SiteChoice? site = SiteFinder.Search(view, State.SearchOrigin, State.SearchDirection,
             _p.DefaultRoomSize, _p.TilesLeftBetweenRooms & 0xF, _p.Openness, area);
-        if (site is RoomSite found)
+        if (site is SiteChoice found)
         {
-            State.RectangleOrigin = found.Origin;
-            State.RectangleWidth = found.Width;
-            State.RectangleHeight = found.Height;
+            State.RectangleOrigin = found.Site.Origin;
+            State.RectangleWidth = found.Site.Width;
+            State.RectangleHeight = found.Site.Height;
+            State.RectangleStart = found.Start;
+            State.RectangleStepX = found.StepX;
+            State.RectangleStepY = found.StepY;
+            State.JoinPathStart = found.JoinPoint;
+            State.JoinPathEnd = State.SearchOrigin;
+            State.JoinPathPending = true;
             State.BeginTask(KeeperTask.DigRectangle);
             return;
         }
@@ -411,89 +419,107 @@ public sealed class KeeperAI
         State.BeginTask(KeeperTask.Decide);
     }
 
-    private RoomSite Rectangle => new(State.RectangleOrigin, State.RectangleWidth, State.RectangleHeight);
-
-    private void DigRectangle(KeeperView view, List<PlayerCommand> commands)
+    /// <summary>The rectangle in the order tasks 2 and 3 walk it: from <see cref="KeeperAIState.RectangleStart"/>
+    /// along x by its step, then a row along y.</summary>
+    private IEnumerable<TilePos> RectangleWalk()
     {
-        RoomSite rect = Rectangle;
+        for (int j = 0; j < State.RectangleHeight; j++)
+            for (int i = 0; i < State.RectangleWidth; i++)
+                yield return new TilePos(State.RectangleStart.X + (i * State.RectangleStepX),
+                    State.RectangleStart.Y + (j * State.RectangleStepY));
+    }
+
+    /// <summary>Task 2 (<c>0x004FD030</c>). After a site search the first pass digs the joining path
+    /// from the search's origin to where its walk stopped (task 7, continuation 2), spending nothing;
+    /// DK2 tests nothing first, so a site next to the dungeon still gets its path. The next pass tags
+    /// the rectangle in walking order and spends one allowance.</summary>
+    /// <remarks>DK2 tags a tile only while its dig pool has more than 20 free entries; ours does not
+    /// model the pool's size.</remarks>
+    private void DigRectangle(KeeperView view, List<PlayerCommand> commands, ref int budget)
+    {
+        if (State.JoinPathPending)
+        {
+            State.JoinPathPending = false;
+            State.DigRoomAtCurrent = State.JoinPathEnd;
+            State.DigRoomAt = State.JoinPathStart;
+            State.WallHug = false;
+            State.BeginTask(KeeperTask.DigPath, KeeperTask.DigRectangle);
+            return;
+        }
+
+        budget--;
         var toTag = new List<TilePos>();
-        foreach (TilePos t in rect.Tiles())
+        foreach (TilePos t in RectangleWalk())
             if (view.InBounds(t) && view.Terrain(t).IsTaggable && !view.IsTaggedByMe(t)) toTag.Add(t);
         if (toTag.Count > 0)
         {
             commands.Add(new TagTilesCommand(PlayerId, toTag, true));
             State.UntagGoldCounter = UntagGoldAfterTicks;
         }
-
-        // Is the site joined to the dungeon once the tags are dug? If not, dig a
-        // corridor from the nearest reachable tile first, then come back here.
-        HashSet<int> reach = view.ReachableFromHeart(throughMyTags: true);
-        bool connected = false;
-        foreach (TilePos t in rect.Tiles())
-        {
-            if (reach.Contains(view.IndexOf(t))) { connected = true; break; }
-            foreach ((int dx, int dy) in KeeperDirections.Clockwise)
-            {
-                var n = new TilePos(t.X + dx, t.Y + dy);
-                if (view.InBounds(n) && reach.Contains(view.IndexOf(n))) { connected = true; break; }
-            }
-            if (connected) break;
-        }
-
-        if (connected || toTag.Count == 0 && reach.Count == 0)
-        {
-            State.BeginTask(KeeperTask.PlaceRoom);
-            return;
-        }
-
-        var centre = new TilePos(rect.Origin.X + (rect.Width / 2), rect.Origin.Y + (rect.Height / 2));
-        TilePos start = Nearest(view, reach, centre) ?? view.Heart!.Value;
-        TilePos end = rect.Tiles().OrderBy(t => KeeperView.DistanceSquared(t, start)).First();
-        State.JoinPathStart = start;
-        State.DigRoomAtCurrent = start;
-        State.DigRoomAt = end;
-        State.WallHug = false;
-        State.BeginTask(KeeperTask.DigPath, KeeperTask.DigRectangle);
+        State.DigRoomAtCurrent = State.RectangleStart; // task 3's cursor (+0x76)
+        State.BeginTask(KeeperTask.PlaceRoom);
     }
 
+    /// <summary>Task 3 (<c>0x004FD2B0</c>): each allowance unit works on the cursor tile alone. A tile
+    /// the placement test accepts is built and the turn's task work ends there; a solid tile, or one
+    /// not yet this keeper's, holds the cursor, is tagged when taggable and untagged, and eats the
+    /// allowance; any other tile (built, or refused for another reason) advances it. The room is
+    /// therefore laid tile by tile in walking order, each waiting until it is dug and claimed.</summary>
+    /// <remarks>Ours builds one tile a tick: our build lands on the next tick, where DK2's is made at
+    /// once and the next pass in the same turn can take the following tile. Solid stands in for
+    /// navigation's solidity, as in task 7.</remarks>
     private void PlaceRoom(KeeperView view, List<PlayerCommand> commands, ref int budget)
     {
         // 0x004FD2B0 builds the type without the expansion bit.
         RoomDef def = view.Database.RoomById((byte)(State.CurrentRoomToBuild & ~KeeperRoomRequests.ExpandBit));
-        var build = new List<TilePos>();
-        var retag = new List<TilePos>();
-        bool allDone = true;
-
-        foreach (TilePos t in Rectangle.Tiles())
-        {
-            if (!view.InBounds(t)) continue;
-            KeeperTileView tile = view.Tile(t);
-            if (tile.TerrainId == def.TerrainId && tile.OwnerPlayerId == PlayerId) continue;
-            allDone = false;
-            if (budget - build.Count - retag.Count <= 0) break;
-
-            if (view.CanBuild(t, def) == RoomPlacement.Allowed)
-                build.Add(t);
-            else if (view.Terrain(t).IsTaggable && !view.IsTaggedByMe(t))
-                retag.Add(t);
-        }
-
-        if (allDone)
+        while (budget > 0)
         {
             budget--;
-            State.BeginTask(KeeperTask.Done);
-            return;
+            TilePos at = State.DigRoomAtCurrent;
+            if (view.InBounds(at))
+            {
+                if (view.CanBuild(at, def) == RoomPlacement.Allowed)
+                {
+                    commands.Add(new BuildRoomCommand(PlayerId, (RoomTypeId)def.RoomId, [at]));
+                    budget = 0;
+                    return;
+                }
+                if (view.IsSolid(at) || view.Tile(at).OwnerPlayerId != PlayerId)
+                {
+                    if (view.Terrain(at).IsTaggable && !view.IsTaggedByMe(at))
+                    {
+                        commands.Add(new TagTilesCommand(PlayerId, [at], true));
+                        State.UntagGoldCounter = UntagGoldAfterTicks;
+                    }
+                    budget = 0;
+                    return;
+                }
+            }
+            if (!AdvanceRectangleCursor())
+            {
+                // The rectangle's end: the cursor back to its start, task 4, the allowance gone.
+                State.DigRoomAtCurrent = State.RectangleStart;
+                State.BeginTask(KeeperTask.Done);
+                budget = 0;
+                return;
+            }
         }
-        foreach (TilePos tile in build)
-            commands.Add(new BuildRoomCommand(PlayerId, (RoomTypeId)def.RoomId, [tile]));
-        if (retag.Count > 0)
+    }
+
+    /// <summary>One step of the rectangle cursor along x, wrapping to the next row; false past the
+    /// last row.</summary>
+    private bool AdvanceRectangleCursor()
+    {
+        TilePos c = State.DigRoomAtCurrent;
+        int x = c.X + State.RectangleStepX, y = c.Y;
+        if (x == State.RectangleStart.X + (State.RectangleWidth * State.RectangleStepX))
         {
-            commands.Add(new TagTilesCommand(PlayerId, retag, true));
-            State.UntagGoldCounter = UntagGoldAfterTicks;
+            x = State.RectangleStart.X;
+            y += State.RectangleStepY;
+            if (y == State.RectangleStart.Y + (State.RectangleHeight * State.RectangleStepY)) return false;
         }
-        int spent = build.Count + retag.Count;
-        // Nothing to do yet means the imps have not finished: wait for the next tick.
-        budget = spent == 0 ? 0 : budget - spent;
+        State.DigRoomAtCurrent = new TilePos(x, y);
+        return true;
     }
 
     // ----------------------------------------------------------------- gold
@@ -664,10 +690,8 @@ public sealed class KeeperAI
                 break;
             case WalkOutcome.Failed:
                 // DK2's walker returns 0 on a hug that loops back and the task takes NextTask
-                // (0x004FDFA3). Ours abandons instead: our task 2 lacks DK2's one-detour guard and
-                // would detour again at once (ADR-0304, computer-keeper-tasks.md §6).
-                State.WallHug = false;
-                State.BeginTask(KeeperTask.Done);
+                // (0x004FDFA3); task 2 then tags its rectangle, its path already taken.
+                EndPath();
                 break;
         }
     }
@@ -731,23 +755,5 @@ public sealed class KeeperAI
         byte id = (byte)room;
         if (!view.Database.Rooms.TryGetValue((RoomTypeId)id, out def)) return false;
         return _isRoomAvailable?.Invoke(id) ?? view.Availability(AvailabilityKind.Room, id) == 3;
-    }
-
-    private static TilePos? Nearest(KeeperView view, HashSet<int> indices, TilePos to)
-    {
-        TilePos? best = null;
-        int bestDist = int.MaxValue;
-        foreach (int i in indices)
-        {
-            TilePos p = view.FromIndex(i);
-            if (!view.IsPassable(p)) continue;
-            int d = KeeperView.DistanceSquared(p, to);
-            if (d < bestDist)
-            {
-                bestDist = d;
-                best = p;
-            }
-        }
-        return best;
     }
 }

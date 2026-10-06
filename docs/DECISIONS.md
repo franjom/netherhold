@@ -6763,7 +6763,8 @@ span from a refused one across the input delay without a grace period.
 lays a keeper's unaffordable tile free; our command is charged, so the keeper waits for the gold.
 The obstruction test (`0x0044F800`) is not built (Q501), and the land arm still asks terrain
 solidity rather than world slot `+0x208`. A hug that loops back abandons the task (`Done`) where
-DK2 takes `NextTask`: our task 2 lacks DK2's one-detour guard and would detour again at once.
+DK2 takes `NextTask`: our task 2 lacks DK2's one-detour guard and would detour again at once
+(superseded by ADR-0395, which takes `NextTask`).
 
 **Consequences.** Drako on stock Level 11A spans the lava with two Stone Bridge tiles, tunnels on,
 casts Call to Arms beside Morgana's heart and engages it. No simulation state or observation
@@ -8960,3 +8961,31 @@ simulation state.
 lays his Prison first, 616-713 on (16,18)-(20,22), DK2's 855-922 on the same 25 tiles (before:
 1,336, second). Level 11A over ten seeds is not closer: call 472-608, Morgana falls 808-1,052
 (DK2 700, 1,378; Q563); the scenario's seed 12345, outside those ten, calls at 613.
+
+## ADR-0395 — A searched room site gets its joining path first, and task 3 builds at its cursor
+**Date:** 2026-10-06 · **Status:** accepted · Answers Q566 and Q555, advances Q563
+
+**Context.** Both captures dig a new room's path before its rectangle: Morgana's path at 8 and 106
+and her Lair at 202 (Level 11A), Harkan's path tile at 381 and his Prison at 500 (Level 17). Ours
+tagged the rectangle first and dug a path only when a flood from the heart could not reach it. On
+success the site search (`0x005012A0`) stores its origin at `+0x86`, where its walk stopped at
+`+0x82` (`side/2` along the near edge) and a zero cursor; Task 2 (`0x004FD030`) answers the zero cursor with task 7 from the
+first to the second, continuation 2, spending nothing and testing nothing, then tags in walking
+order. Task 3 (`0x004FD2B0`) builds only at its cursor, from the square's unflipped corner, holding
+on a solid or unowned tile; ours built any ready tile, so DK2 waited 355 ticks for its first
+Prison tile where ours waited about 40.
+
+**Decision.** `SiteFinder.Search` returns the join point, corner and steps; `KeeperAI` keeps them
+(`JoinPathStart/End`, `JoinPathPending`, `RectangleStart`, `RectangleStepX/Y`), digs the path first,
+tags and builds in walking order with task 3's cursor, and drops the reach flood. A failed walk now
+takes `NextTask`, as `0x004FDFA3` does; ADR-0304 abandoned only because task 2 would have detoured
+again. Deviates: one build a tick, our build landing a tick later; the dig pool's 20-free gate is
+not modelled; task 2 tags only taggable tiles not yet tagged, where DK2 dispatches on every tile and
+retries a zero result (the handler's result is unread); task 3 tags a held tile not tagged by this
+keeper, where DK2 tests kind 1/2 by anyone. An expansion skips the path as DK2's does once a
+searched site has set `+0x82`; whether one can come first is unread. No hash change: the keeper AI holds no simulation state.
+
+**Measured.** Ten seeds each. Level 11A: Morgana's path at 7 and 100-104, her Lair at 111-196;
+the call at 455-696 (was 472-608, DK2 700), on DK2's (64,38) in 8 (was 1); Morgana falls
+858-1,093 (808-1,052, DK2 1,378). Level 17: the Prison's site is a draw over Harkan's rooms, DK2's
+in 6 (3 on master); there it is laid from (16,22) as DK2's, first tile 557-868 (DK2 855).

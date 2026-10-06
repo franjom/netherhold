@@ -531,34 +531,4 @@ public sealed class KeeperView : INavByteGrid
         }
         return best;
     }
-
-    /// <summary>
-    /// Every tile reachable from the heart over passable ground, plus tiles the
-    /// keeper has tagged when <paramref name="throughMyTags"/> is set — that is
-    /// "will be connected once the imps have dug". Empty when there is no heart.
-    /// </summary>
-    public HashSet<int> ReachableFromHeart(bool throughMyTags)
-    {
-        var seen = new HashSet<int>();
-        if (Heart is not TilePos heart) return seen;
-
-        var queue = new Queue<TilePos>();
-        queue.Enqueue(heart);
-        seen.Add(IndexOf(heart));
-        while (queue.Count > 0)
-        {
-            TilePos p = queue.Dequeue();
-            foreach ((int dx, int dy) in KeeperDirections.Clockwise)
-            {
-                var n = new TilePos(p.X + dx, p.Y + dy);
-                if (!InBounds(n)) continue;
-                int idx = IndexOf(n);
-                if (seen.Contains(idx)) continue;
-                if (!(IsPassable(n) || (throughMyTags && IsTaggedByMe(n)))) continue;
-                seen.Add(idx);
-                queue.Enqueue(n);
-            }
-        }
-        return seen;
-    }
 }

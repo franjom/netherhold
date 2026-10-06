@@ -121,8 +121,22 @@ public sealed class KeeperAIState
     public int RectangleWidth;
     public int RectangleHeight;
 
-    /// <summary>Nearest own tile to the rectangle, where a connecting corridor starts.</summary>
+    /// <summary>The corner tasks 2 and 3 walk the rectangle from, and their steps (<c>+0x72</c>,
+    /// <c>+0x8F</c>/<c>+0x90</c>), x inner: the site search's unflipped corner, or the top-left
+    /// with steps of 1 for an expansion.</summary>
+    public TilePos RectangleStart;
+    public int RectangleStepX = 1;
+    public int RectangleStepY = 1;
+
+    /// <summary>Where the site search's outward walk stopped (<c>+0x82</c>), the joining path's end.</summary>
     public TilePos JoinPathStart;
+
+    /// <summary>The site search's origin (<c>+0x86</c>), the joining path's start.</summary>
+    public TilePos JoinPathEnd;
+
+    /// <summary>Set by an accepted site, which leaves DK2's cursor <c>+0x76</c> at zero: task 2's
+    /// first pass digs the joining path (task 7, continuation 2) before it tags anything.</summary>
+    public bool JoinPathPending;
 
     public byte CurrentRoomToBuild;
     public byte NextRoomToBuild;

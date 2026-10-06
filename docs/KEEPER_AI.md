@@ -485,7 +485,7 @@ tick is skipped (the counters still run).
 |---|---|---|
 | **0** | `0x4FAEF0` then `0x4FC690` | **Decide.** First the attack planner (§5.5). If it declines and `Flags` bit 0: the **room planner** (§5.5). Then, if no task was started and `Flags` bit 1 and `gold < TendancyMoney` and no gold-dig task is pending on the task stack → **gold step** (`0x4FD590`) |
 | **1** | `0x4FCE70` | **Find a site** for `CurrentRoomToBuild`: `0x5012A0` searches from `DigRoomAtCurrent` in the current direction for a `DefaultRoomSize` square (§5.5). Success → Task 2. Failure → rotate the search direction; after the fourth, 95 % chance to re-seed from a random own room, else give up (Task 0) |
-| **2** | `0x4FD030` | **Dig the rectangle**: tag every tile (action 40), `UntagGoldCounter ← 240`, provided the task stack has more than 20 free entries. If the site is not connected, first detour: `Task ← 7` with `NextTask ← 2` to dig a corridor from `JoinPathStart`. Done → Task 3 (or Task 0 for the `0xE5` placeholder) |
+| **2** | `0x4FD030` | **Dig the rectangle**. After a site search the cursor is zero, so the first pass digs the joining path, untested: `Task ← 7`, `NextTask ← 2`, from the search origin (`JoinPathEnd`) to where its walk stopped (`JoinPathStart`, `side/2` along the near edge), spending nothing. The next pass tags every tile in walking order (action 40) while the task stack has more than 20 free entries, `UntagGoldCounter ← 240`. Done → Task 3 (or Task 0 for the `0xE5` placeholder). Built as ADR-0395 |
 | **3** | `0x4FD2B0` | **Place the room** at the persistent cursor, spending one allowance per pass. Blocked or foreign tiles retain the cursor; only owned navigation-open tiles that fail placement advance it. Rectangle end → Task 4. Exact traversal: `research/computer-keeper-tasks.md` §6 |
 | **4** | (inline) | **Done**: budget −1, gold check as in Task 0, reset to Task 0 |
 | **5** | `0x4FD660` | **Route to gold**: `DigRoomAtCurrent ←` nearest own room to the deposit (or the heart); `Task ← 7`, `NextTask ← 6` |
@@ -1209,8 +1209,8 @@ Stock Level 10's state-4 Prison and Torture Chamber are no longer built
 Deviations and approximations, each a candidate ADR:
 
 - The keeper's own RNG stream and one-tick input delay (§12.1, ADR-0244).
-- "Connected" is a flood fill from the heart over passable tiles and the keeper's own
-  tags; the original's connectivity test was not read in that detail.
+- Task 3 builds at most one tile a tick: our build lands a tick later, where DK2's is made at once
+  and a second pass in the same turn can take the next tile (ADR-0395).
 - Task 7 bridges water and lava through `BuildRoomCommand`, which now applies DK2's
   adjacency to every player (ADR-0304, `research/bridge-placement.md` §6): a span lands a tick
   late and at most one a tick, and one the keeper cannot pay for waits instead of being laid free.

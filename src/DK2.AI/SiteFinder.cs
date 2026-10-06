@@ -21,6 +21,12 @@ public readonly record struct RoomSite(TilePos Origin, int Width, int Height)
         p.X >= Origin.X && p.X < Origin.X + Width && p.Y >= Origin.Y && p.Y < Origin.Y + Height;
 }
 
+/// <summary>A site the search accepted, as <c>0x005012A0</c> stores it: the rectangle, the point where
+/// the outward walk stopped (<c>+0x82</c>, the middle of the near edge, where task 2's joining path
+/// ends), and the corner and steps tasks 2 and 3 walk it from (<c>+0x72</c>, <c>+0x8F</c>/<c>+0x90</c>),
+/// x inner (<c>+0x91</c> = 1).</summary>
+public readonly record struct SiteChoice(RoomSite Site, TilePos JoinPoint, TilePos Start, int StepX, int StepY);
+
 /// <summary>The keeper's build area in tiles, inclusive on both ends.</summary>
 public readonly record struct BuildArea(int MinX, int MinY, int MaxX, int MaxY)
 {
@@ -44,6 +50,12 @@ public static class SiteFinder
 {
     public static RoomSite? Find(
         KeeperView view, TilePos origin, int startDirection, int roomSize,
+        int tilesBetweenRooms, int opennessPercent, BuildArea area) =>
+        Search(view, origin, startDirection, roomSize, tilesBetweenRooms, opennessPercent, area)?.Site;
+
+    /// <summary><see cref="Find"/> with the join point and walking order task 2 needs.</summary>
+    public static SiteChoice? Search(
+        KeeperView view, TilePos origin, int startDirection, int roomSize,
         int tilesBetweenRooms, int opennessPercent, BuildArea area)
     {
         int side = Math.Max(1, (int)Math.Sqrt(roomSize));
@@ -52,7 +64,7 @@ public static class SiteFinder
             tilesBetweenRooms, opennessPercent, area);
     }
 
-    private static RoomSite? TryDirection(
+    private static SiteChoice? TryDirection(
         KeeperView view, TilePos origin, int direction, int side, int roomSize,
         int tilesBetweenRooms, int opennessPercent, BuildArea area)
     {
@@ -74,6 +86,8 @@ public static class SiteFinder
             pos = new TilePos(pos.X + dx, pos.Y + dy);
             if (!view.InBounds(pos) || IsUndiggableRock(view, pos)) return null;
         }
+
+        TilePos joinPoint = pos;
 
         // Centre the square on the approach line: the sideways offset uses the
         // other axis's step, exactly as the original computes it. The square is
@@ -103,7 +117,7 @@ public static class SiteFinder
         RoomSite site = Normalise(start, w, h, sx, sy);
         foreach (TilePos t in site.Tiles())
             if (!area.Contains(t)) return null;
-        return site;
+        return new SiteChoice(site, joinPoint, start, sx, sy);
     }
 
     /// <summary>Solid but not taggable: rock nobody can dig, which ends a search.</summary>

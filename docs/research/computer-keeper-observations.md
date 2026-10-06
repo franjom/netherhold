@@ -299,8 +299,8 @@ record's gold. Ticks are DK2's (ours in brackets).
 |---|---|---|---|
 | digs | Level 17 seam; Level 11A tunnels | same seam, same tunnel route and bridge tiles | — |
 | expands | Level 17 second Portal | 164 (159) | — |
-| builds to a need | Level 17 Prison; Level 11A Morgana's Lair | Harkan's Prison first, on the same 25 tiles; Morgana's Lair and path on DK2's tiles (ADR-0394) | Prison 855 (616); tile order within it; Morgana tags the rectangle before her path (Q555, Q566) |
+| builds to a need | Level 17 Prison; Level 11A Morgana's Lair | Harkan's Prison first, on the same 25 tiles in 6 of ten seeds (the site's origin is a random room), laid row by row from (16,22); paths dug before rectangles: Morgana's path 8, 106 (7, 100-104), Lair 202 (111-196) (ADR-0394, ADR-0395) | Prison 855 (557-868 on that site) |
 | recruits | Level 11A imps | five imps at 1,500-7,500 mana, ticks 23-307 (20-292), in the Level 11A section | — |
 | trains | Level 17 Training drops | the knights lifted at 6, 7, 11 (5, 6, 7) onto the same two cells, refused, lifted again | each knight's first re-lift 45-73 ticks after its refusal, later ones 4-6; DK2's every one 4 (Q509) |
 | defends | Level 11A, Morgana | repairs the wall from 101 (91), which falls at 387 (393); imps fight in the hole; both lift a wounded imp out | 11 imps fight there in DK2, 3 a side in ours (Q563) |
-| attacks | Level 11A, Drako | Morgana first, then Belial; same bridges; the call two tiles off her heart in a drawn diagonal; the army crosses after its call | call 700 on (64,38) (seed 12345: 613 on (64,34); ten seeds 472-608); Morgana falls 1,378 (ten seeds 808-1,052) (Q563) |
+| attacks | Level 11A, Drako | Morgana first, then Belial; same bridges; the call two tiles off her heart in a drawn diagonal; the army crosses after its call | call 700 on (64,38) (seed 12345: 460 on (64,34); ten seeds 455-696, on (64,38) in 8); Morgana falls 1,378 (ten seeds 858-1,093) (Q563) |

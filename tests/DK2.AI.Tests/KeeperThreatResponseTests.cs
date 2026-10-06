@@ -62,9 +62,12 @@ public class KeeperThreatResponseTests
         Assert.Equal(0, keeper.State.Responses.Count);
         // The event returned zero allowance: the task machine did not run this tick.
         Assert.DoesNotContain(commands, c => c is TagTilesCommand);
+        Assert.Equal(KeeperTask.Decide, keeper.State.Task);
         WorldState quiet = KeeperWorld.World(Db);
         quiet.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
-        Assert.Contains(NewKeeper(speed: 3).Think(Db, quiet), c => c is TagTilesCommand);
+        KeeperAI control = NewKeeper(speed: 3);
+        control.Think(Db, quiet);
+        Assert.NotEqual(KeeperTask.Decide, control.State.Task);
         Assert.False(own.InHand);
     }
 
