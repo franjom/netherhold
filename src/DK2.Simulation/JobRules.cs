@@ -74,7 +74,7 @@ public static class JobRules
     /// <remarks>Built for the rooms whose state is the one their job works in: the Library,
     /// Training Room, Guard Room, Workshop, Temple and Casino. The Combat Pit's 137
     /// (<see cref="DropLandingRules.AfterGettingUp"/>) and a Torture Chamber's devices have their own arms; the Hatchery (92), Treasury, Lair, Portal, Heart,
-    /// Prison and Crypt states and the no-room arm (state 250) are not built. The room's
+    /// Prison states and the no-room arm (state 250) are not built; no shipped level holds a Crypt (Q375). The room's
     /// capacity is the work state's enter hook's, so a full room sends the creature to idle
     /// with its job still remembered.</remarks>
     public static JobType? TryDropOnARoom(

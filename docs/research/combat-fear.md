@@ -65,8 +65,9 @@ Called once a tick per creature from the creature update (`0x00488930`), after
    **Vampire** (8); the second, `+0x108F`, an **Unique Vampire** (42). The share
    is scaled by `(100 + 30·a)/100` and then, when the second is positive, by
    `(100 + 40·a)/100` — **with the first count in both**, a DK2 slip (read at
-   `0x0045E638`, `0x0045E667`). This simulation holds no Crypt occupant, so the
-   factor is 1 (Q375 for whether a shipped level fills a Crypt).
+   `0x0045E638`, `0x0045E667`). No shipped level can hold a Crypt (Q375,
+   `guard-room.md` §7), so on a shipped level both counts stay 0 and the factor is 1,
+   in DK2 as in ours; a custom map with a filled Crypt would differ.
 5. **Give.** For my target (if a live thing) and every nonzero slot: live, with
    `+0x12` clear, and a **line of sight** from my position to its
    (`0x004512F0(world+0x9DA, mine, theirs, 0, 1)`): the receiver's
@@ -279,7 +280,9 @@ run speed scaled by the Speed row; `+0x12` clear meaning a live thing.
 
 **CONFIRMED (binary, 2026-10-04):** bit 4's writers (§3.2); the Crypt counts (§2 step 4).
 
-**UNKNOWN:** Q373 (the step back's accumulator), Q375 (a filled Crypt in play).
+**CONFIRMED (data, 2026-10-06):** no shipped level (all 66 in `Data/editor/maps`) holds a Crypt, so the Crypt counts are 0 there (Q375).
+
+**UNKNOWN:** Q373 (the step back's accumulator).
 
 ## 8. The walk back (read 2026-09-25, ADR-0225)
 

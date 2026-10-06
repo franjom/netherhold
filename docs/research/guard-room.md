@@ -173,13 +173,26 @@ be a Crypt with `+0x49` set and the creature on that tile, else `SetState(274)`;
 heading `0x600`, then sets the room's `+0x55` by creature type (`0x004D9410`: types 2, 26, 31
 → 20; 13, 37 → 1; 21 → 40; 29 → 10; others 0) and starts action `0x50`. 276
 (`0x004839E0`): 274's route, else action `0x4C`. 277 (`0x00483AC0`): `SetState(274)`.
-Not built: the Crypt is not.
+
+**Unreachable in shipped play (data, 2026-10-06, Q375).** A scan of all 66 shipped levels
+(campaign, secret, skirmish and multiplayer maps in `Data/editor/maps`) finds no way one
+comes to exist: no MAP tile has its terrain (41), no THINGS ROOM record
+places it (`kwd things`, roomType 41 or 26), no `ALTER_TERRAIN_TYPE` writes 41
+(`kwd alterterrain`), and no level's Availability nor trigger action 6 names room 26
+(`kwd vars -a`, `kwd trigger-params 214 6`); `GlobalVariables.kwd` lists rooms 1–4 and 6
+only. The computer keeper's room chooser `0x004F93B0` takes a type only when
+`Player_RoomAvailability` `0x004BAB20` says 2 or 3, so it is gated by the same data. The
+ROOMS record's missing `buildable` flag is **not** an engine guard: the build validator
+`0x004C5A20` tests placement and cost only, so a crafted build command or a custom map
+could still make a Crypt. The four states are therefore unreachable in shipped play, not
+unbuilt. That the room was cut from the design is STRONGLY INFERRED (the flag, the
+unlabelled states, no level using it), not read.
 
 ## 8. Built and not built
 
 **Built** (ADR-0212, ADR-0330): §1–§6 as `GuardRules`, `GuardStep` (run by the Guard job
 once a turn) and `TrapRules` (the post's room and report). **Not built:** the `+0x3E6` bits;
-the sound; the post's effect; `state+0x3C`; §7. **Ours:** the room test is our tile owner and
+the sound; the post's effect; `state+0x3C`. §7 is unreachable in shipped play (Q375). **Ours:** the room test is our tile owner and
 room type; a target off the map is a failed route; rooms have no ids, so `+0x113` is the
 room's first slab tile and a creature's `RoomId` its held place (ADR-0309); the trap list and
 the creature lists are walked in our orders (traps oldest first, creatures as the alarm's).

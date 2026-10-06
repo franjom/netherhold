@@ -92,8 +92,8 @@ public static class CategoryHooks
 {
     private const string Seeded = "the countdown seed is built (the shared step in RunEnter)";
     private const string Claimed = "the claim is built (RoomCapacityRules.Claim, ADR-0309)";
-    private const string Release = "releases the room position (ADR-0309); not built: the Crypt occupant "
-        + "handover 0x004D8E60 when the place is a Crypt's (state-category-hooks.md §1)";
+    private const string Release = "releases the room position (ADR-0309); the Crypt occupant handover "
+        + "0x004D8E60 is unreachable, as no shipped level holds a Crypt (Q375, guard-room.md §7)";
 
     private static readonly HookSlot[] All =
     [
