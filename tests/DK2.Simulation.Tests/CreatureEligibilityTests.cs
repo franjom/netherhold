@@ -42,9 +42,9 @@ public class CreatureEligibilityTests
         CreatureState collapsed = Free();
         collapsed.Health = 0;
         CreatureState dying = Free();
-        dying.Activity = CreatureActivity.Dying;
+        dying.Dk2StateId = CreatureDeathRules.DyingState;
         CreatureState fighting = Free();
-        fighting.Activity = CreatureActivity.Fighting;
+        fighting.Dk2StateId = 199; // CombatStates.Engaging, internal to the simulation
 
         Assert.True(CreatureEligibility.IsExcluded(collapsed, CreatureGuards.Down));
         Assert.True(CreatureEligibility.IsExcluded(dying, CreatureGuards.Down));
