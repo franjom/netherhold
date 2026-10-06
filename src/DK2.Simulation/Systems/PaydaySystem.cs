@@ -128,11 +128,7 @@ public sealed class PaydaySystem : ISimulationSystem
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            if (creature.Possessed) continue;
-
-            if (HandRules.IsHeld(creature)) continue;
-            if (CreatureDeathRules.IsDown(creature)) continue;
-            if (PrisonRules.IsImprisoned(creature)) continue;
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined | CreatureGuards.Imprisoned)) continue;
 
             if (creature.Activity == CreatureActivity.SeekingWages)
             {

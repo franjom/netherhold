@@ -49,8 +49,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
 
             // In the keeper's hand it is out of the dungeon (ADR-0062); down,
             // it is not walking anywhere and PrisonSystem owns its second.
-            if (HandRules.IsHeld(creature)) continue;
-            if (CreatureDeathRules.IsDown(creature)) continue;
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Down)) continue;
 
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
             if (!CreatureHealthRules.CanGetHungry(definition))

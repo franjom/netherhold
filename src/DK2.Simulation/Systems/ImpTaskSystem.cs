@@ -164,20 +164,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             // worker flag (ADR-0216).
             if (HeroJobRules.IsHero(creature)) continue;
 
-            // A creature in the keeper's hand is out of the dungeon: it does
-            // not act until it is put down (ADR-0062). A collapsed worker is
-            // skipped below for the same reason (ADR-0051) — its job was cleared
-            // when it dropped, so the guard only stops it taking a new one.
-            if (HandRules.IsHeld(creature)) continue;
-
-            // A prisoner is skipped here as a rule, not a gap: its cell is what
-            // it does — wandering is PrisonerWanderSystem's, every tick, and its
-            // health is PrisonSystem's, every second (ADR-0073). Still a stated
-            // narrowing: the other half of Q172, racing for a chicken dropped
-            // among them.
-            if (PrisonRules.IsImprisoned(creature)) continue;
-            if (CreatureDeathRules.IsDown(creature)) continue;
-            if (Combat.CombatRules.Preoccupied(creature)) continue;
+            // Held: out of the dungeon until put down (ADR-0062). Down: its job was cleared when it
+            // dropped, so this only stops it taking a new one (ADR-0051). A prisoner as a rule, not a
+            // gap: its wandering is PrisonerWanderSystem's and its health PrisonSystem's (ADR-0073);
+            // still a stated narrowing, the other half of Q172 (racing for a chicken dropped among them).
+            if (CreatureEligibility.IsExcluded(creature,
+                CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) continue;
 
             Update(context, creature, definition);
         }

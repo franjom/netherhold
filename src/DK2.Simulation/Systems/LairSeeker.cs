@@ -42,10 +42,8 @@ public sealed class LairSeeker
         CreatureState creature, CreatureDef definition)
     {
         if (!LairRules.NeedsBed(definition)) return false;
-        if (HandRules.IsHeld(creature)) return false;
-        if (PrisonRules.IsImprisoned(creature)) return false;
-        if (CreatureDeathRules.IsDown(creature)) return false;
-        if (Combat.CombatRules.Preoccupied(creature)) return false;
+        if (CreatureEligibility.IsExcluded(creature,
+            CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) return false;
         if (creature.Activity is CreatureActivity.SeekingLair
             or CreatureActivity.Leaving) return false;
         return !LairRules.HasBed(world, database, creature);

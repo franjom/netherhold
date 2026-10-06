@@ -49,9 +49,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
 
 
             if (!CreatureHealthRules.CanGetHungry(definition)) continue;
-            if (HandRules.IsHeld(creature)) continue;
-            if (PrisonRules.IsImprisoned(creature)) continue;
-            if (CreatureDeathRules.IsDown(creature)) continue;
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) continue;
 
             // A creature walking out for good does not stop for lunch, for the
             // same reason it does not stop for a bed.

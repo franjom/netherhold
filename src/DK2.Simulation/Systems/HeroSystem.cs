@@ -33,8 +33,8 @@ public sealed class HeroSystem : ISimulationSystem
             if (creature.Possessed) continue;
             if (context.TremorRecoveryCompletedThisTick.Contains(creature)) continue;
             if (!HeroJobRules.IsHero(creature)) continue;
-            if (HandRules.IsHeld(creature) || PrisonRules.IsImprisoned(creature)) continue;
-            if (CreatureDeathRules.IsDown(creature) || Combat.CombatRules.Preoccupied(creature)) continue;
+            if (CreatureEligibility.IsExcluded(creature,
+                CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) continue;
             Turn(context, creature);
             // State 169 removes the thief: the next creature has moved into its slot.
             if (i < creatures.Count && !ReferenceEquals(creatures[i], creature)) i--;

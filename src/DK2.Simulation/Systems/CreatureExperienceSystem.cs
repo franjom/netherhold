@@ -45,9 +45,7 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
             // Nothing earns while held in the hand (a held creature worked
             // none, ADR-0062), imprisoned, down on the floor (ADR-0051), or
             // walking out of the dungeon.
-            if (HandRules.IsHeld(state)) continue;
-            if (PrisonRules.IsImprisoned(state)) continue;
-            if (CreatureDeathRules.IsDown(state)) continue;
+            if (CreatureEligibility.IsExcluded(state, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) continue;
             if (state.Activity == CreatureActivity.Leaving) continue;
 
             int gained = CreatureLevelRules.WorkExperiencePerOriginalTick(

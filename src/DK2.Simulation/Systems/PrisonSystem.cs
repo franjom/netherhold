@@ -73,9 +73,8 @@ public sealed class PrisonSystem : ISimulationSystem
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            if (creature.Possessed) continue;
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) continue;
             if (!PrisonRules.IsImprisoned(creature) || !JailBreakRules.IsEscaping(creature)) continue;
-            if (HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) continue;
             if (StateShadow.IsTravelling(creature))
             {
                 if (creature.HasRoute) continue;

@@ -58,8 +58,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             if (state.Possessed) continue;
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
-            if (CreatureDeathRules.IsDown(state)) continue;
-            if (Combat.CombatRules.Preoccupied(state)) continue;
+            if (CreatureEligibility.IsExcluded(state, CreatureGuards.Down | CreatureGuards.Preoccupied)) continue;
             if (!CreatureAngerRules.CanBeAngered(creature)) continue;
 
             // The band this creature was last reported in, not the one it is in

@@ -61,10 +61,8 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             // to do with it.
             if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
 
-            if (HandRules.IsHeld(creature)) continue;
-            if (PrisonRules.IsImprisoned(creature)) continue;
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) continue;
             if (creature.CombatPitFighter) continue;   // idle sends it back to the pit (ADR-0213)
-            if (CreatureDeathRules.IsDown(creature)) continue;
             // Before the leaving test: 169, the thief's escape, reads as leaving (ADR-0223).
             if (!HeroJobRules.IsHero(creature) && StealGoldRules.KeeperTurn(context, SystemName, creature))
             {

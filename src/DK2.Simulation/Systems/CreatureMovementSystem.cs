@@ -75,8 +75,7 @@ public sealed class CreatureMovementSystem : ISimulationSystem
 
         foreach (CreatureState creature in context.World.Creatures)
         {
-            if (creature.Possessed) continue;
-            if (HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) continue;
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) continue;
             if (TremorRules.IsRecovering(creature) || context.TremorRecoveryCompletedThisTick.Contains(creature)) continue;
             if (creature.TremorRoutePaused)
             {
