@@ -490,6 +490,31 @@ public sealed class KeeperView : INavByteGrid
         return rooms.Count == 0 ? null : rooms[rng.NextInt(rooms.Count)];
     }
 
+    /// <summary><c>0x004C63D0</c>: an index drawn over the player's whole room list; a bridge at that
+    /// index yields nothing, since the walk past it never stops.</summary>
+    public KeeperRoomView? RandomNonBridgeRoom(PlayerId player, SimRandom rng)
+    {
+        List<KeeperRoomView> rooms = RoomsOf(player).ToList();
+        if (rooms.Count == 0) return null;
+        KeeperRoomView drawn = rooms[rng.NextInt(rooms.Count)];
+        return BridgeRules.IsBridge(drawn.Definition) ? null : drawn;
+    }
+
+    /// <summary>The own room whose stored position (<see cref="PositionOf"/>, <c>+0x27</c>) is nearest
+    /// <paramref name="to"/>, bridges included: the room planner's walk of the room list from its
+    /// head in <c>0x004FC690</c>, newest first, strictly nearer, so a tie keeps the newer room.</summary>
+    public KeeperRoomView? NearestOwnRoomByPosition(TilePos to)
+    {
+        KeeperRoomView? best = null;
+        int bestDist = int.MaxValue;
+        foreach (KeeperRoomView r in RoomsOf(PlayerId))
+        {
+            int d = DistanceSquared(PositionOf(r), to);
+            if (d < bestDist) { bestDist = d; best = r; }
+        }
+        return best;
+    }
+
     public KeeperRoomView? NearestOwnRoom(TilePos to, bool avoidBridges = false)
     {
         KeeperRoomView? best = null;

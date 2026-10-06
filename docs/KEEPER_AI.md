@@ -1217,8 +1217,10 @@ Deviations and approximations, each a candidate ADR:
 - The room planner's second pass (researchable-but-unavailable rooms, the `0xE5`
   empty-shape dig) is not reproduced. Availability state 2 already exists; the
   research progression that changes it remains incomplete.
-- Room bounding-box centres stand in for DK2's stored room positions and entrance
-  coordinates; room-list tie order also remains approximate. See handler section 3.
+- The room planner's search origin, its reseed, the neutral-room target and origin and the
+  retreat's Lair drop use the stored position (`+0x27`, `KeeperView.PositionOf`, ADR-0394);
+  other readers still take the bounding-box middle where the binary's field is unread, and
+  room-list tie order remains approximate. See handler section 3.
 - `SlapCooldownTicks` (§12.5).
 
 The response queue is dispatched by `Think` through `KeeperThreatResponder` (ADR-0278);

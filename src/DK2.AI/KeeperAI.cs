@@ -339,7 +339,7 @@ public sealed class KeeperAI
         KeeperRoomView? neutral = RoomPlanner.ClaimableNeutralRoom(view, _p, portal ? room : request, area, out TilePos origin);
         if (neutral is not null)
         {
-            TilePos target = KeeperView.Centre(neutral);
+            TilePos target = view.PositionOf(neutral);
             State.DigRoomAtCurrent = origin;
             State.DigRoomAt = target;
             State.WallHug = false;
@@ -374,7 +374,6 @@ public sealed class KeeperAI
 
         State.SearchDirection = RoomPlanner.DirectionFor(room, State, _rng);
         State.SearchOrigin = RoomPlanner.Origin(view, _p, room, _rng) ?? view.Heart!.Value;
-        State.DirectionsTried = 0;
         State.BeginTask(KeeperTask.FindSite);
         return true;
     }
@@ -392,15 +391,22 @@ public sealed class KeeperAI
             return;
         }
 
-        State.SearchDirection = (State.SearchDirection + 1) & 3;
-        if (++State.DirectionsTried < 4) return;
-
-        State.DirectionsTried = 0;
-        KeeperRoomView? reseed = _rng.NextInt(100) < 95 ? RoomPlanner.RandomOwnRoom(view, _rng, avoidBridges: false) : null;
-        if (reseed is not null)
+        // 0x004FCE70: preferred, +1, -1, +2; after +2 a roll of 5 to 99 restores the preferred
+        // direction and reseeds from a random non-bridge room's stored position, else the task ends.
+        int preferred = RoomPlanner.PreferredDirection(State.CurrentRoomToBuild, State);
+        if (RoomPlanner.NextSearchDirection(State.SearchDirection, preferred) is int next)
         {
-            State.SearchOrigin = KeeperView.Centre(reseed);
+            State.SearchDirection = next;
             return;
+        }
+        if (_rng.NextInt(100) > 4)
+        {
+            State.SearchDirection = preferred;
+            if (view.RandomNonBridgeRoom(PlayerId, _rng) is KeeperRoomView reseed)
+            {
+                State.SearchOrigin = view.PositionOf(reseed);
+                return;
+            }
         }
         State.BeginTask(KeeperTask.Decide);
     }

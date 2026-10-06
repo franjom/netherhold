@@ -429,15 +429,7 @@ public sealed class KeeperAttackPlanner
         return best;
     }
 
-    /// <summary><c>0x004C63D0</c>: an index drawn over the whole room list; a bridge at that index
-    /// yields nothing, since the walk past it never stops.</summary>
-    private KeeperRoomView? RandomNonBridgeRoom(PlayerId player)
-    {
-        List<KeeperRoomView> rooms = RoomsOf(player).ToList();
-        if (rooms.Count == 0) return null;
-        KeeperRoomView drawn = rooms[_rng.NextInt(rooms.Count)];
-        return BridgeRules.IsBridge(drawn.Definition) ? null : drawn;
-    }
+    private KeeperRoomView? RandomNonBridgeRoom(PlayerId player) => _view.RandomNonBridgeRoom(player, _rng);
 
     private KeeperRoomView? RandomRoomOfType(PlayerId player, RoomTypeId type) => _view.RandomRoomOfType(player, type, _rng);
 

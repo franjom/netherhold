@@ -269,7 +269,7 @@ Ours had no repair job, and ran Morgana's AI not at all, so her imps were reinfo
 With both the wall falls at 362. What remains (Q563): Drako claims the hole at 375 where DK2's imps
 fight Morgana's in it until 638, and our call goes to (64,34) at 544, DK2's to (64,38) at 700.
 
-**The hole is fought over (ADR-0388).** Ours let Drako's imp take Morgana's imp's claim of the
+**The hole is fought over (ADR-0388; numbers as at that ADR).** Ours let Drako's imp take Morgana's imp's claim of the
 hole, though each keeper has its own task pool, and two imps on one tile out of reach never closed
 in. With both fixed they fight from 368 (DK2's from 389), but our Morgana lifts her wounded imp out at 391 and the
 hole is Drako's at 399; DK2's wounded imps show the slap reaction and fight on to 638 (Q563). The owner confirms
@@ -299,8 +299,8 @@ record's gold. Ticks are DK2's (ours in brackets).
 |---|---|---|---|
 | digs | Level 17 seam; Level 11A tunnels | same seam, same tunnel route and bridge tiles | — |
 | expands | Level 17 second Portal | 164 (159) | — |
-| builds to a need | Level 17 Prison, Training growth | both build them | Prison 855 on (16,22) (1,336 at (17,20) with keepers 4 and 5, measured at ADR-0387, Q555); order (Q555) |
+| builds to a need | Level 17 Prison; Level 11A Morgana's Lair | Harkan's Prison first, on the same 25 tiles; Morgana's Lair and path on DK2's tiles (ADR-0394) | Prison 855 (616); tile order within it; Morgana tags the rectangle before her path (Q555, Q566) |
 | recruits | Level 11A imps | five imps at 1,500-7,500 mana, ticks 23-307 (20-292), in the Level 11A section | — |
 | trains | Level 17 Training drops | the knights lifted at 6, 7, 11 (5, 6, 7) onto the same two cells, refused, lifted again | each knight's first re-lift 45-73 ticks after its refusal, later ones 4-6; DK2's every one 4 (Q509) |
-| defends | Level 11A, Morgana | repairs the wall from 101 (92), fights in the hole from 389 (368), both in the Level 11A section | our Morgana lifts her wounded imp out; DK2's imps stay (Q563) |
-| attacks | Level 11A, Drako | Morgana first, then Belial; same bridges; the call two tiles off her heart in a drawn diagonal | call 700 on (64,38) (540 on (64,34)); Morgana falls 1,378 (887) (Q563) |
+| defends | Level 11A, Morgana | repairs the wall from 101 (91), which falls at 387 (393); imps fight in the hole; both lift a wounded imp out | 11 imps fight there in DK2, 3 a side in ours (Q563) |
+| attacks | Level 11A, Drako | Morgana first, then Belial; same bridges; the call two tiles off her heart in a drawn diagonal; the army crosses after its call | call 700 on (64,38) (seed 12345: 613 on (64,34); ten seeds 472-608); Morgana falls 1,378 (ten seeds 808-1,052) (Q563) |

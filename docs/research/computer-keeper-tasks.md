@@ -221,7 +221,9 @@ tile; it does not reproduce this cursor discipline.
 
 ## 7. Site search audit
 
-`0x004FCE70` tries preferred direction, then preferred +1, −1, +2 (modulo 4).
+`0x004FCE70` tries preferred direction, then preferred +1, −1, +2 (modulo 4); built as
+ADR-0394, with the origin and the reseed a room's stored position (`+0x27`), which put Level
+11A's Morgana and Level 17's Harkan on DK2's room sites.
 A failed direction returns zero allowance; success spends one. After four
 failures the random roll accepts 5–99 for reseeding, resets the preferred
 direction and asks for a non-bridge owned room. Failure to find one clears task 1.

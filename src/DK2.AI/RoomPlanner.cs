@@ -69,20 +69,37 @@ public static class RoomPlanner
     };
 
     /// <summary>
-    /// Where the site search for <paramref name="roomId"/> starts: the ideal
-    /// neighbour's centre, unless <c>PlaceRoomsNextToIdeal</c> is set (then a random
-    /// own room); with no ideal, or none owned, a random own room avoiding bridges;
-    /// with no rooms at all, the heart.
+    /// Where the site search for <paramref name="roomId"/> starts (<c>0x004FC690</c>), always a room's
+    /// stored position (<see cref="KeeperView.PositionOf"/>, <c>+0x27</c>), never its bounding-box
+    /// middle: with <c>PlaceRoomsNextToIdeal</c> set or no ideal neighbour, a random non-bridge room
+    /// (<c>0x004C63D0</c>), else the heart position; otherwise a random room of the ideal type, else a
+    /// random non-bridge room, else the heart position. DK2's redraw of a Wooden Bridge after that
+    /// last draw cannot fire, since the draw never returns a bridge (ADR-0394).
     /// </summary>
     public static TilePos? Origin(KeeperView view, KeeperAIParameters p, byte roomId, SimRandom rng)
     {
         if (!p.PlaceRoomsNextToIdeal && IdealNeighbour(roomId) is RoomTypeId ideal
-            && view.OwnRoomOfType((byte)ideal) is KeeperRoomView neighbour)
-            return KeeperView.Centre(neighbour);
+            && view.RandomRoomOfType(view.PlayerId, ideal, rng) is KeeperRoomView neighbour)
+            return view.PositionOf(neighbour);
 
-        KeeperRoomView? random = RandomOwnRoom(view, rng, avoidBridges: true);
-        if (random is not null) return KeeperView.Centre(random);
+        KeeperRoomView? random = view.RandomNonBridgeRoom(view.PlayerId, rng);
+        if (random is not null) return view.PositionOf(random);
         return view.Heart;
+    }
+
+    /// <summary>The search direction a room prefers (<c>0x004FC690</c>, <c>0x004FCE70</c>): the defend
+    /// direction for ids below 6, else the open direction, before any jitter.</summary>
+    public static int PreferredDirection(byte roomId, KeeperAIState state) =>
+        roomId < 6 ? state.DefendDirection : state.OpenDirection;
+
+    /// <summary><c>0x004FCE70</c> after a failed direction: preferred, then +1, then -1, then +2; null
+    /// once +2 has failed, when the caller reseeds or gives up.</summary>
+    public static int? NextSearchDirection(int current, int preferred)
+    {
+        if (current == preferred) return (current + 1) & 3;
+        if (current == ((preferred + 1) & 3)) return (current - 2) & 3;
+        if (current == ((preferred - 1) & 3)) return (current - 1) & 3;
+        return null;
     }
 
     public static KeeperRoomView? RandomOwnRoom(KeeperView view, SimRandom rng, bool avoidBridges)
@@ -120,14 +137,17 @@ public static class RoomPlanner
             if (distance < bestDist) { bestDist = distance; best = r; }
         }
         if (best is null) return null;
-        TilePos target = KeeperView.Centre(best);
-        if (!area.Contains(target) || view.NearestOwnRoom(target) is not KeeperRoomView from) return null;
-        origin = KeeperView.Centre(from);
-        // Room centres stand in for the original's stored position and entrance (KEEPER_AI.md section 12.8).
+        // 0x004FC690 reads stored positions (+0x27): the target's, and the own room's nearest it,
+        // which is the origin. A portal's range runs from its first slab (+0x2D) to that origin,
+        // inclusive; another room's from the heart position to the target, strict (ADR-0394). The
+        // candidate ranking, 0x004C61C0, is unread and stays on the bounding-box middle.
+        TilePos target = view.PositionOf(best);
+        if (!area.Contains(target) || view.NearestOwnRoomByPosition(target) is not KeeperRoomView from) return null;
+        origin = view.PositionOf(from);
         int rangeSquared = p.NeutralRoomRangeFromHeart * p.NeutralRoomRangeFromHeart;
         bool inRange = portal
-            ? KeeperView.DistanceSquared(target, origin) <= rangeSquared
-            : bestDist < rangeSquared;
+            ? KeeperView.DistanceSquared(view.FirstSlabOf(best), origin) <= rangeSquared
+            : KeeperView.DistanceSquared(target, heart) < rangeSquared;
         if (inRange) return best;
         if (OwnLandOnBoundary(view, target, p.NeutralRoomRangeFromClaimedArea) is not TilePos boundary) return null;
         origin = boundary;

@@ -308,7 +308,9 @@ public class KeeperAITests
         keeper.Think(Db, world);
         Assert.True(keeper.State.AllRoomsBuilt);
         Assert.Equal(KeeperTask.DigPath, keeper.State.Task);
-        Assert.Equal(portal, keeper.State.DigRoomAt);
+        // The target is the portal's stored position (+0x27), its first slab plus one (0x004E4590):
+        // a 3x3 portal's centre, and here, for a one-tile test portal, the tile beyond it (ADR-0394).
+        Assert.Equal(new TilePos(portal.X + 1, portal.Y + 1), keeper.State.DigRoomAt);
     }
 
     /// <summary>Task 7 (<c>0x004FDC50</c>) tags the rock its cursor stands on and stays there until
@@ -336,6 +338,54 @@ public class KeeperAITests
         Assert.NotEqual(first, second);
     }
 
+    /// <summary>The site search starts at a room's stored position (+0x27, <c>0x004FC690</c>), not its
+    /// bounding-box middle: for a keeper with only its heart, the heart room's first slab plus three.
+    /// On Level 11A, Morgana's Lair site and the path to it sat one row north of DK2's until this
+    /// (ADR-0394).</summary>
+    [Fact]
+    public void TheSiteSearchStartsAtTheRoomsStoredPositionNotItsMiddle()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        var view = new KeeperView(Db, world, KeeperWorld.Keeper);
+        KeeperRoomView heart = Assert.Single(view.OwnRooms);
+        TilePos first = view.FirstSlabOf(heart);
+        TilePos stored = view.PositionOf(heart);
+        Assert.Equal(new TilePos(first.X + 3, first.Y + 3), stored);
+        Assert.NotEqual(KeeperView.Centre(heart), stored);
+
+        TilePos? origin = RoomPlanner.Origin(view, KeeperWorld.Parameters(), (byte)RoomTypeId.Lair, new SimRandom(7));
+
+        Assert.Equal(stored, origin);
+    }
+
+    /// <summary><c>0x004FCE70</c> tries the preferred direction, then +1, -1 and +2, and only then
+    /// reseeds; ours used to step +1 each time.</summary>
+    [Theory]
+    [InlineData(0, 0, 1)]
+    [InlineData(0, 1, 3)]
+    [InlineData(0, 3, 2)]
+    [InlineData(3, 3, 0)]
+    [InlineData(3, 0, 2)]
+    [InlineData(3, 2, 1)]
+    public void AFailedSiteSearchTriesPlusOneThenMinusOneThenPlusTwo(int preferred, int current, int next) =>
+        Assert.Equal(next, RoomPlanner.NextSearchDirection(current, preferred));
+
+    [Theory]
+    [InlineData(0, 2)]
+    [InlineData(3, 1)]
+    public void AfterPlusTwoTheSiteSearchReseeds(int preferred, int current) =>
+        Assert.Null(RoomPlanner.NextSearchDirection(current, preferred));
+
+    /// <summary>The preferred direction is the defend direction for a room id below 6 and the open
+    /// one from 6 on (<c>0x004FCE70</c>, the +0x98 byte against 6).</summary>
+    [Theory]
+    [InlineData((byte)RoomTypeId.Lair, 1)]
+    [InlineData((byte)RoomTypeId.DungeonHeart, 1)]
+    [InlineData((byte)RoomTypeId.Library, 3)]
+    [InlineData((byte)RoomTypeId.Prison, 3)]
+    public void ThePreferredDirectionSplitsAtRoomSix(byte room, int expected) =>
+        Assert.Equal(expected, RoomPlanner.PreferredDirection(room, new KeeperAIState { DefendDirection = 1, OpenDirection = 3 }));
+
     [Fact]
     public void PortalSearchUsesOnePoolAndDoesNotRetryAnOutOfAreaCandidate()
     {
@@ -346,8 +396,9 @@ public class KeeperAITests
         KeeperRoomView? chosen = RoomPlanner.ClaimableNeutralRoom(view, KeeperWorld.Parameters(),
             (byte)RoomTypeId.Portal, BuildArea.WholeMap(30, 30));
         Assert.Equal(RoomTypeId.HeroPortal, chosen!.Definition.TypeId);
+        // The area tests the stored position, (23,16) for the one-tile hero portal at (22,15).
         Assert.Null(RoomPlanner.ClaimableNeutralRoom(view, KeeperWorld.Parameters(),
-            (byte)RoomTypeId.Portal, new BuildArea(23, 0, 29, 29)));
+            (byte)RoomTypeId.Portal, new BuildArea(24, 0, 29, 29)));
     }
 
     [Fact]

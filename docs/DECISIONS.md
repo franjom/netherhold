@@ -8932,3 +8932,31 @@ and 111 and 112, which test the cap too, are not built.
 and lifted again onto the same two cells, about every 25 ticks. Each knight's first re-lift comes
 45, 57 and 73 ticks after its refusal; later ones mostly 4 to 6, as DK2's every one is 4 (108 at
 29, lifted at 33). The first gap is ours to explain (Q509).
+
+## ADR-0394 — The room planner searches from a room's stored position, in DK2's direction order
+**Date:** 2026-10-06 · **Status:** accepted · Advances Q555 and Q563
+
+**Context.** Level 11A's capture holds Morgana's task pool: she tags (62,36), (59,36) and a Lair
+at (56-58, 35-37). Ours tagged every one a row north. The site search (`0x005012A0`) and its
+direction table match ours; its origin did not. `0x004FC690` starts from a room's stored position
+(`+0x27`, `KeeperView.PositionOf`), which for a heart is its first slab plus three, (66,36) for
+Morgana, where ours took the bounding-box middle (65,35). `0x004FCE70` also tries the preferred
+direction, then +1, -1 and +2, and only then, on `random(100) > 4`, restores the preferred
+direction and reseeds from `0x004C63D0`'s one draw over all rooms (a bridge yields none); ours
+stepped +1 four times and reseeded from any room's middle. The neutral-room branch reads `+0x27`
+for its target and for the nearest own room, its origin, and measures a portal's range from the
+portal's first slab; the retreat's Lair drop is `+0x27` too (`0x004FF260`).
+
+**Decision.** `RoomPlanner.Origin`, `RoomPlanner.NextSearchDirection`, `KeeperAI.FindSite`'s
+reseed, `RoomPlanner.ClaimableNeutralRoom` and `KeeperRetreatStep.Destination` follow those reads;
+`KeeperView.RandomNonBridgeRoom` and `NearestOwnRoomByPosition` serve them, walking the room list
+newest first as DK2's does. Deviates: the neutral candidate ranking (`0x004C61C0`) keeps the
+middle, as do the planner's readers whose field is unread; the Lair drop lands on the tile, not
+DK2's `+0x900` (as ADR-0317's drops). No hash change: the keeper AI issues commands and holds no
+simulation state.
+
+**Measured.** Level 11A: Morgana tags (56-58, 35-37) at 6 and (62,36) at 8, (59,36) at 100 (DK2
+202, 8, 106: ours tags the rectangle before the path, Q566). Level 17 with keepers 4 and 5: Harkan
+lays his Prison first, 616-713 on (16,18)-(20,22), DK2's 855-922 on the same 25 tiles (before:
+1,336, second). Level 11A over ten seeds is not closer: call 472-608, Morgana falls 808-1,052
+(DK2 700, 1,378; Q563); the scenario's seed 12345, outside those ten, calls at 613.

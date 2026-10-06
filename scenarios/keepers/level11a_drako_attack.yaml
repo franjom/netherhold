@@ -25,7 +25,7 @@ question: >
   attack her heart?
 map: campaign:level11A
 seed: 12345
-duration_ticks: 600
+duration_ticks: 700
 viewing_player: 5
 computer_keepers: [4, 5, 6, 7]
 setup:
@@ -57,15 +57,16 @@ expect:
       the bridge just laid, which is owned and not solid (0x00453B30). DK2: 70.
   - event: tagged
     detail: "player=5 applied=1 rejected=0 span=(64,38)-(64,38)"
-    at_tick: 64
+    at_tick: 65
     because: >
       Past the lava the walker meets rock again and task 7 tags it: the tunnel continues toward
       Morgana's heart. Morgana's imp reinforced the tile at 62, so Drako's imps dig an enemy wall,
-      and from 92 one of Morgana's imps repairs it from her side (kind 16, ADR-0387); it falls at
-      362. DK2: repair from 101, the wall falls at 387. The imps then fight in the hole (ADR-0388).
+      and from 91 one of Morgana's imps repairs it from her side (kind 16, ADR-0387); it falls at
+      393. DK2: repair from 101, the wall falls at 387. The imps then fight in the hole (ADR-0388),
+      and it changes hands until Drako holds it from 719 (DK2: 638).
   - event: call_to_arms_raised
     detail: "tile=64,34"
-    at_tick: 540
+    at_tick: 613
     because: >
       With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
       heart and attack management casts the call there (0x004FECE0, ADR-0298). The point is a draw
@@ -73,5 +74,5 @@ expect:
   - event: engaged
     detail: "player=5 heart=6"
     because: >
-      Drako's creatures attack Morgana's heart (scan E, ADR-0163); first at 458, a Mistress,
-      before the call.
+      Drako's creatures answer the call and attack Morgana's heart (scan E, ADR-0163); first at
+      642, a Mistress. DK2's army crosses only after its call too.

@@ -99,9 +99,6 @@ public sealed class KeeperAIState
     /// <summary>The opposite of <see cref="DefendDirection"/>; every other room uses it.</summary>
     public int OpenDirection;
 
-    /// <summary>How many directions the site search has tried for the current room.</summary>
-    public int DirectionsTried;
-
     /// <summary>Where the site search starts from.</summary>
     public TilePos SearchOrigin;
 

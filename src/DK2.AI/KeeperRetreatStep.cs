@@ -102,14 +102,13 @@ public sealed class KeeperRetreatStep
     /// <summary>The Pit fighter's level is at least <c>IACreatureSkillLevel</c>, the four-bit field.</summary>
     private bool SkilledEnough(KeeperCreatureView creature) => creature.Level >= (_p.IACreatureSkillLevel & 0xF);
 
-    /// <summary><c>0x004C6460(2)</c>: a random own Lair's centre; none, and the heart position.</summary>
+    /// <summary><c>0x004C6460(2)</c>: a random own Lair's stored position (<c>+0x27</c>, read at
+    /// <c>0x004FF260</c>); none, and the heart position.</summary>
     private TilePos Destination()
     {
-        var lairs = new List<KeeperRoomView>();
-        foreach (KeeperRoomView room in _view.OwnRooms)
-            if (room.Definition.RoomId == (byte)RoomTypeId.Lair) lairs.Add(room);
-        if (lairs.Count == 0) return _view.Heart!.Value;
-        return KeeperView.Centre(lairs[_rng.NextInt(lairs.Count)]);
+        // 0x004C6460(2) walks the player's list newest first, as RandomRoomOfType does.
+        KeeperRoomView? lair = _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Lair, _rng);
+        return lair is null ? _view.Heart!.Value : _view.PositionOf(lair);
     }
 
     /// <summary>An owner's creature list in DK2's order, held ones included; a corpse is a different thing there.</summary>
