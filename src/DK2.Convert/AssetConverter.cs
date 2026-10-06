@@ -191,7 +191,8 @@ public static class AssetConverter
                     return;
                 }
                 string path = OutputPath(reference);
-                byte[] glb = GlbWriter.Write(model, textureName => TextureUri(path, textureName));
+                byte[] glb = GlbWriter.Write(model, textureName => TextureUri(path, textureName),
+                    PassSeconds(source));
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 File.WriteAllBytes(path, glb);
                 foreach (string textureName in model.Materials.SelectMany(MaterialTextures).Distinct(
@@ -205,6 +206,14 @@ public static class AssetConverter
                 Missing(reference, $"{entryName}: {exception.Message}");
             }
         }
+
+        /// <summary>A type-6 clip's pass by the type-6 clock (<c>0x004B41E0</c>): the descriptor's
+        /// frame count over its FPS, which is not always the KMF's own count (300 of 906 creature
+        /// clips differ, mostly by one); 0 for a resource with no rate.</summary>
+        private static float PassSeconds(Dk2ArtResource source) =>
+            source.FramesPerSecond > 0 && source.FrameCount > 0
+                ? source.FrameCount / (float)source.FramesPerSecond
+                : 0f;
 
         private void ConvertTexture(AssetRef reference, Dk2ArtResource source, string detail)
         {

@@ -84,6 +84,6 @@ fix changes how many world-stream draws a tick takes, and so moves every later d
 
 | Q | Ours | DK2 | Where |
 |---|---|---|---|
-| Q442 | Key byte discarded; each frame held at the previous key; STEP keys at an assumed 30 fps | Linear interpolation between key entries (`0x0057E5B0`); clip length frames/FPS from the art descriptor | `KmfReader.cs:138`, `GlbWriter.cs:16,201` |
+| Q442 (**built, ADR-0389**) | Key byte discarded; each frame held at the previous key; STEP keys at an assumed 30 fps | Linear interpolation between key entries (`0x0057E5B0`); clip length frames/FPS from the art descriptor | `KmfReader.cs:138`, `GlbWriter.cs:16,201` |
 | Q445/Q446 | No torches | Placed by command 4, recoloured by command 16 | Unity adapter, `RoomDef` |
 | Q71 | One wall mesh per solid terrain | Piece chooser `0x00444F10` by TileConstruction | `AssetCatalogue` |

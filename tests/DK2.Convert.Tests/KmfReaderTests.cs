@@ -74,6 +74,22 @@ public class KmfReaderTests
         Assert.Same(model.Mesh, animation.Frames[0]);
     }
 
+    /// <summary>The GEOM byte is the frame at which its entry is exact, and a frame between
+    /// two keys lies on the straight line between entries g and g + 1 (<c>0x0057E5B0</c>,
+    /// Q442): frame 1 of a clip keyed at 0 and 2 is halfway, not held at frame 0's pose.</summary>
+    [Fact]
+    public void AFrameBetweenTwoKeysIsInterpolatedBetweenThem()
+    {
+        KmfModel model = KmfReader.Read(AnimatedKmfFixture.KeyedAtFramesZeroAndTwo());
+
+        KmfAnimation animation = Assert.IsType<KmfAnimation>(model.Animation);
+        IReadOnlyList<KmfVertex> middle = Assert.Single(animation.Frames[1].Primitives).Vertices;
+        IReadOnlyList<KmfVertex> last = Assert.Single(animation.Frames[2].Primitives).Vertices;
+        Assert.Equal(new Vector3(1, 0, 0), middle[0].Position);
+        Assert.Equal(new Vector3(0, 1, 1), middle[1].Position);
+        Assert.Equal(new Vector3(2, 0, 0), last[0].Position);
+    }
+
     [InstallFact]
     public void TerrainWallReadsGeometryAndTextures()
     {

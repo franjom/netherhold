@@ -8804,3 +8804,27 @@ teleport for a walk over two tiles is not built (Q418).
 **Measured** (hash 193) against master `885ec6d8` (Level 1 19/20, Level 2 1/20, Level 3 seed 01
 won at 3604): Level 1 18/20 (seeds 8 and 16 lost, seed 6 now won), Level 2 4/20 (seeds 3, 5, 10
 and 13), Level 3 won at 3556, further from DK2's 3683.
+
+## ADR-0389 — A KMF clip is interpolated between its keys and timed by its descriptor
+**Date:** 2026-10-06 · **Status:** accepted · Presentation only · Research: `kmf-animation-playback.md`; Q442
+
+**Context.** The byte after each `GEOM` position is the frame, within its 128-frame block, at
+which that entry is exact; DK2's evaluator `0x0057E5B0` puts a frame between two keys on the
+straight line from entry g to g + 1, and the drawer `0x00577F10` evaluates a continuous frame
+f = (frames − 1)·time, its integer part clamped to frames − 2. A creature clip's pass lasts the
+descriptor's frame count (`+0x44`) over its FPS (`+0x48`) in seconds by the type-6 clock
+(`0x004B41E0`); that this clock drives the drawn time is STRONGLY INFERRED. `KmfReader` dropped
+the byte, so every frame that is not a key held the previous key's pose (12.05 M of 28.4 M vertex
+lookups over the shipped KMFs), and `GlbWriter` wrote `STEP` keys at an assumed 30 fps.
+
+**Decision.** `KmfReader` keeps the key bytes and evaluates each integer frame as `0x0057E5B0`
+does, the last through frame − 1's lookup as the drawer clamps it; `Dk2ArtResource` carries a
+type-6 resource's frame count and FPS, and `GlbWriter` writes `LINEAR` morph weights with one
+pass, frame 0 to the last, over count/FPS seconds. Keys fall on integer frames, so a viewer's
+linear blend between the sampled frames is DK2's pose. The descriptor's count is not the KMF's in
+300 of 906 creature clips (mostly one less; Imp_Happy 20 against 14), and the pass follows the
+descriptor. Deviates: equal keys hold entry g exactly (the reciprocal table's entry 0 is unset);
+a backwards key and a last entry with no g + 1 also hold g, which matches DK2 only because, in
+every shipped KMF, they fall on the key's own frame, where DK2 multiplies a zero numerator by a
+float read outside its table, assumed finite; a KMF with no descriptor (objects, rooms) keeps 30
+fps; the link from the animation phase to the drawn time is unread (Q442).

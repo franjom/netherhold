@@ -12,6 +12,14 @@ namespace DK2.Convert;
 public sealed record Dk2ArtResource(string Name, byte Type)
 {
     public bool IsEmpty => string.IsNullOrWhiteSpace(Name);
+
+    /// <summary>A KMF animation's (type 6) playback rate, the descriptor's word at <c>+0x48</c>;
+    /// 0 for any other type.</summary>
+    public ushort FramesPerSecond { get; init; }
+
+    /// <summary>A KMF animation's frame count, the descriptor's word at <c>+0x44</c>; 0 for any
+    /// other type.</summary>
+    public ushort FrameCount { get; init; }
 }
 
 /// <summary>
@@ -23,6 +31,9 @@ public sealed class Dk2ArtCatalogue
 {
     private const int ArtResourceSize = 84;
     private const int ArtTypeOffset = 80;
+    private const int ArtFrameCountOffset = 0x44;
+    private const int ArtFramesPerSecondOffset = 0x48;
+    private const byte AnimationArtType = 6;
 
     public required IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> Terrains { get; init; }
     public required IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> Rooms { get; init; }
@@ -67,9 +78,16 @@ public sealed class Dk2ArtCatalogue
                 for (int art = 0; art < artCount; art++)
                 {
                     int offset = record + artOffset + art * ArtResourceSize;
-                    resources[art] = new Dk2ArtResource(
-                        ReadAscii(chunk.Content.AsSpan(offset, 64)),
-                        chunk.Content[offset + ArtTypeOffset]);
+                    byte artType = chunk.Content[offset + ArtTypeOffset];
+                    resources[art] = new Dk2ArtResource(ReadAscii(chunk.Content.AsSpan(offset, 64)), artType)
+                    {
+                        FramesPerSecond = artType == AnimationArtType
+                            ? BitConverter.ToUInt16(chunk.Content, offset + ArtFramesPerSecondOffset)
+                            : (ushort)0,
+                        FrameCount = artType == AnimationArtType
+                            ? BitConverter.ToUInt16(chunk.Content, offset + ArtFrameCountOffset)
+                            : (ushort)0,
+                    };
                 }
                 byte id = chunk.Content[record + idOffset];
                 if (!result.TryAdd(id, resources))

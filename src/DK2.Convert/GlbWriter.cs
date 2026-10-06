@@ -13,22 +13,31 @@ namespace DK2.Convert.Gltf;
 /// <summary>Writes one parsed KMF mesh as a glTF 2.0 binary container.</summary>
 public static class GlbWriter
 {
+    /// <summary>The rate a clip with no art descriptor plays at: an assumption. A creature clip
+    /// passes its descriptor's FPS instead (Q442).</summary>
     public const float AssumedAnimationFramesPerSecond = 30f;
 
     private const uint GlbMagic = 0x46546c67;
     private const uint JsonChunk = 0x4e4f534a;
     private const uint BinaryChunk = 0x004e4942;
 
-    public static byte[] Write(KmfModel model, Func<string, string>? textureUri = null)
+    public static byte[] Write(KmfModel model, Func<string, string>? textureUri = null,
+        float passSeconds = 0)
     {
         ArgumentNullException.ThrowIfNull(model);
         using var output = new MemoryStream();
-        Write(model, output, textureUri);
+        Write(model, output, textureUri, passSeconds);
         return output.ToArray();
     }
 
+    /// <summary>Writes the model. An animation is sampled LINEAR between its frames, as DK2's
+    /// drawer evaluates a continuous frame (<c>0x00577F10</c>). Given
+    /// <paramref name="passSeconds"/>, the art descriptor's frames/FPS (the type-6 clock
+    /// <c>0x004B41E0</c>), one pass spans the first frame to the last over that time, as the
+    /// drawer's (frames - 1)·time does (kmf-animation-playback.md §2, §3); without it, frame n
+    /// sits at n/<see cref="AssumedAnimationFramesPerSecond"/>.</summary>
     public static void Write(KmfModel model, Stream output,
-        Func<string, string>? textureUri = null)
+        Func<string, string>? textureUri = null, float passSeconds = 0)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(output);
@@ -44,7 +53,7 @@ public static class GlbWriter
             primitives.Add(binary.Add(mesh.Primitives[i], animationFrames?.Skip(1)
                 .Select(frame => frame.Primitives[i]).ToArray() ?? []));
         AnimationLayout? animation = animationFrames is null
-            ? null : binary.AddAnimation(animationFrames.Count, animationFrames.Count - 1);
+            ? null : binary.AddAnimation(animationFrames.Count, animationFrames.Count - 1, passSeconds);
 
         TextureLayout textures = TextureLayout.Create(model.Materials, textureUri);
         byte[] json = BuildJson(model, mesh, primitives, animation, binary.ByteLength, textures);
@@ -198,7 +207,7 @@ public static class GlbWriter
         writer.WriteStartObject();
         writer.WriteNumber("input", animation.TimeAccessor);
         writer.WriteNumber("output", animation.WeightAccessor);
-        writer.WriteString("interpolation", "STEP");
+        writer.WriteString("interpolation", "LINEAR");
         writer.WriteEndObject();
         writer.WriteEndArray();
         writer.WriteStartArray("channels");
@@ -391,12 +400,15 @@ public static class GlbWriter
                 minimum, maximum, targetViews, targetViewIndices, targetAccessors);
         }
 
-        public AnimationLayout AddAnimation(int frameCount, int targetCount)
+        public AnimationLayout AddAnimation(int frameCount, int targetCount, float passSeconds)
         {
+            float frameSeconds = passSeconds > 0
+                ? passSeconds / (frameCount - 1)
+                : 1f / AssumedAnimationFramesPerSecond;
             BufferView times = AddView(() =>
             {
                 for (int frame = 0; frame < frameCount; frame++)
-                    _writer.Write(frame / AssumedAnimationFramesPerSecond);
+                    _writer.Write(frame * frameSeconds);
             });
             int timeView = _viewCount++; int timeAccessor = _accessorCount++;
             BufferView weights = AddView(() =>
@@ -407,7 +419,7 @@ public static class GlbWriter
             });
             int weightView = _viewCount++; int weightAccessor = _accessorCount++;
             return new AnimationLayout(frameCount, targetCount,
-                (frameCount - 1) / AssumedAnimationFramesPerSecond,
+                (frameCount - 1) * frameSeconds,
                 times, weights, timeView, weightView, timeAccessor, weightAccessor);
         }
 

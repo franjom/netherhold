@@ -125,6 +125,7 @@ public static class KmfReader
 
         reader.Expect("GEOM"); reader.SkipSectionSize();
         var positions = new Vector3[(int)geometryCount];
+        var keyFrames = new byte[(int)geometryCount];
         for (int i = 0; i < positions.Length; i++)
         {
             uint packed = reader.UInt32();
@@ -135,7 +136,7 @@ public static class KmfReader
                 (xBits - 512) / 511f,
                 (yBits - 512) / 511f,
                 (zBits - 512) / 511f) * geometryScale;
-            _ = reader.Byte(); // Key-frame metadata; its interpolation semantics are UNKNOWN.
+            keyFrames[i] = reader.Byte();
         }
 
         reader.Expect("VGEO"); reader.SkipSectionSize();
@@ -159,8 +160,11 @@ public static class KmfReader
         return new KmfModel(version, KmfKind.Animation, materials,
             frameZero, new KmfAnimation(frameCount, frames, decodeFailure));
 
+        // The drawer (0x00577F10) clamps the integer frame to [0, frames - 2] and evaluates the
+        // last frame from there, with t carried past the key interval it names.
         KmfMesh BuildFrame(int frame)
         {
+            int lookup = Math.Min(frame, Math.Max(0, (int)frameCount - 2));
             var primitives = new List<KmfPrimitive>(sprites.Count);
             foreach (SpriteData sprite in sprites)
             {
@@ -173,8 +177,8 @@ public static class KmfReader
                     uint geometryIndex;
                     try
                     {
-                        geometryIndex = checked(indexTables[frame / 128][vertex.GeometryIndex]
-                            + frameOffsets[vertex.GeometryIndex, frame]);
+                        geometryIndex = checked(indexTables[lookup / 128][vertex.GeometryIndex]
+                            + frameOffsets[vertex.GeometryIndex, lookup]);
                     }
                     catch (OverflowException exception)
                     {
@@ -183,12 +187,28 @@ public static class KmfReader
                     if (geometryIndex >= positions.Length)
                         throw Invalid(
                             $"Animation geometry index {geometryIndex} is out of range at frame {frame}.");
-                    vertices[i] = new KmfVertex(positions[(int)geometryIndex], vertex.Normal, vertex.Uv);
+                    vertices[i] = new KmfVertex(PositionAt(frame, lookup, (int)geometryIndex), vertex.Normal, vertex.Uv);
                 }
                 primitives.Add(new KmfPrimitive(sprite.MaterialIndex, sprite.DetailFactor,
                     vertices, sprite.Indices));
             }
             return new KmfMesh(name, origin, boundsScale, primitives);
+        }
+
+        // The engine's vertex evaluator (0x0057E5B0): each GEOM byte is the frame, within its
+        // 128-frame block, at which that entry is exact; a frame between two keys lies on the line
+        // from entry g to g + 1 (kmf-animation-playback.md §1). Equal keys, a backwards key and a
+        // last entry hold g: equal keys read the table's unset entry 0, and the other two occur
+        // in shipped KMFs only on the key's own frame, where DK2's numerator is 0 (ADR-0389).
+        Vector3 PositionAt(int frame, int lookup, int g)
+        {
+            if (g + 1 >= positions.Length) return positions[g];
+            int blockStart = lookup / 128 * 128;
+            int keyA = blockStart + keyFrames[g];
+            int span = keyFrames[g + 1] - keyFrames[g];
+            if (span <= 0) return positions[g];
+            float t = (frame - keyA) / (float)span;
+            return positions[g] + (positions[g + 1] - positions[g]) * t;
         }
 
         InvalidDataException Invalid(string message, Exception? innerException = null) =>

@@ -40,8 +40,9 @@ One pass of the time covers frame 0 to the last frame.
 
 For a creature art clip, the simulation advances a 12.12 phase each turn by a
 step derived from the art descriptor's FPS and frame count (`0x004B41E0`,
-`0x004B3C10`; `keeper-spell-tremor.md` § Animation clock). One pass lasts
-frames/FPS **turns at 4 per second**, not real seconds. That this clock is
+`0x004B3C10`; `keeper-spell-tremor.md` § Animation clock). One pass takes
+4096/step = duration/1024 = 4·frames/FPS turns, which at 4 turns a second is
+**frames/FPS seconds** (corrected 2026-10-06: this said frames/FPS turns). That this clock is
 what drives the drawn clip is **STRONGLY INFERRED**; for KMF animations other
 than creature art it is a **HYPOTHESIS**. The link from the phase (animation
 object `+0x94`) to the drawer's time (`+0x44`) is **UNKNOWN**: the
@@ -51,10 +52,15 @@ whether the drawn time is interpolated between turns is open.
 
 ## 4. What this means for ours
 
-- `KmfReader` (`src/DK2.Convert/KmfReader.cs`, the `GEOM` loop) drops the key
-  byte and builds frame `n` from entry `g` alone, without the interpolation to
-  `g + 1`. Every frame that is not itself a key is then held at the previous
-  key; this is **STRONGLY INFERRED** until one shipped clip is decoded both ways.
-- `GlbWriter` writes keys at `frame/30` s with `STEP` interpolation. DK2's pose
-  is linear between keys and its clip length comes from the art descriptor;
-  30 fps matches some descriptors by coincidence only.
+Built (ADR-0389):
+
+- `KmfReader` keeps the key byte and evaluates each integer frame as §1 does,
+  the last through frame − 1's lookup as §2's clamp has it. Over every shipped
+  KMF, 12.05 M of 28.4 M vertex lookups fall between keys and so move; equal
+  keys, a key that runs backwards and a last entry with no `g + 1` occur only
+  on the key's own frame, where the numerator of `t` is 0.
+- `GlbWriter` samples the frames `LINEAR` and spaces them so one pass lasts the
+  art descriptor's frame count over its FPS (`+0x44`, `+0x48`, type 6) from
+  frame 0 to the last (§2, §3). That count differs from the KMF's in 300 of 906
+  creature clips. A KMF with no descriptor still plays at an assumed 30 fps.
+  The phase-to-time link in §3 stays open.

@@ -61,10 +61,10 @@ Three facts shape everything downstream:
    and Dig2 start/end clips) have the same 187 triangles over 96 positions but a
    different UV layout; the `Dejected_Pose` meshes differ the same way. How those
    correspond to the main family is Q443.
-3. **The playback rate is not in the file.** `GlbWriter` assumes 30 frames a
-   second with `STEP` keys; DK2 interpolates linearly between key entries and
-   takes a clip's length from the art descriptor
-   (`docs/research/kmf-animation-playback.md`, Q442). Frame counts are exact.
+3. **The playback rate is not in the file.** `KmfReader` interpolates between
+   key entries and `GlbWriter` writes `LINEAR` keys over frames/FPS seconds from
+   the art descriptor, 30 fps where a KMF has none
+   (`docs/research/kmf-animation-playback.md`, Q442, ADR-0389). Frame counts are exact.
 
 Precision: animated positions are packed as signed 10-bit components scaled by
 the clip's geometry scale, so the reference carries roughly 1/512 of that scale
@@ -126,7 +126,7 @@ are defined in §9.
 
 1. **Original inputs** — §2. *Reliable.*
 2. **Extraction and conversion** — `DK2.Convert` already writes KMF to GLB
-   (animation as morph targets, `STEP` keys) and textures to PNG. The PoC adds:
+   (animation as morph targets, `LINEAR` keys) and textures to PNG. The PoC adds:
    exposing each vertex's geometry index so split vertices weld exactly rather
    than by position equality, and a lossless per-frame position export. C#,
    deterministic, unit-tested. *Reliable.*

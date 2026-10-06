@@ -36,7 +36,7 @@ public class GlbWriterTests
     }
 
     [Fact]
-    public void AnimationFramesBecomeDistinctMorphTargetsAndStepWeightKeys()
+    public void AnimationFramesBecomeDistinctMorphTargetsAndLinearWeightKeys()
     {
         KmfModel source = KmfReader.Read(AnimatedKmfFixture.TwoFrames());
         using GlbDocument glb = GlbDocument.Load(GlbWriter.Write(source));
@@ -48,12 +48,24 @@ public class GlbWriterTests
 
         JsonElement animation = Assert.Single(root.GetProperty("animations").EnumerateArray());
         JsonElement sampler = animation.GetProperty("samplers")[0];
-        Assert.Equal("STEP", sampler.GetProperty("interpolation").GetString());
+        Assert.Equal("LINEAR", sampler.GetProperty("interpolation").GetString());
         Assert.Equal([0f, 1f / GlbWriter.AssumedAnimationFramesPerSecond],
             glb.Floats(sampler.GetProperty("input").GetInt32()));
         Assert.Equal([0f, 1f], glb.Floats(sampler.GetProperty("output").GetInt32()));
         Assert.Equal("weights", animation.GetProperty("channels")[0]
             .GetProperty("target").GetProperty("path").GetString());
+    }
+
+    /// <summary>Given a pass time (the descriptor's frames/FPS) a clip spans its first frame to
+    /// its last over it (<c>0x004B41E0</c>, <c>0x00577F10</c>, Q442).</summary>
+    [Fact]
+    public void APassTimeSpansTheClipFromItsFirstFrameToItsLast()
+    {
+        KmfModel source = KmfReader.Read(AnimatedKmfFixture.KeyedAtFramesZeroAndTwo());
+        using GlbDocument glb = GlbDocument.Load(GlbWriter.Write(source, passSeconds: 0.25f));
+
+        JsonElement sampler = glb.Json.RootElement.GetProperty("animations")[0].GetProperty("samplers")[0];
+        Assert.Equal([0f, 0.125f, 0.25f], glb.Floats(sampler.GetProperty("input").GetInt32()));
     }
 
     [Fact]
