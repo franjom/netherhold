@@ -8559,3 +8559,22 @@ DK2's is at 855 on (16,22) (Q555). The changed slap targets change the keeper's 
 On Level 11A a slap takes tick 49's allowance, the tag past the bridge lands at 50, the imp that
 dug it at once on master has taken another job, Morgana reinforces the tile first, and the call
 moves from 104 to 247; the scenario runs 300 ticks. One AI test takes seed 2. No simulation state changes: no HashVersion bump.
+
+## ADR-0377 — Trigger action 18 makes and breaks alliances
+**Date:** 2026-10-06 · **Status:** accepted · Research: `trigger-action-arms.md` (*Action 18*),
+`computer-keeper-observations.md` (*Level 11A*); Q557
+
+**Context.** In the first Level 11A comparison ours sent Drako against Raksha at tick 66, a
+tunnel north with eight bridge tiles; DK2's Drako never attacks her. Level 11A's first turn
+runs action 18 for 7-6, 7-4 and 7-5, and the capture shows those alliance bytes set on turn 2.
+Ours left action 18 unperformed, so the attack planner (`0x004FAEF0`) saw Raksha as an enemy.
+
+**Decision.** `TriggerExecutor` performs action 18 as `0x00519376` does: body byte 02 zero
+allies the players in bytes 00 and 01, any other value breaks the alliance, both ways, and the
+action succeeds. A player the level lacks is not written. HashVersion and the snapshot format
+go to 189; no new field.
+
+**Consequences.** On Level 11A ours now goes Morgana, then Belial through (48,43) and the
+bridges at (47,43) and (46,43), the tiles DK2 uses. It tags Belial's first tunnel tile at 68; DK2
+digs it at 443 (Q557). The `level11a_drako_attack` scenario still passes. The neutral
+player's row, allied with everyone at load in the capture, is not modelled (Q558).

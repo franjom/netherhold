@@ -192,7 +192,8 @@ rather than a retraction, and `tile-work.md` used the unhedged form and needed o
 ticks = **100 game seconds**, where `SlapSpeedUpDurationSeconds` is 25; the creature update
 counts it down by one a tick (`0x0048E160`), and the Level 17 capture shows a slap's 400
 counting down. Ours does not start it: nothing here moves a creature faster for being slapped,
-and the keeper's slap step stands in for the timer (ADR-0376).
+and the keeper's slap step stands in for the timer (ADR-0376). The owner (2026-10-06): a slapped
+imp visibly runs faster for a while, OBSERVED; how long is Q556.
 
 ---
 
