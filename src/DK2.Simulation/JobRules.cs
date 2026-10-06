@@ -72,11 +72,11 @@ public static class JobRules
     /// and the job becomes its <see cref="CreatureState.DroppedToDoJob"/>. Returns the job, or
     /// null when the drop is an ordinary one.</summary>
     /// <remarks>Built for the rooms whose state is the one their job works in: the Library,
-    /// Training Room, Guard Room, Workshop, Temple and Casino. The Combat Pit's 137
-    /// (<see cref="DropLandingRules.AfterGettingUp"/>) and a Torture Chamber's devices have their own arms; the Hatchery (92), Treasury, Lair, Portal, Heart,
-    /// Prison states and the no-room arm (state 250) are not built; no shipped level holds a Crypt (Q375). The room's
-    /// capacity is the work state's enter hook's, so a full room sends the creature to idle
-    /// with its job still remembered.</remarks>
+    /// Training Room, Guard Room, Workshop, Temple and Casino. The Combat Pit's 137, a Torture
+    /// Chamber's devices and the no-room drop to 250 are <see cref="DropLandingRules.AfterGettingUp"/>'s;
+    /// the Hatchery (92), Treasury, Lair, Portal, Heart and Prison arms are not built, and no
+    /// shipped level holds a Crypt (Q375). The room's capacity is the work state's enter
+    /// hook's, so a full room sends the creature to idle with its job still remembered.</remarks>
     public static JobType? TryDropOnARoom(
         in StateHookContext hooks, CreatureState creature, CreatureDef definition, int tileIndex)
     {

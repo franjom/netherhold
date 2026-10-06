@@ -70,6 +70,16 @@ click by click is therefore built in click order.
 and the wave runs from the release corner back to the press corner. The owner saw a drag's first
 tiles appear at the tile released, and the door (§5) agrees.
 
+**Neither availability nor `Buildable` gates this path (binary, 2026-10-06).** No function on
+it calls `Player_RoomAvailability` `0x004BAB20` or tests the ROOMS bit 0x80 as a refusal:
+`0x00512850`, `0x004C6EF0`, `0x004C5A20`, `0x0044F630`, `0x004C7380`, `0x004C5C30`,
+`0x004ED1A0`, `0x004ED320`, `0x004EC5A0`, `0x004EC650`, `0x00450840` (all read). None of
+their callees is a direct caller of `0x004BAB20` either; deeper callees were not walked.
+`0x004F0390` (called once at queue time) only tests bit 0x80 to choose which rooms to
+re-finish. STRONGLY INFERRED: our build command ignoring `Availability` matches DK2's
+simulation. HYPOTHESIS: the build menu is the gate; `0x00410990` also reads availability, into a
+state word, but who calls it is not traced.
+
 ## 3. Adding a tile: join, create or merge — CONFIRMED
 
 `buildRoom` calls `0x004ED1A0`, which calls `0x004ED320(x, y, type, owner, allowance)`.
