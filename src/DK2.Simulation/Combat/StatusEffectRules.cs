@@ -92,7 +92,8 @@ public static class StatusEffectRules
     }
 
     /// <summary>The speed effect on the movement cap (§2): the cap × percent / 100, no less than a
-    /// quarter of the level-scaled walk and no more than ticks-a-second tiles a tick. The cap is
+    /// quarter of the level-scaled walk and no more than ticks-a-second tiles a tick, then the word
+    /// SetSpeed stores, at most <c>0xFFF</c> (<c>0x0048D010</c>, ADR-0397). The cap is
     /// in 16.16 tiles a tick, as <see cref="Systems.CreatureMovementSystem.MaxSpeedOf(GameDatabase, CreatureDef, int, bool)"/> gives it.</summary>
     public static int SpeedCap(GameDatabase database, CreatureDef definition, CreatureState creature, int cap)
     {
@@ -100,7 +101,7 @@ public static class StatusEffectRules
         int perTick = cap >> 4;
         int walk = SimulationTiming.LoaderRatePerTick(CreatureLevelRules.SpeedRaw(database, definition, creature.Level));
         int modified = Math.Clamp(perTick * creature.SpeedPercent / 100, walk / 4, SimulationTiming.OriginalTicksPerGameSecond << 12);
-        return modified << 4;
+        return Math.Min(modified, Systems.CreatureMovementSystem.MaxSpeedPerTick) << 4;
     }
 
     /// <summary>Freeze (<c>0x0048CB60</c>, §2): refused for <c>IsHorny</c> and while frozen; the

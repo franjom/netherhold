@@ -170,4 +170,41 @@ public static class RoomCapacityRules
 
         return false;
     }
+
+    /// <summary><c>0x004C6AE0</c>: the keeper's room of <paramref name="type"/> with a place for the creature
+    /// that it can route to, nearest, preferring one whose place-holders it does not object to; null with
+    /// none. Deviates as <see cref="AnotherHasRoom"/> does: it measures to the bounding box's middle, where
+    /// DK2 takes the room's centre <c>+0x27</c>, and routes to the first slab. The creature's own place
+    /// counts, as in DK2's test <c>0x004E53B0</c>. Not built: a Library's storage gate <c>0x004E1AC0</c>
+    /// inside that test (a shelf with room, one draw), which <see cref="HasRoom"/> lacks for every caller
+    /// (library-and-research.md §7).</summary>
+    public static RoomInstance? FindRoomWithPlace(SimulationContext context, RoomTypeId type, CreatureState creature)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        CreatureFlags against = definition.Flags.HasFlag(CreatureFlags.IsGood) ? CreatureFlags.IsEvil : CreatureFlags.IsGood;
+        RoomInstance? nearest = null, nearestFriendly = null;
+        long best = long.MaxValue, bestFriendly = long.MaxValue;
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
+            if (room.OwnerPlayerId != creature.OwnerPlayerId || room.Definition.TypeId != type || room.TileIndices.Count == 0) continue;
+            if (!HasRoom(world, database, room)) continue;
+            (int mx, int my) = CombatPitSpectatorRules.Middle(room);
+            long dx = Math.Abs((long)CreatureState.CentreOf(mx) - creature.PosX), dy = Math.Abs((long)CreatureState.CentreOf(my) - creature.PosY);
+            long distance = ((dx * dx) >> 12) + ((dy * dy) >> 12);
+            if (distance >= best && distance >= bestFriendly) continue;
+            int first = SlabChain.FirstSlab(world, room);
+            if (!Combat.CombatTargetRules.CanReach(context.Navigation, creature, definition, CreatureState.CentreOf(first % world.Width),
+                    CreatureState.CentreOf(first / world.Width), int.MaxValue, [], MoveOptions.Loose))
+                continue;
+            if (distance < best) (nearest, best) = (room, distance);
+            bool objects = false;
+            foreach (CreatureState c in world.Creatures)
+                if (c.HeldPlace.In(room) && database.CreatureById(c.CreatureTypeId).Flags.HasFlag(against)) objects = true;
+            if (!objects && distance < bestFriendly) (nearestFriendly, bestFriendly) = (room, distance);
+        }
+
+        return nearestFriendly ?? nearest;
+    }
 }

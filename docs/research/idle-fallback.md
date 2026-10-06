@@ -116,8 +116,8 @@ covered every `def+0x6C0`–`+0x6CB` displacement and the indexed forms, and fou
 
    `def+0x76A` is `UnhappyThreshold × 0x7FFF / 100` (the loader at `0x00494249`, from file
    `0xF4F`), which is `CreatureAngerRules.UnhappyAt`: the bucket-5 bar is 1638 for every shipped
-   creature. The loader stores it only when `[EBP+0x198]` is set, which is **UNKNOWN**.
+   creature. The loader stores it only when `[EBP+0x198]` is set, and the record reader
+   `0x00569041`–`0x005692D0` sets that field to 1 for every record read from file.
 
-**Why none of it is built.** Ours holds a researcher in 53 and a trainee in 108, the states the
-job handlers resume (`JobRules.StateFor`). Nothing enters 56, 59, 109 or 112, so both rules would
-be dead code. They wait for the Library's and Training Room's own state walks, 53–59 and 108–113.
+**Built:** the Library's half, with states 53–59 (ADR-0397, `library-states.md` §6). The Training
+Room's (112 to 109) waits for the Training states 108–113.

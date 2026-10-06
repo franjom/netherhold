@@ -9014,3 +9014,30 @@ wall, so a south wall's alcove refuses the walk (Q568).
 **Measured** (hash 196) against master `95daa5f6`, both sides run: Level 1 20/20 and 20/20, Level
 2 2/20 and 2/20 (seeds 14 and 17), Level 3 seed 01 won at 3560 and 3560 (DK2 3683). No shipped
 level of the three has a Casino, so every run is identical.
+
+## ADR-0397 — A researcher moves among the Library's shelves, and an intruder disturbs a long read
+**Date:** 2026-10-06 · **Status:** accepted · Completes Q438's Library half · Research: `library-states.md`
+
+**Context.** A researcher stood in state 53 while the Research hook credited it; 54–59 were unread
+or unbuilt, and idle-fallback.md §6's disturbed-room rule waited for them. Read whole: 53
+(`0x00475A20`) walks to the nearest free Book Case or Library Book, or a random free bare tile
+(`0x004E1ED0`); 54 faces it and reads, action 29, long at a slot (56) or short on a bare tile (57);
+the reads return to 53, or leave a Library holding a creature the reader objects to when another has
+a place; an intruder on a Library tile sends a worried long reader into 59, which watches it and
+hurries it out. 55 and 58 share the stub that returns 0, and nothing enters them.
+
+**Decision.** `ResearchStep` runs 53, 54, 56, 57 and 59; the contact test runs the Library arm of
+`0x004E8660`; `RoomCapacityRules.FindRoomWithPlace` mirrors `0x004C6AE0` returning the room.
+55 and 58 are unreachable by Q415's method. The object's position (`+0x1A`) moves `0x700` toward
+its wall for a Library Book as for the Casino's alcove (`AutoFurnitureRules.FurniturePosition`).
+Deviates: a state entered this turn runs from the next; `0x004C6AE0` measures to the room's
+bounding-box middle and routes to its first slab; objects' flags and processes are not kept. The
+Training Room's half of the disturbed room waits for 108–113; the Library's storage gate
+`0x004E1AC0` inside the capacity test is not built for any caller. Two corrections land with it: a
+speed effect now stops at the `0xFFF` word SetSpeed (`0x0048D010`) stores, for Haste too; and the
+once-a-second disturb and the Casino party's twelve-second effect fire on DK2's turn, our tick + 1. The UNKNOWN in idle-fallback.md §6
+is closed: the record reader always sets the field that stores `def+0x76A`.
+
+**Measured** (hash 197) against master `95daa5f6`, both sides run: Level 1 20/20 and
+20/20, Level 2 2/20 (seeds 14, 17) and 2/20 (seeds 5, 13), Level 3 seed 01 won at 3560 and 3560 (DK2
+3683). Level 2's researchers now walk among the shelves, which moves its random draws.

@@ -42,6 +42,12 @@ public sealed class RescueSystem : ISimulationSystem
 
             if (here == creature.ContactTileIndex) continue;
             creature.ContactTileIndex = here;
+            // 0x004E8660's Library arm: anyone not researching disturbs it (ADR-0397), behind the call's
+            // own gates at 0x0048A844: not dying and holding no place. The rescue arms above lack them.
+            if (!creature.HeldPlace.IsHeld && !CreatureDeathRules.IsDown(creature)
+                && RoomIndex.RoomAt(world, database, here) is { } room && room.Definition.TypeId == RoomTypeId.Library
+                && ResearchStep.ResolvedCategory(creature) != CreatureStateCategory.Research)
+                ResearchStep.Disturb(context, SystemName, room, creature);
             if (MayStart(creature) && RescueRules.StateFor(world, database, creature, here) is int state) Start(context, creature, state);
         }
     }

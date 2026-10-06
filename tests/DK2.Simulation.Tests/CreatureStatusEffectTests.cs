@@ -121,6 +121,20 @@ public class CreatureStatusEffectTests
     }
 
     [Fact]
+    public void ASpeedEffectStopsAtTheWordSetSpeedStores_0xFFF()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState quick = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 8, 10);
+        CreatureDef def = db.CreatureById(quick.CreatureTypeId);
+        quick.SpeedEffectTicks = 10;
+        quick.SpeedPercent = 100_000;
+
+        int cap = StatusEffectRules.SpeedCap(db, def, quick, CreatureMovementSystem.MaxSpeedOf(db, def, 1));
+
+        Assert.Equal(CreatureMovementSystem.MaxSpeedPerTick << 4, cap);
+    }
+
+    [Fact]
     public void HasteRaisesTheCapByHalfForSixtyTicks_AndSlowFloorsAtAQuarterOfTheWalk()
     {
         (GameDatabase db, WorldState world) = OpenWorld();

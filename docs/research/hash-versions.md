@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**197** — `0x7E3268744B92B012`. The Library's states 53–59 (`library-states.md`): the researcher's target point (state `+0xA9`/`+0xAD`), the watched creature (`+0xA7`), and the Casino's wait position renamed to the shared `WaitPos`. ADR-0397.
+
 **196** — `0xC44B4149D9B1725D`. The Casino's states 145–153, the jackpot, its party and its winner's 152 and 155–157 (`casino.md`): creature `+0x2FF`, state `+0xAC`/`+0xB4`/`+0xB8`, the drunk timer `+0x4CE`, the winner's `+0x3F2`/`+0x3F4`, room `+0x41`/`+0x45`/`+0x3D` on the Casino's lowest tile and player `+0xF4A`. ADR-0396.
 
 **195** — `0x95D304A3DA5B37B4`. A trainee at the Training Room's level cap goes from state 108 through 110 to idle (`0x00485310`, `0x00485580`); no new field. ADR-0393.

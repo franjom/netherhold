@@ -323,8 +323,8 @@ public sealed class CreatureJobTests
         StatePlacement.Place(goblin, CasinoStep.DrinkingState);
         goblin.HeldPlace = new RoomPlace((Floor.Y * world.Width) + Floor.X, RoomCapacityRules.Units);
         goblin.ActionUntilTick = long.MaxValue;
-        goblin.CasinoPosX = goblin.PosX;
-        goblin.CasinoPosY = goblin.PosY;
+        goblin.WaitPosX = goblin.PosX;
+        goblin.WaitPosY = goblin.PosY;
         return goblin;
     }
 

@@ -183,7 +183,7 @@ party pays and charges nothing at the lever for its 90 seconds, nor on the turn 
 `v19 × 90` turns ends (`+0x41`, `+0x45` = 0, owner `+0xF4A` −= 1), and so does a party in a room
 with no occupants; both in one turn decrement the count twice. Then for each occupant in 153 it
 sets `+0x3D` and plays the music; if the music handle is null every occupant is kicked to 145
-(through 1 when refused). Every `v19 × 12` turns an effect on a random tile: the effect is
+(through 1 when refused). Every `v19 × 12` turns (`turn % (v19 × 12) == 0`, DK2's turn being our tick + 1, ADR-0397) an effect on a random tile: the effect is
 presentation, but its `random(+0xA7)` (`0x004D6561`) is on the simulation stream. With
 `+0x41` clear and `+0x3D` set, every occupant in 153 ends its action and is kicked to 145, and
 `+0x3D` clears.

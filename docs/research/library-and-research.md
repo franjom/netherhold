@@ -23,6 +23,8 @@ even looked at. The second is [research-tree.md](research-tree.md), read and bui
 
 ---
 
+
+The researcher's own states, 53–59, and how it moves among the shelves: `library-states.md`.
 ## Summary of confidence
 
 | Claim | Status |

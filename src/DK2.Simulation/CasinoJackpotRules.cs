@@ -161,7 +161,7 @@ public static class CasinoJackpotRules
                 if (c.HeldPlace.In(room) && c.Dk2StateId == CasinoStep.DancingState) first.CasinoParty |= MusicBit;
             // Every twelve seconds an effect on a random tile: the effect is presentation, its draw is
             // on the simulation stream (0x004D6561).
-            if (now % (EffectSeconds * SimulationTiming.OriginalTicksPerGameSecond) == 0)
+            if ((now + 1) % (EffectSeconds * SimulationTiming.OriginalTicksPerGameSecond) == 0)   // DK2's turn is our tick + 1
                 context.Rng.NextInt(room.TileIndices.Count);
             return true;
         }

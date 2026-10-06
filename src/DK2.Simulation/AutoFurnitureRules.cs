@@ -344,6 +344,32 @@ public static class AutoFurnitureRules
         return true;
     }
 
+    /// <summary>An object's position, its <c>+0x1A</c>: its tile's centre, moved <c>0x700</c> toward its
+    /// wall for the wall furniture whose arm was read, the Alcove Barrels (68, <c>0x004EEA07</c>) and the
+    /// Library Book (58, <c>0x004EECEB</c>), sides north, east, south, west (<c>casino.md</c> §3). Only these
+    /// two are inset here: the rebuild's arm 3 insets types 62 and 63 by <c>0x480</c> and its default arm
+    /// other wall furniture by <c>0x700</c>, which no caller asks for yet.</summary>
+    public static (int X, int Y) FurniturePosition(WorldState world, GameDatabase database, RoomInstance room, ObjectState thing)
+    {
+        int x = CreatureState.CentreOf(thing.TileIndex % world.Width);
+        int y = CreatureState.CentreOf(thing.TileIndex / world.Width);
+        if (thing.ObjectTypeId is not (68 or 58)) return (x, y);
+        return WallSide(world, database, room, thing.TileIndex) switch
+        {
+            0 => (x, y - WallInset),
+            1 => (x + WallInset, y),
+            2 => (x, y + WallInset),
+            3 => (x - WallInset, y),
+            _ => (x, y),
+        };
+    }
+
+    private const int WallInset = 0x700;
+
+    /// <summary>The coordinate-seeded selector Room_Rebuild draws from: a furniture slot's choice, a
+    /// bookcase's variant (<c>library-states.md</c> §4).</summary>
+    public static int Choice(int x, int y, int count) => CoordinateChoice(x, y, count);
+
     private static int CoordinateChoice(int x, int y, int count)
     {
         uint sx = unchecked((uint)x);

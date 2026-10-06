@@ -509,6 +509,19 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             return;
         }
 
+        // A researcher's hook runs every turn, then its state's handler: 53-57 and 59 (ADR-0397).
+        // RESEARCH IS PAID EVERY TURN, and the bonuses once a game second. That split is the
+        // original's: its adder credits the base amount unconditionally and computes the bonuses
+        // only inside a `tick % variable19 == 0` guard (FUN_004c2dc0). So the tabled
+        // ResearchPerSecond arrives in four instalments and a slap's bonus in one lump.
+        if (job == JobType.Research)
+        {
+            if (originalTick && CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Research)
+                Research(context, world, database, creature, definition, second);
+            if (originalTick && !ResearchStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            return;
+        }
+
         // A gambler's hook runs, then its state's handler: 145-151 and 153 (ADR-0396).
         if (job == JobType.Drink)
         {
@@ -551,15 +564,6 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
                 if (CreatureStateMachine.HookFires(creature, reload))
                     ChargeForTraining(context, world, database, creature, definition);
                 if (originalTick) TrainingCapHandlers(context, database, creature, definition);
-                return;
-
-            // RESEARCH IS PAID EVERY TICK, and the bonuses once a game second. That split
-            // is the original's: its adder credits the base amount unconditionally and
-            // computes the bonuses only inside a `tick % variable19 == 0` guard
-            // (FUN_004c2dc0). So the tabled ResearchPerSecond arrives in four instalments
-            // and a slap's bonus arrives in one lump.
-            case CreatureStateCategory.Research:
-                if (originalTick) Research(context, world, database, creature, definition, second);
                 return;
 
             // MANUFACTURE IS CREDITED EVERY TURN, like research: 0x0047B190 has no countdown.

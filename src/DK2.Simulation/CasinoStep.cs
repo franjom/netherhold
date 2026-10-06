@@ -347,10 +347,10 @@ public static class CasinoStep
     private static bool Wait(SimulationContext context, string system, CreatureState creature, long age)
     {
         long now = context.Tick.Value;
-        bool moved = creature.CasinoPosX != creature.PosX || creature.CasinoPosY != creature.PosY;
+        bool moved = creature.WaitPosX != creature.PosX || creature.WaitPosY != creature.PosY;
         if (age > 1 && moved && now < creature.ActionUntilTick) creature.ActionUntilTick = 0;
-        creature.CasinoPosX = creature.PosX;
-        creature.CasinoPosY = creature.PosY;
+        creature.WaitPosX = creature.PosX;
+        creature.WaitPosY = creature.PosY;
         if (now >= creature.ActionUntilTick) return Enter(context, system, creature, ChoosingState);
 
         if (creature.Dk2StateId == PlayingState && age % (4 * SimulationTiming.OriginalTicksPerGameSecond) == 0
@@ -399,25 +399,9 @@ public static class CasinoStep
             ? room : null;
     }
 
-    /// <summary>An object's position, its <c>+0x1A</c>: a tile's centre, moved <c>0x700</c> toward
-    /// its wall for wall furniture (casino.md §3).</summary>
-    public static (int X, int Y) FurniturePosition(WorldState world, GameDatabase database, RoomInstance room, ObjectState thing)
-    {
-        int x = CreatureState.CentreOf(thing.TileIndex % world.Width);
-        int y = CreatureState.CentreOf(thing.TileIndex / world.Width);
-        int side = IsFurnitureOf(room, thing.ObjectTypeId, 3) ? AutoFurnitureRules.WallSide(world, database, room, thing.TileIndex) : -1;
-        return side switch
-        {
-            0 => (x, y - WallInset),
-            1 => (x + WallInset, y),
-            2 => (x, y + WallInset),
-            3 => (x - WallInset, y),
-            _ => (x, y),
-        };
-    }
-
-    /// <summary>The wall pass's inset for an Alcove Barrels (jump arm <c>0x004EEA07</c>).</summary>
-    private const int WallInset = 0x700;
+    /// <summary>An object's position, its <c>+0x1A</c> (<see cref="AutoFurnitureRules.FurniturePosition"/>).</summary>
+    public static (int X, int Y) FurniturePosition(WorldState world, GameDatabase database, RoomInstance room, ObjectState thing) =>
+        AutoFurnitureRules.FurniturePosition(world, database, room, thing);
 
     /// <summary>The angle the wall pass gives wall furniture, <c>((side + 2) &amp; 3) &lt;&lt; 9</c>.</summary>
     private static int WallAngle(WorldState world, GameDatabase database, RoomInstance room, ObjectState thing)

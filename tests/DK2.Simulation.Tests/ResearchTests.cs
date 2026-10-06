@@ -47,8 +47,14 @@ public sealed class ResearchTests
             db, Dk2TerrainFixture.VampireCreatureId, Keeper, Room);
         it.CurrentJob = JobType.Research;
         StatePlacement.As(it, CreatureActivity.AtWork);
-        StatePlacement.Place(it, JobRules.StateFor(it.CurrentJob)!.Value);
+        // Mid-way through a long read (56) that outlasts the test, where its own handler holds it and
+        // only the category's hook acts: 53 would send it idle, as the fixture has nothing to research
+        // (ADR-0397).
+        StatePlacement.Place(it, ResearchStep.ReadingLongState);
         it.JobTileIndex = (Room.Y * world.Width) + Room.X;
+        it.HeldPlace = new RoomPlace(it.JobTileIndex, RoomCapacityRules.Units);
+        it.ActionUntilTick = long.MaxValue;
+        (it.WaitPosX, it.WaitPosY) = (it.PosX, it.PosY);
         return it;
     }
 

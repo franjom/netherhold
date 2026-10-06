@@ -974,10 +974,18 @@ public sealed class CreatureState
     /// <summary>State <c>+0xAC</c>: 146 and 148 turn to face <see cref="CasinoObjectId"/> before they play.</summary>
     public bool CasinoFacing;
 
-    /// <summary>State <c>+0xB4</c>/<c>+0xB8</c>: where a Casino wait last saw the creature; moved, its
-    /// action ends (147, 149, 151).</summary>
-    public int CasinoPosX;
-    public int CasinoPosY;
+    /// <summary>Where a wait last saw the creature, the state object's scratch (Casino <c>+0xB4</c>/
+    /// <c>+0xB8</c>, Library <c>+0xB1</c>/<c>+0xB5</c>); moved, its action ends (147, 149, 151, 56, 57).</summary>
+    public int WaitPosX;
+    public int WaitPosY;
+
+    /// <summary>A researcher's target point, state <c>+0xA9</c>/<c>+0xAD</c> (creature <c>+0x2F7</c>):
+    /// the object it reads at, or the bare spot; the Library's finder skips a point another holds.</summary>
+    public int ResearchTargetX;
+    public int ResearchTargetY;
+
+    /// <summary>The creature a disturbed researcher watches in 59, state <c>+0xA7</c>; -1 for none.</summary>
+    public int WatchedCreatureId = -1;
 
     /// <summary>The drunk timer <c>+0x4CE</c>, turns: 146 sets it, the creature update counts it down;
     /// 146's count of drunk occupants is its one simulation reader (casino.md §4).</summary>
@@ -1306,8 +1314,11 @@ public sealed class CreatureState
         hash.Add(SpectatorPosY);
         hash.Add(CasinoObjectId);
         hash.Add(CasinoFacing);
-        hash.Add(CasinoPosX);
-        hash.Add(CasinoPosY);
+        hash.Add(WaitPosX);
+        hash.Add(WaitPosY);
+        hash.Add(ResearchTargetX);
+        hash.Add(ResearchTargetY);
+        hash.Add(WatchedCreatureId);
         hash.Add(DrunkTicks);
         hash.Add(JackpotDeadlineTicks);
         hash.Add(JackpotWinnings);
