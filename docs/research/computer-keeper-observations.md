@@ -280,6 +280,14 @@ do not know (2026-10-06).
 alliances, give Raksha three creatures and drive speech and the camera. The tunnels, bridges
 and calls are the keeper's own.
 
+**Ten seeds (2026-10-06, after ADR-0393).** Level 11A with keepers 4 to 7, seeds 1001-1010,
+1,800 ticks. The wall falls at 361-403 (DK2 387, inside the spread); everything after it is
+early in every seed: Drako claims the hole at 374-448 (638), calls at 417-602 (700), first
+strikes Morgana's heart at 381-641 (Drako's army crosses only after its call, from 707) and
+she falls at 803-997 (1,378). So the gap is systematic. In DK2, 11 imps fight in the hole
+(6 of Drako's, 5 of Morgana's), against 3 a side in ours, and Drako's mana drops 5,000 three
+times before the call; ours casts Heal before 700 in one seed of ten (Q563).
+
 ## M12 acceptance against the two captures (2026-10-06)
 
 The plan's bar: the keeper digs, expands, builds to a need, recruits, defends and attacks
