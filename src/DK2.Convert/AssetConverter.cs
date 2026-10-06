@@ -9,7 +9,6 @@ using DK2.Convert.Gltf;
 using DK2.Convert.Kmf;
 using DK2.Convert.Textures;
 using DK2.Data.Model;
-using DK2.Data.Wad;
 
 namespace DK2.Convert;
 
@@ -33,82 +32,162 @@ public static class AssetConverter
         ArgumentNullException.ThrowIfNull(database);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputRoot);
 
+        Directory.CreateDirectory(Path.GetFullPath(outputRoot));
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(installDirectory);
+        using WadMeshSource meshes = WadMeshSource.OpenInstall(installDirectory);
+        using EngineTextureArchive textures = EngineTextureArchive.OpenInstall(installDirectory);
+        return ConvertAll(art, meshes, textures, database, outputRoot);
+    }
+
+    /// <summary>Converts from the given sources; the caller owns and disposes them.</summary>
+    public static IReadOnlyList<AssetConversionResult> ConvertAll(
+        Dk2ArtCatalogue art, IMeshSource meshes, ITextureSource textures,
+        GameDatabase database, string outputRoot)
+    {
+        ArgumentNullException.ThrowIfNull(art);
+        ArgumentNullException.ThrowIfNull(meshes);
+        ArgumentNullException.ThrowIfNull(textures);
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputRoot);
+
         string root = Path.GetFullPath(outputRoot);
         Directory.CreateDirectory(root);
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(installDirectory);
-        using var meshes = WadArchive.Open(Path.Combine(installDirectory, "Data", "Meshes.WAD"));
-        using var textures = EngineTextureArchive.OpenInstall(installDirectory);
-        var results = new List<AssetConversionResult>();
-        var writtenTextures = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var run = new Run(root, meshes, textures);
+        run.ConvertTerrain(database, art);
+        run.ConvertRooms(database, art);
+        run.ConvertCreatures(database, art);
+        run.ConvertObjects(database, art);
 
-        foreach (TerrainDef terrain in database.Terrain.Values.OrderBy(value => value.TerrainId))
+        IReadOnlyList<AssetRef> expected = AssetCatalogue.ForDatabase(database).ToArray();
+        if (run.Results.Count != expected.Count
+            || !run.Results.Select(result => result.Reference).SequenceEqual(expected))
+            throw new InvalidOperationException("Converter result order drifted from AssetCatalogue.ForDatabase.");
+        return run.Results;
+    }
+
+    private static Dk2ArtResource CreatureAnimationSource(
+        CreatureDef creature, IReadOnlyList<Dk2ArtResource> resources, string animation) => animation switch
+    {
+        "idle" => resources[CreatureIdle],
+        "sleeping" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
+            => new Dk2ArtResource("", 0), // That shipped slot is Imp_Claim1(Land), not sleep.
+        "sleeping" => resources[CreatureSleeping],
+        "dying" => resources[CreatureDie],
+        "working" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
+            => resources[CreatureMelee], // The Imp's slot is named Imp_Dig in shipped data.
+        "working" => resources[CreatureManufacturing],
+        _ => resources[CreatureWalk],
+    };
+
+    private static string NoArtRecord(string category, byte id) => $"KWD has no {category} art record for id {id}";
+
+    private static Dk2ArtResource First(params Dk2ArtResource[] resources) =>
+        resources.FirstOrDefault(resource => !resource.IsEmpty) ?? resources[0];
+
+    private static IEnumerable<string> MaterialTextures(KmfMaterial material) =>
+        material.TextureNames.Concat(string.IsNullOrEmpty(material.EnvironmentTextureName)
+            ? [] : [material.EnvironmentTextureName]);
+
+    /// <summary>One conversion pass: its sources, output root and accumulated results.</summary>
+    private sealed class Run
+    {
+        private readonly string _root;
+        private readonly IMeshSource _meshes;
+        private readonly ITextureSource _textures;
+        private readonly HashSet<string> _writtenTextures = new(StringComparer.OrdinalIgnoreCase);
+
+        public Run(string root, IMeshSource meshes, ITextureSource textures)
         {
-            IReadOnlyList<Dk2ArtResource> resources = art.Terrains[terrain.TerrainId];
-            if (terrain.IsSolid)
-                ConvertKmf(AssetRef.ForTerrain(terrain.Name, AssetKind.Mesh),
-                    First(resources[1], resources[0]), "terrain side/complete mesh");
-            else
-                ConvertTexture(AssetRef.ForTerrain(terrain.Name, AssetKind.Texture),
-                    resources[0], "terrain complete mesh's first material texture");
-            if (terrain.Damage != 0)
-                Missing(AssetRef.ForTerrain(terrain.Name, AssetKind.Effect),
-                    "effect conversion is UNKNOWN; no effect format is emitted");
+            _root = root;
+            _meshes = meshes;
+            _textures = textures;
         }
 
-        foreach (RoomDef room in database.Rooms.Values.OrderBy(value => value.RoomId))
-        {
-            Dk2ArtResource complete = art.Rooms[room.RoomId][2];
-            ConvertTexture(AssetRef.ForRoom(room.Name, AssetKind.Texture), complete,
-                "room complete mesh's first material texture");
-            ConvertKmf(AssetRef.ForRoom(room.Name, AssetKind.Mesh), complete,
-                "room complete mesh");
-        }
+        public List<AssetConversionResult> Results { get; } = [];
 
-        foreach (CreatureDef creature in database.Creatures.Values.OrderBy(value => value.CreatureId))
+        public void ConvertTerrain(GameDatabase database, Dk2ArtCatalogue art)
         {
-            IReadOnlyList<Dk2ArtResource> resources = art.Creatures[creature.CreatureId];
-            ConvertKmf(AssetRef.ForCreature(creature.Name, AssetKind.Mesh),
-                resources[CreatureIdle], "idle model");
-            foreach (string animation in AssetCatalogue.CreatureAnimations)
+            foreach (TerrainDef terrain in database.Terrain.Values.OrderBy(value => value.TerrainId))
             {
-                Dk2ArtResource source = animation switch
-                {
-                    "idle" => resources[CreatureIdle],
-                    "sleeping" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
-                        => new Dk2ArtResource("", 0), // That shipped slot is Imp_Claim1(Land), not sleep.
-                    "sleeping" => resources[CreatureSleeping],
-                    "dying" => resources[CreatureDie],
-                    "working" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
-                        => resources[CreatureMelee], // The Imp's slot is named Imp_Dig in shipped data.
-                    "working" => resources[CreatureManufacturing],
-                    _ => resources[CreatureWalk],
-                };
-                ConvertKmf(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation),
-                    source, "animation KMF");
+                if (!art.Terrains.TryGetValue(terrain.TerrainId, out IReadOnlyList<Dk2ArtResource>? resources))
+                    Missing(AssetRef.ForTerrain(terrain.Name, terrain.IsSolid ? AssetKind.Mesh : AssetKind.Texture),
+                        NoArtRecord("terrain", terrain.TerrainId));
+                else if (terrain.IsSolid)
+                    ConvertKmf(AssetRef.ForTerrain(terrain.Name, AssetKind.Mesh),
+                        First(resources[1], resources[0]), "terrain side/complete mesh");
+                else
+                    ConvertTexture(AssetRef.ForTerrain(terrain.Name, AssetKind.Texture),
+                        resources[0], "terrain complete mesh's first material texture");
+                if (terrain.Damage != 0)
+                    Missing(AssetRef.ForTerrain(terrain.Name, AssetKind.Effect),
+                        "effect conversion is UNKNOWN; no effect format is emitted");
             }
         }
 
-        foreach (ObjectDef value in database.Objects.Values.OrderBy(value => value.ObjectId))
-            ConvertKmf(AssetRef.ForObject(value.Name, AssetKind.Mesh),
-                art.Objects[value.ObjectId][0], "object mesh");
+        public void ConvertRooms(GameDatabase database, Dk2ArtCatalogue art)
+        {
+            foreach (RoomDef room in database.Rooms.Values.OrderBy(value => value.RoomId))
+            {
+                if (!art.Rooms.TryGetValue(room.RoomId, out IReadOnlyList<Dk2ArtResource>? resources))
+                {
+                    string reason = NoArtRecord("room", room.RoomId);
+                    Missing(AssetRef.ForRoom(room.Name, AssetKind.Texture), reason);
+                    Missing(AssetRef.ForRoom(room.Name, AssetKind.Mesh), reason);
+                    continue;
+                }
+                Dk2ArtResource complete = resources[2];
+                ConvertTexture(AssetRef.ForRoom(room.Name, AssetKind.Texture), complete,
+                    "room complete mesh's first material texture");
+                ConvertKmf(AssetRef.ForRoom(room.Name, AssetKind.Mesh), complete,
+                    "room complete mesh");
+            }
+        }
 
-        IReadOnlyList<AssetRef> expected = AssetCatalogue.ForDatabase(database).ToArray();
-        if (results.Count != expected.Count || !results.Select(result => result.Reference).SequenceEqual(expected))
-            throw new InvalidOperationException("Converter result order drifted from AssetCatalogue.ForDatabase.");
-        return results;
+        public void ConvertCreatures(GameDatabase database, Dk2ArtCatalogue art)
+        {
+            foreach (CreatureDef creature in database.Creatures.Values.OrderBy(value => value.CreatureId))
+            {
+                if (!art.Creatures.TryGetValue(creature.CreatureId, out IReadOnlyList<Dk2ArtResource>? resources))
+                {
+                    string reason = NoArtRecord("creature", creature.CreatureId);
+                    Missing(AssetRef.ForCreature(creature.Name, AssetKind.Mesh), reason);
+                    foreach (string animation in AssetCatalogue.CreatureAnimations)
+                        Missing(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation), reason);
+                    continue;
+                }
+                ConvertKmf(AssetRef.ForCreature(creature.Name, AssetKind.Mesh),
+                    resources[CreatureIdle], "idle model");
+                foreach (string animation in AssetCatalogue.CreatureAnimations)
+                {
+                    Dk2ArtResource source = CreatureAnimationSource(creature, resources, animation);
+                    ConvertKmf(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation),
+                        source, "animation KMF");
+                }
+            }
+        }
 
-        void ConvertKmf(AssetRef reference, Dk2ArtResource source, string detail)
+        public void ConvertObjects(GameDatabase database, Dk2ArtCatalogue art)
+        {
+            foreach (ObjectDef value in database.Objects.Values.OrderBy(value => value.ObjectId))
+            {
+                if (!art.Objects.TryGetValue(value.ObjectId, out IReadOnlyList<Dk2ArtResource>? resources))
+                    Missing(AssetRef.ForObject(value.Name, AssetKind.Mesh), NoArtRecord("object", value.ObjectId));
+                else
+                    ConvertKmf(AssetRef.ForObject(value.Name, AssetKind.Mesh), resources[0], "object mesh");
+            }
+        }
+
+        private void ConvertKmf(AssetRef reference, Dk2ArtResource source, string detail)
         {
             if (source.IsEmpty) { Missing(reference, $"KWD has no {detail} resource"); return; }
-            if (!TryKmf(source.Name, allowCollectionMember: false,
-                    out WadEntry entry, out string entryName))
+            if (!TryKmf(source.Name, allowCollectionMember: false, out int index, out string entryName))
             { Missing(reference, $"Meshes.WAD has no '{entryName}'"); return; }
             try
             {
-                KmfModel model = KmfReader.Read(meshes.Extract(entry));
+                KmfModel model = KmfReader.Read(_meshes.Read(index));
                 if (model.Mesh is null)
                 {
-                    Missing(reference, $"'{entry.Name}' is a KMF group; group placement semantics are UNKNOWN");
+                    Missing(reference, $"'{entryName}' is a KMF group; group placement semantics are UNKNOWN");
                     return;
                 }
                 string path = OutputPath(reference);
@@ -118,112 +197,115 @@ public static class AssetConverter
                 foreach (string textureName in model.Materials.SelectMany(MaterialTextures).Distinct(
                     StringComparer.OrdinalIgnoreCase))
                     WriteDependency(textureName);
-                results.Add(new AssetConversionResult(reference, true, path,
-                    $"{detail} from {entry.Name}"));
+                Results.Add(new AssetConversionResult(reference, true, path, $"{detail} from {entryName}"));
             }
             catch (Exception exception) when (exception is InvalidDataException or FileNotFoundException
                 or NotSupportedException)
             {
-                Missing(reference, $"{entry.Name}: {exception.Message}");
+                Missing(reference, $"{entryName}: {exception.Message}");
             }
         }
 
-        void ConvertTexture(AssetRef reference, Dk2ArtResource source, string detail)
+        private void ConvertTexture(AssetRef reference, Dk2ArtResource source, string detail)
         {
             if (source.IsEmpty) { Missing(reference, $"KWD has no {detail} resource"); return; }
-            if (!TryKmf(source.Name, allowCollectionMember: true,
-                    out WadEntry entry, out string entryName))
+            if (!TryKmf(source.Name, allowCollectionMember: true, out int index, out string entryName))
             { Missing(reference, $"Meshes.WAD has no '{entryName}'"); return; }
             try
             {
-                KmfModel model = KmfReader.Read(meshes.Extract(entry));
+                KmfModel model = KmfReader.Read(_meshes.Read(index));
                 string? textureName = model.Materials.SelectMany(MaterialTextures).FirstOrDefault();
                 if (textureName is null)
                 {
                     Missing(reference, model.Kind == KmfKind.Group
-                        ? $"'{entry.Name}' is a KMF group; group materials are UNKNOWN"
-                        : $"'{entry.Name}' has no named material texture");
+                        ? $"'{entryName}' is a KMF group; group materials are UNKNOWN"
+                        : $"'{entryName}' has no named material texture");
                     return;
                 }
                 string path = OutputPath(reference);
-                TextureExtractor.WritePng(textures.Decode(textureName), path);
-                results.Add(new AssetConversionResult(reference, true, path,
-                    $"{detail} '{textureName}' from {entry.Name}"));
+                TextureExtractor.WritePng(_textures.Read(_textures.Resolve(textureName)), path);
+                Results.Add(new AssetConversionResult(reference, true, path,
+                    $"{detail} '{textureName}' from {entryName}"));
             }
             catch (Exception exception) when (exception is InvalidDataException or FileNotFoundException)
             {
-                Missing(reference, $"{entry.Name}: {exception.Message}");
+                Missing(reference, $"{entryName}: {exception.Message}");
             }
         }
 
-        bool TryKmf(string sourceName, bool allowCollectionMember,
-            out WadEntry entry, out string entryName)
+        /// <summary>
+        /// Finds a KMF entry; <paramref name="entryName"/> is the stored name when found,
+        /// else the name looked up.
+        /// </summary>
+        private bool TryKmf(string sourceName, bool allowCollectionMember, out int index, out string entryName)
         {
             entryName = sourceName.EndsWith(".kmf", StringComparison.OrdinalIgnoreCase)
                 ? sourceName : sourceName + ".kmf";
-            if (meshes.TryGetEntry(entryName, out entry!)) return true;
+            if (_meshes.TryFind(entryName, out index))
+            {
+                entryName = _meshes.EntryNames[index];
+                return true;
+            }
             if (allowCollectionMember)
             {
-                entry = meshes.Entries
-                    .Where(candidate => candidate.Name.EndsWith(".kmf", StringComparison.OrdinalIgnoreCase)
-                        && candidate.Name.StartsWith(sourceName, StringComparison.OrdinalIgnoreCase)
-                        && candidate.Name.Length > sourceName.Length
-                        && char.IsDigit(candidate.Name[sourceName.Length]))
-                    .OrderBy(candidate => candidate.Name, StringComparer.OrdinalIgnoreCase)
-                    .FirstOrDefault()!;
-                if (entry is not null) return true;
+                IReadOnlyList<string> names = _meshes.EntryNames;
+                index = Enumerable.Range(0, names.Count)
+                    .Where(candidate => names[candidate].EndsWith(".kmf", StringComparison.OrdinalIgnoreCase)
+                        && names[candidate].StartsWith(sourceName, StringComparison.OrdinalIgnoreCase)
+                        && names[candidate].Length > sourceName.Length
+                        && char.IsDigit(names[candidate][sourceName.Length]))
+                    .OrderBy(candidate => names[candidate], StringComparer.OrdinalIgnoreCase)
+                    .DefaultIfEmpty(-1)
+                    .First();
+                if (index >= 0)
+                {
+                    entryName = names[index];
+                    return true;
+                }
             }
-            entry = null!;
+            index = -1;
             return false;
         }
 
-        string OutputPath(AssetRef reference)
+        private string OutputPath(AssetRef reference)
         {
             string extension = FileAssetProvider.ExtensionsFor(reference.Kind)[0];
-            return Path.Combine(root, FileAssetProvider.RelativePathWithoutExtension(reference) + extension);
+            return Path.Combine(_root, FileAssetProvider.RelativePathWithoutExtension(reference) + extension);
         }
 
-        string TextureUri(string glbPath, string textureName)
+        private string TextureUri(string glbPath, string textureName)
         {
-            EngineTextureEntry entry = textures.FindBest(textureName);
-            string dependency = TexturePath(entry);
+            string dependency = TexturePath(_textures.Resolve(textureName));
             string relative = Path.GetRelativePath(Path.GetDirectoryName(glbPath)!, dependency)
                 .Replace(Path.DirectorySeparatorChar, '/');
             return string.Join('/', relative.Split('/').Select(Uri.EscapeDataString));
         }
 
-        void WriteDependency(string textureName)
+        private void WriteDependency(string textureName)
         {
-            EngineTextureEntry entry = textures.FindBest(textureName);
-            string path = TexturePath(entry);
-            if (writtenTextures.ContainsKey(entry.Name)) return;
-            TextureExtractor.WritePng(textures.Decode(entry), path);
-            writtenTextures.Add(entry.Name, path);
+            string storedName = _textures.Resolve(textureName);
+            string path = TexturePath(storedName);
+            if (_writtenTextures.Contains(storedName)) return;
+            TextureExtractor.WritePng(_textures.Read(storedName), path);
+            _writtenTextures.Add(storedName);
         }
 
-        string TexturePath(EngineTextureEntry entry)
+        private string TexturePath(string storedName)
         {
-            string readable = new(entry.Name.Select(character =>
+            string readable = new(storedName.Select(character =>
                 Path.GetInvalidFileNameChars().Contains(character) || character is '/' or '\\'
                     ? '_' : character).ToArray());
-            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(entry.Name.ToUpperInvariant()));
-            return Path.Combine(root, "_textures", $"{readable}-{System.Convert.ToHexString(hash, 0, 4)}.png");
+            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(storedName.ToUpperInvariant()));
+            return Path.Combine(_root, "_textures", $"{readable}-{System.Convert.ToHexString(hash, 0, 4)}.png");
         }
 
-        void Missing(AssetRef reference, string reason)
+        private void Missing(AssetRef reference, string reason)
         {
             // A repeat conversion must not leave a formerly-produced key
             // resolvable after its current source becomes unavailable.
             string stalePath = OutputPath(reference);
             if (File.Exists(stalePath)) File.Delete(stalePath);
-            results.Add(new AssetConversionResult(reference, false, null, reason));
+            Results.Add(new AssetConversionResult(reference, false, null, reason));
         }
     }
-
-    private static Dk2ArtResource First(params Dk2ArtResource[] resources) =>
-        resources.FirstOrDefault(resource => !resource.IsEmpty) ?? resources[0];
-
-    private static IEnumerable<string> MaterialTextures(KmfMaterial material) =>
-        material.TextureNames.Concat(string.IsNullOrEmpty(material.EnvironmentTextureName)
-            ? [] : [material.EnvironmentTextureName]);
 }

@@ -12,7 +12,7 @@ public sealed record EngineTextureEntry(
     int ScaledWidth, int ScaledHeight, bool HasAlpha, long DataOffset);
 
 /// <summary>Catalogues and decodes model textures from EngineTextures.dir/.dat.</summary>
-public sealed class EngineTextureArchive : IDisposable
+public sealed class EngineTextureArchive : ITextureSource, IDisposable
 {
     private const uint DirectoryMagic = 0x43484354; // TCHC
     private static readonly IReadOnlyDictionary<string, string> ShippedNameCorrections =
@@ -115,6 +115,8 @@ public sealed class EngineTextureArchive : IDisposable
     }
 
     public RgbaImage Decode(string textureName) => Decode(FindBest(textureName));
+    string ITextureSource.Resolve(string textureName) => FindBest(textureName).Name;
+    RgbaImage ITextureSource.Read(string storedName) => Decode(_byName[storedName]);
     public void Dispose() => _data.Dispose();
 
     private static int PositiveInt(uint value, string field, string name)
