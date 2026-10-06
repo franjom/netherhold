@@ -211,6 +211,12 @@ Check each one that applies before you write a conclusion down.
 - **Count the callee's arguments before reading a push window.** Read
   `RET n` and its `[ESP+k]` loads first. Otherwise the second-to-last push is
   easily taken for the argument.
+- **The decompiler can split one push run across two calls.** In `0x004F0390`
+  it showed slot `+0x1D8` (the tile-cell getter, two arguments) taking five,
+  which read as "places the room"; the other three were the next thiscall's
+  (`0x004539B0` on the returned cell), and the function places nothing. An
+  extra-argument call to a known accessor is that split, not a new overload:
+  check the slot's KB record and its `RET n` (2026-10-06).
 - **`PreCall.py` drops shared tails.** Branches that `JMP` to one `CALL` are
   missing from its window. Read the branches.
 - **Read the prologue and epilogue first.** The saved argument and the
