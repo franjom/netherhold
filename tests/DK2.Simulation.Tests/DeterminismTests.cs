@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 189: trigger action 18 makes and breaks alliances (ADR-0377)
+        // HashVersion 190: the binary sweep's divergences, fourth batch, the imp's (ADR-0378 to ADR-0382)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xFE655F271EBBEB12UL, sim.StateHash());
+        Assert.Equal(0xEE1C266107F94AAFUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

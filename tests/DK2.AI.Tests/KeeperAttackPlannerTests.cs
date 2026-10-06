@@ -406,11 +406,13 @@ public class KeeperAttackPlannerTests
 
         sim.Tick(new InputFrame(keeper.Think(Db, world)));
         Assert.Equal((KeeperTask.DigPath, Enemy), (state.Task, state.AttackTarget));
-        // The walker tags the one rock tile on the line north; the cursor stands on it.
+        // The walker steps onto the one rock tile on the line north; a later pass would tag it.
         IReadOnlyList<PlayerCommand> second = keeper.Think(Db, world);
-        Assert.Equal(new TilePos(16, 10), Assert.Single(Assert.Single(second.OfType<TagTilesCommand>()).Tiles));
+        Assert.Empty(second.OfType<TagTilesCommand>());
+        Assert.Equal(new TilePos(16, 10), state.DigRoomAtCurrent);
         sim.Tick(new InputFrame(second));
-        // Unowned rock in the cursor's 3x3: the rest of the tunnel is stored and the task ends.
+        // That pass tests enemy land first (0x004FDC50): unowned rock in the cursor's 3x3 stores
+        // the rest of the tunnel and the task ends, untagged.
         sim.Tick(new InputFrame(keeper.Think(Db, world)));
         Assert.Equal((KeeperTask.Done, (byte)0, new TilePos(16, 10), EnemyHeartPosition),
             (state.Task, state.AttackTarget, state.Breaches[Enemy].Start[0], state.Breaches[Enemy].End[0]));
@@ -430,10 +432,10 @@ public class KeeperAttackPlannerTests
         var keeper = new KeeperAI(Keeper, Attacker(), new SimRandom(3), buildArea: new BuildArea(0, 10, 29, 29));
 
         keeper.Think(Db, world);
-        IReadOnlyList<PlayerCommand> second = keeper.Think(Db, world);
+        keeper.Think(Db, world);
 
-        Assert.Equal(KeeperTask.DigPath, keeper.State.Task);
-        Assert.Single(second.OfType<TagTilesCommand>());
+        // Not aborted: the walker stepped toward the target.
+        Assert.Equal((KeeperTask.DigPath, new TilePos(16, 10)), (keeper.State.Task, keeper.State.DigRoomAtCurrent));
     }
 
     // ----------------------------------------------------------------- the front and the call

@@ -109,6 +109,9 @@ raised only when a side is taken. On a held side the comparison is to the wall's
 a nearer held side is stolen before a later free side is tried. After a successful walk
 the fields are `+0x8A` id, `+0x8C/+0x90` wall, `+0x94` side, `+0x96` 0, `+0x98` 6 or 16.
 When the walk to a free side fails the entry is deleted (`0x00508040`), a pre-existing one included.
+Every other holder then loses it: state 22's handler checks `0x00508070(+0x8A, 6)` at
+`0x004663C4` whenever no action is playing, and on a miss clears `+0x8A` and sets 10 (read
+2026-10-06; built as ADR-0380).
 
 Gold needs terrain flag `0x80` or the imp's own tile, and the imp not nearly full
 (`0x00464360(1)`). It walks the tile's things for neutral gold objects (`+0x12 == 2`,

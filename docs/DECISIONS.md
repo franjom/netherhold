@@ -8578,3 +8578,120 @@ go to 189; no new field.
 bridges at (47,43) and (46,43), the tiles DK2 uses. It tags Belial's first tunnel tile at 68; DK2
 digs it at 443 (Q557). The `level11a_drako_attack` scenario still passes. The neutral
 player's row, allied with everyone at load in the capture, is not modelled (Q558).
+
+## ADR-0378 — The claim on the way comes before the walk-over pick-up, from a worker job only; the pick-up reads the imp's own tile
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0293, ADR-0303
+
+**Context.** The creature update's worker arm (`0x0048904E`, record `0x00488930`) calls the claim
+on the way `0x00464170` (`0x00489076`) before its gold test, on a tick the tile changed. Inside,
+`0x00464170` asks for effective category 3, a worker job (`0x00478050`: the state's category, or
+through a walk the state it resumes), and nothing carried (`+0x3C3`, `+0x3C5`), then its distance
+and kind tests. The pick-up then walks only the imp's own tile's thing list, takes the
+first neutral pile strictly within `0x555`, and stops. Ours picked up first, scanned every world
+object within the box (so a pile on the next tile could be taken), and tried the claim only on
+job, fetch and deposit walks, by activity.
+
+**Decision.** `ImpTaskSystem.Update` tries `TryClaimOnTheWay` when `NeedRules.ResolvedCategory` is
+`WorkerJob` and no object or creature is carried, then `PickUpGoldInPassing`, which reads the
+imp's own tile. A wander walk resumes idle and never claims; in ours an idle imp takes any such
+tile through the claim search first, so only a tile dug during a wander walk could tell the two
+gates apart, and no test pins it. Deviates: piles are taken in our world order, not the tile's
+thing list; the player byte `+0x10FC` test is not built.
+
+## ADR-0379 — The ring scan does not filter its own tile
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0291, ADR-0292
+
+**Context.** `0x00468D10` calls its chain on the centre at `0x00468DA0` with no `+0xB` bit `0x20`
+test; only the ring loops make it (`0x00468E99`, `0x00468F71`). Ours filtered the centre in Tier
+B, the drop scan and the kinds 6 and 8 scans (only the kind-7 retry exempted it), so gold under
+an imp standing in water was never offered by them.
+
+**Decision.** `RingScanVisits` takes the scan's centre and admits it untested, for every caller.
+
+## ADR-0380 — A free reinforce side the imp cannot reach deletes the wall's task
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0291
+
+**Context.** When the walk to a free side fails, `0x0046AEA0` deletes the wall's kind-6 entry
+(`0x00508040`), whether it was just raised or found with other sides held, and tries the next
+side. State 22's handler checks `0x00508070(+0x8A, 6)` at `0x004663C4` whenever no action is
+playing (`0x00496D00`: no action id, or 0x15), and on a miss clears `+0x8A` and sets 10 (read
+2026-10-06). So every other imp on that wall loses the task. Ours passed the side over and kept no per-wall entry.
+
+**Decision.** `TryReinforceAt` skips a solid side, as DK2 counts only a side that is not solid
+and the keeper's (ours had only the ownership test, and an owned reinforced wall beside it failed
+its route quietly), and calls `ForgetReinforceTask` when a free side has no route: every other
+worker whose task is that wall's reinforce goes to 10. Without the solid test the deletion fired
+every tick on the shipped scenarios' corridor ends. Deviates: ours drops them at once,
+where DK2 drops a reinforcer at its next check and, INFERRED (the walk states were not read), a
+walker on arrival; repair (kind 16) is not a job in ours.
+
+## ADR-0381 — A loose crate asks its blueprint before the shared latch
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0294
+
+**Context.** In the objects handler `0x0046B9C0` a crate (flag `0x10`) calls the crate branch
+`0x00468910` before the latch it shares with books is tested, and its success returns 1 at once,
+with no kind-8 reach test, task or holder steal. Ours tested the latch first, so a book whose
+Library search failed hid a later crate from its blueprint, and a blueprint take went through the
+route check and the steal.
+
+**Decision.** `TryObjectAt` runs `BlueprintForLooseCrate` and `CommitCrateFetch` first for a crate;
+only when they fail does the latch and the Workshop search follow.
+
+## ADR-0382 — State 27's take stops at the pile that fills the hands
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0288
+
+**Context.** `0x00466850` takes neutral piles, each up to what the hands lack against the
+level-scaled maximum, and stops after the first pile that makes `0x00464360(1)` report full (the
+limit less variable 74, 340). Ours took every pile on the tile up to the full limit, so a part-full
+imp could leave up to 340 heavier.
+
+**Decision.** `TakeFromPilesOn` takes neutral piles in order and stops once `HandsFull`. Not built:
+DK2 takes only piles strictly within `0x555` of the imp, which walks to the pile's own point
+(`0x0046B6D0`); ours walks to the tile centre, where the box would leave a corner pile out of reach
+and the imp would fetch it forever.
+
+## ADR-0383 — The trigger fields Q227 named
+**Date:** 2026-10-06 · **Status:** accepted
+
+**Context.** Q227 (`trigger-action-arms.md`): condition 23's byte 2 is a player slot, 0 for the
+total (`0x004C7DF0`); action 24 reads only its second dword's low byte (`0x004C8688`), 0 speaking
+and posting the message record, non-zero only speaking; action 35's byte is 0 vanish, 1 death fall;
+39 and 40 name a door and a trap type; 41 an effect id. Ours named them `Unknown_*` and read action
+24's field as a dword.
+
+**Decision.** `KwdAdditionalRecords` names them `PlayerSlot`, `SpeakOnly` (a byte, its other three
+bytes unreached), `DeathKind`, `DoorId`, `TrapId` and `EffectId`. Names only: nothing in the
+simulation reads them, so no hash change.
+
+**Measured, ADR-0378 to ADR-0382 together** (hash 190), against master `21ca5011`: the Level 1
+packet rig 20/20 (20/20; seeds 4, 7, 10, 11, 13 and 19 move by 8 to 24 ticks), Level 2 5/20
+(4/20; seeds 1, 3, 10, 13, 14 against 1, 3, 10, 17), Level 3 seed 01 won at 3592 (3564; DK2 3683).
+Every scenario's expectations hold.
+
+## ADR-0384 — Task 7 waits on each tagged tile and ends on DK2's route test
+**Date:** 2026-10-06 · **Status:** accepted · Research: `computer-keeper-tasks.md` §5,
+`computer-keeper-observations.md` (*Level 11A*); Q557, Q561
+
+**Context.** On Level 11A ours started Drako's tunnel to Belial at tick 68; DK2's digs its
+first tile at 443. Task 7 (`0x004FDC50`) works on the cursor's own tile: rock is tagged and
+then waited on, without stepping, until it is dug; only open ground asks `0x00452970` whether
+the target routes to the cursor. Ours tagged as the walker stepped, walked on past the tag,
+and ended once a flood from the heart through its own tags reached the target. A tunnel
+therefore ended as soon as its last rock was tagged.
+
+**Decision.** `KeeperAI.DigPath` follows DK2's order: rock on the cursor is tagged if it is
+not already, and the pass ends; open ground ends the task when the target routes to the
+cursor, with option 1 and no water, lava or portal hole; otherwise the walker steps, and the
+tile it steps onto is handled next pass. Deviates: a target on a solid tile never routes. Our
+search never judges the triangle a route starts in, so Level 17's gold target (19,2) routed
+past walls to the Portal and Harkan stopped digging; DK2's Harkan digs to it, so its query
+probably fails there (inferred from the outcome, Q561). Water
+stands in for DK2's stale water flag; the 51-free-entry pool test is not modelled. No
+simulation state changes: no HashVersion bump.
+
+**Consequences.** Level 11A: Belial's first tunnel tile is dug at 281 (DK2 443), its bridges
+at 297 and 299 (DK2 457, 461), the call at 308 (700), Morgana falls at 730 (1,378); the bridges
+at (57,38) and (57,39) move from 164 to 871. The scenario's ticks move (tag 12, spans 89 and
+90, call 279) and it runs 320 ticks. Level 17: Harkan digs to his seam one tile at a time and
+mines from 85, then grows his Training Room (359-685) before his Prison (1,291); DK2 builds
+the Prison at 855 first (Q555). The scenario runs 1,400 ticks.

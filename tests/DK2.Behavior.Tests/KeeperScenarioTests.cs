@@ -85,15 +85,15 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         // front casts the call two tiles off Morgana's heart. Lava never takes the Wooden Bridge.
         Assert.Empty(run.ExpectationFailures);
         KeeperAIState state = run.KeeperStates[5];
-        // Morgana first; a later plan may also choose Raksha (bit 7), which is not asserted.
-        Assert.Equal((1 << 6, 1 << 6), (state.PlayersAttackedFlags & (1 << 6), state.FirstAttackFlag & (1 << 6)));
+        // Morgana first; never Raksha (bit 7), whom the level's first turn allies with Drako (ADR-0377).
+        Assert.Equal((1 << 6, 1 << 6, 0), (state.PlayersAttackedFlags & (1 << 6), state.FirstAttackFlag & (1 << 6), state.PlayersAttackedFlags & (1 << 7)));
         KeeperCommandEmission tag = Assert.Single(run.KeeperCommandLog, e => e.Command is TagTilesCommand t && t.Tiles.Contains(new TilePos(64, 41)));
         Assert.Equal((byte)5, tag.Command.PlayerId);
 
         List<(int Tick, BuildRoomCommand Build)> spans = run.KeeperCommandLog
             .Where(e => e.Command is BuildRoomCommand b && BridgeRules.IsBridge(ScenarioCorpus.Database.Room(b.RoomId)))
             .Select(e => (e.InputTick, (BuildRoomCommand)e.Command)).ToList();
-        Assert.Equal([(47, new TilePos(64, 40)), (48, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
+        Assert.Equal([(89, new TilePos(64, 40)), (90, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
         Assert.All(spans, s => Assert.Equal(RoomTypeId.StoneBridge, s.Build.RoomId));
 
         var call = (CastSpellAtPlaceCommand)Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand).Command;
