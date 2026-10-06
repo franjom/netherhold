@@ -256,7 +256,9 @@ fight Morgana's in it until 638, and our call goes to (64,34) at 544, DK2's to (
 **The hole is fought over (ADR-0388).** Ours let Drako's imp take Morgana's imp's claim of the
 hole, though each keeper has its own task pool, and two imps on one tile out of reach never closed
 in. With both fixed they fight from 368, but our Morgana lifts her wounded imp out at 391 and the
-hole is Drako's at 399; DK2's wounded imps show the slap reaction and fight on to 638 (Q563).
+hole is Drako's at 399; DK2's wounded imps show the slap reaction and fight on to 638 (Q563). The owner confirms
+the imps fight in such a hole and a wounded one stays; whether its keeper slaps or lifts it they
+do not know (2026-10-06).
 
 **Not scripted.** Level 11A's triggers give Drako no dig, build or attack order: they set
 alliances, give Raksha three creatures and drive speech and the camera. The tunnels, bridges
