@@ -118,7 +118,8 @@ public sealed partial class ImpTaskSystem
     {
         foreach (CreatureState other in context.World.Creatures)
         {
-            if (other.Id == asking.Id || other.Activity != CreatureActivity.FetchingObject) continue;
+            if (other.Id == asking.Id || other.OwnerPlayerId != asking.OwnerPlayerId
+                || other.Activity != CreatureActivity.FetchingObject) continue;
             if (context.World.ObjectById(other.TargetObjectId) is { } target && target.TileIndex == tileIndex)
                 return other;
         }

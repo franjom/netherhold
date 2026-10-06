@@ -48,6 +48,29 @@ public class CombatApproachTests
         Assert.True(statue.Health < 1500, "a blow landed");
     }
 
+    /// <summary>A target on the fighter's own tile, out of reach, is walked to: DK2's route within
+    /// one triangle is the target itself (<c>0x004CF490</c>), not a finished route (ADR-0388). On
+    /// Level 11A two imps in the hole in Morgana's wall stood 0.58 tile apart for 250 ticks.</summary>
+    [Fact]
+    public void AFighterWalksToATargetOnItsOwnTileOutOfReach()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
+        CreatureState statue = Frozen(Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 3, 10));
+        goblin.PosX = (3 * Fp32.One) + 200;
+        statue.PosX = (3 * Fp32.One) + 3900;
+        Assert.True(CombatRules.DistanceSquared(goblin.PosX, goblin.PosY, statue.PosX, statue.PosY) >= goblin.AttackRangeSquared
+            || goblin.AttackRangeSquared == 0, "starts out of reach");
+        GameSimulation sim = Sim(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Run(40);
+
+        Assert.Contains(sink.Events, e => e.Kind == "approach_ends" && e.Detail.Contains("creature=" + goblin.Id) && e.Detail.Contains("reason=in_reach"));
+        Assert.True(statue.Health < 1500, "a blow landed");
+    }
+
     [Fact]
     public void AGoodCreatureGivesUpARetreatingTargetAfterThreeSeconds_AnEvilOneKeepsChasing()
     {

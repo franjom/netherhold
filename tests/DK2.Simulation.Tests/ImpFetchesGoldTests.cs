@@ -123,7 +123,7 @@ public class ImpFetchesGoldTests
         Assert.Equal(0, GoldStore.Total(run.World, Keeper));
         Assert.Equal(900, run.Imp.GoldHeld);
         // The walk ends at the pile's point, where the pick-up in passing takes it before state
-        // 27 runs, as DK2's imps do (ADR-0388).
+        // 27 runs, as DK2's imps do (ADR-0389).
         Assert.Contains(run.Of("gold_picked_up_in_passing"), e => e.Detail.Contains("gold=900"));
         Assert.Empty(run.Of("gold_delivered"));
     }
@@ -460,7 +460,7 @@ public class ImpFetchesGoldTests
     /// <summary>
     /// A pile somebody else emptied is still walked to: the walk is state 6, which does not look
     /// at the pile, and state 27 runs at its end with nothing to take. In five DK2 captures, 12
-    /// of the 34 walks that ended in 27 arrived at a bare tile with nothing taken (ADR-0388).
+    /// of the 34 walks that ended in 27 arrived at a bare tile with nothing taken (ADR-0389).
     /// 27's task check (<c>0x00508070</c>) is not read; with empty hands a failed check also
     /// ends in 10, so this outcome holds either way.
     /// </summary>
@@ -489,7 +489,7 @@ public class ImpFetchesGoldTests
     /// <summary>
     /// State 27 runs when the walk to the pile's point ends, not when the imp steps onto the
     /// tile: a pile in the far column is still out of the box at the tile's edge. DK2's fetch
-    /// gold came 1-7 ticks after the tile was entered (Level 3 seed01, ADR-0388).
+    /// gold came 1-7 ticks after the tile was entered (Level 3 seed01, ADR-0389).
     /// </summary>
     [Fact]
     public void TheTakeWaitsForTheWalkToThePilesPoint()
@@ -511,7 +511,7 @@ public class ImpFetchesGoldTests
     /// <summary>
     /// State 27 takes only the piles strictly within a third of a tile of the imp
     /// (<c>0x00466850</c>), and the walk goes to the first pile's point, so a pile in the
-    /// tile's far cell stays for the next fetch (ADR-0388).
+    /// tile's far cell stays for the next fetch (ADR-0389).
     /// </summary>
     [Fact]
     public void TwentySevenLeavesAPileOutsideItsBox()

@@ -36,7 +36,8 @@ public static class ImpCrowding
     /// <paramref name="targetTileIndex"/>. A worker's face is where it will be standing when it
     /// swings — the end of its route, or the tile under it once arrived; counting the intended face
     /// is what stops four imps setting off for the same side of a block and finding the crowd on
-    /// arrival. Counted across every player, not per keeper. <paramref name="askingCreatureId"/> is
+    /// arrival. Counted per keeper: only the asker's keeper's workers share its task pool (ADR-0388,
+    /// superseding ADR-0026's every-player count). <paramref name="askingCreatureId"/> is
     /// excluded so a worker re-evaluating the job it holds does not count itself out (cap: <see cref="MaxWorkers"/>).</summary>
     public static bool FaceIsFull(
         WorldState world,
@@ -50,6 +51,7 @@ public static class ImpCrowding
         int limit = MaxWorkers(workedFromTheTile, kind);
         int faceIndex = (face.Y * world.Width) + face.X;
         int count = 0;
+        int pool = TaskStealing.PoolOf(world, askingCreatureId);
 
         IReadOnlyList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
@@ -57,6 +59,7 @@ public static class ImpCrowding
             CreatureState creature = creatures[i];
             if (creature.Id == askingCreatureId) continue;
             if (creature.TargetTileIndex != targetTileIndex) continue;
+            if (!TaskStealing.InPool(pool, creature)) continue;
             if (FaceOf(world, creature) != faceIndex) continue;
             if (!database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker))
                 continue;

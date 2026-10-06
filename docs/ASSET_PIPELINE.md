@@ -64,7 +64,7 @@ Three facts shape everything downstream:
 3. **The playback rate is not in the file.** `KmfReader` interpolates between
    key entries and `GlbWriter` writes `LINEAR` keys over frames/FPS seconds from
    the art descriptor, 30 fps where a KMF has none
-   (`docs/research/kmf-animation-playback.md`, Q442, ADR-0389). Frame counts are exact.
+   (`docs/research/kmf-animation-playback.md`, Q442, ADR-0390). Frame counts are exact.
 
 Precision: animated positions are packed as signed 10-bit components scaled by
 the clip's geometry scale, so the reference carries roughly 1/512 of that scale

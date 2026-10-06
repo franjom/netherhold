@@ -52,7 +52,7 @@ whether the drawn time is interpolated between turns is open.
 
 ## 4. What this means for ours
 
-Built (ADR-0389):
+Built (ADR-0390):
 
 - `KmfReader` keeps the key byte and evaluates each integer frame as §1 does,
   the last through frame − 1's lookup as §2's clamp has it. Over every shipped

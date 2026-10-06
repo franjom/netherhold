@@ -141,7 +141,9 @@ For the builder; nothing in `src/` is changed by this note.
   coming from state 10 already has zero velocity, so claims do not show it; a request made
   while moving does.
 - `0x004D0F60` has no "already on the target's tile" shortcut, where ours returns a finished
-  route. What `0x004D0E10` returns for a target on the body's own tile was not read here.
+  route. Nor does the query: within one triangle `0x004CF490` returns the target as a one-point
+  route (2026-10-06), so the body walks to it. Ours does so for stances and, since ADR-0388, the
+  fight approach; whether DK2's other callers skip the request when already there is Q565.
 
 The prediction the build should meet: with the snap, a neighbouring claim is 13 ticks (3 walk
 frames), 12 when the imp is fast, as in the table of `imp-task-objects-and-walks.md` §4

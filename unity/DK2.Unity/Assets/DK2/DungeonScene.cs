@@ -164,7 +164,7 @@ namespace DK2.Unity
 
         /// <summary>A wall torch: a point light, and its mesh when it has one. How DK2's light
         /// numbers map onto Unity's (colour over 255, intensity over 128) is this renderer's
-        /// choice, not a claim about the original (ADR-0390).</summary>
+        /// choice, not a claim about the original (ADR-0391).</summary>
         public void CreateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh)
         {
             // Unity's fake null makes ?? unsafe on its objects, hence the explicit tests.

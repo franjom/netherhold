@@ -324,7 +324,8 @@ public sealed partial class ImpTaskSystem
         int fetch = FetchStateOf(blueprint.Kind), install = InstallStateOf(blueprint.Kind);
         foreach (CreatureState other in world.Creatures)
         {
-            if (other.Id == asking.Id || other.TargetTileIndex != tile) continue;
+            if (other.Id == asking.Id || other.OwnerPlayerId != asking.OwnerPlayerId
+                || other.TargetTileIndex != tile) continue;
             int state = StateShadow.IsTravelling(other) ? other.UtilityNewState : other.Dk2StateId;
             if (state == fetch || state == install) return true;
         }

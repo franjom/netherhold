@@ -15,7 +15,9 @@ with `d` in 4096ths of a tile, summed. `0x32` in that unit is about 0.11 tile.
 ## 1. The rule in one paragraph
 
 Every handler that finds a task reads the pool entry's `Worker[side*3+slot]`
-(`0x00508110`). A zero slot is taken at once. A held slot is taken when the holder is a
+(`0x00508110`). The pool is the imp's own keeper's (`player+0x1105`,
+`player-task-pool.md`), so only that keeper's imps hold, crowd or lose its slots; ours
+filtered by keeper only from ADR-0388. A zero slot is taken at once. A held slot is taken when the holder is a
 live creature with a state machine, is not teleporting (51, 52), may enter state 10 by
 the transition rule (`0x00477310`, run on the holder's own state object at
 `creature+0x24E`), and is farther from the handler's measuring point than the taker,

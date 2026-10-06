@@ -76,7 +76,7 @@ fix changes how many world-stream draws a tick takes, and so moves every later d
 | `0x00468D10` (**built, ADR-0379**) | Own tile filtered by `RingScanVisits` in Tier B and the drop scan | Own tile reaches the chain untested (`0x00468DA0`) | `TrySweep` ~`ImpTaskSystem.cs:1131`; `TryTakeDroppedJob` ~`1003` | no |
 | `0x0046B9C0` (**built, ADR-0381**) | Shared latch tested before the crate branch; a blueprint take goes through the kind-8 route check and steal | Crate branch `0x00468910` first; its success returns at once | `TryObjectAt`, `ImpTaskSystem.cs:2031-2035` | no |
 | `0x0048904E` (**built, ADR-0378**) | Any world object within the box; picks up before the claim on the way, which is gated on activity | Own tile's thing list only, first pile, break; the claim on the way first, on a tile change and category not 22 | `PickUpGoldInPassing`, `ImpTaskSystem.cs:345-359`; order `195` against `200-202` | no |
-| `0x00466850` (**built, ADR-0382, ADR-0388**) | Every pile on the tile, to the full limit | min(pile, room) per pile within ±`0x555`, stopping once `0x00464360(1)` reports full (limit less variable 74) | `TakeFromPilesOn`, `CommitFetch`, `ImpTaskSystem.Gold.cs` | no |
+| `0x00466850` (**built, ADR-0382, ADR-0389**) | Every pile on the tile, to the full limit | min(pile, room) per pile within ±`0x555`, stopping once `0x00464360(1)` reports full (limit less variable 74) | `TakeFromPilesOn`, `CommitFetch`, `ImpTaskSystem.Gold.cs` | no |
 | comment (**fixed**) | `ImpTaskSystem.cs:966`: DK2 zeroes the last kind after Tier B | The only zeroing is `0x00464010`, before the drop scan | `ImpTaskSystem.cs:966` | no |
 | comment (**fixed**) | `ImpTaskSystem.cs:1455`: held-claim stealing not built | Built (`TryJobOn` → `HolderToTakeFrom`) | `ImpTaskSystem.cs:1455` | no |
 
@@ -84,6 +84,6 @@ fix changes how many world-stream draws a tick takes, and so moves every later d
 
 | Q | Ours | DK2 | Where |
 |---|---|---|---|
-| Q442 (**built, ADR-0389**) | Key byte discarded; each frame held at the previous key; STEP keys at an assumed 30 fps | Linear interpolation between key entries (`0x0057E5B0`); clip length frames/FPS from the art descriptor | `KmfReader.cs:138`, `GlbWriter.cs:16,201` |
-| Q445/Q446 (**built, ADR-0390**) | No torches | Placed by command 4, recoloured by command 16 | Unity adapter, `RoomDef` |
-| Q71 (**room walls built, ADR-0391**) | One wall mesh per solid terrain | Piece chooser `0x00444F10` by TileConstruction | `AssetCatalogue` |
+| Q442 (**built, ADR-0390**) | Key byte discarded; each frame held at the previous key; STEP keys at an assumed 30 fps | Linear interpolation between key entries (`0x0057E5B0`); clip length frames/FPS from the art descriptor | `KmfReader.cs:138`, `GlbWriter.cs:16,201` |
+| Q445/Q446 (**built, ADR-0391**) | No torches | Placed by command 4, recoloured by command 16 | Unity adapter, `RoomDef` |
+| Q71 (**room walls built, ADR-0392**) | One wall mesh per solid terrain | Piece chooser `0x00444F10` by TileConstruction | `AssetCatalogue` |

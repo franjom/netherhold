@@ -118,7 +118,7 @@ supplies them. Otherwise they come from the balance defaults.
 `src/DK2.Data.Model/RoomDef.cs` names bit 9 `Attackable` (ufdada's bit order)
 and bits 10–11 `Unk10`/`Unk11`. The loader (`0x004EBCD5..0x004EBD2A`) uses them
 to add 255 to red, green and blue. `RoomFlags` now names them `TorchRedHigh`, `TorchGreenHigh`
-and `TorchBlueHigh`, and `RoomTorch` folds them in (ADR-0390).
+and `TorchBlueHigh`, and `RoomTorch` folds them in (ADR-0391).
 
 **Mesh.**
 - **F has no room:** the bridge's default `Torch1` mesh at `CBridge+0x382`,
@@ -193,7 +193,7 @@ not read (`0x004EBE58..0x004EBEE4`, re-read 2026-10-06).
   a negative search: it shows nothing reads torch light, not that light has no
   effect anywhere.
 
-**For this project (built, ADR-0390):** `TorchLayout` in `DK2.Presentation`
+**For this project (built, ADR-0391):** `TorchLayout` in `DK2.Presentation`
 keeps the torches, since the winner of a shared floor depends on refresh order;
 `ScenePresenter` pushes them through `IRenderTarget`'s torch methods, and
 `RoomDef.Torch` carries the five fields and the art switch.

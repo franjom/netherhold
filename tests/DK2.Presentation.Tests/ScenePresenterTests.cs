@@ -133,7 +133,7 @@ public class ScenePresenterTests
 
     /// <summary>
     /// With a <see cref="TorchLayout"/>, the torches come after the tiles, once each in floor-tile
-    /// order; an unchanged world pushes none, and a resync draws them all again (ADR-0390).
+    /// order; an unchanged world pushes none, and a resync draws them all again (ADR-0391).
     /// </summary>
     [InstallFact]
     public void TorchesArePushedAfterTheTiles_OnceEach_AndAgainAfterAResync()

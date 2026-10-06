@@ -39,13 +39,14 @@ public static class ApproachRules
     private static readonly (int X, int Y)[] Neighbours = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
     /// <summary>The entry (<c>0x00471D10</c>, §1): a route to the target's position with option word
-    /// 2. For a door that fails, the first of its four neighbour centres a route reaches with option 0,
+    /// 2, requested directly (<c>0x004D0F60</c>), so a target on the creature's own tile is walked to:
+    /// within one triangle the route is the target itself (<c>0x004CF490</c>, ADR-0388). For a door that fails, the first of its four neighbour centres a route reaches with option 0,
     /// pulled a quarter tile back toward the door, is routed to with option 0 (door-blocking.md). On
     /// success the state is entered with its refresh countdown at ten; failure leaves the creature in
     /// <c>spFighting</c> to try again next tick.</summary>
     public static bool Enter(SimulationContext context, CreatureState me, int targetX, int targetY)
     {
-        if (!context.Navigation.TryRouteTo(me, targetX, targetY, EntryOptions)
+        if (!context.Navigation.TryRouteToStance(me, targetX, targetY, EntryOptions)
             && !(me.FightTargetKind == FightTargetKind.Door && BesideDoor(context, me, targetX, targetY)))
             return false;
         me.Approaching = true;
@@ -66,7 +67,7 @@ public static class ApproachRules
             Scratch.Clear();
             if (!navigation.Route(from, new Fixed16Vector(x << 4, y << 4), profile, Scratch)) continue;
             // The original enters the state whatever this last request answers.
-            navigation.TryRouteTo(me, x - (dx * Fp32.One / 4), y - (dy * Fp32.One / 4), MoveOptions.Plain);
+            navigation.TryRouteToStance(me, x - (dx * Fp32.One / 4), y - (dy * Fp32.One / 4), MoveOptions.Plain);
             return true;
         }
         return false;
@@ -193,7 +194,7 @@ public static class ApproachRules
             me.RouteRefreshCountdown = RefreshCalls;
             return true;
         }
-        if (!context.Navigation.TryRouteTo(me, destX, destY, MoveOptions.Plain))
+        if (!context.Navigation.TryRouteToStance(me, destX, destY, MoveOptions.Plain))
         {
             End(me, "no_route", context);
             return false;

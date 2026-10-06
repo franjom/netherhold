@@ -740,6 +740,33 @@ public class ImpTests
     }
 
     /// <summary>
+    /// Each keeper has its own task pool (<c>player+0x1105</c>), so three of this keeper's imps on
+    /// a face crowd only this keeper's workers: a rival's imp beside them sees the face free and
+    /// can take none of their slots or tasks (ADR-0388, superseding ADR-0026's every-player
+    /// count). Level 11A's Drako stole Morgana's claim of the hole in her wall this way.
+    /// </summary>
+    [Fact]
+    public void ARivalKeepersImpNeitherFillsAFaceNorHoldsItsTask()
+    {
+        Run run = Start(new TilePos(3, 3), imps: 3);
+        int marked = (3 * run.World.Width) + 4;
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 3)));
+        run.Ticks(1);
+        Assert.Equal(3, run.World.Creatures.Count(c => c.TargetTileIndex == marked));
+        CreatureState mine = run.World.Creatures.First(c => c.TargetTileIndex == marked);
+
+        CreatureState rival = run.World.SpawnCreature(
+            Dk2TerrainFixture.Database(), Dk2TerrainFixture.ImpCreatureId, (byte)(Keeper + 1), new TilePos(3, 3));
+
+        Assert.True(ImpCrowding.FaceIsFull(
+            run.World, Dk2TerrainFixture.Database(), marked, new TilePos(3, 3), askingCreatureId: -1, workedFromTheTile: false));
+        Assert.False(ImpCrowding.FaceIsFull(
+            run.World, Dk2TerrainFixture.Database(), marked, new TilePos(3, 3), rival.Id, workedFromTheTile: false));
+        Assert.False(TaskStealing.InPool(TaskStealing.PoolOf(run.World, rival.Id), mine));
+        Assert.True(TaskStealing.InPool(TaskStealing.PoolOf(run.World, mine.Id), run.World.Creatures.Last(c => c.TargetTileIndex == marked)));
+    }
+
+    /// <summary>
     /// An imp re-evaluating the job it already holds must not count itself out of
     /// its own face. Without the exclusion, the third imp on a face would drop
     /// its job the moment it looked at it again.

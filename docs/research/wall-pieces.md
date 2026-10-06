@@ -8,7 +8,7 @@ Source(s):
 Original version: DK2 v1.70 (GOG)
 
 Presentation only: nothing here changes a rule. Built so far: the general room wall chooser
-(§2) for Normal and DoubleQuad rooms (ADR-0391); the rest is the spec for what follows.
+(§2) for Normal and DoubleQuad rooms (ADR-0392); the rest is the spec for what follows.
 
 Labels: CONFIRMED (read in the disassembly, or whole in a decompile that does not depend on
 mis-tracked registers), STRONGLY INFERRED, LIKELY or UNKNOWN.

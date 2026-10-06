@@ -199,7 +199,7 @@ public static class KmfReader
         // 128-frame block, at which that entry is exact; a frame between two keys lies on the line
         // from entry g to g + 1 (kmf-animation-playback.md §1). Equal keys, a backwards key and a
         // last entry hold g: equal keys read the table's unset entry 0, and the other two occur
-        // in shipped KMFs only on the key's own frame, where DK2's numerator is 0 (ADR-0389).
+        // in shipped KMFs only on the key's own frame, where DK2's numerator is 0 (ADR-0390).
         Vector3 PositionAt(int frame, int lookup, int g)
         {
             if (g + 1 >= positions.Length) return positions[g];

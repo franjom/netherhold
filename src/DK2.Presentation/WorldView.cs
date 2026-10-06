@@ -311,7 +311,7 @@ public sealed class WorldView
     /// The room wall chooser <c>0x00444F10</c> for a room that draws its own walls (Normal and
     /// DoubleQuad construction): a side with a visible AllowRoomWalls tile outside it gets a wall,
     /// whole where the room runs on both ways along a wall, else two halves.
-    /// <para>Deviates as ADR-0391 lists: the same room is the same room terrain, secret doors are
+    /// <para>Deviates as ADR-0392 lists: the same room is the same room terrain, secret doors are
     /// not walls, and no furniture phase is kept, so a whole side is always piece 7.</para>
     /// </summary>
     private RoomWalls WallsOf(WorldState world, int x, int y, byte terrainId)

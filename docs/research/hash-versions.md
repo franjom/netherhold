@@ -15,7 +15,9 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**193** — `0xC5E69C4191F2E3A6`. An imp's gold fetch walks to the first neutral pile's point, state 27 runs when that walk ends (the pile need not still be there) and takes only the piles strictly within `0x555` (`0x00466850`, `0x0046B6D0`). No new field. ADR-0388.
+**194** — `0x17E9192AEC50EC93`. An imp's gold fetch walks to the first neutral pile's point, state 27 runs when that walk ends (the pile need not still be there) and takes only the piles strictly within `0x555` (`0x00466850`, `0x0046B6D0`). No new field. ADR-0389.
+
+**193** — `0xC5E69C4191F2E3A6`. Only a keeper's own workers hold, crowd or lose its tasks; the fight approach walks to a target on its own tile (one-point route, `0x004CF490`); no new field. ADR-0388.
 
 **192** — `0x40EF9AF6D79DA685`. Imps repair their keeper's damaged wall (kind 16, `0x00453E30`), and a work application truncates the tabled rate over four before flooring it times the work rate (`0x0051CBA0`); no new field. ADR-0387.
 

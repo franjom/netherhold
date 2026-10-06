@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 193: the gold fetch walks to the pile's point and takes within its box (ADR-0388)
+        // HashVersion 194: the gold fetch walks to the pile's point and takes within its box (ADR-0389)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xC5E69C4191F2E3A6UL, sim.StateHash());
+        Assert.Equal(0x17E9192AEC50EC93UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

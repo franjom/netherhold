@@ -8,7 +8,7 @@ namespace DK2.Presentation;
 
 /// <summary>What a renderer has to be able to do, without naming an engine.</summary>
 /// <remarks>
-/// <para>Twelve methods with no logic in them (ADR-0036; the torches, ADR-0390). Diffing, asset resolution,
+/// <para>Twelve methods with no logic in them (ADR-0036; the torches, ADR-0391). Diffing, asset resolution,
 /// coordinate policy and push order are all <see cref="ScenePresenter"/>'s and are
 /// tested here; the adapter cannot be.</para>
 /// <para>Arguments are <see cref="ResolvedAsset"/>, not a path: a target must draw

@@ -340,9 +340,11 @@ public sealed partial class ImpTaskSystem
     /// </summary>
     private static void ForgetReinforceTask(SimulationContext context, int wallIndex, int askingCreatureId)
     {
+        int pool = TaskStealing.PoolOf(context.World, askingCreatureId);
         foreach (CreatureState other in context.World.Creatures)
         {
             if (other.Id == askingCreatureId || other.TargetTileIndex != wallIndex
+                || !TaskStealing.InPool(pool, other)
                 || other.TargetWork is not (TileWorkKind.Reinforce or TileWorkKind.RepairWall))
                 continue;
             context.Emit(SystemName, "task_forgotten",
@@ -577,7 +579,8 @@ public sealed partial class ImpTaskSystem
         int faceIndex = face.Y * world.Width + face.X;
         foreach (CreatureState other in world.Creatures)
         {
-            if (other.Id == askingCreatureId || other.TargetTileIndex != tileIndex) continue;
+            if (other.Id == askingCreatureId || other.TargetTileIndex != tileIndex
+                || other.OwnerPlayerId != asking.OwnerPlayerId) continue;
             if (ImpCrowding.FaceOf(world, other) != faceIndex) continue;
             if (!TaskStealing.CanLoseItsTask(other)) return null;
             var tile = new TilePos(tileIndex % world.Width, tileIndex / world.Width);

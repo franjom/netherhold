@@ -157,7 +157,8 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// <summary>A worker's walk to its stance point inside the tile it works from (the dig and
     /// reinforce handlers route to <c>0x00698A80</c> and <c>0x00698AE0</c>'s points): as
     /// <see cref="TryRouteTo"/>, except that a creature already on that tile steps to the point
-    /// rather than getting a finished route (ADR-0289).</summary>
+    /// rather than getting a finished route (ADR-0289). The fight approach asks the same way: DK2's
+    /// route within one triangle is the one point (<c>0x004CF490</c>, ADR-0388).</summary>
     public bool TryRouteToStance(CreatureState creature, long x, long y, MoveOptions options)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));

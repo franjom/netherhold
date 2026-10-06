@@ -150,7 +150,7 @@ public sealed class ScenePresenter
     {
     }
 
-    /// <summary>With <paramref name="torches"/>, the wall torches are pushed too (ADR-0390).</summary>
+    /// <summary>With <paramref name="torches"/>, the wall torches are pushed too (ADR-0391).</summary>
     public ScenePresenter(WorldView view, IAssetProvider assets, IRenderTarget target, TorchLayout? torches)
     {
         _view = view ?? throw new ArgumentNullException(nameof(view));

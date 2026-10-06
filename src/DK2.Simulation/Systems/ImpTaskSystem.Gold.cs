@@ -125,7 +125,7 @@ public sealed partial class ImpTaskSystem
     /// (<c>0x0046B6D0</c>) walks to the position of the pile whose task it took, so state 27's
     /// box (<see cref="PileReach"/>) holds it. Through <see cref="Navigation.WorldSteering.TryRouteToStance"/>,
     /// which steps to the point from the same tile, since the route request has no same-tile
-    /// shortcut (imp-walk-arrival.md). The tile centre if no pile is neutral (ADR-0388).
+    /// shortcut (imp-walk-arrival.md). The tile centre if no pile is neutral (ADR-0389).
     /// </summary>
     private static (long X, long Y) PointOfFirstPile(SimulationContext context, int tileIndex)
     {
@@ -247,7 +247,7 @@ public sealed partial class ImpTaskSystem
     /// <see cref="PileReach"/> of the imp, each up to what the hands lack against the level's
     /// full maximum, stopping after the first pile that leaves them full by the hands test
     /// (<see cref="HandsFull"/>, the limit less variable 74), so the rest stay. Adds to the purse
-    /// and returns how much came off (ADR-0382, ADR-0388).
+    /// and returns how much came off (ADR-0382, ADR-0389).
     ///
     /// <para>Oldest first, spawn order, where DK2 walks the tile's thing list.</para>
     /// </summary>

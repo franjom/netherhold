@@ -11,7 +11,7 @@ using DK2.TestSupport;
 
 namespace DK2.Presentation.Tests;
 
-/// <summary>The wall torch rule <c>0x00439B90</c> on the shipped Level 1 (wall-torches.md, ADR-0390).</summary>
+/// <summary>The wall torch rule <c>0x00439B90</c> on the shipped Level 1 (wall-torches.md, ADR-0391).</summary>
 public class TorchLayoutTests
 {
     private static readonly int[] Dx = [0, 1, 0, -1];
