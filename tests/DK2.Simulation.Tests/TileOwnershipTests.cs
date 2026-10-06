@@ -158,7 +158,7 @@ public class TileOwnershipTests
     public void SellingABridgeOverWaterDoesNotLeaveYouOwningTheWater()
     {
         // The other side of the same rule, and the case that shows it is not
-        // merely a fix for digging: water cannot be owned, so nobody owns it.
+        // merely a fix for digging: water cannot be owned, so the neutral player has it (Q514).
         WorldState world = World();
         var at = new TilePos(9, 9);
         Set(world, at, Dk2TerrainFixture.Water, PlayerIds.Unowned);
@@ -168,7 +168,7 @@ public class TileOwnershipTests
         RoomRules.Unmake(Db, ref world.Tile(at));
 
         Assert.Equal(Dk2TerrainFixture.Water, world.Tile(at).TerrainId);
-        Assert.Equal(PlayerIds.Unowned, world.Tile(at).OwnerPlayerId);
+        Assert.Equal(PlayerIds.Neutral, world.Tile(at).OwnerPlayerId);
     }
 
     [Fact]

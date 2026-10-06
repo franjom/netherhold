@@ -157,8 +157,10 @@ public static class CombatTargetRules
 
     /// <summary>The forced target (<c>AttackingId</c>, combat-pit.md §4): taken with no
     /// attackability, sight, hostility or range test, but a route to it must be found, or an attack
-    /// spell must see it. A dead one is cleared; scan A, which DK2 then runs over every creature, is
-    /// not built.</summary>
+    /// spell must see it. As for a door, the forced arm leaves the running best at
+    /// <c>0x7FFFFFFF</c>, so a surveyed attack spell, status ones included, is cast however near the
+    /// target is (<c>0x0045CF05</c>, Q510). A dead one is cleared. Not built: scan A, and the scans
+    /// D, E and F a forced creature target still runs (door-blocking.md §2).</summary>
     private static bool Forced(
         SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition, List<Fixed16Vector> scratch)
     {
@@ -180,7 +182,7 @@ public static class CombatTargetRules
             && (spell is null || !LineOfSight.Clear(sight, me.PosX, me.PosY, target.PosX, target.PosY)))
             return false;
 
-        return Engage(context, me, definition, target, context.Database.CreatureById(target.CreatureTypeId), spellSlot, spell);
+        return Engage(context, me, definition, target, context.Database.CreatureById(target.CreatureTypeId), spellSlot, spell, forced: true);
     }
 
     /// <summary>A forced door (door-blocking.md, <c>0x0045CB00</c>): taken with no route, sight or
@@ -680,10 +682,10 @@ public static class CombatTargetRules
     /// engagement and leaves me as I was.</summary>
     private static bool Engage(
         SimulationContext context, CreatureState me, CreatureDef mine, CreatureState target, CreatureDef theirs,
-        int spellSlot = -1, CreatureSpellDef? spell = null)
+        int spellSlot = -1, CreatureSpellDef? spell = null, bool forced = false)
     {
         int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, target.PosX, target.PosY);
-        bool useSpell = spell != null && !(distance < MeleeDecisionDistance && mine.FightStyle != FightStyle.Support);
+        bool useSpell = spell != null && (forced || !(distance < MeleeDecisionDistance && mine.FightStyle != FightStyle.Support));
         bool same = me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId == target.Id;
         bool wasRanged = me.AttackType is CombatRules.AttackTypes.SpellAtCreature or CombatRules.AttackTypes.SpellAtThing;
         if (same && wasRanged != useSpell) CombatRules.Unregister(target, me.Id);

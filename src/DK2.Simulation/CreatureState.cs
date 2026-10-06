@@ -182,7 +182,7 @@ public enum CreatureActivity
     Stunned = 27,
 
     /// <summary>The victory pause — DK2's state 260 with action 55, one animation instance after a
-    /// kill; ours lasts <see cref="Combat.VictoryRules.PauseTicks"/> (combat-approach-and-victory.md §7, Q376).</summary>
+    /// kill, its length <see cref="Combat.VictoryRules.PauseTicks"/> (combat-approach-and-victory.md §7, Q376).</summary>
     Celebrating = 28,
 
     /// <summary>Walking to a nearby corpse to celebrate over it — DK2's state 6 resuming in 259, taken

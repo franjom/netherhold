@@ -39,8 +39,8 @@ public enum CreatureStatId
     /// 10, against the record's own <c>ExpForNextLevel</c> (3000 for all but the uniques' 2800).</summary>
     ExperienceForNextLevel = 13,
 
-    /// <summary>Scales the record's <c>ExpPerSecond</c> — <b>combat</b> experience. Unused:
-    /// nothing in this simulation fights (Q205). This name and
+    /// <summary>Scales the record's <c>ExpPerSecond</c> — <b>combat</b> experience, above level 1
+    /// (<c>0x0047A870</c>, ADR-0366). This name and
     /// <see cref="ExpPerSecondTraining"/>'s are ours, read off the binary by position and pinned
     /// from both sides against <see cref="ResearchPerSecond"/> and
     /// <see cref="ManufacturePerSecond"/> (docs/research/creature-levels.md).</summary>

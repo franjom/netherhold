@@ -8318,3 +8318,117 @@ modern-run assertion went: Level 17's Harkan no longer carries gold into its new
 within the run, because a Heart rim tile now takes a carrier and the Heart absorbs every
 later load (`Level17TreasuryNeedScenarioTests`). The Sulk state's only simulation coverage
 was a chance entry in the busy-dungeon test; it has its own test now.
+
+## ADR-0362 — Ground nobody can own belongs to the neutral player
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0043 and ADR-0045
+
+**Context.** Q514. `Tile_SetTerrain` (`0x0044FC40`) passes its owner only when the new terrain
+is `Ownable` (`+0x17B` mask 4, bit 2) and otherwise the neutral player `[0x006F2548]`
+(`0x0044FDBF`), and the map loader `0x0051EC60` sets every tile through it. Ours kept the
+authored owner of 3,629 shipped non-ownable tiles (1 or 3), and the room sale, the defeat's
+fall and trigger action 22 wrote 0, where TileWork already wrote the neutral player.
+
+**Decision.** `WorldState.FromMap`, `RoomRules.Unmake`, `DefeatRules`, action 22 and the bridge
+burn give a non-ownable terrain to `PlayerIds.Neutral` (the burn STRONGLY INFERRED: its writer
+is unread). The presentation view still shows such ground as unowned. ADR-0043's "unowned ground carries 0" is
+replaced; 0 stays the owner of nothing on the map.
+
+## ADR-0363 — Trigger action 22 sells a room tile and builds one
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0136
+
+**Context.** Q301 (`trigger-action-arms.md`). The arm `0x00519425` sells a room on the tile
+through its owner with no refund (`0x004C5DB0(x, y, 0)`); a plain terrain is then written
+through `Tile_SetTerrain`; a room terrain lays water first for a room placeable on water,
+else lava for one placeable on lava, both neutral, then builds the room tile free and
+untested (`0x004C5C30(…, 1, 1, 8)`). Ours declined every room tile and room terrain. The
+campaign uses the room path: Wooden Bridges on Siege (over water) and Secret3 (over lava,
+which becomes water first, so the bridge spans water).
+
+**Decision.** `TriggerExecutor.AlterTerrain` sells (`RoomRules.Unmake`, the displaced gold a
+floor pile) and builds (`RoomRules.Place`, `SlabChain.Changed`). Deviates: for a room that is
+neither placeable on water nor lava DK2 first writes the room's terrain through `Tile_SetTerrain`
+with the player (`0x005195A2`), whose navigation, mana and bridge side effects ours skips; effect `0x146`,
+the map refresh brackets and a Combat Pit's reset are not modelled.
+
+## ADR-0364 — A collapsing victim gives no victory
+**Date:** 2026-10-06 · **Status:** accepted
+
+**Context.** Q511 (`combat-category-hooks.md` §5). A collapsed victim stays the target until
+step 5 of `spFighting`, where `IsAttackable` fails on its `CreatureDying` bit (`0x0045F2DB`)
+and the attacker unlinks with no nibble. Only `0x0045E4A0` (from the death bookkeeping), the
+victim's fight-leave and the invisibility drop set the nibble, each at health ≤ 0 while the
+attacker holds the victim: an outright death. Ours celebrated at a collapse outside 22.
+
+**Decision.** `CombatSystem` gives `VictoryRules.TargetDied` only for an outright death (a
+corpse, or a creature with no dying state; STRONGLY INFERRED, since the destroy path from
+`0x0048B770` to the death bookkeeping is untraced and `HasDyingState` stands in for it); a collapsing victim is let go through
+`VictoryRules.TargetDown`, with no nibble, and the attacker looks for another target.
+
+## ADR-0365 — A forced creature target gets the spell, not melee
+**Date:** 2026-10-06 · **Status:** accepted
+
+**Context.** Q510. `0x0045CB00` jumps from `0x0045CF05` past scan A and the fight-style arms
+for a forced target, so the running best stays `0x7FFFFFFF` and the within-a-tile melee rule
+never applies: a surveyed attack spell, status ones included, is cast. Ours applied that rule
+only to a forced door.
+
+**Decision.** `CombatTargetRules.Engage` takes `forced`, which skips the melee shortcut. Not
+built: scans D, E and F for a forced creature target.
+
+## ADR-0366 — Fighting earns combat experience
+**Date:** 2026-10-06 · **Status:** accepted
+
+**Context.** The Combat category's update `0x0047A870` (read 2026-10-06): in state 199 or 200,
+a creature whose definition is not a worker (`+0x686` bit 0) or is Good (bit 8), and whose
+fight target `+0x502` is a live creature (class 0), gains `ExpPerSecond` (`+0x6B7`, per tick
+from the loader); above level 1 scaled by stat 15 and kept within 0 to 0xFFFE. The owner saw
+a hero Dwarf gain levels in a fight (2026-10-05). Ours left the hook unbuilt.
+
+**Decision.** `CreatureExperienceSystem.CombatExperiencePerOriginalTick`, granted with work
+experience on DK2's tick.
+
+## ADR-0367 — Shots are updated newest first
+**Date:** 2026-10-06 · **Status:** accepted
+
+**Context.** Q398. Shots are list 1 of the frame's entity pass `0x004B7830`, and the linker
+`0x004B4A10` adds at a list's head, so they update newest first. Ours walked them oldest
+first.
+
+**Decision.** `ShotSystem` walks its snapshot from the newest shot.
+
+## ADR-0368 — The victory pause is one play of the creature's clip
+**Date:** 2026-10-06 · **Status:** accepted
+
+**Context.** Q376 (`combat-approach-and-victory.md` §7). Action 55 plays art slot 35 once, or
+slot 8 when 35 is absent; `0x00494880` falls back when the slot's runtime bit 0 is clear, and
+the loader `0x00504D80` sets it for any non-zero type and copies the file flags only for
+types 1 to 8, so a slot is present exactly when its type is non-zero. By the action clock that is 1 to 22
+turns (Thief 22, Bile Demon 19, Vampire 15, Imp 5, Dwarf 4, Stone Knight 1). Ours paused 8
+turns for everyone, and tested slot presence by the file flag alone (Reaper, knockdown and
+get-up too, ADR-0348).
+
+**Decision.** `AnimationTimingRules.SlotOrFallback` (type non-zero) for every slot with a
+fallback, which changes nothing on shipped data for knockdown, get-up or the Reaper; `VictoryRules.PauseTicks` is `VictoryHoldTicks`. STRONGLY INFERRED for
+the lengths, which rest on Tremor's clock.
+
+## ADR-0369 — A Flanker aims behind the heading; the victor turns to face the body
+**Date:** 2026-10-06 · **Status:** accepted
+
+**Context.** Q400 (`combat-approach-and-victory.md` §3, §6). The Flanker's refreshed point
+(`0x00470E30`) is d behind the target's heading through the 16.16 sine tables
+(`0x006C1488`/`0x006C1C88`), moving or not. State 259 turns toward the body by the turn rate
+(`0x004B2AE0`) and starts the pause once it faces it. Ours used the target's velocity (a
+standing target gave its own position) and celebrated on arrival without turning.
+
+**Decision.** `ApproachRules.Destination` uses `TrapRules.Sine`/`Cosine` of the target's
+heading; `VictoryRules.GoingToBody` turns, then celebrates. Deviates: the walk to the body
+counts as over within half a tile (`BodyStandSquared`), because ours keeps a corpse as a
+creature and the walk to its exact point does not finish; DK2 has no distance test.
+
+Q259 rides on the same hash: the three effect-generator fields the loader `0x00521380` never
+reads (`+0x08`, `+0x0C`, the six bytes at `+0x1E`) are no longer hashed.
+
+**Measured, ADR-0362 to ADR-0369 together** (hash 187), against batch one (`efabd303`): Level 1
+packet rig 20/20 (20/20), Level 2 4/20 (4/20; seeds 1, 3, 10, 17), Level 3 seed 01 won at 3564
+(3572; DK2 3683). Every scenario's expectations hold. Tests that celebrated over a collapsed
+Goblin now kill it outright, since only an outright death gives the victory.

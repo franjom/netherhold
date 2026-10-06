@@ -147,7 +147,12 @@ public sealed class CombatSystem : ISimulationSystem
             }
             if (dying != null && CreatureDeathRules.IsDown(dying))
             {
-                VictoryRules.TargetDied(context, creature);
+                // Only an outright death gives the nibble (0x0045E4A0 from the death bookkeeping);
+                // a collapsing victim fails IsAttackable at step 5 and is let go with none (Q511).
+                bool outright = dying.Dk2StateId == CreatureStateMachine.NoState
+                    || !CreatureDeathRules.HasDyingState(world, context.Database, context.Database.CreatureById(dying.CreatureTypeId), dying);
+                if (outright) VictoryRules.TargetDied(context, creature);
+                else VictoryRules.TargetDown(context, creature);
                 return;
             }
         }

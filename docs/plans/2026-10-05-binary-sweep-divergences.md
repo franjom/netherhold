@@ -21,21 +21,21 @@ current Level 1–3 baselines.
 | Q545 (**built, ADR-0357**) | Mana above the ceiling drains at 5/s | Clamped to the ceiling in one step (`0x004C10E0`) | `ManaRules` |
 | Q330 (**built, ADR-0361**) | Trigger roots: action points first, then creatures, oldest first | Creatures (list 0) before action points (list 5), each newest first; a creature's tree runs inside its update | `TriggerExecutor.Run` |
 | Q129 (**built, ADR-0360**) | Heart room `InitialHealth` percentage ignored | Level 7's heart starts at 1000; Level 8's heart room is ruined at load with no heart object | `ThingProjection` |
-| Q514 | Non-ownable tiles keep the map's owner (3,629 shipped tiles) or get owner 0 | Forced to the neutral player `[0x006F2548]` | `WorldState.FromMap`, `RoomRules.cs:281`, `DefeatRules.cs:89`, `TriggerExecutor.cs:1271` |
-| Q301 | Trigger action 22 declines room tiles; owner 0 for non-ownable terrain; no effect 0x146 | Sells the old room tile without refund, builds the new one free and untested | `TriggerExecutor.AlterTerrain` |
-| Q255/Q259 | No effect generators, so no draws | Every level gets a map-wide effect-90 generator drawing from the simulation seed (RNG fidelity gap, `dk2-random.md`) | new; `EffectGeneratorState` hashes three fields DK2 discards |
+| Q514 (**built, ADR-0362**) | Non-ownable tiles keep the map's owner (3,629 shipped tiles) or get owner 0 | Forced to the neutral player `[0x006F2548]` | `WorldState.FromMap`, `RoomRules.cs:281`, `DefeatRules.cs:89`, `TriggerExecutor.cs:1271` |
+| Q301 (**built, ADR-0363**) | Trigger action 22 declines room tiles; owner 0 for non-ownable terrain; no effect 0x146 | Sells the old room tile without refund, builds the new one free and untested | `TriggerExecutor.AlterTerrain` |
+| Q255/Q259 (**Q259 hash built; Q255 deferred: `+0x20C` unread and the cosmetic draws dwarf it**) | No effect generators, so no draws | Every level gets a map-wide effect-90 generator drawing from the simulation seed (RNG fidelity gap, `dk2-random.md`) | new; `EffectGeneratorState` hashes three fields DK2 discards |
 
 ## Combat, creatures, rooms
 
 | Q | Ours | DK2 | Where |
 |---|---|---|---|
-| Q511 | Victory nibble at the collapse of a victim outside category 22 | No nibble at a collapse; only an outright death while still linked | `VictoryRules.TargetDied` |
-| Q510 | Forced commit only for a door | A forced creature target also commits (no melee short-cut, spell always cast, route check) | `CombatTargetRules.Forced` |
-| Q376 | Victory pause fixed at 8 ticks | One play of art slot 35 (or 8): 1–22 turns by creature | `VictoryRules.PauseTicks` |
-| Q400 | Flanker point behind the target's velocity; a standing target gives its own position; celebrate within 0x400² | Behind the heading via the sine tables; turn to face the body, no distance test | `ApproachRules.Destination`, `VictoryRules.GoingToBody` |
-| Q399 | Haste scales the speed cap every tick | Written once; the next `SetSpeedMode` restores definition speed | `StatusEffectRules.SpeedCap` |
-| Q398 | Shots updated oldest first | Each thing list newest first | `ShotSystem` (its summary, and `shots.md`'s "its tick after the creatures have moved", are stale) |
-| Q376 | Slot-35 presence from file flag bit 0 | Present when the type is non-zero, or flag bit 0 | `ReaperRules.cs:121` |
+| Q511 (**built, ADR-0364**) | Victory nibble at the collapse of a victim outside category 22 | No nibble at a collapse; only an outright death while still linked | `VictoryRules.TargetDied` |
+| Q510 (**built, ADR-0365**) | Forced commit only for a door | A forced creature target also commits (no melee short-cut, spell always cast, route check) | `CombatTargetRules.Forced` |
+| Q376 (**built, ADR-0368**) | Victory pause fixed at 8 ticks | One play of art slot 35 (or 8): 1–22 turns by creature | `VictoryRules.PauseTicks` |
+| Q400 (**built, ADR-0369**) | Flanker point behind the target's velocity; a standing target gives its own position; celebrate within 0x400² | Behind the heading via the sine tables; turn to face the body, no distance test | `ApproachRules.Destination`, `VictoryRules.GoingToBody` |
+| Q399 (**deferred: map our `Running` writes to the 22 callers first**) | Haste scales the speed cap every tick | Written once; the next `SetSpeedMode` restores definition speed | `StatusEffectRules.SpeedCap` |
+| Q398 (**built, ADR-0367**) | Shots updated oldest first | Each thing list newest first | `ShotSystem` (its summary, and `shots.md`'s "its tick after the creatures have moved", are stale) |
+| Q376 (**built, ADR-0368**) | Slot-35 presence from file flag bit 0 | Present when the type is non-zero, or flag bit 0 | `ReaperRules.cs:121` |
 | Q318–Q321 | Vampire on the last burial tile; subtract 1000 keeping the excess; no capacity gate; tally survives a partial sale | Last Graveyard Crypt; zero the tally; capacity gate `0x004DDCA0`; any sale rebuilds the room at 0 | `GraveyardRules` |
 | Q329 | No Vampire reincarnation (Q111) | Five guards; no Graveyard or no capacity makes the death permanent | `CreatureDeathRules` |
 | Q269 | Trigger condition 20 declined (ADR-0113) | Mood class `+0x28A` is `Anger_Add`'s band, which `CreatureAngerRules` already builds | `TriggerConditionEvaluator` |
@@ -55,10 +55,10 @@ current Level 1–3 baselines.
 
 | Where | Fix |
 |---|---|
-| `VictoryRules.cs:109` | `BodyStandSquared`'s comment calls `0x004B2AE0` a position test; it is a turn step (Q400) |
-| `GateWalk.cs:40` | The `0x1000` cap is pushed by `0x004D0320` (`0x004D0967`), not held in `0x004D0150` |
+| `VictoryRules.cs:109` (**fixed**) | `BodyStandSquared`'s comment calls `0x004B2AE0` a position test; it is a turn step (Q400) |
+| `GateWalk.cs:40` (**fixed**) | The `0x1000` cap is pushed by `0x004D0320` (`0x004D0967`), not held in `0x004D0150` |
 | `TriggerExecutor.cs` (~737) | Types 20 and 21 are declined, but their mood-class writer is known (Q269): build them |
-| `CategoryHooks.cs:262` | When the states 199/200 combat-experience hook is built, its gate is "not a worker, or good" (`0x0047A870`): the hero Dwarf earns `ExpPerSecond`, the Imp never |
+| `CategoryHooks.cs:262` (**fixed**) | When the states 199/200 combat-experience hook is built, its gate is "not a worker, or good" (`0x0047A870`): the hero Dwarf earns `ExpPerSecond`, the Imp never |
 
 ## ImpTaskSystem (blind re-read, 2026-10-05)
 

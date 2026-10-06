@@ -204,20 +204,18 @@ public static class ApproachRules
     }
 
     /// <summary>The refreshed destination (§3): the target's position, or for a Flanker the point
-    /// behind a moving target — two tiles back for a spell engagement, a quarter tile for melee —
-    /// when that point is on passable ground; a standing target gives its own position.</summary>
+    /// behind the target's heading — two tiles back at attack nibble 0, a quarter tile otherwise —
+    /// from the sine tables (<c>0x00470E30</c>, <c>0x006C1488</c>/<c>0x006C1C88</c>), moving or not;
+    /// a point on impassable ground gives the target's position (Q400).</summary>
     public static void Destination(
         SimulationContext context, CreatureState me, CreatureDef mine, CreatureState? target, int targetX, int targetY, out int x, out int y)
     {
         x = targetX;
         y = targetY;
         if (mine.FightStyle != FightStyle.Flanker || target is null) return;
-        long vx = target.Body.Vel.X, vy = target.Body.Vel.Y;
-        if (vx == 0 && vy == 0) return;
-        long length = ShotRules.Isqrt((vx * vx) + (vy * vy));
-        int offset = me.AttackType == CombatRules.AttackTypes.SpellAtCreature ? FlankerSpellOffset : FlankerMeleeOffset;
-        int bx = (int)(targetX - (vx * offset / length));
-        int by = (int)(targetY - (vy * offset / length));
+        long offset = me.AttackType == CombatRules.AttackTypes.SpellAtCreature ? FlankerSpellOffset : FlankerMeleeOffset;
+        int bx = (int)(targetX - ((offset * TrapRules.Sine(target.Heading)) >> 16));
+        int by = (int)(targetY + ((offset * TrapRules.Cosine(target.Heading)) >> 16));
         if (!ShotRules.Passable(context.World, context.Navigation, bx, by)) return;
         x = bx;
         y = by;

@@ -13,8 +13,8 @@ namespace DK2.Simulation.Systems;
 /// training and fighting, capped at 4 in the training room and 8 in the combat
 /// pit — the shipped <c>TrainingRoomMaxExperienceLevel</c> and
 /// <c>CombatPitMaxExperienceLevel</c> — with level 10 needing real fights.</para>
-/// <para>Only the working half is here: training pays through the Train job
-/// (ADR-0083) and nothing fights, so a Goblin earns nothing here. A working imp
+/// <para>The working half and the fighting half are here (<see cref="CombatExperiencePerOriginalTick"/>,
+/// ADR-0366); training pays through the Train job (ADR-0083). A working imp
 /// gains 80 a game second, so its second level costs 3000 / 80 = 37.5 seconds
 /// (ADR-0083 item 6, <c>CreatureLevelTests</c>). Trap: the rate variable
 /// <c>ImpExperienceGainPerSecond</c> is 20 per <i>original tick</i>.</para>
@@ -51,7 +51,7 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
             if (state.Activity == CreatureActivity.Leaving) continue;
 
             int gained = CreatureLevelRules.WorkExperiencePerOriginalTick(
-                database, creature, state);
+                database, creature, state) + CombatExperiencePerOriginalTick(world, database, creature, state);
             if (gained == 0) continue;
 
             int before = state.Level;
@@ -69,5 +69,24 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
                 $"health={state.Health}/{CreatureHealthRules.MaxHealth(database, creature, state)} " +
                 $"speed={CreatureLevelRules.SpeedRaw(database, creature, state.Level)}");
         }
+    }
+
+    /// <summary>The Combat category's update <c>0x0047A870</c>: in state 199 or 200, a creature that is
+    /// not a worker, or is Good, and whose fight target is a live creature gains its record's
+    /// <c>ExpPerSecond</c> made per-tick by the loader; above level 1 scaled by stat 15 and kept
+    /// within 0 to 0xFFFE. So the hero Dwarf earns in a fight (owner, 2026-10-05) and the Imp never.</summary>
+    public static int CombatExperiencePerOriginalTick(
+        WorldState world, GameDatabase database, CreatureDef creature, CreatureState state)
+    {
+        if (state.Dk2StateId is not (Combat.CombatStates.Engaging or 200)) return 0;
+        if (creature.Flags.HasFlag(CreatureFlags.IsWorker) && !creature.Flags.HasFlag(CreatureFlags.IsGood)) return 0;
+        if (state.FightTargetKind != Combat.FightTargetKind.Creature) return 0;
+        CreatureState? target = world.CreatureById(state.FightTargetId);
+        if (target is null || target.Dk2StateId == CreatureStateMachine.NoState) return 0;
+
+        int perTick = SimulationTiming.LoaderRatePerTick(creature.ExpPerSecond);
+        if (state.Level == 1) return perTick;
+        int scaled = perTick * CreatureLevelRules.Percent(database, CreatureStatId.ExpPerSecond, state.Level) / 100;
+        return Math.Clamp(scaled, 0, 0xFFFE);
     }
 }

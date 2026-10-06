@@ -1239,14 +1239,16 @@ public sealed class TriggerExecutor
         return Unperformed(record, context, run.Partial);
     }
 
-    /// <summary>Action type 22 — write a terrain type onto one tile (ADR-0136).</summary>
+    /// <summary>Action type 22 — write a terrain type onto one tile (ADR-0136, ADR-0363).</summary>
     /// <remarks>
-    /// <para>From the world arm <c>0x00519425</c>. <b>The coordinates are one-based</b>:
-    /// it decrements each before the lookup. Two cases succeed without writing — off the
-    /// map, and a tile already carrying the terrain (<c>0x00519484</c>).</para>
-    /// <para><b>Room tiles are declined.</b> The arm also demolishes a room on the tile
-    /// and notifies the map, neither of which is read; half-performing would leave
-    /// <see cref="RoomIndex"/> describing a room whose tiles had moved (Q301).</para>
+    /// <para>From the world arm <c>0x00519425</c> (trigger-action-arms.md, Q301). <b>The
+    /// coordinates are one-based.</b> Off the map, or a tile already carrying the terrain
+    /// (<c>0x00519484</c>), succeeds without writing. A room on the tile is sold first through
+    /// its owner with no refund (<c>0x004C5DB0(x, y, 0)</c>). A plain terrain is then written
+    /// through <c>Tile_SetTerrain</c>, a non-ownable one to the neutral player. A room terrain
+    /// lays water first for a room placeable on water, else lava for one placeable on lava,
+    /// both neutral, then builds the room tile free and untested for the action's player.</para>
+    /// <para>Deviates: see ADR-0363 (a room placeable on neither, effect <c>0x146</c>, a Pit).</para>
     /// </remarks>
     private bool AlterTerrain(
         TriggerRecord record, TriggerContext context,
@@ -1264,21 +1266,44 @@ public sealed class TriggerExecutor
         if (tile.TerrainId == terrainId) return true;
 
         TerrainDef next = _database.TerrainById(terrainId);
-        if (next.IsRoom
-            || _database.TerrainById(tile.TerrainId).IsRoom
-            || RoomIndex.RoomAt(_world, _database, (at.Y * _world.Width) + at.X) is not null)
-            return Unperformed(record, context, run.Partial);
+        RoomDef? room = next.IsRoom ? _database.RoomByTerrain(terrainId) : null;
+        if (next.IsRoom && room is null) return Unperformed(record, context, run.Partial);
+        byte player = checked((byte)p["PlayerId"]);
+        int index = (at.Y * _world.Width) + at.X;
 
-        tile.TerrainId = terrainId;
-        tile.Health = next.StartingHealth;
-        tile.OwnerPlayerId = next.IsOwnable
-            ? checked((byte)p["PlayerId"])
-            : PlayerIds.Unowned;
-        if (!next.IsTaggable) tile.TaggedBy = 0;
+        if (_database.TerrainById(tile.TerrainId).IsRoom)
+        {
+            byte soldTerrain = tile.TerrainId, soldOwner = tile.OwnerPlayerId;
+            int displaced = RoomRules.Unmake(_database, ref tile);
+            SlabChain.Changed(_world, _database, index, soldTerrain, soldOwner);
+            FloorGold.Drop(_world, _database, index, displaced);
+        }
+
+        if (room is null)
+        {
+            SetTerrain(ref tile, next, next.IsOwnable ? player : PlayerIds.Neutral);
+        }
+        else
+        {
+            TerrainDef? under = room.PlaceableOnWater ? _database.WaterTerrain
+                : room.PlaceableOnLava ? _database.LavaTerrain : null;
+            if (under is not null) SetTerrain(ref tile, under, PlayerIds.Neutral);
+            byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
+            RoomRules.Place(_database, ref tile, room, player);
+            SlabChain.Changed(_world, _database, index, terrainBefore, ownerBefore);
+        }
 
         // The map this run has already derived is now wrong about this tile.
         run.Rooms = null;
         return true;
+    }
+
+    private static void SetTerrain(ref TileState tile, TerrainDef terrain, byte owner)
+    {
+        tile.TerrainId = terrain.TerrainId;
+        tile.Health = terrain.StartingHealth;
+        tile.OwnerPlayerId = owner;
+        if (!terrain.IsTaggable) tile.TaggedBy = 0;
     }
 
     /// <summary>Action type 32, COLLAPSE_HERO_GATE (<c>0x005196BB</c>): the room on the one-based

@@ -43,7 +43,8 @@ Q256 records it rather than this change rewiring the tree.
 
 Parties spawn (ADR-0197; `HeroPartyRules`, the last section here is its brief).
 Ours stores generators and generates nothing. Three of the stored fields are ones
-DK2 discards (below), and ours hashes them.
+DK2 discards (below); ours keeps them for the round trip and, since hash 187, does not hash
+them (Q259).
 
 ## Effect generators in DK2 (read 2026-10-05, Q255, Q259)
 

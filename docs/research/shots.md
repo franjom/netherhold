@@ -306,7 +306,7 @@ not; the effects. **Thing order (2026-10-04):** `0x004B7830` updates list 0 (cre
 before list 1 (shots, kind 1 from `0x004AAC90`), each newest first (`0x004B4A10` links at
 the head, the next pointer read after each update), so a creature-fired shot should move
 the turn it is made (STRONGLY INFERRED: the factory's fire path was not traced), as ours
-does; ours walks `world.Shots` oldest first where DK2 walks newest first.
+does; ours walks `world.Shots` newest first too (ADR-0367).
 
 ## Confidence
 

@@ -12,16 +12,18 @@ namespace DK2.Simulation.Combat;
 /// §5–§7: the death leaves its attackers with the <c>0xF</c> nibble and no target; <c>spFighting</c>
 /// then takes the victory arm (<c>0x00460FE0</c>): state 260 with action 55, the celebration, or
 /// for <c>NeedBodyForFightIdle</c> a walk to the nearest dead body within <c>0x2000</c> squared
-/// and the same pause there. DK2 ends the pause when the animation instance ends; ours lasts
-/// <see cref="PauseTicks"/> — a stand-in until slot 35's length is known (Q376).</summary>
+/// and the same pause there. The pause ends when that animation instance ends
+/// (<see cref="PauseTicks"/>, Q376).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-approach-and-victory.md")]
 public static class VictoryRules
 {
     private const string SystemName = "combat";
 
-    /// <summary>HYPOTHESIS, ours: two seconds for every creature. DK2 plays animation slot 35 once and
-    /// idles when the instance ends; no creature's slot-35 length has been read (Q376).</summary>
-    public const int PauseTicks = 8;
+    /// <summary>The celebration's length: one play of art slot 35, or 8 when 35 is absent, by the
+    /// action clock (<see cref="AnimationTimingRules.VictoryHoldTicks"/>, Q376). STRONGLY INFERRED:
+    /// the clock is Tremor's, which reproduces the six captured get-up holds.</summary>
+    public static int PauseTicks(GameDatabase database, CreatureState me) =>
+        AnimationTimingRules.VictoryHoldTicks(database.CreatureById(me.CreatureTypeId));
 
     /// <summary>The body search's reach (§5): fixed-point squared distance strictly under <c>0x2000</c>,
     /// two square tiles — about one and a half tiles.</summary>
@@ -30,7 +32,14 @@ public static class VictoryRules
     /// <summary>The death unlink's mark on an attacker whose target has died (combat-fight-state.md
     /// §6): the target is let go and the attack nibble becomes <c>0xF</c>, which the next
     /// <c>spFighting</c> tick reads as the victory arm.</summary>
-    public static void TargetDied(SimulationContext context, CreatureState me)
+    public static void TargetDied(SimulationContext context, CreatureState me) => Unlink(context, me, victory: true);
+
+    /// <summary>A victim that has collapsed rather than died: step 5 finds it not attackable
+    /// (<c>0x0045F2DB</c>, its <c>CreatureDying</c> bit) and the attacker lets it go with no nibble,
+    /// to seek another target (combat-category-hooks.md §5, Q511).</summary>
+    public static void TargetDown(SimulationContext context, CreatureState me) => Unlink(context, me, victory: false);
+
+    private static void Unlink(SimulationContext context, CreatureState me, bool victory)
     {
         WorldState world = context.World;
         if (me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId != CombatRules.NoTarget)
@@ -43,11 +52,11 @@ public static class VictoryRules
         me.FightTargetKind = FightTargetKind.None;
         me.FightTargetPlayerId = 0;
         me.FightTargetTileIndex = -1;
-        me.AttackType = CombatRules.AttackTypes.Victorious;
+        if (victory) me.AttackType = CombatRules.AttackTypes.Victorious;
         me.AttackRangeSquared = 0;
         me.Approaching = false;
         me.StopMoving();
-        context.Emit(SystemName, "target_died", $"creature={me.Id} victim={victim}");
+        context.Emit(SystemName, victory ? "target_died" : "target_down", $"creature={me.Id} victim={victim}");
     }
 
     /// <summary>The victory arm (<c>0x00460FE0</c>, §5): the celebration where the creature stands,
@@ -96,20 +105,22 @@ public static class VictoryRules
     {
         me.AttackType = 0;
         me.BodyTargetId = CombatRules.NoTarget;
-        me.CelebrationTicks = PauseTicks;
+        me.CelebrationTicks = PauseTicks(context.Database, me);
         me.StopMoving();
         me.Running = false;
         CombatStates.Arrive(context, me);
         CombatStates.Enter(context, me, CombatStates.Celebrating);
-        context.Emit(SystemName, "celebrates", $"creature={me.Id} ticks={PauseTicks}");
+        context.Emit(SystemName, "celebrates", $"creature={me.Id} ticks={me.CelebrationTicks}");
     }
 
-    /// <summary>Standing at the body: within half a tile of it, squared. DK2's position test
-    /// <c>0x004B2AE0</c> is unread in its exact reach (Q400).</summary>
+    /// <summary>Ours: the walk to a body counts as over within half a tile of it, squared. DK2 has no
+    /// distance test; its state 6 hands over on arrival. Ours keeps a corpse as a creature and the
+    /// walk to its exact position does not finish, so this stands in for the arrival (Q400).</summary>
     public const int BodyStandSquared = 0x400;
 
-    /// <summary>State 259 each tick (<c>0x00461130</c>, §6): the remembered body must still be a corpse,
-    /// else the state ends idle; standing at it, or the route spent, the celebration begins there.</summary>
+    /// <summary>State 259 (<c>0x00461130</c>, §6): the remembered body must still be a corpse, else the
+    /// state ends idle. Once the walk is over the creature turns toward the body by its turn rate
+    /// each tick (<c>0x004B2AE0</c>) and celebrates once it faces it (Q400).</summary>
     public static void GoingToBody(SimulationContext context, CreatureState me)
     {
         CreatureState? body = context.World.CreatureById(me.BodyTargetId);
@@ -121,8 +132,15 @@ public static class VictoryRules
             context.Emit(SystemName, "body_gone", $"creature={me.Id}");
             return;
         }
-        bool there = CombatRules.DistanceSquared(me.PosX, me.PosY, body.PosX, body.PosY) < BodyStandSquared;
-        if (there || !me.HasRoute) Celebrate(context, me);
+        if (me.HasRoute && CombatRules.DistanceSquared(me.PosX, me.PosY, body.PosX, body.PosY) >= BodyStandSquared) return;
+        me.StopMoving();
+
+        int heading = me.Heading;
+        int left = Steering.Bearing.TurnToward(ref heading,
+            Steering.Bearing.Of(body.PosX - me.PosX, body.PosY - me.PosY),
+            context.Database.CreatureById(me.CreatureTypeId).TurnRate);
+        me.Heading = heading;
+        if (left == 0) Celebrate(context, me);
     }
 
     /// <summary>State 260 each tick: the pause counts down and ends in state 1, idle.</summary>

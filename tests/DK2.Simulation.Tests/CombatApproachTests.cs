@@ -92,11 +92,12 @@ public class CombatApproachTests
     }
 
     [Fact]
-    public void TheKillerCelebratesForEightTicks_StaysAttackable_AndDoesNotTurnOnABlow_Q376()
+    public void TheKillerCelebratesForOnePlayOfItsClip_StaysAttackable_AndDoesNotTurnOnABlow_Q376()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
+        goblin.DieInstantly = true; // only an outright death gives the victory (Q511)
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
@@ -111,13 +112,18 @@ public class CombatApproachTests
 
         sim.Run(1);
         Assert.Equal(CreatureActivity.Celebrating, demon.Activity);
-        Assert.Equal(VictoryRules.PauseTicks, demon.CelebrationTicks);
+        Assert.Equal(VictoryRules.PauseTicks(db, demon), demon.CelebrationTicks);
         Assert.True(CombatRules.IsAttackable(demon));
         Assert.False(CombatRules.IsFighting(demon));
 
+        // The fixture's creatures have no clip, so their pause is one turn; a Bile Demon's slot-8
+        // clip is 19 (combat-approach-and-victory.md §7). Give it that, so a blow lands within it.
+        const int pause = 19;
+        demon.CelebrationTicks = pause;
+
         // A second Goblin arrives and strikes: the celebration is not interrupted.
         CreatureState second = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon, dy: 1);
-        sim.Run(VictoryRules.PauseTicks - 1);
+        sim.Run(pause - 1);
         Assert.Equal(CreatureActivity.Celebrating, demon.Activity);
         Assert.Equal(CombatRules.NoTarget, demon.FightTargetId);
         Assert.True(second.SwingInProgress || demon.Health < 6000, "the second Goblin fights the celebrant");
@@ -140,6 +146,7 @@ public class CombatApproachTests
         CreatureState killer = Spawn(db, world, BodyLoverCreatureId, Keeper, 5, 5);
         CreatureState victim = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, killer);
         victim.Health = 100;
+        victim.DieInstantly = true; // an outright death gives the victory (Q511)
         CreatureState corpse = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 5);
         StatePlacement.As(corpse, CreatureActivity.Dead);
         corpse.Health = 0;
@@ -161,6 +168,9 @@ public class CombatApproachTests
         Assert.Equal(CreatureActivity.Dead, corpse.Activity);
         Assert.True(CombatRules.DistanceSquared(killer.PosX, killer.PosY, corpse.PosX, corpse.PosY) < Fp32.One * Fp32.One >> 12,
             "standing within a tile of the body");
+        // State 259 turns to face the body before the pause (0x004B2AE0, Q400).
+        Assert.Equal(0, DK2.Simulation.Steering.Bearing.Distance(killer.Heading,
+            DK2.Simulation.Steering.Bearing.Of(corpse.PosX - killer.PosX, corpse.PosY - killer.PosY)));
     }
 
     [Fact]
@@ -176,6 +186,7 @@ public class CombatApproachTests
         CreatureState killer = Spawn(db, world, BodyLoverCreatureId, Keeper, 5, 5);
         CreatureState victim = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, killer);
         victim.Health = 100;
+        victim.DieInstantly = true; // an outright death gives the victory (Q511)
         CreatureState corpse = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 5);
         StatePlacement.As(corpse, CreatureActivity.Dead);
         corpse.Health = 0;
@@ -204,6 +215,7 @@ public class CombatApproachTests
         CreatureState killer = Spawn(db, world, BodyLoverCreatureId, Keeper, 5, 5);
         CreatureState victim = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, killer);
         victim.Health = 100;
+        victim.DieInstantly = true; // an outright death gives the victory (Q511)
         // A corpse two tiles off: beyond 0x2000 squared.
         CreatureState far = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 7, 5);
         StatePlacement.As(far, CreatureActivity.Dead);
@@ -211,9 +223,83 @@ public class CombatApproachTests
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
 
         for (int i = 0; i < 40 && !CreatureDeathRules.IsDown(victim); i++) sim.Run(1);
-        sim.Run(2);
+        sim.Run(1);
         Assert.Equal(CreatureActivity.Celebrating, killer.Activity);
         Assert.Null(VictoryRules.NearestBody(world, killer));
+    }
+
+    /// <summary>Q400: a Flanker aims behind its target's heading through the sine tables
+    /// (<c>0x00470E30</c>), standing target or not: a quarter tile back for melee. Ours used the
+    /// target's velocity, and a standing target gave its own position.</summary>
+    [Fact]
+    public void AFlankerAimsBehindAStandingTargetsHeading()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState flanker = Spawn(db, world, Dk2TerrainFixture.SkeletonCreatureId, Keeper, 3, 8);
+        CreatureState target = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 8);
+        target.Heading = 0x200; // facing +x
+        flanker.AttackType = CombatRules.AttackTypes.MeleeAtCreature;
+        (int X, int Y) aim = default;
+        new GameSimulation(db, world, 1, [new Probe(context => { context.Navigation.Refresh(); ApproachRules.Destination(context, flanker,
+            db.CreatureById(flanker.CreatureTypeId), target, target.PosX, target.PosY, out aim.X, out aim.Y); })]).Tick(InputFrame.Empty);
+
+        Assert.Equal((target.PosX - ApproachRules.FlankerMeleeOffset, target.PosY), aim);
+    }
+
+    /// <summary>Q400: at the body, state 259 turns by the creature's turn rate each tick
+    /// (<c>0x004B2AE0</c>) and celebrates only once it faces the body.</summary>
+    [Fact]
+    public void AtTheBodyTheCreatureTurnsToFaceItBeforeTheCelebration()
+    {
+        CreatureDef slow = Dk2TerrainFixture.Goblin() with { Name = "Slow turner", CreatureId = BodyLoverCreatureId, TurnRate = 256 };
+        GameDatabase db = Dk2TerrainFixture.Database(slow);
+        WorldState world = OpenWorld(db);
+        CreatureState killer = Spawn(db, world, BodyLoverCreatureId, Keeper, 5, 5);
+        CreatureState corpse = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 5, 5);
+        StatePlacement.As(corpse, CreatureActivity.Dead);
+        corpse.PosX = killer.PosX + 0x10;
+        killer.BodyTargetId = corpse.Id;
+        killer.Heading = 0x600; // facing -x, half a turn from the body
+        int calls = 0;
+        var sim = new GameSimulation(db, world, 1, [new Probe(context =>
+        {
+            if (killer.Activity == CreatureActivity.Celebrating) return;
+            calls++;
+            VictoryRules.GoingToBody(context, killer);
+        })]);
+
+        sim.Run(8);
+
+        Assert.Equal(CreatureActivity.Celebrating, killer.Activity);
+        Assert.Equal(4, calls); // 1024 to turn at 256 a tick
+    }
+
+    /// <summary>Q398: shots are list 1 of the frame's entity pass (<c>0x004B7830</c>), each list
+    /// walked newest first since the linker adds at the head (<c>0x004B4A10</c>). Two shots that
+    /// end on the same tick end newest first. Ours walked them oldest first.</summary>
+    [Fact]
+    public void ShotsAreUpdatedNewestFirst()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        byte type = db.Shots.Keys.First();
+        ShotState older = world.SpawnShot(type, Keeper, 0x5800, 0x5800);
+        ShotState newer = world.SpawnShot(type, Keeper, 0x6800, 0x5800);
+        older.Health = 0;
+        newer.Health = 0;
+        var sim = new GameSimulation(db, world, 1, [new ShotSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Tick(InputFrame.Empty);
+
+        Assert.Equal([newer.Id, older.Id], sink.Events.Where(e => e.Kind == "shot_died")
+            .Select(e => int.Parse(e.Detail.Split(' ')[0]["shot=".Length..], System.Globalization.CultureInfo.InvariantCulture)));
+    }
+
+    private sealed class Probe(Action<SimulationContext> run) : ISimulationSystem
+    {
+        public string Name => "probe";
+        public void Execute(SimulationContext context) => run(context);
     }
 
     [Fact]

@@ -79,8 +79,8 @@ swings (nibble 1); the far-target gate is skipped. Two steps differ from a door.
 of sight, else it is dropped for the call and scan D (traps) runs. Scan E runs when the forced
 creature is `IsWorker` (or none is left), I am not an Imp, my `+0x453` is 0 and my `def+0x686`
 bit 14 is clear (`0x0045D8DE`-`0x0045D93E`); with the best at `0x7FFFFFFF` any enemy heart in
-sight then wins. Scan F runs as for a door, when a friendly spell was surveyed. Ours picks melee
-within a tile and runs no scan F there (Q510).
+sight then wins. Scan F runs as for a door, when a friendly spell was surveyed. Ours casts the
+spell within a tile too (ADR-0365); scans D, E and F are not built for a forced creature (Q510).
 
 ## 3. Approach and reach
 

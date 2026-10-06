@@ -926,14 +926,17 @@ public sealed class EffectGeneratorState
 
     private readonly ReadOnlyMemory<byte> _unknown001E;
 
+    /// <summary>The fields the THINGS loader <c>0x00521380</c> reads (Q259): position, the spawn
+    /// rectangle's width and height (<c>Unknown_0010</c>, <c>Unknown_0012</c>), the four effect ids,
+    /// the frequency and the id. Body <c>+0x08</c>, <c>+0x0C</c> and the six bytes at <c>+0x1E</c>
+    /// are never read, so they are kept for the round trip and not hashed.</summary>
     public void HashInto(ref Hash64 hash)
     {
-        hash.Add(X); hash.Add(Y); hash.Add(Unknown_0008); hash.Add(Unknown_000C);
+        hash.Add(X); hash.Add(Y);
         hash.Add(Unknown_0010); hash.Add(Unknown_0012);
         hash.Add(EffectIds.Count);
         foreach (ushort effectId in EffectIds) hash.Add(effectId);
         hash.Add(Frequency); hash.Add(GeneratorId);
-        foreach (byte value in Unknown_001E.Span) hash.Add(value);
     }
 }
 
@@ -1659,10 +1662,12 @@ public sealed class WorldState
             {
                 MapTile source = map[x, y];
                 TerrainDef terrain = database.TerrainById(source.TerrainId);
+                // The loader sets every tile through Tile_SetTerrain (0x0051EC60 -> 0x0044FC40),
+                // which owns a non-ownable terrain to the neutral player (0x0044FDBF, Q514).
                 tiles[(y * map.Width) + x] = new TileState
                 {
                     TerrainId = source.TerrainId,
-                    OwnerPlayerId = source.PlayerId,
+                    OwnerPlayerId = terrain.IsOwnable ? source.PlayerId : Data.Model.PlayerIds.Neutral,
                     Flags = source.Flags,
                     Health = terrain.StartingHealth,
                 };

@@ -558,13 +558,17 @@ public class ThingProjectionTests
 
         ulong[] generatorHashes =
         [
-            GeneratorHash(), GeneratorHash(x: 1), GeneratorHash(y: 1), GeneratorHash(u8: 1),
-            GeneratorHash(uc: 1), GeneratorHash(u10: 1), GeneratorHash(u12: 1),
+            GeneratorHash(), GeneratorHash(x: 1), GeneratorHash(y: 1),
+            GeneratorHash(u10: 1), GeneratorHash(u12: 1),
             GeneratorHash(ids: [1]), GeneratorHash(frequency: 1), GeneratorHash(id: 1),
-            GeneratorHash(tail: [1, 0, 0, 0, 0, 0]),
-            GeneratorHash(tail: [0, 0, 0, 0, 0, 1]),
         ];
         Assert.Equal(generatorHashes.Length, generatorHashes.Distinct().Count());
+
+        // Body +0x08, +0x0C and the six bytes at +0x1E: the loader 0x00521380 never reads them, so
+        // they are kept for the round trip and do not move the hash (Q259).
+        Assert.All(
+            new[] { GeneratorHash(u8: 1), GeneratorHash(uc: 1), GeneratorHash(tail: [1, 0, 0, 0, 0, 0]) },
+            h => Assert.Equal(GeneratorHash(), h));
 
         static ulong MemberHash(HeroPartyMemberState state) { Hash64 h = Hash64.Start(); state.HashInto(ref h); return h.Value; }
         static ulong PartyHash(HeroPartyState state) { Hash64 h = Hash64.Start(); state.HashInto(ref h); return h.Value; }

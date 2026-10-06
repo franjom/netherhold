@@ -56,7 +56,7 @@ count0 and looping playback: the first cycle flag or zero rate ends it at the
 next action poll. Ordinary main wraps ignore the end segment; the unusual
 start-to-main carry can still enter it. See [00496AA0](functions/00496AA0.md),
 [004B3C10](functions/004B3C10.md) and their initializer records.
-Art35 missing its Present flag selects fallback8. Shipped art35 has type6,
+Art35 of type 0 selects fallback8 (the runtime bit is type non-zero, `0x00504D80`). Shipped art35 has type6,
 flags513, 121 frames at30FPS, no segments: duration16520, advance253 and
 17 elapsed ticks. Its fallback is type0. A zero-FPS type6 resource is malformed,
 with no audited finite-duration fallback. Ordinary arrival reaches238 on

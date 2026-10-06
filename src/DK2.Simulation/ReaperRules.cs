@@ -118,8 +118,8 @@ public static class ReaperRules
     private static void BeginAction(SimulationContext context, CreatureState reaper)
     {
         CreatureDef definition = context.Database.CreatureById(reaper.CreatureTypeId);
-        CreatureAnimationTiming animation = definition.ReaperSummonAnimation.Flags.HasFlag(CreatureAnimationFlags.Present)
-            ? definition.ReaperSummonAnimation : definition.ReaperSummonFallbackAnimation;
+        CreatureAnimationTiming animation = AnimationTimingRules.SlotOrFallback(
+            definition.ReaperSummonAnimation, definition.ReaperSummonFallbackAnimation);
         reaper.ReaperActionId = 46;
         reaper.ActionUntilTick = context.Tick.Value + AnimationTimingRules.FirstCycleHoldTicks(animation);
         if (animation.ResourceType is not (1 or 3)) reaper.ReaperAlpha = byte.MaxValue;

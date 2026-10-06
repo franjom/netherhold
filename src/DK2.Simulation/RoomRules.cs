@@ -96,7 +96,7 @@ public static class RoomRules
     /// <paramref name="room"/> here, and if not, why. The land rule — <b>you build on
     /// ground you already own</b> — is STRONGLY INFERRED: nothing in the ROOMS record
     /// mentions ownership, so it has to come from the tile, and <c>Ownable</c> plus an
-    /// owner id is all the tile carries. Water and lava carry no owner; a span over them
+    /// owner id is all the tile carries. Water and lava belong to the neutral player (ADR-0362); a span over them
     /// must instead touch the player's own floor, <paramref name="touchesOwnLand"/>
     /// (<c>0x0044F630</c>, Q33). Not implemented: its refusal of a tile an enemy creature,
     /// door or trap stands on (<c>0x0044F800</c>, Q501).</summary>
@@ -223,8 +223,8 @@ public static class RoomRules
     /// and if not, why. Sellable means <c>Buildable</c>, so what a keeper may put down
     /// and take up can never disagree and nothing here names a portal or a heart: on
     /// shipped data that admits the 17 rooms a keeper builds and refuses the portals,
-    /// hearts and hero gates. A bridge over water or lava carries no owner, so
-    /// ownership is not asked.</summary>
+    /// hearts and hero gates. A bridge stands on ground nobody but the neutral player
+    /// holds, so ownership is not asked.</summary>
     public static RoomSale CanSell(
         GameDatabase database, in TileState tile, byte playerId, out RoomDef? room)
     {
@@ -274,11 +274,10 @@ public static class RoomRules
         tile.BurnTicksRemaining = 0;
         if (!next.IsTaggable) tile.TaggedBy = 0;
 
-        // Unownable ground carries no owner: 0 is unowned (Q17, ADR-0043), and
-        // keeping a stale byte was a four-month defect (Q95, ADR-0045 —
-        // TileWorkRules.Convert). The bridge marker returns to its default, because
-        // the bridge that recorded which hazard this was no longer exists.
-        if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Unowned;
+        // Unownable ground belongs to the neutral player, as Tile_SetTerrain gives it
+        // (0x0044FDBF, Q514); keeping a stale byte was a four-month defect (Q95, ADR-0045).
+        // The bridge marker returns to its default: the bridge that recorded the hazard is gone.
+        if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Neutral;
         tile.Flags = BridgeRules.SpansWater;
 
         int displaced = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));

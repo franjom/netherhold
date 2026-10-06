@@ -88,7 +88,7 @@ public class CombatTests
         // parks it in 3 (ADR-0228).
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
-        Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
+        Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon).DieInstantly = true;
         // With the systems that hand back a state id their creature has left beside it.
         GameSimulation sim = new(db, world, 1,
             [new CreatureJobSystem(), new CreatureSleepSystem(), new CombatSystem(), new CreatureHealthSystem()]);
@@ -105,17 +105,40 @@ public class CombatTests
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
+        goblin.DieInstantly = true; // only an outright death gives the victory (Q511)
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
 
         for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++) sim.Run(1);
         Assert.True(CreatureDeathRules.IsDown(goblin), $"health {goblin.Health}");
 
         // The death unlink, then the victory arm (combat-approach-and-victory.md §5): a pause, then idle.
-        sim.Run(2);
+        sim.Run(1);
         Assert.Equal(CreatureActivity.Celebrating, demon.Activity);
         Assert.Equal(CombatRules.NoTarget, demon.FightTargetId);
-        sim.Run(VictoryRules.PauseTicks);
+        sim.Run(VictoryRules.PauseTicks(db, demon));
         Assert.Equal(CreatureActivity.Idle, demon.Activity);
+    }
+
+    /// <summary>Q511: a victim that collapses gives no victory. Step 5 finds it not attackable
+    /// (<c>0x0045F2DB</c>) and the attacker lets it go with no nibble; only an outright death sets
+    /// it (<c>0x0045E4A0</c>), which ours reads as a death with no dying state (STRONGLY INFERRED).
+    /// Ours celebrated over a Goblin that had only collapsed.</summary>
+    [Fact]
+    public void AVictimThatCollapsesGivesNoVictory()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
+        CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
+        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++) sim.Run(1);
+        sim.Run(8);
+
+        Assert.Contains(sink.Events, e => e.Kind == "target_down" && e.Detail.Contains("victim=" + goblin.Id));
+        Assert.DoesNotContain(sink.Events, e => e.Kind is "target_died" or "celebrates");
+        Assert.NotEqual(CombatRules.AttackTypes.Victorious, demon.AttackType);
     }
 
     [Fact]
@@ -260,6 +283,38 @@ public class CombatTests
         new GameSimulation(db, world, 1, [new CombatSystem()]).Run(1);
 
         Assert.Equal(FightTargetKind.Heart, me.FightTargetKind);
+        Assert.Equal(expected, me.AttackType);
+    }
+
+    /// <summary>Q510: a forced creature target (<c>AttackingId</c>) leaves the commit's running best at
+    /// <c>0x7FFFFFFF</c> (<c>0x0045CF05</c>), so a surveyed spell is cast even within a tile, where
+    /// an ordinary target gets melee. Ours had the shortcut for a forced creature too.</summary>
+    [Theory]
+    [InlineData(false, CombatRules.AttackTypes.MeleeAtCreature)]
+    [InlineData(true, CombatRules.AttackTypes.SpellAtCreature)]
+    public void AForcedCreatureTargetWithinATileGetsTheSpell(bool forced, byte expected)
+    {
+        CreatureDef caster = Dk2TerrainFixture.Goblin() with
+        {
+            Name = "Caster", CreatureId = 61, FightStyle = FightStyle.Blitzer, Spells = Dk2TerrainFixture.Warlock().Spells,
+        };
+        GameDatabase db = Dk2TerrainFixture.Database(caster);
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        for (int y = 1; y < world.Height - 1; y++)
+            for (int x = 1; x < world.Width - 1; x++)
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+        CreatureState me = world.SpawnCreature(db, 61, Keeper, new TilePos(5, 5));
+        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
+        goblin.PosX = me.PosX + 0x0C00;
+        if (forced)
+        {
+            me.AttackAbnormalTargets = true;
+            me.AttackingId = goblin.Id;
+            me.AttackingKind = FightTargetKind.Creature;
+        }
+        new GameSimulation(db, world, 1, [new CombatSystem()]).Run(1);
+
+        Assert.Equal(goblin.Id, me.FightTargetId);
         Assert.Equal(expected, me.AttackType);
     }
 

@@ -14,7 +14,8 @@ namespace DK2.Simulation.Systems;
 /// stopped by solid ground — a bounce for a shot that bounces, otherwise a stop that kills a shot
 /// flagged to die on solid; the area damage some shots deal each tick; the lifetime counting down;
 /// death chaining a death shot; the process handler on the first tick and on the thing struck,
-/// which becomes the shot's target. A shot made this tick flies from the next (Q398).</summary>
+/// which becomes the shot's target. Shots are list 1 of the frame's entity pass (<c>0x004B7830</c>),
+/// walked newest first; a shot made while the list is walked waits for the next turn (Q398).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/shots.md")]
 public sealed class ShotSystem : ISimulationSystem
 {
@@ -31,7 +32,7 @@ public sealed class ShotSystem : ISimulationSystem
         _work.Clear();
         _work.AddRange(world.Shots);
 
-        for (int i = 0; i < _work.Count; i++)
+        for (int i = _work.Count - 1; i >= 0; i--)
         {
             ShotState shot = _work[i];
             if (!database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition))

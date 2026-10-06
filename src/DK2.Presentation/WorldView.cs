@@ -49,7 +49,8 @@ public readonly struct TileView
     /// </summary>
     public AssetRef Furniture { get; }
 
-    /// <summary>Who holds it. 0 is unowned.</summary>
+    /// <summary>Who holds it. 0 is unowned: ground that cannot be owned shows 0, though the
+    /// simulation gives it to the neutral player (ADR-0362).</summary>
     public byte OwnerPlayerId { get; }
 
     /// <summary>Marked for digging by somebody — the player's own marks are visible in DK2.</summary>
@@ -283,7 +284,7 @@ public sealed class WorldView
             new TilePos(x, y),
             ground,
             furniture,
-            tile.OwnerPlayerId,
+            terrain.IsOwnable ? tile.OwnerPlayerId : (byte)0,
             tile.IsTaggedBy(_viewingPlayerId),
             solid,
             tile.GoldHeld,

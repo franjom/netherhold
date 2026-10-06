@@ -87,7 +87,7 @@ public static class DefeatRules
             tile.Health = next.StartingHealth;
             tile.BurnTicksRemaining = 0;
             if (!next.IsTaggable) tile.TaggedBy = 0;
-            tile.OwnerPlayerId = next.IsOwnable ? PlayerIds.Neutral : PlayerIds.Unowned;
+            tile.OwnerPlayerId = PlayerIds.Neutral;
             tile.KeptManaGain = 0;
             fallen++;
         }

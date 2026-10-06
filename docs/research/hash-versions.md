@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**187** — `0xDCB551C8DB3F790C`. The binary sweep's second fixes: non-ownable ground to the neutral player, trigger action 22's sale and room build, no victory at a collapse, the forced creature target's spell, combat experience, shots newest first, the victory pause by clip, the Flanker's heading and the turn to the body; three effect-generator fields DK2 never reads leave the hash. No new field. ADR-0362 to ADR-0369.
+
 **186** — `0x540CF5C4A50095C3`. The binary sweep's first fixes: the carrier's store tile and walk point, a draw per new store pile, the sweep's destroy and Treasury gate, the claim search's fall-through, the mana clamp, the portal tally on death, carried bodies' clocks, the heart's start, and the trigger root order; new field `CreatureState.PortalEntranceTile`. ADR-0355 to ADR-0361.
 
 **185** — `0xD840FA98E806236E`. No imp sets off for an enemy while every Prison is full; a body refused at the door is put down on the room point 0x004E8430 draws from the world stream; no new field. ADR-0354.

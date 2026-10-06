@@ -13,10 +13,21 @@ public static class AnimationTimingRules
     private const int One = 4096;
 
     public static int KnockdownHoldTicks(CreatureDef definition) => ActionHoldTicks(
-        definition.KnockdownAnimation.ResourceType != 0 ? definition.KnockdownAnimation : definition.KnockdownFallbackAnimation);
+        SlotOrFallback(definition.KnockdownAnimation, definition.KnockdownFallbackAnimation));
 
     public static int GetUpHoldTicks(CreatureDef definition) => ActionHoldTicks(
-        definition.GetUpAnimation.ResourceType != 0 ? definition.GetUpAnimation : definition.GetUpFallbackAnimation);
+        SlotOrFallback(definition.GetUpAnimation, definition.GetUpFallbackAnimation));
+
+    /// <summary>The victory pause (action 55, art slot 35 or its fallback 8): one play of the clip,
+    /// 1 to 22 turns by creature (combat-approach-and-victory.md §7, Q376).</summary>
+    public static int VictoryHoldTicks(CreatureDef definition) => ActionHoldTicks(
+        SlotOrFallback(definition.ReaperSummonAnimation, definition.ReaperSummonFallbackAnimation));
+
+    /// <summary>An art slot falls back when its runtime bit 0 is clear (<c>0x00494880</c>); the loader
+    /// <c>0x00504D80</c> copies the file flags only for types 1 to 8 and sets the bit for any non-zero
+    /// type, so a slot is present exactly when its type is non-zero.</summary>
+    public static CreatureAnimationTiming SlotOrFallback(CreatureAnimationTiming slot, CreatureAnimationTiming fallback) =>
+        slot.ResourceType != 0 ? slot : fallback;
 
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-reaper.md")]
     public static int FirstCycleHoldTicks(CreatureAnimationTiming animation)

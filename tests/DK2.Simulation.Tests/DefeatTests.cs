@@ -40,9 +40,10 @@ public class DefeatTests
 
         // Claimed ground without a room falls to its destroyed terrain: a path to dirt, a wall to rock.
         Assert.Equal(Dk2TerrainFixture.DirtPath, world.Tile(new TilePos(8, 3)).TerrainId);
-        Assert.Equal(PlayerIds.Unowned, world.Tile(new TilePos(8, 3)).OwnerPlayerId);
+        // 0x0044FC40(x, y, type, NEUTRAL, 1, 1): the neutral player, ownable or not (Q514).
+        Assert.Equal(PlayerIds.Neutral, world.Tile(new TilePos(8, 3)).OwnerPlayerId);
         Assert.Equal(Dk2TerrainFixture.Rock, world.Tile(new TilePos(8, 4)).TerrainId);
-        Assert.Equal(PlayerIds.Unowned, world.Tile(new TilePos(8, 4)).OwnerPlayerId);
+        Assert.Equal(PlayerIds.Neutral, world.Tile(new TilePos(8, 4)).OwnerPlayerId);
 
         // The creatures wait until the fifth turn.
         Assert.True(imp.Health > 0);

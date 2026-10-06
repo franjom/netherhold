@@ -25,8 +25,10 @@ public class WorldStateTests
     }
 
     [Fact]
-    public void FromMap_CarriesOwnershipAndFlagsVerbatim()
+    public void FromMap_CarriesOwnershipOfOwnableTerrainAndFlagsVerbatim_AndGivesTheRestToTheNeutralPlayer()
     {
+        // The loader sets every tile through Tile_SetTerrain, which owns a non-ownable terrain
+        // to the neutral player whatever the map says (0x0044FDBF, Q514).
         GameDatabase database = TestWorld.Database();
         LevelMap map = TestWorld.Map();
         WorldState world = WorldState.FromMap(database, map, [(byte)0, (byte)1]);
@@ -34,7 +36,8 @@ public class WorldStateTests
         for (int y = 0; y < map.Height; y++)
             for (int x = 0; x < map.Width; x++)
             {
-                Assert.Equal(map[x, y].PlayerId, world.Tile(x, y).OwnerPlayerId);
+                byte expected = database.TerrainById(map[x, y].TerrainId).IsOwnable ? map[x, y].PlayerId : PlayerIds.Neutral;
+                Assert.Equal(expected, world.Tile(x, y).OwnerPlayerId);
                 Assert.Equal(map[x, y].Flags, world.Tile(x, y).Flags);
             }
     }

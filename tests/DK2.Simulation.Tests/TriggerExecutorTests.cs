@@ -962,7 +962,7 @@ public class TriggerExecutorTests
     /// </summary>
     [Theory]
     [InlineData(Dk2TerrainFixture.ClaimedPath, Keeper)]
-    [InlineData(Dk2TerrainFixture.DirtPath, PlayerIds.Unowned)]
+    [InlineData(Dk2TerrainFixture.DirtPath, PlayerIds.Neutral)] // Tile_SetTerrain's neutral owner (Q514)
     public void AlterTerrainOwnsOnlyWhatCanBeOwned(byte terrainId, byte expectedOwner)
     {
         (WorldState world, GameDatabase database) = AlterWorld();
@@ -971,6 +971,43 @@ public class TriggerExecutorTests
         ref TileState tile = ref world.Tile(3, 3);
         Assert.Equal(terrainId, tile.TerrainId);
         Assert.Equal(expectedOwner, tile.OwnerPlayerId);
+    }
+
+    /// <summary>Q301: a room terrain is built free for the record's player. A Wooden Bridge,
+    /// placeable on water and lava, gets water laid first even over lava (the water test comes
+    /// first in the room arm, <c>0x00519519</c>), so it spans water. Ours declined every room terrain,
+    /// which left the Siege and Secret3 bridges unbuilt.</summary>
+    [Theory]
+    [InlineData(Dk2TerrainFixture.Water)]
+    [InlineData(Dk2TerrainFixture.Lava)]
+    public void AlterTerrainBuildsABridgeOnWaterLaidFirst(byte hazard)
+    {
+        (WorldState world, GameDatabase database) = AlterWorld();
+        ref TileState tile = ref world.Tile(3, 3);
+        tile.TerrainId = hazard;
+        tile.OwnerPlayerId = PlayerIds.Neutral;
+
+        RunAlter(world, database, Dk2TerrainFixture.WoodenBridgeTerrain, Keeper, x: 4, y: 4);
+
+        Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, world.Tile(3, 3).TerrainId);
+        Assert.Equal(BridgeRules.SpansWater, world.Tile(3, 3).Flags);
+        Assert.NotNull(RoomIndex.RoomAt(world, database, (3 * world.Width) + 3));
+    }
+
+    /// <summary>Q301: a room on the tile is sold first, with no refund, then the terrain written
+    /// with the record's player: a Lair under a Claimed Path write becomes the player's path.</summary>
+    [Fact]
+    public void AlterTerrainSellsARoomTileFirst()
+    {
+        (WorldState world, GameDatabase database) = AlterWorld();
+        RoomRules.Place(database, ref world.Tile(2, 2), database.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
+        const byte other = PlayerIds.FirstKeeper + 1;
+
+        RunAlter(world, database, Dk2TerrainFixture.ClaimedPath, other, x: 3, y: 3);
+
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, world.Tile(2, 2).TerrainId);
+        Assert.Equal(other, world.Tile(2, 2).OwnerPlayerId);
+        Assert.Null(RoomIndex.RoomAt(world, database, (2 * world.Width) + 2));
     }
 
     /// <summary>Two cases the arm answers by succeeding and changing nothing: a

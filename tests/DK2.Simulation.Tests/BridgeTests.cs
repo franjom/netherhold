@@ -306,6 +306,8 @@ public class BridgeTests
         run.Tick();
         run.Tick();
         Assert.Equal(Dk2TerrainFixture.Lava, run.World.Tile(span).TerrainId);
+        // Lava cannot be owned: the neutral player has it, as Tile_SetTerrain gives it (ADR-0362).
+        Assert.Equal(PlayerIds.Neutral, run.World.Tile(span).OwnerPlayerId);
         Assert.Contains(run.Of("bridge_burnt"), e => e.Detail.Contains("(6,6)"));
     }
 

@@ -121,8 +121,8 @@ or below 0 while the attacker still holds it: `0x0045E4A0`, run by `0x00487C00` 
 `Creature_DeathBookkeeping`; the victim's own fight-leave `0x0045ADC0`; and the invisibility drop
 `0x0045EE60`. When a collapsed victim dies sixty seconds later, no attacker holds it. So the nibble
 comes from a victim that dies outright (STRONGLY INFERRED: the destroy path from `0x0048B770` to
-the death bookkeeping is not traced). Ours still gives it at the collapse of a victim outside 22
-(`VictoryRules.TargetDied`), Q511.
+the death bookkeeping is not traced). Built as ADR-0364: ours gives it only for an outright death
+and lets a collapsing victim go through `VictoryRules.TargetDown` (Q511).
 
 Ours books the collapse up to a game second after health reaches 0 and keeps health at or
 below 0 while dying. So the hook's test is ours as: health at or below 0 **and** no dying

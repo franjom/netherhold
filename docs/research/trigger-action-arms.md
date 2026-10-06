@@ -48,12 +48,10 @@ entry `0x15` gives jump slot 12). In order:
 `0x004F0840` are unread. The keeper's builder `0x004C5B40` uses the
 same bracket (`bridge-placement.md` §3).
 
-**Ours** (`TriggerExecutor.AlterTerrain`, ADR-0136) differs in three ways:
-- It declines any room tile, new or old, instead of selling and building.
-- For a non-ownable terrain it writes `PlayerIds.Unowned` (0), where DK2's owner is
-  the neutral player (`PlayerIds.Neutral`, 2). Whether that difference is observable
-  is open.
-- It raises no effect.
+**Built** as `TriggerExecutor.AlterTerrain` (ADR-0136, ADR-0363; the neutral owner ADR-0362).
+The campaign uses the room path for Wooden Bridges on Siege and Secret3. Deviates: a room
+placeable on neither water nor lava is placed straight over the old terrain; effect `0x146`,
+the map brackets and a sold Combat Pit's reset are not modelled.
 
 ## Action 24's second dword: only its low byte, the message record (Q227)
 

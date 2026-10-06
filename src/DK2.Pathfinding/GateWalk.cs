@@ -35,7 +35,7 @@ public struct GateRecord
 [Dk2Behavior(Confidence.Confirmed, "docs/research/navigation-and-steering.md")]
 public static class GateWalk
 {
-    /// <summary>The cap the wrapper <c>0x004D0150</c> passes as a literal: sixteen tiles.
+    /// <summary>The cap pushed as a literal by <c>0x004D0320</c> (at <c>0x004D0967</c>): sixteen tiles.
     /// The mover's <c>0x2000</c> goes only to the point selector.</summary>
     public const int Cap = 0x1000;
 

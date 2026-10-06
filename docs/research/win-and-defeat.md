@@ -306,8 +306,8 @@ arm from the death turn, not the fifth. What a Destructor does is UNKNOWN.
 **Built (hash-neutral, 2026-09-23): `DefeatRules`, run by `DungeonHeartSystem` every
 turn a killer is stamped.** The general arm: gold to neutral piles per heart tile
 (ours holds gold in tiles, not pile objects), rooms to `PlayerIds.Neutral` by retagging
-their tiles, roomless owned tiles to their destroyed terrain (an unownable result
-carries no owner, ADR-0045), workers killed, non-workers set `Leaving` and walked by
+their tiles, roomless owned tiles to their destroyed terrain, owned by the neutral
+player as DK2 passes it (Q514), workers killed, non-workers set `Leaving` and walked by
 `LeavingRules` to the nearest Portal or Hero Portal of **any** player by straight-line
 distance, as `creature-leaving.md` §1 reads it (2026-09-24). Not built: the obstacle objects, the prisoner and
 dying slots, the collapse arm. The heart room stays in the list as a ruin, so how
