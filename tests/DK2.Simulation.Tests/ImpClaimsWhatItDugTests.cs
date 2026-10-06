@@ -193,7 +193,7 @@ public class ImpClaimsWhatItDugTests
 
     /// <summary>
     /// <b>The claim on the way runs before the walk-over pick-up</b> (<c>0x0048904E</c> calls
-    /// <c>0x00464170</c> before its gold test, ADR-0377): stepping onto (5,2) from the east, the
+    /// <c>0x00464170</c> before its gold test, ADR-0378): stepping onto (5,2) from the east, the
     /// imp claims it and takes the pile at its east cell in the same tick, claim first.
     /// </summary>
     [Fact]

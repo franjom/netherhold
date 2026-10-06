@@ -112,7 +112,7 @@ public class KwdAdditionalRecordTests
         Assert.Equal(7, action26.Parameters["ActionPointId"]);
         Assert.DoesNotContain("TargetId", action26.Parameters.Keys);
 
-        // Q227: the roles DKII.EXE gives the fields once read as Unknown_* (ADR-0382).
+        // Q227: the roles DKII.EXE gives the fields once read as Unknown_* (ADR-0383).
         Assert.Equal(5, Trigger(213, 23, [1, 2, 5, 3, 4, 0, 0, 0]).Parameters["PlayerSlot"]);
         TriggerRecord action24 = Trigger(214, 24, [9, 0, 0, 0, 1, 0xff, 0xff, 0xff]);
         Assert.Equal(1, action24.Parameters["SpeakOnly"]);

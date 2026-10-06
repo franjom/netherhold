@@ -195,7 +195,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         // The worker arm of the gold block (0x0048904E) tries the claim on the way (0x00464170)
         // before its pick-up: a worker-job state, or a walk resuming one (0x00478050 == 3), with
         // no object or creature carried; a wander walk resumes idle and never claims. Level 1
-        // seeds 3, 4 and 5 open their first room this way from a walk to a dig (ADR-0303, ADR-0377).
+        // seeds 3, 4 and 5 open their first room this way from a walk to a dig (ADR-0303, ADR-0378).
         bool claimed = CreatureStateMachine.HasState(creature)
             && NeedRules.ResolvedCategory(creature) == CreatureStateCategory.WorkerJob
             && creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0
@@ -335,7 +335,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// runs every tick before the state handler, so state 10 then sees the gold in the hands. A
     /// keeper's worker below the hands test's mark takes the first neutral pile on its own tile
     /// whose centre is within <see cref="PassingReach"/>, as much as it lacks against the level's
-    /// full maximum (imp-hands-full.md, gold-on-the-floor.md §12, ADR-0293, ADR-0377). DK2 walks
+    /// full maximum (imp-hands-full.md, gold-on-the-floor.md §12, ADR-0293, ADR-0378). DK2 walks
     /// the tile's thing list; ours its objects in world order.
     /// </summary>
     private static void PickUpGoldInPassing(SimulationContext context, CreatureState creature, CreatureDef definition)
@@ -696,7 +696,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// <para>Oldest first, spawn order, where DK2 walks the tile's thing list. Not built: DK2
     /// takes only the piles strictly within <c>0x555</c> of the imp, which walks to the pile's
     /// own point; ours walks to the tile centre, so the box would leave a corner pile out of
-    /// reach for good (ADR-0381).</para>
+    /// reach for good (ADR-0382).</para>
     /// </summary>
     private static int TakeFromPilesOn(SimulationContext context, CreatureState creature, CreatureDef definition, int tileIndex)
     {
@@ -1195,7 +1195,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// (<c>0x0046AEA0</c>): every other worker holding a side of it loses the task and goes to 10,
     /// as state 22's check <c>0x00508070(+0x8A, 6)</c> at <c>0x004663C4</c> sends it once no
     /// action, or action 0x15, is playing. Ours drops them at once; DK2 drops a reinforcer at its
-    /// next check, and a walker presumably on arrival (unread) (ADR-0379).
+    /// next check, and a walker presumably on arrival (unread) (ADR-0380).
     /// </summary>
     private static void ForgetReinforceTask(SimulationContext context, int wallIndex, int askingCreatureId)
     {
@@ -1216,7 +1216,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// owned, the tile is not water or lava, and it or a neighbour is open floor. A set tile is
     /// visited only when it carries a dig or mine mark (Q487). The scan's own centre is not
     /// filtered: <c>0x00468D10</c> calls the chain on it at <c>0x00468DA0</c> with no <c>+0xB</c>
-    /// test, which only the ring loops make (<c>0x00468E99</c>, <c>0x00468F71</c>; ADR-0378).
+    /// test, which only the ring loops make (<c>0x00468E99</c>, <c>0x00468F71</c>; ADR-0379).
     /// </summary>
     private static bool RingScanVisits(SimulationContext context, WorldState world, TilePos at, TilePos centre)
     {
@@ -2056,7 +2056,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// specials, or of its crates and books together. The tile's one task is taken from a holder
     /// strictly farther from the object, the holder kicked first (imp-task-objects-and-walks.md §1).
     /// A crate's blueprint branch (<c>0x00468910</c>) runs before the shared latch is tested, and
-    /// its success returns at once: no route check, no task, no holder taken from (ADR-0380).
+    /// its success returns at once: no route check, no task, no holder taken from (ADR-0381).
     /// Not built: a special already standing in its room is not skipped (ours keeps no room id).
     /// </summary>
     private bool TryObjectAt(SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos at)

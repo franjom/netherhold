@@ -325,7 +325,7 @@ public class CrateTests
     }
 
     /// <summary>The objects handler asks a crate's blueprint branch (<c>0x00468910</c>) before the
-    /// latch it shares with books (<c>0x0046B9C0</c>, ADR-0380): a book with no Library, earlier
+    /// latch it shares with books (<c>0x0046B9C0</c>, ADR-0381): a book with no Library, earlier
     /// in the tile's list, does not hide the trap crate after it from its blueprint.</summary>
     [Fact]
     public void ABookWithNoLibraryDoesNotHideACrateFromItsBlueprint()

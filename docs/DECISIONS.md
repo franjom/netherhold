@@ -8560,7 +8560,7 @@ On Level 11A a slap takes tick 49's allowance, the tag past the bridge lands at 
 dug it at once on master has taken another job, Morgana reinforces the tile first, and the call
 moves from 104 to 247; the scenario runs 300 ticks. One AI test takes seed 2. No simulation state changes: no HashVersion bump.
 
-## ADR-0377 — The claim on the way comes before the walk-over pick-up, on any walk; the pick-up reads the imp's own tile
+## ADR-0378 — The claim on the way comes before the walk-over pick-up, on any walk; the pick-up reads the imp's own tile
 **Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0293, ADR-0303
 
 **Context.** The creature update's worker arm (`0x0048904E`, record `0x00488930`) calls the claim
@@ -8579,7 +8579,7 @@ tile through the claim search first, so only a tile dug during a wander walk cou
 gates apart, and no test pins it. Deviates: piles are taken in our world order, not the tile's
 thing list; the player byte `+0x10FC` test is not built.
 
-## ADR-0378 — The ring scan does not filter its own tile
+## ADR-0379 — The ring scan does not filter its own tile
 **Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0291, ADR-0292
 
 **Context.** `0x00468D10` calls its chain on the centre at `0x00468DA0` with no `+0xB` bit `0x20`
@@ -8589,7 +8589,7 @@ an imp standing in water was never offered by them.
 
 **Decision.** `RingScanVisits` takes the scan's centre and admits it untested, for every caller.
 
-## ADR-0379 — A free reinforce side the imp cannot reach deletes the wall's task
+## ADR-0380 — A free reinforce side the imp cannot reach deletes the wall's task
 **Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0291
 
 **Context.** When the walk to a free side fails, `0x0046AEA0` deletes the wall's kind-6 entry
@@ -8606,7 +8606,7 @@ every tick on the shipped scenarios' corridor ends. Deviates: ours drops them at
 where DK2 drops a reinforcer at its next check and, INFERRED (the walk states were not read), a
 walker on arrival; repair (kind 16) is not a job in ours.
 
-## ADR-0380 — A loose crate asks its blueprint before the shared latch
+## ADR-0381 — A loose crate asks its blueprint before the shared latch
 **Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0294
 
 **Context.** In the objects handler `0x0046B9C0` a crate (flag `0x10`) calls the crate branch
@@ -8618,7 +8618,7 @@ route check and the steal.
 **Decision.** `TryObjectAt` runs `BlueprintForLooseCrate` and `CommitCrateFetch` first for a crate;
 only when they fail does the latch and the Workshop search follow.
 
-## ADR-0381 — State 27's take stops at the pile that fills the hands
+## ADR-0382 — State 27's take stops at the pile that fills the hands
 **Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0288
 
 **Context.** `0x00466850` takes neutral piles, each up to what the hands lack against the
@@ -8631,7 +8631,7 @@ DK2 takes only piles strictly within `0x555` of the imp, which walks to the pile
 (`0x0046B6D0`); ours walks to the tile centre, where the box would leave a corner pile out of reach
 and the imp would fetch it forever.
 
-## ADR-0382 — The trigger fields Q227 named
+## ADR-0383 — The trigger fields Q227 named
 **Date:** 2026-10-06 · **Status:** accepted
 
 **Context.** Q227 (`trigger-action-arms.md`): condition 23's byte 2 is a player slot, 0 for the
@@ -8644,7 +8644,7 @@ and posting the message record, non-zero only speaking; action 35's byte is 0 va
 bytes unreached), `DeathKind`, `DoorId`, `TrapId` and `EffectId`. Names only: nothing in the
 simulation reads them, so no hash change.
 
-**Measured, ADR-0377 to ADR-0381 together** (hash 189), against master `21ca5011`: the Level 1
+**Measured, ADR-0378 to ADR-0382 together** (hash 190), against master `21ca5011`: the Level 1
 packet rig 20/20 (20/20; seeds 4, 7, 10, 11, 13 and 19 move by 8 to 24 ticks), Level 2 5/20
 (4/20; seeds 1, 3, 10, 13, 14 against 1, 3, 10, 17), Level 3 seed 01 won at 3592 (3564; DK2 3683).
 Every scenario's expectations hold.

@@ -570,7 +570,7 @@ public class ImpFetchesGoldTests
 
     /// <summary>
     /// <b>The scan's own tile is not filtered</b> (<c>0x00468D10</c> calls the chain on its centre
-    /// at <c>0x00468DA0</c> with no <c>+0xB</c> test, ADR-0378): an imp standing in water on its
+    /// at <c>0x00468DA0</c> with no <c>+0xB</c> test, ADR-0379): an imp standing in water on its
     /// keeper's tile takes the pile under it through Tier B. The filter never admits water.
     /// </summary>
     [Fact]
@@ -592,7 +592,7 @@ public class ImpFetchesGoldTests
     }
 
     /// <summary>
-    /// <b>State 27 stops at the first pile that fills the hands</b> (<c>0x00466850</c>, ADR-0381):
+    /// <b>State 27 stops at the first pile that fills the hands</b> (<c>0x00466850</c>, ADR-0382):
     /// the first pile leaves the imp at 1,300, past the hands test's 1,060 (1,400 less variable
     /// 74), so the second pile on the tile stays whole. Ours took 100 more from it.
     /// </summary>
@@ -614,7 +614,7 @@ public class ImpFetchesGoldTests
     }
 
     /// <summary>
-    /// <b>The walk-over pick-up reads only the imp's own tile</b> (<c>0x0048904E</c>, ADR-0377):
+    /// <b>The walk-over pick-up reads only the imp's own tile</b> (<c>0x0048904E</c>, ADR-0378):
     /// a pile just over the tile edge, inside the third-of-a-tile box, is not taken in passing.
     /// </summary>
     [Fact]
@@ -634,10 +634,10 @@ public class ImpFetchesGoldTests
 
     /// <summary>
     /// <b>A free side the imp cannot reach deletes the wall's task</b> (<c>0x0046AEA0</c>,
-    /// <c>0x00508040</c>; state 22 then finds it gone, <c>0x004663C4</c>; ADR-0379): the second
+    /// <c>0x00508040</c>; state 22 then finds it gone, <c>0x004663C4</c>; ADR-0380): the second
     /// imp, farther than the holder of the wall's west side, tries the east side, a pocket of the
     /// keeper's floor it has no way to, and the holder loses the task. Ours passed it over. Ours
-    /// drops the holder at once; DK2 at the holder's next check (ADR-0379).
+    /// drops the holder at once; DK2 at the holder's next check (ADR-0380).
     /// </summary>
     [Fact]
     public void AnUnreachableFreeSideTakesTheWallsTaskFromItsHolder_AtOnceWhereDK2WaitsForItsCheck()
@@ -665,7 +665,7 @@ public class ImpFetchesGoldTests
     }
 
     /// <summary>
-    /// <b>A solid side is not a side</b> (<c>0x0046AEA0</c>, ADR-0379): the keeper's own
+    /// <b>A solid side is not a side</b> (<c>0x0046AEA0</c>, ADR-0380): the keeper's own
     /// reinforced wall east of the wall being reinforced is never walked to, so it deletes nothing
     /// and the holder keeps its task.
     /// </summary>

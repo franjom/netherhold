@@ -102,7 +102,7 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 189: the binary sweep's divergences, fourth batch, the imp's (ADR-0377 to ADR-0381)
+        // HashVersion 190: the binary sweep's divergences, fourth batch, the imp's (ADR-0378 to ADR-0382)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
         Assert.Equal(0xFE655F271EBBEB12UL, sim.StateHash());
     }

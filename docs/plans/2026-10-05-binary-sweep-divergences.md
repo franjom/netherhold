@@ -49,7 +49,7 @@ current Level 1–3 baselines.
 | Q285 | No object trigger roots, no event 18 on claiming a neutral object | Object `+0x144` roots, event filter `0x004A3F50` | trigger walkers, `kwd unreached` |
 | Q11 (**built, ADR-0375**) | JobPreference mood/mana read as `U16`/`ushort` | Signed 16-bit | `KwdCreatures`, `CreatureDef` |
 | Q14 (**built, ADR-0375**) | Throws on CREATURES record sizes other than 5449/5537 | Accepts any size, zero-fills to 5449 | `KwdCreatures` |
-| Q227 (**built, ADR-0382**) | Fields named `Unknown_*`; action 24's second field read as a dword | Roles now known; DK2 reads only its low byte | `KwdAdditionalRecords` |
+| Q227 (**built, ADR-0383**) | Fields named `Unknown_*`; action 24's second field read as a dword | Roles now known; DK2 reads only its low byte | `KwdAdditionalRecords` |
 
 ## Stale code comments (verification audit, 2026-10-05)
 
@@ -68,15 +68,15 @@ fix changes how many world-stream draws a tick takes, and so moves every later d
 
 | Function | Ours | DK2 | Where | Draws |
 |---|---|---|---|---|
-| `0x0046AEA0` (**built, ADR-0379**) | A free side whose walk fails is passed over; nothing is dropped | Deletes the wall's kind-6/16 entry (`0x00508040`), a pre-existing one included, then tries the next side | `TryReinforceAt`, `ImpTaskSystem.cs:1149-1166` | no |
+| `0x0046AEA0` (**built, ADR-0380**) | A free side whose walk fails is passed over; nothing is dropped | Deletes the wall's kind-6/16 entry (`0x00508040`), a pre-existing one included, then tries the next side | `TryReinforceAt`, `ImpTaskSystem.cs:1149-1166` | no |
 | `0x00464400` (**built, ADR-0355**) | First chain tile with space (`SpaceIn > 0`, Heart rim at 1000); on failure the next room; walks to the tile | Tile with no class-2 thing or a kind-3 pile under the Treasury cap (3000, Heart too); back at the start returns 0; walks to `0x00698C20[rand(8)]` | `GoldStore.DepositTileAlongChain`, `GoldStore.cs:158-170`; `TryRouteToSomewhereItFits`, `ImpTaskSystem.cs:841-855` | **yes**: +1 rand(8) per store choice |
 | `0x004F3C60` (**built, ADR-0355**) | A store tile's gold is tile state; no pile is created | rand(0x800) (line `0x14F`) after each store pile it creates | `GoldStore.FillAlongChainFrom`, `GoldStore.cs:191-205`; `StoreSweepSystem.cs:53` | **yes**: +1 per new store pile |
 | `0x004651A0` | No cast on a walk | Casts a ready bit-`0x40` ability (Imp Haste) on every walk start, `noTeleport` or not | the imp's walk start (Q401) | no draw seen; speed |
 | `0x00463DF0` (**built, ADR-0356**) | Failed aimed kind-3 retry: one claim search (`else if`) | Falls through to column 5: a second `SearchKind(3)` and a second rand(4) (`0x00468D54`) | `TryTakeJob`, `ImpTaskSystem.cs:885-901` | **yes**: +1 rand(4) per failed aimed claim retry |
-| `0x00468D10` (**built, ADR-0378**) | Own tile filtered by `RingScanVisits` in Tier B and the drop scan | Own tile reaches the chain untested (`0x00468DA0`) | `TrySweep` ~`ImpTaskSystem.cs:1131`; `TryTakeDroppedJob` ~`1003` | no |
-| `0x0046B9C0` (**built, ADR-0380**) | Shared latch tested before the crate branch; a blueprint take goes through the kind-8 route check and steal | Crate branch `0x00468910` first; its success returns at once | `TryObjectAt`, `ImpTaskSystem.cs:2031-2035` | no |
-| `0x0048904E` (**built, ADR-0377**) | Any world object within the box; picks up before the claim on the way, which is gated on activity | Own tile's thing list only, first pile, break; the claim on the way first, on a tile change and category not 22 | `PickUpGoldInPassing`, `ImpTaskSystem.cs:345-359`; order `195` against `200-202` | no |
-| `0x00466850` (**stop at full built, ADR-0381; the box waits on the walk to the pile's point**) | Every pile on the tile, to the full limit | min(pile, room) per pile within ±`0x555`, stopping once `0x00464360(1)` reports full (limit less variable 74) | `TakeFromPilesOn`, `ImpTaskSystem.cs:662-663`, `697-712` | no |
+| `0x00468D10` (**built, ADR-0379**) | Own tile filtered by `RingScanVisits` in Tier B and the drop scan | Own tile reaches the chain untested (`0x00468DA0`) | `TrySweep` ~`ImpTaskSystem.cs:1131`; `TryTakeDroppedJob` ~`1003` | no |
+| `0x0046B9C0` (**built, ADR-0381**) | Shared latch tested before the crate branch; a blueprint take goes through the kind-8 route check and steal | Crate branch `0x00468910` first; its success returns at once | `TryObjectAt`, `ImpTaskSystem.cs:2031-2035` | no |
+| `0x0048904E` (**built, ADR-0378**) | Any world object within the box; picks up before the claim on the way, which is gated on activity | Own tile's thing list only, first pile, break; the claim on the way first, on a tile change and category not 22 | `PickUpGoldInPassing`, `ImpTaskSystem.cs:345-359`; order `195` against `200-202` | no |
+| `0x00466850` (**stop at full built, ADR-0382; the box waits on the walk to the pile's point**) | Every pile on the tile, to the full limit | min(pile, room) per pile within ±`0x555`, stopping once `0x00464360(1)` reports full (limit less variable 74) | `TakeFromPilesOn`, `ImpTaskSystem.cs:662-663`, `697-712` | no |
 | comment (**fixed**) | `ImpTaskSystem.cs:966`: DK2 zeroes the last kind after Tier B | The only zeroing is `0x00464010`, before the drop scan | `ImpTaskSystem.cs:966` | no |
 | comment (**fixed**) | `ImpTaskSystem.cs:1455`: held-claim stealing not built | Built (`TryJobOn` → `HolderToTakeFrom`) | `ImpTaskSystem.cs:1455` | no |
 
