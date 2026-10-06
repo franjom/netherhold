@@ -57,7 +57,8 @@ public sealed class KeeperView : INavByteGrid
         }
         OwnedTiles = owned;
 
-        AllRooms = RoomIndex.Build(world, database).Select(r => new KeeperRoomView(world, r)).ToList().AsReadOnly();
+        List<RoomInstance> rooms = RoomIndex.Build(world, database);
+        AllRooms = rooms.Select(r => new KeeperRoomView(world, r)).ToList().AsReadOnly();
         OwnRooms = AllRooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
         // DK2's DungeonHeartPosition (player+0xB43) is the heart thing's tile, the room's middle
         // (0x004C5F60's two writers); a keeper whose heart room is gone keeps no position here.
@@ -68,14 +69,17 @@ public sealed class KeeperView : INavByteGrid
         KeeperSpellDef? sight = Availability(AvailabilityKind.Spell, KeeperSpellRules.SightOfEvil) == 3
             ? database.KeeperSpellById(KeeperSpellRules.SightOfEvil)
             : null;
-        foreach (KeeperRoomView room in OwnRooms)
+        foreach (RoomInstance room in rooms)
+        {
+            if (room.OwnerPlayerId != playerId) continue;
             foreach (int index in room.TileIndices)
             {
-                if (callToArms is not null && !KeeperSpellRules.PlaceAllowed(world, database, this, playerId, callToArms, FromIndex(index)))
+                if (callToArms is not null && !KeeperSpellRules.PlaceAllowedInRoom(world, database, this, playerId, callToArms, FromIndex(index), room))
                     _callRefusedTiles.Add(index);
-                if (sight is not null && !KeeperSpellRules.PlaceAllowed(world, database, this, playerId, sight, FromIndex(index)))
+                if (sight is not null && !KeeperSpellRules.PlaceAllowedInRoom(world, database, this, playerId, sight, FromIndex(index), room))
                     _sightRefusedTiles.Add(index);
             }
+        }
         // Each owner's acquisition-ordered list, the order DK2's keeper walks (ADR-0273).
         var ranks = new Dictionary<int, int>();
         foreach (PlayerId owner in world.PlayerIds)

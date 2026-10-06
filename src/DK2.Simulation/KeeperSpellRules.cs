@@ -127,13 +127,13 @@ public static class KeeperSpellRules
         context.Navigation.Refresh();
         switch (spell.LocationSelector)
         {
-            case 1: if (!LocationOne(world, database, context.Navigation, cast.PlayerId, at)) return KeeperSpellRefusal.Location; break;
+            case 1: if (!LocationOne(world, database, context.Navigation, cast.PlayerId, at, default)) return KeeperSpellRefusal.Location; break;
             case 4: if (!LocationFour(world, context.Navigation, at)) return KeeperSpellRefusal.Location; break;
             case 5: break;
             default: return KeeperSpellRefusal.UnsupportedLocationSelector;
         }
         if (spell.TargetSelector is not (4 or 5)) return KeeperSpellRefusal.UnsupportedTargetSelector;
-        if (!PlaceTargetAllowed(world, database, cast.PlayerId, spell, at)) return KeeperSpellRefusal.Target;
+        if (!PlaceTargetAllowed(world, database, cast.PlayerId, spell, at, default)) return KeeperSpellRefusal.Target;
         var effect = spell.Shot(availability.Upgraded);
         if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
         if (cast.SpellId == SightOfEvil) return KeeperSpellRefusal.None;
@@ -156,15 +156,36 @@ public static class KeeperSpellRules
     /// selector (1, 4 or 5 read) and target selector 4 or 5. The caller's grid must be current.</summary>
     public static bool PlaceAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
         PlayerId playerId, KeeperSpellDef spell, TilePos at) =>
-        LocationAllowed(world, database, navigation, playerId, spell, at)
-        && PlaceTargetAllowed(world, database, playerId, spell, at);
+        LocationAllowed(world, database, navigation, playerId, spell, at, default)
+        && PlaceTargetAllowed(world, database, playerId, spell, at, default);
+
+    /// <summary><see cref="PlaceAllowed"/> at a tile of <paramref name="room"/>, for a caller sweeping
+    /// a room's own tiles: <paramref name="room"/> must be the room <see cref="RoomIndex.RoomAt"/>
+    /// finds at <paramref name="at"/>, which then is not flood-filled again for every tile.</summary>
+    public static bool PlaceAllowedInRoom(WorldState world, GameDatabase database, INavByteGrid navigation,
+        PlayerId playerId, KeeperSpellDef spell, TilePos at, RoomInstance room)
+    {
+        System.Diagnostics.Debug.Assert(room.Contains(at.Y * world.Width + at.X), "the tile is not in the room");
+        return LocationAllowed(world, database, navigation, playerId, spell, at, new KnownRoom(room))
+            && PlaceTargetAllowed(world, database, playerId, spell, at, new KnownRoom(room));
+    }
+
+    /// <summary>The room a validator would look up at its tile, when the caller already has it.</summary>
+    private readonly struct KnownRoom(RoomInstance room)
+    {
+        private readonly RoomInstance? _room = room;
+
+        public RoomInstance? At(WorldState world, GameDatabase database, int index) =>
+            _room ?? RoomIndex.RoomAt(world, database, index);
+    }
 
     /// <summary>The place arm of the target validator: 4 (<c>0x005179D0</c>) applies the caster's own
     /// room exclusions; 5 (<c>0x00517F60</c>) admits anything; any other fails closed.</summary>
-    private static bool PlaceTargetAllowed(WorldState world, GameDatabase database, PlayerId playerId, KeeperSpellDef spell, TilePos at) =>
+    private static bool PlaceTargetAllowed(WorldState world, GameDatabase database, PlayerId playerId, KeeperSpellDef spell,
+        TilePos at, KnownRoom known) =>
         spell.TargetSelector switch
         {
-            4 => TargetFour(world, database, playerId, at),
+            4 => TargetFour(world, database, playerId, at, known),
             5 => world.Contains(at),
             _ => false,
         };
@@ -179,9 +200,13 @@ public static class KeeperSpellRules
     /// <summary>The location validator the record selects (<c>0x005176B0</c>) at one tile: 1
     /// (<c>0x00517B80</c>) and 4 (<c>0x00517F10</c>) are read; any other fails closed.</summary>
     public static bool LocationAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
-        PlayerId playerId, KeeperSpellDef spell, TilePos at) => spell.LocationSelector switch
+        PlayerId playerId, KeeperSpellDef spell, TilePos at) =>
+        LocationAllowed(world, database, navigation, playerId, spell, at, default);
+
+    private static bool LocationAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
+        PlayerId playerId, KeeperSpellDef spell, TilePos at, KnownRoom known) => spell.LocationSelector switch
     {
-        1 => LocationOne(world, database, navigation, playerId, at),
+        1 => LocationOne(world, database, navigation, playerId, at, known),
         4 => LocationFour(world, navigation, at),
         5 => true,
         _ => false,
@@ -238,11 +263,11 @@ public static class KeeperSpellRules
 
     /// <summary>Target 4 at a place (<c>0x005179D0</c>): a room of the caster's own applies the
     /// Portal, Heart, Prison, Temple and Combat Pit interior exclusions; anything else passes.</summary>
-    private static bool TargetFour(WorldState world, GameDatabase database, PlayerId playerId, TilePos at)
+    private static bool TargetFour(WorldState world, GameDatabase database, PlayerId playerId, TilePos at, KnownRoom known)
     {
         if (!world.Contains(at)) return false;
         int index = at.Y * world.Width + at.X;
-        RoomInstance? room = RoomIndex.RoomAt(world, database, index);
+        RoomInstance? room = known.At(world, database, index);
         if (room is null || world.TileAtIndex(index).OwnerPlayerId != playerId) return true;
         return !RoomExcludes(world, room, at, index);
     }
@@ -290,14 +315,15 @@ public static class KeeperSpellRules
         return KeeperSpellRefusal.None;
     }
 
-    private static bool LocationOne(WorldState world, GameDatabase database, INavByteGrid navigation, PlayerId playerId, TilePos at)
+    private static bool LocationOne(WorldState world, GameDatabase database, INavByteGrid navigation, PlayerId playerId,
+        TilePos at, KnownRoom known)
     {
         if (!world.Contains(at)) return false;
         int index = at.Y * world.Width + at.X;
         PlayerId owner = world.TileAtIndex(index).OwnerPlayerId;
         if (owner == PlayerIds.Neutral || !world.AreAllied(playerId, owner.Value)) return false;
         if ((navigation.NavByte(at.X, at.Y) & 8) != 0) return false;
-        RoomInstance? room = RoomIndex.RoomAt(world, database, index);
+        RoomInstance? room = known.At(world, database, index);
         return room is null || !RoomExcludes(world, room, at, index);
     }
 
