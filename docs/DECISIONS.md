@@ -8749,3 +8749,29 @@ not inside the callback, and without the per-tick loop's held, imprisoned, down 
 old rate, gave Level 1 20/20, Level 2 2/20 and no Level 3 win by the capture's end. After the
 merge with ADR-0384, Level 17's Harkan lays his Prison from 1,643 (1,291 before; DK2 855, Q555),
 so `level17_harkan_unassisted` runs 1,800 ticks.
+
+## ADR-0387 — Imps repair their keeper's damaged wall, and a work rate is truncated before it is scaled
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0133; answers Q219's last row
+
+**Context.** On Level 11A our Drako dug Morgana's reinforced wall (64,38) at 229, DK2's at 387.
+The capture shows why: three of Drako's imps take 2 each a tick, and from 101 one of Morgana's,
+at (64,37) in states 23 and 24, puts 3 back, so the wall loses 3 a tick. The reinforce handler
+`0x0046AEA0` has a second pass, kind 16, gated by `0x00453E30`: the keeper's own solid,
+penetrable, goldless tile whose health is not its maximum, touching the keeper's floor. Ours had
+`TileWorkKind.RepairWall` and its action but no job reached it. And `RepairWallHealth` 22 gave 4
+an application where DK2 gives 3: the loader divides every rate by variable 19 with `IDIV`
+(`0x0051CBA0`), so 22 is stored as 5, and the action (`0x00497AC0`) floors 5 × 0.8.
+
+**Decision.** The reinforce priority takes `RepairWall` when `Reinforce` does not apply, on the
+same stance and own-floor test, recorded as task kind 6 since both resume through one handler.
+`RepairWall` applies to `0x00453E30`'s tile. `SimulationTiming.WorkApplication` replaces the
+shift of fourteen: truncate the tabled value over four, then floor it times the rate. They differ
+only where four does not divide the value: repair, and claiming (825) and own-wall digging
+(−130) with both bonuses. Deviates: DK2 records kind 16; the own wall below half health that
+`0x00453E90` gives kind 6 (reinforce, rate 50) is repaired at 22 in ours (Q564); the own-floor test omits `0x00453B30`'s Ownable bit, as the reinforce path always has; the divisor is the constant four, not live variable 19.
+
+**Measured** (hash 192), Level 11A with keepers 4 to 7 running, as DK2 runs them (the comparison
+had run Drako's AI alone): Morgana repairs from 92 (DK2 101), the wall falls at 362 (387), the
+Belial tunnel's first tile at 433 (443), its bridges at 446/448 (457/461), the call at 544 (700),
+Morgana at 1,004 (1,378). The scenario now runs those keepers on the record's gold. Q563 holds the
+rest.

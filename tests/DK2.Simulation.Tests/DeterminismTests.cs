@@ -104,7 +104,7 @@ public class DeterminismTests
 
         // HashVersion 191: Imp Haste on a task walk, work experience per hit (ADR-0385, ADR-0386)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xC5322686209DAEB0UL, sim.StateHash());
+        Assert.Equal(0x40EF9AF6D79DA685UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

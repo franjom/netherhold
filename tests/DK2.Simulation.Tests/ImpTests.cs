@@ -146,6 +146,41 @@ public class ImpTests
     }
 
     /// <summary>
+    /// The reinforce handler's second pass (kind 16, <c>0x00453E30</c>, ADR-0387): the keeper's own
+    /// reinforced wall below its maximum is repaired from the keeper's floor, at
+    /// <c>RepairWallHealth</c> 22 stored as 5 and taken at the base rate to 3 an application. Level
+    /// 11A's Morgana repairs the wall Drako digs. A wall at full health gives no job.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TheKeepersOwnDamagedWallIsRepaired_AFullOneIsNot(bool damaged)
+    {
+        Run run = StartOnOwnedFloor();
+        GameDatabase database = Dk2TerrainFixture.Database();
+        ushort full = database.TerrainById(Dk2TerrainFixture.ReinforcedWall).MaxHealth;
+        foreach (TilePos side in new TilePos[] { new(9, 5), new(7, 5), new(8, 6), new(8, 4) })
+        {
+            ref TileState wall = ref run.World.Tile(side);
+            wall.TerrainId = Dk2TerrainFixture.ReinforcedWall;
+            wall.OwnerPlayerId = Keeper;
+            wall.Health = full;
+        }
+        if (damaged) run.World.Tile(new TilePos(9, 5)).Health = (ushort)(full - 100);
+
+        run.Ticks(SimulationTiming.TicksFromSeconds(3));
+
+        if (!damaged)
+        {
+            Assert.Empty(run.Of("job_taken"));
+            return;
+        }
+        Assert.Contains("(9,5) RepairWall priority=Reinforce", Assert.Single(run.Of("job_taken")).Detail);
+        Assert.True(run.World.Tile(new TilePos(9, 5)).Health > full - 100);
+        Assert.Equal(3, TileWorkRules.PerApplication(database, TileWorkKind.RepairWall));
+    }
+
+    /// <summary>
     /// A worker on a square of claimed path away from the fixture's own keeper
     /// room, with reinforceable rock around it. The floor must be
     /// <see cref="Dk2TerrainFixture.ClaimedPath"/> and not dirt with an owner

@@ -1,7 +1,7 @@
 # The unaided keeper's attack on a stock map: level 11A gives Drako (player 5) two Mistresses and
 # a Salamander, IAMinimumCreatures 2, IACreatureSkillLevel 1, IAThreatSuperiority 30, NeverAttack 0,
 # IAFirstEnd 2, IAFirstStart 3, BreachAtXPoints 1, CallToArmsUsage 1 and WaitBeforeAttackingAgain 8.
-# Nobody attacks Drako and no command is scripted. Once its imps are bought the attack planner
+# No command is scripted; every computer keeper runs, as in DK2. Once its imps are bought the attack planner
 # (0x004FAEF0) finds the army ready, passes over the human (player 3), Belial and Raksha for Morgana
 # (player 6), chooses her heart as the room with the least of her own strength within five tiles and
 # the Lair as the own non-bridge room nearest that heart's first slab, and starts task 7 from the
@@ -14,35 +14,29 @@
 # a route to Morgana's heart the front puts the Call to Arms beside it and Drako's creatures engage it.
 #
 # DK2 crosses here too: the idle capture of 2026-10-06 (computer-keeper-observations.md, Level 11A)
-# bridges (64,40) and (64,39) and calls at (64,38). What this run does NOT establish: DK2's timing,
-# which differs (that capture runs on the record's gold, this run on 5,000; Q557), or that the
-# neutral player's land stores the tunnel in the original (Q497).
+# bridges (64,40) and (64,39) and calls at (64,38). This run matches that capture's conditions: the
+# record's own gold and keepers 4 to 7 all running, so Morgana's imps repair the wall Drako digs
+# (ADR-0387). What it does NOT establish: why the dug tile is claimed sooner and the call cast
+# sooner than DK2's (Q563), or that the neutral player's land stores the tunnel in the original
+# (Q497).
 id: keepers-level11a-drako-attack-001
 question: >
   Does Drako, unaided, tunnel from its Lair toward Morgana's heart, bridge the lava in the way, and
   attack her heart?
 map: campaign:level11A
 seed: 12345
-duration_ticks: 320
+duration_ticks: 600
 viewing_player: 5
-computer_keepers: [5]
+computer_keepers: [4, 5, 6, 7]
 setup:
   placed_things: true
-  players:
-    - { id: 1, gold: 0, mana: 0 }
-    - { id: 2, gold: 0, mana: 0 }
-    - { id: 3, gold: 0, mana: 0 }
-    - { id: 4, gold: 0, mana: 0 }
-    - { id: 5, gold: 5000, mana: 25000 }
-    - { id: 6, gold: 0, mana: 0 }
-    - { id: 7, gold: 0, mana: 0 }
 observe:
   - state_hash
   - events
 expect:
   - event: tagged
     detail: "player=5 applied=1 rejected=0 span=(64,41)-(64,41)"
-    at_tick: 12
+    at_tick: 7
     because: >
       Task 7 (0x004FDC50) tags the rock on the cursor's tile with action 40 when the tile is
       taggable and not yet in the task pool: the first tile of rock north of Drako's Lair, on the
@@ -50,35 +44,33 @@ expect:
       it on an earlier pass.
   - event: built
     detail: "player=5 room=Stone Bridge tiles=1 cost=500 refused=0 first=(64,40)"
-    at_tick: 89
+    at_tick: 62
     because: >
-      The cursor waits on the tagged rock until it is dug (75) and claimed (87), then steps onto the
-      lava. Lava on the cursor takes only room 17 (0x004FDC50), when it is available; the tile
-      touches the claimed corridor, Drako's own floor, as the placement test requires (0x0044F630).
+      The cursor waits on the tagged rock until it is dug and claimed, then steps onto the lava.
+      Lava on the cursor takes only room 17 (0x004FDC50), when it is available; the tile touches
+      the claimed corridor, Drako's own floor, as the placement test requires (0x0044F630). DK2: 66.
   - event: built
     detail: "player=5 room=Stone Bridge tiles=1 cost=500 refused=0 first=(64,39)"
-    at_tick: 90
+    at_tick: 63
     because: >
       A laid span steps the walker on the same allowance (0x004FDC50); the next lava tile touches
-      the bridge just laid, which is owned and not solid (0x00453B30).
+      the bridge just laid, which is owned and not solid (0x00453B30). DK2: 70.
   - event: tagged
     detail: "player=5 applied=1 rejected=0 span=(64,38)-(64,38)"
-    at_tick: 91
+    at_tick: 64
     because: >
       Past the lava the walker meets rock again and task 7 tags it: the tunnel continues toward
       Morgana's heart. Morgana's imp reinforced the tile at 62, so Drako's imps dig an enemy wall,
-      which lasts to 278.
+      and from 92 one of Morgana's imps repairs it from her side (kind 16, ADR-0387); it falls at
+      362. DK2: repair from 101, the wall falls at 387.
   - event: call_to_arms_raised
-    detail: "tile=64,38"
-    at_tick: 279
+    detail: "tile=64,34"
+    at_tick: 544
     because: >
       With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
-      heart and attack management casts the call there (0x004FECE0, ADR-0298); before the bridge no
-      walker could route and no call was cast. The point two tiles off the heart is a draw between
-      (64,34) and (64,38): the portals' conversion (ADR-0336) moved it to (64,38), and Drako's Imp
-      fighting Morgana's instead of fleeing it (ADR-0347) moved it back to (64,34). Since the tunnel
-      waits on each tagged tile it is (64,38) again, the tile DK2's call stands on.
+      heart and attack management casts the call there (0x004FECE0, ADR-0298). The point is a draw
+      between (64,34) and (64,38); DK2's call stands on (64,38), at 700.
   - event: engaged
     detail: "player=5 heart=6"
     because: >
-      Drako's creatures answer the call and attack Morgana's heart (scan E, ADR-0163); first at 305.
+      Drako's creatures answer the call and attack Morgana's heart (scan E, ADR-0163); first at 587.

@@ -174,7 +174,7 @@ public static class TileWorkRules
 
     /// <summary>The health one application of <paramref name="kind"/> moves at
     /// <paramref name="efficiency"/> 4096ths of work rate: the tabled per-second
-    /// delta shifted down by <see cref="SimulationTiming.WorkApplicationShift"/>,
+    /// delta over a game second's ticks, then scaled and floored (<see cref="SimulationTiming.WorkApplication"/>),
     /// carrying nothing (ADR-0133). Not the cadence, which is
     /// <see cref="SimulationTiming.WorkApplicationsPerSecond"/>.</summary>
     public static int PerApplication(
@@ -184,9 +184,7 @@ public static class TileWorkRules
         // the behaviour the original shows, and this is the single seam where
         // that correction enters the simulation (ADR-0023, Q20).
         int perSecond = ObservedCorrections.TileWorkPerSecond(database, Variable(kind));
-
-        // An arithmetic shift, so this floors rather than truncating toward zero.
-        return perSecond * efficiency >> SimulationTiming.WorkApplicationShift;
+        return SimulationTiming.WorkApplication(perSecond, efficiency);
     }
 
     /// <summary>What a creature of the Good player applies in action 11's first arm: the cached
@@ -339,8 +337,13 @@ public static class TileWorkRules
                 terrain.IsSolid && !terrain.IsImpenetrable && !terrain.IsOwnable
                 && terrain.MaxHealthTypeTerrainId != tile.TerrainId,
 
+            // 0x00453E30, the repair pass of the reinforce handler: the keeper's own solid,
+            // penetrable, goldless tile whose health is not its maximum. Ownable is not tested
+            // (INFERRED harmless: only Ownable terrain takes a player owner). The pass's touching-own-floor test is
+            // the selection's (ADR-0387).
             TileWorkKind.RepairWall =>
-                terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId == playerId,
+                terrain.IsSolid && !terrain.IsImpenetrable && terrain.GoldValue == 0
+                && tile.OwnerPlayerId == playerId && tile.Health != terrain.MaxHealth,
 
             _ => false,
         };

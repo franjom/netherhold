@@ -87,18 +87,19 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         KeeperAIState state = run.KeeperStates[5];
         // Morgana first; never Raksha (bit 7), whom the level's first turn allies with Drako (ADR-0377).
         Assert.Equal((1 << 6, 1 << 6, 0), (state.PlayersAttackedFlags & (1 << 6), state.FirstAttackFlag & (1 << 6), state.PlayersAttackedFlags & (1 << 7)));
-        KeeperCommandEmission tag = Assert.Single(run.KeeperCommandLog, e => e.Command is TagTilesCommand t && t.Tiles.Contains(new TilePos(64, 41)));
+        KeeperCommandEmission tag = Assert.Single(run.KeeperCommandLog, e => e.Command is TagTilesCommand t && t.PlayerId.Value == 5 && t.Tiles.Contains(new TilePos(64, 41)));
         Assert.Equal((byte)5, tag.Command.PlayerId);
 
         List<(int Tick, BuildRoomCommand Build)> spans = run.KeeperCommandLog
-            .Where(e => e.Command is BuildRoomCommand b && BridgeRules.IsBridge(ScenarioCorpus.Database.Room(b.RoomId)))
+            .Where(e => e.Command is BuildRoomCommand b && b.PlayerId.Value == 5 && BridgeRules.IsBridge(ScenarioCorpus.Database.Room(b.RoomId)))
             .Select(e => (e.InputTick, (BuildRoomCommand)e.Command)).ToList();
-        Assert.Equal([(89, new TilePos(64, 40)), (90, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
+        Assert.Equal([(62, new TilePos(64, 40)), (63, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
         Assert.All(spans, s => Assert.Equal(RoomTypeId.StoneBridge, s.Build.RoomId));
 
-        var call = (CastSpellAtPlaceCommand)Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand).Command;
+        var call = (CastSpellAtPlaceCommand)Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5).Command;
         // Two tiles off the heart in a drawn diagonal: (64,34) or (64,38) as the stream moves (ADR-0336
-        // took it to 38, ADR-0347's Imp-against-Imp fight back to 34).
+        // took it to 38, ADR-0347's Imp-against-Imp fight back to 34; with every keeper running and
+        // Morgana repairing her wall, ADR-0387, it is 34, where DK2's is 38).
         Assert.Equal(((byte)CallToArmsRules.SpellId, 64), (call.SpellId, call.X >> 12));
         Assert.Contains(call.Y >> 12, new[] { 34, 38 });
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));

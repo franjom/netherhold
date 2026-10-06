@@ -181,8 +181,9 @@ Ours splits the pair differently and only half of it is a job. `TileWorkKind`
 `.Reinforce` is solid ∧ not Impenetrable ∧ **not Ownable** ∧ the terrain is not
 already its own reinforced type — plain rock, chosen by type rather than by
 health — and it is the only kind `JobPriority.Reinforce` reaches. `TileWorkKind`
-`.RepairWall` exists with its own rate (`RepairWallHealth` 22) but no job
-priority selects it, so **kind 16 is not built as an imp job**.
+`.RepairWall`, at its own rate (`RepairWallHealth` 22), is taken by the same
+priority when `.Reinforce` does not apply, on `0x00453E30`'s tile: **kind 16 is
+built** (ADR-0387). The own wall below half that kind 6 also takes is not (Q564).
 
 ---
 
@@ -357,7 +358,7 @@ all do it. Built for dig, mine, claim and reinforce (ADR-0289,
 | the kind just done | after 1/2/3 search that kind first; after 1/2 deposit | **built** (ADR-0282) |
 | the cap | 4 selections per keeper per tick | **built** (ADR-0282) |
 | Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **all of it**; 14 is a no-op in the original (its search has no arm), so none here (ADR-0286); **8** (ADR-0065), **9/10** (ADR-0214, `workshop-crates.md` §6), marked excavation, claim, **13** both branches (ADR-0063, ADR-0064), **12**, in the original's order |
-| Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold**. Kind 16 (fix a damaged own wall) is not a job here — §3 |
+| Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold**. Kind 16 (fix a damaged own wall) follows reinforce at the same tile (ADR-0387) — §3 |
 | distance | rings; for 1/2 straight-line, seams from the last seam | the 1/2 walk straight-line (ADR-0282); other kinds steps along the walkable grid; seam slot occupancy not built |
 | kind 14 | taken only on the way: `0x00464170` on entering a tile, category 3, more than two tiles from the task tile, last kind 1–7 or 16 | **built for deposit walks** (ADR-0286, Q489) — `TryClaimOnTheWay` |
 | gold in hands | put down only by 26, 27 (full hands), 76, and in 10 by kind 15 or the aimed kind 7 (full hands) | **built** (ADR-0288); our pre-choice deposit is gone |

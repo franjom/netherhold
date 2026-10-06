@@ -37,10 +37,8 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(20, typeof(ImpStates), nameof(ImpStates.For)));
         rows.Add(Built(21, typeof(ImpStates), nameof(ImpStates.For)));
         rows.Add(Built(22, typeof(ImpStates), nameof(ImpStates.For)));
-        rows.Add(Built(23, typeof(ImpStates), nameof(ImpStates.For),
-            "no simulation test damages a reinforced wall for an imp to repair"));
-        rows.Add(Built(24, typeof(ImpStates), nameof(ImpStates.For),
-            "no simulation test damages a reinforced wall for an imp to repair"));
+        rows.Add(Built(23, typeof(ImpStates), nameof(ImpStates.For)));
+        rows.Add(Built(24, typeof(ImpStates), nameof(ImpStates.For)));
         rows.Add(Built(25, typeof(ImpStates), nameof(ImpStates.For)));
         rows.Add(Built(26, typeof(ImpStates), nameof(ImpStates.For)));
         rows.Add(Built(27, typeof(ImpStates), nameof(ImpStates.PickingUpGold)));

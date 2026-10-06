@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**192** — `0x40EF9AF6D79DA685`. Imps repair their keeper's damaged wall (kind 16, `0x00453E30`), and a work application truncates the tabled rate over four before flooring it times the work rate (`0x0051CBA0`); no new field. ADR-0387.
+
 **191** — `0xC5322686209DAEB0`. An imp task walk runs the walk wrapper's ability scan and casts Imp Haste from level 4 (`0x004651A0`); work experience is paid once per work hit, not per tick of work. No new field. ADR-0385, ADR-0386.
 
 **190** — `0xEE1C266107F94AAF`. The binary sweep's fourth fixes, the imp's: the claim on the way before the walk-over pick-up, from a worker job only, and the pick-up from the imp's own tile only; the ring scan's own tile unfiltered; a failed walk to a free reinforce side deletes the wall's task; a crate's blueprint before the shared latch; state 27's take stopping at the pile that fills the hands. No new field. ADR-0378 to ADR-0382.

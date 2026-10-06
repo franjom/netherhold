@@ -31,6 +31,20 @@ public class TileWorkTests
 
     // ---- the rules -------------------------------------------------------
 
+    /// <summary>DK2 divides a tabled rate by variable 19 at load, truncating (<c>IDIV</c> at
+    /// <c>0x0051CBA0</c>), and each work action floors the stored value times the rate (12.12
+    /// multiply then <c>SAR</c>). One shift of fourteen differs whenever four does not divide the
+    /// rate: 22 at 80 % is 3, not 4; −130 at 99.95 % is −32, not −33; 825 there is 205, not 206
+    /// (ADR-0387).</summary>
+    [Theory]
+    [InlineData(22, 0xCCC, 3)]
+    [InlineData(-130, 0xCCC + 2 * 0x199, -32)]
+    [InlineData(825, 0xCCC + 2 * 0x199, 205)]
+    [InlineData(-8, 0xCCC, -2)]
+    [InlineData(825, 0xCCC, 164)]
+    public void AnApplicationTruncatesTheLoadedRateThenFloorsTheScaledOne(int perSecond, int efficiency, int expected) =>
+        Assert.Equal(expected, SimulationTiming.WorkApplication(perSecond, efficiency));
+
     [Fact]
     public void DiggingRock_TakesOneApplication_AndLeavesDirtPath()
     {

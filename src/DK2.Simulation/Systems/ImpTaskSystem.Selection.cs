@@ -343,7 +343,7 @@ public sealed partial class ImpTaskSystem
         foreach (CreatureState other in context.World.Creatures)
         {
             if (other.Id == askingCreatureId || other.TargetTileIndex != wallIndex
-                || other.TargetWork != TileWorkKind.Reinforce)
+                || other.TargetWork is not (TileWorkKind.Reinforce or TileWorkKind.RepairWall))
                 continue;
             context.Emit(SystemName, "task_forgotten",
                 $"imp={other.Id} by={askingCreatureId} {Describe(context.World, wallIndex)} {other.TargetWork}");
@@ -911,11 +911,16 @@ public sealed partial class ImpTaskSystem
             // A wall is only worth reinforcing where it faces the keeper's own
             // ground (Q295, owner). Today a guard rather than a change -- see
             // TouchesOwnFloor for why it cannot yet fire.
+            // The handler's second pass fixes the keeper's own damaged wall (kind 16, Q219,
+            // ADR-0387): a rival's imps digging in are slowed by the defender's repairs.
             case JobPriority.Reinforce:
-                if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Reinforce, playerId))
+                if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.Reinforce, playerId))
+                    kind = TileWorkKind.Reinforce;
+                else if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.RepairWall, playerId))
+                    kind = TileWorkKind.RepairWall;
+                else
                     return false;
                 if (!TouchesOwnFloor(context, world, target, playerId)) return false;
-                kind = TileWorkKind.Reinforce;
                 break;
 
             default:

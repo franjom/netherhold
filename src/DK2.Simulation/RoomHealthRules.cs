@@ -131,7 +131,7 @@ public static class RoomHealthRules
     /// captures' step).</summary>
     [Dk2Behavior(Confidence.Confirmed, "docs/research/room-health.md")]
     public static int ConvertPerApplication(GameDatabase database, PlayerId tileOwner, int efficiency) =>
-        database[ConvertVariable(tileOwner)] * efficiency >> SimulationTiming.WorkApplicationShift;
+        SimulationTiming.WorkApplication(database[ConvertVariable(tileOwner)], efficiency);
 
     /// <summary>
     /// One application of action 10 (<c>0x00497BF0</c>) by <paramref name="playerId"/>'s worker on
@@ -175,7 +175,7 @@ public static class RoomHealthRules
     /// <summary>One repair application (action 12, <c>0x00498120</c>): <c>RepairRoomHealth</c> the
     /// same way.</summary>
     public static int RepairPerApplication(GameDatabase database, int efficiency) =>
-        database[VariableTypeId.RepairRoomHealth] * efficiency >> SimulationTiming.WorkApplicationShift;
+        SimulationTiming.WorkApplication(database[VariableTypeId.RepairRoomHealth], efficiency);
 
     /// <summary><c>Room_NeedsRepair</c> (<c>0x004E6C00</c>): the room is the player's and below its
     /// cap. Action 12's gate; nothing in v1.70 starts action 12 (Q500).</summary>

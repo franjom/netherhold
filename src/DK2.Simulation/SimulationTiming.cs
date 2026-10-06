@@ -71,12 +71,20 @@ public static class SimulationTiming
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/open-questions.md#Q47")]
     public const int WorkApplicationsPerSecond = OriginalTicksPerGameSecond;
 
-    /// <summary>The arithmetic shift a tabled per-second work delta takes to become one application:
-    /// fourteen — twelve for Efficiency's 4096ths, two for the four ticks of a game second. A signed
-    /// shift <b>floors</b>, where the <c>÷ 5</c> this replaced truncated toward zero, and that one
-    /// unit is the whole of ADR-0133 (Q292, run 15 read four rates at once).</summary>
+    /// <summary>One application of a tabled per-second work delta at <paramref name="efficiency"/>
+    /// 4096ths, in DK2's two steps. The variable loader divides the value by variable 19 with
+    /// <c>IDIV</c>, truncating toward zero (<c>0x0051CBA0</c>); each work action shifts the stored
+    /// value into 12.12, multiplies it by the rate (<c>0x004363F0</c>) and shifts back with
+    /// <c>SAR</c>, which floors (<c>0x00496F57</c>, <c>0x00497B66</c>; ADR-0133). One shift of
+    /// fourteen agrees only for a value that four divides: <c>RepairWallHealth</c> 22 is stored as
+    /// 5 and applies 3 at the base rate, not 4 (ADR-0387). Ours divides by the constant four,
+    /// variable 19's shipped value; a level that overrides it would differ (combat-damage.md).</summary>
     [Dk2Behavior(Confidence.Confirmed, "docs/research/tile-work.md")]
-    public const int WorkApplicationShift = 14;
+    public static int WorkApplication(int perSecond, int efficiency)
+    {
+        int stored = perSecond / OriginalTicksPerGameSecond;
+        return (int)(((long)stored * efficiency) >> 12);
+    }
 
     /// <summary>How often a worker applies work to a tile, in ticks: one — work lands once per
     /// creature update and that is once a tick. Derived, so a finer <see cref="TicksPerSecond"/> carries it.</summary>

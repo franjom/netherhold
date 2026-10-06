@@ -4,7 +4,7 @@
 |---|---|
 | Source(s) | `Terrain.kwd` and `GlobalVariables.kwd` (reference install); `DKII.EXE` v1.70 — the applier `FUN_00452f60`, the imp's claim/reinforce/attack handlers, `FUN_00488930`; owner measurements 2026-08-29 to 2026-09-06, off the gold counter and the status bar |
 | Confidence | **CONFIRMED**: the data, the deficit rule, the 273-gold swing, the once-a-tick cadence, Efficiency and its two bonuses, and — run 15, tile by tile — all four per-application deltas (ADR-0133). **STRONGLY INFERRED**: the unguarded upward-conversion path (Q215), that the deltas are per game second, per-player tagging. **UNKNOWN**: whether a second worker adds a second application; what moved the base work rate mid-session |
-| Implementation | `TileWorkRules`, `Systems/TileWorkSystem`, `Systems/TileTagSystem`, `EfficiencyRules`, `ObservedCorrections`; `TileState.Health`; `SimulationTiming.WorkApplicationShift` (sizes an application) and `.WorkApplicationsPerSecond` (schedules it) |
+| Implementation | `TileWorkRules`, `Systems/TileWorkSystem`, `Systems/TileTagSystem`, `EfficiencyRules`, `ObservedCorrections`; `TileState.Health`; `SimulationTiming.WorkApplication` (sizes an application: the value over four, truncated, then times the rate, floored; ADR-0387) and `.WorkApplicationsPerSecond` (schedules it) |
 | Tests | `TileWorkTests`, `TileWorkOnRealDataTests` (re-runs the rules against the real database and asserts the terrain transition graph terminates for every tile of a campaign level), `DugOutTilesStayDugOutTests` |
 | Known exceptions | none: `ObservedCorrections` holds no entries since the `DigRockHealth` override was retired (Q20, ADR-0280) |
 | Open questions | Q74 and the mid-session base-rate shift below. **Q215, Q292 and Q62 are answered; the rates below are measured, and the swing arithmetic in this file predates run 15** — `EXPERIMENTS.md` has the traces |
@@ -198,11 +198,12 @@ not both be scheduled; they never had to be (ADR-0089, Q1 settled at 250 ms).
 | dig your own wall | **35** |
 | dig an enemy's wall | **563** |
 
-Two deltas do not divide by five — `DigEnemyWallHealth` (−8) and
-`RepairWallHealth` (22) — so `TileState.WorkRemainder` carries the fraction
-between applications; without it an enemy wall would take 900 swings instead of
-563 and run 37% slow forever. The carry is taken **before** Efficiency scaling,
-so the tabled per-second rate stays exact and the 80% case is unchanged.
+Nothing carries a fraction between applications: DK2 stores each rate already
+divided by four, truncated (`0x0051CBA0`), and each action floors that times the
+rate. So `DigEnemyWallHealth` −8 is −2 an application and an enemy wall takes 450
+swings, and `RepairWallHealth` 22 is stored as 5 and applies 3 (ADR-0133,
+ADR-0387; the Level 11A capture shows both). So 22 at 80 % is 3, where one shift of fourteen gave 4. The 563 above, and the remainder
+that once carried it, are superseded.
 
 An imp breaks off when its hands test reads full, `maxGoldHeld` 1400 less
 variable 74's 340 at level 1: **four swings** of 273 (1090), so a seam is three
