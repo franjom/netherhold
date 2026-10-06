@@ -8861,3 +8861,26 @@ the room-change closers' other refreshes (`0x004F0E30`, command 3) are left out 
 (STRONGLY INFERRED); the terrain-art gate (inert in shipped data) is not tested; a door's own
 refreshes (command 17) are not followed; the Unity light's colour over 255 and intensity over 128
 are a renderer's choice.
+
+## ADR-0391 — A room tile carries the wall pieces DK2's chooser picks for its sides
+**Date:** 2026-10-06 · **Status:** accepted · Presentation only · Research: `wall-pieces.md`; Q71
+
+**Context.** DK2's room loader (`0x004EACC0`) builds a room's floor and wall pieces by name, art
+2's name plus a number, and its wall chooser (`0x00444F10`, read in the disassembly) gives each
+side of a room tile whose outside neighbour is visible and AllowRoomWalls (Impenetrable Rock,
+Reinforced Wall, Edge of Map, or a closed secret door) a whole piece, 7 or 8 at the furniture
+phase, where the room runs on both ways along that wall, else two halves: 4 or 6, and 5 or 6. Ours
+drew one mesh per room and per solid terrain (`AssetCatalogue`).
+
+**Decision.** `TileView.Walls` (`RoomWalls`, four bits a side) carries the chooser's answer for the
+Normal and DoubleQuad rooms, worked out by `WorldView` from the tile and its eight neighbours,
+and the presenter pushes a tile again when it changes. The catalogue lists each such room's
+`wall4`..`wall8` meshes and the converter makes them from `<art 2 name><k>`, as the loader names
+them. Deviates: "the same room" is the same room terrain, not the tile's room word; a closed
+secret door is not drawn as wall, as the neighbour or as the diagonal that continues a wall; the
+diagonal's test is the terrain's Solid flag where DK2 asks the world (vt `+0x208`); a neighbour
+is visible when the viewer has discovered it, where DK2 also takes Sight's view; an off-map
+neighbour takes no wall; no furniture phase is kept, so a whole side is always piece 7;
+the hero gates' own arms (types 0x12, 0x17) are not built; DK2's highlight of a dig-tagged wall
+is not carried; the Unity scene does not draw the pieces yet, having no mesh loader; floors and
+plain terrain (`floor-and-terrain-pieces.md`) stay one asset each.

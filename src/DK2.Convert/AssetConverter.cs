@@ -134,6 +134,9 @@ public static class AssetConverter
                     string reason = NoArtRecord("room", room.RoomId);
                     Missing(AssetRef.ForRoom(room.Name, AssetKind.Texture), reason);
                     Missing(AssetRef.ForRoom(room.Name, AssetKind.Mesh), reason);
+                    if (AssetCatalogue.DrawsRoomWalls(room))
+                        for (int piece = AssetCatalogue.FirstWallPiece; piece <= AssetCatalogue.LastWallPiece; piece++)
+                            Missing(AssetCatalogue.WallPiece(room.Name, piece), reason);
                     continue;
                 }
                 Dk2ArtResource complete = resources[2];
@@ -141,6 +144,11 @@ public static class AssetConverter
                     "room complete mesh's first material texture");
                 ConvertKmf(AssetRef.ForRoom(room.Name, AssetKind.Mesh), complete,
                     "room complete mesh");
+                // The loader names each piece art 2's name plus its number (0x004EACC0).
+                if (AssetCatalogue.DrawsRoomWalls(room))
+                    for (int piece = AssetCatalogue.FirstWallPiece; piece <= AssetCatalogue.LastWallPiece; piece++)
+                        ConvertKmf(AssetCatalogue.WallPiece(room.Name, piece),
+                            new Dk2ArtResource(complete.IsEmpty ? "" : complete.Name + piece, 0), "room wall piece");
             }
         }
 

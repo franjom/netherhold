@@ -225,7 +225,7 @@ Exit hook `0x00459130` clears both references. `sgmap` names creature `+0x43D`
 inputs.** The independent review repeated `StoreAt`, field-access and raw call scans across
 both `.text` and `cseg` (742,900 listed instructions). Direct creature `+0x43D` and trap
 `+0x115` assignments still only clear them. Non-zero same-offset assignments belong to
-other classes; see [terrain loader](functions/004EACC0.md). A separate Capstone scan of
+other classes; see the [room loader](functions/004EACC0.md) (named a terrain loader until 2026-10-06). A separate Capstone scan of
 both sections' raw bytes checked displacement accesses and overlapping writes, including
 bytes outside the listing; it found no additional candidates at valid instruction starts.
 The constructor clears the required trap reference, and state 204 rejects an absent one.

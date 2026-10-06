@@ -124,11 +124,10 @@ public static class AssetCatalogue
     /// terrain's <c>IsSolid</c> flag and never its id, so a mod-authored terrain
     /// stays correct. <c>Damage != 0</c> (lava) adds an effect key; nothing draws it
     /// yet, so the placeholder for an effect is nothing rather than a box.</para>
-    /// <para>Deviates: one mesh per solid terrain. DK2 builds a wall from a set of
-    /// pieces chosen by the room behind it and textures walls per damage state —
-    /// CONFIRMED (docs/research/wall-rendering.md). <see cref="AssetRef"/> already
-    /// carries a variant segment, but which pieces exist is open (Q71), so no
-    /// variant list is invented here.</para>
+    /// <para>Deviates: one mesh per solid terrain. DK2 draws a terrain as a face per open side
+    /// and a top, with a position-hashed variant and, on Reinforced Wall, a damage frame
+    /// (docs/research/floor-and-terrain-pieces.md, Q71); those pieces are read but not yet
+    /// catalogued. Room walls are (<see cref="ForRooms"/>).</para>
     /// </remarks>
     public static IEnumerable<AssetRef> ForTerrain(GameDatabase database)
     {
@@ -157,8 +156,25 @@ public static class AssetCatalogue
             RoomDef room = database.Rooms[(RoomTypeId)id];
             yield return AssetRef.ForRoom(room.Name, AssetKind.Texture);
             yield return AssetRef.ForRoom(room.Name, AssetKind.Mesh);
+            if (DrawsRoomWalls(room))
+                for (int piece = FirstWallPiece; piece <= LastWallPiece; piece++)
+                    yield return WallPiece(room.Name, piece);
         }
     }
+
+    /// <summary>The room wall pieces 4 to 8 (wall-rendering.md, Q71): 4 and 5 the end halves, 6 a
+    /// running half, 7 the whole straight wall, 8 its decorated form.</summary>
+    public const int FirstWallPiece = 4, LastWallPiece = 8;
+
+    /// <summary>A room's wall piece, built by DK2's loader from the name of the room's art 2 and
+    /// the piece number (<c>0x004EACC0</c>).</summary>
+    public static AssetRef WallPiece(string roomName, int piece) =>
+        AssetRef.ForRoom(roomName, AssetKind.Mesh, "wall" + piece);
+
+    /// <summary>Whether the presentation draws this room's walls: the Normal and DoubleQuad rooms,
+    /// whose wall chooser is the general one (<c>0x00444F10</c>).</summary>
+    public static bool DrawsRoomWalls(RoomDef room) =>
+        room.Construction is TileConstruction.Normal or TileConstruction.DoubleQuad;
 
     /// <summary>
     /// A mesh and one animation per implemented activity, for every creature the

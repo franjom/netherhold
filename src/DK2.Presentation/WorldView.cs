@@ -25,7 +25,8 @@ public readonly struct TileView
         bool tagged,
         bool solid,
         int goldHeld,
-        int healthPermille)
+        int healthPermille,
+        RoomWalls walls = default)
     {
         Position = position;
         Ground = ground;
@@ -35,6 +36,7 @@ public readonly struct TileView
         Solid = solid;
         GoldHeld = goldHeld;
         HealthPermille = healthPermille;
+        Walls = walls;
     }
 
     public TilePos Position { get; }
@@ -69,6 +71,10 @@ public readonly struct TileView
     /// damage-state one — CONFIRMED from Simon Schreibt's captures
     /// (docs/research/wall-rendering.md), so what this selects are textures, not meshes.</para></summary>
     public int HealthPermille { get; }
+
+    /// <summary>The room wall pieces drawn against this tile's sides; empty off a room
+    /// (<see cref="RoomWalls"/>).</summary>
+    public RoomWalls Walls { get; }
 
     public bool IsRoom => !Furniture.IsEmpty;
 }
@@ -293,8 +299,59 @@ public sealed class WorldView
             tile.IsTaggedBy(_viewingPlayerId),
             solid,
             tile.GoldHeld,
-            HealthPermille(tile.Health, terrain.MaxHealth));
+            HealthPermille(tile.Health, terrain.MaxHealth),
+            WallsOf(world, x, y, tile.TerrainId));
     }
+
+    // DK2's eight directions N, NE, E, SE, S, SW, W, NW (0x006BC370).
+    private static readonly int[] Dx8 = [0, 1, 1, 1, 0, -1, -1, -1];
+    private static readonly int[] Dy8 = [-1, -1, 0, 1, 1, 1, 0, -1];
+
+    /// <summary>
+    /// The room wall chooser <c>0x00444F10</c> for a room that draws its own walls (Normal and
+    /// DoubleQuad construction): a side with a visible AllowRoomWalls tile outside it gets a wall,
+    /// whole where the room runs on both ways along a wall, else two halves.
+    /// <para>Deviates as ADR-0391 lists: the same room is the same room terrain, secret doors are
+    /// not walls, and no furniture phase is kept, so a whole side is always piece 7.</para>
+    /// </summary>
+    private RoomWalls WallsOf(WorldState world, int x, int y, byte terrainId)
+    {
+        if (!_database.RoomsByTerrain.TryGetValue(terrainId, out RoomDef? room)
+            || room.Construction is not (TileConstruction.Normal or TileConstruction.DoubleQuad))
+            return default;
+
+        RoomWalls walls = default;
+        for (int side = 0; side < 4; side++)
+        {
+            int d = side * 2;
+            int nx = x + Dx8[d], ny = y + Dy8[d];
+            if (!world.Contains(nx, ny) || !IsVisible(world, new TilePos(nx, ny))
+                || !TakesRoomWalls(world, nx, ny))
+                continue;
+            bool runsOnA = RunsOn(world, x, y, terrainId, (d + 6) & 7, (d + 7) & 7);
+            bool runsOnB = RunsOn(world, x, y, terrainId, (d + 2) & 7, (d + 1) & 7);
+            walls = runsOnA && runsOnB
+                ? walls.WithWhole(side)
+                : walls.WithHalves(side, runsOnA, runsOnB);
+        }
+
+        return walls;
+    }
+
+    /// <summary>The wall runs on past this tile: the tile along it is the same room and the
+    /// diagonal behind it is a solid AllowRoomWalls tile.</summary>
+    private bool RunsOn(WorldState world, int x, int y, byte terrainId, int along, int diagonal)
+    {
+        int sx = x + Dx8[along], sy = y + Dy8[along];
+        int dx = x + Dx8[diagonal], dy = y + Dy8[diagonal];
+        if (!world.Contains(sx, sy) || !world.Contains(dx, dy)) return false;
+        if (world.Tile(sx, sy).TerrainId != terrainId) return false;
+        TerrainDef behind = _database.TerrainById(world.Tile(dx, dy).TerrainId);
+        return behind.IsSolid && behind.Flags.HasFlag(TerrainFlags.AllowRoomWalls);
+    }
+
+    private bool TakesRoomWalls(WorldState world, int x, int y) =>
+        _database.TerrainById(world.Tile(x, y).TerrainId).Flags.HasFlag(TerrainFlags.AllowRoomWalls);
 
     /// <summary>Every creature, in the simulation's own order (which is spawn order).</summary>
     public IEnumerable<CreatureView> Creatures(WorldState world)

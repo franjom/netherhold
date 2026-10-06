@@ -239,10 +239,14 @@ public class AssetCatalogueTests
         Assert.NotNull(database);
 
         var keys = AssetCatalogue.ForRooms(database).ToList();
+        int walled = database.Rooms.Values.Count(AssetCatalogue.DrawsRoomWalls);
 
-        Assert.Equal(database.Rooms.Count * 2, keys.Count);
+        // Plus five wall pieces for each of the 14 rooms with the general wall chooser: the 11
+        // Normal rooms and the 3 DoubleQuad ones (Q71).
+        Assert.Equal(14, walled);
+        Assert.Equal((database.Rooms.Count * 2) + (walled * 5), keys.Count);
         Assert.Equal(database.Rooms.Count, keys.Count(k => k.Kind == AssetKind.Texture));
-        Assert.Equal(database.Rooms.Count, keys.Count(k => k.Kind == AssetKind.Mesh));
+        Assert.Equal(database.Rooms.Count + (walled * 5), keys.Count(k => k.Kind == AssetKind.Mesh));
     }
     /// <summary>
     /// Every object definition gets a mesh, and only a mesh.
