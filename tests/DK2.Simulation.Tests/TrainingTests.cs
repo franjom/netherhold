@@ -180,28 +180,57 @@ public sealed class TrainingTests
             && e.Detail.Contains("via=training") && e.Detail.Contains("cap=4"));
     }
 
+    /// <summary>State 108 (<c>0x00485310</c>) sends a creature at or above the cap to 110, and 110
+    /// (<c>0x00485580</c>) returns 0, so it idles: on Level 17 DK2's level-7 Black Knights go 108,
+    /// 110, idle on consecutive turns and Harkan lifts them in again (Q509, ADR-0393). The goblin
+    /// earns nothing on the way.</summary>
     [Fact]
-    public void ACappedCreatureIsRefusedTheJobAtItsNextGateRatherThanImmediately()
+    public void ACappedCreatureGoesFromOneHundredEightThroughOneTenToIdle()
     {
-        // The original ejects a capped creature through four of its six training
-        // STATE handlers, which this project does not have. So here it stops
-        // being paid at once and stops having the job one gate later, when the
-        // chooser asks JobRules.Refused. One gate late, and the gate is five
-        // game seconds.
         GameDatabase db = Db;
         WorldState world = World(db);
-        CreatureDef def = db.CreatureById(GoblinId);
         CreatureState goblin = Trainee(db, world);
         goblin.Level = 4;
+        var events = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, events);
 
         Assert.Equal(
             "at_training_cap",
-            JobRules.Refused(world, db, def, goblin, JobType.Train));
+            JobRules.Refused(world, db, db.CreatureById(GoblinId), goblin, JobType.Train));
+        Assert.Equal(TrainingRules.WalkToMachineState, goblin.Dk2StateId);
 
-        Simulation(db, world).Run(Second * 30);
+        var seen = new List<int>();
+        for (int t = 0; t < 12 && goblin.CurrentJob == JobType.Train; t++)
+        {
+            sim.Run(1);
+            seen.Add(goblin.Dk2StateId);
+        }
 
+        // 110 for one turn, then idle.
+        int at = seen.IndexOf(TrainingRules.CapRefusalState);
+        Assert.True(at >= 0 && at == seen.Count - 2, string.Join(",", seen));
+        Assert.Equal(CreatureActivity.Idle, goblin.Activity);
+        Assert.Equal(JobType.None, goblin.CurrentJob);
+        Assert.Single(events.Events, e => e.Kind == "training_refused");
         Assert.Equal(0, goblin.ExperiencePoints);
-        Assert.Equal(4, goblin.Level);
+    }
+
+    /// <summary>The control: below the cap, 108 keeps the trainee and nothing refuses it.</summary>
+    [Fact]
+    public void ATraineeBelowTheCapStaysInOneHundredEight()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = Trainee(db, world);
+        var events = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, events);
+
+        sim.Run(Second * 5);
+
+        Assert.Equal(TrainingRules.WalkToMachineState, goblin.Dk2StateId);
+        Assert.Equal(JobType.Train, goblin.CurrentJob);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "training_refused");
+        Assert.True(goblin.ExperiencePoints > 0);
     }
 
     // ---- the bill ---------------------------------------------------------

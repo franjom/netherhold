@@ -8910,3 +8910,25 @@ neighbour takes no wall; no furniture phase is kept, so a whole side is always p
 the hero gates' own arms (types 0x12, 0x17) are not built; DK2's highlight of a dig-tagged wall
 is not carried; the Unity scene does not draw the pieces yet, having no mesh loader; floors and
 plain terrain (`floor-and-terrain-pieces.md`) stay one asset each.
+
+## ADR-0393 — A creature at the training cap leaves the Training Room through states 108 and 110
+**Date:** 2026-10-06 · **Status:** accepted · Answers Q509
+
+**Context.** Q509 asked whether DK2's Harkan lifts his level-7 Black Knights into the Training
+Room early, as `0x004FF5C0` reads. The Level 17 idle capture (2026-10-05) shows it: the three are
+lifted at ticks 6, 7 and 11 onto (12,20) and (13,20), and each then runs 76, 255, 257, 108, 110,
+1 and is lifted again, about every 27 ticks, to 220, and again at 586-597 and 888-899. Ours lifted
+them at 5, 6 and 7 onto the same cells and then left them in state 108 until 676: the state
+handlers that eject a creature at the cap were not built, and the drop skips the job choice that
+refuses one. State 108 (`0x00485310`) sends a creature at or above
+`TrainingRoomMaxExperienceLevel` to 110 after starting action 0x2C, and 110 (`0x00485580`)
+returns 0 for it, which idles it.
+
+**Decision.** After the training category hook, a creature at the cap in 108 goes to 110
+(`training_refused`), and in 110 stops its job and idles. Deviates: action 0x2C is not played, nor 108's return to idle when it or the move to 110 fails,
+and 111 and 112, which test the cap too, are not built.
+
+**Measured** (hash 195), Level 17 with Harkan's AI, 950 ticks: our knights are refused at 26-28
+and lifted again onto the same two cells, about every 25 ticks. Each knight's first re-lift comes
+45, 57 and 73 ticks after its refusal; later ones mostly 4 to 6, as DK2's every one is 4 (108 at
+29, lifted at 33). The first gap is ours to explain (Q509).

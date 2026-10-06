@@ -86,8 +86,9 @@ the keeper emitted 32 tag commands, 25 room-build commands, nine slaps and 30
 pick-up/drop pairs. Imp work dug marked rock, and the Prison first built at tick
 219; 25 tiles were built by tick 335. The 30 moves are step 9's: its three placed
 level-7 Black Knights four times each, and portal recruits after them, onto the
-Training Room's two interior cells. A Black Knight over the Training cap is refused,
-forgets the job and is lifted again (Q509). Portal recruitment occurred independently
+Training Room's two interior cells. On that build a Black Knight over the Training cap
+stayed in the room's state 108 once dropped; since ADR-0393 it is refused and lifted again, as
+in DK2 (Q509, the Level 17 comparison below). Portal recruitment occurred independently
 of the keeper command stream. These are CONFIRMED modern-run facts, not an
 original-game comparison. The scenario has no scripted player commands and has
 regression expectations for digging, the Prison build, and portal recruitment;
@@ -101,15 +102,15 @@ is UNKNOWN (Q509).
 
 ## Same-map comparison protocol (ADR-0353; Q497, Q509)
 
-Nothing in this file is yet a command-by-command comparison. This is the run that would
-make one; it is written for the owner, who runs DK2, and for whoever compares.
+The two same-map comparisons below were run to this protocol; it is written for the owner, who
+runs DK2, and for whoever compares.
 
 **Map and keeper.** Stock Level 17, Harkan (player 4), with the shipped PLAYERS record
 and availability: the modern counterpart is `scenarios/keepers/level17_harkan_unassisted.yaml`
 extended to 2,400 ticks (ten minutes at four turns a second, the Level 10 save's length).
 Level 17 is chosen because its Prison is in state 3, ours lifts its Black Knights into
 Training from the first ticks (Q509), and its portal feeds the room and mood messages. Q497's attack wants a
-second run on Level 11A (Drako, player 4) under the same protocol.
+second run on Level 11A (Drako, player 5) under the same protocol.
 
 **In DK2.** v1.70 (`May 12 2000`), started from the command line with
 `-level Level17 -PSAVE m12l17`, so the packet recorder (`navigation-captures.md`) writes
@@ -135,7 +136,8 @@ The first record settles the command column: with the human idle, any command it
 for player 4 is the keeper's; none means the keeper's actions bypass the packet stream and
 the world logs are the only source. The seeds differ, so compare when and where, not
 equality: rooms at the same spots, tiles dug at nearly the same time, the same rooms built
-(fidelity by outcomes). Two of ours to check first: Harkan's Training drops (Q509) and,
+(fidelity by outcomes). Two of ours to check first: Harkan's Training drops (Q509, checked
+below) and,
 where a creature turns unhappy, whether he pays it or drops it in its Lair (ADR-0353).
 
 ## First same-map comparison: Level 17, Harkan, 2,400 ticks (2026-10-05)
@@ -210,6 +212,15 @@ are never candidates; ours planned over the whole map. With the area and the sla
 ours tags nothing outside the area, claims the second Portal at 159 and builds its Prison at
 476 centred on (12,25), against DK2's 855 on (16,22) (Q555).
 
+**Training drops (Q509, 2026-10-06).** The capture answers Q509: Harkan lifts his three level-7
+Black Knights onto the Training Room's interior cells (12,20) and (13,20) at ticks 6, 7 and 11.
+Each lands (76), gets up (255, 257), enters the room's drop state 108, is refused at the cap
+(110) and idles, and is lifted again within 4 ticks; the cycle repeats about every 27 ticks to
+220, and again at 586-597 and 888-899. Ours lifted at 5, 6 and 7 onto the same cells, then left
+the knights in 108 until 676; with states 108 and 110 built (ADR-0393) they are refused at 26-28
+and lifted again, about every 25 ticks: each knight's first re-lift 45, 57 or 73 ticks after its
+refusal, later ones mostly 4 to 6, as DK2's.
+
 ## Second same-map comparison: Level 11A, Drako, 2,400 ticks (2026-10-06)
 
 Captured as Level 17 was, with the owner idle (`m12-level11A-20261006-105700`, local). Ours is
@@ -217,8 +228,9 @@ Level 11A on the PLAYERS record's own gold and mana, every placed thing, 2,400 t
 DK2's ticks are capture ticks (ADR-0119). The first two columns of ours ran Drako's AI alone; DK2
 runs every computer keeper, as the last column does.
 
-**Same route to Morgana.** Both dig north from the Lair, bridge (64,40) and (64,39), meet
-Morgana's reinforced (64,38) and put the call to arms on it.
+**Same route to Morgana.** Both dig north from the Lair, bridge (64,40) and (64,39) and meet
+Morgana's reinforced (64,38). DK2 puts the call to arms on it; ours, since ADR-0387, two tiles
+the other side of her heart, (64,34), the other end of the same drawn diagonal.
 
 | | DK2 | ours (ADR-0377) | ours (ADR-0384) | ours (ADR-0387, keepers 4–7) | ours (ADR-0388) |
 |---|---|---|---|---|---|
@@ -246,6 +258,10 @@ on a tagged tile until it is dug and ends only when the target routes to the cur
 Belial tunnel follows Morgana's wall. Since ADR-0384 ours does the same, and the bridges at
 (57,38) and (57,39) move from 164 to 871 (DK2 has none in 2,400 ticks).
 
+**Recruits alike.** Drako's mana in the capture (`player+0x82`) drops by 1,500, 3,000, 4,500,
+6,000 and 7,500 at ticks 23, 59, 115, 199 and 307: Create Imp's rising cost. Ours buys its five
+imps at 20, 56, 112, 192 and 292 for the same sums.
+
 **Morgana repairs her wall (ADR-0387).** DK2's three digging imps take 2 each a tick off
 (64,38); from 101 one of Morgana's imps, which had been digging her own rock beside it, stands at
 (64,37) in states 23 and 24 and puts 3 back each tick, so the wall loses 3 a tick and falls at 387.
@@ -255,7 +271,7 @@ fight Morgana's in it until 638, and our call goes to (64,34) at 544, DK2's to (
 
 **The hole is fought over (ADR-0388).** Ours let Drako's imp take Morgana's imp's claim of the
 hole, though each keeper has its own task pool, and two imps on one tile out of reach never closed
-in. With both fixed they fight from 368, but our Morgana lifts her wounded imp out at 391 and the
+in. With both fixed they fight from 368 (DK2's from 389), but our Morgana lifts her wounded imp out at 391 and the
 hole is Drako's at 399; DK2's wounded imps show the slap reaction and fight on to 638 (Q563). The owner confirms
 the imps fight in such a hole and a wounded one stays; whether its keeper slaps or lifts it they
 do not know (2026-10-06).
@@ -263,3 +279,20 @@ do not know (2026-10-06).
 **Not scripted.** Level 11A's triggers give Drako no dig, build or attack order: they set
 alliances, give Raksha three creatures and drive speech and the camera. The tunnels, bridges
 and calls are the keeper's own.
+
+## M12 acceptance against the two captures (2026-10-06)
+
+The plan's bar: the keeper digs, expands, builds to a need, recruits, defends and attacks
+unaided, measured against DK2's own keeper on the same map, differences reported. Both captures
+ran with the owner idle and every computer keeper active; ours runs the same keepers on the
+record's gold. Ticks are DK2's (ours in brackets).
+
+| | evidence | agrees | differs (open) |
+|---|---|---|---|
+| digs | Level 17 seam; Level 11A tunnels | same seam, same tunnel route and bridge tiles | — |
+| expands | Level 17 second Portal | 164 (159) | — |
+| builds to a need | Level 17 Prison, Training growth | both build them | Prison 855 on (16,22) (1,336 at (17,20) with keepers 4 and 5, measured at ADR-0387, Q555); order (Q555) |
+| recruits | Level 11A imps | five imps at 1,500-7,500 mana, ticks 23-307 (20-292), in the Level 11A section | — |
+| trains | Level 17 Training drops | the knights lifted at 6, 7, 11 (5, 6, 7) onto the same two cells, refused, lifted again | each knight's first re-lift 45-73 ticks after its refusal, later ones 4-6; DK2's every one 4 (Q509) |
+| defends | Level 11A, Morgana | repairs the wall from 101 (92), fights in the hole from 389 (368), both in the Level 11A section | our Morgana lifts her wounded imp out; DK2's imps stay (Q563) |
+| attacks | Level 11A, Drako | Morgana first, then Belial; same bridges; the call two tiles off her heart in a drawn diagonal | call 700 on (64,38) (540 on (64,34)); Morgana falls 1,378 (887) (Q563) |

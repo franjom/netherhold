@@ -126,7 +126,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(107, "not read"));
         rows.Add(Built(108, typeof(JobRules), nameof(JobRules.StateFor)));
         rows.Add(Unbuilt(109, "read in training.md; not built"));
-        rows.Add(Unbuilt(110, "read in training.md; not built"));
+        rows.Add(Built(110, typeof(TrainingRules), nameof(TrainingRules.CapRefusalState)));
         rows.Add(Unbuilt(111, "read in training.md; not built"));
         rows.Add(Unbuilt(112, "read in training.md; not built"));
         rows.Add(Unbuilt(113, "read in training.md; not built"));

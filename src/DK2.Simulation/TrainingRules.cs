@@ -28,6 +28,13 @@ public static class TrainingRules
     public static int LevelCap(GameDatabase database) =>
         database[VariableTypeId.TrainingRoomMaxExperienceLevel];
 
+    /// <summary>The Training Room's drop and work state, 108 (<c>0x00485310</c>): a capped creature
+    /// in it goes to <see cref="CapRefusalState"/>.</summary>
+    public const int WalkToMachineState = 108;
+
+    /// <summary>State 110 (<c>0x00485580</c>): returns 0 for a capped creature, which then idles.</summary>
+    public const int CapRefusalState = 110;
+
     /// <summary>Whether this creature is still low enough to gain from training.</summary>
     public static bool BelowCap(GameDatabase database, CreatureState state) =>
         state.Level < LevelCap(database);

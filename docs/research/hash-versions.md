@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**195** — `0x95D304A3DA5B37B4`. A trainee at the Training Room's level cap goes from state 108 through 110 to idle (`0x00485310`, `0x00485580`); no new field. ADR-0393.
+
 **194** — `0x17E9192AEC50EC93`. An imp's gold fetch walks to the first neutral pile's point, state 27 runs when that walk ends (the pile need not still be there) and takes only the piles strictly within `0x555` (`0x00466850`, `0x0046B6D0`). No new field. ADR-0389.
 
 **193** — `0xC5E69C4191F2E3A6`. Only a keeper's own workers hold, crowd or lose its tasks; the fight approach walks to a target on its own tile (one-point route, `0x004CF490`); no new field. ADR-0388.

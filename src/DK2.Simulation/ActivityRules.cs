@@ -116,7 +116,8 @@ public static class ActivityRules
         _ => null,
     };
 
-    /// <summary>The states the job handlers work in (<see cref="JobRules.StateFor"/>).</summary>
+    /// <summary>The states the job handlers work in (<see cref="JobRules.StateFor"/>), and Training's
+    /// cap refusal 110, which a capped creature passes through for a turn (ADR-0393).</summary>
     private static readonly HashSet<int> JobStates =
-        [.. ((JobType[])Enum.GetValues(typeof(JobType))).Select(JobRules.StateFor).OfType<int>()];
+        [.. ((JobType[])Enum.GetValues(typeof(JobType))).Select(JobRules.StateFor).OfType<int>(), TrainingRules.CapRefusalState];
 }

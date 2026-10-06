@@ -48,10 +48,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Room's floor on Level 17, Nemesis preparing an attack on Level 18, and
   Drako bridging Level 11A's lava and calling its
   army toward Morgana, and Harkan on Level 17 growing its Treasury after its
-  imps find no store (Q518). These are modern-run results. The Level 10 original
-  save and modern run do not form an active command-by-command comparison
-  (computer-keeper-observations.md, Q497, Q509). M12's same-map original
-  comparison and full acceptance criteria remain open.
+  imps find no store (Q518). Two idle captures of DK2's own keepers on the same
+  maps (Level 17, 2026-10-05; Level 11A, 2026-10-06) are compared in
+  computer-keeper-observations.md, whose last section is the M12 acceptance
+  table: every verb agrees in kind; the open timing differences are Q509, Q555
+  and Q563 (Q497 and Q509 are answered).
 - The creature state machine dispatches category hooks. Combat enter and
   leave are partially built (ADR-0319, combat-category-hooks.md);
   their unmodelled words and the update hook are listed there. The Casino,
@@ -67,13 +68,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
    effect through the simulation. The research move, prisoner/special
    decisions, trap/door decisions and personality loader also remain
    (KEEPER_AI.md §12.7). Do not infer an UNKNOWN rule from a name.
-2. M12: capture an active original keeper on the same stock map and compare
-   its commands and observable results with the unaided modern scenario.
-   Account for campaign availability and scripting. Q497 and Q509 specify
-   gaps; the protocol (map, captures, what to compare) is the last section of
-   computer-keeper-observations.md, which is also the comparison record. Close
-   M12 only when the keeper digs, expands, builds to a need, recruits, defends
-   and attacks unaided, with measured differences reported.
+2. M12: the same-map comparison is done (two captures, the acceptance table at
+   the end of computer-keeper-observations.md). The owner decides whether the
+   reported differences (Q509's re-lift delay, Q555's Prison timing, Q563's
+   defence and call timing) close M12 or are narrowed first. Compare with every
+   computer keeper running and on the record's gold, as DK2 runs the level.
 3. M6 and M7: use the plan's run order and the open-question rows for the
    remaining replay, combat, hero, trap and door work. Avoid reproducing their
    detailed backlogs here.

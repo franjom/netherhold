@@ -352,7 +352,7 @@ still counted as training.
 | Training refuses at the cap in the job handler and four of the six state handlers (108, 110, 111, 112). The category update hook does not refuse: at the cap it returns 1 with no experience, no charge and no countdown step (re-read 2026-10-01; this row said six places, the hook among them) | `0x0047B2E6` |
 | The category **enter** hook is the one place that does *not* test the cap; it tests only the keeper's gold | `0x0047B230`; built, ADR-0313 |
 | A creature at or above `TrainingRoomMaxExperienceLevel` but below `CombatPitMaxExperienceLevel` makes the job handler call **the combat pit's finder** for its messages, discard its result and refuse (`combat-pit.md` §1) | `FUN_00485240` tail, `FUN_004D8870` |
-| State 108 kicks a capped creature to state `0x6E` via a `FUN_00496700(0x2C, …)` test | `FUN_00485310` |
+| State 108 kicks a capped creature to state `0x6E` after starting action `0x2C` (`0x00496700`), and 110 returns 0 for it; built without the action, ADR-0393 | `FUN_00485310`, `0x00485580` |
 | The gold spend goes through `FUN_004BA420(-cost, 0, tileX, tileY)`, i.e. it is charged **at the creature's tile** rather than to an abstract balance | `0x0047B3CA` |
 | Message id `0x37` is what a keeper is shown when training cannot be paid for | `FUN_004C4600`; built as message 55, ADR-0313 |
 
