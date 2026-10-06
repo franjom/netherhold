@@ -937,14 +937,15 @@ public class TriggerExecutorTests
     public void OnlyActionsThatCannotAlterTerrainArePerformed()
     {
         // 22 is the one that can, and it clears TriggerRun.Rooms after the write. 32 ruins a
-        // gate's tiles without touching their terrain, which no room condition reads.
+        // gate's tiles without touching their terrain, which no room condition reads; 18 writes
+        // only alliance bytes.
         // Anything added here without doing the same brings back the bug this test
         // was written for: a room condition later in the turn reading the old map.
         byte[] performed = Enumerable.Range(0, 256)
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
         Assert.Equal(
-            [(byte)1, (byte)6, (byte)7, (byte)8, (byte)10, (byte)11, (byte)14, (byte)22, (byte)23, (byte)28, (byte)32, (byte)37, (byte)44, (byte)45, (byte)47],
+            [(byte)1, (byte)6, (byte)7, (byte)8, (byte)10, (byte)11, (byte)14, (byte)18, (byte)22, (byte)23, (byte)28, (byte)32, (byte)37, (byte)44, (byte)45, (byte)47],
             performed);
     }
 
@@ -1183,6 +1184,31 @@ public class TriggerExecutorTests
         Assert.False(world.Tile(3, 3).RoomRuined);
         Assert.Equal(declined, result.Partial.Count > 0);
     }
+
+    /// <summary>Action 18 (<c>0x00519376</c>): body byte 2 zero makes the two players allies, anything
+    /// else breaks it, both ways. Level 11A's first turn allies Raksha with the other keepers, which
+    /// the capture shows at player <c>+0x1AE</c> on turn 2.</summary>
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    public void AllianceActionWritesBothPlayers_ZeroAllies(byte mode, bool allied)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, 4]);
+        world.SetAllied(Keeper, 4, !allied);
+        TriggerRecord[] records = [LevelTime(5, comparison: 5, seconds: 0, child: 0xFFFF), AllianceRecord(1, Keeper, 4, mode)];
+        TriggerRunResult result = new TriggerExecutor(new TriggerTree(records, 5, playerRoots: []), world.Triggers, world, database).Run(1);
+        Assert.Equal(allied, world.AreAllied(Keeper, 4));
+        Assert.Equal(allied, world.AreAllied(new PlayerId(4), Keeper));
+        Assert.Empty(result.Partial);
+    }
+
+    private static TriggerRecord AllianceRecord(ushort id, byte one, byte two, byte mode) =>
+        new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 18,
+            Parameters = new Dictionary<string, long> { ["PlayerOneId"] = one, ["PlayerTwoId"] = two, ["Available"] = mode },
+        };
 
     private static TriggerRecord CollapseRecord(ushort id, int x, int y) =>
         new ActionTriggerRecord(new byte[16])

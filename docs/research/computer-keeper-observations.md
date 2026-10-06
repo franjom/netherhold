@@ -209,3 +209,39 @@ before player 5 too. His record's `MaxBuildArea` is (1,1)-(40,64), and the room 
 are never candidates; ours planned over the whole map. With the area and the slap gate built,
 ours tags nothing outside the area, claims the second Portal at 159 and builds its Prison at
 476 centred on (12,25), against DK2's 855 on (16,22) (Q555).
+
+## Second same-map comparison: Level 11A, Drako, 2,400 ticks (2026-10-06)
+
+Captured as Level 17 was, with the owner idle (`m12-level11A-20261006-105700`, local). Ours is
+Level 11A on the PLAYERS record's own gold and mana, every placed thing, 2,400 ticks, seed 12345.
+DK2's ticks are capture ticks (ADR-0119).
+
+**Same route to Morgana.** Both dig north from the Lair, bridge (64,40) and (64,39), meet
+Morgana's reinforced (64,38) and put the call to arms on it.
+
+| | DK2 | ours (ADR-0377) |
+|---|---|---|
+| (64,41) dug | 52 | 47 |
+| Morgana reinforces (64,38) | 64 | 62 |
+| bridges (64,40), (64,39) | 66, 70 | 62, 63 |
+| (64,38) dug through | 387 | 229 |
+| (64,38) claimed by Drako | 638 | 273 (Morgana retakes it at 325) |
+| call to arms at (64,38) | 700 | 418 |
+| Morgana defeated | 1,378 (status 1) | 847 (heart ruined) |
+| bridge (47,43), (46,43) | 457, 461 | 99, 100 |
+| bridge (64,46) | 1,155 | 420 |
+
+**Raksha was an ally.** Before ADR-0377 ours attacked every keeper in turn: Morgana at tick 1,
+Raksha at 66 (a tunnel north from (50,43) with eight bridge tiles), Belial at 273 and the human
+at 318. Level 11A's first turn runs trigger action 18 for 7-6, 7-4 and 7-5, which allies Raksha
+with the other keepers (`trigger-action-arms.md`); the capture shows the bytes set on turn 2,
+and DK2's Drako never digs toward her. Ours left the action unperformed.
+
+**Still early.** Ours tags the first tile of Belial's tunnel, (48,43), at 68; DK2 digs it at 443,
+so its tunnel starts near 430, after Morgana's wall is dug (Q557). Ours also lays (57,39) and (57,38) at 164,
+which DK2 never builds. The breach at (64,38) is dug 158 ticks sooner and first claimed 365 sooner.
+Not yet separated from the earlier second tunnel.
+
+**Not scripted.** Level 11A's triggers give Drako no dig, build or attack order: they set
+alliances, give Raksha three creatures and drive speech and the camera. The tunnels, bridges
+and calls are the keeper's own.

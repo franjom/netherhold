@@ -1140,8 +1140,8 @@ public sealed class WorldState
         || (otherId < 8 && (Player(playerId).AlliedWith & (1 << otherId)) != 0);
 
     /// <summary>Make or break an alliance. <b>Always symmetric</b>: the original's two handlers
-    /// write both players' arrays, and nothing else writes them, so a one-sided alliance is a
-    /// state DK2 cannot reach.</summary>
+    /// and trigger action 18 (<c>0x00519376</c>) write both players' arrays, and nothing else
+    /// writes them, so a one-sided alliance is a state DK2 cannot reach.</summary>
     public void SetAllied(PlayerId playerId, byte otherId, bool allied)
     {
         if (playerId == otherId) return;

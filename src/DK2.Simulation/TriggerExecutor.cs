@@ -1132,7 +1132,7 @@ public sealed class TriggerExecutor
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
     public static bool Performs(byte type) =>
-        type is 1 or 6 or 7 or 8 or 10 or 11 or 14 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 47;
+        type is 1 or 6 or 7 or 8 or 10 or 11 or 14 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 47;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -1197,6 +1197,19 @@ public sealed class TriggerExecutor
         if (record.Type == 45)
         {
             _state.SetNotificationsEnabled(Byte(p, "Available") == 1);
+            return true;
+        }
+        if (record.Type == 18)
+        {
+            // 0x00519376: body byte 2 zero makes the two players allies, anything else breaks the
+            // alliance; both players' bytes at +0x1AE are written and the action succeeds. Level
+            // 11A allies Raksha with the other three keepers on its first turn. A player the level
+            // lacks is written nowhere here; what DK2's arithmetic hits then is unread.
+            if (_world is null) return Unperformed(record, context, partial);
+            var one = new PlayerId(Byte(p, "PlayerOneId"));
+            byte two = Byte(p, "PlayerTwoId");
+            if (one.Value < 8 && two < 8 && _world.HasPlayer(one) && _world.HasPlayer(new PlayerId(two)))
+                _world.SetAllied(one, two, Byte(p, "Available") == 0);
             return true;
         }
         if (record.Type == 1) return CreateCreature(record, context, p, run);
