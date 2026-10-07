@@ -72,13 +72,6 @@ public static class PrisonRules
     /// <summary>119: waits out the eating, then 115.</summary>
     public const int AfterEatingState = 119;
 
-    /// <summary>77, the slap's reaction: the slap handler <c>0x0048B8A0</c> is its only way in. Its
-    /// handler <c>0x0046F1F0</c> plays action 19, then sends a creature attached to a room back to
-    /// that room's state: 115 in a Prison, 130 in a Torture Chamber, 63 in a Workshop. ADR-0193
-    /// read it as the hand drop's; the drop sets 76 (<c>0x004BC7D7</c>, ADR-0226). Nothing here
-    /// enters it yet.</summary>
-    public const int SlappedState = 77;
-
     /// <summary>The chance, <b>per tick</b>, that a prisoner standing still takes
     /// another step — <b>20 in 100</b>. Read from DK2's state 116 (<c>0x74</c>), which
     /// rolls <c>random(100)</c> and enters the decision state 115 under 20. It rolls

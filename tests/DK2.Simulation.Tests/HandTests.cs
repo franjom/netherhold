@@ -60,6 +60,7 @@ public class HandTests
             new ImpTaskSystem(),
             new TileWorkSystem(),
             new CreatureAngerSystem(),
+            new CreatureStatusSystem(),   // the slap's reaction, 77 (ADR-0401)
         ]);
         if (sink is not null) sim.ObserveWith(sink);
         return sim;
@@ -762,9 +763,11 @@ public class HandTests
     }
 
     [Fact]
-    public void ASlappedImpDigsThroughAWallInFewerTicksThanAnUnslappedOne()
+    public void ASlappedImpFlinchesThenDigsFaster_AheadOnlyOnAVeryHardWallInTheFixture()
     {
         // The end-to-end version: the same imp, the same wall, one difference.
+        // The slap's reaction (77, ADR-0401) costs the imp its action 19 and a fresh task choice
+        // first, so the wall is made hard enough for the faster swings to outweigh that.
         Assert.True(TicksToDigOut(slapped: true) < TicksToDigOut(slapped: false));
     }
 
@@ -773,6 +776,7 @@ public class HandTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Beside);
+        world.Tile(Marked).Health *= 400;
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));

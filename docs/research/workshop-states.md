@@ -34,8 +34,8 @@ a save.
 for a creature whose held room (`+0x3B9`) is its slapper's Workshop (type 10), then jumps to the
 shared `SetState` tail at `0x0048BA00`; the call scan missed it because no call follows the push
 (`docs/TRAPS.md`). 67's handler `0x00470C00` is a thunk to the slap reaction `0x0046F1F0` (77's,
-and 120's): action `0x13`, then 63 for a Workshop place. Ours makes none of the slap's state moves
-(67, 77, 120; `HandSystem`), so 67 waits for them: Q569.
+and 120's): action `0x13`, then 63 for a Workshop place. The slap's state moves (67, 77, 120)
+are built (`SlapRules`, ADR-0401, `slap-states.md`; Q569).
 
 ## 3. The finder `0x004F5BE0(room, creature)` — CONFIRMED
 

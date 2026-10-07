@@ -80,7 +80,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(64, typeof(WorkshopStep), nameof(WorkshopStep.AtTheMachineState)));
         rows.Add(Built(65, typeof(WorkshopStep), nameof(WorkshopStep.WorkingState)));
         rows.Add(Unreachable(66, "STRONGLY INFERRED as Q415: no SetState, wrapper, walk, +0xDF store or room-table site enters it (workshop-states.md §2)"));
-        rows.Add(Unbuilt(67, "the slap's state for a Workshop holder (0x0048B9DB), read in workshop-states.md §2; ours makes none of the slap's state moves: Q569"));
+        rows.Add(Built(67, typeof(SlapRules), nameof(SlapRules.WorkshopState)));
         rows.Add(Built(68, typeof(CrateRules), nameof(CrateRules.CrateMadeState)));
         rows.Add(Unreachable(69, "CONFIRMED: 68 sets it (0x00470BA2) and returns 0, and the dispatcher sets 1 in the same call (0x004772B7), so its handler never runs (refused-states.md §2)"));
         rows.Add(Built(70, typeof(WorkshopStep), nameof(WorkshopStep.ReturningState)));
@@ -90,7 +90,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unreachable(74, "entered only through 73, which nothing reaches: room-return-states.md §4"));
         rows.Add(Built(75, typeof(HandRules), nameof(HandRules.PreparationState)));
         rows.Add(Unbuilt(76, "the drop lands straight in 255; DK2 passes through 76 first (ADR-0226, hand-drop-landing.md)"));
-        rows.Add(Unbuilt(77, "the slap reaction, read in state-category-hooks.md §3.2; ours has only its activity label"));
+        rows.Add(Built(77, typeof(SlapRules), nameof(SlapRules.ReactionState)));
         rows.Add(Unbuilt(78, "not read"));
         rows.Add(Unbuilt(79, "read in lair-acquisition.md 9; not built"));
         rows.Add(Built(80, typeof(LairRules), nameof(LairRules.MakingAHomeState)));
@@ -135,7 +135,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(117, typeof(PrisonRules), nameof(PrisonRules.SeekingFoodState)));
         rows.Add(Built(118, typeof(PrisonRules), nameof(PrisonRules.EatingState)));
         rows.Add(Built(119, typeof(PrisonRules), nameof(PrisonRules.AfterEatingState)));
-        rows.Add(Unbuilt(120, "read in state-category-hooks.md 3.2; not built"));
+        rows.Add(Built(120, typeof(SlapRules), nameof(SlapRules.PrisonState)));
         rows.Add(Built(121, typeof(JailBreakRules), nameof(JailBreakRules.EscapingState)));
         rows.Add(Built(122, typeof(JailBreakRules), nameof(JailBreakRules.BreakingOutState)));
         rows.Add(Unbuilt(123, "partly read in state-category-hooks.md 3.2; not built"));

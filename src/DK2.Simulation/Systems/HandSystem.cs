@@ -338,7 +338,7 @@ public sealed class HandSystem : ISimulationSystem
         else if (creature.OwnerPlayerId == command.PlayerId
                  && TortureRules.TryStrapOwn(context.Hooks, creature, landingTileIndex))
         {
-            // 77 in a Torture Chamber is 130 for any creature but a Horned Reaper (ADR-0200).
+            // A Torture Chamber's drop state is 130 for any creature but a Horned Reaper (ADR-0200).
             context.Emit(SystemName, "own_strapped",
                 $"player={command.PlayerId} creature={creature.Id} " +
                 $"tile={command.Tile.X},{command.Tile.Y} held={hand.Count}");
@@ -528,7 +528,10 @@ public sealed class HandSystem : ISimulationSystem
         }
 
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-        SlapOutcome outcome = OutcomeOf(world, context.Database, definition, creature, command.PlayerId.Value);
+        SlapOutcome outcome = OutcomeOf(world, context.Database, definition, creature, command.PlayerId.Value, out RoomInstance? room);
+        // The main path's state move (0x0048BA00): refused, the slap does nothing more (ADR-0401).
+        if (outcome == SlapOutcome.Full && !SlapRules.Move(context, creature, room))
+            outcome = SlapOutcome.Nothing;
         if (outcome == SlapOutcome.Nothing)
         {
             context.Emit(SystemName, "slap_ignored",
@@ -572,7 +575,7 @@ public sealed class HandSystem : ISimulationSystem
         DamageOnly,
         /// <summary>States 209 and 255: the slap's tick, damage, events and count, no anger or bonus.</summary>
         Short,
-        /// <summary>The main path, counted after the state move.</summary>
+        /// <summary>The main path, after the state move (67, 77 or 120) is taken.</summary>
         Full,
         /// <summary>A Horny: DK2 puts it in state 242 and returns, which ours does not build, so
         /// ours slaps it in full and does not count it.</summary>
@@ -585,15 +588,17 @@ public sealed class HandSystem : ISimulationSystem
     /// one the slapper does not own returns; a Torture Chamber (type 12) takes damage only. With no
     /// room, states 67, 120, 132 and 197 return. Only the main path and the short path add to the
     /// owner's <c>NumberOfSlaps</c> (<c>+0xEE6</c>), which condition type 71 reads. A Horny is
-    /// tested before all of it (<see cref="SlapOutcome.Uncounted"/>). Ours makes
-    /// no state move (67, 77 or 120), so a slap DK2 counts only when that move is accepted is
-    /// always counted here.</summary>
-    private static SlapOutcome OutcomeOf(WorldState world, GameDatabase database, CreatureDef definition, CreatureState creature, byte slapper)
+    /// tested before all of it (<see cref="SlapOutcome.Uncounted"/>). The main path then makes the
+    /// state move (<see cref="SlapRules.Move"/>) and stops if it is refused. After a taken move the
+    /// state-83 arm (<c>0x0048BA1A</c>) cannot match: the state is the move's.</summary>
+    private static SlapOutcome OutcomeOf(
+        WorldState world, GameDatabase database, CreatureDef definition, CreatureState creature, byte slapper, out RoomInstance? room)
     {
+        room = null;
         if (definition.Flags.HasFlag(CreatureFlags.IsHorny)) return SlapOutcome.Uncounted;
         if (creature.Dk2StateId is 76 or 101 or 193) return SlapOutcome.Nothing;
         if (creature.Dk2StateId is 209 or 255) return SlapOutcome.Short;
-        RoomInstance? room = creature.HeldPlace.IsHeld
+        room = creature.HeldPlace.IsHeld
             ? RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex)
             : null;
         if (room is null)

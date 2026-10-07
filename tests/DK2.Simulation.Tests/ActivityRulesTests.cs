@@ -67,12 +67,15 @@ public sealed class ActivityRulesTests
     }
 
     [Fact]
-    public void AHandDropIsACaptivesOnlyWhenItIsAPrisoner()
+    public void TheSlapsThreeStatesAreTheSlapsReaction_CaptiveOrNot()
     {
-        var captive = new CreatureState { Dk2StateId = 77, PrisonOwnerPlayerId = 4 };
-        var own = new CreatureState { Dk2StateId = 77 };
-        Assert.Equal(CreatureActivity.Imprisoned, ActivityRules.Of(captive));
-        Assert.Equal(CreatureActivity.Idle, ActivityRules.Of(own));
+        // 77 is the slap's, not the hand drop's (76, ADR-0226); 67 and 120 are its Workshop and
+        // Prison moves, and a captive in 120 is still a captive by its prison field (ADR-0401).
+        var captive = new CreatureState { Dk2StateId = SlapRules.PrisonState, PrisonOwnerPlayerId = 4 };
+        Assert.Equal(CreatureActivity.Slapped, ActivityRules.Of(captive));
+        Assert.True(PrisonRules.IsImprisoned(captive));
+        Assert.Equal(CreatureActivity.Slapped, ActivityRules.Of(new CreatureState { Dk2StateId = SlapRules.ReactionState }));
+        Assert.Equal(CreatureActivity.Slapped, ActivityRules.Of(new CreatureState { Dk2StateId = SlapRules.WorkshopState }));
     }
 
     [Fact]

@@ -66,6 +66,9 @@ public sealed class CreatureStatusSystem : ISimulationSystem
                 }
             }
 
+            // 67, 77 and 120, the slap's reaction (0x0046F1F0, ADR-0401), for every creature.
+            if (creature.Activity == CreatureActivity.Slapped) SlapRules.React(context, SystemName, creature, definition);
+
             if (definition.Flags.HasFlag(CreatureFlags.IsHorny)) continue;
 
             if (creature.ArmourTicks > 0) creature.ArmourTicks--;

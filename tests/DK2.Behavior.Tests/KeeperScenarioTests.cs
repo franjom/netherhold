@@ -93,15 +93,14 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         List<(int Tick, BuildRoomCommand Build)> spans = run.KeeperCommandLog
             .Where(e => e.Command is BuildRoomCommand b && b.PlayerId.Value == 5 && BridgeRules.IsBridge(ScenarioCorpus.Database.Room(b.RoomId)))
             .Select(e => (e.InputTick, (BuildRoomCommand)e.Command)).ToList();
-        Assert.Equal([(62, new TilePos(64, 40)), (63, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
+        Assert.Equal([(42, new TilePos(64, 40)), (43, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
         Assert.All(spans, s => Assert.Equal(RoomTypeId.StoneBridge, s.Build.RoomId));
 
         var call = (CastSpellAtPlaceCommand)Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5).Command;
-        // Two tiles off the heart in a drawn diagonal: (64,34) or (64,38) as the stream moves (ADR-0336
-        // took it to 38, ADR-0347's Imp-against-Imp fight back to 34; with every keeper running and
-        // Morgana repairing her wall, ADR-0387, it is 34, where DK2's is 38).
-        Assert.Equal(((byte)CallToArmsRules.SpellId, 64), (call.SpellId, call.X >> 12));
-        Assert.Contains(call.Y >> 12, new[] { 34, 38 });
+        // DIVERGES FROM DK2 since the slap's reaction (ADR-0401, re-pinned with the owner's consent):
+        // Morgana's hole is lost and the front goes west, so the call stands on (37,37); DK2's is
+        // two tiles off Morgana's heart at (64,38). Before ADR-0401 ours was (64,34).
+        Assert.Equal(((byte)CallToArmsRules.SpellId, 37, 37), (call.SpellId, call.X >> 12, call.Y >> 12));
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
 }

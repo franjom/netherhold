@@ -72,6 +72,7 @@ public static class AssetCatalogue
         "unbuilt_handler",
         "reaper_arriving",
         "collecting_winnings",
+        "slapped",
     ];
 
     /// <summary>

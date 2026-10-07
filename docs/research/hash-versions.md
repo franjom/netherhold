@@ -15,7 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**202** — `0x6967DA71375E1109`. The room return states 62, 70 and 154 through `RoomEvictRules`, and the research cheer 60 on a shelved item (`room-return-states.md`); no new field. ADR-0402. (201 is the parked slap branch's, ADR-0401.)
+**203** — `0xAEBBF589AE314BD2`. The slap's state moves 67, 77 and 120 and their reaction (`slap-states.md`): a slap whose move is refused does nothing more; the reaction plays action 19 and goes back to its room's state; no new field. ADR-0401. Built on 202; 201 was this work's number while it waited on a side branch and is unused.
+**202** — `0x6967DA71375E1109`. The room return states 62, 70 and 154 through `RoomEvictRules`, and the research cheer 60 on a shelved item (`room-return-states.md`); no new field. ADR-0402. (201 unused: see 203.)
 
 **200** — `0x587802C58EC02B4B`. Category 0 states 5, 71, 86, 113, 126 and 135 (`refused-states.md`): every neutral creature idles in 5, the Heart's drop 71, the tunneller's 86, the evicted holders' 113 and 126 through `RoomEvictRules`, the willing torturee's 135, the gold cheer 211; the Bile Demon's idle shot; the Temple's offering only in its pool; no new field. ADR-0400.
 

@@ -10,8 +10,7 @@ namespace DK2.Simulation;
 
 /// <summary>The activity a creature's DK2 state names (ADR-0210): what
 /// <see cref="CreatureState.Activity"/> must agree with, read from the state id, the resume
-/// slot for a walk in state 6 or 7, the job for the Sleep job's 81, and the prison owner for
-/// a hand drop's 77. A corpse, holding no state, is <see cref="CreatureActivity.Dead"/>.</summary>
+/// slot for a walk in state 6 or 7, and the job for the Sleep job's 81. A corpse, holding no state, is <see cref="CreatureActivity.Dead"/>.</summary>
 /// <remarks>The activities are ours, so this table is too: it is the inverse of the moves each
 /// system makes beside them. Null for a state no system moves a creature into.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-state-table.md")]
@@ -83,7 +82,7 @@ public static class ActivityRules
         31 or 32 or 33 => CreatureActivity.CarryingObject,
         ImpStates.PickingUpCorpse or ImpStates.PickingUpCasualty => CreatureActivity.FetchingBody,
         >= ImpStates.CarryingCorpse and <= ImpStates.PuttingDownTheRefusedBody => CreatureActivity.CarryingBody,
-        PrisonRules.SlappedState => PrisonRules.IsImprisoned(creature) ? CreatureActivity.Imprisoned : CreatureActivity.Idle,
+        SlapRules.ReactionState or SlapRules.WorkshopState or SlapRules.PrisonState => CreatureActivity.Slapped,
         DropLandingRules.LandingState or DropLandingRules.StandingState => CreatureActivity.Idle,
         HandRules.PreparationState => CreatureActivity.BeingLifted,
         PortalRules.JoiningState => CreatureActivity.Idle,

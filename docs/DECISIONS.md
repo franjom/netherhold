@@ -9130,6 +9130,34 @@ the Hand offers a creature in the pool at the drop, where DK2 offers it in 101 a
 20/20, Level 2 5/20 and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3600 and 3676 (DK2
 3683).
 
+## ADR-0401 — The slap's state moves: 67, 77 and 120 and their reaction
+**Date:** 2026-10-07 · **Status:** accepted · Research: `slap-states.md`
+
+**Context.** The slap `0x0048B8A0` moves a creature before it does anything else to it: to 67 when
+it holds a place in its slapper's Workshop, to 120 in its slapper's Prison, otherwise to 77; when
+`SetState` refuses the move the slap returns with no damage, anger, speed or count. All three run
+the reaction `0x0046F1F0`: action 19, then back to the room's state or idle. Ours made none of the
+moves (ADR-0373), so every slap landed in full and a slapped creature carried on. The owner asked
+for them to be built (Q569).
+
+**Decision.** `SlapRules.Move` in `HandSystem.Slap`'s main path, a refusal being the slap ignored;
+`SlapRules.React` in `CreatureStatusSystem` for every creature in 67, 77 or 120 (a new activity,
+`Slapped`): action 19 at the first turn (art slot 4, its length the counted clip, LIKELY), held while
+it runs, then 63, 115 or 130 by the held room, a worker 10, anyone else idle. The transition table
+refuses 10 from 77, so a slapped worker idles and goes to 10 from 1. Deviates: the knock-back's
+velocity and its stop at a rival's or a locked door's tile are not modelled; a Horny is not
+slappable in ours, so 242 and 238 are not reached. The owner confirmed from play (2026-10-07) that a
+slapped Imp flinches, then digs on faster.
+
+Level 11A's keeper scenario changes outcome: Drako's slapped imps lose Morgana's hole, the front
+goes west and the call stands on (37,37) with no attack on Morgana's heart inside 700 ticks, where
+DK2's call stands two tiles off her heart. Re-pinned with the owner's consent; a divergence to
+watch.
+
+**Measured** (hash 203; built on ADR-0402's 202, so 201 is unused) against the branch at
+`c1142b9b` (M-F), both sides run: Level 1 20/20 and 20/20, Level 2 2/20 and 2/20 (seeds 3, 13),
+Level 3 seed 01 won at 3676 and 3676 (DK2 3683).
+
 ## ADR-0402 — The last category 0 states: the Library's, Workshop's and Casino's way back, the research cheer, and fourteen unreached
 **Date:** 2026-10-07 · **Status:** accepted · Research: `room-return-states.md`
 

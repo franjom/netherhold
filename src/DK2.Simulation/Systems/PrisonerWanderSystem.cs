@@ -41,6 +41,7 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
             // goes back in (0x004E2B30, ADR-0400).
             if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held)) continue;
             if (SimulationTiming.OnOriginalTick(context.Tick.Value) && RoomEvictRules.Evict(context, SystemName, creature)) continue;
+            if (SlapRules.IsReaction(creature.Dk2StateId)) continue;   // 120's reaction (ADR-0401)
             if (creature.Dk2StateId == PrisonRules.ReturningState)
             {
                 if (SimulationTiming.OnOriginalTick(context.Tick.Value)) PrisonRules.Return(context, SystemName, creature);

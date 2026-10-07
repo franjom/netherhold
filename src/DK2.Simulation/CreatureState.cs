@@ -227,6 +227,10 @@ public enum CreatureActivity
 
     /// <summary>A Casino jackpot's winner: its celebration (152) and the walk to collect (155–157).</summary>
     CollectingWinnings = 39,
+
+    /// <summary>The slap's reaction: 67 in its keeper's Workshop, 120 in its keeper's Prison, 77
+    /// anywhere else (<see cref="SlapRules"/>).</summary>
+    Slapped = 40,
 }
 
 /// <summary>One creature in the world.</summary>

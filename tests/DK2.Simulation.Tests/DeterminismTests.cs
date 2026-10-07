@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 202: the room return states 62, 70, 154 and the research cheer 60 (ADR-0402)
+        // HashVersion 203: the slap's state moves 67, 77 and 120 (ADR-0401)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x6967DA71375E1109UL, sim.StateHash());
+        Assert.Equal(0xAEBBF589AE314BD2UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

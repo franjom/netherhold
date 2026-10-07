@@ -20,8 +20,9 @@ public static class TortureRules
     public const byte WheelObjectId = 8;
     public const byte ElectricChairObjectId = 61;
 
-    /// <summary>77, a creature dropped from the hand, goes to 130 in a Torture Chamber; 130 straps
-    /// it to the device underfoot and moves to 131, being tortured.</summary>
+    /// <summary>A creature dropped from the hand on a Torture Chamber goes to 130, the room's drop
+    /// state (<c>+0x19</c>), as the slap's reaction sends a Torture Chamber's place-holder; 130
+    /// straps it to the device underfoot and moves to 131, being tortured.</summary>
     public const int StrappingState = 130;
     public const int TorturedState = 131;
 
@@ -46,7 +47,7 @@ public static class TortureRules
     /// free one within reach, through 130, or goes idle.</summary>
     public const int ReleasedState = 136;
 
-    /// <summary>77's destination for a Horned Reaper (<c>IsHorny</c>, definition flag bit 14),
+    /// <summary>The slap reaction's destination (77, <c>0x0046F1F0</c>) for a Horned Reaper (<c>IsHorny</c>, definition flag bit 14),
     /// whatever room it lands in: it is never strapped on.</summary>
     public const int HornyDropState = 238;
 

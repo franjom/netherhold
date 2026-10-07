@@ -142,3 +142,21 @@ M-F Refused part 2 (the other 24, grouped by entry path).
   Saturday flag's Heart effect and mode 3 are recorded.
 - The slap's state moves (67, 77, 120, ADR-0401) wait on side branch `states/slap-moves`; the owner
   confirmed the flinch, so they merge next.
+
+## The slap's state moves (2026-10-07)
+
+- Q569 answered by the owner: build them. Built on side branch `states/slap-moves` while Level 11A's
+  outcome was in question, then brought onto this branch once the owner confirmed from play that a
+  slapped Imp flinches, then digs on faster.
+- **Built:** 67, 77, 120 (`SlapRules`): the slap's move by the held room, a refused move making the
+  slap do nothing more; the reaction (action 19, art slot 4), then the room's state, or idle. The
+  move stops the creature's walk.
+- ADR-0401, HashVersion and `WorldSnapshot.FormatVersion` 203 (201 unused), research
+  `slap-states.md`, a new activity `Slapped` (presentation key "slapped"). New `SlapStateTests`
+  (6); the Hand's dig test now uses a hard wall.
+- Replays, both sides run at `c1142b9b`: unchanged (Level 1 20/20, Level 2 2/20, Level 3 3676).
+- Level 11A's keeper scenario changes outcome: the call stands on (37,37) and no attack on
+  Morgana's heart follows inside 700 ticks (DK2: two tiles off her heart). Re-pinned with the
+  owner's consent; a divergence to watch.
+- Reviewer: no wrong claim; fixed the walk stop, stale text naming 77 the hand drop's, the label
+  and the test name's doubt.
