@@ -77,11 +77,11 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(60, "not read"));
         rows.Add(Unbuilt(61, "not read"));
         rows.Add(Unbuilt(62, "not read"));
-        rows.Add(Built(63, typeof(JobRules), nameof(JobRules.StateFor)));
-        rows.Add(Unbuilt(64, "not read"));
-        rows.Add(Unbuilt(65, "not read"));
-        rows.Add(Unbuilt(66, "not read"));
-        rows.Add(Unbuilt(67, "partly read in state-category-hooks.md 3.2; not built"));
+        rows.Add(Built(63, typeof(WorkshopStep), nameof(WorkshopStep.ChoosingState)));
+        rows.Add(Built(64, typeof(WorkshopStep), nameof(WorkshopStep.AtTheMachineState)));
+        rows.Add(Built(65, typeof(WorkshopStep), nameof(WorkshopStep.WorkingState)));
+        rows.Add(Unreachable(66, "STRONGLY INFERRED as Q415: no SetState, wrapper, walk, +0xDF store or room-table site enters it (workshop-states.md §2)"));
+        rows.Add(Unbuilt(67, "the slap's state for a Workshop holder (0x0048B9DB), read in workshop-states.md §2; ours makes none of the slap's state moves: Q569"));
         rows.Add(Built(68, typeof(CrateRules), nameof(CrateRules.CrateMadeState)));
         rows.Add(Unbuilt(69, "read in workshop-crates.md; not built"));
         rows.Add(Unbuilt(70, "not read"));

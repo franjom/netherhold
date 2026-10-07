@@ -73,3 +73,22 @@ M-F Refused part 2 (the other 24, grouped by entry path).
   Declared: corpses not counted on a tile, 103's skipped nav and solid tests, a draw per failed
   candidate room. Still open, not this branch's: master's `DBG t=` stderr dump in
   `CreatureJobSystem.TrySetOut`.
+
+## M-D Manufacture (2026-10-07)
+
+- **Built:** 63 (its handler, which ours only entered), 64, 65 (`WorkshopStep`).
+- **Unreachable:** 66 (`workshop-states.md` §2).
+- **Blocked:** 67, the slap's state for a Workshop holder (`0x0048B9DB`). Ours makes none of the
+  slap's state moves (67, 77, 120), and building them is Hand code, outside this task: Q569.
+- With no order, 63 plays action 43 and the manufacturer goes idle, as the binary's `player+0xA1C`
+  test does; `ManufactureTests` pinned the old stay-and-credit and was rewritten.
+- ADR-0399, HashVersion and `WorldSnapshot.FormatVersion` 199, research `workshop-states.md`, 7
+  new function records, 1 rewritten (`00470110`, was GUESS), 4 updated. New `WorkshopStateTests`
+  (6), `WorkshopOnRealDataTests` (2).
+- Replays, both sides run at the branch's `e6925731`: Level 1 20/20 → 20/20, Level 2 5/20 → 5/20
+  (same seeds), Level 3 seed 01 won at 3608 → 3600 (DK2 3683).
+- Reviewer, two passes. Fixed: 67 is entered by the slap through a push and a jump to a shared
+  `SetState` tail, which the call scan missed (now blocked on Q569, and a trap in `docs/TRAPS.md`);
+  `0x00470C5C` is state 70's, not 67's; the work's length (LIKELY), the machines' presentation
+  (STRONGLY INFERRED), the object-list and null-room deviations declared; the drop test's pin
+  restored and two tests added. The scans for 102 and 66 were redone as raw byte scans: still none.

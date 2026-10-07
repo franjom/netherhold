@@ -346,9 +346,10 @@ public static class AutoFurnitureRules
 
     /// <summary>An object's position, its <c>+0x1A</c>: its tile's centre, moved <c>0x700</c> toward its
     /// wall for the wall furniture whose arm was read, the Alcove Barrels (68, <c>0x004EEA07</c>) and the
-    /// Library Book (58, <c>0x004EECEB</c>), sides north, east, south, west (<c>casino.md</c> §3). Only these
-    /// two are inset here: the rebuild's arm 3 insets types 62 and 63 by <c>0x480</c> and its default arm
-    /// other wall furniture by <c>0x700</c>, which no caller asks for yet.</summary>
+    /// Library Book (58, <c>0x004EECEB</c>), sides north, east, south, west (<c>casino.md</c> §3). The wall
+    /// pass picks its arm by type (index bytes <c>0x004EF130</c>, table <c>0x004EF114</c>): 8, 29, 58,
+    /// 62/63, 67 and 68 have arms of their own; every other type, the Workshop's 15, 16 and 46 among
+    /// them, takes <c>0x004EEE1F</c> and stays at its tile's centre. Arms 0, 1, 3 and 4 are not read.</summary>
     public static (int X, int Y) FurniturePosition(WorldState world, GameDatabase database, RoomInstance room, ObjectState thing)
     {
         int x = CreatureState.CentreOf(thing.TileIndex % world.Width);

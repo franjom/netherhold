@@ -55,6 +55,7 @@ public class ManufactureTests
         WorldState world = World(db);
         CreatureState maker = Maker(db, world);
         Assert.Equal(10, ManufactureRules.PerOriginalTick(db, db.CreatureById(MakerId), maker));
+        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(ManufactureRules.DoorKind, 1, 1_000_000));   // 63 idles with none
 
         Simulation(db, world, new ListEventSink()).Run(Second * 5);
 
@@ -84,15 +85,19 @@ public class ManufactureTests
     }
 
     [Fact]
-    public void WithNothingOrderedThePointsKeepGrowing()
+    public void WithNothingOrderedTheManufacturerPlaysItsIdleActionAndStops()
     {
+        // 63 (0x00470110): the keeper's order count player+0xA1C at zero, action 43 once, then 0.
         GameDatabase db = Db();
+        db.Variables.Misc[VariableTypeId.ManufacturePointLossWhileNoWorkersPerSecond] =
+            new MiscVariable(VariableTypeId.ManufacturePointLossWhileNoWorkersPerSecond, 0, 0, 0);
         WorldState world = World(db);
-        Maker(db, world);
+        CreatureState maker = Maker(db, world);
 
         Simulation(db, world, new ListEventSink()).Run(Second * 10);
 
-        Assert.Equal(400, world.Player(Keeper).ManufacturePoints);
+        Assert.Equal(JobType.None, maker.CurrentJob);
+        Assert.InRange(world.Player(Keeper).ManufacturePoints, 1, 399);
         Assert.DoesNotContain(world.Objects, o => o.ObjectTypeId == Dk2TerrainFixture.WoodenDoorCrateObjectId);
     }
 

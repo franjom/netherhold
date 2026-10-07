@@ -47,6 +47,7 @@ public static class ActivityRules
         CasinoJackpotRules.ArrivedState => CreatureActivity.CollectingWinnings,
         _ when ResearchStep.IsResearchState(resume) && resume != ResearchStep.ChoosingState => CreatureActivity.AtWork,
         _ when TempleStep.IsTempleState(resume) && resume != TempleStep.EnteringState => CreatureActivity.AtWork,
+        WorkshopStep.AtTheMachineState => CreatureActivity.AtWork,
         _ when CasinoStep.IsCasinoState(resume) && resume != CasinoStep.ChoosingState => CreatureActivity.AtWork,
         JailBreakRules.BreakingOutState => CreatureActivity.Rescuing,
         CallToArmsRules.ArrivedState or CallToArmsRules.MillingState => CreatureActivity.HeedingCallToArms,
@@ -113,7 +114,8 @@ public static class ActivityRules
         CombatStates.Celebrating => CreatureActivity.Celebrating,
         CrateRules.CrateMadeState => CreatureActivity.AtWork,
         CombatPitSpectatorRules.FacingState or CombatPitSpectatorRules.CheeringState => CreatureActivity.AtWork,
-        _ when CasinoStep.IsCasinoState(state) || ResearchStep.IsResearchState(state) || TempleStep.IsTempleState(state) => CreatureActivity.AtWork,
+        _ when CasinoStep.IsCasinoState(state) || ResearchStep.IsResearchState(state) || TempleStep.IsTempleState(state)
+            || WorkshopStep.IsWorkshopState(state) => CreatureActivity.AtWork,
         _ when CasinoJackpotRules.IsWinnerState(state) => CreatureActivity.CollectingWinnings,
         CrateRules.FetchTrapCrateState or CrateRules.FetchDoorCrateState => CreatureActivity.FetchingObject,
         CrateRules.InstallTrapState or CrateRules.InstallDoorState => CreatureActivity.CarryingObject,

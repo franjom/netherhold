@@ -563,6 +563,26 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             return;
         }
 
+        // A manufacturer's hook runs every turn, then its state's handler: 63-65 (ADR-0399).
+        // MANUFACTURE IS CREDITED EVERY TURN, like research: 0x0047B190 has no countdown.
+        if (job == JobType.Manufacture)
+        {
+            if (!originalTick) return;
+            if (CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Manufacture)
+            {
+                Manufacture(context, world, database, creature, definition);
+                // The maker's own handler runs after its hook, in the state the crate maker set.
+                if (creature.Dk2StateId == CrateRules.CrateMadeState)
+                {
+                    CrateMade(context, creature, definition);
+                    return;
+                }
+            }
+
+            if (!WorkshopStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            return;
+        }
+
         // What happens at work is the update hook of the job state's CATEGORY, which the
         // dispatcher runs before the state's own handler (ADR-0186). The countdown hooks act on
         // the creature's own countdown, every fifth turn from entry (Q424, ADR-0192).
@@ -578,14 +598,6 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
                 if (CreatureStateMachine.HookFires(creature, reload))
                     ChargeForTraining(context, world, database, creature, definition);
                 if (originalTick) TrainingCapHandlers(context, database, creature, definition);
-                return;
-
-            // MANUFACTURE IS CREDITED EVERY TURN, like research: 0x0047B190 has no countdown.
-            case CreatureStateCategory.Manufacture:
-                if (!originalTick) return;
-                Manufacture(context, world, database, creature, definition);
-                // The maker's own handler runs after its hook, in the state the crate maker set.
-                if (creature.Dk2StateId == CrateRules.CrateMadeState) CrateMade(context, creature, definition);
                 return;
 
             case CreatureStateCategory.Spectating:

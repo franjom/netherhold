@@ -1,5 +1,7 @@
 # Mechanic: Workshop crates — made, stored, carried and built
 
+The manufacturer's own states 63–67 are [workshop-states.md](workshop-states.md) (ADR-0399).
+
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25. What was read:
   - **The crate maker** `0x004F5240` and its helpers: `0x00506BA0` (the object an order makes),

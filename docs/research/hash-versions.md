@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**199** — `0xF759489159B4EB3E`. The Workshop's states 63–65 (`workshop-states.md`): the machine mode, state `+0xB9` (creature `+0x307`), and the Library's target point renamed to the shared `StateTarget`. ADR-0399.
+
 **198** — `0x6B9E7F7D302E3BF3`. The Temple's states 101–107 (`temple-states.md`): creature `HeldPlaceStamp` (ours, the held room's size stamp at the claim, for 107), and every job's walk to a room ends at DK2's room point `0x004E4C10` rather than the room's centre. ADR-0398.
 
 **197** — `0x7E3268744B92B012`. The Library's states 53–59 (`library-states.md`): the researcher's target point (state `+0xA9`/`+0xAD`), the watched creature (`+0xA7`), and the Casino's wait position renamed to the shared `WaitPos`. ADR-0397.

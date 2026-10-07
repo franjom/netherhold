@@ -979,10 +979,15 @@ public sealed class CreatureState
     public int WaitPosX;
     public int WaitPosY;
 
-    /// <summary>A researcher's target point, state <c>+0xA9</c>/<c>+0xAD</c> (creature <c>+0x2F7</c>):
-    /// the object it reads at, or the bare spot; the Library's finder skips a point another holds.</summary>
-    public int ResearchTargetX;
-    public int ResearchTargetY;
+    /// <summary>A Library or Workshop state's target point, state <c>+0xA9</c>/<c>+0xAD</c> (creature
+    /// <c>+0x2F7</c>): the object worked at, or the bare spot; each room's finder skips a point another
+    /// holds (library-states.md, workshop-states.md).</summary>
+    public int StateTargetX;
+    public int StateTargetY;
+
+    /// <summary>How a manufacturer works its machine, state <c>+0xB9</c> (creature <c>+0x307</c>): 1 at
+    /// it, 2 at a stand point beside it, 0 for neither (workshop-states.md §3).</summary>
+    public byte MachineMode;
 
     /// <summary>The creature a disturbed researcher watches in 59, state <c>+0xA7</c>; -1 for none.</summary>
     public int WatchedCreatureId = -1;
@@ -1321,8 +1326,9 @@ public sealed class CreatureState
         hash.Add(CasinoFacing);
         hash.Add(WaitPosX);
         hash.Add(WaitPosY);
-        hash.Add(ResearchTargetX);
-        hash.Add(ResearchTargetY);
+        hash.Add(StateTargetX);
+        hash.Add(StateTargetY);
+        hash.Add(MachineMode);
         hash.Add(WatchedCreatureId);
         hash.Add(HeldPlaceStamp);
         hash.Add(DrunkTicks);

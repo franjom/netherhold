@@ -91,12 +91,12 @@ public static class ResearchStep
         {
             (int x, int y) = StandPoint(context, world, database, held, creature, found!);
             if (Walk(context, system, creature, x, y, AtTheShelfState))
-                (creature.ResearchTargetX, creature.ResearchTargetY) = AutoFurnitureRules.FurniturePosition(world, database, held, found!);
+                (creature.StateTargetX, creature.StateTargetY) = AutoFurnitureRules.FurniturePosition(world, database, held, found!);
             return true;
         }
 
         if (Walk(context, system, creature, point.X, point.Y, AtTheShelfState))
-            (creature.ResearchTargetX, creature.ResearchTargetY) = point;
+            (creature.StateTargetX, creature.StateTargetY) = point;
         return true;
     }
 
@@ -179,7 +179,7 @@ public static class ResearchStep
     private static bool Targeted(WorldState world, RoomInstance room, int x, int y)
     {
         foreach (CreatureState c in world.Creatures)
-            if (c.HeldPlace.In(room) && HasTarget(world, c) && c.ResearchTargetX == x && c.ResearchTargetY == y)
+            if (c.HeldPlace.In(room) && HasTarget(world, c) && c.StateTargetX == x && c.StateTargetY == y)
                 return true;
         return false;
     }
@@ -188,15 +188,15 @@ public static class ResearchStep
     {
         foreach (CreatureState c in world.Creatures)
             if (c.HeldPlace.In(room) && HasTarget(world, c)
-                && (c.ResearchTargetY >> 12) * world.Width + (c.ResearchTargetX >> 12) == tile)
+                && (c.StateTargetY >> 12) * world.Width + (c.StateTargetX >> 12) == tile)
                 return true;
         return false;
     }
 
     /// <summary>World slot <c>+0x200</c>: the target point lies on the map.</summary>
     private static bool HasTarget(WorldState world, CreatureState c) =>
-        c.ResearchTargetX >= 0 && c.ResearchTargetY >= 0
-        && world.Contains(new TilePos(c.ResearchTargetX >> 12, c.ResearchTargetY >> 12));
+        c.StateTargetX >= 0 && c.StateTargetY >= 0
+        && world.Contains(new TilePos(c.StateTargetX >> 12, c.StateTargetY >> 12));
 
     /// <summary>A bookcase is taken while a creature stands on its stand point's tile (<c>0x00453670</c>).</summary>
     private static bool SomeoneOnTheSpot(WorldState world, GameDatabase database, CreatureState seeker, ObjectState thing)
@@ -229,7 +229,7 @@ public static class ResearchStep
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        int tile = (creature.ResearchTargetY >> 12) * world.Width + (creature.ResearchTargetX >> 12);
+        int tile = (creature.StateTargetY >> 12) * world.Width + (creature.StateTargetX >> 12);
         ObjectState? thing = OnTile(world, tile, BookCaseObjectId) ?? OnTile(world, tile, BookObjectId);
         if (thing is null)
         {
@@ -258,7 +258,7 @@ public static class ResearchStep
         WorldState world = context.World;
         GameDatabase database = context.Database;
         long now = context.Tick.Value;
-        CasinoStep.TurnTo(context, creature, creature.ResearchTargetX, creature.ResearchTargetY);
+        CasinoStep.TurnTo(context, creature, creature.StateTargetX, creature.StateTargetY);
         bool moved = creature.WaitPosX != creature.PosX || creature.WaitPosY != creature.PosY;
         if (age > 1 && moved && now < creature.ActionUntilTick) creature.ActionUntilTick = 0;
         (creature.WaitPosX, creature.WaitPosY) = (creature.PosX, creature.PosY);
@@ -419,7 +419,7 @@ public static class ResearchStep
         return null;
     }
 
-    private static int StandOff(GameDatabase database, CreatureState creature, ObjectState thing)
+    internal static int StandOff(GameDatabase database, CreatureState creature, ObjectState thing)
     {
         int width = database.ObjectById(thing.ObjectTypeId) is { } def ? (ushort)def.Width.Raw : 0;
         int footprint = (ushort)database.CreatureById(creature.CreatureTypeId).FootprintRadius.Raw;

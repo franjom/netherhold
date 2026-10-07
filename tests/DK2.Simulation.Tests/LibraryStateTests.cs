@@ -137,7 +137,7 @@ public class LibraryStateTests
         var sim = new GameSimulation(db, world, seed: 1, [new Probe(context =>
         {
             ResearchStep.Find(context, Library(db, world), it, out first, out _);
-            (it.ResearchTargetX, it.ResearchTargetY) = (CreatureState.CentreOf(first!.TileIndex % world.Width),
+            (it.StateTargetX, it.StateTargetY) = (CreatureState.CentreOf(first!.TileIndex % world.Width),
                 CreatureState.CentreOf(first.TileIndex / world.Width));
             ResearchStep.Find(context, Library(db, world), it, out second, out _);
         })]);
@@ -252,7 +252,7 @@ public class LibraryStateTests
         CreatureState it = Researcher(db, world, new TilePos(1, 3), ResearchStep.ReadingShortState);
         it.ActionUntilTick = long.MaxValue;
         (it.WaitPosX, it.WaitPosY) = (it.PosX, it.PosY);
-        (it.ResearchTargetX, it.ResearchTargetY) = (it.PosX, it.PosY);
+        (it.StateTargetX, it.StateTargetY) = (it.PosX, it.PosY);
         var sim = new GameSimulation(db, world, seed: 42, [new CreatureJobSystem()]);
 
         sim.Tick();

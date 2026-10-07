@@ -9070,3 +9070,29 @@ another Temple; the job walk draws the room point for each candidate before rout
 20/20, Level 2 2/20 (seeds 5, 13) and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3560
 and 3608 (DK2 3683). None of the three replays builds a Temple (their room-build events): the move is the room walk's point,
 which every job takes. The owner accepted Level 2's move past one seed (2026-10-07).
+
+## ADR-0399 — A manufacturer moves among the Workshop's machines
+**Date:** 2026-10-07 · **Status:** accepted · Research: `workshop-states.md`
+
+**Context.** A manufacturer stood in state 63 while the Workshop's hook credited it; 64–67 were
+unread. Read whole: 63 (`0x00470110`) asks the finder `0x004F5BE0` for the nearest machine
+(type 15, 16 or 46) nobody works at, and walks to a stand point at it; with none, the nearest
+nobody works beside, and a stand point beside it. 64 faces the machine and starts action 32, six
+to twelve more plays; 65 waits it out and chooses again. With no order on the keeper's list, 63
+plays action 43 and goes idle. 66 is a variant of 65 that nothing enters. 67 is the slap's state
+for a Workshop holder (`0x0048B9DB`), whose handler is the slap reaction `0x0046F1F0`.
+
+**Decision.** `WorkshopStep` runs 63, 64 and 65 after the credit hook; 66 is unreachable by Q415's
+method; 67 stays unbuilt with the slap's other state moves (77, 120), which ours does not make
+(Q569). The state's target point (`+0xA9`/`+0xAD`) is shared with the Library and renamed
+`StateTarget`; the mode `+0xB9` is `CreatureState.MachineMode`. The wall pass's arm table is read
+(`0x004EF130`, `0x004EF114`): the Workshop's machines stay at their tile's centre. Deviates: a
+state entered this turn runs from the next; the work's length is `CountedHoldTicks` (LIKELY) and 64
+goes to 65 whether or not the action starts; the finder walks the objects on the room's tiles, not
+the room's list, and its endless search with no machine is ours returning none; ties go to
+`world.Objects` order; the machines' processes and effects are not kept (presentation, STRONGLY
+INFERRED).
+
+**Measured** (hash 199) against the branch at `e6925731` (M-C), both sides run: Level 1 20/20 and
+20/20, Level 2 5/20 and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3608 and 3600 (DK2
+3683).
