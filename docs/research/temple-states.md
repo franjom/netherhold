@@ -1,7 +1,7 @@
 # The Temple's states: 101–107
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-10-06.
-- **Built:** ADR-0398, `TempleStep`. The prayer itself is the category's update hook
+- **Built:** ADR-0403, `TempleStep`. The prayer itself is the category's update hook
   `0x0047B970` (`job-selection.md`, ADR-0186), which runs under all of these but 107.
 - State `+0xB0`/`+0xB4` is where 105 last saw the creature. `Age` is state `+0x1C`.
 - Handlers from the state table (`creature-state-table.md`): 101 `0x00472930`, 102 `0x00472AB0`,
@@ -166,7 +166,7 @@ the point from `0x004E4C10(room)`:
 
 So no job walk ends in a Temple's pool, on furniture, or against a wall's furniture.
 `RoomWalkRules.ArrivalTile` is this; `CreatureJobSystem.TrySetOut` uses it for every job room
-(ADR-0398). The Casino's floor point `0x004E4EA0` (`casino.md` §3) is the same walk without the wall
+(ADR-0403). The Casino's floor point `0x004E4EA0` (`casino.md` §3) is the same walk without the wall
 test or the Lair clause.
 
 **Measured.** The change reaches every job, not just the Temple's. Against master `95daa5f6`:

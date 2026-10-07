@@ -8991,7 +8991,7 @@ the call at 455-696 (was 472-608, DK2 700), on DK2's (64,38) in 8 (was 1); Morga
 in 6 (3 on master); there it is laid from (16,22) as DK2's, first tile 557-868 (DK2 855).
 
 ## ADR-0396 — A gambler moves among the Casino's furniture, and a jackpot starts a party and a collection
-**Date:** 2026-10-06 · **Status:** accepted · Completes ADR-0187, ADR-0313 · Raises Q568 · Research: `casino.md`
+**Date:** 2026-10-06 · **Status:** accepted · Completes ADR-0187, ADR-0313 · Raises Q572 · Research: `casino.md`
 
 **Context.** A gambler stood in state 145 while the Casino's hook charged it; 146–153 and the jackpot
 were unread. Read whole: 145 (`0x00456160`) chooses a party, a free table, a free alcove or a bare
@@ -9009,7 +9009,7 @@ variables have no reader), 90 seconds of party, 10 of celebration. Deviates: a k
 new state runs from the next turn; sounds, the wheel's spin (its draw kept), the drunk walk and
 effects are not kept; DK2's room object order breaks a finder tie, ours the world's; the party
 branch's finder messages are not built. A drinker stands 45°–135° from its alcove whatever its
-wall, so a south wall's alcove refuses the walk (Q568).
+wall, so a south wall's alcove refuses the walk (Q572).
 
 **Measured** (hash 196) against master `95daa5f6`, both sides run: Level 1 20/20 and 20/20, Level
 2 2/20 and 2/20 (seeds 14 and 17), Level 3 seed 01 won at 3560 and 3560 (DK2 3683). No shipped
@@ -9041,61 +9041,6 @@ is closed: the record reader always sets the field that stores `def+0x76A`.
 **Measured** (hash 197) against master `95daa5f6`, both sides run: Level 1 20/20 and
 20/20, Level 2 2/20 (seeds 14, 17) and 2/20 (seeds 5, 13), Level 3 seed 01 won at 3560 and 3560 (DK2
 3683). Level 2's researchers now walk among the shelves, which moves its random draws.
-
-## ADR-0398 — A worshipper moves about the Temple, and every job walk ends where DK2's room walk does
-**Date:** 2026-10-07 · **Status:** accepted · Research: `temple-states.md`
-
-**Context.** A worshipper stood in state 101 while the Temple's hook prayed for it; 102–107 were
-unread. Read whole: 101 takes a creature on its own Temple to 103 (in the pool it is the offering);
-103 picks its own tile or a free neighbour and walks to a point a quarter tile out from the room's
-centre; 104 faces the centre and prays, action 27 two or three more plays; 105 waits it out, steps
-its definition's vector 1 ahead and chooses again. 106 is the creature a sacrifice makes, walked off
-the pool; 107 takes a holder back in after its Temple is freed, rebuilt or changes owner
-(`0x004F15D0`, the Temple's room-type slots +0x05, +0x09, +0x0D). 102 is `SetState(101)` and
-nothing enters it. Building them showed that ours walked every job to its room's centre, which in a
-Temple is the pool; DK2's room walk ends at `0x004E4C10`'s point, never a furniture slot.
-
-**Decision.** `TempleStep` runs 101 and 103–107; 102 is unreachable by Q415's method. The sacrifice
-reward kicks its creature to 106 (`HandSystem`). `CreatureDef.PrayerStepX/Y` reads file `0x127B`
-(the definition's vector 1). `RoomWalkRules.ArrivalTile` is `0x004E4C10`, and `CreatureJobSystem`
-uses it for every job room, entering the state at once when the creature is already in the room.
-Deviates: a state entered this turn runs from the next; 107 is seen at the holder's next turn by
-the Temple's size stamp against `CreatureState.HeldPlaceStamp` (set at the claim), not inside the
-rebuild; 101's offering stays the Hand's (ADR-0149), which sacrifices on any Temple tile where DK2
-sacrifices only in the pool; ours ends a walk within the creature's own tile at once, so 103's
-quarter-tile point is reached only from another tile; 103's refused walk goes idle rather than to
-another Temple; the job walk draws the room point for each candidate before routing, where DK2 draws once for the room its finder settled.
-
-**Measured** (hash 198) against the branch at `71d1a0dc` (M-B), both sides run: Level 1 20/20 and
-20/20, Level 2 2/20 (seeds 5, 13) and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3560
-and 3608 (DK2 3683). None of the three replays builds a Temple (their room-build events): the move is the room walk's point,
-which every job takes. The owner accepted Level 2's move past one seed (2026-10-07).
-
-## ADR-0399 — A manufacturer moves among the Workshop's machines
-**Date:** 2026-10-07 · **Status:** accepted · Research: `workshop-states.md`
-
-**Context.** A manufacturer stood in state 63 while the Workshop's hook credited it; 64–67 were
-unread. Read whole: 63 (`0x00470110`) asks the finder `0x004F5BE0` for the nearest machine
-(type 15, 16 or 46) nobody works at, and walks to a stand point at it; with none, the nearest
-nobody works beside, and a stand point beside it. 64 faces the machine and starts action 32, six
-to twelve more plays; 65 waits it out and chooses again. With no order on the keeper's list, 63
-plays action 43 and goes idle. 66 is a variant of 65 that nothing enters. 67 is the slap's state
-for a Workshop holder (`0x0048B9DB`), whose handler is the slap reaction `0x0046F1F0`.
-
-**Decision.** `WorkshopStep` runs 63, 64 and 65 after the credit hook; 66 is unreachable by Q415's
-method; 67 stays unbuilt with the slap's other state moves (77, 120), which ours does not make
-(Q569). The state's target point (`+0xA9`/`+0xAD`) is shared with the Library and renamed
-`StateTarget`; the mode `+0xB9` is `CreatureState.MachineMode`. The wall pass's arm table is read
-(`0x004EF130`, `0x004EF114`): the Workshop's machines stay at their tile's centre. Deviates: a
-state entered this turn runs from the next; the work's length is `CountedHoldTicks` (LIKELY) and 64
-goes to 65 whether or not the action starts; the finder walks the objects on the room's tiles, not
-the room's list, and its endless search with no machine is ours returning none; ties go to
-`world.Objects` order; the machines' processes and effects are not kept (presentation, STRONGLY
-INFERRED).
-
-**Measured** (hash 199) against the branch at `e6925731` (M-C), both sides run: Level 1 20/20 and
-20/20, Level 2 5/20 and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3608 and 3600 (DK2
-3683).
 
 ## ADR-0400 — The first eight category 0 states: a neutral idle, the Heart's drop, the tunneller's wander, the evicted holders' way back, the gold cheer
 **Date:** 2026-10-07 · **Status:** accepted · Research: `refused-states.md`, `temple-states.md` §8
@@ -9152,7 +9097,7 @@ slapped Imp flinches, then digs on faster.
 Level 11A's keeper scenario changes outcome: Drako's slapped imps lose Morgana's hole, the front
 goes west and the call stands on (37,37) with no attack on Morgana's heart inside 700 ticks, where
 DK2's call stands two tiles off her heart. Re-pinned with the owner's consent; a divergence to
-watch.
+watch (Q574).
 
 **Measured** (hash 203; built on ADR-0402's 202, so 201 is unused) against the branch at
 `c1142b9b` (M-F), both sides run: Level 1 20/20 and 20/20, Level 2 2/20 and 2/20 (seeds 3, 13),
@@ -9174,7 +9119,7 @@ that never passes.
 `ResearchStep.Cheer` before the item's grant and 60's arm (action 35, `random(2) + 1` plays, then idle
 in the same turn). Unreachable: 0, 2, 61, 72, 73, 74, 207, 208, 212, 213, 215, 245, 258, 262. 158
 waits on Q571: it needs the host's clock as an injected input. Deviates: as for 107, 113 and 126, a
-freed room, a new owner, a load and a neighbour's terrain change (`0x004E44E0`) do not kick; the
+freed room, a new owner, a load and a neighbour's terrain change (`0x004E44E0`) do not kick (Q575); the
 books', crates' and effect's handling is not built; the cheer's length is the counted clip (LIKELY).
 
 The owner confirmed the cheer's shape from play (2026-10-07): the researchers cheer, wander off and
@@ -9184,3 +9129,58 @@ pick a new job, research again if it is available.
 20/20, Level 2 5/20 and 2/20 (seeds 3 and 13; without the cheer 5/20 on the same seeds 3, 5, 10, 13,
 14, so the cheer alone moves it), Level 3 seed 01 won at 3676 and 3676 (DK2 3683). Accepted by the
 owner as the cheer's cost.
+
+## ADR-0403 — A worshipper moves about the Temple, and every job walk ends where DK2's room walk does
+**Date:** 2026-10-07 · **Status:** accepted · Research: `temple-states.md` · Numbered ADR-0398 on its branch, renumbered at the merge
+
+**Context.** A worshipper stood in state 101 while the Temple's hook prayed for it; 102–107 were
+unread. Read whole: 101 takes a creature on its own Temple to 103 (in the pool it is the offering);
+103 picks its own tile or a free neighbour and walks to a point a quarter tile out from the room's
+centre; 104 faces the centre and prays, action 27 two or three more plays; 105 waits it out, steps
+its definition's vector 1 ahead and chooses again. 106 is the creature a sacrifice makes, walked off
+the pool; 107 takes a holder back in after its Temple is freed, rebuilt or changes owner
+(`0x004F15D0`, the Temple's room-type slots +0x05, +0x09, +0x0D). 102 is `SetState(101)` and
+nothing enters it. Building them showed that ours walked every job to its room's centre, which in a
+Temple is the pool; DK2's room walk ends at `0x004E4C10`'s point, never a furniture slot.
+
+**Decision.** `TempleStep` runs 101 and 103–107; 102 is unreachable by Q415's method. The sacrifice
+reward kicks its creature to 106 (`HandSystem`). `CreatureDef.PrayerStepX/Y` reads file `0x127B`
+(the definition's vector 1). `RoomWalkRules.ArrivalTile` is `0x004E4C10`, and `CreatureJobSystem`
+uses it for every job room, entering the state at once when the creature is already in the room.
+Deviates: a state entered this turn runs from the next; 107 is seen at the holder's next turn by
+the Temple's size stamp against `CreatureState.HeldPlaceStamp` (set at the claim), not inside the
+rebuild; 101's offering stays the Hand's (ADR-0149), which sacrifices on any Temple tile where DK2
+sacrifices only in the pool; ours ends a walk within the creature's own tile at once, so 103's
+quarter-tile point is reached only from another tile; 103's refused walk goes idle rather than to
+another Temple; the job walk draws the room point for each candidate before routing, where DK2 draws once for the room its finder settled.
+
+**Measured** (hash 198) against the branch at `71d1a0dc` (M-B), both sides run: Level 1 20/20 and
+20/20, Level 2 2/20 (seeds 5, 13) and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3560
+and 3608 (DK2 3683). None of the three replays builds a Temple (their room-build events): the move is the room walk's point,
+which every job takes. The owner accepted Level 2's move past one seed (2026-10-07).
+
+## ADR-0404 — A manufacturer moves among the Workshop's machines
+**Date:** 2026-10-07 · **Status:** accepted · Research: `workshop-states.md` · Numbered ADR-0399 on its branch, renumbered at the merge
+
+**Context.** A manufacturer stood in state 63 while the Workshop's hook credited it; 64–67 were
+unread. Read whole: 63 (`0x00470110`) asks the finder `0x004F5BE0` for the nearest machine
+(type 15, 16 or 46) nobody works at, and walks to a stand point at it; with none, the nearest
+nobody works beside, and a stand point beside it. 64 faces the machine and starts action 32, six
+to twelve more plays; 65 waits it out and chooses again. With no order on the keeper's list, 63
+plays action 43 and goes idle. 66 is a variant of 65 that nothing enters. 67 is the slap's state
+for a Workshop holder (`0x0048B9DB`), whose handler is the slap reaction `0x0046F1F0`.
+
+**Decision.** `WorkshopStep` runs 63, 64 and 65 after the credit hook; 66 is unreachable by Q415's
+method; 67 stays unbuilt with the slap's other state moves (77, 120), which ours does not make
+(Q569). The state's target point (`+0xA9`/`+0xAD`) is shared with the Library and renamed
+`StateTarget`; the mode `+0xB9` is `CreatureState.MachineMode`. The wall pass's arm table is read
+(`0x004EF130`, `0x004EF114`): the Workshop's machines stay at their tile's centre. Deviates: a
+state entered this turn runs from the next; the work's length is `CountedHoldTicks` (LIKELY) and 64
+goes to 65 whether or not the action starts; the finder walks the objects on the room's tiles, not
+the room's list, and its endless search with no machine is ours returning none; ties go to
+`world.Objects` order; the machines' processes and effects are not kept (presentation, STRONGLY
+INFERRED).
+
+**Measured** (hash 199) against the branch at `e6925731` (M-C), both sides run: Level 1 20/20 and
+20/20, Level 2 5/20 and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3608 and 3600 (DK2
+3683).

@@ -1,6 +1,6 @@
 # Mechanic: Workshop crates — made, stored, carried and built
 
-The manufacturer's own states 63–67 are [workshop-states.md](workshop-states.md) (ADR-0399).
+The manufacturer's own states 63–67 are [workshop-states.md](workshop-states.md) (ADR-0404).
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25. What was read:

@@ -19,8 +19,8 @@ M-F Refused part 2 (the other 24, grouped by entry path).
 - Replays, both sides run at master `5691f56d` and again at `95daa5f6`: Level 1 20/20 → 20/20,
   Level 2 2/20 → 2/20 (seeds 14, 17), Level 3 seed 01 won at 3560 → 3560 (DK2 3683). No Casino on
   those levels.
-- New open question: Q568 (owner: do drinkers only use alcoves on a Casino's north wall?).
-- Reviewer, three passes. Fixed: ADR and Q numbers taken by master (now ADR-0396, Q568); the
+- New open question: Q572 (owner: do drinkers only use alcoves on a Casino's north wall?).
+- Reviewer, three passes. Fixed: ADR and Q numbers taken by master (now ADR-0396, Q572); the
   party's tile-effect draw on the simulation stream (now drawn); a flood fill every turn in
   `CasinoSystem` (now only on settlement or party turns); the `+0x38`/`+0x3C` stores while a
   deadline runs (recorded as unread); "of the keeper" in 155's pile search (any owner's); "side"
@@ -59,7 +59,7 @@ M-F Refused part 2 (the other 24, grouped by entry path).
 - **Found while building:** ours walked every job to its room's centre, a Temple's pool. DK2's room
   walk ends at `0x004E4C10`'s point (§9); `RoomWalkRules.ArrivalTile` now serves every job room.
   The owner chose the general fix over a Temple-only one (2026-10-07).
-- ADR-0398, HashVersion and `WorldSnapshot.FormatVersion` 198, research `temple-states.md`, 13 new
+- ADR-0403, HashVersion and `WorldSnapshot.FormatVersion` 198, research `temple-states.md`, 13 new
   function records, 11 updated. New `TempleStateTests` (11), `TempleOnRealDataTests` (1); job,
   torture and payday fixtures given a tile the room point accepts.
 - Replays, both sides run at the branch's `71d1a0dc`: Level 1 20/20 → 20/20, Level 2 2/20 (seeds 5,
@@ -82,7 +82,7 @@ M-F Refused part 2 (the other 24, grouped by entry path).
   slap's state moves (67, 77, 120), and building them is Hand code, outside this task: Q569.
 - With no order, 63 plays action 43 and the manufacturer goes idle, as the binary's `player+0xA1C`
   test does; `ManufactureTests` pinned the old stay-and-credit and was rewritten.
-- ADR-0399, HashVersion and `WorldSnapshot.FormatVersion` 199, research `workshop-states.md`, 7
+- ADR-0404, HashVersion and `WorldSnapshot.FormatVersion` 199, research `workshop-states.md`, 7
   new function records, 1 rewritten (`00470110`, was GUESS), 4 updated. New `WorkshopStateTests`
   (6), `WorkshopOnRealDataTests` (2).
 - Replays, both sides run at the branch's `e6925731`: Level 1 20/20 → 20/20, Level 2 5/20 → 5/20

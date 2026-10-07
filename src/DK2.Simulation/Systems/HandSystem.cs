@@ -499,7 +499,7 @@ public sealed class HandSystem : ISimulationSystem
         SimulationContext context, PlayerId playerId, string offeredKind, byte offeredTypeId,
         TilePos tile, int held, SacrificeResult result)
     {
-        // 0x004F1780 kicks the creature it made to 106 (temple-states.md §6, ADR-0398).
+        // 0x004F1780 kicks the creature it made to 106 (temple-states.md §6, ADR-0403).
         if (result.RewardKind == SacrificeRewardKind.Creature && context.World.CreatureById(result.SpawnedThingId) is { } summoned)
             TempleStep.Summon(context, SystemName, summoned);
         string kind = result.SpeechId == TempleSacrificeRules.GoldSpeechId

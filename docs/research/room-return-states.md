@@ -34,7 +34,7 @@ kick at `0x004E4544`).
 **Ours.** `RoomEvictRules`: the room's size stamp at the holder's next turn, as for 107, 113 and 126;
 the handlers are `RoomEvictRules.BackIn` from `ResearchStep`, `WorkshopStep` and `CasinoStep`. Not
 built, as for the others: the freed and owner-changed slots (the job's room test idles the holder),
-the load slot, `0x004E44E0`, and the books', crates' and effect's handling. The neighbour trigger is the common one in play: a wall
+the load slot, `0x004E44E0`, and the books', crates' and effect's handling (Q575). The neighbour trigger is the common one in play: a wall
 dug or a tile claimed beside the room. A jackpot winner leaves the Drink job (ADR-0396), so ours
 does not evict it; DK2's kick reaches every place-holder in the room's list.
 
@@ -124,4 +124,5 @@ minus 20 (`0x004877DE`), and the scan's own three stamps past the gate, which st
 never holds, and the scan, with its Imp and Mistress sounds, is dead. The comparison reads as the
 reverse of a 20-turn cooldown. The handlers (`0x00474DE0`, `0x00474EE0`) would play action 54 at the
 Reaper in sight, 258 turning to it. A write to `+0x4C3` that the displacement scan cannot see (a
-block copy, a load) is the remaining doubt; a loaded value is still at most the saved turn.
+block copy, a load) is the remaining doubt; a loaded value is still at most the saved turn. Play can
+settle it: Q573.

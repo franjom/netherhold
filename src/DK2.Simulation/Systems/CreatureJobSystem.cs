@@ -437,7 +437,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         foreach ((_, _, RoomInstance room) in candidates)
         {
             // 0x00471A70: already in the room it enters the state at once; otherwise it walks to the
-            // room point 0x004E4C10, which is never a furniture slot (ADR-0398).
+            // room point 0x004E4C10, which is never a furniture slot (ADR-0403).
             int here = world.Contains(creature.Tile) ? (creature.Tile.Y * world.Width) + creature.Tile.X : -1;
             int target;
             if (here >= 0 && room.Contains(here)) target = here;
@@ -549,7 +549,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             return;
         }
 
-        // A worshipper's hook runs, then its state's handler: 101-107 (ADR-0398).
+        // A worshipper's hook runs, then its state's handler: 101-107 (ADR-0403).
         if (job == JobType.Praying)
         {
             if (CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Temple
@@ -587,7 +587,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             return;
         }
 
-        // A manufacturer's hook runs every turn, then its state's handler: 63-65 (ADR-0399).
+        // A manufacturer's hook runs every turn, then its state's handler: 63-65 (ADR-0404).
         // MANUFACTURE IS CREDITED EVERY TURN, like research: 0x0047B190 has no countdown.
         if (job == JobType.Manufacture)
         {

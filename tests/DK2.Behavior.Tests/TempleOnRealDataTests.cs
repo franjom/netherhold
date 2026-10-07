@@ -9,7 +9,7 @@ using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
-/// <summary>The Temple's states against the shipped v1.70 data (temple-states.md, ADR-0398).
+/// <summary>The Temple's states against the shipped v1.70 data (temple-states.md, ADR-0403).
 /// Gated with [InstallFact].</summary>
 public class TempleOnRealDataTests
 {

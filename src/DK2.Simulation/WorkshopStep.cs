@@ -10,7 +10,7 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation;
 
-/// <summary>A manufacturer's states in its keeper's Workshop (<c>workshop-states.md</c>, ADR-0399): 63
+/// <summary>A manufacturer's states in its keeper's Workshop (<c>workshop-states.md</c>, ADR-0404): 63
 /// finds a free machine and walks to it or beside it, 64 faces it and starts action 32, 65 works it
 /// and chooses again. The credit hook runs under all three (<see cref="Systems.CreatureJobSystem"/>).</summary>
 /// <remarks>Ours: a state entered this turn runs from the next. The machines' process states,

@@ -8,7 +8,7 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>The Temple's states 101–107 (temple-states.md, ADR-0398).</summary>
+/// <summary>The Temple's states 101–107 (temple-states.md, ADR-0403).</summary>
 public class TempleStateTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;

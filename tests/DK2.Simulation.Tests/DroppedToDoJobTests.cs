@@ -76,7 +76,7 @@ public class DroppedToDoJobTests
         DropOnTheBench(sim, maker);
 
         Assert.Contains(sink.Events, e => e.Kind == "dropped_to_job");
-        // In 63, or already on 63's walk to a machine, resuming 64 (ADR-0399).
+        // In 63, or already on 63's walk to a machine, resuming 64 (ADR-0404).
         Assert.True(maker.Dk2StateId == WorkshopStep.ChoosingState
             || (maker.Dk2StateId == 6 && maker.UtilityNewState == WorkshopStep.AtTheMachineState),
             $"state {maker.Dk2StateId} resume {maker.UtilityNewState}");

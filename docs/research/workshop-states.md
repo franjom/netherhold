@@ -1,7 +1,7 @@
 # The Workshop's states: 63–67
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-10-07.
-- **Built:** ADR-0399, `WorkshopStep`. The credit is the category's update hook `0x0047B190`
+- **Built:** ADR-0404, `WorkshopStep`. The credit is the category's update hook `0x0047B190`
   (`workshop-crates.md`), which runs under 63–67. The crate made, 68 and 69, is `workshop-crates.md`.
 - State `+0xA9`/`+0xAD` is the machine's position (the target), `+0xB1`/`+0xB5` where the creature
   was last seen, `+0xB9` (creature `+0x307`) how it works the machine: 1 at it, 2 beside it.

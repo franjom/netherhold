@@ -8,7 +8,7 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>The Workshop's states 63–65 (workshop-states.md, ADR-0399).</summary>
+/// <summary>The Workshop's states 63–65 (workshop-states.md, ADR-0404).</summary>
 public class WorkshopStateTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;

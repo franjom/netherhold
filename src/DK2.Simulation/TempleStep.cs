@@ -10,7 +10,7 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation;
 
-/// <summary>A worshipper's states in its keeper's Temple (<c>temple-states.md</c>, ADR-0398): 101 takes
+/// <summary>A worshipper's states in its keeper's Temple (<c>temple-states.md</c>, ADR-0403): 101 takes
 /// it in, 103 picks a spot on its own tile or a free neighbour, 104 faces the room's centre and prays,
 /// action 27; 105 waits the prayer out and steps ahead; 106 walks a summoned creature off the pool; 107
 /// takes a holder back in after its Temple changed. The prayer hook runs under all but 107
@@ -108,7 +108,7 @@ public static class TempleStep
         TempleSacrificeRules.Reconcile(context.World, context.Database);
         byte type = creature.CreatureTypeId;
         SacrificeResult result = TempleSacrificeRules.OfferCreature(context.World, context.Database, temple, creature, tile);
-        // 0x004F1780 kicks the creature it made to 106 (temple-states.md §6, ADR-0398).
+        // 0x004F1780 kicks the creature it made to 106 (temple-states.md §6, ADR-0403).
         if (result.RewardKind == SacrificeRewardKind.Creature && context.World.CreatureById(result.SpawnedThingId) is { } summoned)
             Summon(context, system, summoned);
         context.Emit(system, "sacrificed_in_pool",

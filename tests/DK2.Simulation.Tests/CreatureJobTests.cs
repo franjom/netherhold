@@ -53,7 +53,7 @@ public sealed class CreatureJobTests
 
         // A one-tile room gets no furniture, and a room's places are its furniture (ADR-0205).
         // The piece is an Obstacle, which DK2's room point 0x004E4C10 passes over, so the room
-        // gets a plain second tile for the walk to end on (ADR-0398).
+        // gets a plain second tile for the walk to end on (ADR-0403).
         if (type is RoomTypeId.TrainingRoom or RoomTypeId.Casino or RoomTypeId.Library
             or RoomTypeId.Workshop or RoomTypeId.TortureChamber)
         {
@@ -236,7 +236,7 @@ public sealed class CreatureJobTests
         goblin.GoldHeld = 100;
 
         // Five seconds: the choice is the subject. In this room every tile holds an Obstacle, which
-        // no shipped Casino does, and a gambler later steps off it (ADR-0398).
+        // no shipped Casino does, and a gambler later steps off it (ADR-0403).
         Simulation(db, world).Run(Second * 5);
 
         Assert.Equal(JobType.Drink, goblin.CurrentJob);

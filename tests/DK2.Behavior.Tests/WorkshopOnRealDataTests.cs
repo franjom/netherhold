@@ -9,7 +9,7 @@ using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
-/// <summary>The Workshop's states against the shipped v1.70 data (workshop-states.md, ADR-0399).
+/// <summary>The Workshop's states against the shipped v1.70 data (workshop-states.md, ADR-0404).
 /// Gated with [InstallFact].</summary>
 public class WorkshopOnRealDataTests
 {

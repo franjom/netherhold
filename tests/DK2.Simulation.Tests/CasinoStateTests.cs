@@ -124,7 +124,7 @@ public class CasinoStateTests
     }
 
     [Fact]
-    public void AnAlcoveOnASouthWallPutsItsDrinkersSpotInTheWallSoTheChooserTriesAgain_UnwatchedQ568()
+    public void AnAlcoveOnASouthWallPutsItsDrinkersSpotInTheWallSoTheChooserTriesAgain_UnwatchedQ572()
     {
         GameDatabase db = Db();
         WorldState world = World(db, 5);
