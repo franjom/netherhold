@@ -117,13 +117,13 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(99, typeof(GuardRules), nameof(GuardRules.LostState),
             "no simulation test loses a guard its post"));
         rows.Add(Built(100, typeof(GuardRules), nameof(GuardRules.AtThePostState)));
-        rows.Add(Built(101, typeof(JobRules), nameof(JobRules.StateFor)));
-        rows.Add(Unbuilt(102, "not read"));
-        rows.Add(Unbuilt(103, "not read"));
-        rows.Add(Unbuilt(104, "not read"));
-        rows.Add(Unbuilt(105, "not read"));
-        rows.Add(Unbuilt(106, "not read"));
-        rows.Add(Unbuilt(107, "not read"));
+        rows.Add(Built(101, typeof(TempleStep), nameof(TempleStep.EnteringState)));
+        rows.Add(Unreachable(102, "STRONGLY INFERRED as Q415: no SetState, wrapper, walk, +0xDF store or room-table site enters it (temple-states.md §2)"));
+        rows.Add(Built(103, typeof(TempleStep), nameof(TempleStep.ChoosingState)));
+        rows.Add(Built(104, typeof(TempleStep), nameof(TempleStep.FacingState)));
+        rows.Add(Built(105, typeof(TempleStep), nameof(TempleStep.PrayingState)));
+        rows.Add(Built(106, typeof(TempleStep), nameof(TempleStep.SummonedState)));
+        rows.Add(Built(107, typeof(TempleStep), nameof(TempleStep.ReturningState)));
         rows.Add(Built(108, typeof(JobRules), nameof(JobRules.StateFor)));
         rows.Add(Unbuilt(109, "read in training.md; not built"));
         rows.Add(Built(110, typeof(TrainingRules), nameof(TrainingRules.CapRefusalState)));

@@ -171,6 +171,9 @@ public static partial class KwdCreatures
             // animation: art block 30 of 84 bytes from 0x20, frames at +0x44 and rate at +0x48.
             EntranceOffsetX = S32(0xE94),
             EntranceOffsetY = S32(0xE98),
+            // The definition's vector 1 (temple-states.md §5): the reader's +0x166B, file 0x127B.
+            PrayerStepX = S32(0x127B),
+            PrayerStepY = S32(0x127F),
             EntranceFrames = S32(EntranceBlock + 0x44),
             EntranceFramesPerSecond = S32(EntranceBlock + 0x48),
             // The Getup animation (block 27), which action 53 plays while state 257 waits.

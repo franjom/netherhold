@@ -237,7 +237,7 @@ public static class CasinoStep
     }
 
     /// <summary>The nav-cache byte <c>0x00455000</c> reads, as <c>Tile_SetTerrain</c> writes it.</summary>
-    private static int NavClass(GameDatabase database, in TileState tile)
+    internal static int NavClass(GameDatabase database, in TileState tile)
     {
         TerrainFlags flags = database.TerrainById(tile.TerrainId).Flags;
         if (flags.HasFlag(TerrainFlags.Solid)) return 8;
@@ -245,7 +245,7 @@ public static class CasinoStep
         return flags.HasFlag(TerrainFlags.Lava) ? 3 : 0;
     }
 
-    private static bool HasObstacle(WorldState world, GameDatabase database, int tile)
+    internal static bool HasObstacle(WorldState world, GameDatabase database, int tile)
     {
         foreach (ObjectState thing in world.Objects)
             if (!thing.InHand && thing.TileIndex == tile

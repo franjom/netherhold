@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 197;
+    private const int FormatVersion = 198;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -407,6 +407,7 @@ public static class WorldSnapshot
             w.Write(c.ResearchTargetX);
             w.Write(c.ResearchTargetY);
             w.Write(c.WatchedCreatureId);
+            w.Write(c.HeldPlaceStamp);
             w.Write(c.DrunkTicks);
             w.Write(c.JackpotDeadlineTicks);
             w.Write(c.JackpotWinnings);
@@ -1009,6 +1010,7 @@ public static class WorldSnapshot
                 ResearchTargetX = r.ReadInt32(),
                 ResearchTargetY = r.ReadInt32(),
                 WatchedCreatureId = r.ReadInt32(),
+                HeldPlaceStamp = r.ReadInt64(),
                 DrunkTicks = r.ReadInt32(),
                 JackpotDeadlineTicks = r.ReadInt32(),
                 JackpotWinnings = r.ReadInt32(),

@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 197: the Library's states 53-59 (ADR-0397)
+        // HashVersion 198: the Temple's states 101-107 and the room walk's point (ADR-0398)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x7E3268744B92B012UL, sim.StateHash());
+        Assert.Equal(0x6B9E7F7D302E3BF3UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

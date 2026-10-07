@@ -52,9 +52,14 @@ public sealed class CreatureJobTests
         RoomRules.Place(db, ref tile, db.Room(type), owner);
 
         // A one-tile room gets no furniture, and a room's places are its furniture (ADR-0205).
+        // The piece is an Obstacle, which DK2's room point 0x004E4C10 passes over, so the room
+        // gets a plain second tile for the walk to end on (ADR-0398).
         if (type is RoomTypeId.TrainingRoom or RoomTypeId.Casino or RoomTypeId.Library
             or RoomTypeId.Workshop or RoomTypeId.TortureChamber)
+        {
             Dk2TerrainFixture.Furnish(db, world, type, at, owner);
+            RoomRules.Place(db, ref world.Tile(at.X + 1, at.Y), db.Room(type), owner);
+        }
     }
 
     /// <summary>
@@ -91,7 +96,7 @@ public sealed class CreatureJobTests
 
         Assert.Equal(JobType.Train, goblin.CurrentJob);
         Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
-        Assert.Equal(new TilePos(3, 3), goblin.Tile);
+        Assert.Equal(new TilePos(4, 3), goblin.Tile);   // the room point: (3,3) holds the furniture
 
         Assert.Contains(events.Events, e =>
             e.Kind == "job_taken" && e.Detail.Contains("job=Train"));
@@ -230,7 +235,9 @@ public sealed class CreatureJobTests
         goblin.Anger.Treatment = CreatureAngerRules.UnhappyAt(db.CreatureById(GoblinId));
         goblin.GoldHeld = 100;
 
-        Simulation(db, world).Run(Second * 30);
+        // Five seconds: the choice is the subject. In this room every tile holds an Obstacle, which
+        // no shipped Casino does, and a gambler later steps off it (ADR-0398).
+        Simulation(db, world).Run(Second * 5);
 
         Assert.Equal(JobType.Drink, goblin.CurrentJob);
         Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
@@ -375,6 +382,7 @@ public sealed class CreatureJobTests
         vampire.CurrentJob = JobType.Praying;
         StatePlacement.As(vampire, CreatureActivity.AtWork);
         StatePlacement.Place(vampire, JobRules.StateFor(vampire.CurrentJob)!.Value);
+        vampire.HeldPlace = new RoomPlace((Floor.Y * world.Width) + Floor.X, RoomCapacityRules.Units);   // the enter hook's claim
         vampire.Anger.Pay = 10_000;
         vampire.Anger.Lair = 8_000;
         vampire.Anger.Treatment = 500;
@@ -408,6 +416,7 @@ public sealed class CreatureJobTests
         vampire.CurrentJob = JobType.Praying;
         StatePlacement.As(vampire, CreatureActivity.AtWork);
         StatePlacement.Place(vampire, JobRules.StateFor(vampire.CurrentJob)!.Value);
+        vampire.HeldPlace = new RoomPlace((Floor.Y * world.Width) + Floor.X, RoomCapacityRules.Units);   // the enter hook's claim
         vampire.Health = 100;
 
         Simulation(db, world).Run(Second * 3);
@@ -439,8 +448,8 @@ public sealed class CreatureJobTests
 
         // The room stops being one. Not sold through the command - this is
         // about the job noticing, not about selling.
-        ref TileState tile = ref world.Tile(3, 3);
-        tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        world.Tile(3, 3).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        world.Tile(4, 3).TerrainId = Dk2TerrainFixture.ClaimedPath;
 
         sim.Run(Second * 2);
 
@@ -485,6 +494,7 @@ public sealed class CreatureJobTests
 
         List<(int State, int Saved)> seen = StatesSeen(sim, goblin, Second * 20);
         world.Tile(3, 3).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        world.Tile(4, 3).TerrainId = Dk2TerrainFixture.ClaimedPath;
         seen.AddRange(StatesSeen(sim, goblin, Second * 2));
 
         // Then, with nothing left to choose, 89 parks it in 3 (ADR-0228).

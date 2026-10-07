@@ -987,6 +987,11 @@ public sealed class CreatureState
     /// <summary>The creature a disturbed researcher watches in 59, state <c>+0xA7</c>; -1 for none.</summary>
     public int WatchedCreatureId = -1;
 
+    /// <summary>The held room's size stamp (<see cref="SlabChain.SizeChangedTick"/>) when the place was
+    /// claimed. Ours: DK2 has no such field; a Temple rebuilt since evicts its holders to 107, which DK2
+    /// does inside the rebuild (temple-states.md §7–8).</summary>
+    public long HeldPlaceStamp;
+
     /// <summary>The drunk timer <c>+0x4CE</c>, turns: 146 sets it, the creature update counts it down;
     /// 146's count of drunk occupants is its one simulation reader (casino.md §4).</summary>
     public int DrunkTicks;
@@ -1319,6 +1324,7 @@ public sealed class CreatureState
         hash.Add(ResearchTargetX);
         hash.Add(ResearchTargetY);
         hash.Add(WatchedCreatureId);
+        hash.Add(HeldPlaceStamp);
         hash.Add(DrunkTicks);
         hash.Add(JackpotDeadlineTicks);
         hash.Add(JackpotWinnings);

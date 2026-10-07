@@ -35,6 +35,8 @@ public static partial class KwdCreatures
         U32(0x1545, (uint)row.Flags2);
         S32(0xE94, row.EntranceOffsetX);
         S32(0xE98, row.EntranceOffsetY);
+        S32(0x127B, row.PrayerStepX);
+        S32(0x127F, row.PrayerStepY);
         S32(EntranceBlock + 0x44, row.EntranceFrames);
         S32(EntranceBlock + 0x48, row.EntranceFramesPerSecond);
         void AnimationTiming(int slot, CreatureAnimationTiming timing)

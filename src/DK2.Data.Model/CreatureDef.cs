@@ -63,6 +63,14 @@ public sealed record CreatureDef
     /// <inheritdoc cref="EntranceOffsetX"/>
     public int EntranceOffsetY { get; init; }
 
+    /// <summary>The second runtime vector at <c>+0x6EC</c> (<c>def+0x6F8</c>, record offset <c>0x127B</c>,
+    /// copied by the record reader at <c>0x00569B09</c> and the loader at <c>0x00493AAE</c>), in 1/4096
+    /// tiles: the Temple's 105 steps <c>−y</c> ahead when a prayer ends (temple-states.md §5).</summary>
+    public int PrayerStepX { get; init; }
+
+    /// <inheritdoc cref="PrayerStepX"/>
+    public int PrayerStepY { get; init; }
+
     /// <summary>The Entrance animation's frame count and rate (animation block 30, the one
     /// action 49 plays while state 193 waits). Zero when the creature has none, as the Imp.</summary>
     public int EntranceFrames { get; init; }

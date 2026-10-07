@@ -9041,3 +9041,32 @@ is closed: the record reader always sets the field that stores `def+0x76A`.
 **Measured** (hash 197) against master `95daa5f6`, both sides run: Level 1 20/20 and
 20/20, Level 2 2/20 (seeds 14, 17) and 2/20 (seeds 5, 13), Level 3 seed 01 won at 3560 and 3560 (DK2
 3683). Level 2's researchers now walk among the shelves, which moves its random draws.
+
+## ADR-0398 — A worshipper moves about the Temple, and every job walk ends where DK2's room walk does
+**Date:** 2026-10-07 · **Status:** accepted · Research: `temple-states.md`
+
+**Context.** A worshipper stood in state 101 while the Temple's hook prayed for it; 102–107 were
+unread. Read whole: 101 takes a creature on its own Temple to 103 (in the pool it is the offering);
+103 picks its own tile or a free neighbour and walks to a point a quarter tile out from the room's
+centre; 104 faces the centre and prays, action 27 two or three more plays; 105 waits it out, steps
+its definition's vector 1 ahead and chooses again. 106 is the creature a sacrifice makes, walked off
+the pool; 107 takes a holder back in after its Temple is freed, rebuilt or changes owner
+(`0x004F15D0`, the Temple's room-type slots +0x05, +0x09, +0x0D). 102 is `SetState(101)` and
+nothing enters it. Building them showed that ours walked every job to its room's centre, which in a
+Temple is the pool; DK2's room walk ends at `0x004E4C10`'s point, never a furniture slot.
+
+**Decision.** `TempleStep` runs 101 and 103–107; 102 is unreachable by Q415's method. The sacrifice
+reward kicks its creature to 106 (`HandSystem`). `CreatureDef.PrayerStepX/Y` reads file `0x127B`
+(the definition's vector 1). `RoomWalkRules.ArrivalTile` is `0x004E4C10`, and `CreatureJobSystem`
+uses it for every job room, entering the state at once when the creature is already in the room.
+Deviates: a state entered this turn runs from the next; 107 is seen at the holder's next turn by
+the Temple's size stamp against `CreatureState.HeldPlaceStamp` (set at the claim), not inside the
+rebuild; 101's offering stays the Hand's (ADR-0149), which sacrifices on any Temple tile where DK2
+sacrifices only in the pool; ours ends a walk within the creature's own tile at once, so 103's
+quarter-tile point is reached only from another tile; 103's refused walk goes idle rather than to
+another Temple; the job walk draws the room point for each candidate before routing, where DK2 draws once for the room its finder settled.
+
+**Measured** (hash 198) against the branch at `71d1a0dc` (M-B), both sides run: Level 1 20/20 and
+20/20, Level 2 2/20 (seeds 5, 13) and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3560
+and 3608 (DK2 3683). None of the three replays builds a Temple (their room-build events): the move is the room walk's point,
+which every job takes. The owner accepted Level 2's move past one seed (2026-10-07).

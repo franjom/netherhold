@@ -50,3 +50,26 @@ M-F Refused part 2 (the other 24, grouped by entry path).
   Library arm; `FindRoomWithPlace` excluded its own place; confidence tags; per-tile slot scans; a
   stranded doc comment and a dead `case`. Recorded, not changed: tie and kick order, the party-speed
   word. Nothing rejected.
+
+## M-C Temple (2026-10-07)
+
+- **Built:** 101, 103, 104, 105, 106, 107 (`TempleStep`). 107 is category 0 (M-F's list) but is the
+  Temple's own return path, so it was read and built here; M-F has 19 left.
+- **Unreachable:** 102 (`SetState(101)`; nothing enters it, `temple-states.md` §2).
+- **Found while building:** ours walked every job to its room's centre, a Temple's pool. DK2's room
+  walk ends at `0x004E4C10`'s point (§9); `RoomWalkRules.ArrivalTile` now serves every job room.
+  The owner chose the general fix over a Temple-only one (2026-10-07).
+- ADR-0398, HashVersion and `WorldSnapshot.FormatVersion` 198, research `temple-states.md`, 13 new
+  function records, 11 updated. New `TempleStateTests` (11), `TempleOnRealDataTests` (1); job,
+  torture and payday fixtures given a tile the room point accepts.
+- Replays, both sides run at the branch's `71d1a0dc`: Level 1 20/20 → 20/20, Level 2 2/20 (seeds 5,
+  13) → 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3560 → 3608 (DK2 3683). Level 2
+  moved past the one-seed bar; the owner accepted it.
+- Pre-existing divergence found, not changed (Hand system): ours sacrifices a creature dropped on
+  any tile of the keeper's Temple; DK2 only in the pool, after the landing (§8).
+- Reviewer, two passes. Fixed: 105's floor-slot test compares the creature's own tile with itself,
+  so the step is always taken (was refused into the pool; record 00472E90 now LIKELY); "floor height
+  0" is exactly "floor slot" for a Temple tile (a deviation that did not exist); 0048AD30's body.
+  Declared: corpses not counted on a tile, 103's skipped nav and solid tests, a draw per failed
+  candidate room. Still open, not this branch's: master's `DBG t=` stderr dump in
+  `CreatureJobSystem.TrySetOut`.

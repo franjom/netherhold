@@ -72,7 +72,9 @@ entity. It is a **room**: it is compared with `0x004559B0` of the creature's til
    `SetState(resume)`, and return the second result. There is no walk, and `+0xDF` is
    not written.
 3. Otherwise take a point from `0x004E4C10(room)`, then the tile check and the route
-   request as §2.1; on failure go to §2.3.
+   request as §2.1; on failure go to §2.3. The point is a random tile along the slab chain, then the
+   first that is no furniture slot and holds no Obstacle (`temple-states.md` §9, built as
+   `RoomWalkRules.ArrivalTile`, ADR-0398).
 4. The `+0x3DB`/`+0xF2` step, then `SetState(7, 0)`, result ignored; `+0xDF` = resume.
 5. The combat exit of §2.1 step 5, preceded here by a debug print through `0x00634DB0`
    (format at `0x00698D28`) carrying both state ids.

@@ -363,10 +363,8 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     /// creature, exactly as an ally's hatchery is not. Nearest first by squared
     /// distance to the room's centre, the first one this creature can actually
     /// reach over its own <see cref="WorldPathGrid"/> wins, equal distances
-    /// broken by the lowest tile index. Deliberately the same rule as the
-    /// hatchery and lair walks, down to the arrival tile: an L-shaped room's
-    /// centre may not be in it, in which case the walk ends at its lowest
-    /// tile.</remarks>
+    /// broken by the lowest tile index. The walk ends at the room point
+    /// <see cref="RoomWalkRules.ArrivalTile"/>, as DK2's room walk does.</remarks>
     private static bool TrySetOut(
         SimulationContext context, CreatureState creature, CreatureDef definition,
         JobType job, RoomTypeId wants)
@@ -415,7 +413,13 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
 
         foreach ((_, _, RoomInstance room) in candidates)
         {
-            int target = ArrivalTile(world, room);
+            // 0x00471A70: already in the room it enters the state at once; otherwise it walks to the
+            // room point 0x004E4C10, which is never a furniture slot (ADR-0398).
+            int here = world.Contains(creature.Tile) ? (creature.Tile.Y * world.Width) + creature.Tile.X : -1;
+            int target;
+            if (here >= 0 && room.Contains(here)) target = here;
+            else if (RoomWalkRules.ArrivalTile(context, room) is int point) target = point;
+            else continue;
             var at = new TilePos(target % world.Width, target / world.Width);
             if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) { if (context.Tick.Value < 900) { var g = new WorldPathGrid(database, world, definition); var sb = new System.Text.StringBuilder(); for (int yy = 28; yy <= 41; yy++) { sb.Append(yy).Append(' '); for (int xx = 10; xx <= 24; xx++) sb.Append(xx == creature.Tile.X && yy == creature.Tile.Y ? 'C' : xx == at.X && yy == at.Y ? 'T' : g.IsWalkable(xx, yy) ? '.' : '#'); sb.AppendLine(); } System.Console.Error.WriteLine($"DBG t={context.Tick.Value} {definition.Name} at={creature.Tile} target={at} room={room.Definition.Name}"); System.Console.Error.WriteLine(sb.ToString()); } continue; }
 
@@ -522,6 +526,16 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             return;
         }
 
+        // A worshipper's hook runs, then its state's handler: 101-107 (ADR-0398).
+        if (job == JobType.Praying)
+        {
+            if (CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Temple
+                && CreatureStateMachine.HookFires(creature, CreatureStateMachine.HookCountdownSeed))
+                Pray(context, world, database, creature, definition);
+            if (originalTick && !TempleStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            return;
+        }
+
         // A gambler's hook runs, then its state's handler: 145-151 and 153 (ADR-0396).
         if (job == JobType.Drink)
         {
@@ -577,11 +591,6 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             case CreatureStateCategory.Spectating:
                 if (CreatureStateMachine.HookFires(creature, reload))
                     Spectate(context, world, database, creature, definition);
-                return;
-
-            case CreatureStateCategory.Temple:
-                if (CreatureStateMachine.HookFires(creature, reload))
-                    Pray(context, world, database, creature, definition);
                 return;
 
             case CreatureStateCategory.Casino:
@@ -913,9 +922,4 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         ((room.MinY + ((room.MaxY - room.MinY) / 2)) * world.Width)
         + room.MinX + ((room.MaxX - room.MinX) / 2);
 
-    private static int ArrivalTile(WorldState world, RoomInstance room)
-    {
-        int centre = CentreTileIndex(world, room);
-        return EatingRules.Contains(room, centre) ? centre : room.TileIndices[0];
-    }
 }

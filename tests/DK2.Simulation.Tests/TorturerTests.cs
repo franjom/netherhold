@@ -307,6 +307,8 @@ public class TorturerTests
         sim.Run(2 * SimulationTiming.TicksPerSecond);
 
         Assert.Contains(sink.Events, e => e.Kind == "job_taken" && e.Detail.Contains("job=Torture"));
-        Assert.Equal(Index(world, new TilePos(8, 3)), mistress.JobTileIndex);
+        // The walk ends at the room point 0x004E4C10, a tile of the chamber that holds the victim.
+        RoomInstance held = RoomIndex.Build(world, db).Single(r => r.Contains(Index(world, new TilePos(8, 3))));
+        Assert.True(held.Contains(mistress.JobTileIndex));
     }
 }
