@@ -18,14 +18,13 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(2, "not read"));
         rows.Add(Built(3, typeof(CreatureJobSystem), nameof(CreatureJobSystem.DoingNothingState)));
         rows.Add(Built(4, typeof(HeroJobRules), nameof(HeroJobRules.WaitFailedState)));
-        rows.Add(Unbuilt(5, "read in special-role-idle.md; Fleeing idle selects it, but its controller is not built"));
+        rows.Add(Built(5, typeof(Systems.CreatureJobSystem), nameof(Systems.CreatureJobSystem.NeutralIdleState)));
         rows.Add(Built(6, typeof(StateShadow), nameof(StateShadow.TravelToPoint)));
         rows.Add(Built(7, typeof(StateShadow), nameof(StateShadow.TravelToRoom)));
         rows.Add(Unbuilt(8, "read in combat-approach-and-victory.md; not built"));
         rows.Add(Unreachable(9, "Q415 (STRONGLY INFERRED): no SetState, wrapper, +0xDF store or room-table site enters it, travel-states.md §7"));
         rows.Add(Built(10, typeof(ImpStates), nameof(ImpStates.TaskSelection)));
-        rows.Add(Built(11, typeof(ImpStates), nameof(ImpStates.AfterDrop),
-            "nothing here enters it: DK2 falls back to 11 from the worker drop arm (hand-drop-landing.md §5), which is not built (ADR-0226)"));
+        rows.Add(Built(11, typeof(ImpStates), nameof(ImpStates.AfterDrop)));
         rows.Add(Built(12, typeof(ImpStates), nameof(ImpStates.Resting)));
         rows.Add(Built(13, typeof(ImpStates), nameof(ImpStates.For)));
         rows.Add(Built(14, typeof(ImpStates), nameof(ImpStates.For)));
@@ -83,9 +82,9 @@ public static partial class CreatureStateCoverage
         rows.Add(Unreachable(66, "STRONGLY INFERRED as Q415: no SetState, wrapper, walk, +0xDF store or room-table site enters it (workshop-states.md §2)"));
         rows.Add(Unbuilt(67, "the slap's state for a Workshop holder (0x0048B9DB), read in workshop-states.md §2; ours makes none of the slap's state moves: Q569"));
         rows.Add(Built(68, typeof(CrateRules), nameof(CrateRules.CrateMadeState)));
-        rows.Add(Unbuilt(69, "read in workshop-crates.md; not built"));
+        rows.Add(Unreachable(69, "CONFIRMED: 68 sets it (0x00470BA2) and returns 0, and the dispatcher sets 1 in the same call (0x004772B7), so its handler never runs (refused-states.md §2)"));
         rows.Add(Unbuilt(70, "not read"));
-        rows.Add(Unbuilt(71, "partly read in imp-state-exits.md 3, imp-idle-and-wandering.md; not built"));
+        rows.Add(Built(71, typeof(DropLandingRules), nameof(DropLandingRules.HeartDropState)));
         rows.Add(Unbuilt(72, "not read"));
         rows.Add(Unbuilt(73, "not read"));
         rows.Add(Unbuilt(74, "not read"));
@@ -100,7 +99,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(83, typeof(LairRules), nameof(LairRules.SleepingState)));
         rows.Add(Unbuilt(84, "read in lair-acquisition.md 9; not built"));
         rows.Add(Built(85, typeof(JobRules), nameof(JobRules.StateFor)));
-        rows.Add(Unbuilt(86, "read in imp-idle-and-wandering.md; not built"));
+        rows.Add(Built(86, typeof(TunnelRules), nameof(TunnelRules.WanderState)));
         rows.Add(Built(87, typeof(ImpStates), nameof(ImpStates.Wandering)));
         rows.Add(Unreachable(88, "Q415 (STRONGLY INFERRED): no SetState, wrapper, +0xDF store or room-table site enters it, travel-states.md §7"));
         rows.Add(Built(89, typeof(CreatureJobSystem), nameof(CreatureJobSystem.IdleChooserState)));
@@ -129,7 +128,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(110, typeof(TrainingRules), nameof(TrainingRules.CapRefusalState)));
         rows.Add(Unbuilt(111, "read in training.md; not built"));
         rows.Add(Unbuilt(112, "read in training.md; not built"));
-        rows.Add(Unbuilt(113, "read in training.md; not built"));
+        rows.Add(Built(113, typeof(TrainingRules), nameof(TrainingRules.ReturningState)));
         rows.Add(Built(114, typeof(PrisonRules), nameof(PrisonRules.AdmittedState)));
         rows.Add(Built(115, typeof(PrisonRules), nameof(PrisonRules.DecidingState)));
         rows.Add(Built(116, typeof(PrisonRules), nameof(PrisonRules.InTheCellState)));
@@ -142,7 +141,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(123, "partly read in state-category-hooks.md 3.2; not built"));
         rows.Add(Unbuilt(124, "partly read in state-category-hooks.md 3.2; not built"));
         rows.Add(Unbuilt(125, "partly read in state-category-hooks.md 3.2; not built"));
-        rows.Add(Unbuilt(126, "read in state-category-hooks.md 3.2; not built"));
+        rows.Add(Built(126, typeof(PrisonRules), nameof(PrisonRules.ReturningState)));
         rows.Add(Built(127, typeof(TortureRules), nameof(TortureRules.TorturerChoosingState)));
         rows.Add(Built(128, typeof(TortureRules), nameof(TortureRules.TorturerFacingState)));
         rows.Add(Built(129, typeof(TortureRules), nameof(TortureRules.TorturerWhippingState)));
@@ -151,7 +150,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(132, "its handler 0x00484940 returns 0 (hero-party-walk.md); nothing in src/ enters it"));
         rows.Add(Built(133, typeof(RescueRules), nameof(RescueRules.FreedState)));
         rows.Add(Built(134, typeof(RescueRules), nameof(RescueRules.RescuingState)));
-        rows.Add(Unbuilt(135, "read in state-category-hooks.md 3.3; not built"));
+        rows.Add(Built(135, typeof(TortureRules), nameof(TortureRules.VoluntaryLeaveState)));
         rows.Add(Built(136, typeof(TortureRules), nameof(TortureRules.ReleasedState)));
         rows.Add(Built(137, typeof(CombatPitRules), nameof(CombatPitRules.ArrivingState)));
         rows.Add(Built(138, typeof(CombatPitRules), nameof(CombatPitRules.PlacingState)));
@@ -227,7 +226,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(208, "not read"));
         rows.Add(Unbuilt(209, "not read"));
         rows.Add(Built(210, typeof(TremorRules), nameof(TremorRules.KnockdownState)));
-        rows.Add(Unbuilt(211, "its handler 0x00458680 waits out an action, then idles (functions/00458680.md); not built"));
+        rows.Add(Built(211, typeof(DropDeliveryRules), nameof(DropDeliveryRules.CelebratingState)));
         rows.Add(Unbuilt(212, "not read"));
         rows.Add(Unbuilt(213, "not read"));
         rows.Add(Unbuilt(214, "not read"));

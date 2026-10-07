@@ -1042,6 +1042,84 @@ public class HandTests
         Assert.Contains(sink.Events, e => e.Kind == "object_delivered" && e.Detail.Contains("wage_cleared=1500"));
     }
 
+    /// <summary>211 (<c>0x00481610</c>, refused-states.md §8): a creature that holds no place
+    /// celebrates gold landing on it, action 35 for <c>random(3) + 2</c> plays, then idles. Owner
+    /// 2026-10-07: a creature cheers when gold lands on it. Without art in slot 8 it goes back to
+    /// the state it was in; from a category 0 state such as 3 the move to 211 is refused.</summary>
+    [Theory]
+    [InlineData(true, CreatureStateMachine.Idle, true)]
+    [InlineData(false, CreatureStateMachine.Idle, false)]
+    [InlineData(true, CreatureJobSystem.DoingNothingState, false)]
+    public void GoldDroppedOntoACreatureHoldingNoPlaceCelebratesIn211_ForTheLikelyCountedClipLength_ThenIdles(bool art, int from, bool celebrates)
+    {
+        GameDatabase db = art ? WithCelebrationArt(Db) : Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        StatePlacement.Place(goblin, from);
+        ObjectState pile = world.SpawnObject(
+            db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, Index(world, new TilePos(3, 3)));
+        pile.GoldHeld = 200;
+        var sink = new ListEventSink();
+        var hand = new GameSimulation(db, world, seed: 42, [new HandSystem()]);
+        hand.ObserveWith(sink);
+
+        LiftAndDropOnto(hand, pile, goblin, goblin.Id);
+
+        Assert.Null(world.ObjectById(pile.Id));
+        if (!celebrates)
+        {
+            Assert.DoesNotContain(sink.Events, e => e.Kind == "gold_celebrated");
+            Assert.Equal(from, goblin.Dk2StateId);
+            return;
+        }
+        Assert.Equal(DropDeliveryRules.CelebratingState, goblin.Dk2StateId);
+        SimEvent cheer = Assert.Single(sink.Events, e => e.Kind == "gold_celebrated");
+        int plays = int.Parse(cheer.Detail[(cheer.Detail.IndexOf("plays=", StringComparison.Ordinal) + 6)..]);
+        Assert.InRange(plays, 2, 4);
+        Assert.Equal(cheer.Tick.Value + AnimationTimingRules.CountedHoldTicks(db.CreatureById(GoblinId), 8, plays), goblin.ActionUntilTick);
+
+        var jobs = new GameSimulation(db, world, seed: 42, [new CreatureJobSystem()]);
+        while (jobs.CurrentTick.Value < goblin.ActionUntilTick)
+        {
+            jobs.Tick();
+            Assert.True(jobs.CurrentTick.Value >= goblin.ActionUntilTick || goblin.Dk2StateId == DropDeliveryRules.CelebratingState);
+        }
+        jobs.Tick();
+        Assert.NotEqual(DropDeliveryRules.CelebratingState, goblin.Dk2StateId);
+    }
+
+    /// <summary>The fixture with a Goblin that has a clip in art slot 8, which 211's action plays.</summary>
+    private static GameDatabase WithCelebrationArt(GameDatabase basis)
+    {
+        var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+        slots[8] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 20, FramesPerSecond = 20 };
+        return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
+            basis.Creatures.Values.Select(c => c.CreatureId == GoblinId ? c with { ArtSlots = slots } : c),
+            basis.Variables, objects: basis.Objects.Values, shots: basis.Shots.Values);
+    }
+
+    [Fact]
+    public void GoldDroppedOntoACreatureHoldingAPlaceIsPaidWithoutACelebration()
+    {
+        GameDatabase db = WithCelebrationArt(Db);
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.HeldPlace = new RoomPlace(Index(world, Floor), RoomCapacityRules.Units);
+        ObjectState pile = world.SpawnObject(
+            db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, Index(world, new TilePos(3, 3)));
+        pile.GoldHeld = 200;
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        LiftAndDropOnto(sim, pile, goblin, goblin.Id);
+
+        Assert.Null(world.ObjectById(pile.Id));
+        Assert.NotEqual(DropDeliveryRules.CelebratingState, goblin.Dk2StateId);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "gold_celebrated");
+    }
+
     /// <summary>The one-bird meal and the hunger grievance wiped (<c>0x00463A10</c>): one helping
     /// paid off, whatever the creature was doing, and the chicken gone.</summary>
     [Fact]

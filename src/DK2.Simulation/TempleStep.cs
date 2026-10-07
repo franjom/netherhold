@@ -15,8 +15,9 @@ namespace DK2.Simulation;
 /// action 27; 105 waits the prayer out and steps ahead; 106 walks a summoned creature off the pool; 107
 /// takes a holder back in after its Temple changed. The prayer hook runs under all but 107
 /// (<see cref="Systems.CreatureJobSystem"/>).</summary>
-/// <remarks>Ours: a state entered this turn runs from the next. 101's offering in the pool is the
-/// Hand's (<see cref="TempleSacrificeRules"/>); 107 is seen at the holder's next turn (§8).</remarks>
+/// <remarks>Ours: a state entered this turn runs from the next. The Hand offers a creature dropped into
+/// the pool at once, where DK2 offers it in 101 after the drop's stun; 107 is seen at the holder's
+/// next turn (§8).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/temple-states.md")]
 public static class TempleStep
 {
@@ -57,7 +58,7 @@ public static class TempleStep
     /// <summary>One turn of a worshipper. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
     {
-        if (Changed(context, system, creature)) return true;
+        if (RoomEvictRules.Evict(context, system, creature)) return true;
         if (StateShadow.IsTravelling(creature))
         {
             if (creature.HasRoute) return true;
@@ -82,21 +83,45 @@ public static class TempleStep
 
     // ----------------------------------------------------------------------------- 101
 
-    /// <summary>101: on its own keeper's Temple off the pool, 103; on the pool, the offering, which
-    /// ours makes at the Hand's drop, so it goes idle; anywhere else, idle.</summary>
+    /// <summary>101: on any Temple's pool (a floor slot, the floor-height test's answer) the offering:
+    /// the creature goes, the recipes are matched and a summoned creature walks off in 106; on its own
+    /// keeper's Temple off the pool, 103; anywhere else, idle.</summary>
     private static bool Enter101(SimulationContext context, string system, CreatureState creature, long age)
     {
         WorldState world = context.World;
         if (age == 1) creature.StopMoving();
         if (TempleUnder(world, context.Database, creature) is not { } temple) return false;
-        if (AutoFurnitureRules.IsFloorSlot(world, temple, Here(world, creature)))
+        int here = Here(world, creature);
+        if (AutoFurnitureRules.IsFloorSlot(world, temple, here))
         {
-            context.Emit(system, "temple_pool_unbuilt", $"creature={creature.Id}");
+            Sacrifice(context, system, temple, creature, here);
             return false;
         }
 
         return temple.OwnerPlayerId == creature.OwnerPlayerId && Set(context, system, creature, ChoosingState);
     }
+
+    /// <summary>101's offering (<c>0x004F1600</c>, <c>0x004F1660</c>, <c>0x004F1780</c>; sacrifice.md),
+    /// shared with the Hand's drop into the pool.</summary>
+    public static SacrificeResult Sacrifice(SimulationContext context, string system, RoomInstance temple, CreatureState creature, int tile)
+    {
+        TempleSacrificeRules.Reconcile(context.World, context.Database);
+        byte type = creature.CreatureTypeId;
+        SacrificeResult result = TempleSacrificeRules.OfferCreature(context.World, context.Database, temple, creature, tile);
+        // 0x004F1780 kicks the creature it made to 106 (temple-states.md §6, ADR-0398).
+        if (result.RewardKind == SacrificeRewardKind.Creature && context.World.CreatureById(result.SpawnedThingId) is { } summoned)
+            Summon(context, system, summoned);
+        context.Emit(system, "sacrificed_in_pool",
+            $"creature={creature.Id} type={type} temple_owner={temple.OwnerPlayerId} tile={tile % context.World.Width},{tile / context.World.Width} " +
+            $"matched={(result.Matched ? "yes" : "no")} speech={result.SpeechId} reward={result.RewardKind}:{result.SpawnedThingId}");
+        return result;
+    }
+
+    /// <summary>The Temple's pool: its floor slots, the interior tiles whose eight neighbours are all
+    /// of the room. A creature in 101 is offered on one (<c>0x004545C0</c>, <c>0x00454110</c>); an
+    /// object's landing state 4 asks the same of the tile's byte <c>+0xC</c> (<c>0x0049F632</c>).</summary>
+    public static bool InThePool(WorldState world, RoomInstance temple, int tile) =>
+        temple.Definition.TypeId == RoomTypeId.Temple && AutoFurnitureRules.IsFloorSlot(world, temple, tile);
 
     // ----------------------------------------------------------------------------- 103
 
@@ -237,21 +262,6 @@ public static class TempleStep
     {
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
-    }
-
-    /// <summary><c>0x004F15D0</c>, seen at the holder's turn: its Temple was rebuilt since it claimed
-    /// its place, so it goes to 107, which releases the place.</summary>
-    private static bool Changed(SimulationContext context, string system, CreatureState creature)
-    {
-        if (creature.Dk2StateId == ReturningState || !creature.HeldPlace.IsHeld) return false;
-        WorldState world = context.World;
-        if (RoomIndex.RoomAt(world, context.Database, creature.HeldPlace.TileIndex) is not { } held
-            || held.Definition.TypeId != RoomTypeId.Temple
-            || SlabChain.SizeChangedTick(world, held) == creature.HeldPlaceStamp)
-            return false;
-        context.Emit(system, "temple_changed", $"creature={creature.Id}");
-        creature.StopMoving();
-        return StateShadow.TryMove(context, system, creature, ReturningState);
     }
 
     /// <summary>107: a turn's wait, then 101 on its own keeper's Temple, otherwise idle.</summary>

@@ -41,7 +41,7 @@ public static class ActivityRules
         StealGoldRules.InTheTreasuryState => CreatureActivity.GoingToJob,
         StealGoldRules.AtTheGoldState => CreatureActivity.AtWork,
         StealGoldRules.EscapingState => CreatureActivity.Leaving,
-        TunnelRules.TunnellingState or TunnelRules.HandBackState => CreatureActivity.AtWork,
+        TunnelRules.TunnellingState or TunnelRules.HandBackState or TunnelRules.WanderState => CreatureActivity.AtWork,
         TunnelRules.AdvancingState => CreatureActivity.GoingToJob,
         CombatPitSpectatorRules.FacingState => CreatureActivity.AtWork,
         CasinoJackpotRules.ArrivedState => CreatureActivity.CollectingWinnings,
@@ -57,7 +57,8 @@ public static class ActivityRules
 
     private static CreatureActivity? Standing(CreatureState creature, int state) => state switch
     {
-        Systems.CreatureJobSystem.NeutralIdleState or Systems.CreatureJobSystem.HornyIdleState => CreatureActivity.UnbuiltHandler,
+        Systems.CreatureJobSystem.HornyIdleState => CreatureActivity.UnbuiltHandler,
+        Systems.CreatureJobSystem.NeutralIdleState or DropDeliveryRules.CelebratingState => CreatureActivity.Idle,
         ReaperRules.ArrivingState or ReaperRules.MaterializingState or ReaperRules.GreetingState => CreatureActivity.ReaperArriving,
         ReaperRules.DepartingState => CreatureActivity.Leaving,
         CreatureStateMachine.Idle or Systems.CreatureJobSystem.IdleChooserState or Systems.CreatureJobSystem.DoingNothingState or ImpStates.TaskSelection or ImpStates.AfterDrop or ImpStates.Resting or ImpStates.Wandering => CreatureActivity.Idle,
@@ -68,7 +69,9 @@ public static class ActivityRules
         >= StealGoldRules.ToTheTreasuryState and <= StealGoldRules.AtTheGoldState => CreatureActivity.AtWork,
         StealGoldRules.EscapingState => CreatureActivity.Leaving,
         StealGoldRules.RunTheJobState => CreatureActivity.Idle,
-        TunnelRules.TunnellingState => CreatureActivity.AtWork,
+        TunnelRules.TunnellingState or TunnelRules.WanderState => CreatureActivity.AtWork,
+        TrainingRules.ReturningState => CreatureActivity.AtWork,
+        PrisonRules.ReturningState => CreatureActivity.Imprisoned,
         TunnelRules.AdvancingState => CreatureActivity.GoingToJob,
         TunnelRules.HandBackState => CreatureActivity.Idle,
         RoomAttackRules.DestroyingRoomsState => CreatureActivity.AtWork,

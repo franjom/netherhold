@@ -357,8 +357,10 @@ public class PrisonTests
         WorldState world = World(db);
         Prison(db, world);
 
-        ref TileState templeTile = ref world.Tile(2, 7);
-        RoomRules.Place(db, ref templeTile, db.Room(RoomTypeId.Temple), Keeper);
+        // A 3×3 Temple whose centre, (2, 7), is its pool: only there is an offering made (ADR-0400).
+        for (int y = 6; y <= 8; y++)
+        for (int x = 1; x <= 3; x++)
+            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Temple), Keeper);
 
         CreatureState captive = Prisoner(db, world, CellB);
 

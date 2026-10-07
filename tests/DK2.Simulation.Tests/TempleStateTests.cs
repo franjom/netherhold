@@ -184,19 +184,23 @@ public class TempleStateTests
         Assert.Contains(it.Tile, new[] { new TilePos(1, 2), new TilePos(1, 4) });   // never the pool at (2,3)
     }
 
+    /// <summary>101 on the pool (temple-states.md §3): the creature is the offering, as DK2's
+    /// 101 makes it (<c>0x004F1600</c>), whatever the recipe says.</summary>
     [Fact]
-    public void OnThePoolA101WorshipperGoesIdle_TheOfferingIsTheHandsInOurs()
+    public void OnThePoolA101WorshipperIsTheOffering()
     {
         GameDatabase db = Db();
         WorldState world = World(db, 5);
-        Worshipper(db, world, new TilePos(3, 3));
+        CreatureState it = Worshipper(db, world, new TilePos(3, 3));
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world);
         sim.ObserveWith(sink);
 
         sim.Run(2);
 
-        Assert.Contains(sink.Events, e => e.Kind == "temple_pool_unbuilt");
+        Assert.Null(world.CreatureById(it.Id));
+        Assert.Contains(sink.Events, e => e.Kind == "sacrificed_in_pool" && e.Detail.Contains($"creature={it.Id} "));
+        Assert.Equal(1, Assert.Single(world.TempleSacrifices).Count);
     }
 
     [Fact]

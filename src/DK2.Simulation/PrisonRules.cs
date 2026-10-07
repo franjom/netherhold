@@ -36,6 +36,31 @@ public static class PrisonRules
     /// <summary>116: standing in the cell.</summary>
     public const int InTheCellState = 116;
 
+    /// <summary>126 (<c>0x00473920</c>): back in after the Prison changed (<see cref="RoomEvictRules"/>,
+    /// refused-states.md §5). Still a captive: <c>0x00473990</c> counts 126 with category 14.</summary>
+    public const int ReturningState = 126;
+
+    /// <summary>126: a turn's wait; then on any Prison tile, 114 (ours goes on to 115 as the admission
+    /// does); anywhere else 0, idle and let out. Not built: a neutral captive taking the Prison's
+    /// owner first (vtable <c>+0x24</c>).</summary>
+    internal static void Return(SimulationContext context, string system, CreatureState creature)
+    {
+        if (context.Tick.Value - creature.StateEnteredTick <= 1) return;
+        WorldState world = context.World;
+        bool onPrison = world.Contains(creature.Tile)
+            && RoomIndex.RoomAt(world, context.Database, (creature.Tile.Y * world.Width) + creature.Tile.X) is { } room
+            && room.Definition.TypeId == RoomTypeId.Prison;
+        if (onPrison && CreatureStateMachine.TrySetState(context.Hooks, creature, AdmittedState, context.Tick.Value))
+        {
+            CreatureStateMachine.TrySetState(context.Hooks, creature, DecidingState, context.Tick.Value);
+            context.Emit(system, "prisoner_returned", $"creature={creature.Id}");
+            return;
+        }
+
+        Release(context.Hooks, creature);
+        Systems.StateShadow.ToIdle(context, system, creature);
+    }
+
     /// <summary>117: finds the nearest chicken in the prison and walks to it in 6, resuming
     /// in <see cref="EatingState"/>; with none, the hunger anger and back to 116.</summary>
     public const int SeekingFoodState = 117;

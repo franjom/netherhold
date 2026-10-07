@@ -92,3 +92,32 @@ M-F Refused part 2 (the other 24, grouped by entry path).
   `0x00470C5C` is state 70's, not 67's; the work's length (LIKELY), the machines' presentation
   (STRONGLY INFERRED), the object-list and null-room deviations declared; the drop test's pin
   restored and two tests added. The scans for 102 and 66 were redone as raw byte scans: still none.
+
+## M-E Refused part 1 (2026-10-07)
+
+- Read by three parallel read-only agents, each with the call scan and a raw byte scan; then
+  built here.
+- **Built:** 5, 71, 86, 113, 126, 135, 211. **Unreachable:** 69.
+- The owner answered Q570 (a creature cheers when gold lands on it: 211 built at the Hand's gold
+  delivery) and corrected the Temple: an offering is made only in the pool. The Hand now offers a
+  dropped creature or object only on a pool tile, and 101 offers a creature standing in the pool.
+- `RoomEvictRules` now holds the rebuilt-room eviction for the Temple (107), Prison (126) and
+  Training Room (113); 154 (Casino), 62 and 70 may join it in M-F.
+- Also: state 3 now draws the Bile Demon's roll it was missing, which makes shot 53 (the Heal
+  Instant Shot, healing 0) one time in ten, not a sound; state 11's allow-list reason ("nothing
+  enters it") is gone, as 71 enters it.
+- ADR-0400, HashVersion and `WorldSnapshot.FormatVersion` 200 (no new field), research
+  `refused-states.md` and `temple-states.md` §8, 14 new function records, 14 updated. New
+  `RefusedStateTests` (10 tests, 11 cases), tests in `TunnelTests` (86), `TortureTests` (135), `HandTests` (211),
+  `TempleSacrificeTests` (the rim) and `TempleStateTests` (101's offering).
+- Replays, both sides run at the branch's `5e504d86`: Level 1 20/20 → 20/20, Level 2 5/20 → 5/20
+  (same seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3600 → 3676 (DK2 3683).
+- Level 11A's keeper scenario kept its outcome (the bridges, the tag at (64,38), the call at
+  (64,34), the army on Morgana's heart) but the call moved from tick 460 to 588 (DK2: 700) and the
+  tag from 65 to 64, once neutral creatures idle in 5 (verified at `0x004775BE`); its ticks and
+  prose were updated.
+- Reviewer, two passes. Fixed: the Bile Demon's shot; the 135 kick before the route test; the
+  tests strengthened (113 reaching 108 needed a furnished, paid Training Room); 71's labels; the
+  doubt carried in test names; the refused-action arm of 211 and the kick's animation words
+  declared; whose Temple pool counts.
+- Next: the slap's state moves 67, 77 and 120 (Q569, the owner said build them), then M-F.

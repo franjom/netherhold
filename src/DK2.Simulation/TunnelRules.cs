@@ -27,6 +27,38 @@ public struct TunnelRecord
 public static class TunnelRules
 {
     public const int TunnellingState = 186;
+
+    /// <summary>86 (<c>0x00480750</c>): a tunneller with no next dig wanders (refused-states.md §6).</summary>
+    public const int WanderState = 86;
+
+    /// <summary>86's nine points in a tile, <c>0x00698EC8</c>: x and y each of <c>0x2AA</c>, <c>0x7FF</c>, <c>0xD54</c>.</summary>
+    private static readonly (int X, int Y)[] WanderPoints =
+        [(0x2AA, 0x2AA), (0x7FF, 0x2AA), (0xD54, 0x2AA), (0x2AA, 0x7FF), (0x7FF, 0x7FF), (0xD54, 0x7FF), (0x2AA, 0xD54), (0x7FF, 0xD54), (0xD54, 0xD54)];
+
+    /// <summary>86 (<c>0x00480750</c>), on 186's fields as they stand: idle once the dig point's y
+    /// (<c>+0xB3</c>), read as a turn, is not after now (unsigned); otherwise from <c>random(4)</c> round
+    /// the four neighbours of its tile, the first within the dig point's x (<c>+0xAF</c>) of the stand
+    /// point (<c>+0xA7</c>/<c>+0xAB</c>), a tile index against a position as DK2 compares them, and not
+    /// solid, takes a walk to one of nine points in it (<c>random(9)</c>) resuming 86.</summary>
+    public static bool Wander(SimulationContext context, CreatureState creature)
+    {
+        ref TunnelRecord t = ref creature.Tunnel;
+        if (unchecked((uint)t.DigY) <= unchecked((ulong)context.Tick.Value)) return false;
+        int start = context.Rng.NextInt(4);
+        int x0 = creature.PosX >> 12, y0 = creature.PosY >> 12;
+        for (int i = 0; i < 4; i++)
+        {
+            (int dx, int dy) = Dirs[(start + i) & 3];
+            int nx = x0 + dx, ny = y0 + dy;
+            int far = Math.Max(Math.Abs(nx - t.StandX), Math.Abs(t.StandY - ny));
+            if (unchecked((uint)far) > unchecked((uint)t.DigX)) continue;
+            if (!context.World.Contains(new TilePos(nx, ny)) || IsSolid(context, nx, ny)) continue;
+            (int px, int py) = WanderPoints[context.Rng.NextInt(WanderPoints.Length)];
+            if (Walk(context, creature, (nx << 12) | px, (ny << 12) | py, WanderState, Navigation.MoveOptions.Loose)) return true;
+        }
+
+        return false;
+    }
     public const int AdvancingState = 223;
     public const int HandBackState = 224;
 
@@ -126,8 +158,13 @@ public static class TunnelRules
                 StateShadow.Move(context, system, creature, HeroJobRules.WaitFailedState);
                 return false;
             }
-            // Without the reach flag DK2 sets 86, wandering, which is not built: ours idles.
-            return t.Reach && Walk(context, creature, Centre(t.TargetX), Centre(t.TargetY), t.Resume, 0);
+            // Without the reach flag, 86, wandering near where it stood (0x00485CD8, ADR-0400).
+            if (!t.Reach)
+            {
+                StateShadow.Move(context, system, creature, WanderState);
+                return true;
+            }
+            return Walk(context, creature, Centre(t.TargetX), Centre(t.TargetY), t.Resume, 0);
         }
 
         if (Math.Abs(t.StandX - creature.PosX) > StandRange || Math.Abs(t.StandY - creature.PosY) > StandRange)

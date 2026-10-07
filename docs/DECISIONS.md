@@ -9096,3 +9096,36 @@ INFERRED).
 **Measured** (hash 199) against the branch at `e6925731` (M-C), both sides run: Level 1 20/20 and
 20/20, Level 2 5/20 and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3608 and 3600 (DK2
 3683).
+
+## ADR-0400 — The first eight category 0 states: a neutral idle, the Heart's drop, the tunneller's wander, the evicted holders' way back, the gold cheer
+**Date:** 2026-10-07 · **Status:** accepted · Research: `refused-states.md`, `temple-states.md` §8
+
+**Context.** Eight states the original files under category 0 were unbuilt: 5, 69, 71, 86, 113,
+126, 135, 211. Read, with every entry, by a call scan and a raw byte scan: 5 is the idle every
+neutral creature in state 1 takes (ours sent only a fleeing one); 69 is entered and left within
+68's one call; 71 is the Heart's drop state, which pays a non-worker its wages and gives a worker
+on the Heart's inner 3×3 back for Create Imp's mana; 86 is a tunneller's wander when its planner
+gives up, on 186's fields as they stand; 113 and 126 are where a rebuilt Training Room's and
+Prison's holders wait a turn before going back in, as the Temple's 107; 135 is the kick a willing
+torturee takes before answering a Call to Arms; 211 is the gold celebration. Reading 5 found that
+a Bile Demon's idle action makes a shot one time in ten, not a sound. The owner answered Q570 (a
+creature cheers when gold lands on it) and corrected the Temple: an offering is made only in the
+pool.
+
+**Decision.** Built: 5 (every neutral creature, sharing state 3's body, which now draws the Bile
+Demon's roll and makes shot `0x35`, the Heal Instant Shot, whose data words are 0: it dies on its
+first turn and its death shot heals by 0), 71 (`DropLandingRules.HeartDrop`, and a worker getting
+up on a Heart goes there instead of idle), 86 (`TunnelRules.Wander`, the mixed units as read), 113
+and 126 (`RoomEvictRules`, which the Temple's 107 now uses too), 135 (`CallToArmsRules.Recruit`,
+kicked before the route test), 211 (`DropDeliveryRules.Celebrate` at the Hand's gold delivery to a
+creature holding no place). 69 is unreachable. The Temple's offering is made only on a pool tile,
+one the Temple surrounds: by the Hand's drop (creature or object) and by 101 (`TempleStep.Sacrifice`).
+Deviates: a rebuilt room is seen at the holder's next turn by its size stamp, and a freed room or
+new owner is left to the job's room test or the Prison's release; the neighbour-terrain trigger
+`0x004E44E0` and 76's worker arm are not built; 71 runs in the turn it is entered; the Heart object
+is a living Heart; 126's neutral owner change and the Heart's responder kick to 135 are not built;
+the Hand offers a creature in the pool at the drop, where DK2 offers it in 101 after the drop's stun.
+
+**Measured** (hash 200) against the branch at `5e504d86` (M-D), both sides run: Level 1 20/20 and
+20/20, Level 2 5/20 and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3600 and 3676 (DK2
+3683).

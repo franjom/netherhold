@@ -88,6 +88,14 @@ public static class DropLandingRules
                 return;
             }
 
+            // The Heart's drop state, 71 (0x00459180), through 1 (KickToState(1), KickToState(71)).
+            if (type == RoomTypeId.DungeonHeart)
+            {
+                StateShadow.ToIdle(context, system, creature);
+                if (StateShadow.TryMove(context, system, creature, HeartDropState)) HeartDrop(context, system, creature, definition, room!);
+                return;
+            }
+
             if (JobRules.TryDropOnARoom(context.Hooks, creature, definition, here) is { } job)
             {
                 context.Emit(system, "dropped_to_job", $"creature={creature.Id} job={job} at=({creature.Tile.X},{creature.Tile.Y})");
@@ -117,6 +125,52 @@ public static class DropLandingRules
             return;
         }
         context.Emit(system, "standing", $"creature={creature.Id} until={creature.StateDeadlineTick + StandTicks}");
+    }
+
+    /// <summary>Whether the creature stands on a Dungeon Heart's tile.</summary>
+    public static bool OnAHeart(WorldState world, GameDatabase database, CreatureState creature) =>
+        world.Contains(creature.Tile)
+        && RoomIndex.RoomAt(world, database, (creature.Tile.Y * world.Width) + creature.Tile.X)?.Definition.TypeId == RoomTypeId.DungeonHeart;
+
+    /// <summary>The Dungeon Heart's drop state (<c>0x00459180</c>, refused-states.md §3).</summary>
+    public const int HeartDropState = 71;
+
+    /// <summary>The worker states 71 sends to: 11 off the Heart's inner 3×3 or with no Heart object.</summary>
+    private const int WorkerAfterDropState = ImpStates.AfterDrop;
+
+    /// <summary>71's handler, run in the turn it is entered (ours; DK2 runs it the next): a non-worker
+    /// goes to 188 for its wages; a worker off the inner 3×3 (<c>0x004DA150</c>), or with no Heart object,
+    /// to 11; a worker on it is given back, the tile owner credited Create Imp's mana cost
+    /// (<c>Player_AddMana</c>, capped at the threshold), its gold lost, and it is gone (as state 196).</summary>
+    private static void HeartDrop(SimulationContext context, string system, CreatureState creature, CreatureDef definition, RoomInstance heart)
+    {
+        WorldState world = context.World;
+        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
+        {
+            if (!StateShadow.TryMove(context, system, creature, PaydayRules.ArrivingState)) StateShadow.ToIdle(context, system, creature);
+            return;
+        }
+
+        int dx = creature.Tile.X - heart.MinX, dy = creature.Tile.Y - heart.MinY;
+        bool inner = dx is >= 1 and <= 3 && dy is >= 1 and <= 3;
+        PlayerId owner = world.TileAtIndex((creature.Tile.Y * world.Width) + creature.Tile.X).OwnerPlayerId;
+        bool heartObject = world.HasPlayer(heart.OwnerPlayerId) && !world.Player(heart.OwnerPlayerId).HeartRuined;
+        if (!inner || !heartObject)
+        {
+            if (!StateShadow.TryMove(context, system, creature, WorkerAfterDropState)) StateShadow.ToIdle(context, system, creature);
+            return;
+        }
+
+        int refund = context.Database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaCost;
+        if (world.HasPlayer(owner))
+        {
+            ref PlayerState player = ref world.Player(owner);
+            player.Mana = Math.Min(player.Mana + refund, ManaRules.Threshold(context.Database));
+        }
+        context.Emit(system, "worker_given_back",
+            $"creature={creature.Id} player={owner} mana={refund} gold_lost={creature.GoldHeld} at=({creature.Tile.X},{creature.Tile.Y})");
+        creature.GoldHeld = 0;
+        world.RemoveCreature(creature.Id);
     }
 
     /// <summary>State 250: true while it stands (<c>now &lt; +0x7E + 50</c>).</summary>

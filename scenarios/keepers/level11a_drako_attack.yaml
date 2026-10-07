@@ -57,22 +57,25 @@ expect:
       the bridge just laid, which is owned and not solid (0x00453B30). DK2: 70.
   - event: tagged
     detail: "player=5 applied=1 rejected=0 span=(64,38)-(64,38)"
-    at_tick: 65
+    at_tick: 64
     because: >
       Past the lava the walker meets rock again and task 7 tags it: the tunnel continues toward
       Morgana's heart. Morgana's imp reinforced the tile at 62, so Drako's imps dig an enemy wall,
       and from 91 one of Morgana's imps repairs it from her side (kind 16, ADR-0387); it falls at
-      393. DK2: repair from 101, the wall falls at 387. The imps then fight in the hole (ADR-0388),
-      and Drako claims it at 425 and keeps it (DK2: 638).
+      365. DK2: repair from 101, the wall falls at 387. The imps then fight in the hole (ADR-0388):
+      Drako claims it at 377, Morgana's imp takes it back and the hole changes hands until Drako
+      holds it from 679 (DK2: 638). Before ADR-0400: falls at 393, Drako keeps it from 425.
   - event: call_to_arms_raised
     detail: "tile=64,34"
-    at_tick: 460
+    at_tick: 588
     because: >
       With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
       heart and attack management casts the call there (0x004FECE0, ADR-0298). The point is a draw
-      between (64,34) and (64,38); DK2's call stands on (64,38), at 700.
+      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. It moved from 460 to 588
+      (and the tag at (64,38) from 65 to 64) when every neutral creature began idling in state 5
+      as state 1 sends it (ADR-0400), which shifts the stream; the outcome is unchanged.
   - event: engaged
     detail: "player=5 heart=6"
     because: >
       Drako's creatures answer the call and attack Morgana's heart (scan E, ADR-0163); first at
-      511, a Salamander. DK2's army crosses only after its call too.
+      607, a Salamander (511 before ADR-0400). DK2's army crosses only after its call too.

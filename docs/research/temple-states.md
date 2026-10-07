@@ -121,11 +121,15 @@ releases each place as it goes, which is what empties the list.
 
 - `TempleStep` runs 101, 103–107 under the Praying job; `CreatureJobSystem` runs the prayer hook
   first, as for the Library.
-- **101's pool** (§3, the offering) is not run from 101. Ours sacrifices a creature at the Hand's
-  drop on any tile of the keeper's Temple (`TempleSacrificeRules`, ADR-0149), which predates this
-  work; DK2 sacrifices only in the pool, after the landing. A walking creature in 101 on a floor
-  slot (the floor-height test's own answer) goes idle instead. No walk ends there since the room
-  walk's point is DK2's (§9); a prayer's step can, and then 103 takes it on.
+- **101's pool** (§3, the offering) is built (ADR-0400, owner 2026-10-07: only in the pool). The
+  pool is the room's floor slots, the tiles whose eight neighbours are all Temple; an object's
+  landing state 4 (`0x0049F600`) asks the same through the tile's byte `+0xC` (`0x0049F632`). A
+  creature in 101 on one is offered (`TempleStep.Sacrifice`). The Hand offers a creature or an
+  object dropped on a pool tile at once (`TempleSacrificeRules`, ADR-0149); DK2 offers the creature
+  in 101 after the drop's stun. Dropped on the rim, a creature lands and the Temple's drop state
+  takes it in to pray. Neither DK2 test asks whose Temple: 101 offers in any Temple's pool, and ours
+  too. The Hand's offering stays on the dropper's own Temple (`TempleSacrificeRules.IsTemple`), as a
+  drop is refused off the keeper's own land before it is tested.
 - **107's trigger.** Ours sees a rebuilt Temple at the holder's next turn, by the room's size stamp
   (`SlabChain.SizeChangedTick`, the turn `0x004E4480` stamps) differing from the one it held when it
   claimed its place (`CreatureState.HeldPlaceStamp`, set by `RoomCapacityRules.Claim`), not inside

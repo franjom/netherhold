@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 199: the Workshop's states 63-65 (ADR-0399)
+        // HashVersion 200: category 0 states 5, 71, 86, 113, 126, 135 (ADR-0400)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xF759489159B4EB3EUL, sim.StateHash());
+        Assert.Equal(0x587802C58EC02B4BUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

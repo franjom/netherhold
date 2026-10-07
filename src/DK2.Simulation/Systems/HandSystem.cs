@@ -266,7 +266,9 @@ public sealed class HandSystem : ISimulationSystem
         int landingTileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
         TempleSacrificeRules.Reconcile(world, context.Database);
         RoomInstance? temple = RoomIndex.RoomAt(world, context.Database, landingTileIndex);
-        if (TempleSacrificeRules.IsTemple(temple, command.PlayerId))
+        // Only into the pool (temple-states.md §3, owner 2026-10-07); off it the creature lands and
+        // the Temple's drop state takes it in to pray.
+        if (TempleSacrificeRules.IsTemple(temple, command.PlayerId) && TempleStep.InThePool(world, temple!, landingTileIndex))
         {
             hand.RemoveAt(hand.Count - 1);
             creature.InHand = false;
@@ -452,7 +454,8 @@ public sealed class HandSystem : ISimulationSystem
         int landingTileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
         TempleSacrificeRules.Reconcile(world, context.Database);
         RoomInstance? temple = RoomIndex.RoomAt(world, context.Database, landingTileIndex);
-        if (TempleSacrificeRules.IsTemple(temple, command.PlayerId))
+        // Object state 4 offers only on a tile the Temple surrounds (0x0049F632), the pool.
+        if (TempleSacrificeRules.IsTemple(temple, command.PlayerId) && TempleStep.InThePool(world, temple!, landingTileIndex))
         {
             hand.RemoveAt(hand.Count - 1);
             thing.InHand = false;
@@ -484,7 +487,7 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
-        DropDelivery given = DropDeliveryRules.Deliver(world, context.Database, thing, recipient);
+        DropDelivery given = DropDeliveryRules.Deliver(context, SystemName, thing, recipient);
         context.Emit(SystemName, "object_delivered",
             $"player={command.PlayerId} object={thing.Id} creature={recipient.Id} " +
             (given.Gold

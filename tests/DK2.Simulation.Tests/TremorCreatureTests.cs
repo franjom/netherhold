@@ -514,7 +514,6 @@ public sealed class TremorCreatureTests
     }
 
     [Theory]
-    [InlineData(false, 5)]
     [InlineData(true, 238)]
     public void SpecialRoleIdleSelectsItsOwnUnbuiltHandlerWithoutKeeperJobs_StronglyInferredFromBinary(bool horny, int destination)
     {

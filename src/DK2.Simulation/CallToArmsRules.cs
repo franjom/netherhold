@@ -188,20 +188,27 @@ public static class CallToArmsRules
                 continue;
             }
 
+            // 0x004BDEA4-0x004BDEE0: refused when joining, fighting, reporting or held captive, unless
+            // the creature is on a torture device of its own will (+0x3EA bit 14).
             CreatureStateCategory category = NeedRules.ResolvedCategory(creature);
-            if (creature.Dk2StateId == PortalRules.JoiningState || category is CreatureStateCategory.Combat or CreatureStateCategory.ReportingDanger
-                || PrisonRules.IsImprisoned(creature))
+            if (!creature.TortureVoluntary
+                && (creature.Dk2StateId == PortalRules.JoiningState || category is CreatureStateCategory.Combat or CreatureStateCategory.ReportingDanger
+                    || PrisonRules.IsImprisoned(creature)))
             {
                 continue;
             }
 
-            if (!CanRoute(context, creature, definition, tile))
+            // 0x004BDF02-0x004BDF0E: a willing torturee is kicked to 135 before the route test, and its
+            // leave from category 15 frees the device. A taken kick also zeroes +0x64, +0x66 and +0x68
+            // (0x004BDF17-0x004BDF1F), the animation words 135's handler zeroes too: presentation. 135's handler 0x00484CC0 only returns 0, so a
+            // refused route or 190 leaves it idle; ours idles it here, standing in for that handler.
+            if (creature.TortureVoluntary)
+                CreatureStateMachine.TrySetState(context.Hooks, creature, TortureRules.VoluntaryLeaveState, context.Tick.Value);
+            if (!CanRoute(context, creature, definition, tile)
+                || !CreatureStateMachine.TrySetState(context.Hooks, creature, GoingState, context.Tick.Value))
             {
-                continue;
-            }
-
-            if (!CreatureStateMachine.TrySetState(context.Hooks, creature, GoingState, context.Tick.Value))
-            {
+                if (creature.Dk2StateId == TortureRules.VoluntaryLeaveState)
+                    CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
                 continue;
             }
 

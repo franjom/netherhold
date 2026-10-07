@@ -84,7 +84,6 @@ public class StateCoverageTableTests
     }
 
     [Theory]
-    [InlineData(Systems.CreatureJobSystem.NeutralIdleState)]
     [InlineData(Systems.CreatureJobSystem.HornyIdleState)]
     public void AnExplicitUnbuiltHandlerBoundaryDoesNotClaimBuiltCoverage(int stateId)
     {

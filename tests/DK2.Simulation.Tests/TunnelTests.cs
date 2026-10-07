@@ -95,6 +95,23 @@ public class TunnelTests
         Assert.True(RunUntil(sim, () => leader.Dk2StateId == HeroJobRules.AtTheHeartState, 3000), "the leader never reached the heart");
     }
 
+    /// <summary>A heart sealed in a ring of impenetrable rock: the wall-follow comes back to its hit
+    /// point four times, the reach flag is cleared, and 186 sets 86, wandering (0x00485CD8, ADR-0400).</summary>
+    [Fact]
+    public void AWorkerThatCannotTunnelRoundASealedRingWandersIn86()
+    {
+        (GameDatabase db, WorldState world) = Walled();
+        for (int y = 4; y <= 8; y++)
+            for (int x = 9; x <= 13; x++)
+                if (x is 9 or 13 || y is 4 or 8) world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+        CreatureState dwarf = Hero(db, world, Worker, new TilePos(3, 6));
+        (GameSimulation sim, ListEventSink _) = Simulation(db, world);
+
+        bool wandered = RunUntil(sim, () => StateOf(dwarf) == TunnelRules.WanderState, 12000);
+
+        Assert.True(wandered, $"never wandered; state {dwarf.Dk2StateId}");
+    }
+
     private static int StateOf(CreatureState c) =>
         c.Dk2StateId is StateShadowTravel.ToPoint or StateShadowTravel.ToRoom ? c.UtilityNewState : c.Dk2StateId;
 

@@ -98,9 +98,21 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
                 DoingNothing(context, creature);
                 continue;
             }
+            if (creature.Dk2StateId == NeutralIdleState)
+            {
+                NeutralIdle(context, creature);
+                continue;
+            }
             if (creature.Dk2StateId == ImpStates.Wandering)
             {
                 if (!ImpTaskSystem.Wander(context, creature, definition)) StateShadow.ToIdle(context, SystemName, creature);
+                continue;
+            }
+
+            // 211, the gold celebration: holds while its action plays, then idle (ADR-0400).
+            if (creature.Dk2StateId == DropDeliveryRules.CelebratingState)
+            {
+                if (!DropDeliveryRules.Celebrating(context, creature)) StateShadow.ToIdle(context, SystemName, creature);
                 continue;
             }
 
@@ -119,6 +131,8 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
 
                 case CreatureActivity.AtWork:
                     Working(context, creature, definition);
+                    // 101's offering in a Temple's pool removes the creature (temple-states.md §3).
+                    if (i < creatures.Count && !ReferenceEquals(creatures[i], creature)) i--;
                     break;
 
                 case CreatureActivity.Idle:
@@ -150,6 +164,15 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         }
         // State 1's first arm, before it sends the creature to 89: back to a fight it withdrew from.
         if (creature.Dk2StateId == CreatureStateMachine.Idle && Combat.FightReturnRules.TryReturn(context, creature)) return;
+
+        // State 1's neutral arm (0x004775BE-0x004775DA): every neutral creature, fleeing or not,
+        // takes +0x7E = now + 12 and state 5 (ADR-0400).
+        if (creature.Dk2StateId == CreatureStateMachine.Idle && creature.OwnerPlayerId == PlayerIds.Neutral)
+        {
+            creature.StateDeadlineTick = context.Tick.Value + NothingToDoTicks;
+            CreatureStateMachine.TrySetState(context.Hooks, creature, NeutralIdleState, context.Tick.Value);
+            return;
+        }
 
         // 89 clears the heeding bit, and with the owner's Call to Arms on walks to the flag
         // resuming 191, or sends message 84 (0x004778E0; call-to-arms.md).
@@ -532,7 +555,8 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             if (CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Temple
                 && CreatureStateMachine.HookFires(creature, CreatureStateMachine.HookCountdownSeed))
                 Pray(context, world, database, creature, definition);
-            if (originalTick && !TempleStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            if (originalTick && !TempleStep.Turn(context, SystemName, creature) && world.CreatureById(creature.Id) is not null)
+                Stop(context, creature);
             return;
         }
 
@@ -581,6 +605,18 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
 
             if (!WorkshopStep.Turn(context, SystemName, creature)) Stop(context, creature);
             return;
+        }
+
+        // A trainee's Training Room rebuilt since its claim sends it to 113, which waits a turn
+        // and goes back to 108 (0x004F2EA0, 0x00485A60; ADR-0400).
+        if (job == JobType.Train)
+        {
+            if (originalTick && RoomEvictRules.Evict(context, SystemName, creature)) return;
+            if (creature.Dk2StateId == TrainingRules.ReturningState)
+            {
+                if (originalTick && !TrainingRules.Return(context, SystemName, creature)) Stop(context, creature);
+                return;
+            }
         }
 
         // What happens at work is the update hook of the job state's CATEGORY, which the

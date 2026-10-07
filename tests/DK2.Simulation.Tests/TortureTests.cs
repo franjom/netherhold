@@ -301,6 +301,28 @@ public class TortureTests
     }
 
     [Fact]
+    public void AWillingTortureeAnswersACallToArmsThroughState135_LeavingTheWheel()
+    {
+        // 0x004BDDA0: TortureVoluntary (+0x3EA bit 14) lifts the recruit's refusals and kicks it to 135
+        // first (0x004BDF0E), whose leave from category 15 frees the device, then 190 (ADR-0400).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, ChamberFloor);
+        Carry(Simulation(db, world), goblin, Wheel);
+        Assert.Equal(TortureRules.TorturedState, goblin.Dk2StateId);
+        goblin.TortureVoluntary = true;
+        world.Player(Keeper).Mana = 20000;
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, CallToArmsRules.SpellId, 3));
+        var cta = new GameSimulation(db, world, 1,
+            [new KeeperSpellSystem(), new CreatureMovementSystem(), new ShotSystem(), new CallToArmsSystem()]);
+
+        cta.Tick(InputFrame.Of(new CastSpellAtPlaceCommand(Keeper, CallToArmsRules.SpellId, CreatureState.CentreOf(11), CreatureState.CentreOf(7))));
+
+        Assert.True(goblin.HeedingCallToArms);
+        Assert.False(TortureRules.IsBeingTortured(goblin));
+    }
+
+    [Fact]
     public void AnOwnGoblinWhoseWheelIsGoneGetsOffIdle()
     {
         GameDatabase db = Db;

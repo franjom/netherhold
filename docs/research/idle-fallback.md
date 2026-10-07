@@ -58,7 +58,8 @@ runs no movement.
     - 75–99: action `0x2C` (44), if it has it.
 
     An action played clears `+0xA7` and returns 1. For a creature whose `+0x36F` is 3, a
-    further `random(100)` under 10 plays sound `0x35`.
+    further `random(100)` under 10 makes shot `0x35`, the Heal Instant Shot, at its position
+    (`0x004B7CD0`; corrected 2026-10-07 from "sound", `refused-states.md` §1).
   - Wander: `SetState(87)` and `+0xA7` = now + `0x84` (132), return 1. Refused, 0.
 
 State 4 has the same handler. 87 (`0x004808E0`) is the imp's wander state and one handler for

@@ -25,6 +25,12 @@ public static class TortureRules
     public const int StrappingState = 130;
     public const int TorturedState = 131;
 
+    /// <summary>135 (<c>0x00484CC0</c>): zeroes three animation words and returns 0, idle. The kick a
+    /// willing torturee takes before a Call to Arms walk (<c>0x004BDF0E</c>) or the Heart's responder
+    /// walk (<c>0x004D99E4</c>, not built), so its leave from category 15 frees the device; the owner
+    /// change <c>0x0048D050</c> passes through it on a conversion (refused-states.md §7).</summary>
+    public const int VoluntaryLeaveState = 135;
+
     /// <summary>What each act of the hook adds to <see cref="CreatureState.TorturedDuration"/>:
     /// variable 19.</summary>
     public const int DurationPerAct = CreatureStateMachine.HookCountdownSeed;

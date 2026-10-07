@@ -80,6 +80,7 @@ public sealed class HeroSystem : ISimulationSystem
             StealGoldRules.EscapingState => Escape(context, creature),
             StealGoldRules.RunTheJobState => HeroJobRules.Dispatch(context, SystemName, creature),
             TunnelRules.TunnellingState => TunnelRules.Tunnel(context, SystemName, creature),
+            TunnelRules.WanderState => TunnelRules.Wander(context, creature),
             TunnelRules.AdvancingState => TunnelRules.Advance(context, creature),
             TunnelRules.HandBackState => TunnelRules.HandBack(context, SystemName, creature),
             RoomAttackRules.DestroyingRoomsState => RoomAttackRules.DestroyRoomTile(context, creature),

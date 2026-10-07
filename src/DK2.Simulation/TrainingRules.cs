@@ -35,6 +35,24 @@ public static class TrainingRules
     /// <summary>State 110 (<c>0x00485580</c>): returns 0 for a capped creature, which then idles.</summary>
     public const int CapRefusalState = 110;
 
+    /// <summary>State 113 (<c>0x00485A60</c>): back in after the Training Room changed
+    /// (<see cref="RoomEvictRules"/>, refused-states.md §4).</summary>
+    public const int ReturningState = 113;
+
+    /// <summary>113: a turn's wait, then 108 on a Training Room of its own keeper's (returning 1
+    /// whether or not 108 is taken); anywhere else 0, idle.</summary>
+    internal static bool Return(SimulationContext context, string system, CreatureState creature)
+    {
+        if (context.Tick.Value - creature.StateEnteredTick <= 1) return true;
+        WorldState world = context.World;
+        if (!world.Contains(creature.Tile)
+            || RoomIndex.RoomAt(world, context.Database, (creature.Tile.Y * world.Width) + creature.Tile.X) is not { } room
+            || room.Definition.TypeId != RoomTypeId.TrainingRoom || room.OwnerPlayerId != creature.OwnerPlayerId)
+            return false;
+        Systems.StateShadow.TryMove(context, system, creature, WalkToMachineState);
+        return true;
+    }
+
     /// <summary>Whether this creature is still low enough to gain from training.</summary>
     public static bool BelowCap(GameDatabase database, CreatureState state) =>
         state.Level < LevelCap(database);

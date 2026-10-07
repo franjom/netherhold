@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Combat;
 
 namespace DK2.Simulation.Systems;
 
@@ -18,6 +19,14 @@ public sealed partial class CreatureJobSystem
 
     /// <summary>89's deadline for 3, <c>+0x7E</c> = now + 12.</summary>
     public const int NothingToDoTicks = 12;
+
+    /// <summary>The creature type whose idle action rolls for a shot (<c>+0x36F</c> 3, the Bile Demon).</summary>
+    private const byte BileDemonTypeId = 3;
+
+    /// <summary>The shot a Bile Demon's idle action makes under 10 of 100 (<c>0x00477801</c>, the
+    /// Heal Instant Shot), at its position with no data words, caster or target.</summary>
+    private const byte BileDemonIdleShotId = 0x35;
+    private const int BileDemonIdleShotChance = 10;
 
     /// <summary>What 3 writes to <c>+0xA7</c> on entering 87 (<c>0x84</c>); read only for non-zero.</summary>
     private const int WanderStampTicks = 0x84;
@@ -59,8 +68,7 @@ public sealed partial class CreatureJobSystem
     /// deadline, idle. Otherwise, after a wander (<c>+0xA7</c> set), roll: under 25 wander again,
     /// 25–74 action 43, 75–99 action 44. With no wander yet, or on the low roll, 87 with
     /// <c>+0xA7</c> = now + 132. Ours: every creature has both actions, whose length is a guess
-    /// (<see cref="ImpTaskSystem.IdleActionGuessTicks"/>); the 10% sound for a creature whose
-    /// <c>+0x36F</c> is 3 is not built.</summary>
+    /// (<see cref="ImpTaskSystem.IdleActionGuessTicks"/>).</summary>
     private static void DoingNothing(SimulationContext context, CreatureState creature)
     {
         long now = context.Tick.Value;
@@ -70,6 +78,21 @@ public sealed partial class CreatureJobSystem
             StateShadow.ToIdle(context, SystemName, creature);
             return;
         }
+        IdleBody(context, creature);
+    }
+
+    /// <summary>State 5, a neutral creature's idle (<c>0x004776B0</c>): a bare jump to 3's inner body
+    /// <c>0x004776C0</c>, without 3's wait for a running action or its deadline (refused-states.md §1).</summary>
+    private static void NeutralIdle(SimulationContext context, CreatureState creature) => IdleBody(context, creature);
+
+    /// <summary><c>0x004776C0</c>, the body 3 and 5 share. After an idle action, a Bile Demon
+    /// (<c>+0x36F</c> 3) rolls <c>random(100)</c> again (simulation stream, <c>0x004777D7</c>) and under
+    /// 10 makes shot <c>0x35</c> at its position through <c>0x004B7CD0</c> (<c>0x00477806</c>): the Heal
+    /// Instant Shot, whose data words are 0 and which no caller aims, so it dies on its first turn
+    /// and its death shot heals by 0 (refused-states.md §1). It is built for the entities it makes.</summary>
+    private static void IdleBody(SimulationContext context, CreatureState creature)
+    {
+        long now = context.Tick.Value;
         if (creature.WanderStamp != 0)
         {
             int roll = context.Rng.NextInt(100);
@@ -79,6 +102,10 @@ public sealed partial class CreatureJobSystem
                 creature.ActionUntilTick = now + ImpTaskSystem.IdleActionGuessTicks;
                 context.Emit(SystemName, "idle_action",
                     $"creature={creature.Id} action={(roll < 75 ? 43 : 44)} at=({creature.Tile.X},{creature.Tile.Y})");
+                if (creature.CreatureTypeId == BileDemonTypeId && context.Rng.NextInt(100) < BileDemonIdleShotChance
+                    && context.Database.Shots.TryGetValue(BileDemonIdleShotId, out ShotDef? shot))
+                    ShotRules.Spawn(context.World, shot, creature.OwnerPlayerId, creature.PosX, creature.PosY, 0, 0, 0,
+                        FightTargetKind.None, CombatRules.NoTarget, 0, -1, creature.PosX, creature.PosY);
                 return;
             }
         }

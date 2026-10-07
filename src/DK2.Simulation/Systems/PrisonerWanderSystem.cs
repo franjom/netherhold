@@ -37,6 +37,16 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
             if (TortureRules.IsBeingTortured(creature)) continue;   // on a device, not in a cell
             if (JailBreakRules.IsEscaping(creature)) continue;      // walking out, in 121 (ADR-0229)
 
+            // A Prison rebuilt since the claim sends its captives to 126, which waits a turn and
+            // goes back in (0x004E2B30, ADR-0400).
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held)) continue;
+            if (SimulationTiming.OnOriginalTick(context.Tick.Value) && RoomEvictRules.Evict(context, SystemName, creature)) continue;
+            if (creature.Dk2StateId == PrisonRules.ReturningState)
+            {
+                if (SimulationTiming.OnOriginalTick(context.Tick.Value)) PrisonRules.Return(context, SystemName, creature);
+                continue;
+            }
+
             // In the keeper's hand it is out of the dungeon (ADR-0062); down,
             // it is not walking anywhere.
             if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Down)) continue;

@@ -12,12 +12,13 @@ namespace DK2.Simulation.Tests;
 public class TempleSacrificeTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private static readonly TilePos Floor = new(1, 1);
+    /// <summary>The centre of a 3×3 Temple, its pool: an offering is made only there (temple-states.md §3).</summary>
+    private static readonly TilePos Floor = new(2, 2);
 
     [Fact]
     public void StronglyInferred_OrderedSuffixMatchClearsTheWholeRoomHistory()
     {
-        (GameDatabase db, WorldState world, GameSimulation sim) = Setup(Floor);
+        (GameDatabase db, WorldState world, GameSimulation sim) = Pools(Floor);
         db.Variables.Sacrifices.Add(new SacrificeEntry(
             1, Dk2TerrainFixture.GoblinCreatureId,
             1, Dk2TerrainFixture.ImpCreatureId,
@@ -36,7 +37,7 @@ public class TempleSacrificeTests
     [Fact]
     public void StronglyInferred_ReversedOfferingsMissAndRemainRemembered()
     {
-        (GameDatabase db, WorldState world, GameSimulation sim) = Setup(Floor);
+        (GameDatabase db, WorldState world, GameSimulation sim) = Pools(Floor);
         db.Variables.Sacrifices.Add(new SacrificeEntry(
             1, Dk2TerrainFixture.GoblinCreatureId,
             1, Dk2TerrainFixture.ImpCreatureId,
@@ -53,7 +54,7 @@ public class TempleSacrificeTests
     [Fact]
     public void StronglyInferred_FirstMatchingRecipeInFileOrderWins()
     {
-        (GameDatabase db, WorldState world, GameSimulation sim) = Setup(Floor);
+        (GameDatabase db, WorldState world, GameSimulation sim) = Pools(Floor);
         db.Variables.Sacrifices.Add(OneCreatureRecipe(
             Dk2TerrainFixture.GoblinCreatureId, Dk2TerrainFixture.VampireCreatureId, 25));
         db.Variables.Sacrifices.Add(OneCreatureRecipe(
@@ -70,7 +71,7 @@ public class TempleSacrificeTests
     [Fact]
     public void StronglyInferred_CreatureRewardAveragesOnlyCreatureIngredientLevels()
     {
-        (GameDatabase db, WorldState world, GameSimulation sim) = Setup(Floor);
+        (GameDatabase db, WorldState world, GameSimulation sim) = Pools(Floor);
         db.Variables.Sacrifices.Add(new SacrificeEntry(
             1, Dk2TerrainFixture.GoblinCreatureId,
             2, HatcheryRules.ChickenObjectId,
@@ -91,7 +92,7 @@ public class TempleSacrificeTests
     [Fact]
     public void StronglyInferred_ObjectRewardIsNeutralAndAppearsAtNewestOffering()
     {
-        (GameDatabase db, WorldState world, GameSimulation sim) = Setup(Floor);
+        (GameDatabase db, WorldState world, GameSimulation sim) = Pools(Floor);
         db.Variables.Sacrifices.Add(new SacrificeEntry(
             2, HatcheryRules.ChickenObjectId, 0, 0, 0, 0,
             2, 9, Dk2TerrainFixture.TempleHandObjectId));
@@ -107,7 +108,7 @@ public class TempleSacrificeTests
     [Fact]
     public void StronglyInferred_GoldUsesSpeechSevenAndNeverEntersHistory()
     {
-        (GameDatabase db, WorldState world, GameSimulation sim) = Setup(Floor);
+        (GameDatabase db, WorldState world, GameSimulation sim) = Pools(Floor);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
@@ -121,8 +122,8 @@ public class TempleSacrificeTests
     [Fact]
     public void StronglyInferred_SeparateTempleRoomsKeepSeparateHistories()
     {
-        TilePos other = new(3, 1);
-        (GameDatabase db, WorldState world, GameSimulation sim) = Setup(Floor, other);
+        TilePos other = new(6, 2);
+        (GameDatabase db, WorldState world, GameSimulation sim) = Pools(Floor, other);
         db.Variables.Sacrifices.Add(new SacrificeEntry(
             1, Dk2TerrainFixture.GoblinCreatureId,
             1, Dk2TerrainFixture.ImpCreatureId,
@@ -186,7 +187,7 @@ public class TempleSacrificeTests
     [Fact]
     public void StronglyInferred_HistorySurvivesSnapshotAndChangesTheStateHash()
     {
-        (GameDatabase db, WorldState world, GameSimulation sim) = Setup(Floor);
+        (GameDatabase db, WorldState world, GameSimulation sim) = Pools(Floor);
         ulong before = sim.StateHash();
         RememberSpell(world, db, Floor, 9);
 
@@ -197,6 +198,24 @@ public class TempleSacrificeTests
         Assert.Equal(sim.StateHash(), restored.StateHash());
         TempleSacrificeState history = Assert.Single(restored.World.TempleSacrifices);
         Assert.Equal(1, history.Count);
+    }
+
+    /// <summary>A 3×3 Temple of the keeper's round each centre.</summary>
+    private static (GameDatabase Db, WorldState World, GameSimulation Sim) Pools(params TilePos[] centres) =>
+        Setup([.. centres.SelectMany(c => Enumerable.Range(0, 9).Select(k => new TilePos(c.X - 1 + (k % 3), c.Y - 1 + (k / 3))))]);
+
+    [Fact]
+    public void AnOfferingDroppedOnATemplesRimIsNotMade_OnlyInThePool()
+    {
+        (GameDatabase db, WorldState world, GameSimulation sim) = Pools(Floor);
+        db.Variables.Sacrifices.Add(OneCreatureRecipe(Dk2TerrainFixture.GoblinCreatureId, Dk2TerrainFixture.VampireCreatureId, 20));
+        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(1, 1));
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(1, 1))));
+
+        Assert.NotNull(world.CreatureById(goblin.Id));
+        Assert.All(world.TempleSacrifices, s => Assert.Equal(0, s.Count));
+        Assert.DoesNotContain(world.Creatures, c => c.CreatureTypeId == Dk2TerrainFixture.VampireCreatureId);
     }
 
     private static SacrificeEntry OneCreatureRecipe(byte input, byte output, byte speech) =>

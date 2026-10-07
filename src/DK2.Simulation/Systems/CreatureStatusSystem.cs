@@ -42,8 +42,15 @@ public sealed class CreatureStatusSystem : ISimulationSystem
                     if (context.Tick.Value >= creature.ActionUntilTick)
                     {
                         context.Emit(SystemName, "recovered", $"creature={creature.Id}");
-                        if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) Combat.CombatStates.Idle(context.Hooks, creature);
+                        // A worker on a Heart takes the room drop too: 71 gives it back (ADR-0400).
+                        if (definition.Flags.HasFlag(CreatureFlags.IsWorker) && !DropLandingRules.OnAHeart(world, database, creature))
+                            Combat.CombatStates.Idle(context.Hooks, creature);
                         else DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
+                        if (world.CreatureById(creature.Id) is null)
+                        {
+                            i--;   // 71 removed it
+                            continue;
+                        }
                     }
                 }
                 else
