@@ -444,7 +444,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             else if (RoomWalkRules.ArrivalTile(context, room) is int point) target = point;
             else continue;
             var at = new TilePos(target % world.Width, target / world.Width);
-            if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) { if (context.Tick.Value < 900) { var g = new WorldPathGrid(database, world, definition); var sb = new System.Text.StringBuilder(); for (int yy = 28; yy <= 41; yy++) { sb.Append(yy).Append(' '); for (int xx = 10; xx <= 24; xx++) sb.Append(xx == creature.Tile.X && yy == creature.Tile.Y ? 'C' : xx == at.X && yy == at.Y ? 'T' : g.IsWalkable(xx, yy) ? '.' : '#'); sb.AppendLine(); } System.Console.Error.WriteLine($"DBG t={context.Tick.Value} {definition.Name} at={creature.Tile} target={at} room={room.Definition.Name}"); System.Console.Error.WriteLine(sb.ToString()); } continue; }
+            if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) continue;
 
             creature.JobTileIndex = target;
             bool entered = SetOutInState(context, creature, job);
