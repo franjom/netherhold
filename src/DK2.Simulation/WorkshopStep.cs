@@ -39,13 +39,17 @@ public static class WorkshopStep
     /// <summary><c>0x006BC350</c>: north, east, south, west.</summary>
     private static readonly (int Dx, int Dy)[] Sides = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
-    public static bool IsWorkshopState(int state) => state is ChoosingState or AtTheMachineState or WorkingState;
+    /// <summary>70 (<c>0x00470C10</c>): back into a Workshop that changed.</summary>
+    public const int ReturningState = 70;
+
+    public static bool IsWorkshopState(int state) => state is ChoosingState or AtTheMachineState or WorkingState or ReturningState;
 
     public static bool IsMachine(byte type) => type is Anvil or Machine16 or Machine46;
 
     /// <summary>One turn of a manufacturer. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
     {
+        if (RoomEvictRules.Evict(context, system, creature)) return true;
         if (StateShadow.IsTravelling(creature))
         {
             if (creature.HasRoute) return true;
@@ -60,6 +64,7 @@ public static class WorkshopStep
             ChoosingState => Choose(context, system, creature, age),
             AtTheMachineState => AtTheMachine(context, system, creature),
             WorkingState => Work(context, system, creature, age),
+            ReturningState => RoomEvictRules.BackIn(context, system, creature, RoomTypeId.Workshop, ChoosingState, endsAction: true),
             _ => false,
         };
     }

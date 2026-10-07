@@ -9129,3 +9129,30 @@ the Hand offers a creature in the pool at the drop, where DK2 offers it in 101 a
 **Measured** (hash 200) against the branch at `5e504d86` (M-D), both sides run: Level 1 20/20 and
 20/20, Level 2 5/20 and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3600 and 3676 (DK2
 3683).
+
+## ADR-0402 — The last category 0 states: the Library's, Workshop's and Casino's way back, the research cheer, and fourteen unreached
+**Date:** 2026-10-07 · **Status:** accepted · Research: `room-return-states.md`
+
+**Context.** Nineteen states were left unread (M-F): 0, 2, 60, 61, 62, 70, 72, 73, 74, 154, 158, 207,
+208, 212, 213, 215, 245, 258, 262. Read by three passes over every channel a state can be entered by.
+62, 70 and 154 are the Library's, Workshop's and Casino's return states, siblings of 107, 113 and 126;
+60 is every Library place-holder's cheer when a research item is shelved; 158 is entered only from
+the host's real clock on Saturday nights. The rest have no entry, or none that runs: 61 is left in
+the call that sets it, 73 and 74 follow only from 72, and 258 and 262 sit behind a Horned Reaper gate
+that never passes.
+
+**Decision.** Built: 62, 70 and 154 through `RoomEvictRules` (the room's size stamp) and
+`RoomEvictRules.BackIn`, 62 and 70 ending a running action each turn as DK2's do; 60 through
+`ResearchStep.Cheer` before the item's grant and 60's arm (action 35, `random(2) + 1` plays, then idle
+in the same turn). Unreachable: 0, 2, 61, 72, 73, 74, 207, 208, 212, 213, 215, 245, 258, 262. 158
+waits on Q571: it needs the host's clock as an injected input. Deviates: as for 107, 113 and 126, a
+freed room, a new owner, a load and a neighbour's terrain change (`0x004E44E0`) do not kick; the
+books', crates' and effect's handling is not built; the cheer's length is the counted clip (LIKELY).
+
+The owner confirmed the cheer's shape from play (2026-10-07): the researchers cheer, wander off and
+pick a new job, research again if it is available.
+
+**Measured** (hash 202) against the branch at `c9118201` (M-E), both sides run: Level 1 20/20 and
+20/20, Level 2 5/20 and 2/20 (seeds 3 and 13; without the cheer 5/20 on the same seeds 3, 5, 10, 13,
+14, so the cheer alone moves it), Level 3 seed 01 won at 3676 and 3676 (DK2 3683). Accepted by the
+owner as the cheer's cost.

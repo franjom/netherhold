@@ -35,6 +35,16 @@ public static class ResearchStep
     /// <summary>59 (<c>0x004762D0</c>): disturbed, watching the intruder.</summary>
     public const int DisturbedState = 59;
 
+    /// <summary>60 (<c>0x004761F0</c>): a delivered research item's cheer, which every place-holder of
+    /// the Library that shelved it is kicked to (<c>0x004E08B0</c>).</summary>
+    public const int CelebratingState = 60;
+
+    /// <summary>62 (<c>0x00476320</c>): back into a Library that changed.</summary>
+    public const int ReturningState = 62;
+
+    /// <summary>The art slot 60's test reads (<c>0x00494860(8)</c>) and its action 35 plays.</summary>
+    private const int CelebrationArtSlot = 8;
+
     /// <summary>The Library's objects: 58, <i>Library Book</i>, and 64, <i>Book Case</i>.</summary>
     public const byte BookObjectId = 58, BookCaseObjectId = 64;
 
@@ -43,11 +53,13 @@ public static class ResearchStep
     public const uint DisturbReach = 0x9000;
 
     public static bool IsResearchState(int state) =>
-        state is ChoosingState or AtTheShelfState or ReadingLongState or ReadingShortState or DisturbedState;
+        state is ChoosingState or AtTheShelfState or ReadingLongState or ReadingShortState or DisturbedState
+            or CelebratingState or ReturningState;
 
     /// <summary>One turn of a researcher. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
     {
+        if (RoomEvictRules.Evict(context, system, creature)) return true;
         if (StateShadow.IsTravelling(creature))
         {
             if (creature.HasRoute) return true;
@@ -63,8 +75,43 @@ public static class ResearchStep
             AtTheShelfState => AtTheShelf(context, system, creature),
             ReadingLongState or ReadingShortState => Read(context, system, creature, age),
             DisturbedState => Disturbed(context, system, creature, age),
+            CelebratingState => Celebrate(context, system, creature, age),
+            ReturningState => RoomEvictRules.BackIn(context, system, creature, RoomTypeId.Library, ChoosingState, endsAction: true),
             _ => false,
         };
+    }
+
+    /// <summary>A research item shelved in <paramref name="library"/> kicks every place-holder of it
+    /// to 60 (<c>0x004E0870</c>, the loop at <c>0x004E08B0</c>), before the item is granted.</summary>
+    public static void Cheer(SimulationContext context, string system, RoomInstance library)
+    {
+        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            CreatureState c = creatures[i];
+            if (!c.HeldPlace.In(library) || c.Dk2StateId == CelebratingState) continue;
+            c.StopMoving();
+            StateShadow.TryMove(context, system, c, CelebratingState);
+        }
+    }
+
+    // ----------------------------------------------------------------------------- 60
+
+    /// <summary>60 (room-return-states.md §2): at <c>Age</c> 1 a running action ended; without art in
+    /// slot 8, 0; while an action runs, 1; otherwise action 35 for <c>random(2) + 1</c> plays
+    /// (simulation stream), then 1 and 61, and 0: the creature idles in the same call with the action
+    /// playing, as 61's handler never runs. The hold is the counted clip, LIKELY.</summary>
+    private static bool Celebrate(SimulationContext context, string system, CreatureState creature, long age)
+    {
+        long now = context.Tick.Value;
+        if (age == 1) creature.ActionUntilTick = 0;
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        if (!AnimationTimingRules.ResolvesPresent(definition, CelebrationArtSlot)) return false;
+        if (now < creature.ActionUntilTick) return true;
+        int plays = context.Rng.NextInt(2) + 1;
+        creature.ActionUntilTick = now + AnimationTimingRules.CountedHoldTicks(definition, CelebrationArtSlot, plays);
+        context.Emit(system, "research_cheer", $"creature={creature.Id} plays={plays} until={creature.ActionUntilTick}");
+        return false;
     }
 
     // ----------------------------------------------------------------------------- 53

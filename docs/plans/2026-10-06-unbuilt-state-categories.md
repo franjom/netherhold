@@ -121,3 +121,24 @@ M-F Refused part 2 (the other 24, grouped by entry path).
   doubt carried in test names; the refused-action arm of 211 and the kick's animation words
   declared; whose Temple pool counts.
 - Next: the slap's state moves 67, 77 and 120 (Q569, the owner said build them), then M-F.
+
+## M-F Refused part 2 (2026-10-07)
+
+- Read by three parallel read-only passes, each with the call scan, the shared tails, the register
+  arguments, a raw immediate scan, the `+0xDF` stores and the room table; then built here.
+- **Built:** 60 (the research cheer), 62, 70, 154 (the Library's, Workshop's and Casino's way back,
+  through `RoomEvictRules`). **Unreachable:** 0, 2, 61, 72, 73, 74, 207, 208, 212, 213, 215, 245,
+  258, 262 (258 and 262 behind a Horned Reaper gate that never passes). **Left unbuilt:** 158, the
+  Saturday-night dance from the host's clock (Q571; the owner chose to leave it).
+- ADR-0402, HashVersion and `WorldSnapshot.FormatVersion` 202 (201 is the parked slap branch's),
+  research `room-return-states.md`, 26 new function records, 7 updated. Tests in
+  `LibraryStateTests` (62, 60), `WorkshopStateTests` (70), `CasinoStateTests` (154),
+  `ResearchTreeTests` (the cheer through a delivery, and none without a shelf).
+- Replays, both sides run at `c9118201`: Level 1 20/20 → 20/20, Level 2 5/20 → 2/20 (seeds 3, 13),
+  Level 3 seed 01 won at 3676 → 3676 (DK2 3683). The cheer alone moves Level 2 (without it, 5/20 on
+  the same seeds); the owner confirmed the cheer's shape from play and accepted the cost.
+- Reviewer: no wrong claim. Fixed: the Casino test asserts 145, the cheer is tested through a real
+  delivery, the doubt is in the cheer test's name, the action end is sampled in 62 and 70, and the
+  Saturday flag's Heart effect and mode 3 are recorded.
+- The slap's state moves (67, 77, 120, ADR-0401) wait on side branch `states/slap-moves`; the owner
+  confirmed the flinch, so they merge next.

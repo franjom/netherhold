@@ -13,9 +13,9 @@ public static partial class CreatureStateCoverage
     // to equal its id; an Unbuilt row says "not read" when no note describes the handler.
     private static void AddRows(List<StateCoverageRow> rows)
     {
-        rows.Add(Unbuilt(0, "not read: the one row with no handler (creature-state-table.md §4), and what enters it"));
+        rows.Add(Unreachable(0, "no handler; the constructor starts a creature in 1 (0x00476B62) and no call site, shared tail, +0xDF store or room-table slot gives 0; the dispatcher skips 0 (0x00477282): room-return-states.md §6"));
         rows.Add(Built(1, typeof(CreatureStateMachine), nameof(CreatureStateMachine.Idle)));
-        rows.Add(Unbuilt(2, "not read"));
+        rows.Add(Unreachable(2, "no setter, wrapper, tail, +0xDF store or room-table slot gives 2 (call and raw byte scans): room-return-states.md §6"));
         rows.Add(Built(3, typeof(CreatureJobSystem), nameof(CreatureJobSystem.DoingNothingState)));
         rows.Add(Built(4, typeof(HeroJobRules), nameof(HeroJobRules.WaitFailedState)));
         rows.Add(Built(5, typeof(Systems.CreatureJobSystem), nameof(Systems.CreatureJobSystem.NeutralIdleState)));
@@ -73,9 +73,9 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(57, typeof(ResearchStep), nameof(ResearchStep.ReadingShortState)));
         rows.Add(Unreachable(58, "STRONGLY INFERRED as Q415: no SetState, wrapper, walk, +0xDF store or room-table site enters it (library-states.md §2)"));
         rows.Add(Built(59, typeof(ResearchStep), nameof(ResearchStep.DisturbedState)));
-        rows.Add(Unbuilt(60, "not read"));
-        rows.Add(Unbuilt(61, "not read"));
-        rows.Add(Unbuilt(62, "not read"));
+        rows.Add(Built(60, typeof(ResearchStep), nameof(ResearchStep.CelebratingState)));
+        rows.Add(Unreachable(61, "entered only by 60 (0x00476272), which returns 0, so the dispatcher sets 1 in the same call and 61's handler never runs: room-return-states.md §2"));
+        rows.Add(Built(62, typeof(ResearchStep), nameof(ResearchStep.ReturningState)));
         rows.Add(Built(63, typeof(WorkshopStep), nameof(WorkshopStep.ChoosingState)));
         rows.Add(Built(64, typeof(WorkshopStep), nameof(WorkshopStep.AtTheMachineState)));
         rows.Add(Built(65, typeof(WorkshopStep), nameof(WorkshopStep.WorkingState)));
@@ -83,11 +83,11 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(67, "the slap's state for a Workshop holder (0x0048B9DB), read in workshop-states.md §2; ours makes none of the slap's state moves: Q569"));
         rows.Add(Built(68, typeof(CrateRules), nameof(CrateRules.CrateMadeState)));
         rows.Add(Unreachable(69, "CONFIRMED: 68 sets it (0x00470BA2) and returns 0, and the dispatcher sets 1 in the same call (0x004772B7), so its handler never runs (refused-states.md §2)"));
-        rows.Add(Unbuilt(70, "not read"));
+        rows.Add(Built(70, typeof(WorkshopStep), nameof(WorkshopStep.ReturningState)));
         rows.Add(Built(71, typeof(DropLandingRules), nameof(DropLandingRules.HeartDropState)));
-        rows.Add(Unbuilt(72, "not read"));
-        rows.Add(Unbuilt(73, "not read"));
-        rows.Add(Unbuilt(74, "not read"));
+        rows.Add(Unreachable(72, "no entry by any scan; 73 and 74 follow only from it: room-return-states.md §4"));
+        rows.Add(Unreachable(73, "entered only from 72, which nothing enters: room-return-states.md §4"));
+        rows.Add(Unreachable(74, "entered only through 73, which nothing reaches: room-return-states.md §4"));
         rows.Add(Built(75, typeof(HandRules), nameof(HandRules.PreparationState)));
         rows.Add(Unbuilt(76, "the drop lands straight in 255; DK2 passes through 76 first (ADR-0226, hand-drop-landing.md)"));
         rows.Add(Unbuilt(77, "the slap reaction, read in state-category-hooks.md §3.2; ours has only its activity label"));
@@ -169,11 +169,11 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(151, typeof(CasinoStep), nameof(CasinoStep.StandingState)));
         rows.Add(Built(152, typeof(CasinoJackpotRules), nameof(CasinoJackpotRules.CelebratingState)));
         rows.Add(Built(153, typeof(CasinoStep), nameof(CasinoStep.DancingState)));
-        rows.Add(Unbuilt(154, "handler 0x00456FB0 sets 145 (casino.md §1); its entry, a Casino's loss (0x004D70D0, 0x004E44E0), is not read"));
+        rows.Add(Built(154, typeof(CasinoStep), nameof(CasinoStep.ReturningState)));
         rows.Add(Built(155, typeof(CasinoJackpotRules), nameof(CasinoJackpotRules.SeekingTheGoldState)));
         rows.Add(Built(156, typeof(CasinoJackpotRules), nameof(CasinoJackpotRules.ArrivedState)));
         rows.Add(Built(157, typeof(CasinoJackpotRules), nameof(CasinoJackpotRules.CollectingState)));
-        rows.Add(Unbuilt(158, "not read"));
+        rows.Add(Unbuilt(158, "entered only while the host clock reads Saturday 00:58-00:59 (0x0050A850, 0x004C5780); needs an injected clock; the owner chose to leave it unbuilt: room-return-states.md §3, Q571"));
         rows.Add(Unbuilt(159, "not read"));
         rows.Add(Unreachable(160, "ADR-0223: no shipped creature holds StealSpells, job 14 (steal-gold.md §8)"));
         rows.Add(Unreachable(161, "ADR-0223: no shipped creature holds StealSpells, job 14 (steal-gold.md §8)"));
@@ -222,15 +222,15 @@ public static partial class CreatureStateCoverage
         rows.Add(Unreachable(204, "Q455 (STRONGLY INFERRED): no fresh stock v1.70 game initiator found; restored saves are outside this scope (traps.md §11)"));
         rows.Add(Unreachable(205, "Q455 (STRONGLY INFERRED): no fresh stock v1.70 game path from 204; restored saves are outside this scope (traps.md §11)"));
         rows.Add(Unreachable(206, "Q455 (STRONGLY INFERRED): no fresh stock v1.70 game path from 205; restored saves are outside this scope (traps.md §11)"));
-        rows.Add(Unbuilt(207, "not read"));
-        rows.Add(Unbuilt(208, "not read"));
+        rows.Add(Unreachable(207, "no 0xCF push, store or table slot is a state (call and raw byte scans): room-return-states.md §5"));
+        rows.Add(Unreachable(208, "no 0xD0 push, store or table slot is a state (call and raw byte scans): room-return-states.md §5"));
         rows.Add(Unbuilt(209, "not read"));
         rows.Add(Built(210, typeof(TremorRules), nameof(TremorRules.KnockdownState)));
         rows.Add(Built(211, typeof(DropDeliveryRules), nameof(DropDeliveryRules.CelebratingState)));
-        rows.Add(Unbuilt(212, "not read"));
-        rows.Add(Unbuilt(213, "not read"));
+        rows.Add(Unreachable(212, "no entry by the call, raw byte, +0xDF or room-table scans: room-return-states.md §6"));
+        rows.Add(Unreachable(213, "no entry by the call, raw byte, +0xDF or room-table scans: room-return-states.md §6"));
         rows.Add(Unbuilt(214, "not read"));
-        rows.Add(Unbuilt(215, "not read"));
+        rows.Add(Unreachable(215, "no entry by the call, raw byte, +0xDF or room-table scans: room-return-states.md §6"));
         rows.Add(Built(216, typeof(CreatureDeathRules), nameof(CreatureDeathRules.FallingState)));
         rows.Add(Built(217, typeof(CreatureDeathRules), nameof(CreatureDeathRules.DyingState)));
         rows.Add(Built(218, typeof(CombatStates), nameof(CombatStates.Frozen)));
@@ -260,7 +260,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(242, typeof(ReaperRules), nameof(ReaperRules.RunLifecycle)));
         rows.Add(Unbuilt(243, "not read"));
         rows.Add(Unbuilt(244, "not read"));
-        rows.Add(Unbuilt(245, "not read"));
+        rows.Add(Unreachable(245, "no entry by the call, raw byte, +0xDF or room-table scans: room-return-states.md §6"));
         rows.Add(Unbuilt(246, "not read"));
         rows.Add(Unbuilt(247, "not read"));
         rows.Add(Unbuilt(248, "not read"));
@@ -274,11 +274,11 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(255, typeof(CombatStates), nameof(CombatStates.Stunned)));
         rows.Add(Built(256, typeof(StatusEffectRules), nameof(StatusEffectRules.StunInto)));
         rows.Add(Built(257, typeof(CombatStates), nameof(CombatStates.GettingUp)));
-        rows.Add(Unbuilt(258, "not read"));
+        rows.Add(Unreachable(258, "set only by the Horned Reaper's proximity scan 0x0048FA70 (0x0048FBBA), whose gate +0x4C3 >= now + 20 never passes: room-return-states.md §7"));
         rows.Add(Built(259, typeof(CombatStates), nameof(CombatStates.AtTheBody)));
         rows.Add(Built(260, typeof(CombatStates), nameof(CombatStates.Celebrating)));
         rows.Add(Unbuilt(261, "partly read in travel-states.md 2.4; not built"));
-        rows.Add(Unbuilt(262, "not read"));
+        rows.Add(Unreachable(262, "set only by the Horned Reaper's proximity scan 0x0048FA70 (0x0048FC8D), whose gate +0x4C3 >= now + 20 never passes: room-return-states.md §7"));
         rows.Add(Built(263, typeof(TremorRules), nameof(TremorRules.WaitingState)));
         rows.Add(Built(264, typeof(TremorRules), nameof(TremorRules.GettingUpState)));
         rows.Add(Unbuilt(265, "partly read in imp-task-objects-and-walks.md 3, steering-behaviours.md; not built"));

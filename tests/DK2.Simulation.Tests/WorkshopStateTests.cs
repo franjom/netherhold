@@ -203,4 +203,40 @@ public class WorkshopStateTests
         Assert.Equal(WorkshopStep.ChoosingState, it.Dk2StateId);
         Assert.Equal(0, it.ActionUntilTick);
     }
+
+    // ------------------------------------------------------------------------ 70 (ADR-0402)
+
+    /// <summary>A tile joins the room at (x, y), which stamps the rebuilt room (the type's slot +0x09).</summary>
+    private static void Grow(GameDatabase db, WorldState world, RoomTypeId type, int x, int y)
+    {
+        RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+        SlabChain.Changed(world, db, (y * world.Width) + x, Dk2TerrainFixture.ClaimedPath, Keeper);
+    }
+
+    [Fact]
+    public void ARebuiltWorkshopSendsItsMakerTo70_WhichEndsItsWorkWaitsATurnAndGoesBackTo63()
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db);
+        CreatureState it = Maker(db, world, new TilePos(3, 3), WorkshopStep.WorkingState);
+        it.ActionUntilTick = long.MaxValue;
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick();
+
+        Grow(db, world, RoomTypeId.Workshop, 6, 3);
+        var order = new List<int>();
+        long? endedIn = null;
+        for (int i = 0; i < 6; i++)
+        {
+            sim.Tick();
+            // The return state ends a running action on the turns it runs (0x00496D20).
+            if (it.Dk2StateId == WorkshopStep.ReturningState && it.ActionUntilTick == 0) endedIn = 0;
+            order.Add(CreatureStateTable.Get(it.Dk2StateId).IsUtility ? it.UtilityNewState : it.Dk2StateId);
+        }
+
+        int back = order.IndexOf(WorkshopStep.ReturningState);
+        Assert.True(back >= 0, string.Join(" ", order));
+        Assert.Contains(order.Skip(back + 1), s => s is WorkshopStep.ChoosingState or WorkshopStep.AtTheMachineState);
+        Assert.Equal(0, endedIn);   // 70 ends the work (0x00496D20)
+    }
 }

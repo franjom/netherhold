@@ -149,6 +149,8 @@ public static class ResearchTreeRules
             return false;
         }
 
+        // 0x004E08B0: the Library's place-holders cheer before the item is granted (ADR-0402).
+        ResearchStep.Cheer(context, SystemName, library);
         if (AvailabilityKindOf(entry.Kind) == AvailabilityKind.None) return false;
         Grant(context, library, entry);
         return true;

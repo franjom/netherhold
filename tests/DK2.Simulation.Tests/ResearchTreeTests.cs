@@ -180,6 +180,36 @@ public sealed class ResearchTreeTests
         Assert.Contains(events.Events, e => e.Kind == "research_no_shelf");
     }
 
+    /// <summary>A shelved item kicks the Library's place-holders to 60 before it is granted
+    /// (0x004E08B0); with no shelf nothing is kicked (0x004E0891), ADR-0402.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ADeliveredItemKicksTheLibrarysPlaceHolderTo60_OnlyWhenAShelfIsFound(bool shelfFree)
+    {
+        GameDatabase db = Db(cost: 40);
+        WorldState world = World(db);
+        int shelf = (Shelf.Y * world.Width) + Shelf.X;
+        if (!shelfFree)
+        {
+            world.SpawnObject(db, ResearchTreeRules.BookObjectTypeId, Keeper, shelf);
+            world.SpawnObject(db, ResearchTreeRules.BookObjectTypeId, Keeper, shelf);
+        }
+        CreatureState it = Researcher(db, world);
+        it.HeldPlace = new RoomPlace(it.JobTileIndex, RoomCapacityRules.Units);   // the enter hook's claim
+        (GameSimulation sim, ListEventSink events) = Simulation(db, world);
+        var seen = new HashSet<int>();
+
+        for (int i = 0; i < Second * 12; i++)
+        {
+            sim.Tick();
+            seen.Add(it.Dk2StateId);
+        }
+
+        Assert.Equal(shelfFree, seen.Contains(ResearchStep.CelebratingState));
+        Assert.Equal(shelfFree, events.Events.Any(e => e.Kind == "research_completed"));
+    }
+
     // ---- books ------------------------------------------------------------
 
     [Fact]

@@ -510,4 +510,36 @@ public class CasinoStateTests
         public string Name => "Probe";
         public void Execute(SimulationContext context) => body(context);
     }
+
+    // ----------------------------------------------------------------------- 154 (ADR-0402)
+
+    /// <summary>A tile joins the room at (x, y), which stamps the rebuilt room (the type's slot +0x09).</summary>
+    private static void Grow(GameDatabase db, WorldState world, RoomTypeId type, int x, int y)
+    {
+        RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+        SlabChain.Changed(world, db, (y * world.Width) + x, Dk2TerrainFixture.ClaimedPath, Keeper);
+    }
+
+    [Fact]
+    public void ARebuiltCasinoSendsItsGamblerTo154_WhichWaitsATurnAndGoesBackTo145()
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db, 5);
+        CreatureState it = Gambler(db, world, new TilePos(3, 3));
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick();
+
+        Grow(db, world, RoomTypeId.Casino, 6, 3);
+        var order = new List<int>();
+        for (int i = 0; i < 6; i++)
+        {
+            sim.Tick();
+            order.Add(CreatureStateTable.Get(it.Dk2StateId).IsUtility ? it.UtilityNewState : it.Dk2StateId);
+        }
+
+        int back = order.IndexOf(CasinoStep.ReturningState);
+        Assert.True(back >= 0, string.Join(" ", order));
+        Assert.Contains(order.Skip(back + 1), s => s == CasinoStep.ChoosingState);
+        Assert.DoesNotContain(CasinoStep.ReturningState, order.Skip(back + 2));
+    }
 }

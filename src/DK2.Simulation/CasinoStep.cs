@@ -64,11 +64,15 @@ public static class CasinoStep
     /// <summary>The variant 146 posts message 89 with.</summary>
     public const int RowdyVariant = 11;
 
-    public static bool IsCasinoState(int state) => state is >= ChoosingState and <= StandingState or DancingState;
+    /// <summary>154 (<c>0x00456FB0</c>): back into a Casino that changed.</summary>
+    public const int ReturningState = 154;
+
+    public static bool IsCasinoState(int state) => state is >= ChoosingState and <= StandingState or DancingState or ReturningState;
 
     /// <summary>One turn of a gambler. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
     {
+        if (RoomEvictRules.Evict(context, system, creature)) return true;
         if (StateShadow.IsTravelling(creature))
         {
             if (creature.HasRoute) return true;
@@ -86,6 +90,7 @@ public static class CasinoStep
             DrinkingState or PlayingState or StandingState => Wait(context, system, creature, age),
             OnTheFloorState => OnTheFloor(context, system, creature),
             DancingState => Dance(context, system, creature, age),
+            ReturningState => RoomEvictRules.BackIn(context, system, creature, RoomTypeId.Casino, ChoosingState, endsAction: false),
             _ => false,
         };
     }

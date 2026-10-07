@@ -266,4 +266,96 @@ public class LibraryStateTests
         public string Name => "Probe";
         public void Execute(SimulationContext context) => body(context);
     }
+
+    // ------------------------------------------------------------------- 60 and 62 (ADR-0402)
+
+    /// <summary>A tile joins the room at (x, y), which stamps the rebuilt room (the type's slot +0x09).</summary>
+    private static void Grow(GameDatabase db, WorldState world, RoomTypeId type, int x, int y)
+    {
+        RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+        SlabChain.Changed(world, db, (y * world.Width) + x, Dk2TerrainFixture.ClaimedPath, Keeper);
+    }
+
+    [Fact]
+    public void ARebuiltLibrarySendsItsReaderTo62_WhichWaitsATurnAndGoesBackTo53()
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db, 3);
+        CreatureState it = Researcher(db, world, new TilePos(2, 2), ResearchStep.ReadingShortState);
+        it.ActionUntilTick = long.MaxValue;
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick();
+
+        Grow(db, world, RoomTypeId.Library, 4, 2);
+        var order = new List<int>();
+        long? endedIn = null;
+        for (int i = 0; i < 6; i++)
+        {
+            sim.Tick();
+            // The return state ends a running action on the turns it runs (0x00496D20).
+            if (it.Dk2StateId == ResearchStep.ReturningState && it.ActionUntilTick == 0) endedIn = 0;
+            order.Add(it.Dk2StateId);
+        }
+
+        int back = order.IndexOf(ResearchStep.ReturningState);
+        Assert.True(back >= 0, string.Join(" ", order));
+        Assert.Contains(ResearchStep.ChoosingState, order.Skip(back + 1));
+        Assert.Equal(0, endedIn);   // 62 ends the read (0x00496D20)
+    }
+
+    /// <summary>The Vampire with art in slot 8 too, which 60's action 35 plays.</summary>
+    private static GameDatabase WithCheerArt(GameDatabase basis)
+    {
+        var clip = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 20, FramesPerSecond = 20 };
+        return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
+            basis.Creatures.Values.Select(c =>
+            {
+                if (c.CreatureId != Vampire) return c;
+                CreatureAnimationTiming[] slots = [.. Enumerable.Range(0, CreatureDef.ArtSlotCount).Select(c.ArtSlot)];
+                slots[8] = clip;
+                return c with { ArtSlots = slots };
+            }),
+            basis.Variables, basis.KeeperSpells.Values, objects: basis.Objects.Values, shots: basis.Shots.Values);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]   // no art in slot 8: 60 returns 0 at once
+    public void AShelvedItemSendsTheLibrarysReadersTo60_ACheerForTheLikelyCountedClipLength_ThenIdle(bool art)
+    {
+        GameDatabase db = art ? WithCheerArt(Db()) : Db();
+        WorldState world = World(db, 3);
+        CreatureState reader = Researcher(db, world, new TilePos(2, 2), ResearchStep.ReadingShortState);
+        reader.ActionUntilTick = long.MaxValue;
+        CreatureState elsewhere = world.SpawnCreature(db, Vampire, Keeper, new TilePos(10, 10));
+        bool cheered = false;
+        var shelve = new Probe(context =>
+        {
+            if (cheered) return;
+            ResearchStep.Cheer(context, "probe", Library(db, world));
+            cheered = true;
+        });
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, shelve);
+        sim.ObserveWith(sink);
+
+        sim.Tick();
+        Assert.Equal(ResearchStep.CelebratingState, reader.Dk2StateId);
+        Assert.NotEqual(ResearchStep.CelebratingState, elsewhere.Dk2StateId);
+        sim.Tick();
+
+        // 60 at Age 1: the read ended, then the cheer (or nothing), then idle in the same call (61's
+        // handler never runs), and the place is gone with the category.
+        Assert.NotEqual(ResearchStep.CelebratingState, reader.Dk2StateId);
+        Assert.False(reader.HeldPlace.IsHeld);
+        SimEvent? cheer = sink.Events.Cast<SimEvent?>().FirstOrDefault(e => e!.Value.Kind == "research_cheer");
+        if (!art)
+        {
+            Assert.Null(cheer);
+            return;
+        }
+        int plays = int.Parse(cheer!.Value.Detail.Split(' ')[1]["plays=".Length..]);
+        Assert.InRange(plays, 1, 2);
+        Assert.Equal(sim.CurrentTick.Value - 1 + AnimationTimingRules.CountedHoldTicks(db.CreatureById(Vampire), 8, plays), reader.ActionUntilTick);
+    }
 }
