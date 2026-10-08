@@ -292,7 +292,7 @@ times before the call; ours casts Heal before 700 in one seed of ten (Q563).
 keepers' slaps now redirect imps, so the wall falls at 72-390: early when Morgana's keeper slaps
 the imp reinforcing (64,38) before it finishes, near DK2's 387 when nothing interrupts her
 repairer. Drako attacks Morgana first in 6 seeds (calls 357-601, her heart falls 689-1,098) and
-turns west to Belial in 4. DK2's capture is one draw: its Morgana slaps once in her first 200
+turns west to Belial in 4; the owner says DK2's Drako always goes for Morgana (2026-10-08), so the 4 are a divergence (Q574). DK2's capture is one draw: its Morgana slaps once in her first 200
 ticks, against 2.8 expected if the step rolls every tick (`computer-keeper-management.md` §8).
 
 ## M12 acceptance against the two captures (2026-10-06)
