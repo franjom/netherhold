@@ -71,9 +71,8 @@ freed and owner changed), and `0x004E44E0` at `0x004E4527`, which `Tile_SetTerra
 neighbouring room tile of a room whose definition has `SpecialWalls` (skipped while a save loads).
 
 **Ours.** `RoomEvictRules` (shared with the Temple's 107 and the Prison's 126) kicks a trainee at
-its next turn when the room's size stamp differs from the one at its claim. Not built: the
-neighbour-terrain trigger `0x004E44E0` (also the Casino's and others'); a freed room or new owner,
-which the job's room test idles.
+its next turn when the room was rebuilt, taken, freed or beside a changed tile since its claim
+(ADR-0406, `room-return-states.md` §1).
 
 ## 5. 126, back into a Prison `0x00473920` — CONFIRMED
 
@@ -85,8 +84,9 @@ result. Off a Prison, 0. `0x00473990` counts 126 as a captive with category 14.
 (`0x004E2C30`) kick every place-holder to 126 (`0x004E2C11`, `0x004E2B57`, `0x004E2C41`).
 
 **Ours.** `RoomEvictRules` and `PrisonRules.Return` (in `PrisonerWanderSystem`): 114 then 115, as
-the admission does, or let out and idle off a Prison. Not built: the neutral captive's owner change;
-the freed and ownership slots.
+the admission does, or let out and idle off a Prison; the freed and ownership slots kick as a rebuild
+does (ADR-0406). Not built: the neutral captive's owner change. A neighbour's change does not kick a
+Prison: `0x004E44E0` has no arm for it.
 
 ## 6. 86, a tunneller's wander `0x00480750` — CONFIRMED
 

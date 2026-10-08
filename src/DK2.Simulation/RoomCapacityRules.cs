@@ -102,7 +102,8 @@ public static class RoomCapacityRules
             return false;
         }
         creature.HeldPlace = new RoomPlace(tile, Units);
-        creature.HeldPlaceStamp = SlabChain.SizeChangedTick(world, room);
+        creature.HeldPlaceStamp = SlabChain.HoldersStamp(world, room);
+        creature.HeldPlaceSerial = world.NextPlaceClaim++;
         if (room.Definition.TypeId == RoomTypeId.Prison && Occupants(world, room) > PrisonRules.Capacity(room))
             PostFull(world, room, RoomTypeId.Prison);
         return true;

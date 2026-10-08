@@ -380,6 +380,116 @@ public class TortureTests
     }
 
     [Fact]
+    public void ANeighbouringTilesChangeTakesTheVictimOffAndBackOnItsWheelOnce()
+    {
+        // 0x004E44E0's Torture Chamber arm: the creature stopped and kicked to 136, which gets back
+        // onto the free wheel under it (ADR-0406). Its claim is renewed, so it does not repeat.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState captive = Captive(db, world);
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        sim.Run(1);
+
+        ref TileState east = ref world.Tile(10, 3);
+        (byte before, PlayerId owner) = (east.TerrainId, east.OwnerPlayerId);
+        east.TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        SlabChain.Changed(world, db, Index(world, new TilePos(10, 3)), before, owner);
+        sim.Run(6);
+
+        Assert.Single(sink.Events, e => e.Kind == "restrapped");
+        Assert.True(TortureRules.IsBeingTortured(captive));
+        Assert.Equal(Wheel, captive.Tile);
+        Assert.Equal(TortureRules.TorturedState, captive.Dk2StateId);
+    }
+
+    [Fact]
+    public void ANeighbouringTilesChangeLeavesThePrisonsCaptivesAlone()
+    {
+        // The Prison has SpecialWalls and no arm in 0x004E44E0's table.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState captive = Captive(db, world);
+        long stamp = captive.HeldPlaceStamp;
+
+        ref TileState west = ref world.Tile(1, 3);
+        (byte before, PlayerId owner) = (west.TerrainId, west.OwnerPlayerId);
+        west.TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        SlabChain.Changed(world, db, Index(world, new TilePos(1, 3)), before, owner);
+
+        Assert.True(captive.HeldPlace.IsHeld);
+        Assert.Equal(stamp, captive.HeldPlaceStamp);
+    }
+
+    /// <summary>One neighbour, one kick: 0x004E44E0 steps through the kicked holder's own zeroed link,
+    /// so only the room's head, its latest claimant, goes (0x004E5E00).</summary>
+    [Fact]
+    public void ANeighbouringTilesChangeKicksOnlyTheLatestClaimant()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        RoomRules.Place(db, ref world.Tile(11, 7), db.Room(RoomTypeId.Library), Keeper);
+        int at = Index(world, new TilePos(11, 7));
+        CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(11, 7));
+        CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(11, 7));
+        (first.HeldPlace, first.HeldPlaceSerial) = (new RoomPlace(at, RoomCapacityRules.Units), 1);
+        (second.HeldPlace, second.HeldPlaceSerial) = (new RoomPlace(at, RoomCapacityRules.Units), 2);
+
+        ref TileState east = ref world.Tile(12, 7);
+        (byte before, PlayerId owner) = (east.TerrainId, east.OwnerPlayerId);
+        east.TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        SlabChain.Changed(world, db, Index(world, new TilePos(12, 7)), before, owner);
+
+        Assert.Equal(SlabChain.KickedMark, second.HeldPlaceStamp);
+        Assert.NotEqual(SlabChain.KickedMark, first.HeldPlaceStamp);
+    }
+
+    [Theory]
+    [InlineData(RoomTypeId.Library, true)]
+    [InlineData(RoomTypeId.TrainingRoom, true)]
+    [InlineData(RoomTypeId.Workshop, true)]
+    [InlineData(RoomTypeId.TortureChamber, true)]
+    [InlineData(RoomTypeId.Casino, true)]
+    [InlineData(RoomTypeId.Prison, false)]     // SpecialWalls, no arm
+    [InlineData(RoomTypeId.Temple, false)]
+    [InlineData(RoomTypeId.Treasury, false)]
+    public void ANeighbouringTilesChangeKicksOnlyTheFiveArmsOf0x004E44E0(RoomTypeId type, bool kicked)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        RoomRules.Place(db, ref world.Tile(11, 7), db.Room(type), Keeper);
+        CreatureState holder = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(11, 7));
+        holder.HeldPlace = new RoomPlace(Index(world, new TilePos(11, 7)), RoomCapacityRules.Units);
+
+        ref TileState east = ref world.Tile(12, 7);
+        (byte before, PlayerId owner) = (east.TerrainId, east.OwnerPlayerId);
+        east.TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        SlabChain.Changed(world, db, Index(world, new TilePos(12, 7)), before, owner);
+
+        Assert.Equal(kicked, holder.HeldPlaceStamp == SlabChain.KickedMark);
+    }
+
+    [Fact]
+    public void ARoomTakenByARivalKicksItsHolders()
+    {
+        // Room_TransferOwnership 0x004E5650 runs the type's slot +0x0D (ADR-0406); a Treasury, whose
+        // fixture terrain is Attackable, stands in for any room.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        RoomRules.Place(db, ref world.Tile(11, 7), db.Room(RoomTypeId.Treasury), Keeper);
+        Simulation(db, world).Run(50);
+        int tile = Index(world, new TilePos(11, 7));
+        for (int i = 0; i < 5000 && world.TileAtIndex(tile).OwnerPlayerId == Keeper; i++)
+            RoomHealthRules.Convert(world, db, tile, Rival);
+        RoomInstance taken = RoomIndex.RoomAt(world, db, tile)!;
+
+        Assert.Equal(Rival, taken.OwnerPlayerId);
+        Assert.Equal(world.CurrentTick.Value, SlabChain.HoldersStamp(world, taken));
+        Assert.NotEqual(0, world.CurrentTick.Value);
+    }
+
+    [Fact]
     public void AFreeWheelOnlyDiagonallyBesideIsOutOfOneThirtySixsReach()
     {
         // 0x1800 against the squared distance: a side neighbour is 1, a diagonal 2.

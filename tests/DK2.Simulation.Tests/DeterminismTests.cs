@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 204: the slap step reads the last task kind, a repair is kind 16 (ADR-0405)
+        // HashVersion 205: a room's holders kicked by a neighbour's change, its new owner or its freeing (ADR-0406)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x5C3A1B89341D720FUL, sim.StateHash());
+        Assert.Equal(0xA3E9B6DDE3F06795UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

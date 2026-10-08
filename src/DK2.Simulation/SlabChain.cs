@@ -52,7 +52,67 @@ public static class SlabChain
         if (database.RoomByTerrain(terrainBefore) is { } before)
             Removed(world, database, tileIndex, terrainBefore, ownerBefore, before, lost);
         if (database.RoomByTerrain(tile.TerrainId) is not null) Added(world, tileIndex);
-        else (tile.SlabOrder, tile.RoomSizeChangedTick) = (0, 0);
+        else (tile.SlabOrder, tile.RoomSizeChangedTick, tile.RoomKickedTick) = (0, 0, 0);
+        if (tile.TerrainId != terrainBefore) KickNeighbours(world, database, tileIndex);
+    }
+
+    /// <summary>A holder a neighbour's change picked: no room's stamp equals it.</summary>
+    public const long KickedMark = -1;
+
+    /// <summary><c>0x004E44E0</c>, which <c>Tile_SetTerrain</c> calls for each N/E/S/W neighbour that
+    /// is a room tile (<c>0x00450214</c>), for a room whose type has <c>SpecialWalls</c>: a Library's
+    /// holder to 62, a Training Room's to 113, a Workshop's to 70, a Torture Chamber's to 136 and a
+    /// Casino's to 154; the Prison has the flag and no arm. ONE holder per call: the loop steps
+    /// through the kicked creature's own link, which its release (<c>0x004E5E00</c>) has zeroed, so it
+    /// takes the list's head, the latest claimant, and stops. Ours marks that holder, skipping one a
+    /// change has already marked, and it takes the kick at its next turn (<see cref="RoomEvictRules"/>).
+    /// Not modelled: a head whose kick the transition table refuses, after which DK2 tries the next.</summary>
+    internal static void KickNeighbours(WorldState world, GameDatabase database, int tileIndex)
+    {
+        int x = tileIndex % world.Width, y = tileIndex / world.Width;
+        for (int d = 0; d < Dx.Length; d++)
+        {
+            int nx = x + Dx[d], ny = y + Dy[d];
+            if (nx < 0 || ny < 0 || nx >= world.Width || ny >= world.Height) continue;
+            int n = (ny * world.Width) + nx;
+            if (database.RoomByTerrain(world.TileAtIndex(n).TerrainId) is not { } definition
+                || !definition.Flags.HasFlag(RoomFlags.SpecialWalls)
+                || definition.TypeId is not (RoomTypeId.Library or RoomTypeId.TrainingRoom or RoomTypeId.Workshop
+                    or RoomTypeId.TortureChamber or RoomTypeId.Casino)
+                || RoomIndex.RoomAt(world, database, n) is not { } room)
+                continue;
+
+            CreatureState? head = null;
+            foreach (CreatureState c in world.Creatures)
+            {
+                if (!c.HeldPlace.In(room) || c.HeldPlaceStamp == KickedMark) continue;
+                if (head is null || c.HeldPlaceSerial > head.HeldPlaceSerial) head = c;
+            }
+
+            if (head is not null) head.HeldPlaceStamp = KickedMark;
+        }
+    }
+
+    /// <summary>Stamps <paramref name="room"/>'s place-holders as kicked this turn
+    /// (<see cref="TileState.RoomKickedTick"/>).</summary>
+    internal static void Kick(WorldState world, RoomInstance room)
+    {
+        long now = world.CurrentTick.Value;
+        foreach (int tile in room.TileIndices) world.TileAtIndex(tile).RoomKickedTick = now;
+    }
+
+    /// <summary>The later of the room's rebuild and its last kick: a holder that claimed its place
+    /// before this has been kicked since (<see cref="RoomEvictRules"/>).</summary>
+    public static long HoldersStamp(WorldState world, RoomInstance room)
+    {
+        long stamp = 0;
+        foreach (int tile in room.TileIndices)
+        {
+            ref TileState state = ref world.TileAtIndex(tile);
+            stamp = Math.Max(stamp, Math.Max(state.RoomSizeChangedTick, state.RoomKickedTick));
+        }
+
+        return stamp;
     }
 
     /// <summary><c>0x004ED320</c>, for a tile that has just become room terrain: it joins the room

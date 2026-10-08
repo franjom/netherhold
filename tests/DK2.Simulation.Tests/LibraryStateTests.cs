@@ -303,6 +303,65 @@ public class LibraryStateTests
         Assert.Equal(0, endedIn);   // 62 ends the read (0x00496D20)
     }
 
+    /// <summary>The terrain at (x, y) becomes <paramref name="terrain"/> through the setter's own path.</summary>
+    private static void SetTerrain(GameDatabase db, WorldState world, int x, int y, byte terrain)
+    {
+        ref TileState tile = ref world.Tile(x, y);
+        (byte before, PlayerId owner) = (tile.TerrainId, tile.OwnerPlayerId);
+        tile.TerrainId = terrain;
+        SlabChain.Changed(world, db, (y * world.Width) + x, before, owner);
+    }
+
+    [Fact]
+    public void ANeighbouringTilesChangeSendsTheLibrarysReaderTo62AndBackTo53_TheRoomUnchanged()
+    {
+        // 0x004E44E0 from Tile_SetTerrain (0x00450214): a wall reinforced beside the Library (ADR-0406).
+        GameDatabase db = Db();
+        WorldState world = World(db, 3);
+        CreatureState it = Researcher(db, world, new TilePos(2, 2), ResearchStep.ReadingShortState);
+        it.ActionUntilTick = long.MaxValue;
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick();
+        long size = SlabChain.SizeChangedTick(world, Library(db, world));
+
+        SetTerrain(db, world, 4, 2, Dk2TerrainFixture.ReinforcedWall);
+        var order = new List<int>();
+        for (int i = 0; i < 6; i++)
+        {
+            sim.Tick();
+            order.Add(it.Dk2StateId);
+        }
+
+        Assert.Equal(size, SlabChain.SizeChangedTick(world, Library(db, world)));
+        int back = order.IndexOf(ResearchStep.ReturningState);
+        Assert.True(back >= 0, string.Join(" ", order));
+        Assert.Contains(ResearchStep.ChoosingState, order.Skip(back + 1));
+    }
+
+    [Fact]
+    public void AFreedLibrarySendsItsReaderTo62_WhichFindsNoLibraryAndIdles()
+    {
+        // The type's slot +0x05 (0x004E17E0): the room is gone, so 62's test fails (ADR-0406).
+        GameDatabase db = Db();
+        WorldState world = World(db, 1);
+        CreatureState it = Researcher(db, world, new TilePos(1, 1), ResearchStep.ReadingShortState);
+        it.ActionUntilTick = long.MaxValue;
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick();
+
+        SetTerrain(db, world, 1, 1, Dk2TerrainFixture.ClaimedPath);
+        var order = new List<int>();
+        for (int i = 0; i < 6; i++)
+        {
+            sim.Tick();
+            order.Add(it.Dk2StateId);
+        }
+
+        Assert.Contains(ResearchStep.ReturningState, order);
+        Assert.Equal(JobType.None, it.CurrentJob);
+        Assert.DoesNotContain(order[^1], new[] { ResearchStep.ReturningState, ResearchStep.ChoosingState });
+    }
+
     /// <summary>The Vampire with art in slot 8 too, which 60's action 35 plays.</summary>
     private static GameDatabase WithCheerArt(GameDatabase basis)
     {

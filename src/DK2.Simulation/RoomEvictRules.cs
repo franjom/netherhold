@@ -8,17 +8,15 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation;
 
-/// <summary>A room's type slots +0x05 (freed), +0x09 (tiles changed) and +0x0D (owner changed) kick
-/// every place-holder to the type's return state: a Temple's to 107 (<c>0x004F15D0</c>), a Prison's
-/// to 126 (<c>0x004E2B30</c>, <c>0x004E2C00</c>, <c>0x004E2C30</c>), a Training Room's to 113
-/// (<c>0x004F2EA0</c>, <c>0x004F2F20</c>), a Library's to 62 (<c>0x004E10D0</c>, <c>0x004E17E0</c>,
-/// <c>0x004E1830</c>), a Workshop's to 70 (<c>0x004F5530</c>, <c>0x004F58A0</c>, <c>0x004F5940</c>) and a
-/// Casino's to 154 (<c>0x004D70D0</c>, <c>0x004D7100</c>). Each waits a turn and goes back in
-/// (temple-states.md §7, refused-states.md, room-return-states.md).</summary>
-/// <remarks>Ours sees the change at the holder's next turn, by the room's size stamp
-/// (<see cref="SlabChain.SizeChangedTick"/>) against the one it held when it claimed its place
-/// (<see cref="CreatureState.HeldPlaceStamp"/>), not inside the rebuild. A freed room or a new owner
-/// does not stamp; the job's room test or the prison's own release takes those.</remarks>
+/// <summary>A room's type slots +0x05 (freed), +0x09 (tiles changed) and +0x0D (owner changed), and
+/// <c>0x004E44E0</c> for one holder when a neighbouring tile's terrain changes, kick place-holders to
+/// the type's return state: Temple 107, Prison 126, Training Room 113, Library 62, Workshop 70,
+/// Casino 154. Each waits a turn and goes back in (room-return-states.md §1, the handlers there).</summary>
+/// <remarks>Ours sees the change at the holder's next turn, by the room's stamp
+/// (<see cref="SlabChain.HoldersStamp"/>) against the one it held when it claimed its place
+/// (<see cref="CreatureState.HeldPlaceStamp"/>), which a neighbour's change replaces with
+/// <see cref="SlabChain.KickedMark"/> for one holder, and a freed room by the place's tile no longer
+/// being one of the type; not inside the change. Not built: the Library's load slot +0x11 (ADR-0406).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/refused-states.md")]
 public static class RoomEvictRules
 {
@@ -52,18 +50,24 @@ public static class RoomEvictRules
         return true;
     }
 
-    /// <summary>Kicks the creature to its room's return state when the room was rebuilt since its
-    /// claim; true when it was kicked.</summary>
-    public static bool Evict(SimulationContext context, string system, CreatureState creature)
+    /// <summary>Whether the room of <paramref name="type"/> that the creature holds a place in was
+    /// freed, rebuilt, taken or kicked by a neighbour's change since its claim.</summary>
+    public static bool Kicked(WorldState world, GameDatabase database, CreatureState creature, RoomTypeId type)
     {
         if (!creature.HeldPlace.IsHeld) return false;
-        WorldState world = context.World;
-        if (RoomIndex.RoomAt(world, context.Database, creature.HeldPlace.TileIndex) is not { } held
-            || held.Definition.TypeId is not RoomTypeId type || ReturnStateOf(type) is not int state
-            || creature.Dk2StateId == state
-            || SlabChain.SizeChangedTick(world, held) == creature.HeldPlaceStamp)
+        return RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex) is not { } held
+            || held.Definition.TypeId != type
+            || SlabChain.HoldersStamp(world, held) != creature.HeldPlaceStamp;
+    }
+
+    /// <summary>Kicks the creature to the return state of <paramref name="type"/>, the room its job
+    /// holds a place in, when that room was <see cref="Kicked"/>; true when it was kicked.</summary>
+    public static bool Evict(SimulationContext context, string system, CreatureState creature, RoomTypeId type)
+    {
+        if (ReturnStateOf(type) is not int state || creature.Dk2StateId == state
+            || !Kicked(context.World, context.Database, creature, type))
             return false;
-        context.Emit(system, "room_evicted", $"creature={creature.Id} room={held.Definition.TypeId} to={state}");
+        context.Emit(system, "room_evicted", $"creature={creature.Id} room={type} to={state}");
         creature.StopMoving();
         return StateShadow.TryMove(context, system, creature, state);
     }

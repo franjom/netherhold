@@ -40,7 +40,10 @@ public sealed class TortureSystem : ISimulationSystem
 
             int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
             byte keeper = TortureRules.KeeperOf(creature);
-            if (TortureRules.FreeDeviceAt(world, database, keeper, here, creature.Id) is null)
+            // The chamber freed, taken (0x004F1FB0), rebuilt (0x004F1F10) or beside a changed tile
+            // (0x004E44E0) kicks its holders to 136 as a lost device does (ADR-0406).
+            if (RoomEvictRules.Kicked(world, database, creature, RoomTypeId.TortureChamber)
+                || TortureRules.FreeDeviceAt(world, database, keeper, here, creature.Id) is null)
             {
                 // The device is gone: 131 goes to 136, which gets onto another free one within
                 // reach (ADR-0200). Failing that, or with the chamber gone, a captive standing

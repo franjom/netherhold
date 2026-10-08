@@ -104,6 +104,9 @@ public static class RoomHealthRules
             tile.KeptManaGain = 0; // Tile_SetOwner moves the room terrain's 0, not the floor's 1 (ADR-0334)
             if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
         }
+
+        // The type's slot +0x0D kicks every place-holder (room-return-states.md §1, ADR-0406).
+        SlabChain.Kick(world, room);
     }
 
     /// <summary>The transfer's messages: 35 to the old owner (<c>0x004E58F4</c>), then 32 to the new,

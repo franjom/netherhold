@@ -31,12 +31,27 @@ also kicked by `Room_NeighbourTerrainChanged` `0x004E44E0` (jump table `0x004E45
 `0x3E` at `0x004E4523`, Workshop `0x46` at `0x004E452B`, Casino `0x9A` at `0x004E453D`, to the shared
 kick at `0x004E4544`).
 
-**Ours.** `RoomEvictRules`: the room's size stamp at the holder's next turn, as for 107, 113 and 126;
-the handlers are `RoomEvictRules.BackIn` from `ResearchStep`, `WorkshopStep` and `CasinoStep`. Not
-built, as for the others: the freed and owner-changed slots (the job's room test idles the holder),
-the load slot, `0x004E44E0`, and the books', crates' and effect's handling (Q575). The neighbour trigger is the common one in play: a wall
-dug or a tile claimed beside the room. A jackpot winner leaves the Drink job (ADR-0396), so ours
-does not evict it; DK2's kick reaches every place-holder in the room's list.
+**Ours.** `RoomEvictRules`, at the holder's next turn, as for 107, 113 and 126: a rebuild (the
+room's size stamp) and a new owner (`Room_TransferOwnership`'s slot `+0x0D` stamps the room, also in
+defeat) differ from the stamp the holder took at its claim; a neighbouring tile's change
+(`0x004E44E0`, `SlabChain.KickNeighbours`) marks the room's latest claimant; a freed room is the held
+tile no longer being one of the type (ADR-0406, Q575). The handlers are `RoomEvictRules.BackIn` from `ResearchStep`, `WorkshopStep` and
+`CasinoStep`. Not built: the Library's load slot `+0x11` (ADR-0406), and the books', crates' and
+effect's handling. The neighbour trigger is the common one in play: a wall dug, reinforced or
+claimed beside the room. A jackpot winner leaves the Drink job (ADR-0396), so ours does not evict
+it; DK2's kick reaches every place-holder in the room's list.
+
+**`0x004E44E0` whole (2026-10-08).** `Tile_SetTerrain` calls it at `0x00450214` for each N/E/S/W
+neighbour (`0x006BC350`) that is a room tile, on every call. Skipped under the LoadingLevel bit
+(world `+0x7239` & `0x40`), and for a room whose definition lacks `SpecialWalls` (`+0x43E` bit 0, bit 8
+of the flags word at `+0x43D`). Arms: Library 62, Training Room 113, Workshop 70, Torture Chamber 136
+after a stop, Casino 154; the Prison has the flag and no arm. **One holder a call**: the loop steps
+through the kicked creature's own next link, which the kick's release (`0x004E5E00`) has zeroed, so
+it kicks the list's head, the latest claimant, and ends; the slot handlers re-read the head and reach
+everyone. Six trainees and one wall dug beside the room: one goes to 113. The room-type table `0x006A1E9F` (41 bytes a type) gives the Torture
+Chamber `0x004F1FB0` at `+0x05` and `+0x0D` (end the action, stop, 136) and `0x004F1F10` at `+0x09`
+(136 first, then its device count). The load slot `+0x11` is the Library's `0x004E10D0`; the
+Lair's and Workshop's are the bare `RET` at `0x00401200`, every other type's null.
 
 ## 2. 60 and 61: the research cheer — CONFIRMED
 

@@ -72,7 +72,7 @@ public static class CasinoStep
     /// <summary>One turn of a gambler. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
     {
-        if (RoomEvictRules.Evict(context, system, creature)) return true;
+        if (RoomEvictRules.Evict(context, system, creature, RoomTypeId.Casino)) return true;
         if (StateShadow.IsTravelling(creature))
         {
             if (creature.HasRoute) return true;

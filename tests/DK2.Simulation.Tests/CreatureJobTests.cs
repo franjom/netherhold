@@ -432,7 +432,7 @@ public sealed class CreatureJobTests
     // ---- losing a job -----------------------------------------------------
 
     [Fact]
-    public void SellingTheRoomOutFromUnderACreatureEndsTheJobThatSecond()
+    public void SellingTheRoomOutFromUnderACreatureSendsItTo113ThenEndsTheJob()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -453,10 +453,11 @@ public sealed class CreatureJobTests
 
         sim.Run(Second * 2);
 
+        // The type's slot +0x05 kicks it to 113, which finds no Training Room and idles (ADR-0406).
         Assert.Equal(CreatureActivity.Idle, goblin.Activity);
         Assert.Equal(JobType.None, goblin.CurrentJob);
         Assert.Contains(events.Events, e =>
-            e.Kind == "job_lost" && e.Detail.Contains("reason=room_gone"));
+            e.Kind == "room_evicted" && e.Detail.Contains("to=113"));
     }
 
     // ---- on DK2's state ids (ADR-0177) --------------------------------------
@@ -482,7 +483,7 @@ public sealed class CreatureJobTests
     {
         // The Train handler calls the room helper from idle with 108 as the resume
         // (travel-state-call-sites.md 2). The saved caller is the evidence the walk came
-        // from idle; selling the room drops the creature to 1.
+        // from idle; selling the room kicks it to 113, which drops it to 1 (ADR-0406).
         GameDatabase db = Db;
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
@@ -500,9 +501,10 @@ public sealed class CreatureJobTests
         // Then, with nothing left to choose, 89 parks it in 3 (ADR-0228).
         Assert.Equal(
             [(7, CreatureStateMachine.Idle), (108, CreatureStateMachine.Idle),
+             (TrainingRules.ReturningState, CreatureStateMachine.Idle),
              (CreatureStateMachine.Idle, CreatureStateMachine.Idle),
              (CreatureJobSystem.DoingNothingState, CreatureStateMachine.Idle)],
-            seen.Take(4));
+            seen.Take(5));
         Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }

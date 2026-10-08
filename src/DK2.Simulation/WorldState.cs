@@ -193,6 +193,11 @@ public struct TileState
     /// rooms. The finders' full-room messages wait on it (<see cref="RoomNeedRules"/>).</summary>
     public long RoomSizeChangedTick;
 
+    /// <summary>The tick a room's place-holders were last all kicked with its tiles unchanged: the room
+    /// changed owner (its type's slot <c>+0x0D</c>). Held on each of its tiles, as
+    /// <see cref="RoomSizeChangedTick"/> is; a holder compares both (<see cref="SlabChain.HoldersStamp"/>).</summary>
+    public long RoomKickedTick;
+
     /// <summary>DK2's room ruin, <c>room+0x9A</c> bit 0, held on each tile of a ruined gate since
     /// rooms here are derived from tiles. Set by trigger action 32 through <c>0x004E9130</c> for the
     /// Hero Gate types 18, 20 and 23; it makes a non-Attackable room convertible (<c>0x00454040</c>).
@@ -262,6 +267,7 @@ public struct TileState
         hash.Add(PrisonDoor);
         hash.Add(SlabOrder);
         hash.Add(RoomSizeChangedTick);
+        hash.Add(RoomKickedTick);
         hash.Add(RoomRuined);
         hash.Add(RoomHealthLost);
         hash.Add(KeptManaGain);
@@ -1058,6 +1064,10 @@ public sealed class WorldState
     /// stamped tile always comes after every tile stamped before it.</summary>
     public int NextSlabOrder { get; internal set; } = 1;
 
+    /// <summary>The next <see cref="CreatureState.HeldPlaceSerial"/>: a room's list takes each claim at
+    /// its head, so the highest serial is the head.</summary>
+    public long NextPlaceClaim { get; internal set; } = 1;
+
     /// <summary>The next <see cref="TileState.TagOrder"/>.</summary>
     public int NextTagOrder { get; internal set; } = 1;
 
@@ -1349,6 +1359,7 @@ public sealed class WorldState
         hash.Add(_tiles.Length);
         foreach (TileState t in _tiles) t.HashInto(ref hash);
         hash.Add(NextSlabOrder);
+        hash.Add(NextPlaceClaim);
         hash.Add(NextTagOrder);
         hash.Add(_players.Length);
         foreach (PlayerState p in _players) p.HashInto(ref hash);

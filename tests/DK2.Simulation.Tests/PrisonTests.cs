@@ -857,9 +857,11 @@ public class PrisonTests
         sim.Tick(InputFrame.Of(SellRoomCommand.Rect(Keeper, CellA.X, CellA.Y, CellA.X, CellA.Y)));
         for (int i = 0; i < 2 * Second; i++) sim.Tick();
 
+        // The Prison's freed and tiles-changed slots kick it to 126, which finds no Prison and lets
+        // it go (0x004E2C00, 0x004E2B30, ADR-0406).
         Assert.False(PrisonRules.IsImprisoned(captive));
         Assert.Contains(sink.Events,
-            e => e.Kind == "prisoner_freed" && e.Detail.Contains("cell_gone"));
+            e => e.Kind == "room_evicted" && e.Detail.Contains("to=126"));
     }
 
     [Fact]

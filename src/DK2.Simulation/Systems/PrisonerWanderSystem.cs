@@ -40,7 +40,7 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
             // A Prison rebuilt since the claim sends its captives to 126, which waits a turn and
             // goes back in (0x004E2B30, ADR-0400).
             if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held)) continue;
-            if (SimulationTiming.OnOriginalTick(context.Tick.Value) && RoomEvictRules.Evict(context, SystemName, creature)) continue;
+            if (SimulationTiming.OnOriginalTick(context.Tick.Value) && RoomEvictRules.Evict(context, SystemName, creature, RoomTypeId.Prison)) continue;
             if (SlapRules.IsReaction(creature.Dk2StateId)) continue;   // 120's reaction (ADR-0401)
             if (creature.Dk2StateId == PrisonRules.ReturningState)
             {

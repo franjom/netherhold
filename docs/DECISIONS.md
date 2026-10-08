@@ -9279,3 +9279,38 @@ seed 12345 builds no Prison inside 3,000 ticks, one seed of 31; seeds 1-30 build
 **Measured** (hash 204) against master `acfe743a`, both sides run: Level 1 20/20 and 20/20, Level 2
 2/20 and 2/20 (seeds 3, 13), Level 3 seed 01 won at 3676 and 3676 (DK2 3683): every seed's result
 unchanged.
+
+## ADR-0406 — A room's holders are kicked when it is freed, taken, or a neighbouring tile changes
+**Date:** 2026-10-08 · **Status:** accepted · Research: `room-return-states.md` §1; Q575
+
+**Context.** Besides a rebuild, DK2 kicks a room's place-holders to its return state from the type's
+slots `+0x05` (freed) and `+0x0D` (owner changed, from `Room_TransferOwnership`), each of which
+reaches every holder, from `+0x11` (a load; the Library's only) and from `0x004E44E0`.
+`Tile_SetTerrain` calls `0x004E44E0` for each N/E/S/W neighbour that is a room tile; for a
+definition with `SpecialWalls` it kicks a Library's holder to 62, a Training Room's to 113, a
+Workshop's to 70, a Torture Chamber's to 136 and a Casino's to 154 (the Prison has the flag and no
+arm). It kicks one holder a call: the loop follows the kicked creature's own link, which the kick's
+release zeroes, so only the list's head, the latest claimant, goes. The Torture Chamber's `+0x05` and
+`+0x0D` are `0x004F1FB0` and its `+0x09` (`0x004F1F10`) kicks to 136 first. Ours kicked only on a
+rebuild; a freed or taken room ended the job at the next game second.
+
+**Decision.** A claim records a serial (`HeldPlaceSerial`, from `WorldState.NextPlaceClaim`).
+`SlabChain.KickNeighbours`, run on a terrain change from `SlabChain.Changed`, the defeat's fallen
+tiles and the trigger's terrain action, marks the highest-serial unmarked holder of each qualifying
+neighbour room (`HeldPlaceStamp` = `KickedMark`). An ownership change, by conversion or defeat,
+stamps the room (`RoomKickedTick`), which a holder's claim stamp (`SlabChain.HoldersStamp`) then
+differs from. `RoomEvictRules.Evict` takes the job's room type and kicks on either, or when the held
+tile is no longer that type (freed). A Torture Chamber's victim so kicked goes through 136 as for a
+lost device. Deviates: the kick lands at the holder's next turn; a head whose kick the transition
+table refuses is not passed over for the next; the Library's load slot is not built, so a saved game
+plays on as an unsaved one would; the Library's books, the Workshop's crates and the Casino's effect
+on a freed or taken room are not moved.
+
+**Consequences.** A wall dug, reinforced or claimed beside a Library, Training Room, Workshop,
+Torture Chamber or Casino sends its latest occupant out of its state and back in. A sold room's
+holder passes through its return state before it idles.
+
+**Measured** (hash 205) against `9bbfdfed` (ADR-0405), both sides run: Level 1 20/20 and 20/20, every seed
+unchanged; Level 2 2/20 and 2/20 (seeds 3 and 13 before, 10 and 13 after); Level 3 seed 01 won at
+3676 and 3584 (DK2 3683). Level 11A seeds 1-10 unchanged but one heart strike; Level 17 seeds 1-10
+build the same Prisons at the same ticks, later rooms shift.

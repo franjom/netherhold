@@ -237,9 +237,12 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   creature without `CanBeElectrocuted`) and sets 130; otherwise 0, idle. 136 is entered
   from 131 when the device is gone (`0x00484920`), for every creature attached to a
   chamber by `0x004F1F10` (it then re-tests the room for devices, object type 8 or 61),
-  and by `0x004E44E0`, which moves every creature attached to a room of the keeper's
-  when owner `+0x43E` bit 0 is set: Hatchery 62, 7 113, 10 70, Torture 136, 15 154.
-- **Built:** ADR-0200, its *Ours* list included; 238 and the `+0x43E` path are not.
+  by `0x004F1FB0` when the chamber is freed or taken, and by `0x004E44E0`, which moves the head
+  place-holder (one a call) of a room whose definition has `SpecialWalls` (`+0x43E` bit 0) when a
+  neighbouring tile's terrain changes: Library 62, Training Room 113, Workshop 70, Torture Chamber
+  136, Casino 154 (`room-return-states.md` §1).
+- **Built:** ADR-0200, its *Ours* list included; the chamber's and the neighbour's kicks to 136
+  (ADR-0406). 238 is not.
 - **Read 2026-09-24: who enters 134.** The creature update `0x00488930`, on a turn it has
   moved to a new tile (a local flag), for a creature on the ground, not dying and not
   attached to a room (`+0x3B9` zero), on a room tile, calls `0x004E8660(room, creature)`.

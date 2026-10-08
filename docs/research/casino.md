@@ -250,7 +250,7 @@ From the 10-byte rows at `0x006A0B00`: 73, 75, 77 and 91 are `0x2032` (50 s, tab
   music as started), the tile flash and
   effects, the wheel's spin (its `random(2)` is drawn), the drunk walk, 156's turn result beyond
   waiting for it, and `+0x3F6`.
-- 154 and 158 are not built here: 154 is the eviction a Casino's sale or loss starts
-  (`0x004D70D0`, `0x004D7100`, `0x004E44E0`), read in M-F.
+- 154, the eviction a Casino's sale, loss or neighbour's change starts (`0x004D70D0`, `0x004D7100`,
+  `0x004E44E0`), is built (ADR-0402, ADR-0406); 158 is not (Q571).
 </content>
 </invoke>

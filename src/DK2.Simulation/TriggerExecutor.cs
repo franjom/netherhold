@@ -1319,6 +1319,7 @@ public sealed class TriggerExecutor
         if (room is null)
         {
             SetTerrain(ref tile, next, next.IsOwnable ? player : PlayerIds.Neutral);
+            SlabChain.KickNeighbours(_world, _database, index);   // Tile_SetTerrain's 0x004E44E0 (ADR-0406)
         }
         else
         {

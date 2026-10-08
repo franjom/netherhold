@@ -611,7 +611,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         // and goes back to 108 (0x004F2EA0, 0x00485A60; ADR-0400).
         if (job == JobType.Train)
         {
-            if (originalTick && RoomEvictRules.Evict(context, SystemName, creature)) return;
+            if (originalTick && RoomEvictRules.Evict(context, SystemName, creature, RoomTypeId.TrainingRoom)) return;
             if (creature.Dk2StateId == TrainingRules.ReturningState)
             {
                 if (originalTick && !TrainingRules.Return(context, SystemName, creature)) Stop(context, creature);

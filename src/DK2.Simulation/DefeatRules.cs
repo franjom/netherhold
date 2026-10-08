@@ -72,6 +72,7 @@ public static class DefeatRules
                 tile.KeptManaGain = 0;
                 if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
             }
+            SlabChain.Kick(world, room);   // Room_TransferOwnership's slot +0x0D (ADR-0406)
             rooms++;
         }
 
@@ -89,6 +90,7 @@ public static class DefeatRules
             if (!next.IsTaggable) tile.TaggedBy = PlayerMask.None;
             tile.OwnerPlayerId = PlayerIds.Neutral;
             tile.KeptManaGain = 0;
+            SlabChain.KickNeighbours(world, database, i);   // Tile_SetTerrain's 0x004E44E0 (ADR-0406)
             fallen++;
         }
 

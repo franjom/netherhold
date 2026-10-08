@@ -58,7 +58,7 @@ public static class TempleStep
     /// <summary>One turn of a worshipper. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
     {
-        if (RoomEvictRules.Evict(context, system, creature)) return true;
+        if (RoomEvictRules.Evict(context, system, creature, RoomTypeId.Temple)) return true;
         if (StateShadow.IsTravelling(creature))
         {
             if (creature.HasRoute) return true;

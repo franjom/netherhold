@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 204;
+    private const int FormatVersion = 205;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -141,6 +141,7 @@ public static class WorldSnapshot
             w.Write(t.PrisonDoor);
             w.Write(t.SlabOrder);
             w.Write(t.RoomSizeChangedTick);
+            w.Write(t.RoomKickedTick);
             w.Write(t.RoomRuined);
             w.Write(t.RoomHealthLost);
             w.Write(t.KeptManaGain);
@@ -152,6 +153,7 @@ public static class WorldSnapshot
         }
 
         w.Write(world.NextSlabOrder);
+        w.Write(world.NextPlaceClaim);
         w.Write(world.NextTagOrder);
         w.Write(world.PlayerCount);
         for (int i = 0; i < world.PlayerCount; i++)
@@ -409,6 +411,7 @@ public static class WorldSnapshot
             w.Write(c.MachineMode);
             w.Write(c.WatchedCreatureId);
             w.Write(c.HeldPlaceStamp);
+            w.Write(c.HeldPlaceSerial);
             w.Write(c.DrunkTicks);
             w.Write(c.JackpotDeadlineTicks);
             w.Write(c.JackpotWinnings);
@@ -750,6 +753,7 @@ public static class WorldSnapshot
                 PrisonDoor = r.ReadByte(),
                 SlabOrder = r.ReadInt32(),
                 RoomSizeChangedTick = r.ReadInt64(),
+                RoomKickedTick = r.ReadInt64(),
                 RoomRuined = r.ReadBoolean(),
                 RoomHealthLost = r.ReadInt32(),
                 KeptManaGain = r.ReadByte(),
@@ -762,6 +766,7 @@ public static class WorldSnapshot
         }
 
         int nextSlabOrder = r.ReadInt32();
+        long nextPlaceClaim = r.ReadInt64();
         int nextTagOrder = r.ReadInt32();
         int playerCount = r.ReadInt32();
         var players = new PlayerState[playerCount];
@@ -830,6 +835,7 @@ public static class WorldSnapshot
 
         WorldState world = WorldState.FromParts(width, height, tiles, players, fogOfWarEnabled);
         world.NextSlabOrder = nextSlabOrder;
+        world.NextPlaceClaim = nextPlaceClaim;
         world.NextTagOrder = nextTagOrder;
         world.CurrentTick = tick;
 
@@ -1013,6 +1019,7 @@ public static class WorldSnapshot
                 MachineMode = r.ReadByte(),
                 WatchedCreatureId = r.ReadInt32(),
                 HeldPlaceStamp = r.ReadInt64(),
+                HeldPlaceSerial = r.ReadInt64(),
                 DrunkTicks = r.ReadInt32(),
                 JackpotDeadlineTicks = r.ReadInt32(),
                 JackpotWinnings = r.ReadInt32(),

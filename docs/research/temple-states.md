@@ -133,8 +133,8 @@ releases each place as it goes, which is what empties the list.
 - **107's trigger.** Ours sees a rebuilt Temple at the holder's next turn, by the room's size stamp
   (`SlabChain.SizeChangedTick`, the turn `0x004E4480` stamps) differing from the one it held when it
   claimed its place (`CreatureState.HeldPlaceStamp`, set by `RoomCapacityRules.Claim`), not inside
-  the rebuild. A Temple that is freed or changes owner ends the job at the next game
-  second (`CreatureJobSystem`'s room test), where DK2's 107 idles it a turn later.
+  the rebuild. A Temple that is freed or changes owner kicks its holders to 107 the same way
+  (ADR-0406); a neighbour's change does not, the Temple lacking `SpecialWalls`.
 - The centre tile `+0x27` is `RoomInstance.CentreField`, the bounding box's centre (Q515).
 - 103's neighbour search does not test solid terrain or the nav class. A tile of the same room has
   the room's terrain, which is not solid, and the nav byte is written only by `Tile_SetTerrain`
