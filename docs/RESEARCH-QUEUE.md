@@ -8,20 +8,13 @@ them touches `src/`. The other half of the split is
 
 Every row here must still be open in `docs/research/open-questions.md`, which is
 the one home for a question's status. This page carries only the **starting
-point** for the work. To re-derive what is still open, sort the question ids:
+point** for the work; last checked against that file on 2026-10-08. To find the
+newest question id before taking a number:
 
 ```sh
 grep -oE '^\| \*{0,2}Q[0-9]+' docs/research/open-questions.md \
   | grep -oE '[0-9]+' | sort -n | tail -1
 ```
-
-**Closed since this page was last pruned**, and not to be re-opened here: Q1
-(a tick is 250 ms, adopted — ADR-0089), Q69, Q81, Q110, Q123 (all read from the
-binary), Q86 (the portal tally's reset is an ownership change), Q209 (furniture
-is continuous collision, not a nav-tile write), Q214 and Q22 (there is no
-fill-in mechanism in DK2 — Q219), and **M1** (all 18 record-type ids parse and
-round-trip, ADR-0091). Tranche B below is therefore field-level work inside
-records that already parse, not a stalled milestone.
 
 **The standing lesson from the last sitting**, because it cost a documented
 claim: record a shipped variable as **"no reader found"**, never as **"no
@@ -205,64 +198,50 @@ missing there (`CatTable.py`, for one) is local to a clone in
 
 ## Tranche A — the cheap reader scans
 
-Empty: Q160 and Q168 are answered. **Method** for a new one: take the variable's
-cached global out of `balance-variables-in-the-binary.md`, run `ScanAll.py`, then
-`MaskScan.py` to name the containing routine, then decompile it.
+Empty. **Method** for a new one: take the variable's cached global out of
+`balance-variables-in-the-binary.md`, run `ScanAll.py`, then `MaskScan.py` to name
+the containing routine, then decompile it.
 
 ## Tranche B — field-level questions inside parsed records
 
-Pure file work with OpenKeeper's field lists and Flame's symbol map as
-cross-checks; touches no simulation code. The tools are already there:
-`dk2tools kwd recscan`, `creaturescan`, `creaturehex`, `objecthex`, `fieldsweep`.
+File work with OpenKeeper's field lists and Flame's symbol map as cross-checks;
+touches no simulation code. The tools are `dk2tools kwd recscan`, `creaturescan`,
+`creaturehex`, `objecthex`, `fieldsweep`.
 
 | Q | Question |
 |---|---|
-| **Q70** | What are the last **72 bytes** of a CREATURES record? `KwdCreatures` reads nothing past `0x1081`, and every offset it does read was confirmed against OpenKeeper's cumulative field order, so nothing built today is at risk |
-| **Q14** | What are the **88 extra bytes** in the embedded 5537-byte CREATURES variant? |
-| **Q15** | What are the `THINGS(190)` chunk's 39 items in `GlobalVariables.kwd` for? The payloads parse (ADR-0091) |
-| **Q84** | What is variable id **77**? Id 66 is strongly inferred as the level's player count; 77 appears in nine levels, mostly `Secret` ones. Low priority |
-| **Q183** | What is in the fixed block between a map's header (ends `0x134`) and its grid (`0x8861`)? Partly cracked — the player's gold is at `0x2dd4`. Whether the rest is identical across all 66 maps is itself informative |
-| **Q129** | Is the Dungeon Heart's health **34464** or a truncated **100000**? 34464 is exactly 100000 − 65536, the signature of a five-digit number typed into a 16-bit field — the same arithmetic already seen once (Q55) |
-| **Q221** | Is the 16-byte DeadBody THINGS payload correct in retail data? |
-| **Q220** | Does a standalone `GLOBALS(0)` chunk exist, and if so what is its payload? |
+| **Q15** | What are the `THINGS(190)` chunk's 39 items in `GlobalVariables.kwd` for? The payloads parse (ADR-0091); their purpose is not recorded |
+| **Q84** | What is variable id **77**? Nine levels, mostly `Secret` ones. Id 66 is strongly inferred as the level's player count; the unparsed PLAYERS record would close it. Low priority |
+| **Q183** | What else is in the save's fixed block between the header and the grid? The player's gold is at `0x2dd4`; the rest is unread |
+| **Q220** | Does a standalone `GLOBALS(0)` chunk exist outside the shipped corpus? None in 408 editor files |
+| **Q221** | Is the 16-byte DeadBody THINGS payload right? No shipped record carries tag 202; needs a custom map |
 
 ### The record sweeps, and which are done
 
-| record | scalar fields | swept | result |
-|---|---|---|---|
-| balance variables (240 ids) | — | **yes** | 12 zero-shipped: 2 cut, 10 disabled; ADR-0085, amended (id 112 is live at zero) |
-| **CREATURES** (46 records) | 56 | **yes** | 2 zero everywhere, 4 constant, 3 fields **cut** with no consumer; `record-field-sweep.md` |
-| **OBJECTS** (145 records) | 21 | **data yes, binary no** | `ManaValue` zero in all 145; consumer unknown, and it needs the objects loader |
-| ROOMS, TERRAIN, DOORS, TRAPS, SHOTS, SPELLS, EFFECTS | — | no | the same two questions apply to each: which fields never vary, and does the engine read them |
+| record | swept | result |
+|---|---|---|
+| balance variables (240 ids) | **yes** | 12 zero-shipped: 2 cut, 10 disabled; ADR-0085, amended (id 112 is live at zero) |
+| **CREATURES** (46 records) | **yes** | 2 zero everywhere, 4 constant, 3 fields **cut** with no consumer; `record-field-sweep.md` |
+| **OBJECTS** (145 records) | **yes** | `ManaValue` zero in all 145 and cut (Q213) |
+| ROOMS, TERRAIN, DOORS, TRAPS, SHOTS, SPELLS, EFFECTS | no | the same two questions apply to each: which fields never vary, and does the engine read them |
 
 **Taking a field from a file offset to a runtime offset** — what the binary half
-of a sweep needs, and what used to be guesswork:
+of a sweep needs:
 
 1. the creature loader is `FUN_00492320`, and **source offset = file offset +
-   `0x3F0`** (confirmed on two fields at opposite ends of the record);
+   `0x3F0`** (confirmed on two fields at opposite ends of the record); the
+   objects loader is `FUN_0049DD60`, with file offset + `0x80`;
 2. `ReadsAt.py <sourceOffsetHex>` finds the loader's read;
 3. the **store** on the next line or two gives the runtime offset;
 4. `ReadsAt.py` on *that* offset lists every reference — and three of them are
    never consumers: the initialiser `FUN_00491DC0`, the loader itself, and the
    definition-copy routine `FUN_0051F3B0`.
 
-Each record type has its own source delta. The objects one is not `0x3F0` and is
-unknown; find it the way the creature one was found — scan for stores to a
-runtime offset you can identify at both ends, then read the source offset copied
-into it.
+Each record type has its own source delta. For a new type, find it the way these
+were found: scan for stores to a runtime offset you can identify at both ends,
+then read the source offset copied into it.
 
-## Tranche C — the meaty single questions
-
-**Q186 — the state-category record's `+0x3c`.** All 32 records are decoded
-except `+0x3c`, a small integer traced to two accessors whose meaning is open
-(Q300; ADR-0083, `state-categories.md`).
-
-**Q202 — anger buckets 0 and 5.** Six counters, four certain because exactly one
-record field feeds each. Buckets 0 and 5 are catch-alls and **their names in our
-code are ours**. All 60 call sites are tabulated in `creature-anger.md`; the
-work is finding what distinguishes the two groups. Also has an observation route.
-
-## Tranche D — the trigger and action-point frontier
+## Tranche C — the trigger and action-point frontier
 
 `TriggerExecutor` evaluates conditions and runs actions (ADR-0152, ADR-0235,
 ADR-0236; shipped type counts: `dk2tools kwd trigger-types`). What is left is the
@@ -271,31 +250,26 @@ or shipped-file work.
 
 | Q | Question |
 |---|---|
-| **Q225** | Do DK2-authored files corroborate the trigger types absent from the shipped corpus? Four unshipped action types have no body read |
-| **Q226** | What do the remaining transcribed trigger selectors mean? |
-| **Q227** | What are the trigger fields DKII.EXE reads without revealing a role? |
-| **Q229** | Flag id 128 is **not a flag** — both dispatchers compare the id against `0x80`. What is it? |
-| **Q235** | What do action-point flag bits 0, 2, 3, 4 and 5 mean? Bits 0, 4 and 5 have a direct reader; 2 and 3 have none found |
-| **Q237** | Which invokers other than action type 17 walk an action-point rectangle, and does the cost scale with area? |
-| **Q238** | How is `NextWaypointId` traversed, terminated, and handled when missing or cyclic? |
+| **Q225** | Do DK2-authored files corroborate the trigger types absent from the shipped corpus? Needs custom editor maps |
+| **Q226** | What do the remaining transcribed trigger selectors mean? Accesses are known, names are not |
+| **Q235** | What do action-point flag bits 2 and 3 mean? Bits 0, 4 and 5 have a direct reader; 2 and 3 have none found |
+| **Q237** | Which invokers other than action 17 walk an action-point rectangle? |
+| **Q238** | How is `NextWaypointId` traversed when missing or cyclic? Strongly inferred only; no post-load writer found |
+| **Q186 / Q300** | What is the state-category record's `+0x3c` for? Next step in `state-categories.md` §5 (the caller at `0x004BFBD0`) |
 
-## Tranche E — needs Flame specifically
+## Tranche D — needs Flame specifically
 
 Runtime structures, so the file data cannot answer them and the decompiler alone
 is slow going. **Facts only — never an identifier into the repo.**
 
 | Q | Question |
 |---|---|
-| **Q4** | `CMapEntry` (11 bytes) — full per-tile runtime state or a cache? Field meanings |
+| **Q4** | What generates the 225-entry line-of-sight table at `map+0x124` (slot ranges, sort key, byte `+0`)? The tile record itself is answered (`runtime-map.md`) |
 
 ---
 
 ## What is *not* on this page, and why
 
 Anything that needs the game running or the owner watching lives in
-`docs/research/observation-checklist.md`: Q35 the treasury fill order, Q49 the
-pause after claiming, Q102 the hunger clock's start, Q103 the sleep cycle, Q143,
-Q145, Q177, Q199 and Q216.
-
-**Combat (Q8) is deliberately absent.** It is the largest unread mechanic in the
-game and an M7 milestone, not a research errand.
+`docs/research/observation-checklist.md`. **Combat (Q8)** is built for melee
+(ADR-0163 onward); it is no longer a research errand.

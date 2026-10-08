@@ -13,12 +13,11 @@ Entry points: `Dk2Install.Find`/`Require` resolves the install (`DK2_DIR` first)
 
 `KwdReader` is the chunk-level reader; the container layout is CONFIRMED against the
 reference install (`docs/research/kwd-container.md`) and a file may carry several
-chunks back to back. All **18** `KwdRecordType` ids have a typed parsing surface, and
-each typed record keeps its exact source image, so `dk2tools kwd corpus` byte-round-
-trips every record it reads — 408 files on the reference install, and every image of
-the 17 types the shipped corpus contains. GLOBALS(0) is the eighteenth: no shipped
-file holds one, so its round trip is synthetic and that zero stays visible in the
-audit (Q220). This is ADR-0091, and it establishes record *consumption*, not
+chunks back to back. Every `KwdRecordType` id has a typed parsing surface, and each
+typed record keeps its exact source image, so `dk2tools kwd corpus` byte-round-trips
+every record it reads on the reference install. GLOBALS(0) is the one type no shipped
+file holds, so its round trip is synthetic and that zero stays visible in the audit
+(Q220). This is ADR-0091, and it establishes record *consumption*, not
 parameter semantics — for TRIGGERS, ADR-0092 replaces several widths and names that
 consumption had not disproved. `KwdCorpusAudit` is shared by the tool and the
 install-gated test so the status claim and the assertion cannot drift apart.
@@ -121,11 +120,9 @@ cross-checked against every save in the reference install
 
 ## STR localised string tables
 
-`Dk2StringTable` reads the 92 `BFST` files in `Data/Text/Default` and resolves their
-table-local string ids through the sibling `MBToUni.dat` character map. The shipped
-English files contain 7,024 entries and occupy 353,104 bytes in total. `Text.str` has
-file id 1,091 and 3,086 entries, covering string ids 0 through 3,085. Definition
-records refer to these local ids directly.
+`Dk2StringTable` reads the `BFST` files in `Data/Text/Default` and resolves their
+table-local string ids through the sibling `MBToUni.dat` character map (`dk2tools str
+list` prints one). Definition records refer to these local ids directly.
 
 The 12-byte header is `BFST`, a little-endian file/resource id, and a little-endian
 entry count. Its offset table contains one little-endian value per entry. These
@@ -180,9 +177,9 @@ definitions:
 ## Player slots
 
 `KwdPlayers` reads the PLAYERS(180) record in each level's `<name>Players.kld`:
-205-byte records, one per player slot, 66 files that all divide exactly (274 slots,
-121 with the AI flag, of which 23 are computer keepers on 10 levels; the other 98 are
-the good and neutral rows every level carries and the game's player tick skips). Each
+205-byte records, one per player slot; every shipped file divides exactly. Slots with
+the AI flag include the good and neutral rows every level carries, which the game's
+player tick skips; the computer keepers are the rest. Each
 slot exposes the id, name, starting gold, trigger id, camera, the AI flag, and the
 decoded 158-byte AI tuning block as `KeeperAIParameters`.
 `GameDatabaseLoader.LoadCampaignPlayers` loads one level's file.

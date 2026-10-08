@@ -19,6 +19,7 @@ Each run writes to `build/scenario-runs/<id>/`:
 | `report.md` | Summary, the question asked, the balance values used, and **what the run could not do** |
 | `hashes.tsv` | State hash after every tick |
 | `events.log` | Everything the simulation emitted |
+| `keeper-commands.tsv` | Only with `computer_keepers`: each command the computer keepers emitted, with its input tick |
 | `world.txt` | The final world as `TextRenderer` draws it for `viewing_player` |
 
 ## Format
@@ -32,18 +33,19 @@ question: >                      # what this experiment is trying to find out
   Prose, for humans. Never parsed.
 map: rock_24x20                  # required: flat_WxH, rock_WxH, chamber_WxH, campaign:<level>
 seed: 12345                      # simulation RNG seed
+random: modern                   # optional: modern (default) or dk2, the original's generator (ADR-0275)
 duration_ticks: 600              # required, positive
 fog_of_war: false                # optional: per-keeper discovery (ADR-0076)
 viewing_player: 1                # optional: the keeper world.txt is drawn for
 setup:
   placed_things: false           # optional: place the shipped level's own THINGS
   players:
-    - { id: 3, gold: 20000, mana: 1000 }
+    - { id: 3, gold: 20000, mana: 1000, spells: [1] }   # spells: keeper spell ids granted at the start
   rooms:                         # laid down before tick 0 — see below
     - { type: Treasury, at: [4, 4], size: [3, 3], player: 3 }
   creatures:                     # placed before tick 0 — see below
     - { type: Imp, at: [6, 6], player: 3 }
-    - { type: Goblin, at: [7, 6], player: 3, health: 0, hunger: 2 }
+    - { type: Goblin, at: [7, 6], player: 3, health: 0, hunger: 2, level: 3 }
   objects:                       # loose things on the floor before tick 0
     - { type: Chicken, at: [8, 6], player: 3 }
 commands:                        # real player input, scheduled by tick
@@ -58,16 +60,27 @@ commands:                        # real player input, scheduled by tick
   - { at_tick: 62, player: 3, pick_up_object: 1 }
   - { at_tick: 64, player: 3, drop: [9, 9] }
   - { at_tick: 70, player: 3, slap: 1 }
+  - { at_tick: 80, player: 3, call_to_arms: [9, 9] }   # see the table below
+  - { at_tick: 90, player: 3, remove_call_to_arms: true }
+computer_keepers: [4]            # campaign maps only: keepers driven by their PLAYERS records
 work:                            # harness-injected tile work — see below
   - { at_tick: 8, player: 3, kind: Dig, at: [5, 5] }
   - { at_tick: 12, until_tick: 25, player: 3, kind: Reinforce, at: [5, 4], repeat: 1 }
 observe:
   - state_hash
   - events
+expect:                          # claims the run must meet; a miss fails the run
+  - event: picked_up             # a SimEvent kind; optional detail, at_tick, count, absent
+    detail: "player=3"
+    because: >                   # required: where the claim comes from
+      A source, not a guess.
 ```
 
 `observe` takes `state_hash` and `events`; anything else is reported as an
-observation nothing produces.
+observation nothing produces. `expect` entries are checked after the run and listed in
+`report.md`; any miss prints `EXPECTATION FAILED` and makes the harness exit 1.
+`because` is mandatory (see `ScenarioExpectation`). `computer_keepers` runs a
+`DK2.AI.KeeperAI` for each listed player after every tick and needs the install.
 
 `map: flat_WxH` builds a synthetic dungeon — impenetrable border, dirt path inside;
 `rock_WxH` is the same thing filled with diggable rock, which is what a dig
@@ -134,10 +147,10 @@ imps come from a dungeon heart and from the Create Imp spell at a mana cost
 comes from `setup.placed_things`. Any run that places one says so.
 
 `health` is optional and **nullable rather than defaulting to full**: omit it for the
-record's `Hp`, and every number including `0` means itself. It exists because nothing
-in a scenario can hurt a creature — there is no combat — so a wounded creature has to
-start wounded; `health: 0` is how a run watches one lie on the floor for
-`CreatureDyingStateDurationSeconds` and then die (Q99).
+record's `Hp`, and every number including `0` means itself. It lets a run start a
+creature wounded without staging a fight; `health: 0` is how a run watches one lie on
+the floor for `CreatureDyingStateDurationSeconds` and then die (Q99). `level` (1 to 10)
+starts it at that experience level, as a level's own THINGS records do.
 
 `hunger` is helpings of food owed, for the same reason. It is the only way to reach
 the prison's eating rule at all: a Goblin's `HungerRate` is 180 game seconds and a
@@ -169,6 +182,8 @@ the same path the game would use, so every ground rule and every refusal applies
 | `drop: [x, y]` | `DropCommand` | no creature is named, because the hand chooses: DK2 puts down what it picked up last, and letting a scenario name one would hide that |
 | `drop_onto` | `DropCommand.TargetCreatureId` | with `drop`: the creature id under the cursor. A chicken or gold dropped onto it feeds or pays it on the spot (ADR-0217) |
 | `slap` | `SlapCreatureCommand` | a creature id |
+| `call_to_arms: [x, y]` | `CastSpellAtPlaceCommand` | casts Call to Arms at the centre of that tile (ADR-0279); the player needs the spell, e.g. via `setup.players[].spells` |
+| `remove_call_to_arms: true` | `RemoveCallToArmsCommand` | removes that player's flag |
 
 ### `commands` vs `work`
 
@@ -182,9 +197,9 @@ on its own. To watch a worker dig or mine, use `setup.creatures` and a `tag` com
 instead.
 
 `kind` is a `TileWorkKind` name: `Dig`, `MineGold`, `DigOwnWall`, `DigEnemyWall`,
-`Claim`, `AttackTile`, `Reinforce`, `RepairWall`, `ConvertRoom`. (`RepairTile` and
-`FillIn` were removed: DK2 has no fill-in mechanism and neither health variable has a
-reader — Q219.) `repeat` queues several applications on the same tick; `until_tick`
+`Claim`, `AttackTile`, `Reinforce`, `RepairWall`, `ConvertRoom`, `AttackRoom`,
+`RepairRoom`. (`RepairTile` and `FillIn` were removed: DK2 has no fill-in mechanism and
+neither health variable has a reader — Q219.) `repeat` queues several applications on the same tick; `until_tick`
 repeats the whole entry every tick up to and including that one.
 
 ## The honesty rule
@@ -206,62 +221,30 @@ quietly poison it. Asserted by `DK2.Behavior.Tests.ScenarioTests`:
 
 `scenarios/tiles/` digs, claims, reinforces and mines against DK2's own numbers.
 `scenarios/imps/` puts workers on the map and lets them find the work themselves,
-including the whole gold round trip, where one imp mines a shipped seam and carries
-every coin of it into a shipped dungeon heart, and the return leg where another imp
-fetches a pile off the floor. `scenarios/rooms/` builds a room out of a dungeon
-heart, sells one back, and watches a hatchery lay and hatch. `scenarios/mana/` is the
-run in which time alone changes something: a keeper's land and heart pay them once a
-game second, and paving three tiles of that land into a treasury lowers the rate.
-`scenarios/fog/` reveals part of a world through one creature's eyes (ADR-0076).
-`scenarios/creatures/` is the largest set: a portal fills a dungeon, a keeper takes a
-neutral portal and receives the level's own creatures at the level's own interval, a
-Goblin gets hungry after exactly the 180 seconds its record gives while an Imp never
-does, eats a chicken, collapses and dies, walks out for want of a lair, gets found
-work, gets picked up and slapped, gets dragged to a prison, gets buried; and a keeper
-meets its wage bill. `scenarios/smoke/` loads campaign level 1, with and without its
-own THINGS, and pins determinism on a flat map. See `docs/research/tile-work.md`,
-`imp-tasks.md`, `rooms-and-gold.md`, `mana.md`, `fog-of-war.md`, `portals.md`,
-`creature-needs.md`, `job-selection.md`, `prison.md` and `placed-things.md`.
+including the gold round trip: mining a shipped seam, carrying it into a heart, and
+fetching a dropped pile. `scenarios/rooms/` builds a room, sells one back, and
+watches a hatchery lay and hatch. `scenarios/mana/` is the run in which time alone
+changes something. `scenarios/fog/` reveals part of a world through one creature's
+eyes (ADR-0076). `scenarios/creatures/` is the largest set: portals, hunger, eating,
+death, lairs, jobs, the hand, prisons, graveyards and the wage bill.
+`scenarios/keepers/` runs computer keepers on shipped levels (`computer_keepers`),
+and `scenarios/spells/` casts Call to Arms. `scenarios/triggers/` checks that placed
+trigger roots run each game turn. `scenarios/smoke/` loads campaign level 1, with
+and without its own THINGS, and pins determinism on a flat map. The research behind
+each family is under `docs/research/`; start from the scenario's own header comment.
 
-What a run still cannot tell you:
+What a run cannot tell you:
 
-- **How a creature would move.** Routing is ours, not DK2's (Q5): four-connected,
-  uniform cost. Travel times follow from that choice.
-- **What a fight looks like.** There is no combat: nothing damages a creature, so
-  nothing kills one except a prison or the dying timer, and `health` on a placed
-  creature is the only wound a scenario can inflict. Defeat is not implemented either
-  — a keeper whose dungeon heart is beaten down would stop earning its heart's 30 a
-  second and play on (Q40).
-- **What most spells do.** Create Imp is the only one. Mana has both halves of its
-  economy and not all of either: income is land and a dungeon heart, outgoings are
-  Create Imp's cast cost and the 7 a second every imp charges its keeper (Q53,
-  ADR-0022), and every other keeper spell is missing — a summoned Horned Reaper costs
-  2000 a second and Call To Arms 90.
-- **How long a room takes to build.** Building is instant and paid in full: an imp
-  does not walk to the site, so a `build` command is the ground rules and the
-  treasury and nothing else.
-- **What a worker does when it has no job.** The priority order is CONFIRMED and
-  built — marked excavation, then claiming, then reinforcing (Q24, ADR-0018) — and
-  carrying is built on top of it (`ImpTaskKind`: `FetchGold`, `CarryObject`,
-  `CarryCorpse`, `CarryUnconscious`). What is absent is DK2's fourth behaviour: an
-  imp wandering the dungeon and interacting with scenery and creatures. Here it
-  stands still (Q41). Fleeing and building rooms are absent too.
-- **What every job pays.** Health, hunger, sleep in its own bed, eating, anger with a
-  measured ceiling, levels with experience, and a job chosen the way DK2's mood
-  choosers choose one (ADR-0082, ADR-0088) are all built, and three jobs pay:
-  training grants experience and charges its bill (ADR-0083), research credits the
-  keeper, praying runs once a game second. Manufacture pays nothing, and Guard, Drink
-  and the roomless jobs (Leave, Rebel, Explore, StealGold) are chosen, logged and
-  occupy the creature without doing anything else. How long a job is kept is ours: all
-  six of DK2's duration variables have no reader (ADR-0082).
-- **Where uncollectable gold goes.** Mined gold reaches a treasury, carried by the
-  imp that freed it (Q31), and a destroyed treasury leaves piles on the floor
-  (ADR-0055) that an imp will fetch. What is still lost is the overflow when there is
-  nowhere at all to unload: the imp keeps mining, as in the original, and the run
-  reports `gold_uncollected`.
-
-Tick numbers in a report are ordering **and** time: a game second is four ticks of
-250 ms, read from the binary and stopwatched by the owner (Q1, ADR-0089). What the
-tick numbers in a `work` entry still do not tell you is how often DK2 would have
-applied that work, because nothing chose the job — the per-application amount is a
-game-second delta divided across the ticks of a second (Q19).
+- **Anything its own header says it does not establish.** Scenario headers name the
+  mechanism exercised and what the run leaves open; read that before citing a run as
+  DK2 behaviour.
+- **What is unbuilt.** The current list of unbuilt or unconfirmed mechanisms is
+  `docs/HANDOFF.md` and the status words in `docs/research/open-questions.md`, not
+  this file. A run records the mechanisms the simulation has; a missing one
+  produces no event and no warning unless the runner knows to say so.
+- **Wall-clock timing of a `work` entry.** Tick numbers in a report are ordering and
+  time (a game second is four ticks of 250 ms, ADR-0089), but nothing chose the job,
+  so how often DK2 would have applied that work is not shown; the per-application
+  amount is a game-second delta divided across the ticks of a second (Q19).
+- **Playability of a synthetic map.** `flat_`, `rock_` and `chamber_` maps are testing
+  conveniences, not DK2 layouts.

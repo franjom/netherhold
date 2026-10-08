@@ -1,8 +1,8 @@
 ﻿# The simulation loop and the determinism contract
 
-Milestone M2, and still the contract every later milestone rests on. This is the
-first code in the project that is genuinely ours rather than a reading of DK2's
-data, so it is worth being explicit about what it does and does not claim.
+Milestone M2, and still the contract every later milestone rests on. It is code
+that is ours rather than a reading of DK2's data, so it says what it does and does
+not claim. The layering and the world's contents are in `docs/ARCHITECTURE.md`.
 
 ## What it claims
 
@@ -29,16 +29,19 @@ records noise. The gate is cheap now and impossible to retrofit later.
 | Type | Role |
 |---|---|
 | `GameSimulation` | Owns the loop. `Tick(in InputFrame)` is the only way time moves. Holds `HashVersion`. |
-| `WorldState` | All mutable state: tiles, players, creatures, objects, the pending-work queue, `TriggerState`, current tick. |
+| `WorldState` | All mutable state, and `HashInto` is the list of it (`docs/ARCHITECTURE.md` §World state). |
 | `ISimulationSystem` | One unit of per-tick work. Runs in explicit registration order. |
-| `SimulationContext` | The only things a system may touch: database, world, input, RNG, event sink. |
+| `SimulationContext` | The only things a system may touch: database, world, input, RNG, event sink, navigation, and the trigger hooks. |
 | `InputFrame` / `PlayerCommand` | Everything entering the simulation on a tick. |
 | `SimEvent` / `ISimulationEventSink` | Write-only observation. Never read back. |
 | `WorldSnapshot` | Binary save/load, including RNG position. Carries `FormatVersion`, kept equal to `HashVersion`. |
 | `Hash64` | FNV-1a structural hash, stable across processes and machines. |
 
 Tick N executes with `context.Tick == N`; afterwards `World.CurrentTick` is
-N+1. That ordering is our convention, chosen for legibility.
+N+1. That ordering is our convention, chosen for legibility. Within `Tick`: player
+messages are acknowledged and swept (ADR-0245), the trigger executor runs for DK2
+turn N+1 (ADR-0152), the registered systems run in order, the trigger emitter
+records the turn, and the clock advances.
 
 `SimulationSystems.Default()` is the one declaration of which systems run and in
 what order (ADR-0013). It is what the scenario runner, the Unity `DungeonRunner`
@@ -60,11 +63,11 @@ worthless across runs — a gate that passes locally and cannot be reproduced on
 CI or on a contributor's machine.
 
 **One pinned hash value.** `DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines`
-asserts an exact literal. Its job is to catch the silent killers of
+asserts an exact literal (its pin history: `docs/research/hash-versions.md`). Its job is to catch the silent killers of
 cross-machine reproducibility — string hashing, dictionary iteration order,
 struct layout drift — which every other determinism test would happily pass,
-because they compare two runs *in the same process*. `ci.yml` declares it for
-Linux and Windows, but no CI runs today (the repository has no remote), so the
+because they compare two runs *in the same process*. `.github/workflows/ci.yml` declares it
+for Linux and Windows, but no CI runs today (the repository has no remote), so the
 cross-platform property rests on local runs (`docs/ARCHITECTURE.md`).
 
 Changing simulation state deliberately will break it. That is correct: bump
@@ -99,8 +102,8 @@ It implements no DK2 mechanic and never will.
 
 `TileState` and `PlayerState` carry only fields a built mechanic reads. Room
 membership is derived rather than stored (`RoomInstance`, ADR-0027); state
-arrives with the mechanic that reads it, not before. `TriggerState` is the most
-recent addition (ADR-0102) and shows the rule working in the other direction: a
-flag bank that only a trigger *reader* would need was still added, because an
-action record writes a flag a later condition reads, so two worlds disagreeing
-about one will diverge; `TriggerExecutor` now walks the roots each turn (ADR-0152).
+arrives with the mechanic that reads it, not before. `TriggerState` shows the rule
+working in the other direction: a flag bank only a trigger *reader* would need was
+still added, because an action record writes a flag a later condition reads, so two
+worlds disagreeing about one will diverge (ADR-0102); `TriggerExecutor` walks the
+roots at the top of every `Tick` (ADR-0152).

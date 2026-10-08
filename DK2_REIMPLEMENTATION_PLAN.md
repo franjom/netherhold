@@ -87,7 +87,7 @@ not, and turns out to be where three of the other five actually live.
 | 1 | **Pathfinding and movement** — the least-understood system in the ecosystem. No project has reproduced DK2's actual pathfinder. | **Read, and rebuilt** (ADR-0155, ADR-0157): DK2 routes over a triangulated navigation mesh and follows it with a steering system of eight named behaviours, so `GridPathfinder` differed in kind. All three phases landed 2026-09-17: every creature routes over the mesh and moves by the steering tick, and the grid search survives only behind `TryFindNearest`. Measured against the original's own route log rather than against our expectations — 21,288 of 21,298 Level 7 requests agree (Q351, Q352). |
 | 2 | **Creature job/destination selection** | **Settled for workers** (ADR-0058): a byte priority table at `0x00698658`, searched whole-map one kind at a time, then a nearest-first ring scan. Non-workers have a job system (ADR-0082) built on three mood choosers and one 28-way dispatcher `FUN_00478800`. |
 | 3 | **Creature mood / anger / happiness** | **Built** (ADR-0053, ADR-0081): six counters, mood banded on the largest, once a game second, with desertion. OpenKeeper's empty `processTick()` was not the obstacle it looked like — the numbers were in the creature records and the ladder came out of the binary. |
-| 4 | **Combat resolution** — melee, fear, the worker's arm, the attack spells and their shots, the status effects, the victory pause and the friendly arm are read and built end to end. | Q8 largely closed (ADR-0163–0170). Creatures and hearts take blows and fireballs; the frightened back off and run; Imps raise the alarm; the packet replays of Levels 1–3 compare fights with DK2's (ADR-0339). |
+| 4 | **Combat resolution** — melee, fear, the worker's arm, the attack spells and their shots, the status effects, the victory pause and the friendly arm are read and built end to end. | Q8 largely closed (ADR-0163–0170). Creatures and hearts take blows and fireballs; the frightened back off and run; Imps raise the alarm; the packet replays of Levels 1–3 compare fights with DK2's. |
 | 5 | **Computer-player (AI Keeper) behaviour** — DKII.EXE is the primary source. | **Initial independent claim review reached** (M12); effect-specific UNKNOWNs remain gated. Entry and task machine are `computer-keeper-tasks.md`; task handlers and attack response are `computer-keeper-handlers.md`. `DK2.AI.KeeperAI` implements the proactive task slice as an input source, with the attack response, Call to Arms, the battle step, the retreat of the wounded, the Heal, Chicken and Inferno casts and the attack planner with its front, task 7's bridges, step 9's training moves and the Treasury/Lair room needs connected (ADR-0278, 0279, 0283, 0284, 0287, 0298, 0302, 0304, 0317, 0327); the other room producers, the mood producers and the research move remain. Compared with DK2's own keepers on Level 17 and Level 11A (`computer-keeper-observations.md`, M12 acceptance). |
 | 6 | **The creature state machine** — **281** states with category-scoped enter/update/leave hooks (ADR-0072), which is where job selection, moods and combat all actually live. | Read (§2.2.1, `docs/research/creature-state-table.md`). Every creature holds DK2's state id from its constructor on and each activity makes its states' moves through the transition gate (ADR-0209); the activity is derived from the state (ADR-0211), and the category hooks are partly built. |
 
@@ -495,16 +495,16 @@ Confidence reflects *our ability to reproduce the behaviour*, not merely to pars
 | **Combat — stats** | ● | | | KWD; `MELEE_DAMAGE`, `MELEE_RECHARGE_TIME_SECONDS` |
 | **Combat — resolution & target selection** | | ● | | Melee and spells built from the binary (ADR-0163–0170); what is left: `dk2tools coverage`, `docs/HANDOFF.md` |
 | **Pathfinding** | ● | | | Triangulated navigation mesh, greedy two-ended search, funnel and steering read from the binary and built (ADR-0155, ADR-0157) |
-| **Possession** | | ● | | `Possessed` flags, `f3EE_nextPossessionInfluenceTick`, `POSSESSION_MANA_COST_PER_SECOND` [KNOWN]; control model [PARTIAL] |
-| **Spells (keeper & creature)** | | ● | | KWD `KEEPER_SPELLS(150)`, `CREATURE_SPELLS(160)`, `SHOTS(260)`; Create Imp, Thunderbolt, Heal and Call to Arms built (ADR-0021/0022, ADR-0170, ADR-0279, ADR-0287); the rest: `dk2tools coverage` |
+| **Possession** | | ● | | `Possessed` flags, `f3EE_nextPossessionInfluenceTick`, `POSSESSION_MANA_COST_PER_SECOND` [KNOWN]; the simulation side is built (ADR-0350, `keeper-spell-possession.md`); the possessed action arms and inputs are Q535/Q536 |
+| **Spells (keeper & creature)** | | ● | | KWD `KEEPER_SPELLS(150)`, `CREATURE_SPELLS(160)`, `SHOTS(260)`; all thirteen keeper spells have a simulation side (ADR-0021/0022, 0279, 0287, 0302, 0350, 0352) and the research tree grants their upgrades (ADR-0247); Sight of Evil's region is presentation (Q194, Q534); creature spells and shots are built (ADR-0167/0168); exact coverage: `dk2tools coverage` |
 | **Traps & doors** | | ● | | KWD `TRAPS(130)`, `DOORS(140)`; authored state retained (ADR-0106); doors fought, gates collapsed, every shipped trap firing (ADR-0318, 0320, 0321, 0331); disarming deferred (ADR-0329, Q455); what is left: the M7 row of §8 |
 | **Heroes & parties** | | ● | | `HeroSystem`; parties raised by action 14 (ADR-0108, ADR-0197) and walked behind their leader (ADR-0216); what is left: `docs/HANDOFF.md` |
-| **Level scripting / triggers** | | ● | | Parameter views verified against DKII.EXE (ADR-0092); banks are level state (ADR-0102); action points are world state (ADR-0103). **Runs**: cadence closed (Q228, Q239), the world, party, player, action-point and creature roots walked once a turn (ADR-0152, ADR-0204), sixteen action types carried out (list: `docs/GOAL_ALIGNMENT.md` row 2). **Missing**: the other condition and action types; `dk2tools kwd unreached` ranks them |
+| **Level scripting / triggers** | | ● | | Parameter views verified against DKII.EXE (ADR-0092); banks are level state (ADR-0102); action points are world state (ADR-0103). **Runs**: cadence closed (Q228, Q239), the world, party, player, action-point and creature roots walked once a turn (ADR-0152, ADR-0204), the carried-out action types are listed in `docs/GOAL_ALIGNMENT.md` row 2. **Missing**: the other condition and action types; `dk2tools kwd unreached` ranks them |
 | **Campaign progression** | | ● | | OpenKeeper open issue "Campaign progress" |
-| **Computer player (AI keeper)** | | ● | | Flame `MyComputerPlayer`, `computer_player_flags`, `drop_condition`; DK2's own keeper AI has been read (`docs/KEEPER_AI.md`) and `DK2.AI.KeeperAI` is being built against it |
+| **Computer player (AI keeper)** | | ● | | DK2's own keeper AI has been read from the binary (`docs/KEEPER_AI.md`, `computer-keeper-*.md`); `DK2.AI.KeeperAI` runs its task machine, messages and spell casts and is compared with DK2's keepers on two maps (`computer-keeper-observations.md`); what is left is `docs/HANDOFF.md` §*Next work* |
 | **Multiplayer** | | ● | | `GameAction`, Flame `protocol_dump`, `network/protocol.h` |
 | **Save system** | | ● | | dk2-tools `save_struct.bt`; Flame `sData_*` prefixes; `Dk2SaveReader` reads the tile grid only (Q182) |
-| **Rendering** | ● | | | KMF 95%, EngineTextures 100%; `DK2.Convert` writes glTF/GLB and PNG |
+| **Rendering** | ● | | | KMF and EngineTextures read; `DK2.Convert` writes glTF/GLB and PNG with DK2's clip interpolation (ADR-0390); wall torches and room wall pieces are in the view (ADR-0391, ADR-0392); floors and plain terrain are read (`floor-and-terrain-pieces.md`) and not built |
 | **Audio — formats** | ● | | | SDT/BANK/SFX parsed |
 | **Audio — event semantics** | | | ● | OpenKeeper: BANK/SFX usage 40% |
 
@@ -560,8 +560,13 @@ difference is noted here.
 ├── docs/
 │   ├── research/                 one file per mechanic, on the Appendix B template
 │   ├── architecture/             the simulation loop
-│   └── experiments/              recorded oracle results (level1-idle-001, level20-idle-001, level20-idle-002, doors-and-traps.md)
+│   ├── experiments/              recorded oracle results, one folder per capture, and doors-and-traps.md
+│   ├── plans/                    process documents; not claims
+│   └── ...                       HANDOFF, DECISIONS, TRAPS, KEEPER_AI, ASSET_PIPELINE, ART_DIRECTION
 ├── scenarios/                    declarative scenario files (see §6.2)
+├── tools/                        Ghidra runner and scripts, function knowledge base,
+│                                 verification scripts, Blender asset scripts
+├── art/                          modern-asset manifests and candidates (ASSET_PIPELINE.md)
 ├── reverse-engineering/          .gitignored except its README (ADR-0046)
 └── original-reference/           .gitignored — reference material, never committed
 ```
@@ -814,7 +819,7 @@ setup, observations nothing produces yet — so a run can never look more comple
 | Setup | generated custom level + trigger script | `ScenarioRunner` |
 | Stepping | Flame TPS limit; frame-step | `sim.Tick()` |
 | Observation | screen capture + memory inspection at known `CCreature` offsets | direct state read |
-| Output | `docs/experiments/<id>/oracle.json` | `<id>/ours.json` |
+| Output | a capture CSV under `reverse-engineering/dk2runs/` (gitignored) | `dk2tools trigger-run` or `replay` CSV; the write-up is `docs/experiments/<id>/README.md` |
 
 Reading the oracle's state directly from memory is feasible *because Flame gives us the
 field offsets* — e.g. `f3B9_roomId` at `+0x3B9`, `f3E6_stateFlags` at `+0x3E6`. This
@@ -833,8 +838,8 @@ Every scenario becomes a test in `DK2.Behavior.Tests` (`ScenarioExpectationTests
 Divergences are triaged as: *our bug* → fix; *unknown mechanic* → new research doc;
 *acceptable* → record with an explicit written justification. The corpus only ever grows.
 Built: a scenario that asserts carries an `expect:` block (ADR-0150), three idle captures
-sit under `docs/experiments/` and `dk2tools capture-diff` compares them, and the packet
-replays of Levels 1–3 are ADR-0339's rig. There is no comparer across all scenarios.
+sit under `docs/experiments/` and `dk2tools capture-diff` compares them, the packet
+replays of Levels 1–3 are the replay rig (spread over seeds: `docs/experiments/2026-10-06-packet-replay-seeds/`), and two idle captures of DK2's own keepers are compared in `computer-keeper-observations.md`. There is no comparer across all scenarios.
 
 ### 6.5 Determinism gate
 
@@ -921,10 +926,10 @@ the order, and revision 2 changes only that column and the last three rows.
 | **M8** ◐ | 5 | Breadth | All rooms, all creatures, all keeper spells, research, possession, prison/torture/graveyard/temple. Built: the research tree and its spell upgrades (ADR-0247, ADR-0350); all 13 keeper spells — Create Imp, Call to Arms, Thunderbolt, Heal, Inferno, Chicken, Create Gold, Tremor, Turncoat, Summon Horny, OneShotReaper and Possession's simulation side (ADR-0350), and Sight of Evil's cast with an empty effect, its region being presentation (ADR-0352, Q194, Q534) | 6–12 mo |
 | **M9** | cont. | Fidelity | 500+ behavioural regression scenarios green; documented divergence list; pathfinding rewritten against oracle traces | continuous |
 | **M10** | 6 | Campaign | Full campaign playable start to finish | after M8 |
-| **M11** | 8 | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
-| **M12** *new* | **4** | **Keeper AI** | A computer keeper plays a stock level unaided: digs, expands, builds to a need, recruits, defends, attacks. Measured against DK2's own keeper on the same map, not against our expectations | 4–8 mo |
-| **M13** *new* | 7 | **Skirmish** | Any multiplayer-capable map playable against 1–3 computer keepers, with win and loss conditions, alliances and the lose-by-conquest path | after M12 |
-| **M14** *new* | 9 | **Multiplayer** | Command-based lockstep over a network: identical `StateHash()` across peers for a full match, with rejoin and desync detection | after M13 |
+| **M11** | 8 | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide. Begun: the asset pipeline's Imp proof of concept (`docs/ASSET_PIPELINE.md` §10, ADR-0398) | after M10 |
+| **M12** ◐ | **4** | **Keeper AI** | A computer keeper plays a stock level unaided: digs, expands, builds to a need, recruits, defends, attacks. Measured against DK2's own keeper on the same map, not against our expectations | 4–8 mo |
+| **M13** | 7 | **Skirmish** | Any multiplayer-capable map playable against 1–3 computer keepers, with win and loss conditions, alliances and the lose-by-conquest path | after M12 |
+| **M14** | 9 | **Multiplayer** | Command-based lockstep over a network: identical `StateHash()` across peers for a full match, with rejoin and desync detection | after M13 |
 
 ### 8.1 Revision 2 — 2026-09-21
 
@@ -1092,15 +1097,15 @@ condition work can close it**: it is a tutorial that advances when the human doe
 action.
 
 What remains: 20+ scenarios captured from both sides (three idle captures under
-`docs/experiments/` and the packet replays of Levels 1–3, ADR-0339, so far), and running
+`docs/experiments/` and the packet replays of Levels 1–3, so far), and running
 DK2 under Flame, which §6.1 calls M5's first step and which has not been done.
 
 **M6 — partial, and trigger execution is now the bulk of it.** Records parse (M1); a level's
 placed creatures and objects reach the world (ADR-0101), the trigger flag and timer banks are
 world state (ADR-0102), action points are ordered world state (ADR-0103), and doors, traps,
 hero parties and effect generators are all stored, hashed and snapshotted (ADR-0106,
-ADR-0108) — nothing in the THINGS corpus is unprojected. A recorded Level 1 play
-now wins headlessly with timing differences (Q444, `navigation-captures.md`); interactive presentation
+ADR-0108) — nothing in the THINGS corpus is unprojected. The recorded plays of Levels 1–3 replay headlessly over many seeds and are set against DK2's own seeded playbacks
+(`docs/experiments/2026-10-06-packet-replay-seeds/`, Q444, Q567); interactive presentation
 and broader campaign compatibility remain unfinished.
 
 **Triggers execute.** Q228 settled the cadence — one evaluation per game turn, from the world
@@ -1159,7 +1164,7 @@ DK2's keeper as read (§1.2 row 5) but has not been compared with it on the same
 keeper killed, from the heart's stamped killer (Q276, `PlayerState.KilledByPlayerId`);
 type 64 subtracts the party's active creatures from its authored members now that
 action 14 raises them (Q283, ADR-0122, ADR-0248). The actions carried out are the
-sixteen in `docs/GOAL_ALIGNMENT.md` row 2.
+listed in `docs/GOAL_ALIGNMENT.md` row 2.
 **A level can now be won and lost** (ADR-0162, 2026-09-22): `WIN_GAME` and
 `LOSE_GAME` set DK2's one-shot `Status`, and a heart whose health reaches zero
 ruins, stamps its killer and loses or is conquered a turn later. The blow is combat's
@@ -1185,7 +1190,7 @@ Severity: **C**ritical / **H**igh / **M**edium / **L**ow. Probability: as given.
 | R6 | **The oracle is hard to instrument.** | **H** | Medium | **Retired**: a `PROCESS_VM_READ` probe against the running game works and has produced two findings (§6.1). |
 | R7 | **KWD's unknown 10%** hides something load-bearing. | M | Medium | Every record image round-trips byte for byte and the corpus audit logs unconsumed ranges (ADR-0091). Cross-check OpenKeeper against dk2-tools `.bt` templates. |
 | R8 | **Tick rate / timing model wrong**, invalidating all timing fidelity. | **H** | Medium | **Retired**: 4 ticks a second, read from the binary and observed live (ADR-0089, ADR-0102). Every relation between ticks and seconds is in `SimulationTiming` alone. |
-| R9 | **Combat formulas unknown**; guessing produces a game that feels wrong. | **H** | High | **Largely retired**: melee, the attack spells, status effects, fear and the friendly arm are built from the binary (ADR-0163–0170), and the Level 1–3 packet replays compare fights with DK2's (ADR-0339). Open: the stand-ins Q376 names. |
+| R9 | **Combat formulas unknown**; guessing produces a game that feels wrong. | **H** | High | **Largely retired**: melee, the attack spells, status effects, fear and the friendly arm are built from the binary (ADR-0163–0170), and the Level 1–3 packet replays compare fights with DK2's. Open: the stand-ins Q376 names. |
 | R10 | **Unity leaks into the simulation** over time. | **H** | Medium | `ArchitectureTests` reads the built assemblies' `TargetFrameworkAttribute` and references, so a Unity reference or a wrong target fails the build. |
 | R11 | **Original assets unavailable to future contributors.** | M | Medium | `PlaceholderProvider` is total, and `AssetCatalogueTests` keeps it so. |
 | R12 | **Computer-player fidelity incomplete.** | M | High | Binary audits are in `docs/research/computer-keeper-*.md`. M12 has a proactive keeper and captured observation; retained combat messages, the attack response, the battle step with all four battle spells, the retreat, the attack planner, task 7's bridges, the training moves and the Treasury, Lair and Hatchery room needs with expansion are built (ADR-0278, 0279, 0283, 0284, 0287, 0298, 0302, 0304, 0317, 0327, 0335); the mood and other room producers and the remaining reactive decisions remain. Close effect-specific UNKNOWNs before implementing their rules. The same-map comparison against two idle captures of DK2's keepers is done; its acceptance table and open timing differences (Q509, Q555, Q563) are at the end of `computer-keeper-observations.md`. |

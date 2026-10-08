@@ -9,17 +9,22 @@ counts: `docs/HANDOFF.md` and `dk2tools status`.
 
 ```
 unity/DK2.Unity            the only assembly that references UnityEngine
-        │
-DK2.Tools / DK2.Harness            net10.0 executables
+        │                  (loads the netstandard2.1 DLLs below)
+DK2.Tools / DK2.Harness / DK2.Convert       net10.0 executables and tooling
         │
         ├──────────────► DK2.Presentation ──► DK2.Assets
         │                       │                  │
-DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding  │
-        │              │                  │        │
+DK2.AI ──────► DK2.Simulation ──┘                  │
+        │         │                                │
+        │         └──► DK2.Pathfinding             │
         └──────► DK2.Data.Model ◄── DK2.Data (parsers)
                        │
                    DK2.Core                netstandard2.1 (Unity-loadable)
 ```
+
+`DK2.Pathfinding` references only `DK2.Core`; `DK2.Data` never references
+`DK2.Simulation`. `DK2.Convert` references `DK2.Assets` and `DK2.Data`; the
+`.csproj` references are the authority, not this sketch.
 
 | Project | Holds |
 |---|---|
@@ -31,17 +36,17 @@ DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding  │
 | `DK2.Assets` | logical asset keys and their resolution (ADR-0034) |
 | `DK2.Presentation` | world → drawable, renderer-independent (ADR-0035) |
 | `DK2.AI` | the computer keeper as an input source (`docs/KEEPER_AI.md` §12) |
-| `DK2.Convert` | original art → glTF/GLB and PNG |
+| `DK2.Convert` | original art → glTF/GLB and PNG (`dk2tools convert`) |
 | `DK2.Harness` | headless scenario runner |
-| `DK2.Tools` | the `dk2tools` CLI |
+| `DK2.Tools` | the `dk2tools` CLI: `status`, `docs`, `kb`, `coverage`, `convert`, `replay`, and the data inspectors |
 | `unity/DK2.Unity` | the adapter; `unity/DK2.Unity.Compile` builds it against Unity's modules |
 
 `docs/HANDOFF.md` §"Where to work" says which project a change belongs in.
 
-- **Eight assemblies target netstandard2.1** so Unity can load them: `DK2.Core`,
+- **These assemblies target netstandard2.1** so Unity can load them: `DK2.Core`,
   `DK2.Data.Model`, `DK2.Data`, `DK2.Pathfinding`, `DK2.Simulation`,
   `DK2.Assets`, `DK2.Presentation`, `DK2.AI`. `DK2.Convert`, the tools, the
-  harness and the tests target net10.0.
+  harness and the tests target net10.0 (`Directory.Build.props`).
 - The framework comes from **`src/Shared/UnityBound.props`, imported from inside
   each project's own body** — *not* as a condition in `Directory.Build.props`,
   where MSBuild's evaluation order made the condition unsatisfiable and every
@@ -49,8 +54,9 @@ DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding  │
   ADR-0036). The props file's own comment has the detail.
 - **No simulation assembly may reference Unity**, and **the Unity-loadable ones
   must actually be netstandard2.1.** Both are asserted from the *built*
-  assemblies by `ArchitectureTests` and `AssetArchitectureTests`, reading
-  `TargetFrameworkAttribute` rather than the project files — because the project
+  assemblies, reading `TargetFrameworkAttribute` rather than the project files
+  (`ArchitectureTests` for Core, Data.Model, Simulation and Pathfinding; the
+  other Unity-loadable assemblies have the guard in their own test projects) — because the project
   files were the thing that was wrong.
 
 ## Simulation rules
@@ -84,7 +90,10 @@ DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding  │
 `SimulationSystems.Default()` is the **one** declaration of order (ADR-0013), and
 order is part of the simulation's definition: two systems touching the same state
 in a different order are a different game. The sequence is the list in that method
-and is not copied here.
+and is not copied here; it is built from named phases (`Commands`, `RoomLifecycle`,
+`KeeperActions`, `ThingPass`, `Work`, `PlayerFrame`, `Needs`, `Choosers`, `Verdict`)
+that only label stretches of the one list. Before the systems, `GameSimulation.Tick`
+acknowledges player messages and runs the trigger executor (ADR-0152, ADR-0245).
 
 The load-bearing constraints, with the per-position reasoning in the file's own
 XML doc: the hand acts before any creature does; marks land before the work that
@@ -94,8 +103,9 @@ resolves on that tick, so nothing survives a tick boundary half-done; mana is
 paid after everything that could change what a keeper owns, and imp supply after
 the mana it spends; hunger is asked before tiredness and pay after both, which is
 the order the original's own needs routine has; the prison settles a captive's
-second alone, so exactly one system does; experience is last, so nothing that
-died or walked out this second is promoted on the way through the door.
+second alone, so exactly one system does; experience is the last creature system, so
+nothing that died or walked out this second is promoted on the way through the door;
+the level's verdict (`DungeonHeartSystem`) and the world's own records come after it.
 
 **UNKNOWN: DK2's own per-tick subsystem ordering.** Flame's disassembly names the
 subsystems but not their sequence. This order is ours, chosen to be explicable
@@ -103,11 +113,11 @@ rather than to match something nobody has measured.
 
 ## World state
 
-`WorldState` is the whole mutable game. Its main collections (`HashInto` is the full list, in hash order):
+`WorldState` is the whole mutable game. Its main collections (`WorldState.HashInto` is the full list, in hash order):
 
 | | |
 |---|---|
-| `Tiles` (`TileState[]`, `Width` × `Height`) | terrain id, owner, health, gold held, a tag bit and a discovery bit per keeper |
+| tiles (`TileState`, `Width` × `Height`, via `Tile(x, y)`) | terrain id, owner, health, gold held, a tag bit and a discovery bit per keeper, and the per-tile state the built mechanics read |
 | `Players` (`PlayerState`) | mana, the `Hand` list, the payday clock. **No gold counter** (ADR-0015) |
 | `PendingWork` (`TileWorkOrder`) | a FIFO queue, never sorted or deduplicated, because order is behaviour (ADR-0010) |
 | `Creatures` (`CreatureState`) | in spawn order, which decides who gets a job |
@@ -118,6 +128,7 @@ rather than to match something nobody has measured.
 | `TempleSacrifices` (`TempleSacrificeState`) | a sorted persistent three-offering ring per derived Temple anchor (ADR-0149) |
 | `Triggers` (`TriggerState`) | the level-global flag and timer banks (ADR-0102) |
 | `Messages` (`PlayerMessageQueue`) | retained combat messages; observation and expiry boundary in ADR-0245 |
+| `Shots`, `Graveyards`, `Tremors` | in-flight shots, the Graveyard rooms' persistent tallies, and the Tremor records |
 
 Three rules govern it:
 
@@ -145,7 +156,9 @@ any machine.**
   `DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines` guards
   cross-machine stability. Changing simulation state deliberately means bumping
   `GameSimulation.HashVersion`, keeping `WorldSnapshot.FormatVersion` equal to
-  it, and re-pinning the literal in the same commit. Never loosen the assertion.
+  it, and re-pinning the literal in the same commit (the pin history is
+  `docs/research/hash-versions.md`; the current numbers are in the source). Never
+  loosen the assertion.
   **The pin's world holds two creatures** (Q206), so a change to
   `CreatureState.HashInto` does fail it. It registers no creature *system*,
   so what it guards is the fields, not behaviour over ticks.
@@ -153,7 +166,7 @@ any machine.**
   of ticks, not by comparing bytes.
 - `.github/workflows/ci.yml` declares the gate on Linux and Windows with
   `DK2_DIR=/nonexistent`, so every install-gated test is reported skipped there.
-  **No CI is actually running** (`d03066a`), which makes the commit-msg hook —
+  **No CI is actually running** (the repository has no remote), which makes the commit-msg hook —
   `git config core.hooksPath .githooks`, running `dk2tools docs` and
   `dk2tools status --check` — the only gate in force, and leaves the pin's
   cross-platform claim resting on local runs.
@@ -181,21 +194,20 @@ WorldState ──► WorldView ──► ScenePresenter ──► IRenderTarget
               replacement ──► converted ──► placeholder
 ```
 
-- **The view has a viewer.** `WorldView(GameDatabase database, byte
-  viewingPlayerId = 1)` produces one keeper's screen: `TileView.Tagged` is the
+- **The view has a viewer.** `WorldView(GameDatabase database, PlayerId
+  viewingPlayerId)` (default `PlayerIds.Good`) produces one keeper's screen: `TileView.Tagged` is the
   viewer's own mark, and a tile that keeper has not discovered is yielded as
   terrain 27 (`Fog Of War`) with terrain 27's assets, solid and taggable, so the
   real terrain never reaches the renderer at all. The six terrain types flagged
   `IsRevealedThroughFog` show through (ADR-0076, `fog-of-war.md`). A multiplayer
   caller builds one view per keeper.
 - **`ScenePresenter` diffs** and pushes only what changed, in a fixed order —
-  tiles row-major, then objects, then creatures, both in spawn order with
-  removals ascending — so a recorded call sequence is reproducible. An unchanged
+  tiles row-major, then torches (`TorchLayout`), then objects, then creatures, both
+  in spawn order with removals ascending — so a recorded call sequence is reproducible. An unchanged
   world pushes nothing. Objects precede creatures because a creature stands on
   one, and that precedence is decided here so two renderers cannot disagree.
-- **`IRenderTarget` is nine methods with no logic in them**: create and update a
-  tile; create, update and remove a creature; create, update and remove an
-  object; flush. Everything an engine adapter could get wrong is upstream of it
+- **`IRenderTarget` has no logic in it**: create and update a tile; create, update
+  and remove a creature, an object and a torch; flush. Everything an engine adapter could get wrong is upstream of it
   and tested.
 - An object crosses the boundary as a tile, a mesh key and its gold amount — no
   sub-tile position, because the simulation has none.

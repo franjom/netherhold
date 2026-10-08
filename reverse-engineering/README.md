@@ -46,7 +46,7 @@ Ghidra project: the one project `D:\Ghidra\DK2_RE`, opened with Ghidra 12.1.4 an
 cloned per runner run and per pyghidra-mcp session, the clone deleted at exit (outside
 the repo — a Ghidra project of this binary contains the binary). Exports land here as
 `<subject>.c` / `<subject>.txt`, one file per question, named after the question they
-were opened for. The headless Ghidra command is in `docs/RESEARCH-QUEUE.md`; the scan
+were opened for. The headless runner is `tools/ghidra/ghidra.py --agent <you>` (command and porting notes in `docs/RESEARCH-QUEUE.md`); the scan
 recipes and the traps that have cost committed claims are in the `ghidra-queries`
 skill (`.agents/skills/ghidra-queries/SKILL.md`) and `docs/TRAPS.md`.
 
@@ -56,7 +56,7 @@ skill (`.agents/skills/ghidra-queries/SKILL.md`) and `docs/TRAPS.md`.
 the class it belongs to** — the dword immediately before a vtable is a complete
 object locator, giving both the base's offset within the object (0 for the primary
 vtable, non-zero for a secondary base under multiple inheritance) and a type
-descriptor holding the decorated class name. `Rtti.py` walks it, and accepts either
+descriptor holding the decorated class name. `tools/ghidra/scripts/Rtti.py` walks it, and accepts either
 a vtable base or any code pointer stored inside one, so it can be pointed straight
 at a "1 absolute reference, in .rdata" scan result.
 

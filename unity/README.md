@@ -33,7 +33,7 @@ furniture standing on the floor, creatures as small uprights that turn gold when
 carrying gold. **Height means one thing — whether the terrain fills its tile** — so
 the dug-out parts of a level read as dug out. Colour is derived from each asset's
 key, so a terrain is always the same colour; see `PlaceholderProvider`. A tile marked
-for digging is tinted amber.
+for digging is tinted amber, and wall torches are placed by `TorchLayout`.
 
 WASD or the arrow keys pan and the mouse wheel zooms. The left mouse button uses the
 selected tool: `1` tag, `2` untag, `3` build, `4` sell, `5` pick up/drop, `6` slap,
@@ -69,23 +69,25 @@ installed the editor. Pass `-p:UnityManagedDir=...` if the editor is not in
   has none built in) and a decision about which package supplies it.
 - **It runs at DK2's rate, and does not smooth between ticks.** `DungeonRunner.Update`
   accrues `Time.deltaTime × SimulationTiming.TicksPerSecond × speed` and ticks on
-  whole ticks, so at `speed` 1 the wall clock is the game's: a game second is four
-  ticks of 250 ms, read from the binary and stopwatched by the owner (Q1, ADR-0089).
-  What is missing is interpolation — a creature jumps a quarter-second at a time —
-  and the component's own tooltip and the on-screen diagnostics still call that rate
-  the "unmeasured Q1 placeholder", which Q1 no longer is.
-- **It draws boxes, not DK2's walls.** DK2 picks wall pieces by the size and shape of
-  the room behind them and swaps textures for damage states
-  (`docs/research/wall-rendering.md`). One mesh per terrain is a known
-  simplification, and the variant set waits on Q71 rather than being invented.
+  whole ticks, so at `speed` 1 the wall clock is the game's (Q1, ADR-0089). What is
+  missing is interpolation: a creature jumps one tick at a time. The component's
+  tooltip and the on-screen diagnostics still call the rate the "unmeasured Q1
+  placeholder", which Q1 no longer is; that text is stale.
+- **It draws boxes, not DK2's walls.** DK2 picks wall pieces by the shape of the room
+  behind them and swaps textures for damage states (`docs/research/wall-rendering.md`).
+  `src/DK2.Presentation/RoomWalls.cs` computes the piece choice, but this adapter does
+  not consume it: one mesh per terrain is a known simplification.
 
 ## Where the logic actually lives
 
 Almost nothing is in this folder, deliberately. `ScenePresenter`
 (`src/DK2.Presentation`) decides what changed, in what order, which asset each thing
-needs, and create-versus-update-versus-remove — all of it tested against a real
-campaign level. `DungeonScene` implements `IRenderTarget`'s nine methods, plus a
-`Clear`, with no judgement in them beyond "file or placeholder".
+needs, and create-versus-update-versus-remove, all tested against a real campaign
+level. `DungeonScene` implements `IRenderTarget` (create, update and remove for
+tiles, creatures, objects and torches, plus `Flush`) and adds a `Clear`, with no
+judgement in it beyond "file or placeholder". `DungeonRunner` reads the pointer into a
+`PlayerIntent`, translates it through `PlayerInput`, and sends the simulation only
+`InputFrame`s; `TilePicker` decides which tile a ray hits.
 
 **Read `src/DK2.Presentation/TextRenderer.cs` before changing anything here.** It is
 the same job against a character grid, it runs in CI, and a disagreement between the
@@ -93,9 +95,8 @@ two is a bug in one of them rather than a matter of taste.
 
 ## Verifying it inside Unity, from the command line
 
-Two headless checks, both of which have been run and pass. They need an activated
-editor (`Preferences → Licenses → Add → free personal license`); without one Unity
-exits **198** with `Found 0 entitlement groups`.
+Both checks need an activated editor (`Preferences → Licenses → Add → free personal
+license`); without one Unity exits **198** with `Found 0 entitlement groups`.
 
 **Does Unity compile the adapter?**
 
@@ -104,8 +105,8 @@ exits **198** with `Found 0 entitlement groups`.
   -projectPath unity\DK2.Unity -logFile build\unity-batch.log
 ```
 
-Exit 0 means Unity built `DK2.Unity.dll` against the seven netstandard2.1 assemblies
-in `Assets/Plugins/DK2`. Stronger than `DK2.Unity.Compile`, because it is Unity's own
+Exit 0 means Unity built `DK2.Unity.dll` against the assemblies in
+`Assets/Plugins/DK2`. Stronger than `DK2.Unity.Compile`, because it is Unity's own
 compiler resolving Unity's own references.
 
 **Does the whole pipeline actually run?**
@@ -116,47 +117,19 @@ compiler resolving Unity's own references.
   -executeMethod DK2.Unity.Editor.DungeonSetup.SmokeTest
 ```
 
-Loads a real campaign level, builds the simulation, presents it into a
-`DungeonScene`, ticks it 20 times and presents again — then fails unless there is one
-GameObject per tile. This is the check worth having, because everything it exercises
-was never going to fail at compile time and was always going to fail on first Play:
-whether `GameDatabaseLoader` can read a DK2 install from inside Unity's Mono runtime,
-whether the netstandard2.1 assemblies load there at all, and whether the presenter
-produces objects. It skips cleanly with exit 0 when there is no DK2 install, exactly
-as the install-gated tests do.
+`SmokeTest` loads a real campaign level, builds the simulation, presents it into a
+`DungeonScene`, ticks it 20 times and presents again, then fails unless there is one
+GameObject per tile. It exercises what could not fail at compile time: whether
+`GameDatabaseLoader` can read a DK2 install under Unity's Mono runtime, whether the
+netstandard2.1 assemblies load there, and whether the presenter produces objects. It
+builds the map pipeline only, so it shows no creatures; `DungeonRunner` also places
+the level's decoded THINGS through `ThingProjection` (ADR-0101). The log ends with
+`DK2 smoke test: OK`.
 
-Result:
+`DungeonSetup.SaveSmokeTest` does the same from each saved game in the install and
+fails if half or less of the saved terrain agrees with the level's design map. Both
+skip cleanly with exit 0 when there is no install (and, for saves, no saves), as the
+install-gated tests do.
 
-```
-DK2 smoke test: 30x38 level, 1140 tile objects, 0 creatures,
-art: 1178 asset(s) resolved: 1178 from placeholder,
-hash aae0f0e17a769a21 -> 8e38409cdbd8d7c0
-DK2 smoke test: OK
-```
-
-**Zero creatures is correct for this smoke test, not for interactive play.** The
-smoke setup deliberately constructs only the map pipeline it was written to check.
-`DungeonRunner` loads the campaign's decoded THINGS through `ThingProjection`
-(ADR-0101), so interactive play starts with the level's supported creatures and
-objects; saved-game entity records remain undecoded.
-
-## What the first Play established (2026-09-04)
-
-It rendered campaign level 1 on the first attempt, and the screenshot's own
-diagnostics line cross-checked three claims that had until then only been asserted:
-
-| on screen | what it confirms |
-|---|---|
-| `1140 tile objects` | 30 × 38. Every tile got an object, matching the smoke test exactly |
-| `2 creatures` at tick 203 | **the imp economy ran.** This run predated campaign THINGS projection, so those two imps came from `ImpSupplySystem` and the dungeon heart (ADR-0021), at roughly the 5-second cadence the data specifies. Since ADR-0057 the *first* one arrives on tick zero rather than five seconds in — the original keeps a deadline, not a countdown — so a rerun shows the same two imps a little earlier |
-| `pushed 0 tiles / 0 creatures this frame` | **the diffing works.** A settled dungeon costs nothing to keep on screen, which is the property `ScenePresenter` exists for |
-| `1182 assets resolved: 1182 from placeholder` | 1178 at tick 20 plus 4 for two creatures (a mesh and an animation each). The arithmetic closes |
-
-It also found a bug no test could have: the camera framed the level using
-`world.Width` for its height, so on a level 30 wide and **38 deep** the near end of
-the dungeon fell off the bottom of the screen. Fixed by fitting the level's bounding
-sphere to the vertical field of view, so the framing no longer depends on which
-dimension happens to be larger. `cameraPitch` is a slider on the component.
-
-The smoke test proves 1140 objects exist; it cannot prove a camera points at them.
+The smoke tests prove the objects exist; they cannot prove a camera points at them.
 Framing, scale, colour and legibility need a person and a screenshot.

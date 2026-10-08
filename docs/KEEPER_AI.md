@@ -1041,10 +1041,15 @@ the simulation's stream. The delay and separate stream are deliberate deviations
 | `LineWalker` (+ `WalkOutcome`) | §5.2's corridor digger, with wall-hugging and the two-way trial | **exists** |
 | `GoldScanner` | cardinal seams, gold totals, centroid correction and historical admission cutoff | **exists**; remaining position and border limits: management research §12 |
 | `RoomPlanner` | §5.5's room choice, ideal neighbours, directions, claimable neutral rooms | **exists** |
-| `KeeperAIPersonality` | the nine skirmish rows of §3.2 as typed static data, producing a `KeeperAIParameters` plus the computed `RoomList` | **does not exist**; the values are decoded in `reverse-engineering/` |
+| `KeeperAIPersonality` | the nine skirmish rows of §3.2 as typed static data, producing a `KeeperAIParameters` plus the computed `RoomList` | **does not exist**; the values are in §3.2 |
 | `ThreatEvaluator` | Pure strength, drop-site and response arithmetic (§5.4) | **exists**; live inputs and messages arrive through `KeeperThreatResponder` (ADR-0278, `research/computer-keeper-threat.md` section 5) |
 | `KeeperMoodRemedies` | §5.3's make happy and dispose for 17/18, as pick-up, mint and drop commands | **exists** (ADR-0353) |
 | `KeeperAttackPlanner`, `KeeperReadiness` | §5.5's attack planner, front and management; the readiness grants as commands | **exist** (ADR-0298) |
+| `KeeperRoomRequests`, `RoomExpansion` | the room messages 41–43 the walk reads, and the expansion of an existing room (§5.3, §5.5) | **exist** (ADR-0327, ADR-0335) |
+| `KeeperThreatResponder`, `KeeperResponseQueue` | the message walk, the reservation queue and the respond-to-attack dispatch (§5.3, §5.4) | **exist** (ADR-0278) |
+| `KeeperBattleStep`, `KeeperRetreatStep` | §5.7's battle step with its spells, and §5.8's retreat of the wounded | **exist** (ADR-0283, ADR-0284) |
+| `KeeperTrainingStep` | step 9's training moves | **exists** (ADR-0317) |
+| `KeeperRouteCache` | the routing mesh a keeper rebuilds only when the navigation bytes change | **exists** |
 | `TrapPlacer` | §5.6 | **does not exist** |
 | `IWorldView` | a general agent observation interface | **not added**: `KeeperView` supplies the current keeper boundary; extend it with verified observations as §12.4 grows |
 
@@ -1066,9 +1071,9 @@ methods on `KeeperAI` rather than a separate type.
 | pay a creature by minting gold on it | `MintWageCommand`, then `DropCommand` naming the creature | none: `GoldStore.Spend` is the withdrawal (ADR-0353) |
 | claim a neutral room | digging a path to it, then `ConvertRoom` work | none (ADR-0044) |
 
-Every row marked **bold** adds simulation state or a new effect, so each bumps
-`GameSimulation.HashVersion` and `WorldSnapshot.FormatVersion` together and wants its
-own ADR — the standing rule in `docs/HANDOFF.md`, *Run and verify*.
+A command that adds simulation state or a new effect bumps `GameSimulation.HashVersion`
+and `WorldSnapshot.FormatVersion` together and wants its own ADR — the standing rule in
+`docs/HANDOFF.md`, *Run and verify*.
 
 ### 12.4 Messages: retained simulation state
 
@@ -1109,12 +1114,13 @@ named quirk the harness can assert on.
 - Tick unit: the counters are game ticks, four to a game second (Q1, ADR-0089), and the
   simulation already runs on game ticks, so §5.9's constants (1,680; 240; 300; 40)
   transfer unchanged.
-- **The current slap approximation is refuted.** `SlapCooldownTicks = 300` and
-  `Activity == Working` do not match DK2's gates. The required state accessor and
-  shared speed timer are audited in `research/computer-keeper-management.md` §8;
-  the original's human slap has no cooldown (`research/hand-of-evil.md` §4).
+- **The slap gates DK2's own tests.** The activity code, health above half, the speed
+  timer and a 1-in-100 roll (ADR-0376). The timer is approximated: our slap does not
+  start it, so `KeeperAI.SlapSpeedChangeTicks` counts from the last slap
+  (`research/computer-keeper-management.md` §8; the human slap has no cooldown,
+  `research/hand-of-evil.md` §4).
 
-### 12.6 Tests the sketch implies
+### 12.6 Tests
 
 1. **Unit, synthetic grids** — built, in `tests/DK2.AI.Tests` (§12.8).
 2. **Harness scenario.** Built: `Scenario.ComputerKeepers` loads campaign PLAYERS
@@ -1157,8 +1163,9 @@ Remaining M12 plan:
    `research/call-to-arms.md`) and the battle step casts it and Thunderbolt and takes
    the flag down (ADR-0283); the retreat of the wounded runs at step 7 as pick-up and
    drop commands (ADR-0284); Heal is cast through the simulation's own validators and
-   shot (ADR-0287), and Chicken and Inferno likewise (ADR-0302). Next: the remaining
-   message families and producers.
+   shot (ADR-0287), and Chicken and Inferno likewise (ADR-0302). ADR-0353 builds the
+   mood, make-happy, dispose, ownership, threat and room-message producers; the other
+   job-room finders' producers and Q542–Q544 (when DK2 asks for a Graveyard) are not built.
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
 3. **Dungeon management.** Add prisoners, specials and research decisions; the training moves
@@ -1196,9 +1203,14 @@ Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot af
 room, creates imps up to its ratio, and produces an identical command stream for
 identical seeds.
 
-The observation (schema 18) includes pickup permissions, casualty-priority masks, fixed-point creature positions, hand/carrier state,
-alliances, reverse player activation order, research upgrades, placed trap threat and
-navigation bytes (`research/computer-keeper-threat.md` sections 1 and 2). Tests check frozen
+The observation (`KeeperViewSnapshot`, versioned by its `FormatVersion`; the ADR that
+added each field is in the commit history) holds, beyond the §12.2 row: pickup permissions,
+casualty-priority masks, fixed-point creature positions, hand and carrier state, alliances,
+reverse player activation order, research upgrades, placed-trap threat and navigation bytes
+(`research/computer-keeper-threat.md` sections 1 and 2), each creature's state, fight gate,
+health basis, experience, anger buckets and activity code, per-spell last cast and mana, the
+battle, heal, Chicken, Inferno and Sight permissions the steps predict with, every player's
+status, and each room's tiles, floor slots and object list. Tests check frozen
 values, packet round trips and equal command streams;
 stock-creature coverage checks that later world mutations cannot change the capture.
 
@@ -1221,29 +1233,14 @@ Deviations and approximations, each a candidate ADR:
   retreat's Lair drop use the stored position (`+0x27`, `KeeperView.PositionOf`, ADR-0394);
   other readers still take the bounding-box middle where the binary's field is unread, and
   room-list tie order remains approximate. See handler section 3.
-- `SlapCooldownTicks` (§12.5).
+- The slap's speed timer (§12.5).
 
-The response queue is dispatched by `Think` through `KeeperThreatResponder` (ADR-0278);
-schema 8 adds each creature's state, fight gate, health basis, dropped counter, hand and list rank;
-schema 9 adds its `0x004888C0` answer and the keeper's own Call to Arms; schema 10 the
-mana pool, each spell row's last cast, and per creature its target's owner and the
-captured place, route and Thunderbolt-target permissions the battle step predicts with;
-schema 11 its Combat Pit mark and whether it holds a room id; schema 12 the Heal permission
-its validators give an own creature; schema 13 every player's status, the heart room's middle
-as the heart and the call's refused own-room tiles, with route queries over the captured bytes;
-schema 14 the Chicken and Inferno permissions per foreign creature (ADR-0302); schema 15 each
-creature's experience and dropped-to-do job and each room's floor slots in chain order (ADR-0317); schema 16
-every room's tiles in chain order (ADR-0327); schema 17 the own-room tiles where Sight's target 4 refuses (ADR-0352); schema 18 each
-creature's anger buckets, each room's object list and the hand's count (ADR-0353); schema 19 each
-creature's activity code (ADR-0376).
+The response queue is dispatched by `Think` through `KeeperThreatResponder` (ADR-0278).
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
-is captured separately from hand capacity; worker task exits and prison delivery
-now update its flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274) and the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery and expiry (ADR-0277);
-remaining gaps: `research/creature-pickup.md`. Response dispatch is connected, Call to Arms is a simulation spell (ADR-0279) and the battle step runs through `Think` at step 11 with the removal test at step 7 (ADR-0283, `KeeperBattleStep`) and the retreat of the wounded after that test (ADR-0284, `KeeperRetreatStep`).
-The attack planner, the front and attack management run through `Think` at task 0 and step 7
-with readiness grants as commands (ADR-0298, `KeeperAttackPlanner`, `KeeperReadiness`).
-Combat messages reach the observation; the battle step casts all four shipped battle spells
-(ADR-0302). The training moves run at step 9 (ADR-0317). Room messages 41 and 42 schedule rooms
-and expansions through the planner's request (ADR-0327); make happy and dispose answer 17/18 and
-the readers 12, 34 and 47 (ADR-0353). The personality loader remains unbuilt (2026-10-05).
-Several step 3 prerequisites were implemented by later milestones; see §12.3–12.4.
+is captured separately from hand capacity; worker task exits and prison delivery update its
+flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274), and
+the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery
+and expiry (ADR-0277); remaining gaps: `research/creature-pickup.md`.
+
+Not built: the personality loader, `TrapPlacer`'s site choice, the door decisions, the
+prisoner step and the researcher's portal move.

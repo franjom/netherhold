@@ -1,13 +1,12 @@
 ﻿# Structure refactor plan
 
-Status: proposed, not started. Written 2026-09-23 from a structural review of the
-tree at `f0cc96e`.
+Status (checked 2026-10-08 against HEAD `a43b2c57`): **Phase 3 is done**
+(`a8ffc392`, 2026-10-06). **Phases 1, 2 and 4 are open**, Phase 5 is optional. Written
+2026-09-23; the numbers below were re-measured on 2026-10-08.
 
-> Another session commits to this repo concurrently — HEAD moved twice during the
-> review that produced this plan. Every structural finding below was re-verified
-> at `f0cc96e`. The `HashVersion` and pinned-hash literals move often; read the
-> current ones out of the source when you start rather than trusting a number
-> quoted here.
+> Another session may commit to this repo concurrently. The `HashVersion` and the pinned
+> hash literal in `DeterminismTests` move often; read the current ones out of the source
+> when you start rather than trusting a number quoted here.
 
 ## Why this exists
 
@@ -17,10 +16,10 @@ impression is wrong in its specifics and right about one thing:
 
 | Claim | Measured |
 |---|---|
-| No namespaces | 381 of 383 files declare one, file-scoped and hierarchical |
-| Everything static | 114 static classes vs 138 sealed + 100 records + 53 structs; **zero** static mutable fields |
-| No organisation | 11 projects, acyclic layering, `Core` depends on nothing |
-| All thrown in | **True of two places**, listed below |
+| No namespaces | every file declares one, file-scoped and hierarchical |
+| Everything static | the rules classes are static and hold **no mutable static fields**; state lives in sealed classes, records and structs |
+| No organisation | 11 projects under `src/`, acyclic layering, `Core` depends on nothing |
+| All thrown in | **True of one place now**: `DK2.Simulation`'s root (Phase 1) |
 
 The architecture is sound and this plan does not touch it. What it fixes is
 *where files sit*, which is what produced the impression — plus one real defect
@@ -41,10 +40,9 @@ Consequence: Phase 1 can be done with `git mv` alone — no edit to any file's
 bytes, no namespace change, no `using` change at any call site.
 
 The gate that proves it: `DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines`
-pins a state hash — `0xFD44E939D714F3F1UL` at `HashVersion 76` as of `f0cc96e`,
-but read the current value before starting. A pure move **must** leave that hash
-untouched. If it changes, the move was not pure and something was edited by
-accident.
+pins a state hash (`HashVersion 203` on 2026-10-08), so read the current value before
+starting. A pure move **must** leave that hash untouched. If it changes, the move was not
+pure and something was edited by accident.
 
 Because another session commits here, re-read the pinned hash immediately before
 the move and compare against that, not against a number copied from this
@@ -60,8 +58,7 @@ These are repo-specific and have each caused a real mess before. Do not skip.
 
 1. **Another session may be editing this tree.** Check `git log` and file mtimes
    first. Stage named paths only — never `git add -A`.
-2. **BOM state is mixed**: 74 of 231 files under `src/` carry a UTF-8 BOM, and in
-   the `DK2.Simulation` root it is 29 with, 34 without. Any tool that *rewrites*
+2. **BOM state is mixed** across `src/`, including the `DK2.Simulation` root. Any tool that *rewrites*
    files (an IDE "move to folder" refactor, `dotnet format`, a script that reads
    `utf-8-sig` and writes `utf-8`) will normalise BOMs and bury the real change
    in hundreds of spurious hunks. **`git mv` moves bytes and is the only safe
@@ -75,24 +72,26 @@ These are repo-specific and have each caused a real mess before. Do not skip.
 
 ## Phase 1 — Give `DK2.Simulation` its folders
 
-**Problem.** 63 of the project's 125 files sit flat in the project root, 13,320
-lines of them, while `Systems/` (34), `Steering/` (10), `Combat/` (10),
-`Commands/` (6) and `Navigation/` (2) are already organised. Organisation was
-started and never finished. Opening this folder is what produces the "all thrown
-in" reaction, and it is a fair reaction.
+**Problem.** 153 `.cs` files sit flat in the `DK2.Simulation` root (63 when this plan was
+written), while `Systems/` (71), `Combat/` (13), `Steering/`, `Commands/` and `Navigation/`
+are already organised. Organisation was started and never finished. Opening this folder is
+what produces the "all thrown in" reaction, and it is a fair reaction. The folder is
+growing faster than it is being sorted, so the sooner the better.
 
 **Method.** `git mv` only. No file contents change. Namespace stays
-`DK2.Simulation` for every moved file.
+`DK2.Simulation` for every moved file. (`Systems/` and `Combat/` do carry their own
+namespaces, `DK2.Simulation.Systems` and `DK2.Simulation.Combat`, from before this plan;
+the new folders deliberately do not follow that, to keep call sites untouched.)
 
 ### 1a. Two files whose home already exists
 
-These are not a matter of taste — each one's only consumers are already inside
-the target folder:
+These are not a matter of taste — each one's production consumers are already in
+the target folder, or beside it:
 
 | Move | Evidence |
 |---|---|
-| `MeleeDamageRules.cs` → `Combat/` | Referenced only by `Combat/FightRules.cs` |
-| `SeparationRules.cs` → `Steering/` | Referenced only by `Steering/SeparationBehaviour.cs` and `Steering/SteeringBody.cs` |
+| `MeleeDamageRules.cs` → `Combat/` | The only production reference is `Combat/FightRules.cs` (tests aside) |
+| `SeparationRules.cs` → `Steering/` | Referenced by `Steering/SeparationBehaviour.cs`, `Steering/SteeringBody.cs` and `Systems/CreatureMovementSystem.cs` |
 
 Do these first as a standalone commit. They are two moves, they are unarguable,
 and they confirm the `git mv` + determinism-gate loop works before it is applied
@@ -100,41 +99,30 @@ to sixty files.
 
 ### 1b. New folders
 
-**`Triggers/` — 7 files, ~2,246 lines.** The single most cohesive cluster in the
-root, and 17% of its lines.
+The lists below are the seed from 2026-09-23; every file named is still in the root.
+**Re-derive the lists from the current root before moving**: about 90 files arrived
+since (the Casino, Door, Hero, Imp, Keeper and Shot families, among others) and each
+belongs in one of these folders or stays in the root.
 
-`TriggerExecutor` · `TriggerState` · `TriggerCaptureComparison` ·
-`TriggerAreaConditions` · `TriggerConditionEvaluator` · `TriggerReach` ·
-`TriggerTurnCsvEmitter`
-
-**`Rooms/` — 16 files, ~3,032 lines.**
-
-`RoomRules` · `RoomIndex` · `RoomInstance` · `RoomLog` · `LairRules` ·
-`HatcheryRules` · `PrisonRules` · `PortalRules` · `AutoFurnitureRules` ·
-`TempleSacrificeRules` · `TempleSacrificeState` · `GraveyardRules` ·
-`GraveyardState` · `ResearchRules` · `BridgeRules` · `StructureBlocks`
-
-**`Creatures/` — 12 files, ~2,427 lines.**
-
-`CreatureState` · `CreatureAnger` · `CreatureAngerRules` · `CreatureDeathRules` ·
-`CreatureHealthRules` · `CreatureLevelRules` · `EatingRules` · `JobRules` ·
-`TrainingRules` · `WorkStance` · `AttractionBudget` · `CarryRules`
-
-**`Economy/` — 5 files, ~741 lines.**
-
-`GoldStore` · `FloorGold` · `ManaRules` · `PaydayRules` · `Efficiency`
-
-**`Work/` — 5 files, ~861 lines.** Imp labour and the tile-work queue.
-
-`TileWork` · `ImpSupplyRules` · `ImpCrowding` · `ImpTaskKind` · `DisposalRules`
-
-**`Objects/` — 5 files, ~754 lines.**
-
-`ThingProjection` · `ObjectCarryRules` · `HandRules` · `ObjectState` · `ShotState`
+- **`Triggers/`**: `TriggerExecutor`, `TriggerState`, `TriggerCaptureComparison`,
+  `TriggerAreaConditions`, `TriggerConditionEvaluator`, `TriggerReach`,
+  `TriggerTurnCsvEmitter`.
+- **`Rooms/`**: `RoomRules`, `RoomIndex`, `RoomInstance`, `RoomLog`, `LairRules`,
+  `HatcheryRules`, `PrisonRules`, `PortalRules`, `AutoFurnitureRules`,
+  `TempleSacrificeRules`, `TempleSacrificeState`, `GraveyardRules`, `GraveyardState`,
+  `ResearchRules`, `BridgeRules`, `StructureBlocks`.
+- **`Creatures/`**: `CreatureState`, `CreatureAnger`, `CreatureAngerRules`,
+  `CreatureDeathRules`, `CreatureHealthRules`, `CreatureLevelRules`, `EatingRules`,
+  `JobRules`, `TrainingRules`, `WorkStance`, `AttractionBudget`, `CarryRules`.
+- **`Economy/`**: `GoldStore`, `FloorGold`, `ManaRules`, `PaydayRules`, `Efficiency`.
+- **`Work/`** (imp labour and the tile-work queue): `TileWork`, `ImpSupplyRules`,
+  `ImpCrowding`, `ImpTaskKind`, `DisposalRules`.
+- **`Objects/`**: `ThingProjection`, `ObjectCarryRules`, `HandRules`, `ObjectState`,
+  `ShotState`.
 
 ### 1c. What stays in the root
 
-The project's spine, and it should read as a spine — roughly 12 files:
+The project's spine, and it should read as a spine, about a dozen files:
 
 `GameSimulation` · `WorldState` · `WorldSnapshot` · `ISimulationSystem` ·
 `SimulationEvents` · `SimulationTiming` · `InputFrame` · `InputLog` ·
@@ -175,29 +163,17 @@ A real defect, currently committed, at `src/DK2.Simulation/WorldState.cs:96-100`
 An unterminated `<summary>` swallows the entire doc comment belonging to
 `BurnTicksRemaining`, which follows it.
 
-**Resolved from history — this is cosmetic residue, and no behaviour is
-missing.** The field was named `WorkRemainder`, not `HealthRemainder`, which is
-why searching the tree for the latter finds nothing. It was deleted deliberately
-in `20ea8b0` (2026-09-10, *"One application is a shift, not a division, and
-nothing is carried"*, HashVersion 54), which also removed
-`EfficiencyRules.Scale` and the field's `hash.Add` line.
+**Resolved from history: this is cosmetic residue, and no behaviour is
+missing.** The field was named `WorkRemainder`, not `HealthRemainder`. It was deleted
+deliberately in `20ea8b0` (2026-09-10, HashVersion 54) because direct measurement refuted
+a carried remainder: DK2 computes `tabled x Efficiency` in 4096ths and arithmetic-shifts
+down 14, carrying nothing (Q62, Q292, Q296). The deletion removed the field and the tail
+of its comment, leaving the opening `<summary>` and two prose lines behind.
 
-The carried remainder was not lost — it was **refuted by direct measurement**.
-Run 15 sampled the running game's tile health 20 times a second and recorded 54
-consecutive reinforce steps of *exactly* 9 against a tabled 9.6. DK2 carries
-nothing; it computes `tabled × Efficiency` in 4096ths and arithmetic-shifts down
-14, and a signed shift floors. That one mechanism corrected four work rates at
-once and closed Q62, Q292 and Q296.
+**The fix is to delete those three orphaned lines.** Nothing else: no ADR, no
+`HashVersion` bump, no simulation change.
 
-The orphan is a three-line-short deletion: the diff removed the field and the
-tail of its comment from the `<see cref="SimulationTiming.BaseApplicationDivisor"/>`
-line onward, leaving the opening `<summary>` and two prose lines behind.
-
-**The fix is to delete those three orphaned lines.** Nothing else. No ADR, no
-`HashVersion` bump, no simulation change — deleting them restores
-`BurnTicksRemaining`'s documentation and touches no code.
-
-Two checks were run so this is not fixed in one place and left in its twin:
+Two checks were run when this was written, so it is not fixed in one place and left in its twin:
 
 - The sibling device the deleted comment cited, `CreatureState.MoveRemainder`,
   is **also gone**, removed separately and deliberately in `8c27c6f` (ADR-0157
@@ -208,96 +184,19 @@ Two checks were run so this is not fixed in one place and left in its twin:
 
 ---
 
-## Phase 3 — Decompose `src/DK2.Tools/Program.cs`
+## Phase 3 — Decompose `src/DK2.Tools/Program.cs` — DONE
 
-**Problem.** 3,733 lines, 180 KB, in top-level statements. One `switch` with 49
-command arms, most bodies inlined at 20–160 lines, followed by ~30 trailing local
-static functions. It is four times the next largest source file in the repo.
-
-**The pattern already exists.** The `sgmap` arm is one line:
-
-```csharp
-case "sgmap":
-    return SgmapCommand.Run(args[1..], FindRepoRoot());
-```
-
-`Sgmap.cs` is a `public static class SgmapCommand` with a `Run(string[], string?,
-TextWriter?, TextWriter?)` entry point, injectable output and error writers, and
-a private `Usage`. That is the target shape. This phase is not a new design — it
-is applying the repo's own existing one to the other 48 arms.
-
-Note the injected `TextWriter`s: they are why `SgmapCommand` is testable and the
-inlined arms are not. Extraction should preserve that signature rather than
-writing to `Console` directly.
-
-### Ordering
-
-`kwd` is 33 of the 49 arms and spans lines 721–2586 — roughly 1,865 lines, half
-the file. Take it in slices rather than in one commit.
-
-**3a. The self-contained non-`kwd` arms first** — they are independent and prove
-the loop:
-
-| Command | Lines | Target |
-|---|---|---|
-| `docs` | ~214 | `Commands/DocsCommand.cs` |
-| `status` | ~176 | `Commands/StatusCommand.cs` |
-| `coverage` | ~142 | `Commands/CoverageCommand.cs` |
-| `sdt` | ~56 | `Commands/SdtCommand.cs` |
-| `convert` | ~32 | `Commands/ConvertCommand.cs` |
-| `str` | ~26 | `Commands/StrCommand.cs` |
-| `wad` | ~20 | `Commands/WadCommand.cs` |
-
-`status` and `docs` deserve care: `status --check` gates the plan's committed
-figures, and `docs --check` covers unstaged files. Both are load-bearing for
-other workflows. Extract them without changing behaviour, and run each with
-`--check` before and after to confirm identical output.
-
-**3b. `kwd` into a sub-dispatcher.** `Commands/Kwd/KwdCommand.cs` takes
-`args[1..]` and dispatches the 33 subcommands, each in its own file under
-`Commands/Kwd/`. The largest justify their own file on size alone:
-
-`unreached` (161) · `portals` (118) · `alterterrain` (112) · `fieldsweep` (105) ·
-`varsweep` (102) · `vars` (97) · `things` (84) · `objects` (83) · `creatures` (79) ·
-`creaturebits` (74) · `creaturescan` (69)
-
-The remaining 22 are 12–58 lines each and can be grouped by subject —
-`KwdTerrainCommands`, `KwdTriggerCommands`, `KwdCreatureCommands`,
-`KwdRecordCommands` — rather than scattered into 22 near-empty files.
-
-**3c. The shared helpers.** The ~30 trailing local functions (`FindRepoRoot`,
-`RunGit`, `ChangedFiles`, `StagedFiles`, `GitLines`, `AddedLineNumbers`,
-`OptionValue`, `ResolveData`, `ResolveText`, …) become an internal static
-support class — `Commands/ToolContext.cs` or similar. Several are pure git
-plumbing and could reasonably be their own `GitQueries` type.
-
-**End state.** `Program.cs` is a dispatch table of one-line arms plus `Usage()`,
-on the order of 150 lines.
-
-### Verification for Phase 3
-
-Unlike Phase 1, this phase **does** change file contents, so the determinism hash
-is not the gate — `DK2.Tools` is not in the simulation. The gate is behavioural:
-
-- `dotnet test DK2.slnx` green throughout (`DK2.Tools.Tests` exists but is one
-  file, 132 lines — thin cover for 3,733 lines, so tests alone are not enough).
-- For each extracted command, capture its output before and after on the same
-  inputs and diff. This is the only real check on most arms.
-- `dk2tools status --check` and `dk2tools docs --check` must still agree with the
-  committed files.
-
-Extraction is mechanical, but 49 arms is 49 chances to drop a `when` clause on an
-argument count. Move one command per commit; the diff should be a pure cut-paste
-plus a `using`.
+Commit `a8ffc392` (2026-10-06) split it into a command registry and per-family command
+files under `src/DK2.Tools/Commands/`; `Program.cs` is now about 185 lines. Nothing further
+is planned here.
 
 ---
 
 ## Phase 4 — Split `WorldSnapshot.Write`
 
-`src/DK2.Simulation/WorldSnapshot.cs:97` — `public static void Write(Stream,
-GameSimulation)` is 355 lines, twice the next longest method in the repo
-(`KwdCreatures.ParseRecord`, 170). Only 7 of 762 measured methods exceed 100
-lines, so this is an outlier rather than a house style.
+`src/DK2.Simulation/WorldSnapshot.cs:105` — `public static void Write(Stream,
+GameSimulation)` is now about 600 lines (355 when this plan was written) and the
+longest method in the repo by a wide margin, an outlier rather than a house style.
 
 It is a linear serialiser, so it is low-risk and low-urgency — the length is
 inherent to the number of fields, not to complexity. Split per record type
@@ -310,19 +209,19 @@ byte-for-byte output is identical before and after — the existing `SnapshotTes
 round-trip is necessary but not sufficient, because a round-trip stays green if
 `Read` and `Write` change symmetrically.
 
-Do this after Phase 1, so the file is already in its final location.
+Do this after Phase 1, so the file is already in its final location. `WorldSnapshot.FormatVersion` is 203 today.
 
 ---
 
 ## Phase 5 — Move research provenance out of XML docs (optional)
 
-**Problem.** `DK2.Simulation` is 28% comment lines — 6,956 of 25,241. Individual
+**Problem.** `DK2.Simulation` is heavily commented (28% comment lines on 2026-09-23). Individual
 XML doc blocks run to 20+ lines of reverse-engineering findings: evidence,
 confidence levels, dated owner confirmations, question numbers.
 
 **This is the least urgent item and the easiest to get wrong.** The content is
-the most valuable thing in the repo, the citation convention already exists (149
-files cite `docs/research/*.md`, across 102 research documents), and "recovered
+the most valuable thing in the repo, the citation convention already exists (most
+source files cite `docs/research/*.md`), and "recovered
 but not written down is lost" is a lesson this project has already paid for.
 
 The defensible version is narrow: where an XML doc restates at length what its
@@ -340,12 +239,12 @@ deleting provenance is a loss, not a win.
 A future pass — human or agent — may be tempted by these. Each was examined and
 is correct as it stands:
 
-- **The static rules classes.** 114 of them, but they hold no mutable state and
+- **The static rules classes.** They hold no mutable state and
   are pure functions over passed-in state (`GoldStore.Capacity(GameDatabase, in
   TileState)`). For a simulation whose headline contract is bit-identical
   determinism, a stateless functional core is the right design. Do not convert
   them to instance services to satisfy a DI reflex.
-- **Only 10 interfaces.** Abstractions exist exactly where something is
+- **Few interfaces.** Abstractions exist exactly where something is
   genuinely substituted — `ISimulationSystem`, `IPathfinder`, `IAssetProvider`,
   `IRenderTarget`, `ISimulationEventSink`. Interfaces with one implementation and
   no substitution point would be noise.
@@ -358,9 +257,6 @@ is correct as it stands:
 
 ## Effort
 
-Phases 1, 2 and 4 are roughly a day together and carry a machine-checkable proof
-of no behaviour change. Phase 3 is the larger piece — mechanical but wide, best
-spread over several sessions at one command per commit. Phase 5 is open-ended and
-should only be started with a specific file in hand.
-
-Phase 1 alone removes most of the impression that prompted this plan.
+Phases 1, 2 and 4 are roughly a day together and carry a machine-checkable proof of no
+behaviour change. Phase 5 is open-ended and should only be started with a specific file in
+hand. Phase 1 alone removes most of the impression that prompted this plan.
