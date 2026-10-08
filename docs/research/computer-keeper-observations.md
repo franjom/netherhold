@@ -295,6 +295,19 @@ repairer. Drako attacks Morgana first in 6 seeds (calls 357-601, her heart falls
 turns west to Belial in 4; the owner says DK2's Drako always goes for Morgana (2026-10-08), so the 4 are a divergence (Q574). DK2's capture is one draw: its Morgana slaps once in her first 200
 ticks, against 2.8 expected if the step rolls every tick (`computer-keeper-management.md` §8).
 
+**How ours turns west (2026-10-08, Q574).** Measured in ours: every seed plans Morgana at tick 1,
+stores the tunnel at (64,41) and resumes it; once it ends, the next plan finds her one tunnel used
+(`BreachAtXPoints` 1) and none stored, and picks Belial. The call goes to the first attacked
+player, in bit order, whose heart a walker reaches: Belial (4) before Morgana (6). Drako cannot pay
+for the call before about 480 (five imps bought by 331), so the west turn needs Belial's tunnel
+open by then, which happens only when Morgana's wall falls by about 90, her reinforcer slapped
+before it finished. Read in DKII.EXE and compared with our code: the planner `0x004FAEF0` (a used-up
+enemy's stored tunnel resumed, else skipped; the nearest heart among the rest that pass the
+strength test), the front `0x004FE9C0` (bits 0-15, each player's own heart, first routable), the
+slap step `0x00502F00` and the tick's allowance `0x00500C20` (a refused Create Imp spends none).
+Not shown in DK2: that Belial is the planner's second pick there too. Not found: what in DK2 keeps
+the wall up or the call on Morgana; the reading explains our west turn, not why DK2 differs.
+
 ## M12 acceptance against the two captures (2026-10-06)
 
 The plan's bar: the keeper digs, expands, builds to a need, recruits, defends and attacks
