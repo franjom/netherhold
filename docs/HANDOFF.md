@@ -76,7 +76,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 2. M12: the same-map comparison is done (two captures, the acceptance table at
    the end of computer-keeper-observations.md). The owner decides whether the
    reported differences (Q509's re-lift delay, Q555's Prison timing, Q563's
-   defence and call timing) close M12 or are narrowed first. Compare with every
+   defence and call timing, Q574's slap-driven spread on Level 11A) close M12 or are narrowed first. Compare with every
    computer keeper running and on the record's gold, as DK2 runs the level.
 3. M6 and M7: use the plan's run order and the open-question rows for the
    remaining replay, combat, hero, trap and door work. Avoid reproducing their

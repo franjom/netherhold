@@ -198,7 +198,7 @@ public sealed partial class ImpTaskSystem
         {
             ImpTaskKind.Excavate or ImpTaskKind.Mine => TryTakeMarkedExcavation(context, creature, grid),
             ImpTaskKind.Claim => TryTakeClaim(context, creature, grid),
-            ImpTaskKind.Reinforce => TryTakeReinforce(context, creature, grid),
+            ImpTaskKind.Reinforce or ImpTaskKind.Fix => TryTakeReinforce(context, creature, grid),
             ImpTaskKind.FetchGold => HandsFull(context, creature, definition)
                 ? TryDepositTheLoad(context, creature)
                 : TryTakeFloorGold(context, creature, definition, grid),
@@ -261,6 +261,7 @@ public sealed partial class ImpTaskSystem
         return priority switch
         {
             _ when kind == TileWorkKind.MineGold => ImpTaskKind.Mine,
+            _ when kind == TileWorkKind.RepairWall => ImpTaskKind.Fix,
             JobPriority.MarkedExcavation => ImpTaskKind.Excavate,
             JobPriority.Reinforce => ImpTaskKind.Reinforce,
             _ => ImpTaskKind.Claim,

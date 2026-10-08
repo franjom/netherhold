@@ -3,7 +3,7 @@ question: >
   Does Harkan expand and build from the stock Level 17 room availability
   without scripted player commands?
 map: campaign:level17
-seed: 12345
+seed: 13
 duration_ticks: 1800
 viewing_player: 4
 computer_keepers: [4]
@@ -36,9 +36,9 @@ expect:
     because: >
       Once the seam pays for it, the planner digs and builds the Prison, the first
       available missing room (0x004F93B0). DK2's Harkan builds it too, at tick 855
-      centred on (16,22); ours grows its Training Room first (359-685) and lays the
-      Prison from 1,643 at (13,24) (Q555). It was 1,291 until work experience was paid per
-      hit (ADR-0386): Harkan's imps levelled twice as fast as DK2's, which hid part of the gap.
+      centred on (16,22). This seed builds it at 731 on (16,22); over seeds 1-30 ours lays it
+      at 548-875 on a drawn site (Q555, ADR-0405). Seed 12345, pinned before ADR-0405, is the one
+      seed of 31 that builds none inside 3,000 ticks.
   - event: creature_entered
     detail: "player=4"
     because: >

@@ -9249,3 +9249,33 @@ INFERRED).
 **Measured** (hash 199) against the branch at `e6925731` (M-C), both sides run: Level 1 20/20 and
 20/20, Level 2 5/20 and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3608 and 3600 (DK2
 3683).
+
+## ADR-0405 — The keeper slaps on the last task kind; a repair is kind 16
+**Date:** 2026-10-08 · **Status:** accepted · Research: `computer-keeper-management.md` §8; Q574
+
+**Context.** Since the slap's reaction (ADR-0401) Level 11A's scenario seed lost Morgana's hole and
+its front turned west. Over ten seeds the change was not one seed's: before ADR-0401 Drako attacked
+Morgana first in 10 of 10, after it in 6. The slap step's worker test `0x00478A20` reads the state
+object's `+0x98`, the last task kind, which each task handler writes as it takes the task and state
+10 zeroes before it chooses again (`0x00464010`). Ours tested a held reinforce target, so an imp
+drawn from a reinforce into a fight was never slapped, and ours recorded a repair as kind 6 where
+`0x0046AEA0` writes 16. DK2's Level 11A capture slaps Morgana's imps fighting in the hole (state
+199, kind 6) and slaps its keepers' eligible imps at 0.82 % a tick (53 of 6,429), consistent with
+the 1-in-100 roll if the step runs every tick (unread).
+
+**Decision.** `CreatureActivityRules.Code` gives a worker 5 for `WorkerIdle` or `LastTaskKind` 6.
+`ImpTaskKind.Fix` (16) is recorded for a repair, searched by the reinforce arm as `0x00468520`
+searches 6 and 16 alike. No new field.
+
+**Consequences.** The remaining spread on Level 11A is the roll itself: when Morgana's keeper slaps
+the imp reinforcing (64,38) before it finishes, the tile stays rock and falls at 72-88; when her
+repairer has moved west, it falls at 241-294; otherwise near DK2's 387. Over seeds 1-10 Drako
+attacks Morgana first in 6. DK2's one capture fits a draw from that spread (its Morgana slaps once
+in her first 200 ticks against 2.8 expected at that rate), so it cannot separate the two; more DK2 seeds of
+Level 11A would. The scenario's seed 12345 attacks Morgana again (call (64,34) at 364). Level 17's
+seed 12345 builds no Prison inside 3,000 ticks, one seed of 31; seeds 1-30 build it at 548-875
+(master 548-851), so the scenario moves to seed 13.
+
+**Measured** (hash 204) against master `acfe743a`, both sides run: Level 1 20/20 and 20/20, Level 2
+2/20 and 2/20 (seeds 3, 13), Level 3 seed 01 won at 3676 and 3676 (DK2 3683): every seed's result
+unchanged.

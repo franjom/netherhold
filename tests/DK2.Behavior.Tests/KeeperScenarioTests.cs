@@ -74,7 +74,7 @@ public class Level10KeeperScenarioTests(ITestOutputHelper output)
 public class Level11AKeeperScenarioTests(ITestOutputHelper output)
 {
     [InstallFact]
-    public void Level11ADrakoBridgesTheLavaWithStoneThenCallsItsArmyToMorganasHeart()
+    public void Level11ADrakoBridgesTheLavaWithStoneThenCallsItsArmyToMorganasHeart_OnSeed12345sDrawnDiagonal()
     {
         Scenario scenario = ScenarioCorpus.Load("keepers/level11a_drako_attack.yaml");
         ScenarioResult run = ScenarioCorpus.Run(scenario, output);
@@ -97,10 +97,9 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         Assert.All(spans, s => Assert.Equal(RoomTypeId.StoneBridge, s.Build.RoomId));
 
         var call = (CastSpellAtPlaceCommand)Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5).Command;
-        // DIVERGES FROM DK2 since the slap's reaction (ADR-0401, re-pinned with the owner's consent):
-        // Morgana's hole is lost and the front goes west, so the call stands on (37,37); DK2's is
-        // two tiles off Morgana's heart at (64,38). Before ADR-0401 ours was (64,34).
-        Assert.Equal(((byte)CallToArmsRules.SpellId, 37, 37), (call.SpellId, call.X >> 12, call.Y >> 12));
+        // Two tiles off Morgana's heart, in a drawn diagonal: (64,34) on this seed, DK2's (64,38).
+        // Seed-dependent: over seeds 1-10 the front turns west in four (Q574, ADR-0405).
+        Assert.Equal(((byte)CallToArmsRules.SpellId, 64, 34), (call.SpellId, call.X >> 12, call.Y >> 12));
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
 }

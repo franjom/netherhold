@@ -208,16 +208,25 @@ table from `0x004798D0..0x004805F0` confirms idle category 1 returns 5, whereas
 research/manufacture return 20 and training returns 21. For workers, nonzero
 creature `Idle +0x3D1` or state-object byte `+0x98` (creature `+0x2E6`) `== 6` returns
 5; otherwise effective combat returns 4 and other categories return 6. **That byte is
-the imp's task kind** (STRONGLY INFERRED, 2026-10-05): in the Level 17 capture it is
-1 in dig states, 2 in mining, 3 in claim and conversion, 6 in reinforcing, in every
-sample of ticks 1-600. So the keeper slaps an imp with no task or one reinforcing a
-wall, never a digger, miner or claimer; the capture's two slaps (tick 21, an idle imp;
-27, a reinforcer) fit. Built 2026-10-06 as `CreatureActivityRules` (ADR-0376), replacing a
-working-only test and a 300-tick interval that let ours slap Level 17's Portal claimer (Q546);
-the runtime table `0x006996C4`, which `0x004798F0` fills, gives 5 for categories 1, 2, 10, 19,
-23 and 26-30, 2 for 0, 0x14 for research and manufacture, 0x15 for training, the combat pit and
-31. Still open: our slap does not start `SpeedChangeTimer` as DK2's does (`hand-of-evil.md` §5),
-so the slap step stands in for its part with 400 ticks since the last slap.
+the imp's last task kind**, CONFIRMED (2026-10-08): each task handler writes it as it takes the task
+(`0x0046AEA0` writes 6 for a reinforce and `0x10` for a repair) and state 10 zeroes it before it
+chooses again (`0x00464010`; state 11 on a drop). It is not a working-state test: an imp keeps kind
+6 on its walk, at the wall, and in a fight it is drawn into, until its next state 10. The Level 11A
+capture (2026-10-06) shows it: of 57 entries into 77 in ticks 1-1,400, 53 are imps', from 6, 10, 12,
+22, 87 and 199 (Morgana's in the hole at 437 and 444); the turn before, 42 had kind 6 and 10 had
+`+0x3D1` set, and the last was wandering in 12 with neither (HYPOTHESIS: set within the turn the
+capture sampled before). Over
+the same ticks the four keepers' imps spent 6,429 imp-ticks with kind 6 or `+0x3D1` set and
+`+0x459` zero, and were slapped 53 times, 0.82 %: consistent with the 1-in-100 roll if the step
+runs every tick, which is unread (the health gate and `+0x3C` are not in the count); the human
+(player 3) never. So the keeper slaps an imp with no task or whose last task was a reinforce, never one whose
+last was a dig, mine, claim or repair. Built 2026-10-06 as `CreatureActivityRules` (ADR-0376),
+then on ours' `LastTaskKind` with kind 16 for a repair (ADR-0405; it had tested a held reinforce
+target, so a fighting or repairing imp differed). The runtime table `0x006996C4`, which
+`0x004798F0` fills, gives 5 for categories 1, 2, 10, 19, 23 and 26-30, 2 for 0, 0x14 for research
+and manufacture, 0x15 for training, the combat pit and 31. Still open: our slap does not start
+`SpeedChangeTimer` as DK2's does (`hand-of-evil.md` §5), so the slap step stands in for its part
+with 400 ticks since the last slap.
 
 ## 9. Traps and doors — `0x005000A0`, `0x004FFD80`
 

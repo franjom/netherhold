@@ -63,17 +63,22 @@ expect:
     because: >
       Past the lava the walker meets rock again and task 7 tags it: the tunnel continues toward
       Morgana's heart. Morgana's imp reinforced the tile at 62, so Drako's imps dig an enemy wall,
-      and from 192 one of Morgana's imps repairs it from her side (kind 16, ADR-0387); it falls at
-      286. DK2: repair from 101, the wall falls at 387. The imps then fight in the hole (ADR-0388):
-      Drako claims it at 299 and Morgana's imp takes it back at 332 (DK2: Drako holds it from 638).
-      Before ADR-0401: repair from 91, falls at 365; before ADR-0400 at 393.
+      and from 210 one of Morgana's imps repairs it from her side (kind 16, ADR-0387); it falls at
+      267 and Drako claims the hole at 281. DK2: repair from 101, the wall falls at 387, Drako holds
+      the hole from 638. Over seeds 1-10 the wall falls at 72-390: a keeper slaps an imp whose last
+      task was a reinforce on a 1-in-100 roll, so sometimes its own reinforcer, as DK2's do (ADR-0405).
   - event: call_to_arms_raised
-    detail: "tile=37,37"
-    at_tick: 596
+    detail: "tile=64,34"
+    at_tick: 364
     because: >
-      DIVERGES FROM DK2 since the slap's reaction (ADR-0401, re-pinned with the owner's consent,
-      2026-10-07). With Morgana's hole lost at 332 the front (0x004FE9C0) routes west instead:
-      Drako bridges (47,43) and (46,43) at 339 and 341 and casts the call at (37,37) at 596
-      (0x004FECE0, ADR-0298), and no attack on Morgana's heart follows inside 700 ticks. DK2's call
-      stands on (64,38), at 700, and its army then crosses to Morgana's heart. Before ADR-0401 ours
-      called at (64,34): at 588 (ADR-0400), 460 before that.
+      With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
+      heart and attack management casts the call there (0x004FECE0, ADR-0298). The point is a draw
+      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. Since the slap's reaction
+      (ADR-0401) the outcome is a draw too: over seeds 1-10 Drako attacks Morgana first in six, and
+      in the others the front turns west to Belial, as it did on this seed between ADR-0401 and
+      ADR-0405 (Q574).
+  - event: engaged
+    detail: "player=5 heart=6"
+    because: >
+      Drako's creatures answer the call and attack Morgana's heart (scan E, ADR-0163); first at
+      396, a Salamander. DK2's army crosses only after its call too.

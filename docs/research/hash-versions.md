@@ -15,6 +15,7 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**204** — `0x5C3A1B89341D720F`. The keeper's slap step reads a worker's last task kind (`+0x98`) rather than a held reinforce target, and a repair records kind 16, not 6 (`0x0046AEA0`); no new field. ADR-0405.
 **203** — `0xAEBBF589AE314BD2`. The slap's state moves 67, 77 and 120 and their reaction (`slap-states.md`): a slap whose move is refused does nothing more; the reaction plays action 19 and goes back to its room's state; no new field. ADR-0401. Built on 202; 201 was this work's number while it waited on a side branch and is unused.
 **202** — `0x6967DA71375E1109`. The room return states 62, 70 and 154 through `RoomEvictRules`, and the research cheer 60 on a shelved item (`room-return-states.md`); no new field. ADR-0402. (201 unused: see 203.)
 

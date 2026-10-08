@@ -7,8 +7,8 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Tests;
 
 /// <summary><c>0x00478A20</c>'s code, which the keeper's slap step asks to be 5
-/// (computer-keeper-management.md §8). The worker rows come from the Level 17 capture: of
-/// Harkan's imps only an idle one or a reinforcer was ever slapped.</summary>
+/// (computer-keeper-management.md §8). A worker's row reads its last task kind (<c>+0x98</c>), which
+/// <c>0x0046AEA0</c> writes 6 for a reinforce and 16 for a repair.</summary>
 public sealed class CreatureActivityRulesTests
 {
     [Fact]
@@ -19,19 +19,29 @@ public sealed class CreatureActivityRulesTests
     }
 
     [Fact]
-    public void AnImpOnItsWayToReinforceIsSlappable_TaskKindReadFromTheCapture()
+    public void AnImpOnItsWayToReinforceIsSlappable()
     {
-        var imp = new CreatureState { Dk2StateId = 6, UtilityNewState = 21, TargetTileIndex = 40, TargetWork = TileWorkKind.Reinforce };
+        var imp = new CreatureState { Dk2StateId = 6, UtilityNewState = 21, LastTaskKind = ImpTaskKind.Reinforce };
+        Assert.Equal(CreatureActivityRules.Slappable, CreatureActivityRules.Code(Dk2TerrainFixture.Imp(), imp));
+    }
+
+    /// <summary>The kind stays 6 until state 10 zeroes it, so a reinforcer drawn into a fight is
+    /// still slapped: Level 11A's capture shows Morgana's imps slapped in 199 in the hole (Q574).</summary>
+    [Fact]
+    public void AnImpFightingAfterAReinforceIsSlappable()
+    {
+        var imp = new CreatureState { Dk2StateId = 199, LastTaskKind = ImpTaskKind.Reinforce };
         Assert.Equal(CreatureActivityRules.Slappable, CreatureActivityRules.Code(Dk2TerrainFixture.Imp(), imp));
     }
 
     [Theory]
-    [InlineData(16, TileWorkKind.Claim)]
-    [InlineData(14, TileWorkKind.Dig)]
-    [InlineData(26, TileWorkKind.MineGold)]
-    public void AnImpClaimingDiggingOrMiningIsNot_TaskKindReadFromTheCapture(int state, TileWorkKind work)
+    [InlineData(16, ImpTaskKind.Claim)]
+    [InlineData(14, ImpTaskKind.Excavate)]
+    [InlineData(26, ImpTaskKind.Mine)]
+    [InlineData(24, ImpTaskKind.Fix)]
+    public void AnImpClaimingDiggingMiningOrRepairingIsNot(int state, ImpTaskKind kind)
     {
-        var imp = new CreatureState { Dk2StateId = state, TargetTileIndex = 40, TargetWork = work };
+        var imp = new CreatureState { Dk2StateId = state, LastTaskKind = kind };
         Assert.Equal(CreatureActivityRules.WorkerBusy, CreatureActivityRules.Code(Dk2TerrainFixture.Imp(), imp));
     }
 

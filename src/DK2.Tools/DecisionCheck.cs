@@ -305,6 +305,9 @@ public static class DecisionCheck
             case ImpTaskKind.Reinforce:
                 work = TileWorkKind.Reinforce;
                 break;
+            case ImpTaskKind.Fix:
+                work = TileWorkKind.RepairWall;
+                break;
             default:
                 return;
         }

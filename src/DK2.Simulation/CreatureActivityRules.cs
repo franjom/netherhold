@@ -29,18 +29,18 @@ public static class CreatureActivityRules
     };
 
     /// <summary>A non-worker reads its category's entry, the walk's resumed state's through a walk.
-    /// A worker is <see cref="Slappable"/> with no task (<c>+0x3D1</c>) or with a reinforce task
-    /// (state object <c>+0x98</c> = 6, the task kind: STRONGLY INFERRED from the Level 17 capture);
-    /// otherwise <see cref="WorkerFighting"/> in the combat category, else <see cref="WorkerBusy"/>.</summary>
-    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-management.md")]
+    /// A worker is <see cref="Slappable"/> with no task (<c>+0x3D1</c>) or when its last task kind
+    /// (state object <c>+0x98</c>) is 6, reinforce: the kind stays until state 10 zeroes it
+    /// (<c>0x00464010</c>), so through a fight too (Q574); a repair is 16, not 6 (<c>0x0046AEA0</c>).
+    /// Otherwise <see cref="WorkerFighting"/> in the combat category, else <see cref="WorkerBusy"/>.</summary>
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/computer-keeper-management.md")]
     public static int Code(CreatureDef definition, CreatureState creature)
     {
         CreatureStateCategory category = NeedRules.ResolvedCategory(creature);
         if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
             return (int)category < ByCategory.Length ? ByCategory[(int)category] : 0;
 
-        bool reinforcing = creature.TargetTileIndex >= 0 && creature.TargetWork == TileWorkKind.Reinforce;
-        if (creature.WorkerIdle || reinforcing) return Slappable;
+        if (creature.WorkerIdle || creature.LastTaskKind == ImpTaskKind.Reinforce) return Slappable;
         return category == CreatureStateCategory.Combat ? WorkerFighting : WorkerBusy;
     }
 }
