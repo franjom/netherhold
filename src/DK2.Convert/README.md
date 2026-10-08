@@ -155,7 +155,8 @@ point primitive.
 Animated positions are emitted as glTF morph targets with a `WEIGHTS` animation
 channel. This is the closer reading of KMF because its sprite topology, material, UVs,
 and normals remain fixed while the per-frame lookup changes only each vertex position.
-Frame zero is the base mesh and every later frame is a position-delta target. Each
+Frame zero is the base mesh and every later frame is a position-delta target; targets carry
+no normals, so a glTF viewer lights every frame with frame zero's normals. Each
 integer frame is evaluated as DK2's key interpolation does, and the weights are keyed
 `LINEAR`, so a viewer's blend between sampled frames is DK2's pose (ADR-0390).
 
@@ -170,7 +171,7 @@ frame-zero topology, `GlbWriter` deliberately emits the valid frame-zero mesh wi
 an animation channel.
 
 DK2 XYZ is rotated to glTF XYZ as `(x, -z, y)`, matching the established KMF loader
-reference. KMF triangle order is reversed for glTF front-face winding. UVs are
+reference; a rotation, not a reflection, and the result is not mirrored (Q568). KMF triangle order is reversed for glTF front-face winding. UVs are
 retained as decoded. The first named KMF texture becomes the material's base-colour
 texture; all named alternatives are also retained in material `extras`, along with a
 named environment texture when present. Texture names map to relative, URI-escaped

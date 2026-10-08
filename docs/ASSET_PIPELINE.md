@@ -1,8 +1,16 @@
 # Asset modernization pipeline
 
-Status: **proposed, not built** (2026-09-26). Nothing here exists yet except
-`DK2.Convert`, which already reads every KMF and texture. This is the initial
-architecture, to be tested on three assets (§10) before anything is generalised.
+Status: **proposed; the first checkpoints are built**. `DK2.Convert` reads
+every KMF and texture; `tools/blender/` builds and checks the original Imp's
+Blender reference (§10, step 1, in part, 2026-10-06). The procedural Imp
+blockouts (v001–v015, `docs/plans/2026-10-07-imp-blockout.md`) did not reach
+the approved concepts (ADR-0398) and are paused. Geometry now goes the §6
+provider route: an image-to-3D candidate whose shape the owner accepted, a
+retopologised and baked light mesh, and its footwear
+(`docs/plans/2026-10-07-imp-image-to-3d-trial.md`,
+`docs/plans/2026-10-07-imp-footwear.md`). This is the
+initial architecture, to be tested on three assets (§10) before anything is
+generalised.
 
 The standard it serves is `docs/ART_DIRECTION.md`: *preserve design, increase
 fidelity* and, for animation, *preserve motion, modernize representation*. The
@@ -59,8 +67,10 @@ Three facts shape everything downstream:
    all its clips, is recoverable.**
 2. **Some clips use a second UV family.** Five Imp files (`Imp.kmf`, the Claim1
    and Dig2 start/end clips) have the same 187 triangles over 96 positions but a
-   different UV layout; the `Dejected_Pose` meshes differ the same way. How those
-   correspond to the main family is Q443.
+   different UV layout; the `Dejected_Pose` meshes differ the same way. In
+   `Imp.kmf` and `IMP-Dig2Start` (the two read) the third material is
+   `impaxeblade`, sampling `impfrnt`, where the main family's `pick` samples
+   `impback`. How those correspond to the main family is Q443.
 3. **The playback rate is not in the file.** `KmfReader` interpolates between
    key entries and `GlbWriter` writes `LINEAR` keys over frames/FPS seconds from
    the art descriptor, 30 fps where a KMF has none
@@ -75,12 +85,12 @@ per axis. No numeric comparison can be tighter than one step.
 | artefact | where | committed | mutable |
 |---|---|---|---|
 | **source**: the user's install | `DK2_DIR` | never | never; identified by SHA-256 per file |
-| **reference set**: decoded frames, textures, reference renders | `build/reference/<category>/<subject>/` | never | regenerated bit-identically from the source, never edited, never deleted by the pipeline |
+| **reference set**: decoded frames, textures, reference renders | `build/reference/<category>/<subject>/` (the Imp's: `build/reference/imp/`) | never | regenerated from the source, never edited by hand |
 | **working scene** | `build/modern/<…>/work.blend` | never | generated; discarded freely |
 | **hand-touched source** (manual 3D work) | private store (§11) | never in this repo | versioned |
 | **modern outputs**: meshes, LODs, textures, clips | `build/modern/<category>/<subject>/<version>/` | never | immutable per version, content-addressed |
 | **manifest** | `art/manifests/<category>/<subject>.yaml` | **yes** | edited by people |
-| **scripts** | `tools/blender/`, `dk2tools art …` (neither exists yet) | **yes** | code |
+| **scripts** | `tools/blender/` (reference stages, `tools/blender/README.md`); `dk2tools art …` does not exist | **yes** | code |
 | **validation report** | beside the outputs; summary in the manifest | summary only | per version |
 
 The canonical animation reference is the KMF file itself, pinned by hash, plus
@@ -130,7 +140,8 @@ are defined in §9.
    exposing each vertex's geometry index so split vertices weld exactly rather
    than by position equality, and a lossless per-frame position export. C#,
    deterministic, unit-tested. *Reliable.*
-3. **Blender source format** — a pinned Blender release, run headless
+3. **Blender source format** — Blender 5.2.2 LTS, pinned in
+   `tools/blender/README.md`, run headless
    (`blender --background --python`). Each asset gets a generated scene with
    fixed collections: `original` (reference pose and every clip), `modern`,
    `lod`, `collision`, `cameras`. The `.blend` is a working file; the manifest
@@ -346,6 +357,15 @@ from an in-game screenshot; the placement rule gates in-game use, not the asset.
 1. Extract and weld: expose geometry indices, export exact frames, measure Q443
    on the Imp, and confirm the reference GLBs open in Blender. Close Q442 from
    the binary if it is cheap; otherwise key by frame and defer durations.
+   *Done 2026-10-06 for the catalogue's four Imp clips* (Idle1, Run, Dig, Die1;
+   `tools/blender/imp-reference.ps1`): each imports into Blender 5.2.2 textured
+   and animated, its evaluated key-frame bounds match the GLB within 1e-8, its
+   midpoints are the linear blend of its keys, and the renders were viewed and
+   read as the DK2 Imp. All four are in the reference pose's UV layout (Q443).
+   Blender merges one of the Imp's three two-sided triangle pairs (187 → 186
+   faces), invisible with back-face culling off. *Not done:* geometry indices,
+   the exact-frame export, the other 31 Imp files, and the owner's confirmation
+   that the renders look like DK2 (step 2's gate).
 2. Build the Blender scenes and reference renders for all three. The owner
    confirms the renders look like DK2.
 3. Geometry: constrained smoothing on all three first, then one provider route

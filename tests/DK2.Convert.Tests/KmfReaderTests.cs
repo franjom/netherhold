@@ -90,6 +90,29 @@ public class KmfReaderTests
         Assert.Equal(new Vector3(2, 0, 0), last[0].Position);
     }
 
+    /// <summary>Q443: the four clips the catalogue converts for the Imp match the reference pose's
+    /// UV layout triangle for triangle, so the Blender reference built from them (tools/blender)
+    /// holds no second-layout clip. `Imp.kmf`, in the second layout, shares only two distinct
+    /// (texture, UV) triangles with their 187, both on `impback`.</summary>
+    [InstallTheory]
+    [InlineData("Imp_Idle1.kmf")]
+    [InlineData("Imp_Run.kmf")]
+    [InlineData("Imp_Dig.kmf")]
+    [InlineData("Imp_Die1.kmf")]
+    public void ImpCatalogueClipsUseTheReferencePoseUvLayout(string entryName)
+    {
+        string install = Dk2InstallGate.Path;
+        List<string> pose = UvTriangles(ReadFromInstall(install, "Imp-PoseFrame.kmf"));
+        List<string> clip = UvTriangles(ReadFromInstall(install, entryName));
+        List<string> second = UvTriangles(ReadFromInstall(install, "Imp.kmf"));
+
+        Assert.Equal(187, clip.Count);
+        Assert.Equal(pose.Order(StringComparer.Ordinal), clip.Order(StringComparer.Ordinal));
+        List<string> shared = [.. clip.Intersect(second, StringComparer.Ordinal)];
+        Assert.Equal(2, shared.Count);
+        Assert.All(shared, triangle => Assert.StartsWith("impback|", triangle, StringComparison.OrdinalIgnoreCase));
+    }
+
     [InstallFact]
     public void TerrainWallReadsGeometryAndTextures()
     {
@@ -134,6 +157,16 @@ public class KmfReaderTests
         Assert.Contains(primitive.Vertices, vertex => vertex.Position != default);
         Assert.Contains(primitive.Vertices, vertex => vertex.Normal != default);
     }
+
+    /// <summary>Each first-detail triangle as the texture it samples and its three UVs in raw
+    /// 1/32768 units, order-free.</summary>
+    private static List<string> UvTriangles(KmfModel model) =>
+        [.. Assert.IsType<KmfMesh>(model.Mesh).Primitives.SelectMany(primitive =>
+            primitive.IndicesByDetailLevel[0].Chunk(3).Select(triangle =>
+                model.Materials[(int)primitive.MaterialIndex].TextureNames[0] + "|" + string.Join(",", triangle
+                    .Select(index => primitive.Vertices[index].TextureCoordinate)
+                    .Select(uv => $"{MathF.Round(uv.X * 32768)}:{MathF.Round(uv.Y * 32768)}")
+                    .Order(StringComparer.Ordinal))))];
 
     private static KmfModel ReadFromInstall(string install, string entryName)
     {

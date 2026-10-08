@@ -87,6 +87,15 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
    2026-10-06 attempt was deleted: the recorder stopped at tick 3069 when the
    tick read 3068 next. If that recurs without a save load, find what steps
    DK2's tick back before trusting the recorder's reload check.
+5. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
+   built (`tools/blender/imp-reference.ps1`, Blender 5.2.2). The procedural
+   modern blockouts are paused at v015 (unapproved). The appearance target is
+   the approved AI concepts (ADR-0398, ADR-0399, `art/manifests/creature/imp.yaml`).
+   The first image-to-3D candidate (Tripo web, free plan, `candidates/t1-tripo-web/`)
+   was accepted by the owner as the shape on 2026-10-07; a paid regeneration comes first
+   (`docs/plans/2026-10-07-imp-image-to-3d-trial.md`).
+   No rig or Unity work yet. Still open: the geometry-index and exact-frame
+   export for all 35 Imp files.
 
 After faithful M12, keep it as selectable Classic AI; explore a separate
 Enhanced keeper using the same observation/command interface (KEEPER_AI.md

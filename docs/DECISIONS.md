@@ -9042,6 +9042,71 @@ is closed: the record reader always sets the field that stores `def+0x76A`.
 20/20, Level 2 2/20 (seeds 14, 17) and 2/20 (seeds 5, 13), Level 3 seed 01 won at 3560 and 3560 (DK2
 3683). Level 2's researchers now walk among the shelves, which moves its random draws.
 
+## ADR-0398 — The modern Imp looks like the approved concepts and moves like the shipped mesh
+**Date:** 2026-10-07 · **Status:** accepted (owner) · Presentation only · Amends ADR-0242 for the Imp
+
+**Context.** ADR-0242 makes the originals authoritative. The Imp has three sources. The shipped
+mesh and texture (`Imp_Idle1`, `impfrnt`/`impback`): tan-orange skin, dark eyes, no separate ears,
+187 triangles, a large sack, the pick in the right hand (Q568). A DK2 portrait the owner supplied
+(445×280, SHA-256 `35d7d318…`, `dk2_portrait.png`, not yet located in the install): olive skin,
+huge dark-red eyes, pointed ears, teeth. And two AI-generated concept renders made from that
+portrait (`portrait.png` `0c03e77e…`, `front_side_back.png` `41a3fe06…`, 2026-10-07), which the
+owner approved as the modern appearance target. The renders are not game assets and not evidence
+of any DK2 detail. All under `build/modern/creature/imp/reference/`.
+
+**Decision.** The approved concepts guide the modern **appearance**: face, anatomy, clothing and
+materials. The original DK2 resources guide **scale, movement and gameplay compatibility**: height
+0.36 tiles, every clip's motion and timing, and the pick in the right hand by default. Skin
+colour is one adjustable base colour (`skin_color` on `IMP_skin`); eyes, teeth, clothing and
+equipment never take it. Olive, gray, earthy brown and muted red are previews, not a runtime
+system. The converted originals stay the classic look (Goal 11), unchanged.
+
+**Deliberate departures from the original**, each the owner's choice:
+- skin colour (olive, not the texture's tan-orange); ears, teeth, riveted braces and a buckled
+  belt, which the mesh does not show; ankle wraps and leather foot straps, which the DK2 portrait
+  shows and the in-game mesh's bare feet do not (`docs/plans/2026-10-07-imp-footwear.md`);
+- the concept's **smaller, higher sack** by default; the original's large sack is kept as a
+  possible equipment variant;
+- an optional **left-handed** variant (ADR-0399).
+
+The concept's egg-shaped belly plate is rejected as an AI interpretation; the chest carries a
+recognisable **skull ornament**, modelled from the original references (`impfrnt`). Nose and ear
+piercings are optional separate accessories; the base creature has no jewellery. Inputs, hashes,
+regions and the intended split into parts: `art/manifests/creature/imp.yaml`.
+
+**Consequences.** Under `ART_DIRECTION.md` §3 these departures would be level D. Here they are
+owner decisions recorded per item, so this ADR is the one place that admits them for the Imp. A
+concept detail is never cited as a DK2 fact. The base-colour ΔE check against the shipped
+texture (`ASSET_PIPELINE.md` §7) does not apply to the skin; the owner's review against the
+concepts replaces it. The silhouette check against the original mesh remains a diagnostic, except
+for the listed departures. Blockout state and open details: `docs/plans/2026-10-07-imp-blockout.md`.
+
+**History.** First accepted on 2026-10-07 with the DK2 portrait as the appearance source and the
+shipped mesh for proportions, pick and sack. The same day the owner approved the AI concept
+renders made from that portrait as the target instead. With them came the smaller sack, the
+left-handed variant, the rejection of the belly plate, and piercings as accessories.
+
+## ADR-0399 — The Imp is right-handed; a left-handed variant shares its mesh and rig
+**Date:** 2026-10-07 · **Status:** accepted (owner) · Presentation only · Refines ADR-0398
+
+**Context.** DK2's Imp holds its pick in its right hand: the owner's play and the converted mesh
+agree (Q568). The approved AI concept renders (ADR-0398: `portrait.png`, `front_side_back.png`)
+show it in the left.
+
+**Decision.** Right-handed is the default, as DK2's. A left-handed appearance and animation
+variant is optional, and both variants use the **same base mesh and rig**: the pick is a separate
+object, each hand gets a pickaxe attachment point, and handedness is an appearance setting stored
+apart from skin colour and accessory choices. The whole model is never mirrored: face, costume
+and sack are asymmetric and would flip with it. A left-handed clip is made at rigging time by
+mirroring suitable skeletal poses and then adjusting the working clips (dig, claim and the like)
+so that the grip, the pick's trajectory and body and sack clearance stay correct. The concept's
+left-hand placement is a reference for that variant only; it does not change the default.
+
+**Consequences.** The modelling milestone keeps the pick separate and models both hands able to
+hold it. The left-handed variant is a documented departure from DK2, chosen per Imp in
+presentation; the simulation never sees it, so no hash or schema changes. Animation work for it
+waits for the rig (`ASSET_PIPELINE.md` §5).
+
 ## ADR-0400 — The first eight category 0 states: a neutral idle, the Heart's drop, the tunneller's wander, the evicted holders' way back, the gold cheer
 **Date:** 2026-10-07 · **Status:** accepted · Research: `refused-states.md`, `temple-states.md` §8
 

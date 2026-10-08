@@ -84,6 +84,10 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - The C# `LSP` tool runs the Roslyn server inside the VS Code C# extension's versioned folder; after
   VS Code updates that extension, every call "crashed with exit code 1". Update the version in both
   copies of the local `roslyn-lsp` plugin.json and start a new session.
+- Headless Blender resolves relative paths (render output, image loads) against its own idea of the
+  working directory, not the shell's (renders landed in `C:\build`); `os.path.abspath` every path argument.
+- Windows PowerShell with `$ErrorActionPreference = 'Stop'` aborts on a native command's first
+  stderr line (Blender prints Python warnings there); set `Continue` around it and judge `$LASTEXITCODE`.
 
 ## Captures
 
