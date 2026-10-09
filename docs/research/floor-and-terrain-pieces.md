@@ -132,7 +132,9 @@ CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0
   this summary does not settle: it branches on `drawnAsFog`, on vtable `+0xDC` and a flag from
   `0x0044DB70`, and on the neighbour terrain's flag `0x1000000` with tile `+0xB & 0x40`
   (`0x0043F22A..0x0043F315`), so a face can be drawn toward unexplored ground; what those return is
-  UNKNOWN. A hero-owned Reinforced Wall instead draws
+  UNKNOWN. The owner (2026-10-09): unexplored ground is hidden behind the fog, *"essentialy black to
+  me"*, until a reveal spell or a creature reveals it, so such a face is not seen in play. (The
+  remake's runner draws fog as the Fog of War terrain's rock, not black.) A hero-owned Reinforced Wall instead draws
   `HeroWall_LevelDefaultPart4..8` in `wall-pieces.md` §2's half/whole scheme with 4 and 5 swapped.
 - A solid block then draws one art 2 top with the position-hashed texture variant; water and lava go
   to `0x0043E440` (unread); claimed and player-coloured tiles draw four player quarters from table
@@ -176,8 +178,10 @@ CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0
   - "Rock Corner" (+0x97) and the TAGGED tops (+0x60) are not read by
     0x0043E860. Their consumer is UNKNOWN. list+0x2EC bit 0 is not the tagged look: it is set
     for every PlayerColouredWall (`0x0043FCC9`), for a tile-grid bit (`+1 & 0x20`) and inside a
-    stored rectangle, which reads as a highlight or selection. The remake draws art 3 on a tagged
-    tile as a HYPOTHESIS from its name.
+    stored rectangle, which reads as a highlight or selection. The owner (2026-10-09): while the
+    left button is held, the highlight covers the whole drag rectangle and follows the cursor,
+    (un)highlighting tiles as it moves, which fits that rectangle (STRONGLY INFERRED). The remake
+    draws art 3 on a tagged tile as a HYPOTHESIS from its name.
 - **Reinforced Wall.** "CLAIMED WALL" per face, with +0x11 = 4-stage damage
   frame from tile health (0x004419D0, flag 0x20000, n = 4): `0x00441990` takes (health − 2,
   floored at 0) over MaxHealth as a 12.12 fraction of n, so full health is the highest stage. The
@@ -196,7 +200,7 @@ CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0
 - **Water and Lava.** 0x0043E440 builds them from WATER/LAVA BED0..7 and the
   tile byte +0xC. Not read: UNKNOWN.
 - **Mana Vault.** MANA_VAULT when owned by the neutral player, else
-  MANA_VAULT_CLAIMED. CONFIRMED.
+  MANA_VAULT_CLAIMED. CONFIRMED, and the owner sees the two looks (2026-10-09). Not built.
 
 ### Room walls versus terrain faces
 

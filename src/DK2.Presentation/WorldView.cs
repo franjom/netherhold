@@ -28,7 +28,9 @@ public readonly struct TileView
         int healthPermille,
         RoomWalls walls = default,
         TerrainPieces pieces = default,
-        TerrainPieceKeys? pieceKeys = null)
+        TerrainPieceKeys? pieceKeys = null,
+        bool explored = true,
+        bool hasDoor = false)
     {
         Position = position;
         Ground = ground;
@@ -41,6 +43,8 @@ public readonly struct TileView
         Walls = walls;
         Pieces = pieces;
         PieceKeys = pieceKeys;
+        Explored = explored;
+        HasDoor = hasDoor;
     }
 
     public TilePos Position { get; }
@@ -86,6 +90,13 @@ public readonly struct TileView
 
     /// <summary>The keys <see cref="Pieces"/> draws with; null when it is empty.</summary>
     public TerrainPieceKeys? PieceKeys { get; }
+
+    /// <summary>Explored by the viewer (always, with fog off). With <see cref="HasDoor"/>, what the
+    /// terrain lattice reads of a tile beyond its terrain, so a change rebuilds the bend.</summary>
+    public bool Explored { get; }
+
+    /// <summary>A door stands here, open or not (the lattice's door test).</summary>
+    public bool HasDoor { get; }
 
     public bool IsRoom => !Furniture.IsEmpty;
 }
@@ -307,7 +318,8 @@ public sealed class WorldView
                 tile.IsTaggedBy(_viewingPlayerId),
                 fogSolid,
                 goldHeld: 0,
-                HealthPermille(fog.StartingHealth, fog.MaxHealth));
+                HealthPermille(fog.StartingHealth, fog.MaxHealth),
+                explored: false);
         }
 
         _terrainAssets.TryGetValue(tile.TerrainId, out AssetRef ground);
@@ -325,7 +337,9 @@ public sealed class WorldView
             HealthPermille(tile.Health, terrain.MaxHealth),
             WallsOf(world, x, y, tile.TerrainId),
             PiecesOf(world, x, y, tile, terrain),
-            _pieceKeys[tile.TerrainId]);
+            _pieceKeys[tile.TerrainId],
+            !world.FogOfWarEnabled || tile.IsDiscoveredBy(_viewingPlayerId),
+            world.DoorAt(x, y) is not null);
     }
 
     // The claimed-quarter table 0x0066DA08: the piece for a quadrant's (side, diagonal, side) edge

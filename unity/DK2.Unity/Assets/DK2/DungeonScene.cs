@@ -79,12 +79,14 @@ namespace DK2.Unity
 
         /// <param name="classic">Draws install-backed objects, creatures, torches and plain terrain
         /// with their real meshes; null keeps every one a placeholder.</param>
-        public DungeonScene(Transform root, int worldWidth, int worldHeight, ClassicMeshes classic = null)
+        /// <param name="lattice">Bends the classic terrain as DK2 does; null draws it straight.</param>
+        public DungeonScene(Transform root, int worldWidth, int worldHeight, ClassicMeshes classic = null,
+            TerrainLattice lattice = null)
         {
             _root = root;
             _worldWidth = worldWidth;
             _classic = classic;
-            if (classic != null) _terrain = new TerrainChunks(root, classic, worldWidth, worldHeight);
+            if (classic != null) _terrain = new TerrainChunks(root, classic, worldWidth, worldHeight, lattice);
         }
 
         public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)

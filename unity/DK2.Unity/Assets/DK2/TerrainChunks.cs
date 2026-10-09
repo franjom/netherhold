@@ -11,15 +11,16 @@ using UnityEngine.Rendering;
 namespace DK2.Unity
 {
     /// <summary>
-    /// The classic look's plain terrain (step 1 of docs/plans/2026-10-09-classic-look.md): each
-    /// tile's <see cref="TerrainPieces"/> drawn from the install, merged into one mesh per
-    /// 16×16-tile chunk with a submesh per material, and only a changed tile's chunk rebuilt.
+    /// The classic look's plain terrain (plan step 1): each tile's <see cref="TerrainPieces"/> from
+    /// the install, merged per 16×16-tile chunk with a submesh per material.
     /// </summary>
     /// <remarks>
     /// A piece is rotated a quarter turn per step about its own origin, clockwise seen from above
     /// (side N 0 to E 1, as <see cref="RoomWalls"/> and DK2's side table run), then moved to the
     /// tile's centre and, for a quarter, to its quadrant's centre. Heights are the models' own:
-    /// the floor at 1, a wall from 1 to 2 (ADR-0411).
+    /// the floor at 1, a wall from 1 to 2 (ADR-0411). With a <see cref="TerrainLattice"/>, every
+    /// vertex is then bent as DK2 bends it; normals stay the straight piece's (terrain-lattice.md §1),
+    /// and a change rebuilds the 5×5 tiles' chunks around it, where DK2 rebuilds the 3×3.
     /// </remarks>
     public sealed class TerrainChunks
     {
@@ -34,6 +35,7 @@ namespace DK2.Unity
 
         private readonly Transform _root;
         private readonly ClassicMeshes _classic;
+        private readonly TerrainLattice _lattice;
         private readonly int _width;
         private readonly int _chunksX;
         private readonly TileView[] _tiles;
@@ -47,10 +49,12 @@ namespace DK2.Unity
         private readonly List<Vector2> _uvs = new List<Vector2>();
         private readonly Dictionary<Material, List<int>> _byMaterial = new Dictionary<Material, List<int>>();
 
-        public TerrainChunks(Transform root, ClassicMeshes classic, int width, int height)
+        public TerrainChunks(Transform root, ClassicMeshes classic, int width, int height,
+            TerrainLattice lattice = null)
         {
             _root = root;
             _classic = classic;
+            _lattice = lattice;
             _width = width;
             _chunksX = (width + ChunkSize - 1) / ChunkSize;
             _tiles = new TileView[width * height];
@@ -61,7 +65,16 @@ namespace DK2.Unity
         public bool TrySet(int tileIndex, in TileView tile)
         {
             bool draws = !tile.Pieces.IsEmpty && tile.PieceKeys != null;
-            if (draws || _drawn[tileIndex]) _dirty.Add(ChunkOf(tileIndex));
+            if (_lattice != null)
+            {
+                // A change reaches its 3×3 cells, and they bend the pieces one tile further.
+                int x = tileIndex % _width, y = tileIndex / _width, height = _tiles.Length / _width;
+                _lattice.Invalidate(x, y);
+                for (int ty = Mathf.Max(0, y - 2); ty <= Mathf.Min(height - 1, y + 2); ty++)
+                    for (int tx = Mathf.Max(0, x - 2); tx <= Mathf.Min(_width - 1, x + 2); tx++)
+                        _dirty.Add(ChunkOf((ty * _width) + tx));
+            }
+            else if (draws || _drawn[tileIndex]) _dirty.Add(ChunkOf(tileIndex));
             _tiles[tileIndex] = tile;
             _drawn[tileIndex] = draws;
             return draws;
@@ -134,27 +147,34 @@ namespace DK2.Unity
             // A Reinforced Wall's face (the one player-coloured wall) takes its plain brick.
             bool undamaged = pieces.Quarters == QuarterKind.Top;
             for (int side = 0; side < 4; side++)
-                if (pieces.HasFace(side)) Add(_classic.Piece(keys.Side, undamaged), side, centre);
-            if (pieces.HasTop) Add(_classic.Piece(pieces.TopTagged ? keys.TopTagged : keys.Top), 0, centre);
-            if (pieces.HasFloor) Add(_classic.Piece(keys.Floor), 0, centre);
+                if (pieces.HasFace(side)) Add(_classic.Piece(keys.Side, undamaged), side, centre, x, y);
+            if (pieces.HasTop) Add(_classic.Piece(pieces.TopTagged ? keys.TopTagged : keys.Top), 0, centre, x, y);
+            if (pieces.HasFloor) Add(_classic.Piece(keys.Floor), 0, centre, x, y);
             if (pieces.Quarters == QuarterKind.None) return;
 
             for (int q = 0; q < 4; q++)
             {
                 Vector2 offset = QuadrantCentres[q];
                 Add(_classic.Piece(keys.Quarter(pieces.QuarterSet, pieces.QuarterPiece(q))),
-                    TerrainPieces.QuarterRotation(q), centre + new Vector3(offset.x, 0f, offset.y));
+                    TerrainPieces.QuarterRotation(q), centre + new Vector3(offset.x, 0f, offset.y), x, y);
             }
         }
 
-        private void Add(ClassicMeshes.PieceSource piece, int rotation, Vector3 at)
+        private void Add(ClassicMeshes.PieceSource piece, int rotation, Vector3 at, int x, int y)
         {
             if (piece == null) return;
             Quaternion turn = Quaternion.Euler(0f, 90f * rotation, 0f);
             int start = _positions.Count;
             for (int i = 0; i < piece.Positions.Length; i++)
             {
-                _positions.Add((turn * piece.Positions[i]) + at);
+                Vector3 v = (turn * piece.Positions[i]) + at;
+                if (_lattice != null)
+                {
+                    // DK2's frame is (x, -z, -y) of this one (DungeonScene.Ground, RenderMesh).
+                    System.Numerics.Vector3 bent = _lattice.Deform(new System.Numerics.Vector3(v.x, -v.z, -v.y), x, y);
+                    v = new Vector3(bent.X, -bent.Z, -bent.Y);
+                }
+                _positions.Add(v);
                 _normals.Add(turn * piece.Normals[i]);
                 _uvs.Add(piece.Uvs[i]);
             }
