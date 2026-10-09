@@ -66,7 +66,8 @@ namespace DK2.Unity
         [Range(20f, 90f)]
         [SerializeField] private float cameraPitch = 55f;
         [SerializeField] private float cameraPanSpeed = 12f;
-        [SerializeField] private float cameraZoomSpeed = 25f;
+        [SerializeField] private float cameraZoomFraction = 0.15f;
+        private const float MinCameraHeight = DungeonScene.FloorHeight + 0.5f;
 
         private GameSimulation _simulation;
         private ScenePresenter _presenter;
@@ -279,9 +280,12 @@ namespace DK2.Unity
             float scroll = Input.mouseScrollDelta.y;
             if (Mathf.Approximately(scroll, 0f)) return;
 
+            // A step in proportion to the height, so the wheel is as useful over a whole level
+            // as beside a third-of-a-tile imp.
+            float height = camera.transform.position.y - DungeonScene.FloorHeight;
             Vector3 next = camera.transform.position +
-                (camera.transform.forward * scroll * cameraZoomSpeed);
-            if (next.y > 2f) camera.transform.position = next;
+                (camera.transform.forward * scroll * cameraZoomFraction * height);
+            if (next.y > MinCameraHeight) camera.transform.position = next;
         }
 
         /// <summary>Frames the whole level, whatever shape it is: fits the level's
@@ -295,7 +299,7 @@ namespace DK2.Unity
             Camera camera = Camera.main;
             if (camera == null) return;
 
-            Vector3 centre = DungeonScene.Ground(world.Width / 2f, world.Height / 2f);
+            Vector3 centre = DungeonScene.Ground(world.Width / 2f, world.Height / 2f, DungeonScene.FloorHeight);
 
             float radius = 0.5f * Mathf.Sqrt(
                 (world.Width * (float)world.Width) + (world.Height * (float)world.Height));

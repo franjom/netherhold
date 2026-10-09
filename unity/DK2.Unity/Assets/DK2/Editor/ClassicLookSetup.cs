@@ -216,7 +216,7 @@ namespace DK2.Unity.Editor
 
             // The runner's opening camera (DungeonRunner.LookAt): pitch 55, facing north.
             Camera camera = MakeCamera(root, 60f);
-            Vector3 centre = DungeonScene.Ground(world.Width / 2f, world.Height / 2f);
+            Vector3 centre = DungeonScene.Ground(world.Width / 2f, world.Height / 2f, DungeonScene.FloorHeight);
             float radius = 0.5f * Mathf.Sqrt(world.Width * (float)world.Width + world.Height * (float)world.Height);
             float distance = radius / Mathf.Sin(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
             camera.transform.rotation = Quaternion.Euler(55f, 0f, 0f);

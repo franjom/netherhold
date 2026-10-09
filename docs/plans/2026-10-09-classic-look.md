@@ -51,12 +51,17 @@ Item 4 has run: the project renders through `Assets/DK2/Rendering/DK2-URP.asset`
 `ClassicLookSetup.RenderStep0` writes the gate's pictures to `build/classic-look/`: the Lair's
 five wall pieces textured and facing the right way, LAIR4 and LAIR5 mirror twins, and Level 1
 from the opening camera. The owner compared that Level 1 layout with DK2's: the same, only the
-camera angle differs, so the map is no longer mirrored (ADR-0411). Open: whether play mode has the
-batch render's SRP Batcher texture fault (`unity/README.md`).
+camera angle differs, so the map is no longer mirrored (ADR-0411). Level 1 starts with one
+object (a Special box in rock), so play mode also draws creatures (the idle KMF's first frame,
+unturned; step 4 animates them) and wall torches from the install. In play mode the owner saw the
+imps textured: the SRP Batcher fault is the batch render's only. Ordinary floor is 0x1000, one
+tile (`0x004545C0`, read), and every solid terrain KMF spans 1 to 2, so a wall stands one tile
+above the floor and a torch's 1.5 is mid-wall (STRONGLY INFERRED: the KMF's heights are taken to
+share the floor's frame); the owner judged an imp beside a wall against DK2's Level 1 and found
+the proportions right.
 Found on the way: the gold pile is a textured card whose black needs its material's
-transparency (KMF flags, UNKNOWN); one KMF unit is a tile and the wall pieces span heights 1 to
-2, so what draws a wall's lower half is step 1's question; a terrain's side piece faces out of
-its block, so it is culled from inside.
+transparency (KMF flags, UNKNOWN); what DK2 draws below the floor (0 to 1) is step 1's question;
+a terrain's side piece faces out of its block, so it is culled from inside.
 
 ## Step 1: plain terrain
 

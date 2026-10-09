@@ -28,10 +28,11 @@ is the authority), put `DungeonRunner` on a GameObject in a scene, and press Pla
 Point it at a DK2 install with the component's **Install Directory** field or the
 `DK2_DIR` environment variable.
 
-You should get a campaign level as coloured boxes, with its objects drawn from the
-install's own meshes and textures (ADR-0408): walls tall, floors flat, room furniture
-standing on the floor, creatures as small uprights that turn gold when carrying gold.
-The component's **Classic Meshes** box turns the real objects off. The map is laid out
+You should get a campaign level as coloured boxes, with its objects, creatures (still, in
+their idle model's first frame) and wall torches drawn from the install's own meshes and
+textures (ADR-0408): walls tall, floors flat, room furniture standing on the floor. Heights
+are DK2's: the floor is at one tile (0x1000) and a wall's top at two. The component's
+**Classic Meshes** box turns the real models off. The map is laid out
 with X east and Z north, so the opening camera faces north (`DungeonScene.Ground`); until
 ADR-0411 every level was drawn as its mirror image. **Height means one thing — whether the terrain fills its tile** — so
 the dug-out parts of a level read as dug out. Colour is derived from each asset's

@@ -17,8 +17,9 @@ namespace DK2.Presentation.Tests;
 /// </summary>
 public class TilePickerTests
 {
-    private const float SolidHeight = 1f;
-    private const float OpenHeight = 0.06f;
+    // What the Unity scene passes: DK2's floor at one tile, a wall's top at two.
+    private const float SolidHeight = 2f;
+    private const float OpenHeight = 1f;
 
     /// <summary>The pitch the Unity runner defaults to, in the plane where the error is
     /// largest: straight along +z, so a one-tile wall displaces the ground hit by

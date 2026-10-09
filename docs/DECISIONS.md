@@ -9476,4 +9476,6 @@ glTF's right-handed frame and is unchanged.
 tile's north edge, and that triangle order agrees with the KMF's stored normals. The opening
 camera now faces north. That DK2's Y runs south, and so that the old layout was a mirror, rested on
 the editor's view; the owner's comparison of the Level 1 picture with DK2's confirmed it: the same
-layout, only the camera angle differs.
+layout, only the camera angle differs. The floor is drawn at DK2's 0x1000, one tile
+(`0x004545C0`, read), so a wall's KMF (1 to 2) stands one tile above it: that the KMF's heights
+share the floor's frame is STRONGLY INFERRED, and the owner judged the proportions right by eye.
