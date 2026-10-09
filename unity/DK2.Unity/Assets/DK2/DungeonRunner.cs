@@ -61,6 +61,12 @@ namespace DK2.Unity
         [Tooltip("Draw objects with their meshes from the install (ADR-0408). Off draws every object as a box.")]
         [SerializeField] private bool classicMeshes = true;
 
+        [Tooltip("Bend the classic terrain as DK2 does (the terrain lattice, Q72).")]
+        [SerializeField] private bool bendTerrain = true;
+
+        [Tooltip("DK2's HighWalls display option, on by default; off rests walls at about half height.")]
+        [SerializeField] private bool highWalls = true;
+
         [Header("Camera")]
         [Tooltip("Degrees below horizontal. 90 is straight down; 55 gives enough tilt to read wall heights.")]
         [Range(20f, 90f)]
@@ -149,7 +155,10 @@ namespace DK2.Unity
                 convertedRoot: "build/converted",
                 install: _installArt);
 
-            _scene = new DungeonScene(transform, world.Width, _classic);
+            TerrainLattice lattice = _classic != null && bendTerrain
+                ? new TerrainLattice(database, world, (byte)viewingPlayerId) { HighWalls = highWalls }
+                : null;
+            _scene = new DungeonScene(transform, world.Width, world.Height, _classic, lattice);
             _worldView = new WorldView(database, (byte)viewingPlayerId);
             _presenter = new ScenePresenter(
                 _worldView, _assets, _scene, new TorchLayout(database));

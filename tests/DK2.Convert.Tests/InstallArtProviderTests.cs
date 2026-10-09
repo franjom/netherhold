@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Numerics;
 using DK2.Art;
 using DK2.Art.Kmf;
 using DK2.Art.Textures;
@@ -115,5 +116,48 @@ public sealed class InstallArtProviderTests
             Assert.True(image.Width > 0 && image.Height > 0);
         }
         Assert.True(provider.Count > 500, $"only {provider.Count} keys resolved");
+    }
+
+    /// <summary>
+    /// Every plain terrain piece of the shipped terrains loads, and sits where the chooser places it
+    /// (RenderMesh's frame): a face on the tile's north edge from height 1 to 2, a top at 2, a whole
+    /// floor at 1, and a quarter centred on the origin, a quarter tile each way.
+    /// </summary>
+    [InstallFact]
+    public void EveryPlainTerrainPieceLoadsAndSitsWhereTheChooserPlacesIt()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+
+        string[] terrains = ["Impenetrable Rock", "Rock", "Dirt Path", "Gold", "Gems", "Claimed Path", "Reinforced Wall"];
+        int loaded = 0;
+        foreach (string name in terrains)
+        {
+            TerrainDef terrain = database.Terrain.Values.Single(value => value.Name == name);
+            foreach (AssetRef key in AssetCatalogue.ForTerrainPieces(terrain))
+            {
+                Assert.True(provider.TryResolve(key, out ResolvedAsset asset), key.Key);
+                Assert.True(provider.TryLoadModel(asset, out KmfModel model), asset.InstallEntry);
+                IReadOnlyList<Vector3> positions = RenderMesh.FromModel(model).Positions;
+                string variant = key.Key.Substring(key.Key.LastIndexOf('.') + 1);
+                (float minY, float maxY, float half) = variant switch
+                {
+                    AssetCatalogue.TerrainSide => (1f, 2f, 0.5f),
+                    AssetCatalogue.TerrainFloor => (1f, 1f, 0.5f),
+                    AssetCatalogue.TerrainTop or AssetCatalogue.TerrainTopTagged => (2f, 2f, 0.5f),
+                    _ => terrain.IsSolid ? (2f, 2f, 0.25f) : (1f, 1f, 0.25f),
+                };
+                Assert.All(positions, p =>
+                {
+                    Assert.InRange(p.Y, minY - 0.001f, maxY + 0.001f);
+                    Assert.InRange(p.X, -half - 0.001f, half + 0.001f);
+                    if (variant == AssetCatalogue.TerrainSide) Assert.Equal(0.5f, p.Z, 3);
+                    else Assert.InRange(p.Z, -half - 0.001f, half + 0.001f);
+                });
+                loaded++;
+            }
+        }
+        Assert.True(loaded > 70, $"only {loaded} pieces");
     }
 }

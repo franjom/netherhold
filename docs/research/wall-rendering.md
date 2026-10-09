@@ -131,9 +131,9 @@ is which piece is **STRONGLY INFERRED**.
 
 So the article's "depends on the size of the room" is the `TileConstruction`
 arms and the neighbour tests, not a size test in the wall chooser. Plain rock
-and earth walls (`0x0043E860`) and the deformation (Q72) remain unread; no
-CRT `rand` caller read so far (`0x0042F040`, `0x0059F940`, `0x005B2450`,
-`0x005D7360`) touches terrain.
+and earth walls (`0x0043E860`) remain unread. The deformation (Q72) is now read:
+`terrain-lattice.md`. It uses no CRT `rand`; its jitter is the game's LCG on seeds
+made from the tile coordinates.
 
 ---
 
@@ -149,11 +149,15 @@ CRT `rand` caller read so far (`0x0042F040`, `0x0059F940`, `0x005B2450`,
   **The owner can answer this by looking**, and it is on the observation
   checklist. Pure presentation either way: nothing in the simulation may depend
   on the answer.
+  **Answered from the binary (2026-10-09): yes.** A per-tile lattice bends every
+  vertex; it is a pure function of the tile's position and its 3×3 neighbourhood
+  (`terrain-lattice.md` §9).
 
 Confidence: **CONFIRMED** (facts 1–5, from the author's own wireframe and mesh
-extraction) / **HYPOTHESIS** (runtime vertex deformation — the author's stated
-inference, with his own alternative recorded) / **UNKNOWN** (plain-terrain
-pieces, textures, lighting, floor edges).
+extraction) / **CONFIRMED** (runtime vertex deformation, read from the binary
+2026-10-09 — the author's inference was right; algorithm, constants and tables in
+`terrain-lattice.md`) / **UNKNOWN** (plain-terrain pieces, textures, lighting,
+floor edges).
 
 Implementation: the general room wall chooser is built (`RoomWalls`, `WorldView`, the
 `wall4`..`wall8` room assets; ADR-0392). The full read, room walls and the floor and

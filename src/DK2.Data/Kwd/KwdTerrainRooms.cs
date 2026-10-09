@@ -56,6 +56,11 @@ public static class KwdTerrainRooms
         U16(TerrainLayout.Tooltip, record.TooltipStringId);
         U16(TerrainLayout.NameString, record.NameStringId);
         bytes[TerrainLayout.Id] = record.TerrainId;
+        if (record.Wibble is TerrainWibble w)
+        {
+            byte[] lattice = [w.WibbleH, w.LeanH0, w.LeanH1, w.LeanH2, w.WibbleV, w.LeanV0, w.LeanV1, w.LeanV2];
+            lattice.CopyTo(bytes, TerrainLayout.Wibble);
+        }
         U16(TerrainLayout.StartingHealth, record.StartingHealth);
         bytes[TerrainLayout.MaxHealthType] = record.MaxHealthTypeTerrainId;
         bytes[TerrainLayout.DestroyedType] = record.DestroyedTypeTerrainId;
@@ -69,7 +74,7 @@ public static class KwdTerrainRooms
     {
         internal const int Depth = 0x188, Flags = 0x190, Damage = 0x194;
         internal const int Gold = 0x19A, Mana = 0x19C, MaxMana = 0x19E;
-        internal const int Tooltip = 0x1A0, NameString = 0x1A2, Id = 0x1D6;
+        internal const int Tooltip = 0x1A0, NameString = 0x1A2, Wibble = 0x1CE, Id = 0x1D6;
         internal const int StartingHealth = 0x1D7, MaxHealthType = 0x1D9, DestroyedType = 0x1DA;
         internal const int MaxHealth = 0x1FF;
     }
@@ -148,6 +153,10 @@ public static class KwdTerrainRooms
             MaxHealthTypeTerrainId = U8(TerrainLayout.MaxHealthType),
             DestroyedTypeTerrainId = U8(TerrainLayout.DestroyedType),
             MaxHealth = U16(TerrainLayout.MaxHealth),
+            Wibble = new TerrainWibble(
+                U8(TerrainLayout.Wibble), U8(TerrainLayout.Wibble + 1), U8(TerrainLayout.Wibble + 2),
+                U8(TerrainLayout.Wibble + 3), U8(TerrainLayout.Wibble + 4), U8(TerrainLayout.Wibble + 5),
+                U8(TerrainLayout.Wibble + 6), U8(TerrainLayout.Wibble + 7)),
         };
     }
 

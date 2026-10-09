@@ -79,12 +79,15 @@ public sealed class AssetConverterTests : IDisposable
         IReadOnlyList<AssetConversionResult> results =
             AssetConverter.ConvertAll(art, meshes, new FakeTextures("creature0"), database, _root);
 
-        Assert.Equal(["terrain.lava.texture", "terrain.lava.effect", "terrain.rock.mesh"],
+        // The plain terrain pieces follow each terrain's own keys (AssetCatalogue.ForTerrainPieces);
+        // this fake lava has no ConstructionTypeWater flag, so it takes a floor.
+        Assert.Equal(["terrain.lava.texture", "terrain.lava.effect", "terrain.lava.mesh.floor",
+            "terrain.rock.mesh", "terrain.rock.mesh.side", "terrain.rock.mesh.top"],
             results.Select(result => result.Reference.Key));
         Assert.Equal("terrain complete mesh's first material texture 'creature0' from Floor1.kmf",
             results[0].Detail);
         Assert.True(File.Exists(Path.Combine(_root, "terrain", "lava", "texture.png")));
         Assert.Equal("effect conversion is UNKNOWN; no effect format is emitted", results[1].Detail);
-        Assert.Equal("KWD has no terrain art record for id 2", results[2].Detail);
+        Assert.Equal("KWD has no terrain art record for id 2", results[3].Detail);
     }
 }

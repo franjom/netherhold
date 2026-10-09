@@ -80,6 +80,10 @@ public sealed record TerrainDef
     public required ushort NameStringId { get; init; }
     public required ushort TooltipStringId { get; init; }
 
+    /// <summary>The terrain lattice's bytes (terrain-lattice.md §4); null for a definition not read
+    /// from a file, which the writer then leaves as its template has them.</summary>
+    public TerrainWibble? Wibble { get; init; }
+
     public bool IsSolid => Flags.HasFlag(TerrainFlags.Solid);
     public bool IsImpenetrable => Flags.HasFlag(TerrainFlags.Impenetrable);
     public bool IsOwnable => Flags.HasFlag(TerrainFlags.Ownable);
