@@ -7,6 +7,7 @@ file (`FileAssetProvider`, over converter output) or a `PlaceholderProvider` loo
 order, and `AssetCatalogue` lists the keys the game asks for.
 
 Targets `netstandard2.1`. Depends on `DK2.Core` and `DK2.Data.Model`. It does not
-decode DK2 files; `DK2.Convert` produces what `FileAssetProvider` reads.
+decode DK2 files; `DK2.Art` reads them and `DK2.Convert` produces what `FileAssetProvider`
+reads.
 
 Test: `dotnet test tests/DK2.Assets.Tests`.

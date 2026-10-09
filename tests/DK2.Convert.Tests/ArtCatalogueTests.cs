@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Art;
 using DK2.Convert;
 using DK2.Data;
 using DK2.TestSupport;

@@ -6,7 +6,7 @@ using System.Text;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
 
-namespace DK2.Convert;
+namespace DK2.Art;
 
 /// <summary>A named art-resource field from a KWD definition record.</summary>
 public sealed record Dk2ArtResource(string Name, byte Type)
@@ -23,9 +23,8 @@ public sealed record Dk2ArtResource(string Name, byte Type)
 }
 
 /// <summary>
-/// Reads only the art-resource names needed by conversion. Gameplay definitions
-/// remain owned by DK2.Data.Model; this view is deliberately local to the
-/// offline converter.
+/// Reads only the art-resource names the converter and the classic look need. Gameplay
+/// definitions remain owned by DK2.Data.Model; this view is art only.
 /// </summary>
 public sealed class Dk2ArtCatalogue
 {

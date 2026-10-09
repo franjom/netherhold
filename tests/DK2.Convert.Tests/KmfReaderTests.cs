@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
-using DK2.Convert.Kmf;
-using DK2.Data;
-using DK2.Data.Wad;
 using System.Numerics;
 using System.Text;
+using DK2.Art.Kmf;
+using DK2.Data.Wad;
+using DK2.Data;
 using DK2.TestSupport;
 
 namespace DK2.Convert.Tests;

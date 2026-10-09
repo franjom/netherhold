@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
-using DK2.Convert.Textures;
+using DK2.Art.Textures;
 using DK2.Data.Wad;
 
-namespace DK2.Convert;
+namespace DK2.Art;
 
 /// <summary>
 /// Where the converter reads original KMF bytes from, by entry. Production reads
@@ -38,7 +38,7 @@ public sealed class WadMeshSource : IMeshSource, IDisposable
 
     public WadMeshSource(WadArchive archive)
     {
-        ArgumentNullException.ThrowIfNull(archive);
+        if (archive is null) throw new ArgumentNullException(nameof(archive));
         _archive = archive;
         EntryNames = archive.Entries.Select(entry => entry.Name).ToArray();
         _byName = new Dictionary<string, int>(EntryNames.Count, StringComparer.OrdinalIgnoreCase);

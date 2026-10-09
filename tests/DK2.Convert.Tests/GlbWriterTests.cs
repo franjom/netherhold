@@ -5,10 +5,10 @@
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Text.Json;
+using DK2.Art.Kmf;
 using DK2.Convert.Gltf;
-using DK2.Convert.Kmf;
-using DK2.Data;
 using DK2.Data.Wad;
+using DK2.Data;
 using DK2.TestSupport;
 
 namespace DK2.Convert.Tests;

@@ -4,10 +4,11 @@
 
 using System.Buffers.Binary;
 using System.IO.Compression;
-using DK2.Convert.Kmf;
+using DK2.Art.Kmf;
+using DK2.Art.Textures;
 using DK2.Convert.Textures;
-using DK2.Data;
 using DK2.Data.Wad;
+using DK2.Data;
 using DK2.TestSupport;
 
 namespace DK2.Convert.Tests;

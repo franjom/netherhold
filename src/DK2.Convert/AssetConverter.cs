@@ -4,9 +4,11 @@
 
 using System.Security.Cryptography;
 using System.Text;
+using DK2.Art.Kmf;
+using DK2.Art.Textures;
+using DK2.Art;
 using DK2.Assets;
 using DK2.Convert.Gltf;
-using DK2.Convert.Kmf;
 using DK2.Convert.Textures;
 using DK2.Data.Model;
 
