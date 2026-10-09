@@ -9452,3 +9452,27 @@ the others tag 16-30. Deviates: `RawBlock` is empty; with fewer than fifteen qua
 definitions DK2 faults (`+0x98` finds none past the end) where ours fills with 0; the shipped
 rooms never reach it. The setter also adds 100 mana (misc +8, `0x004C19C0`), as the PLAYERS path
 does; the harness keeps the level's mana, which that path already added. No HashVersion: the keeper is outside the simulation.
+
+## ADR-0411 — The renderer frame is X east, Y up, Z north, and the map is no longer mirrored
+**Date:** 2026-10-09 · **Status:** accepted; the mirror is STRONGLY INFERRED until the owner compares
+Level 1 (plan, step 0 gate) · Presentation only · Step 0 of ADR-0408's plan
+
+**Context.** DK2's frame is X east, Y south, Z down: right-handed, since the editor shows a map
+from above with X right and Y down. Unity's is left-handed. `DungeonScene` put tile Y on Unity's
++Z, so every level was drawn as its mirror image, and a KMF placed with the same numbers would
+have been mirrored too. No test could see it; only a picture beside DK2's can.
+
+**Decision.** The renderer frame is X east, Y up, Z north, one unit a tile. A DK2 point maps as
+`(x, -z, -y)` (`RenderMesh.ToRenderFrame`, `DungeonScene.Ground`), every mesh keeps DK2's own
+triangle order, and the picker's ray is mapped back to DK2's plane. A torch's yaw keeps its
+old formula: the sign and zero of DK2's yaw are unread (plan, step 2).
+
+**Why.** A reflection in numbers is what draws a right-handed world unmirrored in a left-handed
+engine, and it flips the winding once, as the engine's handedness does, so the stored order
+stands. The glTF writer's rotation `(x, -z, y)` with reversed triangles (Q568) is right for
+glTF's right-handed frame and is unchanged.
+
+**Consequences.** `RenderMeshTests` pins the mapping, that a wall piece at DK2 Y = -0.5 lands on a
+tile's north edge, and that triangle order agrees with the KMF's stored normals. The opening
+camera now faces north. That DK2's Y runs south, and so that the old layout was a mirror, rests on
+the editor's view and is checked by the Level 1 picture beside DK2's.

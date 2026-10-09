@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DK2.Art;
 using DK2.Assets;
 using DK2.Core;
 using DK2.Data;
@@ -56,6 +57,10 @@ namespace DK2.Unity
         [SerializeField] private float speed = 1f;
         [SerializeField] private bool showDiagnostics = true;
 
+        [Header("Art")]
+        [Tooltip("Draw objects with their meshes from the install (ADR-0408). Off draws every object as a box.")]
+        [SerializeField] private bool classicMeshes = true;
+
         [Header("Camera")]
         [Tooltip("Degrees below horizontal. 90 is straight down; 55 gives enough tilt to read wall heights.")]
         [Range(20f, 90f)]
@@ -68,6 +73,8 @@ namespace DK2.Unity
         private WorldView _worldView;
         private DungeonScene _scene;
         private AssetProviderChain _assets;
+        private InstallArtProvider _installArt;
+        private ClassicMeshes _classic;
         private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
         private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
         private RoomTypeId[] _roomIds = Array.Empty<RoomTypeId>();
@@ -128,20 +135,32 @@ namespace DK2.Unity
             _roomIds = database.Rooms.Keys.OrderBy(id => (byte)id).ToArray();
             SelectKnownRoom();
 
-            // The chain the plan specifies (§7.2). Both roots are relative to
-            // the project directory and both normally missing, which is the
-            // supported "no assets" case: everything draws as boxes.
+            // The chain the plan specifies (§7.2), with the install read in place as the
+            // converted tier (ADR-0408). Both roots are relative to the project directory and
+            // normally missing; with the install off too, everything draws as boxes.
+            if (classicMeshes)
+            {
+                _installArt = InstallArtProvider.Open(install, database);
+                _classic = new ClassicMeshes(_installArt);
+            }
             _assets = AssetProviderChain.Standard(
                 replacementRoot: "art-pack",
-                convertedRoot: "build/converted");
+                convertedRoot: "build/converted",
+                install: _installArt);
 
-            _scene = new DungeonScene(transform, world.Width);
+            _scene = new DungeonScene(transform, world.Width, _classic);
             _worldView = new WorldView(database, (byte)viewingPlayerId);
             _presenter = new ScenePresenter(
                 _worldView, _assets, _scene, new TorchLayout(database));
 
             _presenter.Present(world);
             LookAt(world);
+        }
+
+        private void OnDestroy()
+        {
+            _installArt?.Dispose();
+            _installArt = null;
         }
 
         private void Update()
@@ -203,11 +222,12 @@ namespace DK2.Unity
             Camera camera = Camera.main;
             if (camera == null || _worldView == null) return null;
 
+            // TilePicker works in DK2's plane, Y south; Unity's Z runs north (DungeonScene.Ground).
             Ray ray = camera.ScreenPointToRay(screenPosition);
             return TilePicker.Pick(
                 new PickRay(
-                    ray.origin.x, ray.origin.y, ray.origin.z,
-                    ray.direction.x, ray.direction.y, ray.direction.z),
+                    ray.origin.x, ray.origin.y, -ray.origin.z,
+                    ray.direction.x, ray.direction.y, -ray.direction.z),
                 _worldView,
                 _simulation.World,
                 DungeonScene.SolidHeight,
@@ -275,7 +295,7 @@ namespace DK2.Unity
             Camera camera = Camera.main;
             if (camera == null) return;
 
-            var centre = new Vector3(world.Width / 2f, 0f, world.Height / 2f);
+            Vector3 centre = DungeonScene.Ground(world.Width / 2f, world.Height / 2f);
 
             float radius = 0.5f * Mathf.Sqrt(
                 (world.Width * (float)world.Width) + (world.Height * (float)world.Height));
@@ -362,7 +382,8 @@ namespace DK2.Unity
                 $"{_scene.TileObjects} tile objects   {_scene.CreatureObjects} creatures   " +
                 $"pushed {_presenter.TilesPushed} tiles / {_presenter.CreaturesPushed} creatures this frame");
 
-            GUI.Label(new Rect(10, 30, 1200, 20), $"art: {art}");
+            GUI.Label(new Rect(10, 30, 1200, 20),
+                $"art: {art}" + (_classic == null ? "" : $"   shader: {_classic.ShaderName}"));
 
             GUI.Label(
                 new Rect(10, 50, 1200, 20),

@@ -65,6 +65,10 @@
       <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>false</Private>
@@ -93,6 +97,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../src/DK2.Art/DK2.Art.csproj" />
     <ProjectReference Include="../../src/DK2.Core/DK2.Core.csproj" />
     <ProjectReference Include="../../src/DK2.Data/DK2.Data.csproj" />
     <ProjectReference Include="../../src/DK2.Data.Model/DK2.Data.Model.csproj" />

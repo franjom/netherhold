@@ -19,7 +19,7 @@ powershell -File unity/sync-assemblies.ps1
 ```
 
 Unity cannot reference a `.csproj`, so the simulation arrives as DLLs in
-`DK2.Unity/Assets/Plugins/DK2` — seven `netstandard2.1` assemblies, listed in
+`DK2.Unity/Assets/Plugins/DK2` — eight `netstandard2.1` assemblies, listed in
 `sync-assemblies.ps1`. Run this after any change under `src/`. The DLLs are build
 output and are gitignored.
 
@@ -28,9 +28,12 @@ is the authority), put `DungeonRunner` on a GameObject in a scene, and press Pla
 Point it at a DK2 install with the component's **Install Directory** field or the
 `DK2_DIR` environment variable.
 
-You should get a campaign level as coloured boxes: walls tall, floors flat, room
-furniture standing on the floor, creatures as small uprights that turn gold when
-carrying gold. **Height means one thing — whether the terrain fills its tile** — so
+You should get a campaign level as coloured boxes, with its objects drawn from the
+install's own meshes and textures (ADR-0408): walls tall, floors flat, room furniture
+standing on the floor, creatures as small uprights that turn gold when carrying gold.
+The component's **Classic Meshes** box turns the real objects off. The map is laid out
+with X east and Z north, so the opening camera faces north (`DungeonScene.Ground`); until
+ADR-0411 every level was drawn as its mirror image. **Height means one thing — whether the terrain fills its tile** — so
 the dug-out parts of a level read as dug out. Colour is derived from each asset's
 key, so a terrain is always the same colour; see `PlaceholderProvider`. A tile marked
 for digging is tinted amber, and wall torches are placed by `TorchLayout`.
@@ -59,16 +62,12 @@ installed the editor. Pass `-p:UnityManagedDir=...` if the editor is not in
 
 ## What it does not do
 
-- **It does not load art.** A `ResolvedAsset` with a `FilePath` points at converter
-  output, which exists: `src/DK2.Convert`, driven by `dk2tools convert --out <dir>`,
-  writes KMF meshes and animations as glTF binary and engine textures as PNG, and
-  round-trips every key it produces through `FileAssetProvider`. The missing half is
-  the consumer — `DungeonScene.Instantiate` has no glTF or PNG branch, so a
-  file-backed asset draws as the same primitive a placeholder does and logs a warning
-  once. That method is where the loader goes. ADR-0408 decides how: no glTF importer;
-  `KmfReader` and the texture decoder become Unity-loadable and read the player's
-  install directly, and the project moves to URP. The steps are in
-  `docs/plans/2026-10-09-classic-look.md`.
+- **It draws only objects from the original art.** `ClassicMeshes` builds a Unity mesh
+  and materials from a KMF in the player's install (`InstallArtProvider`, `RenderMesh`,
+  ADR-0408); terrain, rooms and creatures are still boxes, the next steps of
+  `docs/plans/2026-10-09-classic-look.md`. Converter output (`dk2tools convert`, GLB and
+  PNG) is never loaded. Every material is opaque, and textures are not yet chosen by
+  owner or damage.
 - **It runs at DK2's rate, and does not smooth between ticks.** `DungeonRunner.Update`
   accrues `Time.deltaTime × SimulationTiming.TicksPerSecond × speed` and ticks on
   whole ticks, so at `speed` 1 the wall clock is the game's (Q1, ADR-0089). What is
@@ -94,6 +93,29 @@ judgement in it beyond "file or placeholder". `DungeonRunner` reads the pointer 
 **Read `src/DK2.Presentation/TextRenderer.cs` before changing anything here.** It is
 the same job against a character grid, it runs in CI, and a disagreement between the
 two is a bug in one of them rather than a matter of taste.
+
+## The classic look's editor steps
+
+```
+"C:\Program Files\Unity 6000.6.0f1\Editor\Unity.exe" -batchmode -quit ^
+  -projectPath unity\DK2.Unity -logFile build\unity-urp.log ^
+  -executeMethod DK2.Unity.Editor.ClassicLookSetup.UseUrp
+"C:\Program Files\Unity 6000.6.0f1\Editor\Unity.exe" -batchmode ^
+  -projectPath unity\DK2.Unity -logFile build\unity-step0.log ^
+  -executeMethod DK2.Unity.Editor.ClassicLookSetup.RenderStep0
+```
+
+`UseUrp` creates `Assets/DK2/Rendering/DK2-URP.asset` and puts every quality level on it.
+`RenderStep0` writes `build/classic-look/step0-pieces.png` (the gold pile, the rock wall's
+side and the Lair's five wall pieces) and `step0-level1.png` (Level 1 from the runner's
+opening camera). Neither takes `-nographics`, and the second no `-quit`: it waits on the
+editor loop and exits by itself. Three traps it works around, each seen as a wrong picture:
+a camera rendered before URP has a pipeline draws nothing; the editor's placeholder shader
+stands in while a variant compiles (`ShaderUtil.allowAsyncCompilation` off); and with the SRP
+Batcher on, every material in a batch-mode render took one texture (Direct3D 12) or none
+(Direct3D 11), so the render turns it off for itself. Whether play mode shows the last one is
+not yet seen. `UseUrp` must save the renderer asset before the pipeline names it, or URP has
+no default renderer and draws nothing.
 
 ## Verifying it inside Unity, from the command line
 

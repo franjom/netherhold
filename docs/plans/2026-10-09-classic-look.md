@@ -43,6 +43,20 @@ Proves the route of ADR-0408 end to end before anything is built on it.
 Gate: the piece in Unity, beside the same piece in DK2, the same way round, the same size and
 textured the same.
 
+Status (2026-10-09, branch `classic-look/step0`): items 1–3, 5 and 6 are built and tested.
+`DK2.Art` holds the readers, `ArtSourceMap` the key-to-KMF map, `InstallArtProvider` the
+install-backed tier, `RenderMesh` the frame, `ClassicMeshes` the Unity side; the runner draws
+objects from the install. Item 6 found that the map itself was mirrored (ADR-0411).
+Item 4 has run: the project renders through `Assets/DK2/Rendering/DK2-URP.asset`.
+`ClassicLookSetup.RenderStep0` writes the gate's pictures to `build/classic-look/`: the Lair's
+five wall pieces textured and facing the right way, LAIR4 and LAIR5 mirror twins, and Level 1
+from the opening camera. Open for the gate: whether that Level 1 layout is DK2's or its mirror,
+and whether play mode has the batch render's SRP Batcher texture fault (`unity/README.md`).
+Found on the way: the gold pile is a textured card whose black needs its material's
+transparency (KMF flags, UNKNOWN); one KMF unit is a tile and the wall pieces span heights 1 to
+2, so what draws a wall's lower half is step 1's question; a terrain's side piece faces out of
+its block, so it is culled from inside.
+
 ## Step 1: plain terrain
 
 1. Build the floor and plain-terrain piece choice from `floor-and-terrain-pieces.md` §4 (the
