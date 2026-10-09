@@ -53,6 +53,7 @@ namespace DK2.Unity
         private readonly int _worldWidth;
         private readonly ClassicMeshes _classic;
         private readonly TerrainChunks _terrain;
+        private readonly LiquidSurfaces _liquids;
         private readonly HashSet<int> _meshObjects = new HashSet<int>();
         private readonly HashSet<int> _meshCreatures = new HashSet<int>();
 
@@ -86,15 +87,21 @@ namespace DK2.Unity
             _root = root;
             _worldWidth = worldWidth;
             _classic = classic;
-            if (classic != null) _terrain = new TerrainChunks(root, classic, worldWidth, worldHeight, lattice);
+            if (classic != null)
+            {
+                _terrain = new TerrainChunks(root, classic, worldWidth, worldHeight, lattice);
+                _liquids = new LiquidSurfaces(root, classic, worldWidth, worldHeight);
+            }
         }
 
         public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)
         {
-            // Step 1 of the classic look: plain terrain from its pieces; rooms, water and lava wait.
+            // Steps 1 and 2 of the classic look: plain terrain and rooms from their pieces. A room
+            // drawn so needs no furniture box; its objects are step 3.
+            _liquids?.Set(tileIndex, tile);
             if (_terrain != null && _terrain.TrySet(tileIndex, tile))
             {
-                ApplyFurniture(tileIndex, tile, furniture);
+                ApplyFurniture(tileIndex, tile, default);
                 return;
             }
 
@@ -258,6 +265,7 @@ namespace DK2.Unity
         public void Flush()
         {
             _terrain?.Flush();
+            _liquids?.Animate(Time.time);
         }
 
         /// <summary>Destroys everything. Pair with <see cref="ScenePresenter.Resync"/>.</summary>
@@ -269,6 +277,7 @@ namespace DK2.Unity
             foreach (GameObject go in _objects.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _torches.Values) if (go != null) Object.Destroy(go);
             _terrain?.Clear();
+            _liquids?.Clear();
 
             _tiles.Clear();
             _furniture.Clear();

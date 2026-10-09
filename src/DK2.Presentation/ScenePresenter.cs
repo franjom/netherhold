@@ -46,6 +46,9 @@ public sealed class ScenePresenter
             Pieces = tile.Pieces;
             Explored = tile.Explored;
             HasDoor = tile.HasDoor;
+            RoomFloor = tile.RoomFloor;
+            Bed = tile.Bed;
+            Surface = tile.Surface;
         }
 
         public AssetRef Ground { get; }
@@ -58,6 +61,9 @@ public sealed class ScenePresenter
         public TerrainPieces Pieces { get; }
         public bool Explored { get; }
         public bool HasDoor { get; }
+        public PieceSet RoomFloor { get; }
+        public PieceSet Bed { get; }
+        public LiquidSurface Surface { get; }
 
         public bool Equals(TileVisual other) =>
             Ground == other.Ground
@@ -69,13 +75,16 @@ public sealed class ScenePresenter
             && Walls == other.Walls
             && Pieces == other.Pieces
             && Explored == other.Explored
-            && HasDoor == other.HasDoor;
+            && HasDoor == other.HasDoor
+            && RoomFloor == other.RoomFloor
+            && Bed == other.Bed
+            && Surface == other.Surface;
 
         public override bool Equals(object? obj) => obj is TileVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
             HashCode.Combine(Ground, Furniture, OwnerPlayerId, Tagged), GoldHeld, HealthPermille, Walls, Pieces,
-            Explored, HasDoor);
+            HashCode.Combine(Explored, HasDoor, RoomFloor, Bed, Surface));
     }
 
     /// <summary>The part of a creature a renderer can see.</summary>

@@ -88,9 +88,11 @@ public readonly struct TerrainPieces : IEquatable<TerrainPieces>
 public sealed class TerrainPieceKeys
 {
     private readonly AssetRef[] _quarters;
+    private readonly AssetRef[] _beds = new AssetRef[AssetCatalogue.BedPieces];
 
     internal TerrainPieceKeys(string terrainName)
     {
+        for (int k = 0; k < _beds.Length; k++) _beds[k] = AssetCatalogue.TerrainBed(terrainName, k);
         Side = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainSide);
         Top = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainTop);
         TopTagged = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainTopTagged);
@@ -108,4 +110,7 @@ public sealed class TerrainPieceKeys
     public AssetRef Floor { get; }
 
     public AssetRef Quarter(int set, int piece) => _quarters[(set * AssetCatalogue.ClaimedPieces) + piece];
+
+    /// <summary>A water or lava terrain's bed piece 0..7.</summary>
+    public AssetRef Bed(int k) => _beds[k];
 }

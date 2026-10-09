@@ -119,6 +119,12 @@ namespace DK2.Unity
             string texture = kmf == null ? ""
                 : kmf.TextureNames.Count > 0 ? kmf.TextureNames[lastTexture ? kmf.TextureNames.Count - 1 : 0]
                 : kmf.EnvironmentTextureName ?? "";
+            return ForTexture(texture);
+        }
+
+        /// <summary>An opaque material of one engine texture by name, shared by every user of it.</summary>
+        public Material ForTexture(string texture)
+        {
             if (_materials.TryGetValue(texture, out Material material)) return material;
 
             material = new Material(_shader) { name = texture.Length > 0 ? texture : "untextured" };

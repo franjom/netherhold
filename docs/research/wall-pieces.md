@@ -227,8 +227,9 @@ The four half-piece cases, with their addresses:
   was not pinned.
 - **The decorated piece's parity.** For N and S faces it uses the room tile's x
   plus `+0x92`, with piece 8 on the even sum. For E and W faces it uses y plus
-  `+0x96`, with piece 8 on the odd sum. A negative phase (the default −1, for a
-  room with no wall furniture on that axis) means always piece 7. Torches
+  `+0x96`, with piece 8 on the odd sum. A negative phase (−1 until the room has a
+  straight wall run on that axis; not tied to wall furniture, `floor-and-terrain-pieces.md`
+  `room-floors-and-liquids.md` §5) means always piece 7. Torches
   (wall-torches.md §2) go on the opposite parity, but only Torture and Casino
   add the phase to the torch test. In other rooms with a phase, a decorated
   wall and a torch can coincide. CONFIRMED (0x004452F1..0x0044535F).
@@ -278,9 +279,9 @@ for s in 0..3:
 - This arm rotates by **(s−1)&3**, where the general arm uses s. CONFIRMED.
 - +0x7F + k·0x1B = +0xD0 + (k−3)·0x1B. The facing side therefore draws gate
   piece k−3, while the floor builder 0x00446800 draws piece k from the same
-  nibble. Which k values the gate's tiles carry, and so which mesh appears,
-  was not read: UNKNOWN. If k could be 0..2, the read would land on the torch
-  record's Start/End or on art 9.
+  nibble. The tile writer 0x004F00F0 gives k = 3, 4 or 5 by position along the
+  gate (`room-floors-and-liquids.md` §1), so the face is piece 0, 1 or 2
+  (LIKELY: that writer was read from the decompile only).
 
 ---
 
@@ -293,11 +294,8 @@ for s in 0..3:
    not pinned (0x004488A0 mis-tracks the value it writes). The secret-door
    prelude of 0x0043E860 and the hero-wall scheme (HeroWall_…Part4..8) were read
    from the decompile only.
-3. **Hero Gate 3x1 face piece.** Piece k−3 (k = high nibble of the tile byte
-   +0xC); the shipped k values were not read.
-4. **Unread builders.** 0x0043E440 (water/lava beds); the player tables
+3. **Unread builders.** The player tables
    +0x10AA/+0x10BE and their loader; the "<prefix>" string of 0x004C2620 (the
    mesh name shows "HeroWall_LevelDefault"); the consumers of Rock Corner,
-   Fog's three meshes and the TAGGED tops.
-5. **Tile byte +0xC.** Its bit order (bit k = DIR[k] same-room or open) is
-   inferred from the builders, not from its writer.
+   Fog's three meshes and the TAGGED tops. (0x0043E440 and the room tile
+   byte +0xC writers were read 2026-10-09: `floor-and-terrain-pieces.md` §6.)

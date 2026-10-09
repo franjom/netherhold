@@ -19,13 +19,13 @@ switch).
 | TC | Builder | What it draws | Calls the wall chooser |
 |---|---|---|---|
 | 1 Complete | inline | one whole piece, handle +0x2A (art 2 itself), rot 0; no shipped room uses TC 1 | yes |
-| 2 Quad (bridges) | 0x00443910 | 4 quarters from pieces 0..3 by the tile byte +0xC neighbour mask, table 0x0066DDA0 (0x0066DE60 for type 0x11); then a water/lava bed under it through 0x0043E440 | no |
+| 2 Quad (bridges) | 0x00443910 | 4 quarters from pieces 0..3 by the tile byte +0xC neighbour mask, table 0x0066DDA0 (0x0066DE60 for type 0x11); then a water/lava bed under it through 0x0043E440 (`room-floors-and-liquids.md` §3) | no |
 | 3 3×3 (Portal, Hero Portal) | 0x00446140 | one whole piece = piece (tile byte +0xC), rot 0 | no |
 | 4 3×3 rotated | 0x00446210 | piece = high nibble of +0xC, rot = low nibble | no |
 | 5 Normal | 0x00444970 | see below | yes |
 | 6 CenterPool | none | nothing | no |
-| 7 DoubleQuad (Prison, Temple, Combat Pit) | 0x00443F20 | see below | yes |
-| 8 5×5 rotated (Heart) | 0x004462E0, or 0x004463B0 when room +0x9A bit 0 (destroyed) | piece = high nibble (4 = centre, nothing drawn), rot = low nibble; the destroyed variant reads +0x280 + n·0x1B (Dungeon_Destroyed) and, for n = 5, piece 0 or +0x307 by room +0x63 | no |
+| 7 DoubleQuad (Prison, Temple, Combat Pit) | 0x00443F20 | see below and `room-floors-and-liquids.md` §4 | yes |
+| 8 5×5 rotated (Heart) | 0x004462E0, or 0x004463B0 when room +0x9A bit 0 (destroyed) | piece = high nibble (4 = centre, nothing drawn), rot = low nibble; the destroyed variant draws Dungeon_Destroyed n (+0x280 + n·0x1B) for every n including the centre 4, and for n = 5 DUNGEON0 when room +0x63 is 0, else Dungeon_Destroyed5 (+0x307) (`room-floors-and-liquids.md` §2) | no |
 | 9, 12 | 0x004464C0 | piece = high nibble, rot = low nibble; plus art 8 (+0x60, IMPEN ROCK TOP) at origin offset (1, 5) | yes (type 0x12 or 0x15 arm) |
 | 10 | 0x00446640 | piece 0 on each open explored side, rot (s−2)&3, plus art 8 | no |
 | 11 | 0x00446800 | piece = high nibble, or +0x280 + n·0x1B when room +0x9A bit 0; rot = low nibble | no |
@@ -36,7 +36,7 @@ switch).
 CONFIRMED in the decompile, which here does not depend on mis-tracked registers.
 
 ```
-m = tile(x,y).byte0C                  # 8-neighbour same-room mask, bit k = DIR[k]
+m = tile(x,y).byte0C                  # 8-neighbour same-type-and-owner mask, bit k = DIR[k] (`room-floors-and-liquids.md` §1)
 if m != 0xFF:                         # edge tile: four quarters
     for q in 0..3:                    # dirs (2q-2, 2q-1, 2q): q0=W,NW,N  q1=N,NE,E  q2=E,SE,S  q3=S,SW,W
         i = bit(first)<<2 | bit(diagonal)<<1 | bit(last)
@@ -60,19 +60,7 @@ else:
 
 ### DoubleQuad, 0x00443F20
 
-LIKELY: read from the decompile. The registers that carry the definition are
-mis-tracked; its offsets follow the loader.
-
-- A centre tile (from 0x004E3270 for Prison, 0x004D7160 for Combat Pit) draws
-  piece 14 whole. Prison's piece also takes an animation value from room +0x4D.
-- A fully interior tile (+0xC = 0xFF) of these three types draws piece 13 four
-  times.
-- Otherwise each quarter takes an inner-ring piece (10, 11 or 12) when one of
-  its three neighbours is interior. It takes an outer-ring piece (0..3) from
-  the inverted mask otherwise. Both come from table 0x0066DDE0:
-  0:(13,2) 1:(10,2) 2:(11,1) 3:(10,2) 4:(10,1) 5:(12,3) 6:(10,1) 7:(12,3) |
-  8:(3,2) 9:(0,2) 10:(2,1) 11:(0,2) 12:(0,1) 13:(3,0) 14:(0,1) 15:(1,1).
-- Temple sets grid bit 0x4000 on its tiles.
+Re-read in the disassembly on 2026-10-09: the rule and table 0x0066DDE0 are in `room-floors-and-liquids.md` §4.
 
 ---
 
@@ -137,7 +125,7 @@ CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0
   remake's runner draws fog as the Fog of War terrain's rock, not black.) A hero-owned Reinforced Wall instead draws
   `HeroWall_LevelDefaultPart4..8` in `wall-pieces.md` §2's half/whole scheme with 4 and 5 swapped.
 - A solid block then draws one art 2 top with the position-hashed texture variant; water and lava go
-  to `0x0043E440` (unread); claimed and player-coloured tiles draw four player quarters from table
+  to `0x0043E440` (`room-floors-and-liquids.md` §3); claimed and player-coloured tiles draw four player quarters from table
   `0x0066DA08` by an 8-neighbour mask; anything else draws art 0 whole (Mana Vault by owner).
 
 ### The quarters (CONFIRMED, `0x0043FF5A..0x004402F0`)
@@ -197,8 +185,8 @@ CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0
   byte +0xC, precomputed by the simulation, not a live scan. CONFIRMED for the
   switch; the names are STRONGLY INFERRED.
 - **Dirt Path.** One whole "ROCK FLOOR" piece. CONFIRMED.
-- **Water and Lava.** 0x0043E440 builds them from WATER/LAVA BED0..7 and the
-  tile byte +0xC. Not read: UNKNOWN.
+- **Water and Lava.** 0x0043E440 builds the bed from WATER/LAVA BED0..7 and the
+  tile byte +0xC (`room-floors-and-liquids.md` §3); open water draws no bed.
 - **Mana Vault.** MANA_VAULT when owned by the neutral player, else
   MANA_VAULT_CLAIMED. CONFIRMED, and the owner sees the two looks (2026-10-09). Not built.
 
@@ -214,6 +202,9 @@ CONFIRMED (both sides of the test).
 
 Nothing here reads the synced RNG or the game turn. The RandomTexture variant and the Work Shop
 centre test are position-hashed (`0x005558D0` seeded from x and y); the Reinforced Wall's damage
-frame, the Prison centre and the Heart's destroyed set follow state.
+frame, the Prison door piece and the Heart's destroyed set follow state.
 
 ---
+
+The room tile codes, the remaining room builders, the liquid beds and the liquid surface
+(read 2026-10-09) are in `room-floors-and-liquids.md`.
