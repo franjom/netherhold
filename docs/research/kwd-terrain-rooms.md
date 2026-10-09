@@ -149,6 +149,30 @@ Facts in our own words; no decompiler output is reproduced here (ADR-0046).
 Hero Lair reads 65469 as unsigned, which is **-67** signed: the tile *heals*
 heroes standing on it. The field is `short`, not `ushort`. Lava/Water are +100.
 
+## Finding — the wibble and lean bytes (2026-10-09)
+
+Read for the terrain lattice (`terrain-lattice.md`, Q72). The loader `0x004F66E0`
+fills runtime `+0x1A1` (wibble H), `+0x1A2..+0x1A4` (lean H[3]), `+0x1A5` (wibble V)
+and `+0x1A6..+0x1A8` (lean V[3]) from consecutive intermediate bytes
+`+0x286..+0x28D`. With the loader's shift for ManaGain (file `0x19C` → intermediate
+`+0x254`) these are file bytes **`0x1CE` wibble H, `0x1CF..0x1D1` lean H[3], `0x1D2`
+wibble V, `0x1D3..0x1D5` lean V[3]**, the eight bytes just before TerrainId
+(`0x1D6`). **STRONGLY INFERRED**: a shift, which the finding above warns about, but
+the dump agrees (every record's `0x1D6` is its own id and the values are sensible):
+
+| Terrain | wibble H | lean H | wibble V | lean V |
+|---|---|---|---|---|
+| Rock, Gold, Gems | 255 | 255, 255, 255 | 128 | 255, 255, 255 |
+| Impenetrable Rock, Fog Of War, Edge of Map | 255 | 32, 32, 0 | 128 | 0, 0, 0 |
+| Dirt Path | 255 | 96, 96, 0 | 128 | 0, 0, 0 |
+| Claimed Path | 102 | 96, 96, 0 | 13 | 0, 0, 0 |
+| Reinforced Wall | 102 | 32, 32, 0 | 13 | 0, 0, 0 |
+| Water / Lava | 255 | 64, 64, 128 / 128, 128, 0 | 128 | 0, 0, 0 / 40, 0, 0 |
+| Most rooms | 102 or 153 | 32 or 48, 0, 0 | 13 or 19 | 4 or 6, 0, 0 |
+| Dungeon Heart, Hero Gates | 0 | 0 or 4, 0, 0 | 0 | 0, 0, 0 |
+
+Our parser does not read them yet.
+
 ## Confidence
 
 CONFIRMED — record sizes, all parsed field offsets, the transition graph, room

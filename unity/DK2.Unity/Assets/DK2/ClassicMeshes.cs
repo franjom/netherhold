@@ -33,6 +33,7 @@ namespace DK2.Unity
         private readonly Shader _shader;
         private readonly Dictionary<string, Built> _built = new Dictionary<string, Built>();
         private readonly Dictionary<string, Material> _materials = new Dictionary<string, Material>();
+        private readonly Dictionary<(AssetRef, bool), PieceSource> _pieces = new Dictionary<(AssetRef, bool), PieceSource>();
 
         public ClassicMeshes(InstallArtProvider art)
         {
@@ -62,6 +63,30 @@ namespace DK2.Unity
             return go;
         }
 
+        /// <summary>A piece's geometry and materials for a chunk to copy, resolved straight from the
+        /// install (the classic look's own tier); null when the install has no model for the key.
+        /// <paramref name="lastTexture"/> takes each material's last alternative texture instead of
+        /// its first: CLAIMED WALL lists Brick_DECAY3 to Brick, and the undamaged one is taken to
+        /// be the plain name (STRONGLY INFERRED from the names; the damage frame is unread).</summary>
+        public PieceSource Piece(AssetRef key, bool lastTexture = false)
+        {
+            if (_pieces.TryGetValue((key, lastTexture), out PieceSource cached)) return cached;
+
+            PieceSource piece = null;
+            if (_art.TryResolve(key, out ResolvedAsset asset) && _art.TryLoadModel(asset, out KmfModel model))
+            {
+                RenderMesh source = RenderMesh.FromModel(model);
+                var materials = new Material[source.Triangles.Count];
+                for (int i = 0; i < materials.Length; i++)
+                    materials[i] = MaterialFor(i < model.Materials.Count ? model.Materials[i] : null, lastTexture);
+                piece = new PieceSource(
+                    ToUnity(source.Positions).ToArray(), ToUnity(source.Normals).ToArray(),
+                    ToUnity(source.Uvs).ToArray(), source.Triangles, materials);
+            }
+            _pieces[(key, lastTexture)] = piece;
+            return piece;
+        }
+
         private bool TryBuild(in ResolvedAsset asset, out Built built)
         {
             if (_built.TryGetValue(asset.InstallEntry, out built)) return built != null;
@@ -88,11 +113,11 @@ namespace DK2.Unity
             return built != null;
         }
 
-        private Material MaterialFor(KmfMaterial kmf)
+        private Material MaterialFor(KmfMaterial kmf, bool lastTexture = false)
         {
             // The converter's order: the first named texture, else the environment texture.
             string texture = kmf == null ? ""
-                : kmf.TextureNames.Count > 0 ? kmf.TextureNames[0]
+                : kmf.TextureNames.Count > 0 ? kmf.TextureNames[lastTexture ? kmf.TextureNames.Count - 1 : 0]
                 : kmf.EnvironmentTextureName ?? "";
             if (_materials.TryGetValue(texture, out Material material)) return material;
 
@@ -141,6 +166,26 @@ namespace DK2.Unity
             var result = new List<Vector2>(values.Count);
             foreach (NumericsVector2 value in values) result.Add(new Vector2(value.X, value.Y));
             return result;
+        }
+
+        /// <summary>One install model as arrays in the renderer frame, triangles per material.</summary>
+        public sealed class PieceSource
+        {
+            public PieceSource(Vector3[] positions, Vector3[] normals, Vector2[] uvs,
+                IReadOnlyList<int[]> triangles, Material[] materials)
+            {
+                Positions = positions;
+                Normals = normals;
+                Uvs = uvs;
+                Triangles = triangles;
+                Materials = materials;
+            }
+
+            public Vector3[] Positions { get; }
+            public Vector3[] Normals { get; }
+            public Vector2[] Uvs { get; }
+            public IReadOnlyList<int[]> Triangles { get; }
+            public Material[] Materials { get; }
         }
 
         private sealed class Built

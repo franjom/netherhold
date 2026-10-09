@@ -208,7 +208,7 @@ namespace DK2.Unity.Editor
             if (things != null) ThingProjection.Place(world, database, things);
 
             AssetProviderChain assets = AssetProviderChain.Standard(install: art);
-            var scene = new DungeonScene(root, world.Width, classic);
+            var scene = new DungeonScene(root, world.Width, world.Height, classic);
             var presenter = new ScenePresenter(new WorldView(database, (byte)PlayerIds.FirstKeeper), assets, scene,
                 new TorchLayout(database));
             presenter.Present(world);

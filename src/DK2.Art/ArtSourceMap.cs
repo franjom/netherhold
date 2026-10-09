@@ -72,6 +72,40 @@ public static class ArtSourceMap
             if (terrain.Damage != 0)
                 entries.Add(Missing(AssetRef.ForTerrain(terrain.Name, AssetKind.Effect),
                     "effect conversion is UNKNOWN; no effect format is emitted"));
+            AddTerrainPieces(entries, terrain, resources);
+        }
+    }
+
+    /// <summary>The terrain loader's arts (<c>0x004F66E0</c>): art 0 the whole floor, art 1 the
+    /// face, art 2 the top, art 3 the tagged top; the player quarters are named per set
+    /// (floor-and-terrain-pieces.md §5).</summary>
+    private static void AddTerrainPieces(List<ArtEntry> entries, TerrainDef terrain,
+        IReadOnlyList<Dk2ArtResource>? resources)
+    {
+        bool wall = (terrain.Flags & TerrainFlags.PlayerColouredWall) != 0;
+        foreach (AssetRef reference in AssetCatalogue.ForTerrainPieces(terrain))
+        {
+            if (resources is null)
+            {
+                entries.Add(Missing(reference, NoArtRecord("terrain", terrain.TerrainId)));
+                continue;
+            }
+            string variant = reference.Key.Substring(reference.Key.LastIndexOf('.') + 1);
+            if (variant.StartsWith("quarter", StringComparison.Ordinal))
+            {
+                string name = (wall ? "Claimed Top" : "Claimed Floor") + variant[7] + "_" + variant[8];
+                entries.Add(Model(reference, new Dk2ArtResource(name, 0), "claimed quarter"));
+                continue;
+            }
+            int art = variant switch
+            {
+                AssetCatalogue.TerrainFloor => 0,
+                AssetCatalogue.TerrainSide => 1,
+                AssetCatalogue.TerrainTop => 2,
+                AssetCatalogue.TerrainTopTagged => 3,
+                _ => throw new InvalidOperationException($"Unknown terrain piece '{reference.Key}'."),
+            };
+            entries.Add(Model(reference, resources[art], $"terrain art {art}"));
         }
     }
 

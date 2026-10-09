@@ -78,6 +78,17 @@ a terrain's side piece faces out of its block, so it is culled from inside.
 
 Gate: Level 1 at the start, rock, earth, gold and the dug-out area, beside DK2's.
 
+Status (2026-10-09, branch `classic-look/step1`): items 1 to 3 built. `WorldView` picks each
+plain tile's `TerrainPieces` (faces, top, whole floor, player quarters; floor-and-terrain-pieces.md
+§5), `AssetCatalogue.ForTerrainPieces` keys them, and Unity's `TerrainChunks` draws them merged per
+16×16 chunk, rebuilding only a changed tile's chunk. The owner compared Level 1 with DK2's: the
+pieces look right, but DK2's walls are bent and their corners softened: a runtime lattice
+(`terrain-lattice.md`, Q72 answered: a pure function of the map), now built as `TerrainLattice`
+and applied per vertex by `TerrainChunks`, with DK2's HighWalls option on by default. The owner
+found the first render a little exaggerated; whether that is the shape or the lighting (step 5)
+waits on a same-spot comparison. Item 4: the owner colour
+is the claimed sets (player id − 1, STRONGLY INFERRED); the damage frame's texture index is unread.
+
 ## Step 2: walls and rooms
 
 1. Draw the room wall pieces `RoomWalls` already chooses (ADR-0392), including piece 8 at the

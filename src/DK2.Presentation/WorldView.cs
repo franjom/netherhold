@@ -26,7 +26,11 @@ public readonly struct TileView
         bool solid,
         int goldHeld,
         int healthPermille,
-        RoomWalls walls = default)
+        RoomWalls walls = default,
+        TerrainPieces pieces = default,
+        TerrainPieceKeys? pieceKeys = null,
+        bool explored = true,
+        bool hasDoor = false)
     {
         Position = position;
         Ground = ground;
@@ -37,6 +41,10 @@ public readonly struct TileView
         GoldHeld = goldHeld;
         HealthPermille = healthPermille;
         Walls = walls;
+        Pieces = pieces;
+        PieceKeys = pieceKeys;
+        Explored = explored;
+        HasDoor = hasDoor;
     }
 
     public TilePos Position { get; }
@@ -75,6 +83,20 @@ public readonly struct TileView
     /// <summary>The room wall pieces drawn against this tile's sides; empty off a room
     /// (<see cref="RoomWalls"/>).</summary>
     public RoomWalls Walls { get; }
+
+    /// <summary>The plain terrain pieces this tile draws (<see cref="TerrainPieces"/>); empty on a
+    /// room, water, lava or a tile under fog.</summary>
+    public TerrainPieces Pieces { get; }
+
+    /// <summary>The keys <see cref="Pieces"/> draws with; null when it is empty.</summary>
+    public TerrainPieceKeys? PieceKeys { get; }
+
+    /// <summary>Explored by the viewer (always, with fog off). With <see cref="HasDoor"/>, what the
+    /// terrain lattice reads of a tile beyond its terrain, so a change rebuilds the bend.</summary>
+    public bool Explored { get; }
+
+    /// <summary>A door stands here, open or not (the lattice's door test).</summary>
+    public bool HasDoor { get; }
 
     public bool IsRoom => !Furniture.IsEmpty;
 }
@@ -203,6 +225,9 @@ public sealed class WorldView
     private readonly Dictionary<byte, AssetRef> _roomFurniture = [];
     private readonly Dictionary<byte, AssetRef> _creatureMeshes = [];
     private readonly Dictionary<byte, AssetRef> _objectMeshes = [];
+    private readonly Dictionary<byte, TerrainPieceKeys> _pieceKeys = [];
+    private readonly bool[] _solidById = new bool[256];
+    private readonly bool[] _ownWallsById = new bool[256];
 
     /// <summary>
     /// Creates one keeper's view of the world. Player 1 remains the default for
@@ -233,10 +258,19 @@ public sealed class WorldView
                 ? AssetRef.ForTerrain(terrain.Name, AssetKind.Mesh)
                 : AssetRef.ForTerrain(terrain.Name, AssetKind.Texture);
             _terrainSolid[entry.Key] = terrain.IsSolid;
+            _pieceKeys[entry.Key] = new TerrainPieceKeys(terrain.Name);
+            _solidById[entry.Key] = terrain.IsSolid;
         }
 
         foreach (KeyValuePair<byte, RoomDef> entry in database.RoomsByTerrain)
+        {
             _roomFurniture[entry.Key] = AssetRef.ForRoom(entry.Value.Name, AssetKind.Mesh);
+            // Room definition +0x43D bit 3, which the loader sets for these constructions
+            // (wall-pieces.md §1): a terrain face against such a room is the room's to draw.
+            _ownWallsById[entry.Key] = entry.Value.Construction is TileConstruction.Complete
+                or TileConstruction.Normal or TileConstruction.DoubleQuad or TileConstruction.HeroGate
+                or TileConstruction.HeroGateFrontEndTile or TileConstruction.HeroGate3By1;
+        }
 
         foreach (KeyValuePair<byte, CreatureDef> entry in database.Creatures)
             _creatureMeshes[entry.Key] = AssetRef.ForCreature(entry.Value.Name, AssetKind.Mesh);
@@ -284,7 +318,8 @@ public sealed class WorldView
                 tile.IsTaggedBy(_viewingPlayerId),
                 fogSolid,
                 goldHeld: 0,
-                HealthPermille(fog.StartingHealth, fog.MaxHealth));
+                HealthPermille(fog.StartingHealth, fog.MaxHealth),
+                explored: false);
         }
 
         _terrainAssets.TryGetValue(tile.TerrainId, out AssetRef ground);
@@ -300,8 +335,111 @@ public sealed class WorldView
             solid,
             tile.GoldHeld,
             HealthPermille(tile.Health, terrain.MaxHealth),
-            WallsOf(world, x, y, tile.TerrainId));
+            WallsOf(world, x, y, tile.TerrainId),
+            PiecesOf(world, x, y, tile, terrain),
+            _pieceKeys[tile.TerrainId],
+            !world.FogOfWarEnabled || tile.IsDiscoveredBy(_viewingPlayerId),
+            world.DoorAt(x, y) is not null);
     }
+
+    // The claimed-quarter table 0x0066DA08: the piece for a quadrant's (side, diagonal, side) edge
+    // bits. 3 interior, 0 and 4 the two straight edges, 1 an outer corner, 2 an inner corner.
+    private static readonly byte[] ClaimedQuarterPiece = [3, 0, 2, 0, 4, 1, 4, 1];
+
+    // Terrains 0x1F (Mana Vault: MANA_VAULT or MANA_VAULT_CLAIMED by owner) and 0x23 (another
+    // quarter source, vtable +0x2AC) have arms of their own in 0x0043E860 that are not built.
+    private const byte ManaVaultTerrainId = 0x1F, OtherQuarterTerrainId = 0x23;
+
+    /// <summary>
+    /// The plain terrain builder <c>0x0043E860</c> (floor-and-terrain-pieces.md §5): a solid tile
+    /// draws a face on each side whose neighbour is off the map, or explored and open, except
+    /// against a room that draws its own walls when this terrain is AllowRoomWalls; then a top, or
+    /// for a PlayerColouredWall the owner's top quarters. An open tile draws the owner's floor
+    /// quarters when PlayerColouredPath, else its whole floor.
+    /// <para>Deviates: solidity stands in for the art test and for nav-solidity; the face test's
+    /// fog exceptions, hero walls, the Mana Vault, terrain 0x23 and the top variant are not built
+    /// (floor-and-terrain-pieces.md §5).</para>
+    /// </summary>
+    private TerrainPieces PiecesOf(WorldState world, int x, int y, in TileState tile, TerrainDef terrain)
+    {
+        TerrainFlags flags = terrain.Flags;
+        if ((flags & (TerrainFlags.Room | TerrainFlags.ConstructionTypeWater)) != 0
+            || tile.TerrainId is ManaVaultTerrainId or OtherQuarterTerrainId)
+            return default;
+
+        // The owner's set: player id − 1, so 0 the heroes and 1 neutral (AssetCatalogue.ClaimedSets).
+        int set = Math.Clamp((tile.OwnerPlayerId == 0 ? PlayerIds.Neutral : tile.OwnerPlayerId) - 1,
+            0, AssetCatalogue.ClaimedSets - 1);
+        TerrainPieces pieces = default;
+        if (terrain.IsSolid)
+        {
+            bool allowRoomWalls = (flags & TerrainFlags.AllowRoomWalls) != 0;
+            for (int side = 0; side < 4; side++)
+            {
+                int nx = x + Dx8[side * 2], ny = y + Dy8[side * 2];
+                // Off the map the face is drawn (0x0043F1F6..0x0043F224).
+                if (world.Contains(nx, ny))
+                {
+                    if (!IsVisible(world, new TilePos(nx, ny)) || IsSolid(world, nx, ny)) continue;
+                    if (allowRoomWalls && _ownWallsById[world.Tile(nx, ny).TerrainId]) continue;
+                }
+                pieces = pieces.WithFace(side);
+            }
+
+            if ((flags & TerrainFlags.PlayerColouredWall) != 0)
+                return pieces.WithQuarters(QuarterKind.Top, set, QuarterPieces(TopEdges(world, x, y)));
+            return pieces.WithTop(tile.IsTaggedBy(_viewingPlayerId) && terrain.IsTaggable);
+        }
+
+        if ((flags & TerrainFlags.PlayerColouredPath) != 0)
+            return pieces.WithQuarters(QuarterKind.Floor, set, QuarterPieces(FloorEdges(world, x, y, tile.TerrainId)));
+        return pieces.WithFloor();
+    }
+
+    /// <summary>A wall top's live scan: bit k set where neighbour k is on the map and open.
+    /// LIKELY: DK2's scan (<c>0x00440001..0x00440068</c>) also needs the neighbour clear of
+    /// <c>0x004434F0</c>'s grid bit 15, and explored or a flag set; those are not built, and
+    /// terrain solidity stands in for vtable <c>+0x208</c> (nav-solid).</summary>
+    private int TopEdges(WorldState world, int x, int y)
+    {
+        int mask = 0;
+        for (int k = 0; k < 8; k++)
+        {
+            int nx = x + Dx8[k], ny = y + Dy8[k];
+            if (world.Contains(nx, ny) && !IsSolid(world, nx, ny)) mask |= 1 << k;
+        }
+        return mask;
+    }
+
+    /// <summary>An open tile's stored mask (<c>0x00450470</c>): bit k set where neighbour k is off
+    /// the map or another terrain.</summary>
+    private static int FloorEdges(WorldState world, int x, int y, byte terrainId)
+    {
+        int mask = 0;
+        for (int k = 0; k < 8; k++)
+        {
+            int nx = x + Dx8[k], ny = y + Dy8[k];
+            if (!world.Contains(nx, ny) || world.Tile(nx, ny).TerrainId != terrainId) mask |= 1 << k;
+        }
+        return mask;
+    }
+
+    /// <summary>The four quadrants' pieces, packed 3 bits each: quadrant q reads directions
+    /// 2q − 2, 2q − 1 and 2q (NW reads W, NW, N), as (first, diagonal, last) bits 2, 1, 0.</summary>
+    private static int QuarterPieces(int edges)
+    {
+        int packed = 0;
+        for (int q = 0; q < 4; q++)
+        {
+            int index = (((edges >> ((2 * q + 6) & 7)) & 1) << 2)
+                | (((edges >> ((2 * q + 7) & 7)) & 1) << 1)
+                | ((edges >> (2 * q)) & 1);
+            packed |= ClaimedQuarterPiece[index] << (3 * q);
+        }
+        return packed;
+    }
+
+    private bool IsSolid(WorldState world, int x, int y) => _solidById[world.Tile(x, y).TerrainId];
 
     // DK2's eight directions N, NE, E, SE, S, SW, W, NW (0x006BC370).
     private static readonly int[] Dx8 = [0, 1, 1, 1, 0, -1, -1, -1];
