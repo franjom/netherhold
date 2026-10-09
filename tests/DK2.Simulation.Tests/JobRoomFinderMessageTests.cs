@@ -100,11 +100,13 @@ public class JobRoomFinderMessageTests
     }
 
     [Fact]
-    public void AMistressWithNoTortureChamberPostsNothingHereForHer99()
+    public void AMistressWithNoTortureChamberPosts99AndAnyoneElse41()
     {
         WorldState world = World();
         Available(world, RoomTypeId.TortureChamber);
-        Assert.Null(Seek(world, RoomTypeId.TortureChamber, creatureType: RoomNeedRules.MistressCreatureId));
+        PlayerMessage wanted = Seek(world, RoomTypeId.TortureChamber, creatureType: RoomNeedRules.MistressCreatureId)!.Value;
+        Assert.Equal((PlayerMessageKind.RoomWanted, (int)RoomTypeId.TortureChamber, (uint)SimulationTiming.TicksFromSeconds(300)),
+            (wanted.Kind, wanted.Data1, wanted.Timeout));
         Assert.Equal(PlayerMessageKind.RoomNeeded, Seek(world, RoomTypeId.TortureChamber)?.Kind);
     }
 
@@ -134,15 +136,137 @@ public class JobRoomFinderMessageTests
         Assert.Equal((uint)SimulationTiming.TicksFromSeconds(240), message.Timeout);
     }
 
+    [Theory]
+    [InlineData(RoomTypeId.Temple)]
+    [InlineData(RoomTypeId.CombatPit)]
+    public void ATempleOrCombatPitHoldsOnePerRimTile(RoomTypeId type)
+    {
+        // Room_ComputeTotalCapacity's arm for types 13 and 16 counts the tiles Room_IsFloorSlot
+        // rejects: a 3x3's eight rim tiles, with no +1.
+        WorldState world = World();
+        Room(world, type, 5, 1);
+        Dk2TerrainFixture.FurnishRooms(Db, world);
+        RoomInstance room = RoomIndex.RoomAt(world, Db, 2 * world.Width + 6)!;
+        Assert.True(AutoFurnitureRules.TryTotalCapacity(world, room, out int capacity));
+        Assert.Equal(8, capacity);
+    }
+
     [Fact]
-    public void ATemplesA3IsNeverSetSoAFullTempleWouldPost44_OursReadsNoTempleCapacity()
+    public void ATemplesA3IsNeverSetSoAFullTemplePosts44()
     {
         WorldState world = World();
-        Room(world, RoomTypeId.Temple, 5, 1);
-        Dk2TerrainFixture.FurnishRooms(Db, world);
-        RoomInstance temple = RoomIndex.RoomAt(world, Db, 2 * world.Width + 6)!;
+        Available(world, RoomTypeId.Temple);
+        for (int x = 5; x < 7; x++) RoomRules.Place(Db, ref world.Tile(x, 1), Db.Room(RoomTypeId.Temple), Keeper);
+        RoomInstance temple = RoomIndex.RoomAt(world, Db, 1 * world.Width + 5)!;
         Assert.False(RoomNeedRules.IsEquipped(world, temple));
-        Assert.False(AutoFurnitureRules.TryTotalCapacity(world, temple, out _));
+        for (int i = 0; i < 2; i++)
+            world.SpawnCreature(Db, GoblinId, Keeper, new TilePos(5 + i, 1)).HeldPlace = new RoomPlace(1 * world.Width + 5 + i, RoomCapacityRules.Units);
+        Assert.Equal(PlayerMessageKind.RoomUnequipped, Seek(world, RoomTypeId.Temple)?.Kind);
+    }
+
+    [Fact]
+    public void AFullWorkshopIsReportedOnlyWhileAnOrderIsQueued()
+    {
+        // A Workshop with no Anvil, Bucket or Bench has no place and +0xA3 clear: 44.
+        WorldState world = World();
+        Available(world, RoomTypeId.Workshop);
+        Room(world, RoomTypeId.Workshop, 5, 1);
+        Assert.Null(Seek(world, RoomTypeId.Workshop));
+        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(ManufactureRules.TrapKind, 1, 100));
+        Assert.Equal(PlayerMessageKind.RoomUnequipped, Seek(world, RoomTypeId.Workshop)?.Kind);
+    }
+
+    [Fact]
+    public void AFullLibraryWithAShelfPosts42OnlyWithSomethingToResearch()
+    {
+        WorldState world = World();
+        Available(world, RoomTypeId.Lair);
+        Room(world, RoomTypeId.Library, 5, 1);
+        world.Player(Keeper).ResearchTarget = 0;
+        Assert.Null(Seek(world, RoomTypeId.Library));
+        world.Player(Keeper).ResearchTarget = 1;
+        Assert.Equal(PlayerMessageKind.RoomFull, Seek(world, RoomTypeId.Library)?.Kind);
+    }
+
+    [Fact]
+    public void ALibraryWithEveryShelfFullPosts45NamingTheRoom()
+    {
+        WorldState world = World();
+        Available(world, RoomTypeId.Lair);
+        Room(world, RoomTypeId.Library, 5, 1);
+        world.Player(Keeper).ResearchTarget = 1;
+        int middle = 2 * world.Width + 6;
+        for (int i = 0; i < 2; i++) world.SpawnObject(Db, ResearchTreeRules.BookObjectTypeId, Keeper, middle);
+        PlayerMessage message = Seek(world, RoomTypeId.Library)!.Value;
+        RoomInstance room = RoomIndex.RoomAt(world, Db, middle)!;
+        Assert.Equal((PlayerMessageKind.RoomStorageFull, (int)RoomTypeId.Library, SlabChain.FirstSlab(world, room), (uint)SimulationTiming.TicksFromSeconds(120)),
+            (message.Kind, message.Data1, message.Data2, message.Timeout));
+    }
+
+    [Fact]
+    public void WhileAJackpotPartyIsOnACasinoWithoutOneIsNotReported()
+    {
+        WorldState world = World();
+        Available(world, RoomTypeId.Casino);
+        Room(world, RoomTypeId.Casino, 5, 1);
+        Assert.Equal(PlayerMessageKind.RoomFull, Seek(world, RoomTypeId.Casino)?.Kind);
+        world.Player(Keeper).CasinoParties = 1;
+        Assert.Null(Seek(world, RoomTypeId.Casino));
+    }
+
+    [Fact]
+    public void TheSpectatorsPitSearchNeverAsksForAPit()
+    {
+        WorldState world = World();
+        Available(world, RoomTypeId.CombatPit);
+        CreatureState seeker = world.SpawnCreature(Db, GoblinId, Keeper, new TilePos(2, 2));
+        PlayerMessage? posted = null;
+        new GameSimulation(Db, world, 1, [new Probe(c =>
+            posted = RoomNeedRules.NoSpectatorPitFor(c, seeker, Db.CreatureById(GoblinId)))]).Tick();
+        Assert.Null(posted);
+    }
+
+    [Fact]
+    public void TheFightersPitSearchAsksForAPitAndReportsOneWithNoInterior()
+    {
+        WorldState world = World();
+        Available(world, RoomTypeId.CombatPit);
+        CreatureState seeker = world.SpawnCreature(Db, GoblinId, Keeper, new TilePos(2, 2));
+        PlayerMessage? Ask()
+        {
+            PlayerMessage? posted = null;
+            new GameSimulation(Db, world, 1, [new Probe(c =>
+                posted = RoomNeedRules.NoFightingPitFor(c, seeker, Db.CreatureById(GoblinId)))]).Tick();
+            return posted;
+        }
+
+        Assert.Equal(PlayerMessageKind.RoomNeeded, Ask()?.Kind);
+        for (int x = 5; x < 7; x++) RoomRules.Place(Db, ref world.Tile(x, 1), Db.Room(RoomTypeId.CombatPit), Keeper);
+        new GameSimulation(Db, world, 1, []).Run(30);
+        Assert.Equal(PlayerMessageKind.RoomFull, Ask()?.Kind);
+    }
+
+    [Fact]
+    public void AFightersPitWhoseFloorSlotsAreAllStoodOnFailsTheDropTestAndPosts42()
+    {
+        // 0x004D8430 passes while fewer creatures stand on the floor slots than there are slots: a
+        // 3x3 has one, so one creature on it fails the pit; the pit has an interior, +0xA3, so 42.
+        WorldState world = World();
+        Available(world, RoomTypeId.CombatPit);
+        Room(world, RoomTypeId.CombatPit, 5, 1);
+        CreatureState seeker = world.SpawnCreature(Db, GoblinId, Keeper, new TilePos(2, 2));
+        new GameSimulation(Db, world, 1, []).Run(30);
+        PlayerMessage? Ask()
+        {
+            PlayerMessage? posted = null;
+            new GameSimulation(Db, world, 1, [new Probe(c =>
+                posted = RoomNeedRules.NoFightingPitFor(c, seeker, Db.CreatureById(GoblinId)))]).Tick();
+            return posted;
+        }
+
+        Assert.Null(Ask());
+        world.SpawnCreature(Db, GoblinId, Keeper, new TilePos(6, 2));
+        Assert.Equal(PlayerMessageKind.RoomFull, Ask()?.Kind);
     }
 
     /// <summary>0x004D6ED0 sets +0xA3 when a lever spot exists; ours takes that as any interior tile.</summary>

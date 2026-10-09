@@ -230,32 +230,35 @@ public static class RoomNeedRules
     /// <c>0x004F6200</c>. No room posts 41; else a room with space no route ignoring doors reaches posts
     /// 43; else a reached full room past <see cref="FullRoomGraceSeconds"/> posts 42 when its
     /// <c>+0xA3</c> holds (<see cref="IsEquipped"/>), 44 naming it when not.</summary>
-    /// <remarks>Built only to 41 for the Library (storage and research-point gates read, their state
-    /// not kept here) and the Workshop (its branches need player byte <c>+0xA1C</c>, the manufacture queue's count, Q543); the Casino's party branch
-    /// (player <c>+0xF4A</c>) chooses a room (ADR-0396), but its messages here are the ordinary branch's. The Mistress posts 99 for a missing chamber, which ours
-    /// does not carry. 44 names the last flagged room in our room order, not DK2's room list.</remarks>
+    /// <remarks>A Workshop posts 43/42/44 only while an order is queued (player <c>+0xA1C</c>); a
+    /// Casino's search, while its keeper has a jackpot party (<c>+0xF4A</c>), meets only Casinos with
+    /// a party on (<c>+0x41</c>); a Mistress's missing Torture Chamber is 99. The Library has its own
+    /// order (<see cref="NoLibraryFor"/>). 44 names the last flagged room in our room order, not DK2's
+    /// room list.</remarks>
     public static PlayerMessage? NoJobRoomFor(
         SimulationContext context, CreatureState creature, CreatureDef definition, RoomTypeId wants)
     {
+        if (wants == RoomTypeId.Library) return NoLibraryFor(context, creature, definition);
         if (wants is not (RoomTypeId.TrainingRoom or RoomTypeId.Temple or RoomTypeId.TortureChamber
-            or RoomTypeId.Casino or RoomTypeId.Library or RoomTypeId.Workshop)) return null;
+            or RoomTypeId.Casino or RoomTypeId.Workshop)) return null;
         WorldState world = context.World;
         PlayerId player = creature.OwnerPlayerId;
-        RoomTypeId row = wants == RoomTypeId.Library ? RoomTypeId.Lair : wants;
-        if (world.Availability(player, AvailabilityKind.Room, (int)row) != Available) return null;
+        if (world.Availability(player, AvailabilityKind.Room, (int)wants) != Available) return null;
 
         var rooms = RoomIndex.Build(world, context.Database)
             .Where(r => r.OwnerPlayerId == player && r.Definition.TypeId == wants && r.TileIndices.Count > 0).ToList();
         if (rooms.Count == 0)
-            return wants == RoomTypeId.TortureChamber && creature.CreatureTypeId == MistressCreatureId
-                ? null : Post(context, player, PlayerMessageKind.RoomNeeded, wants);
-        if (wants is RoomTypeId.Library or RoomTypeId.Workshop) return null;
+            return Post(context, player, wants == RoomTypeId.TortureChamber && creature.CreatureTypeId == MistressCreatureId
+                ? PlayerMessageKind.RoomWanted : PlayerMessageKind.RoomNeeded, wants);
+        if (wants == RoomTypeId.Workshop && world.Player(player).ManufactureQueue.Count == 0) return null;
+        bool party = wants == RoomTypeId.Casino && world.Player(player).CasinoParties != 0;
 
         bool full = false;
         RoomInstance? unequipped = null;
         long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
         foreach (RoomInstance room in rooms)
         {
+            if (party && !CasinoJackpotRules.IsPartyOn(world, room)) continue;
             if (!CanReachRoom(context, creature, definition, room, MoveOptions.Loose)) continue;
             if (HasPlace(world, context.Database, room, creature)) return null; // DK2 would have taken it
             if (wants == RoomTypeId.TortureChamber && RoomCapacityRules.HasRoom(world, context.Database, room, creature.Id)) continue;
@@ -271,6 +274,144 @@ public static class RoomNeedRules
         if (full) return Post(context, player, PlayerMessageKind.RoomFull, wants);
         return unequipped is null ? null
             : Post(context, player, PlayerMessageKind.RoomUnequipped, wants, SlabChain.FirstSlab(world, unequipped));
+    }
+
+    /// <summary>The Library finder (<c>0x004E2500</c>) found no room, under the Lair's availability
+    /// row. Each reachable Library first asks for a shelf (<see cref="ResearchTreeRules.FindShelf"/>,
+    /// one draw), then for a place: none past <see cref="FullRoomGraceSeconds"/> flags 45 or 42 when
+    /// its <c>+0xA3</c> holds, 44 when not. No Library posts 41; with no research target
+    /// (<c>+0x213</c>) nothing more; then 43 for one with a shelf and a place that the option-2 route
+    /// misses (another draw each), 45, 42 and 44, both of them naming the last flagged room.</summary>
+    /// <remarks>DK2's candidate search makes the first loop's draws on every call; ours chooses a Library
+    /// without a shelf test (<see cref="RoomCapacityRules.FindRoomWithPlace"/>) and draws only here.</remarks>
+    public static PlayerMessage? NoLibraryFor(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        WorldState world = context.World;
+        PlayerId player = creature.OwnerPlayerId;
+        var libraries = RoomIndex.Build(world, context.Database)
+            .Where(r => r.OwnerPlayerId == player && r.Definition.TypeId == RoomTypeId.Library && r.TileIndices.Count > 0).ToList();
+
+        bool candidate = false, storage = false, full = false, unequipped = false;
+        RoomInstance? last = null;
+        long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
+        foreach (RoomInstance room in libraries)
+        {
+            if (!CanReachRoom(context, creature, definition, room, MoveOptions.Loose)) continue;
+            bool shelf = ResearchTreeRules.FindShelf(context, room) >= 0;
+            if (shelf && RoomCapacityRules.HasRoom(world, context.Database, room, creature.Id)) { candidate = true; continue; }
+            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, room) <= grace) continue;
+            if (!IsEquipped(world, room)) { unequipped = true; last = room; }
+            else if (!shelf) { storage = true; last = room; }
+            else full = true;
+        }
+
+        if (candidate || world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Lair) != Available) return null;
+        if (libraries.Count == 0) return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Library);
+        if (world.Player(player).ResearchTarget == 0) return null;
+
+        foreach (RoomInstance room in libraries)
+            if (ResearchTreeRules.FindShelf(context, room) >= 0
+                && RoomCapacityRules.HasRoom(world, context.Database, room, creature.Id)
+                && !CanReachRoom(context, creature, definition, room, IgnoreDoors))
+                return Post(context, player, PlayerMessageKind.RoomUnreachable, RoomTypeId.Library);
+        if (storage) return Post(context, player, PlayerMessageKind.RoomStorageFull, RoomTypeId.Library, SlabChain.FirstSlab(world, last!));
+        if (full) return Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Library);
+        return unequipped ? Post(context, player, PlayerMessageKind.RoomUnequipped, RoomTypeId.Library, SlabChain.FirstSlab(world, last!)) : null;
+    }
+
+    /// <summary>The spectator finder (<c>0x004D8510</c>, job 26) found no Combat Pit: only pits with a
+    /// fight on (<see cref="CombatPitSpectatorRules.FightOn"/>, which stamps each) count, so it never
+    /// posts 41. A reachable one without a place past <see cref="FullRoomGraceSeconds"/> flags 42, or
+    /// 44 without an interior; then at availability 3, 43 for one with a fight and a place the
+    /// option-2 route misses, 42, 44.</summary>
+    public static PlayerMessage? NoSpectatorPitFor(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        WorldState world = context.World;
+        PlayerId player = creature.OwnerPlayerId;
+        var pits = RoomIndex.Build(world, context.Database)
+            .Where(r => r.OwnerPlayerId == player && r.Definition.TypeId == RoomTypeId.CombatPit && r.TileIndices.Count > 0).ToList();
+
+        bool candidate = false, full = false;
+        RoomInstance? unequipped = null;
+        long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
+        foreach (RoomInstance pit in pits)
+        {
+            if (!CombatPitSpectatorRules.FightOn(context, pit) || !CanReachRoom(context, creature, definition, pit, MoveOptions.Loose)) continue;
+            if (RoomCapacityRules.HasRoom(world, context.Database, pit, creature.Id)) { candidate = true; continue; }
+            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, pit) <= grace) continue;
+            if (IsEquipped(world, pit)) full = true;
+            else unequipped = pit;
+        }
+
+        if (candidate || pits.Count == 0) return null;
+        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.CombatPit) != Available) return null;
+        foreach (RoomInstance pit in pits)
+            if (CombatPitSpectatorRules.FightOn(context, pit) && !CanReachRoom(context, creature, definition, pit, IgnoreDoors)
+                && RoomCapacityRules.HasRoom(world, context.Database, pit, creature.Id))
+                return Post(context, player, PlayerMessageKind.RoomUnreachable, RoomTypeId.CombatPit);
+        if (full) return Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.CombatPit);
+        return unequipped is null ? null
+            : Post(context, player, PlayerMessageKind.RoomUnequipped, RoomTypeId.CombatPit, SlabChain.FirstSlab(world, unequipped));
+    }
+
+    /// <summary>The fighter's pit finder (<c>CombatPit_FindForCreature</c>, <c>0x004D8870</c>), which
+    /// the Training handler (<c>0x00485240</c>) calls for a creature at or above
+    /// <c>TrainingRoomMaxExperienceLevel</c> and below <c>CombatPitMaxExperienceLevel</c>, only for its
+    /// messages. A reachable pit draws a floor slot (<c>0x004E8210</c>, one draw when it has any) and
+    /// asks the drop test (<see cref="DropTest"/>): no floor slot past
+    /// <see cref="FullRoomGraceSeconds"/> flags 42; a failed drop test past it flags 44 when
+    /// <c>+0xA3</c> is clear, else 42. Then no pit 41; 43 for a pit the option-2 route misses whose
+    /// slot draw and drop test pass; 42; 44 naming the room.</summary>
+    public static PlayerMessage? NoFightingPitFor(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        WorldState world = context.World;
+        PlayerId player = creature.OwnerPlayerId;
+        var pits = RoomIndex.Build(world, context.Database)
+            .Where(r => r.OwnerPlayerId == player && r.Definition.TypeId == RoomTypeId.CombatPit && r.TileIndices.Count > 0).ToList();
+
+        bool candidate = false, full = false;
+        RoomInstance? unequipped = null;
+        long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
+        foreach (RoomInstance pit in pits)
+        {
+            if (!CanReachRoom(context, creature, definition, pit, MoveOptions.Loose)) continue;
+            bool slot = RandomFloorSlot(context, pit);
+            if (slot && DropTest(world, pit)) { candidate = true; continue; }
+            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, pit) <= grace) continue;
+            if (slot && !IsEquipped(world, pit)) unequipped = pit;
+            else full = true;
+        }
+
+        if (candidate || world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.CombatPit) != Available) return null;
+        if (pits.Count == 0) return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.CombatPit);
+        foreach (RoomInstance pit in pits)
+            if (!CanReachRoom(context, creature, definition, pit, IgnoreDoors) && RandomFloorSlot(context, pit) && DropTest(world, pit))
+                return Post(context, player, PlayerMessageKind.RoomUnreachable, RoomTypeId.CombatPit);
+        if (full) return Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.CombatPit);
+        return unequipped is null ? null
+            : Post(context, player, PlayerMessageKind.RoomUnequipped, RoomTypeId.CombatPit, SlabChain.FirstSlab(world, unequipped));
+    }
+
+    /// <summary><c>0x004E8210(1, 0)</c>'s answer: whether the room has a floor slot, drawing one of them
+    /// at random (the draw's tile is not used here).</summary>
+    private static bool RandomFloorSlot(SimulationContext context, RoomInstance room)
+    {
+        int count = AutoFurnitureRules.FloorSlotSet(context.World, room).Count;
+        if (count == 0) return false;
+        context.Rng.NextInt(count);
+        return true;
+    }
+
+    /// <summary><c>0x004D8430</c> at a floor slot: true while the creatures standing on the pit's floor
+    /// slots number fewer than its floor slots (<c>0x004D84FB</c> <c>CMP EBP,EDI</c>). Creatures in the
+    /// hand are off the map and do not count.</summary>
+    private static bool DropTest(WorldState world, RoomInstance pit)
+    {
+        HashSet<int> slots = AutoFurnitureRules.FloorSlotSet(world, pit);
+        int standing = 0;
+        foreach (CreatureState c in world.Creatures)
+            if (!HandRules.IsHeld(c) && world.Contains(c.Tile) && slots.Contains(world.TileIndex(c.Tile))) standing++;
+        return standing < slots.Count;
     }
 
     /// <summary>The finder's place test: two creatures' units for a Torture Chamber; a Casino passes
@@ -295,9 +436,13 @@ public static class RoomNeedRules
     {
         RoomTypeId.TrainingRoom => HasAttached(world, room, 14, 29),
         RoomTypeId.TortureChamber => HasAttached(world, room, TortureRules.WheelObjectId, TortureRules.ElectricChairObjectId),
-        RoomTypeId.Casino => room.InteriorTileCount > 0,
+        RoomTypeId.Casino or RoomTypeId.Library or RoomTypeId.CombatPit => room.InteriorTileCount > 0,
+        RoomTypeId.Workshop => HasAttached(world, room, AnvilObjectId, SteelBucketObjectId)
+            || HasAttached(world, room, WorkBenchObjectId, WorkBenchObjectId),
         _ => false,
     };
+
+    private const byte AnvilObjectId = 15, SteelBucketObjectId = 16, WorkBenchObjectId = 46;
 
     private static bool HasAttached(WorldState world, RoomInstance room, byte first, byte second)
     {

@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 207: the rescue selector's room messages and the Prison's Activation (ADR-0412)
+        // HashVersion 208: the job-room finders' remaining messages and Temple and Combat Pit capacity (ADR-0413)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xEC031DFFFBBCFE6BUL, sim.StateHash());
+        Assert.Equal(0xDF2D50DC47317F6EUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

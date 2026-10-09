@@ -9479,3 +9479,26 @@ laid or loaded (a new level's loader inserts its tiles one by one, `0x0051EC60` 
 rescue message fires on them. Deviates: DK2 carries a bedless own creature to a Lair with a place
 (result 4); ours leaves it. DK2 settles its two results once per state update, ours once per
 body search; the `+0x2B` spiral's order is not read (ours takes the nearest tile). A sealed Prison now refuses a body that ours used to carry in.
+
+## ADR-0413 — The job-room finders post their remaining messages, and a Temple or Combat Pit holds one per rim tile
+**Date:** 2026-10-09 · **Status:** accepted · Research: `computer-keeper-messages.md` §2; `functions/004E2500.md`, `004D8870.md`, `004E3ED0.md`
+
+**Context.** The finders' message branches stopped at 41 for the Library and the Workshop, the
+Casino's party branch and the Mistress's 99 were not carried, the Temple had no capacity, so its
+44 could not arise, and neither Combat Pit finder posted anything (Q543).
+
+**Decision.** `RoomNeedRules.NoJobRoomFor` gates the Workshop's 43/42/44 on its queue
+(`+0xA1C`), restricts the Casino's first loop to Casinos with a party on while `+0xF4A` is set,
+and posts 99 (`RoomWanted`) for a Mistress's missing Torture Chamber. `NoLibraryFor` mirrors
+`0x004E2500`: a shelf draw (`0x004E1AC0`) per reachable Library, then 41, the research-target
+return, 43 (another draw each), 45 (`RoomStorageFull`), 42 and 44. `NoSpectatorPitFor`
+(`0x004D8510`) runs when job 26 finds no pit; `NoFightingPitFor` (`0x004D8870`) runs from the
+Training job for a creature between the two level caps, as `Job_StartTrain` calls it, with a
+floor-slot draw (`0x004E8210`) and the drop test `0x004D8430` (fewer creatures on the floor
+slots than slots). `AutoFurnitureRules.TryTotalCapacity` gives the Temple and the Combat Pit
+their rim (`0x004E3ED0`). Messages 45 and 99 take their subtables' lifetimes.
+
+**Consequences.** Levels 1 and 2 replays are unchanged (20/20, 4/20); Level 3 over seeds 1-10
+wins 7 against master's 8, the one change being seed 1, whose stream a Library draw at 2269
+moves. Deviates: our Library choice has no shelf test, so DK2's first-loop draws happen only when
+ours finds none. A full Temple now refuses a worshipper.

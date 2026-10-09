@@ -244,22 +244,22 @@ after-tile-change pass: a Training Dummy (14) or Target (29) attached
 (`0x004F2EA0`), a Torture Wheel or Electric Chair (`0x004F1F10`), an Anvil, Steel
 Bucket or Work Bench (`0x004F5530`), any interior tile for a Library, Combat Pit or
 (inferred) Casino; a Temple's is only zeroed, so a full Temple posts 44, never 42.
-It is stored when the pass runs, at a rebuild; ours reads the furniture live, which agrees:
-the player cannot place it, it follows the room's size (owner, 2026-10-05).
+Ours reads it live, which agrees: the furniture follows the room's size (owner, 2026-10-05).
 Torture's place is two creatures' units (one unit free is silent) and its missing
-room is 99 when creature type `+0x36F` is 4, the Mistress, and its owner `+0x28` is
-the searching player (ours always searches for the owner). A Casino with a lever
-(`+0x53`) is a candidate without a place, and its 43 wants both; with player
-`+0xF4A` set it reads only rooms with `+0x41`: the keeper's count of Casinos with a jackpot party
-on and the room's party flag (`casino.md`, the party). Workshop's 43/42/44
-also need player byte `+0xA1C`, the count of the manufacture queue at player `+0x219`
-(`state-category-hooks.md` §3.4 gives its layout; enqueue `0x005066E0`). So a Workshop asks for
-itself only while something is ordered. Ours keeps the count as `PlayerState.ManufactureQueue.Count`. Row 44 is `0xA000` with subtable `0x006A08E0`:
-types 1, 2 and 4 at 120 s, 6, 7 and 9–16 at 240 s, a terminator with a string.
-`0x004D8510` is the spectator finder (`combat-pit-spectators.md`): with a Pit and a
-fight on it posts 43/42/44, never 41. The shared capacity predicate is in
-`state-category-hooks.md` §3.5; Library storage and Workshop crate gates are
-in `library-and-research.md` §7 and `workshop-crates.md` §3.
+room is 99 when creature type `+0x36F` is 4, the Mistress (row 99: `0xA000`, subtable
+`0x006A0448`, 41's lifetimes under one string). A Casino with a lever (`+0x53`) is a
+candidate without a place, and its 43 wants both; while the keeper's jackpot-party count
+`+0xF4A` is set, its first loop meets only Casinos with a party on (`+0x41`, `casino.md`).
+The Workshop's 43/42/44 need player byte `+0xA1C`, the manufacture queue's count
+(`state-category-hooks.md` §3.4; ours `ManufactureQueue.Count`). The Library's
+(`0x004E2500`) asks each reachable Library for a shelf (`0x004E1AC0`, a draw) before a
+place: missing, it flags 45 (row `0xA000`, subtable `0x006A08C8`: Library and Workshop,
+120 s) when `+0xA3` is set, else 44; then 41, the research-target return, 43, 45, 42, 44.
+The Temple's and Combat Pit's capacity is their rim (`0x004E3ED0`, the cells
+`0x00454110` rejects), so a full Temple posts 44. The spectator finder `0x004D8510`
+counts only pits with a fight on and never posts 41; the fighter's `0x004D8870`, called by
+`Job_StartTrain` for a creature between the Training and Combat Pit level caps, posts 41,
+43, 42 or 44; its drop test `0x004D8430` fails a pit whose floor slots are all stood on. Row 44's subtable `0x006A08E0`: 1, 2, 4 at 120 s, 6, 7, 9–16 at 240 s. Built: ADR-0413.
 
 The rescue selector `0x0046D810` separately caches Lair and Prison searches
 on the worker state. Missing room plus availability 3 produces result 1;
