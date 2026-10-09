@@ -82,7 +82,7 @@ public static class CarryRules
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
             if (room.OwnerPlayerId != worker.OwnerPlayerId) continue;
-            if (room.Definition.TypeId != RoomTypeId.Graveyard) continue;
+            if (room.Definition.TypeId != RoomTypeId.Graveyard || !GraveyardRules.HasPlace(world, room)) continue;
 
             foreach (int tileIndex in room.TileIndices)
             {

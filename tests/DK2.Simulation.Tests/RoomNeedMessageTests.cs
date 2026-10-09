@@ -80,17 +80,33 @@ public class RoomNeedMessageTests
     }
 
     [Fact]
-    public void AnUnlistedRoomAndTheSuppressedGraveyardRequestAreRefusedBut42KeepsItsTerminatorRecord()
+    public void AnUnlistedRoomIsRefusedBut42KeepsItsTerminatorRecord()
     {
         WorldState world = World();
         Assert.Throws<ArgumentOutOfRangeException>(() => world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomNeeded, RoomTypeId.Portal));
         Assert.Throws<ArgumentOutOfRangeException>(() => world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomUnreachable, RoomTypeId.DungeonHeart));
-        Assert.Throws<NotSupportedException>(() => world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomNeeded, RoomTypeId.Graveyard));
         Assert.Throws<ArgumentOutOfRangeException>(() => world.Messages.PostRoom(world, Keeper, PlayerMessageKind.CombatStarted, RoomTypeId.Lair));
         Assert.Empty(world.Messages.Entries);
 
         // 42's terminator row names a string: the record stays, with timeout zero, until the next sweep.
         Assert.Equal(0u, world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomFull, RoomTypeId.Portal)!.Value.Timeout);
+    }
+
+    [Fact]
+    public void AGraveyardIsAskedForOnceAPlayerALevel_TheFlagStartingClearAsAFreshHeapWould()
+    {
+        // +0xF4E: the first 41 or 99 for a Graveyard sets it and every later one is refused, even
+        // after the record expires; DK2 never initialises it (zero is the heap's usual value, Q544).
+        WorldState world = World();
+        Assert.False(world.Player(Keeper).GraveyardWantedPosted);
+        PlayerMessage first = world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomNeeded, RoomTypeId.Graveyard)!.Value;
+        Assert.Equal((uint)(600 * Second), first.Timeout);
+        Assert.True(world.Player(Keeper).GraveyardWantedPosted);
+        new GameSimulation(Db, world, 1, []).Run(600 * Second);
+        Assert.Empty(world.Messages.Entries);
+        Assert.Null(world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomNeeded, RoomTypeId.Graveyard));
+        Assert.Null(world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomWanted, RoomTypeId.Graveyard));
+        Assert.NotNull(world.Messages.PostRoom(world, Keeper, PlayerMessageKind.RoomNeeded, RoomTypeId.Lair));
     }
 
     [Fact]

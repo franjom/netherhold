@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 208: the job-room finders' remaining messages and Temple and Combat Pit capacity (ADR-0413)
+        // HashVersion 209: the corpse selections' Graveyard messages and the +0xF4E flag (ADR-0414)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xDF2D50DC47317F6EUL, sim.StateHash());
+        Assert.Equal(0xE29E7F167923B105UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

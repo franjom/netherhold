@@ -449,6 +449,11 @@ public struct PlayerState
     /// party branch (casino.md §9).</summary>
     public int CasinoParties;
 
+    /// <summary>Player <c>+0xF4E</c>: set when a 41 or 99 for a Graveyard is first admitted
+    /// (<c>0x004C5650</c>), refusing every later one (<c>0x004C5530</c>). Nothing clears it and no
+    /// code initialises it; ours starts at false, the heap's usual zero (HYPOTHESIS, Q544). Saved.</summary>
+    public bool GraveyardWantedPosted;
+
     /// <summary>
     /// The Hand of Evil: the <b>things</b> this keeper is holding, in pick-up order.
     /// Things, not creatures (ADR-0075) — DK2 keeps one array of thing ids on the
@@ -509,6 +514,7 @@ public struct PlayerState
         hash.Add(CallToArms.ManaTick);
         hash.Add(PortalsClosed ? (byte)1 : (byte)0);
         hash.Add(CasinoParties);
+        hash.Add(GraveyardWantedPosted ? (byte)1 : (byte)0);
         hash.Add(Availabilities.Count);
         foreach (AvailabilityState availability in Availabilities)
             availability.HashInto(ref hash);

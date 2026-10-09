@@ -306,18 +306,11 @@ public sealed partial class ImpTaskSystem
 
         if (creature.CarriedCreatureId >= 0 || creature.GoldHeld > 0) return false;
 
-        // The graveyard is found ONCE, not once per tile the search touches:
-        // CarryRules.TryDestinationFor rebuilds the room index, and calling it
-        // from inside a whole-map predicate makes the search quadratic in the
-        // map.
-        int graveyard = corpses
-            ? CarryRules.NearestGraveyardTile(world, context.Database, creature)
-            : -1;
-
-        if (corpses && graveyard < 0) return false;
-
-        // 0x0046D810 settles the Lair and the Prison once per scan, the first time a body asks.
+        // 0x0046D810 settles the Lair and the Prison once per scan, the first time a body asks, and
+        // the corpse selections their Graveyard (once, not per tile: the room index is rebuilt).
         _lairResult = _prisonResult = null;
+        _corpseGraveyard = null;
+        int graveyard = -1;
 
         bool found = _pathfinder.TryFindNearest(
             grid, creature.Tile,
@@ -363,7 +356,8 @@ public sealed partial class ImpTaskSystem
     /// result, or an own creature's Lair result when it has no bed. Duplicates are harmless: 41-43
     /// keep one record per room type.
     /// An enemy is carried only on result 4. DK2 also carries a bedless own creature to a Lair with
-    /// a place (result 4); ours leaves it, having no bed to take it to.</remarks>
+    /// a place (result 4); ours leaves it, having no bed to take it to. A corpse, likewise only on
+    /// its keeper's tile, asks <see cref="GraveyardRules.ForCorpse"/> once per search.</remarks>
     private CreatureState? BodyToCarryAt(
         SimulationContext context, CreatureState worker, CreatureDef definition,
         TilePos at, bool corpses, int graveyard)
@@ -379,7 +373,12 @@ public sealed partial class ImpTaskSystem
 
             // The selector meets only bodies on a tile its keeper owns (the cell word +0x08's
             // low 12 bits against the worker's owner); elsewhere it neither posts nor carries.
-            if (!corpses && world.Tile(at).OwnerPlayerId != worker.OwnerPlayerId) continue;
+            if (world.Tile(at).OwnerPlayerId != worker.OwnerPlayerId) continue;
+            if (corpses)
+            {
+                _corpseGraveyard ??= GraveyardRules.ForCorpse(context, worker, search: _only is null);
+                graveyard = _corpseGraveyard.Value;
+            }
 
             if (!corpses && body.OwnerPlayerId != worker.OwnerPlayerId)
             {

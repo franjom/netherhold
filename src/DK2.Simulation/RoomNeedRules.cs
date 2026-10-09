@@ -11,9 +11,10 @@ namespace DK2.Simulation;
 /// <summary>The room messages 41 to 43 posted where a Treasury, a Lair or a Hatchery is looked for
 /// and not found: the gold carrier's store chooser, the gold a sale could not store, the Lair finder
 /// and the Hatchery finder (computer-keeper-messages.md section 2). Each producer has its own gates.</summary>
-/// <remarks>Also the rescue selector's (<c>0x0046D810</c>). Not built here: the Combat Pit and
-/// Graveyard finders, the claim failure <c>0x004E5A70</c> and <c>0x004BA420</c>'s callers other than
-/// the room sale.</remarks>
+/// <remarks>Also the rescue selector's (<c>0x0046D810</c>), the job-room finders' and both Combat Pit
+/// finders'; the corpse selections' are <see cref="GraveyardRules.ForCorpse"/> and the claim
+/// failure's (<c>0x004E5A70</c>) <see cref="RoomCapacityRules"/>. Not built: <c>0x004BA420</c>'s
+/// callers other than the room sale.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-messages.md")]
 public static class RoomNeedRules
 {

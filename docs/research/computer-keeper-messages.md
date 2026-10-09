@@ -127,7 +127,7 @@ called at each level load, takes the seven records from an uncleared `HeapAlloc`
 `0x004C5650` (1, at `0x004C5693`), its one reader the gate (`0x004C5575`); only a saved-game load
 refills it (`0x004B9250`). So 41/99 Graveyard is admitted at most once per player per level, and a
 save keeps the flag. The first value is the heap's: typically 0 (HYPOTHESIS; no code decides it).
-Ours should start it at 0 as a modelling choice, and not draw a random value (record `0x004C5650`).
+Ours starts it at 0, a modelling choice, and saves it (`GraveyardWantedPosted`, ADR-0414).
 
 ## 2. Producers and payloads
 
@@ -208,7 +208,7 @@ Room availability and room need are separate conditions. The finders' branches:
 | `0x004DED00` | Hatchery / 41, 42, 43 | Availability 3. Stocked means a non-empty `ObjectList` (`+0x0C`), which holds chickens and no coop (`hatchery.md` §3); a stocked room the `0x80` route reaches is chosen. No room gives 41; else a stocked room route option 2 cannot reach gives 43; else an empty reached room with `ChickensGenerated` (`+0x51`) non-zero, more than four seconds past `room+0x9F`, gives 42. Pending build or sale suppresses all three (rechecked 2026-10-02). |
 | `0x004E0470` | Lair / 41, 42, 43 | Availability 3. A Lair the `0x80` route reaches with a slot is chosen. No Lair gives 41 unless a build or sale is pending; else a Lair with a slot that route option 2 cannot reach gives 43; else a reached full Lair more than four seconds past `room+0x9F` gives 42 (rechecked 2026-10-02). |
 | `0x004D8870` | Combat Pit / 41, 42, 43, 44 | Availability 3 and no pending build/sale for each message. Four-second timing applies to the unusable-place branches. Message 44 carries the room tag; the others carry zero. |
-| `0x0046CF40`, `0x0046D3C0` | Graveyard / 41, 42 | Both require availability 3 for absent-room 41. Only `0x0046CF40` rechecks availability 3 on the failed-capacity 42 branch. |
+| `0x0046CF40`, `0x0046D3C0` | Graveyard / 41, 42 | Both require availability 3 for absent-room 41. Only `0x0046CF40` rechecks availability 3 on the failed-capacity 42 branch. Built (ADR-0414). |
 
 The pending-work predicates `0x004C7340` and `0x004C7360` scan three room-type
 bytes, stride `0x19`, at player `+0x1C2` and `+0xE97`. Their writers are the

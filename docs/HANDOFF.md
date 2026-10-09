@@ -39,7 +39,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   walk reads is produced where ours has the event and consumed (ADR-0353): room
   messages 41–44 and 32–35 make it build, expand or re-choose a room (ADR-0327,
   ADR-0335), 17/18 make it pay, feed, move or dispose of a creature, and 12, 34
-  and 47 start a threat response; the unproduced rest is Q542–Q544. Reactive combat
+  and 47 start a threat response; the rescue, job-room and Graveyard producers post theirs (ADR-0412–0414). Reactive combat
   messages, threat response, wounded retreat, the battle step, Call to Arms,
   Thunderbolt, Heal, Chicken and Inferno run through simulation commands, and the
   gold step's Create Gold and step 14's Sight of Evil are cast where DK2's are (ADR-0352).
@@ -67,10 +67,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 ## Next work
 
-1. M12: the message producers left unbuilt wait on unread fields or unmodelled
-   state (Q542 rescue, Q543 finder gates, Q544 Graveyard; computer-keeper-messages.md
-   §4). Verify each in DKII.EXE, then test the command's
-   effect through the simulation. The research move, prisoner/special
+1. M12: the Q542–Q544 producers are built (ADR-0412–0414); a corpse lying in a Graveyard
+   is not (Q578), nor `0x004BA420`'s room messages other than the sale's. The research move, prisoner/special
    decisions, trap/door decisions and personality loader also remain
    (KEEPER_AI.md §12.7). Do not infer an UNKNOWN rule from a name.
 2. M12: the same-map comparison is done (two captures, the acceptance table at

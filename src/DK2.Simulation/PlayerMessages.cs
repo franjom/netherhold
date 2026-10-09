@@ -199,10 +199,10 @@ public sealed class PlayerMessageQueue
 
     public PlayerMessage? Post(WorldState world, byte recipient, PlayerMessageKind kind, int data1, int data2)
     {
-        // 41 for a Graveyard is admitted only through the player's +0xF4E suppression word
-        // (0x004C5530): set once admitted, never cleared or initialised by DK2, so once a level (Q544).
-        if (kind is PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomWanted && data1 == (int)RoomTypeId.Graveyard)
-            throw new NotSupportedException("Message 41 for a Graveyard reads the unmodelled +0xF4E suppression.");
+        // 41 or 99 for a Graveyard passes the player's +0xF4E word (0x004C5530) only while it is
+        // clear, and a new record sets it (0x004C5650): once a player a level (Q544).
+        bool graveyardWanted = kind is PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomWanted
+            && data1 == (int)RoomTypeId.Graveyard;
         uint timeout = kind switch
         {
             PlayerMessageKind.HeartAttacked => (uint)SimulationTiming.TicksFromSeconds(120),
@@ -237,12 +237,14 @@ public sealed class PlayerMessageQueue
         if (timeout == uint.MaxValue) return null;
         if (world.Player(recipient).Status != PlayerStatus.Playing || !world.Triggers.NotificationsEnabled)
             return null;
+        if (graveyardWanted && world.Player(recipient).GraveyardWantedPosted) return null;
         if (kind is not (PlayerMessageKind.RoomLost or PlayerMessageKind.CasinoRowdy)
             && Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained) return retained;
         if (_entries.Count == Capacity) _entries.RemoveAt(0);
         var added = new PlayerMessage(_nextId, recipient, kind, data1, data2, 0, timeout, true, false);
         _nextId = unchecked(_nextId + 1);
         _entries.Add(added);
+        if (graveyardWanted) world.Player(recipient).GraveyardWantedPosted = true;
         return added;
     }
 

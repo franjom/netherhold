@@ -66,6 +66,15 @@ public class CarryingTests
         RoomRules.Place(db, ref tile, db.Room(type), Keeper);
     }
 
+    /// <summary>A 3x3 Graveyard at (4..6, 1..3), opened out of the rock beside the fixture's floor: a
+    /// corpse needs a floor slot, which a smaller one lacks (ADR-0414).</summary>
+    private static void Graveyard(GameDatabase db, WorldState world)
+    {
+        for (int y = 1; y <= 3; y++)
+            for (int x = 4; x <= 6; x++)
+                Paint(db, world, RoomTypeId.Graveyard, new TilePos(x, y));
+    }
+
     // ---- the rescue -------------------------------------------------------
 
     [Theory]
@@ -423,7 +432,7 @@ public class CarryingTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Paint(db, world, RoomTypeId.Graveyard, new TilePos(1, 1));
+        Graveyard(db, world);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         CreatureDeathRules.BecomeCorpse(world, db, goblin);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
@@ -445,7 +454,7 @@ public class CarryingTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Paint(db, world, RoomTypeId.Graveyard, new TilePos(1, 1));
+        Graveyard(db, world);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         CreatureDeathRules.BecomeCorpse(world, db, goblin);
@@ -513,7 +522,7 @@ public class CarryingTests
         WorldState world = World(db);
         var lair = new TilePos(1, 1);
         Paint(db, world, RoomTypeId.Lair, lair);
-        Paint(db, world, RoomTypeId.Graveyard, new TilePos(1, 2));
+        Graveyard(db, world);
 
         // The corpse is right beside the imp.
         CreatureState corpse = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
@@ -541,7 +550,7 @@ public class CarryingTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Paint(db, world, RoomTypeId.Graveyard, new TilePos(1, 1));
+        Graveyard(db, world);
 
         CreatureState corpse = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         CreatureDeathRules.BecomeCorpse(world, db, corpse);
@@ -569,7 +578,7 @@ public class CarryingTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Paint(db, world, RoomTypeId.Graveyard, new TilePos(1, 1));
+        Graveyard(db, world);
 
         CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
@@ -596,7 +605,7 @@ public class CarryingTests
         // ADR-0018), and is not offered a body at all.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Paint(db, world, RoomTypeId.Graveyard, new TilePos(1, 1));
+        Graveyard(db, world);
 
         CreatureState corpse = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         CreatureDeathRules.BecomeCorpse(world, db, corpse);
@@ -644,7 +653,7 @@ public class CarryingTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Paint(db, world, RoomTypeId.Graveyard, new TilePos(1, 1));
+        Graveyard(db, world);
 
         CreatureState corpse = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         CreatureDeathRules.BecomeCorpse(world, db, corpse);

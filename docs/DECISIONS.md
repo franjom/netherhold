@@ -9502,3 +9502,24 @@ their rim (`0x004E3ED0`). Messages 45 and 99 take their subtables' lifetimes.
 wins 7 against master's 8, the one change being seed 1, whose stream a Library draw at 2269
 moves. Deviates: our Library choice has no shelf test, so DK2's first-loop draws happen only when
 ours finds none. A full Temple now refuses a worshipper.
+
+## ADR-0414 — The corpse selections ask for a Graveyard, once a level for 41
+**Date:** 2026-10-09 · **Status:** accepted · Research: `computer-keeper-messages.md` §1-2; `graveyard.md` §2; `functions/0046CF40.md`, `0046D3C0.md`
+
+**Context.** DK2's corpse selections post 41 and 42 for a Graveyard, and 41 (with 99) passes the
+player word `+0xF4E` only once: it is set when one is admitted and never cleared or initialised.
+Ours posted neither, refused 41 Graveyard outright, and carried a corpse to any Graveyard tile
+(Q544).
+
+**Decision.** `PlayerState.GraveyardWantedPosted` is `+0xF4E`: saved and hashed, false at a new
+level (DK2's heap usually holds zero; HYPOTHESIS), refusing 41/99 Graveyard while set and set by
+a new record. `GraveyardRules.ForCorpse` is the selections (`0x0046D3C0` for our search,
+`0x0046CF40` for the drop scan), asked at the first corpse on a tile the worker's keeper owns: no
+Graveyard posts 41 at availability 3; none with a place posts 42 (the search always, the drop
+scan at availability 3); either stops the carry; otherwise `0x004C6860` draws once and the corpse
+goes to the nearest Graveyard with a place. A place is a floor slot (`0x004E3ED0`, type 14).
+
+**Consequences.** Levels 1-3 replays as ADR-0413 left them. A Graveyard smaller than 3x3 takes
+no corpse, as in DK2; the tests and the burial scenario now use 3x3. Deviates: DK2 lays a corpse
+on its floor slot until it is destroyed there, holding the place (`0x004E6490`, `0x004B1070`);
+ours buries on arrival, so a Graveyard never fills (Q578).
