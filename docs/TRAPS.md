@@ -86,6 +86,12 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
   copies of the local `roslyn-lsp` plugin.json and start a new session.
 - Headless Blender resolves relative paths (render output, image loads) against its own idea of the
   working directory, not the shell's (renders landed in `C:\build`); `os.path.abspath` every path argument.
+- `codex mcp add` rewrites all of `~/.codex/config.toml`, dropping its comments and reordering
+  tables; back it up and append the `[mcp_servers.<name>]` block by hand.
+- `codex exec` never prompts, so it denies every MCP call that needs approval; approve a tool for
+  one run with `-c 'mcp_servers.<server>.tools.<tool>.approval_mode="approve"'`.
+- A Python CLI that prints non-ASCII to a cp1252 console crashes after its work is done
+  (`mcp-for-blender install-addon` copied the add-on, then raised); set `PYTHONIOENCODING=utf-8`.
 - Windows PowerShell with `$ErrorActionPreference = 'Stop'` aborts on a native command's first
   stderr line (Blender prints Python warnings there); set `Continue` around it and judge `$LASTEXITCODE`.
 

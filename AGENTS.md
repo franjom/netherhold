@@ -83,6 +83,18 @@ has loaded the solution, `findReferences` returns only same-file hits and
 gives no warning. Run one `workspaceSymbol` query first, then trust the
 results.
 
+## Blender MCP
+
+The `blender` MCP server (mcp-for-blender, configured for Claude Code and Codex) controls a
+running GUI Blender: scene inspection, viewport images, and Blender Python in the live session.
+Use it for interactive asset work and for checking a result by eye. Start Blender (the add-on
+serves `localhost:9876`), then start the session. **One agent drives Blender at a time**: both
+clients connect to the same scene. Inspect and `look` after each change. Put anything repeatable
+(generation, validation, export) in a committed script under `tools/blender/`, not in a chat
+session. Never edit or save the owner's open file without asking. Setup, versions,
+concurrency and troubleshooting: `tools/blender/MCP.md`. Asset work follows
+`docs/ART_DIRECTION.md` and `docs/ASSET_PIPELINE.md`.
+
 ## Architecture
 
 Game simulation must remain independent from Unity wherever practical.
