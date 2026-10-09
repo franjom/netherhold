@@ -79,13 +79,23 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Context-mode subprocess writes are discarded with its sandbox; use native tools for persistent build logs and artifacts.
 
 - A context-mode upgrade can arrive without `node_modules`, and FTS5 search then silently returns
-  only old content; `ctx_doctor` names it. Install `better-sqlite3@^12` out of tree with
-  `npm install --prefix <scratch>` and copy `node_modules` into the new plugin version's folder.
+  only old content; `ctx_doctor` names it. Install the bundle's externals out of tree with
+  `npm install --prefix <scratch>` at the versions in its `bun.lock` and copy them into the new plugin
+  version's `node_modules`: `better-sqlite3`, and `turndown`, `turndown-plugin-gfm` and
+  `@mixmark-io/domino`, without which `ctx_fetch_and_index` fails ("Cannot find module 'turndown'")
+  while `ctx_doctor` still passes. Claude (`~/.claude/plugins/cache/context-mode`) and Codex
+  (`~/.codex/plugins/cache/context-mode`) each have their own copy to fix.
 - The C# `LSP` tool runs the Roslyn server inside the VS Code C# extension's versioned folder; after
   VS Code updates that extension, every call "crashed with exit code 1". Update the version in both
   copies of the local `roslyn-lsp` plugin.json and start a new session.
 - Headless Blender resolves relative paths (render output, image loads) against its own idea of the
   working directory, not the shell's (renders landed in `C:\build`); `os.path.abspath` every path argument.
+- `codex mcp add` rewrites all of `~/.codex/config.toml`, dropping its comments and reordering
+  tables; back it up and append the `[mcp_servers.<name>]` block by hand.
+- `codex exec` never prompts, so it denies every MCP call that needs approval; approve a tool for
+  one run with `-c 'mcp_servers.<server>.tools.<tool>.approval_mode="approve"'`.
+- A Python CLI that prints non-ASCII to a cp1252 console crashes after its work is done
+  (`mcp-for-blender install-addon` copied the add-on, then raised); set `PYTHONIOENCODING=utf-8`.
 - Windows PowerShell with `$ErrorActionPreference = 'Stop'` aborts on a native command's first
   stderr line (Blender prints Python warnings there); set `Continue` around it and judge `$LASTEXITCODE`.
 

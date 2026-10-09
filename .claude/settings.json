@@ -2,7 +2,7 @@
   "enabledPlugins": {
     "unity@claude-plugins-official": true
   },
-  "enabledMcpjsonServers": ["pyghidra-mcp", "dk2kb"],
+  "enabledMcpjsonServers": ["pyghidra-mcp", "dk2kb", "blender"],
   "env": {
     "MCP_TIMEOUT": "120000"
   },

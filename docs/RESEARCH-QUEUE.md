@@ -211,7 +211,6 @@ touches no simulation code. The tools are `dk2tools kwd recscan`, `creaturescan`
 | Q | Question |
 |---|---|
 | **Q15** | What are the `THINGS(190)` chunk's 39 items in `GlobalVariables.kwd` for? The payloads parse (ADR-0091); their purpose is not recorded |
-| **Q84** | What is variable id **77**? Nine levels, mostly `Secret` ones. Id 66 is strongly inferred as the level's player count; the unparsed PLAYERS record would close it. Low priority |
 | **Q183** | What else is in the save's fixed block between the header and the grid? The player's gold is at `0x2dd4`; the rest is unread |
 | **Q220** | Does a standalone `GLOBALS(0)` chunk exist outside the shipped corpus? None in 408 editor files |
 | **Q221** | Is the 16-byte DeadBody THINGS payload right? No shipped record carries tag 202; needs a custom map |

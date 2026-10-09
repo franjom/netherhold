@@ -80,10 +80,9 @@ in-its-room skip and the walk to the object's own position):
   and kick first; ours has no entry and no stealing for kind 8;
 - walk to the object's own position with resume 30, not to the tile.
 
-`0x04` things go to a Library in the binary. `ObjectFlags` calls bit 2 `TypeSpecial` and
-`specials.md` has the hand collect a special through the same bit; whether an imp in the
-shipped game carries a special to a Library, and which objects carry bit 2, has not been
-checked against the definitions or asked of the owner (Q495).
+`0x04` things go to a Library in the binary. `ObjectFlags` calls bit 2 `TypeSpecial`, and
+objects 117–129 and 140 carry it: the specials. The owner has seen imps drag them to a
+Library (Q495, `specials.md` §1).
 
 ## 2. Kind 11 is the secret door (`0x0046CB80`)
 

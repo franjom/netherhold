@@ -388,10 +388,11 @@ from the source with no undocumented step.
 
 For the owner:
 
-1. **Render pipeline.** The Unity project uses the built-in pipeline today.
-   URP is the recommended candidate — creature crowds and hardware breadth favour
-   it — with HDRP only if the PoC shows URP cannot reach the look.
-2. **Unity interchange**: glTF through glTFast, or FBX. Decided in PoC step 7.
+1. **Render pipeline.** Decided: URP, carrying the classic and the modern
+   look as two material and lighting sets (ADR-0408).
+2. **Unity interchange** for the modern tier: glTF through glTFast, or FBX.
+   Decided in PoC step 7. The classic look needs none: Unity reads the
+   install through `KmfReader` (ADR-0408).
 3. **Where hand-touched derived work lives.** It cannot enter this repository;
    a private store is needed before the first manual edit.
 4. **When.** The PoC is pre-M11 work that no milestone schedules; M11 runs
