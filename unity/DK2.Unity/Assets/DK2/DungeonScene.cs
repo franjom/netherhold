@@ -52,6 +52,7 @@ namespace DK2.Unity
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private readonly int _worldWidth;
         private readonly ClassicMeshes _classic;
+        private readonly TerrainChunks _terrain;
         private readonly HashSet<int> _meshObjects = new HashSet<int>();
         private readonly HashSet<int> _meshCreatures = new HashSet<int>();
 
@@ -76,17 +77,25 @@ namespace DK2.Unity
         /// Y south. The one place the grid's axes meet Unity's.</summary>
         public static Vector3 Ground(float x, float y, float height = 0f) => new Vector3(x, height, -y);
 
-        /// <param name="classic">Draws install-backed objects with their real meshes; null keeps
-        /// every object a placeholder.</param>
-        public DungeonScene(Transform root, int worldWidth, ClassicMeshes classic = null)
+        /// <param name="classic">Draws install-backed objects, creatures, torches and plain terrain
+        /// with their real meshes; null keeps every one a placeholder.</param>
+        public DungeonScene(Transform root, int worldWidth, int worldHeight, ClassicMeshes classic = null)
         {
             _root = root;
             _worldWidth = worldWidth;
             _classic = classic;
+            if (classic != null) _terrain = new TerrainChunks(root, classic, worldWidth, worldHeight);
         }
 
         public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)
         {
+            // Step 1 of the classic look: plain terrain from its pieces; rooms, water and lava wait.
+            if (_terrain != null && _terrain.TrySet(tileIndex, tile))
+            {
+                ApplyFurniture(tileIndex, tile, furniture);
+                return;
+            }
+
             GameObject go = Instantiate(ground, $"tile {tile.Position.X},{tile.Position.Y}");
             if (go != null)
             {
@@ -246,6 +255,7 @@ namespace DK2.Unity
         /// </summary>
         public void Flush()
         {
+            _terrain?.Flush();
         }
 
         /// <summary>Destroys everything. Pair with <see cref="ScenePresenter.Resync"/>.</summary>
@@ -256,6 +266,7 @@ namespace DK2.Unity
             foreach (GameObject go in _creatures.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _objects.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _torches.Values) if (go != null) Object.Destroy(go);
+            _terrain?.Clear();
 
             _tiles.Clear();
             _furniture.Clear();

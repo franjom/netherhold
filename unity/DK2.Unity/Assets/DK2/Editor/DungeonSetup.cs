@@ -93,7 +93,7 @@ namespace DK2.Unity.Editor
 
                 var root = new GameObject("DK2 smoke test");
                 var assets = AssetProviderChain.Standard();
-                var scene = new DungeonScene(root.transform, world.Width);
+                var scene = new DungeonScene(root.transform, world.Width, world.Height);
                 var presenter = new ScenePresenter(new WorldView(database, 1), assets, scene);
 
                 presenter.Present(world);
@@ -172,7 +172,7 @@ namespace DK2.Unity.Editor
 
                     var root = new GameObject($"DK2 save smoke test: {Path.GetFileName(path)}");
                     var assets = AssetProviderChain.Standard();
-                    var scene = new DungeonScene(root.transform, world.Width);
+                    var scene = new DungeonScene(root.transform, world.Width, world.Height);
                     var presenter = new ScenePresenter(new WorldView(database, 1), assets, scene);
 
                     presenter.Present(world);

@@ -126,10 +126,9 @@ public static class AssetCatalogue
     /// terrain's <c>IsSolid</c> flag and never its id, so a mod-authored terrain
     /// stays correct. <c>Damage != 0</c> (lava) adds an effect key; nothing draws it
     /// yet, so the placeholder for an effect is nothing rather than a box.</para>
-    /// <para>Deviates: one mesh per solid terrain. DK2 draws a terrain as a face per open side
-    /// and a top, with a position-hashed variant and, on Reinforced Wall, a damage frame
-    /// (docs/research/floor-and-terrain-pieces.md, Q71); those pieces are read but not yet
-    /// catalogued. Room walls are (<see cref="ForRooms"/>).</para>
+    /// <para>Then the pieces DK2 builds a plain terrain from (<c>0x0043E860</c>,
+    /// floor-and-terrain-pieces.md §5, Q71; <see cref="ForTerrainPieces"/>), which the classic
+    /// look draws. The single key above stays for the placeholder and the converter.</para>
     /// </remarks>
     public static IEnumerable<AssetRef> ForTerrain(GameDatabase database)
     {
@@ -143,8 +142,60 @@ public static class AssetCatalogue
 
             if (terrain.Damage != 0)
                 yield return AssetRef.ForTerrain(terrain.Name, AssetKind.Effect);
+
+            foreach (AssetRef piece in ForTerrainPieces(terrain)) yield return piece;
         }
     }
+
+    /// <summary>The player sets of claimed quarters, "Claimed Floor{set}_{piece}" and
+    /// "Claimed Top{set}_{piece}": set = player id − 1, so 0 the heroes and 1 neutral (STRONGLY
+    /// INFERRED from their textures, T_Claimed_Good and T_Claimed_Neutral).</summary>
+    public const int ClaimedSets = 7, ClaimedPieces = 5;
+
+    /// <summary>
+    /// A plain terrain's pieces: a solid one's face (art 1), top (art 2) and tagged top (art 3,
+    /// when taggable); an open one's whole floor (art 0); and the player quarters of a
+    /// PlayerColouredPath floor or a PlayerColouredWall top. None for a room, whose pieces are its
+    /// own, or for water and lava, whose builder <c>0x0043E440</c> is unread.
+    /// </summary>
+    public static IEnumerable<AssetRef> ForTerrainPieces(TerrainDef terrain)
+    {
+        if (terrain is null) throw new ArgumentNullException(nameof(terrain));
+        TerrainFlags flags = terrain.Flags;
+        if ((flags & (TerrainFlags.Room | TerrainFlags.ConstructionTypeWater)) != 0) yield break;
+
+        if (terrain.IsSolid)
+        {
+            yield return TerrainPiece(terrain.Name, TerrainSide);
+            if ((flags & TerrainFlags.PlayerColouredWall) == 0)
+            {
+                yield return TerrainPiece(terrain.Name, TerrainTop);
+                if (terrain.IsTaggable) yield return TerrainPiece(terrain.Name, TerrainTopTagged);
+            }
+        }
+        else if ((flags & TerrainFlags.PlayerColouredPath) == 0)
+        {
+            yield return TerrainPiece(terrain.Name, TerrainFloor);
+        }
+
+        if ((flags & (TerrainFlags.PlayerColouredPath | TerrainFlags.PlayerColouredWall)) != 0)
+            for (int set = 0; set < ClaimedSets; set++)
+                for (int piece = 0; piece < ClaimedPieces; piece++)
+                    yield return TerrainQuarter(terrain.Name, set, piece);
+    }
+
+    /// <summary>The variants <see cref="TerrainPiece"/> takes: art 1, 2, 3 and 0.</summary>
+    public const string TerrainSide = "side", TerrainTop = "top", TerrainTopTagged = "toptagged",
+        TerrainFloor = "floor";
+
+    /// <summary>A plain terrain's whole piece: <see cref="TerrainSide"/>, <see cref="TerrainTop"/>,
+    /// <see cref="TerrainTopTagged"/> or <see cref="TerrainFloor"/>.</summary>
+    public static AssetRef TerrainPiece(string terrainName, string piece) =>
+        AssetRef.ForTerrain(terrainName, AssetKind.Mesh, piece);
+
+    /// <summary>A player-coloured quarter of a terrain: piece 0..4 of player set 0..6.</summary>
+    public static AssetRef TerrainQuarter(string terrainName, int set, int piece) =>
+        AssetRef.ForTerrain(terrainName, AssetKind.Mesh, $"quarter{set}{piece}");
 
     /// <summary>
     /// A floor texture and a mesh per room type — both for every room, because a DK2

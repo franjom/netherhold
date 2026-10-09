@@ -125,12 +125,42 @@ CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0
 (`0x0043E8FC..0x0043F1A8`) and the hero-wall scheme are LIKELY (decompile only).
 
 - A terrain with side art (`+0x1CB` bit 1) or PlayerColouredWall draws art 1 on each side whose
-  neighbour is on the map, visible and not nav-solid, unless that neighbour is a room that draws its
-  own walls and this terrain is AllowRoomWalls. A hero-owned Reinforced Wall instead draws
+  neighbour is **off the map** (CONFIRMED, `0x0043F1F6..0x0043F224`: the flag set before the
+  on-map call survives its failure), or explored and not nav-solid, unless that neighbour is a room
+  that draws its own walls (room definition `+0x43D` bit 3, set for constructions 1, 5, 7, 9, 12
+  and 13, `wall-pieces.md` §1) and this terrain is AllowRoomWalls. The face test has exceptions
+  this summary does not settle: it branches on `drawnAsFog`, on vtable `+0xDC` and a flag from
+  `0x0044DB70`, and on the neighbour terrain's flag `0x1000000` with tile `+0xB & 0x40`
+  (`0x0043F22A..0x0043F315`), so a face can be drawn toward unexplored ground; what those return is
+  UNKNOWN. A hero-owned Reinforced Wall instead draws
   `HeroWall_LevelDefaultPart4..8` in `wall-pieces.md` §2's half/whole scheme with 4 and 5 swapped.
 - A solid block then draws one art 2 top with the position-hashed texture variant; water and lava go
   to `0x0043E440` (unread); claimed and player-coloured tiles draw four player quarters from table
   `0x0066DA08` by an 8-neighbour mask; anything else draws art 0 whole (Mana Vault by owner).
+
+### The quarters (CONFIRMED, `0x0043FF5A..0x004402F0`)
+
+- Entered for PlayerColouredPath or PlayerColouredWall, when drawn as fog, or for terrain 0x23
+  (whose piece comes from vtable `+0x2AC`, unread).
+- The mask is the tile byte `+0xC` (written by `0x00450470`: a bit per neighbour off the map, or for
+  an open tile of another terrain, or for a solid tile not nav-solid). PlayerColouredWall, or a
+  tile drawn as fog, scans live instead (`0x0043FFC8..0x00440088`): bit k when neighbour k is on
+  the map, clear of `0x004434F0`'s grid bit 15, not nav-solid (vtable `+0x208`), and explored or
+  a flag set.
+- Each quadrant reads three bits, (first, diagonal, last) as bits 2, 1, 0, and takes its piece from
+  table `0x0066DA08` = 3, 0, 2, 0, 4, 1, 4, 1: 3 the interior, 0 and 4 the two straight edges, 1 an
+  outer corner, 2 an inner corner. **The rotation is fixed per quadrant**, not added to a table
+  value as the room floors do: directions (6, 7, 0) give quadrant 0 at rotation 2, (0, 1, 2)
+  quadrant 1 at 3, (2, 3, 4) quadrant 2 at 0, (4, 5, 6) quadrant 3 at 1. The entry stores the
+  rotation at `+4` and the quadrant at `+0x16`.
+- The piece comes from the owner's player object (`0x00455990`; an unowned tile gives the neutral
+  player): `+0x10AA` + piece·4 for a floor, `+0x10BE` for a solid tile or one drawn as fog. That
+  set n of "Claimed Floor{n}_{i}" / "Claimed Top{n}_{i}" is player id − 1 is STRONGLY INFERRED from
+  the sets' textures (set 0 T_Claimed_Good, 1 T_Claimed_Neutral, 2.. T_Claimed_Path1..); the
+  loader of those tables is unread.
+- Every quarter piece is modelled centred on its own origin, a quarter tile each way, at height
+  1 (floor) or 2 (top) in the renderer frame; whole pieces span the tile, faces stand on the
+  north edge from 1 to 2 (read from the install by `InstallArtProviderTests`).
 
 ### What each terrain draws
 
@@ -144,10 +174,16 @@ CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0
     not random. CONFIRMED for the computation. That +0x11 selects a texture
     variant is STRONGLY INFERRED.
   - "Rock Corner" (+0x97) and the TAGGED tops (+0x60) are not read by
-    0x0043E860. Their consumer is UNKNOWN; the tagged look is probably
-    list+0x2EC bit 0 at the renderer.
+    0x0043E860. Their consumer is UNKNOWN. list+0x2EC bit 0 is not the tagged look: it is set
+    for every PlayerColouredWall (`0x0043FCC9`), for a tile-grid bit (`+1 & 0x20`) and inside a
+    stored rectangle, which reads as a highlight or selection. The remake draws art 3 on a tagged
+    tile as a HYPOTHESIS from its name.
 - **Reinforced Wall.** "CLAIMED WALL" per face, with +0x11 = 4-stage damage
-  frame from tile health (0x004419D0, flag 0x20000, n = 4). The top is 4
+  frame from tile health (0x004419D0, flag 0x20000, n = 4): `0x00441990` takes (health − 2,
+  floored at 0) over MaxHealth as a 12.12 fraction of n, so full health is the highest stage. The
+  material lists Brick_DECAY3, Brick_DECAY2, Brick_DECAY, Brick, so the healthy wall is taken to
+  be Brick, the last (STRONGLY INFERRED; the consumer that turns the fraction into a texture index
+  is unread). The top is 4
   player-coloured quarters "claimed top{owner}_{0..4}" chosen by the live
   open-neighbour mask. For the hero owner the faces are HeroWall_…Part4..8
   instead. STRONGLY INFERRED: the player tables at +0x10AA/+0x10BE were not

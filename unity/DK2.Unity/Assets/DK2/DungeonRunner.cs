@@ -149,7 +149,7 @@ namespace DK2.Unity
                 convertedRoot: "build/converted",
                 install: _installArt);
 
-            _scene = new DungeonScene(transform, world.Width, _classic);
+            _scene = new DungeonScene(transform, world.Width, world.Height, _classic);
             _worldView = new WorldView(database, (byte)viewingPlayerId);
             _presenter = new ScenePresenter(
                 _worldView, _assets, _scene, new TorchLayout(database));

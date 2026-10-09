@@ -43,6 +43,7 @@ public sealed class ScenePresenter
             GoldHeld = tile.GoldHeld;
             HealthPermille = tile.HealthPermille;
             Walls = tile.Walls;
+            Pieces = tile.Pieces;
         }
 
         public AssetRef Ground { get; }
@@ -52,6 +53,7 @@ public sealed class ScenePresenter
         public int GoldHeld { get; }
         public int HealthPermille { get; }
         public RoomWalls Walls { get; }
+        public TerrainPieces Pieces { get; }
 
         public bool Equals(TileVisual other) =>
             Ground == other.Ground
@@ -60,12 +62,13 @@ public sealed class ScenePresenter
             && Tagged == other.Tagged
             && GoldHeld == other.GoldHeld
             && HealthPermille == other.HealthPermille
-            && Walls == other.Walls;
+            && Walls == other.Walls
+            && Pieces == other.Pieces;
 
         public override bool Equals(object? obj) => obj is TileVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
-            Ground, Furniture, OwnerPlayerId, Tagged, GoldHeld, HealthPermille, Walls);
+            Ground, Furniture, OwnerPlayerId, Tagged, GoldHeld, HealthPermille, Walls, Pieces);
     }
 
     /// <summary>The part of a creature a renderer can see.</summary>
