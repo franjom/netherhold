@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
-using DK2.Convert.Textures;
-using DK2.Core;
+using DK2.Art;
 using DK2.Data.Model;
+using static DK2.Convert.Tests.ArtTestData;
 
 namespace DK2.Convert.Tests;
 
@@ -19,7 +19,7 @@ public sealed class AssetConverterTests : IDisposable
     {
         var meshes = new FakeMeshes(("Gold Mesh.kmf", AnimatedKmfFixture.TwoFrames()));
         var textures = new FakeTextures("creature0");
-        Dk2ArtCatalogue art = Art(objects: new() { [1] = [new("Gold Mesh", 0)], [2] = [new("Lantern", 0)] });
+        Dk2ArtCatalogue art = Catalogue(objects: new() { [1] = [new("Gold Mesh", 0)], [2] = [new("Lantern", 0)] });
         GameDatabase database = Database(objects: [Object(2, "Lantern"), Object(1, "Gold Pile"), Object(3, "Barrel")]);
 
         IReadOnlyList<AssetConversionResult> results =
@@ -44,7 +44,7 @@ public sealed class AssetConverterTests : IDisposable
         string stale = Path.Combine(_root, "object", "lantern", "mesh.glb");
         Directory.CreateDirectory(Path.GetDirectoryName(stale)!);
         File.WriteAllBytes(stale, [1, 2, 3]);
-        Dk2ArtCatalogue art = Art(objects: new() { [2] = [new("Lantern", 0)] });
+        Dk2ArtCatalogue art = Catalogue(objects: new() { [2] = [new("Lantern", 0)] });
 
         AssetConversionResult result = Assert.Single(AssetConverter.ConvertAll(
             art, new FakeMeshes(), new FakeTextures(), Database(objects: [Object(2, "Lantern")]), _root));
@@ -58,7 +58,7 @@ public sealed class AssetConverterTests : IDisposable
     public void AMissingEngineTextureReportsTheMeshAsMissing()
     {
         var meshes = new FakeMeshes(("Gold Mesh.kmf", AnimatedKmfFixture.TwoFrames()));
-        Dk2ArtCatalogue art = Art(objects: new() { [1] = [new("Gold Mesh", 0)] });
+        Dk2ArtCatalogue art = Catalogue(objects: new() { [1] = [new("Gold Mesh", 0)] });
 
         AssetConversionResult result = Assert.Single(AssetConverter.ConvertAll(
             art, meshes, new FakeTextures(), Database(objects: [Object(1, "Gold Pile")]), _root));
@@ -73,7 +73,7 @@ public sealed class AssetConverterTests : IDisposable
     {
         var meshes = new FakeMeshes(
             ("Floor2.kmf", AnimatedKmfFixture.TwoFrames()), ("Floor1.kmf", AnimatedKmfFixture.TwoFrames()));
-        Dk2ArtCatalogue art = Art(terrains: new() { [1] = [new("Floor", 0)] });
+        Dk2ArtCatalogue art = Catalogue(terrains: new() { [1] = [new("Floor", 0)] });
         GameDatabase database = Database(terrain: [Terrain(1, "Lava", damage: 4), Terrain(2, "Rock", solid: true)]);
 
         IReadOnlyList<AssetConversionResult> results =
@@ -86,61 +86,5 @@ public sealed class AssetConverterTests : IDisposable
         Assert.True(File.Exists(Path.Combine(_root, "terrain", "lava", "texture.png")));
         Assert.Equal("effect conversion is UNKNOWN; no effect format is emitted", results[1].Detail);
         Assert.Equal("KWD has no terrain art record for id 2", results[2].Detail);
-    }
-
-    private static Dk2ArtCatalogue Art(
-        Dictionary<byte, IReadOnlyList<Dk2ArtResource>>? terrains = null,
-        Dictionary<byte, IReadOnlyList<Dk2ArtResource>>? objects = null) => new()
-    {
-        Terrains = terrains ?? new(),
-        Rooms = new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>(),
-        Creatures = new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>(),
-        Objects = objects ?? new(),
-    };
-
-    private static GameDatabase Database(TerrainDef[]? terrain = null, ObjectDef[]? objects = null) =>
-        new(terrain ?? [], [], [], new GlobalVariables(), objects: objects);
-
-    private static ObjectDef Object(byte id, string name) => new()
-    {
-        Name = name, ObjectId = id, Flags = default, Hp = 0, ManaValue = 0, RoomCapacity = 0,
-        StartState = 0, PickUpPriority = 0, Width = new Fp32(0), Height = new Fp32(0),
-        Mass = new Fp32(0), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-    };
-
-    private static TerrainDef Terrain(byte id, string name, short damage = 0, bool solid = false) => new()
-    {
-        Name = name, TerrainId = id, Flags = solid ? TerrainFlags.Solid : default, StartingHealth = 0,
-        MaxHealth = 0, GoldValue = 0, ManaGain = 0, MaxManaGain = 0, Damage = damage,
-        MaxHealthTypeTerrainId = 0, DestroyedTypeTerrainId = 0, Depth = new Fp32(0),
-        NameStringId = 0, TooltipStringId = 0,
-    };
-
-    private sealed class FakeMeshes(params (string Name, byte[] Bytes)[] entries) : IMeshSource
-    {
-        public IReadOnlyList<string> EntryNames { get; } = entries.Select(entry => entry.Name).ToArray();
-
-        public bool TryFind(string name, out int index)
-        {
-            index = Array.FindIndex(entries, entry => entry.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-            return index >= 0;
-        }
-
-        public byte[] Read(int index) => entries[index].Bytes;
-    }
-
-    private sealed class FakeTextures(params string[] names) : ITextureSource
-    {
-        public List<string> Reads { get; } = [];
-
-        public string Resolve(string textureName) =>
-            names.FirstOrDefault(name => name.Equals(textureName, StringComparison.OrdinalIgnoreCase))
-            ?? throw new FileNotFoundException($"Engine texture '{textureName}' was not found.");
-
-        public RgbaImage Read(string storedName)
-        {
-            Reads.Add(storedName);
-            return new RgbaImage(1, 1, [255, 0, 0, 255]);
-        }
     }
 }

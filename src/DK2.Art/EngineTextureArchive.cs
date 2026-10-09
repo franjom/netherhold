@@ -5,7 +5,7 @@
 using System.Buffers.Binary;
 using System.Text;
 
-namespace DK2.Convert.Textures;
+namespace DK2.Art.Textures;
 
 public sealed record EngineTextureEntry(
     string Name, int Width, int Height, int StoredSize,
@@ -127,7 +127,6 @@ public sealed class EngineTextureArchive : ITextureSource, IDisposable
     }
 }
 
-public sealed record RgbaImage(int Width, int Height, byte[] Pixels)
-{
-    public byte[] ToPng() => PngWriter.Write(this);
-}
+/// <summary>A decoded texture: <see cref="Width"/> by <see cref="Height"/> pixels, four bytes
+/// (R, G, B, A) each, rows top first.</summary>
+public sealed record RgbaImage(int Width, int Height, byte[] Pixels);

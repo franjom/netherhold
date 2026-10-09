@@ -4,7 +4,7 @@
 
 using System.Numerics;
 
-namespace DK2.Convert.Kmf;
+namespace DK2.Art.Kmf;
 
 public enum KmfKind : uint { Mesh = 1, Animation = 2, Group = 3 }
 

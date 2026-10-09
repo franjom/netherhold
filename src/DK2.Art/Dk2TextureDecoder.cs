@@ -4,7 +4,7 @@
 
 using System.Buffers.Binary;
 
-namespace DK2.Convert.Textures;
+namespace DK2.Art.Textures;
 
 /// <summary>
 /// Decodes the 8x8 coefficient blocks used by DK2's engine texture cache.
