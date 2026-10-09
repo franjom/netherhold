@@ -53,8 +53,10 @@ public static class SlabChain
             Removed(world, database, tileIndex, terrainBefore, ownerBefore, before, lost);
         if (database.RoomByTerrain(tile.TerrainId) is { } after)
         {
-            List<int> chain = Added(world, tileIndex);
+            List<int>? absorbed = after.TypeId == RoomTypeId.Graveyard ? [] : null;
+            List<int> chain = Added(world, tileIndex, absorbed);
             if (after.TypeId == RoomTypeId.Prison) Activate(world, chain);
+            if (absorbed is { Count: > 0 }) GraveyardRules.Unlink(world, absorbed);
         }
         else (tile.SlabOrder, tile.RoomSizeChangedTick, tile.RoomKickedTick) = (0, 0, 0);
         if (tile.TerrainId != terrainBefore) KickNeighbours(world, database, tileIndex);
@@ -127,7 +129,9 @@ public static class SlabChain
     /// (<c>0x004ECD00</c> frees it). Of those fields ours keeps two sets on a tile, the room's lowest:
     /// the Prison's door byte (<see cref="JailBreakRules.DoorOf"/>) and the Casino's party
     /// (<see cref="CasinoJackpotRules.IsPartyOn"/>), so they move to the new lowest.</remarks>
-    public static List<int> Added(WorldState world, int tileIndex)
+    /// <param name="absorbed">Gains the tiles of the rooms merged in behind the joined one, whose
+    /// records are freed (<c>Room_Free</c>).</param>
+    public static List<int> Added(WorldState world, int tileIndex, List<int>? absorbed = null)
     {
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         byte terrain = tile.TerrainId, owner = tile.OwnerPlayerId;
@@ -154,7 +158,11 @@ public static class SlabChain
                 chain = room;
                 chain.Add(tileIndex);
             }
-            else chain.AddRange(room);
+            else
+            {
+                chain.AddRange(room);
+                absorbed?.AddRange(room);
+            }
         }
 
         chain ??= [tileIndex];
@@ -214,6 +222,8 @@ public static class SlabChain
 
         int[] order = [.. old];
         Sort(world, order);
+        // The old room is freed (0x004ED9FA), and Room_OnFreed takes out every corpse in it (0x004E3AB3).
+        if (room.TypeId == RoomTypeId.Graveyard) GraveyardRules.Unlink(world, [.. old, tileIndex]);
 
         var chainOf = new Dictionary<int, List<int>>(order.Length);
         var chains = new List<List<int>>();

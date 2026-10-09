@@ -445,13 +445,15 @@ public class CarryingTests
              (6, ImpStates.PickingUpCorpse, ImpStates.CarryingCorpse),
              (ImpStates.TaskSelection, ImpStates.PickingUpCorpse, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,
-                () => sink.Events.Any(e => e.Kind == "corpse_buried")));
+                () => sink.Events.Any(e => e.Kind == "corpse_laid")));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 
     [Fact]
-    public void AnImpCarriesACorpseToTheGraveyard()
+    public void AnImpLaysACorpseInTheGraveyardWhereItIsBuriedWhenItsLifetimeEnds()
     {
+        // State 41 lays it on a floor slot (Room_AddCorpse); it is buried when the thing sweep
+        // destroys it at the end of DeadBodyDiesAfterSeconds, 60 from its death (Q578).
         GameDatabase db = Db;
         WorldState world = World(db);
         Graveyard(db, world);
@@ -462,12 +464,86 @@ public class CarryingTests
         world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
 
         var sink = new ListEventSink();
-        Simulation(db, world, sink).Run(Second * 30);
+        GameSimulation sim = Simulation(db, world, sink);
+        sim.Run(Second * 30);
+        Assert.Contains(sink.Events, e => e.Kind == "corpse_laid");
+        Assert.True(goblin.GraveyardSlot >= 0);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "corpse_buried");
 
+        sim.Run(Second * 31);
         SimEvent buried = Assert.Single(sink.Events, e => e.Kind == "corpse_buried");
         Assert.Contains("decompose_value=", buried.Detail);
         Assert.Contains("tally=200 raised=none", buried.Detail);
         Assert.DoesNotContain(world.Creatures, c => c.Id == goblin.Id);
+    }
+
+    [Fact]
+    public void AThreeByThreeGraveyardHoldsOneCorpseAndTheNextFindsNoPlaceAndPosts42()
+    {
+        // One floor slot, held by the first corpse until it is buried: the selection finds no
+        // Graveyard with a place, posts 42 (0x0046D3C0) and raises no carry.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Graveyard(db, world);
+        CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        CreatureDeathRules.BecomeCorpse(world, db, first);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
+        Simulation(db, world).Run(Second * 10);
+        Assert.True(first.GraveyardSlot >= 0);
+
+        int chosen = 0;
+        new GameSimulation(db, world, 42, [new Probe(c => chosen = GraveyardRules.ForCorpse(c, imp, search: true))]).Tick();
+
+        Assert.Equal(-1, chosen);
+        Assert.Contains(world.Messages.Entries, m => m.Room == RoomTypeId.Graveyard && m.Kind == PlayerMessageKind.RoomFull);
+    }
+
+    private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem
+    {
+        public string Name => "Probe";
+        public void Execute(SimulationContext context) => act(context);
+    }
+
+    [Fact]
+    public void ACorpseLyingInAGraveyardWithAnotherPlaceIsNotCarriedAgain()
+    {
+        // The selections skip a corpse whose +0x132 names a room (0x0046D3C0, 0x0046CF40). A 4x3
+        // has two floor slots, so a place is still free and only that test keeps the imp off it.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Graveyard(db, world);
+        for (int y = 1; y <= 3; y++) Paint(db, world, RoomTypeId.Graveyard, new TilePos(7, y));
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(5, 2));
+        CreatureDeathRules.BecomeCorpse(world, db, goblin);
+        int slot = world.TileIndex(new TilePos(5, 2));
+        Assert.True(GraveyardRules.TryLay(world, db, goblin, slot));
+        world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
+
+        var sink = new ListEventSink();
+        Simulation(db, world, sink).Run(Second * 10);
+
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "body_claimed");
+        Assert.Equal(slot, goblin.GraveyardSlot);
+    }
+
+    [Fact]
+    public void SellingAGraveyardTileFreesTheRoomAndItsCorpseLiesOnAsAnyCorpse()
+    {
+        // The sale frees the room (0x004ED7B0), and Room_OnFreed takes its corpses out (0x004E6700).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Graveyard(db, world);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(5, 2));
+        CreatureDeathRules.BecomeCorpse(world, db, goblin);
+        int slot = world.TileIndex(new TilePos(5, 2));
+        Assert.True(GraveyardRules.TryLay(world, db, goblin, slot));
+
+        ref TileState sold = ref world.Tile(4, 1);
+        byte before = sold.TerrainId;
+        sold.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        SlabChain.Changed(world, db, world.TileIndex(new TilePos(4, 1)), before, sold.OwnerPlayerId);
+
+        Assert.Equal(-1, goblin.GraveyardSlot);
     }
 
     [Fact]

@@ -101,15 +101,19 @@ setup:
   players:
     - { id: 3, gold: 0, mana: 0 }
   rooms:
-    # Somewhere for the bodies to go: a 3x3, because a corpse needs a floor slot, an interior
-    # tile (Room_IsFloorSlot), and a smaller Graveyard has none (ADR-0414). No lair anywhere on
+    # Somewhere for the bodies to go: a 4x3, two floor slots (interior tiles, Room_IsFloorSlot).
+    # A corpse lies on one until its lifetime ends and it is buried (Room_AddCorpse, Q578), so a
+    # 3x3 with its one slot would hold the first and let the second rot. No lair anywhere on
     # this map, so nobody is rescuable and both goblins reach the second timer.
+    - { type: Graveyard, at: [4, 4], player: 3 }
     - { type: Graveyard, at: [5, 4], player: 3 }
     - { type: Graveyard, at: [6, 4], player: 3 }
     - { type: Graveyard, at: [7, 4], player: 3 }
+    - { type: Graveyard, at: [4, 5], player: 3 }
     - { type: Graveyard, at: [5, 5], player: 3 }
     - { type: Graveyard, at: [6, 5], player: 3 }
     - { type: Graveyard, at: [7, 5], player: 3 }
+    - { type: Graveyard, at: [4, 6], player: 3 }
     - { type: Graveyard, at: [5, 6], player: 3 }
     - { type: Graveyard, at: [6, 6], player: 3 }
     - { type: Graveyard, at: [7, 6], player: 3 }
@@ -138,12 +142,12 @@ expect:
     detail: raised=none
     count: 2
     because: >
-      Both corpses reach the graveyard. Burial is an imp task and sits BELOW
-      claiming in DK2's Tier A order (Q24), which is why this scenario uses a
-      small map - on a large one the imp is still claiming when the corpses rot.
+      Both corpses are laid in the graveyard and buried when their lifetime runs
+      out there (0x004B1070, Q578). Carrying is an imp task BELOW claiming in
+      DK2's Tier A order (Q24), which is why this scenario uses a small map.
   - event: corpse_rotted
     absent: true
     because: >
-      DeadBodyDiesAfterSeconds is 60 as well, so an unburied corpse would go at
-      tick 483. Both were carried off by 399. If this ever fires, the imp got
-      there too late and the run has stopped demonstrating burial.
+      DeadBodyDiesAfterSeconds is 60 as well, so a corpse left on the floor
+      would rot at about tick 483, when the laid ones are buried. If this fires,
+      a corpse never reached a free floor slot.

@@ -9618,3 +9618,30 @@ body at once; state 42 (`0x00467D00`) offers every creature on the tile and take
 chooser accepts, where ours takes the selected body; equal-distance Lairs fall to index order,
 not the room list. State 45's success branch falls through into the chooser (`0x004684DF`) on the
 body just put down; what that does is unread. Hash 212.
+
+## ADR-0418 — A corpse lies in the Graveyard until its lifetime ends
+**Date:** 2026-10-09 · **Status:** accepted · Research: `graveyard.md` §2; `functions/004E6490.md`, `004B12D0.md`, `004B16E0.md`, `00467AA0.md`
+
+**Context.** DK2 lays a delivered corpse on a free Graveyard floor slot (`Room_AddCorpse`), where it
+holds the place until it is destroyed and buried (`0x004B1070`). Ours buried it on arrival, so a
+Graveyard never filled (Q578).
+
+**Decision.** `CreatureState.GraveyardSlot` is the dead body's room (`+0x132`), saved and hashed.
+The pick-up (state 40, `0x004678A0`) takes the first of the keeper's Graveyards in room order with
+a place and a free floor slot (`0x004E6A20`: a draw along the slab chain, then the first floor slot
+with no dead body). State 41's arrival lays it there when the room has a place and no lying corpse
+holds the slot (`0x004E6380`); otherwise it goes to the Graveyard with a place nearest the worker,
+else the last in room order with one. A place is a floor slot not held by a lying corpse. The
+corpse keeps its lifetime (`DeadBodyDiesAfterSeconds`), counted as on the floor (`0x004B12D0`), and
+at its end `CreatureHealthSystem` buries it (`0x004B1070`) instead of letting it rot. The
+selections skip a lying corpse, and a room freed by a sale or a merge lets its corpses go
+(`Room_RemoveCorpse` from `Room_OnFreed`).
+
+**Consequences.** Levels 1-3 replay exactly as ADR-0416 left them. A 3x3 Graveyard holds one corpse at a time; the burial scenarios now use a 4x3
+and a 7x3. Deviates: `0x004E6380` and `Room_AddCorpse` also want one of the Graveyard's objects
+31–34 on the slot (`0x004537E0`), and ours places none, so ours treats every floor slot as having
+one (unread: what the room rebuild puts there); ours sets the corpse on the slot's centre, where
+DK2 sets y to the tile's quarter; a pick-up whose walk fails tries the next Graveyard in DK2
+(state 40) and abandons in ours; ours counts one place per lying corpse where states 40 and 41 read
+`+0x71` and the capacity test `+0x6B` (LIKELY the same count); the order and spot draws walk our
+room index, not DK2's newest-first list.

@@ -106,6 +106,12 @@ otherwise. Built as ADR-0370 (`GraveyardRules`): the gate's capacity is the room
 (`Room_ComputeTotalCapacity` `0x004E3ED0`, type 14), the Vampire stands on a random tile since
 no level places a crypt, and effect 0x138, state 198 and message 72 are not modelled.
 A corpse needs a place too: `Room_AddCorpse` (`0x004E6490`) sets it on a free floor slot and adds
-to `+0x6B`, and its destruction there buries it (`0x004B1070`). Ours buries on arrival (Q578),
-and carries a corpse only to a Graveyard with a floor slot (ADR-0414). CONFIRMED by the owner
+to `+0x6B`, and its destruction there buries it (`0x004B1070`). The destruction is the corpse's
+lifetime running out: `DeadBodyDiesAfterSeconds` x 4 turns from its death, counted down on the
+floor and in a Graveyard alike and paused while carried (`0x004B12D0`), then the thing sweep's
+removal pass (`0x004B7830`, the predicate `0x004B5C30` and slot `+0x30`, `0x004B16E0`). A corpse
+lying in a room is skipped by the selections (`+0x132`), and a freed room lets its corpses go
+(`Room_RemoveCorpse` from `Room_OnFreed`). The pick-up (state 40) takes the first Graveyard in
+room order with a place and a free slot (`0x004E6A20`, a draw), and state 41 lays it only on a
+free floor slot, else goes to the nearest Graveyard with a place. Built: ADR-0414, ADR-0418 (Q578). CONFIRMED by the owner
 (2026-10-09): 3x3 is the smallest working Graveyard; a 2x2 or 1x2 gets no grave spot or headstone.

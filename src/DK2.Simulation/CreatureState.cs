@@ -1016,6 +1016,11 @@ public sealed class CreatureState
     /// <summary>A jackpot winner's winnings still to collect, <c>+0x3F4</c>.</summary>
     public int JackpotWinnings;
 
+    /// <summary>The Graveyard floor slot a corpse lies on, -1 for none: the dead body's room
+    /// (<c>+0x132</c>) as <c>Room_AddCorpse</c> (<c>0x004E6490</c>) sets it. Cleared when that room is
+    /// freed (<c>Room_RemoveCorpse</c>, <c>0x004E6700</c>), as a sale or a merge frees it.</summary>
+    public int GraveyardSlot = -1;
+
     /// <summary>The turn each of the three spell slots was last cast at — DK2's <c>+0x41B + 4i</c>;
     /// zero means never, and a cast stamps it when the action starts, not when the shot leaves
     /// (combat-spells.md §4, §6).</summary>
@@ -1343,6 +1348,7 @@ public sealed class CreatureState
         hash.Add(DrunkTicks);
         hash.Add(JackpotDeadlineTicks);
         hash.Add(JackpotWinnings);
+        hash.Add(GraveyardSlot);
         for (int i = 0; i < SpellStamps.Length; i++) hash.Add(SpellStamps[i]);
         hash.Add(AttackSpellSlot);
         hash.Add(SwingKind);

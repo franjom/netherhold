@@ -214,6 +214,20 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
         if (!CreatureDeathRules.BodyWindowElapsed(context.Database, state)) return;
 
+        // One lying in a Graveyard is buried as it goes (0x004B1070, Q578).
+        if (GraveyardRules.BuryLying(context, state) is { } result)
+        {
+            string raised = result.SpawnedCreatureId < 0
+                ? "raised=none"
+                : $"raised={context.Database.CreatureById(result.SpawnedCreatureTypeId).Name} as={result.SpawnedCreatureId}";
+            context.Emit(SystemName, "corpse_buried",
+                $"player={state.OwnerPlayerId} body={state.Id} type={creature.Name} " +
+                $"at=({state.Tile.X},{state.Tile.Y}) decompose_value={creature.DecomposeValue} " +
+                $"tally={result.DecomposeValue} {raised}");
+            Remove(context, SystemName, state);
+            return;
+        }
+
         context.Emit(SystemName, "corpse_rotted",
             $"creature={state.Id} type={creature.Name} " +
             $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +

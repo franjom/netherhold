@@ -67,8 +67,9 @@ public static class GraveyardRules
     /// per-tile <c>0x0046CF40</c> (the drop scan) and the search <c>0x0046D3C0</c>. No Graveyard posts
     /// 41 at availability 3 (once a level, player <c>+0xF4E</c>); none with a place
     /// (<see cref="HasPlace"/>) posts 42, the search always and the per-tile one at availability 3;
-    /// otherwise <c>0x004C6860</c> draws one of those with a place, and the corpse goes to the nearest
-    /// (<see cref="CarryRules.NearestGraveyardTile"/>). Returns that tile, or -1 and no carry.</summary>
+    /// otherwise <c>0x004C6860</c> draws one of those with a place. Returns the nearest such tile
+    /// (<see cref="CarryRules.NearestGraveyardTile"/>), or -1 and no carry; the pick-up chooses the
+    /// Graveyard itself (<see cref="CorpseDestination"/>).</summary>
     public static int ForCorpse(SimulationContext context, CreatureState worker, bool search)
     {
         WorldState world = context.World;
@@ -93,12 +94,117 @@ public static class GraveyardRules
         return CarryRules.NearestGraveyardTile(world, context.Database, worker);
     }
 
-    /// <summary><c>Room_HasCapacity</c> for a corpse (one unit) in a Graveyard: its used count
-    /// (<c>+0x6B</c>, the corpses lying in it, <c>0x004E6490</c>) within its floor slots. Ours buries a
-    /// corpse on arrival, so none lies there and a Graveyard has a place while it has a floor slot
-    /// (Q578).</summary>
+    /// <summary><c>Room_HasCapacity</c> for a corpse (one unit, <c>+0x672</c>) in a Graveyard: its used
+    /// count (<c>+0x6B</c>, the corpses lying in it, <c>0x004E6490</c>) within its floor slots.</summary>
     public static bool HasPlace(WorldState world, RoomInstance graveyard) =>
-        AutoFurnitureRules.FloorSlotCount(world, graveyard) >= RoomCapacityRules.Units;
+        Lying(world, graveyard) + RoomCapacityRules.Units <= AutoFurnitureRules.FloorSlotCount(world, graveyard);
+
+    /// <summary>The corpses lying in a Graveyard (<see cref="CreatureState.GraveyardSlot"/>).</summary>
+    public static int Lying(WorldState world, RoomInstance graveyard)
+    {
+        int count = 0;
+        foreach (CreatureState c in world.Creatures)
+            if (c.GraveyardSlot >= 0 && graveyard.Contains(c.GraveyardSlot)) count++;
+        return count;
+    }
+
+    /// <summary><c>0x004E6A20</c>: <c>random(size)</c> steps along the slab chain from its first slab,
+    /// then round the chain to the first floor slot with no dead body on it; null with none. One draw.</summary>
+    public static int? CorpsePoint(WorldState world, RoomInstance graveyard, SimRandom rng)
+    {
+        int[] chain = SlabChain.Order(world, graveyard);
+        int start = rng.NextInt(chain.Length);
+        HashSet<int> slots = AutoFurnitureRules.FloorSlotSet(world, graveyard);
+        for (int k = 0; k < chain.Length; k++)
+        {
+            int tile = chain[(start + k) % chain.Length];
+            if (slots.Contains(tile) && !HoldsACorpse(world, tile)) return tile;
+        }
+
+        return null;
+    }
+
+    private static bool HoldsACorpse(WorldState world, int tile)
+    {
+        int w = world.Width;
+        foreach (CreatureState c in world.Creatures)
+            if (CreatureDeathRules.IsCorpse(c) && c.CarriedByCreatureId < 0 && (c.Tile.Y * w) + c.Tile.X == tile) return true;
+        return false;
+    }
+
+    /// <summary>State 40 (<c>0x004678A0</c>), the pick-up: the first of the keeper's Graveyards in room
+    /// order with a place and a point (<see cref="CorpsePoint"/>, a draw for each one asked); -1 with
+    /// none.</summary>
+    public static int CorpseDestination(SimulationContext context, PlayerId owner)
+    {
+        foreach (RoomInstance room in RoomIndex.Build(context.World, context.Database))
+            if (room.OwnerPlayerId == owner && room.Definition.TypeId == RoomTypeId.Graveyard
+                && HasPlace(context.World, room) && CorpsePoint(context.World, room, context.Rng) is int point)
+                return point;
+        return -1;
+    }
+
+    /// <summary>State 41 (<c>0x00467AA0</c>) off a place to lay the corpse: the Graveyard with a place
+    /// nearest the worker (<c>0x004C6610</c>, its position, reach option 0) and a point; failing that,
+    /// the last in room order with a place and a point (a draw for each); -1 with none.</summary>
+    public static int CorpseRedirect(SimulationContext context, CreatureState worker, CreatureDef definition)
+    {
+        WorldState world = context.World;
+        RoomInstance? nearest = null;
+        long best = long.MaxValue;
+        var scratch = new List<Steering.Fixed16Vector>();
+        var places = new List<RoomInstance>();
+        foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
+        {
+            if (room.OwnerPlayerId != worker.OwnerPlayerId || room.Definition.TypeId != RoomTypeId.Graveyard || !HasPlace(world, room)) continue;
+            places.Add(room);
+            TilePos at = RoomNeedRules.Position(world, room);
+            long dx = (long)CreatureState.CentreOf(at.X) - worker.PosX, dy = (long)CreatureState.CentreOf(at.Y) - worker.PosY;
+            long distance = ((dx * dx) >> 12) + ((dy * dy) >> 12);
+            if (distance >= best || !ChickenRules.Reachable(context, worker, definition, at, scratch)) continue;
+            (nearest, best) = (room, distance);
+        }
+
+        if (nearest is not null && CorpsePoint(world, nearest, context.Rng) is int point) return point;
+        int found = -1;
+        foreach (RoomInstance room in places)
+            if (CorpsePoint(world, room, context.Rng) is int p) found = p;
+        return found;
+    }
+
+    /// <summary>State 41's arrival (<c>0x004E6380</c>, then <c>Room_AddCorpse</c> <c>0x004E6490</c>): on a
+    /// Graveyard with a place, a floor slot no lying corpse holds, the corpse is laid there.</summary>
+    public static bool TryLay(WorldState world, GameDatabase database, CreatureState corpse, int tile)
+    {
+        if (RoomIndex.RoomAt(world, database, tile) is not { Definition.TypeId: RoomTypeId.Graveyard } room
+            || !HasPlace(world, room) || !AutoFurnitureRules.FloorSlotSet(world, room).Contains(tile))
+            return false;
+        foreach (CreatureState c in world.Creatures)
+            if (c.GraveyardSlot == tile) return false;
+        corpse.GraveyardSlot = tile;
+        corpse.PosX = CreatureState.CentreOf(tile % world.Width);
+        corpse.PosY = CreatureState.CentreOf(tile / world.Width);
+        return true;
+    }
+
+    /// <summary><c>Room_RemoveCorpse</c> for every corpse of a freed room: it lies on as any corpse.</summary>
+    public static void Unlink(WorldState world, ICollection<int> tiles)
+    {
+        foreach (CreatureState c in world.Creatures)
+            if (c.GraveyardSlot >= 0 && tiles.Contains(c.GraveyardSlot)) c.GraveyardSlot = -1;
+    }
+
+    /// <summary>A lying corpse's end (<c>0x004B1070</c> from the thing sweep's removal pass, its
+    /// lifetime below 1): buried in its Graveyard (<see cref="Bury"/>) and its place freed. Null when
+    /// it lies in none.</summary>
+    public static GraveyardBurialResult? BuryLying(SimulationContext context, CreatureState corpse)
+    {
+        if (corpse.GraveyardSlot < 0
+            || RoomIndex.RoomAt(context.World, context.Database, corpse.GraveyardSlot) is not { Definition.TypeId: RoomTypeId.Graveyard } room)
+            return null;
+        corpse.GraveyardSlot = -1;
+        return Bury(context, room, context.Database.CreatureById(corpse.CreatureTypeId), corpse.Level);
+    }
 
     /// <summary>The capacity gate <c>0x004DDCA0</c>: the owner's living creatures that can be
     /// resurrected must number fewer than the summed capacity of its Graveyards, each a Graveyard's

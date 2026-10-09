@@ -7,21 +7,33 @@ question: >
   Vampire when their DecomposeValue reaches the shipped threshold?
 map: flat_9x8
 seed: 5
-# Both death windows are 60 game seconds = 240 ticks. Five imps let all five
-# burials finish inside the second window rather than serialising behind one.
+# Both death windows are 60 game seconds = 240 ticks. Five imps lay all five
+# corpses early in the second window; each is buried as its window ends.
 duration_ticks: 500
 setup:
   players:
     - { id: 3, gold: 0, mana: 0 }
   rooms:
-    # A shipped-size 3x3 Graveyard, rather than relying on the smaller room's
-    # zero grave capacity (Q60/Q179).
+    # A 7x3 Graveyard: five floor slots (its interior), one for each corpse, which lies there
+    # until its lifetime ends and it is buried (Room_AddCorpse, 0x004B1070; Q578).
+    - { type: Graveyard, at: [1, 4], player: 3 }
+    - { type: Graveyard, at: [2, 4], player: 3 }
+    - { type: Graveyard, at: [3, 4], player: 3 }
+    - { type: Graveyard, at: [4, 4], player: 3 }
     - { type: Graveyard, at: [5, 4], player: 3 }
     - { type: Graveyard, at: [6, 4], player: 3 }
     - { type: Graveyard, at: [7, 4], player: 3 }
+    - { type: Graveyard, at: [1, 5], player: 3 }
+    - { type: Graveyard, at: [2, 5], player: 3 }
+    - { type: Graveyard, at: [3, 5], player: 3 }
+    - { type: Graveyard, at: [4, 5], player: 3 }
     - { type: Graveyard, at: [5, 5], player: 3 }
     - { type: Graveyard, at: [6, 5], player: 3 }
     - { type: Graveyard, at: [7, 5], player: 3 }
+    - { type: Graveyard, at: [1, 6], player: 3 }
+    - { type: Graveyard, at: [2, 6], player: 3 }
+    - { type: Graveyard, at: [3, 6], player: 3 }
+    - { type: Graveyard, at: [4, 6], player: 3 }
     - { type: Graveyard, at: [5, 6], player: 3 }
     - { type: Graveyard, at: [6, 6], player: 3 }
     - { type: Graveyard, at: [7, 6], player: 3 }

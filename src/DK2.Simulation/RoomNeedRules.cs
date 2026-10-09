@@ -214,7 +214,7 @@ public static class RoomNeedRules
     /// centroid's tile, or a tile spiralled to from it, that <c>Room_IsFloorSlot</c> (<c>0x00454110</c>)
     /// rejects, so a rim tile for a room with an interior. The spiral's order is not read; ours takes
     /// the nearest such tile, ties to the lower index (STRONGLY INFERRED as the same tile).</summary>
-    internal static TilePos Position(WorldState world, RoomInstance room)
+    public static TilePos Position(WorldState world, RoomInstance room)
     {
         int w = world.Width;
         long sumX = 0, sumY = 0;

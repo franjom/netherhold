@@ -67,8 +67,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 ## Next work
 
-1. M12: the Q542–Q544 producers are built (ADR-0412–0414); a corpse lying in a Graveyard
-   is not (Q578), nor `0x004BA420`'s room messages other than the sale's. The research move, prisoner/special
+1. M12: the Q542–Q544 producers are built (ADR-0412–0414), and their leftovers (ADR-0415–0418:
+   the Casino party, the Library finder, the bedless rescue, the lying corpse, Q578); not
+   `0x004BA420`'s room messages other than the sale's. The research move, prisoner/special
    decisions, trap/door decisions and personality loader also remain
    (KEEPER_AI.md §12.7). Do not infer an UNKNOWN rule from a name.
 2. M12: the same-map comparison is done (two captures, the acceptance table at

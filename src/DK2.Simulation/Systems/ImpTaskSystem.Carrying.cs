@@ -375,6 +375,8 @@ public sealed partial class ImpTaskSystem
             // The selector meets only bodies on a tile its keeper owns (the cell word +0x08's
             // low 12 bits against the worker's owner); elsewhere it neither posts nor carries.
             if (world.Tile(at).OwnerPlayerId != worker.OwnerPlayerId) continue;
+            // The selections skip a corpse lying in a room (+0x132, 0x0046D3C0 and 0x0046CF40).
+            if (corpses && body.GraveyardSlot >= 0) continue;
             if (corpses)
             {
                 _corpseGraveyard ??= GraveyardRules.ForCorpse(context, worker, search: _only is null);
@@ -464,8 +466,8 @@ public sealed partial class ImpTaskSystem
         }
 
         StateShadow.Arrive(context, SystemName, creature);
-        int destination = IsOwnCasualty(creature, body)
-            ? RouteOwnCasualty(context, creature, grid, body)
+        int destination = IsOwnCasualty(creature, body) ? RouteOwnCasualty(context, creature, grid, body)
+            : CreatureDeathRules.IsCorpse(body) ? GraveyardRules.CorpseDestination(context, creature.OwnerPlayerId)
             : CarryRules.TryDestinationFor(world, context.Database, creature, body);
         if (destination < 0 || (!IsOwnCasualty(creature, body) && !RouteTo(context, creature, grid, destination)))
         {
@@ -518,16 +520,20 @@ public sealed partial class ImpTaskSystem
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         // State 45 delivers only on a Lair tile; elsewhere (the bed's tile sold during the walk) it
         // runs the casualty chooser again (0x00468420).
+        // State 41 lays a corpse only on a free floor slot of a Graveyard with a place
+        // (0x004E6380, 0x004E6490); elsewhere it looks for another (0x00467AA0).
         bool own = IsOwnCasualty(creature, body);
+        bool corpse = CreatureDeathRules.IsCorpse(body);
         if (here != creature.TargetTileIndex
-            || (own && RoomIndex.RoomAt(world, context.Database, here) is not { Definition.TypeId: RoomTypeId.Lair }))
+            || (own && RoomIndex.RoomAt(world, context.Database, here) is not { Definition.TypeId: RoomTypeId.Lair })
+            || (corpse && !GraveyardRules.TryLay(world, context.Database, body, here)))
         {
             if (here != creature.TargetTileIndex && creature.HasRoute) return;
 
             // The destination moved or the route was lost. Try again from here;
             // failing that, put the body down where it stands.
-            int destination = own
-                ? RouteOwnCasualty(context, creature, grid, body)
+            int destination = own ? RouteOwnCasualty(context, creature, grid, body)
+                : corpse ? GraveyardRules.CorpseRedirect(context, creature, context.Database.CreatureById(creature.CreatureTypeId))
                 : CarryRules.TryDestinationFor(world, context.Database, creature, body);
             if (destination >= 0 && (own || RouteTo(context, creature, grid, destination)))
             {
@@ -553,7 +559,7 @@ public sealed partial class ImpTaskSystem
     }
 
     /// <summary>
-    /// Arrival: a corpse into the graveyard, the keeper's own collapsed
+    /// Arrival: a corpse laid in the graveyard, the keeper's own collapsed
     /// creature into its bed, an enemy's into a cell.
     /// </summary>
     private static void Deliver(
@@ -562,37 +568,14 @@ public sealed partial class ImpTaskSystem
         WorldState world = context.World;
         CreatureDef definition = context.Database.CreatureById(body.CreatureTypeId);
 
+        // State 41 has laid it (GraveyardRules.TryLay): it lies on its floor slot, holding the place,
+        // until its lifetime runs out and it is buried (0x004B1070, CreatureHealthSystem).
         if (CreatureDeathRules.IsCorpse(body))
         {
-            RoomInstance? graveyard = RoomIndex.RoomAt(
-                world, context.Database, creature.TargetTileIndex);
-            if (graveyard is null
-                || graveyard.Definition.TypeId != RoomTypeId.Graveyard
-                || graveyard.OwnerPlayerId != creature.OwnerPlayerId)
-            {
-                context.Emit(SystemName, "body_dropped",
-                    $"imp={creature.Id} body={body.Id} " +
-                    $"at=({creature.Tile.X},{creature.Tile.Y}) reason=no_graveyard");
-                CarryRules.PutDown(creature, body);
-                StateShadow.ToIdle(context, SystemName, creature);
-                GoIdle(creature);
-                return;
-            }
-
-            GraveyardBurialResult result = GraveyardRules.Bury(context, graveyard, definition, body.Level);
-            string raised = result.SpawnedCreatureId < 0
-                ? "raised=none"
-                : $"raised={context.Database.CreatureById(result.SpawnedCreatureTypeId).Name} " +
-                  $"as={result.SpawnedCreatureId}";
-
-            context.Emit(SystemName, "corpse_buried",
-                $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
-                $"type={definition.Name} {Describe(world, creature.TargetTileIndex)} " +
-                $"decompose_value={definition.DecomposeValue} " +
-                $"tally={result.DecomposeValue} {raised}");
-
             CarryRules.PutDown(creature, body);
-            world.RemoveCreature(body.Id);
+            context.Emit(SystemName, "corpse_laid",
+                $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
+                $"type={definition.Name} {Describe(world, body.GraveyardSlot)}");
             WorkEnded(context, creature);
             GoIdle(creature);
             return;
