@@ -255,6 +255,8 @@ The Workshop's 43/42/44 need player byte `+0xA1C`, the manufacture queue's count
 (`0x004E2500`) asks each reachable Library for a shelf (`0x004E1AC0`, a draw) before a
 place: missing, it flags 45 (row `0xA000`, subtable `0x006A08C8`: Library and Workshop,
 120 s) when `+0xA3` is set, else 44; then 41, the research-target return, 43, 45, 42, 44.
+Its first loop is also the Library choice: of those with a shelf and a place, the nearest by
+first slab (`0x0043C260`), one with no holder of the other alignment first (ADR-0416).
 The Temple's and Combat Pit's capacity is their rim (`0x004E3ED0`, the cells
 `0x00454110` rejects), so a full Temple posts 44. The spectator finder `0x004D8510`
 counts only pits with a fight on and never posts 41; the fighter's `0x004D8870`, called by

@@ -9569,3 +9569,23 @@ the occupants to 154.
 **Consequences.** No replay level builds a Casino, so Levels 1-3 are unchanged. A Casino sold or
 split during a party leaves its keeper's count raised, which lifts the purse test for the rest
 of the level, as in DK2. Hash 210.
+
+## ADR-0416 — A researcher's Library is the Library finder's
+**Date:** 2026-10-09 · **Status:** accepted · Research: `computer-keeper-messages.md` §2; `functions/004E2500.md`, `004759D0.md`
+
+**Context.** `Job_TryResearch` (`0x004759D0`) takes its Library from `0x004E2500`, whose first
+loop asks every reachable Library for a shelf (`0x004E1AC0`, one draw) before a place. Ours chose
+the Library through the generic room search, with no shelf test, and drew only when posting the
+finder's messages (ADR-0413), so the two random streams parted at the first Library search.
+
+**Decision.** `RoomNeedRules.FindLibrary` is `0x004E2500`, all but its tie order. Each reachable Library (option
+`0x80`) draws for a shelf; one with a shelf and a place is a candidate, ranked by the squared
+distance from the creature to its first slab's centre (`0x0043C260`, strict less-than); the
+nearest with no holder of the other alignment wins, else the nearest. With no candidate it posts
+ADR-0413's messages. `CreatureJobSystem.TrySetOut` takes the one room it names for Research, and
+the finder is not asked a second time for its messages.
+
+**Consequences.** Level 1 wins 20/20 as before; Level 2 6/20 (master 4/20); Level 3 seeds 1-10
+9/10 (master 7/10). Read as spread, not a measured gain: the streams moved. Deviates: ours walks
+its rooms in index order, not DK2's newest-first list, so equal distances can pick a different
+Library; the reroute at the end of a read (`ResearchStep`) still uses the generic search.

@@ -234,12 +234,17 @@ public static class RoomNeedRules
     /// <remarks>A Workshop posts 43/42/44 only while an order is queued (player <c>+0xA1C</c>); a
     /// Casino's search, while its keeper has a jackpot party (<c>+0xF4A</c>), meets only Casinos with
     /// a party on (<c>+0x41</c>); a Mistress's missing Torture Chamber is 99. The Library has its own
-    /// order (<see cref="NoLibraryFor"/>). 44 names the last flagged room in our room order, not DK2's
+    /// finder (<see cref="FindLibrary"/>). 44 names the last flagged room in our room order, not DK2's
     /// room list.</remarks>
     public static PlayerMessage? NoJobRoomFor(
         SimulationContext context, CreatureState creature, CreatureDef definition, RoomTypeId wants)
     {
-        if (wants == RoomTypeId.Library) return NoLibraryFor(context, creature, definition);
+        if (wants == RoomTypeId.Library)
+        {
+            FindLibrary(context, creature, definition, out PlayerMessage? posted);
+            return posted;
+        }
+
         if (wants is not (RoomTypeId.TrainingRoom or RoomTypeId.Temple or RoomTypeId.TortureChamber
             or RoomTypeId.Casino or RoomTypeId.Workshop)) return null;
         WorldState world = context.World;
@@ -277,37 +282,77 @@ public static class RoomNeedRules
             : Post(context, player, PlayerMessageKind.RoomUnequipped, wants, SlabChain.FirstSlab(world, unequipped));
     }
 
-    /// <summary>The Library finder (<c>0x004E2500</c>) found no room, under the Lair's availability
-    /// row. Each reachable Library first asks for a shelf (<see cref="ResearchTreeRules.FindShelf"/>,
-    /// one draw), then for a place: none past <see cref="FullRoomGraceSeconds"/> flags 45 or 42 when
-    /// its <c>+0xA3</c> holds, 44 when not. No Library posts 41; with no research target
-    /// (<c>+0x213</c>) nothing more; then 43 for one with a shelf and a place that the option-2 route
-    /// misses (another draw each), 45, 42 and 44, both of them naming the last flagged room.</summary>
-    /// <remarks>DK2's candidate search makes the first loop's draws on every call; ours chooses a Library
-    /// without a shelf test (<see cref="RoomCapacityRules.FindRoomWithPlace"/>) and draws only here.</remarks>
-    public static PlayerMessage? NoLibraryFor(SimulationContext context, CreatureState creature, CreatureDef definition)
+    /// <summary>The Library finder <c>0x004E2500</c>, which <c>Job_TryResearch</c> calls with a research
+    /// target set. Each reachable Library (option <c>0x80</c>) first asks for a shelf
+    /// (<see cref="ResearchTreeRules.FindShelf"/>, one draw), then for a place; one with both is a
+    /// candidate, ranked by the squared distance from the creature to its first slab's centre
+    /// (<c>0x0043C260</c>): the nearest whose holders it does not object to wins, else the nearest.
+    /// A Library past <see cref="FullRoomGraceSeconds"/> without a shelf flags 45, without a place 42,
+    /// either one 44 when its <c>+0xA3</c> does not hold. With no candidate, under the Lair's
+    /// availability row: no Library posts 41; with no research target (<c>+0x213</c>) nothing more;
+    /// then 43 for one with a shelf and a place that the option-2 route misses (another draw each),
+    /// 45, 42 and 44, both of them naming the last flagged room.</summary>
+    /// <remarks>Ours walks its rooms in index order, not DK2's newest-first list, so an equal distance
+    /// can pick a different room; the draws are one per reachable Library either way.</remarks>
+    public static RoomInstance? FindLibrary(
+        SimulationContext context, CreatureState creature, CreatureDef definition, out PlayerMessage? posted)
     {
+        posted = null;
         WorldState world = context.World;
+        GameDatabase database = context.Database;
         PlayerId player = creature.OwnerPlayerId;
-        var libraries = RoomIndex.Build(world, context.Database)
+        var libraries = RoomIndex.Build(world, database)
             .Where(r => r.OwnerPlayerId == player && r.Definition.TypeId == RoomTypeId.Library && r.TileIndices.Count > 0).ToList();
+        CreatureFlags against = definition.Flags.HasFlag(CreatureFlags.IsGood) ? CreatureFlags.IsEvil : CreatureFlags.IsGood;
 
-        bool candidate = false, storage = false, full = false, unequipped = false;
-        RoomInstance? last = null;
+        bool storage = false, full = false, unequipped = false;
+        RoomInstance? last = null, nearest = null, friendly = null;
+        long best = long.MaxValue, bestFriendly = long.MaxValue;
         long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
         foreach (RoomInstance room in libraries)
         {
             if (!CanReachRoom(context, creature, definition, room, MoveOptions.Loose)) continue;
             bool shelf = ResearchTreeRules.FindShelf(context, room) >= 0;
-            if (shelf && RoomCapacityRules.HasRoom(world, context.Database, room, creature.Id)) { candidate = true; continue; }
+            if (shelf && RoomCapacityRules.HasRoom(world, database, room, creature.Id))
+            {
+                int first = SlabChain.FirstSlab(world, room);
+                long dx = (long)CreatureState.CentreOf(first % world.Width) - creature.PosX;
+                long dy = (long)CreatureState.CentreOf(first / world.Width) - creature.PosY;
+                long distance = ((dx * dx) >> 12) + ((dy * dy) >> 12);
+                if (distance < best) (nearest, best) = (room, distance);
+                if (distance < bestFriendly && !HoldsOneItObjectsTo(world, database, room, against))
+                    (friendly, bestFriendly) = (room, distance);
+                continue;
+            }
+
             if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, room) <= grace) continue;
             if (!IsEquipped(world, room)) { unequipped = true; last = room; }
             else if (!shelf) { storage = true; last = room; }
             else full = true;
         }
 
-        if (candidate || world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Lair) != Available) return null;
+        if ((friendly ?? nearest) is { } found) return found;
+        posted = LibraryMessage(context, creature, definition, libraries, storage, full, unequipped, last);
+        return null;
+    }
+
+    /// <summary><c>0x004E2500</c>'s holder test, <c>Creature_ObjectsToAlignment</c> over the room's
+    /// occupants: one of the other alignment holds a place in it.</summary>
+    private static bool HoldsOneItObjectsTo(WorldState world, GameDatabase database, RoomInstance room, CreatureFlags against)
+    {
+        foreach (CreatureState c in world.Creatures)
+            if (c.HeldPlace.In(room) && database.CreatureById(c.CreatureTypeId).Flags.HasFlag(against)) return true;
+        return false;
+    }
+
+    private static PlayerMessage? LibraryMessage(SimulationContext context, CreatureState creature, CreatureDef definition,
+        List<RoomInstance> libraries, bool storage, bool full, bool unequipped, RoomInstance? last)
+    {
+        WorldState world = context.World;
+        PlayerId player = creature.OwnerPlayerId;
+        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Lair) != Available) return null;
         if (libraries.Count == 0) return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Library);
+        // The finder's own +0x213 test; Job_TryResearch, like JobRules.Refused, has already asked it.
         if (world.Player(player).ResearchTarget == 0) return null;
 
         foreach (RoomInstance room in libraries)

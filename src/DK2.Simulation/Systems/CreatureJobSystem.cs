@@ -350,7 +350,8 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         if (refused is null && !TrySetOut(context, creature, definition, job, wants!.Value))
         {
             refused = "no_room";
-            RoomNeedRules.NoJobRoomFor(context, creature, definition, wants.Value);
+            // The Library finder's messages are posted by its search in TrySetOut: one call in DK2.
+            if (job != JobType.Research) RoomNeedRules.NoJobRoomFor(context, creature, definition, wants.Value);
         }
 
         // Job_StartTrain (0x00485240) calls the fighter's pit finder, for its messages only, for a
@@ -425,7 +426,14 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         // The Casino finder's party branch (0x004D75F0, casino.md §9): only a Casino with a party on and
         // a place or a lever, the last in room order that the creature reaches, with no distance ranking.
         bool party = job == JobType.Drink && world.Player(creature.OwnerPlayerId).CasinoParties != 0;
-        if (party)
+        if (job == JobType.Research)
+        {
+            // Job_TryResearch (0x004759D0): the Library finder 0x004E2500 names one room, or none.
+            candidates.Clear();
+            if (RoomNeedRules.FindLibrary(context, creature, definition, out _) is { } library)
+                candidates.Add((0, library.TileIndices[0], library));
+        }
+        else if (party)
         {
             candidates.RemoveAll(c => !CasinoJackpotRules.IsPartyOn(world, c.Room)
                 || !(RoomCapacityRules.HasRoom(world, database, c.Room, creature.Id) || CasinoRules.Lever(world, c.Room) is not null));

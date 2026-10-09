@@ -203,6 +203,60 @@ public class JobRoomFinderMessageTests
             (message.Kind, message.Data1, message.Data2, message.Timeout));
     }
 
+    private sealed class Counting : IRandomAlgorithm
+    {
+        public readonly Dictionary<int, int> ByBound = [];
+        public int NextInt(int exclusiveMax)
+        {
+            ByBound[exclusiveMax] = ByBound.GetValueOrDefault(exclusiveMax) + 1;
+            return 0;
+        }
+        public void HashInto(ref Hash64 hash) { }
+    }
+
+    /// <summary>The Library finder for a goblin at (2, 2), on a counting stream.</summary>
+    private static RoomInstance? FindLibrary(WorldState world, Counting draws)
+    {
+        CreatureState seeker = world.SpawnCreature(Db, GoblinId, Keeper, new TilePos(2, 2));
+        RoomInstance? found = null;
+        new GameSimulation(Db, world, new SimRandom(draws), [new Probe(c =>
+            found = RoomNeedRules.FindLibrary(c, seeker, Db.CreatureById(GoblinId), out _))]).Tick();
+        return found;
+    }
+
+    [Fact]
+    public void TheLibraryFinderDrawsOnceForEachReachableLibraryEvenWhenItFindsOne()
+    {
+        WorldState world = World();
+        Room(world, RoomTypeId.Library, 5, 1);
+        Room(world, RoomTypeId.Library, 5, 5);
+        Dk2TerrainFixture.FurnishRooms(Db, world);
+        var draws = new Counting();
+
+        Assert.NotNull(FindLibrary(world, draws));
+        Assert.Equal(2, draws.ByBound.GetValueOrDefault(9));   // FindShelf's random(room size)
+    }
+
+    [Fact]
+    public void TheNearestLibraryByItsFirstSlabWinsUnlessAHolderIsOfTheOtherAlignment()
+    {
+        // From (2, 2): the first slab (5, 1) is nearer than (5, 5).
+        WorldState world = World();
+        Room(world, RoomTypeId.Library, 5, 1);
+        Room(world, RoomTypeId.Library, 5, 5);
+        Dk2TerrainFixture.FurnishRooms(Db, world);
+        Assert.True(FindLibrary(world, new Counting())!.Contains((1 * world.Width) + 5));
+
+        CreatureState knight = world.SpawnCreature(Db, Dk2TerrainFixture.KnightCreatureId, Keeper, new TilePos(6, 2));
+        knight.HeldPlace = new RoomPlace((2 * world.Width) + 6, RoomCapacityRules.Units);
+        Assert.True(FindLibrary(world, new Counting())!.Contains((5 * world.Width) + 5));
+
+        // Objected to in both: the nearest again.
+        CreatureState other = world.SpawnCreature(Db, Dk2TerrainFixture.KnightCreatureId, Keeper, new TilePos(6, 6));
+        other.HeldPlace = new RoomPlace((6 * world.Width) + 6, RoomCapacityRules.Units);
+        Assert.True(FindLibrary(world, new Counting())!.Contains((1 * world.Width) + 5));
+    }
+
     [Fact]
     public void WhileAJackpotPartyIsOnACasinoWithoutOneIsNotReported()
     {
