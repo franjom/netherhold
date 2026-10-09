@@ -11,16 +11,15 @@ using UnityEngine.Rendering;
 namespace DK2.Unity
 {
     /// <summary>
-    /// The classic look's plain terrain (plan step 1): each tile's <see cref="TerrainPieces"/> from
-    /// the install, merged per 16×16-tile chunk with a submesh per material.
+    /// The classic look's terrain (plan steps 1 and 2): plain <see cref="TerrainPieces"/>, a room's
+    /// floor and <see cref="RoomWalls"/>, and a liquid's bed, merged per 16×16-tile chunk.
     /// </summary>
     /// <remarks>
-    /// A piece is rotated a quarter turn per step about its own origin, clockwise seen from above
-    /// (side N 0 to E 1, as <see cref="RoomWalls"/> and DK2's side table run), then moved to the
-    /// tile's centre and, for a quarter, to its quadrant's centre. Heights are the models' own:
-    /// the floor at 1, a wall from 1 to 2 (ADR-0411). With a <see cref="TerrainLattice"/>, every
-    /// vertex is then bent as DK2 bends it; normals stay the straight piece's (terrain-lattice.md §1),
-    /// and a change rebuilds the 5×5 tiles' chunks around it, where DK2 rebuilds the 3×3.
+    /// A piece is turned a quarter per step about its origin, clockwise from above (side N 0 to E 1,
+    /// as DK2's side table runs), then moved to the tile's centre and, for a quarter, its quadrant's.
+    /// Heights are the models' own: floor 1, walls 1 to 2 (ADR-0411). A <see cref="TerrainLattice"/>
+    /// then bends each vertex as DK2 does, keeping the straight normals (terrain-lattice.md §1); a
+    /// change rebuilds the 5×5 tiles' chunks around it, where DK2 rebuilds the 3×3.
     /// </remarks>
     public sealed class TerrainChunks
     {
@@ -61,10 +60,11 @@ namespace DK2.Unity
             _drawn = new bool[width * height];
         }
 
-        /// <summary>Takes the tile when it has plain pieces; false leaves it to the placeholder.</summary>
+        /// <summary>Takes the tile when it has plain or room pieces; false leaves it to the placeholder.</summary>
         public bool TrySet(int tileIndex, in TileView tile)
         {
-            bool draws = !tile.Pieces.IsEmpty && tile.PieceKeys != null;
+            bool draws = (!tile.Pieces.IsEmpty && tile.PieceKeys != null)
+                || tile.RoomKeys != null || tile.BedKeys != null;
             if (_lattice != null)
             {
                 // A change reaches its 3×3 cells, and they bend the pieces one tile further.
@@ -140,6 +140,13 @@ namespace DK2.Unity
 
         private void AddTile(int x, int y, in TileView tile)
         {
+            if (tile.BedKeys != null) AddBed(x, y, tile);
+            if (tile.RoomKeys != null)
+            {
+                AddRoom(x, y, tile);
+                return;
+            }
+
             TerrainPieces pieces = tile.Pieces;
             TerrainPieceKeys keys = tile.PieceKeys;
             Vector3 centre = DungeonScene.Ground(x + 0.5f, y + 0.5f);
@@ -159,6 +166,53 @@ namespace DK2.Unity
                     TerrainPieces.QuarterRotation(q), centre + new Vector3(offset.x, 0f, offset.y), x, y);
             }
         }
+
+        /// <summary>A room tile: its floor's quarters and whole piece, then each side's wall, whole
+        /// at the centre or as two halves in the side's two quadrants, all turned to the side.</summary>
+        private void AddRoom(int x, int y, in TileView tile)
+        {
+            RoomPieceKeys keys = tile.RoomKeys;
+            Vector3 centre = DungeonScene.Ground(x + 0.5f, y + 0.5f);
+            AddSet(tile.RoomFloor, keys, null, centre, x, y);
+
+            RoomWalls walls = tile.Walls;
+            for (int side = 0; side < 4; side++)
+            {
+                if (walls.IsWhole(side))
+                    Add(_classic.Piece(keys.Piece(walls.WholePiece(side))), side, centre, x, y);
+                else if (walls.HasWall(side))
+                {
+                    Add(_classic.Piece(keys.Piece(walls.HalfAPiece(side))), side, Quadrant(centre, side), x, y);
+                    Add(_classic.Piece(keys.Piece(walls.HalfBPiece(side))), side, Quadrant(centre, (side + 1) & 3), x, y);
+                }
+            }
+        }
+
+        /// <summary>A liquid tile's bed, or a bridge's. The surface is not drawn: DK2's is an alpha
+        /// texture laid by code not yet read.</summary>
+        private void AddBed(int x, int y, in TileView tile)
+        {
+            TerrainPieceKeys keys = tile.BedKeys;
+            Vector3 centre = DungeonScene.Ground(x + 0.5f, y + 0.5f);
+            AddSet(tile.Bed, null, keys, centre, x, y);
+        }
+
+        /// <summary>A piece list's quarters and whole piece, from a room's pieces or a liquid's bed.</summary>
+        private void AddSet(PieceSet set, RoomPieceKeys room, TerrainPieceKeys bed, Vector3 centre, int x, int y)
+        {
+            if (set.HasQuarters)
+                for (int q = 0; q < 4; q++)
+                    if (set.HasQuarter(q))
+                        Add(_classic.Piece(Key(room, bed, set.QuarterPiece(q))), set.QuarterRotation(q),
+                            Quadrant(centre, q), x, y);
+            if (set.HasWhole) Add(_classic.Piece(Key(room, bed, set.WholePiece)), set.WholeRotation, centre, x, y);
+        }
+
+        private static AssetRef Key(RoomPieceKeys room, TerrainPieceKeys bed, int k) =>
+            room != null ? room.Piece(k) : bed.Bed(k);
+
+        private static Vector3 Quadrant(Vector3 centre, int quadrant) =>
+            centre + new Vector3(QuadrantCentres[quadrant].x, 0f, QuadrantCentres[quadrant].y);
 
         private void Add(ClassicMeshes.PieceSource piece, int rotation, Vector3 at, int x, int y)
         {

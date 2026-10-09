@@ -20,8 +20,9 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery.md")]
 public static class HatcheryRules
 {
-    /// <summary>Tiles per coop: <b>six</b>, integer division. A 3×3 hatchery gets one
-    /// coop and a 6×6 gets six.</summary>
+    /// <summary>Tiles per coop: <b>six</b>, integer division over every tile, the rim
+    /// included (room <c>+0xA7</c>). A 3×3 hatchery is owed one coop and a 6×6 six, though
+    /// only the interior holds them (<see cref="CoopTiles"/>).</summary>
     public const int TilesPerCoop = 6;
 
     /// <summary>The cap on coops in one room: <b>36</b>. Reaching it would take 216
@@ -132,14 +133,15 @@ public static class HatcheryRules
     public static int CoopCount(RoomInstance hatchery) =>
         Math.Min(hatchery.TileIndices.Count / TilesPerCoop, MaxCoops);
 
-    /// <summary>Which tiles of this room should hold coops, in the order they are taken.
-    /// <para>Deterministic, as the original is: it walks the room's own tile
-    /// list and takes the first position far enough from every coop already
-    /// placed, rather than choosing at random. So this needs no RNG and cannot
-    /// drift, which matters because the room is rebuilt from the tiles every
-    /// time it is asked for (<see cref="RoomIndex"/>).</para>
-    /// <para>May return fewer than <see cref="CoopCount"/> when the spacing rule
-    /// runs out of room, which a long thin hatchery can do.</para></summary>
+    /// <summary>Which tiles of this room should hold coops, in the order they are taken:
+    /// <c>Hatchery_PlaceCoops</c> <c>0x004DE220</c> (hatchery.md §2). It walks the slab chain
+    /// and takes each floor slot (<c>Room_IsFloorSlot</c>, for a Hatchery every interior
+    /// tile) that holds no coop of its own and lies at least √3 tiles from every coop taken
+    /// so far. So a 5×5 room's four stand on a 2×2 grid inside the rim (owner, 2026-10-09).
+    /// <para>May return fewer than <see cref="CoopCount"/>: a thin room has few interior tiles.
+    /// Deviates: DK2 also spends one simulation-stream roll per coop (its <c>+0x14A</c>), and
+    /// replaces every coop on each change where ours keeps those still wanted (hatchery.md,
+    /// Known exceptions).</para></summary>
     public static void CoopTiles(WorldState world, RoomInstance hatchery, List<int> into)
     {
         if (into is null) throw new ArgumentNullException(nameof(into));
@@ -149,8 +151,10 @@ public static class HatcheryRules
         if (wanted == 0) return;
 
         int width = world.Width;
-        foreach (int index in hatchery.TileIndices)
+        HashSet<int> slots = AutoFurnitureRules.FloorSlotSet(world, hatchery);
+        foreach (int index in SlabChain.Order(world, hatchery))
         {
+            if (!slots.Contains(index) || HasOwnCoop(world, index)) continue;
             int x = index % width;
             int y = index / width;
 
@@ -208,6 +212,18 @@ public static class HatcheryRules
             added++;
         }
         return added;
+    }
+
+    /// <summary>A coop the room did not place stands here (<c>Cell_FindObjectOfType</c>
+    /// <c>0x004537E0</c>): DK2's rebuild removes its own first, so only such a coop is left
+    /// for the walk to skip.</summary>
+    private static bool HasOwnCoop(WorldState world, int tileIndex)
+    {
+        IReadOnlyList<ObjectState> objects = world.Objects;
+        for (int i = 0; i < objects.Count; i++)
+            if (objects[i].TileIndex == tileIndex && objects[i].ObjectTypeId == CoopObjectId && !objects[i].AutoPlaced)
+                return true;
+        return false;
     }
 
     /// <summary>Whether a coop already stands on this tile.</summary>

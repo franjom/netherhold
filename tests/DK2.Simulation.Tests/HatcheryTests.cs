@@ -82,7 +82,8 @@ public class HatcheryTests
         var tiles = new List<int>();
         HatcheryRules.CoopTiles(world, room, tiles);
 
-        Assert.Equal(6, tiles.Count);
+        // Owed six, but only the 4×4 interior holds them, and it fits four.
+        Assert.Equal(4, tiles.Count);
 
         // The whole spacing rule, stated as the geometry rather than as the
         // fixed-point comparison it comes from: no two coops within a squared
@@ -101,25 +102,52 @@ public class HatcheryTests
         }
     }
 
+    /// <summary>12 tiles in one row are owed two coops, but a coop stands only on an
+    /// interior tile (<c>0x004DE220</c> asks <c>Room_IsFloorSlot</c>), and a row has none.</summary>
     [Fact]
-    public void ASingleFileHatcheryCannotFitAllTheCoopsItIsOwed()
+    public void ASingleFileHatcheryHasNoInteriorAndSoNoCoops()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-
-        // 12 tiles in one row earns two coops, and a row can hold them: the
-        // spacing only needs two tiles of gap. Narrow it to a shape where the
-        // rule bites and CoopTiles must return fewer than it is owed rather
-        // than break its own spacing.
         RoomInstance room = Hatchery(db, world, 2, 2, 12, 1);
         Assert.Equal(2, HatcheryRules.CoopCount(room));
 
         var tiles = new List<int>();
         HatcheryRules.CoopTiles(world, room, tiles);
-        Assert.Equal(2, tiles.Count);
+        Assert.Empty(tiles);
+    }
 
-        int gap = Math.Abs((tiles[0] % world.Width) - (tiles[1] % world.Width));
-        Assert.True(gap >= 2, $"two coops in a row ended up {gap} apart");
+    /// <summary>A coop the room did not place (a level's own) is passed over: its tile is not
+    /// taken and it does not count in the spacing (<c>0x004DE220</c> checks only this pass's
+    /// coops), so the walk takes the next interior tile, right beside it. Chain order here is
+    /// row-major, the order of a painted room; a dragged room's wave order is not pinned.</summary>
+    [Fact]
+    public void ACoopTheRoomDidNotPlaceIsSkippedAndNotSpacedFrom()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        RoomInstance room = Hatchery(db, world, 2, 2, 5, 5);
+        world.SpawnObject(db, HatcheryRules.CoopObjectId, Keeper, (3 * world.Width) + 3);
+
+        var tiles = new List<int>();
+        HatcheryRules.CoopTiles(world, room, tiles);
+        Assert.Equal((3 * world.Width) + 4, tiles[0]);
+    }
+
+    /// <summary>The owner's observation (2026-10-09): a 5×5 hatchery's four coops stand on a
+    /// 2×2 grid inside the rim, the interior walked in chain order with the √3 spacing.</summary>
+    [Fact]
+    public void AFiveByFiveHatcherysCoopsStandOnATwoByTwoGridInsideTheRim()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        RoomInstance room = Hatchery(db, world, 2, 2, 5, 5);
+
+        var tiles = new List<int>();
+        HatcheryRules.CoopTiles(world, room, tiles);
+        Assert.Equal(
+            new[] { (3, 3), (5, 3), (3, 5), (5, 5) },
+            tiles.Select(t => (t % world.Width, t / world.Width)));
     }
 
     [Fact]
@@ -140,9 +168,9 @@ public class HatcheryTests
         // move coops around under a running game.
         Assert.Equal(first, second);
 
-        // And the first tile taken is the room's first tile, since nothing can
+        // And the first tile taken is the first interior tile, since nothing can
         // be too close to an empty set.
-        Assert.Equal(room.TileIndices[0], first[0]);
+        Assert.Equal((3 * world.Width) + 3, first[0]);
     }
 
     // ---- placing them as objects -------------------------------------------
@@ -154,8 +182,8 @@ public class HatcheryTests
         WorldState world = World(db);
         RoomInstance room = Hatchery(db, world, 2, 2, 6, 6);
 
-        Assert.Equal(6, HatcheryRules.PlaceCoops(world, db, room));
-        Assert.Equal(6, world.Objects.Count);
+        Assert.Equal(4, HatcheryRules.PlaceCoops(world, db, room));
+        Assert.Equal(4, world.Objects.Count);
 
         var tiles = new List<int>();
         HatcheryRules.CoopTiles(world, room, tiles);
@@ -181,9 +209,9 @@ public class HatcheryTests
         WorldState world = World(db);
         RoomInstance room = Hatchery(db, world, 2, 2, 6, 6);
 
-        Assert.Equal(6, HatcheryRules.PlaceCoops(world, db, room));
+        Assert.Equal(4, HatcheryRules.PlaceCoops(world, db, room));
         Assert.Equal(0, HatcheryRules.PlaceCoops(world, db, room));
-        Assert.Equal(6, world.Objects.Count);
+        Assert.Equal(4, world.Objects.Count);
     }
 
     [Fact]

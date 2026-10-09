@@ -84,10 +84,10 @@ plain tile's `TerrainPieces` (faces, top, whole floor, player quarters; floor-an
 16×16 chunk, rebuilding only a changed tile's chunk. The owner compared Level 1 with DK2's: the
 pieces look right, but DK2's walls are bent and their corners softened: a runtime lattice
 (`terrain-lattice.md`, Q72 answered: a pure function of the map), now built as `TerrainLattice`
-and applied per vertex by `TerrainChunks`, with DK2's HighWalls option on by default. The owner
-found the first render a little exaggerated; whether that is the shape or the lighting (step 5)
-waits on a same-spot comparison. Item 4: the owner colour
-is the claimed sets (player id − 1, STRONGLY INFERRED); the damage frame's texture index is unread.
+and applied per vertex by `TerrainChunks`, with DK2's HighWalls option on by default. Item 4: the
+owner colour is the claimed sets (player id − 1, STRONGLY INFERRED); the damage frame's texture
+index is unread. **Accepted** by the owner (2026-10-09) on a same-spot comparison with DK2: the
+shapes match, and only the colour differs (step 5).
 
 ## Step 2: walls and rooms
 
@@ -102,6 +102,16 @@ is the claimed sets (player id − 1, STRONGLY INFERRED); the damage frame's tex
 
 Gate: a played Level 1 with every room it has, beside DK2's. Measure the frame rate on the
 largest shipped map here.
+
+Status (2026-10-09, branch `classic-look/step2`): items 1 to 3 built from DK2's builders
+(`room-floors-and-liquids.md`). `WorldView` gives each room tile a `PieceSet` (Normal, Quad,
+3×3, 3×3 rotated, the Heart, DoubleQuad) and its walls, piece 8 on the room's wall phase; each
+liquid tile, and each bridge, a bed; and a `LiquidSurface`, which Unity's `LiquidSurfaces` waves
+as DK2's sine mode does. Not built: the hero gates, the destroyed Heart, the Temple's pool
+surface, the ripple water, water's texture animation. Item 4 was step 0's. The owner compared
+level 7: rooms and lava look right, a Lair's decorated walls alternate as DK2's do; they found the
+Hatchery's coops on its rim, a simulation bug (the coop walk takes only interior tiles,
+`hatchery.md` §2), fixed alongside. The frame rate is not yet measured.
 
 ## Step 3: objects and furniture
 

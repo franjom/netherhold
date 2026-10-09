@@ -246,7 +246,9 @@ public static class AutoFurnitureRules
             && flags.HasFlag(TerrainFlags.AllowRoomWalls);
     }
 
-    private static bool UsesCheckerboard(RoomTypeId? type) =>
+    /// <summary>The rooms whose floor slots are one parity of a checkerboard: Guard Room, Workshop
+    /// and Casino (<c>FUN_004EF5E0</c>).</summary>
+    public static bool UsesCheckerboard(RoomTypeId? type) =>
         type is RoomTypeId.GuardRoom or RoomTypeId.Workshop or RoomTypeId.Casino;
 
     private static int TempleHandTile(

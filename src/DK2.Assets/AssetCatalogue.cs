@@ -156,13 +156,19 @@ public static class AssetCatalogue
     /// A plain terrain's pieces: a solid one's face (art 1), top (art 2) and tagged top (art 3,
     /// when taggable); an open one's whole floor (art 0); and the player quarters of a
     /// PlayerColouredPath floor or a PlayerColouredWall top. None for a room, whose pieces are its
-    /// own, or for water and lava, whose builder <c>0x0043E440</c> is unread.
+    /// own. Water and lava have their bed pieces (<see cref="TerrainBed"/>); their surface, art 2, is
+    /// an alpha texture rather than a mesh, and its drawer is unread (room-floors-and-liquids.md §3).
     /// </summary>
     public static IEnumerable<AssetRef> ForTerrainPieces(TerrainDef terrain)
     {
         if (terrain is null) throw new ArgumentNullException(nameof(terrain));
         TerrainFlags flags = terrain.Flags;
-        if ((flags & (TerrainFlags.Room | TerrainFlags.ConstructionTypeWater)) != 0) yield break;
+        if ((flags & TerrainFlags.Room) != 0) yield break;
+        if ((flags & TerrainFlags.ConstructionTypeWater) != 0)
+        {
+            for (int k = 0; k < BedPieces; k++) yield return TerrainBed(terrain.Name, k);
+            yield break;
+        }
 
         if (terrain.IsSolid)
         {
@@ -193,6 +199,14 @@ public static class AssetCatalogue
     public static AssetRef TerrainPiece(string terrainName, string piece) =>
         AssetRef.ForTerrain(terrainName, AssetKind.Mesh, piece);
 
+    /// <summary>The bed pieces of a water or lava terrain, "&lt;art 0&gt;0..7" (WATER BED0..7, LAVA
+    /// BED0..7; the terrain loader <c>0x004F66E0</c>).</summary>
+    public const int BedPieces = 8;
+
+    /// <summary>Bed piece <paramref name="k"/> of a water or lava terrain.</summary>
+    public static AssetRef TerrainBed(string terrainName, int k) =>
+        AssetRef.ForTerrain(terrainName, AssetKind.Mesh, "bed" + k);
+
     /// <summary>A player-coloured quarter of a terrain: piece 0..4 of player set 0..6.</summary>
     public static AssetRef TerrainQuarter(string terrainName, int set, int piece) =>
         AssetRef.ForTerrain(terrainName, AssetKind.Mesh, $"quarter{set}{piece}");
@@ -209,9 +223,8 @@ public static class AssetCatalogue
             RoomDef room = database.Rooms[(RoomTypeId)id];
             yield return AssetRef.ForRoom(room.Name, AssetKind.Texture);
             yield return AssetRef.ForRoom(room.Name, AssetKind.Mesh);
-            if (DrawsRoomWalls(room))
-                for (int piece = FirstWallPiece; piece <= LastWallPiece; piece++)
-                    yield return WallPiece(room.Name, piece);
+            for (int piece = 0; piece < RoomPieceCount(room); piece++)
+                yield return RoomPiece(room.Name, piece);
         }
     }
 
@@ -219,10 +232,27 @@ public static class AssetCatalogue
     /// running half, 7 the whole straight wall, 8 its decorated form.</summary>
     public const int FirstWallPiece = 4, LastWallPiece = 8;
 
-    /// <summary>A room's wall piece, built by DK2's loader from the name of the room's art 2 and
-    /// the piece number (<c>0x004EACC0</c>).</summary>
-    public static AssetRef WallPiece(string roomName, int piece) =>
-        AssetRef.ForRoom(roomName, AssetKind.Mesh, "wall" + piece);
+    /// <summary>A room's wall piece: <see cref="RoomPiece"/> 4 to 8.</summary>
+    public static AssetRef WallPiece(string roomName, int piece) => RoomPiece(roomName, piece);
+
+    /// <summary>A room's piece k, built by DK2's loader from the name of the room's art 2 and the
+    /// number (<c>0x004EACC0</c>, wall-pieces.md §1): floor quarters, wall pieces and centres alike.</summary>
+    public static AssetRef RoomPiece(string roomName, int piece) =>
+        AssetRef.ForRoom(roomName, AssetKind.Mesh, "piece" + piece);
+
+    /// <summary>How many numbered pieces DK2's loader builds for the room's construction, k = 0
+    /// up (wall-pieces.md §1): Quad 4, 3×3 9, 3×3 rotated 3, Normal 10, DoubleQuad 15, the Heart 4.
+    /// The hero gates' pieces (numbered from 1, or with a destroyed set) are not keyed yet.</summary>
+    public static int RoomPieceCount(RoomDef room) => room.Construction switch
+    {
+        TileConstruction.QuadConstruction => 4,
+        TileConstruction.ThreeByThree => 9,
+        TileConstruction.ThreeByThreeRotated => 3,
+        TileConstruction.Normal => 10,
+        TileConstruction.DoubleQuad => 15,
+        TileConstruction.FiveByFiveRotated => 4,
+        _ => 0,
+    };
 
     /// <summary>Whether the presentation draws this room's walls: the Normal and DoubleQuad rooms,
     /// whose wall chooser is the general one (<c>0x00444F10</c>).</summary>

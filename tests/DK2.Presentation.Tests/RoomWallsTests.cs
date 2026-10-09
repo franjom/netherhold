@@ -36,8 +36,9 @@ public class RoomWallsTests
         return new Room(db, world, new WorldView(db));
     }
 
-    /// <summary>The middle of a straight wall is one whole piece, 7 (no furniture phase is kept),
-    /// and a side against more room has no wall.</summary>
+    /// <summary>The middle of a straight wall is one whole piece, and a side against more room has
+    /// no wall. This one is the room's first straight wall, which sets the north-south phase from
+    /// its own x, so it is the decorated piece 8 (wall-pieces.md §2, <c>0x004ECEB0</c>).</summary>
     [InstallFact]
     public void TheMiddleOfAStraightWallIsOneWholePiece()
     {
@@ -45,7 +46,7 @@ public class RoomWallsTests
         RoomWalls walls = room.View.TileAt(room.World, X0 + 2, Y0 + 1).Walls;
 
         Assert.True(walls.IsWhole(N));
-        Assert.Equal(7, walls.WholePiece(N));
+        Assert.Equal(8, walls.WholePiece(N));
         Assert.False(walls.HasWall(E));
         Assert.False(walls.HasWall(S));
         Assert.False(walls.HasWall(W));
@@ -88,7 +89,8 @@ public class RoomWallsTests
         Room room = Carve(RoomTypeId.Temple);
         Assert.Equal(TileConstruction.DoubleQuad, room.Database.Room(RoomTypeId.Temple).Construction);
 
-        Assert.Equal(7, room.View.TileAt(room.World, X0 + 2, Y0 + 1).Walls.WholePiece(N));
+        // The first straight wall sets the phase from its own x: decorated, 8.
+        Assert.Equal(8, room.View.TileAt(room.World, X0 + 2, Y0 + 1).Walls.WholePiece(N));
         RoomWalls corner = room.View.TileAt(room.World, X0 + 3, Y0 + 4).Walls;
         // The bottom-right corner: E's A half faces N, where the room runs on; S's faces E, where it stops.
         Assert.Equal((6, 5), (corner.HalfAPiece(E), corner.HalfBPiece(E)));
@@ -102,6 +104,17 @@ public class RoomWallsTests
     {
         Room room = Treasury(ring: "Rock");
         Assert.True(room.View.TileAt(room.World, X0 + 2, Y0 + 1).Walls.IsEmpty);
+    }
+
+    /// <summary>The east wall's phase is set by the first east or west straight wall in chain
+    /// order, (X0 + 1, Y0 + 2) on the west side: 1 − (y &amp; 1). A whole east wall is decorated
+    /// where y plus that phase is odd, so its pieces alternate 8 and 7 down the wall.</summary>
+    [InstallFact]
+    public void DecoratedPiecesAlternateAlongAWall()
+    {
+        Room room = Treasury();
+        Assert.Equal(8, room.View.TileAt(room.World, X0 + 3, Y0 + 2).Walls.WholePiece(E));
+        Assert.Equal(7, room.View.TileAt(room.World, X0 + 3, Y0 + 3).Walls.WholePiece(E));
     }
 
     /// <summary>A Portal (3×3 construction) does not use the general chooser.</summary>

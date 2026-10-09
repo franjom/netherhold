@@ -30,7 +30,12 @@ public readonly struct TileView
         TerrainPieces pieces = default,
         TerrainPieceKeys? pieceKeys = null,
         bool explored = true,
-        bool hasDoor = false)
+        bool hasDoor = false,
+        PieceSet roomFloor = default,
+        RoomPieceKeys? roomKeys = null,
+        PieceSet bed = default,
+        TerrainPieceKeys? bedKeys = null,
+        LiquidSurface surface = LiquidSurface.None)
     {
         Position = position;
         Ground = ground;
@@ -45,6 +50,11 @@ public readonly struct TileView
         PieceKeys = pieceKeys;
         Explored = explored;
         HasDoor = hasDoor;
+        RoomFloor = roomFloor;
+        RoomKeys = roomKeys;
+        Bed = bed;
+        BedKeys = bedKeys;
+        Surface = surface;
     }
 
     public TilePos Position { get; }
@@ -97,6 +107,24 @@ public readonly struct TileView
 
     /// <summary>A door stands here, open or not (the lattice's door test).</summary>
     public bool HasDoor { get; }
+
+    /// <summary>The room floor pieces this tile draws (<see cref="PieceSet"/>); empty off a room.</summary>
+    public PieceSet RoomFloor { get; }
+
+    /// <summary>The keys <see cref="RoomFloor"/> and <see cref="Walls"/> draw with; null off a room
+    /// and on the constructions not built (the hero gates).</summary>
+    public RoomPieceKeys? RoomKeys { get; }
+
+    /// <summary>The water or lava bed under this tile (<c>0x0043E440</c>): a water or lava tile's
+    /// own, or a bridge's; empty where none is drawn, as under open water.</summary>
+    public PieceSet Bed { get; }
+
+    /// <summary>The liquid's keys, for its bed pieces; null where no liquid lies.</summary>
+    public TerrainPieceKeys? BedKeys { get; }
+
+    /// <summary>The liquid surface drawn over this tile: on every water and lava tile, open or
+    /// shore, and under a bridge over water but not over lava (room-floors-and-liquids.md §6).</summary>
+    public LiquidSurface Surface { get; }
 
     public bool IsRoom => !Furniture.IsEmpty;
 }
@@ -228,6 +256,14 @@ public sealed class WorldView
     private readonly Dictionary<byte, TerrainPieceKeys> _pieceKeys = [];
     private readonly bool[] _solidById = new bool[256];
     private readonly bool[] _ownWallsById = new bool[256];
+    private readonly Dictionary<byte, RoomPieceKeys> _roomKeys = [];
+
+    // What the floors read of whole rooms, found once a tick (EnsureRooms).
+    private readonly HashSet<int> _checkerSlots = [];
+    private readonly List<RoomFacts> _roomFacts = [];
+    private int[] _roomOf = [];
+    private WorldState? _roomsWorld;
+    private GameTick _roomsTick;
 
     /// <summary>
     /// Creates one keeper's view of the world. Player 1 remains the default for
@@ -265,6 +301,7 @@ public sealed class WorldView
         foreach (KeyValuePair<byte, RoomDef> entry in database.RoomsByTerrain)
         {
             _roomFurniture[entry.Key] = AssetRef.ForRoom(entry.Value.Name, AssetKind.Mesh);
+            if (AssetCatalogue.RoomPieceCount(entry.Value) > 0) _roomKeys[entry.Key] = new RoomPieceKeys(entry.Value);
             // Room definition +0x43D bit 3, which the loader sets for these constructions
             // (wall-pieces.md §1): a terrain face against such a room is the room's to draw.
             _ownWallsById[entry.Key] = entry.Value.Construction is TileConstruction.Complete
@@ -339,7 +376,358 @@ public sealed class WorldView
             PiecesOf(world, x, y, tile, terrain),
             _pieceKeys[tile.TerrainId],
             !world.FogOfWarEnabled || tile.IsDiscoveredBy(_viewingPlayerId),
-            world.DoorAt(x, y) is not null);
+            world.DoorAt(x, y) is not null,
+            RoomFloorOf(world, x, y, tile),
+            _roomKeys.TryGetValue(tile.TerrainId, out RoomPieceKeys? roomKeys) ? roomKeys : null,
+            BedOf(world, x, y, tile, terrain, out TerrainPieceKeys? bedKeys),
+            bedKeys,
+            SurfaceOf(tile, terrain));
+    }
+
+    /// <summary>The per-tile pass's liquid arm (<c>0x0043D1C5..0x0043D394</c>): water and lava
+    /// terrain draw their surface; a bridge draws water's over water and none over lava.</summary>
+    private LiquidSurface SurfaceOf(in TileState tile, TerrainDef terrain)
+    {
+        if (terrain.IsLava) return LiquidSurface.Lava;
+        if (terrain.IsWater) return LiquidSurface.Water;
+        return BridgeRules.SpannedTerrain(_database, tile) is { IsWater: true } ? LiquidSurface.Water : LiquidSurface.None;
+    }
+
+    // The quarter table 0x0066DDA0 of the Normal floor and the Quad bridges, (piece, rotation) by a
+    // quadrant's (first, diagonal, last) same-room bits: 0 an edge, 1 an outer corner, 2 an inner
+    // corner, 3 interior. The Stone Bridge's 0x0066DE60 differs in entries 4 and 6.
+    private static readonly (byte Piece, byte Rotation)[] NormalQuarter =
+        [(1, 3), (0, 3), (1, 3), (0, 3), (0, 0), (2, 1), (0, 0), (3, 0)];
+
+    private static readonly (byte Piece, byte Rotation)[] StoneBridgeQuarter =
+        [(1, 3), (0, 3), (1, 3), (0, 3), (0, 2), (2, 1), (0, 2), (3, 0)];
+
+    // DoubleQuad's 0x0066DDE0: 0..7 by the inner mask, 8..15 by the inverted room mask.
+    private static readonly (byte Piece, byte Rotation)[] DoubleQuadQuarter =
+    [
+        (13, 2), (10, 2), (11, 1), (10, 2), (10, 1), (12, 3), (10, 1), (12, 3),
+        (3, 2), (0, 2), (2, 1), (0, 2), (0, 1), (3, 0), (0, 1), (1, 1),
+    ];
+
+    // The Heart's 0x0066DBC8, piece << 4 | rotation by dx + 5·dy from the first slab.
+    private static readonly byte[] HeartCode =
+    [
+        0x33, 0x23, 0x23, 0x23, 0x30,
+        0x22, 0x00, 0x10, 0x01, 0x20,
+        0x22, 0x13, 0x40, 0x11, 0x20,
+        0x22, 0x03, 0x12, 0x02, 0x20,
+        0x32, 0x21, 0x21, 0x21, 0x31,
+    ];
+
+    // The 3×3 rotated 0x0066DB98 by cx + 3·cy: corners piece 0, edges piece 1, the centre piece 2.
+    private static readonly byte[] RotatedThreeCode = [0x00, 0x10, 0x01, 0x13, 0x20, 0x11, 0x03, 0x12, 0x02];
+
+    // The bed's whole-tile patterns 0x0066CC30, (want, care) over the liquid mask, the first match
+    // winning, with their pieces 0x0066DEC8; then the quarters 0x0066DEA0.
+    private static readonly (byte Want, byte Care)[] BedPattern =
+    [
+        (0x07, 0x57), (0x1C, 0x5D), (0x70, 0x75), (0xC1, 0xD5),
+        (0xFD, 0xFF), (0xF7, 0xFF), (0xDF, 0xFF), (0x7F, 0xFF),
+        (0xC7, 0xD7), (0x1F, 0x5F), (0xF1, 0xF5), (0x7C, 0x7D), (0xFF, 0xFF),
+    ];
+
+    private static readonly (byte Piece, byte Rotation)[] BedWhole =
+        [(1, 0), (1, 1), (1, 2), (1, 3), (2, 0), (2, 1), (2, 2), (2, 3), (0, 0), (0, 1), (0, 3), (0, 2), (3, 0)];
+
+    private static readonly (byte Piece, byte Rotation)[] BedQuarter =
+        [(5, 1), (4, 1), (5, 1), (4, 1), (4, 2), (6, 3), (4, 2), (7, 2)];
+
+    private const int NormalCentrePiece = 9, NormalInteriorPiece = 3;
+    private const int DoubleQuadInteriorPiece = 13, DoubleQuadDoorPiece = 14;
+    private const byte WorkshopEmptySlotObjectId = 46;
+
+    /// <summary>
+    /// A room tile's floor pieces by its construction (<c>0x00443610</c>'s arms,
+    /// floor-and-terrain-pieces.md §4, room-floors-and-liquids.md), from the tile codes <c>0x004EDC10</c> writes:
+    /// Normal <c>0x00444970</c>, Quad (bridges) <c>0x00443910</c>, 3×3 <c>0x00446140</c>, 3×3
+    /// rotated <c>0x00446210</c>, the Heart <c>0x004462E0</c> and DoubleQuad <c>0x00443F20</c>.
+    /// <para>Deviates: the hero gates are not built, and the destroyed Heart (<c>0x004463B0</c>) is
+    /// not drawn, no ruin flag being kept.</para>
+    /// </summary>
+    private PieceSet RoomFloorOf(WorldState world, int x, int y, in TileState tile)
+    {
+        if (!_database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? room)) return default;
+        return room.Construction switch
+        {
+            TileConstruction.Normal => NormalFloor(world, room, x, y, tile),
+            TileConstruction.QuadConstruction => QuarterFloor(SameRoomMask(world, x, y, tile),
+                room.TypeId == RoomTypeId.StoneBridge ? StoneBridgeQuarter : NormalQuarter),
+            TileConstruction.ThreeByThree => ThreeByThreeCell(world, x, y, tile) is int code
+                ? default(PieceSet).WithWhole(code, 0) : default,
+            TileConstruction.ThreeByThreeRotated => ThreeByThreeCell(world, x, y, tile) is int cell
+                ? Coded(RotatedThreeCode[cell]) : default,
+            TileConstruction.FiveByFiveRotated => HeartFloor(world, x, y),
+            TileConstruction.DoubleQuad => DoubleQuadFloor(world, room, x, y, tile),
+            _ => default,
+        };
+    }
+
+    /// <summary>Normal (<c>0x00444970</c>): an edge tile four quarters by its same-room mask; an
+    /// interior floor slot the centre piece 9, but for a Workshop slot whose furniture is the empty
+    /// object 46; any other interior tile four interior quarters.</summary>
+    private PieceSet NormalFloor(WorldState world, RoomDef room, int x, int y, in TileState tile)
+    {
+        int mask = SameRoomMask(world, x, y, tile);
+        if (mask != 0xFF) return QuarterFloor(mask, NormalQuarter);
+
+        PieceSet pieces = default;
+        if (IsFloorSlot(world, room, x, y)
+            && !(room.TypeId == RoomTypeId.Workshop && room.ObjectIds.Count >= 3
+                && room.ObjectIds[AutoFurnitureRules.Choice(x, y, 3)] == WorkshopEmptySlotObjectId))
+            return pieces.WithWhole(NormalCentrePiece, 0);
+
+        for (int q = 0; q < 4; q++) pieces = pieces.WithQuarter(q, NormalInteriorPiece, q);
+        return pieces;
+    }
+
+    /// <summary>Four quarters from a (piece, rotation) table by the mask, each turned by its quadrant.</summary>
+    private static PieceSet QuarterFloor(int mask, (byte Piece, byte Rotation)[] table)
+    {
+        PieceSet pieces = default;
+        for (int q = 0; q < 4; q++)
+        {
+            (byte piece, byte rotation) = table[QuadrantIndex(mask, q)];
+            pieces = pieces.WithQuarter(q, piece, rotation + q);
+        }
+        return pieces;
+    }
+
+    private static PieceSet Coded(byte code) => default(PieceSet).WithWhole(code >> 4, code & 3);
+
+    /// <summary>The 3×3 cell <c>0x004EF730</c>: cx + 3·cy, cx 0 where the west tile is not this
+    /// room, else 1 where the east one is, else 2 (cy from north and south); null, writing nothing,
+    /// with an orthogonal neighbour off the map. Deviates: DK2 then leaves the byte as it was and
+    /// draws that (no shipped Portal touches the edge); and its "same room" is the room instance
+    /// (<c>0x004559B0</c>), here this type and owner, which <see cref="RoomIndex"/> joins.</summary>
+    private static int? ThreeByThreeCell(WorldState world, int x, int y, in TileState tile)
+    {
+        if (!world.Contains(x - 1, y) || !world.Contains(x + 1, y)
+            || !world.Contains(x, y - 1) || !world.Contains(x, y + 1))
+            return null;
+        int mask = SameRoomMask(world, x, y, tile);
+        int cx = (mask & (1 << 6)) == 0 ? 0 : (mask & (1 << 2)) != 0 ? 1 : 2;
+        int cy = (mask & (1 << 0)) == 0 ? 0 : (mask & (1 << 4)) != 0 ? 1 : 2;
+        return cx + (3 * cy);
+    }
+
+    /// <summary>The Heart (<c>0x004EFBE0</c>, <c>0x004462E0</c>): the 5×5 table by the tile's offset
+    /// from the room's first slab; the centre's piece 4 draws nothing, nor does a tile beyond 5×5.</summary>
+    private PieceSet HeartFloor(WorldState world, int x, int y)
+    {
+        if (FactsAt(world, x, y) is not { } room) return default;
+        int dx = x - room.FirstX, dy = y - room.FirstY;
+        if (dx is < 0 or > 4 || dy is < 0 or > 4) return default;
+        byte code = HeartCode[dx + (5 * dy)];
+        return code >> 4 == 4 ? default : Coded(code);
+    }
+
+    /// <summary>DoubleQuad (<c>0x00443F20</c>, room-floors-and-liquids.md §4): the Prison's door tile and the Combat Pit's
+    /// entry tile one piece 14 in the north-west quarter; an interior tile piece 13 four times;
+    /// otherwise each quarter an inner-ring piece by its interior neighbours, or else an outer-ring
+    /// piece by the room mask inverted, turned half a turn further.</summary>
+    private PieceSet DoubleQuadFloor(WorldState world, RoomDef room, int x, int y, in TileState tile)
+    {
+        PieceSet pieces = default;
+        if (room.TypeId is RoomTypeId.Prison or RoomTypeId.CombatPit
+            && FactsAt(world, x, y) is { } facts && facts.DoorTile == (y * world.Width) + x)
+            return pieces.WithQuarter(0, DoubleQuadDoorPiece, 0);
+
+        int mask = SameRoomMask(world, x, y, tile);
+        if (mask == 0xFF)
+        {
+            for (int q = 0; q < 4; q++) pieces = pieces.WithQuarter(q, DoubleQuadInteriorPiece, q);
+            return pieces;
+        }
+
+        // A neighbour of this room counts as interior when its own mask is full.
+        int inner = 0;
+        for (int k = 0; k < 8; k++)
+        {
+            int nx = x + Dx8[k], ny = y + Dy8[k];
+            if ((mask & (1 << k)) != 0 && SameRoomMask(world, nx, ny, world.Tile(nx, ny)) == 0xFF) inner |= 1 << k;
+        }
+
+        for (int q = 0; q < 4; q++)
+        {
+            int i = QuadrantIndex(inner, q);
+            (byte piece, byte rotation) = i != 0
+                ? DoubleQuadQuarter[i]
+                : DoubleQuadQuarter[8 + QuadrantIndex(~mask & 0xFF, q)];
+            pieces = pieces.WithQuarter(q, piece, rotation + q + (i != 0 ? 0 : 2));
+        }
+        return pieces;
+    }
+
+    /// <summary>Tile byte <c>+0xC</c> for a room tile (<c>0x004EFF00</c>): bit k set where neighbour
+    /// k is on the map with this tile's terrain and owner.</summary>
+    private static int SameRoomMask(WorldState world, int x, int y, in TileState tile)
+    {
+        int mask = 0;
+        for (int k = 0; k < 8; k++)
+        {
+            int nx = x + Dx8[k], ny = y + Dy8[k];
+            if (!world.Contains(nx, ny)) continue;
+            TileState other = world.Tile(nx, ny);
+            if (other.TerrainId == tile.TerrainId && other.OwnerPlayerId == tile.OwnerPlayerId) mask |= 1 << k;
+        }
+        return mask;
+    }
+
+    /// <summary>A quadrant's (first, diagonal, last) bits of directions 2q − 2, 2q − 1, 2q.</summary>
+    private static int QuadrantIndex(int mask, int q) =>
+        (((mask >> ((2 * q + 6) & 7)) & 1) << 2)
+        | (((mask >> ((2 * q + 7) & 7)) & 1) << 1)
+        | ((mask >> (2 * q)) & 1);
+
+    /// <summary>
+    /// The liquid bed <c>0x0043E440</c> (room-floors-and-liquids.md §3) under a water or lava
+    /// tile, or under a bridge over one: the first whole-tile pattern the liquid mask matches, else
+    /// four quarters; open water (every neighbour liquid) draws none. The liquid's surface (art 2,
+    /// an alpha texture) is drawn by code not yet found.
+    /// </summary>
+    private PieceSet BedOf(WorldState world, int x, int y, in TileState tile, TerrainDef terrain,
+        out TerrainPieceKeys? keys)
+    {
+        bool bridge = (terrain.Flags & TerrainFlags.ConstructionTypeWater) == 0;
+        TerrainDef? liquid = bridge ? BridgeRules.SpannedTerrain(_database, tile) : terrain;
+        keys = liquid is null ? null : _pieceKeys[liquid.TerrainId];
+        if (liquid is null) return default;
+
+        // 0x00450470 for a liquid tile: off the map, the same terrain or a bridge over it. The
+        // bridge's own mask (0x00443910): the liquid's flag or a bridge over the same liquid.
+        TerrainFlags flag = liquid.IsLava ? TerrainFlags.Lava : TerrainFlags.Water;
+        int mask = 0;
+        for (int k = 0; k < 8; k++)
+        {
+            int nx = x + Dx8[k], ny = y + Dy8[k];
+            if (!world.Contains(nx, ny))
+            {
+                if (!bridge) mask |= 1 << k;
+                continue;
+            }
+            TileState other = world.Tile(nx, ny);
+            bool same = bridge
+                ? (_database.TerrainById(other.TerrainId).Flags & flag) != 0
+                : other.TerrainId == liquid.TerrainId;
+            if (same || (BridgeRules.SpannedTerrain(_database, other) is { } under && under.TerrainId == liquid.TerrainId))
+                mask |= 1 << k;
+        }
+
+        if (!liquid.IsLava && mask == 0xFF) return default;
+        for (int i = 0; i < BedPattern.Length; i++)
+            if ((mask & BedPattern[i].Care) == BedPattern[i].Want)
+                return default(PieceSet).WithWhole(BedWhole[i].Piece, BedWhole[i].Rotation);
+        return QuarterFloor(mask, BedQuarter);
+    }
+
+    /// <summary>What a floor reads of its whole room: the first slab (<c>room+0x2D</c>), the
+    /// Prison's or Combat Pit's door tile, and the wall phases.</summary>
+    private readonly record struct RoomFacts(int FirstX, int FirstY, int DoorTile, int PhaseNorthSouth, int PhaseEastWest);
+
+    private RoomFacts? FactsAt(WorldState world, int x, int y)
+    {
+        EnsureRooms(world);
+        int index = _roomOf[(y * world.Width) + x];
+        return index == 0 ? null : _roomFacts[index - 1];
+    }
+
+    /// <summary>Finds the rooms, their facts and the checkerboard rooms' floor slots, once a tick:
+    /// a whole-map pass that allocates. Keyed by the tick, so a tile changed between ticks (by a
+    /// tool, not the simulation) is seen only at the next one.</summary>
+    private void EnsureRooms(WorldState world)
+    {
+        if (ReferenceEquals(_roomsWorld, world) && _roomsTick == world.CurrentTick) return;
+        _roomsWorld = world;
+        _roomsTick = world.CurrentTick;
+        _checkerSlots.Clear();
+        _roomFacts.Clear();
+        if (_roomOf.Length != world.TileCount) _roomOf = new int[world.TileCount];
+        else Array.Clear(_roomOf, 0, _roomOf.Length);
+
+        foreach (RoomInstance room in RoomIndex.Build(world, _database))
+        {
+            RoomTypeId? type = room.Definition.TypeId;
+            int door = type is RoomTypeId.Prison or RoomTypeId.CombatPit ? JailBreakRules.DoorTile(world, room) : -1;
+            (int northSouth, int eastWest) = WallPhases(world, room);
+            int first = SlabChain.FirstSlab(world, room);
+            _roomFacts.Add(new RoomFacts(first % world.Width, first / world.Width, door, northSouth, eastWest));
+            foreach (int tile in room.TileIndices) _roomOf[tile] = _roomFacts.Count;
+            if (AutoFurnitureRules.UsesCheckerboard(type))
+                _checkerSlots.UnionWith(AutoFurnitureRules.FloorSlotSet(world, room));
+        }
+    }
+
+    /// <summary>
+    /// The room's wall phases <c>0x004ECEB0</c> (room-floors-and-liquids.md §5): walking the slab chain, the first straight
+    /// wall on a north or south side sets the north-south phase to x &amp; 1, on an east or west
+    /// side the east-west phase to 1 − (y &amp; 1); −1 while none is found. Bridges take 0 and 0.
+    /// <para>Deviates: DK2 keeps a phase once set while the room grows, and the level start turns a
+    /// level room's −1 into 0; this finds it afresh from the room as it stands.</para>
+    /// </summary>
+    private (int NorthSouth, int EastWest) WallPhases(WorldState world, RoomInstance room)
+    {
+        if (BridgeRules.IsBridge(room.Definition)) return (0, 0);
+        int northSouth = -1, eastWest = -1, width = world.Width;
+        foreach (int tile in SlabChain.Order(world, room))
+        {
+            int x = tile % width, y = tile / width;
+            for (int side = 0; side < 4; side++)
+            {
+                if (!StraightWall(world, room, x, y, side)) continue;
+                if ((side & 1) == 0) { if (northSouth < 0) northSouth = x & 1; }
+                else if (eastWest < 0) eastWest = 1 - (y & 1);
+            }
+            if (northSouth >= 0 && eastWest >= 0) break;
+        }
+        return (northSouth, eastWest);
+    }
+
+    /// <summary>A straight wall on a side: the tile outside AllowRoomWalls, the two tiles along the
+    /// wall in this room, and both diagonals outside solid and AllowRoomWalls.</summary>
+    private bool StraightWall(WorldState world, RoomInstance room, int x, int y, int side)
+    {
+        int d = side * 2;
+        return WallTile(world, x + Dx8[d], y + Dy8[d], solid: false)
+            && InRoom(world, room, x + Dx8[(d + 6) & 7], y + Dy8[(d + 6) & 7])
+            && InRoom(world, room, x + Dx8[(d + 2) & 7], y + Dy8[(d + 2) & 7])
+            && WallTile(world, x + Dx8[(d + 7) & 7], y + Dy8[(d + 7) & 7], solid: true)
+            && WallTile(world, x + Dx8[(d + 1) & 7], y + Dy8[(d + 1) & 7], solid: true);
+    }
+
+    private bool WallTile(WorldState world, int x, int y, bool solid)
+    {
+        if (!world.Contains(x, y)) return false;
+        TerrainDef terrain = _database.TerrainById(world.Tile(x, y).TerrainId);
+        return terrain.Flags.HasFlag(TerrainFlags.AllowRoomWalls) && (!solid || terrain.IsSolid);
+    }
+
+    private static bool InRoom(WorldState world, RoomInstance room, int x, int y) =>
+        world.Contains(x, y) && room.Contains((y * world.Width) + x);
+
+    /// <summary>Whether the whole wall on <paramref name="side"/> is the decorated piece 8: on north
+    /// and south faces where x plus the north-south phase is even, on east and west faces where y
+    /// plus the east-west phase is odd (<c>0x004452F1..0x0044535F</c>).</summary>
+    private bool Decorated(WorldState world, int x, int y, int side)
+    {
+        if (FactsAt(world, x, y) is not { } room) return false;
+        return (side & 1) == 0
+            ? room.PhaseNorthSouth >= 0 && ((x + room.PhaseNorthSouth) & 1) == 0
+            : room.PhaseEastWest >= 0 && ((y + room.PhaseEastWest) & 1) == 1;
+    }
+
+    /// <summary><c>Room_IsFloorSlot</c> <c>0x00454110</c> for an interior tile: always, but for
+    /// the checkerboard rooms only the room's own parity. Deviates: DK2 also refuses the Graveyard
+    /// cell holding object 75, which then draws interior quarters, not piece 9.</summary>
+    private bool IsFloorSlot(WorldState world, RoomDef room, int x, int y)
+    {
+        if (!AutoFurnitureRules.UsesCheckerboard(room.TypeId)) return true;
+        EnsureRooms(world);
+        return _checkerSlots.Contains((y * world.Width) + x);
     }
 
     // The claimed-quarter table 0x0066DA08: the piece for a quadrant's (side, diagonal, side) edge
@@ -429,13 +817,7 @@ public sealed class WorldView
     private static int QuarterPieces(int edges)
     {
         int packed = 0;
-        for (int q = 0; q < 4; q++)
-        {
-            int index = (((edges >> ((2 * q + 6) & 7)) & 1) << 2)
-                | (((edges >> ((2 * q + 7) & 7)) & 1) << 1)
-                | ((edges >> (2 * q)) & 1);
-            packed |= ClaimedQuarterPiece[index] << (3 * q);
-        }
+        for (int q = 0; q < 4; q++) packed |= ClaimedQuarterPiece[QuadrantIndex(edges, q)] << (3 * q);
         return packed;
     }
 
@@ -449,8 +831,9 @@ public sealed class WorldView
     /// The room wall chooser <c>0x00444F10</c> for a room that draws its own walls (Normal and
     /// DoubleQuad construction): a side with a visible AllowRoomWalls tile outside it gets a wall,
     /// whole where the room runs on both ways along a wall, else two halves.
-    /// <para>Deviates as ADR-0392 lists: the same room is the same room terrain, secret doors are
-    /// not walls, and no furniture phase is kept, so a whole side is always piece 7.</para>
+    /// <para>Deviates as ADR-0392 lists: the same room is the same room terrain and secret doors are
+    /// not walls. A whole side is the decorated piece 8 on the room's wall phase
+    /// (<see cref="Decorated"/>).</para>
     /// </summary>
     private RoomWalls WallsOf(WorldState world, int x, int y, byte terrainId)
     {
@@ -469,7 +852,7 @@ public sealed class WorldView
             bool runsOnA = RunsOn(world, x, y, terrainId, (d + 6) & 7, (d + 7) & 7);
             bool runsOnB = RunsOn(world, x, y, terrainId, (d + 2) & 7, (d + 1) & 7);
             walls = runsOnA && runsOnB
-                ? walls.WithWhole(side)
+                ? walls.WithWhole(side, Decorated(world, x, y, side))
                 : walls.WithHalves(side, runsOnA, runsOnB);
         }
 

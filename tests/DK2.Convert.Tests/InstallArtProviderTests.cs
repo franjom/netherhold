@@ -160,4 +160,31 @@ public sealed class InstallArtProviderTests
         }
         Assert.True(loaded > 70, $"only {loaded} pieces");
     }
+
+    /// <summary>
+    /// The shipped install: every numbered piece the loader builds for a room the classic look
+    /// draws (wall-pieces.md §1), and Water's and Lava's bed pieces, load with vertices.
+    /// </summary>
+    [InstallFact]
+    public void EveryRoomPieceAndLiquidPieceLoads()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+
+        AssetRef[] keys =
+        [
+            .. database.Rooms.Values.SelectMany(room =>
+                Enumerable.Range(0, AssetCatalogue.RoomPieceCount(room)).Select(k => AssetCatalogue.RoomPiece(room.Name, k))),
+            .. AssetCatalogue.ForTerrainPieces(database.WaterTerrain!),
+            .. AssetCatalogue.ForTerrainPieces(database.LavaTerrain!),
+        ];
+        foreach (AssetRef key in keys)
+        {
+            Assert.True(provider.TryResolve(key, out ResolvedAsset asset), key.Key);
+            Assert.True(provider.TryLoadModel(asset, out KmfModel model), asset.InstallEntry);
+            Assert.NotEmpty(RenderMesh.FromModel(model).Positions);
+        }
+        Assert.Equal(189 + 16, keys.Length);
+    }
 }

@@ -36,27 +36,61 @@ chicken — so both have a state machine to do it in, and DK2's object carries a
 
 ## 2. How many coops a hatchery has
 
-The room places **Chicken Coops** — object 35, confirmed by the code branching
-on the literal id 35 and by our parse giving 35 the name "Chicken Coop". The
-count comes from the room's tile count:
+The placer is `0x004DE220` (`Hatchery_PlaceCoops`), the Hatchery arm (type 4) of
+`Room_Rebuild`'s switch (`0x004EE00F`). Read in instructions 2026-10-09. It places
+**Chicken Coops**, object 35 (`0x23`), with this rule:
 
-    coops = min(tiles / 6, 36)
+    count = min(Size / 6, 36)            Size = room +0xA7, every tile, rim included
+    placed = []
+    repeat count times:
+        walk the slab chain from FirstSlab (+0x2D/+0x2E), next tile at cell +0x04
+        take the first tile that
+          - Room_IsFloorSlot (0x00454110) accepts: interior only (cell +0x0C == 0xFF);
+            the Hatchery's table entry (type 4 -> byte 9 -> 0x004541E2) accepts every interior cell,
+          - has no object 35 on it already (Cell_FindObjectOfType 0x004537E0),
+          - and is at squared distance >= 3.0 tiles from every coop in `placed`
+        none found -> stop
 
-Integer division; the cap is 36. A 3x3 hatchery has **one** coop, a 6x6 has
-**six**, and reaching the cap would need 216 tiles.
+- **Candidates are interior tiles only.** A rim tile is never a coop. CONFIRMED.
+- **Distance:** per coop, `(|dx|^2 >> 12) + (|dy|^2 >> 12)` in 1/4096 units, rejected
+  when below `0x3000` unsigned (`0x004DE3A2`). Between tile centres that is
+  `dx^2 + dy^2 < 3` in tiles, so a coop may not be any of a placed coop's eight
+  neighbours; two apart in a row or column is allowed. The list holds **only the
+  coops this pass has placed**. CONFIRMED.
+- **Order:** each coop restarts the walk at `FirstSlab`. Since a refused tile stays
+  refused, this is one greedy pass in chain order (`room-slab-chain.md`): row-major
+  for a pre-placed room, wave order from the drag's second corner for a dragged one.
+- **Count:** `Size / 6`, capped at 36 (`> 0x23` gives `0x24`), counted over all tiles,
+  while the candidates are interior: the walk can run out first. CONFIRMED.
+- **Position:** exactly the tile centre, `x*4096 + 0x800`, `y*4096 + 0x800`, height
+  `0xE00`. CONFIRMED.
+- **Per coop:** its angle `+0xF4`/`+0x102` is `(selector(x, y) mod 4) << 9`, the
+  coordinate selector of `auto-placed-furniture.md` §2 (y with `0x2286`, x with
+  `0x16F2`); `+0x14A` is `random(4) << 9` from the **simulation stream** (world
+  `+0x15A0`, `0x004DE4E4`), so every placed coop consumes one roll. It is pushed
+  onto `AutoPlacedObjectList` (`0x004E6220`) and marked auto-placed (`+0x133 = 1`).
+- **When:** every rebuild. The tile adder `0x004ED1A0`, the merge `0x004EC900` and
+  the tile remover `0x004ED440` each first delete every auto-placed object through
+  `0x004E6BC0` (unlink, then `0x004B7B10`, whose destructor path unlinks the object
+  from its tile at once), then run `Room_Rebuild`. So every change of shape
+  **replaces all the coops** from scratch; nothing is kept or moved. The
+  "object 35 already here" test therefore only refuses a coop that is not on the
+  auto-placed list, and such a coop is not in the distance list.
 
-Coops are placed with a **minimum separation**: a candidate position is rejected
-when the squared distance to an already-placed coop is below **3.0** in DK2's
-fixed-point units, a spacing of about **1.73 tiles**. The check is against every
-coop placed so far, in the room's own tile order.
+What changed (2026-10-09): this section said the walk covered every tile "in the
+room's own tile order"; the floor-slot test, the per-pass list, the rebuild
+replacement and the RNG roll were unread.
 
-Two details of the placement:
+**Worked examples** (row-major chain, NW tile (20,5)):
 
-- a coop's position is the **tile centre** — tile index times 4096 plus 2048 in
-  fixed point, which is exactly `CreatureState.CentreOf` and confirms the 4096
-  denominator on a third independent path;
-- placement walks the room's tiles, so it is deterministic given the room, not
-  random.
+| room | Size / 6 | interior | coops |
+|---|---|---|---|
+| 5×5, x20–24, y5–9 | 4 | 3×3, x21–23, y6–8 | (21,6), (23,6), (21,8), (23,8) |
+| 3×3, x20–22, y5–7 | 1 | (21,6) | (21,6) |
+| 4 wide × 6 tall, x20–23, y5–10 | 4 | x21–22, y6–9 | (21,6), (21,8): **2**, the walk runs out |
+| 6 wide × 4 tall, x20–25, y5–8 | 4 | x21–24, y6–7 | (21,6), (23,6): **2** |
+
+The 5×5 result is the owner's "2×2 grid".
 
 ## 3. Where an egg appears
 
@@ -244,6 +278,11 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
 - Ours lays at a coop whenever the room has one and refuses a full room; DK2 lays
   on a free tile while the room has capacity and at a coop, under the free-range
   cap, when it has none (§3). Unbuilt.
+- DK2 deletes every auto-placed coop on each change and places them all again,
+  with new ids in the new chain order, each with its angle and one
+  simulation-stream roll (§2). Ours keeps the coops still wanted and adds the
+  rest, so after a growth the coop list's order, which the lay's random pick
+  indexes, can differ from DK2's; the angle and the roll are not built.
 
 ## Open questions
 

@@ -241,12 +241,16 @@ public class AssetCatalogueTests
         var keys = AssetCatalogue.ForRooms(database).ToList();
         int walled = database.Rooms.Values.Count(AssetCatalogue.DrawsRoomWalls);
 
-        // Plus five wall pieces for each of the 14 rooms with the general wall chooser: the 11
-        // Normal rooms and the 3 DoubleQuad ones (Q71).
+        // Plus the numbered pieces DK2's loader builds (wall-pieces.md §1): 10 for each of the 11
+        // Normal rooms, 15 for the 3 DoubleQuad ones, 9 for each 3×3 (Portal, Hero Portal), 4 for
+        // each Quad bridge (3) and 4 for the Heart. The 14 walled rooms are the Normal and
+        // DoubleQuad ones (Q71).
         Assert.Equal(14, walled);
-        Assert.Equal((database.Rooms.Count * 2) + (walled * 5), keys.Count);
+        int pieces = database.Rooms.Values.Sum(AssetCatalogue.RoomPieceCount);
+        Assert.Equal((11 * 10) + (3 * 15) + (2 * 9) + (3 * 4) + 4, pieces);
+        Assert.Equal((database.Rooms.Count * 2) + pieces, keys.Count);
         Assert.Equal(database.Rooms.Count, keys.Count(k => k.Kind == AssetKind.Texture));
-        Assert.Equal(database.Rooms.Count + (walled * 5), keys.Count(k => k.Kind == AssetKind.Mesh));
+        Assert.Equal(database.Rooms.Count + pieces, keys.Count(k => k.Kind == AssetKind.Mesh));
     }
     /// <summary>
     /// Every object definition gets a mesh, and only a mesh.

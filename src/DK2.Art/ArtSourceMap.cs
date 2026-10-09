@@ -91,6 +91,12 @@ public static class ArtSourceMap
                 continue;
             }
             string variant = reference.Key.Substring(reference.Key.LastIndexOf('.') + 1);
+            if (variant.StartsWith("bed", StringComparison.Ordinal))
+            {
+                string bed = resources[0].IsEmpty ? "" : resources[0].Name + variant.Substring(3);
+                entries.Add(Model(reference, new Dk2ArtResource(bed, 0), "liquid bed piece"));
+                continue;
+            }
             if (variant.StartsWith("quarter", StringComparison.Ordinal))
             {
                 string name = (wall ? "Claimed Top" : "Claimed Floor") + variant[7] + "_" + variant[8];
@@ -118,9 +124,8 @@ public static class ArtSourceMap
                 string reason = NoArtRecord("room", room.RoomId);
                 entries.Add(Missing(AssetRef.ForRoom(room.Name, AssetKind.Texture), reason));
                 entries.Add(Missing(AssetRef.ForRoom(room.Name, AssetKind.Mesh), reason));
-                if (AssetCatalogue.DrawsRoomWalls(room))
-                    for (int piece = AssetCatalogue.FirstWallPiece; piece <= AssetCatalogue.LastWallPiece; piece++)
-                        entries.Add(Missing(AssetCatalogue.WallPiece(room.Name, piece), reason));
+                for (int piece = 0; piece < AssetCatalogue.RoomPieceCount(room); piece++)
+                    entries.Add(Missing(AssetCatalogue.RoomPiece(room.Name, piece), reason));
                 continue;
             }
             Dk2ArtResource complete = resources[2];
@@ -128,10 +133,9 @@ public static class ArtSourceMap
                 "room complete mesh's first material texture"));
             entries.Add(Model(AssetRef.ForRoom(room.Name, AssetKind.Mesh), complete, "room complete mesh"));
             // The loader names each piece art 2's name plus its number (0x004EACC0).
-            if (AssetCatalogue.DrawsRoomWalls(room))
-                for (int piece = AssetCatalogue.FirstWallPiece; piece <= AssetCatalogue.LastWallPiece; piece++)
-                    entries.Add(Model(AssetCatalogue.WallPiece(room.Name, piece),
-                        new Dk2ArtResource(complete.IsEmpty ? "" : complete.Name + piece, 0), "room wall piece"));
+            for (int piece = 0; piece < AssetCatalogue.RoomPieceCount(room); piece++)
+                entries.Add(Model(AssetCatalogue.RoomPiece(room.Name, piece),
+                    new Dk2ArtResource(complete.IsEmpty ? "" : complete.Name + piece, 0), "room piece"));
         }
     }
 

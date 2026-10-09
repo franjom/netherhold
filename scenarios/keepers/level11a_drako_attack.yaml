@@ -67,13 +67,15 @@ expect:
       Over seeds 1-10 the wall falls at 72-404: a keeper may slap its own reinforcer (ADR-0405).
   - event: call_to_arms_raised
     detail: "tile=64,34"
-    at_tick: 625
+    at_tick: 481
     because: >
       With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
       heart and attack management casts the call there (0x004FECE0, ADR-0298). The point is a draw
       between (64,34) and (64,38); DK2's call stands on (64,38), at 700. The outcome is a draw too:
       over seeds 1-10 Drako attacks Morgana first in eight and turns west to Belial in two, as
-      DK2 does in one of its ten (Q574).
+      DK2 does in one of its ten (Q574). The tick moved from 625 when coops moved to the interior
+      (hatchery.md §2): over seeds 1-10 the calls are unchanged in kind (seven on Morgana, one
+      west, two none by 700) and eight keep their tick; the egg rolls only reshuffle the stream.
   - event: engaged
     detail: "player=5 heart=6"
     because: >
