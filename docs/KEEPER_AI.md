@@ -350,7 +350,9 @@ preferences 2, `RemoveCallToArmsAfter` 240, `WaitBeforeAttackingAgain` 90,
 `RemoveCallToArmsWithinRange` 5, `AllRoomsPlaced`/`AllSpellsResearched` 0,
 `SpecialSearchChance` 0, `SpecialFindChance` 90/50/20 repeating, `SpecialRange`
 10/8/15/8/5/2/5/4/3, starting mana 100, `ManaValue`/`GoldValue` 100. The full decode
-is reproducible from the seven addresses above.
+is reproducible from the seven addresses above; every column is in `KeeperAIPersonality`
+(ADR-0410). Not in the table above: `AttackingVsDefensiveSpellPreference` is 2 except
+Psychotic's 0.
 
 The setter builds `RoomList` from the world's definition enumeration: the first
 15 entries with room-descriptor `+0x43D` bit 7 **set**, **or** id 3 (Portal), **or**
@@ -1041,7 +1043,7 @@ the simulation's stream. The delay and separate stream are deliberate deviations
 | `LineWalker` (+ `WalkOutcome`) | §5.2's corridor digger, with wall-hugging and the two-way trial | **exists** |
 | `GoldScanner` | cardinal seams, gold totals, centroid correction and historical admission cutoff | **exists**; remaining position and border limits: management research §12 |
 | `RoomPlanner` | §5.5's room choice, ideal neighbours, directions, claimable neutral rooms | **exists** |
-| `KeeperAIPersonality` | the nine skirmish rows of §3.2 as typed static data, producing a `KeeperAIParameters` plus the computed `RoomList` | **does not exist**; the values are in §3.2 |
+| `KeeperAIPersonality` | the nine skirmish rows of §3.2 as typed static data, producing a `KeeperAIParameters` plus the computed `RoomList` | built (ADR-0410): every column decoded from the seven tables' bytes, the remap, the room list, the skill cap; scenarios take it through `keeper_personalities` |
 | `ThreatEvaluator` | Pure strength, drop-site and response arithmetic (§5.4) | **exists**; live inputs and messages arrive through `KeeperThreatResponder` (ADR-0278, `research/computer-keeper-threat.md` section 5) |
 | `KeeperMoodRemedies` | §5.3's make happy and dispose for 17/18, as pick-up, mint and drop commands | **exists** (ADR-0353) |
 | `KeeperAttackPlanner`, `KeeperReadiness` | §5.5's attack planner, front and management; the readiness grants as commands | **exist** (ADR-0298) |
@@ -1242,5 +1244,5 @@ flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273
 the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery
 and expiry (ADR-0277); remaining gaps: `research/creature-pickup.md`.
 
-Not built: the personality loader, `TrapPlacer`'s site choice, the door decisions, the
+Not built: `TrapPlacer`'s site choice (built and parked, `computer-keeper-observations.md`), the door decisions, the
 prisoner step and the researcher's portal move.

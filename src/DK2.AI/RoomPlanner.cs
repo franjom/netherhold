@@ -127,20 +127,22 @@ public static class RoomPlanner
         bool portal = roomId is (byte)RoomTypeId.Portal or (byte)RoomTypeId.HeroPortal;
         KeeperRoomView? best = null;
         int bestDist = int.MaxValue;
-        foreach (KeeperRoomView r in view.AllRooms)
+        // 0x004C61C0 on the neutral player's room list, newest first: the first slab (+0x2D) nearest
+        // the heart position, the first strict minimum kept, Portal and Hero Portal one type.
+        for (int i = view.AllRooms.Count - 1; i >= 0; i--)
         {
+            KeeperRoomView r = view.AllRooms[i];
             bool matches = portal
                 ? r.Definition.TypeId is RoomTypeId.Portal or RoomTypeId.HeroPortal
                 : r.Definition.RoomId == roomId;
             if (!matches || !KeeperView.IsNeutral(r)) continue;
-            int distance = KeeperView.DistanceSquared(KeeperView.Centre(r), heart);
+            int distance = KeeperView.DistanceSquared(view.FirstSlabOf(r), heart);
             if (distance < bestDist) { bestDist = distance; best = r; }
         }
         if (best is null) return null;
         // 0x004FC690 reads stored positions (+0x27): the target's, and the own room's nearest it,
         // which is the origin. A portal's range runs from its first slab (+0x2D) to that origin,
-        // inclusive; another room's from the heart position to the target, strict (ADR-0394). The
-        // candidate ranking, 0x004C61C0, is unread and stays on the bounding-box middle.
+        // inclusive; another room's from the heart position to the target, strict (ADR-0394).
         TilePos target = view.PositionOf(best);
         if (!area.Contains(target) || view.NearestOwnRoomByPosition(target) is not KeeperRoomView from) return null;
         origin = view.PositionOf(from);
