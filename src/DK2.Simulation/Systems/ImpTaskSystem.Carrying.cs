@@ -355,8 +355,8 @@ public sealed partial class ImpTaskSystem
     /// worker's keeper owns, and posts its room message as it meets each one: an enemy's Prison
     /// result, or an own creature's Lair result when it has no bed. Duplicates are harmless: 41-43
     /// keep one record per room type.
-    /// An enemy is carried only on result 4. DK2 also carries a bedless own creature to a Lair with
-    /// a place (result 4); ours leaves it, having no bed to take it to. A corpse, likewise only on
+    /// An enemy is carried only on result 4, and so is an own creature with no bed, whose Lair and
+    /// point are chosen at the pick-up (<see cref="RouteOwnCasualty"/>). A corpse, likewise only on
     /// its keeper's tile, asks <see cref="GraveyardRules.ForCorpse"/> once per search.</remarks>
     private CreatureState? BodyToCarryAt(
         SimulationContext context, CreatureState worker, CreatureDef definition,
@@ -370,6 +370,7 @@ public sealed partial class ImpTaskSystem
             if (body.Tile != at) continue;
             if (CreatureDeathRules.IsCorpse(body) != corpses) continue;
             if (!CarryRules.CanCarry(definition, worker, body)) continue;
+            bool bedless = false;
 
             // The selector meets only bodies on a tile its keeper owns (the cell word +0x08's
             // low 12 bits against the worker's owner); elsewhere it neither posts nor carries.
@@ -390,17 +391,19 @@ public sealed partial class ImpTaskSystem
             {
                 _lairResult ??= RoomNeedRules.RescueResult(context, worker, definition, RoomTypeId.Lair);
                 RoomNeedRules.ForRescue(context, worker.OwnerPlayerId, _lairResult.Value, RoomTypeId.Lair);
-                continue;
+                // DK2 raises the carry on result 4 whatever the creature; ours carries only one with a
+                // lair object, which every own creature with a dying state has.
+                if (_lairResult != RoomNeedRules.RescueRoom.Usable
+                    || !LairRules.NeedsBed(context.Database.CreatureById(body.CreatureTypeId))) continue;
+                bedless = true;
             }
 
             // A corpse goes to the graveyard already found; a collapsed
             // creature goes to its own bed, which is a per-body question and a
             // cheap one.
-            int destination = corpses
-                ? graveyard
-                : CarryRules.TryDestinationFor(world, context.Database, worker, body);
-
-            if (destination < 0) continue;
+            // A bedless body's Lair is chosen at the pick-up; the selector has settled it has one.
+            if (!bedless && (corpses ? graveyard : CarryRules.TryDestinationFor(world, context.Database, worker, body)) < 0)
+                continue;
             int rank = corpses ? 0 : RescuePriorityRules.Rank(body, worker.OwnerPlayerId);
             int bestRank = best is null ? int.MaxValue
                 : corpses ? 0 : RescuePriorityRules.Rank(best, worker.OwnerPlayerId);
@@ -408,6 +411,25 @@ public sealed partial class ImpTaskSystem
         }
 
         return best;
+    }
+
+    private static bool IsOwnCasualty(CreatureState worker, CreatureState body) =>
+        !CreatureDeathRules.IsCorpse(body) && body.OwnerPlayerId == worker.OwnerPlayerId;
+
+    /// <summary>The casualty chooser <c>0x0046E610</c> for the keeper's own creature, routed: its bed
+    /// when a route reaches it, else a room point (<see cref="RoomWalkRules.RoomPoint"/>, a draw) in
+    /// the nearest Lair with space (<see cref="RoomNeedRules.NearestLairWithSpace"/>); -1 with neither.</summary>
+    private int RouteOwnCasualty(SimulationContext context, CreatureState worker, WorldPathGrid grid, CreatureState body)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        int bed = LairRules.BedTileIndex(world, database, body);
+        if (bed >= 0 && RouteTo(context, worker, grid, bed)) return bed;
+        if (!LairRules.NeedsBed(database.CreatureById(body.CreatureTypeId))) return -1;
+        if (RoomNeedRules.NearestLairWithSpace(context, worker, database.CreatureById(worker.CreatureTypeId), body) is not { } lair
+            || RoomWalkRules.RoomPoint(world, database, lair, context.Rng) is not int point)
+            return -1;
+        return RouteTo(context, worker, grid, point) ? point : -1;
     }
 
     /// <summary>Walking to a body, and picking it up on arrival.</summary>
@@ -442,8 +464,10 @@ public sealed partial class ImpTaskSystem
         }
 
         StateShadow.Arrive(context, SystemName, creature);
-        int destination = CarryRules.TryDestinationFor(world, context.Database, creature, body);
-        if (destination < 0 || !RouteTo(context, creature, grid, destination))
+        int destination = IsOwnCasualty(creature, body)
+            ? RouteOwnCasualty(context, creature, grid, body)
+            : CarryRules.TryDestinationFor(world, context.Database, creature, body);
+        if (destination < 0 || (!IsOwnCasualty(creature, body) && !RouteTo(context, creature, grid, destination)))
         {
             context.Emit(SystemName, "body_abandoned",
                 $"imp={creature.Id} body={body.Id} reason=nowhere_to_take_it");
@@ -492,14 +516,20 @@ public sealed partial class ImpTaskSystem
         CarryRules.FollowCarrier(creature, body);
 
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
-        if (here != creature.TargetTileIndex)
+        // State 45 delivers only on a Lair tile; elsewhere (the bed's tile sold during the walk) it
+        // runs the casualty chooser again (0x00468420).
+        bool own = IsOwnCasualty(creature, body);
+        if (here != creature.TargetTileIndex
+            || (own && RoomIndex.RoomAt(world, context.Database, here) is not { Definition.TypeId: RoomTypeId.Lair }))
         {
-            if (creature.HasRoute) return;
+            if (here != creature.TargetTileIndex && creature.HasRoute) return;
 
             // The destination moved or the route was lost. Try again from here;
             // failing that, put the body down where it stands.
-            int destination = CarryRules.TryDestinationFor(world, context.Database, creature, body);
-            if (destination >= 0 && RouteTo(context, creature, grid, destination))
+            int destination = own
+                ? RouteOwnCasualty(context, creature, grid, body)
+                : CarryRules.TryDestinationFor(world, context.Database, creature, body);
+            if (destination >= 0 && (own || RouteTo(context, creature, grid, destination)))
             {
                 // 41, 43 and 45 each re-route to themselves.
                 creature.TargetTileIndex = destination;
@@ -619,7 +649,11 @@ public sealed partial class ImpTaskSystem
             return;
         }
 
-        if (CreatureDeathRules.Rescue(context.Hooks, body))
+        // 45 kicks the body to 1 and 79, which goes to a bed in this room or makes one here.
+        int bed = LairRules.BedTileIndex(world, context.Database, body);
+        int at = (body.Tile.Y * world.Width) + body.Tile.X;
+        bool bedHere = bed >= 0 && RoomIndex.RoomAt(world, context.Database, at) is { } lair && lair.Contains(bed);
+        if (bedHere ? CreatureDeathRules.Rescue(context.Hooks, body) : CreatureDeathRules.RescueIntoLair(context, body))
         {
             context.Emit(SystemName, "creature_rescued",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +

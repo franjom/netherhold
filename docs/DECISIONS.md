@@ -9589,3 +9589,32 @@ the finder is not asked a second time for its messages.
 9/10 (master 7/10). Read as spread, not a measured gain: the streams moved. Deviates: ours walks
 its rooms in index order, not DK2's newest-first list, so equal distances can pick a different
 Library; the reroute at the end of a read (`ResearchStep`) still uses the generic search.
+
+## ADR-0417 — A fallen creature with no bed is carried to a Lair and makes its bed there
+**Date:** 2026-10-09 · **Status:** accepted · Research: `lair-acquisition.md`; `functions/0046D810.md`, `0046E610.md`, `00468420.md`, `0046F4F0.md`
+
+**Context.** The rescue selector (`0x0046D810`) raises a carry for an own creature with no bed
+(`+0x3B7` zero) when a Lair has a place (result 4). Its creature update clears `+0x3B7` once the
+bed is gone (`0x00488E75`), so a creature whose bed was sold counts too. Ours posted the messages
+and left the body (ADR-0412).
+
+**Decision.** The selector carries such a body on result 4. At the pick-up the casualty chooser
+(`0x0046E610`, `ImpTaskSystem.RouteOwnCasualty`) takes its bed when a route reaches it, else a room
+point (`0x004E8430`, a draw) in the Lair with space nearest the body (`0x004C6610`). State 45
+(`0x00468420`) delivers on a Lair tile; off one, as when the bed's tile is sold during the walk,
+it chooses again, and drops the body only when nothing is found (Q107). The delivery's 79
+(`0x0046F4F0`) is `CreatureDeathRules.RescueIntoLair`: on its keeper's Lair, a free tile
+(`0x004E0140`), `random(0x800)`, the old bed given up, the new one placed, and the creature laid
+in it.
+
+**Consequences.** Levels 1-3 replay exactly as ADR-0416 left them; no replayed body is bedless.
+Deviates: ours places the bed at once, eliding 79's walk to the tile and 80-82, as `Rescue` does
+for an existing bed, so it is never up at zero health; with no free tile ours leaves it dying
+where DK2's 79 posts 42 and sets 1; ours carries only a creature with a lair object, which every
+own creature with a dying state has (`NeedsBed`, where DK2's 79 reads only `+0x5D6`); the old bed's
+destroy (`0x0049CC20`) kicks the creature to 1 a second time, which ours does not model; a stale
+bed id is skipped for that pass in DK2, where ours, deriving the bed from the objects, carries the
+body at once; state 42 (`0x00467D00`) offers every creature on the tile and takes the first the
+chooser accepts, where ours takes the selected body; equal-distance Lairs fall to index order,
+not the room list. State 45's success branch falls through into the chooser (`0x004684DF`) on the
+body just put down; what that does is unread. Hash 212.

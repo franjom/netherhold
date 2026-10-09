@@ -389,8 +389,9 @@ Two corollaries:
 - **Q107, CONFIRMED (owner, 2026-09-07) and built:** a creature whose bed is sold
   while it lies dying is **not** rescued — *"if its bed gets sold an imp can't
   get that creature to bed, if it is mid flight it gets dropped, and then its
-  dying timer runs out and it dies"*. A rescue's destination is the creature's
-  own bed, so no bed means no imp comes.
+  dying timer runs out and it dies"*. The binary refines it (ADR-0417): with no
+  bed, a rescue goes to the nearest Lair with a free bed and makes one there, so
+  the drop is the case where no Lair has one.
 
 ## Open questions
 

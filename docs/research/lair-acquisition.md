@@ -302,8 +302,9 @@ already established elsewhere remain **UNKNOWN** rather than being guessed.
 
 This separates three activities that share labels in the table. State 79 is an
 on-arrival room/tile selector, while state 80 owns the repeated walk, placement
-and retry loop. The normal bedless-lair finder enters **80**, not 79; no direct
-entry to 79 has yet been established. State 81 is the journey to an existing
+and retry loop. The normal bedless-lair finder enters **80**, not 79. One entry to
+79 is the carry: state 45 (`0x00468420`) puts a casualty down on a Lair tile and kicks it to 1,
+then 79 (ADR-0417). State 81 is the journey to an existing
 bed, state 82 is final alignment, and **83 is the main sleeping state**. State
 84 is only the special wake/get-out path for object 23, the Mistress Creature
 Bed. Consequently `CreatureActivity.Sleeping` maps to state 83 for migration;

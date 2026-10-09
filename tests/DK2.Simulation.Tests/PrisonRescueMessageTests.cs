@@ -235,17 +235,77 @@ public class PrisonRescueMessageTests
     }
 
     [Fact]
-    public void ABedlessOwnCreatureIsLeftBesideALairWithAPlace_WhereDk2WouldCarryItThere()
+    public void ABedlessOwnCreatureIsCarriedToALairWithAPlaceAndMakesItsBedThere()
     {
-        // Result 4 for the Lair: DK2 raises the carry (0x0046D810's own-creature loop); ours has no
-        // bed to take it to and leaves it. A known deviation (ADR-0412), pinned so it is not mistaken
-        // for DK2's.
+        // Result 4 for the Lair: the selector raises the carry (0x0046D810's own-creature loop), the
+        // pick-up chooses the nearest Lair with space and a point in it (0x0046E610), and the
+        // delivery's 79 takes the free tile there (0x00468420, 0x0046F4F0).
         WorldState world = World();
         Build(world, 1, 1, RoomTypeId.Lair);
-        Fallen(world, Keeper);
-        CreatureState imp = RunImp(world);
+        CreatureState body = Fallen(world, Keeper);
+        CreatureState imp = world.SpawnCreature(Db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 3));
+        var sim = new GameSimulation(Db, world, 42, [new CreatureMovementSystem(), new ImpTaskSystem(), new CreatureSleepSystem(), new CreatureHealthSystem()]);
+        sim.Run(200);
+
         Assert.Empty(Posted(world, RoomTypeId.Lair));
-        Assert.Equal(-1, imp.TargetBodyId);
+        Assert.Equal(world.TileIndex(new TilePos(1, 1)), LairRules.BedTileIndex(world, Db, body));
+        // It slept in that bed, healed, and is up again.
+        Assert.False(CreatureDeathRules.IsDown(body));
+        Assert.True(body.Health > 0);
+        Assert.Equal(-1, imp.CarriedCreatureId);
+    }
+
+    [Fact]
+    public void ABedSoldDuringTheCarrySendsTheBodyToAnotherLairWithAFreeBed()
+    {
+        // Off a Lair, state 45 runs the chooser again (0x00468420): the bed is gone, so the nearest
+        // Lair with space (0x0046E610). The owner's drop (Q107) is the case with no such Lair.
+        WorldState world = World();
+        Build(world, 1, 1, RoomTypeId.Lair);
+        Build(world, 3, 1, RoomTypeId.Lair);
+        CreatureState body = Fallen(world, Keeper);
+        LairRules.PlaceBed(world, Db, body, world.TileIndex(new TilePos(1, 1)));
+        world.SpawnCreature(Db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 3));
+        var sim = new GameSimulation(Db, world, 42,
+            [new CreatureMovementSystem(), new ImpTaskSystem(), new CreatureSleepSystem(), new CreatureHealthSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+        for (int i = 0; i < 50 && !sink.Events.Any(e => e.Kind == "body_picked_up"); i++) sim.Tick();
+        Assert.Contains(sink.Events, e => e.Kind == "body_picked_up" && e.Detail.Contains("to=(1,1)"));
+
+        ref TileState sold = ref world.Tile(1, 1);
+        byte before = sold.TerrainId;
+        sold.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        SlabChain.Changed(world, Db, world.TileIndex(new TilePos(1, 1)), before, sold.OwnerPlayerId);
+        sim.Run(200);
+
+        Assert.Equal(world.TileIndex(new TilePos(3, 1)), LairRules.BedTileIndex(world, Db, body));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "body_dropped");
+    }
+
+    [Fact]
+    public void ABedlessOwnCreatureDeliveredToALairWithNoFreeTileStaysDyingAndPosts42()
+    {
+        WorldState world = World();
+        Build(world, 1, 1, RoomTypeId.Lair);
+        CreatureState body = Fallen(world, Keeper);
+        body.PosX = CreatureState.CentreOf(1);
+        body.PosY = CreatureState.CentreOf(1);
+        CreatureState sleeper = world.SpawnCreature(Db, GoblinId, Keeper, new TilePos(1, 1));
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, Db, sleeper));
+
+        bool rescued = true;
+        new GameSimulation(Db, world, 42, [new Probe(c => rescued = CreatureDeathRules.RescueIntoLair(c, body))]).Tick();
+
+        Assert.False(rescued);
+        Assert.True(CreatureDeathRules.IsDying(body));
+        Assert.Equal([PlayerMessageKind.RoomFull], Posted(world, RoomTypeId.Lair));
+    }
+
+    private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem
+    {
+        public string Name => "Probe";
+        public void Execute(SimulationContext context) => act(context);
     }
 
     [Fact]

@@ -34,4 +34,17 @@ public static class RoomWalkRules
 
         return null;
     }
+
+    /// <summary><c>0x004E8430</c>: a uniform draw from the simulation stream among the room's tiles in
+    /// slab-chain order that are neither a floor slot (<c>0x00454110</c>) nor a wall slot
+    /// (<c>0x00454230</c>); null with none, and then no draw.</summary>
+    public static int? RoomPoint(WorldState world, GameDatabase database, RoomInstance room, SimRandom rng)
+    {
+        var slots = new HashSet<int>();
+        AutoFurnitureRules.FurnitureSlots(world, database, room, slots);
+        var open = new List<int>();
+        foreach (int tile in SlabChain.Order(world, room))
+            if (!slots.Contains(tile)) open.Add(tile);
+        return open.Count == 0 ? null : open[rng.NextInt(open.Count)];
+    }
 }

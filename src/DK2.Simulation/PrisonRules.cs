@@ -281,15 +281,8 @@ public static class PrisonRules
     /// <c>0x004E8430</c>, a uniform draw from the world stream among the Prison's tiles in slab-chain
     /// order that are neither a floor slot (<c>0x00454110</c>) nor a wall slot (<c>0x00454230</c>),
     /// so a rim tile; null with none, where DK2 puts it down where the imp stands.</summary>
-    public static int? RefusedBodyPoint(WorldState world, GameDatabase database, RoomInstance room, SimRandom rng)
-    {
-        var slots = new HashSet<int>();
-        AutoFurnitureRules.FurnitureSlots(world, database, room, slots);
-        var open = new List<int>();
-        foreach (int tile in SlabChain.Order(world, room))
-            if (!slots.Contains(tile)) open.Add(tile);
-        return open.Count == 0 ? null : open[rng.NextInt(open.Count)];
-    }
+    public static int? RefusedBodyPoint(WorldState world, GameDatabase database, RoomInstance room, SimRandom rng) =>
+        RoomWalkRules.RoomPoint(world, database, room, rng);
 
     /// <summary>Whether a prisoner may be put into this tile <i>now</i>: it is a cell —
     /// an interior tile — of one of <paramref name="playerId"/>'s prisons, that prison

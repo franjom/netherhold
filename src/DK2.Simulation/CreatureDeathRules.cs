@@ -242,10 +242,52 @@ public static class CreatureDeathRules
         return true;
     }
 
-    /// <summary>Puts a rescued creature into its own bed, where it recovers. Returns false if it was
-    /// not dying or has no bed — a bed sold while its owner lay dying is not replaced, so such a
-    /// creature cannot be rescued at all; UNKNOWN whether DK2 agrees (Q107). Adds no health: asleep
-    /// in its own bed, the lair heals it at 100 a second (ADR-0049). So the order in <see cref="Systems.CreatureHealthSystem"/> is load-bearing: healing runs before the collapse test, or a rescue would collapse what it saved.</summary>
+    /// <summary>State 45's delivery (<c>0x00468420</c>) of a creature into a Lair room that does not
+    /// hold its bed: <c>KickToState(1)</c>, then 79 (<c>0x0046F4F0</c>). On its keeper's Lair tile, a
+    /// creature with a lair object takes a free tile (<see cref="LairRules.TryFindFreeTile"/>,
+    /// <c>0x004E0140</c>), destroys a bed it holds in another room (<c>0x0049CC20</c>, which also
+    /// kicks it to 1 again), draws <c>random(0x800)</c> for the walk and makes its home there in 80;
+    /// with no free tile 79 posts 42 for a Lair. DK2 tests the lair object (<c>+0x5D6</c>) where ours
+    /// asks <see cref="LairRules.NeedsBed"/>, which differs only for two heroes.
+    /// Ours places the bed at once and lies it down, as <see cref="Rescue"/> does for an existing bed:
+    /// the walk to the tile (80) and to the bed (81, 82) are not made, so it is never up and about at
+    /// zero health. With no free tile ours leaves it dying where it was put down; DK2's 79 sets 1.</summary>
+    public static bool RescueIntoLair(SimulationContext context, CreatureState creature)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        if (!IsDying(creature)) return false;
+        TilePos at = creature.Tile;
+        int here = (at.Y * world.Width) + at.X;
+        if (!LairRules.IsLairTileOf(world, database, here, creature.OwnerPlayerId)) return false;
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        if (!LairRules.NeedsBed(definition) || RoomIndex.RoomAt(world, database, here) is not { } room) return false;
+
+        if (!LairRules.TryFindFreeTile(world, database, room, at, creature.OwnerPlayerId, context.Rng, out int tile, out _))
+        {
+            RoomNeedRules.Post(context, creature.OwnerPlayerId, PlayerMessageKind.RoomFull, RoomTypeId.Lair);
+            return false;
+        }
+
+        context.Rng.NextInt(0x800);
+        LairRules.ReleaseBed(world, database, creature);
+        LairRules.PlaceBed(world, database, creature, tile);
+        CreatureAngerRules.Forget(world, definition, creature, AngerBucket.Lair);
+        creature.PosX = CreatureState.CentreOf(tile % world.Width);
+        creature.PosY = CreatureState.CentreOf(tile / world.Width);
+        creature.Body.Vel = Steering.Fixed16Vector.Zero;
+        creature.DyingTicks = 0;
+        creature.SleepTicks = 0;
+        creature.AwakeTicks = 0;
+        CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
+        CreatureStateMachine.TrySetState(context.Hooks, creature, LairRules.SleepingState);
+        return true;
+    }
+
+    /// <summary>Puts a rescued creature into its own bed, where it recovers: 79 sending one whose bed
+    /// is in this room to 81 (<c>0x004DFE90</c>). Returns false if it was not dying or has no bed; one
+    /// with none goes through <see cref="RescueIntoLair"/>. Adds no health: asleep in its own bed, the
+    /// lair heals it at 100 a second (ADR-0049). So the order in <see cref="Systems.CreatureHealthSystem"/> is load-bearing: healing runs before the collapse test, or a rescue would collapse what it saved.</summary>
     public static bool Rescue(in StateHookContext hooks, CreatureState creature)
     {
         WorldState world = hooks.World;

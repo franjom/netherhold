@@ -15,6 +15,7 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**212** — `0x1CE851EB002A6064`. A collapsed own creature with no bed is carried to the nearest Lair with space and makes its bed there (`0x0046D810` result 4, `0x0046E610`, state 45 and 79); a bed lost during the carry re-routes to such a Lair; the room point `0x004E8430` is shared; no new field. ADR-0417.
 **211** — `0x8800AAF8F8F81A4F`. A researcher's Library is the Library finder's (`0x004E2500`): a shelf draw per reachable Library on every search, the nearest by first slab, one with no holder of the other alignment first; no new field. ADR-0416.
 **210** — `0x0D827AF91A745AD2`. A Casino's party moves with the room: kept as it grows, the joined room's kept in a merge, ended in every piece when a tile leaves (`Room_Construct`, `0x004ED440`); no new field. ADR-0415.
 **209** — `0xE29E7F167923B105`. The corpse selections' Graveyard messages (41 once a level through the new `PlayerState.GraveyardWantedPosted`, player `+0xF4E`, saved; 42 with no place), a corpse taken only from its keeper's tile and only to a Graveyard with a floor slot. ADR-0414.

@@ -278,7 +278,7 @@ after-tile-change slot `0x004E2B30` sets it when the room is one tile (`+0xA7` =
 Prison has it on from its first tile; the owner's door arm `0x004E29E0` also sets it, the toggle
 `0x004E3680` is the only clear in play, and a restore (`0x004ED440`) copies a saved word. A map
 Prison has it too: the loader inserts its tiles one by one (`0x004C5C30` → `0x004ED1A0`, which runs
-the slot after linking each tile). Built as ADR-0412, without carrying a bedless own creature to a Lair.
+the slot after linking each tile). Built as ADR-0412; the bedless own creature's carry to a Lair as ADR-0417.
 The foreign scan first prioritizes the keeper's imprisonment-mask bit, then
 repeats without that bit test after the own-creature rescue scan. Other rescue
 eligibility and task-reservation effects belong to the worker system.

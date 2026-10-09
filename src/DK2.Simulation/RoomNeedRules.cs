@@ -185,6 +185,31 @@ public static class RoomNeedRules
         return RescueRoom.Unreachable;
     }
 
+    /// <summary><c>Player_FindNearestRoomWithSpace</c> (<c>0x004C6610</c>) for a Lair, as the casualty
+    /// chooser <c>0x0046E610</c> asks it for a body with no bed: of the worker's keeper's Lairs with a
+    /// free bed, the one whose position (<see cref="Position"/>) is strictly nearest the body by
+    /// squared distance and that the worker reaches with option <c>0x80</c>, or null.</summary>
+    internal static RoomInstance? NearestLairWithSpace(
+        SimulationContext context, CreatureState worker, CreatureDef definition, CreatureState body)
+    {
+        WorldState world = context.World;
+        RoomInstance? best = null;
+        long bestDistance = long.MaxValue;
+        var scratch = new List<Steering.Fixed16Vector>();
+        foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
+        {
+            if (room.OwnerPlayerId != worker.OwnerPlayerId || !LairRules.IsLairRoom(context.Database, room)) continue;
+            if (!LairRules.HasFreeSlot(world, context.Database, room)) continue;
+            TilePos at = Position(world, room);
+            long dx = (long)CreatureState.CentreOf(at.X) - body.PosX, dy = (long)CreatureState.CentreOf(at.Y) - body.PosY;
+            long distance = ((dx * dx) >> 12) + ((dy * dy) >> 12);
+            if (distance >= bestDistance || !ChickenRules.Reachable(context, worker, definition, at, scratch)) continue;
+            (best, bestDistance) = (room, distance);
+        }
+
+        return best;
+    }
+
     /// <summary>Room <c>+0x2B</c> as <c>Room_UpdateCentrePos</c> (<c>0x004E4590</c>) writes it: the
     /// centroid's tile, or a tile spiralled to from it, that <c>Room_IsFloorSlot</c> (<c>0x00454110</c>)
     /// rejects, so a rim tile for a room with an interior. The spiral's order is not read; ours takes
