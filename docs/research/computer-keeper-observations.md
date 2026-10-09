@@ -351,8 +351,10 @@ where ours applies all strikes after the imp pass. Built together on a branch, o
 (40,40) at exactly 126 in 5 of 10 seeds, and every seed then calls Morgana when its call precedes
 the wall's fall and Belial when it follows. Not committed: Level 1 falls to 16/20 (the Hatchery
 block claimed late) and, with the walk alone, Level 3 seed 01 is lost (rooms claimed to DK2's 25
-tiles, as DK2's, but 20 % less gold mined by 1000, so the Workshop is refused); both expose a
-mining shortfall still to find.
+tiles, as DK2's, and the 12-tile Workshop at 1009 refused for gold). Not a mining shortfall: on
+master ours mines the same gold tiles as DK2 at the same pace on Levels 1-3 (Level 3: 14 tiles by
+1500, DK2 15, the first six within 10-23 ticks; Level 2 14 by 1000 in nearly every seed, as DK2;
+Level 1 8 by 1000, as DK2). What the walk changes there is unmeasured (2026-10-09).
 
 ## M12 acceptance against the two captures (2026-10-06)
 
