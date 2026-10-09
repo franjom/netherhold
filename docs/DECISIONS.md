@@ -9431,3 +9431,24 @@ while the second Portal is being claimed.
 tile 708-879 (663-865; DK2 855); a Training Room at 1049-1307 in nine (1028-2337 in six; DK2 grows
 its own at about 1,200); a Torture Chamber in one (seven; DK2 none); (8,4) tagged in four (ten).
 Level 11A seeds 1-30: Morgana first in 22 (22).
+
+## ADR-0410 — The nine lobby personalities load as DK2's setter loads them
+**Date:** 2026-10-09 · **Status:** accepted · Research: `KEEPER_AI.md` §3.2; `functions/004F8C60.md`
+
+**Context.** A skirmish or multiplayer slot gets its keeper from the personality setter
+`0x004F8C60`, not from a PLAYERS record (KEEPER_AI.md §1.2). Ours had only the record path, so no
+keeper could play skirmish.
+
+**Decision.** `KeeperAIPersonality.Parameters` is the setter: the level-name remap (`0x006A30A0`,
+case-sensitive), then row p of the seven tables, every column decoded from the bytes, the skill
+level capped at variable 192, the room list of the first fifteen Buildable rooms or Portals in
+id order, the whole map less its edge as the build area, and every feature flag on. It returns
+the same `KeeperAIParameters` the record path does. The harness takes it per keeper through the
+scenario key `keeper_personalities`.
+
+**Consequences.** All nine personalities run. On Level 17, Harkan's slot given each in turn (1,500
+ticks) lays his Prison under every one; Psychotic, whose neutral range is 40, tags 387 tiles where
+the others tag 16-30. Deviates: `RawBlock` is empty; with fewer than fifteen qualifying room
+definitions DK2 faults (`+0x98` finds none past the end) where ours fills with 0; the shipped
+rooms never reach it. The setter also adds 100 mana (misc +8, `0x004C19C0`), as the PLAYERS path
+does; the harness keeps the level's mana, which that path already added. No HashVersion: the keeper is outside the simulation.

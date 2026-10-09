@@ -223,7 +223,7 @@ public sealed class ScenarioRunner
 
         Dictionary<int, InputFrame> input = inputs.BuildInput(scenario, unsupported);
         List<ScenarioWork> work = ScenarioInputBuilder.ResolveWork(scenario, world, unsupported);
-        List<KeeperAI> keepers = inputs.CreateComputerKeepers(scenario, campaignLevel, unsupported);
+        List<KeeperAI> keepers = inputs.CreateComputerKeepers(scenario, campaignLevel, world, unsupported);
         var emitted = new List<PlayerCommand>();
         var commandLog = new List<KeeperCommandEmission>();
         IReadOnlyList<PlayerCommand> pending = [];

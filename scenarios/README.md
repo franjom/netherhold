@@ -63,6 +63,7 @@ commands:                        # real player input, scheduled by tick
   - { at_tick: 80, player: 3, call_to_arms: [9, 9] }   # see the table below
   - { at_tick: 90, player: 3, remove_call_to_arms: true }
 computer_keepers: [4]            # campaign maps only: keepers driven by their PLAYERS records
+keeper_personalities: { 4: Psychotic }  # optional: a listed keeper takes a lobby personality instead
 work:                            # harness-injected tile work — see below
   - { at_tick: 8, player: 3, kind: Dig, at: [5, 5] }
   - { at_tick: 12, until_tick: 25, player: 3, kind: Reinforce, at: [5, 4], repeat: 1 }
@@ -81,6 +82,10 @@ observation nothing produces. `expect` entries are checked after the run and lis
 `report.md`; any miss prints `EXPECTATION FAILED` and makes the harness exit 1.
 `because` is mandatory (see `ScenarioExpectation`). `computer_keepers` runs a
 `DK2.AI.KeeperAI` for each listed player after every tick and needs the install.
+`keeper_personalities` gives a listed keeper one of the nine skirmish personalities
+(`MasterKeeper`, `Conqueror`, `Psychotic`, `Stalwart`, `Greyman`, `Idiot`, `Guardian`,
+`ThickSkinned`, `Paranoid`; `DK2.AI.KeeperAIPersonality`), remapped by the level's name as the
+game remaps it; the slot needs a PLAYERS record but not its AI flag.
 
 `map: flat_WxH` builds a synthetic dungeon — impenetrable border, dirt path inside;
 `rock_WxH` is the same thing filled with diggable rock, which is what a dig

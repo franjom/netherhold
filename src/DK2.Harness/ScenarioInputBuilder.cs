@@ -24,7 +24,7 @@ internal sealed class ScenarioInputBuilder
     }
 
     public List<KeeperAI> CreateComputerKeepers(
-        Scenario scenario, string? campaignLevel, List<string> unsupported)
+        Scenario scenario, string? campaignLevel, WorldState world, List<string> unsupported)
     {
         var result = new List<KeeperAI>();
         if (scenario.ComputerKeepers.Count == 0) return result;
@@ -35,15 +35,34 @@ internal sealed class ScenarioInputBuilder
         }
 
         List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(_installDir, campaignLevel);
+        foreach (byte id in scenario.KeeperPersonalities.Keys.Where(id => !scenario.ComputerKeepers.Contains(id)))
+            unsupported.Add($"keeper_personalities: player {id} is not in computer_keepers");
         foreach (byte id in scenario.ComputerKeepers.Distinct())
         {
             PlayerDef? player = players?.FirstOrDefault(p => p.PlayerId == id);
-            if (player is null || !player.IsComputerKeeper)
+            KeeperAIParameters? parameters = player?.IsComputerKeeper == true ? player.Ai : null;
+            if (scenario.KeeperPersonalities.TryGetValue(id, out string? name))
             {
-                unsupported.Add($"computer_keepers: player {id} has no computer PLAYERS record");
+                // The lobby's setter (0x004F8C60) takes the slot whatever its record says.
+                KeeperPersonality? named = Enum.GetValues<KeeperPersonality>()
+                    .Select(p => (KeeperPersonality?)p)
+                    .FirstOrDefault(p => string.Equals(p.ToString(), name, StringComparison.OrdinalIgnoreCase));
+                if (named is not KeeperPersonality personality)
+                {
+                    unsupported.Add($"keeper_personalities: '{name}' is not one of the nine personalities");
+                    continue;
+                }
+                parameters = player is null ? null
+                    : KeeperAIPersonality.Parameters(personality, campaignLevel, _database, world.Width, world.Height);
+            }
+            if (player is null || parameters is null)
+            {
+                unsupported.Add(player is null
+                    ? $"computer_keepers: player {id} has no PLAYERS record"
+                    : $"computer_keepers: player {id} has no computer PLAYERS record");
                 continue;
             }
-            result.Add(new KeeperAI(id, player.Ai, new SimRandom(scenario.Seed ^ id),
+            result.Add(new KeeperAI(id, parameters, new SimRandom(scenario.Seed ^ id),
                 playerActivationOrder: players!.Select(p => new PlayerId(p.PlayerId))));
         }
         return result;

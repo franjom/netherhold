@@ -290,6 +290,10 @@ public sealed class Scenario
     /// <summary>Computer keepers driven by the campaign PLAYERS records after each tick.</summary>
     public List<byte> ComputerKeepers { get; set; } = [];
 
+    /// <summary>A computer keeper given one of the nine lobby personalities (KEEPER_AI.md §3.2) by
+    /// name, in place of its PLAYERS record's parameters, as a skirmish slot is.</summary>
+    public Dictionary<byte, string> KeeperPersonalities { get; set; } = [];
+
     /// <summary>Harness-injected tile work, standing in for a creature that does not exist yet.</summary>
     public List<ScenarioWork> Work { get; set; } = [];
 
@@ -308,7 +312,7 @@ public sealed class Scenario
     public string SourcePath { get; private set; } = "";
 
     private static readonly string[] KnownKeys =
-        ["id", "question", "map", "seed", "random", "duration_ticks", "fog_of_war", "viewing_player", "setup", "commands", "computer_keepers", "work", "observe", "expect"];
+        ["id", "question", "map", "seed", "random", "duration_ticks", "fog_of_war", "viewing_player", "setup", "commands", "computer_keepers", "keeper_personalities", "work", "observe", "expect"];
 
     public static Scenario Load(string path)
     {

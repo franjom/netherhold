@@ -105,7 +105,7 @@ Facts established and recorded; nothing in `src/` turns on them yet.
 | **Which rooms a keeper may build on a level** | `Availability` kind 1 says so; the computer keeper's need rules and a creature's idle job read it (`RoomNeedRules`, `CreatureJobSystem`), `RoomRules` does not, and nor does DK2's build path (`room-slab-chain.md` §2): the gate belongs to the build menu |
 | **Destroying a room somebody else holds** | Read and built (ADR-0342, `room-health.md` §4–5): heroes knock a keeper's buildable rooms down tile by tile as they walk across them. Job 11's room attack (Q523) and the room messages are not built |
 | **What defeat does** (Q40) | Built (ADR-0162, ADR-0207, `DefeatRules`, Q358): creatures leave by the nearest portal, rooms and gold go neutral, the heart stays as a ruin. Left: the Destructor (object 100) |
-| **The computer keeper** (Q509, Q555, Q563) | Built and compared with DK2's own keepers on two maps; every verb agrees in kind and the open differences are timing (`computer-keeper-observations.md`). The unproduced messages (Q542–Q544), the research move, prisoner, trap and door decisions and the personality loader are unbuilt (`docs/KEEPER_AI.md` §12) |
+| **The computer keeper** (Q509, Q555, Q563) | Built and compared with DK2's own keepers on two maps; every verb agrees in kind and the open differences are timing (`computer-keeper-observations.md`). The unproduced messages (Q542–Q544), the research move and prisoner decisions are unbuilt, the trap and door step is built and parked, and the nine personalities load (ADR-0410) (`docs/KEEPER_AI.md` §12) |
 | **Audio event semantics** | Untouched |
 
 ## Per-mechanic notes
