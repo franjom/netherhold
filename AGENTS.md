@@ -40,7 +40,10 @@ Before implementing DK2 behavior, check, in this order:
    `tools/ghidra/mcp-serve.py --agent <you>`.
 2. **The shipped data files** — also the actual DK2, and cheaper to read.
 3. **Original game experiments** — the running install is the oracle for
-   anything observable, and it outranks a misread disassembly.
+   anything observable, and it outranks a misread disassembly. The owner's
+   memory of play is not an experiment: where it disagrees with what the binary
+   says, the binary wins (owner, 2026-10-09). Record the recollection beside the
+   reading, and do not build on it against the binary.
 4. **OpenKeeper** — cloned at `D:\OpenKeeper`. GPLv3: facts only, with
    provenance in `THIRD-PARTY-NOTICES.md`.
 5. **Flame** — cloned at `D:\Flame` (pinned `f6e2a3d`, 2026-03-01).
