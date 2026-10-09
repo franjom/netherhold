@@ -47,6 +47,14 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// </summary>
     private TilePos? _only;
 
+    /// <summary>The rescue selector's Lair and Prison results for the body search in progress
+    /// (<c>0x0046D810</c>'s <c>+0x105</c>/<c>+0x10F</c> caches), settled when a body first asks.</summary>
+    private RoomNeedRules.RescueRoom? _lairResult, _prisonResult;
+
+    /// <summary>The corpse selections' Graveyard tile for the search in progress, -1 for none
+    /// (<c>0x0046CF40</c>, <c>0x0046D3C0</c>), settled when a corpse first asks.</summary>
+    private int? _corpseGraveyard;
+
     /// <summary>State 10's cap: how many workers a keeper may let choose a job in one tick
     /// (<c>0x00463E41</c>, the counter at <c>player+0x7A</c>, zeroed every player frame).</summary>
     public const int SelectionsPerTick = 4;

@@ -9479,3 +9479,74 @@ the editor's view; the owner's comparison of the Level 1 picture with DK2's conf
 layout, only the camera angle differs. The floor is drawn at DK2's 0x1000, one tile
 (`0x004545C0`, read), so a wall's KMF (1 to 2) stands one tile above it: that the KMF's heights
 share the floor's frame is STRONGLY INFERRED, and the owner judged the proportions right by eye.
+
+## ADR-0412 — The rescue selector posts its room messages, and a Prison's Activation is on from its first tile
+**Date:** 2026-10-09 · **Status:** accepted · Research: `computer-keeper-messages.md` §2; `functions/0046D810.md`, `004E2B30.md`
+
+**Context.** The rescue selector `0x0046D810` settles a Lair and a Prison result once per scan and
+posts 41, 43 or 42 for each body it meets whose room is missing, unreachable or full. Its routed
+search `0x004C6610` needs a Prison's `Activation` (`+0x59`). Ours posted nothing, carried an enemy
+to any Prison with a free cell, and started every Prison with `Activation` off (Q542).
+
+**Decision.** `RoomNeedRules.RescueResult` is the selector's test: the count of the type
+(`0x004C5FD0`; none is result 1 at availability 3), a room with a place (`0x004C6510`; none is 3),
+then one whose position (`+0x2B`, the tile nearest the centroid that `0x00454110` rejects) the
+`0x80` route reaches and, for a Prison, whose `Activation` is on (none is 2). `ImpTaskSystem`'s body
+search asks it the first time a casualty needs it and posts through `RoomNeedRules.ForRescue`: an
+enemy's Prison result, or a bedless own creature's Lair result. Like the selector, it meets only
+bodies on tiles the worker's keeper owns (the cell's owner word), so it neither posts nor carries
+for a body lying elsewhere. An
+enemy is carried only on result 4, and `PrisonRules.FreeTileIn` skips a Prison whose `Activation`
+is off. `Activation` is set where `0x004E2B30` sets it, at one tile: `SlabChain` keeps the byte on
+the room's lowest tile, a growing room keeps the joined room's byte, a sale gives each piece the
+old byte (`0x004ED440`), and `RoomRules.Place` and `WorldState.FromMap` set it for a Prison tile
+laid or loaded (a new level's loader inserts its tiles one by one, `0x0051EC60` → `0x004C5C30`).
+
+**Consequences.** Levels 1-3 replays are unchanged (20/20, 4/20, Level 3 seed 1 at 3660): no
+rescue message fires on them. Deviates: DK2 carries a bedless own creature to a Lair with a place
+(result 4); ours leaves it. DK2 settles its two results once per state update, ours once per
+body search; the `+0x2B` spiral's order is not read (ours takes the nearest tile). A sealed Prison now refuses a body that ours used to carry in.
+
+## ADR-0413 — The job-room finders post their remaining messages, and a Temple or Combat Pit holds one per rim tile
+**Date:** 2026-10-09 · **Status:** accepted · Research: `computer-keeper-messages.md` §2; `functions/004E2500.md`, `004D8870.md`, `004E3ED0.md`
+
+**Context.** The finders' message branches stopped at 41 for the Library and the Workshop, the
+Casino's party branch and the Mistress's 99 were not carried, the Temple had no capacity, so its
+44 could not arise, and neither Combat Pit finder posted anything (Q543).
+
+**Decision.** `RoomNeedRules.NoJobRoomFor` gates the Workshop's 43/42/44 on its queue
+(`+0xA1C`), restricts the Casino's first loop to Casinos with a party on while `+0xF4A` is set,
+and posts 99 (`RoomWanted`) for a Mistress's missing Torture Chamber. `NoLibraryFor` mirrors
+`0x004E2500`: a shelf draw (`0x004E1AC0`) per reachable Library, then 41, the research-target
+return, 43 (another draw each), 45 (`RoomStorageFull`), 42 and 44. `NoSpectatorPitFor`
+(`0x004D8510`) runs when job 26 finds no pit; `NoFightingPitFor` (`0x004D8870`) runs from the
+Training job for a creature between the two level caps, as `Job_StartTrain` calls it, with a
+floor-slot draw (`0x004E8210`) and the drop test `0x004D8430` (fewer creatures on the floor
+slots than slots). `AutoFurnitureRules.TryTotalCapacity` gives the Temple and the Combat Pit
+their rim (`0x004E3ED0`). Messages 45 and 99 take their subtables' lifetimes.
+
+**Consequences.** Levels 1 and 2 replays are unchanged (20/20, 4/20); Level 3 over seeds 1-10
+wins 7 against master's 8, the one change being seed 1, whose stream a Library draw at 2269
+moves. Deviates: our Library choice has no shelf test, so DK2's first-loop draws happen only when
+ours finds none. A full Temple now refuses a worshipper.
+
+## ADR-0414 — The corpse selections ask for a Graveyard, once a level for 41
+**Date:** 2026-10-09 · **Status:** accepted · Research: `computer-keeper-messages.md` §1-2; `graveyard.md` §2; `functions/0046CF40.md`, `0046D3C0.md`
+
+**Context.** DK2's corpse selections post 41 and 42 for a Graveyard, and 41 (with 99) passes the
+player word `+0xF4E` only once: it is set when one is admitted and never cleared or initialised.
+Ours posted neither, refused 41 Graveyard outright, and carried a corpse to any Graveyard tile
+(Q544).
+
+**Decision.** `PlayerState.GraveyardWantedPosted` is `+0xF4E`: saved and hashed, false at a new
+level (DK2's heap usually holds zero; HYPOTHESIS), refusing 41/99 Graveyard while set and set by
+a new record. `GraveyardRules.ForCorpse` is the selections (`0x0046D3C0` for our search,
+`0x0046CF40` for the drop scan), asked at the first corpse on a tile the worker's keeper owns: no
+Graveyard posts 41 at availability 3; none with a place posts 42 (the search always, the drop
+scan at availability 3); either stops the carry; otherwise `0x004C6860` draws once and the corpse
+goes to the nearest Graveyard with a place. A place is a floor slot (`0x004E3ED0`, type 14).
+
+**Consequences.** Levels 1-3 replays as ADR-0413 left them. A Graveyard smaller than 3x3 takes
+no corpse, as in DK2; the tests and the burial scenario now use 3x3. Deviates: DK2 lays a corpse
+on its floor slot until it is destroyed there, holding the place (`0x004E6490`, `0x004B1070`);
+ours buries on arrival, so a Graveyard never fills (Q578).

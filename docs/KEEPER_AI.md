@@ -1166,8 +1166,8 @@ Remaining M12 plan:
    the flag down (ADR-0283); the retreat of the wounded runs at step 7 as pick-up and
    drop commands (ADR-0284); Heal is cast through the simulation's own validators and
    shot (ADR-0287), and Chicken and Inferno likewise (ADR-0302). ADR-0353 builds the
-   mood, make-happy, dispose, ownership, threat and room-message producers; the other
-   job-room finders' producers and Q542–Q544 (when DK2 asks for a Graveyard) are not built.
+   mood, make-happy, dispose, ownership, threat and room-message producers; ADR-0412 to
+   ADR-0414 the rescue selector's, the other job-room finders' and the Graveyard's (Q542–Q544).
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
 3. **Dungeon management.** Add prisoners, specials and research decisions; the training moves

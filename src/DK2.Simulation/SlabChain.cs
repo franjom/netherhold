@@ -51,7 +51,11 @@ public static class SlabChain
         tile.RoomHealthLost = 0;
         if (database.RoomByTerrain(terrainBefore) is { } before)
             Removed(world, database, tileIndex, terrainBefore, ownerBefore, before, lost);
-        if (database.RoomByTerrain(tile.TerrainId) is not null) Added(world, tileIndex);
+        if (database.RoomByTerrain(tile.TerrainId) is { } after)
+        {
+            List<int> chain = Added(world, tileIndex);
+            if (after.TypeId == RoomTypeId.Prison) Activate(world, chain);
+        }
         else (tile.SlabOrder, tile.RoomSizeChangedTick, tile.RoomKickedTick) = (0, 0, 0);
         if (tile.TerrainId != terrainBefore) KickNeighbours(world, database, tileIndex);
     }
@@ -119,12 +123,16 @@ public static class SlabChain
     /// of its first N/E/S/W neighbour of the same terrain and owner, at the tail (<c>0x004EC650</c>),
     /// and every later neighbour's different room is appended after it (<c>0x004ECB70</c>). With no
     /// such neighbour it starts a room of its own (<c>0x004EC5A0</c>).</summary>
-    public static void Added(WorldState world, int tileIndex)
+    /// <remarks>The room keeps the joined room's fields; an absorbed room's are dropped
+    /// (<c>0x004ECD00</c> frees it). Of those fields only the Prison's door byte is kept on a tile,
+    /// the room's lowest (<see cref="JailBreakRules.DoorOf"/>), so it moves to the new lowest.</remarks>
+    public static List<int> Added(WorldState world, int tileIndex)
     {
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         byte terrain = tile.TerrainId, owner = tile.OwnerPlayerId;
         var taken = new HashSet<int> { tileIndex };
         List<int>? chain = null;
+        byte door = 0;
         for (int d = 0; d < Dx.Length; d++)
         {
             int n = Neighbour(world, tileIndex, d);
@@ -133,13 +141,39 @@ public static class SlabChain
             Sort(world, room);
             if (chain is null)
             {
+                foreach (int t in room) door |= world.TileAtIndex(t).PrisonDoor;
                 chain = room;
                 chain.Add(tileIndex);
             }
             else chain.AddRange(room);
         }
 
-        Stamp(world, chain ?? [tileIndex]);
+        chain ??= [tileIndex];
+        Stamp(world, chain);
+        KeepDoor(world, chain, door);
+        return chain;
+    }
+
+    /// <summary>The Prison's slot +0x09 (<c>0x004E2B30</c>) sets <c>Activation</c> (<c>+0x59</c>) when
+    /// the room is one tile (<c>+0xA7</c> = 1), so a Prison has it from its first tile on, whether
+    /// built or loaded with the map, whose tiles are inserted one by one (<c>0x004C5C30</c>).</summary>
+    private static void Activate(WorldState world, List<int> chain)
+    {
+        if (chain.Count != 1) return;
+        world.TileAtIndex(chain[0]).PrisonDoor |= JailBreakRules.Activated;
+    }
+
+    /// <summary>Puts a room's door byte on its lowest tile and clears it from the rest.</summary>
+    private static void KeepDoor(WorldState world, List<int> chain, byte door)
+    {
+        int lowest = int.MaxValue;
+        foreach (int t in chain)
+        {
+            world.TileAtIndex(t).PrisonDoor = 0;
+            lowest = Math.Min(lowest, t);
+        }
+
+        world.TileAtIndex(lowest).PrisonDoor = door;
     }
 
     /// <summary><c>0x004ED7B0</c>, for a tile that has just stopped being a tile of the room with
@@ -202,10 +236,18 @@ public static class SlabChain
             }
         }
 
+        // 0x004ED440 restores the old room's saved words to each piece, the Prison's Activation
+        // (0x004ED68B) among them, before the piece's slot +0x09 runs (0x004ED76C).
+        byte door = world.TileAtIndex(tileIndex).PrisonDoor;
+        world.TileAtIndex(tileIndex).PrisonDoor = 0;
+        foreach (int tile in old) door |= world.TileAtIndex(tile).PrisonDoor;
+
         foreach (List<int> chain in chains)
         {
             Stamp(world, chain);
             RoomHealthRules.SetPiece(world, database, room, chain, percent);
+            KeepDoor(world, chain, door);
+            if (room.TypeId == RoomTypeId.Prison) Activate(world, chain);
         }
     }
 

@@ -310,7 +310,11 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         // Job 26's handler (0x00457780) wants a fight on in one of the keeper's pits (ADR-0227).
         if (refused is null && job == JobType.CombatPitSpectate)
         {
-            if (!CombatPitSpectatorRules.TakeTheJob(context, SystemName, creature)) refused = "no_fight_to_watch";
+            if (!CombatPitSpectatorRules.TakeTheJob(context, SystemName, creature))
+            {
+                refused = "no_fight_to_watch";
+                RoomNeedRules.NoSpectatorPitFor(context, creature, definition);
+            }
             else
             {
                 creature.CurrentJob = job;
@@ -348,6 +352,13 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             refused = "no_room";
             RoomNeedRules.NoJobRoomFor(context, creature, definition, wants.Value);
         }
+
+        // Job_StartTrain (0x00485240) calls the fighter's pit finder, for its messages only, for a
+        // creature at or above the Training Room's level cap and below the Combat Pit's.
+        if (job == JobType.Train && refused != "call_to_arms"
+            && creature.Level >= context.Database[VariableTypeId.TrainingRoomMaxExperienceLevel]
+            && creature.Level < context.Database[VariableTypeId.CombatPitMaxExperienceLevel])
+            RoomNeedRules.NoFightingPitFor(context, creature, definition);
 
         if (refused is not null)
         {

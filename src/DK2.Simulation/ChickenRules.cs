@@ -138,7 +138,8 @@ public static class ChickenRules
         return best;
     }
 
-    private static bool Reachable(SimulationContext context, CreatureState creature, CreatureDef definition, TilePos at,
+    /// <summary><c>0x00471630</c> with options <c>0x80</c>: the creature's route to the tile's centre.</summary>
+    internal static bool Reachable(SimulationContext context, CreatureState creature, CreatureDef definition, TilePos at,
         List<Fixed16Vector> scratch)
     {
         if (creature.Tile == at) return true;

@@ -217,6 +217,10 @@ public static class RoomRules
         tile.Health = terrain.StartingHealth;
         if (!terrain.IsTaggable) tile.TaggedBy = PlayerMask.None;
         if (terrain.IsOwnable) tile.OwnerPlayerId = playerId.Value;
+
+        // A tile on its own is a one-tile room, whose Prison slot +0x09 turns Activation on
+        // (0x004E2B30). Joined to a room, it takes that room's door byte (SlabChain.Added).
+        if (room.TypeId == RoomTypeId.Prison) tile.PrisonDoor |= JailBreakRules.Activated;
     }
 
     /// <summary>Whether <paramref name="playerId"/> may sell the room on this tile,

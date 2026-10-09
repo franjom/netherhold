@@ -70,6 +70,15 @@ public enum PlayerMessageKind : uint
     /// The name is ours; the message's text is unread.</summary>
     RoomUnequipped = 44,
 
+    /// <summary>Type 45: a reached room of the type in Data1 with no storage position (a Library's
+    /// shelves, <c>0x004E1AC0</c>) whose <c>+0xA3</c> is set, Data2 the room (subtable
+    /// <c>0x006A08C8</c>: Library and Workshop, 120 seconds). The name is ours.</summary>
+    RoomStorageFull = 45,
+
+    /// <summary>Type 99: 41's twin with one string for every row (subtable <c>0x006A0448</c>, 41's
+    /// lifetimes): a Mistress's missing Torture Chamber (<c>0x004F2B80</c>). The name is ours.</summary>
+    RoomWanted = 99,
+
     /// <summary>Type 84: a creature could not route to the Call to Arms flag
     /// (<c>0x00455DA0</c>, <c>0x004778E0</c>); fifty seconds, tab, no duplicates.</summary>
     CallToArmsUnreachable = 84,
@@ -153,14 +162,15 @@ public sealed class PlayerMessageQueue
 
     public static bool IsRoomMessage(PlayerMessageKind kind) =>
         kind is PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomFull or PlayerMessageKind.RoomUnreachable
-            or PlayerMessageKind.RoomUnequipped;
+            or PlayerMessageKind.RoomUnequipped or PlayerMessageKind.RoomStorageFull or PlayerMessageKind.RoomWanted;
 
     /// <summary>A room message as the producers post it: the room type in Data1; zero in Data2, or
-    /// for 44 the room (ours: its first slab's tile).</summary>
+    /// for 44 and 45 the room (ours: its first slab's tile).</summary>
     public PlayerMessage? PostRoom(WorldState world, byte recipient, PlayerMessageKind kind, RoomTypeId room, int roomTag = 0)
     {
         if (!IsRoomMessage(kind)) throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a room message.");
-        return Post(world, recipient, kind, (int)room, kind == PlayerMessageKind.RoomUnequipped ? roomTag : 0);
+        bool tagged = kind is PlayerMessageKind.RoomUnequipped or PlayerMessageKind.RoomStorageFull;
+        return Post(world, recipient, kind, (int)room, tagged ? roomTag : 0);
     }
 
     /// <summary>The lifetime in seconds of a room message's subtype row: the rows of <c>0x006A03D8</c>
@@ -179,15 +189,20 @@ public sealed class PlayerMessageQueue
         (PlayerMessageKind.RoomUnreachable, 1 or 2 or 3 or 4 or 6 or 7 or 9 or 10 or 13 or 14 or 15 or 16) => 300,
         (PlayerMessageKind.RoomUnequipped, 1 or 2 or 4) => 120,
         (PlayerMessageKind.RoomUnequipped, 6 or 7 or 9 or 10 or 11 or 12 or 13 or 14 or 15 or 16) => 240,
+        (PlayerMessageKind.RoomStorageFull, 6 or 10) => 120,
+        (PlayerMessageKind.RoomWanted, 1) => 420,
+        (PlayerMessageKind.RoomWanted, 2 or 4) => 180,
+        (PlayerMessageKind.RoomWanted, 11 or 14) => 600,
+        (PlayerMessageKind.RoomWanted, 6 or 7 or 9 or 10 or 12 or 13 or 15 or 16) => 300,
         _ => null,
     };
 
     public PlayerMessage? Post(WorldState world, byte recipient, PlayerMessageKind kind, int data1, int data2)
     {
-        // 41 for a Graveyard is admitted only through the player's +0xF4E suppression word
-        // (0x004C5530): set once admitted, never cleared or initialised by DK2, so once a level (Q544).
-        if (kind == PlayerMessageKind.RoomNeeded && data1 == (int)RoomTypeId.Graveyard)
-            throw new NotSupportedException("Message 41 for a Graveyard reads the unmodelled +0xF4E suppression.");
+        // 41 or 99 for a Graveyard passes the player's +0xF4E word (0x004C5530) only while it is
+        // clear, and a new record sets it (0x004C5650): once a player a level (Q544).
+        bool graveyardWanted = kind is PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomWanted
+            && data1 == (int)RoomTypeId.Graveyard;
         uint timeout = kind switch
         {
             PlayerMessageKind.HeartAttacked => (uint)SimulationTiming.TicksFromSeconds(120),
@@ -222,12 +237,14 @@ public sealed class PlayerMessageQueue
         if (timeout == uint.MaxValue) return null;
         if (world.Player(recipient).Status != PlayerStatus.Playing || !world.Triggers.NotificationsEnabled)
             return null;
+        if (graveyardWanted && world.Player(recipient).GraveyardWantedPosted) return null;
         if (kind is not (PlayerMessageKind.RoomLost or PlayerMessageKind.CasinoRowdy)
             && Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained) return retained;
         if (_entries.Count == Capacity) _entries.RemoveAt(0);
         var added = new PlayerMessage(_nextId, recipient, kind, data1, data2, 0, timeout, true, false);
         _nextId = unchecked(_nextId + 1);
         _entries.Add(added);
+        if (graveyardWanted) world.Player(recipient).GraveyardWantedPosted = true;
         return added;
     }
 
