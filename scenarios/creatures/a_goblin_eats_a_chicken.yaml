@@ -20,7 +20,8 @@
 #
 #   t19..t1299  the hatchery fills: one coop, an egg every 7 seconds, a chicken
 #             two seconds later, nine birds in a nine-tile room. Every bird is on
-#             (5,5) because a 3x3 earns exactly one coop.
+#             (6,6) because a 3x3 earns exactly one coop and a coop stands only
+#             on an interior tile (0x004DE220, hatchery.md §2).
 #
 #   t1399     `lay_refused … birds=9 capacity=9`, and again every interval.
 #             **Hold that thought.**
@@ -41,7 +42,7 @@
 #             Both goblins decide on the same tick, because the need is asked
 #             once a game second and they got hungry together.
 #
-#   t3761     `chicken_chosen … chicken=5 at=(5,5) steps=1`
+#   t3761     `chicken_chosen … chicken=5 at=(6,6) steps=1`
 #             Arrived. **Now** the bird is chosen, from inside the room, as the
 #             nearest by straight-line squared distance - the original's ranking,
 #             and deliberately not a path length.
@@ -154,10 +155,10 @@ expect:
       The nearest bird once the creature is inside the room, ranked over the
       room's own tiles rather than the map (ADR-0066).
   - event: egg_laid
-    at_tick: 783
+    at_tick: 727
     because: >
       The room holds one bird per tile, had all nine by tick 259 and refused to
-      lay from 279 on. Two were eaten at 758 and 763, and the next boundary of
-      the unbroken 7s interval - 27 + 27 x 28 - is 783. That the clock keeps
+      lay from 279 on. Two were eaten at 720 and 728, and the first boundary of
+      the unbroken 7s interval after the first meal - 27 + 25 x 28 - is 727. That the clock keeps
       running through a full room is the claim; a room that restarted its
-      interval on the meal would lay at 786.
+      interval on the meal would lay at 748.
