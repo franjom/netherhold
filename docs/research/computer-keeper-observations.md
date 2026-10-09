@@ -334,6 +334,26 @@ DK2 calls after its own bridge toward Belial in most seeds (seed 2: bridge 276, 
 356, 939) and still sends the army to Morgana, so an open route west does not decide DK2's front
 (Q574).
 
+**Why DK2's call stays on Morgana (2026-10-09, Q574).** DK2's front is the same first-routable
+walk as ours (`0x004FE9C0`, re-read). Drako's tunnel west reaches Belial only through (40,40),
+which DK2's Belial reinforces at 126 in seeds 1, 2, 4, 6, 7, 9 and 10; it falls at 659 in seed 2
+(call 584) and 803 in seed 9 (call 676), after the call; the other five are not itemised. Seed 3 reinforces it at 426, it falls at 776 and the call at
+884 goes west; seed 8 at 480, falling at 751 before the call at 851, which splits. In seed 5 it is
+never reinforced but Drako's tunnel stalls at (45,43) and the call at 939 goes to Morgana. That
+the reinforced wall is what keeps Belial unroutable is STRONGLY INFERRED (the route test's result
+is not captured). Ours on master reinforces it at 339 at the earliest over seeds 1-10. The 126 is one imp's
+choice: its claim of (28,33) is taken at 61 by a digger whose wall had fallen, when the pool
+holds no dig (the next rectangle is tagged at 62), and it takes the reinforce beside it. Ours
+differs there in two ways DKII.EXE shows. State 6 never looks at the task (`0x00470C80`; seed 2's
+imps walk on to (29,33) after (28,33) fell, enter 13, then 10), where ours drops the walk at once;
+and a strike lands inside the striker's update, before any later imp chooses (`0x00496E00`),
+where ours applies all strikes after the imp pass. Built together on a branch, ours reinforces
+(40,40) at exactly 126 in 5 of 10 seeds, and every seed then calls Morgana when its call precedes
+the wall's fall and Belial when it follows. Not committed: Level 1 falls to 16/20 (the Hatchery
+block claimed late) and, with the walk alone, Level 3 seed 01 is lost (rooms claimed to DK2's 25
+tiles, as DK2's, but 20 % less gold mined by 1000, so the Workshop is refused); both expose a
+mining shortfall still to find.
+
 ## M12 acceptance against the two captures (2026-10-06)
 
 The plan's bar: the keeper digs, expands, builds to a need, recruits, defends and attacks
