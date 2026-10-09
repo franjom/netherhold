@@ -11,9 +11,9 @@ namespace DK2.Simulation;
 /// <summary>The room messages 41 to 43 posted where a Treasury, a Lair or a Hatchery is looked for
 /// and not found: the gold carrier's store chooser, the gold a sale could not store, the Lair finder
 /// and the Hatchery finder (computer-keeper-messages.md section 2). Each producer has its own gates.</summary>
-/// <remarks>Not built here: the other room finders (Combat Pit, Graveyard, Library,
-/// Casino, Temple, Torture, Training, Workshop), the claim failure <c>0x004E5A70</c>, the rescue
-/// selector <c>0x0046D810</c> and <c>0x004BA420</c>'s callers other than the room sale.</remarks>
+/// <remarks>Also the rescue selector's (<c>0x0046D810</c>). Not built here: the Combat Pit and
+/// Graveyard finders, the claim failure <c>0x004E5A70</c> and <c>0x004BA420</c>'s callers other than
+/// the room sale.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-messages.md")]
 public static class RoomNeedRules
 {
@@ -135,6 +135,89 @@ public static class RoomNeedRules
 
         return emptyAndSettled ? Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Hatchery) : null;
     }
+
+    /// <summary>The rescue selector's verdict on a room type (<c>0x0046D810</c>, cached on the worker's
+    /// state at <c>+0x109</c> for the Lair and <c>+0x113</c> for the Prison).</summary>
+    public enum RescueRoom : byte
+    {
+        /// <summary>No room and availability other than 3: no message, no task.</summary>
+        None = 0,
+        /// <summary>No room, availability 3: 41.</summary>
+        NoRoom = 1,
+        /// <summary>A room with a place, none the <c>0x80</c> route reaches: 43.</summary>
+        Unreachable = 2,
+        /// <summary>No room with a place: 42.</summary>
+        Full = 3,
+        /// <summary>A reachable room with a place: the carry.</summary>
+        Usable = 4,
+    }
+
+    /// <summary>The rescue selector's room test, for <see cref="RoomTypeId.Lair"/> or
+    /// <see cref="RoomTypeId.Prison"/>: the keeper's count of the type (<c>0x004C5FD0</c>), then a room
+    /// with a place for one (<c>0x004C6510</c>; a Prison's used <c>+0x6B</c> + 1 within <c>+0x4B</c>),
+    /// then such a room whose position (<c>+0x2B</c>, <see cref="Position"/>) the worker's <c>0x80</c>
+    /// route reaches (<c>0x004C6610</c>, which also needs a Prison's <c>Activation</c>). Which room is
+    /// nearest does not matter here: any reachable one gives result 4.</summary>
+    public static RescueRoom RescueResult(
+        SimulationContext context, CreatureState worker, CreatureDef definition, RoomTypeId type)
+    {
+        WorldState world = context.World;
+        PlayerId player = worker.OwnerPlayerId;
+        var rooms = RoomIndex.Build(world, context.Database)
+            .Where(r => r.OwnerPlayerId == player && r.Definition.TypeId == type).ToList();
+        if (rooms.Count == 0)
+            return world.Availability(player, AvailabilityKind.Room, (int)type) == Available ? RescueRoom.NoRoom : RescueRoom.None;
+
+        var placed = rooms.Where(r => type == RoomTypeId.Prison
+            ? PrisonRules.PrisonerCount(world, r) + 1 <= PrisonRules.Capacity(r)
+            : LairRules.HasFreeSlot(world, context.Database, r)).ToList();
+        if (placed.Count == 0) return RescueRoom.Full;
+
+        var scratch = new List<Steering.Fixed16Vector>();
+        foreach (RoomInstance room in placed)
+        {
+            if (type == RoomTypeId.Prison && !PrisonRules.IsActivated(world, room)) continue;
+            if (ChickenRules.Reachable(context, worker, definition, Position(world, room), scratch))
+                return RescueRoom.Usable;
+        }
+
+        return RescueRoom.Unreachable;
+    }
+
+    /// <summary>Room <c>+0x2B</c> as <c>Room_UpdateCentrePos</c> (<c>0x004E4590</c>) writes it: the
+    /// centroid's tile, or a tile spiralled to from it, that <c>Room_IsFloorSlot</c> (<c>0x00454110</c>)
+    /// rejects, so a rim tile for a room with an interior. The spiral's order is not read; ours takes
+    /// the nearest such tile, ties to the lower index (STRONGLY INFERRED as the same tile).</summary>
+    internal static TilePos Position(WorldState world, RoomInstance room)
+    {
+        int w = world.Width;
+        long sumX = 0, sumY = 0;
+        foreach (int index in room.TileIndices) { sumX += index % w; sumY += index / w; }
+        int cx = (int)(sumX / room.TileIndices.Count), cy = (int)(sumY / room.TileIndices.Count);
+        HashSet<int> slots = AutoFurnitureRules.FloorSlotSet(world, room);
+        int best = room.TileIndices[0];
+        long bestDistance = long.MaxValue;
+        foreach (int index in room.TileIndices)
+        {
+            if (slots.Contains(index)) continue;
+            long dx = index % w - cx, dy = index / w - cy;
+            long d = (dx * dx) + (dy * dy);
+            if (d < bestDistance) { bestDistance = d; best = index; }
+        }
+
+        return new TilePos(best % w, best / w);
+    }
+
+    /// <summary>The selector's message for a body it meets (<c>0x0046D810</c>): 41, 43 or 42 for results
+    /// 1, 2 and 3, Data1 the room type, Data2 0, with no pending-build or four-second gate.</summary>
+    public static PlayerMessage? ForRescue(SimulationContext context, PlayerId player, RescueRoom result, RoomTypeId type) =>
+        result switch
+        {
+            RescueRoom.NoRoom => Post(context, player, PlayerMessageKind.RoomNeeded, type),
+            RescueRoom.Unreachable => Post(context, player, PlayerMessageKind.RoomUnreachable, type),
+            RescueRoom.Full => Post(context, player, PlayerMessageKind.RoomFull, type),
+            _ => null,
+        };
 
     /// <summary>The creature type <c>0x004F2B80</c> tests (<c>+0x36F == 4</c>): the Mistress, whose
     /// missing Torture Chamber is message 99, not 41, when its owner (<c>+0x28</c>) is the searching

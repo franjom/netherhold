@@ -1314,7 +1314,15 @@ public sealed class WorldState
             })
             .ToArray();
 
-        return new WorldState(map.Width, map.Height, tiles, players, fogOfWarEnabled);
+        var world = new WorldState(map.Width, map.Height, tiles, players, fogOfWarEnabled);
+
+        // The loader inserts a map room's tiles one by one (0x004C5C30), so the Prison's slot +0x09
+        // sees it at one tile and turns Activation on (0x004E2B30, SlabChain).
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+            if (room.Definition.TypeId == RoomTypeId.Prison)
+                JailBreakRules.DoorOf(world, room) |= JailBreakRules.Activated;
+
+        return world;
     }
 
     /// <summary>Reconstructs a world from a snapshot. Used only by <see cref="WorldSnapshot"/>.</summary>

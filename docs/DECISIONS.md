@@ -9452,3 +9452,30 @@ the others tag 16-30. Deviates: `RawBlock` is empty; with fewer than fifteen qua
 definitions DK2 faults (`+0x98` finds none past the end) where ours fills with 0; the shipped
 rooms never reach it. The setter also adds 100 mana (misc +8, `0x004C19C0`), as the PLAYERS path
 does; the harness keeps the level's mana, which that path already added. No HashVersion: the keeper is outside the simulation.
+
+## ADR-0412 — The rescue selector posts its room messages, and a Prison's Activation is on from its first tile
+**Date:** 2026-10-09 · **Status:** accepted · Research: `computer-keeper-messages.md` §2; `functions/0046D810.md`, `004E2B30.md`
+
+**Context.** The rescue selector `0x0046D810` settles a Lair and a Prison result once per scan and
+posts 41, 43 or 42 for each body it meets whose room is missing, unreachable or full. Its routed
+search `0x004C6610` needs a Prison's `Activation` (`+0x59`). Ours posted nothing, carried an enemy
+to any Prison with a free cell, and started every Prison with `Activation` off (Q542).
+
+**Decision.** `RoomNeedRules.RescueResult` is the selector's test: the count of the type
+(`0x004C5FD0`; none is result 1 at availability 3), a room with a place (`0x004C6510`; none is 3),
+then one whose position (`+0x2B`, the tile nearest the centroid that `0x00454110` rejects) the
+`0x80` route reaches and, for a Prison, whose `Activation` is on (none is 2). `ImpTaskSystem`'s body
+search asks it the first time a casualty needs it and posts through `RoomNeedRules.ForRescue`: an
+enemy's Prison result, or a bedless own creature's Lair result. Like the selector, it meets only
+bodies on tiles the worker's keeper owns (the cell's owner word), so it neither posts nor carries
+for a body lying elsewhere. An
+enemy is carried only on result 4, and `PrisonRules.FreeTileIn` skips a Prison whose `Activation`
+is off. `Activation` is set where `0x004E2B30` sets it, at one tile: `SlabChain` keeps the byte on
+the room's lowest tile, a growing room keeps the joined room's byte, a sale gives each piece the
+old byte (`0x004ED440`), and `RoomRules.Place` and `WorldState.FromMap` set it for a Prison tile
+laid or loaded (a new level's loader inserts its tiles one by one, `0x0051EC60` → `0x004C5C30`).
+
+**Consequences.** Levels 1-3 replays are unchanged (20/20, 4/20, Level 3 seed 1 at 3660): no
+rescue message fires on them. Deviates: DK2 carries a bedless own creature to a Lair with a place
+(result 4); ours leaves it. DK2 settles its two results once per state update, ours once per
+body search; the `+0x2B` spiral's order is not read (ours takes the nearest tile). A sealed Prison now refuses a body that ours used to carry in.

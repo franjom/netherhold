@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 206: a Dungeon Heart sends its owner's creatures to an intruder (ADR-0407)
+        // HashVersion 207: the rescue selector's room messages and the Prison's Activation (ADR-0412)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x817A546857D0D020UL, sim.StateHash());
+        Assert.Equal(0xEC031DFFFBBCFE6BUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -235,6 +235,11 @@ public static class PrisonRules
     public static bool IsPrisonOf(RoomInstance room, PlayerId playerId) =>
         room.OwnerPlayerId == playerId && room.Definition.TypeId == RoomTypeId.Prison;
 
+    /// <summary>Whether the Prison's <c>Activation</c> (<c>+0x59</c>) is on, which the routed room search
+    /// <c>0x004C6610</c> requires of a Prison.</summary>
+    public static bool IsActivated(WorldState world, RoomInstance prison) =>
+        (JailBreakRules.DoorOf(world, prison) & JailBreakRules.Activated) != 0;
+
     /// <summary>A free tile in <paramref name="playerId"/>'s nearest prison, or -1
     /// when every prison is full and -1 when there is no prison at all — the manual's
     /// "imps look for the next nearest prison with space in it". Prisons rank by
@@ -253,6 +258,7 @@ public static class PrisonRules
         {
             if (!IsPrisonOf(room, playerId)) continue;
             if (PrisonerCount(world, room) >= Capacity(room)) continue;
+            if (!IsActivated(world, room)) continue;
 
             foreach (int tileIndex in room.InteriorTileIndices)
             {

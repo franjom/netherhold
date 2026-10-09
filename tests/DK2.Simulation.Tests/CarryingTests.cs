@@ -158,6 +158,10 @@ public class CarryingTests
         for (int y = 4; y <= 6; y++)
             for (int x = 4; x <= 6; x++)
                 Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+
+        // A way in: the rescue selector carries an enemy only to a Prison its route reaches.
+        world.Tile(4, 3).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        world.Tile(4, 3).OwnerPlayerId = Keeper;
         CreatureState foreign = world.SpawnCreature(db, GoblinId, Rival, new TilePos(3, 3));
         foreign.RescuePriorityMask = mask;
         if (foreignFartherAway) foreign.PosX = CreatureState.CentreOf(4);

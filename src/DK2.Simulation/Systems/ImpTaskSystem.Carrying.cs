@@ -316,6 +316,9 @@ public sealed partial class ImpTaskSystem
 
         if (corpses && graveyard < 0) return false;
 
+        // 0x0046D810 settles the Lair and the Prison once per scan, the first time a body asks.
+        _lairResult = _prisonResult = null;
+
         bool found = _pathfinder.TryFindNearest(
             grid, creature.Tile,
             at => InScanRange(at)
@@ -355,7 +358,13 @@ public sealed partial class ImpTaskSystem
     /// null. Casualties on this tile prefer marked foreigners, own creatures,
     /// then other foreigners; equal-rank ties retain the simulation's spawn order.
     /// </summary>
-    private static CreatureState? BodyToCarryAt(
+    /// <remarks>For a casualty the rescue selector (<c>0x0046D810</c>) takes only bodies on a tile the
+    /// worker's keeper owns, and posts its room message as it meets each one: an enemy's Prison
+    /// result, or an own creature's Lair result when it has no bed. Duplicates are harmless: 41-43
+    /// keep one record per room type.
+    /// An enemy is carried only on result 4. DK2 also carries a bedless own creature to a Lair with
+    /// a place (result 4); ours leaves it, having no bed to take it to.</remarks>
+    private CreatureState? BodyToCarryAt(
         SimulationContext context, CreatureState worker, CreatureDef definition,
         TilePos at, bool corpses, int graveyard)
     {
@@ -367,6 +376,23 @@ public sealed partial class ImpTaskSystem
             if (body.Tile != at) continue;
             if (CreatureDeathRules.IsCorpse(body) != corpses) continue;
             if (!CarryRules.CanCarry(definition, worker, body)) continue;
+
+            // The selector meets only bodies on a tile its keeper owns (the cell word +0x08's
+            // low 12 bits against the worker's owner); elsewhere it neither posts nor carries.
+            if (!corpses && world.Tile(at).OwnerPlayerId != worker.OwnerPlayerId) continue;
+
+            if (!corpses && body.OwnerPlayerId != worker.OwnerPlayerId)
+            {
+                _prisonResult ??= RoomNeedRules.RescueResult(context, worker, definition, RoomTypeId.Prison);
+                RoomNeedRules.ForRescue(context, worker.OwnerPlayerId, _prisonResult.Value, RoomTypeId.Prison);
+                if (_prisonResult != RoomNeedRules.RescueRoom.Usable) continue;
+            }
+            else if (!corpses && !LairRules.HasBed(world, context.Database, body))
+            {
+                _lairResult ??= RoomNeedRules.RescueResult(context, worker, definition, RoomTypeId.Lair);
+                RoomNeedRules.ForRescue(context, worker.OwnerPlayerId, _lairResult.Value, RoomTypeId.Lair);
+                continue;
+            }
 
             // A corpse goes to the graveyard already found; a collapsed
             // creature goes to its own bed, which is a per-body question and a
