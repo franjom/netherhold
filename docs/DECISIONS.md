@@ -9346,3 +9346,36 @@ imps before 700 (5, 5, 3) and Heal 3-5 times (0-2); in seed 7 11 imps engage in 
 Drako's and 6 of Morgana's (3 and 3; DK2's capture 6 of Drako's and 5 of hers). Level 1 20/20 both, median win 1792 both;
 Level 2 4/20 (seeds 10, 13, 14, 17; before 10 and 13); Level 3 seed 01 won at 3660 (3584; DK2
 3683); Level 17 seeds 1-10 unchanged.
+
+## ADR-0409 — An unaffordable room routes to the stored gold slot, and a neutral room is ranked by its first slab
+**Date:** 2026-10-09 · **Status:** accepted · Research: `computer-keeper-observations.md` (*The opening*), `computer-keeper-spell-sites.md` §2; Q539
+
+**Context.** On Level 17 DK2's Harkan tags (4,8) at tick 12 toward the neutral Portal at
+(1..3,6..8), then the path to his seam at 65 ((19,4)) and the seam from 134; ours tagged (19,4)
+at 4 and, at 105, the own wall (8,4)
+toward the other Portal, which DK2 never digs. Three reads of the room planner explain it. The
+cost arm (`0x004FC9AE`) copies the stored gold slot whatever its amount and starts nothing while
+a seam is tagged (`0x004FC9A1`); ours took the fresh scan's deposit when none was stored. The
+neutral search (`0x004FC799` → `0x004C61C0`) ranks the neutral player's rooms, newest first, by
+first slab from the heart position; ours ranked by bounding-box middle in tile order. Task 5
+(`0x004FD660`, read whole) digs from the stored position of the own room nearest the target;
+ours from the bounding-box middle of the nearest by middle.
+
+**Decision.** `KeeperAI.CostArm` is the cost arm: no task while the pool's kind-2 count is
+nonzero, else `DigRoomAt` is the stored slot's tile or (0,0), the rescan, task 5. Deviates: the
+count is read as this keeper's tags on gold rock; what makes a kind-2 entry is unread. `RoomPlanner.ClaimableNeutralRoom` walks the rooms newest first by first
+slab. `RouteToGold` takes `NearestOwnRoomByPosition` and its `PositionOf`. Deviates: the walker's
+search for the far side of undiggable rock (`0x00502230`) has no bound in DK2; a target inside the
+map's border with nothing open beyond it (task 5 toward (0,0) on an all-rock map) would step
+across it and back for ever, and `LineWalker` now stops after width + height steps and fails the
+walk, as its wall hug already does.
+
+**Consequences.** Harkan's opening is DK2's: (4,8) first, the seam after a Portal pass. Where the
+two Portals tie (37 from the heart position (7,7)) he goes to (1..3,6..8) as DK2 does. No
+HashVersion: the keeper is outside the simulation (`KeeperAI`'s remarks) and no rule changed. (8,4) is still tagged in four of ten seeds,
+while the second Portal is being claimed.
+
+**Measured** against `8b355528`, both sides run. Level 17 seeds 1-10: Prison first in all ten, first
+tile 708-879 (663-865; DK2 855); a Training Room at 1049-1307 in nine (1028-2337 in six; DK2 grows
+its own at about 1,200); a Torture Chamber in one (seven; DK2 none); (8,4) tagged in four (ten).
+Level 11A seeds 1-30: Morgana first in 22 (22).

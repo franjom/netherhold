@@ -212,6 +212,20 @@ are never candidates; ours planned over the whole map. With the area and the sla
 ours tags nothing outside the area, claims the second Portal at 159 and builds its Prison at
 476 centred on (12,25), against DK2's 855 on (16,22) (Q555).
 
+**The opening (2026-10-09, ADR-0409, Q539).** DK2's Harkan tags (4,8) at tick 12, then (19,4)
+at 65 and the seam from 134 (its task pool); ours tagged (19,4) at 4 and, at 105, (8,4) toward
+the other neutral Portal. Two differences in the room planner `0x004FC690`. Its cost arm copies
+the stored gold slot even when the previous scan left it empty: the first unaffordable Prison
+sends task 5 toward (0,0), which tags nothing, and only the next Prison pass goes for the seam;
+ours took the fresh scan at once. And its neutral search `0x004C61C0` ranks first slabs from the
+heart position (7,7), newest room first: the two Portals tie at 37 and DK2 takes (1..3,6..8),
+whose line from the heart's stored position (8,8) meets the wall at (4,8); ours took (6..8,1..3) by bounding-box middle, meeting
+(8,4). Built, seeds 1-10: (4,8) at 7-10, (19,4) at 81 in seed 1, seam from 161, Portals at 36 and
+159 (DK2 40, 164); the Prison's first tile at 708-879 (663-865 before; DK2 855) and a Training
+Room at 1049-1307 in nine seeds (DK2 grows its own at about 1,200), a Torture Chamber in one
+(seven before; DK2 none). (8,4) is still tagged at 151-161 in four seeds, while Portal A is
+being claimed (159; DK2 164).
+
 **Training drops (Q509, 2026-10-06).** The capture answers Q509: Harkan lifts his three level-7
 Black Knights onto the Training Room's interior cells (12,20) and (13,20) at ticks 6, 7 and 11.
 Each lands (76), gets up (255, 257), enters the room's drop state 108, is refused at the cap

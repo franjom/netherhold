@@ -78,8 +78,9 @@ inner three by three (`keeper-spell-thunderbolt.md` §2); the centre plus (1, 1)
 
 **Built** (ADR-0352) as `KeeperAI.GoldStep`: the keeper issues the cast whenever DK2
 calls it and the simulation's validators refuse it. Our gates keep `WantsGold`'s task
-test for the pending gold-dig count, and the cost arm with nothing stored takes the
-fresh scan's first deposit (Q539).
+test for the pending gold-dig count. The cost arm is DK2's (ADR-0409): with an empty slot
+stored it sends task 5 toward (0, 0), and with a seam tagged it starts nothing; it reads the
+kind-2 count as this keeper's tags on gold rock (Q539).
 
 ## 3. The Sight step — `0x005003A0`
 

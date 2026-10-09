@@ -76,9 +76,13 @@ public static class LineWalker
         }
 
         // Undiggable rock. Continue the line through it to find the exit.
+        // DK2 has no bound: a target inside undiggable rock with none open beyond it (task 5 toward
+        // (0, 0), Q539) never ends there, stepping +1 across the target and back; ours stops the walk.
         TilePos exit = pos;
+        int guard = view.Width + view.Height;
         do
         {
+            if (guard-- <= 0) return new WalkStep(WalkOutcome.Failed, exit);
             (int ex, int ey) = Toward(exit, target);
             exit = new TilePos(exit.X + ex, exit.Y + ey);
             if (!view.InBounds(exit)) return new WalkStep(WalkOutcome.Failed, exit);

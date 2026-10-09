@@ -192,4 +192,40 @@ public class KeeperGoldStepTests
         Assert.Equal(100000 - (6 * 15000), world.Player(Keeper).Mana);
         Assert.Equal(6 * 1000, world.Objects.Where(o => o.ObjectTypeId == FloorGold.FloorGoldObjectId).Sum(o => o.GoldHeld));
     }
+
+    /// <summary>A keeper who cannot afford a 9-tile Treasury (450) with 100 gold: the room planner's
+    /// cost arm (<c>0x004FC9AE</c>) runs instead of the gold step.</summary>
+    private static WorldState CannotAffordARoom()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        world.Tile(KeeperWorld.HeartAt).GoldHeld = 100;
+        AddSeam(world);
+        return world;
+    }
+
+    [Fact]
+    public void AnUnaffordableRoomWithNoGoldStoredSendsTaskFiveTowardTileZero_Q539()
+    {
+        WorldState world = CannotAffordARoom();
+        var keeper = Keeper1();
+
+        keeper.Think(Db, world);
+
+        // The empty slot is copied whatever its amount; the rescan then stores the seam for next time.
+        Assert.Equal(KeeperTask.RouteToGold, keeper.State.Task);
+        Assert.Equal(default, keeper.State.DigRoomAt);
+        Assert.NotEmpty(keeper.State.GoldDeposits);
+    }
+
+    [Fact]
+    public void AnUnaffordableRoomStartsNothingWhileASeamIsTagged()
+    {
+        WorldState world = CannotAffordARoom();
+        world.Tile(new TilePos(15, 6)).TaggedBy = PlayerMask.None.With(Keeper);
+        var keeper = Keeper1();
+
+        keeper.Think(Db, world);
+
+        Assert.Equal(KeeperTask.Decide, keeper.State.Task);
+    }
 }

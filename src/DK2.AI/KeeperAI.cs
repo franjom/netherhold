@@ -354,7 +354,7 @@ public sealed class KeeperAI
 
         RoomDef def = view.Database.RoomById(room);
         if (RoomRules.CostPerTile(def) * _p.DefaultRoomSize > view.Gold)
-            return RouteToStoredGold(view, takeFreshScan: true);
+            return CostArm(view);
 
         if ((request & KeeperRoomRequests.ExpandBit) != 0)
         {
@@ -550,17 +550,37 @@ public sealed class KeeperAI
     /// <summary>Half a tile in 1/4096 tile: a tile's centre.</summary>
     private const int HalfTile = 0x800;
 
-    /// <summary>The arm the gold step and the room planner's cost test share (<c>0x004FD590</c>,
-    /// <c>0x004FC9AE</c>): copy the stored first deposit into <see cref="KeeperAIState.DigRoomAt"/>,
-    /// rescan, and start task 5 with <c>NextTask</c> kept. Without a stored deposit only the rescan
-    /// runs; the cost test then takes the fresh scan's first, where DK2 routes to (0, 0) (Q539).</summary>
-    private bool RouteToStoredGold(KeeperView view, bool takeFreshScan = false)
+    /// <summary>The room planner's cost arm (<c>0x004FC9AE</c>): with no seam tile marked, the
+    /// stored slot's tile goes into <see cref="KeeperAIState.DigRoomAt"/> whatever its amount, so an
+    /// empty one sends task 5 toward (0, 0) (Q539); then the rescan, and task 5 with <c>NextTask</c>
+    /// kept. With a seam marked (the pool's kind-2 count, <c>0x004FC9A1</c>) no task starts.</summary>
+    /// <remarks>Deviates: the kind-2 count is read as this keeper's tags on gold rock.</remarks>
+    private bool CostArm(KeeperView view)
+    {
+        for (int i = 0; i < view.TileCount; i++)
+        {
+            TilePos p = view.FromIndex(i);
+            if (view.IsTaggedByMe(p) && view.IsGoldRock(p)) return false;
+        }
+        State.DigRoomAt = State.CurrentGoldArea < State.GoldDeposits.Count
+            ? State.GoldDeposits[State.CurrentGoldArea].Centre
+            : default;
+        State.CurrentGoldArea = 0;
+        State.GoldDeposits.Clear();
+        State.GoldDeposits.AddRange(GoldScanner.Scan(view));
+        State.BeginTask(KeeperTask.RouteToGold, State.NextTask);
+        return true;
+    }
+
+    /// <summary>The gold step's deposit arm (<c>0x004FD590</c>): copy the stored deposit into
+    /// <see cref="KeeperAIState.DigRoomAt"/>, rescan, and start task 5 with <c>NextTask</c> kept.
+    /// Without a stored deposit only the rescan runs.</summary>
+    private bool RouteToStoredGold(KeeperView view)
     {
         GoldDeposit? stored = StoredDeposit();
         State.CurrentGoldArea = 0;
         State.GoldDeposits.Clear();
         State.GoldDeposits.AddRange(GoldScanner.Scan(view));
-        if (stored is null && takeFreshScan) stored = StoredDeposit();
         if (stored is not GoldDeposit deposit) return false;
         State.DigRoomAt = deposit.Centre;
         State.BeginTask(KeeperTask.RouteToGold, State.NextTask);
@@ -573,12 +593,12 @@ public sealed class KeeperAI
             ? State.GoldDeposits[State.CurrentGoldArea]
             : null;
 
-    /// <summary>Task 5 (<c>0x004FD660</c>): dig from the own room nearest the target the gold step
-    /// stored, then mine it (task 6).</summary>
+    /// <summary>Task 5 (<c>0x004FD660</c>): dig from the stored position (<c>+0x27</c>) of the own room
+    /// nearest the target, or from the heart's, then mine it (task 6).</summary>
     private void RouteToGold(KeeperView view)
     {
-        KeeperRoomView? from = view.NearestOwnRoom(State.DigRoomAt);
-        State.DigRoomAtCurrent = from is null ? view.Heart!.Value : KeeperView.Centre(from);
+        KeeperRoomView? from = view.NearestOwnRoomByPosition(State.DigRoomAt);
+        State.DigRoomAtCurrent = from is null ? view.Heart!.Value : view.PositionOf(from);
         State.WallHug = false;
         State.MineRadius = 0;
         State.BeginTask(KeeperTask.DigPath, KeeperTask.MineSeam);
