@@ -50,8 +50,9 @@ objects from the install. Item 6 found that the map itself was mirrored (ADR-041
 Item 4 has run: the project renders through `Assets/DK2/Rendering/DK2-URP.asset`.
 `ClassicLookSetup.RenderStep0` writes the gate's pictures to `build/classic-look/`: the Lair's
 five wall pieces textured and facing the right way, LAIR4 and LAIR5 mirror twins, and Level 1
-from the opening camera. Open for the gate: whether that Level 1 layout is DK2's or its mirror,
-and whether play mode has the batch render's SRP Batcher texture fault (`unity/README.md`).
+from the opening camera. The owner compared that Level 1 layout with DK2's: the same, only the
+camera angle differs, so the map is no longer mirrored (ADR-0411). Open: whether play mode has the
+batch render's SRP Batcher texture fault (`unity/README.md`).
 Found on the way: the gold pile is a textured card whose black needs its material's
 transparency (KMF flags, UNKNOWN); one KMF unit is a tile and the wall pieces span heights 1 to
 2, so what draws a wall's lower half is step 1's question; a terrain's side piece faces out of

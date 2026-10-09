@@ -15,7 +15,8 @@ namespace DK2.Convert.Tests;
 /// <summary>The renderer frame of ADR-0408's classic look: X east, Y up, Z north, left-handed.</summary>
 public sealed class RenderMeshTests
 {
-    /// <summary>Pins the formula only; whether DK2's Y is south is the step 0 gate's question.</summary>
+    /// <summary>Pins the formula; the owner's Level 1 comparison found the layout it gives
+    /// unmirrored (ADR-0411).</summary>
     [Fact]
     public void TheMappingIsXMinusZMinusY()
     {
@@ -23,10 +24,9 @@ public sealed class RenderMeshTests
     }
 
     /// <summary>A gold pile stands on the floor, and the straight Lair wall (DK2 Y = -0.5) lands
-    /// one to two tiles up on the edge this frame calls north. That DK2's Y = -0.5 is the north
-    /// edge rests on DK2's Y running south (ADR-0411), which the step 0 gate checks.</summary>
+    /// one to two tiles up on the tile's north edge (DK2's Y runs south, ADR-0411).</summary>
     [InstallFact]
-    public void PiecesLandOnTheEdgeAssumedNorth()
+    public void PiecesLandOnTheNorthEdge()
     {
         using InstallArtProvider provider = OpenInstall(out GameDatabase _);
 

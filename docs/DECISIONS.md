@@ -9454,8 +9454,8 @@ rooms never reach it. The setter also adds 100 mana (misc +8, `0x004C19C0`), as 
 does; the harness keeps the level's mana, which that path already added. No HashVersion: the keeper is outside the simulation.
 
 ## ADR-0411 — The renderer frame is X east, Y up, Z north, and the map is no longer mirrored
-**Date:** 2026-10-09 · **Status:** accepted; the mirror is STRONGLY INFERRED until the owner compares
-Level 1 (plan, step 0 gate) · Presentation only · Step 0 of ADR-0408's plan
+**Date:** 2026-10-09 · **Status:** accepted; the unmirrored layout CONFIRMED for Level 1 by the owner's
+comparison with DK2's on 2026-10-09 (plan, step 0 gate) · Presentation only · Step 0 of ADR-0408's plan
 
 **Context.** DK2's frame is X east, Y south, Z down: right-handed, since the editor shows a map
 from above with X right and Y down. Unity's is left-handed. `DungeonScene` put tile Y on Unity's
@@ -9474,5 +9474,6 @@ glTF's right-handed frame and is unchanged.
 
 **Consequences.** `RenderMeshTests` pins the mapping, that a wall piece at DK2 Y = -0.5 lands on a
 tile's north edge, and that triangle order agrees with the KMF's stored normals. The opening
-camera now faces north. That DK2's Y runs south, and so that the old layout was a mirror, rests on
-the editor's view and is checked by the Level 1 picture beside DK2's.
+camera now faces north. That DK2's Y runs south, and so that the old layout was a mirror, rested on
+the editor's view; the owner's comparison of the Level 1 picture with DK2's confirmed it: the same
+layout, only the camera angle differs.
