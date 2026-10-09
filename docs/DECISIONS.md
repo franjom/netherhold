@@ -9550,3 +9550,22 @@ goes to the nearest Graveyard with a place. A place is a floor slot (`0x004E3ED0
 no corpse, as in DK2; the tests and the burial scenario now use 3x3. Deviates: DK2 lays a corpse
 on its floor slot until it is destroyed there, holding the place (`0x004E6490`, `0x004B1070`);
 ours buries on arrival, so a Graveyard never fills (Q578).
+
+## ADR-0415 — A Casino's party moves with its room
+**Date:** 2026-10-09 · **Status:** accepted · Research: `casino.md` §9, §12; `functions/004E3800.md`, `004ED440.md`, `004D7100.md`
+
+**Context.** DK2 keeps a Casino's party on the room (`+0x41`, music `+0x3D`, start `+0x45`). Ours
+keeps it on the room's lowest tile and never moved it, so a tile joining below that tile lost the
+party, and a sold tile left a stale flag behind on the floor.
+
+**Decision.** `SlabChain` carries the party as it carries the Prison's door byte. A tile joining
+a room moves the joined room's party to the new lowest tile; rooms absorbed in the same join
+lose theirs (`Room_Absorb` writes no room field, and `Room_Free` drops the absorbed record). A
+tile leaving clears the party from every piece and from the leaving tile: each piece is a new
+room (`Room_Construct` zeroes `+0x31..+0x48`), and `Room_RemoveTile` restores only a Casino's
+lever `+0x53`. The keeper's party count `+0xF4A` is not lowered: `Casino_OnFreed` only kicks
+the occupants to 154.
+
+**Consequences.** No replay level builds a Casino, so Levels 1-3 are unchanged. A Casino sold or
+split during a party leaves its keeper's count raised, which lifts the purse test for the rest
+of the level, as in DK2. Hash 210.

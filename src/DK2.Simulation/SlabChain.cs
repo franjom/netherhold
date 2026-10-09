@@ -124,15 +124,17 @@ public static class SlabChain
     /// and every later neighbour's different room is appended after it (<c>0x004ECB70</c>). With no
     /// such neighbour it starts a room of its own (<c>0x004EC5A0</c>).</summary>
     /// <remarks>The room keeps the joined room's fields; an absorbed room's are dropped
-    /// (<c>0x004ECD00</c> frees it). Of those fields only the Prison's door byte is kept on a tile,
-    /// the room's lowest (<see cref="JailBreakRules.DoorOf"/>), so it moves to the new lowest.</remarks>
+    /// (<c>0x004ECD00</c> frees it). Of those fields ours keeps two sets on a tile, the room's lowest:
+    /// the Prison's door byte (<see cref="JailBreakRules.DoorOf"/>) and the Casino's party
+    /// (<see cref="CasinoJackpotRules.IsPartyOn"/>), so they move to the new lowest.</remarks>
     public static List<int> Added(WorldState world, int tileIndex)
     {
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         byte terrain = tile.TerrainId, owner = tile.OwnerPlayerId;
         var taken = new HashSet<int> { tileIndex };
         List<int>? chain = null;
-        byte door = 0;
+        byte door = 0, party = 0;
+        long partyStart = 0;
         for (int d = 0; d < Dx.Length; d++)
         {
             int n = Neighbour(world, tileIndex, d);
@@ -141,7 +143,14 @@ public static class SlabChain
             Sort(world, room);
             if (chain is null)
             {
-                foreach (int t in room) door |= world.TileAtIndex(t).PrisonDoor;
+                foreach (int t in room)
+                {
+                    ref TileState kept = ref world.TileAtIndex(t);
+                    door |= kept.PrisonDoor;
+                    party |= kept.CasinoParty;
+                    partyStart = Math.Max(partyStart, kept.CasinoPartyStartTick);
+                }
+
                 chain = room;
                 chain.Add(tileIndex);
             }
@@ -150,7 +159,9 @@ public static class SlabChain
 
         chain ??= [tileIndex];
         Stamp(world, chain);
-        KeepDoor(world, chain, door);
+        int lowest = KeepDoor(world, chain, door);
+        ref TileState head = ref world.TileAtIndex(lowest);
+        (head.CasinoParty, head.CasinoPartyStartTick) = (party, partyStart);
         return chain;
     }
 
@@ -163,17 +174,20 @@ public static class SlabChain
         world.TileAtIndex(chain[0]).PrisonDoor |= JailBreakRules.Activated;
     }
 
-    /// <summary>Puts a room's door byte on its lowest tile and clears it from the rest.</summary>
-    private static void KeepDoor(WorldState world, List<int> chain, byte door)
+    /// <summary>Puts a room's door byte on its lowest tile and clears it and the Casino's party from
+    /// every tile; returns the lowest.</summary>
+    private static int KeepDoor(WorldState world, List<int> chain, byte door)
     {
         int lowest = int.MaxValue;
         foreach (int t in chain)
         {
-            world.TileAtIndex(t).PrisonDoor = 0;
+            ref TileState tile = ref world.TileAtIndex(t);
+            (tile.PrisonDoor, tile.CasinoParty, tile.CasinoPartyStartTick) = (0, 0, 0);
             lowest = Math.Min(lowest, t);
         }
 
         world.TileAtIndex(lowest).PrisonDoor = door;
+        return lowest;
     }
 
     /// <summary><c>0x004ED7B0</c>, for a tile that has just stopped being a tile of the room with
@@ -237,9 +251,12 @@ public static class SlabChain
         }
 
         // 0x004ED440 restores the old room's saved words to each piece, the Prison's Activation
-        // (0x004ED68B) among them, before the piece's slot +0x09 runs (0x004ED76C).
-        byte door = world.TileAtIndex(tileIndex).PrisonDoor;
-        world.TileAtIndex(tileIndex).PrisonDoor = 0;
+        // (0x004ED68B) among them, before the piece's slot +0x09 runs (0x004ED76C). A Casino's party
+        // (+0x3D, +0x41, +0x45) is not among them: Room_Construct zeroes it, so every piece starts
+        // without one, and the keeper's party count, which only the party's end lowers, stays raised.
+        ref TileState leaving = ref world.TileAtIndex(tileIndex);
+        byte door = leaving.PrisonDoor;
+        (leaving.PrisonDoor, leaving.CasinoParty, leaving.CasinoPartyStartTick) = (0, 0, 0);
         foreach (int tile in old) door |= world.TileAtIndex(tile).PrisonDoor;
 
         foreach (List<int> chain in chains)

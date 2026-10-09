@@ -15,6 +15,7 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**210** — `0x0D827AF91A745AD2`. A Casino's party moves with the room: kept as it grows, the joined room's kept in a merge, ended in every piece when a tile leaves (`Room_Construct`, `0x004ED440`); no new field. ADR-0415.
 **209** — `0xE29E7F167923B105`. The corpse selections' Graveyard messages (41 once a level through the new `PlayerState.GraveyardWantedPosted`, player `+0xF4E`, saved; 42 with no place), a corpse taken only from its keeper's tile and only to a Graveyard with a floor slot. ADR-0414.
 **208** — `0xDF2D50DC47317F6E`. The job-room finders' remaining messages (Workshop behind its queue, the Library's shelf test and 45, the Casino's party branch, the Mistress's 99, both Combat Pit finders) and Temple and Combat Pit capacity (their rim, `0x004E3ED0`); no new field. ADR-0413.
 **207** — `0xEC031DFFFBBCFE6B`. The rescue selector's room messages (`0x0046D810`: 41/43/42 for the Prison or a bedless body's Lair) and the Prison's `Activation` (`+0x59`): on at a Prison's first tile and at map load (`0x004E2B30`), kept with the room as it grows or is sold, and required by the carry's Prison search; a casualty is taken only from a tile its keeper owns; no new field. ADR-0412.

@@ -243,8 +243,12 @@ From the 10-byte rows at `0x006A0B00`: 73, 75, 77 and 91 are `0x2032` (50 s, tab
 
 - `CasinoStep` runs 145–151 and 153, `CasinoJackpotRules` the jackpot, the party update and
   152, 155–157. The party flag and its turn sit on the Casino's lowest tile, as other room state
-  does here (`TileState.PitFightSeenTick`); a party whose lowest tile is sold or split off is lost
-  with it, and the keeper's count then stays raised, where DK2's room keeps its record.
+  does here (`TileState.PitFightSeenTick`), and move with the room as DK2's record does
+  (ADR-0415): a growing Casino keeps its party (`Room_AddTile`); a merge keeps the joined room's
+  and drops the absorbed one's (`Room_Absorb` writes no room field); a lost tile ends it in every
+  piece, since `Room_Construct` zeroes `+0x3D`/`+0x41`/`+0x45` and `Room_RemoveTile` restores only
+  `+0x53`. Neither case lowers the keeper's count: its only decrements are the room update's two
+  (`0x004D6270`), and `Casino_OnFreed` (`0x004D7100`) does not touch it. So the count stays raised and the purse test stays lifted for the rest of the level, as in DK2.
 - Treasury gold is `TileState.GoldHeld` (ADR-0015): "a tile holding object 3" is a tile with gold.
 - Not modelled, all presentation: sounds, the music and its null-handle kick (ours takes the
   music as started), the tile flash and
