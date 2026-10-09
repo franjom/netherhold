@@ -373,7 +373,7 @@ thirteen initialised blocks, and each reader placed in the task-handler table at
 | 63 | `Unknown_63` | 305498471 | — |
 | 64 | `?` | ? | — |
 | 65 | `?` | ? | — |
-| 66 | `?` | ? | — |
+| 66 | alliance record | several a level | — : `Level_MakeAlliance` `0x0051DC90` (`variables-corpus-sweep.md` §Q84) |
 | 67 | `DefaultCellingHeightTiles` | 0 | `0x006F28A7` (u32) |
 | 68 | `PayDayCutOffTimeSeconds` | 120 | `0x006F28A3` (u32) |
 | 69 | `?` | ? | — |
@@ -384,7 +384,7 @@ thirteen initialised blocks, and each reader placed in the task-handler table at
 | 74 | `GameTicks` | 340 (level files only) | `0x006F28B6` (u32) |
 | 75 | `ModifyHealthOfCreatureInLairPerSecond` | 100 | `0x006F28BA` (u16) |
 | 76 | `ModifyAngerOfCreatureInLairPerSecond` | -550 | `0x006F28BC` (u16) |
-| 77 | `?` | ? | — |
+| 77 | creature field override | several a level | — : `0x0051DD10` → `0x00494A70` (`variables-corpus-sweep.md` §Q84) |
 | 78 | `ModifyAngerInCompanyOfHatedCreaturesPerSecond` | 150 | `0x006F28BE` (u16) |
 | 79 | `ForceAppliedToSlappedCreature` | 1024 | `0x006F28C0` (u16) |
 | 80 | `?` | ? | — |

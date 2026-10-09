@@ -68,45 +68,51 @@ whether the record walker looks at them before dispatching is unread. Given they
 vary by file for the same id, "read and ignored" and "not read" are the only
 live options, and neither changes anything we build.
 
-## Q84: id 66 is the level's player count, and id 77 is still unknown
+## Q84: ids 66 and 77 are structured records, read one per level by mistake
 
-**Id 66 is in 65 of the 66 levels**, which corrects the question's premise — it
-was catalogued as an obscurity and is one of the most consistently present
-per-level settings in the game. Values run **2 to 7**.
+**Corrected 2026-10-09 (binary and a raw scan of the 66 files).** Both ids carry **several
+records per level**, and `KwdVariables` and `kwd varsweep` keep one per id, so every reading
+above this line saw only the last. The earlier conclusion, id 66 = the level's player count,
+was a reading of that last record: its value is the highest keeper's id.
 
-Tested first against the creature pool's player ids, the only *other* per-level
-source that names players: **54 exact agreements, 3 disagreements, 8 levels with
-no pool to test against** (`kwd varsweep` prints this).
+Each VARIABLES record is dispatched by its id through the table `Variables_InitDispatch`
+(`0x0051AA90`) builds. Its entries do not follow table position: the entry with kind 66 is at
+`0x006A6180`, and the one with kind 77 at `0x006A6220`.
 
-| level | id 66 | highest pool player |
-|---|---|---|
-| `level1` | 3 | 3 |
-| `Frosty's Castle` | 6 | 6 (keepers 3–6) |
-| `Level13`, `level8` | 4 | 3 |
-| **`Level17`** | **2** | **5** |
+**Id 66 is an alliance** (`Level_MakeAlliance`, `0x0051DC90`): players `value` and `unk1` become
+allies. STRONGLY INFERRED from the handler; what the alliance does is `0x004BF390`'s test. It is
+in 65 levels. 63 carry exactly (2, 1) and then (k, 2) for every keeper k from 3 up: heroes with
+neutral, and each keeper with neutral. The two exceptions:
 
-**Now tested against the PLAYERS(180) record, which decides it.** PLAYERS parses
-as of ADR-0091 and each record carries a `PlayerId` at offset `0xA8`. Over the
-65 levels that have both files, id 66 equals the **highest `PlayerId` in the
-level's PLAYERS records on 64**, and equally the **PLAYERS record count on 64**
-— the two coincide because a level's player ids run 1..N contiguously. It
-matches the count of *keeper* ids (3–7) on **none**.
+- `Level17`: (3, 2), (2, 4), (2, 5), (2, 1).
+- `level18`: the usual five, then (5, 4), (6, 4) and (6, 5). Its three computer keepers are
+  allied with each other.
 
-**STRONGLY INFERRED: id 66 is the level's player count, equivalently the highest
-player id in use — including the hero and neutral slots, not just keepers.** The
-two levels where it reads one higher than the creature pool are explained: the
-pool is a lower bound, since a keeper can exist with no portal roster.
+Nothing in `src/` applies these records (Q576). `kwd varsweep` still prints the old
+player-count test.
 
-**`Level17` is the single genuine counterexample** and is named rather than
-smoothed away: id 66 = 2 against five PLAYERS records with ids 1,2,3,4,5. One
-level out of 65 disagreeing is what keeps this STRONGLY INFERRED rather than
-CONFIRMED.
+**Id 77 overrides one field of one creature type for the level** (`0x0051DD10`, no Ghidra
+function). The world looks the creature type up by `value` (vtable `+0xC0`); when it exists,
+`0x00494A70` stores `unk2` into the definition field selected by `unk1`. The selector is
+`CreatureStatId`: 1 Health (`+0x692`), 3 Threat (`+0x698`), 4 MeleeDamage (`+0x5C4`), 21 and 22
+the speeds (divided by variable 19), 27 PossessionManaCost (`+0x764`) and so on: 29 selectors, 0–31 less 8, 11 and
+14. STRONGLY INFERRED. The shipped records (value = creature, then selector = new value):
 
-**Id 77 stays UNKNOWN.** Nine levels — `Level16` = 29, `Level6b` = 3,
-`Secret1` = 1, `Secret2` = 18, `Secret3` = 23, `Secret5` = 11 and three more,
-with values also including 4 — and seven different `(unk1, unk2)` pairs. Its
-concentration in the `Secret` levels is the only pattern, and one pattern over
-nine samples is not a reading.
+| Level | Records |
+|---|---|
+| `level1` | Lord of the Land (29): MeleeDamage 200, Threat 125 |
+| `level4` | 29: Threat 150 |
+| `Level6b` | 3: Fear 0 |
+| `Spiral` | 4: Fear 0 |
+| `Level16` | 13–21, 25, 29: DistanceCanHear 0 |
+| `Secret1` | 3: Speed 0, RunSpeed 0; 1: Health 50 |
+| `Secret2` | 14–17, 19, 25: Health 200; 13: Health 400; 18: Health 50; 5: Health 3000, Fear 5000 |
+| `Secret3` | 16: Health 600; 23: Speed 6144, Fear 16000, RunSpeed 8192 |
+| `Secret5` | 1: Health 50; 11: Threat 1 |
+
+The scan reads aligned 16-byte records with id 77, a creature id below 64 and a selector
+below 64. Nothing in `src/` applies these overrides: our Level 1 Lord of the Land swings for his
+record's damage, not 200.
 
 ## The key/value list, for anyone who needs it
 
@@ -116,8 +122,8 @@ is a trap for a sentence of the form *"X is N"*:
 | id | variable | values | levels |
 |---:|---|---:|---:|
 | 3 | `EntranceGenerationSpeedSeconds` | 5 (18, 20, 22, 30, 10000) | 5 |
-| 66 | id 66 | 6 (2..7) | 65 |
-| 77 | id 77 | 7 | 9 |
+| 66 | alliance (several records a level) | 6 (2..7) | 65 |
+| 77 | creature field override (several a level) | 7 | 9 |
 | 157 | `BoulderInitialHealth` | 2 (10000, 12000) | 3 |
 | 158 | `BoulderSpeedTilesPerSecond` | 2 (4096, 5324) | 2 |
 | 210 | `FirstPersonRechargeModifyPercentage` | 3 (25, 50, 70) | 3 |

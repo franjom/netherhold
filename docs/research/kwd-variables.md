@@ -176,8 +176,9 @@ room and lost with it (`manual-1999.md`).
 
 ### Still open
 
-Q83 (what `GameTicks` = 340 is — not a rate and not Q1), Q84 (id 66 STRONGLY
-INFERRED as the level's player count, id 77 still UNKNOWN), and what the global
+Q83 (what `GameTicks` = 340 is — not a rate and not Q1), and what the global
 file's 39 camera THINGS records are for. Q85 is answered: `unk1`/`unk2` are
 slots 2 and 3 of a generic three-dword payload that the structured ids fill and
-plain variables leave at zero (`variables-corpus-sweep.md`).
+plain variables leave at zero (`variables-corpus-sweep.md`). Q84 is answered: id 66 is an
+alliance and id 77 a creature field override, several records a level each
+(`variables-corpus-sweep.md` §Q84).

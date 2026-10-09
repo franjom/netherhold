@@ -267,7 +267,7 @@ Each negative gives the range it covers.
   bit is closed over the direct and helper forms scanned. Its callers are §3.1
   and §3.2–§3.9, and none of them is a keeper-spell handler. Sight's process25
   and local presentation region have now been read; see `keeper-spell-sight.md`.
-  Reveal Map remains Q194.
+  Reveal Map, a special, explores every tile through `0x00451EF0` (`specials.md` §4).
 - **Terrain flags.** A scan for tests of the runtime flag dword `+0x17B`
   covered direct tests, `+0x17C` byte tests, and a load followed within 6
   instructions by a test of the register or its high byte. It found
