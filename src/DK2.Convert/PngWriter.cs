@@ -5,6 +5,7 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
+using DK2.Art.Textures;
 
 namespace DK2.Convert.Textures;
 
@@ -67,4 +68,11 @@ internal static class PngWriter
             }
         }
     }
+}
+
+/// <summary>PNG encoding for a decoded texture, kept beside the writer so the reader assembly
+/// stays free of it.</summary>
+public static class RgbaImagePng
+{
+    public static byte[] ToPng(this RgbaImage image) => PngWriter.Write(image);
 }

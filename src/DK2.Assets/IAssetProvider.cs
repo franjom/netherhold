@@ -15,6 +15,11 @@ public enum AssetSource
     /// <summary>A file on disk from a replacement art pack.</summary>
     ReplacementFile,
 
+    /// <summary>An entry in the player's own DK2 install, read in place (ADR-0408). The
+    /// provider that answered also loads it; <see cref="ResolvedAsset.InstallEntry"/> names
+    /// it.</summary>
+    InstallEntry,
+
     /// <summary>Nothing on disk: a coloured box, a tone, a flat colour.</summary>
     Placeholder,
 }
@@ -27,13 +32,15 @@ public enum AssetSource
 /// </summary>
 public readonly struct ResolvedAsset
 {
-    public ResolvedAsset(AssetRef reference, AssetSource source, string? filePath, PlaceholderLook look, string providerName)
+    public ResolvedAsset(AssetRef reference, AssetSource source, string? filePath, PlaceholderLook look,
+        string providerName, string? installEntry = null)
     {
         Reference = reference;
         Source = source;
         FilePath = filePath;
         Look = look;
         ProviderName = providerName;
+        InstallEntry = installEntry;
     }
 
     /// <summary>The key that was asked for.</summary>
@@ -49,6 +56,12 @@ public readonly struct ResolvedAsset
     /// </summary>
     public string? FilePath { get; }
 
+    /// <summary>
+    /// The entry inside the player's install, for <see cref="AssetSource.InstallEntry"/>; null
+    /// otherwise. Not a path: only the provider that answered can open it.
+    /// </summary>
+    public string? InstallEntry { get; }
+
     /// <summary>How to draw it when there is no file. Meaningful for placeholders.</summary>
     public PlaceholderLook Look { get; }
 
@@ -58,10 +71,12 @@ public readonly struct ResolvedAsset
     /// <summary>True when a renderer must improvise rather than load a file.</summary>
     public bool IsPlaceholder => Source == AssetSource.Placeholder;
 
-    public override string ToString() =>
-        Source == AssetSource.Placeholder
-            ? $"{Reference} → placeholder {Look} ({ProviderName})"
-            : $"{Reference} → {FilePath} ({ProviderName})";
+    public override string ToString() => Source switch
+    {
+        AssetSource.Placeholder => $"{Reference} → placeholder {Look} ({ProviderName})",
+        AssetSource.InstallEntry => $"{Reference} → install {InstallEntry} ({ProviderName})",
+        _ => $"{Reference} → {FilePath} ({ProviderName})",
+    };
 }
 
 /// <summary>

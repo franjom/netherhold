@@ -4,9 +4,11 @@
 
 using System.Security.Cryptography;
 using System.Text;
+using DK2.Art;
+using DK2.Art.Kmf;
+using DK2.Art.Textures;
 using DK2.Assets;
 using DK2.Convert.Gltf;
-using DK2.Convert.Kmf;
 using DK2.Convert.Textures;
 using DK2.Data.Model;
 
@@ -18,13 +20,6 @@ public sealed record AssetConversionResult(
 /// <summary>Converts exactly the logical keys enumerated by AssetCatalogue.</summary>
 public static class AssetConverter
 {
-    private const int CreatureWalk = 0;
-    private const int CreatureMelee = 4;
-    private const int CreatureDie = 6;
-    private const int CreatureSleeping = 11;
-    private const int CreatureIdle = 19;
-    private const int CreatureManufacturing = 21;
-
     public static IReadOnlyList<AssetConversionResult> ConvertAll(
         string installDirectory, GameDatabase database, string outputRoot)
     {
@@ -53,37 +48,14 @@ public static class AssetConverter
         string root = Path.GetFullPath(outputRoot);
         Directory.CreateDirectory(root);
         var run = new Run(root, meshes, textures);
-        run.ConvertTerrain(database, art);
-        run.ConvertRooms(database, art);
-        run.ConvertTorches(database);
-        run.ConvertCreatures(database, art);
-        run.ConvertObjects(database, art);
-
-        IReadOnlyList<AssetRef> expected = AssetCatalogue.ForDatabase(database).ToArray();
-        if (run.Results.Count != expected.Count
-            || !run.Results.Select(result => result.Reference).SequenceEqual(expected))
-            throw new InvalidOperationException("Converter result order drifted from AssetCatalogue.ForDatabase.");
+        foreach (ArtEntry entry in ArtSourceMap.ForDatabase(database, art))
+        {
+            if (!entry.HasSource) run.Missing(entry.Reference, entry.MissingReason!);
+            else if (entry.Use == ArtUse.Model) run.ConvertKmf(entry.Reference, entry.Source!, entry.Detail);
+            else run.ConvertTexture(entry.Reference, entry.Source!, entry.Detail);
+        }
         return run.Results;
     }
-
-    private static Dk2ArtResource CreatureAnimationSource(
-        CreatureDef creature, IReadOnlyList<Dk2ArtResource> resources, string animation) => animation switch
-    {
-        "idle" => resources[CreatureIdle],
-        "sleeping" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
-            => new Dk2ArtResource("", 0), // That shipped slot is Imp_Claim1(Land), not sleep.
-        "sleeping" => resources[CreatureSleeping],
-        "dying" => resources[CreatureDie],
-        "working" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
-            => resources[CreatureMelee], // The Imp's slot is named Imp_Dig in shipped data.
-        "working" => resources[CreatureManufacturing],
-        _ => resources[CreatureWalk],
-    };
-
-    private static string NoArtRecord(string category, byte id) => $"KWD has no {category} art record for id {id}";
-
-    private static Dk2ArtResource First(params Dk2ArtResource[] resources) =>
-        resources.FirstOrDefault(resource => !resource.IsEmpty) ?? resources[0];
 
     private static IEnumerable<string> MaterialTextures(KmfMaterial material) =>
         material.TextureNames.Concat(string.IsNullOrEmpty(material.EnvironmentTextureName)
@@ -106,97 +78,10 @@ public static class AssetConverter
 
         public List<AssetConversionResult> Results { get; } = [];
 
-        public void ConvertTerrain(GameDatabase database, Dk2ArtCatalogue art)
-        {
-            foreach (TerrainDef terrain in database.Terrain.Values.OrderBy(value => value.TerrainId))
-            {
-                if (!art.Terrains.TryGetValue(terrain.TerrainId, out IReadOnlyList<Dk2ArtResource>? resources))
-                    Missing(AssetRef.ForTerrain(terrain.Name, terrain.IsSolid ? AssetKind.Mesh : AssetKind.Texture),
-                        NoArtRecord("terrain", terrain.TerrainId));
-                else if (terrain.IsSolid)
-                    ConvertKmf(AssetRef.ForTerrain(terrain.Name, AssetKind.Mesh),
-                        First(resources[1], resources[0]), "terrain side/complete mesh");
-                else
-                    ConvertTexture(AssetRef.ForTerrain(terrain.Name, AssetKind.Texture),
-                        resources[0], "terrain complete mesh's first material texture");
-                if (terrain.Damage != 0)
-                    Missing(AssetRef.ForTerrain(terrain.Name, AssetKind.Effect),
-                        "effect conversion is UNKNOWN; no effect format is emitted");
-            }
-        }
-
-        public void ConvertRooms(GameDatabase database, Dk2ArtCatalogue art)
-        {
-            foreach (RoomDef room in database.Rooms.Values.OrderBy(value => value.RoomId))
-            {
-                if (!art.Rooms.TryGetValue(room.RoomId, out IReadOnlyList<Dk2ArtResource>? resources))
-                {
-                    string reason = NoArtRecord("room", room.RoomId);
-                    Missing(AssetRef.ForRoom(room.Name, AssetKind.Texture), reason);
-                    Missing(AssetRef.ForRoom(room.Name, AssetKind.Mesh), reason);
-                    if (AssetCatalogue.DrawsRoomWalls(room))
-                        for (int piece = AssetCatalogue.FirstWallPiece; piece <= AssetCatalogue.LastWallPiece; piece++)
-                            Missing(AssetCatalogue.WallPiece(room.Name, piece), reason);
-                    continue;
-                }
-                Dk2ArtResource complete = resources[2];
-                ConvertTexture(AssetRef.ForRoom(room.Name, AssetKind.Texture), complete,
-                    "room complete mesh's first material texture");
-                ConvertKmf(AssetRef.ForRoom(room.Name, AssetKind.Mesh), complete,
-                    "room complete mesh");
-                // The loader names each piece art 2's name plus its number (0x004EACC0).
-                if (AssetCatalogue.DrawsRoomWalls(room))
-                    for (int piece = AssetCatalogue.FirstWallPiece; piece <= AssetCatalogue.LastWallPiece; piece++)
-                        ConvertKmf(AssetCatalogue.WallPiece(room.Name, piece),
-                            new Dk2ArtResource(complete.IsEmpty ? "" : complete.Name + piece, 0), "room wall piece");
-            }
-        }
-
-        public void ConvertCreatures(GameDatabase database, Dk2ArtCatalogue art)
-        {
-            foreach (CreatureDef creature in database.Creatures.Values.OrderBy(value => value.CreatureId))
-            {
-                if (!art.Creatures.TryGetValue(creature.CreatureId, out IReadOnlyList<Dk2ArtResource>? resources))
-                {
-                    string reason = NoArtRecord("creature", creature.CreatureId);
-                    Missing(AssetRef.ForCreature(creature.Name, AssetKind.Mesh), reason);
-                    foreach (string animation in AssetCatalogue.CreatureAnimations)
-                        Missing(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation), reason);
-                    continue;
-                }
-                ConvertKmf(AssetRef.ForCreature(creature.Name, AssetKind.Mesh),
-                    resources[CreatureIdle], "idle model");
-                foreach (string animation in AssetCatalogue.CreatureAnimations)
-                {
-                    Dk2ArtResource source = CreatureAnimationSource(creature, resources, animation);
-                    ConvertKmf(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation),
-                        source, "animation KMF");
-                }
-            }
-        }
-
-        /// <summary>One mesh per distinct torch art, in the catalogue's order.</summary>
-        public void ConvertTorches(GameDatabase database)
-        {
-            foreach (string name in AssetCatalogue.TorchArt(database))
-                ConvertKmf(AssetCatalogue.TorchMesh(name), new Dk2ArtResource(name, 0), "torch mesh");
-        }
-
-        public void ConvertObjects(GameDatabase database, Dk2ArtCatalogue art)
-        {
-            foreach (ObjectDef value in database.Objects.Values.OrderBy(value => value.ObjectId))
-            {
-                if (!art.Objects.TryGetValue(value.ObjectId, out IReadOnlyList<Dk2ArtResource>? resources))
-                    Missing(AssetRef.ForObject(value.Name, AssetKind.Mesh), NoArtRecord("object", value.ObjectId));
-                else
-                    ConvertKmf(AssetRef.ForObject(value.Name, AssetKind.Mesh), resources[0], "object mesh");
-            }
-        }
-
-        private void ConvertKmf(AssetRef reference, Dk2ArtResource source, string detail)
+        public void ConvertKmf(AssetRef reference, Dk2ArtResource source, string detail)
         {
             if (source.IsEmpty) { Missing(reference, $"KWD has no {detail} resource"); return; }
-            if (!TryKmf(source.Name, allowCollectionMember: false, out int index, out string entryName))
+            if (!_meshes.TryFind(source.Name, allowCollectionMember: false, out int index, out string entryName))
             { Missing(reference, $"Meshes.WAD has no '{entryName}'"); return; }
             try
             {
@@ -231,10 +116,10 @@ public static class AssetConverter
                 ? source.FrameCount / (float)source.FramesPerSecond
                 : 0f;
 
-        private void ConvertTexture(AssetRef reference, Dk2ArtResource source, string detail)
+        public void ConvertTexture(AssetRef reference, Dk2ArtResource source, string detail)
         {
             if (source.IsEmpty) { Missing(reference, $"KWD has no {detail} resource"); return; }
-            if (!TryKmf(source.Name, allowCollectionMember: true, out int index, out string entryName))
+            if (!_meshes.TryFind(source.Name, allowCollectionMember: true, out int index, out string entryName))
             { Missing(reference, $"Meshes.WAD has no '{entryName}'"); return; }
             try
             {
@@ -256,40 +141,6 @@ public static class AssetConverter
             {
                 Missing(reference, $"{entryName}: {exception.Message}");
             }
-        }
-
-        /// <summary>
-        /// Finds a KMF entry; <paramref name="entryName"/> is the stored name when found,
-        /// else the name looked up.
-        /// </summary>
-        private bool TryKmf(string sourceName, bool allowCollectionMember, out int index, out string entryName)
-        {
-            entryName = sourceName.EndsWith(".kmf", StringComparison.OrdinalIgnoreCase)
-                ? sourceName : sourceName + ".kmf";
-            if (_meshes.TryFind(entryName, out index))
-            {
-                entryName = _meshes.EntryNames[index];
-                return true;
-            }
-            if (allowCollectionMember)
-            {
-                IReadOnlyList<string> names = _meshes.EntryNames;
-                index = Enumerable.Range(0, names.Count)
-                    .Where(candidate => names[candidate].EndsWith(".kmf", StringComparison.OrdinalIgnoreCase)
-                        && names[candidate].StartsWith(sourceName, StringComparison.OrdinalIgnoreCase)
-                        && names[candidate].Length > sourceName.Length
-                        && char.IsDigit(names[candidate][sourceName.Length]))
-                    .OrderBy(candidate => names[candidate], StringComparer.OrdinalIgnoreCase)
-                    .DefaultIfEmpty(-1)
-                    .First();
-                if (index >= 0)
-                {
-                    entryName = names[index];
-                    return true;
-                }
-            }
-            index = -1;
-            return false;
         }
 
         private string OutputPath(AssetRef reference)
@@ -324,7 +175,7 @@ public static class AssetConverter
             return Path.Combine(_root, "_textures", $"{readable}-{System.Convert.ToHexString(hash, 0, 4)}.png");
         }
 
-        private void Missing(AssetRef reference, string reason)
+        public void Missing(AssetRef reference, string reason)
         {
             // A repeat conversion must not leave a formerly-produced key
             // resolvable after its current source becomes unavailable.

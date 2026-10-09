@@ -1,6 +1,7 @@
 ﻿<Solution>
   <Folder Name="/src/">
     <Project Path="src/DK2.AI/DK2.AI.csproj" />
+    <Project Path="src/DK2.Art/DK2.Art.csproj" />
     <Project Path="src/DK2.Assets/DK2.Assets.csproj" />
     <Project Path="src/DK2.Convert/DK2.Convert.csproj" />
     <Project Path="src/DK2.Core/DK2.Core.csproj" />

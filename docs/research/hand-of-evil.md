@@ -34,6 +34,7 @@ about the binary in our own words**; no decompiler output enters this repository
 | The slap's work bonus lasts **25 game seconds** | **CONFIRMED** (owner, 2026-09-06) — *"timeout for efficiency to return back to 80% after slap is 25s, not 60s"*. Q159 closed |
 | **The aimed bonus is a task kind, not a flag** — and it lasts as long as that kind of work does | **STRONGLY INFERRED** (2026-09-06; two writers in the whole binary) — §6, ADR-0069 |
 | **The drop looks three tiles** | **CONFIRMED** (owner, 2026-09-06) — and DK2 reaches three from a nominal two by an off-by-one in its own loop. Q162 closed |
+| **There are no tools: the cursor is the hand, and every action is a mouse click** | **CONFIRMED** (owner, 2026-10-09): *"in DK2 there is no "tool", it is my "hand of evil", or to be precise, my mouse cursor, and [only] thing I do is click with mouse"*. **Untagging** (owner, same day): *"if I want to untag a single tile I click on it, if I want to untag a "rectangle" of tiles I click and drag over the area I want untaged"*, and clicking a tagged tile always untags it (owner, same day: "yes"). That tagging is a click or drag the same way is STRONGLY INFERRED from the no-tools answer. What decides a drag that starts on an untagged tile, and where DK2 makes the choice, is UNREAD (Q577). `PlayerToolMode` in `DK2.Presentation` is the Unity runner's stand-in, not DK2's |
 | Creature definition flag `0x4000` is **`IsHorny`**, and slapping him runs a different routine | **STRONGLY INFERRED** — Q158 |
 
 ---

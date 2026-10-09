@@ -16,22 +16,27 @@ namespace DK2.Unity
     /// what changed, in what order, which asset each thing needs and create-vs-
     /// update, and the asset layer decided file or placeholder (ADR-0036). This
     /// file is the one part of the project the test suite cannot cover.</para>
-    /// <para>Coordinates: the grid lies on Unity's XZ plane, Y up; tile
-    /// <c>(x, y)</c> centres at <c>(x + 0.5, 0, y + 0.5)</c> and a creature's
-    /// <see cref="Fp32"/> position divides by <see cref="Fp32.One"/> — here and
-    /// nowhere else (ADR-0001). Spawning centres a creature in its tile, so the
-    /// two conventions agree.</para>
+    /// <para>Coordinates: the grid lies on Unity's XZ plane, Y up, X east and Z north (ADR-0411);
+    /// tile <c>(x, y)</c> centres at <c>(x + 0.5, 0, -(y + 0.5))</c> (<see cref="Ground"/>) and a
+    /// creature's <see cref="Fp32"/> position divides by <see cref="Fp32.One"/> — here and
+    /// nowhere else (ADR-0001).</para>
     /// </remarks>
     public sealed class DungeonScene : IRenderTarget
     {
-        /// <summary>A tile whose terrain fills its cell. One whole tile, so a wall is a
-        /// wall. Public because <see cref="TilePicker"/> needs the same number to work
-        /// out what the pointer is over.</summary>
-        public const float SolidHeight = 1f;
+        /// <summary>DK2's ordinary floor height, 0x1000 (<c>0x004545C0</c>; pits, pools and
+        /// water lie lower). Heights here are DK2's own, so a torch's 1.5 is mid-wall.</summary>
+        public const float FloorHeight = 1f;
 
-        /// <summary>A tile you could stand on: thin enough that a creature on it reads as
-        /// standing on it.</summary>
-        public const float OpenHeight = 0.06f;
+        /// <summary>The top of a tile whose terrain fills its cell: every solid terrain KMF in
+        /// the install spans heights 1 to 2, a wall one tile above the floor. Public because
+        /// <see cref="TilePicker"/> needs the same number to work out what the pointer is over.</summary>
+        public const float SolidHeight = 2f;
+
+        /// <summary>The top of a tile you could stand on, the floor; for the picker too.</summary>
+        public const float OpenHeight = FloorHeight;
+
+        /// <summary>A floor slab's thickness: thin, so a creature on it reads as standing on it.</summary>
+        private const float SlabThickness = 0.06f;
 
         /// <summary>What a tile marked for digging is tinted towards. DK2 plants flags;
         /// this is a placeholder renderer, so it tints. An interface choice, not a claim
@@ -46,6 +51,9 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private readonly int _worldWidth;
+        private readonly ClassicMeshes _classic;
+        private readonly HashSet<int> _meshObjects = new HashSet<int>();
+        private readonly HashSet<int> _meshCreatures = new HashSet<int>();
 
         private bool _warnedAboutFiles;
 
@@ -64,10 +72,17 @@ namespace DK2.Unity
         /// </summary>
         public bool SawFileBackedAssets { get; private set; }
 
-        public DungeonScene(Transform root, int worldWidth)
+        /// <summary>A point on the ground plane, from DK2's plane coordinates in tiles: X east,
+        /// Y south. The one place the grid's axes meet Unity's.</summary>
+        public static Vector3 Ground(float x, float y, float height = 0f) => new Vector3(x, height, -y);
+
+        /// <param name="classic">Draws install-backed objects with their real meshes; null keeps
+        /// every object a placeholder.</param>
+        public DungeonScene(Transform root, int worldWidth, ClassicMeshes classic = null)
         {
             _root = root;
             _worldWidth = worldWidth;
+            _classic = classic;
         }
 
         public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)
@@ -102,11 +117,14 @@ namespace DK2.Unity
 
         public void CreateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
         {
-            GameObject go = Instantiate(mesh, $"creature {creatureId}");
+            // The idle KMF's first frame, unturned: the pose and the facing wait for step 4.
+            GameObject go = _classic?.TryCreate(mesh, $"creature {creatureId}", _root);
+            if (go != null) _meshCreatures.Add(creatureId);
+            else go = Instantiate(mesh, $"creature {creatureId}");
             if (go == null) return;
 
             _creatures[creatureId] = go;
-            PositionCreature(go, creature, mesh.Look);
+            PositionCreature(go, creatureId, creature, mesh.Look);
         }
 
         public void UpdateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
@@ -117,7 +135,8 @@ namespace DK2.Unity
                 return;
             }
 
-            PositionCreature(go, creature, mesh.Look);
+            PositionCreature(go, creatureId, creature, mesh.Look);
+            if (_meshCreatures.Contains(creatureId)) return;
 
             // A creature carrying gold reads as carrying it. Standing in for the
             // real thing, which is an object an imp holds — and objects are M6.
@@ -130,17 +149,22 @@ namespace DK2.Unity
         {
             if (_creatures.TryGetValue(creatureId, out GameObject go) && go != null)
                 Object.Destroy(go);
+            _meshCreatures.Remove(creatureId);
 
             _creatures.Remove(creatureId);
         }
 
         public void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
         {
-            GameObject go = Instantiate(mesh, $"object {objectId}");
+            // Step 0 of the classic look draws objects from the install; terrain waits for its
+            // piece choice (docs/plans/2026-10-09-classic-look.md).
+            GameObject go = _classic?.TryCreate(mesh, $"object {objectId}", _root);
+            if (go != null) _meshObjects.Add(objectId);
+            else go = Instantiate(mesh, $"object {objectId}");
             if (go == null) return;
 
             _objects[objectId] = go;
-            PositionObject(go, instance, mesh.Look);
+            PositionObject(go, objectId, instance, mesh.Look);
         }
 
         public void UpdateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
@@ -151,7 +175,7 @@ namespace DK2.Unity
                 return;
             }
 
-            PositionObject(go, instance, mesh.Look);
+            PositionObject(go, objectId, instance, mesh.Look);
         }
 
         public void RemoveObject(int objectId)
@@ -160,6 +184,7 @@ namespace DK2.Unity
                 Object.Destroy(go);
 
             _objects.Remove(objectId);
+            _meshObjects.Remove(objectId);
         }
 
         /// <summary>A wall torch: a point light, and its mesh when it has one. How DK2's light
@@ -168,12 +193,18 @@ namespace DK2.Unity
         public void CreateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh)
         {
             // Unity's fake null makes ?? unsafe on its objects, hence the explicit tests.
-            GameObject go = Instantiate(mesh, $"torch {floorTileIndex}");
-            if (go == null) go = new GameObject($"torch {floorTileIndex}");
-            else go.transform.localScale = new Vector3(0.1f, 0.25f, 0.1f); // a placeholder cube is a whole tile
+            GameObject go = _classic?.TryCreate(mesh, $"torch {floorTileIndex}", _root);
+            if (go == null)
+            {
+                go = Instantiate(mesh, $"torch {floorTileIndex}");
+                if (go == null) go = new GameObject($"torch {floorTileIndex}");
+                else go.transform.localScale = new Vector3(0.1f, 0.25f, 0.1f); // a placeholder cube is a whole tile
+            }
             go.transform.SetParent(_root, false);
-            go.transform.localPosition = new Vector3(
-                torch.PosX / (float)Fp32.One, torch.Height / (float)Fp32.One, torch.PosY / (float)Fp32.One);
+            go.transform.localPosition = Ground(
+                torch.PosX / (float)Fp32.One, torch.PosY / (float)Fp32.One, torch.Height / (float)Fp32.One);
+            // Unverified in either frame: the sign and zero of DK2's yaw are unread (ADR-0411,
+            // plan step 2), so this keeps the formula it had before the frame changed.
             go.transform.localRotation = Quaternion.Euler(0f, torch.Yaw * 360f / 2048f, 0f);
             Light light = go.AddComponent<Light>();
             light.type = LightType.Point;
@@ -230,6 +261,8 @@ namespace DK2.Unity
             _furniture.Clear();
             _creatures.Clear();
             _objects.Clear();
+            _meshObjects.Clear();
+            _meshCreatures.Clear();
             _torches.Clear();
         }
 
@@ -249,17 +282,16 @@ namespace DK2.Unity
             // Room furniture stands on the floor rather than replacing it, so it
             // is deliberately smaller than a tile and sits above the ground.
             go.transform.localScale = new Vector3(0.6f, 0.35f, 0.6f);
-            go.transform.position = new Vector3(tile.Position.X + 0.5f, 0.2f, tile.Position.Y + 0.5f);
+            go.transform.position = Ground(tile.Position.X + 0.5f, tile.Position.Y + 0.5f, FloorHeight + 0.2f);
             _furniture[tileIndex] = go;
         }
 
-        /// <summary>Makes an object for a resolved asset. Not implemented:
-        /// loading a file-backed asset. A <see cref="ResolvedAsset.FilePath"/>
-        /// points at converter output (glTF binary and PNG from
-        /// <c>dk2tools convert</c>) and Unity ships no runtime glTF importer, so
-        /// one has to be chosen and added; until then a file resolves to the same
-        /// primitive a placeholder does and <see cref="SawFileBackedAssets"/>
-        /// records that it happened, so the runner can say so on screen.</summary>
+        /// <summary>Makes a placeholder object for a resolved asset. A converter file
+        /// (<see cref="ResolvedAsset.FilePath"/>) is never loaded: ADR-0408 reads the install
+        /// instead, through <see cref="ClassicMeshes"/>, which draws objects so far. Anything else
+        /// file- or install-backed resolves to the same primitive a placeholder does, and
+        /// <see cref="SawFileBackedAssets"/> records that it happened, so the runner can say so on
+        /// screen.</summary>
         private GameObject Instantiate(in ResolvedAsset asset, string name)
         {
             if (asset.Reference.IsEmpty) return null;
@@ -271,8 +303,8 @@ namespace DK2.Unity
                 {
                     _warnedAboutFiles = true;
                     Debug.LogWarning(
-                        $"DK2: '{asset.Reference}' resolved to a file ({asset.FilePath}) but no " +
-                        "loader exists yet — drawing a placeholder. See DungeonScene.Instantiate.");
+                        $"DK2: '{asset.Reference}' resolved to {asset} but nothing draws that kind " +
+                        "yet — drawing a placeholder. See DungeonScene.Instantiate.");
                 }
             }
 
@@ -311,29 +343,35 @@ namespace DK2.Unity
         /// </summary>
         private void Place(GameObject go, int x, int y, bool solid)
         {
-            float height = solid ? SolidHeight : OpenHeight;
+            // A block stands from 0 to its top; a slab's top is the floor.
+            float top = solid ? SolidHeight : OpenHeight;
+            float thickness = solid ? SolidHeight : SlabThickness;
 
-            go.transform.localScale = new Vector3(1f, height, 1f);
-
-            // Sit on the ground plane rather than centred on it, so a slab is
-            // flush and a block's base is level with it.
-            go.transform.position = new Vector3(x + 0.5f, height / 2f, y + 0.5f);
+            go.transform.localScale = new Vector3(1f, thickness, 1f);
+            go.transform.position = Ground(x + 0.5f, y + 0.5f, top - thickness / 2f);
         }
 
         private static PlaceholderLook LookOf(in ResolvedAsset asset) => asset.IsPlaceholder
             ? asset.Look
             : PlaceholderProvider.LookFor(asset.Reference);
 
-        private void PositionCreature(GameObject go, in CreatureView creature, in PlaceholderLook look)
+        private void PositionCreature(GameObject go, int creatureId, in CreatureView creature, in PlaceholderLook look)
         {
+            if (_meshCreatures.Contains(creatureId))
+            {
+                // A real mesh is modelled in tiles about its feet.
+                go.transform.position = Ground(creature.PosX / (float)Fp32.One, creature.PosY / (float)Fp32.One, FloorHeight);
+                return;
+            }
+
             float height = look.HeightPermille / 1000f;
             if (height <= 0f) height = 0.5f;
 
             go.transform.localScale = new Vector3(0.4f, height, 0.4f);
-            go.transform.position = new Vector3(
+            go.transform.position = Ground(
                 creature.PosX / (float)Fp32.One,
-                height / 2f,
-                creature.PosY / (float)Fp32.One);
+                creature.PosY / (float)Fp32.One,
+                FloorHeight + height / 2f);
         }
 
         /// <summary>
@@ -346,15 +384,21 @@ namespace DK2.Unity
         /// furniture on a floor rather than as another creature standing on
         /// it.</para>
         /// </summary>
-        private void PositionObject(GameObject go, in ObjectView instance, in PlaceholderLook look)
+        private void PositionObject(GameObject go, int objectId, in ObjectView instance, in PlaceholderLook look)
         {
+            if (_meshObjects.Contains(objectId))
+            {
+                // A real mesh is modelled in tiles about its own origin on the floor.
+                go.transform.position = Ground(instance.Tile.X + 0.5f, instance.Tile.Y + 0.5f, FloorHeight);
+                return;
+            }
+
             float height = look.HeightPermille / 1000f;
             if (height <= 0f) height = 0.25f;
             height *= 0.5f;
 
             go.transform.localScale = new Vector3(0.5f, height, 0.5f);
-            go.transform.position = new Vector3(
-                instance.Tile.X + 0.5f, height / 2f, instance.Tile.Y + 0.5f);
+            go.transform.position = Ground(instance.Tile.X + 0.5f, instance.Tile.Y + 0.5f, FloorHeight + height / 2f);
         }
 
         private static Color ColourOf(in PlaceholderLook look) =>

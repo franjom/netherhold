@@ -35,6 +35,7 @@ $projects = @(
     'DK2.Core',
     'DK2.Data.Model',
     'DK2.Data',
+    'DK2.Art',
     'DK2.Pathfinding',
     'DK2.Simulation',
     'DK2.Assets',

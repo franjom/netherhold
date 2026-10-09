@@ -12,8 +12,8 @@ unity/DK2.Unity            the only assembly that references UnityEngine
         │                  (loads the netstandard2.1 DLLs below)
 DK2.Tools / DK2.Harness / DK2.Convert       net10.0 executables and tooling
         │
-        ├──────────────► DK2.Presentation ──► DK2.Assets
-        │                       │                  │
+        ├──────────────► DK2.Presentation ──► DK2.Assets ◄── DK2.Art (KMF, textures)
+        │                       │                  │            │
 DK2.AI ──────► DK2.Simulation ──┘                  │
         │         │                                │
         │         └──► DK2.Pathfinding             │
@@ -23,7 +23,7 @@ DK2.AI ──────► DK2.Simulation ──┘                  │
 ```
 
 `DK2.Pathfinding` references only `DK2.Core`; `DK2.Data` never references
-`DK2.Simulation`. `DK2.Convert` references `DK2.Assets` and `DK2.Data`; the
+`DK2.Simulation`. `DK2.Convert` references `DK2.Art`, `DK2.Assets` and `DK2.Data`; the
 `.csproj` references are the authority, not this sketch.
 
 | Project | Holds |
@@ -36,6 +36,7 @@ DK2.AI ──────► DK2.Simulation ──┘                  │
 | `DK2.Assets` | logical asset keys and their resolution (ADR-0034) |
 | `DK2.Presentation` | world → drawable, renderer-independent (ADR-0035) |
 | `DK2.AI` | the computer keeper as an input source (`docs/KEEPER_AI.md` §12) |
+| `DK2.Art` | readers for the player's original art: KMF models, engine textures, the art catalogue (ADR-0408) |
 | `DK2.Convert` | original art → glTF/GLB and PNG (`dk2tools convert`) |
 | `DK2.Harness` | headless scenario runner |
 | `DK2.Tools` | the `dk2tools` CLI: `status`, `docs`, `kb`, `coverage`, `convert`, `replay`, and the data inspectors |
@@ -44,7 +45,7 @@ DK2.AI ──────► DK2.Simulation ──┘                  │
 `docs/HANDOFF.md` §"Where to work" says which project a change belongs in.
 
 - **These assemblies target netstandard2.1** so Unity can load them: `DK2.Core`,
-  `DK2.Data.Model`, `DK2.Data`, `DK2.Pathfinding`, `DK2.Simulation`,
+  `DK2.Data.Model`, `DK2.Data`, `DK2.Art`, `DK2.Pathfinding`, `DK2.Simulation`,
   `DK2.Assets`, `DK2.Presentation`, `DK2.AI`. `DK2.Convert`, the tools, the
   harness and the tests target net10.0 (`Directory.Build.props`).
 - The framework comes from **`src/Shared/UnityBound.props`, imported from inside
@@ -229,8 +230,9 @@ the only type that turns a key into a path.
 
 `DK2.Convert` (`dk2tools convert`) writes KMF → glTF/GLB and engine textures →
 PNG, and every key it produces round-trips through `FileAssetProvider`. **No
-renderer loads its output yet**: Unity ships no runtime glTF importer and
-`DungeonScene` has no branch for it.
+renderer loads original art yet.** ADR-0408 decides the classic look reads the
+install directly through `DK2.Art`, not the converter's output
+(`docs/plans/2026-10-09-classic-look.md`).
 
 **Modern assets** are one more answer to the same keys, from the replacement
 tier; the converted tier stays the classic look. What a modern asset may and may

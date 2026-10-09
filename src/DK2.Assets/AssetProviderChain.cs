@@ -35,16 +35,20 @@ public sealed class AssetProviderChain : IAssetProvider
     }
 
     /// <summary>
-    /// The standard chain: an optional replacement pack, an optional converted
-    /// directory, then the placeholder. Passing null for both is the "no assets
-    /// at all" configuration, and it is a supported one — see
-    /// <see cref="PlaceholderProvider"/>.
+    /// The standard chain: an optional replacement pack, an optional provider over the
+    /// player's install, an optional converted directory, then the placeholder. The install and
+    /// the converted directory are both the converted tier (ADR-0408), the install first because
+    /// the directory is a copy of it. Passing nothing is the "no assets at all" configuration,
+    /// and it is a supported one — see <see cref="PlaceholderProvider"/>.
     /// </summary>
-    public static AssetProviderChain Standard(string? replacementRoot = null, string? convertedRoot = null)
+    public static AssetProviderChain Standard(string? replacementRoot = null, string? convertedRoot = null,
+        IAssetProvider? install = null)
     {
-        var providers = new List<IAssetProvider>(3);
+        var providers = new List<IAssetProvider>(4);
         if (!string.IsNullOrWhiteSpace(replacementRoot))
             providers.Add(FileAssetProvider.Replacement(replacementRoot!));
+        if (install is not null)
+            providers.Add(install);
         if (!string.IsNullOrWhiteSpace(convertedRoot))
             providers.Add(FileAssetProvider.Converted(convertedRoot!));
         providers.Add(PlaceholderProvider.Instance);

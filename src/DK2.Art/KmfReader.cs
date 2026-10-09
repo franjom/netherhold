@@ -6,14 +6,14 @@ using System.Buffers.Binary;
 using System.Numerics;
 using System.Text;
 
-namespace DK2.Convert.Kmf;
+namespace DK2.Art.Kmf;
 
 /// <summary>Reads static KMF meshes and every decodable frame of animated KMFs.</summary>
 public static class KmfReader
 {
     public static KmfModel Read(Stream stream)
     {
-        ArgumentNullException.ThrowIfNull(stream);
+        if (stream is null) throw new ArgumentNullException(nameof(stream));
         using var copy = new MemoryStream();
         stream.CopyTo(copy);
         return Read(copy.ToArray());

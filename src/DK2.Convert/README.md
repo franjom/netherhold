@@ -4,10 +4,12 @@ Standalone conversion library for turning assets from a user's own Dungeon Keepe
 installation into the open formats consumed by `FileAssetProvider` (`src/DK2.Assets`).
 Original and converted assets are proprietary and must never be committed.
 
-Types: `KmfReader` → `KmfModel`/`KmfMesh`/`KmfAnimation`/`KmfMaterial`/`KmfPrimitive`;
-`GlbWriter`; `EngineTextureArchive` + `Dk2TextureDecoder` + `PngWriter` →
-`RgbaImage`; `TextureExtractor`; `SdtArchive`/`SdtEntry`/`SdtCodec`; `Dk2ArtCatalogue`;
-`AssetConverter` → `AssetConversionResult`.
+Types: `GlbWriter`; `PngWriter` and `RgbaImagePng.ToPng`; `TextureExtractor`;
+`SdtArchive`/`SdtEntry`/`SdtCodec`; `AssetConverter` → `AssetConversionResult`. The readers they
+write from live in `src/DK2.Art` (ADR-0408), which Unity also loads: `KmfReader` →
+`KmfModel`/`KmfMesh`/`KmfAnimation`/`KmfMaterial`/`KmfPrimitive`; `EngineTextureArchive` +
+`Dk2TextureDecoder` → `RgbaImage`; `IMeshSource`/`ITextureSource`/`WadMeshSource`;
+`Dk2ArtCatalogue`. The format notes below describe those readers.
 
 CLI surface, all in `dk2tools`: `convert --out <dir>` runs the catalogue conversion
 below; `sdt list <file.sdt>` and `sdt extract <file.sdt> [--out <dir>]` drive
