@@ -9069,8 +9069,9 @@ system. The converted originals stay the classic look (Goal 11), unchanged.
   possible equipment variant;
 - an optional **left-handed** variant (ADR-0399).
 
-The concept's egg-shaped belly plate is rejected as an AI interpretation; the chest carries a
-recognisable **skull ornament**, modelled from the original references (`impfrnt`). Nose and ear
+The concepts' egg-shaped **belly plate** is part of the harness. The braces end under its upper
+rim and the belt crosses its lower part, as in `portrait.png`. It replaces the planned skull
+ornament (owner, 2026-10-08). Nose and ear
 piercings are optional separate accessories; the base creature has no jewellery. Inputs, hashes,
 regions and the intended split into parts: `art/manifests/creature/imp.yaml`.
 
@@ -9084,7 +9085,9 @@ for the listed departures. Blockout state and open details: `docs/plans/2026-10-
 **History.** First accepted on 2026-10-07 with the DK2 portrait as the appearance source and the
 shipped mesh for proportions, pick and sack. The same day the owner approved the AI concept
 renders made from that portrait as the target instead. With them came the smaller sack, the
-left-handed variant, the rejection of the belly plate, and piercings as accessories.
+left-handed variant, the rejection of the belly plate, and piercings as accessories. On
+2026-10-08 the owner asked for the front to match the portrait. The belly plate was restored and
+replaced the planned chest skull ornament, which had never been built.
 
 ## ADR-0399 — The Imp is right-handed; a left-handed variant shares its mesh and rig
 **Date:** 2026-10-07 · **Status:** accepted (owner) · Presentation only · Refines ADR-0398
