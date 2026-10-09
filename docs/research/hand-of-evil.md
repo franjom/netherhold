@@ -34,6 +34,7 @@ about the binary in our own words**; no decompiler output enters this repository
 | The slap's work bonus lasts **25 game seconds** | **CONFIRMED** (owner, 2026-09-06) — *"timeout for efficiency to return back to 80% after slap is 25s, not 60s"*. Q159 closed |
 | **The aimed bonus is a task kind, not a flag** — and it lasts as long as that kind of work does | **STRONGLY INFERRED** (2026-09-06; two writers in the whole binary) — §6, ADR-0069 |
 | **The drop looks three tiles** | **CONFIRMED** (owner, 2026-09-06) — and DK2 reaches three from a nominal two by an off-by-one in its own loop. Q162 closed |
+| **There are no tools: the cursor is the hand, and every action is a mouse click** | **CONFIRMED** (owner, 2026-10-09): *"in DK2 there is no "tool", it is my "hand of evil", or to be precise, my mouse cursor, and [only] thing I do is click with mouse"*. That tagging and untagging rock are therefore both clicks is STRONGLY INFERRED from it; how a click chooses is UNREAD (Q577). `PlayerToolMode` in `DK2.Presentation` is the Unity runner's stand-in, not DK2's |
 | Creature definition flag `0x4000` is **`IsHorny`**, and slapping him runs a different routine | **STRONGLY INFERRED** — Q158 |
 
 ---

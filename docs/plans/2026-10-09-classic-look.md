@@ -60,7 +60,9 @@ above the floor and a torch's 1.5 is mid-wall (STRONGLY INFERRED: the KMF's heig
 share the floor's frame); the owner judged an imp beside a wall against DK2's Level 1 and found
 the proportions right.
 Found on the way: the gold pile is a textured card whose black needs its material's
-transparency (KMF flags, UNKNOWN); what DK2 draws below the floor (0 to 1) is step 1's question;
+transparency (KMF flags, UNKNOWN); a wall's part below the floor (0 to 1) is never seen in DK2
+(owner, 2026-10-09), so step 1 need not draw it (STRONGLY INFERRED from that view; the engine
+side is unread);
 a terrain's side piece faces out of its block, so it is culled from inside.
 
 ## Step 1: plain terrain
