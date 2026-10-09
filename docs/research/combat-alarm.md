@@ -83,8 +83,9 @@ at `+0xB1`; **run speed**; the definition's `+0x6E3` sound. Return 1.
    band, creature `+0x28A` of Q269: `Anger_Add` `0x00487030` writes it through the
    state's anger block at `+0x20`, `0x00478BA8`; the state object is creature `+0x24E`,
    `0x00520AE2`); its
-   state's group tag is 3 (the worker jobs) or 7 (idle, eating, joining, leaving,
-   stunned, burning); or it is already en route to 254. Otherwise it is routed to
+   state's group tag (record `+0x16`, `0x00475813`) is 7 (lair, sleep, eating, payday) or
+   3 (held, slapped, dying and others; `creature-state-table.md`); or it is already en
+   route to 254. Otherwise it is routed to
    the threat's position with `0x00471890(&pos, 254, flags)`, the raiser's rule (`0x0047583F`), given **the
    raiser's run speed** (`def+0x5B8` of the Scout, not its own — a slip), its
    `+0x2CC` zeroed, and the deficit reduced by its level-scaled `Threat`.
@@ -107,6 +108,11 @@ each tick and **returns 1 for thirty ticks**, then sets the walk speed and retur
 every tenth tick and the ordinary acquisition takes over.
 
 ## 5. Built and not built (ADR-0166)
+
+**Group tags** (2026-10-09): §3 called group 3 "the worker jobs" and 7 "idle, eating,
+joining, leaving, stunned, burning"; those are categories 3 and 7. The test reads the group
+tag, and worker jobs are group 8. Ours keeps the room-job match, which no group-3 or group-7
+state passes.
 
 **On state ids** (ADR-0208): the raiser enters 199 unless already in the combat group and
 walks in state 6 resuming 251; arriving, it sets 1 and 252, which ends at once here; a
@@ -244,6 +250,36 @@ id.
 **Confidence: CONFIRMED (binary and shipped data).** The loader fixes both file
 offsets, all readers use the result as a creature type id, and all 13 unique
 records map exactly to their ordinary archetypes.
+
+## 7. The heart's dispatch (`0x004D9690`, 2026-10-09)
+
+The Dungeon Heart's room update ends in a third sender to 254 (`0x004D96F0`-`0x004D9A1A`). When
+`(turn + room+4) & 3` is zero, unless the room is ruined: over the players in list order that
+`Player_IsEnemy` (`0x004BF390`) names enemies of the heart's owner, and their creatures in list
+order, the first whose distance² to the heart's position word (`+0x27`, tile centre) is below
+`DungeonHeartReportingDistanceTiles`² (`0x006F2964`, 4) and whose `IsAttackable` bit is set gives
+the threat's position. Then every creature of the owner within
+`DungeonHeartCreatureGatheringDistanceTiles`² (`0x006F2973`, 7) of the heart is sent to it, unless
+Horny (`def+0x686` bit 14), under Call to Arms (`0x004888C0`), in the Combat category, refused by
+`0x0045A6D0(0)`, at or below a quarter of its level-scaled health, in group tag 3 (`0x004D9976`),
+dropped to a job (`+0x2BC`) or already walking to 254 (state 6, resume `0xFE`). A route
+(`Creature_CanRouteTo`, `0x80` for an Imp) is required; a willing torturee is kicked to 135 first;
+`Travel_RouteToPoint(&pos, 254, flags)`, its own run speed (`def+0x5B8`), `+0x2CC` zeroed. No worker
+is refused and no deficit is counted: every eligible creature goes.
+
+**Seen in DK2** (Level 11A, packet `m12l11a`, seeds 1, 3, 5, 7 and 10): only Morgana's heart
+sends, always on capture rows 1 mod 4, game turns 0 mod 4 (a row is the turn plus one, ADR-0119):
+her heart's room id (`+0x04`) is 1100 in every seed. The other hearts are 1097 (Drako), 1101
+(Belial), 1105 (player 3) and 1107 (Raksha). In seed 5 Drako's imp digs (64,38) through at 63 from
+(64,39), about four tiles from her heart; at 65 her three imps nearby switch to state 6 for
+(64,39) resuming 254 and fight it in the hole in 199 until about 120. Drako has a creature in
+the Combat category on 348-403 of the first 500 ticks in the four seeds whose wall falls before
+100 (3, 5, 7, 10), and on 101 in seed 1.
+
+**Built** (ADR-0407): `HeartDefenceSystem`, after the store sweep. Deviates: ours has no room ids,
+so every heart takes Morgana's phase (1100); the ruin gate reads the player's heart, not the
+room's `+0x9A`; the torturee's kick and `+0x2CC` are not modelled; the job is let go as the
+alarm's responders' is (ours; DK2's `0x00471890` is not read for it).
 
 ## Confidence
 

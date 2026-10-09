@@ -52,6 +52,7 @@ public class SimulationSystemsOrderTests
             "TileWorkSystem",
             "BridgeBurnSystem",
             "StoreSweepSystem",
+            "HeartDefenceSystem",
             "ManaRemovalSystem",
             "ManaSystem",
             "ImpSupplySystem",

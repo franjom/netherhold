@@ -9314,3 +9314,35 @@ holder passes through its return state before it idles.
 unchanged; Level 2 2/20 and 2/20 (seeds 3 and 13 before, 10 and 13 after); Level 3 seed 01 won at
 3676 and 3584 (DK2 3683). Level 11A seeds 1-10 unchanged but one heart strike; Level 17 seeds 1-10
 build the same Prisons at the same ticks, later rooms shift.
+
+## ADR-0407 — A Dungeon Heart sends its owner's creatures to an intruder
+**Date:** 2026-10-09 · **Status:** accepted · Research: `combat-alarm.md` §7; Q563, Q574
+
+**Context.** In DK2's Level 11A seeds whose wall at (64,38) falls before 100, Drako buys two or
+three imps and then spends 5,000 mana every 70 ticks or so; ours bought five and seldom cast.
+DK2's Drako has a creature fighting on 348-403 of the first 500 ticks there, because the moment
+the wall opens Morgana's nearby imps walk to Drako's digger, resuming 254, and fight it in the
+hole; the fight flag puts the keeper's battle step in place of imp buying. Ours had no such
+walk, so the imps parted. The sender is the tail of the heart's room update `0x004D9690`: every
+fourth turn, an attackable enemy within `DungeonHeartReportingDistanceTiles` (4) of the heart
+sends every owner's creature within `DungeonHeartCreatureGatheringDistanceTiles` (7) that may go,
+workers included, running to it. Neither variable was read.
+
+**Decision.** `HeartDefenceSystem`, after the store sweep, does that dispatch with DK2's
+refusals (Horny, Call to Arms, Combat category, `0x0045A6D0`, a quarter of health, group tag 3,
+a dropped job, already walking to 254), its Imp route flag and its run, into the alarm's state
+254 (ADR-0166). A table without the two variables has no dispatch. Deviates: DK2's phase is the
+heart room's id, `(turn + room+4) & 3`; ours has none and gives every heart Morgana's, 1100 (the
+other Level 11A hearts are 1097, 1101, 1105 and 1107); the ruin gate is the player's, not the
+room's; a willing torturee is not kicked to 135 first.
+
+**Consequences.** A breached wall within four tiles of a heart is defended by everyone near it.
+`level11a_drako_attack.yaml` moves to seed 7, whose wall falls at 369 (DK2's idle capture 387)
+and whose call stays on Morgana; seed 12345 now calls west, after Belial's tunnel opens (Q574).
+
+**Measured** (hash 206) against `9adc142a`, both sides run. Level 11A seeds 1-10: Morgana first in
+8 (6 before: seeds 2, 3, 8 and 9 turned to her, 4 and 5 west); the early-fall seeds 2-4 buy 3-4
+imps before 700 (5, 5, 3) and Heal 3-5 times (0-2); in seed 7 11 imps engage in the fight, 5 of
+Drako's and 6 of Morgana's (3 and 3; DK2's capture 6 of Drako's and 5 of hers). Level 1 20/20 both, median win 1792 both;
+Level 2 4/20 (seeds 10, 13, 14, 17; before 10 and 13); Level 3 seed 01 won at 3660 (3584; DK2
+3683); Level 17 seeds 1-10 unchanged.

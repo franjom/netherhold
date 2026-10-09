@@ -109,6 +109,7 @@ public static class SimulationSystems
         new TileWorkSystem(),
         new BridgeBurnSystem(),
         new StoreSweepSystem(), // a store takes in loose gold on its tiles every 16th turn
+        new HeartDefenceSystem(), // the heart update's tail: its owner's creatures run to an intruder (0x004D9690)
     ];
 
     /// <summary>DK2's player frame: mana, imps, research, portals and room health, after every

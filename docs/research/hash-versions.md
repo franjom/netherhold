@@ -15,6 +15,7 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**206** — `0x817A546857D0D020`. A Dungeon Heart's update (`0x004D9690`) sends its owner's creatures, workers included, running to an attackable enemy within `DungeonHeartReportingDistanceTiles` of it every fourth turn; no new field. The pinned world carries neither radius, so the value moved on composition. ADR-0407.
 **205** — `0xA3E9B6DDE3F06795`. A room's place-holders are kicked by a neighbouring tile's terrain change (`0x004E44E0`, the latest claimant only), a new owner (slot `+0x0D`) and the room being freed (slot `+0x05`), and a Torture Chamber's victims through 136; new fields `TileState.RoomKickedTick`, `CreatureState.HeldPlaceSerial` and `WorldState.NextPlaceClaim`. ADR-0406.
 **204** — `0x5C3A1B89341D720F`. The keeper's slap step reads a worker's last task kind (`+0x98`) rather than a held reinforce target, and a repair records kind 16, not 6 (`0x0046AEA0`); no new field. ADR-0405.
 **203** — `0xAEBBF589AE314BD2`. The slap's state moves 67, 77 and 120 and their reaction (`slap-states.md`): a slap whose move is refused does nothing more; the reaction plays action 19 and goes back to its room's state; no new field. ADR-0401. Built on 202; 201 was this work's number while it waited on a side branch and is unused.

@@ -321,6 +321,19 @@ spends 5,000 at a time about every 70 ticks (seed 10: 195, 263, 323, 381), Heal 
 (Q563); in the other six it buys five imps as ours does (seeds 2 and 8 then spend 5,000s too). Ours
 buys five imps after an early fall and casts Heal only from about 720 (seed 2).
 
+**The heart's defenders (2026-10-09, ADR-0407).** Why DK2 spends: in its early-fall seeds Drako has
+a creature fighting on 348-403 of the first 500 ticks (101 in seed 1), so the battle step runs in
+place of imp buying. Within two ticks of the wall opening Morgana's imps near it walk to Drako's
+digger resuming 254 and fight it in the hole: her heart's update `0x004D9690` sends every creature
+within seven tiles of the heart to an enemy within four (`combat-alarm.md` §7). Built, ours over
+seeds 1-10: Morgana first in 8 (6 before; seeds 2, 3, 8 and 9 turned to her, 4 and 5 turned
+west); the early-fall seeds 2-4 buy three or four imps before 700 and Heal three to five times.
+Seed 7 has 11 imps engaging from 360 to 640, 5 of Drako's and 6 of Morgana's (6 before; DK2's
+idle capture: 6 of Drako's, 5 of hers). Seeds 4 and 5 call (416, 772) after Belial's tunnel opens and turn west.
+DK2 calls after its own bridge toward Belial in most seeds (seed 2: bridge 276, call 584; seed 5:
+356, 939) and still sends the army to Morgana, so an open route west does not decide DK2's front
+(Q574).
+
 ## M12 acceptance against the two captures (2026-10-06)
 
 The plan's bar: the keeper digs, expands, builds to a need, recruits, defends and attacks
@@ -335,5 +348,5 @@ record's gold. Ticks are DK2's (ours in brackets).
 | builds to a need | Level 17 Prison; Level 11A Morgana's Lair | Harkan's Prison first, on the same 25 tiles in 6 of ten seeds (the site's origin is a random room), laid row by row from (16,22); paths dug before rectangles: Morgana's path 8, 106 (7, 100-104), Lair 202 (111-196) (ADR-0394, ADR-0395) | Prison 855 (557-868 on that site) |
 | recruits | Level 11A imps | five imps at 1,500-7,500 mana, ticks 23-307 (20-292), in the Level 11A section | — |
 | trains | Level 17 Training drops | the knights lifted at 6, 7, 11 (5, 6, 7) onto the same two cells, refused, lifted again | each knight's first re-lift 45-73 ticks after its refusal, later ones 4-6; DK2's every one 4 (Q509) |
-| defends | Level 11A, Morgana | repairs the wall from 101, which falls at 387 (seeds 1-10: 72-88 where her slapped reinforcer left it rock, else 241-390); imps fight in the hole; both lift a wounded imp out | 11 imps fight there in DK2, 3 a side in ours (Q563) |
-| attacks | Level 11A, Drako | Morgana first, then Belial; same bridges; the call two tiles off her heart in a drawn diagonal; the army crosses after its call | call 700 on (64,38) (seeds 1-10: Morgana first in 6, calls 357-601, on (64,38) in 3; the rest turn west, Q574); Morgana falls 1,378 (689-1,098) (Q563) |
+| defends | Level 11A, Morgana | repairs the wall from 101, which falls at 387 (seeds 1-10: 72-88 where her slapped reinforcer left it rock, else 240-404); her heart sends her imps to fight in the hole (ADR-0407): 11 engage in seed 7, 5 of Drako's and 6 of hers (DK2's capture: 6 of Drako's, 5 of hers); both lift a wounded imp out | the hole is claimed at 420 in seed 7 (638) (Q563) |
+| attacks | Level 11A, Drako | Morgana first, then Belial; same bridges; the call two tiles off her heart in a drawn diagonal | call 700 on (64,38) (seeds 1-10: Morgana first in 8, calls 192-741, on (64,38) in 2; seeds 4 and 5 turn west, Q574); Morgana falls 1,378 (666-1,028) (Q563) |

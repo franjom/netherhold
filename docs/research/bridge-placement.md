@@ -92,10 +92,10 @@ both bridges at 3. Levels 10, 12, 13 and 18 give both at 4, Level 7's Gormagon w
 none; 4 is not 3, so those keepers cannot bridge at the start. Level 11A's triggers change no
 bridge availability (`kwd triggers`).
 
-**Ours on Level 11A, not original evidence** (`level11a_drako_attack.yaml`, seed 12345): Drako tags
-(64,41) at tick 7, lays Stone Bridge at (64,40) on tick 47 and (64,39) on 48, tags (64,38) beyond
-the lava on 49, casts Call to Arms at (64,34) beside Morgana's heart and its Mistress engages that
-heart. Before the bridge branch the same run stopped at the lava and cast no call.
+**Ours on Level 11A, not original evidence** (`level11a_drako_attack.yaml`, seed 7): Drako tags
+(64,41) at tick 6, lays Stone Bridge at (64,40) on tick 62 and (64,39) on 63 (DK2 66, 70), tags
+(64,38) beyond the lava on 64, casts Call to Arms at (64,34) beside Morgana's heart and its
+creatures engage that heart. Before the bridge branch the same run stopped at the lava and cast no call.
 
 ## 6. Ours, and where it differs
 
