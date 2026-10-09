@@ -121,14 +121,13 @@ Save persistence is **STRONGLY INFERRED**: `0x004B8D40` writes and `0x004B9250`
 reads `0x1028` bytes beginning at player `+0x76`, covering every suppression
 field. Queue expiration therefore does not reset these values on a save/load.
 
-Initialization remains **UNKNOWN**. The constructor `0x004B8450` and initializer
-`0x004B8640` do not explicitly clear these fields. `0x004C1E20` allocates the
-seven-player array through `0x00634E80`; its allocator chain ends at
-`0x00637C20`, which can call `HeapAlloc` with flags zero. No explicit clearing
-of the allocation was found on this path. Direct-offset and interior-base
-instruction sweeps found no reset, but do not exclude every indirect writer.
-Do not turn unspecified initial contents into a random rule, or infer lifelong
-type-41/room-14 suppression solely from the direct writer.
+**Initialization: none in the code (re-read 2026-10-09, Q544).** Neither the constructor
+`0x004B8450`, its sub-objects, nor `0x004B8640` writes `+0xF4E`, and `Players_Create` `0x004C1E20`,
+called at each level load, takes the seven records from an uncleared `HeapAlloc`. Its one writer is
+`0x004C5650` (1, at `0x004C5693`), its one reader the gate (`0x004C5575`); only a saved-game load
+refills it (`0x004B9250`). So 41/99 Graveyard is admitted at most once per player per level, and a
+save keeps the flag. The first value is the heap's: typically 0 (HYPOTHESIS; no code decides it).
+Ours should start it at 0 as a modelling choice, and not draw a random value (record `0x004C5650`).
 
 ## 2. Producers and payloads
 
@@ -251,8 +250,11 @@ Torture's place is two creatures' units (one unit free is silent) and its missin
 room is 99 when creature type `+0x36F` is 4, the Mistress, and its owner `+0x28` is
 the searching player (ours always searches for the owner). A Casino with a lever
 (`+0x53`) is a candidate without a place, and its 43 wants both; with player
-`+0xF4A` set it reads only rooms with `+0x41` (both unread). Workshop's 43/42/44
-also need player byte `+0xA1C`. Row 44 is `0xA000` with subtable `0x006A08E0`:
+`+0xF4A` set it reads only rooms with `+0x41`: the keeper's count of Casinos with a jackpot party
+on and the room's party flag (`casino.md`, the party). Workshop's 43/42/44
+also need player byte `+0xA1C`, the count of the manufacture queue at player `+0x219`
+(`state-category-hooks.md` §3.4 gives its layout; enqueue `0x005066E0`). So a Workshop asks for
+itself only while something is ordered. Ours keeps the count as `PlayerState.ManufactureQueue.Count`. Row 44 is `0xA000` with subtable `0x006A08E0`:
 types 1, 2 and 4 at 120 s, 6, 7 and 9–16 at 240 s, a terminator with a string.
 `0x004D8510` is the spectator finder (`combat-pit-spectators.md`): with a Pit and a
 fight on it posts 43/42/44, never 41. The shared capacity predicate is in
@@ -269,7 +271,11 @@ without a bed request Lair. An existing bed bypasses that Lair request branch.
 These senders have no pending-build/sale check or four-second room timer.
 The capacity search `0x004C6510` uses Prison's `+0x4B` limit rather than
 generic capacity. The routed search `0x004C6610` additionally requires Prison
-`+0x59` nonzero; that field's meaning is outside this sender audit.
+`+0x59` nonzero: the door's `Activation` (`jail-break.md` §2, read 2026-10-09 for Q542). The Prison's
+after-tile-change slot `0x004E2B30` sets it when the room is one tile (`+0xA7` = 1), so a hand-built
+Prison has it on from its first tile; the owner's door arm `0x004E29E0` also sets it, the toggle
+`0x004E3680` is the only clear in play, and a restore (`0x004ED440`) copies a saved word. Ours starts
+a Prison with it off. Whether a map-placed Prison passes through one tile is unread.
 The foreign scan first prioritizes the keeper's imprisonment-mask bit, then
 repeats without that bit test after the own-creature rescue scan. Other rescue
 eligibility and task-reservation effects belong to the worker system.

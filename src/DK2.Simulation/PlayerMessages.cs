@@ -185,7 +185,7 @@ public sealed class PlayerMessageQueue
     public PlayerMessage? Post(WorldState world, byte recipient, PlayerMessageKind kind, int data1, int data2)
     {
         // 41 for a Graveyard is admitted only through the player's +0xF4E suppression word
-        // (0x004C5530), whose initial value is UNKNOWN (computer-keeper-messages.md section 1).
+        // (0x004C5530): set once admitted, never cleared or initialised by DK2, so once a level (Q544).
         if (kind == PlayerMessageKind.RoomNeeded && data1 == (int)RoomTypeId.Graveyard)
             throw new NotSupportedException("Message 41 for a Graveyard reads the unmodelled +0xF4E suppression.");
         uint timeout = kind switch

@@ -148,7 +148,7 @@ public static class RoomNeedRules
     /// 43; else a reached full room past <see cref="FullRoomGraceSeconds"/> posts 42 when its
     /// <c>+0xA3</c> holds (<see cref="IsEquipped"/>), 44 naming it when not.</summary>
     /// <remarks>Built only to 41 for the Library (storage and research-point gates read, their state
-    /// not kept here) and the Workshop (player byte <c>+0xA1C</c> unread); the Casino's party branch
+    /// not kept here) and the Workshop (its branches need player byte <c>+0xA1C</c>, the manufacture queue's count, Q543); the Casino's party branch
     /// (player <c>+0xF4A</c>) chooses a room (ADR-0396), but its messages here are the ordinary branch's. The Mistress posts 99 for a missing chamber, which ours
     /// does not carry. 44 names the last flagged room in our room order, not DK2's room list.</remarks>
     public static PlayerMessage? NoJobRoomFor(
