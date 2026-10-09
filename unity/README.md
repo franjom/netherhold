@@ -65,8 +65,10 @@ installed the editor. Pass `-p:UnityManagedDir=...` if the editor is not in
   round-trips every key it produces through `FileAssetProvider`. The missing half is
   the consumer — `DungeonScene.Instantiate` has no glTF or PNG branch, so a
   file-backed asset draws as the same primitive a placeholder does and logs a warning
-  once. That method is where the loader goes; it needs a runtime glTF importer (Unity
-  has none built in) and a decision about which package supplies it.
+  once. That method is where the loader goes. ADR-0408 decides how: no glTF importer;
+  `KmfReader` and the texture decoder become Unity-loadable and read the player's
+  install directly, and the project moves to URP. The steps are in
+  `docs/plans/2026-10-09-classic-look.md`.
 - **It runs at DK2's rate, and does not smooth between ticks.** `DungeonRunner.Update`
   accrues `Time.deltaTime × SimulationTiming.TicksPerSecond × speed` and ticks on
   whole ticks, so at `speed` 1 the wall clock is the game's (Q1, ADR-0089). What is

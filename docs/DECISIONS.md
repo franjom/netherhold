@@ -9349,3 +9349,52 @@ imps before 700 (5, 5, 3) and Heal 3-5 times (0-2); in seed 7 11 imps engage in 
 Drako's and 6 of Morgana's (3 and 3; DK2's capture 6 of Drako's and 5 of hers). Level 1 20/20 both, median win 1792 both;
 Level 2 4/20 (seeds 10, 13, 14, 17; before 10 and 13); Level 3 seed 01 won at 3660 (3584; DK2
 3683); Level 17 seeds 1-10 unchanged.
+
+## ADR-0408 — The classic look is read from the player's install, and both looks render through URP
+**Date:** 2026-10-09 · **Status:** accepted (owner) · Presentation only · Refines ADR-0034, ADR-0242 · Plan: `docs/plans/2026-10-09-classic-look.md`
+
+**Context.** `GOAL_ALIGNMENT.md` gap 5: the Unity scene draws boxes. `DK2.Convert` decodes every KMF
+and engine texture and writes GLB and PNG, but `DungeonScene.Instantiate` has no loader, Unity
+ships no runtime glTF importer, and `DK2.Convert` builds for net10.0 only, so Unity cannot call it.
+`ASSET_PIPELINE.md` §11 left two owner decisions open: the render pipeline, and how Unity receives
+assets.
+
+**Decision.**
+1. **The classic look is read from the player's own install at run time.** `KmfReader`, the
+   engine-texture decoder and what they need build for netstandard2.1 (`UnityBound.props`), as
+   `DK2.Convert` or as a reader assembly split from its writers, and join `sync-assemblies.ps1`.
+   They decode into engine-neutral mesh and image data; only the Unity adapter makes `Mesh`,
+   `Texture2D` and materials. No glTF package is added and a player runs no conversion step.
+2. **ADR-0034's converted tier may resolve a key to an entry in the install**, not only to a file
+   under a converter's output. The chain order `replacement → converted → placeholder` and the
+   total placeholder are unchanged. `GlbWriter` and `dk2tools convert` stay, for the asset
+   workstation and the replacement tier (ADR-0242).
+3. **The project moves to the Universal Render Pipeline (URP)** before anything depends on the
+   built-in one. The classic and modern looks are two material and lighting sets over one scene
+   and one view, selected as data.
+4. **Which piece, rotation and texture a tile shows is decided in `DK2.Presentation`** and tested
+   headlessly, as `RoomWalls` is (ADR-0392); Unity places what the view lists and decides nothing.
+5. **The classic look is judged against DK2**: each plan step ends with a screenshot beside DK2's at
+   the same place and camera, and the owner accepts it.
+
+**Why.**
+- The player owns the files and nothing derived from them leaves the install, which is what
+  AGENTS.md's no-redistribution rule allows. One reader serves the converter, the tests and the
+  game, so a format fact has one home.
+- A runtime glTF importer would re-read what `KmfReader` already decodes, and would add a package
+  and a conversion step the classic look does not need.
+- URP carries both looks: unlit or vertex-lit materials for the classic one; physically based
+  materials, shadows and post-processing for the modern one; and the hardware range a creature
+  crowd needs. HDRP narrows the hardware and makes the classic look harder; the built-in pipeline
+  would need every modern feature added later. Only placeholder boxes depend on the pipeline
+  today, so the switch costs least now.
+
+**Consequences.**
+- `ASSET_PIPELINE.md` §11 items 1 and 2 are decided for the classic look; the modern tier's
+  interchange format stays PoC step 7's choice.
+- An engine-neutrality test asserts the newly Unity-bound assembly targets netstandard2.1, as
+  `AssetArchitectureTests` and the `EngineNeutralityTests` do for theirs.
+- ADR-0034's one mesh per solid terrain ends with the plan's terrain and room steps; the variant
+  list comes from `floor-and-terrain-pieces.md` and `wall-pieces.md`.
+- Unread facts block later steps, not the first: water and lava beds (Q71), which clip a state
+  plays, Q442's remaining link, and DK2's camera and lighting.
