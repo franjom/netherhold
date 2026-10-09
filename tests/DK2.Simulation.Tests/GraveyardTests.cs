@@ -201,6 +201,147 @@ public class GraveyardTests
         return vampire;
     }
 
+    // ---- the crypt (0x004DD5C0, 0x004DD9B0; owner 2026-10-09) ----------------------------------
+
+    private static void Furnish(GameDatabase db, WorldState world) =>
+        new GameSimulation(db, world, 7, [new AutoFurnitureSystem()]).Tick(InputFrame.Empty);
+
+    private static int[] Objects(WorldState world, RoomInstance room, int first, int last) =>
+        [.. world.Objects.Where(o => o.ObjectTypeId >= first && o.ObjectTypeId <= last && room.Contains(o.TileIndex))
+            .Select(o => o.TileIndex).Order()];
+
+    [Fact]
+    public void AFiveByFiveGraveyardGetsOneCryptAtItsCentreAndATombStoneOnEachOtherInteriorTile()
+    {
+        // The owner's screenshot: a casket in the middle of a 5x5, eight stones round it.
+        (GameDatabase db, WorldState world) = Setup(Corpse(200));
+        RoomInstance room = Graveyard(db, world, 2, 2, size: 5);
+        Furnish(db, world);
+
+        Assert.Equal([(4 * world.Width) + 4], Objects(world, room, AutoFurnitureRules.CryptObjectId, AutoFurnitureRules.CryptObjectId));
+        Assert.Equal(8, Objects(world, room, GraveyardRules.FirstTombStoneId, GraveyardRules.LastTombStoneId).Length);
+        Assert.Equal(8, AutoFurnitureRules.FloorSlotCount(world, room));
+    }
+
+    [Fact]
+    public void AThreeByThreeGraveyardGetsNoCryptAndOneTombStone()
+    {
+        (GameDatabase db, WorldState world) = Setup(Corpse(200));
+        RoomInstance room = Graveyard(db, world, 2, 2);
+        Furnish(db, world);
+
+        Assert.Empty(Objects(world, room, AutoFurnitureRules.CryptObjectId, AutoFurnitureRules.CryptObjectId));
+        Assert.Single(Objects(world, room, GraveyardRules.FirstTombStoneId, GraveyardRules.LastTombStoneId));
+    }
+
+    [Fact]
+    public void TheVampireRisesAtTheCrypt()
+    {
+        (GameDatabase db, WorldState world) = Setup(Corpse(1000));
+        RoomInstance room = Graveyard(db, world, 2, 2, size: 5);
+        Furnish(db, world);
+
+        GraveyardBurialResult result = Bury(db, world, room);
+
+        CreatureState vampire = Assert.Single(world.Creatures, c => c.Id == result.SpawnedCreatureId);
+        Assert.Equal(new TilePos(4, 4), vampire.Tile);
+    }
+
+    [Fact]
+    public void AGraveyardBuiltInPlayOverANeutralCorpseTakesItIn_Likely()
+    {
+        // Its tile-change slot offers a dead body whose owner word is not the room's to
+        // Room_AddCorpse (0x004DD750), which makes it the room owner's. A dead body starts neutral.
+        (GameDatabase db, WorldState world) = Setup(Corpse(200));
+        CreatureState corpse = world.SpawnCreature(db, CorpseId, Keeper, new TilePos(3, 3));
+        CreatureDeathRules.BecomeCorpse(world, db, corpse);
+        var sim = new GameSimulation(db, world, 7, [new AutoFurnitureSystem()]);
+        sim.Tick(InputFrame.Empty);
+        Grow(db, world, 2, 2, 3);
+        sim.Tick(InputFrame.Empty);
+
+        Assert.Equal((3 * world.Width) + 3, corpse.GraveyardSlot);
+        Assert.Equal((PlayerId)Keeper, corpse.BodyOwnerPlayerId);
+    }
+
+    [Fact]
+    public void ABodyTheGraveyardOnceHeldIsNotTakenBackAfterASale()
+    {
+        // Held, the body became the keeper's; the sale frees it, and the piece's slot skips a body
+        // its owner already owns, as the corpse selections skip any body not neutral.
+        (GameDatabase db, WorldState world) = Setup(Corpse(200));
+        var sim = new GameSimulation(db, world, 7, [new AutoFurnitureSystem()]);
+        sim.Tick(InputFrame.Empty);
+        Grow(db, world, 2, 2, 5);
+        sim.Tick(InputFrame.Empty);
+        CreatureState corpse = world.SpawnCreature(db, CorpseId, Keeper, new TilePos(3, 3));
+        CreatureDeathRules.BecomeCorpse(world, db, corpse);
+        Assert.True(GraveyardRules.TryLay(world, db, corpse, (3 * world.Width) + 3));
+
+        Sell(db, world, 6, 6);
+        sim.Tick(InputFrame.Empty);
+
+        Assert.Equal(-1, corpse.GraveyardSlot);
+        Assert.Equal((PlayerId)Keeper, corpse.BodyOwnerPlayerId);
+    }
+
+    private sealed class Counting : IRandomAlgorithm
+    {
+        public int Draws;
+        public int NextInt(int exclusiveMax) { Draws++; return 0; }
+        public void HashInto(ref Hash64 hash) { }
+    }
+
+    [Fact]
+    public void TheCryptIsDrawnOnlyWhenTheRoomChanges()
+    {
+        // Room_Rebuild runs on a change (0x004ED1A0 and its siblings), not every turn.
+        (GameDatabase db, WorldState world) = Setup(Corpse(200));
+        var draws = new Counting();
+        var sim = new GameSimulation(db, world, new SimRandom(draws), [new AutoFurnitureSystem()]);
+        sim.Tick(InputFrame.Empty);
+        Grow(db, world, 2, 2, 5);
+        sim.Tick(InputFrame.Empty);
+        RoomInstance room = RoomIndex.RoomAt(world, db, (4 * world.Width) + 4)!;
+        Assert.Equal(1, draws.Draws);
+        Assert.Single(Objects(world, room, AutoFurnitureRules.CryptObjectId, AutoFurnitureRules.CryptObjectId));
+
+        sim.Tick(InputFrame.Empty);
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(1, draws.Draws);
+
+        // A sixth column: two centres now qualify, one draw, and still one crypt.
+        for (int y = 2; y < 7; y++) Place(db, world, 7, y);
+        sim.Tick(InputFrame.Empty);
+        room = RoomIndex.RoomAt(world, db, (4 * world.Width) + 4)!;
+        Assert.True(draws.Draws > 1);
+        Assert.Single(Objects(world, room, AutoFurnitureRules.CryptObjectId, AutoFurnitureRules.CryptObjectId));
+    }
+
+    /// <summary>A square Graveyard laid tile by tile through the slab chain, as a build is.</summary>
+    private static void Grow(GameDatabase db, WorldState world, int x0, int y0, int size)
+    {
+        for (int y = y0; y < y0 + size; y++)
+            for (int x = x0; x < x0 + size; x++) Place(db, world, x, y);
+    }
+
+    private static void Place(GameDatabase db, WorldState world, int x, int y)
+    {
+        ref TileState tile = ref world.Tile(x, y);
+        byte before = tile.TerrainId;
+        PlayerId owner = tile.OwnerPlayerId;
+        RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Graveyard), Keeper);
+        SlabChain.Changed(world, db, world.TileIndex(new TilePos(x, y)), before, owner);
+    }
+
+    private static void Sell(GameDatabase db, WorldState world, int x, int y)
+    {
+        ref TileState tile = ref world.Tile(x, y);
+        byte before = tile.TerrainId;
+        tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        SlabChain.Changed(world, db, world.TileIndex(new TilePos(x, y)), before, tile.OwnerPlayerId);
+    }
+
     private static CreatureDef Corpse(ushort decompose) =>
         Dk2TerrainFixture.Goblin() with { Name = "Corpse", CreatureId = CorpseId, DecomposeValue = decompose };
 

@@ -34,8 +34,8 @@ public static class GraveyardRules
     /// gate passes (<see cref="HasRoomForAnother"/>) and the tally has reached
     /// <c>DecomposeValueNeededForVampire</c>, the tally is zeroed, the excess lost, and one creature is
     /// raised (<c>0x004DD820</c>): the room's <c>CreatedCreatureId</c> at a random tile of the room,
-    /// one draw of its tile count along the chain (<c>0x004E4D90</c>). DK2 puts it on the room's last
-    /// Graveyard Crypt (object 75) when one is listed, after a draw; no shipped level places one.
+    /// one draw of its tile count along the chain (<c>0x004E4D90</c>), or, with crypts, on the room's last
+    /// listed Graveyard Crypt (object 75) after a draw of their count (<see cref="PlaceCrypts"/>).
     /// Not modelled: effect <c>0x138</c>, state 198 and message 72 on the new creature.</summary>
     public static GraveyardBurialResult Bury(
         SimulationContext context, RoomInstance graveyard, CreatureDef corpse, int corpseLevel)
@@ -56,8 +56,23 @@ public static class GraveyardRules
         state.Zero();
         byte creatureTypeId = graveyard.Definition.CreatedCreatureId;
         if (creatureTypeId == 0) return new GraveyardBurialResult(state.DecomposeValue, -1, 0);
-        int[] chain = SlabChain.Order(world, graveyard);
-        int tile = chain[context.Rng.NextInt(chain.Length)];
+        // 0x004DD820: with crypts, random(count) and the last on the room's newest-first list,
+        // which is the first placed, whatever the draw; with none, a random tile of the chain.
+        List<ObjectState> crypts = [.. world.Objects
+            .Where(o => o.ObjectTypeId == AutoFurnitureRules.CryptObjectId && graveyard.Contains(o.TileIndex))
+            .OrderBy(o => o.Id)];
+        int tile;
+        if (crypts.Count > 0)
+        {
+            context.Rng.NextInt(crypts.Count);
+            tile = crypts[0].TileIndex;
+        }
+        else
+        {
+            int[] chain = SlabChain.Order(world, graveyard);
+            tile = chain[context.Rng.NextInt(chain.Length)];
+        }
+
         CreatureState creature = world.SpawnCreature(
             database, creatureTypeId, graveyard.OwnerPlayerId, new(tile % world.Width, tile / world.Width));
         return new GraveyardBurialResult(state.DecomposeValue, creature.Id, creatureTypeId);
@@ -172,16 +187,100 @@ public static class GraveyardRules
         return found;
     }
 
+    /// <summary>The Graveyard's pass in <c>Room_Rebuild</c> (<c>0x004DD5C0</c>), run after the rebuild
+    /// has destroyed the room's furniture (<c>0x004E6BC0</c>) and before the stones: <c>size / 10</c>
+    /// tries, each drawing among the floor slots whose eight neighbours are floor slots of the room
+    /// (<c>0x004DD9B0</c>, in slab-chain order, <c>random(count)</c> on the world stream) and standing a
+    /// crypt (object 75) there. A placed crypt is no floor slot, so a 5x5 gets one, at its centre, and
+    /// its second try finds none; anything smaller than a 3x3 block of slots gets none.</summary>
+    public static void PlaceCrypts(SimulationContext context, RoomInstance graveyard)
+    {
+        WorldState world = context.World;
+        foreach (ObjectState crypt in world.Objects
+                     .Where(o => o.ObjectTypeId == AutoFurnitureRules.CryptObjectId && graveyard.Contains(o.TileIndex)).ToList())
+            world.RemoveObject(crypt.Id);
+
+        int[] chain = SlabChain.Order(world, graveyard);
+        for (int i = 0; i < graveyard.TileCount / 10; i++)
+        {
+            HashSet<int> slots = AutoFurnitureRules.FloorSlotSet(world, graveyard);
+            var candidates = new List<int>();
+            foreach (int tile in chain)
+                if (slots.Contains(tile) && SurroundedBySlots(world, slots, tile)) candidates.Add(tile);
+            if (candidates.Count == 0) continue;
+            int at = candidates[context.Rng.NextInt(candidates.Count)];
+            if (context.Database.ObjectById(AutoFurnitureRules.CryptObjectId) is null) continue;
+            world.SpawnObject(context.Database, AutoFurnitureRules.CryptObjectId, graveyard.OwnerPlayerId, at).AutoPlaced = true;
+        }
+    }
+
+    private static bool SurroundedBySlots(WorldState world, HashSet<int> slots, int tile)
+    {
+        int x = tile % world.Width, y = tile / world.Width;
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+                if ((dx != 0 || dy != 0) && (!world.Contains(x + dx, y + dy) || !slots.Contains(((y + dy) * world.Width) + x + dx)))
+                    return false;
+        return true;
+    }
+
+    /// <summary>The Graveyard's tile-change slot <c>+0x09</c> (<c>0x004DD530</c> through
+    /// <c>0x004DD750</c>), after a rebuild in play: every dead body on its tiles whose owner word is not
+    /// the room's (<see cref="CreatureState.BodyOwnerPlayerId"/>), lying in no room and not carried, is
+    /// made the room owner's and offered to <c>Room_AddCorpse</c>, which, while the room has a place,
+    /// links it and counts it whatever its cell (the cell's tests come after the count). So a
+    /// Graveyard built over the dead takes them in, but a body it once held and a sale let go is
+    /// already its owner's and stays out, rotting where it lies, no selection walking it.</summary>
+    /// <remarks>DK2 walks the chain and each tile's things, so when places run out the bodies taken
+    /// can differ from ours, in creature order. DK2's <c>+0x24</c> would first take a body out of
+    /// another room; a tile of this room lies in no other, so ours skips that.</remarks>
+    public static void AdoptCorpses(SimulationContext context, RoomInstance graveyard)
+    {
+        WorldState world = context.World;
+        foreach (CreatureState c in world.Creatures)
+        {
+            if (!CreatureDeathRules.IsCorpse(c) || c.BodyOwnerPlayerId == graveyard.OwnerPlayerId) continue;
+            int tile = (c.Tile.Y * world.Width) + c.Tile.X;
+            if (!graveyard.Contains(tile)) continue;
+            c.BodyOwnerPlayerId = graveyard.OwnerPlayerId;
+            if (c.GraveyardSlot >= 0 || c.CarriedByCreatureId >= 0 || !HasPlace(world, graveyard)) continue;
+            c.GraveyardSlot = tile;
+        }
+    }
+
+    /// <summary>The tombstones, objects 31 to 34: the range <c>0x004537E0</c> is asked over, bytes
+    /// <c>0x006A1D3C</c>..<c>0x006A1D3F</c>, which are the Graveyard's own <c>ObjectIds</c>. The room's
+    /// furniture pass stands one on each of its floor slots (<see cref="AutoFurnitureRules"/>).</summary>
+    public const byte FirstTombStoneId = 31, LastTombStoneId = 34;
+
+    /// <summary>Whether a tombstone stands on the tile. DK2 also wants its <c>+0x14A</c> zero; that word
+    /// is zeroed when the stone is made (<c>0x0049B1C0</c>) and set only at level start, under a corpse
+    /// the level places on it (<c>0x0050BD4C</c>), which no level of ours does.</summary>
+    public static bool HasTombStone(WorldState world, int tile)
+    {
+        foreach (ObjectState thing in world.Objects)
+            if (thing.TileIndex == tile && !thing.InHand && thing.CarriedByCreatureId < 0
+                && thing.ObjectTypeId is >= FirstTombStoneId and <= LastTombStoneId)
+                return true;
+        return false;
+    }
+
+    /// <remarks><c>Room_AddCorpse</c> links, counts and re-owns the body before its cell tests, so a
+    /// refusal there leaves it linked; state 41 asks <c>0x004E6380</c>'s same tests first, so ours
+    /// refuses whole, and only a body refused after passing them would differ.</remarks>
     /// <summary>State 41's arrival (<c>0x004E6380</c>, then <c>Room_AddCorpse</c> <c>0x004E6490</c>): on a
-    /// Graveyard with a place, a floor slot no lying corpse holds, the corpse is laid there.</summary>
+    /// Graveyard with a place, a floor slot with a tombstone (<see cref="HasTombStone"/>) and no lying
+    /// corpse, the corpse is laid there.</summary>
     public static bool TryLay(WorldState world, GameDatabase database, CreatureState corpse, int tile)
     {
         if (RoomIndex.RoomAt(world, database, tile) is not { Definition.TypeId: RoomTypeId.Graveyard } room
-            || !HasPlace(world, room) || !AutoFurnitureRules.FloorSlotSet(world, room).Contains(tile))
+            || !HasPlace(world, room) || !AutoFurnitureRules.FloorSlotSet(world, room).Contains(tile)
+            || !HasTombStone(world, tile))
             return false;
         foreach (CreatureState c in world.Creatures)
             if (c.GraveyardSlot == tile) return false;
         corpse.GraveyardSlot = tile;
+        corpse.BodyOwnerPlayerId = room.OwnerPlayerId;   // Room_AddCorpse's +0x24
         corpse.PosX = CreatureState.CentreOf(tile % world.Width);
         corpse.PosY = CreatureState.CentreOf(tile / world.Width);
         return true;

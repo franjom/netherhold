@@ -238,8 +238,10 @@ internal static class Dk2TerrainFixture
             // besides the Portal whose CreatedCreatureId is set -- 8, the
             // Vampire. GraveyardRules reads this when the room's tally reaches
             // DecomposeValueNeededForVampire (Q165, ADR-0151).
-            R(RoomTypeId.Graveyard, "Graveyard", 2000, GraveyardTerrain, 0x128Cu, 3, 3,
-              createdCreatureId: VampireCreatureId),
+            // Its shipped flags (0x10AC, SpecialTiles among them) and ObjectIds, the tombstones
+            // 31-34 that its floor slots carry and a corpse is laid on (ADR-0418).
+            R(RoomTypeId.Graveyard, "Graveyard", 2000, GraveyardTerrain, 0x10ACu, 3, 3,
+              createdCreatureId: VampireCreatureId, objectIds: [31, 32, 33, 34]),
 
             // The prison: 750 to build, 5x5 recommended, and the *other* room
             // in the shipped table whose CreatedCreatureId is set -- 9, the
@@ -468,6 +470,13 @@ internal static class Dk2TerrainFixture
         // The Training Room's, the Workshop's, the Casino's and the Torture Chamber's wall
         // furniture, as shipped: what a room's capacity counts (ADR-0205).
         Furniture(TrainingDummyObjectId, "Training Dummy", 0x02004000u, 1, 2297),
+        // The Graveyard's tombstones (flags as shipped, 0x02004000; the other fields NOT
+        // transcribed) and its crypt, object 75, which its own pass places (0x004DD5C0).
+        Furniture(31, "Tomb Stone 1", 0x02004000u, 1, 2048),
+        Furniture(32, "Tomb Stone 2", 0x02004000u, 1, 2048),
+        Furniture(33, "Tomb Stone 3", 0x02004000u, 1, 2048),
+        Furniture(34, "Tomb Stone 4", 0x02004000u, 1, 2048),
+        Furniture(75, "Graveyard Crypt", 0u, 1, 2048),
         Furniture(29, "Training Target", 0x00014000u, 1, 2048),
         // The Boulder, OBJECTS record 74 as shipped: rolls through and destroys, 4000 health, a tile
         // wide, process state 17 (boulder.md).

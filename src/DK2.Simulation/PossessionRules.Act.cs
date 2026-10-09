@@ -214,8 +214,9 @@ public static partial class PossessionRules
         foreach (CreatureState c in world.Creatures)
             if (c.TileLink.TileIndex == tile)
                 into.Add(CreatureDeathRules.IsCorpse(c)
-                    // 0x004B0F20 constructs a body owned by the neutral player (0x004B0FAA).
-                    ? new(ChainClass.Body, c, new(c.PosX, c.PosY, c.PosZ), PlayerIds.Neutral, c.TileLink.Order)
+                    // 0x004B0F20 constructs a body owned by the neutral player (0x004B0FAA); a Graveyard
+                    // that takes it makes it its owner's (0x004B1700).
+                    ? new(ChainClass.Body, c, new(c.PosX, c.PosY, c.PosZ), (byte)c.BodyOwnerPlayerId, c.TileLink.Order)
                     : new(ChainClass.Creature, c, new(c.PosX, c.PosY, c.PosZ), c.OwnerPlayerId, c.TileLink.Order));
         foreach (ObjectState o in world.Objects)
             if (o.TileLink.TileIndex == tile)

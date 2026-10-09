@@ -19,6 +19,10 @@ public static class AutoFurnitureRules
     /// <summary>Object 95, <i>Casino Pay Out Adjuster</i>: the Casino's lever (Q423).</summary>
     public const byte CasinoLeverObjectId = 95;
 
+    /// <summary>Object 75, <i>Graveyard Crypt</i>: the Graveyard's own pass places it
+    /// (<see cref="GraveyardRules.PlaceCrypts"/>), and <c>Room_IsFloorSlot</c> refuses its cell.</summary>
+    public const byte CryptObjectId = 75;
+
     /// <summary>Builds the ordered furniture specification for one room.</summary>
     public static void DesiredFurniture(
         WorldState world, GameDatabase database, RoomInstance room,
@@ -46,6 +50,11 @@ public static class AutoFurnitureRules
 
         var slots = new List<int>();
         FloorSlots(world, room, roomTiles, slots);
+
+        // The Graveyard's crypts are its own pass's (0x004DD5C0), placed before this one on a rebuild;
+        // here they are kept where they stand, and their cells are no floor slots for the stones.
+        if (room.Definition.TypeId == RoomTypeId.Graveyard)
+            foreach (int crypt in CryptTiles(world, room)) into.Add((crypt, CryptObjectId));
 
         // The Casino's lever takes one of the floor slots, so no table stands on it. Placed
         // whatever the room's furniture list holds: it is the set-up's own object.
@@ -302,6 +311,13 @@ public static class AutoFurnitureRules
         foreach (int tile in room.TileIndices)
             if (IsSurroundedByRoom(world, roomTiles, tile)) slots.Add(tile);
 
+        // The Graveyard arm refuses a cell holding a crypt (0x0045416C).
+        if (room.Definition.TypeId == RoomTypeId.Graveyard && slots.Count > 0)
+        {
+            HashSet<int> crypts = CryptTiles(world, room);
+            if (crypts.Count > 0) slots.RemoveAll(crypts.Contains);
+        }
+
         if (!UsesCheckerboard(room.Definition.TypeId) || slots.Count == 0) return;
 
         int anchor = slots[0];
@@ -332,6 +348,15 @@ public static class AutoFurnitureRules
                 return tile;
         }
         return -1;
+    }
+
+    /// <summary>The room's tiles with a crypt (object 75) on them.</summary>
+    public static HashSet<int> CryptTiles(WorldState world, RoomInstance room)
+    {
+        var tiles = new HashSet<int>();
+        foreach (ObjectState thing in world.Objects)
+            if (thing.ObjectTypeId == CryptObjectId && !thing.InHand && room.Contains(thing.TileIndex)) tiles.Add(thing.TileIndex);
+        return tiles;
     }
 
     private static bool IsSurroundedByRoom(

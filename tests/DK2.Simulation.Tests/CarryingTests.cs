@@ -66,13 +66,15 @@ public class CarryingTests
         RoomRules.Place(db, ref tile, db.Room(type), Keeper);
     }
 
-    /// <summary>A 3x3 Graveyard at (4..6, 1..3), opened out of the rock beside the fixture's floor: a
-    /// corpse needs a floor slot, which a smaller one lacks (ADR-0414).</summary>
-    private static void Graveyard(GameDatabase db, WorldState world)
+    /// <summary>A 3x3 Graveyard at (4..6, 1..3), or wider to <paramref name="x1"/>, opened out of the
+    /// rock beside the fixture's floor and furnished: a corpse needs a floor slot, which a smaller
+    /// one lacks (ADR-0414), with a tombstone on it (ADR-0418).</summary>
+    private static void Graveyard(GameDatabase db, WorldState world, int x1 = 6)
     {
         for (int y = 1; y <= 3; y++)
-            for (int x = 4; x <= 6; x++)
+            for (int x = 4; x <= x1; x++)
                 Paint(db, world, RoomTypeId.Graveyard, new TilePos(x, y));
+        Dk2TerrainFixture.FurnishRooms(db, world);   // a tombstone on each floor slot, as the room's furniture pass stands
     }
 
     // ---- the rescue -------------------------------------------------------
@@ -511,8 +513,7 @@ public class CarryingTests
         // has two floor slots, so a place is still free and only that test keeps the imp off it.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Graveyard(db, world);
-        for (int y = 1; y <= 3; y++) Paint(db, world, RoomTypeId.Graveyard, new TilePos(7, y));
+        Graveyard(db, world, x1: 7);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(5, 2));
         CreatureDeathRules.BecomeCorpse(world, db, goblin);
         int slot = world.TileIndex(new TilePos(5, 2));
@@ -524,6 +525,22 @@ public class CarryingTests
 
         Assert.DoesNotContain(sink.Events, e => e.Kind == "body_claimed");
         Assert.Equal(slot, goblin.GraveyardSlot);
+    }
+
+    [Fact]
+    public void AFloorSlotWithNoTombStoneTakesNoCorpse()
+    {
+        // 0x004E6380 and Room_AddCorpse both want one of objects 31-34 on the slot (0x004537E0).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Graveyard(db, world);
+        int slot = world.TileIndex(new TilePos(5, 2));
+        foreach (ObjectState stone in world.Objects.Where(o => o.TileIndex == slot).ToList()) world.RemoveObject(stone.Id);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(5, 2));
+        CreatureDeathRules.BecomeCorpse(world, db, goblin);
+
+        Assert.False(GraveyardRules.TryLay(world, db, goblin, slot));
+        Assert.Equal(-1, goblin.GraveyardSlot);
     }
 
     [Fact]

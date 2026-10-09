@@ -103,8 +103,9 @@ The tally lives in the room's dword `+0x49`, which the room dumper names
 
 All of the above is CONFIRMED (instruction level) except where a line says
 otherwise. Built as ADR-0370 (`GraveyardRules`): the gate's capacity is the room's floor slots
-(`Room_ComputeTotalCapacity` `0x004E3ED0`, type 14), the Vampire stands on a random tile since
-no level places a crypt, and effect 0x138, state 198 and message 72 are not modelled.
+(`Room_ComputeTotalCapacity` `0x004E3ED0`, type 14), the Vampire rises at the room's crypt, or on a
+random tile when it has none (Q579, below), and effect 0x138, state 198 and message 72 are not
+modelled.
 A corpse needs a place too: `Room_AddCorpse` (`0x004E6490`) sets it on a free floor slot and adds
 to `+0x6B`, and its destruction there buries it (`0x004B1070`). The destruction is the corpse's
 lifetime running out: `DeadBodyDiesAfterSeconds` x 4 turns from its death, counted down on the
@@ -113,5 +114,15 @@ removal pass (`0x004B7830`, the predicate `0x004B5C30` and slot `+0x30`, `0x004B
 lying in a room is skipped by the selections (`+0x132`), and a freed room lets its corpses go
 (`Room_RemoveCorpse` from `Room_OnFreed`). The pick-up (state 40) takes the first Graveyard in
 room order with a place and a free slot (`0x004E6A20`, a draw), and state 41 lays it only on a
-free floor slot, else goes to the nearest Graveyard with a place. Built: ADR-0414, ADR-0418 (Q578). CONFIRMED by the owner
+free floor slot with a tombstone (objects 31–34, `0x004537E0`), which the furniture pass stands on
+every floor slot; else it goes to the nearest Graveyard with a place. Built: ADR-0414, ADR-0418
+(Q578). The crypt (Q579): every room change destroys the auto-placed objects (`0x004E6BC0`) and
+rebuilds them (`0x004EDFC0`), the Graveyard's pass first (`0x004DD5C0`): `size / 10` tries, each a
+draw among the floor slots whose eight neighbours are floor slots (`0x004DD9B0`), standing object 75
+there. Its cell is no floor slot, so a 5x5 gets one crypt at its centre and eight stones (the
+owner's screenshot); the Vampire rises at the first placed. Then, in play, the tile-change slot
+(`0x004DD750`) takes every dead body on the room's tiles whose owner word is not the room's, makes
+it the owner's and offers it to `Room_AddCorpse`, which links and counts it while the room has a
+place, on a stone or not. A dead body is made neutral and laying it makes it the owner's, so a body
+a sale released is not taken back and, no longer neutral, is never carried again: it rots. CONFIRMED by the owner
 (2026-10-09): 3x3 is the smallest working Graveyard; a 2x2 or 1x2 gets no grave spot or headstone.

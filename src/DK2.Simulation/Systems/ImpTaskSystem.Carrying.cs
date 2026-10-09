@@ -375,8 +375,9 @@ public sealed partial class ImpTaskSystem
             // The selector meets only bodies on a tile its keeper owns (the cell word +0x08's
             // low 12 bits against the worker's owner); elsewhere it neither posts nor carries.
             if (world.Tile(at).OwnerPlayerId != worker.OwnerPlayerId) continue;
-            // The selections skip a corpse lying in a room (+0x132, 0x0046D3C0 and 0x0046CF40).
-            if (corpses && body.GraveyardSlot >= 0) continue;
+            // The selections take only a neutral dead body lying in no room (0x0046D3C0 walks the
+            // neutral player's list, 0x0046CF40 tests the owner; both test +0x132).
+            if (corpses && (body.GraveyardSlot >= 0 || body.BodyOwnerPlayerId != PlayerIds.Neutral)) continue;
             if (corpses)
             {
                 _corpseGraveyard ??= GraveyardRules.ForCorpse(context, worker, search: _only is null);

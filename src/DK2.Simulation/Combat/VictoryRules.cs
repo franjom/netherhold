@@ -81,7 +81,8 @@ public static class VictoryRules
 
     /// <summary>The nearest corpse (a creature lying dead, <see cref="CreatureDeathRules.IsCorpse"/>)
     /// strictly within <see cref="BodyReachSquared"/>. DK2 searches the neutral player's dead-body
-    /// list; ours keeps a corpse under its owner, so every corpse is looked at (Q400).</summary>
+    /// list, so a body a Graveyard has taken (<see cref="CreatureState.BodyOwnerPlayerId"/>) is not
+    /// among them (Q400).</summary>
     public static CreatureState? NearestBody(WorldState world, CreatureState me)
     {
         CreatureState? best = null;
@@ -90,7 +91,7 @@ public static class VictoryRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
-            if (!CreatureDeathRules.IsCorpse(candidate)) continue;
+            if (!CreatureDeathRules.IsCorpse(candidate) || candidate.BodyOwnerPlayerId != PlayerIds.Neutral) continue;
             int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
             if (distance >= bestDistance) continue;
             best = candidate;

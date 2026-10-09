@@ -20,7 +20,19 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
         var unmatched = new HashSet<(PlayerId Owner, int Tile, byte Type)>();
         var roomFurniture = new List<(int TileIndex, byte ObjectTypeId)>();
 
-        foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
+        long now = world.CurrentTick.Value;
+        List<RoomInstance> rooms = RoomIndex.Build(world, context.Database);
+        // A rebuilt Graveyard (its size stamp this turn, map rooms at the first) runs its own pass
+        // before the stones (Room_Rebuild, 0x004DD5C0).
+        var rebuilt = new List<RoomInstance>();
+        foreach (RoomInstance room in rooms)
+            if (room.Definition.TypeId == RoomTypeId.Graveyard && SlabChain.SizeChangedTick(world, room) == now)
+            {
+                GraveyardRules.PlaceCrypts(context, room);
+                rebuilt.Add(room);
+            }
+
+        foreach (RoomInstance room in rooms)
         {
             AutoFurnitureRules.DesiredFurniture(world, context.Database, room, roomFurniture);
             foreach ((int tile, byte type) in roomFurniture)
@@ -52,5 +64,10 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
             if (context.Database.ObjectById(type) is null) continue;
             world.SpawnObject(context.Database, type, owner, tile).AutoPlaced = true;
         }
+
+        // Then its tile-change slot takes in the corpses lying on it (0x004DD750). Not at the level's
+        // start: Level_InitTriggersAndStart rebuilds the map's rooms without Room_OnTilesChanged.
+        if (now > 0)
+            foreach (RoomInstance room in rebuilt) GraveyardRules.AdoptCorpses(context, room);
     }
 }

@@ -197,6 +197,9 @@ public static class CreatureDeathRules
 
         // A fresh sixty seconds: the corpse and rescue windows share one field.
         creature.DyingTicks = 0;
+        // The dead body is the neutral player's (0x004B0F20), and lies in no room.
+        creature.BodyOwnerPlayerId = PlayerIds.Neutral;
+        creature.GraveyardSlot = -1;
 
         creature.TargetTileIndex = -1;
         creature.TargetWork = default;

@@ -1021,6 +1021,13 @@ public sealed class CreatureState
     /// freed (<c>Room_RemoveCorpse</c>, <c>0x004E6700</c>), as a sale or a merge frees it.</summary>
     public int GraveyardSlot = -1;
 
+    /// <summary>The dead body's own owner word (<c>+0x28</c>): the neutral player's when it is made
+    /// (<c>0x004B0F20</c> links it to that player's list), the room owner's once a Graveyard takes it
+    /// (<c>Room_AddCorpse</c> calls its <c>+0x24</c>, <c>0x004B1700</c>). The corpse selections walk only
+    /// neutral bodies, and a Graveyard adopts only one not already its owner's (<c>0x004DD750</c>).
+    /// Meaningless for the living; the creature's <see cref="OwnerPlayerId"/> is kept for its kind.</summary>
+    public PlayerId BodyOwnerPlayerId = PlayerIds.Neutral;
+
     /// <summary>The turn each of the three spell slots was last cast at — DK2's <c>+0x41B + 4i</c>;
     /// zero means never, and a cast stamps it when the action starts, not when the shot leaves
     /// (combat-spells.md §4, §6).</summary>
@@ -1349,6 +1356,7 @@ public sealed class CreatureState
         hash.Add(JackpotDeadlineTicks);
         hash.Add(JackpotWinnings);
         hash.Add(GraveyardSlot);
+        hash.Add((byte)BodyOwnerPlayerId);
         for (int i = 0; i < SpellStamps.Length; i++) hash.Add(SpellStamps[i]);
         hash.Add(AttackSpellSlot);
         hash.Add(SwingKind);

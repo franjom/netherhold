@@ -9637,10 +9637,22 @@ at its end `CreatureHealthSystem` buries it (`0x004B1070`) instead of letting it
 selections skip a lying corpse, and a room freed by a sale or a merge lets its corpses go
 (`Room_RemoveCorpse` from `Room_OnFreed`).
 
+**Amendment (2026-10-09, hash 214; `graveyard.md` §2).** A slot takes a corpse only with a
+tombstone (objects 31–34) on it (`0x004537E0` in `0x004E6380` and `Room_AddCorpse`), which the
+furniture pass stands on every floor slot; `GraveyardRules.HasTombStone`. Each room change rebuilds
+the furniture, the Graveyard's crypt pass first (`0x004DD5C0`, `0x004DD9B0`): a 5x5 gets one crypt
+(object 75) at its centre, which is no floor slot, and the Vampire rises there (Q579). In play the
+tile-change slot (`0x004DD750`) takes in the dead bodies on its tiles not yet its owner's, and
+laying a body makes it the owner's, so one a sale releases is never taken back nor carried again
+(new field `CreatureState.BodyOwnerPlayerId`). `PlaceCrypts` and `AdoptCorpses` run from
+`AutoFurnitureSystem`. The owner confirms the 3x3's one corpse, the rot after about a minute and
+the Vampire only after enough have rotted. Levels 1-3 replay unchanged.
+
 **Consequences.** Levels 1-3 replay exactly as ADR-0416 left them. A 3x3 Graveyard holds one corpse at a time; the burial scenarios now use a 4x3
-and a 7x3. Deviates: `0x004E6380` and `Room_AddCorpse` also want one of the Graveyard's objects
-31–34 on the slot (`0x004537E0`), and ours places none, so ours treats every floor slot as having
-one (unread: what the room rebuild puts there); ours sets the corpse on the slot's centre, where
+and a 7x3. Deviates: ours keeps no stone's `+0x14A`, which only a level-placed corpse sets; the
+crypt's draw is made where ours rebuilds furniture, after the turn's other systems, once a turn
+per changed Graveyard, where DK2 draws in each tile's change; ours adopts in creature order, DK2 tile
+by tile; the first-placed crypt is our lowest object id; ours sets the corpse on the slot's centre, where
 DK2 sets y to the tile's quarter; a pick-up whose walk fails tries the next Graveyard in DK2
 (state 40) and abandons in ours; ours counts one place per lying corpse where states 40 and 41 read
 `+0x71` and the capacity test `+0x6B` (LIKELY the same count); the order and spot draws walk our
