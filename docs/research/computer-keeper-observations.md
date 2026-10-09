@@ -308,6 +308,19 @@ slap step `0x00502F00` and the tick's allowance `0x00500C20` (a refused Create I
 Not shown in DK2: that Belial is the planner's second pick there too. Not found: what in DK2 keeps
 the wall up or the call on Morgana; the reading explains our west turn, not why DK2 differs.
 
+**DK2 over ten seeds (2026-10-09).** The idle packet `m12l11a` replayed under DK2 seeds 1-10
+(`dk2runs/level11A-seeds`, 1,500 ticks; `run.ps1 -Level level11A -Packet m12l11a -Map 90x60`).
+Drako's first call, taken as a 10,000 drop of his mana (player record `+0x82`; Chicken also costs
+10,000, so the army's move 80 ticks later is what identifies it), sends his army to Morgana in 8
+seeds (ticks 335-939), west to Belial in seed 3 (884), and splits it in seed 8 (851). Morgana's
+keeper slaps her imps early in every seed; in 3, 5, 7 and 10 (64,38) is never reinforced and is dug
+at 61-91, as in ours' west seeds. Given that early fall DK2 turns west once in 4 (seed 3, which tags
+Belial's first tile at 103 as ours does) where ours turns west 4 times in 4: Fisher p about 0.14,
+not separable on ten seeds a side. In those four seeds DK2's Drako buys two or three imps and then
+spends 5,000 at a time about every 70 ticks (seed 10: 195, 263, 323, 381), Heal or Sight of Evil
+(Q563); in the other six it buys five imps as ours does (seeds 2 and 8 then spend 5,000s too). Ours
+buys five imps after an early fall and casts Heal only from about 720 (seed 2).
+
 ## M12 acceptance against the two captures (2026-10-06)
 
 The plan's bar: the keeper digs, expands, builds to a need, recruits, defends and attacks
