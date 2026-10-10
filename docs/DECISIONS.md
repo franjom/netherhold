@@ -9769,6 +9769,24 @@ flight bits and animation exceptions remain unmodelled, as do the separate
 low-health and lava speed modifiers. Bridge preference is not guaranteed by DK2's
 route search; the screenshot's exact original route remains an open comparison.
 
+## ADR-0425 — Let a frightened Scout run to raise the alarm
+**Date:** 2026-10-10 · **Status:** accepted · Research: combat-fear.md §4, §7
+
+**Context.** An Imp attacked near its rooms entered flight but immediately
+returned idle. The timer-zero flee arm omitted the Scout's existing alarm call.
+Its room test also used the Imp's tile where DK2 tests the attacker's tile.
+
+**Decision.** Use the target tile for both callers of the room test. When a
+fleeing Scout is outmatched, invoke the existing alarm entry with DK2's threat
+position and deficit. Preserve stand-down when the owner's force outweighs the
+enemy and withdrawal when the target is outside the expanded rooms. Hash/save
+version 218; no new persistent state. Restore the alarm's Call to Arms gate.
+
+**Consequences.** Outmatched Imps run toward a room in state 6 heading to 251
+instead of cycling through idle near danger. The separate non-creature
+ThreatThing response remains unbuilt; see combat-fear.md §7. This correction
+does not establish original-versus-modern casualty or timing parity.
+
 ## ADR-0426 — Draw the authored chain and lock on locked doors
 **Date:** 2026-10-10 · **Status:** accepted · Research: structure-drawing.md §4
 

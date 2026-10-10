@@ -24,7 +24,7 @@ question: >
   Does Drako, unaided, tunnel from its Lair toward Morgana's heart, bridge the lava in the way, and
   attack her heart?
 map: campaign:level11A
-seed: 2
+seed: 1
 duration_ticks: 700
 viewing_player: 5
 computer_keepers: [4, 5, 6, 7]
@@ -44,34 +44,38 @@ expect:
       it on an earlier pass.
   - event: built
     detail: "player=5 room=Stone Bridge tiles=1 cost=500 refused=0 first=(64,40)"
-    at_tick: 60
+    at_tick: 54
     because: >
       The cursor waits on the tagged rock until it is dug and claimed, then steps onto the lava.
       Lava on the cursor takes only room 17 (0x004FDC50), when it is available; the tile touches
       the claimed corridor, Drako's own floor, as the placement test requires (0x0044F630). DK2: 66.
   - event: built
     detail: "player=5 room=Stone Bridge tiles=1 cost=500 refused=0 first=(64,39)"
-    at_tick: 61
+    at_tick: 55
     because: >
       A laid span steps the walker on the same allowance (0x004FDC50); the next lava tile touches
       the bridge just laid, which is owned and not solid (0x00453B30). DK2: 70.
   - event: tagged
     detail: "player=5 applied=1 rejected=0 span=(64,38)-(64,38)"
-    at_tick: 62
+    at_tick: 57
     because: >
       Past the lava the walker meets rock again and task 7 tags it: the tunnel continues toward
       Morgana's heart. Her imps may reinforce and repair that wall (ADR-0387), and her heart
       calls them to fight intruders (ADR-0407). Timing depends on the seed (Q563, Q574).
   - event: call_to_arms_raised
-    detail: "tile=64,34"
-    at_tick: 188
+    detail: "tile=64,38"
+    at_tick: 500
     because: >
       With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
       heart and attack management casts the call there (0x004FECE0, ADR-0298). The point is a draw
-      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. Seed 2 now takes (64,34).
-      The fixture includes flag 0x40 landing initialization and the ordered obstacle query
-      (ADR-0419, ADR-0423); attack direction and timing remain seed-dependent (Q574).
+      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. This version-218 fixture
+      uses seed 1 to exercise the northern attack after the alarm correction (ADR-0425);
+      seed 2 also turns west and calls at Belial instead. Direction and timing remain
+      seed-dependent (Q574); the shared call tile does not establish original timing parity.
   - event: engaged
-    detail: "player=5 heart=6"
+    detail: "type=Mistress player=5 heart=6"
+    at_tick: 556
     because: >
-      Drako's creatures attack Morgana's heart (scan E, ADR-0163); first at 237, a Mistress.
+      Drako's Mistress attacks Morgana's heart after the call (scan E, ADR-0163). The Salamander
+      already engaged the heart at 312; the Mistress engagement at 556 retains the army attack
+      after the call rather than accepting only the earlier encounter.

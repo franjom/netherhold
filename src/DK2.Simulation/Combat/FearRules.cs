@@ -18,8 +18,8 @@ namespace DK2.Simulation.Combat;
 /// <c>Fear</c> stat and at three the creature backs off for <c>BackOffTimer</c> ticks (state 203),
 /// then runs for a lair, its heart, a room or a nearby tile (the withdraw state,
 /// <c>FightWithDrawState.cpp</c>). A creature below a third of its health and far from its heart
-/// withdraws at once. Not built and named there: the Scout's alarm, the hero gates, the casino's
-/// fearlessness, the per-type player modifiers and the steering impulse of the step back.</summary>
+/// withdraws at once. The hero gates, per-type player modifiers and the steering impulse of
+/// the step back remain outside this implementation.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-fear.md")]
 public static class FearRules
 {
@@ -346,10 +346,11 @@ public static class FearRules
         me.BackOffTimer = 0;
     }
 
-    /// <summary>The timer is out. A keeper's creature within <c>GuardRoomReportingDistanceTiles</c>
-    /// of one of its rooms counts heads: the state ends when its side, at three quarters, outweighs
-    /// the enemy's within five tiles, and otherwise a Scout would raise the alarm — not built, so
-    /// the state ends too (Q374). Anyone else lets go and withdraws.</summary>
+    /// <summary>The timer is out. When a keeper's live creature target stands within
+    /// <c>GuardRoomReportingDistanceTiles</c> of its rooms, count heads at the fleeing creature:
+    /// the state ends when its side, at
+    /// three quarters, outweighs the enemy's within five tiles; otherwise a Scout runs to raise
+    /// the alarm. The room test uses the target's tile. Anyone else lets go and withdraws.</summary>
     private static void FleeWalk(
         SimulationContext context, ISightBlocker sight, HeartSites hearts, RoomCache rooms, CreatureState me, CreatureDef mine,
         List<Fixed16Vector> scratch)
@@ -357,10 +358,13 @@ public static class FearRules
         WorldState world = context.World;
         CreatureState? target = me.FightTargetKind == FightTargetKind.Creature ? world.CreatureById(me.FightTargetId) : null;
 
-        if (PlayerIds.IsKeeper(me.OwnerPlayerId) && target != null && !CreatureDeathRules.IsDown(target) && NearOwnRooms(context, rooms, me))
+        if (PlayerIds.IsKeeper(me.OwnerPlayerId) && target != null && !CreatureDeathRules.IsDown(target)
+            && NearOwnRooms(context, rooms, me.OwnerPlayerId, target.Tile))
         {
             int theirs = LocalStrength(context, target.OwnerPlayerId, me.PosX, me.PosY);
             int ours = LocalStrength(context, me.OwnerPlayerId, me.PosX, me.PosY) * 3 / 4;
+            if (ours <= theirs && RaiseAlarm(context, rooms, me, mine, target.PosX, target.PosY, (theirs - ours) * 3 / 2))
+                return;
             End(context, me, ours > theirs ? "outnumbers" : "no_alarm");
             return;
         }
@@ -370,15 +374,15 @@ public static class FearRules
         End(context, me, "nowhere_to_go");
     }
 
-    /// <summary><c>0x00460B50</c>'s room test: my tile strictly inside a room of mine grown by the
+    /// <summary><c>0x00460B50</c>'s room test: the target tile strictly inside an owner's room grown by the
     /// reporting distance on every side.</summary>
-    public static bool NearOwnRooms(SimulationContext context, RoomCache rooms, CreatureState me)
+    public static bool NearOwnRooms(SimulationContext context, RoomCache rooms, PlayerId owner, TilePos targetTile)
     {
-        int g = context.Database.Variables[VariableTypeId.GuardRoomReportingDistanceTiles];
-        TilePos t = me.Tile;
-        foreach (RoomInstance room in rooms.Of(context, me.OwnerPlayerId))
+        int g = unchecked((byte)context.Database.Variables[VariableTypeId.GuardRoomReportingDistanceTiles]);
+        foreach (RoomInstance room in rooms.Of(context, owner.Value))
         {
-            if (t.X > room.MinX - g && t.X < room.MaxX + g && t.Y > room.MinY - g && t.Y < room.MaxY + g) return true;
+            if (targetTile.X > room.MinX - g && targetTile.X < room.MaxX + g
+                && targetTile.Y > room.MinY - g && targetTile.Y < room.MaxY + g) return true;
         }
         return false;
     }
@@ -611,6 +615,7 @@ public static class FearRules
     {
         if (mine.JobClass != JobClass.Scout) return false;
         WorldState world = context.World;
+        if (CallToArmsRules.IsOn(world, me.OwnerPlayerId)) return false;
         if (AlreadyResponding(world, me.OwnerPlayerId, threatX, threatY)) return false;
 
         RoomInstance? nearest = null;

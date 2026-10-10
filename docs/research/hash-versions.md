@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**218** — `0x6ECAB92D5B5D6E64`. An outmatched fleeing Scout runs to raise the alarm; the near-room gate uses the attacker's tile and respects Call to Arms. No new saved field. ADR-0425.
+
 **217** — `0xACDC3C26931DA73F`. Ordinary obstacle queries preserve tile-head order and retained set/toggle flags; grounded water speed is halved in entity units. No new saved field. ADR-0423 and ADR-0424.
 
 **216** — `0x4C65FAEF24CB1622`. Torture attachment uses actual device positions and wall facing; wheel/chair obstacles participate in continuous steering. No new saved field. ADR-0420.

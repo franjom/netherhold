@@ -43,6 +43,51 @@ public class CombatNonFighterTests
         Assert.EndsWith("backoff=0", sink.Events[fled].Detail);
     }
 
+    [Theory]
+    [InlineData(12, 12, 37, false, true)]
+    [InlineData(12, 12, 120, false, false)]
+    [InlineData(17, 18, 37, false, false)]
+    [InlineData(18, 17, 37, false, true)]
+    [InlineData(12, 12, 37, true, false)]
+    public void AFleeingImpRaisesTheAlarmWhenOutmatched_UsingTheAttackersTileForTheRoomBoundary(
+        int impX, int attackerX, int alliedThreat, bool callToArms, bool raisesAlarm)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.LairTerrain, 10, 10);
+        CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, impX, 12);
+        CreatureState attacker = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, attackerX, 12);
+        world.Player(Keeper).CallToArms = new(callToArms, 0, 0, 0, 0);
+        if (alliedThreat == 120)
+            Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, impX, 13);
+        StatePlacement.Place(imp, 203);
+        imp.FightTargetKind = FightTargetKind.Creature;
+        imp.FightTargetId = attacker.Id;
+        imp.BackOffTimer = 0;
+        CombatRules.Register(attacker, imp.Id, ranged: false);
+        GameSimulation sim = Combat(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Run(1);
+
+        Assert.Equal(raisesAlarm, sink.Events.Any(e => e.Kind == "raises_alarm"
+            && e.Detail.Contains($"creature={imp.Id} ")));
+        if (raisesAlarm)
+        {
+            Assert.Equal(CreatureActivity.RaisingAlarm, imp.Activity);
+            Assert.Equal((6, 251), (imp.Dk2StateId, imp.UtilityNewState));
+            Assert.True(imp.Running);
+            Assert.True(imp.HasRoute);
+            Assert.Equal((attacker.PosX, attacker.PosY, 54), (imp.AlarmX, imp.AlarmY, imp.AlarmDeficit));
+            Assert.Equal(FightTargetKind.None, imp.FightTargetKind);
+            Assert.DoesNotContain(imp.Id, attacker.EngagedMelee);
+        }
+        else if (attackerX == 18)
+        {
+            Assert.Equal(CreatureActivity.Withdrawing, imp.Activity);
+        }
+    }
+
     [Fact]
     public void AnImpAwayFromItsHeartIgnoresAnEnemyThatIsNotAHero()
     {

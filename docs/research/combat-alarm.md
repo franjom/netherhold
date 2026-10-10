@@ -41,7 +41,7 @@ to nothing. My side is the Turncoat player while `TurncoatTimer` runs.
    skipped. Then the **hero path**: `d < sight²` and a line of sight (no hearing),
    `d < best`, the hero has no target or targets me, `IsAttackable`. Then:
    - my `Attacking` is set to the hero, tentatively, and the old tag stashed;
-   - **not within `GuardRoomReportingDistanceTiles` of a room of mine**
+   - **hero not within `GuardRoomReportingDistanceTiles` of a room of mine**
      (`0x00460B50`, combat-fear.md §4 step 9) → the withdraw state; success returns
      `0xEA60`, "I left", which the acquirer returns as 1; failure restores the tag
      and the scan continues;
@@ -128,8 +128,11 @@ responder's own run speed; §4 with `CreatureActivity.Reporting` covering both t
 walk and the thirty ticks.
 
 **Not built, named:** step 1's eight-tile test and action 79 (state 252 ends at
-once here); Call to Arms; the Turncoat side; the angry skip (`state+0x3C`); the `+0x6E3` sounds;
+once here); the Turncoat side; the angry skip (`state+0x3C`); the `+0x6E3` sounds;
 Jack, the other NonFighter.
+
+The Call to Arms alarm gate is built with ADR-0425; it reads the owner's `On`
+bit, without requiring a surviving flag object.
 
 ## 6. The escape byte
 
