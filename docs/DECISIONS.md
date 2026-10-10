@@ -9721,3 +9721,17 @@ barricades use their static model. Unity consumes this detached view.
 **Consequences.** Simulation state and its random stream are unchanged. Door
 transitions, trap animation/effects and construction tint remain deferred to
 classic look step 4; concealed structures follow the recorded visibility rules.
+
+## ADR-0422 — Start Unity campaigns with their player and party scripts
+**Date:** 2026-10-10 · **Status:** accepted · Research: hero-parties-and-effect-generators.md
+
+**Context.** Unity projected campaign THINGS but supplied no trigger tree, leaving
+Snapdragon's northern Lord and entourage unspawned.
+
+**Decision.** Use an engine-neutral startup factory over loaded campaign records.
+It projects player gold and THINGS, builds level/player/party trigger roots and
+starts the existing systems. Unity and the campaign startup regression share it.
+
+**Consequences.** The authored six-member northern party appears on the first
+modern tick. The screenshot confirms composition and presence; exact original
+timing and subsequent movement remain unmeasured. No simulation field is added.

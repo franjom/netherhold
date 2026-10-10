@@ -130,16 +130,26 @@ namespace DK2.Unity
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' map.")
                 : LoadSave(install);
 
-            WorldState world = WorldState.FromMap(
-                database, map, PlayersOf(map), fogOfWarEnabled: fogOfWar);
-
             if (campaignLevel)
             {
-                var things = GameDatabaseLoader.LoadCampaignThings(install, levelName);
-                if (things != null) ThingProjection.Place(world, database, things);
+                var level = GameDatabaseLoader.LoadCampaignLevel(install, levelName)
+                    ?? throw new InvalidOperationException($"the install has no '{levelName}' level definition.");
+                var players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName)
+                    ?? throw new InvalidOperationException($"the install has no '{levelName}' players.");
+                var things = GameDatabaseLoader.LoadCampaignThings(install, levelName)
+                    ?? throw new InvalidOperationException($"the install has no '{levelName}' things.");
+                var triggers = GameDatabaseLoader.LoadCampaignTriggers(install, levelName)
+                    ?? throw new InvalidOperationException($"the install has no '{levelName}' triggers.");
+                _simulation = CampaignSimulationFactory.Create(database, map, level,
+                    players, things, triggers, seed, fogOfWarEnabled: fogOfWar);
             }
-
-            _simulation = new GameSimulation(database, world, seed, SimulationSystems.Default());
+            else
+            {
+                WorldState savedMap = WorldState.FromMap(
+                    database, map, PlayersOf(map), fogOfWarEnabled: fogOfWar);
+                _simulation = new GameSimulation(database, savedMap, seed, SimulationSystems.Default());
+            }
+            WorldState world = _simulation.World;
             _roomIds = database.Rooms.Keys.OrderBy(id => (byte)id).ToArray();
             SelectKnownRoom();
 
