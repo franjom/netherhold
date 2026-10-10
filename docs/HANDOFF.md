@@ -118,8 +118,16 @@ for the reported camera-dependent darkness remains strongly inferred (unity/READ
 Imp casualty/timing parity remains open (Q582, combat-acquisition.md §1);
 non-creature threat flight remains unbuilt (combat-fear.md §7).
 Chicken roaming remains unbuilt; see hatchery-roaming.md for the researched object loop.
+The owner verified a Level8 Salamander walking on lava (2026-10-10);
+see imp-idle-and-wandering.md §4 for the crossing regressions.
+The reported graininess at both camera distances has no confirmed resolution;
+recheck the Unity Game view scale before changing rendering (TRAPS.md).
 
 ## Next work
+
+Owner's first priority (2026-10-10): resolve the excess Level7 Imp deaths (Q582)
+before further visual polish. Step 3's object/furniture work can stop here;
+this combat/escape discrepancy remains open, not an accepted fidelity deviation.
 
 1. M12: the Q542–Q544 producers are built (ADR-0412–0414), and their leftovers (ADR-0415–0418:
    the Casino party, the Library finder, the bedless rescue, the lying corpse, Q578); not

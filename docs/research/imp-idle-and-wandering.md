@@ -111,6 +111,20 @@ On the owner's level there are no eligible rooms, so every trip is a ring walk t
 one of the keeper's own claimed tiles 4–7 tiles away, falling back to nearer
 rings.
 
+**Level8 lava check (2026-10-10).** The owner reports Salamanders around the Heart
+using only stone bridges. Fresh reads of `0x00480A00` and `0x004C8BD0` confirm
+that lava permission does not waive the idle destination's ownership test; a
+permitted crossing still has the search-key bias documented in
+navigation-mesh-and-search.md §4. Modern seed 1's three campaign-spawned
+Salamanders visited 35 tiles, including four lava tiles, during 600 turns after
+their appearance. A directed route from (30,43) to lava (30,42), owned by player
+2 while the Salamander belongs to player 3, also completed. Separate shipped-map
+checks confirm both a Salamander and a Giant enter and traverse lava.
+`LavaMovementOnRealDataTests` pins these modern checks; the owner's runtime
+observation is not reproduced and original route parity is not established.
+The owner subsequently observed a Salamander walking on lava and stopped the
+investigation; no movement behavior was changed.
+
 ## 5. The loop, and why the owner's "waiting" is not state 88
 
 State 1 (`0x004773D0`), where the wander resumes, sends a creature whose
