@@ -38,6 +38,10 @@ public sealed class Dk2ArtCatalogue
     public required IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> Rooms { get; init; }
     public required IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> Creatures { get; init; }
     public required IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> Objects { get; init; }
+    public IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> Doors { get; init; } =
+        new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>();
+    public IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> Traps { get; init; } =
+        new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>();
 
     public static Dk2ArtCatalogue Load(string installDirectory)
     {
@@ -54,6 +58,10 @@ public sealed class Dk2ArtCatalogue
                 5449, idOffset: 0xF4B, artOffset: 0x20 + ArtResourceSize, artCount: 36),
             Objects = Read(Path.Combine(editor, "Objects.kwd"), KwdRecordType.Objects,
                 894, idOffset: 0x35A, artOffset: 0x20, artCount: 9),
+            Doors = Read(Path.Combine(editor, "Doors.kwd"), KwdRecordType.Doors,
+                616, idOffset: 0x244, artOffset: 0x20, artCount: 6),
+            Traps = Read(Path.Combine(editor, "Traps.kwd"), KwdRecordType.Traps,
+                579, idOffset: 0x20C, artOffset: 0x20, artCount: 5),
         };
     }
 

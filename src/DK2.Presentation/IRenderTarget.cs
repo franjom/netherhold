@@ -8,7 +8,7 @@ namespace DK2.Presentation;
 
 /// <summary>What a renderer has to be able to do, without naming an engine.</summary>
 /// <remarks>
-/// <para>Twelve methods with no logic in them (ADR-0036; the torches, ADR-0391). Diffing, asset resolution,
+/// <para>Scene delivery methods (ADR-0036; the torches, ADR-0391). Diffing, asset resolution,
 /// coordinate policy and push order are all <see cref="ScenePresenter"/>'s and are
 /// tested here; the adapter cannot be.</para>
 /// <para>Arguments are <see cref="ResolvedAsset"/>, not a path: a target must draw
@@ -65,6 +65,10 @@ public interface IRenderTarget
 
     /// <summary>An object is gone: a bed sold, an egg hatched, a pile emptied.</summary>
     void RemoveObject(int objectId);
+
+    void CreateStructure(StructureId id, in StructureView structure, in ResolvedAsset mesh);
+    void UpdateStructure(StructureId id, in StructureView structure, in ResolvedAsset mesh);
+    void RemoveStructure(StructureId id);
 
     /// <summary>
     /// A wall torch has been lit over a floor tile: a light, and its mesh unless

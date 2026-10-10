@@ -58,11 +58,13 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     public const string ObjectCategory = "object";
 
     public const string UiCategory = "ui";
+    public const string DoorCategory = "door";
+    public const string TrapCategory = "trap";
 
     private static readonly HashSet<string> Categories =
         new(StringComparer.Ordinal)
         {
-            TerrainCategory, RoomCategory, CreatureCategory, ObjectCategory, UiCategory,
+            TerrainCategory, RoomCategory, CreatureCategory, ObjectCategory, UiCategory, DoorCategory, TrapCategory,
         };
 
     private readonly string? _key;
@@ -124,6 +126,11 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     /// <summary>The art belonging to an object type.</summary>
     public static AssetRef ForObject(string objectName, AssetKind kind, string? variant = null) =>
         Create(ObjectCategory, objectName, kind, variant);
+
+    public static AssetRef ForDoor(string doorName, bool open = false) =>
+        Create(DoorCategory, doorName, AssetKind.Mesh, open ? "open" : "closed");
+
+    public static AssetRef ForTrap(string trapName) => Create(TrapCategory, trapName, AssetKind.Mesh);
 
     /// <summary>
     /// The role segment for a kind. Deliberately a total function over the enum,

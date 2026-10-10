@@ -49,6 +49,7 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, AssetRef> _creatureArt = new Dictionary<int, AssetRef>();
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
+        private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private readonly int _worldWidth;
@@ -145,15 +146,15 @@ namespace DK2.Unity
             if (go == null) return;
 
             _creatures[creatureId] = go;
-            PositionCreature(go, creatureId, creature, mesh.Look);
             _creatureArt[creatureId] = mesh.Reference;
+            PositionCreature(go, creatureId, creature, mesh.Look);
         }
 
         public void UpdateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
         {
-            if (!_creatures.TryGetValue(creatureId, out GameObject go) || go == null)
             if (_creatureArt.TryGetValue(creatureId, out AssetRef previous) && previous != mesh.Reference)
                 RemoveCreature(creatureId);
+            if (!_creatures.TryGetValue(creatureId, out GameObject go) || go == null)
             {
                 CreateCreature(creatureId, creature, mesh, animation);
                 return;
@@ -176,8 +177,8 @@ namespace DK2.Unity
             _meshCreatures.Remove(creatureId);
 
             _creatures.Remove(creatureId);
-        }
             _creatureArt.Remove(creatureId);
+        }
 
         public void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
         {
@@ -217,6 +218,31 @@ namespace DK2.Unity
             _objects.Remove(objectId);
             _meshObjects.Remove(objectId);
             _artless.Remove(objectId);
+        }
+
+        public void CreateStructure(StructureId id, in StructureView structure, in ResolvedAsset mesh)
+        {
+            GameObject go = _classic?.TryCreate(mesh, $"{id.Kind} {id.Value}", _root, structure.LastFrame);
+            bool realMesh = go != null;
+            if (go == null && _classic == null) go = Instantiate(mesh, $"{id.Kind} {id.Value}");
+            if (go == null) return;
+            _structures[id] = go;
+            float x = structure.PosX / (float)Fp32.One, y = structure.PosY / (float)Fp32.One;
+            go.transform.position = Ground(x, y, structure.Height / (float)Fp32.One);
+            go.transform.localRotation = Quaternion.Euler(0f, structure.MeshYaw * 360f / 2048f, 0f);
+            if (realMesh) go.transform.localScale = Vector3.one;
+        }
+
+        public void UpdateStructure(StructureId id, in StructureView structure, in ResolvedAsset mesh)
+        {
+            RemoveStructure(id);
+            CreateStructure(id, structure, mesh);
+        }
+
+        public void RemoveStructure(StructureId id)
+        {
+            if (_structures.TryGetValue(id, out GameObject go) && go != null) Object.Destroy(go);
+            _structures.Remove(id);
         }
 
         /// <summary>A wall torch: a point light, and its mesh when it has one. How DK2's light
@@ -289,6 +315,7 @@ namespace DK2.Unity
             foreach (GameObject go in _furniture.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _creatures.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _objects.Values) if (go != null) Object.Destroy(go);
+            foreach (GameObject go in _structures.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _torches.Values) if (go != null) Object.Destroy(go);
             _terrain?.Clear();
             _liquids?.Clear();
@@ -296,7 +323,9 @@ namespace DK2.Unity
             _tiles.Clear();
             _furniture.Clear();
             _creatures.Clear();
+            _creatureArt.Clear();
             _objects.Clear();
+            _structures.Clear();
             _meshObjects.Clear();
             _artless.Clear();
             _meshCreatures.Clear();
@@ -323,7 +352,6 @@ namespace DK2.Unity
             _furniture[tileIndex] = go;
         }
 
-            _creatureArt.Clear();
         /// <summary>Makes a placeholder object for a resolved asset. A converter file
         /// (<see cref="ResolvedAsset.FilePath"/>) is never loaded: ADR-0408 reads the install
         /// instead, through <see cref="ClassicMeshes"/>, which draws objects so far. Anything else

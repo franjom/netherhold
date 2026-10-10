@@ -9706,3 +9706,18 @@ chair poses/effects, other art modes and other furniture obstacles remain deferr
 Creature separation already runs; rigid mesh collision would change original behavior.
 Twenty recorded seeds per level retain all prior outcomes and win ticks:
 Level 1 20/20 wins, Level 2 4/20 and Level 3 17/20; all 60 replays are valid.
+
+## ADR-0421 — Draw placed doors and traps through the asset boundary
+**Date:** 2026-10-10 · **Status:** accepted · Research: structure-drawing.md
+
+**Context.** Snapdragon loads doors and traps into simulation, but the classic
+asset catalogue and scene presenter supplied no corresponding meshes.
+
+**Decision.** Add definition-based door/trap asset references and typed structure
+identities. Present tile-centred structures using original headings, floor height
+and viewer visibility. Draw normal doors using settled open/closed clip endpoints;
+barricades use their static model. Unity consumes this detached view.
+
+**Consequences.** Simulation state and its random stream are unchanged. Door
+transitions, trap animation/effects and construction tint remain deferred to
+classic look step 4; concealed structures follow the recorded visibility rules.

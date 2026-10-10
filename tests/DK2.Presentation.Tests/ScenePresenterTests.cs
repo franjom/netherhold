@@ -85,6 +85,12 @@ public class ScenePresenterTests
             ObjectRemoves++;
         }
 
+        public void CreateStructure(StructureId id, in StructureView s, in ResolvedAsset m) =>
+            Calls.Add($"create-structure {id} {m.Reference}");
+        public void UpdateStructure(StructureId id, in StructureView s, in ResolvedAsset m) =>
+            Calls.Add($"update-structure {id} {m.Reference}");
+        public void RemoveStructure(StructureId id) => Calls.Add($"remove-structure {id}");
+
         public void CreateTorch(int i, in TorchView t, in ResolvedAsset m) => Calls.Add($"create-torch {i} {m.Reference}");
 
         public void UpdateTorch(int i, in TorchView t, in ResolvedAsset m) => Calls.Add($"update-torch {i}");

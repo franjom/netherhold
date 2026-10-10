@@ -86,6 +86,13 @@ public static class AssetCatalogue
         foreach (AssetRef reference in ForTorches(database)) yield return reference;
         foreach (AssetRef reference in ForCreatures(database)) yield return reference;
         foreach (AssetRef reference in ForObjects(database)) yield return reference;
+        foreach (byte id in Sorted(database.Doors.Keys))
+        {
+            yield return AssetRef.ForDoor(database.Doors[id].Name);
+            yield return AssetRef.ForDoor(database.Doors[id].Name, open: true);
+        }
+        foreach (byte id in Sorted(database.Traps.Keys))
+            yield return AssetRef.ForTrap(database.Traps[id].Name);
     }
 
     /// <summary>The bridge's own torch art, which a wall torch over a floor with no room carries

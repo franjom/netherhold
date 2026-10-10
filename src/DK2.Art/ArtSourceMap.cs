@@ -50,6 +50,7 @@ public static class ArtSourceMap
         AddTorches(entries, database);
         AddCreatures(entries, database, art);
         AddObjects(entries, database, art);
+        AddStructures(entries, database, art);
 
         IReadOnlyList<AssetRef> expected = AssetCatalogue.ForDatabase(database).ToArray();
         if (entries.Count != expected.Count || !entries.Select(entry => entry.Reference).SequenceEqual(expected))
@@ -193,6 +194,26 @@ public static class ArtSourceMap
             }
     }
 
+    private static void AddStructures(List<ArtEntry> entries, GameDatabase database, Dk2ArtCatalogue art)
+    {
+        foreach (DoorDef door in database.Doors.Values.OrderBy(value => value.DoorId))
+            foreach (bool open in new[] { false, true })
+            {
+                AssetRef reference = AssetRef.ForDoor(door.Name, open);
+                if (!art.Doors.TryGetValue(door.DoorId, out IReadOnlyList<Dk2ArtResource>? resources))
+                    entries.Add(Missing(reference, NoArtRecord("door", door.DoorId)));
+                else
+                    entries.Add(Model(reference, door.Flags.HasFlag(DoorFlags.Barricade)
+                        ? resources[0] : resources[open ? 4 : 5], open ? "door opening" : "door closing"));
+            }
+        foreach (TrapDef trap in database.Traps.Values.OrderBy(value => value.TrapId))
+        {
+            AssetRef reference = AssetRef.ForTrap(trap.Name);
+            entries.Add(art.Traps.TryGetValue(trap.TrapId, out IReadOnlyList<Dk2ArtResource>? resources)
+                ? Model(reference, resources[0], "trap model") : Missing(reference, NoArtRecord("trap", trap.TrapId)));
+        }
+    }
+
     private static Dk2ArtResource CreatureAnimationSource(
         CreatureDef creature, IReadOnlyList<Dk2ArtResource> resources, string animation) => animation switch
     {
@@ -201,6 +222,7 @@ public static class ArtSourceMap
             => new Dk2ArtResource("", 0), // That shipped slot is Imp_Claim1(Land), not sleep.
         "sleeping" => resources[CreatureSleeping],
         "dying" => resources[CreatureDie],
+        "being_tortured" => resources[CreatureTortured],
         "working" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
             => resources[CreatureMelee], // The Imp's slot is named Imp_Dig in shipped data.
         "working" => resources[CreatureManufacturing],
@@ -222,7 +244,6 @@ public static class ArtSourceMap
             "", reason);
 
     private static string NoArtRecord(string category, byte id) => $"KWD has no {category} art record for id {id}";
-        "being_tortured" => resources[CreatureTortured],
 
     private static Dk2ArtResource First(params Dk2ArtResource[] resources) =>
         resources.FirstOrDefault(resource => !resource.IsEmpty) ?? resources[0];

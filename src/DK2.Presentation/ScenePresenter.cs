@@ -201,6 +201,7 @@ public sealed class ScenePresenter
     private readonly Dictionary<int, ObjectVisual> _lastObjects = [];
     private readonly List<int> _goneObjects = [];
     private readonly HashSet<int> _seenObjects = [];
+    private readonly Dictionary<StructureId, StructureView> _lastStructures = [];
 
     public ScenePresenter(WorldView view, IAssetProvider assets, IRenderTarget target)
         : this(view, assets, target, null)
@@ -239,6 +240,7 @@ public sealed class ScenePresenter
         _tileCreated = [];
         _lastCreatures.Clear();
         _lastObjects.Clear();
+        _lastStructures.Clear();
         _torchesDrawn.Clear();
         _redrawTorches = true;
     }
@@ -273,6 +275,7 @@ public sealed class ScenePresenter
         // the text renderer draws them in that precedence -- one order, decided
         // here, so two renderers cannot disagree about what occludes what.
         PresentObjects(world);
+        PresentStructures(world);
         PresentCreatures(world);
 
         _target.Flush();
@@ -385,6 +388,31 @@ public sealed class ScenePresenter
     {
         foreach (ObjectView instance in _view.Objects(world)) yield return instance;
         foreach (ObjectView decoration in _view.Decorations(world)) yield return decoration;
+    }
+
+    private void PresentStructures(WorldState world)
+    {
+        var seen = new HashSet<StructureId>();
+        foreach (StructureView structure in _view.Structures(world))
+        {
+            seen.Add(structure.Id);
+            bool known = _lastStructures.TryGetValue(structure.Id, out StructureView last);
+            if (known && last == structure) continue;
+            ResolvedAsset mesh = Resolve(structure.Mesh);
+            if (known) _target.UpdateStructure(structure.Id, structure, mesh);
+            else _target.CreateStructure(structure.Id, structure, mesh);
+            _lastStructures[structure.Id] = structure;
+        }
+        var gone = new List<StructureId>();
+        foreach (StructureId id in _lastStructures.Keys)
+            if (!seen.Contains(id)) gone.Add(id);
+        gone.Sort((left, right) => left.Kind != right.Kind
+            ? left.Kind.CompareTo(right.Kind) : left.Value.CompareTo(right.Value));
+        foreach (StructureId id in gone)
+        {
+            _target.RemoveStructure(id);
+            _lastStructures.Remove(id);
+        }
     }
 
     private void PresentObjects(WorldState world)

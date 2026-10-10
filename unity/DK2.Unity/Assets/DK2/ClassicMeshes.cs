@@ -32,7 +32,7 @@ namespace DK2.Unity
 
         private readonly InstallArtProvider _art;
         private readonly Shader _shader;
-        private readonly Dictionary<string, Built> _built = new Dictionary<string, Built>();
+        private readonly Dictionary<(string, bool), Built> _built = new Dictionary<(string, bool), Built>();
         private readonly Dictionary<(string, KmfBlend, float), Material> _materials =
             new Dictionary<(string, KmfBlend, float), Material>();
         private readonly Dictionary<Material, Material> _tagged = new Dictionary<Material, Material>();
@@ -54,10 +54,10 @@ namespace DK2.Unity
 
         /// <summary>A new object drawing the asset's model, parented and unplaced; null when the
         /// asset is not an install entry this provider answered or its KMF is a group.</summary>
-        public GameObject TryCreate(in ResolvedAsset asset, string name, Transform parent)
+        public GameObject TryCreate(in ResolvedAsset asset, string name, Transform parent, bool lastFrame = false)
         {
             if (asset.Source != AssetSource.InstallEntry || asset.ProviderName != _art.Name) return null;
-            if (!TryBuild(asset, out Built built)) return null;
+            if (!TryBuild(asset, lastFrame, out Built built)) return null;
 
             var go = new GameObject(name);
             go.transform.SetParent(parent, worldPositionStays: false);
@@ -90,14 +90,15 @@ namespace DK2.Unity
             return piece;
         }
 
-        private bool TryBuild(in ResolvedAsset asset, out Built built)
+        private bool TryBuild(in ResolvedAsset asset, bool lastFrame, out Built built)
         {
-            if (_built.TryGetValue(asset.InstallEntry, out built)) return built != null;
+            if (_built.TryGetValue((asset.InstallEntry, lastFrame), out built)) return built != null;
 
             built = null;
             if (_art.TryLoadModel(asset, out KmfModel model))
             {
-                RenderMesh source = RenderMesh.FromModel(model);
+                RenderMesh source = RenderMesh.FromModel(model, lastFrame && model.Animation is { IsComplete: true }
+                    ? model.Animation.Frames.Count - 1 : 0);
                 var mesh = new Mesh { name = asset.InstallEntry };
                 mesh.SetVertices(ToUnity(source.Positions));
                 mesh.SetNormals(ToUnity(source.Normals));
@@ -112,7 +113,7 @@ namespace DK2.Unity
                     materials[i] = MaterialFor(i < model.Materials.Count ? model.Materials[i] : null);
                 built = new Built(mesh, materials);
             }
-            _built[asset.InstallEntry] = built;
+            _built[(asset.InstallEntry, lastFrame)] = built;
             return built != null;
         }
 
