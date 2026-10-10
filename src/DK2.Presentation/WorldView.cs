@@ -180,18 +180,17 @@ public readonly struct CreatureView
 
 /// <summary>
 /// One object standing on a tile, as a renderer needs it: a bed, a chicken coop,
-/// an egg, a pile of gold.
+/// an egg, a pile of gold, a room's pillar.
 ///
-/// <para><b>A tile and not a position</b>, because that is all the simulation
-/// has. DK2 gives an object a sub-tile position and every one of the three
-/// gold-dropping paths picks a different point within the tile
-/// (gold-on-the-floor.md §7), so a faithful renderer will want more than this —
-/// but inventing a position here would be inventing behaviour, and the field
-/// arrives with the first mechanic that moves an object.</para>
+/// <para>Placed as DK2 places it (furniture-placement.md, object-drawing.md): a point
+/// in the tile, a height, a heading and a scale. The simulation holds a tile only, so the
+/// point is what the placing pass would have chosen; a pile dropped at a random point
+/// (gold-on-the-floor.md §7) is drawn at its tile's centre.</para>
 /// </summary>
 public readonly struct ObjectView
 {
-    public ObjectView(int id, byte objectTypeId, PlayerId ownerPlayerId, TilePos tile, AssetRef mesh, int goldHeld)
+    public ObjectView(int id, byte objectTypeId, PlayerId ownerPlayerId, TilePos tile, AssetRef mesh, int goldHeld,
+        int posX, int posY, int height, int heading, int scale)
     {
         Id = id;
         ObjectTypeId = objectTypeId;
@@ -199,10 +198,30 @@ public readonly struct ObjectView
         Tile = tile;
         Mesh = mesh;
         GoldHeld = goldHeld;
+        PosX = posX;
+        PosY = posY;
+        Height = height;
+        Heading = heading;
+        Scale = scale;
     }
 
-    /// <summary>The simulation's object id, stable for the object's whole life.</summary>
+    /// <summary>The simulation's object id, stable for the object's whole life; negative for a
+    /// decoration the view adds (<see cref="WorldView.Decorations"/>), stable while its room stands.</summary>
     public int Id { get; }
+
+    /// <summary>Position in <see cref="Fp32"/> tile units (<c>+0x1A</c>, <c>+0x1E</c>).</summary>
+    public int PosX { get; }
+
+    public int PosY { get; }
+
+    /// <summary>Height in <see cref="Fp32"/> units, ordinary floor at one tile (<c>+0x22</c>).</summary>
+    public int Height { get; }
+
+    /// <summary>Heading, 2048 to a full turn, 0 north and <c>0x200</c> east (<c>+0xF4</c>).</summary>
+    public int Heading { get; }
+
+    /// <summary>Uniform scale, <see cref="Fp32.One"/> for 1 (RenderInfo <c>+4</c>, <c>+8</c>).</summary>
+    public int Scale { get; }
 
     /// <summary>Which of the 145 definitions this is.</summary>
     public byte ObjectTypeId { get; }
@@ -237,7 +256,7 @@ public readonly struct ObjectView
 /// readonly structs holding copies, but <see cref="WorldState.Tile(int,int)"/> hands out a
 /// <c>ref</c>. What holds absolutely is the other direction — the simulation holds no reference to
 /// any of this. <b>No caching</b>: a view is built on demand, so it cannot go stale.</para></summary>
-public sealed class WorldView
+public sealed partial class WorldView
 {
     private readonly GameDatabase _database;
     private readonly byte _viewingPlayerId;
@@ -646,6 +665,7 @@ public sealed class WorldView
         _roomsTick = world.CurrentTick;
         _checkerSlots.Clear();
         _roomFacts.Clear();
+        _rooms.Clear();
         if (_roomOf.Length != world.TileCount) _roomOf = new int[world.TileCount];
         else Array.Clear(_roomOf, 0, _roomOf.Length);
 
@@ -656,6 +676,7 @@ public sealed class WorldView
             (int northSouth, int eastWest) = WallPhases(world, room);
             int first = SlabChain.FirstSlab(world, room);
             _roomFacts.Add(new RoomFacts(first % world.Width, first / world.Width, door, northSouth, eastWest));
+            _rooms.Add(room);
             foreach (int tile in room.TileIndices) _roomOf[tile] = _roomFacts.Count;
             if (AutoFurnitureRules.UsesCheckerboard(type))
                 _checkerSlots.UnionWith(AutoFurnitureRules.FloorSlotSet(world, room));
@@ -915,17 +936,9 @@ public sealed class WorldView
             if (instance.InHand) continue;
             var position = new TilePos(
                 instance.TileIndex % world.Width, instance.TileIndex / world.Width);
-            if (!IsVisible(world, position)) continue;
+            if (!IsVisible(world, position) || BedHidden(world, instance)) continue;
 
-            _objectMeshes.TryGetValue(instance.ObjectTypeId, out AssetRef mesh);
-
-            yield return new ObjectView(
-                instance.Id,
-                instance.ObjectTypeId,
-                instance.OwnerPlayerId,
-                position,
-                mesh,
-                instance.GoldHeld);
+            yield return Placed(world, instance, position);
         }
     }
 

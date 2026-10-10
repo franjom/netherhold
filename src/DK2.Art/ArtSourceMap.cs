@@ -175,6 +175,14 @@ public static class ArtSourceMap
             else
                 entries.Add(Model(AssetRef.ForObject(value.Name, AssetKind.Mesh), resources[0], "object mesh"));
         }
+        foreach (ObjectDef value in database.Objects.Values.OrderBy(value => value.ObjectId))
+            foreach (int slot in AssetCatalogue.ObjectArtSlots(value.ObjectId))
+            {
+                AssetRef reference = AssetCatalogue.ObjectArt(value.Name, slot);
+                entries.Add(art.Objects.TryGetValue(value.ObjectId, out IReadOnlyList<Dk2ArtResource>? resources)
+                    ? Model(reference, resources[slot], "object art " + slot)
+                    : Missing(reference, NoArtRecord("object", value.ObjectId)));
+            }
     }
 
     private static Dk2ArtResource CreatureAnimationSource(

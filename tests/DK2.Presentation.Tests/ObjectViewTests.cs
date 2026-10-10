@@ -72,7 +72,7 @@ public class ObjectViewTests
             AssetCatalogue.ForObjects(database).Select(k => k.Key), StringComparer.Ordinal);
 
         Assert.NotEmpty(catalogue);
-        Assert.Equal(database.Objects.Count, catalogue.Count);
+        Assert.Equal(database.Objects.Count + 5, catalogue.Count); // and Gold Pile 1's and the Book Case's arts
 
         // One of each kind the simulation can place today.
         world.SpawnObject(database, 1, PlayerIds.Neutral, 40);

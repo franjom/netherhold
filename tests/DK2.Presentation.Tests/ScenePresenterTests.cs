@@ -499,12 +499,15 @@ public class ScenePresenterTests
         if (BuildRig() is not { } rig) return; // skipped: no install
 
         FloorGold.Drop(rig.Simulation.World, rig.Database, 40, 500);
+        rig.Target.Clear();
         rig.Presenter.Present(rig.Simulation.World);
+        int created = rig.Target.ObjectCreates; // the pile and the Heart's decorations
 
         rig.Target.Clear();
         rig.Presenter.Resync();
         rig.Presenter.Present(rig.Simulation.World);
 
-        Assert.Equal(1, rig.Target.ObjectCreates);
+        Assert.True(created > 1);
+        Assert.Equal(created, rig.Target.ObjectCreates);
     }
 }

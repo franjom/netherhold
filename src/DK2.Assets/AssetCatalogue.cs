@@ -281,18 +281,37 @@ public static class AssetCatalogue
     /// One mesh per object definition — a bed, a coop, an egg, a pile of gold, and
     /// the hundred-odd pillars and arches that are the rest of the record. Every
     /// object, not only the four the simulation places (<see cref="ForCreatures"/>).
+    /// Then the other arts a view shows by state (<see cref="ObjectArtSlots"/>).
     /// </summary>
     /// <remarks>
-    /// Not implemented: object animations. DK2 gives an object a state machine
-    /// (<c>StateId</c>, <c>StateAge</c> — docs/research/objects.md §7) and a
-    /// <c>MoveTo</c> block, but nothing here can tell one object state from another
-    /// yet, so no variant list is invented.
+    /// Not implemented: object animations by state (a coop's wobble, an egg's hatch, a
+    /// dummy's recoil; object-drawing.md §8).
     /// </remarks>
     public static IEnumerable<AssetRef> ForObjects(GameDatabase database)
     {
         foreach (byte id in Sorted(database.Objects.Keys))
             yield return AssetRef.ForObject(database.Objects[id].Name, AssetKind.Mesh);
+        foreach (byte id in Sorted(database.Objects.Keys))
+            foreach (int slot in ObjectArtSlots(id))
+                yield return ObjectArt(database.Objects[id].Name, slot);
     }
+
+    /// <summary>An object's file art <paramref name="slot"/> (5 to 8, the definition's extra arts;
+    /// object-drawing.md §2). Slot 0 is the object's <see cref="AssetKind.Mesh"/>.</summary>
+    public static AssetRef ObjectArt(string objectName, int slot) =>
+        AssetRef.ForObject(objectName, AssetKind.Mesh, "art" + slot);
+
+    /// <summary>The extra arts a view switches an object to: Gold Pile 1's urns by fill
+    /// (<c>0x004F4440</c>) and the Book Case's three variants (<c>0x004EE6A5</c>).</summary>
+    public static IReadOnlyList<int> ObjectArtSlots(byte objectId) => objectId switch
+    {
+        3 => GoldPileSlots,
+        64 => BookCaseSlots,
+        _ => [],
+    };
+
+    private static readonly int[] GoldPileSlots = [5, 6];
+    private static readonly int[] BookCaseSlots = [5, 6, 7];
 
     private static List<byte> Sorted(IEnumerable<byte> ids)
     {

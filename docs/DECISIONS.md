@@ -9253,6 +9253,11 @@ INFERRED).
 20/20, Level 2 5/20 and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3608 and 3600 (DK2
 3683).
 
+**Amendment (2026-10-10, Q581; `furniture-placement.md` §3).** The wall pass's default arm
+`0x004EEE1F` moves its object `0x700` toward its wall like every other arm, so the Workshop's wall
+Anvils and Buckets do not stay at their tile's centre; its floor machines do. Not built in the
+simulation (it moves where a manufacturer works); the classic look draws them by the binary.
+
 ## ADR-0405 — The keeper slaps on the last task kind; a repair is kind 16
 **Date:** 2026-10-08 · **Status:** accepted · Research: `computer-keeper-management.md` §8; Q574
 

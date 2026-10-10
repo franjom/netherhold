@@ -130,22 +130,38 @@ public sealed class ScenePresenter
             Tile = instance.Tile;
             OwnerPlayerId = instance.OwnerPlayerId;
             GoldHeld = instance.GoldHeld;
+            PosX = instance.PosX;
+            PosY = instance.PosY;
+            Height = instance.Height;
+            Heading = instance.Heading;
+            Scale = instance.Scale;
         }
 
         public AssetRef Mesh { get; }
         public TilePos Tile { get; }
         public byte OwnerPlayerId { get; }
         public int GoldHeld { get; }
+        public int PosX { get; }
+        public int PosY { get; }
+        public int Height { get; }
+        public int Heading { get; }
+        public int Scale { get; }
 
         public bool Equals(ObjectVisual other) =>
             Mesh == other.Mesh
             && Tile.Equals(other.Tile)
             && OwnerPlayerId == other.OwnerPlayerId
-            && GoldHeld == other.GoldHeld;
+            && GoldHeld == other.GoldHeld
+            && PosX == other.PosX
+            && PosY == other.PosY
+            && Height == other.Height
+            && Heading == other.Heading
+            && Scale == other.Scale;
 
         public override bool Equals(object? obj) => obj is ObjectVisual other && Equals(other);
 
-        public override int GetHashCode() => HashCode.Combine(Mesh, Tile, OwnerPlayerId, GoldHeld);
+        public override int GetHashCode() => HashCode.Combine(
+            Mesh, Tile, OwnerPlayerId, GoldHeld, HashCode.Combine(PosX, PosY, Height, Heading, Scale));
     }
 
     private readonly WorldView _view;
@@ -342,11 +358,18 @@ public sealed class ScenePresenter
         }
     }
 
+    /// <summary>The simulation's objects, then the view's decorations.</summary>
+    private IEnumerable<ObjectView> Scenery(WorldState world)
+    {
+        foreach (ObjectView instance in _view.Objects(world)) yield return instance;
+        foreach (ObjectView decoration in _view.Decorations(world)) yield return decoration;
+    }
+
     private void PresentObjects(WorldState world)
     {
         _seenObjects.Clear();
 
-        foreach (ObjectView instance in _view.Objects(world))
+        foreach (ObjectView instance in Scenery(world))
         {
             _seenObjects.Add(instance.Id);
             var visual = new ObjectVisual(instance);

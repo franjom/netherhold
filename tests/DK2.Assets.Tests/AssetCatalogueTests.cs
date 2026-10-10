@@ -253,25 +253,23 @@ public class AssetCatalogueTests
         Assert.Equal(database.Rooms.Count + pieces, keys.Count(k => k.Kind == AssetKind.Mesh));
     }
     /// <summary>
-    /// Every object definition gets a mesh, and only a mesh.
+    /// Every object definition gets a mesh, and beyond it only the arts the view switches
+    /// to by state: Gold Pile 1's two urns and the Book Case's three variants.
     ///
-    /// <para>Only a mesh <i>for now</i>: DK2 gives an object its own state
-    /// machine and a <c>MoveTo</c> block, so a chicken pecking and a boulder
-    /// rolling will want animation variants. This project cannot yet tell one
-    /// object state from another, and a variant list invented here would put
-    /// keys in a converter's work list that correspond to nothing — the same
-    /// restraint the wall variants get.</para>
+    /// <para>No other variant <i>for now</i>: a chicken pecking or a coop wobbling
+    /// is an object state ours does not hold, and a variant list invented here would put
+    /// keys in a converter's work list that correspond to nothing.</para>
     /// </summary>
     [InstallFact]
-    public void EveryObjectInTheDatabaseGetsAMeshAndNothingElse()
+    public void EveryObjectInTheDatabaseGetsAMeshAndOnlyTheArtsTheViewSwitchesTo()
     {
         GameDatabase? database = RealDatabase();
         Assert.NotNull(database);
 
         var keys = AssetCatalogue.ForObjects(database).ToList();
 
-        Assert.Equal(database.Objects.Count, keys.Count);
-        Assert.Equal(145, keys.Count);
+        Assert.Equal(database.Objects.Count + 5, keys.Count);
+        Assert.Equal(150, keys.Count);
         Assert.All(keys, k => Assert.Equal(AssetKind.Mesh, k.Kind));
 
         // And they are in the whole-database listing, or a converter would
