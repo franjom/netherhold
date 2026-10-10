@@ -107,6 +107,10 @@ two is a bug in one of them rather than a matter of taste.
 ```
 
 `UseUrp` creates `Assets/DK2/Rendering/DK2-URP.asset` and puts every quality level on it.
+The renderer and `UseUrp` use Forward+ because terrain is merged into 16×16-tile
+meshes: Forward's four additional lights per renderer cannot cover a chunk's wall
+torches. Forward+ selects lights by screen tile and removes that per-object cap
+([Unity's rendering paths](https://docs.unity3d.com/Manual/urp/rendering/forward-rendering-paths.html)).
 `RenderStep0` writes `build/classic-look/step0-pieces.png` (the gold pile, the rock wall's
 side and the Lair's five wall pieces) and `step0-level1.png` (Level 1 from the runner's
 opening camera). Neither takes `-nographics`, and the second no `-quit`: it waits on the
