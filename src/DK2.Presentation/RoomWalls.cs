@@ -20,9 +20,9 @@ public readonly struct RoomWalls : IEquatable<RoomWalls>
     // side the A bit is the decoration.
     private const int Present = 1, Whole = 2, BitA = 4, BitB = 8;
 
-    private readonly ushort _bits;
+    private readonly ulong _bits;
 
-    private RoomWalls(ushort bits) => _bits = bits;
+    private RoomWalls(ulong bits) => _bits = bits;
 
     /// <summary>No side has a wall.</summary>
     public bool IsEmpty => _bits == 0;
@@ -31,8 +31,19 @@ public readonly struct RoomWalls : IEquatable<RoomWalls>
 
     public bool IsWhole(int side) => (Side(side) & (Present | Whole)) == (Present | Whole);
 
-    /// <summary>The whole piece on a side: 8 when decorated, else 7; 0 if the side is not whole.</summary>
-    public int WholePiece(int side) => !IsWhole(side) ? 0 : (Side(side) & BitA) != 0 ? 8 : 7;
+    /// <summary>The whole piece on a side: normal walls use 7 or decorated 8;
+    /// 3×1 gates override the piece and rotation per side. Zero if not whole.</summary>
+    public int WholePiece(int side) => !IsWhole(side) ? 0 : HasCustomWhole(side)
+        ? (int)((_bits >> (16 + side * 7)) & 0xF) : (Side(side) & BitA) != 0 ? 8 : 7;
+
+    public int WholeRotation(int side) => HasCustomWhole(side)
+        ? (int)((_bits >> (20 + side * 7)) & 3) : side;
+
+    private bool HasCustomWhole(int side) => ((_bits >> (22 + side * 7)) & 1) != 0;
+
+    internal RoomWalls WithWholePiece(int side, int piece, int rotation) =>
+        new(_bits | ((ulong)(Present | Whole) << (side * 4))
+            | ((ulong)(0x40 | (piece & 0xF) | ((rotation & 3) << 4)) << (16 + side * 7)));
 
     /// <summary>The A half's piece (quadrant <paramref name="side"/>): 6 if the wall runs on that
     /// way, else 4; 0 if the side has no halves.</summary>
@@ -43,19 +54,19 @@ public readonly struct RoomWalls : IEquatable<RoomWalls>
     public int HalfBPiece(int side) => !HasWall(side) || IsWhole(side) ? 0 : (Side(side) & BitB) != 0 ? 6 : 5;
 
     internal RoomWalls WithWhole(int side, bool decorated = false) =>
-        new((ushort)(_bits | ((Present | Whole | (decorated ? BitA : 0)) << (side * 4))));
+        new(_bits | ((ulong)(Present | Whole | (decorated ? BitA : 0)) << (side * 4)));
 
     internal RoomWalls WithHalves(int side, bool aRunsOn, bool bRunsOn) =>
-        new((ushort)(_bits | ((Present | (aRunsOn ? BitA : 0) | (bRunsOn ? BitB : 0)) << (side * 4))));
+        new(_bits | ((ulong)(Present | (aRunsOn ? BitA : 0) | (bRunsOn ? BitB : 0)) << (side * 4)));
 
     private int Side(int side) =>
-        side is >= 0 and <= 3 ? (_bits >> (side * 4)) & 0xF : throw new ArgumentOutOfRangeException(nameof(side));
+        side is >= 0 and <= 3 ? (int)((_bits >> (side * 4)) & 0xF) : throw new ArgumentOutOfRangeException(nameof(side));
 
     public bool Equals(RoomWalls other) => _bits == other._bits;
 
     public override bool Equals(object? obj) => obj is RoomWalls other && Equals(other);
 
-    public override int GetHashCode() => _bits;
+    public override int GetHashCode() => _bits.GetHashCode();
 
     public static bool operator ==(RoomWalls left, RoomWalls right) => left.Equals(right);
 

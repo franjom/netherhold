@@ -83,6 +83,7 @@ namespace DK2.Unity
         private InstallArtProvider _installArt;
         private ClassicMeshes _classic;
         private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
+        private TilePos? _dragTo;
         private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
         private RoomTypeId[] _roomIds = Array.Empty<RoomTypeId>();
         private double _tickDebt;
@@ -129,16 +130,26 @@ namespace DK2.Unity
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' map.")
                 : LoadSave(install);
 
-            WorldState world = WorldState.FromMap(
-                database, map, PlayersOf(map), fogOfWarEnabled: fogOfWar);
-
             if (campaignLevel)
             {
-                var things = GameDatabaseLoader.LoadCampaignThings(install, levelName);
-                if (things != null) ThingProjection.Place(world, database, things);
+                var level = GameDatabaseLoader.LoadCampaignLevel(install, levelName)
+                    ?? throw new InvalidOperationException($"the install has no '{levelName}' level definition.");
+                var players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName)
+                    ?? throw new InvalidOperationException($"the install has no '{levelName}' players.");
+                var things = GameDatabaseLoader.LoadCampaignThings(install, levelName)
+                    ?? throw new InvalidOperationException($"the install has no '{levelName}' things.");
+                var triggers = GameDatabaseLoader.LoadCampaignTriggers(install, levelName)
+                    ?? throw new InvalidOperationException($"the install has no '{levelName}' triggers.");
+                _simulation = CampaignSimulationFactory.Create(database, map, level,
+                    players, things, triggers, seed, fogOfWarEnabled: fogOfWar);
             }
-
-            _simulation = new GameSimulation(database, world, seed, SimulationSystems.Default());
+            else
+            {
+                WorldState savedMap = WorldState.FromMap(
+                    database, map, PlayersOf(map), fogOfWarEnabled: fogOfWar);
+                _simulation = new GameSimulation(database, savedMap, seed, SimulationSystems.Default());
+            }
+            WorldState world = _simulation.World;
             _roomIds = database.Rooms.Keys.OrderBy(id => (byte)id).ToArray();
             SelectKnownRoom();
 
@@ -200,6 +211,12 @@ namespace DK2.Unity
                 }
             }
 
+            // A tag drag shows its rectangle as tagged while the button is held, as DK2's does; off
+            // the map, the rectangle keeps the last tile the pointer was on.
+            TilePos? dragFrom = _input.DragFrom(PlayerToolMode.TagTiles);
+            if (dragFrom == null) _dragTo = null;
+            else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
+            _worldView.PreviewTags(dragFrom, _dragTo);
             _presenter.Present(_simulation.World);
         }
 

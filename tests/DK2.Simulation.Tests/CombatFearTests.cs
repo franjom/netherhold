@@ -62,18 +62,20 @@ public class CombatFearTests
         CreatureState demon = Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
         GameSimulation sim = Combat(db, world);
 
-        // Tick 1, in id order: the Goblin engages and radiates its whole Threat (37) at its one
-        // engagement; the Demon engages, takes that 37 as its CurrentFear, and splits its 120
-        // between the Goblin as target and the Goblin as attacker — 60 each, 120 in all.
+        // Newest first: the Demon radiates120 before the Goblin's handover;
+        // the Goblin then radiates37/2 twice, losing the odd point, after the Demon's handover.
         sim.Run(1);
-        Assert.Equal(37, demon.CurrentFear);
-        Assert.Equal(0, demon.TempFear);
-        Assert.Equal(120, goblin.TempFear);
-
-        // Tick 2: the intake becomes the Goblin's CurrentFear, and the Demon fills it again.
-        sim.Run(1);
+        Assert.Equal(0, demon.CurrentFear);
+        Assert.Equal(36, demon.TempFear);
         Assert.Equal(120, goblin.CurrentFear);
-        Assert.Equal(120, goblin.TempFear);
+        Assert.Equal(0, goblin.TempFear);
+
+        // Tick2: each handover receives the same engagement-split threat again.
+        sim.Run(1);
+        Assert.Equal(36, demon.CurrentFear);
+        Assert.Equal(36, demon.TempFear);
+        Assert.Equal(120, goblin.CurrentFear);
+        Assert.Equal(0, goblin.TempFear);
     }
 
     [Fact]
@@ -104,8 +106,9 @@ public class CombatFearTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        // CurrentFear reaches 120 in tick 2; ticks 3, 4 and 5 count it over 50; tick 5 flees.
-        sim.Run(4);
+        // The newer Demon radiates before the Goblin's handover on tick1;
+        // ticks2,3,4 count that fear over50, and tick4 flees.
+        sim.Run(3);
         Assert.Equal(2, goblin.OverThreatCounter);
         Assert.Equal(CreatureActivity.Fighting, goblin.Activity);
 

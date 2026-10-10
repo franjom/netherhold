@@ -112,7 +112,7 @@ blocked tile. Its object table instead drives a continuous obstacle system:
 | `objDef+0xF4` is the runtime flags word | `0x004D12B0` reads it |
 | `objDef+0xF8` is a 4096-fixed-point size used as `size >> 1` | same function; file offset `0x32C` from loader `0x0049DD60` |
 | shipped diameters include Dungeon Heart Obstacle 12288, Dungeon Heart 4096, most beds 2048, Work Bench 3276 | `kwd objecthex 32C 2 -w` |
-| 15 objects carry `SolidObstacle`; all are room furniture | `kwd objects` |
+| 15 definitions carry `SolidObstacle`; forwarded flags also depend on query order | `kwd objects`; `0x004D1439`–`0x004D14A7` |
 | 58 objects carry `Obstacle`, including every creature bed and gold pile | `kwd objects` |
 | `FirstPersonObstacle` counts only while mode global `0x006ECA78` is set | `0x004D12B0` |
 | object 100 is skipped by the per-tile walk and forwarded once through the heart-tile path | `0x004D13EA`, `0x004D1503`–`0x004D15AD` |
@@ -123,6 +123,15 @@ operate on continuous geometry: `0x004D1AB0` performs a ray cast,
 `0x004D2B80` separates two things using their summed radii, and
 `0x004D27F0` tests approximate distance against a query threshold.
 `0x004D1170` is a separate ungated object enumerator.
+
+**CONFIRMED (2026-10-10, decompile and assembly).** The query initialises its callback
+flags once. `SolidObstacle` ORs bit 0; its absence **XORs** bit 0, retaining the previous
+callback's flags. Thus the first ordinary soft-definition object is forwarded solid,
+the next soft one clears that bit, and a solid-definition object sets it again.
+Eligible objects run in row-major tile order and tile-head link order; skipped objects
+do not toggle. No distance filter runs before forwarding. The rectangle uses half the
+query range, capped at one tile. `Repel_Obstacle` supplies radius plus one tile.
+Definition flags alone therefore do not determine slide versus shove. ADR-0423.
 
 This explains the owner's 2026-09-11 observation that a creature routes around
 a bed, bookcase and anvil. `Obstacle && size > 0` is not an impassable-tile
@@ -209,6 +218,15 @@ replacement therefore needs both mechanisms; projecting furniture into the
 tile path grid would merge two distinct DK2 behaviours.
 
 ## 6. What is built
+
+`WorldSteering.CollectObstacles` forwards all linked normal-mode `Obstacle` objects
+using width/2, actual positions, query bounds and retained flags in tile-chain order.
+The wheel's width is 3686; a first-in-query wheel supplies a slide contact despite
+its definition lacking `SolidObstacle`. Arrival, escape and zero-distance exceptions
+remain. First-person-only obstacle classes are deferred. The virtual three-object
+Heart approximation remains separate; authored Heart/Arches objects can also qualify
+in the ordinary stream. On rectangular modern worlds upper Y uses height rather than
+the binary's width-based clamp. ADR-0423 records these boundaries.
 
 `StructureBlocks`, consulted by `WorldPathGrid.IsWalkable`, plus
 `PortalRules.IsHoleTile` and one branch in `HandSystem.Drop` (ADR-0084). The

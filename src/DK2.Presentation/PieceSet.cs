@@ -79,10 +79,13 @@ public sealed class RoomPieceKeys
 {
     private readonly AssetRef[] _pieces;
 
-    internal RoomPieceKeys(RoomDef room)
+    internal RoomPieceKeys(RoomDef room, bool destroyedHeart = false)
     {
-        _pieces = new AssetRef[AssetCatalogue.RoomPieceCount(room)];
-        for (int k = 0; k < _pieces.Length; k++) _pieces[k] = AssetCatalogue.RoomPiece(room.Name, k);
+        _pieces = new AssetRef[destroyedHeart ? 6 : AssetCatalogue.RoomPieceCount(room)];
+        for (int k = 0; k < _pieces.Length; k++) _pieces[k] = destroyedHeart
+            ? AssetCatalogue.DestroyedHeartPiece(room.Name, k) : AssetCatalogue.RoomPiece(room.Name, k);
+        // The ruined builder's piece 5 uses DUNGEON0 while room +0x63 is zero.
+        if (destroyedHeart) _pieces[5] = AssetCatalogue.RoomPiece(room.Name, 0);
     }
 
     /// <summary>Piece <paramref name="k"/>; empty past the pieces the loader builds.</summary>

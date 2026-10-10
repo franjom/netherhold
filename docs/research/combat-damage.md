@@ -12,9 +12,9 @@ Questions: **Q8** (the combat formula). Opens Q337. Completes `combat.md` §5–
 which found the pieces; this assembles them.
 
 **Built as a pure rule** (`MeleeDamageRules`), **called by the swing since ADR-0164**
-(`FightRules.LandBlow`, combat-fight-state.md §4) with no stance, the bearing from target to
-attacker and no player modifier —
-the simulation has no attack state, so nothing swings. See §6.
+(`FightRules.LandBlow`, combat-fight-state.md §4) with the attacker's stance
+flags and bearing from target to attacker. Crypt player modifiers remain zero;
+see §6.
 
 ---
 
@@ -133,6 +133,11 @@ rounding quirk, not a presentation detail.
    skipped when its signed byte is `<= 0`:
    - `byte[player+0x1090]`: `damage = damage * (v + 10) * 10 / 100`
    - `byte[player+0x1091]`: `damage = damage * (v * 15 + 100) / 100`
+   These are Crypt occupant counts: Dark Angel (type 23) at `+0x1090`,
+   Unique Dark Angel (44) at `+0x1091`. `FUN_004D8E60` decrements the old
+   occupant's group and increments the new one's; `FUN_004D93E0` adds to the
+   indexed signed byte, clearing a negative result. No shipped level places,
+   enables or terraforms a Crypt (guard-room.md §7), so both counts are zero.
 7. the **Monk** (`attacker+0x36F == 0x13`) against a creature sets
    `target+0x3EA` bit 2 — **`CantBeResurrected`**, named in `creature-object.md`
    — around the call and clears it after (`combat.md` §6.2)
@@ -158,6 +163,29 @@ with both modifiers zero, attacking off-axis so `b <= 15`:
 
 The same Goblin at level 8 (`MeleeDamage` row = 300 %): `170 * 300 / 100 = 510`.
 In a Combat Pit: `(100 + 100) / 100 = 2.0`, so `1020`.
+
+### Level7 Giant versus Imp
+
+CONFIRMED from shipped Level7 data and fresh binary reads on 2026-10-10:
+the nearby starting Giants are level 1, with 4000 HP and melee damage 450;
+the player's starting Imps are level 1 with 500 HP. Neither stat overrides
+the global creature file. The Giant has no spell slots; the Imp's spells
+first become available at levels 4 and 8. Mana is not an input to this melee
+damage path. The Giant's authored hit delay is 0.75 game seconds and its
+recharge 3 seconds; their state-machine timing is combat-cadence.md's subject.
+
+An ordinary Giant hit therefore deals 450–679 damage depending on the
+bearing bonus: angle 0 gives 450, 512 gives 562, and 1024 gives 679.
+An isolated probe through `MeleeDamageRules.Blow` and `StatusEffectRules.Hurt`
+leaves a fresh Imp at 50 HP for angle 0 and kills it at 512 or 1024.
+These are formula results, not an original-game encounter measurement.
+
+`FUN_004B2CE0` halves ordinary damage for an armoured or possessed target;
+flee state 203 has no such discount. Its target-owner `+0x1095` discount
+(8/128 per positive count) is the Crypt's Monk (19) count, written by
+`FUN_004D8E60`; it is likewise zero on shipped Level7. See
+creature-status-effects.md §3 for the other health modifiers. The reported
+original hit of approximately half an Imp's health remains unverified.
 
 ## 6. What is built, and what is deliberately not
 

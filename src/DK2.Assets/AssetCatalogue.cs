@@ -86,6 +86,14 @@ public static class AssetCatalogue
         foreach (AssetRef reference in ForTorches(database)) yield return reference;
         foreach (AssetRef reference in ForCreatures(database)) yield return reference;
         foreach (AssetRef reference in ForObjects(database)) yield return reference;
+        foreach (byte id in Sorted(database.Doors.Keys))
+        {
+            yield return AssetRef.ForDoor(database.Doors[id].Name);
+            yield return AssetRef.ForDoor(database.Doors[id].Name, open: true);
+            yield return AssetRef.ForDoorLock(database.Doors[id].Name);
+        }
+        foreach (byte id in Sorted(database.Traps.Keys))
+            yield return AssetRef.ForTrap(database.Traps[id].Name);
     }
 
     /// <summary>The bridge's own torch art, which a wall torch over a floor with no room carries
@@ -225,6 +233,9 @@ public static class AssetCatalogue
             yield return AssetRef.ForRoom(room.Name, AssetKind.Mesh);
             for (int piece = 0; piece < RoomPieceCount(room); piece++)
                 yield return RoomPiece(room.Name, piece);
+            if (room.TypeId == RoomTypeId.DungeonHeart)
+                for (int piece = 0; piece < 6; piece++)
+                    yield return DestroyedHeartPiece(room.Name, piece);
         }
     }
 
@@ -240,9 +251,14 @@ public static class AssetCatalogue
     public static AssetRef RoomPiece(string roomName, int piece) =>
         AssetRef.ForRoom(roomName, AssetKind.Mesh, "piece" + piece);
 
+    public static AssetRef DestroyedHeartPiece(string roomName, int piece) =>
+        AssetRef.ForRoom(roomName, AssetKind.Mesh, "destroyedpiece" + piece);
+
     /// <summary>How many numbered pieces DK2's loader builds for the room's construction, k = 0
-    /// up (wall-pieces.md §1): Quad 4, 3×3 9, 3×3 rotated 3, Normal 10, DoubleQuad 15, the Heart 4.
-    /// The hero gates' pieces (numbered from 1, or with a destroyed set) are not keyed yet.</summary>
+    /// up (wall-pieces.md §1): Quad 4, 3×3 9, 3×3 rotated 3, Normal 10, DoubleQuad 15, the Heart 4,
+    /// the 2×2 hero gate 4 and the 3×1 hero gate 7. The Final, FrontEnd and Tile gates' pieces
+    /// (numbered from 1, or the bare name) are not keyed yet. The destroyed Heart is keyed separately. The unused
+    /// Mercenary Gate is a 2×2 gate too, but its art 2 is empty, so none of its pieces exist.</summary>
     public static int RoomPieceCount(RoomDef room) => room.Construction switch
     {
         TileConstruction.QuadConstruction => 4,
@@ -251,6 +267,8 @@ public static class AssetCatalogue
         TileConstruction.Normal => 10,
         TileConstruction.DoubleQuad => 15,
         TileConstruction.FiveByFiveRotated => 4,
+        TileConstruction.HeroGate2By2 when room.TypeId != RoomTypeId.MercenaryGate => 4,
+        TileConstruction.HeroGate3By1 => 7,
         _ => 0,
     };
 
@@ -281,18 +299,37 @@ public static class AssetCatalogue
     /// One mesh per object definition — a bed, a coop, an egg, a pile of gold, and
     /// the hundred-odd pillars and arches that are the rest of the record. Every
     /// object, not only the four the simulation places (<see cref="ForCreatures"/>).
+    /// Then the other arts a view shows by state (<see cref="ObjectArtSlots"/>).
     /// </summary>
     /// <remarks>
-    /// Not implemented: object animations. DK2 gives an object a state machine
-    /// (<c>StateId</c>, <c>StateAge</c> — docs/research/objects.md §7) and a
-    /// <c>MoveTo</c> block, but nothing here can tell one object state from another
-    /// yet, so no variant list is invented.
+    /// Not implemented: object animations by state (a coop's wobble, an egg's hatch, a
+    /// dummy's recoil; object-drawing.md §8).
     /// </remarks>
     public static IEnumerable<AssetRef> ForObjects(GameDatabase database)
     {
         foreach (byte id in Sorted(database.Objects.Keys))
             yield return AssetRef.ForObject(database.Objects[id].Name, AssetKind.Mesh);
+        foreach (byte id in Sorted(database.Objects.Keys))
+            foreach (int slot in ObjectArtSlots(id))
+                yield return ObjectArt(database.Objects[id].Name, slot);
     }
+
+    /// <summary>An object's file art <paramref name="slot"/> (5 to 8, the definition's extra arts;
+    /// object-drawing.md §2). Slot 0 is the object's <see cref="AssetKind.Mesh"/>.</summary>
+    public static AssetRef ObjectArt(string objectName, int slot) =>
+        AssetRef.ForObject(objectName, AssetKind.Mesh, "art" + slot);
+
+    /// <summary>The extra arts a view switches an object to: Gold Pile 1's urns by fill
+    /// (<c>0x004F4440</c>) and the Book Case's three variants (<c>0x004EE6A5</c>).</summary>
+    public static IReadOnlyList<int> ObjectArtSlots(byte objectId) => objectId switch
+    {
+        3 => GoldPileSlots,
+        64 => BookCaseSlots,
+        _ => [],
+    };
+
+    private static readonly int[] GoldPileSlots = [5, 6];
+    private static readonly int[] BookCaseSlots = [5, 6, 7];
 
     private static List<byte> Sorted(IEnumerable<byte> ids)
     {

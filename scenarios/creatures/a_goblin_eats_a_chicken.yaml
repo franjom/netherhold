@@ -1,96 +1,7 @@
-# The oldest "cannot" in the project, closed: a creature gets hungry and does
-# something about it (ADR-0067).
-#
-# `a_goblin_gets_hungry` has run since M4 began and its whole ending was *"and
-# then nothing"* - three goblins went hungry and stayed hungry for the rest of
-# the run, because eating needed a chicken and nothing made one. ADR-0066 gave
-# the Hatchery its clock; this is the other half, read from the original's own
-# `HungerState.cpp` (`docs/research/eating.md`).
-#
-# A 3x3 hatchery, a two-tile lair, and two goblins wounded to 900 of their 1500
-# so that the meal is visible as a number.
-#
-# What the event log shows, in order:
-#
-#   t0..t138  the two goblins take the two beds, exactly as they always have.
-#             They are at 60% health, which is above
-#             `CreatureSleepsWhenBelowPercentHealth` (50), so neither lies down -
-#             a bed here is only so that *"it has nowhere to sleep"* is not what
-#             this run is about.
-#
-#   t19..t1299  the hatchery fills: one coop, an egg every 7 seconds, a chicken
-#             two seconds later, nine birds in a nine-tile room. Every bird is on
-#             (6,6) because a 3x3 earns exactly one coop and a coop stands only
-#             on an interior tile (0x004DE220, hatchery.md §2).
-#
-#   t1399     `lay_refused … birds=9 capacity=9`, and again every interval.
-#             **Hold that thought.**
-#
-#   t3599     `creature_hungry … need=1 after=180s`  - both goblins
-#             180 seconds is the Goblin's `HungerRate`. **`need=1`, not
-#             `chickens=1`**: DK2 keeps an accumulator it calls `HungerNeed` and
-#             *adds* `HungerFill` to it on every period rather than raising a
-#             flag, so a creature with nowhere to eat owes every helping it
-#             missed. That is a change of shape, not of wording - see ADR-0067.
-#
-#   t3600     `food_sought … at=(10,10) need=1 tiles=9 to=(6,6) steps=4`
-#             The walk is to a **room**, not to a bird: the nearest reachable
-#             hatchery of this creature's own keeper, aimed at its centre tile.
-#             Which bird is not decided yet and could not be - the creature is
-#             seven tiles away and cannot see into the room.
-#
-#             Both goblins decide on the same tick, because the need is asked
-#             once a game second and they got hungry together.
-#
-#   t3761     `chicken_chosen … chicken=5 at=(6,6) steps=1`
-#             Arrived. **Now** the bird is chosen, from inside the room, as the
-#             nearest by straight-line squared distance - the original's ranking,
-#             and deliberately not a path length.
-#
-#   t3782     `chicken_eaten … chicken=5 health=900->1275 gained=375 need=0`
-#             `HpFromChicken` is 375 for a Goblin, and the gain is
-#             `min(HpFromChicken, maximum - current)` - the clamp matters, and
-#             for **Jack** it is load-bearing: 250 from a chicken against a
-#             maximum of 240.
-#
-#   t3790     `chicken_chosen … chicken=7`  - the second goblin, and a
-#             **different** bird. Nothing was reserved: it walked to the room
-#             aiming at nothing in particular and picked the nearest survivor
-#             when it got there. Had it arrived while the first was still
-#             chewing it would have picked bird 5 too, and then found it gone -
-#             which is what `chicken_lost` is for, and what the owner watched
-#             prisoners do (Q172): *"they rush toward that chicken, the first one
-#             to it gets it"*. A nine-bird room cannot show a race; the unit
-#             test `TwoHungryGoblinsRaceForOneChickenAndOnlyOneOfThemEatsIt`
-#             does.
-#
-#   t3919     `egg_laid` - **the hatchery starts laying again.**
-#             It had been refusing since t1399 because nine tiles hold nine
-#             birds. Two got eaten, so there is room. Nobody wrote that
-#             interaction; it is what happens when a room with a ceiling meets a
-#             creature that removes things from it, and it is the first place in
-#             this project where two mechanics feed each other without being told
-#             to.
-#
-# **What this run does NOT establish**, recorded rather than implied:
-#
-#   * **How DK2 walks a hungry creature to the hatchery.** Its in-room search
-#     state fails outright when the creature is not standing in one, and the
-#     state that does the walk (0x5A) has only one caller, a fallback for one
-#     particular player id. This composes the two, which gives the same
-#     observable behaviour; Q174 names the probe.
-#
-#   * **Whether a sleeping creature wakes up to eat.** The original's needs
-#     routine is gated on a state-category byte this project has not decoded, so
-#     here a sleeper is left asleep and a test pins that choice. Q176, and it is
-#     one glance to settle.
-#
-#   * **The post-meal wander.** The original has a state that walks a random
-#     adjacent tile after eating; here the creature simply goes idle. Q175.
-#
-#   * **Prisoners still cannot eat.** They eat by a different state - one bird
-#     pays off the whole of `HungerFill` rather than one - and they cannot move
-#     yet, so a prison is still a countdown (Q172).
+# Two wounded Goblins eat from a stocked Hatchery. Expectations pin healing,
+# hunger repayment and the uninterrupted egg clock across two hunger cycles.
+# Behaviour evidence: docs/research/eating.md and hatchery.md (ADR-0066/0067).
+
 id: creatures-a-goblin-eats-a-chicken-001
 question: >
   Does a hungry goblin walk to the hatchery, choose the nearest chicken once it
@@ -149,16 +60,22 @@ expect:
       One bird pays off ONE helping for a free creature. A prisoner's single
       bird pays off the whole of HungerFill instead, which is the difference
       between the two routes (ADR-0074).
-  - event: chicken_chosen
-    detail: "steps=1"
+  - event: chicken_eaten
+    detail: "creature=1 type=Goblin player=3 chicken=7"
+    at_tick: 720
     because: >
-      The nearest bird once the creature is inside the room, ranked over the
-      room's own tiles rather than the map (ADR-0066).
+      Normal floor laying (ADR-0428) puts a bird on the entry tile, so this seed
+      feeds the Goblin immediately rather than emitting a separate one-step chase.
+      The chosen bird and meal tick remain pinned; nearest-bird walks have EatingTests.
   - event: egg_laid
     at_tick: 727
     because: >
       The room holds one bird per tile, had all nine by tick 259 and refused to
-      lay from 279 on. Two were eaten at 720 and 728, and the first boundary of
-      the unbroken 7s interval after the first meal - 27 + 25 x 28 - is 727. That the clock keeps
-      running through a full room is the claim; a room that restarted its
-      interval on the meal would lay at 748.
+      lay from 279 on. Both first meals occur at 720; the uninterrupted interval
+      resumes at 27 + 25 x 28 = 727, rather than restarting the clock on the meal.
+  - event: egg_laid
+    at_tick: 1455
+    because: >
+      Both next meals occur at 1443. The unbroken 7s interval resumes at
+      27 + 51 x 28 = 1455; restarting on the first meal would instead lay at 1471.
+      This pins the clock continuing through a full room despite changed walking times.

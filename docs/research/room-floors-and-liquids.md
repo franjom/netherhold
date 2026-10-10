@@ -10,7 +10,7 @@ Original version: DK2 v1.70 (GOG)
 Presentation only. Split from `floor-and-terrain-pieces.md` (its §4 lists the builders' arms; its
 §5 the plain terrain), whose conventions and labels this note uses. Built in
 `src/DK2.Presentation/WorldView.cs` and `unity/DK2.Unity/Assets/DK2/LiquidSurfaces.cs` (classic
-look, plan step 2).
+look, plan step 2; the 2×2 and 3×1 hero gates' floors, §7, step 3).
 
 Coordinates: (dx, dy) grow east and south, as the direction table does (N = (0, −1)).
 
@@ -73,7 +73,7 @@ the inner's (outer N edge 3, inner N edge 0).
 
 **Hero Gate Final, selector 9.** Table `0x0066DCC8`, (dx + 3·dy), dy 0..5: columns dx 0 and 2 are
 (2,0) and (2,2) for dy 0..4; the middle is (0,0) at dy 0 and (1,0) at dy 1..4; row 5 is 0xF0, (8,0),
-0xF0. **Hero Gate 3×1, selector 13** (LIKELY, decompile only): o = room `+0x9B` (8 = none, nothing
+0xF0. **Hero Gate 3×1, selector 13** (CONFIRMED, §7): o = room `+0x9B` (8 = none, nothing
 written). Along x for o = 0 and 2, along y for 1 and 3, with "gate" = a tile of type 0x17 and this
 owner: o = 0 or 1, the tile two back is gate → k = 3, else one back → 4, else 5; o = 2 or 3 the
 reverse (two back → 5, one back → 4, else 3). This settles `wall-pieces.md` §3: the face piece
@@ -161,6 +161,23 @@ first quadrant) and the later quadrants' offsets (q1 inner +1 at `0x004443A0`, o
   2:(11,1) 3:(10,2) 4:(10,1) 5:(12,3) 6:(10,1) 7:(12,3) | 8:(3,2) 9:(0,2) 10:(2,1) 11:(0,2)
   12:(0,1) 13:(3,0) 14:(0,1) 15:(1,1).
 
+**Where the bars stand, and who crosses them** (2026-10-10). The bars are in the meshes: PRISON10's
+bar planes (flags 3, `prisonbars1/2`) are a vertical sheet on the quarter's edge (model y = +0.25),
+floor to one tile up (z −1..−2); PRISON11/12 add posts 1.5–1.63 tiles tall at a corner; PRISON14's
+gate is a sheet across a whole tile at its far edge (y ≈ 0.75 from quadrant 0's centre). So the
+inner-ring quarters of **rim** tiles fence the interior along the rim/interior tile boundary, and the
+gate stands on the door tile's edge toward the cell. There are no bar objects and no wall pieces
+inside. Navigation: `0x004EFDE0` (selector 7) writes nav byte **4** on every tile Room_IsFloorSlot
+accepts, the interior (`+0xC` = 0xFF) of a Prison, Temple or Combat Pit; rim and door tiles keep
+their terrain byte (0). The cost function `0x004C8BD0` returns 0 when bit 2 differs between the two
+tiles unless `[0x006EC9D8]` (state option bit 2) is set. So everyone walks the rim and the door tile;
+only a state passing option bit 2 enters or leaves the interior. `WorldSteering` writes these
+interiors using the full eight-neighbour floor test. Delivery uses 0xE4 for the inner leg,
+release 121 uses 0x6C; pit waiting 139 uses 0xE8 and Temple summoned 106 uses 0x80
+(see travel-state-call-sites.md). The delivery's separate door approach remains unmodelled.
+Level 8's Prison (15..19, 20..23; interior (16..17, 21..22) and (18,22)) draws
+the table's pieces as DK2 does.
+
 ## 5. The wall decoration phase: room +0x92 and +0x96
 
 CONFIRMED (disassembly `0x004ECEB0..0x004ED189`, `0x004544B1..0x00454507`, `0x0050BB63..`).
@@ -227,5 +244,42 @@ settings object `0x00759A78`: `+0x60` Translucent Water (`0x00759AD8`, setter `0
 `+0x68` Sine Wave Water (`0x00759AE0`, setter `0x005668F0`); their defaults follow a machine-speed
 tier (`0x00563FB0`, LIKELY). How the command blends (beyond the 0.7 argument) is UNKNOWN: its
 drawer (vtable `0x0066FDDC`) is unread.
+
+## 7. The 2×2 and 3×1 hero gates
+
+**The builder, `0x00446800`** (selectors 11 and 13). CONFIRMED (clean decompile). One whole
+entry: piece n = high nibble of byte +0xC, rotation = low nibble, handle definition `+0xD0 + n·0x1B`,
+or `+0x280 + n·0x1B` (the loader's destroyed set, `wall-pieces.md` §1) when room `+0x9A` bit 0
+is set; tinted like §2. Selector 13 then runs the wall chooser's type 0x17 arm (`wall-pieces.md` §3).
+
+**2×2.** Table `0x0066DD88` (read): entry i is (i, 0), so the gate is Hero_Gate0 NW, 1 NE, 2 SW,
+3 SE, unturned, by offset from the first slab. The unused Mercenary Gate is selector 11 too, but its
+art 2 is empty.
+
+**3×1: where o comes from.** `Room_Construct` sets `+0x9B` = 8 (`0x004E38F4`, `0x004E3954`); the
+tile add `0x004ED1A0` writes its argument unless 8. For a level's gate, the THINGS loader's room
+record arm (`0x00521420`, disassembly read) takes a record whose terrain byte (file +18) is 0x25 and
+whose player (+19) is non-zero, on a room tile, and switches on its direction (+14) through
+`0x005215CC`: 0, 2, 4, 6 set o = 0, 1, 2, 3; an odd one leaves o. It then rewrites every tile code
+along the slab chain (`0x004EF6C0` calls `0x004EDC10` per slab). The same arm sends terrain 0xE to
+the Heart's builder `0x004DB700` and 0xC to `0x004E5300` by health percentage.
+
+**3×1: the code.** The writer was checked whole in the disassembly (`0x004F00F0..0x004F02B2`):
+"gate" is the tile from world vt `+0x1D8`(x, y) passing `Room_TileIsOwnedType`(0x17, room owner
+`+0x1D`, 0). So the floor draws 3Tile_Hero_Gate k (3..5) at (o + 1) & 3, and the face side
+(o − 2) & 3 draws 3Tile_Hero_Gate k − 3.
+
+**The shipped gates.** All 41 shipped 3×1 gates have one room record each, at the middle tile, with an
+even direction; each middle tile has exactly one solid orthogonal neighbour (rock), and it is the face
+side. Level 8's gate (32..34, 3) has direction 4: o = 2, k = 3, 4, 5 west to east, rotation 3, face
+north. The five gate definitions list no objects, and no object stands on Level 8's gates.
+
+**Built, and not.** `WorldView` draws both floors. It infers o from the rock side, since the world
+keeps no room record (tested against all 41 records). `RoomWalls` draws the 3×1 face pieces 0–2
+and side piece 6 with their individual rotations. Ruined Hearts use the destroyed table and
+asset keys, including centre piece 4; piece 5 uses room +0x63's zero constructor default
+(`0x004E3800`), whose later writers and meaning remain UNKNOWN.
+Selectors 9, 10 and 12 and destroyed gate sets remain unbuilt. Whether any code places an
+object on a gate was not searched.
 
 ---

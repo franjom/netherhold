@@ -31,6 +31,21 @@ creature; then `0x0045E4F0`; then the **state handler** through the state table
 acquisition precedes both the state machine and steering on the same tick, and
 `CombatSystem` sits before `CreatureMovementSystem` and every job system.
 
+Creature order (rechecked 2026-10-10): `0x004B7830` runs complete creature
+updates newest first, because `0x004B4A10` links at the class-list head; see
+[imp-task-stealing.md §8](imp-task-stealing.md#8-update-order-q6). Our combat
+pass now also runs newest first (ADR-0429). Before correction, in a Level7
+seed-7 trace, starter Imp27 withdraws on tick157 after the older Giant1 has
+already started its lethal swing that tick. The corrected pass changes event
+order, but the first death is unchanged: tick160, a 562-damage blow against
+500 HP. At ticks153–156 the stationary scan counter is 0–3; at156 the new job
+route steps toward the Giant, and at157 the Imp scans and withdraws. The Giant
+can still start its swing while the Imp is close. Original updates interleave
+each creature's state and movement; ours retains separate system passes.
+No extra Imp-job acquisition call exists among SelectAVictim's twelve callers.
+Compare original Level7 positions, scan phase and swing start before attributing
+excess deaths to the remaining scheduling difference (Q582).
+
 `ProcessFight` is one of twelve callers of `SelectAVictim`. Six sit inside
 `spFighting` (re-acquisition); one in the possession handler; one at
 `0x0048A429`, a loop in the same creature update that sets
@@ -45,8 +60,8 @@ Returns 1 only when every test passes. DK2's own field names throughout.
 |---|---|
 | my state's table flag byte (`+0x18`, Q185) bit 6 clear — set on stunned 209/210/255/256/263/264, dancing 153, gambling 158, joining 193/278–280, idle 269/272/273 | no such states yet |
 | not a captive: state group 14 or state 126 (`0x00473990`) | `PrisonRules.IsImprisoned` |
-| not being tortured: state 136 or group 15 (`0x00485210`), unless `TortureVoluntary` | not modelled |
-| state ≠ 76 (an idle variant) and ≠ 83 (`0x004E0460`, the middle sleeping state) | `Activity != Sleeping` |
+| not being tortured: state 136 or group 15 (`0x00485210`), unless `TortureVoluntary` | `CombatRules.OnTortureDevice` |
+| state ≠ 76 (landing) and ≠ 83 (`0x004E0460`, the middle sleeping state) | landing state and sleeping activity excluded |
 | `Leaving` (`+0x3E6` bit 14) → only with `force` | `Activity == Leaving` needs force |
 | `+0x16 ≠ 2` | UNKNOWN (Q364) |
 | `FreezeTimer` `+0x447` and `ChickenTimer` `+0x44B` both zero | `Activity` not `Frozen` or `Stunned` (ADR-0168); `ChickenTicks` zero (ADR-0302) |

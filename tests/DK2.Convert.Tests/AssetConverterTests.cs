@@ -25,7 +25,9 @@ public sealed class AssetConverterTests : IDisposable
         IReadOnlyList<AssetConversionResult> results =
             AssetConverter.ConvertAll(art, meshes, textures, database, _root);
 
-        Assert.Equal(["object.gold_pile.mesh", "object.lantern.mesh", "object.barrel.mesh"],
+        // Id 3 is Gold Pile 1's in the shipped data, so its two urn arts follow the meshes.
+        Assert.Equal(["object.gold_pile.mesh", "object.lantern.mesh", "object.barrel.mesh",
+                "object.barrel.mesh.art5", "object.barrel.mesh.art6"],
             results.Select(result => result.Reference.Key));
         AssetConversionResult gold = results[0];
         Assert.True(gold.Produced);

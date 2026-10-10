@@ -47,6 +47,7 @@ public sealed class ScenePresenter
             Explored = tile.Explored;
             HasDoor = tile.HasDoor;
             RoomFloor = tile.RoomFloor;
+            RoomKeys = tile.RoomKeys;
             Bed = tile.Bed;
             Surface = tile.Surface;
         }
@@ -62,6 +63,7 @@ public sealed class ScenePresenter
         public bool Explored { get; }
         public bool HasDoor { get; }
         public PieceSet RoomFloor { get; }
+        public RoomPieceKeys? RoomKeys { get; }
         public PieceSet Bed { get; }
         public LiquidSurface Surface { get; }
 
@@ -77,6 +79,7 @@ public sealed class ScenePresenter
             && Explored == other.Explored
             && HasDoor == other.HasDoor
             && RoomFloor == other.RoomFloor
+            && ReferenceEquals(RoomKeys, other.RoomKeys)
             && Bed == other.Bed
             && Surface == other.Surface;
 
@@ -84,7 +87,7 @@ public sealed class ScenePresenter
 
         public override int GetHashCode() => HashCode.Combine(
             HashCode.Combine(Ground, Furniture, OwnerPlayerId, Tagged), GoldHeld, HealthPermille, Walls, Pieces,
-            HashCode.Combine(Explored, HasDoor, RoomFloor, Bed, Surface));
+            HashCode.Combine(Explored, HasDoor, RoomFloor, RoomKeys, Bed, Surface));
     }
 
     /// <summary>The part of a creature a renderer can see.</summary>
@@ -98,6 +101,10 @@ public sealed class ScenePresenter
             PosY = creature.PosY;
             OwnerPlayerId = creature.OwnerPlayerId;
             GoldHeld = creature.GoldHeld;
+            Height = creature.Height;
+            MeshYaw = creature.MeshYaw;
+            Pitch = creature.Pitch;
+            Roll = creature.Roll;
         }
 
         public AssetRef Mesh { get; }
@@ -106,6 +113,10 @@ public sealed class ScenePresenter
         public int PosY { get; }
         public byte OwnerPlayerId { get; }
         public int GoldHeld { get; }
+        public int Height { get; }
+        public int MeshYaw { get; }
+        public int Pitch { get; }
+        public int Roll { get; }
 
         public bool Equals(CreatureVisual other) =>
             Mesh == other.Mesh
@@ -113,12 +124,16 @@ public sealed class ScenePresenter
             && PosX == other.PosX
             && PosY == other.PosY
             && OwnerPlayerId == other.OwnerPlayerId
-            && GoldHeld == other.GoldHeld;
+            && GoldHeld == other.GoldHeld
+            && Height == other.Height
+            && MeshYaw == other.MeshYaw
+            && Pitch == other.Pitch
+            && Roll == other.Roll;
 
         public override bool Equals(object? obj) => obj is CreatureVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
-            Mesh, Animation, PosX, PosY, OwnerPlayerId, GoldHeld);
+            Mesh, Animation, PosX, PosY, OwnerPlayerId, GoldHeld, HashCode.Combine(Height, MeshYaw, Pitch, Roll));
     }
 
     /// <summary>The part of an object a renderer can see.</summary>
@@ -130,22 +145,45 @@ public sealed class ScenePresenter
             Tile = instance.Tile;
             OwnerPlayerId = instance.OwnerPlayerId;
             GoldHeld = instance.GoldHeld;
+            PosX = instance.PosX;
+            PosY = instance.PosY;
+            Height = instance.Height;
+            Heading = instance.Heading;
+            Scale = instance.Scale;
+            Pitch = instance.Pitch;
+            Roll = instance.Roll;
         }
+
+        public int Pitch { get; }
+        public int Roll { get; }
 
         public AssetRef Mesh { get; }
         public TilePos Tile { get; }
         public byte OwnerPlayerId { get; }
         public int GoldHeld { get; }
+        public int PosX { get; }
+        public int PosY { get; }
+        public int Height { get; }
+        public int Heading { get; }
+        public int Scale { get; }
 
         public bool Equals(ObjectVisual other) =>
             Mesh == other.Mesh
             && Tile.Equals(other.Tile)
             && OwnerPlayerId == other.OwnerPlayerId
-            && GoldHeld == other.GoldHeld;
+            && GoldHeld == other.GoldHeld
+            && PosX == other.PosX
+            && PosY == other.PosY
+            && Height == other.Height
+            && Heading == other.Heading
+            && Scale == other.Scale
+            && Pitch == other.Pitch
+            && Roll == other.Roll;
 
         public override bool Equals(object? obj) => obj is ObjectVisual other && Equals(other);
 
-        public override int GetHashCode() => HashCode.Combine(Mesh, Tile, OwnerPlayerId, GoldHeld);
+        public override int GetHashCode() => HashCode.Combine(
+            Mesh, Tile, OwnerPlayerId, GoldHeld, HashCode.Combine(PosX, PosY, Height, Heading, Scale, Pitch, Roll));
     }
 
     private readonly WorldView _view;
@@ -163,6 +201,7 @@ public sealed class ScenePresenter
     private readonly Dictionary<int, ObjectVisual> _lastObjects = [];
     private readonly List<int> _goneObjects = [];
     private readonly HashSet<int> _seenObjects = [];
+    private readonly Dictionary<StructureId, StructureView> _lastStructures = [];
 
     public ScenePresenter(WorldView view, IAssetProvider assets, IRenderTarget target)
         : this(view, assets, target, null)
@@ -201,6 +240,7 @@ public sealed class ScenePresenter
         _tileCreated = [];
         _lastCreatures.Clear();
         _lastObjects.Clear();
+        _lastStructures.Clear();
         _torchesDrawn.Clear();
         _redrawTorches = true;
     }
@@ -235,6 +275,7 @@ public sealed class ScenePresenter
         // the text renderer draws them in that precedence -- one order, decided
         // here, so two renderers cannot disagree about what occludes what.
         PresentObjects(world);
+        PresentStructures(world);
         PresentCreatures(world);
 
         _target.Flush();
@@ -342,11 +383,43 @@ public sealed class ScenePresenter
         }
     }
 
+    /// <summary>The simulation's objects, then the view's decorations.</summary>
+    private IEnumerable<ObjectView> Scenery(WorldState world)
+    {
+        foreach (ObjectView instance in _view.Objects(world)) yield return instance;
+        foreach (ObjectView decoration in _view.Decorations(world)) yield return decoration;
+    }
+
+    private void PresentStructures(WorldState world)
+    {
+        var seen = new HashSet<StructureId>();
+        foreach (StructureView structure in _view.Structures(world))
+        {
+            seen.Add(structure.Id);
+            bool known = _lastStructures.TryGetValue(structure.Id, out StructureView last);
+            if (known && last == structure) continue;
+            ResolvedAsset mesh = Resolve(structure.Mesh);
+            if (known) _target.UpdateStructure(structure.Id, structure, mesh);
+            else _target.CreateStructure(structure.Id, structure, mesh);
+            _lastStructures[structure.Id] = structure;
+        }
+        var gone = new List<StructureId>();
+        foreach (StructureId id in _lastStructures.Keys)
+            if (!seen.Contains(id)) gone.Add(id);
+        gone.Sort((left, right) => left.Kind != right.Kind
+            ? left.Kind.CompareTo(right.Kind) : left.Value.CompareTo(right.Value));
+        foreach (StructureId id in gone)
+        {
+            _target.RemoveStructure(id);
+            _lastStructures.Remove(id);
+        }
+    }
+
     private void PresentObjects(WorldState world)
     {
         _seenObjects.Clear();
 
-        foreach (ObjectView instance in _view.Objects(world))
+        foreach (ObjectView instance in Scenery(world))
         {
             _seenObjects.Add(instance.Id);
             var visual = new ObjectVisual(instance);

@@ -65,7 +65,69 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (ADR-0322, leave-hook-bodies.md); the Sleeping leave is believed presentation only.
   Consult CategoryHooks.Slots for the current status of every hook.
 
+## Classic look, step 3 (worktree D:/DungeonKeeperRemake-classic, branch classic-look/step3)
+
+Plan: docs/plans/2026-10-09-classic-look.md. Reviewed, built and committed; not merged. The owner
+compares DK2 and Unity on campaign Level8 ("Snapdragon") screenshot by screenshot.
+Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity. Assemblies are synced and the adapter
+compiles. Never commit editor state (ProjectSettings/*, Scenes/Dungeon.unity, URP globals).
+Commits: b58eaa66 transparency; 4033eb24 gate/Heart pieces; bc806cc2 room simulation;
+84a450da Prison door/object turning; 72cfe356 fallen-keeper imp regression.
+Follow-up commits: 363aba56 victim attachment/device steering; e3c67c87 doors/traps.
+4316bc97 enables Forward+ torch lighting; 2dc90d18 supplies campaign party scripts.
+cd6fbd45 corrects obstacle query flags and grounded water speed.
+9630abf4 corrects translucent portal triangle order; fb5e1980 draws locked-door chains.
+3c1c6604 restores the imp's nearby-room alarm retreat.
+
+Presentation includes object tilts/turning, Torture wheels and attached victim poses,
+the corrected Prison door mesh facing, KMF transparency, Hero Gate floors and 3x1 wall
+faces, ruined Heart floors, and placed doors/traps with settled door poses (ADR-0421),
+locked-door chains (ADR-0426) and depth-sorted translucent portal pillars (ADR-0427).
+Evidence: object-drawing.md, furniture-placement.md, kmf-materials.md,
+structure-drawing.md and room-floors-and-liquids.md. Remaining owner checks: screenshot alignment, tag-drag tools and
+corners (tag-highlight.md §4, HYPOTHESIS), blue overlay and pillar height.
+
+Simulation: placed captives/victims, attackability, walled room interiors, Prison delivery,
+Dante's free-cast placement and Q581 wall-machine positions are built under ADR-0419.
+ADR-0420 adds device attachment. ADR-0423 corrects ordinary obstacle query order and
+retained flags; ADR-0424 applies grounded water slowdown. ADR-0425 restores an outmatched
+imp's nearby-room alarm retreat and Call to Arms suppression. ADR-0428 corrects hatchery
+laying and retains individual egg/chicken coordinates. ADR-0429 corrects newest-first
+combat order; Level7 Imp deaths remain unresolved (Q582). ADR-0430 restores waiting
+heroes' sub-tile movement, including Level8's hatchery Guard. Hash/save version is 221.
+All 60 Level 1–3 replays validate; bounded-run wins are 17/5/16 versus 20/5/16 on 220.
+These are modern regression measurements, not
+proof of original timing parity. Campaign startup now spawns the northern Lord's
+six-member party through existing scripts (ADR-0422). Release tests pass (three
+capture-dependent skips), Unity assemblies are synced, and adapter compile/review pass.
+
+Replay drivers recovered from C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
+d869276a-99ca-491a-9cf5-0342488c1277/scratchpad. Measured baseline/current artifacts:
+D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup,collision-water-followup,imp-alarm-followup,chicken-placement-followup,giant-imp-followup,level8-wait-followup}.
+These are local artifacts. Follow-up: docs/plans/2026-10-10-torture-wheel-followup.md.
+Next implementation is classic look step 4; animation limits remain in the research notes.
+Creature status flowers are still part of the unbuilt HUD work. Creature separation
+already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
+Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.
+The owner verified the blue portal pillars after reloading (2026-10-10).
+Remaining owner checks: restart Play mode, compare hatchery chickens and locked-door
+chains, inspect Level8's hatchery Guard visibility and portal movement
+(hero-party-walk.md §1), and compare torch illumination
+at the same camera positions. The per-object light limit is confirmed; its responsibility
+for the reported camera-dependent darkness remains strongly inferred (unity/README.md).
+Imp casualty/timing parity remains open (Q582, combat-acquisition.md §1);
+non-creature threat flight remains unbuilt (combat-fear.md §7).
+Chicken roaming remains unbuilt; see hatchery-roaming.md for the researched object loop.
+The owner verified a Level8 Salamander walking on lava (2026-10-10);
+see imp-idle-and-wandering.md §4 for the crossing regressions.
+The reported graininess at both camera distances has no confirmed resolution;
+recheck the Unity Game view scale before changing rendering (TRAPS.md).
+
 ## Next work
+
+Owner's first priority (2026-10-10): resolve the excess Level7 Imp deaths (Q582)
+before further visual polish. Step 3's object/furniture work can stop here;
+this combat/escape discrepancy remains open, not an accepted fidelity deviation.
 
 1. M12: the Q542–Q544 producers are built (ADR-0412–0414), and their leftovers (ADR-0415–0418:
    the Casino party, the Library finder, the bedless rescue, the lying corpse, Q578); not

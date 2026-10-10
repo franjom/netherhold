@@ -110,7 +110,9 @@ public static class HeroJobRules
         creature.StateDeadlineTick = now + 50 + context.Rng.NextInt(35);
         int x = (creature.PosX & ~0xFFF) | ox;
         int y = (creature.PosY & ~0xFFF) | oy;
-        return Walk(context, creature, x, y, WaitingState, Navigation.MoveOptions.Loose);
+        if (!context.Navigation.TryRouteToStance(creature, x, y, Navigation.MoveOptions.Loose)) return false;
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, Systems.StateShadow.TravelToPoint, WaitingState);
+        return true;
     }
 
     /// <summary>State 173 (<c>0x00471EB0</c>): four tries at a random tile of the action point's

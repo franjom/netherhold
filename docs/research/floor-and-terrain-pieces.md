@@ -164,12 +164,11 @@ CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0
     not random. CONFIRMED for the computation. That +0x11 selects a texture
     variant is STRONGLY INFERRED.
   - "Rock Corner" (+0x97) and the TAGGED tops (+0x60) are not read by
-    0x0043E860. Their consumer is UNKNOWN. list+0x2EC bit 0 is not the tagged look: it is set
-    for every PlayerColouredWall (`0x0043FCC9`), for a tile-grid bit (`+1 & 0x20`) and inside a
-    stored rectangle, which reads as a highlight or selection. The owner (2026-10-09): while the
-    left button is held, the highlight covers the whole drag rectangle and follows the cursor,
-    (un)highlighting tiles as it moves, which fits that rectangle (STRONGLY INFERRED). The remake
-    draws art 3 on a tagged tile as a HYPOTHESIS from its name.
+    0x0043E860. Their consumer is UNKNOWN. The tagged look does not use art 3: list+0x2EC bit 0
+    **is** the tag highlight. It is set by grid bit 13, or inside the drag rectangle on Taggable
+    terrain. The "every PlayerColouredWall" reading was a misread of the secret-door test. It is
+    drawn as +(128, 128, 200) of added vertex light plus an additive "AA_BlueTexture" pass on every emitted piece; see
+    [tag-highlight.md](tag-highlight.md) (2026-10-10). The remake's art-3 swap is therefore wrong.
 - **Reinforced Wall.** "CLAIMED WALL" per face, with +0x11 = 4-stage damage
   frame from tile health (0x004419D0, flag 0x20000, n = 4): `0x00441990` takes (health − 2,
   floored at 0) over MaxHealth as a 12.12 fraction of n, so full health is the highest stage. The

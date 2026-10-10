@@ -120,6 +120,23 @@ pile's size, a chicken's egg) before keying it.
 
 Gate: a Hatchery, a Treasury with gold, a Lair with beds, beside DK2's.
 
+Status (2026-10-10, branch `classic-look/step3`): read from the binary into `object-drawing.md`
+(the draw path, art slots by state, position, heading, scale) and `furniture-placement.md` (where
+each room pass puts its objects). `ObjectView` carries a point, height, heading and scale;
+`WorldView` places the simulation's objects by the placing arm (floor and wall furniture, coops,
+beds, the Temple Hand, the lever, crypts) and adds, as `Decorations`, what DK2's rooms place that
+ours does not hold: the Heart's set, room pillars, Guard Posts, Workshop pillars, candlesticks, the
+Prison door, the Crypt bell, roulette wheels, the wheel beside Torture coals, and a treasury or
+heart tile's gold as Urn1, Urn2 or the Chest by fill. Torture wheels beside coals/water are now
+simulation devices. A floor pile scales with its gold, a Book Case
+shows its selector's variant, and a sleeping creature's bed is hidden. With the install, an object
+with no art draws nothing, as DK2's does. Not built: the objects' animations by state (coop
+wobble, egg hatch, dummy recoil, the Heart's beat plays from step 4) and the headings DK2 draws
+on the simulation stream (beds, store piles), which ours does not keep. Tilts and offsets,
+Prison door facing, KMF transparency, Hero Gate floors/faces and ruined Heart floors are built.
+Q581's wall-machine working positions and the room initialization/navigation fixes are built
+under ADR-0419, hash/save version 215. Owner screenshot checks remain in HANDOFF.md.
+
 ## Step 4: creatures
 
 1. Play `KmfAnimation` frames in Unity: one mesh per frame or a vertex-animation texture, chosen by

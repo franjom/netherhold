@@ -35,6 +35,7 @@ public static class ArtSourceMap
     private const int CreatureMelee = 4;
     private const int CreatureDie = 6;
     private const int CreatureSleeping = 11;
+    private const int CreatureTortured = 16;
     private const int CreatureIdle = 19;
     private const int CreatureManufacturing = 21;
 
@@ -49,6 +50,7 @@ public static class ArtSourceMap
         AddTorches(entries, database);
         AddCreatures(entries, database, art);
         AddObjects(entries, database, art);
+        AddStructures(entries, database, art);
 
         IReadOnlyList<AssetRef> expected = AssetCatalogue.ForDatabase(database).ToArray();
         if (entries.Count != expected.Count || !entries.Select(entry => entry.Reference).SequenceEqual(expected))
@@ -126,6 +128,9 @@ public static class ArtSourceMap
                 entries.Add(Missing(AssetRef.ForRoom(room.Name, AssetKind.Mesh), reason));
                 for (int piece = 0; piece < AssetCatalogue.RoomPieceCount(room); piece++)
                     entries.Add(Missing(AssetCatalogue.RoomPiece(room.Name, piece), reason));
+                if (room.TypeId == RoomTypeId.DungeonHeart)
+                    for (int piece = 0; piece < 6; piece++)
+                        entries.Add(Missing(AssetCatalogue.DestroyedHeartPiece(room.Name, piece), reason));
                 continue;
             }
             Dk2ArtResource complete = resources[2];
@@ -136,6 +141,10 @@ public static class ArtSourceMap
             for (int piece = 0; piece < AssetCatalogue.RoomPieceCount(room); piece++)
                 entries.Add(Model(AssetCatalogue.RoomPiece(room.Name, piece),
                     new Dk2ArtResource(complete.IsEmpty ? "" : complete.Name + piece, 0), "room piece"));
+            if (room.TypeId == RoomTypeId.DungeonHeart)
+                for (int piece = 0; piece < 6; piece++)
+                    entries.Add(Model(AssetCatalogue.DestroyedHeartPiece(room.Name, piece),
+                        new Dk2ArtResource("Dungeon_Destroyed" + piece, 0), "destroyed heart piece"));
         }
     }
 
@@ -175,6 +184,40 @@ public static class ArtSourceMap
             else
                 entries.Add(Model(AssetRef.ForObject(value.Name, AssetKind.Mesh), resources[0], "object mesh"));
         }
+        foreach (ObjectDef value in database.Objects.Values.OrderBy(value => value.ObjectId))
+            foreach (int slot in AssetCatalogue.ObjectArtSlots(value.ObjectId))
+            {
+                AssetRef reference = AssetCatalogue.ObjectArt(value.Name, slot);
+                entries.Add(art.Objects.TryGetValue(value.ObjectId, out IReadOnlyList<Dk2ArtResource>? resources)
+                    ? Model(reference, resources[slot], "object art " + slot)
+                    : Missing(reference, NoArtRecord("object", value.ObjectId)));
+            }
+    }
+
+    private static void AddStructures(List<ArtEntry> entries, GameDatabase database, Dk2ArtCatalogue art)
+    {
+        foreach (DoorDef door in database.Doors.Values.OrderBy(value => value.DoorId))
+        {
+            foreach (bool open in new[] { false, true })
+            {
+                AssetRef reference = AssetRef.ForDoor(door.Name, open);
+                if (!art.Doors.TryGetValue(door.DoorId, out IReadOnlyList<Dk2ArtResource>? resources))
+                    entries.Add(Missing(reference, NoArtRecord("door", door.DoorId)));
+                else
+                    entries.Add(Model(reference, door.Flags.HasFlag(DoorFlags.Barricade)
+                        ? resources[0] : resources[open ? 4 : 5], open ? "door opening" : "door closing"));
+            }
+            AssetRef lockReference = AssetRef.ForDoorLock(door.Name);
+            entries.Add(art.DoorLocks.TryGetValue(door.DoorId, out Dk2ArtResource? lockResource)
+                ? Model(lockReference, lockResource, "door lock object")
+                : Missing(lockReference, "No lock object art for this door."));
+        }
+        foreach (TrapDef trap in database.Traps.Values.OrderBy(value => value.TrapId))
+        {
+            AssetRef reference = AssetRef.ForTrap(trap.Name);
+            entries.Add(art.Traps.TryGetValue(trap.TrapId, out IReadOnlyList<Dk2ArtResource>? resources)
+                ? Model(reference, resources[0], "trap model") : Missing(reference, NoArtRecord("trap", trap.TrapId)));
+        }
     }
 
     private static Dk2ArtResource CreatureAnimationSource(
@@ -185,6 +228,7 @@ public static class ArtSourceMap
             => new Dk2ArtResource("", 0), // That shipped slot is Imp_Claim1(Land), not sleep.
         "sleeping" => resources[CreatureSleeping],
         "dying" => resources[CreatureDie],
+        "being_tortured" => resources[CreatureTortured],
         "working" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
             => resources[CreatureMelee], // The Imp's slot is named Imp_Dig in shipped data.
         "working" => resources[CreatureManufacturing],

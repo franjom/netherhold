@@ -2,7 +2,7 @@
 
 Status: floor placement, wall placement, Temple Hand placement, and the five
 furniture-count capacity arms are **STRONGLY INFERRED** from `DKII.EXE`. The
-room-specific decorative passes remain **UNKNOWN**.
+room-specific decorative passes are read in `furniture-placement.md` §4–§5.
 
 ## 1. The identifiers belong to the room definition
 
@@ -65,9 +65,9 @@ Every shipped terrain with `AllowRoomWalls` is also solid. The simulation sorts
 room tiles rather than preserving DK2's linked-list insertion order, so the
 every-other phase can differ when construction order differs.
 
-DK2 also assigns rotation and special sub-tile offsets after creating wall
-objects. Those are presentation state the tile-level `ObjectState` cannot yet
-represent; they do not affect furniture counts.
+Each object's heading and position within its tile, for both passes and the
+room-specific passes, are in `furniture-placement.md`; they do not affect
+furniture counts.
 
 ## 5. TotalCapacity
 
@@ -105,8 +105,9 @@ defensively because their tile index is stale; shipped furniture cannot be held
 (Q196). A desired object absent from the definition table is skipped rather
 than letting this per-tick maintenance path abort the simulation.
 
-Still open: preserving the construction-order phase, presentation offsets, and
-special decorative passes such as Guard Posts and Workshop pillars. None of
+Still open: preserving the construction-order phase, and building the
+presentation offsets and the decorative passes (Guard Posts, Workshop and room
+pillars, Temple candlesticks), which `furniture-placement.md` reads. None of
 those decorative objects enters the five furniture capacity arms. Portal
 attraction remains on its existing boolean rule as the next separate
 implementation step.

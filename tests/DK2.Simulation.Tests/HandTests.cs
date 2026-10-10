@@ -1221,8 +1221,11 @@ public class HandTests
             e.Kind == "drop_refused" && e.Detail.Contains("not_owned"));
 
         // The keeper's own ground takes it.
+        bird.PosX = CreatureState.CentreOf(Floor.X) + 0x180;
+        bird.PosY = CreatureState.CentreOf(Floor.Y) - 0x100;
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(2, 2))));
         Assert.False(bird.InHand);
+        Assert.Equal((CreatureState.CentreOf(2), CreatureState.CentreOf(2)), (bird.PosX, bird.PosY));
     }
 
     [Fact]

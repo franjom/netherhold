@@ -70,6 +70,8 @@ public sealed class CreatureMovementSystem : ISimulationSystem
                 ? Math.Min(SimulationTiming.LoaderRatePerTick(creature.PartySpeedRaw), MaxSpeedPerTick) << 4
                 : MaxSpeedOf(context.Database, definition, creature.Level, creature.Running);
             creature.Body.MaxSpeed = StatusEffectRules.SpeedCap(context.Database, definition, creature, cap);
+            TerrainDef terrain = context.Database.TerrainById(context.World.Tile(creature.Tile).TerrainId);
+            creature.Body.MaxSpeed = WaterSpeedRules.SpeedCap(terrain, definition, creature, creature.Body.MaxSpeed);
             PossessionRules.ApplySpeedModifier(context.Database, creature);
         }
 

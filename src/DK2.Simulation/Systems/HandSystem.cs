@@ -316,7 +316,7 @@ public sealed class HandSystem : ISimulationSystem
         // named is a torture device in the keeper's own Torture Chamber (ADR-0193).
         if (PrisonRules.IsImprisoned(creature))
         {
-            if (TortureRules.TryStrap(context.Hooks, creature, command.PlayerId.Value, landingTileIndex))
+            if (TortureRules.TryStrap(context.Hooks, creature, command.PlayerId, landingTileIndex))
             {
                 context.Emit(SystemName, "captive_strapped",
                     $"player={command.PlayerId} creature={creature.Id} " +
@@ -469,7 +469,8 @@ public sealed class HandSystem : ISimulationSystem
         hand.RemoveAt(hand.Count - 1);
         thing.InHand = false;
         thing.TileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
-        if (FloorGoldLandingRules.HasPosition(thing))
+        if (FloorGoldLandingRules.HasPosition(thing)
+            || thing.ObjectTypeId is HatcheryRules.ChickenObjectId or HatcheryRules.EggObjectId)
         {
             thing.PosX = CreatureState.CentreOf(command.Tile.X);
             thing.PosY = CreatureState.CentreOf(command.Tile.Y);

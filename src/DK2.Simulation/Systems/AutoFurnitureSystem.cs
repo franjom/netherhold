@@ -69,5 +69,6 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
         // start: Level_InitTriggersAndStart rebuilds the map's rooms without Room_OnTilesChanged.
         if (now > 0)
             foreach (RoomInstance room in rebuilt) GraveyardRules.AdoptCorpses(context, room);
+        LevelPlacedCreatureRules.Land(context);
     }
 }

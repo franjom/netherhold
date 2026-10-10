@@ -63,7 +63,8 @@ by the class constructor `0x004B28D0` (`0x004B28F5`), which also links the class
 
 ## 3. The update `0x004A84E0`, in its order
 
-1. Hidden presentation (`0x004A9F10`, a foreign local player's view); presentation, not built (§11).
+1. Hidden/construction presentation (`0x004A9F10`), built in the world view;
+   see [structure-drawing.md §2](structure-drawing.md#2-placement-and-visibility).
 2. **Owner.** Tile word `+8 & 0xFFF` not the trap's owner: the disarmer's `+0x43D` is cleared,
    an unbuilt trap leaves its keeper's blueprint list (`0x005056E0`), health := 0. The update
    goes on.

@@ -81,6 +81,12 @@ public static class AutoFurnitureRules
         }
 
         AddWallFurniture(world, database, room, roomTiles, into);
+        if (room.Definition.TypeId == RoomTypeId.TortureChamber)
+        {
+            int count = into.Count;
+            for (int i = 0; i < count; i++)
+                if (into[i].ObjectTypeId is 62 or 63) into.Add((into[i].TileIndex, TortureRules.WheelObjectId));
+        }
     }
 
     /// <summary>The general capacity arms established by Q270, and <c>Room_ComputeTotalCapacity</c>'s
@@ -377,28 +383,67 @@ public static class AutoFurnitureRules
         return true;
     }
 
-    /// <summary>An object's position, its <c>+0x1A</c>: its tile's centre, moved <c>0x700</c> toward its
-    /// wall for the wall furniture whose arm was read, the Alcove Barrels (68, <c>0x004EEA07</c>) and the
-    /// Library Book (58, <c>0x004EECEB</c>), sides north, east, south, west (<c>casino.md</c> §3). The wall
-    /// pass picks its arm by type (index bytes <c>0x004EF130</c>, table <c>0x004EF114</c>): 8, 29, 58,
-    /// 62/63, 67 and 68 have arms of their own; every other type, the Workshop's 15, 16 and 46 among
-    /// them, takes <c>0x004EEE1F</c> and stays at its tile's centre. Arms 0, 1, 3 and 4 are not read.</summary>
+    /// <summary>An object's position, its <c>+0x1A</c>: its tile's centre, moved <see cref="WallInset"/>
+    /// toward its wall for the Alcove Barrels (68, <c>0x004EEA07</c>) and the Library Book (58,
+    /// <c>0x004EECEB</c>), sides north, east, south, west (<c>casino.md</c> §3).
+    /// <para>Deviates: every wall-pass object is moved, the default arm <c>0x004EEE1F</c> included
+    /// (<c>furniture-placement.md</c> §3), so the Workshop's wall Anvils and Buckets stand <c>0x700</c>
+    /// toward their wall, correcting ADR-0404's centred machines (Q581).</para></summary>
     public static (int X, int Y) FurniturePosition(WorldState world, GameDatabase database, RoomInstance room, ObjectState thing)
     {
         int x = CreatureState.CentreOf(thing.TileIndex % world.Width);
         int y = CreatureState.CentreOf(thing.TileIndex / world.Width);
-        if (thing.ObjectTypeId is not (68 or 58)) return (x, y);
+        if (!thing.AutoPlaced || !IsWallFurniture(room.Definition, thing)) return (x, y);
+        int inset = WallInset(thing.ObjectTypeId);
         return WallSide(world, database, room, thing.TileIndex) switch
         {
-            0 => (x, y - WallInset),
-            1 => (x + WallInset, y),
-            2 => (x, y + WallInset),
-            3 => (x - WallInset, y),
+            0 => (x, y - inset),
+            1 => (x + inset, y),
+            2 => (x, y + inset),
+            3 => (x - inset, y),
             _ => (x, y),
         };
     }
 
-    private const int WallInset = 0x700;
+    /// <summary>Whether this object's type appears in the room's wall-pass list.</summary>
+    public static bool IsWallFurniture(RoomDef room, ObjectState thing)
+    {
+        if (!room.Flags.HasFlag(RoomFlags.SpecialWalls)) return false;
+        for (int i = 3; i <= 5 && i < room.ObjectIds.Count; i++)
+        {
+            if (room.ObjectIds[i] == 0) break;
+            if (room.ObjectIds[i] == thing.ObjectTypeId) return true;
+        }
+        return false;
+    }
+
+    /// <summary>The room pillar corner slots (furniture-placement.md §5), shared with the view.</summary>
+    public static IEnumerable<int> RoomPillarCorners(WorldState world, RoomInstance room, TilePos tile)
+    {
+        bool InRoom(int x, int y) => world.Contains(x, y) && room.Contains(y * world.Width + x);
+        for (int corner = 0; corner < 4; corner++)
+        {
+            int dx = corner < 2 ? 1 : -1;
+            int dy = corner is 0 or 3 ? -1 : 1;
+            if (InRoom(tile.X - dx, tile.Y) || InRoom(tile.X, tile.Y - dy)) continue;
+            bool block = true;
+            for (int j = 0; j < 3 && block; j++)
+                for (int i = 0; i < 3 && block; i++)
+                    block = InRoom(tile.X + i * dx, tile.Y + j * dy);
+            if (block) yield return corner;
+        }
+    }
+
+    /// <summary>How far the wall pass moves an object toward its wall, by its arm (index bytes
+    /// <c>0x004EF130</c>, table <c>0x004EF114</c>): the Torture Wheel <c>0x7C0</c>, Torture Coals and
+    /// Water <c>0x480</c>, every other type <c>0x700</c>, the default arm <c>0x004EEE1F</c> included
+    /// (<c>furniture-placement.md</c> §3, which corrects ADR-0404's centred Anvils and Buckets).</summary>
+    public static int WallInset(byte objectTypeId) => objectTypeId switch
+    {
+        8 => 0x7C0,
+        62 or 63 => 0x480,
+        _ => 0x700,
+    };
 
     /// <summary>The coordinate-seeded selector Room_Rebuild draws from: a furniture slot's choice, a
     /// bookcase's variant (<c>library-states.md</c> §4).</summary>
@@ -406,11 +451,21 @@ public static class AutoFurnitureRules
 
     private static int CoordinateChoice(int x, int y, int count)
     {
+        uint seed = SelectorSeed(x, y);
+        return SelectorNext(ref seed, count);
+    }
+
+    /// <summary>The selector's seed for a tile, <c>Step(y, 0x2286) XOR Step(x, 0x16F2)</c>. Each floor
+    /// arm seeds it afresh and then draws in order (the Book Case's at <c>0x004EE6E3</c>).</summary>
+    public static uint SelectorSeed(int x, int y)
+    {
         uint sx = unchecked((uint)x);
         uint sy = unchecked((uint)y);
-        uint seed = Step(ref sy, 0x2286) ^ Step(ref sx, 0x16F2);
-        return (int)Step(ref seed, unchecked((uint)count));
+        return Step(ref sy, 0x2286) ^ Step(ref sx, 0x16F2);
     }
+
+    /// <summary>The selector's next draw below <paramref name="count"/>.</summary>
+    public static int SelectorNext(ref uint seed, int count) => (int)Step(ref seed, unchecked((uint)count));
 
     private static uint Step(ref uint seed, uint modulus)
     {

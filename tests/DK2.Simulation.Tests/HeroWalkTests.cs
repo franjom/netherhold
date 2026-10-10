@@ -24,12 +24,21 @@ public class HeroWalkTests
         CreatureState hero = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(5, 5));
         hero.GoodJob = JobType.Wait;
         GameSimulation sim = Simulation(db, world);
+        int startX = hero.PosX, startY = hero.PosY;
+        bool moved = false;
 
         var seen = new HashSet<int>();
-        for (int t = 0; t < 40; t++) { sim.Tick(); seen.Add(hero.Dk2StateId); }
+        for (int t = 0; t < 40; t++)
+        {
+            sim.Tick();
+            seen.Add(hero.Dk2StateId);
+            moved |= hero.PosX != startX || hero.PosY != startY;
+            Assert.Equal(new TilePos(5, 5), hero.Tile);
+        }
 
         Assert.Contains(HeroJobRules.StandingJobState, seen);
         Assert.Contains(HeroJobRules.WaitingState, seen);
+        Assert.True(moved, "waiting requests must move the hero to a sub-tile point");
         Assert.Equal(new TilePos(5, 5), hero.Tile);
         Assert.InRange(hero.StateDeadlineTick - 2, 50, 84);
         Assert.Equal(JobType.Wait, hero.CurrentJob);

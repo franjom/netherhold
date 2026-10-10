@@ -7,6 +7,11 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- PowerShell treats curly apostrophes as quote delimiters; avoid them inside single-quoted command arguments.
+- Windows PowerShell Get-Content defaults to ANSI; pass -Encoding UTF8 when deriving patch text from repository files.
+
+- A linked worktree may lack ignored replay drivers and captures; Claude scratch scripts can be recovered from its project JSONL Write calls, while captures remain under the main clone's reverse-engineering/dk2runs.
+
 - Quarantined research .txt files may contain decompiler output; never preview their prefixes. Extract only facts or explicitly identified assembly sections.
 
 - BitReaders.py takes an offset without `0x` (for example `3ea`); a prefixed offset silently searches for `+0x0x3ea` and returns no matches.
@@ -32,6 +37,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 ## Builds, tests and dk2tools
 
 - Unity-loadable DK2.Data targets netstandard2.1; newer Path helpers such as TrimEndingDirectorySeparator are unavailable there.
+- A pixelated Unity Game view can be editor zoom: check its Scale slider at 1x before changing rendering; camera zoom does not reset it (saved under UserSettings/Layouts/).
 - InvalidDataException is not an IOException; command error handling must catch both to report format refusals.
 
 - Typed KWD properties can be wider than their file fields: derive overlay test values and range checks from the reader's width, not the model's CLR type.

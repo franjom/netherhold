@@ -73,7 +73,9 @@ public readonly struct TileView
     /// simulation gives it to the neutral player (ADR-0362).</summary>
     public byte OwnerPlayerId { get; }
 
-    /// <summary>Marked for digging by somebody — the player's own marks are visible in DK2.</summary>
+    /// <summary>Marked for digging by the viewing player. DK2 draws every piece of such a tile, and a
+    /// room wall facing it, tinted (128, 128, 200) under an overlay, whatever the terrain or its
+    /// owner (tag-highlight.md).</summary>
     public bool Tagged { get; }
 
     /// <summary>Whether the terrain fills its tile. A renderer needs this before it has a mesh.</summary>
@@ -112,7 +114,7 @@ public readonly struct TileView
     public PieceSet RoomFloor { get; }
 
     /// <summary>The keys <see cref="RoomFloor"/> and <see cref="Walls"/> draw with; null off a room
-    /// and on the constructions not built (the hero gates).</summary>
+    /// and on the constructions not built (the Final, FrontEnd and Tile hero gates).</summary>
     public RoomPieceKeys? RoomKeys { get; }
 
     /// <summary>The water or lava bed under this tile (<c>0x0043E440</c>): a water or lava tile's
@@ -141,7 +143,11 @@ public readonly struct CreatureView
         int posY,
         AssetRef mesh,
         AssetRef animation,
-        int goldHeld)
+        int goldHeld,
+        int height = Fp32.One,
+        int meshYaw = 0,
+        int pitch = 0,
+        int roll = 0)
     {
         Id = id;
         OwnerPlayerId = ownerPlayerId.Value;
@@ -150,6 +156,10 @@ public readonly struct CreatureView
         Mesh = mesh;
         Animation = animation;
         GoldHeld = goldHeld;
+        Height = height;
+        MeshYaw = meshYaw;
+        Pitch = pitch;
+        Roll = roll;
     }
 
     /// <summary>The simulation's creature id. A renderer's object is a view of this and nothing more.</summary>
@@ -158,13 +168,19 @@ public readonly struct CreatureView
     public byte OwnerPlayerId { get; }
 
     /// <summary>
-    /// Position in <see cref="Fp32"/> tile units, exactly as the simulation holds
-    /// it. <b>A renderer converts; the simulation never does</b> (ADR-0001) —
+    /// Drawing point in <see cref="Fp32"/> tile units: usually the simulation position,
+    /// with the device offset added for torture. A renderer converts (ADR-0001) —
     /// divide by <see cref="Fp32.One"/> for a tile index, or convert to float for
     /// a world position.
     /// </summary>
     public int PosX { get; }
     public int PosY { get; }
+
+    /// <summary>Draw height and model turns; torture attachment is presentation only.</summary>
+    public int Height { get; }
+    public int MeshYaw { get; }
+    public int Pitch { get; }
+    public int Roll { get; }
 
     public AssetRef Mesh { get; }
 
@@ -180,29 +196,63 @@ public readonly struct CreatureView
 
 /// <summary>
 /// One object standing on a tile, as a renderer needs it: a bed, a chicken coop,
-/// an egg, a pile of gold.
+/// an egg, a pile of gold, a room's pillar.
 ///
-/// <para><b>A tile and not a position</b>, because that is all the simulation
-/// has. DK2 gives an object a sub-tile position and every one of the three
-/// gold-dropping paths picks a different point within the tile
-/// (gold-on-the-floor.md §7), so a faithful renderer will want more than this —
-/// but inventing a position here would be inventing behaviour, and the field
-/// arrives with the first mechanic that moves an object.</para>
+/// <para>Placed as DK2 places it (furniture-placement.md, object-drawing.md): a point
+/// in the tile, a height, a heading and a scale. The simulation holds a tile only, so the
+/// point is what the placing pass would have chosen; a pile dropped at a random point
+/// (gold-on-the-floor.md §7) is drawn at its tile's centre.</para>
 /// </summary>
 public readonly struct ObjectView
 {
-    public ObjectView(int id, byte objectTypeId, PlayerId ownerPlayerId, TilePos tile, AssetRef mesh, int goldHeld)
+    public ObjectView(int id, byte objectTypeId, PlayerId ownerPlayerId, TilePos tile, AssetRef mesh, int goldHeld,
+        int posX, int posY, int height, int heading, int scale, int pitch = 0, int roll = 0)
     {
+        Pitch = pitch;
+        Roll = roll;
         Id = id;
         ObjectTypeId = objectTypeId;
         OwnerPlayerId = ownerPlayerId.Value;
         Tile = tile;
         Mesh = mesh;
         GoldHeld = goldHeld;
+        PosX = posX;
+        PosY = posY;
+        Height = height;
+        Heading = heading;
+        Scale = scale;
     }
 
-    /// <summary>The simulation's object id, stable for the object's whole life.</summary>
+    /// <summary>The simulation's object id, stable for the object's whole life; negative for a
+    /// decoration the view adds (<see cref="WorldView.Decorations"/>), stable while its room stands.</summary>
     public int Id { get; }
+
+    /// <summary>Position in <see cref="Fp32"/> tile units (<c>+0x1A</c>, <c>+0x1E</c>).</summary>
+    public int PosX { get; }
+
+    public int PosY { get; }
+
+    /// <summary>Height in <see cref="Fp32"/> units, ordinary floor at one tile (<c>+0x22</c>).</summary>
+    public int Height { get; }
+
+    /// <summary>Heading, 2048 to a full turn, 0 north and <c>0x200</c> east (<c>+0xF4</c>).</summary>
+    public int Heading { get; }
+
+    /// <summary>Yaw in the renderer's frame: DK2's row-vector rotation and (x, −z, −y)
+    /// conversion give +(heading + half a turn); object-drawing.md §4.</summary>
+    public int MeshYaw => (Heading + 0x400) & 0x7FF;
+
+    /// <summary>Uniform scale, <see cref="Fp32.One"/> for 1 (RenderInfo <c>+4</c>, <c>+8</c>).</summary>
+    public int Scale { get; }
+
+    /// <summary>A turn about the model's own X axis, 2048 to a turn (<c>+0x64</c>, RenderInfo
+    /// <c>+0x20</c>). DK2 turns a model by this, then <see cref="Roll"/>, then the heading
+    /// (<c>0x00580480</c>, object-drawing.md §4).</summary>
+    public int Pitch { get; }
+
+    /// <summary>A turn about the model's own Y axis, 2048 to a turn (<c>+0x68</c>, RenderInfo
+    /// <c>+0x24</c>).</summary>
+    public int Roll { get; }
 
     /// <summary>Which of the 145 definitions this is.</summary>
     public byte ObjectTypeId { get; }
@@ -237,7 +287,7 @@ public readonly struct ObjectView
 /// readonly structs holding copies, but <see cref="WorldState.Tile(int,int)"/> hands out a
 /// <c>ref</c>. What holds absolutely is the other direction — the simulation holds no reference to
 /// any of this. <b>No caching</b>: a view is built on demand, so it cannot go stale.</para></summary>
-public sealed class WorldView
+public sealed partial class WorldView
 {
     private readonly GameDatabase _database;
     private readonly byte _viewingPlayerId;
@@ -257,6 +307,7 @@ public sealed class WorldView
     private readonly bool[] _solidById = new bool[256];
     private readonly bool[] _ownWallsById = new bool[256];
     private readonly Dictionary<byte, RoomPieceKeys> _roomKeys = [];
+    private readonly Dictionary<byte, RoomPieceKeys> _destroyedHeartKeys = [];
 
     // What the floors read of whole rooms, found once a tick (EnsureRooms).
     private readonly HashSet<int> _checkerSlots = [];
@@ -302,6 +353,8 @@ public sealed class WorldView
         {
             _roomFurniture[entry.Key] = AssetRef.ForRoom(entry.Value.Name, AssetKind.Mesh);
             if (AssetCatalogue.RoomPieceCount(entry.Value) > 0) _roomKeys[entry.Key] = new RoomPieceKeys(entry.Value);
+            if (entry.Value.TypeId == RoomTypeId.DungeonHeart)
+                _destroyedHeartKeys[entry.Key] = new RoomPieceKeys(entry.Value, destroyedHeart: true);
             // Room definition +0x43D bit 3, which the loader sets for these constructions
             // (wall-pieces.md §1): a terrain face against such a room is the room's to draw.
             _ownWallsById[entry.Key] = entry.Value.Construction is TileConstruction.Complete
@@ -315,6 +368,30 @@ public sealed class WorldView
         foreach (KeyValuePair<byte, ObjectDef> entry in database.Objects)
             _objectMeshes[entry.Key] = AssetRef.ForObject(entry.Value.Name, AssetKind.Mesh);
     }
+
+    private bool _previewing;
+    private int _previewX1, _previewY1, _previewX2, _previewY2;
+
+    /// <summary>
+    /// The tag drag in progress, corner to corner, or nulls for none: every Taggable tile inside it
+    /// shows as tagged (<see cref="TileView.Tagged"/>), as DK2 shows those inside the bridge
+    /// rectangle <c>+0x10..+0x1C</c> (<c>0x0043E860</c>; tag-highlight.md). HYPOTHESIS: what fills
+    /// that rectangle is unread, so that only the tag tool fills it, and with both corners
+    /// inclusive, is this renderer's guess.
+    /// </summary>
+    public void PreviewTags(TilePos? from, TilePos? to)
+    {
+        _previewing = from is not null && to is not null;
+        if (!_previewing) return;
+        TilePos a = from!.Value, b = to!.Value;
+        (_previewX1, _previewX2) = a.X <= b.X ? (a.X, b.X) : (b.X, a.X);
+        (_previewY1, _previewY2) = a.Y <= b.Y ? (a.Y, b.Y) : (b.Y, a.Y);
+    }
+
+    private bool ShowsTag(in TileState tile, TerrainDef terrain, int x, int y) =>
+        tile.IsTaggedBy(_viewingPlayerId)
+        || (_previewing && terrain.IsTaggable
+            && x >= _previewX1 && x <= _previewX2 && y >= _previewY1 && y <= _previewY2);
 
     /// <summary>Every tile, in row order.</summary>
     public IEnumerable<TileView> Tiles(WorldState world)
@@ -352,7 +429,7 @@ public sealed class WorldView
                 fogGround,
                 default,
                 ownerPlayerId: 0,
-                tile.IsTaggedBy(_viewingPlayerId),
+                ShowsTag(tile, fog, x, y),
                 fogSolid,
                 goldHeld: 0,
                 HealthPermille(fog.StartingHealth, fog.MaxHealth),
@@ -368,7 +445,7 @@ public sealed class WorldView
             ground,
             furniture,
             terrain.IsOwnable ? tile.OwnerPlayerId : (byte)0,
-            tile.IsTaggedBy(_viewingPlayerId),
+            ShowsTag(tile, terrain, x, y),
             solid,
             tile.GoldHeld,
             HealthPermille(tile.Health, terrain.MaxHealth),
@@ -378,7 +455,7 @@ public sealed class WorldView
             !world.FogOfWarEnabled || tile.IsDiscoveredBy(_viewingPlayerId),
             world.DoorAt(x, y) is not null,
             RoomFloorOf(world, x, y, tile),
-            _roomKeys.TryGetValue(tile.TerrainId, out RoomPieceKeys? roomKeys) ? roomKeys : null,
+            RoomKeysOf(world, tile),
             BedOf(world, x, y, tile, terrain, out TerrainPieceKeys? bedKeys),
             bedKeys,
             SurfaceOf(tile, terrain));
@@ -386,6 +463,14 @@ public sealed class WorldView
 
     /// <summary>The per-tile pass's liquid arm (<c>0x0043D1C5..0x0043D394</c>): water and lava
     /// terrain draw their surface; a bridge draws water's over water and none over lava.</summary>
+    private RoomPieceKeys? RoomKeysOf(WorldState world, in TileState tile) =>
+        IsRuinedHeart(world, tile) ? _destroyedHeartKeys[tile.TerrainId]
+        : _roomKeys.TryGetValue(tile.TerrainId, out RoomPieceKeys? keys) ? keys : null;
+
+    private bool IsRuinedHeart(WorldState world, in TileState tile) =>
+        _destroyedHeartKeys.ContainsKey(tile.TerrainId) && world.HasPlayer(tile.OwnerPlayerId)
+        && world.Player(tile.OwnerPlayerId).HeartRuined;
+
     private LiquidSurface SurfaceOf(in TileState tile, TerrainDef terrain)
     {
         if (terrain.IsLava) return LiquidSurface.Lava;
@@ -445,9 +530,10 @@ public sealed class WorldView
     /// A room tile's floor pieces by its construction (<c>0x00443610</c>'s arms,
     /// floor-and-terrain-pieces.md §4, room-floors-and-liquids.md), from the tile codes <c>0x004EDC10</c> writes:
     /// Normal <c>0x00444970</c>, Quad (bridges) <c>0x00443910</c>, 3×3 <c>0x00446140</c>, 3×3
-    /// rotated <c>0x00446210</c>, the Heart <c>0x004462E0</c> and DoubleQuad <c>0x00443F20</c>.
-    /// <para>Deviates: the hero gates are not built, and the destroyed Heart (<c>0x004463B0</c>) is
-    /// not drawn, no ruin flag being kept.</para>
+    /// rotated <c>0x00446210</c>, the Heart <c>0x004462E0</c>, DoubleQuad <c>0x00443F20</c>, and
+    /// the 2×2 and 3×1 hero gates <c>0x00446800</c> (room-floors-and-liquids.md §7).
+    /// <para>Deviates: the Final, FrontEnd and Tile hero gates and destroyed gates are not built.
+    /// The destroyed Heart uses room +0x63's zero constructor default for piece 5.</para>
     /// </summary>
     private PieceSet RoomFloorOf(WorldState world, int x, int y, in TileState tile)
     {
@@ -463,6 +549,8 @@ public sealed class WorldView
                 ? Coded(RotatedThreeCode[cell]) : default,
             TileConstruction.FiveByFiveRotated => HeartFloor(world, x, y),
             TileConstruction.DoubleQuad => DoubleQuadFloor(world, room, x, y, tile),
+            TileConstruction.HeroGate2By2 => HeroGate2By2Floor(world, x, y),
+            TileConstruction.HeroGate3By1 => HeroGate3By1Floor(world, x, y, tile),
             _ => default,
         };
     }
@@ -523,7 +611,73 @@ public sealed class WorldView
         int dx = x - room.FirstX, dy = y - room.FirstY;
         if (dx is < 0 or > 4 || dy is < 0 or > 4) return default;
         byte code = HeartCode[dx + (5 * dy)];
+        if (IsRuinedHeart(world, world.Tile(x, y)))
+            return dx == 1 && dy == 1 ? default(PieceSet).WithWhole(5, 0) : Coded(code);
         return code >> 4 == 4 ? default : Coded(code);
+    }
+
+    /// <summary>The 2×2 hero gate (<c>0x004F0070</c>, <c>0x00446800</c>): piece dx + 2·dy whole at
+    /// rotation 0 by the tile's offset from the room's first slab (table <c>0x0066DD88</c>); a tile
+    /// beyond the 2×2 takes code 0x10, piece 1.</summary>
+    private PieceSet HeroGate2By2Floor(WorldState world, int x, int y)
+    {
+        if (FactsAt(world, x, y) is not { } room) return default;
+        int dx = x - room.FirstX, dy = y - room.FirstY;
+        return dx is >= 0 and <= 1 && dy is >= 0 and <= 1
+            ? default(PieceSet).WithWhole(dx + (2 * dy), 0)
+            : default(PieceSet).WithWhole(1, 0);
+    }
+
+    /// <summary>The 3×1 hero gate (<c>0x004F00F0</c>, <c>0x00446800</c>): piece k whole at rotation
+    /// (o + 1) &amp; 3, o the gate's orientation. Along x for o 0 and 2, along y for 1 and 3: for o 0
+    /// or 1, k = 3 where the tile two back (−x or −y) is this gate, else 4 where the one back is,
+    /// else 5; for o 2 or 3 the reverse (5, 4, 3).
+    /// <para>Deviates: DK2 takes o from the level's room record (direction / 2, the THINGS loader at
+    /// <c>0x00521420</c>), which the world does not keep; this infers it as the side opposite the
+    /// one solid orthogonal neighbour of the gate's middle tile, which matches all 41 shipped 3×1
+    /// records. With no such side there is no o, and DK2 leaves the code unwritten: nothing is
+    /// drawn.</para></summary>
+    private PieceSet HeroGate3By1Floor(WorldState world, int x, int y, in TileState tile)
+    {
+        if (HeroGateOrientation(world, x, y, tile) is not int o) return default;
+        int sx = (o & 1) == 0 ? 1 : 0, sy = 1 - sx;
+        bool twoBack = SameRoomTile(world, x - (2 * sx), y - (2 * sy), tile);
+        bool oneBack = SameRoomTile(world, x - sx, y - sy, tile);
+        int k = o <= 1
+            ? twoBack ? 3 : oneBack ? 4 : 5
+            : twoBack ? 5 : oneBack ? 4 : 3;
+        return default(PieceSet).WithWhole(k, o + 1);
+    }
+
+    /// <summary>The 3×1 gate's orientation o (room <c>+0x9B</c>), inferred from its middle tile: the
+    /// side opposite its only solid orthogonal neighbour; null without exactly one.</summary>
+    private int? HeroGateOrientation(WorldState world, int x, int y, in TileState tile)
+    {
+        // The middle tile: this one when the gate runs on both ways along an axis, else its neighbour.
+        int mx = x, my = y;
+        bool w = SameRoomTile(world, x - 1, y, tile), e = SameRoomTile(world, x + 1, y, tile);
+        bool n = SameRoomTile(world, x, y - 1, tile), s = SameRoomTile(world, x, y + 1, tile);
+        if (w != e) mx += e ? 1 : -1;
+        else if (n != s) my += s ? 1 : -1;
+
+        int face = -1;
+        for (int side = 0; side < 4; side++)
+        {
+            int nx = mx + Dx8[side * 2], ny = my + Dy8[side * 2];
+            if (!world.Contains(nx, ny) || !_solidById[world.Tile(nx, ny).TerrainId]) continue;
+            if (face >= 0) return null;
+            face = side;
+        }
+        return face < 0 ? null : (face + 2) & 3;
+    }
+
+    /// <summary>The tile is on the map with this tile's room terrain and owner
+    /// (<c>Room_TileIsOwnedType</c>'s test as the gate writer uses it).</summary>
+    private static bool SameRoomTile(WorldState world, int x, int y, in TileState tile)
+    {
+        if (!world.Contains(x, y)) return false;
+        TileState other = world.Tile(x, y);
+        return other.TerrainId == tile.TerrainId && other.OwnerPlayerId == tile.OwnerPlayerId;
     }
 
     /// <summary>DoubleQuad (<c>0x00443F20</c>, room-floors-and-liquids.md §4): the Prison's door tile and the Combat Pit's
@@ -646,6 +800,7 @@ public sealed class WorldView
         _roomsTick = world.CurrentTick;
         _checkerSlots.Clear();
         _roomFacts.Clear();
+        _rooms.Clear();
         if (_roomOf.Length != world.TileCount) _roomOf = new int[world.TileCount];
         else Array.Clear(_roomOf, 0, _roomOf.Length);
 
@@ -656,6 +811,7 @@ public sealed class WorldView
             (int northSouth, int eastWest) = WallPhases(world, room);
             int first = SlabChain.FirstSlab(world, room);
             _roomFacts.Add(new RoomFacts(first % world.Width, first / world.Width, door, northSouth, eastWest));
+            _rooms.Add(room);
             foreach (int tile in room.TileIndices) _roomOf[tile] = _roomFacts.Count;
             if (AutoFurnitureRules.UsesCheckerboard(type))
                 _checkerSlots.UnionWith(AutoFurnitureRules.FloorSlotSet(world, room));
@@ -776,7 +932,7 @@ public sealed class WorldView
 
             if ((flags & TerrainFlags.PlayerColouredWall) != 0)
                 return pieces.WithQuarters(QuarterKind.Top, set, QuarterPieces(TopEdges(world, x, y)));
-            return pieces.WithTop(tile.IsTaggedBy(_viewingPlayerId) && terrain.IsTaggable);
+            return pieces.WithTop();
         }
 
         if ((flags & TerrainFlags.PlayerColouredPath) != 0)
@@ -838,8 +994,26 @@ public sealed class WorldView
     private RoomWalls WallsOf(WorldState world, int x, int y, byte terrainId)
     {
         if (!_database.RoomsByTerrain.TryGetValue(terrainId, out RoomDef? room)
-            || room.Construction is not (TileConstruction.Normal or TileConstruction.DoubleQuad))
+            || room.Construction is not (TileConstruction.Normal or TileConstruction.DoubleQuad or TileConstruction.HeroGate3By1))
             return default;
+
+        if (room.Construction == TileConstruction.HeroGate3By1)
+        {
+            ref TileState tile = ref world.Tile(x, y);
+            if (HeroGateOrientation(world, x, y, tile) is not int orientation) return default;
+            PieceSet floor = HeroGate3By1Floor(world, x, y, tile);
+            RoomWalls gate = default;
+            int face = (orientation + 2) & 3;
+            for (int side = 0; side < 4; side++)
+            {
+                int nx = x + Dx8[side * 2], ny = y + Dy8[side * 2];
+                if (!world.Contains(nx, ny) || SameRoomTile(world, nx, ny, tile)
+                    || (world.FogOfWarEnabled && !world.Tile(nx, ny).IsDiscoveredBy(_viewingPlayerId))) continue;
+                if (side == face) gate = gate.WithWholePiece(side, floor.WholePiece - 3, side - 1);
+                else if (TakesRoomWalls(world, nx, ny)) gate = gate.WithWholePiece(side, 6, side - 1);
+            }
+            return gate;
+        }
 
         RoomWalls walls = default;
         for (int side = 0; side < 4; side++)
@@ -887,14 +1061,35 @@ public sealed class WorldView
 
             _creatureMeshes.TryGetValue(creature.CreatureTypeId, out AssetRef mesh);
 
+            int posX = creature.PosX, posY = creature.PosY, height = FloorZ;
+            int yaw = 0, pitch = 0, roll = 0;
+            AssetRef animation = AnimationFor(creature);
+            if (AttachedWheel(world, creature) is { } wheel)
+            {
+                mesh = animation;
+                posX = wheel.PosX;
+                posY = wheel.PosY;
+                height = wheel.Height;
+                yaw = wheel.MeshYaw;
+                pitch = wheel.Pitch;
+                roll = wheel.Roll;
+                if (pitch == 0)
+                {
+                    int side = (wheel.Heading >> 9) & 3;
+                    posX += Dx8[side * 2] * 0x1C2;
+                    posY += Dy8[side * 2] * 0x1C2;
+                }
+                else height += 0x200;
+            }
+
             yield return new CreatureView(
                 creature.Id,
                 creature.OwnerPlayerId,
-                creature.PosX,
-                creature.PosY,
+                posX,
+                posY,
                 mesh,
-                AnimationFor(creature),
-                creature.GoldHeld);
+                animation,
+                creature.GoldHeld, height, yaw, pitch, roll);
         }
     }
 
@@ -915,17 +1110,9 @@ public sealed class WorldView
             if (instance.InHand) continue;
             var position = new TilePos(
                 instance.TileIndex % world.Width, instance.TileIndex / world.Width);
-            if (!IsVisible(world, position)) continue;
+            if (!IsVisible(world, position) || BedHidden(world, instance)) continue;
 
-            _objectMeshes.TryGetValue(instance.ObjectTypeId, out AssetRef mesh);
-
-            yield return new ObjectView(
-                instance.Id,
-                instance.ObjectTypeId,
-                instance.OwnerPlayerId,
-                position,
-                mesh,
-                instance.GoldHeld);
+            yield return Placed(world, instance, position);
         }
     }
 

@@ -114,15 +114,15 @@ public static class TortureRules
     /// ADR-0226). It stays its keeper's captive. Returns whether it took: 130's enter hook claims
     /// a place (ADR-0309), and a refusal leaves it in 1.</summary>
     public static bool TryStrap(
-        in StateHookContext hooks, CreatureState creature, byte keeper, int tileIndex)
+        in StateHookContext hooks, CreatureState creature, PlayerId keeper, int tileIndex)
     {
         WorldState world = hooks.World;
         GameDatabase database = hooks.Database;
-        ObjectState? device = FreeDeviceAt(world, database, keeper, tileIndex, creature.Id);
+        ObjectState? device = FreeDeviceAt(world, database, keeper.Value, tileIndex, creature.Id);
         if (device is null || !Holds(device, database.CreatureById(creature.CreatureTypeId))) return false;
 
-        creature.PrisonOwnerPlayerId = keeper;
-        StrapOn(world, creature, tileIndex);
+        creature.PrisonOwnerPlayerId = keeper.Value;
+        StrapOn(hooks, creature, device);
         return EnterTheDevice(hooks, creature);
     }
 
@@ -148,7 +148,7 @@ public static class TortureRules
         ObjectState? device = FreeDeviceAt(world, database, creature.OwnerPlayerId, tileIndex, creature.Id);
         if (device is null || !Holds(device, definition)) return false;
 
-        StrapOn(world, creature, tileIndex);
+        StrapOn(hooks, creature, device);
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
         return EnterTheDevice(hooks, creature);
@@ -181,7 +181,9 @@ public static class TortureRules
     {
         WorldState world = hooks.World;
         CreatureStateMachine.TrySetState(hooks, creature, ReleasedState);
-        StrapOn(world, creature, tileIndex);
+        ObjectState? device = FreeDeviceAt(world, hooks.Database, KeeperOf(creature), tileIndex, creature.Id);
+        if (device is null) return;
+        StrapOn(hooks, creature, device);
         CreatureStateMachine.TrySetState(hooks, creature, StrappingState);
         CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
     }
@@ -198,14 +200,19 @@ public static class TortureRules
         if (device is null || !Holds(device, database.CreatureById(creature.CreatureTypeId))) return false;
         if (!CreatureStateMachine.TrySetState(hooks, creature, TorturedState)) return false;
 
-        StrapOn(world, creature, here);
+        StrapOn(hooks, creature, device);
         return true;
     }
 
-    private static void StrapOn(WorldState world, CreatureState creature, int tileIndex)
+    private static void StrapOn(in StateHookContext hooks, CreatureState creature, ObjectState device)
     {
-        creature.PosX = CreatureState.CentreOf(tileIndex % world.Width);
-        creature.PosY = CreatureState.CentreOf(tileIndex / world.Width);
+        RoomInstance room = RoomIndex.RoomAt(hooks.World, hooks.Database, device.TileIndex)!;
+        (creature.PosX, creature.PosY) = AutoFurnitureRules.FurniturePosition(hooks.World, hooks.Database, room, device);
+        if (device.AutoPlaced && AutoFurnitureRules.IsWallFurniture(room.Definition, device))
+        {
+            int side = AutoFurnitureRules.WallSide(hooks.World, hooks.Database, room, device.TileIndex);
+            if (side >= 0) creature.Heading = ((side + 2) & 3) << 9;
+        }
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.StopMoving();
     }

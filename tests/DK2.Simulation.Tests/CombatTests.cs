@@ -221,15 +221,19 @@ public class CombatTests
         Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, 7, 5);
         CreatureState warlock = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Rival, 5, 8);
 
-        CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 12, 5);
-        CreatureState engaged = Touching(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, demon);
+        CreatureState nearer = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, 10, 3);
         CreatureState skeleton = Spawn(db, world, Dk2TerrainFixture.SkeletonCreatureId, Keeper, 10, 5);
-        Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, 10, 3);
+        CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 12, 5);
+        // Newest first: Knight and Demon engage each other before the Flanker scans;
+        // the nearer Knight has not updated yet, so its empty melee count loses.
+        CreatureState engaged = Touching(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, demon);
 
         Combat(db, world).Run(1);
 
         Assert.Equal(warlock.Id, blitzer.FightTargetId);
         Assert.Equal(engaged.Id, demon.FightTargetId);
+        Assert.True(CombatRules.DistanceSquared(skeleton.PosX, skeleton.PosY, nearer.PosX, nearer.PosY)
+            < CombatRules.DistanceSquared(skeleton.PosX, skeleton.PosY, engaged.PosX, engaged.PosY));
         Assert.Equal(engaged.Id, skeleton.FightTargetId);
     }
 

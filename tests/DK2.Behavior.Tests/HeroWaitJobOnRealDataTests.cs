@@ -4,6 +4,8 @@
 
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.Core;
+using DK2.Simulation;
 using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
@@ -15,6 +17,40 @@ public class HeroWaitJobOnRealDataTests
 {
     private const byte WaitJob = 22;
     private const byte LeaderBit = 2;
+
+    [InstallFact]
+    public void Level8NearestHeartHatcherySpawnsItsGuardAndDwarf_AndTheGuardMovesWhileWaiting()
+    {
+        string install = Dk2InstallGate.Path;
+        const string level = "Level8";
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, level);
+        GameSimulation sim = CampaignSimulationFactory.Create(db,
+            GameDatabaseLoader.LoadCampaignMap(install, level)!,
+            GameDatabaseLoader.LoadCampaignLevel(install, level)!,
+            GameDatabaseLoader.LoadCampaignPlayers(install, level)!,
+            GameDatabaseLoader.LoadCampaignThings(install, level)!,
+            GameDatabaseLoader.LoadCampaignTriggers(install, level)!, seed: 1);
+        sim.Tick();
+        TilePos spawn = new(27, 43);
+        CreatureState guard = Assert.Single(sim.World.Creatures, c => c.Tile == spawn
+            && c.OwnerPlayerId == PlayerIds.Good && db.CreatureById(c.CreatureTypeId).Name == "Guard");
+        CreatureState dwarf = Assert.Single(sim.World.Creatures, c => c.Tile == spawn
+            && c.OwnerPlayerId == PlayerIds.Good && db.CreatureById(c.CreatureTypeId).Name == "Dwarf");
+        Assert.Equal(guard.PartyId, dwarf.PartyId);
+        Assert.NotEqual(HeroPartyRules.NoParty, guard.PartyId);
+        Assert.Equal(JobType.Wait, guard.GoodJob);
+        int x = guard.PosX, y = guard.PosY;
+        bool moved = false;
+        for (int t = 0; t < 200; t++)
+        {
+            sim.Tick();
+            moved |= guard.PosX != x || guard.PosY != y;
+        }
+        Assert.True(moved);
+        Assert.True(guard.Health > 0);
+        Assert.Contains(guard, sim.World.Creatures);
+        Assert.Equal(JobType.Wait, guard.GoodJob);
+    }
 
     [InstallFact]
     public void JobWaitIsSetByShippedPartiesPlacedCreaturesAndScripts_Q499HoldCounterIsUnbuilt()

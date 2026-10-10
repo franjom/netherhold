@@ -47,7 +47,9 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
+        private readonly Dictionary<int, AssetRef> _creatureArt = new Dictionary<int, AssetRef>();
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
+        private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private readonly int _worldWidth;
@@ -55,6 +57,8 @@ namespace DK2.Unity
         private readonly TerrainChunks _terrain;
         private readonly LiquidSurfaces _liquids;
         private readonly HashSet<int> _meshObjects = new HashSet<int>();
+        // Objects the install has no art for, keyed with the key they asked for, so they are not tried again.
+        private readonly Dictionary<int, AssetRef> _artless = new Dictionary<int, AssetRef>();
         private readonly HashSet<int> _meshCreatures = new HashSet<int>();
 
         private bool _warnedAboutFiles;
@@ -142,11 +146,14 @@ namespace DK2.Unity
             if (go == null) return;
 
             _creatures[creatureId] = go;
+            _creatureArt[creatureId] = mesh.Reference;
             PositionCreature(go, creatureId, creature, mesh.Look);
         }
 
         public void UpdateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
         {
+            if (_creatureArt.TryGetValue(creatureId, out AssetRef previous) && previous != mesh.Reference)
+                RemoveCreature(creatureId);
             if (!_creatures.TryGetValue(creatureId, out GameObject go) || go == null)
             {
                 CreateCreature(creatureId, creature, mesh, animation);
@@ -170,16 +177,22 @@ namespace DK2.Unity
             _meshCreatures.Remove(creatureId);
 
             _creatures.Remove(creatureId);
+            _creatureArt.Remove(creatureId);
         }
 
         public void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
         {
-            // Step 0 of the classic look draws objects from the install; terrain waits for its
-            // piece choice (docs/plans/2026-10-09-classic-look.md).
+            // With the install, an object it has no art for draws nothing, as DK2's draws nothing
+            // for an art not loaded (0x0059B880): the Guard Post, the Heart's Obstacle.
             GameObject go = _classic?.TryCreate(mesh, $"object {objectId}", _root);
             if (go != null) _meshObjects.Add(objectId);
-            else go = Instantiate(mesh, $"object {objectId}");
-            if (go == null) return;
+            else if (_classic == null) go = Instantiate(mesh, $"object {objectId}");
+            if (go == null)
+            {
+                _artless[objectId] = mesh.Reference;
+                return;
+            }
+            _artless.Remove(objectId);
 
             _objects[objectId] = go;
             PositionObject(go, objectId, instance, mesh.Look);
@@ -189,7 +202,8 @@ namespace DK2.Unity
         {
             if (!_objects.TryGetValue(objectId, out GameObject go) || go == null)
             {
-                CreateObject(objectId, instance, mesh);
+                if (!(_artless.TryGetValue(objectId, out AssetRef asked) && asked == mesh.Reference))
+                    CreateObject(objectId, instance, mesh);
                 return;
             }
 
@@ -203,6 +217,34 @@ namespace DK2.Unity
 
             _objects.Remove(objectId);
             _meshObjects.Remove(objectId);
+            _artless.Remove(objectId);
+        }
+
+        public void CreateStructure(StructureId id, in StructureView structure, in ResolvedAsset mesh)
+        {
+            GameObject go = _classic?.TryCreate(mesh, $"{id.Kind} {id.Value}", _root, structure.LastFrame);
+            bool realMesh = go != null;
+            if (go == null && _classic == null) go = Instantiate(mesh, $"{id.Kind} {id.Value}");
+            if (go == null) return;
+            _structures[id] = go;
+            float x = structure.PosX / (float)Fp32.One, y = structure.PosY / (float)Fp32.One;
+            go.transform.position = Ground(x, y, structure.Height / (float)Fp32.One);
+            go.transform.localRotation = Quaternion.Euler(0f, structure.MeshYaw * 360f / 2048f, 0f);
+            if (realMesh) go.transform.localScale = Vector3.one;
+            if (!structure.LockMesh.IsEmpty && _classic != null)
+                _classic.TryCreate(structure.LockMesh, "door lock", go.transform);
+        }
+
+        public void UpdateStructure(StructureId id, in StructureView structure, in ResolvedAsset mesh)
+        {
+            RemoveStructure(id);
+            CreateStructure(id, structure, mesh);
+        }
+
+        public void RemoveStructure(StructureId id)
+        {
+            if (_structures.TryGetValue(id, out GameObject go) && go != null) Object.Destroy(go);
+            _structures.Remove(id);
         }
 
         /// <summary>A wall torch: a point light, and its mesh when it has one. How DK2's light
@@ -275,6 +317,7 @@ namespace DK2.Unity
             foreach (GameObject go in _furniture.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _creatures.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _objects.Values) if (go != null) Object.Destroy(go);
+            foreach (GameObject go in _structures.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _torches.Values) if (go != null) Object.Destroy(go);
             _terrain?.Clear();
             _liquids?.Clear();
@@ -282,8 +325,11 @@ namespace DK2.Unity
             _tiles.Clear();
             _furniture.Clear();
             _creatures.Clear();
+            _creatureArt.Clear();
             _objects.Clear();
+            _structures.Clear();
             _meshObjects.Clear();
+            _artless.Clear();
             _meshCreatures.Clear();
             _torches.Clear();
         }
@@ -382,7 +428,11 @@ namespace DK2.Unity
             if (_meshCreatures.Contains(creatureId))
             {
                 // A real mesh is modelled in tiles about its feet.
-                go.transform.position = Ground(creature.PosX / (float)Fp32.One, creature.PosY / (float)Fp32.One, FloorHeight);
+                go.transform.position = Ground(creature.PosX / (float)Fp32.One, creature.PosY / (float)Fp32.One,
+                    creature.Height / (float)Fp32.One);
+                go.transform.localRotation = Quaternion.Euler(0f, creature.MeshYaw * 360f / 2048f, 0f)
+                    * Quaternion.AngleAxis(creature.Roll * 360f / 2048f, Vector3.forward)
+                    * Quaternion.Euler(-creature.Pitch * 360f / 2048f, 0f, 0f);
                 return;
             }
 
@@ -397,21 +447,26 @@ namespace DK2.Unity
         }
 
         /// <summary>
-        /// An object sits at the centre of its tile, small and low.
-        ///
-        /// <para>The centre because that is all the simulation knows: an
-        /// <see cref="ObjectView"/> carries a tile and not a position, and DK2's
-        /// own sub-tile placement is recorded but not modelled
-        /// (gold-on-the-floor.md section 7). Small and low so a bed reads as
-        /// furniture on a floor rather than as another creature standing on
-        /// it.</para>
+        /// A mesh stands where the view places it, turned by its renderer yaw (2048 to a turn) and
+        /// scaled uniformly. A placeholder box sits at that point, small and low, so a bed reads as
+        /// furniture rather than as another creature standing on it.
+        /// <para>The renderer turns a mesh by −(h + 0x400)·π/1024 in DK2's frame (object-drawing.md
+        /// §4). Row-vector matrices and the frame conversion give Unity +(h + 0x400), which
+        /// aligns the Prison door and bar with the cell entrance.</para>
         /// </summary>
         private void PositionObject(GameObject go, int objectId, in ObjectView instance, in PlaceholderLook look)
         {
+            float x = instance.PosX / (float)Fp32.One, y = instance.PosY / (float)Fp32.One;
             if (_meshObjects.Contains(objectId))
             {
-                // A real mesh is modelled in tiles about its own origin on the floor.
-                go.transform.position = Ground(instance.Tile.X + 0.5f, instance.Tile.Y + 0.5f, FloorHeight);
+                // A real mesh is modelled in tiles about its own origin, at the object's height.
+                go.transform.position = Ground(x, y, instance.Height / (float)Fp32.One);
+                // DK2 turns about the model's X, then its Y, then the heading (0x00580480); its X is
+                // ours, its Y our -Z (RenderMesh.ToRenderFrame), hence pitch minus and roll plus.
+                go.transform.localRotation = Quaternion.Euler(0f, instance.MeshYaw * 360f / 2048f, 0f)
+                    * Quaternion.AngleAxis(instance.Roll * 360f / 2048f, Vector3.forward)
+                    * Quaternion.Euler(-instance.Pitch * 360f / 2048f, 0f, 0f);
+                go.transform.localScale = Vector3.one * (instance.Scale / (float)Fp32.One);
                 return;
             }
 
@@ -420,7 +475,7 @@ namespace DK2.Unity
             height *= 0.5f;
 
             go.transform.localScale = new Vector3(0.5f, height, 0.5f);
-            go.transform.position = Ground(instance.Tile.X + 0.5f, instance.Tile.Y + 0.5f, FloorHeight + height / 2f);
+            go.transform.position = Ground(x, y, FloorHeight + height / 2f);
         }
 
         private static Color ColourOf(in PlaceholderLook look) =>

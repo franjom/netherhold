@@ -62,6 +62,13 @@ namespace DK2.Unity.Editor
                     AssetDatabase.CreateAsset(asset, PipelineAssetPath);
                 }
 
+                ScriptableObject rendererAsset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(RendererAssetPath)
+                    ?? throw new InvalidOperationException("URP has no saved renderer asset.");
+                PropertyInfo renderingMode = rendererAsset.GetType().GetProperty("renderingMode")
+                    ?? throw new InvalidOperationException("URP has no renderingMode property.");
+                renderingMode.SetValue(rendererAsset, Enum.Parse(renderingMode.PropertyType, "ForwardPlus"));
+                EditorUtility.SetDirty(rendererAsset);
+
                 GraphicsSettings.defaultRenderPipeline = asset;
                 int current = QualitySettings.GetQualityLevel();
                 for (int level = 0; level < QualitySettings.names.Length; level++)

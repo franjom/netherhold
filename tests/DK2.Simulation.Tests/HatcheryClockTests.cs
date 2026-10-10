@@ -233,6 +233,7 @@ public class HatcheryClockTests
         ObjectState? back = restored.World.ObjectById(egg.Id);
         Assert.NotNull(back);
         Assert.Equal(egg.TimerTicks, back!.TimerTicks);
+        Assert.Equal((egg.PosX, egg.PosY), (back.PosX, back.PosY));
     }
 
 }

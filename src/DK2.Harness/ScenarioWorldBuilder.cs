@@ -147,7 +147,7 @@ internal sealed class ScenarioWorldBuilder
             "creature wakes with is read from DK2's damage path (Q167, ADR-0071)");
         unsupported.Add(
             "a hatchery LAYS and free creatures EAT (ADR-0066, ADR-0067): coops go down, an EGG " +
-            "(object 47) is laid at a randomly chosen coop on the interval the room size implies " +
+            "(object 47) is laid on a randomly chosen non-pillar slab on the interval the room size implies " +
             "and hatches two seconds later, one bird per tile; a hungry creature walks to the " +
             "nearest hatchery of its own keeper, picks the nearest chicken once it is inside, " +
             "eats it for min(HpFromChicken, missing health) and pays off one helping of hunger. " +

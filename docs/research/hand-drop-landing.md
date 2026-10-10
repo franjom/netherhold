@@ -14,7 +14,15 @@ The keeper's drop enters **76**. An own non-worker that no room takes over is **
 ## 1. The drop enters 76 — CONFIRMED
 
 - **The keeper's drop.** `0x004BC710` clears the in-hand bit (`+0x3E6` bit 0), stamps `+0x4BF` with now and calls `SetState(76)` (`0x004BC7CD`–`0x004BC7D7`).
-- **Other ways into 76.** Its other caller is the level initialiser (`0x0050BDBE`).
+- **Level-placed creatures (STRONGLY INFERRED, binary 2026-10-10).** After rebuilding rooms,
+  `0x0050B5B0` kicks THINGS flag 0x40 creatures to 76; the loader copies that flag through
+  `0x0048E000`. `LevelPlacedCreatureRules` runs their room take-over after furniture exists:
+  Prison 114→115 with the room owner as jailer, retaining starting health; the independent
+  non-worker/hero/neutral fallback also admits neutral creatures on neutral-owned cells.
+  Torture 130→131,
+  with own creatures kept distinct from captives. Level 8 has two neutral Dark Elves in cells
+  and three neutral Mistresses on devices, including the wall wheel at (12,10).
+  Deviation: initialization finishes on the first simulation tick, rather than before it.
 - **77 is the slap's.** Its only way in is the slap handler `0x0048B8A0` (`0x0048BA06`), which deals `SlapDamage`, fires creature event 5 and player event `0x3C`.
 - **What 77 does** (`0x0046F1F0`). It plays action 19, then sends a creature to the state of the room it is attached to (`+0x3B9`): Workshop 63, Prison 115, Torture Chamber 130. A Horned Reaper goes to 238, a worker to 10, anyone else to 1.
 

@@ -67,10 +67,10 @@ accumulator, and asks the `Obstacle` enumerator for everything within
    twelve. The integrator (`FUN_004D4760`) walks that list after the forces are
    summed and clips velocity against it (Q349).
 
-Bit 0 of the forwarded flags is what §5 of `structure-blocks.md` identified as
-the object's **`SolidObstacle`**: fifteen objects carry it, all room furniture.
-So furniture is not pushed away from; it is slid along. Everything else that is
-an `Obstacle` — beds, gold piles, the visible Heart — shoves. The enumerator
+Bit 0 selects slide versus shove, but is not a direct copy of the definition's
+`SolidObstacle`: the query retains and toggles it as documented in
+[structure-blocks.md §5](structure-blocks.md#5-objects-collide-continuously-the-navigation-cache-is-separate-q209).
+Object order therefore matters even when a callback contributes no force. The enumerator
 skips the `Dungeon Heart Obstacle` (object 100) in its tile walk and forwards
 the one on the heart room's centre once per query that touches heart terrain,
 with flag bits 0 and 1 (`structure-blocks.md` §5.3): a slide ring of 1.5 tiles
@@ -290,35 +290,35 @@ is requested again from wherever the body is, and the funnel runs afresh.
 
 ### 7.5 The creature's tick (`0x004D5A40` and its callers)
 
-The body lives inside the creature at `+0x124`. Each of four per-state callers
-(`0x00470C80`, `0x00471460`, `0x004769D0` and the main update `0x00488930`)
-does the same five things: read the body's velocity shifted down four
-(`0x004D5AF0`); write the entity's position and that velocity back into the
-body shifted up four (`0x004D59A0`), so both keep only 1/4096-tile precision
-across a tick; set the six navigation globals from the creature and run the
-integrator (`0x004D5A40`, skipped when `max_speed` is zero); read the position
-back shifted down four (`0x004D5AC0`); and set the entity there (`0x004B5560`).
-The main update alone first asks `0x004B35C0` whether the new tile is on the
-map and not solid, and on refusal puts the body back on the entity with zero
-velocity. It moves a creature only when its state's table byte at
-`0x006DA8C8 + state × 25` has bit 0 set; which states those are is unread.
+The body is creature `+0x124`. Callers `0x00470C80`, `0x00471460`, `0x004769D0`
+and `0x00488930` read its velocity down four (`0x004D5AF0`), then write entity
+position/velocity up four (`0x004D59A0`), preserving 1/4096 precision; they set six navigation globals,
+integrate (`0x004D5A40`, unless speed is zero),
+read position down four (`0x004D5AC0`) and commit (`0x004B5560`). The main update
+first rejects off-map or solid positions through `0x004B35C0`, resetting body position and velocity.
+It requires state-table bit 0 at `0x006DA8C8 + state × 25`; which states qualify is unread.
 
-**Speed.** The compact definition holds the walk, run and shuffle speeds **per
-tick** at `def+0x5B4`, `+0x5B8`, `+0x5BC`: the loader (`0x00492320`) divides the
-KWD fields by variable 19, floored at one, and the stat setter (`0x00494BA4`)
-divides the same way when a level changes them. `0x004887D0(mode, or an
-explicit speed)` picks one and calls the speed setter `0x0048D010`, which keeps
-`min(speed, 0xFFF)` at `creature+0x11C` and writes it shifted up four into
-`max_speed`. Two callers scale the current speed by a percentage for a timed
-effect (`0x0048B8A0` by 150 %, `0x0048CAD0` by an argument), floored at a
-quarter of the walk and capped at four tiles a tick, with the countdown at
-`+0x459`. The body's `radius` is `(footprint >> 1) << 4` through vslot `0x3C`
-(`0x00487AF3`). So `max_speed` and `radius` are per creature after all; only
-`max_force` keeps the reset's `0x18000`.
+**Speed.** Walk/run/shuffle: `def+0x5B4/+0x5B8/+0x5BC`, per tick. Loader `0x00492320`
+and stat setter `0x00494BA4` divide KWD rates by variable 19,
+floored at one. `0x004887D0` selects a mode or explicit speed; `0x0048D010`
+stores `min(speed, 0xFFF)` at `+0x11C` and shifts it up four into `max_speed`.
+Timed multipliers: creature-status-effects.md §2. Radius: `(footprint >> 1) << 4` through vslot `0x3C`
+(`0x00487AF3`); `max_force` keeps the reset's `0x18000`.
 
-Ours (`CreatureMovementSystem`, `WorldSteering`): the main update's arm for every
-creature with a route loaded, at the level-scaled walk speed, or the run speed when set running
-(the fight and the withdrawal, `MaxSpeedOf`). Shuffle, the timed multipliers and the per-state gate are not built.
+**Water (2026-10-10, Q118; CONFIRMED assembly).** `0x00488930` at `0x0048970B`–`0x00489749`
+tests terrain Water (runtime `+0x17B`, `0x80`).
+Unless flying (`0x0048ED40`, vslot `+0x88`), it sets current speed ×50/100,
+unsigned floor, through `0x0048D010`: in body units, `((cap >> 4) / 2) << 4`.
+After loader rounding/clamping, the ratio holds across levels; non-Water bridge terrain is skipped.
+Neither `ShuffleSpeed` nor `CanWalkOnWater` enters this modifier.
+The independently recomputed grounded-water flag `+0x3EA` bit 21 is not its gate.
+Order: non-worker low-health half-speed, water, player bonus, possession/stat modifier.
+At tick end persistent speed is restored unless `+0x3BF` was set; water does not set it.
+Flying's worker bits, five animation exceptions and mode-dependent bit precede
+`CanFly` outside states 217–218. Ours supports the trap subset: workers grounded,
+otherwise `CanFly` outside 217–218; other flight arms remain deviations.
+Lava's adjacent non-flying 150 % arm remains unbuilt. The owner saw slowdown; no live ratio was timed.
+Ours: walk/run (`MaxSpeedOf`), timed modifiers and `WaterSpeedRules`; shuffle/state gate remain unbuilt.
 
 ### 7.6 The state's option word (`0x004D0F60`)
 
@@ -353,9 +353,9 @@ request; the door bits are inert until doors enter the navigation byte.
 
 - The sixteen request sites that push a register (§7.6), among them the main
   update's own at `0x00489E17` and states 1, 86, 100 and 186.
-- `Obstacle` objects, so `Repel_Obstacle` never fires; the remembered entity of
-  `Separation`'s second term; run and shuffle speeds and the timed multipliers;
-  the per-state movement gate.
+- First-person obstacle classes and the virtual Heart approximation (structure-blocks.md §6);
+  the remembered entity of `Separation`'s second term; shuffle speed and the
+  remaining update speed modifiers (§7.5); the per-state movement gate.
 - Two floor tiles that touch only at a corner: no route, ours or DK2's
   (`0x004C9400` refuses before any search; its fill `0x004C91A0` is edge-only),
   `GridPathfinder` included since ADR-0339; but the mover commits a step by the
@@ -375,8 +375,8 @@ each; `Repel_Obstacle`'s two exemptions, its query radius, the overlap test, the
 full-force push for flag-bit-0-clear obstacles and the recording of the others;
 the twelve-slot list and its record shape.
 
-**CONFIRMED (binary + repo):** flag bit 0 is `SolidObstacle` — the enumerator
-forwards the object flags `structure-blocks.md` already decoded.
+**CONFIRMED (binary + repo):** ordinary-query flag conversion and the separate
+first-person/Heart streams are recorded in structure-blocks.md §5.
 
 **CONFIRMED (binary):** `Avoid_Walls`' normal path as stepped in §3 — the
 prediction, the three probes and their tiles, the one-radius margin per axis

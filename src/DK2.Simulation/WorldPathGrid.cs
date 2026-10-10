@@ -60,10 +60,9 @@ public sealed class WorldPathGrid : IPathGrid
     /// wading — only <c>IsSolid</c> blocks a walker. Cost is charged elsewhere: <c>TerrainDef.Damage</c>
     /// is 100 for water and lava, and <see cref="Systems.CreatureHealthSystem"/> charges only a
     /// creature the hazard would stop (<see cref="CreatureHealthRules.TerrainHealthPerSecond"/>, CONFIRMED). A bridge tile carries its own terrain, so it needs no case here; the MAP bridge byte is unread (Q16).</para>
-    /// <para>Not implemented: "merely hindered" — water visibly slows a crossing creature (CONFIRMED,
-    /// owner) and no variable carries it (all 214 balance variables searched; <see cref="TerrainDef"/>
-    /// has no speed field), so a crossing runs at full walking speed. Hypothesis: the unread third
-    /// speed <c>ShuffleSpeed</c> (Imp 4096 against its 7536 walk, Vampire 1638 against 2867 — not a constant ratio, so per creature). Routing is unaffected, the shortest route winning even through water (Q30, CONFIRMED): the gap costs arrival times, not paths (Q118).</para></remarks>
+    /// <para>The water movement cap is applied separately by <see cref="WaterSpeedRules"/>;
+    /// routing follows the original's greedy terrain bias (navigation-mesh-and-search.md §3–§4).
+    /// Speed evidence: steering-behaviours.md §7.5.</para></remarks>
     public bool IsWalkable(int x, int y)
     {
         if (!_world.Contains(x, y)) return false;

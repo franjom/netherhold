@@ -18,16 +18,17 @@ public enum QuarterKind : byte
 
 /// <summary>
 /// The pieces a plain terrain tile draws, as DK2's builder picks them (<c>0x0043E860</c>,
-/// floor-and-terrain-pieces.md §5, Q71): a face (art 1) on each open side, then a top (art 2, or
-/// art 3 when tagged), a whole floor (art 0), or four player quarters chosen by the neighbour
-/// mask. Sides are N, E, S, W (0..3) and a face's rotation is its side; quadrants are NW, NE, SE,
-/// SW (0..3). Rooms, water and lava draw nothing here.
+/// floor-and-terrain-pieces.md §5, Q71): a face (art 1) on each open side, then a top (art 2), a
+/// whole floor (art 0), or four player quarters chosen by the neighbour mask. A tag does not change
+/// the pieces: it tints every piece the tile draws (<see cref="TileView.Tagged"/>, tag-highlight.md).
+/// Sides are N, E, S, W (0..3) and a face's rotation is its side; quadrants are NW, NE, SE, SW
+/// (0..3). Rooms, water and lava draw nothing here.
 /// </summary>
 public readonly struct TerrainPieces : IEquatable<TerrainPieces>
 {
-    // Bits 0-3 the faces, 4 a top, 5 tagged, 6 a whole floor, 7-8 the quarter kind,
+    // Bits 0-3 the faces, 4 a top, 6 a whole floor, 7-8 the quarter kind,
     // 9-20 four 3-bit quarter pieces, 21-23 the player set.
-    private const int TopBit = 1 << 4, TaggedBit = 1 << 5, FloorBit = 1 << 6;
+    private const int TopBit = 1 << 4, FloorBit = 1 << 6;
     private const int KindShift = 7, PieceShift = 9, SetShift = 21;
 
     // The rotation each quadrant's piece takes, NW, NE, SE, SW (0x004400E9's four arms).
@@ -43,10 +44,6 @@ public readonly struct TerrainPieces : IEquatable<TerrainPieces>
         side is >= 0 and <= 3 ? (_bits & (1u << side)) != 0 : throw new ArgumentOutOfRangeException(nameof(side));
 
     public bool HasTop => (_bits & TopBit) != 0;
-
-    /// <summary>The top is the tagged one (art 3). HYPOTHESIS from the art's name: the builder
-    /// never reads art 3, and which code draws it is UNKNOWN (floor-and-terrain-pieces.md §5).</summary>
-    public bool TopTagged => (_bits & TaggedBit) != 0;
 
     public bool HasFloor => (_bits & FloorBit) != 0;
 
@@ -65,7 +62,7 @@ public readonly struct TerrainPieces : IEquatable<TerrainPieces>
 
     internal TerrainPieces WithFace(int side) => new(_bits | (1u << side));
 
-    internal TerrainPieces WithTop(bool tagged) => new(_bits | TopBit | (tagged ? (uint)TaggedBit : 0));
+    internal TerrainPieces WithTop() => new(_bits | TopBit);
 
     internal TerrainPieces WithFloor() => new(_bits | FloorBit);
 
@@ -95,6 +92,8 @@ public sealed class TerrainPieceKeys
         for (int k = 0; k < _beds.Length; k++) _beds[k] = AssetCatalogue.TerrainBed(terrainName, k);
         Side = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainSide);
         Top = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainTop);
+        // Art 3, "TOP TAGGED": keyed because the install has it, drawn by nothing (its consumer is
+        // unread; the tag look is a tint, tag-highlight.md).
         TopTagged = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainTopTagged);
         Floor = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainFloor);
         _quarters = new AssetRef[AssetCatalogue.ClaimedSets * AssetCatalogue.ClaimedPieces];

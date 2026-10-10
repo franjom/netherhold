@@ -266,6 +266,16 @@ where `PositionInParty` and `MyLeadersId` are read
 
 ### Built (2026-09-24, ADR-0197)
 
+**Snapdragon startup (2026-10-10).** CONFIRMED shipped data: Level8 action 65492
+raises party 5 at action point 1, the northern gate (33,4). Its six slots are the
+Lord level 5, Dwarf 2, Guard 5, Giant 3, Dwarf 4 and Dwarf 4. A fresh decompile of
+`0x00519F90` confirms that occupied slots are created and assigned their authored
+levels. The owner's original-game screenshot shows this entourage in the gate room.
+Our diagnostic raises it on tick 1 and retains all six nearby through tick 1000.
+Unity previously supplied no trigger tree: every party remained unspawned through
+tick 1000. `CampaignSimulationFactory` now supplies the level root, player roots
+and party templates to the existing executor; the adapter uses that tested path.
+
 `HeroPartyRules.Spawn` follows the list above; `CreatureLevelRules.LevelUp` is step 7's
 arithmetic. Deviations, each named at its site: the creature stands at the tile's centre
 (DK2: its corner); things on the spawn tile are not cleared; no party pace, event 3, gate

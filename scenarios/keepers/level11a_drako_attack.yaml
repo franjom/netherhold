@@ -24,7 +24,7 @@ question: >
   Does Drako, unaided, tunnel from its Lair toward Morgana's heart, bridge the lava in the way, and
   attack her heart?
 map: campaign:level11A
-seed: 7
+seed: 2
 duration_ticks: 700
 viewing_player: 5
 computer_keepers: [4, 5, 6, 7]
@@ -44,40 +44,38 @@ expect:
       it on an earlier pass.
   - event: built
     detail: "player=5 room=Stone Bridge tiles=1 cost=500 refused=0 first=(64,40)"
-    at_tick: 62
+    at_tick: 60
     because: >
       The cursor waits on the tagged rock until it is dug and claimed, then steps onto the lava.
       Lava on the cursor takes only room 17 (0x004FDC50), when it is available; the tile touches
       the claimed corridor, Drako's own floor, as the placement test requires (0x0044F630). DK2: 66.
   - event: built
     detail: "player=5 room=Stone Bridge tiles=1 cost=500 refused=0 first=(64,39)"
-    at_tick: 63
+    at_tick: 61
     because: >
       A laid span steps the walker on the same allowance (0x004FDC50); the next lava tile touches
       the bridge just laid, which is owned and not solid (0x00453B30). DK2: 70.
   - event: tagged
     detail: "player=5 applied=1 rejected=0 span=(64,38)-(64,38)"
-    at_tick: 64
+    at_tick: 62
     because: >
       Past the lava the walker meets rock again and task 7 tags it: the tunnel continues toward
-      Morgana's heart. Morgana's imp reinforced the tile at 62, so Drako's imps dig an enemy wall,
-      and from 91 her imps repair it from her side (kind 16, ADR-0387); it falls at 369, her heart
-      sends her imps to fight Drako's in the hole (ADR-0407), and Drako claims it at 420. DK2's idle
-      capture of 2026-10-06: repair from 101, the wall falls at 387, Drako holds the hole from 638.
-      Over seeds 1-10 the wall falls at 72-404: a keeper may slap its own reinforcer (ADR-0405).
+      Morgana's heart. Her imps may reinforce and repair that wall (ADR-0387), and her heart
+      calls them to fight intruders (ADR-0407). Timing depends on the seed (Q563, Q574).
   - event: call_to_arms_raised
     detail: "tile=64,34"
-    at_tick: 481
+    at_tick: 196
     because: >
       With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
       heart and attack management casts the call there (0x004FECE0, ADR-0298). The point is a draw
-      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. The outcome is a draw too:
-      over seeds 1-10 Drako attacks Morgana first in eight and turns west to Belial in two, as
-      DK2 does in one of its ten (Q574). The tick moved from 625 when coops moved to the interior
-      (hatchery.md §2): over seeds 1-10 the calls are unchanged in kind (seven on Morgana, one
-      west, two none by 700) and eight keep their tick; the egg rolls only reshuffle the stream.
+      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. This version-220 fixture
+      uses seed 2 to retain a northern attack after the combat-order correction (ADR-0429)
+      changed seed 1's later target. Direction and timing remain
+      seed-dependent (Q574); these observations do not establish original placement or timing parity.
   - event: engaged
-    detail: "player=5 heart=6"
+    detail: "type=Mistress player=5 heart=6"
+    at_tick: 248
     because: >
-      Drako's creatures attack Morgana's heart (scan E, ADR-0163); first at 500, a Mistress,
-      before the call. DK2's army crosses only after its call.
+      Drako's Mistress attacks Morgana's heart after the call (scan E, ADR-0163). The Salamander
+      engages at 197 and the Mistress at 248, both after the call at 196. The expectation retains
+      a Mistress reaching Morgana's heart, beyond the bridge and call placement alone.

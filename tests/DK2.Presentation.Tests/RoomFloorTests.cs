@@ -119,13 +119,13 @@ public class RoomFloorTests
     }
 
     [InstallFact]
-    public void PlainTerrainAndTheHeroGatesHaveNoRoomFloor()
+    public void PlainTerrainAndTheFinalHeroGateHaveNoRoomFloor()
     {
         Room room = Carve(RoomTypeId.Treasury, 3, 4);
         Assert.True(Floor(room, X0, Y0).IsEmpty);
         Assert.Null(room.View.TileAt(room.World, X0, Y0).RoomKeys);
 
-        room.World.Tile(X0 + 2, Y0 + 2).TerrainId = room.Database.Room(RoomTypeId.HeroGate2By2).TerrainId;
+        room.World.Tile(X0 + 2, Y0 + 2).TerrainId = room.Database.Room(RoomTypeId.HeroGateFinal).TerrainId;
         Assert.True(Floor(room, X0 + 2, Y0 + 2).IsEmpty);
         Assert.Null(room.View.TileAt(room.World, X0 + 2, Y0 + 2).RoomKeys);
     }
@@ -248,5 +248,108 @@ public class RoomFloorTests
         // Over lava a bridge draws the bed but no surface (0x0043D1C5..0x0043D394).
         room.World.Tile(X0 + 2, Y0 + 2).Flags = BridgeRules.SpansLava;
         Assert.Equal(LiquidSurface.None, room.View.TileAt(room.World, X0 + 2, Y0 + 2).Surface);
+    }
+
+    [InstallFact]
+    public void RuinedHeartDrawsDestroyedFloorIncludingItsCentre()
+    {
+        (WorldState world, WorldView view) = Level("Level8");
+        ThingProjection.Place(world, GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8"),
+            GameDatabaseLoader.LoadCampaignThings(Dk2InstallGate.Path, "Level8")!);
+        Assert.True(world.Player(4).HeartRuined);
+        RoomInstance heart = RoomIndex.Build(world, GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8"))
+            .Single(r => r.Definition.TypeId == RoomTypeId.DungeonHeart && r.OwnerPlayerId == 4);
+        foreach (int index in heart.TileIndices)
+        {
+            TileView tile = view.TileAt(world, index % world.Width, index / world.Width);
+            Assert.True(tile.RoomFloor.HasWhole);
+            if (tile.RoomFloor.WholePiece != 5)
+                Assert.Contains("destroyedpiece", tile.RoomKeys!.Piece(tile.RoomFloor.WholePiece).Key);
+            else
+                Assert.EndsWith(".piece0", tile.RoomKeys!.Piece(5).Key);
+        }
+        int first = heart.TileIndices[0];
+        TileView centre = view.TileAt(world, first % world.Width + 2, first / world.Width + 2);
+        Assert.Equal(4, centre.RoomFloor.WholePiece);
+    }
+
+    [InstallFact]
+    public void ThreeByOneGateDrawsItsFaceInTheNorthRockWall()
+    {
+        (WorldState world, WorldView view) = Level("Level8");
+        for (int i = 0; i < 3; i++)
+        {
+            RoomWalls walls = view.TileAt(world, 32 + i, 3).Walls;
+            Assert.True(walls.IsWhole(0));
+            Assert.Equal(i, walls.WholePiece(0));
+            Assert.Equal(3, walls.WholeRotation(0));
+        }
+    }
+
+    private static (WorldState World, WorldView View) Level(string level)
+    {
+        string dir = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(dir, level);
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, level)!;
+        byte[] players = map.Tiles.Select(t => t.PlayerId).Distinct().Order().ToArray();
+        return (WorldState.FromMap(db, map, players), new WorldView(db));
+    }
+
+    /// <summary>Level 8's 2×2 hero gate at (18,14) (<c>0x004F0070</c>, <c>0x00446800</c>): each tile
+    /// one whole piece, Hero_Gate dx + 2·dy from the first slab, unturned, with its keys.</summary>
+    [InstallFact]
+    public void LevelEightsTwoByTwoHeroGateLaysHeroGateZeroToThree()
+    {
+        (WorldState world, WorldView view) = Level("Level8");
+        for (int dy = 0; dy < 2; dy++)
+            for (int dx = 0; dx < 2; dx++)
+            {
+                TileView tile = view.TileAt(world, 18 + dx, 14 + dy);
+                Assert.False(tile.RoomFloor.HasQuarters);
+                Assert.Equal((dx + (2 * dy), 0), (tile.RoomFloor.WholePiece, tile.RoomFloor.WholeRotation));
+                Assert.EndsWith(".piece" + (dx + (2 * dy)), tile.RoomKeys!.Piece(tile.RoomFloor.WholePiece).Key);
+            }
+    }
+
+    /// <summary>Level 8's 3×1 hero gate at (32..34, 3), whose record has direction 4 (o = 2, rock
+    /// to its north) (<c>0x004F00F0</c>): along x, k = 3, 4, 5 west to east, each turned (o + 1) &amp; 3 = 3.</summary>
+    [InstallFact]
+    public void LevelEightsThreeByOneHeroGateLaysPiecesThreeToFiveTurnedThrice()
+    {
+        (WorldState world, WorldView view) = Level("Level8");
+        for (int i = 0; i < 3; i++)
+        {
+            PieceSet floor = view.TileAt(world, 32 + i, 3).RoomFloor;
+            Assert.False(floor.HasQuarters);
+            Assert.Equal((3 + i, 3), (floor.WholePiece, floor.WholeRotation));
+        }
+    }
+
+    /// <summary>The 3×1 gate's orientation is inferred, not read from its room record (a doubt this
+    /// test exists to check): across every shipped level, each gate's record tile turns its floor by
+    /// (direction / 2 + 1) &amp; 3, as DK2's THINGS loader (<c>0x00521420</c>) sets it.</summary>
+    [InstallFact]
+    public void TheInferredThreeByOneOrientationMatchesEveryShippedRoomRecord()
+    {
+        string dir = Dk2InstallGate.Path;
+        string maps = Path.Combine(dir, "Data", "editor", "maps");
+        int gates = 0;
+        foreach (string file in Directory.GetFiles(maps, "*Things.kld"))
+        {
+            string level = Path.GetFileName(file)[..^"Things.kld".Length];
+            List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(dir, level);
+            if (things is null || GameDatabaseLoader.LoadCampaignMap(dir, level) is null) continue;
+            (WorldState world, WorldView view) = Level(level);
+            GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(dir, level);
+            byte gate = db.Room(RoomTypeId.HeroGate3By1).TerrainId;
+            foreach (RoomThing record in things.OfType<RoomThing>().Where(r => r.RoomType == gate))
+            {
+                PieceSet floor = view.TileAt(world, record.X, record.Y).RoomFloor;
+                Assert.True(floor.HasWhole, $"{level} ({record.X},{record.Y})");
+                Assert.Equal(((record.Direction / 2) + 1) & 3, floor.WholeRotation);
+                gates++;
+            }
+        }
+        Assert.Equal(41, gates);
     }
 }

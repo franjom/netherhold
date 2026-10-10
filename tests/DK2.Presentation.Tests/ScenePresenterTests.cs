@@ -85,6 +85,12 @@ public class ScenePresenterTests
             ObjectRemoves++;
         }
 
+        public void CreateStructure(StructureId id, in StructureView s, in ResolvedAsset m) =>
+            Calls.Add($"create-structure {id} {m.Reference}");
+        public void UpdateStructure(StructureId id, in StructureView s, in ResolvedAsset m) =>
+            Calls.Add($"update-structure {id} {m.Reference}");
+        public void RemoveStructure(StructureId id) => Calls.Add($"remove-structure {id}");
+
         public void CreateTorch(int i, in TorchView t, in ResolvedAsset m) => Calls.Add($"create-torch {i} {m.Reference}");
 
         public void UpdateTorch(int i, in TorchView t, in ResolvedAsset m) => Calls.Add($"update-torch {i}");
@@ -129,6 +135,22 @@ public class ScenePresenterTests
             new WorldView(database), AssetProviderChain.Standard(), target);
 
         return new Rig(database, simulation, presenter, target);
+    }
+
+    [InstallFact]
+    public void AHeartBecomingRuinedUpdatesEveryFloorTile()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
+        WorldState world = WorldState.FromMap(db,
+            GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [0, 1, 2, 3, 4]);
+        var target = new RecordingTarget();
+        var presenter = new ScenePresenter(new WorldView(db), AssetProviderChain.Standard(), target);
+        presenter.Present(world);
+        target.Clear();
+        world.Player(4).HeartRuined = true;
+        presenter.Present(world);
+        Assert.Equal(25, target.Updates);
     }
 
     /// <summary>
@@ -499,12 +521,15 @@ public class ScenePresenterTests
         if (BuildRig() is not { } rig) return; // skipped: no install
 
         FloorGold.Drop(rig.Simulation.World, rig.Database, 40, 500);
+        rig.Target.Clear();
         rig.Presenter.Present(rig.Simulation.World);
+        int created = rig.Target.ObjectCreates; // the pile and the Heart's decorations
 
         rig.Target.Clear();
         rig.Presenter.Resync();
         rig.Presenter.Present(rig.Simulation.World);
 
-        Assert.Equal(1, rig.Target.ObjectCreates);
+        Assert.True(created > 1);
+        Assert.Equal(created, rig.Target.ObjectCreates);
     }
 }

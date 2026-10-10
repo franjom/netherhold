@@ -23,8 +23,8 @@ public static class SeparationRules
     /// <summary>Below this distance-to-radii ratio (<c>0x28F</c>, about 1 %) the force saturates at <c>max_force</c>.</summary>
     public const int SaturationRatio = 0x28F;
 
-    /// <summary>Every creature's <c>radius</c>: 0.2. Written as a literal by the steering reset at
-    /// <c>0x004D5BA9</c>, so separation does not vary with creature size (§3.4).</summary>
+    /// <summary>The steering reset's radius default: 0.2 at <c>0x004D5BA9</c>.
+    /// The creature constructor replaces it with its footprint-derived crowd word (§3.4).</summary>
     public const int ShippedRadius = 0x3333;
 
     /// <summary>Every creature's <c>max_force</c>: 1.5, a literal at <c>0x004D5B7D</c>. The

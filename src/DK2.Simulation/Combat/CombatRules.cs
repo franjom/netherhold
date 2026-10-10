@@ -157,10 +157,12 @@ public static class CombatRules
     /// stored, so it is a predicate here. Cleared for a dying creature, a captive, one leaving, one
     /// in a state whose table flag says so — the lair walk and sleep among them — one with all
     /// sixteen slots taken, one whose invisible word runs (creature-status-effects.md §2), and a
-    /// Combat Pit fighter, which only its forced opponent reaches (combat-pit.md §4). Not
-    /// modelled: torture.</summary>
+    /// Combat Pit fighter, which only its forced opponent reaches (combat-pit.md §4).
+    /// State 76 and involuntary torture also prevent attackability.</summary>
     public static bool IsAttackable(CreatureState creature) =>
         !CreatureDeathRules.IsDown(creature)
+        && creature.Dk2StateId != DropLandingRules.LandingState
+        && (creature.TortureVoluntary || !OnTortureDevice(creature))
         && creature.Activity != CreatureActivity.ReaperArriving
         && !creature.CombatPitFighter
         && !PrisonRules.IsImprisoned(creature)
@@ -169,6 +171,10 @@ public static class CombatRules
         && creature.Activity is not (CreatureActivity.SeekingLair or CreatureActivity.GoingToSleep or CreatureActivity.Sleeping)
         && !StatusEffectRules.IsInvisible(creature)
         && !AllSlotsTaken(creature);
+
+    private static bool OnTortureDevice(CreatureState creature) =>
+        creature.Dk2StateId == TortureRules.ReleasedState
+        || CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Torture;
 
     /// <summary>The gate <c>0x0045A6D0</c>: may this creature look for a fight? Refused for a captive,
     /// one asleep, one leaving unless forced, one in the hand unless forced, the possessed

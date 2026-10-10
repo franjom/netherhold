@@ -546,7 +546,7 @@ public static class CombatTargetRules
             if (candidate.FightTargetKind == FightTargetKind.Creature && candidate.FightTargetId != me.Id) continue;
             if (!CombatRules.IsAttackable(candidate)) continue;
 
-            if (!FearRules.NearOwnRooms(context, rooms, me))
+            if (!FearRules.NearOwnRooms(context, rooms, me.OwnerPlayerId, candidate.Tile))
             {
                 if (FearRules.Withdraw(context, sight, hearts, rooms, me, definition, scratch)) return true;
                 continue;

@@ -35,7 +35,7 @@ dumper prints each by name.
 | `+0x526` | `CurrentFear` | word; last tick's intake, scaled by the heart distance |
 | `+0x528` | `OverThreatCounter` | byte; ticks over the threshold, clamped |
 | `+0x532` | `BackOffTimer` | byte; ticks of backing off left |
-| `+0x533`, `+0x535` | `ThreatThing`, `ThreatThingThreshold` | the tag radiating most at me; the creature update `0x00488930` zeroes both; the threshold is also read by the accumulators `0x0045C5D0` and `0x0045E4F0`, and is only ever 0 |
+| `+0x533`, `+0x535` | `ThreatThing`, `ThreatThingThreshold` | positive threat records the source tag against a threshold that stays 0; the creature update clears both after considering a live source outside combat (§7) |
 | `+0x52A`, `+0x52E` | `OldFightPos`, `OldFightTick` | stamped by the withdraw state; **read by state 1** (§8; "no reader" was wrong, corrected 2026-09-25) |
 | `+0x3D7` | `FearlessUntil` | set only by the Casino leave hook, after 120 of the Casino update's acts (150 game seconds) have made a creature `CasinoGamblingFearless`: `now + var19 × GamblingDelayBeforeBecomingFearlessSeconds` (`leave-hook-bodies.md` §1, built ADR-0322) |
 
@@ -188,17 +188,17 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
    accumulator, after the shuffle speed is set (`0x004887D0(2, 0)`). What spends
    the accumulator is unread (Q373). Impossible: cornered (§3.1) → `SetState(199)`, else
    `BackOffTimer = 0`.
-9. **The run.** `0x00460B50`: a keeper's creature (not neutral, not Good) with a
-   live target standing strictly inside one of its owner's rooms grown by
+9. **The run.** `0x00460B50`: a keeper's creature (not neutral, not Good) whose
+   live creature target stands strictly inside one of its owner's rooms grown by
    `GuardRoomReportingDistanceTiles` (variable 190, ships 7) on every side counts
    heads with `0x004FAC40` over five tiles of its position — the summed
    level-scaled `Threat` of each side's standing creatures — and **ends the state
    when its own side at three quarters outweighs the enemy's**; otherwise a
    `Scout` (`JobClass` 3) with Call to Arms off and nobody already responding
    within five tiles goes to the nearest room to raise the alarm
-   (`0x004752B0`, combat-alarm.md §2–§3, built with ADR-0166), unlinking and
+   (`0x004752B0`, combat-alarm.md §2–§3; this flee entry built with ADR-0425), unlinking and
    setting body bit `+0x10F`.0; anyone else ends the state.
-   **Away from its rooms**, or with a dead target: unlink, clear, and the
+   **Target away from its rooms**, or no live creature target: unlink, clear, and the
    withdraw state — its result is the handler's.
 
 ## 5. The withdraw state (`0x004611D0`, `FightWithDrawState.cpp`)
@@ -250,9 +250,9 @@ arrival state walks again.
 ## 7. Built and not built (ADR-0165)
 
 **Built** (`FearRules`, `CombatSystem`): §2 steps 1–3 and 5 for creature
-receivers, run after each creature's fight processing in id order; §3.1–3.4
+receivers, run after each creature's fight processing newest first; §3.1–3.4
 including the acquirer's withdraw; §4 in order with the nearest-attacker rule,
-the stand-off and the head-count; §5 steps 2–5 and the run, arriving idle;
+the stand-off, head-count and Scout alarm entry (ADR-0425); §5 steps 2–5 and the run, arriving idle;
 `Running` as the body's speed cap (`RunSpeed` scaled by the Speed row, STRONGLY
 INFERRED). `CreatureActivity.Fleeing` is state 203, `Withdrawing` state 6 toward
 202, entered from 199 when not already in the combat group; both hold those ids since
@@ -265,6 +265,17 @@ word `+0x27/+0x29` is `RoomInstance.CentreFieldX/Y` since ADR-0323 (§5 step 3).
 
 **Not built:** hero gates; the stunned gate (a chicken is skipped, ADR-0302); the owner modifiers (Q375);
 `ThreatThing`; the two spell sources of §2; the body bit `+0x10F`.0.
+
+**Threat outside combat (binary re-read 2026-10-10).** After the accumulator and
+before state dispatch, `0x00488930` checks unpossessed, not dying, not fearless or
+within `FearlessUntil`, `CurrentFear > Fear(level)`, attackable, state not 255 and
+not already state 6 heading to 221. It emits creature event 12. Outside resolved
+combat category 22, a live `ThreatThing` of a **non-creature** class within five
+tiles causes up to five away-point draws, accepted by map bounds and sight;
+an accepted idle transition routes in 6 toward 221 (Imp options `0x80`, others 0).
+The source and threshold are then cleared even for a creature source, which does
+not take this route. This unbuilt branch concerns traps and objects, not a
+general nearby-enemy reaction. Provenance: `0x00489AD3`–`0x00489E27` assembly.
 
 ## Confidence
 

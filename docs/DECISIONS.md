@@ -9253,6 +9253,11 @@ INFERRED).
 20/20, Level 2 5/20 and 5/20 (seeds 3, 5, 10, 13, 14), Level 3 seed 01 won at 3608 and 3600 (DK2
 3683).
 
+**Amendment (2026-10-10, Q581; `furniture-placement.md` §3).** The wall pass's default arm
+`0x004EEE1F` moves its object `0x700` toward its wall like every other arm, so the Workshop's wall
+Anvils and Buckets do not stay at their tile's centre; its floor machines do. Not built in the
+simulation (it moves where a manufacturer works); the classic look draws them by the binary.
+
 ## ADR-0405 — The keeper slaps on the last task kind; a repair is kind 16
 **Date:** 2026-10-08 · **Status:** accepted · Research: `computer-keeper-management.md` §8; Q574
 
@@ -9657,3 +9662,205 @@ DK2 sets y to the tile's quarter; a pick-up whose walk fails tries the next Grav
 (state 40) and abandons in ours; ours counts one place per lying corpse where states 40 and 41 read
 `+0x71` and the capacity test `+0x6B` (LIKELY the same count); the order and spot draws walk our
 room index, not DK2's newest-first list.
+
+## ADR-0419 — Start placed captives in their rooms and keep walled interiors distinct
+**Date:** 2026-10-10 · **Status:** accepted · Research: hand-drop-landing.md §1–§2;
+room-floors-and-liquids.md §4; furniture-placement.md §3; imps-and-mana.md; combat-acquisition.md §4
+
+**Context.** Level 8's placed captives and torture victims remained free, creatures crossed
+cell bars, and Dante's ruined Heart generated imps at its ruin. Workshop wall machines had
+different working and drawing positions. These discrepancies have binary evidence.
+
+**Decision.** Project THINGS flag 0x40 into landing state 76 and resolve its room take-over
+after furniture exists. Preserve starting captive health, own-versus-captive torture and
+the independent non-worker/hero/neutral fallback. Torture companions are simulation devices.
+Attackability excludes landing and involuntary torture. DoubleQuad floor slots carry nav
+byte 4; the inner Prison delivery uses option 0xE4. Auto-placed wall furniture uses its
+binary inset in both simulation and presentation. Ruined-at-load free casts use the
+default corner origin and reject outside-map/solid positions, advancing the deadline.
+Hash/save version 215; no new saved field.
+
+**Consequences.** Twenty recorded seeds per level: Level 1 retains 20/20 wins and Level 2
+retains 4/20, with unchanged win ticks. Level 3 changes from 15/20 to 17/20 as Workshop
+positions change its random stream; this sample does not establish an improvement.
+Level 11A's seed fixture uses seed 2: the correct
+startup of Belial's two flagged Goblins changes seed 7's outcome; reverting only that
+startup restores its old outcome. All keepers and behavioral assertions are retained.
+Startup landing finishes on the first tick; remaining deviations stay in the cited research.
+
+## ADR-0420 — Attach torture victims to devices and supply their movement obstacles
+**Date:** 2026-10-10 · **Status:** accepted · Research: object-drawing.md §9;
+structure-blocks.md §5–§6; navigation-and-steering.md §3.2
+
+**Context.** Snapdragon's placed Mistresses entered torture but were drawn standing
+beside wheels. Passing Dwarves had no wheel obstacle in the steering input.
+
+**Decision.** Attach simulation positions to the device, including the wall inset.
+Draw the torture pose's first frame using wheel transforms and numeric-mode-1 offsets.
+Supply wheel/chair obstacle flags, widths and positions to existing continuous steering.
+Preserve its soft separation, arrival, escape and zero-distance exceptions.
+Hash/save version 216, without new saved fields.
+
+**Consequences.** Full creature animation playback remains classic look step 4;
+chair poses/effects, other art modes and other furniture obstacles remain deferred.
+Creature separation already runs; rigid mesh collision would change original behavior.
+Twenty recorded seeds per level retain all prior outcomes and win ticks:
+Level 1 20/20 wins, Level 2 4/20 and Level 3 17/20; all 60 replays are valid.
+
+## ADR-0421 — Draw placed doors and traps through the asset boundary
+**Date:** 2026-10-10 · **Status:** accepted · Research: structure-drawing.md
+
+**Context.** Snapdragon loads doors and traps into simulation, but the classic
+asset catalogue and scene presenter supplied no corresponding meshes.
+
+**Decision.** Add definition-based door/trap asset references and typed structure
+identities. Present tile-centred structures using original headings, floor height
+and viewer visibility. Draw normal doors using settled open/closed clip endpoints;
+barricades use their static model. Unity consumes this detached view.
+
+**Consequences.** Simulation state and its random stream are unchanged. Door
+transitions, trap animation/effects and construction tint remain deferred to
+classic look step 4; concealed structures follow the recorded visibility rules.
+
+## ADR-0422 — Start Unity campaigns with their player and party scripts
+**Date:** 2026-10-10 · **Status:** accepted · Research: hero-parties-and-effect-generators.md
+
+**Context.** Unity projected campaign THINGS but supplied no trigger tree, leaving
+Snapdragon's northern Lord and entourage unspawned.
+
+**Decision.** Use an engine-neutral startup factory over loaded campaign records.
+It projects player gold and THINGS, builds level/player/party trigger roots and
+starts the existing systems. Unity and the campaign startup regression share it.
+
+**Consequences.** The authored six-member northern party appears on the first
+modern tick. The screenshot confirms composition and presence; exact original
+timing and subsequent movement remain unmeasured. No simulation field is added.
+
+## ADR-0423 — Preserve the ordinary obstacle query's retained flags
+**Date:** 2026-10-10 · **Status:** accepted · Research: structure-blocks.md §5–§6
+
+**Context.** Dwarves still crossed the wheel. The callback's solid bit was treated
+as a definition value, but the binary retains it and toggles it for soft definitions.
+
+**Decision.** Enumerate all eligible ordinary obstacles in row-major tile order
+and descending tile-link order, within the binary's half-range rectangle. Preserve
+the set/toggle operations, half-widths and actual object positions. Keep the
+confirmed arrival, escape and zero-distance exceptions. Hash/save version 217.
+
+**Consequences.** A complete Dwarf walk now receives slide contacts and goes around
+the floor wheel. The virtual Heart approximation and first-person obstacle classes
+remain partial; upper Y on rectangular modern worlds is clipped to actual height.
+All 60 Level 1–3 replays validate under version 217; bounded-run wins are 19/11/19
+versus 20/4/17 under 216. All event streams change with the corrected movement.
+
+## ADR-0424 — Apply the grounded water speed modifier
+**Date:** 2026-10-10 · **Status:** accepted · Research: steering-behaviours.md §7.5
+
+**Context.** Water was traversable at full walking speed. The creature update
+halves grounded speed in entity units before moving.
+
+**Decision.** Apply the water modifier after status effects and before possession,
+rounding in entity units. Bridge terrain keeps its normal speed. Use the existing
+supported flight classification; retain the binary's greedy routing bias rather
+than introduce a travel-time optimiser. Hash/save version 217, shared with ADR-0423.
+
+**Consequences.** Water crossings now take the confirmed speed penalty. Worker
+flight bits and animation exceptions remain unmodelled, as do the separate
+low-health and lava speed modifiers. Bridge preference is not guaranteed by DK2's
+route search; the screenshot's exact original route remains an open comparison.
+
+## ADR-0425 — Let a frightened Scout run to raise the alarm
+**Date:** 2026-10-10 · **Status:** accepted · Research: combat-fear.md §4, §7
+
+**Context.** An Imp attacked near its rooms entered flight but immediately
+returned idle. The timer-zero flee arm omitted the Scout's existing alarm call.
+Its room test also used the Imp's tile where DK2 tests the attacker's tile.
+
+**Decision.** Use the target tile for both callers of the room test. When a
+fleeing Scout is outmatched, invoke the existing alarm entry with DK2's threat
+position and deficit. Preserve stand-down when the owner's force outweighs the
+enemy and withdrawal when the target is outside the expanded rooms. Hash/save
+version 218; no new persistent state. Restore the alarm's Call to Arms gate.
+
+**Consequences.** Outmatched Imps run toward a room in state 6 heading to 251
+instead of cycling through idle near danger. The separate non-creature
+ThreatThing response remains unbuilt; see combat-fear.md §7. This correction
+does not establish original-versus-modern casualty or timing parity.
+
+## ADR-0426 — Draw the authored chain and lock on locked doors
+**Date:** 2026-10-10 · **Status:** accepted · Research: structure-drawing.md §4
+
+**Context.** Completed locked doors rendered only their door model. DK2 attaches
+the definition's separate chain-and-lock object.
+
+**Decision.** Resolve that object through the door asset variant and present it
+at the door's origin and heading. Draw it for alive, completed, closed ordinary
+doors in lock mode 3 with no picked-lock countdown, including foreign doors.
+
+**Consequences.** The marker follows detached presentation changes without new
+simulation state. Secret disguise visibility and unreachable mode 1/2 marker
+branches remain unpresented; no procedural replacement substitutes for the asset.
+
+## ADR-0427 — Sort translucent terrain triangles across materials
+**Date:** 2026-10-10 · **Status:** accepted · Research: kmf-materials.md §7
+
+**Context.** Grouping portal triangles by material lets the translucent chasm
+cover crystal faces, making intact pillars look fragmented.
+
+**Decision.** Separate blended terrain from opaque chunks. Sort its triangles
+globally by summed camera-facing vertex depth, preserving ties, and batch only
+consecutive equal materials. Pooled renderers submit those runs in explicit order
+for each camera. Keep original positions, textures, alpha and depth-write states.
+
+**Consequences.** Camera rotation and geometry changes refresh ordering. The
+modern sort uses continuous depth rather than DK2's quantised buckets. Standalone
+object/liquid transparency remains outside this stream; run batching increases
+draw calls and has Unity's documented 32767 ordered-run bound. No simulation change.
+
+## ADR-0428 — Lay hatchery eggs across the room floor
+**Date:** 2026-10-10 · **Status:** accepted · Research: hatchery.md §3
+
+**Context.** The normal laying path always chose a coop, stacking every chicken
+beneath it. Assembly confirms DK2 chooses among slabs without a Hatchery Pillar
+when the room has capacity, then draws two sub-tile offsets.
+
+**Decision.** Use slab-chain order and the confirmed three draws. Share the
+pillar corner predicate with presentation so decorative pillars exclude the
+same slabs. Keep the egg's existing saved X/Y on hatching and in the view;
+recentre a bird dropped from the keeper's hand. Hash/save version 219.
+
+**Consequences.** The flock has individual positions across the Hatchery.
+The full-room coop launch remains deferred, as does the separate chicken
+roaming loop researched in hatchery-roaming.md. This change does not claim
+animation playback or original timing/RNG parity for those missing paths.
+
+## ADR-0429 — Update combat in creature creation order reversed
+**Date:** 2026-10-10 · **Status:** accepted · Research: combat-acquisition.md §1
+
+**Context.** DK2's head-linked creature sweep updates newer creatures first.
+Our combat pass did the opposite, letting an older attacker start its swing
+before a newer worker's same-turn danger response.
+
+**Decision.** Run combat newest first, preserving attack and fear rules.
+Test both creation orders and bump hash/save to 220.
+
+**Consequences.** Same-turn combat events and RNG consumption change.
+State handlers and movement still run in separate system passes. This narrow
+correction does not establish original casualty parity: the first Imp still
+dies in the Level 7 seed-7 encounter, as recorded in combat-acquisition.md §1.
+
+## ADR-0430 — Keep waiting heroes' sub-tile destinations
+**Date:** 2026-10-10 · **Status:** accepted · Research: hero-party-walk.md §1
+
+**Context.** A waiting hero chooses a point inside its current tile. Our generic
+route shortcut marked this destination reached without moving the creature.
+The original route retains its destination even within one triangle.
+
+**Decision.** Route the waiting state's request through the existing point-walk
+path used for stances. Preserve its nine points, timing draws, loose arrival
+options and resume state. Test physical movement within the tile, not only
+state transitions. Hash/save version 221.
+
+**Consequences.** Waiting heroes shift position and their followers respond.
+Other generic same-tile route callers remain under Q565; this does not replace
+authored waypoint patrols with invented wandering.

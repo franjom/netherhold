@@ -185,6 +185,6 @@ public sealed class InstallArtProviderTests
             Assert.True(provider.TryLoadModel(asset, out KmfModel model), asset.InstallEntry);
             Assert.NotEmpty(RenderMesh.FromModel(model).Positions);
         }
-        Assert.Equal(189 + 16, keys.Length);
+        Assert.Equal(189 + 4 + 7 + 16, keys.Length);
     }
 }

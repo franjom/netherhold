@@ -19,12 +19,14 @@ namespace DK2.Art;
 /// </remarks>
 public sealed class RenderMesh
 {
-    private RenderMesh(Vector3[] positions, Vector3[] normals, Vector2[] uvs, int[][] triangles)
+    private RenderMesh(Vector3[] positions, Vector3[] normals, Vector2[] uvs, int[][] triangles,
+        KmfBlend[] blends)
     {
         Positions = positions;
         Normals = normals;
         Uvs = uvs;
         Triangles = triangles;
+        Blends = blends;
     }
 
     public IReadOnlyList<Vector3> Positions { get; }
@@ -33,6 +35,10 @@ public sealed class RenderMesh
 
     /// <summary>Vertex indices, three a triangle, per material.</summary>
     public IReadOnlyList<int[]> Triangles { get; }
+
+    /// <summary>Each triangle list's blend, from its material's flags
+    /// (<see cref="KmfMaterial.Blend"/>); opaque where the model has no material.</summary>
+    public IReadOnlyList<KmfBlend> Blends { get; }
 
     /// <summary>DK2's frame to the renderer's: <c>(x, -z, -y)</c>.</summary>
     public static Vector3 ToRenderFrame(Vector3 dk2) => new(dk2.X, -dk2.Z, -dk2.Y);
@@ -67,7 +73,10 @@ public sealed class RenderMesh
             foreach (byte index in primitive.IndicesByDetailLevel[0])
                 triangles[material].Add(first + index);
         }
+        var blends = new KmfBlend[triangles.Length];
+        for (int i = 0; i < blends.Length && i < model.Materials.Count; i++)
+            blends[i] = model.Materials[i].Blend;
         return new RenderMesh([.. positions], [.. normals], [.. uvs],
-            triangles.Select(list => list.ToArray()).ToArray());
+            triangles.Select(list => list.ToArray()).ToArray(), blends);
     }
 }

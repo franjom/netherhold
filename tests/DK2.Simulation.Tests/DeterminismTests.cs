@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 209: the corpse selections' Graveyard messages and the +0xF4E flag (ADR-0414)
+        // HashVersion 221: waiting heroes retain their sub-tile walks (ADR-0430).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xF18C419AE1575DF8UL, sim.StateHash());
+        Assert.Equal(0xFB311154736B9A1BUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

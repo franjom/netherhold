@@ -145,6 +145,9 @@ public sealed class PlayerInputTranslator
         return command is null ? InputFrame.Empty : InputFrame.Of(command);
     }
 
+    /// <summary>Where an unfinished drag with <paramref name="tool"/> began; null with none.</summary>
+    public TilePos? DragFrom(PlayerToolMode tool) => _drag is DragStart drag && drag.Tool == tool ? drag.Tile : null;
+
     private static bool IsDragTool(PlayerToolMode tool) =>
         tool is PlayerToolMode.TagTiles or PlayerToolMode.UntagTiles or
             PlayerToolMode.BuildRoom or PlayerToolMode.SellRoom;

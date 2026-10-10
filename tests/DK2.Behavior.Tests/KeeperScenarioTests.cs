@@ -74,7 +74,7 @@ public class Level10KeeperScenarioTests(ITestOutputHelper output)
 public class Level11AKeeperScenarioTests(ITestOutputHelper output)
 {
     [InstallFact]
-    public void Level11ADrakoBridgesTheLavaWithStoneThenCallsItsArmyToMorganasHeart_OnSeed7sDrawnDiagonal()
+    public void Level11ADrakoBridgesTheLavaWithStoneThenCallsItsArmyToMorganasHeart_OnSeed2sDrawnDiagonal()
     {
         Scenario scenario = ScenarioCorpus.Load("keepers/level11a_drako_attack.yaml");
         ScenarioResult run = ScenarioCorpus.Run(scenario, output);
@@ -93,12 +93,14 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         List<(int Tick, BuildRoomCommand Build)> spans = run.KeeperCommandLog
             .Where(e => e.Command is BuildRoomCommand b && b.PlayerId.Value == 5 && BridgeRules.IsBridge(ScenarioCorpus.Database.Room(b.RoomId)))
             .Select(e => (e.InputTick, (BuildRoomCommand)e.Command)).ToList();
-        Assert.Equal([(62, new TilePos(64, 40)), (63, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
+        Assert.Equal([(60, new TilePos(64, 40)), (61, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
         Assert.All(spans, s => Assert.Equal(RoomTypeId.StoneBridge, s.Build.RoomId));
 
-        var call = (CastSpellAtPlaceCommand)Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5).Command;
-        // Two tiles off Morgana's heart, in a drawn diagonal: (64,34) on this seed, DK2's (64,38).
-        // Seed-dependent: over seeds 1-10 the front turns west in two (Q574, ADR-0407).
+        KeeperCommandEmission callEmission = Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5);
+        var call = (CastSpellAtPlaceCommand)callEmission.Command;
+        Assert.Equal(196, callEmission.InputTick);
+        // Two tiles off Morgana's heart; the seed-specific fixture is explained in the scenario.
+        // The front's direction is seed-dependent (Q574, ADR-0407).
         Assert.Equal(((byte)CallToArmsRules.SpellId, 64, 34), (call.SpellId, call.X >> 12, call.Y >> 12));
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
