@@ -117,9 +117,15 @@ line, with no extra rule.
 
 **The deadline is advanced whether or not the imp is actually made.** The write
 follows the call with no test of its result, so a keeper with nowhere to put an imp
-burns the interval rather than retrying every frame. Nothing observable turns on it
-in a shipped level, because a keeper without a dungeon heart has already lost
-(Q40), but it is what ours does.
+burns the interval rather than retrying every frame. This matters for Level 8's Dante.
+**STRONGLY INFERRED (binary 2026-10-10):** `0x004BB2A0` aims the free cast two tiles from
+player +0xB43/+0xB45 at a random 2048-step angle; building a ruined-at-load Heart leaves
+that origin at (1,1). `0x004BBD30` reaches creation process 1 (`0x004AD7A0`), which calls
+`0x004B35C0` and `0x005090C0`: outside-map or nav-solid positions are rejected, never
+clamped or relocated. Every in-map candidate around Dante's origin is rock, so his casts
+fail while advancing the deadline. `ImpSupplySystem` models that case and the killed-keeper
+gate. Deviation: healthy Hearts retain the existing first-heart-tile spawn (Q52); the
+ruined-at-load case is identified by HeartRuined with no recorded attacker.
 
 **A free imp is genuinely free.** The power is cast with a flag that makes the
 original skip the spell-availability check, skip the mana check and skip the

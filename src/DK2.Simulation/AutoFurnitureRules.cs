@@ -81,6 +81,12 @@ public static class AutoFurnitureRules
         }
 
         AddWallFurniture(world, database, room, roomTiles, into);
+        if (room.Definition.TypeId == RoomTypeId.TortureChamber)
+        {
+            int count = into.Count;
+            for (int i = 0; i < count; i++)
+                if (into[i].ObjectTypeId is 62 or 63) into.Add((into[i].TileIndex, TortureRules.WheelObjectId));
+        }
     }
 
     /// <summary>The general capacity arms established by Q270, and <c>Room_ComputeTotalCapacity</c>'s
@@ -382,13 +388,12 @@ public static class AutoFurnitureRules
     /// <c>0x004EECEB</c>), sides north, east, south, west (<c>casino.md</c> §3).
     /// <para>Deviates: every wall-pass object is moved, the default arm <c>0x004EEE1F</c> included
     /// (<c>furniture-placement.md</c> §3), so the Workshop's wall Anvils and Buckets stand <c>0x700</c>
-    /// toward their wall, not at the centre ADR-0404 gives them (Q581). Not applied here, as it moves
-    /// where a manufacturer works; the view places them by the binary.</para></summary>
+    /// toward their wall, correcting ADR-0404's centred machines (Q581).</para></summary>
     public static (int X, int Y) FurniturePosition(WorldState world, GameDatabase database, RoomInstance room, ObjectState thing)
     {
         int x = CreatureState.CentreOf(thing.TileIndex % world.Width);
         int y = CreatureState.CentreOf(thing.TileIndex / world.Width);
-        if (thing.ObjectTypeId is not (68 or 58)) return (x, y);
+        if (!thing.AutoPlaced || !IsWallFurniture(room.Definition, thing)) return (x, y);
         int inset = WallInset(thing.ObjectTypeId);
         return WallSide(world, database, room, thing.TileIndex) switch
         {
@@ -398,6 +403,18 @@ public static class AutoFurnitureRules
             3 => (x - inset, y),
             _ => (x, y),
         };
+    }
+
+    /// <summary>Whether this object's type appears in the room's wall-pass list.</summary>
+    public static bool IsWallFurniture(RoomDef room, ObjectState thing)
+    {
+        if (!room.Flags.HasFlag(RoomFlags.SpecialWalls)) return false;
+        for (int i = 3; i <= 5 && i < room.ObjectIds.Count; i++)
+        {
+            if (room.ObjectIds[i] == 0) break;
+            if (room.ObjectIds[i] == thing.ObjectTypeId) return true;
+        }
+        return false;
     }
 
     /// <summary>How far the wall pass moves an object toward its wall, by its arm (index bytes

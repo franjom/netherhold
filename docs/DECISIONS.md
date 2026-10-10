@@ -9662,3 +9662,28 @@ DK2 sets y to the tile's quarter; a pick-up whose walk fails tries the next Grav
 (state 40) and abandons in ours; ours counts one place per lying corpse where states 40 and 41 read
 `+0x71` and the capacity test `+0x6B` (LIKELY the same count); the order and spot draws walk our
 room index, not DK2's newest-first list.
+
+## ADR-0419 — Start placed captives in their rooms and keep walled interiors distinct
+**Date:** 2026-10-10 · **Status:** accepted · Research: hand-drop-landing.md §1–§2;
+room-floors-and-liquids.md §4; furniture-placement.md §3; imps-and-mana.md; combat-acquisition.md §4
+
+**Context.** Level 8's placed captives and torture victims remained free, creatures crossed
+cell bars, and Dante's ruined Heart generated imps at its ruin. Workshop wall machines had
+different working and drawing positions. These discrepancies have binary evidence.
+
+**Decision.** Project THINGS flag 0x40 into landing state 76 and resolve its room take-over
+after furniture exists. Preserve starting captive health, own-versus-captive torture and
+the independent non-worker/hero/neutral fallback. Torture companions are simulation devices.
+Attackability excludes landing and involuntary torture. DoubleQuad floor slots carry nav
+byte 4; the inner Prison delivery uses option 0xE4. Auto-placed wall furniture uses its
+binary inset in both simulation and presentation. Ruined-at-load free casts use the
+default corner origin and reject outside-map/solid positions, advancing the deadline.
+Hash/save version 215; no new saved field.
+
+**Consequences.** Twenty recorded seeds per level: Level 1 retains 20/20 wins and Level 2
+retains 4/20, with unchanged win ticks. Level 3 changes from 15/20 to 17/20 as Workshop
+positions change its random stream; this sample does not establish an improvement.
+Level 11A's seed fixture uses seed 2: the correct
+startup of Belial's two flagged Goblins changes seed 7's outcome; reverting only that
+startup restores its old outcome. All keepers and behavioral assertions are retained.
+Startup landing finishes on the first tick; remaining deviations stay in the cited research.

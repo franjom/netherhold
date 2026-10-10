@@ -104,7 +104,7 @@ public class DeterminismTests
 
         // HashVersion 209: the corpse selections' Graveyard messages and the +0xF4E flag (ADR-0414)
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xF18C419AE1575DF8UL, sim.StateHash());
+        Assert.Equal(0x867E1B17FFDAB65DUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

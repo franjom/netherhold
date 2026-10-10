@@ -30,6 +30,12 @@ public enum MoveOptions
     /// respect doors, snap onto the spot, arrive within a tenth of the radius.</summary>
     ExactSpot = 0xE8,
 
+    /// <summary>Cross a walled room interior while retaining the other route rules.</summary>
+    CrossRoomInterior = 0x04,
+
+    /// <summary>State 44's delivery into a Prison cell: respect doors and snap to the spot.</summary>
+    PrisonDelivery = 0xE4,
+
     /// <summary>A captive's chicken (124), freeing comrades (121): the exact spot with door
     /// bit 2 ignored and no door rule.</summary>
     CaptiveSpot = 0x6C,

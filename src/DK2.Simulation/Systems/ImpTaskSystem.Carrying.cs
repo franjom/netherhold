@@ -717,7 +717,9 @@ public sealed partial class ImpTaskSystem
         WorldState world = context.World;
         var to = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
 
-        return context.Navigation.TryRoute(creature, to, Navigation.MoveOptions.ExactSpot);
+        bool prison = context.Database.RoomByTerrain(world.Tile(to).TerrainId)?.TypeId == RoomTypeId.Prison;
+        return context.Navigation.TryRoute(creature, to,
+            prison ? Navigation.MoveOptions.PrisonDelivery : Navigation.MoveOptions.ExactSpot);
     }
 
     /// <summary>Clears the "body I am walking towards" note.</summary>

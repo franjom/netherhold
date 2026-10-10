@@ -242,7 +242,7 @@ public class TempleStateTests
     {
         GameDatabase db = Db();
         WorldState world = World(db, 5);
-        CreatureState it = world.SpawnCreature(db, Vampire, Keeper, new TilePos(3, 3));
+        CreatureState it = world.SpawnCreature(db, Vampire, Keeper, new TilePos(1, 3));
         GameSimulation sim = Simulation(db, world);
         sim.ObserveWith(new ListEventSink());
         var summon = new GameSimulation(db, world, seed: 1, [new SummonProbe(it)]);
@@ -267,5 +267,19 @@ public class TempleStateTests
         {
             if (creature.Dk2StateId != TempleStep.SummonedState) TempleStep.Summon(context, Name, creature);
         }
+    }
+
+    [Fact]
+    public void SummonedRouteDoesNotCrossThePoolBoundary()
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db, 5);
+        CreatureState it = world.SpawnCreature(db, Vampire, Keeper, new TilePos(3, 3));
+        var summon = new GameSimulation(db, world, seed: 1, [new SummonProbe(it)]);
+        summon.Tick();
+        Assert.Equal(TempleStep.SummonedState, it.Dk2StateId);
+        Simulation(db, world).Tick();
+        Assert.Equal(CreatureStateMachine.Idle, it.Dk2StateId);
+        Assert.Equal(new TilePos(3, 3), it.Tile);
     }
 }

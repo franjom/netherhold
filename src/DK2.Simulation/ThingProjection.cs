@@ -244,6 +244,8 @@ public static class ThingProjection
 
         // The record's Flags into the creature's, the bits the loader copies (ADR-0201).
         state.Flags = (byte)(thing.Flags & flagMask);
+        if ((state.Flags & LevelPlacedCreatureRules.PlacedAsDropped) != 0)
+            CreatureStateMachine.TrySetState(new StateHookContext(world, database), state, DropLandingRules.LandingState);
 
         // No floor on the result, deliberately: a creature that rounded to zero health would die on
         // the tick it arrived, but the clamp could never fire — the smallest Hp in the shipped table

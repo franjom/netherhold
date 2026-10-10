@@ -35,7 +35,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
     }
 
     /// <summary>Hands a short-handed keeper a free imp when one is due.</summary>
-    /// <remarks>The due time is a deadline and it moves only when an imp is made:
+    /// <remarks>The due time is a deadline and it moves whenever a free cast is attempted:
     /// DK2 keeps one field on the keeper — <see cref="PlayerState.NextFreeImpTick"/> —
     /// and its keeper update writes it in exactly one place, right after the spawn, as
     /// <c>now + TimeBeforeFreeImpGeneratedSeconds</c>. A keeper at full strength is
@@ -66,6 +66,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
             // cleared for anyone declined, which is what makes a full-strength
             // keeper's next replacement immediate.
             if (!PlayerIds.IsKeeper(playerId.Value)) continue;
+            if (player.KilledByPlayerId != 0) continue;
 
             if (ImpSupplyRules.ImpCount(world, database, playerId) >= minimum) continue;
 
@@ -73,12 +74,18 @@ public sealed class ImpSupplySystem : ISimulationSystem
 
             player.NextFreeImpTick = new GameTick(now.Value + interval);
 
-            // No heart, nowhere to put it — so nothing happens and the interval
-            // is burned anyway, because the original advances the deadline
-            // without looking at whether the cast worked. A keeper without a
-            // heart has lost (Q40); what this avoids is searching the map for
-            // one on every tick.
-            if (Spawn(context, playerId) is not { } imp) continue;
+            // A ruined-at-load Heart leaves the free-cast origin at (1,1).
+            // The cast still consumes a direction draw and its deadline on failure.
+            TilePos? freeAt = null;
+            if (player.HeartRuined && player.HeartLastAttackerPlayerId == 0)
+            {
+                int angle = context.Rng.NextInt(0x800);
+                freeAt = new TilePos((0x1800 + ((TrapRules.Cosine(angle) * 0x2000) >> 16)) >> 12,
+                    (0x1800 + ((TrapRules.Sine(angle) * 0x2000) >> 16)) >> 12);
+                if (!world.Contains(freeAt.Value)
+                    || (context.Navigation.NavByte(freeAt.Value.X, freeAt.Value.Y) & 8) != 0) continue;
+            }
+            if (Spawn(context, playerId, freeAt) is not { } imp) continue;
 
             context.Emit(SystemName, "imp_generated",
                 $"player={playerId} imp={imp.Id} at=({imp.Tile.X},{imp.Tile.Y}) " +

@@ -81,6 +81,10 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             }
         }
 
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+            if (room.Definition.Construction == TileConstruction.DoubleQuad)
+                foreach (int tile in AutoFurnitureRules.FloorSlotSet(world, room)) bytes[tile] = NavBytes.PortalHole;
+
         // A closed, completed door overwrites its tile (`0x004A66F0`); an open one leaves floor.
         // A barricade (definition flag bit 6) carries the lock bit whatever its lock mode.
         foreach (DoorState door in world.Doors)

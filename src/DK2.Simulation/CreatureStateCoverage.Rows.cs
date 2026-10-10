@@ -89,7 +89,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unreachable(73, "entered only from 72, which nothing enters: room-return-states.md §4"));
         rows.Add(Unreachable(74, "entered only through 73, which nothing reaches: room-return-states.md §4"));
         rows.Add(Built(75, typeof(HandRules), nameof(HandRules.PreparationState)));
-        rows.Add(Unbuilt(76, "the drop lands straight in 255; DK2 passes through 76 first (ADR-0226, hand-drop-landing.md)"));
+        rows.Add(Built(76, typeof(LevelPlacedCreatureRules), nameof(LevelPlacedCreatureRules.Land)));
         rows.Add(Built(77, typeof(SlapRules), nameof(SlapRules.ReactionState)));
         rows.Add(Unbuilt(78, "not read"));
         rows.Add(Unbuilt(79, "read in lair-acquisition.md 9; not built"));

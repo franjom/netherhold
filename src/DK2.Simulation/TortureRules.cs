@@ -114,14 +114,14 @@ public static class TortureRules
     /// ADR-0226). It stays its keeper's captive. Returns whether it took: 130's enter hook claims
     /// a place (ADR-0309), and a refusal leaves it in 1.</summary>
     public static bool TryStrap(
-        in StateHookContext hooks, CreatureState creature, byte keeper, int tileIndex)
+        in StateHookContext hooks, CreatureState creature, PlayerId keeper, int tileIndex)
     {
         WorldState world = hooks.World;
         GameDatabase database = hooks.Database;
-        ObjectState? device = FreeDeviceAt(world, database, keeper, tileIndex, creature.Id);
+        ObjectState? device = FreeDeviceAt(world, database, keeper.Value, tileIndex, creature.Id);
         if (device is null || !Holds(device, database.CreatureById(creature.CreatureTypeId))) return false;
 
-        creature.PrisonOwnerPlayerId = keeper;
+        creature.PrisonOwnerPlayerId = keeper.Value;
         StrapOn(world, creature, tileIndex);
         return EnterTheDevice(hooks, creature);
     }

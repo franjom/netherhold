@@ -21,10 +21,10 @@ coop *choice* stays in `hatchery.md` §2.
   placers use it).
 - Objects also carry a signed word triple `+0x95/+0x97/+0x99` and three angle words
   `+0x64/+0x66/+0x68`. The placers below write them, and the save writes the triple
-  (`0x0049B9F0`). `object-drawing.md` §4 (a parallel draft) reads `+0x64` and `+0x68` as
-  two more draw angles and `+0x66` as unused by the mesh draw, and the yaw as
-  −(h + 0x400)·π/1024 radians; that `+0x95..+0x99` is a draw offset x/y/z is a
-  **HYPOTHESIS**.
+  (`0x0049B9F0`). They are RenderInfo (`thing+0x44`) `+0x20/+0x22/+0x24` and `+0x51..+0x55`:
+  `+0x64` turns the mesh about its X, then `+0x68` about its Y, then the heading yaws it;
+  `+0x66` is unused by the mesh draw; `+0x95..+0x99` is a **draw offset** x/y/height in world
+  axes, added to the point and not to the position (CONFIRMED, `object-drawing.md` §4).
 
 ## 2. The floor pass (`Room_Rebuild` `0x004EDFC0`, first loop)
 
@@ -72,16 +72,20 @@ Side s moves the point by (0, −d), (+d, 0), (0, +d), (−d, 0). After the arm,
 0` and `+0x99 = 0x800` for a wheel, else 0. A Coals or Water also gets a second object, a
 Torture Wheel (8) created at the tile centre with the same heading, `+0x99 = 0x800`, process
 state `0x1E`, moved `0x7C0` toward the wall, and `+0x14C = 1` beside Coals, 0 beside Water.
+`AutoFurnitureSystem` keeps that companion as a real device; the view suppresses its
+decorative fallback when the simulation device exists.
 
 Process state `0x1E` is `0x004A1C60` (table slot `0x006E4D94`, written at `0x0049EA10`). Every
 turn, a wheel on a floor slot takes the heading `0x004F2950(x, y)`, so a floor wheel spins; any
 other wheel (the wall wheels and the companions above) keeps its heading and turns its third draw
-angle `+0x68` instead, which the view does not model.
+angle `+0x68` instead, which the view draws as roll.
 
 **Correction.** `0x004EEE1F`, the default arm, moves its object `0x700` toward the wall like
 the others. The reading that every other type "stays at its tile's centre" (ADR-0404,
-`AutoFurnitureRules.FurniturePosition`) is wrong for the wall pass: the Workshop's wall
-Anvils and Buckets sit `0x700` toward their wall. Its floor machines do stay centred (§2).
+`AutoFurnitureRules.FurniturePosition`) was wrong for the wall pass: the Workshop's wall
+Anvils and Buckets sit `0x700` toward their wall. FurniturePosition now applies the wall
+pass to auto-placed objects using the same classifier as the view (Q581, ADR-0419).
+Floor machines stay centred (§2).
 
 With the shipped `Rooms.kwd`, the wall lists are: Library 58; Training Room 29; Workshop 15,
 16; Torture Chamber 8, 62, 63; Casino 68. Prison has `SpecialWalls` but no wall id.
@@ -126,6 +130,12 @@ toward k by `isqrt(0x200000)` = `0x5A8` at angle `0x100 + 0x200k`: (+0x3FF, −0
 `+8` bit `0x4000` (the movement gate, `structure-blocks.md` §5.4) is set, and the tile is
 refreshed (`0x00452340`) when that bit changed. So a room shorter than three tiles on either
 axis gets no pillars, and a 3x3 gets four, one in each corner tile, a quarter tile inward.
+**The pillar is drawn at its tile's centre:** the negated offset cancels the move (only the
+position, not the drawing, is inward). `Torture_Pillar` (and `Prison_Pillar`) is a column
+0.07..0.5 in model +x/+y from floor to one tile up, under a whole-tile ceiling plate; the
+heading uses the mesh conversion in `object-drawing.md` §4. Level 8's Torture Chamber
+(a plus around the 3x3 at (11..13, 12..14)) gets exactly four, at (11,12), (13,12),
+(11,14), (13,14), as ours places and draws them at tile centres.
 
 ## 6. The Dungeon Heart (`DungeonHeart_Build` `0x004DB700`)
 
@@ -157,8 +167,12 @@ re-created by `0x004E3C20`, not re-placed.
 
 ## 8. Open
 
-- How the renderer uses `+0x95..+0x99`, and what a z of 0 becomes for pillars and the
-  Heart's objects (`object-drawing.md` §4: a resting object falls to its floor height,
+- **Torture Chamber, ours against DK2** (Level 8, 2026-10-10): the floor wheel must lie flat
+  (draw `+0x64 = 0x600`, `object-drawing.md` §4) and spin about the vertical, as it does; the
+  wall wheels and the Coals/Water companion must be lifted `0x800` (`+0x99`) and spin about
+  their axle by `0x004F2950` into `+0x68`; pillars drawn at the tile centre (§5). All
+  presentation.
+- What a z of 0 becomes for pillars and the Heart's objects (`object-drawing.md` §4: a resting object falls to its floor height,
   which is `0x1000` on ordinary floor and `0xE00` in a Hatchery, matching the Guard Post,
   candlestick, lever and coop values).
 - Which heading a model's front is drawn along.

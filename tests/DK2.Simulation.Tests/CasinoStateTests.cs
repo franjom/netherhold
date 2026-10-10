@@ -109,6 +109,7 @@ public class CasinoStateTests
             world.RemoveObject(table.Id);
         int slot = room.TileIndices.First(t => AutoFurnitureRules.WallSide(world, db, room, t) == 0);
         ObjectState alcove = world.SpawnObject(db, CasinoStep.AlcoveObjectId, Keeper, slot);
+        alcove.AutoPlaced = true;
         CreatureState goblin = Gambler(db, world, new TilePos(3, 3));
         sim = new GameSimulation(db, world, seed: 42,
             [new CasinoSystem(), new CreatureMovementSystem(), new CasinoJackpotSystem(), new CreatureJobSystem()]);
@@ -134,7 +135,7 @@ public class CasinoStateTests
         foreach (ObjectState table in world.Objects.Where(o => o.ObjectTypeId is 87 or 59 or 67 or 68).ToList())
             world.RemoveObject(table.Id);
         world.SpawnObject(db, CasinoStep.AlcoveObjectId, Keeper,
-            room.TileIndices.First(t => AutoFurnitureRules.WallSide(world, db, room, t) == 2));
+            room.TileIndices.First(t => AutoFurnitureRules.WallSide(world, db, room, t) == 2)).AutoPlaced = true;
         CreatureState goblin = Gambler(db, world, new TilePos(3, 3));
         var sim = new GameSimulation(db, world, seed: 42,
             [new CasinoSystem(), new CreatureMovementSystem(), new CasinoJackpotSystem(), new CreatureJobSystem()]);
