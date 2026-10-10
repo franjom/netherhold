@@ -76,10 +76,13 @@ Commits: b58eaa66 transparency; 4033eb24 gate/Heart pieces; bc806cc2 room simula
 Follow-up commits: 363aba56 victim attachment/device steering; e3c67c87 doors/traps.
 4316bc97 enables Forward+ torch lighting; 2dc90d18 supplies campaign party scripts.
 cd6fbd45 corrects obstacle query flags and grounded water speed.
+9630abf4 corrects translucent portal triangle order; fb5e1980 draws locked-door chains.
+3c1c6604 restores the imp's nearby-room alarm retreat.
 
 Presentation includes object tilts/turning, Torture wheels and attached victim poses,
 the corrected Prison door mesh facing, KMF transparency, Hero Gate floors and 3x1 wall
-faces, ruined Heart floors, and placed doors/traps with settled door poses (ADR-0421).
+faces, ruined Heart floors, and placed doors/traps with settled door poses (ADR-0421),
+locked-door chains (ADR-0426) and depth-sorted translucent portal pillars (ADR-0427).
 Evidence: object-drawing.md, furniture-placement.md, kmf-materials.md,
 structure-drawing.md and room-floors-and-liquids.md. Remaining owner checks: screenshot alignment, tag-drag tools and
 corners (tag-highlight.md §4, HYPOTHESIS), blue overlay and pillar height.
@@ -87,8 +90,9 @@ corners (tag-highlight.md §4, HYPOTHESIS), blue overlay and pillar height.
 Simulation: placed captives/victims, attackability, walled room interiors, Prison delivery,
 Dante's free-cast placement and Q581 wall-machine positions are built under ADR-0419.
 ADR-0420 adds device attachment. ADR-0423 corrects ordinary obstacle query order and
-retained flags; ADR-0424 applies grounded water slowdown. Hash/save version is 217.
-All 60 Level 1–3 replays validate; bounded-run wins are 19/11/19 versus 20/4/17 on 216.
+retained flags; ADR-0424 applies grounded water slowdown. ADR-0425 restores an outmatched
+imp's nearby-room alarm retreat and Call to Arms suppression. Hash/save version is 218.
+All 60 Level 1–3 replays validate; bounded-run wins are 19/10/19 versus 19/11/19 on 217.
 Movement changes every event stream. These are modern regression measurements, not
 proof of original timing parity. Campaign startup now spawns the northern Lord's
 six-member party through existing scripts (ADR-0422). Release tests pass (three
@@ -96,15 +100,17 @@ capture-dependent skips), Unity assemblies are synced, and adapter compile/revie
 
 Replay drivers recovered from C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
 d869276a-99ca-491a-9cf5-0342488c1277/scratchpad. Measured baseline/current artifacts:
-D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup,collision-water-followup}.
+D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup,collision-water-followup,imp-alarm-followup}.
 These are local artifacts. Follow-up: docs/plans/2026-10-10-torture-wheel-followup.md.
 Next implementation is classic look step 4; animation limits remain in the research notes.
 Creature status flowers are still part of the unbuilt HUD work. Creature separation
 already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
 Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.
-Remaining owner check: reload the changed Unity renderer and compare torch illumination
+Remaining owner checks: restart Play mode, compare blue portal pillars and locked-door
+chains, and compare torch illumination
 at the same camera positions. The per-object light limit is confirmed; its responsibility
 for the reported camera-dependent darkness remains strongly inferred (unity/README.md).
+Imp casualty/timing parity and non-creature threat flight remain open (combat-fear.md §7).
 
 ## Next work
 
