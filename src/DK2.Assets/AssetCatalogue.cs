@@ -225,6 +225,9 @@ public static class AssetCatalogue
             yield return AssetRef.ForRoom(room.Name, AssetKind.Mesh);
             for (int piece = 0; piece < RoomPieceCount(room); piece++)
                 yield return RoomPiece(room.Name, piece);
+            if (room.TypeId == RoomTypeId.DungeonHeart)
+                for (int piece = 0; piece < 6; piece++)
+                    yield return DestroyedHeartPiece(room.Name, piece);
         }
     }
 
@@ -240,9 +243,14 @@ public static class AssetCatalogue
     public static AssetRef RoomPiece(string roomName, int piece) =>
         AssetRef.ForRoom(roomName, AssetKind.Mesh, "piece" + piece);
 
+    public static AssetRef DestroyedHeartPiece(string roomName, int piece) =>
+        AssetRef.ForRoom(roomName, AssetKind.Mesh, "destroyedpiece" + piece);
+
     /// <summary>How many numbered pieces DK2's loader builds for the room's construction, k = 0
-    /// up (wall-pieces.md §1): Quad 4, 3×3 9, 3×3 rotated 3, Normal 10, DoubleQuad 15, the Heart 4.
-    /// The hero gates' pieces (numbered from 1, or with a destroyed set) are not keyed yet.</summary>
+    /// up (wall-pieces.md §1): Quad 4, 3×3 9, 3×3 rotated 3, Normal 10, DoubleQuad 15, the Heart 4,
+    /// the 2×2 hero gate 4 and the 3×1 hero gate 7. The Final, FrontEnd and Tile gates' pieces
+    /// (numbered from 1, or the bare name) are not keyed yet. The destroyed Heart is keyed separately. The unused
+    /// Mercenary Gate is a 2×2 gate too, but its art 2 is empty, so none of its pieces exist.</summary>
     public static int RoomPieceCount(RoomDef room) => room.Construction switch
     {
         TileConstruction.QuadConstruction => 4,
@@ -251,6 +259,8 @@ public static class AssetCatalogue
         TileConstruction.Normal => 10,
         TileConstruction.DoubleQuad => 15,
         TileConstruction.FiveByFiveRotated => 4,
+        TileConstruction.HeroGate2By2 when room.TypeId != RoomTypeId.MercenaryGate => 4,
+        TileConstruction.HeroGate3By1 => 7,
         _ => 0,
     };
 

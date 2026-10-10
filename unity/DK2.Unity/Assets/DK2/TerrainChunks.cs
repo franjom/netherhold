@@ -195,7 +195,7 @@ namespace DK2.Unity
             {
                 bool tagged = FacesTag(x, y, side);
                 if (walls.IsWhole(side))
-                    Add(_classic.Piece(keys.Piece(walls.WholePiece(side))), side, centre, x, y, tagged);
+                    Add(_classic.Piece(keys.Piece(walls.WholePiece(side))), walls.WholeRotation(side), centre, x, y, tagged);
                 else if (walls.HasWall(side))
                 {
                     Add(_classic.Piece(keys.Piece(walls.HalfAPiece(side))), side, Quadrant(centre, side), x, y, tagged);

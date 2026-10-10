@@ -131,6 +131,22 @@ public class ScenePresenterTests
         return new Rig(database, simulation, presenter, target);
     }
 
+    [InstallFact]
+    public void AHeartBecomingRuinedUpdatesEveryFloorTile()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
+        WorldState world = WorldState.FromMap(db,
+            GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [0, 1, 2, 3, 4]);
+        var target = new RecordingTarget();
+        var presenter = new ScenePresenter(new WorldView(db), AssetProviderChain.Standard(), target);
+        presenter.Present(world);
+        target.Clear();
+        world.Player(4).HeartRuined = true;
+        presenter.Present(world);
+        Assert.Equal(25, target.Updates);
+    }
+
     /// <summary>
     /// With a <see cref="TorchLayout"/>, the torches come after the tiles, once each in floor-tile
     /// order; an unchanged world pushes none, and a resync draws them all again (ADR-0391).

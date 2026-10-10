@@ -47,6 +47,7 @@ public sealed class ScenePresenter
             Explored = tile.Explored;
             HasDoor = tile.HasDoor;
             RoomFloor = tile.RoomFloor;
+            RoomKeys = tile.RoomKeys;
             Bed = tile.Bed;
             Surface = tile.Surface;
         }
@@ -62,6 +63,7 @@ public sealed class ScenePresenter
         public bool Explored { get; }
         public bool HasDoor { get; }
         public PieceSet RoomFloor { get; }
+        public RoomPieceKeys? RoomKeys { get; }
         public PieceSet Bed { get; }
         public LiquidSurface Surface { get; }
 
@@ -77,6 +79,7 @@ public sealed class ScenePresenter
             && Explored == other.Explored
             && HasDoor == other.HasDoor
             && RoomFloor == other.RoomFloor
+            && ReferenceEquals(RoomKeys, other.RoomKeys)
             && Bed == other.Bed
             && Surface == other.Surface;
 
@@ -84,7 +87,7 @@ public sealed class ScenePresenter
 
         public override int GetHashCode() => HashCode.Combine(
             HashCode.Combine(Ground, Furniture, OwnerPlayerId, Tagged), GoldHeld, HealthPermille, Walls, Pieces,
-            HashCode.Combine(Explored, HasDoor, RoomFloor, Bed, Surface));
+            HashCode.Combine(Explored, HasDoor, RoomFloor, RoomKeys, Bed, Surface));
     }
 
     /// <summary>The part of a creature a renderer can see.</summary>
@@ -135,7 +138,12 @@ public sealed class ScenePresenter
             Height = instance.Height;
             Heading = instance.Heading;
             Scale = instance.Scale;
+            Pitch = instance.Pitch;
+            Roll = instance.Roll;
         }
+
+        public int Pitch { get; }
+        public int Roll { get; }
 
         public AssetRef Mesh { get; }
         public TilePos Tile { get; }
@@ -156,12 +164,14 @@ public sealed class ScenePresenter
             && PosY == other.PosY
             && Height == other.Height
             && Heading == other.Heading
-            && Scale == other.Scale;
+            && Scale == other.Scale
+            && Pitch == other.Pitch
+            && Roll == other.Roll;
 
         public override bool Equals(object? obj) => obj is ObjectVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
-            Mesh, Tile, OwnerPlayerId, GoldHeld, HashCode.Combine(PosX, PosY, Height, Heading, Scale));
+            Mesh, Tile, OwnerPlayerId, GoldHeld, HashCode.Combine(PosX, PosY, Height, Heading, Scale, Pitch, Roll));
     }
 
     private readonly WorldView _view;

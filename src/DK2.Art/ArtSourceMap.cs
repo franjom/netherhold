@@ -126,6 +126,9 @@ public static class ArtSourceMap
                 entries.Add(Missing(AssetRef.ForRoom(room.Name, AssetKind.Mesh), reason));
                 for (int piece = 0; piece < AssetCatalogue.RoomPieceCount(room); piece++)
                     entries.Add(Missing(AssetCatalogue.RoomPiece(room.Name, piece), reason));
+                if (room.TypeId == RoomTypeId.DungeonHeart)
+                    for (int piece = 0; piece < 6; piece++)
+                        entries.Add(Missing(AssetCatalogue.DestroyedHeartPiece(room.Name, piece), reason));
                 continue;
             }
             Dk2ArtResource complete = resources[2];
@@ -136,6 +139,10 @@ public static class ArtSourceMap
             for (int piece = 0; piece < AssetCatalogue.RoomPieceCount(room); piece++)
                 entries.Add(Model(AssetCatalogue.RoomPiece(room.Name, piece),
                     new Dk2ArtResource(complete.IsEmpty ? "" : complete.Name + piece, 0), "room piece"));
+            if (room.TypeId == RoomTypeId.DungeonHeart)
+                for (int piece = 0; piece < 6; piece++)
+                    entries.Add(Model(AssetCatalogue.DestroyedHeartPiece(room.Name, piece),
+                        new Dk2ArtResource("Dungeon_Destroyed" + piece, 0), "destroyed heart piece"));
         }
     }
 
