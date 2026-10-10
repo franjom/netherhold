@@ -263,6 +263,12 @@ is the original's:
 The produced count is `TileState.ChickensGenerated`, on the room's lowest tile like
 the laying clock; a tile that changes terrain or owner drops it (ADR-0335).
 
+Chicken roaming is unbuilt. A modern Level8 seed-7 probe (2026-10-10) finds
+18 chickens at tick 400, nine at each coop's centre. `WorldView.Objects` exposes
+all 18 and their `Chicken-Walk.kmf` resolves, but each flock overlaps at one
+position. Live Unity occlusion by the coop is not measured. Probe: local
+`build/chicken-probe/`; generation and art exist, distribution does not.
+
 ## Tests
 
 `HatcheryTests` and `HatcheryClockTests` (`tests/DK2.Simulation.Tests/`);
