@@ -217,7 +217,9 @@ namespace DK2.Unity
             if (dragFrom == null) _dragTo = null;
             else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
             _worldView.PreviewTags(dragFrom, _dragTo);
+            _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
             _presenter.Present(_simulation.World);
+            _scene.DrawCreatureFrame(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
         }
 
         private void QueueInput()

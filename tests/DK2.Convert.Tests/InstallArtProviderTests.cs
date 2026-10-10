@@ -18,6 +18,22 @@ namespace DK2.Convert.Tests;
 public sealed class InstallArtProviderTests
 {
     [Fact]
+    public void PlaybackUsesTheDescriptorCountInsteadOfTheDecodedMeshCount()
+    {
+        var resource = new Dk2ArtResource("clip", 6) { FrameCount = 7, FramesPerSecond = 12 };
+        AssetRef key = AssetRef.ForCreature("Imp", AssetKind.Animation, "idle");
+        using var provider = new InstallArtProvider([new ArtEntry(key, ArtUse.Model, resource, "test")],
+            new FakeMeshes(("clip.kmf", AnimatedKmfFixture.TwoFrames())), new FakeTextures());
+        Assert.True(provider.TryResolve(key, out var asset));
+        Assert.True(provider.TryLoadModel(asset, out var model));
+        Assert.Equal(2u, model.Animation!.FrameCount);
+        Assert.True(provider.TryGetResource(asset, out var descriptor));
+        Assert.Equal((ushort)7, descriptor.FrameCount);
+        Assert.Equal((ushort)12, descriptor.FramesPerSecond);
+        Assert.False(provider.TryGetResource(default, out _));
+    }
+
+    [Fact]
     public void AKeyResolvesToItsKmfInTheInstallAndOnlyWhenTheKmfIsThere()
     {
         var meshes = new FakeMeshes(("Gold Mesh.kmf", AnimatedKmfFixture.TwoFrames()));

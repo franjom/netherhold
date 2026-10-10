@@ -9864,3 +9864,20 @@ state transitions. Hash/save version 221.
 **Consequences.** Waiting heroes shift position and their followers respond.
 Other generic same-tile route callers remain under Q565; this does not replace
 authored waypoint patrols with invented wandering.
+
+## ADR-0431 — Sample classic creature clips into instance meshes
+**Date:** 2026-10-10 · **Status:** accepted · Research: kmf-animation-playback.md
+
+**Context.** Step 4 needs continuous original KMF motion while retaining each
+clip's own UVs and topology. Decoded frame positions are already available.
+
+**Decision.** Initially share decoded clip arrays and CPU-sample positions into
+one dynamic mesh per visible creature. Use descriptor count/FPS for nominal
+duration and interpolate previous/current simulation positions for rendering.
+Keep unaudited action mappings on their existing static pose. The repeatable
+crowd sampler probe is tools/classic-animation-probe; profile Unity uploads
+before choosing whether GPU animation is warranted.
+
+**Consequences.** This changes presentation only. Original quantized phases,
+action restarts and segment transitions remain pending under Q442. The first
+batch does not complete Step 4 or its owner visual gate. No hash/save bump.

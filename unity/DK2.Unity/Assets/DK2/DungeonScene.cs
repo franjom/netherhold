@@ -48,6 +48,9 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, AssetRef> _creatureArt = new Dictionary<int, AssetRef>();
+        private readonly Dictionary<int, CreatureView> _creaturePoses = new Dictionary<int, CreatureView>();
+        private readonly Dictionary<int, AssetRef> _creatureClips = new Dictionary<int, AssetRef>();
+        private double _renderSeconds;
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
@@ -139,7 +142,7 @@ namespace DK2.Unity
 
         public void CreateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
         {
-            // The idle KMF's first frame, unturned: the pose and the facing wait for step 4.
+            // The idle model remains the fallback for a missing or unimplemented clip choice.
             GameObject go = _classic?.TryCreate(mesh, $"creature {creatureId}", _root);
             if (go != null) _meshCreatures.Add(creatureId);
             else go = Instantiate(mesh, $"creature {creatureId}");
@@ -147,6 +150,8 @@ namespace DK2.Unity
 
             _creatures[creatureId] = go;
             _creatureArt[creatureId] = mesh.Reference;
+            _creaturePoses[creatureId] = creature;
+            ConfigureCreatureClip(go, creatureId, creature, mesh, animation);
             PositionCreature(go, creatureId, creature, mesh.Look);
         }
 
@@ -161,6 +166,8 @@ namespace DK2.Unity
             }
 
             PositionCreature(go, creatureId, creature, mesh.Look);
+            _creaturePoses[creatureId] = creature;
+            ConfigureCreatureClip(go, creatureId, creature, mesh, animation);
             if (_meshCreatures.Contains(creatureId)) return;
 
             // A creature carrying gold reads as carrying it. Standing in for the
@@ -178,6 +185,45 @@ namespace DK2.Unity
 
             _creatures.Remove(creatureId);
             _creatureArt.Remove(creatureId);
+            _creaturePoses.Remove(creatureId);
+            _creatureClips.Remove(creatureId);
+        }
+
+        private void ConfigureCreatureClip(GameObject go, int id, in CreatureView creature,
+            in ResolvedAsset mesh, in ResolvedAsset animation)
+        {
+            if (_classic == null || !_meshCreatures.Contains(id)) return;
+            AssetRef clip = creature.PlaysAnimation ? animation.Reference : default;
+            if (_creatureClips.TryGetValue(id, out AssetRef previous) && previous == clip) return;
+            _creatureClips[id] = clip;
+            ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
+            if (creature.PlaysAnimation && _classic.ConfigureAnimation(go, animation, creature.AnimationLoops, _renderSeconds)) return;
+            if (player != null) player.Stop();
+            _classic.RestoreModel(go, mesh);
+        }
+
+        public void SetCreatureFrameTime(GameTick tick, float fraction)
+        {
+            _renderSeconds = (tick.Value + (double)Mathf.Clamp01(fraction)) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond;
+        }
+
+        public void DrawCreatureFrame(GameTick tick, float fraction)
+        {
+            fraction = Mathf.Clamp01(fraction);
+            SetCreatureFrameTime(tick, fraction);
+            foreach (KeyValuePair<int, CreatureView> entry in _creaturePoses)
+            {
+                if (!_creatures.TryGetValue(entry.Key, out GameObject go) || go == null) continue;
+                CreatureView pose = entry.Value;
+                Vector3 position = go.transform.position;
+                Vector3 ground = Ground(
+                    Mathf.Lerp(pose.PreviousPosX, pose.PosX, fraction) / Fp32.One,
+                    Mathf.Lerp(pose.PreviousPosY, pose.PosY, fraction) / Fp32.One,
+                    pose.Height / (float)Fp32.One);
+                go.transform.position = new Vector3(ground.x, position.y, ground.z);
+                ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
+                if (player != null) player.Draw(_renderSeconds);
+            }
         }
 
         public void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
@@ -326,6 +372,9 @@ namespace DK2.Unity
             _furniture.Clear();
             _creatures.Clear();
             _creatureArt.Clear();
+            _creaturePoses.Clear();
+            _creatureClips.Clear();
+            _renderSeconds = 0d;
             _objects.Clear();
             _structures.Clear();
             _meshObjects.Clear();

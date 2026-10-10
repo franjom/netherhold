@@ -19,7 +19,7 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     private readonly IMeshSource _meshes;
     private readonly ITextureSource _textures;
     private readonly IDisposable? _owned;
-    private readonly Dictionary<AssetRef, (string Entry, ArtUse Use)> _entries = new();
+    private readonly Dictionary<AssetRef, (string Entry, ArtUse Use, Dk2ArtResource Resource)> _entries = new();
     private readonly Dictionary<string, KmfModel> _models = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, RgbaImage> _images = new(StringComparer.OrdinalIgnoreCase);
 
@@ -41,7 +41,7 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
             if (!entry.HasSource) continue;
             bool collection = entry.Use == ArtUse.FirstMaterialTexture;
             if (_meshes.TryFind(entry.Source!.Name, collection, out _, out string entryName))
-                _entries[entry.Reference] = (entryName, entry.Use);
+                _entries[entry.Reference] = (entryName, entry.Use, entry.Source);
         }
     }
 
@@ -74,7 +74,7 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
 
     public bool TryResolve(AssetRef reference, out ResolvedAsset asset)
     {
-        if (reference.IsEmpty || !_entries.TryGetValue(reference, out (string Entry, ArtUse Use) found))
+        if (reference.IsEmpty || !_entries.TryGetValue(reference, out var found))
         {
             asset = default;
             return false;
@@ -92,6 +92,18 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     {
         model = LoadEntry(EntryOf(asset));
         return model.Mesh is not null;
+    }
+
+    public bool TryGetResource(in ResolvedAsset asset, out Dk2ArtResource resource)
+    {
+        if (asset.Source == AssetSource.InstallEntry && asset.ProviderName == Name
+            && _entries.TryGetValue(asset.Reference, out var entry))
+        {
+            resource = entry.Resource;
+            return true;
+        }
+        resource = null!;
+        return false;
     }
 
     /// <summary>The image a texture key resolved to: its KMF's first material texture.</summary>

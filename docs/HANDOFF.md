@@ -65,9 +65,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (ADR-0322, leave-hook-bodies.md); the Sleeping leave is believed presentation only.
   Consult CategoryHooks.Slots for the current status of every hook.
 
-## Classic look, step 3 (worktree D:/DungeonKeeperRemake-classic, branch classic-look/step3)
+## Classic look, steps 3–4 (worktree D:/DungeonKeeperRemake-classic)
 
-Plan: docs/plans/2026-10-09-classic-look.md. Reviewed, built and committed; not merged. The owner
+Plan: docs/plans/2026-10-09-classic-look.md. Step 3 is merged to master at 6005ff9f.
+Step 4 is underway on classic-look/step4. The owner
 compares DK2 and Unity on campaign Level8 ("Snapdragon") screenshot by screenshot.
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity. Assemblies are synced and the adapter
 compiles. Never commit editor state (ProjectSettings/*, Scenes/Dungeon.unity, URP globals).
@@ -98,14 +99,21 @@ heroes' sub-tile movement, including Level8's hatchery Guard. Hash/save version 
 All 60 Level 1–3 replays validate; bounded-run wins are 17/5/16 versus 20/5/16 on 220.
 These are modern regression measurements, not
 proof of original timing parity. Campaign startup now spawns the northern Lord's
-six-member party through existing scripts (ADR-0422). Release tests pass (three
-capture-dependent skips), Unity assemblies are synced, and adapter compile/review pass.
+six-member party through existing scripts (ADR-0422). The merged master Release suite
+passes all 4678 tests with no skips; Unity assemblies and adapter checks passed for step 3.
 
 Replay drivers recovered from C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
 d869276a-99ca-491a-9cf5-0342488c1277/scratchpad. Measured baseline/current artifacts:
 D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup,collision-water-followup,imp-alarm-followup,chicken-placement-followup,giant-imp-followup,level8-wait-followup}.
 These are local artifacts. Follow-up: docs/plans/2026-10-10-torture-wheel-followup.md.
-Next implementation is classic look step 4; animation limits remain in the research notes.
+Step 4's first batch adds fractional KMF sampling, per-instance Unity meshes and
+previous/current position interpolation (ADR-0431). Existing idle, ordinary walk,
+Imp dig, sleep, die and torture mappings can play; unsupported mappings retain a pose.
+Run, claim/reinforce, eating, exact phase/action restarts and segment transitions remain
+pending. See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
+The owner animation comparison gate and Unity crowd upload profiling are outstanding.
+First-batch verification: 4694 tests pass, including the three comparison tests after
+restoring local ignored captures; Unity assemblies synced, adapter compile and review pass.
 Creature status flowers are still part of the unbuilt HUD work. Creature separation
 already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
 Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.
@@ -125,9 +133,11 @@ recheck the Unity Game view scale before changing rendering (TRAPS.md).
 
 ## Next work
 
-Owner's first priority (2026-10-10): resolve the excess Level7 Imp deaths (Q582)
-before further visual polish. Step 3's object/furniture work can stop here;
+Owner's first priority (2026-10-10): resolve the excess Level7 Imp deaths (Q582),
+researched in parallel with the authorized Step 4 work. Step 3 is merged;
 this combat/escape discrepancy remains open, not an accepted fidelity deviation.
+The follow-up trace ruled out velocity reset alone as the reproduced death's cure;
+the original encounter capture is still needed (combat-acquisition.md §1).
 
 1. M12: the Q542–Q544 producers are built (ADR-0412–0414), and their leftovers (ADR-0415–0418:
    the Casino party, the Library finder, the bedless rescue, the lying corpse, Q578); not

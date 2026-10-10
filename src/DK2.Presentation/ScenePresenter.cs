@@ -105,6 +105,10 @@ public sealed class ScenePresenter
             MeshYaw = creature.MeshYaw;
             Pitch = creature.Pitch;
             Roll = creature.Roll;
+            PreviousPosX = creature.PreviousPosX;
+            PreviousPosY = creature.PreviousPosY;
+            PlaysAnimation = creature.PlaysAnimation;
+            AnimationLoops = creature.AnimationLoops;
         }
 
         public AssetRef Mesh { get; }
@@ -118,6 +122,11 @@ public sealed class ScenePresenter
         public int Pitch { get; }
         public int Roll { get; }
 
+        public int PreviousPosX { get; }
+        public int PreviousPosY { get; }
+        public bool PlaysAnimation { get; }
+        public bool AnimationLoops { get; }
+
         public bool Equals(CreatureVisual other) =>
             Mesh == other.Mesh
             && Animation == other.Animation
@@ -128,12 +137,17 @@ public sealed class ScenePresenter
             && Height == other.Height
             && MeshYaw == other.MeshYaw
             && Pitch == other.Pitch
-            && Roll == other.Roll;
+            && Roll == other.Roll
+            && PreviousPosX == other.PreviousPosX
+            && PreviousPosY == other.PreviousPosY
+            && PlaysAnimation == other.PlaysAnimation
+            && AnimationLoops == other.AnimationLoops;
 
         public override bool Equals(object? obj) => obj is CreatureVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
-            Mesh, Animation, PosX, PosY, OwnerPlayerId, GoldHeld, HashCode.Combine(Height, MeshYaw, Pitch, Roll));
+            Mesh, Animation, PosX, PosY, OwnerPlayerId, GoldHeld,
+            HashCode.Combine(Height, MeshYaw, Pitch, Roll, PreviousPosX, PreviousPosY, PlaysAnimation, AnimationLoops));
     }
 
     /// <summary>The part of an object a renderer can see.</summary>

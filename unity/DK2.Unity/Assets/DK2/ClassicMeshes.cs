@@ -31,6 +31,7 @@ namespace DK2.Unity
         private const string FallbackShader = "Standard";
 
         private readonly InstallArtProvider _art;
+        private readonly Dictionary<string, RenderAnimation> _animations = new Dictionary<string, RenderAnimation>();
         private readonly Shader _shader;
         private readonly Dictionary<(string, bool), Built> _built = new Dictionary<(string, bool), Built>();
         private readonly Dictionary<(string, KmfBlend, float), Material> _materials =
@@ -51,6 +52,31 @@ namespace DK2.Unity
 
         /// <summary>The name of the shader the materials use, for the on-screen diagnostics.</summary>
         public string ShaderName => _shader != null ? _shader.name : "none";
+
+        public void RestoreModel(GameObject go, in ResolvedAsset asset)
+        {
+            if (!TryBuild(asset, false, out Built built)) return;
+            go.GetComponent<MeshFilter>().sharedMesh = built.Mesh;
+            go.GetComponent<MeshRenderer>().sharedMaterials = built.Materials;
+        }
+
+        public bool ConfigureAnimation(GameObject go, in ResolvedAsset asset, bool loop, double seconds)
+        {
+            if (!_art.TryGetResource(asset, out Dk2ArtResource resource) || resource.Type != 6
+                || !_art.TryLoadModel(asset, out KmfModel model) || model.Animation is not { IsComplete: true }
+                || !TryBuild(asset, false, out Built built)) return false;
+            if (!_animations.TryGetValue(asset.InstallEntry, out RenderAnimation clip))
+            {
+                clip = new RenderAnimation(model);
+                _animations[asset.InstallEntry] = clip;
+            }
+            ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
+            if (player == null) player = go.AddComponent<ClassicCreatureAnimation>();
+            player.Configure(clip, built.Mesh, built.Materials,
+                resource.FramesPerSecond > 0 ? resource.FrameCount / (double)resource.FramesPerSecond : 0d,
+                loop, seconds);
+            return true;
+        }
 
         public GameObject TryCreate(AssetRef key, string name, Transform parent, bool lastFrame = false)
         {

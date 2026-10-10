@@ -147,7 +147,11 @@ public readonly struct CreatureView
         int height = Fp32.One,
         int meshYaw = 0,
         int pitch = 0,
-        int roll = 0)
+        int roll = 0,
+        int? previousPosX = null,
+        int? previousPosY = null,
+        bool playsAnimation = false,
+        bool animationLoops = true)
     {
         Id = id;
         OwnerPlayerId = ownerPlayerId.Value;
@@ -160,6 +164,10 @@ public readonly struct CreatureView
         MeshYaw = meshYaw;
         Pitch = pitch;
         Roll = roll;
+        PreviousPosX = previousPosX ?? posX;
+        PreviousPosY = previousPosY ?? posY;
+        PlaysAnimation = playsAnimation;
+        AnimationLoops = animationLoops;
     }
 
     /// <summary>The simulation's creature id. A renderer's object is a view of this and nothing more.</summary>
@@ -186,6 +194,11 @@ public readonly struct CreatureView
 
     /// <summary>Which animation to play, chosen from the creature's activity.</summary>
     public AssetRef Animation { get; }
+
+    public int PreviousPosX { get; }
+    public int PreviousPosY { get; }
+    public bool PlaysAnimation { get; }
+    public bool AnimationLoops { get; }
 
     /// <summary>Gold in its hands. Visible in DK2 — an imp carrying gold looks like it.</summary>
     public int GoldHeld { get; }
@@ -1062,7 +1075,9 @@ public sealed partial class WorldView
             _creatureMeshes.TryGetValue(creature.CreatureTypeId, out AssetRef mesh);
 
             int posX = creature.PosX, posY = creature.PosY, height = FloorZ;
-            int yaw = 0, pitch = 0, roll = 0;
+            int yaw = (creature.Heading + 1024) & 2047, pitch = 0, roll = 0;
+            int previousX = creature.LastPosX, previousY = creature.LastPosY;
+            bool playsAnimation = PlaysMappedAnimation(creature);
             AssetRef animation = AnimationFor(creature);
             if (AttachedWheel(world, creature) is { } wheel)
             {
@@ -1080,6 +1095,8 @@ public sealed partial class WorldView
                     posY += Dy8[side * 2] * 0x1C2;
                 }
                 else height += 0x200;
+                previousX = posX;
+                previousY = posY;
             }
 
             yield return new CreatureView(
@@ -1089,7 +1106,8 @@ public sealed partial class WorldView
                 posY,
                 mesh,
                 animation,
-                creature.GoldHeld, height, yaw, pitch, roll);
+                creature.GoldHeld, height, yaw, pitch, roll, previousX, previousY,
+                playsAnimation, creature.Activity != CreatureActivity.Dying);
         }
     }
 
@@ -1134,6 +1152,23 @@ public sealed partial class WorldView
             AssetKind.Animation,
             ActivityKeySegment(creature.Activity));
     }
+
+    // Enable only the existing source mappings whose action is represented by this view.
+    // Claim/reinforce, eating, fighting and other job actions need their own art slots.
+    public static bool PlaysMappedAnimation(CreatureState creature) => creature.Activity switch
+    {
+        CreatureActivity.Idle or CreatureActivity.Sleeping or CreatureActivity.Dying
+            or CreatureActivity.BeingTortured => true,
+        CreatureActivity.Working => creature.LastTaskKind is ImpTaskKind.Excavate or ImpTaskKind.Mine,
+        CreatureActivity.MovingToJob or CreatureActivity.DeliveringGold or CreatureActivity.GoingToSleep
+            or CreatureActivity.Leaving or CreatureActivity.FetchingGold or CreatureActivity.SeekingLair
+            or CreatureActivity.FetchingBody or CreatureActivity.CarryingBody or CreatureActivity.FetchingObject
+            or CreatureActivity.CarryingObject or CreatureActivity.SeekingFood or CreatureActivity.FetchingChicken
+            or CreatureActivity.SeekingWages or CreatureActivity.GoingToJob or CreatureActivity.Fleeing
+            or CreatureActivity.Withdrawing or CreatureActivity.GoingToBody or CreatureActivity.Rescuing
+            or CreatureActivity.HeedingCallToArms => creature.HasRoute && !creature.Running,
+        _ => false,
+    };
 
     /// <summary>
     /// <c>MovingToJob</c> → <c>moving_to_job</c>. A <c>switch</c> rather than

@@ -194,12 +194,29 @@ public class WorldViewTests
 
         Assert.Equal(spawned.PosX, rendered.PosX);
         Assert.Equal(spawned.PosY, rendered.PosY);
+        Assert.Equal(rendered.PosX, rendered.PreviousPosX);
+        Assert.Equal(rendered.PosY, rendered.PreviousPosY);
         Assert.Equal(at, rendered.Tile);
 
         // Spawning centres a creature in its tile, so the position is not a
         // whole number of tiles — which is exactly the information that would
         // be lost if the boundary converted.
         Assert.NotEqual(0, rendered.PosX % Fp32.One);
+    }
+
+    [InstallFact]
+    public void PreviousPositionsCrossTheBoundaryWithoutChangingSimulation()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        imp.LastPosX = imp.PosX - 123;
+        imp.LastPosY = imp.PosY + 321;
+        imp.Heading = 512;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal(imp.LastPosX, rendered.PreviousPosX);
+        Assert.Equal(imp.LastPosY, rendered.PreviousPosY);
+        Assert.Equal(1536, rendered.MeshYaw);
     }
 
     /// <summary>
