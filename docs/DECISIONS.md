@@ -9769,6 +9769,20 @@ flight bits and animation exceptions remain unmodelled, as do the separate
 low-health and lava speed modifiers. Bridge preference is not guaranteed by DK2's
 route search; the screenshot's exact original route remains an open comparison.
 
+## ADR-0426 — Draw the authored chain and lock on locked doors
+**Date:** 2026-10-10 · **Status:** accepted · Research: structure-drawing.md §4
+
+**Context.** Completed locked doors rendered only their door model. DK2 attaches
+the definition's separate chain-and-lock object.
+
+**Decision.** Resolve that object through the door asset variant and present it
+at the door's origin and heading. Draw it for alive, completed, closed ordinary
+doors in lock mode 3 with no picked-lock countdown, including foreign doors.
+
+**Consequences.** The marker follows detached presentation changes without new
+simulation state. Secret disguise visibility and unreachable mode 1/2 marker
+branches remain unpresented; no procedural replacement substitutes for the asset.
+
 ## ADR-0427 — Sort translucent terrain triangles across materials
 **Date:** 2026-10-10 · **Status:** accepted · Research: kmf-materials.md §7
 

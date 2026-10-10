@@ -90,6 +90,7 @@ public static class AssetCatalogue
         {
             yield return AssetRef.ForDoor(database.Doors[id].Name);
             yield return AssetRef.ForDoor(database.Doors[id].Name, open: true);
+            yield return AssetRef.ForDoorLock(database.Doors[id].Name);
         }
         foreach (byte id in Sorted(database.Traps.Keys))
             yield return AssetRef.ForTrap(database.Traps[id].Name);

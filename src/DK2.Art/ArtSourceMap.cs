@@ -197,6 +197,7 @@ public static class ArtSourceMap
     private static void AddStructures(List<ArtEntry> entries, GameDatabase database, Dk2ArtCatalogue art)
     {
         foreach (DoorDef door in database.Doors.Values.OrderBy(value => value.DoorId))
+        {
             foreach (bool open in new[] { false, true })
             {
                 AssetRef reference = AssetRef.ForDoor(door.Name, open);
@@ -206,6 +207,11 @@ public static class ArtSourceMap
                     entries.Add(Model(reference, door.Flags.HasFlag(DoorFlags.Barricade)
                         ? resources[0] : resources[open ? 4 : 5], open ? "door opening" : "door closing"));
             }
+            AssetRef lockReference = AssetRef.ForDoorLock(door.Name);
+            entries.Add(art.DoorLocks.TryGetValue(door.DoorId, out Dk2ArtResource? lockResource)
+                ? Model(lockReference, lockResource, "door lock object")
+                : Missing(lockReference, "No lock object art for this door."));
+        }
         foreach (TrapDef trap in database.Traps.Values.OrderBy(value => value.TrapId))
         {
             AssetRef reference = AssetRef.ForTrap(trap.Name);

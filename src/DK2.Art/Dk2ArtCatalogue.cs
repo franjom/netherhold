@@ -43,9 +43,14 @@ public sealed class Dk2ArtCatalogue
     public IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> Traps { get; init; } =
         new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>();
 
+    public IReadOnlyDictionary<byte, Dk2ArtResource> DoorLocks { get; init; } =
+        new Dictionary<byte, Dk2ArtResource>();
+
     public static Dk2ArtCatalogue Load(string installDirectory)
     {
         string editor = Path.Combine(installDirectory, "Data", "editor");
+        var objects = Read(Path.Combine(editor, "Objects.kwd"), KwdRecordType.Objects,
+            894, idOffset: 0x35A, artOffset: 0x20, artCount: 9);
         return new Dk2ArtCatalogue
         {
             Terrains = Read(Path.Combine(editor, "Terrain.kwd"), KwdRecordType.Terrain,
@@ -56,13 +61,32 @@ public sealed class Dk2ArtCatalogue
             // WALK through NULL_4 in the format's fixed animation-slot order.
             Creatures = Read(Path.Combine(editor, "Creatures.kwd"), KwdRecordType.Creatures,
                 5449, idOffset: 0xF4B, artOffset: 0x20 + ArtResourceSize, artCount: 36),
-            Objects = Read(Path.Combine(editor, "Objects.kwd"), KwdRecordType.Objects,
-                894, idOffset: 0x35A, artOffset: 0x20, artCount: 9),
+            Objects = objects,
+            DoorLocks = ReadDoorLocks(Path.Combine(editor, "Doors.kwd"), objects),
             Doors = Read(Path.Combine(editor, "Doors.kwd"), KwdRecordType.Doors,
                 616, idOffset: 0x244, artOffset: 0x20, artCount: 6),
             Traps = Read(Path.Combine(editor, "Traps.kwd"), KwdRecordType.Traps,
                 579, idOffset: 0x20C, artOffset: 0x20, artCount: 5),
         };
+    }
+
+    private static IReadOnlyDictionary<byte, Dk2ArtResource> ReadDoorLocks(string path,
+        IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> objects)
+    {
+        var result = new Dictionary<byte, Dk2ArtResource>();
+        foreach (KwdChunk chunk in KwdReader.ReadFile(path).Where(chunk => chunk.Type == KwdRecordType.Doors))
+        {
+            if (chunk.ItemCount == 0) continue;
+            if (chunk.Content.Length != chunk.ItemCount * 616)
+                throw new InvalidDataException("Unexpected door record size.");
+            for (int at = 0; at < chunk.Content.Length; at += 616)
+            {
+                byte objectId = chunk.Content[at + 0x247];
+                if (objectId != 0 && objects.TryGetValue(objectId, out var resources))
+                    result.Add(chunk.Content[at + 0x244], resources[0]);
+            }
+        }
+        return result;
     }
 
     private static IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> Read(

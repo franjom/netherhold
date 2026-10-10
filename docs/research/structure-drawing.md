@@ -46,7 +46,32 @@ class. Snapdragon's barricades are door THINGS, not trap THINGS. Its rendered
 structures now request the actual shipped models; presenting does not mutate
 the simulation. No map-specific decorations substitute for them.
 
+## 4. Door lock attachments
+
+`0x004A7100` copies file byte `0x247` to runtime definition `+0xB2`:
+the lock object type. Shipped Wooden, Steel, Braced, Magic, Secret and Hero
+Portcullis doors select objects 17, 104, 105, 106, 107 and 137 respectively;
+both barricades select zero. Those objects' primary arts are `Door_ChainWooden`,
+`Door_ChainPortcullis`, `Door_ChainRound`, `Door_ChainMagic`, `Door_ChainSecret`
+and `Door_Chain_HeroPortcullis`. The chain and padlock are one authored mesh.
+
+In `0x004A55F0`, construction and living barricades return before the marker
+work. Mode 3 with no picked-lock countdown forces closed and requests the
+object; a running countdown removes it. The object factory `0x004B7A90`
+receives the door's position and owner. The update copies the door heading
+to the object's current and retained headings; there is no added offset or
+scale. The object initializer `0x0049B1C0` installs its primary art.
+Ordinary completed foreign doors have no owner-only marker gate.
+
+The classic view requests the lock through a door asset variant and renders
+it as a child at the same origin and yaw. It requires completed, alive, closed,
+mode 3 and no picked-lock countdown. Secret-door marker creation clears visibility
+when tile byte `+0xB` bit 0 is set; that disguise flag is not modelled here, so
+Secret attachments are conservatively omitted. Modes 1/2 have creature-dependent
+marker requests in the update but no reachable lock writer (see
+[doors-and-traps.md](doors-and-traps.md#door-runtime-behavior)); they remain unpresented.
+
 Remaining: door transition/death clips, trap firing clips, secret-door disguises,
-linked door objects, construction tint/blinking and locks' visual markers.
+other linked door objects and construction tint/blinking.
 The classic Unity view freezes door clips at the settled endpoint; the converted
 GLB retains the clip and a future renderer must select that endpoint itself.

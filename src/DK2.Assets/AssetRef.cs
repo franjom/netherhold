@@ -130,6 +130,9 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     public static AssetRef ForDoor(string doorName, bool open = false) =>
         Create(DoorCategory, doorName, AssetKind.Mesh, open ? "open" : "closed");
 
+    public static AssetRef ForDoorLock(string doorName) =>
+        Create(DoorCategory, doorName, AssetKind.Mesh, "lock");
+
     public static AssetRef ForTrap(string trapName) => Create(TrapCategory, trapName, AssetKind.Mesh);
 
     /// <summary>

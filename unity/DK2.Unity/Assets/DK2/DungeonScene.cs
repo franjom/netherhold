@@ -231,6 +231,8 @@ namespace DK2.Unity
             go.transform.position = Ground(x, y, structure.Height / (float)Fp32.One);
             go.transform.localRotation = Quaternion.Euler(0f, structure.MeshYaw * 360f / 2048f, 0f);
             if (realMesh) go.transform.localScale = Vector3.one;
+            if (!structure.LockMesh.IsEmpty && _classic != null)
+                _classic.TryCreate(structure.LockMesh, "door lock", go.transform);
         }
 
         public void UpdateStructure(StructureId id, in StructureView structure, in ResolvedAsset mesh)

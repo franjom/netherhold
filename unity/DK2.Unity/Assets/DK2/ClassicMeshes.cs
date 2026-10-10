@@ -52,6 +52,11 @@ namespace DK2.Unity
         /// <summary>The name of the shader the materials use, for the on-screen diagnostics.</summary>
         public string ShaderName => _shader != null ? _shader.name : "none";
 
+        public GameObject TryCreate(AssetRef key, string name, Transform parent, bool lastFrame = false)
+        {
+            return _art.TryResolve(key, out ResolvedAsset asset) ? TryCreate(asset, name, parent, lastFrame) : null;
+        }
+
         /// <summary>A new object drawing the asset's model, parented and unplaced; null when the
         /// asset is not an install entry this provider answered or its KMF is a group.</summary>
         public GameObject TryCreate(in ResolvedAsset asset, string name, Transform parent, bool lastFrame = false)

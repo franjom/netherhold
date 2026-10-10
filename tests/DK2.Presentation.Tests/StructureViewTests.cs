@@ -9,6 +9,8 @@ using DK2.Art;
 using DK2.Simulation;
 using DK2.Data.Model;
 using DK2.TestSupport;
+using DK2.Simulation.Commands;
+using DK2.Simulation.Systems;
 
 namespace DK2.Presentation.Tests;
 
@@ -24,11 +26,44 @@ public sealed class StructureViewTests
     }
 
     [InstallFact]
+    public void DoorLocksResolveTheirOwnShippedChainModels()
+    {
+        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        using var provider = InstallArtProvider.Open(Dk2InstallGate.Path, database);
+        foreach (var (id, modelName) in new[] { (1, "Door_ChainWooden"), (3, "Door_ChainRound"), (8, "Door_Chain_HeroPortcullis") })
+        {
+            AssetRef key = AssetRef.Create(AssetRef.DoorCategory, database.Doors[(byte)id].Name, AssetKind.Mesh, "lock");
+            Assert.True(provider.TryResolve(key, out ResolvedAsset asset), key.Key);
+            Assert.Contains(modelName, asset.InstallEntry!, StringComparison.OrdinalIgnoreCase);
+            Assert.True(provider.TryLoadModel(asset, out var model));
+            Assert.NotEmpty(RenderMesh.FromModel(model).Positions);
+        }
+    }
+
+    [InstallFact]
+    public void SnapdragonAuthoredLocksRemainClosedAndRequestChainsAfterTheFirstUpdate()
+    {
+        var (database, world) = Level8();
+        var locked = world.Doors.Where(door => (door.Flags & 1) != 0).ToArray();
+        Assert.Equal(new[] { new TilePos(20, 28), new TilePos(24, 39) },
+            locked.Select(door => new TilePos(door.X, door.Y)).OrderBy(tile => tile.X).ToArray());
+        new GameSimulation(database, world, 7, [new DoorSystem()]).Tick(InputFrame.Empty);
+        var view = new WorldView(database);
+        foreach (DoorState door in locked)
+        {
+            Assert.Equal(3, door.LockMode);
+            Assert.False(door.Open);
+            StructureView drawn = view.Structures(world).Single(value => value.Id == new StructureId(StructureKind.Door, door.Id));
+            Assert.Equal(AssetRef.ForDoorLock(database.Doors[door.DoorId].Name), drawn.LockMesh);
+        }
+    }
+
+    [InstallFact]
     public void EveryShippedDoorAndTrapHasCatalogueMeshes()
     {
         var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var keys = AssetCatalogue.ForDatabase(database).Select(value => value.Key).ToArray();
-        Assert.Equal(database.Doors.Count * 2, keys.Count(value => value.StartsWith("door.")));
+        Assert.Equal(database.Doors.Count * 3, keys.Count(value => value.StartsWith("door.")));
         Assert.Equal(database.Traps.Count, keys.Count(value => value.StartsWith("trap.")));
     }
 
@@ -96,6 +131,45 @@ public sealed class StructureViewTests
     }
 
     [Fact]
+    public void LockAttachmentFollowsSettledStateAndBothSupportOrientations()
+    {
+        var (database, world) = Fixture();
+        var view = new WorldView(database);
+        foreach (DoorState door in world.Doors) door.LockMode = 3;
+        StructureView[] locked = view.Structures(world).ToArray();
+        Assert.Equal(2, locked.Length);
+        Assert.All(locked, door => Assert.Equal(AssetRef.ForDoorLock("Door"), door.LockMesh));
+        var changed = world.Doors.First();
+        var changedId = new StructureId(StructureKind.Door, changed.Id);
+        changed.LockPickTicks = 10;
+        Assert.True(view.Structures(world).Single(door => door.Id == changedId).LockMesh.IsEmpty);
+        changed.LockPickTicks = 0;
+        changed.Open = true;
+        Assert.True(view.Structures(world).Single(door => door.Id == changedId).LockMesh.IsEmpty);
+        changed.Open = false;
+        changed.LockMode = 0;
+        Assert.True(view.Structures(world).Single(door => door.Id == changedId).LockMesh.IsEmpty);
+        changed.LockMode = 3;
+        changed.Health = 0;
+        Assert.True(view.Structures(world).Single(door => door.Id == changedId).LockMesh.IsEmpty);
+        changed.Health = 100;
+        changed.LockMode = 3;
+        changed.UnderConstruction = true;
+        Assert.True(new WorldView(database, changed.PlayerId).Structures(world)
+            .Single(door => door.Id == changedId).LockMesh.IsEmpty);
+    }
+
+    [Theory]
+    [InlineData(DoorFlags.Barricade)]
+    [InlineData(DoorFlags.Secret)]
+    public void BarricadesAndUnmodelledSecretDisguisesDoNotShowLocks(DoorFlags flags)
+    {
+        var (database, world) = Fixture(doorFlags: flags);
+        foreach (DoorState door in world.Doors) door.LockMode = 3;
+        Assert.All(new WorldView(database).Structures(world), structure => Assert.True(structure.LockMesh.IsEmpty));
+    }
+
+    [Fact]
     public void PresenterTracksBothRegistriesAndOnlyPushesVisibleChanges()
     {
         var (database, world) = Fixture();
@@ -120,9 +194,14 @@ public sealed class StructureViewTests
         Assert.Equal(1, target.Updates);
         Assert.Contains(trapId, target.Visible.Keys);
         Assert.Equal(AssetRef.ForDoor("Door", open: true), target.Visible[doorId].Mesh);
-        trap.Heading = 0x200;
+        door.Open = false;
+        door.LockMode = 3;
         presenter.Present(world);
         Assert.Equal(2, target.Updates);
+        Assert.Equal(AssetRef.ForDoorLock("Door"), target.Visible[doorId].LockMesh);
+        trap.Heading = 0x200;
+        presenter.Present(world);
+        Assert.Equal(3, target.Updates);
         Assert.Equal(0x600, target.Visible[trapId].MeshYaw);
         trap.Hidden = true;
         door.UnderConstruction = true;
@@ -148,7 +227,7 @@ public sealed class StructureViewTests
         Assert.Contains(doors, door => door.MeshYaw == 0x400);
     }
 
-    private static (GameDatabase, WorldState) Fixture(bool fog = false)
+    private static (GameDatabase, WorldState) Fixture(bool fog = false, DoorFlags doorFlags = DoorFlags.None)
     {
         TerrainDef Terrain(byte id, TerrainFlags flags) => new()
         {
@@ -159,7 +238,7 @@ public sealed class StructureViewTests
         };
         var database = new GameDatabase([Terrain(1, 0), Terrain(2, TerrainFlags.Solid)], [], [],
             new GlobalVariables(), doors: [new DoorDef { Name = "Door", DoorId = 1,
-                Health = 100, GoldCost = 0, ManufactureRequired = 0 }],
+                Health = 100, GoldCost = 0, ManufactureRequired = 0, Flags = doorFlags }],
             traps: [new TrapDef { Name = "Trap", TrapId = 1, Health = 100,
                 GoldCost = 0, ManufactureRequired = 0, Flags = 0x20, ShotTypeId = 0, ManaUpkeepPerSecond = 0 }]);
         var tiles = Enumerable.Repeat(new MapTile(1, 2, 0, 0), 35).ToArray();

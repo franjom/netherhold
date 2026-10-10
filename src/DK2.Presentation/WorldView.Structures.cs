@@ -25,6 +25,7 @@ public readonly record struct StructureView(StructureId Id, TilePos Tile, Player
     public int PosY => Tile.Y * Fp32.One + Fp32.One / 2;
     public int MeshYaw => (Heading + 0x400) & 0x7FF;
     public bool LastFrame => Id.Kind == StructureKind.Door;
+    public AssetRef LockMesh { get; init; }
 }
 
 public sealed partial class WorldView
@@ -40,7 +41,13 @@ public sealed partial class WorldView
                 || !_database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)) continue;
             yield return new StructureView(new StructureId(StructureKind.Door, door.Id), tile,
                 new PlayerId(door.PlayerId), AssetRef.ForDoor(definition.Name, door.Open),
-                door.Orientation == 0 ? 0x200 : 0, door.UnderConstruction, FloorHeight(world, tile.X, tile.Y));
+                door.Orientation == 0 ? 0x200 : 0, door.UnderConstruction, FloorHeight(world, tile.X, tile.Y))
+            {
+                LockMesh = !door.UnderConstruction && door.Health > 0 && !door.Open
+                    && door.LockMode == 3 && door.LockPickTicks == 0
+                    && (definition.Flags & (DoorFlags.Barricade | DoorFlags.Secret)) == 0
+                    ? AssetRef.ForDoorLock(definition.Name) : default,
+            };
         }
         foreach (TrapState trap in world.Traps)
         {
