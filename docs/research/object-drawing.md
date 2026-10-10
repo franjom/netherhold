@@ -229,7 +229,24 @@ The same pattern elsewhere: object 109 states 44/45 (#0, #5 played once, toggled
 `0x004E35C0`); the Prison door object 116 states 46/47 (#0, toggled by `0x004E3680`);
 object 95 states 48/49 (#5, #6 while playing, set by `0x004D6890`).
 
-## 9. Open
+## 9. Torture victims on wheels
+
+**CONFIRMED (2026-10-10, 0x00484110 and 0x00484590).** Strapping places the creature
+at its device's point and starts action 36, using creature art 17. This is catalogue
+slot 16, `Mis_Torture` for both Mistresses; its mesh contains the body, not the wheel.
+Wall victims face inward with the device, roll about its axle, and get draw height
+`0x800`; numeric mode 1 also moves their drawing `0x1C2` inward. Floor victims are
+placed at the tile centre with z 0, then `0x004B5020` clamps them up to floor height.
+They pitch `0x600` and spin with the wheel; mode 1 adds draw height `0x200`.
+The meaning of the mode global remains UNKNOWN (§3's `g_` resource switch).
+
+**Built:** simulation attachment uses the device's wall position; the classic view
+draws the first torture frame with the wheel's transforms and mode-1 offsets. Ordinary
+floor therefore draws the victim at `0x1200`, a wall wheel at `0x1800`. Full clip
+playback remains classic look step 4. Chair pose/effects and device visibility in the
+other numeric modes remain unbuilt. ADR-0420.
+
+## 10. Open
 
 - `0x0059C360`, `0x0059C720`, `0x0059D010`, `0x005A01A0` (sprites, flat, terrain mesh,
   procedural) and `0x005953D0` are not read.

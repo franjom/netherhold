@@ -35,6 +35,7 @@ public static class ArtSourceMap
     private const int CreatureMelee = 4;
     private const int CreatureDie = 6;
     private const int CreatureSleeping = 11;
+    private const int CreatureTortured = 16;
     private const int CreatureIdle = 19;
     private const int CreatureManufacturing = 21;
 
@@ -221,6 +222,7 @@ public static class ArtSourceMap
             "", reason);
 
     private static string NoArtRecord(string category, byte id) => $"KWD has no {category} art record for id {id}";
+        "being_tortured" => resources[CreatureTortured],
 
     private static Dk2ArtResource First(params Dk2ArtResource[] resources) =>
         resources.FirstOrDefault(resource => !resource.IsEmpty) ?? resources[0];

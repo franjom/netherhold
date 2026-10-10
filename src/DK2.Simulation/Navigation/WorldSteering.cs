@@ -14,8 +14,8 @@ namespace DK2.Simulation.Navigation;
 /// Q88), the mesh built from those bytes and rebuilt whenever one changes, and the four probes
 /// the behaviours call (docs/research/steering-behaviours.md §1). One instance serves one world for
 /// its whole life; nothing here is simulation state, so nothing here is hashed.</summary>
-/// <remarks>Not built: <c>Obstacle</c> objects other than the heart's, so <c>Repel_Obstacle</c>
-/// sees no furniture; the remembered entity of <c>Separation</c>'s second term. Each is recorded
+/// <remarks>Not built: <c>Obstacle</c> objects other than hearts and torture devices;
+/// the remembered entity of <c>Separation</c>'s second term. Each is recorded
 /// on the method that would supply it.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
 public sealed class WorldSteering : ISteeringWorld, INavByteGrid
@@ -193,9 +193,26 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// dump, structure-blocks.md §5.3): the <c>Dungeon Heart Obstacle</c> (100, width 3.0, solid),
     /// which DK2's enumerator skips on its tile and forwards once from the room's centre with flag
     /// bits 0 and 1, and the visible <c>Dungeon Heart</c> (13, width 1.0) and <c>Arches</c> (86,
-    /// width 0.6), plain shoves. Each has size width/2 (Q355). Furniture is not yet an obstacle.</summary>
+    /// width 0.6), plain shoves. Torture devices also contribute their shipped position,
+    /// Obstacle flag and width/2; other furniture remains unbuilt.</summary>
     public void CollectObstacles(Fixed16Vector centre, int range, List<SteeringObstacle> into)
     {
+        foreach (ObjectState device in _world.Objects)
+        {
+            if (device.InHand || !TortureRules.IsDevice(device.ObjectTypeId)) continue;
+            ObjectDef? definition = _database.ObjectById(device.ObjectTypeId);
+            if (definition is null || !definition.Flags.HasFlag(ObjectFlags.Obstacle)) continue;
+            int size = (definition.Width.Raw >> 1) << 4;
+            if (size <= 0) continue;
+            int x = CreatureState.CentreOf(device.TileIndex % _world.Width);
+            int y = CreatureState.CentreOf(device.TileIndex / _world.Width);
+            if ((new Fixed16Vector(x << 4, y << 4) - centre).Octile() > range + size + Fixed16.One) continue;
+            if (device.AutoPlaced && RoomIndex.RoomAt(_world, _database, device.TileIndex) is { } room)
+                (x, y) = AutoFurnitureRules.FurniturePosition(_world, _database, room, device);
+            var position = new Fixed16Vector(x << 4, y << 4);
+            if ((position - centre).Octile() > range + size) continue;
+            into.Add(new SteeringObstacle(position, size, definition.Flags.HasFlag(ObjectFlags.SolidObstacle), false));
+        }
         if (_structures is null || _structures.HeartCentres.Count == 0) return;
 
         foreach (int index in _structures.HeartCentres)
@@ -247,8 +264,8 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         }
     }
 
-    /// <summary>Nothing remembers a victim yet (combat is unbuilt, Q8), so the second term of
-    /// <c>Separation</c> never applies.</summary>
+    /// <summary>The remembered entity is not supplied to <c>Separation</c> yet
+    /// (navigation-and-steering.md §3.2), so its second term never applies.</summary>
     public SteeringBody? RelatedBody(SteeringMover mover, out int reachTiles)
     {
         reachTiles = 0;

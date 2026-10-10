@@ -19,6 +19,15 @@ public sealed partial class WorldView
 {
     private const int One = Fp32.One, Half = One / 2, FloorZ = One;
 
+    private ObjectView? AttachedWheel(WorldState world, CreatureState creature)
+    {
+        if (!TortureRules.IsBeingTortured(creature)) return null;
+        int tile = creature.Tile.Y * world.Width + creature.Tile.X;
+        ObjectState? device = TortureRules.FreeDeviceAt(world, _database,
+            TortureRules.KeeperOf(creature), tile, creature.Id);
+        return device?.ObjectTypeId == TortureRules.WheelObjectId ? Placed(world, device, creature.Tile) : null;
+    }
+
     // Object types the placement switches on (Objects.kwd ids).
     private const byte FloorGoldId = 1, GoldBagId = 2, StorePileId = 3, TortureWheelId = 8, ChickenId = 9,
         DungeonHeartId = 13, TrainingDummyId = 14, RouletteWheelId = 30, CoopId = 35, WorkBenchId = 46,

@@ -143,7 +143,11 @@ public readonly struct CreatureView
         int posY,
         AssetRef mesh,
         AssetRef animation,
-        int goldHeld)
+        int goldHeld,
+        int height = Fp32.One,
+        int meshYaw = 0,
+        int pitch = 0,
+        int roll = 0)
     {
         Id = id;
         OwnerPlayerId = ownerPlayerId.Value;
@@ -152,6 +156,10 @@ public readonly struct CreatureView
         Mesh = mesh;
         Animation = animation;
         GoldHeld = goldHeld;
+        Height = height;
+        MeshYaw = meshYaw;
+        Pitch = pitch;
+        Roll = roll;
     }
 
     /// <summary>The simulation's creature id. A renderer's object is a view of this and nothing more.</summary>
@@ -160,13 +168,19 @@ public readonly struct CreatureView
     public byte OwnerPlayerId { get; }
 
     /// <summary>
-    /// Position in <see cref="Fp32"/> tile units, exactly as the simulation holds
-    /// it. <b>A renderer converts; the simulation never does</b> (ADR-0001) —
+    /// Drawing point in <see cref="Fp32"/> tile units: usually the simulation position,
+    /// with the device offset added for torture. A renderer converts (ADR-0001) —
     /// divide by <see cref="Fp32.One"/> for a tile index, or convert to float for
     /// a world position.
     /// </summary>
     public int PosX { get; }
     public int PosY { get; }
+
+    /// <summary>Draw height and model turns; torture attachment is presentation only.</summary>
+    public int Height { get; }
+    public int MeshYaw { get; }
+    public int Pitch { get; }
+    public int Roll { get; }
 
     public AssetRef Mesh { get; }
 
@@ -1047,14 +1061,35 @@ public sealed partial class WorldView
 
             _creatureMeshes.TryGetValue(creature.CreatureTypeId, out AssetRef mesh);
 
+            int posX = creature.PosX, posY = creature.PosY, height = FloorZ;
+            int yaw = 0, pitch = 0, roll = 0;
+            AssetRef animation = AnimationFor(creature);
+            if (AttachedWheel(world, creature) is { } wheel)
+            {
+                mesh = animation;
+                posX = wheel.PosX;
+                posY = wheel.PosY;
+                height = wheel.Height;
+                yaw = wheel.MeshYaw;
+                pitch = wheel.Pitch;
+                roll = wheel.Roll;
+                if (pitch == 0)
+                {
+                    int side = (wheel.Heading >> 9) & 3;
+                    posX += Dx8[side * 2] * 0x1C2;
+                    posY += Dy8[side * 2] * 0x1C2;
+                }
+                else height += 0x200;
+            }
+
             yield return new CreatureView(
                 creature.Id,
                 creature.OwnerPlayerId,
-                creature.PosX,
-                creature.PosY,
+                posX,
+                posY,
                 mesh,
-                AnimationFor(creature),
-                creature.GoldHeld);
+                animation,
+                creature.GoldHeld, height, yaw, pitch, roll);
         }
     }
 

@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**216** — `0x4C65FAEF24CB1622`. Torture attachment uses actual device positions and wall facing; wheel/chair obstacles participate in continuous steering. No new saved field. ADR-0420.
+
 **215** — `0x867E1B17FFDAB65D`. Level-placed flag 0x40 creatures land into cells/devices; involuntary torture and state 76 prevent attackability; DoubleQuad interiors carry nav byte 4, with the Prison delivery option; wall torture companions are simulation devices; wall machines use their working-position inset (Q581); ruined-at-load free casts reject corner rock/outside-map points. No new saved field. ADR-0419.
 
 **214** — `0xF18C419AE1575DF8`. A corpse is laid only on a floor slot with a tombstone, objects 31–34 (`0x004537E0` in `0x004E6380` and `0x004E6490`); the Graveyard's crypt (object 75, `0x004DD5C0`) placed on a rebuild, refusing its cell as a slot and raising the Vampire; a Graveyard rebuilt in play takes in the dead bodies on its tiles not yet its owner's (`0x004DD750`), through the new saved `CreatureState.BodyOwnerPlayerId` (the dead body's `+0x28`, neutral at death), which the corpse selections also require neutral; the test fixture's Graveyard takes its shipped flags and ObjectIds; no new field. ADR-0418 amendment.

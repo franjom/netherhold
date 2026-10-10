@@ -9,12 +9,39 @@ using DK2.Simulation;
 using DK2.Simulation.Combat;
 using DK2.Simulation.Navigation;
 using DK2.Simulation.Systems;
+using DK2.Simulation.Steering;
 using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
 public class ClassicRoomInitializationTests
 {
+    [InstallFact]
+    public void AWalkingBodyIsRepelledByTheFloorTortureWheel()
+    {
+        (GameDatabase db, WorldState world) = LevelEight();
+        new GameSimulation(db, world, 1, [new AutoFurnitureSystem()]).Run(1);
+        ObjectState wheel = world.Objects.Single(o => o.ObjectTypeId == 8
+            && o.TileIndex == 13 * world.Width + 12);
+        var navigation = new WorldSteering(db, world);
+        navigation.Refresh();
+        var centre = new Fixed16Vector(CreatureState.CentreOf(12) << 4, CreatureState.CentreOf(13) << 4);
+        var obstacles = new List<SteeringObstacle>();
+        navigation.CollectObstacles(centre, Fixed16.One, obstacles);
+        SteeringObstacle obstacle = Assert.Single(obstacles, o => o.Pos == centre);
+        Assert.Equal(0x7330, obstacle.Size);
+        Assert.False(obstacle.Solid);
+        var body = new SteeringBody { Pos = centre + new Fixed16Vector(Fixed16.One / 4, 0),
+            Radius = Fixed16.One / 8, MaxForce = SeparationRules.ShippedMaxForce };
+        Fixed16Vector force = RepelObstacleRules.Compute(body, navigation);
+        Assert.True(force.X > 0, "the wheel must push a passing body away from its centre");
+
+        wheel.InHand = true;
+        obstacles.Clear();
+        navigation.CollectObstacles(centre, Fixed16.One, obstacles);
+        Assert.DoesNotContain(obstacles, o => o.Pos == centre);
+    }
+
     private static (GameDatabase Database, WorldState World) LevelEight()
     {
         string install = Dk2InstallGate.Path;
@@ -58,6 +85,9 @@ public class ClassicRoomInitializationTests
                 && o.TileIndex == c.Tile.Y * world.Width + c.Tile.X);
         });
         Assert.Contains(victims, c => c.Tile == new TilePos(12, 10));
+        CreatureState wallVictim = victims.Single(c => c.Tile == new TilePos(12, 10));
+        Assert.Equal((CreatureState.CentreOf(12), CreatureState.CentreOf(10) - 0x7C0),
+            (wallVictim.PosX, wallVictim.PosY));
     }
 
     [InstallFact]

@@ -47,6 +47,7 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
+        private readonly Dictionary<int, AssetRef> _creatureArt = new Dictionary<int, AssetRef>();
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
@@ -145,11 +146,14 @@ namespace DK2.Unity
 
             _creatures[creatureId] = go;
             PositionCreature(go, creatureId, creature, mesh.Look);
+            _creatureArt[creatureId] = mesh.Reference;
         }
 
         public void UpdateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
         {
             if (!_creatures.TryGetValue(creatureId, out GameObject go) || go == null)
+            if (_creatureArt.TryGetValue(creatureId, out AssetRef previous) && previous != mesh.Reference)
+                RemoveCreature(creatureId);
             {
                 CreateCreature(creatureId, creature, mesh, animation);
                 return;
@@ -173,6 +177,7 @@ namespace DK2.Unity
 
             _creatures.Remove(creatureId);
         }
+            _creatureArt.Remove(creatureId);
 
         public void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
         {
@@ -318,6 +323,7 @@ namespace DK2.Unity
             _furniture[tileIndex] = go;
         }
 
+            _creatureArt.Clear();
         /// <summary>Makes a placeholder object for a resolved asset. A converter file
         /// (<see cref="ResolvedAsset.FilePath"/>) is never loaded: ADR-0408 reads the install
         /// instead, through <see cref="ClassicMeshes"/>, which draws objects so far. Anything else
@@ -392,7 +398,11 @@ namespace DK2.Unity
             if (_meshCreatures.Contains(creatureId))
             {
                 // A real mesh is modelled in tiles about its feet.
-                go.transform.position = Ground(creature.PosX / (float)Fp32.One, creature.PosY / (float)Fp32.One, FloorHeight);
+                go.transform.position = Ground(creature.PosX / (float)Fp32.One, creature.PosY / (float)Fp32.One,
+                    creature.Height / (float)Fp32.One);
+                go.transform.localRotation = Quaternion.Euler(0f, creature.MeshYaw * 360f / 2048f, 0f)
+                    * Quaternion.AngleAxis(creature.Roll * 360f / 2048f, Vector3.forward)
+                    * Quaternion.Euler(-creature.Pitch * 360f / 2048f, 0f, 0f);
                 return;
             }
 

@@ -47,6 +47,51 @@ public class ObjectPlacementTests
 
     private static int Centre(int tile) => (tile * Fp32.One) + (Fp32.One / 2);
 
+    [InstallFact]
+    public void AStrappedMistressUsesHerTorturePoseAtTheWallWheel()
+    {
+        Room room = Carve(RoomTypeId.TortureChamber, 3, 5);
+        RoomInstance chamber = RoomIndex.Build(room.World, room.Database)
+            .Single(r => r.Definition.TypeId == RoomTypeId.TortureChamber);
+        int tile = chamber.TileIndices.First(t => AutoFurnitureRules.WallSide(room.World, room.Database, chamber, t) == 0);
+        ObjectState device = room.World.SpawnObject(room.Database, 8, Keeper, tile);
+        device.AutoPlaced = true;
+        CreatureState mistress = room.World.SpawnCreature(room.Database, 4, Keeper,
+            new TilePos(tile % room.World.Width, tile / room.World.Width));
+        Assert.True(TortureRules.TryStrapOwn(new StateHookContext(room.World, room.Database), mistress, tile));
+
+        CreatureView victim = room.View.Creatures(room.World).Single(c => c.Id == mistress.Id);
+        ObjectView wheel = room.View.Objects(room.World).Single(o => o.Id == device.Id);
+        Assert.Equal(AssetRef.ForCreature("Mistress", AssetKind.Animation, "being_tortured"), victim.Mesh);
+        Assert.Equal((wheel.PosX, wheel.PosY + 0x1C2), (victim.PosX, victim.PosY));
+        Assert.Equal(Fp32.One + 0x800, victim.Height);
+        Assert.Equal((wheel.MeshYaw, 0, wheel.Roll), (victim.MeshYaw, victim.Pitch, victim.Roll));
+        using var art = InstallArtProvider.Open(Dk2InstallGate.Path, room.Database);
+        Assert.True(art.TryResolve(victim.Mesh, out ResolvedAsset resolved));
+        Assert.Equal("Mis_Torture.kmf", resolved.InstallEntry);
+    }
+
+    [InstallFact]
+    public void AFloorWheelVictimLiesOnItsDiscAndFollowsItsTurn()
+    {
+        Room room = Carve(RoomTypeId.TortureChamber, 3, 5);
+        var at = new TilePos(X0 + 2, Y0 + 3);
+        int tile = at.Y * room.World.Width + at.X;
+        ObjectState device = room.World.SpawnObject(room.Database, 8, Keeper, tile);
+        device.AutoPlaced = true;
+        CreatureState mistress = room.World.SpawnCreature(room.Database, 4, Keeper, at);
+        Assert.True(TortureRules.TryStrapOwn(new StateHookContext(room.World, room.Database), mistress, tile));
+        CreatureView victim = room.View.Creatures(room.World).Single(c => c.Id == mistress.Id);
+        ObjectView wheel = room.View.Objects(room.World).Single(o => o.Id == device.Id);
+        Assert.Equal((wheel.PosX, wheel.PosY), (victim.PosX, victim.PosY));
+        Assert.Equal(Fp32.One + 0x200, victim.Height);
+        Assert.Equal((wheel.MeshYaw, 0x600, 0), (victim.MeshYaw, victim.Pitch, victim.Roll));
+        TortureRules.Unstrap(new StateHookContext(room.World, room.Database), mistress);
+        CreatureView released = room.View.Creatures(room.World).Single(c => c.Id == mistress.Id);
+        Assert.Equal(AssetRef.ForCreature("Mistress", AssetKind.Mesh), released.Mesh);
+        Assert.Equal((Fp32.One, 0, 0), (released.Height, released.Pitch, released.Roll));
+    }
+
     /// <summary>A 3×3 Treasury takes four pillars, one in each corner tile, headings 0x600, 0, 0x200,
     /// 0x400 for NE, SE, SW, NW (<c>0x004EF1F0</c>). DK2 moves each a quarter tile inward and its draw
     /// offset moves it back, so it is drawn at its tile's centre (object-drawing.md §4).</summary>

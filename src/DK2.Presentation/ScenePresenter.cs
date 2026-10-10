@@ -101,6 +101,10 @@ public sealed class ScenePresenter
             PosY = creature.PosY;
             OwnerPlayerId = creature.OwnerPlayerId;
             GoldHeld = creature.GoldHeld;
+            Height = creature.Height;
+            MeshYaw = creature.MeshYaw;
+            Pitch = creature.Pitch;
+            Roll = creature.Roll;
         }
 
         public AssetRef Mesh { get; }
@@ -109,6 +113,10 @@ public sealed class ScenePresenter
         public int PosY { get; }
         public byte OwnerPlayerId { get; }
         public int GoldHeld { get; }
+        public int Height { get; }
+        public int MeshYaw { get; }
+        public int Pitch { get; }
+        public int Roll { get; }
 
         public bool Equals(CreatureVisual other) =>
             Mesh == other.Mesh
@@ -116,12 +124,16 @@ public sealed class ScenePresenter
             && PosX == other.PosX
             && PosY == other.PosY
             && OwnerPlayerId == other.OwnerPlayerId
-            && GoldHeld == other.GoldHeld;
+            && GoldHeld == other.GoldHeld
+            && Height == other.Height
+            && MeshYaw == other.MeshYaw
+            && Pitch == other.Pitch
+            && Roll == other.Roll;
 
         public override bool Equals(object? obj) => obj is CreatureVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
-            Mesh, Animation, PosX, PosY, OwnerPlayerId, GoldHeld);
+            Mesh, Animation, PosX, PosY, OwnerPlayerId, GoldHeld, HashCode.Combine(Height, MeshYaw, Pitch, Roll));
     }
 
     /// <summary>The part of an object a renderer can see.</summary>

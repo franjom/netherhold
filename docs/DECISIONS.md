@@ -9687,3 +9687,22 @@ Level 11A's seed fixture uses seed 2: the correct
 startup of Belial's two flagged Goblins changes seed 7's outcome; reverting only that
 startup restores its old outcome. All keepers and behavioral assertions are retained.
 Startup landing finishes on the first tick; remaining deviations stay in the cited research.
+
+## ADR-0420 — Attach torture victims to devices and supply their movement obstacles
+**Date:** 2026-10-10 · **Status:** accepted · Research: object-drawing.md §9;
+structure-blocks.md §5–§6; navigation-and-steering.md §3.2
+
+**Context.** Snapdragon's placed Mistresses entered torture but were drawn standing
+beside wheels. Passing Dwarves had no wheel obstacle in the steering input.
+
+**Decision.** Attach simulation positions to the device, including the wall inset.
+Draw the torture pose's first frame using wheel transforms and numeric-mode-1 offsets.
+Supply wheel/chair obstacle flags, widths and positions to existing continuous steering.
+Preserve its soft separation, arrival, escape and zero-distance exceptions.
+Hash/save version 216, without new saved fields.
+
+**Consequences.** Full creature animation playback remains classic look step 4;
+chair poses/effects, other art modes and other furniture obstacles remain deferred.
+Creature separation already runs; rigid mesh collision would change original behavior.
+Twenty recorded seeds per level retain all prior outcomes and win ticks:
+Level 1 20/20 wins, Level 2 4/20 and Level 3 17/20; all 60 replays are valid.

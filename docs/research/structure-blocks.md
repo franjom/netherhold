@@ -210,6 +210,12 @@ tile path grid would merge two distinct DK2 behaviours.
 
 ## 6. What is built
 
+`WorldSteering.CollectObstacles` now forwards Torture Wheels and Electric Chairs using
+the Obstacle flag, width/2 and actual wall position (0x004D12B0, ADR-0420). The shipped
+wheel is a soft obstacle, width 3686; it repels moving bodies rather than blocking
+its whole tile. The steering arrival/escape and zero-distance exceptions remain;
+this does not guarantee rigid separation. Other room furniture is still deferred.
+
 `StructureBlocks`, consulted by `WorldPathGrid.IsWalkable`, plus
 `PortalRules.IsHoleTile` and one branch in `HandSystem.Drop` (ADR-0084). The
 missing Heart disposal exception and portal's missing Imp refusal are known gaps.
