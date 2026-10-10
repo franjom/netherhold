@@ -9848,3 +9848,19 @@ Test both creation orders and bump hash/save to 220.
 State handlers and movement still run in separate system passes. This narrow
 correction does not establish original casualty parity: the first Imp still
 dies in the Level 7 seed-7 encounter, as recorded in combat-acquisition.md §1.
+
+## ADR-0430 — Keep waiting heroes' sub-tile destinations
+**Date:** 2026-10-10 · **Status:** accepted · Research: hero-party-walk.md §1
+
+**Context.** A waiting hero chooses a point inside its current tile. Our generic
+route shortcut marked this destination reached without moving the creature.
+The original route retains its destination even within one triangle.
+
+**Decision.** Route the waiting state's request through the existing point-walk
+path used for stances. Preserve its nine points, timing draws, loose arrival
+options and resume state. Test physical movement within the tile, not only
+state transitions. Hash/save version 221.
+
+**Consequences.** Waiting heroes shift position and their followers respond.
+Other generic same-tile route callers remain under Q565; this does not replace
+authored waypoint patrols with invented wandering.

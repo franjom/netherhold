@@ -2,7 +2,7 @@
 
 Scope: Snapdragon's victims, ordinary obstacles, water speed, campaign parties, torch lighting,
 locked-door chains, portal translucency, imp alarm retreat, hatchery laying and
-Level 7 combat update order.
+Level 7 combat update order and Level 8 waiting heroes.
 
 Earlier reviewed fixes: 363aba56 (victims/device steering), e3c67c87 (doors/traps).
 The repeated wheel report required the ordinary obstacle query's retained flags,
@@ -28,7 +28,9 @@ not rigid mesh collision. Current decisions: ADR-0422–0428; torch setup: unity
 12. Correct combat iteration to DK2's newest-first creature list; test a working Imp
     reacting before an older Giant starts a swing. Re-run the actual Level 7 encounter
     without changing sight or melee damage; keep wider scheduling parity open.
-13. Record findings, run solution tests and Level 1–3 replays, sync Unity assemblies,
+13. Retain waiting heroes' sub-tile destinations. Verify physical movement and
+    Level8's scripted hatchery Guard/Dwarf; check portal jobs against waypoint chains.
+14. Record findings, run solution tests and Level 1–3 replays, sync Unity assemblies,
    review and commit. Live camera A/B remains an owner check.
 
 Creature-to-creature overlap is checked against existing soft separation; do not

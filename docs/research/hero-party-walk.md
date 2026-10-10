@@ -82,6 +82,31 @@ The five shipped party jobs take these arms:
   Both job words are ignored.
   **CONFIRMED** by `0x00486CC0` and `0x00486CF0`.
 
+  Rechecked `0x00486CF0` and `0x004CF490` on 2026-10-10: the waiting
+  state requests a real sub-tile route, and a one-triangle route still has
+  its destination point. ADR-0430 uses the existing stance-point route for
+  this caller; the prior same-tile shortcut kept waiting heroes motionless.
+  In Level8 seed1, scripted party6's Guard46 is present at `(27,43)`, the
+  nearest-heart Hatchery, but stayed exactly at its spawn centre through
+  turn300. After correction it moves around the coop. This is a modern
+  regression observation. Shipped first-frame mesh bounds place the centred
+  Guard (height 0.709 tile) inside the coop footprint (half-extents 0.3172,
+  0.462 tile; height 0.9906); roof occlusion is STRONGLY INFERRED, pending an
+  owner view check. Bounds were read through InstallArtProvider/RenderMesh.
+
+  Level8's nearest-heart Hatchery is `(26..28,42..44)`, containing scripted
+  party6 Guard46 and Dwarf45, both level1; authored Guard8 and Dwarves38/39
+  instead occupy the Lair at `(31..35,32..35)`. The Wizard/Dwarf/Guard group
+  is party0: its leader's AP2 `(46..50,35..39)` has wait10 and next2, an
+  authored roaming loop. The Wizard/Guard/Giant group is party4: AP49
+  `(43..46,13..16)` has wait0 and next0, ending the leader in state227.
+  AP49's trigger105 sets flag32; while flag32 is zero its consumers spawn
+  separate Giant parties12/13 and start timer5, without replacing party4's
+  objective. Party4 member trees61/90/30 contain only flag setters; party0's
+  Wizard tree13 can switch to KillCreatures through flags2/3, and party6's
+  member trees6/10 switch to KillPlayer when flag1 equals1 after an attack. These
+  mappings come from shipped Level8 THINGS/MAP/TRIGGERS, checked 2026-10-10.
+
 - **23 `SendToActionPoint` -> `0x00471E80`.** A zero value enters
   state 227, whose handler `0x004B4C20` returns success without work.
   A non-zero value enters 173. State 173 resolves the low byte as an
