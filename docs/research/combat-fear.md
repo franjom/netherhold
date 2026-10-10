@@ -250,7 +250,7 @@ arrival state walks again.
 ## 7. Built and not built (ADR-0165)
 
 **Built** (`FearRules`, `CombatSystem`): §2 steps 1–3 and 5 for creature
-receivers, run after each creature's fight processing in id order; §3.1–3.4
+receivers, run after each creature's fight processing newest first; §3.1–3.4
 including the acquirer's withdraw; §4 in order with the nearest-attacker rule,
 the stand-off, head-count and Scout alarm entry (ADR-0425); §5 steps 2–5 and the run, arriving idle;
 `Running` as the body's speed cap (`RunSpeed` scaled by the Speed row, STRONGLY

@@ -92,8 +92,9 @@ Dante's free-cast placement and Q581 wall-machine positions are built under ADR-
 ADR-0420 adds device attachment. ADR-0423 corrects ordinary obstacle query order and
 retained flags; ADR-0424 applies grounded water slowdown. ADR-0425 restores an outmatched
 imp's nearby-room alarm retreat and Call to Arms suppression. ADR-0428 corrects hatchery
-laying and retains individual egg/chicken coordinates. Hash/save version is 219.
-All 60 Level 1–3 replays validate; bounded-run wins are 20/7/16 versus 19/10/19 on 218.
+laying and retains individual egg/chicken coordinates. ADR-0429 corrects newest-first
+combat order; Level7 Imp deaths remain unresolved (Q582). Hash/save version is 220.
+All 60 Level 1–3 replays validate; bounded-run wins are 20/5/16 versus 20/7/16 on 219.
 These are modern regression measurements, not
 proof of original timing parity. Campaign startup now spawns the northern Lord's
 six-member party through existing scripts (ADR-0422). Release tests pass (three
@@ -101,7 +102,7 @@ capture-dependent skips), Unity assemblies are synced, and adapter compile/revie
 
 Replay drivers recovered from C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
 d869276a-99ca-491a-9cf5-0342488c1277/scratchpad. Measured baseline/current artifacts:
-D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup,collision-water-followup,imp-alarm-followup,chicken-placement-followup}.
+D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup,collision-water-followup,imp-alarm-followup,chicken-placement-followup,giant-imp-followup}.
 These are local artifacts. Follow-up: docs/plans/2026-10-10-torture-wheel-followup.md.
 Next implementation is classic look step 4; animation limits remain in the research notes.
 Creature status flowers are still part of the unbuilt HUD work. Creature separation
@@ -112,7 +113,8 @@ Remaining owner checks: restart Play mode, compare hatchery chickens and locked-
 chains, and compare torch illumination
 at the same camera positions. The per-object light limit is confirmed; its responsibility
 for the reported camera-dependent darkness remains strongly inferred (unity/README.md).
-Imp casualty/timing parity and non-creature threat flight remain open (combat-fear.md §7).
+Imp casualty/timing parity remains open (Q582, combat-acquisition.md §1);
+non-creature threat flight remains unbuilt (combat-fear.md §7).
 Chicken roaming remains unbuilt; see hatchery-roaming.md for the researched object loop.
 
 ## Next work

@@ -148,9 +148,10 @@ public class CombatAcquisitionTests
 
         Combat(db, world).Run(1);
 
-        Assert.All(demons.Take(8), d => Assert.Equal(goblin.Id, d.FightTargetId));
-        Assert.Equal(CombatRules.NoTarget, demons[8].FightTargetId);
-        Assert.Equal(CreatureActivity.Idle, demons[8].Activity);
+        Assert.All(demons.Skip(1), d => Assert.Equal(goblin.Id, d.FightTargetId));
+        Assert.Equal(CombatRules.NoTarget, demons[0].FightTargetId);
+        Assert.Equal(CreatureActivity.Idle, demons[0].Activity);
+        Assert.Equal(demons.Skip(1).Reverse().Select(d => d.Id), goblin.EngagedMelee);
         Assert.True(CombatRules.IsAttackable(goblin), "eight melee slots taken still leaves the ranged eight");
     }
 

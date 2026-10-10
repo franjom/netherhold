@@ -43,7 +43,9 @@ public sealed class CombatSystem : ISimulationSystem
         _hearts.Refresh(world, database);
 
         IReadOnlyList<CreatureState> creatures = world.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
+        // 0x004B7830 follows the head-linked creature list: newer creatures react
+        // before older creatures, including fear intake and worker escape decisions.
+        for (int i = creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = creatures[i];
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);

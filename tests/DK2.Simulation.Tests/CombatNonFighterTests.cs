@@ -20,12 +20,55 @@ public class CombatNonFighterTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AWorkingImpAndAnEngagedHeroReactInNewestFirstOrder(bool impSpawnedLast)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.LairTerrain, 13, 9);
+        CreatureState first = Spawn(db, world,
+            impSpawnedLast ? Dk2TerrainFixture.KnightCreatureId : Dk2TerrainFixture.ImpCreatureId,
+            impSpawnedLast ? PlayerIds.Good : Keeper, 12, 12);
+        CreatureState second = Spawn(db, world,
+            impSpawnedLast ? Dk2TerrainFixture.ImpCreatureId : Dk2TerrainFixture.KnightCreatureId,
+            impSpawnedLast ? Keeper : PlayerIds.Good, 12, 12);
+        CreatureState imp = impSpawnedLast ? second : first;
+        CreatureState hero = impSpawnedLast ? first : second;
+        hero.PosX = imp.PosX + 1300;
+        StatePlacement.Place(imp, 16);
+        imp.FightProcessCounter = 3;
+        imp.LastFightScanTileIndex = (imp.Tile.Y * world.Width) + imp.Tile.X;
+        StatePlacement.Place(hero, 199);
+        hero.FightTargetKind = FightTargetKind.Creature;
+        hero.FightTargetId = imp.Id;
+        hero.AttackType = CombatRules.AttackMode.MeleeAtCreature;
+        hero.AttackRangeSquared = CombatRules.MeleeReachSquared(db.CreatureById(hero.CreatureTypeId), db.CreatureById(imp.CreatureTypeId));
+        Assert.True(CombatRules.Register(imp, hero.Id, ranged: false));
+        GameSimulation sim = Combat(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Tick();
+
+        Assert.Contains(sink.Events, e => e.Kind == "raises_alarm" && e.Detail.Contains($"creature={imp.Id} "));
+        Assert.Equal(CreatureActivity.RaisingAlarm, imp.Activity);
+        Assert.True(imp.Running);
+        Assert.True(imp.HasRoute);
+        Assert.Equal(500, imp.Health);
+        int alarm = sink.Events.ToList().FindIndex(e => e.Kind == "raises_alarm" && e.Detail.Contains($"creature={imp.Id} "));
+        int swing = sink.Events.ToList().FindIndex(e => e.Kind == "swing" && e.Detail.Contains($"creature={hero.Id} "));
+        Assert.True(swing >= 0);
+        Assert.Equal(impSpawnedLast, alarm < swing);
+        Assert.True(hero.SwingInProgress);
+    }
+
     /// <summary>Near its heart the arm takes any hostile within a tile, so the Imp engages and swings;
-    /// once the Goblin strikes back, a non-Imp is among its attackers and the counter
+    /// once the Goblin engages, a non-Imp is among its attackers and the counter
     /// (<c>0x0045EC10</c>, ADR-0347) sends it into flight with no back-off. Before ADR-0347 this test
     /// asserted a lasting fight.</summary>
     [Fact]
-    public void AnImpNearItsHeartTakesAnythingWithinATile_AndFleesOnceANonImpStrikesBack()
+    public void AnImpNearItsHeartTakesAnythingWithinATile_AndFleesFromANonImpBeforeItSwings()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         PlaceRoom(world, Keeper, Dk2TerrainFixture.DungeonHeartTerrain, 12, 12);
@@ -39,7 +82,8 @@ public class CombatNonFighterTests
         int engaged = sink.Events.ToList().FindIndex(e => e.Kind == "engaged" && e.Detail.Contains($"creature={imp.Id} ") && e.Detail.Contains($"target={goblin.Id} "));
         int struck = sink.Events.ToList().FindIndex(e => e.Kind == "swing" && e.Detail.Contains($"creature={goblin.Id} ") && e.Detail.Contains($"target={imp.Id} "));
         int fled = sink.Events.ToList().FindIndex(e => e.Kind == "flees" && e.Detail.Contains($"creature={imp.Id} "));
-        Assert.True(engaged >= 0 && struck > engaged && fled > struck, $"engaged {engaged}, struck {struck}, fled {fled}");
+        Assert.True(engaged >= 0 && fled > engaged, $"engaged {engaged}, fled {fled}");
+        Assert.Equal(-1, struck);
         Assert.EndsWith("backoff=0", sink.Events[fled].Detail);
     }
 

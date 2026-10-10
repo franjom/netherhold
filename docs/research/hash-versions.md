@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**220** — `0xA2446806EE35E55E`. Combat updates creatures newest first, matching the original head-linked list. No new saved field. ADR-0429.
+
 **219** — `0x83702433083CA7D9`. Hatchery eggs use the normal non-pillar slab path and two sub-tile draws; hatching and presentation retain coordinates. Existing saved position fields, no new field. ADR-0428.
 
 **218** — `0x6ECAB92D5B5D6E64`. An outmatched fleeing Scout runs to raise the alarm; the near-room gate uses the attacker's tile and respects Call to Arms. No new saved field. ADR-0425.

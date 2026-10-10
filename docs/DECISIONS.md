@@ -9833,3 +9833,18 @@ recentre a bird dropped from the keeper's hand. Hash/save version 219.
 The full-room coop launch remains deferred, as does the separate chicken
 roaming loop researched in hatchery-roaming.md. This change does not claim
 animation playback or original timing/RNG parity for those missing paths.
+
+## ADR-0429 — Update combat in creature creation order reversed
+**Date:** 2026-10-10 · **Status:** accepted · Research: combat-acquisition.md §1
+
+**Context.** DK2's head-linked creature sweep updates newer creatures first.
+Our combat pass did the opposite, letting an older attacker start its swing
+before a newer worker's same-turn danger response.
+
+**Decision.** Run combat newest first, preserving attack and fear rules.
+Test both creation orders and bump hash/save to 220.
+
+**Consequences.** Same-turn combat events and RNG consumption change.
+State handlers and movement still run in separate system passes. This narrow
+correction does not establish original casualty parity: the first Imp still
+dies in the Level 7 seed-7 encounter, as recorded in combat-acquisition.md §1.
