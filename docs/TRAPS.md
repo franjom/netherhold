@@ -76,6 +76,9 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Editor and plugins
 
+- Host Python has Pillow but no NumPy; Blender's bundled Python supplies NumPy for mesh analysis.
+- Direct `.ps1` execution is blocked in the Codex host; use a process-scoped `powershell -NoProfile -ExecutionPolicy Bypass -File` invocation.
+- Workbench final renders do not reliably show `Object.show_wire`; label these clay views, not wireframe evidence.
 - Context-mode subprocess writes are discarded with its sandbox; use native tools for persistent build logs and artifacts.
 
 - A context-mode upgrade can arrive without `node_modules`, and FTS5 search then silently returns
@@ -127,3 +130,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A decompiler offset on a global typed `int*` is a dword index: `DAT_006ed484 + 0x568` is world byte `+0x15A0`, the simulation stream. Four docs called it a second RNG stream until the disassembly (`ADD EAX,0x15A0`) was read (2026-10-05).
 - A `__fastcall` whose argument is a creature's state object (`+0x24E`) reads state-object offsets: `0x00478A20`'s `+0x98` is creature `+0x2E6` (the task kind), not creature `+0x98`; check `+0x10` against the state at `+0x25E` before reading a capture.
 - A scan for a state id as a `SetState` argument that looks for pushes before each `CALL 0x00476D30` misses a push followed by a jump to a shared `SetState` tail: the slap pushes 67 at `0x0048B9DB` and jumps to `0x0048BA00`. Before calling a state unreachable, also scan `.text` for the raw `6A xx` push and read each hit (2026-10-07).
+- Blender object copies inherit `hide_select`; clear selection locks and assert selection before GLB export with `use_selection=True`, which can otherwise succeed with no meshes.
