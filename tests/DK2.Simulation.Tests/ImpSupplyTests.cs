@@ -69,6 +69,22 @@ public class ImpSupplyTests
     // ---- the free supply --------------------------------------------------
 
     [Fact]
+    public void AFallenKeeperWithRetainedHeartTilesReceivesNoFreeImps()
+    {
+        Run run = WithAHeart();
+        run.World.Player(Keeper).HeartRuined = true;
+        run.World.Player(Keeper).KilledByPlayerId = 2;
+
+        run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 6);
+
+        Assert.Equal(Keeper, run.World.Tile(2, 2).OwnerPlayerId);
+        Assert.Equal(Dk2TerrainFixture.DungeonHeartTerrain, run.World.Tile(2, 2).TerrainId);
+        Assert.Equal(0, run.Imps);
+        Assert.Empty(run.Of("imp_generated"));
+        Assert.Equal(new GameTick(0), run.World.Player(Keeper).NextFreeImpTick);
+    }
+
+    [Fact]
     public void AKeeperWithNoImpsIsGivenFourOfThem()
     {
         Run run = WithAHeart();
