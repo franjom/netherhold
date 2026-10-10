@@ -73,23 +73,28 @@ Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity. Assemblies are synced and t
 compiles. Never commit editor state (ProjectSettings/*, Scenes/Dungeon.unity, URP globals).
 Commits: b58eaa66 transparency; 4033eb24 gate/Heart pieces; bc806cc2 room simulation;
 84a450da Prison door/object turning; 72cfe356 fallen-keeper imp regression.
+Follow-up commits: 363aba56 victim attachment/device steering; e3c67c87 doors/traps.
 
-Presentation now includes object tilts/turning and Torture wheels, the corrected Prison door
-mesh facing, KMF transparency, Hero Gate floors and 3x1 wall faces, and ruined Heart floors.
-Evidence: object-drawing.md, furniture-placement.md, kmf-materials.md and
-room-floors-and-liquids.md. Remaining owner checks: screenshot alignment, tag-drag tools and
+Presentation includes object tilts/turning, Torture wheels and attached victim poses,
+the corrected Prison door mesh facing, KMF transparency, Hero Gate floors and 3x1 wall
+faces, ruined Heart floors, and placed doors/traps with settled door poses (ADR-0421).
+Evidence: object-drawing.md, furniture-placement.md, kmf-materials.md,
+structure-drawing.md and room-floors-and-liquids.md. Remaining owner checks: screenshot alignment, tag-drag tools and
 corners (tag-highlight.md §4, HYPOTHESIS), blue overlay and pillar height.
 
 Simulation: placed captives/victims, attackability, walled room interiors, Prison delivery,
 Dante's free-cast placement and Q581 wall-machine positions are built under ADR-0419,
-hash/save version 215. That ADR records the Level 1–3 measurements and remaining deviations.
+hash/save version 216. ADR-0420 adds device attachment and wheel/chair steering obstacles;
+all 60 Level 1–3 replay outcomes, win ticks and event files match version 215.
 Release solution tests and Unity adapter compile pass; binary/code review has no blocker.
 
 Replay drivers recovered from C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
 d869276a-99ca-491a-9cf5-0342488c1277/scratchpad. Measured baseline/current artifacts:
-D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final}. These are local artifacts.
-Next implementation is classic look step 4; object animations and unsaved random headings
-remain as listed in the plan.
+D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup}.
+These are local artifacts. Follow-up: docs/plans/2026-10-10-torture-wheel-followup.md.
+Next implementation is classic look step 4; animation limits remain in the research notes.
+Creature status flowers are still part of the unbuilt HUD work. Creature separation
+already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
 
 ## Next work
 
