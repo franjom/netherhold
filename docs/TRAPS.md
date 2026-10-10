@@ -36,6 +36,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 ## Builds, tests and dk2tools
 
 - Unity-loadable DK2.Data targets netstandard2.1; newer Path helpers such as TrimEndingDirectorySeparator are unavailable there.
+- A pixelated Unity Game view can be editor zoom: check its Scale slider at 1x before changing rendering; camera zoom does not reset it (saved under UserSettings/Layouts/).
 - InvalidDataException is not an IOException; command error handling must catch both to report format refusals.
 
 - Typed KWD properties can be wider than their file fields: derive overlay test values and range checks from the reader's width, not the model's CLR type.
