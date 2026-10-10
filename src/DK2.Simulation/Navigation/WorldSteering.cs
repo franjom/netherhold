@@ -14,7 +14,7 @@ namespace DK2.Simulation.Navigation;
 /// Q88), the mesh built from those bytes and rebuilt whenever one changes, and the four probes
 /// the behaviours call (docs/research/steering-behaviours.md §1). One instance serves one world for
 /// its whole life; nothing here is simulation state, so nothing here is hashed.</summary>
-/// <remarks>Not built: <c>Obstacle</c> objects other than hearts and torture devices;
+/// <remarks>Not built: first-person-only obstacle classes;
 /// the remembered entity of <c>Separation</c>'s second term. Each is recorded
 /// on the method that would supply it.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
@@ -28,6 +28,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private MeshRouter? _router;
     private StructureBlocks? _structures;
     private readonly List<NavPoint> _waypoints = [];
+    private readonly List<ObjectState> _objectObstacles = [];
 
     public WorldSteering(GameDatabase database, WorldState world)
     {
@@ -194,24 +195,43 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// which DK2's enumerator skips on its tile and forwards once from the room's centre with flag
     /// bits 0 and 1, and the visible <c>Dungeon Heart</c> (13, width 1.0) and <c>Arches</c> (86,
     /// width 0.6), plain shoves. Torture devices also contribute their shipped position,
-    /// Obstacle flag and width/2; other furniture remains unbuilt.</summary>
+    /// Obstacle flag and width/2. Ordinary queries retain the binary's flag toggle
+    /// and tile-head order (structure-blocks.md §5).</summary>
     public void CollectObstacles(Fixed16Vector centre, int range, List<SteeringObstacle> into)
     {
+        int half = Math.Min((range / 2) >> 4, Fp32.One);
+        int x0 = Math.Max(0, ((centre.X >> 4) - half) >> 12);
+        int y0 = Math.Max(0, ((centre.Y >> 4) - half) >> 12);
+        int x1 = Math.Min(_world.Width - 1, ((centre.X >> 4) + half) >> 12);
+        int y1 = Math.Min(_world.Height - 1, ((centre.Y >> 4) + half) >> 12);
+        _objectObstacles.Clear();
         foreach (ObjectState device in _world.Objects)
         {
-            if (device.InHand || !TortureRules.IsDevice(device.ObjectTypeId)) continue;
+            if (!device.TileLink.IsLinked || device.ObjectTypeId == DungeonHeartObstacleObjectId) continue;
+            int tx = device.TileLink.TileIndex % _world.Width, ty = device.TileLink.TileIndex / _world.Width;
+            if (tx < x0 || tx > x1 || ty < y0 || ty > y1) continue;
+            _objectObstacles.Add(device);
+        }
+        _objectObstacles.Sort((left, right) => left.TileLink.TileIndex != right.TileLink.TileIndex
+            ? left.TileLink.TileIndex.CompareTo(right.TileLink.TileIndex)
+            : right.TileLink.Order.CompareTo(left.TileLink.Order));
+
+        bool solid = false;
+        foreach (ObjectState device in _objectObstacles)
+        {
             ObjectDef? definition = _database.ObjectById(device.ObjectTypeId);
             if (definition is null || !definition.Flags.HasFlag(ObjectFlags.Obstacle)) continue;
             int size = (definition.Width.Raw >> 1) << 4;
             if (size <= 0) continue;
+            // 0x004D1439 ORs bit 0; 0x004D14A1 XORs it, retaining the previous callback's flags.
+            solid = definition.Flags.HasFlag(ObjectFlags.SolidObstacle) || !solid;
             int x = CreatureState.CentreOf(device.TileIndex % _world.Width);
             int y = CreatureState.CentreOf(device.TileIndex / _world.Width);
-            if ((new Fixed16Vector(x << 4, y << 4) - centre).Octile() > range + size + Fixed16.One) continue;
+            if (device.PosX != 0 || device.PosY != 0) (x, y) = (device.PosX, device.PosY);
             if (device.AutoPlaced && RoomIndex.RoomAt(_world, _database, device.TileIndex) is { } room)
                 (x, y) = AutoFurnitureRules.FurniturePosition(_world, _database, room, device);
             var position = new Fixed16Vector(x << 4, y << 4);
-            if ((position - centre).Octile() > range + size) continue;
-            into.Add(new SteeringObstacle(position, size, definition.Flags.HasFlag(ObjectFlags.SolidObstacle), false));
+            into.Add(new SteeringObstacle(position, size, solid, false));
         }
         if (_structures is null || _structures.HeartCentres.Count == 0) return;
 

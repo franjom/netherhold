@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**217** — `0xACDC3C26931DA73F`. Ordinary obstacle queries preserve tile-head order and retained set/toggle flags; grounded water speed is halved in entity units. No new saved field. ADR-0423 and ADR-0424.
+
 **216** — `0x4C65FAEF24CB1622`. Torture attachment uses actual device positions and wall facing; wheel/chair obstacles participate in continuous steering. No new saved field. ADR-0420.
 
 **215** — `0x867E1B17FFDAB65D`. Level-placed flag 0x40 creatures land into cells/devices; involuntary torture and state 76 prevent attackability; DoubleQuad interiors carry nav byte 4, with the Prison delivery option; wall torture companions are simulation devices; wall machines use their working-position inset (Q581); ruined-at-load free casts reject corner rock/outside-map points. No new saved field. ADR-0419.

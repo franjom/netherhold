@@ -63,15 +63,15 @@ expect:
       Morgana's heart. Her imps may reinforce and repair that wall (ADR-0387), and her heart
       calls them to fight intruders (ADR-0407). Timing depends on the seed (Q563, Q574).
   - event: call_to_arms_raised
-    detail: "tile=64,38"
-    at_tick: 192
+    detail: "tile=64,34"
+    at_tick: 188
     because: >
       With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
       heart and attack management casts the call there (0x004FECE0, ADR-0298). The point is a draw
-      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. Seed 2 takes that point.
-      The seed-specific fixture includes the original flag 0x40 landing initialization
-      (ADR-0419); attack direction and timing remain seed-dependent (Q574).
+      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. Seed 2 now takes (64,34).
+      The fixture includes flag 0x40 landing initialization and the ordered obstacle query
+      (ADR-0419, ADR-0423); attack direction and timing remain seed-dependent (Q574).
   - event: engaged
     detail: "player=5 heart=6"
     because: >
-      Drako's creatures attack Morgana's heart (scan E, ADR-0163); first at 240, a Mistress.
+      Drako's creatures attack Morgana's heart (scan E, ADR-0163); first at 237, a Mistress.

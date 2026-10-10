@@ -278,9 +278,7 @@ along solid obstacles, `steering-behaviours.md` §4.
 
 ### 3.4 The constants are hard-coded, and the integration is Euler
 
-`FUN_004D5B30` resets a steering body and writes all three of its scalars as
-**literals**. No creature-record field supplies them, so every creature in the
-game separates with the same size and the same limits:
+`FUN_004D5B30` resets a steering body and writes these **literal defaults**:
 
 | field | offset | literal | 16.16 |
 |---|---|---|---|
@@ -288,8 +286,10 @@ game separates with the same size and the same limits:
 | `max_force` | `+0xDE` | `0x18000` | **1.5** |
 | `max_speed` | `+0xE2` | `0x6666` | **0.4** |
 
-The constructor's earlier `max_force` of `0x10000` and `max_speed` of `0x50000`
-are overwritten by this reset and never reach the mover.
+Body `+0xDC` is creature `+0x200` (body starts at `+0x124`), also consumed by the crowd probe.
+After reset, `0x004872A0` replaces radius with `(FootprintRadius >> 1) << 4` via `0x004B5D60` at `0x00487B0B`, and speed via its getter.
+Radii therefore vary by definition: Dwarf 819 becomes `0x1990`, about 0.1 tile. The hostile-door branch of `0x00488930` resets again at `0x0048A422`.
+Our per-tick footprint assignment does not reproduce that later reset's `0x3333` radius; ordinary radius is correct.
 
 The tail of `FUN_004D4760` is the integration, and it clamps **three** times --
 `0x004D4F60` has exactly three call sites, all in this function:

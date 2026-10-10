@@ -17,7 +17,7 @@ namespace DK2.Behavior.Tests;
 public class ClassicRoomInitializationTests
 {
     [InstallFact]
-    public void AWalkingBodyIsRepelledByTheFloorTortureWheel()
+    public void AWalkingBodyRecordsASlideContactWithTheFloorTortureWheel()
     {
         (GameDatabase db, WorldState world) = LevelEight();
         new GameSimulation(db, world, 1, [new AutoFurnitureSystem()]).Run(1);
@@ -30,16 +30,94 @@ public class ClassicRoomInitializationTests
         navigation.CollectObstacles(centre, Fixed16.One, obstacles);
         SteeringObstacle obstacle = Assert.Single(obstacles, o => o.Pos == centre);
         Assert.Equal(0x7330, obstacle.Size);
-        Assert.False(obstacle.Solid);
+        Assert.True(obstacle.Solid);
         var body = new SteeringBody { Pos = centre + new Fixed16Vector(Fixed16.One / 4, 0),
             Radius = Fixed16.One / 8, MaxForce = SeparationRules.ShippedMaxForce };
         Fixed16Vector force = RepelObstacleRules.Compute(body, navigation);
-        Assert.True(force.X > 0, "the wheel must push a passing body away from its centre");
+        Assert.Equal(Fixed16Vector.Zero, force);
+        Assert.Single(body.SolidContacts);
 
         wheel.InHand = true;
         obstacles.Clear();
         navigation.CollectObstacles(centre, Fixed16.One, obstacles);
         Assert.DoesNotContain(obstacles, o => o.Pos == centre);
+    }
+
+    [InstallFact]
+    public void AWalkingDwarfGoesAroundTheFloorWheelOnItsWayAcrossTheRoom()
+    {
+        (GameDatabase db, WorldState world) = LevelEight();
+        new GameSimulation(db, world, 1, [new AutoFurnitureSystem()]).Run(1);
+        foreach (CreatureState creature in world.Creatures.ToArray()) world.RemoveCreature(creature.Id);
+        CreatureState dwarf = world.SpawnCreature(db, 14, PlayerIds.Good, new TilePos(13, 13));
+        var simulation = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
+        var navigation = new WorldSteering(db, world);
+        navigation.Refresh();
+        Assert.True(navigation.TryRoute(dwarf, new TilePos(11, 13), MoveOptions.Plain));
+        var centre = new Fixed16Vector(CreatureState.CentreOf(12) << 4, CreatureState.CentreOf(13) << 4);
+        int closest = int.MaxValue, contacts = 0;
+        for (int tick = 0; tick < 80 && !dwarf.Body.PathFinished; tick++)
+        {
+            simulation.Run(1);
+            closest = Math.Min(closest, (dwarf.Body.Pos - centre).Length());
+            contacts += dwarf.Body.SolidContacts.Count;
+        }
+        Assert.True(contacts > 0);
+        Assert.True(closest > Fixed16.One / 3, $"walker crossed the disc at {closest / (double)Fixed16.One:F3} tiles");
+        Assert.Equal(new TilePos(11, 13), dwarf.Tile);
+    }
+
+    [InstallFact]
+    public void OrdinaryObstacleFlagsToggleInTileHeadOrderAndRestartForEachQuery()
+    {
+        (GameDatabase db, WorldState world) = LevelEight();
+        int tile = 13 * world.Width + 12;
+        ObjectState wheel = world.SpawnObject(db, 8, PlayerIds.Good, tile);
+        ObjectState chair = world.SpawnObject(db, 61, PlayerIds.Good, tile);
+        world.SpawnObject(db, 62, PlayerIds.Good, tile);
+        var navigation = new WorldSteering(db, world);
+        navigation.Refresh();
+        var centre = new Fixed16Vector(CreatureState.CentreOf(12) << 4, CreatureState.CentreOf(13) << 4);
+        var obstacles = new List<SteeringObstacle>();
+        navigation.CollectObstacles(centre, Fixed16.One, obstacles);
+        Assert.Equal(2, obstacles.Count);
+        Assert.True(obstacles[0].Solid);
+        Assert.False(obstacles[1].Solid);
+        Assert.Equal((db.Objects[61].Width.Raw >> 1) << 4, obstacles[0].Size);
+        chair.InHand = true;
+        wheel.PosX = CreatureState.CentreOf(12) + 123;
+        wheel.PosY = CreatureState.CentreOf(13) + 456;
+        obstacles.Clear();
+        navigation.CollectObstacles(centre, Fixed16.One, obstacles);
+        SteeringObstacle remaining = Assert.Single(obstacles);
+        Assert.True(remaining.Solid);
+        Assert.Equal(new Fixed16Vector(wheel.PosX << 4, wheel.PosY << 4), remaining.Pos);
+    }
+
+    [InstallFact]
+    public void AShippedDwarfCanWalkOntoWaterWithoutABridge()
+    {
+        (GameDatabase db, WorldState world) = LevelEight();
+        Assert.True(db.CreatureById(14).Flags.HasFlag(CreatureFlags.CanWalkOnWater));
+        foreach (CreatureState creature in world.Creatures.ToArray()) world.RemoveCreature(creature.Id);
+        var navigation = new WorldSteering(db, world);
+        navigation.Refresh();
+        TilePos land = default, water = default;
+        bool found = false;
+        for (int y = 0; y < world.Height && !found; y++)
+            for (int x = 1; x < world.Width && !found; x++)
+                if (navigation.NavByte(x - 1, y) == DK2.Pathfinding.NavBytes.Floor
+                    && navigation.NavByte(x, y) == DK2.Pathfinding.NavBytes.Water)
+                {
+                    land = new TilePos(x - 1, y);
+                    water = new TilePos(x, y);
+                    found = true;
+                }
+        Assert.True(found);
+        CreatureState dwarf = world.SpawnCreature(db, 14, PlayerIds.Good, land);
+        Assert.True(navigation.TryRoute(dwarf, water, MoveOptions.Plain));
+        new GameSimulation(db, world, 1, [new CreatureMovementSystem()]).Run(30);
+        Assert.Equal(water, dwarf.Tile);
     }
 
     private static (GameDatabase Database, WorldState World) LevelEight()

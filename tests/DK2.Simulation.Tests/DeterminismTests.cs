@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 209: the corpse selections' Graveyard messages and the +0xF4E flag (ADR-0414)
+        // HashVersion 217: ordered ordinary obstacle callbacks (ADR-0423).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x4C65FAEF24CB1622UL, sim.StateHash());
+        Assert.Equal(0xACDC3C26931DA73FUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

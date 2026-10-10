@@ -9735,3 +9735,36 @@ starts the existing systems. Unity and the campaign startup regression share it.
 **Consequences.** The authored six-member northern party appears on the first
 modern tick. The screenshot confirms composition and presence; exact original
 timing and subsequent movement remain unmeasured. No simulation field is added.
+
+## ADR-0423 — Preserve the ordinary obstacle query's retained flags
+**Date:** 2026-10-10 · **Status:** accepted · Research: structure-blocks.md §5–§6
+
+**Context.** Dwarves still crossed the wheel. The callback's solid bit was treated
+as a definition value, but the binary retains it and toggles it for soft definitions.
+
+**Decision.** Enumerate all eligible ordinary obstacles in row-major tile order
+and descending tile-link order, within the binary's half-range rectangle. Preserve
+the set/toggle operations, half-widths and actual object positions. Keep the
+confirmed arrival, escape and zero-distance exceptions. Hash/save version 217.
+
+**Consequences.** A complete Dwarf walk now receives slide contacts and goes around
+the floor wheel. The virtual Heart approximation and first-person obstacle classes
+remain partial; upper Y on rectangular modern worlds is clipped to actual height.
+All 60 Level 1–3 replays validate under version 217; bounded-run wins are 19/11/19
+versus 20/4/17 under 216. All event streams change with the corrected movement.
+
+## ADR-0424 — Apply the grounded water speed modifier
+**Date:** 2026-10-10 · **Status:** accepted · Research: steering-behaviours.md §7.5
+
+**Context.** Water was traversable at full walking speed. The creature update
+halves grounded speed in entity units before moving.
+
+**Decision.** Apply the water modifier after status effects and before possession,
+rounding in entity units. Bridge terrain keeps its normal speed. Use the existing
+supported flight classification; retain the binary's greedy routing bias rather
+than introduce a travel-time optimiser. Hash/save version 217, shared with ADR-0423.
+
+**Consequences.** Water crossings now take the confirmed speed penalty. Worker
+flight bits and animation exceptions remain unmodelled, as do the separate
+low-health and lava speed modifiers. Bridge preference is not guaranteed by DK2's
+route search; the screenshot's exact original route remains an open comparison.
