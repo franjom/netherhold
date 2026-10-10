@@ -67,54 +67,29 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 ## Classic look, step 3 (worktree D:/DungeonKeeperRemake-classic, branch classic-look/step3)
 
-Plan: docs/plans/2026-10-09-classic-look.md. Not merged. Committed: 6f7a1e92 (objects and
-furniture placed by DK2's room passes), 6aa0c170 (tag highlight). The owner compares DK2 and
-Unity on campaign `Level8` ("Snapdragon") screenshot by screenshot; each fix is its own commit,
-reviewed by the `reviewer` agent first. Unity: run `unity/sync-assemblies.ps1`, build
-`unity/DK2.Unity.Compile`; the owner opens `D:/DungeonKeeperRemake-classic/unity/DK2.Unity`.
-Don't commit Unity editor state (ProjectSettings/*, Scenes/Dungeon.unity, the URP global settings).
+Plan: docs/plans/2026-10-09-classic-look.md. Reviewed, built and committed; not merged. The owner
+compares DK2 and Unity on campaign Level8 ("Snapdragon") screenshot by screenshot.
+Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity. Assemblies are synced and the adapter
+compiles. Never commit editor state (ProjectSettings/*, Scenes/Dungeon.unity, URP globals).
+Commits: b58eaa66 transparency; 4033eb24 gate/Heart pieces; bc806cc2 room simulation;
+84a450da Prison door/object turning; 72cfe356 fallen-keeper imp regression.
 
-**Uncommitted, built, tests green, review not finished.** Review, then commit as three commits:
-1. Object turning: `DungeonScene.PositionObject` turns by −heading (Casino Alcove Barrels on east and
-   west walls stood out of their alcoves with +heading) and composes pitch and roll as DK2's
-   `0x00580480` (scale, X, Y, then heading); `ObjectView.Pitch`/`Roll`. A floor Torture Wheel lies
-   flat (+0x64 = 0x600) and spins; a wall wheel is drawn 0x800 up and spins about its axle; pillars
-   are drawn at the tile centre (their +0x95/+0x97 undo the move). Notes: object-drawing.md §4,
-   furniture-placement.md §1, §5, §8. The owner's DK2 shot confirms the flat wheel.
-2. KMF transparency: kmf-materials.md; `KmfMaterial.Blend`, `RenderMesh.Blends`, `ClassicMeshes`
-   per-blend materials (alpha-blended gold cards and Prison bars, additive, no specular).
-3. Hero gates: room-floors-and-liquids.md §7; 2x2 and 3x1 floors in `WorldView`
-   (`HeroGate2By2Floor`, `HeroGate3By1Floor`; orientation inferred as the side opposite the rock,
-   checked on 41 shipped gates).
+Presentation now includes object tilts/turning and Torture wheels, the corrected Prison door
+mesh facing, KMF transparency, Hero Gate floors and 3x1 wall faces, and ruined Heart floors.
+Evidence: object-drawing.md, furniture-placement.md, kmf-materials.md and
+room-floors-and-liquids.md. Remaining owner checks: screenshot alignment, tag-drag tools and
+corners (tag-highlight.md §4, HYPOTHESIS), blue overlay and pillar height.
 
-**Next, presentation.** The ruined Heart floor: Snapdragon's player 4 "Dante" starts ruined (THINGS
-heart pct 0), and `0x004463B0` draws Dungeon_Destroyed n on all 25 tiles, which also removes the
-black square at the empty centre. The 3x1 gate's face in the rock wall: pieces 0–2 on side
-(o − 2) & 3 and piece 6 on the other sides, which needs more than one whole piece per tile in
-`PieceSet` / `RoomWalls`. Open owner checks: the tag-drag preview's tools and corners
-(tag-highlight.md §4, HYPOTHESIS), the flat blue overlay, pillar height (z 0), object facing.
+Simulation: placed captives/victims, attackability, walled room interiors, Prison delivery,
+Dante's free-cast placement and Q581 wall-machine positions are built under ADR-0419,
+hash/save version 215. That ADR records the Level 1–3 measurements and remaining deviations.
+Release solution tests and Unity adapter compile pass; binary/code review has no blocker.
 
-**Next, simulation** (one ADR, hash bump, Level 1–3 measured). Research recorded, nothing built:
-1. Level-placed captives and torture victims: THINGS flag 0x40 (`0x0048E000`); at level start
-   `0x0050B5B0` (0x0050BDB1) kicks them to state 76, whose take-over arm (`0x004E8DA0`) makes a
-   Prison captive (114 → 115, jailer the room's owner) or straps to a free device (130 → 131).
-   Snapdragon: neutral Dark Elves at (17,22), (17,21) in the Prison; Mistresses at (12,10),
-   (12,16), (9,13) in the Torture Chamber, all on wheels in DK2. Ours leaves them free and the
-   Dwarves kill them. Check which device the (12,10) Mistress takes (our floor wheels stand at
-   (12,13), (9,13), (12,16)).
-2. `CombatRules.IsAttackable`: not attackable in state 76 or on a torture device unless
-   TortureVoluntary (`0x0045A8B0`, `0x00485210`); ours says "Not modelled: torture".
-3. Prison, Temple and Combat Pit interiors: `0x004EFDE0` writes nav byte 4 on every interior tile,
-   and the step cost `0x004C8BD0` blocks a step across bit 2 unless state option bit 2 is set. Ours
-   (`WorldSteering.ByteOf`) writes 4 only on portal centres. First read which states pass option
-   bit 2 (delivery into the cell, release 121, pit and pool users). Don't use
-   `RoomInstance.InteriorTileIndices`, which over-reports.
-4. A keeper whose Heart is ruined at load gets free imps in ours every 20 ticks
-   (`ImpSupplyRules.HeartTileOf`); DK2 aims them at player +0xB43, never set for him (stays (1,1)).
-   Read `0x004BBD30`/`0x004B7CD0` (record 004BB2A0).
-
-Also open: Q581 (Workshop wall machines stand 0x700 toward their wall; `FurniturePosition` still
-centres them; a simulation change).
+Replay drivers recovered from C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
+d869276a-99ca-491a-9cf5-0342488c1277/scratchpad. Measured baseline/current artifacts:
+D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final}. These are local artifacts.
+Next implementation is classic look step 4; object animations and unsaved random headings
+remain as listed in the plan.
 
 ## Next work
 
