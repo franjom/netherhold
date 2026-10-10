@@ -116,8 +116,11 @@ material per (texture, blend, self-illumination):
 - brightness above 0: emission = texture × brightness.
 
 Back faces stay culled (§4). Not drawn yet: the environment-map stage (file 0x40),
-DK2's per-triangle depth sort (Unity sorts per object), and the UNREAD state bits 0x2
-and 0x40.
+the UNREAD state bits 0x2 and 0x40. Blended terrain faces now sort across chunks and
+materials before each camera, batching only adjacent equal materials into explicitly ordered
+renderers. Standalone object meshes and liquids still use Unity's object sort.
+The terrain runs use sortingOrder 1..N, so they follow those other blended renderers
+(at order 0); transparent faces across the two streams do not interleave by depth.
 
 Shipped flags across Meshes.WAD (`KmfMaterialTests.ShippedFlagsUseOnlyTheSurveyedBits`):
 0x0 3957, 0x40 1031, 0x42 600, 0x2 381, 0x100 198, 0x3 117, 0x80 78, 0x1 63, 0x4 20,
@@ -126,3 +129,26 @@ Shipped flags across Meshes.WAD (`KmfMaterialTests.ShippedFlagsUseOnlyTheSurveye
 The Casino's Alcove Barrels (object 68, `Bar_Barrel2`) have flags 0 and brightness 0:
 opaque and unlit by themselves. Their bright patches were most likely URP Lit's default
 specular (smoothness 0.5), which DK2 never draws (§3). STRONGLY INFERRED; check on screen.
+
+## 7. Portal crystal occlusion — CONFIRMED
+
+The Level8 Portal uses static `PORTAL0`–`PORTAL8` meshes. Its four crystal primitives
+use `Portal_Gem5`, file flags 0x81 or 0x83, brightness 0.4; the chasm uses
+`Portal_Chasm`, flags 0x81, brightness 0.4. Neither has an environment-map stage.
+The gem texture is translucent (most texels near alpha 221/255). The brown chasm
+and black centre descend below the floor in the authored positions.
+
+A software render of those shipped positions, UVs and textures, with one camera
+and unchanged lighting, reproduced the split blue blade appearance when the
+crystal material's triangles preceded the chasm's. Sorting the same transparent
+faces by depth restored four continuous crystal pillars. The Level8 lattice's
+largest displacement was 0.219625 tile; the distortion also occurs without it.
+This confirms a submission-order defect, not corrupt mesh positions.
+
+The sink 0x0058B9D0 forms its bucket key from the sum of the three transformed
+vertex depths; 0x00588D00 traverses those buckets in decreasing order and flushes
+when state or textures change. Thus sorting precedes material batching. The
+adapter uses continuous camera-facing centroid depth with stable equal-depth ties;
+DK2's bucket quantisation and within-bucket tie order are not reproduced.
+`TriangleDepthOrderTests` covers material interleaving, camera reversal, centroid
+versus maximum depth, stable ties and the shipped Portal's complete blended stream.

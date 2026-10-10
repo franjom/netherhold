@@ -9768,3 +9768,19 @@ than introduce a travel-time optimiser. Hash/save version 217, shared with ADR-0
 flight bits and animation exceptions remain unmodelled, as do the separate
 low-health and lava speed modifiers. Bridge preference is not guaranteed by DK2's
 route search; the screenshot's exact original route remains an open comparison.
+
+## ADR-0427 — Sort translucent terrain triangles across materials
+**Date:** 2026-10-10 · **Status:** accepted · Research: kmf-materials.md §7
+
+**Context.** Grouping portal triangles by material lets the translucent chasm
+cover crystal faces, making intact pillars look fragmented.
+
+**Decision.** Separate blended terrain from opaque chunks. Sort its triangles
+globally by summed camera-facing vertex depth, preserving ties, and batch only
+consecutive equal materials. Pooled renderers submit those runs in explicit order
+for each camera. Keep original positions, textures, alpha and depth-write states.
+
+**Consequences.** Camera rotation and geometry changes refresh ordering. The
+modern sort uses continuous depth rather than DK2's quantised buckets. Standalone
+object/liquid transparency remains outside this stream; run batching increases
+draw calls and has Unity's documented 32767 ordered-run bound. No simulation change.

@@ -34,6 +34,7 @@ namespace DK2.Unity
 
         private readonly Transform _root;
         private readonly ClassicMeshes _classic;
+        private readonly TransparentTerrain _transparent;
         private readonly TerrainLattice _lattice;
         private readonly int _width;
         private readonly int _chunksX;
@@ -53,6 +54,9 @@ namespace DK2.Unity
         {
             _root = root;
             _classic = classic;
+            var blended = new GameObject("transparent terrain");
+            blended.transform.SetParent(root, worldPositionStays: false);
+            _transparent = blended.AddComponent<TransparentTerrain>();
             _lattice = lattice;
             _width = width;
             _chunksX = (width + ChunkSize - 1) / ChunkSize;
@@ -92,6 +96,7 @@ namespace DK2.Unity
         {
             foreach (GameObject go in _chunks.Values) if (go != null) Object.Destroy(go);
             _chunks.Clear();
+            _transparent.Clear();
             _dirty.Clear();
             System.Array.Clear(_drawn, 0, _drawn.Length);
         }
@@ -124,6 +129,7 @@ namespace DK2.Unity
 
             if (_chunks.TryGetValue(chunk, out GameObject old) && old != null) Object.Destroy(old);
             _chunks.Remove(chunk);
+            _transparent.SetChunk(chunk, _positions, _normals, _uvs, _byMaterial);
             if (_positions.Count == 0) return;
 
             var mesh = new Mesh
@@ -136,7 +142,7 @@ namespace DK2.Unity
             mesh.SetUVs(0, _uvs);
             var materials = new List<Material>();
             foreach (KeyValuePair<Material, List<int>> entry in _byMaterial)
-                if (entry.Value.Count > 0) materials.Add(entry.Key);
+                if (entry.Value.Count > 0 && entry.Key.renderQueue < (int)RenderQueue.Transparent) materials.Add(entry.Key);
             mesh.subMeshCount = materials.Count;
             for (int i = 0; i < materials.Count; i++)
                 mesh.SetTriangles(_byMaterial[materials[i]], i, calculateBounds: false);
