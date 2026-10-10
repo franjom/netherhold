@@ -9816,3 +9816,20 @@ for each camera. Keep original positions, textures, alpha and depth-write states
 modern sort uses continuous depth rather than DK2's quantised buckets. Standalone
 object/liquid transparency remains outside this stream; run batching increases
 draw calls and has Unity's documented 32767 ordered-run bound. No simulation change.
+
+## ADR-0428 — Lay hatchery eggs across the room floor
+**Date:** 2026-10-10 · **Status:** accepted · Research: hatchery.md §3
+
+**Context.** The normal laying path always chose a coop, stacking every chicken
+beneath it. Assembly confirms DK2 chooses among slabs without a Hatchery Pillar
+when the room has capacity, then draws two sub-tile offsets.
+
+**Decision.** Use slab-chain order and the confirmed three draws. Share the
+pillar corner predicate with presentation so decorative pillars exclude the
+same slabs. Keep the egg's existing saved X/Y on hatching and in the view;
+recentre a bird dropped from the keeper's hand. Hash/save version 219.
+
+**Consequences.** The flock has individual positions across the Hatchery.
+The full-room coop launch remains deferred, as does the separate chicken
+roaming loop researched in hatchery-roaming.md. This change does not claim
+animation playback or original timing/RNG parity for those missing paths.

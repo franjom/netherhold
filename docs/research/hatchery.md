@@ -98,15 +98,20 @@ The lay routine `0x004DE620` first asks whether the room has capacity for one mo
 Chicken (`0x004E53B0` with the Chicken's room capacity, `0x004DE669`); read in
 instructions 2026-10-02:
 
-1. **Capacity left.** Walk the room's tiles counting those with no object on them,
-   pick **one at random**, and lay the egg at that tile's centre.
+1. **Capacity left.** Walk the slab chain counting tiles without object 78,
+   the Hatchery Pillar; pick one at random. Draw X and Y offsets independently
+   as `random(0x800) - 0x400` from its centre (world stream). Assembly at
+   `0x004DE6BD` and `0x004DE74A` pushes type `0x4E` into `0x004537E0`;
+   the tile need not be empty of eggs, chickens or coops. CONFIRMED, 2026-10-10.
 2. **No capacity** (`0x004DE8AE`). Only while the keeper's byte `+0x1C1` is below
    the global at `0x006F28CB` (§5) and the room has auto-placed objects: count the
    coops (object 35) on `+0x0E`, pick **one at random**, and lay the egg there.
 
 So the coop is where a full room lays, which fits §5's free-range counter.
-`HatcheryRules.TryLayEgg` still follows an earlier reading (coops first, nothing
-when full): see *Known exceptions*.
+`HatcheryRules.TryLayEgg` implements the capacity path and retains the resulting
+coordinates through hatching and presentation (ADR-0428). Presentation-only room
+pillars are excluded using the same corner predicate as the view. The full-room
+coop path remains unbuilt: see *Known exceptions*.
 
 The room also keeps a **running count of everything it has produced**, bumped on
 each successful lay: `ChickensGenerated`, `room+0x51` (the dumper's name), zeroed by
@@ -247,8 +252,7 @@ is the original's:
   which is exactly equivalent to the original's fixed-point comparison because a
   coop always stands at a tile centre (`CoopCount`, `CoopTiles`, `PlaceCoops`);
 - coops as real objects, placed idempotently so the call is safe to repeat;
-- the egg at a random coop, or on a random empty tile when the room has none
-  (`TryLayEgg`);
+- the egg on a random non-pillar slab with two sub-tile offsets (`TryLayEgg`, §3);
 - the laying clock, `LayIntervalSeconds` / `LayIntervalSecondsForTiles`, from the
   fixed-point table of §4, with `MaxTilesForInterval` = 256;
 - the **hatch**: `Hatch` swaps an egg for a chicken on the same tile after
@@ -263,11 +267,10 @@ is the original's:
 The produced count is `TileState.ChickensGenerated`, on the room's lowest tile like
 the laying clock; a tile that changes terrain or owner drops it (ADR-0335).
 
-Chicken roaming is unbuilt. A modern Level8 seed-7 probe (2026-10-10) finds
-18 chickens at tick 400, nine at each coop's centre. `WorldView.Objects` exposes
-all 18 and their `Chicken-Walk.kmf` resolves, but each flock overlaps at one
-position. Live Unity occlusion by the coop is not measured. Probe: local
-`build/chicken-probe/`; generation and art exist, distribution does not.
+The owner confirmed the stacked chickens were hidden beneath the coop
+(2026-10-10 screenshot). ADR-0428 corrects their laying positions; the local
+Level8 seed-7 probe is `build/chicken-probe/`. Chicken roaming is still unbuilt;
+its separate object movement state machine is researched in hatchery-roaming.md.
 
 ## Tests
 
@@ -281,9 +284,8 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
 - `MaxFreeRangeChickensPerPlayer` parsed, exposed and not applied (§5) — the
   second of the three balance variables this project has caught not meaning what
   its name implies, after `MaxGoldPileOutsideTreasury`.
-- Ours lays at a coop whenever the room has one and refuses a full room; DK2 lays
-  on a free tile while the room has capacity and at a coop, under the free-range
-  cap, when it has none (§3). Unbuilt.
+- Ours still refuses a full room; DK2 can launch an egg from a coop under the
+  free-range gate (§3). That path and its animation/physics remain unbuilt.
 - DK2 deletes every auto-placed coop on each change and places them all again,
   with new ids in the new chain order, each with its angle and one
   simulation-stream roll (§2). Ours keeps the coops still wanted and adds the

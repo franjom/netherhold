@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 218: outmatched Scout alarm and retreat (ADR-0425).
+        // HashVersion 219: hatchery floor laying and retained sub-tile positions (ADR-0428).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x6ECAB92D5B5D6E64UL, sim.StateHash());
+        Assert.Equal(0x83702433083CA7D9UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -417,6 +417,23 @@ public static class AutoFurnitureRules
         return false;
     }
 
+    /// <summary>The room pillar corner slots (furniture-placement.md §5), shared with the view.</summary>
+    public static IEnumerable<int> RoomPillarCorners(WorldState world, RoomInstance room, TilePos tile)
+    {
+        bool InRoom(int x, int y) => world.Contains(x, y) && room.Contains(y * world.Width + x);
+        for (int corner = 0; corner < 4; corner++)
+        {
+            int dx = corner < 2 ? 1 : -1;
+            int dy = corner is 0 or 3 ? -1 : 1;
+            if (InRoom(tile.X - dx, tile.Y) || InRoom(tile.X, tile.Y - dy)) continue;
+            bool block = true;
+            for (int j = 0; j < 3 && block; j++)
+                for (int i = 0; i < 3 && block; i++)
+                    block = InRoom(tile.X + i * dx, tile.Y + j * dy);
+            if (block) yield return corner;
+        }
+    }
+
     /// <summary>How far the wall pass moves an object toward its wall, by its arm (index bytes
     /// <c>0x004EF130</c>, table <c>0x004EF114</c>): the Torture Wheel <c>0x7C0</c>, Torture Coals and
     /// Water <c>0x480</c>, every other type <c>0x700</c>, the default arm <c>0x004EEE1F</c> included

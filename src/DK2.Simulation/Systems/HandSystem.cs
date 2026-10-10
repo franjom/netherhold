@@ -469,7 +469,8 @@ public sealed class HandSystem : ISimulationSystem
         hand.RemoveAt(hand.Count - 1);
         thing.InHand = false;
         thing.TileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
-        if (FloorGoldLandingRules.HasPosition(thing))
+        if (FloorGoldLandingRules.HasPosition(thing)
+            || thing.ObjectTypeId is HatcheryRules.ChickenObjectId or HatcheryRules.EggObjectId)
         {
             thing.PosX = CreatureState.CentreOf(command.Tile.X);
             thing.PosY = CreatureState.CentreOf(command.Tile.Y);

@@ -91,26 +91,29 @@ Simulation: placed captives/victims, attackability, walled room interiors, Priso
 Dante's free-cast placement and Q581 wall-machine positions are built under ADR-0419.
 ADR-0420 adds device attachment. ADR-0423 corrects ordinary obstacle query order and
 retained flags; ADR-0424 applies grounded water slowdown. ADR-0425 restores an outmatched
-imp's nearby-room alarm retreat and Call to Arms suppression. Hash/save version is 218.
-All 60 Level 1–3 replays validate; bounded-run wins are 19/10/19 versus 19/11/19 on 217.
-Movement changes every event stream. These are modern regression measurements, not
+imp's nearby-room alarm retreat and Call to Arms suppression. ADR-0428 corrects hatchery
+laying and retains individual egg/chicken coordinates. Hash/save version is 219.
+All 60 Level 1–3 replays validate; bounded-run wins are 20/7/16 versus 19/10/19 on 218.
+These are modern regression measurements, not
 proof of original timing parity. Campaign startup now spawns the northern Lord's
 six-member party through existing scripts (ADR-0422). Release tests pass (three
 capture-dependent skips), Unity assemblies are synced, and adapter compile/review pass.
 
 Replay drivers recovered from C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
 d869276a-99ca-491a-9cf5-0342488c1277/scratchpad. Measured baseline/current artifacts:
-D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup,collision-water-followup,imp-alarm-followup}.
+D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup,collision-water-followup,imp-alarm-followup,chicken-placement-followup}.
 These are local artifacts. Follow-up: docs/plans/2026-10-10-torture-wheel-followup.md.
 Next implementation is classic look step 4; animation limits remain in the research notes.
 Creature status flowers are still part of the unbuilt HUD work. Creature separation
 already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
 Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.
-Remaining owner checks: restart Play mode, compare blue portal pillars and locked-door
+The owner verified the blue portal pillars after reloading (2026-10-10).
+Remaining owner checks: restart Play mode, compare hatchery chickens and locked-door
 chains, and compare torch illumination
 at the same camera positions. The per-object light limit is confirmed; its responsibility
 for the reported camera-dependent darkness remains strongly inferred (unity/README.md).
 Imp casualty/timing parity and non-creature threat flight remain open (combat-fear.md §7).
+Chicken roaming remains unbuilt; see hatchery-roaming.md for the researched object loop.
 
 ## Next work
 

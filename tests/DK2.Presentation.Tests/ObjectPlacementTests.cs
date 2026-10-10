@@ -48,6 +48,29 @@ public class ObjectPlacementTests
     private static int Centre(int tile) => (tile * Fp32.One) + (Fp32.One / 2);
 
     [InstallFact]
+    public void HatcheryBirdsRetainTheirIndividualPositionsAcrossHatching()
+    {
+        Room room = Carve(RoomTypeId.Hatchery, 3, 3);
+        RoomInstance hatchery = RoomIndex.Build(room.World, room.Database)
+            .Single(r => r.Definition.TypeId == RoomTypeId.Hatchery && r.Contains((Y0 + 2) * room.World.Width + X0 + 2));
+        HatcheryRules.PlaceCoops(room.World, room.Database, hatchery);
+        var rng = new SimRandom(7);
+        for (int i = 0; i < 9; i++)
+        {
+            ObjectState egg = HatcheryRules.TryLayEgg(room.World, room.Database, hatchery, rng)!;
+            ObjectView eggView = room.View.Objects(room.World).Single(o => o.Id == egg.Id);
+            Assert.Equal((egg.PosX, egg.PosY), (eggView.PosX, eggView.PosY));
+            Assert.DoesNotContain(room.View.Decorations(room.World), o => o.ObjectTypeId == HatcheryRules.PillarObjectId && o.Tile == eggView.Tile);
+            ObjectState bird = HatcheryRules.Hatch(room.World, room.Database, egg);
+            ObjectView birdView = room.View.Objects(room.World).Single(o => o.Id == bird.Id);
+            Assert.Equal((eggView.PosX, eggView.PosY), (birdView.PosX, birdView.PosY));
+        }
+        ObjectView[] birds = room.View.Objects(room.World).Where(o => o.ObjectTypeId == HatcheryRules.ChickenObjectId).ToArray();
+        Assert.Equal(9, birds.Select(o => (o.PosX, o.PosY)).Distinct().Count());
+        Assert.True(birds.Select(o => o.Tile).Distinct().Count() > 1);
+    }
+
+    [InstallFact]
     public void AStrappedMistressUsesHerTorturePoseAtTheWallWheel()
     {
         Room room = Carve(RoomTypeId.TortureChamber, 3, 5);

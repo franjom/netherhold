@@ -146,7 +146,7 @@ public sealed class ObjectState
     public int Health;
 
     /// <summary>The position, the header's <c>+0x1A/+0x1E</c>, in 1/4096 tiles. Kept only for an
-    /// boulder or spell-created floor gold; other floor piles use their tile/cell centre.</summary>
+    /// boulder, spell-created floor gold or hatchery egg/chicken; other objects use the tile centre.</summary>
     public int PosX, PosY;
 
     /// <summary><b>Union member: the Boulder</b> (object 74, objects.md §7), <c>+0x14A/+0x14E</c>:

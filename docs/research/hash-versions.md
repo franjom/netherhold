@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**219** — `0x83702433083CA7D9`. Hatchery eggs use the normal non-pillar slab path and two sub-tile draws; hatching and presentation retain coordinates. Existing saved position fields, no new field. ADR-0428.
+
 **218** — `0x6ECAB92D5B5D6E64`. An outmatched fleeing Scout runs to raise the alarm; the near-room gate uses the attacker's tile and respects Call to Arms. No new saved field. ADR-0425.
 
 **217** — `0xACDC3C26931DA73F`. Ordinary obstacle queries preserve tile-head order and retained set/toggle flags; grounded water speed is halved in entity units. No new saved field. ADR-0423 and ADR-0424.

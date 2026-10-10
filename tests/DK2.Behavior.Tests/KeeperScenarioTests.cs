@@ -96,7 +96,9 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         Assert.Equal([(54, new TilePos(64, 40)), (55, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
         Assert.All(spans, s => Assert.Equal(RoomTypeId.StoneBridge, s.Build.RoomId));
 
-        var call = (CastSpellAtPlaceCommand)Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5).Command;
+        KeeperCommandEmission callEmission = Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5);
+        var call = (CastSpellAtPlaceCommand)callEmission.Command;
+        Assert.Equal(544, callEmission.InputTick);
         // Two tiles off Morgana's heart; the seed-specific fixture is explained in the scenario.
         // The front's direction is seed-dependent (Q574, ADR-0407).
         Assert.Equal(((byte)CallToArmsRules.SpellId, 64, 38), (call.SpellId, call.X >> 12, call.Y >> 12));

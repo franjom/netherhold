@@ -255,7 +255,7 @@ public class HatcheryTests
     }
 
     [Fact]
-    public void AnEggLandsOnOneOfTheCoops()
+    public void EggsUseTheRoomFloorAndSubTileOffsetsInsteadOfStackingAtTheCoop()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -267,12 +267,22 @@ public class HatcheryTests
         var coopTiles = coops.Select(c => c.TileIndex).ToHashSet();
 
         var rng = new SimRandom(42);
+        var positions = new HashSet<(int X, int Y)>();
+        var tiles = new HashSet<int>();
         for (int i = 0; i < 20; i++)
         {
             ObjectState? egg = HatcheryRules.TryLayEgg(world, db, room, rng);
             Assert.NotNull(egg);
-            Assert.Contains(egg.TileIndex, coopTiles);
+            tiles.Add(egg.TileIndex);
+            int x = CreatureState.CentreOf(egg.TileIndex % world.Width);
+            int y = CreatureState.CentreOf(egg.TileIndex / world.Width);
+            Assert.InRange(egg.PosX, x - 0x400, x + 0x3FF);
+            Assert.InRange(egg.PosY, y - 0x400, y + 0x3FF);
+            Assert.True(positions.Add((egg.PosX, egg.PosY)), "eggs must retain their individual drawn positions");
+            ObjectState chicken = HatcheryRules.Hatch(world, db, egg);
+            Assert.Equal((egg.PosX, egg.PosY), (chicken.PosX, chicken.PosY));
         }
+        Assert.True(tiles.Except(coopTiles).Any(), "the entire flock stayed beneath coops");
     }
 
     [Fact]

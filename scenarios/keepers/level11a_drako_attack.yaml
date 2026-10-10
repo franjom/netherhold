@@ -64,18 +64,18 @@ expect:
       calls them to fight intruders (ADR-0407). Timing depends on the seed (Q563, Q574).
   - event: call_to_arms_raised
     detail: "tile=64,38"
-    at_tick: 500
+    at_tick: 544
     because: >
       With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
       heart and attack management casts the call there (0x004FECE0, ADR-0298). The point is a draw
-      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. This version-218 fixture
-      uses seed 1 to exercise the northern attack after the alarm correction (ADR-0425);
-      seed 2 also turns west and calls at Belial instead. Direction and timing remain
+      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. This version-219 fixture
+      retains seed 1's northern attack after the alarm correction (ADR-0425) and egg-placement
+      correction's additional random draws. Direction and timing remain
       seed-dependent (Q574); the shared call tile does not establish original timing parity.
   - event: engaged
     detail: "type=Mistress player=5 heart=6"
-    at_tick: 556
+    at_tick: 599
     because: >
       Drako's Mistress attacks Morgana's heart after the call (scan E, ADR-0163). The Salamander
-      already engaged the heart at 312; the Mistress engagement at 556 retains the army attack
-      after the call rather than accepting only the earlier encounter.
+      engages at 546 and the Mistress at 599, both after the call at 544. The expectation retains
+      a Mistress reaching Morgana's heart, beyond the bridge and call placement alone.

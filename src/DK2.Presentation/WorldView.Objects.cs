@@ -29,7 +29,7 @@ public sealed partial class WorldView
     }
 
     // Object types the placement switches on (Objects.kwd ids).
-    private const byte FloorGoldId = 1, GoldBagId = 2, StorePileId = 3, TortureWheelId = 8, ChickenId = 9,
+    private const byte FloorGoldId = 1, GoldBagId = 2, StorePileId = 3, TortureWheelId = 8, ChickenId = 9, EggId = 47,
         DungeonHeartId = 13, TrainingDummyId = 14, RouletteWheelId = 30, CoopId = 35, WorkBenchId = 46,
         SkullId = 49, LavatoryId = 51, BookCaseId = 64, TempleHandId = 66, GuardPostId = 70, CryptId = 75,
         HeartArchesId = 86, RouletteTableId = 87, BigStepsId = 88, ArchPillarId = 94, CasinoLeverId = 95,
@@ -80,7 +80,7 @@ public sealed partial class WorldView
         _decorations.Clear();
         _pillarTiles.Clear();
         foreach (ObjectState thing in world.Objects)
-            if (!thing.InHand && _database.ObjectById(thing.ObjectTypeId) is { } definition
+            if (!thing.InHand && thing.CarriedByCreatureId < 0 && _database.ObjectById(thing.ObjectTypeId) is { } definition
                 && definition.Flags.HasFlag(ObjectFlags.Pillar))
                 _pillarTiles.Add(thing.TileIndex);
         for (int i = 0; i < _rooms.Count; i++) Decorate(world, _rooms[i], _roomFacts[i], _decorations);
@@ -166,7 +166,11 @@ public sealed partial class WorldView
                 case CryptId:
                     heading = 0x200;
                     break;
+                case EggId:
+                    if (thing.PosX != 0 || thing.PosY != 0) (posX, posY) = (thing.PosX, thing.PosY);
+                    break;
                 case ChickenId:
+                    if (thing.PosX != 0 || thing.PosY != 0) (posX, posY) = (thing.PosX, thing.PosY);
                     // Object_Init draws 0x1000 + random(0x800); ours has no draw to keep, so the id stands in.
                     scale = One + Spread(thing.Id, 0x800);
                     break;
@@ -312,24 +316,14 @@ public sealed partial class WorldView
         foreach (int tile in room.TileIndices)
         {
             int x = tile % world.Width, y = tile / world.Width;
-            for (int k = 0; k < 4; k++)
+            foreach (int k in AutoFurnitureRules.RoomPillarCorners(world, room, new TilePos(x, y)))
             {
-                int dx = Dx8[(2 * k) + 1], dy = Dy8[(2 * k) + 1];
-                if (InRoom(world, room, x - dx, y) || InRoom(world, room, x, y - dy)) continue;
-                if (!Block(world, room, x, y, dx, dy) || _pillarTiles.Contains(tile)) continue;
+                if (_pillarTiles.Contains(tile)) continue;
                 // Its +0x95/+0x97 draw offset undoes the move, so DK2 draws it at the centre, its
                 // heading turning the column into the tile's outer corner (object-drawing.md §4).
                 into.Add(Decoration(world, tile, PillarSlot, pillar, owner, 0, 0, -1, ((k - 1) & 3) << 9));
             }
         }
-    }
-
-    private static bool Block(WorldState world, RoomInstance room, int x, int y, int dx, int dy)
-    {
-        for (int j = 0; j < 3; j++)
-            for (int i = 0; i < 3; i++)
-                if (!InRoom(world, room, x + (i * dx), y + (j * dy))) return false;
-        return true;
     }
 
     /// <summary><c>0x004D8CB0</c>: the bell on the first chain tile whose eight neighbours are all

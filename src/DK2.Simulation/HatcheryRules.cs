@@ -37,6 +37,8 @@ public static class HatcheryRules
     /// all, only <see cref="ObjectFlags.Obstacle"/>.</para></summary>
     public const byte CoopObjectId = 35;
 
+    public const byte PillarObjectId = 78;
+
     /// <summary>What a hatchery lays: <b>47, the Egg</b> — and <i>not</i> 9, the Chicken.
     /// <para>Of the three objects a hatchery deals in, only the Chicken carries
     /// <see cref="ObjectFlags.TypeFood"/> and has a creature's
@@ -239,13 +241,9 @@ public static class HatcheryRules
     /// <summary>Lays one egg here and hands it back, or null for nowhere to put it.
     /// Called by <see cref="Systems.HatcherySystem"/> on the room's own interval
     /// (ADR-0066).
-    /// <para>Two cases, in the original's order: with coops, one is chosen <b>at
-    /// random</b> and the egg goes there; with none, an <i>empty</i> tile of the
-    /// room is, so a hatchery too small to earn a coop still produces on the
-    /// floor. The draw is behaviour and the first place DK2's own generator
-    /// position would be observable (Q3). A full room
-    /// (<see cref="FlockCapacity"/>) lays nothing: the limit is CONFIRMED, the
-    /// mechanism a reading — DK2 might lay and let the surplus rot (Q135).</para></summary>
+    /// <para>With capacity, choose a slab without a Hatchery Pillar, then draw two
+    /// half-tile offsets (hatchery.md §3). The full-room coop launch remains unbuilt;
+    /// a full room still refuses to lay.</para></summary>
     public static ObjectState? TryLayEgg(
         WorldState world, GameDatabase database, RoomInstance hatchery, SimRandom rng)
     {
@@ -255,22 +253,23 @@ public static class HatcheryRules
         // why the mechanism behind it is a reading rather than a certainty.
         if (FlockIsFull(world, database, hatchery)) return null;
 
-        var coops = new List<ObjectState>();
-        Coops(world, hatchery, coops);
-
-        if (coops.Count > 0)
+        var candidates = new List<int>();
+        foreach (int index in SlabChain.Order(world, hatchery))
         {
-            ObjectState coop = coops[rng.NextInt(coops.Count)];
-            return Lay(world, database, hatchery, coop.TileIndex);
+            bool hasPillar = world.Objects.Any(o => o.TileIndex == index && o.ObjectTypeId == PillarObjectId
+                && !o.InHand && o.CarriedByCreatureId < 0);
+            // Room pillars are presentation decorations here; use their shared geometry too.
+            bool hasOtherPillar = world.Objects.Any(o => o.TileIndex == index && !o.InHand && o.CarriedByCreatureId < 0
+                && database.ObjectById(o.ObjectTypeId) is { } def && def.Flags.HasFlag(ObjectFlags.Pillar));
+            if (!hasPillar && (hasOtherPillar || !AutoFurnitureRules.RoomPillarCorners(world, hatchery,
+                new TilePos(index % world.Width, index / world.Width)).Any())) candidates.Add(index);
         }
-
-        var empty = new List<int>();
-        foreach (int index in hatchery.TileIndices)
-            if (!AnythingOn(world, index)) empty.Add(index);
-
-        if (empty.Count == 0) return null;
-
-        return Lay(world, database, hatchery, empty[rng.NextInt(empty.Count)]);
+        if (candidates.Count == 0) return null;
+        int chosen = candidates[rng.NextInt(candidates.Count)];
+        ObjectState egg = Lay(world, database, hatchery, chosen);
+        egg.PosX = CreatureState.CentreOf(chosen % world.Width) + rng.NextInt(0x800) - 0x400;
+        egg.PosY = CreatureState.CentreOf(chosen / world.Width) + rng.NextInt(0x800) - 0x400;
+        return egg;
     }
 
     private static ObjectState Lay(
@@ -308,7 +307,10 @@ public static class HatcheryRules
         PlayerId owner = egg.OwnerPlayerId;
 
         world.RemoveObject(egg.Id);
-        return world.SpawnObject(database, ChickenObjectId, owner, tile);
+        ObjectState chicken = world.SpawnObject(database, ChickenObjectId, owner, tile);
+        chicken.PosX = egg.PosX;
+        chicken.PosY = egg.PosY;
+        return chicken;
     }
 
     /// <summary>Whether any object at all stands on this tile.</summary>
