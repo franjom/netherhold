@@ -51,6 +51,8 @@ public static class KmfReader
             var textures = new List<string>((int)textureCount);
             for (uint texture = 0; texture < textureCount; texture++)
                 textures.Add(reader.NullTerminatedAscii());
+            // DK2's loader (0x0057D390) reads the same order: flags, brightness, shininess, the
+            // environment texture; KmfMaterial derives the blend from the flags.
             materials.Add(new KmfMaterial(name, textures, reader.UInt32(),
                 reader.Single(), reader.Single(), reader.NullTerminatedAscii()));
         }

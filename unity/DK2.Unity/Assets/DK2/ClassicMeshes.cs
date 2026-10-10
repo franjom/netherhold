@@ -20,10 +20,10 @@ namespace DK2.Unity
     /// <para>The frame and the triangle order are <see cref="RenderMesh"/>'s, tested there; this
     /// class copies arrays and makes no geometric choice of its own. Image rows go in top first,
     /// so Unity's V, counted up from row 0, lands on the KMF's V, counted down from the top.</para>
-    /// <para>The shader is found by name so that no URP type is compiled into the adapter
-    /// (<c>docs/plans/2026-10-09-classic-look.md</c>, step 0). Every material is opaque for now;
-    /// DK2's transparent and additive materials (the KMF flags, UNKNOWN in
-    /// <c>src/DK2.Convert/README.md</c>) come later.</para>
+    /// <para>Shaders are found by name, so no URP type is compiled into the adapter. A material is
+    /// made per (texture, blend, self-illumination) as the KMF material says: opaque, alpha-blended
+    /// or additive, none clipped, none shining, every face one-sided
+    /// (<c>docs/research/kmf-materials.md</c>).</para>
     /// </remarks>
     public sealed class ClassicMeshes
     {
@@ -33,7 +33,8 @@ namespace DK2.Unity
         private readonly InstallArtProvider _art;
         private readonly Shader _shader;
         private readonly Dictionary<string, Built> _built = new Dictionary<string, Built>();
-        private readonly Dictionary<string, Material> _materials = new Dictionary<string, Material>();
+        private readonly Dictionary<(string, KmfBlend, float), Material> _materials =
+            new Dictionary<(string, KmfBlend, float), Material>();
         private readonly Dictionary<Material, Material> _tagged = new Dictionary<Material, Material>();
         private readonly Dictionary<(AssetRef, bool), PieceSource> _pieces = new Dictionary<(AssetRef, bool), PieceSource>();
 
@@ -121,7 +122,7 @@ namespace DK2.Unity
             string texture = kmf == null ? ""
                 : kmf.TextureNames.Count > 0 ? kmf.TextureNames[lastTexture ? kmf.TextureNames.Count - 1 : 0]
                 : kmf.EnvironmentTextureName ?? "";
-            return ForTexture(texture);
+            return kmf == null ? ForTexture(texture) : ForTexture(texture, kmf.Blend, kmf.SelfIllumination);
         }
 
         /// <summary>The dig tag's colour, which DK2 adds to a tagged piece's vertex light
@@ -140,9 +141,11 @@ namespace DK2.Unity
         {
             if (_tagged.TryGetValue(material, out Material tagged)) return tagged;
             tagged = new Material(material) { name = material.name + " (tagged)" };
+            // The tag's light adds to the material's own (its self-illumination, if any).
+            Color own = material.IsKeywordEnabled("_EMISSION") ? material.GetColor("_EmissionColor") : Color.black;
             tagged.EnableKeyword("_EMISSION");
             tagged.SetTexture("_EmissionMap", material.mainTexture);
-            tagged.SetColor("_EmissionColor", TagTint);
+            tagged.SetColor("_EmissionColor", TagTint + own);
             tagged.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             _tagged[material] = tagged;
             return tagged;
@@ -167,11 +170,38 @@ namespace DK2.Unity
         }
 
         /// <summary>An opaque material of one engine texture by name, shared by every user of it.</summary>
-        public Material ForTexture(string texture)
-        {
-            if (_materials.TryGetValue(texture, out Material material)) return material;
+        public Material ForTexture(string texture) => ForTexture(texture, KmfBlend.Opaque, 0f);
 
-            material = new Material(_shader) { name = texture.Length > 0 ? texture : "untextured" };
+        /// <summary>A material of one engine texture drawn with a KMF blend, shared by every user of
+        /// the same (texture, blend, self-illumination). <paramref name="selfIllumination"/> is the
+        /// light the material adds to its vertices, 0 to 1 (<see cref="KmfMaterial.SelfIllumination"/>):
+        /// URP's emission adds texture × colour, as DK2 adds the material colour before modulating.</summary>
+        public Material ForTexture(string texture, KmfBlend blend, float selfIllumination)
+        {
+            var key = (texture, blend, selfIllumination);
+            if (_materials.TryGetValue(key, out Material material)) return material;
+
+            string name = texture.Length > 0 ? texture : "untextured";
+            if (blend == KmfBlend.Additive)
+            {
+                // Additive: the constructor forces the colour to white, so the texture is drawn at
+                // full light whatever lights the scene; Unlit is that.
+                Shader unlit = Shader.Find("Universal Render Pipeline/Unlit") ?? _shader;
+                material = new Material(unlit) { name = "AA_" + name, color = Color.white };
+                MakeTransparent(material, BlendMode.One, BlendMode.One, 2f);
+            }
+            else
+            {
+                material = new Material(_shader) { name = blend == KmfBlend.AlphaBlend ? "A_" + name : name };
+                // DK2 never enables specular light (SPECULARENABLE 0, 0x005899F0).
+                material.SetFloat("_Smoothness", 0f);
+                material.SetFloat("_SpecularHighlights", 0f);
+                material.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+                material.SetFloat("_EnvironmentReflections", 0f);
+                material.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+                if (blend == KmfBlend.AlphaBlend)
+                    MakeTransparent(material, BlendMode.SrcAlpha, BlendMode.OneMinusSrcAlpha, 0f);
+            }
             if (texture.Length > 0)
             {
                 try
@@ -183,8 +213,36 @@ namespace DK2.Unity
                     Debug.LogWarning($"DK2: engine texture '{texture}' not found; drawing it untextured.");
                 }
             }
-            _materials[texture] = material;
+            if (blend != KmfBlend.Additive && selfIllumination > 0f)
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetTexture("_EmissionMap", material.mainTexture);
+                material.SetColor("_EmissionColor", new Color(selfIllumination, selfIllumination, selfIllumination));
+                material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            }
+            _materials[key] = material;
             return material;
+        }
+
+        /// <summary>URP's transparent surface with an explicit blend and no depth write, as DK2's
+        /// blended states clear z-write (<c>0x0057C420</c>). <paramref name="urpBlend"/> is URP's
+        /// own _Blend enum (0 alpha, 2 additive), kept for its inspector.</summary>
+        private static void MakeTransparent(Material material, BlendMode source, BlendMode destination, float urpBlend)
+        {
+            material.SetFloat("_Surface", 1f);
+            material.SetFloat("_Blend", urpBlend);
+            material.SetFloat("_SrcBlend", (float)source);
+            material.SetFloat("_DstBlend", (float)destination);
+            material.SetFloat("_SrcBlendAlpha", (float)source);
+            material.SetFloat("_DstBlendAlpha", (float)destination);
+            material.SetFloat("_ZWrite", 0f);
+            material.SetShaderPassEnabled("ShadowCaster", false);
+            material.SetShaderPassEnabled("DepthOnly", false);
+            material.SetFloat("_AlphaClip", 0f);
+            material.DisableKeyword("_ALPHATEST_ON");
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)RenderQueue.Transparent;
         }
 
         private static Texture2D ToTexture(RgbaImage image, string name)
