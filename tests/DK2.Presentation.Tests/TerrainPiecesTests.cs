@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
@@ -54,7 +55,6 @@ public class TerrainPiecesTests
         Assert.False(rock.HasFace(S));
         Assert.False(rock.HasFace(W));
         Assert.True(rock.HasTop);
-        Assert.False(rock.TopTagged);
         Assert.Equal(QuarterKind.None, rock.Quarters);
     }
 
@@ -70,15 +70,46 @@ public class TerrainPiecesTests
         Assert.Equal(QuarterKind.None, dirt.Quarters);
     }
 
-    /// <summary>A HYPOTHESIS from the art's name: the builder does not read art 3, so who draws
-    /// the tagged top is unread.</summary>
+    /// <summary>A tag changes no piece: DK2 tints the pieces the tile already draws (tag-highlight.md),
+    /// so tagged rock keeps its plain top (art 3, "TOP TAGGED", is not what draws it).</summary>
     [InstallFact]
-    public void TaggedRockDrawsTheTaggedTopByItsNameOnly()
+    public void ATagChangesNoPiece()
     {
         Patch patch = Block();
+        TerrainPieces before = patch.At(X0 + 3, Y0 + 3);
         patch.World.Tile(X0 + 3, Y0 + 3).TaggedBy = PlayerMask.None.With(PlayerIds.Good);
 
-        Assert.True(patch.At(X0 + 3, Y0 + 3).TopTagged);
+        Assert.Equal(before, patch.At(X0 + 3, Y0 + 3));
+    }
+
+    /// <summary>A Reinforced Wall is Taggable, and a tagged one shows as tagged like rock
+    /// (tag-highlight.md: the tint goes on any Taggable terrain).</summary>
+    [InstallFact]
+    public void ATaggedReinforcedWallShowsAsTagged()
+    {
+        Patch patch = Block("Reinforced Wall");
+        patch.World.Tile(X0 + 3, Y0 + 3).OwnerPlayerId = PlayerIds.Good;
+        patch.World.Tile(X0 + 3, Y0 + 3).TaggedBy = PlayerMask.None.With(PlayerIds.Good);
+
+        Assert.True(patch.View.TileAt(patch.World, X0 + 3, Y0 + 3).Tagged);
+    }
+
+    /// <summary>While a tag drag is held, every Taggable tile inside its rectangle shows as tagged
+    /// and floor does not (<c>0x0043E860</c>); with the drag over, none does. Both corners are taken
+    /// as inclusive: what fills DK2's rectangle is unread (tag-highlight.md §4).</summary>
+    [InstallFact]
+    public void ATagDragShowsItsTaggableTilesAsTaggedTakingBothCornersAsInclusive()
+    {
+        Patch patch = Block();
+        patch.Set(X0 + 2, Y0 + 2, "Dirt Path");
+        patch.View.PreviewTags(new TilePos(X0 + 3, Y0 + 3), new TilePos(X0 + 1, Y0 + 1));
+
+        Assert.True(patch.View.TileAt(patch.World, X0 + 1, Y0 + 3).Tagged);
+        Assert.False(patch.View.TileAt(patch.World, X0 + 2, Y0 + 2).Tagged);
+        Assert.False(patch.View.TileAt(patch.World, X0 + 4, Y0 + 3).Tagged);
+
+        patch.View.PreviewTags(null, null);
+        Assert.False(patch.View.TileAt(patch.World, X0 + 1, Y0 + 3).Tagged);
     }
 
     /// <summary>Table <c>0x0066DA08</c>: a claimed tile with no claimed neighbour is four outer

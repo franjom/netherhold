@@ -83,6 +83,7 @@ namespace DK2.Unity
         private InstallArtProvider _installArt;
         private ClassicMeshes _classic;
         private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
+        private TilePos? _dragTo;
         private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
         private RoomTypeId[] _roomIds = Array.Empty<RoomTypeId>();
         private double _tickDebt;
@@ -200,6 +201,12 @@ namespace DK2.Unity
                 }
             }
 
+            // A tag drag shows its rectangle as tagged while the button is held, as DK2's does; off
+            // the map, the rectangle keeps the last tile the pointer was on.
+            TilePos? dragFrom = _input.DragFrom(PlayerToolMode.TagTiles);
+            if (dragFrom == null) _dragTo = null;
+            else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
+            _worldView.PreviewTags(dragFrom, _dragTo);
             _presenter.Present(_simulation.World);
         }
 

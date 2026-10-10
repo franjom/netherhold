@@ -75,6 +75,7 @@ namespace DK2.Unity
                         _dirty.Add(ChunkOf((ty * _width) + tx));
             }
             else if (draws || _drawn[tileIndex]) _dirty.Add(ChunkOf(tileIndex));
+            if (tile.Tagged != _tiles[tileIndex].Tagged) DirtyNeighbours(tileIndex);
             _tiles[tileIndex] = tile;
             _drawn[tileIndex] = draws;
             return draws;
@@ -93,6 +94,16 @@ namespace DK2.Unity
             _chunks.Clear();
             _dirty.Clear();
             System.Array.Clear(_drawn, 0, _drawn.Length);
+        }
+
+        /// <summary>A tag tints the room walls facing the tile, so its four neighbours' chunks redraw.</summary>
+        private void DirtyNeighbours(int tileIndex)
+        {
+            int x = tileIndex % _width, y = tileIndex / _width, height = _tiles.Length / _width;
+            if (x > 0) _dirty.Add(ChunkOf(tileIndex - 1));
+            if (x < _width - 1) _dirty.Add(ChunkOf(tileIndex + 1));
+            if (y > 0) _dirty.Add(ChunkOf(tileIndex - _width));
+            if (y < height - 1) _dirty.Add(ChunkOf(tileIndex + _width));
         }
 
         private int ChunkOf(int tileIndex) =>
@@ -151,19 +162,21 @@ namespace DK2.Unity
             TerrainPieceKeys keys = tile.PieceKeys;
             Vector3 centre = DungeonScene.Ground(x + 0.5f, y + 0.5f);
 
-            // A Reinforced Wall's face (the one player-coloured wall) takes its plain brick.
+            // A Reinforced Wall's face (the one player-coloured wall) takes its plain brick. A tagged
+            // tile tints every piece it draws (tag-highlight.md).
             bool undamaged = pieces.Quarters == QuarterKind.Top;
+            bool tagged = tile.Tagged;
             for (int side = 0; side < 4; side++)
-                if (pieces.HasFace(side)) Add(_classic.Piece(keys.Side, undamaged), side, centre, x, y);
-            if (pieces.HasTop) Add(_classic.Piece(pieces.TopTagged ? keys.TopTagged : keys.Top), 0, centre, x, y);
-            if (pieces.HasFloor) Add(_classic.Piece(keys.Floor), 0, centre, x, y);
+                if (pieces.HasFace(side)) Add(_classic.Piece(keys.Side, undamaged), side, centre, x, y, tagged);
+            if (pieces.HasTop) Add(_classic.Piece(keys.Top), 0, centre, x, y, tagged);
+            if (pieces.HasFloor) Add(_classic.Piece(keys.Floor), 0, centre, x, y, tagged);
             if (pieces.Quarters == QuarterKind.None) return;
 
             for (int q = 0; q < 4; q++)
             {
                 Vector2 offset = QuadrantCentres[q];
                 Add(_classic.Piece(keys.Quarter(pieces.QuarterSet, pieces.QuarterPiece(q))),
-                    TerrainPieces.QuarterRotation(q), centre + new Vector3(offset.x, 0f, offset.y), x, y);
+                    TerrainPieces.QuarterRotation(q), centre + new Vector3(offset.x, 0f, offset.y), x, y, tagged);
             }
         }
 
@@ -175,15 +188,19 @@ namespace DK2.Unity
             Vector3 centre = DungeonScene.Ground(x + 0.5f, y + 0.5f);
             AddSet(tile.RoomFloor, keys, null, centre, x, y);
 
+            // A wall facing a tagged tile is tinted with it (0x00444F10's per-piece flag, which
+            // 0x0043C310 reads).
             RoomWalls walls = tile.Walls;
             for (int side = 0; side < 4; side++)
             {
+                bool tagged = FacesTag(x, y, side);
                 if (walls.IsWhole(side))
-                    Add(_classic.Piece(keys.Piece(walls.WholePiece(side))), side, centre, x, y);
+                    Add(_classic.Piece(keys.Piece(walls.WholePiece(side))), side, centre, x, y, tagged);
                 else if (walls.HasWall(side))
                 {
-                    Add(_classic.Piece(keys.Piece(walls.HalfAPiece(side))), side, Quadrant(centre, side), x, y);
-                    Add(_classic.Piece(keys.Piece(walls.HalfBPiece(side))), side, Quadrant(centre, (side + 1) & 3), x, y);
+                    Add(_classic.Piece(keys.Piece(walls.HalfAPiece(side))), side, Quadrant(centre, side), x, y, tagged);
+                    Add(_classic.Piece(keys.Piece(walls.HalfBPiece(side))), side, Quadrant(centre, (side + 1) & 3), x, y,
+                        tagged);
                 }
             }
         }
@@ -208,13 +225,21 @@ namespace DK2.Unity
             if (set.HasWhole) Add(_classic.Piece(Key(room, bed, set.WholePiece)), set.WholeRotation, centre, x, y);
         }
 
+        private static readonly int[] SideDx = { 0, 1, 0, -1 }, SideDy = { -1, 0, 1, 0 };
+
+        private bool FacesTag(int x, int y, int side)
+        {
+            int nx = x + SideDx[side], ny = y + SideDy[side];
+            return nx >= 0 && ny >= 0 && nx < _width && ny < _tiles.Length / _width && _tiles[(ny * _width) + nx].Tagged;
+        }
+
         private static AssetRef Key(RoomPieceKeys room, TerrainPieceKeys bed, int k) =>
             room != null ? room.Piece(k) : bed.Bed(k);
 
         private static Vector3 Quadrant(Vector3 centre, int quadrant) =>
             centre + new Vector3(QuadrantCentres[quadrant].x, 0f, QuadrantCentres[quadrant].y);
 
-        private void Add(ClassicMeshes.PieceSource piece, int rotation, Vector3 at, int x, int y)
+        private void Add(ClassicMeshes.PieceSource piece, int rotation, Vector3 at, int x, int y, bool tagged = false)
         {
             if (piece == null) return;
             Quaternion turn = Quaternion.Euler(0f, 90f * rotation, 0f);
@@ -234,10 +259,18 @@ namespace DK2.Unity
             }
             for (int m = 0; m < piece.Triangles.Count; m++)
             {
-                if (!_byMaterial.TryGetValue(piece.Materials[m], out List<int> list))
-                    _byMaterial[piece.Materials[m]] = list = new List<int>();
-                foreach (int index in piece.Triangles[m]) list.Add(start + index);
+                Material material = tagged ? _classic.Tagged(piece.Materials[m]) : piece.Materials[m];
+                AddTriangles(material, piece.Triangles[m], start);
+                // DK2 draws a tagged piece a second time, additively (tag-highlight.md).
+                if (tagged) AddTriangles(_classic.TagOverlay(), piece.Triangles[m], start);
             }
+        }
+
+        private void AddTriangles(Material material, int[] triangles, int start)
+        {
+            if (!_byMaterial.TryGetValue(material, out List<int> list))
+                _byMaterial[material] = list = new List<int>();
+            foreach (int index in triangles) list.Add(start + index);
         }
     }
 }

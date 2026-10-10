@@ -73,7 +73,9 @@ public readonly struct TileView
     /// simulation gives it to the neutral player (ADR-0362).</summary>
     public byte OwnerPlayerId { get; }
 
-    /// <summary>Marked for digging by somebody — the player's own marks are visible in DK2.</summary>
+    /// <summary>Marked for digging by the viewing player. DK2 draws every piece of such a tile, and a
+    /// room wall facing it, tinted (128, 128, 200) under an overlay, whatever the terrain or its
+    /// owner (tag-highlight.md).</summary>
     public bool Tagged { get; }
 
     /// <summary>Whether the terrain fills its tile. A renderer needs this before it has a mesh.</summary>
@@ -335,6 +337,30 @@ public sealed partial class WorldView
             _objectMeshes[entry.Key] = AssetRef.ForObject(entry.Value.Name, AssetKind.Mesh);
     }
 
+    private bool _previewing;
+    private int _previewX1, _previewY1, _previewX2, _previewY2;
+
+    /// <summary>
+    /// The tag drag in progress, corner to corner, or nulls for none: every Taggable tile inside it
+    /// shows as tagged (<see cref="TileView.Tagged"/>), as DK2 shows those inside the bridge
+    /// rectangle <c>+0x10..+0x1C</c> (<c>0x0043E860</c>; tag-highlight.md). HYPOTHESIS: what fills
+    /// that rectangle is unread, so that only the tag tool fills it, and with both corners
+    /// inclusive, is this renderer's guess.
+    /// </summary>
+    public void PreviewTags(TilePos? from, TilePos? to)
+    {
+        _previewing = from is not null && to is not null;
+        if (!_previewing) return;
+        TilePos a = from!.Value, b = to!.Value;
+        (_previewX1, _previewX2) = a.X <= b.X ? (a.X, b.X) : (b.X, a.X);
+        (_previewY1, _previewY2) = a.Y <= b.Y ? (a.Y, b.Y) : (b.Y, a.Y);
+    }
+
+    private bool ShowsTag(in TileState tile, TerrainDef terrain, int x, int y) =>
+        tile.IsTaggedBy(_viewingPlayerId)
+        || (_previewing && terrain.IsTaggable
+            && x >= _previewX1 && x <= _previewX2 && y >= _previewY1 && y <= _previewY2);
+
     /// <summary>Every tile, in row order.</summary>
     public IEnumerable<TileView> Tiles(WorldState world)
     {
@@ -371,7 +397,7 @@ public sealed partial class WorldView
                 fogGround,
                 default,
                 ownerPlayerId: 0,
-                tile.IsTaggedBy(_viewingPlayerId),
+                ShowsTag(tile, fog, x, y),
                 fogSolid,
                 goldHeld: 0,
                 HealthPermille(fog.StartingHealth, fog.MaxHealth),
@@ -387,7 +413,7 @@ public sealed partial class WorldView
             ground,
             furniture,
             terrain.IsOwnable ? tile.OwnerPlayerId : (byte)0,
-            tile.IsTaggedBy(_viewingPlayerId),
+            ShowsTag(tile, terrain, x, y),
             solid,
             tile.GoldHeld,
             HealthPermille(tile.Health, terrain.MaxHealth),
@@ -797,7 +823,7 @@ public sealed partial class WorldView
 
             if ((flags & TerrainFlags.PlayerColouredWall) != 0)
                 return pieces.WithQuarters(QuarterKind.Top, set, QuarterPieces(TopEdges(world, x, y)));
-            return pieces.WithTop(tile.IsTaggedBy(_viewingPlayerId) && terrain.IsTaggable);
+            return pieces.WithTop();
         }
 
         if ((flags & TerrainFlags.PlayerColouredPath) != 0)

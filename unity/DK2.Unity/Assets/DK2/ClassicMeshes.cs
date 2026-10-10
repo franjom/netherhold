@@ -8,6 +8,7 @@ using DK2.Art.Kmf;
 using DK2.Art.Textures;
 using DK2.Assets;
 using UnityEngine;
+using UnityEngine.Rendering;
 using NumericsVector2 = System.Numerics.Vector2;
 using NumericsVector3 = System.Numerics.Vector3;
 
@@ -33,6 +34,7 @@ namespace DK2.Unity
         private readonly Shader _shader;
         private readonly Dictionary<string, Built> _built = new Dictionary<string, Built>();
         private readonly Dictionary<string, Material> _materials = new Dictionary<string, Material>();
+        private readonly Dictionary<Material, Material> _tagged = new Dictionary<Material, Material>();
         private readonly Dictionary<(AssetRef, bool), PieceSource> _pieces = new Dictionary<(AssetRef, bool), PieceSource>();
 
         public ClassicMeshes(InstallArtProvider art)
@@ -120,6 +122,48 @@ namespace DK2.Unity
                 : kmf.TextureNames.Count > 0 ? kmf.TextureNames[lastTexture ? kmf.TextureNames.Count - 1 : 0]
                 : kmf.EnvironmentTextureName ?? "";
             return ForTexture(texture);
+        }
+
+        /// <summary>The dig tag's colour, which DK2 adds to a tagged piece's vertex light
+        /// (<c>0x0059A050</c>, <c>0x0059A200</c>, summed by <c>0x0057B6D0</c>; tag-highlight.md).</summary>
+        public static readonly Color TagTint = new Color(128f / 255f, 128f / 255f, 200f / 255f);
+
+        /// <summary>BlueTexture's one colour, drawn over a tagged piece as AA_BlueTexture: ONE, ONE,
+        /// no depth write (<c>0x0057C420</c>, <c>0x00589250</c>).</summary>
+        public static readonly Color TagOverlayColour = new Color(63f / 255f, 64f / 255f, 1f);
+
+        private Material _tagOverlay;
+
+        /// <summary>A material's tagged twin: its texture lit by <see cref="TagTint"/> more, which
+        /// URP's emission (texture × colour) adds as DK2's sum of light does. Shared.</summary>
+        public Material Tagged(Material material)
+        {
+            if (_tagged.TryGetValue(material, out Material tagged)) return tagged;
+            tagged = new Material(material) { name = material.name + " (tagged)" };
+            tagged.EnableKeyword("_EMISSION");
+            tagged.SetTexture("_EmissionMap", material.mainTexture);
+            tagged.SetColor("_EmissionColor", TagTint);
+            tagged.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            _tagged[material] = tagged;
+            return tagged;
+        }
+
+        /// <summary>The additive pass over every tagged piece: flat <see cref="TagOverlayColour"/>.</summary>
+        public Material TagOverlay()
+        {
+            if (_tagOverlay != null) return _tagOverlay;
+            Shader unlit = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            var overlay = new Material(unlit) { name = "AA_BlueTexture", color = TagOverlayColour };
+            overlay.SetFloat("_Surface", 1f);
+            overlay.SetFloat("_Blend", 2f);
+            overlay.SetFloat("_SrcBlend", (float)BlendMode.One);
+            overlay.SetFloat("_DstBlend", (float)BlendMode.One);
+            overlay.SetFloat("_ZWrite", 0f);
+            overlay.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            overlay.SetOverrideTag("RenderType", "Transparent");
+            overlay.renderQueue = (int)RenderQueue.Transparent;
+            _tagOverlay = overlay;
+            return overlay;
         }
 
         /// <summary>An opaque material of one engine texture by name, shared by every user of it.</summary>
