@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DK2.Assets;
 using DK2.Core;
 using DK2.Data.Model;
@@ -97,12 +98,12 @@ public sealed partial class WorldView
     {
         int x = at.X, y = at.Y, tileIndex = (y * world.Width) + x;
         int posX = (x * One) + Half, posY = (y * One) + Half, z = FloorHeight(world, x, y);
-        int heading = 0, scale = One, slot = 0;
+        int heading = 0, scale = One, slot = 0, pitch = 0, roll = 0;
         ObjectDef? definition = _database.ObjectById(thing.ObjectTypeId);
         RoomInstance? room = RoomAt(world, tileIndex);
 
         // A wall-pass object faces into the room, moved toward its wall (0x004EE9CE).
-        int side = room is not null && thing.AutoPlaced && IsWallFurniture(room.Definition, thing.ObjectTypeId)
+        int side = room is not null && thing.AutoPlaced && AutoFurnitureRules.IsWallFurniture(room.Definition, thing)
             ? AutoFurnitureRules.WallSide(world, _database, room, tileIndex)
             : -1;
         if (side >= 0)
@@ -111,6 +112,7 @@ public sealed partial class WorldView
             int inset = AutoFurnitureRules.WallInset(thing.ObjectTypeId);
             posX += Dx8[side * 2] * inset;
             posY += Dy8[side * 2] * inset;
+            if (thing.ObjectTypeId == TortureWheelId) (z, roll) = WallWheel(world, x, y, z);
         }
         else
         {
@@ -121,7 +123,9 @@ public sealed partial class WorldView
                     scale = thing.GoldHeld < 5000 ? 0x800 + (thing.GoldHeld / 2) : 0x11C4;
                     break;
                 case TortureWheelId:
+                    // Laid flat by +0x64 = 0x600, then spun about the vertical (0x004A1C60).
                     heading = TortureWheelHeading(world, x, y);
+                    pitch = 0x600;
                     break;
                 case TrainingDummyId or WorkBenchId:
                     heading = AutoFurnitureRules.Choice(x, y, 0x800);
@@ -166,19 +170,13 @@ public sealed partial class WorldView
         }
 
         return new ObjectView(thing.Id, thing.ObjectTypeId, thing.OwnerPlayerId, at, ObjectArt(thing.ObjectTypeId, slot),
-            thing.GoldHeld, posX, posY, z, heading & 0x7FF, scale);
+            thing.GoldHeld, posX, posY, z, heading & 0x7FF, scale, pitch, roll & 0x7FF);
     }
 
-    private static bool IsWallFurniture(RoomDef room, byte objectTypeId)
-    {
-        if (!room.Flags.HasFlag(RoomFlags.SpecialWalls)) return false;
-        for (int i = 3; i <= 5 && i < room.ObjectIds.Count; i++)
-        {
-            if (room.ObjectIds[i] == 0) break;
-            if (room.ObjectIds[i] == objectTypeId) return true;
-        }
-        return false;
-    }
+    /// <summary>A wheel off the floor: drawn <c>0x800</c> up (its <c>+0x99</c> draw offset) and spun
+    /// about its own axle, state <c>0x1E</c> writing the floor wheel's turn into <c>+0x68</c>.</summary>
+    private static (int Height, int Roll) WallWheel(WorldState world, int x, int y, int floor) =>
+        (floor + 0x800, TortureWheelHeading(world, x, y));
 
     /// <summary><c>0x004F2950</c>: a floor Torture Wheel turns ((x + y) &amp; 3) + 4 a turn, one way
     /// on odd tiles and the other on even ones.</summary>
@@ -310,8 +308,9 @@ public sealed partial class WorldView
                 int dx = Dx8[(2 * k) + 1], dy = Dy8[(2 * k) + 1];
                 if (InRoom(world, room, x - dx, y) || InRoom(world, room, x, y - dy)) continue;
                 if (!Block(world, room, x, y, dx, dy) || _pillarTiles.Contains(tile)) continue;
-                into.Add(Decoration(world, tile, PillarSlot, pillar, owner, PillarOffsets[k].X, PillarOffsets[k].Y, -1,
-                    ((k - 1) & 3) << 9));
+                // Its +0x95/+0x97 draw offset undoes the move, so DK2 draws it at the centre, its
+                // heading turning the column into the tile's outer corner (object-drawing.md §4).
+                into.Add(Decoration(world, tile, PillarSlot, pillar, owner, 0, 0, -1, ((k - 1) & 3) << 9));
             }
         }
     }
@@ -375,11 +374,16 @@ public sealed partial class WorldView
         }
         else if (thing.ObjectTypeId is TortureCoalsId or TortureWaterId && RoomAt(world, tile) is { } room)
         {
+            if (world.Objects.Any(o => o.TileIndex == tile && o.ObjectTypeId == TortureWheelId)) return;
             int side = AutoFurnitureRules.WallSide(world, _database, room, tile);
             if (side < 0) return;
             int inset = AutoFurnitureRules.WallInset(TortureWheelId);
-            into.Add(Decoration(world, tile, WheelSlot, TortureWheelId, owner,
-                Dx8[side * 2] * inset, Dy8[side * 2] * inset, -1, ((side + 2) & 3) << 9));
+            int x = tile % world.Width, y = tile / world.Width;
+            (int z, int roll) = WallWheel(world, x, y, FloorHeight(world, x, y));
+            ObjectView wheel = Decoration(world, tile, WheelSlot, TortureWheelId, owner,
+                Dx8[side * 2] * inset, Dy8[side * 2] * inset, z, ((side + 2) & 3) << 9);
+            into.Add(new ObjectView(wheel.Id, TortureWheelId, owner, wheel.Tile, wheel.Mesh, 0,
+                wheel.PosX, wheel.PosY, wheel.Height, wheel.Heading, wheel.Scale, 0, roll & 0x7FF));
         }
     }
 

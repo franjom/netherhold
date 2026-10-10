@@ -407,11 +407,12 @@ namespace DK2.Unity
         }
 
         /// <summary>
-        /// A mesh stands where the view places it, turned by its heading as a torch is (2048 to a turn)
-        /// and scaled uniformly. A placeholder box sits at that point, small and low, so a bed reads
-        /// as furniture rather than as another creature standing on it.
+        /// A mesh stands where the view places it, turned by its renderer yaw (2048 to a turn) and
+        /// scaled uniformly. A placeholder box sits at that point, small and low, so a bed reads as
+        /// furniture rather than as another creature standing on it.
         /// <para>The renderer turns a mesh by −(h + 0x400)·π/1024 in DK2's frame (object-drawing.md
-        /// §4); how that half turn lands on a converted KMF is checked by eye, not derived.</para>
+        /// §4). Row-vector matrices and the frame conversion give Unity +(h + 0x400), which
+        /// aligns the Prison door and bar with the cell entrance.</para>
         /// </summary>
         private void PositionObject(GameObject go, int objectId, in ObjectView instance, in PlaceholderLook look)
         {
@@ -420,7 +421,11 @@ namespace DK2.Unity
             {
                 // A real mesh is modelled in tiles about its own origin, at the object's height.
                 go.transform.position = Ground(x, y, instance.Height / (float)Fp32.One);
-                go.transform.localRotation = Quaternion.Euler(0f, instance.Heading * 360f / 2048f, 0f);
+                // DK2 turns about the model's X, then its Y, then the heading (0x00580480); its X is
+                // ours, its Y our -Z (RenderMesh.ToRenderFrame), hence pitch minus and roll plus.
+                go.transform.localRotation = Quaternion.Euler(0f, instance.MeshYaw * 360f / 2048f, 0f)
+                    * Quaternion.AngleAxis(instance.Roll * 360f / 2048f, Vector3.forward)
+                    * Quaternion.Euler(-instance.Pitch * 360f / 2048f, 0f, 0f);
                 go.transform.localScale = Vector3.one * (instance.Scale / (float)Fp32.One);
                 return;
             }

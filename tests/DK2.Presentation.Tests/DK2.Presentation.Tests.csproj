@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\DK2.Presentation\DK2.Presentation.csproj" />
     <ProjectReference Include="..\..\src\DK2.Data\DK2.Data.csproj" />
+    <ProjectReference Include="..\..\src\DK2.Art\DK2.Art.csproj" />
   </ItemGroup>
 
 </Project>

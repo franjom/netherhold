@@ -3,6 +3,8 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Assets;
+using DK2.Art;
+using System.Numerics;
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
@@ -45,9 +47,9 @@ public class ObjectPlacementTests
 
     private static int Centre(int tile) => (tile * Fp32.One) + (Fp32.One / 2);
 
-    /// <summary>A 3×3 Treasury takes four pillars, one in each corner tile, a quarter tile inward,
-    /// headings 0x600, 0, 0x200, 0x400 for NE, SE, SW, NW (<c>0x004EF1F0</c>); the NW tile's pillar
-    /// leans toward SE.</summary>
+    /// <summary>A 3×3 Treasury takes four pillars, one in each corner tile, headings 0x600, 0, 0x200,
+    /// 0x400 for NE, SE, SW, NW (<c>0x004EF1F0</c>). DK2 moves each a quarter tile inward and its draw
+    /// offset moves it back, so it is drawn at its tile's centre (object-drawing.md §4).</summary>
     [InstallFact]
     public void AThreeByThreeTreasuryHasAPillarInEachCornerTile()
     {
@@ -55,7 +57,7 @@ public class ObjectPlacementTests
 
         Assert.Equal(4, pillars.Count);
         ObjectView northWest = pillars.Single(p => p.Tile == new TilePos(X0 + 1, Y0 + 1));
-        Assert.Equal((Centre(X0 + 1) + 0x3FF, Centre(Y0 + 1) + 0x3FF), (northWest.PosX, northWest.PosY));
+        Assert.Equal((Centre(X0 + 1), Centre(Y0 + 1)), (northWest.PosX, northWest.PosY));
         Assert.Equal(0, northWest.Heading);
         Assert.Equal(0x400, pillars.Single(p => p.Tile == new TilePos(X0 + 3, Y0 + 3)).Heading);
     }
@@ -199,5 +201,45 @@ public class ObjectPlacementTests
 
         Assert.Equal(door.Tile, bar.Tile);
         Assert.Equal((0x400, 0x400), (door.Heading, bar.Heading));
+    }
+
+    [InstallFact]
+    public void PrisonDoorMeshesStandAtTheCellEntranceRatherThanTheNorthWall()
+    {
+        Room room = Carve(RoomTypeId.Prison, 4, 4);
+        using InstallArtProvider art = InstallArtProvider.Open(Dk2InstallGate.Path, room.Database);
+        foreach (byte type in new byte[] { 109, 116 })
+        {
+            ObjectView instance = Decorations(room, type).Single();
+            Assert.True(art.TryResolve(instance.Mesh, out ResolvedAsset resolved));
+            Assert.True(art.TryLoadModel(resolved, out var model));
+            Quaternion turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, instance.MeshYaw * MathF.PI / 1024f);
+            Vector3[] vertices = RenderMesh.FromModel(model).Positions.Select(p => Vector3.Transform(p, turn)).ToArray();
+            // The cell is south of its north-rim door tile: both meshes must face that opening.
+            Assert.InRange(vertices.Min(p => -p.Z), 0.19f, 0.6f);
+            Assert.InRange(vertices.Max(p => -p.Z), 0.19f, 0.6f);
+            Assert.InRange(vertices.Min(p => p.Y), 0f, 0.42f);
+        }
+    }
+
+    /// <summary>A floor Torture Wheel lies flat (<c>+0x64 = 0x600</c>) and spins about the vertical;
+    /// a wheel on a wall stands, drawn half a tile up (<c>+0x99 = 0x800</c>), with no pitch
+    /// (furniture-placement.md §2–§3, object-drawing.md §4).</summary>
+    [InstallFact]
+    public void AFloorTortureWheelLiesFlatAndAWallWheelStandsHalfATileUp()
+    {
+        Room room = Carve(RoomTypeId.TortureChamber, 3, 5);
+        RoomInstance instance = RoomIndex.Build(room.World, room.Database).Single(r => r.Definition.TypeId == RoomTypeId.TortureChamber);
+        int floorTile = ((Y0 + 3) * room.World.Width) + X0 + 2;
+        int wallTile = instance.TileIndices.First(t => AutoFurnitureRules.WallSide(room.World, room.Database, instance, t) >= 0);
+        ObjectState floorWheel = room.World.SpawnObject(room.Database, 8, Keeper, floorTile);
+        ObjectState wallWheel = room.World.SpawnObject(room.Database, 8, Keeper, wallTile);
+        floorWheel.AutoPlaced = wallWheel.AutoPlaced = true;
+
+        ObjectView flat = room.View.Objects(room.World).Single(o => o.Id == floorWheel.Id);
+        ObjectView upright = room.View.Objects(room.World).Single(o => o.Id == wallWheel.Id);
+        Assert.Equal(0x600, flat.Pitch);
+        Assert.Equal(0, upright.Pitch);
+        Assert.Equal(Fp32.One + 0x800, upright.Height);
     }
 }

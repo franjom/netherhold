@@ -95,10 +95,29 @@ tile's floor height (`Tile_FloorHeight` `0x004545C0`: `0x1000` on ordinary floor
 
 **Rotation: CONFIRMED.** Yaw comes from the heading word thing `+0xF4` (and `+0x102`):
 radians = −(h + 0x400) · π / 1024, so **2048 units per turn** with a half-turn offset.
+Under the row-vector matrices below and the `(x, −z, −y)` frame conversion, Unity yaw is
+**+(h + 0x400)**, pitch is negative and roll positive. The half-turn is required: at Prison
+heading 0x400 the shipped door and bar face the south cell entrance with identity rotation.
 Two more RenderInfo words, `+0x20` and `+0x24`, are passed as angles × −π/1024; `+0x22`
 is not used by the mesh draw. The hand's hover jitter `0x004B4430` keeps all three within
-`0x7FF`. `Object_Init` zeroes `+0xF4` and `+0x102`; which axes `+0x20`/`+0x24` turn about:
-UNKNOWN.
+`0x7FF`. `Object_Init` zeroes `+0xF4` and `+0x102`.
+
+**Axes and order: CONFIRMED** (2026-10-10). RenderInfo is thing `+0x44`, so thing `+0x64` is
+`+0x20`, `+0x68` is `+0x24`, and thing `+0x95/+0x97/+0x99` are the offsets `+0x51/+0x53/+0x55`.
+`0x00580480` builds per-axis matrices with `0x0041C580` (axis 0 X, 1 Y, 2 Z), each angle
+interpolated between previous and current, and multiplies them with `0x00594CB0`
+(out = B·A) into M = S · Rx(`+0x20`) · Ry(`+0x24`) · Rz(yaw), S = diag(`+4`, `+8`, `+4`)/4096.
+Vertices are row vectors (`0x00594DB0`: v·M, used by `0x00580EC0`). So a mesh is scaled, turned
+about its own X by `+0x20`, then about Y by `+0x24`, then yawed about the vertical Z. The engine
+frame has Z down (height negated); a model's floor is z 0 and its top negative z. The
+`+0x51..+0x55` offsets are added to the point in world axes, unrotated, height before the
+negation (so a positive `+0x99` lifts).
+
+Applied (mesh bounds read from `Meshes.WAD`): `Torture_Wheel_Wall` is a disc of radius 0.364 in
+model X–Z, 0.036..0.11 thick along +Y. With `+0x64 = 0x600` (−1.5π, row-vector y' = z, z' = −y)
+the floor wheel lies **flat**, 0.04..0.11 tile above its point, and its heading spins it about
+the vertical. A wall wheel (`+0x64 = 0`) stands upright, lifted half a tile by `+0x99 = 0x800`,
+and state `0x1E` turns `+0x68`, the disc's own axle.
 
 ## 5. Scale
 
