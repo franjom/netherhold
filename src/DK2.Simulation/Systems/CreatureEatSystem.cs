@@ -56,6 +56,15 @@ public sealed class CreatureEatSystem : ISimulationSystem
             if (creature.Activity == CreatureActivity.Leaving) continue;
             if (Combat.CombatRules.Preoccupied(creature)) continue;
 
+            if (creature.Dk2StateId == EatingRules.AfterMealState)
+            {
+                if (context.Tick.Value < creature.ActionUntilTick) continue;
+                creature.ActionUntilTick = 0;
+                if (creature.FoodOwedAfterMeal) BackToTheSearch(context, creature);
+                else GiveUp(context, creature);
+                continue;
+            }
+
             switch (creature.Activity)
             {
                 case CreatureActivity.FetchingChicken:
@@ -343,19 +352,16 @@ public sealed class CreatureEatSystem : ISimulationSystem
             $"need={creature.HungerNeed}");
 
         // 93 has eaten; 94 waits out the meal and decides.
-        Shadow(context, creature, EatingRules.AfterMealState);
-
-        if (EatingRules.StillOwesFood(creature))
+        creature.FoodOwedAfterMeal = EatingRules.StillOwesFood(creature);
+        creature.TargetObjectId = EatingRules.NoChicken;
+        creature.StopMoving();
+        creature.ActionUntilTick = context.Tick.Value;
+        if (AnimationTimingRules.ResolvesPresent(definition, 13))
         {
-            // Still owing birds: back into the room's search. The original
-            // stores exactly this question — HungerNeed != 0 — in a byte on the
-            // state object the moment a chicken goes down, and its eating states
-            // branch on that byte to go round again.
-            BackToTheSearch(context, creature);
-            return;
+            CreatureAnimationTiming animation = definition.ArtSlot(AnimationTimingRules.ResolveArtSlot(definition, 13));
+            creature.ActionUntilTick += AnimationTimingRules.FirstCycleHoldTicks(animation);
         }
-
-        GiveUp(context, creature);
+        Shadow(context, creature, EatingRules.AfterMealState);
     }
 
     /// <summary>Standing in the hatchery, hungry, with no bird chosen: state 92.</summary>

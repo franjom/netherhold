@@ -151,7 +151,8 @@ public readonly struct CreatureView
         int? previousPosX = null,
         int? previousPosY = null,
         bool playsAnimation = false,
-        bool animationLoops = true)
+        bool animationLoops = true,
+        GameTick? animationStartedAt = null)
     {
         Id = id;
         OwnerPlayerId = ownerPlayerId.Value;
@@ -168,6 +169,7 @@ public readonly struct CreatureView
         PreviousPosY = previousPosY ?? posY;
         PlaysAnimation = playsAnimation;
         AnimationLoops = animationLoops;
+        AnimationStartedAt = animationStartedAt;
     }
 
     /// <summary>The simulation's creature id. A renderer's object is a view of this and nothing more.</summary>
@@ -199,6 +201,7 @@ public readonly struct CreatureView
     public int PreviousPosY { get; }
     public bool PlaysAnimation { get; }
     public bool AnimationLoops { get; }
+    public GameTick? AnimationStartedAt { get; }
 
     /// <summary>Gold in its hands. Visible in DK2 — an imp carrying gold looks like it.</summary>
     public int GoldHeld { get; }
@@ -1107,7 +1110,9 @@ public sealed partial class WorldView
                 mesh,
                 animation,
                 creature.GoldHeld, height, yaw, pitch, roll, previousX, previousY,
-                playsAnimation, creature.Activity != CreatureActivity.Dying);
+                playsAnimation, creature.Activity != CreatureActivity.Dying,
+                creature.Dk2StateId == EatingRules.AfterMealState && creature.StateEnteredTick >= 0
+                    ? new GameTick(creature.StateEnteredTick) : null);
         }
     }
 
@@ -1148,7 +1153,8 @@ public sealed partial class WorldView
 
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         string clip = ActivityKeySegment(creature.Activity);
-        if (creature.Activity == CreatureActivity.Working
+        if (creature.Dk2StateId == EatingRules.AfterMealState) clip = "eating";
+        else if (creature.Activity == CreatureActivity.Working
             && definition.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase))
             clip = creature.LastTaskKind switch
             {
@@ -1164,8 +1170,9 @@ public sealed partial class WorldView
     }
 
     // Enable only the existing source mappings whose action is represented by this view.
-    // Eating, fighting and other job actions need their own art slots and clocks.
-    public static bool PlaysMappedAnimation(CreatureState creature) => creature.Activity switch
+    // Fighting and other job actions need their own art slots and clocks.
+    public static bool PlaysMappedAnimation(CreatureState creature) =>
+        creature.Dk2StateId == EatingRules.AfterMealState || creature.Activity switch
     {
         CreatureActivity.Idle or CreatureActivity.Sleeping or CreatureActivity.Dying
             or CreatureActivity.BeingTortured => true,

@@ -109,12 +109,15 @@ These are local artifacts. Follow-up: docs/plans/2026-10-10-torture-wheel-follow
 Step 4 adds fractional KMF sampling, per-instance Unity meshes and
 previous/current position interpolation (ADR-0431). Existing idle, ordinary walk,
 run, Imp dig/claim/reinforce, sleep, die and torture mappings can play, with
-ordinary quantized phases and separate Start/End meshes. Eating's simulation
-action wait, movement rate changes and repeated action restarts remain pending.
+ordinary quantized phases and separate Start/End meshes. Hatchery eating retains
+action 26's first-cycle wait and restarts playback from its entry stamp (ADR-0432).
+Prison eating, movement rate changes and other action restarts remain pending.
 See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
 The owner animation comparison gate and Unity crowd upload profiling are outstanding.
-Current-batch verification: 4711 tests pass, including the three comparison tests after
+Current-batch verification: 4720 tests pass, including the three comparison tests after
 restoring local ignored captures; Unity assemblies synced, adapter compile and review pass.
+Eating timing's Level 1–3 seed spread is recorded in ADR-0432; artifacts are
+D:/DungeonKeeperRemake/build/classic-step3-replays/eating-action-followup.
 Creature status flowers are still part of the unbuilt HUD work. Creature separation
 already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
 Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.

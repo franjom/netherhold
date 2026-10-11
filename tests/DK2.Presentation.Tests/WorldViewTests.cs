@@ -255,6 +255,19 @@ public class WorldViewTests
         Assert.Equal(1536, rendered.MeshYaw);
     }
 
+    [InstallFact]
+    public void TheAfterMealActionPlaysEatingInsteadOfTheFoodSearchWalk()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState goblin = world.SpawnCreature(database, database.CreatureByName("Goblin")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        CreatureStateMachine.TrySetState(new StateHookContext(world, database), goblin, EatingRules.AfterMealState, currentTick: 17);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == goblin.Id);
+        Assert.Equal("creature.goblin.animation.eating", rendered.Animation.Key);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Equal(new GameTick(17), rendered.AnimationStartedAt);
+    }
+
     /// <summary>
     /// <b>Rendering observes; it never mutates.</b> Building a view of a world
     /// and enumerating all of it must leave the state hash untouched — the same

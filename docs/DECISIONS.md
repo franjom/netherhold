@@ -9886,3 +9886,22 @@ batch does not complete Step 4 or its owner visual gate. No hash/save bump.
 including separate Start/End resources and segment-aware frame interpolation.
 Each segment retains its own topology and UVs. The phase-to-frame link is now
 confirmed; remaining timing scope is recorded in kmf-animation-playback.md.
+
+## ADR-0432 — Hold a hatchery meal for its eating action
+**Date:** 2026-10-11 · **Status:** accepted · Research: eating-action.md
+
+**Context.** The hatchery consumed a chicken and left state 94 in the same
+system pass. DK2 starts action 26 and lets state 94 wait for it before deciding
+whether to search again or end the eating chain.
+
+**Decision.** Retain state 94 through the first cycle of resolved art 13,
+using the existing integer animation timing and action deadline. Without art,
+its next state-handler poll decides. Pass the state-entry stamp to presentation
+so each meal restarts its own clip. Preserve the meal's captured remaining-food
+decision through the wait, hashing and saving it. Hash/save version 222.
+
+**Consequences.** This changes the spacing between hatchery meals. It does not
+add the post-meal wander or finish the prison's action wait; see prison.md §7.1.
+Original capture timing parity and the owner eating-animation comparison remain open.
+The 60 Level 1–3 runs remain valid. Wins by seed change from 17/5/16 to
+16/5/19 after the eating wait; these are modern replay results, not original parity.

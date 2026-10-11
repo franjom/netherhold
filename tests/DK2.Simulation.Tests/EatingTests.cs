@@ -129,6 +129,48 @@ public class EatingTests
 
     // ---- the walk -----------------------------------------------------------
 
+    [Theory]
+    [InlineData(13, 4)]
+    [InlineData(8, 4)]
+    [InlineData(0, 1)]
+    public void AMealWaitsForItsFirstAnimationCycleBeforeSearchingAgain(int artSlot, int holdTicks)
+    {
+        GameDatabase basis = Db;
+        var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+        if (artSlot != 0)
+            slots[artSlot] = new CreatureAnimationTiming
+                { ResourceType = 6, FrameCount = 8, FramesPerSecond = 8 };
+        var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
+            basis.Creatures.Values.Select(c => c.CreatureId == GoblinId ? c with { ArtSlots = slots } : c),
+            basis.Variables, objects: basis.Objects.Values);
+        WorldState world = World(db);
+        Hatchery(db, world, 6, 6, 3, 3, Keeper);
+        ObjectState bird = Chicken(db, world, 7, 7);
+        ObjectState nextBird = Chicken(db, world, 7, 7);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 7));
+        MakeHungry(goblin, 2);
+        goblin.TargetObjectId = bird.Id;
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, EatingRules.EatState);
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick();
+        Assert.Null(world.ObjectById(bird.Id));
+        Assert.Equal(1, goblin.HungerNeed);
+        Assert.Equal(EatingRules.AfterMealState, goblin.Dk2StateId);
+        for (int t = 1; t < holdTicks; t++)
+        {
+            sim.Tick();
+            Assert.Equal(EatingRules.AfterMealState, goblin.Dk2StateId);
+            Assert.NotNull(world.ObjectById(nextBird.Id));
+        }
+        sim.Tick();
+        Assert.Equal(EatingRules.InHatcheryState, goblin.Dk2StateId);
+        Assert.NotNull(world.ObjectById(nextBird.Id));
+        sim.Tick();
+        Assert.Null(world.ObjectById(nextBird.Id));
+        Assert.Equal(EatingRules.AfterMealState, goblin.Dk2StateId);
+    }
+
     [Fact]
     public void AHungryGoblinWalksToTheHatcheryAndEatsTheChicken()
     {
@@ -150,6 +192,44 @@ public class EatingTests
         Assert.Equal(0, goblin.HungerNeed);
         Assert.Equal(CreatureActivity.Idle, goblin.Activity);
         Assert.Contains(sink.Events, e => e.Kind == "chicken_eaten");
+    }
+
+    [Theory]
+    [InlineData(1, CreatureStateMachine.Idle)]
+    [InlineData(2, EatingRules.InHatcheryState)]
+    public void AfterMealUsesTheHungerDecisionCapturedWhenTheChickenWasEaten(int initialNeed, int nextState)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Hatchery(db, world, 6, 6, 3, 3, Keeper);
+        ObjectState bird = Chicken(db, world, 7, 7);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 7));
+        MakeHungry(goblin, initialNeed);
+        goblin.TargetObjectId = bird.Id;
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, EatingRules.EatState);
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick();
+        Assert.Equal(EatingRules.AfterMealState, goblin.Dk2StateId);
+        goblin.HungerNeed = initialNeed == 1 ? 1 : 0;
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db,
+            [new CreatureMovementSystem(), new CreatureEatSystem()]);
+        Assert.Equal(sim.StateHash(), restored.StateHash());
+        CreatureState restoredGoblin = restored.World.Creatures.Single(c => c.Id == goblin.Id);
+        sim.Tick();
+        restored.Tick();
+        Assert.Equal(nextState, goblin.Dk2StateId);
+        Assert.Equal(nextState, restoredGoblin.Dk2StateId);
+        Assert.Equal(sim.StateHash(), restored.StateHash());
+    }
+
+    [Fact]
+    public void TheCapturedMealDecisionParticipatesInTheStateHash()
+    {
+        GameSimulation sim = TestWorld.Simulation();
+        CreatureState creature = sim.World.Creatures[0];
+        ulong before = sim.StateHash();
+        creature.FoodOwedAfterMeal = !creature.FoodOwedAfterMeal;
+        Assert.NotEqual(before, sim.StateHash());
     }
 
     [Fact]
@@ -185,6 +265,7 @@ public class EatingTests
 
         Assert.Equal(
             [(7, EatingRules.FindHatcheryState), (6, EatingRules.InHatcheryState),
+             (EatingRules.AfterMealState, EatingRules.InHatcheryState),
              (CreatureStateMachine.Idle, EatingRules.InHatcheryState)],
             seen);
 

@@ -45,6 +45,24 @@ public class ArtCatalogueTests
         Assert.Equal("Gold Pile", art.Objects[1][0].Name);
     }
 
+    [InstallFact]
+    public void MealsResolveToArtThirteenOrItsIdleFallback()
+    {
+        string install = Dk2InstallGate.Path;
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
+        var database = GameDatabaseLoader.Load(install);
+        foreach (var creature in database.Creatures.Values)
+        {
+            ArtEntry entry = ArtSourceMap.ForDatabase(database, art).Single(e =>
+                e.Reference.Key == DK2.Assets.AssetRef.ForCreature(creature.Name,
+                    DK2.Assets.AssetKind.Animation, "eating").Key);
+            var resources = art.Creatures[creature.CreatureId];
+            Dk2ArtResource expected = resources[12].Type != 0 ? resources[12] : resources[7];
+            if (expected.IsEmpty) Assert.False(entry.HasSource);
+            else Assert.Equal(expected, entry.Source);
+        }
+    }
+
     /// <summary>A KMF clip's rate and frame count are its descriptor's words at <c>+0x48</c> and
     /// <c>+0x44</c>, the same fields the
     /// gameplay reader takes for the knockdown clock (catalogue index 23 is slot 24, Q442).</summary>

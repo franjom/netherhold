@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 221: waiting heroes retain their sub-tile walks (ADR-0430).
+        // HashVersion 222: hatchery meals hold for action 26's first cycle (ADR-0432).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xFB311154736B9A1BUL, sim.StateHash());
+        Assert.Equal(0xD423AF7C779275F4UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

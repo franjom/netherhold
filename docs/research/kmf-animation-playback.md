@@ -110,7 +110,6 @@ Catalogue indices are those slots minus one. The shipped Imp has no slot 2;
 the existing resolver falls back to slot 1. The classic art map now follows
 these choices instead of using dig for every Imp work activity.
 
-Eating remains unbuilt in playback: `CreatureEatSystem.Swallow` enters 94 then
-leaves it in the same pass, so no eating action persists for the view to draw.
-The binary's existing after-meal action wait is documented in eating.md §2.2;
-implement that simulation boundary before claiming the Step 4 eating gate.
+Hatchery eating plays resolved art 13 during the persistent action-26 wait,
+restarted from the state-entry stamp (ADR-0432). Its timing evidence is eating.md §7.
+The owner's eating comparison remains outstanding; prison eating is still static.

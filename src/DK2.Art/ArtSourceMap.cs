@@ -230,6 +230,7 @@ public static class ArtSourceMap
     {
         "idle" => resources[CreatureIdle],
         "running" => resources[1].Type != 0 ? resources[1] : resources[CreatureWalk],
+        "eating" => resources[12].Type != 0 ? resources[12] : resources[7],
         "claiming" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase) => resources[12],
         "reinforcing" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase) => resources[11],
         "claiming" or "reinforcing" => new Dk2ArtResource("", 0),

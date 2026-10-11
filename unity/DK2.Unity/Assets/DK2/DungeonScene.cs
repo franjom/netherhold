@@ -49,7 +49,8 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, AssetRef> _creatureArt = new Dictionary<int, AssetRef>();
         private readonly Dictionary<int, CreatureView> _creaturePoses = new Dictionary<int, CreatureView>();
-        private readonly Dictionary<int, AssetRef> _creatureClips = new Dictionary<int, AssetRef>();
+        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt)> _creatureClips =
+            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt)>();
         private double _renderSeconds;
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
@@ -194,10 +195,14 @@ namespace DK2.Unity
         {
             if (_classic == null || !_meshCreatures.Contains(id)) return;
             AssetRef clip = creature.PlaysAnimation ? animation.Reference : default;
-            if (_creatureClips.TryGetValue(id, out AssetRef previous) && previous == clip) return;
-            _creatureClips[id] = clip;
+            var identity = (clip, creature.AnimationStartedAt);
+            if (_creatureClips.TryGetValue(id, out var previous) && previous == identity) return;
+            _creatureClips[id] = identity;
             ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
-            if (creature.PlaysAnimation && _classic.ConfigureAnimation(go, animation, creature.AnimationLoops, _renderSeconds)) return;
+            double startSeconds = creature.AnimationStartedAt.HasValue
+                ? (creature.AnimationStartedAt.Value.Value + 1d) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond
+                : _renderSeconds;
+            if (creature.PlaysAnimation && _classic.ConfigureAnimation(go, animation, creature.AnimationLoops, startSeconds)) return;
             if (player != null) player.Stop();
             _classic.RestoreModel(go, mesh);
         }
