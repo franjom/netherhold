@@ -143,6 +143,7 @@ at the same camera positions. The per-object light limit is confirmed; its respo
 for the reported camera-dependent darkness remains strongly inferred (unity/README.md).
 Imp casualty/timing parity remains open (Q582, combat-acquisition.md §1);
 non-creature threat flight remains unbuilt (combat-fear.md §7).
+Mistress crossing the visible Heart needs an arrival/escape comparison (Q585).
 Owned Hatchery chickens select points, turn, walk and react (ADR-0434);
 free-range and Prison loops remain unbuilt (Q584). Chicken animation playback
 also remains unbuilt; see hatchery-roaming.md.
