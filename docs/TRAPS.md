@@ -142,3 +142,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A scan for a state id as a `SetState` argument that looks for pushes before each `CALL 0x00476D30` misses a push followed by a jump to a shared `SetState` tail: the slap pushes 67 at `0x0048B9DB` and jumps to `0x0048BA00`. Before calling a state unreachable, also scan `.text` for the raw `6A xx` push and read each hit (2026-10-07).
 - Blender object copies inherit `hide_select`; clear selection locks and assert selection before GLB export with `use_selection=True`, which can otherwise succeed with no meshes.
 - Ghidra `ForceFunc.py` can mistake an earlier stack reservation for the function prologue; after confirming the exact entry in disassembly, use `ForceAt.py` instead.
+- On Windows, running replay `DK2.Tools` processes lock their simulation DLL; finish them before rebuilding the solution or the Tools copy fails with MSB3027.

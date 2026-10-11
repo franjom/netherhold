@@ -1,6 +1,11 @@
 # Early state-hash versions
 
-Versions 9–30, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–31, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**31** — `0xC026542547419606`. Payday (ADR-0078): three creature fields — the
+wage owed, the failed-attempt counter and `SkipNextPayment` — and the next
+payday deadline on the player. The pinned world has no treasury and its
+creatures are level 1, so the value moved on composition.
 
 **30** — `0x2E7E116CA573398B`. Two commits arrived at 30 from 28, with 29 spent
 on a branch:

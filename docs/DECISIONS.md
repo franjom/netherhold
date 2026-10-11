@@ -10028,3 +10028,24 @@ comparisons live in tools/classic-unity-probe/README.md.
 Retain validated CPU playback for this step: the measured VAT prototype still
 needs shadow/depth/transparency and replacement/hold integration before it can
 replace production playback. Frame caching quantizes motion and is diagnostic only.
+
+## ADR-0439 — Keep live Hearts closed during movement exceptions
+
+**Status:** accepted, 2026-10-11. Owner requests rim-only movement around live
+Hearts; destroyed Hearts remain walkable.
+
+**Decision.** Reject movement segments through a live Heart's visible core,
+using object 13's half-width. Include arrival snaps, fallback steps and the
+committed coordinate rounding. A body already inside may move outward.
+Move targets inside the core to its near edge so Heart assaults can finish.
+Preserve DK2's navigation bytes and obstacle exemptions. Ruined Hearts leave
+the structure mask and virtual obstacle list. Bump hash/save formats to 227.
+
+**Reason.** A Level7 trace reproduces a worker crossing almost exactly through
+the glowing core. Evidence and the fidelity boundary are in
+research/structure-blocks.md §5.3.
+
+**Consequences.** This deliberately enforces a core boundary that DK2's
+confirmed obstacle exception does not enforce. Platform crossings outside
+the core still follow DK2's exceptions; see the evidence boundary in §5.3.
+Q585 tracks the owner's visual acceptance.

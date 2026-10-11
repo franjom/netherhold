@@ -15,6 +15,9 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**227** — `0xCBBDEF9956A975B1`. Live Heart cores reject movement segments and
+route targets resolve to their edge; ruins release the structure mask and obstacles. ADR-0439.
+
 **226** — `0xB369A6E155352AB0`. Supported animation lifecycles retain training actions, object animation stamps and physical poses, and the Prison door opening stamp. ADR-0438.
 
 **225** — `0x2B74D4ED96BA549B`. Imps turn toward the task tile before digging, mining, reinforcing or repairing its wall, holding the entry state until aligned. ADR-0435.
@@ -392,9 +395,4 @@ DK2 keeps a creature's anger in an `int[6]` indexed by grievance and bands the
 no longer add up to desertion, and a kindness in one bucket no longer pays off a
 grievance in another.
 
-**31** — `0xC026542547419606`. Payday (ADR-0078): three creature fields — the
-wage owed, the failed-attempt counter and `SkipNextPayment` — and the next
-payday deadline on the player. The pinned world has no treasury and its
-creatures are level 1, so the value moved on composition.
-
-[Versions 9–30](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–31](hash-versions-early.md) retain the earlier pins and their reasons.

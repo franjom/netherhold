@@ -98,7 +98,7 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
 
         KeeperCommandEmission callEmission = Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5);
         var call = (CastSpellAtPlaceCommand)callEmission.Command;
-        Assert.Equal(272, callEmission.InputTick);
+        Assert.Equal(271, callEmission.InputTick);
         // Two tiles off Morgana's heart; the seed-specific fixture is explained in the scenario.
         // The front's direction is seed-dependent (Q574, ADR-0407).
         Assert.Equal(((byte)CallToArmsRules.SpellId, 64, 34), (call.SpellId, call.X >> 12, call.Y >> 12));

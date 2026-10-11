@@ -127,6 +127,7 @@ public sealed class StructureBlocks
                 break;
 
             case RoomTypeId.DungeonHeart:
+                if (world.HasPlayer(room.OwnerPlayerId) && world.Player(room.OwnerPlayerId).HeartRuined) break;
                 // The middle nine, the raised platform Q52's 16000 pinned. IsCentrePlatform answers
                 // false for a room narrower than 3, so a half-destroyed heart blocks nothing and
                 // does not trap the creatures standing in it.

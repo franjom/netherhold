@@ -139,7 +139,7 @@ for the reported camera-dependent darkness remains strongly inferred (unity/READ
 Imp casualty/timing parity remains open (Q582, combat-acquisition.md §1);
 await the owner's Unity observations before further investigation (2026-10-11).
 non-creature threat flight remains unbuilt (combat-fear.md §7).
-Mistress crossing the visible Heart needs an arrival/escape comparison (Q585).
+Live Heart core crossings are guarded, including arrival/escape (ADR-0439); owner visual acceptance remains pending (Q585, 2026-10-11).
 Owned Hatchery chickens select points, turn, walk and react (ADR-0434);
 free-range and Prison loops remain unbuilt (Q584). Chicken footstep audio
 remains unbuilt; see hatchery-roaming.md.

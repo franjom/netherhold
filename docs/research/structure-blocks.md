@@ -161,10 +161,27 @@ in DK2**, as ours does. **The Level 10 object dump (2026-09-18)** shows what
 holds the last half tile: each heart's centre tile carries three objects —
 type 100 (flags `0x03014000`, width 12288), the visible `Dungeon Heart` 13
 (`0x00234000`, width 4096) and `Arches` 86 (`0x00014000`, width 2457). The
-latter two pass the enumerator's per-tile walk as plain shoves of reach 0.5
-and 0.3 tiles plus the body's radius. Over 564,231 Level 10 samples the ring
+latter two pass the enumerator's per-tile walk with reach 0.5
+and 0.3 tiles plus the body's radius. Their definitions lack `SolidObstacle`,
+but the retained callback flag can make either a slide contact (§5).
+Over 564,231 Level 10 samples the ring
 peaks in the same 1.375–1.625 band and the closest approaches are 0.64 and
 0.95 tiles; Level 7's were 0.50–0.60.
+
+**Modern reproduction (2026-10-11):** Level7, seed 1, 3,000 idle ticks reaches
+0.02118 tiles from a live Heart centre at tick 1390, worker 67, state 6,
+stuck escape set, arrival clear, no obstacle contacts. The owner reports an Imp
+passing across that Heart. This proves our penetration, not original-game parity.
+ADR-0439 deliberately rejects movement through the live visible core
+(object 13 half-width, 0.5 tiles), including arrival snaps and committed
+coordinate rounding. Core targets resolve to their near edge; existing
+platform-crossing exceptions remain. Ruined Hearts contribute no virtual
+obstacle or structure mask. This is not a claim that DK2 has that hard guard.
+The same final 3,000-tick probe stays at least 0.50986 tiles from the live core.
+All 60 Level1–3 replay seeds validate their tick streams under version 227;
+wins are 19/6/15 of 20 versus version 226's 19/6/17. Artifacts:
+`build/classic-step3-replays/heart-final/` in the main checkout. These seeded
+outcomes do not establish original-game parity.
 
 ### 5.4 The navigation cache and all known writers (Q209)
 
@@ -222,8 +239,9 @@ tile path grid would merge two distinct DK2 behaviours.
 `WorldSteering.CollectObstacles` forwards all linked normal-mode `Obstacle` objects
 using width/2, actual positions, query bounds and retained flags in tile-chain order.
 The wheel's width is 3686; a first-in-query wheel supplies a slide contact despite
-its definition lacking `SolidObstacle`. Arrival, escape and zero-distance exceptions
-remain. First-person-only obstacle classes are deferred. The virtual three-object
+its definition lacking `SolidObstacle`. Arrival, escape and zero-distance
+exceptions remain; ADR-0439 adds a separate live-core movement guard.
+First-person-only obstacle classes are deferred. The virtual three-object
 Heart approximation remains separate; authored Heart/Arches objects can also qualify
 in the ordinary stream. On rectangular modern worlds upper Y uses height rather than
 the binary's width-based clamp. ADR-0423 records these boundaries.
@@ -246,7 +264,8 @@ shoves inside it, three obstacles on the centre tile
 (`WorldSteering.CollectObstacles`). Off the heart's axis a walker rides
 the ring and arrives; aimed at the centre it stalls, and escape mode carries it
 across, as Level 7's imp 428 did. The owner's screenshot of 2026-09-17 marks the
-last half tile creatures never enter: the visible heart's shove (§5.3).
+last half tile not entered in the recorded samples (§5.3); ADR-0439 now guards
+that core explicitly in modern movement.
 
 The mask costs one byte compare per tile plus a flood fill over portal and heart
 tiles only. `CreatureMovementSystem` builds a grid per creature per tick, so it
