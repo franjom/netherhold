@@ -86,7 +86,7 @@ not, and turns out to be where three of the other five actually live.
 |---|---|---|
 | 1 | **Pathfinding and movement** — the least-understood system in the ecosystem. No project has reproduced DK2's actual pathfinder. | **Read, and rebuilt** (ADR-0155, ADR-0157): DK2 routes over a triangulated navigation mesh and follows it with a steering system of eight named behaviours, so `GridPathfinder` differed in kind. All three phases landed 2026-09-17: every creature routes over the mesh and moves by the steering tick, and the grid search survives only behind `TryFindNearest`. Measured against the original's own route log rather than against our expectations — 21,288 of 21,298 Level 7 requests agree (Q351, Q352). |
 | 2 | **Creature job/destination selection** | **Settled for workers** (ADR-0058): a byte priority table at `0x00698658`, searched whole-map one kind at a time, then a nearest-first ring scan. Non-workers have a job system (ADR-0082) built on three mood choosers and one 28-way dispatcher `FUN_00478800`. |
-| 3 | **Creature mood / anger / happiness** | **Built** (ADR-0053, ADR-0081): six counters, mood banded on the largest, once a game second, with desertion. OpenKeeper's empty `processTick()` was not the obstacle it looked like — the numbers were in the creature records and the ladder came out of the binary. |
+| 3 | **Creature mood / anger / happiness** | **Built** (ADR-0053, ADR-0081): six counters, mood banded on the largest, once a game second, with desertion. OpenKeeper's then-empty `processTick()` (§2.3) was not the obstacle it looked like — the numbers were in the creature records and the ladder came out of the binary. |
 | 4 | **Combat resolution** — melee, fear, the worker's arm, the attack spells and their shots, the status effects, the victory pause and the friendly arm are read and built end to end. | Q8 largely closed (ADR-0163–0170). Creatures and hearts take blows and fireballs; the frightened back off and run; Imps raise the alarm; the packet replays of Levels 1–3 compare fights with DK2's. |
 | 5 | **Computer-player (AI Keeper) behaviour** — DKII.EXE is the primary source. | **Initial independent claim review reached** (M12); effect-specific UNKNOWNs remain gated. Entry and task machine are `computer-keeper-tasks.md`; task handlers and attack response are `computer-keeper-handlers.md`. `DK2.AI.KeeperAI` implements the proactive task slice as an input source, with the attack response, Call to Arms, the battle step, the retreat of the wounded, the Heal, Chicken and Inferno casts and the attack planner with its front, task 7's bridges, step 9's training moves and the Treasury/Lair room needs connected (ADR-0278, 0279, 0283, 0284, 0287, 0298, 0302, 0304, 0317, 0327); the other room producers, the mood producers and the research move remain. Compared with DK2's own keepers on Level 17 and Level 11A (`computer-keeper-observations.md`, M12 acceptance). |
 | 6 | **The creature state machine** — **281** states with category-scoped enter/update/leave hooks (ADR-0072), which is where job selection, moods and combat all actually live. | Read (§2.2.1, `docs/research/creature-state-table.md`). Every creature holds DK2's state id from its constructor on and each activity makes its states' moves through the transition gate (ADR-0209); the activity is derived from the state (ADR-0211), and the category hooks are partly built. |
@@ -421,8 +421,10 @@ want is achievable for this game.
 **Where OpenKeeper is explicitly weak** — from their own open issue tracker (98 open
 issues): [KNOWN]
 
-- `Research and implement creature moods` — `CreatureMoodSystem.processTick()` is
-  literally empty in the current source
+- `Research and implement creature moods` — `CreatureMoodSystem.processTick()` was
+  empty until `a7af78df` (2026-09-05), which added six per-reason counters; as of
+  `1d9a1c71` only the no-lair reason accrues in the tick, and a slap feeds the
+  `other` counter
 - `Improve AI and makes states more transparent`, `Fix issues in AI`
 - `Match DKII room and bridge placement rules`, `Add better room building rules`
 - `Better task management`, `Tasks refactor`
@@ -1183,7 +1185,7 @@ Severity: **C**ritical / **H**igh / **M**edium / **L**ow. Probability: as given.
 | # | Risk | Sev | Prob | Mitigation / status |
 |---|---|:--:|:--:|---|
 | R1 | **Pathfinding cannot be reproduced.** No project has solved it; `Follow_Path` has no named fields. Movement feel is a large part of "is this DK2?" | **C** | High | **Retired**: DK2's navigation mesh and steering were read from the binary and built behind `IPathfinder` (ADR-0155, ADR-0157), and DK2's own route log agrees on all but a handful of requests (Q351, Q352). The residue is open questions, not a placeholder. |
-| R2 | **Creature moods/anger unsolved.** OpenKeeper's is an empty stub after 12 years. | **H** | High | **Largely retired**: built from the binary and one measured ceiling (ADR-0053/0081). Remaining: happiness sources beyond the two a player can switch off. |
+| R2 | **Creature moods/anger unsolved.** OpenKeeper's was an empty stub after 12 years; since 2026-09-05 its tick accrues the no-lair reason only (§2.3). | **H** | High | **Largely retired**: built from the binary and one measured ceiling (ADR-0053/0081). Remaining: happiness sources beyond the two a player can switch off. |
 | R3 | **Licence contamination.** Flame has *no* licence; OpenKeeper is GPLv3. | **C** | Medium | §10.1, ADR-0041/0080. Fact sources, never code sources; provenance per mechanic; `FlameIdentifierTests` and `LicenseHeaderTests` enforce the shape. |
 | R4 | **Scope collapse.** DK2 is enormous; motivation fails before the game is playable. | **H** | High | Milestones deliver something runnable early (M3). Vertical slices over horizontal breadth. Accept that M10 may never arrive and that M3–M6 is still a worthwhile artifact. |
 | R5 | **Float non-determinism.** | **H** | Medium | Fixed-point for all gameplay maths (ADR-0001); pinned state hash from M2. |
