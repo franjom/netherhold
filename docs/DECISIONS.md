@@ -9908,3 +9908,20 @@ add the post-meal wander or finish the prison's action wait; see prison.md §7.1
 Original capture timing parity and the owner eating-animation comparison remain open.
 The 60 Level 1–3 runs remain valid. Wins by seed change from 17/5/16 to
 16/5/19 after the eating wait; these are modern replay results, not original parity.
+
+## ADR-0433 — Preserve follower movement inside its trailing tile
+**Date:** 2026-10-11 · **Status:** accepted · Research: hero-party-walk.md §2
+
+**Context.** Hero followers reaching their trailing tile repeatedly requested
+new stance points, but the same-tile route shortcut marked them arrived. This
+left Level8 portal followers stationary while their presentation changed pose.
+
+**Decision.** Route the state-222 follower point through the existing stance
+request, preserving its sub-tile destination before entering travel. Keep
+the leader's authored waypoint and standing behavior. Hash/save version 223.
+
+**Consequences.** Follower movement and subsequent random draws can change.
+All 60 Level 1–3 replays remain valid; wins change from 16/5/19 to 19/8/17
+(modern regression results, not original parity). The owner's Level8 view remains
+to compare. Grounded liquid
+height is a separate presentation approximation; see room-floors-and-liquids.md.

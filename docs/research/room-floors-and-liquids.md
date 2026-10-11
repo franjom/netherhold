@@ -1,5 +1,13 @@
 # Format and engine: room floors, liquid beds and the liquid surface (Q71)
 
+**Grounded creature placement (2026-10-11).** The classic view now projects
+grounded creatures on water/lava to the existing floor-height answer, 0xA66 at
+the tile centre, rather than the stone floor's 0x1000. The liquid surface is
+near 0xE66, so feet are submerged. This is a presentation approximation:
+bank slopes and vertical creature physics remain unbuilt. Flying creatures
+retain their existing height, using the supported flight predicate from
+steering-behaviours.md §7.5. Attached torture victims retain their device pose.
+
 Source(s):
 - Retail v1.70 `DKII.EXE`, read in Ghidra (pyghidra-mcp), 2026-10-09, checked against the
   disassembly where the decompiler mis-tracks registers

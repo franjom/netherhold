@@ -48,6 +48,39 @@ public class WorldViewTests
         Assert.DoesNotContain(new WorldView(database).Creatures(world), c => c.Id == held.Id);
     }
 
+    [InstallFact]
+    public void GroundedCreatureFeetSitBelowTheWaterSurface()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
+        WorldState world = WorldState.FromMap(database,
+            GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [1, 3]);
+        TilePos water = Enumerable.Range(0, world.Width * world.Height)
+            .Select(i => new TilePos(i % world.Width, i / world.Width))
+            .First(p => database.TerrainById(world.Tile(p).TerrainId).IsWater);
+        CreatureState dwarf = world.SpawnCreature(database, database.CreatureByName("Dwarf")!.CreatureId, 1, water);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == dwarf.Id);
+        Assert.Equal(0xA66, rendered.Height);
+        Assert.True(rendered.Height < 0xE66);
+    }
+
+    [InstallFact]
+    public void FlyingCreatureKeepsItsHeightAboveWater()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
+        WorldState world = WorldState.FromMap(database,
+            GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [1, 3]);
+        TilePos water = Enumerable.Range(0, world.Width * world.Height)
+            .Select(i => new TilePos(i % world.Width, i / world.Width))
+            .First(p => database.TerrainById(world.Tile(p).TerrainId).IsWater);
+        CreatureDef flying = database.Creatures.Values.First(c => c.Flags.HasFlag(CreatureFlags.CanFly)
+            && !c.Flags.HasFlag(CreatureFlags.IsWorker));
+        CreatureState creature = world.SpawnCreature(database, flying.CreatureId, 1, water);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(Fp32.One, rendered.Height);
+    }
+
     // ---- Mapping, against the whole shipped terrain table ----
 
     /// <summary>

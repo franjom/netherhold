@@ -117,10 +117,13 @@ Ordinary travel rates follow body velocity and the authored movement scale;
 prison eating, other action restarts and exceptional rate overrides remain pending.
 See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
 The owner animation comparison gate and Unity crowd upload profiling are outstanding.
-Current-batch verification: 4730 tests pass, including the three comparison tests after
+ADR-0433 restores followers' sub-tile walks around stationary leaders; grounded
+liquid height uses the presentation approximation in room-floors-and-liquids.md.
+Hash/save version is 223. Owner Level8 portal comparison pending (2026-10-11).
+Current-batch verification: 4737 tests pass, including the three comparison tests after
 restoring local ignored captures; Unity assemblies synced, adapter compile and review pass.
-Eating timing's Level 1–3 seed spread is recorded in ADR-0432; artifacts are
-D:/DungeonKeeperRemake/build/classic-step3-replays/eating-action-followup.
+Level 1–3 replay results are recorded in ADR-0432 and ADR-0433; artifacts are
+D:/DungeonKeeperRemake/build/classic-step3-replays/{eating-action,portal-follow}-followup.
 Creature status flowers are still part of the unbuilt HUD work. Creature separation
 already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
 Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.

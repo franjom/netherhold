@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**223** — `0x4A7D0294815B3F49`. Hero followers retain sub-tile destination walks after reaching their trailing tile. ADR-0433.
+
 **222** — `0xD423AF7C779275F4`. Hatchery meals hold state 94 until action 26's first animation cycle completes, then use their captured remaining-food decision to resume the chicken search or idle. The captured decision is hashed and saved. ADR-0432.
 
 **221** — `0xFB311154736B9A1B`. Waiting heroes walk to their chosen sub-tile points instead of receiving an already-finished route. No new saved field. ADR-0430.

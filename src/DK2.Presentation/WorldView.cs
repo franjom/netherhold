@@ -1081,6 +1081,10 @@ public sealed partial class WorldView
             _creatureMeshes.TryGetValue(creature.CreatureTypeId, out AssetRef mesh);
 
             int posX = creature.PosX, posY = creature.PosY, height = FloorZ;
+            TerrainDef terrain = _database.TerrainById(world.Tile(position).TerrainId);
+            if ((terrain.IsWater || terrain.IsLava)
+                && !WaterSpeedRules.IsFlying(_database.CreatureById(creature.CreatureTypeId), creature))
+                height = FloorHeight(world, position.X, position.Y);
             int yaw = (creature.Heading + 1024) & 2047, pitch = 0, roll = 0;
             int previousX = creature.LastPosX, previousY = creature.LastPosY;
             bool playsAnimation = PlaysMappedAnimation(creature);
