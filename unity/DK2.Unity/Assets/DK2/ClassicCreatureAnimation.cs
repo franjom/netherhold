@@ -6,11 +6,15 @@ using DK2.Art;
 using DK2.Data.Model;
 using DK2.Core;
 using UnityEngine;
+using Unity.Profiling;
 
 namespace DK2.Unity
 {
     public sealed class ClassicCreatureAnimation : MonoBehaviour
     {
+        private static readonly ProfilerMarker ClockMarker = new ProfilerMarker("DK2.Animation.Clock");
+        private static readonly ProfilerMarker SampleMarker = new ProfilerMarker("DK2.Animation.Sample");
+        private static readonly ProfilerMarker UploadMarker = new ProfilerMarker("DK2.Animation.MeshUpload");
         private RenderAnimation[] _clips;
         private Mesh[] _meshes;
         private Material[][] _materials;
@@ -51,8 +55,12 @@ namespace DK2.Unity
             if (_clock == null) return;
             double tickTime = seconds * 4;
             long tick = (long)System.Math.Floor(tickTime);
-            while (_advanced <= tick - _startTick) { _clock.Advance(movementSpeed); _advanced++; }
-            AnimationPose pose = _clock.Sample((float)(tickTime - tick));
+            AnimationPose pose;
+            using (ClockMarker.Auto())
+            {
+                while (_advanced <= tick - _startTick) { _clock.Advance(movementSpeed); _advanced++; }
+                pose = _clock.Sample((float)(tickTime - tick));
+            }
             int segment = (int)pose.Segment;
             if (_drawnSegment != (AnimationSegment)segment)
             {
@@ -62,11 +70,17 @@ namespace DK2.Unity
             }
             System.Numerics.Vector3[] sample = _samples[segment];
             Vector3[] vertices = _vertices[segment];
-            _clips[segment].Sample(pose.Phase, false, sample);
-            for (int i = 0; i < vertices.Length; i++)
-                vertices[i] = new Vector3(sample[i].X, sample[i].Y, sample[i].Z);
-            _meshes[segment].SetVertices(vertices);
-            _meshes[segment].RecalculateBounds();
+            using (SampleMarker.Auto())
+            {
+                _clips[segment].Sample(pose.Phase, false, sample);
+                for (int i = 0; i < vertices.Length; i++)
+                    vertices[i] = new Vector3(sample[i].X, sample[i].Y, sample[i].Z);
+            }
+            using (UploadMarker.Auto())
+            {
+                _meshes[segment].SetVertices(vertices);
+                _meshes[segment].RecalculateBounds();
+            }
         }
 
         public void Stop()

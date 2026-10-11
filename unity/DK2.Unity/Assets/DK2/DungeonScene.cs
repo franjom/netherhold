@@ -7,6 +7,7 @@ using DK2.Assets;
 using DK2.Core;
 using DK2.Presentation;
 using UnityEngine;
+using Unity.Profiling;
 
 namespace DK2.Unity
 {
@@ -220,8 +221,11 @@ namespace DK2.Unity
             _renderSeconds = (tick.Value + (double)Mathf.Clamp01(fraction)) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond;
         }
 
+        private static readonly ProfilerMarker FrameMarker = new ProfilerMarker("DK2.Scene.AnimatedFrame");
+
         public void DrawCreatureFrame(GameTick tick, float fraction)
         {
+            using var frameScope = FrameMarker.Auto();
             fraction = Mathf.Clamp01(fraction);
             SetCreatureFrameTime(tick, fraction);
             foreach (KeyValuePair<int, CreatureView> entry in _creaturePoses)

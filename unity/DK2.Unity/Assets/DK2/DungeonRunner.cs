@@ -16,6 +16,7 @@ using DK2.Presentation;
 using DK2.Simulation;
 using DK2.Simulation.Systems;
 using UnityEngine;
+using Unity.Profiling;
 
 namespace DK2.Unity
 {
@@ -184,6 +185,9 @@ namespace DK2.Unity
             _installArt = null;
         }
 
+        private static readonly ProfilerMarker TickMarker = new ProfilerMarker("DK2.Simulation.Tick");
+        private static readonly ProfilerMarker PresentMarker = new ProfilerMarker("DK2.Scene.Present");
+
         private void Update()
         {
             if (_simulation == null) return;
@@ -206,8 +210,11 @@ namespace DK2.Unity
                     InputFrame input = i == 0 && _pendingCommands.Count > 0
                         ? new InputFrame(_pendingCommands.ToArray())
                         : InputFrame.Empty;
-                    _worldView.CaptureObjectPositions(_simulation.World);
-                    _simulation.Tick(input);
+                    using (TickMarker.Auto())
+                    {
+                        _worldView.CaptureObjectPositions(_simulation.World);
+                        _simulation.Tick(input);
+                    }
                     if (i == 0) _pendingCommands.Clear();
                 }
             }
@@ -219,7 +226,7 @@ namespace DK2.Unity
             else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
             _worldView.PreviewTags(dragFrom, _dragTo);
             _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
-            _presenter.Present(_simulation.World);
+            using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
         }
 

@@ -2,7 +2,7 @@
 
 Execute step 4 of 2026-10-09-classic-look.md in the existing classic worktree,
 branch classic-look/step4, following the owner's step-3 merge authorization.
-Master contains step 3 at 6005ff9f. Preserve local Unity editor state.
+The current playback batch is merged to master. Preserve local Unity editor state.
 
 1. Recheck the binary's fractional mesh evaluator and phase interpolation.
    Record findings in kmf-animation-playback.md and the function records.
@@ -16,9 +16,9 @@ Master contains step 3 at 6005ff9f. Preserve local Unity editor state.
 5. Build/test, sync Unity, compile its adapter, review and commit. The owner gate
    remains side-by-side digging/claiming, walking, eating and sleeping.
 
-Q582 is the highest behavior priority. A separate user-authorized agent traces
-the Level7 Giant/Imp encounter. Presentation changes remain separate from the
-researched eating action boundary (ADR-0432).
+Q582 awaits the owner's Unity observations; do not investigate it meanwhile
+(owner, 2026-10-11). Presentation changes remain separate from the researched
+eating action boundary (ADR-0432).
 
 Progress: fractional sampling, ordinary integer phases, separate Start/End
 meshes, position interpolation and run/claim/reinforce mappings are built.
@@ -32,3 +32,5 @@ Q582 trace is recorded in combat-acquisition.md §1; it remains unresolved.
 Chicken playback/interpolation and combat approach/melee playback are built
 under ADR-0436. Full simulation mode-3 melee lifetime remains absent (Q582);
 spell-casting clips and object playback beyond Chicken remain pending.
+Profiler scopes and a repeatable capture procedure are built; see unity/README.md.
+Actual Unity crowd/mesh-upload and standalone captures remain outstanding.

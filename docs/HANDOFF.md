@@ -119,6 +119,7 @@ Chicken Walk/Eat/Scared playback and position/heading interpolation are built;
 combat routes play walk/run and melee swings play once (ADR-0436).
 See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
 The owner animation comparison gate and Unity crowd upload profiling are outstanding.
+Profiler scopes and the capture procedure are in unity/README.md.
 ADR-0433 restores followers' sub-tile walks around stationary leaders; grounded
 liquid height uses the presentation approximation in room-floors-and-liquids.md.
 Hash/save version is 225. Owner Level8 portal comparison pending (2026-10-11).
@@ -144,6 +145,7 @@ and locked-door chains, inspect Level8's hatchery Guard visibility and portal mo
 at the same camera positions. The per-object light limit is confirmed; its responsibility
 for the reported camera-dependent darkness remains strongly inferred (unity/README.md).
 Imp casualty/timing parity remains open (Q582, combat-acquisition.md §1);
+await the owner's Unity observations before further investigation (2026-10-11).
 non-creature threat flight remains unbuilt (combat-fear.md §7).
 Mistress crossing the visible Heart needs an arrival/escape comparison (Q585).
 Owned Hatchery chickens select points, turn, walk and react (ADR-0434);

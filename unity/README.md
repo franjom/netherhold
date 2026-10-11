@@ -122,6 +122,49 @@ Batcher on, every material in a batch-mode render took one texture (Direct3D 12)
 not yet seen. `UseUrp` must save the renderer asset before the pipeline names it, or URP has
 no default renderer and draws nothing.
 
+## Measuring performance
+
+Open **Window → Analysis → Profiler**, restart Play mode, and record the CPU
+Timeline, Rendering, Memory and GPU modules where supported. Leave Deep Profile
+off for baseline captures. The adapter exposes these CPU markers:
+
+| Marker | Includes |
+|---|---|
+| `DK2.Simulation.Tick` | One simulation tick and the object position snapshot |
+| `DK2.Scene.Present` | View generation, change detection and scene updates |
+| `DK2.Scene.AnimatedFrame` | Position interpolation, animation and dirty torch geometry |
+| `DK2.Animation.Clock` | Per-instance phase advancement and segment selection |
+| `DK2.Animation.Sample` | KMF interpolation and Unity vertex conversion |
+| `DK2.Animation.MeshUpload` | Vertex upload and mesh bounds recalculation |
+
+Nested marker times overlap: do not add child totals to their parent's total.
+Animation markers run once per animated instance; use the Hierarchy aggregate
+to assess crowd cost. Tick count varies per rendered frame; report both tick
+cost and whole-frame cost. These scopes do not change the simulation or its hash.
+
+For a repeatable baseline, use Level8, seed 1, speed 1, the same camera,
+resolution, quality settings and fog setting. Capture a quiet Heart view and a
+busy view, recording the live/visible creature counts. Warm up for 10 seconds,
+then save a 300-frame capture. Record CPU/GPU milliseconds, median and p95 frame
+time, GC allocation/frame, draw calls, batches, triangles and memory; include
+the commit, CPU/GPU, graphics API and VSync/frame cap. Compare equivalent captures
+after each rendering change. Loading and asset decoding need a separate capture.
+
+Check a **standalone Development Build** with **Autoconnect Profiler** as well
+as Editor Play mode; Editor timings include Editor overhead. Keep Deep Profiling
+Support off for the baseline. Use the Frame Debugger when rendering/batches are
+the bottleneck, and CPU Timeline/GC allocation call stacks for script spikes.
+Verify final performance in a release build, which strips profiler calls.
+
+Frame budgets are 16.67 ms at 60 FPS and 8.33 ms at 120 FPS; these are targets,
+not measured results. Inspect slow frames as well as averages. The existing
+sampler-only crowd probe and its limits are in
+[kmf-animation-playback.md](../docs/research/kmf-animation-playback.md).
+
+Unity references: [collecting profiler data](https://docs.unity3d.com/Manual/profiler-profiling-applications.html),
+[custom markers](https://docs.unity3d.com/Manual/profiler-add-markers-code.html),
+[rendering profiling](https://docs.unity3d.com/Manual/profile-rendering.html).
+
 ## Verifying it inside Unity, from the command line
 
 Both checks need an activated editor (`Preferences → Licenses → Add → free personal
