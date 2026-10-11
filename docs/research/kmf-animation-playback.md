@@ -147,6 +147,29 @@ its rate. Ordinary movement's caller passes scalar 4096, so the first
 advance uses that scalar, not yet the actual velocity. Later turns use
 the velocity after their advance. The tests preserve both details.
 
+## 7. Melee and Chicken playback
+
+CONFIRMED (binary re-read, 2026-10-11): the action-table initializer
+`0x004950C0` gives action 17 art slot 5 and mode 3. The getter `0x00496DE0`
+passes that slot to the chooser; catalogue index 4 is the melee resource.
+`0x00496AA0` marks the handler complete when the blow routine returns zero,
+but holds the action until the animation also completes. A damage-pending
+flag alone is therefore insufficient to describe visible melee playback.
+
+The classic view uses the melee start stamp and authored action duration to
+keep a nonlooping swing visible after impact. Melee-mode and state-entry
+guards reject ranged resets and interrupted actions. Combat routes select
+walk/run independently of the Fighting activity label. ADR-0436.
+This is a presentation bridge: the simulation still releases its pending
+blow at impact without the full mode-3 action lifetime. The consequence for
+combat timing remains open under Q582.
+
+Chicken Walk/Eat/Scared art selection is documented in object-drawing.md §8.
+Their meshes use the shared fractional sampler. Positions and headings are
+captured before each simulation tick and interpolated on render frames;
+held/carried birds are excluded from the snapshot, avoiding drop slides.
+The snapshot is presentation-only and does not enter saves or state hashes.
+
 Built under ADR-0431: travel playback receives the body's speed without
 restarting its clip when speed changes. Frame catch-up uses the latest
 observed velocity for skipped render ticks; it does not reconstruct their

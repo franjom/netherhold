@@ -173,10 +173,21 @@ public sealed class ScenePresenter
             Scale = instance.Scale;
             Pitch = instance.Pitch;
             Roll = instance.Roll;
+            PreviousPosX = instance.PreviousPosX;
+            PreviousPosY = instance.PreviousPosY;
+            PreviousHeading = instance.PreviousHeading;
+            PlaysAnimation = instance.PlaysAnimation;
+            AnimationStartedAt = instance.AnimationStartedAt;
         }
 
         public int Pitch { get; }
         public int Roll { get; }
+
+        public int PreviousPosX { get; }
+        public int PreviousPosY { get; }
+        public int PreviousHeading { get; }
+        public bool PlaysAnimation { get; }
+        public GameTick? AnimationStartedAt { get; }
 
         public AssetRef Mesh { get; }
         public TilePos Tile { get; }
@@ -199,12 +210,16 @@ public sealed class ScenePresenter
             && Heading == other.Heading
             && Scale == other.Scale
             && Pitch == other.Pitch
-            && Roll == other.Roll;
+            && Roll == other.Roll
+            && PreviousPosX == other.PreviousPosX && PreviousPosY == other.PreviousPosY
+            && PreviousHeading == other.PreviousHeading && PlaysAnimation == other.PlaysAnimation
+            && AnimationStartedAt == other.AnimationStartedAt;
 
         public override bool Equals(object? obj) => obj is ObjectVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
-            Mesh, Tile, OwnerPlayerId, GoldHeld, HashCode.Combine(PosX, PosY, Height, Heading, Scale, Pitch, Roll));
+            Mesh, Tile, OwnerPlayerId, GoldHeld, HashCode.Combine(PosX, PosY, Height, Heading, Scale, Pitch, Roll),
+            HashCode.Combine(PreviousPosX, PreviousPosY, PreviousHeading, PlaysAnimation, AnimationStartedAt));
     }
 
     private readonly WorldView _view;

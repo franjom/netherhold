@@ -206,6 +206,7 @@ namespace DK2.Unity
                     InputFrame input = i == 0 && _pendingCommands.Count > 0
                         ? new InputFrame(_pendingCommands.ToArray())
                         : InputFrame.Empty;
+                    _worldView.CaptureObjectPositions(_simulation.World);
                     _simulation.Tick(input);
                     if (i == 0) _pendingCommands.Clear();
                 }

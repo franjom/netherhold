@@ -115,6 +115,8 @@ ordinary quantized phases and separate Start/End meshes. Hatchery eating retains
 action 26's first-cycle wait and restarts playback from its entry stamp (ADR-0432).
 Ordinary travel rates follow body velocity and the authored movement scale;
 prison eating, other action restarts and exceptional rate overrides remain pending.
+Chicken Walk/Eat/Scared playback and position/heading interpolation are built;
+combat routes play walk/run and melee swings play once (ADR-0436).
 See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
 The owner animation comparison gate and Unity crowd upload profiling are outstanding.
 ADR-0433 restores followers' sub-tile walks around stationary leaders; grounded
@@ -127,7 +129,7 @@ Grounded bridge placement uses the deck height; see room-floors-and-liquids.md.
 The playback/bridge follow-up passes 167 presentation tests and the Unity compile.
 Torch meshes now share the wall lattice; see wall-torches.md §4.
 The torch follow-up passes 172 presentation tests and the Unity compile; owner view pending (2026-10-11).
-Last full-suite verification: 4794 tests pass without skips; Unity assemblies synced,
+Last full-suite verification: 4803 tests pass without skips; Unity assemblies synced,
 adapter compile and independent review pass.
 Level 1–3 replay results are recorded in ADR-0432–0435; artifacts are under
 D:/DungeonKeeperRemake/build/classic-step3-replays/: eating-action-followup,
@@ -136,8 +138,8 @@ Creature status flowers are still part of the unbuilt HUD work. Creature separat
 already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
 Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.
 The owner verified the blue portal pillars after reloading (2026-10-10).
-Remaining owner checks: restart Play mode, compare hatchery chickens and locked-door
-chains, inspect Level8's hatchery Guard visibility and portal movement
+Remaining owner checks: restart Play mode, compare chicken motion, Giant melee swings
+and locked-door chains, inspect Level8's hatchery Guard visibility and portal movement
 (hero-party-walk.md §1), and compare torch illumination
 at the same camera positions. The per-object light limit is confirmed; its responsibility
 for the reported camera-dependent darkness remains strongly inferred (unity/README.md).
@@ -145,8 +147,8 @@ Imp casualty/timing parity remains open (Q582, combat-acquisition.md §1);
 non-creature threat flight remains unbuilt (combat-fear.md §7).
 Mistress crossing the visible Heart needs an arrival/escape comparison (Q585).
 Owned Hatchery chickens select points, turn, walk and react (ADR-0434);
-free-range and Prison loops remain unbuilt (Q584). Chicken animation playback
-also remains unbuilt; see hatchery-roaming.md.
+free-range and Prison loops remain unbuilt (Q584). Chicken footstep audio
+remains unbuilt; see hatchery-roaming.md.
 The owner verified a Level8 Salamander walking on lava (2026-10-10);
 see imp-idle-and-wandering.md §4 for the crossing regressions.
 The reported graininess at both camera distances has no confirmed resolution;

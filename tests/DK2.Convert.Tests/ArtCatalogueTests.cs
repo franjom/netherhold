@@ -11,6 +11,18 @@ namespace DK2.Convert.Tests;
 
 public class ArtCatalogueTests
 {
+    [InstallFact]
+    public void AGiantFightUsesTheMeleeResourceInsteadOfWalking()
+    {
+        string install = Dk2InstallGate.Path;
+        var database = GameDatabaseLoader.Load(install);
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
+        var giant = database.CreatureByName("Giant")!;
+        ArtEntry entry = ArtSourceMap.ForDatabase(database, art).Single(e =>
+            e.Reference.Key == "creature.giant.animation.fighting");
+        Assert.Equal(art.Creatures[giant.CreatureId][4], entry.Source);
+    }
+
     [InstallTheory]
     [InlineData("running", 1)]
     [InlineData("claiming", 12)]

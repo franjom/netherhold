@@ -55,6 +55,9 @@ namespace DK2.Unity
             new Dictionary<int, (AssetRef Clip, GameTick? StartedAt)>();
         private double _renderSeconds;
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
+        private readonly Dictionary<int, ObjectView> _objectPoses = new Dictionary<int, ObjectView>();
+        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt)> _objectClips =
+            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt)>();
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
@@ -234,6 +237,19 @@ namespace DK2.Unity
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
                 if (player != null) player.Draw(_renderSeconds, pose.AnimationMovementSpeed);
             }
+            foreach (KeyValuePair<int, ObjectView> entry in _objectPoses)
+            {
+                if (!_objects.TryGetValue(entry.Key, out GameObject go) || go == null) continue;
+                ObjectView pose = entry.Value;
+                Vector3 ground = Ground(Mathf.Lerp(pose.PreviousPosX, pose.PosX, fraction) / Fp32.One,
+                    Mathf.Lerp(pose.PreviousPosY, pose.PosY, fraction) / Fp32.One,
+                    pose.Height / (float)Fp32.One);
+                go.transform.position = new Vector3(ground.x, go.transform.position.y, ground.z);
+                int turn = ((pose.Heading - pose.PreviousHeading + 1024) & 2047) - 1024;
+                float yaw = (pose.PreviousHeading + 1024 + turn * fraction) * 360f / 2048f;
+                go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+                go.GetComponent<ClassicCreatureAnimation>()?.Draw(_renderSeconds);
+            }
             if (_torchGeometryDirty)
             {
                 foreach (GameObject torch in _torches.Values)
@@ -259,6 +275,7 @@ namespace DK2.Unity
 
             _objects[objectId] = go;
             PositionObject(go, objectId, instance, mesh.Look);
+            ConfigureObjectClip(go, objectId, instance, mesh);
         }
 
         public void UpdateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
@@ -271,6 +288,23 @@ namespace DK2.Unity
             }
 
             PositionObject(go, objectId, instance, mesh.Look);
+            ConfigureObjectClip(go, objectId, instance, mesh);
+        }
+
+        private void ConfigureObjectClip(GameObject go, int id, in ObjectView pose, in ResolvedAsset mesh)
+        {
+            if (!pose.PlaysAnimation) return;
+            _objectPoses[id] = pose;
+            var identity = (mesh.Reference, pose.AnimationStartedAt);
+            if (_objectClips.TryGetValue(id, out var previous) && previous == identity) return;
+            _objectClips[id] = identity;
+            double startSeconds = pose.AnimationStartedAt.HasValue
+                ? (pose.AnimationStartedAt.Value.Value + 1d) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond
+                : _renderSeconds;
+            if (_classic != null && _meshObjects.Contains(id)
+                && _classic.ConfigureAnimation(go, mesh, true, startSeconds)) return;
+            go.GetComponent<ClassicCreatureAnimation>()?.Stop();
+            if (_classic != null && _meshObjects.Contains(id)) _classic.RestoreModel(go, mesh);
         }
 
         public void RemoveObject(int objectId)
@@ -279,6 +313,8 @@ namespace DK2.Unity
                 Object.Destroy(go);
 
             _objects.Remove(objectId);
+            _objectPoses.Remove(objectId);
+            _objectClips.Remove(objectId);
             _meshObjects.Remove(objectId);
             _artless.Remove(objectId);
         }
@@ -415,6 +451,8 @@ namespace DK2.Unity
             _creatureClips.Clear();
             _renderSeconds = 0d;
             _objects.Clear();
+            _objectPoses.Clear();
+            _objectClips.Clear();
             _structures.Clear();
             _meshObjects.Clear();
             _artless.Clear();

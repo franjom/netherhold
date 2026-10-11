@@ -111,7 +111,8 @@ creatures above their ground-height word, then attempts a half-tile escape
 with doubled speed and resume 8. Our absent ground-height word is approximated
 by supported flight and `PosZ <= 0x1000`; complete vertical physics remains
 unbuilt. Audio's global footstep alternation, randomized object scale and the
-Chicken KMF walk/peck/scared playback remain presentation work.
+Chicken KMF Walk/Eat/Scared playback and render interpolation are built;
+see kmf-animation-playback.md §7. Footstep audio remains unbuilt.
 
 ## 5. Persistent room membership — confirmed
 

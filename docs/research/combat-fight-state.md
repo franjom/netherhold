@@ -119,9 +119,10 @@ and then clears the target; **1 and 4 → the melee arm `0x004600DD`**:
    Then the arithmetic of combat-damage.md, `0x004B2CE0(target, delta,
    attacker's owner, 0)` — **the health routine takes the attacker's player id
    as the source**, which is what stamps a heart's killer — and the routine
-   returns 0, ending the action.
+   returns 0, marking the handler complete. Action 17 is mode 3: the action
+   runner also waits for animation completion (kmf-animation-playback.md §7).
 
-So the period of a melee attacker standing in reach is `MeleeRecharge` ticks over
+The recharge gate for a melee attacker standing in reach is `MeleeRecharge` ticks over
 its work rate — a quarter longer than the file's seconds for a fresh creature —
 the blow landing `MeleeHitDelay` ticks into each; a fresh creature's stamp is 0
 from the constructor `0x004872A0`, and **a zero stamp passes Gate B at once**, so

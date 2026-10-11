@@ -29,3 +29,6 @@ exceptional rate overrides, other action restarts, queued transitions, editor
 profiling and the owner visual gate. The primary phase-to-frame link is closed;
 the render factor's game-clock producer remains open (Q442).
 Q582 trace is recorded in combat-acquisition.md §1; it remains unresolved.
+Chicken playback/interpolation and combat approach/melee playback are built
+under ADR-0436. Full simulation mode-3 melee lifetime remains absent (Q582);
+spell-casting clips and object playback beyond Chicken remain pending.

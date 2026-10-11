@@ -229,6 +229,7 @@ public static class ArtSourceMap
         CreatureDef creature, IReadOnlyList<Dk2ArtResource> resources, string animation) => animation switch
     {
         "idle" => resources[CreatureIdle],
+        "fighting" => resources[CreatureMelee],
         "running" => resources[1].Type != 0 ? resources[1] : resources[CreatureWalk],
         "eating" => resources[12].Type != 0 ? resources[12] : resources[7],
         "claiming" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase) => resources[12],

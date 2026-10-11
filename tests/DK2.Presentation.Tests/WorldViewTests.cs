@@ -23,6 +23,119 @@ namespace DK2.Presentation.Tests;
 /// </summary>
 public class WorldViewTests
 {
+    private sealed class StartImmediateSwing(CreatureState attacker, CreatureDef definition) : ISimulationSystem
+    {
+        public string Name => "start_immediate_swing";
+        private bool _started;
+        public void Execute(SimulationContext context)
+        {
+            if (_started) return;
+            _started = true;
+            DK2.Simulation.Combat.FightRules.StartSwing(context, new ClearSight(), attacker,
+                definition with { MeleeHitDelay = new Fp32(0) }, []);
+        }
+    }
+
+    private sealed class ClearSight : DK2.Simulation.Combat.ISightBlocker
+    {
+        public bool Blocks(int x, int y) => false;
+    }
+
+    private sealed class FinishRangedCast(CreatureState caster, CreatureDef definition) : ISimulationSystem
+    {
+        public string Name => "finish_ranged_cast";
+        public void Execute(SimulationContext context)
+        {
+            caster.SwingStartTick = context.Tick.Value;
+            caster.SwingTargetKind = DK2.Simulation.Combat.FightTargetKind.Door;
+            caster.SwingKind = DK2.Simulation.Combat.SpellRules.SpellCast;
+            caster.SwingSpellSlot = 1;
+            DK2.Simulation.Combat.FightRules.FireSpell(context, caster, definition);
+        }
+    }
+
+    [InstallFact]
+    public void ARangedImpactDoesNotTurnIntoAMeleeSwing()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureDef definition = database.CreatureByName("Wizard")!;
+        CreatureState caster = world.SpawnCreature(database, definition.CreatureId, 1, FirstWalkableTile(database, world));
+        caster.Dk2StateId = 200;
+        caster.AttackType = DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtThing;
+        var simulation = new GameSimulation(database, world, 7, [new FinishRangedCast(caster, definition)]);
+        simulation.Tick();
+        Assert.False(caster.SwingInProgress);
+        Assert.Equal(DK2.Simulation.Combat.SpellRules.MeleeSwing, caster.SwingKind);
+        Assert.Equal(AssetRef.ForCreature("Wizard", AssetKind.Animation, "idle"),
+            new WorldView(database).Creatures(world).Single(c => c.Id == caster.Id).Animation);
+    }
+
+    [InstallFact]
+    public void AnImmediateBlowStillPlaysOneSwingAndStopsAtItsAuthoredEnd()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureDef definition = database.CreatureByName("Giant")!;
+        CreatureState giant = world.SpawnCreature(database, definition.CreatureId, 1, FirstWalkableTile(database, world));
+        giant.Dk2StateId = 200;
+        giant.FightTargetKind = DK2.Simulation.Combat.FightTargetKind.Door;
+        giant.AttackType = DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtThing;
+        giant.FightTargetId = -1;
+        var simulation = new GameSimulation(database, world, 7, [new StartImmediateSwing(giant, definition)]);
+        simulation.Tick();
+        Assert.False(giant.SwingInProgress);
+        var view = new WorldView(database);
+        CreatureView rendered = view.Creatures(world).Single(c => c.Id == giant.Id);
+        Assert.Equal(AssetRef.ForCreature("Giant", AssetKind.Animation, "fighting"), rendered.Animation);
+        Assert.Equal(new GameTick(giant.SwingStartTick), rendered.AnimationStartedAt);
+        giant.StateEnteredTick = giant.SwingStartTick + 1;
+        Assert.Equal(AssetRef.ForCreature("Giant", AssetKind.Animation, "idle"),
+            view.Creatures(world).Single(c => c.Id == giant.Id).Animation);
+        giant.StateEnteredTick = giant.SwingStartTick;
+        int hold = AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(5));
+        for (int tick = 1; tick < hold - 1; tick++) simulation.Tick();
+        Assert.Equal(rendered.Animation, view.Creatures(world).Single(c => c.Id == giant.Id).Animation);
+        simulation.Tick();
+        Assert.Equal(AssetRef.ForCreature("Giant", AssetKind.Animation, "idle"),
+            view.Creatures(world).Single(c => c.Id == giant.Id).Animation);
+    }
+
+    [InstallTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ACombatApproachPlaysItsMovementClip(bool running)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState giant = world.SpawnCreature(database, database.CreatureByName("Giant")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        giant.Dk2StateId = 200;
+        giant.Running = running;
+        giant.Body.PathTotalCount = 1;
+        giant.Body.PathFinished = false;
+        giant.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == giant.Id);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Equal(AssetRef.ForCreature("Giant", AssetKind.Animation, running ? "running" : "moving_to_job"), rendered.Animation);
+        Assert.Equal(new Fp32(4096), rendered.AnimationMovementSpeed);
+    }
+
+    [InstallFact]
+    public void AMeleeSwingOverridesTravelAndRestartsFromItsOwnStamp()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState giant = world.SpawnCreature(database, database.CreatureByName("Giant")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        giant.Dk2StateId = 200;
+        giant.SwingInProgress = true;
+        giant.SwingKind = DK2.Simulation.Combat.SpellRules.MeleeSwing;
+        giant.SwingStartTick = 42;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == giant.Id);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Equal(AssetRef.ForCreature("Giant", AssetKind.Animation, "fighting"), rendered.Animation);
+        Assert.False(rendered.AnimationLoops);
+        Assert.Equal(new GameTick(42), rendered.AnimationStartedAt);
+        Assert.Null(rendered.AnimationMovementSpeed);
+    }
+
     private static (GameDatabase Database, WorldState World)? RealLevel()
     {
         string dir = Dk2InstallGate.Path;

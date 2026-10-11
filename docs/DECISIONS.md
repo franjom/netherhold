@@ -9965,3 +9965,21 @@ choices. Regression coverage checks reinforcement from all four sides and
 a multi-tick turn. This does not change sight acquisition or resolve Q582.
 All 60 Level 1–3 replays remain valid; wins change from 19/5/17 to 19/6/18
 (modern regression results, not original parity).
+
+## ADR-0436 — Play Chicken movement and visible melee actions
+**Date:** 2026-10-11 · **Status:** accepted · Research: kmf-animation-playback.md §7
+
+**Context.** Chickens moved only on simulation ticks with a static pose.
+Fighting activity hid movement clips, and damage-pending lifetime did not
+describe the complete melee animation.
+
+**Decision.** Play Chicken Walk/Eat/Scared resources through the shared sampler.
+Capture their position and heading before every tick for render interpolation,
+excluding held/carried birds. Combat travel selects walk/run. Melee plays once
+from its captured start stamp through the authored duration, subject to combat
+mode and state-entry interruption guards. Preserve simulation rules and hash 225.
+
+**Consequences.** This presentation bridge does not implement the full mode-3
+combat action lifetime; its timing consequence belongs to Q582. Spell-casting
+clips and Chicken footstep audio remain unbuilt. Owner comparisons must restart
+Play mode and inspect Chickens and the Level7 Giant/Imp encounter.
