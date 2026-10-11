@@ -1162,6 +1162,8 @@ public sealed partial class WorldView
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         string clip = ActivityKeySegment(creature.Activity);
         if (creature.Dk2StateId == EatingRules.AfterMealState) clip = "eating";
+        else if (creature.Activity == CreatureActivity.Imprisoned && IsTravelAnimation(creature))
+            clip = creature.Running ? "running" : "moving_to_job";
         else if (creature.Activity == CreatureActivity.Working
             && definition.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase))
             clip = creature.LastTaskKind switch
@@ -1197,7 +1199,7 @@ public sealed partial class WorldView
             or CreatureActivity.CarryingObject or CreatureActivity.SeekingFood or CreatureActivity.FetchingChicken
             or CreatureActivity.SeekingWages or CreatureActivity.GoingToJob or CreatureActivity.Fleeing
             or CreatureActivity.Withdrawing or CreatureActivity.GoingToBody or CreatureActivity.Rescuing
-            or CreatureActivity.HeedingCallToArms => creature.HasRoute,
+            or CreatureActivity.HeedingCallToArms or CreatureActivity.Imprisoned => creature.HasRoute,
         _ => false,
     };
 

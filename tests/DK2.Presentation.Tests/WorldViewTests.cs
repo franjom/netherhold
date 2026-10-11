@@ -306,6 +306,24 @@ public class WorldViewTests
         Assert.Equal(new Fp32(speed), rendered.AnimationMovementSpeed);
     }
 
+    [InstallTheory]
+    [InlineData(true, "moving_to_job")]
+    [InlineData(false, "imprisoned")]
+    public void APrisonerWalksOnlyWhileItHasARoute(bool walking, string clip)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState prisoner = world.SpawnCreature(database, database.CreatureByName("Dark Elf")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        prisoner.Dk2StateId = PrisonRules.InTheCellState;
+        prisoner.Body.PathTotalCount = walking ? (byte)1 : (byte)0;
+        prisoner.Body.PathFinished = !walking;
+        prisoner.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == prisoner.Id);
+        Assert.Equal("creature.dark_elf.animation." + clip, rendered.Animation.Key);
+        Assert.Equal(walking, rendered.PlaysAnimation);
+        Assert.Equal(walking ? new Fp32(4096) : (Fp32?)null, rendered.AnimationMovementSpeed);
+    }
+
     [InstallFact]
     public void TheAfterMealActionPlaysEatingInsteadOfTheFoodSearchWalk()
     {

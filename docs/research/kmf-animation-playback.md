@@ -114,6 +114,12 @@ Hatchery eating plays resolved art 13 during the persistent action-26 wait,
 restarted from the state-entry stamp (ADR-0432). Its timing evidence is eating.md §7.
 The owner's eating comparison remains outstanding; prison eating is still static.
 
+Prisoner routes now select walk/run and the body's movement rate even though
+their activity remains Imprisoned (2026-10-11). State 116 retains its route while
+holding the prisoner state; see prison.md §6. The ordinary movement selection
+in `0x0048BE50` uses velocity and movement mode, not our activity label.
+Standing prisoners and their action flourishes remain outside this mapping.
+
 ## 6. Movement rates — CONFIRMED (binary, 2026-10-11)
 
 For requested slots 1/2, `0x0048BE50` gets the body's velocity through
