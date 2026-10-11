@@ -16,8 +16,8 @@ The current playback batch is merged to master. Preserve local Unity editor stat
 5. Build/test, sync Unity, compile its adapter, review and commit. The owner gate
    remains side-by-side digging/claiming, walking, eating and sleeping.
 
-Q582 awaits the owner's Unity observations; do not investigate it meanwhile
-(owner, 2026-10-11). Presentation changes remain separate from the researched
+The owner's original-game experiment reopened Q582 (2026-10-11); its current
+finding is in combat-acquisition.md §1/§6. Presentation changes remain separate from the researched
 eating action boundary (ADR-0432).
 
 Progress: supported creature and object playback, action restarts, queued
@@ -27,7 +27,7 @@ confirmed; see animation-transitions.md. Q443 is settled for classic clip
 playback by retaining each clip's topology and UVs (ADR-0431).
 The alternate clock's activation remains unknown; no supported simulation
 state supplies it. Broader status/action selection remains outside this batch;
-see kmf-animation-playback.md. Q582 awaits owner observations.
+see kmf-animation-playback.md. Broader Q582 casualty parity remains open.
 Actual Unity development/release crowd captures and representation comparison
 are complete; retain validated CPU playback under ADR-0438.
 Procedure and measurements: tools/classic-unity-probe/README.md.

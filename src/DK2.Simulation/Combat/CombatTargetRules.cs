@@ -112,7 +112,7 @@ public sealed class HeartSites
 /// engagement and sets the reach (docs/research/combat-acquisition.md §6–§8), and the withdrawal of
 /// a hurt creature in place of the fight (combat-fear.md §3), and the attack-spell survey that lets
 /// a caster engage at its spell's range (combat-spells.md §5, ADR-0167). Not built and named there:
-/// the thing-targeting survey and scans A, B and C.</summary>
+/// the thing-targeting survey and scans A and B.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-acquisition.md")]
 public static class CombatTargetRules
 {
@@ -275,8 +275,8 @@ public static class CombatTargetRules
         }
 
         int best = int.MaxValue;
-        CreatureState? chosen;
-        if (definition.FightStyle == FightStyle.NonFighter)
+        CreatureState? chosen = ScanAttackers(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+        if (chosen is null && definition.FightStyle == FightStyle.NonFighter)
         {
             if (NonFighter(context, sight, hearts, rooms, me, definition, scratch, out chosen) && chosen is null)
             {
@@ -284,7 +284,7 @@ public static class CombatTargetRules
                 return true;
             }
         }
-        else chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+        else if (chosen is null) chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
 
         // The route check on the arm's creature (0x0045D74A), before the thing scans: unwalkable, it is
         // dropped unless an attack spell can see it, and the scans below look on.
@@ -556,6 +556,36 @@ public static class CombatTargetRules
     /// <summary>DK2's <c>0x00494360</c>: a unique definition's ordinary archetype, any other's own id.</summary>
     private static byte BaseTypeId(CreatureDef definition) =>
         (definition.Flags & CreatureFlags.IsUnique) != 0 ? definition.UniqueBaseCreatureId : definition.CreatureId;
+
+    /// <summary>Scan C: registered attackers precede the fight-style arm. Imps bypass its
+    /// sight/hearing distance cap, but still need visibility and a route (combat-acquisition.md §6).
+    /// Disguise and creeping-distance weighting remain unbuilt, as in the ordinary scan.</summary>
+    private static CreatureState? ScanAttackers(
+        SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition,
+        int sightSq, int hearSq, List<Fixed16Vector> scratch, ref int best)
+    {
+        CreatureState? chosen = null;
+        bool imp = me.CreatureTypeId == CombatRules.ImpCreatureTypeId;
+        if (imp) { sightSq = MeleeDecisionDistance; hearSq = 0; }
+        for (int slot = 0; slot < CombatRules.Slots; slot++)
+            for (int kind = 0; kind < 2; kind++)
+            {
+                int id = kind == 0 ? me.EngagedMelee[slot] : me.EngagedRanged[slot];
+                if (id == CombatRules.NoTarget) continue;
+                CreatureState? candidate = context.World.CreatureById(id);
+                if (candidate is null || !CombatRules.IsAttackable(candidate)) continue;
+                CreatureDef theirs = context.Database.CreatureById(candidate.CreatureTypeId);
+                int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+                if (CombatRules.OppositeAlignment(definition, theirs)) d = CombatRules.Discounted(d);
+                if (d >= best || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY)) continue;
+                if (!imp && d >= sightSq
+                    && !(d < hearSq && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch))) continue;
+                if (!CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, int.MaxValue, scratch)) continue;
+                best = d;
+                chosen = candidate;
+            }
+        return chosen;
+    }
 
     /// <summary>The fighting arms (<c>0x0045B140</c> and its three siblings): every hostile creature in
     /// the game, scored by the arm's one line over the discounted distance and the counts of who

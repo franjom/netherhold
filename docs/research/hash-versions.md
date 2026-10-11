@@ -15,6 +15,10 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**229** — `0xF2A7DEB8B43F2FC3`. Registered attackers are acquired before the
+fight-style scan; Imps bypass its distance cap while retaining visibility and
+route checks (combat-acquisition.md §6).
+
 **228** — `0x315162363F8047CA`. Heart combat targets resolve the three Arch
 Pillars at their builder positions instead of the outer room ring;
 acquisition, approach, melee and shots use the same point (combat-acquisition.md §9).

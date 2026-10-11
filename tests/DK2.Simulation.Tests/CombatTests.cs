@@ -171,6 +171,8 @@ public class CombatTests
         demon.PosY = knight.PosY;
         GameSimulation sim = Combat(db, world);
 
+        SeedFight(db, knight, goblin);
+        SeedFight(db, warlock, goblin);
         sim.Run(1);
         Assert.Equal(goblin.Id, knight.FightTargetId);
         Assert.Equal(goblin.Id, warlock.FightTargetId);
@@ -193,6 +195,7 @@ public class CombatTests
         demon.PosY = knight.PosY;
         GameSimulation sim = Combat(db, world);
 
+        SeedFight(db, knight, goblin);
         RunUntilSwing(sim, demon);
         Assert.Equal(goblin.Id, knight.FightTargetId);
     }
@@ -218,8 +221,13 @@ public class CombatTests
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState blitzer = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 5, 5);
-        Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, 7, 5);
+        CreatureState frontliner = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, 7, 5);
         CreatureState warlock = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Rival, 5, 8);
+        foreach (CreatureState candidate in new[] { frontliner, warlock })
+        {
+            candidate.LastFightScanTileIndex = candidate.Tile.Y * world.Width + candidate.Tile.X;
+            candidate.FightProcessCounter = 0;
+        }
 
         CreatureState nearer = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, 10, 3);
         CreatureState skeleton = Spawn(db, world, Dk2TerrainFixture.SkeletonCreatureId, Keeper, 10, 5);
@@ -387,6 +395,16 @@ public class CombatTests
     }
 
     // ------------------------------------------------------------------ helpers
+
+    private static void SeedFight(GameDatabase db, CreatureState attacker, CreatureState target)
+    {
+        StatePlacement.Place(attacker, 199);
+        attacker.FightTargetKind = FightTargetKind.Creature;
+        attacker.FightTargetId = target.Id;
+        attacker.AttackType = CombatRules.AttackMode.MeleeAtCreature;
+        attacker.AttackRangeSquared = CombatRules.MeleeReachSquared(db.CreatureById(attacker.CreatureTypeId), db.CreatureById(target.CreatureTypeId));
+        Assert.True(CombatRules.Register(target, attacker.Id, ranged: false));
+    }
 
     private static (GameDatabase, WorldState) OpenWorld()
     {

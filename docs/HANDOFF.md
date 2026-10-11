@@ -136,8 +136,10 @@ and locked-door chains, inspect Level8's hatchery Guard visibility and portal mo
 (hero-party-walk.md §1), and compare torch illumination
 at the same camera positions. The per-object light limit is confirmed; its responsibility
 for the reported camera-dependent darkness remains strongly inferred (unity/README.md).
-Imp casualty/timing parity remains open (Q582, combat-acquisition.md §1);
-await the owner's Unity observations before further investigation (2026-10-11).
+Registered-attacker acquisition restores early Imp escape; broader casualty/timing
+parity remains open (Q582, combat-acquisition.md §1/§6); hash/save229.
+Release verification: 4,909 tests without skips; Unity compiles cleanly. All60
+Level1–3 replays validate, wins19/6/8; these are modern regressions, not original parity.
 non-creature threat flight remains unbuilt (combat-fear.md §7).
 Live Heart core crossings are guarded, including arrival/escape (ADR-0439); owner visual acceptance remains pending (Q585, 2026-10-11).
 Heart combat targets resolve the three Arch Pillars, including pending strikes and shots
@@ -160,8 +162,7 @@ recheck the Unity Game view scale before changing rendering (TRAPS.md).
 Owner's first priority (2026-10-10): resolve the excess Level7 Imp deaths (Q582),
 researched in parallel with the authorized Step 4 work. Step 3 is merged;
 this combat/escape discrepancy remains open, not an accepted fidelity deviation.
-The follow-up trace ruled out velocity reset alone as the reproduced death's cure;
-the original encounter capture is still needed (combat-acquisition.md §1).
+The first-approach correction and remaining matched-capture work are in combat-acquisition.md §1.
 
 1. M12: the Q542–Q544 producers are built (ADR-0412–0414), and their leftovers (ADR-0415–0418:
    the Casino party, the Library finder, the bedless rescue, the lying corpse, Q578); not

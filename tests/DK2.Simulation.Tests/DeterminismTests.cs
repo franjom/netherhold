@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 228: target the Heart builder's three Arch Pillars.
+        // HashVersion 229: acquire registered attackers before the fight-style scan.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x315162363F8047CAUL, sim.StateHash());
+        Assert.Equal(0xF2A7DEB8B43F2FC3UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

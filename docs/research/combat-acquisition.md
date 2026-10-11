@@ -34,16 +34,8 @@ acquisition precedes both the state machine and steering on the same tick, and
 Creature order (rechecked 2026-10-10): `0x004B7830` runs complete creature
 updates newest first, because `0x004B4A10` links at the class-list head; see
 [imp-task-stealing.md §8](imp-task-stealing.md#8-update-order-q6). Our combat
-pass now also runs newest first (ADR-0429). Before correction, in a Level7
-seed-7 trace, starter Imp27 withdraws on tick157 after the older Giant1 has
-already started its lethal swing that tick. The corrected pass changes event
-order, but the first death is unchanged: tick160, a 562-damage blow against
-500 HP. Its post-tick state is16 (claim work) at153,10 (job selection) at154,
-and6 (job travel) at155; the scan counter is respectively0,1,2. At156 the first
-route step stays within tile(12,4), leaving scan phase3; at157 the Imp scans
-and withdraws. The Giant
-can still start its swing while the Imp is close. Original updates interleave
-each creature's state and movement; ours retains separate system passes.
+pass now also runs newest first (ADR-0429). Original updates interleave each
+creature's state and movement; ours retains separate system passes.
 No extra Imp-job acquisition call exists among SelectAVictim's twelve callers.
 
 The transition adds no missed scan (binary recheck, 2026-10-11):
@@ -58,31 +50,30 @@ same tile therefore has no additional acquisition opportunity on that turn.
 Claim completion's modeled action hold already has original capture evidence
 (mining-cadence.md §6); this read does not establish a job-timing correction.
 
-Copied-DLL probes on 2026-10-10 reproduce both working and walking encounters.
-Seed7's working Imp30 (state22, scan3) withdraws at234 without a hit; working
-Imp29 withdraws at265 and270, then takes450 damage at273, retaining175/625 HP.
-Walking Imp27 withdraws at157 and dies at160. In ten unaided 500-tick seeds,
-every run loses starting Imp27; starting-Imp losses range from two to four.
-These are modern measurements, not original-game comparisons.
+Owner's original Level7 experiment (2026-10-11): the first claiming Imp flees
+when the Giant targets it from an estimated four to five tiles; the Giant
+never swings at or kills it. Both working and walking Imps react this way.
+This is an observation, not a tick/position capture. Binary scan C (§6)
+explains the trigger without changing the ordinary Imp's one-tile sight cap.
 
-Two isolated counterfactuals do not prevent Imp27's first death. Clearing only
-its retreat velocity changes tick157's step from261 to1890 entity units, but
-the blow still lands at160. Moving that retreat step before Giant1's fight
-handler also fails, with or without the reset: after the reset step, squared
-distance1618 remains below the Giant's attack range2121. These squared values
-are squared tile distances scaled by4096. Detecting and clearing every
-changed route delays the death to161; that probe approximates route requests
-and is not a faithful replacement for the original helper. The original
-route's velocity reset remains unbuilt (see steering-behaviours.md §7.6).
-The swing has no impact-time range test (combat-fight-state.md §4).
-Compare original Level7 positions, job-route timing, scan phase and swing start
-before attributing excess deaths to scheduling or route inertia (Q582).
+Modern Level7 seeds1 and7, hash228: Giant1 registers on Imp27 at142, distance
+3.478 tiles. Imp fear reaches160 at143, but absent scan C it keeps traveling
+and claiming until withdrawing at153. The Giant starts its swing then and
+kills it at156: 562 damage against500 HP. With scan C, acquisition is144,
+flee state203 is145, withdrawal146; the Giant drops its target at156 without
+ever swinging, and the Imp retains500 HP at180. These are modern probes;
+matched original timings and broader casualty parity remain Q582. Later deaths
+still occur: seed7 at237 and seed1 at286, after an alarm route to the nearest
+Portal's centre fails and flight ends with `no_alarm`. The centre is blocked
+by structure navigation; original alarm destination handling needs comparison.
+Route
+velocity reset remains unbuilt (steering-behaviours.md §7.6); the swing has no
+impact-time range test (combat-fight-state.md §4).
 
 `ProcessFight` is one of twelve callers of `SelectAVictim`. Six sit inside
 `spFighting` (re-acquisition); one in the possession handler; one at
-`0x0048A429`, a loop in the same creature update that sets
-`AttackAbnormalTargets` and `AttackingId` before calling with `force` — a
-threat-response path, unread.
+`0x0048A429`, a same-tile enemy-door loop that sets `AttackAbnormalTargets`
+and `AttackingId` before calling with `force`, not a Giant-victim notification.
 
 ## 2. The gate: may I look for a fight? (`0x0045A6D0(force)`)
 
@@ -199,12 +190,20 @@ squared distance of `combat-target-selection.md` §2.
 |---|---|---|---|
 | A | `AttackAbnormalTargets` set and `AttackingId` dead | every player's creatures (`[player+0x10FD]` is the game's player list; `+0x6`/`+0x10` its creatures) | attackable, not me, seen within sight (Imp: one tile) or reached within hearing (Imp: none); **no hostility test** |
 | B | a thing-targeting spell | the neutral player's `+0x12` list | within sight and seen |
-| C | always, unless a live `AttackingId` short-circuits | **my own `+0x504`/`+0x514` — whoever is already attacking me** | `Creeping` weighting (§6.1), alignment discount, `d < best`, attackable, **seen**, not `SneakingAs` my side, sight-or-reach, **and** a route request succeeds |
+| C | always, unless a live `AttackingId` short-circuits | **my own `+0x504`/`+0x514` — whoever is already attacking me**, melee then ranged per slot | `Creeping` weighting (§6.1), alignment discount, strict `d < best`, attackable, **seen**, not `SneakingAs` my side; sight/hearing distance or **Imp**, and a route request succeeds |
 | — | no result yet | `PossessedCreatureFollowing` `+0x482` → its `+0x4D0` | re-acquisition, no strategy runs |
 | — | no result yet | **the fight-type dispatch** with the running best | `combat-target-selection.md` §5 |
 | D | still none after the route check, not a Turncoat | each hostile player's `+0xC` list — **traps** (`player + 6 + class·2`, class 3), newest first: completed, revealed, not trap 16 (`+0xF6`); its own best from `0x7FFFFFFF` (traps.md §11) | `d <= sight²` and seen; an `IsWorker` only under `0x800` |
 | E | none, **or the target is an `IsWorker` creature** (a trap skips it); not Turncoat, not `IsHorny`, not an Imp | each hostile player's heart: `0x004C5F50` = `player+0xB43` tile → centre; its rooms `+0x36`/`+0x8` of type 5 with `+0x9A` bit 0 **clear** (not a ruin); their objects `+0xE`/`+0x12A` with `TypeId` `+0x12C` == **94, Arch Pillar** | heart centre within sight and seen; pillar `d < best` |
 | F | a friendly spell | own creatures in group 22 with health `+0x40` below a quarter of level-scaled `Hp` (`def+0x692`, table `+0xE1`), not `CombatPitFighter`, not captive or tortured, `0x0049A7A0` castable | seen or reached; then routed; AttackType 3 |
+
+**Scan C's Imp exemption (CONFIRMED, assembly recheck 2026-10-11):** the
+comparisons at `0x0045D35D` and `0x0045D56B` let TypeId1 bypass sight/hearing
+distance for a registered attacker. Outer visibility and route checks still
+apply; the Imp routes with word0x80, others0. No hostility filter runs here.
+Registration itself does not change the victim's state. The accepted attacker
+precedes NonFighter dispatch, letting combat-fear.md §3's existing immediate
+NonFighter escape apply while its ordinary scan remains capped at one tile.
 
 **Scan E is the heart's blow.** A creature that can see an enemy heart's centre
 within four tiles attacks its nearest pillar, outranking a worker it had
@@ -276,7 +275,8 @@ the dispatch scan with each arm's score (`CombatRules.Score`), the alignment
 discount, `IsAttackable`, sight and reach, the route check, the final gate, the
 commit, registration, `AttackRangeSquared`, the fight-starter's event 6, and
 `CreatureActivity.Fighting` for state 199; the spell survey and scan F
-(ADR-0167, ADR-0170); scan D and the fight against a trap (ADR-0340); **scan E**,
+(ADR-0167, ADR-0170); scan C's registered-attacker precedence, distance exemption,
+visibility, route and interleaved strict tie order; scan D and the fight against a trap (ADR-0340); **scan E**,
 with three virtual Arch Pillars at the builder's exact sub-tile positions
 (furniture-placement.md §6). Virtual Heart target ids encode slab and pillar
 ordinal, so acquisition, approach, pending impacts and shot aim
@@ -286,7 +286,7 @@ in furniture-placement.md §6. Virtual ids stand in for original object handles.
 What a fighting creature then does is combat-fight-state.md.
 
 **Not built:** the `Creeping` weighting; the thing-targeting survey and scan B;
-scan C (who attacks me) and scan A; the Turncoat skips; `SneakingAs`. The flee
+scan A; the Turncoat skips; `SneakingAs`. The flee
 check is built since ADR-0165 (combat-fear.md §3.4).
 
 ## 10. What is left
