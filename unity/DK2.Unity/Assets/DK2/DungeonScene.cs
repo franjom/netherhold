@@ -44,6 +44,8 @@ namespace DK2.Unity
         private static readonly Color TagTint = new Color(1f, 0.85f, 0.2f);
 
         private readonly Transform _root;
+        private readonly TerrainLattice _lattice;
+        private bool _torchGeometryDirty;
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
@@ -93,6 +95,7 @@ namespace DK2.Unity
             TerrainLattice lattice = null)
         {
             _root = root;
+            _lattice = lattice;
             _worldWidth = worldWidth;
             _classic = classic;
             if (classic != null)
@@ -104,6 +107,7 @@ namespace DK2.Unity
 
         public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)
         {
+            _torchGeometryDirty = true;
             // Steps 1 and 2 of the classic look: plain terrain and rooms from their pieces. A room
             // drawn so needs no furniture box; its objects are step 3.
             _liquids?.Set(tileIndex, tile);
@@ -230,6 +234,13 @@ namespace DK2.Unity
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
                 if (player != null) player.Draw(_renderSeconds, pose.AnimationMovementSpeed);
             }
+            if (_torchGeometryDirty)
+            {
+                foreach (GameObject torch in _torches.Values)
+                    if (torch != null && torch.transform.childCount > 0)
+                        torch.transform.GetChild(0).GetComponent<ClassicTorchGeometry>()?.Refresh();
+                _torchGeometryDirty = false;
+            }
         }
 
         public void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
@@ -308,6 +319,7 @@ namespace DK2.Unity
             GameObject go = new GameObject($"torch {floorTileIndex}");
             go.transform.SetParent(_root, false);
             GameObject model = _classic?.TryCreate(mesh, "torch mesh", go.transform);
+            bool deform = model != null && _lattice != null;
             if (model == null)
             {
                 model = Instantiate(mesh, "torch mesh");
@@ -316,6 +328,7 @@ namespace DK2.Unity
             if (model != null)
             {
                 model.transform.SetParent(go.transform, false);
+                if (deform) model.AddComponent<ClassicTorchGeometry>();
             }
             ApplyTorchPose(go, torch);
             Light light = go.AddComponent<Light>();
@@ -345,12 +358,18 @@ namespace DK2.Unity
             _torches.Remove(floorTileIndex);
         }
 
-        private static void ApplyTorchPose(GameObject go, in TorchView torch)
+        private void ApplyTorchPose(GameObject go, in TorchView torch)
         {
             go.transform.localPosition = Ground(
                 torch.PosX / (float)Fp32.One, torch.PosY / (float)Fp32.One, torch.Height / (float)Fp32.One);
             if (go.transform.childCount == 0) return;
             Transform model = go.transform.GetChild(0);
+            ClassicTorchGeometry geometry = model.GetComponent<ClassicTorchGeometry>();
+            if (geometry != null)
+            {
+                geometry.Configure(torch, _lattice);
+                return;
+            }
             model.localPosition = Ground(
                 (torch.MeshPosX - torch.PosX) / (float)Fp32.One,
                 (torch.MeshPosY - torch.PosY) / (float)Fp32.One);
