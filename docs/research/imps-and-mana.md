@@ -127,6 +127,16 @@ fail while advancing the deadline. `ImpSupplySystem` models that case and the ki
 gate. Deviation: healthy Hearts retain the existing first-heart-tile spawn (Q52); the
 ruined-at-load case is identified by HeartRuined with no recorded attacker.
 
+**Level 7 starting Imp (modern reproduction, 2026-10-11).** At seed 7, keeper 4
+starts with Heart health 1000, no Imps and deadline 0. `imp_generated` creates
+Imp 31 at (20,11) on tick 0; Giants destroy the Heart on tick 20; defeat cleanup
+kills Imp 31 on tick 25. No replacement follows. The owner reports that brief
+appearance and is unsure whether the original shows it. Re-reading
+`0x004BB2A0` confirms the existing pre-defeat eligibility and strict deadline
+comparison; it does not establish this map's visible outcome. Our healthy-Heart
+spawn position and tick-0 eligibility differ from that routine. Compare the
+original before suppressing the cast (Q583).
+
 **A free imp is genuinely free.** The power is cast with a flag that makes the
 original skip the spell-availability check, skip the mana check and skip the
 deduction. The free four cannot be starved out by a poor keeper.
