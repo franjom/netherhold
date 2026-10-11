@@ -306,6 +306,9 @@ public static class AutoFurnitureRules
     /// <summary>Whether a room tile is a floor slot (<c>Room_IsFloorSlot</c> <c>0x00454110</c>).</summary>
     public static bool IsFloorSlot(WorldState world, RoomInstance room, int tileIndex)
     {
+        if (room.Definition.TypeId is RoomTypeId.Portal or RoomTypeId.DungeonHeart
+            or RoomTypeId.WoodenBridge or RoomTypeId.StoneBridge or RoomTypeId.HeroStoneBridge)
+            return false;
         var slots = new List<int>();
         FloorSlots(world, room, new HashSet<int>(room.TileIndices), slots);
         return slots.Contains(tileIndex);

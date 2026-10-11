@@ -1,6 +1,12 @@
 # Early state-hash versions
 
-Versions 9–32, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–33, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**33** — `0x21A7E4D24F37DF48`. Job selection for non-workers (ADR-0082):
+`CurrentJob`, `JobTileIndex`, a choice timestamp per mood, and the mood band
+itself, which DK2 stores rather than recomputing and which this now stores for
+the same reason — anger reaches a creature from four places and three of them
+run before the anger system in the same tick.
 
 **32** — `0x30722F6054924CC5`. The anger split (ADR-0081): one int becomes six.
 DK2 keeps a creature's anger in an `int[6]` indexed by grievance and bands the

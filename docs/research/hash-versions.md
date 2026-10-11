@@ -15,6 +15,10 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**230** — `0x0117CFA8C106044C`. Alarm retreat routes to the random room-chain
+point instead of the fixed centre; Portal, Heart and bridge tiles are never
+floor slots for that selector (combat-alarm.md §2).
+
 **229** — `0xF2A7DEB8B43F2FC3`. Registered attackers are acquired before the
 fight-style scan; Imps bypass its distance cap while retaining visibility and
 route checks (combat-acquisition.md §6).
@@ -391,10 +395,4 @@ the terrain's `MaxHealth`, so the cost is the deficit and not the whole maximum
 
 **34** — `0x46FAACC93F8323FF`. Reason not recorded here; see git history.
 
-**33** — `0x21A7E4D24F37DF48`. Job selection for non-workers (ADR-0082):
-`CurrentJob`, `JobTileIndex`, a choice timestamp per mood, and the mood band
-itself, which DK2 stores rather than recomputing and which this now stores for
-the same reason — anger reaches a creature from four places and three of them
-run before the anger system in the same tick.
-
-[Versions 9–32](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–33](hash-versions-early.md) retain the earlier pins and their reasons.

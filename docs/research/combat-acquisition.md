@@ -62,11 +62,12 @@ and claiming until withdrawing at153. The Giant starts its swing then and
 kills it at156: 562 damage against500 HP. With scan C, acquisition is144,
 flee state203 is145, withdrawal146; the Giant drops its target at156 without
 ever swinging, and the Imp retains500 HP at180. These are modern probes;
-matched original timings and broader casualty parity remain Q582. Later deaths
-still occur: seed7 at237 and seed1 at286, after an alarm route to the nearest
-Portal's centre fails and flight ends with `no_alarm`. The centre is blocked
-by structure navigation; original alarm destination handling needs comparison.
-Route
+matched original timings and broader casualty parity remain Q582. Hash229's
+later deaths (seed7 at237, seed1 at286) exposed the fixed Portal-centre alarm
+route; combat-alarm.md §2 now supplies its original random-point selection.
+Hash230 still loses Imp27 later: seed1 at244 and seed7 at266, after it returns
+to work. Those later approaches need matched original captures; the correction
+does not establish full casualty or damage parity. Route
 velocity reset remains unbuilt (steering-behaviours.md §7.6); the swing has no
 impact-time range test (combat-fight-state.md §4).
 
