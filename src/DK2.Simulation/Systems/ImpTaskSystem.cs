@@ -170,7 +170,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             }));
         _jobs = StepTable(
             (CreatureActivity.Idle, (context, creature, definition, grid) => UpdateIdle(context, creature, definition, grid)),
-            (CreatureActivity.MovingToJob, (context, creature, _, grid) => UpdateMoving(context, creature, grid)),
+            (CreatureActivity.MovingToJob, (context, creature, definition, grid) => UpdateMoving(context, creature, definition, grid)),
             (CreatureActivity.Working, (context, creature, definition, grid) => UpdateWorking(context, creature, definition, grid)));
     }
 
@@ -352,10 +352,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         BeginTaskWalk(context, creature, ImpStates.AtTheStore);
     }
 
-    /// <summary>The walk ends in the entry state (13, 15, 21, 25), which turns the imp to face
-    /// the tile (<c>0x004654F0</c> for 13) and sets the work state once the turn is done. Ours
-    /// takes the one tick every one of 416 captured entries took (mining-cadence.md §5); the
-    /// work state follows in <see cref="UpdateMoving"/>.</summary>
+    /// <summary>The walk ends in the entry state. Wall-work entries turn toward the target
+    /// tile before <see cref="UpdateMoving"/> enters the work state (imp-state-exits.md §2).</summary>
     private static void AtWork(SimulationContext context, CreatureState creature)
     {
         StateShadow.Arrive(context, SystemName, creature);

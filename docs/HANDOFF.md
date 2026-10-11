@@ -119,17 +119,19 @@ See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
 The owner animation comparison gate and Unity crowd upload profiling are outstanding.
 ADR-0433 restores followers' sub-tile walks around stationary leaders; grounded
 liquid height uses the presentation approximation in room-floors-and-liquids.md.
-Hash/save version is 224. Owner Level8 portal comparison pending (2026-10-11).
+Hash/save version is 225. Owner Level8 portal comparison pending (2026-10-11).
+Imps face the task tile before digging, mining, reinforcing or repairing walls
+(ADR-0435); owner reinforcement comparison pending.
 Prisoner, room-job and idle-return travel play movement clips; see kmf-animation-playback.md §5.
 Grounded bridge placement uses the deck height; see room-floors-and-liquids.md.
 The playback/bridge follow-up passes 167 presentation tests and the Unity compile.
 Torch meshes now share the wall lattice; see wall-torches.md §4.
 The torch follow-up passes 172 presentation tests and the Unity compile; owner view pending (2026-10-11).
-Last full-suite verification: 4789 tests pass without skips; Unity assemblies synced,
+Last full-suite verification: 4794 tests pass without skips; Unity assemblies synced,
 adapter compile and independent review pass.
-Level 1–3 replay results are recorded in ADR-0432–0434; artifacts are under
+Level 1–3 replay results are recorded in ADR-0432–0435; artifacts are under
 D:/DungeonKeeperRemake/build/classic-step3-replays/: eating-action-followup,
-portal-follow-followup and chicken-movement-final.
+portal-follow-followup, chicken-movement-final and imp-facing-final.
 Creature status flowers are still part of the unbuilt HUD work. Creature separation
 already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
 Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.

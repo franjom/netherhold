@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 224: chicken object movement and reaction state (ADR-0434).
+        // HashVersion 225: wall-work entry waits for the Imp's facing turn (ADR-0435).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x236F0479C5BE1A9EUL, sim.StateHash());
+        Assert.Equal(0x2B74D4ED96BA549BUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -18,9 +18,14 @@ public class ImpStateTests
     private const int Walk = 6;
     private const int Select = ImpStates.TaskSelection;
 
-    private static (GameSimulation Sim, ListEventSink Events) Start(TilePos impAt)
+    private static (GameSimulation Sim, ListEventSink Events) Start(TilePos impAt, ushort turnRate = 4096)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
+        if (turnRate != 4096)
+            database = new GameDatabase(database.Terrain.Values, database.Rooms.Values,
+                database.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.ImpCreatureId
+                    ? c with { TurnRate = turnRate } : c), database.Variables, objects: database.Objects.Values,
+                keeperSpells: database.KeeperSpells.Values);
         WorldState world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt);
@@ -30,6 +35,54 @@ public class ImpStateTests
         sim.ObserveWith(sink);
         return (sim, sink);
     }
+
+    [Theory]
+    [InlineData(1, 2, 0)]
+    [InlineData(3, 2, 512)]
+    [InlineData(2, 1, 1024)]
+    [InlineData(2, 3, 1536)]
+    public void AReinforcingImpFacesItsWallInsteadOfItsTravelHeading(int x, int y, int heading)
+    {
+        (GameSimulation sim, _) = Start(new TilePos(x, y));
+        CreatureState imp = sim.World.Creatures[0];
+        ReachReinforcementEntry(sim, imp);
+        imp.Heading = heading;
+        int target = WorkHeading(sim, imp);
+        sim.Tick();
+        Assert.Equal(22, imp.Dk2StateId);
+        Assert.Equal(target, imp.Heading);
+    }
+
+    [Fact]
+    public void AReinforcementEntryWaitsForTheTurnBeforeStartingWork()
+    {
+        (GameSimulation sim, _) = Start(new TilePos(2, 2), turnRate: 128);
+        CreatureState imp = sim.World.Creatures[0];
+        ReachReinforcementEntry(sim, imp);
+        int target = WorkHeading(sim, imp);
+        imp.Heading = (target + 1024) & 2047;
+        int timer = imp.TimerTicks;
+        for (int i = 0; i < 7; i++)
+        {
+            sim.Tick();
+            Assert.Equal(21, imp.Dk2StateId);
+            Assert.Equal(timer, imp.TimerTicks);
+        }
+        sim.Tick();
+        Assert.Equal(22, imp.Dk2StateId);
+        Assert.Equal(target, imp.Heading);
+        Assert.Equal(timer - 1, imp.TimerTicks);
+    }
+
+    private static void ReachReinforcementEntry(GameSimulation sim, CreatureState imp)
+    {
+        for (int i = 0; i < 300 && imp.Dk2StateId != 21; i++) sim.Tick();
+        Assert.Equal(21, imp.Dk2StateId);
+    }
+
+    private static int WorkHeading(GameSimulation sim, CreatureState imp) =>
+        DK2.Simulation.Steering.Bearing.Of(CreatureState.CentreOf(imp.TargetTileIndex % sim.World.Width) - imp.PosX,
+            CreatureState.CentreOf(imp.TargetTileIndex / sim.World.Width) - imp.PosY);
 
     private static List<(int State, int Saved, int Resume)> StatesSeen(
         GameSimulation sim, int ticks, params PlayerCommand[] first)

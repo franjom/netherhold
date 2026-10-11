@@ -9948,3 +9948,20 @@ approximation. Free-range process 10 and Prison process 3 remain unbuilt (Q584);
 Chicken animation, footstep audio and original timing comparisons remain open.
 All 60 Level 1–3 replays remain valid; wins change from 19/8/17 to 19/5/17
 (modern regression results, not original parity).
+
+## ADR-0435 — Face the task tile before starting wall work
+**Date:** 2026-10-11 · **Status:** accepted · Research: imp-state-exits.md §2
+
+**Context.** Imps retained their approach heading when reinforcing walls.
+The entry handlers for digging, mining, reinforcement and wall repair turn
+toward the task tile centre and hold the entry state until the turn completes.
+
+**Decision.** Apply the creature definition's turn rate in those entry states.
+Begin work only when aligned; incomplete turns do not advance the work timer.
+Keep floor claiming unchanged. Hash/save version 225.
+
+**Consequences.** Heading and wall-work timing can change subsequent simulation
+choices. Regression coverage checks reinforcement from all four sides and
+a multi-tick turn. This does not change sight acquisition or resolve Q582.
+All 60 Level 1–3 replays remain valid; wins change from 19/5/17 to 19/6/18
+(modern regression results, not original parity).
