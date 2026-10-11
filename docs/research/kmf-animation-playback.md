@@ -58,8 +58,8 @@ that phase directly to continuous frame at draw `+0x64` and integer lookup at
 `+0x68`, using the same clamp/wrap and frame-count formula as §2. The part
 drawer `0x005836A0` evaluates that frame through `0x0057E5B0`; no secondary
 sprite-instance transfer is needed. `0x00598880` supplies input dword `+4`
-divided by 256 to the render factor's writer. Its game-clock producer is
-still UNKNOWN (Q442).
+divided by 256 to the render factor's writer. The producer and its smoothed,
+quantized clock are confirmed in animation-transitions.md §3.
 
 Segment resources are separate meshes: `0x004B44E0` chooses compact art
 `+0x13` for start, `+0xF` for main, `+0x17` for end. `0x00492320` loads flagged
@@ -90,9 +90,12 @@ family onto a modern rig (Q443). Unity uploads positions to an instance mesh.
 `RenderAnimationClock` advances the ordinary integer phase and its start/main/end
 segments, and Unity uses each segment's own mesh/UVs. Playback starts on clip
 changes with the same-turn first advance. Ordinary movement rate changes are
-built as §6 describes. Queued replacement, other action restarts and the complete chooser
-(`0x0048BE50`) remain pending. See §5 for the built choices. Shared arrays have no
-per-sample allocation; Unity upload and whole-scene cost require editor profiling.
+built as §6 describes. Queued landing changes, frozen holds, stop-loop flags and
+possessed displacement rates are built; see animation-transitions.md. Meal,
+combat and training actions restart from their entry stamps. See §5 for the
+built choices; the complete status/action chooser remains a broader engine
+boundary. Actual Unity sampling/upload and standalone measurements are in
+tools/classic-unity-probe/README.md; shared arrays allocate nothing per sample.
 
 The Release probe on this machine (200 instances, 300 renders, 2026-10-10) measured
 sampler-only cost: Imp 0.121 ms, Giant 0.132 ms, Salamander 0.125 ms, Mistress

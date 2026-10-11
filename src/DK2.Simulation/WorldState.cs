@@ -180,6 +180,7 @@ public struct TileState
     /// <see cref="JailBreakRules.Activated"/>, <see cref="JailBreakRules.Open"/> and
     /// <see cref="JailBreakRules.Broken"/>.</summary>
     public byte PrisonDoor;
+    public long PrisonDoorAnimationTick;
 
     /// <summary>A room tile's place in its room's slab chain (<c>FirstSlab</c> to <c>LastSlab</c>,
     /// <c>room+0x2D</c>/<c>+0x2F</c>): the chain is the room's tiles by this, then by tile index.
@@ -265,6 +266,7 @@ public struct TileState
         hash.Add(CasinoParty);
         hash.Add(CasinoPartyStartTick);
         hash.Add(PrisonDoor);
+        hash.Add(PrisonDoorAnimationTick);
         hash.Add(SlabOrder);
         hash.Add(RoomSizeChangedTick);
         hash.Add(RoomKickedTick);

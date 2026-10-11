@@ -19,6 +19,56 @@ namespace DK2.Presentation.Tests;
 public class ObjectViewTests
 {
     [InstallFact]
+    public void AnAirborneEggRetainsItsPreviousHeightAndTurnsForInterpolation()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        ObjectState egg = world.SpawnObject(database, HatcheryRules.EggObjectId, 3, 40);
+        egg.ProcessState = EggLaunchRules.LaunchProcess;
+        egg.ProcessAgeTicks = EggLaunchRules.HiddenTicks;
+        egg.PosZ = 5000;
+        egg.DrawPitch = 64;
+        var view = new WorldView(database);
+        ObjectView before = view.Objects(world).Single(o => o.Id == egg.Id);
+        view.CaptureObjectPositions(world);
+        new GameSimulation(database, world, 7, []).Tick();
+        egg.PosZ = 6000;
+        egg.DrawPitch = 128;
+        ObjectView after = view.Objects(world).Single(o => o.Id == egg.Id);
+        Assert.Equal(before.Height, after.PreviousHeight);
+        Assert.Equal(before.Pitch, after.PreviousPitch);
+        Assert.Equal(before.Roll, after.PreviousRoll);
+        Assert.NotEqual(after.Height, after.PreviousHeight);
+    }
+
+    [InstallTheory]
+    [InlineData(35, 29, 0, 5)]
+    [InlineData(47, 32, 0, 0)]
+    [InlineData(47, 32, 1, 5)]
+    [InlineData(14, 18, 0, 5)]
+    [InlineData(14, 18, 1, 0)]
+    [InlineData(95, 48, 0, 5)]
+    [InlineData(95, 49, 0, 6)]
+    [InlineData(10, 12, 0, 0)]
+    [InlineData(10, 15, 0, 7)]
+    [InlineData(10, 19, 0, 6)]
+    public void ObjectProcessSelectsItsArtAndRestartsAtItsSimulationStamp(byte type, byte process, byte artStage, int slot)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        ObjectState thing = world.SpawnObject(database, type, 3, 40);
+        thing.ProcessState = process;
+        thing.ProcessAgeTicks = 1;
+        thing.ProcessCount = artStage;
+        thing.ProcessDeadline = 17;
+        thing.AnimationStartedTick = 17;
+        ObjectView rendered = new WorldView(database).Objects(world).Single(o => o.Id == thing.Id);
+        Assert.Equal(slot == 0 ? AssetRef.ForObject(database.ObjectById(type)!.Name, AssetKind.Mesh)
+            : AssetCatalogue.ObjectArt(database.ObjectById(type)!.Name, slot), rendered.Mesh);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.False(rendered.AnimationLoops);
+        Assert.Equal(new GameTick(17), rendered.AnimationStartedAt);
+    }
+
+    [InstallFact]
     public void ARepresentedDungeonHeartAlsoPlaysItsFloorAnimation()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -125,7 +175,7 @@ public class ObjectViewTests
             AssetCatalogue.ForObjects(database).Select(k => k.Key), StringComparer.Ordinal);
 
         Assert.NotEmpty(catalogue);
-        Assert.Equal(database.Objects.Count + 7, catalogue.Count); // Gold Pile, Book Case and Chicken extra arts
+        Assert.Equal(database.Objects.Count + database.Objects.Keys.Sum(id => AssetCatalogue.ObjectArtSlots(id).Count), catalogue.Count);
 
         // One of each kind the simulation can place today.
         world.SpawnObject(database, 1, PlayerIds.Neutral, 40);

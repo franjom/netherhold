@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**226** — `0xB369A6E155352AB0`. Supported animation lifecycles retain training actions, object animation stamps and physical poses, and the Prison door opening stamp. ADR-0438.
+
 **225** — `0x2B74D4ED96BA549B`. Imps turn toward the task tile before digging, mining, reinforcing or repairing its wall, holding the entry state until aligned. ADR-0435.
 
 **224** — `0x236F0479C5BE1A9E`. Owned Hatchery chickens run their movement/reaction loop, with saved and hashed heading, age, reaction state, movement block and room membership. ADR-0434.

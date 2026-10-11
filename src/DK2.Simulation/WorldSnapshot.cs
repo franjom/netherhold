@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 225;
+    private const int FormatVersion = 226;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -139,6 +139,7 @@ public static class WorldSnapshot
             w.Write(t.CasinoParty);
             w.Write(t.CasinoPartyStartTick);
             w.Write(t.PrisonDoor);
+            w.Write(t.PrisonDoorAnimationTick);
             w.Write(t.SlabOrder);
             w.Write(t.RoomSizeChangedTick);
             w.Write(t.RoomKickedTick);
@@ -380,6 +381,11 @@ public static class WorldSnapshot
             w.Write(c.Tunnel.ActionUntilTick);
             w.Write(c.WanderStamp);
             w.Write(c.ActionUntilTick);
+            w.Write(c.TrainingActionId);
+            w.Write(c.TrainingActionStartedTick);
+            w.Write(c.TrainingTargetObjectId);
+            w.Write(c.TrainingSpellSlot);
+            w.Write(c.TrainingActionHitDone);
             w.Write(c.Fleeing);
             w.Write(c.ShouldDelayGetUp);
             w.Write(c.TremorRoutePaused);
@@ -536,6 +542,14 @@ public static class WorldSnapshot
             w.Write(o.PosY);
             w.Write(o.Heading);
             w.Write(o.ProcessAgeTicks);
+            w.Write(o.AnimationStartedTick);
+            w.Write(o.PosZ);
+            w.Write(o.PhysicalVelocityX);
+            w.Write(o.PhysicalVelocityY);
+            w.Write(o.PhysicalVelocityZ);
+            w.Write(o.DrawPitch);
+            w.Write(o.DrawYaw);
+            w.Write(o.DrawRoll);
             w.Write(o.ChickenCanEscape);
             w.Write(o.HatcheryRoomAnchorTileIndex);
             w.Write(o.ChickenScared);
@@ -768,6 +782,7 @@ public static class WorldSnapshot
                 CasinoParty = r.ReadByte(),
                 CasinoPartyStartTick = r.ReadInt64(),
                 PrisonDoor = r.ReadByte(),
+                PrisonDoorAnimationTick = r.ReadInt64(),
                 SlabOrder = r.ReadInt32(),
                 RoomSizeChangedTick = r.ReadInt64(),
                 RoomKickedTick = r.ReadInt64(),
@@ -1005,6 +1020,11 @@ public static class WorldSnapshot
                 },
                 WanderStamp = r.ReadInt64(),
                 ActionUntilTick = r.ReadInt64(),
+                TrainingActionId = r.ReadByte(),
+                TrainingActionStartedTick = r.ReadInt64(),
+                TrainingTargetObjectId = r.ReadInt32(),
+                TrainingSpellSlot = r.ReadByte(),
+                TrainingActionHitDone = r.ReadBoolean(),
                 Fleeing = r.ReadBoolean(),
                 ShouldDelayGetUp = r.ReadBoolean(),
                 TremorRoutePaused = r.ReadBoolean(),
@@ -1178,6 +1198,14 @@ public static class WorldSnapshot
                 PosY = r.ReadInt32(),
                 Heading = r.ReadInt32(),
                 ProcessAgeTicks = r.ReadInt32(),
+                AnimationStartedTick = r.ReadInt64(),
+                PosZ = r.ReadInt32(),
+                PhysicalVelocityX = r.ReadInt32(),
+                PhysicalVelocityY = r.ReadInt32(),
+                PhysicalVelocityZ = r.ReadInt32(),
+                DrawPitch = r.ReadInt32(),
+                DrawYaw = r.ReadInt32(),
+                DrawRoll = r.ReadInt32(),
                 ChickenCanEscape = r.ReadBoolean(),
                 HatcheryRoomAnchorTileIndex = r.ReadInt32(),
                 ChickenScared = r.ReadBoolean(),

@@ -108,34 +108,20 @@ Replay drivers recovered from C:/Users/franj/AppData/Local/Temp/claude/d--Dungeo
 d869276a-99ca-491a-9cf5-0342488c1277/scratchpad. Measured baseline/current artifacts:
 D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup,collision-water-followup,imp-alarm-followup,chicken-placement-followup,giant-imp-followup,level8-wait-followup}.
 These are local artifacts. Follow-up: docs/plans/2026-10-10-torture-wheel-followup.md.
-Step 4 adds fractional KMF sampling, per-instance Unity meshes and
-previous/current position interpolation (ADR-0431). Existing idle, ordinary walk,
-run, Imp dig/claim/reinforce, sleep, die and torture mappings can play, with
-ordinary quantized phases and separate Start/End meshes. Hatchery eating retains
-action 26's first-cycle wait and restarts playback from its entry stamp (ADR-0432).
-Ordinary travel rates follow body velocity and the authored movement scale;
-prison eating, other action restarts and exceptional rate overrides remain pending.
-Chicken Walk/Eat/Scared playback and position/heading interpolation are built;
-combat routes play walk/run and melee swings play once (ADR-0436).
-Live Hearts beat and spell-casting clips play (ADR-0437); owner comparison pending (2026-10-11).
-See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
-The owner animation comparison gate and Unity crowd upload profiling are outstanding.
-Profiler scopes and the capture procedure are in unity/README.md.
-ADR-0433 restores followers' sub-tile walks around stationary leaders; grounded
-liquid height uses the presentation approximation in room-floors-and-liquids.md.
-Hash/save version is 225. Owner Level8 portal comparison pending (2026-10-11).
-Imps face the task tile before digging, mining, reinforcing or repairing walls
-(ADR-0435); owner reinforcement comparison pending.
-Prisoner, room-job and idle-return travel play movement clips; see kmf-animation-playback.md §5.
-Grounded bridge placement uses the deck height; see room-floors-and-liquids.md.
-The playback/bridge follow-up passes 167 presentation tests and the Unity compile.
-Torch meshes now share the wall lattice; see wall-torches.md §4.
-The torch follow-up passes 172 presentation tests and the Unity compile; owner view pending (2026-10-11).
-Last full-suite verification: 4809 tests pass without skips; Unity assemblies synced,
-adapter compile and independent review pass.
-Level 1–3 replay results are recorded in ADR-0432–0435; artifacts are under
-D:/DungeonKeeperRemake/build/classic-step3-replays/: eating-action-followup,
-portal-follow-followup, chicken-movement-final and imp-facing-final.
+Step 4's supported playback and interpolation are built (ADR-0431–0438).
+Canonical scope and remaining research boundaries: kmf-animation-playback.md,
+animation-transitions.md and plans/2026-10-10-classic-look-step4.md.
+The owner has not checked the final animation comparison gate (2026-10-11).
+Actual Unity crowd captures and rendering comparisons are complete; the
+background-load caveat and production migration limits are recorded with the
+measurements in tools/classic-unity-probe/README.md.
+Hash/save version is 226. All 4861 tests pass without skips; assemblies synced,
+adapter compile and independent review pass. All 60 Level 1–3 replays validate;
+bounded-run wins are 19/6/17 versus 19/6/18 on 225. These are modern regression
+measurements, not proof of original timing parity.
+Artifacts: D:/DungeonKeeperRemake/build/classic-step3-replays/step4-final.
+Grounded bridge and liquid placement: room-floors-and-liquids.md.
+Torch meshes share the wall lattice; see wall-torches.md §4.
 Creature status flowers are still part of the unbuilt HUD work. Creature separation
 already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
 Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.

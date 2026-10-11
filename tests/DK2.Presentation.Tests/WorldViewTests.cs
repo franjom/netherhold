@@ -24,6 +24,85 @@ namespace DK2.Presentation.Tests;
 public class WorldViewTests
 {
     [InstallTheory]
+    [InlineData("Imp", false, "idle")]
+    [InlineData("Dwarf", true, "landing")]
+    public void LandingQueuesTheAuthoredClipExceptForEvilWorkers(string name, bool deferred, string clip)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState creature = world.SpawnCreature(database, database.CreatureByName(name)!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        creature.Dk2StateId = DropLandingRules.LandingState;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(deferred, rendered.AnimationDeferred);
+        Assert.Equal(!deferred, rendered.AnimationLoops);
+        Assert.Equal(AssetRef.ForCreature(name, AssetKind.Animation, clip), rendered.Animation);
+    }
+
+    [InstallTheory]
+    [InlineData(30, "fighting")]
+    [InlineData(31, "casting")]
+    public void TrainingActionsPlayTheirOwnClipAndEntryStamp(byte action, string clip)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState creature = world.SpawnCreature(database, database.CreatureByName("Warlock")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        creature.Dk2StateId = 112;
+        creature.CurrentJob = JobType.Train;
+        creature.TrainingActionId = action;
+        creature.TrainingActionStartedTick = 42;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.False(rendered.AnimationLoops);
+        Assert.Equal(AssetRef.ForCreature("Warlock", AssetKind.Animation, clip), rendered.Animation);
+        Assert.Equal(new GameTick(42), rendered.AnimationStartedAt);
+    }
+
+    [InstallFact]
+    public void PossessedMovementUsesSquaredDisplacementForItsAnimationRate()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState creature = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        creature.Dk2StateId = 200;
+        creature.Body.PathTotalCount = 1;
+        creature.Body.PathFinished = false;
+        creature.Possessed = true;
+        creature.LastPosX = creature.PosX - 2048;
+        creature.LastPosY = creature.PosY - 1024;
+        creature.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(new Fp32(1280), rendered.AnimationMovementSpeed);
+    }
+
+    [InstallTheory]
+    [InlineData(0, false)]
+    [InlineData(3, true)]
+    public void FrozenCreaturesHoldTheirAnimation(int frozenTicks, bool paused)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState creature = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        creature.FrozenTicks = frozenTicks;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(paused, rendered.AnimationPaused);
+    }
+
+    [InstallFact]
+    public void APrisonMealPlaysFromItsStateEntryStamp()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState captive = world.SpawnCreature(database, database.CreatureByName("Dark Elf")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        captive.Dk2StateId = PrisonRules.AfterEatingState;
+        captive.StateEnteredTick = 42;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == captive.Id);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Equal(AssetRef.ForCreature("Dark Elf", AssetKind.Animation, "eating"), rendered.Animation);
+        Assert.Equal(new GameTick(42), rendered.AnimationStartedAt);
+        Assert.Null(rendered.AnimationMovementSpeed);
+    }
+
+    [InstallTheory]
     [InlineData(DK2.Simulation.Combat.SpellRules.SpellCast)]
     [InlineData(DK2.Simulation.Combat.SpellRules.FreeAimCast)]
     public void APendingSpellCastOverridesTravelAndUsesItsOwnStartStamp(byte kind)

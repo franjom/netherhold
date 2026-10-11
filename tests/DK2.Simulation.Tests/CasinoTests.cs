@@ -148,10 +148,13 @@ public class CasinoTests
 
         Pull(sim, Keeper);
         Assert.Equal(CasinoRules.Stingy, Lever(world).Setting);
+        Assert.Equal((byte)49, Lever(world).ProcessState);
+        Assert.Equal(0, Lever(world).ProcessAgeTicks);
         Pull(sim, Rival);
         Assert.Equal(CasinoRules.Stingy, Lever(world).Setting);
         Pull(sim, Keeper);
         Assert.Equal(CasinoRules.Generous, Lever(world).Setting);
+        Assert.Equal((byte)48, Lever(world).ProcessState);
     }
 
     [Fact]

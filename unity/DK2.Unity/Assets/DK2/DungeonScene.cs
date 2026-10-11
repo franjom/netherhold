@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using DK2.Assets;
+using DK2.Art;
 using DK2.Core;
 using DK2.Presentation;
 using UnityEngine;
@@ -52,13 +53,13 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, AssetRef> _creatureArt = new Dictionary<int, AssetRef>();
         private readonly Dictionary<int, CreatureView> _creaturePoses = new Dictionary<int, CreatureView>();
-        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt)> _creatureClips =
-            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt)>();
+        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, bool Deferred)> _creatureClips =
+            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, bool Deferred)>();
         private double _renderSeconds;
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, ObjectView> _objectPoses = new Dictionary<int, ObjectView>();
-        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt)> _objectClips =
-            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt)>();
+        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops)> _objectClips =
+            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops)>();
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
@@ -203,7 +204,7 @@ namespace DK2.Unity
         {
             if (_classic == null || !_meshCreatures.Contains(id)) return;
             AssetRef clip = creature.PlaysAnimation ? animation.Reference : default;
-            var identity = (clip, creature.AnimationStartedAt);
+            var identity = (clip, creature.AnimationStartedAt, creature.AnimationLoops, creature.AnimationDeferred);
             if (_creatureClips.TryGetValue(id, out var previous) && previous == identity) return;
             _creatureClips[id] = identity;
             ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
@@ -211,7 +212,9 @@ namespace DK2.Unity
                 ? (creature.AnimationStartedAt.Value.Value + 1d) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond
                 : _renderSeconds;
             if (creature.PlaysAnimation && _classic.ConfigureAnimation(go, animation, creature.AnimationLoops,
-                startSeconds, creature.AnimationMovementSpeed)) return;
+                startSeconds, creature.AnimationMovementSpeed,
+                creature.AnimationDeferred ? AnimationReplacement.Deferred : AnimationReplacement.Immediate,
+                creature.AnimationPaused)) return;
             if (player != null) player.Stop();
             _classic.RestoreModel(go, mesh);
         }
@@ -239,7 +242,7 @@ namespace DK2.Unity
                     pose.Height / (float)Fp32.One);
                 go.transform.position = new Vector3(ground.x, position.y, ground.z);
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
-                if (player != null) player.Draw(_renderSeconds, pose.AnimationMovementSpeed);
+                if (player != null) player.Draw(_renderSeconds, pose.AnimationMovementSpeed, pose.AnimationPaused);
             }
             foreach (KeyValuePair<int, ObjectView> entry in _objectPoses)
             {
@@ -247,11 +250,16 @@ namespace DK2.Unity
                 ObjectView pose = entry.Value;
                 Vector3 ground = Ground(Mathf.Lerp(pose.PreviousPosX, pose.PosX, fraction) / Fp32.One,
                     Mathf.Lerp(pose.PreviousPosY, pose.PosY, fraction) / Fp32.One,
-                    pose.Height / (float)Fp32.One);
-                go.transform.position = new Vector3(ground.x, go.transform.position.y, ground.z);
+                    Mathf.Lerp(pose.PreviousHeight, pose.Height, fraction) / Fp32.One);
+                go.transform.position = new Vector3(ground.x,
+                    _meshObjects.Contains(entry.Key) ? ground.y : go.transform.position.y, ground.z);
                 int turn = ((pose.Heading - pose.PreviousHeading + 1024) & 2047) - 1024;
                 float yaw = (pose.PreviousHeading + 1024 + turn * fraction) * 360f / 2048f;
-                go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+                float pitch = pose.PreviousPitch + (((pose.Pitch - pose.PreviousPitch + 1024) & 2047) - 1024) * fraction;
+                float roll = pose.PreviousRoll + (((pose.Roll - pose.PreviousRoll + 1024) & 2047) - 1024) * fraction;
+                go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f)
+                    * Quaternion.AngleAxis(roll * 360f / 2048f, Vector3.forward)
+                    * Quaternion.Euler(-pitch * 360f / 2048f, 0f, 0f);
                 go.GetComponent<ClassicCreatureAnimation>()?.Draw(_renderSeconds);
             }
             if (_torchGeometryDirty)
@@ -297,16 +305,25 @@ namespace DK2.Unity
 
         private void ConfigureObjectClip(GameObject go, int id, in ObjectView pose, in ResolvedAsset mesh)
         {
-            if (!pose.PlaysAnimation) return;
+            if (!pose.PlaysAnimation)
+            {
+                _objectPoses[id] = pose;
+                if (_objectClips.Remove(id))
+                {
+                    go.GetComponent<ClassicCreatureAnimation>()?.Stop();
+                    if (_classic != null && _meshObjects.Contains(id)) _classic.RestoreModel(go, mesh);
+                }
+                return;
+            }
             _objectPoses[id] = pose;
-            var identity = (mesh.Reference, pose.AnimationStartedAt);
+            var identity = (mesh.Reference, pose.AnimationStartedAt, pose.AnimationLoops);
             if (_objectClips.TryGetValue(id, out var previous) && previous == identity) return;
             _objectClips[id] = identity;
             double startSeconds = pose.AnimationStartedAt.HasValue
                 ? (pose.AnimationStartedAt.Value.Value + 1d) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond
                 : _renderSeconds;
             if (_classic != null && _meshObjects.Contains(id)
-                && _classic.ConfigureAnimation(go, mesh, true, startSeconds)) return;
+                && _classic.ConfigureAnimation(go, mesh, pose.AnimationLoops, startSeconds)) return;
             go.GetComponent<ClassicCreatureAnimation>()?.Stop();
             if (_classic != null && _meshObjects.Contains(id)) _classic.RestoreModel(go, mesh);
         }

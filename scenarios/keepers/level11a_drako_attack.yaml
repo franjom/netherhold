@@ -64,12 +64,14 @@ expect:
       calls them to fight intruders (ADR-0407). Timing depends on the seed (Q563, Q574).
   - event: call_to_arms_raised
     detail: "tile=64,34"
-    at_tick: 271
+    at_tick: 272
     because: >
       With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
       heart and attack management casts the call there (0x004FECE0, ADR-0298). The point is a draw
-      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. This version-224 fixture
-      uses seed 4 to retain a northern call after chicken roaming adds draws (ADR-0434).
+      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. This version 226 fixture
+      uses seed 4 to retain a northern call after chicken roaming (ADR-0434), full-room
+      egg launches and natural training actions add their original simulation draws.
+      The version 226 run raises the call at tick 272; this row is the current seeded pin.
       Direction and timing remain
       seed-dependent (Q574); these observations do not establish original placement or timing parity.
   - event: engaged

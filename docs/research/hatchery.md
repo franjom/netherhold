@@ -1,4 +1,4 @@
-﻿# Mechanic: the Hatchery — coops, eggs and chickens
+# Mechanic: the Hatchery — coops, eggs and chickens
 
 Source(s):
 - `DKII.EXE` v1.70, `Hatchery.cpp`'s translation unit, read 2026-09-04
@@ -23,12 +23,9 @@ The routine that produces food creates **object 47**, which `Objects.kwd` names
 not. So the food chain has a step: **the hatchery lays an egg, and something
 turns the egg into a chicken.**
 
-**CONFIRMED by the owner** (2026-09-05), who watched one: *"it produces eggs that
-hatch, that entire animation of eggs appearing and hatching lasts about 2
-seconds, and after that a chicken appears and roams around the hatchery."* The
-delay is **about two seconds**, timed from the animation — whether the simulation
-holds an egg in a state for exactly that long, or the art covers a shorter
-transition, is not settled.
+The owner recalls an approximately two-second appearance-and-hatch sequence
+(2026-09-05). Its simulation timing is now confirmed from the binary: see
+[object-drawing.md section 8](object-drawing.md#8-furniture-eggs-and-chickens).
 
 The objects' `StartState`s corroborate the shape — 0 for the egg, 10 for the
 chicken — so both have a state machine to do it in, and DK2's object carries a
@@ -111,7 +108,7 @@ So the coop is where a full room lays, which fits §5's free-range counter.
 `HatcheryRules.TryLayEgg` implements the capacity path and retains the resulting
 coordinates through hatching and presentation (ADR-0428). Presentation-only room
 pillars are excluded using the same corner predicate as the view. The full-room
-coop path remains unbuilt: see *Known exceptions*.
+coop path and free-range gate are built; launch physics limits are in object-drawing.md section 8.
 
 The room also keeps a **running count of everything it has produced**, bumped on
 each successful lay: `ChickensGenerated`, `room+0x51` (the dumper's name), zeroed by
@@ -243,28 +240,13 @@ per-kind state is **`FreeRange`, `PeckingTimer`, `StayThere`,
 
 ## 6. Implementation
 
-`HatcheryRules` + `HatcherySystem` (ADR-0066), once a game second, hatching
-before laying so an egg is not aged on the second it is laid. Every number in it
-is the original's:
-
-- coop count from tile count, and the spacing rule as integer tile distances,
-  which is exactly equivalent to the original's fixed-point comparison because a
-  coop always stands at a tile centre (`CoopCount`, `CoopTiles`, `PlaceCoops`);
-- coops as real objects, placed idempotently so the call is safe to repeat;
-- the egg on a random non-pillar slab with two sub-tile offsets (`TryLayEgg`, §3);
-- the laying clock, `LayIntervalSeconds` / `LayIntervalSecondsForTiles`, from the
-  fixed-point table of §4, with `MaxTilesForInterval` = 256;
-- the **hatch**: `Hatch` swaps an egg for a chicken on the same tile after
-  `EggHatchSeconds` (2);
-- the flock cap: `FlockCapacity`, `Flock`, `Birds`, `FlockIsFull`, and
-  `TryLayEgg` refusing when the room is full — counting eggs as well as
-  chickens, since an egg is a chicken two seconds from now;
-- the free-range cap **exposed and deliberately not enforced** (`FreeRangeCap`):
-  a 5x5 hatchery holds more than twenty chickens, so a limit of 12 is not the
-  room's limit, and applying it would throttle a room DK2 does not throttle.
-
-The produced count is `TileState.ChickensGenerated`, on the room's lowest tile like
-the laying clock; a tile that changes terrain or owner drops it (ADR-0335).
+`HatcherySystem` advances the coop and egg object processes each tick, using
+shipped integer art timing. Laying remains checked once a game second on the
+room interval. `HatcheryRules` counts registered chickens for room capacity;
+eggs consume none. Full rooms use the coop branch below the owner's free-range
+cap. Metadata-free synthetic definitions retain the ADR-0066 two-second hatch
+fallback. Object animation and launch evidence lives in
+[object-drawing.md section 8](object-drawing.md#8-furniture-eggs-and-chickens).
 
 The owner confirmed the stacked chickens were hidden beneath the coop
 (2026-10-10 screenshot). ADR-0428 corrects their laying positions; the local
@@ -280,11 +262,6 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
 ## Known exceptions
 
 - The nine-tile truncation to 7 rather than 8 (§4), reproduced.
-- `MaxFreeRangeChickensPerPlayer` parsed, exposed and not applied (§5) — the
-  second of the three balance variables this project has caught not meaning what
-  its name implies, after `MaxGoldPileOutsideTreasury`.
-- Ours still refuses a full room; DK2 can launch an egg from a coop under the
-  free-range gate (§3). That path and its animation/physics remain unbuilt.
 - DK2 deletes every auto-placed coop on each change and places them all again,
   with new ids in the new chain order, each with its angle and one
   simulation-stream roll (§2). Ours keeps the coops still wanted and adds the

@@ -131,9 +131,9 @@ Prison door, the Crypt bell, roulette wheels, the wheel beside Torture coals, an
 heart tile's gold as Urn1, Urn2 or the Chest by fill. Torture wheels beside coals/water are now
 simulation devices. A floor pile scales with its gold, a Book Case
 shows its selector's variant, and a sleeping creature's bed is hidden. With the install, an object
-with no art draws nothing, as DK2's does. Not built: the objects' animations by state (coop
-wobble, egg hatch, dummy recoil, the Heart's beat plays from step 4) and the headings DK2 draws
-on the simulation stream (beds, store piles), which ours does not keep. Tilts and offsets,
+with no art draws nothing, as DK2's does. Supported object-state animations are built
+in step 4 (ADR-0438). The headings DK2 draws on the simulation stream for beds and store
+piles remain unbuilt. Tilts and offsets,
 Prison door facing, KMF transparency, Hero Gate floors/faces and ruined Heart floors are built.
 Q581's wall-machine working positions and the room initialization/navigation fixes are built
 under ADR-0419, hash/save version 215. Owner screenshot checks remain in HANDOFF.md.
@@ -148,6 +148,9 @@ under ADR-0419, hash/save version 215. Owner screenshot checks remain in HANDOFF
 4. Smooth a creature's position between ticks; today it jumps once a tick (`unity/README.md`).
 
 Gate: imps digging and claiming, and a creature walking, eating and sleeping, beside DK2's.
+
+Implementation and verification status: 2026-10-10-classic-look-step4.md.
+The owner comparison gate remains pending.
 
 ## Step 5: camera and lighting
 

@@ -67,11 +67,12 @@ public sealed class PrisonerEatSystem : ISimulationSystem
                 continue;
             }
 
-            // 119 waits out the meal, then 115 (0x00473730). Action lengths are not
-            // modelled here or at the hatchery, so the wait is the one turn.
+            // 119 holds action 26's first cycle, then searches again in 117.
             if (creature.Dk2StateId == PrisonRules.AfterEatingState)
             {
-                To(context, creature, PrisonRules.DecidingState);
+                if (context.Tick.Value < creature.ActionUntilTick) continue;
+                creature.ActionUntilTick = 0;
+                To(context, creature, PrisonRules.SeekingFoodState);
                 continue;
             }
 
@@ -243,6 +244,12 @@ public sealed class PrisonerEatSystem : ISimulationSystem
 
         creature.TargetObjectId = EatingRules.NoChicken;
         creature.StopMoving();
+        creature.ActionUntilTick = context.Tick.Value;
+        if (AnimationTimingRules.ResolvesPresent(definition, 13))
+        {
+            CreatureAnimationTiming animation = definition.ArtSlot(AnimationTimingRules.ResolveArtSlot(definition, 13));
+            creature.ActionUntilTick += AnimationTimingRules.FirstCycleHoldTicks(animation);
+        }
         To(context, creature, PrisonRules.AfterEatingState);
     }
 

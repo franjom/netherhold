@@ -20,18 +20,17 @@ Q582 awaits the owner's Unity observations; do not investigate it meanwhile
 (owner, 2026-10-11). Presentation changes remain separate from the researched
 eating action boundary (ADR-0432).
 
-Progress: fractional sampling, ordinary integer phases, separate Start/End
-meshes, position interpolation and run/claim/reinforce mappings are built.
-Travel rates use body velocity and the authored scale; fresh installs preserve
-the initial scalar. Hatchery meals retain action 26's wait and restart their
-clip from the entry stamp. Remaining: prison eating,
-exceptional rate overrides, other action restarts, queued transitions, editor
-profiling and the owner visual gate. The primary phase-to-frame link is closed;
-the render factor's game-clock producer remains open (Q442).
-Q582 trace is recorded in combat-acquisition.md §1; it remains unresolved.
-Chicken playback/interpolation and combat approach/melee playback are built
-under ADR-0436. Full simulation mode-3 melee lifetime remains absent (Q582);
-Spell-casting clips and the live Heart loop are built (ADR-0437).
-Other object-state playback remains pending.
-Profiler scopes and a repeatable capture procedure are built; see unity/README.md.
-Actual Unity crowd/mesh-upload and standalone captures remain outstanding.
+Progress: supported creature and object playback, action restarts, queued
+transitions, frozen holds and physical pose interpolation are built
+(ADR-0431–0438). The phase-to-frame link and render-factor clock producer are
+confirmed; see animation-transitions.md. Q443 is settled for classic clip
+playback by retaining each clip's topology and UVs (ADR-0431).
+The alternate clock's activation remains unknown; no supported simulation
+state supplies it. Broader status/action selection remains outside this batch;
+see kmf-animation-playback.md. Q582 awaits owner observations.
+Actual Unity development/release crowd captures and representation comparison
+are complete; retain validated CPU playback under ADR-0438.
+Procedure and measurements: tools/classic-unity-probe/README.md.
+All 4861 tests pass without skips, all 60 Level 1–3 replays validate, and Unity
+sync/adapter compile and independent review pass. The owner has not checked
+the visual gate after restarting Play mode (2026-10-11).

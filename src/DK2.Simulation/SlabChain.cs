@@ -184,17 +184,20 @@ public static class SlabChain
 
     /// <summary>Puts a room's door byte on its lowest tile and clears it and the Casino's party from
     /// every tile; returns the lowest.</summary>
-    private static int KeepDoor(WorldState world, List<int> chain, byte door)
+    private static int KeepDoor(WorldState world, List<int> chain, byte door, long animationTick = 0)
     {
         int lowest = int.MaxValue;
         foreach (int t in chain)
         {
             ref TileState tile = ref world.TileAtIndex(t);
+            animationTick = Math.Max(animationTick, tile.PrisonDoorAnimationTick);
+            tile.PrisonDoorAnimationTick = 0;
             (tile.PrisonDoor, tile.CasinoParty, tile.CasinoPartyStartTick) = (0, 0, 0);
             lowest = Math.Min(lowest, t);
         }
 
         world.TileAtIndex(lowest).PrisonDoor = door;
+        world.TileAtIndex(lowest).PrisonDoorAnimationTick = animationTick;
         return lowest;
     }
 
@@ -266,6 +269,9 @@ public static class SlabChain
         // without one, and the keeper's party count, which only the party's end lowers, stays raised.
         ref TileState leaving = ref world.TileAtIndex(tileIndex);
         byte door = leaving.PrisonDoor;
+        long animationTick = leaving.PrisonDoorAnimationTick;
+        foreach (int tile in old) animationTick = Math.Max(animationTick, world.TileAtIndex(tile).PrisonDoorAnimationTick);
+        leaving.PrisonDoorAnimationTick = 0;
         (leaving.PrisonDoor, leaving.CasinoParty, leaving.CasinoPartyStartTick) = (0, 0, 0);
         foreach (int tile in old) door |= world.TileAtIndex(tile).PrisonDoor;
 
@@ -273,7 +279,7 @@ public static class SlabChain
         {
             Stamp(world, chain);
             RoomHealthRules.SetPiece(world, database, room, chain, percent);
-            KeepDoor(world, chain, door);
+            KeepDoor(world, chain, door, animationTick);
             if (room.TypeId == RoomTypeId.Prison) Activate(world, chain);
         }
     }

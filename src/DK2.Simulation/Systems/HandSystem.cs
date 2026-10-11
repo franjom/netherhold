@@ -123,6 +123,7 @@ public sealed class HandSystem : ISimulationSystem
         TortureRules.Unstrap(context.Hooks, creature);
         CombatPitRules.Unmark(world, creature);   // 0x004BC500 clears the fighter and its forced target
         creature.ClearJob();
+        TrainingStep.CancelAction(creature);
         // 76, the hand's own state, is not built: ours holds 1 in the hand (ADR-0209).
         CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
 

@@ -10000,3 +10000,31 @@ attack mode and state-entry evidence still match. Preserve hash/save 225.
 **Consequences.** These are presentation changes. Heart decay and variable
 beat rates are not implemented; neither are completed possessed-cast retention
 or the full simulation action lifetime. Restart Play mode for owner checks.
+
+## ADR-0438 — Complete supported classic animation lifecycles
+**Date:** 2026-10-11 · **Status:** accepted · Research: animation-transitions.md,
+eating-action.md, training-actions.md, object-drawing.md §8
+
+**Context.** Several authored clips had no natural state producer or action
+wait, and animation replacement omitted the original's queue and hold gates.
+
+**Decision.** Preserve queued landing changes, frozen holds, stop-loop flags,
+zero-speed scalar reuse and possessed displacement rates in the classic clock.
+Filled prisoners wait for action 26, then return to 117. Training walks to its
+machine, faces it, performs action 30/31 and waits in 112; poll its effects
+before shots and object reactions. Play supported Coop, Egg, dummy, Casino
+and Call to Arms states through their researched lifecycle, including natural
+producers. Capture object height and all turns for render interpolation, and
+stamp the represented Prison door's natural opening. Save and hash the new
+state; bump both formats to 226.
+
+**Consequences.** Unity's URP renders the original resources; the clock does
+not recreate DK2's graphics pipeline. Runtime override activation, complete
+projectile/object physics, the full status chooser, modern UV-family fitting
+and owner visual acceptance retain the explicit boundaries in their canonical
+research. Q582 remains reserved for the owner's observations. No fear/combat
+lifetime change is included. Standalone crowd measurements and representation
+comparisons live in tools/classic-unity-probe/README.md.
+Retain validated CPU playback for this step: the measured VAT prototype still
+needs shadow/depth/transparency and replacement/hold integration before it can
+replace production playback. Frame caching quantizes motion and is diagnostic only.

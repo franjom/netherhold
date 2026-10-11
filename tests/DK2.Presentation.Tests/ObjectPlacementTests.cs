@@ -290,6 +290,20 @@ public class ObjectPlacementTests
     }
 
     [InstallFact]
+    public void AnOpenedPrisonDoorPlaysFromItsToggleStamp()
+    {
+        Room room = Carve(RoomTypeId.Prison, 4, 4);
+        RoomInstance prison = RoomIndex.Build(room.World, room.Database).Single(r => r.Definition.TypeId == RoomTypeId.Prison);
+        ref TileState head = ref room.World.TileAtIndex(prison.TileIndices[0]);
+        head.PrisonDoor |= JailBreakRules.Open;
+        head.PrisonDoorAnimationTick = 42;
+        ObjectView door = Decorations(room, 109).Single();
+        Assert.True(door.PlaysAnimation);
+        Assert.False(door.AnimationLoops);
+        Assert.Equal(new GameTick(42), door.AnimationStartedAt);
+    }
+
+    [InstallFact]
     public void PrisonDoorMeshesStandAtTheCellEntranceRatherThanTheNorthWall()
     {
         Room room = Carve(RoomTypeId.Prison, 4, 4);

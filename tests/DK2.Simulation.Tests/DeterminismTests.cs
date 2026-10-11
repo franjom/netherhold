@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 225: wall-work entry waits for the Imp's facing turn (ADR-0435).
+        // HashVersion 226: supported animation lifecycles retain their state (ADR-0438).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x2B74D4ED96BA549BUL, sim.StateHash());
+        Assert.Equal(0xB369A6E155352AB0UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

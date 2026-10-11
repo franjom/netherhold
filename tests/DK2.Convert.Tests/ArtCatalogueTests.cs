@@ -12,6 +12,24 @@ namespace DK2.Convert.Tests;
 public class ArtCatalogueTests
 {
     [InstallFact]
+    public void LandingUsesArtTwentyFourOrItsSingleFallbackFour()
+    {
+        string install = Dk2InstallGate.Path;
+        var database = GameDatabaseLoader.Load(install);
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
+        var entries = ArtSourceMap.ForDatabase(database, art).ToDictionary(e => e.Reference.Key);
+        foreach (var creature in database.Creatures.Values)
+        {
+            var resources = art.Creatures[creature.CreatureId];
+            ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
+                DK2.Assets.AssetKind.Animation, "landing").Key];
+            var expected = resources[23].Type != 0 ? resources[23] : resources[3];
+            if (expected.IsEmpty) Assert.False(entry.HasSource);
+            else Assert.Equal(expected, entry.Source);
+        }
+    }
+
+    [InstallFact]
     public void ASpellCastUsesArtSix()
     {
         string install = Dk2InstallGate.Path;

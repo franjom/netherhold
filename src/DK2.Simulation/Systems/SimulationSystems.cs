@@ -85,6 +85,7 @@ public static class SimulationSystems
         // puts it before the shots, whose place in that pass is Q398 (door-blocking.md).
         new DoorHealthSystem(),
         // Shots fly after the creatures have moved; where DK2's thing list puts them is Q398.
+        new TrainingActionSystem(), // creature action gates before the shots and object reactions they create
         new ShotSystem(),
         new BoulderSystem(), // objects (list 2) after shots (1), before traps (3)
         new ChickenMovementSystem(),
@@ -135,6 +136,7 @@ public static class SimulationSystems
         // Laying, once a game second (ADR-0066), before anything eats; then hunger
         // before tiredness, the original's needs order (docs/research/eating.md).
         new HatcherySystem(),
+        new ObjectReactionSystem(),
         new CreatureEatSystem(),
 
         // Sleep, health, prison: one asleep this tick heals this second; health settles

@@ -7,6 +7,9 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Unity Package Manager rejects a UTF-8 BOM in Packages/manifest.json; write that JSON as UTF-8 without a BOM.
+- PowerShell can return early from a GUI executable invoked with `&`; use `Start-Process -PassThru` and wait on that process for Unity builds and player captures.
+
 - PowerShell treats curly apostrophes as quote delimiters; avoid them inside single-quoted command arguments.
 - Windows PowerShell Get-Content defaults to ANSI; pass -Encoding UTF8 when deriving patch text from repository files.
 
@@ -33,6 +36,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - KB evidence fragments match Markdown headings, not HTML anchors; changing an evidence header also requires a dated History line.
 - In a sibling worktree, `apply_patch` cannot create parent directories; create them with an approved native filesystem command first.
 - Windows Python defaults to a legacy code page here; use `encoding='utf-8-sig'` when reading repository Markdown.
+- PowerShell here-strings piped into Python can replace non-ASCII source literals with `?`; use ASCII script literals or `apply_patch` for Unicode edits.
 
 ## Builds, tests and dk2tools
 

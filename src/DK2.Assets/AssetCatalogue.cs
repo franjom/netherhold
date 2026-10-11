@@ -75,7 +75,7 @@ public static class AssetCatalogue
         "slapped",
     ];
 
-    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting"];
+    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing"];
 
     /// <summary>
     /// Every key the database implies, ordered by record id within each category so
@@ -329,12 +329,17 @@ public static class AssetCatalogue
     {
         3 => GoldPileSlots,
         9 => ChickenSlots,
+        10 => CallToArmsSlots,
+        14 or 35 or 47 or 109 => ReactionSlots,
         64 => BookCaseSlots,
+        95 => ChickenSlots,
         _ => [],
     };
 
     private static readonly int[] GoldPileSlots = [5, 6];
     private static readonly int[] ChickenSlots = [5, 6];
+    private static readonly int[] ReactionSlots = [5];
+    private static readonly int[] CallToArmsSlots = [5, 6, 7];
     private static readonly int[] BookCaseSlots = [5, 6, 7];
 
     private static List<byte> Sorted(IEnumerable<byte> ids)

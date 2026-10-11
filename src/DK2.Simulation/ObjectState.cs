@@ -149,6 +149,13 @@ public sealed class ObjectState
 
     /// <summary>The header heading (+0xF4), and process age (+0x13E). Chicken movement owns them here.</summary>
     public int Heading, ProcessAgeTicks;
+    public long AnimationStartedTick = -1;
+
+    /// <summary>Egg launch physics: position +0x22, persistent velocity +0x104/+0x108/+0x10C.</summary>
+    public int PosZ, PhysicalVelocityX, PhysicalVelocityY, PhysicalVelocityZ;
+
+    /// <summary>Egg tumbling angles +0x64/+0x66/+0x68, 2048 units per turn.</summary>
+    public int DrawPitch, DrawYaw, DrawRoll;
 
     /// <summary>Chicken union +0x14A/+0x14E/+0x152: free-range eligibility, reaction countdown and fear marker.</summary>
     public bool ChickenCanEscape, ChickenScared;
@@ -200,6 +207,14 @@ public sealed class ObjectState
         hash.Add(PosY);
         hash.Add(Heading);
         hash.Add(ProcessAgeTicks);
+        hash.Add(AnimationStartedTick);
+        hash.Add(PosZ);
+        hash.Add(PhysicalVelocityX);
+        hash.Add(PhysicalVelocityY);
+        hash.Add(PhysicalVelocityZ);
+        hash.Add(DrawPitch);
+        hash.Add(DrawYaw);
+        hash.Add(DrawRoll);
         hash.Add(ChickenCanEscape);
         hash.Add(HatcheryRoomAnchorTileIndex);
         hash.Add(ChickenScared);

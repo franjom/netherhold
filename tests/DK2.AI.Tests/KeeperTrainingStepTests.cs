@@ -416,7 +416,8 @@ public class KeeperTrainingStepTests
         Assert.Equal(TrainingSlot, ((DropCommand)Assert.Single(log, e => e.Command is DropCommand).Command).Tile);
         Assert.False(novice.InHand);
         Assert.Equal(JobType.Train, novice.DroppedToDoJob);
-        Assert.Equal(CreatureStateCategory.Training, CreatureStateTable.Get(novice.Dk2StateId).Category);
+        int workingState = CreatureStateTable.Get(novice.Dk2StateId).IsUtility ? novice.UtilityNewState : novice.Dk2StateId;
+        Assert.Equal(CreatureStateCategory.Training, CreatureStateTable.Get(workingState).Category);
         Assert.True(novice.ExperiencePoints >= 40);
     }
 

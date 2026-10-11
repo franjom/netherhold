@@ -24,17 +24,39 @@ namespace DK2.Unity
         private long _startTick;
         private long _advanced;
         private AnimationSegment? _drawnSegment;
+        private (RenderAnimation[] Clips, Mesh[] Templates, Material[][] Materials)? _pending;
+        private int _resourceRevision;
 
         public void Configure(RenderAnimation[] clips, Mesh[] templates, Material[][] materials,
             CreatureAnimationTiming timing, bool loop, double start, Fp32? authoredMovementScale = null,
-            Fp32? movementSpeed = null)
+            Fp32? movementSpeed = null, AnimationReplacement replacement = AnimationReplacement.Immediate,
+            bool hold = false)
         {
+            if (_clock != null && replacement == AnimationReplacement.Deferred)
+            {
+                Draw(start, movementSpeed, hold);
+                int revision = _clock.ResourceRevision;
+                _clock.Replace(timing, loop, replacement, authoredMovementScale);
+                if (_clock.ResourceRevision == revision)
+                {
+                    _pending = (clips, templates, materials);
+                    return;
+                }
+            }
             Stop();
-            _clips = clips;
-            _materials = materials;
             _clock = new RenderAnimationClock(timing, loop, authoredMovementScale);
+            _resourceRevision = _clock.ResourceRevision;
             _startTick = (long)System.Math.Floor(start * 4);
             _advanced = 0;
+            InstallMeshes(clips, templates, materials);
+            Draw(start, movementSpeed, hold);
+        }
+
+        private void InstallMeshes(RenderAnimation[] clips, Mesh[] templates, Material[][] materials)
+        {
+            ReleaseMeshes();
+            _clips = clips;
+            _materials = materials;
             _drawnSegment = null;
             _meshes = new Mesh[3];
             _samples = new System.Numerics.Vector3[3][];
@@ -47,10 +69,9 @@ namespace DK2.Unity
                 _meshes[i] = Object.Instantiate(templates[i]);
                 _meshes[i].MarkDynamic();
             }
-            Draw(start, movementSpeed);
         }
 
-        public void Draw(double seconds, Fp32? movementSpeed = null)
+        public void Draw(double seconds, Fp32? movementSpeed = null, bool hold = false)
         {
             if (_clock == null) return;
             double tickTime = seconds * 4;
@@ -58,8 +79,15 @@ namespace DK2.Unity
             AnimationPose pose;
             using (ClockMarker.Auto())
             {
-                while (_advanced <= tick - _startTick) { _clock.Advance(movementSpeed); _advanced++; }
+                while (_advanced <= tick - _startTick) { _clock.Advance(movementSpeed, hold); _advanced++; }
                 pose = _clock.Sample((float)(tickTime - tick));
+            }
+            if (_clock.ResourceRevision != _resourceRevision && _pending.HasValue)
+            {
+                var pending = _pending.Value;
+                InstallMeshes(pending.Clips, pending.Templates, pending.Materials);
+                _pending = null;
+                _resourceRevision = _clock.ResourceRevision;
             }
             int segment = (int)pose.Segment;
             if (_drawnSegment != (AnimationSegment)segment)
@@ -86,6 +114,12 @@ namespace DK2.Unity
         public void Stop()
         {
             _clock = null;
+            _pending = null;
+            ReleaseMeshes();
+        }
+
+        private void ReleaseMeshes()
+        {
             if (_meshes != null)
                 foreach (Mesh mesh in _meshes) if (mesh != null) Object.Destroy(mesh);
             _meshes = null;

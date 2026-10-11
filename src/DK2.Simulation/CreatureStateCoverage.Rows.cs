@@ -126,8 +126,8 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(108, typeof(JobRules), nameof(JobRules.StateFor)));
         rows.Add(Unbuilt(109, "read in training.md; not built"));
         rows.Add(Built(110, typeof(TrainingRules), nameof(TrainingRules.CapRefusalState)));
-        rows.Add(Unbuilt(111, "read in training.md; not built"));
-        rows.Add(Unbuilt(112, "read in training.md; not built"));
+        rows.Add(Built(111, typeof(TrainingStep), nameof(TrainingStep.AtMachineState)));
+        rows.Add(Built(112, typeof(TrainingStep), nameof(TrainingStep.WorkingState)));
         rows.Add(Built(113, typeof(TrainingRules), nameof(TrainingRules.ReturningState)));
         rows.Add(Built(114, typeof(PrisonRules), nameof(PrisonRules.AdmittedState)));
         rows.Add(Built(115, typeof(PrisonRules), nameof(PrisonRules.DecidingState)));

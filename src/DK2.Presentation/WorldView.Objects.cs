@@ -43,7 +43,7 @@ public sealed partial class WorldView
 
     private readonly List<RoomInstance> _rooms = [];
     private readonly Dictionary<int, AssetRef> _objectArt = [];
-    private readonly Dictionary<int, (ObjectState Object, int X, int Y, int Heading)> _objectPositions = [];
+    private readonly Dictionary<int, (ObjectState Object, int X, int Y, int Heading, int Z, int Pitch, int Roll)> _objectPositions = [];
     private WorldState? _objectPositionsWorld;
     private GameTick _objectPositionsTick;
 
@@ -54,8 +54,11 @@ public sealed partial class WorldView
         _objectPositionsTick = world.CurrentTick;
         _objectPositions.Clear();
         foreach (ObjectState thing in world.Objects)
-            if (thing.ObjectTypeId == ChickenId && !thing.InHand && thing.CarriedByCreatureId < 0)
-                _objectPositions[thing.Id] = (thing, thing.PosX, thing.PosY, thing.Heading);
+            if (!thing.InHand && thing.CarriedByCreatureId < 0)
+            {
+                ObjectView pose = Placed(world, thing, new TilePos(thing.TileIndex % world.Width, thing.TileIndex / world.Width));
+                _objectPositions[thing.Id] = (thing, pose.PosX, pose.PosY, pose.Heading, pose.Height, pose.Pitch, pose.Roll);
+            }
     }
 
     // The decorations, built once a tick as the room facts are (EnsureRooms), and the tiles holding
@@ -151,7 +154,8 @@ public sealed partial class WorldView
                     pitch = 0x600;
                     break;
                 case TrainingDummyId or WorkBenchId:
-                    heading = AutoFurnitureRules.Choice(x, y, 0x800);
+                    heading = thing.ObjectTypeId == TrainingDummyId && thing.TimerTicks == 0x200
+                        ? thing.Heading : AutoFurnitureRules.Choice(x, y, 0x800);
                     break;
                 case BookCaseId:
                     // The arm at 0x004EE6A5: book_case1..3 by the selector, never book_case4.
@@ -182,6 +186,10 @@ public sealed partial class WorldView
                     break;
                 case EggId:
                     if (thing.PosX != 0 || thing.PosY != 0) (posX, posY) = (thing.PosX, thing.PosY);
+                    if (thing.ProcessState is EggLaunchRules.LaunchProcess or 32 && thing.PosZ > 0) z = thing.PosZ;
+                    pitch = thing.DrawPitch;
+                    roll = thing.DrawRoll;
+                    heading = thing.Heading;
                     break;
                 case ChickenId:
                     if (thing.PosX != 0 || thing.PosY != 0) (posX, posY) = (thing.PosX, thing.PosY);
@@ -199,15 +207,46 @@ public sealed partial class WorldView
         }
 
         int previousX = posX, previousY = posY, previousHeading = heading;
+        int previousZ = z, previousPitch = pitch, previousRoll = roll;
+        bool stateAnimation = thing.ObjectTypeId == EggId && thing.ProcessState == 32
+            || thing.ObjectTypeId == CallToArmsRules.ObjectTypeId
+            || thing.ObjectTypeId == CasinoLeverId
+            || thing.ObjectTypeId == EggId && thing.ProcessState == EggLaunchRules.LaunchProcess && thing.ProcessAgeTicks >= EggLaunchRules.HiddenTicks
+            || thing.ProcessAgeTicks > 0 && (thing.ObjectTypeId == CoopId && thing.ProcessState == 29
+                || thing.ObjectTypeId == TrainingDummyId && thing.ProcessState == 18);
+        if (stateAnimation)
+        {
+            slot = thing.ObjectTypeId == EggId && thing.ProcessCount == 0 ? 0 : 5;
+            if (thing.ObjectTypeId == TrainingDummyId)
+            {
+                heading = thing.Heading;
+                if (thing.ProcessCount != 0) slot = 0;
+            }
+            if (thing.ObjectTypeId == CasinoLeverId)
+                slot = thing.ProcessState == 49 || thing.ProcessState != 48 && thing.Setting == CasinoRules.Stingy ? 6 : 5;
+            if (thing.ObjectTypeId == CallToArmsRules.ObjectTypeId)
+                slot = thing.ProcessState switch { 12 => 0, 15 => 7, 19 or 20 => 6, _ => 5 };
+        }
+        GameTick? objectAnimationStartedAt = stateAnimation ? new GameTick(thing.ProcessDeadline) : null;
+        if (thing.ObjectTypeId == CallToArmsRules.ObjectTypeId)
+            objectAnimationStartedAt = new GameTick(thing.AnimationStartedTick);
+        if (thing.ObjectTypeId == CasinoLeverId && thing.ProcessState is not (48 or 49))
+            objectAnimationStartedAt = new GameTick(-AnimationTimingRules.FirstCycleHoldTicks(definition?.ArtSlot(slot) ?? default) - 1);
         if (ReferenceEquals(world, _objectPositionsWorld) && world.CurrentTick.Value == _objectPositionsTick.Value + 1
             && _objectPositions.TryGetValue(thing.Id, out var previous) && ReferenceEquals(previous.Object, thing))
+        {
             (previousX, previousY, previousHeading) = (previous.X, previous.Y, previous.Heading);
+            (previousZ, previousPitch, previousRoll) = (previous.Z, previous.Pitch, previous.Roll);
+        }
         return new ObjectView(thing.Id, thing.ObjectTypeId, thing.OwnerPlayerId, at, ObjectArt(thing.ObjectTypeId, slot),
             thing.GoldHeld, posX, posY, z, heading & 0x7FF, scale, pitch, roll & 0x7FF,
             previousPosX: new Fp32(previousX), previousPosY: new Fp32(previousY), previousHeading: previousHeading,
-            playsAnimation: thing.ObjectTypeId is ChickenId or DungeonHeartId,
-            animationStartedAt: thing.ObjectTypeId == ChickenId && thing.ProcessState == 8 && thing.ProcessAgeTicks > 0
-                ? new GameTick(world.CurrentTick.Value - thing.ProcessAgeTicks) : null);
+            playsAnimation: stateAnimation || thing.ObjectTypeId is ChickenId or DungeonHeartId,
+            animationStartedAt: stateAnimation ? objectAnimationStartedAt
+                : thing.ObjectTypeId == ChickenId && thing.ProcessState == 8 && thing.ProcessAgeTicks > 0
+                    ? new GameTick(world.CurrentTick.Value - thing.ProcessAgeTicks) : null,
+            animationLoops: !stateAnimation || thing.ObjectTypeId == CallToArmsRules.ObjectTypeId && thing.ProcessState is 13 or 14,
+            previousHeight: previousZ, previousPitch: previousPitch, previousRoll: previousRoll);
     }
 
     /// <summary>A wheel off the floor: drawn <c>0x800</c> up (its <c>+0x99</c> draw offset) and spun
@@ -248,7 +287,14 @@ public sealed partial class WorldView
                 Corners(world, room, owner, TempleCandlestickId, CandleOffsets, FloorZ, into);
                 break;
             case RoomTypeId.Prison when facts.DoorTile >= 0:
-                into.Add(Decoration(world, facts.DoorTile, DoorSlot, PrisonDoorId, owner, 0, 0, -1, 0x400));
+                ObjectView door = Decoration(world, facts.DoorTile, DoorSlot, PrisonDoorId, owner, 0, 0, -1, 0x400);
+                if ((JailBreakRules.DoorOf(world, room) & JailBreakRules.Open) != 0)
+                    door = new ObjectView(door.Id, door.ObjectTypeId, owner, door.Tile, door.Mesh, 0,
+                        door.PosX, door.PosY, door.Height, door.Heading, door.Scale,
+                        playsAnimation: true,
+                        animationStartedAt: new GameTick(world.TileAtIndex(room.TileIndices[0]).PrisonDoorAnimationTick),
+                        animationLoops: false);
+                into.Add(door);
                 into.Add(Decoration(world, facts.DoorTile, BarSlot, PrisonDoorBarId, owner, 0, 0, -1, 0x400));
                 break;
             case RoomTypeId.Crypt:
