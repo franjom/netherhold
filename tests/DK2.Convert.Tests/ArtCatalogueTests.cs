@@ -11,6 +11,23 @@ namespace DK2.Convert.Tests;
 
 public class ArtCatalogueTests
 {
+    [InstallTheory]
+    [InlineData("running", 1)]
+    [InlineData("claiming", 12)]
+    [InlineData("reinforcing", 11)]
+    public void ImpActionsResolveToTheAuthoredWorkAndRunResources(string action, int fileSlot)
+    {
+        string install = Dk2InstallGate.Path;
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
+        var database = GameDatabaseLoader.Load(install);
+        ArtEntry entry = ArtSourceMap.ForDatabase(database, art).Single(e =>
+            e.Reference.Key == "creature.imp.animation." + action);
+        Dk2ArtResource requested = art.Creatures[1][fileSlot];
+        Assert.Equal(action == "running" && requested.Type == 0 ? art.Creatures[1][0] : requested, entry.Source);
+        Assert.True(entry.HasSource);
+        if (action != "running") Assert.NotEqual(art.Creatures[1][0], entry.Source);
+    }
+
     [InstallFact]
     public void ShippedArtRecordsMatchGameplayDefinitionCounts()
     {
@@ -43,5 +60,8 @@ public class ArtCatalogueTests
         Assert.True(knockdown.FramesPerSecond > 0);
         Assert.Equal(database.Creatures[1].KnockdownAnimation.FramesPerSecond, knockdown.FramesPerSecond);
         Assert.Equal(database.Creatures[1].KnockdownAnimation.FrameCount, knockdown.FrameCount);
+        Assert.Equal(database.Creatures[1].KnockdownAnimation.Flags, knockdown.AnimationFlags);
+        Assert.Equal(database.Creatures[1].KnockdownAnimation.StartSegmentFrames, knockdown.StartSegmentFrames);
+        Assert.Equal(database.Creatures[1].KnockdownAnimation.EndSegmentFrames, knockdown.EndSegmentFrames);
     }
 }

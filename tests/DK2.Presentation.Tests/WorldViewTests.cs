@@ -204,6 +204,42 @@ public class WorldViewTests
         Assert.NotEqual(0, rendered.PosX % Fp32.One);
     }
 
+    [InstallTheory]
+    [InlineData(16, ImpTaskKind.Claim, "claiming")]
+    [InlineData(20, ImpTaskKind.Claim, "claiming")]
+    [InlineData(22, ImpTaskKind.Reinforce, "reinforcing")]
+    [InlineData(24, ImpTaskKind.Fix, "reinforcing")]
+    public void ImpWorkSelectsItsActionClip(int state, ImpTaskKind task, string clip)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        imp.Dk2StateId = state;
+        imp.LastTaskKind = task;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal("creature.imp.animation." + clip, rendered.Animation.Key);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Contains(rendered.Animation, AssetCatalogue.ForDatabase(database));
+    }
+
+    [InstallTheory]
+    [InlineData(true, "running")]
+    [InlineData(false, "moving_to_job")]
+    public void ATravelClipUsesTheMovementMode(bool running, string clip)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        imp.Dk2StateId = 6;
+        imp.UtilityNewState = 13;
+        imp.Body.PathTotalCount = 1;
+        imp.Body.PathFinished = false;
+        imp.Running = running;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal("creature.imp.animation." + clip, rendered.Animation.Key);
+        Assert.True(rendered.PlaysAnimation);
+    }
+
     [InstallFact]
     public void PreviousPositionsCrossTheBoundaryWithoutChangingSimulation()
     {

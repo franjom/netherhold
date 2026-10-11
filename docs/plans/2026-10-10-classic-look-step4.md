@@ -21,6 +21,9 @@ the Level7 Giant/Imp encounter while this work changes presentation only.
 
 Progress: first playback batch implemented. Fractional sampler and descriptor
 tests pass; adapter compiles. Review found and corrected a stale clip-start clock.
-This batch remains partial: run, claim/reinforce, eating, exact phase/action
-restarts, segment transitions, editor profiling and the owner visual gate are pending.
+The next batch adds run/claim/reinforce mappings, the ordinary quantized clock
+and separate Start/End meshes. Remaining: eating's simulation action wait,
+movement rate changes, repeated action restarts, queued transitions, editor
+profiling and the owner visual gate. The primary phase-to-frame link is closed;
+the render factor's game-clock producer remains open (Q442).
 Q582 trace is recorded in combat-acquisition.md §1; it remains unresolved.

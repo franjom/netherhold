@@ -106,6 +106,25 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
         return false;
     }
 
+    public bool TryResolveSegment(in ResolvedAsset asset, AnimationSegment segment, out ResolvedAsset resolved)
+    {
+        resolved = default;
+        if (!TryGetResource(asset, out Dk2ArtResource resource)) return false;
+        if (segment == AnimationSegment.Main) { resolved = asset; return true; }
+        CreatureAnimationFlags flag = segment switch
+        {
+            AnimationSegment.Start => CreatureAnimationFlags.StartSegment,
+            AnimationSegment.End => CreatureAnimationFlags.EndSegment,
+            _ => throw new ArgumentOutOfRangeException(nameof(segment)),
+        };
+        if ((resource.AnimationFlags & flag) == 0) return false;
+        string name = resource.Name + (segment == AnimationSegment.Start ? "Start" : "End");
+        if (!_meshes.TryFind(name, false, out _, out string entry)) return false;
+        resolved = new ResolvedAsset(asset.Reference, AssetSource.InstallEntry, filePath: null,
+            look: default, providerName: Name, installEntry: entry);
+        return true;
+    }
+
     /// <summary>The image a texture key resolved to: its KMF's first material texture.</summary>
     public bool TryLoadKeyTexture(in ResolvedAsset asset, out RgbaImage image)
     {

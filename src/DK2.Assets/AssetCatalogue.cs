@@ -75,6 +75,8 @@ public static class AssetCatalogue
         "slapped",
     ];
 
+    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing"];
+
     /// <summary>
     /// Every key the database implies, ordered by record id within each category so
     /// that two runs produce the same list and a converter's output is reproducible.
@@ -291,6 +293,8 @@ public static class AssetCatalogue
             yield return AssetRef.ForCreature(creature.Name, AssetKind.Mesh);
 
             foreach (string animation in CreatureAnimations)
+                yield return AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation);
+            foreach (string animation in CreatureActionAnimations)
                 yield return AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation);
         }
     }

@@ -53,8 +53,18 @@ with global `0x00760B7C`. `0x00575A00` writes that global from its caller's
 frame interpolation argument. `0x00583120` interpolates position, turns and
 phase into the 0x99 draw object, storing phase at `+0x38`.
 
-UNKNOWN (Q442): the transfer from that draw object to the sprite instance's
-`+0x44`, and the interpolation factor's derivation from the game clock.
+CONFIRMED (2026-10-11): the constructor ends in `0x00585ED0`, which converts
+that phase directly to continuous frame at draw `+0x64` and integer lookup at
+`+0x68`, using the same clamp/wrap and frame-count formula as §2. The part
+drawer `0x005836A0` evaluates that frame through `0x0057E5B0`; no secondary
+sprite-instance transfer is needed. `0x00598880` supplies input dword `+4`
+divided by 256 to the render factor's writer. Its game-clock producer is
+still UNKNOWN (Q442).
+
+Segment resources are separate meshes: `0x004B44E0` chooses compact art
+`+0x13` for start, `+0xF` for main, `+0x17` for end. `0x00492320` loads flagged
+segments using base name plus `Start`/`End`. The draw interpolates segment
+number plus phase and keeps the previous segment at an exact boundary.
 The secondary dispatcher `0x0059B0C0` uses the simple-instance path
 `0x00579CF0`/`0x00578530`; it is not the ordinary phase interpolation path.
 
@@ -77,10 +87,11 @@ Initial classic playback (ADR-0431): `RenderAnimation` interpolates adjacent
 decoded frames into each instance's reusable buffer. Each clip retains its
 own topology, materials and UVs; this does not require fitting a second UV
 family onto a modern rig (Q443). Unity uploads positions to an instance mesh.
-Descriptor count/FPS sets nominal duration; elapsed simulation render time
-currently starts on clip changes. The original quantized phase, action restarts,
-segment transitions and complete chooser (`0x0048BE50`) are not mirrored yet.
-Run, claim/reinforce and eating mappings remain pending. Shared arrays have no
+`RenderAnimationClock` advances the ordinary integer phase and its start/main/end
+segments, and Unity uses each segment's own mesh/UVs. Playback starts on clip
+changes with the same-turn first advance. Movement-dependent rate changes,
+queued replacement, repeated action restarts and the complete chooser
+(`0x0048BE50`) remain pending. See §5 for the built choices. Shared arrays have no
 per-sample allocation; Unity upload and whole-scene cost require editor profiling.
 
 The Release probe on this machine (200 instances, 300 renders, 2026-10-10) measured
@@ -88,3 +99,18 @@ sampler-only cost: Imp 0.121 ms, Giant 0.132 ms, Salamander 0.125 ms, Mistress
 0.196 ms per render, with zero measured sampling allocations. Added shared position
 arrays were 50,544/165,816/186,984/289,296 bytes respectively. These figures exclude
 the provider's retained decoded KMF frames and Unity conversion/upload/bounds work.
+
+## 5. Classic action selection
+
+CONFIRMED (binary, 2026-10-11): `0x0048BE50` chooses movement slots 1/2 for
+walk/run modes 0/1. A current action overrides the movement slot through
+`0x00496DE0`, which reads the action-table art byte. `0x004950C0` installs
+actions 4/5 with slot 13 (claim), 7/8 with slot 12 (reinforce/repair).
+Catalogue indices are those slots minus one. The shipped Imp has no slot 2;
+the existing resolver falls back to slot 1. The classic art map now follows
+these choices instead of using dig for every Imp work activity.
+
+Eating remains unbuilt in playback: `CreatureEatSystem.Swallow` enters 94 then
+leaves it in the same pass, so no eating action persists for the view to draw.
+The binary's existing after-meal action wait is documented in eating.md §2.2;
+implement that simulation boundary before claiming the Step 4 eating gate.

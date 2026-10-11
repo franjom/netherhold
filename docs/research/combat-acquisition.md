@@ -38,11 +38,25 @@ pass now also runs newest first (ADR-0429). Before correction, in a Level7
 seed-7 trace, starter Imp27 withdraws on tick157 after the older Giant1 has
 already started its lethal swing that tick. The corrected pass changes event
 order, but the first death is unchanged: tick160, a 562-damage blow against
-500 HP. At ticks153–156 the stationary scan counter is 0–3; at156 the new job
-route steps toward the Giant, and at157 the Imp scans and withdraws. The Giant
+500 HP. Its post-tick state is16 (claim work) at153,10 (job selection) at154,
+and6 (job travel) at155; the scan counter is respectively0,1,2. At156 the first
+route step stays within tile(12,4), leaving scan phase3; at157 the Imp scans
+and withdraws. The Giant
 can still start its swing while the Imp is close. Original updates interleave
 each creature's state and movement; ours retains separate system passes.
 No extra Imp-job acquisition call exists among SelectAVictim's twelve callers.
+
+The transition adds no missed scan (binary recheck, 2026-10-11):
+`0x0045E9F0` has one direct caller, at`0x00489AC7`, and no absolute pointer
+occurrences across the image. Its movement test compares tile coordinates,
+not sub-tile displacement, velocity or route creation; modern `ScanIsDue`
+matches its counter4 Imp threshold. State6 (`0x00470C80`) moves the Imp after
+that scan and does not scan again. Claim work16 (`0x00465CD0`) holds while an
+action runs, then validates its task and floor or enters10; it neither scans
+nor changes the scan counter. A new job route whose first step stays in the
+same tile therefore has no additional acquisition opportunity on that turn.
+Claim completion's modeled action hold already has original capture evidence
+(mining-cadence.md §6); this read does not establish a job-timing correction.
 
 Copied-DLL probes on 2026-10-10 reproduce both working and walking encounters.
 Seed7's working Imp30 (state22, scan3) withdraws at234 without a hit; working

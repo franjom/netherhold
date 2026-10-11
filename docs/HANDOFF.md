@@ -106,13 +106,14 @@ Replay drivers recovered from C:/Users/franj/AppData/Local/Temp/claude/d--Dungeo
 d869276a-99ca-491a-9cf5-0342488c1277/scratchpad. Measured baseline/current artifacts:
 D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup,collision-water-followup,imp-alarm-followup,chicken-placement-followup,giant-imp-followup,level8-wait-followup}.
 These are local artifacts. Follow-up: docs/plans/2026-10-10-torture-wheel-followup.md.
-Step 4's first batch adds fractional KMF sampling, per-instance Unity meshes and
+Step 4 adds fractional KMF sampling, per-instance Unity meshes and
 previous/current position interpolation (ADR-0431). Existing idle, ordinary walk,
-Imp dig, sleep, die and torture mappings can play; unsupported mappings retain a pose.
-Run, claim/reinforce, eating, exact phase/action restarts and segment transitions remain
-pending. See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
+run, Imp dig/claim/reinforce, sleep, die and torture mappings can play, with
+ordinary quantized phases and separate Start/End meshes. Eating's simulation
+action wait, movement rate changes and repeated action restarts remain pending.
+See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
 The owner animation comparison gate and Unity crowd upload profiling are outstanding.
-First-batch verification: 4694 tests pass, including the three comparison tests after
+Current-batch verification: 4711 tests pass, including the three comparison tests after
 restoring local ignored captures; Unity assemblies synced, adapter compile and review pass.
 Creature status flowers are still part of the unbuilt HUD work. Creature separation
 already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.

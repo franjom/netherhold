@@ -1147,26 +1147,42 @@ public sealed partial class WorldView
         if (creature is null) throw new ArgumentNullException(nameof(creature));
 
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
+        string clip = ActivityKeySegment(creature.Activity);
+        if (creature.Activity == CreatureActivity.Working
+            && definition.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase))
+            clip = creature.LastTaskKind switch
+            {
+                ImpTaskKind.Claim => "claiming",
+                ImpTaskKind.Reinforce or ImpTaskKind.Fix => "reinforcing",
+                _ => clip,
+            };
+        else if (creature.Running && IsTravelAnimation(creature)) clip = "running";
         return AssetRef.ForCreature(
             definition.Name,
             AssetKind.Animation,
-            ActivityKeySegment(creature.Activity));
+            clip);
     }
 
     // Enable only the existing source mappings whose action is represented by this view.
-    // Claim/reinforce, eating, fighting and other job actions need their own art slots.
+    // Eating, fighting and other job actions need their own art slots and clocks.
     public static bool PlaysMappedAnimation(CreatureState creature) => creature.Activity switch
     {
         CreatureActivity.Idle or CreatureActivity.Sleeping or CreatureActivity.Dying
             or CreatureActivity.BeingTortured => true,
-        CreatureActivity.Working => creature.LastTaskKind is ImpTaskKind.Excavate or ImpTaskKind.Mine,
+        CreatureActivity.Working => creature.LastTaskKind is ImpTaskKind.Excavate or ImpTaskKind.Mine
+            or ImpTaskKind.Claim or ImpTaskKind.Reinforce or ImpTaskKind.Fix,
+        _ => IsTravelAnimation(creature),
+    };
+
+    private static bool IsTravelAnimation(CreatureState creature) => creature.Activity switch
+    {
         CreatureActivity.MovingToJob or CreatureActivity.DeliveringGold or CreatureActivity.GoingToSleep
             or CreatureActivity.Leaving or CreatureActivity.FetchingGold or CreatureActivity.SeekingLair
             or CreatureActivity.FetchingBody or CreatureActivity.CarryingBody or CreatureActivity.FetchingObject
             or CreatureActivity.CarryingObject or CreatureActivity.SeekingFood or CreatureActivity.FetchingChicken
             or CreatureActivity.SeekingWages or CreatureActivity.GoingToJob or CreatureActivity.Fleeing
             or CreatureActivity.Withdrawing or CreatureActivity.GoingToBody or CreatureActivity.Rescuing
-            or CreatureActivity.HeedingCallToArms => creature.HasRoute && !creature.Running,
+            or CreatureActivity.HeedingCallToArms => creature.HasRoute,
         _ => false,
     };
 

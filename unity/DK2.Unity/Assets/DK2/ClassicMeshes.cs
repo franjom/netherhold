@@ -7,6 +7,7 @@ using DK2.Art;
 using DK2.Art.Kmf;
 using DK2.Art.Textures;
 using DK2.Assets;
+using DK2.Data.Model;
 using UnityEngine;
 using UnityEngine.Rendering;
 using NumericsVector2 = System.Numerics.Vector2;
@@ -65,16 +66,32 @@ namespace DK2.Unity
             if (!_art.TryGetResource(asset, out Dk2ArtResource resource) || resource.Type != 6
                 || !_art.TryLoadModel(asset, out KmfModel model) || model.Animation is not { IsComplete: true }
                 || !TryBuild(asset, false, out Built built)) return false;
-            if (!_animations.TryGetValue(asset.InstallEntry, out RenderAnimation clip))
+            var clips = new RenderAnimation[3];
+            var templates = new Mesh[3];
+            var materials = new Material[3][];
+            foreach (AnimationSegment segment in new[] { AnimationSegment.Start, AnimationSegment.Main, AnimationSegment.End })
             {
-                clip = new RenderAnimation(model);
-                _animations[asset.InstallEntry] = clip;
+                if (segment == AnimationSegment.Start
+                    && (resource.AnimationFlags & CreatureAnimationFlags.StartSegment) == 0) continue;
+                if (segment == AnimationSegment.End
+                    && (resource.AnimationFlags & CreatureAnimationFlags.EndSegment) == 0) continue;
+                if (!_art.TryResolveSegment(asset, segment, out ResolvedAsset part)
+                    || !_art.TryLoadModel(part, out KmfModel partModel)
+                    || partModel.Animation is not { IsComplete: true } || !TryBuild(part, false, out Built partBuilt)) return false;
+                if (!_animations.TryGetValue(part.InstallEntry, out RenderAnimation clip))
+                    _animations[part.InstallEntry] = clip = new RenderAnimation(partModel);
+                clips[(int)segment] = clip;
+                templates[(int)segment] = partBuilt.Mesh;
+                materials[(int)segment] = partBuilt.Materials;
             }
             ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
             if (player == null) player = go.AddComponent<ClassicCreatureAnimation>();
-            player.Configure(clip, built.Mesh, built.Materials,
-                resource.FramesPerSecond > 0 ? resource.FrameCount / (double)resource.FramesPerSecond : 0d,
-                loop, seconds);
+            player.Configure(clips, templates, materials, new CreatureAnimationTiming
+            {
+                ResourceType = resource.Type, FrameCount = resource.FrameCount,
+                FramesPerSecond = resource.FramesPerSecond, Flags = resource.AnimationFlags,
+                StartSegmentFrames = resource.StartSegmentFrames, EndSegmentFrames = resource.EndSegmentFrames,
+            }, loop, seconds);
             return true;
         }
 
