@@ -160,6 +160,10 @@ recheck the Unity Game view scale before changing rendering (TRAPS.md).
 
 ## Next work
 
+Next session (2026-10-12): the owner's construction effects, Prison rats and
+Portal arrival animation requests are recorded in
+[the classic-look plan](plans/2026-10-09-classic-look.md#not-in-this-plan).
+
 Owner's first priority (2026-10-10): resolve the excess Level7 Imp deaths (Q582),
 researched in parallel with the authorized Step 4 work. Step 3 is merged;
 this combat/escape discrepancy remains open, not an accepted fidelity deviation.

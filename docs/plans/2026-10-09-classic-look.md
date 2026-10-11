@@ -165,12 +165,15 @@ Gate: the owner, at the same spot in both games, cannot tell which camera is whi
 The HUD and panel, the Hand of Evil's cursor, spell and trap effects, sound, and the modern look
 (M11), which ADR-0408 puts on the same pipeline and which is judged against this one.
 
-Deferred beyond Step 4's creature playback scope (owner observations, 2026-10-11):
+Requested for the next session, 2026-10-12 (owner, 2026-10-11), beyond Step 4's scope:
 
 - Room construction visual effects for single-tile placement and drag-release builds
   are absent. Research the original effect selection, placement and timing before adding playback.
 - Prison rat spawning and wandering are absent. The shipped Rat is object 11
   (objects.md); its original spawn and movement rules need binary research.
+- Creature arrival through a Portal: add and verify the visible Entrance animation.
+  Reuse the researched state193/action49 timing and block30 selection;
+  see [portal-creature-action.md](../research/portal-creature-action.md) and Q473.
 
 ## Open
 
