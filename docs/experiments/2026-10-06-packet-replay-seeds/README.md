@@ -17,6 +17,7 @@ because a seed changes our entity ids.
 | 1 | `l1live.sav`, map `l1m/map.csv` | 2044 | `level1-live1`, `level1-live1-seeds` (02–07) |
 | 2 | `l2live2.sav` | 3657 | `level2-live2`, `level2-live2-seeds` (18 distinct seeds) |
 | 3 | `l3live.sav` | 3704 | `level3-live1/seed01`, `level3-live1-seeds` (03–07; 02 did not seed) |
+| 4 | `l4live.sav` (recorded 2026-10-11, not yet replayed or mapped) | 6804 captured | `level4-live1/seed01` only; no seeded DK2 playbacks yet |
 
 A win is the replay's `player 3 status=2`. Level 3 was also run past the recording's end
 with no further input. That needs a throwaway change in `PacketLog.Read`: stop at the
