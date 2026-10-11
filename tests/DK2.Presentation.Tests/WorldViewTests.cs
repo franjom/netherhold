@@ -255,6 +255,24 @@ public class WorldViewTests
         Assert.Equal(1536, rendered.MeshYaw);
     }
 
+    [InstallTheory]
+    [InlineData(-65536, 32768, 5120)]
+    [InlineData(-65537, 32783, 5121)]
+    [InlineData(0, 0, 0)]
+    public void TravelPlaybackUsesTheBodiesFixedPointVelocity(int x, int y, int speed)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        imp.Dk2StateId = 6;
+        imp.UtilityNewState = 13;
+        imp.Body.PathTotalCount = 1;
+        imp.Body.PathFinished = false;
+        imp.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(x, y);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal(new Fp32(speed), rendered.AnimationMovementSpeed);
+    }
+
     [InstallFact]
     public void TheAfterMealActionPlaysEatingInsteadOfTheFoodSearchWalk()
     {

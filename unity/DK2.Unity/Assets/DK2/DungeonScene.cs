@@ -202,7 +202,8 @@ namespace DK2.Unity
             double startSeconds = creature.AnimationStartedAt.HasValue
                 ? (creature.AnimationStartedAt.Value.Value + 1d) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond
                 : _renderSeconds;
-            if (creature.PlaysAnimation && _classic.ConfigureAnimation(go, animation, creature.AnimationLoops, startSeconds)) return;
+            if (creature.PlaysAnimation && _classic.ConfigureAnimation(go, animation, creature.AnimationLoops,
+                startSeconds, creature.AnimationMovementSpeed)) return;
             if (player != null) player.Stop();
             _classic.RestoreModel(go, mesh);
         }
@@ -227,7 +228,7 @@ namespace DK2.Unity
                     pose.Height / (float)Fp32.One);
                 go.transform.position = new Vector3(ground.x, position.y, ground.z);
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
-                if (player != null) player.Draw(_renderSeconds);
+                if (player != null) player.Draw(_renderSeconds, pose.AnimationMovementSpeed);
             }
         }
 

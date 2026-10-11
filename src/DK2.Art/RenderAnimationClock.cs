@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data.Model;
+using DK2.Core;
 
 namespace DK2.Art;
 
@@ -11,12 +12,14 @@ public enum AnimationSegment { Start, Main, End }
 public readonly record struct AnimationPose(AnimationSegment Segment, float Phase);
 
 /// <summary>Presentation clock for ordinary type-6 playback at four turns per second.
-/// Queued resources, alternate rates and movement-dependent scaling are not represented.</summary>
+/// Queued resources and exceptional rate overrides are not represented.</summary>
 public sealed class RenderAnimationClock
 {
     private const int One = 4096;
     private readonly CreatureAnimationTiming _timing;
     private readonly bool _loop;
+    private readonly Fp32? _authoredMovementScale;
+    private Fp32? _movementSpeed;
     private AnimationSegment _segment;
     private AnimationSegment _previousSegment;
     private int _phase;
@@ -25,16 +28,28 @@ public sealed class RenderAnimationClock
     private int _rate;
     private bool _complete;
 
-    public RenderAnimationClock(CreatureAnimationTiming timing, bool loop)
+    public RenderAnimationClock(CreatureAnimationTiming timing, bool loop, Fp32? authoredMovementScale = null)
     {
         _timing = timing;
         _loop = loop;
+        _authoredMovementScale = authoredMovementScale;
+        _movementSpeed = authoredMovementScale.HasValue ? new Fp32(One) : null;
         _segment = Has(CreatureAnimationFlags.StartSegment) ? AnimationSegment.Start : AnimationSegment.Main;
         _previousSegment = _segment;
         SetDuration(_segment);
     }
 
-    public void Advance()
+    public void Advance(Fp32? movementSpeed = null)
+    {
+        AdvancePhase();
+        if (_authoredMovementScale.HasValue && movementSpeed.HasValue && !_complete)
+        {
+            _movementSpeed = movementSpeed;
+            _rate = CalculateRate();
+        }
+    }
+
+    private void AdvancePhase()
     {
         _previousSegment = _segment;
         _previousPhase = _phase;
@@ -101,6 +116,23 @@ public sealed class RenderAnimationClock
             _ => _timing.FrameCount,
         };
         _duration = _timing.FramesPerSecond > 0 ? frames * One / _timing.FramesPerSecond : 0;
-        _rate = _duration > 0 ? (int)Math.Min(One - 1, (long)One * One / (_duration * 4L)) : 0;
+        _rate = CalculateRate();
+    }
+
+    private int CalculateRate()
+    {
+        long rate = _duration > 0 ? (long)One * One / (_duration * 4L) : 0;
+        if (_authoredMovementScale.HasValue && _movementSpeed.HasValue)
+        {
+            int scale = _authoredMovementScale.Value.Raw;
+            if (scale == 0) return 0;
+            int perTick = scale / 4;
+            if (perTick > 0)
+            {
+                long ratio = (long)_movementSpeed.Value.Raw * One / perTick;
+                rate = rate * ratio >> 12;
+            }
+        }
+        return (int)Math.Min(One - 1, rate);
     }
 }

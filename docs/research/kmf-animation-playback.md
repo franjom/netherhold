@@ -81,7 +81,7 @@ Built (ADR-0390):
   art descriptor's frame count over its FPS (`+0x44`, `+0x48`, type 6) from
   frame 0 to the last (§2, §3). That count differs from the KMF's in 300 of 906
   creature clips. A KMF with no descriptor still plays at an assumed 30 fps.
-  The phase-to-time link in §3 stays open.
+  The phase-to-time link is established in §3.
 
 Initial classic playback (ADR-0431): `RenderAnimation` interpolates adjacent
 decoded frames into each instance's reusable buffer. Each clip retains its
@@ -89,8 +89,8 @@ own topology, materials and UVs; this does not require fitting a second UV
 family onto a modern rig (Q443). Unity uploads positions to an instance mesh.
 `RenderAnimationClock` advances the ordinary integer phase and its start/main/end
 segments, and Unity uses each segment's own mesh/UVs. Playback starts on clip
-changes with the same-turn first advance. Movement-dependent rate changes,
-queued replacement, repeated action restarts and the complete chooser
+changes with the same-turn first advance. Ordinary movement rate changes are
+built as §6 describes. Queued replacement, other action restarts and the complete chooser
 (`0x0048BE50`) remain pending. See §5 for the built choices. Shared arrays have no
 per-sample allocation; Unity upload and whole-scene cost require editor profiling.
 
@@ -113,3 +113,28 @@ these choices instead of using dig for every Imp work activity.
 Hatchery eating plays resolved art 13 during the persistent action-26 wait,
 restarted from the state-entry stamp (ADR-0432). Its timing evidence is eating.md §7.
 The owner's eating comparison remains outstanding; prison eating is still static.
+
+## 6. Movement rates — CONFIRMED (binary, 2026-10-11)
+
+For requested slots 1/2, `0x0048BE50` gets the body's velocity through
+`0x004D5AF0`, converting 16.16 to 12.12 with arithmetic shifts by four.
+Its speed approximation is `abs(x) + abs(y) - (min(abs(x), abs(y)) >> 1)`.
+It advances through `0x004B3AD0`, then recalculates the next rate through
+`0x004B41E0`. Forced-speed and status overrides remain outside this implementation.
+
+The movement scale is compact descriptor word +0, copied from file word
++0x4C by `0x00504D80`. The rate setter divides that word by the tick rate
+in 12.12, divides current speed by that result, multiplies the nominal
+unclamped rate by that ratio, shifts down twelve, then caps at 4095.
+A zero authored scale makes the rate zero; a nonzero scale whose per-tick
+value truncates to zero leaves the nominal rate unchanged.
+
+Fresh installation in `0x004B37D0` sets the requested slot before computing
+its rate. Ordinary movement's caller passes scalar 4096, so the first
+advance uses that scalar, not yet the actual velocity. Later turns use
+the velocity after their advance. The tests preserve both details.
+
+Built under ADR-0431: travel playback receives the body's speed without
+restarting its clip when speed changes. Frame catch-up uses the latest
+observed velocity for skipped render ticks; it does not reconstruct their
+individual speeds. Shared sample buffers still allocate nothing per sample.

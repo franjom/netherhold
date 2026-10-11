@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Art;
+using DK2.Core;
 using DK2.Data.Model;
 
 namespace DK2.Convert.Tests;
@@ -76,5 +77,48 @@ public class RenderAnimationClockTests
         var clock = new RenderAnimationClock(Timing(fps: 0), loop: true);
         clock.Advance();
         Assert.Equal(0f, clock.Sample(1).Phase);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(512, 128)]
+    [InlineData(1024, 256)]
+    [InlineData(2048, 512)]
+    public void WalkingRecalculatesItsNextAdvanceFromActualVelocity(int speed, int nextStep)
+    {
+        var clock = new RenderAnimationClock(Timing(), loop: true, authoredMovementScale: new Fp32(16384));
+        clock.Advance(new Fp32(speed));
+        Assert.Equal(.25f, clock.Sample(1).Phase);
+        clock.Advance(new Fp32(speed));
+        Assert.Equal((1024 + nextStep) / 4096f, clock.Sample(1).Phase);
+    }
+
+    [Fact]
+    public void AZeroAuthoredMovementScaleRetainsTheFirstWalkingPose()
+    {
+        var clock = new RenderAnimationClock(Timing(), loop: true, authoredMovementScale: new Fp32(0));
+        clock.Advance(new Fp32(1000));
+        clock.Advance(new Fp32(1000));
+        Assert.Equal(0f, clock.Sample(1).Phase);
+    }
+
+    [Fact]
+    public void FreshWalkingInstallationUsesScalar4096BeforeItsFirstVelocityUpdate()
+    {
+        var clock = new RenderAnimationClock(Timing(), loop: true, authoredMovementScale: new Fp32(4096));
+        clock.Advance(new Fp32(512));
+        Assert.Equal(4095 / 4096f, clock.Sample(1).Phase);
+        clock.Advance(new Fp32(512));
+        Assert.Equal(511 / 4096f, clock.Sample(1).Phase);
+    }
+
+    [Fact]
+    public void MovementScalingPrecedesTheAdvanceRateCap()
+    {
+        var clock = new RenderAnimationClock(Timing(frames: 1, fps: 8), loop: true,
+            authoredMovementScale: new Fp32(4096));
+        clock.Advance(new Fp32(128));
+        clock.Advance(new Fp32(128));
+        Assert.Equal(1023 / 4096f, clock.Sample(1).Phase);
     }
 }

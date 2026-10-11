@@ -4,6 +4,7 @@
 
 using DK2.Art;
 using DK2.Data.Model;
+using DK2.Core;
 using UnityEngine;
 
 namespace DK2.Unity
@@ -21,12 +22,13 @@ namespace DK2.Unity
         private AnimationSegment? _drawnSegment;
 
         public void Configure(RenderAnimation[] clips, Mesh[] templates, Material[][] materials,
-            CreatureAnimationTiming timing, bool loop, double start)
+            CreatureAnimationTiming timing, bool loop, double start, Fp32? authoredMovementScale = null,
+            Fp32? movementSpeed = null)
         {
             Stop();
             _clips = clips;
             _materials = materials;
-            _clock = new RenderAnimationClock(timing, loop);
+            _clock = new RenderAnimationClock(timing, loop, authoredMovementScale);
             _startTick = (long)System.Math.Floor(start * 4);
             _advanced = 0;
             _drawnSegment = null;
@@ -41,15 +43,15 @@ namespace DK2.Unity
                 _meshes[i] = Object.Instantiate(templates[i]);
                 _meshes[i].MarkDynamic();
             }
-            Draw(start);
+            Draw(start, movementSpeed);
         }
 
-        public void Draw(double seconds)
+        public void Draw(double seconds, Fp32? movementSpeed = null)
         {
             if (_clock == null) return;
             double tickTime = seconds * 4;
             long tick = (long)System.Math.Floor(tickTime);
-            while (_advanced <= tick - _startTick) { _clock.Advance(); _advanced++; }
+            while (_advanced <= tick - _startTick) { _clock.Advance(movementSpeed); _advanced++; }
             AnimationPose pose = _clock.Sample((float)(tickTime - tick));
             int segment = (int)pose.Segment;
             if (_drawnSegment != (AnimationSegment)segment)

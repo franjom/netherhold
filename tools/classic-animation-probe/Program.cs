@@ -21,6 +21,8 @@ foreach (string name in new[] { "Imp", "Giant", "Salamander", "Mistress" })
     if (!provider.TryResolve(key, out ResolvedAsset asset)
         || !provider.TryLoadModel(asset, out var model) || model.Animation is not { IsComplete: true }) continue;
     var clip = new RenderAnimation(model);
+    provider.TryGetResource(asset, out Dk2ArtResource resource);
+    Console.WriteLine($"{name}: authored movement scale {resource.MovementScale}/4096");
     const int crowd = 200, iterations = 300;
     Vector3[][] instances = Enumerable.Range(0, crowd).Select(_ => new Vector3[clip.Mesh.Positions.Count]).ToArray();
     for (int t = 0; t < 100; t++)

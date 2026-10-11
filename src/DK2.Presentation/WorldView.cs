@@ -152,7 +152,8 @@ public readonly struct CreatureView
         int? previousPosY = null,
         bool playsAnimation = false,
         bool animationLoops = true,
-        GameTick? animationStartedAt = null)
+        GameTick? animationStartedAt = null,
+        Fp32? animationMovementSpeed = null)
     {
         Id = id;
         OwnerPlayerId = ownerPlayerId.Value;
@@ -170,6 +171,7 @@ public readonly struct CreatureView
         PlaysAnimation = playsAnimation;
         AnimationLoops = animationLoops;
         AnimationStartedAt = animationStartedAt;
+        AnimationMovementSpeed = animationMovementSpeed;
     }
 
     /// <summary>The simulation's creature id. A renderer's object is a view of this and nothing more.</summary>
@@ -202,6 +204,7 @@ public readonly struct CreatureView
     public bool PlaysAnimation { get; }
     public bool AnimationLoops { get; }
     public GameTick? AnimationStartedAt { get; }
+    public Fp32? AnimationMovementSpeed { get; }
 
     /// <summary>Gold in its hands. Visible in DK2 — an imp carrying gold looks like it.</summary>
     public int GoldHeld { get; }
@@ -1112,7 +1115,8 @@ public sealed partial class WorldView
                 creature.GoldHeld, height, yaw, pitch, roll, previousX, previousY,
                 playsAnimation, creature.Activity != CreatureActivity.Dying,
                 creature.Dk2StateId == EatingRules.AfterMealState && creature.StateEnteredTick >= 0
-                    ? new GameTick(creature.StateEnteredTick) : null);
+                    ? new GameTick(creature.StateEnteredTick) : null,
+                IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null);
         }
     }
 
@@ -1192,6 +1196,13 @@ public sealed partial class WorldView
             or CreatureActivity.HeedingCallToArms => creature.HasRoute,
         _ => false,
     };
+
+    private static Fp32 MovementAnimationSpeed(CreatureState creature)
+    {
+        int x = Math.Abs(creature.Body.Vel.X >> 4);
+        int y = Math.Abs(creature.Body.Vel.Y >> 4);
+        return new Fp32(x + y - (Math.Min(x, y) >> 1));
+    }
 
     /// <summary>
     /// <c>MovingToJob</c> → <c>moving_to_job</c>. A <c>switch</c> rather than

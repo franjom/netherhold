@@ -7,6 +7,7 @@ using DK2.Art;
 using DK2.Art.Kmf;
 using DK2.Art.Textures;
 using DK2.Assets;
+using DK2.Core;
 using DK2.Data.Model;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -61,7 +62,8 @@ namespace DK2.Unity
             go.GetComponent<MeshRenderer>().sharedMaterials = built.Materials;
         }
 
-        public bool ConfigureAnimation(GameObject go, in ResolvedAsset asset, bool loop, double seconds)
+        public bool ConfigureAnimation(GameObject go, in ResolvedAsset asset, bool loop, double seconds,
+            Fp32? movementSpeed = null)
         {
             if (!_art.TryGetResource(asset, out Dk2ArtResource resource) || resource.Type != 6
                 || !_art.TryLoadModel(asset, out KmfModel model) || model.Animation is not { IsComplete: true }
@@ -91,7 +93,7 @@ namespace DK2.Unity
                 ResourceType = resource.Type, FrameCount = resource.FrameCount,
                 FramesPerSecond = resource.FramesPerSecond, Flags = resource.AnimationFlags,
                 StartSegmentFrames = resource.StartSegmentFrames, EndSegmentFrames = resource.EndSegmentFrames,
-            }, loop, seconds);
+            }, loop, seconds, movementSpeed.HasValue ? new Fp32(resource.MovementScale) : null, movementSpeed);
             return true;
         }
 

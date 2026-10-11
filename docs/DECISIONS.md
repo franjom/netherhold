@@ -9872,20 +9872,23 @@ authored waypoint patrols with invented wandering.
 clip's own UVs and topology. Decoded frame positions are already available.
 
 **Decision.** Initially share decoded clip arrays and CPU-sample positions into
-one dynamic mesh per visible creature. Use descriptor count/FPS for nominal
+one dynamic mesh per loaded segment of each visible creature. Use descriptor count/FPS for nominal
 duration and interpolate previous/current simulation positions for rendering.
 Keep unaudited action mappings on their existing static pose. The repeatable
 crowd sampler probe is tools/classic-animation-probe; profile Unity uploads
 before choosing whether GPU animation is warranted.
 
 **Consequences.** This changes presentation only. Original action restarts,
-movement rate changes and queued transitions remain pending under Q442. The first
+exceptional rate overrides and queued transitions remain pending under Q442. The first
 batch does not complete Step 4 or its owner visual gate. No hash/save bump.
 
 **2026-10-11.** Use an instance-local integer phase clock for ordinary playback,
 including separate Start/End resources and segment-aware frame interpolation.
 Each segment retains its own topology and UVs. The phase-to-frame link is now
 confirmed; remaining timing scope is recorded in kmf-animation-playback.md.
+Ordinary travel also scales its next advance from body velocity and the authored
+movement word, preserving the install scalar and cap order. Frame catch-up uses
+the latest observed velocity; exceptional overrides remain pending.
 
 ## ADR-0432 — Hold a hatchery meal for its eating action
 **Date:** 2026-10-11 · **Status:** accepted · Research: eating-action.md

@@ -20,12 +20,12 @@ Q582 is the highest behavior priority. A separate user-authorized agent traces
 the Level7 Giant/Imp encounter. Presentation changes remain separate from the
 researched eating action boundary (ADR-0432).
 
-Progress: first playback batch implemented. Fractional sampler and descriptor
-tests pass; adapter compiles. Review found and corrected a stale clip-start clock.
-The next batch adds run/claim/reinforce mappings, the ordinary quantized clock
-and separate Start/End meshes. Hatchery meals now retain action 26's wait and
-restart their clip from the entry stamp. Remaining: prison eating,
-movement rate changes, other repeated action restarts, queued transitions, editor
+Progress: fractional sampling, ordinary integer phases, separate Start/End
+meshes, position interpolation and run/claim/reinforce mappings are built.
+Travel rates use body velocity and the authored scale; fresh installs preserve
+the initial scalar. Hatchery meals retain action 26's wait and restart their
+clip from the entry stamp. Remaining: prison eating,
+exceptional rate overrides, other action restarts, queued transitions, editor
 profiling and the owner visual gate. The primary phase-to-frame link is closed;
 the render factor's game-clock producer remains open (Q442).
 Q582 trace is recorded in combat-acquisition.md §1; it remains unresolved.

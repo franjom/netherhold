@@ -110,6 +110,7 @@ public sealed class ScenePresenter
             PlaysAnimation = creature.PlaysAnimation;
             AnimationLoops = creature.AnimationLoops;
             AnimationStartedAt = creature.AnimationStartedAt;
+            AnimationMovementSpeed = creature.AnimationMovementSpeed;
         }
 
         public AssetRef Mesh { get; }
@@ -128,6 +129,7 @@ public sealed class ScenePresenter
         public bool PlaysAnimation { get; }
         public bool AnimationLoops { get; }
         public GameTick? AnimationStartedAt { get; }
+        public Fp32? AnimationMovementSpeed { get; }
 
         public bool Equals(CreatureVisual other) =>
             Mesh == other.Mesh
@@ -144,14 +146,15 @@ public sealed class ScenePresenter
             && PreviousPosY == other.PreviousPosY
             && PlaysAnimation == other.PlaysAnimation
             && AnimationLoops == other.AnimationLoops
-            && AnimationStartedAt == other.AnimationStartedAt;
+            && AnimationStartedAt == other.AnimationStartedAt
+            && AnimationMovementSpeed == other.AnimationMovementSpeed;
 
         public override bool Equals(object? obj) => obj is CreatureVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
             Mesh, Animation, PosX, PosY, OwnerPlayerId, GoldHeld,
             HashCode.Combine(Height, MeshYaw, Pitch, Roll, PreviousPosX, PreviousPosY, PlaysAnimation,
-                HashCode.Combine(AnimationLoops, AnimationStartedAt)));
+                HashCode.Combine(AnimationLoops, AnimationStartedAt, AnimationMovementSpeed)));
     }
 
     /// <summary>The part of an object a renderer can see.</summary>

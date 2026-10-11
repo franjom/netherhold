@@ -111,10 +111,11 @@ previous/current position interpolation (ADR-0431). Existing idle, ordinary walk
 run, Imp dig/claim/reinforce, sleep, die and torture mappings can play, with
 ordinary quantized phases and separate Start/End meshes. Hatchery eating retains
 action 26's first-cycle wait and restarts playback from its entry stamp (ADR-0432).
-Prison eating, movement rate changes and other action restarts remain pending.
+Ordinary travel rates follow body velocity and the authored movement scale;
+prison eating, other action restarts and exceptional rate overrides remain pending.
 See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
 The owner animation comparison gate and Unity crowd upload profiling are outstanding.
-Current-batch verification: 4720 tests pass, including the three comparison tests after
+Current-batch verification: 4730 tests pass, including the three comparison tests after
 restoring local ignored captures; Unity assemblies synced, adapter compile and review pass.
 Eating timing's Level 1–3 seed spread is recorded in ADR-0432; artifacts are
 D:/DungeonKeeperRemake/build/classic-step3-replays/eating-action-followup.
