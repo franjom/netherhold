@@ -50,8 +50,8 @@ namespace DK2.Unity
 
         [Header("Input")]
         [SerializeField] private PlayerToolMode tool = PlayerToolMode.TagTiles;
-        [Range(1, byte.MaxValue)]
-        [SerializeField] private int selectedRoomId = (int)RoomTypeId.Treasury;
+        [Tooltip("Room used by Build. Select a name here or cycle rooms with [ and ].")]
+        [SerializeField] private RoomTypeId selectedRoomId = RoomTypeId.Treasury;
 
         [Header("Running")]
         [Tooltip("Multiplies the simulation's own tick rate. 0 pauses; 1 is the placeholder rate (Q1).")]
@@ -240,7 +240,7 @@ namespace DK2.Unity
 
             TilePos? tile = ScreenToTile(Input.mousePosition);
             var intent = new PlayerIntent(
-                (byte)viewingPlayerId, tool, tile, button, (RoomTypeId)selectedRoomId);
+                (byte)viewingPlayerId, tool, tile, button, selectedRoomId);
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
                 _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database);
             InputFrame frame = _input.Translate(intent, snapshot);
@@ -288,18 +288,18 @@ namespace DK2.Unity
         private void SelectKnownRoom()
         {
             if (_roomIds.Length == 0) return;
-            if (Array.IndexOf(_roomIds, (RoomTypeId)selectedRoomId) >= 0) return;
-            selectedRoomId = (byte)_roomIds[0];
+            if (Array.IndexOf(_roomIds, selectedRoomId) >= 0) return;
+            selectedRoomId = _roomIds[0];
         }
 
         private void SelectAdjacentRoom(int direction)
         {
             if (_roomIds.Length == 0) return;
 
-            int index = Array.IndexOf(_roomIds, (RoomTypeId)selectedRoomId);
+            int index = Array.IndexOf(_roomIds, selectedRoomId);
             if (index < 0) index = 0;
             index = (index + direction + _roomIds.Length) % _roomIds.Length;
-            selectedRoomId = (byte)_roomIds[index];
+            selectedRoomId = _roomIds[index];
         }
 
         private void ControlCamera()

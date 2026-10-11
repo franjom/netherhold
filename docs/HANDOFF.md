@@ -111,7 +111,10 @@ These are local artifacts. Follow-up: docs/plans/2026-10-10-torture-wheel-follow
 Step 4's supported playback and interpolation are built (ADR-0431–0438).
 Canonical scope and remaining research boundaries: kmf-animation-playback.md,
 animation-transitions.md and plans/2026-10-10-classic-look-step4.md.
-The owner has not checked the final animation comparison gate (2026-10-11).
+Owner visual checks (2026-10-11): chickens, digging, reinforcing and walking
+look correct. Claiming, eating and sleeping remain unchecked; sleeping on
+Level7 was blocked by numeric room selection. DungeonRunner now selects rooms
+by name in its Inspector and displays the name in the Game view (unity/README.md).
 Actual Unity crowd captures and rendering comparisons are complete; the
 background-load caveat and production migration limits are recorded with the
 measurements in tools/classic-unity-probe/README.md.
@@ -126,7 +129,7 @@ Creature status flowers are still part of the unbuilt HUD work. Creature separat
 already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
 Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.
 The owner verified the blue portal pillars after reloading (2026-10-10).
-Remaining owner checks: restart Play mode, compare chicken motion, Giant melee swings
+Remaining owner checks: restart Play mode, compare Giant melee swings
 and locked-door chains, inspect Level8's hatchery Guard visibility and portal movement
 (hero-party-walk.md §1), and compare torch illumination
 at the same camera positions. The per-object light limit is confirmed; its responsibility

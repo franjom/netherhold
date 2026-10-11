@@ -32,5 +32,5 @@ Actual Unity development/release crowd captures and representation comparison
 are complete; retain validated CPU playback under ADR-0438.
 Procedure and measurements: tools/classic-unity-probe/README.md.
 All 4861 tests pass without skips, all 60 Level 1–3 replays validate, and Unity
-sync/adapter compile and independent review pass. The owner has not checked
-the visual gate after restarting Play mode (2026-10-11).
+sync/adapter compile and independent review pass. Owner visual acceptance is
+partial; the checked and remaining cases are recorded in HANDOFF.md.

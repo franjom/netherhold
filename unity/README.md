@@ -41,7 +41,9 @@ for digging is tinted amber, and wall torches are placed by `TorchLayout`.
 
 WASD or the arrow keys pan and the mouse wheel zooms. The left mouse button uses the
 selected tool: `1` tag, `2` untag, `3` build, `4` sell, `5` pick up/drop, `6` slap,
-`7` Create Imp. `[` and `]` select the room used by Build. Drag the four rectangle
+`7` Create Imp. `[` and `]` select the room used by Build; the Game view displays
+its name. The DungeonRunner Inspector's Selected Room Id dropdown also selects
+rooms by name. Choose Lair to build sleeping space. Drag the four rectangle
 tools; click the other three. These controls are interface choices specified by
 ADR-0104, not claims about the original game.
 
