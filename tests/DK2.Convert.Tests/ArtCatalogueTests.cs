@@ -12,6 +12,22 @@ namespace DK2.Convert.Tests;
 public class ArtCatalogueTests
 {
     [InstallFact]
+    public void ADeadGoblinResolvesToItsCorpseMeshInsteadOfWalking()
+    {
+        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
+        ArtEntry entry = ArtSourceMap.ForDatabase(database, art).Single(e =>
+            e.Reference.Key == "creature.goblin.animation.dead");
+
+        Assert.True(entry.HasSource);
+        Assert.Equal("Goblin-DiePose", entry.Source!.Name);
+        Assert.Equal((byte)5, entry.Source.Type);
+        ArtEntry mesh = ArtSourceMap.ForDatabase(database, art).Single(e =>
+            e.Reference.Key == "creature.goblin.mesh.dead");
+        Assert.Equal(entry.Source, mesh.Source);
+    }
+
+    [InstallFact]
     public void LandingUsesArtTwentyFourOrItsSingleFallbackFour()
     {
         string install = Dk2InstallGate.Path;

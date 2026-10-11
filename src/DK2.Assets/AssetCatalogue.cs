@@ -280,7 +280,7 @@ public static class AssetCatalogue
         room.Construction is TileConstruction.Normal or TileConstruction.DoubleQuad;
 
     /// <summary>
-    /// A mesh and one animation per implemented activity, for every creature the
+    /// Living and corpse meshes and one animation per implemented activity, for every creature the
     /// database defines (46 in the shipped data) and not only the ones the simulation
     /// spawns. The animation variants are what today's mechanics can distinguish —
     /// see <see cref="CreatureAnimations"/>.
@@ -291,6 +291,7 @@ public static class AssetCatalogue
         {
             CreatureDef creature = database.Creatures[id];
             yield return AssetRef.ForCreature(creature.Name, AssetKind.Mesh);
+            yield return AssetRef.ForCreature(creature.Name, AssetKind.Mesh, "dead");
 
             foreach (string animation in CreatureAnimations)
                 yield return AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation);

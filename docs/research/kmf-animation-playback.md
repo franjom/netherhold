@@ -115,7 +115,8 @@ these choices instead of using dig for every Imp work activity.
 
 Hatchery eating plays resolved art 13 during the persistent action-26 wait,
 restarted from the state-entry stamp (ADR-0432). Its timing evidence is eating.md §7.
-The owner's eating comparison remains outstanding; prison eating is still static.
+The owner's eating comparison remains outstanding; Prison meal playback is built
+(eating-action.md). Static corpse meshes use dying-states.md §3's separate resource.
 
 Prisoner routes now select walk/run and the body's movement rate even though
 their activity remains Imprisoned (2026-10-11). State 116 retains its route while

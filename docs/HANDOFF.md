@@ -115,10 +115,12 @@ Owner visual checks (2026-10-11): chickens, digging, reinforcing and walking
 look correct. Claiming, eating and sleeping remain unchecked; sleeping on
 Level7 was blocked by numeric room selection. DungeonRunner now selects rooms
 by name in its Inspector and displays the name in the Game view (unity/README.md).
+Dead Goblins now use the original corpse mesh; see dying-states.md §3.
+Owner corpse comparison pending (2026-10-11).
 Actual Unity crowd captures and rendering comparisons are complete; the
 background-load caveat and production migration limits are recorded with the
 measurements in tools/classic-unity-probe/README.md.
-Hash/save version is 226. All 4861 tests pass without skips; assemblies synced,
+Hash/save version is 226. The full Release suite passes without skips; assemblies synced,
 adapter compile and independent review pass. All 60 Level 1–3 replays validate;
 bounded-run wins are 19/6/17 versus 19/6/18 on 225. These are modern regression
 measurements, not proof of original timing parity.

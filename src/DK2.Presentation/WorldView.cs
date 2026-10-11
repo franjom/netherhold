@@ -1121,6 +1121,9 @@ public sealed partial class WorldView
             bool trainingAnimation = IsTrainingAnimation(creature);
             bool playsAnimation = PlaysMappedAnimation(creature, world.CurrentTick);
             AssetRef animation = AnimationFor(creature, world.CurrentTick);
+            if (creature.Activity == CreatureActivity.Dead)
+                mesh = AssetRef.ForCreature(_database.CreatureById(creature.CreatureTypeId).Name,
+                    AssetKind.Mesh, "dead");
             if (AttachedWheel(world, creature) is { } wheel)
             {
                 mesh = animation;

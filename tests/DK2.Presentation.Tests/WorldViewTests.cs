@@ -23,6 +23,23 @@ namespace DK2.Presentation.Tests;
 /// </summary>
 public class WorldViewTests
 {
+    [InstallFact]
+    public void ACorpseUsesItsDeadMeshAndStopsTheLivingAnimation()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState creature = world.SpawnCreature(database, database.CreatureByName("Goblin")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        creature.Health = 0;
+        CreatureDeathRules.BecomeCorpse(world, database, creature);
+
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(AssetRef.ForCreature("Goblin", AssetKind.Mesh, "dead"), rendered.Mesh);
+        Assert.Equal(AssetRef.ForCreature("Goblin", AssetKind.Animation, "dead"), rendered.Animation);
+        Assert.False(rendered.PlaysAnimation);
+        Assert.True(PlaceholderProvider.Instance.TryResolve(rendered.Mesh, out ResolvedAsset placeholder));
+        Assert.Equal(PlaceholderShape.Figure, placeholder.Look.Shape);
+    }
+
     [InstallTheory]
     [InlineData("Imp", false, "idle")]
     [InlineData("Dwarf", true, "landing")]
