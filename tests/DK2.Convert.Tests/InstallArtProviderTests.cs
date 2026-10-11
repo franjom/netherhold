@@ -18,6 +18,61 @@ namespace DK2.Convert.Tests;
 public sealed class InstallArtProviderTests
 {
     [Fact]
+    public void SeparateSegmentResourcesKeepTheirOwnTopologyAndNames()
+    {
+        var resource = new Dk2ArtResource("clip", 6)
+        {
+            AnimationFlags = CreatureAnimationFlags.StartSegment | CreatureAnimationFlags.EndSegment,
+            StartSegmentFrames = 2, EndSegmentFrames = 2,
+        };
+        AssetRef key = AssetRef.ForCreature("Imp", AssetKind.Animation, "idle");
+        using var provider = new InstallArtProvider([new ArtEntry(key, ArtUse.Model, resource, "test")],
+            new FakeMeshes(("clip.kmf", AnimatedKmfFixture.TwoFrames()),
+                ("clipStart.kmf", AnimatedKmfFixture.TwoFrames()),
+                ("clipEnd.kmf", AnimatedKmfFixture.TwoFrames())), new FakeTextures());
+        Assert.True(provider.TryResolve(key, out var asset));
+        Assert.True(provider.TryResolveSegment(asset, AnimationSegment.Start, out var start));
+        Assert.Equal("clipStart.kmf", start.InstallEntry);
+        Assert.True(provider.TryResolveSegment(asset, AnimationSegment.End, out var end));
+        Assert.Equal("clipEnd.kmf", end.InstallEntry);
+        Assert.True(provider.TryLoadModel(start, out _));
+        Assert.True(provider.TryLoadModel(end, out _));
+        Assert.True(provider.TryResolveSegment(asset, AnimationSegment.Main, out var main));
+        Assert.Equal(asset.InstallEntry, main.InstallEntry);
+    }
+
+    [Fact]
+    public void AMissingRequiredSegmentDoesNotResolveAsTheMainResource()
+    {
+        var resource = new Dk2ArtResource("clip", 6)
+        {
+            AnimationFlags = CreatureAnimationFlags.StartSegment, StartSegmentFrames = 2,
+        };
+        AssetRef key = AssetRef.ForCreature("Imp", AssetKind.Animation, "idle");
+        using var provider = new InstallArtProvider([new ArtEntry(key, ArtUse.Model, resource, "test")],
+            new FakeMeshes(("clip.kmf", AnimatedKmfFixture.TwoFrames())), new FakeTextures());
+        Assert.True(provider.TryResolve(key, out var asset));
+        Assert.False(provider.TryResolveSegment(asset, AnimationSegment.Start, out _));
+        Assert.False(provider.TryResolveSegment(asset, AnimationSegment.End, out _));
+    }
+
+    [Fact]
+    public void PlaybackUsesTheDescriptorCountInsteadOfTheDecodedMeshCount()
+    {
+        var resource = new Dk2ArtResource("clip", 6) { FrameCount = 7, FramesPerSecond = 12 };
+        AssetRef key = AssetRef.ForCreature("Imp", AssetKind.Animation, "idle");
+        using var provider = new InstallArtProvider([new ArtEntry(key, ArtUse.Model, resource, "test")],
+            new FakeMeshes(("clip.kmf", AnimatedKmfFixture.TwoFrames())), new FakeTextures());
+        Assert.True(provider.TryResolve(key, out var asset));
+        Assert.True(provider.TryLoadModel(asset, out var model));
+        Assert.Equal(2u, model.Animation!.FrameCount);
+        Assert.True(provider.TryGetResource(asset, out var descriptor));
+        Assert.Equal((ushort)7, descriptor.FrameCount);
+        Assert.Equal((ushort)12, descriptor.FramesPerSecond);
+        Assert.False(provider.TryGetResource(default, out _));
+    }
+
+    [Fact]
     public void AKeyResolvesToItsKmfInTheInstallAndOnlyWhenTheKmfIsThere()
     {
         var meshes = new FakeMeshes(("Gold Mesh.kmf", AnimatedKmfFixture.TwoFrames()));

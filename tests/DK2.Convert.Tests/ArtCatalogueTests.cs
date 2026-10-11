@@ -12,6 +12,35 @@ namespace DK2.Convert.Tests;
 public class ArtCatalogueTests
 {
     [InstallFact]
+    public void AGiantFightUsesTheMeleeResourceInsteadOfWalking()
+    {
+        string install = Dk2InstallGate.Path;
+        var database = GameDatabaseLoader.Load(install);
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
+        var giant = database.CreatureByName("Giant")!;
+        ArtEntry entry = ArtSourceMap.ForDatabase(database, art).Single(e =>
+            e.Reference.Key == "creature.giant.animation.fighting");
+        Assert.Equal(art.Creatures[giant.CreatureId][4], entry.Source);
+    }
+
+    [InstallTheory]
+    [InlineData("running", 1)]
+    [InlineData("claiming", 12)]
+    [InlineData("reinforcing", 11)]
+    public void ImpActionsResolveToTheAuthoredWorkAndRunResources(string action, int fileSlot)
+    {
+        string install = Dk2InstallGate.Path;
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
+        var database = GameDatabaseLoader.Load(install);
+        ArtEntry entry = ArtSourceMap.ForDatabase(database, art).Single(e =>
+            e.Reference.Key == "creature.imp.animation." + action);
+        Dk2ArtResource requested = art.Creatures[1][fileSlot];
+        Assert.Equal(action == "running" && requested.Type == 0 ? art.Creatures[1][0] : requested, entry.Source);
+        Assert.True(entry.HasSource);
+        if (action != "running") Assert.NotEqual(art.Creatures[1][0], entry.Source);
+    }
+
+    [InstallFact]
     public void ShippedArtRecordsMatchGameplayDefinitionCounts()
     {
         string install = Dk2InstallGate.Path;
@@ -26,6 +55,24 @@ public class ArtCatalogueTests
         Assert.Equal("ROCK WALL", art.Terrains[2][1].Name);
         Assert.Equal("Imp_Idle1", art.Creatures[1][19].Name);
         Assert.Equal("Gold Pile", art.Objects[1][0].Name);
+    }
+
+    [InstallFact]
+    public void MealsResolveToArtThirteenOrItsIdleFallback()
+    {
+        string install = Dk2InstallGate.Path;
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
+        var database = GameDatabaseLoader.Load(install);
+        foreach (var creature in database.Creatures.Values)
+        {
+            ArtEntry entry = ArtSourceMap.ForDatabase(database, art).Single(e =>
+                e.Reference.Key == DK2.Assets.AssetRef.ForCreature(creature.Name,
+                    DK2.Assets.AssetKind.Animation, "eating").Key);
+            var resources = art.Creatures[creature.CreatureId];
+            Dk2ArtResource expected = resources[12].Type != 0 ? resources[12] : resources[7];
+            if (expected.IsEmpty) Assert.False(entry.HasSource);
+            else Assert.Equal(expected, entry.Source);
+        }
     }
 
     /// <summary>A KMF clip's rate and frame count are its descriptor's words at <c>+0x48</c> and
@@ -43,5 +90,8 @@ public class ArtCatalogueTests
         Assert.True(knockdown.FramesPerSecond > 0);
         Assert.Equal(database.Creatures[1].KnockdownAnimation.FramesPerSecond, knockdown.FramesPerSecond);
         Assert.Equal(database.Creatures[1].KnockdownAnimation.FrameCount, knockdown.FrameCount);
+        Assert.Equal(database.Creatures[1].KnockdownAnimation.Flags, knockdown.AnimationFlags);
+        Assert.Equal(database.Creatures[1].KnockdownAnimation.StartSegmentFrames, knockdown.StartSegmentFrames);
+        Assert.Equal(database.Creatures[1].KnockdownAnimation.EndSegmentFrames, knockdown.EndSegmentFrames);
     }
 }

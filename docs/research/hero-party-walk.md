@@ -149,6 +149,17 @@ in state 6, the reference point is its stored movement target rather
 than its current position. **CONFIRMED** by
 `0x00461F00`-`0x004620D4`.
 
+Same-tile destinations are real walks here, too (binary recheck, 2026-10-11):
+the tail draws one of nine offsets and passes the resulting point, resume 222
+and options 0x80 to `0x00471890`; `0x004CF490` retains the destination even
+within one triangle. Modern Level8 seed1 followers59/60 previously stopped
+changing position after their initial approach to leader58 on the water near
+AP48. The same-tile shortcut, not a missing patrol objective, prevented their
+subsequent stance walks. `HeroJobRules.Follow` now retains those points (ADR-0433).
+After correction, seed1 turns300–1199 contain 800 and 838 distinct positions
+for followers59/60; their leader58 remains stationary. These are modern
+measurements, not an original timing comparison.
+
 Spacing is `max(PositionInParty >> 1, 1)` accepted tile steps behind
 the leader. Positions 1, 2 and 3 therefore aim one tile back; 4 and 5
 aim two; 6 and 7 aim three, and so on. Obstruction checks may rotate

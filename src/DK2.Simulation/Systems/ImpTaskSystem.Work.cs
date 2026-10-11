@@ -61,7 +61,7 @@ public sealed partial class ImpTaskSystem
         return false;
     }
 
-    private void UpdateMoving(SimulationContext context, CreatureState creature, WorldPathGrid grid)
+    private void UpdateMoving(SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
         // State 6 resumes only when the route's progress is exactly 1.0 after the tick's move
         // (0x00470C80, 0x004D54F0): the point reached, or within a sixteenth of it, never on
@@ -73,8 +73,19 @@ public sealed partial class ImpTaskSystem
             (int entry, int work) = ImpStates.For(creature.TargetWork);
             if (creature.Dk2StateId == entry)
             {
-                // The tick after arrival: the entry state's turn is done. This tick counts
-                // towards the first application, as DK2's work state's first tick does.
+                if (IsExcavation(creature.TargetWork)
+                    || creature.TargetWork is TileWorkKind.Reinforce or TileWorkKind.RepairWall)
+                {
+                    var target = new TilePos(creature.TargetTileIndex % context.World.Width,
+                        creature.TargetTileIndex / context.World.Width);
+                    int heading = creature.Heading;
+                    int remaining = Steering.Bearing.TurnToward(ref heading,
+                        Steering.Bearing.Of(CreatureState.CentreOf(target.X) - creature.PosX,
+                            CreatureState.CentreOf(target.Y) - creature.PosY), definition.TurnRate);
+                    creature.Heading = heading;
+                    if (remaining != 0) return;
+                }
+                // Only the completed turn counts toward the first work application.
                 StateShadow.Move(context, SystemName, creature, work);
                 creature.TimerTicks--;
                 return;

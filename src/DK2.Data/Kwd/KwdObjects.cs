@@ -20,7 +20,7 @@ namespace DK2.Data.Kwd;
 /// Evidence: docs/research/objects.md §§1-2.</para>
 /// <para>Deliberately not read, all presentation or unexplained: the nine art
 /// resources, the light, <c>airFriction</c>, <c>material</c>, the three unknown bytes
-/// at 0x341, <c>maxAngle</c>, the three effect ids, the sound category.</para></remarks>
+/// at 0x341, the three effect ids, the sound category.</para></remarks>
 public static class KwdObjects
 {
     public static byte[] WriteRecord(ObjectDef record, KwdRecordImage template)
@@ -42,6 +42,7 @@ public static class KwdObjects
         Fp(OffsetHeight, record.Height);
         Fp(OffsetMass, record.Mass);
         Fp(OffsetSpeed, record.Speed);
+        U16(OffsetReactionTurn, record.ReactionTurn);
         return bytes;
     }
     private const int RecordSize = 894;
@@ -54,6 +55,7 @@ public static class KwdObjects
     private const int OffsetSpeed = 0x338;
     private const int OffsetFlags = 0x344;
     private const int OffsetHp = 0x348;
+    private const int OffsetReactionTurn = 0x34A;
     private const int OffsetManaValue = 0x34E;
     private const int OffsetTooltipStringId = 0x350;
     private const int OffsetNameStringId = 0x352;
@@ -103,6 +105,7 @@ public static class KwdObjects
             Height = Fp(OffsetHeight),
             Mass = Fp(OffsetMass),
             Speed = Fp(OffsetSpeed),
+            ReactionTurn = U16(OffsetReactionTurn),
 
             NameStringId = U16(OffsetNameStringId),
             TooltipStringId = U16(OffsetTooltipStringId),

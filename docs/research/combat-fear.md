@@ -258,6 +258,11 @@ INFERRED). `CreatureActivity.Fleeing` is state 203, `Withdrawing` state 6 toward
 202, entered from 199 when not already in the combat group; both hold those ids since
 ADR-0208.
 
+The first Level7 death in Q582 takes the NonFighter hero-avoidance path
+(combat-alarm.md §1), which calls withdrawal without waiting for CurrentFear
+or the over-threat counter. Its healthy retreat decision is already observed;
+the unresolved timing and movement comparison is in combat-acquisition.md §1.
+
 **Approximated, named:** the step back is a route three quarters of a tile
 straight away from the target, not a heading impulse (Q373); a hero's flag bit 4 is
 absent, as in every shipped level (§3.2). The room

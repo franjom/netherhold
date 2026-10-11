@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 221: waiting heroes retain their sub-tile walks (ADR-0430).
+        // HashVersion 225: wall-work entry waits for the Imp's facing turn (ADR-0435).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xFB311154736B9A1BUL, sim.StateHash());
+        Assert.Equal(0x2B74D4ED96BA549BUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

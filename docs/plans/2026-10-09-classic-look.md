@@ -1,8 +1,9 @@
 # The classic look in Unity (gap 5)
 
 Decision: ADR-0408. Goal: the Unity scene draws a level as DK2 draws it, from the player's own
-install, so a level can be played and judged by eye. Today it draws coloured boxes
-(`unity/README.md`). Not started; nothing below is built.
+install, so a level can be played and judged by eye. Steps 0–3 are merged at
+6005ff9f. Step 4 is underway on classic-look/step4; see
+2026-10-10-classic-look-step4.md for the current batch and remaining gates.
 
 Rules for every step:
 

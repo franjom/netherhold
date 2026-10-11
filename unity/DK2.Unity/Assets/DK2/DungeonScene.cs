@@ -44,11 +44,20 @@ namespace DK2.Unity
         private static readonly Color TagTint = new Color(1f, 0.85f, 0.2f);
 
         private readonly Transform _root;
+        private readonly TerrainLattice _lattice;
+        private bool _torchGeometryDirty;
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, AssetRef> _creatureArt = new Dictionary<int, AssetRef>();
+        private readonly Dictionary<int, CreatureView> _creaturePoses = new Dictionary<int, CreatureView>();
+        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt)> _creatureClips =
+            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt)>();
+        private double _renderSeconds;
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
+        private readonly Dictionary<int, ObjectView> _objectPoses = new Dictionary<int, ObjectView>();
+        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt)> _objectClips =
+            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt)>();
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
@@ -89,6 +98,7 @@ namespace DK2.Unity
             TerrainLattice lattice = null)
         {
             _root = root;
+            _lattice = lattice;
             _worldWidth = worldWidth;
             _classic = classic;
             if (classic != null)
@@ -100,6 +110,7 @@ namespace DK2.Unity
 
         public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)
         {
+            _torchGeometryDirty = true;
             // Steps 1 and 2 of the classic look: plain terrain and rooms from their pieces. A room
             // drawn so needs no furniture box; its objects are step 3.
             _liquids?.Set(tileIndex, tile);
@@ -139,7 +150,7 @@ namespace DK2.Unity
 
         public void CreateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
         {
-            // The idle KMF's first frame, unturned: the pose and the facing wait for step 4.
+            // The idle model remains the fallback for a missing or unimplemented clip choice.
             GameObject go = _classic?.TryCreate(mesh, $"creature {creatureId}", _root);
             if (go != null) _meshCreatures.Add(creatureId);
             else go = Instantiate(mesh, $"creature {creatureId}");
@@ -147,6 +158,8 @@ namespace DK2.Unity
 
             _creatures[creatureId] = go;
             _creatureArt[creatureId] = mesh.Reference;
+            _creaturePoses[creatureId] = creature;
+            ConfigureCreatureClip(go, creatureId, creature, mesh, animation);
             PositionCreature(go, creatureId, creature, mesh.Look);
         }
 
@@ -161,6 +174,8 @@ namespace DK2.Unity
             }
 
             PositionCreature(go, creatureId, creature, mesh.Look);
+            _creaturePoses[creatureId] = creature;
+            ConfigureCreatureClip(go, creatureId, creature, mesh, animation);
             if (_meshCreatures.Contains(creatureId)) return;
 
             // A creature carrying gold reads as carrying it. Standing in for the
@@ -178,6 +193,70 @@ namespace DK2.Unity
 
             _creatures.Remove(creatureId);
             _creatureArt.Remove(creatureId);
+            _creaturePoses.Remove(creatureId);
+            _creatureClips.Remove(creatureId);
+        }
+
+        private void ConfigureCreatureClip(GameObject go, int id, in CreatureView creature,
+            in ResolvedAsset mesh, in ResolvedAsset animation)
+        {
+            if (_classic == null || !_meshCreatures.Contains(id)) return;
+            AssetRef clip = creature.PlaysAnimation ? animation.Reference : default;
+            var identity = (clip, creature.AnimationStartedAt);
+            if (_creatureClips.TryGetValue(id, out var previous) && previous == identity) return;
+            _creatureClips[id] = identity;
+            ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
+            double startSeconds = creature.AnimationStartedAt.HasValue
+                ? (creature.AnimationStartedAt.Value.Value + 1d) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond
+                : _renderSeconds;
+            if (creature.PlaysAnimation && _classic.ConfigureAnimation(go, animation, creature.AnimationLoops,
+                startSeconds, creature.AnimationMovementSpeed)) return;
+            if (player != null) player.Stop();
+            _classic.RestoreModel(go, mesh);
+        }
+
+        public void SetCreatureFrameTime(GameTick tick, float fraction)
+        {
+            _renderSeconds = (tick.Value + (double)Mathf.Clamp01(fraction)) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond;
+        }
+
+        public void DrawCreatureFrame(GameTick tick, float fraction)
+        {
+            fraction = Mathf.Clamp01(fraction);
+            SetCreatureFrameTime(tick, fraction);
+            foreach (KeyValuePair<int, CreatureView> entry in _creaturePoses)
+            {
+                if (!_creatures.TryGetValue(entry.Key, out GameObject go) || go == null) continue;
+                CreatureView pose = entry.Value;
+                Vector3 position = go.transform.position;
+                Vector3 ground = Ground(
+                    Mathf.Lerp(pose.PreviousPosX, pose.PosX, fraction) / Fp32.One,
+                    Mathf.Lerp(pose.PreviousPosY, pose.PosY, fraction) / Fp32.One,
+                    pose.Height / (float)Fp32.One);
+                go.transform.position = new Vector3(ground.x, position.y, ground.z);
+                ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
+                if (player != null) player.Draw(_renderSeconds, pose.AnimationMovementSpeed);
+            }
+            foreach (KeyValuePair<int, ObjectView> entry in _objectPoses)
+            {
+                if (!_objects.TryGetValue(entry.Key, out GameObject go) || go == null) continue;
+                ObjectView pose = entry.Value;
+                Vector3 ground = Ground(Mathf.Lerp(pose.PreviousPosX, pose.PosX, fraction) / Fp32.One,
+                    Mathf.Lerp(pose.PreviousPosY, pose.PosY, fraction) / Fp32.One,
+                    pose.Height / (float)Fp32.One);
+                go.transform.position = new Vector3(ground.x, go.transform.position.y, ground.z);
+                int turn = ((pose.Heading - pose.PreviousHeading + 1024) & 2047) - 1024;
+                float yaw = (pose.PreviousHeading + 1024 + turn * fraction) * 360f / 2048f;
+                go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+                go.GetComponent<ClassicCreatureAnimation>()?.Draw(_renderSeconds);
+            }
+            if (_torchGeometryDirty)
+            {
+                foreach (GameObject torch in _torches.Values)
+                    if (torch != null && torch.transform.childCount > 0)
+                        torch.transform.GetChild(0).GetComponent<ClassicTorchGeometry>()?.Refresh();
+                _torchGeometryDirty = false;
+            }
         }
 
         public void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
@@ -196,6 +275,7 @@ namespace DK2.Unity
 
             _objects[objectId] = go;
             PositionObject(go, objectId, instance, mesh.Look);
+            ConfigureObjectClip(go, objectId, instance, mesh);
         }
 
         public void UpdateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
@@ -208,6 +288,23 @@ namespace DK2.Unity
             }
 
             PositionObject(go, objectId, instance, mesh.Look);
+            ConfigureObjectClip(go, objectId, instance, mesh);
+        }
+
+        private void ConfigureObjectClip(GameObject go, int id, in ObjectView pose, in ResolvedAsset mesh)
+        {
+            if (!pose.PlaysAnimation) return;
+            _objectPoses[id] = pose;
+            var identity = (mesh.Reference, pose.AnimationStartedAt);
+            if (_objectClips.TryGetValue(id, out var previous) && previous == identity) return;
+            _objectClips[id] = identity;
+            double startSeconds = pose.AnimationStartedAt.HasValue
+                ? (pose.AnimationStartedAt.Value.Value + 1d) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond
+                : _renderSeconds;
+            if (_classic != null && _meshObjects.Contains(id)
+                && _classic.ConfigureAnimation(go, mesh, true, startSeconds)) return;
+            go.GetComponent<ClassicCreatureAnimation>()?.Stop();
+            if (_classic != null && _meshObjects.Contains(id)) _classic.RestoreModel(go, mesh);
         }
 
         public void RemoveObject(int objectId)
@@ -216,6 +313,8 @@ namespace DK2.Unity
                 Object.Destroy(go);
 
             _objects.Remove(objectId);
+            _objectPoses.Remove(objectId);
+            _objectClips.Remove(objectId);
             _meshObjects.Remove(objectId);
             _artless.Remove(objectId);
         }
@@ -253,19 +352,21 @@ namespace DK2.Unity
         public void CreateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh)
         {
             // Unity's fake null makes ?? unsafe on its objects, hence the explicit tests.
-            GameObject go = _classic?.TryCreate(mesh, $"torch {floorTileIndex}", _root);
-            if (go == null)
-            {
-                go = Instantiate(mesh, $"torch {floorTileIndex}");
-                if (go == null) go = new GameObject($"torch {floorTileIndex}");
-                else go.transform.localScale = new Vector3(0.1f, 0.25f, 0.1f); // a placeholder cube is a whole tile
-            }
+            GameObject go = new GameObject($"torch {floorTileIndex}");
             go.transform.SetParent(_root, false);
-            go.transform.localPosition = Ground(
-                torch.PosX / (float)Fp32.One, torch.PosY / (float)Fp32.One, torch.Height / (float)Fp32.One);
-            // Unverified in either frame: the sign and zero of DK2's yaw are unread (ADR-0411,
-            // plan step 2), so this keeps the formula it had before the frame changed.
-            go.transform.localRotation = Quaternion.Euler(0f, torch.Yaw * 360f / 2048f, 0f);
+            GameObject model = _classic?.TryCreate(mesh, "torch mesh", go.transform);
+            bool deform = model != null && _lattice != null;
+            if (model == null)
+            {
+                model = Instantiate(mesh, "torch mesh");
+                if (model != null) model.transform.localScale = new Vector3(0.1f, 0.25f, 0.1f); // a placeholder cube is a whole tile
+            }
+            if (model != null)
+            {
+                model.transform.SetParent(go.transform, false);
+                if (deform) model.AddComponent<ClassicTorchGeometry>();
+            }
+            ApplyTorchPose(go, torch);
             Light light = go.AddComponent<Light>();
             light.type = LightType.Point;
             ApplyTorchLight(light, torch);
@@ -280,6 +381,7 @@ namespace DK2.Unity
                 return;
             }
 
+            ApplyTorchPose(go, torch);
             Light light = go.GetComponent<Light>();
             if (light != null) ApplyTorchLight(light, torch);
         }
@@ -290,6 +392,25 @@ namespace DK2.Unity
                 Object.Destroy(go);
 
             _torches.Remove(floorTileIndex);
+        }
+
+        private void ApplyTorchPose(GameObject go, in TorchView torch)
+        {
+            go.transform.localPosition = Ground(
+                torch.PosX / (float)Fp32.One, torch.PosY / (float)Fp32.One, torch.Height / (float)Fp32.One);
+            if (go.transform.childCount == 0) return;
+            Transform model = go.transform.GetChild(0);
+            ClassicTorchGeometry geometry = model.GetComponent<ClassicTorchGeometry>();
+            if (geometry != null)
+            {
+                geometry.Configure(torch, _lattice);
+                return;
+            }
+            model.localPosition = Ground(
+                (torch.MeshPosX - torch.PosX) / (float)Fp32.One,
+                (torch.MeshPosY - torch.PosY) / (float)Fp32.One);
+            // Type-5 light meshes use yaw without the ordinary object's half-turn (wall-torches.md §4).
+            model.localRotation = Quaternion.Euler(0f, torch.Yaw * 360f / 2048f, 0f);
         }
 
         private static void ApplyTorchLight(Light light, in TorchView torch)
@@ -326,7 +447,12 @@ namespace DK2.Unity
             _furniture.Clear();
             _creatures.Clear();
             _creatureArt.Clear();
+            _creaturePoses.Clear();
+            _creatureClips.Clear();
+            _renderSeconds = 0d;
             _objects.Clear();
+            _objectPoses.Clear();
+            _objectClips.Clear();
             _structures.Clear();
             _meshObjects.Clear();
             _artless.Clear();

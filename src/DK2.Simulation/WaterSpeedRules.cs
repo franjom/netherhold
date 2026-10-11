@@ -16,9 +16,11 @@ public static class WaterSpeedRules
     /// the unmodelled worker flight bits and animation exceptions remain a deviation.</summary>
     public static int SpeedCap(TerrainDef terrain, CreatureDef definition, CreatureState creature, int cap)
     {
-        bool flying = !definition.Flags.HasFlag(CreatureFlags.IsWorker)
+        return terrain.IsWater && !IsFlying(definition, creature) ? ((cap >> 4) / 2) << 4 : cap;
+    }
+
+    public static bool IsFlying(CreatureDef definition, CreatureState creature) =>
+        !definition.Flags.HasFlag(CreatureFlags.IsWorker)
             && creature.Dk2StateId is not (217 or 218)
             && definition.Flags.HasFlag(CreatureFlags.CanFly);
-        return terrain.IsWater && !flying ? ((cap >> 4) / 2) << 4 : cap;
-    }
 }

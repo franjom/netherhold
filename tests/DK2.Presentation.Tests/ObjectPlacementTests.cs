@@ -47,6 +47,22 @@ public class ObjectPlacementTests
 
     private static int Centre(int tile) => (tile * Fp32.One) + (Fp32.One / 2);
 
+    [InstallTheory]
+    [InlineData(0)]
+    [InlineData(512)]
+    [InlineData(1024)]
+    [InlineData(1536)]
+    public void AChickenFacesItsSavedMovementHeading(int heading)
+    {
+        Room room = Carve(RoomTypeId.Hatchery, 3, 3);
+        ObjectState chicken = room.World.SpawnObject(room.Database, HatcheryRules.ChickenObjectId, Keeper,
+            (Y0 + 2) * room.World.Width + X0 + 2);
+        chicken.Heading = heading;
+        ObjectView rendered = room.View.Objects(room.World).Single(o => o.Id == chicken.Id);
+        Assert.Equal(heading, rendered.Heading);
+        Assert.Equal((heading + 1024) & 2047, rendered.MeshYaw);
+    }
+
     [InstallFact]
     public void HatcheryBirdsRetainTheirIndividualPositionsAcrossHatching()
     {

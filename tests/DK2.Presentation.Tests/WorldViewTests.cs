@@ -23,6 +23,119 @@ namespace DK2.Presentation.Tests;
 /// </summary>
 public class WorldViewTests
 {
+    private sealed class StartImmediateSwing(CreatureState attacker, CreatureDef definition) : ISimulationSystem
+    {
+        public string Name => "start_immediate_swing";
+        private bool _started;
+        public void Execute(SimulationContext context)
+        {
+            if (_started) return;
+            _started = true;
+            DK2.Simulation.Combat.FightRules.StartSwing(context, new ClearSight(), attacker,
+                definition with { MeleeHitDelay = new Fp32(0) }, []);
+        }
+    }
+
+    private sealed class ClearSight : DK2.Simulation.Combat.ISightBlocker
+    {
+        public bool Blocks(int x, int y) => false;
+    }
+
+    private sealed class FinishRangedCast(CreatureState caster, CreatureDef definition) : ISimulationSystem
+    {
+        public string Name => "finish_ranged_cast";
+        public void Execute(SimulationContext context)
+        {
+            caster.SwingStartTick = context.Tick.Value;
+            caster.SwingTargetKind = DK2.Simulation.Combat.FightTargetKind.Door;
+            caster.SwingKind = DK2.Simulation.Combat.SpellRules.SpellCast;
+            caster.SwingSpellSlot = 1;
+            DK2.Simulation.Combat.FightRules.FireSpell(context, caster, definition);
+        }
+    }
+
+    [InstallFact]
+    public void ARangedImpactDoesNotTurnIntoAMeleeSwing()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureDef definition = database.CreatureByName("Wizard")!;
+        CreatureState caster = world.SpawnCreature(database, definition.CreatureId, 1, FirstWalkableTile(database, world));
+        caster.Dk2StateId = 200;
+        caster.AttackType = DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtThing;
+        var simulation = new GameSimulation(database, world, 7, [new FinishRangedCast(caster, definition)]);
+        simulation.Tick();
+        Assert.False(caster.SwingInProgress);
+        Assert.Equal(DK2.Simulation.Combat.SpellRules.MeleeSwing, caster.SwingKind);
+        Assert.Equal(AssetRef.ForCreature("Wizard", AssetKind.Animation, "idle"),
+            new WorldView(database).Creatures(world).Single(c => c.Id == caster.Id).Animation);
+    }
+
+    [InstallFact]
+    public void AnImmediateBlowStillPlaysOneSwingAndStopsAtItsAuthoredEnd()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureDef definition = database.CreatureByName("Giant")!;
+        CreatureState giant = world.SpawnCreature(database, definition.CreatureId, 1, FirstWalkableTile(database, world));
+        giant.Dk2StateId = 200;
+        giant.FightTargetKind = DK2.Simulation.Combat.FightTargetKind.Door;
+        giant.AttackType = DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtThing;
+        giant.FightTargetId = -1;
+        var simulation = new GameSimulation(database, world, 7, [new StartImmediateSwing(giant, definition)]);
+        simulation.Tick();
+        Assert.False(giant.SwingInProgress);
+        var view = new WorldView(database);
+        CreatureView rendered = view.Creatures(world).Single(c => c.Id == giant.Id);
+        Assert.Equal(AssetRef.ForCreature("Giant", AssetKind.Animation, "fighting"), rendered.Animation);
+        Assert.Equal(new GameTick(giant.SwingStartTick), rendered.AnimationStartedAt);
+        giant.StateEnteredTick = giant.SwingStartTick + 1;
+        Assert.Equal(AssetRef.ForCreature("Giant", AssetKind.Animation, "idle"),
+            view.Creatures(world).Single(c => c.Id == giant.Id).Animation);
+        giant.StateEnteredTick = giant.SwingStartTick;
+        int hold = AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(5));
+        for (int tick = 1; tick < hold - 1; tick++) simulation.Tick();
+        Assert.Equal(rendered.Animation, view.Creatures(world).Single(c => c.Id == giant.Id).Animation);
+        simulation.Tick();
+        Assert.Equal(AssetRef.ForCreature("Giant", AssetKind.Animation, "idle"),
+            view.Creatures(world).Single(c => c.Id == giant.Id).Animation);
+    }
+
+    [InstallTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ACombatApproachPlaysItsMovementClip(bool running)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState giant = world.SpawnCreature(database, database.CreatureByName("Giant")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        giant.Dk2StateId = 200;
+        giant.Running = running;
+        giant.Body.PathTotalCount = 1;
+        giant.Body.PathFinished = false;
+        giant.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == giant.Id);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Equal(AssetRef.ForCreature("Giant", AssetKind.Animation, running ? "running" : "moving_to_job"), rendered.Animation);
+        Assert.Equal(new Fp32(4096), rendered.AnimationMovementSpeed);
+    }
+
+    [InstallFact]
+    public void AMeleeSwingOverridesTravelAndRestartsFromItsOwnStamp()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState giant = world.SpawnCreature(database, database.CreatureByName("Giant")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        giant.Dk2StateId = 200;
+        giant.SwingInProgress = true;
+        giant.SwingKind = DK2.Simulation.Combat.SpellRules.MeleeSwing;
+        giant.SwingStartTick = 42;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == giant.Id);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Equal(AssetRef.ForCreature("Giant", AssetKind.Animation, "fighting"), rendered.Animation);
+        Assert.False(rendered.AnimationLoops);
+        Assert.Equal(new GameTick(42), rendered.AnimationStartedAt);
+        Assert.Null(rendered.AnimationMovementSpeed);
+    }
+
     private static (GameDatabase Database, WorldState World)? RealLevel()
     {
         string dir = Dk2InstallGate.Path;
@@ -46,6 +159,55 @@ public class WorldViewTests
         held.InHand = true;
 
         Assert.DoesNotContain(new WorldView(database).Creatures(world), c => c.Id == held.Id);
+    }
+
+    [InstallFact]
+    public void GroundedCreatureFeetSitBelowTheWaterSurface()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
+        WorldState world = WorldState.FromMap(database,
+            GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [1, 3]);
+        TilePos water = Enumerable.Range(0, world.Width * world.Height)
+            .Select(i => new TilePos(i % world.Width, i / world.Width))
+            .First(p => database.TerrainById(world.Tile(p).TerrainId).IsWater);
+        CreatureState dwarf = world.SpawnCreature(database, database.CreatureByName("Dwarf")!.CreatureId, 1, water);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == dwarf.Id);
+        Assert.Equal(0xA66, rendered.Height);
+        Assert.True(rendered.Height < 0xE66);
+    }
+
+    [InstallFact]
+    public void FlyingCreatureKeepsItsHeightAboveWater()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
+        WorldState world = WorldState.FromMap(database,
+            GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [1, 3]);
+        TilePos water = Enumerable.Range(0, world.Width * world.Height)
+            .Select(i => new TilePos(i % world.Width, i / world.Width))
+            .First(p => database.TerrainById(world.Tile(p).TerrainId).IsWater);
+        CreatureDef flying = database.Creatures.Values.First(c => c.Flags.HasFlag(CreatureFlags.CanFly)
+            && !c.Flags.HasFlag(CreatureFlags.IsWorker));
+        CreatureState creature = world.SpawnCreature(database, flying.CreatureId, 1, water);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(Fp32.One, rendered.Height);
+    }
+
+    [InstallFact]
+    public void GroundedCreatureFeetSitOnTheStoneBridgeDeck()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
+        WorldState world = WorldState.FromMap(database,
+            GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [1, 3]);
+        TilePos bridge = Enumerable.Range(0, world.Width * world.Height)
+            .Select(i => new TilePos(i % world.Width, i / world.Width))
+            .First(p => database.RoomsByTerrain.TryGetValue(world.Tile(p).TerrainId, out RoomDef? room)
+                && room.TypeId == RoomTypeId.StoneBridge);
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId, 1, bridge);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal(0x1199, rendered.Height);
     }
 
     // ---- Mapping, against the whole shipped terrain table ----
@@ -194,12 +356,157 @@ public class WorldViewTests
 
         Assert.Equal(spawned.PosX, rendered.PosX);
         Assert.Equal(spawned.PosY, rendered.PosY);
+        Assert.Equal(rendered.PosX, rendered.PreviousPosX);
+        Assert.Equal(rendered.PosY, rendered.PreviousPosY);
         Assert.Equal(at, rendered.Tile);
 
         // Spawning centres a creature in its tile, so the position is not a
         // whole number of tiles — which is exactly the information that would
         // be lost if the boundary converted.
         Assert.NotEqual(0, rendered.PosX % Fp32.One);
+    }
+
+    [InstallTheory]
+    [InlineData(16, ImpTaskKind.Claim, "claiming")]
+    [InlineData(20, ImpTaskKind.Claim, "claiming")]
+    [InlineData(22, ImpTaskKind.Reinforce, "reinforcing")]
+    [InlineData(24, ImpTaskKind.Fix, "reinforcing")]
+    public void ImpWorkSelectsItsActionClip(int state, ImpTaskKind task, string clip)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        imp.Dk2StateId = state;
+        imp.LastTaskKind = task;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal("creature.imp.animation." + clip, rendered.Animation.Key);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Contains(rendered.Animation, AssetCatalogue.ForDatabase(database));
+    }
+
+    [InstallTheory]
+    [InlineData(true, "running")]
+    [InlineData(false, "moving_to_job")]
+    public void ATravelClipUsesTheMovementMode(bool running, string clip)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        imp.Dk2StateId = 6;
+        imp.UtilityNewState = 13;
+        imp.Body.PathTotalCount = 1;
+        imp.Body.PathFinished = false;
+        imp.Running = running;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal("creature.imp.animation." + clip, rendered.Animation.Key);
+        Assert.True(rendered.PlaysAnimation);
+    }
+
+    [InstallFact]
+    public void PreviousPositionsCrossTheBoundaryWithoutChangingSimulation()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        imp.LastPosX = imp.PosX - 123;
+        imp.LastPosY = imp.PosY + 321;
+        imp.Heading = 512;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal(imp.LastPosX, rendered.PreviousPosX);
+        Assert.Equal(imp.LastPosY, rendered.PreviousPosY);
+        Assert.Equal(1536, rendered.MeshYaw);
+    }
+
+    [InstallTheory]
+    [InlineData(-65536, 32768, 5120)]
+    [InlineData(-65537, 32783, 5121)]
+    [InlineData(0, 0, 0)]
+    public void TravelPlaybackUsesTheBodiesFixedPointVelocity(int x, int y, int speed)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        imp.Dk2StateId = 6;
+        imp.UtilityNewState = 13;
+        imp.Body.PathTotalCount = 1;
+        imp.Body.PathFinished = false;
+        imp.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(x, y);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal(new Fp32(speed), rendered.AnimationMovementSpeed);
+    }
+
+    [InstallTheory]
+    [InlineData(true, "moving_to_job")]
+    [InlineData(false, "imprisoned")]
+    public void APrisonerWalksOnlyWhileItHasARoute(bool walking, string clip)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState prisoner = world.SpawnCreature(database, database.CreatureByName("Dark Elf")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        prisoner.Dk2StateId = PrisonRules.InTheCellState;
+        prisoner.Body.PathTotalCount = walking ? (byte)1 : (byte)0;
+        prisoner.Body.PathFinished = !walking;
+        prisoner.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == prisoner.Id);
+        Assert.Equal("creature.dark_elf.animation." + clip, rendered.Animation.Key);
+        Assert.Equal(walking, rendered.PlaysAnimation);
+        Assert.Equal(walking ? new Fp32(4096) : (Fp32?)null, rendered.AnimationMovementSpeed);
+    }
+
+    [InstallTheory]
+    [InlineData(HeroJobRules.WaitingState, true)]
+    [InlineData(HeroJobRules.WaitingState, false)]
+    [InlineData(HeroJobRules.RoamingState, true)]
+    [InlineData(GuardRules.PatrolState, true)]
+    [InlineData(CombatPitRules.WaitingState, true)]
+    public void AJobLabelDoesNotHideItsTravelAnimation(int resumeState, bool walking)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState guard = world.SpawnCreature(database, database.CreatureByName("Guard")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        guard.Dk2StateId = walking ? 6 : resumeState;
+        guard.UtilityNewState = resumeState;
+        guard.Body.PathTotalCount = walking ? (byte)1 : (byte)0;
+        guard.Body.PathFinished = !walking;
+        guard.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == guard.Id);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Equal(walking ? "creature.guard.animation.moving_to_job" : "creature.guard.animation.idle", rendered.Animation.Key);
+        Assert.Equal(walking ? new Fp32(4096) : (Fp32?)null, rendered.AnimationMovementSpeed);
+    }
+
+    [InstallTheory]
+    [InlineData("Imp")]
+    [InlineData("Mistress")]
+    [InlineData("Salamander")]
+    [InlineData("Troll")]
+    public void AWalkReturningToIdleUsesMovementPlayback(string name)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState creature = world.SpawnCreature(database, database.CreatureByName(name)!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        creature.Dk2StateId = 6;
+        creature.UtilityNewState = CreatureStateMachine.Idle;
+        creature.Body.PathTotalCount = 1;
+        creature.Body.PathFinished = false;
+        creature.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(AssetRef.ForCreature(name, AssetKind.Animation, "moving_to_job"), rendered.Animation);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Equal(new Fp32(4096), rendered.AnimationMovementSpeed);
+    }
+
+    [InstallFact]
+    public void TheAfterMealActionPlaysEatingInsteadOfTheFoodSearchWalk()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState goblin = world.SpawnCreature(database, database.CreatureByName("Goblin")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        CreatureStateMachine.TrySetState(new StateHookContext(world, database), goblin, EatingRules.AfterMealState, currentTick: 17);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == goblin.Id);
+        Assert.Equal("creature.goblin.animation.eating", rendered.Animation.Key);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Equal(new GameTick(17), rendered.AnimationStartedAt);
     }
 
     /// <summary>

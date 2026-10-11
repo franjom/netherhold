@@ -45,11 +45,11 @@ does the transition established above.
 | 18 | `0x00466180` | 3 · 8 | Holds while action 10 runs; while the task stands and `0x00453B30` holds, starts another and **stays**; then clears the room-tile task chain and releases the task. | `S(10)`. | Refusal → 1. |
 | 19 | `0x00465E60` | 3 · 8 | Revalidates an enemy-floor claim. | `S(20)` when ready, else `S(10)`. | Refusal → 1. |
 | 20 | `0x00465F20` | 3 · 8 | Holds while claim action 5 runs; on completion applies ownership/cost side effects. | One **ignored** `S(15)` after completion. | No explicit 0 path. |
-| 21 | `0x004662E0` | 3 · 8 | Revalidates the reinforce task; waits if its stance is occupied. | `S(22)` when ready, else `S(10)`. | Refusal → 1. |
+| 21 | `0x004662E0` | 3 · 8 | Revalidates the reinforce task; turns toward the work tile centre and holds while turning. | `S(22)` when facing, else `S(10)` if the task is gone. | Refusal → 1. |
 | 22 | `0x00466390` | 3 · 8 | Holds while reinforce action 7 runs; while the task stands and the wall still takes it (`0x00453DC0`, `0x00453B30`), starts another and **stays**; then neighbour visual updates and releases the task. | `S(10)`. | Refusal → 1. |
-| 23 | `0x00466660` | 3 · 8 | Revalidates the wall-repair task; waits if its stance is occupied. | `S(24)` when ready, else `S(10)`. | Refusal → 1. |
+| 23 | `0x00466660` | 3 · 8 | Revalidates the wall-repair task; turns toward the work tile centre and holds while turning. | `S(24)` when facing, else `S(10)` if the task is gone. | Refusal → 1. |
 | 24 | `0x00466710` | 3 · 8 | Holds while repair action 8 runs; while the task stands and `0x00453E30` holds, starts another and **stays**; then releases the task. | `S(10)`. | Refusal → 1. |
-| 25 | `0x00465790` | 3 · 8 | Revalidates a mining task and adjacency; waits if its stance is occupied. | `S(26)` when ready, else `S(10)`. | Refusal → 1. |
+| 25 | `0x00465790` | 3 · 8 | Revalidates a mining task and adjacency; turns toward the work tile centre and holds while turning. | `S(26)` when facing, else `S(10)`. | Refusal → 1. |
 | 26 | `0x00465870` | 3 · 8 | Holds while mining action 2 runs. Before another strike, an imp whose hands test `0x00464360(1)` reads full (max − var 74) tries `G`; otherwise, while the seam still passes `0x00453D80`, starts another strike and **stays**; an exhausted seam is released. | `G` → state 6/51 with resume 28; `S(10)` after invalidation or the completed strike. | Refusal or a failed post-strike follow-up → 1. |
 | 27 | `0x00466850` | 3 · 8 | Removes the floor-gold task and takes matching nearby piles up to the level-scaled carrying limit. | With gold, `G` → resume 28; otherwise `S(10)`. | If both `G` and `S(10)` fail, or final `S(10)` fails → 1. |
 | 28 | `0x00466A40` | 3 · 8 | Waits for a free standing point at the chosen store tile. | `S(29)` when free. | Refusal → 1. |

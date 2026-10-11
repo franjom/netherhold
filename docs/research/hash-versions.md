@@ -15,6 +15,14 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**225** — `0x2B74D4ED96BA549B`. Imps turn toward the task tile before digging, mining, reinforcing or repairing its wall, holding the entry state until aligned. ADR-0435.
+
+**224** — `0x236F0479C5BE1A9E`. Owned Hatchery chickens run their movement/reaction loop, with saved and hashed heading, age, reaction state, movement block and room membership. ADR-0434.
+
+**223** — `0x4A7D0294815B3F49`. Hero followers retain sub-tile destination walks after reaching their trailing tile. ADR-0433.
+
+**222** — `0xD423AF7C779275F4`. Hatchery meals hold state 94 until action 26's first animation cycle completes, then use their captured remaining-food decision to resume the chicken search or idle. The captured decision is hashed and saved. ADR-0432.
+
 **221** — `0xFB311154736B9A1B`. Waiting heroes walk to their chosen sub-tile points instead of receiving an already-finished route. No new saved field. ADR-0430.
 
 **220** — `0xA2446806EE35E55E`. Combat updates creatures newest first, matching the original head-linked list. No new saved field. ADR-0429.

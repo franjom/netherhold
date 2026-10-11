@@ -9864,3 +9864,122 @@ state transitions. Hash/save version 221.
 **Consequences.** Waiting heroes shift position and their followers respond.
 Other generic same-tile route callers remain under Q565; this does not replace
 authored waypoint patrols with invented wandering.
+
+## ADR-0431 — Sample classic creature clips into instance meshes
+**Date:** 2026-10-10 · **Status:** accepted · Research: kmf-animation-playback.md
+
+**Context.** Step 4 needs continuous original KMF motion while retaining each
+clip's own UVs and topology. Decoded frame positions are already available.
+
+**Decision.** Initially share decoded clip arrays and CPU-sample positions into
+one dynamic mesh per loaded segment of each visible creature. Use descriptor count/FPS for nominal
+duration and interpolate previous/current simulation positions for rendering.
+Keep unaudited action mappings on their existing static pose. The repeatable
+crowd sampler probe is tools/classic-animation-probe; profile Unity uploads
+before choosing whether GPU animation is warranted.
+
+**Consequences.** This changes presentation only. Original action restarts,
+exceptional rate overrides and queued transitions remain pending under Q442. The first
+batch does not complete Step 4 or its owner visual gate. No hash/save bump.
+
+**2026-10-11.** Use an instance-local integer phase clock for ordinary playback,
+including separate Start/End resources and segment-aware frame interpolation.
+Each segment retains its own topology and UVs. The phase-to-frame link is now
+confirmed; remaining timing scope is recorded in kmf-animation-playback.md.
+Ordinary travel also scales its next advance from body velocity and the authored
+movement word, preserving the install scalar and cap order. Frame catch-up uses
+the latest observed velocity; exceptional overrides remain pending.
+
+## ADR-0432 — Hold a hatchery meal for its eating action
+**Date:** 2026-10-11 · **Status:** accepted · Research: eating-action.md
+
+**Context.** The hatchery consumed a chicken and left state 94 in the same
+system pass. DK2 starts action 26 and lets state 94 wait for it before deciding
+whether to search again or end the eating chain.
+
+**Decision.** Retain state 94 through the first cycle of resolved art 13,
+using the existing integer animation timing and action deadline. Without art,
+its next state-handler poll decides. Pass the state-entry stamp to presentation
+so each meal restarts its own clip. Preserve the meal's captured remaining-food
+decision through the wait, hashing and saving it. Hash/save version 222.
+
+**Consequences.** This changes the spacing between hatchery meals. It does not
+add the post-meal wander or finish the prison's action wait; see prison.md §7.1.
+Original capture timing parity and the owner eating-animation comparison remain open.
+The 60 Level 1–3 runs remain valid. Wins by seed change from 17/5/16 to
+16/5/19 after the eating wait; these are modern replay results, not original parity.
+
+## ADR-0433 — Preserve follower movement inside its trailing tile
+**Date:** 2026-10-11 · **Status:** accepted · Research: hero-party-walk.md §2
+
+**Context.** Hero followers reaching their trailing tile repeatedly requested
+new stance points, but the same-tile route shortcut marked them arrived. This
+left Level8 portal followers stationary while their presentation changed pose.
+
+**Decision.** Route the state-222 follower point through the existing stance
+request, preserving its sub-tile destination before entering travel. Keep
+the leader's authored waypoint and standing behavior. Hash/save version 223.
+
+**Consequences.** Follower movement and subsequent random draws can change.
+All 60 Level 1–3 replays remain valid; wins change from 16/5/19 to 19/8/17
+(modern regression results, not original parity). The owner's Level8 view remains
+to compare. Grounded liquid
+height is a separate presentation approximation; see room-floors-and-liquids.md.
+
+## ADR-0434 — Run the owned Hatchery chicken movement loop
+**Date:** 2026-10-11 · **Status:** accepted · Research: hatchery-roaming.md
+
+**Context.** Hatchery chickens retained their egg coordinates indefinitely.
+DK2's object processes 6, 9 and 8 select a room point, turn and walk to it,
+then react for a countdown before selecting another point.
+
+**Decision.** Step that loop each object tick, preserving cardinal search,
+mask-bounded random points, signed velocity, movement-count arithmetic,
+turn-before-movement and grounded-creature escape. Save and hash the process
+age, heading, reaction state and movement block. Read the reaction heading
+word from the object definition. Hand landing reselects the room handler and
+resets process age within the existing collapsed fall. Hash/save version 224.
+Retain Hatchery capacity through a saved room anchor; registration disables
+escape, and successful hand lift releases membership.
+
+**Consequences.** Roaming consumes the simulation stream and can change later
+choices. The absent ground-height word uses the documented supported-flight
+approximation. Free-range process 10 and Prison process 3 remain unbuilt (Q584);
+Chicken animation, footstep audio and original timing comparisons remain open.
+All 60 Level 1–3 replays remain valid; wins change from 19/8/17 to 19/5/17
+(modern regression results, not original parity).
+
+## ADR-0435 — Face the task tile before starting wall work
+**Date:** 2026-10-11 · **Status:** accepted · Research: imp-state-exits.md §2
+
+**Context.** Imps retained their approach heading when reinforcing walls.
+The entry handlers for digging, mining, reinforcement and wall repair turn
+toward the task tile centre and hold the entry state until the turn completes.
+
+**Decision.** Apply the creature definition's turn rate in those entry states.
+Begin work only when aligned; incomplete turns do not advance the work timer.
+Keep floor claiming unchanged. Hash/save version 225.
+
+**Consequences.** Heading and wall-work timing can change subsequent simulation
+choices. Regression coverage checks reinforcement from all four sides and
+a multi-tick turn. This does not change sight acquisition or resolve Q582.
+All 60 Level 1–3 replays remain valid; wins change from 19/5/17 to 19/6/18
+(modern regression results, not original parity).
+
+## ADR-0436 — Play Chicken movement and visible melee actions
+**Date:** 2026-10-11 · **Status:** accepted · Research: kmf-animation-playback.md §7
+
+**Context.** Chickens moved only on simulation ticks with a static pose.
+Fighting activity hid movement clips, and damage-pending lifetime did not
+describe the complete melee animation.
+
+**Decision.** Play Chicken Walk/Eat/Scared resources through the shared sampler.
+Capture their position and heading before every tick for render interpolation,
+excluding held/carried birds. Combat travel selects walk/run. Melee plays once
+from its captured start stamp through the authored duration, subject to combat
+mode and state-entry interruption guards. Preserve simulation rules and hash 225.
+
+**Consequences.** This presentation bridge does not implement the full mode-3
+combat action lifetime; its timing consequence belongs to Q582. Spell-casting
+clips and Chicken footstep audio remain unbuilt. Owner comparisons must restart
+Play mode and inspect Chickens and the Level7 Giant/Imp encounter.

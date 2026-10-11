@@ -20,6 +20,11 @@ public sealed record Dk2ArtResource(string Name, byte Type)
     /// <summary>A KMF animation's frame count, the descriptor's word at <c>+0x44</c>; 0 for any
     /// other type.</summary>
     public ushort FrameCount { get; init; }
+    /// <summary>The type-6 descriptor's word at +0x4C, used to normalize movement rates.</summary>
+    public ushort MovementScale { get; init; }
+    public CreatureAnimationFlags AnimationFlags { get; init; }
+    public byte StartSegmentFrames { get; init; }
+    public byte EndSegmentFrames { get; init; }
 }
 
 /// <summary>
@@ -118,6 +123,13 @@ public sealed class Dk2ArtCatalogue
                         FrameCount = artType == AnimationArtType
                             ? BitConverter.ToUInt16(chunk.Content, offset + ArtFrameCountOffset)
                             : (ushort)0,
+                        AnimationFlags = artType == AnimationArtType
+                            ? (CreatureAnimationFlags)BitConverter.ToUInt32(chunk.Content, offset + 0x40)
+                            : CreatureAnimationFlags.None,
+                        StartSegmentFrames = artType == AnimationArtType ? chunk.Content[offset + 0x51] : (byte)0,
+                        EndSegmentFrames = artType == AnimationArtType ? chunk.Content[offset + 0x52] : (byte)0,
+                        MovementScale = artType == AnimationArtType
+                            ? BitConverter.ToUInt16(chunk.Content, offset + 0x4C) : (ushort)0,
                     };
                 }
                 byte id = chunk.Content[record + idOffset];

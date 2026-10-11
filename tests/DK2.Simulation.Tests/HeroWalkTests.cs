@@ -219,6 +219,27 @@ public class HeroWalkTests
         Assert.Equal(JobType.None, follower.CurrentJob);
     }
 
+    [Fact]
+    public void AFollowerAlreadyInItsTrailingTileStillWalksBetweenSubTilePoints()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState leader = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
+        leader.GoodJob = JobType.SendToActionPoint;
+        CreatureState follower = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(7, 5));
+        follower.Flags = 0x04;
+        follower.LeaderId = leader.Id;
+        follower.PositionInParty = 1;
+        GameSimulation sim = Simulation(db, world);
+        var positions = new HashSet<(int, int)>();
+        for (int t = 0; t < 120; t++)
+        {
+            sim.Tick();
+            if (t >= 60) positions.Add((follower.PosX, follower.PosY));
+        }
+        Assert.Equal(HeroJobRules.NoPointState, leader.Dk2StateId);
+        Assert.True(positions.Count > 5, "the follower must keep moving after reaching its trailing tile");
+    }
+
     /// <summary>One handler a turn: the turn a walk ends the hero is in the state it resumes, which
     /// runs from the next turn. A follower that has reached its point is in 222 before it walks again.</summary>
     [Fact]

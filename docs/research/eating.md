@@ -92,7 +92,7 @@ recovered and named. Two facts from it that this mechanic needs:
 | `0x73` (115) | `FUN_004731f0` | being held captive | the prison's copy of the hunger test |
 | `0x75` (117) | `FUN_00473550` | being held captive | **in the prison**: find the nearest *food-flagged* object **and walk to it**, resuming in `0x76` |
 | `0x76` (118) | `FUN_00473750` | being held captive | eat it |
-| `0x77` (119) | `FUN_00473730` | being held captive | wait out the eating action, then `0x73` (state-category-hooks.md §3.2) |
+| `0x77` (119) | `FUN_00473730` | being held captive | wait out the eating action; return path in prison.md §7.1 |
 
 The five hatchery states are labelled `eating` and the six prison ones `being
 held captive`, which is the cheapest way to check the frame is straight — every
@@ -284,6 +284,9 @@ each bird pays off one: **entering** costs a whole helping, **continuing** costs
 nothing.
 
 Afterwards the original goes to `0x5E` (94), the after-meal loop of §2.2;
+
+Action 26's timing and the built wait are in eating-action.md (ADR-0432).
+
 `0x5F` (95) only waits out the eating animation (`0x00458680`,
 travel-states.md §8). A random adjacent tile inside the room is chosen with an
 RNG call that carries `HungerState.cpp` and the line number — 367 and 413 — in

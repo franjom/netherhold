@@ -153,6 +153,7 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
+        if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId) ChickenMovementRules.UnlinkHatchery(thing);
         thing.InHand = true;
         world.Player(command.PlayerId).Hand.Add(HandItem.Of(thing));
 
@@ -485,6 +486,7 @@ public sealed class HandSystem : ISimulationSystem
             is not { } recipient)
         {
             if (FloorGoldLandingRules.HasPosition(thing)) FloorGoldLandingRules.Land(context, thing);
+            if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId) ChickenMovementRules.Land(context, thing);
             return;
         }
 

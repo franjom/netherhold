@@ -254,11 +254,8 @@ public class AssetCatalogueTests
     }
     /// <summary>
     /// Every object definition gets a mesh, and beyond it only the arts the view switches
-    /// to by state: Gold Pile 1's two urns and the Book Case's three variants.
-    ///
-    /// <para>No other variant <i>for now</i>: a chicken pecking or a coop wobbling
-    /// is an object state ours does not hold, and a variant list invented here would put
-    /// keys in a converter's work list that correspond to nothing.</para>
+    /// to by state: Gold Pile 1's two urns, the Book Case's three variants,
+    /// and Chicken Eat/Scared clips.
     /// </summary>
     [InstallFact]
     public void EveryObjectInTheDatabaseGetsAMeshAndOnlyTheArtsTheViewSwitchesTo()
@@ -268,8 +265,8 @@ public class AssetCatalogueTests
 
         var keys = AssetCatalogue.ForObjects(database).ToList();
 
-        Assert.Equal(database.Objects.Count + 5, keys.Count);
-        Assert.Equal(150, keys.Count);
+        Assert.Equal(database.Objects.Count + 7, keys.Count);
+        Assert.Equal(152, keys.Count);
         Assert.All(keys, k => Assert.Equal(AssetKind.Mesh, k.Kind));
 
         // And they are in the whole-database listing, or a converter would

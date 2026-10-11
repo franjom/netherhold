@@ -232,11 +232,10 @@ the Chicken carries `RoomCapacity` = **1**, a field documented as "how many of i
 a room tile holds". `HatcheryRules.FlockCapacity` takes the number from the
 definition rather than hardcoding nine.
 
-The flock is **stable** — chickens vanish if nothing eats them. That fits the
-record: the Chicken carries `DieOverTimeIfNotInRoom` and **not** `DieOverTime`,
-so a bird is safe on the hatchery's tiles and rots once it wanders off them.
-Production against strays rotting is an equilibrium, and presumably also how a
-bird becomes free range in the first place.
+The Chicken carries `DieOverTimeIfNotInRoom`, not `DieOverTime`. Conditional
+decay tests persistent room membership, not whether the bird physically stands
+on room tiles; the registration and free-range census are confirmed in
+[hatchery-roaming.md §5](hatchery-roaming.md#5-persistent-room-membership--confirmed).
 
 The object union corroborates the name from the other side: a `Chicken` object's
 per-kind state is **`FreeRange`, `PeckingTimer`, `StayThere`,
@@ -269,8 +268,8 @@ the laying clock; a tile that changes terrain or owner drops it (ADR-0335).
 
 The owner confirmed the stacked chickens were hidden beneath the coop
 (2026-10-10 screenshot). ADR-0428 corrects their laying positions; the local
-Level8 seed-7 probe is `build/chicken-probe/`. Chicken roaming is still unbuilt;
-its separate object movement state machine is researched in hatchery-roaming.md.
+Level8 seed-7 probe is `build/chicken-probe/`. The owned-room movement loop is
+built; its state machine and remaining boundary are in hatchery-roaming.md.
 
 ## Tests
 
@@ -294,6 +293,5 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
 
 ## Open questions
 
-- What `+0x1C1` counts, and which global `0x006F28CB` is, beyond §5's reading of
-  them as the free-range counter and `MaxFreeRangeChickensPerPlayer`.
+- Free-range process-10 world-region eligibility and remaining lifecycle: Q584.
 - Q134: why the exponent is that value. Does not affect fidelity.

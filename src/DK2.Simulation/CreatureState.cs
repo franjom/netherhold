@@ -370,6 +370,10 @@ public sealed class CreatureState
     /// hunger into damage.</para></summary>
     public int HungerNeed;
 
+    /// <summary>State 93's captured hunger decision, state scratch +0xAB; 94 uses it
+    /// after the eating action ends (eating.md §7).</summary>
+    public bool FoodOwedAfterMeal;
+
     /// <summary>Countdown to the next attempt to go and eat — DK2's
     /// <c>LastAttemptedHunger</c> read as a countdown rather than a stamp.
     /// <para>A hungry creature that cannot find a hatchery does not search again
@@ -1211,6 +1215,7 @@ public sealed class CreatureState
         hash.Add(Health);
         hash.Add(HungerTicks);
         hash.Add(HungerNeed);
+        hash.Add(FoodOwedAfterMeal);
         hash.Add(FoodAttemptTicks);
         hash.Add(AwakeTicks);
         hash.Add(SleepTicks);

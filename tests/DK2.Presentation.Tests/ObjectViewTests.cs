@@ -18,6 +18,49 @@ namespace DK2.Presentation.Tests;
 /// is to be right for 145 object definitions it did not choose.</summary>
 public class ObjectViewTests
 {
+    [InstallFact]
+    public void ChickenInterpolationKeepsOnlyTheLastSimulationStepAndStopsAfterLift()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        ObjectState chicken = world.SpawnObject(database, 9, 3, 40);
+        var view = new WorldView(database);
+        var simulation = new GameSimulation(database, world, 7, []);
+        for (int step = 0; step < 2; step++)
+        {
+            view.CaptureObjectPositions(world);
+            int previousX = chicken.PosX;
+            simulation.Tick();
+            chicken.PosX += 100;
+            chicken.Heading = (chicken.Heading + 100) & 2047;
+            ObjectView rendered = view.Objects(world).Single(o => o.Id == chicken.Id);
+            Assert.Equal(previousX, rendered.PreviousPosX);
+            Assert.Equal(chicken.PosX, rendered.PosX);
+            Assert.Equal((chicken.Heading - 100) & 2047, rendered.PreviousHeading);
+        }
+        chicken.InHand = true;
+        view.CaptureObjectPositions(world);
+        simulation.Tick();
+        chicken.InHand = false;
+        chicken.PosX += 8192;
+        ObjectView dropped = view.Objects(world).Single(o => o.Id == chicken.Id);
+        Assert.Equal(dropped.PosX, dropped.PreviousPosX);
+    }
+
+    [InstallTheory]
+    [InlineData(false, 5)]
+    [InlineData(true, 6)]
+    public void AChickenReactionShowsItsAuthoredArt(bool scared, int slot)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        ObjectState chicken = world.SpawnObject(database, 9, 3, 40);
+        chicken.ProcessState = 8;
+        chicken.ProcessAgeTicks = 1;
+        chicken.ChickenScared = scared;
+        ObjectView rendered = new WorldView(database).Objects(world).Single(o => o.Id == chicken.Id);
+        Assert.Equal(AssetCatalogue.ObjectArt(database.ObjectById(9)!.Name, slot), rendered.Mesh);
+        Assert.True(rendered.PlaysAnimation);
+    }
+
     private static (GameDatabase Database, WorldState World)? RealLevel()
     {
         string dir = Dk2InstallGate.Path;
@@ -72,7 +115,7 @@ public class ObjectViewTests
             AssetCatalogue.ForObjects(database).Select(k => k.Key), StringComparer.Ordinal);
 
         Assert.NotEmpty(catalogue);
-        Assert.Equal(database.Objects.Count + 5, catalogue.Count); // and Gold Pile 1's and the Book Case's arts
+        Assert.Equal(database.Objects.Count + 7, catalogue.Count); // Gold Pile, Book Case and Chicken extra arts
 
         // One of each kind the simulation can place today.
         world.SpawnObject(database, 1, PlayerIds.Neutral, 40);

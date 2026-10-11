@@ -253,7 +253,10 @@ public static class HeroJobRules
         if (context.World.CreatureById(creature.LeaderId) is not { } leader) return true;
         (int x, int y) = FollowTile(context.World, context.Database, creature, leader);
         (int ox, int oy) = SubTile[context.Rng.NextInt(SubTile.Length)];
-        Walk(context, creature, (x << 12) | ox, (y << 12) | oy, FollowingState, Navigation.MoveOptions.Loose);
+        if (context.World.Contains(new TilePos(x, y))
+            && !context.Database.TerrainById(context.World.Tile(x, y).TerrainId).IsSolid
+            && context.Navigation.TryRouteToStance(creature, (x << 12) | ox, (y << 12) | oy, Navigation.MoveOptions.Loose))
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, Systems.StateShadow.TravelToPoint, FollowingState);
         return true;
     }
 

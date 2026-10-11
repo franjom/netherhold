@@ -30,9 +30,7 @@ public sealed class ObjectState
     /// pile is for, and is not carried: ours delivers in the drop's own tick (<see cref="DropDeliveryRules"/>).</summary>
     public byte OwnerPlayerId;
 
-    /// <summary>The tile it stands on, as an index into <see cref="WorldState"/>'s tiles.
-    /// <b>A tile rather than a position</b>, for now: DK2 gives an object a sub-tile
-    /// position and a <c>MoveTo</c> block because chickens wander and boulders roll, so the finer position arrives with the first mechanic that moves one.</summary>
+    /// <summary>The occupancy tile; a moving object's position writer updates it when crossing a tile.</summary>
     public int TileIndex
     {
         get => _tileIndex;
@@ -149,6 +147,20 @@ public sealed class ObjectState
     /// boulder, spell-created floor gold or hatchery egg/chicken; other objects use the tile centre.</summary>
     public int PosX, PosY;
 
+    /// <summary>The header heading (+0xF4), and process age (+0x13E). Chicken movement owns them here.</summary>
+    public int Heading, ProcessAgeTicks;
+
+    /// <summary>Chicken union +0x14A/+0x14E/+0x152: free-range eligibility, reaction countdown and fear marker.</summary>
+    public bool ChickenCanEscape, ChickenScared;
+    public int HatcheryRoomAnchorTileIndex = -1;
+    public int ChickenReactionTicks;
+
+    /// <summary>Object move block +0x15C..+0x172; the Chicken is its first supported user.</summary>
+    public byte MoveResumeState;
+    public int MoveDestinationX, MoveDestinationY, MoveVelocityX, MoveVelocityY;
+    public ushort MoveTicksRemaining;
+    public ObjectMoveFlags MoveFlags;
+
     /// <summary><b>Union member: the Boulder</b> (object 74, objects.md §7), <c>+0x14A/+0x14E</c>:
     /// the rolling direction, each axis in 1/4096 of a unit; zero on every other object.</summary>
     public int RollX, RollY;
@@ -186,6 +198,19 @@ public sealed class ObjectState
         hash.Add(Health);
         hash.Add(PosX);
         hash.Add(PosY);
+        hash.Add(Heading);
+        hash.Add(ProcessAgeTicks);
+        hash.Add(ChickenCanEscape);
+        hash.Add(HatcheryRoomAnchorTileIndex);
+        hash.Add(ChickenScared);
+        hash.Add(ChickenReactionTicks);
+        hash.Add(MoveResumeState);
+        hash.Add(MoveDestinationX);
+        hash.Add(MoveDestinationY);
+        hash.Add(MoveVelocityX);
+        hash.Add(MoveVelocityY);
+        hash.Add(MoveTicksRemaining);
+        hash.Add((byte)MoveFlags);
         TileLink.HashInto(ref hash);
         hash.Add(RollX);
         hash.Add(RollY);

@@ -75,6 +75,8 @@ public static class AssetCatalogue
         "slapped",
     ];
 
+    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating"];
+
     /// <summary>
     /// Every key the database implies, ordered by record id within each category so
     /// that two runs produce the same list and a converter's output is reproducible.
@@ -292,6 +294,8 @@ public static class AssetCatalogue
 
             foreach (string animation in CreatureAnimations)
                 yield return AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation);
+            foreach (string animation in CreatureActionAnimations)
+                yield return AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation);
         }
     }
 
@@ -324,11 +328,13 @@ public static class AssetCatalogue
     public static IReadOnlyList<int> ObjectArtSlots(byte objectId) => objectId switch
     {
         3 => GoldPileSlots,
+        9 => ChickenSlots,
         64 => BookCaseSlots,
         _ => [],
     };
 
     private static readonly int[] GoldPileSlots = [5, 6];
+    private static readonly int[] ChickenSlots = [5, 6];
     private static readonly int[] BookCaseSlots = [5, 6, 7];
 
     private static List<byte> Sorted(IEnumerable<byte> ids)

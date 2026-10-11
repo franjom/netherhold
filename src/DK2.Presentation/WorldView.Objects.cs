@@ -43,6 +43,20 @@ public sealed partial class WorldView
 
     private readonly List<RoomInstance> _rooms = [];
     private readonly Dictionary<int, AssetRef> _objectArt = [];
+    private readonly Dictionary<int, (ObjectState Object, int X, int Y, int Heading)> _objectPositions = [];
+    private WorldState? _objectPositionsWorld;
+    private GameTick _objectPositionsTick;
+
+    /// <summary>Capture before each simulation tick so a batched Unity frame interpolates only its last tick.</summary>
+    public void CaptureObjectPositions(WorldState world)
+    {
+        _objectPositionsWorld = world;
+        _objectPositionsTick = world.CurrentTick;
+        _objectPositions.Clear();
+        foreach (ObjectState thing in world.Objects)
+            if (thing.ObjectTypeId == ChickenId && !thing.InHand && thing.CarriedByCreatureId < 0)
+                _objectPositions[thing.Id] = (thing, thing.PosX, thing.PosY, thing.Heading);
+    }
 
     // The decorations, built once a tick as the room facts are (EnsureRooms), and the tiles holding
     // a Pillar-flagged object while they are built.
@@ -171,6 +185,8 @@ public sealed partial class WorldView
                     break;
                 case ChickenId:
                     if (thing.PosX != 0 || thing.PosY != 0) (posX, posY) = (thing.PosX, thing.PosY);
+                    heading = thing.Heading;
+                    slot = thing.ChickenScared ? 6 : thing.ProcessState == 8 && thing.ProcessAgeTicks > 0 ? 5 : 0;
                     // Object_Init draws 0x1000 + random(0x800); ours has no draw to keep, so the id stands in.
                     scale = One + Spread(thing.Id, 0x800);
                     break;
@@ -182,8 +198,16 @@ public sealed partial class WorldView
             }
         }
 
+        int previousX = posX, previousY = posY, previousHeading = heading;
+        if (ReferenceEquals(world, _objectPositionsWorld) && world.CurrentTick.Value == _objectPositionsTick.Value + 1
+            && _objectPositions.TryGetValue(thing.Id, out var previous) && ReferenceEquals(previous.Object, thing))
+            (previousX, previousY, previousHeading) = (previous.X, previous.Y, previous.Heading);
         return new ObjectView(thing.Id, thing.ObjectTypeId, thing.OwnerPlayerId, at, ObjectArt(thing.ObjectTypeId, slot),
-            thing.GoldHeld, posX, posY, z, heading & 0x7FF, scale, pitch, roll & 0x7FF);
+            thing.GoldHeld, posX, posY, z, heading & 0x7FF, scale, pitch, roll & 0x7FF,
+            previousPosX: new Fp32(previousX), previousPosY: new Fp32(previousY), previousHeading: previousHeading,
+            playsAnimation: thing.ObjectTypeId == ChickenId,
+            animationStartedAt: thing.ObjectTypeId == ChickenId && thing.ProcessState == 8 && thing.ProcessAgeTicks > 0
+                ? new GameTick(world.CurrentTick.Value - thing.ProcessAgeTicks) : null);
     }
 
     /// <summary>A wheel off the floor: drawn <c>0x800</c> up (its <c>+0x99</c> draw offset) and spun

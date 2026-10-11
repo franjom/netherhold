@@ -165,6 +165,8 @@ public static class ArtSourceMap
                 entries.Add(Missing(AssetRef.ForCreature(creature.Name, AssetKind.Mesh), reason));
                 foreach (string animation in AssetCatalogue.CreatureAnimations)
                     entries.Add(Missing(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation), reason));
+                foreach (string animation in AssetCatalogue.CreatureActionAnimations)
+                    entries.Add(Missing(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation), reason));
                 continue;
             }
             entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Mesh), resources[CreatureIdle],
@@ -172,6 +174,9 @@ public static class ArtSourceMap
             foreach (string animation in AssetCatalogue.CreatureAnimations)
                 entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation),
                     CreatureAnimationSource(creature, resources, animation), "animation KMF"));
+            foreach (string animation in AssetCatalogue.CreatureActionAnimations)
+                entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation),
+                    CreatureAnimationSource(creature, resources, animation), "action animation KMF"));
         }
     }
 
@@ -224,6 +229,12 @@ public static class ArtSourceMap
         CreatureDef creature, IReadOnlyList<Dk2ArtResource> resources, string animation) => animation switch
     {
         "idle" => resources[CreatureIdle],
+        "fighting" => resources[CreatureMelee],
+        "running" => resources[1].Type != 0 ? resources[1] : resources[CreatureWalk],
+        "eating" => resources[12].Type != 0 ? resources[12] : resources[7],
+        "claiming" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase) => resources[12],
+        "reinforcing" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase) => resources[11],
+        "claiming" or "reinforcing" => new Dk2ArtResource("", 0),
         "sleeping" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
             => new Dk2ArtResource("", 0), // That shipped slot is Imp_Claim1(Land), not sleep.
         "sleeping" => resources[CreatureSleeping],

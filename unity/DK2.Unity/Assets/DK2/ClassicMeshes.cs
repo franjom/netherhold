@@ -7,6 +7,8 @@ using DK2.Art;
 using DK2.Art.Kmf;
 using DK2.Art.Textures;
 using DK2.Assets;
+using DK2.Core;
+using DK2.Data.Model;
 using UnityEngine;
 using UnityEngine.Rendering;
 using NumericsVector2 = System.Numerics.Vector2;
@@ -31,6 +33,7 @@ namespace DK2.Unity
         private const string FallbackShader = "Standard";
 
         private readonly InstallArtProvider _art;
+        private readonly Dictionary<string, RenderAnimation> _animations = new Dictionary<string, RenderAnimation>();
         private readonly Shader _shader;
         private readonly Dictionary<(string, bool), Built> _built = new Dictionary<(string, bool), Built>();
         private readonly Dictionary<(string, KmfBlend, float), Material> _materials =
@@ -51,6 +54,48 @@ namespace DK2.Unity
 
         /// <summary>The name of the shader the materials use, for the on-screen diagnostics.</summary>
         public string ShaderName => _shader != null ? _shader.name : "none";
+
+        public void RestoreModel(GameObject go, in ResolvedAsset asset)
+        {
+            if (!TryBuild(asset, false, out Built built)) return;
+            go.GetComponent<MeshFilter>().sharedMesh = built.Mesh;
+            go.GetComponent<MeshRenderer>().sharedMaterials = built.Materials;
+        }
+
+        public bool ConfigureAnimation(GameObject go, in ResolvedAsset asset, bool loop, double seconds,
+            Fp32? movementSpeed = null)
+        {
+            if (!_art.TryGetResource(asset, out Dk2ArtResource resource) || resource.Type != 6
+                || !_art.TryLoadModel(asset, out KmfModel model) || model.Animation is not { IsComplete: true }
+                || !TryBuild(asset, false, out Built built)) return false;
+            var clips = new RenderAnimation[3];
+            var templates = new Mesh[3];
+            var materials = new Material[3][];
+            foreach (AnimationSegment segment in new[] { AnimationSegment.Start, AnimationSegment.Main, AnimationSegment.End })
+            {
+                if (segment == AnimationSegment.Start
+                    && (resource.AnimationFlags & CreatureAnimationFlags.StartSegment) == 0) continue;
+                if (segment == AnimationSegment.End
+                    && (resource.AnimationFlags & CreatureAnimationFlags.EndSegment) == 0) continue;
+                if (!_art.TryResolveSegment(asset, segment, out ResolvedAsset part)
+                    || !_art.TryLoadModel(part, out KmfModel partModel)
+                    || partModel.Animation is not { IsComplete: true } || !TryBuild(part, false, out Built partBuilt)) return false;
+                if (!_animations.TryGetValue(part.InstallEntry, out RenderAnimation clip))
+                    _animations[part.InstallEntry] = clip = new RenderAnimation(partModel);
+                clips[(int)segment] = clip;
+                templates[(int)segment] = partBuilt.Mesh;
+                materials[(int)segment] = partBuilt.Materials;
+            }
+            ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
+            if (player == null) player = go.AddComponent<ClassicCreatureAnimation>();
+            player.Configure(clips, templates, materials, new CreatureAnimationTiming
+            {
+                ResourceType = resource.Type, FrameCount = resource.FrameCount,
+                FramesPerSecond = resource.FramesPerSecond, Flags = resource.AnimationFlags,
+                StartSegmentFrames = resource.StartSegmentFrames, EndSegmentFrames = resource.EndSegmentFrames,
+            }, loop, seconds, movementSpeed.HasValue ? new Fp32(resource.MovementScale) : null, movementSpeed);
+            return true;
+        }
 
         public GameObject TryCreate(AssetRef key, string name, Transform parent, bool lastFrame = false)
         {

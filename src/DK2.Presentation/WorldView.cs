@@ -147,7 +147,13 @@ public readonly struct CreatureView
         int height = Fp32.One,
         int meshYaw = 0,
         int pitch = 0,
-        int roll = 0)
+        int roll = 0,
+        int? previousPosX = null,
+        int? previousPosY = null,
+        bool playsAnimation = false,
+        bool animationLoops = true,
+        GameTick? animationStartedAt = null,
+        Fp32? animationMovementSpeed = null)
     {
         Id = id;
         OwnerPlayerId = ownerPlayerId.Value;
@@ -160,6 +166,12 @@ public readonly struct CreatureView
         MeshYaw = meshYaw;
         Pitch = pitch;
         Roll = roll;
+        PreviousPosX = previousPosX ?? posX;
+        PreviousPosY = previousPosY ?? posY;
+        PlaysAnimation = playsAnimation;
+        AnimationLoops = animationLoops;
+        AnimationStartedAt = animationStartedAt;
+        AnimationMovementSpeed = animationMovementSpeed;
     }
 
     /// <summary>The simulation's creature id. A renderer's object is a view of this and nothing more.</summary>
@@ -187,6 +199,13 @@ public readonly struct CreatureView
     /// <summary>Which animation to play, chosen from the creature's activity.</summary>
     public AssetRef Animation { get; }
 
+    public int PreviousPosX { get; }
+    public int PreviousPosY { get; }
+    public bool PlaysAnimation { get; }
+    public bool AnimationLoops { get; }
+    public GameTick? AnimationStartedAt { get; }
+    public Fp32? AnimationMovementSpeed { get; }
+
     /// <summary>Gold in its hands. Visible in DK2 — an imp carrying gold looks like it.</summary>
     public int GoldHeld { get; }
 
@@ -206,7 +225,9 @@ public readonly struct CreatureView
 public readonly struct ObjectView
 {
     public ObjectView(int id, byte objectTypeId, PlayerId ownerPlayerId, TilePos tile, AssetRef mesh, int goldHeld,
-        int posX, int posY, int height, int heading, int scale, int pitch = 0, int roll = 0)
+        int posX, int posY, int height, int heading, int scale, int pitch = 0, int roll = 0,
+        Fp32? previousPosX = null, Fp32? previousPosY = null, int? previousHeading = null,
+        bool playsAnimation = false, GameTick? animationStartedAt = null)
     {
         Pitch = pitch;
         Roll = roll;
@@ -221,6 +242,11 @@ public readonly struct ObjectView
         Height = height;
         Heading = heading;
         Scale = scale;
+        PreviousPosX = previousPosX?.Raw ?? posX;
+        PreviousPosY = previousPosY?.Raw ?? posY;
+        PreviousHeading = previousHeading ?? heading;
+        PlaysAnimation = playsAnimation;
+        AnimationStartedAt = animationStartedAt;
     }
 
     /// <summary>The simulation's object id, stable for the object's whole life; negative for a
@@ -244,6 +270,12 @@ public readonly struct ObjectView
 
     /// <summary>Uniform scale, <see cref="Fp32.One"/> for 1 (RenderInfo <c>+4</c>, <c>+8</c>).</summary>
     public int Scale { get; }
+
+    public int PreviousPosX { get; }
+    public int PreviousPosY { get; }
+    public int PreviousHeading { get; }
+    public bool PlaysAnimation { get; }
+    public GameTick? AnimationStartedAt { get; }
 
     /// <summary>A turn about the model's own X axis, 2048 to a turn (<c>+0x64</c>, RenderInfo
     /// <c>+0x20</c>). DK2 turns a model by this, then <see cref="Roll"/>, then the heading
@@ -1062,8 +1094,16 @@ public sealed partial class WorldView
             _creatureMeshes.TryGetValue(creature.CreatureTypeId, out AssetRef mesh);
 
             int posX = creature.PosX, posY = creature.PosY, height = FloorZ;
-            int yaw = 0, pitch = 0, roll = 0;
-            AssetRef animation = AnimationFor(creature);
+            TerrainDef terrain = _database.TerrainById(world.Tile(position).TerrainId);
+            if ((terrain.IsWater || terrain.IsLava
+                    || (_database.RoomsByTerrain.TryGetValue(terrain.TerrainId, out RoomDef? room) && BridgeRules.IsBridge(room)))
+                && !WaterSpeedRules.IsFlying(_database.CreatureById(creature.CreatureTypeId), creature))
+                height = FloorHeight(world, position.X, position.Y);
+            int yaw = (creature.Heading + 1024) & 2047, pitch = 0, roll = 0;
+            int previousX = creature.LastPosX, previousY = creature.LastPosY;
+            bool meleeAnimation = IsMeleeAnimation(creature, world.CurrentTick);
+            bool playsAnimation = PlaysMappedAnimation(creature, world.CurrentTick);
+            AssetRef animation = AnimationFor(creature, world.CurrentTick);
             if (AttachedWheel(world, creature) is { } wheel)
             {
                 mesh = animation;
@@ -1080,6 +1120,8 @@ public sealed partial class WorldView
                     posY += Dy8[side * 2] * 0x1C2;
                 }
                 else height += 0x200;
+                previousX = posX;
+                previousY = posY;
             }
 
             yield return new CreatureView(
@@ -1089,7 +1131,12 @@ public sealed partial class WorldView
                 posY,
                 mesh,
                 animation,
-                creature.GoldHeld, height, yaw, pitch, roll);
+                creature.GoldHeld, height, yaw, pitch, roll, previousX, previousY,
+                playsAnimation, creature.Activity != CreatureActivity.Dying && !meleeAnimation,
+                meleeAnimation ? new GameTick(creature.SwingStartTick)
+                    : creature.Dk2StateId == EatingRules.AfterMealState && creature.StateEnteredTick >= 0
+                    ? new GameTick(creature.StateEnteredTick) : null,
+                !meleeAnimation && IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null);
         }
     }
 
@@ -1124,15 +1171,84 @@ public sealed partial class WorldView
     /// asserted equal by <c>AssetCatalogueTests</c> — so a new activity fails a
     /// test rather than silently rendering as nothing.</para>
     /// </summary>
-    public AssetRef AnimationFor(CreatureState creature)
+    public AssetRef AnimationFor(CreatureState creature, GameTick tick)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));
 
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
+        string clip = ActivityKeySegment(creature.Activity);
+        if (IsMeleeAnimation(creature, tick)) clip = "fighting";
+        else if (creature.Dk2StateId == EatingRules.AfterMealState) clip = "eating";
+        else if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle or CreatureActivity.Fighting
+            && IsTravelAnimation(creature))
+            clip = creature.Running ? "running" : "moving_to_job";
+        else if (creature.Activity == CreatureActivity.Working
+            && definition.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase))
+            clip = creature.LastTaskKind switch
+            {
+                ImpTaskKind.Claim => "claiming",
+                ImpTaskKind.Reinforce or ImpTaskKind.Fix => "reinforcing",
+                _ => clip,
+            };
+        else if (creature.Activity == CreatureActivity.Fighting) clip = "idle";
+        else if (creature.Running && IsTravelAnimation(creature)) clip = "running";
         return AssetRef.ForCreature(
             definition.Name,
             AssetKind.Animation,
-            ActivityKeySegment(creature.Activity));
+            clip);
+    }
+
+    // Enable only the existing source mappings whose action is represented by this view.
+    // Other job and spell actions still need their own art slots and clocks.
+    public bool PlaysMappedAnimation(CreatureState creature, GameTick tick) =>
+        IsMeleeAnimation(creature, tick) || creature.Dk2StateId == EatingRules.AfterMealState || creature.Activity switch
+    {
+        CreatureActivity.Idle or CreatureActivity.Sleeping or CreatureActivity.Dying or CreatureActivity.Fighting
+            or CreatureActivity.BeingTortured => true,
+        CreatureActivity.Working => creature.LastTaskKind is ImpTaskKind.Excavate or ImpTaskKind.Mine
+            or ImpTaskKind.Claim or ImpTaskKind.Reinforce or ImpTaskKind.Fix,
+        _ => IsTravelAnimation(creature),
+    };
+
+    private readonly Dictionary<byte, int> _meleeHoldTicks = [];
+
+    private bool IsMeleeAnimation(CreatureState creature, GameTick tick)
+    {
+        if (creature.SwingKind != DK2.Simulation.Combat.SpellRules.MeleeSwing) return false;
+        if (creature.SwingInProgress) return true;
+        if (creature.Activity is not (CreatureActivity.Fighting or CreatureActivity.PitFighting)
+            || creature.SwingTargetKind == DK2.Simulation.Combat.FightTargetKind.None
+            || creature.TimeLastUsedMelee != creature.SwingStartTick
+            || creature.AttackType is not (DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtCreature
+                or DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtThing)
+            || creature.StateEnteredTick > creature.SwingStartTick) return false;
+        if (!_meleeHoldTicks.TryGetValue(creature.CreatureTypeId, out int hold))
+            _meleeHoldTicks[creature.CreatureTypeId] = hold = AnimationTimingRules.ActionHoldTicks(
+                _database.CreatureById(creature.CreatureTypeId).ArtSlot(5));
+        long elapsed = tick.Value - creature.SwingStartTick;
+        return elapsed >= 0 && elapsed < hold;
+    }
+
+    private static bool IsTravelAnimation(CreatureState creature) => creature.Activity switch
+    {
+        CreatureActivity.Fighting => creature.HasRoute,
+        CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle => creature.HasRoute
+            && creature.Dk2StateId is 6 or 7,
+        CreatureActivity.MovingToJob or CreatureActivity.DeliveringGold or CreatureActivity.GoingToSleep
+            or CreatureActivity.Leaving or CreatureActivity.FetchingGold or CreatureActivity.SeekingLair
+            or CreatureActivity.FetchingBody or CreatureActivity.CarryingBody or CreatureActivity.FetchingObject
+            or CreatureActivity.CarryingObject or CreatureActivity.SeekingFood or CreatureActivity.FetchingChicken
+            or CreatureActivity.SeekingWages or CreatureActivity.GoingToJob or CreatureActivity.Fleeing
+            or CreatureActivity.Withdrawing or CreatureActivity.GoingToBody or CreatureActivity.Rescuing
+            or CreatureActivity.HeedingCallToArms or CreatureActivity.Imprisoned => creature.HasRoute,
+        _ => false,
+    };
+
+    private static Fp32 MovementAnimationSpeed(CreatureState creature)
+    {
+        int x = Math.Abs(creature.Body.Vel.X >> 4);
+        int y = Math.Abs(creature.Body.Vel.Y >> 4);
+        return new Fp32(x + y - (Math.Min(x, y) >> 1));
     }
 
     /// <summary>

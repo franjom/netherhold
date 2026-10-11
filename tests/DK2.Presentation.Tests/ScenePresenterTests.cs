@@ -153,6 +153,24 @@ public class ScenePresenterTests
         Assert.Equal(25, target.Updates);
     }
 
+    [InstallFact]
+    public void ARepeatedMealRestartsEvenWhenItsMeshAndPositionDoNotChange()
+    {
+        if (BuildRig() is not { } rig) return;
+        CreatureState goblin = rig.Simulation.World.SpawnCreature(rig.Database,
+            rig.Database.CreatureByName("Goblin")!.CreatureId, 1, new TilePos(2, 2));
+        CreatureStateMachine.TrySetState(new StateHookContext(rig.Simulation.World, rig.Database),
+            goblin, EatingRules.AfterMealState, currentTick: 3);
+        rig.Presenter.Present(rig.Simulation.World);
+        rig.Target.Clear();
+        goblin.StateEnteredTick = 9;
+        rig.Presenter.Present(rig.Simulation.World);
+        Assert.Equal(1, rig.Target.CreatureUpdates);
+        rig.Target.Clear();
+        rig.Presenter.Present(rig.Simulation.World);
+        Assert.Equal(0, rig.Target.CreatureUpdates);
+    }
+
     /// <summary>
     /// With a <see cref="TorchLayout"/>, the torches come after the tiles, once each in floor-tile
     /// order; an unchanged world pushes none, and a resync draws them all again (ADR-0391).

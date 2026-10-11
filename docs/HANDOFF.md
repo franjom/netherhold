@@ -65,9 +65,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (ADR-0322, leave-hook-bodies.md); the Sleeping leave is believed presentation only.
   Consult CategoryHooks.Slots for the current status of every hook.
 
-## Classic look, step 3 (worktree D:/DungeonKeeperRemake-classic, branch classic-look/step3)
+## Classic look, steps 3–4 (worktree D:/DungeonKeeperRemake-classic)
 
-Plan: docs/plans/2026-10-09-classic-look.md. Reviewed, built and committed; not merged. The owner
+Plan: docs/plans/2026-10-09-classic-look.md. Step 3 is merged to master at 6005ff9f.
+Step 4 is underway on classic-look/step4. The owner
 compares DK2 and Unity on campaign Level8 ("Snapdragon") screenshot by screenshot.
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity. Assemblies are synced and the adapter
 compiles. Never commit editor state (ProjectSettings/*, Scenes/Dungeon.unity, URP globals).
@@ -83,6 +84,8 @@ Presentation includes object tilts/turning, Torture wheels and attached victim p
 the corrected Prison door mesh facing, KMF transparency, Hero Gate floors and 3x1 wall
 faces, ruined Heart floors, and placed doors/traps with settled door poses (ADR-0421),
 locked-door chains (ADR-0426) and depth-sorted translucent portal pillars (ADR-0427).
+Torch meshes now receive their wall-mount offset separately from the light;
+owner visual check pending (2026-10-11), see wall-torches.md §4.
 Evidence: object-drawing.md, furniture-placement.md, kmf-materials.md,
 structure-drawing.md and room-floors-and-liquids.md. Remaining owner checks: screenshot alignment, tag-drag tools and
 corners (tag-highlight.md §4, HYPOTHESIS), blue overlay and pillar height.
@@ -98,26 +101,54 @@ heroes' sub-tile movement, including Level8's hatchery Guard. Hash/save version 
 All 60 Level 1–3 replays validate; bounded-run wins are 17/5/16 versus 20/5/16 on 220.
 These are modern regression measurements, not
 proof of original timing parity. Campaign startup now spawns the northern Lord's
-six-member party through existing scripts (ADR-0422). Release tests pass (three
-capture-dependent skips), Unity assemblies are synced, and adapter compile/review pass.
+six-member party through existing scripts (ADR-0422). The merged master Release suite
+passes all 4678 tests with no skips; Unity assemblies and adapter checks passed for step 3.
 
 Replay drivers recovered from C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
 d869276a-99ca-491a-9cf5-0342488c1277/scratchpad. Measured baseline/current artifacts:
 D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup,collision-water-followup,imp-alarm-followup,chicken-placement-followup,giant-imp-followup,level8-wait-followup}.
 These are local artifacts. Follow-up: docs/plans/2026-10-10-torture-wheel-followup.md.
-Next implementation is classic look step 4; animation limits remain in the research notes.
+Step 4 adds fractional KMF sampling, per-instance Unity meshes and
+previous/current position interpolation (ADR-0431). Existing idle, ordinary walk,
+run, Imp dig/claim/reinforce, sleep, die and torture mappings can play, with
+ordinary quantized phases and separate Start/End meshes. Hatchery eating retains
+action 26's first-cycle wait and restarts playback from its entry stamp (ADR-0432).
+Ordinary travel rates follow body velocity and the authored movement scale;
+prison eating, other action restarts and exceptional rate overrides remain pending.
+Chicken Walk/Eat/Scared playback and position/heading interpolation are built;
+combat routes play walk/run and melee swings play once (ADR-0436).
+See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
+The owner animation comparison gate and Unity crowd upload profiling are outstanding.
+ADR-0433 restores followers' sub-tile walks around stationary leaders; grounded
+liquid height uses the presentation approximation in room-floors-and-liquids.md.
+Hash/save version is 225. Owner Level8 portal comparison pending (2026-10-11).
+Imps face the task tile before digging, mining, reinforcing or repairing walls
+(ADR-0435); owner reinforcement comparison pending.
+Prisoner, room-job and idle-return travel play movement clips; see kmf-animation-playback.md §5.
+Grounded bridge placement uses the deck height; see room-floors-and-liquids.md.
+The playback/bridge follow-up passes 167 presentation tests and the Unity compile.
+Torch meshes now share the wall lattice; see wall-torches.md §4.
+The torch follow-up passes 172 presentation tests and the Unity compile; owner view pending (2026-10-11).
+Last full-suite verification: 4803 tests pass without skips; Unity assemblies synced,
+adapter compile and independent review pass.
+Level 1–3 replay results are recorded in ADR-0432–0435; artifacts are under
+D:/DungeonKeeperRemake/build/classic-step3-replays/: eating-action-followup,
+portal-follow-followup, chicken-movement-final and imp-facing-final.
 Creature status flowers are still part of the unbuilt HUD work. Creature separation
 already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
 Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.
 The owner verified the blue portal pillars after reloading (2026-10-10).
-Remaining owner checks: restart Play mode, compare hatchery chickens and locked-door
-chains, inspect Level8's hatchery Guard visibility and portal movement
+Remaining owner checks: restart Play mode, compare chicken motion, Giant melee swings
+and locked-door chains, inspect Level8's hatchery Guard visibility and portal movement
 (hero-party-walk.md §1), and compare torch illumination
 at the same camera positions. The per-object light limit is confirmed; its responsibility
 for the reported camera-dependent darkness remains strongly inferred (unity/README.md).
 Imp casualty/timing parity remains open (Q582, combat-acquisition.md §1);
 non-creature threat flight remains unbuilt (combat-fear.md §7).
-Chicken roaming remains unbuilt; see hatchery-roaming.md for the researched object loop.
+Mistress crossing the visible Heart needs an arrival/escape comparison (Q585).
+Owned Hatchery chickens select points, turn, walk and react (ADR-0434);
+free-range and Prison loops remain unbuilt (Q584). Chicken footstep audio
+remains unbuilt; see hatchery-roaming.md.
 The owner verified a Level8 Salamander walking on lava (2026-10-10);
 see imp-idle-and-wandering.md §4 for the crossing regressions.
 The reported graininess at both camera distances has no confirmed resolution;
@@ -125,9 +156,11 @@ recheck the Unity Game view scale before changing rendering (TRAPS.md).
 
 ## Next work
 
-Owner's first priority (2026-10-10): resolve the excess Level7 Imp deaths (Q582)
-before further visual polish. Step 3's object/furniture work can stop here;
+Owner's first priority (2026-10-10): resolve the excess Level7 Imp deaths (Q582),
+researched in parallel with the authorized Step 4 work. Step 3 is merged;
 this combat/escape discrepancy remains open, not an accepted fidelity deviation.
+The follow-up trace ruled out velocity reset alone as the reproduced death's cure;
+the original encounter capture is still needed (combat-acquisition.md §1).
 
 1. M12: the Q542–Q544 producers are built (ADR-0412–0414), and their leftovers (ADR-0415–0418:
    the Casino party, the Library finder, the bedless rescue, the lying corpse, Q578); not

@@ -8,13 +8,61 @@ using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.TestSupport;
+using System.Numerics;
 
 namespace DK2.Presentation.Tests;
 
 /// <summary>The wall torch rule <c>0x00439B90</c> on the shipped Level 1 (wall-torches.md, ADR-0391).</summary>
 public class TorchLayoutTests
 {
+    [Theory]
+    [InlineData(1536, 2048, 3584, 2048, 4095)]
+    [InlineData(0, 512, 2048, 0, 2048)]
+    [InlineData(512, 2048, 512, 2048, 0)]
+    [InlineData(1024, 3584, 2048, 4095, 2048)]
+    public void MeshMountReachesWallWhileLightStaysOffIt(int yaw, int lightX, int lightY, int meshX, int meshY)
+    {
+        var torch = new TorchView(0, default, lightX, lightY, 6144, yaw, 300, 200, 100, 180, 6144, default);
+        Assert.Equal(meshX, torch.MeshPosX);
+        Assert.Equal(meshY, torch.MeshPosY);
+        Assert.Equal(lightX, torch.PosX);
+        Assert.Equal(lightY, torch.PosY);
+    }
+
     private static readonly int[] Dx = [0, 1, 0, -1];
+
+    [InstallFact]
+    public void TorchMountsFollowTheSameBentSurfaceAsTheirWall()
+    {
+        (GameDatabase db, WorldState world) = Load();
+        var layout = new TorchLayout(db);
+        layout.Update(world);
+        var lattice = new TerrainLattice(db, world, 1);
+        int moved = 0;
+        for (int i = 0; i < world.TileCount; i++)
+        {
+            if (layout.At(i) is not TorchView torch) continue;
+            Vector3 straight = TorchGeometry.Vertex(torch, Vector3.Zero, null);
+            Vector3 wallPoint = lattice.Deform(new Vector3(straight.X, -straight.Z, -straight.Y), torch.Wall.X, torch.Wall.Y);
+            Vector3 wallMount = new Vector3(wallPoint.X, -wallPoint.Z, -wallPoint.Y);
+            if (Vector3.Distance(straight, wallMount) > 0.001f) moved++;
+            Assert.True(Vector3.Distance(wallMount, TorchGeometry.Vertex(torch, Vector3.Zero, lattice)) < 0.00001f);
+        }
+        Assert.True(moved > 0);
+    }
+
+    [Theory]
+    [InlineData(0, 1f, 0f)]
+    [InlineData(512, 0f, -1f)]
+    [InlineData(1024, -1f, 0f)]
+    [InlineData(1536, 0f, 1f)]
+    public void StraightTorchVerticesKeepTheirYawAndHeight(int yaw, float x, float z)
+    {
+        var torch = new TorchView(0, default, 512, 2048, 6144, yaw, 300, 200, 100, 180, 6144, default);
+        Vector3 mount = TorchGeometry.Vertex(torch, Vector3.Zero, null);
+        Vector3 point = TorchGeometry.Vertex(torch, new Vector3(1, 0.25f, 0), null);
+        Assert.True(Vector3.Distance(point - mount, new Vector3(x, 0.25f, z)) < 0.00001f);
+    }
     private static readonly int[] Dy = [-1, 0, 1, 0];
 
     private sealed record Level(GameDatabase Database, WorldState World);

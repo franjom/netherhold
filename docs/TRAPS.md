@@ -24,7 +24,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Rewriting a file through `utf-8-sig` in and `utf-8` out drops its BOM; keep the BOM and the
   line endings you found (most docs and sources here are CRLF with a BOM).
 - After a merge, autocrlf leaves CRLF working copies: a patch matching `"\n"`-joined text finds
-  nothing. Normalise to `\n` before matching and restore the endings on write.
+  nothing, and PowerShell multiline `$` anchors need `\r?$`. Normalise to `\n` before matching and restore the endings on write.
 - A file restored with `mv` keeps its old mtime, and the next build may skip it.
 - Git Bash `sed -i` rewrites a CRLF file as LF, and `grep -c $'\r$'` there is no CRLF check (it reported 0 on a CRLF file): count `\r\n` bytes instead.
 - `apply_patch` rejects a delete and add of the same path in one patch; use an update or separate patches.
@@ -137,3 +137,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A `__fastcall` whose argument is a creature's state object (`+0x24E`) reads state-object offsets: `0x00478A20`'s `+0x98` is creature `+0x2E6` (the task kind), not creature `+0x98`; check `+0x10` against the state at `+0x25E` before reading a capture.
 - A scan for a state id as a `SetState` argument that looks for pushes before each `CALL 0x00476D30` misses a push followed by a jump to a shared `SetState` tail: the slap pushes 67 at `0x0048B9DB` and jumps to `0x0048BA00`. Before calling a state unreachable, also scan `.text` for the raw `6A xx` push and read each hit (2026-10-07).
 - Blender object copies inherit `hide_select`; clear selection locks and assert selection before GLB export with `use_selection=True`, which can otherwise succeed with no meshes.
+- Ghidra `ForceFunc.py` can mistake an earlier stack reservation for the function prologue; after confirming the exact entry in disassembly, use `ForceAt.py` instead.

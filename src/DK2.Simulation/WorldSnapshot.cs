@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 221;
+    private const int FormatVersion = 225;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -267,6 +267,7 @@ public static class WorldSnapshot
             w.Write(c.Health);
             w.Write(c.HungerTicks);
             w.Write(c.HungerNeed);
+            w.Write(c.FoodOwedAfterMeal);
             w.Write(c.FoodAttemptTicks);
             w.Write(c.AwakeTicks);
             w.Write(c.SleepTicks);
@@ -533,6 +534,19 @@ public static class WorldSnapshot
             w.Write(o.Health);
             w.Write(o.PosX);
             w.Write(o.PosY);
+            w.Write(o.Heading);
+            w.Write(o.ProcessAgeTicks);
+            w.Write(o.ChickenCanEscape);
+            w.Write(o.HatcheryRoomAnchorTileIndex);
+            w.Write(o.ChickenScared);
+            w.Write(o.ChickenReactionTicks);
+            w.Write(o.MoveResumeState);
+            w.Write(o.MoveDestinationX);
+            w.Write(o.MoveDestinationY);
+            w.Write(o.MoveVelocityX);
+            w.Write(o.MoveVelocityY);
+            w.Write(o.MoveTicksRemaining);
+            w.Write((byte)o.MoveFlags);
             WriteLink(w, o.TileLink);
             w.Write(o.RollX);
             w.Write(o.RollY);
@@ -873,6 +887,7 @@ public static class WorldSnapshot
                 Health = r.ReadInt32(),
                 HungerTicks = r.ReadInt32(),
                 HungerNeed = r.ReadInt32(),
+                FoodOwedAfterMeal = r.ReadBoolean(),
                 FoodAttemptTicks = r.ReadInt32(),
                 AwakeTicks = r.ReadInt32(),
                 SleepTicks = r.ReadInt32(),
@@ -1161,6 +1176,19 @@ public static class WorldSnapshot
                 Health = r.ReadInt32(),
                 PosX = r.ReadInt32(),
                 PosY = r.ReadInt32(),
+                Heading = r.ReadInt32(),
+                ProcessAgeTicks = r.ReadInt32(),
+                ChickenCanEscape = r.ReadBoolean(),
+                HatcheryRoomAnchorTileIndex = r.ReadInt32(),
+                ChickenScared = r.ReadBoolean(),
+                ChickenReactionTicks = r.ReadInt32(),
+                MoveResumeState = r.ReadByte(),
+                MoveDestinationX = r.ReadInt32(),
+                MoveDestinationY = r.ReadInt32(),
+                MoveVelocityX = r.ReadInt32(),
+                MoveVelocityY = r.ReadInt32(),
+                MoveTicksRemaining = r.ReadUInt16(),
+                MoveFlags = (ObjectMoveFlags)r.ReadByte(),
                 TileLink = ReadLink(r),
                 RollX = r.ReadInt32(),
                 RollY = r.ReadInt32(),

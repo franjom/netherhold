@@ -100,6 +100,9 @@ application lands at E+2 for every kind. The second follows 4 ticks later for
 mining, 3 for digging (one case) and reinforcing (seven), and 1 for claiming (ten
 cases). After that, one application a tick.
 
+These one-tick entries are captured outcomes. The binary's wall-work entries
+turn toward the target centre and hold until facing; see imp-state-exits.md §2.
+
 **Rock falls to one strike.** Every rock tile (terrain 2, 165 health) in the
 capture goes from 165 to a dug path at health 1 in one step, on the first strike
 of the imp beside it (for example (15,33) at 333). So the shipped `DigRockHealth`
