@@ -1082,7 +1082,8 @@ public sealed partial class WorldView
 
             int posX = creature.PosX, posY = creature.PosY, height = FloorZ;
             TerrainDef terrain = _database.TerrainById(world.Tile(position).TerrainId);
-            if ((terrain.IsWater || terrain.IsLava)
+            if ((terrain.IsWater || terrain.IsLava
+                    || (_database.RoomsByTerrain.TryGetValue(terrain.TerrainId, out RoomDef? room) && BridgeRules.IsBridge(room)))
                 && !WaterSpeedRules.IsFlying(_database.CreatureById(creature.CreatureTypeId), creature))
                 height = FloorHeight(world, position.X, position.Y);
             int yaw = (creature.Heading + 1024) & 2047, pitch = 0, roll = 0;
@@ -1162,7 +1163,7 @@ public sealed partial class WorldView
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         string clip = ActivityKeySegment(creature.Activity);
         if (creature.Dk2StateId == EatingRules.AfterMealState) clip = "eating";
-        else if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.AtWork or CreatureActivity.PitFighting
+        else if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle
             && IsTravelAnimation(creature))
             clip = creature.Running ? "running" : "moving_to_job";
         else if (creature.Activity == CreatureActivity.Working
@@ -1194,7 +1195,7 @@ public sealed partial class WorldView
 
     private static bool IsTravelAnimation(CreatureState creature) => creature.Activity switch
     {
-        CreatureActivity.AtWork or CreatureActivity.PitFighting => creature.HasRoute
+        CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle => creature.HasRoute
             && creature.Dk2StateId is 6 or 7,
         CreatureActivity.MovingToJob or CreatureActivity.DeliveringGold or CreatureActivity.GoingToSleep
             or CreatureActivity.Leaving or CreatureActivity.FetchingGold or CreatureActivity.SeekingLair

@@ -81,6 +81,22 @@ public class WorldViewTests
         Assert.Equal(Fp32.One, rendered.Height);
     }
 
+    [InstallFact]
+    public void GroundedCreatureFeetSitOnTheStoneBridgeDeck()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
+        WorldState world = WorldState.FromMap(database,
+            GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [1, 3]);
+        TilePos bridge = Enumerable.Range(0, world.Width * world.Height)
+            .Select(i => new TilePos(i % world.Width, i / world.Width))
+            .First(p => database.RoomsByTerrain.TryGetValue(world.Tile(p).TerrainId, out RoomDef? room)
+                && room.TypeId == RoomTypeId.StoneBridge);
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId, 1, bridge);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal(0x1199, rendered.Height);
+    }
+
     // ---- Mapping, against the whole shipped terrain table ----
 
     /// <summary>
@@ -344,6 +360,27 @@ public class WorldViewTests
         Assert.True(rendered.PlaysAnimation);
         Assert.Equal(walking ? "creature.guard.animation.moving_to_job" : "creature.guard.animation.idle", rendered.Animation.Key);
         Assert.Equal(walking ? new Fp32(4096) : (Fp32?)null, rendered.AnimationMovementSpeed);
+    }
+
+    [InstallTheory]
+    [InlineData("Imp")]
+    [InlineData("Mistress")]
+    [InlineData("Salamander")]
+    [InlineData("Troll")]
+    public void AWalkReturningToIdleUsesMovementPlayback(string name)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState creature = world.SpawnCreature(database, database.CreatureByName(name)!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        creature.Dk2StateId = 6;
+        creature.UtilityNewState = CreatureStateMachine.Idle;
+        creature.Body.PathTotalCount = 1;
+        creature.Body.PathFinished = false;
+        creature.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(AssetRef.ForCreature(name, AssetKind.Animation, "moving_to_job"), rendered.Animation);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Equal(new Fp32(4096), rendered.AnimationMovementSpeed);
     }
 
     [InstallFact]

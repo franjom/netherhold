@@ -123,6 +123,9 @@ Travel states 6/7 also play movement when their resumed job labels the activity
 AtWork or PitFighting. This covers Level8's waiting Hatchery Guard, hero waypoint
 roaming, Guard Post patrol and Combat Pit approach; standing job actions remain
 outside this addition.
+Walks resuming idle also select movement playback, including Level8's Imp,
+Mistress, Salamander and Troll around the Heart. Travel states 6/7 carry the
+physical movement even when the resumed activity is Idle.
 
 ## 6. Movement rates — CONFIRMED (binary, 2026-10-11)
 
