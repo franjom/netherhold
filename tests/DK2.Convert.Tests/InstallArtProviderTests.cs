@@ -17,6 +17,26 @@ namespace DK2.Convert.Tests;
 /// <summary>The converted tier read in place (ADR-0408).</summary>
 public sealed class InstallArtProviderTests
 {
+    [InstallFact]
+    public void TheDungeonHeartResourceContainsMovingVertices()
+    {
+        string install = Dk2InstallGate.Path;
+        var database = GameDatabaseLoader.Load(install);
+        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+        AssetRef key = AssetRef.ForObject(database.ObjectById(13)!.Name, AssetKind.Mesh);
+        Assert.True(provider.TryResolve(key, out ResolvedAsset asset));
+        Assert.True(provider.TryGetResource(asset, out Dk2ArtResource resource));
+        Assert.Equal(6, resource.Type);
+        Assert.Equal(70, resource.FrameCount);
+        Assert.True(provider.TryLoadModel(asset, out KmfModel model));
+        var clip = new RenderAnimation(model);
+        var first = new Vector3[clip.Mesh.Positions.Count];
+        var middle = new Vector3[first.Length];
+        clip.Sample(0f, true, first);
+        clip.Sample(0.5f, true, middle);
+        Assert.False(first.SequenceEqual(middle));
+    }
+
     [Fact]
     public void SeparateSegmentResourcesKeepTheirOwnTopologyAndNames()
     {

@@ -205,7 +205,7 @@ public sealed partial class WorldView
         return new ObjectView(thing.Id, thing.ObjectTypeId, thing.OwnerPlayerId, at, ObjectArt(thing.ObjectTypeId, slot),
             thing.GoldHeld, posX, posY, z, heading & 0x7FF, scale, pitch, roll & 0x7FF,
             previousPosX: new Fp32(previousX), previousPosY: new Fp32(previousY), previousHeading: previousHeading,
-            playsAnimation: thing.ObjectTypeId == ChickenId,
+            playsAnimation: thing.ObjectTypeId is ChickenId or DungeonHeartId,
             animationStartedAt: thing.ObjectTypeId == ChickenId && thing.ProcessState == 8 && thing.ProcessAgeTicks > 0
                 ? new GameTick(world.CurrentTick.Value - thing.ProcessAgeTicks) : null);
     }
@@ -421,7 +421,8 @@ public sealed partial class WorldView
         int x = tileIndex % world.Width, y = tileIndex / world.Width;
         return new ObjectView(-((tileIndex * DecorSlots) + slot + 1), objectTypeId, owner, new TilePos(x, y),
             ObjectArt(objectTypeId, artSlot), 0, (x * One) + Half + offsetX, (y * One) + Half + offsetY,
-            z < 0 ? FloorHeight(world, x, y) : z, heading & 0x7FF, One);
+            z < 0 ? FloorHeight(world, x, y) : z, heading & 0x7FF, One,
+            playsAnimation: objectTypeId == DungeonHeartId);
     }
 
     private RoomInstance? RoomAt(WorldState world, int tileIndex)

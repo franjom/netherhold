@@ -75,7 +75,12 @@ Wheel) and 61 (Electric Chair) the floor art's name gets a `g_` prefix unless
   #7 or #5–#7 by process state; the process-state handlers `0x0049FBA0` and `0x0049FDC0`
   install #5 and #6. **CONFIRMED** for the slots; what each state is: not read.
 - **Dungeon Heart (id 13):** its art #0 is `Dungeon centre`, type 6, 70 frames at 30 fps,
-  flags `0x201`. Nothing read here switches it. The binary also has the string
+  flags `0x201`. `Object_Init` installs the floor resource with scalar 4096;
+  `0x004B37D0` stops looping only for flag `0x80`, absent here. Rechecked in the
+  binary on 2026-10-11. The classic Heart now plays this loop (ADR-0437), for both
+  room decorations and represented objects; arches and steps remain static.
+  Its real decoded vertices differ between phases 0 and 0.5. No health-dependent
+  rate or decay selection is implemented. The binary also has the string
   `Unable to allocate 'Dungeon Heart Object Decay' mesh number %d`: **not followed**.
 
 ## 4. Position and rotation

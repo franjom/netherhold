@@ -117,6 +117,7 @@ Ordinary travel rates follow body velocity and the authored movement scale;
 prison eating, other action restarts and exceptional rate overrides remain pending.
 Chicken Walk/Eat/Scared playback and position/heading interpolation are built;
 combat routes play walk/run and melee swings play once (ADR-0436).
+Live Hearts beat and spell-casting clips play (ADR-0437); owner comparison pending (2026-10-11).
 See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
 The owner animation comparison gate and Unity crowd upload profiling are outstanding.
 Profiler scopes and the capture procedure are in unity/README.md.
@@ -130,7 +131,7 @@ Grounded bridge placement uses the deck height; see room-floors-and-liquids.md.
 The playback/bridge follow-up passes 167 presentation tests and the Unity compile.
 Torch meshes now share the wall lattice; see wall-torches.md §4.
 The torch follow-up passes 172 presentation tests and the Unity compile; owner view pending (2026-10-11).
-Last full-suite verification: 4803 tests pass without skips; Unity assemblies synced,
+Last full-suite verification: 4809 tests pass without skips; Unity assemblies synced,
 adapter compile and independent review pass.
 Level 1–3 replay results are recorded in ADR-0432–0435; artifacts are under
 D:/DungeonKeeperRemake/build/classic-step3-replays/: eating-action-followup,

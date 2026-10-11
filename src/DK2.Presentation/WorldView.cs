@@ -1102,6 +1102,7 @@ public sealed partial class WorldView
             int yaw = (creature.Heading + 1024) & 2047, pitch = 0, roll = 0;
             int previousX = creature.LastPosX, previousY = creature.LastPosY;
             bool meleeAnimation = IsMeleeAnimation(creature, world.CurrentTick);
+            bool castAnimation = IsCastAnimation(creature, world.CurrentTick);
             bool playsAnimation = PlaysMappedAnimation(creature, world.CurrentTick);
             AssetRef animation = AnimationFor(creature, world.CurrentTick);
             if (AttachedWheel(world, creature) is { } wheel)
@@ -1132,11 +1133,11 @@ public sealed partial class WorldView
                 mesh,
                 animation,
                 creature.GoldHeld, height, yaw, pitch, roll, previousX, previousY,
-                playsAnimation, creature.Activity != CreatureActivity.Dying && !meleeAnimation,
-                meleeAnimation ? new GameTick(creature.SwingStartTick)
+                playsAnimation, creature.Activity != CreatureActivity.Dying && !meleeAnimation && !castAnimation,
+                meleeAnimation || castAnimation ? new GameTick(creature.SwingStartTick)
                     : creature.Dk2StateId == EatingRules.AfterMealState && creature.StateEnteredTick >= 0
                     ? new GameTick(creature.StateEnteredTick) : null,
-                !meleeAnimation && IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null);
+                !meleeAnimation && !castAnimation && IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null);
         }
     }
 
@@ -1178,6 +1179,7 @@ public sealed partial class WorldView
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         string clip = ActivityKeySegment(creature.Activity);
         if (IsMeleeAnimation(creature, tick)) clip = "fighting";
+        else if (IsCastAnimation(creature, tick)) clip = "casting";
         else if (creature.Dk2StateId == EatingRules.AfterMealState) clip = "eating";
         else if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle or CreatureActivity.Fighting
             && IsTravelAnimation(creature))
@@ -1199,9 +1201,10 @@ public sealed partial class WorldView
     }
 
     // Enable only the existing source mappings whose action is represented by this view.
-    // Other job and spell actions still need their own art slots and clocks.
+    // Other job actions still need their own art slots and clocks.
     public bool PlaysMappedAnimation(CreatureState creature, GameTick tick) =>
-        IsMeleeAnimation(creature, tick) || creature.Dk2StateId == EatingRules.AfterMealState || creature.Activity switch
+        IsMeleeAnimation(creature, tick) || IsCastAnimation(creature, tick)
+        || creature.Dk2StateId == EatingRules.AfterMealState || creature.Activity switch
     {
         CreatureActivity.Idle or CreatureActivity.Sleeping or CreatureActivity.Dying or CreatureActivity.Fighting
             or CreatureActivity.BeingTortured => true,
@@ -1211,6 +1214,31 @@ public sealed partial class WorldView
     };
 
     private readonly Dictionary<byte, int> _meleeHoldTicks = [];
+    private readonly Dictionary<byte, int> _castHoldTicks = [];
+
+    private bool IsCastAnimation(CreatureState creature, GameTick tick)
+    {
+        if (creature.SwingInProgress)
+            return creature.SwingKind is DK2.Simulation.Combat.SpellRules.SpellCast
+                or DK2.Simulation.Combat.SpellRules.FreeAimCast;
+        if (creature.Possessed
+            || creature.Activity is not (CreatureActivity.Fighting or CreatureActivity.PitFighting)
+            || creature.SwingTargetKind == DK2.Simulation.Combat.FightTargetKind.None
+            || creature.SwingSpellSlot >= creature.SpellStamps.Length
+            || creature.SpellStamps[creature.SwingSpellSlot] != creature.SwingStartTick
+            || creature.AttackType is not (DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtCreature
+                or DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtThing
+                or DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtAlly)
+            || creature.StateEnteredTick > creature.SwingStartTick) return false;
+        if (!_castHoldTicks.TryGetValue(creature.CreatureTypeId, out int hold))
+        {
+            CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
+            int slot = AnimationTimingRules.ResolveArtSlot(definition, 6);
+            _castHoldTicks[creature.CreatureTypeId] = hold = AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(slot));
+        }
+        long elapsed = tick.Value - creature.SwingStartTick;
+        return elapsed >= 0 && elapsed < hold;
+    }
 
     private bool IsMeleeAnimation(CreatureState creature, GameTick tick)
     {

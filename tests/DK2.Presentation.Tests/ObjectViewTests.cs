@@ -19,6 +19,16 @@ namespace DK2.Presentation.Tests;
 public class ObjectViewTests
 {
     [InstallFact]
+    public void ARepresentedDungeonHeartAlsoPlaysItsFloorAnimation()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        ObjectState heart = world.SpawnObject(database, 13, 3, 40);
+        ObjectView rendered = new WorldView(database).Objects(world).Single(o => o.Id == heart.Id);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Equal(AssetRef.ForObject(database.ObjectById(13)!.Name, AssetKind.Mesh), rendered.Mesh);
+    }
+
+    [InstallFact]
     public void ChickenInterpolationKeepsOnlyTheLastSimulationStepAndStopsAfterLift()
     {
         if (RealLevel() is not var (database, world)) return;

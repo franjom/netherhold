@@ -23,6 +23,74 @@ namespace DK2.Presentation.Tests;
 /// </summary>
 public class WorldViewTests
 {
+    [InstallTheory]
+    [InlineData(DK2.Simulation.Combat.SpellRules.SpellCast)]
+    [InlineData(DK2.Simulation.Combat.SpellRules.FreeAimCast)]
+    public void APendingSpellCastOverridesTravelAndUsesItsOwnStartStamp(byte kind)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState caster = world.SpawnCreature(database, database.CreatureByName("Wizard")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        caster.Dk2StateId = 200;
+        caster.Body.PathTotalCount = 1;
+        caster.Body.PathFinished = false;
+        caster.SwingInProgress = true;
+        caster.SwingKind = kind;
+        caster.SwingStartTick = 42;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == caster.Id);
+        Assert.Equal(AssetRef.ForCreature("Wizard", AssetKind.Animation, "casting"), rendered.Animation);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.False(rendered.AnimationLoops);
+        Assert.Equal(new GameTick(42), rendered.AnimationStartedAt);
+        Assert.Null(rendered.AnimationMovementSpeed);
+    }
+
+    private sealed class StartAndFinishCast(CreatureState caster, CreatureDef definition) : ISimulationSystem
+    {
+        public string Name => "start_and_finish_cast";
+        private bool _started;
+        public void Execute(SimulationContext context)
+        {
+            if (_started) return;
+            _started = true;
+            DK2.Simulation.Combat.FightRules.StartCast(context, caster, definition, 1, tell: false);
+            DK2.Simulation.Combat.FightRules.FireSpell(context, caster, definition);
+        }
+    }
+
+    [InstallFact]
+    public void ACompletedTargetedCastPlaysThroughAndRejectsAStaleStart()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureDef definition = database.CreatureByName("Wizard")!;
+        CreatureState caster = world.SpawnCreature(database, definition.CreatureId, 1, FirstWalkableTile(database, world));
+        caster.Dk2StateId = 200;
+        caster.FightTargetKind = DK2.Simulation.Combat.FightTargetKind.Door;
+        caster.FightTargetId = -1;
+        caster.AttackType = DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtThing;
+        var simulation = new GameSimulation(database, world, 7, [new StartAndFinishCast(caster, definition)]);
+        simulation.Tick();
+        Assert.False(caster.SwingInProgress);
+        var view = new WorldView(database);
+        AssetRef casting = AssetRef.ForCreature("Wizard", AssetKind.Animation, "casting");
+        Assert.Equal(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
+        caster.Possessed = true;
+        Assert.NotEqual(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
+        caster.Possessed = false;
+        caster.StateEnteredTick = caster.SwingStartTick + 1;
+        Assert.NotEqual(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
+        caster.StateEnteredTick = caster.SwingStartTick;
+        caster.AttackType = DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtThing;
+        Assert.NotEqual(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
+        caster.AttackType = DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtThing;
+        caster.SpellStamps[1] = -1;
+        Assert.NotEqual(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
+        caster.SpellStamps[1] = caster.SwingStartTick;
+        int hold = AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(6));
+        for (int tick = 1; tick < hold; tick++) simulation.Tick();
+        Assert.NotEqual(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
+    }
+
     private sealed class StartImmediateSwing(CreatureState attacker, CreatureDef definition) : ISimulationSystem
     {
         public string Name => "start_immediate_swing";
@@ -46,10 +114,8 @@ public class WorldViewTests
         public string Name => "finish_ranged_cast";
         public void Execute(SimulationContext context)
         {
-            caster.SwingStartTick = context.Tick.Value;
-            caster.SwingTargetKind = DK2.Simulation.Combat.FightTargetKind.Door;
-            caster.SwingKind = DK2.Simulation.Combat.SpellRules.SpellCast;
-            caster.SwingSpellSlot = 1;
+            caster.FightTargetKind = DK2.Simulation.Combat.FightTargetKind.Door;
+            DK2.Simulation.Combat.FightRules.StartCast(context, caster, definition, 1, tell: false);
             DK2.Simulation.Combat.FightRules.FireSpell(context, caster, definition);
         }
     }
@@ -66,7 +132,7 @@ public class WorldViewTests
         simulation.Tick();
         Assert.False(caster.SwingInProgress);
         Assert.Equal(DK2.Simulation.Combat.SpellRules.MeleeSwing, caster.SwingKind);
-        Assert.Equal(AssetRef.ForCreature("Wizard", AssetKind.Animation, "idle"),
+        Assert.NotEqual(AssetRef.ForCreature("Wizard", AssetKind.Animation, "fighting"),
             new WorldView(database).Creatures(world).Single(c => c.Id == caster.Id).Animation);
     }
 

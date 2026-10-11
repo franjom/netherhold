@@ -194,6 +194,8 @@ public class ObjectPlacementTests
         // Level 1's own Heart is elsewhere on the map; only the carved one's centre is asked.
         ObjectView heart = Decorations(room, 13).Single(o => o.Tile == centre);
         Assert.Equal(0, heart.Height);
+        Assert.True(heart.PlaysAnimation);
+        Assert.False(Decorations(room, 86).Single(o => o.Tile == centre).PlaysAnimation);
         Assert.Equal([0, 0x2AA, 0x554], Decorations(room, 88).Where(o => o.Tile == centre).Select(s => s.Heading).OrderBy(h => h));
         Assert.Single(Decorations(room, 86), o => o.Tile == centre);
     }

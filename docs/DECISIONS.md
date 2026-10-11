@@ -9981,5 +9981,22 @@ mode and state-entry interruption guards. Preserve simulation rules and hash 225
 
 **Consequences.** This presentation bridge does not implement the full mode-3
 combat action lifetime; its timing consequence belongs to Q582. Spell-casting
-clips and Chicken footstep audio remain unbuilt. Owner comparisons must restart
+playback follows in ADR-0437; Chicken footstep audio remains unbuilt. Owner comparisons must restart
 Play mode and inspect Chickens and the Level7 Giant/Imp encounter.
+
+## ADR-0437 — Play the Heart beat and spell-casting clips
+**Date:** 2026-10-11 · **Status:** accepted · Research: object-drawing.md §3,
+kmf-animation-playback.md §8
+
+**Context.** The live Heart stayed on one mesh pose, and spell casts showed
+idle or travel art even though their action resource was available.
+
+**Decision.** Play the Heart's default looping resource through the shared
+sampler for both decorations and represented objects. Play pending targeted
+and free-aim casts from their start stamp with art 6 (fallback 5). Retain a
+completed targeted cast for its authored duration only while its spell stamp,
+attack mode and state-entry evidence still match. Preserve hash/save 225.
+
+**Consequences.** These are presentation changes. Heart decay and variable
+beat rates are not implemented; neither are completed possessed-cast retention
+or the full simulation action lifetime. Restart Play mode for owner checks.

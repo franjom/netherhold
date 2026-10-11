@@ -230,6 +230,7 @@ public static class ArtSourceMap
     {
         "idle" => resources[CreatureIdle],
         "fighting" => resources[CreatureMelee],
+        "casting" => resources[5].Type != 0 ? resources[5] : resources[CreatureMelee],
         "running" => resources[1].Type != 0 ? resources[1] : resources[CreatureWalk],
         "eating" => resources[12].Type != 0 ? resources[12] : resources[7],
         "claiming" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase) => resources[12],

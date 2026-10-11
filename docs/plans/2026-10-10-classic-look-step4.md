@@ -31,6 +31,7 @@ the render factor's game-clock producer remains open (Q442).
 Q582 trace is recorded in combat-acquisition.md §1; it remains unresolved.
 Chicken playback/interpolation and combat approach/melee playback are built
 under ADR-0436. Full simulation mode-3 melee lifetime remains absent (Q582);
-spell-casting clips and object playback beyond Chicken remain pending.
+Spell-casting clips and the live Heart loop are built (ADR-0437).
+Other object-state playback remains pending.
 Profiler scopes and a repeatable capture procedure are built; see unity/README.md.
 Actual Unity crowd/mesh-upload and standalone captures remain outstanding.

@@ -174,3 +174,19 @@ Built under ADR-0431: travel playback receives the body's speed without
 restarting its clip when speed changes. Frame catch-up uses the latest
 observed velocity for skipped render ticks; it does not reconstruct their
 individual speeds. Shared sample buffers still allocate nothing per sample.
+
+## 8. Spell-casting playback
+
+**CONFIRMED (binary, 2026-10-11):** `0x004950C0` assigns action 16 art slot 6
+and mode 3; action 15, the free-aim cast, also uses slot 6, with mode 0.
+`0x00498870` is action 16's targeted shot handler. Missing slot 6 resolves to
+slot 5 under `0x00494880`; the classic catalogue therefore uses file resource
+5, or resource 4 when absent.
+
+Pending targeted/free-aim casts override travel and play once from their
+start stamp. After a targeted shot, the view uses its retained spell-slot
+stamp, spell attack mode and state-entry stamp to keep the authored clip
+visible. Later state entries and unmatched stamps reject that continuation.
+This is the same scoped presentation bridge as §7; it does not add an action
+lifetime to simulation. Completed possessed casts lack a matching spell-slot
+stamp and are not retained by this bridge. ADR-0437.
