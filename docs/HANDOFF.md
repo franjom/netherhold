@@ -145,8 +145,10 @@ this combat/escape discrepancy remains open, not an accepted fidelity deviation.
 4. M6: Level 4 was recorded live on 2026-10-11 and is not analysed yet. The packet
    recording is `E:\GogGames\Dungeon Keeper 2\PacketRecord\l4live.sav` (210 KB). DK2's
    side is `reverse-engineering\dk2runs\level4-live1\seed01\`: `level4.dk2cap` (41 MB,
-   ticks 1–6804, no torn or missed ticks, stopped when the owner quit), `tiles.csv`
-   (119,930 rows) and `record.out`. Both are local and untracked. Next: build the entity
+   ticks 1–6804, no torn or missed ticks), `tiles.csv` (119,930 rows) and `record.out`.
+   Both are local and untracked. The owner **won**: the enemy Lord died, Horny's victory
+   scene began, and pressing Space exited the game, which ended both files. So the win
+   lies near the capture's end; its exact tick is unread (2026-10-11). Next: build the entity
    map and replay it over seeds like Levels 1–3, then record seeded DK2 playbacks
    (experiments/2026-10-06-packet-replay-seeds/).
 5. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
