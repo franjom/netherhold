@@ -119,16 +119,17 @@ See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
 The owner animation comparison gate and Unity crowd upload profiling are outstanding.
 ADR-0433 restores followers' sub-tile walks around stationary leaders; grounded
 liquid height uses the presentation approximation in room-floors-and-liquids.md.
-Hash/save version is 223. Owner Level8 portal comparison pending (2026-10-11).
+Hash/save version is 224. Owner Level8 portal comparison pending (2026-10-11).
 Prisoner, room-job and idle-return travel play movement clips; see kmf-animation-playback.md §5.
 Grounded bridge placement uses the deck height; see room-floors-and-liquids.md.
 The playback/bridge follow-up passes 167 presentation tests and the Unity compile.
 Torch meshes now share the wall lattice; see wall-torches.md §4.
 The torch follow-up passes 172 presentation tests and the Unity compile; owner view pending (2026-10-11).
-Last full-suite verification: 4737 tests pass, including the three comparison tests after
-restoring local ignored captures; Unity assemblies synced, adapter compile and review pass.
-Level 1–3 replay results are recorded in ADR-0432 and ADR-0433; artifacts are
-D:/DungeonKeeperRemake/build/classic-step3-replays/{eating-action,portal-follow}-followup.
+Last full-suite verification: 4789 tests pass without skips; Unity assemblies synced,
+adapter compile and independent review pass.
+Level 1–3 replay results are recorded in ADR-0432–0434; artifacts are under
+D:/DungeonKeeperRemake/build/classic-step3-replays/: eating-action-followup,
+portal-follow-followup and chicken-movement-final.
 Creature status flowers are still part of the unbuilt HUD work. Creature separation
 already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
 Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.
@@ -140,7 +141,9 @@ at the same camera positions. The per-object light limit is confirmed; its respo
 for the reported camera-dependent darkness remains strongly inferred (unity/README.md).
 Imp casualty/timing parity remains open (Q582, combat-acquisition.md §1);
 non-creature threat flight remains unbuilt (combat-fear.md §7).
-Chicken roaming remains unbuilt; see hatchery-roaming.md for the researched object loop.
+Owned Hatchery chickens select points, turn, walk and react (ADR-0434);
+free-range and Prison loops remain unbuilt (Q584). Chicken animation playback
+also remains unbuilt; see hatchery-roaming.md.
 The owner verified a Level8 Salamander walking on lava (2026-10-10);
 see imp-idle-and-wandering.md §4 for the crossing regressions.
 The reported graininess at both camera distances has no confirmed resolution;

@@ -79,7 +79,7 @@ public static class HatcheryRules
         return hatchery.TileIndices.Count * perTile;
     }
 
-    /// <summary>How many chickens — hatched birds, not eggs — stand in this room.
+    /// <summary>How many chickens — hatched birds, not eggs — belong to this room.
     /// <para>Eggs are excluded on purpose. A room at capacity in chickens can
     /// still hold an egg that has not hatched, and counting the egg would make
     /// the room stop a bird early.</para></summary>
@@ -90,7 +90,7 @@ public static class HatcheryRules
         for (int i = 0; i < objects.Count; i++)
         {
             if (objects[i].ObjectTypeId != ChickenObjectId) continue;
-            if (!hatchery.TileIndices.Contains(objects[i].TileIndex)) continue;
+            if (!BelongsToHatchery(objects[i], hatchery)) continue;
             count++;
         }
         return count;
@@ -110,11 +110,16 @@ public static class HatcheryRules
         {
             byte type = objects[i].ObjectTypeId;
             if (type != ChickenObjectId && type != EggObjectId) continue;
-            if (!hatchery.TileIndices.Contains(objects[i].TileIndex)) continue;
+            if (!BelongsToHatchery(objects[i], hatchery)) continue;
             count++;
         }
         return count;
     }
+
+    private static bool BelongsToHatchery(ObjectState bird, RoomInstance hatchery) =>
+        !bird.InHand && bird.CarriedByCreatureId < 0
+        && hatchery.Contains(bird.HatcheryRoomAnchorTileIndex >= 0
+            ? bird.HatcheryRoomAnchorTileIndex : bird.TileIndex);
 
     /// <summary>Whether this hatchery is holding as many birds as it can.</summary>
     public static bool FlockIsFull(
@@ -288,9 +293,7 @@ public static class HatcheryRules
     /// <summary>Turns an egg into a chicken on the same tile, and hands back the chicken.
     /// Throws if handed something that is not an egg.
     /// <para>The chicken inherits the egg's tile and owner and the egg ceases to
-    /// exist. Deviates: a replacement rather than a state change, because our
-    /// object carries no state machine where DK2's has a <c>StateId</c> and a
-    /// <c>StateAge</c> per object.</para>
+    /// exist. Egg animation timing remains the two-second approximation (ADR-0066).</para>
     /// <para>Driven by <see cref="Systems.HatcherySystem"/>, which counts
     /// <see cref="EggHatchSeconds"/> on the egg's own
     /// <see cref="ObjectState.TimerTicks"/> and hatches <b>before</b> it lays, so
@@ -310,6 +313,9 @@ public static class HatcheryRules
         ObjectState chicken = world.SpawnObject(database, ChickenObjectId, owner, tile);
         chicken.PosX = egg.PosX;
         chicken.PosY = egg.PosY;
+        if (world.TileAtIndex(tile).OwnerPlayerId == owner.Value
+            && database.RoomByTerrain(world.TileAtIndex(tile).TerrainId)?.TypeId == RoomTypeId.Hatchery)
+            chicken.ProcessState = (byte)ChickenProcess.Hatchery;
         return chicken;
     }
 

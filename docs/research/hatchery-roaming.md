@@ -46,6 +46,10 @@ intermediates. The stored 16-bit movement count at `+0x170` is
 The helper sets `+0x172` bit 0 to require turning first. This is not a rounded
 distance divided by speed.
 
+Assembly `0x0049F9D5` divides by the fixed-point squared speed without a zero
+guard. Nonzero runtime speeds below 64 therefore cannot drive this routine;
+ours reports that invalid definition explicitly instead of changing its speed.
+
 Process 9 calls `0x004B2AE0` while that turning flag is set. A nonzero angle
 remaining consumes a tick without movement or countdown decrement. Once
 facing, it clears the flag, decrements the count, and applies the velocity on
@@ -57,8 +61,9 @@ global counter when the pre-decrement movement count is 1.
 The definition loader `0x0049DD60` divides file speed `+0x338` by global
 ticks/second `0x006F2590`, narrowing to runtime word `+0x100`; a nonzero source
 that narrows to zero is raised to 1. It copies file word `+0x34A` to runtime
-`+0x102`, used by process 8's heading changes. The object turning getter behind
-vtable `+0x58` is not resolved by this investigation.
+`+0x102`, used by process 8's heading changes. The object's vtable
+`0x0066D654` slot `+0x58` contains `0x004B5C50`; its complete assembly
+writes the fixed turn rate `0x100` (2026-10-11).
 
 ## 3. Reaction and loose movement
 
@@ -74,17 +79,58 @@ eligibility and destruction paths, owner-state and world-region gates, and a
 four-neighbour search that checks matching owner and floor height. It avoids
 room tiles on the first three attempts, traps, doors and obstacle objects,
 then chooses each sub-tile coordinate as `0x555 + random(0x555)` and moves with
-resume process 10. Helpers `0x0049CE50` and `0x0049CEA0` and the meanings of
-the owner/region gates remain unresolved; their addresses identify the next
-reads, not established semantics.
+resume process 10. The helpers are now read (2026-10-11): `0x0049CE50` returns
+Chicken `+0x14A` or zero; `0x0049CEA0` returns Chicken `+0x152`, otherwise
+`+0x14E`. The owner's `+0x132` is the stamped killer. The region `+0x1A9` gate
+remains unnamed after a complete process-10 read; see Q584. Loose roaming is unbuilt.
 
 ## 4. Implementation boundary
 
-Roaming is unbuilt. The existing position header can carry sub-tile coordinates,
-but a faithful owned-room loop also needs persistent heading, process age,
-reaction/countdown state, destination, velocity, resume state, movement flags
-and movement count. Per-tick stepping must update tile occupancy when crossing
-a tile boundary. The mask bounds, turn getter and avoidance path must be
-represented; an arbitrary wander interval or teleport does not mirror this
-loop. Full loose movement additionally needs the unresolved process-10 gates.
-The egg placement fix in [hatchery.md](hatchery.md#3-where-an-egg-appears) is independent.
+The owned Hatchery loop is built in `ChickenMovementRules` and stepped every
+tick, newest first, by `ChickenMovementSystem` (ADR-0434). The shared class-list
+order is established in `imp-task-stealing.md` §8. Heading, age, reaction countdown,
+destination, velocity, resume process, flags and count are hashed and saved;
+crossing a tile updates its occupancy link. Hatching on an owned Hatchery starts
+process 6, matching `0x004A1CF0`'s owned-room branch. Egg animation timing stays
+the existing two-second approximation. Object initialization retains Chicken
+`+0x14A = 1`; full loose process 10 and Prison process 3 remain unbuilt.
+
+Hand drop selects falling process 1 (`0x004BC710`). On landing without a
+recipient, `0x0049EF90` selects the room's nonzero field-21 handler
+(`0x004E6CD0`), without an owner check: Hatchery 6, Prison 3, Temple 4,
+Treasury/Heart 5 and either Portal 52; otherwise a Chicken selects 10.
+Each selection resets age. Our collapsed-height Hand landing does this
+immediately, preventing a previously moving bird from resuming its old target.
+Process 6 performs its separate owned-Hatchery check on its next tick.
+Production worker carry accepts books, specials and crates, so chickens cannot
+reach its put-down route. Recipient feeding removes the Chicken instead.
+
+Avoidance scans the eight compass neighbours, then the current tile, taking
+the newest linked creature on each tile. The original rejects workers and
+creatures above their ground-height word, then attempts a half-tile escape
+with doubled speed and resume 8. Our absent ground-height word is approximated
+by supported flight and `PosZ <= 0x1000`; complete vertical physics remains
+unbuilt. Audio's global footstep alternation, randomized object scale and the
+Chicken KMF walk/peck/scared playback remain presentation work.
+
+## 5. Persistent room membership — confirmed
+
+Process 6 first tries `0x004E5FF0` when object room word `+0x138` is zero.
+Admission consumes the definition's capacity; failure does not prevent roaming.
+Successful admission calls `0x004C0010`, which clears Chicken eligibility
+`+0x14A` through `0x0049CE30` and decrements the owner's nonzero counter
+`+0x1C1`. Therefore registered birds cannot take the creature-escape path.
+`0x004E6130` clears membership and gives capacity back; `0x004BFFD0` restores
+eligibility and increments that counter. Normal movement retains membership.
+Hand lift detaches a room object (`0x004C0CB0`), and removal releases it.
+Room teardown (`0x004E39C0`) detaches ordinary room objects without deleting them.
+Conditional decay in `0x0049BD20` tests membership zero, not physical room tiles.
+
+Our saved/hashed Hatchery anchor identifies the current derived room containing
+that tile. Northwest growth retains membership; an invalidated or differently
+owned anchor releases it. Capacity counting follows the saved membership even
+outside the room. This is bounded by the existing derived-room model: a sale,
+split, absorbed-room merge or capture can recreate original room identities
+while a still-valid anchor survives here. Full identity teardown/adoption and
+the free-range census/decay remain unbuilt. Existing laying capacity continues
+counting eggs as reservations; the original room list counts only chickens.

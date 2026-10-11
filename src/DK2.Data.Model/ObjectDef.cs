@@ -117,6 +117,9 @@ public sealed record ObjectDef
     public required Fp32 Mass { get; init; }
     public required Fp32 Speed { get; init; }
 
+    /// <summary>File word 0x34A; process 8 adds or subtracts it from a Chicken's heading.</summary>
+    public ushort ReactionTurn { get; init; }
+
     /// <summary>String table ids, for a renderer rather than a rule.</summary>
     public required ushort NameStringId { get; init; }
     public required ushort TooltipStringId { get; init; }

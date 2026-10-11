@@ -24,7 +24,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Rewriting a file through `utf-8-sig` in and `utf-8` out drops its BOM; keep the BOM and the
   line endings you found (most docs and sources here are CRLF with a BOM).
 - After a merge, autocrlf leaves CRLF working copies: a patch matching `"\n"`-joined text finds
-  nothing. Normalise to `\n` before matching and restore the endings on write.
+  nothing, and PowerShell multiline `$` anchors need `\r?$`. Normalise to `\n` before matching and restore the endings on write.
 - A file restored with `mv` keeps its old mtime, and the next build may skip it.
 - Git Bash `sed -i` rewrites a CRLF file as LF, and `grep -c $'\r$'` there is no CRLF check (it reported 0 on a CRLF file): count `\r\n` bytes instead.
 - `apply_patch` rejects a delete and add of the same path in one patch; use an update or separate patches.

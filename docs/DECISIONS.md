@@ -9925,3 +9925,26 @@ All 60 Level 1–3 replays remain valid; wins change from 16/5/19 to 19/8/17
 (modern regression results, not original parity). The owner's Level8 view remains
 to compare. Grounded liquid
 height is a separate presentation approximation; see room-floors-and-liquids.md.
+
+## ADR-0434 — Run the owned Hatchery chicken movement loop
+**Date:** 2026-10-11 · **Status:** accepted · Research: hatchery-roaming.md
+
+**Context.** Hatchery chickens retained their egg coordinates indefinitely.
+DK2's object processes 6, 9 and 8 select a room point, turn and walk to it,
+then react for a countdown before selecting another point.
+
+**Decision.** Step that loop each object tick, preserving cardinal search,
+mask-bounded random points, signed velocity, movement-count arithmetic,
+turn-before-movement and grounded-creature escape. Save and hash the process
+age, heading, reaction state and movement block. Read the reaction heading
+word from the object definition. Hand landing reselects the room handler and
+resets process age within the existing collapsed fall. Hash/save version 224.
+Retain Hatchery capacity through a saved room anchor; registration disables
+escape, and successful hand lift releases membership.
+
+**Consequences.** Roaming consumes the simulation stream and can change later
+choices. The absent ground-height word uses the documented supported-flight
+approximation. Free-range process 10 and Prison process 3 remain unbuilt (Q584);
+Chicken animation, footstep audio and original timing comparisons remain open.
+All 60 Level 1–3 replays remain valid; wins change from 19/8/17 to 19/5/17
+(modern regression results, not original parity).

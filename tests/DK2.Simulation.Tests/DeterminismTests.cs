@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 223: hero followers retain same-tile destinations (ADR-0433).
+        // HashVersion 224: chicken object movement and reaction state (ADR-0434).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x4A7D0294815B3F49UL, sim.StateHash());
+        Assert.Equal(0x236F0479C5BE1A9EUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

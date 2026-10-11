@@ -1020,7 +1020,15 @@ public sealed class WorldState
             OwnerPlayerId = ownerPlayerId.Value,
             TileIndex = tileIndex,
             Health = database.ObjectById(objectTypeId)!.Hp,
+            ChickenCanEscape = objectTypeId == HatcheryRules.ChickenObjectId,
+            ProcessState = objectTypeId == HatcheryRules.ChickenObjectId ? database.ObjectById(objectTypeId)!.StartState : (byte)0,
         };
+
+        if (objectTypeId is HatcheryRules.ChickenObjectId or HatcheryRules.EggObjectId)
+        {
+            instance.PosX = CreatureState.CentreOf(tileIndex % Width);
+            instance.PosY = CreatureState.CentreOf(tileIndex / Width);
+        }
 
         _objects.Add(instance);
         instance.LinkWorld = this;

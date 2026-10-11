@@ -171,6 +171,7 @@ public sealed partial class WorldView
                     break;
                 case ChickenId:
                     if (thing.PosX != 0 || thing.PosY != 0) (posX, posY) = (thing.PosX, thing.PosY);
+                    heading = thing.Heading;
                     // Object_Init draws 0x1000 + random(0x800); ours has no draw to keep, so the id stands in.
                     scale = One + Spread(thing.Id, 0x800);
                     break;

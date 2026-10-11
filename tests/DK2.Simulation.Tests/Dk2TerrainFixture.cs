@@ -595,6 +595,7 @@ internal static class Dk2TerrainFixture
             Height = new Fp32(128),
             Mass = new Fp32(8192),
             Speed = new Fp32(1024),
+            ReactionTurn = 256,
             NameStringId = 2547,
             TooltipStringId = 2677,
         },

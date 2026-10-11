@@ -40,6 +40,7 @@ public class SimulationSystemsOrderTests
             "DoorHealthSystem",
             "ShotSystem",
             "BoulderSystem",
+            "ChickenMovementSystem",
             "TrapSystem",
             "TrapRemovalSystem",
             "DoorRemovalSystem",

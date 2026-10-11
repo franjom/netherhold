@@ -74,13 +74,13 @@ public class Level10KeeperScenarioTests(ITestOutputHelper output)
 public class Level11AKeeperScenarioTests(ITestOutputHelper output)
 {
     [InstallFact]
-    public void Level11ADrakoBridgesTheLavaWithStoneThenCallsItsArmyToMorganasHeart_OnSeed2sDrawnDiagonal()
+    public void Level11ADrakoBridgesTheLavaWithStoneThenCallsItsArmyToMorganasHeart_OnSeed4sDrawnDiagonal()
     {
         Scenario scenario = ScenarioCorpus.Load("keepers/level11a_drako_attack.yaml");
         ScenarioResult run = ScenarioCorpus.Run(scenario, output);
 
         // The planner picks Morgana (player 6) among four enemies and tags the corridor's first rock
-        // north of the Lair; the lava two tiles on takes two Stone Bridge tiles, one a tick, each
+        // north of the Lair; the lava two tiles on takes two Stone Bridge tiles, each
         // touching Drako's own floor (0x004FDC50, 0x0044F630, ADR-0304); the tunnel goes on, and the
         // front casts the call two tiles off Morgana's heart. Lava never takes the Wooden Bridge.
         Assert.Empty(run.ExpectationFailures);
@@ -93,12 +93,12 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         List<(int Tick, BuildRoomCommand Build)> spans = run.KeeperCommandLog
             .Where(e => e.Command is BuildRoomCommand b && b.PlayerId.Value == 5 && BridgeRules.IsBridge(ScenarioCorpus.Database.Room(b.RoomId)))
             .Select(e => (e.InputTick, (BuildRoomCommand)e.Command)).ToList();
-        Assert.Equal([(60, new TilePos(64, 40)), (61, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
+        Assert.Equal([(62, new TilePos(64, 40)), (64, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
         Assert.All(spans, s => Assert.Equal(RoomTypeId.StoneBridge, s.Build.RoomId));
 
         KeeperCommandEmission callEmission = Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5);
         var call = (CastSpellAtPlaceCommand)callEmission.Command;
-        Assert.Equal(196, callEmission.InputTick);
+        Assert.Equal(271, callEmission.InputTick);
         // Two tiles off Morgana's heart; the seed-specific fixture is explained in the scenario.
         // The front's direction is seed-dependent (Q574, ADR-0407).
         Assert.Equal(((byte)CallToArmsRules.SpellId, 64, 34), (call.SpellId, call.X >> 12, call.Y >> 12));
