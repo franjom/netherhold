@@ -14,6 +14,20 @@ namespace DK2.Presentation.Tests;
 /// <summary>The wall torch rule <c>0x00439B90</c> on the shipped Level 1 (wall-torches.md, ADR-0391).</summary>
 public class TorchLayoutTests
 {
+    [Theory]
+    [InlineData(1536, 2048, 3584, 2048, 4095)]
+    [InlineData(0, 512, 2048, 0, 2048)]
+    [InlineData(512, 2048, 512, 2048, 0)]
+    [InlineData(1024, 3584, 2048, 4095, 2048)]
+    public void MeshMountReachesWallWhileLightStaysOffIt(int yaw, int lightX, int lightY, int meshX, int meshY)
+    {
+        var torch = new TorchView(0, default, lightX, lightY, 6144, yaw, 300, 200, 100, 180, 6144, default);
+        Assert.Equal(meshX, torch.MeshPosX);
+        Assert.Equal(meshY, torch.MeshPosY);
+        Assert.Equal(lightX, torch.PosX);
+        Assert.Equal(lightY, torch.PosY);
+    }
+
     private static readonly int[] Dx = [0, 1, 0, -1];
     private static readonly int[] Dy = [-1, 0, 1, 0];
 

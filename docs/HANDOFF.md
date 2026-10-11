@@ -84,6 +84,8 @@ Presentation includes object tilts/turning, Torture wheels and attached victim p
 the corrected Prison door mesh facing, KMF transparency, Hero Gate floors and 3x1 wall
 faces, ruined Heart floors, and placed doors/traps with settled door poses (ADR-0421),
 locked-door chains (ADR-0426) and depth-sorted translucent portal pillars (ADR-0427).
+Torch meshes now receive their wall-mount offset separately from the light;
+owner visual check pending (2026-10-11), see wall-torches.md §4.
 Evidence: object-drawing.md, furniture-placement.md, kmf-materials.md,
 structure-drawing.md and room-floors-and-liquids.md. Remaining owner checks: screenshot alignment, tag-drag tools and
 corners (tag-highlight.md §4, HYPOTHESIS), blue overlay and pillar height.

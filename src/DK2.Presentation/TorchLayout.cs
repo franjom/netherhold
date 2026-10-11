@@ -45,6 +45,11 @@ public readonly struct TorchView : IEquatable<TorchView>
 
     public int PosY { get; }
 
+    /// <summary>The light's RenderInfo offset mounts its mesh on the wall (wall-torches.md §4).</summary>
+    public int MeshPosX => PosX + (Yaw == 0 ? -512 : Yaw == 1024 ? 511 : 0);
+
+    public int MeshPosY => PosY + (Yaw == 512 ? -512 : Yaw == 1536 ? 511 : 0);
+
     /// <summary>Height above the floor, in <see cref="Fp32"/> tile units.</summary>
     public int Height { get; }
 

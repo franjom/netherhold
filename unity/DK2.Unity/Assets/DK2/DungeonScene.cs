@@ -305,19 +305,19 @@ namespace DK2.Unity
         public void CreateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh)
         {
             // Unity's fake null makes ?? unsafe on its objects, hence the explicit tests.
-            GameObject go = _classic?.TryCreate(mesh, $"torch {floorTileIndex}", _root);
-            if (go == null)
-            {
-                go = Instantiate(mesh, $"torch {floorTileIndex}");
-                if (go == null) go = new GameObject($"torch {floorTileIndex}");
-                else go.transform.localScale = new Vector3(0.1f, 0.25f, 0.1f); // a placeholder cube is a whole tile
-            }
+            GameObject go = new GameObject($"torch {floorTileIndex}");
             go.transform.SetParent(_root, false);
-            go.transform.localPosition = Ground(
-                torch.PosX / (float)Fp32.One, torch.PosY / (float)Fp32.One, torch.Height / (float)Fp32.One);
-            // Unverified in either frame: the sign and zero of DK2's yaw are unread (ADR-0411,
-            // plan step 2), so this keeps the formula it had before the frame changed.
-            go.transform.localRotation = Quaternion.Euler(0f, torch.Yaw * 360f / 2048f, 0f);
+            GameObject model = _classic?.TryCreate(mesh, "torch mesh", go.transform);
+            if (model == null)
+            {
+                model = Instantiate(mesh, "torch mesh");
+                if (model != null) model.transform.localScale = new Vector3(0.1f, 0.25f, 0.1f); // a placeholder cube is a whole tile
+            }
+            if (model != null)
+            {
+                model.transform.SetParent(go.transform, false);
+            }
+            ApplyTorchPose(go, torch);
             Light light = go.AddComponent<Light>();
             light.type = LightType.Point;
             ApplyTorchLight(light, torch);
@@ -332,6 +332,7 @@ namespace DK2.Unity
                 return;
             }
 
+            ApplyTorchPose(go, torch);
             Light light = go.GetComponent<Light>();
             if (light != null) ApplyTorchLight(light, torch);
         }
@@ -342,6 +343,19 @@ namespace DK2.Unity
                 Object.Destroy(go);
 
             _torches.Remove(floorTileIndex);
+        }
+
+        private static void ApplyTorchPose(GameObject go, in TorchView torch)
+        {
+            go.transform.localPosition = Ground(
+                torch.PosX / (float)Fp32.One, torch.PosY / (float)Fp32.One, torch.Height / (float)Fp32.One);
+            if (go.transform.childCount == 0) return;
+            Transform model = go.transform.GetChild(0);
+            model.localPosition = Ground(
+                (torch.MeshPosX - torch.PosX) / (float)Fp32.One,
+                (torch.MeshPosY - torch.PosY) / (float)Fp32.One);
+            // Type-5 light meshes use yaw without the ordinary object's half-turn (wall-torches.md §4).
+            model.localRotation = Quaternion.Euler(0f, torch.Yaw * 360f / 2048f, 0f);
         }
 
         private static void ApplyTorchLight(Light light, in TorchView torch)

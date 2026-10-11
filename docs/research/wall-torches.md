@@ -137,9 +137,19 @@ sits at `F·4096 + (fx, fy)`, from table `0x0066CBF0`:
 | S | (0x800, 0x200) | 512 | (0, −512, 0) |
 | W | (0xE00, 0x800) | 1024 | (+511, 0, 0) |
 
-The torch is centred along the shared edge, 512 (1/8 tile) out from the wall
+The **light** is centred along the shared edge, 512 (1/8 tile) out from the wall
 face, at the torch height. Yaw is `((d + 127) << 9) & 0x7FF`, stored at
 `+0xE2`. The facing vector points from the torch into the wall.
+
+**Mesh mount: CONFIRMED (binary recheck, 2026-10-11).** `0x00439B90` writes that
+vector to light `+0x77/+0x79/+0x7B`, the RenderInfo position offsets. The light
+drawer `0x00599960` keeps its illumination at `+0xD6/+0xDA/+0xDE`, then passes
+the RenderInfo at `+0x26` to `0x0059BB80`. That helper adds signed offsets
+`+0x51/+0x53/+0x55` before drawing the mesh. Its type-5 branch rotates by
+`-yaw * pi / 1024`, without the ordinary mesh's half-turn; under our frame,
+Unity yaw is positive. Thus the mesh anchor lies on the wall, while the light
+stays off it. The classic adapter now separates these positions. Previously it
+drew the mesh at the light, leaving a visible 1/8-tile gap.
 
 ### Shipped room values (CONFIRMED, `Rooms.kwd`)
 
