@@ -140,6 +140,13 @@ Imp casualty/timing parity remains open (Q582, combat-acquisition.md §1);
 await the owner's Unity observations before further investigation (2026-10-11).
 non-creature threat flight remains unbuilt (combat-fear.md §7).
 Live Heart core crossings are guarded, including arrival/escape (ADR-0439); owner visual acceptance remains pending (Q585, 2026-10-11).
+Heart combat targets resolve the three Arch Pillars, including pending strikes and shots
+(combat-acquisition.md §9); hash/save228. Level7 defender timing still needs the
+matched original comparison in Q586 (combat-alarm.md §7). The full Release suite
+passes 4890 tests without skips; Unity assemblies are synced and its adapter compiles.
+All 60 Level 1–3 replays validate on 228; bounded-run wins are 18/5/16 versus 19/6/15
+on 227. These are modern regressions, not original parity. Artifacts:
+D:/DungeonKeeperRemake/build/classic-step3-replays/heart-defence-final.
 Owned Hatchery chickens select points, turn, walk and react (ADR-0434);
 free-range and Prison loops remain unbuilt (Q584). Chicken footstep audio
 remains unbuilt; see hatchery-roaming.md.

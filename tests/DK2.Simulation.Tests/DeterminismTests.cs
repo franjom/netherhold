@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 227: route around live Hearts, reopen ruins (ADR-0439).
+        // HashVersion 228: target the Heart builder's three Arch Pillars.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xCBBDEF9956A975B1UL, sim.StateHash());
+        Assert.Equal(0x315162363F8047CAUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

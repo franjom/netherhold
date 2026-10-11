@@ -172,7 +172,7 @@ public sealed class CombatSystem : ISimulationSystem
             return;
         }
 
-        if (!FightRules.TargetIsValid(world, creature))
+        if (!FightRules.TargetIsValid(world, context.Database, creature))
         {
             // A forced target that fails is let go with the fight, the leave hook dropping it: no
             // other is sought (§4).
@@ -199,7 +199,7 @@ public sealed class CombatSystem : ISimulationSystem
         if (definition.FightStyle == FightStyle.Support && !FightRules.Reacquire(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
             return;
 
-        if (!FightRules.TargetPosition(world, creature, out int x, out int y, out TilePos targetTile)) return;
+        if (!FightRules.TargetPosition(world, context.Database, creature, out int x, out int y, out TilePos targetTile)) return;
         if (FightRules.InRange(_sight!, creature, x, y))
         {
             creature.StopMoving();
@@ -236,7 +236,7 @@ public sealed class CombatSystem : ISimulationSystem
             }
             if (!CombatRules.IsFighting(creature)) return;
             if (creature.FightTargetId != previous) creature.StopMoving();
-            if (!FightRules.TargetPosition(world, creature, out x, out y, out targetTile)) return;
+            if (!FightRules.TargetPosition(world, context.Database, creature, out x, out y, out targetTile)) return;
         }
 
         // State 8 (combat-approach-and-victory.md §1): the walk, with its own handler from next tick.

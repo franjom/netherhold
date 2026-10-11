@@ -231,16 +231,15 @@ public static class ShotRules
     /// pillar by the overlap box (§4a), which is not built for them (Q363, Q398).</summary>
     private const int StandInReach = 0x400;
 
-    /// <summary>A shot aimed at a heart reaches it within its radius and a quarter tile of the
-    /// heart tile it was sent at (Q363's stand-in for the Arch Pillar it would strike).</summary>
-    public static bool HitsHeart(WorldState world, ShotState shot, ShotDef definition)
+    /// <summary>A shot aimed at a Heart reaches its pillar within its radius and the stand-in
+    /// quarter tile. The original object's overlap box remains unbuilt (Q363).</summary>
+    public static bool HitsHeart(WorldState world, GameDatabase database, ShotState shot, ShotDef definition)
     {
         if (shot.TargetKind != FightTargetKind.Heart || shot.TargetTileIndex < 0) return false;
-        ref PlayerState owner = ref world.Player(shot.TargetPlayerId);
-        if (owner.HeartHealth <= 0 || owner.HeartRuined) return false;
+        if (!HeartPillarRules.TryResolve(world, database, shot.TargetPlayerId, new HeartPillarId(shot.TargetId), out HeartPillarTarget pillar)
+            || shot.TargetTileIndex != pillar.Tile.Y * world.Width + pillar.Tile.X) return false;
         int reach = CombatRules.ReachSquared(definition.Radius + StandInReach);
-        return CombatRules.DistanceSquared(shot.PosX, shot.PosY,
-            CombatTargetRules.TileCentreX(world, shot.TargetTileIndex), CombatTargetRules.TileCentreY(world, shot.TargetTileIndex)) < reach;
+        return CombatRules.DistanceSquared(shot.PosX, shot.PosY, pillar.X.Raw, pillar.Y.Raw) < reach;
     }
 
     /// <summary>A shot aimed at a door reaches it as one at a heart does: within its radius and a

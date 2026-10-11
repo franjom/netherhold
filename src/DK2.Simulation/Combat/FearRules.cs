@@ -285,7 +285,7 @@ public static class FearRules
         }
         me.BackOffTimer--;
 
-        if (me.FightTargetKind != FightTargetKind.None && !FightRules.TargetIsValid(world, me)) ClearTarget(world, me);
+        if (me.FightTargetKind != FightTargetKind.None && !FightRules.TargetIsValid(world, context.Database, me)) ClearTarget(world, me);
 
         if (ShouldWithdraw(world, database, hearts, me, mine) && tick != me.CombatStateEnteredTick
             && Withdraw(context, sight, hearts, rooms, me, mine, scratch))
@@ -322,7 +322,7 @@ public static class FearRules
             target = nearest;
         }
 
-        if (!FightRules.TargetPosition(world, me, out int tx, out int ty, out _)) return;
+        if (!FightRules.TargetPosition(world, context.Database, me, out int tx, out int ty, out _)) return;
         int d = CombatRules.DistanceSquared(me.PosX, me.PosY, tx, ty);
         int range = MinimumStandOffSquared;
         if (target != null && CombatRules.InCombat(target)) range = Math.Max(range, target.AttackRangeSquared);

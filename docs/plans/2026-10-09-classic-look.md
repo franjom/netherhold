@@ -165,6 +165,13 @@ Gate: the owner, at the same spot in both games, cannot tell which camera is whi
 The HUD and panel, the Hand of Evil's cursor, spell and trap effects, sound, and the modern look
 (M11), which ADR-0408 puts on the same pipeline and which is judged against this one.
 
+Deferred beyond Step 4's creature playback scope (owner observations, 2026-10-11):
+
+- Room construction visual effects for single-tile placement and drag-release builds
+  are absent. Research the original effect selection, placement and timing before adding playback.
+- Prison rat spawning and wandering are absent. The shipped Rat is object 11
+  (objects.md); its original spawn and movement rules need binary research.
+
 ## Open
 
 - Q71 (water and lava beds, the renderer's use of the piece lists), Q442, Q443.

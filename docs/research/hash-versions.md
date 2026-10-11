@@ -15,6 +15,10 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**228** — `0x315162363F8047CA`. Heart combat targets resolve the three Arch
+Pillars at their builder positions instead of the outer room ring;
+acquisition, approach, melee and shots use the same point (combat-acquisition.md §9).
+
 **227** — `0xCBBDEF9956A975B1`. Live Heart cores reject movement segments and
 route targets resolve to their edge; ruins release the structure mask and obstacles. ADR-0439.
 
@@ -389,10 +393,4 @@ itself, which DK2 stores rather than recomputing and which this now stores for
 the same reason — anger reaches a creature from four places and three of them
 run before the anger system in the same tick.
 
-**32** — `0x30722F6054924CC5`. The anger split (ADR-0081): one int becomes six.
-DK2 keeps a creature's anger in an `int[6]` indexed by grievance and bands the
-**largest** of them; this simulation kept one pooled counter. Two half-grievances
-no longer add up to desertion, and a kindness in one bucket no longer pays off a
-grievance in another.
-
-[Versions 9–31](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–32](hash-versions-early.md) retain the earlier pins and their reasons.

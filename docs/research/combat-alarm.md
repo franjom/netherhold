@@ -284,6 +284,19 @@ so every heart takes Morgana's phase (1100); the ruin gate reads the player's he
 room's `+0x9A`; the torturee's kick and `+0x2CC` are not modelled; the job is let go as the
 alarm's responders' is (ours; DK2's `0x00471890` is not read for it).
 
+### Level7 owner report (2026-10-11)
+
+The modern seed-1 idle probe first hit player 3's Heart at tick1096 from
+(5.77,12.44), outside the four-tile radius around room position (6.5,16.5);
+the first rally was1131. Combat targeted a phantom outer-ring tile rather
+than an Arch Pillar. Exact pillar targets now use furniture-placement.md §6.
+The final228 run first rallies at495, before the first hit at519 from
+(7.12,15.13), inside the radius. At519 the working Imps are outside the
+seven-tile gathering radius. Both tested
+working states interrupt when an eligible enemy enters the radius
+(`HeartDefenceTests`). These are modern measurements, not original timing
+parity; the owner's differing rally behavior remains open in Q586.
+
 ## Confidence
 
 **CONFIRMED (binary):** §1's order, the Good-owner filter, the hero path's three

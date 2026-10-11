@@ -773,9 +773,8 @@ public sealed class CreatureState
     /// application when working.</summary>
     public int TimerTicks;
 
-    /// <summary>The creature this one is engaged with, or 0 — DK2's <c>creature+0x502</c>, the
-    /// engagement's target, written by <c>SelectAVictim</c> and copied into the swing when an
-    /// attack begins (docs/research/combat-acquisition.md §7).</summary>
+    /// <summary>The engagement's typed target: creature/door/trap id, or encoded HeartPillarId
+    /// for a Heart. Copied into the swing when an attack begins (combat-acquisition.md §7).</summary>
     public int FightTargetId;
 
     /// <summary>How the engagement attacks — the low nibble of <c>creature+0x529</c>: 0 spell at a
@@ -800,8 +799,8 @@ public sealed class CreatureState
     /// (<see cref="Combat.FightTargetKind"/>): a creature, or an enemy dungeon heart.</summary>
     public Combat.FightTargetKind FightTargetKind;
 
-    /// <summary>For a heart target, the heart's owner and the heart tile stood in for its pillar
-    /// (Q363); -1 and 0 otherwise.</summary>
+    /// <summary>For a Heart target, its owner and pillar tile. FightTargetId identifies the
+    /// encoded HeartPillarId; -1 and 0 otherwise.</summary>
     public byte FightTargetPlayerId;
     public int FightTargetTileIndex = -1;
 

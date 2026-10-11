@@ -277,7 +277,11 @@ discount, `IsAttackable`, sight and reach, the route check, the final gate, the
 commit, registration, `AttackRangeSquared`, the fight-starter's event 6, and
 `CreatureActivity.Fighting` for state 199; the spell survey and scan F
 (ADR-0167, ADR-0170); scan D and the fight against a trap (ADR-0340); **scan E**,
-with the heart's ring tile standing in for its Arch Pillar (Q363).
+with three virtual Arch Pillars at the builder's exact sub-tile positions
+(furniture-placement.md §6). Virtual Heart target ids encode slab and pillar
+ordinal, so acquisition, approach, pending impacts and shot aim
+resolve the same point. Equal-distance pillars follow the newest-first order
+in furniture-placement.md §6. Virtual ids stand in for original object handles.
 `LineOfSight` reproduces §5's walk; `CombatTargetRules.CanReach` §5's route sum.
 What a fighting creature then does is combat-fight-state.md.
 
@@ -288,7 +292,7 @@ check is built since ADR-0165 (combat-fear.md §3.4).
 ## 10. What is left
 
 Q360 sleeping and lair-walk creatures unattackable (owner); Q361 the Call to
-Arms radius; Q363's leftover, the pillars' placement; Q364
+Arms radius; Q364
 `0x0045EDA0`, `+0x16 == 2`, `vtable+0x2C`; Q365 the spell survey; Q366 creature
 trigger event 6.
 
