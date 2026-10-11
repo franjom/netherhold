@@ -119,6 +119,10 @@ their activity remains Imprisoned (2026-10-11). State 116 retains its route whil
 holding the prisoner state; see prison.md §6. The ordinary movement selection
 in `0x0048BE50` uses velocity and movement mode, not our activity label.
 Standing prisoners and their action flourishes remain outside this mapping.
+Travel states 6/7 also play movement when their resumed job labels the activity
+AtWork or PitFighting. This covers Level8's waiting Hatchery Guard, hero waypoint
+roaming, Guard Post patrol and Combat Pit approach; standing job actions remain
+outside this addition.
 
 ## 6. Movement rates — CONFIRMED (binary, 2026-10-11)
 

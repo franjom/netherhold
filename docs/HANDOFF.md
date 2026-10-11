@@ -120,8 +120,8 @@ The owner animation comparison gate and Unity crowd upload profiling are outstan
 ADR-0433 restores followers' sub-tile walks around stationary leaders; grounded
 liquid height uses the presentation approximation in room-floors-and-liquids.md.
 Hash/save version is 223. Owner Level8 portal comparison pending (2026-10-11).
-Prisoners with active routes now play movement clips; see kmf-animation-playback.md §5.
-The prisoner playback follow-up passes 157 presentation tests and the Unity compile.
+Prisoner routes and room-job travel now play movement clips; see kmf-animation-playback.md §5.
+The job playback follow-up passes 162 presentation tests and the Unity compile.
 Last full-suite verification: 4737 tests pass, including the three comparison tests after
 restoring local ignored captures; Unity assemblies synced, adapter compile and review pass.
 Level 1–3 replay results are recorded in ADR-0432 and ADR-0433; artifacts are

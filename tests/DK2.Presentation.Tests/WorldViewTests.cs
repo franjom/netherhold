@@ -324,6 +324,28 @@ public class WorldViewTests
         Assert.Equal(walking ? new Fp32(4096) : (Fp32?)null, rendered.AnimationMovementSpeed);
     }
 
+    [InstallTheory]
+    [InlineData(HeroJobRules.WaitingState, true)]
+    [InlineData(HeroJobRules.WaitingState, false)]
+    [InlineData(HeroJobRules.RoamingState, true)]
+    [InlineData(GuardRules.PatrolState, true)]
+    [InlineData(CombatPitRules.WaitingState, true)]
+    public void AJobLabelDoesNotHideItsTravelAnimation(int resumeState, bool walking)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState guard = world.SpawnCreature(database, database.CreatureByName("Guard")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        guard.Dk2StateId = walking ? 6 : resumeState;
+        guard.UtilityNewState = resumeState;
+        guard.Body.PathTotalCount = walking ? (byte)1 : (byte)0;
+        guard.Body.PathFinished = !walking;
+        guard.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == guard.Id);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.Equal(walking ? "creature.guard.animation.moving_to_job" : "creature.guard.animation.idle", rendered.Animation.Key);
+        Assert.Equal(walking ? new Fp32(4096) : (Fp32?)null, rendered.AnimationMovementSpeed);
+    }
+
     [InstallFact]
     public void TheAfterMealActionPlaysEatingInsteadOfTheFoodSearchWalk()
     {

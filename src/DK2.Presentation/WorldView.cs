@@ -1162,7 +1162,8 @@ public sealed partial class WorldView
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         string clip = ActivityKeySegment(creature.Activity);
         if (creature.Dk2StateId == EatingRules.AfterMealState) clip = "eating";
-        else if (creature.Activity == CreatureActivity.Imprisoned && IsTravelAnimation(creature))
+        else if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.AtWork or CreatureActivity.PitFighting
+            && IsTravelAnimation(creature))
             clip = creature.Running ? "running" : "moving_to_job";
         else if (creature.Activity == CreatureActivity.Working
             && definition.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase))
@@ -1193,6 +1194,8 @@ public sealed partial class WorldView
 
     private static bool IsTravelAnimation(CreatureState creature) => creature.Activity switch
     {
+        CreatureActivity.AtWork or CreatureActivity.PitFighting => creature.HasRoute
+            && creature.Dk2StateId is 6 or 7,
         CreatureActivity.MovingToJob or CreatureActivity.DeliveringGold or CreatureActivity.GoingToSleep
             or CreatureActivity.Leaving or CreatureActivity.FetchingGold or CreatureActivity.SeekingLair
             or CreatureActivity.FetchingBody or CreatureActivity.CarryingBody or CreatureActivity.FetchingObject
