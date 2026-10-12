@@ -70,7 +70,9 @@ and ours at 6413 in set D (6488 in set E seed 1; seeds 5 and 14 never). (12,18) 
 not a dig; the rejection may only say that ours does not take a claim tag there, and is
 a weak lead. Special 124, Receive Imps, gave DK2 ten level-5 Imps at turn 5783 (DK2 slots
 408–414, 419, 444, 445); since set E ours makes them on the same ten tiles (ADR-0441), in state 10 where DK2's
-are in 11 on that tick, as for Create Imp.
+are in 11 on that tick, as for Create Imp. DK2's ten all go 11, 10, 12 (`ImpStates.Resting`), 87
+(`Wandering`) and walk at 5787, four turns, the second's wait the owner sees; nine of ours find a task
+in 10 and walk at 5784–5786, one to three turns early.
 Special 118, Reveal Map, is unbuilt; it changes only the activator's view.
 
 ## What to compare next
