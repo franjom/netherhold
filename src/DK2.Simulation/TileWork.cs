@@ -555,7 +555,8 @@ public static class TileWorkRules
     /// 60 a time, 273 a swing; summed from running totals (<see cref="ExtractedBy"/>).</item>
     /// <item>A gem face is infinite — impenetrable, destroyed type itself — so it
     /// collapses, reappears at full health and yields <c>GoldMinedFromGems</c> (25)
-    /// each cycle. Endless but slow.</item></list>
+    /// each cycle. Endless but slow. DK2's mine action instead pays 25 every strike
+    /// and never damages the face (Q587).</item></list>
     /// </summary>
     private static int GoldFor(
         GameDatabase database,
