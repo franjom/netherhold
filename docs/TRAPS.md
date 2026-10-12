@@ -75,6 +75,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
   the branch side by side before writing numbers into an ADR.
 - Never `git add -A`: another session may be editing; stage named paths.
 - `kb_upsert` (the dk2kb MCP) writes the main tree, not your worktree.
+- `kb_upsert` replaces a record's whole body and can drop its UTF-8 BOM: an agent that thinks a record is new
+  overwrites an existing one (005956E0, 2026-10-12). Diff `name:` lines and first bytes against HEAD before committing.
 - A branch can hold uncommitted work (an agent that ran out of tokens): check `git status` in its
   worktree, not only `git log master..branch`, and run the gates on what it left.
 - At most two subagents at once: more hit the account's rate limit and die mid-work. Give each

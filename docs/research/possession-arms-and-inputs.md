@@ -56,8 +56,10 @@ object, shot and body all return 1 there (`0x00628BC0`). A possessed attacker
 lookup from def+0x11C; a shot or body gets none. The blow then passes the owner
 modifiers (+0x1090, +0x1091) into `Thing_ModifyHealth` (`0x004B2CE0`):
 - an Arch Pillar (94) forwards the change to its owner's Dungeon Heart (`0x004DA200`);
-- any other object refuses a negative change unless def+0xF4 bit 21 (Damageable),
-  so a Book Case is hurt only if its data sets that bit (UNREAD);
+- any other object refuses a negative change unless def+0xF4 bit 21 (Damageable).
+  Shipped Objects.kwd (flags at record 0x344, copied unchanged to def+0xF4 by
+  ObjectDef_Load `0x0049DD60` when its source +0x7C is nonzero) sets it only on
+  Chicken, Rat, Bat, Dungeon Heart and Boulder: a Book Case takes nothing;
 - every non-creature then takes +0x40 += delta, flat: a shot's Health (lifetime or
   hit count) and a body's rot timer (DeadBodyDiesAfterSeconds × 4) both shrink.
 
@@ -71,8 +73,7 @@ so the shot aims at the pillar's position plus the lead, and its damage reaches 
 heart through the forward above.
 
 UNREAD: what removes a shot whose Health a blow takes to ≤ 0; what the object
-updater does when state 18 returns 0; the Damageable bit of Book Case and Arch
-Pillar in the data.
+updater does when state 18 returns 0.
 
 ## 3. Dig and claim — CONFIRMED by listing
 
@@ -100,9 +101,28 @@ tile's corner (tx << 12, ty << 12, 0), not its centre. In order:
 `Tile_IsDiggableWall` (solid, not impenetrable, no owner test) → action 1; any other
 solid tile → effect 0x335 (presentation). +0x427 on a successful start.
 
-No reinforce arm, no wall claim, no task marked. Actions 1, 2, 4 and 6 are LIKELY dig,
-mine gold, claim path and convert enemy floor, from their other begin sites
-(`creature-action-table.md`); their handlers are UNREAD.
+No reinforce arm, no wall claim, no task marked.
+
+**The actions — CONFIRMED** (handlers read 2026-10-12). None reads a task or an imp
+job field: each takes its tile from the begin point (+0x38D/+0x391 >> 12) and works it
+through `Map_ApplyTileWork` (`0x004508D0`) with the creature's owner. Work rate is
++0x3AF + +0x3B3 (12.12); ×MRT multiplies the floored delta (SAR 12) by
+`Combat_MeleeRechargeTicks` (`0x00494EF0`) when possessed (+0x3E6 bit 7); XP is 20
+(`0x006F295E`) a strike. Runner mode 3 (`0x00496AA0`) calls the handler each poll
+until it returns 0, then holds for the animation; mode 0 ends on that poll.
+
+| action | handler | mode | strike |
+|---|---|---|---|
+| 1 dig | `0x00496E00` | 3 | Imp: own wall var 9, rock var 8, enemy wall var 10, × rate, ×MRT; XP to any digger. Non-imp: 6 × var 9 × rate, owner ignored, no ×MRT, only while global `0x0075AE93` = 0 (UNREAD; `0x0050C90D` reads it beside game modes 2/3) |
+| 2 mine | `0x004971D0` | 3 | var 7 × rate, ×MRT, XP. Gold old·G/H − new·G/H (G terrain +0x185, H +0x1AD) to player GoldMined +0x15A, then the purse up to MaxGoldHeld, the rest on the floor (`0x004510C0`). A gem face (terrain +0x17B bit 1) takes no damage and pays GoldMinedFromGems (25) every strike |
+| 4 claim | `0x004974C0` | 3 | ClaimTileHealth × rate, ×MRT, XP; returns 1 while the tile is claimable, so it strikes every poll until it converts; sound 0x10A or 0x10B |
+| 6 convert | `0x004977F0` | 0 | AttackTileHealth × rate, no XP, no ×MRT: one strike a press. When the floor falls, every trap and door on the creature's own tile (+0x1A, not the begin point) has its health zeroed (removal LIKELY) and `0x00455030` is notified |
+
+Action 5 (`0x00497670`) is claim state 20's convert (imps of any player); its ×MRT branch is reached only by a possessed imp. UNREAD:
+`0x0075AE93`, `0x004ECDB0` (run when a dug tile reaches 0), `0x00455030`, `0x004510C0`.
+Ours: `TileWorkSystem` already does the rate, XP, GoldMined and the purse-then-floor
+hand-off; ×MRT, the non-imp dig, claim's repeat strike, action 6's kind and its
+trap/door health zeroing are missing, and the gem rule differs for every miner (Q587).
 
 ## 4. Followers — CONFIRMED unless marked
 
@@ -160,9 +180,24 @@ its mood block, Needs_IsBusy counts the creature busy and it gains no need-anger
 spFighting's fear clears +0x482 before fleeing, so a follower that drops the follow
 can flee.
 
-UNREAD: action 37's search (`0x00516A20`); state 261 (`0x00461860`, LIKELY
-hypnotised, uses +0x482 without the possessed test, no entry found); 246's resume
-while the leader moves; `0x00420D10`/`0x004C8550` (UI, LIKELY).
+**Action 37** (`0x00516A20`, CONFIRMED) is a close recruit, not a recall. From the
+possessed creature P's own position and heading +0xF4: P's tile first (things other
+than P in the cone, class 0, P's owner, +0x482 = 0), else the 8 neighbours in the
+melee order from table `0x006BC370`, the cone tested once at each tile's centre; the
+nearest by (dx²>>12)+(dy²>>12) wins, strictly less. Below the cap it calls
+`0x00461980(packet word 0)` and increments +0x488 without testing the result. No
+sight test, no predicate first. No sender was found (immediate 0x25 scan; a computed
+id not excluded): `0x0040FDF0` sends only 0xE and 0x27, and 0x26 comes from `0x0040FFB0`.
+
+**State 261** (`0x00461860`, row `0x006DC22D`: group 8, category 29, text
+"hypnotised") follows +0x482 like 246 without the possessed test, walk/run switch or
+route option, re-routing every variable-19 ticks through `0x004D0F60`. No entry was
+found (scans for 0x105 and the handler's address; a computed id or a save not
+excluded); hypnosis uses 246.
+
++0x488 is read by trigger condition type 73 (`0x004C7B20` arm 23; a dead slot compares
+0), so action 37's overcount would reach a trigger. `0x00420D10` reads +0x482 only as a
+draw filter (UI). UNREAD: 246's resume while the leader moves; action 37's word 0.
 
 ## 5. Command inputs — CONFIRMED unless marked
 
@@ -220,7 +255,7 @@ spell gate. Simulation readers: the free-aim range (`0x00515364`: 0x3000 when sp
 Range +0x31 plus the bit is nonzero, else 0, which is unlimited) and shot +0x165
 (`0x004984D0`), which doubles contact damage (`0x004AC420`). So for a spell with Range
 0 sniper mode adds a 3-tile cap. The HUD `0x00420D10` reads it for presentation; the
-input routine `0x0040FDF0` reads it and LIKELY sends action 39.
+input routine `0x0040FDF0` sends action 39 with the inverted bit (CONFIRMED).
 
 **Shot range.** `Shot_Update` (`0x004AB2C3`–`0x004AB308`) destroys a shot when MaxRange
 +0x155 ≠ 0 and dx² + dy² from StartPosition +0x159/+0x15D exceeds MaxRange², both
