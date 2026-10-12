@@ -292,6 +292,8 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     internal static void Die(
         SimulationContext context, string system, CreatureDef creature, CreatureState state)
     {
+        // A hypnotised or following creature's bookkeeping (0x00487DD2, 0x00487E6A) before the possession exit.
+        PossessionRules.CreatureFreed(context.World, state);
         if (state.Possessed && context.World.HasPlayer(state.OwnerPlayerId))
             PossessionRules.Leave(context, ref context.World.Player(state.OwnerPlayerId));
         context.FireCreatureEvent(state, CreatureTriggerEvent.Killed);

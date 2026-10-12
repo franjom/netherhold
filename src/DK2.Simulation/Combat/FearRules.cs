@@ -220,6 +220,7 @@ public static class FearRules
             && Withdraw(context, sight, hearts, rooms, me, mine, scratch))
             return true;
         if (!OverThreat(context.World, context.Database, me, mine)) return false;
+        PossessionRules.DropFollowFromFear(context.World, me);   // 0x0045F425: a follower lets go first
         EnterFlee(context, me, mine);
         return true;
     }
@@ -427,7 +428,7 @@ public static class FearRules
 
             int d = CombatRules.DistanceSquared(me.PosX, me.PosY, c.PosX, c.PosY);
             if (CombatRules.OppositeAlignment(mine, database.CreatureById(c.CreatureTypeId))) d = CombatRules.Discounted(d);
-            if (d >= best || !CombatRules.IsAttackable(c)) continue;
+            if (d >= best || !CombatRules.IsAttackable(c) || PossessionRules.IsDisguisedFrom(me, c)) continue;
 
             bool seen = d < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, c.PosX, c.PosY);
             if (!seen && !(d < hearSq && CombatTargetRules.CanReach(context.Navigation, me, mine, c.PosX, c.PosY, hearSq, scratch))) continue;

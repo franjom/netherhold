@@ -31,6 +31,7 @@ public static partial class PossessionRules
         if (player.PossessedCreatureId != 0 || JackInTheBoxRules.IsJack(target)
             || target.Possessed) return;
         target.Possessed = true;
+        target.FollowerCount = 0;   // the possession setter 0x0048DEA0, both ways
         target.NextPossessionInfluenceTick = new GameTick(0);
         player.PossessedCreatureId = target.Id;
     }
@@ -40,7 +41,13 @@ public static partial class PossessionRules
         CreatureState? target = context.World.CreatureById(player.PossessedCreatureId);
         if (target is not null && CreatureStateMachine.HasState(target))
         {
+            // Action 21 frees the hypnotised creature first (0x005145D9); 0x0048EE70 then ends the
+            // disguise and SniperMode.
+            if (target.HypnotisedCreatureId != 0) ReleaseHypnotised(context, target);
+            target.SneakingAs = 0;
+            target.SniperMode = false;
             target.Possessed = false;
+            target.FollowerCount = 0;
             if (!HandRules.IsHeld(target))
                 CreatureStateMachine.TrySetState(context.Hooks, target, CreatureStateMachine.Idle, context.Tick.Value);
             foreach (CreatureState other in context.World.Creatures)

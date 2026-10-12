@@ -11,8 +11,8 @@ using DK2.Simulation.Steering;
 namespace DK2.Simulation;
 
 /// <summary>Action 26 (<c>0x00514830</c>): the possessed creature's melee pick, spell use and
-/// follower arm, as keeper-spell-possession.md "Possessed actions" records them. Unbuilt arms are
-/// named where they would run.</summary>
+/// follower arm, as keeper-spell-possession.md "Possessed actions" and possession-arms-and-inputs.md
+/// record them. Unbuilt arms are named where they would run.</summary>
 public static partial class PossessionRules
 {
     private const string ActSystem = "possession";
@@ -28,7 +28,7 @@ public static partial class PossessionRules
     public const uint CreatureAndObjectScanLimit = 0x5B000;
     public const uint TrapAndDoorScanLimit = 0x31000;
 
-    /// <summary>Action 15's range when the spell's <c>Range</c> is not zero (no SniperMode here).</summary>
+    /// <summary>Action 15's range when the spell's <c>Range</c> or SniperMode is set (<see cref="FreeAimRangeOf"/>).</summary>
     public const int FreeAimRange = 0x3000;
 
     /// <summary>The shot type a free-aim cast never starts (<c>spell +0x44 == 0x1E</c>).</summary>
@@ -56,10 +56,10 @@ public static partial class PossessionRules
 
     internal readonly record struct ChainThing(ChainClass Class, object Thing, Vec3 At, byte Owner, int Order);
 
-    public static void Act(SimulationContext context, ISightBlocker sight, CreatureState me, ActPossessedCreatureCommand command)
+    public static void Act(SimulationContext context, ISightBlocker sight, PossessionCombat combat, CreatureState me, ActPossessedCreatureCommand command)
     {
         CreatureDef mine = context.Database.CreatureById(me.CreatureTypeId);
-        if (command.Melee) Melee(context, me, mine, command.Aim);
+        if (command.Melee) Melee(context, sight, combat, me, mine, command.Aim);
         else UseSlot(context, sight, command.PlayerId.Value, me, mine, command.Aim, command.Slot.Value);
     }
 
@@ -109,7 +109,7 @@ public static partial class PossessionRules
 
     /// <summary>Gate <c>0x0048C9B0</c> or nothing; <c>+0x427</c> stamped before the search; the pick;
     /// then the target's arm. The begin's success stamps again, the same turn.</summary>
-    private static void Melee(SimulationContext context, CreatureState me, CreatureDef mine, PossessionAim aim)
+    private static void Melee(SimulationContext context, ISightBlocker sight, PossessionCombat combat, CreatureState me, CreatureDef mine, PossessionAim aim)
     {
         long now = context.Tick.Value;
         if (!CombatRules.SwingMayBegin(context.Database, me, mine, now)) return;
@@ -122,19 +122,21 @@ public static partial class PossessionRules
             return;
         }
 
-        // SneakingAs (+0x4A3), HypnotisedCreature (+0x4A7) and the +0x4D0/+0x4D2 pair are not represented.
+        UnmaskAgainst(context.World, me, target.Owner);
         switch (target.Thing)
         {
             case CreatureState creature when target.Class == ChainClass.Creature:
                 // A creature on a torture device (state 131) is stamped, not struck.
                 if (creature.Dk2StateId == TortureRules.TorturedState) break;
                 FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, FightTargetKind.Creature, creature.Id);
+                Command(context, sight, combat, me, creature);
+                Record(me, FightTargetKind.Creature, creature.Id, now);
                 break;
             case TrapState trap:
-                FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, FightTargetKind.Trap, trap.Id);
+                Attack(context, me, FightTargetKind.Trap, trap.Id, now);
                 break;
             case DoorState door:
-                FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, FightTargetKind.Door, door.Id);
+                Attack(context, me, FightTargetKind.Door, door.Id, now);
                 break;
             case ObjectState thing:
                 ObjectArm(context, me, mine, thing);
@@ -147,6 +149,22 @@ public static partial class PossessionRules
         // DK2's second stamp. It writes the same tick as the first, so no test can tell it from its
         // absence; it is kept to mirror the binary.
         me.TimeLastUsedMelee = now;
+    }
+
+    /// <summary><c>CreatureAction_Begin(17, target)</c>, which every represented action takes; then
+    /// PossessedTargetAttackTime <c>+0x4D2</c> and PossessedTargetTag <c>+0x4D0</c>, the target the
+    /// followers take (<c>0x00514DF7</c>).</summary>
+    private static void Attack(SimulationContext context, CreatureState me, FightTargetKind kind, int id, long now)
+    {
+        FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, kind, id);
+        Record(me, kind, id, now);
+    }
+
+    private static void Record(CreatureState me, FightTargetKind kind, int id, long now)
+    {
+        me.PossessedTargetTick = now;
+        me.PossessedTargetKind = kind;
+        me.PossessedTargetId = id;
     }
 
     /// <summary>The object dispatch: gold 1-3 is the pick-up; 15, 16 and 46 only place an impact
@@ -282,19 +300,23 @@ public static partial class PossessionRules
 
     // ------------------------------------------------------------------ the spell arm
 
-    /// <summary>Slot 3 is the follower arm, not built: no follow state 246 here (Q535), and it never
-    /// stamps. Other slots: refused by <c>0x0048C800</c> (equality refuses; a slot outside the spells,
+    /// <summary>Slot 3 is the follower arm (<see cref="Recruit"/>), which never stamps. Other slots: refused by <c>0x0048C800</c> (equality refuses; a slot outside the spells,
     /// negative included, has no spell) → nothing. Past the record, every path stamps the slot.</summary>
     private static void UseSlot(SimulationContext context, ISightBlocker sight, byte keeper, CreatureState me, CreatureDef mine, PossessionAim aim, int slot)
     {
         GameDatabase database = context.Database;
         long now = context.Tick.Value;
-        if (slot == PossessedSlot.FollowerArm) return;
+        if (slot == PossessedSlot.FollowerArm)
+        {
+            Recruit(context, sight, me, aim);
+            return;
+        }
         if (!SpellRules.CanCast(database, me, mine, slot, now)) return;
         CreatureSpellDef spell = SpellRules.SpellOf(database, mine, slot)!;
 
         SpellTarget target = PickSpellTarget(context.World, database, sight, me, aim, SpellRules.IsFriendly(spell));
         if (SpellRules.IsSelfOnly(spell)) target = new(FightTargetKind.Creature, me.Id, null);
+        if (TargetOwner(context.World, target) is { } owner) UnmaskAgainst(context.World, me, owner);
 
         if ((spell.Flags & TeleportSpellFlag) != 0) TeleportHome(context, keeper, me);
         else if ((spell.Flags & SpeedSpellFlag) != 0)
@@ -309,7 +331,7 @@ public static partial class PossessionRules
                 (int x, int y, int z) = aim.PacketOrigin;
                 Vec3 raw = RawAim(aim.Yaw, aim.Pitch);
                 FightRules.BeginFreeAim(context, me, slot, unchecked(x + raw.X), unchecked(y + raw.Y), unchecked(z + raw.Z),
-                    aim.Pitch.Value, spell.Range != 0 ? FreeAimRange : 0);
+                    aim.Pitch.Value, FreeAimRangeOf(spell, me));
             }
         }
         else
@@ -330,7 +352,25 @@ public static partial class PossessionRules
         context.Emit(ActSystem, "possessed_teleport", $"creature={me.Id} heart_tile={anchor}");
     }
 
+    /// <summary><c>0x00515364</c>: 0x3000 when the spell's <c>Range</c> plus SniperMode's bit is
+    /// nonzero, else 0, which the shot reads as no limit. So sniper mode caps a Range-0 spell.</summary>
+    public static int FreeAimRangeOf(CreatureSpellDef spell, CreatureState me) =>
+        unchecked((int)spell.Range + (me.SniperMode ? 1 : 0)) != 0 ? FreeAimRange : 0;
+
     internal readonly record struct SpellTarget(FightTargetKind Kind, int Id, ObjectState? Object);
+
+    /// <summary>The spell's target's owner for the unmask test (a self spell's target is the caster).
+    /// With no target DK2 reads the owner of thing slot 0 unchecked (<c>0x0051513B</c>), UNKNOWN: ours
+    /// does not unmask then.</summary>
+    private static byte? TargetOwner(WorldState world, SpellTarget target) =>
+        target.Object is { } thing ? thing.OwnerPlayerId
+        : target.Kind switch
+        {
+            FightTargetKind.Creature => world.CreatureById(target.Id)?.OwnerPlayerId,
+            FightTargetKind.Trap => world.TrapById(target.Id)?.PlayerId,
+            FightTargetKind.Door => world.DoorById(target.Id)?.PlayerId,
+            _ => null,
+        };
 
     /// <summary><c>0x00515520</c>: players in list order, those hostile to the creature's owner (the
     /// friendly ones for a friendly spell); per player its creatures, traps, doors and type-94 objects,

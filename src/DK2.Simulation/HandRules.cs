@@ -72,7 +72,8 @@ public static class HandRules
         if (!definition.Flags.HasFlag(CreatureFlags.CanBePickedUp)) return false;
         if (creature.Dk2StateId is 76 or 193) return false;
         if (creature.OwnerPlayerId != playerId)
-            return creature.IsTool || creature.PrisonOwnerPlayerId == playerId.Value;
+            return creature.IsTool || (creature.SneakingAs != 0 && creature.SneakingAs == playerId.Value)
+                || creature.PrisonOwnerPlayerId == playerId.Value;
         if (creature.CombatPitFighter)
             return world.Contains(creature.Tile)
                 && world.Tile(creature.Tile.X, creature.Tile.Y).OwnerPlayerId == playerId;

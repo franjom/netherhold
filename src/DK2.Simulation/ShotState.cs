@@ -78,6 +78,10 @@ public sealed class ShotState
     /// thing (<c>0x004BBF90</c>) and by the instant handler.</summary>
     public bool ForcedCollision;
 
+    /// <summary>DK2's <c>+0x165</c>: a possessed free-aim shot launched in SniperMode, whose contact
+    /// damage is doubled (<c>0x004AC420</c>).</summary>
+    public bool Sniper;
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
@@ -100,5 +104,6 @@ public sealed class ShotState
         hash.Add(TargetX);
         hash.Add(TargetY);
         hash.Add(ForcedCollision);
+        hash.Add(Sniper);
     }
 }

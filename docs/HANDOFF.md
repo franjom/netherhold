@@ -28,9 +28,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Summon Horny, OneShotReaper and Possession's simulation side are built, and Sight
   of Evil casts with an empty effect (ADR-0352), its region presentation (Q194). Research
   grants every upgrade through ResearchTreeRules (KeeperSpellUpgradeTests); the
-  upgraded effects are the bonus data and Possession's 70 % upkeep. Left unbuilt:
-  Horny's idle AI, the possessed action arms in Q535/Q536, the third cast path
-  (action 56 only, Q537) and the held-creature regeneration in Q152.
+  upgraded effects are the bonus data and Possession's 70 % upkeep. The possessed
+  creature's followers (ADR-0445) and its sneak, hypnosis and sniper commands (ADR-0446)
+  are built. Left unbuilt: Horny's idle AI, the possessed object, shot, body and
+  dig/claim arms (Q535), the third cast path (action 56 only, Q537) and the
+  held-creature regeneration in Q152.
   Evidence: research/keeper-spell-*.md.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 19).
@@ -149,10 +151,12 @@ The first-approach correction and remaining matched-capture work are in combat-a
    remaining replay, combat, hero, trap and door work. Avoid reproducing their
    detailed backlogs here.
 4. M6: Level 4 (`l4live.sav`, won at capture tick 6743; DK2 side `level4-live1/seed01`,
-   local) replays all 6804 turns over seeds 1–20 but never wins
-   (experiments/2026-10-12-level4-packet-replay/). Its captured Guard Rooms now draw Dark
-   Elves (ADR-0440); Receive Imps is built (ADR-0441). Next: the claim frontier lags DK2's
-   from row 25 on in every seed; compare imp counts and dig rates there. The map builder
+   local) replays all 6804 turns over seeds 1–20 and wins 3/20 (6724–6748)
+   (experiments/2026-10-12-level4-packet-replay/). Guard Rooms draw Dark Elves
+   (ADR-0440), Receive Imps is built (ADR-0441), and a door tile is no longer offered for
+   claiming (ADR-0443). Next: the losing seeds' Imps die to heroes DK2's owner beats at
+   once (drops at (24,28) and (13–18,34)), and parties come 67 turns early because the
+   second Guard Room converts at 1962, not 2030; then Q588. The map builder
    and runner are in `level4-live1/rig/` (local); seeded DK2 playbacks are still to record.
 5. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built (`tools/blender/imp-reference.ps1`, Blender 5.2.2). The procedural
@@ -163,6 +167,11 @@ The first-approach correction and remaining matched-capture work are in combat-a
    (`docs/plans/2026-10-07-imp-image-to-3d-trial.md`).
    No rig or Unity work yet. Still open: the geometry-index and exact-frame
    export for all 35 Imp files.
+
+6. Possession: the build plan (plans/2026-10-12-possession-arms-build-plan.md) has
+   parts C (objects, shots, bodies), D (dig and claim) and E (gem gold per strike,
+   Q587, which changes every miner) left; the Unity first-person camera and input come
+   after. Owner play questions: possession-arms-and-inputs.md §4–5.
 
 After faithful M12, keep it as selectable Classic AI; explore a separate
 Enhanced keeper using the same observation/command interface (KEEPER_AI.md

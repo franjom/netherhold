@@ -116,6 +116,7 @@ public static class FightRules
         me.SwingInProgress = true;
         me.SwingKind = SpellRules.MeleeSwing;
         me.SwingStartTick = context.Tick.Value;
+        me.AttackCreatureHits = unchecked((ushort)(me.AttackCreatureHits + 1));   // 0x0048F3E0
         me.TimeLastUsedMelee = context.Tick.Value;
         me.SwingTargetKind = me.FightTargetKind;
         me.SwingTargetId = me.FightTargetId;
@@ -209,6 +210,7 @@ public static class FightRules
         me.SwingTargetKind = me.FightTargetKind;
         me.SwingTargetId = me.FightTargetId;
         me.SwingTargetPlayerId = me.FightTargetPlayerId;
+        me.AttackCreatureHits = unchecked((ushort)(me.AttackCreatureHits + 1));   // 0x0048F3E0
         me.SpellStamps[slot] = context.Tick.Value;
         me.StopMoving();
         context.Emit(SystemName, "cast",
@@ -369,8 +371,9 @@ public static class FightRules
 
     /// <summary>Action 15's shot (<c>0x004984D0</c>): the spell's shot from the caster's own position,
     /// with no horizontal muzzle offset when possessed, the spell's two data words, launched at the
-    /// action's point. Height, pitch, the range word (<c>+0x155</c>), the possessed flag
-    /// (<c>+0x151</c>) and SniperMode's doubling are not represented: shots fly flat (Q398).</summary>
+    /// action's point; in SniperMode the shot carries <c>+0x165</c> (<see cref="ShotState.Sniper"/>).
+    /// Height, pitch, the range word (<c>+0x155</c>) and the possessed flag (<c>+0x151</c>) are not
+    /// represented: shots fly flat (Q398).</summary>
     public static void FireFreeAim(SimulationContext context, CreatureState me, CreatureDef mine)
     {
         me.SwingInProgress = false;
@@ -379,6 +382,7 @@ public static class FightRules
         if (spell is null || !context.Database.Shots.TryGetValue(spell.ShotTypeId, out ShotDef? shotDef)) return;
         ShotState shot = ShotRules.Spawn(context.World, shotDef, me.OwnerPlayerId, me.PosX, me.PosY, (int)spell.ShotData1, (int)spell.ShotData2,
             me.Id, FightTargetKind.None, CombatRules.NoTarget, 0, -1, me.SwingPointX, me.SwingPointY);
+        shot.Sniper = me.Possessed && me.SniperMode;
         ShotRules.Launch(shot, shotDef, me.SwingPointX, me.SwingPointY);
         context.Emit(SystemName, "shot_fired",
             $"creature={me.Id} spell={spell.CreatureSpellId} shot={shot.Id} type={shotDef.ShotId} aim={me.SwingPointX},{me.SwingPointY} vel={shot.VelX},{shot.VelY} data1={shot.Data1}");

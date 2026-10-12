@@ -6,6 +6,9 @@ actions (Stage7b)", which holds the packet layout, the melee pick, the spell sca
 what Stage7b2 built. Each function's record in `functions/` holds the read's scope.
 Variable 19 (`0x006F2590`) is the level's TicksPerSecond.
 
+Built: §4 followers (ADR-0445) and §5 inputs (ADR-0446). §1–3 and the gem rule (Q587)
+are not; the build plan is plans/2026-10-12-possession-arms-build-plan.md.
+
 Object types named below: 9 Chicken, 14 Training Dummy, 15 Anvil, 16 Steel Bucket,
 46 Work Bench, 64 Book Case, 94 Arch Pillar. A dead body is class 6, not an object
 type, and a shot is class 1.
@@ -202,6 +205,11 @@ excluded); hypnosis uses 246.
 0), so action 37's overcount would reach a trigger. `0x00420D10` reads +0x482 only as a
 draw filter (UI). UNREAD: 246's resume while the leader moves; action 37's word 0.
 
+The owner (2026-10-12): a follower that has reached a standing leader keeps shuffling, as the
+re-route on every return to 246 predicts; a recruited Imp fights when the possessed creature
+strikes a hero, as the leader's-target override predicts. Whether a full eight can be
+recruited after a follower leaves or is sacrificed, and the dismiss key, are not known.
+
 ## 5. Command inputs — CONFIRMED unless marked
 
 **Sneak, command 0x1D** (handler `0x00517270` → ToggleSneak `0x0048EE90`). Packet
@@ -225,7 +233,8 @@ keeper included: the two disagree. Sight and doors do not read it.
 It ends on a second press, on leaving possession (`0x0048EE70` masks +0x3E6 with
 0x7FFFC7FF, clearing bits 11–13 and 31), and on a melee or
 spell at a target whose owner is allied to the disguise (`0x0051496E`, `0x00515156`;
-the spell tests the caster itself when there is no target). No timer.
+a self spell tests the caster; with no target the spell reads the owner of thing slot 0
+unchecked, `0x0051513B`, UNKNOWN). No timer.
 
 **Hypnosis, command 0x1B** (`0x005163C0`). The pose and angles come from dwords 0–2
 as in action 26. Candidates: the whole world creature list (world +8, next +8), each

@@ -231,6 +231,9 @@ public enum CreatureActivity
     /// <summary>The slap's reaction: 67 in its keeper's Workshop, 120 in its keeper's Prison, 77
     /// anywhere else (<see cref="SlapRules"/>).</summary>
     Slapped = 40,
+
+    /// <summary>Following the possessed creature: state 246 and its walks (<see cref="PossessionRules.Follow"/>).</summary>
+    Following = 41,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -1098,6 +1101,29 @@ public sealed class CreatureState
     public bool InfluencedByPossessed;
     public GameTick NextPossessionInfluenceTick;
 
+    /// <summary>Followers (possession-arms-and-inputs.md §4): +0x482 the possessed creature this one
+    /// follows (0 none), +0x47E state 246's route deadline, and on the leader +0x488 its follower
+    /// count (signed: a dismissal can take it below zero) and +0x4D0/+0x4D2 its last melee target
+    /// and when it was struck, which its followers take as their victim.</summary>
+    public int FollowLeaderId;
+    public long FollowRouteTick;
+    public int FollowerCount;
+    public Combat.FightTargetKind PossessedTargetKind;
+    public int PossessedTargetId;
+    public long PossessedTargetTick;
+
+    /// <summary>The possession inputs (possession-arms-and-inputs.md §5): SneakingAs <c>+0x4A3</c>
+    /// (the player disguised as, 0 none), SniperMode <c>+0x3E6</c> bit 31, the possessor's
+    /// HypnotisedCreature <c>+0x4A7</c>, and on the hypnotised its old owner <c>+0x4A9</c>, its mark
+    /// <c>+0x3EA</c> bit 0, AttackCreatureHits <c>+0x4D9</c> and NHypnotisedAttacks <c>+0x4DB</c>.</summary>
+    public ushort SneakingAs;
+    public bool SniperMode;
+    public int HypnotisedCreatureId;
+    public byte HypnosisOwnerPlayerId;
+    public bool Hypnotised;
+    public ushort AttackCreatureHits;
+    public ushort HypnotisedAttacks;
+
     /// <summary>Original ReaperTimer +0x4E9, HornyTick +0x4C9, runtime +0x3EA bits 18/19,
     /// and presentation alpha +0x8F used by the departure lifecycle.</summary>
     public ushort ReaperTicks;
@@ -1400,6 +1426,19 @@ public sealed class CreatureState
         hash.Add(Possessed);
         hash.Add(InfluencedByPossessed);
         hash.Add(NextPossessionInfluenceTick.Value);
+        hash.Add(FollowLeaderId);
+        hash.Add(FollowRouteTick);
+        hash.Add(FollowerCount);
+        hash.Add((byte)PossessedTargetKind);
+        hash.Add(PossessedTargetId);
+        hash.Add(PossessedTargetTick);
+        hash.Add(SneakingAs);
+        hash.Add(SniperMode);
+        hash.Add(HypnotisedCreatureId);
+        hash.Add(HypnosisOwnerPlayerId);
+        hash.Add(Hypnotised);
+        hash.Add(AttackCreatureHits);
+        hash.Add(HypnotisedAttacks);
         hash.Add(ReaperTicks);
         hash.Add(HornyTick);
         hash.Add(IsOneShotReaper);

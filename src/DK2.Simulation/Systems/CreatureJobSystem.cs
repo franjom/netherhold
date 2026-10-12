@@ -73,6 +73,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
             }
             if (creature.Activity == CreatureActivity.Leaving) continue;
             if (HeroJobRules.IsHero(creature)) continue;   // HeroSystem: state 1 sends a hero to 90
+            if (PossessionRules.FollowerTurn(context, SystemName, creature)) continue;
 
             // A walk resuming 1 is state 1's own, back to a fight (ADR-0225): the arrival is idle.
             if (StateShadow.IsTravelling(creature) && creature.UtilityNewState == CreatureStateMachine.Idle)

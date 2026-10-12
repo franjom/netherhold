@@ -287,7 +287,7 @@ in furniture-placement.md §6. Virtual ids stand in for original object handles.
 What a fighting creature then does is combat-fight-state.md.
 
 **Not built:** the `Creeping` weighting; the thing-targeting survey and scan B;
-scan A; the Turncoat skips; `SneakingAs`. The flee
+scan A; the Turncoat skips. `SneakingAs` is built (ADR-0446). The flee
 check is built since ADR-0165 (combat-fear.md §3.4).
 
 ## 10. What is left

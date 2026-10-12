@@ -276,6 +276,14 @@ public static class CombatTargetRules
 
         int best = int.MaxValue;
         CreatureState? chosen = ScanAttackers(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+        // 0x0045D5BF: a follower takes its leader's last melee target over scan A's pick; with a
+        // creature chosen no fight-style arm runs (0x0045D5F5), and 0x0045D69D takes the plain squared
+        // distance as the best. Ours does that for the leader's target only: scan A keeps its own.
+        if (PossessionRules.LeaderTarget(world, me) is { } leaders)
+        {
+            chosen = leaders;
+            best = unchecked((int)TrapRules.DistanceSquared(me.PosX, me.PosY, leaders.PosX, leaders.PosY));
+        }
         if (chosen is null && definition.FightStyle == FightStyle.NonFighter)
         {
             if (NonFighter(context, sight, hearts, rooms, me, definition, scratch, out chosen) && chosen is null)
@@ -522,7 +530,7 @@ public static class CombatTargetRules
             {
                 // The shared template: distance, the alignment discount, attackable, seen or reached.
                 if (CombatRules.OppositeAlignment(definition, theirs)) d = CombatRules.Discounted(d);
-                if (d >= best || !CombatRules.IsAttackable(candidate)) continue;
+                if (d >= best || !CombatRules.IsAttackable(candidate) || PossessionRules.IsDisguisedFrom(me, candidate)) continue;
                 bool seen = d < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY);
                 if (!seen && !(d < hearSq && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch)))
                     continue;
@@ -536,7 +544,7 @@ public static class CombatTargetRules
             if (d >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY)) continue;
             if (d >= best) continue;
             if (candidate.FightTargetKind == FightTargetKind.Creature && candidate.FightTargetId != me.Id) continue;
-            if (!CombatRules.IsAttackable(candidate)) continue;
+            if (!CombatRules.IsAttackable(candidate) || PossessionRules.IsDisguisedFrom(me, candidate)) continue;
 
             if (!FearRules.NearOwnRooms(context, rooms, me.OwnerPlayerId, candidate.Tile))
             {
@@ -559,7 +567,7 @@ public static class CombatTargetRules
 
     /// <summary>Scan C: registered attackers precede the fight-style arm. Imps bypass its
     /// sight/hearing distance cap, but still need visibility and a route (combat-acquisition.md §6).
-    /// Disguise and creeping-distance weighting remain unbuilt, as in the ordinary scan.</summary>
+    /// A candidate disguised as the searcher's side is skipped; creeping-distance weighting remains unbuilt.</summary>
     private static CreatureState? ScanAttackers(
         SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition,
         int sightSq, int hearSq, List<Fixed16Vector> scratch, ref int best)
@@ -578,6 +586,7 @@ public static class CombatTargetRules
                 int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
                 if (CombatRules.OppositeAlignment(definition, theirs)) d = CombatRules.Discounted(d);
                 if (d >= best || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY)) continue;
+                if (PossessionRules.IsDisguisedFrom(me, candidate)) continue;   // 0x0045D2DC, 0x0045D4EA
                 if (!imp && d >= sightSq
                     && !(d < hearSq && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch))) continue;
                 if (!CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, int.MaxValue, scratch)) continue;
@@ -612,7 +621,7 @@ public static class CombatTargetRules
             CombatRules.CountEngaged(world, database, candidate, out int melee, out int ranged);
             int score = CombatRules.Score(definition.FightStyle, d, sightSq, melee, ranged, theirs.FightStyle == FightStyle.Support);
             if (score >= best) continue;
-            if (!CombatRules.IsAttackable(candidate)) continue;
+            if (!CombatRules.IsAttackable(candidate) || PossessionRules.IsDisguisedFrom(me, candidate)) continue;
 
             bool seen = d < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY);
             if (!seen && !(d < hearSq && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch)))

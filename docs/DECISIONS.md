@@ -10116,6 +10116,31 @@ trajectories. Original asset redistribution remains outside this change.
 The effect physics boundaries are explicit in the canonical research;
 full original-game timing parity and Q582 remain open.
 
+## ADR-0443 — A tile holding a closed door is never claimed
+**Date:** 2026-10-12 · **Status:** accepted · Research: imp-claim-path.md §4, functions/0046AB50.md
+
+**Context.** Level 4's hero door at (24,27) stands on hero-claimed floor next to the
+keeper's. Ours offered it as an AttackTile job; the router cannot enter a closed rival
+door, so the imp dropped the job as out of reach and took it again. Seed 1 logged about
+5,000 such takes by seven imps between turns 2117 and 5300; DK2 never touches the tile
+until the owner's army starts breaking the door at 5344.
+
+**Decision.** The claim priority refuses a tile with a closed, completed door, as
+`0x0046AB50`'s third gate does: it continues only when `+0x21C(x, y, 0)`, the door nibble
+of the tile's navigation byte, is 0. Only a closed, completed door writes that nibble
+(`0x004A66F0`), so an open door or one under construction does not refuse. One gate
+covers claim, attack and room conversion, as the handler does. Hash/save version 234.
+
+**Consequences.** On ADR-0441's tool Level 4 goes from 0/20 to 2/20 (seeds 19 and 13,
+at 6748 and 6760; DK2 6743), Levels 1–3 unchanged (19/6/18). Merged onto master 15c2b038
+it wins 3/20 (seeds 9, 11, 19, 6724–6748) where master alone wins 2/20 (11, 12); Levels
+1–3 are identical with and without the gate (19/2/13, master's own change). Before the merge (set F) the winning seeds reached rows 25,
+15 and 5 within 90 turns of DK2; the gate does not help every seed (seed 1 reaches row 25 at 5169, 4599
+before). Flag 14, the three Guards behind the door waking, moves to DK2's 5283 in seed 1
+(3430 before) but still fires early in seeds 10–12; it does not explain the wins. The other 18 still lose imps to hero fights DK2 does not have.
+Still unbuilt: the handler refuses when the walk does not start (`Imp_WalkOrTeleport`
+returns 0), and ours commits a job without a route (Q588).
+
 ## ADR-0444 — The simulation is profiled through markers it opens itself
 **Date:** 2026-10-12 · **Status:** accepted
 
@@ -10140,3 +10165,54 @@ Release run (Level 18, nemesis attack) puts its worst tick at ~650 ms, ~430 ms o
 one search per candidate tile. The keeper scenarios run allocate 3–10 MB a tick. Only
 ImpTask's pathfinder is wrapped; the other systems' grid searches count as their own
 time. A span costs two interface calls when nobody is listening.
+
+## ADR-0445 — The possessed creature recruits followers
+**Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §4
+
+**Context.** Action 26's slot 3 (key 7 in play, the owner confirmed) recruits friendly
+creatures that then follow the possessed creature and take its melee target. Ours
+stamped nothing and started nothing (Q535).
+
+**Decision.** Slot 3 runs `0x00515D50`'s pick (best aim score, not nearest, within 7
+tiles of the creature) and `0x00461980`'s start into state 246; the count `+0x488` rises
+only on success, up to variable 223. State 246 ends the follow when the leader is no
+longer possessed and otherwise walks to it, running beyond 0x5000. A possessed melee
+start records `+0x4D0`/`+0x4D2`, forgotten after three seconds while possessed;
+`SelectAVictim` gives it to a follower after scan A, in place of its fight-style arm. Possession set
+and clear zero the count; dismissal (action 38), fear in a fight and every removal of a
+follower (the death bookkeeping runs for each freed creature) lower it; state 1
+re-follows first. A follower is busy to its needs and takes no lair or pay anger.
+Hash/save version 235.
+
+**Consequences.** Only a creature target is carried to followers: a trap or door struck
+by the possessed creature is recorded but not handed on. The flee state's skip of its
+return to 199 while following (`0x00460586`, a window read) is not built, nor is the
+death bookkeeping's unread early exit (`0x00487C70`'s first call). DK2 frees a creature
+with its leader field set; ours clears it so a corpse removed later does not count twice.
+Scan A's own pick keeps its discounted distance as the best where
+`0x0045D69D` may take the plain one; no packet decoder builds the dismissal. No computer keeper casts Possession
+(computer-keeper-spell-sites.md §1), so replays cannot change.
+
+## ADR-0446 — Sneak, hypnosis and sniper mode are possession commands
+**Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §5
+
+**Context.** Three commands set the possessed creature's inputs (Q536): sneak (0x1D),
+hypnosis (0x1B) and sniper mode (39). None was represented.
+
+**Decision.** `ToggleSneakCommand` disguises the creature as a tile's owner unless a
+creature allied to that owner sees it; every combat scan (the fight-style scan, scan C,
+the NonFighter and nearest-attacker scans) skips a candidate disguised as the searcher's
+side; a blow or cast at a thing allied to the disguise, another keeper's hand, and
+leaving possession end it. `HypnotiseCommand` takes the nearest hypnotisable enemy in
+the cone and sight from the pose, keeps its owner, makes it the possessor's and starts it
+following; each possessed blow at a creature forces it at that creature and counts one
+order, and it drops the order once it has launched as many attacks; a second press,
+leaving possession (action 21) or its death end the hold. `SetSniperModeCommand` sets
+the flag: a free-aim shot then doubles its contact damage, and a Range-0 spell is capped
+at 0x3000. Hash/save version 235, shared with ADR-0445 on this branch.
+
+**Consequences.** Creeping (`+0x3E6` bit 12) and `0x00455990` in the sneak test are not
+represented; an off-map sneak tile changes nothing where DK2 reads past the map; a
+targetless cast does not unmask, where DK2 reads thing slot 0's owner (unknown). Leaving
+possession ours always goes through action 21's release. The owner's play questions
+(sniper range, the disguise pick-up, the release on leaving) stay open.

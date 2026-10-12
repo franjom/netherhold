@@ -20,7 +20,11 @@ public static class TurncoatRules
         !world.AreAllied(CombatPlayer(world, attacker).PlayerId, CombatPlayer(world, target).PlayerId.Value);
 
     private static ref PlayerState CombatPlayer(WorldState world, CreatureState creature) =>
-        ref world.Player(IsActive(creature) ? unchecked((byte)creature.TurncoatPlayerId) : creature.OwnerPlayerId);
+        ref world.Player(CombatSide(creature));
+
+    /// <summary>The side a creature fights for: <c>+0x455</c> while Turncoat runs, else its owner.</summary>
+    public static PlayerId CombatSide(CreatureState creature) =>
+        IsActive(creature) ? unchecked((byte)creature.TurncoatPlayerId) : creature.OwnerPlayerId;
 
     public static void Strike(SimulationContext context, ShotState shot, CreatureState target, CreatureDef definition)
     {

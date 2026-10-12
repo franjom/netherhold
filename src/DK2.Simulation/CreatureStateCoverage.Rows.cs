@@ -261,7 +261,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(243, "not read"));
         rows.Add(Unbuilt(244, "not read"));
         rows.Add(Unreachable(245, "no entry by the call, raw byte, +0xDF or room-table scans: room-return-states.md §6"));
-        rows.Add(Unbuilt(246, "not read"));
+        rows.Add(Built(246, typeof(PossessionRules), nameof(PossessionRules.Follow)));
         rows.Add(Unbuilt(247, "not read"));
         rows.Add(Unbuilt(248, "not read"));
         rows.Add(Unbuilt(249, "not read"));

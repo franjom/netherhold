@@ -902,6 +902,10 @@ public sealed partial class ImpTaskSystem
             // no order between them has to be chosen here. Hostile floor falls to
             // Dirt Path and is then an ordinary claim (Q68, owner).
             case JobPriority.Claim:
+                // 0x0046AB50 never takes a tile whose navigation byte holds a door, which only a
+                // closed, completed door writes (0x004A66F0, imp-claim-path.md §4, ADR-0443).
+                if (world.DoorAt(target.X, target.Y) is { UnderConstruction: false, Open: false })
+                    return false;
                 if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId))
                     kind = TileWorkKind.Claim;
                 else if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.AttackTile, playerId))

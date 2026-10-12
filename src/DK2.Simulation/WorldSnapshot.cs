@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 233;
+    private const int FormatVersion = 235;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -465,6 +465,19 @@ public static class WorldSnapshot
             w.Write(c.Possessed);
             w.Write(c.InfluencedByPossessed);
             w.Write(c.NextPossessionInfluenceTick.Value);
+            w.Write(c.FollowLeaderId);
+            w.Write(c.FollowRouteTick);
+            w.Write(c.FollowerCount);
+            w.Write((byte)c.PossessedTargetKind);
+            w.Write(c.PossessedTargetId);
+            w.Write(c.PossessedTargetTick);
+            w.Write(c.SneakingAs);
+            w.Write(c.SniperMode);
+            w.Write(c.HypnotisedCreatureId);
+            w.Write(c.HypnosisOwnerPlayerId);
+            w.Write(c.Hypnotised);
+            w.Write(c.AttackCreatureHits);
+            w.Write(c.HypnotisedAttacks);
             w.Write(c.ReaperTicks);
             w.Write(c.HornyTick);
             w.Write(c.IsOneShotReaper);
@@ -526,6 +539,7 @@ public static class WorldSnapshot
             w.Write(s.TargetX);
             w.Write(s.TargetY);
             w.Write(s.ForcedCollision);
+            w.Write(s.Sniper);
         }
 
         w.Write(world.NextObjectId);
@@ -1110,6 +1124,19 @@ public static class WorldSnapshot
                 Possessed = r.ReadBoolean(),
                 InfluencedByPossessed = r.ReadBoolean(),
                 NextPossessionInfluenceTick = new GameTick(r.ReadInt64()),
+                FollowLeaderId = r.ReadInt32(),
+                FollowRouteTick = r.ReadInt64(),
+                FollowerCount = r.ReadInt32(),
+                PossessedTargetKind = (Combat.FightTargetKind)r.ReadByte(),
+                PossessedTargetId = r.ReadInt32(),
+                PossessedTargetTick = r.ReadInt64(),
+                SneakingAs = r.ReadUInt16(),
+                SniperMode = r.ReadBoolean(),
+                HypnotisedCreatureId = r.ReadInt32(),
+                HypnosisOwnerPlayerId = r.ReadByte(),
+                Hypnotised = r.ReadBoolean(),
+                AttackCreatureHits = r.ReadUInt16(),
+                HypnotisedAttacks = r.ReadUInt16(),
                 ReaperTicks = r.ReadUInt16(),
                 HornyTick = r.ReadUInt32(),
                 IsOneShotReaper = r.ReadBoolean(),
@@ -1182,6 +1209,7 @@ public static class WorldSnapshot
                 TargetX = r.ReadInt32(),
                 TargetY = r.ReadInt32(),
                 ForcedCollision = r.ReadBoolean(),
+                Sniper = r.ReadBoolean(),
             };
             world.RawShots.Add(shot);
             world.AttachLoaded(shot);
