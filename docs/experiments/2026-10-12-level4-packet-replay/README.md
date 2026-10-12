@@ -40,6 +40,9 @@ stand.
 | F | ADR-0443 | as E | 19/20 | 6/20 | 18/20 | 2/20 (seeds 19, 13: 6748, 6760) |
 | M | master 15c2b038 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 11, 12: 6740, 6732) |
 | G | M + ADR-0443 | as E | 19/20 | 2/20 | 13/20 | 3/20 (seeds 9, 11, 19: 6724–6748) |
+| Q | G + ADR-0447 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 9, 11: 6724, 6732) |
+| M2 | master d1e67516 | as E | 19/20 | 2/20 | 13/20 | 3/20 (seeds 9, 11, 19: 6732–6740) |
+| Q2 | M2 + ADR-0447 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 9, 11: 6724, 6736) |
 
 M and G agree tick for tick on Levels 1–3: the gate changes nothing there, and master's
 own commits since 3877e855 took Level 2 from 6/20 to 2/20 and Level 3 from 18/20 to
@@ -117,8 +120,53 @@ at 5364–5484, and nine down the middle column from 5404, where the woken Guard
 walk to the Heart.
 DK2's owner beats those Guards at (24,28) at once.
 
+## Levels 2 and 3 on master after 3877e855
+
+Levels 2 and 3, seeds 1–20, at each commit of the classic-look line that changes the
+simulation (base `687066e3`, which wins as many as 3877e855 on both):
+
+| Commit | Level 2 | Level 3 |
+|---|---|---|
+| `687066e3` base | 6 | 18 |
+| 449 `62fba108`, 452 `4f048d71`, 453 `acae8f7a` | 6, 6, 5 | 17, 16, 17 |
+| 454 `d679bebd` react to registered attackers before choosing work | 6 | 8 |
+| 455 `8c82572d` retreat to the alarm room's original random point | 3 | 8 |
+| 457 `96fa1942` restore room construction and ambient life | 2 | 13 |
+| 458 `6f4f2bb2` merge with this branch | 2 | 13 |
+
+Level 3's drop is 454's and Level 2's is 455's; neither is examined here.
+
+## Set G: what separates the winners
+
+- **Row 5 in time.** All three winners claim (16,5) and (17,5) before the owner's drops
+  there (6489, 6554) and lose at most 3 Imps before 6400. The Lord then comes out to
+  (20–21,5) and dies, as DK2's does at (21,5) from 6692. In the other 15 losers he ends
+  unhurt on (22–26,4). Seeds 2 and 17 also claim both tiles in time (6484–6588), hurt him
+  and run out of turns, so row 5 is necessary, not sufficient.
+- **Imp losses.** Losers lose 1–82 Imps before 6400 (DK2 none; 13 of 17 lose 11 or more). In seed 14 the parties
+  push from the second Guard Room down the middle to the Heart from 4400: in 3600–5200 heroes
+  land 73,548 melee damage on the keeper's side and take 24,504 (17,304 melee, 7,200 from
+  spells); three of our creatures (19, 15, 18) do most of it.
+- **Missing creatures.** Of the owner's 14 pick-ups at 3862–3893 and 5263–5266, the creatures
+  named have no counterpart on our side (an entity-map placeholder) 0, 0 and 1 times in
+  the winners and 4–8 times in seeds 14, 15, 18 and 20 (our portal never
+  sent DK2's 1199 and 1315 type-10 arrivals, so the hand grabs nothing). Seven seeds miss
+  none and lose anyway, so this is part of it, not all.
+- **Party timing is a spread.** Trigger 1 fires between 1917 and 2397 by seed (median about
+  1995; DK2 2030) in both E and G. Seed 1's 67 turns early was its draw, not a fixed lead.
+
+## Set Q
+
+ADR-0447 refuses a take whose walk cannot start. Level 4's `out_of_reach` drops fall
+from 4,979 to 17 over the 20 seeds; Levels 1–3 replay identically (every output file),
+and 14 of 20 Level 4 runs change (7 in `replay.csv`). Seed 19 no longer wins: within one
+seed, no measured gain, and again on master d1e67516 (M2 against Q2: drops 4,878 to 17).
+Seed 19 loses both times: 26 imps' takes of the owner's dig at (16,5) are refused 139
+times at 6443–6800, and (17,5) is never claimed. That the door-blind grid's side choice
+causes the refusals is inferred, not traced. Gold, object and body fetches and the side test are Q589.
+
 ## What to compare next
 
-Why our woken Guards and parties win fights DK2's lose: the drops at (24,28) at 5271 and
-(13–18,34) at 3880 against ours, and our Guard Room conversion 68 turns early (the mining
-of (24,39)). Q588, a take whose walk does not start, is the next selection gap.
+Why the keeper's creatures lose the 3766–4600 fights in the losing seeds when most of the
+owner's drops do land: who is in them and their levels against DK2's. Seeded DK2 playbacks
+of `l4live` would say how much of the spread in arrivals and wins is DK2's own.

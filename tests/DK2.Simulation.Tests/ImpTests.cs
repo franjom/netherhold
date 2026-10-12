@@ -1044,6 +1044,39 @@ public class ImpTests
     }
 
     /// <summary>
+    /// A take fails when its walk cannot start (<c>0x004651A0</c> → <c>0x004D0F60</c>,
+    /// imp-task-stealing.md §7, Q588): the claimable dirt at (6,2) lies past a rival's locked
+    /// door, which the selection grid walks through and the router does not, so the imp never
+    /// takes it and is never left to drop it as out of reach.
+    /// </summary>
+    [Fact]
+    public void AClaimBeyondARivalsLockedDoorIsNeverTaken()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Run run = Start(new TilePos(2, 2));
+        void Lay(int x, byte terrain, byte owner)
+        {
+            ref TileState tile = ref run.World.Tile(x, 2);
+            tile.TerrainId = terrain;
+            tile.OwnerPlayerId = owner;
+            tile.Health = database.TerrainById(terrain).StartingHealth;
+        }
+        Lay(4, Dk2TerrainFixture.ClaimedPath, 2);
+        Lay(5, Dk2TerrainFixture.ClaimedPath, Keeper);
+        Lay(6, Dk2TerrainFixture.DirtPath, PlayerIds.Neutral);
+        ThingProjection.Place(run.World, database, [new DoorThing(new byte[20])
+        {
+            X = 4, Y = 2, DoorId = 1, PlayerId = 2, Flags = 0x01, Unknown_0011 = new byte[3],
+        }]);
+
+        run.Ticks(200);
+
+        Assert.DoesNotContain(run.Of("job_taken"), e => e.Detail.Contains("(6,2)", StringComparison.Ordinal));
+        Assert.DoesNotContain(run.Of("job_abandoned"), e => e.Detail.Contains("(6,2)", StringComparison.Ordinal));
+        Assert.Contains(run.Of("job_unreachable"), e => e.Detail.Contains("(6,2) Claim", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// <b>An imp takes a rival's ground on its own</b>, in the two steps the owner
     /// watched: first unclaimed dirt, then the imp's keeper's floor. Claiming is
     /// second in the priority order (ADR-0018), the tile must touch its keeper's

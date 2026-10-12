@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**236** — `0xC3C0A8A82912396E`. A worker's take fails when its walk cannot start (Q588); no new saved field. ADR-0447.
+
 **235** — `0xF586FE56CCF63F2F`. The possession/arms branch: followers (leader, route deadline, count, shared melee target; ADR-0445) and inputs (disguise, sniper mode, hypnosis hold, old owner, mark and attack counts on creatures, the sniper bit on shots; ADR-0446) are saved and hashed.
 
 **234** — `0x9EE6056B64A1FD38`. The claim priority refuses a tile holding a closed, completed door (`0x0046AB50`'s door gate); no new saved field. ADR-0443.
@@ -389,11 +391,4 @@ condition path compares the id against 0x10 before indexing.
 codex worktree so the two could not collide; the merged result took 40 rather
 than reusing it.
 
-**37** — `0xD17C2E424DDE0AF2`. `WorldState.Triggers`: the level's trigger flag
-and timer banks (ADR-0102). They are hashed because an action record writes a
-flag and a later condition reads it, so two worlds disagreeing about one diverge
-as soon as that condition is evaluated. 128 flag bytes and — at this version —
-256 timer dwords enter the hash even when every slot is zero. Version 39
-corrected the timer bank to sixteen.
-
-[Versions 9–36](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–37](hash-versions-early.md) retain the earlier pins and their reasons.

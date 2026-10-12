@@ -10191,3 +10191,30 @@ represented; an off-map sneak tile changes nothing where DK2 reads past the map;
 targetless cast does not unmask, where DK2 reads thing slot 0's owner (unknown). Leaving
 possession ours always goes through action 21's release. The owner's play questions
 (sniper range, the disguise pick-up, the release on leaving) stay open.
+
+## ADR-0447 — A worker's take fails when its walk cannot start
+**Date:** 2026-10-12 · **Status:** accepted · Research: imp-task-stealing.md §7, imp-claim-path.md §4
+
+**Context.** Q588. DK2's handlers take their task only if the walk starts
+(`0x004651A0` → `0x00471890` → `0x004D0F60`); on a free claim slot the take's result is
+the walk's. Ours chose stances on a grid with no
+doors, committed the job whatever the router said, and dropped it on arrival as
+`out_of_reach`: 4,979 such drops over Level 4's 20 seeds after ADR-0443.
+
+**Decision.** For tile work, `CommitJob` routes first and commits nothing when the route
+fails, emitting `job_unreachable`. The claim ring tries its next tile; reinforce forgets
+a free side's task and tries the next side, as `0x0046AEA0` does. A held claim or
+reinforce slot is kicked only after the walk starts. The dig caller still kicks first
+and then moves to its next candidate tile, where `0x0046A550` tries the next slot and
+side and `0x00469AF0` gives the selection up (Q589). Gold, object and body fetches still
+ignore a failed route (Q589). Teleporting walks are unbuilt
+(Q418); DK2's teleport also needs the target reachable. Not modelled: DK2 raises the task
+and writes its flavour (`0x005080E0`) before the walk, and a failed walk keeps both.
+Hash/save version 236.
+
+**Consequences.** Level 4's `out_of_reach` drops fall from 4,979 to 17 (other walks);
+Levels 1–3 replay identically (19/2/13). Level 4 wins 2/20 (seeds 9, 11) against 3/20
+before (9, 11, 19), on master 15c2b038 and again on d1e67516. In seed 19, 26 imps'
+takes of the owner's dig at (16,5) are refused 139 times, likely because the dig side is
+chosen on the door-blind grid where DK2 tests each side's reachability and retries the
+next slot and side (Q589, not traced). (17,5) then goes unclaimed and the owner's drop there misses.
