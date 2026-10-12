@@ -78,12 +78,25 @@ types against the room definition. The relevant arms are:
 |---|---:|
 | Library, Training Room, Workshop, Casino | zero with no match; otherwise matching objects + 1 |
 | Torture Chamber | matching objects |
+| Temple, Combat Pit | the tiles `Room_IsFloorSlot` rejects (the rim) |
+| Graveyard | its floor slots |
+| Portal | 0 |
+| Prison | `0xFFFF`; its own count goes to `+0x4B` (floor slots + 1) |
+| every other type: Treasury, Lair, Hatchery, Heart, Wooden and Stone Bridge, **Guard Room**, the hero rooms | the slab count `+0xA7` |
+
+**The default arm, CONFIRMED (binary, 2026-10-12).** The switch is on type − 3, bounded at 13,
+through the table at `0x004E42C0`. Entries 1, 2, 5 and 6 (Hatchery, Heart, Wooden Bridge, Guard
+Room) and every type outside 3–16 go to `0x004E429A`, which copies the word at `+0xA7` into
+`+0x67`. The portal's attraction contribution `0x004DCE70` returns `+0x67` for every type but
+Temple, Prison and Combat Pit, so a Guard Room attracts as many Dark Elves as it has tiles. On
+Level 4 the keeper cannot build one; it captures the three neutral Guard Rooms, and DK2's portal
+then sent eleven Dark Elves (owner's recording, `level4-live1`, from capture tick 1943).
 
 **Confirmed for the Training Room (owner, 2026-09-25):** a 3x3 room on open ground shows
 capacity 2 (one dummy + 1), and against reinforced walls the dummy, plus every Training
 Target, plus 1. So the +1 is real and wall furniture counts.
 
-The count is furniture, not room area. With both generic passes represented,
+The furniture arms count furniture, not room area. With both generic passes represented,
 the five arms can count every `RoomDef.ObjectIds[0..5]` object they consult.
 
 ## 6. Implementation boundary

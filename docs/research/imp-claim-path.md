@@ -204,7 +204,8 @@ but the player's next tag reused the freed id and the digger found it alive.
 | 18 `0x00466180` | while no action runs: kind 3; adjacent and `0x00454040` → action 10 and stay | room gone: `0x004BA720` over the room's tile chain, remove own id → 10 |
 
 The action handlers are the table `0x006E4198` (`creature-action-table.md`): action 4
-`0x004974C0`, 5 `0x00497670`, 10 `0x00497BF0`. Each applies one work application to the
+`0x004974C0`, 5 `0x00497670`, 10 `0x00497BF0`. Each applies one work application (action 4
+repeats it every poll until the tile converts, possession-arms-and-inputs.md §3) to the
 tile under the action through `0x004508D0` → `0x00452F60`: `ClaimTileHealth` at
 `0x006F2554` (825, load-time ÷4) times the imp's rate `+0x3AF + +0x3B3` for a claim,
 `AttackTileHealth` at `0x006F2558` for enemy floor, `ConvertRoomHealth` at `0x006F2574`

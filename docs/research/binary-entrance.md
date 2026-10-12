@@ -143,6 +143,7 @@ rather than one parameterised room:
 | Room | Contributes | status |
 |---|---|---|
 | General furniture rooms | the room's **`TotalCapacity`**, `room+0x67`: matching auto furniture, with a conditional +1 for Library, Training, Workshop and Casino but not Torture | **CONFIRMED** |
+| Every other room (Guard Room, Hatchery, Treasury, ...) | the same `room+0x67`, which `FUN_004E3ED0`'s default arm sets to the slab count `+0xA7` (`auto-placed-furniture.md` §5) | **CONFIRMED** (2026-10-12) |
 | Temple (13) | **2** if it holds **object 66, the Temple Hand**, else 0 | **CONFIRMED** |
 | Prison (11), Combat Pit (16) | the room's **interior slab count**: it walks the slab chain from `room+0x2D`/`+0x2E` and counts each slab `FUN_00454110` accepts, which is every interior slab (`+0x0C == 0xFF`) of both types | **LIKELY** (read statically, record `00454110.md`) |
 | Lair (2) | **flat 1.0**, or **3.0** when a byte at `+0x771` on the creature record is **22**; the room walk is skipped entirely | **CONFIRMED**, the 22 unexplained |

@@ -1119,6 +1119,7 @@ public sealed partial class WorldView
             bool meleeAnimation = IsMeleeAnimation(creature, world.CurrentTick);
             bool castAnimation = IsCastAnimation(creature, world.CurrentTick);
             bool trainingAnimation = IsTrainingAnimation(creature);
+            bool entranceAnimation = creature.Dk2StateId == PortalRules.JoiningState;
             bool playsAnimation = PlaysMappedAnimation(creature, world.CurrentTick);
             AssetRef animation = AnimationFor(creature, world.CurrentTick);
             if (creature.Activity == CreatureActivity.Dead)
@@ -1153,12 +1154,12 @@ public sealed partial class WorldView
                 animation,
                 creature.GoldHeld, height, yaw, pitch, roll, previousX, previousY,
                 playsAnimation, creature.Activity != CreatureActivity.Dying && !meleeAnimation && !castAnimation
-                    && !IsDeferredLanding(creature) && !trainingAnimation,
+                    && !IsDeferredLanding(creature) && !trainingAnimation && !entranceAnimation,
                 trainingAnimation ? new GameTick(creature.TrainingActionStartedTick)
                     : meleeAnimation || castAnimation ? new GameTick(creature.SwingStartTick)
-                    : IsEatingAnimation(creature) && creature.StateEnteredTick >= 0
+                    : (entranceAnimation || IsEatingAnimation(creature)) && creature.StateEnteredTick >= 0
                     ? new GameTick(creature.StateEnteredTick) : null,
-                !meleeAnimation && !castAnimation && !trainingAnimation && IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null,
+                !meleeAnimation && !castAnimation && !trainingAnimation && !entranceAnimation && IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null,
                 animationPaused: creature.FrozenTicks > 0,
                 animationDeferred: IsDeferredLanding(creature));
         }
@@ -1203,7 +1204,8 @@ public sealed partial class WorldView
 
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         string clip = ActivityKeySegment(creature.Activity);
-        if (IsTrainingAnimation(creature))
+        if (creature.Dk2StateId == PortalRules.JoiningState) clip = "entrance";
+        else if (IsTrainingAnimation(creature))
             clip = creature.TrainingActionId == (byte)TrainingActionKind.Spell ? "casting" : "fighting";
         else if (creature.Dk2StateId == DropLandingRules.LandingState)
             clip = IsDeferredLanding(creature) ? "landing" : "idle";
@@ -1232,7 +1234,7 @@ public sealed partial class WorldView
     // Enable only the existing source mappings whose action is represented by this view.
     // Other job actions still need their own art slots and clocks.
     public bool PlaysMappedAnimation(CreatureState creature, GameTick tick) =>
-        creature.Dk2StateId == DropLandingRules.LandingState || IsTrainingAnimation(creature)
+        creature.Dk2StateId is DropLandingRules.LandingState or PortalRules.JoiningState || IsTrainingAnimation(creature)
         || IsMeleeAnimation(creature, tick) || IsCastAnimation(creature, tick)
         || IsEatingAnimation(creature) || creature.Activity switch
     {

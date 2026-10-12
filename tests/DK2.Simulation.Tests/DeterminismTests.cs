@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 230: use the alarm's random room point.
+        // HashVersion 232: pending player room-build waves.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x0117CFA8C106044CUL, sim.StateHash());
+        Assert.Equal(0x745E1A08B1224DFAUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

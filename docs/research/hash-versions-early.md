@@ -1,6 +1,15 @@
 # Early state-hash versions
 
-Versions 9–33, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–35, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**35** — `0x368FDF9DF3D0A6EA`. Two changes, either of which moves the value
+alone: `SimulationTiming.TicksPerSecond` went 20 to **four**, DK2's own rate,
+re-timing every scheduled system; and `TileState.UpwardWork` was **removed**,
+because DK2 accumulates an upward job in the tile's own health and converts at
+the terrain's `MaxHealth`, so the cost is the deficit and not the whole maximum
+(Q1; ADR-0024 reversed by ADR-0089).
+
+**34** — `0x46FAACC93F8323FF`. Reason not recorded here; see git history.
 
 **33** — `0x21A7E4D24F37DF48`. Job selection for non-workers (ADR-0082):
 `CurrentJob`, `JobTileIndex`, a choice timestamp per mood, and the mood band

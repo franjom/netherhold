@@ -15,6 +15,13 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**232** — `0x745E1A08B1224DFA`. Pending player room-build waves are saved and
+hashed; ambient rats use the shared animal update order and gameplay draws.
+Portal arrivals retain their original heading. Includes the parallel 231
+capacity correction and classic versions 226–230. ADR-0441.
+
+**231** — `0xB8FA72F6DE9C12A1`. A room on `Room_ComputeTotalCapacity`'s default arm (Guard Room, Hatchery, Treasury, ...) holds its tile count; no new saved field. ADR-0440; versions 226–230 were used by the parallel classic-look branch.
+
 **230** — `0x0117CFA8C106044C`. Alarm retreat routes to the random room-chain
 point instead of the fixed centre; Portal, Heart and bridge tiles are never
 floor slots for that selector (combat-alarm.md §2).
@@ -386,13 +393,4 @@ corrected the timer bank to sixteen.
 **36** — `0xD893704FB5D00309`. `PlayerState.ResearchPoints`, the Library's
 accrual. A new player field moves the value by itself.
 
-**35** — `0x368FDF9DF3D0A6EA`. Two changes, either of which moves the value
-alone: `SimulationTiming.TicksPerSecond` went 20 to **four**, DK2's own rate,
-re-timing every scheduled system; and `TileState.UpwardWork` was **removed**,
-because DK2 accumulates an upward job in the tile's own health and converts at
-the terrain's `MaxHealth`, so the cost is the deficit and not the whole maximum
-(Q1; ADR-0024 reversed by ADR-0089).
-
-**34** — `0x46FAACC93F8323FF`. Reason not recorded here; see git history.
-
-[Versions 9–33](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–35](hash-versions-early.md) retain the earlier pins and their reasons.

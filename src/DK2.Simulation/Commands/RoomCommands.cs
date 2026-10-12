@@ -8,20 +8,18 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Commands;
 
 /// <summary>
-/// Builds a room on a set of tiles, paying for it.
-///
-/// <para>CONFIRMED: a keeper picks a room, paints tiles with it, and gold leaves
-/// the treasury as the tiles change.</para>
-///
-/// <para>Ours, not DK2's, as in <see cref="TagTilesCommand"/>: the shape of the
-/// command. A drag that crosses an unbuildable tile skips that tile rather than
-/// abandoning the rectangle — an interface question the simulation has to answer
-/// somehow. Tiles are considered in the order given, which matters when the
-/// keeper can afford some and not all.</para>
+/// Selects immediate builder calls or the player's queued rectangle wave.
 /// </summary>
+public enum RoomBuildMode { Direct, PlayerWave }
+
+/// <summary>Builds paid room tiles directly, or queues a player's rectangle from raw press/release corners.</summary>
 public sealed record BuildRoomCommand(PlayerId PlayerId, RoomTypeId RoomId, IReadOnlyList<TilePos> Tiles)
     : PlayerCommand(PlayerId)
 {
+    public RoomBuildMode Mode { get; init; }
+    public TilePos Press { get; init; }
+    public TilePos Release { get; init; }
+    /// <summary>Immediate tile-builder input for computer keepers and scenario setup.</summary>
     public static BuildRoomCommand At(PlayerId playerId, RoomTypeId roomId, params TilePos[] tiles) =>
         new(playerId, roomId, tiles);
 
@@ -30,12 +28,20 @@ public sealed record BuildRoomCommand(PlayerId PlayerId, RoomTypeId RoomId, IRea
     /// (<see cref="SlabChain.Wave"/>): from the corner released, which is where the room's slab
     /// chain starts (room-slab-chain.md §2).</summary>
     public static BuildRoomCommand Rect(PlayerId playerId, RoomTypeId roomId, int x0, int y0, int x1, int y1) =>
-        new(playerId, roomId, SlabChain.Wave(x0, y0, x1, y1));
+        new(playerId, roomId, SlabChain.Wave(x0, y0, x1, y1))
+        {
+            Mode = RoomBuildMode.PlayerWave, Press = new TilePos(x0, y0), Release = new TilePos(x1, y1),
+        };
 
     public override void HashInto(ref Hash64 hash)
     {
         base.HashInto(ref hash);
         hash.Add((byte)RoomId);
+        hash.Add((byte)Mode);
+        hash.Add(Press.X);
+        hash.Add(Press.Y);
+        hash.Add(Release.X);
+        hash.Add(Release.Y);
         hash.Add(Tiles.Count);
         foreach (TilePos t in Tiles)
         {

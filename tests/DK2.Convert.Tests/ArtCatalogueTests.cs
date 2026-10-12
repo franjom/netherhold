@@ -12,6 +12,27 @@ namespace DK2.Convert.Tests;
 public class ArtCatalogueTests
 {
     [InstallFact]
+    public void PortalEntranceUsesTheAuthoredBlockThirtyAndPreservesItsClockMetadata()
+    {
+        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
+        var entries = ArtSourceMap.ForDatabase(database, art).ToDictionary(e => e.Reference.Key);
+        foreach (var creature in database.Creatures.Values)
+        {
+            ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
+                DK2.Assets.AssetKind.Animation, "entrance").Key];
+            var expected = art.Creatures[creature.CreatureId][29];
+            if (expected.IsEmpty) Assert.False(entry.HasSource);
+            else
+            {
+                Assert.Equal(expected, entry.Source);
+                Assert.Equal(creature.EntranceFrames, entry.Source!.FrameCount);
+                Assert.Equal(creature.EntranceFramesPerSecond, entry.Source.FramesPerSecond);
+            }
+        }
+    }
+
+    [InstallFact]
     public void ADeadGoblinResolvesToItsCorpseMeshInsteadOfWalking()
     {
         var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);

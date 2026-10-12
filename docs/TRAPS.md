@@ -1,4 +1,4 @@
-# Traps
+﻿# Traps
 
 Tooling, encoding and process traps that have cost a session time, one line each, for every
 agent (Claude's private memory and Codex's are not shared; this file is). Add a line in the change
@@ -42,6 +42,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Builds, tests and dk2tools
 
+- Source notices require a blank line after the three license comments; the exact LicenseHeaderTests prefix includes two trailing newlines.
+
 - Unity-loadable DK2.Data targets netstandard2.1; newer Path helpers such as TrimEndingDirectorySeparator are unavailable there.
 - A pixelated Unity Game view can be editor zoom: check its Scale slider at 1x before changing rendering; camera zoom does not reset it (saved under UserSettings/Layouts/).
 - InvalidDataException is not an IOException; command error handling must catch both to report format refusals.
@@ -81,6 +83,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
   the branch side by side before writing numbers into an ADR.
 - Never `git add -A`: another session may be editing; stage named paths.
 - `kb_upsert` (the dk2kb MCP) writes the main tree, not your worktree.
+- `kb_upsert` replaces a record's whole body and can drop its UTF-8 BOM: an agent that thinks a record is new
+  overwrites an existing one (005956E0, 2026-10-12). Diff `name:` lines and first bytes against HEAD before committing.
 - A branch can hold uncommitted work (an agent that ran out of tokens): check `git status` in its
   worktree, not only `git log master..branch`, and run the gates on what it left.
 - At most two subagents at once: more hit the account's rate limit and die mid-work. Give each

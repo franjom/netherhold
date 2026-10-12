@@ -3,7 +3,9 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Buffers.Binary;
+using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation;
 using DK2.Simulation.Commands;
 using DK2.Tools;
 
@@ -177,6 +179,57 @@ public sealed class PacketLogTests
             Assert.Equal(new PickUpObjectCommand(3, 77),
                 Assert.Single(packet.At(2, map, tile => tile == 33 * 40 + 19 ? 77 : 0).All));
             Assert.Equal(new PickUpObjectCommand(3, 0), Assert.Single(packet.At(2, map, _ => 0).All));
+        }
+        finally { File.Delete(path); }
+    }
+
+    /// <summary>The owner's Level 4 possession (<c>l4live.sav</c>, turns 6282, 6300, 6312 and 6388):
+    /// action 25's word splits into Z and heading; 26 packs X with yaw, Y with pitch, and Z with
+    /// the melee bit and the slot nibble; 21 carries nothing the command reads.</summary>
+    [Fact]
+    public void PossessionStreamDecodesMoveActAndLeave()
+    {
+        var bytes = new List<byte>(new byte[69]);
+        Turn(bytes, 2, (51187, 41704, 0x04000A3D, 25), (0x2160DDC3, 0x1C40B974, 0x30001A3D, 26));
+        Turn(bytes, 3, (0x2160DDC3, 0x1C40B974, 0x380017D0, 26), (0, 0, 3, 21));
+        Turn(bytes, 4);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            PacketLog packet = PacketLog.Read(path, 3, 69);
+            Assert.Empty(packet.EntityReferences);
+            var map = new PacketEntityMap();
+
+            var first = packet.At(2, map).All;
+            Assert.Equal(new MovePossessedCreatureCommand(3, new PossessionPose(
+                new FpPosition3(new(51187), new(41704), new(0xA3D)), new Dk2Angle(0x400))), first[0]);
+            var act = Assert.IsType<ActPossessedCreatureCommand>(first[1]);
+            Assert.Equal((0xDDC3, 0xB974, 0x1A3D), act.Aim.PacketOrigin);
+            Assert.Equal((0x216, 0x1C4), (act.Aim.Yaw.Value, act.Aim.Pitch.Value));
+            Assert.Equal((false, 3), (act.Melee, (int)act.Slot.Value));
+
+            var second = packet.At(3, map).All;
+            var melee = Assert.IsType<ActPossessedCreatureCommand>(second[0]);
+            Assert.Equal((true, 3, 0x17D0), (melee.Melee, (int)melee.Slot.Value, melee.Aim.PacketOrigin.Z));
+            Assert.Equal(new LeavePossessionCommand(3), second[1]);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void PossessedSlotNibbleIsSigned()
+    {
+        var bytes = new List<byte>(new byte[69]);
+        Turn(bytes, 2, (0, 0, 0xF0000000, 26));
+        Turn(bytes, 3);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            var act = Assert.IsType<ActPossessedCreatureCommand>(
+                Assert.Single(PacketLog.Read(path, 2, 69).At(2, new PacketEntityMap()).All));
+            Assert.Equal(-1, act.Slot.Value);
         }
         finally { File.Delete(path); }
     }

@@ -74,7 +74,7 @@ public class Level10KeeperScenarioTests(ITestOutputHelper output)
 public class Level11AKeeperScenarioTests(ITestOutputHelper output)
 {
     [InstallFact]
-    public void Level11ADrakoBridgesTheLavaWithStoneThenCallsItsArmyToMorganasHeart_OnSeed4sDrawnDiagonal()
+    public void Level11ADrakoBridgesTheLavaWithStoneThenCallsItsArmyAtAnAttackedEnemyHeart_WithAmbientRats()
     {
         Scenario scenario = ScenarioCorpus.Load("keepers/level11a_drako_attack.yaml");
         ScenarioResult run = ScenarioCorpus.Run(scenario, output);
@@ -82,26 +82,39 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         // The planner picks Morgana (player 6) among four enemies and tags the corridor's first rock
         // north of the Lair; the lava two tiles on takes two Stone Bridge tiles, each
         // touching Drako's own floor (0x004FDC50, 0x0044F630, ADR-0304); the tunnel goes on, and the
-        // front casts the call two tiles off Morgana's heart. Lava never takes the Wooden Bridge.
+        // later draws may redirect the army to another enemy. Lava never takes the Wooden Bridge.
         Assert.Empty(run.ExpectationFailures);
         KeeperAIState state = run.KeeperStates[5];
         // Morgana first; never Raksha (bit 7), whom the level's first turn allies with Drako (ADR-0377).
         Assert.Equal((1 << 6, 1 << 6, 0), (state.PlayersAttackedFlags & (1 << 6), state.FirstAttackFlag & (1 << 6), state.PlayersAttackedFlags & (1 << 7)));
+        Assert.DoesNotContain(run.Events, e => e.Kind == "engaged" && e.Detail.Contains("player=5 heart=7"));
         KeeperCommandEmission tag = Assert.Single(run.KeeperCommandLog, e => e.Command is TagTilesCommand t && t.PlayerId.Value == 5 && t.Tiles.Contains(new TilePos(64, 41)));
         Assert.Equal((byte)5, tag.Command.PlayerId);
 
         List<(int Tick, BuildRoomCommand Build)> spans = run.KeeperCommandLog
             .Where(e => e.Command is BuildRoomCommand b && b.PlayerId.Value == 5 && BridgeRules.IsBridge(ScenarioCorpus.Database.Room(b.RoomId)))
             .Select(e => (e.InputTick, (BuildRoomCommand)e.Command)).ToList();
-        Assert.Equal([(62, new TilePos(64, 40)), (64, new TilePos(64, 39))], spans.Take(2).Select(s => (s.Tick, s.Build.Tiles[0])));
+        Assert.Equal([new TilePos(64, 40), new TilePos(64, 39)], spans.Take(2).Select(s => s.Build.Tiles[0]));
+        Assert.True(tag.InputTick < spans[0].Tick);
+        Assert.True(spans[0].Tick < spans[1].Tick);
         Assert.All(spans, s => Assert.Equal(RoomTypeId.StoneBridge, s.Build.RoomId));
+        Assert.Contains(run.KeeperCommandLog, e => e.InputTick > spans[1].Tick
+            && e.Command is TagTilesCommand t && t.PlayerId.Value == 5 && t.Tiles.Contains(new TilePos(64, 38)));
 
         KeeperCommandEmission callEmission = Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5);
         var call = (CastSpellAtPlaceCommand)callEmission.Command;
-        Assert.Equal(271, callEmission.InputTick);
-        // Two tiles off Morgana's heart; the seed-specific fixture is explained in the scenario.
-        // The front's direction is seed-dependent (Q574, ADR-0407).
-        Assert.Equal(((byte)CallToArmsRules.SpellId, 64, 34), (call.SpellId, call.X >> 12, call.Y >> 12));
+        Assert.Equal((byte)CallToArmsRules.SpellId, call.SpellId);
+        Assert.True(callEmission.InputTick > spans[1].Tick);
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "level11A")!;
+        WorldState stock = WorldState.FromMap(ScenarioCorpus.Database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
+        int callX = call.X >> 12, callY = call.Y >> 12;
+        RoomInstance enemyHeart = Assert.Single(RoomIndex.Build(stock, ScenarioCorpus.Database), room =>
+            room.Definition.TypeId == RoomTypeId.DungeonHeart && room.OwnerPlayerId is not (5 or 7)
+            && (state.PlayersAttackedFlags & (1 << room.OwnerPlayerId)) != 0
+            && callX >= room.MinX - 2 && callX <= room.MaxX + 2
+            && callY >= room.MinY - 2 && callY <= room.MaxY + 2);
+        Assert.Contains(run.Events, e => e.Kind == "engaged"
+            && e.Detail.Contains($"type=Mistress player=5 heart={enemyHeart.OwnerPlayerId}"));
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
 }

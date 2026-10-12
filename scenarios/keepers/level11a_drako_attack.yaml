@@ -11,7 +11,10 @@
 # (merged VARIABLES; no trigger changes them), and task 7 (0x004FDC50) spans lava only with a Stone
 # Bridge (room 17), placed where the lava touches Drako's own floor (0x0044F630, 0x00453B30). The
 # span takes two tiles, the walker steps onto the rock beyond and tags it, and once the tunnel opens
-# a route to Morgana's heart the front puts the Call to Arms beside it and Drako's creatures engage it.
+# a route toward Morgana's heart the later attack draws may select another enemy Heart for the call.
+# The regression checks the initial corridor and Stone Bridge crossing, then an attacked enemy's
+# Heart and the army's engagement. Ambient rat generation and authored portal headings alter the
+# shared seeded trajectory; seed 4 is a modern regression, not an original timing oracle.
 #
 # DK2 crosses here too: the idle capture of 2026-10-06 (computer-keeper-observations.md, Level 11A)
 # bridges (64,40) and (64,39) and calls at (64,38). This run matches that capture's conditions: the
@@ -22,7 +25,7 @@
 id: keepers-level11a-drako-attack-001
 question: >
   Does Drako, unaided, tunnel from its Lair toward Morgana's heart, bridge the lava in the way, and
-  attack her heart?
+  call its army at an attacked enemy's heart?
 map: campaign:level11A
 seed: 4
 duration_ticks: 700
@@ -36,7 +39,6 @@ observe:
 expect:
   - event: tagged
     detail: "player=5 applied=1 rejected=0 span=(64,41)-(64,41)"
-    at_tick: 6
     because: >
       Task 7 (0x004FDC50) tags the rock on the cursor's tile with action 40 when the tile is
       taggable and not yet in the task pool: the first tile of rock north of Drako's Lair, on the
@@ -44,39 +46,34 @@ expect:
       it on an earlier pass.
   - event: built
     detail: "player=5 room=Stone Bridge tiles=1 cost=500 refused=0 first=(64,40)"
-    at_tick: 62
     because: >
       The cursor waits on the tagged rock until it is dug and claimed, then steps onto the lava.
       Lava on the cursor takes only room 17 (0x004FDC50), when it is available; the tile touches
-      the claimed corridor, Drako's own floor, as the placement test requires (0x0044F630). DK2: 66.
+      the claimed corridor, Drako's own floor, as the placement test requires (0x0044F630).
+      The original capture places this bridge at tick 66; this regression does not pin timing.
   - event: built
     detail: "player=5 room=Stone Bridge tiles=1 cost=500 refused=0 first=(64,39)"
-    at_tick: 64
     because: >
       A laid span steps the walker on the same allowance (0x004FDC50); the next lava tile touches
-      the bridge just laid, which is owned and not solid (0x00453B30). DK2: 70.
+      the bridge just laid, which is owned and not solid (0x00453B30).
+      The original capture places this bridge at tick 70; this regression does not pin timing.
   - event: tagged
     detail: "player=5 applied=1 rejected=0 span=(64,38)-(64,38)"
-    at_tick: 65
     because: >
       Past the lava the walker meets rock again and task 7 tags it: the tunnel continues toward
       Morgana's heart. Her imps may reinforce and repair that wall (ADR-0387), and her heart
       calls them to fight intruders (ADR-0407). Timing depends on the seed (Q563, Q574).
   - event: call_to_arms_raised
-    detail: "tile=64,34"
-    at_tick: 271
+    detail: "player=5"
     because: >
-      With the tunnel open the front (0x004FE9C0) finds a route to a point two tiles off Morgana's
-      heart and attack management casts the call there (0x004FECE0, ADR-0298). The point is a draw
-      between (64,34) and (64,38); DK2's call stands on (64,38), at 700. This version 227 fixture
-      uses seed 4 to retain a northern call with the live-core movement guard (ADR-0439).
-      The current seeded pin raises the call at tick 271.
-      Direction and timing remain
-      seed-dependent (Q574); these observations do not establish original placement or timing parity.
+      The front (0x004FE9C0) finds an attack position and attack management casts the call
+      (0x004FECE0, ADR-0298). The dedicated test checks that position against an attacked,
+      non-allied enemy Heart on the shipped map and verifies the army engages that same Heart.
+      DK2's observed call stands at (64,38), at tick 700. Target selection, direction and timing
+      remain seed-dependent (Q563, Q574); this modern run does not establish original parity.
   - event: engaged
-    detail: "type=Mistress player=5 heart=6"
-    at_tick: 174
+    detail: "type=Mistress player=5 heart="
     because: >
-      Drako's Mistress remains engaged with Morgana's heart after the call (scan E, ADR-0163).
-      The expectation retains a Mistress reaching Morgana's heart, beyond the bridge and
-      call placement alone; it does not require the call before the first attack.
+      Drako's Mistress engages an enemy Heart (scan E, ADR-0163). The dedicated test pairs the
+      engagement with the Heart beside the call, beyond bridge construction alone. It does not
+      require the call before the first attack or assume the initial enemy remains the target.

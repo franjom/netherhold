@@ -10,14 +10,15 @@ recordings comes from the owner's seeded DK2 playbacks in `reverse-engineering/d
 The drivers are not in the repo. They live in the session scratchpads (`l1live_m.py`,
 `l2live_m.py`, `l2map-any.py`, `l3map.py`, `l3live_m.py`, `l2steps.py`) and must be
 pointed at a clean worktree with `TOOLROOT`. Each seed rebuilds its own entity map,
-because a seed changes our entity ids.
+because a seed changes our entity ids. The Level 2 and 3 builders paired hero parties one off;
+the fix leaves these results unchanged (`../2026-10-12-level4-packet-replay/`).
 
 | Level | Recording | Turns | DK2 side |
 |---|---|---|---|
 | 1 | `l1live.sav`, map `l1m/map.csv` | 2044 | `level1-live1`, `level1-live1-seeds` (02–07) |
 | 2 | `l2live2.sav` | 3657 | `level2-live2`, `level2-live2-seeds` (18 distinct seeds) |
 | 3 | `l3live.sav` | 3704 | `level3-live1/seed01`, `level3-live1-seeds` (03–07; 02 did not seed) |
-| 4 | `l4live.sav` (recorded 2026-10-11, won by killing the Lord; not yet replayed or mapped) | 6804 captured | `level4-live1/seed01` only; no seeded DK2 playbacks yet |
+| 4 | `l4live.sav` (recorded 2026-10-11, won by killing the Lord) | 6804 | `level4-live1/seed01` only; replayed in `../2026-10-12-level4-packet-replay/` |
 
 A win is the replay's `player 3 status=2`. Level 3 was also run past the recording's end
 with no further input. That needs a throwaway change in `PacketLog.Read`: stop at the

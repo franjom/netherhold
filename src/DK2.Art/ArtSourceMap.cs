@@ -234,6 +234,7 @@ public static class ArtSourceMap
         CreatureDef creature, IReadOnlyList<Dk2ArtResource> resources, string animation) => animation switch
     {
         "idle" => resources[CreatureIdle],
+        "entrance" => resources[29],
         "fighting" => resources[CreatureMelee],
         "casting" => resources[5].Type != 0 ? resources[5] : resources[CreatureMelee],
         "landing" => resources[23].Type != 0 ? resources[23] : resources[3],

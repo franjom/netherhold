@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 230;
+    private const int FormatVersion = 232;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -238,6 +238,19 @@ public static class WorldSnapshot
         // tick — but it is hashed state, so it is snapshotted state. Anything
         // reachable from WorldState has to survive the round trip or the
         // restore-and-continue invariant is a lie.
+        foreach (RoomBuildWaveState? wave in world.RoomBuildWaveSlots)
+        {
+            w.Write(wave.HasValue);
+            if (wave is not RoomBuildWaveState active) continue;
+            w.Write((byte)active.RoomId);
+            w.Write(active.Press.X);
+            w.Write(active.Press.Y);
+            w.Write(active.Release.X);
+            w.Write(active.Release.Y);
+            w.Write(active.QueuedTick.Value);
+            w.Write(active.AccumulatedCost);
+        }
+
         w.Write(world.PendingWork.Count);
         foreach (TileWorkOrder o in world.PendingWork)
         {
@@ -871,6 +884,12 @@ public static class WorldSnapshot
         world.NextPlaceClaim = nextPlaceClaim;
         world.NextTagOrder = nextTagOrder;
         world.CurrentTick = tick;
+
+        for (int i = 0; i < world.RoomBuildWaveSlots.Length; i++)
+            if (r.ReadBoolean())
+                world.RoomBuildWaveSlots[i] = new RoomBuildWaveState((RoomTypeId)r.ReadByte(),
+                    new TilePos(r.ReadInt32(), r.ReadInt32()), new TilePos(r.ReadInt32(), r.ReadInt32()),
+                    new GameTick(r.ReadInt64()), r.ReadUInt16());
 
         int workCount = r.ReadInt32();
         for (int i = 0; i < workCount; i++)

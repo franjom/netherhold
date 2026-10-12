@@ -83,6 +83,7 @@ namespace DK2.Unity
         private AssetProviderChain _assets;
         private InstallArtProvider _installArt;
         private ClassicMeshes _classic;
+        private ClassicConstructionEffects _constructionEffects;
         private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
         private TilePos? _dragTo;
         private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
@@ -174,6 +175,13 @@ namespace DK2.Unity
             _worldView = new WorldView(database, (byte)viewingPlayerId);
             _presenter = new ScenePresenter(
                 _worldView, _assets, _scene, new TorchLayout(database));
+            if (_installArt != null)
+            {
+                var sprites = new InstallEffectSpriteProvider(database, _installArt.LoadTexture);
+                _constructionEffects = new ClassicConstructionEffects(transform, database, sprites, seed,
+                    request => !world.FogOfWarEnabled || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId));
+                _simulation.ObserveWith(_constructionEffects.Model);
+            }
 
             _presenter.Present(world);
             LookAt(world);
@@ -181,6 +189,7 @@ namespace DK2.Unity
 
         private void OnDestroy()
         {
+            _constructionEffects?.Dispose();
             _installArt?.Dispose();
             _installArt = null;
         }
@@ -228,6 +237,7 @@ namespace DK2.Unity
             _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
             using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
+            _constructionEffects?.Draw();
         }
 
         private void QueueInput()

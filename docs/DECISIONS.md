@@ -10049,3 +10049,49 @@ research/structure-blocks.md §5.3.
 confirmed obstacle exception does not enforce. Platform crossings outside
 the core still follow DK2's exceptions; see the evidence boundary in §5.3.
 Q585 tracks the owner's visual acceptance.
+## ADR-0440 — A room on TotalCapacity's default arm holds its tile count
+**Date:** 2026-10-12 · **Status:** accepted · Research: auto-placed-furniture.md §5
+
+**Context.** On Level 4 the keeper cannot build a Guard Room and captures three
+neutral ones; DK2's portal then sent eleven Dark Elves, attracted by the Guard
+Room. Ours sent none: `TryTotalCapacity` read no capacity outside the furniture,
+Temple and Combat Pit arms, so `AttractionBudget` gave a Guard Room 0.
+
+**Decision.** `0x004E3ED0`'s jump table sends the Hatchery, Heart, bridges, Guard
+Room and every type outside 3–16 to an arm that stores the slab count `+0xA7`;
+`TryTotalCapacity` returns the tile count for them. The Portal (0), Prison
+(`0xFFFF`, its count in `+0x4B`) and Graveyard (floor slots) stay unread there.
+Hash/save version 231 (226–230 are held by the unmerged classic-look branch).
+
+**Consequences.** A Guard Room attracts as many Dark Elves as it has tiles, and its
+Guard Post claim is capped at that count. The Guard Room's extra (creatures walking
+to it, `0x004E53B0`) is still unbuilt, so ours admits slightly more than DK2.
+Levels 1–3 replays are unchanged (19/6/18 over seeds 1–20). Level 4's replays now
+receive 6–16 Dark Elves (DK2: 11) but none wins: our dig into the hero base lags
+DK2's by 200–1,400 turns by seed, and Receive Imps (special 124, at 5783) is unbuilt
+(experiments/2026-10-12-level4-packet-replay/).
+
+## ADR-0441 — Restore room construction and ambient room life
+
+**Status:** accepted, 2026-10-12. Owner requested construction effects,
+Prison rats and creature portal arrival playback, followed by verification
+and a merge to master.
+
+**Decision.** Player room rectangles enter the original fixed build queue;
+direct AI and harness orders retain immediate placement. Save and hash
+pending waves, bumping both formats to 232. Emit typed construction requests
+from wave placement, then play the original sprite resources through a
+separate asset provider and a wall-time effect clock. Reuse the object state
+and shared animal update order for rats. Select Entrance art during the
+existing portal arrival state and retain its original heading.
+
+**Reason.** Instant rectangles, absent ambient rats and idle arrival poses
+omit observable room life. Evidence and exact rules are in
+research/room-slab-chain.md, room-construction-effects.md, prison-rats.md
+and portal-creature-action.md.
+
+**Consequences.** Presentation randomness and particles do not alter game
+state. Ambient rat draws and portal heading do alter seeded simulation
+trajectories. Original asset redistribution remains outside this change.
+The effect physics boundaries are explicit in the canonical research;
+full original-game timing parity and Q582 remain open.

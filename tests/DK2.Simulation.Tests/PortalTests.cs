@@ -772,6 +772,51 @@ public class PortalTests
         Assert.Equal(capacity, AttractionBudget.Contribution(world, library));
     }
 
+    /// <summary>Level 4's captured Guard Rooms drew DK2's eleven Dark Elves where ours drew none:
+    /// <c>0x004E3ED0</c>'s jump table sends the Guard Room to its default arm, the slab count
+    /// <c>+0xA7</c>, which <c>0x004DCE70</c> returns for it (ADR-0440).</summary>
+    [Fact]
+    public void AGuardRoomContributesItsTilesAndAdmitsThatManyOfItsType()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        var elf = db.CreatureById(GoblinId) with
+        {
+            Attractions = [new CreatureAttraction(1, (byte)RoomTypeId.GuardRoom, 0)],
+        };
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.GuardRoom, 5, 5, 3, 3);
+        List<RoomInstance> rooms = RoomIndex.Build(world, db);
+        RoomInstance guard = rooms.Single(r => r.Definition.TypeId == RoomTypeId.GuardRoom);
+
+        Assert.Equal(9, AttractionBudget.Contribution(world, guard));
+        for (int i = 0; i < 9; i++)
+        {
+            Assert.True(AttractionBudget.Admits(world, elf, rooms, Keeper));
+            world.SpawnCreature(db, GoblinId, Keeper, new TilePos(5, 5));
+        }
+        Assert.False(AttractionBudget.Admits(world, elf, rooms, Keeper));
+    }
+
+    /// <summary>The arms that store something other than the slab count stay unread: the
+    /// Portal's 0, the Prison's 0xFFFF and the Graveyard's floor slots (ADR-0440).</summary>
+    [Theory]
+    [InlineData(RoomTypeId.Hatchery, true)]
+    [InlineData(RoomTypeId.Treasury, true)]
+    [InlineData(RoomTypeId.Lair, true)]
+    [InlineData(RoomTypeId.Prison, false)]
+    [InlineData(RoomTypeId.Graveyard, false)]
+    [InlineData(RoomTypeId.Portal, false)]
+    public void TheDefaultCapacityArmIsTheTileCount_AndPortalPrisonGraveyardStayUnmodelled(RoomTypeId type, bool read)
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        Paint(db, world, type, 5, 5, 3, 3);
+        RoomInstance room = RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == type);
+
+        Assert.Equal(read, AutoFurnitureRules.TryTotalCapacity(world, room, out int capacity));
+        Assert.Equal(read ? 9 : 0, capacity);
+    }
+
     [Fact]
     public void ARivalsLairDoesNotAttractAnythingToYourPortal()
     {

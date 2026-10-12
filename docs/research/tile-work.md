@@ -68,7 +68,8 @@ Efficiency. One path ends when the hostile-floor predicate becomes false; the
 other also removes trap (thing type 3) and door (type 4) things left on the tile
 when it falls. The first switches to a different amount when creature state-flag
 bit 7 (`0x3e6 & 0x80`) is set, built from two creature-definition fields and a
-per-creature field at `+0x5c6`; what that flag marks is UNKNOWN and the ordinary
+per-creature field at `+0x5c6`; that flag is Possessed (possession-arms-and-inputs.md
+§3) and the ordinary
 path is unaffected.
 
 So `AttackTileHealth` is the imp's hostile-floor phase. The predicate
@@ -148,7 +149,8 @@ reversing ADR-0024): reinforcing Rock is 660 − 165 = 495, fifty applications a
 Gems are impenetrable and their `destroyedTypeTerrainId` is *themselves*. A gem
 face at 100 health takes two swings of 60, collapses, and immediately reappears
 at full health; `GoldMinedFromGems` (25) is what each cycle yields against a
-seam's 3000. The data reproduces the thing every DK2 player knows — gems never
+seam's 3000. The mine handler disagrees: a gem face takes no damage and pays 25
+every strike (Q587, possession-arms-and-inputs.md §3). The data reproduces the thing every DK2 player knows — gems never
 run out and are far slower than a seam — with nothing special-cased.
 
 

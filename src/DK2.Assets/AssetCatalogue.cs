@@ -75,7 +75,7 @@ public static class AssetCatalogue
         "slapped",
     ];
 
-    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing"];
+    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing", "entrance"];
 
     /// <summary>
     /// Every key the database implies, ordered by record id within each category so

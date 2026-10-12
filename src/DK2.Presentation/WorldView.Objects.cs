@@ -191,6 +191,9 @@ public sealed partial class WorldView
                     roll = thing.DrawRoll;
                     heading = thing.Heading;
                     break;
+                case RatRules.RatObjectId:
+                    (posX, posY, heading) = (thing.PosX, thing.PosY, thing.Heading);
+                    break;
                 case ChickenId:
                     if (thing.PosX != 0 || thing.PosY != 0) (posX, posY) = (thing.PosX, thing.PosY);
                     heading = thing.Heading;
@@ -241,7 +244,7 @@ public sealed partial class WorldView
         return new ObjectView(thing.Id, thing.ObjectTypeId, thing.OwnerPlayerId, at, ObjectArt(thing.ObjectTypeId, slot),
             thing.GoldHeld, posX, posY, z, heading & 0x7FF, scale, pitch, roll & 0x7FF,
             previousPosX: new Fp32(previousX), previousPosY: new Fp32(previousY), previousHeading: previousHeading,
-            playsAnimation: stateAnimation || thing.ObjectTypeId is ChickenId or DungeonHeartId,
+            playsAnimation: stateAnimation || thing.ObjectTypeId is ChickenId or DungeonHeartId or RatRules.RatObjectId,
             animationStartedAt: stateAnimation ? objectAnimationStartedAt
                 : thing.ObjectTypeId == ChickenId && thing.ProcessState == 8 && thing.ProcessAgeTicks > 0
                     ? new GameTick(world.CurrentTick.Value - thing.ProcessAgeTicks) : null,

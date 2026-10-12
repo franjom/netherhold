@@ -73,6 +73,9 @@
       <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule">
+      <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.ParticleSystemModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
       <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.PhysicsModule.dll</HintPath>
       <Private>false</Private>

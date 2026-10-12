@@ -91,7 +91,9 @@ public static class AutoFurnitureRules
 
     /// <summary>The general capacity arms established by Q270, and <c>Room_ComputeTotalCapacity</c>'s
     /// shared arm for the Temple and the Combat Pit (<c>0x004E3ED0</c>, types 13 and 16): the room's
-    /// tiles that <c>Room_IsFloorSlot</c> rejects, its rim, with no +1 (Q543).</summary>
+    /// tiles that <c>Room_IsFloorSlot</c> rejects, its rim, with no +1 (Q543). Its default arm
+    /// (<c>0x004E429A</c>: Treasury, Lair, Hatchery, Heart, Guard Room, the bridges and the hero
+    /// rooms) stores the slab count <c>+0xA7</c> (ADR-0440).</summary>
     public static bool TryTotalCapacity(WorldState world, RoomInstance room, out int capacity)
     {
         bool plusOne;
@@ -101,6 +103,13 @@ public static class AutoFurnitureRules
             case RoomTypeId.CombatPit:
                 capacity = room.TileCount - FloorSlotSet(world, room).Count;
                 return true;
+            // Not read here: the Portal's arm stores 0, the Prison's 0xFFFF (its own count is +0x4B,
+            // PrisonRules.Capacity) and the Graveyard's its floor slots (FloorSlotCount, Q544).
+            case RoomTypeId.Portal:
+            case RoomTypeId.Prison:
+            case RoomTypeId.Graveyard:
+                capacity = 0;
+                return false;
             case RoomTypeId.Library:
             case RoomTypeId.TrainingRoom:
             case RoomTypeId.Workshop:
@@ -111,8 +120,8 @@ public static class AutoFurnitureRules
                 plusOne = false;
                 break;
             default:
-                capacity = 0;
-                return false;
+                capacity = room.TileCount;
+                return true;
         }
 
         var roomTiles = new HashSet<int>(room.TileIndices);

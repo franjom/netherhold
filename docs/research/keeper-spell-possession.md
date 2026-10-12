@@ -216,12 +216,10 @@ is set and the target is a creature (+0x12 zero), the hypnotised creature is sen
 at the target (0x0048F3F0, 0x0048F390, 0x0045CB00) and its NHypnotisedAttacks
 +0x4DB is counted (0x00514DAD-0x00514DE5; the arm reads +0x4A7, never writes it).
 PossessedTargetAttackTime +0x4D2 = now and PossessedTargetTag +0x4D0 = target are
-written, and +0x427 is stamped again. Combat_SelectAVictim (0x0045D5D9) gives a
-creature whose +0x482 names the possessed one that tag as its victim (followers,
-LIKELY); Creature_Update clears it after 3 × var19 ticks (0x0048A7C7). A refused start keeps the first stamp. The
+written, and +0x427 is stamped again; followers read +0x4D0 (see
+possession-arms-and-inputs.md §4). A refused start keeps the first stamp. The
 blow is action 17's swing 0x00498E30 into 0x00494D00. No target and def+0x686 bit
-0 runs a dig/claim arm (actions 4/6 on the pose tile, 2/1 on the facing tile from
-table 0x006BC350). It is LIKELY by listing, not built.
+0 runs the dig/claim arm (possession-arms-and-inputs.md §3), not built.
 
 The pick predicate 0x00516050 — CONFIRMED. Equal owners branch at 0x00516065.
 Same owner: objects only, within reach 0x005162E0, typed through 0x005162A0:
@@ -293,19 +291,9 @@ answer 0x0045AA20 has only spFighting and trap callers. An object's radius
 (vtable 0x0066D654 slot +0x3C, 0x00402AD0) is 0. The gold arm's last call,
 0x0050FB70, forwards to the world's sink (presentation, LIKELY).
 
-**The other inputs are set by commands (Q536, 2026-10-05) — CONFIRMED.** SneakingAs
-+0x4A3: only ToggleSneak 0x0048EE90 (command 0x1D via 0x00517270, and Hand_PickUp).
-HypnotisedCreature +0x4A7: only command 0x1B (0x005163C0), which takes the nearest
-enemy creature whose def +0x686 has bit 16 in the cone and in sight and, unless bit 9,
-gives it the possessor's owner (old owner kept at +0x4A9); a second press releases it.
-SniperMode (+0x3E6 bit 31): only command 39 (0x005171D0, record bit 0), sent by the
-input routine 0x0040FDF0 (LIKELY). Leaving possession (0x004BE090 → 0x0048EE70) clears
-SneakingAs and SniperMode; HypnotisedCreature is not cleared there. 0x00508FC0 has no
-bounds test, but no shipped map has a non-solid border tile; its callers' offsets are unread.
-
-UNREAD: arm 0x00514C31; the dig/claim arm's detail; the dword2 angle; 0x00516050's
-third argument (melee passes 1); the caster as its own friendly candidate; +0x155's
-comparison units; action 17 on an object, shot or body; the hypnosis end rule (0x00488C40).
+The unbuilt arms (objects, the swing on non-creatures, dig/claim, followers) and the
+command inputs (sneak, hypnosis, sniper) are read in
+[possession-arms-and-inputs.md](possession-arms-and-inputs.md) (Q535, Q536).
 
 **Build boundary (2026-10-04).** Stage7b1 builds action25 as
 `MovePossessedCreatureCommand` (`PossessionRules.Move`): both packed-word

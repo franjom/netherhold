@@ -62,8 +62,14 @@ effects.
   no route, so every one of our portal arrivals stood on it for good.
 
 Built: `PortalRules.JoiningState`, `JoiningTicks` and `StillJoining`;
-`CreatureJobSystem` holds 193, steps and chooses in the same tick. Deviates: the
-height is not taken, and while in 193 the creature reads as idle to other systems.
+`CreatureJobSystem` holds 193, steps and chooses in the same tick. `WorldView`
+plays the Entrance clip once from the state-entry stamp; `ArtSourceMap` selects
+file block 30 (catalogue index 29, which omits the initial unrelated block).
+The creator now also sets the original heading `0x400`, so authored motion
+faces the same direction as the eventual step. The existing classic clock
+retains its final pose until state 193 ends. Verified
+against all 46 shipped creature descriptors and the Warlock/Goblin view lifecycle.
+Deviates: height is not taken, and 193 reads as idle to other simulation systems.
 
 CONFIRMED negative scope: no direct `0x0049AA30` created-event call occurs
 in the complete bodies of `0x004DC8F0`, `0x004DC9A0`, `0x004B78D0`,
@@ -147,7 +153,7 @@ contexts refuse it.
 
 The existing arrival representation remains an approximation: derived tile
 order instead of a persistent player room list; bounding-box centre for
-malformed portals; idle instead of the animation-driven state 193 sequence;
+malformed portals; a fitted state-193 wait instead of the full original action runner;
 no original 448-slot allocator, unique-type owner override, mutable pool consumption, arrival body bit,
 origin room id, or audiovisual notifications. Q473/Q474 track the missing
 work. These are not evidence that the corresponding DK2 rules are absent.

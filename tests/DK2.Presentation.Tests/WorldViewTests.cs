@@ -23,6 +23,32 @@ namespace DK2.Presentation.Tests;
 /// </summary>
 public class WorldViewTests
 {
+    [InstallTheory]
+    [InlineData("Warlock")]
+    [InlineData("Goblin")]
+    public void PortalArrivalPlaysEntranceOnceFromTheStateEntryAndReturnsToIdle(string name)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState creature = world.SpawnCreature(database, database.CreatureByName(name)!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        CreatureStateMachine.TrySetState(new StateHookContext(world, database), creature,
+            PortalRules.JoiningState, currentTick: 17);
+        var view = new WorldView(database);
+        CreatureView rendered = view.Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(AssetRef.ForCreature(name, AssetKind.Animation, "entrance"), rendered.Animation);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.False(rendered.AnimationLoops);
+        Assert.False(rendered.AnimationDeferred);
+        Assert.Null(rendered.AnimationMovementSpeed);
+        Assert.Equal(new GameTick(17), rendered.AnimationStartedAt);
+        CreatureStateMachine.TrySetState(new StateHookContext(world, database), creature,
+            CreatureStateMachine.Idle, currentTick: 38);
+        rendered = view.Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(AssetRef.ForCreature(name, AssetKind.Animation, "idle"), rendered.Animation);
+        Assert.True(rendered.AnimationLoops);
+        Assert.Null(rendered.AnimationStartedAt);
+    }
+
     [InstallFact]
     public void ACorpseUsesItsDeadMeshAndStopsTheLivingAnimation()
     {
