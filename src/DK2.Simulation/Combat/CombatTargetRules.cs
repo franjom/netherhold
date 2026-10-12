@@ -10,18 +10,18 @@ using DK2.Simulation.Steering;
 namespace DK2.Simulation.Combat;
 
 /// <summary>Where the enemy hearts stand this tick, for the acquirer's heart scan: each hostile
-/// keeper's heart centre and the heart tiles round it that stand in for its Arch Pillars, whose
-/// placement is unread (Q363). Built once a tick by <see cref="Systems.CombatSystem"/>.</summary>
+/// keeper's heart centre and its three Arch Pillars. Built once a tick by
+/// <see cref="Systems.CombatSystem"/>.</summary>
 public sealed class HeartSites
 {
     public readonly struct Site
     {
-        public Site(PlayerId owner, int centreX, int centreY, int[] ringTiles, bool standing)
+        public Site(PlayerId owner, int centreX, int centreY, HeartPillarTarget[] pillars, bool standing)
         {
             Owner = owner.Value;
             CentreX = centreX;
             CentreY = centreY;
-            RingTiles = ringTiles;
+            Pillars = pillars;
             Standing = standing;
         }
 
@@ -34,7 +34,7 @@ public sealed class HeartSites
         /// <summary>The heart's centre tile, as a position: tile centre in 1/4096 units.</summary>
         public int CentreX { get; }
         public int CentreY { get; }
-        public int[] RingTiles { get; }
+        public HeartPillarTarget[] Pillars { get; }
     }
 
     private readonly List<Site> _sites = [];
@@ -70,8 +70,8 @@ public sealed class HeartSites
         return maxX < 0 ? -1 : (((minY + maxY) / 2) * world.Width) + ((minX + maxX) / 2);
     }
 
-    /// <summary>Every keeper's heart: the bounding box of its tiles gives the centre and the box's
-    /// border the ring; a fallen or ruined one is kept with <see cref="Site.Standing"/> clear.</summary>
+    /// <summary>Every keeper's heart and its pillars; a fallen or ruined one is kept with
+    /// <see cref="Site.Standing"/> clear.</summary>
     public void Refresh(WorldState world, GameDatabase database)
     {
         _sites.Clear();
@@ -97,20 +97,10 @@ public sealed class HeartSites
             }
             if (maxX < 0) continue;
 
-            var ring = new List<int>();
-            for (int y = minY; y <= maxY; y++)
-            {
-                for (int x = minX; x <= maxX; x++)
-                {
-                    bool border = x == minX || x == maxX || y == minY || y == maxY;
-                    ref TileState tile = ref world.Tile(new TilePos(x, y));
-                    if (border && tile.OwnerPlayerId == player.PlayerId && tile.TerrainId == heartTerrain.Value)
-                        ring.Add((y * world.Width) + x);
-                }
-            }
-
+            RoomInstance? room = RoomIndex.RoomAt(world, database, (minY * world.Width) + minX);
+            HeartPillarTarget[] pillars = room is null ? [] : HeartPillarRules.In(world, room);
             int centreX = CreatureState.CentreOf((minX + maxX) / 2), centreY = CreatureState.CentreOf((minY + maxY) / 2);
-            _sites.Add(new Site(player.PlayerId, centreX, centreY, ring.ToArray(), standing));
+            _sites.Add(new Site(player.PlayerId, centreX, centreY, pillars, standing));
         }
     }
 }
@@ -122,7 +112,7 @@ public sealed class HeartSites
 /// engagement and sets the reach (docs/research/combat-acquisition.md §6–§8), and the withdrawal of
 /// a hurt creature in place of the fight (combat-fear.md §3), and the attack-spell survey that lets
 /// a caster engage at its spell's range (combat-spells.md §5, ADR-0167). Not built and named there:
-/// the thing-targeting survey and scans A, B and C.</summary>
+/// the thing-targeting survey and scans A and B.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-acquisition.md")]
 public static class CombatTargetRules
 {
@@ -285,8 +275,8 @@ public static class CombatTargetRules
         }
 
         int best = int.MaxValue;
-        CreatureState? chosen;
-        if (definition.FightStyle == FightStyle.NonFighter)
+        CreatureState? chosen = ScanAttackers(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+        if (chosen is null && definition.FightStyle == FightStyle.NonFighter)
         {
             if (NonFighter(context, sight, hearts, rooms, me, definition, scratch, out chosen) && chosen is null)
             {
@@ -294,7 +284,7 @@ public static class CombatTargetRules
                 return true;
             }
         }
-        else chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+        else if (chosen is null) chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
 
         // The route check on the arm's creature (0x0045D74A), before the thing scans: unwalkable, it is
         // dropped unless an attack spell can see it, and the scans below look on.
@@ -312,9 +302,10 @@ public static class CombatTargetRules
         bool heartMayEnter = trap is null
             && (chosen is null || database.CreatureById(chosen.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker));
         int heartTile = -1;
+        HeartPillar heartPillar = default;
         PlayerId heartOwner = 0;
         if (heartMayEnter && me.CreatureTypeId != CombatRules.ImpCreatureTypeId && !definition.Flags.HasFlag(CreatureFlags.IsHorny))
-            heartTile = ScanHearts(world, sight, hearts, me, sightSq, ref best, out heartOwner);
+            heartTile = ScanHearts(world, sight, hearts, me, sightSq, ref best, out heartOwner, out heartPillar);
 
         // Scan F (spell-friendly-arm.md §8): an ally that wants the friendly spell outranks whatever
         // the hostile scans found; none found, the hostile best stands.
@@ -326,9 +317,10 @@ public static class CombatTargetRules
 
         if (heartTile >= 0)
         {
-            if (!CanReach(context.Navigation, me, definition, TileCentreX(world, heartTile), TileCentreY(world, heartTile), int.MaxValue, scratch))
+            HeartPillarTarget target = HeartPillarRules.At(new TilePos(heartTile % world.Width, heartTile / world.Width), heartPillar);
+            if (!CanReach(context.Navigation, me, definition, target.X.Raw, target.Y.Raw, int.MaxValue, scratch))
                 return false;
-            return EngageHeart(context, me, definition, heartOwner, heartTile, spellSlot, spell);
+            return EngageHeart(context, me, definition, heartOwner, target, spellSlot, spell);
         }
 
         if (trap != null) return EngageTrap(context, sight, me, definition, trap, trapDistance, sightSq, hearSq, spellSlot, spell);
@@ -565,6 +557,36 @@ public static class CombatTargetRules
     private static byte BaseTypeId(CreatureDef definition) =>
         (definition.Flags & CreatureFlags.IsUnique) != 0 ? definition.UniqueBaseCreatureId : definition.CreatureId;
 
+    /// <summary>Scan C: registered attackers precede the fight-style arm. Imps bypass its
+    /// sight/hearing distance cap, but still need visibility and a route (combat-acquisition.md §6).
+    /// Disguise and creeping-distance weighting remain unbuilt, as in the ordinary scan.</summary>
+    private static CreatureState? ScanAttackers(
+        SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition,
+        int sightSq, int hearSq, List<Fixed16Vector> scratch, ref int best)
+    {
+        CreatureState? chosen = null;
+        bool imp = me.CreatureTypeId == CombatRules.ImpCreatureTypeId;
+        if (imp) { sightSq = MeleeDecisionDistance; hearSq = 0; }
+        for (int slot = 0; slot < CombatRules.Slots; slot++)
+            for (int kind = 0; kind < 2; kind++)
+            {
+                int id = kind == 0 ? me.EngagedMelee[slot] : me.EngagedRanged[slot];
+                if (id == CombatRules.NoTarget) continue;
+                CreatureState? candidate = context.World.CreatureById(id);
+                if (candidate is null || !CombatRules.IsAttackable(candidate)) continue;
+                CreatureDef theirs = context.Database.CreatureById(candidate.CreatureTypeId);
+                int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+                if (CombatRules.OppositeAlignment(definition, theirs)) d = CombatRules.Discounted(d);
+                if (d >= best || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY)) continue;
+                if (!imp && d >= sightSq
+                    && !(d < hearSq && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch))) continue;
+                if (!CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, int.MaxValue, scratch)) continue;
+                best = d;
+                chosen = candidate;
+            }
+        return chosen;
+    }
+
     /// <summary>The fighting arms (<c>0x0045B140</c> and its three siblings): every hostile creature in
     /// the game, scored by the arm's one line over the discounted distance and the counts of who
     /// already fights it, lower wins; a candidate that beats the best so far must be attackable
@@ -603,13 +625,13 @@ public static class CombatTargetRules
     }
 
     /// <summary>Scan E: each hostile keeper's heart whose centre is within sight and seen, and then
-    /// its nearest ring tile that beats the best so far. DK2's candidates are the room's Arch
-    /// Pillar objects, each a proxy whose blow the health routine hands to the heart; the ring
-    /// tile is the stand-in until their placement is read (Q363).</summary>
+    /// its three Arch Pillars in room object-list order. Each is a proxy whose blow the health
+    /// routine hands to the Heart; only a strictly nearer pillar replaces the best.</summary>
     private static int ScanHearts(
-        WorldState world, ISightBlocker sight, HeartSites hearts, CreatureState me, int sightSq, ref int best, out PlayerId owner)
+        WorldState world, ISightBlocker sight, HeartSites hearts, CreatureState me, int sightSq, ref int best, out PlayerId owner, out HeartPillar pillar)
     {
         owner = 0;
+        pillar = default;
         if (TurncoatRules.IsActive(me)) return -1;
         int chosen = -1;
         for (int s = 0; s < hearts.Sites.Count; s++)
@@ -619,14 +641,16 @@ public static class CombatTargetRules
             if (CombatRules.DistanceSquared(me.PosX, me.PosY, site.CentreX, site.CentreY) > sightSq) continue;
             if (!LineOfSight.Clear(sight, me.PosX, me.PosY, site.CentreX, site.CentreY)) continue;
 
-            for (int i = 0; i < site.RingTiles.Length; i++)
+            // The room object list prepends each built pillar; see furniture-placement.md §6.
+            for (int i = site.Pillars.Length - 1; i >= 0; i--)
             {
-                int tile = site.RingTiles[i];
-                int d = CombatRules.DistanceSquared(me.PosX, me.PosY, TileCentreX(world, tile), TileCentreY(world, tile));
+                HeartPillarTarget target = site.Pillars[i];
+                int d = CombatRules.DistanceSquared(me.PosX, me.PosY, target.X.Raw, target.Y.Raw);
                 if (d >= best) continue;
                 best = d;
-                chosen = tile;
+                chosen = (target.Tile.Y * world.Width) + target.Tile.X;
                 owner = site.Owner;
+                pillar = target.Pillar;
             }
         }
         return chosen;
@@ -721,14 +745,15 @@ public static class CombatTargetRules
     /// surveyed spell deals damage (a status spell takes melee against a thing, combat-spells.md §2),
     /// else melee at an object's reach — the pillar is class 2, so half a tile (<c>0x0045E098</c>); no slots.</summary>
     private static bool EngageHeart(
-        SimulationContext context, CreatureState me, CreatureDef mine, PlayerId owner, int tile, int spellSlot = -1, CreatureSpellDef? spell = null)
+        SimulationContext context, CreatureState me, CreatureDef mine, PlayerId owner, HeartPillarTarget target, int spellSlot = -1, CreatureSpellDef? spell = null)
     {
+        int tile = (target.Tile.Y * context.World.Width) + target.Tile.X;
         bool same = me.FightTargetKind == FightTargetKind.Heart && me.FightTargetTileIndex == tile;
-        int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, TileCentreX(context.World, tile), TileCentreY(context.World, tile));
+        int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, target.X.Raw, target.Y.Raw);
         bool useSpell = spell != null && !SpellRules.IsStatus(spell)
             && !(distance < MeleeDecisionDistance && mine.FightStyle != FightStyle.Support);
         me.FightTargetKind = FightTargetKind.Heart;
-        me.FightTargetId = CombatRules.NoTarget;
+        me.FightTargetId = HeartPillarId.For(context.World, target).Value;
         me.FightTargetPlayerId = owner.Value;
         me.FightTargetTileIndex = tile;
         if (useSpell)

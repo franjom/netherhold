@@ -1,6 +1,32 @@
 # Early state-hash versions
 
-Versions 9–30, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–35, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**35** — `0x368FDF9DF3D0A6EA`. Two changes, either of which moves the value
+alone: `SimulationTiming.TicksPerSecond` went 20 to **four**, DK2's own rate,
+re-timing every scheduled system; and `TileState.UpwardWork` was **removed**,
+because DK2 accumulates an upward job in the tile's own health and converts at
+the terrain's `MaxHealth`, so the cost is the deficit and not the whole maximum
+(Q1; ADR-0024 reversed by ADR-0089).
+
+**34** — `0x46FAACC93F8323FF`. Reason not recorded here; see git history.
+
+**33** — `0x21A7E4D24F37DF48`. Job selection for non-workers (ADR-0082):
+`CurrentJob`, `JobTileIndex`, a choice timestamp per mood, and the mood band
+itself, which DK2 stores rather than recomputing and which this now stores for
+the same reason — anger reaches a creature from four places and three of them
+run before the anger system in the same tick.
+
+**32** — `0x30722F6054924CC5`. The anger split (ADR-0081): one int becomes six.
+DK2 keeps a creature's anger in an `int[6]` indexed by grievance and bands the
+**largest** of them; this simulation kept one pooled counter. Two half-grievances
+no longer add up to desertion, and a kindness in one bucket no longer pays off a
+grievance in another.
+
+**31** — `0xC026542547419606`. Payday (ADR-0078): three creature fields — the
+wage owed, the failed-attempt counter and `SkipNextPayment` — and the next
+payday deadline on the player. The pinned world has no treasury and its
+creatures are level 1, so the value moved on composition.
 
 **30** — `0x2E7E116CA573398B`. Two commits arrived at 30 from 28, with 29 spent
 on a branch:

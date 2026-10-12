@@ -63,6 +63,26 @@ player. The corners are the packet's words at `+4`, `+6`, `+8` and `+0xA`, passe
   accumulated cost is shown at the last tile (`0x0050FB70`). The tile-word bit-14 clear over
   a rectangle is in the sell-side closer `0x004F09B0` (`0x004F09F8`), not here.
 
+**Timing and queue control — STRONGLY INFERRED (binary re-read 2026-10-12).**
+The world frame `0x0050A450` dispatches incoming packet actions at its start,
+then reaches the player update later in the same turn. Build packet handler
+`0x00512850` queues through `0x004C6EF0`; KeeperTick calls the wave through
+`0x004C7330` at `0x004BB614`. Thus elapsed zero builds the release corner on
+the input turn, before the session loop increments the turn. The first free
+of three slots accepts an order; a full queue drops it without replacement.
+Queueing reserves no gold. Per-tile placement refusal skips the tile; money
+refusal clears the order. Completion or money refusal returns from the entire
+player drain, so later slots miss that turn's diagonal, with no catch-up.
+A later single-tile slot whose elapsed-zero pass is missed can remain occupied.
+No cancellation action is introduced by this path. Effects are documented in
+[room-construction-effects.md](room-construction-effects.md).
+
+Within the player frame, computer AI precedes rat generation and KeeperTick.
+KeeperTick's mana call at `0x004BB586` precedes its timed-action update
+`0x004C0AA0`, build wave, sell wave and research chooser at `0x004BB62C`.
+Queue admission and tile conversion therefore observe different points in the
+turn: intervening movement, work or gold changes can refuse the first tile.
+
 **Single-tile building is the same action with x1 = x2, y1 = y2**, a one-tile wave. A room built
 click by click is therefore built in click order.
 
@@ -224,8 +244,15 @@ ADR-0240 records the chain order. §9 says what was built.
   4. restamps the whole chain.
 - **The §4 replay:** `SlabChain.Removed`. It takes the old room's remaining tiles in chain order,
   re-inserts them one by one through the same rule, and restamps each resulting room.
-- `BuildRoomCommand.Rectangle` and `SellRoomCommand.Rectangle` keep the corners and list the tiles
-  in wave order from the second corner.
+- `BuildRoomCommand.Rect` retains raw corners and queues three slots per player;
+  `RoomBuildSystem` admits input early; `RoomBuildWaveSystem` drains after keeper
+  mana and before research, advances one diagonal per turn, tests placement and
+  gold, emits creation effects at attempted tiles, and exits on slot completion.
+  Successful wave tiles reconcile furniture before emitting their effects.
+  Slots, queue stamps and accumulated cost survive hashes and checkpoints.
+  `BuildRoomCommand.At` retains immediate computer/scenario builder behavior
+  without the player wave's creation effect. `SellRoomCommand.Rect` lists the
+  same order but selling remains immediate in this slice.
 - ADR-0243 switches the order-sensitive §7 readers: pit route point, imp room
   point, wall-furniture phase, chicken and prison-food ties, gold deposit tile,
   lair search, and Workshop crate placement. Each has a dragged-room regression
@@ -246,3 +273,8 @@ to neutral. Ours keeps `SlabOrder` in both cases, as DK2 does.
 rooms (`0x60 − player+0x10F9`). This is an observable construction limit and
 should be modelled with a dedicated rejection test, but it is outside Q441's
 reader migration. It does not affect joins to an existing room.
+
+The normal defeated-keeper gate stops queued building. Keeper flag `+0x76`
+bit 22 can bypass that gate in the binary; this flag is not represented here.
+The builder's 96-room allocation failure remains outside this slice, so effects
+after a passing placement/cost test are observed only on successful room inserts.

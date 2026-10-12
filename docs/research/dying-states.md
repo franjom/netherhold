@@ -76,6 +76,20 @@ were not classified.
 
 **Built** as ADR-0359: neither countdown runs while the body is carried (Q164).
 
+## 3. Classic corpse art
+
+CONFIRMED (binary and shipped data, 2026-10-11): `0x004B0F20` requests
+creature-definition art 41 and installs it on the dead body. `0x00492320`
+loads its name from staging +0x187B and compacts it into definition +0x453
+(instructions 0x0049323C–0x0049325E). Subtracting the loader's +0x3F0 staging
+shift locates the file art record at +0x148B. `0x00494880` resolves absent
+art 41 to art 1, without recursively checking that fallback.
+
+The Goblin's resource is `Goblin-DiePose`, type 5: a static KMF corpse mesh.
+The classic catalogue loads this separate record; the dead-creature view
+uses it as the model and stops living animation. It does not change the
+death/rescue/countdown simulation or add a gradual decay effect.
+
 ## Open questions
 
 - Which of `0x00459560`'s five callers is the ordinary collapse, and what the

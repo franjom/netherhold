@@ -260,9 +260,9 @@ Read this before adding to `RoomRules`. **Rooms have no shape:** `Construction` 
 the `HasWalls` / `SpecialTiles` / `SpecialWalls` flags describe how a room meshes
 itself together and grows walls — presentation and adjacency, none of it read. A
 1x1 temple is buildable here and in the original (Q36), so this is a rendering gap
-rather than a rule gap. **Rooms are not built or sold over time:** in DK2 an imp
-walks to the tile and constructs it, and walks over to dismantle it; both are
-instant here. **A room's `ObjectIds` are placed by nothing** — the list is read,
+rather than a rule gap. Construction uses the player's diagonal wave;
+see [room-slab-chain.md](room-slab-chain.md), section 2. Selling remains
+immediate here. **A room's `ObjectIds` are placed by nothing** — the list is read,
 `ObjectCarryRules` using it to decide which room an object belongs in, but no rule
 furnishes a newly built room with the objects the record names.
 

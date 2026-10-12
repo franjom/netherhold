@@ -26,7 +26,7 @@ public static class FightRules
     /// <summary>Whether the engagement still has something to hit: a live, attackable creature, a
     /// heart that stands, or a door or trap with health. A Combat Pit fighter needs only a live target on the map, attackable or not,
     /// since its opponent, a fighter too, is never attackable (combat-pit.md §4).</summary>
-    public static bool TargetIsValid(WorldState world, CreatureState me)
+    public static bool TargetIsValid(WorldState world, GameDatabase database, CreatureState me)
     {
         switch (me.FightTargetKind)
         {
@@ -36,8 +36,8 @@ public static class FightRules
                 if (me.CombatPitFighter) return CreatureStateMachine.HasState(target) && CombatPitRules.IsOnTheMap(target);
                 return CombatRules.IsAttackable(target);
             case FightTargetKind.Heart:
-                ref PlayerState owner = ref world.Player(me.FightTargetPlayerId);
-                return owner.HeartHealth > 0 && !owner.HeartRuined;
+                return HeartPillarRules.TryResolve(world, database, me.FightTargetPlayerId, new HeartPillarId(me.FightTargetId), out HeartPillarTarget pillar)
+                    && me.FightTargetTileIndex == pillar.Tile.Y * world.Width + pillar.Tile.X;
             case FightTargetKind.Door:
                 // spFighting step 5: a thing target must be live with health above 0.
                 return world.DoorById(me.FightTargetId) is { Health: > 0 };
@@ -50,7 +50,7 @@ public static class FightRules
     }
 
     /// <summary>Where the target stands, in position units.</summary>
-    public static bool TargetPosition(WorldState world, CreatureState me, out int x, out int y, out TilePos tile)
+    public static bool TargetPosition(WorldState world, GameDatabase database, CreatureState me, out int x, out int y, out TilePos tile)
     {
         if (me.FightTargetKind == FightTargetKind.Creature)
         {
@@ -63,11 +63,13 @@ public static class FightRules
                 return true;
             }
         }
-        else if (me.FightTargetKind == FightTargetKind.Heart && me.FightTargetTileIndex >= 0)
+        else if (me.FightTargetKind == FightTargetKind.Heart
+            && HeartPillarRules.TryResolve(world, database, me.FightTargetPlayerId, new HeartPillarId(me.FightTargetId), out HeartPillarTarget pillar)
+            && me.FightTargetTileIndex == pillar.Tile.Y * world.Width + pillar.Tile.X)
         {
-            x = CombatTargetRules.TileCentreX(world, me.FightTargetTileIndex);
-            y = CombatTargetRules.TileCentreY(world, me.FightTargetTileIndex);
-            tile = new TilePos(me.FightTargetTileIndex % world.Width, me.FightTargetTileIndex / world.Width);
+            tile = pillar.Tile;
+            x = pillar.X.Raw;
+            y = pillar.Y.Raw;
             return true;
         }
         else if (me.FightTargetKind == FightTargetKind.Door && world.DoorById(me.FightTargetId) is { } door)
@@ -155,10 +157,9 @@ public static class FightRules
         }
         else if (me.SwingTargetKind == FightTargetKind.Heart)
         {
+            if (!HeartPillarRules.TryResolve(world, database, me.SwingTargetPlayerId, new HeartPillarId(me.SwingTargetId), out HeartPillarTarget pillar)) return;
             ref PlayerState owner = ref world.Player(me.SwingTargetPlayerId);
-            if (owner.HeartHealth <= 0 || owner.HeartRuined || me.FightTargetTileIndex < 0) return;
-            int blow = Blow(database, me, mine,
-                CombatTargetRules.TileCentreX(world, me.FightTargetTileIndex), CombatTargetRules.TileCentreY(world, me.FightTargetTileIndex));
+            int blow = Blow(database, me, mine, pillar.X.Raw, pillar.Y.Raw);
             if (blow == 0) return;
             bool killed = world.DamageHeart(owner.PlayerId, -blow, me.OwnerPlayerId);
             if (blow < 0) CombatMessageRules.HeartDamaged(context, owner.PlayerId);
@@ -304,13 +305,12 @@ public static class FightRules
             aimX = target.PosX + (int)((target.PosX - target.LastPosX) * tiles * 3 / 2);
             aimY = target.PosY + (int)((target.PosY - target.LastPosY) * tiles * 3 / 2);
         }
-        else if (me.SwingTargetKind == FightTargetKind.Heart && me.FightTargetTileIndex >= 0)
+        else if (me.SwingTargetKind == FightTargetKind.Heart)
         {
-            ref PlayerState owner = ref world.Player(me.SwingTargetPlayerId);
-            if (owner.HeartHealth <= 0 || owner.HeartRuined) return;
-            targetTile = me.FightTargetTileIndex;
-            aimX = CombatTargetRules.TileCentreX(world, targetTile);
-            aimY = CombatTargetRules.TileCentreY(world, targetTile);
+            if (!HeartPillarRules.TryResolve(world, database, me.SwingTargetPlayerId, new HeartPillarId(me.SwingTargetId), out HeartPillarTarget pillar)) return;
+            targetTile = pillar.Tile.Y * world.Width + pillar.Tile.X;
+            aimX = pillar.X.Raw;
+            aimY = pillar.Y.Raw;
         }
         else if (me.SwingTargetKind == FightTargetKind.Door && world.DoorById(me.SwingTargetId) is { Health: > 0 } door)
         {

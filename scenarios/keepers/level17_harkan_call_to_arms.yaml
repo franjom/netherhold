@@ -11,8 +11,8 @@
 # 25000 mana, the claimed tile is a lawful place and a walker routes there from the heart, so
 # the keeper casts the call at its fighter through the same action 54 a human uses; the flag object raises the
 # call and Harkan's placed creatures answer it. Harkan's removal parameters want six enemies
-# within two tiles and five own non-workers, so once the call is seen the removal test slaps the
-# flag down (action 63). No allowance and no flag is set by hand: the fight, the message walk,
+# within two tiles and five own non-workers. Its next-tick action63 attempt is refused
+# while the flag is appearing; the AI clears its tracking without reading that result. No allowance and no flag is set by hand: the fight, the message walk,
 # the step and the spell run through the default systems (ADR-0283).
 #
 # What this run does NOT establish: DK2's timing. No original run of Harkan casting has been
@@ -55,12 +55,10 @@ expect:
     because: >
       The activation's recruit sends every routable non-worker of Harkan's that is not joining,
       fighting, reporting danger or captive to state 190; the level places several.
-  - event: call_to_arms_slapped
-    detail: "player=4"
+  - event: refused
+    detail: "player=4 command=remove_call_to_arms"
+    at_tick: 40
     because: >
-      The removal test (0x004FEFC0) wants RemoveCallToArmsEnemyCreatures enemies strictly within
-      RemoveCallToArmsWithinRange tiles of the stored position and RemoveCallToArmsOwnCreatures own
-      non-workers; Harkan's six and five are not met, so the keeper submits action 63.
-  - event: call_to_arms_removed
-    detail: "player=4"
-    because: The slap's releasing state clears the call and destroys the flag (0x0049FD80).
+      The removal test004FEFC0 dispatches action 63 and clears its tracking without
+      reading the result. At this next-tick attempt the flag still runs its
+      appearance art in state 12, which the slap gate refuses (object-drawing.md section 8).

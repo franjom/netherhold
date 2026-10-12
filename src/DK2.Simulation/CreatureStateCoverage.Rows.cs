@@ -126,8 +126,8 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(108, typeof(JobRules), nameof(JobRules.StateFor)));
         rows.Add(Unbuilt(109, "read in training.md; not built"));
         rows.Add(Built(110, typeof(TrainingRules), nameof(TrainingRules.CapRefusalState)));
-        rows.Add(Unbuilt(111, "read in training.md; not built"));
-        rows.Add(Unbuilt(112, "read in training.md; not built"));
+        rows.Add(Built(111, typeof(TrainingStep), nameof(TrainingStep.AtMachineState)));
+        rows.Add(Built(112, typeof(TrainingStep), nameof(TrainingStep.WorkingState)));
         rows.Add(Built(113, typeof(TrainingRules), nameof(TrainingRules.ReturningState)));
         rows.Add(Built(114, typeof(PrisonRules), nameof(PrisonRules.AdmittedState)));
         rows.Add(Built(115, typeof(PrisonRules), nameof(PrisonRules.DecidingState)));
@@ -229,7 +229,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(211, typeof(DropDeliveryRules), nameof(DropDeliveryRules.CelebratingState)));
         rows.Add(Unreachable(212, "no entry by the call, raw byte, +0xDF or room-table scans: room-return-states.md §6"));
         rows.Add(Unreachable(213, "no entry by the call, raw byte, +0xDF or room-table scans: room-return-states.md §6"));
-        rows.Add(Unbuilt(214, "not read"));
+        rows.Add(Unbuilt(214, "read (functions/00481750.md): a wait read as a fall to the floor (inferred), then 76's landing; ours has no fall and puts the worker down as the hand does (SpecialSystem, ImpSupplySystem)"));
         rows.Add(Unreachable(215, "no entry by the call, raw byte, +0xDF or room-table scans: room-return-states.md §6"));
         rows.Add(Built(216, typeof(CreatureDeathRules), nameof(CreatureDeathRules.FallingState)));
         rows.Add(Built(217, typeof(CreatureDeathRules), nameof(CreatureDeathRules.DyingState)));

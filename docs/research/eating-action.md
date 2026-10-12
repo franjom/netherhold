@@ -29,5 +29,6 @@ than the executing tick, so the playback origin is `(stamp + 1)/4` seconds.
 `0x00473750` starts the same action only when the meal clears hunger, then
 sets 119. `0x00473730` polls `0x00496D00`, sets **117** (`0x75`) when there is
 no current action, and always returns 1. The previous return-to-115 reading
-confused the literal. Our prison wait remains one turn followed by 115;
-its action timing and return path are not built by ADR-0432.
+confused the literal. Built under ADR-0438: a filled prisoner waits for the same
+first-cycle action boundary as the Hatchery, then searches again in 117.
+Missing art leaves no action, so the next poll returns to 117.

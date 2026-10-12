@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -156,68 +156,12 @@ public static class ChickenMovementRules
     }
 
     public static bool StartMove(SimulationContext context, ObjectState chicken, ObjectMovePoint destination,
-        ChickenProcess resume, Fp32 extraSpeed, bool interruptible)
-    {
-        if (!context.World.Contains(new TilePos(destination.X.Raw >> 12, destination.Y.Raw >> 12))) return false;
-        SetProcess(chicken, ChickenProcess.Moving);
-        chicken.MoveResumeState = (byte)resume;
-        chicken.MoveDestinationX = destination.X.Raw;
-        chicken.MoveDestinationY = destination.Y.Raw;
-        chicken.MoveFlags = (chicken.MoveFlags & ~ObjectMoveFlags.Interruptible)
-            | (interruptible ? ObjectMoveFlags.Interruptible : ObjectMoveFlags.None);
-        ObjectDef definition = context.Database.ObjectById(chicken.ObjectTypeId)!;
-        int speed = unchecked((short)(RuntimeSpeed(definition) + extraSpeed.Raw));
-        if (speed == 0) return false;
-        int dx = unchecked(destination.X.Raw - chicken.PosX), dy = unchecked(destination.Y.Raw - chicken.PosY);
-        int heading = Bearing.Of(dx, dy);
-        chicken.MoveVelocityX = unchecked(TrapRules.Sine(heading) * speed) >> 16;
-        chicken.MoveVelocityY = unchecked(-TrapRules.Cosine(heading) * speed) >> 16;
-        uint distanceSquare = unchecked((uint)((int)(((long)dx * dx) >> 12) + (int)(((long)dy * dy) >> 12)));
-        uint speedSquare = unchecked((uint)((long)speed * speed >> 12));
-        if (speedSquare == 0) throw new DivideByZeroException("Object movement speed has zero fixed-point square.");
-        int count = Math.Max(1, IntegerMath.SquareRoot(distanceSquare / speedSquare) - 1)
-            + (distanceSquare % speedSquare != 0 ? 1 : 0);
-        chicken.MoveTicksRemaining = unchecked((ushort)count);
-        chicken.MoveFlags |= ObjectMoveFlags.Turning;
-        return true;
-    }
+        ChickenProcess resume, Fp32 extraSpeed, bool interruptible) =>
+        ObjectMovementRules.StartMove(context, chicken, destination, new ObjectProcessId((byte)resume), extraSpeed, interruptible);
 
-    public static short RuntimeSpeed(ObjectDef definition)
-    {
-        short speed = unchecked((short)(definition.Speed.Raw / SimulationTiming.OriginalTicksPerGameSecond));
-        return definition.Speed.Raw != 0 && speed == 0 ? (short)1 : speed;
-    }
+    public static short RuntimeSpeed(ObjectDef definition) => ObjectMovementRules.RuntimeSpeed(definition);
 
-    private static void Move(SimulationContext context, ObjectState chicken)
-    {
-        if ((chicken.MoveFlags & ObjectMoveFlags.Turning) != 0)
-        {
-            int heading = chicken.Heading;
-            int target = Bearing.Of(chicken.MoveDestinationX - chicken.PosX, chicken.MoveDestinationY - chicken.PosY);
-            int remaining = Bearing.TurnToward(ref heading, target, TurnRate);
-            chicken.Heading = heading;
-            if (remaining != 0) return;
-            chicken.MoveFlags &= ~ObjectMoveFlags.Turning;
-        }
-        chicken.MoveTicksRemaining = unchecked((ushort)(chicken.MoveTicksRemaining - 1));
-        if (chicken.MoveTicksRemaining == 0)
-        {
-            SetPosition(context.World, chicken, new ObjectMovePoint(new Fp32(chicken.MoveDestinationX), new Fp32(chicken.MoveDestinationY)));
-            SetProcess(chicken, (ChickenProcess)chicken.MoveResumeState);
-        }
-        else
-        {
-            SetPosition(context.World, chicken, new ObjectMovePoint(new Fp32(chicken.PosX + chicken.MoveVelocityX), new Fp32(chicken.PosY + chicken.MoveVelocityY)));
-            TryAvoidCreature(context, chicken);
-        }
-    }
-
-    private static void SetPosition(WorldState world, ObjectState chicken, ObjectMovePoint position)
-    {
-        chicken.PosX = position.X.Raw;
-        chicken.PosY = position.Y.Raw;
-        chicken.TileIndex = (position.Y.Raw >> 12) * world.Width + (position.X.Raw >> 12);
-    }
+    private static void Move(SimulationContext context, ObjectState chicken) => ObjectMovementRules.StepMove(context, chicken);
 
     private static void React(SimulationContext context, ObjectState chicken)
     {
@@ -247,7 +191,7 @@ public static class ChickenMovementRules
         SetProcess(chicken, next);
     }
 
-    private static bool TryAvoidCreature(SimulationContext context, ObjectState chicken)
+    internal static bool TryAvoidCreature(SimulationContext context, ObjectState chicken)
     {
         if (!chicken.ChickenCanEscape || chicken.ChickenScared
             || (chicken.MoveFlags & ObjectMoveFlags.Interruptible) == 0) return false;

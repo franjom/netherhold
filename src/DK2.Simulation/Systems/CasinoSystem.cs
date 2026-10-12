@@ -71,6 +71,10 @@ public sealed class CasinoSystem : ISimulationSystem
                 thing.Setting = thing.Setting == CasinoRules.Generous
                     ? CasinoRules.Stingy
                     : CasinoRules.Generous;
+                thing.ProcessState = thing.Setting == CasinoRules.Stingy ? (byte)49 : (byte)48;
+                thing.ProcessAgeTicks = 0;
+                thing.ProcessCount = 0;
+                thing.ProcessDeadline = context.Tick.Value;
                 context.Emit(SystemName, "lever_pulled",
                     $"player={request.PlayerId} at=({request.Tile.X},{request.Tile.Y}) " +
                     $"setting={(thing.Setting == CasinoRules.Stingy ? "stingy" : "generous")}");

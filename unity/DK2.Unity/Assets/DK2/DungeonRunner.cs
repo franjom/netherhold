@@ -17,6 +17,7 @@ using DK2.Simulation;
 using DK2.Simulation.Systems;
 using Unity.Profiling;
 using UnityEngine;
+using Unity.Profiling;
 
 namespace DK2.Unity
 {
@@ -50,8 +51,8 @@ namespace DK2.Unity
 
         [Header("Input")]
         [SerializeField] private PlayerToolMode tool = PlayerToolMode.TagTiles;
-        [Range(1, byte.MaxValue)]
-        [SerializeField] private int selectedRoomId = (int)RoomTypeId.Treasury;
+        [Tooltip("Room used by Build. Select a name here or cycle rooms with [ and ].")]
+        [SerializeField] private RoomTypeId selectedRoomId = RoomTypeId.Treasury;
 
         [Header("Running")]
         [Tooltip("Multiplies the simulation's own tick rate. 0 pauses; 1 is the placeholder rate (Q1).")]
@@ -76,12 +77,10 @@ namespace DK2.Unity
         [SerializeField] private float cameraZoomFraction = 0.15f;
         private const float MinCameraHeight = DungeonScene.FloorHeight + 0.5f;
 
-        // One span per stage of a frame, so the Profiler separates a slow tick from a slow redraw.
+        // With TickMarker and PresentMarker below, so the Profiler separates input, the
+        // position snapshot and the tick itself (whose systems UnitySimulationProfiler shows).
         private static readonly ProfilerMarker InputMarker = new ProfilerMarker("DK2.Frame.Input");
-        private static readonly ProfilerMarker TicksMarker = new ProfilerMarker("DK2.Frame.Ticks");
-        private static readonly ProfilerMarker CaptureMarker = new ProfilerMarker("DK2.Frame.CaptureObjectPositions");
-        private static readonly ProfilerMarker PresentMarker = new ProfilerMarker("DK2.Frame.Present");
-        private static readonly ProfilerMarker DrawCreaturesMarker = new ProfilerMarker("DK2.Frame.DrawCreatureFrame");
+        private static readonly ProfilerMarker CaptureMarker = new ProfilerMarker("DK2.Simulation.CaptureObjectPositions");
 
         private GameSimulation _simulation;
         private ScenePresenter _presenter;
@@ -90,6 +89,7 @@ namespace DK2.Unity
         private AssetProviderChain _assets;
         private InstallArtProvider _installArt;
         private ClassicMeshes _classic;
+        private ClassicConstructionEffects _constructionEffects;
         private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
         private TilePos? _dragTo;
         private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
@@ -182,6 +182,13 @@ namespace DK2.Unity
             _worldView = new WorldView(database, (byte)viewingPlayerId);
             _presenter = new ScenePresenter(
                 _worldView, _assets, _scene, new TorchLayout(database));
+            if (_installArt != null)
+            {
+                var sprites = new InstallEffectSpriteProvider(database, _installArt.LoadTexture);
+                _constructionEffects = new ClassicConstructionEffects(transform, database, sprites, seed,
+                    request => !world.FogOfWarEnabled || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId));
+                _simulation.ObserveWith(_constructionEffects.Model);
+            }
 
             _presenter.Present(world);
             LookAt(world);
@@ -189,9 +196,13 @@ namespace DK2.Unity
 
         private void OnDestroy()
         {
+            _constructionEffects?.Dispose();
             _installArt?.Dispose();
             _installArt = null;
         }
+
+        private static readonly ProfilerMarker TickMarker = new ProfilerMarker("DK2.Simulation.Tick");
+        private static readonly ProfilerMarker PresentMarker = new ProfilerMarker("DK2.Scene.Present");
 
         private void Update()
         {
@@ -213,18 +224,18 @@ namespace DK2.Unity
                 int ticks = (int)Math.Min(_tickDebt, 20);
                 _tickDebt -= ticks;
 
-                using (TicksMarker.Auto())
+                for (int i = 0; i < ticks; i++)
                 {
-                    for (int i = 0; i < ticks; i++)
+                    InputFrame input = i == 0 && _pendingCommands.Count > 0
+                        ? new InputFrame(_pendingCommands.ToArray())
+                        : InputFrame.Empty;
+                    using (TickMarker.Auto())
                     {
-                        InputFrame input = i == 0 && _pendingCommands.Count > 0
-                            ? new InputFrame(_pendingCommands.ToArray())
-                            : InputFrame.Empty;
                         using (CaptureMarker.Auto())
                             _worldView.CaptureObjectPositions(_simulation.World);
                         _simulation.Tick(input);
-                        if (i == 0) _pendingCommands.Clear();
                     }
+                    if (i == 0) _pendingCommands.Clear();
                 }
             }
 
@@ -235,10 +246,9 @@ namespace DK2.Unity
             else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
             _worldView.PreviewTags(dragFrom, _dragTo);
             _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
-            using (PresentMarker.Auto())
-                _presenter.Present(_simulation.World);
-            using (DrawCreaturesMarker.Auto())
-                _scene.DrawCreatureFrame(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
+            using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
+            _scene.DrawCreatureFrame(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
+            _constructionEffects?.Draw();
         }
 
         private void QueueInput()
@@ -251,7 +261,7 @@ namespace DK2.Unity
 
             TilePos? tile = ScreenToTile(Input.mousePosition);
             var intent = new PlayerIntent(
-                (byte)viewingPlayerId, tool, tile, button, (RoomTypeId)selectedRoomId);
+                (byte)viewingPlayerId, tool, tile, button, selectedRoomId);
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
                 _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database);
             InputFrame frame = _input.Translate(intent, snapshot);
@@ -299,18 +309,18 @@ namespace DK2.Unity
         private void SelectKnownRoom()
         {
             if (_roomIds.Length == 0) return;
-            if (Array.IndexOf(_roomIds, (RoomTypeId)selectedRoomId) >= 0) return;
-            selectedRoomId = (byte)_roomIds[0];
+            if (Array.IndexOf(_roomIds, selectedRoomId) >= 0) return;
+            selectedRoomId = _roomIds[0];
         }
 
         private void SelectAdjacentRoom(int direction)
         {
             if (_roomIds.Length == 0) return;
 
-            int index = Array.IndexOf(_roomIds, (RoomTypeId)selectedRoomId);
+            int index = Array.IndexOf(_roomIds, selectedRoomId);
             if (index < 0) index = 0;
             index = (index + direction + _roomIds.Length) % _roomIds.Length;
-            selectedRoomId = (byte)_roomIds[index];
+            selectedRoomId = _roomIds[index];
         }
 
         private void ControlCamera()

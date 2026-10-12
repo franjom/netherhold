@@ -10,8 +10,8 @@ using DK2.Simulation.Steering;
 namespace DK2.Simulation.Navigation;
 
 /// <summary>The world as DK2's router and steering behaviours see it: one navigation byte per
-/// tile (solid, water, lava or floor; a portal's centre and a heart's platform count as solid,
-/// Q88), the mesh built from those bytes and rebuilt whenever one changes, and the four probes
+/// tile (solid, water, lava or floor; a portal's centre is a hole, and a Heart's platform is floor),
+/// the mesh built from those bytes and rebuilt whenever one changes, and the four probes
 /// the behaviours call (docs/research/steering-behaviours.md §1). One instance serves one world for
 /// its whole life; nothing here is simulation state, so nothing here is hashed.</summary>
 /// <remarks>Not built: first-person-only obstacle classes;
@@ -115,6 +115,59 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return NavBytes.Floor;
     }
 
+    public bool CanMove(Fixed16Vector from, Fixed16Vector to)
+    {
+        if (_structures is null || !_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart)) return true;
+        to = new Fixed16Vector((to.X >> 4) << 4, (to.Y >> 4) << 4);
+        long radius = (heart.Width.Raw >> 1) << 4;
+        foreach (int index in _structures.HeartCentres)
+        {
+            long dx = from.X - ((long)CreatureState.CentreOf(index % _world.Width) << 4);
+            long dy = from.Y - ((long)CreatureState.CentreOf(index / _world.Width) << 4);
+            long sx = (long)to.X - from.X, sy = (long)to.Y - from.Y;
+            long startSquared = dx * dx + dy * dy;
+            long dot = dx * sx + dy * sy;
+            // A loaded body inside the core may leave, but never move deeper into it.
+            if (startSquared < radius * radius)
+            {
+                if (dot < 0) return false;
+                continue;
+            }
+            long lengthSquared = sx * sx + sy * sy;
+            if (lengthSquared == 0 || dot >= 0) continue;
+            if (-dot >= lengthSquared)
+            {
+                if ((dx + sx) * (dx + sx) + (dy + sy) * (dy + sy) < radius * radius) return false;
+            }
+            else
+            {
+                long fraction = (-dot << 16) / lengthSquared;
+                long closestX = dx + ((sx * fraction) >> 16), closestY = dy + ((sy * fraction) >> 16);
+                if (closestX * closestX + closestY * closestY < (radius + 1) * (radius + 1)) return false;
+            }
+        }
+        return true;
+    }
+
+    public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target)
+    {
+        if (!_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart)) return target;
+        (int x, int y) = target.Tile();
+        if (!_world.Contains(new TilePos(x, y)) ||
+            _database.RoomByTerrain(_world.Tile(x, y).TerrainId)?.TypeId != RoomTypeId.DungeonHeart) return target;
+        RoomInstance? room = RoomIndex.RoomAt(_world, _database, y * _world.Width + x);
+        if (room is null || room.Width < 3 || room.Height < 3 ||
+            (_world.HasPlayer(room.OwnerPlayerId) && _world.Player(room.OwnerPlayerId).HeartRuined)) return target;
+        int radius = (heart.Width.Raw >> 1) << 4;
+        var centre = new Fixed16Vector(CreatureState.CentreOf((room.MinX + room.MaxX) / 2) << 4,
+            CreatureState.CentreOf((room.MinY + room.MaxY) / 2) << 4);
+        long dx = (long)target.X - centre.X, dy = (long)target.Y - centre.Y;
+        if (dx * dx + dy * dy >= (long)radius * radius) return target;
+        var direction = Fixed16.Normalise(from - centre);
+        if (direction == Fixed16Vector.Zero) direction = new Fixed16Vector(Fixed16.One, 0);
+        return centre + direction.Scale(radius + (Fixed16.One >> 3));
+    }
+
     public byte NavByte(int x, int y)
     {
         if (x < 0 || y < 0 || x >= _world.Width || y >= _world.Height || _bytes.Length == 0) return NavBytes.Solid;
@@ -177,7 +230,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             return TryRouteTo(creature, (int)x, (int)y, options);
         SyncBody(creature);
         creature.RouteOptions = options;
-        var target = new Fixed16Vector((int)x << 4, (int)y << 4);
+        var target = ConstrainTarget(creature.Body.Pos, new Fixed16Vector((int)x << 4, (int)y << 4));
         RouteWindow.Load(creature.Body, [target], target, options.PathFlags());
         return true;
     }

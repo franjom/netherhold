@@ -773,9 +773,8 @@ public sealed class CreatureState
     /// application when working.</summary>
     public int TimerTicks;
 
-    /// <summary>The creature this one is engaged with, or 0 — DK2's <c>creature+0x502</c>, the
-    /// engagement's target, written by <c>SelectAVictim</c> and copied into the swing when an
-    /// attack begins (docs/research/combat-acquisition.md §7).</summary>
+    /// <summary>The engagement's typed target: creature/door/trap id, or encoded HeartPillarId
+    /// for a Heart. Copied into the swing when an attack begins (combat-acquisition.md §7).</summary>
     public int FightTargetId;
 
     /// <summary>How the engagement attacks — the low nibble of <c>creature+0x529</c>: 0 spell at a
@@ -800,8 +799,8 @@ public sealed class CreatureState
     /// (<see cref="Combat.FightTargetKind"/>): a creature, or an enemy dungeon heart.</summary>
     public Combat.FightTargetKind FightTargetKind;
 
-    /// <summary>For a heart target, the heart's owner and the heart tile stood in for its pillar
-    /// (Q363); -1 and 0 otherwise.</summary>
+    /// <summary>For a Heart target, its owner and pillar tile. FightTargetId identifies the
+    /// encoded HeartPillarId; -1 and 0 otherwise.</summary>
     public byte FightTargetPlayerId;
     public int FightTargetTileIndex = -1;
 
@@ -893,6 +892,12 @@ public sealed class CreatureState
     /// <summary>When the creature action playing now ends (DK2's running action, <c>0x00496D00</c>);
     /// used by idle actions and the captured knockdown/get-up animation clock.</summary>
     public long ActionUntilTick;
+    // Training action block: action id, +0x3A5 stamp, target, spell slot and handler-complete flag.
+    public byte TrainingActionId;
+    public long TrainingActionStartedTick = -1;
+    public int TrainingTargetObjectId = -1;
+    public byte TrainingSpellSlot;
+    public bool TrainingActionHitDone;
     /// <summary>Original state-flags word +0x3EA bit 20, separate from the combat fleeing state.</summary>
     public bool Fleeing;
     /// <summary>Original state-flags word +0x3E6 bit 27, consumed by recovery state 263.</summary>
@@ -1323,6 +1328,11 @@ public sealed class CreatureState
         hash.Add(Tunnel.ActionUntilTick);
         hash.Add(WanderStamp);
         hash.Add(ActionUntilTick);
+        hash.Add(TrainingActionId);
+        hash.Add(TrainingActionStartedTick);
+        hash.Add(TrainingTargetObjectId);
+        hash.Add(TrainingSpellSlot);
+        hash.Add(TrainingActionHitDone);
         hash.Add(Fleeing ? (byte)1 : (byte)0);
         hash.Add(ShouldDelayGetUp ? (byte)1 : (byte)0);
         hash.Add(TremorRoutePaused ? (byte)1 : (byte)0);

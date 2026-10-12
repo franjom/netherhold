@@ -61,17 +61,17 @@ expect:
       bird pays off the whole of HungerFill instead, which is the difference
       between the two routes (ADR-0074).
   - event: chicken_eaten
-    detail: "creature=1 type=Goblin player=3 chicken=13"
+    detail: "creature=1 type=Goblin player=3 chicken=21"
     at_tick: 720
     because: >
-      Floor laying and chicken roaming (ADR-0428, ADR-0434) leave a bird on the
+      Floor laying, full-room coop launches and chicken roaming leave a bird on the
       entry tile, so this seed feeds the Goblin without a separate one-step chase.
       The chosen bird and meal tick remain pinned; nearest-bird walks have EatingTests.
   - event: egg_laid
     at_tick: 727
     because: >
-      The room holds one bird per tile, had all nine by tick 259 and refused to
-      lay from 279 on. Both first meals occur at 720; the uninterrupted interval
+      The room holds nine registered birds and launches free-range eggs when full.
+      Both first meals occur at 720; the uninterrupted interval
       resumes at 27 + 25 x 28 = 727, rather than restarting the clock on the meal.
   - event: egg_laid
     at_tick: 1455

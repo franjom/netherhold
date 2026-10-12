@@ -10,8 +10,8 @@ using DK2.Data.Model;
 namespace DK2.Data.Kwd;
 
 /// <summary>Parser for OBJECTS(240) records: 145 objects over 129,630 bytes, 894 each.
-/// Only the last 82 bytes are gameplay; the first 812 are nine art resources and a
-/// light, so no art resource is modelled here.</summary>
+/// The first 812 bytes are nine art resources and a light; integer animation timing
+/// is retained alongside the gameplay tail.</summary>
 /// <remarks><para>Layout STRONGLY INFERRED: field order from OpenKeeper's <c>readObjects</c>
 /// (ADR-0003), offsets derived then validated — the widths close exactly on the
 /// independently measured 894-byte stride, <see cref="ObjectDef.ObjectId"/> at 0x35A
@@ -19,7 +19,7 @@ namespace DK2.Data.Kwd;
 /// bed, 26 the Vampire's, 31-34 the Graveyard's; <c>ObjectsOnRealDataTests</c>).
 /// Evidence: docs/research/objects.md §§1-2.</para>
 /// <para>Deliberately not read, all presentation or unexplained: the nine art
-/// resources, the light, <c>airFriction</c>, <c>material</c>, the three unknown bytes
+/// resource visuals, the light, <c>material</c>, the three unknown bytes
 /// at 0x341, the three effect ids, the sound category.</para></remarks>
 public static class KwdObjects
 {
@@ -42,7 +42,20 @@ public static class KwdObjects
         Fp(OffsetHeight, record.Height);
         Fp(OffsetMass, record.Mass);
         Fp(OffsetSpeed, record.Speed);
+        Fp(0x33C, record.AirFriction);
         U16(OffsetReactionTurn, record.ReactionTurn);
+        for (int slot = 0; slot < Math.Min(9, record.ArtSlots.Count); slot++)
+        {
+            int offset = 0x20 + slot * 84;
+            CreatureAnimationTiming timing = record.ArtSlots[slot];
+            BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset + 0x40), (uint)timing.Flags);
+            bytes[offset + 0x50] = timing.ResourceType;
+            if (timing.ResourceType != 6) continue;
+            bytes[offset + 0x51] = timing.StartSegmentFrames;
+            bytes[offset + 0x52] = timing.EndSegmentFrames;
+            U16(offset + 0x44, timing.FrameCount);
+            U16(offset + 0x48, timing.FramesPerSecond);
+        }
         return bytes;
     }
     private const int RecordSize = 894;
@@ -89,6 +102,22 @@ public static class KwdObjects
         Fp32 Fp(int off) => new(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + off)));
         ushort U16(int off) => BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + off));
 
+        var artSlots = new CreatureAnimationTiming[9];
+        for (int slot = 0; slot < artSlots.Length; slot++)
+        {
+            int offset = 0x20 + slot * 84;
+            byte type = rec[b + offset + 0x50];
+            artSlots[slot] = new CreatureAnimationTiming
+            {
+                ResourceType = type,
+                Flags = (CreatureAnimationFlags)BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + offset + 0x40)),
+                FrameCount = type == 6 ? U16(offset + 0x44) : (ushort)0,
+                FramesPerSecond = type == 6 ? U16(offset + 0x48) : (ushort)0,
+                StartSegmentFrames = type == 6 ? rec[b + offset + 0x51] : (byte)0,
+                EndSegmentFrames = type == 6 ? rec[b + offset + 0x52] : (byte)0,
+            };
+        }
+
         return new ObjectDef
         {
             Name = Name(rec, b + OffsetName),
@@ -105,7 +134,9 @@ public static class KwdObjects
             Height = Fp(OffsetHeight),
             Mass = Fp(OffsetMass),
             Speed = Fp(OffsetSpeed),
+            AirFriction = Fp(0x33C),
             ReactionTurn = U16(OffsetReactionTurn),
+            ArtSlots = artSlots,
 
             NameStringId = U16(OffsetNameStringId),
             TooltipStringId = U16(OffsetTooltipStringId),

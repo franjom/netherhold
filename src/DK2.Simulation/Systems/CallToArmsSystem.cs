@@ -79,6 +79,7 @@ public sealed class CallToArmsSystem : ISimulationSystem
     {
         WorldState world = context.World;
         long now = context.Tick.Value;
+        if (flag.AnimationStartedTick < 0) flag.AnimationStartedTick = now;
         for (int guard = 0; guard < 8; guard++)
         {
             byte before = flag.ProcessState;
@@ -87,16 +88,28 @@ public sealed class CallToArmsSystem : ISimulationSystem
                 case CallToArmsRules.Activating:
                     CallToArmsRules.Activate(context, SystemName, flag);
                     if (world.ObjectById(flag.Id) is null) return;
+                    if (!AnimationEnded(context, flag, 0)) return;
                     flag.ProcessState = CallToArmsRules.Activated;
+                    flag.AnimationStartedTick = now;
                     break;
                 case CallToArmsRules.Activated:
-                    if (flag.ProcessEnding) { flag.ProcessState = CallToArmsRules.Releasing; break; }
+                    if (flag.ProcessEnding)
+                    {
+                        flag.ProcessState = CallToArmsRules.Releasing;
+                        flag.AnimationStartedTick = now;
+                        break;
+                    }
                     flag.ProcessCount = 0;
                     flag.ProcessState = CallToArmsRules.Recalling;
                     flag.ProcessDeadline = now + SimulationTiming.OriginalTicksPerGameSecond;
                     break;
                 case CallToArmsRules.Recalling:
-                    if (flag.ProcessEnding) { flag.ProcessState = CallToArmsRules.Releasing; break; }
+                    if (flag.ProcessEnding)
+                    {
+                        flag.ProcessState = CallToArmsRules.Releasing;
+                        flag.AnimationStartedTick = now;
+                        break;
+                    }
                     if (flag.ProcessDeadline < now)
                     {
                         CallToArmsRules.Activate(context, SystemName, flag);
@@ -108,15 +121,18 @@ public sealed class CallToArmsSystem : ISimulationSystem
                     break;
                 case CallToArmsRules.Releasing:
                     flag.ProcessEnding = true;
+                    if (!AnimationEnded(context, flag, 7)) return;
                     CallToArmsRules.Deactivate(context, SystemName, flag.OwnerPlayerId);
                     world.RemoveObject(flag.Id);
                     return;
                 case CallToArmsRules.Fading:
                     flag.ProcessEnding = true;
                     flag.ProcessState = CallToArmsRules.Faded;
+                    flag.AnimationStartedTick = now;
                     break;
                 case CallToArmsRules.Faded:
                     flag.ProcessEnding = true;
+                    if (!AnimationEnded(context, flag, 6)) return;
                     world.RemoveObject(flag.Id);
                     context.Emit(SystemName, "call_to_arms_faded", $"player={flag.OwnerPlayerId} flag={flag.Id}");
                     return;
@@ -125,6 +141,13 @@ public sealed class CallToArmsSystem : ISimulationSystem
             }
             if (flag.ProcessState == before) return;
         }
+    }
+
+    private static bool AnimationEnded(SimulationContext context, ObjectState flag, int slot)
+    {
+        var timing = context.Database.ObjectById(flag.ObjectTypeId)?.ArtSlot(slot) ?? default;
+        return timing.ResourceType != 6 || context.Tick.Value - flag.AnimationStartedTick
+            >= AnimationTimingRules.FirstCycleHoldTicks(timing);
     }
 
     /// <summary>190 (<c>0x00455DA0</c>): the call gone ends it; otherwise walk to the flag's tile

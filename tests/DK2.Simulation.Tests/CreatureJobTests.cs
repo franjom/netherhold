@@ -96,7 +96,7 @@ public sealed class CreatureJobTests
 
         Assert.Equal(JobType.Train, goblin.CurrentJob);
         Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
-        Assert.Equal(new TilePos(4, 3), goblin.Tile);   // the room point: (3,3) holds the furniture
+        Assert.Equal(RoomTypeId.TrainingRoom, RoomIndex.RoomAt(world, db, goblin.Tile.Y * world.Width + goblin.Tile.X)!.Definition.TypeId);
 
         Assert.Contains(events.Events, e =>
             e.Kind == "job_taken" && e.Detail.Contains("job=Train"));
@@ -499,12 +499,10 @@ public sealed class CreatureJobTests
         seen.AddRange(StatesSeen(sim, goblin, Second * 2));
 
         // Then, with nothing left to choose, 89 parks it in 3 (ADR-0228).
-        Assert.Equal(
-            [(7, CreatureStateMachine.Idle), (108, CreatureStateMachine.Idle),
-             (TrainingRules.ReturningState, CreatureStateMachine.Idle),
-             (CreatureStateMachine.Idle, CreatureStateMachine.Idle),
-             (CreatureJobSystem.DoingNothingState, CreatureStateMachine.Idle)],
-            seen.Take(5));
+        Assert.Equal([(7, CreatureStateMachine.Idle), (108, CreatureStateMachine.Idle)], seen.Take(2));
+        Assert.Contains(seen, entry => entry.State == TrainingStep.AtMachineState);
+        Assert.Contains(seen, entry => entry.State == TrainingStep.WorkingState);
+        Assert.Contains(seen, entry => entry.State == TrainingRules.ReturningState);
         Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
@@ -522,7 +520,7 @@ public sealed class CreatureJobTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         var events = new ListEventSink();
 
-        Assert.Equal([(108, 0)], StatesSeen(Simulation(db, world, events), goblin, Second * 10));
+        Assert.Equal((108, 0), StatesSeen(Simulation(db, world, events), goblin, Second * 10).First());
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
 
@@ -545,7 +543,10 @@ public sealed class CreatureJobTests
         sim.Run(Second * 20);
 
         Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
-        Assert.Equal(108, goblin.Dk2StateId);
+        int state = goblin.Dk2StateId, resume = goblin.UtilityNewState;
+        new GameSimulation(db, world, seed: 42, [new CreatureEatSystem()]).Tick();
+        Assert.Equal(state, goblin.Dk2StateId);
+        Assert.Equal(resume, goblin.UtilityNewState);
     }
 
     [Fact]

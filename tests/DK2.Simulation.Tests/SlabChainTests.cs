@@ -29,7 +29,8 @@ public sealed class SlabChainTests
         }
 
         world.Tile(14, 10).GoldHeld = 1_000_000;
-        return (db, world, new GameSimulation(db, world, 1, [new RoomBuildSystem(), new RoomSellSystem()]));
+        return (db, world, new GameSimulation(db, world, 1,
+            [new RoomBuildSystem(), new RoomSellSystem(), new RoomBuildWaveSystem()]));
     }
 
     private static RoomTypeId Prison(GameDatabase db) => RoomTypeId.Prison;
@@ -41,7 +42,12 @@ public sealed class SlabChainTests
         return RoomOn(db, world, new TilePos(x1, y1));
     }
 
-    private static void Run(GameSimulation sim, PlayerCommand command) => sim.Tick(new InputFrame([command]));
+    private static void Run(GameSimulation sim, PlayerCommand command)
+    {
+        sim.Tick(new InputFrame([command]));
+        if (command is BuildRoomCommand { Mode: RoomBuildMode.PlayerWave } build)
+            sim.Run(Math.Abs(build.Press.X - build.Release.X) + Math.Abs(build.Press.Y - build.Release.Y));
+    }
 
     private static void Click(GameDatabase db, GameSimulation sim, params TilePos[] tiles)
     {

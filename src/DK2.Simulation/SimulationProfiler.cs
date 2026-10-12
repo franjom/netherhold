@@ -58,7 +58,7 @@ public sealed class SimulationMarker
 /// its <see cref="ISimulationSystem.Name"/>, opened by <see cref="GameSimulation.Tick(in InputFrame)"/>.</summary>
 public static class SimulationMarkers
 {
-    public static readonly SimulationMarker Tick = SimulationMarker.Named("simulation tick");
+    public static readonly SimulationMarker Tick = SimulationMarker.Named("tick");
     public static readonly SimulationMarker Messages = SimulationMarker.Named("messages");
     public static readonly SimulationMarker Triggers = SimulationMarker.Named("triggers");
 

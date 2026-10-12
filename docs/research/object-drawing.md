@@ -73,9 +73,17 @@ Wheel) and 61 (Electric Chair) the floor art's name gets a `g_` prefix unless
 - **Chicken, coop, egg, book case, training dummy, beds:** §8.
 - **Call To Arms (id 10):** `0x0049C6A0` and `0x0049BC00` test type 10 and install file art
   #7 or #5–#7 by process state; the process-state handlers `0x0049FBA0` and `0x0049FDC0`
-  install #5 and #6. **CONFIRMED** for the slots; what each state is: not read.
+  install #5 and #6. Live selectors are state12 floor0, states13/14 art5,
+  state15 art7, and states20/19 art6. Post-load restoration differs for19/20
+  (art7). The activation and removal handlers wait for ended/wrapped art flags;
+  state14 keeps its loop while recalling. **CONFIRMED**, 2026-10-11.
 - **Dungeon Heart (id 13):** its art #0 is `Dungeon centre`, type 6, 70 frames at 30 fps,
-  flags `0x201`. Nothing read here switches it. The binary also has the string
+  flags `0x201`. `Object_Init` installs the floor resource with scalar 4096;
+  `0x004B37D0` stops looping only for flag `0x80`, absent here. Rechecked in the
+  binary on 2026-10-11. The classic Heart now plays this loop (ADR-0437), for both
+  room decorations and represented objects; arches and steps remain static.
+  Its real decoded vertices differ between phases 0 and 0.5. No health-dependent
+  rate or decay selection is implemented. The binary also has the string
   `Unable to allocate 'Dungeon Heart Object Decay' mesh number %d`: **not followed**.
 
 ## 4. Position and rotation
@@ -201,9 +209,8 @@ tile-coordinate selector and installs def + (n+4)·0x1B: file art #5, #6 or #7
 (`book_case1..3`). It stores n at `+0x14A` and sets the heading to `(y & 1) << 10`.
 Books and research play no part. #0 and #8 `book_case4` are not chosen there.
 
-**Coop (35) and Egg (47).** `Hatchery_LayEgg` (`0x004DE620`, `hatchery.md` §3) has two paths.
-- *Coop path, the room full:* coop state 29 and egg state 24. STRONGLY INFERRED pairing:
-  29's handler accepts only type 35, and 24's launches from a coop.
+**Coop (35) and Egg (47), CONFIRMED.** `Hatchery_LayEgg` (`0x004DE620`, `hatchery.md` §3) has two paths.
+- *Coop path, the room full:* coop state 29 and egg state 24; the lay routine sets both.
   - State 29 (`0x004A1BD0`) installs the coop's #5 `Coup-Wobble(Give_Birth)` (77 frames
     at 15 fps), then #0 when it ends.
   - The egg is created hidden. State 24 (`0x004A21C0`) waits 4 s (4 × turns per second).
@@ -228,6 +235,41 @@ heading with a decaying speed until below 0x40 per turn, and reinstalls #0 when 
 The same pattern elsewhere: object 109 states 44/45 (#0, #5 played once, toggled by
 `0x004E35C0`); the Prison door object 116 states 46/47 (#0, toggled by `0x004E3680`);
 object 95 states 48/49 (#5, #6 while playing, set by `0x004D6890`).
+The classic Prison door view retains its opening stamp and plays #0 once
+when the simulated door opens; its closing lifecycle is not yet modelled (ADR-0438).
+
+**Object update order (CONFIRMED, 2026-10-11).** `0x0049BD20` runs the process,
+then physical movement (`0x004B2030`), then animation (`0x004B3AD0`). The object
+vtable `0x0066D654` has ground response `0x0049CD70` at +0x64 and mass test
+`0x004B7230` at +0x88. Mass's runtime low signed word zero suppresses gravity.
+Gravity subtracts variable 130 × 256 from persistent vertical velocity while
+above the floor. An Egg on the floor with horizontal speed sum above 4096 adds
+a temporary upward impulse 12288. Other ground objects clear vertical velocity.
+
+During state 24's wait, `0x004DEA50` requires a room and a Coop on the Egg's
+tile, restores the Coop point at z 5000, and adds temporary vertical velocity
+`gravity × 256 − persistent vertical velocity`. Physics then cancels that
+temporary velocity against gravity. On turn 16, the launch impulse is added
+before the same physics pass; the persistent vertical velocity still includes
+the previous gravity accumulation. This is not a conventional ballistic reset.
+
+Physical velocity is the sum of persistent (+0x104..0x10C) and temporary
+(+0x110..0x118) vectors. Motion uses that sum divided by 16, subdivided by
+`min(16, (vector length >> 14) + 1)`. Solid collision reflects the blocked
+horizontal component at half speed and continues the remaining substeps.
+Afterward horizontal components retain `(4096 − low-word air friction)/4096`,
+truncated toward zero; a negative multiplier becomes 2048. Vertical velocity
+is restored without this drag. `0x004B5020` clamps below-floor position and
+clears an Object's vertical velocity; positions above 12288 become 8192.
+
+**Built:** state 29's Coop clip, state 32's two Egg arts and one-turn hatch-end
+lifetime, state 24's hidden wait, launch and tumbling, state 18's recoil and
+decaying heading, Casino setting clips with their final poses, and Call to Arms
+activation, recall and removal. Integer
+animation metadata comes from the nine file resources. Launch collisions use
+the engine's terrain solids; original voxel volumes, liquid contacts and floor
+geometry outside the Hatchery remain absent. The Hatchery ground zones follow
+`0x004545C0`; other room floors retain the engine's existing approximation.
 
 ## 9. Torture victims on wheels
 
@@ -250,6 +292,6 @@ other numeric modes remain unbuilt. ADR-0420.
 
 - `0x0059C360`, `0x0059C720`, `0x0059D010`, `0x005A01A0` (sprites, flat, terrain mesh,
   procedural) and `0x005953D0` are not read.
-- The Heart's decay meshes; the Call To Arms state meanings; the chicken's Idle art; the
+- The Heart's decay meshes; the chicken's Idle art; the
   setter of RenderInfo `+0x4E` bit `0x40`; what `0x00759ADC` is.
 - What writes an object's heading besides the boulder, beds (random) and book cases.

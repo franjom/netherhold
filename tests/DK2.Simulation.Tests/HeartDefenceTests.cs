@@ -35,6 +35,22 @@ public class HeartDefenceTests
         Assert.Equal(intruder.Tile, defender.Destination);
     }
 
+    [Theory]
+    [InlineData(16)]
+    [InlineData(22)]
+    public void AWorkingImpStopsItsTaskWhenAnEnemyEntersTheHeartReportingRadius(int workingState)
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState defender = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 11, 14);
+        StatePlacement.Place(defender, workingState);
+        Assert.Equal(CreatureActivity.Working, defender.Activity);
+        Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 11, 8);
+
+        Assert.Equal(3, FirstSent(db, world, defender, 8));
+        Assert.Equal(CreatureActivity.Reporting, defender.Activity);
+        Assert.True(defender.Running);
+    }
+
     [Fact]
     public void AnEnemyOutsideTheReportingRadiusSendsNobody()
     {

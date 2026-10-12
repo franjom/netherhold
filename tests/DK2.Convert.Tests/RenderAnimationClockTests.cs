@@ -80,7 +80,7 @@ public class RenderAnimationClockTests
     }
 
     [Theory]
-    [InlineData(0, 0)]
+    [InlineData(0, 1024)]
     [InlineData(512, 128)]
     [InlineData(1024, 256)]
     [InlineData(2048, 512)]
@@ -120,5 +120,89 @@ public class RenderAnimationClockTests
         clock.Advance(new Fp32(128));
         clock.Advance(new Fp32(128));
         Assert.Equal(1023 / 4096f, clock.Sample(1).Phase);
+    }
+
+    [Fact]
+    public void AQueuedReplacementPlaysTheOutgoingEndBeforeInstallingWithoutAnAdvance()
+    {
+        var outgoing = Timing() with { Flags = CreatureAnimationFlags.EndSegment, EndSegmentFrames = 2 };
+        var clock = new RenderAnimationClock(outgoing, loop: true);
+        clock.Advance();
+        clock.Replace(Timing(frames: 16), loop: true, AnimationReplacement.Deferred);
+        for (int i = 0; i < 4; i++) clock.Advance();
+        Assert.Equal(0, clock.ResourceRevision);
+        Assert.Equal(AnimationSegment.End, clock.Sample(1).Segment);
+        clock.Advance();
+        Assert.Equal(1, clock.ResourceRevision);
+        Assert.Equal(0f, clock.Sample(1).Phase);
+        clock.Advance();
+        Assert.Equal(.125f, clock.Sample(1).Phase);
+    }
+
+    [Fact]
+    public void TheLatestQueuedReplacementWins()
+    {
+        var clock = new RenderAnimationClock(Timing(), loop: true);
+        clock.Advance();
+        clock.Replace(Timing(frames: 16), true, AnimationReplacement.Deferred);
+        clock.Replace(Timing(frames: 32), true, AnimationReplacement.Deferred);
+        for (int i = 0; i < 3; i++) clock.Advance();
+        Assert.Equal(1, clock.ResourceRevision);
+        Assert.Equal(0f, clock.Sample(1).Phase);
+        clock.Advance();
+        Assert.Equal(.0625f, clock.Sample(1).Phase);
+    }
+
+    [Fact]
+    public void ImmediateReplacementClearsThePendingResourceAndStartsFromZero()
+    {
+        var clock = new RenderAnimationClock(Timing(), loop: true);
+        clock.Advance();
+        clock.Replace(Timing(frames: 16), true, AnimationReplacement.Deferred);
+        clock.Replace(Timing(frames: 32), true, AnimationReplacement.Immediate);
+        Assert.Equal(1, clock.ResourceRevision);
+        Assert.Equal(0f, clock.Sample(.5f).Phase);
+        for (int i = 0; i < 20; i++) clock.Advance();
+        Assert.Equal(1, clock.ResourceRevision);
+    }
+
+    [Fact]
+    public void FrozenPlaybackHoldsBothInterpolationEndpoints()
+    {
+        var clock = new RenderAnimationClock(Timing(), loop: true);
+        clock.Advance();
+        clock.Advance(hold: true);
+        Assert.Equal(.25f, clock.Sample(0).Phase);
+        Assert.Equal(.25f, clock.Sample(1).Phase);
+        clock.Advance();
+        Assert.Equal(.5f, clock.Sample(1).Phase);
+    }
+
+    [Fact]
+    public void ZeroWalkingSpeedReusesThePreviousScalarOnceThenUsesOne()
+    {
+        var clock = new RenderAnimationClock(Timing(), true, new Fp32(16384));
+        clock.Advance(new Fp32(1024));
+        clock.Advance(new Fp32(0));
+        clock.Advance(new Fp32(0));
+        Assert.Equal(1536 / 4096f, clock.Sample(1).Phase);
+        clock.Advance(new Fp32(0));
+        Assert.Equal(1536 / 4096f, clock.Sample(1).Phase);
+    }
+
+    [Fact]
+    public void TheAuthoredStopLoopFlagWinsOverTheRequestedLoop()
+    {
+        var clock = new RenderAnimationClock(Timing() with { Flags = (CreatureAnimationFlags)0x80 }, true);
+        for (int i = 0; i < 5; i++) clock.Advance();
+        Assert.Equal(1f, clock.Sample(1).Phase);
+    }
+
+    [Fact]
+    public void TheAlternateRateAdvancesEvenWhenTheNominalRateIsZero()
+    {
+        var clock = new RenderAnimationClock(Timing(fps: 0), true);
+        clock.Advance(phaseStepOverride: new Fp32(512));
+        Assert.Equal(.125f, clock.Sample(1).Phase);
     }
 }

@@ -1523,7 +1523,7 @@ public class PrisonTests
     public void AHungryCaptiveEatsThroughOneSeventeenOneEighteenAndOneNineteen()
     {
         // 115 finds it hungry and moves to 117, which walks in 6 to the bird resuming in
-        // 118; 118 eats and, filled, sets 119, which waits out the meal and sets 115 on a
+        // 118; 118 eats and, filled, sets 119, which waits out the meal and sets 117 on a
         // later turn (0x00473750 re-read 2026-09-30).
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -1541,8 +1541,41 @@ public class PrisonTests
         Assert.Equal(PrisonRules.AfterEatingState, captive.Dk2StateId);
 
         sim.Tick();
-        Assert.Equal(PrisonRules.DecidingState, captive.Dk2StateId);
+        Assert.Equal(PrisonRules.SeekingFoodState, captive.Dk2StateId);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Theory]
+    [InlineData(13, 4)]
+    [InlineData(8, 4)]
+    [InlineData(0, 1)]
+    public void AFilledPrisonerWaitsForTheMealClipThenSearchesAgain(int slot, int holdTicks)
+    {
+        GameDatabase basis = Db;
+        var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+        if (slot != 0) slots[slot] = new CreatureAnimationTiming
+            { ResourceType = 6, FrameCount = 8, FramesPerSecond = 8 };
+        var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
+            basis.Creatures.Values.Select(c => c.CreatureId == GoblinId ? c with { ArtSlots = slots } : c),
+            basis.Variables, objects: basis.Objects.Values);
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = HungryPrisoner(db, world, CellA);
+        ObjectState bird = Chicken(db, world, CellA);
+        captive.TargetObjectId = bird.Id;
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), captive, PrisonRules.SeekingFoodState);
+        GameSimulation simulation = Simulation(db, world);
+        simulation.Tick();
+        Assert.Null(world.ObjectById(bird.Id));
+        Assert.Equal(PrisonRules.AfterEatingState, captive.Dk2StateId);
+        for (int tick = 1; tick < holdTicks; tick++)
+        {
+            simulation.Tick();
+            Assert.Equal(PrisonRules.AfterEatingState, captive.Dk2StateId);
+        }
+        simulation.Tick();
+        Assert.Equal(PrisonRules.SeekingFoodState, captive.Dk2StateId);
+        Assert.Equal(0, captive.ActionUntilTick);
     }
 
     [Fact]

@@ -9,7 +9,7 @@ using Unity.Profiling;
 namespace DK2.Unity
 {
     /// <summary>Shows the simulation's <see cref="SimulationMarker"/> spans in the Unity Profiler,
-    /// each as a <see cref="ProfilerMarker"/> of the same name under the <c>DK2.</c> prefix: the
+    /// each as a <see cref="ProfilerMarker"/> of the same name under the <c>DK2.Sim.</c> prefix: the
     /// systems, navigation refreshes and builds, route queries and ImpTask's phases nest inside
     /// the tick on the CPU timeline, and the Hierarchy view counts their calls. A
     /// <see cref="ProfilerMarker"/> costs next to nothing while the Profiler is not recording.</summary>
@@ -29,7 +29,7 @@ namespace DK2.Unity
             }
             if (!_made[id])
             {
-                _markers[id] = new ProfilerMarker(ProfilerCategory.Scripts, "DK2." + marker.Name);
+                _markers[id] = new ProfilerMarker(ProfilerCategory.Scripts, "DK2.Sim." + marker.Name);
                 _made[id] = true;
             }
             _markers[id].Begin();

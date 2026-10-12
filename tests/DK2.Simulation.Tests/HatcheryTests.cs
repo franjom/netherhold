@@ -305,20 +305,18 @@ public class HatcheryTests
     }
 
     [Fact]
-    public void TheFloorFillsUpAndThenTheRoomStops()
+    public void TheFloorCanHoldMoreEggsThanItsChickenCapacity()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
         RoomInstance room = Hatchery(db, world, 2, 2, 5, 1);
 
-        // Five tiles, no coops, and the floor path only picks EMPTY tiles -- so
-        // the fifth egg is the last and the sixth attempt has nowhere to go.
         var rng = new SimRandom(7);
         for (int i = 0; i < 5; i++)
             Assert.NotNull(HatcheryRules.TryLayEgg(world, db, room, rng));
 
-        Assert.Null(HatcheryRules.TryLayEgg(world, db, room, rng));
-        Assert.Equal(5, world.Objects.Count);
+        Assert.NotNull(HatcheryRules.TryLayEgg(world, db, room, rng));
+        Assert.Equal(6, world.Objects.Count);
     }
 
     [Fact]
@@ -441,7 +439,7 @@ public class HatcheryTests
         HatcheryRules.PlaceCoops(world, db, room);
 
         var rng = new SimRandom(99);
-        for (int i = 0; i < 100; i++)
+        for (int i = 0; i < 9; i++)
         {
             ObjectState? egg = HatcheryRules.TryLayEgg(world, db, room, rng);
             if (egg is not null) HatcheryRules.Hatch(world, db, egg);
@@ -449,17 +447,15 @@ public class HatcheryTests
 
         Assert.Equal(9, HatcheryRules.Flock(world, room));
         Assert.True(HatcheryRules.FlockIsFull(world, db, room));
+        Assert.Equal((byte)24, Assert.IsType<ObjectState>(HatcheryRules.TryLayEgg(world, db, room, rng)).ProcessState);
 
         // The coop is still there and was never counted as a bird.
         Assert.Equal(1, world.Objects.Count(o => o.ObjectTypeId == HatcheryRules.CoopObjectId));
     }
 
     [Fact]
-    public void AnEggInTheAirCountsAgainstTheCap()
+    public void EggsDoNotConsumeTheHatcheryChickenCapacity()
     {
-        // An egg is a chicken two seconds from now. A room that laid while full
-        // of eggs would overshoot its own limit by however many were in flight,
-        // which is why the cap counts both.
         GameDatabase db = Db;
         WorldState world = World(db);
         RoomInstance room = Hatchery(db, world, 2, 2, 3, 3);
@@ -469,10 +465,10 @@ public class HatcheryTests
         for (int i = 0; i < 9; i++)
             Assert.NotNull(HatcheryRules.TryLayEgg(world, db, room, rng));
 
-        // Nine eggs, no chickens yet, and the room is already full.
         Assert.Equal(0, HatcheryRules.Flock(world, room));
         Assert.Equal(9, HatcheryRules.Birds(world, room));
-        Assert.Null(HatcheryRules.TryLayEgg(world, db, room, rng));
+        Assert.False(HatcheryRules.FlockIsFull(world, db, room));
+        Assert.Equal((byte)32, Assert.IsType<ObjectState>(HatcheryRules.TryLayEgg(world, db, room, rng)).ProcessState);
     }
 
     [Fact]
@@ -487,19 +483,19 @@ public class HatcheryTests
         HatcheryRules.PlaceCoops(world, db, room);
 
         var rng = new SimRandom(11);
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 9; i++)
         {
             ObjectState? laid = HatcheryRules.TryLayEgg(world, db, room, rng);
             if (laid is not null) HatcheryRules.Hatch(world, db, laid);
         }
         Assert.Equal(9, HatcheryRules.Flock(world, room));
-        Assert.Null(HatcheryRules.TryLayEgg(world, db, room, rng));
+        Assert.Equal((byte)24, Assert.IsType<ObjectState>(HatcheryRules.TryLayEgg(world, db, room, rng)).ProcessState);
 
         ObjectState eaten = world.Objects.First(
             o => o.ObjectTypeId == HatcheryRules.ChickenObjectId);
         Assert.True(world.RemoveObject(eaten.Id));
 
-        Assert.NotNull(HatcheryRules.TryLayEgg(world, db, room, rng));
+        Assert.Equal((byte)32, Assert.IsType<ObjectState>(HatcheryRules.TryLayEgg(world, db, room, rng)).ProcessState);
     }
 
     // ---- the cap we know about and do not apply -----------------------------
