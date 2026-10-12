@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 231: a room on Room_ComputeTotalCapacity's default arm holds its tile count (ADR-0440).
+        // HashVersion 232: special 124 gives ten level-5 Imps round the Heart (ADR-0441).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xB8FA72F6DE9C12A1UL, sim.StateHash());
+        Assert.Equal(0xE5DB51390ABD6056UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -310,6 +310,9 @@ internal static class Dk2TerrainFixture
     /// <summary>Object id 117, Level 1's Increase Level Special.</summary>
     public const byte IncreaseLevelSpecialObjectId = 117;
 
+    /// <summary>Object id 124, Level 4's Receive Imps Special.</summary>
+    public const byte ReceiveImpsSpecialObjectId = 124;
+
     /// <summary>Object id 5, the Alarm trap's crate: <see cref="ObjectFlags.TypeCrate"/>, carried
     /// to the Workshop in state 32.</summary>
     public const byte AlarmCrateObjectId = 5;
@@ -410,6 +413,7 @@ internal static class Dk2TerrainFixture
         Carried(SpellBookObjectId, "Spell Book", ObjectFlags.TypeSpellBook),
         Carried(RevealMapSpecialObjectId, "Special [ Reveal Map ]", ObjectFlags.TypeSpecial),
         Carried(IncreaseLevelSpecialObjectId, "Special [ Increase Level ]", ObjectFlags.TypeSpecial),
+        Carried(ReceiveImpsSpecialObjectId, "Special [ Receive Imps ]", ObjectFlags.TypeSpecial),
         Carried(AlarmCrateObjectId, "Crate Alarm", ObjectFlags.TypeCrate),
         Carried(WoodenDoorCrateObjectId, "Crate Wooden Door", ObjectFlags.TypeCrate),
 
@@ -1627,6 +1631,7 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.DungeonHeartObjectHealth, 100000);
         Set(vars, VariableTypeId.DungeonHeartHealthRegenerationPerSecond, 25);
         Set(vars, VariableTypeId.StunTimePercentageIncreaseWhenHit, 25); // shipped (ADR-0348)
+        Set(vars, VariableTypeId.SpecialReceiveImpsAmount, 10); // shipped (specials.md)
         // Variable 224's shipped MeleeDamage record, the possession bonus (Q337).
         vars.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.MeleeDamage, 60, 0, FirstPerson: true));
         return vars;

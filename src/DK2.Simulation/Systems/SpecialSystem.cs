@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Combat;
 using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Systems;
@@ -13,6 +14,7 @@ namespace DK2.Simulation.Systems;
 public sealed class SpecialSystem : ISimulationSystem
 {
     private const byte IncreaseLevel = 117;
+    private const byte ReceiveImps = 124;
     public string Name => "Special";
 
     public void Execute(SimulationContext context)
@@ -23,27 +25,86 @@ public sealed class SpecialSystem : ISimulationSystem
             if (item is null) continue;
             ObjectDef? definition = context.Database.ObjectById(item.ObjectTypeId);
             if (definition?.IsSpecial != true) continue;
-            if (item.ObjectTypeId != IncreaseLevel)
+            int affected;
+            switch (item.ObjectTypeId)
             {
-                context.Emit(Name, "special_unimplemented",
-                    $"player={command.PlayerId} object={item.Id} type={item.ObjectTypeId}");
-                continue;
+                case IncreaseLevel:
+                    affected = RaiseLevels(context, command.PlayerId);
+                    break;
+                case ReceiveImps:
+                    affected = GiveImps(context, command.PlayerId);
+                    break;
+                default:
+                    context.Emit(Name, "special_unimplemented",
+                        $"player={command.PlayerId} object={item.Id} type={item.ObjectTypeId}");
+                    continue;
             }
 
-            int affected = 0;
-            foreach (CreatureState creature in context.World.Creatures)
-            {
-                if (creature.OwnerPlayerId != command.PlayerId || creature.Health <= 0)
-                    continue;
-                CreatureDef creatureDef = context.Database.CreatureById(creature.CreatureTypeId);
-                CreatureLevelRules.LevelUp(context.Hooks, creatureDef, creature);
-                CreatureHealthRules.Apply(context.Database, creatureDef, creature,
-                    CreatureHealthRules.MaxHealth(context.Database, creatureDef, creature));
-                affected++;
-            }
             context.World.RemoveObject(item.Id);
             context.Emit(Name, "special_activated",
                 $"player={command.PlayerId} object={item.Id} type={item.ObjectTypeId} creatures={affected}");
         }
+    }
+
+    private static int RaiseLevels(SimulationContext context, PlayerId playerId)
+    {
+        int affected = 0;
+        foreach (CreatureState creature in context.World.Creatures)
+        {
+            if (creature.OwnerPlayerId != playerId || creature.Health <= 0)
+                continue;
+            CreatureDef creatureDef = context.Database.CreatureById(creature.CreatureTypeId);
+            CreatureLevelRules.LevelUp(context.Hooks, creatureDef, creature);
+            CreatureHealthRules.Apply(context.Database, creatureDef, creature,
+                CreatureHealthRules.MaxHealth(context.Database, creatureDef, creature));
+            affected++;
+        }
+        return affected;
+    }
+
+    /// <summary>Special 124, <c>0x004A4980</c>: <c>SpecialReceiveImpsAmount</c> of the first worker
+    /// type, on a two-tile circle round the Heart's tile centre at angles i × (0x800 / count), each
+    /// four levels up and facing <c>rand(0x800)</c> on the world stream, kicked to 214. 214
+    /// (<c>0x00481750</c>) waits for the fall to the floor, then runs 76's landing; ours has no fall
+    /// (M9) and puts each down as the hand does, as Create Imp's (ADR-0312). Its effect, message 49
+    /// and sound are not modelled.</summary>
+    private static int GiveImps(SimulationContext context, PlayerId playerId)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        int count = database[VariableTypeId.SpecialReceiveImpsAmount];
+        int heart = HeartSites.PositionOf(world, database, playerId);
+        if (count <= 0 || heart < 0) return 0;
+
+        // The world's type list, taken in id order (its iterators are unread); with no worker the
+        // type stays id 1, the default stored before the walk (0x004A4992).
+        CreatureDef worker = database.Creatures.Values.OrderBy(c => c.CreatureId)
+            .FirstOrDefault(c => c.Flags.HasFlag(CreatureFlags.IsWorker)) ?? database.CreatureById(1);
+
+        int centreX = ((heart % world.Width) * 0x1000) + 0x800;
+        int centreY = ((heart / world.Width) * 0x1000) + 0x800;
+        int step = (0x800 / count) & 0x7FF;
+        int made = 0;
+        for (int i = 0, angle = 0; i < count; i++, angle = (angle + step) & 0x7FF)
+        {
+            int x = centreX + (int)(((long)TrapRules.Sine(angle) * 0x2000) >> 16);
+            int y = centreY - (int)(((long)TrapRules.Cosine(angle) * 0x2000) >> 16);
+            var tile = new TilePos(x >> 12, y >> 12);
+            if (!world.Contains(tile)) continue;
+
+            CreatureState imp = world.SpawnCreature(database, worker.CreatureId, playerId, tile);
+            imp.PosX = x;
+            imp.PosY = y;
+            for (int level = 0; level < 4; level++) CreatureLevelRules.LevelUp(context.Hooks, worker, imp);
+            imp.Heading = context.Rng.NextInt(0x800) & 0x7FF;
+
+            // 76's landing for a keeper's worker, as the hand's drop writes it.
+            imp.JustDropped = true;
+            imp.LastTaskKind = ImpTaskKind.None;
+            imp.TimerTicks = 0;
+            imp.WorkerIdle = false;
+            made++;
+        }
+        return made;
     }
 }

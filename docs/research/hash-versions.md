@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**232** — `0xE5DB51390ABD6056`. Special 124, Receive Imps, creates ten level-5 Imps round the Heart; no new saved field. ADR-0441.
+
 **231** — `0xB8FA72F6DE9C12A1`. A room on `Room_ComputeTotalCapacity`'s default arm (Guard Room, Hatchery, Treasury, ...) holds its tile count; no new saved field. 226–230 are taken by the unmerged classic-look branch. ADR-0440.
 
 **225** — `0x2B74D4ED96BA549B`. Imps turn toward the task tile before digging, mining, reinforcing or repairing its wall, holding the entry state until aligned. ADR-0435.
@@ -386,15 +388,4 @@ itself, which DK2 stores rather than recomputing and which this now stores for
 the same reason — anger reaches a creature from four places and three of them
 run before the anger system in the same tick.
 
-**32** — `0x30722F6054924CC5`. The anger split (ADR-0081): one int becomes six.
-DK2 keeps a creature's anger in an `int[6]` indexed by grievance and bands the
-**largest** of them; this simulation kept one pooled counter. Two half-grievances
-no longer add up to desertion, and a kindness in one bucket no longer pays off a
-grievance in another.
-
-**31** — `0xC026542547419606`. Payday (ADR-0078): three creature fields — the
-wage owed, the failed-attempt counter and `SkipNextPayment` — and the next
-payday deadline on the player. The pinned world has no treasury and its
-creatures are level 1, so the value moved on composition.
-
-[Versions 9–30](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–32](hash-versions-early.md) retain the earlier pins and their reasons.

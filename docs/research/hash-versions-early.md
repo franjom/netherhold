@@ -1,6 +1,17 @@
 # Early state-hash versions
 
-Versions 9–30, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–32, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**32** — `0x30722F6054924CC5`. The anger split (ADR-0081): one int becomes six.
+DK2 keeps a creature's anger in an `int[6]` indexed by grievance and bands the
+**largest** of them; this simulation kept one pooled counter. Two half-grievances
+no longer add up to desertion, and a kindness in one bucket no longer pays off a
+grievance in another.
+
+**31** — `0xC026542547419606`. Payday (ADR-0078): three creature fields — the
+wage owed, the failed-attempt counter and `SkipNextPayment` — and the next
+payday deadline on the player. The pinned world has no treasury and its
+creatures are level 1, so the value moved on composition.
 
 **30** — `0x2E7E116CA573398B`. Two commits arrived at 30 from 28, with 29 spent
 on a branch:

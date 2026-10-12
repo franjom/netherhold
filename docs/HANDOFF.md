@@ -178,8 +178,8 @@ the original encounter capture is still needed (combat-acquisition.md §1).
 4. M6: Level 4 (`l4live.sav`, won at capture tick 6743; DK2 side `level4-live1/seed01`,
    local) replays all 6804 turns over seeds 1–20 but never wins
    (experiments/2026-10-12-level4-packet-replay/). Its captured Guard Rooms now draw Dark
-   Elves (ADR-0440). Next: build Receive Imps, special 124 (ten level-5 Imps, owner-confirmed;
-   state 214 unread), re-run, then compare the dig into the hero base. The map builder
+   Elves (ADR-0440); Receive Imps is built (ADR-0441). Next: the claim frontier lags DK2's
+   from row 25 on in every seed; compare imp counts and dig rates there. The map builder
    and runner are in `level4-live1/rig/` (local); seeded DK2 playbacks are still to record.
 5. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built (`tools/blender/imp-reference.ps1`, Blender 5.2.2). The procedural
