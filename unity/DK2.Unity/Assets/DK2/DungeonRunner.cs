@@ -17,7 +17,6 @@ using DK2.Simulation;
 using DK2.Simulation.Systems;
 using Unity.Profiling;
 using UnityEngine;
-using Unity.Profiling;
 
 namespace DK2.Unity
 {
