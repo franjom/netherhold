@@ -86,9 +86,15 @@ turn: intervening movement, work or gold changes can refuse the first tile.
 **Single-tile building is the same action with x1 = x2, y1 = y2**, a one-tile wave. A room built
 click by click is therefore built in click order.
 
-**Which corner is which — CONFIRMED (owner, 2026-09-26).** The packet carries (press, release),
-and the wave runs from the release corner back to the press corner. The owner saw a drag's first
-tiles appear at the tile released, and the door (§5) agrees.
+**Which corner is which — CONFIRMED binary mapping (2026-10-12).** The room arm
+of `0x004075E0`, instructions `0x0040811D..0x00408274`, saves the drag anchor at
+`+0x13E8/+0x13EC`, packs it into build packet `+4`, and packs the current pointer
+into `+8`, clipping its distance from the anchor without normalising the corners.
+Handler `0x00512850` forwards those pairs unchanged. The wave starts at the
+second pair and progresses to the first; reversing the drag reverses the wave.
+The owner now recalls press-to-release construction and reports a fixed
+lower-right origin in Unity; that conflicts with this reading. Q592 retains
+the controlled original/Unity comparison rather than reversing the packet rule.
 
 **Neither availability nor `Buildable` gates this path (binary, 2026-10-06).** No function on
 it calls `Player_RoomAvailability` `0x004BAB20` or tests the ROOMS bit 0x80 as a refusal:

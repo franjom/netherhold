@@ -138,6 +138,9 @@ Standalone render verification: tools/classic-unity-probe/ROOM_LIFE.md.
 
 ## Next work
 
+Construction-wave drag direction needs the restarted-Play/original comparison
+in Q592; input-to-build/effect tests cover all four drag quadrants.
+
 Compare the room-life follow-ups after restarting Play; the canonical
 scope is in [the classic-look plan](plans/2026-10-09-classic-look.md#not-in-this-plan).
 
