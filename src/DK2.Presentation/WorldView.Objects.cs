@@ -500,6 +500,9 @@ public sealed partial class WorldView
         return art;
     }
 
+    /// <summary>The native floor projection shared by creatures and view effects.</summary>
+    public Fp32 GroundHeightAt(WorldState world, FpPosition3 point) => CreatureGroundHeight(world, point);
+
     /// <summary>The liquid bank arm of Tile_FloorHeight; ordinary creature floor projection stays unchanged.</summary>
     private Fp32 CreatureGroundHeight(WorldState world, FpPosition3 point)
     {

@@ -50,10 +50,9 @@ public class RoomConversionTests
     /// </summary>
     private static int WorkUntilTaken(WorldState world, TilePos at, byte playerId)
     {
-        int index = (at.Y * world.Width) + at.X;
         for (int i = 1; i <= 500; i++)
         {
-            TileWorkResult result = RoomHealthRules.Convert(world, Db, index, playerId);
+            TileWorkResult result = RoomHealthRules.Convert(world, Db, at, playerId);
             if (result.Outcome == TileWorkOutcome.Transformed) return i;
             if (result.Outcome == TileWorkOutcome.Rejected)
                 throw new InvalidOperationException($"ConvertRoom rejected at {at}");
@@ -348,8 +347,7 @@ public class RoomConversionTests
     {
         WorldState world = World();
         Paint(world, RoomTypeId.Treasury, 5, 5, 2, 1, Rival);
-        int index = (5 * world.Width) + 5;
-        for (int i = 0; i < 10; i++) RoomHealthRules.Convert(world, Db, index, Keeper);
+        for (int i = 0; i < 10; i++) RoomHealthRules.Convert(world, Db, new TilePos(5, 5), Keeper);
 
         Assert.Equal(20000 - (10 * 800), RoomHealthRules.Health(world, Db, RoomAt(world, 5, 5)));
         Assert.Equal(Rival, world.Tile(6, 5).OwnerPlayerId);

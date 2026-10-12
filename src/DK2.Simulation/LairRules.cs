@@ -339,6 +339,16 @@ public static class LairRules
         return bed;
     }
 
+    /// <summary>Creates a runtime bed and requests the Lair's original creation effect.</summary>
+    public static ObjectState PlaceBed(SimulationContext context, CreatureState creature, TilePos at)
+    {
+        ObjectState bed = PlaceBed(context.World, context.Database, creature, context.World.TileIndex(at));
+        context.RequestEffect("CreatureSleep", ViewEffectRequest.AtTileCentre(
+            context.Database.Room(RoomTypeId.Lair).CreatedObjectEffectId, creature.OwnerPlayerId,
+            at, new Fp32(0), new Dk2Angle((ushort)bed.Heading)));
+        return bed;
+    }
+
     /// <summary>Gives up this creature's bed, destroying the bed object with it, and
     /// says whether there was one. A method rather than an assignment because an
     /// unreleased bed sits on its tile for ever with a creature id nothing answers to,

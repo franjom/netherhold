@@ -34,11 +34,14 @@ namespace DK2.Unity
         public RoomConstructionParticles Model { get; }
 
         public ClassicConstructionEffects(Transform root, GameDatabase database, IEffectSpriteProvider sprites, ulong seed,
-            Func<RoomConstructionEffect, bool> visible = null)
+            Func<RoomConstructionEffect, bool> visible = null,
+            Func<ViewEffectRequest, bool> effectVisible = null,
+            Func<FpPosition3, Fp32> floorHeight = null,
+            Func<EffectTime> clock = null)
         {
             _root = root;
             _sprites = sprites;
-            Model = new RoomConstructionParticles(database, seed, ReadClock, visible);
+            Model = new RoomConstructionParticles(database, seed, clock ?? ReadClock, visible, effectVisible, floorHeight);
         }
 
         private static EffectTime ReadClock() => new EffectTime((long)(Time.realtimeSinceStartupAsDouble * 1000));
@@ -91,7 +94,7 @@ namespace DK2.Unity
             var group = new Group { Material = new Material(shader) { name = key.Key } };
             group.Material.SetInt("_DstBlend", (int)(resource.Blend == EffectSpriteBlend.Additive
                 ? BlendMode.One : BlendMode.OneMinusSrcAlpha));
-            var go = new GameObject("construction " + definition.Name);
+            var go = new GameObject("effect " + definition.Name);
             go.transform.SetParent(_root, false);
             group.System = go.AddComponent<ParticleSystem>();
             var main = group.System.main;

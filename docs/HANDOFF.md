@@ -73,12 +73,14 @@ Plans: docs/plans/2026-10-09-classic-look.md and
 plans/2026-10-10-classic-look-step4.md. Supported Step 4 playback is built
 (ADR-0431–0438); room-life follow-ups are built under ADR-0442.
 Combined verification passes; room-life fixes are merged to master at 6f4f2bb2.
-Classic follow-ups use hash/save version 237. ADR-0444 covers native bank heights,
+Classic follow-ups use hash/save version 238. ADR-0444 covers native bank heights,
 height interpolation, failed-job idle wandering and same-tile dummy approaches.
 Original guard placement/patrol timing is awaiting comparison in Q589.
 ADR-0447 covers route-less combat contact updates,
 attack facing and post-impact melee holds. Q345 retains the original bridge
 spacing comparison; soft contact does not guarantee model clearance.
+ADR-0449 centres claiming imps and restores tile/room claiming and bed effects;
+see room-construction-effects.md §6 for original triggers and definitions.
 Hero-owned Prisons do not produce rats; capture them first (prison-rats.md).
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity;
 restart Play after assembly sync. Never commit local editor state
@@ -129,9 +131,9 @@ Level1–3 replay drivers were recovered from Claude's scratchpad:
 C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
 d869276a-99ca-491a-9cf5-0342488c1277/scratchpad.
 Replay measurements are modern regressions, not original timing parity;
-all 60 Level1–3 traces validate, bounded-run wins 19/2/10. Artifacts:
-build/classic-step3-replays/room-life-merged233. Release verification passes
-4,983 tests without skips; Unity sync/compile and independent review pass.
+all 60 Level1–3 traces validate, bounded-run wins 20/4/11. Artifacts:
+build/classic-step3-replays/claim-life238. Release verification passes
+5,073 tests without skips; Unity sync/compile and independent review pass.
 Standalone render verification: tools/classic-unity-probe/ROOM_LIFE.md.
 
 ## Next work

@@ -185,7 +185,10 @@ namespace DK2.Unity
             {
                 var sprites = new InstallEffectSpriteProvider(database, _installArt.LoadTexture);
                 _constructionEffects = new ClassicConstructionEffects(transform, database, sprites, seed,
-                    request => !world.FogOfWarEnabled || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId));
+                    request => !world.FogOfWarEnabled || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId),
+                    request => world.Contains(request.Tile) && (!world.FogOfWarEnabled
+                        || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId)),
+                    point => _worldView.GroundHeightAt(world, point));
                 _simulation.ObserveWith(_constructionEffects.Model);
             }
 

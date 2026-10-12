@@ -292,7 +292,7 @@ public class PortalTests
         while (world.Tile(1, 1).OwnerPlayerId == Keeper)
         {
             TileWorkResult result = RoomHealthRules.Convert(
-                world, db, world.Width + 1, Rival);
+                world, db, new TilePos(1, 1), Rival);
             Assert.NotEqual(TileWorkOutcome.Rejected, result.Outcome);
         }
 

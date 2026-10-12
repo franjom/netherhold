@@ -68,7 +68,8 @@ public static class RoomHealthRules
     /// </summary>
     [Dk2Behavior(Confidence.Confirmed, "docs/research/room-health.md")]
     public static RoomHealthOutcome Apply(
-        WorldState world, GameDatabase database, RoomInstance room, int delta, PlayerId playerId)
+        WorldState world, GameDatabase database, RoomInstance room, int delta, PlayerId playerId,
+        SimulationContext? context = null)
     {
         int health = Health(world, database, room);
         if (delta >= 0)
@@ -84,7 +85,7 @@ public static class RoomHealthRules
             return RoomHealthOutcome.Progressed;
         }
 
-        TransferOwnership(world, database, room, playerId);
+        TransferOwnership(world, database, room, playerId, context);
         Set(world, database, room, StartPerTile(database, room.Definition) * room.TileCount);
         return RoomHealthOutcome.TookOver;
     }
@@ -93,14 +94,17 @@ public static class RoomHealthRules
     /// to the new owner, a portal's clock restarted (<see cref="PortalRules.OnOwnerChanged"/>) and
     /// both keepers told (<see cref="PostTransfer"/>). Gold stays where it is, a treasury's with the
     /// treasury (Q40). It never writes the health.</summary>
-    private static void TransferOwnership(WorldState world, GameDatabase database, RoomInstance room, PlayerId playerId)
+    private static void TransferOwnership(WorldState world, GameDatabase database, RoomInstance room, PlayerId playerId,
+        SimulationContext? context)
     {
         PostTransfer(world, room, room.OwnerPlayerId, playerId);
-        foreach (int index in room.TileIndices)
+        foreach (int index in SlabChain.Order(world, room))
         {
             ref TileState tile = ref world.TileAtIndex(index);
             if (tile.OwnerPlayerId == playerId) continue;
             tile.OwnerPlayerId = playerId.Value;
+            context?.RequestEffect("RoomHealth", ViewEffectRequest.AtTileCentre(new EffectId(8), playerId,
+                new TilePos(index % world.Width, index / world.Width), new Fp32(0)));
             tile.KeptManaGain = 0; // Tile_SetOwner moves the room terrain's 0, not the floor's 1 (ADR-0334)
             if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
         }
@@ -138,20 +142,22 @@ public static class RoomHealthRules
 
     /// <summary>
     /// One application of action 10 (<c>0x00497BF0</c>) by <paramref name="playerId"/>'s worker on
-    /// the tile at <paramref name="tileIndex"/>: when the tile gate passes (<c>0x00454040</c>,
+    /// the tile at <paramref name="at"/>: when the tile gate passes (<c>0x00454040</c>,
     /// <see cref="TileWorkRules.Applies(WorldState, GameDatabase, in TileState, TileWorkKind, byte)"/>),
     /// the rate for the tile's owner goes to the room under it. No tile's terrain or health changes.
     /// </summary>
     public static TileWorkResult Convert(
-        WorldState world, GameDatabase database, int tileIndex, PlayerId playerId, int efficiency = EfficiencyRules.BaseModifier)
+        WorldState world, GameDatabase database, TilePos at, PlayerId playerId, int efficiency = EfficiencyRules.BaseModifier,
+        SimulationContext? context = null)
     {
+        int tileIndex = world.TileIndex(at);
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         if (!TileWorkRules.Applies(world, database, tile, TileWorkKind.ConvertRoom, playerId)
             || RoomIndex.RoomAt(world, database, tileIndex) is not { } room)
             return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
 
         int delta = ConvertPerApplication(database, tile.OwnerPlayerId, efficiency);
-        TileWorkOutcome outcome = Apply(world, database, room, delta, playerId) == RoomHealthOutcome.TookOver
+        TileWorkOutcome outcome = Apply(world, database, room, delta, playerId, context) == RoomHealthOutcome.TookOver
             ? TileWorkOutcome.Transformed
             : delta == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed;
         return new TileWorkResult(outcome, delta, 0, 0, tile.TerrainId);

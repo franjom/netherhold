@@ -825,6 +825,12 @@ public sealed partial class ImpTaskSystem
             (long sx, long sy) = TaskStealing.ReinforceStance(standing, face);
             context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.ExactSpot);
         }
+        else if (kind is TileWorkKind.Claim or TileWorkKind.AttackTile or TileWorkKind.ConvertRoom)
+        {
+            // The claim handler walks to the centre even from inside the target tile.
+            context.Navigation.TryRouteToStance(creature, CreatureState.CentreOf(target.X),
+                CreatureState.CentreOf(target.Y), Navigation.MoveOptions.Spot);
+        }
         else
         {
             context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Spot);

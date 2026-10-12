@@ -491,9 +491,8 @@ public class BridgeTests
             database, run.World.Tile(span), TileWorkKind.ConvertRoom, playerId: Rival));
 
         ref TileState tile = ref run.World.Tile(span);
-        int index = (span.Y * run.World.Width) + span.X;
         for (int i = 0; i < 5000 && tile.OwnerPlayerId != Rival; i++)
-            RoomHealthRules.Convert(run.World, database, index, Rival);
+            RoomHealthRules.Convert(run.World, database, span, Rival);
 
         Assert.Equal(Rival, tile.OwnerPlayerId);
         Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, tile.TerrainId);
@@ -521,9 +520,8 @@ public class BridgeTests
         int burningBefore = tile.BurnTicksRemaining;
         Assert.True(burningBefore > 0);
 
-        int index = (span.Y * run.World.Width) + span.X;
         for (int i = 0; i < 5000 && tile.OwnerPlayerId != Rival; i++)
-            RoomHealthRules.Convert(run.World, database, index, Rival);
+            RoomHealthRules.Convert(run.World, database, span, Rival);
 
         Assert.Equal(Rival, tile.OwnerPlayerId);
         Assert.Equal(burningBefore, tile.BurnTicksRemaining);

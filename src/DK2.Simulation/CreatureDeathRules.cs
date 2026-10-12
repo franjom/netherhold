@@ -274,7 +274,7 @@ public static class CreatureDeathRules
 
         context.Rng.NextInt(0x800);
         LairRules.ReleaseBed(world, database, creature);
-        LairRules.PlaceBed(world, database, creature, tile);
+        LairRules.PlaceBed(context, creature, new TilePos(tile % world.Width, tile / world.Width));
         CreatureAngerRules.Forget(world, definition, creature, AngerBucket.Lair);
         creature.PosX = CreatureState.CentreOf(tile % world.Width);
         creature.PosY = CreatureState.CentreOf(tile / world.Width);

@@ -78,6 +78,11 @@ public sealed class TileWorkSystem : ISimulationSystem
                 && world.CreatureById(order.WorkerCreatureId) is { } worker)
                 CreatureExperienceSystem.AwardWork(context, worker);
 
+            if (order.Kind == TileWorkKind.Claim && result.Outcome == TileWorkOutcome.Transformed)
+                context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
+                    context.Database.TerrainById(before).MaxHealthEffectId, order.PlayerId,
+                    new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width), new Fp32(Fp32.One)));
+
             PostThreat(context, order, result, before, ownerBefore);
             CreditGoldMined(context, order, result.GoldReleased);
             int carried = HandTo(context, order, result.GoldReleased, out int putDown);
@@ -146,7 +151,8 @@ public sealed class TileWorkSystem : ISimulationSystem
         int efficiency = EfficiencyOf(context, order.WorkerCreatureId);
         TileWorkResult result = order.Kind == TileWorkKind.RepairRoom
             ? RoomHealthRules.Repair(world, database, order.TileIndex, order.PlayerId, efficiency)
-            : RoomHealthRules.Convert(world, database, order.TileIndex, order.PlayerId, efficiency);
+            : RoomHealthRules.Convert(world, database,
+                new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width), order.PlayerId, efficiency, context);
 
         if (result.Outcome == TileWorkOutcome.Transformed && room is not null)
             context.Emit(SystemName, "room_converted",

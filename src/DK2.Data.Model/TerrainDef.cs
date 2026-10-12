@@ -59,6 +59,9 @@ public sealed record TerrainDef
     public required ushort StartingHealth { get; init; }
     public required ushort MaxHealth { get; init; }
 
+    /// <summary>Effect on reaching max health, TERRAIN file ushort at 0x1A4.</summary>
+    public ushort MaxHealthEffectId { get; init; }
+
     /// <summary>Gold yielded when mined out (gold seams / gems).</summary>
     public required ushort GoldValue { get; init; }
     public required ushort ManaGain { get; init; }

@@ -78,6 +78,16 @@ public sealed class SimulationContext
     public void Emit(string system, string kind, string detail) =>
         Events.Emit(new SimEvent(Tick, system, kind, detail));
 
+    public void RequestEffect(string system, ViewEffectRequest request)
+    {
+        if (request.EffectId == EffectId.None) return;
+        Events.Emit(new SimEvent(Tick, system, "effect_requested",
+            $"player={request.Owner} effect={request.EffectId} tile=({request.Tile.X},{request.Tile.Y}) height={request.Height.Raw}")
+        {
+            EffectRequest = request,
+        });
+    }
+
     /// <summary>The level's trigger executor, when the simulation has one: the systems fire DK2's
     /// creature and player trigger events through it at the moment they happen, as the binary
     /// does. Null in a world without triggers, and the firings are no-ops.</summary>

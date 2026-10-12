@@ -10252,3 +10252,22 @@ Evidence: combat-spacing.md, combat-fight-state.md and kmf-animation-playback.md
 soft and does not guarantee rigid clearance. Other route-less state dispatch,
 remembered-entity activation and original visual comparison remain open.
 Q582 still requires the owner's original-game casualty confirmation.
+
+## ADR-0449 — Restore claim positioning and ownership effects
+**Date:** 2026-10-12 · **Status:** accepted
+
+**Context.** Same-tile paths let imps start claiming off centre. Tile and room
+ownership changes and successful bed creation lacked their original effects.
+
+**Decision.** Keep a centre destination even when an imp already occupies its
+claim tile. Publish typed cosmetic requests at completed floor claiming,
+whole-room ownership transfer and successful bed creation. Read the terrain
+and room effect references from shipped data and reuse the existing effect
+renderer, independent cosmetic randomness and original sprite provider.
+Evidence: room-construction-effects.md §6; function records 0046AB50 and 004D0F60.
+Hash/save version 238 accounts for changed claim approaches; cosmetic requests
+are neither saved nor hashed.
+
+**Consequences.** The changes apply across maps. Native arrival tolerance is
+preserved. The special cycling-colour branch and bed heading fidelity remain
+research boundaries; ordinary keeper colours use the confirmed palette.

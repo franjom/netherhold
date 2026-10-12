@@ -188,3 +188,93 @@ particle count/trajectory comparison. The owner's comparison found the
 four-turn implementation lasts longer, but did not measure seconds. Logical
 sprite keys resolve through the asset provider; original filenames remain
 inside that provider.
+
+## 6. Claim, capture and bed creation
+
+**CONFIRMED binary and shipped data (2026-10-12).** These requests use the
+same view-effect interface and type-4 generator as construction. A work
+strike is not an effect trigger: only the completed changes below emit.
+
+| Change | Request source | Effect | Original position and heading |
+|---|---|---|---|
+| Dirt Path becomes Claimed Path | `0x00452F60`, after max-health terrain conversion | source terrain's max-health effect; shipped 5 | tile centre, Z 4096, heading 0, working player |
+| Whole room changes owner, including Portal capture | `0x004E5650` | 8 on each slab in its existing chain | each tile centre, Z 0, heading 0, new owner |
+| Creature creates its bed | `0x0048AD50`, after object creation succeeds; caller `0x004E03F0` | Lair definition's effect, shipped 17 | tile centre, Z 0, newly drawn bed heading, creature owner |
+
+Terrain loader `0x004F66E0` maps file `+0x1A4` through intermediate `+0x25C`
+to runtime `+0x1C7`. Room loader `0x004EACC0` maps file `+0x384` through
+intermediate `+0x458` to runtime `+0x423`. The Lair's file value is 17.
+The bed request precedes room registration: failed object creation emits
+nothing; a later registration failure does not undo its already requested effect.
+Tile-owner setter `0x004559D0` emits no effect. Claim action `0x004974C0`
+emits completion sound, while the terrain applier owns the visual request.
+
+All three parent effects have no art, zero mass/friction/elasticity and
+zero horizontal/vertical speed. Their nominal scale is 1024. Parent initial
+HP is inclusive; fixed bounds below introduce no random draw.
+
+| Effect | Flags | HP | Per-update emission | Origin radius; height offset |
+|---|---|---|---|---|
+| 5, Claim Land | `0x480` | 2 | 16 elements, each chooses uniformly between 142 and 143 | 0..735; 0 |
+| 8, Claim Room | `0x280` | 1 | 16 of 145 and 16 of 146 | 0..2207; 0..1023 |
+| 17, Lair Bed | `0x80` | 4 | 32 of 162 and 32 of 163 | 0..367; 0 |
+
+Radius is in 4096-per-tile position units with uniform radius, as in section 3.
+`0x004347E0` immediately invokes `0x00446C70`: below the queried native
+floor, these zero-elasticity parents settle exactly at floor height.
+Generation uses that current position; Z 0 is not an instruction to place
+bed or capture particles below the floor. Element birth uses the same floor helper.
+
+`0x004386F0` uses parent flag `0x400` to select one generation slot per
+particle; `0x00435E30` draws inclusively through the last nonzero slot index
+cached by loader `0x004358C0`. Without it, all nonzero slots emit in reverse
+order. Parent flag `0x200` is not established here as a color control.
+Element flag `0x200` bypasses its allocation visibility test (`0x004352E0`).
+
+The initializer does not emit these type-4 waves. `0x00434E80` generates
+before subtracting elapsed 50ms quanta from parent HP (section 5). At delta 1,
+effects 5/8/17 therefore request 32/32/256 particles over 2/1/4 updates.
+An intact 3x3 Portal requests nine independent effect-8 instances, 288 particles.
+Late scheduled updates can consume several HP units and reduce wave count.
+Effect 81 retains one wave of 64 particles. Its immediate modern birth emission
+boundary is recorded in section 5 and is not evidence of original birth timing.
+
+| Element | Sprite; raw art flags | HP | RGB source |
+|---|---|---|---|
+| 142 | SM; `0x86` | 16..24 | keeper color |
+| 143 | sparkle-02g; 0 | 24..32 | 255,255,255 |
+| 145 | sm; `0x86` | 24..32 | keeper color |
+| 146 | SM; `0x84` | 24..32 | keeper color |
+| 162 | SM; `0x84` | 16..32 | keeper color |
+| 163 | SM; 4 | 16 | 70,80,130 |
+
+All are additive sprites (type 3). Raw art flag `0x80`, compact descriptor
+flag 2, selects keeper color in `0x00435F20`, replacing authored RGB and
+clamping each component to at least 48; authored RGB bypasses that clamp.
+Alpha starts at 255. Elements
+142/145/162/163 carry `0xD` (destroy on contact, scale up, dim RGB), while
+143/146 carry `0xC`. Fade percentage 100 makes lifetime alpha threshold zero.
+Physics, scale and normalized sprite animation follow sections 3-5.
+
+Keeper RGB is variant 0 of the palette initialized by `0x004C04C0`, whose
+four-byte entries are written by `0x004C06D0`. `0x0050F830` looks up the
+player's Number (`+0x10FC`), not its thing tag, and indexes `0x006E5058`
+with 12 bytes per number (three variants). Invalid player/number returns
+number 1, variant 0.
+
+| Player Number | Native RGB before minimum-48 clamp |
+|---|---|
+| 0 | 0,0,0 |
+| 1 | 191,213,224 |
+| 2 | 255,255,255 |
+| 3 | 230,50,50 |
+| 4 | 50,78,230 |
+| 5 | 50,230,51 |
+| 6 | 226,230,50 |
+| 7 | 230,50,212 |
+
+`0x00435F20` also compares the element owner against component slot `+0xC4`.
+Equality selects `0x0050F880` instead: palette number
+`floor(wallMilliseconds/100)%7+1`. The compared getter's actual receiver
+is still being traced. This does not establish a local-player test.
+Color is sampled at element creation.

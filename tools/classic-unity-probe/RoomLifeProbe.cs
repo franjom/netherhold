@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DK2.Art;
@@ -37,6 +38,8 @@ namespace DK2.Unity
             public int[] guardStates;
             public string guardCreature, dwarfMesh;
             public Vector3[] dwarfNativeSamples, warlockNativeSamples;
+            public int[] authoredEffectIds, authoredRequestCounts, authoredBirths, authoredModelCounts, authoredNativeCounts, authoredChangedPixels;
+            public bool authoredEffectsPassed;
         }
         private readonly Metrics _metrics = new Metrics();
         private InstallArtProvider _art;
@@ -55,6 +58,8 @@ namespace DK2.Unity
         private double _effectStarted;
         private double _expiredAt = -1;
         private SimEvent[] _constructionEvents;
+        private GameDatabase _probeDatabase;
+        private IEffectSpriteProvider _probeSprites;
         private sealed class WaveSink : ISimulationEventSink
         {
             public readonly ListEventSink Events = new ListEventSink();
@@ -110,6 +115,7 @@ namespace DK2.Unity
                 var sun = new GameObject("Probe sun").AddComponent<Light>(); sun.type = LightType.Directional;
                 sun.transform.rotation = Quaternion.Euler(50, -30, 0);
                 RenderSettings.ambientLight = Color.gray;
+                _probeDatabase = db; _probeSprites = sprites;
                 _ready = true;
             }
             catch (Exception ex) { Debug.LogException(ex); Application.Quit(1); }
@@ -209,6 +215,93 @@ namespace DK2.Unity
             _metrics.lairWaveCorrect = _metrics.lairTilesInput == 1 && _metrics.lairTilesNext == 3 && _metrics.lairTilesFinal == 4
                 && requests.SequenceEqual(new[] { new TilePos(2, 2), new TilePos(2, 1), new TilePos(1, 2), new TilePos(1, 1) });
         }
+
+        private static WorldState EffectWorld(GameDatabase db)
+        {
+            var tiles = Enumerable.Repeat(new MapTile(1, PlayerIds.Unowned, 0, 0), 49).ToArray();
+            return WorldState.FromMap(db, new LevelMap(7, 7, tiles),
+                new byte[] { PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper });
+        }
+
+        private static SimEvent[] AuthoredRequests(GameDatabase db, EffectId effectId)
+        {
+            WorldState world = EffectWorld(db);
+            TilePos target = new TilePos(3, 3);
+            ISimulationSystem[] systems;
+            if (effectId.Value == 5)
+            {
+                TerrainDef path = db.Terrain.Values.Single(t => t.Name == "Dirt Path");
+                world.Tile(target).TerrainId = path.TerrainId;
+                world.Tile(target).Health = path.StartingHealth;
+                systems = new ISimulationSystem[] { new TileWorkSystem() };
+            }
+            else
+            {
+                RoomTypeId type = effectId.Value == 8 ? RoomTypeId.Portal : RoomTypeId.Lair;
+                byte owner = effectId.Value == 8 ? PlayerIds.Neutral : PlayerIds.FirstKeeper;
+                for (int y = 2; y <= 4; y++)
+                    for (int x = 2; x <= 4; x++) RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), owner);
+                systems = effectId.Value == 8 ? new ISimulationSystem[] { new TileWorkSystem() }
+                    : new ISimulationSystem[] { new CreatureMovementSystem(), new CreatureSleepSystem() };
+                if (effectId.Value == 17)
+                    world.SpawnCreature(db, db.Creatures.Values.Single(c => c.Name == "Goblin").CreatureId,
+                        PlayerIds.FirstKeeper, target);
+            }
+            var sim = new GameSimulation(db, world, 1, systems);
+            var sink = new ListEventSink(); sim.ObserveWith(sink);
+            for (int tick = 0; tick < 500 && !sink.Events.Any(e => e.EffectRequest.HasValue); tick++)
+            {
+                if (effectId.Value == 5) world.QueueWork(target.X, target.Y, TileWorkKind.Claim, PlayerIds.FirstKeeper);
+                if (effectId.Value == 8) world.QueueWork(target.X, target.Y, TileWorkKind.ConvertRoom, PlayerIds.FirstKeeper);
+                sim.Tick();
+            }
+            return sink.Events.Where(e => e.EffectRequest.HasValue && e.EffectRequest.Value.EffectId == effectId).ToArray();
+        }
+
+        private void CheckAuthoredEffects(GameDatabase db, IEffectSpriteProvider sprites)
+        {
+            _metrics.authoredEffectIds = new[] { 5, 8, 17 };
+            _metrics.authoredRequestCounts = new int[3]; _metrics.authoredBirths = new int[3];
+            _metrics.authoredModelCounts = new int[3]; _metrics.authoredNativeCounts = new int[3];
+            _metrics.authoredChangedPixels = new int[3]; _metrics.authoredEffectsPassed = true;
+            int[] expectedRequests = { 1, 9, 1 }, expectedParticles = { 32, 288, 256 };
+            _actors.SetActive(false); _effectRoot.SetActive(false);
+            for (int index = 0; index < 3; index++)
+            {
+                var id = new EffectId((ushort)_metrics.authoredEffectIds[index]);
+                var root = new GameObject("Authored effect " + id.Value);
+                long milliseconds = 0;
+                using (var effects = new ClassicConstructionEffects(root.transform, db, sprites, 42,
+                    clock: () => new EffectTime(milliseconds)))
+                {
+                    Color32[] baseline = Capture("authored-" + id.Value + "-off");
+                    SimEvent[] requests = AuthoredRequests(db, id);
+                    _metrics.authoredRequestCounts[index] = requests.Length;
+                    foreach (SimEvent request in requests) effects.Model.Emit(request);
+                    _metrics.authoredEffectsPassed &= effects.Model.Particles.Count == 0;
+                    var births = new HashSet<ConstructionParticle>();
+                    for (int update = 1; update <= 4; update++)
+                    {
+                        milliseconds = update * 50 + 1;
+                        effects.Draw();
+                        foreach (ConstructionParticle particle in effects.Model.Particles) births.Add(particle);
+                    }
+                    _metrics.authoredBirths[index] = births.Count;
+                    _metrics.authoredModelCounts[index] = effects.Model.Particles.Count;
+                    _metrics.authoredNativeCounts[index] = root.GetComponentsInChildren<ParticleSystem>().Sum(p => p.particleCount);
+                    Color32[] pixels = Capture("authored-" + id.Value + "-on");
+                    _metrics.authoredChangedPixels[index] = pixels.Where((p, i) => !p.Equals(baseline[i])).Count();
+                    milliseconds = 5001; effects.Draw(); Capture("authored-" + id.Value + "-expired");
+                    _metrics.authoredEffectsPassed &= requests.Length == expectedRequests[index]
+                        && births.Count == expectedParticles[index] && _metrics.authoredChangedPixels[index] > 0
+                        && _metrics.authoredNativeCounts[index] == _metrics.authoredModelCounts[index]
+                        && effects.Model.Particles.Count == 0
+                        && root.GetComponentsInChildren<ParticleSystem>().All(p => p.particleCount == 0);
+                }
+                root.SetActive(false); Destroy(root);
+            }
+            _actors.SetActive(true); _effectRoot.SetActive(true);
+        }
         private GameObject Entrance(ClassicMeshes meshes, string name, float x, out string entry)
         {
             if (!_art.TryResolve(AssetRef.ForCreature(name, AssetKind.Animation, "entrance"), out var asset)) throw new InvalidOperationException(name + " entrance missing");
@@ -254,6 +347,7 @@ namespace DK2.Unity
                     _expiredAt = Time.realtimeSinceStartupAsDouble;
                 if (_frame == 5)
                 {
+                    CheckAuthoredEffects(_probeDatabase, _probeSprites);
                     _actors.SetActive(false);
                     var baseline = Capture("effects-off");
                     _effectStarted = Time.realtimeSinceStartupAsDouble;
@@ -305,7 +399,7 @@ namespace DK2.Unity
                     _metrics.passed = _metrics.shaderSupported && _metrics.effectChangedPixels > 0 && _metrics.particleGroups > 0
                         && _metrics.particleCount == _metrics.modelParticles && _metrics.ratMeshChanged && _metrics.ratPositionChanged
                         && _metrics.goblinMeshChanged && _metrics.warlockMeshChanged && _metrics.goblinFinalHeld && _metrics.warlockFinalHeld
-                        && _metrics.lairWaveCorrect && _metrics.effectsExpired
+                        && _metrics.lairWaveCorrect && _metrics.effectsExpired && _metrics.authoredEffectsPassed
                         && _metrics.dwarfNativeInterpolation && _metrics.warlockNativeInterpolation
                         && _metrics.guardCreature == "Guard" && _metrics.guardAtDummyCentre && _metrics.guardFailedHuntSeen
                         && _metrics.guardWanderSeen && _metrics.guardLeftDummyCentre;

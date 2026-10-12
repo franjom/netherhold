@@ -15,6 +15,10 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**238** — `0xE834B736C858816C`. Claim, enemy-floor attack and room conversion
+retain a centre destination for same-tile approaches. Visual effect requests
+do not enter saved or hashed state. ADR-0449.
+
 **237** — `0xBC650457E0557295`. Route-less fight states integrate contact;
 in-range fighters face their target and hold melee through the authored
 animation-completion poll. No new saved field. ADR-0447.
@@ -389,9 +393,4 @@ THINGS-file order: rectangles, ids, loader-filtered flags, passage counters and
 wait timers. Even this fixture's empty list adds its count to the hash.
 `docs/research/action-points.md`.
 
-**39** — `0x81D58B966898BEC8`. Corrected the trigger timer bank from 256 slots
-to **sixteen**, 240 fewer dwords in the hash. Two readings agree on sixteen: the
-next field on the owning object sits 0x40 bytes after the bank, and the
-condition path compares the id against 0x10 before indexing.
-
-[Versions 9–38](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–39](hash-versions-early.md) retain the earlier pins and their reasons.
