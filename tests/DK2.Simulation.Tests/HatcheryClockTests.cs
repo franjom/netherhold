@@ -164,19 +164,24 @@ public class HatcheryClockTests
     }
 
     [Fact]
-    public void AFullHatcheryLaysNothingAndSaysSo()
+    public void AFullHatcheryAtTheFreeRangeLimitRefusesToLay()
     {
-        // One bird per tile, so a 3x3 stops at nine - and a hatchery that has
-        // stopped should say why rather than going quiet.
         GameDatabase db = Db;
         WorldState world = World(db);
         RoomInstance room = Hatchery(db, world, 3);
         int capacity = HatcheryRules.FlockCapacity(db, room);
+        foreach (int tile in room.TileIndices)
+        {
+            ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, tile);
+            chicken.ChickenCanEscape = false;
+        }
+        for (int i = 0; i < HatcheryRules.FreeRangeCap(db); i++)
+            world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, 0);
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
-        for (int i = 0; i < 400 * Second; i++) sim.Tick();
+        for (int i = 0; i < 8 * Second; i++) sim.Tick();
 
         RoomInstance now = RoomIndex.Build(world, db)
             .Single(r => r.Definition.TypeId == RoomTypeId.Hatchery);

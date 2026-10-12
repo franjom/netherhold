@@ -317,6 +317,7 @@ public static class CallToArmsRules
         }
 
         flag.ProcessState = Releasing;
+        flag.AnimationStartedTick = context.Tick.Value;
         context.Emit(system, "call_to_arms_slapped", $"player={playerId} flag={flag.Id}");
         return true;
     }

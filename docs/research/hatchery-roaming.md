@@ -1,4 +1,4 @@
-# Chicken object roaming
+﻿# Chicken object roaming
 
 Binary reads on 2026-10-10: object process table `0x0049E600`, Hatchery
 process 6 `0x004A1F30`, movement starter `0x0049F880`, movement process 9
@@ -87,7 +87,8 @@ remains unnamed after a complete process-10 read; see Q584. Loose roaming is unb
 ## 4. Implementation boundary
 
 The owned Hatchery loop is built in `ChickenMovementRules` and stepped every
-tick, newest first, by `ChickenMovementSystem` (ADR-0434). The shared class-list
+tick by `ObjectMovementSystem`, together with Rats newest first
+([prison-rats.md](prison-rats.md#3-life-and-presentation)). The shared class-list
 order is established in `imp-task-stealing.md` §8. Heading, age, reaction countdown,
 destination, velocity, resume process, flags and count are hashed and saved;
 crossing a tile updates its occupancy link. Hatching on an owned Hatchery starts

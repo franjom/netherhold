@@ -17,6 +17,7 @@ namespace DK2.Simulation;
 /// <param name="Detail">Human-readable specifics; never parsed by the simulation.</param>
 public readonly record struct SimEvent(GameTick Tick, string System, string Kind, string Detail)
 {
+    public RoomConstructionEffect? ConstructionEffect { get; init; }
     public override string ToString() => $"{Tick} [{System}] {Kind}: {Detail}";
 }
 

@@ -131,9 +131,9 @@ Prison door, the Crypt bell, roulette wheels, the wheel beside Torture coals, an
 heart tile's gold as Urn1, Urn2 or the Chest by fill. Torture wheels beside coals/water are now
 simulation devices. A floor pile scales with its gold, a Book Case
 shows its selector's variant, and a sleeping creature's bed is hidden. With the install, an object
-with no art draws nothing, as DK2's does. Not built: the objects' animations by state (coop
-wobble, egg hatch, dummy recoil, the Heart's beat plays from step 4) and the headings DK2 draws
-on the simulation stream (beds, store piles), which ours does not keep. Tilts and offsets,
+with no art draws nothing, as DK2's does. Supported object-state animations are built
+in step 4 (ADR-0438). The headings DK2 draws on the simulation stream for beds and store
+piles remain unbuilt. Tilts and offsets,
 Prison door facing, KMF transparency, Hero Gate floors/faces and ruined Heart floors are built.
 Q581's wall-machine working positions and the room initialization/navigation fixes are built
 under ADR-0419, hash/save version 215. Owner screenshot checks remain in HANDOFF.md.
@@ -149,6 +149,9 @@ under ADR-0419, hash/save version 215. Owner screenshot checks remain in HANDOFF
 
 Gate: imps digging and claiming, and a creature walking, eating and sleeping, beside DK2's.
 
+Implementation and verification status: 2026-10-10-classic-look-step4.md.
+The owner comparison gate remains pending.
+
 ## Step 5: camera and lighting
 
 Research first; none is read yet. DK2's camera angle, field of view, zoom range and pan; its
@@ -161,6 +164,15 @@ Gate: the owner, at the same spot in both games, cannot tell which camera is whi
 
 The HUD and panel, the Hand of Evil's cursor, spell and trap effects, sound, and the modern look
 (M11), which ADR-0408 puts on the same pipeline and which is judged against this one.
+
+Owner follow-ups built on 2026-10-12 beyond Step 4's scope (ADR-0442):
+
+- Room construction uses queued tile waves and the original sprite effects;
+  see [room-construction-effects.md](../research/room-construction-effects.md).
+- Prison rats spawn and wander through the shared object movement pass;
+  see [prison-rats.md](../research/prison-rats.md).
+- Creature Portal arrivals play Entrance during state193/action49;
+  see [portal-creature-action.md](../research/portal-creature-action.md) and Q473.
 
 ## Open
 

@@ -93,20 +93,20 @@ public static class SteeringIntegrator
         (int nx, int ny) = next.Tile();
         byte own = world.NavByte(ox, oy);
 
-        if (Open(own, nx, ny, mover, world))
+        if (Open(own, new TilePos(nx, ny), body.Pos, next, mover, world))
         {
             body.Pos = next;
             return true;
         }
 
-        if (Open(own, nx, oy, mover, world))
+        if (Open(own, new TilePos(nx, oy), body.Pos, new Fixed16Vector(next.X, body.Pos.Y), mover, world))
         {
             body.Pos = new Fixed16Vector(next.X, body.Pos.Y);
             body.Vel = new Fixed16Vector(body.Vel.X, 0);
             return true;
         }
 
-        if (Open(own, ox, ny, mover, world))
+        if (Open(own, new TilePos(ox, ny), body.Pos, new Fixed16Vector(body.Pos.X, next.Y), mover, world))
         {
             body.Pos = new Fixed16Vector(body.Pos.X, next.Y);
             body.Vel = new Fixed16Vector(0, body.Vel.Y);
@@ -115,14 +115,14 @@ public static class SteeringIntegrator
 
         int dx = nx - ox, dy = ny - oy;
         Fixed16Vector step = next - body.Pos;
-        if (Open(own, ox - dy, oy + dx, mover, world))
+        if (Open(own, new TilePos(ox - dy, oy + dx), body.Pos, new Fixed16Vector(body.Pos.X - step.Y, body.Pos.Y + step.X), mover, world))
         {
             body.Pos = new Fixed16Vector(body.Pos.X - step.Y, body.Pos.Y + step.X);
             axis = step;
             return true;
         }
 
-        if (Open(own, ox + dy, oy - dx, mover, world))
+        if (Open(own, new TilePos(ox + dy, oy - dx), body.Pos, new Fixed16Vector(body.Pos.X + step.Y, body.Pos.Y - step.X), mover, world))
         {
             body.Pos = new Fixed16Vector(body.Pos.X + step.Y, body.Pos.Y - step.X);
             axis = step;
@@ -132,8 +132,8 @@ public static class SteeringIntegrator
         return false;
     }
 
-    private static bool Open(byte own, int tileX, int tileY, MoverProfile mover, ISteeringWorld world) =>
-        MeshRouter.TransitionCost(world.NavByte(tileX, tileY), own, mover) != 0;
+    private static bool Open(byte own, TilePos tile, Fixed16Vector from, Fixed16Vector to, MoverProfile mover, ISteeringWorld world) =>
+        world.CanMove(from, to) && MeshRouter.TransitionCost(world.NavByte(tile.X, tile.Y), own, mover) != 0;
 
     /// <summary>The tick's stuck bit: shift the history and set bit 0 when progress along the route
     /// did not grow; remember the progress.</summary>

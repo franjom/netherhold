@@ -230,17 +230,20 @@ public class DungeonHeartTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = NewWorld(db);
-        GiveHeart(world, db, Keeper, new TilePos(5, 5));
+        for (int y = 3; y <= 7; y++)
+            for (int x = 3; x <= 7; x++)
+                GiveHeart(world, db, Keeper, new TilePos(x, y));
         CreatureState attacker = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
         attacker.SwingTargetKind = FightTargetKind.Heart;
+        attacker.SwingTargetId = HeartPillarId.For(world, HeartPillarRules.At(new TilePos(5, 4), HeartPillar.First)).Value;
         attacker.SwingTargetPlayerId = Keeper;
-        attacker.FightTargetTileIndex = 5 + 5 * world.Width;
+        attacker.FightTargetTileIndex = 5 + 4 * world.Width;
         int before = world.Player(Keeper).HeartHealth;
         var sim = new GameSimulation(db, world, 1, [new HeartMelee(attacker)]);
         sim.Tick();
         Assert.True(world.Player(Keeper).HeartHealth < before);
         PlayerMessage first = Assert.Single(world.Messages.Entries);
-        Assert.Equal((Keeper, PlayerMessageKind.HeartAttacked, 5, 5),
+        Assert.Equal((Keeper, PlayerMessageKind.HeartAttacked, 3, 3),
             (first.PlayerId, first.Kind, first.Data1, first.Data2));
         sim.Tick();
         PlayerMessage second = Assert.Single(world.Messages.Entries);

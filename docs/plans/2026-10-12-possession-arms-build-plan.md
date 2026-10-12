@@ -4,7 +4,7 @@
 gem divergence (Q587), on branch `possession/arms` (worktree `D:/DungeonKeeperRemake-poss`).
 
 **Constraints:** each part takes the next free HashVersion/FormatVersion and ADR number, checked
-against every branch and master at commit time (master took 232 and ADR-0441 mid-branch). Each part gets
+against every branch and master at commit time (master took 232–233 and ADR-0441–0442 mid-branch). Each part gets
 focused tests, the gate (Release build, no-install suite, kb/docs/coverage checks), the 42
 scenarios against master, a reviewer pass, and its own commit. Presentation (camera, HUD, input
 keys) stays out: commands carry the original packets' meaning.

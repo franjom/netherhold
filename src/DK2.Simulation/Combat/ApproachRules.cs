@@ -165,7 +165,7 @@ public static class ApproachRules
         else me.ChaseTicks = 0;
 
         // 5. Strictly in reach with line of sight: spFighting swings next tick.
-        if (!FightRules.TargetPosition(world, me, out int x, out int y, out TilePos targetTile))
+        if (!FightRules.TargetPosition(world, context.Database, me, out int x, out int y, out TilePos targetTile))
         {
             End(me, "no_position", context);
             return false;

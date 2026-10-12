@@ -18,6 +18,32 @@ public sealed class CallToArmsTests
     private const byte Keeper = 3, Rival = 4;
     private static readonly TilePos Flag = new(8, 8);
 
+    [Fact]
+    public void AnimatedFlagWaitsForAppearanceAndFadeBeforeItsTransitions()
+    {
+        var (fixture, _) = Setup();
+        var slots = new CreatureAnimationTiming[9];
+        slots[0] = slots[6] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 30, FramesPerSecond = 30 };
+        var db = new GameDatabase(fixture.Terrain.Values, fixture.Rooms.Values, fixture.Creatures.Values,
+            fixture.Variables, keeperSpells: fixture.KeeperSpells.Values,
+            objects: fixture.Objects.Values.Select(o => o.ObjectId == 10 ? o with { ArtSlots = slots } : o));
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [0, 1, Keeper, Rival]);
+        ObjectState flag = world.SpawnObject(db, 10, Keeper, 168);
+        flag.ProcessState = CallToArmsRules.Activating;
+        var simulation = new GameSimulation(db, world, 1, [new CallToArmsSystem()]);
+        for (int i = 0; i < 4; i++) simulation.Tick();
+        Assert.Equal(CallToArmsRules.Activating, flag.ProcessState);
+        simulation.Tick();
+        Assert.Equal(CallToArmsRules.Recalling, flag.ProcessState);
+        Assert.Equal(4, flag.AnimationStartedTick);
+        flag.ProcessState = CallToArmsRules.Fading;
+        simulation.Tick();
+        Assert.Equal(CallToArmsRules.Faded, flag.ProcessState);
+        Assert.Contains(flag, world.Objects);
+        for (int i = 0; i < 4; i++) simulation.Tick();
+        Assert.DoesNotContain(flag, world.Objects);
+    }
+
     private static (GameDatabase Db, WorldState World) Setup(int mana = 20000, bool rivalStrip = false)
     {
         GameDatabase db = Dk2TerrainFixture.Database();

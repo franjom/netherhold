@@ -2,7 +2,7 @@
 
 Execute step 4 of 2026-10-09-classic-look.md in the existing classic worktree,
 branch classic-look/step4, following the owner's step-3 merge authorization.
-Master contains step 3 at 6005ff9f. Preserve local Unity editor state.
+The current playback batch is merged to master. Preserve local Unity editor state.
 
 1. Recheck the binary's fractional mesh evaluator and phase interpolation.
    Record findings in kmf-animation-playback.md and the function records.
@@ -16,19 +16,21 @@ Master contains step 3 at 6005ff9f. Preserve local Unity editor state.
 5. Build/test, sync Unity, compile its adapter, review and commit. The owner gate
    remains side-by-side digging/claiming, walking, eating and sleeping.
 
-Q582 is the highest behavior priority. A separate user-authorized agent traces
-the Level7 Giant/Imp encounter. Presentation changes remain separate from the
-researched eating action boundary (ADR-0432).
+The owner's original-game experiment reopened Q582 (2026-10-11); its current
+finding is in combat-acquisition.md §1/§6. Presentation changes remain separate from the researched
+eating action boundary (ADR-0432).
 
-Progress: fractional sampling, ordinary integer phases, separate Start/End
-meshes, position interpolation and run/claim/reinforce mappings are built.
-Travel rates use body velocity and the authored scale; fresh installs preserve
-the initial scalar. Hatchery meals retain action 26's wait and restart their
-clip from the entry stamp. Remaining: prison eating,
-exceptional rate overrides, other action restarts, queued transitions, editor
-profiling and the owner visual gate. The primary phase-to-frame link is closed;
-the render factor's game-clock producer remains open (Q442).
-Q582 trace is recorded in combat-acquisition.md §1; it remains unresolved.
-Chicken playback/interpolation and combat approach/melee playback are built
-under ADR-0436. Full simulation mode-3 melee lifetime remains absent (Q582);
-spell-casting clips and object playback beyond Chicken remain pending.
+Progress: supported creature and object playback, action restarts, queued
+transitions, frozen holds and physical pose interpolation are built
+(ADR-0431–0438). The phase-to-frame link and render-factor clock producer are
+confirmed; see animation-transitions.md. Q443 is settled for classic clip
+playback by retaining each clip's topology and UVs (ADR-0431).
+The alternate clock's activation remains unknown; no supported simulation
+state supplies it. Broader status/action selection remains outside this batch;
+see kmf-animation-playback.md. Broader Q582 casualty parity remains open.
+Actual Unity development/release crowd captures and representation comparison
+are complete; retain validated CPU playback under ADR-0438.
+Procedure and measurements: tools/classic-unity-probe/README.md.
+The full Release suite passes without skips, all 60 Level 1–3 replays validate, and Unity
+sync/adapter compile and independent review pass. Owner visual acceptance is
+partial; the checked and remaining cases are recorded in HANDOFF.md.

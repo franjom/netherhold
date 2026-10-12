@@ -215,7 +215,7 @@ public class AssetCatalogueTests
     /// converter's job is to produce what the database defines.
     /// </summary>
     [InstallFact]
-    public void EveryCreatureInTheDatabaseGetsAMesh()
+    public void EveryCreatureInTheDatabaseGetsLivingAndCorpseMeshes()
     {
         GameDatabase? database = RealDatabase();
         Assert.NotNull(database);
@@ -224,8 +224,12 @@ public class AssetCatalogueTests
             .Where(k => k.Kind == AssetKind.Mesh)
             .ToList();
 
-        Assert.Equal(database.Creatures.Count, meshes.Count);
-        Assert.Equal(46, meshes.Count);
+        Assert.Equal(database.Creatures.Count * 2, meshes.Count);
+        foreach (var creature in database.Creatures.Values)
+        {
+            Assert.Contains(AssetRef.ForCreature(creature.Name, AssetKind.Mesh), meshes);
+            Assert.Contains(AssetRef.ForCreature(creature.Name, AssetKind.Mesh, "dead"), meshes);
+        }
     }
 
     /// <summary>
@@ -265,8 +269,8 @@ public class AssetCatalogueTests
 
         var keys = AssetCatalogue.ForObjects(database).ToList();
 
-        Assert.Equal(database.Objects.Count + 7, keys.Count);
-        Assert.Equal(152, keys.Count);
+        Assert.Equal(database.Objects.Count + 16, keys.Count);
+        Assert.Equal(161, keys.Count);
         Assert.All(keys, k => Assert.Equal(AssetKind.Mesh, k.Kind));
 
         // And they are in the whole-database listing, or a converter would

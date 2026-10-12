@@ -8,17 +8,18 @@ using DK2.Core;
 namespace DK2.Art;
 
 public enum AnimationSegment { Start, Main, End }
+public enum AnimationReplacement { Immediate, Deferred }
 
 public readonly record struct AnimationPose(AnimationSegment Segment, float Phase);
 
-/// <summary>Presentation clock for ordinary type-6 playback at four turns per second.
-/// Queued resources and exceptional rate overrides are not represented.</summary>
+/// <summary>Presentation clock for type-6 playback at four turns per second.</summary>
 public sealed class RenderAnimationClock
 {
     private const int One = 4096;
-    private readonly CreatureAnimationTiming _timing;
-    private readonly bool _loop;
-    private readonly Fp32? _authoredMovementScale;
+    private const CreatureAnimationFlags StopLooping = (CreatureAnimationFlags)0x80;
+    private CreatureAnimationTiming _timing;
+    private bool _loop;
+    private Fp32? _authoredMovementScale;
     private Fp32? _movementSpeed;
     private AnimationSegment _segment;
     private AnimationSegment _previousSegment;
@@ -27,35 +28,68 @@ public sealed class RenderAnimationClock
     private int _duration;
     private int _rate;
     private bool _complete;
+    private (CreatureAnimationTiming Timing, bool Loop, Fp32? Scale)? _pending;
+
+    public int ResourceRevision { get; private set; }
 
     public RenderAnimationClock(CreatureAnimationTiming timing, bool loop, Fp32? authoredMovementScale = null)
     {
+        Install(timing, loop, authoredMovementScale);
+    }
+
+    public void Replace(CreatureAnimationTiming timing, bool loop, AnimationReplacement replacement,
+        Fp32? authoredMovementScale = null)
+    {
+        if (replacement == AnimationReplacement.Deferred && !_complete)
+        {
+            _pending = (timing, loop, authoredMovementScale);
+            _loop = false;
+            return;
+        }
+        Install(timing, loop, authoredMovementScale);
+        ResourceRevision++;
+    }
+
+    private void Install(CreatureAnimationTiming timing, bool loop, Fp32? authoredMovementScale)
+    {
         _timing = timing;
-        _loop = loop;
+        _loop = loop && (timing.Flags & StopLooping) == 0;
         _authoredMovementScale = authoredMovementScale;
         _movementSpeed = authoredMovementScale.HasValue ? new Fp32(One) : null;
+        _pending = null;
+        _phase = _previousPhase = 0;
+        _complete = false;
         _segment = Has(CreatureAnimationFlags.StartSegment) ? AnimationSegment.Start : AnimationSegment.Main;
         _previousSegment = _segment;
         SetDuration(_segment);
     }
 
-    public void Advance(Fp32? movementSpeed = null)
+    public void Advance(Fp32? movementSpeed = null, bool hold = false, Fp32? phaseStepOverride = null)
     {
-        AdvancePhase();
+        if (hold)
+        {
+            _previousSegment = _segment;
+            _previousPhase = _phase;
+            return;
+        }
+        AdvancePhase(phaseStepOverride);
         if (_authoredMovementScale.HasValue && movementSpeed.HasValue && !_complete)
         {
-            _movementSpeed = movementSpeed;
+            Fp32 scalar = movementSpeed.Value.Raw == 0 ? _movementSpeed ?? new Fp32(1) : movementSpeed.Value;
+            _movementSpeed = scalar;
             _rate = CalculateRate();
+            if (movementSpeed.Value.Raw == 0) _movementSpeed = new Fp32(1);
         }
     }
 
-    private void AdvancePhase()
+    private void AdvancePhase(Fp32? phaseStepOverride)
     {
         _previousSegment = _segment;
         _previousPhase = _phase;
         if (_complete) { _previousPhase = _phase = One; _rate = 0; return; }
-        if (_rate == 0) return;
-        _phase += _rate;
+        int step = phaseStepOverride?.Raw ?? _rate;
+        if (step == 0) return;
+        _phase += step;
         if (_phase < One) return;
         if (_segment == AnimationSegment.Start)
         {
@@ -78,6 +112,12 @@ public sealed class RenderAnimationClock
         }
         _phase = One;
         _complete = true;
+        if (_pending.HasValue)
+        {
+            var pending = _pending.Value;
+            Install(pending.Timing, pending.Loop, pending.Scale);
+            ResourceRevision++;
+        }
     }
 
     public AnimationPose Sample(float fraction)

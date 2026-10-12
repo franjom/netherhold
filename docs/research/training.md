@@ -375,11 +375,11 @@ still counted as training.
 - `TrainingRules.ExperienceLostPerSecondWhileNotTraining` exposes §8's shipped
   zero rather than pretending the variable does not exist.
 
-**Ours, and said so at the call sites:** a capped creature keeps the job for up
-to one five-second gate instead of being ejected by a state handler, because
-this project has one working state where DK2 has six; the gold comes out of the
-keeper's tiles through `GoldStore.TryWithdraw` rather than the tile underfoot;
-and there is no floating "-20", no message `0x37` and no combat-pit fallback.
+The natural 108/111/112 machine cycle and cap refusal are now built; see
+[training-actions.md](training-actions.md). Remaining presentation and room
+payment differences: gold comes out of the keeper's tiles through
+`GoldStore.TryWithdraw`, and there is no floating "-20", message `0x37` or
+combat-pit fallback.
 
 ## Tests
 

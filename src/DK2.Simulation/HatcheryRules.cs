@@ -56,11 +56,8 @@ public static class HatcheryRules
     /// matches the flag instead, and the two are not the same set.</para></summary>
     public const byte ChickenObjectId = 9;
 
-    /// <summary>How long an egg takes to become a chicken: about <b>two seconds</b>.
-    /// <para>CONFIRMED by the owner (2026-09-05), who watched the whole
-    /// appear-and-hatch sequence. Caveat: it is timed from an animation, so
-    /// whether the simulation holds an egg in a state for exactly that long or
-    /// the art covers a shorter transition is UNKNOWN.</para></summary>
+    /// <summary>Fallback hatch duration for synthetic definitions without animation metadata.
+    /// Shipped eggs use their art's integer first-cycle timing (object-drawing.md §8).</summary>
     public const int EggHatchSeconds = 2;
 
     /// <summary>How many chickens a hatchery holds: <b>one per tile</b>.
@@ -98,10 +95,8 @@ public static class HatcheryRules
 
     /// <summary>Chickens <i>and</i> eggs in this room — everything that is or is about to
     /// be a bird.
-    /// <para>What the capacity is measured against rather than
-    /// <see cref="Flock"/>: an egg is a chicken two seconds from now, so a room
-    /// that laid while full would overshoot its limit by the eggs in the
-    /// air.</para></summary>
+    /// <para>This observation includes eggs; DK2 room capacity counts only
+    /// registered chickens through <see cref="Flock"/>.</para></summary>
     public static int Birds(WorldState world, RoomInstance hatchery)
     {
         int count = 0;
@@ -124,7 +119,7 @@ public static class HatcheryRules
     /// <summary>Whether this hatchery is holding as many birds as it can.</summary>
     public static bool FlockIsFull(
         WorldState world, GameDatabase database, RoomInstance hatchery) =>
-        Birds(world, hatchery) >= FlockCapacity(database, hatchery);
+        Flock(world, hatchery) >= FlockCapacity(database, hatchery);
 
     /// <summary>The smallest squared distance, <b>in whole tiles</b>, that two coops may
     /// be apart: 3, so 0, 1 or 2 is refused — not the same tile, not
@@ -247,16 +242,32 @@ public static class HatcheryRules
     /// Called by <see cref="Systems.HatcherySystem"/> on the room's own interval
     /// (ADR-0066).
     /// <para>With capacity, choose a slab without a Hatchery Pillar, then draw two
-    /// half-tile offsets (hatchery.md §3). The full-room coop launch remains unbuilt;
-    /// a full room still refuses to lay.</para></summary>
+    /// half-tile offsets (hatchery.md §3). A full room lays a hidden launch egg
+    /// at a random Coop while its owner's free-range census is below the cap.</para></summary>
     public static ObjectState? TryLayEgg(
         WorldState world, GameDatabase database, RoomInstance hatchery, SimRandom rng)
     {
         if (rng is null) throw new ArgumentNullException(nameof(rng));
 
-        // A full room lays nothing. See the doc above for what "full" is and
-        // why the mechanism behind it is a reading rather than a certainty.
-        if (FlockIsFull(world, database, hatchery)) return null;
+        if (FlockIsFull(world, database, hatchery))
+        {
+            int freeRange = world.Objects.Count(o => o.ObjectTypeId == ChickenObjectId
+                && o.OwnerPlayerId == hatchery.OwnerPlayerId && o.ChickenCanEscape);
+            if (freeRange >= FreeRangeCap(database)) return null;
+            ObjectState[] coops = world.Objects.Where(o => o.ObjectTypeId == CoopObjectId && o.AutoPlaced
+                && !o.InHand && o.CarriedByCreatureId < 0 && hatchery.Contains(o.TileIndex)).Reverse().ToArray();
+            if (coops.Length == 0) return null;
+            ObjectState coop = coops[rng.NextInt(coops.Length)];
+            ObjectState launched = Lay(world, database, hatchery, coop.TileIndex);
+            launched.ProcessState = 24;
+            launched.PosX = CreatureState.CentreOf(coop.TileIndex % world.Width);
+            launched.PosY = CreatureState.CentreOf(coop.TileIndex / world.Width);
+            launched.PosZ = 0x13E8;
+            coop.ProcessState = 29;
+            coop.ProcessAgeTicks = 0;
+            coop.ProcessDeadline = world.CurrentTick.Value;
+            return launched;
+        }
 
         var candidates = new List<int>();
         foreach (int index in SlabChain.Order(world, hatchery))
@@ -282,7 +293,10 @@ public static class HatcheryRules
     {
         // 0x004DE620 bumps room+0x51 on every egg it creates, on both paths.
         world.TileAtIndex(hatchery.TileIndices[0]).ChickensGenerated++;
-        return world.SpawnObject(database, EggObjectId, hatchery.OwnerPlayerId, tileIndex);
+        ObjectState egg = world.SpawnObject(database, EggObjectId, hatchery.OwnerPlayerId, tileIndex);
+        egg.ProcessState = 32;
+        egg.ProcessDeadline = world.CurrentTick.Value;
+        return egg;
     }
 
     /// <summary>The room's <c>ChickensGenerated</c> (<c>room+0x51</c>): eggs laid since it was made
@@ -293,11 +307,8 @@ public static class HatcheryRules
     /// <summary>Turns an egg into a chicken on the same tile, and hands back the chicken.
     /// Throws if handed something that is not an egg.
     /// <para>The chicken inherits the egg's tile and owner and the egg ceases to
-    /// exist. Egg animation timing remains the two-second approximation (ADR-0066).</para>
-    /// <para>Driven by <see cref="Systems.HatcherySystem"/>, which counts
-    /// <see cref="EggHatchSeconds"/> on the egg's own
-    /// <see cref="ObjectState.TimerTicks"/> and hatches <b>before</b> it lays, so
-    /// an egg is not aged on the second it is laid (ADR-0066).</para></summary>
+    /// exist. <see cref="Systems.HatcherySystem"/> drives the art completion;
+    /// metadata-free synthetic definitions retain the ADR-0066 fallback.</para></summary>
     public static ObjectState Hatch(
         WorldState world, GameDatabase database, ObjectState egg)
     {

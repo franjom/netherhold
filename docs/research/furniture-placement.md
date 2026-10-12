@@ -150,6 +150,11 @@ STRONGLY INFERRED from the chain order, not separately checked):
 | 12 | 88 Big Steps × 3 | centre | 0, `0x2AA`, `0x554` (`(n·0x155 & 0x3FF) << 1`, n = 0..2) | `+0x99 = −floor height`; for the local player `+0x9F` bit 0, `+0x8F = 0` |
 | 12 | 86 Arches | centre | not written | same local-player bits, then `0x004B3AD0` |
 
+The builder attaches each pillar through `0x004E6220`, which prepends it to
+the room's autoobject list. Combat scan E (`0x0045CB00`) follows that list and
+keeps strict distance improvements: equal-distance pillars are considered
+18,16,7, the reverse of construction order (binary recheck, 2026-10-11).
+
 No Dungeon Heart Plug (96) or Portal Crystal (99) is created with a literal type anywhere
 (`PreCall` over all 72 `Object_Create` sites); the Portal gets no furniture from these
 passes. UNKNOWN whether either comes from level data. A Portal Gem (28) is created only by

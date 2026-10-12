@@ -217,7 +217,7 @@ public sealed class TrainingTests
 
     /// <summary>The control: below the cap, 108 keeps the trainee and nothing refuses it.</summary>
     [Fact]
-    public void ATraineeBelowTheCapStaysInOneHundredEight()
+    public void ATraineeBelowTheCapContinuesTrainingWhileApproachingAMachine()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -227,7 +227,7 @@ public sealed class TrainingTests
 
         sim.Run(Second * 5);
 
-        Assert.Equal(TrainingRules.WalkToMachineState, goblin.Dk2StateId);
+        Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
         Assert.Equal(JobType.Train, goblin.CurrentJob);
         Assert.DoesNotContain(events.Events, e => e.Kind == "training_refused");
         Assert.True(goblin.ExperiencePoints > 0);

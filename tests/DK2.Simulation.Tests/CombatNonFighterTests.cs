@@ -51,19 +51,21 @@ public class CombatNonFighterTests
 
         sim.Tick();
 
-        Assert.Contains(sink.Events, e => e.Kind == "raises_alarm" && e.Detail.Contains($"creature={imp.Id} "));
-        Assert.Equal(CreatureActivity.RaisingAlarm, imp.Activity);
-        Assert.True(imp.Running);
-        Assert.True(imp.HasRoute);
+        Assert.Equal(CreatureActivity.Fighting, imp.Activity);
+        Assert.Equal(hero.Id, imp.FightTargetId);
         Assert.Equal(500, imp.Health);
-        int alarm = sink.Events.ToList().FindIndex(e => e.Kind == "raises_alarm" && e.Detail.Contains($"creature={imp.Id} "));
+        int engaged = sink.Events.ToList().FindIndex(e => e.Kind == "engaged" && e.Detail.Contains($"creature={imp.Id} "));
         int swing = sink.Events.ToList().FindIndex(e => e.Kind == "swing" && e.Detail.Contains($"creature={hero.Id} "));
         Assert.True(swing >= 0);
-        Assert.Equal(impSpawnedLast, alarm < swing);
+        Assert.True(engaged >= 0);
+        Assert.Equal(impSpawnedLast, engaged < swing);
         Assert.True(hero.SwingInProgress);
+        sim.Tick();
+        Assert.Equal(CreatureActivity.Fleeing, imp.Activity);
+        Assert.Equal(0, imp.BackOffTimer);
     }
 
-    /// <summary>Near its heart the arm takes any hostile within a tile, so the Imp engages and swings;
+    /// <summary>Near its heart the arm takes any hostile within a tile, so the Imp engages;
     /// once the Goblin engages, a non-Imp is among its attackers and the counter
     /// (<c>0x0045EC10</c>, ADR-0347) sends it into flight with no back-off. Before ADR-0347 this test
     /// asserted a lasting fight.</summary>
@@ -83,7 +85,7 @@ public class CombatNonFighterTests
         int struck = sink.Events.ToList().FindIndex(e => e.Kind == "swing" && e.Detail.Contains($"creature={goblin.Id} ") && e.Detail.Contains($"target={imp.Id} "));
         int fled = sink.Events.ToList().FindIndex(e => e.Kind == "flees" && e.Detail.Contains($"creature={imp.Id} "));
         Assert.True(engaged >= 0 && fled > engaged, $"engaged {engaged}, fled {fled}");
-        Assert.Equal(-1, struck);
+        Assert.True(struck < 0 || fled < struck, $"fled {fled}, attacker swing {struck}");
         Assert.EndsWith("backoff=0", sink.Events[fled].Detail);
     }
 
@@ -137,7 +139,8 @@ public class CombatNonFighterTests
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
-        Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, imp);
+        CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, imp);
+        DelayAcquisition(world, goblin);
         GameSimulation sim = Combat(db, world);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
@@ -235,6 +238,7 @@ public class CombatNonFighterTests
         CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, 12, 12);
         knight.PosX = imp.PosX + 3700; // under a tile: inside an Imp's forced sight
         knight.PosY = imp.PosY;
+        DelayAcquisition(world, knight);
         GameSimulation sim = Combat(db, world);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
@@ -329,6 +333,7 @@ public class CombatNonFighterTests
         CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, 12, 12);
         knight.PosX = imp.PosX + 3700;
         knight.PosY = imp.PosY;
+        DelayAcquisition(world, knight);
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
@@ -458,4 +463,11 @@ public class CombatNonFighterTests
 
     private static GameSimulation Combat(GameDatabase db, WorldState world) =>
         new(db, world, 1, [new CombatSystem()]);
+
+    // Keep the candidate unregistered while testing the ordinary NonFighter arm.
+    private static void DelayAcquisition(WorldState world, CreatureState candidate)
+    {
+        candidate.LastFightScanTileIndex = candidate.Tile.Y * world.Width + candidate.Tile.X;
+        candidate.FightProcessCounter = 0;
+    }
 }

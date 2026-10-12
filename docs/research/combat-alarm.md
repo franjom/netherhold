@@ -63,7 +63,11 @@ for 251 or 254, or in 251 or 254, whose destination (`0x004755C0`: the state's
 `+0xE3` for state 6, else its position) lies within `0x19000` — five tiles² — of
 the threat. Then the **nearest room of mine** to the threat by distance² to its
 `+0x27/+0x29` tile (all class-9 things on `RoomList`); `0x004E4D90(room, &out, 0,
-0)` gives a position in it (Q391); enter 199 if not already in the combat group;
+0)` gives a position in it: one random slab-chain step count, then advance
+and wrap past floor slots (`Room_IsFloorSlot`, `0x00454110`). Portal, Heart
+and bridge tiles are never floor slots, so even a blocked centre can be drawn.
+Binary recheck 2026-10-11 confirms there is one point and no retry with another
+room after route failure. Enter 199 if not already in the combat group;
 route there with `0x00471890(&pos, 251, flags)`, `flags` `0x80` for an Imp (`+0x36F == 1`) and 0
 otherwise (`0x0047542A`; ours since ADR-0332) — and stash the
 threat's position at `state+0xA7/+0xAB`, the deficit at `+0xAF` and the room's tag
@@ -121,7 +125,9 @@ to state 1.
 
 **Built** (`CombatTargetRules.NonFighter`, `FearRules.RaiseAlarm`,
 `RespondToThreat`, `RaisingAlarm`, `Reporting`): §1 with the Imp escape (§6, built
-2026-09-23: an enemy Imp is judged by the shared template anywhere); §2 with the room's bounding-box centre for its position; §3 steps 2–3 with
+2026-09-23: an enemy Imp is judged by the shared template anywhere); §2 with the
+room's bounding-box centre for nearest-room scoring, then the random slab-chain
+point for the route; §3 steps 2–3 with
 the room match as a room job whose tile lies in the alarm's room, the group-tag
 exclusions as the room-job activities, and the raiser's-speed slip replaced by the
 responder's own run speed; §4 with `CreatureActivity.Reporting` covering both the
@@ -284,6 +290,19 @@ so every heart takes Morgana's phase (1100); the ruin gate reads the player's he
 room's `+0x9A`; the torturee's kick and `+0x2CC` are not modelled; the job is let go as the
 alarm's responders' is (ours; DK2's `0x00471890` is not read for it).
 
+### Level7 owner report (2026-10-11)
+
+The modern seed-1 idle probe first hit player 3's Heart at tick1096 from
+(5.77,12.44), outside the four-tile radius around room position (6.5,16.5);
+the first rally was1131. Combat targeted a phantom outer-ring tile rather
+than an Arch Pillar. Exact pillar targets now use furniture-placement.md §6.
+The final228 run first rallies at495, before the first hit at519 from
+(7.12,15.13), inside the radius. At519 the working Imps are outside the
+seven-tile gathering radius. Both tested
+working states interrupt when an eligible enemy enters the radius
+(`HeartDefenceTests`). These are modern measurements, not original timing
+parity; the owner's differing rally behavior remains open in Q586.
+
 ## Confidence
 
 **CONFIRMED (binary):** §1's order, the Good-owner filter, the hero path's three
@@ -296,5 +315,4 @@ the walk speed; state 6's arrival.
 "nearest room" is over all rooms, not guard rooms only; that `RoomId` is the room
 a creature works in.
 
-**UNKNOWN:** Q391 (what a worker's animation block 29 plays, so action 79's length;
-`0x004E4D90`'s spot is read but not used by ours).
+**UNKNOWN:** Q391 (what a worker's animation block 29 plays, so action 79's length).

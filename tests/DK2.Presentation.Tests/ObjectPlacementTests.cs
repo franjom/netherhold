@@ -194,6 +194,8 @@ public class ObjectPlacementTests
         // Level 1's own Heart is elsewhere on the map; only the carved one's centre is asked.
         ObjectView heart = Decorations(room, 13).Single(o => o.Tile == centre);
         Assert.Equal(0, heart.Height);
+        Assert.True(heart.PlaysAnimation);
+        Assert.False(Decorations(room, 86).Single(o => o.Tile == centre).PlaysAnimation);
         Assert.Equal([0, 0x2AA, 0x554], Decorations(room, 88).Where(o => o.Tile == centre).Select(s => s.Heading).OrderBy(h => h));
         Assert.Single(Decorations(room, 86), o => o.Tile == centre);
     }
@@ -285,6 +287,20 @@ public class ObjectPlacementTests
 
         Assert.Equal(door.Tile, bar.Tile);
         Assert.Equal((0x400, 0x400), (door.Heading, bar.Heading));
+    }
+
+    [InstallFact]
+    public void AnOpenedPrisonDoorPlaysFromItsToggleStamp()
+    {
+        Room room = Carve(RoomTypeId.Prison, 4, 4);
+        RoomInstance prison = RoomIndex.Build(room.World, room.Database).Single(r => r.Definition.TypeId == RoomTypeId.Prison);
+        ref TileState head = ref room.World.TileAtIndex(prison.TileIndices[0]);
+        head.PrisonDoor |= JailBreakRules.Open;
+        head.PrisonDoorAnimationTick = 42;
+        ObjectView door = Decorations(room, 109).Single();
+        Assert.True(door.PlaysAnimation);
+        Assert.False(door.AnimationLoops);
+        Assert.Equal(new GameTick(42), door.AnimationStartedAt);
     }
 
     [InstallFact]

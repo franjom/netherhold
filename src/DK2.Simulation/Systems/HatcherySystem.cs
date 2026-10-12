@@ -8,16 +8,14 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Systems;
 
 /// <summary>
-/// The Hatchery: coops, eggs and chickens, once a game second.
+/// The Hatchery: per-tick egg and coop processes, with laying checked once a game second.
 /// <para>The rules are <see cref="HatcheryRules"/> — how many coops a room of a
 /// given size gets and where they may stand, an <b>Egg</b> (object 47) laid at a
-/// randomly chosen coop, becoming a <b>Chicken</b> (object 9) after two seconds,
+/// chosen floor point or a full room's coop, becoming a <b>Chicken</b> (object 9) on art completion,
 /// and one bird per tile as the ceiling. STRONGLY INFERRED
 /// (docs/research/hatchery.md, ADR-0066). The laying interval is multiplied by
 /// variable 19, ticks per game second, which the <b>level header</b> supplies:
 /// all 66 shipped levels carry 4 (Q132).</para>
-/// <para>Not implemented: feeding a prisoner — nothing drops a bird into a cell
-/// and nothing races for it (the remaining half of Q172).</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery.md")]
 public sealed class HatcherySystem : ISimulationSystem
@@ -28,6 +26,7 @@ public sealed class HatcherySystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
+        StepObjectAnimations(context);
         if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
 
         // Hatching BEFORE laying, so an egg is not aged on the second it is
@@ -36,6 +35,52 @@ public sealed class HatcherySystem : ISimulationSystem
         // (HatcheryClockTests.AnEggBecomesAChickenTwoSecondsAfterItIsLaid).
         Hatch(context);
         Lay(context);
+    }
+
+    private static void StepObjectAnimations(SimulationContext context)
+    {
+        WorldState world = context.World;
+        for (int i = world.Objects.Count - 1; i >= 0; i--)
+        {
+            ObjectState thing = world.Objects[i];
+            if (thing.InHand || thing.CarriedByCreatureId >= 0) continue;
+            ObjectDef? definition = context.Database.ObjectById(thing.ObjectTypeId);
+            if (thing.ObjectTypeId == HatcheryRules.EggObjectId && thing.ProcessState == EggLaunchRules.LaunchProcess)
+            {
+                EggLaunchRules.Step(context, thing);
+                continue;
+            }
+            if (thing.ObjectTypeId == HatcheryRules.EggObjectId && thing.ProcessState == 32
+                && definition?.ArtSlot(0).ResourceType == 6)
+            {
+                thing.ProcessAgeTicks++;
+                if (thing.ProcessCount != 0)
+                {
+                    ObjectState chicken = HatcheryRules.Hatch(world, context.Database, thing);
+                    context.Emit(SystemName, "chicken_hatched",
+                        $"player={chicken.OwnerPlayerId} egg={thing.Id} chicken={chicken.Id} " +
+                        $"{Describe(world, chicken.TileIndex)} animation=complete");
+                    continue;
+                }
+                if (thing.PhysicalVelocityX != 0 || thing.PhysicalVelocityY != 0 || thing.PhysicalVelocityZ != 0)
+                    EggLaunchRules.Move(context, thing, default);
+                if (thing.ProcessAgeTicks < AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(0))) continue;
+                if (definition.ArtSlot(5).ResourceType == 0) continue;
+                thing.ProcessCount = 1;
+                thing.ProcessDeadline = context.Tick.Value;
+            }
+            else if (thing.ObjectTypeId == HatcheryRules.CoopObjectId && thing.ProcessState == 29)
+            {
+                thing.ProcessAgeTicks++;
+                if (thing.ProcessAgeTicks == 1) thing.ProcessDeadline = context.Tick.Value;
+                if (definition?.ArtSlot(5).ResourceType != 6
+                    || thing.ProcessAgeTicks > AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(5)))
+                {
+                    thing.ProcessState = 0;
+                    thing.ProcessAgeTicks = 0;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -107,6 +152,8 @@ public sealed class HatcherySystem : ISimulationSystem
         {
             ObjectState thing = world.Objects[i];
             if (thing.ObjectTypeId != HatcheryRules.EggObjectId) continue;
+            if (thing.ProcessState == EggLaunchRules.LaunchProcess) continue;
+            if (context.Database.ObjectById(thing.ObjectTypeId)?.ArtSlot(0).ResourceType == 6) continue;
 
             thing.TimerTicks += SimulationTiming.TicksPerSecond;
             if (thing.TimerTicks < hatchTicks) continue;

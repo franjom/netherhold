@@ -286,7 +286,7 @@ public static class FearRules
         }
         me.BackOffTimer--;
 
-        if (me.FightTargetKind != FightTargetKind.None && !FightRules.TargetIsValid(world, me)) ClearTarget(world, me);
+        if (me.FightTargetKind != FightTargetKind.None && !FightRules.TargetIsValid(world, context.Database, me)) ClearTarget(world, me);
 
         if (ShouldWithdraw(world, database, hearts, me, mine) && tick != me.CombatStateEnteredTick
             && Withdraw(context, sight, hearts, rooms, me, mine, scratch))
@@ -323,7 +323,7 @@ public static class FearRules
             target = nearest;
         }
 
-        if (!FightRules.TargetPosition(world, me, out int tx, out int ty, out _)) return;
+        if (!FightRules.TargetPosition(world, context.Database, me, out int tx, out int ty, out _)) return;
         int d = CombatRules.DistanceSquared(me.PosX, me.PosY, tx, ty);
         int range = MinimumStandOffSquared;
         if (target != null && CombatRules.InCombat(target)) range = Math.Max(range, target.AttackRangeSquared);
@@ -630,9 +630,19 @@ public static class FearRules
         }
         if (nearest is null) return false;
 
+        // 0x004E4D90(room, point, 0, 0): draw once, then skip floor slots in chain order.
+        int[] chain = SlabChain.Order(world, nearest);
+        int pointIndex = context.Rng.NextInt(chain.Length);
+        while (AutoFurnitureRules.IsFloorSlot(world, nearest, chain[pointIndex]))
+            pointIndex = (pointIndex + 1) % chain.Length;
+        int pointTile = chain[pointIndex];
+        TilePos point = new(pointTile % world.Width, pointTile / world.Width);
+        int pointX = CreatureState.CentreOf(point.X);
+        int pointY = CreatureState.CentreOf(point.Y);
+
         // +0x36F == 1 (the Imp) routes with 0x80, everyone else with 0 (0x0047542A, Q517).
         Navigation.MoveOptions options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
-        if (!context.Navigation.TryRouteTo(me, RoomCentreX(nearest), RoomCentreY(nearest), options)) return false;
+        if (!context.Navigation.TryRouteTo(me, pointX, pointY, options)) return false;
 
         ClearTarget(world, me);
         me.SwingInProgress = false;
@@ -643,7 +653,7 @@ public static class FearRules
         me.AlarmDeficit = deficit;
         me.AlarmRoomTile = nearest.TileIndices[0];
         me.Running = true;
-        if (CombatStates.IntoTheGroup(context, me)) context.Navigation.TryRouteTo(me, RoomCentreX(nearest), RoomCentreY(nearest), options);
+        if (CombatStates.IntoTheGroup(context, me)) context.Navigation.TryRouteTo(me, pointX, pointY, options);
         CombatStates.Travel(context, me, CombatStates.RespondingToThreat);
         me.CombatStateEnteredTick = context.Tick.Value;
         context.Emit(SystemName, "raises_alarm",

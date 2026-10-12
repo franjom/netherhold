@@ -180,6 +180,7 @@ public struct TileState
     /// <see cref="JailBreakRules.Activated"/>, <see cref="JailBreakRules.Open"/> and
     /// <see cref="JailBreakRules.Broken"/>.</summary>
     public byte PrisonDoor;
+    public long PrisonDoorAnimationTick;
 
     /// <summary>A room tile's place in its room's slab chain (<c>FirstSlab</c> to <c>LastSlab</c>,
     /// <c>room+0x2D</c>/<c>+0x2F</c>): the chain is the room's tiles by this, then by tile index.
@@ -265,6 +266,7 @@ public struct TileState
         hash.Add(CasinoParty);
         hash.Add(CasinoPartyStartTick);
         hash.Add(PrisonDoor);
+        hash.Add(PrisonDoorAnimationTick);
         hash.Add(SlabOrder);
         hash.Add(RoomSizeChangedTick);
         hash.Add(RoomKickedTick);
@@ -608,6 +610,8 @@ public sealed class WorldState
     internal TremorState[] TremorSlots { get; } = new TremorState[TremorSlotCount];
     public IReadOnlyList<TremorState> Tremors => TremorSlots;
     private readonly PlayerState[] _players; // kept sorted by PlayerId, for stable hashing
+    internal RoomBuildWaveState?[] RoomBuildWaveSlots { get; }
+    public IReadOnlyList<RoomBuildWaveState?> RoomBuildWaves => RoomBuildWaveSlots;
     private readonly List<TileWorkOrder> _pendingWork = [];
     private readonly List<CreatureState> _creatures = [];
     private readonly List<CreatureState> _creaturesByOwnership = [];
@@ -633,6 +637,7 @@ public sealed class WorldState
         Height = height;
         _tiles = tiles;
         _players = players;
+        RoomBuildWaveSlots = new RoomBuildWaveState?[players.Length * RoomBuildWaveRules.SlotsPerPlayer];
         FogOfWarEnabled = fogOfWarEnabled;
 
         // One place, so no construction path can produce a keeper without a hand:
@@ -685,6 +690,14 @@ public sealed class WorldState
     public int PlayerCount => _players.Length;
 
     public ref PlayerState PlayerAtIndex(int index) => ref _players[index];
+
+    internal ref RoomBuildWaveState? RoomBuildWave(PlayerId playerId, RoomBuildSlot slot)
+    {
+        for (int i = 0; i < _players.Length; i++)
+            if (_players[i].PlayerId == playerId)
+                return ref RoomBuildWaveSlots[i * RoomBuildWaveRules.SlotsPerPlayer + (int)slot];
+        throw new KeyNotFoundException($"No player with id {playerId} in this world.");
+    }
 
     public ref PlayerState Player(PlayerId playerId)
     {
@@ -1024,10 +1037,10 @@ public sealed class WorldState
             TileIndex = tileIndex,
             Health = database.ObjectById(objectTypeId)!.Hp,
             ChickenCanEscape = objectTypeId == HatcheryRules.ChickenObjectId,
-            ProcessState = objectTypeId == HatcheryRules.ChickenObjectId ? database.ObjectById(objectTypeId)!.StartState : (byte)0,
+            ProcessState = objectTypeId is HatcheryRules.ChickenObjectId or RatRules.RatObjectId ? database.ObjectById(objectTypeId)!.StartState : (byte)0,
         };
 
-        if (objectTypeId is HatcheryRules.ChickenObjectId or HatcheryRules.EggObjectId)
+        if (objectTypeId is HatcheryRules.ChickenObjectId or HatcheryRules.EggObjectId or RatRules.RatObjectId)
         {
             instance.PosX = CreatureState.CentreOf(tileIndex % Width);
             instance.PosY = CreatureState.CentreOf(tileIndex / Width);
@@ -1388,6 +1401,11 @@ public sealed class WorldState
         hash.Add(NextTagOrder);
         hash.Add(_players.Length);
         foreach (PlayerState p in _players) p.HashInto(ref hash);
+        foreach (RoomBuildWaveState? wave in RoomBuildWaveSlots)
+        {
+            hash.Add(wave.HasValue ? (byte)1 : (byte)0);
+            if (wave is RoomBuildWaveState active) active.HashInto(ref hash);
+        }
         hash.Add(_pendingWork.Count);
         foreach (TileWorkOrder o in _pendingWork) o.HashInto(ref hash);
 

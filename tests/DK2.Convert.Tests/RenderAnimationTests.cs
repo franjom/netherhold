@@ -14,6 +14,30 @@ namespace DK2.Convert.Tests;
 public class RenderAnimationTests
 {
     [InstallTheory]
+    [InlineData("Warlock", 147)]
+    [InlineData("Goblin", 197)]
+    public void PortalEntranceLoadsTheOriginalMovingClipAndHoldsItsFinalPose(string creature, int frames)
+    {
+        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        using InstallArtProvider provider = InstallArtProvider.Open(Dk2InstallGate.Path, database);
+        Assert.True(provider.TryResolve(AssetRef.ForCreature(creature, AssetKind.Animation, "entrance"), out var asset));
+        Assert.True(provider.TryLoadModel(asset, out var model));
+        var clip = new RenderAnimation(model);
+        Assert.Equal(frames, clip.FrameCount);
+        var first = new Vector3[clip.Mesh.Positions.Count];
+        var last = new Vector3[first.Length];
+        clip.Sample(0, false, first);
+        clip.Sample(1, false, last);
+        Assert.Contains(Enumerable.Range(0, first.Length), i => first[i] != last[i]);
+        var clock = new RenderAnimationClock(database.CreatureByName(creature)!.ArtSlot(30), loop: false);
+        clock.Advance();
+        Assert.Equal(0f, clock.Sample(0).Phase);
+        Assert.InRange(clock.Sample(1).Phase, float.Epsilon, .1f);
+        for (int i = 0; i < 40; i++) clock.Advance();
+        Assert.Equal(1f, clock.Sample(.5f).Phase);
+    }
+
+    [InstallTheory]
     [InlineData("Imp")]
     [InlineData("Giant")]
     [InlineData("Salamander")]
