@@ -10005,3 +10005,28 @@ Levels 1–3 replays are unchanged (19/6/18 over seeds 1–20). Level 4's replay
 receive 6–16 Dark Elves (DK2: 11) but none wins: our dig into the hero base lags
 DK2's by 200–1,400 turns by seed, and Receive Imps (special 124, at 5783) is unbuilt
 (experiments/2026-10-12-level4-packet-replay/).
+
+## ADR-0442 — The simulation is profiled through markers it opens itself
+**Date:** 2026-10-12 · **Status:** accepted
+
+**Context.** Unity stutters once every few frames. At 4 ticks a second, a frame that
+runs a tick carries all of it (one in fifteen at 60 fps), so a frame drop is the worst
+tick, not the mean one. The harness timed each system as a run total only, and Unity
+saw the whole tick as one block, so neither showed which tick was slow or where.
+
+**Decision.** `ISimulationProfiler` (`Begin`/`End` of a `SimulationMarker`, one
+instance per name) sits on `SimulationContext.Profiler`, set by
+`GameSimulation.ProfileWith`, defaulting to an empty profiler. The simulation opens the
+markers: the tick, messages, triggers, each system by its `Name`, `nav.refresh`/
+`nav.build`/`nav.route`, the grid pathfinder's searches and ImpTask's phases. It is
+observation under the event sink's contract;
+`DeterminismTests.Profiling_DoesNotAffectState` pins it. The harness's `RunClock` is a
+profiler that keeps self and total time, calls and allocated bytes per marker per tick,
+and reports p50/p99/max and the worst tick. Unity maps each marker to a `ProfilerMarker`.
+
+**Consequences.** A new hot spot is found by adding a marker, not a stopwatch. The first
+Release run (Level 18, nemesis attack) puts its worst tick at ~650 ms, ~430 ms of it in
+405 `grid.nearest` searches allocating 118 MB, likely because ImpTask's selection runs
+one search per candidate tile. The keeper scenarios run allocate 3–10 MB a tick. Only
+ImpTask's pathfinder is wrapped; the other systems' grid searches count as their own
+time. A span costs two interface calls when nobody is listening.

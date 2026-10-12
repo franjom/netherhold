@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using DK2.Assets;
 using DK2.Presentation;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -24,6 +25,8 @@ namespace DK2.Unity
     public sealed class TerrainChunks
     {
         private const int ChunkSize = 16;
+
+        private static readonly ProfilerMarker RebuildMarker = new ProfilerMarker("DK2.TerrainChunks.Rebuild");
 
         // Quadrant centres NW, NE, SE, SW in renderer X (east) and Z (north).
         private static readonly Vector2[] QuadrantCentres =
@@ -88,7 +91,9 @@ namespace DK2.Unity
         /// <summary>Rebuilds every chunk a tile changed in since the last flush.</summary>
         public void Flush()
         {
-            foreach (int chunk in _dirty) Rebuild(chunk);
+            foreach (int chunk in _dirty)
+                using (RebuildMarker.Auto())
+                    Rebuild(chunk);
             _dirty.Clear();
         }
 

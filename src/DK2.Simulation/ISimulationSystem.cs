@@ -40,6 +40,19 @@ public sealed class SimulationContext
     public Navigation.WorldSteering Navigation { get; }
     public ISimulationEventSink Events { get; internal set; }
 
+    /// <summary>Where to time spans of work; see <see cref="ISimulationProfiler"/>. Behaviour-neutral.</summary>
+    public ISimulationProfiler Profiler
+    {
+        get => _profiler;
+        internal set
+        {
+            _profiler = value;
+            Navigation.Profiler = value;
+        }
+    }
+
+    private ISimulationProfiler _profiler = NullSimulationProfiler.Instance;
+
     /// <summary>The tick currently being executed.</summary>
     public GameTick Tick { get; internal set; }
 

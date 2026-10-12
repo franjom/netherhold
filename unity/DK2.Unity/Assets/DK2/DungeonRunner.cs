@@ -15,6 +15,7 @@ using DK2.Data.Save;
 using DK2.Presentation;
 using DK2.Simulation;
 using DK2.Simulation.Systems;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace DK2.Unity
@@ -74,6 +75,13 @@ namespace DK2.Unity
         [SerializeField] private float cameraPanSpeed = 12f;
         [SerializeField] private float cameraZoomFraction = 0.15f;
         private const float MinCameraHeight = DungeonScene.FloorHeight + 0.5f;
+
+        // One span per stage of a frame, so the Profiler separates a slow tick from a slow redraw.
+        private static readonly ProfilerMarker InputMarker = new ProfilerMarker("DK2.Frame.Input");
+        private static readonly ProfilerMarker TicksMarker = new ProfilerMarker("DK2.Frame.Ticks");
+        private static readonly ProfilerMarker CaptureMarker = new ProfilerMarker("DK2.Frame.CaptureObjectPositions");
+        private static readonly ProfilerMarker PresentMarker = new ProfilerMarker("DK2.Frame.Present");
+        private static readonly ProfilerMarker DrawCreaturesMarker = new ProfilerMarker("DK2.Frame.DrawCreatureFrame");
 
         private GameSimulation _simulation;
         private ScenePresenter _presenter;
@@ -149,6 +157,7 @@ namespace DK2.Unity
                     database, map, PlayersOf(map), fogOfWarEnabled: fogOfWar);
                 _simulation = new GameSimulation(database, savedMap, seed, SimulationSystems.Default());
             }
+            _simulation.ProfileWith(new UnitySimulationProfiler());
             WorldState world = _simulation.World;
             _roomIds = database.Rooms.Keys.OrderBy(id => (byte)id).ToArray();
             SelectKnownRoom();
@@ -188,9 +197,12 @@ namespace DK2.Unity
         {
             if (_simulation == null) return;
 
-            ControlCamera();
-            ReadToolKeys();
-            QueueInput();
+            using (InputMarker.Auto())
+            {
+                ControlCamera();
+                ReadToolKeys();
+                QueueInput();
+            }
 
             if (speed > 0f)
             {
@@ -201,14 +213,18 @@ namespace DK2.Unity
                 int ticks = (int)Math.Min(_tickDebt, 20);
                 _tickDebt -= ticks;
 
-                for (int i = 0; i < ticks; i++)
+                using (TicksMarker.Auto())
                 {
-                    InputFrame input = i == 0 && _pendingCommands.Count > 0
-                        ? new InputFrame(_pendingCommands.ToArray())
-                        : InputFrame.Empty;
-                    _worldView.CaptureObjectPositions(_simulation.World);
-                    _simulation.Tick(input);
-                    if (i == 0) _pendingCommands.Clear();
+                    for (int i = 0; i < ticks; i++)
+                    {
+                        InputFrame input = i == 0 && _pendingCommands.Count > 0
+                            ? new InputFrame(_pendingCommands.ToArray())
+                            : InputFrame.Empty;
+                        using (CaptureMarker.Auto())
+                            _worldView.CaptureObjectPositions(_simulation.World);
+                        _simulation.Tick(input);
+                        if (i == 0) _pendingCommands.Clear();
+                    }
                 }
             }
 
@@ -219,8 +235,10 @@ namespace DK2.Unity
             else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
             _worldView.PreviewTags(dragFrom, _dragTo);
             _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
-            _presenter.Present(_simulation.World);
-            _scene.DrawCreatureFrame(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
+            using (PresentMarker.Auto())
+                _presenter.Present(_simulation.World);
+            using (DrawCreaturesMarker.Auto())
+                _scene.DrawCreatureFrame(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
         }
 
         private void QueueInput()

@@ -214,12 +214,13 @@ public sealed class ScenarioRunner
         // Registration order is part of the simulation's definition, and there
         // is exactly one of it — see SimulationSystems. A harness that ran the
         // systems in a different order from the test suite would be producing
-        // evidence about neither. The clock's wrappers keep that order.
+        // evidence about neither.
         var simulation = new GameSimulation(
-            _database, world, scenario.CreateRandom(), clock.Wrap(SimulationSystems.Default()), triggers);
+            _database, world, scenario.CreateRandom(), SimulationSystems.Default(), triggers);
 
         var sink = new ListEventSink();
         simulation.ObserveWith(sink);
+        simulation.ProfileWith(clock);
 
         Dictionary<int, InputFrame> input = inputs.BuildInput(scenario, unsupported);
         List<ScenarioWork> work = ScenarioInputBuilder.ResolveWork(scenario, world, unsupported);
@@ -233,17 +234,23 @@ public sealed class ScenarioRunner
         {
             ScenarioInputBuilder.InjectWork(world, work, t);
             InputFrame scripted = input.TryGetValue(t, out InputFrame frame) ? frame : InputFrame.Empty;
+            clock.BeginTick(t);
             simulation.Tick(pending.Count == 0 ? scripted :
                 new InputFrame([.. scripted.All, .. pending]));
-            long hashing = RunClock.Now();
+            clock.Begin(RunClock.StateHash);
             hashes.Add(simulation.StateHash());
-            clock.AddHashing(hashing);
-            if (t + 1 == scenario.DurationTicks) break;
+            clock.End(RunClock.StateHash);
+            if (t + 1 == scenario.DurationTicks)
+            {
+                clock.EndTick();
+                break;
+            }
             var next = new List<PlayerCommand>();
-            long thinking = RunClock.Now();
+            clock.Begin(RunClock.KeeperAi);
             foreach (KeeperAI keeper in keepers)
                 next.AddRange(keeper.Think(_database, world));
-            clock.AddKeepers(thinking);
+            clock.End(RunClock.KeeperAi);
+            clock.EndTick();
             emitted.AddRange(next);
             foreach (PlayerCommand command in next)
                 commandLog.Add(new KeeperCommandEmission(t + 1, command));
@@ -272,7 +279,7 @@ public sealed class ScenarioRunner
             EmittedKeeperCommands = emitted,
             KeeperCommandLog = commandLog,
             KeeperStates = keepers.ToDictionary(k => k.PlayerId, k => k.State),
-            Timings = clock.Stop(scenario.DurationTicks),
+            Timings = clock.Stop(),
         };
     }
 

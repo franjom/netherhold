@@ -43,11 +43,16 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// <summary>How many times the mesh has been built; a change of navigation byte costs one.</summary>
     public int Rebuilds { get; private set; }
 
+    /// <summary>Times <see cref="Refresh"/>, the mesh build and each route query. Set with the
+    /// context's (<see cref="SimulationContext.Profiler"/>); observation only.</summary>
+    public ISimulationProfiler Profiler { get; set; } = NullSimulationProfiler.Instance;
+
     /// <summary>Re-reads every tile's navigation byte and rebuilds the mesh if any changed. The
     /// original rebuilds around the tile its byte setter is told about; comparing the whole map is
     /// cheaper than hooking its five writers and gives the same mesh.</summary>
     public void Refresh()
     {
+        using ProfileScope _ = Profiler.Scope(SimulationMarkers.NavRefresh);
         int count = _world.Width * _world.Height;
         if (_scratch.Length != count) _scratch = new byte[count];
         StructureBlocks structures = StructureBlocks.For(_world, _database);
@@ -57,6 +62,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         if (_mesh != null && _scratch.AsSpan().SequenceEqual(_bytes)) return;
         (_bytes, _scratch) = (_scratch, _bytes);
         if (_scratch.Length != count) _scratch = new byte[count];
+        using ProfileScope build = Profiler.Scope(SimulationMarkers.NavBuild);
         _mesh = NavMesh.Build(this);
         _router = new MeshRouter(_mesh);
         Rebuilds++;
@@ -184,6 +190,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points, bool refresh)
     {
         if (refresh || _router is null) Refresh();
+        using ProfileScope _ = Profiler.Scope(SimulationMarkers.NavRoute);
         if (!_router!.TryRoute(new NavPoint(from.X >> 8, from.Y >> 8), new NavPoint(to.X >> 8, to.Y >> 8), mover, _waypoints))
             return false;
         foreach (NavPoint p in _waypoints) points.Add(new Fixed16Vector(p.X << 8, p.Y << 8));

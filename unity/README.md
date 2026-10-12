@@ -122,6 +122,18 @@ Batcher on, every material in a batch-mode render took one texture (Direct3D 12)
 not yet seen. `UseUrp` must save the renderer asset before the pipeline names it, or URP has
 no default renderer and draws nothing.
 
+## Profiling a frame
+
+`DungeonRunner` hands the simulation a `UnitySimulationProfiler` (ADR-0442), so the Unity
+Profiler's CPU timeline shows `DK2.Frame.Input`, `DK2.Frame.Ticks`, `DK2.Frame.Present`
+and `DK2.Frame.DrawCreatureFrame`, and inside the ticks `DK2.simulation tick` with each
+system, `DK2.nav.refresh`/`nav.build`/`nav.route`, `DK2.grid.nearest` and ImpTask's phases
+nested below it. `DK2.TerrainChunks.Rebuild` sits inside Present. At 4 ticks a second most
+frames run no tick: select a spike, then read the Hierarchy view's Calls column for how
+many searches or refreshes that tick made. Profile a Development build rather than the
+editor, whose Mono and safety checks inflate every number. The same markers, with
+allocations and the worst tick, print from the scenario tests (`RunTimings.Summarise`).
+
 ## Verifying it inside Unity, from the command line
 
 Both checks need an activated editor (`Preferences → Licenses → Add → free personal
