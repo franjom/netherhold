@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**238** — `0xE834B736C858816C`. Worker takes need a route (ADR-0448) and a reachable dig side, object or body (ADR-0449); no new saved field.
+
 **237** — `0xBC650457E0557295`. Route-less fight states integrate contact;
 in-range fighters face their target and hold melee through the authored
 animation-completion poll. No new saved field. ADR-0447.

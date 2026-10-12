@@ -43,6 +43,9 @@ stand.
 | Q | G + ADR-0448 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 9, 11: 6724, 6732) |
 | M2 | master d1e67516 | as E | 19/20 | 2/20 | 13/20 | 3/20 (seeds 9, 11, 19: 6732–6740) |
 | Q2 | M2 + ADR-0448 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 9, 11: 6724, 6736) |
+| R | Q2 + ADR-0449 side test | as E | 19/20 | 2/20 | 13/20 | 3/20 (seeds 9, 11, 13: 6720–6752) |
+| M3 | master b501992f | as E | 20/20 | 2/20 | 8/20 | 2/20 (seeds 3, 11: 6784, 6772) |
+| T | M3 + ADR-0448, ADR-0449 | as E | 20/20 | 2/20 | 8/20 | 2/20 (seeds 9, 11: 6764, 6788) |
 
 M and G agree tick for tick on Levels 1–3: the gate changes nothing there, and master's
 own commits since 3877e855 took Level 2 from 6/20 to 2/20 and Level 3 from 18/20 to
@@ -163,7 +166,16 @@ and 14 of 20 Level 4 runs change (7 in `replay.csv`). Seed 19 no longer wins: wi
 seed, no measured gain, and again on master d1e67516 (M2 against Q2: drops 4,878 to 17).
 Seed 19 loses both times: 26 imps' takes of the owner's dig at (16,5) are refused 139
 times at 6443–6800, and (17,5) is never claimed. That the door-blind grid's side choice
-causes the refusals is inferred, not traced. Gold, object and body fetches and the side test are Q590.
+causes the refusals is inferred, not traced.
+
+## Sets R, S, M3 and T
+
+ADR-0449 tests dig sides, objects and bodies with the router before taking them. On
+d1e67516 the side test alone (R) removes seed 19's refusals and wins 3/20 (seeds 9, 11,
+13); adding the fetch refusals and the dig give-up (S) changes no replay trace (80
+runs) and no Level 4 creature log. On master b501992f (M3 against T) Levels 1–3 replay identically (20/2/8), Level 4
+wins 2/20 either way (seeds 3, 11 against 9, 11), and `out_of_reach` falls from 5,976 to
+8. Master's own Level 3 fell from 13/20 to 8/20 between d1e67516 and b501992f.
 
 ## What to compare next
 

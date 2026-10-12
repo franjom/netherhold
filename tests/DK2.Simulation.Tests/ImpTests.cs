@@ -1077,6 +1077,37 @@ public class ImpTests
     }
 
     /// <summary>
+    /// <c>0x00469AF0</c> keeps a dig side only if <c>Route_IsPointReachable(side, 0x80)</c>
+    /// passes (Q590): the wall at (6,2)'s one open side, (5,2), lies past a rival's locked door,
+    /// so the imp never takes the dig and no walk is ever refused.
+    /// </summary>
+    [Fact]
+    public void ADigWhoseOnlySideIsPastARivalsLockedDoorIsNeverTried()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Run run = Start(new TilePos(2, 2));
+        void Lay(int x, byte terrain, byte owner)
+        {
+            ref TileState tile = ref run.World.Tile(x, 2);
+            tile.TerrainId = terrain;
+            tile.OwnerPlayerId = owner;
+            tile.Health = database.TerrainById(terrain).StartingHealth;
+        }
+        Lay(4, Dk2TerrainFixture.ClaimedPath, 2);
+        Lay(5, Dk2TerrainFixture.ClaimedPath, Keeper);
+        ThingProjection.Place(run.World, database, [new DoorThing(new byte[20])
+        {
+            X = 4, Y = 2, DoorId = 1, PlayerId = 2, Flags = 0x01, Unknown_0011 = new byte[3],
+        }]);
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(6, 2)));
+
+        run.Ticks(200);
+
+        Assert.DoesNotContain(run.Of("job_taken"), e => e.Detail.Contains("(6,2)", StringComparison.Ordinal));
+        Assert.DoesNotContain(run.Of("job_unreachable"), e => e.Detail.Contains("(6,2)", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// <b>An imp takes a rival's ground on its own</b>, in the two steps the owner
     /// watched: first unclaimed dirt, then the imp's keeper's floor. Claiming is
     /// second in the priority order (ADR-0018), the tile must touch its keeper's

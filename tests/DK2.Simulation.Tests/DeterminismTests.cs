@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 237: combat contact, facing and melee holds (ADR-0447).
+        // HashVersion 238: worker takes need a route and a reachable side or target (ADR-0448, ADR-0449).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xBC650457E0557295UL, sim.StateHash());
+        Assert.Equal(0xE834B736C858816CUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

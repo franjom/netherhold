@@ -96,9 +96,11 @@ public sealed partial class ImpTaskSystem
             }
 
             if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == at, _route)) continue;
+            (long tx, long ty) = PileCentre(world, thing);
+            if (!PointReachable(context, creature, (int)tx, (int)ty)) continue;
             if (ObjectHolder(context, creature, index) is { } holder)
             {
-                (long ox, long oy) = PileCentre(world, thing);
+                (long ox, long oy) = (tx, ty);
                 if (!TaskStealing.CanLoseItsTask(holder)
                     || TaskStealing.DistanceSquared(creature.PosX, creature.PosY, ox, oy)
                         >= TaskStealing.DistanceSquared(holder.PosX, holder.PosY, ox, oy))
@@ -107,8 +109,8 @@ public sealed partial class ImpTaskSystem
                 holder.TargetObjectId = -1;
             }
 
-            CommitObjectFetch(context, creature, thing, at);
-            return true;
+            // 0x0046B9C0: a walk that does not start moves on to the tile's next object (Q590).
+            if (CommitObjectFetch(context, creature, thing, at)) return true;
         }
         return false;
     }
@@ -126,13 +128,17 @@ public sealed partial class ImpTaskSystem
         return null;
     }
 
-    private void CommitObjectFetch(SimulationContext context, CreatureState creature, ObjectState thing, TilePos at)
+    private bool CommitObjectFetch(SimulationContext context, CreatureState creature, ObjectState thing, TilePos at)
     {
         WorldState world = context.World;
+        if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot))
+        {
+            context.Emit(SystemName, "object_unreachable", $"imp={creature.Id} object={thing.Id}");
+            return false;
+        }
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
         creature.TargetObjectId = thing.Id;
-        context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.CarryObject;
         FromTaskSelection(context, creature);
@@ -142,6 +148,7 @@ public sealed partial class ImpTaskSystem
             $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
             $"type={ObjectName(context, thing)} " +
             $"at=({at.X},{at.Y}) steps={_route.Count}");
+        return true;
     }
 
     /// <summary>Walking to a loose object, and picking it up on arrival.</summary>
@@ -312,10 +319,12 @@ public sealed partial class ImpTaskSystem
         _corpseGraveyard = null;
         int graveyard = -1;
 
+        // 0x0046D810 asks Route_IsPointReachable(body, 0x80) before walking to or stealing it.
         bool found = _pathfinder.TryFindNearest(
             grid, creature.Tile,
             at => InScanRange(at)
-                  && BodyToCarryAt(context, creature, definition, at, corpses, graveyard) is not null,
+                  && BodyToCarryAt(context, creature, definition, at, corpses, graveyard) is { } candidate
+                  && PointReachable(context, creature, candidate.PosX, candidate.PosY),
             _route);
 
         if (!found) return false;
@@ -324,10 +333,15 @@ public sealed partial class ImpTaskSystem
         CreatureState? body = BodyToCarryAt(context, creature, definition, at, corpses, graveyard);
         if (body is null) return false;
 
+        // A walk that does not start takes nothing (Q590).
+        if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot))
+        {
+            context.Emit(SystemName, "body_unreachable", $"imp={creature.Id} body={body.Id}");
+            return false;
+        }
         creature.CarriedCreatureId = -1;
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
-        context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = corpses ? ImpTaskKind.CarryCorpse : ImpTaskKind.CarryUnconscious;
         FromTaskSelection(context, creature);

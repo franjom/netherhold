@@ -166,11 +166,9 @@ public sealed partial class ImpTaskSystem
                 if (TryTakeBody(context, creature, definition, grid, corpses: false)) return true;
                 if (TryReinforceAt(context, creature, grid, tile)) return true;
                 if (handsFree && CanFetchFrom(context, tile, player, creature.Id)
-                    && _pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route))
-                {
-                    CommitFetch(context, creature, tile);
+                    && _pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route)
+                    && CommitFetch(context, creature, tile))
                     return true;
-                }
                 if (TryTakeObject(context, creature, definition, grid)) return true;
                 if (TryTakeBody(context, creature, definition, grid, corpses: true)) return true;
             }
@@ -235,8 +233,7 @@ public sealed partial class ImpTaskSystem
             if (!RingScanVisits(context, world, tile, creature.Tile)) continue;
             if (!CanFetchFrom(context, tile, player, creature.Id)) continue;
             if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route)) continue;
-            CommitFetch(context, creature, tile);
-            return true;
+            if (CommitFetch(context, creature, tile)) return true;
         }
         return false;
     }
@@ -290,11 +287,9 @@ public sealed partial class ImpTaskSystem
             if (!RingScanVisits(context, world, tile, at)) continue;
             if (TryReinforceAt(context, creature, grid, tile)) return true;
             if (handsFree && CanFetchFrom(context, tile, player, creature.Id)
-                && _pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route))
-            {
-                CommitFetch(context, creature, tile);
+                && _pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route)
+                && CommitFetch(context, creature, tile))
                 return true;
-            }
         }
         return false;
     }
@@ -458,10 +453,13 @@ public sealed partial class ImpTaskSystem
         }
         _excavation.Sort();
 
+        // The walk's one choice is taken or lost: a failed walk gives the whole selection up
+        // (0x00469AF0's tail returns 0), it does not move on to the next wall (Q590).
         foreach (ExcavationCandidate candidate in _excavation)
         {
             var target = new TilePos(candidate.TileIndex % width, candidate.TileIndex / width);
             if (TryExcavationAt(context, creature, grid, target, player)) return true;
+            if (_excavationWalkFailed) return false;
         }
         return false;
     }
@@ -479,6 +477,7 @@ public sealed partial class ImpTaskSystem
     private bool TryExcavationAt(
         SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos target, PlayerId player)
     {
+        _excavationWalkFailed = false;
         WorldState world = context.World;
         int targetIndex = target.Y * world.Width + target.X;
         bool afterMining = creature.LastTaskKind == ImpTaskKind.Mine && creature.LastTaskTileIndex >= 0;
@@ -502,6 +501,9 @@ public sealed partial class ImpTaskSystem
             if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == stand, _route)) continue;
 
             bool mining = work == TileWorkKind.MineGold;
+            if (!PointReachable(context, creature, mining ? stand.X * 4096 : CreatureState.CentreOf(stand.X),
+                    mining ? stand.Y * 4096 : CreatureState.CentreOf(stand.Y)))
+                continue;
             if (mining)
                 mine = TaskStealing.DistanceSquared(creature.PosX, creature.PosY, stand.X * 4096L, stand.Y * 4096L);
             else if (mine < 0)
@@ -536,8 +538,29 @@ public sealed partial class ImpTaskSystem
         if (taken is not TilePos chosen) return false;
         if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == chosen, _route)) return false;
         if (takenFrom is not null) TakeTaskFrom(context, takenFrom, creature, targetIndex);
-        return CommitJob(context, creature, targetIndex, takenWork, JobPriority.MarkedExcavation, takenSlot);
+        if (CommitJob(context, creature, targetIndex, takenWork, JobPriority.MarkedExcavation, takenSlot)) return true;
+        _excavationWalkFailed = true;
+        return false;
     }
+
+    /// <summary><c>Route_IsPointReachable(point, 0x80)</c> (<c>0x00471630</c>): a route query that
+    /// respects doors. <c>0x00469AF0</c> asks it of each dig side (the side tile's centre, or its
+    /// corner for a mine), and the objects and body handlers of the thing's own position, before
+    /// walking to or stealing it; the selection grid has no doors (Q590, ADR-0449).</summary>
+    private bool PointReachable(SimulationContext context, CreatureState creature, int x, int y)
+    {
+        _reach.Clear();
+        return context.Navigation.Route(
+            new Steering.Fixed16Vector(creature.PosX << 4, creature.PosY << 4), new Steering.Fixed16Vector(x << 4, y << 4),
+            Navigation.WorldSteering.ProfileOf(context.Database.CreatureById(creature.CreatureTypeId),
+                creature.OwnerPlayerId, Navigation.MoveOptions.Loose),
+            _reach, refresh: false);
+    }
+
+    private readonly List<Steering.Fixed16Vector> _reach = [];
+
+    /// <summary>Set when <see cref="TryExcavationAt"/> chose a slot and its walk could not start.</summary>
+    private bool _excavationWalkFailed;
 
     /// <summary>DK2's four sides in its own order (<c>0x00698A60</c>): north, east, south, west.</summary>
     private static readonly int[] SideDx = [0, 1, 0, -1];

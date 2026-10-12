@@ -10271,7 +10271,7 @@ side and `0x00469AF0` gives the selection up (Q590). Gold, object and body fetch
 ignore a failed route (Q590). Teleporting walks are unbuilt
 (Q418); DK2's teleport also needs the target reachable. Not modelled: DK2 raises the task
 and writes its flavour (`0x005080E0`) before the walk, and a failed walk keeps both.
-Hash/save version 236.
+Hash/save version 238, with ADR-0449.
 
 **Consequences.** Level 4's `out_of_reach` drops fall from 4,979 to 17 (other walks);
 Levels 1–3 replay identically (19/2/13). Level 4 wins 2/20 (seeds 9, 11) against 3/20
@@ -10279,3 +10279,26 @@ before (9, 11, 19), on master 15c2b038 and again on d1e67516. In seed 19, 26 imp
 takes of the owner's dig at (16,5) are refused 139 times, likely because the dig side is
 chosen on the door-blind grid where DK2 tests each side's reachability and retries the
 next slot and side (Q590, not traced). (17,5) then goes unclaimed and the owner's drop there misses.
+
+## ADR-0449 — A worker tests a dig side, object or body for reachability first
+**Date:** 2026-10-12 · **Status:** accepted · Research: imp-task-stealing.md §7a
+
+**Context.** Q590. `0x00469AF0` keeps a dig side only if `Route_IsPointReachable(point,
+0x80)` (`0x00471630`, a door-respecting route query) passes; the objects handler (`0x0046B9C0`)
+asks it of the object's position before raising its task, the body handler (`0x0046D810`)
+after raising it and before the walk or a steal.
+Ours chose sides on the door-blind grid, so ADR-0448 refused 139 dig takes at (16,5) in
+Level 4 seed 19.
+
+**Decision.** `PointReachable` asks the router with the 0x80 profile: of each dig side
+(the side tile's centre, its corner for a mine), each object and each body. A failed walk
+now gives the state-10 dig selection up (`0x00469AF0` returns 0) and moves the gold and
+object takes on to their next thing; a body take returns false, where DK2 tries the next
+creature. Not built: the drop scan's slot-and-side
+retry (`0x0046A550`) and gold's held-pile test (Q590). Hash/save version 238, with ADR-0448.
+
+**Consequences.** On master b501992f, against master alone: Level 4's `out_of_reach`
+drops fall from 5,976 to 8 over 20 seeds and 67 takes are refused up front; Levels 1–3
+replay identically (20/2/8); Level 4 wins 2/20 either way (seeds 9, 11 against 3, 11),
+7 of 20 replay traces changing. On d1e67516 the side test brought seed 13 back to a win
+(3/20); the fetch refusals and the dig give-up never fire in these 80 runs and have no test.
