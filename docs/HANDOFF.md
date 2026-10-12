@@ -180,8 +180,8 @@ the original encounter capture is still needed (combat-acquisition.md §1).
    side is `reverse-engineering\dk2runs\level4-live1\seed01\`: `level4.dk2cap` (41 MB,
    ticks 1–6804, no torn or missed ticks), `tiles.csv` (119,930 rows) and `record.out`.
    Both are local and untracked. The owner **won**: the enemy Lord died, Horny's victory
-   scene began, and pressing Space exited the game, which ended both files. So the win
-   lies near the capture's end; its exact tick is unread (2026-10-11). Next: build the entity
+   scene began, and pressing Space exited the game, which ended both files. The capture
+   has the win at capture tick 6743 (ADR-0119): player 3's status (`player+0x19A`) turns 2. Next: build the entity
    map and replay it over seeds like Levels 1–3, then record seeded DK2 playbacks
    (experiments/2026-10-06-packet-replay-seeds/).
 5. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is

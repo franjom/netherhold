@@ -144,6 +144,26 @@ public sealed class PacketLog
                     commands.Add(new CastSpellOnCreatureCommand(player, (byte)(a.First & 0xff),
                         Resolve(a.Second & 0xffff, PacketEntityKind.Creature), (ushort)(a.First >> 16)));
                     break;
+                case 21:
+                    commands.Add(new LeavePossessionCommand(player));
+                    break;
+                case 25:
+                    // 0x005146B0: X, Y, then Z in the word's low half and the heading in its high half.
+                    commands.Add(new MovePossessedCreatureCommand(player, new PossessionPose(
+                        new FpPosition3(new((int)a.First), new((int)a.Second), new((int)(a.Third & 0xFFFF))),
+                        new Dk2Angle((ushort)(a.Third >> 16)))));
+                    break;
+                case 26:
+                    // 0x00514830 (keeper-spell-possession.md): X and yaw, Y and pitch, then Z, melee
+                    // at bit 27 and the slot in the top nibble, taken with an arithmetic shift.
+                    commands.Add(new ActPossessedCreatureCommand(player,
+                        new PossessionAim(
+                            new FpPosition3(new((int)(a.First & 0xFFFFF)), new((int)(a.Second & 0xFFFFF)),
+                                new((int)(a.Third & 0x3FFF))),
+                            new Dk2Angle((ushort)((a.First >> 20) & 0x7FF)),
+                            new Dk2Angle((ushort)((a.Second >> 20) & 0x7FF))),
+                        (a.Third & (1u << 27)) != 0, new PossessedSlot((int)a.Third >> 28)));
+                    break;
                 case 57:
                     commands.Add(new PickUpCreatureCommand(player, Resolve(a.First, PacketEntityKind.Creature)));
                     break;
