@@ -10209,3 +10209,21 @@ Evidence: room-floors-and-liquids.md, hero-party-walk.md and training-actions.md
 **Consequences.** These fixes apply across maps. Full vertical physics remains
 outside the height projection. A hero-owned Prison correctly produces no rats;
 see prison-rats.md. Original-game visual comparison remains an owner check.
+
+## ADR-0447 — Keep combat contact, facing and melee action lifetime
+**Date:** 2026-10-12 · **Status:** accepted
+
+**Context.** Ending a combat route disabled body contact updates. Stationary
+fighters struck without facing their target, and post-impact actions became
+available before the authored melee animation completed.
+
+**Decision.** Integrate route-less bodies in native fight states 199/200,
+turn toward in-reach targets before attacking, and retain melee's busy hold
+until its animation-completion poll. Keep fear checks ahead of that hold.
+Use existing steering, turn and authored timing rules; hash/save version 237.
+Evidence: combat-spacing.md, combat-fight-state.md and kmf-animation-playback.md §7.
+
+**Consequences.** These changes apply across maps. Native separation remains
+soft and does not guarantee rigid clearance. Other route-less state dispatch,
+remembered-entity activation and original visual comparison remain open.
+Q582 still requires the owner's original-game casualty confirmation.

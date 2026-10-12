@@ -15,6 +15,10 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**237** — `0xBC650457E0557295`. Route-less fight states integrate contact;
+in-range fighters face their target and hold melee through the authored
+animation-completion poll. No new saved field. ADR-0447.
+
 **236** — `0xC3C0A8A82912396E`. Combines possession followers/inputs with failed hero
 jobs running the native idle wrapper;
 same-tile wander and training routes retain their destination waypoint.
@@ -390,8 +394,4 @@ to **sixteen**, 240 fewer dwords in the hash. Two readings agree on sixteen: the
 next field on the owning object sits 0x40 bytes after the bank, and the
 condition path compares the id against 0x10 before indexing.
 
-**38** — reserved, never on master. Taken by the action-point branch in the
-codex worktree so the two could not collide; the merged result took 40 rather
-than reusing it.
-
-[Versions 9–37](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–38](hash-versions-early.md) retain the earlier pins and their reasons.

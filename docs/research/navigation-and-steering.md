@@ -181,15 +181,15 @@ steering body sits at `entity+0x124`, which is how the two connect.
    neighbours within `1.2 x radius` and runs the callback on each, summing into
    `[0x006ECAD8]`/`[0x006ECADC]`.
 3. Adds one more repulsion, from a **remembered entity**: the id at
-   `entity+0x537`, written with the countdown at `+0x539` by the victim
-   selector `0x0045CB00` and resolved to a body by `0x00460F60`. With
+   `entity+0x537`, with countdown `+0x539`, resolved by `0x00460F60`.
+   Activation remains UNKNOWN; see combat-spacing.md. With
    `v = pos - other.pos` and `d = octile(v)`, the reach is that entity's
    `DistanceCanSee` in whole tiles (definition `+0x77B`, `(KWD 0xEC8 + 0x800)
    >> 12`, 4 for every shipped creature) plus own `radius`, or one tile plus
    `radius` while the body's state is 8 (en route). Within reach:
    `r = (d << 16) / reach`, magnitude `max_force` at `r <= 0x28F` else
-   `2^32 / r - 1.0`, and `normalise(v) x magnitude` is added. **The entity is the
-   one it fights** (`combat-target-selection.md` §5, which reads the writer).
+   `2^32 / r - 1.0`, and `normalise(v) x magnitude` is added. This field is
+   distinct from the current fight target; they must not be substituted.
 
 **The callback**, for a body A and a neighbour B:
 

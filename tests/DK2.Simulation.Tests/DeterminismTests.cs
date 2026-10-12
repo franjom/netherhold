@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 236: possession and native idle movement (ADR-0444–0446).
+        // HashVersion 237: combat contact, facing and melee holds (ADR-0447).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xC3C0A8A82912396EUL, sim.StateHash());
+        Assert.Equal(0xBC650457E0557295UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

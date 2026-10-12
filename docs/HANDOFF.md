@@ -73,9 +73,12 @@ Plans: docs/plans/2026-10-09-classic-look.md and
 plans/2026-10-10-classic-look-step4.md. Supported Step 4 playback is built
 (ADR-0431–0438); room-life follow-ups are built under ADR-0442.
 Combined verification passes; room-life fixes are merged to master at 6f4f2bb2.
-Level8 follow-ups use combined hash/save version 236 (ADR-0444): native bank heights,
+Classic follow-ups use hash/save version 237. ADR-0444 covers native bank heights,
 height interpolation, failed-job idle wandering and same-tile dummy approaches.
 Original guard placement/patrol timing is awaiting comparison in Q589.
+ADR-0447 covers route-less combat contact updates,
+attack facing and post-impact melee holds. Q345 retains the original bridge
+spacing comparison; soft contact does not guarantee model clearance.
 Hero-owned Prisons do not produce rats; capture them first (prison-rats.md).
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity;
 restart Play after assembly sync. Never commit local editor state
