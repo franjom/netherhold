@@ -1015,6 +1015,35 @@ public class ImpTests
     }
 
     /// <summary>
+    /// <c>0x0046AB50</c> refuses a tile whose navigation byte carries a door, so a rival's
+    /// locked door on its floor is never attacked (imp-claim-path.md §4). Without the gate ours
+    /// took the job, found no route onto the door and dropped it, again and again: Level 4's hero
+    /// door at (24,27) drew about 5,000 such takes from seven imps over 3,000 turns (2026-10-12).
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ARivalsLockedDoorTileIsNeverAttacked(bool door)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Run run = Start(new TilePos(2, 2));
+        ref TileState theirs = ref run.World.Tile(4, 2);
+        theirs.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        theirs.OwnerPlayerId = 2;
+        theirs.Health = database.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
+        if (door)
+            ThingProjection.Place(run.World, database, [new DoorThing(new byte[20])
+            {
+                X = 4, Y = 2, DoorId = 1, PlayerId = 2, Flags = 0x01, Unknown_0011 = new byte[3],
+            }]);
+
+        run.Ticks(200);
+
+        bool attacked = run.Of("job_taken").Any(e => e.Detail.Contains("(4,2) AttackTile", StringComparison.Ordinal));
+        Assert.Equal(!door, attacked);
+    }
+
+    /// <summary>
     /// <b>An imp takes a rival's ground on its own</b>, in the two steps the owner
     /// watched: first unclaimed dirt, then the imp's keeper's floor. Claiming is
     /// second in the priority order (ADR-0018), the tile must touch its keeper's

@@ -15,7 +15,9 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**234** — `0x942064B67AF897C6`. Possession followers: the leader, route deadline, follower count and shared melee target are saved and hashed on every creature. ADR-0445.
+**235** — `0xAC30621C87948DDD`. Possession followers: the leader, route deadline, follower count and shared melee target are saved and hashed on every creature. ADR-0445.
+
+**234** — `0x9EE6056B64A1FD38`. The claim priority refuses a tile holding a closed, completed door (`0x0046AB50`'s door gate); no new saved field. ADR-0443.
 
 **233** — `0x538823E3806E3E01`. Combines master's Receive Imps with saved/hashed
 room-build waves, shared ambient rat updates and original Portal heading.
@@ -394,7 +396,4 @@ as soon as that condition is evaluated. 128 flag bytes and — at this version �
 256 timer dwords enter the hash even when every slot is zero. Version 39
 corrected the timer bank to sixteen.
 
-**36** — `0xD893704FB5D00309`. `PlayerState.ResearchPoints`, the Library's
-accrual. A new player field moves the value by itself.
-
-[Versions 9–35](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–36](hash-versions-early.md) retain the earlier pins and their reasons.

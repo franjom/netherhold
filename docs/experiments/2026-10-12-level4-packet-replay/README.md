@@ -37,8 +37,13 @@ stand.
 | C | `bd6ef19a` | `lmap.py` | — | 6/20 | 18/20 | 0/20 |
 | D | ADR-0440 | `lmap.py` | — | 6/20 | 18/20 | 0/20 |
 | E | ADR-0441 | `lmap.py`, batches by tile | — | 6/20 | 18/20 | 0/20 |
+| F | ADR-0443 | as E | 19/20 | 6/20 | 18/20 | 2/20 (seeds 19, 13: 6748, 6760) |
+| M | master 15c2b038 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 11, 12: 6740, 6732) |
+| G | M + ADR-0443 | as E | 19/20 | 2/20 | 13/20 | 3/20 (seeds 9, 11, 19: 6724–6748) |
 
-Every run is valid (all turns, map stable, no placed type mismatch). A and B agree tick
+M and G agree tick for tick on Levels 1–3: the gate changes nothing there, and master's
+own commits since 3877e855 took Level 2 from 6/20 to 2/20 and Level 3 from 18/20 to
+13/20. Every run is valid (all turns, map stable, no placed type mismatch). A and B agree tick
 for tick, as Levels 1–3 hold no Guard Room; D and E agree tick for tick on Levels 2 and 3.
 E's builder pairs a batch both sides create on one turn by tile, not arrival order.
 
@@ -75,9 +80,45 @@ are in 11 on that tick, as for Create Imp. DK2's ten all go 11, 10, 12 (`ImpStat
 in 10 and walk at 5784–5786, one to three turns early.
 Special 118, Reveal Map, is unbuilt; it changes only the activator's view.
 
+## The claim lag (set E, seed 1)
+
+Measured against the capture's tiles, creatures and trigger flags (`flags_bank()`):
+
+- **Imps.** DK2 keeps all 30 of its keeper's Imps. Ours loses eleven (`creature_died`, 3920–5612),
+  seven of them in the second Guard Room (23–25,36–38), and misses three Create Imps: 1374
+  for mana (7442 of 7500) and 3231, 3471 because (19,33) and (12,33) were not yet ours.
+- **The door.** Seven of our Imps took an AttackTile job on the hero door at (24,27)
+  about 5,000 times (2117–5300), each dropped as `out_of_reach`. `0x0046AB50` never
+  claims a door tile; the gate was unbuilt. ADR-0443 builds it (set F).
+- **Mining.** The gold at (8,24) took ours 670 turns (4587–5258) against DK2's 16: the
+  two Imps on it died, and nobody else came for 590 turns.
+- **Parties.** Trigger 1 (AP 1, nine Guard Room tiles owned) starts party timers 4–9, whose
+  values (240–720) match the spawn gaps at 4 turns per unit (inferred from the gaps). DK2 fires it at 2030, ours at 1963 (the room converted 68 turns
+  early; ours began mining the gold before it, (24,39), at 1851, DK2 at 1902), so every party came 67
+  turns early, before the owner's drops at (13–18,34) at 3880–3897. Flag 11 (AP 8,
+  (7–9,23–25), a keeper creature inside) stops the parties: DK2 4378, ours 4583, so ours
+  also gets party 7 at 4363, which DK2 never sees.
+- **Flag 14**, the three placed Guards at (23–25,26) waking, fired at 3430 in ours (our
+  Warlock engaged them through the door) and at 5283 in DK2, after the owner's drop at
+  (24,28). In set F seed 1 moves to 5283; seeds 10–12 still wake them early (3212–4260),
+  and the winners, 13 and 19, were at 5283 in set E already.
+
+**Scratch run H** (set E's tool, trigger 1 held until turn 2030, not committed): 2/20,
+at 6772 and 6784. Party timing alone moves the outcome.
+
+## Set F
+
+The door takes fall to 0–42 a seed (seed 1: six, from 5325, 19 turns before DK2's
+break starts). The winning seeds reach rows 25, 15 and 5 at 4319,
+5121, 6307 (seed 13) and 4334, 5129, 6297 (seed 19), against DK2's 4391, 5090, 6310.
+Over all 20 seeds row 15 is reached in 11 and row 5 in 6. Seed 1 loses 25 Imps (3424–6076):
+eleven in the Guard Room (from 3980, the 3763 party first), four at the Heart (27–29,54)
+at 5364–5484, and nine down the middle column from 5404, where the woken Guards 10–12
+walk to the Heart.
+DK2's owner beats those Guards at (24,28) at once.
+
 ## What to compare next
 
-The frontier lags from row 25 on in every seed, before Receive Imps: compare imp counts
-and dig and claim rates on the west route (rows 25–15, x 8–14) against the capture before
-reading more of the binary. Then, in seed 1, why the army dropped at (16,5) does not
-reach the Lord.
+Why our woken Guards and parties win fights DK2's lose: the drops at (24,28) at 5271 and
+(13–18,34) at 3880 against ours, and our Guard Room conversion 68 turns early (the mining
+of (24,39)). Q588, a take whose walk does not start, is the next selection gap.

@@ -10116,6 +10116,31 @@ trajectories. Original asset redistribution remains outside this change.
 The effect physics boundaries are explicit in the canonical research;
 full original-game timing parity and Q582 remain open.
 
+## ADR-0443 — A tile holding a closed door is never claimed
+**Date:** 2026-10-12 · **Status:** accepted · Research: imp-claim-path.md §4, functions/0046AB50.md
+
+**Context.** Level 4's hero door at (24,27) stands on hero-claimed floor next to the
+keeper's. Ours offered it as an AttackTile job; the router cannot enter a closed rival
+door, so the imp dropped the job as out of reach and took it again. Seed 1 logged about
+5,000 such takes by seven imps between turns 2117 and 5300; DK2 never touches the tile
+until the owner's army starts breaking the door at 5344.
+
+**Decision.** The claim priority refuses a tile with a closed, completed door, as
+`0x0046AB50`'s third gate does: it continues only when `+0x21C(x, y, 0)`, the door nibble
+of the tile's navigation byte, is 0. Only a closed, completed door writes that nibble
+(`0x004A66F0`), so an open door or one under construction does not refuse. One gate
+covers claim, attack and room conversion, as the handler does. Hash/save version 234.
+
+**Consequences.** On ADR-0441's tool Level 4 goes from 0/20 to 2/20 (seeds 19 and 13,
+at 6748 and 6760; DK2 6743), Levels 1–3 unchanged (19/6/18). Merged onto master 15c2b038
+it wins 3/20 (seeds 9, 11, 19, 6724–6748) where master alone wins 2/20 (11, 12); Levels
+1–3 are identical with and without the gate (19/2/13, master's own change). Before the merge (set F) the winning seeds reached rows 25,
+15 and 5 within 90 turns of DK2; the gate does not help every seed (seed 1 reaches row 25 at 5169, 4599
+before). Flag 14, the three Guards behind the door waking, moves to DK2's 5283 in seed 1
+(3430 before) but still fires early in seeds 10–12; it does not explain the wins. The other 18 still lose imps to hero fights DK2 does not have.
+Still unbuilt: the handler refuses when the walk does not start (`Imp_WalkOrTeleport`
+returns 0), and ours commits a job without a route (Q588).
+
 ## ADR-0445 — The possessed creature recruits followers
 **Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §4
 
@@ -10132,7 +10157,7 @@ start records `+0x4D0`/`+0x4D2`, forgotten after three seconds while possessed;
 and clear zero the count; dismissal (action 38), fear in a fight and every removal of a
 follower (the death bookkeeping runs for each freed creature) lower it; state 1
 re-follows first. A follower is busy to its needs and takes no lair or pay anger.
-Hash/save version 234.
+Hash/save version 235.
 
 **Consequences.** Only a creature target is carried to followers: a trap or door struck
 by the possessed creature is recorded but not handed on. The flee state's skip of its

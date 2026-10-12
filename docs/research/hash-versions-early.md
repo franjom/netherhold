@@ -1,6 +1,9 @@
 # Early state-hash versions
 
-Versions 9–35, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–36, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**36** — `0xD893704FB5D00309`. `PlayerState.ResearchPoints`, the Library's
+accrual. A new player field moves the value by itself.
 
 **35** — `0x368FDF9DF3D0A6EA`. Two changes, either of which moves the value
 alone: `SimulationTiming.TicksPerSecond` went 20 to **four**, DK2's own rate,
