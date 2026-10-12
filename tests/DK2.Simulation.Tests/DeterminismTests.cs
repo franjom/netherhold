@@ -104,7 +104,7 @@ public class DeterminismTests
 
         // HashVersion 232: special 124 gives ten level-5 Imps round the Heart (ADR-0441).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xE5DB51390ABD6056UL, sim.StateHash());
+        Assert.Equal(0x888FB69DF1328413UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

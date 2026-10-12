@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**233** — `0x888FB69DF1328413`. The claim priority refuses a tile holding a closed, completed door (`0x0046AB50`'s door gate); no new saved field. ADR-0443.
+
 **232** — `0xE5DB51390ABD6056`. Special 124, Receive Imps, creates ten level-5 Imps round the Heart; no new saved field. ADR-0441.
 
 **231** — `0xB8FA72F6DE9C12A1`. A room on `Room_ComputeTotalCapacity`'s default arm (Guard Room, Hatchery, Treasury, ...) holds its tile count; no new saved field. 226–230 are taken by the unmerged classic-look branch. ADR-0440.

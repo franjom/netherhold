@@ -10025,3 +10025,26 @@ Levels 2 and 3 replays are unchanged; Level 4 still wins 0/20. Seed 1's claim fr
 now reaches row 5 at 6600 (DK2 6310, and row 15 before); seeds 5 and 14 creep to row 21
 by about 6100 and never reach row 15. Ours are in state 10 on the creation tick where
 DK2's are in 11, as for Create Imp (experiments/2026-10-12-level4-packet-replay/).
+
+## ADR-0443 — A tile holding a closed door is never claimed
+**Date:** 2026-10-12 · **Status:** accepted · Research: imp-claim-path.md §4, functions/0046AB50.md
+
+**Context.** Level 4's hero door at (24,27) stands on hero-claimed floor next to the
+keeper's. Ours offered it as an AttackTile job; the router cannot enter a closed rival
+door, so the imp dropped the job as out of reach and took it again. Seed 1 logged about
+5,000 such takes by seven imps between turns 2117 and 5300; DK2 never touches the tile
+until the owner's army starts breaking the door at 5344.
+
+**Decision.** The claim priority refuses a tile with a closed, completed door, as
+`0x0046AB50`'s third gate does: it continues only when `+0x21C(x, y, 0)`, the door nibble
+of the tile's navigation byte, is 0. Only a closed, completed door writes that nibble
+(`0x004A66F0`), so an open door or one under construction does not refuse. One gate
+covers claim, attack and room conversion, as the handler does. Hash/save version 233.
+
+**Consequences.** Level 4 wins 2/20 (seeds 19 and 13, at 6748 and 6760; DK2 6743), up
+from 0/20; Levels 1–3 are unchanged (19/6/18). The winning seeds reach rows 25, 15 and 5 within 90
+turns of DK2; the gate does not help every seed (seed 1 reaches row 25 at 5169, 4599
+before). Flag 14, the three Guards behind the door waking, moves to DK2's 5283 in seed 1
+(3430 before) but still fires early in seeds 10–12; it does not explain the wins. The other 18 still lose imps to hero fights DK2 does not have.
+Still unbuilt: the handler refuses when the walk does not start (`Imp_WalkOrTeleport`
+returns 0), and ours commits a job without a route (Q588).
