@@ -175,15 +175,12 @@ the original encounter capture is still needed (combat-acquisition.md §1).
 3. M6 and M7: use the plan's run order and the open-question rows for the
    remaining replay, combat, hero, trap and door work. Avoid reproducing their
    detailed backlogs here.
-4. M6: Level 4 was recorded live on 2026-10-11 and is not analysed yet. The packet
-   recording is `E:\GogGames\Dungeon Keeper 2\PacketRecord\l4live.sav` (210 KB). DK2's
-   side is `reverse-engineering\dk2runs\level4-live1\seed01\`: `level4.dk2cap` (41 MB,
-   ticks 1–6804, no torn or missed ticks), `tiles.csv` (119,930 rows) and `record.out`.
-   Both are local and untracked. The owner **won**: the enemy Lord died, Horny's victory
-   scene began, and pressing Space exited the game, which ended both files. The capture
-   has the win at capture tick 6743 (ADR-0119): player 3's status (`player+0x19A`) turns 2. Next: build the entity
-   map and replay it over seeds like Levels 1–3, then record seeded DK2 playbacks
-   (experiments/2026-10-06-packet-replay-seeds/).
+4. M6: Level 4 (`l4live.sav`, won at capture tick 6743; DK2 side `level4-live1/seed01`,
+   local) replays all 6804 turns over seeds 1–20 but never wins
+   (experiments/2026-10-12-level4-packet-replay/). Its captured Guard Rooms now draw Dark
+   Elves (ADR-0440). Next: build Receive Imps, special 124 (ten level-5 Imps, owner-confirmed;
+   state 214 unread), re-run, then compare the dig into the hero base. The map builder
+   and runner are in `level4-live1/rig/` (local); seeded DK2 playbacks are still to record.
 5. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built (`tools/blender/imp-reference.ps1`, Blender 5.2.2). The procedural
    modern blockouts are paused at v015 (unapproved). The appearance target is
