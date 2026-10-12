@@ -28,9 +28,10 @@ rebuilds and terrain chunks redraw. Each run directory holds:
 | `player.log`, `build.log` | Unity's logs |
 
 The markers are those in [unity/README.md](../../unity/README.md#measuring-performance)
-and ADR-0444. The player runs with `-batchmode` and no window; whether its cameras render
-is not established, so treat the result as the CPU work of simulation, presentation,
-animation and mesh updates, and frame times as lower bounds for a windowed game. Rows are
+and ADR-0444. The player runs with `-batchmode` and no window, and its cameras do not render:
+`DK2.TransparentTerrain.Sort`, which runs before each camera draws, never fired in any
+run. So this is the CPU work of simulation, presentation, animation and mesh updates,
+and frame times are lower bounds for a windowed game. Rows are
 formatted only after the run, so the GC columns are the game's own allocation. The tags go in at wall-clock times, so which tick they
 land on, and the digging after, differs between runs: compare the shape over several
 runs (worst frames, which marker they sit in), not one run's p99. A frame over 50 ms

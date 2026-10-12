@@ -49,6 +49,10 @@ namespace DK2.Unity
             ("nav_build_ms", "DK2.Sim.nav.build", ProfilerCategory.Scripts),
             ("movement_ms", "DK2.Sim.CreatureMovement", ProfilerCategory.Scripts),
             ("triggers_ms", "DK2.Sim.triggers", ProfilerCategory.Scripts),
+            ("chunk_geometry_ms", "DK2.TerrainChunks.Geometry", ProfilerCategory.Scripts),
+            ("chunk_upload_ms", "DK2.TerrainChunks.Upload", ProfilerCategory.Scripts),
+            ("transparent_set_ms", "DK2.TransparentTerrain.SetChunk", ProfilerCategory.Scripts),
+            ("transparent_sort_ms", "DK2.TransparentTerrain.Sort", ProfilerCategory.Scripts),
         };
 
         private const int Tick = 1, Present = 2, Animated = 3, Chunk = 4, ImpTask = 5, Grid = 6, Nav = 7;
@@ -233,6 +237,7 @@ namespace DK2.Unity
         {
             enabled = false;
             WriteCsv();
+            string chunkCheck = CheckChunksAgainstFullRebuild();
 
             int[] rows = Enumerable.Range(0, _count).Where(i => _rows[i].Seconds >= WarmUpSeconds).ToArray();
             double[] frames = rows.Select(i => _rows[i].FrameMs).OrderBy(v => v).ToArray();
@@ -243,6 +248,7 @@ namespace DK2.Unity
             var text = new StringBuilder();
             if (_errors > 0)
                 text.AppendLine($"INVALID RUN: the game logged {_errors} errors; first: {_firstError}");
+            text.AppendLine(chunkCheck);
             string[] neverValid = Recorded.Where((r, i) => !_recorders[i].Valid).Select(r => r.Marker).ToArray();
             if (neverValid.Length > 0)
                 text.AppendLine("markers never recorded (NaN in the CSV): " + string.Join(", ", neverValid));
@@ -265,6 +271,61 @@ namespace DK2.Unity
             _gcAllocated.Dispose();
             Application.Quit(_errors > 0 ? 2 : 0);
         }
+
+        /// <summary>
+        /// The terrain's chunks are assembled from tiles cached since they last changed. After the
+        /// run, every chunk mesh is snapshotted, every drawn tile marked stale and the terrain
+        /// flushed, which rebuilds each tile from scratch; the two must agree bit for bit, or the
+        /// cache kept a tile whose inputs had changed. A mismatch counts as an error. It compares
+        /// the cache against this build's own full rebuild, so it proves no stale tile survived,
+        /// for the changes this run made (digging and tagging, with the lattice on); that the
+        /// assembly matches the old in-place build is by construction, not tested here.
+        /// </summary>
+        private string CheckChunksAgainstFullRebuild()
+        {
+            const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
+            object scene = typeof(DungeonRunner).GetField("_scene", Private).GetValue(_runner);
+            object terrain = scene?.GetType().GetField("_terrain", Private).GetValue(scene);
+            if (terrain == null) return "chunk cache check: no classic terrain";
+            Type type = terrain.GetType();
+            var chunks = (Dictionary<int, GameObject>)type.GetField("_chunks", Private).GetValue(terrain);
+            var drawn = (bool[])type.GetField("_drawn", Private).GetValue(terrain);
+
+            Dictionary<int, string> before = chunks.ToDictionary(c => c.Key, c => Describe(c.Value));
+            MethodInfo markStale = type.GetMethod("MarkStale", Private);
+            for (int i = 0; i < drawn.Length; i++)
+                if (drawn[i]) markStale.Invoke(terrain, new object[] { i });
+            type.GetMethod("Flush").Invoke(terrain, null);
+            Dictionary<int, string> after = chunks.ToDictionary(c => c.Key, c => Describe(c.Value));
+
+            int[] differ = before.Keys.Union(after.Keys)
+                .Where(k => !before.TryGetValue(k, out string a) || !after.TryGetValue(k, out string b) || a != b)
+                .OrderBy(k => k).ToArray();
+            if (differ.Length == 0) return $"chunk cache check: all {before.Count} chunks match a full rebuild";
+            Debug.LogError($"DK2 game probe: {differ.Length} chunks differ from a full rebuild: {string.Join(", ", differ)}");
+            return $"chunk cache check: {differ.Length} of {before.Count} chunks DIFFER from a full rebuild";
+        }
+
+        private static string Describe(GameObject chunk)
+        {
+            if (chunk == null) return "";
+            Mesh mesh = chunk.GetComponent<MeshFilter>().sharedMesh;
+            var text = new StringBuilder();
+            // Every float by its bits, so equal strings mean equal meshes.
+            foreach (Vector3 v in mesh.vertices) Bits(Bits(Bits(text, v.x), v.y), v.z);
+            text.Append('|');
+            foreach (Vector3 n in mesh.normals) Bits(Bits(Bits(text, n.x), n.y), n.z);
+            text.Append('|');
+            foreach (Vector2 uv in mesh.uv) Bits(Bits(text, uv.x), uv.y);
+            for (int s = 0; s < mesh.subMeshCount; s++)
+                text.Append('|').Append(string.Join(",", mesh.GetTriangles(s)));
+            foreach (Material material in chunk.GetComponent<MeshRenderer>().sharedMaterials)
+                text.Append('|').Append(material == null ? "null" : material.name).Append('#').Append(material == null ? 0 : material.GetHashCode());
+            return text.ToString();
+        }
+
+        private static StringBuilder Bits(StringBuilder text, float value) =>
+            text.Append(BitConverter.ToInt32(BitConverter.GetBytes(value), 0)).Append(',');
 
         private void WriteCsv()
         {

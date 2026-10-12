@@ -145,6 +145,8 @@ off for baseline captures. The adapter exposes these CPU markers:
 | `DK2.Sim.grid.nearest` / `grid.path` | One grid search by ImpTask's pathfinder |
 | `DK2.Sim.ImpTask.*` | ImpTask's phases: claim on the way, wander, carry, job |
 | `DK2.TerrainChunks.Rebuild` | One terrain chunk's mesh, inside `DK2.Scene.Present` |
+| `DK2.TerrainChunks.Geometry` / `Upload` | Inside Rebuild: one changed tile's pieces regenerated (cached tiles are copied), and the chunk mesh set |
+| `DK2.TransparentTerrain.SetChunk` / `Sort` | A chunk's blended faces kept; the per-camera depth sort of all of them |
 
 Nested marker times overlap: do not add child totals to their parent's total.
 Animation markers run once per animated instance; use the Hierarchy aggregate

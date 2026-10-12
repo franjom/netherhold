@@ -27,6 +27,8 @@ namespace DK2.Unity
         private const int ChunkSize = 16;
 
         private static readonly ProfilerMarker RebuildMarker = new ProfilerMarker("DK2.TerrainChunks.Rebuild");
+        private static readonly ProfilerMarker GeometryMarker = new ProfilerMarker("DK2.TerrainChunks.Geometry");
+        private static readonly ProfilerMarker UploadMarker = new ProfilerMarker("DK2.TerrainChunks.Upload");
 
         // Quadrant centres NW, NE, SE, SW in renderer X (east) and Z (north).
         private static readonly Vector2[] QuadrantCentres =
@@ -46,11 +48,33 @@ namespace DK2.Unity
         private readonly HashSet<int> _dirty = new HashSet<int>();
         private readonly Dictionary<int, GameObject> _chunks = new Dictionary<int, GameObject>();
 
-        // Reused across rebuilds so a chunk costs no list allocations.
+        // Each drawn tile's pieces as AddTile last built them. A rebuild regenerates only the tiles
+        // whose inputs changed (_stale) and copies the rest, so a dig costs its 5x5 window rather
+        // than every tile of the chunks that window touches. The chunk comes out the same, vertex
+        // for vertex and triangle for triangle.
+        private sealed class TileGeometry
+        {
+            public Vector3[] Positions, Normals;
+            public Vector2[] Uvs;
+            public Material[] Materials;
+            public int[][] Triangles; // per material, indexed from the tile's first vertex
+        }
+
+        private readonly TileGeometry[] _geometry;
+        private readonly bool[] _stale;
+
+        // One tile's build, reused so a tile costs no list allocations beyond its own arrays.
+        private readonly List<Vector3> _tilePositions = new List<Vector3>();
+        private readonly List<Vector3> _tileNormals = new List<Vector3>();
+        private readonly List<Vector2> _tileUvs = new List<Vector2>();
+        private readonly Dictionary<Material, List<int>> _tileByMaterial = new Dictionary<Material, List<int>>();
+
+        // One chunk's assembly, reused across rebuilds.
         private readonly List<Vector3> _positions = new List<Vector3>();
         private readonly List<Vector3> _normals = new List<Vector3>();
         private readonly List<Vector2> _uvs = new List<Vector2>();
         private readonly Dictionary<Material, List<int>> _byMaterial = new Dictionary<Material, List<int>>();
+        private readonly List<Material> _opaque = new List<Material>();
 
         public TerrainChunks(Transform root, ClassicMeshes classic, int width, int height,
             TerrainLattice lattice = null)
@@ -65,6 +89,8 @@ namespace DK2.Unity
             _chunksX = (width + ChunkSize - 1) / ChunkSize;
             _tiles = new TileView[width * height];
             _drawn = new bool[width * height];
+            _geometry = new TileGeometry[width * height];
+            _stale = new bool[width * height];
         }
 
         /// <summary>Takes the tile when it has plain or room pieces; false leaves it to the placeholder.</summary>
@@ -79,9 +105,9 @@ namespace DK2.Unity
                 _lattice.Invalidate(x, y);
                 for (int ty = Mathf.Max(0, y - 2); ty <= Mathf.Min(height - 1, y + 2); ty++)
                     for (int tx = Mathf.Max(0, x - 2); tx <= Mathf.Min(_width - 1, x + 2); tx++)
-                        _dirty.Add(ChunkOf((ty * _width) + tx));
+                        MarkStale((ty * _width) + tx);
             }
-            else if (draws || _drawn[tileIndex]) _dirty.Add(ChunkOf(tileIndex));
+            else if (draws || _drawn[tileIndex]) MarkStale(tileIndex);
             if (tile.Tagged != _tiles[tileIndex].Tagged) DirtyNeighbours(tileIndex);
             _tiles[tileIndex] = tile;
             _drawn[tileIndex] = draws;
@@ -99,21 +125,37 @@ namespace DK2.Unity
 
         public void Clear()
         {
-            foreach (GameObject go in _chunks.Values) if (go != null) Object.Destroy(go);
+            foreach (GameObject go in _chunks.Values) DestroyChunk(go);
             _chunks.Clear();
             _transparent.Clear();
             _dirty.Clear();
             System.Array.Clear(_drawn, 0, _drawn.Length);
+            System.Array.Clear(_geometry, 0, _geometry.Length);
+            System.Array.Clear(_stale, 0, _stale.Length);
         }
 
-        /// <summary>A tag tints the room walls facing the tile, so its four neighbours' chunks redraw.</summary>
+        /// <summary>A tag tints the room walls facing the tile, so its four neighbours redraw.</summary>
         private void DirtyNeighbours(int tileIndex)
         {
             int x = tileIndex % _width, y = tileIndex / _width, height = _tiles.Length / _width;
-            if (x > 0) _dirty.Add(ChunkOf(tileIndex - 1));
-            if (x < _width - 1) _dirty.Add(ChunkOf(tileIndex + 1));
-            if (y > 0) _dirty.Add(ChunkOf(tileIndex - _width));
-            if (y < height - 1) _dirty.Add(ChunkOf(tileIndex + _width));
+            if (x > 0) MarkStale(tileIndex - 1);
+            if (x < _width - 1) MarkStale(tileIndex + 1);
+            if (y > 0) MarkStale(tileIndex - _width);
+            if (y < height - 1) MarkStale(tileIndex + _width);
+        }
+
+        private void MarkStale(int tileIndex)
+        {
+            _stale[tileIndex] = true;
+            _dirty.Add(ChunkOf(tileIndex));
+        }
+
+        // The mesh is the chunk's own: destroying the object alone would leak it.
+        private static void DestroyChunk(GameObject go)
+        {
+            if (go == null) return;
+            Object.Destroy(go.GetComponent<MeshFilter>().sharedMesh);
+            Object.Destroy(go);
         }
 
         private int ChunkOf(int tileIndex) =>
@@ -130,13 +172,32 @@ namespace DK2.Unity
             int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
             for (int y = y0; y < Mathf.Min(y0 + ChunkSize, height); y++)
                 for (int x = x0; x < Mathf.Min(x0 + ChunkSize, _width); x++)
-                    if (_drawn[(y * _width) + x]) AddTile(x, y, _tiles[(y * _width) + x]);
+                {
+                    int index = (y * _width) + x;
+                    if (!_drawn[index])
+                    {
+                        _geometry[index] = null;
+                        _stale[index] = false;
+                        continue;
+                    }
+                    if (_stale[index] || _geometry[index] == null)
+                    {
+                        using (GeometryMarker.Auto()) _geometry[index] = BuildTile(x, y, _tiles[index]);
+                        _stale[index] = false;
+                    }
+                    Append(_geometry[index]);
+                }
 
-            if (_chunks.TryGetValue(chunk, out GameObject old) && old != null) Object.Destroy(old);
-            _chunks.Remove(chunk);
             _transparent.SetChunk(chunk, _positions, _normals, _uvs, _byMaterial);
-            if (_positions.Count == 0) return;
+            _chunks.TryGetValue(chunk, out GameObject go);
+            if (_positions.Count == 0)
+            {
+                DestroyChunk(go);
+                _chunks.Remove(chunk);
+                return;
+            }
 
+            using ProfilerMarker.AutoScope upload = UploadMarker.Auto();
             var mesh = new Mesh
             {
                 name = $"terrain chunk {chunk}",
@@ -145,19 +206,67 @@ namespace DK2.Unity
             mesh.SetVertices(_positions);
             mesh.SetNormals(_normals);
             mesh.SetUVs(0, _uvs);
-            var materials = new List<Material>();
+            _opaque.Clear();
             foreach (KeyValuePair<Material, List<int>> entry in _byMaterial)
-                if (entry.Value.Count > 0 && entry.Key.renderQueue < (int)RenderQueue.Transparent) materials.Add(entry.Key);
-            mesh.subMeshCount = materials.Count;
-            for (int i = 0; i < materials.Count; i++)
-                mesh.SetTriangles(_byMaterial[materials[i]], i, calculateBounds: false);
+                if (entry.Value.Count > 0 && entry.Key.renderQueue < (int)RenderQueue.Transparent) _opaque.Add(entry.Key);
+            mesh.subMeshCount = _opaque.Count;
+            for (int i = 0; i < _opaque.Count; i++)
+                mesh.SetTriangles(_byMaterial[_opaque[i]], i, calculateBounds: false);
             mesh.RecalculateBounds();
 
-            var go = new GameObject(mesh.name);
-            go.transform.SetParent(_root, worldPositionStays: false);
-            go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            go.AddComponent<MeshRenderer>().sharedMaterials = materials.ToArray();
-            _chunks[chunk] = go;
+            // The chunk keeps its object; its previous mesh is destroyed rather than left to leak.
+            if (go == null)
+            {
+                go = new GameObject(mesh.name);
+                go.transform.SetParent(_root, worldPositionStays: false);
+                go.AddComponent<MeshFilter>();
+                go.AddComponent<MeshRenderer>();
+                _chunks[chunk] = go;
+            }
+            var filter = go.GetComponent<MeshFilter>();
+            if (filter.sharedMesh != null) Object.Destroy(filter.sharedMesh);
+            filter.sharedMesh = mesh;
+            go.GetComponent<MeshRenderer>().sharedMaterials = _opaque.ToArray();
+        }
+
+        /// <summary>One tile's pieces, built as the chunk used to build them in place.</summary>
+        private TileGeometry BuildTile(int x, int y, in TileView tile)
+        {
+            _tilePositions.Clear();
+            _tileNormals.Clear();
+            _tileUvs.Clear();
+            foreach (List<int> list in _tileByMaterial.Values) list.Clear();
+            _tileMaterialOrder.Clear();
+            _tileMaterialSeen.Clear();
+            AddTile(x, y, tile);
+
+            // In the tile's own first-use order, so Append meets materials in the order the old
+            // in-place build did and the chunk's submeshes come out in the same order.
+            var geometry = new TileGeometry
+            {
+                Positions = _tilePositions.ToArray(), Normals = _tileNormals.ToArray(), Uvs = _tileUvs.ToArray(),
+                Materials = _tileMaterialOrder.ToArray(), Triangles = new int[_tileMaterialOrder.Count][],
+            };
+            for (int m = 0; m < _tileMaterialOrder.Count; m++)
+                geometry.Triangles[m] = _tileByMaterial[_tileMaterialOrder[m]].ToArray();
+            return geometry;
+        }
+
+        private readonly List<Material> _tileMaterialOrder = new List<Material>();
+        private readonly HashSet<Material> _tileMaterialSeen = new HashSet<Material>();
+
+        private void Append(TileGeometry geometry)
+        {
+            int start = _positions.Count;
+            _positions.AddRange(geometry.Positions);
+            _normals.AddRange(geometry.Normals);
+            _uvs.AddRange(geometry.Uvs);
+            for (int m = 0; m < geometry.Materials.Length; m++)
+            {
+                if (!_byMaterial.TryGetValue(geometry.Materials[m], out List<int> list))
+                    _byMaterial[geometry.Materials[m]] = list = new List<int>();
+                foreach (int index in geometry.Triangles[m]) list.Add(start + index);
+            }
         }
 
         private void AddTile(int x, int y, in TileView tile)
@@ -254,7 +363,7 @@ namespace DK2.Unity
         {
             if (piece == null) return;
             Quaternion turn = Quaternion.Euler(0f, 90f * rotation, 0f);
-            int start = _positions.Count;
+            int start = _tilePositions.Count;
             for (int i = 0; i < piece.Positions.Length; i++)
             {
                 Vector3 v = (turn * piece.Positions[i]) + at;
@@ -264,9 +373,9 @@ namespace DK2.Unity
                     System.Numerics.Vector3 bent = _lattice.Deform(new System.Numerics.Vector3(v.x, -v.z, -v.y), x, y);
                     v = new Vector3(bent.X, -bent.Z, -bent.Y);
                 }
-                _positions.Add(v);
-                _normals.Add(turn * piece.Normals[i]);
-                _uvs.Add(piece.Uvs[i]);
+                _tilePositions.Add(v);
+                _tileNormals.Add(turn * piece.Normals[i]);
+                _tileUvs.Add(piece.Uvs[i]);
             }
             for (int m = 0; m < piece.Triangles.Count; m++)
             {
@@ -279,8 +388,9 @@ namespace DK2.Unity
 
         private void AddTriangles(Material material, int[] triangles, int start)
         {
-            if (!_byMaterial.TryGetValue(material, out List<int> list))
-                _byMaterial[material] = list = new List<int>();
+            if (!_tileByMaterial.TryGetValue(material, out List<int> list))
+                _tileByMaterial[material] = list = new List<int>();
+            if (_tileMaterialSeen.Add(material)) _tileMaterialOrder.Add(material);
             foreach (int index in triangles) list.Add(start + index);
         }
     }
