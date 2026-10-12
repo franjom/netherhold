@@ -80,11 +80,16 @@ public class StealGoldTests
         (GameDatabase db, WorldState world) = OpenWorld();
         Treasury(world, Keeper, 10, 5, [500, 500, 500, 500]);
         CreatureState hero = Thief(db, world, Rival, new TilePos(3, 5));
-        (GameSimulation sim, _) = Simulation(db, world);
+        (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
 
-        sim.Run(8);
-
+        sim.Run(2);
         Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
+        Assert.Equal(JobType.None, hero.CurrentJob);
+        sim.Tick();
+        Assert.Equal(ImpStates.Wandering, hero.Dk2StateId);
+        sim.Run(5);
+        Assert.DoesNotContain(sink.Events, e => e.Kind is "hero_job" or "gold_stolen");
+        Assert.Equal(2000, GoldIn(world, 10, 5));
     }
 
     [Fact]
@@ -129,11 +134,16 @@ public class StealGoldTests
         (GameDatabase db, WorldState world) = OpenWorld();
         Treasury(world, PlayerIds.Good, 10, 5, [500, 500, 500, 500]);
         CreatureState hero = Thief(db, world, PlayerIds.Good, new TilePos(3, 5));
-        (GameSimulation sim, _) = Simulation(db, world);
+        (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
 
-        sim.Run(8);
-
+        sim.Run(2);
         Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
+        Assert.Equal(JobType.None, hero.CurrentJob);
+        sim.Tick();
+        Assert.Equal(ImpStates.Wandering, hero.Dk2StateId);
+        sim.Run(5);
+        Assert.DoesNotContain(sink.Events, e => e.Kind is "hero_job" or "gold_stolen");
+        Assert.Equal(2000, GoldIn(world, 10, 5));
     }
 
     /// <summary>A leader in 164 hands job 13 to its followers in 222, which run it from 226.</summary>

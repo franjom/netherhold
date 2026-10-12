@@ -239,8 +239,9 @@ namespace DK2.Unity
                 Vector3 ground = Ground(
                     Mathf.Lerp(pose.PreviousPosX, pose.PosX, fraction) / Fp32.One,
                     Mathf.Lerp(pose.PreviousPosY, pose.PosY, fraction) / Fp32.One,
-                    pose.Height / (float)Fp32.One);
-                go.transform.position = new Vector3(ground.x, position.y, ground.z);
+                    Mathf.Lerp(pose.PreviousHeight, pose.Height, fraction) / Fp32.One);
+                go.transform.position = new Vector3(ground.x,
+                    _meshCreatures.Contains(entry.Key) ? ground.y : position.y, ground.z);
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
                 if (player != null) player.Draw(_renderSeconds, pose.AnimationMovementSpeed, pose.AnimationPaused);
             }

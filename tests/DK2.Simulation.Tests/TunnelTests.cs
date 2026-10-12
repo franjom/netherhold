@@ -56,10 +56,15 @@ public class TunnelTests
         CreatureState knight = Hero(db, world, Knight, new TilePos(3, 6));
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
 
-        sim.Run(8);
-
+        byte wallTerrain = world.Tile(4, 6).TerrainId;
+        sim.Run(2);
         Assert.Equal(HeroJobRules.WaitFailedState, knight.Dk2StateId);
+        Assert.Equal(JobType.None, knight.CurrentJob);
+        sim.Tick();
+        Assert.Equal(ImpStates.Wandering, knight.Dk2StateId);
+        sim.Run(5);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "tunnel_started");
+        Assert.Equal(wallTerrain, world.Tile(4, 6).TerrainId);
     }
 
     /// <summary>A leader's failed route lends the errand to its worker follower, which tunnels

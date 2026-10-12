@@ -73,7 +73,11 @@ Plans: docs/plans/2026-10-09-classic-look.md and
 plans/2026-10-10-classic-look-step4.md. Supported Step 4 playback is built
 (ADR-0431–0438); room-life follow-ups are built under ADR-0442.
 Combined verification passes; room-life fixes are merged to master at 6f4f2bb2.
-Hash/save version is 233. Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity;
+Level8 follow-ups use combined hash/save version 236 (ADR-0444): native bank heights,
+height interpolation, failed-job idle wandering and same-tile dummy approaches.
+Original guard placement/patrol timing is awaiting comparison in Q589.
+Hero-owned Prisons do not produce rats; capture them first (prison-rats.md).
+Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity;
 restart Play after assembly sync. Never commit local editor state
 (ProjectSettings/*, Scenes/Dungeon.unity, URP globals).
 

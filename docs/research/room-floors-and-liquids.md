@@ -1,13 +1,23 @@
 # Format and engine: room floors, liquid beds and the liquid surface (Q71)
 
-**Grounded creature placement (2026-10-11).** The classic view now projects
-grounded creatures on water/lava to the existing floor-height answer, 0xA66 at
-the tile centre, rather than the stone floor's 0x1000. Bridges use 0x1199,
-rechecked in `0x004545C0`, so feet sit above the raised deck. The liquid surface
-is near 0xE66, so feet are submerged. This is a presentation approximation:
-bank slopes and vertical creature physics remain unbuilt. Flying creatures
-retain their existing height, using the supported flight predicate from
-steering-behaviours.md §7.5. Attached torture victims retain their device pose.
+**Grounded creature placement (2026-10-12).** The classic view evaluates the
+liquid bank at the body's sub-tile position and retains both tick heights for
+interpolation with horizontal movement. Bridges use 0x1199; ordinary floors
+use 0x1000. Flying creatures retain their existing height (steering-behaviours.md
+§7.5); attached victims retain their device pose. Full creature vertical physics
+remains unbuilt.
+
+**CONFIRMED (binary, `0x004545C0`, water/lava arm; instructions rechecked
+2026-10-12):** the liquid floor starts at 0xA66. The same-liquid neighbour mask
+includes bridges over that liquid and off-map cells (`0x00450470`). The bearing
+from tile centre selects an octant; its even pair selects a rotated N/NE/E
+three-bit group. With no dry neighbour in that group, the floor stays 0xA66.
+For even octants, a dry cardinal bit selects max(abs(dx),abs(dy)); otherwise min.
+For odd octants the next cardinal bit selects max; otherwise min. Add
+distance*0x59A/0x800, truncated, reaching 0x1000 at the bank edge. The liquid
+surface is near 0xE66, so feet stay submerged in open water. The earlier flat
+centre projection omitted this rise; Unity also held destination height while
+interpolating only X/Y.
 
 Source(s):
 - Retail v1.70 `DKII.EXE`, read in Ghidra (pyghidra-mcp), 2026-10-09, checked against the

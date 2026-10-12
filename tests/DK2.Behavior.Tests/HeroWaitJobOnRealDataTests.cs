@@ -53,6 +53,32 @@ public class HeroWaitJobOnRealDataTests
     }
 
     [InstallFact]
+    public void Level8TrainingRoomGuardWandersAfterItsHuntCannotStart()
+    {
+        string install = Dk2InstallGate.Path;
+        const string level = "Level8";
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, level);
+        GameSimulation sim = CampaignSimulationFactory.Create(db,
+            GameDatabaseLoader.LoadCampaignMap(install, level)!, GameDatabaseLoader.LoadCampaignLevel(install, level)!,
+            GameDatabaseLoader.LoadCampaignPlayers(install, level)!, GameDatabaseLoader.LoadCampaignThings(install, level)!,
+            GameDatabaseLoader.LoadCampaignTriggers(install, level)!, seed: 1);
+        CreatureState guard = Assert.Single(sim.World.Creatures, c => c.Tile == new TilePos(19, 26)
+            && db.CreatureById(c.CreatureTypeId).Name == "Guard");
+        Assert.Equal(JobType.KillCreatures, guard.GoodJob);
+        int startX = guard.PosX, startY = guard.PosY;
+        bool wandered = false, moved = false;
+        for (int i = 0; i < 1500 && !moved; i++)
+        {
+            sim.Tick();
+            wandered |= guard.Dk2StateId == ImpStates.Wandering;
+            moved |= Math.Abs(guard.PosX - startX) > 1024 || Math.Abs(guard.PosY - startY) > 1024;
+            Assert.Equal(0, guard.TrainingActionId);
+        }
+        Assert.True(wandered);
+        Assert.True(moved, "the failed-hunt idle wrapper must let the guard leave its dummy-centre spawn");
+    }
+
+    [InstallFact]
     public void JobWaitIsSetByShippedPartiesPlacedCreaturesAndScripts_Q499HoldCounterIsUnbuilt()
     {
         string install = Dk2InstallGate.Path;

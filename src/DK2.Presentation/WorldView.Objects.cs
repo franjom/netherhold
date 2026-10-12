@@ -500,13 +500,43 @@ public sealed partial class WorldView
         return art;
     }
 
+    /// <summary>The liquid bank arm of Tile_FloorHeight; ordinary creature floor projection stays unchanged.</summary>
+    private Fp32 CreatureGroundHeight(WorldState world, FpPosition3 point)
+    {
+        TilePos position = new(point.X.Raw >> 12, point.Y.Raw >> 12);
+        if (!world.Contains(position)) return new(FloorZ);
+        TileState tile = world.Tile(position);
+        if (_database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? room))
+            return new(BridgeRules.IsBridge(room) ? 0x1199 : FloorZ);
+        TerrainDef terrain = _database.TerrainById(tile.TerrainId);
+        if (!terrain.IsWater && !terrain.IsLava) return new(FloorZ);
+
+        int neighbours = 0;
+        for (int direction = 0; direction < 8; direction++)
+        {
+            TilePos next = new(position.X + Dx8[direction], position.Y + Dy8[direction]);
+            if (!world.Contains(next) || world.Tile(next).TerrainId == tile.TerrainId
+                || (BridgeRules.SpannedTerrain(_database, world.Tile(next)) is { } under
+                    && under.TerrainId == tile.TerrainId))
+                neighbours |= 1 << direction;
+        }
+        if (neighbours == 0xFF) return new(0xA66);
+        int dx = point.X.Raw - CreatureState.CentreOf(position.X);
+        int dy = point.Y.Raw - CreatureState.CentreOf(position.Y);
+        int octant = DK2.Simulation.Steering.Bearing.Of(dx, dy) >> 8;
+        int cardinal = octant & 6, bank = ~neighbours & 0xFF;
+        int near = ((7 << cardinal) | (7 >> (8 - cardinal))) & 0xFF;
+        if ((bank & near) == 0) return new(0xA66);
+        int x = Math.Abs(dx), y = Math.Abs(dy);
+        bool useLarger = (octant & 1) == 0 ? (bank & (1 << cardinal)) != 0
+            : (bank & (((4 << cardinal) | (4 >> (8 - cardinal))) & 0xFF)) != 0;
+        int distance = useLarger ? Math.Max(x, y) : Math.Min(x, y);
+        return new(0xA66 + distance * 0x59A / 0x800);
+    }
+
     /// <summary>
-    /// <c>Tile_FloorHeight</c> (<c>0x004545C0</c>) at a tile's centre, where a resting object
-    /// settles: the floor slots of the Hatchery (<c>0xE00</c>), Temple (0), Graveyard and Crypt
-    /// (<c>0xF00</c>) and Combat Pit (<c>0x400</c>); the Heart's centre and the Portal's (0);
-    /// bridges (<c>0x1199</c>); water and lava (<c>0xA66</c>); else <c>0x1000</c>.
-    /// <para>Deviates: DK2 slopes the edges of those four rooms by the neighbour mask and a bank by
-    /// its own; this answers at the centre with no slope.</para>
+    /// Tile_FloorHeight at a resting object's tile centre. Room-edge sub-tile zones remain
+    /// approximated by room membership; see room-floors-and-liquids.md.
     /// </summary>
     private int FloorHeight(WorldState world, int x, int y)
     {
