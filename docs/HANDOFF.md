@@ -67,100 +67,73 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 ## Classic look, steps 3–4 (worktree D:/DungeonKeeperRemake-classic)
 
-Plan: docs/plans/2026-10-09-classic-look.md. Step 3 is merged to master at 6005ff9f.
-Step 4 is underway on classic-look/step4. The owner
-compares DK2 and Unity on campaign Level8 ("Snapdragon") screenshot by screenshot.
-Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity. Assemblies are synced and the adapter
-compiles. Never commit editor state (ProjectSettings/*, Scenes/Dungeon.unity, URP globals).
-Commits: b58eaa66 transparency; 4033eb24 gate/Heart pieces; bc806cc2 room simulation;
-84a450da Prison door/object turning; 72cfe356 fallen-keeper imp regression.
-Follow-up commits: 363aba56 victim attachment/device steering; e3c67c87 doors/traps.
-4316bc97 enables Forward+ torch lighting; 2dc90d18 supplies campaign party scripts.
-cd6fbd45 corrects obstacle query flags and grounded water speed.
-9630abf4 corrects translucent portal triangle order; fb5e1980 draws locked-door chains.
-3c1c6604 restores the imp's nearby-room alarm retreat.
+Plans: docs/plans/2026-10-09-classic-look.md and
+plans/2026-10-10-classic-look-step4.md. Supported Step 4 playback is built
+(ADR-0431–0438); room-life follow-ups are built under ADR-0442.
+Combined verification passes; room-life fixes are merged to master at 6f4f2bb2.
+Hash/save version is 233. Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity;
+restart Play after assembly sync. Never commit local editor state
+(ProjectSettings/*, Scenes/Dungeon.unity, URP globals).
 
-Presentation includes object tilts/turning, Torture wheels and attached victim poses,
-the corrected Prison door mesh facing, KMF transparency, Hero Gate floors and 3x1 wall
-faces, ruined Heart floors, and placed doors/traps with settled door poses (ADR-0421),
-locked-door chains (ADR-0426) and depth-sorted translucent portal pillars (ADR-0427).
-Torch meshes now receive their wall-mount offset separately from the light;
-owner visual check pending (2026-10-11), see wall-torches.md §4.
-Evidence: object-drawing.md, furniture-placement.md, kmf-materials.md,
-structure-drawing.md and room-floors-and-liquids.md. Remaining owner checks: screenshot alignment, tag-drag tools and
-corners (tag-highlight.md §4, HYPOTHESIS), blue overlay and pillar height.
+Classic presentation includes authored animation playback and interpolation,
+Torture attachments, Prison doors, placed doors/traps, locked-door chains,
+portal transparency, torch mounts and grounded bridge placement. Canonical
+scope and boundaries: kmf-animation-playback.md, animation-transitions.md,
+furniture-placement.md, structure-drawing.md, room-floors-and-liquids.md and
+wall-torches.md. Numeric room selection is replaced by names in the
+DungeonRunner Inspector (unity/README.md). Dead creatures use corpse art
+(dying-states.md §3).
 
-Simulation: placed captives/victims, attackability, walled room interiors, Prison delivery,
-Dante's free-cast placement and Q581 wall-machine positions are built under ADR-0419.
-ADR-0420 adds device attachment. ADR-0423 corrects ordinary obstacle query order and
-retained flags; ADR-0424 applies grounded water slowdown. ADR-0425 restores an outmatched
-imp's nearby-room alarm retreat and Call to Arms suppression. ADR-0428 corrects hatchery
-laying and retains individual egg/chicken coordinates. ADR-0429 corrects newest-first
-combat order; Level7 Imp deaths remain unresolved (Q582). ADR-0430 restores waiting
-heroes' sub-tile movement, including Level8's hatchery Guard. Hash/save version is 221.
-All 60 Level 1–3 replays validate; bounded-run wins are 17/5/16 versus 20/5/16 on 220.
-These are modern regression measurements, not
-proof of original timing parity. Campaign startup now spawns the northern Lord's
-six-member party through existing scripts (ADR-0422). The merged master Release suite
-passes all 4678 tests with no skips; Unity assemblies and adapter checks passed for step 3.
+Player room builds now use queued tile waves and original-resource effects;
+Prison rats spawn and wander; Portal arrivals play Entrance.
+Evidence and remaining fidelity boundaries: room-slab-chain.md,
+room-construction-effects.md, prison-rats.md and portal-creature-action.md.
+Unity's built-in Particle System module is enabled. Construction particles
+use an independent wall clock and asset provider; their RNG does not change
+the simulation. Rats consume original shared gameplay draws, so seeded
+scenarios can change (ADR-0442).
 
-Replay drivers recovered from C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
-d869276a-99ca-491a-9cf5-0342488c1277/scratchpad. Measured baseline/current artifacts:
-D:/DungeonKeeperRemake/build/classic-step3-replays/{baseline,final,wheel-followup,collision-water-followup,imp-alarm-followup,chicken-placement-followup,giant-imp-followup,level8-wait-followup}.
-These are local artifacts. Follow-up: docs/plans/2026-10-10-torture-wheel-followup.md.
-Step 4 adds fractional KMF sampling, per-instance Unity meshes and
-previous/current position interpolation (ADR-0431). Existing idle, ordinary walk,
-run, Imp dig/claim/reinforce, sleep, die and torture mappings can play, with
-ordinary quantized phases and separate Start/End meshes. Hatchery eating retains
-action 26's first-cycle wait and restarts playback from its entry stamp (ADR-0432).
-Ordinary travel rates follow body velocity and the authored movement scale;
-prison eating, other action restarts and exceptional rate overrides remain pending.
-Chicken Walk/Eat/Scared playback and position/heading interpolation are built;
-combat routes play walk/run and melee swings play once (ADR-0436).
-See kmf-animation-playback.md and plans/2026-10-10-classic-look-step4.md.
-The owner animation comparison gate and Unity crowd upload profiling are outstanding.
-ADR-0433 restores followers' sub-tile walks around stationary leaders; grounded
-liquid height uses the presentation approximation in room-floors-and-liquids.md.
-Hash/save version is 225. Owner Level8 portal comparison pending (2026-10-11).
-Imps face the task tile before digging, mining, reinforcing or repairing walls
-(ADR-0435); owner reinforcement comparison pending.
-Prisoner, room-job and idle-return travel play movement clips; see kmf-animation-playback.md §5.
-Grounded bridge placement uses the deck height; see room-floors-and-liquids.md.
-The playback/bridge follow-up passes 167 presentation tests and the Unity compile.
-Torch meshes now share the wall lattice; see wall-torches.md §4.
-The torch follow-up passes 172 presentation tests and the Unity compile; owner view pending (2026-10-11).
-Last full-suite verification: 4803 tests pass without skips; Unity assemblies synced,
-adapter compile and independent review pass.
-Level 1–3 replay results are recorded in ADR-0432–0435; artifacts are under
-D:/DungeonKeeperRemake/build/classic-step3-replays/: eating-action-followup,
-portal-follow-followup, chicken-movement-final and imp-facing-final.
-Creature status flowers are still part of the unbuilt HUD work. Creature separation
-already runs with DK2's soft repulsion; coincident centres and arrival can still overlap.
-Wheel sliding preserves arrival/escape exceptions; it is not rigid mesh collision.
-The owner verified the blue portal pillars after reloading (2026-10-10).
-Remaining owner checks: restart Play mode, compare chicken motion, Giant melee swings
-and locked-door chains, inspect Level8's hatchery Guard visibility and portal movement
-(hero-party-walk.md §1), and compare torch illumination
-at the same camera positions. The per-object light limit is confirmed; its responsibility
-for the reported camera-dependent darkness remains strongly inferred (unity/README.md).
-Imp casualty/timing parity remains open (Q582, combat-acquisition.md §1);
-non-creature threat flight remains unbuilt (combat-fear.md §7).
-Mistress crossing the visible Heart needs an arrival/escape comparison (Q585).
-Owned Hatchery chickens select points, turn, walk and react (ADR-0434);
-free-range and Prison loops remain unbuilt (Q584). Chicken footstep audio
-remains unbuilt; see hatchery-roaming.md.
-The owner verified a Level8 Salamander walking on lava (2026-10-10);
-see imp-idle-and-wandering.md §4 for the crossing regressions.
-The reported graininess at both camera distances has no confirmed resolution;
-recheck the Unity Game view scale before changing rendering (TRAPS.md).
+Owner visual checks: chickens, digging, reinforcing and walking look correct
+(2026-10-11); blue portal pillars and lava-walking Salamanders were verified.
+Claiming, eating and sleeping remain unchecked. Further comparisons:
+construction waves/effects, Prison rats, Portal entrances, Giant melee,
+locked-door chains, corpse poses, Level8 hero visibility/movement and
+torch mounts/illumination after restarting Play.
+Actual Unity crowd profiling and representation limits are recorded in
+tools/classic-unity-probe/README.md. Creature status flowers belong to the
+unbuilt HUD. Soft creature repulsion and wheel movement exceptions follow
+the canonical collision research rather than rigid mesh collision.
+
+Registered attackers trigger early Imp escape, and alarm retreat uses the
+original random room point (combat-acquisition.md §6; combat-alarm.md §2).
+Broader casualty/timing parity remains the owner's priority, Q582.
+Non-creature threat flight remains unbuilt (combat-fear.md §7).
+Live Heart core guards and exact Arch Pillar targets are built; owner
+acceptance and matched defence timing remain Q585/Q586 (ADR-0439,
+combat-acquisition.md §9, combat-alarm.md §7).
+Owned Hatchery chicken movement is built; free-range/Prison loops and
+footstep audio remain Q584 (hatchery-roaming.md).
+Reported graininess remains unresolved; inspect Unity Game view scale
+before changing rendering (TRAPS.md).
+
+Level1–3 replay drivers were recovered from Claude's scratchpad:
+C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
+d869276a-99ca-491a-9cf5-0342488c1277/scratchpad.
+Replay measurements are modern regressions, not original timing parity;
+all 60 Level1–3 traces validate, bounded-run wins 19/2/10. Artifacts:
+build/classic-step3-replays/room-life-merged233. Release verification passes
+4,983 tests without skips; Unity sync/compile and independent review pass.
+Standalone render verification: tools/classic-unity-probe/ROOM_LIFE.md.
 
 ## Next work
+
+Compare the room-life follow-ups after restarting Play; the canonical
+scope is in [the classic-look plan](plans/2026-10-09-classic-look.md#not-in-this-plan).
 
 Owner's first priority (2026-10-10): resolve the excess Level7 Imp deaths (Q582),
 researched in parallel with the authorized Step 4 work. Step 3 is merged;
 this combat/escape discrepancy remains open, not an accepted fidelity deviation.
-The follow-up trace ruled out velocity reset alone as the reproduced death's cure;
-the original encounter capture is still needed (combat-acquisition.md §1).
+The first-approach correction and remaining matched-capture work are in combat-acquisition.md §1.
 
 1. M12: the Q542–Q544 producers are built (ADR-0412–0414), and their leftovers (ADR-0415–0418:
    the Casino party, the Library finder, the bedless rescue, the lying corpse, Q578); not
@@ -176,7 +149,7 @@ the original encounter capture is still needed (combat-acquisition.md §1).
    remaining replay, combat, hero, trap and door work. Avoid reproducing their
    detailed backlogs here.
 4. M6: Level 4 (`l4live.sav`, won at capture tick 6743; DK2 side `level4-live1/seed01`,
-   local) replays all 6804 turns over seeds 1–20 and wins 2/20 (6748, 6760)
+   local) replays all 6804 turns over seeds 1–20 and wins 3/20 (6724–6748)
    (experiments/2026-10-12-level4-packet-replay/). Guard Rooms draw Dark Elves
    (ADR-0440), Receive Imps is built (ADR-0441), and a door tile is no longer offered for
    claiming (ADR-0443). Next: the losing seeds' Imps die to heroes DK2's owner beats at

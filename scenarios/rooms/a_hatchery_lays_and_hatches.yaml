@@ -1,83 +1,12 @@
-﻿# The Hatchery's clock, and the first thing in this project that puts an object
-# on the floor without a keeper or a creature doing it.
-#
-# `HatcheryRules` has known the whole mechanism for four sittings - how many
-# coops a room of a given size gets, where they may stand, that the room lays an
-# EGG (object 47) at a randomly chosen coop, that the egg becomes a CHICKEN
-# (object 9) after two seconds, and that a room holds one bird per tile. It could
-# run none of it, on a written reason: DK2 multiplies its laying interval by a
-# balance variable that *"no shipped file supplies"* (Q132).
-#
-# **That reason had stopped being true a day before anybody built this.** Q132
-# was answered on 2026-09-05 - the multiplier is variable 19, ticks per game
-# second, and the LEVEL HEADER supplies it, with all 66 shipped levels carrying
-# 4. Three documents still named it as the blocker. Fifth instance of a claim
-# nothing checks (ADR-0066).
-#
-# A 3x3 hatchery, nine tiles, nobody else on the map.
-#
-# What the event log shows, in order:
-#
-#   t19     `coops_placed … added=1 tiles=9 wanted=1`
-#           `floor(9 / 6)` is one coop. Coops are furniture rather than a build:
-#           a hatchery that grows gets the coops its new size allows, on tiles
-#           the room picks, and never two closer than a squared distance of 3.
-#
-#   t139    `egg_laid … interval=7s tiles=9`
-#           **Seven seconds, and the seven is the interesting part.** The
-#           interval is
-#           `(int)( ChickenGenerationTimePerHatchery / pow(tiles, 0.315477776) )`
-#           and the exponent is **typed rather than derived** - it is not
-#           `log 2 / log 9`. It lands at `pow(9, e) = 2.00006`, a hair *above*
-#           two, so `16 / 2.00006` is **7.99977** and the truncation takes
-#           **7**. A designer thinking *"nine tiles should be exactly half of
-#           one tile"* would have written 8, and the sixth decimal place takes a
-#           second off the smallest hatchery in the game, for ever.
-#
-#           `hatchery.md` §4's own table said **8** for a day while its own
-#           header said *"truncated"*. Reproduced, not rounded away (Q134).
-#
-#   t179    `chicken_hatched … after=2s`
-#           Forty ticks later. The egg hatches where it was laid.
-#
-#   …       Then every 140 ticks: egg, chicken, egg, chicken.
-#
-#   t1299   the ninth chicken.
-#
-#   t1399   `lay_refused … birds=9 capacity=9`
-#           **One bird per tile**, so a 3x3 stops at nine and says so on every
-#           interval rather than going quiet. *"Why is my hatchery not
-#           producing"* is a question the log should be able to answer.
-#
-# **What this run does NOT establish**, recorded rather than implied:
-#
-#   * **Nothing eats IN THIS RUN**, because there is no creature in it. Eating
-#     was built the same week (ADR-0067) and has a run of its own,
-#     `a_goblin_eats_a_chicken` - which also shows what this run cannot: a full
-#     hatchery starts laying again once something takes birds out of it. What is
-#     still not built is a **prisoner** eating, because a prisoner cannot move
-#     (Q172).
-#
-#   * **Every egg lands on the same tile here**, because a 3x3 has exactly one
-#     coop and the coop is chosen at random from one. A bigger room would spread
-#     them.
-#
-#   * **Free-range chickens.** `MaxFreeRangeChickensPerPlayer` (12) is a
-#     per-player cap on birds outside a room, checked before laying in the
-#     original. Nothing here ever takes a chicken out of the room, so the cap
-#     has nothing to count and is not applied.
-#
-#   * **The interval is in game seconds and a game second is
-#     `TicksPerSecond` ticks, which is still a placeholder (Q1).** The seven is
-#     faithful; the 140 ticks it becomes here is not a wall-clock claim.
+# A 3x3 hatchery: floor laying, art-timed hatching, then full-room coop launches.
+# Primary evidence and physics boundaries: docs/research/object-drawing.md section 8.
 id: rooms-a-hatchery-lays-and-hatches-001
 question: >
   Does a hatchery put its coops down, lay eggs on the interval its size implies,
   and do those eggs become chickens?
 map: flat_9x8
 seed: 5
-# Long enough to fill the room and then be refused twice, which is what shows
-# the ceiling is a rule rather than the run ending.
+# Long enough to fill registered room capacity and reach the free-range cap.
 duration_ticks: 3000
 setup:
   players:
@@ -110,13 +39,13 @@ expect:
       The interval the nine-tile room implies. It is a property of the ROOM, not
       of the egg: the same interval runs whether the room is full or not.
   - event: chicken_hatched
-    detail: "after=2s"
+    detail: "animation=complete"
     because: >
-      An egg is an object (47) that becomes a bird two game seconds later, which
-      is eight ticks (ADR-0089).
+      State32 waits for floor art0, installs hatch-end art5, then creates the
+      chicken on the following turn (object-drawing.md section 8).
   - event: egg_laid
-    count: 9
+    count: 22
     because: >
-      One bird per tile and nine tiles. The tenth lay is refused and goes on
-      being refused for the rest of the run - which is why the run records 98
-      refusals and stops there rather than filling the map with chickens.
+      Registered room capacity is nine chickens. Full-room launches continue
+      until the free-range census reaches twelve (object-drawing.md section 8); this
+      fixed seed lays twenty-two eggs over the run, including those launches.

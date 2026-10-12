@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 232: special 124 gives ten level-5 Imps round the Heart (ADR-0441).
+        // HashVersion 234: a tile holding a closed door is never claimed (ADR-0443).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x888FB69DF1328413UL, sim.StateHash());
+        Assert.Equal(0x9EE6056B64A1FD38UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

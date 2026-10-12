@@ -877,6 +877,10 @@ internal static class Dk2TerrainFixture
     {
         Name = "Goblin",
         CreatureId = GoblinCreatureId,
+        // Synthetic timing for the training action; original assets are not required by this fixture.
+        ArtSlots = Enumerable.Range(0, CreatureDef.ArtSlotCount).Select(slot => slot == 5
+            ? new CreatureAnimationTiming { ResourceType = 6, FrameCount = 8, FramesPerSecond = 8 }
+            : default).ToArray(),
         SlapDamage = 115,
         FootprintRadius = new Fp32(651),
         SizeClass = 2,
@@ -1537,6 +1541,7 @@ internal static class Dk2TerrainFixture
         // is multiplied by a variable no shipped file supplies (Q132).
         Set(vars, VariableTypeId.ChickenGenerationTimePerHatchery, 16);
         Set(vars, VariableTypeId.MaxFreeRangeChickensPerPlayer, 12);
+        Set(vars, VariableTypeId.GravityConstant, 240);
         // How many things one keeper may hold at once (HandRules.Capacity).
         Set(vars, VariableTypeId.MaxNumberOfThingsInHand, 64);
 

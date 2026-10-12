@@ -319,9 +319,10 @@ public class HeroWalkTests
     }
 
     /// <summary>177's fallback (<c>0x004625F7</c>) walks to the <c>DungeonHeartPosition</c> tile
-    /// itself, the heart's centre, when the target player has no creature left.</summary>
+    /// itself, the heart's centre, when the target player has no creature left.
+    /// ADR-0439 resolves that target at the live core's edge.</summary>
     [Fact]
-    public void KillCreatures_WithNoCreatureLeft_WalksToTheHeartsCentre()
+    public void KillCreatures_WithNoCreatureLeft_WalksToTheLiveHeartsEdge()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         Heart(world, Keeper, 10, 4);
@@ -337,7 +338,8 @@ public class HeroWalkTests
         for (int t = 0; t < 8 && hero.UtilityNewState != HeroJobRules.AtTheHeartState; t++) sim.Tick();
 
         Assert.Equal(HeroJobRules.AtTheHeartState, hero.UtilityNewState);
-        Assert.Equal(new TilePos(11, 5), new TilePos(hero.Body.PathTargetPos.X >> 16, hero.Body.PathTargetPos.Y >> 16));
+        var centre = new DK2.Simulation.Steering.Fixed16Vector(CreatureState.CentreOf(11) << 4, CreatureState.CentreOf(5) << 4);
+        Assert.InRange((hero.Body.PathTargetPos - centre).Length(), 1 << 15, 3 << 14);
     }
 
     /// <summary>A 3x3 heart with its top-left at (x, y).</summary>

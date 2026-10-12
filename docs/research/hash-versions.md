@@ -15,11 +15,33 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**233** — `0x888FB69DF1328413`. The claim priority refuses a tile holding a closed, completed door (`0x0046AB50`'s door gate); no new saved field. ADR-0443.
+**234** — `0x9EE6056B64A1FD38`. The claim priority refuses a tile holding a closed, completed door (`0x0046AB50`'s door gate); no new saved field. ADR-0443.
+
+**233** — `0x538823E3806E3E01`. Combines master's Receive Imps with saved/hashed
+room-build waves, shared ambient rat updates and original Portal heading.
+Includes classic versions 226–230. ADR-0442. Branch 96fa1942 reused 232
+with pin `0x745E1A08B1224DFA`; 233 separates the merged snapshot layout.
 
 **232** — `0xE5DB51390ABD6056`. Special 124, Receive Imps, creates ten level-5 Imps round the Heart; no new saved field. ADR-0441.
 
-**231** — `0xB8FA72F6DE9C12A1`. A room on `Room_ComputeTotalCapacity`'s default arm (Guard Room, Hatchery, Treasury, ...) holds its tile count; no new saved field. 226–230 are taken by the unmerged classic-look branch. ADR-0440.
+**231** — `0xB8FA72F6DE9C12A1`. A room on `Room_ComputeTotalCapacity`'s default arm (Guard Room, Hatchery, Treasury, ...) holds its tile count; no new saved field. ADR-0440; versions 226–230 were used by the parallel classic-look branch.
+
+**230** — `0x0117CFA8C106044C`. Alarm retreat routes to the random room-chain
+point instead of the fixed centre; Portal, Heart and bridge tiles are never
+floor slots for that selector (combat-alarm.md §2).
+
+**229** — `0xF2A7DEB8B43F2FC3`. Registered attackers are acquired before the
+fight-style scan; Imps bypass its distance cap while retaining visibility and
+route checks (combat-acquisition.md §6).
+
+**228** — `0x315162363F8047CA`. Heart combat targets resolve the three Arch
+Pillars at their builder positions instead of the outer room ring;
+acquisition, approach, melee and shots use the same point (combat-acquisition.md §9).
+
+**227** — `0xCBBDEF9956A975B1`. Live Heart cores reject movement segments and
+route targets resolve to their edge; ruins release the structure mask and obstacles. ADR-0439.
+
+**226** — `0xB369A6E155352AB0`. Supported animation lifecycles retain training actions, object animation stamps and physical poses, and the Prison door opening stamp. ADR-0438.
 
 **225** — `0x2B74D4ED96BA549B`. Imps turn toward the task tile before digging, mining, reinforcing or repairing its wall, holding the entry state until aligned. ADR-0435.
 
@@ -375,19 +397,4 @@ corrected the timer bank to sixteen.
 **36** — `0xD893704FB5D00309`. `PlayerState.ResearchPoints`, the Library's
 accrual. A new player field moves the value by itself.
 
-**35** — `0x368FDF9DF3D0A6EA`. Two changes, either of which moves the value
-alone: `SimulationTiming.TicksPerSecond` went 20 to **four**, DK2's own rate,
-re-timing every scheduled system; and `TileState.UpwardWork` was **removed**,
-because DK2 accumulates an upward job in the tile's own health and converts at
-the terrain's `MaxHealth`, so the cost is the deficit and not the whole maximum
-(Q1; ADR-0024 reversed by ADR-0089).
-
-**34** — `0x46FAACC93F8323FF`. Reason not recorded here; see git history.
-
-**33** — `0x21A7E4D24F37DF48`. Job selection for non-workers (ADR-0082):
-`CurrentJob`, `JobTileIndex`, a choice timestamp per mood, and the mood band
-itself, which DK2 stores rather than recomputing and which this now stores for
-the same reason — anger reaches a creature from four places and three of them
-run before the anger system in the same tick.
-
-[Versions 9–32](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–35](hash-versions-early.md) retain the earlier pins and their reasons.

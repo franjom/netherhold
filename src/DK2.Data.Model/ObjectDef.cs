@@ -117,8 +117,17 @@ public sealed record ObjectDef
     public required Fp32 Mass { get; init; }
     public required Fp32 Speed { get; init; }
 
+    /// <summary>File dword 0x33C; the physical step retains its low word as horizontal drag.</summary>
+    public Fp32 AirFriction { get; init; }
+
     /// <summary>File word 0x34A; process 8 adds or subtracts it from a Chicken's heading.</summary>
     public ushort ReactionTurn { get; init; }
+
+    /// <summary>The nine file art resources, retaining only integer animation timing.</summary>
+    public IReadOnlyList<CreatureAnimationTiming> ArtSlots { get; init; } = Array.Empty<CreatureAnimationTiming>();
+
+    public CreatureAnimationTiming ArtSlot(int slot) =>
+        (uint)slot < (uint)ArtSlots.Count ? ArtSlots[slot] : default;
 
     /// <summary>String table ids, for a renderer rather than a rule.</summary>
     public required ushort NameStringId { get; init; }

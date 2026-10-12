@@ -114,6 +114,7 @@ public static class JailBreakRules
         if ((flags & Open) == 0)
         {
             flags |= Open;
+            StampDoor(world, room, context.Tick);
             context.Emit(system, "prison_door_opened", $"creature={rescuer.Id} player={room.OwnerPlayerId} door=({door % world.Width},{door / world.Width})");
             return true;
         }
@@ -196,11 +197,17 @@ public static class JailBreakRules
             if (!Walk(context, prisoner, CreatureState.CentreOf(dx), CreatureState.CentreOf(dy))) return;
             ref byte flags = ref DoorOf(world, room);
             if ((flags & Activated) == 0) flags = Unlocked(flags);
+            if ((flags & Open) == 0) StampDoor(world, room, context.Tick);
             flags |= Open;
             return;
         }
 
         Walk(context, prisoner, (dx << 12) | context.Rng.NextInt(0x1000), ((dy + 1) << 12) | context.Rng.NextInt(0x1000));
+    }
+
+    private static void StampDoor(WorldState world, RoomInstance room, GameTick tick)
+    {
+        foreach (int tile in room.TileIndices) world.TileAtIndex(tile).PrisonDoorAnimationTick = tick.Value;
     }
 
     /// <summary><c>0x00471890(point, 121, 0x6C)</c>.</summary>

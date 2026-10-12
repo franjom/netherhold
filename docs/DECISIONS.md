@@ -9981,9 +9981,74 @@ mode and state-entry interruption guards. Preserve simulation rules and hash 225
 
 **Consequences.** This presentation bridge does not implement the full mode-3
 combat action lifetime; its timing consequence belongs to Q582. Spell-casting
-clips and Chicken footstep audio remain unbuilt. Owner comparisons must restart
+playback follows in ADR-0437; Chicken footstep audio remains unbuilt. Owner comparisons must restart
 Play mode and inspect Chickens and the Level7 Giant/Imp encounter.
 
+## ADR-0437 — Play the Heart beat and spell-casting clips
+**Date:** 2026-10-11 · **Status:** accepted · Research: object-drawing.md §3,
+kmf-animation-playback.md §8
+
+**Context.** The live Heart stayed on one mesh pose, and spell casts showed
+idle or travel art even though their action resource was available.
+
+**Decision.** Play the Heart's default looping resource through the shared
+sampler for both decorations and represented objects. Play pending targeted
+and free-aim casts from their start stamp with art 6 (fallback 5). Retain a
+completed targeted cast for its authored duration only while its spell stamp,
+attack mode and state-entry evidence still match. Preserve hash/save 225.
+
+**Consequences.** These are presentation changes. Heart decay and variable
+beat rates are not implemented; neither are completed possessed-cast retention
+or the full simulation action lifetime. Restart Play mode for owner checks.
+
+## ADR-0438 — Complete supported classic animation lifecycles
+**Date:** 2026-10-11 · **Status:** accepted · Research: animation-transitions.md,
+eating-action.md, training-actions.md, object-drawing.md §8
+
+**Context.** Several authored clips had no natural state producer or action
+wait, and animation replacement omitted the original's queue and hold gates.
+
+**Decision.** Preserve queued landing changes, frozen holds, stop-loop flags,
+zero-speed scalar reuse and possessed displacement rates in the classic clock.
+Filled prisoners wait for action 26, then return to 117. Training walks to its
+machine, faces it, performs action 30/31 and waits in 112; poll its effects
+before shots and object reactions. Play supported Coop, Egg, dummy, Casino
+and Call to Arms states through their researched lifecycle, including natural
+producers. Capture object height and all turns for render interpolation, and
+stamp the represented Prison door's natural opening. Save and hash the new
+state; bump both formats to 226.
+
+**Consequences.** Unity's URP renders the original resources; the clock does
+not recreate DK2's graphics pipeline. Runtime override activation, complete
+projectile/object physics, the full status chooser, modern UV-family fitting
+and owner visual acceptance retain the explicit boundaries in their canonical
+research. Q582 remains reserved for the owner's observations. No fear/combat
+lifetime change is included. Standalone crowd measurements and representation
+comparisons live in tools/classic-unity-probe/README.md.
+Retain validated CPU playback for this step: the measured VAT prototype still
+needs shadow/depth/transparency and replacement/hold integration before it can
+replace production playback. Frame caching quantizes motion and is diagnostic only.
+
+## ADR-0439 — Keep live Hearts closed during movement exceptions
+
+**Status:** accepted, 2026-10-11. Owner requests rim-only movement around live
+Hearts; destroyed Hearts remain walkable.
+
+**Decision.** Reject movement segments through a live Heart's visible core,
+using object 13's half-width. Include arrival snaps, fallback steps and the
+committed coordinate rounding. A body already inside may move outward.
+Move targets inside the core to its near edge so Heart assaults can finish.
+Preserve DK2's navigation bytes and obstacle exemptions. Ruined Hearts leave
+the structure mask and virtual obstacle list. Bump hash/save formats to 227.
+
+**Reason.** A Level7 trace reproduces a worker crossing almost exactly through
+the glowing core. Evidence and the fidelity boundary are in
+research/structure-blocks.md §5.3.
+
+**Consequences.** This deliberately enforces a core boundary that DK2's
+confirmed obstacle exception does not enforce. Platform crossings outside
+the core still follow DK2's exceptions; see the evidence boundary in §5.3.
+Q585 tracks the owner's visual acceptance.
 ## ADR-0440 — A room on TotalCapacity's default arm holds its tile count
 **Date:** 2026-10-12 · **Status:** accepted · Research: auto-placed-furniture.md §5
 
@@ -10026,6 +10091,31 @@ now reaches row 5 at 6600 (DK2 6310, and row 15 before); seeds 5 and 14 creep to
 by about 6100 and never reach row 15. Ours are in state 10 on the creation tick where
 DK2's are in 11, as for Create Imp (experiments/2026-10-12-level4-packet-replay/).
 
+## ADR-0442 — Restore room construction and ambient room life
+
+**Status:** accepted, 2026-10-12. Owner requested construction effects,
+Prison rats and creature portal arrival playback, followed by verification
+and a merge to master.
+
+**Decision.** Player room rectangles enter the original fixed build queue;
+direct AI and harness orders retain immediate placement. Save and hash
+pending waves, bumping both formats to 233. Emit typed construction requests
+from wave placement, then play the original sprite resources through a
+separate asset provider and a wall-time effect clock. Reuse the object state
+and shared animal update order for rats. Select Entrance art during the
+existing portal arrival state and retain its original heading.
+
+**Reason.** Instant rectangles, absent ambient rats and idle arrival poses
+omit observable room life. Evidence and exact rules are in
+research/room-slab-chain.md, room-construction-effects.md, prison-rats.md
+and portal-creature-action.md.
+
+**Consequences.** Presentation randomness and particles do not alter game
+state. Ambient rat draws and portal heading do alter seeded simulation
+trajectories. Original asset redistribution remains outside this change.
+The effect physics boundaries are explicit in the canonical research;
+full original-game timing parity and Q582 remain open.
+
 ## ADR-0443 — A tile holding a closed door is never claimed
 **Date:** 2026-10-12 · **Status:** accepted · Research: imp-claim-path.md §4, functions/0046AB50.md
 
@@ -10039,11 +10129,13 @@ until the owner's army starts breaking the door at 5344.
 `0x0046AB50`'s third gate does: it continues only when `+0x21C(x, y, 0)`, the door nibble
 of the tile's navigation byte, is 0. Only a closed, completed door writes that nibble
 (`0x004A66F0`), so an open door or one under construction does not refuse. One gate
-covers claim, attack and room conversion, as the handler does. Hash/save version 233.
+covers claim, attack and room conversion, as the handler does. Hash/save version 234.
 
-**Consequences.** Level 4 wins 2/20 (seeds 19 and 13, at 6748 and 6760; DK2 6743), up
-from 0/20; Levels 1–3 are unchanged (19/6/18). The winning seeds reach rows 25, 15 and 5 within 90
-turns of DK2; the gate does not help every seed (seed 1 reaches row 25 at 5169, 4599
+**Consequences.** On ADR-0441's tool Level 4 goes from 0/20 to 2/20 (seeds 19 and 13,
+at 6748 and 6760; DK2 6743), Levels 1–3 unchanged (19/6/18). Merged onto master 15c2b038
+it wins 3/20 (seeds 9, 11, 19, 6724–6748) where master alone wins 2/20 (11, 12); Levels
+1–3 are identical with and without the gate (19/2/13, master's own change). Before the merge (set F) the winning seeds reached rows 25,
+15 and 5 within 90 turns of DK2; the gate does not help every seed (seed 1 reaches row 25 at 5169, 4599
 before). Flag 14, the three Guards behind the door waking, moves to DK2's 5283 in seed 1
 (3430 before) but still fires early in seeds 10–12; it does not explain the wins. The other 18 still lose imps to hero fights DK2 does not have.
 Still unbuilt: the handler refuses when the walk does not start (`Imp_WalkOrTeleport`

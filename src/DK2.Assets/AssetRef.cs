@@ -60,11 +60,13 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     public const string UiCategory = "ui";
     public const string DoorCategory = "door";
     public const string TrapCategory = "trap";
+    public const string EffectElementCategory = "effect_element";
 
     private static readonly HashSet<string> Categories =
         new(StringComparer.Ordinal)
         {
             TerrainCategory, RoomCategory, CreatureCategory, ObjectCategory, UiCategory, DoorCategory, TrapCategory,
+            EffectElementCategory,
         };
 
     private readonly string? _key;
@@ -134,6 +136,9 @@ public readonly struct AssetRef : IEquatable<AssetRef>
         Create(DoorCategory, doorName, AssetKind.Mesh, "lock");
 
     public static AssetRef ForTrap(string trapName) => Create(TrapCategory, trapName, AssetKind.Mesh);
+
+    public static AssetRef ForEffectElement(string elementName) =>
+        Create(EffectElementCategory, elementName, AssetKind.Effect);
 
     /// <summary>
     /// The role segment for a kind. Deliberately a total function over the enum,

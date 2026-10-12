@@ -335,14 +335,12 @@ public class ObjectsOnRealDataTests
             Assert.True(bed.IsLair);
         }
 
-        // The two are the same record apart from the name, which is the file
-        // agreeing with the flag-not-id rule: which of the twelve beds a tile
-        // holds decides what is drawn and nothing else.
+        // The two share their gameplay fields; identity and art distinguish the beds.
         ObjectDef goblinBed = Assert.IsType<ObjectDef>(db.ObjectById(22));
         ObjectDef vampireBed = Assert.IsType<ObjectDef>(db.ObjectById(26));
         Assert.Equal(
-            goblinBed with { Name = "", ObjectId = 0 },
-            vampireBed with { Name = "", ObjectId = 0 });
+            goblinBed with { Name = "", ObjectId = 0, ArtSlots = Array.Empty<CreatureAnimationTiming>() },
+            vampireBed with { Name = "", ObjectId = 0, ArtSlots = Array.Empty<CreatureAnimationTiming>() });
     }
 
     [InstallFact]

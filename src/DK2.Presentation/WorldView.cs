@@ -153,7 +153,9 @@ public readonly struct CreatureView
         bool playsAnimation = false,
         bool animationLoops = true,
         GameTick? animationStartedAt = null,
-        Fp32? animationMovementSpeed = null)
+        Fp32? animationMovementSpeed = null,
+        bool animationPaused = false,
+        bool animationDeferred = false)
     {
         Id = id;
         OwnerPlayerId = ownerPlayerId.Value;
@@ -172,6 +174,8 @@ public readonly struct CreatureView
         AnimationLoops = animationLoops;
         AnimationStartedAt = animationStartedAt;
         AnimationMovementSpeed = animationMovementSpeed;
+        AnimationPaused = animationPaused;
+        AnimationDeferred = animationDeferred;
     }
 
     /// <summary>The simulation's creature id. A renderer's object is a view of this and nothing more.</summary>
@@ -205,6 +209,8 @@ public readonly struct CreatureView
     public bool AnimationLoops { get; }
     public GameTick? AnimationStartedAt { get; }
     public Fp32? AnimationMovementSpeed { get; }
+    public bool AnimationPaused { get; }
+    public bool AnimationDeferred { get; }
 
     /// <summary>Gold in its hands. Visible in DK2 — an imp carrying gold looks like it.</summary>
     public int GoldHeld { get; }
@@ -227,7 +233,8 @@ public readonly struct ObjectView
     public ObjectView(int id, byte objectTypeId, PlayerId ownerPlayerId, TilePos tile, AssetRef mesh, int goldHeld,
         int posX, int posY, int height, int heading, int scale, int pitch = 0, int roll = 0,
         Fp32? previousPosX = null, Fp32? previousPosY = null, int? previousHeading = null,
-        bool playsAnimation = false, GameTick? animationStartedAt = null)
+        bool playsAnimation = false, GameTick? animationStartedAt = null, bool animationLoops = true,
+        int? previousHeight = null, int? previousPitch = null, int? previousRoll = null)
     {
         Pitch = pitch;
         Roll = roll;
@@ -245,8 +252,12 @@ public readonly struct ObjectView
         PreviousPosX = previousPosX?.Raw ?? posX;
         PreviousPosY = previousPosY?.Raw ?? posY;
         PreviousHeading = previousHeading ?? heading;
+        PreviousHeight = previousHeight ?? height;
+        PreviousPitch = previousPitch ?? pitch;
+        PreviousRoll = previousRoll ?? roll;
         PlaysAnimation = playsAnimation;
         AnimationStartedAt = animationStartedAt;
+        AnimationLoops = animationLoops;
     }
 
     /// <summary>The simulation's object id, stable for the object's whole life; negative for a
@@ -274,8 +285,12 @@ public readonly struct ObjectView
     public int PreviousPosX { get; }
     public int PreviousPosY { get; }
     public int PreviousHeading { get; }
+    public int PreviousHeight { get; }
+    public int PreviousPitch { get; }
+    public int PreviousRoll { get; }
     public bool PlaysAnimation { get; }
     public GameTick? AnimationStartedAt { get; }
+    public bool AnimationLoops { get; }
 
     /// <summary>A turn about the model's own X axis, 2048 to a turn (<c>+0x64</c>, RenderInfo
     /// <c>+0x20</c>). DK2 turns a model by this, then <see cref="Roll"/>, then the heading
@@ -1102,8 +1117,14 @@ public sealed partial class WorldView
             int yaw = (creature.Heading + 1024) & 2047, pitch = 0, roll = 0;
             int previousX = creature.LastPosX, previousY = creature.LastPosY;
             bool meleeAnimation = IsMeleeAnimation(creature, world.CurrentTick);
+            bool castAnimation = IsCastAnimation(creature, world.CurrentTick);
+            bool trainingAnimation = IsTrainingAnimation(creature);
+            bool entranceAnimation = creature.Dk2StateId == PortalRules.JoiningState;
             bool playsAnimation = PlaysMappedAnimation(creature, world.CurrentTick);
             AssetRef animation = AnimationFor(creature, world.CurrentTick);
+            if (creature.Activity == CreatureActivity.Dead)
+                mesh = AssetRef.ForCreature(_database.CreatureById(creature.CreatureTypeId).Name,
+                    AssetKind.Mesh, "dead");
             if (AttachedWheel(world, creature) is { } wheel)
             {
                 mesh = animation;
@@ -1132,11 +1153,15 @@ public sealed partial class WorldView
                 mesh,
                 animation,
                 creature.GoldHeld, height, yaw, pitch, roll, previousX, previousY,
-                playsAnimation, creature.Activity != CreatureActivity.Dying && !meleeAnimation,
-                meleeAnimation ? new GameTick(creature.SwingStartTick)
-                    : creature.Dk2StateId == EatingRules.AfterMealState && creature.StateEnteredTick >= 0
+                playsAnimation, creature.Activity != CreatureActivity.Dying && !meleeAnimation && !castAnimation
+                    && !IsDeferredLanding(creature) && !trainingAnimation && !entranceAnimation,
+                trainingAnimation ? new GameTick(creature.TrainingActionStartedTick)
+                    : meleeAnimation || castAnimation ? new GameTick(creature.SwingStartTick)
+                    : (entranceAnimation || IsEatingAnimation(creature)) && creature.StateEnteredTick >= 0
                     ? new GameTick(creature.StateEnteredTick) : null,
-                !meleeAnimation && IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null);
+                !meleeAnimation && !castAnimation && !trainingAnimation && !entranceAnimation && IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null,
+                animationPaused: creature.FrozenTicks > 0,
+                animationDeferred: IsDeferredLanding(creature));
         }
     }
 
@@ -1155,6 +1180,8 @@ public sealed partial class WorldView
         foreach (ObjectState instance in world.Objects)
         {
             if (instance.InHand) continue;
+            if (instance.ObjectTypeId == HatcheryRules.EggObjectId && instance.ProcessState == 24
+                && instance.ProcessAgeTicks < 16) continue;
             var position = new TilePos(
                 instance.TileIndex % world.Width, instance.TileIndex / world.Width);
             if (!IsVisible(world, position) || BedHidden(world, instance)) continue;
@@ -1177,8 +1204,14 @@ public sealed partial class WorldView
 
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         string clip = ActivityKeySegment(creature.Activity);
-        if (IsMeleeAnimation(creature, tick)) clip = "fighting";
-        else if (creature.Dk2StateId == EatingRules.AfterMealState) clip = "eating";
+        if (creature.Dk2StateId == PortalRules.JoiningState) clip = "entrance";
+        else if (IsTrainingAnimation(creature))
+            clip = creature.TrainingActionId == (byte)TrainingActionKind.Spell ? "casting" : "fighting";
+        else if (creature.Dk2StateId == DropLandingRules.LandingState)
+            clip = IsDeferredLanding(creature) ? "landing" : "idle";
+        else if (IsMeleeAnimation(creature, tick)) clip = "fighting";
+        else if (IsCastAnimation(creature, tick)) clip = "casting";
+        else if (IsEatingAnimation(creature)) clip = "eating";
         else if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle or CreatureActivity.Fighting
             && IsTravelAnimation(creature))
             clip = creature.Running ? "running" : "moving_to_job";
@@ -1199,9 +1232,11 @@ public sealed partial class WorldView
     }
 
     // Enable only the existing source mappings whose action is represented by this view.
-    // Other job and spell actions still need their own art slots and clocks.
+    // Other job actions still need their own art slots and clocks.
     public bool PlaysMappedAnimation(CreatureState creature, GameTick tick) =>
-        IsMeleeAnimation(creature, tick) || creature.Dk2StateId == EatingRules.AfterMealState || creature.Activity switch
+        creature.Dk2StateId is DropLandingRules.LandingState or PortalRules.JoiningState || IsTrainingAnimation(creature)
+        || IsMeleeAnimation(creature, tick) || IsCastAnimation(creature, tick)
+        || IsEatingAnimation(creature) || creature.Activity switch
     {
         CreatureActivity.Idle or CreatureActivity.Sleeping or CreatureActivity.Dying or CreatureActivity.Fighting
             or CreatureActivity.BeingTortured => true,
@@ -1211,6 +1246,41 @@ public sealed partial class WorldView
     };
 
     private readonly Dictionary<byte, int> _meleeHoldTicks = [];
+    private static bool IsTrainingAnimation(CreatureState creature) =>
+        creature.CurrentJob == JobType.Train && creature.TrainingActionId != 0
+        && creature.TrainingActionStartedTick >= 0 && !creature.InHand
+        && CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Training;
+    private bool IsDeferredLanding(CreatureState creature) =>
+        creature.Dk2StateId == DropLandingRules.LandingState
+        && (_database.CreatureById(creature.CreatureTypeId).Flags & (CreatureFlags.IsWorker | CreatureFlags.IsEvil))
+            != (CreatureFlags.IsWorker | CreatureFlags.IsEvil);
+    private static bool IsEatingAnimation(CreatureState creature) =>
+        creature.Dk2StateId is EatingRules.AfterMealState or PrisonRules.AfterEatingState;
+    private readonly Dictionary<byte, int> _castHoldTicks = [];
+
+    private bool IsCastAnimation(CreatureState creature, GameTick tick)
+    {
+        if (creature.SwingInProgress)
+            return creature.SwingKind is DK2.Simulation.Combat.SpellRules.SpellCast
+                or DK2.Simulation.Combat.SpellRules.FreeAimCast;
+        if (creature.Possessed
+            || creature.Activity is not (CreatureActivity.Fighting or CreatureActivity.PitFighting)
+            || creature.SwingTargetKind == DK2.Simulation.Combat.FightTargetKind.None
+            || creature.SwingSpellSlot >= creature.SpellStamps.Length
+            || creature.SpellStamps[creature.SwingSpellSlot] != creature.SwingStartTick
+            || creature.AttackType is not (DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtCreature
+                or DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtThing
+                or DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtAlly)
+            || creature.StateEnteredTick > creature.SwingStartTick) return false;
+        if (!_castHoldTicks.TryGetValue(creature.CreatureTypeId, out int hold))
+        {
+            CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
+            int slot = AnimationTimingRules.ResolveArtSlot(definition, 6);
+            _castHoldTicks[creature.CreatureTypeId] = hold = AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(slot));
+        }
+        long elapsed = tick.Value - creature.SwingStartTick;
+        return elapsed >= 0 && elapsed < hold;
+    }
 
     private bool IsMeleeAnimation(CreatureState creature, GameTick tick)
     {
@@ -1246,6 +1316,12 @@ public sealed partial class WorldView
 
     private static Fp32 MovementAnimationSpeed(CreatureState creature)
     {
+        if (creature.Possessed)
+        {
+            long dx = (long)creature.PosX - creature.LastPosX;
+            long dy = (long)creature.PosY - creature.LastPosY;
+            return new Fp32(unchecked((int)(((dx * dx) >> 12) + ((dy * dy) >> 12))));
+        }
         int x = Math.Abs(creature.Body.Vel.X >> 4);
         int y = Math.Abs(creature.Body.Vel.Y >> 4);
         return new Fp32(x + y - (Math.Min(x, y) >> 1));

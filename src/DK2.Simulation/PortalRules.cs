@@ -61,6 +61,7 @@ public static class PortalRules
         int entrance = EntranceTileIndex(world, portal);
         CreatureState creature = world.SpawnCreature(database, creatureTypeId, portal.OwnerPlayerId,
             new TilePos(entrance % world.Width, entrance / world.Width));
+        creature.Heading = 0x400;
         world.TileAtIndex(entrance).EntranceCreaturesGenerated++;
         creature.PortalEntranceTile = entrance;
         // A keeper portal's creature enters 193 (a Hero Portal's enters 278, not built).

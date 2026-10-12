@@ -19,6 +19,8 @@ public static class RouteWindow
     /// <summary>Route from the body's position and load the window. True when a route exists.</summary>
     public static bool Request(SteeringBody body, ISteeringWorld world, MoverProfile mover, Fixed16Vector target, byte flags)
     {
+        // ADR-0439 deliberately moves live-core destinations to their edge.
+        target = world.ConstrainTarget(body.Pos, target);
         var points = new List<Fixed16Vector>();
         world.Route(body.Pos, target, mover, points);
         Load(body, points, target, flags);

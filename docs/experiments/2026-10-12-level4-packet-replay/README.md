@@ -38,8 +38,12 @@ stand.
 | D | ADR-0440 | `lmap.py` | — | 6/20 | 18/20 | 0/20 |
 | E | ADR-0441 | `lmap.py`, batches by tile | — | 6/20 | 18/20 | 0/20 |
 | F | ADR-0443 | as E | 19/20 | 6/20 | 18/20 | 2/20 (seeds 19, 13: 6748, 6760) |
+| M | master 15c2b038 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 11, 12: 6740, 6732) |
+| G | M + ADR-0443 | as E | 19/20 | 2/20 | 13/20 | 3/20 (seeds 9, 11, 19: 6724–6748) |
 
-Every run is valid (all turns, map stable, no placed type mismatch). A and B agree tick
+M and G agree tick for tick on Levels 1–3: the gate changes nothing there, and master's
+own commits since 3877e855 took Level 2 from 6/20 to 2/20 and Level 3 from 18/20 to
+13/20. Every run is valid (all turns, map stable, no placed type mismatch). A and B agree tick
 for tick, as Levels 1–3 hold no Guard Room; D and E agree tick for tick on Levels 2 and 3.
 E's builder pairs a batch both sides create on one turn by tile, not arrival order.
 

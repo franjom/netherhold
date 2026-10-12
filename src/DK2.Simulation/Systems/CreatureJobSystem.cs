@@ -51,6 +51,8 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         {
             CreatureState creature = creatures[i];
             if (creature.Possessed) continue;
+            // Isolated job-system hosts omit TrainingActionSystem; completed handler work is guarded.
+            if (creature.TrainingActionId != 0) TrainingStep.PollAction(context, creature);
             if (context.TremorRecoveryCompletedThisTick.Contains(creature)) continue;
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
@@ -652,7 +654,11 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
                 if (originalTick) Train(context, world, database, creature, definition);
                 if (CreatureStateMachine.HookFires(creature, reload))
                     ChargeForTraining(context, world, database, creature, definition);
-                if (originalTick) TrainingCapHandlers(context, database, creature, definition);
+                if (originalTick)
+                {
+                    if (!TrainingRules.BelowCap(database, creature)) TrainingCapHandlers(context, database, creature, definition);
+                    else if (creature.CurrentJob == JobType.Train && !TrainingStep.Turn(context, SystemName, creature)) Stop(context, creature);
+                }
                 return;
 
             case CreatureStateCategory.Spectating:
@@ -751,7 +757,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     ///
     /// <para>A creature that has reached <c>TrainingRoomMaxExperienceLevel</c>
     /// earns nothing here, which is the hook's shape; the state handlers eject it
-    /// (<see cref="TrainingCapHandlers"/>: 108 and 110 are built, 111 and 112 are not).
+    /// (<see cref="TrainingCapHandlers"/>: states 108, 110, 111 and 112).
     /// Ours still charges where DK2's hook does not (CategoryHooks).</para>
     /// </summary>
     private void Train(
@@ -911,7 +917,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     /// it idles. A capped creature dropped on a Training Room thus leaves it two turns later, as
     /// Level 17's Black Knights do in the capture (Q509, ADR-0393). Action 0x2C, which 108 starts
     /// on the way, is not modelled, nor 108's return of 0 (to idle) when that action or the move to
-    /// 110 fails. 111 and 112 test the cap too and are not built.</summary>
+    /// 110 fails. States 111 and 112 refuse at the cap directly.</summary>
     private static void TrainingCapHandlers(
         SimulationContext context, GameDatabase database, CreatureState creature, CreatureDef definition)
     {
@@ -922,7 +928,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
                 $"creature={creature.Id} type={definition.Name} player={creature.OwnerPlayerId} level={creature.Level}");
             CreatureStateMachine.TrySetState(context.Hooks, creature, TrainingRules.CapRefusalState);
         }
-        else if (creature.Dk2StateId == TrainingRules.CapRefusalState)
+        else if (creature.Dk2StateId is TrainingRules.CapRefusalState or TrainingStep.AtMachineState or TrainingStep.WorkingState)
         {
             Stop(context, creature);
         }
@@ -931,6 +937,7 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
     /// <summary>Gives up the job and goes idle: state 1.</summary>
     private static void Stop(SimulationContext context, CreatureState creature)
     {
+        TrainingStep.CancelAction(creature);
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
         creature.StopMoving();

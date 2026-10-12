@@ -179,9 +179,9 @@ public sealed class CombatPitTests
         RunUntil(sim, () => a.Activity == CreatureActivity.Fighting && a.FightTargetId == b.Id);
 
         // The opponent is not attackable, and still a valid target for a fighter only.
-        Assert.True(FightRules.TargetIsValid(world, a));
+        Assert.True(FightRules.TargetIsValid(world, db, a));
         a.CombatPitFighter = false;
-        Assert.False(FightRules.TargetIsValid(world, a));
+        Assert.False(FightRules.TargetIsValid(world, db, a));
         a.CombatPitFighter = true;
 
         // Owner (2026-09-25): the winner does not stand over the loser; it takes another fighter

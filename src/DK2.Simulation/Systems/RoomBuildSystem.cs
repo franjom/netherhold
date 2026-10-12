@@ -9,16 +9,8 @@ using DK2.Simulation.Commands;
 namespace DK2.Simulation.Systems;
 
 /// <summary>
-/// Applies this tick's <see cref="BuildRoomCommand"/>s: turns the player's own
-/// floor into room tiles and takes the gold out of their treasury. Where a room
-/// may go and what it costs are <see cref="RoomRules"/>; where the gold comes
-/// from is <see cref="GoldStore"/>.
-/// <para><b>A tile at a time, in the order the command gives</b>: a keeper who
-/// can afford four tiles of a six-tile treasury gets four, and the run says
-/// which two were refused and why. Ours — neither ordering is measured — except that a
-/// bridge order is marked whole first, as DK2's drag is (<see cref="RoomRules.SpannableTiles"/>).</para>
-/// <para><b>Deliberate deviation: building is instant</b>; no imp task kind for room
-/// construction has been identified (imp-task-priority.md §3), so nothing times it.</para>
+/// Applies direct tile builds and queues player rectangles during input processing.
+/// <see cref="RoomBuildWaveSystem"/> drains player slots later in the keeper frame.
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public sealed class RoomBuildSystem : ISimulationSystem
@@ -30,8 +22,106 @@ public sealed class RoomBuildSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         foreach (BuildRoomCommand build in context.Commands<BuildRoomCommand>())
-            Apply(context, build);
+            if (build.Mode == RoomBuildMode.PlayerWave) Queue(context, build);
+            else Apply(context, build);
     }
+
+    private static void Queue(SimulationContext context, BuildRoomCommand command)
+    {
+        WorldState world = context.World;
+        if (!world.HasPlayer(command.PlayerId) || !context.Database.Rooms.TryGetValue(command.RoomId, out var room))
+            return;
+        for (int slotIndex = 0; slotIndex < RoomBuildWaveRules.SlotsPerPlayer; slotIndex++)
+        {
+            ref RoomBuildWaveState? slot = ref world.RoomBuildWave(command.PlayerId, (RoomBuildSlot)slotIndex);
+            if (slot.HasValue) continue;
+            HashSet<TilePos>? spans = BridgeRules.IsBridge(room)
+                ? RoomRules.SpannableTiles(context.Database, world, command.Tiles, room, command.PlayerId) : null;
+            int placeable = command.Tiles.Count(pos => world.Contains(pos)
+                && Verdict(context, world, spans, pos, room, command.PlayerId) == RoomPlacement.Allowed);
+            int cost = placeable * RoomRules.CostPerTile(room);
+            if (placeable == 0 || cost > GoldStore.Total(world, command.PlayerId))
+            {
+                context.Emit(SystemName, "build_refused", $"player={command.PlayerId} room={room.Name} drag_cost={cost}");
+                return;
+            }
+            slot = new RoomBuildWaveState(command.RoomId, command.Press, command.Release, context.Tick, 0);
+            return;
+        }
+        context.Emit(SystemName, "build_refused", $"player={command.PlayerId} room={room.Name} reason=queue_full");
+    }
+
+    internal static void Drain(SimulationContext context, PlayerId playerId)
+    {
+        WorldState world = context.World;
+        if (!playerId.IsKeeper || world.Player(playerId).KilledByPlayerId != 0) return;
+        for (int slotIndex = 0; slotIndex < RoomBuildWaveRules.SlotsPerPlayer; slotIndex++)
+        {
+            ref RoomBuildWaveState? slot = ref world.RoomBuildWave(playerId, (RoomBuildSlot)slotIndex);
+            if (slot is not RoomBuildWaveState wave) continue;
+            RoomDef room = context.Database.Room(wave.RoomId);
+            int cost = RoomRules.CostPerTile(room);
+            bool bridge = BridgeRules.IsBridge(room);
+            IReadOnlyList<TilePos> rectangle = bridge
+                ? SlabChain.Wave(wave.Press.X, wave.Press.Y, wave.Release.X, wave.Release.Y) : Array.Empty<TilePos>();
+            TilePos press = RoomBuildWaveRules.ClampPress(wave.Press);
+            foreach (TilePos pos in RoomBuildWaveRules.Diagonal(wave, context.Tick, world))
+            {
+                if (!world.Contains(pos)) continue;
+                // The bridge arm tests money before its span map; ordinary rooms test placement first.
+                if (bridge && GoldStore.Total(world, playerId) < cost)
+                {
+                    slot = null;
+                    return;
+                }
+                HashSet<TilePos>? spans = bridge
+                    ? RoomRules.SpannableTiles(context.Database, world, rectangle, room, playerId) : null;
+                RoomPlacement verdict = Verdict(context, world, spans, pos, room, playerId);
+                if (verdict == RoomPlacement.Allowed)
+                {
+                    if (GoldStore.Total(world, playerId) < cost)
+                    {
+                        slot = null;
+                        return;
+                    }
+                    bool built = PlacePaidTile(context, playerId, pos, room);
+                    if (built)
+                    {
+                        new AutoFurnitureSystem().Execute(context);
+                        foreach (RoomInstance pit in CombatPitRules.PitsUnder(world, context.Database, [pos]))
+                            CombatPitSystem.Reset(context, pit);
+                    }
+                    EmitConstructionEffect(context, playerId, pos);
+                    wave = wave with { AccumulatedCost = unchecked((ushort)(wave.AccumulatedCost + cost)) };
+                    slot = wave;
+                    context.Emit(SystemName, "built", $"player={playerId} room={room.Name} tiles={(built ? 1 : 0)} cost={(built ? cost : 0)} first=({pos.X},{pos.Y})");
+                }
+                if (pos == press)
+                {
+                    slot = null;
+                    // Completion exits the entire player drain; later slots do not catch up next tick.
+                    return;
+                }
+            }
+        }
+    }
+
+    private static bool PlacePaidTile(SimulationContext context, PlayerId playerId, TilePos pos, RoomDef room)
+    {
+        if (!GoldStore.TryWithdraw(context.World, playerId, RoomRules.CostPerTile(room))) return false;
+        ref TileState tile = ref context.World.Tile(pos);
+        byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
+        RoomRules.Place(context.Database, ref tile, room, playerId);
+        SlabChain.Changed(context.World, context.Database, pos.Y * context.World.Width + pos.X, terrainBefore, ownerBefore);
+        return true;
+    }
+
+    private static void EmitConstructionEffect(SimulationContext context, PlayerId playerId, TilePos pos) =>
+        context.Events.Emit(new SimEvent(context.Tick, SystemName, "construction_effect",
+            $"player={playerId} effect={RoomConstructionEffect.DefinitionId} tile=({pos.X},{pos.Y}) height=6144")
+        {
+            ConstructionEffect = new RoomConstructionEffect(playerId, pos),
+        });
 
     private static void Apply(SimulationContext context, BuildRoomCommand command)
     {
@@ -94,15 +184,12 @@ public sealed class RoomBuildSystem : ISimulationSystem
 
             // Charge before placing. A tile that was paid for but not laid, or
             // laid but not paid for, would both be worse than refusing it.
-            if (!GoldStore.TryWithdraw(world, command.PlayerId, cost))
+            if (!PlacePaidTile(context, command.PlayerId, pos, room))
             {
                 Count(refusals, RoomPlacement.NotEnoughGold);
                 continue;
             }
 
-            byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
-            RoomRules.Place(context.Database, ref tile, room, command.PlayerId);
-            SlabChain.Changed(world, context.Database, (pos.Y * world.Width) + pos.X, terrainBefore, ownerBefore);
             if (built++ == 0) first = pos;
             spent += cost;
         }

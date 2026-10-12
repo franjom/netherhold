@@ -1,4 +1,4 @@
-# Traps
+﻿# Traps
 
 Tooling, encoding and process traps that have cost a session time, one line each, for every
 agent (Claude's private memory and Codex's are not shared; this file is). Add a line in the change
@@ -7,8 +7,13 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Unity Package Manager rejects a UTF-8 BOM in Packages/manifest.json; write that JSON as UTF-8 without a BOM.
+- PowerShell can return early from a GUI executable invoked with `&`; use `Start-Process -PassThru` and wait on that process for Unity builds and player captures.
+
 - PowerShell treats curly apostrophes as quote delimiters; avoid them inside single-quoted command arguments.
 - Windows PowerShell Get-Content defaults to ANSI; pass -Encoding UTF8 when deriving patch text from repository files.
+- Windows PowerShell `Set-Content -Encoding UTF8` adds a BOM even to commit-message files; use `UTF8Encoding(false)` when writing them.
+- Run `dk2tools status` with the same `DK2_DIR` as the verified suite; data-dependent discovery otherwise silently reports fewer cases.
 
 - A linked worktree may lack ignored replay drivers and captures; Claude scratch scripts can be recovered from its project JSONL Write calls, while captures remain under the main clone's reverse-engineering/dk2runs.
 
@@ -33,8 +38,13 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - KB evidence fragments match Markdown headings, not HTML anchors; changing an evidence header also requires a dated History line.
 - In a sibling worktree, `apply_patch` cannot create parent directories; create them with an approved native filesystem command first.
 - Windows Python defaults to a legacy code page here; use `encoding='utf-8-sig'` when reading repository Markdown.
+- PowerShell here-strings piped into Python can replace non-ASCII source literals with `?`; use ASCII script literals or `apply_patch` for Unicode edits.
 
 ## Builds, tests and dk2tools
+
+- Concurrent branches can reuse hash/save versions or ADR ids; check current master before merging and allocate a fresh combined version when layouts differ.
+
+- Source notices require a blank line after the three license comments; the exact LicenseHeaderTests prefix includes two trailing newlines.
 
 - Unity-loadable DK2.Data targets netstandard2.1; newer Path helpers such as TrimEndingDirectorySeparator are unavailable there.
 - A pixelated Unity Game view can be editor zoom: check its Scale slider at 1x before changing rendering; camera zoom does not reset it (saved under UserSettings/Layouts/).
@@ -140,3 +150,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A scan for a state id as a `SetState` argument that looks for pushes before each `CALL 0x00476D30` misses a push followed by a jump to a shared `SetState` tail: the slap pushes 67 at `0x0048B9DB` and jumps to `0x0048BA00`. Before calling a state unreachable, also scan `.text` for the raw `6A xx` push and read each hit (2026-10-07).
 - Blender object copies inherit `hide_select`; clear selection locks and assert selection before GLB export with `use_selection=True`, which can otherwise succeed with no meshes.
 - Ghidra `ForceFunc.py` can mistake an earlier stack reservation for the function prologue; after confirming the exact entry in disassembly, use `ForceAt.py` instead.
+- On Windows, running replay `DK2.Tools` processes lock their simulation DLL; finish them before rebuilding the solution or the Tools copy fails with MSB3027.

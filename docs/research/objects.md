@@ -11,13 +11,12 @@ dump).
 
 ---
 
-## 1. Only the last 82 bytes are gameplay
+## 1. Gameplay tail and animation metadata
 
-The first **812** bytes are nine art resources and a light — meshes, GUI icons,
-in-hand art. None of it is a rule, so `KwdObjects` does not model an art resource
-at all and starts reading at **0x32C**. That is why the parser is thirty lines
-rather than three hundred, and why nothing about DK2's art pipeline had to be
-understood before a creature could sleep in a bed.
+The first **812** bytes contain nine art resources and a light. `KwdObjects`
+retains each art's integer animation timing because object process transitions
+read animation completion. Names and rendering fields remain in the asset
+pipeline; resource layout is in [object-drawing.md §2](object-drawing.md#2-resources).
 
 | Offset | Field | Notes |
 |---|---|---|

@@ -171,6 +171,8 @@ public class CombatTests
         demon.PosY = knight.PosY;
         GameSimulation sim = Combat(db, world);
 
+        SeedFight(db, knight, goblin);
+        SeedFight(db, warlock, goblin);
         sim.Run(1);
         Assert.Equal(goblin.Id, knight.FightTargetId);
         Assert.Equal(goblin.Id, warlock.FightTargetId);
@@ -193,6 +195,7 @@ public class CombatTests
         demon.PosY = knight.PosY;
         GameSimulation sim = Combat(db, world);
 
+        SeedFight(db, knight, goblin);
         RunUntilSwing(sim, demon);
         Assert.Equal(goblin.Id, knight.FightTargetId);
     }
@@ -218,8 +221,13 @@ public class CombatTests
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState blitzer = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 5, 5);
-        Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, 7, 5);
+        CreatureState frontliner = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, 7, 5);
         CreatureState warlock = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Rival, 5, 8);
+        foreach (CreatureState candidate in new[] { frontliner, warlock })
+        {
+            candidate.LastFightScanTileIndex = candidate.Tile.Y * world.Width + candidate.Tile.X;
+            candidate.FightProcessCounter = 0;
+        }
 
         CreatureState nearer = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, 10, 3);
         CreatureState skeleton = Spawn(db, world, Dk2TerrainFixture.SkeletonCreatureId, Keeper, 10, 5);
@@ -252,7 +260,11 @@ public class CombatTests
         sim.Run(1);
         Assert.Equal(FightTargetKind.Heart, demon.FightTargetKind);
         Assert.Equal(Rival, demon.FightTargetPlayerId);
-        Assert.Equal((5 * world.Width) + 10, demon.FightTargetTileIndex);
+        Assert.Equal((6 * world.Width) + 11, demon.FightTargetTileIndex);
+        Assert.Equal(((6 * world.Width + 11) * 3) + 1, demon.FightTargetId);
+        Assert.True(FightRules.TargetPosition(world, db, demon, out int targetX, out int targetY, out _));
+        Assert.Equal((11 << 12) + 0x667, targetX);
+        Assert.Equal((6 << 12) + 0x19A, targetY);
         Assert.Equal(CombatRules.AttackMode.MeleeAtThing, demon.AttackType);
         // The pillar is an object, class 2, and takes the commit's default half tile (0x0045E098), not a trap's quarter.
         int reach = db.CreatureById(demon.CreatureTypeId).MeleeRange.Raw + 0x800;
@@ -260,6 +272,21 @@ public class CombatTests
 
         sim.Run(120);
         Assert.True(world.Player(Rival).HeartHealth < before, $"heart {world.Player(Rival).HeartHealth}");
+    }
+
+    [Fact]
+    public void EquidistantHeartPillarsAreScannedNewestFirst()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
+        for (int y = 3; y <= 7; y++)
+            for (int x = 10; x <= 14; x++)
+                RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Rival);
+        CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 12, 7);
+        new GameSimulation(db, world, 1, [new CombatSystem()]).Tick();
+        Assert.Equal(FightTargetKind.Heart, demon.FightTargetKind);
+        Assert.Equal((6 * world.Width) + 13, demon.FightTargetTileIndex);
+        Assert.Equal(((6 * world.Width + 13) * 3) + 2, demon.FightTargetId);
     }
 
     /// <summary>The commit's melee rule is blind to the target's class (<c>0x0045DE6E</c>): a caster that
@@ -283,7 +310,8 @@ public class CombatTests
             for (int x = 10; x <= 14; x++)
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Rival);
         CreatureState me = world.SpawnCreature(db, 61, Keeper, new TilePos(9, 5));
-        me.PosX = CreatureState.CentreOf(10) - offset;
+        me.PosX = (11 << 12) + 0x667 - offset;
+        me.PosY = (6 << 12) + 0x19A;
         new GameSimulation(db, world, 1, [new CombatSystem()]).Run(1);
 
         Assert.Equal(FightTargetKind.Heart, me.FightTargetKind);
@@ -327,12 +355,13 @@ public class CombatTests
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
-        for (int y = 4; y <= 6; y++)
-            for (int x = 10; x <= 12; x++)
+        for (int y = 3; y <= 7; y++)
+            for (int x = 10; x <= 14; x++)
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Rival);
         world.Player(Rival).HeartHealth = 1;
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 10, 4);
-        demon.PosX = CreatureState.CentreOf(10) - 300;
+        demon.PosX = (12 << 12) + 0x800 - 300;
+        demon.PosY = (4 << 12) + 0x4CD;
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new DungeonHeartSystem()]);
 
         sim.Run(14 + 5 + 2);
@@ -366,6 +395,16 @@ public class CombatTests
     }
 
     // ------------------------------------------------------------------ helpers
+
+    private static void SeedFight(GameDatabase db, CreatureState attacker, CreatureState target)
+    {
+        StatePlacement.Place(attacker, 199);
+        attacker.FightTargetKind = FightTargetKind.Creature;
+        attacker.FightTargetId = target.Id;
+        attacker.AttackType = CombatRules.AttackMode.MeleeAtCreature;
+        attacker.AttackRangeSquared = CombatRules.MeleeReachSquared(db.CreatureById(attacker.CreatureTypeId), db.CreatureById(target.CreatureTypeId));
+        Assert.True(CombatRules.Register(target, attacker.Id, ranged: false));
+    }
 
     private static (GameDatabase, WorldState) OpenWorld()
     {

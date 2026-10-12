@@ -163,6 +163,7 @@ public static class ArtSourceMap
             {
                 string reason = NoArtRecord("creature", creature.CreatureId);
                 entries.Add(Missing(AssetRef.ForCreature(creature.Name, AssetKind.Mesh), reason));
+                entries.Add(Missing(AssetRef.ForCreature(creature.Name, AssetKind.Mesh, "dead"), reason));
                 foreach (string animation in AssetCatalogue.CreatureAnimations)
                     entries.Add(Missing(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation), reason));
                 foreach (string animation in AssetCatalogue.CreatureActionAnimations)
@@ -171,9 +172,13 @@ public static class ArtSourceMap
             }
             entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Mesh), resources[CreatureIdle],
                 "idle model"));
+            Dk2ArtResource dead = art.CreatureCorpses.TryGetValue(creature.CreatureId, out Dk2ArtResource? corpse)
+                && corpse.Type != 0 ? corpse : resources[CreatureWalk];
+            entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Mesh, "dead"), dead, "corpse mesh"));
             foreach (string animation in AssetCatalogue.CreatureAnimations)
                 entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation),
-                    CreatureAnimationSource(creature, resources, animation), "animation KMF"));
+                    animation == "dead" ? dead : CreatureAnimationSource(creature, resources, animation),
+                    "creature visual resource"));
             foreach (string animation in AssetCatalogue.CreatureActionAnimations)
                 entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation),
                     CreatureAnimationSource(creature, resources, animation), "action animation KMF"));
@@ -229,7 +234,10 @@ public static class ArtSourceMap
         CreatureDef creature, IReadOnlyList<Dk2ArtResource> resources, string animation) => animation switch
     {
         "idle" => resources[CreatureIdle],
+        "entrance" => resources[29],
         "fighting" => resources[CreatureMelee],
+        "casting" => resources[5].Type != 0 ? resources[5] : resources[CreatureMelee],
+        "landing" => resources[23].Type != 0 ? resources[23] : resources[3],
         "running" => resources[1].Type != 0 ? resources[1] : resources[CreatureWalk],
         "eating" => resources[12].Type != 0 ? resources[12] : resources[7],
         "claiming" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase) => resources[12],

@@ -415,6 +415,7 @@ internal static class KeeperWorld
         // What the hand and a fight read once creatures exist, at the shipped values.
         Set(vars, VariableTypeId.MaxNumberOfThingsInHand, handCapacity);
         Set(vars, VariableTypeId.ChickenGenerationTimePerHatchery, 16);
+        Set(vars, VariableTypeId.MaxFreeRangeChickensPerPlayer, 12);
         Set(vars, VariableTypeId.CreatureDyingStateDurationSeconds, 60);
         Set(vars, VariableTypeId.BackOffMinimumDurationSeconds, 0);
         Set(vars, VariableTypeId.BackOffMaximumDurationSeconds, 30);

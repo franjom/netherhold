@@ -85,7 +85,7 @@ public sealed class ShotSystem : ISimulationSystem
                 ShotRules.ContactDamage(context, shot, definition, hit);
                 if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
             }
-            else if (ShotRules.HitsHeart(world, shot, definition))
+            else if (ShotRules.HitsHeart(world, database, shot, definition))
             {
                 ShotRules.Chain(context, shot, definition.HitThingShotId);
                 ShotRules.ContactDamageHeart(context, shot, definition);

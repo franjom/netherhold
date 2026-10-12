@@ -111,6 +111,8 @@ public sealed class ScenePresenter
             AnimationLoops = creature.AnimationLoops;
             AnimationStartedAt = creature.AnimationStartedAt;
             AnimationMovementSpeed = creature.AnimationMovementSpeed;
+            AnimationPaused = creature.AnimationPaused;
+            AnimationDeferred = creature.AnimationDeferred;
         }
 
         public AssetRef Mesh { get; }
@@ -130,6 +132,8 @@ public sealed class ScenePresenter
         public bool AnimationLoops { get; }
         public GameTick? AnimationStartedAt { get; }
         public Fp32? AnimationMovementSpeed { get; }
+        public bool AnimationPaused { get; }
+        public bool AnimationDeferred { get; }
 
         public bool Equals(CreatureVisual other) =>
             Mesh == other.Mesh
@@ -147,14 +151,16 @@ public sealed class ScenePresenter
             && PlaysAnimation == other.PlaysAnimation
             && AnimationLoops == other.AnimationLoops
             && AnimationStartedAt == other.AnimationStartedAt
-            && AnimationMovementSpeed == other.AnimationMovementSpeed;
+            && AnimationMovementSpeed == other.AnimationMovementSpeed
+            && AnimationPaused == other.AnimationPaused
+            && AnimationDeferred == other.AnimationDeferred;
 
         public override bool Equals(object? obj) => obj is CreatureVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
             Mesh, Animation, PosX, PosY, OwnerPlayerId, GoldHeld,
             HashCode.Combine(Height, MeshYaw, Pitch, Roll, PreviousPosX, PreviousPosY, PlaysAnimation,
-                HashCode.Combine(AnimationLoops, AnimationStartedAt, AnimationMovementSpeed)));
+                HashCode.Combine(AnimationLoops, AnimationStartedAt, AnimationMovementSpeed, AnimationPaused, AnimationDeferred)));
     }
 
     /// <summary>The part of an object a renderer can see.</summary>
@@ -176,8 +182,12 @@ public sealed class ScenePresenter
             PreviousPosX = instance.PreviousPosX;
             PreviousPosY = instance.PreviousPosY;
             PreviousHeading = instance.PreviousHeading;
+            PreviousHeight = instance.PreviousHeight;
+            PreviousPitch = instance.PreviousPitch;
+            PreviousRoll = instance.PreviousRoll;
             PlaysAnimation = instance.PlaysAnimation;
             AnimationStartedAt = instance.AnimationStartedAt;
+            AnimationLoops = instance.AnimationLoops;
         }
 
         public int Pitch { get; }
@@ -186,8 +196,12 @@ public sealed class ScenePresenter
         public int PreviousPosX { get; }
         public int PreviousPosY { get; }
         public int PreviousHeading { get; }
+        public int PreviousHeight { get; }
+        public int PreviousPitch { get; }
+        public int PreviousRoll { get; }
         public bool PlaysAnimation { get; }
         public GameTick? AnimationStartedAt { get; }
+        public bool AnimationLoops { get; }
 
         public AssetRef Mesh { get; }
         public TilePos Tile { get; }
@@ -213,13 +227,15 @@ public sealed class ScenePresenter
             && Roll == other.Roll
             && PreviousPosX == other.PreviousPosX && PreviousPosY == other.PreviousPosY
             && PreviousHeading == other.PreviousHeading && PlaysAnimation == other.PlaysAnimation
-            && AnimationStartedAt == other.AnimationStartedAt;
+            && PreviousHeight == other.PreviousHeight && PreviousPitch == other.PreviousPitch && PreviousRoll == other.PreviousRoll
+            && AnimationStartedAt == other.AnimationStartedAt && AnimationLoops == other.AnimationLoops;
 
         public override bool Equals(object? obj) => obj is ObjectVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
             Mesh, Tile, OwnerPlayerId, GoldHeld, HashCode.Combine(PosX, PosY, Height, Heading, Scale, Pitch, Roll),
-            HashCode.Combine(PreviousPosX, PreviousPosY, PreviousHeading, PlaysAnimation, AnimationStartedAt));
+            HashCode.Combine(PreviousPosX, PreviousPosY, PreviousHeading, PlaysAnimation, AnimationStartedAt, AnimationLoops,
+                HashCode.Combine(PreviousHeight, PreviousPitch, PreviousRoll)));
     }
 
     private readonly WorldView _view;

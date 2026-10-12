@@ -85,9 +85,10 @@ public static class SimulationSystems
         // puts it before the shots, whose place in that pass is Q398 (door-blocking.md).
         new DoorHealthSystem(),
         // Shots fly after the creatures have moved; where DK2's thing list puts them is Q398.
+        new TrainingActionSystem(), // creature action gates before the shots and object reactions they create
         new ShotSystem(),
         new BoulderSystem(), // objects (list 2) after shots (1), before traps (3)
-        new ChickenMovementSystem(),
+        new ObjectMovementSystem(),
         new TrapSystem(), // after the shots, as DK2's class lists run shots (1) before traps (3)
         // The thing pass's second walk: whatever is dead now is removed this turn (0x004B7830).
         new TrapRemovalSystem(),
@@ -120,10 +121,12 @@ public static class SimulationSystems
         // The removal countdown reads the stamp and the mana of the last payment before this
         // tick's payment, as DK2's thing update precedes its player update (ADR-0277).
         new ManaRemovalSystem(),
+        new RatSpawnSystem(),
         // Mana after all ownership changes, so a tile claimed on N pays on N; the imp
         // it buys next, so N's mana casts on N; a lair built on N attracts on N.
         new ManaSystem(),
         new ImpSupplySystem(),
+        new RoomBuildWaveSystem(), // keeper frame after mana, before its research chooser (0x004BB614)
         new ResearchSystem(), // the same player frame chooses a research target when it has none
         new PortalSystem(),
         new RoomHealthSystem(), // the room tick's health step, after the type's own handler (0x004E4B00)
@@ -135,6 +138,7 @@ public static class SimulationSystems
         // Laying, once a game second (ADR-0066), before anything eats; then hunger
         // before tiredness, the original's needs order (docs/research/eating.md).
         new HatcherySystem(),
+        new ObjectReactionSystem(),
         new CreatureEatSystem(),
 
         // Sleep, health, prison: one asleep this tick heals this second; health settles
