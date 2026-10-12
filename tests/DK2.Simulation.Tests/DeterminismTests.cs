@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 235: possession followers, state 246 and the shared melee target (ADR-0445).
+        // HashVersion 235: possession followers and inputs (ADR-0445, ADR-0446).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xAC30621C87948DDDUL, sim.StateHash());
+        Assert.Equal(0xF586FE56CCF63F2FUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -28,7 +28,7 @@ public static partial class PossessionRules
     public const uint CreatureAndObjectScanLimit = 0x5B000;
     public const uint TrapAndDoorScanLimit = 0x31000;
 
-    /// <summary>Action 15's range when the spell's <c>Range</c> is not zero (no SniperMode here).</summary>
+    /// <summary>Action 15's range when the spell's <c>Range</c> or SniperMode is set (<see cref="FreeAimRangeOf"/>).</summary>
     public const int FreeAimRange = 0x3000;
 
     /// <summary>The shot type a free-aim cast never starts (<c>spell +0x44 == 0x1E</c>).</summary>
@@ -56,10 +56,10 @@ public static partial class PossessionRules
 
     internal readonly record struct ChainThing(ChainClass Class, object Thing, Vec3 At, byte Owner, int Order);
 
-    public static void Act(SimulationContext context, ISightBlocker sight, CreatureState me, ActPossessedCreatureCommand command)
+    public static void Act(SimulationContext context, ISightBlocker sight, PossessionCombat combat, CreatureState me, ActPossessedCreatureCommand command)
     {
         CreatureDef mine = context.Database.CreatureById(me.CreatureTypeId);
-        if (command.Melee) Melee(context, me, mine, command.Aim);
+        if (command.Melee) Melee(context, sight, combat, me, mine, command.Aim);
         else UseSlot(context, sight, command.PlayerId.Value, me, mine, command.Aim, command.Slot.Value);
     }
 
@@ -109,7 +109,7 @@ public static partial class PossessionRules
 
     /// <summary>Gate <c>0x0048C9B0</c> or nothing; <c>+0x427</c> stamped before the search; the pick;
     /// then the target's arm. The begin's success stamps again, the same turn.</summary>
-    private static void Melee(SimulationContext context, CreatureState me, CreatureDef mine, PossessionAim aim)
+    private static void Melee(SimulationContext context, ISightBlocker sight, PossessionCombat combat, CreatureState me, CreatureDef mine, PossessionAim aim)
     {
         long now = context.Tick.Value;
         if (!CombatRules.SwingMayBegin(context.Database, me, mine, now)) return;
@@ -122,13 +122,15 @@ public static partial class PossessionRules
             return;
         }
 
-        // SneakingAs (+0x4A3) and HypnotisedCreature (+0x4A7) are not represented.
+        UnmaskAgainst(context.World, me, target.Owner);
         switch (target.Thing)
         {
             case CreatureState creature when target.Class == ChainClass.Creature:
                 // A creature on a torture device (state 131) is stamped, not struck.
                 if (creature.Dk2StateId == TortureRules.TorturedState) break;
-                Attack(context, me, FightTargetKind.Creature, creature.Id, now);
+                FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, FightTargetKind.Creature, creature.Id);
+                Command(context, sight, combat, me, creature);
+                Record(me, FightTargetKind.Creature, creature.Id, now);
                 break;
             case TrapState trap:
                 Attack(context, me, FightTargetKind.Trap, trap.Id, now);
@@ -155,6 +157,11 @@ public static partial class PossessionRules
     private static void Attack(SimulationContext context, CreatureState me, FightTargetKind kind, int id, long now)
     {
         FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, kind, id);
+        Record(me, kind, id, now);
+    }
+
+    private static void Record(CreatureState me, FightTargetKind kind, int id, long now)
+    {
         me.PossessedTargetTick = now;
         me.PossessedTargetKind = kind;
         me.PossessedTargetId = id;
@@ -309,6 +316,7 @@ public static partial class PossessionRules
 
         SpellTarget target = PickSpellTarget(context.World, database, sight, me, aim, SpellRules.IsFriendly(spell));
         if (SpellRules.IsSelfOnly(spell)) target = new(FightTargetKind.Creature, me.Id, null);
+        if (TargetOwner(context.World, target) is { } owner) UnmaskAgainst(context.World, me, owner);
 
         if ((spell.Flags & TeleportSpellFlag) != 0) TeleportHome(context, keeper, me);
         else if ((spell.Flags & SpeedSpellFlag) != 0)
@@ -323,7 +331,7 @@ public static partial class PossessionRules
                 (int x, int y, int z) = aim.PacketOrigin;
                 Vec3 raw = RawAim(aim.Yaw, aim.Pitch);
                 FightRules.BeginFreeAim(context, me, slot, unchecked(x + raw.X), unchecked(y + raw.Y), unchecked(z + raw.Z),
-                    aim.Pitch.Value, spell.Range != 0 ? FreeAimRange : 0);
+                    aim.Pitch.Value, FreeAimRangeOf(spell, me));
             }
         }
         else
@@ -344,7 +352,25 @@ public static partial class PossessionRules
         context.Emit(ActSystem, "possessed_teleport", $"creature={me.Id} heart_tile={anchor}");
     }
 
+    /// <summary><c>0x00515364</c>: 0x3000 when the spell's <c>Range</c> plus SniperMode's bit is
+    /// nonzero, else 0, which the shot reads as no limit. So sniper mode caps a Range-0 spell.</summary>
+    public static int FreeAimRangeOf(CreatureSpellDef spell, CreatureState me) =>
+        unchecked((int)spell.Range + (me.SniperMode ? 1 : 0)) != 0 ? FreeAimRange : 0;
+
     internal readonly record struct SpellTarget(FightTargetKind Kind, int Id, ObjectState? Object);
+
+    /// <summary>The spell's target's owner for the unmask test (a self spell's target is the caster).
+    /// With no target DK2 reads the owner of thing slot 0 unchecked (<c>0x0051513B</c>), UNKNOWN: ours
+    /// does not unmask then.</summary>
+    private static byte? TargetOwner(WorldState world, SpellTarget target) =>
+        target.Object is { } thing ? thing.OwnerPlayerId
+        : target.Kind switch
+        {
+            FightTargetKind.Creature => world.CreatureById(target.Id)?.OwnerPlayerId,
+            FightTargetKind.Trap => world.TrapById(target.Id)?.PlayerId,
+            FightTargetKind.Door => world.DoorById(target.Id)?.PlayerId,
+            _ => null,
+        };
 
     /// <summary><c>0x00515520</c>: players in list order, those hostile to the creature's owner (the
     /// friendly ones for a friendly spell); per player its creatures, traps, doors and type-94 objects,

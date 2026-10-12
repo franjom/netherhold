@@ -28,9 +28,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Summon Horny, OneShotReaper and Possession's simulation side are built, and Sight
   of Evil casts with an empty effect (ADR-0352), its region presentation (Q194). Research
   grants every upgrade through ResearchTreeRules (KeeperSpellUpgradeTests); the
-  upgraded effects are the bonus data and Possession's 70 % upkeep. Left unbuilt:
-  Horny's idle AI, the possessed action arms in Q535/Q536, the third cast path
-  (action 56 only, Q537) and the held-creature regeneration in Q152.
+  upgraded effects are the bonus data and Possession's 70 % upkeep. The possessed
+  creature's followers (ADR-0445) and its sneak, hypnosis and sniper commands (ADR-0446)
+  are built. Left unbuilt: Horny's idle AI, the possessed object, shot, body and
+  dig/claim arms (Q535), the third cast path (action 56 only, Q537) and the
+  held-creature regeneration in Q152.
   Evidence: research/keeper-spell-*.md.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 19).
@@ -165,6 +167,11 @@ The first-approach correction and remaining matched-capture work are in combat-a
    (`docs/plans/2026-10-07-imp-image-to-3d-trial.md`).
    No rig or Unity work yet. Still open: the geometry-index and exact-frame
    export for all 35 Imp files.
+
+6. Possession: the build plan (plans/2026-10-12-possession-arms-build-plan.md) has
+   parts C (objects, shots, bodies), D (dig and claim) and E (gem gold per strike,
+   Q587, which changes every miner) left; the Unity first-person camera and input come
+   after. Owner play questions: possession-arms-and-inputs.md §4–5.
 
 After faithful M12, keep it as selectable Classic AI; explore a separate
 Enhanced keeper using the same observation/command interface (KEEPER_AI.md

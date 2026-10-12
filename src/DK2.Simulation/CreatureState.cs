@@ -1112,6 +1112,18 @@ public sealed class CreatureState
     public int PossessedTargetId;
     public long PossessedTargetTick;
 
+    /// <summary>The possession inputs (possession-arms-and-inputs.md §5): SneakingAs <c>+0x4A3</c>
+    /// (the player disguised as, 0 none), SniperMode <c>+0x3E6</c> bit 31, the possessor's
+    /// HypnotisedCreature <c>+0x4A7</c>, and on the hypnotised its old owner <c>+0x4A9</c>, its mark
+    /// <c>+0x3EA</c> bit 0, AttackCreatureHits <c>+0x4D9</c> and NHypnotisedAttacks <c>+0x4DB</c>.</summary>
+    public ushort SneakingAs;
+    public bool SniperMode;
+    public int HypnotisedCreatureId;
+    public byte HypnosisOwnerPlayerId;
+    public bool Hypnotised;
+    public ushort AttackCreatureHits;
+    public ushort HypnotisedAttacks;
+
     /// <summary>Original ReaperTimer +0x4E9, HornyTick +0x4C9, runtime +0x3EA bits 18/19,
     /// and presentation alpha +0x8F used by the departure lifecycle.</summary>
     public ushort ReaperTicks;
@@ -1420,6 +1432,13 @@ public sealed class CreatureState
         hash.Add((byte)PossessedTargetKind);
         hash.Add(PossessedTargetId);
         hash.Add(PossessedTargetTick);
+        hash.Add(SneakingAs);
+        hash.Add(SniperMode);
+        hash.Add(HypnotisedCreatureId);
+        hash.Add(HypnosisOwnerPlayerId);
+        hash.Add(Hypnotised);
+        hash.Add(AttackCreatureHits);
+        hash.Add(HypnotisedAttacks);
         hash.Add(ReaperTicks);
         hash.Add(HornyTick);
         hash.Add(IsOneShotReaper);

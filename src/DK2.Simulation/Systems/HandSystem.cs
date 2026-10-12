@@ -113,6 +113,15 @@ public sealed class HandSystem : ISimulationSystem
                 $"held={world.Player(command.PlayerId).Hand.Count} reason=hand_full");
             return;
         }
+        // Hand_PickUp (0x004BC5EF): another keeper's hand unmasks a disguised creature and lets go.
+        if (creature.SneakingAs != 0 && creature.OwnerPlayerId != command.PlayerId.Value)
+        {
+            creature.SneakingAs = 0;
+            context.Emit(SystemName, "pickup_refused",
+                $"player={command.PlayerId} creature={command.CreatureId} " +
+                $"held={world.Player(command.PlayerId).Hand.Count} reason=disguise");
+            return;
+        }
 
         // The job and the load both go before the creature does. An imp lifted
         // off a seam has stopped mining it; a worker lifted while carrying a

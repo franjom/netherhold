@@ -9,7 +9,7 @@ focused tests, the gate (Release build, no-install suite, kb/docs/coverage check
 scenarios against master, a reviewer pass, and its own commit. Presentation (camera, HUD, input
 keys) stays out: commands carry the original packets' meaning.
 
-## Part A: followers (§4)
+## Part A: followers (§4) — built, ADR-0445
 
 - Fields: `FollowLeaderId` (+0x482, word), `FollowRouteTick` (+0x47E), `FollowerCount` (+0x488,
   signed), `PossessedTarget` (+0x4D0, kind and id) and `PossessedTargetTick` (+0x4D2); hash and
@@ -23,7 +23,7 @@ keys) stays out: commands carry the original packets' meaning.
 - Ends: possess and unpossess zero the count; dismiss (action 38) as a command; death decrements
   the leader; fear in spFighting clears and decrements; the follower-busy readers.
 
-## Part B: sneak, hypnosis, sniper (§5)
+## Part B: sneak, hypnosis, sniper (§5) — built, ADR-0446
 
 - Commands for 0x1D (tile x, y), 0x1B (pose and aim), 39 (the value).
 - Sneak: the watcher test, the combat-scan skip, the hand refusal, the unmask on melee and spells.

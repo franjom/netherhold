@@ -10167,3 +10167,27 @@ with its leader field set; ours clears it so a corpse removed later does not cou
 Scan A's own pick keeps its discounted distance as the best where
 `0x0045D69D` may take the plain one; no packet decoder builds the dismissal. No computer keeper casts Possession
 (computer-keeper-spell-sites.md §1), so replays cannot change.
+
+## ADR-0446 — Sneak, hypnosis and sniper mode are possession commands
+**Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §5
+
+**Context.** Three commands set the possessed creature's inputs (Q536): sneak (0x1D),
+hypnosis (0x1B) and sniper mode (39). None was represented.
+
+**Decision.** `ToggleSneakCommand` disguises the creature as a tile's owner unless a
+creature allied to that owner sees it; every combat scan (the fight-style scan, scan C,
+the NonFighter and nearest-attacker scans) skips a candidate disguised as the searcher's
+side; a blow or cast at a thing allied to the disguise, another keeper's hand, and
+leaving possession end it. `HypnotiseCommand` takes the nearest hypnotisable enemy in
+the cone and sight from the pose, keeps its owner, makes it the possessor's and starts it
+following; each possessed blow at a creature forces it at that creature and counts one
+order, and it drops the order once it has launched as many attacks; a second press,
+leaving possession (action 21) or its death end the hold. `SetSniperModeCommand` sets
+the flag: a free-aim shot then doubles its contact damage, and a Range-0 spell is capped
+at 0x3000. Hash/save version 235, shared with ADR-0445 on this branch.
+
+**Consequences.** Creeping (`+0x3E6` bit 12) and `0x00455990` in the sneak test are not
+represented; an off-map sneak tile changes nothing where DK2 reads past the map; a
+targetless cast does not unmask, where DK2 reads thing slot 0's owner (unknown). Leaving
+possession ours always goes through action 21's release. The owner's play questions
+(sniper range, the disguise pick-up, the release on leaving) stay open.

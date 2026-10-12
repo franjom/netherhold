@@ -218,13 +218,16 @@ public static class ShotRules
     /// <summary>The width <c>0x004B5590</c> gives a trap of an enemy of the shot's owner.</summary>
     public const int EnemyTrapWidth = 0x800;
 
+    /// <summary><c>0x004AC420</c>'s amount: the data word, doubled for a sniper's shot (<c>+0x165</c>).</summary>
+    public static int ContactAmount(ShotState shot) => shot.Sniper ? unchecked(shot.Data1 * 2) : shot.Data1;
+
     /// <summary>Contact damage on a trap (<c>0x004AC420</c>): the data word flat, with no owner test,
     /// whoever owns the trap.</summary>
     public static void ContactDamageTrap(SimulationContext context, ShotState shot, ShotDef definition, TrapState trap)
     {
         if (definition.DamageType != ContactDamageType || shot.Data1 <= 0) return;
-        TrapRules.Damage(trap, -shot.Data1);
-        context.Emit(SystemName, "shot_trap_hit", $"shot={shot.Id} caster={shot.CasterId} trap={trap.Id} damage={shot.Data1} health={trap.Health}");
+        TrapRules.Damage(trap, -ContactAmount(shot));
+        context.Emit(SystemName, "shot_trap_hit", $"shot={shot.Id} caster={shot.CasterId} trap={trap.Id} damage={ContactAmount(shot)} health={trap.Health}");
     }
 
     /// <summary>The quarter tile the two stand-ins below add to a shot's radius. DK2 hits a door or a
@@ -258,8 +261,8 @@ public static class ShotRules
     public static void ContactDamageDoor(SimulationContext context, ShotState shot, ShotDef definition, DoorState door)
     {
         if (definition.DamageType != ContactDamageType || shot.Data1 <= 0) return;
-        DoorRules.Damage(context, door, -shot.Data1, shot.OwnerPlayerId);
-        context.Emit(SystemName, "shot_door_hit", $"shot={shot.Id} caster={shot.CasterId} door={door.Id} damage={shot.Data1} health={door.Health}");
+        DoorRules.Damage(context, door, -ContactAmount(shot), shot.OwnerPlayerId);
+        context.Emit(SystemName, "shot_door_hit", $"shot={shot.Id} caster={shot.CasterId} door={door.Id} damage={ContactAmount(shot)} health={door.Health}");
     }
 
     /// <summary>Contact damage (§7, <c>0x004AC420</c>): the data word flat, refused while the target's
@@ -270,8 +273,8 @@ public static class ShotRules
         if (definition.DamageType != ContactDamageType || shot.Data1 <= 0 || CreatureDeathRules.IsDown(target)) return;
         if (StatusEffectRules.IsInvulnerable(target)) return;
         GameDatabase database = context.Database;
-        int landed = StatusEffectRules.Hurt(context.World, database, database.CreatureById(target.CreatureTypeId), target, shot.Data1);
-        context.Emit(SystemName, "shot_hit", $"shot={shot.Id} type={definition.ShotId} caster={shot.CasterId} target={target.Id} damage={shot.Data1} landed={landed} health={target.Health}");
+        int landed = StatusEffectRules.Hurt(context.World, database, database.CreatureById(target.CreatureTypeId), target, ContactAmount(shot));
+        context.Emit(SystemName, "shot_hit", $"shot={shot.Id} type={definition.ShotId} caster={shot.CasterId} target={target.Id} damage={ContactAmount(shot)} landed={landed} health={target.Health}");
     }
 
     /// <summary>Contact damage on a heart: the data word flat, with the shooter's owner as the
@@ -282,10 +285,10 @@ public static class ShotRules
         if (definition.DamageType != ContactDamageType || shot.Data1 <= 0) return;
         WorldState world = context.World;
         if (world.Player(shot.TargetPlayerId).HeartHealth <= 0) return;
-        bool killed = world.DamageHeart(shot.TargetPlayerId, shot.Data1, shot.OwnerPlayerId);
+        bool killed = world.DamageHeart(shot.TargetPlayerId, ContactAmount(shot), shot.OwnerPlayerId);
         CombatMessageRules.HeartDamaged(context, shot.TargetPlayerId);
         context.Emit(SystemName, "shot_heart_hit",
-            $"shot={shot.Id} caster={shot.CasterId} heart={shot.TargetPlayerId} damage={shot.Data1} health={world.Player(shot.TargetPlayerId).HeartHealth}{(killed ? " destroyed" : "")}");
+            $"shot={shot.Id} caster={shot.CasterId} heart={shot.TargetPlayerId} damage={ContactAmount(shot)} health={world.Player(shot.TargetPlayerId).HeartHealth}{(killed ? " destroyed" : "")}");
     }
 
     /// <summary>Area damage each tick (§7, <c>0x004AC6D0</c>): over the tiles within <c>data2</c> of the
@@ -386,7 +389,7 @@ public static class ShotRules
             if (at.X < tileX - shot.Data2 || at.X >= tileX + shot.Data2 || at.Y < tileY - shot.Data2 || at.Y >= tileY + shot.Data2) continue;
             if (!world.Contains(at) || StatusEffectRules.IsInvulnerable(target) || CreatureDeathRules.IsDown(target)) continue;
             int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, shot.Data1);
-            context.Emit(SystemName, "shot_square_hit", $"shot={shot.Id} type={definition.ShotId} target={target.Id} damage={shot.Data1} landed={landed} health={target.Health}");
+            context.Emit(SystemName, "shot_square_hit", $"shot={shot.Id} type={definition.ShotId} target={target.Id} damage={ContactAmount(shot)} landed={landed} health={target.Health}");
         }
     }
 

@@ -471,6 +471,13 @@ public static class WorldSnapshot
             w.Write((byte)c.PossessedTargetKind);
             w.Write(c.PossessedTargetId);
             w.Write(c.PossessedTargetTick);
+            w.Write(c.SneakingAs);
+            w.Write(c.SniperMode);
+            w.Write(c.HypnotisedCreatureId);
+            w.Write(c.HypnosisOwnerPlayerId);
+            w.Write(c.Hypnotised);
+            w.Write(c.AttackCreatureHits);
+            w.Write(c.HypnotisedAttacks);
             w.Write(c.ReaperTicks);
             w.Write(c.HornyTick);
             w.Write(c.IsOneShotReaper);
@@ -532,6 +539,7 @@ public static class WorldSnapshot
             w.Write(s.TargetX);
             w.Write(s.TargetY);
             w.Write(s.ForcedCollision);
+            w.Write(s.Sniper);
         }
 
         w.Write(world.NextObjectId);
@@ -1122,6 +1130,13 @@ public static class WorldSnapshot
                 PossessedTargetKind = (Combat.FightTargetKind)r.ReadByte(),
                 PossessedTargetId = r.ReadInt32(),
                 PossessedTargetTick = r.ReadInt64(),
+                SneakingAs = r.ReadUInt16(),
+                SniperMode = r.ReadBoolean(),
+                HypnotisedCreatureId = r.ReadInt32(),
+                HypnosisOwnerPlayerId = r.ReadByte(),
+                Hypnotised = r.ReadBoolean(),
+                AttackCreatureHits = r.ReadUInt16(),
+                HypnotisedAttacks = r.ReadUInt16(),
                 ReaperTicks = r.ReadUInt16(),
                 HornyTick = r.ReadUInt32(),
                 IsOneShotReaper = r.ReadBoolean(),
@@ -1194,6 +1209,7 @@ public static class WorldSnapshot
                 TargetX = r.ReadInt32(),
                 TargetY = r.ReadInt32(),
                 ForcedCollision = r.ReadBoolean(),
+                Sniper = r.ReadBoolean(),
             };
             world.RawShots.Add(shot);
             world.AttachLoaded(shot);
