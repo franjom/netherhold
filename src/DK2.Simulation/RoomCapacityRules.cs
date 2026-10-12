@@ -14,8 +14,9 @@ namespace DK2.Simulation;
 /// <remarks>The test admits while <c>UsedCapacity + units ≤ TotalCapacity</c>. <c>UsedCapacity</c>
 /// is the sum of the <see cref="CreatureState.HeldPlace"/>s in the room, so it moves only when a
 /// place is claimed or released. Only the rooms whose
-/// <see cref="AutoFurnitureRules.TryTotalCapacity"/> is read are limited. The Workshop's extra is
-/// built (ADR-0214); the Library's and the Guard Room's are not.</remarks>
+/// <see cref="AutoFurnitureRules.TryTotalCapacity"/> is read are limited; a Guard Room's cap is its
+/// tile count (ADR-0440). The Workshop's extra is built (ADR-0214); the Library's and the Guard
+/// Room's (its creatures on guard duty, <c>+0x2B6 == 6</c>, added to the used sum) are not.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public static class RoomCapacityRules
 {

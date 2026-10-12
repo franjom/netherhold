@@ -9983,3 +9983,25 @@ mode and state-entry interruption guards. Preserve simulation rules and hash 225
 combat action lifetime; its timing consequence belongs to Q582. Spell-casting
 clips and Chicken footstep audio remain unbuilt. Owner comparisons must restart
 Play mode and inspect Chickens and the Level7 Giant/Imp encounter.
+
+## ADR-0440 — A room on TotalCapacity's default arm holds its tile count
+**Date:** 2026-10-12 · **Status:** accepted · Research: auto-placed-furniture.md §5
+
+**Context.** On Level 4 the keeper cannot build a Guard Room and captures three
+neutral ones; DK2's portal then sent eleven Dark Elves, attracted by the Guard
+Room. Ours sent none: `TryTotalCapacity` read no capacity outside the furniture,
+Temple and Combat Pit arms, so `AttractionBudget` gave a Guard Room 0.
+
+**Decision.** `0x004E3ED0`'s jump table sends the Hatchery, Heart, bridges, Guard
+Room and every type outside 3–16 to an arm that stores the slab count `+0xA7`;
+`TryTotalCapacity` returns the tile count for them. The Portal (0), Prison
+(`0xFFFF`, its count in `+0x4B`) and Graveyard (floor slots) stay unread there.
+Hash/save version 231 (226–230 are held by the unmerged classic-look branch).
+
+**Consequences.** A Guard Room attracts as many Dark Elves as it has tiles, and its
+Guard Post claim is capped at that count. The Guard Room's extra (creatures walking
+to it, `0x004E53B0`) is still unbuilt, so ours admits slightly more than DK2.
+Levels 1–3 replays are unchanged (19/6/18 over seeds 1–20). Level 4's replays now
+receive 6–16 Dark Elves (DK2: 11) but none wins: our dig into the hero base lags
+DK2's by 200–1,400 turns by seed, and Receive Imps (special 124, at 5783) is unbuilt
+(experiments/2026-10-12-level4-packet-replay/).

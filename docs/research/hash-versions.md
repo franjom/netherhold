@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**231** — `0xB8FA72F6DE9C12A1`. A room on `Room_ComputeTotalCapacity`'s default arm (Guard Room, Hatchery, Treasury, ...) holds its tile count; no new saved field. 226–230 are taken by the unmerged classic-look branch. ADR-0440.
+
 **225** — `0x2B74D4ED96BA549B`. Imps turn toward the task tile before digging, mining, reinforcing or repairing its wall, holding the entry state until aligned. ADR-0435.
 
 **224** — `0x236F0479C5BE1A9E`. Owned Hatchery chickens run their movement/reaction loop, with saved and hashed heading, age, reaction state, movement block and room membership. ADR-0434.
