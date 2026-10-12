@@ -70,6 +70,45 @@ public static class RoomIndex
     }
 
     /// <summary>
+    /// The rooms <see cref="Build(WorldState, GameDatabase)"/> returns whose definition passes
+    /// <paramref name="include"/>, in the same order, without filling the others: rooms are
+    /// disjoint, so a room left unfilled changes no other room's tiles. For a caller that needs one
+    /// kind of room, such as the navigation cache's DoubleQuad floors, it is the cost of those
+    /// rooms rather than of the map.
+    /// </summary>
+    public static List<RoomInstance> Build(WorldState world, GameDatabase database, Predicate<RoomDef> include)
+    {
+        if (include is null) throw new ArgumentNullException(nameof(include));
+        var rooms = new List<RoomInstance>();
+
+        // Which terrain ids hold a wanted room, asked once per id rather than once per tile.
+        var wanted = new RoomDef?[256];
+        bool any = false;
+        for (int terrain = 0; terrain < wanted.Length; terrain++)
+        {
+            RoomDef? definition = database.RoomByTerrain((byte)terrain);
+            if (definition is null || !include(definition)) continue;
+            wanted[terrain] = definition;
+            any = true;
+        }
+        if (!any) return rooms;
+
+        var visited = new bool[world.TileCount];
+        for (int i = 0; i < world.TileCount; i++)
+        {
+            if (visited[i]) continue;
+
+            ref TileState tile = ref world.TileAtIndex(i);
+            RoomDef? definition = wanted[tile.TerrainId];
+            if (definition is null) continue;
+
+            rooms.Add(Fill(world, definition, tile.TerrainId, tile.OwnerPlayerId, i, visited));
+        }
+
+        return rooms;
+    }
+
+    /// <summary>
     /// Flood-fills one room from <paramref name="startIndex"/>, orthogonally,
     /// across tiles of the same terrain with the same owner.
     ///

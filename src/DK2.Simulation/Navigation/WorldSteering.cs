@@ -79,17 +79,38 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private static void FillNavigationBytes(GameDatabase database, WorldState world,
         StructureBlocks structures, byte[] bytes)
     {
-        for (int y = 0; y < world.Height; y++)
+        // ByteOf per terrain id, read once rather than looked up per tile; an id with no
+        // definition still goes to TerrainById, which throws as it always did.
+        Span<bool> known = stackalloc bool[256];
+        Span<bool> solid = stackalloc bool[256];
+        Span<byte> open = stackalloc byte[256];
+        foreach (KeyValuePair<byte, TerrainDef> entry in database.Terrain)
         {
-            for (int x = 0; x < world.Width; x++)
-            {
-                int index = (y * world.Width) + x;
-                bytes[index] = ByteOf(database.TerrainById(world.Tile(x, y).TerrainId), structures.IsPortalCentre(index));
-            }
+            known[entry.Key] = true;
+            solid[entry.Key] = entry.Value.IsSolid;
+            open[entry.Key] = ByteOf(entry.Value, portalCentre: false);
+        }
+        Span<bool> doubleQuad = stackalloc bool[256];
+        foreach (RoomDef room in database.Rooms.Values)
+            if (IsDoubleQuad(room)) doubleQuad[room.TerrainId] = true;
+
+        bool anyDoubleQuad = false;
+        for (int index = 0; index < world.TileCount; index++)
+        {
+            byte terrain = world.TileAtIndex(index).TerrainId;
+            if (!known[terrain]) database.TerrainById(terrain);
+            bytes[index] = solid[terrain] ? NavBytes.Solid : open[terrain];
+            anyDoubleQuad |= doubleQuad[terrain];
         }
 
-        foreach (RoomInstance room in RoomIndex.Build(world, database))
-            if (room.Definition.Construction == TileConstruction.DoubleQuad)
+        // A portal's centre is its hole unless its terrain is solid (ByteOf's order).
+        foreach (int centre in structures.PortalCentres)
+            if (!solid[world.TileAtIndex(centre).TerrainId]) bytes[centre] = NavBytes.PortalHole;
+
+        // Only DoubleQuad rooms mark their floor slots, so only they are filled, and only when the
+        // map holds one.
+        if (anyDoubleQuad)
+            foreach (RoomInstance room in RoomIndex.Build(world, database, IsDoubleQuad))
                 foreach (int tile in AutoFurnitureRules.FloorSlotSet(world, room)) bytes[tile] = NavBytes.PortalHole;
 
         // A closed, completed door overwrites its tile (`0x004A66F0`); an open one leaves floor.
@@ -102,6 +123,8 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
                 NavBytes.Door(door.PlayerId, door.LockMode != 0 || barricade, world.Tile(door.X, door.Y).IsTaggedByAnyone);
         }
     }
+
+    private static readonly Predicate<RoomDef> IsDoubleQuad = room => room.Construction == TileConstruction.DoubleQuad;
 
     /// <summary>The navigation byte the original's cache holds (structure-blocks.md §5.4): solid,
     /// water, lava or floor from the terrain, and 4 on a portal's centre. A heart's platform is

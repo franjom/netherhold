@@ -47,6 +47,9 @@ public sealed class StructureBlocks
     /// where a heart's platform is plain floor (<see cref="Navigation.WorldSteering.ByteOf"/>).</summary>
     public bool IsPortalCentre(int tileIndex) => _portalCentres.Contains(tileIndex);
 
+    /// <summary>Every portal centre, for a caller that visits them rather than asking per tile.</summary>
+    public IReadOnlyCollection<int> PortalCentres => _portalCentres;
+
     /// <summary>Works out which tiles a portal's or a heart's structure occupies. Scans for the two
     /// room terrains first and returns the shared empty instance when there are none — the common
     /// case for a test map — so the cost is one byte compare per tile plus a flood fill over portal
