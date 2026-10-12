@@ -15,10 +15,12 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**232** — `0x745E1A08B1224DFA`. Pending player room-build waves are saved and
-hashed; ambient rats use the shared animal update order and gameplay draws.
-Portal arrivals retain their original heading. Includes the parallel 231
-capacity correction and classic versions 226–230. ADR-0441.
+**233** — `0x538823E3806E3E01`. Combines master's Receive Imps with saved/hashed
+room-build waves, shared ambient rat updates and original Portal heading.
+Includes classic versions 226–230. ADR-0442. Branch 96fa1942 reused 232
+with pin `0x745E1A08B1224DFA`; 233 separates the merged snapshot layout.
+
+**232** — `0xE5DB51390ABD6056`. Special 124, Receive Imps, creates ten level-5 Imps round the Heart; no new saved field. ADR-0441.
 
 **231** — `0xB8FA72F6DE9C12A1`. A room on `Room_ComputeTotalCapacity`'s default arm (Guard Room, Hatchery, Treasury, ...) holds its tile count; no new saved field. ADR-0440; versions 226–230 were used by the parallel classic-look branch.
 

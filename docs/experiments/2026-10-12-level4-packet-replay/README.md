@@ -36,38 +36,48 @@ stand.
 | B | ADR-0440 | old | 19/20 | 6/20 | 18/20 | — |
 | C | `bd6ef19a` | `lmap.py` | — | 6/20 | 18/20 | 0/20 |
 | D | ADR-0440 | `lmap.py` | — | 6/20 | 18/20 | 0/20 |
+| E | ADR-0441 | `lmap.py`, batches by tile | — | 6/20 | 18/20 | 0/20 |
 
 Every run is valid (all turns, map stable, no placed type mismatch). A and B agree tick
-for tick, as Levels 1–3 hold no Guard Room.
+for tick, as Levels 1–3 hold no Guard Room; D and E agree tick for tick on Levels 2 and 3.
+E's builder pairs a batch both sides create on one turn by tile, not arrival order.
 
 **Dark Elves.** DK2 has eleven, the first at capture tick 1943; the keeper's first Guard
 Room was captured about 1576. Set C: none in any seed, refused by the attraction gates.
 Set D: 6–16 (median 11).
 
-**No seed wins.** The Lord ends at full health (7500) in all 20 seeds, on (24–26, 4) in
+**No seed wins.** Sets D and E. The Lord ends at full health (7500) in all 20 seeds, on (24–26, 4) in
 seeds 1, 5 and 14. The owner's final drops land on (16,5) from turn 6489, (17,5) from 6554
 and (20,5) from 6674; DK2's imps claimed (16,5) at 6487. Ours cannot drop there, and the
-replay's drops land on our nearest land: (15,15) in seed 1, (24,21) in seeds 5 and 14. The
-northern claim frontier (DK2: first owner-3 tile on the row; ours: first claim):
+replay's drops land on our nearest land: in set D (15,15) in seed 1, (24,21) in seeds 5 and
+14; in set E seed 1 drops on (16,5) too, and the Lord still takes no damage. The northern
+claim frontier (DK2: first owner-3 tile on the row; ours: first claim):
 
-| Row reached | DK2 | ours (seeds 1, 5, 14) |
-|---|---|---|
-| 28 | 2193 | 2114, 2220, 2132 |
-| 25 | 4391 | 4599, 5830, 5700 |
-| 24 | 4516 | 5277, 5908, 5778 |
-| 15 | 5090 | 6332, not reached, not reached |
-| 5 | 6310 | not reached |
+| Row reached | DK2 | set D (seeds 1, 5, 14) | set E, seed 1 |
+|---|---|---|---|
+| 28 | 2193 | 2114, 2220, 2132 | 2114 |
+| 25 | 4391 | 4599, 5830, 5700 | 4599 |
+| 24 | 4516 | 5277, 5908, 5778 | 5277 |
+| 15 | 5090 | 6332, not reached, not reached | 6420 |
+| 5 | 6310 | not reached | 6600 |
+
+In set E seeds 5 and 14 creep down the middle (x 22–26) to row 21, by 6103 and 5973, and
+never reach row 15.
 
 Most tags reach ours. Rejected in all three seeds: four claim tags on open path at x 42–45,
 rows 28–29 (3201–3570), and on the west route (12,18) at 4925, which DK2 claimed at 4964
-and ours only at 6413. That rejection is a candidate for the west-route lag, not a
-finding. Two other gaps are known. Special 124, Receive Imps, is unbuilt: at turn 5783 it gave DK2 ten level-5 Imps
-(DK2 slots 408–414, 419, 444, 445), which ours never gets (`specials.md`; its state 214 is
-unread). Special 118, Reveal Map, is also unbuilt; it changes only the activator's view.
+and ours at 6413 in set D (6488 in set E seed 1; seeds 5 and 14 never). (12,18) starts as neutral open path (terrain 3), so it wants a claim,
+not a dig; the rejection may only say that ours does not take a claim tag there, and is
+a weak lead. Special 124, Receive Imps, gave DK2 ten level-5 Imps at turn 5783 (DK2 slots
+408–414, 419, 444, 445); since set E ours makes them on the same ten tiles (ADR-0441), in state 10 where DK2's
+are in 11 on that tick, as for Create Imp. DK2's ten all go 11, 10, 12 (`ImpStates.Resting`), 87
+(`Wandering`) and walk at 5787, four turns, the second's wait the owner sees; nine of ours find a task
+in 10 and walk at 5784–5786, one to three turns early.
+Special 118, Reveal Map, is unbuilt; it changes only the activator's view.
 
 ## What to compare next
 
-Build Receive Imps (special 124 and state 214) and re-run set D. Find why ours rejects the
-(12,18) tag at 4925, from the tile's state on both sides. If the frontier still lags,
-compare imp counts and dig rates on the west route (rows 25–15, x 8–14) against the
-capture before reading more of the binary.
+The frontier lags from row 25 on in every seed, before Receive Imps: compare imp counts
+and dig and claim rates on the west route (rows 25–15, x 8–14) against the capture before
+reading more of the binary. Then, in seed 1, why the army dropped at (16,5) does not
+reach the Lord.

@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 232: pending player room-build waves.
+        // HashVersion 233: pending waves and master's Receive Imps behavior.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x745E1A08B1224DFAUL, sim.StateHash());
+        Assert.Equal(0x538823E3806E3E01UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

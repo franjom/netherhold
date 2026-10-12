@@ -127,7 +127,8 @@ activator. That includes allies, heroes and the neutral player.
   `0x006C1C88`, angle step 2048 / 10). Each one that is created gains **four levels** (level 5),
   faces a random direction drawn from the world stream, and is kicked to state 214.
   The owner confirms ten level-5 Imps (2026-10-12), and the Level 4 capture shows ten
-  created on the turn the recording activates it (`2026-10-12-level4-packet-replay`). Not built.
+  created on the turn the recording activates it, on the same ten tiles. Built as
+  `SpecialSystem.GiveImps` (ADR-0441); state 214 is `0x00481750`.
 - **125 Make Happy.** Each of the keeper's creatures gets `0x00486E20`. While the world anger gate
   (`+0x72A1` bit 0, trigger action 44) is set, that zeroes the six anger counters. The mood is
   recomputed either way (`creature-anger.md`).

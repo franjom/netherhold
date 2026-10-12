@@ -69,9 +69,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 Plans: docs/plans/2026-10-09-classic-look.md and
 plans/2026-10-10-classic-look-step4.md. Supported Step 4 playback is built
-(ADR-0431–0438); room-life follow-ups are built under ADR-0441.
+(ADR-0431–0438); room-life follow-ups are built under ADR-0442.
 Combined verification passes; the authorized merge to master is next.
-Hash/save version is 232. Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity;
+Hash/save version is 233. Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity;
 restart Play after assembly sync. Never commit local editor state
 (ProjectSettings/*, Scenes/Dungeon.unity, URP globals).
 
@@ -91,7 +91,7 @@ room-construction-effects.md, prison-rats.md and portal-creature-action.md.
 Unity's built-in Particle System module is enabled. Construction particles
 use an independent wall clock and asset provider; their RNG does not change
 the simulation. Rats consume original shared gameplay draws, so seeded
-scenarios can change (ADR-0441).
+scenarios can change (ADR-0442).
 
 Owner visual checks: chickens, digging, reinforcing and walking look correct
 (2026-10-11); blue portal pillars and lava-walking Salamanders were verified.
@@ -122,7 +122,7 @@ d869276a-99ca-491a-9cf5-0342488c1277/scratchpad.
 Replay measurements are modern regressions, not original timing parity;
 all 60 Level1–3 traces validate, bounded-run wins 19/2/10. Artifacts:
 build/classic-step3-replays/room-life-final. Release verification passes
-4,982 tests without skips; Unity sync/compile and independent review pass.
+4,983 tests without skips; Unity sync/compile and independent review pass.
 Standalone render verification: tools/classic-unity-probe/ROOM_LIFE.md.
 
 ## Next work
@@ -151,8 +151,8 @@ The first-approach correction and remaining matched-capture work are in combat-a
 4. M6: Level 4 (`l4live.sav`, won at capture tick 6743; DK2 side `level4-live1/seed01`,
    local) replays all 6804 turns over seeds 1–20 but never wins
    (experiments/2026-10-12-level4-packet-replay/). Its captured Guard Rooms now draw Dark
-   Elves (ADR-0440). Next: build Receive Imps, special 124 (ten level-5 Imps, owner-confirmed;
-   state 214 unread), re-run, then compare the dig into the hero base. The map builder
+   Elves (ADR-0440); Receive Imps is built (ADR-0441). Next: the claim frontier lags DK2's
+   from row 25 on in every seed; compare imp counts and dig rates there. The map builder
    and runner are in `level4-live1/rig/` (local); seeded DK2 playbacks are still to record.
 5. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built (`tools/blender/imp-reference.ps1`, Blender 5.2.2). The procedural

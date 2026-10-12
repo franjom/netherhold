@@ -165,7 +165,7 @@ Gate: the owner, at the same spot in both games, cannot tell which camera is whi
 The HUD and panel, the Hand of Evil's cursor, spell and trap effects, sound, and the modern look
 (M11), which ADR-0408 puts on the same pipeline and which is judged against this one.
 
-Owner follow-ups built on 2026-10-12 beyond Step 4's scope (ADR-0441):
+Owner follow-ups built on 2026-10-12 beyond Step 4's scope (ADR-0442):
 
 - Room construction uses queued tile waves and the original sprite effects;
   see [room-construction-effects.md](../research/room-construction-effects.md).

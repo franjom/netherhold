@@ -10071,7 +10071,27 @@ receive 6–16 Dark Elves (DK2: 11) but none wins: our dig into the hero base la
 DK2's by 200–1,400 turns by seed, and Receive Imps (special 124, at 5783) is unbuilt
 (experiments/2026-10-12-level4-packet-replay/).
 
-## ADR-0441 — Restore room construction and ambient room life
+## ADR-0441 — Build Receive Imps, special 124
+**Date:** 2026-10-12 · **Status:** accepted · Research: specials.md (124), functions/00481750.md
+
+**Context.** Level 4's recording activates special 124 at turn 5783, and DK2 creates
+ten Imps round the keeper's Heart; ours logged the special as unimplemented.
+
+**Decision.** `SpecialSystem.GiveImps` follows `0x004A4980`: `SpecialReceiveImpsAmount`
+of the first worker type, two tiles from the Heart's tile centre at angles
+i × (0x800 / count) from north, each four levels up and facing `rand(0x800)` on the
+world stream, the special consumed. State 214 (`0x00481750`) waits out a fall, then
+runs 76's landing; ours has no fall and puts each Imp down as a dropped worker, as
+Create Imp's (ADR-0312). The effect, message 49 and sound are not modelled.
+Hash/save version 232.
+
+**Consequences.** On Level 4 the ten land on exactly DK2's ten tiles at 1000 health.
+Levels 2 and 3 replays are unchanged; Level 4 still wins 0/20. Seed 1's claim frontier
+now reaches row 5 at 6600 (DK2 6310, and row 15 before); seeds 5 and 14 creep to row 21
+by about 6100 and never reach row 15. Ours are in state 10 on the creation tick where
+DK2's are in 11, as for Create Imp (experiments/2026-10-12-level4-packet-replay/).
+
+## ADR-0442 — Restore room construction and ambient room life
 
 **Status:** accepted, 2026-10-12. Owner requested construction effects,
 Prison rats and creature portal arrival playback, followed by verification
@@ -10079,7 +10099,7 @@ and a merge to master.
 
 **Decision.** Player room rectangles enter the original fixed build queue;
 direct AI and harness orders retain immediate placement. Save and hash
-pending waves, bumping both formats to 232. Emit typed construction requests
+pending waves, bumping both formats to 233. Emit typed construction requests
 from wave placement, then play the original sprite resources through a
 separate asset provider and a wall-time effect clock. Reuse the object state
 and shared animal update order for rats. Select Entrance art during the
