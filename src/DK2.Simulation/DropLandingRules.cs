@@ -96,6 +96,15 @@ public static class DropLandingRules
                 return;
             }
 
+            if (type == RoomTypeId.Lair)
+            {
+                StateShadow.ToIdle(context, system, creature);
+                if (creature.OwnerPlayerId >= PlayerIds.FirstKeeper && definition.HateJobs.Contains(JobType.Sleep)) return;
+                creature.DroppedToDoJob = JobType.Sleep;
+                StateShadow.Move(context, system, creature, LairRules.SelectingBedState);
+                return;
+            }
+
             if (JobRules.TryDropOnARoom(context.Hooks, creature, definition, here) is { } job)
             {
                 context.Emit(system, "dropped_to_job", $"creature={creature.Id} job={job} at=({creature.Tile.X},{creature.Tile.Y})");

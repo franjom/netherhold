@@ -15,6 +15,10 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**239** — `0xBE0B8CC626E76E53`. Lair drops enter state 79, select a bed in
+the landing room and release an old bed before the jittered walk to state 80.
+No new saved field. ADR-0450.
+
 **238** — `0xE834B736C858816C`. Claim, enemy-floor attack and room conversion
 retain a centre destination for same-tile approaches. Visual effect requests
 do not enter saved or hashed state. ADR-0449.

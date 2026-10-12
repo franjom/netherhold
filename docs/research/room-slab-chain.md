@@ -92,9 +92,8 @@ of `0x004075E0`, instructions `0x0040811D..0x00408274`, saves the drag anchor at
 into `+8`, clipping its distance from the anchor without normalising the corners.
 Handler `0x00512850` forwards those pairs unchanged. The wave starts at the
 second pair and progresses to the first; reversing the drag reverses the wave.
-The owner now recalls press-to-release construction and reports a fixed
-lower-right origin in Unity; that conflicts with this reading. Q592 retains
-the controlled original/Unity comparison rather than reversing the packet rule.
+The owner confirmed after restarting Play that an opposite Unity drag starts
+at the opposite corner (2026-10-12); the fixed-origin report is resolved in Q592.
 
 **Neither availability nor `Buildable` gates this path (binary, 2026-10-06).** No function on
 it calls `Player_RoomAvailability` `0x004BAB20` or tests the ROOMS bit 0x80 as a refusal:

@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 238: approach tile centres before claiming (ADR-0449).
+        // HashVersion 239: select and relocate beds after lair drops (ADR-0450).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xE834B736C858816CUL, sim.StateHash());
+        Assert.Equal(0xBE0B8CC626E76E53UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -10271,3 +10271,20 @@ are neither saved nor hashed.
 **Consequences.** The changes apply across maps. Native arrival tolerance is
 preserved. The special cycling-colour branch and bed heading fidelity remain
 research boundaries; ordinary keeper colours use the confirmed palette.
+
+## ADR-0450 — Select a bed after a creature is dropped into a Lair
+**Date:** 2026-10-12 · **Status:** accepted
+
+**Context.** Lair drops fell back to idle after getting up, retaining a bed
+in another Lair. Native state 79 handles this room-directed relocation.
+
+**Decision.** Dispatch state 79 after the landing/get-up sequence, remembering
+the Sleep job. Use the existing local free-tile search. A bed in this room is
+reused; a full destination keeps the old bed. Successful selection releases
+the old bed before a seeded, jittered walk to state 80, which creates the new
+bed with the existing effect request. Hash/save version 239; no new field.
+Evidence: lair-acquisition.md §9 and the function record for 0046F4F0.
+
+**Consequences.** Relocation frees the former tile for another creature and
+applies across maps. The casualty-delivery approximation in ADR-0417 remains
+separate; this change restores ordinary hand drops.

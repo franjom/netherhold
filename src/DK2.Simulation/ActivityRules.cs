@@ -90,7 +90,7 @@ public static class ActivityRules
         HandRules.PreparationState => CreatureActivity.BeingLifted,
         PortalRules.JoiningState => CreatureActivity.Idle,
         CallToArmsRules.GoingState or CallToArmsRules.ArrivedState or CallToArmsRules.MillingState => CreatureActivity.HeedingCallToArms,
-        LairRules.MakingAHomeState => CreatureActivity.SeekingLair,
+        LairRules.SelectingBedState or LairRules.MakingAHomeState => CreatureActivity.SeekingLair,
         LairRules.GoingToBedState => creature.CurrentJob == JobType.Sleep ? CreatureActivity.AtWork : CreatureActivity.GoingToSleep,
         LairRules.LyingDownState => CreatureActivity.GoingToSleep,
         LairRules.SleepingState => CreatureActivity.Sleeping,

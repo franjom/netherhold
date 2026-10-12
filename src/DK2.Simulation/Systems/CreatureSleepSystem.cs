@@ -52,12 +52,13 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
 
-            // Workers are skipped explicitly rather than incidentally: an imp
-            // has no bed (LairObjectId 0) and would fall out of NeedsBed anyway,
-            // but "excluded because its record happens to say 0" stops being
-            // true the moment somebody edits a record.
-            if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
-            if (!LairRules.NeedsBed(definition)) continue;
+            // Explicit lair states run their own eligibility checks; autonomous
+            // seeking excludes workers and creatures that never sleep.
+            bool directed = creature.Dk2StateId is >= LairRules.SelectingBedState and <= LairRules.SleepingState
+                || (StateShadow.IsTravelling(creature)
+                    && creature.UtilityNewState is >= LairRules.MakingAHomeState and <= LairRules.SleepingState);
+            if (definition.Flags.HasFlag(CreatureFlags.IsWorker) && !directed) continue;
+            if (!LairRules.NeedsBed(definition) && !directed) continue;
 
             // A bed on a tile that has stopped being this keeper's lair is not a
             // bed. Sold, dug out or taken by a rival while its owner was away.
@@ -114,7 +115,9 @@ public sealed class CreatureSleepSystem : ISimulationSystem
 
                 case CreatureActivity.SeekingLair:
                     creature.AwakeTicks++;
-                    Seeking(context, creature, definition);
+                    if (creature.Dk2StateId == LairRules.SelectingBedState)
+                        SelectingBed(context, creature, definition);
+                    else Seeking(context, creature, definition);
                     break;
 
                 default:
@@ -152,18 +155,45 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         }
     }
 
-    /// <summary>The lair state on arrival — at the room, or at a tile found within
-    /// it.</summary>
-    /// <remarks>Nothing happens while there is route left. When it runs out the tile
-    /// underfoot is tested: not the keeper's lair at all (sold or captured while it
-    /// walked, or a blocked route) ends the state and leaves the creature idle; free,
-    /// and the bed goes down here; taken, and the local search runs from where the
-    /// creature now stands — the tile underfoot, then eight neighbours in a fixed
-    /// order, then a walk of the room from a random start
-    /// (<see cref="LairRules.TryFindFreeTile"/>). Nothing is reserved: two creatures
-    /// heading for one room is normal, and the owner filmed the second reject an
-    /// occupied tile and carry on — a 1x5 lair filled 1, 3, 5, 4. A room with no free
-    /// tile sends the creature back through the finder, possibly to another lair.</remarks>
+    /// <summary>State 79 selects a bed in the room where the creature was dropped.</summary>
+    private void SelectingBed(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        int here = world.TileIndex(creature.Tile);
+        if (!LairRules.IsLairTileOf(world, database, here, creature.OwnerPlayerId) || definition.LairObjectId == 0)
+        {
+            StateShadow.ToIdle(context, SystemName, creature);
+            return;
+        }
+        if (InBedsRoom(context, creature))
+        {
+            SetOff(context, creature, definition);
+            return;
+        }
+        RoomInstance room = RoomIndex.RoomAt(world, database, here)!;
+        if (!LairRules.TryFindFreeTile(world, database, room, creature.Tile, creature.OwnerPlayerId,
+            context.Rng, out int found, out _))
+        {
+            RoomNeedRules.Post(context, creature.OwnerPlayerId, PlayerMessageKind.RoomFull, RoomTypeId.Lair);
+            StateShadow.ToIdle(context, SystemName, creature);
+            return;
+        }
+        if (LairRules.BedOf(world, database, creature) is not null)
+            LairRules.ReleaseBed(world, database, creature);
+        int angle = context.Rng.NextInt(2048);
+        var target = new TilePos(found % world.Width, found / world.Width);
+        long x = CreatureState.CentreOf(target.X) + (1365L * TrapRules.Cosine(angle) >> 16);
+        long y = CreatureState.CentreOf(target.Y) + (1365L * TrapRules.Sine(angle) >> 16);
+        if (!context.Navigation.TryRouteToStance(creature, x, y, Navigation.MoveOptions.ExactSpot))
+        {
+            StateShadow.ToIdle(context, SystemName, creature);
+            return;
+        }
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, LairRules.MakingAHomeState);
+    }
+
+    /// <summary>State 80 places a bed on arrival, retrying the local search when the tile is taken.</summary>
     private void Seeking(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
@@ -222,10 +252,8 @@ public sealed class CreatureSleepSystem : ISimulationSystem
     /// centre; what happens next is decided by health alone — it sleeps at once only
     /// if hurt past <c>CreatureSleepsWhenBelowPercentHealth</c>, otherwise the state
     /// ends and it is idle until tiredness brings it back.</summary>
-    /// <remarks>Moving house is the original's rule and is kept although no path here
-    /// reaches it: a creature that finds a tile while owning a bed in another room
-    /// destroys the old bed. Here a bed is either valid — and its owner never seeks —
-    /// or already released, so the branch is a guard with an event.</remarks>
+    /// <remarks>State 79 normally releases the old bed before walking to this tile.
+    /// Retain the guard for other callers that arrive while still owning a bed.</remarks>
     private static void MakeBed(
         SimulationContext context, CreatureState creature, CreatureDef definition, int tileIndex)
     {

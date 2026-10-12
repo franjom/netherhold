@@ -73,7 +73,7 @@ Plans: docs/plans/2026-10-09-classic-look.md and
 plans/2026-10-10-classic-look-step4.md. Supported Step 4 playback is built
 (ADR-0431–0438); room-life follow-ups are built under ADR-0442.
 Combined verification passes; room-life fixes are merged to master at 6f4f2bb2.
-Classic follow-ups use hash/save version 238. ADR-0444 covers native bank heights,
+Classic follow-ups use hash/save version 239. ADR-0444 covers native bank heights,
 height interpolation, failed-job idle wandering and same-tile dummy approaches.
 Original guard placement/patrol timing is awaiting comparison in Q589.
 ADR-0447 covers route-less combat contact updates,
@@ -81,6 +81,8 @@ attack facing and post-impact melee holds. Q345 retains the original bridge
 spacing comparison; soft contact does not guarantee model clearance.
 ADR-0449 centres claiming imps and restores tile/room claiming and bed effects;
 see room-construction-effects.md §6 for original triggers and definitions.
+ADR-0450 handles bed relocation after a hand drop into another Lair;
+see lair-acquisition.md §9 for full-room and same-room behavior.
 Hero-owned Prisons do not produce rats; capture them first (prison-rats.md).
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity;
 restart Play after assembly sync. Never commit local editor state
@@ -133,13 +135,13 @@ d869276a-99ca-491a-9cf5-0342488c1277/scratchpad.
 Replay measurements are modern regressions, not original timing parity;
 all 60 Level1–3 traces validate, bounded-run wins 20/4/11. Artifacts:
 build/classic-step3-replays/claim-life238. Release verification passes
-5,073 tests without skips; Unity sync/compile and independent review pass.
+5,085 tests without skips; Unity sync/compile and independent review pass.
 Standalone render verification: tools/classic-unity-probe/ROOM_LIFE.md.
 
 ## Next work
 
-Construction-wave drag direction needs the restarted-Play/original comparison
-in Q592; input-to-build/effect tests cover all four drag quadrants.
+Construction-wave drag direction is resolved in Q592; the owner confirmed
+opposite drags start at opposite corners after restarting Play.
 
 Compare the room-life follow-ups after restarting Play; the canonical
 scope is in [the classic-look plan](plans/2026-10-09-classic-look.md#not-in-this-plan).
