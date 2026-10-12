@@ -47,9 +47,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// context's (<see cref="SimulationContext.Profiler"/>); observation only.</summary>
     public ISimulationProfiler Profiler { get; set; } = NullSimulationProfiler.Instance;
 
-    /// <summary>Re-reads every tile's navigation byte and rebuilds the mesh if any changed. The
-    /// original rebuilds around the tile its byte setter is told about; comparing the whole map is
-    /// cheaper than hooking its five writers and gives the same mesh.</summary>
+    /// <summary>Re-reads every tile's navigation byte and rebuilds the whole mesh if any changed.
+    /// The original instead edits its mesh in place around each changed tile (<c>0x004CE770</c>'s
+    /// partial path), removing redundant side points and reusing slots, so its triangles after an
+    /// edit very likely differ from a fresh build; whether routes differ is not shown (Q591,
+    /// navigation-partial-rebuild.md).</summary>
     public void Refresh()
     {
         using ProfileScope _ = Profiler.Scope(SimulationMarkers.NavRefresh);

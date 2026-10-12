@@ -128,12 +128,9 @@ uniform region, not a Delaunay one, and rock keeps whatever insertion left. This
 is what holds a whole room to a handful of triangles (Q351).
 
 **Removing a vertex is not part of a whole-map rebuild.** That pass is gated on
-the partial-rebuild flag (`0x004CEC10`) and sees only the points along the
-rebuilt rectangle's four sides (`0x004CE410`). For each, `0x004CAF40` walks the
-fan flipping incident edges until the degree is 3 or 4, then `0x004CB8C0` (3) or
-`0x004CB170` (4) frees the point (`+2 = 0x8000` marks a dead point) and pushes
-the dead triangles onto a free list threaded through `+6`. A whole-map build
-keeps **every** rectangle corner it inserted, which is what §7's dump shows.
+the partial-rebuild flag (`0x004CEC10`) and belongs to the per-tile rebuild of
+§2.4. A whole-map build keeps **every** rectangle corner it inserted, which is
+what §7's dump shows.
 
 **Bookkeeping.** Every new or rewired triangle passes through `0x004C8F50`,
 which computes its three edge width classes, and a rebuild ends by
@@ -201,6 +198,12 @@ never consults them. When neither region is marked in use the check re-runs the
 fill and compares the two words with `XOR` and `AND AL,0xC0` (`0x004C952B`) —
 the low two bits of the id only, so two regions whose ids differ by a multiple
 of four read as one. Rare in play: ids are almost always in use.
+
+### 2.4 The per-tile rebuild (Q591)
+
+A changed navigation byte edits DK2's mesh in place around that tile 
+(`0x004CE770`'s partial path); ours rebuilds the whole map, which diverges after 
+the first edit. Read in full in [navigation-partial-rebuild.md](navigation-partial-rebuild.md).
 
 ## 3. The search is greedy best-first
 
