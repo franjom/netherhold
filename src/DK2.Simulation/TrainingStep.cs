@@ -73,7 +73,7 @@ public static class TrainingStep
             x = CreatureState.CentreOf(tile % context.World.Width) + ((TrapRules.Cosine(angle) << 10) >> 16);
             y = CreatureState.CentreOf(tile / context.World.Width) + ((TrapRules.Sine(angle) << 10) >> 16);
         }
-        if (context.Navigation.TryRouteTo(trainee, x, y, MoveOptions.Loose))
+        if (context.Navigation.TryRouteToStance(trainee, x, y, MoveOptions.Loose))
             CreatureStateMachine.BeginTravel(context.Hooks, trainee, StateShadow.TravelToPoint, AtMachineState);
         return true;
     }

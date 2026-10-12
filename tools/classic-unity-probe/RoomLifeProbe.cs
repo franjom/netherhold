@@ -20,6 +20,7 @@ namespace DK2.Unity
 {
     public sealed class RoomLifeProbe : MonoBehaviour
     {
+        private const byte TrainingDummyObjectTypeId = 14;
         [Serializable] private sealed class Metrics
         {
             public string unity, gpu, shader, ratAsset, goblinAsset, warlockAsset;
@@ -29,6 +30,13 @@ namespace DK2.Unity
             public bool lairWaveCorrect, effectsExpired;
             public bool shaderSupported, ratMeshChanged, ratPositionChanged, goblinMeshChanged, warlockMeshChanged;
             public bool goblinFinalHeld, warlockFinalHeld, passed;
+            public bool dwarfNativeInterpolation, warlockNativeInterpolation, guardAtDummyCentre;
+            public bool guardFailedHuntSeen, guardWanderSeen, guardLeftDummyCentre;
+            public int guardStartX, guardStartY, guardEndX, guardEndY;
+            public int guardFirstMoveTick, guardRowsMoved, guardMaxDisplacementRaw;
+            public int[] guardStates;
+            public string guardCreature, dwarfMesh;
+            public Vector3[] dwarfNativeSamples, warlockNativeSamples;
         }
         private readonly Metrics _metrics = new Metrics();
         private InstallArtProvider _art;
@@ -70,6 +78,8 @@ namespace DK2.Unity
                 var db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
                 _art = InstallArtProvider.Open(install, db);
                 var meshes = new ClassicMeshes(_art);
+                CheckNativeCreatureInterpolation(meshes);
+                CheckLevelEightGuard(db, install);
                 _actors = new GameObject("Actors");
                 _scene = new DungeonScene(_actors.transform, 10, 10, meshes);
                 if (!_art.TryResolve(AssetRef.ForObject("Rat", AssetKind.Mesh), out _ratAsset)) throw new InvalidOperationException("Rat missing");
@@ -106,6 +116,77 @@ namespace DK2.Unity
         }
         private ObjectView RatPose(int x) => new ObjectView(1, 0, new PlayerId(1), new TilePos(1, 2),
             _ratAsset.Reference, 0, x, 8192, 4096, 0, 4096, playsAnimation: true, animationStartedAt: GameTick.Zero);
+        private void CheckNativeCreatureInterpolation(ClassicMeshes meshes)
+        {
+            var fixture = new GameObject("Native creature interpolation fixture");
+            var scene = new DungeonScene(fixture.transform, 8, 8, meshes);
+            string ignored;
+            _metrics.dwarfNativeInterpolation = NativeCreatureSamples(scene, fixture.transform, "Dwarf", 101,
+                16384, 4096, 4096, 8192, 12288, 2048,
+                new[] { new Vector3(2, .5f, -3), new Vector3(3, .75f, -2), new Vector3(4, 1, -1) }, out _metrics.dwarfMesh,
+                out _metrics.dwarfNativeSamples);
+            _metrics.warlockNativeInterpolation = NativeCreatureSamples(scene, fixture.transform, "Warlock", 102,
+                12288, 16384, 2048, 4096, 8192, 4096,
+                new[] { new Vector3(1, 1, -2), new Vector3(2, .75f, -3), new Vector3(3, .5f, -4) }, out ignored,
+                out _metrics.warlockNativeSamples);
+            fixture.SetActive(false); Destroy(fixture);
+        }
+        private bool NativeCreatureSamples(DungeonScene scene, Transform root, string name, int id,
+            int x, int y, int height, int previousX, int previousY, int previousHeight,
+            Vector3[] expected, out string entry, out Vector3[] measured)
+        {
+            if (!_art.TryResolve(AssetRef.ForCreature(name, AssetKind.Mesh), out var asset))
+                throw new InvalidOperationException(name + " native mesh missing");
+            entry = asset.InstallEntry;
+            var pose = new CreatureView(id, PlayerIds.FirstKeeper, x, y, asset.Reference, default, 0,
+                height: height, previousPosX: previousX, previousPosY: previousY, previousHeight: previousHeight);
+            scene.CreateCreature(id, pose, asset, default);
+            var go = root.Find("creature " + id).gameObject;
+            if (go.GetComponent<MeshFilter>() == null) throw new InvalidOperationException(name + " native mesh not created");
+            bool correct = true;
+            measured = new Vector3[expected.Length];
+            for (int sample = 0; sample < expected.Length; sample++)
+            {
+                scene.DrawCreatureFrame(GameTick.Zero, sample * .5f);
+                measured[sample] = go.transform.position;
+                correct &= Vector3.Distance(measured[sample], expected[sample]) < .00001f;
+            }
+            return correct;
+        }
+        private void CheckLevelEightGuard(GameDatabase db, string install)
+        {
+            var sim = CampaignSimulationFactory.Create(db, GameDatabaseLoader.LoadCampaignMap(install, "Level8"),
+                GameDatabaseLoader.LoadCampaignLevel(install, "Level8"), GameDatabaseLoader.LoadCampaignPlayers(install, "Level8"),
+                GameDatabaseLoader.LoadCampaignThings(install, "Level8"), GameDatabaseLoader.LoadCampaignTriggers(install, "Level8"), 1);
+            var guard = sim.World.CreatureById(22) ?? throw new InvalidOperationException("Level8 Guard22 missing");
+            _metrics.guardCreature = db.CreatureById(guard.CreatureTypeId).Name;
+            _metrics.guardStartX = guard.PosX; _metrics.guardStartY = guard.PosY;
+            var view = new WorldView(db, PlayerIds.Good);
+            _metrics.guardStates = new int[1500];
+            for (int tick = 0; tick < _metrics.guardStates.Length; tick++)
+            {
+                sim.Tick(); _metrics.guardStates[tick] = guard.Dk2StateId;
+                bool atCentre = guard.PosX == 79872 && guard.PosY == 108544;
+                if (guard.Dk2StateId == HeroJobRules.WaitFailedState)
+                {
+                    _metrics.guardFailedHuntSeen = true;
+                    if (atCentre && !_metrics.guardAtDummyCentre)
+                        _metrics.guardAtDummyCentre = view.Objects(sim.World).Any(thing => thing.ObjectTypeId == TrainingDummyObjectTypeId
+                            && thing.PosX == 79872 && thing.PosY == 108544);
+                }
+                _metrics.guardWanderSeen |= guard.Dk2StateId == 87;
+                long dx = (long)guard.PosX - 79872, dy = (long)guard.PosY - 108544;
+                int displacement = (int)Math.Sqrt(dx * dx + dy * dy);
+                _metrics.guardMaxDisplacementRaw = Math.Max(_metrics.guardMaxDisplacementRaw, displacement);
+                if (!atCentre)
+                {
+                    _metrics.guardRowsMoved++;
+                    if (_metrics.guardFirstMoveTick == 0) _metrics.guardFirstMoveTick = tick + 1;
+                }
+                _metrics.guardLeftDummyCentre |= _metrics.guardFailedHuntSeen && displacement > 1024;
+            }
+            _metrics.guardEndX = guard.PosX; _metrics.guardEndY = guard.PosY;
+        }
         private void CheckWave(GameDatabase db)
         {
             var floor = db.Terrain.Values.First(t => t.IsOwnable && !t.IsSolid && !t.IsRoom
@@ -224,7 +305,10 @@ namespace DK2.Unity
                     _metrics.passed = _metrics.shaderSupported && _metrics.effectChangedPixels > 0 && _metrics.particleGroups > 0
                         && _metrics.particleCount == _metrics.modelParticles && _metrics.ratMeshChanged && _metrics.ratPositionChanged
                         && _metrics.goblinMeshChanged && _metrics.warlockMeshChanged && _metrics.goblinFinalHeld && _metrics.warlockFinalHeld
-                        && _metrics.lairWaveCorrect && _metrics.effectsExpired;
+                        && _metrics.lairWaveCorrect && _metrics.effectsExpired
+                        && _metrics.dwarfNativeInterpolation && _metrics.warlockNativeInterpolation
+                        && _metrics.guardCreature == "Guard" && _metrics.guardAtDummyCentre && _metrics.guardFailedHuntSeen
+                        && _metrics.guardWanderSeen && _metrics.guardLeftDummyCentre;
                     File.WriteAllText(Path.Combine(_output, "metrics.json"), JsonUtility.ToJson(_metrics, true));
                     _ready = false; Application.Quit(_metrics.passed ? 0 : 1);
                 }

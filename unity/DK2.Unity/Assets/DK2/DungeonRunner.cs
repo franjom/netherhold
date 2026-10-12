@@ -15,8 +15,8 @@ using DK2.Data.Save;
 using DK2.Presentation;
 using DK2.Simulation;
 using DK2.Simulation.Systems;
-using UnityEngine;
 using Unity.Profiling;
+using UnityEngine;
 
 namespace DK2.Unity
 {
@@ -75,6 +75,11 @@ namespace DK2.Unity
         [SerializeField] private float cameraPanSpeed = 12f;
         [SerializeField] private float cameraZoomFraction = 0.15f;
         private const float MinCameraHeight = DungeonScene.FloorHeight + 0.5f;
+
+        // With TickMarker and PresentMarker below, so the Profiler separates input, the
+        // position snapshot and the tick itself (whose systems UnitySimulationProfiler shows).
+        private static readonly ProfilerMarker InputMarker = new ProfilerMarker("DK2.Frame.Input");
+        private static readonly ProfilerMarker CaptureMarker = new ProfilerMarker("DK2.Simulation.CaptureObjectPositions");
 
         private GameSimulation _simulation;
         private ScenePresenter _presenter;
@@ -151,6 +156,7 @@ namespace DK2.Unity
                     database, map, PlayersOf(map), fogOfWarEnabled: fogOfWar);
                 _simulation = new GameSimulation(database, savedMap, seed, SimulationSystems.Default());
             }
+            _simulation.ProfileWith(new UnitySimulationProfiler());
             WorldState world = _simulation.World;
             _roomIds = database.Rooms.Keys.OrderBy(id => (byte)id).ToArray();
             SelectKnownRoom();
@@ -201,9 +207,12 @@ namespace DK2.Unity
         {
             if (_simulation == null) return;
 
-            ControlCamera();
-            ReadToolKeys();
-            QueueInput();
+            using (InputMarker.Auto())
+            {
+                ControlCamera();
+                ReadToolKeys();
+                QueueInput();
+            }
 
             if (speed > 0f)
             {
@@ -221,7 +230,8 @@ namespace DK2.Unity
                         : InputFrame.Empty;
                     using (TickMarker.Auto())
                     {
-                        _worldView.CaptureObjectPositions(_simulation.World);
+                        using (CaptureMarker.Auto())
+                            _worldView.CaptureObjectPositions(_simulation.World);
                         _simulation.Tick(input);
                     }
                     if (i == 0) _pendingCommands.Clear();

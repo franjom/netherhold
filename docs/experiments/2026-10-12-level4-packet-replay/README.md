@@ -40,9 +40,9 @@ stand.
 | F | ADR-0443 | as E | 19/20 | 6/20 | 18/20 | 2/20 (seeds 19, 13: 6748, 6760) |
 | M | master 15c2b038 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 11, 12: 6740, 6732) |
 | G | M + ADR-0443 | as E | 19/20 | 2/20 | 13/20 | 3/20 (seeds 9, 11, 19: 6724–6748) |
-| Q | G + ADR-0447 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 9, 11: 6724, 6732) |
+| Q | G + ADR-0448 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 9, 11: 6724, 6732) |
 | M2 | master d1e67516 | as E | 19/20 | 2/20 | 13/20 | 3/20 (seeds 9, 11, 19: 6732–6740) |
-| Q2 | M2 + ADR-0447 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 9, 11: 6724, 6736) |
+| Q2 | M2 + ADR-0448 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 9, 11: 6724, 6736) |
 
 M and G agree tick for tick on Levels 1–3: the gate changes nothing there, and master's
 own commits since 3877e855 took Level 2 from 6/20 to 2/20 and Level 3 from 18/20 to
@@ -157,13 +157,13 @@ Level 3's drop is 454's and Level 2's is 455's; neither is examined here.
 
 ## Set Q
 
-ADR-0447 refuses a take whose walk cannot start. Level 4's `out_of_reach` drops fall
+ADR-0448 refuses a take whose walk cannot start. Level 4's `out_of_reach` drops fall
 from 4,979 to 17 over the 20 seeds; Levels 1–3 replay identically (every output file),
 and 14 of 20 Level 4 runs change (7 in `replay.csv`). Seed 19 no longer wins: within one
 seed, no measured gain, and again on master d1e67516 (M2 against Q2: drops 4,878 to 17).
 Seed 19 loses both times: 26 imps' takes of the owner's dig at (16,5) are refused 139
 times at 6443–6800, and (17,5) is never claimed. That the door-blind grid's side choice
-causes the refusals is inferred, not traced. Gold, object and body fetches and the side test are Q589.
+causes the refusals is inferred, not traced. Gold, object and body fetches and the side test are Q590.
 
 ## What to compare next
 

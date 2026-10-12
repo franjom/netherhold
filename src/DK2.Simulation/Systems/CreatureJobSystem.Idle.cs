@@ -64,12 +64,12 @@ public sealed partial class CreatureJobSystem
     private static bool RoomAvailable(WorldState world, PlayerId player, RoomTypeId type) =>
         world.Availability(player, AvailabilityKind.Room, (int)type) == Available;
 
-    /// <summary>State 3 (<c>0x00477680</c> and <c>0x004776C0</c>): wait out a playing action; at the
+    /// <summary>States 3/4 (<c>0x00477680</c> and <c>0x004776C0</c>): wait out a playing action; at the
     /// deadline, idle. Otherwise, after a wander (<c>+0xA7</c> set), roll: under 25 wander again,
     /// 25–74 action 43, 75–99 action 44. With no wander yet, or on the low roll, 87 with
     /// <c>+0xA7</c> = now + 132. Ours: every creature has both actions, whose length is a guess
     /// (<see cref="ImpTaskSystem.IdleActionGuessTicks"/>).</summary>
-    private static void DoingNothing(SimulationContext context, CreatureState creature)
+    internal static void DoingNothing(SimulationContext context, CreatureState creature)
     {
         long now = context.Tick.Value;
         if (now < creature.ActionUntilTick) return;
@@ -85,7 +85,7 @@ public sealed partial class CreatureJobSystem
     /// <c>0x004776C0</c>, without 3's wait for a running action or its deadline (refused-states.md §1).</summary>
     private static void NeutralIdle(SimulationContext context, CreatureState creature) => IdleBody(context, creature);
 
-    /// <summary><c>0x004776C0</c>, the body 3 and 5 share. After an idle action, a Bile Demon
+    /// <summary><c>0x004776C0</c>, the body 3, 4 and 5 share. After an idle action, a Bile Demon
     /// (<c>+0x36F</c> 3) rolls <c>random(100)</c> again (simulation stream, <c>0x004777D7</c>) and under
     /// 10 makes shot <c>0x35</c> at its position through <c>0x004B7CD0</c> (<c>0x00477806</c>): the Heal
     /// Instant Shot, whose data words are 0 and which no caller aims, so it dies on its first turn

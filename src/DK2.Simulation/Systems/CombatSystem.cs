@@ -191,8 +191,8 @@ public sealed class CombatSystem : ISimulationSystem
 
         if (FearRules.FearChecks(context, _sight!, _hearts, _rooms, creature, definition, _scratch)) return;
 
-        // Busy (0x00496D00): a swinging creature neither moves nor looks.
-        if (creature.SwingInProgress) return;
+        // Busy (0x00496D00): the state handler does not select another attack or approach.
+        if (FightRules.MeleeActionIsRunning(creature, definition, context.Tick)) return;
 
         // Step 8: a Support re-acquires every tick, keeping a new target and restoring the old one
         // when nothing is found (combat-fight-state.md §2).
@@ -203,6 +203,10 @@ public sealed class CombatSystem : ISimulationSystem
         if (FightRules.InRange(_sight!, creature, x, y))
         {
             creature.StopMoving();
+            int heading = creature.Heading;
+            int left = Bearing.TurnToward(ref heading, Bearing.Of(x - creature.PosX, y - creature.PosY), definition.TurnRate);
+            creature.Heading = heading;
+            if (left != 0) return;
             if (creature.AttackType == CombatRules.AttackMode.SpellAtAlly)
             {
                 // The ally arm (combat-spells.md §8): cast once when the cooldown allows, else stand.

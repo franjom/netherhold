@@ -164,9 +164,11 @@ The classic view uses the melee start stamp and authored action duration to
 keep a nonlooping swing visible after impact. Melee-mode and state-entry
 guards reject ranged resets and interrupted actions. Combat routes select
 walk/run independently of the Fighting activity label. ADR-0436.
-This is a presentation bridge: the simulation still releases its pending
-blow at impact without the full mode-3 action lifetime. The consequence for
-combat timing remains open under Q582.
+The simulation now keeps melee busy through the animation-completion poll
+after impact (ADR-0447). Target validation and fear checks still run before
+the busy gate. Shipped Guard/Dwarf/Salamander regressions cover facing and
+post-impact holds; their normal efficiency-scaled recharge does not truncate
+these clips. This does not close Q582's original-game casualty comparison.
 
 Chicken Walk/Eat/Scared art selection is documented in object-drawing.md §8.
 Their meshes use the shared fractional sampler. Positions and headings are

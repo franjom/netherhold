@@ -73,7 +73,14 @@ Plans: docs/plans/2026-10-09-classic-look.md and
 plans/2026-10-10-classic-look-step4.md. Supported Step 4 playback is built
 (ADR-0431–0438); room-life follow-ups are built under ADR-0442.
 Combined verification passes; room-life fixes are merged to master at 6f4f2bb2.
-Hash/save version is 233. Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity;
+Classic follow-ups use hash/save version 237. ADR-0444 covers native bank heights,
+height interpolation, failed-job idle wandering and same-tile dummy approaches.
+Original guard placement/patrol timing is awaiting comparison in Q589.
+ADR-0447 covers route-less combat contact updates,
+attack facing and post-impact melee holds. Q345 retains the original bridge
+spacing comparison; soft contact does not guarantee model clearance.
+Hero-owned Prisons do not produce rats; capture them first (prison-rats.md).
+Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity;
 restart Play after assembly sync. Never commit local editor state
 (ProjectSettings/*, Scenes/Dungeon.unity, URP globals).
 
@@ -154,9 +161,9 @@ The first-approach correction and remaining matched-capture work are in combat-a
    local) replays all 6804 turns over seeds 1–20 and wins 2/20 (6724, 6736)
    (experiments/2026-10-12-level4-packet-replay/). Guard Rooms draw Dark Elves
    (ADR-0440), Receive Imps is built (ADR-0441), and a door tile is no longer offered for
-   claiming (ADR-0443) and a take needs a route (ADR-0447). Winners hold row 5 before the
+   claiming (ADR-0443) and a take needs a route (ADR-0448). Winners hold row 5 before the
    owner's drops there (needed, not sufficient); losers lose Imps to the 3766–4600 hero fights and sometimes miss
-   portal arrivals the owner picks up. Party timing is seed spread (median 35 turns early). Next: Q589's per-side
+   portal arrivals the owner picks up. Party timing is seed spread (median 35 turns early). Next: Q590's per-side
    reachability for digs (it costs seed 19), then the Level 2/3 drop from 454 and 455.
    The map builder
    and runner are in `level4-live1/rig/` (local); seeded DK2 playbacks are still to record.

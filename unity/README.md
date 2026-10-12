@@ -138,11 +138,23 @@ off for baseline captures. The adapter exposes these CPU markers:
 | `DK2.Animation.Clock` | Per-instance phase advancement and segment selection |
 | `DK2.Animation.Sample` | KMF interpolation and Unity vertex conversion |
 | `DK2.Animation.MeshUpload` | Vertex upload and mesh bounds recalculation |
+| `DK2.Frame.Input` | Camera, tool keys and pointer input |
+| `DK2.Simulation.CaptureObjectPositions` | The position snapshot, inside `DK2.Simulation.Tick` |
+| `DK2.Sim.tick` | The tick inside the simulation; below it `DK2.Sim.messages`, `DK2.Sim.triggers` and one marker per system by name (ADR-0444) |
+| `DK2.Sim.nav.refresh` / `nav.build` / `nav.route` | Re-reading the navigation bytes, rebuilding the mesh, one route query |
+| `DK2.Sim.grid.nearest` / `grid.path` | One grid search by ImpTask's pathfinder |
+| `DK2.Sim.ImpTask.*` | ImpTask's phases: claim on the way, wander, carry, job |
+| `DK2.TerrainChunks.Rebuild` | One terrain chunk's mesh, inside `DK2.Scene.Present` |
+| `DK2.TerrainChunks.Geometry` / `Upload` | Inside Rebuild: one changed tile's pieces regenerated (cached tiles are copied), and the chunk mesh set |
+| `DK2.TransparentTerrain.SetChunk` / `Sort` | A chunk's blended faces kept; the per-camera depth sort of all of them |
 
 Nested marker times overlap: do not add child totals to their parent's total.
 Animation markers run once per animated instance; use the Hierarchy aggregate
 to assess crowd cost. Tick count varies per rendered frame; report both tick
-cost and whole-frame cost. These scopes do not change the simulation or its hash.
+cost and whole-frame cost. These scopes do not change the simulation or its hash. At 4 ticks a second most
+frames run no tick: select a spike and read the Hierarchy Calls column for how many
+searches or refreshes it ran. The scenario tests print the same `DK2.Sim.` markers
+without the prefix, with allocations and the worst tick (`RunTimings.Summarise`).
 
 For a repeatable baseline, use Level8, seed 1, speed 1, the same camera,
 resolution, quality settings and fog setting. Capture a quiet Heart view and a

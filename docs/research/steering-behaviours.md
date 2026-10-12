@@ -296,7 +296,7 @@ position/velocity up four (`0x004D59A0`), preserving 1/4096 precision; they set 
 integrate (`0x004D5A40`, unless speed is zero),
 read position down four (`0x004D5AC0`) and commit (`0x004B5560`). The main update
 first rejects off-map or solid positions through `0x004B35C0`, resetting body position and velocity.
-It requires state-table bit 0 at `0x006DA8C8 + state × 25`; which states qualify is unread.
+It requires state-table bit 0 at `0x006DA8C8 + state × 25`; route-less fight dispatch and remembered-entity activation are in [combat-spacing.md](combat-spacing.md).
 
 **Speed.** Walk/run/shuffle: `def+0x5B4/+0x5B8/+0x5BC`, per tick. Loader `0x00492320`
 and stat setter `0x00494BA4` divide KWD rates by variable 19,

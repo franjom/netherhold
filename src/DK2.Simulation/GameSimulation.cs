@@ -20,9 +20,10 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 236;
+    private const ulong HashVersion = 237;
 
     private readonly List<ISimulationSystem> _systems;
+    private readonly SimulationMarker[] _systemMarkers;
     private readonly SimulationContext _context;
     private readonly TriggerExecutor _triggers;
     private TriggerTurnCsvEmitter? _triggerEmitter;
@@ -48,6 +49,7 @@ public sealed class GameSimulation
         World = world;
         Rng = rng;
         _systems = systems is null ? [] : [.. systems];
+        _systemMarkers = [.. _systems.Select(s => SimulationMarker.Named(s.Name))];
         _context = new SimulationContext(database, world, rng, NullEventSink.Instance);
         _triggers = triggers is null
             ? new TriggerExecutor(world.Triggers)
@@ -86,6 +88,11 @@ public sealed class GameSimulation
     /// <summary>Starts sending observation events to <paramref name="events"/>. Behaviour-neutral.</summary>
     public void ObserveWith(ISimulationEventSink events) => _context.Events = events;
 
+    /// <summary>Starts timing ticks, systems and the spans below them with <paramref name="profiler"/>.
+    /// Behaviour-neutral, as <see cref="ObserveWith"/> is.</summary>
+    public void ProfileWith(ISimulationProfiler profiler) =>
+        _context.Profiler = profiler ?? throw new ArgumentNullException(nameof(profiler));
+
     public void EmitTriggerTurnsTo(TextWriter writer) => _triggerEmitter = new TriggerTurnCsvEmitter(writer);
 
     /// <summary>
@@ -97,6 +104,8 @@ public sealed class GameSimulation
     /// </summary>
     public void Tick(in InputFrame input)
     {
+        ISimulationProfiler profiler = _context.Profiler;
+        using ProfileScope tick = profiler.Scope(SimulationMarkers.Tick);
         _context.Tick = World.CurrentTick;
         _context.Input = input;
         _context.TremorMoodDispatchedThisTick.Clear();
@@ -104,13 +113,17 @@ public sealed class GameSimulation
 
         // Close the previous turn's observation window before this turn's producers.
         // This preserves zero-timeout messages for an external keeper (ADR-0245).
-        foreach (Commands.AcknowledgePlayerMessageCommand ack in _context.Commands<Commands.AcknowledgePlayerMessageCommand>())
-            World.Messages.Acknowledge(ack.PlayerId, ack.MessageId);
-        World.Messages.Sweep(World, Database);
+        using (profiler.Scope(SimulationMarkers.Messages))
+        {
+            foreach (Commands.AcknowledgePlayerMessageCommand ack in _context.Commands<Commands.AcknowledgePlayerMessageCommand>())
+                World.Messages.Acknowledge(ack.PlayerId, ack.MessageId);
+            World.Messages.Sweep(World, Database);
+        }
 
         // DK2's first game turn is 1; our next-tick clock starts at 0.
         int dk2Turn = unchecked((int)(World.CurrentTick.Value + 1));
-        LastTriggerRun = _triggers.Run(dk2Turn);
+        using (profiler.Scope(SimulationMarkers.Triggers))
+            LastTriggerRun = _triggers.Run(dk2Turn);
         // The same per-turn world update (0x0050A450) counts the level time limit down.
         if (World.Triggers.CountDownLevelTimeLimit())
             _context.Emit(nameof(TriggerExecutor), "level_time_up", $"turn={dk2Turn}");
@@ -126,8 +139,11 @@ public sealed class GameSimulation
                 + $"context={partial.Context}");
         }
 
-        foreach (ISimulationSystem system in _systems)
-            system.Execute(_context);
+        for (int i = 0; i < _systems.Count; i++)
+        {
+            using (profiler.Scope(_systemMarkers[i]))
+                _systems[i].Execute(_context);
+        }
 
         _triggerEmitter?.Emit(dk2Turn, World.Triggers, _triggers.Tree);
 

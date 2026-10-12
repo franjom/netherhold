@@ -1,6 +1,10 @@
 # Early state-hash versions
 
-Versions 9–37, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–38, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**38** — reserved, never on master. Taken by the action-point branch in the
+codex worktree so the two could not collide; the merged result took 40 rather
+than reusing it.
 
 **37** — `0xD17C2E424DDE0AF2`. `WorldState.Triggers`: the level's trigger flag
 and timer banks (ADR-0102). They are hashed because an action record writes a

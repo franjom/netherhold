@@ -50,23 +50,28 @@ expect:
       HungerFill; a Bile Demon would owe five.
   - event: chicken_eaten
     detail: "gained=375"
+    at_tick: 720
+    count: 2
     because: >
       HpFromChicken off the Goblin's own record, capped at the health it is
       missing - these two are placed at 900 of 1500, so the whole 375 lands
       (ADR-0067).
   - event: chicken_eaten
     detail: "need=0"
+    at_tick: 720
+    count: 2
     because: >
       One bird pays off ONE helping for a free creature. A prisoner's single
       bird pays off the whole of HungerFill instead, which is the difference
       between the two routes (ADR-0074).
   - event: chicken_eaten
-    detail: "creature=1 type=Goblin player=3 chicken=21"
+    detail: "creature=1 type=Goblin player=3 chicken=7"
     at_tick: 720
     because: >
       Floor laying, full-room coop launches and chicken roaming leave a bird on the
       entry tile, so this seed feeds the Goblin without a separate one-step chase.
-      The chosen bird and meal tick remain pinned; nearest-bird walks have EatingTests.
+      With same-cell wandering preserved, the seed selects bird 7 at the same meal
+      tick. Both remain pinned; nearest-bird walks have EatingTests.
   - event: egg_laid
     at_tick: 727
     because: >

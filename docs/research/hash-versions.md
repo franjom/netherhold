@@ -15,9 +15,16 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**236** — `0xC3C0A8A82912396E`. A worker's take fails when its walk cannot start (Q588); no new saved field. ADR-0447.
+**237** — `0xBC650457E0557295`. Route-less fight states integrate contact;
+in-range fighters face their target and hold melee through the authored
+animation-completion poll. No new saved field. ADR-0447.
 
-**235** — `0xF586FE56CCF63F2F`. The possession/arms branch: followers (leader, route deadline, count, shared melee target; ADR-0445) and inputs (disguise, sniper mode, hypnosis hold, old owner, mark and attack counts on creatures, the sniper bit on shots; ADR-0446) are saved and hashed.
+**236** — `0xC3C0A8A82912396E`. Combines possession followers/inputs with failed hero
+jobs running the native idle wrapper;
+same-tile wander and training routes retain their destination waypoint.
+ADR-0444–0446.
+
+**235** — `0xF586FE56CCF63F2F`. The possession/arms branch: followers (leader, route deadline, count, shared melee target; ADR-0445) and inputs (disguise, sniper mode, hypnosis hold, old owner, mark and attack counts on creatures, the sniper bit on shots; ADR-0446) are saved and hashed. Classic's unmerged idle fixes used `0x7033026B2672013F`; 236 separates the combined snapshot.
 
 **234** — `0x9EE6056B64A1FD38`. The claim priority refuses a tile holding a closed, completed door (`0x0046AB50`'s door gate); no new saved field. ADR-0443.
 
@@ -387,8 +394,4 @@ to **sixteen**, 240 fewer dwords in the hash. Two readings agree on sixteen: the
 next field on the owning object sits 0x40 bytes after the bank, and the
 condition path compares the id against 0x10 before indexing.
 
-**38** — reserved, never on master. Taken by the action-point branch in the
-codex worktree so the two could not collide; the merged result took 40 rather
-than reusing it.
-
-[Versions 9–37](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–38](hash-versions-early.md) retain the earlier pins and their reasons.

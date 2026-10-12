@@ -791,8 +791,8 @@ public sealed partial class ImpTaskSystem
     /// Commits a worker to tile work along the route the last search planned. False, with nothing
     /// committed, when the walk cannot start: the tile-work handlers' takes fail when their route
     /// request does (<c>0x004651A0</c> → <c>0x00471890</c> → <c>0x004D0F60</c>, imp-task-stealing.md
-    /// §7, ADR-0447). A held slot is kicked after the walk starts, as claim and reinforce do; the
-    /// dig caller kicks first, and the just-dug claim's walk to its own tile never fails (Q589).
+    /// §7, ADR-0448). A held slot is kicked after the walk starts, as claim and reinforce do; the
+    /// dig caller kicks first, and the just-dug claim's walk to its own tile never fails (Q590).
     /// </summary>
     private bool CommitJob(
         SimulationContext context, CreatureState creature, int tileIndex, TileWorkKind kind, JobPriority priority,

@@ -6,6 +6,7 @@ using DK2.Core;
 using DK2.Data.Model;
 using DK2.Pathfinding;
 using DK2.Simulation.Combat;
+using DK2.Simulation.Navigation;
 
 namespace DK2.Simulation.Systems;
 
@@ -133,7 +134,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private static readonly int[] NeighbourDx = [0, -1, 1, 0];
     private static readonly int[] NeighbourDy = [-1, 0, 0, 1];
 
-    private readonly IPathfinder _pathfinder;
+    private readonly ProfiledPathfinder _pathfinder;
     private readonly List<TilePos> _route = [];
 
     private delegate void ActivityStep(SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid);
@@ -152,7 +153,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     /// <summary>Takes the pathfinder explicitly so a replacement for Q5 can be dropped in.</summary>
     public ImpTaskSystem(IPathfinder pathfinder)
     {
-        _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
+        _pathfinder = new ProfiledPathfinder(pathfinder ?? throw new ArgumentNullException(nameof(pathfinder)));
         _carrying = StepTable(
             (CreatureActivity.DeliveringGold, (context, creature, _, grid) => UpdateDelivering(context, creature, grid)),
             (CreatureActivity.FetchingGold, (context, creature, definition, grid) => UpdateFetching(context, creature, definition, grid)),
@@ -191,6 +192,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
+        _pathfinder.Profiler = context.Profiler;
         IReadOnlyList<CreatureState> creatures = context.World.Creatures;
 
         // Newest first, as DK2's world turn walks its creature list (0x004B7830), where a new
@@ -242,17 +244,26 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         // before its pick-up: a worker-job state, or a walk resuming one (0x00478050 == 3), with
         // no object or creature carried; a wander walk resumes idle and never claims. Level 1
         // seeds 3, 4 and 5 open their first room this way from a walk to a dig (ADR-0303, ADR-0378).
-        bool claimed = CreatureStateMachine.HasState(creature)
+        ISimulationProfiler profiler = context.Profiler;
+        bool claimed = false;
+        if (CreatureStateMachine.HasState(creature)
             && NeedRules.ResolvedCategory(creature) == CreatureStateCategory.WorkerJob
-            && creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0
-            && TryClaimOnTheWay(context, creature, grid);
+            && creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0)
+        {
+            using (profiler.Scope(SimulationMarkers.ImpClaimOnTheWay))
+                claimed = TryClaimOnTheWay(context, creature, grid);
+        }
         PickUpGoldInPassing(context, creature, definition);
         if (claimed) return;
-        if (UpdateWander(context, creature, definition)) return;
+        bool wandered;
+        using (profiler.Scope(SimulationMarkers.ImpWander))
+            wandered = UpdateWander(context, creature, definition);
+        if (wandered) return;
 
         if (StepFor(_carrying, creature) is { } carry)
         {
-            carry(context, creature, definition, grid);
+            using (profiler.Scope(SimulationMarkers.ImpCarry))
+                carry(context, creature, definition, grid);
             return;
         }
 
@@ -279,7 +290,11 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
         // No deposit before the choice: DK2's state 10 has none. An imp puts gold down after a
         // dig or a mine with no more excavation (kind 15, in TryTakeJob), on the aimed gold retry
         // with full hands, and when dropped on a store; a claimer carries its load on (ADR-0288).
-        if (StepFor(_jobs, creature) is { } job) job(context, creature, definition, grid);
+        if (StepFor(_jobs, creature) is { } job)
+        {
+            using (profiler.Scope(SimulationMarkers.ImpJob))
+                job(context, creature, definition, grid);
+        }
         else GoIdle(creature);
     }
 

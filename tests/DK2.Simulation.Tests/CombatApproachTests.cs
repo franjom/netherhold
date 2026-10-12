@@ -21,6 +21,29 @@ public class CombatApproachTests
     private const byte Rival = PlayerIds.FirstKeeper + 1;
     private const byte BodyLoverCreatureId = 51;
 
+    [Theory]
+    [InlineData(199)]
+    [InlineData(200)]
+    public void FightingWithoutARouteStillIntegratesNeighbourContact(int state)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState fighter = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 8, 10);
+        CreatureState neighbour = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
+        StatePlacement.As(fighter, CreatureActivity.Fighting);
+        fighter.Dk2StateId = state;
+        neighbour.PosX += 100;
+        fighter.StopMoving();
+        int initialX = fighter.PosX;
+        fighter.Heading = 321;
+        var sim = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
+
+        sim.Tick();
+
+        Assert.NotEqual(initialX, fighter.PosX);
+        Assert.Equal(321, fighter.Heading);
+        Assert.False(fighter.IsRouted);
+    }
+
     [Fact]
     public void AFighterOutOfReachWalksInStateEight_AndRefreshesItsRouteEveryTenCalls()
     {

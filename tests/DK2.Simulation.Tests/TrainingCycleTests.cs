@@ -89,6 +89,26 @@ public class TrainingCycleTests
     }
 
     [Fact]
+    public void ATrainingDummyOnTheCurrentTileStillRequiresWalkingToItsStandOff()
+    {
+        var (db, world, trainee) = Setup();
+        foreach (ObjectState item in world.Objects.ToArray()) world.RemoveObject(item.Id);
+        world.SpawnObject(db, 14, Keeper, 63);
+        var sim = new GameSimulation(db, world, 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
+        sim.Run(2);
+        Assert.Equal(CreatureState.CentreOf(3), trainee.StateTargetX);
+        Assert.Equal(CreatureState.CentreOf(3), trainee.StateTargetY);
+        Assert.True(trainee.HasRoute);
+        Assert.Equal(1, trainee.Body.PathTotalCount);
+        long dx = (trainee.Body.PathTargetPos.X >> 4) - trainee.StateTargetX;
+        long dy = (trainee.Body.PathTargetPos.Y >> 4) - trainee.StateTargetY;
+        Assert.InRange(dx * dx + dy * dy, 2045L * 2045, 2049L * 2049);
+        for (int i = 0; i < 100 && trainee.Dk2StateId != 112; i++) sim.Tick();
+        Assert.Equal(112, trainee.Dk2StateId);
+        Assert.True(Math.Abs(trainee.PosX - trainee.StateTargetX) > 512 || Math.Abs(trainee.PosY - trainee.StateTargetY) > 512);
+    }
+
+    [Fact]
     public void TrainingNaturallyWalksToADummyStrikesItAndChoosesAgain()
     {
         var (db, world, trainee) = Setup();

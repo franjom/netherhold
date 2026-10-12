@@ -155,7 +155,8 @@ public readonly struct CreatureView
         GameTick? animationStartedAt = null,
         Fp32? animationMovementSpeed = null,
         bool animationPaused = false,
-        bool animationDeferred = false)
+        bool animationDeferred = false,
+        int? previousHeight = null)
     {
         Id = id;
         OwnerPlayerId = ownerPlayerId.Value;
@@ -165,6 +166,7 @@ public readonly struct CreatureView
         Animation = animation;
         GoldHeld = goldHeld;
         Height = height;
+        PreviousHeight = previousHeight ?? height;
         MeshYaw = meshYaw;
         Pitch = pitch;
         Roll = roll;
@@ -194,6 +196,7 @@ public readonly struct CreatureView
 
     /// <summary>Draw height and model turns; torture attachment is presentation only.</summary>
     public int Height { get; }
+    public int PreviousHeight { get; }
     public int MeshYaw { get; }
     public int Pitch { get; }
     public int Roll { get; }
@@ -1108,12 +1111,12 @@ public sealed partial class WorldView
 
             _creatureMeshes.TryGetValue(creature.CreatureTypeId, out AssetRef mesh);
 
-            int posX = creature.PosX, posY = creature.PosY, height = FloorZ;
-            TerrainDef terrain = _database.TerrainById(world.Tile(position).TerrainId);
-            if ((terrain.IsWater || terrain.IsLava
-                    || (_database.RoomsByTerrain.TryGetValue(terrain.TerrainId, out RoomDef? room) && BridgeRules.IsBridge(room)))
-                && !WaterSpeedRules.IsFlying(_database.CreatureById(creature.CreatureTypeId), creature))
-                height = FloorHeight(world, position.X, position.Y);
+            int posX = creature.PosX, posY = creature.PosY;
+            bool flying = WaterSpeedRules.IsFlying(_database.CreatureById(creature.CreatureTypeId), creature);
+            int height = flying ? FloorZ : CreatureGroundHeight(world,
+                new FpPosition3(new(posX), new(posY), new(FloorZ))).Raw;
+            int previousHeight = flying ? FloorZ : CreatureGroundHeight(world,
+                new FpPosition3(new(creature.LastPosX), new(creature.LastPosY), new(FloorZ))).Raw;
             int yaw = (creature.Heading + 1024) & 2047, pitch = 0, roll = 0;
             int previousX = creature.LastPosX, previousY = creature.LastPosY;
             bool meleeAnimation = IsMeleeAnimation(creature, world.CurrentTick);
@@ -1143,6 +1146,7 @@ public sealed partial class WorldView
                 else height += 0x200;
                 previousX = posX;
                 previousY = posY;
+                previousHeight = height;
             }
 
             yield return new CreatureView(
@@ -1161,7 +1165,7 @@ public sealed partial class WorldView
                     ? new GameTick(creature.StateEnteredTick) : null,
                 !meleeAnimation && !castAnimation && !trainingAnimation && !entranceAnimation && IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null,
                 animationPaused: creature.FrozenTicks > 0,
-                animationDeferred: IsDeferredLanding(creature));
+                animationDeferred: IsDeferredLanding(creature), previousHeight: previousHeight);
         }
     }
 

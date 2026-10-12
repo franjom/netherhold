@@ -224,7 +224,7 @@ capture check in §10 is what would show a long trade.
    removes competing claim tasks; the wall's neighbour changes re-raise kind 6). Slots are
    reused (`an-entity-id-is-a-slot`), so the id can even come to name an object.
 
-## 7a. A walk that does not start (Q588, Q589)
+## 7a. A walk that does not start (Q588, Q590)
 
 Each handler's walk is `0x004651A0` → `0x00471890` → `0x004D0F60`, and a failed request
 ends the take. Claim (`0x0046AB50`) and reinforce (`0x0046AEA0`) walk first and kick a
@@ -236,11 +236,11 @@ selection up when the chosen walk fails. Gold (`0x0046B6D0`) skips to the next o
 objects handler `0x0046B9C0` also checks its walk (reviewer, 2026-10-12, not yet read in
 full). The just-dug claim `0x00469600` kicks before walking.
 
-Built (ADR-0447): claim, reinforce, dig and the just-dug claim route before committing.
-Not built (Q589): ours picks the dig side on the door-blind `WorldPathGrid` and moves to
+Built (ADR-0448): claim, reinforce, dig and the just-dug claim route before committing.
+Not built (Q590): ours picks the dig side on the door-blind `WorldPathGrid` and moves to
 the next candidate tile on a failed dig walk; gold, object and body fetches ignore
 `TryRoute`'s result; the just-dug claim kicks after its walk (to its own tile, which
-never fails). Level 4 seed 19 loses since ADR-0447: 26 imps' takes of the owner's dig at
+never fails). Level 4 seed 19 loses since ADR-0448: 26 imps' takes of the owner's dig at
 (16,5) are refused 139 times at 6443–6800, and (17,5) is never claimed; the grid's side
 choice as the cause is STRONGLY INFERRED, not traced.
 

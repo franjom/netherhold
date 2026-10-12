@@ -30,6 +30,16 @@ int-pointer +0x568 means that same byte offset. The two world pointer caches
 are already resolved in Q231. Room-list and slab-chain ordering use the
 existing derived-room approximation documented in 0x004C6460's record.
 
+The shipped Level8 map starts its sole Prison (19 tiles, x15-19/y20-23)
+and Torture Chamber (21 tiles, x9-13/y10-16) under neutral player 2. Their
+combined limit is four, but the non-keeper early return prevents generation.
+A default campaign simulation with seed 1 produced no rats over 1,000 ticks.
+Changing only that Prison's ownership to keeper 3 gave a limit of two;
+rats spawned, moved and decayed normally, then were replaced after expiry.
+This is modern runtime verification, not an
+original-game experiment. CampaignSimulationFactoryTests covers the same
+ownership boundary; rats need no texture fix to be generated after capture.
+
 ## 2. Movement
 
 Objects.kwd object 11 has StartState 11, speed 819, health 300, flags 0x210601

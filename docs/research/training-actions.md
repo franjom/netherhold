@@ -72,7 +72,9 @@ handler work never runs twice.
 ## 4. Implementation boundary — STRONGLY INFERRED
 
 `TrainingStep` implements the states and the separate one-shot action gate.
-Action fields participate in hashing and serialization. The room machine
+Same-cell approaches retain a real destination point through the stance-route
+helper, so a trainee on a dummy cell still walks the confirmed stand-off
+before action entry. Action fields participate in hashing and serialization. The room machine
 list uses newest-first object order; the room position/visibility adapters
 are existing simulation abstractions rather than binary structures.
 

@@ -10141,6 +10141,31 @@ before). Flag 14, the three Guards behind the door waking, moves to DK2's 5283 i
 Still unbuilt: the handler refuses when the walk does not start (`Imp_WalkOrTeleport`
 returns 0), and ours commits a job without a route (Q588).
 
+## ADR-0444 — The simulation is profiled through markers it opens itself
+**Date:** 2026-10-12 · **Status:** accepted
+
+**Context.** Unity stutters once every few frames. At 4 ticks a second, a frame that
+runs a tick carries all of it (one in fifteen at 60 fps), so a frame drop is the worst
+tick, not the mean one. The harness timed each system as a run total only, and Unity
+saw the whole tick as one block, so neither showed which tick was slow or where.
+
+**Decision.** `ISimulationProfiler` (`Begin`/`End` of a `SimulationMarker`, one
+instance per name) sits on `SimulationContext.Profiler`, set by
+`GameSimulation.ProfileWith`, defaulting to an empty profiler. The simulation opens the
+markers: the tick, messages, triggers, each system by its `Name`, `nav.refresh`/
+`nav.build`/`nav.route`, the grid pathfinder's searches and ImpTask's phases. It is
+observation under the event sink's contract;
+`DeterminismTests.Profiling_DoesNotAffectState` pins it. The harness's `RunClock` is a
+profiler that keeps self and total time, calls and allocated bytes per marker per tick,
+and reports p50/p99/max and the worst tick. Unity maps each marker to a `ProfilerMarker`.
+
+**Consequences.** A new hot spot is found by adding a marker, not a stopwatch. The first
+Release run (Level 18, nemesis attack) puts its worst tick at ~650 ms, ~430 ms of it in
+405 `grid.nearest` searches allocating 118 MB, likely because ImpTask's selection runs
+one search per candidate tile. The keeper scenarios run allocate 3–10 MB a tick. Only
+ImpTask's pathfinder is wrapped; the other systems' grid searches count as their own
+time. A span costs two interface calls when nobody is listening.
+
 ## ADR-0445 — The possessed creature recruits followers
 **Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §4
 
@@ -10192,7 +10217,43 @@ targetless cast does not unmask, where DK2 reads thing slot 0's owner (unknown).
 possession ours always goes through action 21's release. The owner's play questions
 (sniper range, the disguise pick-up, the release on leaving) stay open.
 
-## ADR-0447 — A worker's take fails when its walk cannot start
+## ADR-0444 — Preserve bank heights and idle movement after failed hero jobs
+**Date:** 2026-10-12 · **Status:** accepted
+
+**Context.** Grounded creatures crossed liquid banks at a flat height, and
+Unity interpolated their horizontal position against the destination height.
+Failed hero hunts waited without the original idle wrapper. Same-tile wander
+and training destinations were discarded as already reached.
+
+**Decision.** Project the native liquid-bank height and interpolate previous
+and current height alongside position. Share the existing idle wrapper with
+hero state 4, and retain a destination waypoint for same-tile wander and dummy
+approaches. Preserve authored creature positions. Combined hash/save version 236.
+Evidence: room-floors-and-liquids.md, hero-party-walk.md and training-actions.md.
+
+**Consequences.** These fixes apply across maps. Full vertical physics remains
+outside the height projection. A hero-owned Prison correctly produces no rats;
+see prison-rats.md. Original-game visual comparison remains an owner check.
+
+## ADR-0447 — Keep combat contact, facing and melee action lifetime
+**Date:** 2026-10-12 · **Status:** accepted
+
+**Context.** Ending a combat route disabled body contact updates. Stationary
+fighters struck without facing their target, and post-impact actions became
+available before the authored melee animation completed.
+
+**Decision.** Integrate route-less bodies in native fight states 199/200,
+turn toward in-reach targets before attacking, and retain melee's busy hold
+until its animation-completion poll. Keep fear checks ahead of that hold.
+Use existing steering, turn and authored timing rules; hash/save version 237.
+Evidence: combat-spacing.md, combat-fight-state.md and kmf-animation-playback.md §7.
+
+**Consequences.** These changes apply across maps. Native separation remains
+soft and does not guarantee rigid clearance. Other route-less state dispatch,
+remembered-entity activation and original visual comparison remain open.
+Q582 still requires the owner's original-game casualty confirmation.
+
+## ADR-0448 — A worker's take fails when its walk cannot start
 **Date:** 2026-10-12 · **Status:** accepted · Research: imp-task-stealing.md §7, imp-claim-path.md §4
 
 **Context.** Q588. DK2's handlers take their task only if the walk starts
@@ -10206,8 +10267,8 @@ fails, emitting `job_unreachable`. The claim ring tries its next tile; reinforce
 a free side's task and tries the next side, as `0x0046AEA0` does. A held claim or
 reinforce slot is kicked only after the walk starts. The dig caller still kicks first
 and then moves to its next candidate tile, where `0x0046A550` tries the next slot and
-side and `0x00469AF0` gives the selection up (Q589). Gold, object and body fetches still
-ignore a failed route (Q589). Teleporting walks are unbuilt
+side and `0x00469AF0` gives the selection up (Q590). Gold, object and body fetches still
+ignore a failed route (Q590). Teleporting walks are unbuilt
 (Q418); DK2's teleport also needs the target reachable. Not modelled: DK2 raises the task
 and writes its flavour (`0x005080E0`) before the walk, and a failed walk keeps both.
 Hash/save version 236.
@@ -10217,4 +10278,4 @@ Levels 1–3 replay identically (19/2/13). Level 4 wins 2/20 (seeds 9, 11) again
 before (9, 11, 19), on master 15c2b038 and again on d1e67516. In seed 19, 26 imps'
 takes of the owner's dig at (16,5) are refused 139 times, likely because the dig side is
 chosen on the door-blind grid where DK2 tests each side's reachability and retries the
-next slot and side (Q589, not traced). (17,5) then goes unclaimed and the owner's drop there misses.
+next slot and side (Q590, not traced). (17,5) then goes unclaimed and the owner's drop there misses.
