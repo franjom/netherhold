@@ -27,6 +27,14 @@ public sealed record ActPossessedCreatureCommand(PlayerId PlayerId, PossessionAi
     }
 }
 
+/// <summary>Action 38 (<c>0x00516E40</c>): the possessed creature's followers are let go. The
+/// input routine <c>0x0040FFB0</c> posts it (key binding 13, LIKELY); no packet decoder here builds it.</summary>
+[Dk2Behavior(Confidence.Confirmed, "docs/research/possession-arms-and-inputs.md")]
+public sealed record DismissFollowersCommand(PlayerId PlayerId) : PlayerCommand(PlayerId)
+{
+    public override void HashInto(ref Hash64 hash) => base.HashInto(ref hash);
+}
+
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-possession.md")]
 public sealed record MovePossessedCreatureCommand(PlayerId PlayerId, PossessionPose Pose) : PlayerCommand(PlayerId)
 {

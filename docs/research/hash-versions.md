@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**233** — `0x3D070F83B1260245`. Possession followers: the leader, route deadline, follower count and shared melee target are saved and hashed on every creature. ADR-0442.
+
 **232** — `0xE5DB51390ABD6056`. Special 124, Receive Imps, creates ten level-5 Imps round the Heart; no new saved field. ADR-0441.
 
 **231** — `0xB8FA72F6DE9C12A1`. A room on `Room_ComputeTotalCapacity`'s default arm (Guard Room, Hatchery, Treasury, ...) holds its tile count; no new saved field. 226–230 are taken by the unmerged classic-look branch. ADR-0440.

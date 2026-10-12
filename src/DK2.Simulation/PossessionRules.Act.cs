@@ -11,8 +11,8 @@ using DK2.Simulation.Steering;
 namespace DK2.Simulation;
 
 /// <summary>Action 26 (<c>0x00514830</c>): the possessed creature's melee pick, spell use and
-/// follower arm, as keeper-spell-possession.md "Possessed actions" records them. Unbuilt arms are
-/// named where they would run.</summary>
+/// follower arm, as keeper-spell-possession.md "Possessed actions" and possession-arms-and-inputs.md
+/// record them. Unbuilt arms are named where they would run.</summary>
 public static partial class PossessionRules
 {
     private const string ActSystem = "possession";
@@ -122,19 +122,19 @@ public static partial class PossessionRules
             return;
         }
 
-        // SneakingAs (+0x4A3), HypnotisedCreature (+0x4A7) and the +0x4D0/+0x4D2 pair are not represented.
+        // SneakingAs (+0x4A3) and HypnotisedCreature (+0x4A7) are not represented.
         switch (target.Thing)
         {
             case CreatureState creature when target.Class == ChainClass.Creature:
                 // A creature on a torture device (state 131) is stamped, not struck.
                 if (creature.Dk2StateId == TortureRules.TorturedState) break;
-                FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, FightTargetKind.Creature, creature.Id);
+                Attack(context, me, FightTargetKind.Creature, creature.Id, now);
                 break;
             case TrapState trap:
-                FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, FightTargetKind.Trap, trap.Id);
+                Attack(context, me, FightTargetKind.Trap, trap.Id, now);
                 break;
             case DoorState door:
-                FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, FightTargetKind.Door, door.Id);
+                Attack(context, me, FightTargetKind.Door, door.Id, now);
                 break;
             case ObjectState thing:
                 ObjectArm(context, me, mine, thing);
@@ -147,6 +147,17 @@ public static partial class PossessionRules
         // DK2's second stamp. It writes the same tick as the first, so no test can tell it from its
         // absence; it is kept to mirror the binary.
         me.TimeLastUsedMelee = now;
+    }
+
+    /// <summary><c>CreatureAction_Begin(17, target)</c>, which every represented action takes; then
+    /// PossessedTargetAttackTime <c>+0x4D2</c> and PossessedTargetTag <c>+0x4D0</c>, the target the
+    /// followers take (<c>0x00514DF7</c>).</summary>
+    private static void Attack(SimulationContext context, CreatureState me, FightTargetKind kind, int id, long now)
+    {
+        FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, kind, id);
+        me.PossessedTargetTick = now;
+        me.PossessedTargetKind = kind;
+        me.PossessedTargetId = id;
     }
 
     /// <summary>The object dispatch: gold 1-3 is the pick-up; 15, 16 and 46 only place an impact
@@ -282,14 +293,17 @@ public static partial class PossessionRules
 
     // ------------------------------------------------------------------ the spell arm
 
-    /// <summary>Slot 3 is the follower arm, not built: no follow state 246 here (Q535), and it never
-    /// stamps. Other slots: refused by <c>0x0048C800</c> (equality refuses; a slot outside the spells,
+    /// <summary>Slot 3 is the follower arm (<see cref="Recruit"/>), which never stamps. Other slots: refused by <c>0x0048C800</c> (equality refuses; a slot outside the spells,
     /// negative included, has no spell) → nothing. Past the record, every path stamps the slot.</summary>
     private static void UseSlot(SimulationContext context, ISightBlocker sight, byte keeper, CreatureState me, CreatureDef mine, PossessionAim aim, int slot)
     {
         GameDatabase database = context.Database;
         long now = context.Tick.Value;
-        if (slot == PossessedSlot.FollowerArm) return;
+        if (slot == PossessedSlot.FollowerArm)
+        {
+            Recruit(context, sight, me, aim);
+            return;
+        }
         if (!SpellRules.CanCast(database, me, mine, slot, now)) return;
         CreatureSpellDef spell = SpellRules.SpellOf(database, mine, slot)!;
 

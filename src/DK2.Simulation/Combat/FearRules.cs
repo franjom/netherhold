@@ -220,6 +220,7 @@ public static class FearRules
             && Withdraw(context, sight, hearts, rooms, me, mine, scratch))
             return true;
         if (!OverThreat(context.World, context.Database, me, mine)) return false;
+        PossessionRules.DropFollowFromFear(context.World, me);   // 0x0045F425: a follower lets go first
         EnterFlee(context, me, mine);
         return true;
     }

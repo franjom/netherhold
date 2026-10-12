@@ -229,6 +229,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
     private void Update(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        if (PossessionRules.FollowerTurn(context, SystemName, creature)) return;
+
         // One grid for the whole of this creature's tick. Every question below
         // that depends on what this worker can stand on — where it may route,
         // which stance a job is done from, whether it has arrived — has to be

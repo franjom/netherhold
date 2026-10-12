@@ -10025,3 +10025,29 @@ Levels 2 and 3 replays are unchanged; Level 4 still wins 0/20. Seed 1's claim fr
 now reaches row 5 at 6600 (DK2 6310, and row 15 before); seeds 5 and 14 creep to row 21
 by about 6100 and never reach row 15. Ours are in state 10 on the creation tick where
 DK2's are in 11, as for Create Imp (experiments/2026-10-12-level4-packet-replay/).
+
+## ADR-0442 — The possessed creature recruits followers
+**Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §4
+
+**Context.** Action 26's slot 3 (key 7 in play, the owner confirmed) recruits friendly
+creatures that then follow the possessed creature and take its melee target. Ours
+stamped nothing and started nothing (Q535).
+
+**Decision.** Slot 3 runs `0x00515D50`'s pick (best aim score, not nearest, within 7
+tiles of the creature) and `0x00461980`'s start into state 246; the count `+0x488` rises
+only on success, up to variable 223. State 246 ends the follow when the leader is no
+longer possessed and otherwise walks to it, running beyond 0x5000. A possessed melee
+start records `+0x4D0`/`+0x4D2`, forgotten after three seconds while possessed;
+`SelectAVictim` gives it to a follower in place of its fight-style arm. Possession set
+and clear zero the count; dismissal (action 38), fear in a fight and every removal of a
+follower (the death bookkeeping runs for each freed creature) lower it; state 1
+re-follows first. A follower is busy to its needs and takes no lair or pay anger.
+Hash/save version 233.
+
+**Consequences.** Only a creature target is carried to followers: a trap or door struck
+by the possessed creature is recorded but not handed on. The flee state's skip of its
+return to 199 while following (`0x00460586`, a window read) is not built, nor is the
+death bookkeeping's unread early exit (`0x00487C70`'s first call). DK2 frees a creature
+with its leader field set; ours clears it so a corpse removed later does not count twice.
+No packet decoder builds the dismissal. No computer keeper casts Possession
+(computer-keeper-spell-sites.md §1), so replays cannot change.

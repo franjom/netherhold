@@ -286,7 +286,15 @@ public static class CombatTargetRules
 
         int best = int.MaxValue;
         CreatureState? chosen;
-        if (definition.FightStyle == FightStyle.NonFighter)
+        // 0x0045D5BF: a follower takes its leader's last melee target and no fight-style arm runs
+        // (0x0045D5F5); the best becomes its plain squared distance (0x0045D69D).
+        CreatureState? leaders = PossessionRules.LeaderTarget(world, me);
+        if (leaders != null)
+        {
+            chosen = leaders;
+            best = unchecked((int)TrapRules.DistanceSquared(me.PosX, me.PosY, leaders.PosX, leaders.PosY));
+        }
+        else if (definition.FightStyle == FightStyle.NonFighter)
         {
             if (NonFighter(context, sight, hearts, rooms, me, definition, scratch, out chosen) && chosen is null)
             {

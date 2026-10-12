@@ -963,6 +963,9 @@ public sealed class WorldState
         for (int i = 0; i < _creatures.Count; i++)
         {
             if (_creatures[i].Id != id) continue;
+            // The death bookkeeping runs for every freed creature (0x004B7A36), so a follower that
+            // leaves, is sacrificed or is removed any other way lowers its leader's count.
+            PossessionRules.LeaderLosesFollower(this, _creatures[i]);
             _creaturesByOwnership.Remove(_creatures[i]);
             _creatures[i].LinkWorld = null;
             _creatures[i].TileLink = ThingTileLink.None;

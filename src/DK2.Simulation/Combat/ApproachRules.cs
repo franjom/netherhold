@@ -141,6 +141,8 @@ public static class ApproachRules
         // 3. The fear counter, without the withdrawal test, when an escape exists.
         if (!FearRules.Cornered(context, me, mine, scratch) && FearRules.OverThreat(world, database, me, mine))
         {
+            // A follower holds on and keeps its leader (0x00470F0A).
+            if (me.FollowLeaderId != 0) return true;
             me.Approaching = false;
             FearRules.EnterFlee(context, me, mine, fromApproach: true);
             return false;

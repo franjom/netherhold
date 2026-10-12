@@ -202,6 +202,11 @@ excluded); hypnosis uses 246.
 0), so action 37's overcount would reach a trigger. `0x00420D10` reads +0x482 only as a
 draw filter (UI). UNREAD: 246's resume while the leader moves; action 37's word 0.
 
+The owner (2026-10-12): a follower that has reached a standing leader keeps shuffling, as the
+re-route on every return to 246 predicts; a recruited Imp fights when the possessed creature
+strikes a hero, as the leader's-target override predicts. Whether a full eight can be
+recruited after a follower leaves or is sacrificed, and the dismiss key, are not known.
+
 ## 5. Command inputs — CONFIRMED unless marked
 
 **Sneak, command 0x1D** (handler `0x00517270` → ToggleSneak `0x0048EE90`). Packet

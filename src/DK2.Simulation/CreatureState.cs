@@ -231,6 +231,9 @@ public enum CreatureActivity
     /// <summary>The slap's reaction: 67 in its keeper's Workshop, 120 in its keeper's Prison, 77
     /// anywhere else (<see cref="SlapRules"/>).</summary>
     Slapped = 40,
+
+    /// <summary>Following the possessed creature: state 246 and its walks (<see cref="PossessionRules.Follow"/>).</summary>
+    Following = 41,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -1093,6 +1096,17 @@ public sealed class CreatureState
     public bool InfluencedByPossessed;
     public GameTick NextPossessionInfluenceTick;
 
+    /// <summary>Followers (possession-arms-and-inputs.md §4): +0x482 the possessed creature this one
+    /// follows (0 none), +0x47E state 246's route deadline, and on the leader +0x488 its follower
+    /// count (signed: a dismissal can take it below zero) and +0x4D0/+0x4D2 its last melee target
+    /// and when it was struck, which its followers take as their victim.</summary>
+    public int FollowLeaderId;
+    public long FollowRouteTick;
+    public int FollowerCount;
+    public Combat.FightTargetKind PossessedTargetKind;
+    public int PossessedTargetId;
+    public long PossessedTargetTick;
+
     /// <summary>Original ReaperTimer +0x4E9, HornyTick +0x4C9, runtime +0x3EA bits 18/19,
     /// and presentation alpha +0x8F used by the departure lifecycle.</summary>
     public ushort ReaperTicks;
@@ -1390,6 +1404,12 @@ public sealed class CreatureState
         hash.Add(Possessed);
         hash.Add(InfluencedByPossessed);
         hash.Add(NextPossessionInfluenceTick.Value);
+        hash.Add(FollowLeaderId);
+        hash.Add(FollowRouteTick);
+        hash.Add(FollowerCount);
+        hash.Add((byte)PossessedTargetKind);
+        hash.Add(PossessedTargetId);
+        hash.Add(PossessedTargetTick);
         hash.Add(ReaperTicks);
         hash.Add(HornyTick);
         hash.Add(IsOneShotReaper);

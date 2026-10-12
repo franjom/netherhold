@@ -25,8 +25,12 @@ public sealed class PossessionSystem : ISimulationSystem
             else if (player.PossessedCreatureId == 0 || context.World.CreatureById(player.PossessedCreatureId) is not { } creature) continue;
             else if (command is MovePossessedCreatureCommand move) PossessionRules.Move(context, creature, move.Pose);
             else if (command is ActPossessedCreatureCommand act) PossessionRules.Act(context, sight, creature, act);
+            else if (command is DismissFollowersCommand) PossessionRules.Dismiss(context, command.PlayerId, creature);
         }
         foreach (CreatureState creature in context.World.Creatures)
+        {
+            PossessionRules.ForgetStaleTarget(context, creature);
             PossessionRules.RefreshInfluence(context, creature, sight);
+        }
     }
 }

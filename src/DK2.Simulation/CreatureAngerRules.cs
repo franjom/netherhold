@@ -134,11 +134,14 @@ public static class CreatureAngerRules
         // captive" states carry it. A captive's anger is the prison's (ADR-0064, ADR-0074).
         CreatureAnger delta = default;
         if (PrisonRules.IsImprisoned(state)) return delta;
+        // The need-anger routine 0x00478D00 returns at once for a follower (0x00478D1D): no lair,
+        // food or pay charge. The in-lair calm below is another routine's and still applies.
+        bool follower = state.FollowLeaderId != 0;
 
         // Additive (ADR-0079) and per bucket (ADR-0081): the original's need-anger routine
         // (FUN_00478d00) tests lair, food and pay in turn and charges each into its own counter, so
         // a bedless unpaid creature takes both and neither pays off the other.
-        if (LairRules.NeedsBed(creature) && !LairRules.HasBed(world, database, state))
+        if (!follower && LairRules.NeedsBed(creature) && !LairRules.HasBed(world, database, state))
         {
             // A creature whose record gives it no lair object at all — the Imp, the Skeleton,
             // Horny — is not owed a bed and is not angered by its absence.
@@ -146,7 +149,7 @@ public static class CreatureAngerRules
         }
 
         // Owed wages it has not collected.
-        if (PaydayRules.IsOwedWages(database, creature, state))
+        if (!follower && PaydayRules.IsOwedWages(database, creature, state))
         {
             delta.Pay += creature.AngerNoPay;
         }

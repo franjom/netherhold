@@ -1180,6 +1180,7 @@ public sealed partial class WorldView
         if (IsMeleeAnimation(creature, tick)) clip = "fighting";
         else if (creature.Dk2StateId == EatingRules.AfterMealState) clip = "eating";
         else if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle or CreatureActivity.Fighting
+                     or CreatureActivity.Following
             && IsTravelAnimation(creature))
             clip = creature.Running ? "running" : "moving_to_job";
         else if (creature.Activity == CreatureActivity.Working
@@ -1190,7 +1191,7 @@ public sealed partial class WorldView
                 ImpTaskKind.Reinforce or ImpTaskKind.Fix => "reinforcing",
                 _ => clip,
             };
-        else if (creature.Activity == CreatureActivity.Fighting) clip = "idle";
+        else if (creature.Activity is CreatureActivity.Fighting or CreatureActivity.Following) clip = "idle";
         else if (creature.Running && IsTravelAnimation(creature)) clip = "running";
         return AssetRef.ForCreature(
             definition.Name,
@@ -1232,7 +1233,7 @@ public sealed partial class WorldView
     private static bool IsTravelAnimation(CreatureState creature) => creature.Activity switch
     {
         CreatureActivity.Fighting => creature.HasRoute,
-        CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle => creature.HasRoute
+        CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle or CreatureActivity.Following => creature.HasRoute
             && creature.Dk2StateId is 6 or 7,
         CreatureActivity.MovingToJob or CreatureActivity.DeliveringGold or CreatureActivity.GoingToSleep
             or CreatureActivity.Leaving or CreatureActivity.FetchingGold or CreatureActivity.SeekingLair
@@ -1299,6 +1300,7 @@ public sealed partial class WorldView
         CreatureActivity.UnbuiltHandler => "unbuilt_handler",
         CreatureActivity.ReaperArriving => "reaper_arriving",
         CreatureActivity.Slapped => "slapped",
+        CreatureActivity.Following => "following",
         _ => throw new ArgumentOutOfRangeException(
             nameof(activity), activity, "No animation key for this activity."),
     };

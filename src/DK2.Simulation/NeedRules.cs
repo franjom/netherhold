@@ -64,13 +64,15 @@ public static class NeedRules
 
     /// <summary>The parts of the busy test <c>0x00477B40</c> our activity filters do not already
     /// cover: a creature dropped on a room (<c>+0x3E6</c> bit 26, set by 76 from the landing tile)
-    /// within <see cref="DroppedOnARoomGraceTicks"/> of the drop, and a Combat Pit fighter.</summary>
-    /// <remarks>The rest of the test, read: group 1, a prison owner, combat, a possessed creature following, the stunned states 209 and 255–257, the alert
+    /// within <see cref="DroppedOnARoomGraceTicks"/> of the drop, a Combat Pit fighter and a follower
+    /// of the possessed creature (<c>+0x482</c>).</summary>
+    /// <remarks>The rest of the test, read: group 1, a prison owner, combat, the stunned states 209 and 255–257, the alert
     /// timer <c>+0x45B</c>, a Call To Arms (player <c>+0x76</c> bit 2, <c>CallToArmsOn</c>,
     /// states 190–192), <c>RebelActive</c>, <c>Leaving</c> and the Casino's big-winner countdown.
     /// Each is either one of our activities, which the needs never ask, or unbuilt.</remarks>
     public static bool IsBusy(WorldState world, CreatureState creature, long now) =>
         creature.CombatPitFighter
+        || creature.FollowLeaderId != 0
         || CallToArmsRules.IsUnderCallToArms(world, creature)
         || (creature.DroppedOnARoom && now - creature.PickupTick < DroppedOnARoomGraceTicks);
 
