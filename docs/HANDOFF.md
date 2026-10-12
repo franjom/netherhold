@@ -70,7 +70,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 Plans: docs/plans/2026-10-09-classic-look.md and
 plans/2026-10-10-classic-look-step4.md. Supported Step 4 playback is built
 (ADR-0431–0438); room-life follow-ups are built under ADR-0442.
-Combined verification passes; the authorized merge to master is next.
+Combined verification passes; room-life fixes are merged to master at 6f4f2bb2.
 Hash/save version is 233. Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity;
 restart Play after assembly sync. Never commit local editor state
 (ProjectSettings/*, Scenes/Dungeon.unity, URP globals).
@@ -121,7 +121,7 @@ C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
 d869276a-99ca-491a-9cf5-0342488c1277/scratchpad.
 Replay measurements are modern regressions, not original timing parity;
 all 60 Level1–3 traces validate, bounded-run wins 19/2/10. Artifacts:
-build/classic-step3-replays/room-life-final. Release verification passes
+build/classic-step3-replays/room-life-merged233. Release verification passes
 4,983 tests without skips; Unity sync/compile and independent review pass.
 Standalone render verification: tools/classic-unity-probe/ROOM_LIFE.md.
 
