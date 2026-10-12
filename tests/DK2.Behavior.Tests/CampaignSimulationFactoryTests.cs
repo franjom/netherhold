@@ -13,6 +13,35 @@ namespace DK2.Behavior.Tests;
 public class CampaignSimulationFactoryTests
 {
     [InstallFact]
+    public void SnapdragonNeutralPrisonGeneratesRatsOnlyAfterKeeperOwnership()
+    {
+        GameSimulation simulation = LevelEight();
+        WorldState world = simulation.World;
+        RoomInstance prison = Assert.Single(RoomIndex.Build(world, simulation.Database),
+            room => room.Definition.TypeId == RoomTypeId.Prison);
+        Assert.Equal(PlayerIds.Neutral, prison.OwnerPlayerId);
+        Assert.Equal(19, prison.TileCount);
+        simulation.Run(1000);
+        Assert.DoesNotContain(world.Objects, thing => thing.ObjectTypeId == RatRules.RatObjectId);
+        foreach (int tile in prison.TileIndices)
+            world.TileAtIndex(tile).OwnerPlayerId = PlayerIds.FirstKeeper;
+        Assert.Equal(2, RatRules.PopulationLimit(RoomIndex.Build(world, simulation.Database), PlayerIds.FirstKeeper));
+        simulation.Run(100);
+        ObjectState[] rats = world.Objects.Where(thing => thing.ObjectTypeId == RatRules.RatObjectId).ToArray();
+        Assert.Equal(2, rats.Length);
+        Assert.All(rats, rat =>
+        {
+            Assert.Equal(PlayerIds.FirstKeeper, rat.OwnerPlayerId);
+            Assert.InRange(rat.Health, 1, 299);
+            Assert.Equal(ObjectMovementRules.MovingProcess.Value, rat.ProcessState);
+        });
+        var positions = rats.Select(rat => (rat.PosX, rat.PosY)).ToArray();
+        simulation.Run(20);
+        Assert.All(rats.Select((rat, index) => (rat, index)), item =>
+            Assert.NotEqual(positions[item.index], (item.rat.PosX, item.rat.PosY)));
+    }
+
+    [InstallFact]
     public void SnapdragonRaisesTheNorthernLordAndEntourageOnItsFirstTick()
     {
         GameSimulation simulation = LevelEight();

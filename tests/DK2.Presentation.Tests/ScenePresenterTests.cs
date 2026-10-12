@@ -335,10 +335,27 @@ public class ScenePresenterTests
     }
 
     /// <summary>
-    /// A creature that changes only what it is <i>doing</i> is still a change: a
-    /// renderer has to swap the animation. Cheap to get wrong by diffing on
-    /// position alone.
+    /// Changing the previous floor height must reach the renderer even with an unchanged current pose.
     /// </summary>
+    [InstallFact]
+    public void ChangingOnlyThePreviousGroundHeightStillPushesTheCreature()
+    {
+        if (BuildRig() is not { } rig) return;
+        WorldState world = rig.Simulation.World;
+        TilePos before = new(1, 1), current = new(2, 1);
+        world.Tile(before).TerrainId = rig.Database.WaterTerrain!.TerrainId;
+        world.Tile(current).TerrainId = rig.Database.Room(RoomTypeId.Lair).TerrainId;
+        CreatureState creature = world.SpawnCreature(rig.Database,
+            rig.Database.CreatureByName("Dwarf")!.CreatureId, 1, current);
+        creature.LastPosX = CreatureState.CentreOf(before.X);
+        creature.LastPosY = CreatureState.CentreOf(before.Y);
+        rig.Presenter.Present(world);
+        rig.Target.Clear();
+        world.Tile(before).TerrainId = rig.Database.Room(RoomTypeId.Lair).TerrainId;
+        rig.Presenter.Present(world);
+        Assert.Equal(1, rig.Target.CreatureUpdates);
+    }
+
     [InstallFact]
     public void ChangingOnlyTheActivityStillPushesTheCreature()
     {

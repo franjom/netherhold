@@ -90,28 +90,39 @@ public class HeroWalkTests
         Assert.Equal(prey.PosX, hero.Body.PathTargetPos.X >> 4);
     }
 
-    /// <summary>StealGold's states are not built, so its arm fails as a job with no target does: state
-    /// 4 for twelve turns, then idle and the job again.</summary>
     [Fact]
-    public void AJobThatCannotStartWaitsTwelveTurnsInStateFour_ThenTriesAgain()
+    public void AFailedHuntWandersBeforeItsRetryDeadline()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState hero = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(5, 5));
-        hero.GoodJob = JobType.StealGold;
+        hero.GoodJob = JobType.KillCreatures;
+        hero.GoodJobPlayerId = Keeper;
         GameSimulation sim = Simulation(db, world);
-
-        long entered = -1;
-        while (hero.Dk2StateId != HeroJobRules.WaitFailedState && sim.World.CurrentTick.Value < 10)
-        {
-            entered = sim.World.CurrentTick.Value;
-            sim.Tick();
-        }
+        for (int i = 0; i < 10 && hero.Dk2StateId != HeroJobRules.WaitFailedState; i++) sim.Tick();
         Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
         long deadline = hero.StateDeadlineTick;
-        Assert.Equal(entered + 12, deadline);
-        while (sim.World.CurrentTick.Value <= deadline) { sim.Tick(); Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId); }
+        int startX = hero.PosX, startY = hero.PosY;
         sim.Tick();
-        Assert.NotEqual(HeroJobRules.WaitFailedState, hero.Dk2StateId);
+        Assert.True(world.CurrentTick.Value < deadline);
+        Assert.Equal(ImpStates.Wandering, hero.Dk2StateId);
+        for (int i = 0; i < 100 && hero.PosX == startX && hero.PosY == startY; i++) sim.Tick();
+        Assert.True(hero.PosX != startX || hero.PosY != startY);
+        Assert.Equal(JobType.KillCreatures, hero.GoodJob);
+    }
+
+    [Fact]
+    public void AFailedJobWaitKeepsItsActionThenExpiresAtItsDeadline()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState hero = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(5, 5));
+        StatePlacement.Place(hero, HeroJobRules.WaitFailedState);
+        hero.StateDeadlineTick = 3;
+        hero.ActionUntilTick = 3;
+        GameSimulation sim = Simulation(db, world);
+        sim.Run(3);
+        Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
+        sim.Tick();
+        Assert.Equal(CreatureStateMachine.Idle, hero.Dk2StateId);
     }
 
     /// <summary>DK2's facing test (<c>h &gt; 0x700 &amp;&amp; h &lt; 0x100</c>) never picks direction 0,

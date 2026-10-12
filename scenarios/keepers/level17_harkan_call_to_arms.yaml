@@ -1,22 +1,12 @@
-# The unaided keeper's battle step on a stock map: Level 17 gives Harkan (player 4) Call to Arms
-# at availability 3 from its own VARIABLES rows, BACallToArmsValue 200 and TendancySpeed 4. A
-# Black Knight of Harkan's stands on the claimed tile west of its heart and a hero Knight (threat
-# 213) in the neutral room beside it; the fight's combat message sets the
-# keeper's fight flag, and from then on the battle step runs where imps would be made. Harkan's
-# spell arm picks Thunderbolt every tick, but the heroes stand on neutral ground, which location
-# selector 1 refuses, so no mana goes there. The Knight fights alone because Harkan's retreat
-# (BARetreatHealth 20, ADR-0284) lifts a fighter below 800 health out of the fight, and against
-# the Knight and two Guards the Black Knight is there by turn 33. On the first turn divisible
-# by 40 while the fight lasts, the heroes' strength exceeds 200, the keeper can pay 10000 of its
-# 25000 mana, the claimed tile is a lawful place and a walker routes there from the heart, so
-# the keeper casts the call at its fighter through the same action 54 a human uses; the flag object raises the
-# call and Harkan's placed creatures answer it. Harkan's removal parameters want six enemies
-# within two tiles and five own non-workers. Its next-tick action63 attempt is refused
-# while the flag is appearing; the AI clears its tracking without reading that result. No allowance and no flag is set by hand: the fight, the message walk,
-# the step and the spell run through the default systems (ADR-0283).
-#
-# What this run does NOT establish: DK2's timing. No original run of Harkan casting has been
-# compared (Q485).
+# Harkan's autonomous battle step on Level 17, with a controlled long duel. The added
+# hero Knight starts at level 3 and Harkan starts with 100000 mana so combat and
+# Thunderbolt costs do not remove the qualifying fight before the turn 40 Call gate.
+# Contact steering can push either fighter across the neutral/owned tile boundary;
+# the scenario does not assume that the hero remains immune to Thunderbolt there.
+# No Call allowance, command or flag is injected. The combat message, keeper's own
+# action 54 cast, flag activation and next-turn action 63 removal attempt run normally.
+# The appearance art still refuses that removal attempt; AI clears its tracking.
+# This modern regression does not establish original DK2 timing (Q485).
 id: keepers-level17-harkan-call-to-arms-001
 question: >
   Does Harkan, unaided, raise Call to Arms at its fighting Black Knight when heroes attack
@@ -32,11 +22,11 @@ setup:
     - { id: 1, gold: 0, mana: 0 }
     - { id: 2, gold: 0, mana: 0 }
     - { id: 3, gold: 0, mana: 0 }
-    - { id: 4, gold: 10000, mana: 25000 }
+    - { id: 4, gold: 10000, mana: 100000 }
     - { id: 5, gold: 10000, mana: 100 }
   creatures:
     - { type: Black Knight, at: [4, 7], player: 4 }
-    - { type: Knight, at: [3, 7], player: 1 }
+    - { type: Knight, at: [3, 7], player: 1, level: 3 }
 observe:
   - state_hash
   - events

@@ -65,7 +65,7 @@ public sealed class HeroSystem : ISimulationSystem
             ImpStates.TaskSelection => false,
             ImpStates.Wandering => ImpTaskSystem.Wander(context, creature, context.Database.CreatureById(creature.CreatureTypeId)),
             HeroJobRules.StandingJobState => StandingJob(context, creature),
-            HeroJobRules.WaitFailedState => context.Tick.Value <= creature.StateDeadlineTick,
+            HeroJobRules.WaitFailedState => WaitFailed(context, creature),
             HeroJobRules.WaitingState => HeroJobRules.Wait(context, creature),
             HeroJobRules.ToThePointState => HeroJobRules.ToThePoint(context, creature),
             HeroJobRules.AtThePointState => HeroJobRules.AtThePoint(context, SystemName, creature),
@@ -90,7 +90,7 @@ public sealed class HeroSystem : ISimulationSystem
     }
 
     /// <summary>State 90 (<c>0x00477850</c>): a follower goes to 222; anyone else runs its standing
-    /// job, and on failure waits twelve turns in state 4 before idling to try again.</summary>
+    /// job, and on failure enters state 4 with a twelve-turn idle-action/wander deadline.</summary>
     private static bool StandingJob(SimulationContext context, CreatureState creature)
     {
         if (HeroJobRules.IsFollower(creature))
@@ -107,6 +107,12 @@ public sealed class HeroSystem : ISimulationSystem
         }
         creature.StateDeadlineTick = context.Tick.Value + HeroJobRules.RetryTurns;
         return CreatureStateMachine.TrySetState(context.Hooks, creature, HeroJobRules.WaitFailedState);
+    }
+
+    private static bool WaitFailed(SimulationContext context, CreatureState creature)
+    {
+        CreatureJobSystem.DoingNothing(context, creature);
+        return true;
     }
 
     private static bool Escape(SimulationContext context, CreatureState creature)

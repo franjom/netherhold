@@ -10216,3 +10216,39 @@ represented; an off-map sneak tile changes nothing where DK2 reads past the map;
 targetless cast does not unmask, where DK2 reads thing slot 0's owner (unknown). Leaving
 possession ours always goes through action 21's release. The owner's play questions
 (sniper range, the disguise pick-up, the release on leaving) stay open.
+
+## ADR-0444 — Preserve bank heights and idle movement after failed hero jobs
+**Date:** 2026-10-12 · **Status:** accepted
+
+**Context.** Grounded creatures crossed liquid banks at a flat height, and
+Unity interpolated their horizontal position against the destination height.
+Failed hero hunts waited without the original idle wrapper. Same-tile wander
+and training destinations were discarded as already reached.
+
+**Decision.** Project the native liquid-bank height and interpolate previous
+and current height alongside position. Share the existing idle wrapper with
+hero state 4, and retain a destination waypoint for same-tile wander and dummy
+approaches. Preserve authored creature positions. Combined hash/save version 236.
+Evidence: room-floors-and-liquids.md, hero-party-walk.md and training-actions.md.
+
+**Consequences.** These fixes apply across maps. Full vertical physics remains
+outside the height projection. A hero-owned Prison correctly produces no rats;
+see prison-rats.md. Original-game visual comparison remains an owner check.
+
+## ADR-0447 — Keep combat contact, facing and melee action lifetime
+**Date:** 2026-10-12 · **Status:** accepted
+
+**Context.** Ending a combat route disabled body contact updates. Stationary
+fighters struck without facing their target, and post-impact actions became
+available before the authored melee animation completed.
+
+**Decision.** Integrate route-less bodies in native fight states 199/200,
+turn toward in-reach targets before attacking, and retain melee's busy hold
+until its animation-completion poll. Keep fear checks ahead of that hold.
+Use existing steering, turn and authored timing rules; hash/save version 237.
+Evidence: combat-spacing.md, combat-fight-state.md and kmf-animation-playback.md §7.
+
+**Consequences.** These changes apply across maps. Native separation remains
+soft and does not guarantee rigid clearance. Other route-less state dispatch,
+remembered-entity activation and original visual comparison remain open.
+Q582 still requires the owner's original-game casualty confirmation.

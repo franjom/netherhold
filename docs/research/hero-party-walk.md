@@ -122,12 +122,24 @@ The standing job is not a one-shot command. State 1 sends hero-owned
 creatures to state 90 (`0x004773D0`). State 90's handler
 `0x00477850` runs the body `GoodJob` through `0x00478800` on each
 visit if leader/follower bit 2 is clear. On failure it sets a 12-tick
-deadline and state 4; state 4 returns zero at the deadline, so
-`0x00476FC0` resets to state 1 and the cycle retries. The job triple
+deadline and state 4. The shared state-3/4 wrapper `0x00477680`
+holds an active action, otherwise calls `0x004776C0` before the deadline:
+with no wander stamp that inner body enters 87. At the deadline it returns
+zero, so `0x00476FC0` resets to state 1 and the cycle retries. The job triple
 is not cleared. A terminal job state that returns zero likewise goes
 through state 1 and state 90, so a surviving leader repeats its job.
 **CONFIRMED** by `0x004773D0`, `0x00477850`, `0x00477680` and
 `0x00476FC0`.
+
+Rechecked these whole routines on 2026-10-12. HeroSystem now uses the
+shared idle wrapper for state 4; previously it only waited on the deadline.
+State 87 (`0x004808E0`) always requests a route to a random sub-tile point,
+including when no ring destination exists. The same-triangle route retains
+that point (`0x004CF490`); ImpTaskSystem.Wander now preserves it. Level8
+seed1 Guard22's 1500-turn movement regression covers both omitted gates:
+its first movement is turn 991; earlier far-point requests fail. Its initial
+dummy-centre placement remains the authored position; see
+[placed-things.md](placed-things.md#2-coordinates-are-tile-indices).
 
 A follower in state 90 does not dispatch its own spawn job: it enters
 state 222. State 226 (`0x004787F0`) is the other direct per-turn

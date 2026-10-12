@@ -1,6 +1,17 @@
 # Early state-hash versions
 
-Versions 9–36, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–38, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**38** — reserved, never on master. Taken by the action-point branch in the
+codex worktree so the two could not collide; the merged result took 40 rather
+than reusing it.
+
+**37** — `0xD17C2E424DDE0AF2`. `WorldState.Triggers`: the level's trigger flag
+and timer banks (ADR-0102). They are hashed because an action record writes a
+flag and a later condition reads it, so two worlds disagreeing about one diverge
+as soon as that condition is evaluated. 128 flag bytes and — at this version —
+256 timer dwords enter the hash even when every slot is zero. Version 39
+corrected the timer bank to sixteen.
 
 **36** — `0xD893704FB5D00309`. `PlayerState.ResearchPoints`, the Library's
 accrual. A new player field moves the value by itself.

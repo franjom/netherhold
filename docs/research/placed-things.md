@@ -52,6 +52,21 @@ spawns it at an action point rather than by coordinates in the file. (0,0) is in
 range on every map, so counting them would not have failed — it would have
 passed without meaning anything.
 
+The placed Good-creature loader at `0x00520460` converts each coordinate to
+the tile centre (`tile * 0x1000 + 0x800`) before calling `0x004B78D0`.
+The whole loader, reread on 2026-10-12, has no Training Room furniture
+step-off; the trigger-only gate relocation in `0x00519B20` is a separate path.
+The factory and constructor reach `0x004B5020`, which copies XY directly
+and clamps only Z to the floor; the constructor seeds its body at that XY.
+
+Level8 seed1 modern Guard22 starts at `(19,26)`, the left Training Dummy's
+centre; it never trains. Initial original overlap is STRONGLY INFERRED from
+the placement paths and floor furniture positions in
+[furniture-placement.md](furniture-placement.md#2-the-floor-pass-room_rebuild-0x004edfc0-first-loop).
+Its failed-hunt wandering correction is described in
+[hero-party-walk.md](hero-party-walk.md#1-the-job-dispatcher-and-the-leaders-standing-job);
+the modern regression is not an original-game experiment.
+
 ## 3. `InitialHealth` is a percentage
 
 **`InitialHealth` on a creature or a room is a percentage of that entity's

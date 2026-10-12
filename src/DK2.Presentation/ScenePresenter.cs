@@ -107,6 +107,7 @@ public sealed class ScenePresenter
             Roll = creature.Roll;
             PreviousPosX = creature.PreviousPosX;
             PreviousPosY = creature.PreviousPosY;
+            PreviousHeight = creature.PreviousHeight;
             PlaysAnimation = creature.PlaysAnimation;
             AnimationLoops = creature.AnimationLoops;
             AnimationStartedAt = creature.AnimationStartedAt;
@@ -128,6 +129,7 @@ public sealed class ScenePresenter
 
         public int PreviousPosX { get; }
         public int PreviousPosY { get; }
+        public int PreviousHeight { get; }
         public bool PlaysAnimation { get; }
         public bool AnimationLoops { get; }
         public GameTick? AnimationStartedAt { get; }
@@ -148,6 +150,7 @@ public sealed class ScenePresenter
             && Roll == other.Roll
             && PreviousPosX == other.PreviousPosX
             && PreviousPosY == other.PreviousPosY
+            && PreviousHeight == other.PreviousHeight
             && PlaysAnimation == other.PlaysAnimation
             && AnimationLoops == other.AnimationLoops
             && AnimationStartedAt == other.AnimationStartedAt
@@ -160,7 +163,7 @@ public sealed class ScenePresenter
         public override int GetHashCode() => HashCode.Combine(
             Mesh, Animation, PosX, PosY, OwnerPlayerId, GoldHeld,
             HashCode.Combine(Height, MeshYaw, Pitch, Roll, PreviousPosX, PreviousPosY, PlaysAnimation,
-                HashCode.Combine(AnimationLoops, AnimationStartedAt, AnimationMovementSpeed, AnimationPaused, AnimationDeferred)));
+                HashCode.Combine(AnimationLoops, AnimationStartedAt, AnimationMovementSpeed, AnimationPaused, AnimationDeferred, PreviousHeight)));
     }
 
     /// <summary>The part of an object a renderer can see.</summary>

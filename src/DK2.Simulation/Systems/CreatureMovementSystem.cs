@@ -86,10 +86,10 @@ public sealed class CreatureMovementSystem : ISimulationSystem
                 creature.TremorRoutePaused = false;
             }
 
-            // Only a creature in a walking state is moved (the state table's bit at 0x0048A23B).
-            // Ours: one with a route loaded, arrived or not, so the arrival tick still takes its
-            // braking step and the state that follows stands where it stopped.
-            if (creature.Body.PathTotalCount == 0) continue;
+            // Native fight states 199/200 have the movement bit even without a route: contact
+            // steering and braking still run (combat-spacing.md).
+            // Other states retain the route gate until their movement dispatch is mirrored.
+            if (creature.Body.PathTotalCount == 0 && creature.Dk2StateId is not (CombatStates.Engaging or 200)) continue;
 
             // DK2 moves an imp only in its walking states, 6, 7 and 265 (the update's gate skips type
             // id 1 at 0x0048A202; state 6 integrates it itself), so a kicked or working imp stands

@@ -134,7 +134,7 @@ public sealed partial class ImpTaskSystem
         (int ox, int oy) = HeroJobRules.RandomSubTile(context);
         x = (x & ~0xFFF) | ox;
         y = (y & ~0xFFF) | oy;
-        if (!context.Navigation.TryRouteTo(creature, x, y, Navigation.MoveOptions.Loose)) return false;
+        if (!context.Navigation.TryRouteToStance(creature, x, y, Navigation.MoveOptions.Loose)) return false;
         int resume = definition.Flags.HasFlag(CreatureFlags.IsHorny) ? 238 : CreatureStateMachine.Idle;
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         return true;

@@ -109,6 +109,20 @@ public static class FightRules
         navigation.TryRouteTo(me, targetX, targetY, MoveOptions.Plain);
     }
 
+    /// <summary>Mode-3 melee holds past impact until the animation completion poll;
+    /// ActionHoldTicks includes the starting turn (kmf-animation-playback.md §7).</summary>
+    public static bool MeleeActionIsRunning(CreatureState creature, CreatureDef definition, GameTick tick)
+    {
+        if (creature.SwingInProgress) return true;
+        if (creature.SwingKind != SpellRules.MeleeSwing
+            || creature.SwingTargetKind == FightTargetKind.None
+            || creature.TimeLastUsedMelee != creature.SwingStartTick
+            || creature.StateEnteredTick > creature.SwingStartTick) return false;
+        long elapsed = tick.Value - creature.SwingStartTick;
+        return elapsed >= 0 && elapsed < AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(5)) - 1;
+    }
+
+
     /// <summary>Begins the swing — action 17 — stamping <c>TimeLastUsedMelee</c> and copying the
     /// target into the action, then tells the target it is attacked (§5). A zero wind-up lands now.</summary>
     public static void StartSwing(SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef mine, List<Fixed16Vector> scratch)
