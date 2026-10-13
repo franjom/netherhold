@@ -202,8 +202,8 @@ of four read as one. Rare in play: ids are almost always in use.
 ### 2.4 The per-tile rebuild (Q591)
 
 A changed navigation byte edits DK2's mesh in place around that tile 
-(`0x004CE770`'s partial path); ours rebuilds the whole map, which diverges after 
-the first edit. Read in full in [navigation-partial-rebuild.md](navigation-partial-rebuild.md).
+(`0x004CE770`'s partial path); ours edits in place too (ADR-0461), from a locate
+that may name another fan triangle. Read in full in [navigation-partial-rebuild.md](navigation-partial-rebuild.md).
 
 ## 3. The search is greedy best-first
 

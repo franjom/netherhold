@@ -39,13 +39,10 @@ public sealed partial class NavMesh
     private int _triCount;
     private readonly List<int> _triFree = [];
 
-    // Indexes over the arrays above, never part of the mesh: they only find what a scan in slot
+    // An index over the arrays above, never part of the mesh: it only finds what a scan in slot
     // order would find, faster (perf/navmesh-rebuilds). A point's triangle is one that holds it,
-    // left right by every write of a triangle's vertices; touched triangles are those written since
-    // the last Coarsen, which is all it has to look at.
+    // left right by every write of a triangle's vertices, and checked before use.
     private int[] _pointTri = new int[64];
-    private bool[] _touchedMark = new bool[64];
-    private readonly List<int> _touched = [];
     private readonly List<int> _fan = [];
     private int _locateHint;
 
@@ -95,7 +92,8 @@ public sealed partial class NavMesh
     public void Reset(int width, int height) => Reset(0, 0, width, height);
 
     /// <summary>The original's reset (`0x004C8D10`): four corner points and two triangles over the
-    /// given rectangle, both stamped <see cref="NavBytes.Outside"/>, everything else dead.</summary>
+    /// given rectangle, both stamped <see cref="NavBytes.Outside"/>, everything else dead, both free
+    /// lists empty.</summary>
     public void Reset(int x0, int y0, int x1, int y1)
     {
         if (x1 <= x0) throw new ArgumentOutOfRangeException(nameof(x1));
@@ -108,8 +106,6 @@ public sealed partial class NavMesh
         _pointFree.Clear();
         _triCount = 0;
         _triFree.Clear();
-        foreach (int t in _touched) _touchedMark[t] = false;
-        _touched.Clear();
         _locateHint = 0;
 
         int p0 = NewPoint(x0, y0);
@@ -120,12 +116,8 @@ public sealed partial class NavMesh
         int t0 = NewTriangle(p0, p1, p2, NavBytes.Outside);
         int t1 = NewTriangle(p0, p2, p3, NavBytes.Outside);
         Link(t0, EdgeIndexOf(t0, p2, p0), t1);
-        // The canvas border is a constraint on every side; nothing routes off it.
-        for (int i = 0; i < 3; i++)
-        {
-            if (Neighbour(t0, i) == NoNeighbour) SetConstraint(t0, i, true);
-            if (Neighbour(t1, i) == NoNeighbour) SetConstraint(t1, i, true);
-        }
+        // No constraint bits: the original's reset sets +0xD = 7, every edge bit and no
+        // constraint, and only the partial rebuild's side marker ever sets one (§2.2).
     }
 
     /// <summary>The live triangle containing a position in 1/256-tile units, or −1. A point on a
@@ -404,7 +396,6 @@ public sealed partial class NavMesh
                 Array.Resize(ref _n, _n.Length * 2);
                 Array.Resize(ref _nav, _nav.Length * 2);
                 Array.Resize(ref _constraint, _constraint.Length * 2);
-                Array.Resize(ref _touchedMark, _touchedMark.Length * 2);
             }
             t = _triCount++;
         }
@@ -421,14 +412,6 @@ public sealed partial class NavMesh
         if (Orient(_px[a], _py[a], _px[b], _py[b], _px[c], _py[c]) < 0) (b, c) = (c, b);
         _v[(3 * t) + 0] = a; _v[(3 * t) + 1] = b; _v[(3 * t) + 2] = c;
         _pointTri[a] = t; _pointTri[b] = t; _pointTri[c] = t;
-        Touch(t);
-    }
-
-    private void Touch(int t)
-    {
-        if (_touchedMark[t]) return;
-        _touchedMark[t] = true;
-        _touched.Add(t);
     }
 
     /// <summary>Every triangle holding point <c>p</c>, by walking its fan both ways from the
@@ -473,9 +456,7 @@ public sealed partial class NavMesh
     private void Link(int t, int i, int u)
     {
         _n[(3 * t) + i] = u;
-        Touch(t);
         if (u == NoNeighbour) return;
-        Touch(u);
         int from = Vertex(t, i), to = Vertex(t, (i + 1) % 3);
         int j = EdgeIndexOf(u, to, from);
         _n[(3 * u) + j] = t;

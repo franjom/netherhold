@@ -15,6 +15,11 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**243** — `0x768B6A51253B3081`. The navigation mesh is simulation state: a
+refresh edits the standing mesh around each changed tile (the original's
+partial rebuild, `0x004CE770`) instead of building a new one, so the mesh
+depends on the order of edits and the hash folds in every triangle, point
+and free list; a save carries them and the locate hint too (ADR-0461).
 **242** — `0xC2A0D662C94D7F10`. Sleep entry aligns ordinary creatures to
 their bed and uses its heading; Mistress entry places her after the bed's
 door animation starts; departure selection rejects stale wander routes

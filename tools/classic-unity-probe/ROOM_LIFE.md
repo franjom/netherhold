@@ -13,8 +13,8 @@ Development standalone player. The owner's Unity project is never opened.
 Offscreen captures use a graphics device and URP SingleCameraRequest.
 
 Verification, 2026-10-13: Unity 6000.6.0f1, AMD Radeon Graphics, Direct3D12.
-Artifacts: `D:/DungeonKeeperRemake/build/room-life-probe/20261013-220020/`.
-Recorded HEAD `7cde4341` with the Imp startup correction, save/hash version 242.
+Artifacts: `D:/DungeonKeeperRemake/build/room-life-probe/20261013-220902/`.
+Recorded HEAD `7d65a532` with merged `e57882f0`, save/hash version 243.
 Source/assembly SHA256 snapshots, build/player logs, 45 PNGs and
 `metrics.json` are retained there. Editor build and player exited 0; no
 script errors, shader errors or runtime exception matches occurred.

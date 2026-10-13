@@ -14,7 +14,8 @@ namespace DK2.Simulation.Navigation;
 /// tile (solid, water, lava or floor; a portal's centre is a hole, and a Heart's platform is floor),
 /// the mesh built from those bytes with a live-Heart platform mask (ADR-0452), and the four probes
 /// the behaviours call (docs/research/steering-behaviours.md §1). One instance serves one world for
-/// its whole life; nothing here is simulation state, so nothing here is hashed.</summary>
+/// its whole life. The mesh is edited in place as tiles change (ADR-0461), so it, the bytes it was
+/// last brought to and the platforms are simulation state: saved, restored and hashed.</summary>
 /// <remarks>Not built: first-person-only obstacle classes;
 /// the remembered entity of <c>Separation</c>'s second term. Each is recorded
 /// on the method that would supply it.</remarks>
@@ -26,9 +27,12 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private byte[] _bytes = [];
     private byte[] _scratch = [];
     private byte[] _routingBytes = [];
+    private byte[] _routingScratch = [];
+    private readonly PlatformRoutingGrid _routingGrid;
     private NavMesh? _mesh;
     private MeshRouter? _router;
     private StructureBlocks? _structures;
+    private IReadOnlyList<int> _platformCentres = [];
     private TileState[] _tileSnapshot = [];
     private readonly List<DoorKey> _doorSnapshot = [];
     private readonly List<long> _cryptSnapshot = [];
@@ -41,24 +45,28 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _world = world ?? throw new ArgumentNullException(nameof(world));
+        _routingGrid = new PlatformRoutingGrid(this);
     }
 
     public int Width => _world.Width;
 
     public int Height => _world.Height;
 
-    /// <summary>Mesh builds after a navigation byte or live-Heart platform changes.</summary>
+    /// <summary>Refreshes that built or edited the mesh: the first build, and each refresh after
+    /// which a navigation byte or the live-Heart routing mask differed.</summary>
     public int Rebuilds { get; private set; }
 
     /// <summary>Times <see cref="Refresh"/>, the mesh build and each route query. Set with the
     /// context's (<see cref="SimulationContext.Profiler"/>); observation only.</summary>
     public ISimulationProfiler Profiler { get; set; } = NullSimulationProfiler.Instance;
 
-    /// <summary>Rebuilds when navigation bytes or the live-Heart routing mask changes.
-    /// The original instead edits its mesh in place around each changed tile (<c>0x004CE770</c>'s
-    /// partial path), removing redundant side points and reusing slots, so its triangles after an
-    /// edit very likely differ from a fresh build; whether routes differ is not shown (Q591,
-    /// navigation-partial-rebuild.md).</summary>
+    /// <summary>Builds the mesh once, then edits it in place around each routing byte that changed
+    /// since the last refresh, as the original does at each write (<c>0x004CE770</c>'s partial
+    /// path, navigation-partial-rebuild.md, Q591, ADR-0461). The original edits at the moment a
+    /// byte is written; ours edits every byte changed since the last refresh, in tile order, so a
+    /// refresh that finds several changes may edit them in another order than the writes came.
+    /// The mesh is therefore state: a save carries it (<see cref="Write"/>) and the state hash
+    /// folds it in (<see cref="HashInto"/>).</summary>
     public void Refresh()
     {
         using ProfileScope _ = Profiler.Scope(SimulationMarkers.NavRefresh);
@@ -66,37 +74,114 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         // the crypts stand (a Graveyard's floor slots) and the database. While those are what the
         // last refresh saw, its result stands, and the comparison is one pass over the tile array,
         // where the refresh is several with a branch per tile (ADR-0454). The snapshot is taken
-        // once the refresh has succeeded, so one that throws is retried.
+        // once the refresh has succeeded, so one that throws before the bytes are swapped is
+        // retried; an edit that throws leaves the mesh as the throw left it (ADR-0461).
         if (_mesh != null && Unchanged()) return;
-
-        int count = _world.Width * _world.Height;
-        if (_scratch.Length != count) _scratch = new byte[count];
-        StructureBlocks structures = StructureBlocks.For(_world, _database);
-        bool samePlatforms = _structures is not null && _structures.HeartCentres.SequenceEqual(structures.HeartCentres);
-        _structures = structures;
-        FillNavigationBytes(_database, _world, structures, _scratch);
-
-        if (_mesh != null && samePlatforms && _scratch.AsSpan().SequenceEqual(_bytes))
+        if (!RoutingBytesChanged())
         {
             Snapshot();
             return;
         }
+        using ProfileScope build = Profiler.Scope(SimulationMarkers.NavBuild);
+        if (_mesh is null)
+        {
+            _mesh = NavMesh.Build(_routingGrid);
+            _router = new MeshRouter(_mesh);
+        }
+        else
+        {
+            int count = _routingBytes.Length;
+            for (int i = 0; i < count; i++)
+            {
+                if (_routingBytes[i] == _routingScratch[i]) continue;
+                int x = i % Width, y = i / Width;
+                _mesh.Retriangulate(_routingGrid, x, y, x + 1, y + 1);
+            }
+        }
+        Rebuilds++;
+        Snapshot();
+    }
+
+    /// <summary>Recomputes the navigation bytes and the routing mask. False when a mesh stands and
+    /// neither the bytes nor the live-Heart platforms changed; otherwise the new routing bytes are
+    /// in <see cref="_routingBytes"/> and the ones the mesh was last brought to in
+    /// <see cref="_routingScratch"/>.</summary>
+    private bool RoutingBytesChanged()
+    {
+        int count = _world.Width * _world.Height;
+        if (_scratch.Length != count) _scratch = new byte[count];
+        StructureBlocks structures = StructureBlocks.For(_world, _database);
+        bool samePlatforms = _mesh is not null && _platformCentres.SequenceEqual(structures.HeartCentres);
+        _structures = structures;
+        _platformCentres = structures.HeartCentres;
+        FillNavigationBytes(_database, _world, structures, _scratch);
+
+        if (_mesh != null && samePlatforms && _scratch.AsSpan().SequenceEqual(_bytes)) return false;
         (_bytes, _scratch) = (_scratch, _bytes);
         if (_scratch.Length != count) _scratch = new byte[count];
-        if (_routingBytes.Length != count) _routingBytes = new byte[count];
-        Array.Copy(_bytes, _routingBytes, count);
+        if (_routingScratch.Length != count) _routingScratch = new byte[count];
+        Array.Copy(_bytes, _routingScratch, count);
         foreach (int centre in structures.HeartCentres)
         {
             int cx = centre % Width, cy = centre / Width;
             for (int y = cy - 1; y <= cy + 1; y++)
                 for (int x = cx - 1; x <= cx + 1; x++)
-                    if (_world.Contains(new TilePos(x, y))) _routingBytes[y * Width + x] = NavBytes.Solid;
+                    if (_world.Contains(new TilePos(x, y))) _routingScratch[y * Width + x] = NavBytes.Solid;
         }
-        using ProfileScope build = Profiler.Scope(SimulationMarkers.NavBuild);
-        _mesh = NavMesh.Build(new PlatformRoutingGrid(Width, Height, _routingBytes));
+        (_routingBytes, _routingScratch) = (_routingScratch, _routingBytes);
+        if (_routingScratch.Length != count) _routingScratch = new byte[count];
+        return true;
+    }
+
+    /// <summary>The mesh, the bytes it was last brought to and the live-Heart platforms those bytes
+    /// masked, for a save; nothing when no route has been asked for yet, since the mesh is then
+    /// built from the tiles at the first ask.</summary>
+    public void Write(BinaryWriter w)
+    {
+        if (w is null) throw new ArgumentNullException(nameof(w));
+        w.Write(_mesh is not null);
+        if (_mesh is null) return;
+        w.Write(_bytes.Length);
+        w.Write(_bytes);
+        w.Write(_routingBytes.Length);
+        w.Write(_routingBytes);
+        w.Write(_platformCentres.Count);
+        foreach (int centre in _platformCentres) w.Write(centre);
+        _mesh.Write(w);
+    }
+
+    /// <summary>Restores what <see cref="Write"/> saved. No tile snapshot is taken, so the next
+    /// <see cref="Refresh"/> compares the tiles afresh and edits the mesh for every byte that
+    /// differs from the saved ones, as the run that was saved would have at its next refresh; the
+    /// saved platforms keep that comparison the saved run's. The structure blocks the probes read
+    /// are derived from the loaded tiles.</summary>
+    public void Read(BinaryReader r)
+    {
+        if (r is null) throw new ArgumentNullException(nameof(r));
+        if (!r.ReadBoolean()) return;
+        int count = _world.Width * _world.Height;
+        int length = r.ReadInt32();
+        if (length != count) throw new InvalidDataException($"a navigation save of {length} bytes for a map of {count} tiles");
+        _bytes = r.ReadBytes(count);
+        length = r.ReadInt32();
+        if (length != count) throw new InvalidDataException($"a routing save of {length} bytes for a map of {count} tiles");
+        _routingBytes = r.ReadBytes(count);
+        int centres = r.ReadInt32();
+        if (centres < 0 || centres > count) throw new InvalidDataException($"{centres} heart platforms in a navigation save");
+        var platforms = new int[centres];
+        for (int i = 0; i < centres; i++) platforms[i] = r.ReadInt32();
+        _platformCentres = platforms;
+        _mesh = NavMesh.Read(r);
         _router = new MeshRouter(_mesh);
-        Rebuilds++;
-        Snapshot();
+        _structures = StructureBlocks.For(_world, _database);
+        _tileSnapshot = [];
+    }
+
+    /// <summary>Folds the mesh into the state hash; nothing while no mesh stands.</summary>
+    public void HashInto(ref Hash64 hash)
+    {
+        hash.Add(_mesh is not null);
+        _mesh?.HashInto(ref hash);
     }
 
     /// <summary>What of a door the navigation bytes read.</summary>
@@ -153,12 +238,14 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         Crypts(_cryptSnapshot);
     }
 
-    private sealed class PlatformRoutingGrid(int width, int height, byte[] bytes) : INavByteGrid
+    /// <summary>The routing bytes the steering currently holds, read through the steering so that
+    /// the arrays may be swapped under it.</summary>
+    private sealed class PlatformRoutingGrid(WorldSteering owner) : INavByteGrid
     {
-        public int Width => width;
-        public int Height => height;
-        public byte NavByte(int x, int y) => x < 0 || y < 0 || x >= width || y >= height
-            ? NavBytes.Solid : bytes[y * width + x];
+        public int Width => owner.Width;
+        public int Height => owner.Height;
+        public byte NavByte(int x, int y) => x < 0 || y < 0 || x >= owner.Width || y >= owner.Height
+            ? NavBytes.Solid : owner._routingBytes[(y * owner.Width) + x];
     }
 
     /// <summary>Copies the navigation cache without constructing a routing mesh.</summary>
