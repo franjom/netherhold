@@ -14,6 +14,56 @@ namespace DK2.Presentation.Tests;
 public class ClaimAndBedEffectTests
 {
     [InstallFact]
+    public void PortalSmokeHoldsItsLastTextureInsteadOfReplayingWhileAlive()
+    {
+        (GameDatabase db, _) = Load();
+        var model = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
+        model.Request(ViewEffectRequest.AtTileCentre(new EffectId(8), PlayerIds.FirstKeeper,
+            new TilePos(3, 3), new Fp32(Fp32.One)));
+        model.AdvanceTo(new EffectTime(51));
+        ConstructionParticle smoke = model.Particles.First(p => p.Definition.EffectElementId == 146);
+        Assert.True((smoke.Definition.ArtResource.Flags & 0x80) != 0);
+        Assert.Equal(0, smoke.InitialPhase);
+        for (int update = 1; update <= smoke.FrameDuration + 1; update++)
+            model.AdvanceTo(new EffectTime((update + 1) * 50 + 1));
+        Assert.Contains(smoke, model.Particles);
+        Assert.True(smoke.Health > 0);
+        Assert.Equal(Fp32.One, smoke.PhaseRaw);
+        Assert.InRange(smoke.RemainingSpriteLifetimeFraction, 0.0001f, 0.001f);
+    }
+
+    [InstallFact]
+    public void StaticManaSparklesDoNotAdvanceTexturePhase()
+    {
+        (GameDatabase db, _) = Load();
+        var model = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
+        model.Request(ViewEffectRequest.AtTileCentre(new EffectId(59), PlayerIds.FirstKeeper,
+            new TilePos(3, 3), new Fp32(Fp32.One)));
+        model.AdvanceTo(new EffectTime(51));
+        ConstructionParticle sparkle = model.Particles.First();
+        Assert.True((sparkle.Definition.ArtResource.Flags & 4) == 0);
+        model.AdvanceTo(new EffectTime(101));
+        Assert.Equal(0, sparkle.PhaseRaw);
+        Assert.Equal(1f, sparkle.RemainingSpriteLifetimeFraction);
+    }
+
+    [InstallFact]
+    public void UnflaggedAnimatedMistStillWrapsItsTextureCycle()
+    {
+        (GameDatabase db, _) = Load();
+        var model = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
+        model.Request(ViewEffectRequest.AtTileCentre(new EffectId(117), PlayerIds.FirstKeeper,
+            new TilePos(3, 3), new Fp32(Fp32.One)));
+        model.AdvanceTo(new EffectTime(51));
+        ConstructionParticle smoke = model.Particles.First(p => p.Health > p.FrameDuration);
+        Assert.True((smoke.Definition.ArtResource.Flags & 0x80) == 0);
+        for (int update = 1; update <= smoke.FrameDuration; update++)
+            model.AdvanceTo(new EffectTime((update + 1) * 50 + 1));
+        Assert.Contains(smoke, model.Particles);
+        Assert.Equal(smoke.InitialPhase, smoke.PhaseRaw);
+    }
+
+    [InstallFact]
     public void EdgeCaptureParticlesStayOnTheSelectedBoundaryAndAreQuieter()
     {
         const ushort effectId = CaptureEffectLayout.RoomEffectId;
@@ -163,6 +213,14 @@ public class ClaimAndBedEffectTests
 
         Assert.Equal(9 * 32, particles.Length);
         Assert.All(particles, particle => Assert.Contains(particle.Definition.EffectElementId, new ushort[] { 145, 146 }));
+        var seen = new HashSet<ConstructionParticle>(particles);
+        for (int update = 6; update <= 70; update++)
+        {
+            model.AdvanceTo(new EffectTime(update * 50 + 1));
+            foreach (ConstructionParticle particle in model.Particles) seen.Add(particle);
+        }
+        Assert.Equal(9 * 32, seen.Count);
+        Assert.Empty(model.Particles);
     }
 
     [InstallFact]

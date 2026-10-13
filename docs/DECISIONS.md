@@ -10637,3 +10637,17 @@ Evidence: research/heart-health-visuals.md and heart-mana-effects.md.
 use shipped resources and view RNG. No simulation/save/hash change. The
 companion effect's dynamic light remains outside this particle renderer.
 Owner comparison of the complete damaged appearance is still required.
+
+## ADR-0464 — Respect the original effect sprite completion flag
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Portal capture smoke replayed after its cloud faded although
+the capture emitted only one particle wave.
+
+**Decision.** Honor authored sprite animation and completion flags, preserving
+the final texture independently of particle lifetime. Retain looping playback
+for resources that request it. Evidence: research/room-construction-effects.md §4.
+
+**Consequences.** The shared fix covers capture and digging smoke. Paused
+particle submission keeps completed textures alive until model expiry.
+No simulation/save/hash change. Unity visual comparison remains pending.

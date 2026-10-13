@@ -67,7 +67,6 @@ namespace DK2.Unity
                 Group group = For(source.Definition);
                 if (group == null) continue;
                 if (group.Count == group.Buffer.Length) Array.Resize(ref group.Buffer, group.Buffer.Length * 2);
-                float phase = source.PhaseRaw / 4096f;
                 group.Buffer[group.Count++] = new ParticleSystem.Particle
                 {
                     position = DungeonScene.Ground(
@@ -79,7 +78,7 @@ namespace DK2.Unity
                     rotation3D = group.IsMesh ? MeshRotation(source, fraction) : Vector3.zero,
                     startSize = source.ScaleRaw / 4096f,
                     startLifetime = 1f,
-                    remainingLifetime = 1f - phase,
+                    remainingLifetime = source.RemainingSpriteLifetimeFraction,
                     randomSeed = (uint)(i + 1),
                 };
             }

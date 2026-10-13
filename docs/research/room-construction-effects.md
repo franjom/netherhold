@@ -135,7 +135,18 @@ linear interpolation each frame does not preserve this integer stepping.
 byte of its declared frame count. `0x004B37D0` uses art flag 4 to enable
 texture animation and flag `0x20` to choose a random initial phase. For a
 16-frame descriptor its normalized phase starts at `random(16)*256` and
-advances by 256 each animation update. `0x004B3AD0` wraps looping phase at 4096.
+advances by 256 each animation update. With animated art flag `0x80`,
+`0x004B37D0` sets render-block `+0x4C` bit 2; `0x004B3AD0` then clamps
+texture phase to its endpoint and zeroes its step instead of wrapping.
+The reset `0x004B3610` initializes that endpoint (`+0x3C`) to 4096;
+the ordinary element initializer retains it.
+Without that bit it wraps. Static art without flag 4 does not advance.
+This is independent of the particle's remaining HP: Portal capture elements
+145/146 hold the last texture while alive, rather than replaying their cloud.
+
+The paused Unity particle submission retains a positive lifetime fraction at
+that endpoint, so texture completion does not remove a still-living particle.
+Native material selection clamps phase 4096 to its final stored texture.
 
 `0x0059C360` sizes the sprite from descriptor width/height times render scale,
 passes RGB/alpha and normalized texture phase to `0x0057F1E0`.
