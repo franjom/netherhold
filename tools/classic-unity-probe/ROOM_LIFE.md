@@ -13,8 +13,8 @@ Development standalone player. The owner's Unity project is never opened.
 Offscreen captures use a graphics device and URP SingleCameraRequest.
 
 Verification, 2026-10-13: Unity 6000.6.0f1, AMD Radeon Graphics, Direct3D12.
-Artifacts: `D:/DungeonKeeperRemake/build/room-life-probe/20261013-173909/`.
-Recorded HEAD `bafdac5a` with the merged `f6544f4d` changes, save/hash version 240.
+Artifacts: `D:/DungeonKeeperRemake/build/room-life-probe/20261013-193707/`.
+Recorded HEAD `c1919a7f` with the crumbling debris adjustment, save/hash version 240.
 Source/assembly SHA256 snapshots, build/player logs, 32 PNGs and
 `metrics.json` are retained there. Editor build and player exited 0; no
 script errors, shader errors or runtime exception matches occurred.
@@ -30,13 +30,13 @@ and the shared ClassicMeshes cache. An injected view clock advances strict
 | 5, tile claim | 1 | 32 / 32 / 32 | 2,814 |
 | 8, Portal capture | 9 | 288 / 288 / 288 | 50,955 |
 | 17, bed creation | 1 | 256 / 256 / 256 | 3,076 |
-| 6, Dig Rock | 1 | 72 / 72 / 72 | 5,805 |
-| 7, Dig Gold | 1 | 60 / 60 / 60 | 5,791 |
+| 6, Dig Rock | 1 | 72 / 72 / 72 | 4,789 |
+| 7, Dig Gold | 1 | 60 / 60 / 60 | 4,504 |
 
 Each effect begins empty, emits its scheduled waves and cleans up to zero
 model/native particles. Each dig effect contains 48 native mesh particles.
-Separate captures disable sprite renderers: Rock meshes alone change 5,500
-pixels and Gold meshes alone change 4,825. Native particle rotation values
+Separate captures disable sprite renderers: Rock meshes alone change 4,062
+pixels and Gold meshes alone change 3,506. Native particle rotation values
 change across two 50ms updates. Both mesh-only frame pairs were inspected:
 textured brown shards and yellow gold chips visibly change orientation and
 position, with no magenta fallback. Portal and bed sprite captures were also

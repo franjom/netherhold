@@ -45,7 +45,8 @@ namespace DK2.Unity
             _root = root;
             _sprites = sprites;
             _meshes = meshes;
-            Model = new RoomConstructionParticles(database, seed, clock ?? ReadClock, visible, effectVisible, floorHeight);
+            Model = new RoomConstructionParticles(database, seed, clock ?? ReadClock, visible, effectVisible, floorHeight,
+                terrainDebrisStyle: TerrainDebrisStyle.Crumbling);
         }
 
         // A stopwatch rather than Unity's clock: the model's Emit runs on the runner's worker thread

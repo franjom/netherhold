@@ -13,6 +13,38 @@ namespace DK2.Presentation.Tests;
 public class DiggingDebrisMotionTests
 {
     [InstallFact]
+    public void CrumblingRockStartsAcrossTheTileTopAndFallsWithSmallerFragments()
+    {
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
+        var native = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
+        var crumble = new RoomConstructionParticles(db, 7, () => new EffectTime(0),
+            terrainDebrisStyle: TerrainDebrisStyle.Crumbling);
+        var request = ViewEffectRequest.AtTileCentre(new EffectId(db.TerrainById(2).DestroyedEffectId),
+            PlayerIds.FirstKeeper, new TilePos(3, 3), new Fp32(Fp32.One));
+        var emission = new SimEvent(new GameTick(0), "test", "effect_request", "") { EffectRequest = request };
+        native.Emit(emission);
+        crumble.Emit(emission);
+        native.AdvanceTo(new EffectTime(51));
+        crumble.AdvanceTo(new EffectTime(51));
+        ConstructionParticle[] original = native.Particles.Where(p => p.Definition.ArtResource.Type == 5).ToArray();
+        ConstructionParticle[] rocks = crumble.Particles.Where(p => p.Definition.ArtResource.Type == 5).ToArray();
+        Assert.Equal(48, rocks.Length);
+        Assert.Equal(original[0].InitialScale * 2 / 3, rocks[0].InitialScale);
+        Assert.All(rocks, p =>
+        {
+            Assert.InRange(p.HeightRaw, request.Position.Z.Raw + 3072, request.Position.Z.Raw + 4096);
+            Assert.InRange(Math.Abs(p.XRaw - request.Position.X.Raw), 0, 1638);
+            Assert.InRange(Math.Abs(p.YRaw - request.Position.Y.Raw), 0, 1638);
+            Assert.True(p.VelocityZ < 0);
+            Assert.InRange(Math.Abs(p.VelocityX), 0, 1024);
+            Assert.InRange(Math.Abs(p.VelocityY), 0, 1024);
+        });
+        int[] heights = rocks.Select(p => p.HeightRaw).ToArray();
+        crumble.AdvanceTo(new EffectTime(101));
+        for (int i = 0; i < rocks.Length; i++) Assert.True(rocks[i].HeightRaw < heights[i]);
+    }
+
+    [InstallFact]
     public void RockMeshesTumbleOncePerViewUpdateAndStopSpinningOnFloorContact()
     {
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");

@@ -140,7 +140,8 @@ build/classic-step3-replays/claim-life238. Release verification passes
 5,158 tests without skips; Unity sync/compile and independent review pass.
 Standalone render verification: tools/classic-unity-probe/ROOM_LIFE.md.
 Terrain destruction debris and tumbling mesh particles are built (ADR-0449;
-terrain-digging-debris.md). The same standalone probe verifies Rock and Gold.
+terrain-digging-debris.md). Unity's smaller top-down crumble adjustment
+passes 275 presentation tests, Unity compilation and the standalone Rock/Gold probe.
 Unified Unity Hand controls are built; see ADR-0104 and unity/README.md.
 
 ## Next work

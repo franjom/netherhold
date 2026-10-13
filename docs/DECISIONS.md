@@ -10281,6 +10281,12 @@ shared mesh/material cache; particle angles follow native view spin and stop
 on floor bounce. This restores Rock/Gold debris across maps without changing
 hash/save version240. Evidence: research/terrain-digging-debris.md.
 
+**Presentation adjustment, 2026-10-13.** At the owner's request, Unity uses
+two-thirds-size terrain mesh fragments that start across the tile's upper
+area and fall with limited sideways drift. This deliberately differs from
+the shipped upward velocities; the native presentation profile remains
+available and is the default outside Unity. Other effects keep native motion.
+
 ## ADR-0450 — Select a bed after a creature is dropped into a Lair
 **Date:** 2026-10-12 · **Status:** accepted
 

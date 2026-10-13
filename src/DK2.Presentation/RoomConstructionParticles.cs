@@ -11,6 +11,8 @@ namespace DK2.Presentation;
 /// <summary>A wall-clock timestamp for view effects, in milliseconds.</summary>
 public readonly record struct EffectTime(long Milliseconds);
 
+public enum TerrainDebrisStyle { Native, Crumbling }
+
 public sealed class RoomConstructionParticles : ISimulationEventSink
 {
     private readonly GameDatabase _database;
@@ -21,12 +23,14 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
     private readonly Func<ViewEffectRequest, bool>? _effectVisible;
     private readonly Func<FpPosition3, Fp32> _floorHeight;
     private readonly Func<EffectTime> _clock;
+    private readonly HashSet<ushort> _crumblingEffects;
     private long _lastUpdateMilliseconds;
 
     public RoomConstructionParticles(GameDatabase database, ulong seed, Func<EffectTime> clock,
         Func<RoomConstructionEffect, bool>? visible = null,
         Func<ViewEffectRequest, bool>? effectVisible = null,
-        Func<FpPosition3, Fp32>? floorHeight = null)
+        Func<FpPosition3, Fp32>? floorHeight = null,
+        TerrainDebrisStyle terrainDebrisStyle = TerrainDebrisStyle.Native)
     {
         _database = database;
         _random = new SimRandom(seed);
@@ -34,6 +38,9 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         _effectVisible = effectVisible;
         _floorHeight = floorHeight ?? (_ => new Fp32(Fp32.One));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        _crumblingEffects = terrainDebrisStyle == TerrainDebrisStyle.Crumbling
+            ? new HashSet<ushort>(database.Terrain.Values.Select(t => t.DestroyedEffectId).Where(id => id != 0))
+            : [];
         _lastUpdateMilliseconds = _clock().Milliseconds;
     }
 
@@ -122,6 +129,22 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             Red = red, Green = green, Blue = blue,
             HeadingRaw = heading, PreviousHeadingRaw = heading,
         };
+        if (element.ArtResource.Type == 5 && _crumblingEffects.Contains(effect.EffectId))
+        {
+            // Owner-requested presentation adjustment; native motion remains the default (ADR-0449).
+            particle.XRaw = request.Position.X.Raw + DrawExclusive(-1638, 1639);
+            particle.YRaw = request.Position.Y.Raw + DrawExclusive(-1638, 1639);
+            particle.HeightRaw = request.Position.Z.Raw + DrawExclusive(3072, 4097);
+            particle.PreviousXRaw = particle.XRaw;
+            particle.PreviousYRaw = particle.YRaw;
+            particle.PreviousHeightRaw = particle.HeightRaw;
+            particle.VelocityX = DrawExclusive(-1024, 1025);
+            particle.VelocityY = DrawExclusive(-1024, 1025);
+            particle.VelocityZ = -Math.Max(2048, Math.Abs(particle.VelocityZ));
+            particle.InitialScale = particle.InitialScale * 2 / 3;
+            particle.ScaleTarget = particle.ScaleTarget * 2 / 3;
+            particle.ScaleIncrement = health > 0 ? (particle.ScaleTarget - particle.InitialScale) / health : 0;
+        }
         if (!ApplyFloorContact(particle)) return;
         int spinRange = effect.SpriteSpinRateRange * 8;
         particle.HeadingSpinRaw = DrawAngularOffset(spinRange).Value;
