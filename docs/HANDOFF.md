@@ -121,9 +121,11 @@ Registered attackers trigger early Imp escape, and alarm retreat uses the
 original random room point (combat-acquisition.md §6; combat-alarm.md §2).
 Broader casualty/timing parity remains the owner's priority, Q582.
 Non-creature threat flight remains unbuilt (combat-fear.md §7).
-Live Heart core guards and exact Arch Pillar targets are built; owner
+Live Heart platform guards and exact Arch Pillar targets are built; owner
 acceptance and matched defence timing remain Q585/Q586 (ADR-0439,
-combat-acquisition.md §9, combat-alarm.md §7).
+ADR-0452, combat-acquisition.md §9, combat-alarm.md §7).
+Ownership-loss wall support is built across maps (ADR-0451;
+wall-support-after-claim.md).
 Owned Hatchery chicken movement is built; free-range/Prison loops and
 footstep audio remain Q584 (hatchery-roaming.md).
 Reported graininess remains unresolved; inspect Unity Game view scale
@@ -135,7 +137,7 @@ d869276a-99ca-491a-9cf5-0342488c1277/scratchpad.
 Replay measurements are modern regressions, not original timing parity;
 all 60 Level1–3 traces validate, bounded-run wins 20/4/11. Artifacts:
 build/classic-step3-replays/claim-life238. Release verification passes
-5,085 tests without skips; Unity sync/compile and independent review pass.
+5,132 tests without skips; Unity sync/compile and independent review pass.
 Standalone render verification: tools/classic-unity-probe/ROOM_LIFE.md.
 
 ## Next work

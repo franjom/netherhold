@@ -15,6 +15,11 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**240** — `0x8FBB003CBA25CFD2`. Ownership-loss completion releases unsupported
+walls using the native neighbour/corner rules; live Heart platforms are
+excluded from movement and routing, with ruin reopening them (ADR-0451/0452).
+No new persisted field; the version distinguishes changed resumed behaviour.
+
 **239** — `0xBE0B8CC626E76E53`. Lair drops enter state 79, select a bed in
 the landing room and release an old bed before the jittered walk to state 80.
 No new saved field. ADR-0450.
@@ -364,37 +369,5 @@ under an inherited repeat of 1 (ADR-0107). Behaviour, not composition: the
 fixture runs no triggers, so only the version bump moves the value here, and the
 campaign-wide measurement moved nothing either — every shipped action is a leaf.
 
-**45** — `0x57E013D74DC65BAA`. Doors and traps enter ordered
-world state with every parsed field copied verbatim, hashed and snapshotted.
-Even the fixture's two empty collections add their counts to the hash.
-`docs/research/doors-and-traps.md`.
 
-**44** — `0x48D7950540013015`. Every action point's trigger tree is
-walked each turn too, in the area context, and five of the seven condition types
-that context owns are computed: 40, 41, 42, 62 and 69. No hashed field changed;
-the literal moved because the version is hashed, and it had to move because a
-level with an action-point root now evolves differently from one saved under 43.
-`docs/research/trigger-walkers.md`.
-
-**43** — `0x6E963365B44FD724`. Every player's trigger tree is walked
-each turn as well, in the player context. No hashed field changed; the literal
-moved because the version is hashed, and it had to move because a level with a
-player root now evolves differently from one saved under 42.
-`docs/research/trigger-walkers.md`.
-
-**42** — `0xFFCC4119CA233DA7`. The world walker gains condition type 34
-(level time), the arming half of action type 14, and the twenty-four party roots
-— with the load-time sweep that starts every party subtree disabled. Only the
-version constant moves this fixture's literal: it has no trigger tree and no
-parties, so none of the new state exists in it. `docs/research/trigger-tree.md`.
-
-**41** — `0xDEF9B4B1985D90DE`. Trigger-record active and repeat state,
-including one-shot action retirement, enters the hash and snapshot. The fixture
-has no trigger tree, so its record count remains zero.
-
-**40** — `0x6445940E0B0F23A9`. The level's action points, in
-THINGS-file order: rectangles, ids, loader-filtered flags, passage counters and
-wait timers. Even this fixture's empty list adds its count to the hash.
-`docs/research/action-points.md`.
-
-[Versions 9–39](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–45](hash-versions-early.md) retain the earlier pins and their reasons.

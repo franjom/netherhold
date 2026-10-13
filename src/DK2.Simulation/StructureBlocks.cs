@@ -8,8 +8,8 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>The tiles a room's own structure stands on, which the path grid and the Hand treat as
-/// unwalkable. The router does not: DK2's captured navigation cache holds floor on a heart and
-/// byte 4 on a portal's centre (<see cref="IsPortalCentre"/>, Q352).</summary>
+/// unwalkable. DK2's captured cache holds floor on a heart and byte 4 on a portal's centre;
+/// ADR-0452 separately closes live Heart platforms in our routing mesh.</summary>
 /// <remarks>
 /// <para>CONFIRMED by the owner (Q88): a portal's centre and a heart's centre are not walked on;
 /// the portal's is reserved for the arriving animation and for the Hand (<see cref="HandRules"/>).</para>

@@ -126,12 +126,23 @@ public readonly record struct TileWorkOrder(
 
 /// <summary>
 /// The tile-work rules: how much health an application moves, and what a tile
-/// becomes when its health reaches a bound. Pure and static — no world, no RNG,
-/// no time; numbers read from <see cref="GameDatabase"/>, never written.
+/// becomes when its health reaches a bound, including wall-release bookkeeping.
+/// No RNG or time; definitions read from <see cref="GameDatabase"/>, never written.
 /// Evidence and confidence per rule: docs/research/tile-work.md.
 /// </summary>
 public static class TileWorkRules
 {
+    internal static void ReleaseWall(WorldState world, GameDatabase database, TilePos at)
+    {
+        ref TileState tile = ref world.Tile(at);
+        byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
+        Convert(database, ref tile, database.TerrainById(terrainBefore).DestroyedTypeTerrainId,
+            PlayerIds.Neutral, takeOwnership: true);
+        tile.OwnerPlayerId = PlayerIds.Neutral;
+        tile.KeptManaGain = 0;
+        SlabChain.Changed(world, database, (at.Y * world.Width) + at.X, terrainBefore, ownerBefore);
+    }
+
     /// <summary>Health damage without mining yield, using the shared terrain conversion; the caller checks eligibility.</summary>
     public static TileWorkResult ApplyDamage(GameDatabase database, ref TileState tile, TileHealthDamage damage)
     {

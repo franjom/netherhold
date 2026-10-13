@@ -10034,10 +10034,10 @@ replace production playback. Frame caching quantizes motion and is diagnostic on
 **Status:** accepted, 2026-10-11. Owner requests rim-only movement around live
 Hearts; destroyed Hearts remain walkable.
 
-**Decision.** Reject movement segments through a live Heart's visible core,
-using object 13's half-width. Include arrival snaps, fallback steps and the
-committed coordinate rounding. A body already inside may move outward.
-Move targets inside the core to its near edge so Heart assaults can finish.
+**Decision.** Reject movement segments through a live Heart's raised platform;
+ADR-0452 extends the original small core guard. Include arrival snaps,
+fallback steps and committed coordinate rounding. A body already inside may
+move outward. Move interior targets to the near edge so assaults can finish.
 Preserve DK2's navigation bytes and obstacle exemptions. Ruined Hearts leave
 the structure mask and virtual obstacle list. Bump hash/save formats to 227.
 
@@ -10045,9 +10045,8 @@ the structure mask and virtual obstacle list. Bump hash/save formats to 227.
 the glowing core. Evidence and the fidelity boundary are in
 research/structure-blocks.md §5.3.
 
-**Consequences.** This deliberately enforces a core boundary that DK2's
-confirmed obstacle exception does not enforce. Platform crossings outside
-the core still follow DK2's exceptions; see the evidence boundary in §5.3.
+**Consequences.** This deliberately enforces a platform boundary that DK2's
+confirmed obstacle exception does not enforce; see the evidence boundary in §5.3.
 Q585 tracks the owner's visual acceptance.
 ## ADR-0440 — A room on TotalCapacity's default arm holds its tile count
 **Date:** 2026-10-12 · **Status:** accepted · Research: auto-placed-furniture.md §5
@@ -10288,3 +10287,34 @@ Evidence: lair-acquisition.md §9 and the function record for 0046F4F0.
 **Consequences.** Relocation frees the former tile for another creature and
 applies across maps. The casualty-delivery approximation in ADR-0417 remains
 separate; this change restores ordinary hand drops.
+
+## ADR-0451 — Remove wall reinforcement when its owned floor is lost
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Capturing enemy floor left its unsupported reinforced walls
+standing. Native ownership completion has a separate support callback.
+
+**Decision.** Run that callback after hostile floor destruction and each
+transferred room slab. Preserve the native in-place neighbour order and
+corner exceptions. Reuse terrain conversion and slab bookkeeping.
+Evidence: research/wall-support-after-claim.md. Hash/save version 240.
+
+**Consequences.** Walls supported by another floor of their owner remain;
+unsupported reinforcement becomes neutral Rock. The rule applies across maps.
+
+## ADR-0452 — Keep the entire live Heart platform closed to walkers
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** The Level1 Goblin report exposes ADR-0439's small excluded disk:
+creatures could still cross the surrounding raised platform.
+
+**Decision.** Guard the middle three-by-three platform, preserve its outer
+rim and project interior targets to their nearest edge, retaining tangential
+coordinates; a solid edge falls back toward the approach corridor. Apply the same exclusion
+to the routing mesh so walkers take a route around it rather than stall.
+Keep native navigation bytes unchanged. Ruin removes the exclusion and
+invalidates routing. Hash/save version 240; no new persisted field.
+
+**Consequences.** This extends ADR-0439's deliberate owner-requested movement
+constraint. It does not reproduce the native arrival/escape exemptions;
+the evidence boundary remains research/structure-blocks.md §5.3.

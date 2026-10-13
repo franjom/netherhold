@@ -11,7 +11,7 @@ namespace DK2.Simulation.Navigation;
 
 /// <summary>The world as DK2's router and steering behaviours see it: one navigation byte per
 /// tile (solid, water, lava or floor; a portal's centre is a hole, and a Heart's platform is floor),
-/// the mesh built from those bytes and rebuilt whenever one changes, and the four probes
+/// the mesh built from those bytes with a live-Heart platform mask (ADR-0452), and the four probes
 /// the behaviours call (docs/research/steering-behaviours.md §1). One instance serves one world for
 /// its whole life; nothing here is simulation state, so nothing here is hashed.</summary>
 /// <remarks>Not built: first-person-only obstacle classes;
@@ -24,6 +24,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private readonly WorldState _world;
     private byte[] _bytes = [];
     private byte[] _scratch = [];
+    private byte[] _routingBytes = [];
     private NavMesh? _mesh;
     private MeshRouter? _router;
     private StructureBlocks? _structures;
@@ -40,14 +41,14 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
     public int Height => _world.Height;
 
-    /// <summary>How many times the mesh has been built; a change of navigation byte costs one.</summary>
+    /// <summary>Mesh builds after a navigation byte or live-Heart platform changes.</summary>
     public int Rebuilds { get; private set; }
 
     /// <summary>Times <see cref="Refresh"/>, the mesh build and each route query. Set with the
     /// context's (<see cref="SimulationContext.Profiler"/>); observation only.</summary>
     public ISimulationProfiler Profiler { get; set; } = NullSimulationProfiler.Instance;
 
-    /// <summary>Re-reads every tile's navigation byte and rebuilds the whole mesh if any changed.
+    /// <summary>Rebuilds when navigation bytes or the live-Heart routing mask changes.
     /// The original instead edits its mesh in place around each changed tile (<c>0x004CE770</c>'s
     /// partial path), removing redundant side points and reusing slots, so its triangles after an
     /// edit very likely differ from a fresh build; whether routes differ is not shown (Q591,
@@ -58,16 +59,34 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         int count = _world.Width * _world.Height;
         if (_scratch.Length != count) _scratch = new byte[count];
         StructureBlocks structures = StructureBlocks.For(_world, _database);
+        bool samePlatforms = _structures is not null && _structures.HeartCentres.SequenceEqual(structures.HeartCentres);
         _structures = structures;
         FillNavigationBytes(_database, _world, structures, _scratch);
 
-        if (_mesh != null && _scratch.AsSpan().SequenceEqual(_bytes)) return;
+        if (_mesh != null && samePlatforms && _scratch.AsSpan().SequenceEqual(_bytes)) return;
         (_bytes, _scratch) = (_scratch, _bytes);
         if (_scratch.Length != count) _scratch = new byte[count];
+        if (_routingBytes.Length != count) _routingBytes = new byte[count];
+        Array.Copy(_bytes, _routingBytes, count);
+        foreach (int centre in structures.HeartCentres)
+        {
+            int cx = centre % Width, cy = centre / Width;
+            for (int y = cy - 1; y <= cy + 1; y++)
+                for (int x = cx - 1; x <= cx + 1; x++)
+                    if (_world.Contains(new TilePos(x, y))) _routingBytes[y * Width + x] = NavBytes.Solid;
+        }
         using ProfileScope build = Profiler.Scope(SimulationMarkers.NavBuild);
-        _mesh = NavMesh.Build(this);
+        _mesh = NavMesh.Build(new PlatformRoutingGrid(Width, Height, _routingBytes));
         _router = new MeshRouter(_mesh);
         Rebuilds++;
+    }
+
+    private sealed class PlatformRoutingGrid(int width, int height, byte[] bytes) : INavByteGrid
+    {
+        public int Width => width;
+        public int Height => height;
+        public byte NavByte(int x, int y) => x < 0 || y < 0 || x >= width || y >= height
+            ? NavBytes.Solid : bytes[y * width + x];
     }
 
     /// <summary>Copies the navigation cache without constructing a routing mesh.</summary>
@@ -130,7 +149,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
     /// <summary>The navigation byte the original's cache holds (structure-blocks.md §5.4): solid,
     /// water, lava or floor from the terrain, and 4 on a portal's centre. A heart's platform is
-    /// floor in the cache; what keeps creatures off it is not the router (Q352).</summary>
+    /// floor in the native cache; ADR-0452 adds a separate platform mask only to the router.</summary>
     public static byte ByteOf(TerrainDef terrain, bool portalCentre)
     {
         if (terrain.IsSolid) return NavBytes.Solid;
@@ -142,55 +161,82 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
     public bool CanMove(Fixed16Vector from, Fixed16Vector to)
     {
-        if (_structures is null || !_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart)) return true;
+        if (_structures is null) return true;
         to = new Fixed16Vector((to.X >> 4) << 4, (to.Y >> 4) << 4);
-        long radius = (heart.Width.Raw >> 1) << 4;
         foreach (int index in _structures.HeartCentres)
         {
             long dx = from.X - ((long)CreatureState.CentreOf(index % _world.Width) << 4);
             long dy = from.Y - ((long)CreatureState.CentreOf(index / _world.Width) << 4);
             long sx = (long)to.X - from.X, sy = (long)to.Y - from.Y;
-            long startSquared = dx * dx + dy * dy;
-            long dot = dx * sx + dy * sy;
-            // A loaded body inside the core may leave, but never move deeper into it.
-            if (startSquared < radius * radius)
+            // ADR-0452 keeps the same middle 3x3 as RoomInstance.IsCentrePlatform closed.
+            if (Math.Abs(dx) < HeartPlatformHalfWidth && Math.Abs(dy) < HeartPlatformHalfWidth)
             {
-                if (dot < 0) return false;
+                // A loaded body may leave toward its nearest edge, without moving deeper.
+                if (!(Math.Abs(dx) >= Math.Abs(dy) && dx * sx >= 0)
+                    && !(Math.Abs(dy) >= Math.Abs(dx) && dy * sy >= 0)) return false;
                 continue;
             }
-            long lengthSquared = sx * sx + sy * sy;
-            if (lengthSquared == 0 || dot >= 0) continue;
-            if (-dot >= lengthSquared)
-            {
-                if ((dx + sx) * (dx + sx) + (dy + sy) * (dy + sy) < radius * radius) return false;
-            }
-            else
-            {
-                long fraction = (-dot << 16) / lengthSquared;
-                long closestX = dx + ((sx * fraction) >> 16), closestY = dy + ((sy * fraction) >> 16);
-                if (closestX * closestX + closestY * closestY < (radius + 1) * (radius + 1)) return false;
-            }
+            long enter = 0, enterDenominator = 1, leave = 1, leaveDenominator = 1;
+            if (ClipPlatformAxis(dx, sx, ref enter, ref enterDenominator, ref leave, ref leaveDenominator)
+                && ClipPlatformAxis(dy, sy, ref enter, ref enterDenominator, ref leave, ref leaveDenominator)
+                && enter * leaveDenominator < leave * enterDenominator) return false;
         }
         return true;
     }
 
+    private const int HeartPlatformHalfWidth = 3 * Fixed16.One / 2;
+
+    private static bool ClipPlatformAxis(long position, long step,
+        ref long enter, ref long enterDenominator, ref long leave, ref long leaveDenominator)
+    {
+        if (step == 0) return Math.Abs(position) < HeartPlatformHalfWidth;
+        long near = step > 0 ? -HeartPlatformHalfWidth - position : position - HeartPlatformHalfWidth;
+        long far = step > 0 ? HeartPlatformHalfWidth - position : position + HeartPlatformHalfWidth;
+        long denominator = Math.Abs(step);
+        if (near * enterDenominator > enter * denominator)
+        {
+            enter = near;
+            enterDenominator = denominator;
+        }
+        if (far * leaveDenominator < leave * denominator)
+        {
+            leave = far;
+            leaveDenominator = denominator;
+        }
+        return enter * leaveDenominator < leave * enterDenominator;
+    }
+
     public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target)
     {
-        if (!_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart)) return target;
         (int x, int y) = target.Tile();
         if (!_world.Contains(new TilePos(x, y)) ||
             _database.RoomByTerrain(_world.Tile(x, y).TerrainId)?.TypeId != RoomTypeId.DungeonHeart) return target;
         RoomInstance? room = RoomIndex.RoomAt(_world, _database, y * _world.Width + x);
         if (room is null || room.Width < 3 || room.Height < 3 ||
             (_world.HasPlayer(room.OwnerPlayerId) && _world.Player(room.OwnerPlayerId).HeartRuined)) return target;
-        int radius = (heart.Width.Raw >> 1) << 4;
         var centre = new Fixed16Vector(CreatureState.CentreOf((room.MinX + room.MaxX) / 2) << 4,
             CreatureState.CentreOf((room.MinY + room.MaxY) / 2) << 4);
         long dx = (long)target.X - centre.X, dy = (long)target.Y - centre.Y;
-        if (dx * dx + dy * dy >= (long)radius * radius) return target;
-        var direction = Fixed16.Normalise(from - centre);
-        if (direction == Fixed16Vector.Zero) direction = new Fixed16Vector(Fixed16.One, 0);
-        return centre + direction.Scale(radius + (Fixed16.One >> 3));
+        if (Math.Abs(dx) >= HeartPlatformHalfWidth || Math.Abs(dy) >= HeartPlatformHalfWidth) return target;
+        if (dx == 0 && dy == 0)
+        {
+            dx = (long)from.X - centre.X;
+            dy = (long)from.Y - centre.Y;
+            if (dx == 0 && dy == 0) dx = Fixed16.One;
+        }
+        int reach = HeartPlatformHalfWidth + (Fixed16.One >> 3);
+        Fixed16Vector edge = Math.Abs(dx) >= Math.Abs(dy)
+            ? new Fixed16Vector(centre.X + Math.Sign(dx) * reach, target.Y)
+            : new Fixed16Vector(target.X, centre.Y + Math.Sign(dy) * reach);
+        (int edgeX, int edgeY) = edge.Tile();
+        if (_world.Contains(new TilePos(edgeX, edgeY)) &&
+            !_database.TerrainById(_world.Tile(edgeX, edgeY).TerrainId).IsSolid) return edge;
+        // A partial Heart may have no floor at that edge; retain its existing approach corridor.
+        dx = (long)from.X - centre.X;
+        dy = (long)from.Y - centre.Y;
+        long longest = Math.Max(Math.Abs(dx), Math.Abs(dy));
+        if (longest == 0) { dx = longest = Fixed16.One; }
+        return centre + new Fixed16Vector((int)(dx * reach / longest), (int)(dy * reach / longest));
     }
 
     public byte NavByte(int x, int y)
@@ -268,6 +314,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points, bool refresh)
     {
         if (refresh || _router is null) Refresh();
+        to = ConstrainTarget(from, to);
         using ProfileScope _ = Profiler.Scope(SimulationMarkers.NavRoute);
         if (!_router!.TryRoute(new NavPoint(from.X >> 8, from.Y >> 8), new NavPoint(to.X >> 8, to.Y >> 8), mover, _waypoints))
             return false;

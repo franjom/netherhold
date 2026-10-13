@@ -107,6 +107,7 @@ public static class RoomHealthRules
                 new TilePos(index % world.Width, index / world.Width), new Fp32(0)));
             tile.KeptManaGain = 0; // Tile_SetOwner moves the room terrain's 0, not the floor's 1 (ADR-0334)
             if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
+            WallSupportRules.ReleaseUnsupported(world, database, new TilePos(index % world.Width, index / world.Width));
         }
 
         // The type's slot +0x0D kicks every place-holder (room-return-states.md §1, ADR-0406).
