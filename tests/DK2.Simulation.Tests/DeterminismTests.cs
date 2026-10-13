@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 240: ownership-loss wall support and live Heart platform guards (ADR-0451/0452).
+        // HashVersion 241: a tunneller's walks keep their destination within its own tile (ADR-0459).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x8FBB003CBA25CFD2UL, sim.StateHash());
+        Assert.Equal(0xD4E74C513D204899UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

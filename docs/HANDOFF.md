@@ -16,6 +16,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   with the remaining timing differences in Q444 and navigation-captures.md. The
   seed spread of the Level 1–3 replays against DK2's own seeds (2026-10-06) is in
   experiments/2026-10-06-packet-replay-seeds/; the open difference is Q567.
+- Level 1's scripted Dwarf raid digs through again (ADR-0459, 2026-10-13): the
+  tunnel states' walks keep their destination within the tunneller's own tile
+  (`TryRouteToStance`), hash/save 241. The owner had seen both Dwarves standing
+  in Unity after the script softened the rock; the 20-seed Level 1 replays had
+  hidden it until commit 465 moved the leader onto the tile above its dig tile.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
