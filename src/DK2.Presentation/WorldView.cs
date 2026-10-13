@@ -352,6 +352,10 @@ public sealed partial class WorldView
     private readonly Dictionary<byte, bool> _terrainSolid = [];
     private readonly Dictionary<byte, AssetRef> _roomFurniture = [];
     private readonly Dictionary<byte, AssetRef> _creatureMeshes = [];
+    private readonly Dictionary<int, (CreatureState Creature, GameTick JoiningTick, GameTick? ExitTick)> _portalPoses = [];
+    private readonly List<int> _stalePortalPoseIds = [];
+    private WorldState? _portalPoseWorld;
+    private GameTick _portalPoseTick;
     private readonly Dictionary<byte, AssetRef> _objectMeshes = [];
     private readonly Dictionary<byte, TerrainPieceKeys> _pieceKeys = [];
     private readonly bool[] _solidById = new bool[256];
@@ -1119,10 +1123,12 @@ public sealed partial class WorldView
     public IEnumerable<CreatureView> Creatures(WorldState world)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
+        PrunePortalPoses(world);
 
         foreach (CreatureState creature in world.Creatures)
         {
             if (creature.InHand) continue;
+            if (IsMistressBedEntrance(world, creature)) continue;
             TilePos position = creature.Tile;
             if (!IsVisible(world, position)) continue;
 
@@ -1136,6 +1142,12 @@ public sealed partial class WorldView
                 new FpPosition3(new(creature.LastPosX), new(creature.LastPosY), new(FloorZ))).Raw;
             int yaw = (creature.Heading + 1024) & 2047, pitch = 0, roll = 0;
             int previousX = creature.LastPosX, previousY = creature.LastPosY;
+            if (PortalExitIsRelocation(world, creature))
+            {
+                previousX = posX;
+                previousY = posY;
+                previousHeight = height;
+            }
             bool meleeAnimation = IsMeleeAnimation(creature, world.CurrentTick);
             bool castAnimation = IsCastAnimation(creature, world.CurrentTick);
             bool trainingAnimation = IsTrainingAnimation(creature);
@@ -1175,10 +1187,11 @@ public sealed partial class WorldView
                 animation,
                 creature.GoldHeld, height, yaw, pitch, roll, previousX, previousY,
                 playsAnimation, creature.Activity != CreatureActivity.Dying && !meleeAnimation && !castAnimation
-                    && !IsDeferredLanding(creature) && !trainingAnimation && !entranceAnimation,
+                    && !IsDeferredLanding(creature) && !trainingAnimation && !entranceAnimation
+                    && !IsDropRecoveryAnimation(creature),
                 trainingAnimation ? new GameTick(creature.TrainingActionStartedTick)
                     : meleeAnimation || castAnimation ? new GameTick(creature.SwingStartTick)
-                    : (entranceAnimation || IsEatingAnimation(creature)) && creature.StateEnteredTick >= 0
+                    : (entranceAnimation || IsEatingAnimation(creature) || IsDropRecoveryAnimation(creature)) && creature.StateEnteredTick >= 0
                     ? new GameTick(creature.StateEnteredTick) : null,
                 !meleeAnimation && !castAnimation && !trainingAnimation && !entranceAnimation && IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null,
                 animationPaused: creature.FrozenTicks > 0,
@@ -1226,6 +1239,8 @@ public sealed partial class WorldView
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         string clip = ActivityKeySegment(creature.Activity);
         if (creature.Dk2StateId == PortalRules.JoiningState) clip = "entrance";
+        else if (IsDropRecoveryAnimation(creature)) clip = creature.Dk2StateId == DropLandingRules.GettingUpState
+            ? "getting_up" : "stunned";
         else if (IsTrainingAnimation(creature))
             clip = creature.TrainingActionId == (byte)TrainingActionKind.Spell ? "casting" : "fighting";
         else if (creature.Dk2StateId == DropLandingRules.LandingState)
@@ -1258,7 +1273,7 @@ public sealed partial class WorldView
     public bool PlaysMappedAnimation(CreatureState creature, GameTick tick) =>
         creature.Dk2StateId is DropLandingRules.LandingState or PortalRules.JoiningState || IsTrainingAnimation(creature)
         || IsMeleeAnimation(creature, tick) || IsCastAnimation(creature, tick)
-        || IsEatingAnimation(creature) || creature.Activity switch
+        || IsEatingAnimation(creature) || IsDropRecoveryAnimation(creature) || creature.Activity switch
     {
         CreatureActivity.Idle or CreatureActivity.Sleeping or CreatureActivity.Dying or CreatureActivity.Fighting
             or CreatureActivity.BeingTortured => true,
@@ -1268,6 +1283,59 @@ public sealed partial class WorldView
     };
 
     private readonly Dictionary<byte, int> _meleeHoldTicks = [];
+    private void PrunePortalPoses(WorldState world)
+    {
+        if (!ReferenceEquals(_portalPoseWorld, world))
+        {
+            _portalPoseWorld = world;
+            _portalPoseTick = world.CurrentTick;
+            _portalPoses.Clear();
+            _stalePortalPoseIds.Clear();
+            return;
+        }
+        if (_portalPoseTick == world.CurrentTick) return;
+        _portalPoseTick = world.CurrentTick;
+        _stalePortalPoseIds.Clear();
+        foreach (var entry in _portalPoses)
+        {
+            CreatureState? creature = world.CreatureById(entry.Key);
+            if (creature is null || !ReferenceEquals(creature, entry.Value.Creature)
+                || (entry.Value.ExitTick.HasValue && entry.Value.ExitTick != world.CurrentTick)
+                || (creature.Dk2StateId != PortalRules.JoiningState
+                    && world.CurrentTick.Value - entry.Value.JoiningTick.Value > 1))
+                _stalePortalPoseIds.Add(entry.Key);
+        }
+        foreach (int id in _stalePortalPoseIds) _portalPoses.Remove(id);
+        _stalePortalPoseIds.Clear();
+    }
+
+    private bool PortalExitIsRelocation(WorldState world, CreatureState creature)
+    {
+        if (creature.Dk2StateId == PortalRules.JoiningState)
+        {
+            _portalPoses[creature.Id] = (creature, world.CurrentTick, null);
+            return false;
+        }
+        if (!_portalPoses.TryGetValue(creature.Id, out var previous)
+            || !ReferenceEquals(previous.Creature, creature)) return false;
+        if (previous.ExitTick.HasValue)
+        {
+            if (previous.ExitTick == world.CurrentTick) return true;
+            _portalPoses.Remove(creature.Id);
+            return false;
+        }
+        if (world.CurrentTick.Value - previous.JoiningTick.Value > 1)
+        {
+            _portalPoses.Remove(creature.Id);
+            return false;
+        }
+        // Entrance already moved the mesh; interpolating its root from the centre repeats that motion.
+        _portalPoses[creature.Id] = (creature, previous.JoiningTick, world.CurrentTick);
+        return true;
+    }
+
+    private static bool IsDropRecoveryAnimation(CreatureState creature) =>
+        creature.Dk2StateId is DropLandingRules.StunnedState or DropLandingRules.GettingUpState;
     private static bool IsTrainingAnimation(CreatureState creature) =>
         creature.CurrentJob == JobType.Train && creature.TrainingActionId != 0
         && creature.TrainingActionStartedTick >= 0 && !creature.InHand

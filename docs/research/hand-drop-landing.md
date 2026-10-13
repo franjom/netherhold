@@ -80,5 +80,5 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
   (ADR-0227); the Heart's 71 is built under ADR-0400.
 - **Workers.** A worker's getting up idles; `0x00481400` (read, `door-blocking.md` §8) is not built, in 257 or in 76.
 - **Not modelled:** the landing's sound, fall and pit scatter; 257's step along the facing; the casino-winner gate. The Call To Arms branch is built (ADR-0279).
-- **257's hold** is `ActionUntilTick`, set at the stun's end to `DropLandingRules.GetUpTicks`, the Getup animation's length (ADR-0348, Q527). DK2 plays the animation itself.
+- **257's hold** is `ActionUntilTick`, set at the stun's end to `DropLandingRules.GetUpTicks`, the Getup animation's length (ADR-0348, Q527). Classic presentation plays 255's knockdown once and holds its final pose, then plays 257's Getup once from its state-entry stamp. Action 52's art selector is 24 (`0x00495F36`), action 53's is 27 (`0x00495F6E`); independently checked 2026-10-13.
 - **One word for `+0x7E`:** `StateDeadlineTick`, stamped with now by `AfterGettingUp` on the way into 250, as `0x004E8DA0` stamps `+0x2CC`.

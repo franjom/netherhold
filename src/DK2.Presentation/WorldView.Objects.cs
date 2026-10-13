@@ -105,19 +105,26 @@ public sealed partial class WorldView
     }
 
     /// <summary>Whether a bed is hidden: state 83 (<c>0x0046FA60</c>) clears a bed's draw bit while
-    /// its creature sleeps, which then shows its own sleep clip, unless the bed is the Hero
-    /// Creature Bed (6). Deviates: the Mistress's bed first plays its door clip (art 7); and DK2
-    /// does this only when the creature's art 12 is loaded and a creature vtable <c>+0x278</c> call
-    /// on the bed returns 0, both assumed true here (neither is read).</summary>
+    /// its creature sleeps, except the Hero bed and the Mistress's entrance clip.
+    /// The art-12 availability and virtual bed gate are assumed true.</summary>
     private bool BedHidden(WorldState world, ObjectState thing)
     {
         if (thing.ObjectTypeId == HeroBedId || thing.CreatureId <= 0) return false;
         if (_database.ObjectById(thing.ObjectTypeId) is not { } definition || !definition.Flags.HasFlag(ObjectFlags.TypeLair))
             return false;
-        return world.CreatureById(thing.CreatureId) is { Dk2StateId: LairRules.SleepingState };
+        return world.CreatureById(thing.CreatureId) is { Dk2StateId: LairRules.SleepingState } sleeper
+            && !IsMistressBedEntrance(world, sleeper);
     }
 
     private const byte HeroBedId = 6;
+
+    private bool IsMistressBedEntrance(WorldState world, CreatureState creature)
+    {
+        if (creature.Dk2StateId != LairRules.SleepingState || creature.StateEnteredTick < 0
+            || LairRules.BedOf(world, _database, creature) is not { ObjectTypeId: LairRules.MistressBedObjectId } bed) return false;
+        int hold = AnimationTimingRules.FirstCycleHoldTicks(_database.ObjectById(bed.ObjectTypeId)!.ArtSlot(7));
+        return world.CurrentTick.Value - creature.StateEnteredTick <= hold;
+    }
 
     /// <summary>An object of the simulation, placed.</summary>
     private ObjectView Placed(WorldState world, ObjectState thing, TilePos at)
@@ -202,9 +209,9 @@ public sealed partial class WorldView
                     scale = One + Spread(thing.Id, 0x800);
                     break;
                 default:
-                    // A bed's heading is a simulation-stream draw (0x0048AD50) ours does not keep.
+                    // Use the stored bed heading; its native random creation draw remains unbuilt.
                     if (definition is not null && definition.Flags.HasFlag(ObjectFlags.TypeLair))
-                        heading = Spread(thing.Id, 0x800);
+                        heading = thing.Heading;
                     break;
             }
         }
@@ -231,6 +238,13 @@ public sealed partial class WorldView
                 slot = thing.ProcessState switch { 12 => 0, 15 => 7, 19 or 20 => 6, _ => 5 };
         }
         GameTick? objectAnimationStartedAt = stateAnimation ? new GameTick(thing.ProcessDeadline) : null;
+        if (thing.ObjectTypeId == LairRules.MistressBedObjectId && world.CreatureById(thing.CreatureId) is { } sleeper
+            && IsMistressBedEntrance(world, sleeper))
+        {
+            slot = 7;
+            stateAnimation = true;
+            objectAnimationStartedAt = new GameTick(sleeper.StateEnteredTick);
+        }
         if (thing.ObjectTypeId == CallToArmsRules.ObjectTypeId)
             objectAnimationStartedAt = new GameTick(thing.AnimationStartedTick);
         if (thing.ObjectTypeId == CasinoLeverId && thing.ProcessState is not (48 or 49))

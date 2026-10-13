@@ -269,8 +269,8 @@ public class AssetCatalogueTests
 
         var keys = AssetCatalogue.ForObjects(database).ToList();
 
-        Assert.Equal(database.Objects.Count + 16, keys.Count);
-        Assert.Equal(161, keys.Count);
+        Assert.Equal(database.Objects.Count + 17, keys.Count);
+        Assert.Equal(162, keys.Count);
         Assert.All(keys, k => Assert.Equal(AssetKind.Mesh, k.Kind));
 
         // And they are in the whole-database listing, or a converter would

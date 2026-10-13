@@ -310,6 +310,12 @@ bed, state 82 is final alignment, and **83 is the main sleeping state**. State
 Bed. Consequently `CreatureActivity.Sleeping` maps to state 83 for migration;
 82 and 84 are not interchangeable sleep states.
 
+Classic pose alignment (binary re-read 2026-10-13): `0x0046F910` snaps
+ordinary-bed sleepers onto the bed and copies its facing before entering 83.
+Object 23 skips that position snap; its later pose and presentation transition
+are described in object-drawing.md §8. The simulation now applies the position
+and facing updates; classic presentation uses the same bed heading.
+
 **Hand drops and moving house (binary re-read 2026-10-12; ADR-0450).**
 The room drop also enters 79 after getting up; the Lair handler table selects
 79 (`Room_DropCreature`, `0x004E8DA0`). `0x0046F4F0` preserves an existing bed

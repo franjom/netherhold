@@ -76,7 +76,7 @@ public static class AssetCatalogue
         "following",
     ];
 
-    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing", "entrance"];
+    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing", "entrance", "getting_up"];
 
     public static IEnumerable<EffectElementDef> MeshEffectElements(GameDatabase database) =>
         database.EffectElements.Values.OrderBy(element => element.EffectElementId)
@@ -339,12 +339,14 @@ public static class AssetCatalogue
         9 => ChickenSlots,
         10 => CallToArmsSlots,
         14 or 35 or 47 or 109 => ReactionSlots,
+        23 => MistressBedSlots,
         64 => BookCaseSlots,
         95 => ChickenSlots,
         _ => [],
     };
 
     private static readonly int[] GoldPileSlots = [5, 6];
+    private static readonly int[] MistressBedSlots = [7];
     private static readonly int[] ChickenSlots = [5, 6];
     private static readonly int[] ReactionSlots = [5];
     private static readonly int[] CallToArmsSlots = [5, 6, 7];

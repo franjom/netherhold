@@ -69,6 +69,11 @@ The creator now also sets the original heading `0x400`, so authored motion
 faces the same direction as the eventual step. The existing classic clock
 retains its final pose until state 193 ends. Verified
 against all 46 shipped creature descriptors and the Warlock/Goblin view lifecycle.
+The classic handoff treats the authored exit displacement as a relocation:
+its visible previous XY becomes the exit XY for that frame, preventing the new
+clip from replaying the Entrance's movement from the portal centre. Native
+previous XY remains unchanged. Endpoint mesh probes (Goblin, Warlock, Troll,
+Mistress and Salamander) found no material foot-height gap: below 0.016 tile.
 Deviates: height is not taken, and 193 reads as idle to other simulation systems.
 
 CONFIRMED negative scope: no direct `0x0049AA30` created-event call occurs

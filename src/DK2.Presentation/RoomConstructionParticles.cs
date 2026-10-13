@@ -24,13 +24,17 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
     private readonly Func<FpPosition3, Fp32> _floorHeight;
     private readonly Func<EffectTime> _clock;
     private readonly HashSet<ushort> _crumblingEffects;
+    private readonly bool _captureAtEdges;
+    private readonly Func<ViewEffectRequest, CaptureEdges>? _captureEdges;
     private long _lastUpdateMilliseconds;
 
     public RoomConstructionParticles(GameDatabase database, ulong seed, Func<EffectTime> clock,
         Func<RoomConstructionEffect, bool>? visible = null,
         Func<ViewEffectRequest, bool>? effectVisible = null,
         Func<FpPosition3, Fp32>? floorHeight = null,
-        TerrainDebrisStyle terrainDebrisStyle = TerrainDebrisStyle.Native)
+        TerrainDebrisStyle terrainDebrisStyle = TerrainDebrisStyle.Native,
+        CaptureEffectStyle captureEffectStyle = CaptureEffectStyle.Native,
+        Func<ViewEffectRequest, CaptureEdges>? captureEdges = null)
     {
         _database = database;
         _random = new SimRandom(seed);
@@ -38,6 +42,8 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         _effectVisible = effectVisible;
         _floorHeight = floorHeight ?? (_ => new Fp32(Fp32.One));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        _captureAtEdges = captureEffectStyle == CaptureEffectStyle.Edges;
+        _captureEdges = captureEdges;
         _crumblingEffects = terrainDebrisStyle == TerrainDebrisStyle.Crumbling
             ? new HashSet<ushort>(database.Terrain.Values.Select(t => t.DestroyedEffectId).Where(id => id != 0))
             : [];
@@ -82,22 +88,26 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             velocityZ: DrawInclusive(definition.MinSpeedYz, definition.MaxSpeedYz));
     }
 
-    private void EmitWave(EffectDef effect, ViewEffectRequest request)
+    private void EmitWave(EffectDef effect, ViewEffectRequest request, CaptureEdges? captureBoundary = null)
     {
+        CaptureEdges? edges = _captureAtEdges
+            && effect.EffectId == CaptureEffectLayout.RoomEffectId
+            ? captureBoundary ?? _captureEdges?.Invoke(request) ?? CaptureEdges.All : null;
+        if (edges == CaptureEdges.None) return;
         int lastSlot = effect.GenerateIds.Count - 1;
         while (lastSlot >= 0 && effect.GenerateIds[lastSlot] == 0) lastSlot--;
         if (lastSlot < 0) return;
         for (int pass = 0; pass < effect.ElementsPerTurn; pass++)
         {
             if ((effect.Flags & 0x400) != 0)
-                EmitElement(effect.GenerateIds[_random.NextInt(lastSlot + 1)], effect, request);
+                EmitElement(effect.GenerateIds[_random.NextInt(lastSlot + 1)], effect, request, edges);
             else
                 for (int slot = lastSlot; slot >= 0; slot--)
-                    EmitElement(effect.GenerateIds[slot], effect, request);
+                    EmitElement(effect.GenerateIds[slot], effect, request, edges);
         }
     }
 
-    private void EmitElement(ushort elementId, EffectDef effect, ViewEffectRequest request)
+    private void EmitElement(ushort elementId, EffectDef effect, ViewEffectRequest request, CaptureEdges? edges)
     {
         if (!_database.EffectElements.TryGetValue(elementId, out EffectElementDef? element)) return;
         int radius = DrawExclusive(effect.InnerOriginRange * 23, effect.OuterOriginRange * 23);
@@ -144,6 +154,29 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             particle.InitialScale = particle.InitialScale * 2 / 3;
             particle.ScaleTarget = particle.ScaleTarget * 2 / 3;
             particle.ScaleIncrement = health > 0 ? (particle.ScaleTarget - particle.InitialScale) / health : 0;
+        }
+        if (edges.HasValue)
+        {
+            int count = 0;
+            for (int bit = 1; bit <= 8; bit <<= 1) if (((int)edges.Value & bit) != 0) count++;
+            int selected = _random.NextInt(count);
+            CaptureEdges edge = CaptureEdges.None;
+            for (int bit = 1; bit <= 8; bit <<= 1)
+                if (((int)edges.Value & bit) != 0 && selected-- == 0) { edge = (CaptureEdges)bit; break; }
+            int along = DrawExclusive(-1984, 1985);
+            particle.XRaw = request.Position.X.Raw + (edge == CaptureEdges.West ? -1984
+                : edge == CaptureEdges.East ? 1984 : along);
+            particle.YRaw = request.Position.Y.Raw + (edge == CaptureEdges.North ? -1984
+                : edge == CaptureEdges.South ? 1984 : along);
+            particle.PreviousXRaw = particle.XRaw;
+            particle.PreviousYRaw = particle.YRaw;
+            particle.VelocityX = particle.VelocityY = 0;
+            particle.InitialScale = particle.InitialScale * 4 / 5;
+            particle.ScaleTarget = particle.ScaleTarget * 4 / 5;
+            particle.ScaleIncrement = health > 0 ? (particle.ScaleTarget - particle.InitialScale) / health : 0;
+            particle.Red = (byte)(particle.Red * 4 / 5);
+            particle.Green = (byte)(particle.Green * 4 / 5);
+            particle.Blue = (byte)(particle.Blue * 4 / 5);
         }
         if (!ApplyFloorContact(particle)) return;
         int spinRange = effect.SpriteSpinRateRange * 8;
@@ -209,7 +242,13 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             int floor = _floorHeight(point).Raw;
             if (point.Z.Raw < floor) point = point with { Z = new(floor) };
             emitter.Request = emitter.Request with { Position = point };
-            if (emitter.Health > 0) EmitWave(emitter.Definition, emitter.Request);
+            if (emitter.Health > 0)
+            {
+                if (_captureAtEdges && !emitter.CaptureBoundary.HasValue
+                    && emitter.Definition.EffectId == CaptureEffectLayout.RoomEffectId)
+                    emitter.CaptureBoundary = _captureEdges?.Invoke(emitter.Request) ?? CaptureEdges.All;
+                EmitWave(emitter.Definition, emitter.Request, emitter.CaptureBoundary);
+            }
             emitter.Health -= elapsedUpdates;
             if (emitter.Health <= 0) _emitters.RemoveAt(i);
         }
@@ -256,6 +295,7 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
     {
         public readonly EffectDef Definition = definition;
         public ViewEffectRequest Request = request;
+        public CaptureEdges? CaptureBoundary;
         public int Health = health;
         public int VelocityX = velocityX, VelocityY = velocityY, VelocityZ = velocityZ;
     }

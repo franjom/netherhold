@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DK2.Art;
+using DK2.Art.Kmf;
 using DK2.Assets;
 using DK2.Core;
 using DK2.Data;
@@ -42,6 +43,8 @@ namespace DK2.Unity
             public bool authoredEffectsPassed;
             public int[] authoredMeshCounts, authoredMeshChangedPixels;
             public bool[] authoredMeshRotationChanged;
+            public string[] arrivalGeometryNames;
+            public float[] arrivalEndFootHeights, arrivalIdleFootHeights;
         }
         private readonly Metrics _metrics = new Metrics();
         private InstallArtProvider _art;
@@ -86,6 +89,7 @@ namespace DK2.Unity
                 var db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
                 _art = InstallArtProvider.Open(install, db);
                 var meshes = new ClassicMeshes(_art);
+                CheckArrivalGeometry();
                 CheckNativeCreatureInterpolation(meshes);
                 CheckLevelEightGuard(db, install);
                 _actors = new GameObject("Actors");
@@ -226,9 +230,9 @@ namespace DK2.Unity
                 new byte[] { PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper });
         }
 
-        private static SimEvent[] AuthoredRequests(GameDatabase db, EffectId effectId)
+        private static SimEvent[] AuthoredRequests(GameDatabase db, EffectId effectId, out WorldState world)
         {
-            WorldState world = EffectWorld(db);
+            world = EffectWorld(db);
             TilePos target = new TilePos(3, 3);
             ISimulationSystem[] systems;
             if (effectId.Value == 6 || effectId.Value == 7)
@@ -280,19 +284,20 @@ namespace DK2.Unity
             _metrics.authoredChangedPixels = new int[5]; _metrics.authoredEffectsPassed = true;
             _metrics.authoredMeshCounts = new int[5]; _metrics.authoredMeshChangedPixels = new int[5];
             _metrics.authoredMeshRotationChanged = new bool[5];
-            int[] expectedRequests = { 1, 9, 1, 1, 1 }, expectedParticles = { 32, 288, 256, 72,
+            int[] expectedRequests = { 1, 9, 1, 1, 1 }, expectedParticles = { 32, 256, 256, 72,
                 db.Effects[7].ElementsPerTurn * db.Effects[7].GenerateIds.Count(element => element != 0) };
             _actors.SetActive(false); _effectRoot.SetActive(false);
             for (int index = 0; index < _metrics.authoredEffectIds.Length; index++)
             {
                 var id = new EffectId((ushort)_metrics.authoredEffectIds[index]);
+                SimEvent[] requests = AuthoredRequests(db, id, out WorldState world);
                 var root = new GameObject("Authored effect " + id.Value);
                 long milliseconds = 0;
                 using (var effects = new ClassicConstructionEffects(root.transform, db, sprites, 42,
-                    clock: () => new EffectTime(milliseconds), meshes: _probeMeshes))
+                    clock: () => new EffectTime(milliseconds), meshes: _probeMeshes,
+                    captureEdges: request => CaptureEffectLayout.Boundary(world, db, request)))
                 {
                     Color32[] baseline = Capture("authored-" + id.Value + "-off");
-                    SimEvent[] requests = AuthoredRequests(db, id);
                     _metrics.authoredRequestCounts[index] = requests.Length;
                     foreach (SimEvent request in requests) effects.Model.Emit(request);
                     _metrics.authoredEffectsPassed &= effects.Model.Particles.Count == 0;
@@ -354,6 +359,55 @@ namespace DK2.Unity
             return rotations.ToArray();
         }
 
+        private void CaptureRecoveryClips(GameDatabase database, ClassicMeshes meshes)
+        {
+            var keys = new[]
+            {
+                AssetRef.ForCreature("Goblin", AssetKind.Animation, "stunned"),
+                AssetRef.ForCreature("Goblin", AssetKind.Animation, "getting_up"),
+                AssetRef.ForCreature("Mistress", AssetKind.Animation, "sleeping"),
+                AssetRef.ForCreature("Salamander", AssetKind.Animation, "sleeping"),
+                AssetCatalogue.ObjectArt(database.ObjectById(LairRules.MistressBedObjectId).Name, 7),
+            };
+            string[] names = { "goblin-stunned", "goblin-get-up", "mistress-sleep", "salamander-sleep", "mistress-bed-entry" };
+            _actors.SetActive(false); _effectRoot.SetActive(false);
+            for (int i = 0; i < keys.Length; i++)
+            {
+                if (!_art.TryResolve(keys[i], out var asset)) throw new InvalidOperationException(keys[i] + " missing");
+                GameObject go = meshes.TryCreate(asset, "recovery fixture", transform);
+                if (go == null) throw new InvalidOperationException(keys[i] + " mesh missing");
+                bool animated = meshes.ConfigureAnimation(go, asset, false, 0);
+                CloseUp(go, "recovery-" + names[i] + "-start");
+                if (animated) go.GetComponent<ClassicCreatureAnimation>().Draw(.25);
+                CloseUp(go, "recovery-" + names[i] + "-next");
+                go.SetActive(false); Destroy(go);
+            }
+            _actors.SetActive(true); _effectRoot.SetActive(true);
+        }
+
+        private void CheckArrivalGeometry()
+        {
+            _metrics.arrivalGeometryNames = new[] { "Goblin", "Warlock", "Troll", "Mistress", "Salamander" };
+            _metrics.arrivalEndFootHeights = new float[_metrics.arrivalGeometryNames.Length];
+            _metrics.arrivalIdleFootHeights = new float[_metrics.arrivalGeometryNames.Length];
+            for (int i = 0; i < _metrics.arrivalGeometryNames.Length; i++)
+            {
+                string name = _metrics.arrivalGeometryNames[i];
+                _metrics.arrivalEndFootHeights[i] = Foot(name, "entrance", 1f);
+                _metrics.arrivalIdleFootHeights[i] = Foot(name, "idle", 0f);
+            }
+
+            float Foot(string name, string clip, float phase)
+            {
+                if (!_art.TryResolve(AssetRef.ForCreature(name, AssetKind.Animation, clip), out var asset)
+                    || !_art.TryLoadModel(asset, out KmfModel model) || model.Animation == null) return float.NaN;
+                var animation = new RenderAnimation(model);
+                var vertices = new System.Numerics.Vector3[animation.Mesh.Positions.Count];
+                animation.Sample(phase, false, vertices);
+                return vertices.Min(vertex => vertex.Y);
+            }
+        }
+
         private GameObject Entrance(ClassicMeshes meshes, string name, float x, out string entry)
         {
             if (!_art.TryResolve(AssetRef.ForCreature(name, AssetKind.Animation, "entrance"), out var asset)) throw new InvalidOperationException(name + " entrance missing");
@@ -400,6 +454,7 @@ namespace DK2.Unity
                 if (_frame == 5)
                 {
                     CheckAuthoredEffects(_probeDatabase, _probeSprites);
+                    CaptureRecoveryClips(_probeDatabase, _probeMeshes);
                     _actors.SetActive(false);
                     var baseline = Capture("effects-off");
                     _effectStarted = Time.realtimeSinceStartupAsDouble;

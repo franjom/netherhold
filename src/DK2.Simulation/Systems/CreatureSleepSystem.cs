@@ -398,6 +398,11 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         StateShadow.Arrive(context, SystemName, creature);
         if (creature.Dk2StateId == LairRules.LyingDownState)
         {
+            if (LairRules.BedOf(context.World, context.Database, creature) is { } bed)
+            {
+                creature.Heading = bed.Heading;
+                if (bed.ObjectTypeId != LairRules.MistressBedObjectId) PlaceOnBed(context.World, creature, bed);
+            }
             StateShadow.MoveOrViaIdle(context, SystemName, creature, LairRules.SleepingState);
         }
 
@@ -414,6 +419,8 @@ public sealed class CreatureSleepSystem : ISimulationSystem
     private static void Sleep(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        if (creature.SleepTicks == 0 && LairRules.BedOf(context.World, context.Database, creature) is { ObjectTypeId: LairRules.MistressBedObjectId } bed)
+            PlaceOnBed(context.World, creature, bed);
         creature.SleepTicks++;
 
         if (!LairRules.HasSleptEnough(context.Database, definition, creature)) return;
@@ -424,6 +431,14 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             $"health={creature.Health}/{definition.Hp}");
 
         Wake(context, creature);
+    }
+
+    private static void PlaceOnBed(WorldState world, CreatureState creature, ObjectState bed)
+    {
+        TilePos at = world.TilePosition(bed.TileIndex);
+        bool explicitPosition = bed.PosX != 0 || bed.PosY != 0;
+        creature.PosX = explicitPosition ? bed.PosX : CreatureState.CentreOf(at.X);
+        creature.PosY = explicitPosition ? bed.PosY : CreatureState.CentreOf(at.Y);
     }
 
     /// <summary>83's own exit for an ordinary bed returns failure, which is idle.</summary>

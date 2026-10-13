@@ -15,6 +15,11 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**242** — `0xC2A0D662C94D7F10`. Sleep entry aligns ordinary creatures to
+their bed and uses its heading; Mistress entry places her after the bed's
+door animation starts; departure selection rejects stale wander routes
+(ADR-0460). No new stored field.
+
 **241** — `0xD4E74C513D204899`. A tunneller's walks keep their destination within
 its own tile (`TryRouteToStance`), so a worker off its stand tile's centre walks
 there and digs instead of re-planning the walk every period. No new persisted
