@@ -291,11 +291,16 @@ namespace DK2.Unity
             var chunks = (Dictionary<int, GameObject>)type.GetField("_chunks", Private).GetValue(terrain);
             var drawn = (bool[])type.GetField("_drawn", Private).GetValue(terrain);
 
+            // A flush rebuilds within a frame budget (ADR-0457); the check needs every chunk done,
+            // before the snapshot and after the forced rebuild.
+            type.GetProperty("FlushBudgetMilliseconds").SetValue(terrain, 0.0);
+            MethodInfo flush = type.GetMethod("Flush");
+            flush.Invoke(terrain, null);
             Dictionary<int, string> before = chunks.ToDictionary(c => c.Key, c => Describe(c.Value));
             MethodInfo markStale = type.GetMethod("MarkStale", Private);
             for (int i = 0; i < drawn.Length; i++)
                 if (drawn[i]) markStale.Invoke(terrain, new object[] { i });
-            type.GetMethod("Flush").Invoke(terrain, null);
+            flush.Invoke(terrain, null);
             Dictionary<int, string> after = chunks.ToDictionary(c => c.Key, c => Describe(c.Value));
 
             int[] differ = before.Keys.Union(after.Keys)

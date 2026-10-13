@@ -10400,3 +10400,25 @@ built-in id (10755) is from memory and unverified on disk.
 here that carries it, or the player draws it pink; unity/README.md says so.
 `DK2/ClassicEffect` is a shader under Resources already, so every variant of
 it is built.
+## ADR-0457 — Terrain chunk rebuilds are spread over frames
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** `TerrainChunks.Flush` rebuilt every chunk a tile had changed
+in, in one frame. A tag wave or a room drop touches many 16x16 chunks at
+once, and an earlier probe run (not kept) saw frames of about 120 ms on
+Level 1 from it, even with the per-tile geometry cache (commit c902b2a3).
+
+**Decision.** A flush rebuilds dirty chunks in ascending chunk order until
+`FlushBudgetMilliseconds` (4 ms by default) has passed, leaving the rest
+dirty for the next frame; at least one chunk is rebuilt per flush, and a
+flush that finds no chunk drawn yet (the first after a load or a `Clear`)
+rebuilds everything, so a level appears whole. A chunk waiting its turn
+shows its previous mesh for those frames. Zero or less turns the budget
+off. The budget's clock is a stopwatch, so it follows the machine.
+
+**Consequences.** A large change reaches the screen over a few frames at a
+few milliseconds each instead of one long frame. A seam between a rebuilt
+chunk and a waiting neighbour can show while the backlog drains. The probe's
+full-rebuild check sets the budget to zero first. Checked by compiling the
+adapter against Unity's assemblies, not by a Unity run; whether the seam
+is acceptable in play is the owner's to judge.
