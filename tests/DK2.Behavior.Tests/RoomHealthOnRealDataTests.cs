@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
+using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.TestSupport;
@@ -14,6 +15,57 @@ namespace DK2.Behavior.Tests;
 public class RoomHealthOnRealDataTests
 {
     private static GameDatabase RealDatabase() => GameDatabaseLoader.Load(Dk2InstallGate.Path);
+
+    [InstallFact]
+    public void Level8NeutralStoneBridgeBesideTheHeartTakesTwoApplications()
+    {
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level8")!;
+        Assert.NotNull(map);
+        WorldState world = WorldState.FromMap(db, map,
+            [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        TilePos at = new(35, 38);
+        RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(at))!;
+        Assert.NotNull(room);
+        Assert.Equal(RoomTypeId.StoneBridge, room.Definition.TypeId);
+        Assert.Equal(PlayerIds.Neutral, room.OwnerPlayerId);
+        Assert.Equal(4, room.TileCount);
+        Assert.Equal(8000, RoomHealthRules.Health(world, db, room));
+
+        TileWorkResult first = RoomHealthRules.Convert(world, db, at, PlayerIds.FirstKeeper);
+        Assert.Equal(TileWorkOutcome.Progressed, first.Outcome);
+        Assert.Equal(-4000, first.HealthDelta);
+        Assert.All(room.TileIndices, index => Assert.Equal(PlayerIds.Neutral, world.TileAtIndex(index).OwnerPlayerId));
+        Assert.Equal(4000, RoomHealthRules.Health(world, db, room));
+
+        TileWorkResult second = RoomHealthRules.Convert(world, db, at, PlayerIds.FirstKeeper);
+        Assert.Equal(TileWorkOutcome.Transformed, second.Outcome);
+        Assert.All(room.TileIndices, index => Assert.Equal(PlayerIds.FirstKeeper, world.TileAtIndex(index).OwnerPlayerId));
+        Assert.Equal(8000, RoomHealthRules.Health(world, db, room));
+    }
+
+    /// <summary>Bridge health differs by terrain, while action 10 uses the ordinary room rate.
+    /// See room-health.md section 3 for the binary and the timing limit.</summary>
+    [InstallTheory]
+    [InlineData(RoomTypeId.WoodenBridge, 2000, 10, 2)]
+    [InlineData(RoomTypeId.StoneBridge, 2000, 10, 2)]
+    [InlineData(RoomTypeId.HeroStoneBridge, 208, 2, 1)]
+    public void FourBridgeSlabsUseTheirShippedHealthAndRoomConversionRate(
+        RoomTypeId type, int healthPerSlab, int rivalApplications, int neutralApplications)
+    {
+        GameDatabase db = RealDatabase();
+        RoomDef room = db.Room(type);
+        Assert.True(BridgeRules.IsBridge(room));
+        Assert.Equal(healthPerSlab, RoomHealthRules.StartPerTile(db, room));
+        Assert.Equal(healthPerSlab, RoomHealthRules.MaxPerTile(db, room));
+        int rivalDelta = RoomHealthRules.ConvertPerApplication(db, (byte)4, EfficiencyRules.BaseModifier);
+        int neutralDelta = RoomHealthRules.ConvertPerApplication(db, PlayerIds.Neutral, EfficiencyRules.BaseModifier);
+        Assert.Equal(-800, rivalDelta);
+        Assert.Equal(-4000, neutralDelta);
+        int health = healthPerSlab * 4;
+        Assert.Equal(rivalApplications, (health - rivalDelta - 1) / -rivalDelta);
+        Assert.Equal(neutralApplications, (health - neutralDelta - 1) / -neutralDelta);
+    }
 
     /// <summary>The deficit kept on the tiles equals DK2's clamped sums for a tile added or a merge
     /// only while StartingHealth ≤ MaxHealth; every shipped room terrain has them equal (10000,

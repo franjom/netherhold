@@ -192,7 +192,8 @@ creature vtable `+0x278` call on the bed (at `0x0046FAF9`, meaning unread) retur
   angle `(−410·h) & 0x7FF` shifted down 16, no radius; `0x0046FD71..0x0046FDD9`), not in front
   of it.
 - *Mistress bed (object 23):* on the first turn it installs the bed's file art #7
-  `door_opens` and moves the Mistress onto the bed. When that clip ends it sets her draw
+  `door_opens`; normalized 12.12 phase greater than 25 moves the Mistress onto
+  the bed (the shipped clip crosses this on its first advance). When it ends it sets her draw
   bit, clears the bed's, and starts action 24. On waking it goes to state 84.
 - **State 84 is `0x0046FE90`**: the turn handler in table entry 84 (`0x0047D15C` stores
   it; entry 83 holds `0x0046FA60`). It is not a category enter/leave hook. On its first

@@ -40,13 +40,15 @@ namespace DK2.Unity
             Func<ViewEffectRequest, bool> effectVisible = null,
             Func<FpPosition3, Fp32> floorHeight = null,
             Func<EffectTime> clock = null,
-            ClassicMeshes meshes = null)
+            ClassicMeshes meshes = null,
+            Func<ViewEffectRequest, CaptureEdges> captureEdges = null)
         {
             _root = root;
             _sprites = sprites;
             _meshes = meshes;
             Model = new RoomConstructionParticles(database, seed, clock ?? ReadClock, visible, effectVisible, floorHeight,
-                terrainDebrisStyle: TerrainDebrisStyle.Crumbling);
+                terrainDebrisStyle: TerrainDebrisStyle.Crumbling,
+                captureEffectStyle: CaptureEffectStyle.Edges, captureEdges: captureEdges);
         }
 
         // A stopwatch rather than Unity's clock: the model's Emit runs on the runner's worker thread

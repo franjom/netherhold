@@ -22,6 +22,8 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-needs.md")]
 public static class LairRules
 {
+    public const byte MistressBedObjectId = 23;
+
     /// <summary>Whether this creature ever goes for a bed: its record names one
     /// (<see cref="CreatureDef.LairObjectId"/>, the object its bed <i>is</i>) <b>and</b>
     /// it sleeps at all (<see cref="CreatureDef.TimeSleep"/> ≠ 0). Both halves are read

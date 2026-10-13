@@ -15,6 +15,11 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**241** — `0xD4E74C513D204899`. Sleep entry aligns ordinary creatures to
+their bed and uses its heading; Mistress entry places her after the bed's
+door animation starts; departure selection rejects stale wander routes
+(ADR-0460). No new stored field.
+
 **240** — `0x8FBB003CBA25CFD2`. Ownership-loss completion releases unsupported
 walls using the native neighbour/corner rules; live Heart platforms are
 excluded from movement and routing, with ruin reopening them (ADR-0451/0452).

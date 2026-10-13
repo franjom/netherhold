@@ -108,7 +108,11 @@ scenarios can change (ADR-0442).
 
 Owner visual checks: chickens, digging, reinforcing and walking look correct
 (2026-10-11); blue portal pillars and lava-walking Salamanders were verified.
-Claiming, eating and sleeping remain unchecked. Further comparisons:
+Claiming, eating and sleeping remain unchecked. Drop recovery, sleeping bed
+alignment and portal-exit continuity are corrected under ADR-0460; compare
+them after restarting Play. The near-Heart Level8 neutral bridge's two-hit
+capture is verified against its map and native rates (room-health.md §3).
+Further comparisons:
 construction waves/effects, Prison rats, Portal entrances, Giant melee,
 locked-door chains, corpse poses, Level8 hero visibility/movement and
 torch mounts/illumination after restarting Play.
@@ -137,7 +141,7 @@ d869276a-99ca-491a-9cf5-0342488c1277/scratchpad.
 Replay measurements are modern regressions, not original timing parity;
 all 60 Level1–3 traces validate, bounded-run wins 20/4/11. Artifacts:
 build/classic-step3-replays/claim-life238. Release verification passes
-5,158 tests without skips; Unity sync/compile and independent review pass.
+5,176 tests without skips; Unity sync/compile and independent review pass.
 Standalone render verification: tools/classic-unity-probe/ROOM_LIFE.md.
 Terrain destruction debris and tumbling mesh particles are built (ADR-0449;
 terrain-digging-debris.md). Unity's smaller top-down crumble adjustment

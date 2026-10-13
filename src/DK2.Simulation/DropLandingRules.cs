@@ -19,6 +19,9 @@ public static class DropLandingRules
     /// <summary>State 76, the landing (<c>0x0046EAB0</c>).</summary>
     public const int LandingState = 76;
 
+    public const int StunnedState = Combat.CombatStates.Stunned;
+    public const int GettingUpState = Combat.CombatStates.GettingUp;
+
     /// <summary>State 250 (<c>0x00481CF0</c>), "guarding": plays action 43 until 50 turns past the
     /// state word <c>+0x7E</c>, then idle. The word is <c>creature+0x2CC</c>, which the room drop
     /// stamps with now on its way in, so the stand is 50 turns from getting up.</summary>

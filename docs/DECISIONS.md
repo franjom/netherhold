@@ -10285,7 +10285,10 @@ hash/save version240. Evidence: research/terrain-digging-debris.md.
 two-thirds-size terrain mesh fragments that start across the tile's upper
 area and fall with limited sideways drift. This deliberately differs from
 the shipped upward velocities; the native presentation profile remains
-available and is the default outside Unity. Other effects keep native motion.
+available and is the default outside Unity. Unity also confines room capture
+to the exterior boundary, with 80% scale and colour intensity; floor capture
+retains native placement. Boundaries are frozen on the first emission wave. This is
+the owner's requested presentation profile, not a claim of original geometry.
 
 ## ADR-0450 — Select a bed after a creature is dropped into a Lair
 **Date:** 2026-10-12 · **Status:** accepted
@@ -10491,3 +10494,25 @@ stopwatch, and the per-thread scratch of ADR-0454 is per thread.
 frame still stalls the next frame by the excess. Compiled against Unity's
 assemblies, not run in Unity; the first play session is the real test, and
 the toggle is the way back if anything misbehaves.
+
+## ADR-0460 — Restore drop recovery and sleeping poses
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Hand-dropped creatures used a walking clip while stunned, and
+ordinary sleepers could stop beside their bed instead of aligning to it.
+
+**Decision.** Draw the authored knockdown and get-up clips from each state
+entry. Restore native sleep-entry position and heading alignment. During
+the Mistress bed's entrance clip, draw the bed and hide its occupant before
+switching to her sleeping clip. Treat the authored portal exit as a visual
+relocation so interpolation does not replay its movement. Evidence:
+research/hand-drop-landing.md, research/portal-creature-action.md,
+research/lair-acquisition.md §9 and research/object-drawing.md §8.
+Hash/save version 241 distinguishes the corrected resumed behaviour. Preserve
+an existing departure route only when its travel resumes in state 195;
+an unrelated wander route must not bypass portal selection. Evidence:
+research/creature-leaving.md §1.
+
+**Consequences.** The changes apply across maps. State 82's existing tile-level
+arrival approximation and the Mistress's unbuilt wake-door sequence remain
+fidelity boundaries; this change restores sleep entry, not that exit sequence.

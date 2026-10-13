@@ -14,6 +14,72 @@ namespace DK2.Presentation.Tests;
 public class ClaimAndBedEffectTests
 {
     [InstallFact]
+    public void EdgeCaptureParticlesStayOnTheSelectedBoundaryAndAreQuieter()
+    {
+        const ushort effectId = CaptureEffectLayout.RoomEffectId;
+        (GameDatabase db, _) = Load();
+        var native = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
+        int boundaryCalls = 0;
+        var edge = new RoomConstructionParticles(db, 7, () => new EffectTime(0),
+            captureEffectStyle: CaptureEffectStyle.Edges,
+            captureEdges: _ => ++boundaryCalls == 1 ? CaptureEdges.West : CaptureEdges.East);
+        var request = ViewEffectRequest.AtTileCentre(new EffectId(effectId), PlayerIds.FirstKeeper,
+            new TilePos(3, 3), new Fp32(Fp32.One));
+        var emission = new SimEvent(new GameTick(0), "test", "effect_request", "") { EffectRequest = request };
+        native.Emit(emission);
+        edge.Emit(emission);
+        native.AdvanceTo(new EffectTime(51));
+        edge.AdvanceTo(new EffectTime(51));
+        Assert.NotEmpty(edge.Particles);
+        Assert.Equal(native.Particles[0].InitialScale * 4 / 5, edge.Particles[0].InitialScale);
+        Assert.Equal(native.Particles[0].Red * 4 / 5, edge.Particles[0].Red);
+        Assert.All(edge.Particles, p => Assert.Equal(request.Position.X.Raw - 1984, p.XRaw));
+        edge.AdvanceTo(new EffectTime(101));
+        Assert.Equal(1, boundaryCalls);
+        Assert.All(edge.Particles, p => Assert.Equal(request.Position.X.Raw - 1984, p.XRaw));
+    }
+
+    [InstallFact]
+    public void FloorCaptureRetainsItsNativeCentreOriginAndIntensity()
+    {
+        (GameDatabase db, _) = Load();
+        var native = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
+        var profile = new RoomConstructionParticles(db, 7, () => new EffectTime(0),
+            captureEffectStyle: CaptureEffectStyle.Edges,
+            captureEdges: _ => throw new InvalidOperationException("Floor capture must not query edges."));
+        var request = ViewEffectRequest.AtTileCentre(new EffectId(CaptureEffectLayout.LandEffectId),
+            PlayerIds.FirstKeeper, new TilePos(3, 3), new Fp32(Fp32.One));
+        var emission = new SimEvent(new GameTick(0), "test", "effect_request", "") { EffectRequest = request };
+        native.Emit(emission);
+        profile.Emit(emission);
+        native.AdvanceTo(new EffectTime(51));
+        profile.AdvanceTo(new EffectTime(51));
+        Assert.Equal(native.Particles.Select(p => (p.XRaw, p.YRaw, p.HeightRaw, p.ScaleRaw, p.Red, p.Green, p.Blue)),
+            profile.Particles.Select(p => (p.XRaw, p.YRaw, p.HeightRaw, p.ScaleRaw, p.Red, p.Green, p.Blue)));
+    }
+
+    [InstallFact]
+    public void RoomCaptureEdgesExcludeInternalSeamsAndInteriorTiles()
+    {
+        (GameDatabase db, WorldState world) = Load();
+        for (int y = 2; y <= 4; y++)
+            for (int x = 2; x <= 4; x++)
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Portal), PlayerIds.FirstKeeper);
+        ViewEffectRequest Request(TilePos tile) => ViewEffectRequest.AtTileCentre(
+            new EffectId(CaptureEffectLayout.RoomEffectId), PlayerIds.FirstKeeper, tile, new Fp32(0));
+        Assert.Equal(CaptureEdges.None, CaptureEffectLayout.Boundary(world, db, Request(new(3, 3))));
+        Assert.Equal(CaptureEdges.West | CaptureEdges.North,
+            CaptureEffectLayout.Boundary(world, db, Request(new(2, 2))));
+        var model = new RoomConstructionParticles(db, 7, () => new EffectTime(0),
+            captureEffectStyle: CaptureEffectStyle.Edges,
+            captureEdges: r => CaptureEffectLayout.Boundary(world, db, r));
+        model.Emit(new SimEvent(new GameTick(0), "test", "effect_request", "")
+            { EffectRequest = Request(new(3, 3)) });
+        model.AdvanceTo(new EffectTime(51));
+        Assert.Empty(model.Particles);
+    }
+
+    [InstallFact]
     public void DiggingRockEmitsOriginalDebrisOnlyWhenTheTileFalls()
     {
         (GameDatabase db, WorldState world) = Load();

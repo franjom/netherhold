@@ -683,6 +683,7 @@ public sealed class WorldState
 
     public ref TileState Tile(TilePos p) => ref Tile(p.X, p.Y);
     public int TileIndex(TilePos p) => (p.Y * Width) + p.X;
+    public TilePos TilePosition(int index) => new(index % Width, index / Width);
 
     public ref TileState TileAtIndex(int index) => ref _tiles[index];
 

@@ -11,6 +11,25 @@ namespace DK2.Convert.Tests;
 
 public class ArtCatalogueTests
 {
+    [InstallTheory]
+    [InlineData("stunned", 23, 3)]
+    [InlineData("getting_up", 26, 0)]
+    public void DropRecoveryUsesTheAuthoredKnockdownAndGetUpResources(string clip, int slot, int fallback)
+    {
+        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
+        var entries = ArtSourceMap.ForDatabase(database, art).ToDictionary(e => e.Reference.Key);
+        foreach (var creature in database.Creatures.Values)
+        {
+            var resources = art.Creatures[creature.CreatureId];
+            var expected = resources[slot].Type != 0 ? resources[slot] : resources[fallback];
+            ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
+                DK2.Assets.AssetKind.Animation, clip).Key];
+            if (expected.IsEmpty) Assert.False(entry.HasSource);
+            else Assert.Equal(expected, entry.Source);
+        }
+    }
+
     [InstallFact]
     public void PortalEntranceUsesTheAuthoredBlockThirtyAndPreservesItsClockMetadata()
     {
