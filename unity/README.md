@@ -138,6 +138,11 @@ missing-shader fallback, usually pink. The
 
 ## Measuring performance
 
+`DungeonRunner` runs its ticks on a worker thread after each frame is presented (its
+`tickOnWorkerThread` field, on by default; ADR-0458), so a tick overlaps the frame's rendering
+and the view shows it one frame later. The probe below turns that off so its recorders see the
+tick's own cost on the main thread.
+
 Open **Window → Analysis → Profiler**, restart Play mode, and record the CPU
 Timeline, Rendering, Memory and GPU modules where supported. Leave Deep Profile
 off for baseline captures. The adapter exposes these CPU markers:

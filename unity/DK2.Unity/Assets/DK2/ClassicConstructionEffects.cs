@@ -44,7 +44,11 @@ namespace DK2.Unity
             Model = new RoomConstructionParticles(database, seed, clock ?? ReadClock, visible, effectVisible, floorHeight);
         }
 
-        private static EffectTime ReadClock() => new EffectTime((long)(Time.realtimeSinceStartupAsDouble * 1000));
+        // A stopwatch rather than Unity's clock: the model's Emit runs on the runner's worker thread
+        // (ADR-0458), and Unity's time is for the main thread.
+        private static readonly System.Diagnostics.Stopwatch Clock = System.Diagnostics.Stopwatch.StartNew();
+
+        private static EffectTime ReadClock() => new EffectTime(Clock.ElapsedMilliseconds);
 
         public void Draw()
         {

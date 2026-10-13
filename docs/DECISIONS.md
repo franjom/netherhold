@@ -10446,3 +10446,32 @@ chunk and a waiting neighbour can show while the backlog drains. The probe's
 full-rebuild check sets the budget to zero first. Checked by compiling the
 adapter against Unity's assemblies, not by a Unity run; whether the seam
 is acceptable in play is the owner's to judge.
+
+## ADR-0458 — Ticks run on a worker thread after the frame is presented
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** `DungeonRunner.Update` ran up to twenty simulation ticks and
+then presented, all on the main thread, so a frame that carried a tick
+cost the tick's whole time (15 ms at the median, far more at the tail)
+on top of its own, and the diagnostics recomputed the state hash on every
+`OnGUI` call.
+
+**Decision.** `Update` first joins the tick started last frame, then reads
+input, presents the settled world and starts this frame's ticks on a
+worker thread, where they run while Unity renders. A frame runs at most
+`maxTicksPerFrame` ticks (2), so a stall is paid back over frames. The
+view shows a tick one frame after it ran, so the creature interpolation
+draws the frame that owes a tick complete and starts the new motion on the
+next. Nothing on the main thread reads the world while a tick runs: `OnGUI`
+shows strings built in `Update`, the `Simulation` property joins the tick
+first, and the state hash is taken on the worker. A tick that throws stops
+the game and shows the failure. `tickOnWorkerThread` turns it off, and the
+probe does, to measure ticks. The simulation is Unity-free and
+single-threaded per world, which is what makes a worker safe; the one
+Unity call reached from a tick, the construction effects' clock, is now a
+stopwatch, and the per-thread scratch of ADR-0454 is per thread.
+
+**Consequences.** Hides cost rather than removing it: a tick longer than a
+frame still stalls the next frame by the excess. Compiled against Unity's
+assemblies, not run in Unity; the first play session is the real test, and
+the toggle is the way back if anything misbehaves.
