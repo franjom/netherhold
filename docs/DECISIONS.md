@@ -10400,6 +10400,30 @@ built-in id (10755) is from memory and unverified on disk.
 here that carries it, or the player draws it pink; unity/README.md says so.
 `DK2/ClassicEffect` is a shader under Resources already, so every variant of
 it is built.
+## ADR-0456 — The presenter runs its tile pass only when the tiles' inputs changed
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** `ScenePresenter.Present` runs every frame and its tile pass
+built a `TileView` for every tile to compare with the last one pushed,
+about 1-2 ms a frame on Level 1, on frames where the simulation had not
+ticked and nothing could have changed.
+
+**Decision.** The tile pass runs only when its inputs differ from what it
+last read: the tile array, compared byte for byte against a copy; which
+hearts are ruined (a ruined platform is drawn as floor); the fog flag; the
+doors' version (a door shows on its tile); the crypts' tiles (a Graveyard's
+floor slots); the view's tag-preview version; and the tick, since the view's
+room facts are cached per tick. The viewing player and the database are
+fixed for the view's life. A tile written, a door placed or a preview moved
+between two presents is still seen (tests pin those three). The other passes
+(torches, objects, structures, creatures) are unchanged.
+
+**Consequences.** Any new input the tile view reads must join the check,
+as with ADR-0454's caches; the reviewer found the doors and the preview
+missing from the first version. The saving is on frames without a tick,
+which at 4 Hz is most of them. `WorldState.Tiles` exposes the tiles as a
+read-only span for whole-map comparison.
+
 ## ADR-0457 — Terrain chunk rebuilds are spread over frames
 **Date:** 2026-10-13 · **Status:** accepted
 

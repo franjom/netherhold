@@ -431,12 +431,24 @@ public sealed partial class WorldView
     /// </summary>
     public void PreviewTags(TilePos? from, TilePos? to)
     {
-        _previewing = from is not null && to is not null;
-        if (!_previewing) return;
+        bool previewing = from is not null && to is not null;
+        if (!previewing)
+        {
+            if (_previewing) PreviewVersion++;
+            _previewing = false;
+            return;
+        }
         TilePos a = from!.Value, b = to!.Value;
-        (_previewX1, _previewX2) = a.X <= b.X ? (a.X, b.X) : (b.X, a.X);
-        (_previewY1, _previewY2) = a.Y <= b.Y ? (a.Y, b.Y) : (b.Y, a.Y);
+        (int x1, int x2) = a.X <= b.X ? (a.X, b.X) : (b.X, a.X);
+        (int y1, int y2) = a.Y <= b.Y ? (a.Y, b.Y) : (b.Y, a.Y);
+        if (!_previewing || x1 != _previewX1 || x2 != _previewX2 || y1 != _previewY1 || y2 != _previewY2) PreviewVersion++;
+        _previewing = true;
+        (_previewX1, _previewX2, _previewY1, _previewY2) = (x1, x2, y1, y2);
     }
+
+    /// <summary>Climbs each time the tag preview changes, so a presenter can tell without
+    /// asking every tile (ADR-0456).</summary>
+    public int PreviewVersion { get; private set; }
 
     private bool ShowsTag(in TileState tile, TerrainDef terrain, int x, int y) =>
         tile.IsTaggedBy(_viewingPlayerId)

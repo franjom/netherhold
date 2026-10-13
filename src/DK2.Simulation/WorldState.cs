@@ -686,6 +686,10 @@ public sealed class WorldState
 
     public ref TileState TileAtIndex(int index) => ref _tiles[index];
 
+    /// <summary>Every tile, read-only, for a reader that compares the whole map at once rather
+    /// than tile by tile. No route back into state: the span cannot be written.</summary>
+    public ReadOnlySpan<TileState> Tiles => _tiles;
+
     public bool Contains(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height;
     public bool Contains(TilePos p) => Contains(p.X, p.Y);
 
