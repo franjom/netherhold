@@ -77,10 +77,10 @@ public class NavMeshBuildTests
             }
     }
 
-    /// <summary>Two different bytes meet only across a constraint edge, and a constraint edge
-    /// between two triangles of one byte is the harmless leftover of a rectangle side.</summary>
+    /// <summary>A whole-map build carries no constraint bit (§2.2: the original's side marker runs on
+    /// the partial path only); the byte test alone keeps two bytes apart, and it does.</summary>
     [Fact]
-    public void DifferentBytesAreAlwaysSeparatedByAConstraint()
+    public void AWholeMapBuildCarriesNoConstraintBits()
     {
         NavMesh mesh = NavMesh.Build(new Grid([
             "......",
@@ -89,16 +89,8 @@ public class NavMeshBuildTests
             "......",
         ]));
         for (int t = 0; t < mesh.TriangleSlots; t++)
-        {
-            if (!mesh.IsTriangleLive(t)) continue;
             for (int i = 0; i < 3; i++)
-            {
-                int u = mesh.Neighbour(t, i);
-                if (u == NavMesh.NoNeighbour) continue;
-                if (mesh.NavByte(t) != mesh.NavByte(u))
-                    Assert.True(mesh.IsConstraint(t, i), $"triangles {t} and {u} differ without a constraint");
-            }
-        }
+                Assert.False(mesh.IsConstraint(t, i), $"triangle {t} edge {i} carries a constraint bit");
     }
 
     /// <summary>A single wall tile in an open floor: the floor around it is a ring, which cannot
@@ -135,24 +127,72 @@ public class NavMeshBuildTests
         }
     }
 
+    /// <summary>The flip refuses a constraint edge from either side, as the original tests t's bit
+    /// and then u's; a bit set on one side only still refuses both.</summary>
     [Fact]
-    public void AFlipAcrossAConstraintIsRefused()
+    public void AFlipAcrossAConstraintIsRefusedFromBothSides()
     {
         var mesh = new NavMesh();
         mesh.Reset(4, 4);
-        // Every reset edge is either a border constraint or the free diagonal.
-        int refused = 0;
-        for (int t = 0; t < mesh.TriangleSlots; t++)
-            for (int i = 0; i < 3; i++)
-                if (mesh.IsConstraint(t, i)) { Assert.False(mesh.TryFlip(t, i)); refused++; }
-        Assert.Equal(4, refused);
+        int t = 0, i = -1;
+        for (int k = 0; k < 3; k++) if (mesh.Neighbour(0, k) != NavMesh.NoNeighbour) i = k;
+        int u = mesh.Neighbour(t, i);
+        int j = mesh.EdgeIndexOf(u, mesh.Vertex(t, (i + 1) % 3), mesh.Vertex(t, i));
 
-        bool flipped = false;
-        for (int t = 0; t < mesh.TriangleSlots && !flipped; t++)
-            for (int i = 0; i < 3 && !flipped; i++)
-                if (!mesh.IsConstraint(t, i)) { Assert.True(mesh.TryFlip(t, i)); flipped = true; }
-        Assert.True(flipped);
+        mesh.MarkConstraint(t, i);
+        Assert.False(mesh.TryFlip(t, i));
+        Assert.False(mesh.TryFlip(u, j));
+        Assert.False(mesh.IsConstraint(u, j));
+
+        mesh.ClearConstraint(t, i);
+        Assert.True(mesh.TryFlip(t, i));
         Assert.Equal(2, mesh.LiveTriangleCount());
+        NavMeshTests.AssertInvariants(mesh);
+    }
+
+    /// <summary>The original's flip moves the outer edges' constraint bits before its convexity test
+    /// (`0x004C9FC0`, stores at 0x004CA10D..0x004CA164 ahead of the tests), so a flip refused as
+    /// non-convex leaves them moved and nothing else written. A non-convex quad: the reset's two
+    /// triangles with an extra point pulled into one of them.</summary>
+    [Fact]
+    public void AFlipRefusedAsNonConvexHasAlreadyMovedTheConstraintBits()
+    {
+        var mesh = new NavMesh();
+        mesh.Reset(0, 0, 8, 8);
+        mesh.InsertRectangle(0, 0, 8, 8, NavBytes.Floor);
+        mesh.InsertPoint(1, 7);
+        // Find a non-convex quad: an edge whose flip the convexity test refuses.
+        int t = -1, k = -1, u = -1, j = -1;
+        for (int i = 0; i < mesh.TriangleSlots && t < 0; i++)
+        {
+            if (!mesh.IsTriangleLive(i)) continue;
+            for (int e = 0; e < 3 && t < 0; e++)
+            {
+                int n = mesh.Neighbour(i, e);
+                if (n == NavMesh.NoNeighbour) continue;
+                int a = mesh.Vertex(i, e), b = mesh.Vertex(i, (e + 1) % 3), c = mesh.Vertex(i, (e + 2) % 3);
+                int jj = mesh.EdgeIndexOf(n, b, a);
+                int d = mesh.Vertex(n, (jj + 2) % 3);
+                if (NavMesh.Orient(mesh.PointX(c), mesh.PointY(c), mesh.PointX(d), mesh.PointY(d), mesh.PointX(a), mesh.PointY(a)) *
+                    NavMesh.Orient(mesh.PointX(c), mesh.PointY(c), mesh.PointX(d), mesh.PointY(d), mesh.PointX(b), mesh.PointY(b)) >= 0)
+                { t = i; k = e; u = n; j = jj; }
+            }
+        }
+        Assert.True(t >= 0, "the grid has no non-convex quad");
+
+        // The original's next edges are our previous ones (NavMesh.Edit.cs, the translation).
+        mesh.MarkConstraint(t, (k + 2) % 3);
+        mesh.MarkConstraint(u, (j + 2) % 3);
+        int[] verticesBefore = [mesh.Vertex(t, 0), mesh.Vertex(t, 1), mesh.Vertex(t, 2), mesh.Vertex(u, 0), mesh.Vertex(u, 1), mesh.Vertex(u, 2)];
+
+        Assert.False(mesh.TryFlip(t, k));
+
+        int[] verticesAfter = [mesh.Vertex(t, 0), mesh.Vertex(t, 1), mesh.Vertex(t, 2), mesh.Vertex(u, 0), mesh.Vertex(u, 1), mesh.Vertex(u, 2)];
+        Assert.Equal(verticesBefore, verticesAfter);
+        Assert.False(mesh.IsConstraint(t, (k + 2) % 3));
+        Assert.False(mesh.IsConstraint(u, (j + 2) % 3));
+        Assert.True(mesh.IsConstraint(t, k));
+        Assert.True(mesh.IsConstraint(u, j));
         NavMeshTests.AssertInvariants(mesh);
     }
 
@@ -184,18 +224,21 @@ public class NavMeshBuildTests
         mesh.InsertPoint(2, 4);
         Assert.True(HasEdge(mesh, 0, 0, 6, 4));
 
-        mesh.Coarsen();
+        mesh.CoarsenRectangle(0, 0, 6, 4);
 
         Assert.False(HasEdge(mesh, 0, 0, 6, 4));
         Assert.True(HasEdge(mesh, 6, 0, 2, 4));
         NavMeshTests.AssertInvariants(mesh);
     }
 
-    /// <summary>The pass runs to its fixed point: after a build no edge inside one byte is the
-    /// longer diagonal of a convex quad. Solid triangles are exempt — the original's flood fill
-    /// never enters one, so rock keeps whatever the insertions left.</summary>
+    /// <summary>The original's coarsening (`0x004CC650`) is a flood that visits each triangle once
+    /// per generation and spreads only from a hit, seeded at the rectangle's corners; a flip made
+    /// after a neighbour was popped is never revisited, so a build can leave a long diagonal behind.
+    /// It is not a fixed-point pass: this grid keeps some, and a further flood over the whole map,
+    /// seeded at corners whose fans are settled, makes no hit at all. Solid triangles are never
+    /// entered.</summary>
     [Fact]
-    public void AfterABuildNoWalkableEdgeCanBeShortened()
+    public void TheFloodStopsShortOfAFixedPoint_AsTheReadingOfTheOriginalImplies()
     {
         NavMesh mesh = NavMesh.Build(new Grid([
             "........",
@@ -204,7 +247,16 @@ public class NavMeshBuildTests
             "......~~",
             "LL......",
         ]));
+        int left = Shortenable(mesh);
+        Assert.True(left > 0, "the build left no long diagonal, so the flood reached a fixed point here");
+        Assert.Equal(0, mesh.CoarsenRectangle(0, 0, 8, 5));
+        Assert.Equal(left, Shortenable(mesh));
+        NavMeshTests.AssertInvariants(mesh);
+    }
 
+    private static int Shortenable(NavMesh mesh)
+    {
+        int count = 0;
         for (int t = 0; t < mesh.TriangleSlots; t++)
         {
             if (!mesh.IsTriangleLive(t) || NavBytes.IsSolid(mesh.NavByte(t))) continue;
@@ -220,9 +272,9 @@ public class NavMeshBuildTests
                     continue;
                 long nx = mesh.PointX(d) - mesh.PointX(c), ny = mesh.PointY(d) - mesh.PointY(c);
                 long ox = mesh.PointX(b) - mesh.PointX(a), oy = mesh.PointY(b) - mesh.PointY(a);
-                Assert.False((nx * nx) + (ny * ny) < (ox * ox) + (oy * oy),
-                    $"triangle {t} edge {i} is the longer diagonal of its quad");
+                if ((nx * nx) + (ny * ny) < (ox * ox) + (oy * oy)) count++;
             }
         }
+        return count;
     }
 }

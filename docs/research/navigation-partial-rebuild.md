@@ -8,7 +8,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: **Q591**. Being built (ADR-0459).
+Questions: **Q591**. Built (ADR-0461).
 
 ---
 
@@ -16,9 +16,9 @@ Questions: **Q591**. Being built (ADR-0459).
 
 Read from `0x004CE770` and its callees on 2026-10-12. Every changed navigation
 byte reaches `0x004CE770` with that one tile (`0x004D1930`, navigation-mesh-and-search.md §2), and the mesh
-is **edited in place, not rebuilt**. Ours rebuilds the whole map instead
-(`WorldSteering.Refresh`); see "What ours does" below for how far that is known
-to differ.
+is **edited in place, not rebuilt**. Ours edits in place too since ADR-0461
+(`NavMesh.Retriangulate`, applied by `WorldSteering.Refresh` to each byte changed
+since the last refresh); see "What ours does" below for what still differs.
 
 **Which path.** `0x004CE770` sorts the rectangle's corners and returns on an
 empty or `-1` one. A rectangle that does not keep one tile clear of every map
@@ -119,10 +119,14 @@ a flood bounded by a small rectangle. The slot tables the walks use are
 `0x0066DA14 = [1, 2, 0]` (next) and `0x0066DA18 = [2, 0, 1]` (previous):
 edge k runs from vertex slot k to slot k + 1 and its neighbour is word k.
 
-**What ours does.** `WorldSteering.Refresh` compares the whole navigation grid
-and, on any difference, builds the mesh from scratch by
-navigation-mesh-and-search.md §2.1. That is DK2's mesh at level start. After an
-edit, DK2 runs a different procedure:
+**What ours does.** `WorldSteering.Refresh` builds the whole map once
+(navigation-mesh-and-search.md §2.1: DK2's mesh at level start) and then, for
+each routing byte changed since the last refresh, in tile order, runs
+`NavMesh.Retriangulate` over that tile: the partial path above, transcribed loop
+for loop (ADR-0461). DK2 edits at the moment each byte is written; a refresh
+that finds several changed bytes edits them in tile order, not write order. The
+keeper AI's `KeeperView` makes its own steering and routes on a fresh build.
+After an edit, DK2's procedure, now ours too:
 
 - it keeps every point the edit did not remove;
 - it removes redundant side points;
@@ -131,13 +135,11 @@ edit, DK2 runs a different procedure:
 
 That the resulting triangles differ from a fresh build of the same bytes is
 STRONGLY INFERRED. A whole-map build keeps every rectangle corner, and the
-partial path removes some; but no mesh has been dumped after a dig, and the
-flood seed is unread. That routes differ is a HYPOTHESIS, since the search and
-funnel might still choose the same path. Our comment there, which said
-whole-map comparison "gives the same mesh", stated as fact what nothing showed.
-A DK2 mesh dump after one dig settles both. Ours also rebuilds the whole map
-for any change, where DK2's edit is bounded by the tile's rectangle.
-Building the partial path faithfully needs (ADR-0459):
+partial path removes some; but no mesh has been dumped after a dig. That
+routes differ is a HYPOTHESIS, since the search and funnel might still choose
+the same path. Our comment there, which said whole-map comparison "gives the
+same mesh", stated as fact what nothing showed. A DK2 mesh dump after one dig
+settles both. Building the partial path faithfully needed, and has (ADR-0461):
 
 - point and triangle free lists;
 - vertex removal (`0x004CAF40`, `0x004CB8C0`, `0x004CB170`);
@@ -148,7 +150,31 @@ Building the partial path faithfully needs (ADR-0459):
 - a save that carries the mesh, because it now depends on edit history.
 
 Our mesh winds the other way (navigation-mesh-and-search.md §2.1), so each
-walk is written for ours and the fidelity claim is about the triangles and
-bytes, not the vertex slots. A DK2 mesh dump after one dig is still the only
-check of the result; none exists.
+walk is transcribed through one translation, so that the edit walks the same
+triangles in the same order and keeps and frees the same slots from the same
+starting triangle. The table (NavMesh.Edit.cs applies it): with a corner `p` at
+vertex slot `s` in both meshes, DK2's edge at `s` (leaving `p`) is our `Prev(s)`
+(arriving at `p`), its edge `next(s)` is our `Next(s)` and its `prev(s)` our edge
+`s`; its corner after `p` is our corner before. Where DK2 enters a triangle
+across the edge at slot `b` with `p` at `next(b)`, ours has `p` at `b`: DK2's
+edge `next(b)` (from `p` to the apex) is our `Prev(b)`, its edge `prev(b)` our
+`Next(b)`, and the apex `prev(b)` is our `Prev(b)` too. DK2's flip keeps the
+start of its edge in the first triangle; ours keeps the end. DK2's edges and
+neighbours 0, 1, 2 iterate as ours 2, 1, 0. DK2's slot tables are
+`0x0066DA14` = [1, 2, 0] (next) and `0x0066DA18` = [2, 0, 1] (prev), overlapping
+`0x0066DA10` = [0, 1, 2] by one word, so next(-1) = 0 and prev(-1) = 1. The reviewer's check of
+the transcription (2026-10-13) left three places where that start is not DK2's:
+DK2's locate (`0x004C98B0`) walks from a 4×4 cell cache (refreshed by
+`0x004C97B0`, turning fans by `0x004C9540`) and returns the first containing
+triangle it reaches, so at a vertex the fan triangle it names depends on what
+was located before, where ours returns the lowest slot holding the point
+(ADR-0157), and that triangle starts the degree reduction, labels the degree-4
+rim and heads the flood seed's stack (`0x004CC3D0` locates first), so the two
+edits can choose different diagonals and flips; the reset (`0x004C8D10`) stores
+(p3,p1,p0) and (p1,p3,p2),
+a canvas diagonal p1–p3 where ours is p0–p2; and the whole-map builder's corner
+order (`0x004CCCB0`: (x0,y0), (x0,y1), (x1,y1), (x1,y0)) and interior split
+slots (`0x004CA500`) predate this and are ours. The edit therefore walks DK2's
+walks, but from a triangle that may not be DK2's; a DK2 mesh dump after one dig
+is still the only check of the result, and none exists.
 

@@ -10495,6 +10495,54 @@ frame still stalls the next frame by the excess. Compiled against Unity's
 assemblies, not run in Unity; the first play session is the real test, and
 the toggle is the way back if anything misbehaves.
 
+## ADR-0461 — The navigation mesh is edited per tile, as the original's is
+**Date:** 2026-10-13 · **Status:** accepted · advances ADR-0157, ADR-0454 · Research: `docs/research/navigation-partial-rebuild.md`, Q591
+
+**Context.** `WorldSteering.Refresh` built a new mesh from every tile whenever a
+navigation byte changed: 14 ms on Level 18 for one dug tile. DK2 edits its mesh in
+place around the changed tile (`0x004CE770`'s partial path): it cuts the
+rectangle's sides into the mesh and marks them, empties the inside of vertices,
+refills it from the bytes, coarsens by a bounded flood of flips seeded from the
+corners, then unmarks the sides and removes each side point with one byte all
+round, reusing freed slots last first. Its triangles after an edit depend on the
+history of edits; the research had the difference in triangles STRONGLY INFERRED
+and in routes a HYPOTHESIS. The owner chose the faithful edit over a faster build.
+
+**Decision.** `NavMesh.Retriangulate` is the partial path transcribed loop for
+loop: the side cuts (`0x004CDFE0`, `0x004CDF20`), the one-sided marks
+(`0x004CE380`), the interior walk (`0x004CE0C0`), the fill, the flood
+(`0x004CC650` seeded by `0x004CC3D0`, 996-entry cutoff, flip results ignored),
+the queue and merge-back (`0x004CE410`), and the vertex removals with their degree
+reduction (`0x004CB8C0`, `0x004CB170`, `0x004CC190`). The flip (`0x004C9FC0`)
+moves its constraint bits before its convexity test, as the original's does. The
+whole-map build uses the same flood in place of the old slot sweep and carries no
+constraint bits, as the original's reset leaves none. Our triangles wind the other
+way from the original's, so every walk goes through one translation (the table
+is in the research doc and NavMesh.Edit.cs), so that each routine walks the same
+triangles in the same order and keeps and frees the same slots. A rectangle
+within one tile of a map edge rebuilds the whole map. `Refresh` builds once, then
+edits each routing byte that changed since the last refresh, in tile order. The
+mesh is state: `WorldSnapshot` carries it with the bytes it was last brought to, a
+load takes no tile snapshot so its next refresh edits what the saved run would
+have, and `StateHash` folds in every slot and both free lists. The keeper AI's
+own steering (`KeeperView`) still routes on a fresh build. Hash/save version 243.
+
+**Consequences.** Level 18: an interior single-tile edit takes 0.035 ms median
+and 0.46 ms at worst, against 14 ms for a build. 1,955 single-tile edits over the
+66 shipped levels each leave a valid mesh; the whole-map pins were regenerated
+once (1–3 % of triangles differ from the sweep's). Routes after an edit may
+differ from a fresh build's. Two reviewers confirmed the transcriptions against
+the binary and found the residuals, each stated in the code: ours batches the
+bytes changed since the last refresh where the original edits at each write; the
+original's locate (`0x004C98B0`) walks from a 4×4 cell cache and returns the
+first triangle it reaches, so at a vertex its fan triangle depends on history,
+where ours takes the lowest slot (ADR-0157); that triangle starts the degree
+reduction, labels the degree-4 rim and heads the flood seed's stack, so the two
+edits can pick different diagonals and flips; the whole-map builder's reset
+diagonal, corner order and splits predate this and are ours (Q591). Region ids
+and width classes are not modelled, the shipped game reading neither. The only
+check of the triangles is a DK2 mesh dump after a dig: the Level 10 capture that
+held 353 is lost, so a new capture is the next step when the original can run.
 ## ADR-0460 — Restore drop recovery and sleeping poses
 **Date:** 2026-10-13 · **Status:** accepted
 
