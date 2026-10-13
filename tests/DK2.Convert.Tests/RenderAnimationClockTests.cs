@@ -103,13 +103,25 @@ public class RenderAnimationClockTests
     }
 
     [Fact]
-    public void FreshWalkingInstallationUsesScalar4096BeforeItsFirstVelocityUpdate()
+    public void DefaultInstallationRetainsScalar4096ForCallersWithoutAnInitialMovementSpeed()
     {
         var clock = new RenderAnimationClock(Timing(), loop: true, authoredMovementScale: new Fp32(4096));
         clock.Advance(new Fp32(512));
         Assert.Equal(4095 / 4096f, clock.Sample(1).Phase);
         clock.Advance(new Fp32(512));
         Assert.Equal(511 / 4096f, clock.Sample(1).Phase);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(256, 256)]
+    [InlineData(512, 512)]
+    public void WalkingInstallationUsesItsNativeSpeedBeforeTheFirstAdvance(int speed, int phase)
+    {
+        var clock = new RenderAnimationClock(Timing(), loop: true,
+            authoredMovementScale: new Fp32(4096), initialMovementSpeed: new Fp32(speed));
+        clock.Advance(new Fp32(speed));
+        Assert.Equal(phase / 4096f, clock.Sample(1).Phase);
     }
 
     [Fact]

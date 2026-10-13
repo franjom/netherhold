@@ -7,6 +7,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Unity destroys GameObjects at frame end; a same-frame Transform.Find can return the replaced actor. Disable it immediately and sample the active replacement in probes.
+
 - `dk2tools status` discovery counts can differ from full test-run totals; report verified counts from `dotnet test` summaries.
 
 - Equal source/DLL timestamps can hide edits from incremental MSBuild here; use `dotnet build --no-incremental` when changed decoder tests appear stale.

@@ -10554,3 +10554,20 @@ fails against the reverted walk (run as the negative control); the
 earlier tunnel tests spawned the worker on its tile centre and could not see
 it. Q565's remaining generic callers are unchanged; the tunnel's walks are now
 on the retained-destination side of that question.
+
+## ADR-0461 — Keep stationary travellers on their original standing pose
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Selecting walk art when a route exists, before velocity becomes
+nonzero, lets its initial rate and zero-speed reuse play cycles in place.
+
+**Decision.** Ordinary stationary travellers select native slot 39, loaded
+from the separate standing resource; absent art falls back to walk slot 1.
+Movement installation uses the body's current speed cap in 12.12 instead of
+the action scalar 4096. Preserve subsequent advance-before-rate-update order.
+Evidence: research/kmf-animation-playback.md §6 and its function records.
+
+**Consequences.** All creature types share the correction. Static poses use
+the existing model provider, while actual travel keeps authored motion.
+The unrepresented movement-mode-2 exception remains scoped; possessed
+movement retains its existing override. No simulation/save/hash change.

@@ -190,7 +190,10 @@ namespace DK2.Unity
         public void RemoveCreature(int creatureId)
         {
             if (_creatures.TryGetValue(creatureId, out GameObject go) && go != null)
+            {
+                go.SetActive(false);
                 Object.Destroy(go);
+            }
             _meshCreatures.Remove(creatureId);
 
             _creatures.Remove(creatureId);
@@ -214,7 +217,7 @@ namespace DK2.Unity
             if (creature.PlaysAnimation && _classic.ConfigureAnimation(go, animation, creature.AnimationLoops,
                 startSeconds, creature.AnimationMovementSpeed,
                 creature.AnimationDeferred ? AnimationReplacement.Deferred : AnimationReplacement.Immediate,
-                creature.AnimationPaused)) return;
+                creature.AnimationPaused, creature.AnimationInitialMovementSpeed)) return;
             if (player != null) player.Stop();
             _classic.RestoreModel(go, mesh);
         }

@@ -156,7 +156,8 @@ public readonly struct CreatureView
         Fp32? animationMovementSpeed = null,
         bool animationPaused = false,
         bool animationDeferred = false,
-        int? previousHeight = null)
+        int? previousHeight = null,
+        Fp32? animationInitialMovementSpeed = null)
     {
         Id = id;
         OwnerPlayerId = ownerPlayerId.Value;
@@ -176,6 +177,7 @@ public readonly struct CreatureView
         AnimationLoops = animationLoops;
         AnimationStartedAt = animationStartedAt;
         AnimationMovementSpeed = animationMovementSpeed;
+        AnimationInitialMovementSpeed = animationInitialMovementSpeed;
         AnimationPaused = animationPaused;
         AnimationDeferred = animationDeferred;
     }
@@ -212,6 +214,7 @@ public readonly struct CreatureView
     public bool AnimationLoops { get; }
     public GameTick? AnimationStartedAt { get; }
     public Fp32? AnimationMovementSpeed { get; }
+    public Fp32? AnimationInitialMovementSpeed { get; }
     public bool AnimationPaused { get; }
     public bool AnimationDeferred { get; }
 
@@ -1154,6 +1157,9 @@ public sealed partial class WorldView
             bool entranceAnimation = creature.Dk2StateId == PortalRules.JoiningState;
             bool playsAnimation = PlaysMappedAnimation(creature, world.CurrentTick);
             AssetRef animation = AnimationFor(creature, world.CurrentTick);
+            bool stationaryMovement = animation == AssetRef.ForCreature(
+                _database.CreatureById(creature.CreatureTypeId).Name, AssetKind.Animation, "movement_idle");
+            if (stationaryMovement) mesh = animation;
             if (creature.Activity == CreatureActivity.Dead)
                 mesh = AssetRef.ForCreature(_database.CreatureById(creature.CreatureTypeId).Name,
                     AssetKind.Mesh, "dead");
@@ -1193,9 +1199,12 @@ public sealed partial class WorldView
                     : meleeAnimation || castAnimation ? new GameTick(creature.SwingStartTick)
                     : (entranceAnimation || IsEatingAnimation(creature) || IsDropRecoveryAnimation(creature)) && creature.StateEnteredTick >= 0
                     ? new GameTick(creature.StateEnteredTick) : null,
-                !meleeAnimation && !castAnimation && !trainingAnimation && !entranceAnimation && IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null,
+                !meleeAnimation && !castAnimation && !trainingAnimation && !entranceAnimation && !stationaryMovement
+                    && IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null,
                 animationPaused: creature.FrozenTicks > 0,
-                animationDeferred: IsDeferredLanding(creature), previousHeight: previousHeight);
+                animationDeferred: IsDeferredLanding(creature), previousHeight: previousHeight,
+                animationInitialMovementSpeed: !stationaryMovement && IsTravelAnimation(creature)
+                    ? new Fp32(creature.Body.MaxSpeed >> 4) : null);
         }
     }
 
@@ -1248,6 +1257,8 @@ public sealed partial class WorldView
         else if (IsMeleeAnimation(creature, tick)) clip = "fighting";
         else if (IsCastAnimation(creature, tick)) clip = "casting";
         else if (IsEatingAnimation(creature)) clip = "eating";
+        else if (!creature.Possessed && IsTravelAnimation(creature) && MovementAnimationSpeed(creature).Raw == 0)
+            clip = "movement_idle";
         else if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle or CreatureActivity.Fighting
                      or CreatureActivity.Following
             && IsTravelAnimation(creature))

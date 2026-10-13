@@ -44,6 +44,8 @@ public sealed class Dk2ArtCatalogue
     public required IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> Creatures { get; init; }
     public IReadOnlyDictionary<byte, Dk2ArtResource> CreatureCorpses { get; init; } =
         new Dictionary<byte, Dk2ArtResource>();
+    public IReadOnlyDictionary<byte, Dk2ArtResource> CreatureStandingPoses { get; init; } =
+        new Dictionary<byte, Dk2ArtResource>();
     public required IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> Objects { get; init; }
     public IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> Doors { get; init; } =
         new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>();
@@ -70,6 +72,9 @@ public sealed class Dk2ArtCatalogue
                 5449, idOffset: 0xF4B, artOffset: 0x20 + ArtResourceSize, artCount: 36),
             CreatureCorpses = Read(Path.Combine(editor, "Creatures.kwd"), KwdRecordType.Creatures,
                 5449, idOffset: 0xF4B, artOffset: 0x148B, artCount: 1)
+                .ToDictionary(pair => pair.Key, pair => pair.Value[0]),
+            CreatureStandingPoses = Read(Path.Combine(editor, "Creatures.kwd"), KwdRecordType.Creatures,
+                5449, idOffset: 0xF4B, artOffset: 0x13E3, artCount: 1)
                 .ToDictionary(pair => pair.Key, pair => pair.Value[0]),
             Objects = objects,
             DoorLocks = ReadDoorLocks(Path.Combine(editor, "Doors.kwd"), objects),

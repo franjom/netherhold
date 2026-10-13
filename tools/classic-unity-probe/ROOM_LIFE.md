@@ -13,9 +13,9 @@ Development standalone player. The owner's Unity project is never opened.
 Offscreen captures use a graphics device and URP SingleCameraRequest.
 
 Verification, 2026-10-13: Unity 6000.6.0f1, AMD Radeon Graphics, Direct3D12.
-Artifacts: `D:/DungeonKeeperRemake/build/room-life-probe/20261013-204244/`.
-Recorded HEAD `a14e109b` with merged `d0d090fe`, save/hash version 242.
-Source/assembly SHA256 snapshots, build/player logs, 42 PNGs and
+Artifacts: `D:/DungeonKeeperRemake/build/room-life-probe/20261013-220020/`.
+Recorded HEAD `7cde4341` with the Imp startup correction, save/hash version 242.
+Source/assembly SHA256 snapshots, build/player logs, 45 PNGs and
 `metrics.json` are retained there. Editor build and player exited 0; no
 script errors, shader errors or runtime exception matches occurred.
 
@@ -37,6 +37,11 @@ Room capture suppresses the interior tile; floor capture retains its native
 centre origin. Separate captures verify Goblin recovery, Salamander/Mistress
 sleep assets and the Mistress bed's entry clip. Mesh endpoint measurements
 rule out a significant vertical gap between Entrance and idle.
+
+The startup fixture resolves `Imp-PoseFrame.kmf`, holds its mesh and position
+across five render fractions at zero velocity, then resolves `Imp_Run.kmf`.
+The moving mesh and interpolated position change, and its initial rate uses
+the current native speed cap. All four startup metrics pass.
 
 Each effect begins empty, emits its scheduled waves and cleans up to zero
 model/native particles. Each dig effect contains 48 native mesh particles.

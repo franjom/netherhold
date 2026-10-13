@@ -11,6 +11,26 @@ namespace DK2.Convert.Tests;
 
 public class ArtCatalogueTests
 {
+    [InstallFact]
+    public void StationaryMovementUsesTheShippedPoseFrameInsteadOfGuiIconsOrWalking()
+    {
+        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
+        var entries = ArtSourceMap.ForDatabase(database, art).ToDictionary(entry => entry.Reference.Key);
+        var imp = database.Creatures.Values.Single(c => c.Name == "Imp");
+        Assert.Equal("Imp-PoseFrame", art.CreatureStandingPoses[imp.CreatureId].Name);
+        Assert.Equal((byte)5, art.CreatureStandingPoses[imp.CreatureId].Type);
+        foreach (var creature in database.Creatures.Values)
+        {
+            var standing = art.CreatureStandingPoses[creature.CreatureId];
+            var expected = standing.Type != 0 ? standing : art.Creatures[creature.CreatureId][0];
+            var entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
+                DK2.Assets.AssetKind.Animation, "movement_idle").Key];
+            if (expected.IsEmpty) Assert.False(entry.HasSource);
+            else Assert.Equal(expected, entry.Source);
+        }
+    }
+
     [InstallTheory]
     [InlineData("stunned", 23, 3)]
     [InlineData("getting_up", 26, 0)]

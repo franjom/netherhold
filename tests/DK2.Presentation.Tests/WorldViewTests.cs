@@ -24,6 +24,28 @@ namespace DK2.Presentation.Tests;
 public class WorldViewTests
 {
     [InstallFact]
+    public void AStationaryImpWithARouteDoesNotRunInPlaceBeforeItStartsMoving()
+    {
+        (GameDatabase database, WorldState world) = RealLevel()!.Value;
+        CreatureDef definition = database.Creatures.Values.Single(c => c.Name == "Imp");
+        CreatureState imp = world.SpawnCreature(database, definition.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
+        const int pointTravelState = 6;
+        CreatureStateMachine.BeginTravel(new StateHookContext(world, database), imp,
+            pointTravelState, ImpStates.For(TileWorkKind.Claim).Entry);
+        imp.Body.PathTotalCount = 1;
+        imp.Body.MaxSpeed = 768 << 4;
+        var view = new WorldView(database);
+        CreatureView waiting = view.Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal(AssetRef.ForCreature("Imp", AssetKind.Animation, "movement_idle"), waiting.Animation);
+        Assert.Null(waiting.AnimationMovementSpeed);
+        imp.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(128 << 4, 0);
+        CreatureView moving = view.Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal(AssetRef.ForCreature("Imp", AssetKind.Animation, "moving_to_job"), moving.Animation);
+        Assert.Equal(new Fp32(128), moving.AnimationMovementSpeed);
+        Assert.Equal(new Fp32(768), moving.AnimationInitialMovementSpeed);
+    }
+
+    [InstallFact]
     public void PortalExitDoesNotReplayTheAuthoredDisplacementThroughPositionInterpolation()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -635,6 +657,7 @@ public class WorldViewTests
         imp.Body.PathTotalCount = 1;
         imp.Body.PathFinished = false;
         imp.Running = running;
+        imp.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(128 << 4, 0);
         CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
         Assert.Equal("creature.imp.animation." + clip, rendered.Animation.Key);
         Assert.True(rendered.PlaysAnimation);
@@ -670,7 +693,12 @@ public class WorldViewTests
         imp.Body.PathFinished = false;
         imp.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(x, y);
         CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
-        Assert.Equal(new Fp32(speed), rendered.AnimationMovementSpeed);
+        if (speed == 0)
+        {
+            Assert.Null(rendered.AnimationMovementSpeed);
+            Assert.Equal(AssetRef.ForCreature("Imp", AssetKind.Animation, "movement_idle"), rendered.Animation);
+        }
+        else Assert.Equal(new Fp32(speed), rendered.AnimationMovementSpeed);
     }
 
     [InstallTheory]

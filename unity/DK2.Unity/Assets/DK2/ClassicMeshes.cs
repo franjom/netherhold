@@ -64,7 +64,7 @@ namespace DK2.Unity
 
         public bool ConfigureAnimation(GameObject go, in ResolvedAsset asset, bool loop, double seconds,
             Fp32? movementSpeed = null, AnimationReplacement replacement = AnimationReplacement.Immediate,
-            bool hold = false)
+            bool hold = false, Fp32? initialMovementSpeed = null)
         {
             if (!_art.TryGetResource(asset, out Dk2ArtResource resource) || resource.Type != 6
                 || !_art.TryLoadModel(asset, out KmfModel model) || model.Animation is not { IsComplete: true }
@@ -95,7 +95,7 @@ namespace DK2.Unity
                 FramesPerSecond = resource.FramesPerSecond, Flags = resource.AnimationFlags,
                 StartSegmentFrames = resource.StartSegmentFrames, EndSegmentFrames = resource.EndSegmentFrames,
             }, loop, seconds, movementSpeed.HasValue ? new Fp32(resource.MovementScale) : null, movementSpeed,
-                replacement, hold);
+                replacement, hold, initialMovementSpeed);
             return true;
         }
 

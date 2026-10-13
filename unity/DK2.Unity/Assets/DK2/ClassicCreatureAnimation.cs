@@ -30,13 +30,13 @@ namespace DK2.Unity
         public void Configure(RenderAnimation[] clips, Mesh[] templates, Material[][] materials,
             CreatureAnimationTiming timing, bool loop, double start, Fp32? authoredMovementScale = null,
             Fp32? movementSpeed = null, AnimationReplacement replacement = AnimationReplacement.Immediate,
-            bool hold = false)
+            bool hold = false, Fp32? initialMovementSpeed = null)
         {
             if (_clock != null && replacement == AnimationReplacement.Deferred)
             {
                 Draw(start, movementSpeed, hold);
                 int revision = _clock.ResourceRevision;
-                _clock.Replace(timing, loop, replacement, authoredMovementScale);
+                _clock.Replace(timing, loop, replacement, authoredMovementScale, initialMovementSpeed);
                 if (_clock.ResourceRevision == revision)
                 {
                     _pending = (clips, templates, materials);
@@ -44,7 +44,7 @@ namespace DK2.Unity
                 }
             }
             Stop();
-            _clock = new RenderAnimationClock(timing, loop, authoredMovementScale);
+            _clock = new RenderAnimationClock(timing, loop, authoredMovementScale, initialMovementSpeed);
             _resourceRevision = _clock.ResourceRevision;
             _startTick = (long)System.Math.Floor(start * 4);
             _advanced = 0;

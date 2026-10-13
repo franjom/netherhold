@@ -184,7 +184,10 @@ public static class ArtSourceMap
                     "creature visual resource"));
             foreach (string animation in AssetCatalogue.CreatureActionAnimations)
                 entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation),
-                    CreatureAnimationSource(creature, resources, animation), "action animation KMF"));
+                    animation == "movement_idle"
+                        ? art.CreatureStandingPoses.TryGetValue(creature.CreatureId, out Dk2ArtResource? standing)
+                            && standing.Type != 0 ? standing : resources[CreatureWalk]
+                        : CreatureAnimationSource(creature, resources, animation), "action animation KMF"));
         }
     }
 

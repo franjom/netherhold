@@ -45,6 +45,8 @@ namespace DK2.Unity
             public bool[] authoredMeshRotationChanged;
             public string[] arrivalGeometryNames;
             public float[] arrivalEndFootHeights, arrivalIdleFootHeights;
+            public bool impStartupStill, impWalkMeshChanged, impWalkPositionChanged, impNativeRateSeeded;
+            public string impStartupAsset, impWalkAsset;
         }
         private readonly Metrics _metrics = new Metrics();
         private InstallArtProvider _art;
@@ -408,6 +410,75 @@ namespace DK2.Unity
             }
         }
 
+        private void CheckImpStartup()
+        {
+            GameDatabase db = _probeDatabase;
+            WorldState world = EffectWorld(db);
+            CreatureDef definition = db.Creatures.Values.Single(creature => creature.Name == "Imp");
+            CreatureState imp = world.SpawnCreature(db, definition.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
+            var hooks = new StateHookContext(world, db);
+            imp.Body.PathTotalCount = 1;
+            imp.Body.PathFinished = false;
+            imp.Body.MaxSpeed = CreatureMovementSystem.MaxSpeedOf(db, definition, imp.Level);
+            const int travelToPoint = 6;
+            CreatureStateMachine.BeginTravel(hooks, imp, travelToPoint, ImpStates.For(TileWorkKind.Claim).Entry);
+            var view = new WorldView(db, PlayerIds.FirstKeeper);
+            var fixture = new GameObject("Imp native startup fixture");
+            var scene = new DungeonScene(fixture.transform, 7, 7, _probeMeshes);
+            Color background = _camera.backgroundColor;
+            _camera.backgroundColor = Color.black;
+            _actors.SetActive(false); _effectRoot.SetActive(false);
+            try
+            {
+                CreatureView stationary = view.Creatures(world).Single();
+                if (!_art.TryResolve(stationary.Mesh, out var stillMesh)
+                    || !_art.TryResolve(stationary.Animation, out var stillAnimation))
+                    throw new InvalidOperationException("Imp startup art missing");
+                _metrics.impStartupAsset = stillMesh.InstallEntry;
+                scene.CreateCreature(imp.Id, stationary, stillMesh, stillAnimation);
+                GameObject go = fixture.transform.Find("creature " + imp.Id).gameObject;
+                Vector3[] first = Vertices(go);
+                Vector3 firstPosition = go.transform.position;
+                _metrics.impStartupStill = stationary.Mesh == AssetRef.ForCreature("Imp", AssetKind.Animation, "movement_idle");
+                for (int sample = 0; sample <= 4; sample++)
+                {
+                    scene.DrawCreatureFrame(world.CurrentTick, sample * .25f);
+                    _metrics.impStartupStill &= Same(first, Vertices(go)) && go.transform.position == firstPosition;
+                }
+                CloseUp(go, "imp-route-start-still");
+
+                var simulation = new GameSimulation(db, world, 1, Array.Empty<ISimulationSystem>());
+                simulation.Tick();
+                imp.LastPosX = imp.PosX; imp.LastPosY = imp.PosY;
+                imp.PosX += 128;
+                imp.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(128 << 4, 0);
+                CreatureView moving = view.Creatures(world).Single();
+                if (!_art.TryResolve(moving.Mesh, out var walkMesh)
+                    || !_art.TryResolve(moving.Animation, out var walkAnimation))
+                    throw new InvalidOperationException("Imp walk art missing");
+                _metrics.impWalkAsset = walkAnimation.InstallEntry;
+                _metrics.impNativeRateSeeded = moving.AnimationInitialMovementSpeed.HasValue
+                    && moving.AnimationInitialMovementSpeed.Value.Raw == imp.Body.MaxSpeed >> 4;
+                scene.SetCreatureFrameTime(world.CurrentTick, 0);
+                scene.UpdateCreature(imp.Id, moving, walkMesh, walkAnimation);
+                go = fixture.GetComponentsInChildren<ClassicCreatureAnimation>().Single().gameObject;
+                scene.DrawCreatureFrame(world.CurrentTick, 0);
+                Vector3[] walkFirst = Vertices(go);
+                Vector3 walkFirstPosition = go.transform.position;
+                CloseUp(go, "imp-walk-first");
+                scene.DrawCreatureFrame(world.CurrentTick, 1);
+                _metrics.impWalkMeshChanged = !Same(walkFirst, Vertices(go));
+                _metrics.impWalkPositionChanged = go.transform.position != walkFirstPosition;
+                CloseUp(go, "imp-walk-next");
+            }
+            finally
+            {
+                scene.Clear(); fixture.SetActive(false); Destroy(fixture);
+                _actors.SetActive(true); _effectRoot.SetActive(true);
+                _camera.backgroundColor = background;
+            }
+        }
+
         private GameObject Entrance(ClassicMeshes meshes, string name, float x, out string entry)
         {
             if (!_art.TryResolve(AssetRef.ForCreature(name, AssetKind.Animation, "entrance"), out var asset)) throw new InvalidOperationException(name + " entrance missing");
@@ -455,6 +526,7 @@ namespace DK2.Unity
                 {
                     CheckAuthoredEffects(_probeDatabase, _probeSprites);
                     CaptureRecoveryClips(_probeDatabase, _probeMeshes);
+                    CheckImpStartup();
                     _actors.SetActive(false);
                     var baseline = Capture("effects-off");
                     _effectStarted = Time.realtimeSinceStartupAsDouble;
@@ -510,6 +582,8 @@ namespace DK2.Unity
                         && _metrics.dwarfNativeInterpolation && _metrics.warlockNativeInterpolation
                         && _metrics.guardCreature == "Guard" && _metrics.guardAtDummyCentre && _metrics.guardFailedHuntSeen
                         && _metrics.guardWanderSeen && _metrics.guardLeftDummyCentre;
+                    _metrics.passed &= _metrics.impStartupStill && _metrics.impWalkMeshChanged
+                        && _metrics.impWalkPositionChanged && _metrics.impNativeRateSeeded;
                     File.WriteAllText(Path.Combine(_output, "metrics.json"), JsonUtility.ToJson(_metrics, true));
                     _ready = false; Application.Quit(_metrics.passed ? 0 : 1);
                 }

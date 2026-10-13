@@ -76,7 +76,7 @@ public static class AssetCatalogue
         "following",
     ];
 
-    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing", "entrance", "getting_up"];
+    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing", "entrance", "getting_up", "movement_idle"];
 
     public static IEnumerable<EffectElementDef> MeshEffectElements(GameDatabase database) =>
         database.EffectElements.Values.OrderBy(element => element.EffectElementId)
