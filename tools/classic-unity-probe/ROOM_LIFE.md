@@ -13,8 +13,8 @@ Development standalone player. The owner's Unity project is never opened.
 Offscreen captures use a graphics device and URP SingleCameraRequest.
 
 Verification, 2026-10-13: Unity 6000.6.0f1, AMD Radeon Graphics, Direct3D12.
-Artifacts: `D:/DungeonKeeperRemake/build/room-life-probe/20261013-172210/`.
-Recorded HEAD `ef2c433a` plus the working changes, save/hash version 240.
+Artifacts: `D:/DungeonKeeperRemake/build/room-life-probe/20261013-173909/`.
+Recorded HEAD `bafdac5a` with the merged `f6544f4d` changes, save/hash version 240.
 Source/assembly SHA256 snapshots, build/player logs, 32 PNGs and
 `metrics.json` are retained there. Editor build and player exited 0; no
 script errors, shader errors or runtime exception matches occurred.
@@ -44,7 +44,7 @@ inspected; their existing checks pass.
 
 The other checks pass: a production 2x2 Lair build advances in 1/3/4-tile
 waves; four requests render 256 native/model particles in two groups and
-change 5,904 pixels. Wall-clock expiry is observed at 1.586 seconds, inside
+change 5,904 pixels. Wall-clock expiry is observed at 1.555 seconds, inside
 the 2.2-second cleanup bound. Rat mesh/position changes, Goblin/Warlock entrance
 playback and final holds, and Dwarf/Warlock interpolation endpoints pass.
 Level8 Guard22 visits failed-hunt and wander states, first moves at tick 601

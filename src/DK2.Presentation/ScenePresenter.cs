@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using DK2.Assets;
 using DK2.Core;
 using DK2.Simulation;
@@ -250,6 +251,19 @@ public sealed class ScenePresenter
 
     private TileVisual[] _lastTiles = [];
     private bool[] _tileCreated = [];
+
+    // What the tile pass last read: the tiles byte for byte, which hearts were ruined, the fog
+    // flag, the doors, the crypts (a Graveyard's floor slots), the tag preview and the tick (the
+    // view's room facts are per tick). While those are the same the pass would push nothing, so it
+    // is not run (ADR-0456).
+    private TileState[] _tileSnapshot = [];
+    private ulong _ruinedSnapshot;
+    private bool _fogSnapshot;
+    private int _doorsSnapshot;
+    private int _previewSnapshot;
+    private long _tickSnapshot;
+    private readonly List<long> _cryptSnapshot = [];
+    private readonly List<long> _cryptScratch = [];
     private readonly Dictionary<int, CreatureVisual> _lastCreatures = [];
     private readonly List<int> _goneCreatures = [];
     private readonly HashSet<int> _seenCreatures = [];
@@ -293,6 +307,7 @@ public sealed class ScenePresenter
     {
         _lastTiles = [];
         _tileCreated = [];
+        _tileSnapshot = [];
         _lastCreatures.Clear();
         _lastObjects.Clear();
         _lastStructures.Clear();
@@ -321,9 +336,14 @@ public sealed class ScenePresenter
         {
             _lastTiles = new TileVisual[world.TileCount];
             _tileCreated = new bool[world.TileCount];
+            _tileSnapshot = [];
         }
 
-        PresentTiles(world);
+        if (!TilesUnchanged(world))
+        {
+            PresentTiles(world);
+            SnapshotTiles(world);
+        }
         PresentTorches(world);
 
         // Objects before creatures, because a creature stands on an object and
@@ -334,6 +354,58 @@ public sealed class ScenePresenter
         PresentCreatures(world);
 
         _target.Flush();
+    }
+
+    /// <summary>Whether every input of the tile pass is what the last pass saw. The tile view reads
+    /// the tiles (own and neighbours), the owner's ruined heart, the fog flag, the door on a tile,
+    /// the crypts (a Graveyard's floor slots), the tag preview and its per-tick room facts; the
+    /// viewing player and the database are fixed for the view's life.</summary>
+    private bool TilesUnchanged(WorldState world)
+    {
+        ReadOnlySpan<TileState> tiles = world.Tiles;
+        if (tiles.Length != _tileSnapshot.Length
+            || _fogSnapshot != world.FogOfWarEnabled
+            || _doorsSnapshot != world.DoorsVersion
+            || _previewSnapshot != _view.PreviewVersion
+            || _tickSnapshot != world.CurrentTick.Value
+            || _ruinedSnapshot != RuinedHearts(world))
+            return false;
+        Crypts(world, _cryptScratch);
+        if (_cryptScratch.Count != _cryptSnapshot.Count) return false;
+        for (int i = 0; i < _cryptScratch.Count; i++)
+            if (_cryptScratch[i] != _cryptSnapshot[i]) return false;
+        return MemoryMarshal.AsBytes(tiles).SequenceEqual(MemoryMarshal.AsBytes(_tileSnapshot.AsSpan()));
+    }
+
+    private void SnapshotTiles(WorldState world)
+    {
+        ReadOnlySpan<TileState> tiles = world.Tiles;
+        if (_tileSnapshot.Length != tiles.Length) _tileSnapshot = new TileState[tiles.Length];
+        tiles.CopyTo(_tileSnapshot);
+        _fogSnapshot = world.FogOfWarEnabled;
+        _doorsSnapshot = world.DoorsVersion;
+        _previewSnapshot = _view.PreviewVersion;
+        _tickSnapshot = world.CurrentTick.Value;
+        _ruinedSnapshot = RuinedHearts(world);
+        Crypts(world, _cryptSnapshot);
+    }
+
+    /// <summary>The crypts, as a Graveyard's floor slots read them: tile and whether held.</summary>
+    private static void Crypts(WorldState world, List<long> into)
+    {
+        into.Clear();
+        foreach (ObjectState thing in world.Objects)
+            if (thing.ObjectTypeId == AutoFurnitureRules.CryptObjectId)
+                into.Add(((long)thing.TileIndex << 1) | (thing.InHand ? 1L : 0L));
+    }
+
+    /// <summary>One bit per player slot whose heart is ruined.</summary>
+    private static ulong RuinedHearts(WorldState world)
+    {
+        ulong mask = 0;
+        for (int i = 0; i < world.PlayerCount && i < 64; i++)
+            if (world.PlayerAtIndex(i).HeartRuined) mask |= 1UL << i;
+        return mask;
     }
 
     private void PresentTiles(WorldState world)

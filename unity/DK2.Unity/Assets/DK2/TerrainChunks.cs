@@ -46,7 +46,20 @@ namespace DK2.Unity
         private readonly TileView[] _tiles;
         private readonly bool[] _drawn;
         private readonly HashSet<int> _dirty = new HashSet<int>();
+        private readonly List<int> _dirtyOrder = new List<int>();
         private readonly Dictionary<int, GameObject> _chunks = new Dictionary<int, GameObject>();
+        private readonly System.Diagnostics.Stopwatch _flushClock = new System.Diagnostics.Stopwatch();
+
+        /// <summary>How long one <see cref="Flush"/> may spend rebuilding chunks before it leaves the
+        /// rest for the next frame, in milliseconds; at least one chunk is rebuilt per flush, and the
+        /// first build after a <see cref="Clear"/> takes every chunk. A tag wave that touches many
+        /// chunks then costs a few frames of a few milliseconds instead of one frame of a hundred,
+        /// and a chunk not yet rebuilt shows its previous mesh until its turn (ADR-0457). Zero or
+        /// less rebuilds everything at once.</summary>
+        public double FlushBudgetMilliseconds { get; set; } = 4.0;
+
+        /// <summary>How many chunks the last <see cref="Flush"/> left for a later one.</summary>
+        public int PendingChunks => _dirty.Count;
 
         // Each drawn tile's pieces as AddTile last built them. A rebuild regenerates only the tiles
         // whose inputs changed (_stale) and copies the rest, so a dig costs its 5x5 window rather
@@ -114,13 +127,25 @@ namespace DK2.Unity
             return draws;
         }
 
-        /// <summary>Rebuilds every chunk a tile changed in since the last flush.</summary>
+        /// <summary>Rebuilds the chunks a tile changed in since the last flush, lowest chunk first,
+        /// within <see cref="FlushBudgetMilliseconds"/>; what does not fit stays dirty for the next
+        /// flush. Everything is rebuilt when nothing is drawn yet, so a level appears whole.</summary>
         public void Flush()
         {
-            foreach (int chunk in _dirty)
+            if (_dirty.Count == 0) return;
+            _dirtyOrder.Clear();
+            _dirtyOrder.AddRange(_dirty);
+            _dirtyOrder.Sort();
+            bool budgeted = FlushBudgetMilliseconds > 0 && _chunks.Count > 0;
+            _flushClock.Restart();
+            foreach (int chunk in _dirtyOrder)
+            {
+                if (budgeted && _dirty.Count < _dirtyOrder.Count && _flushClock.Elapsed.TotalMilliseconds >= FlushBudgetMilliseconds)
+                    break;
                 using (RebuildMarker.Auto())
                     Rebuild(chunk);
-            _dirty.Clear();
+                _dirty.Remove(chunk);
+            }
         }
 
         public void Clear()

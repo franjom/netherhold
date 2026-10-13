@@ -166,7 +166,7 @@ public sealed partial class ImpTaskSystem
                 if (TryTakeBody(context, creature, definition, grid, corpses: false)) return true;
                 if (TryReinforceAt(context, creature, grid, tile)) return true;
                 if (handsFree && CanFetchFrom(context, tile, player, creature.Id)
-                    && _pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route))
+                    && Reaches(grid, creature, tile))
                 {
                     CommitFetch(context, creature, tile);
                     return true;
@@ -234,7 +234,7 @@ public sealed partial class ImpTaskSystem
             if (!InScanRange(tile)) continue;
             if (!RingScanVisits(context, world, tile, creature.Tile)) continue;
             if (!CanFetchFrom(context, tile, player, creature.Id)) continue;
-            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route)) continue;
+            if (!Reaches(grid, creature, tile)) continue;
             CommitFetch(context, creature, tile);
             return true;
         }
@@ -290,7 +290,7 @@ public sealed partial class ImpTaskSystem
             if (!RingScanVisits(context, world, tile, at)) continue;
             if (TryReinforceAt(context, creature, grid, tile)) return true;
             if (handsFree && CanFetchFrom(context, tile, player, creature.Id)
-                && _pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route))
+                && Reaches(grid, creature, tile))
             {
                 CommitFetch(context, creature, tile);
                 return true;
@@ -320,7 +320,7 @@ public sealed partial class ImpTaskSystem
             if (!TryJobOn(context, grid, stand, wall, creature.OwnerPlayerId, JobPriority.Reinforce, creature.Id,
                           out int tileIndex, out TileWorkKind kind))
                 continue;
-            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == stand, _route))
+            if (!Reaches(grid, creature, stand))
             {
                 if (!ImpCrowding.FaceIsFull(world, context.Database, tileIndex, stand, creature.Id, false, kind))
                     ForgetReinforceTask(context, tileIndex, creature.Id);
@@ -499,7 +499,7 @@ public sealed partial class ImpTaskSystem
             if (!TryJobOn(context, grid, stand, target, player, JobPriority.MarkedExcavation, creature.Id,
                           out _, out TileWorkKind work, crowding: false))
                 continue;
-            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == stand, _route)) continue;
+            if (!Reaches(grid, creature, stand)) continue;
 
             bool mining = work == TileWorkKind.MineGold;
             if (mining)
@@ -534,7 +534,7 @@ public sealed partial class ImpTaskSystem
         }
 
         if (taken is not TilePos chosen) return false;
-        if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == chosen, _route)) return false;
+        if (!Reaches(grid, creature, chosen)) return false;
         if (takenFrom is not null) TakeTaskFrom(context, takenFrom, creature, targetIndex);
         CommitJob(context, creature, targetIndex, takenWork, JobPriority.MarkedExcavation, takenSlot);
         return true;
@@ -733,7 +733,7 @@ public sealed partial class ImpTaskSystem
         if (!TryJobOn(context, grid, target, target, creature.OwnerPlayerId, JobPriority.Claim, creature.Id,
                       out int tileIndex, out TileWorkKind kind))
             return false;
-        if (!_pathfinder.TryFindNearest(grid, creature.Tile, stand => stand == target, _route)) return false;
+        if (!Reaches(grid, creature, target)) return false;
         CommitJob(context, creature, tileIndex, kind, JobPriority.Claim);
         return true;
     }

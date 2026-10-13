@@ -10325,3 +10325,159 @@ invalidates routing. Hash/save version 240; no new persisted field.
 constraint. It does not reproduce the native arrival/escape exemptions;
 the evidence boundary remains research/structure-blocks.md §5.3.
 
+## ADR-0453 — A worker's reachability comes from one flood, not one search per candidate
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Job selection asked the grid pathfinder "can this worker reach
+this tile" once per candidate stance, body tile and crate, each a Dijkstra
+that floods the worker's whole region before it can answer no. A keeper
+dropping five imps ran 404 such searches in one tick (Level 18, 0.3 s of a
+0.46 s tick, 120 MB allocated), and the drop scan's one-tile searches still
+flooded the map to meet their one tile.
+
+**Decision.** `ReachableTiles` runs the same Dijkstra once from the worker
+to exhaustion and answers every candidate from it: the same neighbour order,
+step costs and heap order as `GridPathfinder.TryFindNearest`, so the same
+reachable set and the same route to each tile. `ImpTaskSystem` floods once
+per worker update, keyed on the grid instance and the start tile, and the
+point questions (stances, claims, objects, crates, the drop scan's one tile)
+read the flood. The body search asks only the tiles bodies lie on, in the
+search's own order of route cost then tile index, which is where the
+predicate could have been true. Searches with a real predicate over unknown
+tiles (`CreatureAngerSystem`'s exit) keep the pathfinder. The equivalence is
+pinned by tests on grids with corner-only gaps, and the Level 18 attack
+scenario's hash and event log are unchanged.
+
+**Consequences.** The flood is for one grid and one start. The grid reads
+terrain live, so a terrain change between a worker's questions would be seen
+by a search and not by the flood; none occurs, because dig, claim and
+reinforce are queued for `TileWorkSystem` to apply after every worker has
+chosen. The drop scan's blueprint search keeps the pathfinder when no tile
+confines it. The `grid.flood` marker counts floods. Selection's own cost
+(ring scans over the map, candidate sorting) is untouched and is the next item.
+
+## ADR-0454 — Derived navigation state is kept while its inputs are unchanged
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** A tick allocated about 8 MB on Level 18 and spent a sixth of
+its time in `nav.refresh`, called about seventeen times a tick, each call
+rebuilding the structure mask and the navigation bytes from scratch. Every
+room sweep allocated a visited array the size of the map, and every
+`WorldPathGrid` (one per worker per tick) rebuilt the structure mask.
+
+**Decision.** Three results are kept and revalidated against their inputs,
+never trusted blindly. `WorldSteering.Refresh` returns at once while the
+tile array, the doors' navigation fields, the set of ruined hearts and the
+crypts' tiles (a Graveyard's floor slots) are what the last refresh saw;
+the check is one byte comparison of the tile array. `StructureBlocks.For` keeps the world's last mask with the list of
+structure tiles (index, terrain, owner, heart ruined) it was built from,
+and recomputes when a scan finds that list changed. `RoomIndex` takes its
+visited array from per-thread scratch. No tile-write counter exists, since
+tiles are written through references, so each cache compares its inputs
+rather than listening for changes. The Level 18 attack scenario's hashes
+and event log are unchanged; allocation fell to about 2 MB a tick.
+
+**Consequences.** Each cache's key must name every input its result reads;
+the tests found `HeartRuined` missing from the mask's key, and the reviewer
+found the crypts missing from the refresh's, so any new input to those
+routines must join its key. The mesh rebuild itself (`nav.build`) and the remaining
+per-tick lists (room-need queries, the keeper view, furniture) are untouched.
+
+## ADR-0455 — The adapter's run-time shaders are referenced from Resources
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** The Unity adapter builds its materials at run time from
+shaders found by name: URP Lit and Unlit, with the Standard and Unlit/Color
+fallbacks. A player contains only the shaders and variants some asset in
+the build references, so the headless probe's Development player found
+none of them and logged the failure every frame; the probe worked around
+it in its own build.
+
+**Decision.** `Assets/DK2/Resources/Shaders` holds one material per shader
+and keyword set the adapter uses: URP Lit opaque and blended, each with and
+without emission, all with specular and reflections off; URP Unlit opaque
+and additive; Standard; Unlit/Color. Resources are always built, and a
+material's keyword set is what makes Unity keep that variant. The probe
+keeps its own materials for builds from an older copy. Not yet verified by
+a player build, which the owner's next build will show; the Unlit/Color
+built-in id (10755) is from memory and unverified on disk.
+
+**Consequences.** A new keyword on a run-time material needs a material
+here that carries it, or the player draws it pink; unity/README.md says so.
+`DK2/ClassicEffect` is a shader under Resources already, so every variant of
+it is built.
+## ADR-0456 — The presenter runs its tile pass only when the tiles' inputs changed
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** `ScenePresenter.Present` runs every frame and its tile pass
+built a `TileView` for every tile to compare with the last one pushed,
+about 1-2 ms a frame on Level 1, on frames where the simulation had not
+ticked and nothing could have changed.
+
+**Decision.** The tile pass runs only when its inputs differ from what it
+last read: the tile array, compared byte for byte against a copy; which
+hearts are ruined (a ruined platform is drawn as floor); the fog flag; the
+doors' version (a door shows on its tile); the crypts' tiles (a Graveyard's
+floor slots); the view's tag-preview version; and the tick, since the view's
+room facts are cached per tick. The viewing player and the database are
+fixed for the view's life. A tile written, a door placed or a preview moved
+between two presents is still seen (tests pin those three). The other passes
+(torches, objects, structures, creatures) are unchanged.
+
+**Consequences.** Any new input the tile view reads must join the check,
+as with ADR-0454's caches; the reviewer found the doors and the preview
+missing from the first version. The saving is on frames without a tick,
+which at 4 Hz is most of them. `WorldState.Tiles` exposes the tiles as a
+read-only span for whole-map comparison.
+
+## ADR-0457 — Terrain chunk rebuilds are spread over frames
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** `TerrainChunks.Flush` rebuilt every chunk a tile had changed
+in, in one frame. A tag wave or a room drop touches many 16x16 chunks at
+once, and an earlier probe run (not kept) saw frames of about 120 ms on
+Level 1 from it, even with the per-tile geometry cache (commit c902b2a3).
+
+**Decision.** A flush rebuilds dirty chunks in ascending chunk order until
+`FlushBudgetMilliseconds` (4 ms by default) has passed, leaving the rest
+dirty for the next frame; at least one chunk is rebuilt per flush, and a
+flush that finds no chunk drawn yet (the first after a load or a `Clear`)
+rebuilds everything, so a level appears whole. A chunk waiting its turn
+shows its previous mesh for those frames. Zero or less turns the budget
+off. The budget's clock is a stopwatch, so it follows the machine.
+
+**Consequences.** A large change reaches the screen over a few frames at a
+few milliseconds each instead of one long frame. A seam between a rebuilt
+chunk and a waiting neighbour can show while the backlog drains. The probe's
+full-rebuild check sets the budget to zero first. Checked by compiling the
+adapter against Unity's assemblies, not by a Unity run; whether the seam
+is acceptable in play is the owner's to judge.
+
+## ADR-0458 — Ticks run on a worker thread after the frame is presented
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** `DungeonRunner.Update` ran up to twenty simulation ticks and
+then presented, all on the main thread, so a frame that carried a tick
+cost the tick's whole time (15 ms at the median, far more at the tail)
+on top of its own, and the diagnostics recomputed the state hash on every
+`OnGUI` call.
+
+**Decision.** `Update` first joins the tick started last frame, then reads
+input, presents the settled world and starts this frame's ticks on a
+worker thread, where they run while Unity renders. A frame runs at most
+`maxTicksPerFrame` ticks (2), so a stall is paid back over frames. The
+view shows a tick one frame after it ran, so the creature interpolation
+draws the frame that owes a tick complete and starts the new motion on the
+next. Nothing on the main thread reads the world while a tick runs: `OnGUI`
+shows strings built in `Update`, the `Simulation` property joins the tick
+first, and the state hash is taken on the worker. A tick that throws stops
+the game and shows the failure. `tickOnWorkerThread` turns it off, and the
+probe does, to measure ticks. The simulation is Unity-free and
+single-threaded per world, which is what makes a worker safe; the one
+Unity call reached from a tick, the construction effects' clock, is now a
+stopwatch, and the per-thread scratch of ADR-0454 is per thread.
+
+**Consequences.** Hides cost rather than removing it: a tick longer than a
+frame still stalls the next frame by the excess. Compiled against Unity's
+assemblies, not run in Unity; the first play session is the real test, and
+the toggle is the way back if anything misbehaves.

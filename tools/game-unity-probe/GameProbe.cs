@@ -124,6 +124,9 @@ namespace DK2.Unity
             Set("installDirectory", Arg("-dk2Install", "E:/GogGames/Dungeon Keeper 2"));
             Set("levelName", Arg("-level", "Level1"));
             Set("seed", ulong.Parse(Arg("-seed", "1"), CultureInfo.InvariantCulture));
+            // The probe measures the tick's own cost, so it runs inline on the main thread, where the
+            // recorders see it, rather than on the runner's worker thread (ADR-0458).
+            Set("tickOnWorkerThread", false);
             _pending = (List<PlayerCommand>)typeof(DungeonRunner)
                 .GetField("_pendingCommands", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner);
 
@@ -291,11 +294,16 @@ namespace DK2.Unity
             var chunks = (Dictionary<int, GameObject>)type.GetField("_chunks", Private).GetValue(terrain);
             var drawn = (bool[])type.GetField("_drawn", Private).GetValue(terrain);
 
+            // A flush rebuilds within a frame budget (ADR-0457); the check needs every chunk done,
+            // before the snapshot and after the forced rebuild.
+            type.GetProperty("FlushBudgetMilliseconds").SetValue(terrain, 0.0);
+            MethodInfo flush = type.GetMethod("Flush");
+            flush.Invoke(terrain, null);
             Dictionary<int, string> before = chunks.ToDictionary(c => c.Key, c => Describe(c.Value));
             MethodInfo markStale = type.GetMethod("MarkStale", Private);
             for (int i = 0; i < drawn.Length; i++)
                 if (drawn[i]) markStale.Invoke(terrain, new object[] { i });
-            type.GetMethod("Flush").Invoke(terrain, null);
+            flush.Invoke(terrain, null);
             Dictionary<int, string> after = chunks.ToDictionary(c => c.Key, c => Describe(c.Value));
 
             int[] differ = before.Keys.Union(after.Keys)

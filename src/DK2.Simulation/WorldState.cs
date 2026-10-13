@@ -606,6 +606,10 @@ public readonly record struct HandItem(HandItemKind Kind, int Id)
 public sealed class WorldState
 {
     private readonly TileState[] _tiles;
+
+    /// <summary>The last structure mask computed for this world (<see cref="StructureBlocks.For"/>).
+    /// Derived state, never saved or hashed.</summary>
+    internal StructureBlocks.Cache StructureCache { get; } = new();
     internal const int TremorSlotCount = 8;
     internal TremorState[] TremorSlots { get; } = new TremorState[TremorSlotCount];
     public IReadOnlyList<TremorState> Tremors => TremorSlots;
@@ -681,6 +685,10 @@ public sealed class WorldState
     public int TileIndex(TilePos p) => (p.Y * Width) + p.X;
 
     public ref TileState TileAtIndex(int index) => ref _tiles[index];
+
+    /// <summary>Every tile, read-only, for a reader that compares the whole map at once rather
+    /// than tile by tile. No route back into state: the span cannot be written.</summary>
+    public ReadOnlySpan<TileState> Tiles => _tiles;
 
     public bool Contains(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height;
     public bool Contains(TilePos p) => Contains(p.X, p.Y);

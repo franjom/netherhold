@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using DK2.Art;
 using DK2.Assets;
 using DK2.Core;
@@ -58,6 +59,16 @@ namespace DK2.Unity
         [SerializeField] private float speed = 1f;
         [SerializeField] private bool showDiagnostics = true;
 
+        /// <summary>Ticks run on a worker thread after the frame has been presented, while Unity
+        /// renders it, so a tick costs the next frame only what it exceeds the frame's own time by
+        /// (ADR-0458). The view shows a tick one frame after it ran. Off, ticks run inside Update
+        /// before the present, as they did.</summary>
+        [SerializeField] private bool tickOnWorkerThread = true;
+
+        /// <summary>Whole ticks one frame may run: a stall is paid back at this rate rather than
+        /// fast-forwarding the game in one frame.</summary>
+        [SerializeField] private int maxTicksPerFrame = 2;
+
         [Header("Art")]
         [Tooltip("Draw objects with their meshes from the install (ADR-0408). Off draws every object as a box.")]
         [SerializeField] private bool classicMeshes = true;
@@ -96,9 +107,20 @@ namespace DK2.Unity
         private double _tickDebt;
         private string _failure;
         private string _loadedFrom;
+        private Task _tickTask;
+        private ulong _stateHash;
+        private string _diagnostics = "";
 
-        /// <summary>The running simulation, or null if it could not start. Read-only by intent.</summary>
-        public GameSimulation Simulation => _simulation;
+        /// <summary>The running simulation, or null if it could not start. Read-only by intent.
+        /// Waits for a tick in flight on the worker thread, so a reader sees a settled world.</summary>
+        public GameSimulation Simulation
+        {
+            get
+            {
+                WaitForTick();
+                return _simulation;
+            }
+        }
 
         private void Start()
         {
@@ -198,6 +220,7 @@ namespace DK2.Unity
 
         private void OnDestroy()
         {
+            WaitForTick();
             _constructionEffects?.Dispose();
             _installArt?.Dispose();
             _installArt = null;
@@ -210,6 +233,10 @@ namespace DK2.Unity
         {
             if (_simulation == null) return;
 
+            // The tick started at the end of the last frame, if any, has the world until it is done.
+            WaitForTick();
+            if (_simulation == null) return;
+
             using (InputMarker.Auto())
             {
                 ControlCamera();
@@ -217,29 +244,30 @@ namespace DK2.Unity
                 QueueInput();
             }
 
+            int ticks = 0;
+            InputFrame firstInput = InputFrame.Empty;
             if (speed > 0f)
             {
                 _tickDebt += Time.deltaTime * SimulationTiming.TicksPerSecond * speed;
 
                 // Whole ticks only, and a cap so a long editor stall does not
                 // fast-forward the game by a thousand ticks in one frame.
-                int ticks = (int)Math.Min(_tickDebt, 20);
+                ticks = (int)Math.Min(_tickDebt, Math.Max(1, maxTicksPerFrame));
                 _tickDebt -= ticks;
-
-                for (int i = 0; i < ticks; i++)
+                if (ticks > 0 && _pendingCommands.Count > 0)
                 {
-                    InputFrame input = i == 0 && _pendingCommands.Count > 0
-                        ? new InputFrame(_pendingCommands.ToArray())
-                        : InputFrame.Empty;
-                    using (TickMarker.Auto())
-                    {
-                        using (CaptureMarker.Auto())
-                            _worldView.CaptureObjectPositions(_simulation.World);
-                        _simulation.Tick(input);
-                    }
-                    if (i == 0) _pendingCommands.Clear();
+                    firstInput = new InputFrame(_pendingCommands.ToArray());
+                    _pendingCommands.Clear();
                 }
             }
+
+            if (ticks > 0 && !tickOnWorkerThread) RunTicks(ticks, firstInput);
+
+            // How far the drawn world is from its last tick toward its next, for the creature
+            // interpolation. On the worker path this frame's ticks have not run yet, so the world
+            // drawn is still the previous one and the frame that owes a tick draws it complete (1);
+            // the next frame then starts the new tick's motion from there.
+            float fraction = (float)Math.Min(tickOnWorkerThread ? _tickDebt + ticks : _tickDebt, 1d);
 
             // A tag drag shows its rectangle as tagged while the button is held, as DK2's does; off
             // the map, the rectangle keeps the last tile the pointer was on.
@@ -247,10 +275,68 @@ namespace DK2.Unity
             if (dragFrom == null) _dragTo = null;
             else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
             _worldView.PreviewTags(dragFrom, _dragTo);
-            _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
+            _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, fraction);
             using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
-            _scene.DrawCreatureFrame(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
+            _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
             _constructionEffects?.Draw();
+            if (showDiagnostics) RefreshDiagnostics();
+
+            // Nothing on this thread reads the world again before the next Update's wait: OnGUI
+            // reads the strings built above, and Simulation's getter waits.
+            if (ticks > 0 && tickOnWorkerThread)
+            {
+                int count = ticks;
+                InputFrame input = firstInput;
+                _tickTask = Task.Run(() => RunTicks(count, input));
+            }
+        }
+
+        /// <summary>The ticks of one frame, the first with the frame's commands. Capturing the
+        /// object positions first is what the view's interpolation reads.</summary>
+        private void RunTicks(int ticks, InputFrame firstInput)
+        {
+            for (int i = 0; i < ticks; i++)
+            {
+                InputFrame input = i == 0 ? firstInput : InputFrame.Empty;
+                using (TickMarker.Auto())
+                {
+                    using (CaptureMarker.Auto())
+                        _worldView.CaptureObjectPositions(_simulation.World);
+                    _simulation.Tick(input);
+                }
+            }
+            // The hash is for the diagnostics only, and costs a few milliseconds; here it is off the
+            // frame when the ticks are. Turned on at run time, it shows 0 until the next tick.
+            if (showDiagnostics) _stateHash = _simulation.StateHash();
+        }
+
+        /// <summary>Joins the worker tick, if one is running. A tick that threw stops the game and
+        /// shows the failure, as a throw out of Update used to.</summary>
+        private void WaitForTick()
+        {
+            Task task = _tickTask;
+            if (task == null) return;
+            _tickTask = null;
+            try
+            {
+                task.GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+                _failure = $"tick failed: {ex.Message}";
+                speed = 0f;
+                _simulation = null;
+            }
+        }
+
+        private void RefreshDiagnostics()
+        {
+            _diagnostics =
+                $"tick {_simulation.World.CurrentTick.Value}   " +
+                $"state {_stateHash:x16}   " +
+                $"{_scene.TileObjects} tile objects   {_scene.CreatureObjects} creatures   " +
+                $"pushed {_presenter.TilesPushed} tiles / {_presenter.CreaturesPushed} creatures this frame";
         }
 
         private void QueueInput()
@@ -438,12 +524,8 @@ namespace DK2.Unity
 
             string art = _assets == null ? "" : _assets.Summarise();
 
-            GUI.Label(
-                new Rect(10, 10, 1200, 20),
-                $"tick {_simulation.World.CurrentTick.Value}   " +
-                $"state {_simulation.StateHash():x16}   " +
-                $"{_scene.TileObjects} tile objects   {_scene.CreatureObjects} creatures   " +
-                $"pushed {_presenter.TilesPushed} tiles / {_presenter.CreaturesPushed} creatures this frame");
+            // Built in Update: the world may be mid-tick on the worker thread while OnGUI runs.
+            GUI.Label(new Rect(10, 10, 1200, 20), _diagnostics);
 
             GUI.Label(new Rect(10, 30, 1200, 20),
                 $"art: {art}" + (_classic == null ? "" : $"   shader: {_classic.ShaderName}"));

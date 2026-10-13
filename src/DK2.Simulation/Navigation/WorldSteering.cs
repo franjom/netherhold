@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Runtime.InteropServices;
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Pathfinding;
@@ -28,6 +29,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private NavMesh? _mesh;
     private MeshRouter? _router;
     private StructureBlocks? _structures;
+    private TileState[] _tileSnapshot = [];
+    private readonly List<DoorKey> _doorSnapshot = [];
+    private readonly List<long> _cryptSnapshot = [];
+    private readonly List<long> _cryptScratch = [];
+    private ulong _ruinedSnapshot;
     private readonly List<NavPoint> _waypoints = [];
     private readonly List<ObjectState> _objectObstacles = [];
 
@@ -56,6 +62,13 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     public void Refresh()
     {
         using ProfileScope _ = Profiler.Scope(SimulationMarkers.NavRefresh);
+        // Everything below is a function of the tiles, the doors, which hearts are ruined, where
+        // the crypts stand (a Graveyard's floor slots) and the database. While those are what the
+        // last refresh saw, its result stands, and the comparison is one pass over the tile array,
+        // where the refresh is several with a branch per tile (ADR-0454). The snapshot is taken
+        // once the refresh has succeeded, so one that throws is retried.
+        if (_mesh != null && Unchanged()) return;
+
         int count = _world.Width * _world.Height;
         if (_scratch.Length != count) _scratch = new byte[count];
         StructureBlocks structures = StructureBlocks.For(_world, _database);
@@ -63,7 +76,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         _structures = structures;
         FillNavigationBytes(_database, _world, structures, _scratch);
 
-        if (_mesh != null && samePlatforms && _scratch.AsSpan().SequenceEqual(_bytes)) return;
+        if (_mesh != null && samePlatforms && _scratch.AsSpan().SequenceEqual(_bytes))
+        {
+            Snapshot();
+            return;
+        }
         (_bytes, _scratch) = (_scratch, _bytes);
         if (_scratch.Length != count) _scratch = new byte[count];
         if (_routingBytes.Length != count) _routingBytes = new byte[count];
@@ -79,6 +96,61 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         _mesh = NavMesh.Build(new PlatformRoutingGrid(Width, Height, _routingBytes));
         _router = new MeshRouter(_mesh);
         Rebuilds++;
+        Snapshot();
+    }
+
+    /// <summary>What of a door the navigation bytes read.</summary>
+    private readonly record struct DoorKey(int X, int Y, byte DoorId, byte PlayerId, byte LockMode, bool UnderConstruction, bool Open);
+
+    private static DoorKey KeyOf(DoorState door) =>
+        new(door.X, door.Y, door.DoorId, door.PlayerId, door.LockMode, door.UnderConstruction, door.Open);
+
+    private bool Unchanged()
+    {
+        TileState[] tiles = _world.RawTiles;
+        if (tiles.Length != _tileSnapshot.Length
+            || !MemoryMarshal.AsBytes(tiles.AsSpan()).SequenceEqual(MemoryMarshal.AsBytes(_tileSnapshot.AsSpan())))
+            return false;
+        IReadOnlyList<DoorState> doors = _world.Doors;
+        if (doors.Count != _doorSnapshot.Count) return false;
+        for (int i = 0; i < doors.Count; i++)
+            if (KeyOf(doors[i]) != _doorSnapshot[i]) return false;
+        if (RuinedHearts() != _ruinedSnapshot) return false;
+        Crypts(_cryptScratch);
+        if (_cryptScratch.Count != _cryptSnapshot.Count) return false;
+        for (int i = 0; i < _cryptScratch.Count; i++)
+            if (_cryptScratch[i] != _cryptSnapshot[i]) return false;
+        return true;
+    }
+
+    /// <summary>The crypts on the map, as a Graveyard's floor slots read them
+    /// (<see cref="AutoFurnitureRules.FloorSlotSet"/>): tile and whether held, in object order.</summary>
+    private void Crypts(List<long> into)
+    {
+        into.Clear();
+        foreach (ObjectState thing in _world.Objects)
+            if (thing.ObjectTypeId == AutoFurnitureRules.CryptObjectId)
+                into.Add(((long)thing.TileIndex << 1) | (thing.InHand ? 1L : 0L));
+    }
+
+    /// <summary>One bit per player slot whose heart is ruined; the structure mask drops such a heart.</summary>
+    private ulong RuinedHearts()
+    {
+        ulong mask = 0;
+        for (int i = 0; i < _world.PlayerCount && i < 64; i++)
+            if (_world.PlayerAtIndex(i).HeartRuined) mask |= 1UL << i;
+        return mask;
+    }
+
+    private void Snapshot()
+    {
+        TileState[] tiles = _world.RawTiles;
+        if (_tileSnapshot.Length != tiles.Length) _tileSnapshot = new TileState[tiles.Length];
+        Array.Copy(tiles, _tileSnapshot, tiles.Length);
+        _doorSnapshot.Clear();
+        foreach (DoorState door in _world.Doors) _doorSnapshot.Add(KeyOf(door));
+        _ruinedSnapshot = RuinedHearts();
+        Crypts(_cryptSnapshot);
     }
 
     private sealed class PlatformRoutingGrid(int width, int height, byte[] bytes) : INavByteGrid
