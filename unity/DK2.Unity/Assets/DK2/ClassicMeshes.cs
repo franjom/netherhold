@@ -9,6 +9,7 @@ using DK2.Art.Textures;
 using DK2.Assets;
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Presentation;
 using UnityEngine;
 using UnityEngine.Rendering;
 using NumericsVector2 = System.Numerics.Vector2;
@@ -40,6 +41,7 @@ namespace DK2.Unity
             new Dictionary<(string, KmfBlend, float), Material>();
         private readonly Dictionary<Material, Material> _tagged = new Dictionary<Material, Material>();
         private readonly Dictionary<(AssetRef, bool), PieceSource> _pieces = new Dictionary<(AssetRef, bool), PieceSource>();
+        private readonly Dictionary<(AssetRef, int), Material[]> _heartMaterials = new Dictionary<(AssetRef, int), Material[]>();
 
         public ClassicMeshes(InstallArtProvider art)
         {
@@ -64,7 +66,7 @@ namespace DK2.Unity
 
         public bool ConfigureAnimation(GameObject go, in ResolvedAsset asset, bool loop, double seconds,
             Fp32? movementSpeed = null, AnimationReplacement replacement = AnimationReplacement.Immediate,
-            bool hold = false, Fp32? initialMovementSpeed = null)
+            bool hold = false, Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null)
         {
             if (!_art.TryGetResource(asset, out Dk2ArtResource resource) || resource.Type != 6
                 || !_art.TryLoadModel(asset, out KmfModel model) || model.Animation is not { IsComplete: true }
@@ -95,8 +97,27 @@ namespace DK2.Unity
                 FramesPerSecond = resource.FramesPerSecond, Flags = resource.AnimationFlags,
                 StartSegmentFrames = resource.StartSegmentFrames, EndSegmentFrames = resource.EndSegmentFrames,
             }, loop, seconds, movementSpeed.HasValue ? new Fp32(resource.MovementScale) : null, movementSpeed,
-                replacement, hold, initialMovementSpeed);
+                replacement, hold, initialMovementSpeed, phaseStepOverride);
             return true;
+        }
+
+        public void ConfigureHeartDecay(GameObject go, in ResolvedAsset asset, Fp32 phase)
+        {
+            var key = (asset.Reference, phase.Raw);
+            if (!_heartMaterials.TryGetValue(key, out Material[] materials))
+            {
+                if (!_art.TryLoadModel(asset, out KmfModel model)) return;
+                materials = new Material[model.Materials.Count];
+                for (int i = 0; i < materials.Length; i++)
+                {
+                    KmfMaterial source = model.Materials[i];
+                    materials[i] = source.TextureNames.Count == 0 ? MaterialFor(source)
+                        : ForTexture(source.TextureNames[DungeonHeartVisual.TextureIndex(phase, source.TextureNames.Count)],
+                            source.Blend, source.SelfIllumination);
+                }
+                _heartMaterials[key] = materials;
+            }
+            go.GetComponent<ClassicCreatureAnimation>()?.SetMainMaterials(materials);
         }
 
         public GameObject TryCreate(AssetRef key, string name, Transform parent, bool lastFrame = false)

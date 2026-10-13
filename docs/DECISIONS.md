@@ -10619,3 +10619,21 @@ Evidence: research/kmf-animation-playback.md §6 and its function records.
 the existing model provider, while actual travel keeps authored motion.
 The unrepresented movement-mode-2 exception remains scoped; possessed
 movement retains its existing override. No simulation/save/hash change.
+
+## ADR-0463 — Present the Heart's health and mana pulse from original resources
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** The healthy Heart loop omitted its health response and mana particles.
+
+**Decision.** Compute native five-percent pulse and height stages and select
+the authored decay textures from keeper Heart health. Preserve the animation
+clock across health changes. Request the room's mana effect on loop completion,
+using the original shared wall-clock gate and seven-second startup guard.
+Observe every health-routine call to retain its additional phase advance;
+queue immutable view updates across the worker/main-thread boundary.
+Evidence: research/heart-health-visuals.md and heart-mana-effects.md.
+
+**Consequences.** Particle death replacements, parent swirl and falling sway
+use shipped resources and view RNG. No simulation/save/hash change. The
+companion effect's dynamic light remains outside this particle renderer.
+Owner comparison of the complete damaged appearance is still required.

@@ -240,7 +240,8 @@ public readonly struct ObjectView
         int posX, int posY, int height, int heading, int scale, int pitch = 0, int roll = 0,
         Fp32? previousPosX = null, Fp32? previousPosY = null, int? previousHeading = null,
         bool playsAnimation = false, GameTick? animationStartedAt = null, bool animationLoops = true,
-        int? previousHeight = null, int? previousPitch = null, int? previousRoll = null)
+        int? previousHeight = null, int? previousPitch = null, int? previousRoll = null,
+        DungeonHeartVisual? heartVisual = null)
     {
         Pitch = pitch;
         Roll = roll;
@@ -264,6 +265,7 @@ public readonly struct ObjectView
         PlaysAnimation = playsAnimation;
         AnimationStartedAt = animationStartedAt;
         AnimationLoops = animationLoops;
+        HeartVisual = heartVisual;
     }
 
     /// <summary>The simulation's object id, stable for the object's whole life; negative for a
@@ -297,6 +299,8 @@ public readonly struct ObjectView
     public bool PlaysAnimation { get; }
     public GameTick? AnimationStartedAt { get; }
     public bool AnimationLoops { get; }
+
+    public DungeonHeartVisual? HeartVisual { get; }
 
     /// <summary>A turn about the model's own X axis, 2048 to a turn (<c>+0x64</c>, RenderInfo
     /// <c>+0x20</c>). DK2 turns a model by this, then <see cref="Roll"/>, then the heading

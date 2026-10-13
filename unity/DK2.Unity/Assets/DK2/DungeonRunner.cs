@@ -108,6 +108,8 @@ namespace DK2.Unity
         private InstallArtProvider _installArt;
         private ClassicMeshes _classic;
         private ClassicConstructionEffects _constructionEffects;
+        private Action<HeartHealthChange> _heartHealthObserver;
+        private WorldState _heartHealthWorld;
         private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
         private TilePos? _dragTo;
         private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
@@ -225,8 +227,14 @@ namespace DK2.Unity
                     point => _worldView.GroundHeightAt(world, point), meshes: _classic,
                     captureEdges: request => CaptureEffectLayout.Boundary(world, database, request));
                 _simulation.ObserveWith(_constructionEffects.Model);
+                _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
             }
 
+            int maximumHeartHealth = database[VariableTypeId.DungeonHeartObjectHealth];
+            _heartHealthObserver = change => _scene.QueueHeartHealthChange(change.Owner,
+                DungeonHeartVisual.FromHealth(currentHealth: change.Health, maximumHealth: maximumHeartHealth));
+            world.HeartHealthChanged += _heartHealthObserver;
+            _heartHealthWorld = world;
             _presenter.Present(world);
             LookAt(world);
         }
@@ -234,6 +242,8 @@ namespace DK2.Unity
         private void OnDestroy()
         {
             WaitForTick();
+            if (_heartHealthWorld != null && _heartHealthObserver != null)
+                _heartHealthWorld.HeartHealthChanged -= _heartHealthObserver;
             _constructionEffects?.Dispose();
             _installArt?.Dispose();
             _installArt = null;

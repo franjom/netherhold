@@ -192,6 +192,7 @@ public sealed class ScenePresenter
             PlaysAnimation = instance.PlaysAnimation;
             AnimationStartedAt = instance.AnimationStartedAt;
             AnimationLoops = instance.AnimationLoops;
+            HeartVisual = instance.HeartVisual;
         }
 
         public int Pitch { get; }
@@ -206,6 +207,8 @@ public sealed class ScenePresenter
         public bool PlaysAnimation { get; }
         public GameTick? AnimationStartedAt { get; }
         public bool AnimationLoops { get; }
+
+        public DungeonHeartVisual? HeartVisual { get; }
 
         public AssetRef Mesh { get; }
         public TilePos Tile { get; }
@@ -232,14 +235,15 @@ public sealed class ScenePresenter
             && PreviousPosX == other.PreviousPosX && PreviousPosY == other.PreviousPosY
             && PreviousHeading == other.PreviousHeading && PlaysAnimation == other.PlaysAnimation
             && PreviousHeight == other.PreviousHeight && PreviousPitch == other.PreviousPitch && PreviousRoll == other.PreviousRoll
-            && AnimationStartedAt == other.AnimationStartedAt && AnimationLoops == other.AnimationLoops;
+            && AnimationStartedAt == other.AnimationStartedAt && AnimationLoops == other.AnimationLoops
+            && HeartVisual == other.HeartVisual;
 
         public override bool Equals(object? obj) => obj is ObjectVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
             Mesh, Tile, OwnerPlayerId, GoldHeld, HashCode.Combine(PosX, PosY, Height, Heading, Scale, Pitch, Roll),
             HashCode.Combine(PreviousPosX, PreviousPosY, PreviousHeading, PlaysAnimation, AnimationStartedAt, AnimationLoops,
-                HashCode.Combine(PreviousHeight, PreviousPitch, PreviousRoll)));
+                HashCode.Combine(PreviousHeight, PreviousPitch, PreviousRoll, HeartVisual)));
     }
 
     private readonly WorldView _view;

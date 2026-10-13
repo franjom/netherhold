@@ -263,7 +263,8 @@ public sealed partial class WorldView
                 : thing.ObjectTypeId == ChickenId && thing.ProcessState == 8 && thing.ProcessAgeTicks > 0
                     ? new GameTick(world.CurrentTick.Value - thing.ProcessAgeTicks) : null,
             animationLoops: !stateAnimation || thing.ObjectTypeId == CallToArmsRules.ObjectTypeId && thing.ProcessState is 13 or 14,
-            previousHeight: previousZ, previousPitch: previousPitch, previousRoll: previousRoll);
+            previousHeight: previousZ, previousPitch: previousPitch, previousRoll: previousRoll,
+            heartVisual: HeartVisual(world, thing.ObjectTypeId, thing.OwnerPlayerId, at));
     }
 
     /// <summary>A wheel off the floor: drawn <c>0x800</c> up (its <c>+0x99</c> draw offset) and spun
@@ -485,8 +486,16 @@ public sealed partial class WorldView
         return new ObjectView(-((tileIndex * DecorSlots) + slot + 1), objectTypeId, owner, new TilePos(x, y),
             ObjectArt(objectTypeId, artSlot), 0, (x * One) + Half + offsetX, (y * One) + Half + offsetY,
             z < 0 ? FloorHeight(world, x, y) : z, heading & 0x7FF, One,
-            playsAnimation: objectTypeId == DungeonHeartId);
+            playsAnimation: objectTypeId == DungeonHeartId,
+            heartVisual: HeartVisual(world, objectTypeId, owner, new TilePos(x, y)));
     }
+
+    private DungeonHeartVisual? HeartVisual(WorldState world, byte objectTypeId, PlayerId owner, TilePos tile) =>
+        objectTypeId == DungeonHeartId && world.HasPlayer(owner)
+            ? DungeonHeartVisual.FromHealth(currentHealth: world.Player(owner).HeartHealth,
+                maximumHealth: _database[VariableTypeId.DungeonHeartObjectHealth]) with
+                { ManaEffect = RoomAt(world, world.TileIndex(tile)) is { Definition.TypeId: RoomTypeId.DungeonHeart } room
+                    ? room.Definition.CreatedObjectEffectId : EffectId.None } : null;
 
     private RoomInstance? RoomAt(WorldState world, int tileIndex)
     {

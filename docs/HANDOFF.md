@@ -119,6 +119,9 @@ them after restarting Play. Stationary travel poses and native initial
 movement rates are corrected under ADR-0462; the Imp startup needs owner comparison.
 The near-Heart Level8 neutral bridge's two-hit
 capture is verified against its map and native rates (room-health.md §3).
+Heart health now selects its original pulse, height and decay textures;
+loop completion requests mana sparkles under the native view timer.
+See ADR-0463 and research/heart-health-visuals.md and heart-mana-effects.md.
 Further comparisons:
 construction waves/effects, Prison rats, Portal entrances, Giant melee,
 locked-door chains, corpse poses, Level8 hero visibility/movement and

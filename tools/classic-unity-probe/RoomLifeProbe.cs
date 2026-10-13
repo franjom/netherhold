@@ -47,6 +47,17 @@ namespace DK2.Unity
             public float[] arrivalEndFootHeights, arrivalIdleFootHeights;
             public bool impStartupStill, impWalkMeshChanged, impWalkPositionChanged, impNativeRateSeeded;
             public string impStartupAsset, impWalkAsset;
+            public int[] heartHealthPercent, heartPhaseSteps, heartVerticalScales, heartDecayPhases;
+            public float[] heartUnityVerticalScales;
+            public string[] heartMaterials, heartTextures;
+            public bool[] heartMeshChanged, heartRateMatched;
+            public bool heartVisualsPassed;
+            public int heartManaRequests, heartRisingParticles, heartFallingParticles, heartSmokeExpiredParticles;
+            public int[] heartSmokeElementIds;
+            public bool heartSmokePassed, heartSmokeRises, heartSmokeFalls, heartManaPositionMatched;
+            public int heartRisingGreenPixels, heartFallingGreenPixels;
+            public bool heartHealthAdvanceMatched;
+            public int heartHealthAdvanceRequests;
         }
         private readonly Metrics _metrics = new Metrics();
         private InstallArtProvider _art;
@@ -479,6 +490,184 @@ namespace DK2.Unity
             }
         }
 
+        private void CheckHeartVisuals()
+        {
+            _metrics.heartHealthPercent = new[] { 100, 50, 10 };
+            _metrics.heartPhaseSteps = new int[3]; _metrics.heartVerticalScales = new int[3];
+            _metrics.heartDecayPhases = new int[3]; _metrics.heartUnityVerticalScales = new float[3];
+            _metrics.heartMaterials = new string[3]; _metrics.heartTextures = new string[3];
+            _metrics.heartMeshChanged = new bool[3]; _metrics.heartRateMatched = new bool[3];
+            _metrics.heartVisualsPassed = true;
+            int[] expectedSteps = { 438, 877, 175 }, expectedScales = { 4096, 6144, 2211 }, expectedDecay = { 0, 2048, 3686 };
+            Color background = _camera.backgroundColor;
+            _camera.backgroundColor = Color.black;
+            _actors.SetActive(false); _effectRoot.SetActive(false);
+            try
+            {
+                for (int stage = 0; stage < 3; stage++)
+                {
+                    GameDatabase db = _probeDatabase;
+                    WorldState world = EffectWorld(db);
+                    for (int y = 1; y <= 5; y++)
+                        for (int x = 1; x <= 5; x++)
+                            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), PlayerIds.FirstKeeper);
+                    world.Player(PlayerIds.FirstKeeper).HeartHealth = db[VariableTypeId.DungeonHeartObjectHealth]
+                        * _metrics.heartHealthPercent[stage] / 100;
+                    var view = new WorldView(db, PlayerIds.FirstKeeper);
+                    ObjectView pose = view.Objects(world).Concat(view.Decorations(world)).Single(thing => thing.HeartVisual.HasValue);
+                    DungeonHeartVisual visual = pose.HeartVisual.Value;
+                    if (!_art.TryResolve(pose.Mesh, out var asset) || !_art.TryLoadModel(asset, out KmfModel model))
+                        throw new InvalidOperationException("Dungeon Heart native art missing");
+                    var fixture = new GameObject("Heart health fixture " + _metrics.heartHealthPercent[stage]);
+                    var scene = new DungeonScene(fixture.transform, 7, 7, _probeMeshes);
+                    try
+                    {
+                        scene.CreateObject(pose.Id, pose, asset);
+                        GameObject go = fixture.transform.Find("object " + pose.Id).gameObject;
+                        scene.DrawCreatureFrame(GameTick.Zero, 0);
+                        Vector3[] first = Vertices(go);
+                        _metrics.heartPhaseSteps[stage] = visual.PhaseStep.Raw;
+                        _metrics.heartVerticalScales[stage] = visual.VerticalScale.Raw;
+                        _metrics.heartDecayPhases[stage] = visual.DecayPhase.Raw;
+                        _metrics.heartUnityVerticalScales[stage] = go.transform.localScale.y / go.transform.localScale.x;
+                        Material[] materials = go.GetComponent<MeshRenderer>().sharedMaterials;
+                        _metrics.heartMaterials[stage] = string.Join("|", materials.Select(material => material.name));
+                        _metrics.heartTextures[stage] = string.Join("|", materials.Select(material => material.mainTexture == null
+                            ? "missing" : material.mainTexture.name));
+                        bool texturesMatch = materials.Length == model.Materials.Count;
+                        for (int slot = 0; slot < Math.Min(materials.Length, model.Materials.Count); slot++)
+                        {
+                            var names = model.Materials[slot].TextureNames;
+                            if (names.Count > 0)
+                                texturesMatch &= materials[slot].mainTexture != null && materials[slot].name.Contains(
+                                    names[DungeonHeartVisual.TextureIndex(visual.DecayPhase, names.Count)]);
+                        }
+                        CloseUp(go, "heart-" + _metrics.heartHealthPercent[stage] + "-start");
+                        scene.DrawCreatureFrame(new GameTick(1), 0);
+                        Vector3[] next = Vertices(go);
+                        _metrics.heartMeshChanged[stage] = !Same(first, next);
+                        var animation = new RenderAnimation(model);
+                        var expected = new System.Numerics.Vector3[animation.Mesh.Positions.Count];
+                        animation.Sample(visual.PhaseStep.Raw / (float)Fp32.One, false, expected);
+                        _metrics.heartRateMatched[stage] = expected.Length == next.Length;
+                        for (int vertex = 0; vertex < Math.Min(expected.Length, next.Length); vertex++)
+                            _metrics.heartRateMatched[stage] &= Vector3.Distance(next[vertex],
+                                new Vector3(expected[vertex].X, expected[vertex].Y, expected[vertex].Z)) < .00001f;
+                        CloseUp(go, "heart-" + _metrics.heartHealthPercent[stage] + "-pulse");
+                        if (stage == 0)
+                        {
+                            CheckHeartSmoke(scene, go, pose);
+                            go.name = "retired Heart smoke fixture";
+                            go.SetActive(false);
+                            scene.RemoveObject(pose.Id);
+                            scene.SetCreatureFrameTime(GameTick.Zero, 0);
+                            scene.CreateObject(pose.Id, pose, asset);
+                            go = fixture.transform.Find("object " + pose.Id).gameObject;
+                            scene.DrawCreatureFrame(new GameTick(1), 0);
+                            Action<HeartHealthChange> changed = change =>
+                            {
+                                _metrics.heartHealthAdvanceRequests++;
+                                scene.QueueHeartHealthChange(change.Owner, DungeonHeartVisual.FromHealth(change.Health,
+                                    db[VariableTypeId.DungeonHeartObjectHealth]));
+                            };
+                            world.HeartHealthChanged += changed;
+                            try
+                            {
+                                world.DamageHeart(PlayerIds.FirstKeeper, 0, PlayerIds.FirstKeeper);
+                                world.RegenerateHeart(PlayerIds.FirstKeeper, 0);
+                                scene.DrawCreatureFrame(new GameTick(1), 0);
+                                Vector3[] advanced = Vertices(go);
+                                animation.Sample(3 * visual.PhaseStep.Raw / (float)Fp32.One, false, expected);
+                                _metrics.heartHealthAdvanceMatched = _metrics.heartHealthAdvanceRequests == 2 && expected.Length == advanced.Length;
+                                for (int vertex = 0; vertex < Math.Min(expected.Length, advanced.Length); vertex++)
+                                    _metrics.heartHealthAdvanceMatched &= Vector3.Distance(advanced[vertex],
+                                        new Vector3(expected[vertex].X, expected[vertex].Y, expected[vertex].Z)) < .00001f;
+                                CloseUp(go, "heart-health-setter-advances");
+                            }
+                            finally { world.HeartHealthChanged -= changed; }
+                        }
+                        _metrics.heartVisualsPassed &= visual.PhaseStep.Raw == expectedSteps[stage]
+                            && visual.VerticalScale.Raw == expectedScales[stage] && visual.DecayPhase.Raw == expectedDecay[stage]
+                            && Mathf.Abs(_metrics.heartUnityVerticalScales[stage] - visual.VerticalScale.Raw / (float)Fp32.One) < .00001f
+                            && texturesMatch && _metrics.heartMeshChanged[stage] && _metrics.heartRateMatched[stage];
+                    }
+                    finally { scene.Clear(); fixture.SetActive(false); Destroy(fixture); }
+                }
+            }
+            finally
+            {
+                _actors.SetActive(true); _effectRoot.SetActive(true);
+                _camera.backgroundColor = background;
+            }
+        }
+
+        private void CheckHeartSmoke(DungeonScene scene, GameObject heart, ObjectView pose)
+        {
+            long effectMilliseconds = 0, pulseMilliseconds = 5000;
+            var root = new GameObject("Heart mana smoke fixture");
+            using var effects = new ClassicConstructionEffects(root.transform, _probeDatabase, _probeSprites, 61,
+                clock: () => new EffectTime(effectMilliseconds), meshes: _probeMeshes);
+            var requests = new List<ViewEffectRequest>();
+            scene.HeartEffectClock = () => new EffectTime(pulseMilliseconds);
+            scene.HeartEffectRequested = request => { requests.Add(request); effects.Model.Request(request); };
+            try
+            {
+                // CloseUp rendered the native Heart before its visibility-dependent beat gate.
+                scene.DrawCreatureFrame(new GameTick(10), 0);
+                bool firstPendingHeld = requests.Count == 0;
+                pulseMilliseconds = 6000;
+                scene.DrawCreatureFrame(new GameTick(28), 0);
+                bool strictDelayHeld = requests.Count == 0;
+                pulseMilliseconds = 6001;
+                scene.DrawCreatureFrame(new GameTick(29), 0);
+                _metrics.heartManaRequests = requests.Count;
+                _metrics.heartManaPositionMatched = requests.Count == 1 && requests[0].EffectId.Value == 59
+                    && requests[0].Position.X.Raw == pose.PosX && requests[0].Position.Y.Raw == pose.PosY
+                    && requests[0].Position.Z.Raw == pose.Height;
+                var ids = new HashSet<int>();
+                ConstructionParticle[] firstRise = Array.Empty<ConstructionParticle>();
+                int firstHeight = 0;
+                for (int step = 1; step <= 62; step++)
+                {
+                    effectMilliseconds = step * 50L + 1;
+                    effects.Draw();
+                    foreach (ConstructionParticle particle in effects.Model.Particles)
+                        ids.Add(particle.Definition.EffectElementId);
+                    if (step == 1)
+                    {
+                        firstRise = effects.Model.Particles.Where(particle => particle.Definition.EffectElementId is 98 or 100).ToArray();
+                        firstHeight = firstRise.Length == 0 ? 0 : firstRise[0].HeightRaw;
+                    }
+                    if (step == 10)
+                    {
+                        _metrics.heartRisingParticles = effects.Model.Particles.Count(particle => particle.Definition.EffectElementId is 98 or 100);
+                        _metrics.heartSmokeRises = firstRise.Length > 0 && firstRise[0].HeightRaw > firstHeight;
+                        _metrics.heartRisingGreenPixels = CaptureHeartSmoke(heart, root, effects.Model.Particles, "heart-mana-rising");
+                    }
+                    if (step == 30)
+                    {
+                        _metrics.heartFallingParticles = effects.Model.Particles.Count(particle => particle.Definition.EffectElementId is 99 or 101);
+                        _metrics.heartSmokeFalls = effects.Model.Particles.Any(particle => particle.Definition.EffectElementId is 99 or 101
+                            && particle.VelocityZ < 0);
+                        _metrics.heartFallingGreenPixels = CaptureHeartSmoke(heart, root, effects.Model.Particles, "heart-mana-falling");
+                    }
+                }
+                _metrics.heartSmokeElementIds = ids.OrderBy(id => id).ToArray();
+                _metrics.heartSmokeExpiredParticles = effects.Model.Particles.Count;
+                _metrics.heartSmokePassed = firstPendingHeld && strictDelayHeld && _metrics.heartManaPositionMatched
+                    && _metrics.heartSmokeElementIds.SequenceEqual(new[] { 98, 99, 100, 101 })
+                    && _metrics.heartRisingParticles > 0 && _metrics.heartFallingParticles > 0
+                    && _metrics.heartRisingGreenPixels > 0 && _metrics.heartFallingGreenPixels > 0
+                    && _metrics.heartSmokeRises && _metrics.heartSmokeFalls && _metrics.heartSmokeExpiredParticles == 0
+                    && root.GetComponentsInChildren<ParticleSystem>().All(system => system.particleCount == 0);
+            }
+            finally
+            {
+                scene.HeartEffectRequested = null;
+                root.SetActive(false); Destroy(root);
+            }
+        }
+
         private GameObject Entrance(ClassicMeshes meshes, string name, float x, out string entry)
         {
             if (!_art.TryResolve(AssetRef.ForCreature(name, AssetKind.Animation, "entrance"), out var asset)) throw new InvalidOperationException(name + " entrance missing");
@@ -513,6 +702,41 @@ namespace DK2.Unity
             _camera.transform.SetPositionAndRotation(position, rotation);
             _camera.nearClipPlane = near;
         }
+        private int CaptureHeartSmoke(GameObject heart, GameObject effectRoot,
+            IReadOnlyList<ConstructionParticle> particles, string name)
+        {
+            Bounds bounds = heart.GetComponent<MeshRenderer>().bounds;
+            foreach (ConstructionParticle particle in particles)
+            {
+                Vector3 point = DungeonScene.Ground(particle.XRaw / (float)Fp32.One,
+                    particle.YRaw / (float)Fp32.One, particle.HeightRaw / (float)Fp32.One);
+                float size = Mathf.Max(.1f, particle.ScaleRaw / (float)Fp32.One);
+                bounds.Encapsulate(new Bounds(point, Vector3.one * size));
+            }
+            Vector3 position = _camera.transform.position;
+            Quaternion rotation = _camera.transform.rotation;
+            float near = _camera.nearClipPlane;
+            _camera.nearClipPlane = .001f;
+            float distance = Mathf.Max(.5f, bounds.extents.magnitude / Mathf.Sin(_camera.fieldOfView * Mathf.Deg2Rad / 2f) * 1.15f);
+            _camera.transform.position = bounds.center + new Vector3(1, 1, -2).normalized * distance;
+            _camera.transform.LookAt(bounds.center);
+            ParticleSystemRenderer[] renderers = effectRoot.GetComponentsInChildren<ParticleSystemRenderer>();
+            bool[] enabled = renderers.Select(renderer => renderer.enabled).ToArray();
+            try
+            {
+                foreach (ParticleSystemRenderer renderer in renderers) renderer.enabled = false;
+                Color32[] baseline = Capture(name + "-off");
+                for (int i = 0; i < renderers.Length; i++) renderers[i].enabled = enabled[i];
+                Color32[] visible = Capture(name);
+                return visible.Where((pixel, i) => !pixel.Equals(baseline[i]) && pixel.g > 40 && pixel.g > pixel.r * 1.2f).Count();
+            }
+            finally
+            {
+                for (int i = 0; i < renderers.Length; i++) renderers[i].enabled = enabled[i];
+                _camera.transform.SetPositionAndRotation(position, rotation);
+                _camera.nearClipPlane = near;
+            }
+        }
         private void Update()
         {
             if (!_ready) return;
@@ -527,6 +751,7 @@ namespace DK2.Unity
                     CheckAuthoredEffects(_probeDatabase, _probeSprites);
                     CaptureRecoveryClips(_probeDatabase, _probeMeshes);
                     CheckImpStartup();
+                    CheckHeartVisuals();
                     _actors.SetActive(false);
                     var baseline = Capture("effects-off");
                     _effectStarted = Time.realtimeSinceStartupAsDouble;
@@ -584,6 +809,7 @@ namespace DK2.Unity
                         && _metrics.guardWanderSeen && _metrics.guardLeftDummyCentre;
                     _metrics.passed &= _metrics.impStartupStill && _metrics.impWalkMeshChanged
                         && _metrics.impWalkPositionChanged && _metrics.impNativeRateSeeded;
+                    _metrics.passed &= _metrics.heartVisualsPassed && _metrics.heartSmokePassed && _metrics.heartHealthAdvanceMatched;
                     File.WriteAllText(Path.Combine(_output, "metrics.json"), JsonUtility.ToJson(_metrics, true));
                     _ready = false; Application.Quit(_metrics.passed ? 0 : 1);
                 }

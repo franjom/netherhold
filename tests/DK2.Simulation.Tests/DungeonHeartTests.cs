@@ -18,6 +18,25 @@ public class DungeonHeartTests
     private const byte Rival = PlayerIds.FirstKeeper + 1;
 
     [Fact]
+    public void HeartHealthObservationRetainsEveryAdvanceAndDoesNotChangeState()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState quiet = NewWorld(db), observed = NewWorld(db);
+        var changes = new List<HeartHealthChange>();
+        observed.HeartHealthChanged += changes.Add;
+        int maximum = observed.Player(Keeper).HeartHealth;
+        foreach (WorldState world in new[] { quiet, observed })
+        {
+            world.DamageHeart(Keeper, 10, Rival);
+            world.DamageHeart(Keeper, 0, Rival);
+            world.RegenerateHeart(Keeper, 5);
+        }
+        Assert.Equal(new[] { new HeartHealthChange(Keeper, maximum - 10),
+            new HeartHealthChange(Keeper, maximum - 10), new HeartHealthChange(Keeper, maximum - 5) }, changes);
+        Assert.Equal(Simulation(db, quiet).StateHash(), Simulation(db, observed).StateHash());
+    }
+
+    [Fact]
     public void RegenerationStampsTheOwnerAsTheLastSource_AndAFullHeartKeepsItsAttacker()
     {
         GameDatabase database = Dk2TerrainFixture.Database();

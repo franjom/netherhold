@@ -10,6 +10,18 @@ namespace DK2.Convert.Tests;
 
 public class RenderAnimationClockTests
 {
+    [Fact]
+    public void ALoopBoundaryIsObservableEvenWhenItsPoseWraps()
+    {
+        var clock = new RenderAnimationClock(Timing(frames: 70, fps: 30), loop: true);
+        for (int i = 0; i < 9; i++) clock.Advance(phaseStepOverride: new Fp32(438));
+        Assert.Equal(0, clock.CompletedLoops);
+        clock.Advance(phaseStepOverride: new Fp32(438));
+        Assert.Equal(1, clock.CompletedLoops);
+        clock.Advance(hold: true);
+        Assert.Equal(1, clock.CompletedLoops);
+    }
+
     private static CreatureAnimationTiming Timing(ushort frames = 8, ushort fps = 8) => new()
     {
         ResourceType = 6, FrameCount = frames, FramesPerSecond = fps,

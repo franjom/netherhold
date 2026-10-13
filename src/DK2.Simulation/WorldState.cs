@@ -791,6 +791,7 @@ public sealed class WorldState
         if (player.HeartHealth <= 0) return false;
         player.HeartLastAttackerPlayerId = attackerPlayerId.Value;
         player.HeartHealth -= amount;
+        HeartHealthChanged?.Invoke(new HeartHealthChange(playerId, player.HeartHealth));
         if (player.HeartHealth > 0) return false;
 
         player.HeartHealth = 0;
@@ -807,7 +808,11 @@ public sealed class WorldState
         ref PlayerState player = ref Player(playerId);
         player.HeartLastAttackerPlayerId = playerId.Value;
         player.HeartHealth += amount;
+        HeartHealthChanged?.Invoke(new HeartHealthChange(playerId, player.HeartHealth));
     }
+
+    /// <summary>Observation only; health changes request the original extra animation advance.</summary>
+    public event Action<HeartHealthChange>? HeartHealthChanged;
 
     /// <summary>Whether <paramref name="playerId"/> counts <paramref name="otherId"/> a friend —
     /// the original's <c>0x004BF3D0</c>, which answers yes for the same player without reading

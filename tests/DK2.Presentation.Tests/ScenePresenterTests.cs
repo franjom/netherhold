@@ -138,6 +138,32 @@ public class ScenePresenterTests
     }
 
     [InstallFact]
+    public void HeartDamageAndHealingUpdateOnlyTheHeartVisual()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
+        WorldState world = WorldState.FromMap(db,
+            GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [0, 1, 2, 3, 4]);
+        var target = new RecordingTarget();
+        var presenter = new ScenePresenter(new WorldView(db), AssetProviderChain.Standard(), target);
+        presenter.Present(world);
+        target.Clear();
+        int maximum = db[VariableTypeId.DungeonHeartObjectHealth];
+        world.Player(4).HeartHealth = maximum / 2;
+        var simulation = new GameSimulation(db, world, 7, []);
+        simulation.Tick();
+        presenter.Present(world);
+        Assert.Equal(1, target.ObjectUpdates);
+        Assert.Equal(0, target.Updates);
+        target.Clear();
+        world.Player(4).HeartHealth = maximum;
+        simulation.Tick();
+        presenter.Present(world);
+        Assert.Equal(1, target.ObjectUpdates);
+        Assert.Equal(0, target.Updates);
+    }
+
+    [InstallFact]
     public void AHeartBecomingRuinedUpdatesEveryFloorTile()
     {
         string install = Dk2InstallGate.Path;
