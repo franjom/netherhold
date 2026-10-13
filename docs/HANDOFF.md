@@ -137,10 +137,11 @@ d869276a-99ca-491a-9cf5-0342488c1277/scratchpad.
 Replay measurements are modern regressions, not original timing parity;
 all 60 Level1–3 traces validate, bounded-run wins 20/4/11. Artifacts:
 build/classic-step3-replays/claim-life238. Release verification passes
-5,146 tests without skips; Unity sync/compile and independent review pass.
+5,158 tests without skips; Unity sync/compile and independent review pass.
 Standalone render verification: tools/classic-unity-probe/ROOM_LIFE.md.
 Terrain destruction debris and tumbling mesh particles are built (ADR-0449;
 terrain-digging-debris.md). The same standalone probe verifies Rock and Gold.
+Unified Unity Hand controls are built; see ADR-0104 and unity/README.md.
 
 ## Next work
 

@@ -420,6 +420,7 @@ public sealed partial class WorldView
     }
 
     private bool _previewing;
+    private bool _previewTagged;
     private int _previewX1, _previewY1, _previewX2, _previewY2;
 
     /// <summary>
@@ -429,7 +430,7 @@ public sealed partial class WorldView
     /// that rectangle is unread, so that only the tag tool fills it, and with both corners
     /// inclusive, is this renderer's guess.
     /// </summary>
-    public void PreviewTags(TilePos? from, TilePos? to)
+    public void PreviewTags(TilePos? from, TilePos? to, bool tagged = true)
     {
         bool previewing = from is not null && to is not null;
         if (!previewing)
@@ -441,8 +442,10 @@ public sealed partial class WorldView
         TilePos a = from!.Value, b = to!.Value;
         (int x1, int x2) = a.X <= b.X ? (a.X, b.X) : (b.X, a.X);
         (int y1, int y2) = a.Y <= b.Y ? (a.Y, b.Y) : (b.Y, a.Y);
-        if (!_previewing || x1 != _previewX1 || x2 != _previewX2 || y1 != _previewY1 || y2 != _previewY2) PreviewVersion++;
+        if (!_previewing || tagged != _previewTagged
+            || x1 != _previewX1 || x2 != _previewX2 || y1 != _previewY1 || y2 != _previewY2) PreviewVersion++;
         _previewing = true;
+        _previewTagged = tagged;
         (_previewX1, _previewX2, _previewY1, _previewY2) = (x1, x2, y1, y2);
     }
 
@@ -450,10 +453,12 @@ public sealed partial class WorldView
     /// asking every tile (ADR-0456).</summary>
     public int PreviewVersion { get; private set; }
 
-    private bool ShowsTag(in TileState tile, TerrainDef terrain, int x, int y) =>
-        tile.IsTaggedBy(_viewingPlayerId)
-        || (_previewing && terrain.IsTaggable
-            && x >= _previewX1 && x <= _previewX2 && y >= _previewY1 && y <= _previewY2);
+    private bool ShowsTag(in TileState tile, TerrainDef terrain, int x, int y)
+    {
+        if (_previewing && x >= _previewX1 && x <= _previewX2 && y >= _previewY1 && y <= _previewY2)
+            return _previewTagged && (terrain.IsTaggable || tile.IsTaggedBy(_viewingPlayerId));
+        return tile.IsTaggedBy(_viewingPlayerId);
+    }
 
     /// <summary>Every tile, in row order.</summary>
     public IEnumerable<TileView> Tiles(WorldState world)

@@ -21,6 +21,14 @@ using UnityEngine;
 
 namespace DK2.Unity
 {
+    public enum DungeonToolMode : byte
+    {
+        Hand = 0,
+        BuildRoom = 2,
+        SellRoom = 3,
+        CreateImp = 6
+    }
+
     /// <summary>Owns a simulation, ticks it, and hands the result to a
     /// <see cref="DungeonScene"/> — the whole of Unity's involvement in the game.</summary>
     /// <remarks>
@@ -50,7 +58,7 @@ namespace DK2.Unity
         [SerializeField] private int viewingPlayerId = PlayerIds.FirstKeeper;
 
         [Header("Input")]
-        [SerializeField] private PlayerToolMode tool = PlayerToolMode.TagTiles;
+        [SerializeField] private DungeonToolMode tool = DungeonToolMode.Hand;
         [Tooltip("Room used by Build. Select a name here or cycle rooms with [ and ].")]
         [SerializeField] private RoomTypeId selectedRoomId = RoomTypeId.Treasury;
 
@@ -140,6 +148,10 @@ namespace DK2.Unity
 
         private void StartGame()
         {
+            if (tool != DungeonToolMode.Hand && tool != DungeonToolMode.BuildRoom &&
+                tool != DungeonToolMode.SellRoom && tool != DungeonToolMode.CreateImp)
+                tool = DungeonToolMode.Hand;
+
             string install = string.IsNullOrWhiteSpace(installDirectory)
                 ? Dk2Install.Find()
                 : installDirectory;
@@ -269,12 +281,11 @@ namespace DK2.Unity
             // the next frame then starts the new tick's motion from there.
             float fraction = (float)Math.Min(tickOnWorkerThread ? _tickDebt + ticks : _tickDebt, 1d);
 
-            // A tag drag shows its rectangle as tagged while the button is held, as DK2's does; off
-            // the map, the rectangle keeps the last tile the pointer was on.
-            TilePos? dragFrom = _input.DragFrom(PlayerToolMode.TagTiles);
+            // Off the map, a Hand excavation preview keeps the last tile the pointer was on.
+            TilePos? dragFrom = _input.DragFrom(PlayerToolMode.Hand);
             if (dragFrom == null) _dragTo = null;
             else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
-            _worldView.PreviewTags(dragFrom, _dragTo);
+            _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
             _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, fraction);
             using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
@@ -341,17 +352,23 @@ namespace DK2.Unity
 
         private void QueueInput()
         {
+            _input.SelectTool((byte)viewingPlayerId, ActiveTool);
             PointerButtonTransition button = PointerButtonTransition.None;
             if (Input.GetMouseButtonDown(0)) button |= PointerButtonTransition.Pressed;
             if (Input.GetMouseButtonUp(0)) button |= PointerButtonTransition.Released;
 
-            if (button == PointerButtonTransition.None) return;
+            PointerButtonTransition secondaryButton = PointerButtonTransition.None;
+            if (Input.GetMouseButtonDown(1)) secondaryButton |= PointerButtonTransition.Pressed;
+            if (Input.GetMouseButtonUp(1)) secondaryButton |= PointerButtonTransition.Released;
+
+            if (button == PointerButtonTransition.None && secondaryButton == PointerButtonTransition.None) return;
 
             TilePos? tile = ScreenToTile(Input.mousePosition);
             var intent = new PlayerIntent(
-                (byte)viewingPlayerId, tool, tile, button, selectedRoomId);
+                (byte)viewingPlayerId, ActiveTool, tile, button, selectedRoomId,
+                SecondaryButton: secondaryButton);
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
-                _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database);
+                _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database, pointerTile: tile);
             InputFrame frame = _input.Translate(intent, snapshot);
 
             foreach (PlayerCommand command in frame.All)
@@ -380,15 +397,26 @@ namespace DK2.Unity
                 DungeonScene.OpenHeight);
         }
 
+        private PlayerToolMode ActiveTool
+        {
+            get
+            {
+                switch (tool)
+                {
+                    case DungeonToolMode.BuildRoom: return PlayerToolMode.BuildRoom;
+                    case DungeonToolMode.SellRoom: return PlayerToolMode.SellRoom;
+                    case DungeonToolMode.CreateImp: return PlayerToolMode.CreateImp;
+                    default: return PlayerToolMode.Hand;
+                }
+            }
+        }
+
         private void ReadToolKeys()
         {
-            if (Input.GetKeyDown(KeyCode.Alpha1)) tool = PlayerToolMode.TagTiles;
-            if (Input.GetKeyDown(KeyCode.Alpha2)) tool = PlayerToolMode.UntagTiles;
-            if (Input.GetKeyDown(KeyCode.Alpha3)) tool = PlayerToolMode.BuildRoom;
-            if (Input.GetKeyDown(KeyCode.Alpha4)) tool = PlayerToolMode.SellRoom;
-            if (Input.GetKeyDown(KeyCode.Alpha5)) tool = PlayerToolMode.Hand;
-            if (Input.GetKeyDown(KeyCode.Alpha6)) tool = PlayerToolMode.Slap;
-            if (Input.GetKeyDown(KeyCode.Alpha7)) tool = PlayerToolMode.CreateImp;
+            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha5)) tool = DungeonToolMode.Hand;
+            if (Input.GetKeyDown(KeyCode.Alpha3)) tool = DungeonToolMode.BuildRoom;
+            if (Input.GetKeyDown(KeyCode.Alpha4)) tool = DungeonToolMode.SellRoom;
+            if (Input.GetKeyDown(KeyCode.Alpha7)) tool = DungeonToolMode.CreateImp;
 
             if (Input.GetKeyDown(KeyCode.LeftBracket)) SelectAdjacentRoom(-1);
             if (Input.GetKeyDown(KeyCode.RightBracket)) SelectAdjacentRoom(1);
@@ -533,14 +561,17 @@ namespace DK2.Unity
             GUI.Label(
                 new Rect(10, 50, 1200, 20),
                 $"tool: {tool}" +
-                (tool == PlayerToolMode.BuildRoom ? $" (room {selectedRoomId})" : "") +
-                "   1 tag  2 untag  3 build  4 sell  5 hand  6 slap  7 create imp  [/] room");
+                (tool == DungeonToolMode.BuildRoom ? $" (room {selectedRoomId})" : "") +
+                "   1/5 hand  3 build  4 sell  7 create imp  [/] room");
+
+            GUI.Label(new Rect(10, 70, 1200, 20),
+                "hand: left pick up creature / toggle excavation (drag rectangle); right drop held creature / slap");
 
             if (_loadedFrom != null)
-                GUI.Label(new Rect(10, 90, 1200, 20), $"loaded from save: {_loadedFrom} — terrain and ownership only, no creatures or objects (Q182)");
+                GUI.Label(new Rect(10, 110, 1200, 20), $"loaded from save: {_loadedFrom} — terrain and ownership only, no creatures or objects (Q182)");
 
             GUI.Label(
-                new Rect(10, 70, 1200, 20),
+                new Rect(10, 90, 1200, 20),
                 "tick rate is SimulationTiming.TicksPerSecond, the unmeasured Q1 placeholder — " +
                 "tick counts are faithful, wall-clock speed is not a claim");
         }

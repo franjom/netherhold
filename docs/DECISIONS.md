@@ -1769,7 +1769,7 @@ Three for three on the THINGS field names this projection had to rely on — the
 - **No action-point behaviour runs.** Flag meanings, timer and counter consumers, rectangle-entry cadence and waypoint traversal are Q235–Q238.
 
 ## ADR-0104 — Player gestures are translated outside Unity
-**Date:** 2026-09-09 · **Status:** accepted
+**Date:** 2026-09-09 · **Status:** accepted · amended 2026-10-13
 
 **Context.** `DungeonRunner` advanced the simulation with empty input, while
 Unity-side gesture rules would evade the normal test suite and violate ADR-0036's
@@ -1777,10 +1777,14 @@ arithmetic-only adapter boundary.
 
 **Decision.** `DK2.Presentation` owns `PlayerIntent`, `PlayerInputSnapshot` and a
 stateful `PlayerInputTranslator`. The translator turns button edges into one
-`InputFrame`: tag, untag, room-build and room-sell tools complete a row-major
-rectangle on release; hand, slap and Create Imp tools act once on press. A hand
-holding something drops first; otherwise a creature wins over an object on the
-same tile. These are project interface choices, not claims about DK2.
+`InputFrame`. The Hand's left press picks a creature before an object; on
+diggable terrain it begins a click/drag toggle, committed on release with
+the inverse of the starting tile's tag. Right press drops held things through
+existing drop rules, or slaps a creature when empty. An interrupted drag is
+cancelled. Build and sell still complete rectangles on release; Create Imp
+acts on press. Unity exposes Hand, Build, Sell and Create Imp, preserving old
+serialized build/sell selections. These are project interface choices; the
+exact original excavation-drag toggle remains unconfirmed.
 
 Unity selects tools, projects a screen ray onto the ground plane, supplies
 button edges, queues commands until the next whole simulation tick, and handles
