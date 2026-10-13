@@ -36,6 +36,8 @@ This is `0x00471890` at `0x0047193A`–`0x00471A56`, and `0x00471A70` alike.
    - **More than `0x555` from the stand point on either axis:** find a stand point and walk there resuming 186, or fail.
    - **At it:** turn toward the dig point (`0x004B2AE0`, one turn-rate step), waiting while any angle is left. Then start action 1, or 2 when the tile's terrain has a `GoldValue` (`+0x185`), aimed at the tile (`0x00496980`, target at `+0x38D`). Failure returns 0.
 
+**Every walk above is `0x00471890`** (`Travel_RouteToPoint`): the target centre at `0x00485CAB` and `0x00485D28` (options 0, resume `+0xD3`), the stand point at `0x00485D6A` and `0x00485EC4` (options 0, resume 186). The helper's route chain keeps a point inside the creature's own tile (re-read for ADR-0459, `00471890.md`), which is what §"Differences in ours" relies on.
+
 **`+0x208` is the route map's solid bit.** DK2's own `CWorld` vtable, found through RTTI, is `0x0066E3EC`. Slot `+0x208` is `0x00509200`, bit 3 of the per-tile byte map at `world+0x9F2`. The route helper's own target check `0x004B35C0` refuses the same bit.
 
 **`0x004B2AE0` turns; it is not a region test.** It steps the heading toward a point by at most the definition's turn rate (`+0x6A0 & 0x7FF`) and returns what is left. Ours has it as `Bearing.TurnToward`. That answers half of Q371: the fight state's pre-swing test is a turn to face the target. Payday's 188 likewise waits while it turns to face the tile (`payday.md` §4.3).
@@ -94,4 +96,4 @@ The first that is clear (`+0x208`) and reachable (`0x00471630`, options 2) becom
 - **The solid bit is terrain `Solid`.**
 - **The turn is `Bearing.TurnToward`** at the definition's `TurnRate`.
 - **Not built:** sound `0x100`, and state 86 (the worker idles instead).
-- **A same-tile walk finishes at once** (`WorldSteering.TryRouteTo`, DK2's `0x004D0F60` rule). A tunneller pushed more than `0x555` off its stand tile's centre therefore walks there again and again without moving. The leader test puts the leader behind the worker for that reason. Whether DK2 can loop the same way is UNKNOWN.
+- **A same-tile walk keeps its point** (since ADR-0459). DK2's route request retains its destination even within one triangle (`0x004CF490`, rechecked for ADR-0430), so a tunneller more than `0x555` off its stand tile's centre walks to that centre and digs. Until 2026-10-13 ours ended such a walk at once (`WorldSteering.TryRouteTo`'s same-tile shortcut) and the tunneller re-planned it every period without moving; Level 1's leader Dwarf stood that way on the tile above the softened rock. `TunnelRules.Walk` now asks `TryRouteToStance`, as the waiting state does.

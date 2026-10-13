@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 241: restore native sleeping position and bed facing (ADR-0460).
+        // HashVersion 242: native bed alignment and departure route provenance (ADR-0460).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xD4E74C513D204899UL, sim.StateHash());
+        Assert.Equal(0xC2A0D662C94D7F10UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

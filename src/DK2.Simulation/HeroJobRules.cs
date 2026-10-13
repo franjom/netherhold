@@ -29,8 +29,8 @@ public static class HeroJobRules
     /// <summary>The retry after a failed job: state 90 sets <c>now + 12</c> and enters 4.</summary>
     public const int RetryTurns = 12;
 
-    /// <summary>A route whose failure may ask a party's Dwarf to tunnel (option bit 0). Ours has no
-    /// tunnelling, so the bit changes nothing.</summary>
+    /// <summary>A route whose failure may ask a hero worker, or a party's worker follower, to tunnel
+    /// (option bit 0): <see cref="TunnelRules.RouteOrTunnel"/>, ADR-0222.</summary>
     public const Navigation.MoveOptions TunnelOption = (Navigation.MoveOptions)0x01;
 
     /// <summary>The nine sub-tile points at <c>0x00698EC8</c>: a 3×3 grid at 682, 2047 and 3412.</summary>
