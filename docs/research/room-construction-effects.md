@@ -209,6 +209,7 @@ strike is not an effect trigger: only the completed changes below emit.
 | Change | Request source | Effect | Original position and heading |
 |---|---|---|---|
 | Dirt Path becomes Claimed Path | `0x00452F60`, after max-health terrain conversion | source terrain's max-health effect; shipped 5 | tile centre, Z 4096, heading 0, working player |
+| Rock becomes Reinforced Wall (terrain 9) | `0x00452F60`, at max-health conversion | source terrain's max-health effect; shipped 11 | west/north/east/south adjacent tile centres, Z 0, heading 0, working player |
 | Whole room changes owner, including Portal capture | `0x004E5650` | 8 on each slab in its existing chain | each tile centre, Z 0, heading 0, new owner |
 | Creature creates its bed | `0x0048AD50`, after object creation succeeds; caller `0x004E03F0` | Lair definition's effect, shipped 17 | tile centre, Z 0, newly drawn bed heading, creature owner |
 
@@ -220,7 +221,23 @@ nothing; a later registration failure does not undo its already requested effect
 Tile-owner setter `0x004559D0` emits no effect. Claim action `0x004974C0`
 emits completion sound, while the terrain applier owns the visual request.
 
-All three parent effects have no art, zero mass/friction/elasticity and
+Reinforcement was rechecked on 2026-10-13. Action 7 (`0x00497960`) applies
+work but does not request a per-strike effect. In the applier, destination
+terrain 9 selects four calls at `0x00453445`, `0x004534A7`, `0x00453509`
+and `0x00453567`. Their XY points are the four adjacent tile centres and
+height is zero; non-wall max-health conversion retains its centre/Z4096 call.
+Same-terrain health repair does not enter this conversion-effect branch.
+
+Shipped effect 11, Reinforce Wall, is type 4, flags `0x280`, HP1, twelve
+passes over elements `[144,145,146,147]`: 48 particles per admitted request,
+192 over four requests. It has zero origin radius and height offset512.
+Elements144/147 use grey rockchip sprites (type2, RGB125); 145/146 use
+keeper-coloured sm/SM sprites (type3, flags `0x86`/`0x84`). Particle lifetime
+is 24..32 for 144..146 and 32..48 for147. Art80 completion follows section4.
+The shared particle consumer already supports these resources; the omitted
+reinforcement producer is restored in TileWorkSystem. Visual parity is pending.
+
+The three parent effects below have no art, zero mass/friction/elasticity and
 zero horizontal/vertical speed. Their nominal scale is 1024. Parent initial
 HP is inclusive; fixed bounds below introduce no random draw.
 

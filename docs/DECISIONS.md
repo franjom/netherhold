@@ -10651,3 +10651,16 @@ for resources that request it. Evidence: research/room-construction-effects.md �
 **Consequences.** The shared fix covers capture and digging smoke. Paused
 particle submission keeps completed textures alive until model expiry.
 No simulation/save/hash change. Unity visual comparison remains pending.
+
+## ADR-0465 — Restore the original wall reinforcement completion effect
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Upward completion requested effects for floor claims but omitted walls.
+
+**Decision.** Share the source-terrain effect selection across upward completion.
+Preserve the native terrain-9 placement branch and completion-only trigger.
+Evidence: research/room-construction-effects.md §6.
+
+**Consequences.** Original rock-chip and smoke resources use the existing consumer.
+View requests do not alter gameplay RNG, simulation/save/hash state.
+Unity visual confirmation remains pending while the owner is away.

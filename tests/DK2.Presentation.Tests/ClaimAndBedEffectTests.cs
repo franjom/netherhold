@@ -14,6 +14,50 @@ namespace DK2.Presentation.Tests;
 public class ClaimAndBedEffectTests
 {
     [InstallFact]
+    public void ReinforcingCompletesWithFourOriginalWallEffectsAndNoneDuringProgress()
+    {
+        (GameDatabase db, WorldState world) = Load();
+        TerrainDef rock = db.TerrainById(2);
+        var at = new TilePos(3, 3);
+        world.Tile(at).TerrainId = rock.TerrainId;
+        world.Tile(at).OwnerPlayerId = PlayerIds.Neutral;
+        world.Tile(at).Health = rock.StartingHealth;
+        var sim = new GameSimulation(db, world, 1, [new TileWorkSystem()]);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+        Assert.Equal((ushort)11, rock.MaxHealthEffectId);
+        Assert.Equal("Reinforce Wall", db.Effects[11].Name);
+        for (int work = 0; work < 500 && world.Tile(at).TerrainId == rock.TerrainId; work++)
+        {
+            world.QueueWork(at.X, at.Y, TileWorkKind.Reinforce, PlayerIds.FirstKeeper);
+            sim.Tick();
+            if (world.Tile(at).TerrainId == rock.TerrainId)
+                Assert.DoesNotContain(events.Events, e => e.EffectRequest.HasValue);
+        }
+        Assert.Equal((byte)9, world.Tile(at).TerrainId);
+        ViewEffectRequest[] requests = events.Events.Where(e => e.EffectRequest.HasValue)
+            .Select(e => e.EffectRequest!.Value).ToArray();
+        Assert.Equal(new[] { new TilePos(2, 3), new TilePos(3, 2), new TilePos(4, 3), new TilePos(3, 4) },
+            requests.Select(r => r.Tile));
+        Assert.All(requests, r =>
+        {
+            Assert.Equal(new EffectId(11), r.EffectId);
+            Assert.Equal(new PlayerId(PlayerIds.FirstKeeper), r.Owner);
+            Assert.Equal(0, r.Height.Raw);
+            Assert.Equal(0, r.Heading.Raw);
+            Assert.Equal(ViewEffectRequest.AtTileCentre(new EffectId(11), r.Owner, r.Tile, new Fp32(0)), r);
+        });
+        world.QueueWork(at.X, at.Y, TileWorkKind.Reinforce, PlayerIds.FirstKeeper);
+        sim.Tick();
+        Assert.Equal(4, events.Events.Count(e => e.EffectRequest.HasValue));
+        var particles = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
+        foreach (SimEvent emission in events.Events) particles.Emit(emission);
+        ConstructionParticle[] births = CollectBirths(particles);
+        Assert.Equal(4 * 12 * 4, births.Length);
+        Assert.All(births, p => Assert.Contains(p.Definition.EffectElementId, new ushort[] { 144, 145, 146, 147 }));
+    }
+
+    [InstallFact]
     public void PortalSmokeHoldsItsLastTextureInsteadOfReplayingWhileAlive()
     {
         (GameDatabase db, _) = Load();
