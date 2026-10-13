@@ -606,6 +606,10 @@ public readonly record struct HandItem(HandItemKind Kind, int Id)
 public sealed class WorldState
 {
     private readonly TileState[] _tiles;
+
+    /// <summary>The last structure mask computed for this world (<see cref="StructureBlocks.For"/>).
+    /// Derived state, never saved or hashed.</summary>
+    internal StructureBlocks.Cache StructureCache { get; } = new();
     internal const int TremorSlotCount = 8;
     internal TremorState[] TremorSlots { get; } = new TremorState[TremorSlotCount];
     public IReadOnlyList<TremorState> Tremors => TremorSlots;

@@ -16,7 +16,8 @@ namespace DK2.Simulation;
 /// <para>Nothing is cached. A cache would need invalidating on every path that changes a tile's
 /// terrain or owner, and the first one anybody forgets gives a room that disagrees with the map —
 /// the failure keeping membership in <see cref="TileState"/> would have risked. Recomputing is
-/// cheap: a single-room fill is bounded by the room, a full sweep visits each tile once.</para>
+/// cheap: a single-room fill is bounded by the room, a full sweep visits each tile once, and
+/// the visited array is per-thread scratch cleared per call (ADR-0454).</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public static class RoomIndex
@@ -24,6 +25,20 @@ public static class RoomIndex
     /// <summary>Orthogonal only — two tiles joined at a corner are two rooms.</summary>
     private static readonly int[] NeighbourDx = [0, -1, 1, 0];
     private static readonly int[] NeighbourDy = [-1, 0, 0, 1];
+
+    [ThreadStatic] private static bool[]? s_visited;
+    [ThreadStatic] private static RoomDef?[]? s_wanted;
+
+    /// <summary>A visited array of at least <paramref name="count"/> tiles, all clear. One per
+    /// thread: a sweep hands it to each fill, and a standalone fill takes it whole, so no caller
+    /// may hold one across another call on the same thread, which none does.</summary>
+    private static bool[] ClearedVisited(int count)
+    {
+        bool[]? visited = s_visited;
+        if (visited is null || visited.Length < count) s_visited = visited = new bool[count];
+        else Array.Clear(visited, 0, count);
+        return visited;
+    }
 
     /// <summary>
     /// The room the tile at <paramref name="tileIndex"/> belongs to, or null if
@@ -49,7 +64,7 @@ public static class RoomIndex
     public static List<RoomInstance> Build(WorldState world, GameDatabase database)
     {
         var rooms = new List<RoomInstance>();
-        var visited = new bool[world.TileCount];
+        bool[] visited = ClearedVisited(world.TileCount);
 
         for (int i = 0; i < world.TileCount; i++)
         {
@@ -82,7 +97,8 @@ public static class RoomIndex
         var rooms = new List<RoomInstance>();
 
         // Which terrain ids hold a wanted room, asked once per id rather than once per tile.
-        var wanted = new RoomDef?[256];
+        RoomDef?[] wanted = s_wanted ??= new RoomDef?[256];
+        Array.Clear(wanted, 0, wanted.Length);
         bool any = false;
         for (int terrain = 0; terrain < wanted.Length; terrain++)
         {
@@ -93,7 +109,7 @@ public static class RoomIndex
         }
         if (!any) return rooms;
 
-        var visited = new bool[world.TileCount];
+        bool[] visited = ClearedVisited(world.TileCount);
         for (int i = 0; i < world.TileCount; i++)
         {
             if (visited[i]) continue;
@@ -125,7 +141,7 @@ public static class RoomIndex
         int startIndex,
         bool[]? visited)
     {
-        var localVisited = visited ?? new bool[world.TileCount];
+        bool[] localVisited = visited ?? ClearedVisited(world.TileCount);
         var tiles = new List<int>();
         var frontier = new List<int> { startIndex };
         localVisited[startIndex] = true;

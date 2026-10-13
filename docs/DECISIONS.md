@@ -10349,3 +10349,30 @@ reinforce are queued for `TileWorkSystem` to apply after every worker has
 chosen. The drop scan's blueprint search keeps the pathfinder when no tile
 confines it. The `grid.flood` marker counts floods. Selection's own cost
 (ring scans over the map, candidate sorting) is untouched and is the next item.
+
+## ADR-0454 — Derived navigation state is kept while its inputs are unchanged
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** A tick allocated about 8 MB on Level 18 and spent a sixth of
+its time in `nav.refresh`, called about seventeen times a tick, each call
+rebuilding the structure mask and the navigation bytes from scratch. Every
+room sweep allocated a visited array the size of the map, and every
+`WorldPathGrid` (one per worker per tick) rebuilt the structure mask.
+
+**Decision.** Three results are kept and revalidated against their inputs,
+never trusted blindly. `WorldSteering.Refresh` returns at once while the
+tile array, the doors' navigation fields, the set of ruined hearts and the
+crypts' tiles (a Graveyard's floor slots) are what the last refresh saw;
+the check is one byte comparison of the tile array. `StructureBlocks.For` keeps the world's last mask with the list of
+structure tiles (index, terrain, owner, heart ruined) it was built from,
+and recomputes when a scan finds that list changed. `RoomIndex` takes its
+visited array from per-thread scratch. No tile-write counter exists, since
+tiles are written through references, so each cache compares its inputs
+rather than listening for changes. The Level 18 attack scenario's hashes
+and event log are unchanged; allocation fell to about 2 MB a tick.
+
+**Consequences.** Each cache's key must name every input its result reads;
+the tests found `HeartRuined` missing from the mask's key, and the reviewer
+found the crypts missing from the refresh's, so any new input to those
+routines must join its key. The mesh rebuild itself (`nav.build`) and the remaining
+per-tick lists (room-need queries, the keeper view, furniture) are untouched.

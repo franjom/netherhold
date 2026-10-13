@@ -73,25 +73,65 @@ public sealed class StructureBlocks
 
         if (portalTerrain == 0 && heroPortalTerrain == 0 && heartTerrain == 0) return Empty;
 
-        List<int>? seeds = null;
+        // The mask is a function of the structure tiles alone: which tiles carry one of the three
+        // terrains, with what owner, since a fill crosses only tiles of its seed's terrain and
+        // owner, plus whether a heart tile's keeper has had its heart ruined. So the world's last
+        // mask stands while that list is the same, and a scan that compares the list is the whole
+        // cost of asking again (ADR-0454).
+        Cache cache = world.StructureCache;
+        List<long> seeds = cache.Scratch;
+        seeds.Clear();
         for (int i = 0; i < world.TileCount; i++)
         {
-            byte terrainId = world.TileAtIndex(i).TerrainId;
+            ref TileState tile = ref world.TileAtIndex(i);
+            byte terrainId = tile.TerrainId;
             if (terrainId == 0) continue;
             if (terrainId != portalTerrain && terrainId != heroPortalTerrain && terrainId != heartTerrain) continue;
 
-            (seeds ??= []).Add(i);
+            long ruined = terrainId == heartTerrain && world.HasPlayer(tile.OwnerPlayerId)
+                && world.Player(tile.OwnerPlayerId).HeartRuined ? 1L << 40 : 0;
+            seeds.Add(ruined | ((long)i << 16) | ((long)terrainId << 8) | tile.OwnerPlayerId);
         }
 
-        if (seeds is null) return Empty;
+        if (cache.Blocks is not null && ReferenceEquals(cache.Database, database) && SameSeeds(seeds, cache.Seeds))
+            return cache.Blocks;
+
+        StructureBlocks blocks = Compute(world, database, seeds);
+        cache.Database = database;
+        cache.Blocks = blocks;
+        (cache.Seeds, cache.Scratch) = (seeds, cache.Seeds);
+        return blocks;
+    }
+
+    /// <summary>The world's last mask and the structure tiles it was computed from.</summary>
+    internal sealed class Cache
+    {
+        internal GameDatabase? Database;
+        internal StructureBlocks? Blocks;
+        internal List<long> Seeds = [];
+        internal List<long> Scratch = [];
+    }
+
+    private static bool SameSeeds(List<long> a, List<long> b)
+    {
+        if (a.Count != b.Count) return false;
+        for (int i = 0; i < a.Count; i++)
+            if (a[i] != b[i]) return false;
+        return true;
+    }
+
+    private static StructureBlocks Compute(WorldState world, GameDatabase database, List<long> seedKeys)
+    {
+        if (seedKeys.Count == 0) return Empty;
 
         var blocked = new HashSet<int>();
         var portalCentres = new HashSet<int>();
         var heartCentres = new List<int>();
         var seen = new HashSet<int>();
 
-        foreach (int seed in seeds)
+        foreach (long key in seedKeys)
         {
+            int seed = (int)((key >> 16) & 0xFFFFFF);
             if (seen.Contains(seed)) continue;
 
             RoomInstance? room = RoomIndex.RoomAt(world, database, seed);
