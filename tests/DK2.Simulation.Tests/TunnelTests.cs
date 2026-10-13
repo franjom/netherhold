@@ -49,6 +49,27 @@ public class TunnelTests
         Assert.False(db.TerrainById(world.Tile(7, 8).TerrainId).IsSolid, "the way round below was not dug");
     }
 
+    /// <summary>The stand point is often the tunneller's own tile. DK2's route request keeps its
+    /// destination within one triangle (<c>0x004CF490</c>), so a worker standing off that tile's
+    /// centre walks to it and digs. Level 1's leader Dwarf stood this way on the tile above the
+    /// softened rock and re-planned the same walk every period without moving (ADR-0459).</summary>
+    [Fact]
+    public void AWorkerOffItsStandTilesCentre_WalksToTheCentreAndDigs()
+    {
+        (GameDatabase db, WorldState world) = Walled();
+        CreatureState dwarf = Hero(db, world, Worker, new TilePos(3, 6));
+        // Still on (3,6), but more than StandRange (0x555) from its centre on both axes.
+        dwarf.PosX = CreatureState.CentreOf(3) - 0x700;
+        dwarf.PosY = CreatureState.CentreOf(6) + 0x700;
+        (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
+
+        bool dug = RunUntil(sim, () => !db.TerrainById(world.Tile(4, 6).TerrainId).IsSolid, 600);
+
+        Assert.True(dug, $"the worker never dug (4,6); it stands at ({dwarf.PosX},{dwarf.PosY}) in state {dwarf.Dk2StateId}");
+        Assert.Contains(sink.Events, e => e.Kind == "tunnel_started" && e.Detail.Contains($"creature={dwarf.Id} "));
+        Assert.True(RunUntil(sim, () => dwarf.Dk2StateId == HeroJobRules.AtTheHeartState, 6000), "the worker never reached the heart");
+    }
+
     [Fact]
     public void AWalledOffHeroThatIsNoWorker_FailsItsJobInsteadOfDigging()
     {

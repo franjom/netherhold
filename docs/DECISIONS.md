@@ -10491,3 +10491,41 @@ stopwatch, and the per-thread scratch of ADR-0454 is per thread.
 frame still stalls the next frame by the excess. Compiled against Unity's
 assemblies, not run in Unity; the first play session is the real test, and
 the toggle is the way back if anything misbehaves.
+
+## ADR-0459 — A tunneller's walks keep their destination within its own tile
+**Date:** 2026-10-13 · **Status:** accepted · advances ADR-0222, ADR-0430 · Research: `docs/research/tunnelling.md` §5, hero-party-walk.md §1
+
+**Context.** On Level 1 the script softens three boundary tiles to Rock and
+gives the leader Dwarf `KillPlayer`; its route fails and it starts a tunnel
+(state 186). The dig tile was the tile below it, so the stand point
+(`0x00486680`) was the centre of its own tile. `TunnelRules.Walk` asked
+`WorldSteering.TryRouteTo`, whose same-tile shortcut ends the walk at once, and
+the Dwarf, more than `0x555` from that centre, re-planned the same walk every
+two ticks without moving, for as long as the level ran. The 20-seed Level 1
+replays had never shown it: their Dwarf stood one tile diagonal from its dig
+tile and walked a real route; commit 465 shifted the level's timing and put it
+on the tile above (bisected: 464 digs at tick 1240, 465 never digs). The owner
+saw both Dwarves standing in Unity. tunnelling.md had recorded the loop as a
+difference in ours and left "whether DK2 can loop the same way" UNKNOWN;
+ADR-0430's recheck of `0x004CF490` answers it: DK2's route request retains its
+destination even within one triangle, so DK2 walks to the stand point.
+
+**Decision.** `TunnelRules.Walk` routes through `TryRouteToStance`, the
+point-walk ADR-0289 built for stance points and ADR-0430 reused for waiting
+heroes: off the destination's tile it is `TryRouteTo` unchanged; on it, the
+creature steps to the point. Every walk the tunnel states make goes through
+`0x00471890`, so the one helper covers 186's stand and target walks and 223's
+trailing walk; `RouteOrTunnel`, the first stage of the same helper, asks the
+same way. The reviewer re-read the chain (`0x004D0F60`, `0x004D5100`,
+`0x004D0320`, `0x004CF490`, `0x004D0240`) and found no same-tile shortcut in it;
+186's four calls into the helper are listed in `00471890.md`. Hash/save
+version 241; no new persisted field.
+
+**Consequences.** Level 1 seed 1 on master: the leader Dwarf digs the softened
+tile at tick 1297 and is fighting the keeper's imps inside the dungeon by 1308, where
+before the fix it never dug and the keeper's own imp opened the wall at 1471.
+The replay still wins (tick 1796 before, 1812 after). `AWorkerOffItsStandTilesCentre_WalksToTheCentreAndDigs` pins the case and
+fails against the reverted walk (run as the negative control); the
+earlier tunnel tests spawned the worker on its tile centre and could not see
+it. Q565's remaining generic callers are unchanged; the tunnel's walks are now
+on the retained-destination side of that question.

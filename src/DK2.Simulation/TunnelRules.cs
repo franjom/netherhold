@@ -72,14 +72,15 @@ public static class TunnelRules
     private static readonly (int X, int Y)[] Dirs = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
     /// <summary>The route helpers <c>0x00471890</c> and <c>0x00471A70</c>: route and travel, or with
-    /// option bit 0 fall back to a tunnel toward <paramref name="tunnelX"/>, <paramref name="tunnelY"/>.</summary>
+    /// option bit 0 fall back to a tunnel toward <paramref name="tunnelX"/>, <paramref name="tunnelY"/>.
+    /// The route keeps its point within the creature's own tile, as <see cref="Walk"/>'s does (ADR-0459).</summary>
     public static bool RouteOrTunnel(
         SimulationContext context, string system, CreatureState creature, int x, int y,
         int travelState, int resume, Navigation.MoveOptions options, int tunnelX, int tunnelY)
     {
         if (context.World.Contains(new TilePos(x / Fp32.One, y / Fp32.One))
             && !IsSolid(context, x >> 12, y >> 12)
-            && context.Navigation.TryRouteTo(creature, x, y, options))
+            && context.Navigation.TryRouteToStance(creature, x, y, options))
         {
             CreatureStateMachine.BeginTravel(context.Hooks, creature, travelState, resume);
             return true;
@@ -426,10 +427,15 @@ public static class TunnelRules
         return false;
     }
 
+    /// <summary>The tunnel's walks all go through <c>0x00471890</c>, whose route request retains its
+    /// destination even within one triangle (<c>0x004CF490</c>; ADR-0388, ADR-0430). A stand point
+    /// is often the tunneller's own tile, so the same-tile shortcut of <see cref="WorldSteering.TryRouteTo"/>
+    /// would end the walk at once and leave a tunneller pushed more than <see cref="StandRange"/> off
+    /// its tile's centre re-planning the same walk every period without moving (ADR-0459).</summary>
     private static bool Walk(SimulationContext context, CreatureState creature, int x, int y, int resume, Navigation.MoveOptions options)
     {
         if (!context.World.Contains(new TilePos(x >> 12, y >> 12)) || IsSolid(context, x >> 12, y >> 12)) return false;
-        if (!context.Navigation.TryRouteTo(creature, x, y, options)) return false;
+        if (!context.Navigation.TryRouteToStance(creature, x, y, options)) return false;
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         return true;
     }
