@@ -10376,3 +10376,27 @@ the tests found `HeartRuined` missing from the mask's key, and the reviewer
 found the crypts missing from the refresh's, so any new input to those
 routines must join its key. The mesh rebuild itself (`nav.build`) and the remaining
 per-tick lists (room-need queries, the keeper view, furniture) are untouched.
+
+## ADR-0455 — The adapter's run-time shaders are referenced from Resources
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** The Unity adapter builds its materials at run time from
+shaders found by name: URP Lit and Unlit, with the Standard and Unlit/Color
+fallbacks. A player contains only the shaders and variants some asset in
+the build references, so the headless probe's Development player found
+none of them and logged the failure every frame; the probe worked around
+it in its own build.
+
+**Decision.** `Assets/DK2/Resources/Shaders` holds one material per shader
+and keyword set the adapter uses: URP Lit opaque and blended, each with and
+without emission, all with specular and reflections off; URP Unlit opaque
+and additive; Standard; Unlit/Color. Resources are always built, and a
+material's keyword set is what makes Unity keep that variant. The probe
+keeps its own materials for builds from an older copy. Not yet verified by
+a player build, which the owner's next build will show; the Unlit/Color
+built-in id (10755) is from memory and unverified on disk.
+
+**Consequences.** A new keyword on a run-time material needs a material
+here that carries it, or the player draws it pink; unity/README.md says so.
+`DK2/ClassicEffect` is a shader under Resources already, so every variant of
+it is built.

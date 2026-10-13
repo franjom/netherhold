@@ -124,6 +124,18 @@ Batcher on, every material in a batch-mode render took one texture (Direct3D 12)
 not yet seen. `UseUrp` must save the renderer asset before the pipeline names it, or URP has
 no default renderer and draws nothing.
 
+## Shaders in a built player
+
+The adapter makes its materials at run time from shaders it finds by name (`ClassicMeshes`,
+`ClassicConstructionEffects`). A player only contains shaders, and shader variants, that some
+asset in the build references, so `Assets/DK2/Resources/Shaders` holds one material per shader
+and keyword set the adapter uses: URP Lit opaque and blended, each with and without emission
+(every one with specular and reflections off), URP Unlit opaque and additive, and the Standard
+and Unlit/Color fallbacks. Anything under Resources is always built. A new keyword on a runtime
+material needs a material here that carries it, or the player draws that material with a
+missing-shader fallback, usually pink. The
+`DK2/ClassicEffect` shader is itself under Resources, which includes every variant (ADR-0455).
+
 ## Measuring performance
 
 Open **Window → Analysis → Profiler**, restart Play mode, and record the CPU

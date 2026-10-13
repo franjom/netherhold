@@ -37,8 +37,9 @@ namespace DK2.Unity.Editor
         }
 
         /// <summary>The adapter finds its shaders with <c>Shader.Find</c>, which in a player only
-        /// sees shaders something in the build references; nothing in the project does yet, so a
-        /// material under Resources (always built) holds each one.</summary>
+        /// sees shaders something in the build references. The project holds a material per shader
+        /// and keyword set under <c>Assets/DK2/Resources/Shaders</c> (ADR-0455); this keeps the
+        /// probe building from a copy that predates them.</summary>
         private static void IncludeShadersFoundByName()
         {
             string[] names =
