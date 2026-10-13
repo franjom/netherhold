@@ -10318,3 +10318,34 @@ invalidates routing. Hash/save version 240; no new persisted field.
 **Consequences.** This extends ADR-0439's deliberate owner-requested movement
 constraint. It does not reproduce the native arrival/escape exemptions;
 the evidence boundary remains research/structure-blocks.md §5.3.
+
+## ADR-0453 — A worker's reachability comes from one flood, not one search per candidate
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Job selection asked the grid pathfinder "can this worker reach
+this tile" once per candidate stance, body tile and crate, each a Dijkstra
+that floods the worker's whole region before it can answer no. A keeper
+dropping five imps ran 404 such searches in one tick (Level 18, 0.3 s of a
+0.46 s tick, 120 MB allocated), and the drop scan's one-tile searches still
+flooded the map to meet their one tile.
+
+**Decision.** `ReachableTiles` runs the same Dijkstra once from the worker
+to exhaustion and answers every candidate from it: the same neighbour order,
+step costs and heap order as `GridPathfinder.TryFindNearest`, so the same
+reachable set and the same route to each tile. `ImpTaskSystem` floods once
+per worker update, keyed on the grid instance and the start tile, and the
+point questions (stances, claims, objects, crates, the drop scan's one tile)
+read the flood. The body search asks only the tiles bodies lie on, in the
+search's own order of route cost then tile index, which is where the
+predicate could have been true. Searches with a real predicate over unknown
+tiles (`CreatureAngerSystem`'s exit) keep the pathfinder. The equivalence is
+pinned by tests on grids with corner-only gaps, and the Level 18 attack
+scenario's hash and event log are unchanged.
+
+**Consequences.** The flood is for one grid and one start. The grid reads
+terrain live, so a terrain change between a worker's questions would be seen
+by a search and not by the flood; none occurs, because dig, claim and
+reinforce are queued for `TileWorkSystem` to apply after every worker has
+chosen. The drop scan's blueprint search keeps the pathfinder when no tile
+confines it. The `grid.flood` marker counts floods. Selection's own cost
+(ring scans over the map, candidate sorting) is untouched and is the next item.

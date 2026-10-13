@@ -328,6 +328,126 @@ public class PathfindingTests
         Assert.Equal(fresh, afterUse);
     }
 
+    // ---- one flood for many questions ------------------------------------
+
+    /// <summary>A grid of walls and gaps with corner-only touches, so the flood meets every rule
+    /// the search has: a sealed room, a one-tile door, a diagonal that is refused and one that is not.</summary>
+    private static readonly TextGrid Rooms = new(
+        "..#.....",
+        "..#.##..",
+        "....#...",
+        "###.#.#.",
+        "....#...",
+        ".#..#.##",
+        ".#......",
+        ".#.#####");
+
+    [Fact]
+    public void AFloodAnswersEveryTile_AsTheSearchForThatTileWould()
+    {
+        // ReachableTiles replaces one TryFindNearest(s => s == tile) per candidate with one flood
+        // per worker. The replacement is only allowed to be faster: the same tiles reachable, the
+        // same route to each, from every start the grid has, walls included.
+        var search = new GridPathfinder();
+        var flood = new ReachableTiles();
+        var expected = new List<TilePos>();
+        var actual = new List<TilePos>();
+
+        foreach (TextGrid grid in new[] { Rooms, OneDoor, Sealed, Open })
+        {
+            for (int fy = 0; fy < grid.Height; fy++)
+            for (int fx = 0; fx < grid.Width; fx++)
+            {
+                var from = new TilePos(fx, fy);
+                flood.Flood(grid, from);
+                Assert.True(flood.IsFor(grid, from));
+
+                for (int ty = -1; ty <= grid.Height; ty++)
+                for (int tx = -1; tx <= grid.Width; tx++)
+                {
+                    var to = new TilePos(tx, ty);
+                    bool found = search.TryFindNearest(grid, from, s => s == to, expected);
+                    Assert.Equal(found, flood.Reaches(to));
+                    Assert.Equal(found, flood.TryPathTo(to, actual));
+                    Assert.Equal(expected, actual);
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void TheNearestCandidate_IsTheOneTheSearchWouldStopOn()
+    {
+        // TryNearest stands in for a search whose predicate can only be true on known tiles. It
+        // must stop where that search stops: by route cost, then tile index, and only on tiles
+        // the start can reach. Candidates: every third tile, in a scrambled order with repeats;
+        // goal: the tiles whose coordinates sum to an even number.
+        var search = new GridPathfinder();
+        var flood = new ReachableTiles();
+        var expected = new List<TilePos>();
+        var actual = new List<TilePos>();
+
+        foreach (TextGrid grid in new[] { Rooms, OneDoor, Sealed })
+        {
+            var candidates = new List<TilePos>();
+            for (int i = grid.Width * grid.Height - 1; i >= 0; i -= 3)
+            {
+                candidates.Add(new TilePos(i % grid.Width, i / grid.Width));
+                if (i % 2 == 0) candidates.Add(new TilePos(i % grid.Width, i / grid.Width));
+            }
+            candidates.Add(new TilePos(-1, 3));
+            var set = new HashSet<TilePos>(candidates);
+            static bool Goal(TilePos p) => (p.X + p.Y) % 2 == 0;
+
+            for (int fy = 0; fy < grid.Height; fy++)
+            for (int fx = 0; fx < grid.Width; fx++)
+            {
+                var from = new TilePos(fx, fy);
+                bool found = search.TryFindNearest(grid, from, p => set.Contains(p) && Goal(p), expected);
+
+                flood.Flood(grid, from);
+                var asked = new List<TilePos>();
+                bool got = flood.TryNearest(candidates, p => { asked.Add(p); return Goal(p); }, actual);
+
+                Assert.Equal(found, got);
+                Assert.Equal(expected, actual);
+                Assert.Equal(asked.Count, asked.Distinct().Count());
+                Assert.All(asked, p => Assert.True(flood.Reaches(p)));
+                for (int i = 1; i < asked.Count; i++)
+                {
+                    int a = flood.CostTo(asked[i - 1]), b = flood.CostTo(asked[i]);
+                    Assert.True(a < b || (a == b && asked[i - 1].Y * grid.Width + asked[i - 1].X < asked[i].Y * grid.Width + asked[i].X));
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void AFloodFromOutsideTheGrid_ReachesNothing()
+    {
+        var flood = new ReachableTiles();
+        var path = new List<TilePos> { new(1, 1) };
+
+        flood.Flood(Open, new TilePos(-1, 0));
+
+        Assert.False(flood.Reaches(new TilePos(0, 0)));
+        Assert.False(flood.TryPathTo(new TilePos(0, 0), path));
+        Assert.Empty(path);
+    }
+
+    [Fact]
+    public void AFlood_IsForOneGridInstanceAndOneStart()
+    {
+        var flood = new ReachableTiles();
+        var same = new TextGrid(".....", ".....");
+
+        flood.Flood(same, new TilePos(0, 0));
+
+        Assert.True(flood.IsFor(same, new TilePos(0, 0)));
+        Assert.False(flood.IsFor(same, new TilePos(1, 0)));
+        Assert.False(flood.IsFor(new TextGrid(".....", "....."), new TilePos(0, 0)));
+    }
+
     // ---- the world as a grid ---------------------------------------------
 
     [Fact]
