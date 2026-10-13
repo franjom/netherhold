@@ -85,8 +85,11 @@ public sealed class TileWorkSystem : ISimulationSystem
                 context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
                     context.Database.TerrainById(before).MaxHealthEffectId, order.PlayerId,
                     new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width), new Fp32(Fp32.One)));
-
             PostThreat(context, order, result, before, ownerBefore);
+            if (result.Outcome == TileWorkOutcome.Destroyed && before != tile.TerrainId)
+                context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
+                    context.Database.TerrainById(before).DestroyedEffectId, order.PlayerId,
+                    new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width), new Fp32(Fp32.One)));
             CreditGoldMined(context, order, result.GoldReleased);
             int carried = HandTo(context, order, result.GoldReleased, out int putDown);
             Report(context, order, result, before, world, carried, putDown);

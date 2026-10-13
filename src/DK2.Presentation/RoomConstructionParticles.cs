@@ -98,6 +98,7 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         int x = request.Position.X.Raw + (int)(Math.Sin(angle) * radius);
         int y = request.Position.Y.Raw - (int)(Math.Cos(angle) * radius);
         int height = request.Position.Z.Raw + DrawExclusive(effect.LowerHeightLimit * 16, effect.UpperHeightLimit * 16);
+        int heading = (request.Heading.Value + DrawAngularOffset(effect.OrientationRange * 8).Value) & 2047;
         int speed = DrawInclusive(element.MinSpeedXy, element.MaxSpeedXy);
         double direction = _random.NextInt(2048) * Math.PI / 1024;
         int frames = element.ArtResource.Unknown_0044.Length >= 10
@@ -119,8 +120,13 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             InitialScale = scale, ScaleTarget = scaleTarget, ScaleIncrement = scaleIncrement,
             InitialPhase = phase, FrameDuration = (element.ArtResource.Flags & 4) != 0 ? frames : 0,
             Red = red, Green = green, Blue = blue,
+            HeadingRaw = heading, PreviousHeadingRaw = heading,
         };
         if (!ApplyFloorContact(particle)) return;
+        int spinRange = effect.SpriteSpinRateRange * 8;
+        particle.HeadingSpinRaw = DrawAngularOffset(spinRange).Value;
+        particle.PitchSpinRaw = DrawAngularOffset(spinRange).Value;
+        particle.RollSpinRaw = DrawAngularOffset(spinRange).Value;
         particle.PreviousHeightRaw = particle.HeightRaw;
         _particles.Add(particle);
     }
@@ -143,6 +149,12 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             particle.PreviousXRaw = particle.XRaw;
             particle.PreviousYRaw = particle.YRaw;
             particle.PreviousHeightRaw = particle.HeightRaw;
+            particle.PreviousHeadingRaw = particle.HeadingRaw;
+            particle.PreviousPitchRaw = particle.PitchRaw;
+            particle.PreviousRollRaw = particle.RollRaw;
+            particle.HeadingRaw = (particle.HeadingRaw + particle.HeadingSpinRaw) & 2047;
+            particle.PitchRaw = (particle.PitchRaw + particle.PitchSpinRaw) & 2047;
+            particle.RollRaw = (particle.RollRaw + particle.RollSpinRaw) & 2047;
             int drag = 4096 - particle.Definition.AirFriction;
             particle.VelocityZ -= particle.Definition.Mass;
             particle.VelocityX = (int)((long)particle.VelocityX * drag / 4096);
@@ -186,6 +198,7 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         int floor = _floorHeight(new(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw))).Raw;
         if (particle.HeightRaw >= floor) return true;
         if ((particle.Definition.Flags & 1) != 0) return false;
+        particle.HeadingSpinRaw = particle.PitchSpinRaw = particle.RollSpinRaw = 0;
         if ((particle.Definition.Flags & 16) != 0)
         {
             particle.HeightRaw = floor;
@@ -227,6 +240,9 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
     private int DrawExclusive(int minimum, int maximum) => maximum <= minimum
         ? minimum : minimum + _random.NextInt(maximum - minimum);
 
+    private Dk2Angle DrawAngularOffset(int count) => count <= 0
+        ? default : new((ushort)((_random.NextInt(count) - count / 2) & 2047));
+
     private int DrawInclusive(int minimum, int maximum) => maximum <= minimum
         ? minimum : _random.NextInt(minimum, maximum);
 }
@@ -251,6 +267,16 @@ public sealed class ConstructionParticle
     public int PreviousXRaw { get; internal set; }
     public int PreviousYRaw { get; internal set; }
     public int PreviousHeightRaw { get; internal set; }
+    // Native view angles and increments wrap at 2048 units per turn.
+    public int HeadingRaw { get; internal set; }
+    public int PitchRaw { get; internal set; }
+    public int RollRaw { get; internal set; }
+    public int PreviousHeadingRaw { get; internal set; }
+    public int PreviousPitchRaw { get; internal set; }
+    public int PreviousRollRaw { get; internal set; }
+    public int HeadingSpinRaw { get; internal set; }
+    public int PitchSpinRaw { get; internal set; }
+    public int RollSpinRaw { get; internal set; }
     public byte Red { get; internal set; }
     public byte Green { get; internal set; }
     public byte Blue { get; internal set; }

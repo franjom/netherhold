@@ -40,6 +40,8 @@ namespace DK2.Unity
             public Vector3[] dwarfNativeSamples, warlockNativeSamples;
             public int[] authoredEffectIds, authoredRequestCounts, authoredBirths, authoredModelCounts, authoredNativeCounts, authoredChangedPixels;
             public bool authoredEffectsPassed;
+            public int[] authoredMeshCounts, authoredMeshChangedPixels;
+            public bool[] authoredMeshRotationChanged;
         }
         private readonly Metrics _metrics = new Metrics();
         private InstallArtProvider _art;
@@ -60,6 +62,7 @@ namespace DK2.Unity
         private SimEvent[] _constructionEvents;
         private GameDatabase _probeDatabase;
         private IEffectSpriteProvider _probeSprites;
+        private ClassicMeshes _probeMeshes;
         private sealed class WaveSink : ISimulationEventSink
         {
             public readonly ListEventSink Events = new ListEventSink();
@@ -96,7 +99,7 @@ namespace DK2.Unity
                 _ratPosition = _rat.transform.position;
                 _effectRoot = new GameObject("Construction effects");
                 var sprites = new InstallEffectSpriteProvider(db, _art.LoadTexture);
-                _effects = new ClassicConstructionEffects(_effectRoot.transform, db, sprites, 42);
+                _effects = new ClassicConstructionEffects(_effectRoot.transform, db, sprites, 42, meshes: meshes);
                 CheckWave(db);
                 _effects.Draw();
                 Shader shader = Shader.Find("DK2/ClassicEffect");
@@ -115,7 +118,7 @@ namespace DK2.Unity
                 var sun = new GameObject("Probe sun").AddComponent<Light>(); sun.type = LightType.Directional;
                 sun.transform.rotation = Quaternion.Euler(50, -30, 0);
                 RenderSettings.ambientLight = Color.gray;
-                _probeDatabase = db; _probeSprites = sprites;
+                _probeDatabase = db; _probeSprites = sprites; _probeMeshes = meshes;
                 _ready = true;
             }
             catch (Exception ex) { Debug.LogException(ex); Application.Quit(1); }
@@ -228,7 +231,15 @@ namespace DK2.Unity
             WorldState world = EffectWorld(db);
             TilePos target = new TilePos(3, 3);
             ISimulationSystem[] systems;
-            if (effectId.Value == 5)
+            if (effectId.Value == 6 || effectId.Value == 7)
+            {
+                TerrainDef terrain = db.Terrain.Values.Single(t => t.Name == (effectId.Value == 6 ? "Rock" : "Gold"));
+                world.Tile(target).TerrainId = terrain.TerrainId;
+                world.Tile(target).OwnerPlayerId = PlayerIds.Neutral;
+                world.Tile(target).Health = terrain.StartingHealth;
+                systems = new ISimulationSystem[] { new TileWorkSystem() };
+            }
+            else if (effectId.Value == 5)
             {
                 TerrainDef path = db.Terrain.Values.Single(t => t.Name == "Dirt Path");
                 world.Tile(target).TerrainId = path.TerrainId;
@@ -251,6 +262,9 @@ namespace DK2.Unity
             var sink = new ListEventSink(); sim.ObserveWith(sink);
             for (int tick = 0; tick < 500 && !sink.Events.Any(e => e.EffectRequest.HasValue); tick++)
             {
+                if (effectId.Value == 6 || effectId.Value == 7)
+                    world.QueueWork(target.X, target.Y, effectId.Value == 6 ? TileWorkKind.Dig : TileWorkKind.MineGold,
+                        PlayerIds.FirstKeeper);
                 if (effectId.Value == 5) world.QueueWork(target.X, target.Y, TileWorkKind.Claim, PlayerIds.FirstKeeper);
                 if (effectId.Value == 8) world.QueueWork(target.X, target.Y, TileWorkKind.ConvertRoom, PlayerIds.FirstKeeper);
                 sim.Tick();
@@ -260,19 +274,22 @@ namespace DK2.Unity
 
         private void CheckAuthoredEffects(GameDatabase db, IEffectSpriteProvider sprites)
         {
-            _metrics.authoredEffectIds = new[] { 5, 8, 17 };
-            _metrics.authoredRequestCounts = new int[3]; _metrics.authoredBirths = new int[3];
-            _metrics.authoredModelCounts = new int[3]; _metrics.authoredNativeCounts = new int[3];
-            _metrics.authoredChangedPixels = new int[3]; _metrics.authoredEffectsPassed = true;
-            int[] expectedRequests = { 1, 9, 1 }, expectedParticles = { 32, 288, 256 };
+            _metrics.authoredEffectIds = new[] { 5, 8, 17, 6, 7 };
+            _metrics.authoredRequestCounts = new int[5]; _metrics.authoredBirths = new int[5];
+            _metrics.authoredModelCounts = new int[5]; _metrics.authoredNativeCounts = new int[5];
+            _metrics.authoredChangedPixels = new int[5]; _metrics.authoredEffectsPassed = true;
+            _metrics.authoredMeshCounts = new int[5]; _metrics.authoredMeshChangedPixels = new int[5];
+            _metrics.authoredMeshRotationChanged = new bool[5];
+            int[] expectedRequests = { 1, 9, 1, 1, 1 }, expectedParticles = { 32, 288, 256, 72,
+                db.Effects[7].ElementsPerTurn * db.Effects[7].GenerateIds.Count(element => element != 0) };
             _actors.SetActive(false); _effectRoot.SetActive(false);
-            for (int index = 0; index < 3; index++)
+            for (int index = 0; index < _metrics.authoredEffectIds.Length; index++)
             {
                 var id = new EffectId((ushort)_metrics.authoredEffectIds[index]);
                 var root = new GameObject("Authored effect " + id.Value);
                 long milliseconds = 0;
                 using (var effects = new ClassicConstructionEffects(root.transform, db, sprites, 42,
-                    clock: () => new EffectTime(milliseconds)))
+                    clock: () => new EffectTime(milliseconds), meshes: _probeMeshes))
                 {
                     Color32[] baseline = Capture("authored-" + id.Value + "-off");
                     SimEvent[] requests = AuthoredRequests(db, id);
@@ -291,6 +308,27 @@ namespace DK2.Unity
                     _metrics.authoredNativeCounts[index] = root.GetComponentsInChildren<ParticleSystem>().Sum(p => p.particleCount);
                     Color32[] pixels = Capture("authored-" + id.Value + "-on");
                     _metrics.authoredChangedPixels[index] = pixels.Where((p, i) => !p.Equals(baseline[i])).Count();
+                    if (id.Value == 6 || id.Value == 7)
+                    {
+                        ParticleSystemRenderer[] renderers = root.GetComponentsInChildren<ParticleSystemRenderer>();
+                        foreach (ParticleSystemRenderer renderer in renderers)
+                            renderer.enabled = renderer.renderMode == ParticleSystemRenderMode.Mesh;
+                        _metrics.authoredMeshCounts[index] = renderers.Where(renderer => renderer.enabled)
+                            .Sum(renderer => renderer.GetComponent<ParticleSystem>().particleCount);
+                        Vector3[] rotations = NativeMeshRotations(renderers);
+                        Color32[] meshPixels = Capture("authored-" + id.Value + "-mesh-first");
+                        _metrics.authoredMeshChangedPixels[index] = meshPixels.Where((p, i) => !p.Equals(baseline[i])).Count();
+                        milliseconds += 50; effects.Draw();
+                        Vector3[] nextRotations = NativeMeshRotations(renderers);
+                        Capture("authored-" + id.Value + "-mesh-next");
+                        _metrics.authoredMeshRotationChanged[index] = rotations.Length == nextRotations.Length
+                            && rotations.Where((rotation, i) => rotation != nextRotations[i]).Any();
+                        int expectedMeshes = db.Effects[id.Value].ElementsPerTurn * db.Effects[id.Value].GenerateIds
+                            .Count(element => element != 0 && db.EffectElements[element].ArtResource.Type == 5);
+                        _metrics.authoredEffectsPassed &= _metrics.authoredMeshCounts[index] == expectedMeshes
+                            && _metrics.authoredMeshChangedPixels[index] > 0 && _metrics.authoredMeshRotationChanged[index];
+                        foreach (ParticleSystemRenderer renderer in renderers) renderer.enabled = true;
+                    }
                     milliseconds = 5001; effects.Draw(); Capture("authored-" + id.Value + "-expired");
                     _metrics.authoredEffectsPassed &= requests.Length == expectedRequests[index]
                         && births.Count == expectedParticles[index] && _metrics.authoredChangedPixels[index] > 0
@@ -302,6 +340,20 @@ namespace DK2.Unity
             }
             _actors.SetActive(true); _effectRoot.SetActive(true);
         }
+        private static Vector3[] NativeMeshRotations(ParticleSystemRenderer[] renderers)
+        {
+            var rotations = new List<Vector3>();
+            foreach (ParticleSystemRenderer renderer in renderers)
+            {
+                if (renderer.renderMode != ParticleSystemRenderMode.Mesh) continue;
+                var system = renderer.GetComponent<ParticleSystem>();
+                var particles = new ParticleSystem.Particle[system.particleCount];
+                int count = system.GetParticles(particles);
+                for (int i = 0; i < count; i++) rotations.Add(particles[i].rotation3D);
+            }
+            return rotations.ToArray();
+        }
+
         private GameObject Entrance(ClassicMeshes meshes, string name, float x, out string entry)
         {
             if (!_art.TryResolve(AssetRef.ForCreature(name, AssetKind.Animation, "entrance"), out var asset)) throw new InvalidOperationException(name + " entrance missing");

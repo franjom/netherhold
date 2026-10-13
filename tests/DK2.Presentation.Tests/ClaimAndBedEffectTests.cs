@@ -14,6 +14,44 @@ namespace DK2.Presentation.Tests;
 public class ClaimAndBedEffectTests
 {
     [InstallFact]
+    public void DiggingRockEmitsOriginalDebrisOnlyWhenTheTileFalls()
+    {
+        (GameDatabase db, WorldState world) = Load();
+        TilePos at = new(3, 3);
+        TerrainDef rock = db.Terrain.Values.Single(t => t.Name == "Rock");
+        Assert.Equal((ushort)6, rock.DestroyedEffectId);
+        world.Tile(at).TerrainId = rock.TerrainId;
+        world.Tile(at).OwnerPlayerId = PlayerIds.Neutral;
+        world.Tile(at).Health = rock.StartingHealth;
+        var sim = new GameSimulation(db, world, 1, [new TileWorkSystem()]);
+        var events = new ListEventSink();
+        var model = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
+        sim.ObserveWith(events);
+
+        Assert.DoesNotContain(events.Events, e => e.EffectRequest.HasValue);
+        for (int i = 0; i < 500 && world.Tile(at).TerrainId == rock.TerrainId; i++)
+        {
+            world.QueueWork(at.X, at.Y, TileWorkKind.Dig, PlayerIds.FirstKeeper);
+            sim.Tick();
+        }
+        Assert.Equal(rock.DestroyedTypeTerrainId, world.Tile(at).TerrainId);
+        ViewEffectRequest request = Assert.Single(events.Events, e => e.EffectRequest.HasValue).EffectRequest!.Value;
+        Assert.Equal((ushort)6, request.EffectId.Value);
+        Assert.Equal(new PlayerId(PlayerIds.FirstKeeper), request.Owner);
+        Assert.Equal(at, request.Tile);
+        Assert.Equal(Fp32.One, request.Height.Raw);
+        Assert.Equal(0, request.Heading.Raw);
+
+        foreach (SimEvent simEvent in events.Events) model.Emit(simEvent);
+
+        ConstructionParticle[] particles = CollectBirths(model);
+        Assert.Equal(72, particles.Length);
+        Assert.Equal(48, particles.Count(p => p.Definition.ArtResource.Type == 5));
+        Assert.All(particles, particle => Assert.Contains(particle.Definition.EffectElementId,
+            new ushort[] { 542, 7, 8, 9, 10, 144 }));
+    }
+
+    [InstallFact]
     public void CompletingFloorClaimShowsItsTwoOriginalParticleWaves()
     {
         (GameDatabase db, WorldState world) = Load();

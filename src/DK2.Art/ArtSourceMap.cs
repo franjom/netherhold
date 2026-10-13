@@ -51,6 +51,9 @@ public static class ArtSourceMap
         AddCreatures(entries, database, art);
         AddObjects(entries, database, art);
         AddStructures(entries, database, art);
+        foreach (EffectElementDef element in AssetCatalogue.MeshEffectElements(database))
+            entries.Add(Model(AssetRef.ForEffectElement(element.Name),
+                new Dk2ArtResource(element.ArtResource.Name, element.ArtResource.Type), "effect element mesh"));
 
         IReadOnlyList<AssetRef> expected = AssetCatalogue.ForDatabase(database).ToArray();
         if (entries.Count != expected.Count || !entries.Select(entry => entry.Reference).SequenceEqual(expected))

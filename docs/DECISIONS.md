@@ -10271,6 +10271,12 @@ are neither saved nor hashed.
 preserved. The special cycling-colour branch and bed heading fidelity remain
 research boundaries; ordinary keeper colours use the confirmed palette.
 
+**Amendment, 2026-10-13.** Decode terrain destruction effects and submit them
+only when the source becomes another terrain. Type-5 effect keys reuse the
+shared mesh/material cache; particle angles follow native view spin and stop
+on floor bounce. This restores Rock/Gold debris across maps without changing
+hash/save version240. Evidence: research/terrain-digging-debris.md.
+
 ## ADR-0450 — Select a bed after a creature is dropped into a Lair
 **Date:** 2026-10-12 · **Status:** accepted
 
@@ -10318,3 +10324,4 @@ invalidates routing. Hash/save version 240; no new persisted field.
 **Consequences.** This extends ADR-0439's deliberate owner-requested movement
 constraint. It does not reproduce the native arrival/escape exemptions;
 the evidence boundary remains research/structure-blocks.md §5.3.
+

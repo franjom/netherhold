@@ -78,6 +78,10 @@ public static class AssetCatalogue
 
     public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing", "entrance"];
 
+    public static IEnumerable<EffectElementDef> MeshEffectElements(GameDatabase database) =>
+        database.EffectElements.Values.OrderBy(element => element.EffectElementId)
+            .Where(element => element.ArtResource.Type == 5 && !string.IsNullOrWhiteSpace(element.ArtResource.Name));
+
     /// <summary>
     /// Every key the database implies, ordered by record id within each category so
     /// that two runs produce the same list and a converter's output is reproducible.
@@ -97,6 +101,8 @@ public static class AssetCatalogue
         }
         foreach (byte id in Sorted(database.Traps.Keys))
             yield return AssetRef.ForTrap(database.Traps[id].Name);
+        foreach (EffectElementDef element in MeshEffectElements(database))
+            yield return AssetRef.ForEffectElement(element.Name);
     }
 
     /// <summary>The bridge's own torch art, which a wall torch over a floor with no room carries

@@ -142,6 +142,19 @@ namespace DK2.Unity
             return piece;
         }
 
+        public bool TryGetMesh(AssetRef key, out Mesh mesh, out Material[] materials)
+        {
+            if (_art.TryResolve(key, out ResolvedAsset asset) && TryBuild(asset, false, out Built built))
+            {
+                mesh = built.Mesh;
+                materials = built.Materials;
+                return true;
+            }
+            mesh = null;
+            materials = null;
+            return false;
+        }
+
         private bool TryBuild(in ResolvedAsset asset, bool lastFrame, out Built built)
         {
             if (_built.TryGetValue((asset.InstallEntry, lastFrame), out built)) return built != null;

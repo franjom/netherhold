@@ -12,39 +12,45 @@ synced DLLs, verifies the production particle module, then builds and runs a
 Development standalone player. The owner's Unity project is never opened.
 Offscreen captures use a graphics device and URP SingleCameraRequest.
 
-Verification, 2026-10-12: Unity 6000.6.0f1, AMD Radeon Graphics, Direct3D12.
-Artifacts: `D:/DungeonKeeperRemake/build/room-life-probe/20261012-215841/`.
-Recorded HEAD `1448bc1b`, save/hash version 238. Source/assembly SHA256
-snapshots, build/player logs, 22 PNGs and `metrics.json` are retained there.
-Editor build and player exited 0; no script, shader, sprite-loading or runtime
-exception matches occurred. The owner's project was not opened.
+Verification, 2026-10-13: Unity 6000.6.0f1, AMD Radeon Graphics, Direct3D12.
+Artifacts: `D:/DungeonKeeperRemake/build/room-life-probe/20261013-172210/`.
+Recorded HEAD `ef2c433a` plus the working changes, save/hash version 240.
+Source/assembly SHA256 snapshots, build/player logs, 32 PNGs and
+`metrics.json` are retained there. Editor build and player exited 0; no
+script errors, shader errors or runtime exception matches occurred.
 
-Production simulation fixtures create the typed requests for a completed Dirt
-Path claim, whole 3x3 Portal capture and Goblin bed creation. Those requests
-use ClassicConstructionEffects and the original sprite provider, with an
-injected view clock advancing strict 50ms gates independently of GPU readback.
+Production simulation fixtures create typed requests for a completed Dirt
+Path claim, whole 3x3 Portal capture, Goblin bed creation, Rock digging and
+Gold mining. They use ClassicConstructionEffects, original sprite resources
+and the shared ClassicMeshes cache. An injected view clock advances strict
+50ms gates independently of GPU readback.
 
 | Effect | Requests | Born / model / native particles | Changed pixels |
 |---|---:|---:|---:|
-| 5, tile claim | 1 | 32 / 32 / 32 | 2,125 |
-| 8, Portal capture | 9 | 288 / 288 / 288 | 51,110 |
-| 17, bed creation | 1 | 256 / 256 / 256 | 3,221 |
+| 5, tile claim | 1 | 32 / 32 / 32 | 2,814 |
+| 8, Portal capture | 9 | 288 / 288 / 288 | 50,955 |
+| 17, bed creation | 1 | 256 / 256 / 256 | 3,076 |
+| 6, Dig Rock | 1 | 72 / 72 / 72 | 5,805 |
+| 7, Dig Gold | 1 | 60 / 60 / 60 | 5,791 |
 
-Each effect begins empty, emits across its scheduled waves and cleans up to
-zero model/native particles. The three `authored-*-on.png` captures were
-inspected: visible authored sprites, red claim/capture particles and mixed
-bed colours, with no magenta shader fallback.
+Each effect begins empty, emits its scheduled waves and cleans up to zero
+model/native particles. Each dig effect contains 48 native mesh particles.
+Separate captures disable sprite renderers: Rock meshes alone change 5,500
+pixels and Gold meshes alone change 4,825. Native particle rotation values
+change across two 50ms updates. Both mesh-only frame pairs were inspected:
+textured brown shards and yellow gold chips visibly change orientation and
+position, with no magenta fallback. Portal and bed sprite captures were also
+inspected; their existing checks pass.
 
-The existing checks also pass: a production 2x2 Lair build advances in
-1/3/4-tile waves; its four requests render 256 native/model particles in two
-groups and change 5,376 pixels. The first empty wall-clock update occurs at
-1.554 seconds, inside the 2.2-second cleanup bound. Rat mesh/position changes,
-Goblin/Warlock entrance playback and final holds, and native Dwarf/Warlock
-interpolation endpoints all pass. Level8 Guard22 visits failed-hunt and wander
-states, first moves at tick 1,057 and reaches 2,315 raw displacement over
-1,500 ticks without artificial position changes.
+The other checks pass: a production 2x2 Lair build advances in 1/3/4-tile
+waves; four requests render 256 native/model particles in two groups and
+change 5,904 pixels. Wall-clock expiry is observed at 1.586 seconds, inside
+the 2.2-second cleanup bound. Rat mesh/position changes, Goblin/Warlock entrance
+playback and final holds, and Dwarf/Warlock interpolation endpoints pass.
+Level8 Guard22 visits failed-hunt and wander states, first moves at tick 601
+and reaches 2,328 raw displacement over 1,500 ticks.
 
-This verifies renderer integration and controlled emission counts. The new
-effect captures use an injected clock; the existing construction expiry uses
-wall time and includes scheduling delays. Full Level8 visual play, original
-game visual equivalence, bank geometry and performance remain outside this probe.
+This verifies renderer integration, controlled emission counts and visible
+mesh motion. Dig captures use an injected clock; construction expiry uses wall
+time and includes scheduling delays. Full Level8 visual play, original-game
+visual equivalence, bank geometry and performance remain outside this probe.

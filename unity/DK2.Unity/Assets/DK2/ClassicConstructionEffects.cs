@@ -24,12 +24,14 @@ namespace DK2.Unity
             public ParticleSystem.Particle[] Buffer = new ParticleSystem.Particle[64];
             public int Count;
             public Material Material;
+            public bool IsMesh;
             public readonly List<Texture2D> Textures = new List<Texture2D>();
             public readonly List<Sprite> Sprites = new List<Sprite>();
         }
 
         private readonly Transform _root;
         private readonly IEffectSpriteProvider _sprites;
+        private readonly ClassicMeshes _meshes;
         private readonly Dictionary<ushort, Group> _groups = new Dictionary<ushort, Group>();
         public RoomConstructionParticles Model { get; }
 
@@ -37,10 +39,12 @@ namespace DK2.Unity
             Func<RoomConstructionEffect, bool> visible = null,
             Func<ViewEffectRequest, bool> effectVisible = null,
             Func<FpPosition3, Fp32> floorHeight = null,
-            Func<EffectTime> clock = null)
+            Func<EffectTime> clock = null,
+            ClassicMeshes meshes = null)
         {
             _root = root;
             _sprites = sprites;
+            _meshes = meshes;
             Model = new RoomConstructionParticles(database, seed, clock ?? ReadClock, visible, effectVisible, floorHeight);
         }
 
@@ -63,7 +67,9 @@ namespace DK2.Unity
                         Mathf.Lerp(source.PreviousXRaw, source.XRaw, fraction) / 4096f,
                         Mathf.Lerp(source.PreviousYRaw, source.YRaw, fraction) / 4096f,
                         Mathf.Lerp(source.PreviousHeightRaw, source.HeightRaw, fraction) / 4096f),
-                    startColor = new Color32(source.Red, source.Green, source.Blue, 255),
+                    startColor = group.IsMesh ? new Color32(255, 255, 255, 255)
+                        : new Color32(source.Red, source.Green, source.Blue, 255),
+                    rotation3D = group.IsMesh ? MeshRotation(source, fraction) : Vector3.zero,
                     startSize = source.ScaleRaw / 4096f,
                     startLifetime = 1f,
                     remainingLifetime = 1f - phase,
@@ -79,10 +85,54 @@ namespace DK2.Unity
             }
         }
 
+        private static Vector3 MeshRotation(ConstructionParticle source, float fraction)
+        {
+            const float degreesPerUnit = 360f / 2048f;
+            float heading = Mathf.LerpAngle(source.PreviousHeadingRaw * degreesPerUnit,
+                source.HeadingRaw * degreesPerUnit, fraction);
+            float pitch = Mathf.LerpAngle(source.PreviousPitchRaw * degreesPerUnit,
+                source.PitchRaw * degreesPerUnit, fraction);
+            float roll = Mathf.LerpAngle(source.PreviousRollRaw * degreesPerUnit,
+                source.RollRaw * degreesPerUnit, fraction);
+            Quaternion rotation = Quaternion.Euler(0f, heading + 180f, 0f)
+                * Quaternion.AngleAxis(roll, Vector3.forward) * Quaternion.Euler(-pitch, 0f, 0f);
+            // Particle.rotation3D stores inverse Euler angles; meshes use the object's DK2 frame mapping.
+            return -rotation.eulerAngles;
+        }
+
+        private Group MeshGroup(EffectElementDef definition, AssetRef key)
+        {
+            if (_meshes == null || !_meshes.TryGetMesh(key, out Mesh mesh, out Material[] materials))
+            {
+                _groups.Add(definition.EffectElementId, null);
+                return null;
+            }
+            var go = new GameObject("effect " + definition.Name);
+            go.transform.SetParent(_root, false);
+            var group = new Group { IsMesh = true, System = go.AddComponent<ParticleSystem>() };
+            var main = group.System.main;
+            main.playOnAwake = false;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startRotation3D = true;
+            main.maxParticles = 64;
+            var emission = group.System.emission; emission.enabled = false;
+            var shape = group.System.shape; shape.enabled = false;
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Mesh;
+            renderer.alignment = ParticleSystemRenderSpace.World;
+            renderer.mesh = mesh;
+            renderer.sharedMaterials = materials;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            group.System.Play(); group.System.Pause();
+            _groups.Add(definition.EffectElementId, group);
+            return group;
+        }
+
         private Group For(EffectElementDef definition)
         {
             if (_groups.TryGetValue(definition.EffectElementId, out Group existing)) return existing;
             AssetRef key = AssetRef.ForEffectElement(definition.Name);
+            if (definition.ArtResource.Type == 5) return MeshGroup(definition, key);
             if (_sprites == null || !_sprites.TryResolve(key, out ResolvedAsset asset)
                 || !_sprites.TryGetSprite(asset, out EffectSpriteResource resource))
             {

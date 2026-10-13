@@ -188,7 +188,7 @@ namespace DK2.Unity
                     request => !world.FogOfWarEnabled || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId),
                     request => world.Contains(request.Tile) && (!world.FogOfWarEnabled
                         || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId)),
-                    point => _worldView.GroundHeightAt(world, point));
+                    point => _worldView.GroundHeightAt(world, point), meshes: _classic);
                 _simulation.ObserveWith(_constructionEffects.Model);
             }
 
