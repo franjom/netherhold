@@ -51,3 +51,40 @@ buffers. Sprite effects retain their existing path. Mesh orientation uses
 the same coordinate mapping as objects; interpolation is view-only.
 No original asset is copied into the repository. These requests and their
 presentation RNG are neither saved nor hashed; gameplay remains version240.
+
+## 4. Dust, progress and keeper color — CONFIRMED within the work chain
+
+Primary binary reread 2026-10-13: whole dig action `0x00496E00`, mine
+action `0x004971D0`, mining state `0x00465870`, action-point wrapper
+`0x00496980`, tile-work applier and element initializer `0x00435F20`.
+Neither strike handler directly requests a view effect. The applier's dust
+request belongs to the different-terrain destruction arm, not health
+progress. This establishes the work chain; it does not rule out particles
+from an unexamined creature drawing or animation path.
+
+The destruction call at `0x004532B9` passes the applier's working-player
+argument, not the tile's previous owner. `0x004352E0` forwards the parent's
+owner at `+0x12D` into element initialization. Shipped records differ:
+
+| Destruction effect | Dust element; art | Raw art flags | Authored RGB | Upward speed |
+|---|---|---|---|---|
+| 6, Dig Rock | 542, Dig Rock Dust Element; sm, type 3 | `0x85` | 130,110,100 | 0..1638 |
+| 7, Dig Gold | 6, Dust; sm, type 3 | `0x24` | 130,110,100 | 0..6144 |
+
+Both dust elements have HP32..48, scale819..1638, scale ratio16384 and
+element flags `0xD`: twelve rising, expanding, dimming sprites on destruction.
+The raw `0x80` art bit selects the keeper-color path, so ordinary rock
+dust takes worker color, while gold dust keeps its authored brown.
+The native palette and remaining special-color getter boundary are in
+[room-construction-effects.md section 6](room-construction-effects.md#6-claim-capture-and-bed-creation).
+The initializer does not consult the file's random/table color indices
+in its color selection block. Claim Land's keeper-colored SM element142
+is a distinct definition, not the rock dust element.
+
+Current `TileWorkSystem` preserves destruction-only requests and the
+worker owner. `RoomConstructionParticles` applies the raw art-color flag;
+`ClassicConstructionEffects` submits its resulting sprite RGB and the
+resolved resource. A red rock cloud therefore follows this ordinary
+native color rule. A red gold cloud is not explained by these definitions.
+Color alone proves no rendering defect. The remaining prominence comparison
+and the owner's ordinary-rock observation are recorded in Q593.
