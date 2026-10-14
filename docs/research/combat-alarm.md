@@ -13,8 +13,8 @@ which read the alarm's call as a commit to a fight. `combat-fear.md` owns the
 head-count and the withdraw state this shares; `combat-target-selection.md` §3.1 the
 near-the-heart path, restated in §1 only as far as the build needs.
 
-**What this settles:** the Imp's arm **never fights a hero**. Away from its rooms it
-withdraws; near them it counts heads, and when its side is outnumbered a `Scout`
+**What this settles:** the Imp's arm **never fights a hero**. Away from its Guard Rooms it
+withdraws; near one it counts heads, and when its side is outnumbered a `Scout`
 runs to the nearest room and **raises the alarm**: that room's creatures are sent
 running to where the hero stood, until their summed `Threat` covers the deficit,
 and stand there thirty ticks looking for a fight the ordinary way. Only within
@@ -41,11 +41,11 @@ to nothing. My side is the Turncoat player while `TurncoatTimer` runs.
    skipped. Then the **hero path**: `d < sight²` and a line of sight (no hearing),
    `d < best`, the hero has no target or targets me, `IsAttackable`. Then:
    - my `Attacking` is set to the hero, tentatively, and the old tag stashed;
-   - **hero not within `GuardRoomReportingDistanceTiles` of a room of mine**
+   - **hero not within `GuardRoomReportingDistanceTiles` of a Guard Room of mine**
      (`0x00460B50`, combat-fear.md §4 step 9) → the withdraw state; success returns
      `0xEA60`, "I left", which the acquirer returns as 1; failure restores the tag
      and the scan continues;
-   - **near a room:** `theirs` = the hero's owner's strength within five tiles of
+   - **near a Guard Room:** `theirs` = the hero's owner's strength within five tiles of
      me, `ours` = my owner's × 3/4 (`0x004FAC40`, summed level-scaled `Threat`).
      `ours > theirs` → restore the tag, **keep scanning** — nothing happens;
    - else `deficit = (theirs − ours) × 3/2` and **the alarm** (§2); failing that
@@ -311,8 +311,11 @@ state fields; §3's every skip, the quarter-health test, the raiser's run speed,
 the deficit countdown, the two `SetState`s and action 79; §4's thirty ticks and
 the walk speed; state 6's arrival.
 
-**STRONGLY INFERRED:** that `RoomList` entries are class 9 and the alarm's
-"nearest room" is over all rooms, not guard rooms only; that `RoomId` is the room
+**CONFIRMED (binary, 2026-10-14):** the 9 that `0x00460B50` compares at `0x00460BC8` is the
+room type byte `+0x18` (the Guard Room), not a thing class: `0x004C61C0` walks the same list
+and compares that byte with the requested room type (3 and 25 for portals).
+
+**STRONGLY INFERRED:** that the alarm's "nearest room" is over all rooms, not Guard Rooms only; that `RoomId` is the room
 a creature works in.
 
 **UNKNOWN:** Q391 (what a worker's animation block 29 plays, so action 79's length).

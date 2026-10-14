@@ -48,6 +48,9 @@ stand.
 | T | M3 + ADR-0471, ADR-0472 | as E | 20/20 | 2/20 | 8/20 | 2/20 (seeds 9, 11: 6764, 6788) |
 | V | master d8bc7336 | as E | 20/20 | 3/20 | 9/20 | 2/20 (seeds 6, 13) |
 | U | V + ADR-0471, ADR-0472 | as E | 20/20 | 3/20 | 9/20 | 3/20 (seeds 4, 6, 13) |
+| G | V + ADR-0473 Guard Room test | as E | 20/20 | 2/20 | 12/20 | 4/20 (seeds 2, 9, 12, 20) |
+| M4 | master 434a966b | as E | 18/20 | 4/20 | 11/20 | 2/20 (seeds 6, 13) |
+| W | M4 + ADR-0471, 0472, 0473 | as E | 18/20 | 5/20 | 14/20 | 5/20 (seeds 2, 9, 10, 12, 13) |
 
 M and G agree tick for tick on Levels 1–3: the gate changes nothing there, and master's
 own commits since 3877e855 took Level 2 from 6/20 to 2/20 and Level 3 from 18/20 to
@@ -181,6 +184,17 @@ wins 2/20 either way (seeds 3, 11 against 9, 11), and `out_of_reach` falls from 
 d8bc7336 (V against U, 4 workers) Levels 1–3 again replay identically (20/3/9, all 60 traces
 byte for byte), Level 4 wins 3/20 against 2/20 (seeds 4, 6, 13 against 6, 13), 7 of 20
 replay traces changing, and `out_of_reach` falls from 4,813 to 13.
+
+## Sets G, M4 and W: Level 3's lost Imps
+
+Commit 454 (Imps react to attackers) took Level 3 from 17/20 to 8/20, yet moved our Imps
+toward DK2's: seed 1's flights rose from 24 to 113 against the capture's 76, starting at tick
+1398 against 1388. DK2 ends 72 of its 76 in the withdraw's arrival (state 202) and loses one
+Imp, at tick 3687; ours logged 90 `no_alarm` ends, went back to mining at (32,21) beside
+Dwarves 18, 19 and 23, and lost 9 Imps, 7 of them between ticks 1632 and 1848. `0x00460B50` counts only
+Guard Rooms (`+0x18` == 9, ADR-0473); ours counted every room. With the test fixed (G against
+V) Level 3 wins 12/20 against 9/20 and loses 6 Imps over 20 seeds against 78. Master
+434a966b alone wins Level 1 18/20 (M4), down from 20/20 at d8bc7336; not examined.
 
 ## What to compare next
 

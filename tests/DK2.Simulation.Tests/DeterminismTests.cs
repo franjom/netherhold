@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 245: worker takes need a route and a reachable side or target (ADR-0471, ADR-0472).
+        // HashVersion 246: a fleeing creature counts only Guard Rooms near its attacker (ADR-0473).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xF345C33D7F7605C3UL, sim.StateHash());
+        Assert.Equal(0xD6C4B6C05FD11458UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

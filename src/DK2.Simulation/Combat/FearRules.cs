@@ -348,7 +348,7 @@ public static class FearRules
     }
 
     /// <summary>The timer is out. When a keeper's live creature target stands within
-    /// <c>GuardRoomReportingDistanceTiles</c> of its rooms, count heads at the fleeing creature:
+    /// <c>GuardRoomReportingDistanceTiles</c> of its Guard Rooms, count heads at the fleeing creature:
     /// the state ends when its side, at
     /// three quarters, outweighs the enemy's within five tiles; otherwise a Scout runs to raise
     /// the alarm. The room test uses the target's tile. Anyone else lets go and withdraws.</summary>
@@ -360,7 +360,7 @@ public static class FearRules
         CreatureState? target = me.FightTargetKind == FightTargetKind.Creature ? world.CreatureById(me.FightTargetId) : null;
 
         if (PlayerIds.IsKeeper(me.OwnerPlayerId) && target != null && !CreatureDeathRules.IsDown(target)
-            && NearOwnRooms(context, rooms, me.OwnerPlayerId, target.Tile))
+            && NearOwnGuardRooms(context, rooms, me.OwnerPlayerId, target.Tile))
         {
             int theirs = LocalStrength(context, target.OwnerPlayerId, me.PosX, me.PosY);
             int ours = LocalStrength(context, me.OwnerPlayerId, me.PosX, me.PosY) * 3 / 4;
@@ -375,13 +375,15 @@ public static class FearRules
         End(context, me, "nowhere_to_go");
     }
 
-    /// <summary><c>0x00460B50</c>'s room test: the target tile strictly inside an owner's room grown by the
-    /// reporting distance on every side.</summary>
-    public static bool NearOwnRooms(SimulationContext context, RoomCache rooms, PlayerId owner, TilePos targetTile)
+    /// <summary><c>0x00460B50</c>'s room test: the target tile strictly inside one of the owner's Guard
+    /// Rooms grown by the reporting distance on every side. The walk over the owner's rooms
+    /// (<c>player+0x36</c>, next <c>+0x08</c>) skips any whose type byte <c>+0x18</c> is not 9.</summary>
+    public static bool NearOwnGuardRooms(SimulationContext context, RoomCache rooms, PlayerId owner, TilePos targetTile)
     {
         int g = unchecked((byte)context.Database.Variables[VariableTypeId.GuardRoomReportingDistanceTiles]);
         foreach (RoomInstance room in rooms.Of(context, owner.Value))
         {
+            if (room.Definition.TypeId != RoomTypeId.GuardRoom) continue;
             if (targetTile.X > room.MinX - g && targetTile.X < room.MaxX + g
                 && targetTile.Y > room.MinY - g && targetTile.Y < room.MaxY + g) return true;
         }

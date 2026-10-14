@@ -490,7 +490,7 @@ public static class CombatTargetRules
     /// worker judges every hostile creature by plain distance like a Blocker — an Imp only within a
     /// tile — and fights; an enemy Imp it judges that way anywhere (<c>0x00494360</c>, the base
     /// creature type, is 1). Elsewhere it looks only at heroes within sight that have no target or
-    /// target it, and never fights them: away from its rooms it withdraws; near them it counts
+    /// target it, and never fights them: away from its Guard Rooms it withdraws; near one it counts
     /// heads, keeps scanning when its side at three quarters outweighs the enemy's within five
     /// tiles, and otherwise raises the alarm or withdraws. False: nothing to do. True with a
     /// <paramref name="chosen"/>: fight it. True without: the creature has left.</summary>
@@ -546,7 +546,7 @@ public static class CombatTargetRules
             if (candidate.FightTargetKind == FightTargetKind.Creature && candidate.FightTargetId != me.Id) continue;
             if (!CombatRules.IsAttackable(candidate) || PossessionRules.IsDisguisedFrom(me, candidate)) continue;
 
-            if (!FearRules.NearOwnRooms(context, rooms, me.OwnerPlayerId, candidate.Tile))
+            if (!FearRules.NearOwnGuardRooms(context, rooms, me.OwnerPlayerId, candidate.Tile))
             {
                 if (FearRules.Withdraw(context, sight, hearts, rooms, me, definition, scratch)) return true;
                 continue;

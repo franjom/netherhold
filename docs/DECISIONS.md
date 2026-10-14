@@ -10822,3 +10822,23 @@ replay identically (20/2/8); Level 4 wins 2/20 either way (seeds 9, 11 against 3
 (3/20); the fetch refusals and the dig give-up never fire in these 80 runs and have no test.
 On master d8bc7336 Levels 1–3 replay identically (20/3/9) and Level 4 wins 3/20 against
 2/20 (seeds 4, 6, 13 against 6, 13); `out_of_reach` falls from 4,813 to 13.
+
+## ADR-0473 — A fleeing creature counts only Guard Rooms near its attacker
+**Date:** 2026-10-14 · **Status:** accepted · Research: combat-fear.md §4 step 9, combat-alarm.md
+
+**Context.** `0x00460B50`, which the flee run (`0x004602E0`) and the hero reluctance of the
+acquirer both ask, walks the owner's rooms and skips each whose type byte `+0x18` is not 9
+(`0x00460BC8`); `0x004C61C0` reads the same byte as the room type. Ours tested every room.
+After commit 454 let Imps react to attackers, Level 3's fleeing Imps took the head-count
+branch beside their own rooms, often found no alarm to raise (90 `no_alarm` ends in
+seed 1 at that commit) and went back to work beside the Dwarves: seed 1 lost 9 Imps, 7 of them between ticks 1632 and
+1848, where DK2's capture loses one, at tick 3687, and 72 of its 76 Imp flights end in the withdraw's arrival (202).
+
+**Decision.** `FearRules.NearOwnGuardRooms` counts only the owner's Guard Rooms; away from
+them the creature withdraws, as DK2's do. Hash/save version 246.
+
+**Consequences.** On master d8bc7336, seeds 1–20: Levels 1–4 win 20/2/12/4 against
+20/3/9/2; Imps lost fall from 78 to 6 in Level 3, 122 to 56 in Level 2 and 783 to 434 in
+Level 4, and `no_alarm` ends vanish where there is no Guard Room. With ADR-0471/0472 on
+master 434a966b: 18/5/14/5 against master's 18/4/11/2 (Level 1 changes seeds). Level 4's
+Guard Rooms still end 1,052 flights with `no_alarm`, unexamined.

@@ -15,6 +15,9 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**246** — `0xD6C4B6C05FD11458`. The flee run and the hero reluctance count only Guard Rooms near the
+attacker (`0x00460B50`); no new saved field. ADR-0473.
+
 **245** — `0xF345C33D7F7605C3`. Worker takes need a route (ADR-0471) and a reachable dig side, object or body (ADR-0472); no new saved field.
 
 **244** — `0x2B86A02DFCAA09DE`. A creature's `ClaimActionTile`, the tile a possessed worker's

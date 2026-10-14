@@ -193,15 +193,16 @@ The first-approach correction and remaining matched-capture work are in combat-a
    remaining replay, combat, hero, trap and door work. Avoid reproducing their
    detailed backlogs here.
 4. M6: Level 4 (`l4live.sav`, won at capture tick 6743; DK2 side `level4-live1/seed01`,
-   local) replays all 6804 turns over seeds 1–20 and wins 2/20 on master d8bc7336, 3/20 with the branch
+   local) replays all 6804 turns over seeds 1–20 and wins 2/20 on master 434a966b, 5/20 with the branch
    (experiments/2026-10-12-level4-packet-replay/). Guard Rooms draw Dark Elves
    (ADR-0440), Receive Imps is built (ADR-0441), a door tile is never claimed (ADR-0443),
-   and a worker's take needs a route and a reachable side or target (ADR-0471, ADR-0472,
-   branch `l4/guard-room-replay`, unmerged). Winners hold row 5 before the owner's drops
+   and a worker's take needs a route and a reachable side or target (ADR-0471, ADR-0472),
+   and a fleeing creature counts only Guard Rooms (ADR-0473, which lifts Level 3 from 11/20 to
+   14/20; branch `l4/guard-room-replay`, unmerged). Winners hold row 5 before the owner's drops
    there (needed, not sufficient); losers lose Imps to the 3766–4600 hero fights and
    sometimes miss portal arrivals the owner picks up. Party timing is seed spread. Next:
-   master's Level 2/3 drop (commits 454 and 455; Level 3 fell again to 8/20 by b501992f),
-   then Q590's remainder. The map builder
+   Level 4's 1,052 `no_alarm` flight ends near Guard Rooms, master's Level 1 fall to 18/20 at
+   434a966b, then Q590's remainder. The map builder
    and runner are in `level4-live1/rig/` (local); seeded DK2 playbacks are still to record.
 5. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built (`tools/blender/imp-reference.ps1`, Blender 5.2.2). The procedural
