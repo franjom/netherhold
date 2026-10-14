@@ -23,6 +23,7 @@ namespace DK2.Simulation.Systems;
 public sealed class TileWorkSystem : ISimulationSystem
 {
     private const string SystemName = "TileWork";
+    private const byte ReinforcedWallTerrainId = 9;
 
     public string Name => SystemName;
 
@@ -81,10 +82,22 @@ public sealed class TileWorkSystem : ISimulationSystem
                 && world.CreatureById(order.WorkerCreatureId) is { } worker)
                 CreatureExperienceSystem.AwardWork(context, worker);
 
-            if (order.Kind == TileWorkKind.Claim && result.Outcome == TileWorkOutcome.Transformed)
-                context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
-                    context.Database.TerrainById(before).MaxHealthEffectId, order.PlayerId,
-                    new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width), new Fp32(Fp32.One)));
+            if (TileWorkRules.CompletesUpward(order.Kind) && result.Outcome == TileWorkOutcome.Transformed)
+            {
+                EffectId effect = context.Database.TerrainById(before).MaxHealthEffectId;
+                var at = new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width);
+                if (tile.TerrainId == ReinforcedWallTerrainId)
+                {
+                    TilePos[] points = [new(at.X - 1, at.Y), new(at.X, at.Y - 1),
+                        new(at.X + 1, at.Y), new(at.X, at.Y + 1)];
+                    foreach (TilePos point in points)
+                        context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
+                            effect, order.PlayerId, point, new Fp32(0)));
+                }
+                else
+                    context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
+                        effect, order.PlayerId, at, new Fp32(Fp32.One)));
+            }
             PostThreat(context, order, result, before, ownerBefore);
             if (result.Outcome == TileWorkOutcome.Destroyed && before != tile.TerrainId)
                 context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(

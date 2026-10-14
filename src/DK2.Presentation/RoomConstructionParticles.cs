@@ -132,7 +132,8 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         double direction = _random.NextInt(2048) * Math.PI / 1024;
         int frames = element.ArtResource.Unknown_0044.Length >= 10
             ? BitConverter.ToUInt16(element.ArtResource.Unknown_0044.ToArray(), 8) : 0;
-        int phase = (element.ArtResource.Flags & 0x20) != 0 && frames > 0 ? _random.NextInt(frames) * 4096 / frames : 0;
+        int phase = (element.ArtResource.Flags & 0x24) == 0x24 && frames > 0
+            ? _random.NextInt(frames) * (4096 / frames) : 0;
         int health = DrawInclusive(element.MinHp, element.MaxHp);
         int scale = DrawExclusive(element.MinScale, element.MaxScale);
         int scaleTarget = (short)(((long)scale * element.ScaleRatio) >> 12);
@@ -432,8 +433,16 @@ public sealed class ConstructionParticle
     public byte Red { get; internal set; }
     public byte Green { get; internal set; }
     public byte Blue { get; internal set; }
-    public int PhaseRaw => FrameDuration <= 0 ? 0
-        : (InitialPhase + VisualUpdates * 4096 / FrameDuration) & 4095;
+    public int PhaseRaw
+    {
+        get
+        {
+            if ((Definition.ArtResource.Flags & 4) == 0 || FrameDuration <= 0) return 0;
+            int phase = InitialPhase + VisualUpdates * (4096 / FrameDuration);
+            return (Definition.ArtResource.Flags & 0x80) != 0 ? Math.Min(4096, phase) : phase & 4095;
+        }
+    }
+    public float RemainingSpriteLifetimeFraction => 1f - Math.Min(PhaseRaw, 4095) / 4096f;
     public int ScaleRaw => (Definition.Flags & 6) == 0 ? InitialScale
         : ScaleIncrement >= 0 ? Math.Min(ScaleTarget, InitialScale + ScaleIncrement * VisualUpdates)
         : Math.Max(ScaleTarget, InitialScale + ScaleIncrement * VisualUpdates);

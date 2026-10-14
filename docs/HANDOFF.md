@@ -122,6 +122,13 @@ capture is verified against its map and native rates (room-health.md §3).
 Heart health now selects its original pulse, height and decay textures;
 loop completion requests mana sparkles under the native view timer.
 See ADR-0463 and research/heart-health-visuals.md and heart-mana-effects.md.
+Movement dust is confirmed but unbuilt: research/creature-movement-dust.md
+defines the native tile-crossing request. Rock dust's keeper colour is original;
+its remaining visual-prominence comparison is Q593.
+Portal smoke replay is corrected under ADR-0464 (2026-10-13). Headless verification covers
+native sprite completion; Unity visual confirmation is pending (2026-10-13).
+Wall reinforcement completion requests are restored under ADR-0465;
+Unity visual confirmation is pending (2026-10-13).
 Further comparisons:
 construction waves/effects, Prison rats, Portal entrances, Giant melee,
 locked-door chains, corpse poses, Level8 hero visibility/movement and

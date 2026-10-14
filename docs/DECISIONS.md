@@ -10638,6 +10638,33 @@ use shipped resources and view RNG. No simulation/save/hash change. The
 companion effect's dynamic light remains outside this particle renderer.
 Owner comparison of the complete damaged appearance is still required.
 
+## ADR-0464 — Respect the original effect sprite completion flag
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Portal capture smoke replayed after its cloud faded although
+the capture emitted only one particle wave.
+
+**Decision.** Honor authored sprite animation and completion flags, preserving
+the final texture independently of particle lifetime. Retain looping playback
+for resources that request it. Evidence: research/room-construction-effects.md §4.
+
+**Consequences.** The shared fix covers capture and digging smoke. Paused
+particle submission keeps completed textures alive until model expiry.
+No simulation/save/hash change. Unity visual comparison remains pending.
+
+## ADR-0465 — Restore the original wall reinforcement completion effect
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Upward completion requested effects for floor claims but omitted walls.
+
+**Decision.** Share the source-terrain effect selection across upward completion.
+Preserve the native terrain-9 placement branch and completion-only trigger.
+Evidence: research/room-construction-effects.md §6.
+
+**Consequences.** Original rock-chip and smoke resources use the existing consumer.
+View requests do not alter gameplay RNG, simulation/save/hash state.
+Unity visual confirmation remains pending while the owner is away.
+
 ## ADR-0466 — The room sweep is kept while every tile's terrain and owner are unchanged
 **Date:** 2026-10-13 · **Status:** accepted
 
