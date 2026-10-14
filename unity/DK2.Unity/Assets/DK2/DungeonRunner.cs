@@ -257,7 +257,7 @@ namespace DK2.Unity
                 _classicCamera = new ClassicCamera(profile with
                 {
                     MaxZoom = Mathf.RoundToInt(profile.MaxZoom * Mathf.Clamp(cameraZoomOutLimitScale, 1f, 2f)),
-                });
+                }, initialYaw: ClassicCamera.LevelStartYaw);
                 _cameraBounds = new Vector2(world.Width, world.Height);
                 _cameraFocus = DungeonScene.Ground(
                     startingCameraPlayer != null ? startingCameraPlayer.CameraX + 0.5f : world.Width / 2f,

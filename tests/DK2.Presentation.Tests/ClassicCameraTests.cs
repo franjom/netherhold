@@ -20,6 +20,22 @@ public class ClassicCameraTests
         Lens = 8192, AnglePitch = 220, Flags = 0x26,
     };
 
+    [Fact]
+    public void LevelStartUsesNativeDiagonalYawWithoutChangingAuthoredPitch()
+    {
+        CameraThing profile = Profile();
+        var camera = new ClassicCamera(profile, initialYaw: ClassicCamera.LevelStartYaw);
+        ClassicCameraPose pose = camera.Pose(Vector3.Zero, new CameraViewport(640, 640, 480));
+        Assert.Equal(-45f, pose.YawDegrees);
+        Assert.Equal(51.328125f, pose.PitchDegrees);
+        Assert.True(pose.Position.X > 0);
+        Assert.True(pose.Position.Z < 0);
+        Assert.InRange(Math.Abs(pose.Position.X + pose.Position.Z), 0f, 0.00001f);
+        Assert.Equal((ushort)0, profile.AngleYaw);
+        camera.Rotate(new Dk2Angle(256));
+        Assert.Equal(-90f, camera.Pose(Vector3.Zero, new CameraViewport(640, 640, 480)).YawDegrees);
+    }
+
     [InstallFact]
     public void LoadsTheShippedOrdinaryProfileDespiteRepeatedGlobalIds()
     {

@@ -23,13 +23,16 @@ public sealed class ClassicCamera
     private Dk2Angle _yaw;
     public Fp32 Zoom { get; private set; }
 
-    public ClassicCamera(CameraThing profile)
+    /// <summary>The reset camera's yaw, preserved on entry to dungeon mode (classic-camera.md section4).</summary>
+    public static readonly Dk2Angle LevelStartYaw = new(256);
+
+    public ClassicCamera(CameraThing profile, Dk2Angle? initialYaw = null)
     {
         if (profile is null) throw new ArgumentNullException(nameof(profile));
         if (profile.Lens <= 0 || profile.MinZoom <= 0 || profile.MaxZoom <= profile.MinZoom)
             throw new ArgumentException("A dungeon camera needs a positive lens and zoom interval.", nameof(profile));
         _profile = profile;
-        _yaw = new Dk2Angle(profile.AngleYaw);
+        _yaw = initialYaw ?? new Dk2Angle(profile.AngleYaw);
         SetZoom(new Fp32(profile.Zoom));
     }
 

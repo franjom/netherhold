@@ -67,6 +67,20 @@ calculation and clamping remain the presentation model's responsibility.
 
 ## 4. Starting location and limits
 
+CONFIRMED binary (2026-10-14): bridge initialization 0x0043AAD0 calls camera
+reset 0x00449670. That reset clears the active view block and then sets yaw
+at camera+0xD84 to256 (45 degrees). The rotation builder 0x0044D6D0 consumes
+that field as yaw. Entering ordinary modes3/4/5 through 0x0044ACE0 preserves
+the active yaw, rounds it to the nearest eight units and replaces pitch/roll
+with the selected profile. Consequently a fresh dungeon view starts diagonally
+despite preset3's authored yaw0. The adapter supplies this reset yaw separately
+from the untouched preset. Its Unity-facing reported yaw is -45 degrees.
+
+The owner's screenshots confirm the requested diagonal orientation but do not
+establish a different pitch: viewport size, HUD and distance differ. Ordinary
+pitch220 still converts to51.328125 degrees above the floor. A matched ground
+projection comparison remains necessary before changing that tilt.
+
 CONFIRMED shipped keeper3 player camera tiles: Level1(14,28), Level7(5,15),
 Level8(75,9). 0x0051F0B0 copies the local player's camera coordinate pair to
 world+0x7235, alongside its local-player id, when the startup override is clear.
