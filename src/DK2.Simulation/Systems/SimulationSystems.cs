@@ -115,7 +115,7 @@ public static class SimulationSystems
         new HeartDefenceSystem(), // the heart update's tail: its owner's creatures run to an intruder (0x004D9690)
     ];
 
-    /// <summary>DK2's player frame: mana, imps, research, portals and room health, after every
+    /// <summary>Our player frame: mana, imps, research, portals and room health, after every
     /// change of ownership this tick.</summary>
     private static ISimulationSystem[] PlayerFrame() =>
     [
@@ -130,7 +130,7 @@ public static class SimulationSystems
         new RoomBuildWaveSystem(), // keeper frame after mana, before its research chooser (0x004BB614)
         new ResearchSystem(), // the same player frame chooses a research target when it has none
         new PortalSystem(),
-        new RoomHealthSystem(), // the room tick's health step, after the type's own handler (0x004E4B00)
+        new RoomHealthSystem(), // the room tick's health step (0x004E4B00); DK2 ticks rooms before its player frame (Q595)
     ];
 
     /// <summary>The creatures' needs: food, sleep, health, and a prisoner's lot.</summary>

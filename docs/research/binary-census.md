@@ -11,7 +11,8 @@ Question: **Q595** (whether DK2's per-turn order, section 2, moves an outcome).
 
 The census asked where unread code could hide a mechanism that no question had
 pointed at. Its outputs and scripts are local, under the ignored
-`reverse-engineering/census/2026-10-14/`. Sections 2 to 9 read the leads it ranked
+`reverse-engineering/census/2026-10-14/`, so the section 1 counts cannot be
+checked from the repository alone. Sections 2 to 8 read the leads it ranked
 first; none of them is a simulation mechanism we lack.
 
 ## 1. The numbers
@@ -49,9 +50,15 @@ this order:
 | `0x0050A80E` | `0x00510440` | world | world Tremor |
 | `0x0050A815` | `0x00504F00` | world | the battle records (section 3) |
 
-So DK2 ticks rooms after the thing pass and before the player frame. Ours runs
-the room lifecycle before creatures and room health inside the player frame
-(`SimulationSystems.cs`), and sweeps messages first by choice (ADR-0245).
+So DK2 runs every room's `Room_Tick` after the thing pass and before the player
+frame. `Room_Tick` (`0x004E4B00`, called only from `0x004EC450`) is the room
+type's handler and the common health step. Tagging, selling and building are
+player actions, dispatched at the start of the frame through `0x005119C0`.
+Ours places the room-tick work in three spots (`SimulationSystems.cs`):
+`GraveyardSystem`, `CasinoSystem` and `TempleSacrificeSystem` before the
+creatures, `CombatPitSystem` inside the thing pass, and `PortalSystem` and
+`RoomHealthSystem` in the player frame. Ours also sweeps messages first by
+choice (ADR-0245).
 
 ## 3. Battles are presentation
 
@@ -66,24 +73,33 @@ the members' mean position at `+0x06`/`+0x0A`/`+0x0E`, a member count at
   clear and its battle flag `+0x37A` clear.
 - `0x00504FB0` needs the thing named by the creature's `+0x502` to exist (byte
   table `0x006ED540`) and to be a creature (`+0x12` zero). It joins the nearest
-  record whose centre is within 5 tiles, else the first empty one. It sets
-  `+0x37A`, recomputes the centre, and sets `+0x37E` to four seconds ahead.
-  When the creature is the local player's and the record held none of that
-  player's, it calls slot `+0x4C` of an object reached through world `+0x4`.
+  live record whose centre lies within 5 tiles on x and y. Failing that it
+  takes the first empty record, and when all eight are in use it joins the
+  nearest one at any distance. It sets `+0x37A`, recomputes the centre, and
+  sets `+0x37E` to four seconds ahead. When the creature is the local player's
+  and the record held none of that player's, it calls slot `+0x4C` of an
+  unidentified object reached through world `+0x4`.
 - `0x00505310` sends a member whose timer `+0x37E` has passed to `0x00505500`
   (not read). It sums the threat of fighting members not owned by the local
   player: definition `+0x698`, scaled above level 1 by the level percentage at
-  `[0x006E4154] + 0x105` (`computer-keeper-threat.md`). The sum picks a music
-  cue through the effect service: `0x101` from `MusicLevelTwoThreatThreshold`,
-  `0x102` from Three, `0x103` from Four (variables 215 to 217).
+  `[0x006E4154] + 0x105` (`computer-keeper-threat.md`). It passes `0x101`,
+  `0x102` or `0x103` to effect service slot `+0x4C` when the sum reaches
+  `MusicLevelTwoThreatThreshold`, Three or Four (variables 215 to 217). That
+  slot (`0x00567BC0`) raises the service's `+0x2C` to the larger value, which
+  `0x00567570` maps to four levels; reading it as music intensity is inferred
+  from the variables' names.
+- `0x00505500` takes a member out: it unlinks it, clears `+0x37A`, decrements
+  the count and clears the record when it empties.
 - World slot `+0x2B8` (`0x00505250`) returns the next record holding a local
-  player's creature. Only the interface calls it (`0x00426974`, `0x004269DB`).
+  player's creature, and slot `+0x2B4` returns a record. Only interface code
+  calls them (`0x00426974`, `0x004269DB`; `0x0041D872`, `0x0042698B`), with
+  `0x005055D0` under the minimap draw `0x0041CC50`.
 
-A text scan for those offsets finds only these, the creature constructor,
-death and collapse bookkeeping (`0x005051F0`), the creature debug dump,
-presentation code, and one library function (`0x0056DFD0`, not read) that
-loads words there. So the records feed music, an alert and a camera control,
-and no simulation code reads them. Ours has no battle records.
+Every reader of those offsets is one of these, the creature constructor, death
+and collapse bookkeeping (`0x005051F0`), the creature debug dump, or an
+unrelated presentation class that uses the same offsets. So the records feed
+the effect service, the interface and the minimap, and no simulation code reads
+them. Ours has no battle records.
 
 ## 4. The generated-special placer is inert
 
@@ -102,11 +118,18 @@ variables block `0x006F2550`–`0x006F2A01`, cap and interval included
 (`0x00509A54`). No instruction stores to either address, none of the 170 loads
 of the block pointer `0x006E4154` is used at `+0x6C` or `+0x6D`, and no data
 holds a pointer to them. The variable map has no id at either address
-(`balance-variables-in-the-binary.md`, between ids 28 and 29). The switch
-`0x0075AE7B`, field `+0x134` of the session object at `0x0075AD47`, has no
-store either, direct or in the 32 methods called on that object. So the count
-test always fails and nothing is placed. These are negative scans, so the
-verdict is LIKELY.
+(`balance-variables-in-the-binary.md`, between ids 28 and 29); the setter
+table jumps from id 28's stub to id 29's. The switch `0x0075AE7B`, field
+`+0x134` of the settings object at `0x0075AD47`, has no non-zero store: only
+its constructor `0x0055CCA0` and reset `0x0055E5A0` write it, both with 0. So
+the count test always fails and the placer, though called every turn, never
+places one. These are negative scans, so the verdict is LIKELY.
+
+The byte `0x006F25BC` has one other reader. A panel tally `0x00416980` adds it
+to the keeper-spell count and world `+0xA3B3` (InitialSpecialsOnLevelCount),
+so "cap" may not be its whole meaning. World `+0x729F` drops by one when a
+generated special is used (`0x00513760`, `specials.md`), so it counts the
+generated specials on the level now, not all ever placed.
 
 ## 5. The effect grid around the listener
 
@@ -131,14 +154,16 @@ bytes each.
 
 - `0x004EC000` allocates the pool (element constructor `0x004E3790`, destructor
   `0x004E37F0`), stores it at `+0x0A` and pushes every record on the free list
-  at `+0x10` by its id (`+0x04`). It caches its argument in `0x006ED484` and
-  itself in `0x006ED488`. Many room functions read `0x006ED484`.
+  at `+0x10` by its id (`+0x04`). It caches its argument, the world, in
+  `0x006ED484` (used as the turn getter's `this` at `0x004DBC1B`) and itself in
+  `0x006ED488`. Many room functions read `0x006ED484`.
 - `0x004EC190` frees every room in use through `Room_Free`, clears both globals
   and deletes the pool.
 - `0x004EC450` walks the in-use list (`+0x0E`, link `+0x21`) and runs
   `Room_Tick` on each room, taking the next link first.
 
-Ours has no room cap; no level comes near 672 rooms.
+Ours has no room cap. Allocation fails at the 673rd room (`0x004EC495`); no
+level has been measured against that.
 
 ## 7. The keeper-spell chunk handler
 
@@ -152,13 +177,16 @@ keeper-spell record into the world's 122-byte table at `+0x1604`
   entry's `+0x36` to world `+0x1610` and increments the count at `+0x160C`.
   A record past the capacity at `+0x1608` is dropped.
 - While `+0xA3C7` is set, it calls world slot `+0x110` with the spell id and
-  then the loader. That reads as reloading an existing entry in place. The
-  same flag gates `CreatureDef_BuildFromRecord`'s checksum (`kwd-creatures.md`).
+  then the loader. That slot (`0x0050DD60`) searches the sorted table downward
+  for the id and returns the entry or nothing, so the record reloads an
+  existing entry in place. The same flag gates `CreatureDef_BuildFromRecord`'s
+  checksum (`kwd-creatures.md`).
 
 ## 8. Smaller leads
 
 - The effect service pointer `0x0075B468` is set once, by `0x00567130`, to the
-  static object at `0x0075B880`.
+  static object at `0x0075B880`. `0x00567130` is listed among the static
+  initialisers at `0x0068E15C`.
 - `0x004DFAA0`, called only from `World_InitializeRuntimeStorage`, requests one
   resource per campaign level: `3dmap_level` names with the 6a/6b, 11a–11c and
   15a/15b variants, five secret levels, then seven `MPD_map` names. They land at
@@ -172,4 +200,4 @@ keeper-spell record into the world's 122-byte table at `+0x1604`
 
 The 941 unread core functions are ranked in the local reading list. Every lead
 read so far turned out to be presentation, set-up or loader plumbing. The one
-outcome-shaped difference is the turn order in section 2 (Q595).
+outcome-shaped difference is where our room-tick work sits (section 2, Q595).
