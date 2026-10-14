@@ -10862,15 +10862,17 @@ to the arches' apex, 2.8 tiles over the pit floor. Every link of the chain re-re
 shipped data agree with the 2-tile climb; what lowers DK2's rise is unread (Q594).
 
 **Decision.** `RoomConstructionParticles` takes a `HeartSparkleStyle`. `Native` keeps the
-binary's motion and stays the default; `PillarHeight`, which Unity passes, scales a
-rising sparkle's vertical speed to 357/1000 so the cloud peaks about 1.5 tiles over the
-pit floor (ring floor plus half a tile, the pillars' top as judged from screenshots).
+binary's motion and stays the default; `PillarHeight`, which Unity passes, starts a
+rising sparkle at the Heart mesh's top (2212 over the Heart's position, where DK2 draws
+3200) and scales its vertical speed to 477/1000 so the cloud peaks about 1.5 tiles over
+the pit floor (ring floor plus half a tile, the pillars' top as judged from screenshots).
 Flakes keep their native motion. The Heart's effect is found through the Dungeon Heart
 room's `CreatedObjectEffectId`, not a literal id.
 
-**Consequences.** Presentation only: no simulation, save or hash change. The 357 is a
-fit to a screenshot, not a reading; when Q594 is answered the style is to be removed and
-the reading built in its place.
+**Consequences.** Presentation only: no simulation, save or hash change. The two numbers
+are a fit to the owner's eye in Unity (the origin lowered on 2026-10-14 after the first
+build started "where the stairs end"), not a reading; when Q594 is answered the style is
+to be removed and the reading built in its place.
 
 ## ADR-0475 — The Heart's opening sequence: plug, burst, arches fading in
 **Date:** 2026-10-14 · **Status:** accepted · Research: heart-intro.md

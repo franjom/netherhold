@@ -38,12 +38,15 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
     /// zero id; shipped chains are two long). A guard against a data cycle.</summary>
     private const int LongestChain = 8;
 
-    /// <summary>The owner's rise for a Heart sparkle, in thousandths of the binary's vertical speed
-    /// (ADR-0474). Native: born 3200 above the Heart, 24 updates at 14336..16384 with friction 393
-    /// climb 8237 to peak at 2.79 tiles over the pit floor, the arches' apex. The Arch Pillars top out
-    /// about 1.5 tiles over the pit floor (ring floor plus half a tile, judged from screenshots):
-    /// a climb of 2944, which is 357/1000 of the native one.</summary>
-    private const int HeartSparkleRisePerMille = 357;
+    /// <summary>The owner's Heart sparkle (ADR-0474): born <see cref="HeartSparkleOriginRaw"/> above
+    /// the Heart's position, the top of the Heart mesh (0.54 tiles; DK2 draws 3200, 0.78), with
+    /// <see cref="HeartSparkleRisePerMille"/> thousandths of the binary's vertical speed. Native: 24
+    /// updates at 14336..16384 with friction 393 climb 8237 to peak at 2.79 tiles over the pit
+    /// floor, the arches' apex. The Arch Pillars top out about 1.5 tiles over the pit floor (ring
+    /// floor plus half a tile, judged from screenshots): a climb of 3932 from 2212, 477/1000 of
+    /// the native one. The owner saw DK2's cloud start at the Heart and dissolve at the pillars.</summary>
+    private const int HeartSparkleRisePerMille = 477;
+    private const int HeartSparkleOriginRaw = 2212;
     private readonly bool _captureAtEdges;
     private readonly Func<ViewEffectRequest, CaptureEdges>? _captureEdges;
     private long _lastUpdateMilliseconds;
@@ -254,6 +257,7 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         {
             // Owner-requested presentation adjustment (ADR-0474, Q594); native motion remains the default.
             particle.VelocityZ = particle.VelocityZ * HeartSparkleRisePerMille / 1000;
+            particle.HeightRaw = particle.PreviousHeightRaw = request.Position.Z.Raw + HeartSparkleOriginRaw;
         }
         if ((element.Flags & 16) != 0)
         {

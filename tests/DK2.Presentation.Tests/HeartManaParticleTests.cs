@@ -64,8 +64,9 @@ public class HeartManaParticleTests
     }
 
     /// <summary>ADR-0474: the owner's adjustment, not a binary reading (Q594). With the shipped
-    /// numbers the native climb peaks at 2.79 tiles over the Heart; the adjustment peaks at about
-    /// 1.5, the Arch Pillars' top as judged from screenshots. Native stays the default.</summary>
+    /// numbers the native climb starts 0.78 tiles over the Heart and peaks at 2.79; the adjustment
+    /// starts at the Heart mesh's top (0.54) and peaks at about 1.5, the Arch Pillars' top as judged
+    /// from screenshots. Native stays the default.</summary>
     [Theory]
     [InlineData(HeartSparkleStyle.Native, 10878, 11974)]
     [InlineData(HeartSparkleStyle.PillarHeight, 5900, 6400)]
@@ -78,14 +79,19 @@ public class HeartManaParticleTests
         {
             EffectRequest = new(new EffectId(59), PlayerIds.FirstKeeper, new(new(10240), new(14336), new(0)))
         });
-        int peak = 0;
+        int peak = 0, lowest = int.MaxValue;
         for (int call = 1; call <= 24; call++)
         {
             model.AdvanceTo(new EffectTime(call * 50 + 1));
             foreach (ConstructionParticle p in model.Particles)
-                if (p.Definition.EffectElementId == 98) peak = Math.Max(peak, p.HeightRaw);
+                if (p.Definition.EffectElementId == 98)
+                {
+                    peak = Math.Max(peak, p.HeightRaw);
+                    lowest = Math.Min(lowest, p.HeightRaw);
+                }
         }
         Assert.InRange(peak, lowestPeak, highestPeak);
+        Assert.Equal(style == HeartSparkleStyle.Native ? 3200 : 2212, lowest);
     }
 
     /// <summary>Effect 59 and element 98 as shipped (heart-mana-effects.md §1), one element per wave.</summary>

@@ -106,8 +106,10 @@ Candidates still unread: the vtable `+0x90` request callee (could adjust the
 spawn Z) and the sprite draw path `0x0059C360`. The owner's second observation (same day): the cloud rises
 steadily and pale flakes drift back down, so the lifecycle (24-step rise, then the
 death flakes) is DK2's and only the height of the rise differs. Built as an owner
-adjustment: `HeartSparkleStyle.PillarHeight` scales a rising sparkle's vertical
-speed to 357/1000 (ADR-0474, Q594); Native stays the default.
+adjustment: `HeartSparkleStyle.PillarHeight` starts a rising sparkle at the Heart
+mesh's top (2212 over the Heart, not 3200) and scales its vertical speed to 477/1000
+(ADR-0474, Q594); Native stays the default. The owner judged the first build's
+origin "where the stairs end" and asked for it closer to the Heart.
 
 
 The shared construction particle model implements death-element replacement,

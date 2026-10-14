@@ -25,6 +25,11 @@ namespace DK2.Unity
             public int Count;
             public Material Material;
             public bool IsMesh;
+            /// <summary>A mesh element's model and its materials, one per sub-mesh: drawn directly
+            /// each frame, since a particle system draws a mesh with one material only and the
+            /// Heart's plug carries five.</summary>
+            public Mesh Mesh;
+            public Material[] Materials;
             public readonly List<Texture2D> Textures = new List<Texture2D>();
             public readonly List<Sprite> Sprites = new List<Sprite>();
         }
@@ -69,17 +74,36 @@ namespace DK2.Unity
                 ConstructionParticle source = Model.Particles[i];
                 Group group = For(source.Definition, source.MeshEntry);
                 if (group == null) continue;
+                Vector3 position = DungeonScene.Ground(
+                    Mathf.Lerp(source.PreviousXRaw, source.XRaw, fraction) / 4096f,
+                    Mathf.Lerp(source.PreviousYRaw, source.YRaw, fraction) / 4096f,
+                    Mathf.Lerp(source.PreviousHeightRaw, source.HeightRaw, fraction) / 4096f);
+                float size = source.ScaleRaw / 4096f;
+                if (group.IsMesh)
+                {
+                    var matrix = Matrix4x4.TRS(position, MeshRotation(source, fraction), Vector3.one * size);
+                    for (int sub = 0; sub < group.Materials.Length; sub++)
+                    {
+                        if (group.Materials[sub] == null) continue;
+                        var parameters = new RenderParams(group.Materials[sub])
+                        {
+                            shadowCastingMode = ShadowCastingMode.Off,
+                            receiveShadows = false,
+                            layer = _root.gameObject.layer,
+                            // Culling bounds about the particle: the default is an empty box at the origin.
+                            worldBounds = new Bounds(position, Vector3.one * (4f * size + 1f)),
+                        };
+                        Graphics.RenderMesh(parameters, group.Mesh, sub, matrix);
+                    }
+                    continue;
+                }
                 if (group.Count == group.Buffer.Length) Array.Resize(ref group.Buffer, group.Buffer.Length * 2);
                 group.Buffer[group.Count++] = new ParticleSystem.Particle
                 {
-                    position = DungeonScene.Ground(
-                        Mathf.Lerp(source.PreviousXRaw, source.XRaw, fraction) / 4096f,
-                        Mathf.Lerp(source.PreviousYRaw, source.YRaw, fraction) / 4096f,
-                        Mathf.Lerp(source.PreviousHeightRaw, source.HeightRaw, fraction) / 4096f),
-                    startColor = group.IsMesh ? new Color32(255, 255, 255, 255)
-                        : new Color32(source.Red, source.Green, source.Blue, 255),
-                    rotation3D = group.IsMesh ? MeshRotation(source, fraction) : Vector3.zero,
-                    startSize = source.ScaleRaw / 4096f,
+                    position = position,
+                    startColor = new Color32(source.Red, source.Green, source.Blue, 255),
+                    rotation3D = Vector3.zero,
+                    startSize = size,
                     startLifetime = 1f,
                     remainingLifetime = source.RemainingSpriteLifetimeFraction,
                     randomSeed = (uint)(i + 1),
@@ -87,14 +111,16 @@ namespace DK2.Unity
             }
             foreach (Group group in _groups.Values)
             {
-                if (group == null) continue;
+                if (group == null || group.IsMesh) continue;
                 var main = group.System.main;
                 if (main.maxParticles < group.Count) main.maxParticles = group.Buffer.Length;
                 group.System.SetParticles(group.Buffer, group.Count);
             }
         }
 
-        private static Vector3 MeshRotation(ConstructionParticle source, float fraction)
+        /// <summary>A mesh particle's turn: DK2 turns a model about its X, then its Y, then the heading
+        /// (0x00580480), in the object's DK2 frame mapping (pitch minus, roll plus).</summary>
+        private static Quaternion MeshRotation(ConstructionParticle source, float fraction)
         {
             const float degreesPerUnit = 360f / 2048f;
             float heading = Mathf.LerpAngle(source.PreviousHeadingRaw * degreesPerUnit,
@@ -103,10 +129,8 @@ namespace DK2.Unity
                 source.PitchRaw * degreesPerUnit, fraction);
             float roll = Mathf.LerpAngle(source.PreviousRollRaw * degreesPerUnit,
                 source.RollRaw * degreesPerUnit, fraction);
-            Quaternion rotation = Quaternion.Euler(0f, heading + 180f, 0f)
+            return Quaternion.Euler(0f, heading + 180f, 0f)
                 * Quaternion.AngleAxis(roll, Vector3.forward) * Quaternion.Euler(-pitch, 0f, 0f);
-            // Particle.rotation3D stores inverse Euler angles; meshes use the object's DK2 frame mapping.
-            return -rotation.eulerAngles;
         }
 
         private Group MeshGroup(EffectElementDef definition, string meshEntry, AssetRef key)
@@ -120,23 +144,7 @@ namespace DK2.Unity
                 _groups.Add((definition.EffectElementId, meshEntry ?? ""), null);
                 return null;
             }
-            var go = new GameObject("effect " + definition.Name + (meshEntry != null ? " " + meshEntry : ""));
-            go.transform.SetParent(_root, false);
-            var group = new Group { IsMesh = true, System = go.AddComponent<ParticleSystem>() };
-            var main = group.System.main;
-            main.playOnAwake = false;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.startRotation3D = true;
-            main.maxParticles = 64;
-            var emission = group.System.emission; emission.enabled = false;
-            var shape = group.System.shape; shape.enabled = false;
-            var renderer = go.GetComponent<ParticleSystemRenderer>();
-            renderer.renderMode = ParticleSystemRenderMode.Mesh;
-            renderer.alignment = ParticleSystemRenderSpace.World;
-            renderer.mesh = mesh;
-            renderer.sharedMaterials = materials;
-            renderer.shadowCastingMode = ShadowCastingMode.Off;
-            group.System.Play(); group.System.Pause();
+            var group = new Group { IsMesh = true, Mesh = mesh, Materials = materials };
             _groups.Add((definition.EffectElementId, meshEntry ?? ""), group);
             return group;
         }
