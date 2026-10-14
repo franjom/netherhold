@@ -956,6 +956,11 @@ public sealed class CreatureState
     /// portal destroyed and rebuilt on the same tile is a new room there and the same one here.</summary>
     public int PortalEntranceTile = -1;
 
+    /// <summary>The tile <see cref="Systems.MovementDustSystem"/> last saw this creature on, or -1:
+    /// bookkeeping for a view request (DK2 compares its stored previous position, <c>+0xF6</c>),
+    /// neither saved nor hashed, since a view effect is neither.</summary>
+    public int LastDustTile = -1;
+
     /// <summary><c>AttackAbnormalTargets</c>, <c>+0x3E6</c> bit 2, with <see cref="AttackingId"/>:
     /// the forced target 139 hands both fighters (<c>0x0048F390</c>).</summary>
     public bool AttackAbnormalTargets;

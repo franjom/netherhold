@@ -36,6 +36,7 @@ public class SimulationSystemsOrderTests
             "ReaperSystem",
             "CombatPitSystem",
             "JackInTheBoxSystem",
+            "MovementDustSystem",
             "CreatureMovementSystem",
             "DoorHealthSystem",
             "TrainingActionSystem",

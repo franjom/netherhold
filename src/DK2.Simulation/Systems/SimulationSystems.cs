@@ -80,6 +80,7 @@ public static class SimulationSystems
         new CombatPitSystem(), // the pit's states, after the fight processing as DK2's handler is (ADR-0213)
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
         new JackInTheBoxSystem(), // state 273 and the travel toll, before the mover as DK2's state dispatcher is
+        new MovementDustSystem(), // foot dust for last tick's crossing onto dirt, before the mover as the creature update's request is (ADR-0477)
         new CreatureMovementSystem(),
         // The doors' health after the creatures, as DK2's thing pass updates creatures first; ours
         // puts it before the shots, whose place in that pass is Q398 (door-blocking.md).

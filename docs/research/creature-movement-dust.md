@@ -66,10 +66,21 @@ integer RGB decay rather than a newly invented alpha fade or scale growth.
 
 ## 3. Current boundary and remaining comparison
 
-At classic branch e66c5a2d, CreatureMovementSystem, CreatureStatusSystem and
-WorldView contain no effect-117 request. The existing type-4 particle consumer
-and install sprite provider can accept this definition, but no ordinary
-movement producer supplies it. This investigation changes research only.
+Built 2026-10-14 (ADR-0477): `MovementDustSystem`, placed just before the mover,
+keeps the tile it saw each creature on last tick (`CreatureState.LastDustTile`,
+neither saved nor hashed) and posts the request when the tile differs and the
+creature's tile is terrain 3, at its position one tile up with its heading. A
+second reader's correction of §1's order (2026-10-14): DK2 computes the crossing
+flag at the update's entry (`0x00488F61`), from `+0xF6`/`+0xFA` against `+0x1A`/
+`+0x1E`, **before** the previous-position refresh (`0x00489FE6`) and the state
+handler (`0x00476FC0`); the request (`0x0048A06A`) comes after the handler with
+the then-current position and heading and the terrain of the tile found at entry.
+Ours therefore matches exactly only when no state handler moves the creature
+within the tick; a handler's teleport is recorded as the new last tile rather than
+noticed as a crossing on the next update, and the terrain is the current tile's.
+Held creatures and corpses are skipped as the other mirrors of this update do
+(ADR-0206); whether the thing pass updates them is unread. The existing type-4
+particle consumer and install sprite provider draw element 264.
 
 UNKNOWN: a controlled original-game count/trajectory comparison and native
 visibility rejection at tile boundaries. The owner's observation of dirt

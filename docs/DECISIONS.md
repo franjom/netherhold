@@ -10929,3 +10929,24 @@ The scripted arrival (action 28) posts no effect yet: its path has no simulation
 Whether DK2's beam brightness is a doubled stage or something else is open; the owner's
 eye decides the look.
 
+## ADR-0477 — Foot dust on a Dirt Path
+**Date:** 2026-10-14 · **Status:** accepted · Research: creature-movement-dust.md
+
+**Context.** The owner misses the dust an Imp raises running over dirt. The creature
+update (`0x00488930` at `0x0048A06A`) asks for effect 117, Foot Dust, when a creature's
+previous and current positions lie on different tiles and its tile's terrain is id 3,
+the Dirt Path: one request per crossing at the creature's position one tile up with its
+heading, no test of mode, speed, kind or flight, noticed on the update after the move on
+the arrived tile. The reading was complete; nothing requested it.
+
+**Decision.** `MovementDustSystem`, just before the mover, compares each creature's tile
+with the one it saw last tick and posts the request on a crossing onto a Dirt Path. Held
+creatures and corpses, which have no creature update of their own here, are skipped.
+
+**Consequences.** Presentation only: the request and the per-creature last tile are
+neither saved nor hashed. DK2 tests the crossing at the update's entry, before the
+previous-position refresh and the state handler, so ours differs only when a handler
+moves a creature within a tick. The status-timer requests of the same effect
+(creature-status-effects.md §1) are separate and unbuilt. The look, eight grey mist
+puffs a crossing, awaits the owner's eye.
+
