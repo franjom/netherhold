@@ -39,14 +39,15 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
     private const int LongestChain = 8;
 
     /// <summary>The owner's Heart sparkle (ADR-0474): born <see cref="HeartSparkleOriginRaw"/> above
-    /// the Heart's position, the top of the Heart mesh (0.54 tiles; DK2 draws 3200, 0.78), with
-    /// <see cref="HeartSparkleRisePerMille"/> thousandths of the binary's vertical speed. Native: 24
-    /// updates at 14336..16384 with friction 393 climb 8237 to peak at 2.79 tiles over the pit
+    /// the Heart's position, inside the Heart mesh's upper half (0.25 tiles; DK2 draws 3200, 0.78),
+    /// with <see cref="HeartSparkleRisePerMille"/> thousandths of the binary's vertical speed. Native:
+    /// 24 updates at 14336..16384 with friction 393 climb 8237 to peak at 2.79 tiles over the pit
     /// floor, the arches' apex. The Arch Pillars top out about 1.5 tiles over the pit floor (ring
-    /// floor plus half a tile, judged from screenshots): a climb of 3932 from 2212, 477/1000 of
-    /// the native one. The owner saw DK2's cloud start at the Heart and dissolve at the pillars.</summary>
-    private const int HeartSparkleRisePerMille = 477;
-    private const int HeartSparkleOriginRaw = 2212;
+    /// floor plus half a tile, judged from screenshots): a climb of 5120 from 1024, 622/1000 of
+    /// the native one. The owner saw DK2's cloud start at the Heart and dissolve at the pillars,
+    /// and asked twice for a lower start.</summary>
+    private const int HeartSparkleRisePerMille = 622;
+    private const int HeartSparkleOriginRaw = 1024;
     private readonly bool _captureAtEdges;
     private readonly Func<ViewEffectRequest, CaptureEdges>? _captureEdges;
     private long _lastUpdateMilliseconds;

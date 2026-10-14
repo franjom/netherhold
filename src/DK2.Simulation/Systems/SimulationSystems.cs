@@ -6,8 +6,8 @@ namespace DK2.Simulation.Systems;
 
 /// <summary>The systems the game runs, in the order it runs them: the one declaration
 /// of that order (ADR-0013). Order is behaviour, so each entry says why it sits where
-/// it does. UNKNOWN: DK2's own per-tick subsystem order — Flame's disassembly names
-/// the subsystems but not their sequence — so this order is ours.</summary>
+/// it does. DK2's frame runs things, then every room's tick, then the players
+/// (docs/research/binary-census.md section 2); this order is ours and differs at the rooms (Q595).</summary>
 /// <remarks>The phases only name stretches of the one sequence; <see cref="Default"/> runs them
 /// back to back, and a system that moves between phases moves in the order too.</remarks>
 public static class SimulationSystems

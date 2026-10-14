@@ -202,7 +202,9 @@ Message 49 presumably carries the mentor's line for the special; its consumer is
 
 - The object predicate at vtable `+0x74`: `0x004B7250` returns bit 1 of the object dword
   `+0x146`, as in `computer-keeper-management.md` §3.
-- The meaning of player `+0x183`, `+0x10EE`, world `+0x729F` and object `+0x188`.
+- The meaning of player `+0x183` and `+0x10EE`. World `+0x729F` counts specials placed by the
+  random-special placer `0x0050F8C0`, and object `+0x188` marks one; the placer never runs in
+  v1.70 (`binary-census.md` §4).
 - How long state 209 holds a stunned imp.
 - Whether Heal All revives a knocked-out creature.
 - Who consumes messages 48 and 49.
