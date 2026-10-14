@@ -21,11 +21,6 @@ namespace DK2.Simulation.Systems;
 /// already on.</remarks>
 public sealed partial class ImpTaskSystem
 {
-    private readonly List<TilePos> _probe = [];
-
-    /// <summary>A second pathfinder for the reachability tests, which run inside the nearest-first
-    /// searches' predicates: the searcher's own buffers are in use there.</summary>
-    private readonly IPathfinder _prober = new GridPathfinder();
     private readonly List<int> _crateTiles = [];
 
     /// <summary>The whole-map handler for kinds 9 and 10, <c>0x0046BD70</c>: the keeper's blueprint
@@ -41,7 +36,7 @@ public sealed partial class ImpTaskSystem
         WorldState world = context.World;
         GameDatabase database = context.Database;
         List<BlueprintRef> list = world.Player(creature.OwnerPlayerId).Blueprints;
-        List<RoomInstance>? rooms = null;
+        IReadOnlyList<RoomInstance>? rooms = null;
 
         for (int i = 0; i < list.Count;)
         {
@@ -81,19 +76,31 @@ public sealed partial class ImpTaskSystem
     {
         if (!CanTakeACrate(creature)) return false;
         WorldState world = context.World;
-        List<RoomInstance> rooms = RoomIndex.Build(world, context.Database);
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, context.Database);
         (BlueprintRef Blueprint, ObjectState Crate)? job = null;
 
-        bool found = _pathfinder.TryFindNearest(
-            grid, creature.Tile,
-            at => InScanRange(at) && (job = BlueprintJobAt(context, creature, grid, rooms, at)) != null,
-            _route);
+        // The drop scan confines the search to one tile, where the nearest-first search would
+        // flood the worker's whole region to meet it: ask that tile alone, as the search would
+        // meet it once, when reached (ADR-0453).
+        bool found;
+        if (_only is TilePos only)
+        {
+            found = Reaches(grid, creature, only) && (job = BlueprintJobAt(context, creature, grid, rooms, only)) != null;
+            if (!found) _route.Clear();
+        }
+        else
+        {
+            found = _pathfinder.TryFindNearest(
+                grid, creature.Tile,
+                at => InScanRange(at) && (job = BlueprintJobAt(context, creature, grid, rooms, at)) != null,
+                _route);
+        }
         if (!found || job is not { } taken) return false;
         return CommitCrateFetch(context, creature, taken.Blueprint, taken.Crate, "dropped");
     }
 
     private (BlueprintRef, ObjectState)? BlueprintJobAt(
-        SimulationContext context, CreatureState creature, WorldPathGrid grid, List<RoomInstance> rooms, TilePos at)
+        SimulationContext context, CreatureState creature, WorldPathGrid grid, IReadOnlyList<RoomInstance> rooms, TilePos at)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -333,10 +340,13 @@ public sealed partial class ImpTaskSystem
         return false;
     }
 
+    /// <summary>Whether the worker can walk to the tile, from the worker's one flood
+    /// (<see cref="Reaches"/>). This runs inside the nearest-first searches' predicates, where the
+    /// pathfinder's own buffers are in use; the flood has its own, and leaves the route alone.</summary>
     private bool Reachable(WorldPathGrid grid, CreatureState creature, int tileIndex)
     {
         var to = new TilePos(tileIndex % grid.Width, tileIndex / grid.Width);
-        return to == creature.Tile || _prober.TryFindPath(grid, creature.Tile, to, _probe);
+        return to == creature.Tile || Flooded(grid, creature).Reaches(to);
     }
 
     /// <summary>The imp's pick-up <c>0x0048B4A0</c> refuses while it holds something.</summary>

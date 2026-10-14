@@ -51,6 +51,9 @@ public static class ArtSourceMap
         AddCreatures(entries, database, art);
         AddObjects(entries, database, art);
         AddStructures(entries, database, art);
+        foreach (EffectElementDef element in AssetCatalogue.MeshEffectElements(database))
+            entries.Add(Model(AssetRef.ForEffectElement(element.Name),
+                new Dk2ArtResource(element.ArtResource.Name, element.ArtResource.Type), "effect element mesh"));
 
         IReadOnlyList<AssetRef> expected = AssetCatalogue.ForDatabase(database).ToArray();
         if (entries.Count != expected.Count || !entries.Select(entry => entry.Reference).SequenceEqual(expected))
@@ -181,7 +184,10 @@ public static class ArtSourceMap
                     "creature visual resource"));
             foreach (string animation in AssetCatalogue.CreatureActionAnimations)
                 entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation),
-                    CreatureAnimationSource(creature, resources, animation), "action animation KMF"));
+                    animation == "movement_idle"
+                        ? art.CreatureStandingPoses.TryGetValue(creature.CreatureId, out Dk2ArtResource? standing)
+                            && standing.Type != 0 ? standing : resources[CreatureWalk]
+                        : CreatureAnimationSource(creature, resources, animation), "action animation KMF"));
         }
     }
 
@@ -238,6 +244,8 @@ public static class ArtSourceMap
         "fighting" => resources[CreatureMelee],
         "casting" => resources[5].Type != 0 ? resources[5] : resources[CreatureMelee],
         "landing" => resources[23].Type != 0 ? resources[23] : resources[3],
+        "stunned" => resources[23].Type != 0 ? resources[23] : resources[3],
+        "getting_up" => resources[26].Type != 0 ? resources[26] : resources[0],
         "running" => resources[1].Type != 0 ? resources[1] : resources[CreatureWalk],
         "eating" => resources[12].Type != 0 ? resources[12] : resources[7],
         "claiming" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase) => resources[12],

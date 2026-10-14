@@ -11,22 +11,43 @@ namespace DK2.Presentation;
 /// <summary>A wall-clock timestamp for view effects, in milliseconds.</summary>
 public readonly record struct EffectTime(long Milliseconds);
 
+public enum TerrainDebrisStyle { Native, Crumbling }
+
 public sealed class RoomConstructionParticles : ISimulationEventSink
 {
     private readonly GameDatabase _database;
     private readonly SimRandom _random;
     private readonly List<ConstructionParticle> _particles = [];
+    private readonly List<Emitter> _emitters = [];
+    private readonly Dictionary<ConstructionParticle, Emitter> _parents = [];
     private readonly Func<RoomConstructionEffect, bool>? _visible;
+    private readonly Func<ViewEffectRequest, bool>? _effectVisible;
+    private readonly Func<FpPosition3, Fp32> _floorHeight;
     private readonly Func<EffectTime> _clock;
+    private readonly HashSet<ushort> _crumblingEffects;
+    private readonly bool _captureAtEdges;
+    private readonly Func<ViewEffectRequest, CaptureEdges>? _captureEdges;
     private long _lastUpdateMilliseconds;
 
     public RoomConstructionParticles(GameDatabase database, ulong seed, Func<EffectTime> clock,
-        Func<RoomConstructionEffect, bool>? visible = null)
+        Func<RoomConstructionEffect, bool>? visible = null,
+        Func<ViewEffectRequest, bool>? effectVisible = null,
+        Func<FpPosition3, Fp32>? floorHeight = null,
+        TerrainDebrisStyle terrainDebrisStyle = TerrainDebrisStyle.Native,
+        CaptureEffectStyle captureEffectStyle = CaptureEffectStyle.Native,
+        Func<ViewEffectRequest, CaptureEdges>? captureEdges = null)
     {
         _database = database;
         _random = new SimRandom(seed);
         _visible = visible;
+        _effectVisible = effectVisible;
+        _floorHeight = floorHeight ?? (_ => new Fp32(Fp32.One));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        _captureAtEdges = captureEffectStyle == CaptureEffectStyle.Edges;
+        _captureEdges = captureEdges;
+        _crumblingEffects = terrainDebrisStyle == TerrainDebrisStyle.Crumbling
+            ? new HashSet<ushort>(database.Terrain.Values.Select(t => t.DestroyedEffectId).Where(id => id != 0))
+            : [];
         _lastUpdateMilliseconds = _clock().Milliseconds;
     }
 
@@ -34,41 +55,156 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
 
     public void Emit(in SimEvent simEvent)
     {
-        if (simEvent.ConstructionEffect is not RoomConstructionEffect request
-            || (_visible != null && !_visible(request))
-            || !_database.Effects.TryGetValue(RoomConstructionEffect.DefinitionId, out EffectDef? effect)) return;
+        if (simEvent.EffectRequest is ViewEffectRequest request)
+            Request(request);
+        else if (simEvent.ConstructionEffect is RoomConstructionEffect construction)
+        {
+            if ((_visible != null && !_visible(construction))
+                || !_database.Effects.TryGetValue(RoomConstructionEffect.DefinitionId, out EffectDef? definition)
+                || definition.GenerationType != 4) return;
+            AdvanceTo(_clock());
+            var point = new FpPosition3(new(CreatureState.CentreOf(construction.Tile.X)),
+                new(CreatureState.CentreOf(construction.Tile.Y) - 128), construction.Height);
+            EmitWave(definition, new(new(RoomConstructionEffect.DefinitionId), construction.Owner, point));
+        }
+    }
+
+    public void Request(in ViewEffectRequest request)
+    {
+        if ((_effectVisible != null && !_effectVisible(request))
+            || !_database.Effects.TryGetValue(request.EffectId.Value, out EffectDef? definition)
+            || definition.GenerationType != 4 || (definition.Flags & 0x40) != 0) return;
         AdvanceTo(_clock());
-        if (effect.GenerationType != 4) return;
+        _emitters.Add(CreateEmitter(definition, request));
+    }
+
+    private Emitter CreateEmitter(EffectDef definition, ViewEffectRequest request)
+    {
+        FpPosition3 point = request.Position;
+        int floor = _floorHeight(point).Raw;
+        if (point.Z.Raw < floor) point = point with { Z = new(floor) };
+        double direction = request.Heading.Raw * Math.PI / 1024;
+        int health = DrawInclusive(definition.MinHp, definition.MaxHp);
+        int speed = DrawInclusive(definition.MinSpeedXy, definition.MaxSpeedXy);
+        return new Emitter(definition, request with { Position = point },
+            health, velocityX: (int)(speed * Math.Sin(direction)),
+            velocityY: -(int)(speed * Math.Cos(direction)),
+            velocityZ: DrawInclusive(definition.MinSpeedYz, definition.MaxSpeedYz));
+    }
+
+    private void EmitWave(EffectDef effect, ViewEffectRequest request, CaptureEdges? captureBoundary = null,
+        Emitter? parent = null)
+    {
+        CaptureEdges? edges = _captureAtEdges
+            && effect.EffectId == CaptureEffectLayout.RoomEffectId
+            ? captureBoundary ?? _captureEdges?.Invoke(request) ?? CaptureEdges.All : null;
+        if (edges == CaptureEdges.None) return;
+        int lastSlot = effect.GenerateIds.Count - 1;
+        while (lastSlot >= 0 && effect.GenerateIds[lastSlot] == 0) lastSlot--;
+        if (lastSlot < 0) return;
+        void EmitSlot(int slot)
+        {
+            if (_database.EffectElements.TryGetValue(effect.GenerateIds[slot], out EffectElementDef? element))
+                EmitElement(element, effect, request, edges, parent);
+        }
         for (int pass = 0; pass < effect.ElementsPerTurn; pass++)
-            for (int slot = effect.GenerateIds.Count - 1; slot >= 0; slot--)
-            {
-                if (!_database.EffectElements.TryGetValue(effect.GenerateIds[slot], out EffectElementDef? element)) continue;
-                int radius = DrawExclusive(effect.InnerOriginRange * 23, effect.OuterOriginRange * 23);
-                double angle = _random.NextInt(2048) * Math.PI / 1024;
-                int x = CreatureState.CentreOf(request.Tile.X) + (int)(Math.Sin(angle) * radius);
-                int y = CreatureState.CentreOf(request.Tile.Y) - 128 - (int)(Math.Cos(angle) * radius);
-                int height = request.Height.Raw + DrawExclusive(effect.LowerHeightLimit * 16, effect.UpperHeightLimit * 16);
-                int speed = _random.NextInt(element.MinSpeedXy, element.MaxSpeedXy);
-                double direction = _random.NextInt(2048) * Math.PI / 1024;
-                int frames = element.ArtResource.Unknown_0044.Length >= 10
-                    ? BitConverter.ToUInt16(element.ArtResource.Unknown_0044.ToArray(), 8) : 0;
-                int phase = (element.ArtResource.Flags & 0x20) != 0 && frames > 0 ? _random.NextInt(frames) * 4096 / frames : 0;
-                int health = _random.NextInt(element.MinHp, element.MaxHp);
-                int scale = DrawExclusive(element.MinScale, element.MaxScale);
-                int scaleTarget = (short)(((long)scale * element.ScaleRatio) >> 12);
-                int scaleIncrement = health > 0 ? (short)((scaleTarget - scale) / health) : 0;
-                _particles.Add(new ConstructionParticle
-                {
-                    Definition = element, XRaw = x, YRaw = y, HeightRaw = height,
-                    PreviousXRaw = x, PreviousYRaw = y, PreviousHeightRaw = height,
-                    VelocityX = (int)(speed * Math.Sin(direction)), VelocityY = -(int)(speed * Math.Cos(direction)),
-                    VelocityZ = _random.NextInt(element.MinSpeedYz, element.MaxSpeedYz),
-                    Health = health, InitialHealth = health,
-                    InitialScale = scale, ScaleTarget = scaleTarget, ScaleIncrement = scaleIncrement,
-                    InitialPhase = phase, FrameDuration = (element.ArtResource.Flags & 4) != 0 ? frames : 0,
-                    Red = element.Red, Green = element.Green, Blue = element.Blue,
-                });
-            }
+        {
+            if ((effect.Flags & 0x400) != 0)
+                EmitSlot(_random.NextInt(lastSlot + 1));
+            else
+                for (int slot = lastSlot; slot >= 0; slot--)
+                    EmitSlot(slot);
+        }
+    }
+
+    private void EmitElement(EffectElementDef element, EffectDef effect, ViewEffectRequest request, CaptureEdges? edges,
+        Emitter? parent = null, ConstructionParticle? replaced = null)
+    {
+        int radius = replaced == null ? DrawExclusive(effect.InnerOriginRange * 23, effect.OuterOriginRange * 23) : 0;
+        double angle = replaced == null ? _random.NextInt(2048) * Math.PI / 1024 : 0;
+        int x = request.Position.X.Raw + (int)(Math.Sin(angle) * radius);
+        int y = request.Position.Y.Raw - (int)(Math.Cos(angle) * radius);
+        int height = request.Position.Z.Raw + (replaced == null
+            ? DrawExclusive(effect.LowerHeightLimit * 16, effect.UpperHeightLimit * 16) : 0);
+        int heading = (request.Heading.Value + (replaced == null
+            ? DrawAngularOffset(effect.OrientationRange * 8).Value : 0)) & 2047;
+        int speed = DrawInclusive(element.MinSpeedXy, element.MaxSpeedXy);
+        double direction = _random.NextInt(2048) * Math.PI / 1024;
+        int frames = element.ArtResource.Unknown_0044.Length >= 10
+            ? BitConverter.ToUInt16(element.ArtResource.Unknown_0044.ToArray(), 8) : 0;
+        int phase = (element.ArtResource.Flags & 0x24) == 0x24 && frames > 0
+            ? _random.NextInt(frames) * (4096 / frames) : 0;
+        int health = DrawInclusive(element.MinHp, element.MaxHp);
+        int scale = DrawExclusive(element.MinScale, element.MaxScale);
+        int scaleTarget = (short)(((long)scale * element.ScaleRatio) >> 12);
+        int scaleIncrement = health > 0 ? (short)((scaleTarget - scale) / health) : 0;
+        (byte red, byte green, byte blue) = (element.ArtResource.Flags & 0x80) != 0
+            ? KeeperColour(request.Owner) : (element.Red, element.Green, element.Blue);
+        var particle = new ConstructionParticle
+        {
+            Definition = element, XRaw = x, YRaw = y, HeightRaw = height,
+            PreviousXRaw = x, PreviousYRaw = y, PreviousHeightRaw = height,
+            VelocityX = (int)(speed * Math.Sin(direction)), VelocityY = -(int)(speed * Math.Cos(direction)),
+            VelocityZ = DrawInclusive(element.MinSpeedYz, element.MaxSpeedYz),
+            Health = health, InitialHealth = health,
+            InitialScale = scale, ScaleTarget = scaleTarget, ScaleIncrement = scaleIncrement,
+            InitialPhase = phase, FrameDuration = (element.ArtResource.Flags & 4) != 0 ? frames : 0,
+            Red = red, Green = green, Blue = blue,
+            HeadingRaw = heading, PreviousHeadingRaw = heading,
+        };
+        if ((element.Flags & 16) != 0)
+        {
+            particle.SwayPhaseRaw = _random.NextInt(2048);
+            particle.SecondSwayPhaseRaw = _random.NextInt(2048);
+            particle.FallPhaseRaw = _random.NextInt(2048);
+        }
+        if (replaced == null && element.ArtResource.Type == 5 && _crumblingEffects.Contains(effect.EffectId))
+        {
+            // Owner-requested presentation adjustment; native motion remains the default (ADR-0449).
+            particle.XRaw = request.Position.X.Raw + DrawExclusive(-1638, 1639);
+            particle.YRaw = request.Position.Y.Raw + DrawExclusive(-1638, 1639);
+            particle.HeightRaw = request.Position.Z.Raw + DrawExclusive(3072, 4097);
+            particle.PreviousXRaw = particle.XRaw;
+            particle.PreviousYRaw = particle.YRaw;
+            particle.PreviousHeightRaw = particle.HeightRaw;
+            particle.VelocityX = DrawExclusive(-1024, 1025);
+            particle.VelocityY = DrawExclusive(-1024, 1025);
+            particle.VelocityZ = -Math.Max(2048, Math.Abs(particle.VelocityZ));
+            particle.InitialScale = particle.InitialScale * 2 / 3;
+            particle.ScaleTarget = particle.ScaleTarget * 2 / 3;
+            particle.ScaleIncrement = health > 0 ? (particle.ScaleTarget - particle.InitialScale) / health : 0;
+        }
+        if (edges.HasValue)
+        {
+            int count = 0;
+            for (int bit = 1; bit <= 8; bit <<= 1) if (((int)edges.Value & bit) != 0) count++;
+            int selected = _random.NextInt(count);
+            CaptureEdges edge = CaptureEdges.None;
+            for (int bit = 1; bit <= 8; bit <<= 1)
+                if (((int)edges.Value & bit) != 0 && selected-- == 0) { edge = (CaptureEdges)bit; break; }
+            int along = DrawExclusive(-1984, 1985);
+            particle.XRaw = request.Position.X.Raw + (edge == CaptureEdges.West ? -1984
+                : edge == CaptureEdges.East ? 1984 : along);
+            particle.YRaw = request.Position.Y.Raw + (edge == CaptureEdges.North ? -1984
+                : edge == CaptureEdges.South ? 1984 : along);
+            particle.PreviousXRaw = particle.XRaw;
+            particle.PreviousYRaw = particle.YRaw;
+            particle.VelocityX = particle.VelocityY = 0;
+            particle.InitialScale = particle.InitialScale * 4 / 5;
+            particle.ScaleTarget = particle.ScaleTarget * 4 / 5;
+            particle.ScaleIncrement = health > 0 ? (particle.ScaleTarget - particle.InitialScale) / health : 0;
+            particle.Red = (byte)(particle.Red * 4 / 5);
+            particle.Green = (byte)(particle.Green * 4 / 5);
+            particle.Blue = (byte)(particle.Blue * 4 / 5);
+        }
+        if (!ApplyFloorContact(particle)) return;
+        int spinRange = effect.SpriteSpinRateRange * 8;
+        particle.HeadingSpinRaw = replaced?.HeadingSpinRaw ?? DrawAngularOffset(spinRange).Value;
+        particle.PitchSpinRaw = replaced?.PitchSpinRaw ?? DrawAngularOffset(spinRange).Value;
+        particle.RollSpinRaw = replaced?.RollSpinRaw ?? DrawAngularOffset(spinRange).Value;
+        particle.PreviousHeightRaw = particle.HeightRaw;
+        _particles.Add(particle);
+        if (parent != null) { _parents.Add(particle, parent); parent.ChildCount++; }
     }
 
     public float Advance() => AdvanceTo(_clock());
@@ -84,11 +220,19 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         {
             ConstructionParticle particle = _particles[i];
             particle.Health -= elapsedUpdates;
-            if (particle.Health <= 0) { _particles.RemoveAt(i); continue; }
+            if (particle.Health <= 0 && particle.Definition.DeathElementId == 0)
+            { RemoveParticle(i, particle); continue; }
             particle.VisualUpdates++;
             particle.PreviousXRaw = particle.XRaw;
             particle.PreviousYRaw = particle.YRaw;
             particle.PreviousHeightRaw = particle.HeightRaw;
+            particle.PreviousHeadingRaw = particle.HeadingRaw;
+            particle.PreviousPitchRaw = particle.PitchRaw;
+            particle.PreviousRollRaw = particle.RollRaw;
+            particle.HeadingRaw = (particle.HeadingRaw + particle.HeadingSpinRaw) & 2047;
+            particle.PitchRaw = (particle.PitchRaw + particle.PitchSpinRaw) & 2047;
+            particle.RollRaw = (particle.RollRaw + particle.RollSpinRaw) & 2047;
+            ApplyParentMotion(particle);
             int drag = 4096 - particle.Definition.AirFriction;
             particle.VelocityZ -= particle.Definition.Mass;
             particle.VelocityX = (int)((long)particle.VelocityX * drag / 4096);
@@ -97,18 +241,9 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             particle.XRaw += particle.VelocityX >> 4;
             particle.YRaw += particle.VelocityY >> 4;
             particle.HeightRaw += particle.VelocityZ >> 4;
-            // Flat room floor for this visual projection; wall contacts remain a research boundary.
-            if (particle.HeightRaw < 0x1000)
-            {
-                if ((particle.Definition.Flags & 1) != 0) { _particles.RemoveAt(i); continue; }
-                int elasticity = unchecked((ushort)particle.Definition.Elasticity);
-                particle.HeightRaw = 0x1000 + (int)((long)(0x1000 - particle.HeightRaw) * elasticity >> 16);
-                particle.VelocityX = (int)((long)particle.VelocityX * elasticity >> 16);
-                particle.VelocityY = (int)((long)particle.VelocityY * elasticity >> 16);
-                int bounce = -(int)((long)particle.VelocityZ * elasticity >> 16);
-                particle.VelocityZ = bounce < 8192 ? (int)((long)bounce * bounce >> 13)
-                    : bounce < 131072 ? (int)((long)bounce * 247 >> 8) : bounce;
-            }
+            ApplyFallingSway(particle);
+            if (!ApplyFloorContact(particle) || particle.Health <= 0)
+            { RemoveParticle(i, particle); continue; }
             if ((particle.Definition.Flags & 8) != 0
                 && Math.Max(particle.Red, Math.Max(particle.Green, particle.Blue)) >= particle.Health)
             {
@@ -117,11 +252,149 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
                 particle.Blue = (byte)(particle.Blue * (particle.Health - 1) / particle.Health);
             }
         }
+        for (int i = _emitters.Count - 1; i >= 0; i--)
+        {
+            Emitter emitter = _emitters[i];
+            int drag = 4096 - emitter.Definition.AirFriction;
+            emitter.VelocityZ -= emitter.Definition.Mass;
+            emitter.VelocityX = (int)((long)emitter.VelocityX * drag / 4096);
+            emitter.VelocityY = (int)((long)emitter.VelocityY * drag / 4096);
+            emitter.VelocityZ = (int)((long)emitter.VelocityZ * drag / 4096);
+            FpPosition3 old = emitter.Request.Position;
+            var point = new FpPosition3(new(old.X.Raw + (emitter.VelocityX >> 4)),
+                new(old.Y.Raw + (emitter.VelocityY >> 4)), new(old.Z.Raw + (emitter.VelocityZ >> 4)));
+            int floor = _floorHeight(point).Raw;
+            if (point.Z.Raw < floor) point = point with { Z = new(floor) };
+            emitter.Request = emitter.Request with { Position = point };
+            if (emitter.Health > 0)
+            {
+                if (_captureAtEdges && !emitter.CaptureBoundary.HasValue
+                    && emitter.Definition.EffectId == CaptureEffectLayout.RoomEffectId)
+                    emitter.CaptureBoundary = _captureEdges?.Invoke(emitter.Request) ?? CaptureEdges.All;
+                EmitWave(emitter.Definition, emitter.Request, emitter.CaptureBoundary, emitter);
+            }
+            emitter.Health -= elapsedUpdates;
+            if (emitter.Health <= 0 && emitter.ChildCount == 0) _emitters.RemoveAt(i);
+        }
         return (now.Milliseconds - _lastUpdateMilliseconds) / 50f;
+    }
+
+    private bool ApplyFloorContact(ConstructionParticle particle)
+    {
+        int floor = _floorHeight(new(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw))).Raw;
+        if (particle.HeightRaw >= floor) return true;
+        if ((particle.Definition.Flags & 1) != 0) return false;
+        particle.HeadingSpinRaw = particle.PitchSpinRaw = particle.RollSpinRaw = 0;
+        if ((particle.Definition.Flags & 16) != 0)
+        {
+            particle.HeightRaw = floor;
+            particle.VelocityX = particle.VelocityY = particle.VelocityZ = 0;
+            return true;
+        }
+        int elasticity = unchecked((ushort)particle.Definition.Elasticity);
+        particle.HeightRaw = floor + (int)((long)(floor - particle.HeightRaw) * elasticity / 65536);
+        particle.VelocityX = (int)((long)particle.VelocityX * elasticity / 65536);
+        particle.VelocityY = (int)((long)particle.VelocityY * elasticity / 65536);
+        int bounce = -(int)((long)particle.VelocityZ * elasticity / 65536);
+        particle.VelocityZ = bounce < 8192 ? (int)((long)bounce * bounce >> 13)
+            : bounce < 131072 ? (int)((long)bounce * 247 >> 8) : bounce;
+        return true;
+    }
+
+    private void RemoveParticle(int index, ConstructionParticle particle)
+    {
+        _parents.TryGetValue(particle, out Emitter? parent);
+        if (parent != null
+            && _database.EffectElements.TryGetValue(particle.Definition.DeathElementId, out EffectElementDef? death))
+        {
+            var point = new FpPosition3(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw));
+            EmitElement(death, parent.Definition,
+                parent.Request with { Position = point, Heading = new((ushort)particle.HeadingRaw) },
+                null, parent, particle);
+        }
+        _particles.RemoveAt(index);
+        if (_parents.Remove(particle) && parent != null) parent.ChildCount--;
+    }
+
+    private void ApplyParentMotion(ConstructionParticle particle)
+    {
+        if (!_parents.TryGetValue(particle, out Emitter? parent)) return;
+        if (_captureAtEdges && parent.CaptureBoundary.HasValue) return;
+        int dx = particle.XRaw - parent.Request.Position.X.Raw;
+        int dy = particle.YRaw - parent.Request.Position.Y.Raw;
+        int whirlpool = unchecked((short)parent.Definition.WhirlpoolRate);
+        if (whirlpool > 127) whirlpool -= 256;
+        int circular = unchecked((short)parent.Definition.CircularPathRate);
+        if (circular > 127) circular -= 256;
+        int angle = whirlpool == 0 ? 0
+            : (whirlpool * 16 << 7) / ((dx >> 5) * (dx >> 5) + 128 + (dy >> 5) * (dy >> 5));
+        (int x, int y) first = RotateRelative((dx, dy),
+            new((ushort)(Math.Max(-1024, Math.Min(1023, angle)) & 2047)));
+        (int x, int y) second = RotateRelative((dx, dy),
+            new((ushort)(Math.Max(-1024, Math.Min(1023, circular)) & 2047)));
+        particle.XRaw += first.x - dx + second.x - dx;
+        particle.YRaw += first.y - dy + second.y - dy;
+    }
+
+    private static (int X, int Y) RotateRelative((int X, int Y) offset, Dk2Angle heading)
+    {
+        int sin = Trig(heading.Raw), cos = Trig(heading.Raw + 512);
+        return ((int)(((long)sin * offset.Y + (long)cos * offset.X) >> 16),
+            (int)(((long)cos * offset.Y - (long)sin * offset.X) >> 16));
+    }
+
+    private void ApplyFallingSway(ConstructionParticle particle)
+    {
+        if ((particle.Definition.Flags & 16) == 0) return;
+        int floor = _floorHeight(new(new(particle.PreviousXRaw), new(particle.PreviousYRaw),
+            new(particle.PreviousHeightRaw))).Raw;
+        if (particle.PreviousHeightRaw > floor)
+        {
+            particle.XRaw += (Trig(particle.SwayPhaseRaw) >> 6) >> 4;
+            particle.YRaw += (Trig((particle.SecondSwayPhaseRaw & 1023) * 2) >> 6) >> 4;
+            int sin = Trig(particle.FallPhaseRaw);
+            particle.HeightRaw += -32 + (int)((((long)sin * sin >> 16) << 6) >> 16)
+                - ((Trig(particle.FallPhaseRaw + 512) << 5) >> 16);
+        }
+        particle.SwayPhaseRaw = (particle.SwayPhaseRaw + 32) & 2047;
+        particle.SecondSwayPhaseRaw = (particle.SecondSwayPhaseRaw + 32) & 2047;
+        particle.FallPhaseRaw = (particle.FallPhaseRaw + 64) & 2047;
+    }
+
+    private static int Trig(int heading) => (int)(Math.Sin((heading & 2047) * Math.PI / 1024) * 65536);
+
+    private static (byte Red, byte Green, byte Blue) KeeperColour(PlayerId owner)
+    {
+        // Player tags currently equal Numbers (Q271); the native palette uses Number.
+        (byte Red, byte Green, byte Blue) colour = owner.Value switch
+        {
+            0 => (0, 0, 0), 1 => (191, 213, 224), 2 => (255, 255, 255),
+            3 => (230, 50, 50), 4 => (50, 78, 230), 5 => (50, 230, 51),
+            6 => (226, 230, 50), 7 => (230, 50, 212), _ => (191, 213, 224)
+        };
+        return ((byte)Math.Max(48, (int)colour.Red), (byte)Math.Max(48, (int)colour.Green),
+            (byte)Math.Max(48, (int)colour.Blue));
+    }
+
+    private sealed class Emitter(EffectDef definition, ViewEffectRequest request, int health,
+        int velocityX, int velocityY, int velocityZ)
+    {
+        public readonly EffectDef Definition = definition;
+        public ViewEffectRequest Request = request;
+        public CaptureEdges? CaptureBoundary;
+        public int Health = health;
+        public int ChildCount;
+        public int VelocityX = velocityX, VelocityY = velocityY, VelocityZ = velocityZ;
     }
 
     private int DrawExclusive(int minimum, int maximum) => maximum <= minimum
         ? minimum : minimum + _random.NextInt(maximum - minimum);
+
+    private Dk2Angle DrawAngularOffset(int count) => count <= 0
+        ? default : new((ushort)((_random.NextInt(count) - count / 2) & 2047));
+
+    private int DrawInclusive(int minimum, int maximum) => maximum <= minimum
+        ? minimum : _random.NextInt(minimum, maximum);
 }
 
 public sealed class ConstructionParticle
@@ -144,11 +417,32 @@ public sealed class ConstructionParticle
     public int PreviousXRaw { get; internal set; }
     public int PreviousYRaw { get; internal set; }
     public int PreviousHeightRaw { get; internal set; }
+    // Native view angles and increments wrap at 2048 units per turn.
+    public int HeadingRaw { get; internal set; }
+    public int PitchRaw { get; internal set; }
+    public int RollRaw { get; internal set; }
+    public int PreviousHeadingRaw { get; internal set; }
+    public int PreviousPitchRaw { get; internal set; }
+    public int PreviousRollRaw { get; internal set; }
+    public int HeadingSpinRaw { get; internal set; }
+    public int PitchSpinRaw { get; internal set; }
+    public int RollSpinRaw { get; internal set; }
+    internal int SwayPhaseRaw;
+    internal int SecondSwayPhaseRaw;
+    internal int FallPhaseRaw;
     public byte Red { get; internal set; }
     public byte Green { get; internal set; }
     public byte Blue { get; internal set; }
-    public int PhaseRaw => FrameDuration <= 0 ? 0
-        : (InitialPhase + VisualUpdates * 4096 / FrameDuration) & 4095;
+    public int PhaseRaw
+    {
+        get
+        {
+            if ((Definition.ArtResource.Flags & 4) == 0 || FrameDuration <= 0) return 0;
+            int phase = InitialPhase + VisualUpdates * (4096 / FrameDuration);
+            return (Definition.ArtResource.Flags & 0x80) != 0 ? Math.Min(4096, phase) : phase & 4095;
+        }
+    }
+    public float RemainingSpriteLifetimeFraction => 1f - Math.Min(PhaseRaw, 4095) / 4096f;
     public int ScaleRaw => (Definition.Flags & 6) == 0 ? InitialScale
         : ScaleIncrement >= 0 ? Math.Min(ScaleTarget, InitialScale + ScaleIncrement * VisualUpdates)
         : Math.Max(ScaleTarget, InitialScale + ScaleIncrement * VisualUpdates);

@@ -96,8 +96,8 @@ else** — not the room's size against `RecommendedSize`, not whether it is
 
 **The tile is chosen on arrival, and starts underfoot.** The lair-seeking state
 lives in EA's `LairState.cpp`. When the creature reaches the room, the state's
-entry test requires the tile underfoot to be **the keeper's own lair tile** and
-the record's `TimeSleep` to be non-zero; then, if the creature's existing bed is
+state-79 test requires the tile underfoot to be **the keeper's own lair tile** and
+the record's lair object to be non-zero; then, if the creature's existing bed is
 already in this room, it goes straight to sleeping; otherwise a room routine
 takes the creature's position and tries, in order:
 
@@ -293,7 +293,7 @@ already established elsewhere remain **UNKNOWN** rather than being guessed.
 
 | state | reads | important calls and writes | exit |
 |---|---|---|---|
-| 79, looking for Lair | tile underfoot, room owner/type, `TimeSleep`, current bed and its room | accepts an existing bed in this room; otherwise finds a free tile, destroys a bed in another room, and gives the walk a seeded random offset | existing bed → 81; candidate → travel to 80; no candidate → message and idle |
+| 79, looking for Lair | tile underfoot, room owner/type, `LairObjectId`, current bed and its room | accepts an existing bed in this room; otherwise finds a free tile, destroys a bed in another room, and gives the walk a seeded random offset | existing bed → 81; candidate → travel to 80; no candidate → message and idle |
 | 80, making a home | first-tick marker, current tile, room, candidate validity | stops the old action on entry; validates and registers the bed at the tile, or searches and walks to another candidate | placed bed → 81; candidate → 80 again; exhausted room → restart the global lair finder or end |
 | 81, going to bed | bed id, kind, validity, position and facing | derives a point from the bed facing, ends an active action, starts movement | travel to the point in state 82; invalid bed ends the state |
 | 82, sleeping | bed id, position and facing; creature position | turns toward the bed; when close, snaps ordinary-bed users to it and copies its facing | close and aligned → 83; too far → 81; no bed ends the state |
@@ -309,6 +309,27 @@ bed, state 82 is final alignment, and **83 is the main sleeping state**. State
 84 is only the special wake/get-out path for object 23, the Mistress Creature
 Bed. Consequently `CreatureActivity.Sleeping` maps to state 83 for migration;
 82 and 84 are not interchangeable sleep states.
+
+Classic pose alignment (binary re-read 2026-10-13): `0x0046F910` snaps
+ordinary-bed sleepers onto the bed and copies its facing before entering 83.
+Object 23 skips that position snap; its later pose and presentation transition
+are described in object-drawing.md §8. The simulation now applies the position
+and facing updates; classic presentation uses the same bed heading.
+
+**Hand drops and moving house (binary re-read 2026-10-12; ADR-0450).**
+The room drop also enters 79 after getting up; the Lair handler table selects
+79 (`Room_DropCreature`, `0x004E8DA0`). `0x0046F4F0` preserves an existing bed
+in this room and preserves the old bed when no destination tile is free.
+A successful selection removes the old bed before routing, freeing its tile.
+Instructions `0x0046F5C8..0x0046F645` draw an angle in `[0,2048)`, offset the
+candidate centre by cosine/sine times 1365 shifted right 16, and route with
+option `0xE8`, resuming in 80. Runtime placement uses the creation effect in
+room-construction-effects.md §6. `LairDropTests` exercise hand drops, full and
+same rooms, occupied landing tiles, slot reuse and saving during relocation.
+State 79 tests the bed definition, not autonomous sleep eligibility. The state
+80 instruction read (`0x0046F6B0..0x0046F801`) likewise has no `TimeSleep` gate;
+zero-sleep bed users can complete a directed relocation, while bedless types
+reach state 79's rejection instead of remaining stuck in it.
 
 The state-category hook supplies the rest operation that state 83 itself does
 not: it subtracts one from `SleepNeeded` every game tick, flooring at zero, and

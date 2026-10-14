@@ -76,6 +76,7 @@ public class ObjectViewTests
         ObjectView rendered = new WorldView(database).Objects(world).Single(o => o.Id == heart.Id);
         Assert.True(rendered.PlaysAnimation);
         Assert.Equal(AssetRef.ForObject(database.ObjectById(13)!.Name, AssetKind.Mesh), rendered.Mesh);
+        Assert.Equal(EffectId.None, rendered.HeartVisual!.Value.ManaEffect);
     }
 
     [InstallFact]

@@ -481,7 +481,7 @@ public class TortureTests
         Simulation(db, world).Run(50);
         int tile = Index(world, new TilePos(11, 7));
         for (int i = 0; i < 5000 && world.TileAtIndex(tile).OwnerPlayerId == Keeper; i++)
-            RoomHealthRules.Convert(world, db, tile, Rival);
+            RoomHealthRules.Convert(world, db, new TilePos(11, 7), Rival);
         RoomInstance taken = RoomIndex.RoomAt(world, db, tile)!;
 
         Assert.Equal(Rival, taken.OwnerPlayerId);

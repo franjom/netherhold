@@ -26,8 +26,10 @@ public class NavMeshTests
         AssertInvariants(mesh);
     }
 
+    /// <summary>The original's reset sets no constraint bit (+0xD = 7: every edge bit, no
+    /// constraint); only the partial rebuild's side marker ever sets one (§2.2).</summary>
     [Fact]
-    public void EveryMapBorderIsAConstraint()
+    public void TheResetHasFourBordersAndNoConstraint()
     {
         var mesh = new NavMesh();
         mesh.Reset(8, 6);
@@ -35,11 +37,10 @@ public class NavMeshTests
         int borders = 0;
         for (int t = 0; t < mesh.TriangleSlots; t++)
             for (int i = 0; i < 3; i++)
-                if (mesh.Neighbour(t, i) == NavMesh.NoNeighbour)
-                {
-                    Assert.True(mesh.IsConstraint(t, i));
-                    borders++;
-                }
+            {
+                Assert.False(mesh.IsConstraint(t, i));
+                if (mesh.Neighbour(t, i) == NavMesh.NoNeighbour) borders++;
+            }
 
         Assert.Equal(4, borders);
     }
@@ -95,12 +96,12 @@ public class NavMeshTests
 
         Assert.Equal(3, mesh.LiveTriangleCount());
         AssertInvariants(mesh);
-        // The two halves of the border edge are both still constraints.
-        int constrainedBorders = 0;
+        // The border edge is now two edges; both still border nothing.
+        int borders = 0;
         for (int t = 0; t < mesh.TriangleSlots; t++)
             for (int i = 0; i < 3; i++)
-                if (mesh.Neighbour(t, i) == NavMesh.NoNeighbour && mesh.IsConstraint(t, i)) constrainedBorders++;
-        Assert.Equal(5, constrainedBorders);
+                if (mesh.Neighbour(t, i) == NavMesh.NoNeighbour) borders++;
+        Assert.Equal(5, borders);
     }
 
     /// <summary>The original does nothing when the corner is already a vertex, and neither do we
@@ -148,8 +149,115 @@ public class NavMeshTests
         }
     }
 
-    /// <summary>Neighbours point back at each other across the reversed edge, every live triangle
-    /// is wound positively, and a constraint bit is shared by both sides of its edge.</summary>
+    // ---- vertex removal (navigation-partial-rebuild.md, ADR-0461) -------------------------
+
+    /// <summary>An interior point splits its triangle into three; removing it (degree 3, `0x004CB8C0`)
+    /// merges them back, frees two triangle slots and the point, and the next insertion reuses the
+    /// freed slots last in, first out, as the original's allocators pop the head of each list.</summary>
+    [Fact]
+    public void RemovingADegreeThreeVertexFreesItsSlotsForReuse()
+    {
+        var mesh = new NavMesh();
+        mesh.Reset(8, 6);
+        int p = mesh.InsertPoint(3, 2);
+        Assert.Equal(4, mesh.LiveTriangleCount());
+        Assert.True(mesh.TryLocateVertex(3, 2, out int t, out int s));
+
+        Assert.True(mesh.RemoveVertex(t, s));
+        Assert.Equal(2, mesh.LiveTriangleCount());
+        Assert.False(mesh.IsPointLive(p));
+        Assert.Equal(4, mesh.TriangleSlots);
+        AssertInvariants(mesh);
+
+        // The removal pushed the second then the third triangle of the fan, so the third comes
+        // back first: the next split's first new triangle takes the higher of the two freed slots.
+        int freedHigh = -1, freedLow = -1;
+        for (int i = 0; i < mesh.TriangleSlots; i++)
+            if (!mesh.IsTriangleLive(i)) { if (i > freedHigh) { freedLow = freedHigh; freedHigh = i; } else freedLow = i; }
+        int again = mesh.InsertPoint(5, 3);
+        Assert.Equal(p, again);
+        Assert.Equal(4, mesh.TriangleSlots);
+        Assert.Equal(4, mesh.LiveTriangleCount());
+        Assert.True(freedHigh >= 0 && freedLow >= 0 && mesh.IsTriangleLive(freedHigh) && mesh.IsTriangleLive(freedLow));
+        AssertInvariants(mesh);
+    }
+
+    /// <summary>A point on the reset's diagonal splits both triangles, so it has degree 4; removing it
+    /// (`0x004CB170`) re-joins the four across one diagonal.</summary>
+    [Fact]
+    public void RemovingADegreeFourVertexRejoinsItsFan()
+    {
+        var mesh = new NavMesh();
+        mesh.Reset(0, 0, 8, 8);
+        int p = mesh.InsertPoint(4, 4);
+        Assert.Equal(4, mesh.LiveTriangleCount());
+        Assert.True(mesh.TryLocateVertex(4, 4, out int t, out int s));
+        int before = mesh.TriangleSlots;
+
+        int degree = t >= 0 ? mesh.ReduceVertexDegree(ref t, ref s) : -1;
+        Assert.Equal(4, degree);
+        Assert.True(mesh.RemoveDegree4Vertex(t, s));
+        Assert.Equal(2, mesh.LiveTriangleCount());
+        Assert.False(mesh.IsPointLive(p));
+        Assert.Equal(before, mesh.TriangleSlots);
+        AssertInvariants(mesh);
+    }
+
+    /// <summary>A vertex of higher degree is flipped down first (`0x004CAF40`): with four points
+    /// around one, the degree is 5 or more and the reduction brings it to 3 or 4 before the removal.</summary>
+    [Fact]
+    public void AHighDegreeVertexIsFlippedDownAndRemoved()
+    {
+        var mesh = new NavMesh();
+        mesh.Reset(0, 0, 12, 12);
+        mesh.InsertRectangle(0, 0, 12, 12, NavBytes.Floor);
+        mesh.InsertPoint(6, 6);
+        foreach ((int x, int y) in new[] { (3, 3), (9, 3), (9, 9), (3, 9), (6, 2), (2, 6) }) mesh.InsertPoint(x, y);
+        mesh.CoarsenRectangle(0, 0, 12, 12);
+        Assert.True(mesh.TryLocateVertex(6, 6, out int t, out int s));
+        int live = mesh.LiveTriangleCount();
+        int degree = 0;
+        for (int i = 0; i < mesh.TriangleSlots; i++)
+            if (mesh.IsTriangleLive(i))
+                for (int k = 0; k < 3; k++)
+                    if (mesh.PointX(mesh.Vertex(i, k)) == 6 && mesh.PointY(mesh.Vertex(i, k)) == 6) degree++;
+        Assert.True(degree >= 5, $"the centre has degree {degree}, so nothing is reduced");
+
+        Assert.True(mesh.RemoveVertex(t, s));
+        Assert.Equal(live - 2, mesh.LiveTriangleCount());
+        Assert.False(mesh.TryLocateVertex(6, 6, out _, out _));
+        AssertInvariants(mesh);
+        for (int i = 0; i < mesh.TriangleSlots; i++)
+            if (mesh.IsTriangleLive(i))
+                for (int k = 0; k < 3; k++)
+                    Assert.False(mesh.PointX(mesh.Vertex(i, k)) == 6 && mesh.PointY(mesh.Vertex(i, k)) == 6);
+    }
+
+    /// <summary>The edge finder (`0x004C9C30`) returns the edge that leaves a vertex along a direction,
+    /// and nothing when no fan edge points that way or when the point is no vertex. It turns the
+    /// fan one way and gives up at the hull, so a vertex on the canvas edge may miss an edge its
+    /// fan holds; the rebuild only asks it about points inside the map.</summary>
+    [Fact]
+    public void TheEdgeTowardATargetLeavesTheVertexAlongIt()
+    {
+        var mesh = new NavMesh();
+        mesh.Reset(0, 0, 8, 8);
+        mesh.InsertPoint(4, 4);
+        mesh.InsertPoint(6, 4);
+        Assert.True(mesh.TryEdgeToward(4, 4, 8, 4, out int t, out int s));
+        // The slot names the vertex; the edge leaving it is, in our storage, the one before the slot.
+        int q = mesh.Vertex(t, (s + 2) % 3);
+        Assert.Equal((6, 4), (mesh.PointX(q), mesh.PointY(q)));
+        Assert.Equal((4, 4), (mesh.PointX(mesh.Vertex(t, s)), mesh.PointY(mesh.Vertex(t, s))));
+        Assert.True(mesh.TryEdgeToward(4, 4, 0, 0, out t, out s));
+        Assert.Equal((0, 0), (mesh.PointX(mesh.Vertex(t, (s + 2) % 3)), mesh.PointY(mesh.Vertex(t, (s + 2) % 3))));
+        Assert.False(mesh.TryEdgeToward(4, 4, 8, 3, out _, out _));
+        Assert.False(mesh.TryEdgeToward(1, 1, 8, 8, out _, out _));
+    }
+
+    /// <summary>Neighbours point back at each other across the reversed edge and every live triangle
+    /// is wound positively. Constraint bits are one-sided in the original (the side marker sets a
+    /// bit on the triangle it walks), so nothing is asserted about them here.</summary>
     internal static void AssertInvariants(NavMesh mesh)
     {
         for (int t = 0; t < mesh.TriangleSlots; t++)
@@ -163,16 +271,11 @@ public class NavMeshTests
             for (int i = 0; i < 3; i++)
             {
                 int u = mesh.Neighbour(t, i);
-                if (u == NavMesh.NoNeighbour)
-                {
-                    Assert.True(mesh.IsConstraint(t, i), $"triangle {t} edge {i} borders nothing but is not a constraint");
-                    continue;
-                }
+                if (u == NavMesh.NoNeighbour) continue;
                 Assert.True(mesh.IsTriangleLive(u), $"triangle {t} edge {i} points at dead triangle {u}");
                 int from = mesh.Vertex(t, i), to = mesh.Vertex(t, (i + 1) % 3);
                 int j = mesh.EdgeIndexOf(u, to, from);
                 Assert.Equal(t, mesh.Neighbour(u, j));
-                Assert.Equal(mesh.IsConstraint(t, i), mesh.IsConstraint(u, j));
             }
         }
     }

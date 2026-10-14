@@ -103,7 +103,7 @@ One application of work:
 
 Step 4's second half once mattered for gems, whose destroyed type is themselves:
 clearing the mark on every conversion collapsed a marked gem face and left the
-imp nothing to do. Since ADR-0469 a gem face is never damaged, so it never
+imp nothing to do. Since ADR-0470 a gem face is never damaged, so it never
 converts and keeps its mark either way.
 
 Two exceptions where the terrain stays and only the owner changes.
@@ -148,7 +148,7 @@ reversing ADR-0024): reinforcing Rock is 660 − 165 = 495, fifty applications a
 
 The mine handler `0x004971D0` skips the strike on an Impenetrable face: a gem
 face takes no damage and pays `GoldMinedFromGems` (25) on every strike, against
-a seam's 273 a swing (Q587, CONFIRMED by the owner; ADR-0469). Ours did once
+a seam's 273 a swing (Q587, CONFIRMED by the owner; ADR-0470). Ours did once
 collapse the face at 100 health after two swings of 60, paying 25 a cycle,
 because its destroyed type is itself; that was half the binary's rate.
 

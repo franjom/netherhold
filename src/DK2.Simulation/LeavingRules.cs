@@ -74,7 +74,9 @@ public static class LeavingRules
             return true;
         }
 
-        if (state.HasRoute) return true;
+        if (state.HasRoute && state.Dk2StateId == Systems.StateShadow.TravelToPoint
+            && state.UtilityNewState == AtTheEntranceState) return true;
+        if (state.HasRoute) state.StopMoving();
 
         int exit = NearestExitTile(world, database, state);
         if (exit < 0) return false;

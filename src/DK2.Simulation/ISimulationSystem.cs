@@ -40,6 +40,19 @@ public sealed class SimulationContext
     public Navigation.WorldSteering Navigation { get; }
     public ISimulationEventSink Events { get; internal set; }
 
+    /// <summary>Where to time spans of work; see <see cref="ISimulationProfiler"/>. Behaviour-neutral.</summary>
+    public ISimulationProfiler Profiler
+    {
+        get => _profiler;
+        internal set
+        {
+            _profiler = value;
+            Navigation.Profiler = value;
+        }
+    }
+
+    private ISimulationProfiler _profiler = NullSimulationProfiler.Instance;
+
     /// <summary>The tick currently being executed.</summary>
     public GameTick Tick { get; internal set; }
 
@@ -64,6 +77,16 @@ public sealed class SimulationContext
 
     public void Emit(string system, string kind, string detail) =>
         Events.Emit(new SimEvent(Tick, system, kind, detail));
+
+    public void RequestEffect(string system, ViewEffectRequest request)
+    {
+        if (request.EffectId == EffectId.None) return;
+        Events.Emit(new SimEvent(Tick, system, "effect_requested",
+            $"player={request.Owner} effect={request.EffectId} tile=({request.Tile.X},{request.Tile.Y}) height={request.Height.Raw}")
+        {
+            EffectRequest = request,
+        });
+    }
 
     /// <summary>The level's trigger executor, when the simulation has one: the systems fire DK2's
     /// creature and player trigger events through it at the moment they happen, as the binary

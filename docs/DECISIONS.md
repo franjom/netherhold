@@ -1769,7 +1769,7 @@ Three for three on the THINGS field names this projection had to rely on — the
 - **No action-point behaviour runs.** Flag meanings, timer and counter consumers, rectangle-entry cadence and waypoint traversal are Q235–Q238.
 
 ## ADR-0104 — Player gestures are translated outside Unity
-**Date:** 2026-09-09 · **Status:** accepted
+**Date:** 2026-09-09 · **Status:** accepted · amended 2026-10-13
 
 **Context.** `DungeonRunner` advanced the simulation with empty input, while
 Unity-side gesture rules would evade the normal test suite and violate ADR-0036's
@@ -1777,10 +1777,14 @@ arithmetic-only adapter boundary.
 
 **Decision.** `DK2.Presentation` owns `PlayerIntent`, `PlayerInputSnapshot` and a
 stateful `PlayerInputTranslator`. The translator turns button edges into one
-`InputFrame`: tag, untag, room-build and room-sell tools complete a row-major
-rectangle on release; hand, slap and Create Imp tools act once on press. A hand
-holding something drops first; otherwise a creature wins over an object on the
-same tile. These are project interface choices, not claims about DK2.
+`InputFrame`. The Hand's left press picks a creature before an object; on
+diggable terrain it begins a click/drag toggle, committed on release with
+the inverse of the starting tile's tag. Right press drops held things through
+existing drop rules, or slaps a creature when empty. An interrupted drag is
+cancelled. Build and sell still complete rectangles on release; Create Imp
+acts on press. Unity exposes Hand, Build, Sell and Create Imp, preserving old
+serialized build/sell selections. These are project interface choices; the
+exact original excavation-drag toggle remains unconfirmed.
 
 Unity selects tools, projects a screen ray onto the ground plane, supplies
 button edges, queues commands until the next whole simulation tick, and handles
@@ -10034,10 +10038,10 @@ replace production playback. Frame caching quantizes motion and is diagnostic on
 **Status:** accepted, 2026-10-11. Owner requests rim-only movement around live
 Hearts; destroyed Hearts remain walkable.
 
-**Decision.** Reject movement segments through a live Heart's visible core,
-using object 13's half-width. Include arrival snaps, fallback steps and the
-committed coordinate rounding. A body already inside may move outward.
-Move targets inside the core to its near edge so Heart assaults can finish.
+**Decision.** Reject movement segments through a live Heart's raised platform;
+ADR-0452 extends the original small core guard. Include arrival snaps,
+fallback steps and committed coordinate rounding. A body already inside may
+move outward. Move interior targets to the near edge so assaults can finish.
 Preserve DK2's navigation bytes and obstacle exemptions. Ruined Hearts leave
 the structure mask and virtual obstacle list. Bump hash/save formats to 227.
 
@@ -10045,9 +10049,8 @@ the structure mask and virtual obstacle list. Bump hash/save formats to 227.
 the glowing core. Evidence and the fidelity boundary are in
 research/structure-blocks.md §5.3.
 
-**Consequences.** This deliberately enforces a core boundary that DK2's
-confirmed obstacle exception does not enforce. Platform crossings outside
-the core still follow DK2's exceptions; see the evidence boundary in §5.3.
+**Consequences.** This deliberately enforces a platform boundary that DK2's
+confirmed obstacle exception does not enforce; see the evidence boundary in §5.3.
 Q585 tracks the owner's visual acceptance.
 ## ADR-0440 — A room on TotalCapacity's default arm holds its tile count
 **Date:** 2026-10-12 · **Status:** accepted · Research: auto-placed-furniture.md §5
@@ -10141,6 +10144,31 @@ before). Flag 14, the three Guards behind the door waking, moves to DK2's 5283 i
 Still unbuilt: the handler refuses when the walk does not start (`Imp_WalkOrTeleport`
 returns 0), and ours commits a job without a route (Q588).
 
+## ADR-0444 — The simulation is profiled through markers it opens itself
+**Date:** 2026-10-12 · **Status:** accepted
+
+**Context.** Unity stutters once every few frames. At 4 ticks a second, a frame that
+runs a tick carries all of it (one in fifteen at 60 fps), so a frame drop is the worst
+tick, not the mean one. The harness timed each system as a run total only, and Unity
+saw the whole tick as one block, so neither showed which tick was slow or where.
+
+**Decision.** `ISimulationProfiler` (`Begin`/`End` of a `SimulationMarker`, one
+instance per name) sits on `SimulationContext.Profiler`, set by
+`GameSimulation.ProfileWith`, defaulting to an empty profiler. The simulation opens the
+markers: the tick, messages, triggers, each system by its `Name`, `nav.refresh`/
+`nav.build`/`nav.route`, the grid pathfinder's searches and ImpTask's phases. It is
+observation under the event sink's contract;
+`DeterminismTests.Profiling_DoesNotAffectState` pins it. The harness's `RunClock` is a
+profiler that keeps self and total time, calls and allocated bytes per marker per tick,
+and reports p50/p99/max and the worst tick. Unity maps each marker to a `ProfilerMarker`.
+
+**Consequences.** A new hot spot is found by adding a marker, not a stopwatch. The first
+Release run (Level 18, nemesis attack) puts its worst tick at ~650 ms, ~430 ms of it in
+405 `grid.nearest` searches allocating 118 MB, likely because ImpTask's selection runs
+one search per candidate tile. The keeper scenarios run allocate 3–10 MB a tick. Only
+ImpTask's pathfinder is wrapped; the other systems' grid searches count as their own
+time. A span costs two interface calls when nobody is listening.
+
 ## ADR-0445 — The possessed creature recruits followers
 **Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §4
 
@@ -10228,7 +10256,463 @@ soft and does not guarantee rigid clearance. Other route-less state dispatch,
 remembered-entity activation and original visual comparison remain open.
 Q582 still requires the owner's original-game casualty confirmation.
 
-## ADR-0467 — A possessed creature's blow reaches objects, pillars, shots and bodies
+## ADR-0449 — Restore claim positioning and ownership effects
+**Date:** 2026-10-12 · **Status:** accepted
+
+**Context.** Same-tile paths let imps start claiming off centre. Tile and room
+ownership changes and successful bed creation lacked their original effects.
+
+**Decision.** Keep a centre destination even when an imp already occupies its
+claim tile. Publish typed cosmetic requests at completed floor claiming,
+whole-room ownership transfer and successful bed creation. Read the terrain
+and room effect references from shipped data and reuse the existing effect
+renderer, independent cosmetic randomness and original sprite provider.
+Evidence: room-construction-effects.md §6; function records 0046AB50 and 004D0F60.
+Hash/save version 238 accounts for changed claim approaches; cosmetic requests
+are neither saved nor hashed.
+
+**Consequences.** The changes apply across maps. Native arrival tolerance is
+preserved. The special cycling-colour branch and bed heading fidelity remain
+research boundaries; ordinary keeper colours use the confirmed palette.
+
+**Amendment, 2026-10-13.** Decode terrain destruction effects and submit them
+only when the source becomes another terrain. Type-5 effect keys reuse the
+shared mesh/material cache; particle angles follow native view spin and stop
+on floor bounce. This restores Rock/Gold debris across maps without changing
+hash/save version240. Evidence: research/terrain-digging-debris.md.
+
+**Presentation adjustment, 2026-10-13.** At the owner's request, Unity uses
+two-thirds-size terrain mesh fragments that start across the tile's upper
+area and fall with limited sideways drift. This deliberately differs from
+the shipped upward velocities; the native presentation profile remains
+available and is the default outside Unity. Unity also confines room capture
+to the exterior boundary, with 80% scale and colour intensity; floor capture
+retains native placement. Boundaries are frozen on the first emission wave. This is
+the owner's requested presentation profile, not a claim of original geometry.
+
+## ADR-0450 — Select a bed after a creature is dropped into a Lair
+**Date:** 2026-10-12 · **Status:** accepted
+
+**Context.** Lair drops fell back to idle after getting up, retaining a bed
+in another Lair. Native state 79 handles this room-directed relocation.
+
+**Decision.** Dispatch state 79 after the landing/get-up sequence, remembering
+the Sleep job. Use the existing local free-tile search. A bed in this room is
+reused; a full destination keeps the old bed. Successful selection releases
+the old bed before a seeded, jittered walk to state 80, which creates the new
+bed with the existing effect request. Hash/save version 239; no new field.
+Evidence: lair-acquisition.md §9 and the function record for 0046F4F0.
+
+**Consequences.** Relocation frees the former tile for another creature and
+applies across maps. The casualty-delivery approximation in ADR-0417 remains
+separate; this change restores ordinary hand drops.
+
+## ADR-0451 — Remove wall reinforcement when its owned floor is lost
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Capturing enemy floor left its unsupported reinforced walls
+standing. Native ownership completion has a separate support callback.
+
+**Decision.** Run that callback after hostile floor destruction and each
+transferred room slab. Preserve the native in-place neighbour order and
+corner exceptions. Reuse terrain conversion and slab bookkeeping.
+Evidence: research/wall-support-after-claim.md. Hash/save version 240.
+
+**Consequences.** Walls supported by another floor of their owner remain;
+unsupported reinforcement becomes neutral Rock. The rule applies across maps.
+
+## ADR-0452 — Keep the entire live Heart platform closed to walkers
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** The Level1 Goblin report exposes ADR-0439's small excluded disk:
+creatures could still cross the surrounding raised platform.
+
+**Decision.** Guard the middle three-by-three platform, preserve its outer
+rim and project interior targets to their nearest edge, retaining tangential
+coordinates; a solid edge falls back toward the approach corridor. Apply the same exclusion
+to the routing mesh so walkers take a route around it rather than stall.
+Keep native navigation bytes unchanged. Ruin removes the exclusion and
+invalidates routing. Hash/save version 240; no new persisted field.
+
+**Consequences.** This extends ADR-0439's deliberate owner-requested movement
+constraint. It does not reproduce the native arrival/escape exemptions;
+the evidence boundary remains research/structure-blocks.md §5.3.
+
+## ADR-0453 — A worker's reachability comes from one flood, not one search per candidate
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Job selection asked the grid pathfinder "can this worker reach
+this tile" once per candidate stance, body tile and crate, each a Dijkstra
+that floods the worker's whole region before it can answer no. A keeper
+dropping five imps ran 404 such searches in one tick (Level 18, 0.3 s of a
+0.46 s tick, 120 MB allocated), and the drop scan's one-tile searches still
+flooded the map to meet their one tile.
+
+**Decision.** `ReachableTiles` runs the same Dijkstra once from the worker
+to exhaustion and answers every candidate from it: the same neighbour order,
+step costs and heap order as `GridPathfinder.TryFindNearest`, so the same
+reachable set and the same route to each tile. `ImpTaskSystem` floods once
+per worker update, keyed on the grid instance and the start tile, and the
+point questions (stances, claims, objects, crates, the drop scan's one tile)
+read the flood. The body search asks only the tiles bodies lie on, in the
+search's own order of route cost then tile index, which is where the
+predicate could have been true. Searches with a real predicate over unknown
+tiles (`CreatureAngerSystem`'s exit) keep the pathfinder. The equivalence is
+pinned by tests on grids with corner-only gaps, and the Level 18 attack
+scenario's hash and event log are unchanged.
+
+**Consequences.** The flood is for one grid and one start. The grid reads
+terrain live, so a terrain change between a worker's questions would be seen
+by a search and not by the flood; none occurs, because dig, claim and
+reinforce are queued for `TileWorkSystem` to apply after every worker has
+chosen. The drop scan's blueprint search keeps the pathfinder when no tile
+confines it. The `grid.flood` marker counts floods. Selection's own cost
+(ring scans over the map, candidate sorting) is untouched and is the next item.
+
+## ADR-0454 — Derived navigation state is kept while its inputs are unchanged
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** A tick allocated about 8 MB on Level 18 and spent a sixth of
+its time in `nav.refresh`, called about seventeen times a tick, each call
+rebuilding the structure mask and the navigation bytes from scratch. Every
+room sweep allocated a visited array the size of the map, and every
+`WorldPathGrid` (one per worker per tick) rebuilt the structure mask.
+
+**Decision.** Three results are kept and revalidated against their inputs,
+never trusted blindly. `WorldSteering.Refresh` returns at once while the
+tile array, the doors' navigation fields, the set of ruined hearts and the
+crypts' tiles (a Graveyard's floor slots) are what the last refresh saw;
+the check is one byte comparison of the tile array. `StructureBlocks.For` keeps the world's last mask with the list of
+structure tiles (index, terrain, owner, heart ruined) it was built from,
+and recomputes when a scan finds that list changed. `RoomIndex` takes its
+visited array from per-thread scratch. No tile-write counter exists, since
+tiles are written through references, so each cache compares its inputs
+rather than listening for changes. The Level 18 attack scenario's hashes
+and event log are unchanged; allocation fell to about 2 MB a tick.
+
+**Consequences.** Each cache's key must name every input its result reads;
+the tests found `HeartRuined` missing from the mask's key, and the reviewer
+found the crypts missing from the refresh's, so any new input to those
+routines must join its key. The mesh rebuild itself (`nav.build`) and the remaining
+per-tick lists (room-need queries, the keeper view, furniture) are untouched.
+
+## ADR-0455 — The adapter's run-time shaders are referenced from Resources
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** The Unity adapter builds its materials at run time from
+shaders found by name: URP Lit and Unlit, with the Standard and Unlit/Color
+fallbacks. A player contains only the shaders and variants some asset in
+the build references, so the headless probe's Development player found
+none of them and logged the failure every frame; the probe worked around
+it in its own build.
+
+**Decision.** `Assets/DK2/Resources/Shaders` holds one material per shader
+and keyword set the adapter uses: URP Lit opaque and blended, each with and
+without emission, all with specular and reflections off; URP Unlit opaque
+and additive; Standard; Unlit/Color. Resources are always built, and a
+material's keyword set is what makes Unity keep that variant. The probe
+keeps its own materials for builds from an older copy. Not yet verified by
+a player build, which the owner's next build will show; the Unlit/Color
+built-in id (10755) is from memory and unverified on disk.
+
+**Consequences.** A new keyword on a run-time material needs a material
+here that carries it, or the player draws it pink; unity/README.md says so.
+`DK2/ClassicEffect` is a shader under Resources already, so every variant of
+it is built.
+## ADR-0456 — The presenter runs its tile pass only when the tiles' inputs changed
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** `ScenePresenter.Present` runs every frame and its tile pass
+built a `TileView` for every tile to compare with the last one pushed,
+about 1-2 ms a frame on Level 1, on frames where the simulation had not
+ticked and nothing could have changed.
+
+**Decision.** The tile pass runs only when its inputs differ from what it
+last read: the tile array, compared byte for byte against a copy; which
+hearts are ruined (a ruined platform is drawn as floor); the fog flag; the
+doors' version (a door shows on its tile); the crypts' tiles (a Graveyard's
+floor slots); the view's tag-preview version; and the tick, since the view's
+room facts are cached per tick. The viewing player and the database are
+fixed for the view's life. A tile written, a door placed or a preview moved
+between two presents is still seen (tests pin those three). The other passes
+(torches, objects, structures, creatures) are unchanged.
+
+**Consequences.** Any new input the tile view reads must join the check,
+as with ADR-0454's caches; the reviewer found the doors and the preview
+missing from the first version. The saving is on frames without a tick,
+which at 4 Hz is most of them. `WorldState.Tiles` exposes the tiles as a
+read-only span for whole-map comparison.
+
+## ADR-0457 — Terrain chunk rebuilds are spread over frames
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** `TerrainChunks.Flush` rebuilt every chunk a tile had changed
+in, in one frame. A tag wave or a room drop touches many 16x16 chunks at
+once, and an earlier probe run (not kept) saw frames of about 120 ms on
+Level 1 from it, even with the per-tile geometry cache (commit c902b2a3).
+
+**Decision.** A flush rebuilds dirty chunks in ascending chunk order until
+`FlushBudgetMilliseconds` (4 ms by default) has passed, leaving the rest
+dirty for the next frame; at least one chunk is rebuilt per flush, and a
+flush that finds no chunk drawn yet (the first after a load or a `Clear`)
+rebuilds everything, so a level appears whole. A chunk waiting its turn
+shows its previous mesh for those frames. Zero or less turns the budget
+off. The budget's clock is a stopwatch, so it follows the machine.
+
+**Consequences.** A large change reaches the screen over a few frames at a
+few milliseconds each instead of one long frame. A seam between a rebuilt
+chunk and a waiting neighbour can show while the backlog drains. The probe's
+full-rebuild check sets the budget to zero first. Checked by compiling the
+adapter against Unity's assemblies, not by a Unity run; whether the seam
+is acceptable in play is the owner's to judge.
+
+## ADR-0458 — Ticks run on a worker thread after the frame is presented
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** `DungeonRunner.Update` ran up to twenty simulation ticks and
+then presented, all on the main thread, so a frame that carried a tick
+cost the tick's whole time (15 ms at the median, far more at the tail)
+on top of its own, and the diagnostics recomputed the state hash on every
+`OnGUI` call.
+
+**Decision.** `Update` first joins the tick started last frame, then reads
+input, presents the settled world and starts this frame's ticks on a
+worker thread, where they run while Unity renders. A frame runs at most
+`maxTicksPerFrame` ticks (2), so a stall is paid back over frames. The
+view shows a tick one frame after it ran, so the creature interpolation
+draws the frame that owes a tick complete and starts the new motion on the
+next. Nothing on the main thread reads the world while a tick runs: `OnGUI`
+shows strings built in `Update`, the `Simulation` property joins the tick
+first, and the state hash is taken on the worker. A tick that throws stops
+the game and shows the failure. `tickOnWorkerThread` turns it off, and the
+probe does, to measure ticks. The simulation is Unity-free and
+single-threaded per world, which is what makes a worker safe; the one
+Unity call reached from a tick, the construction effects' clock, is now a
+stopwatch, and the per-thread scratch of ADR-0454 is per thread.
+
+**Consequences.** Hides cost rather than removing it: a tick longer than a
+frame still stalls the next frame by the excess. Compiled against Unity's
+assemblies, not run in Unity; the first play session is the real test, and
+the toggle is the way back if anything misbehaves.
+
+## ADR-0461 — The navigation mesh is edited per tile, as the original's is
+**Date:** 2026-10-13 · **Status:** accepted · advances ADR-0157, ADR-0454 · Research: `docs/research/navigation-partial-rebuild.md`, Q591
+
+**Context.** `WorldSteering.Refresh` built a new mesh from every tile whenever a
+navigation byte changed: 14 ms on Level 18 for one dug tile. DK2 edits its mesh in
+place around the changed tile (`0x004CE770`'s partial path): it cuts the
+rectangle's sides into the mesh and marks them, empties the inside of vertices,
+refills it from the bytes, coarsens by a bounded flood of flips seeded from the
+corners, then unmarks the sides and removes each side point with one byte all
+round, reusing freed slots last first. Its triangles after an edit depend on the
+history of edits; the research had the difference in triangles STRONGLY INFERRED
+and in routes a HYPOTHESIS. The owner chose the faithful edit over a faster build.
+
+**Decision.** `NavMesh.Retriangulate` is the partial path transcribed loop for
+loop: the side cuts (`0x004CDFE0`, `0x004CDF20`), the one-sided marks
+(`0x004CE380`), the interior walk (`0x004CE0C0`), the fill, the flood
+(`0x004CC650` seeded by `0x004CC3D0`, 996-entry cutoff, flip results ignored),
+the queue and merge-back (`0x004CE410`), and the vertex removals with their degree
+reduction (`0x004CB8C0`, `0x004CB170`, `0x004CC190`). The flip (`0x004C9FC0`)
+moves its constraint bits before its convexity test, as the original's does. The
+whole-map build uses the same flood in place of the old slot sweep and carries no
+constraint bits, as the original's reset leaves none. Our triangles wind the other
+way from the original's, so every walk goes through one translation (the table
+is in the research doc and NavMesh.Edit.cs), so that each routine walks the same
+triangles in the same order and keeps and frees the same slots. A rectangle
+within one tile of a map edge rebuilds the whole map. `Refresh` builds once, then
+edits each routing byte that changed since the last refresh, in tile order. The
+mesh is state: `WorldSnapshot` carries it with the bytes it was last brought to, a
+load takes no tile snapshot so its next refresh edits what the saved run would
+have, and `StateHash` folds in every slot and both free lists. The keeper AI's
+own steering (`KeeperView`) still routes on a fresh build. Hash/save version 243.
+
+**Consequences.** Level 18: an interior single-tile edit takes 0.035 ms median
+and 0.46 ms at worst, against 14 ms for a build. 1,955 single-tile edits over the
+66 shipped levels each leave a valid mesh; the whole-map pins were regenerated
+once (1–3 % of triangles differ from the sweep's). Routes after an edit may
+differ from a fresh build's. Two reviewers confirmed the transcriptions against
+the binary and found the residuals, each stated in the code: ours batches the
+bytes changed since the last refresh where the original edits at each write; the
+original's locate (`0x004C98B0`) walks from a 4×4 cell cache and returns the
+first triangle it reaches, so at a vertex its fan triangle depends on history,
+where ours takes the lowest slot (ADR-0157); that triangle starts the degree
+reduction, labels the degree-4 rim and heads the flood seed's stack, so the two
+edits can pick different diagonals and flips; the whole-map builder's reset
+diagonal, corner order and splits predate this and are ours (Q591). Region ids
+and width classes are not modelled, the shipped game reading neither. The only
+check of the triangles is a DK2 mesh dump after a dig: the Level 10 capture that
+held 353 is lost, so a new capture is the next step when the original can run.
+## ADR-0460 — Restore drop recovery and sleeping poses
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Hand-dropped creatures used a walking clip while stunned, and
+ordinary sleepers could stop beside their bed instead of aligning to it.
+
+**Decision.** Draw the authored knockdown and get-up clips from each state
+entry. Restore native sleep-entry position and heading alignment. During
+the Mistress bed's entrance clip, draw the bed and hide its occupant before
+switching to her sleeping clip. Treat the authored portal exit as a visual
+relocation so interpolation does not replay its movement. Evidence:
+research/hand-drop-landing.md, research/portal-creature-action.md,
+research/lair-acquisition.md §9 and research/object-drawing.md §8.
+Hash/save version 242 distinguishes the corrected resumed behaviour. Preserve
+an existing departure route only when its travel resumes in state 195;
+an unrelated wander route must not bypass portal selection. Evidence:
+research/creature-leaving.md §1.
+
+**Consequences.** The changes apply across maps. State 82's existing tile-level
+arrival approximation and the Mistress's unbuilt wake-door sequence remain
+fidelity boundaries; this change restores sleep entry, not that exit sequence.
+
+## ADR-0459 — A tunneller's walks keep their destination within its own tile
+**Date:** 2026-10-13 · **Status:** accepted · advances ADR-0222, ADR-0430 · Research: `docs/research/tunnelling.md` §5, hero-party-walk.md §1
+
+**Context.** On Level 1 the script softens three boundary tiles to Rock and
+gives the leader Dwarf `KillPlayer`; its route fails and it starts a tunnel
+(state 186). The dig tile was the tile below it, so the stand point
+(`0x00486680`) was the centre of its own tile. `TunnelRules.Walk` asked
+`WorldSteering.TryRouteTo`, whose same-tile shortcut ends the walk at once, and
+the Dwarf, more than `0x555` from that centre, re-planned the same walk every
+two ticks without moving, for as long as the level ran. The 20-seed Level 1
+replays had never shown it: their Dwarf stood one tile diagonal from its dig
+tile and walked a real route; commit 465 shifted the level's timing and put it
+on the tile above (bisected: 464 digs at tick 1240, 465 never digs). The owner
+saw both Dwarves standing in Unity. tunnelling.md had recorded the loop as a
+difference in ours and left "whether DK2 can loop the same way" UNKNOWN;
+ADR-0430's recheck of `0x004CF490` answers it: DK2's route request retains its
+destination even within one triangle, so DK2 walks to the stand point.
+
+**Decision.** `TunnelRules.Walk` routes through `TryRouteToStance`, the
+point-walk ADR-0289 built for stance points and ADR-0430 reused for waiting
+heroes: off the destination's tile it is `TryRouteTo` unchanged; on it, the
+creature steps to the point. Every walk the tunnel states make goes through
+`0x00471890`, so the one helper covers 186's stand and target walks and 223's
+trailing walk; `RouteOrTunnel`, the first stage of the same helper, asks the
+same way. The reviewer re-read the chain (`0x004D0F60`, `0x004D5100`,
+`0x004D0320`, `0x004CF490`, `0x004D0240`) and found no same-tile shortcut in it;
+186's four calls into the helper are listed in `00471890.md`. Hash/save
+version 241; no new persisted field.
+
+**Consequences.** Level 1 seed 1 on master: the leader Dwarf digs the softened
+tile at tick 1297 and is fighting the keeper's imps inside the dungeon by 1308, where
+before the fix it never dug and the keeper's own imp opened the wall at 1471.
+The replay still wins (tick 1796 before, 1812 after). `AWorkerOffItsStandTilesCentre_WalksToTheCentreAndDigs` pins the case and
+fails against the reverted walk (run as the negative control); the
+earlier tunnel tests spawned the worker on its tile centre and could not see
+it. Q565's remaining generic callers are unchanged; the tunnel's walks are now
+on the retained-destination side of that question.
+
+## ADR-0462 — Keep stationary travellers on their original standing pose
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Selecting walk art when a route exists, before velocity becomes
+nonzero, lets its initial rate and zero-speed reuse play cycles in place.
+
+**Decision.** Ordinary stationary travellers select native slot 39, loaded
+from the separate standing resource; absent art falls back to walk slot 1.
+Movement installation uses the body's current speed cap in 12.12 instead of
+the action scalar 4096. Preserve subsequent advance-before-rate-update order.
+Evidence: research/kmf-animation-playback.md §6 and its function records.
+
+**Consequences.** All creature types share the correction. Static poses use
+the existing model provider, while actual travel keeps authored motion.
+The unrepresented movement-mode-2 exception remains scoped; possessed
+movement retains its existing override. No simulation/save/hash change.
+
+## ADR-0463 — Present the Heart's health and mana pulse from original resources
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** The healthy Heart loop omitted its health response and mana particles.
+
+**Decision.** Compute native five-percent pulse and height stages and select
+the authored decay textures from keeper Heart health. Preserve the animation
+clock across health changes. Request the room's mana effect on loop completion,
+using the original shared wall-clock gate and seven-second startup guard.
+Observe every health-routine call to retain its additional phase advance;
+queue immutable view updates across the worker/main-thread boundary.
+Evidence: research/heart-health-visuals.md and heart-mana-effects.md.
+
+**Consequences.** Particle death replacements, parent swirl and falling sway
+use shipped resources and view RNG. No simulation/save/hash change. The
+companion effect's dynamic light remains outside this particle renderer.
+Owner comparison of the complete damaged appearance is still required.
+
+## ADR-0464 — Respect the original effect sprite completion flag
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Portal capture smoke replayed after its cloud faded although
+the capture emitted only one particle wave.
+
+**Decision.** Honor authored sprite animation and completion flags, preserving
+the final texture independently of particle lifetime. Retain looping playback
+for resources that request it. Evidence: research/room-construction-effects.md §4.
+
+**Consequences.** The shared fix covers capture and digging smoke. Paused
+particle submission keeps completed textures alive until model expiry.
+No simulation/save/hash change. Unity visual comparison remains pending.
+
+## ADR-0465 — Restore the original wall reinforcement completion effect
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** Upward completion requested effects for floor claims but omitted walls.
+
+**Decision.** Share the source-terrain effect selection across upward completion.
+Preserve the native terrain-9 placement branch and completion-only trigger.
+Evidence: research/room-construction-effects.md §6.
+
+**Consequences.** Original rock-chip and smoke resources use the existing consumer.
+View requests do not alter gameplay RNG, simulation/save/hash state.
+Unity visual confirmation remains pending while the owner is away.
+
+## ADR-0466 — The room sweep is kept while every tile's terrain and owner are unchanged
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** `RoomIndex.Build` swept the whole map, filling every room and its
+interior rings, at each of its 66 call sites in code, and a tick makes many of them: a lair
+attempt alone rebuilt it once per creature (43 times in Level 18's first tick,
+19 ms and 3.5 MB of that tick's `CreatureSleep`, against 6 ms for the routes
+themselves). Its doc comment ruled a cache out because one forgotten
+invalidation would give a room that disagrees with the map.
+
+**Decision.** Keep the sweep per world and revalidate it on every call, never
+invalidate it: a room is a function of each tile's terrain and owner and of the
+database's terrain-to-room map, so `Build` compares those two bytes of every
+tile, and the database instance, with what its last sweep read, and sweeps again
+only when something differs. Nothing has to remember to invalidate it, which is
+ADR-0454's pattern. `Build` now returns `IReadOnlyList<RoomInstance>`, because the
+list and its rooms are shared until the next change; the change of type found
+the one caller that edited the list in place (the wander room branch, which now
+filters into its own list). A changed map gets a new list, so a list already
+handed out never changes. The single-room fill and the filtered sweep are left
+uncached. The cache is not thread-safe; it relies on ADR-0458's rule that the
+presenter reads the world only while no tick runs.
+
+**Consequences.** All 42 corpus scenarios give the same final hashes, per-tick
+hashes, event logs and world pictures as master. On Level 18's attack run,
+allocation fell from about 960 MB to 535 MB (2.4 to 1.4 MB a tick), tick 0 from
+9.3 MB to 3.2 MB and its `CreatureSleep` from about 80 ms to 32 ms; times are
+from a shared machine and indicative only. Any new input to a room's fill must
+join the cache's key, and the database is keyed by reference on the assumption
+that a loaded `GameDatabase` and its `RoomDef`s are never changed. `RoomInstanceTests` pins a hit, a rebuild on a terrain or
+an owner change, and that an old list survives a rebuild.
+
+## ADR-0467 — Restore the original portal pre-arrival buildup
+**Date:** 2026-10-14 · **Status:** accepted
+
+**Context.** Entrance animations played without the portal's preceding buildup.
+
+**Decision.** Read the authored room buildup field and request its original
+effect at the native preview threshold. Share admission checks with the due
+roll while keeping preview free of gameplay mutations and random draws.
+Evidence: research/portals-interval.md, Portal buildup.
+
+**Consequences.** The existing effect consumer renders authored resources.
+Arrival timing and simulation/save/hash state are unchanged. Original graphics
+quality gating is replaced by the adapter's effect path. Unity visual
+confirmation remains pending while the owner is away.
+
+## ADR-0468 — A possessed creature's blow reaches objects, pillars, shots and bodies
 **Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §1–2
 
 **Context.** Action 26's melee arm stamped and did nothing on a chicken, the Training
@@ -10251,7 +10735,7 @@ field.
 sounds, the impact effects and action 26 on art 13 are not represented. What removes a
 shot struck to 0 is unread: ours, the shot system's next pass.
 
-## ADR-0468 — A possessed worker digs, mines and claims
+## ADR-0469 — A possessed worker digs, mines and claims
 **Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §3
 
 **Context.** A possessed worker's melee press with no target did nothing (Q535).
@@ -10266,7 +10750,7 @@ penetrable tile dug (1) under that action's own guard and owner-chosen rate. Act
 melee recharge; the claim strikes every tick until the tile turns. Action 1 by a
 worker that is not an Imp, the hero tunneller's included, digs at six times
 `DigOwnWallHealth` with no multiplier: slower than an Imp on rock, far faster through a
-keeper's reinforced wall, as the owner has seen hero Dwarves do. A work order carries
+keeper's reinforced wall (the owner's observation agrees: hero Dwarves dig walls fast). A work order carries
 the multiplier and the strike's flags; a creature its claim tile; hash/save version 244.
 
 **Consequences.** The global `0x0075AE93` that stops a non-Imp's dig is taken as 0
@@ -10274,7 +10758,7 @@ the multiplier and the strike's flags; a creature its claim tile; hash/save vers
 possessed strike converts a Dirt Path, so a claim runs once; ours also ends it when the
 creature leaves possession, is down or is held (what DK2's action does then is unread).
 
-## ADR-0469 — A gem face pays every strike and is never damaged
+## ADR-0470 — A gem face pays every strike and is never damaged
 **Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §3
 
 **Context.** Ours damaged a gem face and paid `GoldMinedFromGems` only when it

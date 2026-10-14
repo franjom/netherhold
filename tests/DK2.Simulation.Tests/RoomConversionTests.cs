@@ -50,10 +50,9 @@ public class RoomConversionTests
     /// </summary>
     private static int WorkUntilTaken(WorldState world, TilePos at, byte playerId)
     {
-        int index = (at.Y * world.Width) + at.X;
         for (int i = 1; i <= 500; i++)
         {
-            TileWorkResult result = RoomHealthRules.Convert(world, Db, index, playerId);
+            TileWorkResult result = RoomHealthRules.Convert(world, Db, at, playerId);
             if (result.Outcome == TileWorkOutcome.Transformed) return i;
             if (result.Outcome == TileWorkOutcome.Rejected)
                 throw new InvalidOperationException($"ConvertRoom rejected at {at}");
@@ -348,8 +347,7 @@ public class RoomConversionTests
     {
         WorldState world = World();
         Paint(world, RoomTypeId.Treasury, 5, 5, 2, 1, Rival);
-        int index = (5 * world.Width) + 5;
-        for (int i = 0; i < 10; i++) RoomHealthRules.Convert(world, Db, index, Keeper);
+        for (int i = 0; i < 10; i++) RoomHealthRules.Convert(world, Db, new TilePos(5, 5), Keeper);
 
         Assert.Equal(20000 - (10 * 800), RoomHealthRules.Health(world, Db, RoomAt(world, 5, 5)));
         Assert.Equal(Rival, world.Tile(6, 5).OwnerPlayerId);
@@ -379,41 +377,36 @@ public class RoomConversionTests
             Db, world, grid, new TilePos(5, 5), TileWorkKind.ConvertRoom));
     }
 
-    // ---- the extrapolation, flagged --------------------------------------
-
-    /// <summary>
-    /// <b>A multi-tile bridge converts whole, and this is the one place the
-    /// owner's statement is being stretched.</b>
-    ///
-    /// <para>They said "rooms". A wooden bridge is a room in every way the data
-    /// can tell — room terrain, its own <c>RoomDef</c>, built and sold like one —
-    /// so it is treated like one, and one tile of a rival's ten-tile bridge hands
-    /// over all ten. That is a strategically large consequence drawn from a
-    /// sentence about portals, so it is pinned here as behaviour rather than
-    /// buried as an assumption. Q94: claim one end of a long bridge in the
-    /// original and see whether the far end changes colour.</para>
-    /// </summary>
-    [Fact]
-    public void AMultiTileBridgeConvertsWholeAndThatIsAnExtrapolation()
+    /// <summary>Bridges convert through the room's aggregate health, with the same
+    /// neutral/rival rates as other rooms (room-health.md section 3; Q94).</summary>
+    [Theory]
+    [InlineData(Rival, 10)]
+    [InlineData(PlayerIds.Neutral, 2)]
+    public void AMultiTileBridgeConvertsWholeAtTheRoomRate(byte owner, int applications)
     {
         WorldState world = World();
 
-        // Four bridge tiles in a row over water, the rival's.
+        // Four bridge tiles in a row over water: 8000 aggregate health.
         for (int x = 5; x <= 8; x++)
         {
             ref TileState tile = ref world.Tile(x, 9);
             tile.TerrainId = Dk2TerrainFixture.Water;
-            RoomRules.Place(Db, ref tile, Db.Room(RoomTypeId.WoodenBridge), Rival);
+            RoomRules.Place(Db, ref tile, Db.Room(RoomTypeId.WoodenBridge), owner);
         }
 
         Assert.Equal(4, RoomAt(world, 5, 9).TileCount);
 
         var sim = new GameSimulation(Db, world, seed: 1, [new Systems.TileWorkSystem()]);
-        for (int i = 0; i < 20; i++)
+        for (int i = 1; i < applications; i++)
         {
             world.QueueWork(5, 9, TileWorkKind.ConvertRoom, Keeper);
             sim.Tick(InputFrame.Empty);
+            for (int x = 5; x <= 8; x++)
+                Assert.Equal(owner, world.Tile(x, 9).OwnerPlayerId);
         }
+
+        world.QueueWork(5, 9, TileWorkKind.ConvertRoom, Keeper);
+        sim.Tick(InputFrame.Empty);
 
         for (int x = 5; x <= 8; x++)
         {

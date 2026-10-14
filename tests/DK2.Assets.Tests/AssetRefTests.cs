@@ -33,6 +33,7 @@ public class AssetRefTests
     [InlineData("Hero Gate [ 2x2 ]", "hero_gate_2x2")]
     [InlineData("  Rock  ", "rock")]
     [InlineData("A -- B", "a_b")]
+    [InlineData("Plug Element (uncracked)", "plug_element_uncracked")]
     public void RunsOfPunctuationCollapseAndTheEdgesAreTrimmed(string name, string expected)
     {
         Assert.Equal(expected, AssetRef.NormaliseSubject(name));

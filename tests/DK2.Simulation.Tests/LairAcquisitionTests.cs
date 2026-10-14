@@ -582,6 +582,26 @@ public class LairAcquisitionTests
 
     // ---- on DK2's state ids (ADR-0178) --------------------------------------
 
+    [Fact]
+    public void GoingToBedSnapsTheSleeperOntoItsBedAndCopiesTheFacing()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CorridorToA3x3Lair(db, world);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 2));
+        ObjectState bed = LairRules.PlaceBed(world, db, goblin, world.TileIndex(goblin.Tile));
+        bed.Heading = 512;
+        goblin.PosX += 300;
+        goblin.PosY -= 200;
+        goblin.Health = 700;
+        goblin.Dk2StateId = LairRules.LyingDownState;
+        new GameSimulation(db, world, 1, [new CreatureSleepSystem()]).Run(1);
+        Assert.Equal(LairRules.SleepingState, goblin.Dk2StateId);
+        Assert.Equal(CreatureState.CentreOf(7), goblin.PosX);
+        Assert.Equal(CreatureState.CentreOf(2), goblin.PosY);
+        Assert.Equal(bed.Heading, goblin.Heading);
+    }
+
     /// <summary>Each change of state id, with the saved caller and the resume slot beside
     /// it. States inside one tick are transient, so the two slots are the evidence of where
     /// a walk came from and where it was going.</summary>

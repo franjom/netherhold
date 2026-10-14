@@ -105,19 +105,26 @@ public sealed partial class WorldView
     }
 
     /// <summary>Whether a bed is hidden: state 83 (<c>0x0046FA60</c>) clears a bed's draw bit while
-    /// its creature sleeps, which then shows its own sleep clip, unless the bed is the Hero
-    /// Creature Bed (6). Deviates: the Mistress's bed first plays its door clip (art 7); and DK2
-    /// does this only when the creature's art 12 is loaded and a creature vtable <c>+0x278</c> call
-    /// on the bed returns 0, both assumed true here (neither is read).</summary>
+    /// its creature sleeps, except the Hero bed and the Mistress's entrance clip.
+    /// The art-12 availability and virtual bed gate are assumed true.</summary>
     private bool BedHidden(WorldState world, ObjectState thing)
     {
         if (thing.ObjectTypeId == HeroBedId || thing.CreatureId <= 0) return false;
         if (_database.ObjectById(thing.ObjectTypeId) is not { } definition || !definition.Flags.HasFlag(ObjectFlags.TypeLair))
             return false;
-        return world.CreatureById(thing.CreatureId) is { Dk2StateId: LairRules.SleepingState };
+        return world.CreatureById(thing.CreatureId) is { Dk2StateId: LairRules.SleepingState } sleeper
+            && !IsMistressBedEntrance(world, sleeper);
     }
 
     private const byte HeroBedId = 6;
+
+    private bool IsMistressBedEntrance(WorldState world, CreatureState creature)
+    {
+        if (creature.Dk2StateId != LairRules.SleepingState || creature.StateEnteredTick < 0
+            || LairRules.BedOf(world, _database, creature) is not { ObjectTypeId: LairRules.MistressBedObjectId } bed) return false;
+        int hold = AnimationTimingRules.FirstCycleHoldTicks(_database.ObjectById(bed.ObjectTypeId)!.ArtSlot(7));
+        return world.CurrentTick.Value - creature.StateEnteredTick <= hold;
+    }
 
     /// <summary>An object of the simulation, placed.</summary>
     private ObjectView Placed(WorldState world, ObjectState thing, TilePos at)
@@ -202,9 +209,9 @@ public sealed partial class WorldView
                     scale = One + Spread(thing.Id, 0x800);
                     break;
                 default:
-                    // A bed's heading is a simulation-stream draw (0x0048AD50) ours does not keep.
+                    // Use the stored bed heading; its native random creation draw remains unbuilt.
                     if (definition is not null && definition.Flags.HasFlag(ObjectFlags.TypeLair))
-                        heading = Spread(thing.Id, 0x800);
+                        heading = thing.Heading;
                     break;
             }
         }
@@ -231,6 +238,13 @@ public sealed partial class WorldView
                 slot = thing.ProcessState switch { 12 => 0, 15 => 7, 19 or 20 => 6, _ => 5 };
         }
         GameTick? objectAnimationStartedAt = stateAnimation ? new GameTick(thing.ProcessDeadline) : null;
+        if (thing.ObjectTypeId == LairRules.MistressBedObjectId && world.CreatureById(thing.CreatureId) is { } sleeper
+            && IsMistressBedEntrance(world, sleeper))
+        {
+            slot = 7;
+            stateAnimation = true;
+            objectAnimationStartedAt = new GameTick(sleeper.StateEnteredTick);
+        }
         if (thing.ObjectTypeId == CallToArmsRules.ObjectTypeId)
             objectAnimationStartedAt = new GameTick(thing.AnimationStartedTick);
         if (thing.ObjectTypeId == CasinoLeverId && thing.ProcessState is not (48 or 49))
@@ -249,7 +263,8 @@ public sealed partial class WorldView
                 : thing.ObjectTypeId == ChickenId && thing.ProcessState == 8 && thing.ProcessAgeTicks > 0
                     ? new GameTick(world.CurrentTick.Value - thing.ProcessAgeTicks) : null,
             animationLoops: !stateAnimation || thing.ObjectTypeId == CallToArmsRules.ObjectTypeId && thing.ProcessState is 13 or 14,
-            previousHeight: previousZ, previousPitch: previousPitch, previousRoll: previousRoll);
+            previousHeight: previousZ, previousPitch: previousPitch, previousRoll: previousRoll,
+            heartVisual: HeartVisual(world, thing.ObjectTypeId, thing.OwnerPlayerId, at));
     }
 
     /// <summary>A wheel off the floor: drawn <c>0x800</c> up (its <c>+0x99</c> draw offset) and spun
@@ -471,8 +486,16 @@ public sealed partial class WorldView
         return new ObjectView(-((tileIndex * DecorSlots) + slot + 1), objectTypeId, owner, new TilePos(x, y),
             ObjectArt(objectTypeId, artSlot), 0, (x * One) + Half + offsetX, (y * One) + Half + offsetY,
             z < 0 ? FloorHeight(world, x, y) : z, heading & 0x7FF, One,
-            playsAnimation: objectTypeId == DungeonHeartId);
+            playsAnimation: objectTypeId == DungeonHeartId,
+            heartVisual: HeartVisual(world, objectTypeId, owner, new TilePos(x, y)));
     }
+
+    private DungeonHeartVisual? HeartVisual(WorldState world, byte objectTypeId, PlayerId owner, TilePos tile) =>
+        objectTypeId == DungeonHeartId && world.HasPlayer(owner)
+            ? DungeonHeartVisual.FromHealth(currentHealth: world.Player(owner).HeartHealth,
+                maximumHealth: _database[VariableTypeId.DungeonHeartObjectHealth]) with
+                { ManaEffect = RoomAt(world, world.TileIndex(tile)) is { Definition.TypeId: RoomTypeId.DungeonHeart } room
+                    ? room.Definition.CreatedObjectEffectId : EffectId.None } : null;
 
     private RoomInstance? RoomAt(WorldState world, int tileIndex)
     {
@@ -499,6 +522,9 @@ public sealed partial class WorldView
         }
         return art;
     }
+
+    /// <summary>The native floor projection shared by creatures and view effects.</summary>
+    public Fp32 GroundHeightAt(WorldState world, FpPosition3 point) => CreatureGroundHeight(world, point);
 
     /// <summary>The liquid bank arm of Tile_FloorHeight; ordinary creature floor projection stays unchanged.</summary>
     private Fp32 CreatureGroundHeight(WorldState world, FpPosition3 point)

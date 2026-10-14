@@ -23,6 +23,7 @@ namespace DK2.Simulation.Systems;
 public sealed class TileWorkSystem : ISimulationSystem
 {
     private const string SystemName = "TileWork";
+    private const byte ReinforcedWallTerrainId = 9;
 
     public string Name => SystemName;
 
@@ -58,6 +59,9 @@ public sealed class TileWorkSystem : ISimulationSystem
                 // Anything that made or unmade a room tile, a rival breaking one down, goes
                 // through the chain's own insert and replay.
                 SlabChain.Changed(world, context.Database, order.TileIndex, before, ownerBefore);
+                if (order.Kind == TileWorkKind.AttackTile && result.Outcome == TileWorkOutcome.Destroyed)
+                    WallSupportRules.ReleaseUnsupported(world, context.Database,
+                        new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width));
             }
 
             // Any change of terrain ends a kind-14 task: a claim, a conversion, an attacker. A dig
@@ -80,7 +84,27 @@ public sealed class TileWorkSystem : ISimulationSystem
                 CreatureExperienceSystem.AwardWork(context, worker);
             if ((order.Strike & TileWorkStrike.ClearsWorkerTile) != 0) ClearWorkerTile(context, order);
 
+            if (TileWorkRules.CompletesUpward(order.Kind) && result.Outcome == TileWorkOutcome.Transformed)
+            {
+                EffectId effect = context.Database.TerrainById(before).MaxHealthEffectId;
+                var at = new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width);
+                if (tile.TerrainId == ReinforcedWallTerrainId)
+                {
+                    TilePos[] points = [new(at.X - 1, at.Y), new(at.X, at.Y - 1),
+                        new(at.X + 1, at.Y), new(at.X, at.Y + 1)];
+                    foreach (TilePos point in points)
+                        context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
+                            effect, order.PlayerId, point, new Fp32(0)));
+                }
+                else
+                    context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
+                        effect, order.PlayerId, at, new Fp32(Fp32.One)));
+            }
             PostThreat(context, order, result, before, ownerBefore);
+            if (result.Outcome == TileWorkOutcome.Destroyed && before != tile.TerrainId)
+                context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
+                    context.Database.TerrainById(before).DestroyedEffectId, order.PlayerId,
+                    new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width), new Fp32(Fp32.One)));
             CreditGoldMined(context, order, result.GoldReleased);
             int carried = HandTo(context, order, result.GoldReleased, out int putDown);
             Report(context, order, result, before, world, carried, putDown);
@@ -166,7 +190,8 @@ public sealed class TileWorkSystem : ISimulationSystem
         int efficiency = EfficiencyOf(context, order.WorkerCreatureId);
         TileWorkResult result = order.Kind == TileWorkKind.RepairRoom
             ? RoomHealthRules.Repair(world, database, order.TileIndex, order.PlayerId, efficiency)
-            : RoomHealthRules.Convert(world, database, order.TileIndex, order.PlayerId, efficiency);
+            : RoomHealthRules.Convert(world, database,
+                new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width), order.PlayerId, efficiency, context);
 
         if (result.Outcome == TileWorkOutcome.Transformed && room is not null)
             context.Emit(SystemName, "room_converted",

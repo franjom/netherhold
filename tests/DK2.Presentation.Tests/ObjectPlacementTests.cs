@@ -277,6 +277,30 @@ public class ObjectPlacementTests
         Assert.DoesNotContain(room.View.Objects(room.World), o => o.Id == bed.Id);
     }
 
+    [InstallFact]
+    public void MistressEntersHerBedBeforeTheSleepingCreatureIsDrawn()
+    {
+        Room room = Carve(RoomTypeId.Lair, 3, 3);
+        CreatureDef mistress = room.Database.Creatures.Values.First(c => c.LairObjectId == 23);
+        CreatureState sleeper = room.World.SpawnCreature(room.Database, mistress.CreatureId, Keeper, new TilePos(X0 + 1, Y0 + 1));
+        ObjectState bed = LairRules.PlaceBed(room.World, room.Database, sleeper, room.World.TileIndex(sleeper.Tile));
+        bed.Heading = 512;
+        CreatureStateMachine.TrySetState(new StateHookContext(room.World, room.Database), sleeper, LairRules.SleepingState, currentTick: 0);
+        ObjectView entrance = room.View.Objects(room.World).Single(o => o.Id == bed.Id);
+        Assert.Equal(AssetCatalogue.ObjectArt(room.Database.ObjectById(23)!.Name, 7), entrance.Mesh);
+        Assert.True(entrance.PlaysAnimation);
+        Assert.False(entrance.AnimationLoops);
+        Assert.Equal(new GameTick(0), entrance.AnimationStartedAt);
+        Assert.Equal(512, entrance.Heading);
+        Assert.DoesNotContain(room.View.Creatures(room.World), c => c.Id == sleeper.Id);
+        int hold = AnimationTimingRules.FirstCycleHoldTicks(room.Database.ObjectById(23)!.ArtSlot(7));
+        new GameSimulation(room.Database, room.World, 1, []).Run(hold + 1);
+        Assert.DoesNotContain(room.View.Objects(room.World), o => o.Id == bed.Id);
+        CreatureView sleeping = room.View.Creatures(room.World).Single(c => c.Id == sleeper.Id);
+        Assert.Equal(AssetRef.ForCreature(mistress.Name, AssetKind.Animation, "sleeping"), sleeping.Animation);
+        Assert.True(sleeping.PlaysAnimation);
+    }
+
     /// <summary>A Prison's door and bar stand on its door tile, facing 0x400 (<c>0x004E32C0</c>).</summary>
     [InstallFact]
     public void APrisonStandsItsDoorAndBarOnTheDoorTile()

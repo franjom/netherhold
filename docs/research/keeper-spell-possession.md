@@ -317,7 +317,7 @@ action15 (`FightRules.BeginFreeAim`/`FireFreeAim`; the shot flies flat at the
 point's X/Y), shot type30's refusal and the slot stamp. The follower arm and
 +0x4D0/+0x4D2 are built (ADR-0445), and SneakingAs, hypnosis and SniperMode
 (ADR-0446); the chicken, type 14, action 17 on a Book Case, an Arch Pillar, a shot or
-a body and action 16 at a pillar (ADR-0467); dig and claim (ADR-0468). Not
+a body and action 16 at a pillar (ADR-0468); dig and claim (ADR-0469). Not
 represented: the secret-door cell bit and heights. A slot outside the creature's spells is
 refused by `SpellOf`'s bound; spell level is not tested, as in the listing.
 Approximations: an object's position is its PosX/PosY when either is non-zero,

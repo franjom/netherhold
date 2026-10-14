@@ -18,6 +18,42 @@ namespace DK2.Convert.Tests;
 public sealed class InstallArtProviderTests
 {
     [InstallFact]
+    public void DiggingDebrisResolvesOriginalMeshesAndTexturesThroughEffectKeys()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+        foreach (ushort id in new ushort[] { 7, 8, 9, 10, 11 })
+        {
+            EffectElementDef element = database.EffectElements[id];
+            AssetRef key = AssetRef.ForEffectElement(element.Name);
+            Assert.Contains(key, AssetCatalogue.ForDatabase(database));
+            Assert.True(provider.TryResolve(key, out ResolvedAsset asset), element.Name);
+            Assert.Equal(element.ArtResource.Name + ".kmf", asset.InstallEntry, ignoreCase: true);
+            Assert.True(provider.TryGetResource(asset, out Dk2ArtResource resource));
+            Assert.Equal(5, resource.Type);
+            Assert.True(provider.TryLoadModel(asset, out KmfModel model));
+            Assert.NotEmpty(RenderMesh.FromModel(model).Positions);
+            Assert.Same(model, LoadAgain(provider, asset));
+            string[] textures = model.Materials.SelectMany(material => material.TextureNames).ToArray();
+            Assert.NotEmpty(textures);
+            foreach (string texture in textures)
+            {
+                RgbaImage image = provider.LoadTexture(texture);
+                Assert.True(image.Width > 0 && image.Height > 0);
+            }
+        }
+        Assert.DoesNotContain(AssetRef.ForEffectElement(database.EffectElements[144].Name),
+            AssetCatalogue.ForDatabase(database));
+    }
+
+    private static KmfModel LoadAgain(InstallArtProvider provider, ResolvedAsset asset)
+    {
+        Assert.True(provider.TryLoadModel(asset, out KmfModel model));
+        return model;
+    }
+
+    [InstallFact]
     public void TheDungeonHeartResourceContainsMovingVertices()
     {
         string install = Dk2InstallGate.Path;

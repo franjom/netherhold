@@ -82,9 +82,9 @@ Wheel) and 61 (Electric Chair) the floor art's name gets a `g_` prefix unless
   `0x004B37D0` stops looping only for flag `0x80`, absent here. Rechecked in the
   binary on 2026-10-11. The classic Heart now plays this loop (ADR-0437), for both
   room decorations and represented objects; arches and steps remain static.
-  Its real decoded vertices differ between phases 0 and 0.5. No health-dependent
-  rate or decay selection is implemented. The binary also has the string
-  `Unable to allocate 'Dungeon Heart Object Decay' mesh number %d`: **not followed**.
+  Its real decoded vertices differ between phases 0 and 0.5. The health-dependent
+  pulse, vertical scale and material texture selection are established in
+  heart-health-visuals.md; that document also bounds the separately loaded decay meshes.
 
 ## 4. Position and rotation
 
@@ -192,7 +192,8 @@ creature vtable `+0x278` call on the bed (at `0x0046FAF9`, meaning unread) retur
   angle `(−410·h) & 0x7FF` shifted down 16, no radius; `0x0046FD71..0x0046FDD9`), not in front
   of it.
 - *Mistress bed (object 23):* on the first turn it installs the bed's file art #7
-  `door_opens` and moves the Mistress onto the bed. When that clip ends it sets her draw
+  `door_opens`; normalized 12.12 phase greater than 25 moves the Mistress onto
+  the bed (the shipped clip crosses this on its first advance). When it ends it sets her draw
   bit, clears the bed's, and starts action 24. On waking it goes to state 84.
 - **State 84 is `0x0046FE90`**: the turn handler in table entry 84 (`0x0047D15C` stores
   it; entry 83 holds `0x0046FA60`). It is not a category enter/leave hook. On its first

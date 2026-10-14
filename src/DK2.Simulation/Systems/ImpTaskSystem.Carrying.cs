@@ -95,7 +95,7 @@ public sealed partial class ImpTaskSystem
                 continue;
             }
 
-            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == at, _route)) continue;
+            if (!Reaches(grid, creature, at)) continue;
             if (ObjectHolder(context, creature, index) is { } holder)
             {
                 (long ox, long oy) = PileCentre(world, thing);
@@ -286,6 +286,9 @@ public sealed partial class ImpTaskSystem
 
     // ---------------------------------------------------------------- carrying
 
+    /// <summary>The tiles the bodies of the kind being searched for lie on, reused across searches.</summary>
+    private readonly List<TilePos> _bodyTiles = [];
+
     /// <summary>
     /// Looks for a body to carry: a collapsed creature when
     /// <paramref name="corpses"/> is false, a corpse when it is true.
@@ -312,8 +315,16 @@ public sealed partial class ImpTaskSystem
         _corpseGraveyard = null;
         int graveyard = -1;
 
-        bool found = _pathfinder.TryFindNearest(
-            grid, creature.Tile,
+        // The nearest-first search over the map could only stop on a tile a body of this kind lies
+        // on, and asked every reachable tile on its way there; the flood asks those tiles alone, in
+        // the search's own order, each once where the search could ask a tile again from a stale
+        // heap entry. Asking twice changed nothing: the predicate's posts are retained records,
+        // since the Lair and Prison rows of messages 41-43 all carry a lifetime (ADR-0453).
+        _bodyTiles.Clear();
+        foreach (CreatureState lying in world.Creatures)
+            if (CreatureDeathRules.IsCorpse(lying) == corpses) _bodyTiles.Add(lying.Tile);
+        bool found = Flooded(grid, creature).TryNearest(
+            _bodyTiles,
             at => InScanRange(at)
                   && BodyToCarryAt(context, creature, definition, at, corpses, graveyard) is not null,
             _route);

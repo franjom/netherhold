@@ -92,6 +92,20 @@ player 2 to 3 at 90000. `l1win927b` and `l2win928` show the 4499 step, 21 applic
 | 3×3 | 113 | 23 |
 | ruined 5×5 heart | 313 | — |
 
+**Bridge timing (binary rechecked 2026-10-13).** Action 10, its enemy-room gate
+`0x00454040`, state 18 (`0x00466180`) and the health applier have no bridge-specific
+rate. The shipped `Terrain.kwd` gives Wooden Bridge and Stone Bridge 2000 health
+per slab, Hero Stone Bridge 208. At 80%, four intact ordinary bridge slabs take
+10 rival or 2 neutral applications; four Hero Stone Bridge slabs take 2 or 1.
+The entire connected room changes hands together (Q94). These are application
+counts, not a fresh measurement of bridge animation duration. To test the owner's
+2026-10-13 report of overly fast capture, record the same bridge type, owner,
+connected size and imp rate in both engines, and compare room health deltas and
+action-10 stamps; the existing captures establish cadence for portals, not bridges.
+The reported Level 8 bridge near the keeper's heart matches the four neutral Stone
+Bridge slabs at (35,38), (36,38), (36,37), (37,37): 8000 aggregate health and two
+applications at 80%, pinned by `Level8NeutralStoneBridgeBesideTheHeartTakesTwoApplications`.
+
 ## 4. Demolition, action 11
 
 `0x00497DF0` (not a Ghidra function; entry after `0x00497DE2`'s `RET`, its own SEH frame,

@@ -28,35 +28,38 @@ public sealed class RenderAnimationClock
     private int _duration;
     private int _rate;
     private bool _complete;
-    private (CreatureAnimationTiming Timing, bool Loop, Fp32? Scale)? _pending;
+    private (CreatureAnimationTiming Timing, bool Loop, Fp32? Scale, Fp32? InitialSpeed)? _pending;
 
     public int ResourceRevision { get; private set; }
+    public long CompletedLoops { get; private set; }
 
-    public RenderAnimationClock(CreatureAnimationTiming timing, bool loop, Fp32? authoredMovementScale = null)
+    public RenderAnimationClock(CreatureAnimationTiming timing, bool loop, Fp32? authoredMovementScale = null,
+        Fp32? initialMovementSpeed = null)
     {
-        Install(timing, loop, authoredMovementScale);
+        Install(timing, loop, authoredMovementScale, initialMovementSpeed);
     }
 
     public void Replace(CreatureAnimationTiming timing, bool loop, AnimationReplacement replacement,
-        Fp32? authoredMovementScale = null)
+        Fp32? authoredMovementScale = null, Fp32? initialMovementSpeed = null)
     {
         if (replacement == AnimationReplacement.Deferred && !_complete)
         {
-            _pending = (timing, loop, authoredMovementScale);
+            _pending = (timing, loop, authoredMovementScale, initialMovementSpeed);
             _loop = false;
             return;
         }
-        Install(timing, loop, authoredMovementScale);
+        Install(timing, loop, authoredMovementScale, initialMovementSpeed);
         ResourceRevision++;
     }
 
-    private void Install(CreatureAnimationTiming timing, bool loop, Fp32? authoredMovementScale)
+    private void Install(CreatureAnimationTiming timing, bool loop, Fp32? authoredMovementScale, Fp32? initialMovementSpeed)
     {
         _timing = timing;
         _loop = loop && (timing.Flags & StopLooping) == 0;
         _authoredMovementScale = authoredMovementScale;
-        _movementSpeed = authoredMovementScale.HasValue ? new Fp32(One) : null;
+        _movementSpeed = authoredMovementScale.HasValue ? initialMovementSpeed ?? new Fp32(One) : null;
         _pending = null;
+        CompletedLoops = 0;
         _phase = _previousPhase = 0;
         _complete = false;
         _segment = Has(CreatureAnimationFlags.StartSegment) ? AnimationSegment.Start : AnimationSegment.Main;
@@ -102,7 +105,7 @@ public sealed class RenderAnimationClock
         }
         if (_segment == AnimationSegment.Main)
         {
-            if (_loop) { _phase -= One; return; }
+            if (_loop) { _phase -= One; CompletedLoops++; return; }
             if (Has(CreatureAnimationFlags.EndSegment))
             {
                 Transition(AnimationSegment.End);
@@ -115,7 +118,7 @@ public sealed class RenderAnimationClock
         if (_pending.HasValue)
         {
             var pending = _pending.Value;
-            Install(pending.Timing, pending.Loop, pending.Scale);
+            Install(pending.Timing, pending.Loop, pending.Scale, pending.InitialSpeed);
             ResourceRevision++;
         }
     }

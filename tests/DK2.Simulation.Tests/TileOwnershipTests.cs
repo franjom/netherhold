@@ -182,7 +182,7 @@ public class TileOwnershipTests
 
         ref TileState tile = ref world.Tile(at);
         for (int i = 0; i < 100 && tile.OwnerPlayerId != Keeper; i++)
-            RoomHealthRules.Convert(world, Db, (at.Y * world.Width) + at.X, Keeper);
+            RoomHealthRules.Convert(world, Db, at, Keeper);
 
         Assert.Equal(Keeper, world.Tile(at).OwnerPlayerId);
         Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, world.Tile(at).TerrainId);

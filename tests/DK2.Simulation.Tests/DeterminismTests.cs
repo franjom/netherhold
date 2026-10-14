@@ -4,7 +4,9 @@
 
 using System.Linq;
 using DK2.Data.Model;
+using DK2.Core;
 using DK2.Simulation;
+using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
@@ -90,6 +92,62 @@ public class DeterminismTests
         Assert.NotEmpty(sink.Events);
     }
 
+    /// <summary>A profiler is observation, as an event sink is. The run is the real systems with
+    /// an imp digging three walls, so the navigation and ImpTask spans are opened, not only the
+    /// tick's: a profiler that changed state there would show up here and nowhere else.</summary>
+    [Fact]
+    public void Profiling_DoesNotAffectState()
+    {
+        GameSimulation quiet = DiggingImp();
+        GameSimulation profiled = DiggingImp();
+        var profiler = new RecordingProfiler();
+        profiled.ProfileWith(profiler);
+
+        for (int t = 0; t < 300; t++)
+        {
+            quiet.Tick();
+            profiled.Tick();
+            Assert.True(quiet.StateHash() == profiled.StateHash(), $"profiling changed the run at {quiet.CurrentTick}");
+        }
+
+        Assert.Equal(0, profiler.Depth);
+        Assert.Equal(300, profiler.Calls(SimulationMarkers.Tick));
+        Assert.True(profiler.Calls(SimulationMarkers.NavBuild) > 1, "the walls were dug, so the mesh was rebuilt");
+        Assert.True(profiler.Calls(SimulationMarkers.NavRoute) > 0);
+        Assert.True(profiler.Calls(SimulationMarkers.ImpJob) > 0);
+        Assert.Equal(300, profiler.Calls(SimulationMarker.Named(new ImpTaskSystem().Name)));
+    }
+
+    private static GameSimulation DiggingImp()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
+        foreach (TilePos wall in new[] { new TilePos(4, 2), new TilePos(5, 2), new TilePos(1, 4) })
+            world.Tile(wall).SetTaggedBy(PlayerIds.FirstKeeper, true);
+        return new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems());
+    }
+
+    /// <summary>Counts each marker's spans and fails on one that ends out of order.</summary>
+    private sealed class RecordingProfiler : ISimulationProfiler
+    {
+        private readonly Stack<SimulationMarker> _open = new();
+        private readonly Dictionary<SimulationMarker, int> _calls = [];
+
+        public int Depth => _open.Count;
+
+        public int Calls(SimulationMarker marker) => _calls.GetValueOrDefault(marker);
+
+        public void Begin(SimulationMarker marker) => _open.Push(marker);
+
+        public void End(SimulationMarker marker)
+        {
+            Assert.Same(marker, _open.Pop());
+            _calls[marker] = Calls(marker) + 1;
+        }
+    }
+
     [Fact]
     public void StateHash_IsStableAcrossBuildsAndMachines()
     {
@@ -102,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 244: possessed dig and claim, work-order multiplier and strike (ADR-0468).
+        // HashVersion 244: possessed dig and claim, work-order multiplier and strike (ADR-0469).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x756053ADDCC60CBCUL, sim.StateHash());
+        Assert.Equal(0x2B86A02DFCAA09DEUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

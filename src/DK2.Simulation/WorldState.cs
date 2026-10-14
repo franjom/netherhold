@@ -606,6 +606,14 @@ public readonly record struct HandItem(HandItemKind Kind, int Id)
 public sealed class WorldState
 {
     private readonly TileState[] _tiles;
+
+    /// <summary>The last structure mask computed for this world (<see cref="StructureBlocks.For"/>).
+    /// Derived state, never saved or hashed.</summary>
+    internal StructureBlocks.Cache StructureCache { get; } = new();
+
+    /// <summary>The last whole-map room sweep for this world (<see cref="RoomIndex.Build(WorldState, GameDatabase)"/>).
+    /// Derived state, never saved or hashed.</summary>
+    internal RoomIndex.Cache RoomSweepCache { get; } = new();
     internal const int TremorSlotCount = 8;
     internal TremorState[] TremorSlots { get; } = new TremorState[TremorSlotCount];
     public IReadOnlyList<TremorState> Tremors => TremorSlots;
@@ -679,8 +687,13 @@ public sealed class WorldState
 
     public ref TileState Tile(TilePos p) => ref Tile(p.X, p.Y);
     public int TileIndex(TilePos p) => (p.Y * Width) + p.X;
+    public TilePos TilePosition(int index) => new(index % Width, index / Width);
 
     public ref TileState TileAtIndex(int index) => ref _tiles[index];
+
+    /// <summary>Every tile, read-only, for a reader that compares the whole map at once rather
+    /// than tile by tile. No route back into state: the span cannot be written.</summary>
+    public ReadOnlySpan<TileState> Tiles => _tiles;
 
     public bool Contains(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height;
     public bool Contains(TilePos p) => Contains(p.X, p.Y);
@@ -782,6 +795,7 @@ public sealed class WorldState
         if (player.HeartHealth <= 0) return false;
         player.HeartLastAttackerPlayerId = attackerPlayerId.Value;
         player.HeartHealth -= amount;
+        HeartHealthChanged?.Invoke(new HeartHealthChange(playerId, player.HeartHealth));
         if (player.HeartHealth > 0) return false;
 
         player.HeartHealth = 0;
@@ -798,7 +812,11 @@ public sealed class WorldState
         ref PlayerState player = ref Player(playerId);
         player.HeartLastAttackerPlayerId = playerId.Value;
         player.HeartHealth += amount;
+        HeartHealthChanged?.Invoke(new HeartHealthChange(playerId, player.HeartHealth));
     }
+
+    /// <summary>Observation only; health changes request the original extra animation advance.</summary>
+    public event Action<HeartHealthChange>? HeartHealthChanged;
 
     /// <summary>Whether <paramref name="playerId"/> counts <paramref name="otherId"/> a friend —
     /// the original's <c>0x004BF3D0</c>, which answers yes for the same player without reading

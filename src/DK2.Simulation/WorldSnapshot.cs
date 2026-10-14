@@ -756,6 +756,8 @@ public static class WorldSnapshot
             w.Write(record.Active);
             w.Write(record.Repeat);
         }
+
+        simulation.Navigation.Write(w);
     }
 
     public static byte[] ToBytes(GameSimulation simulation)
@@ -1454,7 +1456,9 @@ public static class WorldSnapshot
         for (int i = 0; i < triggerRecordCount; i++)
             world.Triggers.RestoreRecord(r.ReadInt32(), r.ReadUInt16(), r.ReadBoolean(), r.ReadByte());
 
-        return new GameSimulation(database, world, rng, systems, triggers);
+        var simulation = new GameSimulation(database, world, rng, systems, triggers);
+        simulation.Navigation.Read(r);
+        return simulation;
     }
 
     public static GameSimulation FromBytes(

@@ -20,8 +20,8 @@ public sealed partial class NavMesh
         var mesh = new NavMesh();
         mesh.Reset(CanvasMin, CanvasMin, CanvasMax, CanvasMax);
         mesh.InsertRectangle(0, 0, grid.Width, grid.Height, NavBytes.Floor);
-        mesh.InsertRectangles(grid);
-        mesh.Coarsen();
+        mesh.InsertRectangles(grid, 0, 0, grid.Width, grid.Height, skipFloor: true);
+        mesh.CoarsenRectangle(0, 0, grid.Width, grid.Height);
         return mesh;
     }
 
@@ -29,32 +29,35 @@ public sealed partial class NavMesh
     /// topmost uncovered row, extend right while the byte matches and the column is uncovered,
     /// then down while the whole row segment matches. The original keeps coverage as a per-column
     /// skyline word, which is the same partition as our covered array because every rectangle is
-    /// laid against that skyline.</summary>
-    private void InsertRectangles(INavByteGrid grid)
+    /// laid against that skyline. It runs over the tiles <paramref name="x0"/>..<paramref name="x1"/> by
+    /// <paramref name="y0"/>..<paramref name="y1"/> (exclusive far corners): a partial rebuild runs it
+    /// over its rectangle with the skyline reset to the rectangle's top, inserting every rectangle;
+    /// the whole-map build over the map, skipping byte 0, which its base rectangle stamped.</summary>
+    private void InsertRectangles(INavByteGrid grid, int x0, int y0, int x1, int y1, bool skipFloor)
     {
-        int w = grid.Width, h = grid.Height;
-        var covered = new bool[w * h];
+        int w = grid.Width;
+        var covered = new bool[w * grid.Height];
 
-        for (int y0 = 0; y0 < h; y0++)
+        for (int ry = y0; ry < y1; ry++)
         {
-            for (int x0 = 0; x0 < w; x0++)
+            for (int rx = x0; rx < x1; rx++)
             {
-                if (covered[(y0 * w) + x0]) continue;
-                byte nav = grid.NavByte(x0, y0);
+                if (covered[(ry * w) + rx]) continue;
+                byte nav = grid.NavByte(rx, ry);
 
-                int x1 = x0;
-                while (x1 + 1 < w && !covered[(y0 * w) + x1 + 1] && grid.NavByte(x1 + 1, y0) == nav) x1++;
+                int ex = rx;
+                while (ex + 1 < x1 && !covered[(ry * w) + ex + 1] && grid.NavByte(ex + 1, ry) == nav) ex++;
 
-                int y1 = y0;
-                while (y1 + 1 < h && RowMatches(grid, covered, x0, x1, y1 + 1, nav)) y1++;
+                int ey = ry;
+                while (ey + 1 < y1 && RowMatches(grid, covered, rx, ex, ey + 1, nav)) ey++;
 
-                for (int y = y0; y <= y1; y++)
-                    for (int x = x0; x <= x1; x++)
+                for (int y = ry; y <= ey; y++)
+                    for (int x = rx; x <= ex; x++)
                         covered[(y * w) + x] = true;
 
-                if (nav == NavBytes.Floor) continue;
-                InsertRectangle(x0, y0, x1 + 1, y1 + 1, nav);
-                Coarsen();
+                if (skipFloor && nav == NavBytes.Floor) continue;
+                InsertRectangle(rx, ry, ex + 1, ey + 1, nav);
+                CoarsenRectangle(rx, ry, ex + 1, ey + 1);
             }
         }
     }
@@ -121,12 +124,7 @@ public sealed partial class NavMesh
     private int _fillGeneration;
     private readonly List<int> _fill = [];
 
-    private void Stamp(int t, byte nav)
-    {
-        if (_nav[t] == nav) return;
-        _nav[t] = nav;
-        Touch(t);
-    }
+    private void Stamp(int t, byte nav) => _nav[t] = nav;
 
     private bool AllInside(int t, int x0, int y0, int x1, int y1) =>
         Inside(Vertex(t, 0), x0, y0, x1, y1) && Inside(Vertex(t, 1), x0, y0, x1, y1)
@@ -139,9 +137,10 @@ public sealed partial class NavMesh
     /// other collecting every edge the segment crosses, recursing where it passes through a
     /// vertex, then flip the crossed edges. The order is Sloan's, not the original's unread one
     /// (ADR-0157 residual): a crossed edge whose quad is not convex waits at the back of the
-    /// queue, and a new diagonal that still crosses the segment joins it. Once the segment is an
-    /// edge it is marked a constraint on both sides, which the flip will later refuse to cross.
-    /// Both ends must already be vertices.</summary>
+    /// queue, and a new diagonal that still crosses the segment joins it. No constraint bit is set:
+    /// the original's whole-map build carries none, and the byte test alone keeps the boundary
+    /// (§2.2); only the partial rebuild's side marker sets them. Both ends must already be
+    /// vertices.</summary>
     public void InsertConstraint(int pa, int pb)
     {
         if (pa == pb) return;
@@ -157,8 +156,7 @@ public sealed partial class NavMesh
             int i = IndexOf(t, pa);
 
             int v1 = Vertex(t, (i + 1) % 3), v2 = Vertex(t, (i + 2) % 3);
-            if (v1 == pb) { MarkConstraint(t, i); return; }
-            if (v2 == pb) { MarkConstraint(t, (i + 2) % 3); return; }
+            if (v1 == pb || v2 == pb) return;
 
             int o1 = Orient(ax, ay, bx, by, _px[v1], _py[v1]);
             int o2 = Orient(ax, ay, bx, by, _px[v2], _py[v2]);
@@ -175,7 +173,6 @@ public sealed partial class NavMesh
         for (int steps = 0; ; steps++)
         {
             if (steps > _triCount) throw new InvalidOperationException($"constraint {pa}->{pb} never reaches its end");
-            if (IsConstraint(cur, edge)) throw new InvalidOperationException($"constraint {pa}->{pb} crosses an existing constraint");
             int v1 = Vertex(cur, edge), v2 = Vertex(cur, (edge + 1) % 3);
             _crossed.Add((v1, v2));
 
@@ -199,10 +196,10 @@ public sealed partial class NavMesh
             (int v1, int v2) = _crossed[head++];
             int t = TriangleWithEdge(v1, v2, out int e);
             if (!TryFlip(t, e, out int c, out int d)) { _crossed.Add((v1, v2)); continue; }
-            if ((c == pa && d == pb) || (c == pb && d == pa)) { MarkConstraint(t, EdgeBetween(t, c, d)); return; }
+            if ((c == pa && d == pb) || (c == pb && d == pa)) return;
             if (Crosses(ax, ay, bx, by, c, d)) _crossed.Add((c, d));
         }
-        throw new InvalidOperationException($"constraint {pa}->{pb} left no edge to mark");
+        throw new InvalidOperationException($"constraint {pa}->{pb} never became an edge");
     }
 
     private readonly List<(int, int)> _crossed = [];
@@ -241,182 +238,135 @@ public sealed partial class NavMesh
         return -1;
     }
 
-    /// <summary>The original's flip (`0x004C9FC0`): refuse across a constraint or when the quad is
-    /// not convex; otherwise the two triangles trade their shared edge for the other diagonal,
-    /// which comes back as <paramref name="c"/>–<paramref name="d"/>.</summary>
+    /// <summary>The original's flip (`0x004C9FC0`): refuse across a constraint; then, before the
+    /// convexity test, move the constraint bits as the flip will need them, so a flip refused as
+    /// non-convex leaves them moved (the original's order, kept: the degree reduction tries flips
+    /// around a fan and steps on when refused); then refuse a quad whose shared edge's ends are not
+    /// strictly on opposite sides of the line through the apexes; otherwise the two triangles trade
+    /// their shared edge for the other diagonal, rewritten in place. The original keeps the start of
+    /// its edge in <c>t</c>; its edge is ours reversed, so ours keeps the end <c>b</c> of edge
+    /// <c>k</c> and the apex <c>c</c> in <c>t</c>, writing <c>u</c>'s apex over <c>a</c>, and <c>u</c>
+    /// keeps <c>a</c> and its apex, taking <c>c</c> over <c>b</c> (the translation in NavMesh.Edit.cs).
+    /// The new diagonal comes back as <paramref name="c"/>–<paramref name="d"/>.</summary>
     public bool TryFlip(int t, int edge) => TryFlip(t, edge, out _, out _);
 
-    public bool TryFlip(int t, int edge, out int c, out int d) => TryFlip(t, edge, true, out c, out d);
-
-    private bool TryFlip(int t, int edge, bool respectConstraints, out int c, out int d)
+    public bool TryFlip(int t, int k, out int c, out int d)
     {
         c = d = -1;
-        int u = Neighbour(t, edge);
-        if (u == NoNeighbour || (respectConstraints && IsConstraint(t, edge))) return false;
+        int u = Neighbour(t, k);
+        if (u == NoNeighbour || IsConstraint(t, k)) return false;
+        int j = SlotToward(u, t);
+        if (IsConstraint(u, j)) return false;
 
-        int a = Vertex(t, edge), b = Vertex(t, (edge + 1) % 3);
-        c = Vertex(t, (edge + 2) % 3);
-        int j = EdgeIndexOf(u, b, a);
-        d = Vertex(u, (j + 2) % 3);
+        // The original clears each triangle's next edge (its diagonal to be) and moves the other
+        // outer edge's bit onto the shared slot; its next edges are our previous ones.
+        bool tPrev = IsConstraint(t, Prev(k)), uPrev = IsConstraint(u, Prev(j));
+        SetConstraint(t, Prev(k), false);
+        SetConstraint(u, Prev(j), false);
+        SetConstraint(t, k, uPrev);
+        SetConstraint(u, j, tPrev);
 
-        // Convex iff c and d lie on opposite sides of (a, b) and a and b on opposite sides of (c, d).
+        int a = Vertex(t, k), b = Vertex(t, Next(k));
+        c = Vertex(t, Prev(k));
+        d = Vertex(u, Prev(j));
         if (Orient(_px[c], _py[c], _px[d], _py[d], _px[a], _py[a]) *
             Orient(_px[c], _py[c], _px[d], _py[d], _px[b], _py[b]) >= 0) return false;
 
-        int nBc = Neighbour(t, (edge + 1) % 3), nCa = Neighbour(t, (edge + 2) % 3);
-        int nAd = Neighbour(u, (j + 1) % 3), nDb = Neighbour(u, (j + 2) % 3);
-        bool cBc = IsConstraint(t, (edge + 1) % 3), cCa = IsConstraint(t, (edge + 2) % 3);
-        bool cAd = IsConstraint(u, (j + 1) % 3), cDb = IsConstraint(u, (j + 2) % 3);
-        byte navT = _nav[t], navU = _nav[u];
-
-        // t becomes (a, d, c); u becomes (d, b, c). Shared edge is now (d, c) / (c, d).
-        SetVertices(t, a, d, c);
-        SetVertices(u, d, b, c);
-        _constraint[t] = 0; _constraint[u] = 0;
-        _nav[t] = navT; _nav[u] = navU;
-        Link(t, EdgeIndexOf(t, a, d), nAd); SetConstraint(t, EdgeIndexOf(t, a, d), cAd);
-        Link(t, EdgeIndexOf(t, c, a), nCa); SetConstraint(t, EdgeIndexOf(t, c, a), cCa);
-        Link(u, EdgeIndexOf(u, d, b), nDb); SetConstraint(u, EdgeIndexOf(u, d, b), cDb);
-        Link(u, EdgeIndexOf(u, b, c), nBc); SetConstraint(u, EdgeIndexOf(u, b, c), cBc);
-        Link(t, EdgeIndexOf(t, d, c), u);
+        // t becomes (d, b, c): its slot k holds the segment d-b that was u's previous edge, its
+        // previous slot the new diagonal (c, d). u becomes (c, a, d): its slot j holds c-a, which was
+        // t's previous edge, and its previous slot the diagonal (d, c).
+        int nDb = Neighbour(u, Prev(j)), nCa = Neighbour(t, Prev(k));
+        SetVertex(t, k, d);
+        SetVertex(u, j, c);
+        _n[(3 * t) + k] = nDb;
+        if (nDb != NoNeighbour) _n[(3 * nDb) + SlotToward(nDb, u)] = t;
+        _n[(3 * t) + Prev(k)] = u;
+        _n[(3 * u) + j] = nCa;
+        if (nCa != NoNeighbour) _n[(3 * nCa) + SlotToward(nCa, t)] = u;
+        _n[(3 * u) + Prev(j)] = t;
+        _pointTri[b] = t; _pointTri[c] = t; _pointTri[a] = u; _pointTri[d] = u;
         return true;
     }
 
-    /// <summary>The coarsening pass (`0x004CC650`): walk the mesh flipping every edge the
-    /// criterion accepts until none is left. The original walks it as a flood fill from the
-    /// rebuilt rectangle's corners, stamped by a generation counter, and never enters a solid
-    /// triangle (`0x004CC75E` and its two copies test bit 3 of a neighbour's byte); ours sweeps
-    /// the slots instead, which reaches the same triangles for a whole-map rebuild.
-    /// <para>The sweep is in slot order, a pass at a time until a pass flips nothing, and that is
-    /// the order kept here; only which slots are looked at is narrowed. A triangle can offer a flip
-    /// only if it or a neighbour was written since the last Coarsen, which left none to offer. Within
-    /// a pass, a flip at <c>t</c> changes what <c>t</c>, the triangle across and their neighbours
-    /// offer: the sweep would still reach those above <c>t</c> in this pass, and all of them in the
-    /// next.</para></summary>
-    public void Coarsen()
+    // The flood's stamp per triangle slot, by generation; the stack it walks.
+    private int[] _floodStamp = [];
+    private int _floodGeneration;
+    private readonly List<int> _flood = [];
+
+    /// <summary>The original's coarsening (`0x004CC650`) over one rectangle: a depth-first flood
+    /// seeded from the rectangle's four corners (`0x004CC3D0`: the triangle under the corner, its
+    /// neighbours in slot order, then the rest of the corner's fan), each triangle once per
+    /// generation and never a solid one. A popped triangle's edges 0, 1, 2 are tried against
+    /// <see cref="ShouldFlip"/>; on a hit the flip is made (its result ignored, as the original
+    /// ignores it), the triangle's live, unstamped, non-solid neighbours are pushed, and the next
+    /// edge of the same, by then rewritten, triangle follows. After a hit the flood **gives up** once
+    /// the stack holds about 996 entries, keeping the flip just made. Returns the hit count.</summary>
+    public int CoarsenRectangle(int x0, int y0, int x1, int y1)
     {
-        _pass.Clear();
-        foreach (int t in _touched)
+        if (_floodStamp.Length < _nav.Length) Array.Resize(ref _floodStamp, _nav.Length);
+        if (++_floodGeneration == int.MaxValue)
         {
-            AddToNext(t);
-            for (int i = 0; i < 3; i++) AddToNext(Neighbour(t, i));
+            Array.Clear(_floodStamp, 0, _floodStamp.Length);
+            _floodGeneration = 1;
         }
-        foreach (int t in _touched) _touchedMark[t] = false;
-        _touched.Clear();
+        _flood.Clear();
+        Seed(x0, y0);
+        Seed(x0, y1);
+        Seed(x1, y0);
+        Seed(x1, y1);
 
-        while (_next.Count > 0)
+        // The original's edges 0, 1, 2 are our edges 2, 1, 0 (the translation in NavMesh.Edit.cs),
+        // and so are the neighbours it pushes.
+        int hits = 0;
+        while (_flood.Count > 0)
         {
-            foreach (int t in _next) { _inNext[t] = false; _pass.Push(t); }
-            _next.Clear();
-
-            bool flipped = false;
-            while (_pass.TryPop(out int t))
+            int t = _flood[_flood.Count - 1];
+            _flood.RemoveAt(_flood.Count - 1);
+            for (int k = 2; k >= 0; k--)
             {
-                if (!IsTriangleLive(t) || NavBytes.IsSolid(_nav[t])) continue;
-                for (int i = 0; i < 3; i++)
-                {
-                    if (!ShouldFlip(t, i)) continue;
-                    int u = Neighbour(t, i);
-                    if (!TryFlip(t, i, false, out _, out _)) continue;
-                    flipped = true;
-                    Affected(t, t);
-                    Affected(u, t);
-                    for (int k = 0; k < 3; k++)
-                    {
-                        Affected(Neighbour(t, k), t);
-                        Affected(Neighbour(u, k), t);
-                    }
-                    break;
-                }
+                if (!ShouldFlip(t, k)) continue;
+                hits++;
+                TryFlip(t, k);
+                if (_flood.Count + 4 > 999) return hits;
+                for (int i = 2; i >= 0; i--) PushFlood(Neighbour(t, i));
             }
-            if (!flipped) break;
         }
-
-        foreach (int t in _next) _inNext[t] = false;
-        _next.Clear();
-        foreach (int t in _touched) _touchedMark[t] = false;
-        _touched.Clear();
+        return hits;
     }
 
-    private readonly SlotHeap _pass = new();
-    private readonly List<int> _next = [];
-    private bool[] _inNext = [];
-
-    private void AddToNext(int t)
+    private void PushFlood(int t)
     {
-        if (t == NoNeighbour) return;
-        if (_inNext.Length < _triCount) Array.Resize(ref _inNext, _nav.Length);
-        if (_inNext[t]) return;
-        _inNext[t] = true;
-        _next.Add(t);
+        if (t == NoNeighbour || !IsTriangleLive(t) || _floodStamp[t] == _floodGeneration || NavBytes.IsSolid(_nav[t])) return;
+        _floodStamp[t] = _floodGeneration;
+        _flood.Add(t);
     }
 
-    /// <summary>A triangle a flip at <paramref name="at"/> changed: looked at again in the next
-    /// pass, and in this one too when the sweep has not reached it yet.</summary>
-    private void Affected(int t, int at)
+    /// <summary>`0x004CC3D0`: the corner's triangle, its three neighbours, then its fan.</summary>
+    private void Seed(int x, int y)
     {
-        if (t == NoNeighbour) return;
-        AddToNext(t);
-        if (t > at) _pass.Push(t);
-    }
-
-    /// <summary>Slots in ascending order, each at most once: the order a sweep reaches them.</summary>
-    private sealed class SlotHeap
-    {
-        private int[] _items = new int[64];
-        private bool[] _held = new bool[64];
-        private int _count;
-
-        public void Clear()
+        int t = Locate(x * UnitsPerTile, y * UnitsPerTile);
+        if (t < 0) return;
+        PushFlood(t);
+        for (int i = 2; i >= 0; i--) PushFlood(Neighbour(t, i));
+        if (!TryLocateVertex(x, y, out int start, out int slot)) return;
+        int prev = start;
+        int nb = Neighbour(start, EdgeLeaving(slot));
+        while (nb != NoNeighbour)
         {
-            for (int i = 0; i < _count; i++) _held[_items[i]] = false;
-            _count = 0;
-        }
-
-        public void Push(int slot)
-        {
-            if (slot >= _held.Length) Array.Resize(ref _held, Math.Max(slot + 1, _held.Length * 2));
-            if (_held[slot]) return;
-            _held[slot] = true;
-            if (_count == _items.Length) Array.Resize(ref _items, _items.Length * 2);
-            int i = _count++;
-            while (i > 0)
-            {
-                int parent = (i - 1) / 2;
-                if (_items[parent] <= slot) break;
-                _items[i] = _items[parent];
-                i = parent;
-            }
-            _items[i] = slot;
-        }
-
-        public bool TryPop(out int slot)
-        {
-            if (_count == 0) { slot = -1; return false; }
-            slot = _items[0];
-            _held[slot] = false;
-            int last = _items[--_count];
-            int i = 0;
-            while (true)
-            {
-                int child = (2 * i) + 1;
-                if (child >= _count) break;
-                if (child + 1 < _count && _items[child + 1] < _items[child]) child++;
-                if (_items[child] >= last) break;
-                _items[i] = _items[child];
-                i = child;
-            }
-            if (_count > 0) _items[i] = last;
-            return true;
+            int back = SlotToward(nb, prev);
+            PushFlood(nb);
+            if (nb == start) return;
+            prev = nb;
+            nb = Neighbour(nb, EdgeLeaving(back));
         }
     }
 
     /// <summary>`0x004CC190`: an edge gives way to the quad's other diagonal when both triangles
-    /// carry one navigation byte, the quad is convex (two orientation tests), and the other
-    /// diagonal is <b>strictly shorter</b> in squared length. That, not any in-circle test, is
-    /// what decides every diagonal inside a room. The original also needs bit `edge` of `+0xD` on
-    /// both sides, which a whole-map rebuild always has, and its flip refuses a constraint, which
-    /// a whole-map rebuild never sets (§2.2: the side marker runs on the partial path only).
+    /// carry one navigation byte, the shared edge's ends lie strictly on opposite sides of the line
+    /// through the apexes, and the other diagonal is <b>strictly shorter</b> in squared length. That,
+    /// not any in-circle test, is what decides every diagonal inside a room. The original also needs
+    /// bit `edge` of `+0xD` on both sides, which every edge carries (STRONGLY INFERRED: set by the
+    /// reset, splits and clones, only moved by the flip). Constraint bits are the flip's to refuse.
     /// </summary>
     private bool ShouldFlip(int t, int edge)
     {
@@ -425,20 +375,13 @@ public sealed partial class NavMesh
 
         int a = Vertex(t, edge), b = Vertex(t, (edge + 1) % 3);
         int c = Vertex(t, (edge + 2) % 3);
-        int d = Vertex(u, (EdgeIndexOf(u, b, a) + 2) % 3);
+        int d = Vertex(u, Prev(SlotToward(u, t)));
         if (Orient(_px[c], _py[c], _px[d], _py[d], _px[a], _py[a]) *
             Orient(_px[c], _py[c], _px[d], _py[d], _px[b], _py[b]) >= 0) return false;
 
         long nx = _px[d] - _px[c], ny = _py[d] - _py[c];
         long ox = _px[b] - _px[a], oy = _py[b] - _py[a];
         return (nx * nx) + (ny * ny) < (ox * ox) + (oy * oy);
-    }
-
-    private void MarkConstraint(int t, int i)
-    {
-        SetConstraint(t, i, true);
-        int u = Neighbour(t, i);
-        if (u != NoNeighbour) SetConstraint(u, EdgeIndexOf(u, Vertex(t, (i + 1) % 3), Vertex(t, i)), true);
     }
 
     private bool Ahead(int pa, int pb, int v)

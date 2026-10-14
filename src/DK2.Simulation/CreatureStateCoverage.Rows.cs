@@ -92,7 +92,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(76, typeof(LevelPlacedCreatureRules), nameof(LevelPlacedCreatureRules.Land)));
         rows.Add(Built(77, typeof(SlapRules), nameof(SlapRules.ReactionState)));
         rows.Add(Unbuilt(78, "not read"));
-        rows.Add(Unbuilt(79, "read in lair-acquisition.md 9; not built"));
+        rows.Add(Built(79, typeof(LairRules), nameof(LairRules.SelectingBedState)));
         rows.Add(Built(80, typeof(LairRules), nameof(LairRules.MakingAHomeState)));
         rows.Add(Built(81, typeof(LairRules), nameof(LairRules.GoingToBedState)));
         rows.Add(Built(82, typeof(LairRules), nameof(LairRules.LyingDownState)));

@@ -6,8 +6,8 @@ actions (Stage7b)", which holds the packet layout, the melee pick, the spell sca
 what Stage7b2 built. Each function's record in `functions/` holds the read's scope.
 Variable 19 (`0x006F2590`) is the level's TicksPerSecond.
 
-Built: §1–2 objects, pillars, shots and bodies (ADR-0467), §3 dig and claim (ADR-0468)
-and the gem rule (Q587, ADR-0469), §4 followers (ADR-0445) and §5 inputs (ADR-0446);
+Built: §1–2 objects, pillars, shots and bodies (ADR-0468), §3 dig and claim (ADR-0469)
+and the gem rule (Q587, ADR-0470), §4 followers (ADR-0445) and §5 inputs (ADR-0446);
 the build plan is plans/2026-10-12-possession-arms-build-plan.md.
 
 Object types named below: 9 Chicken, 14 Training Dummy, 15 Anvil, 16 Steel Bucket,
@@ -125,11 +125,11 @@ until it returns 0, then holds for the animation; mode 0 ends on that poll.
 The owner (2026-10-12) has seen hero Dwarves dig walls; whether a possessed non-Imp
 digs is not known. Action 5 (`0x00497670`) is claim state 20's convert (imps of any player); its ×MRT branch is reached only by a possessed imp. UNREAD:
 `0x0075AE93`, `0x004ECDB0` (run when a dug tile reaches 0), `0x00455030`, `0x004510C0`.
-Ours (ADR-0468): the press queues `TileWorkSystem` orders, which do the rate, XP,
+Ours (ADR-0469): the press queues `TileWorkSystem` orders, which do the rate, XP,
 GoldMined and the purse-then-floor hand-off; an order carries ×MRT and its strike's
 flags (the non-Imp dig, also the hero tunneller's; action 6's missing XP and its
 trap/door zeroing); `ClaimActionTile` repeats the claim each tick. The gem rule is
-built for every miner (ADR-0469).
+built for every miner (ADR-0470).
 
 ## 4. Followers — CONFIRMED unless marked
 

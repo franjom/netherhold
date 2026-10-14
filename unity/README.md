@@ -39,13 +39,15 @@ the dug-out parts of a level read as dug out. Colour is derived from each asset'
 key, so a terrain is always the same colour; see `PlaceholderProvider`. A tile marked
 for digging is tinted amber, and wall torches are placed by `TorchLayout`.
 
-WASD or the arrow keys pan and the mouse wheel zooms. The left mouse button uses the
-selected tool: `1` tag, `2` untag, `3` build, `4` sell, `5` pick up/drop, `6` slap,
-`7` Create Imp. `[` and `]` select the room used by Build; the Game view displays
+WASD or the arrow keys pan and the mouse wheel zooms. The default Hand (`1` or `5`)
+uses left click to pick up a creature or toggle a diggable tile's excavation tag.
+Left drag applies the inverse of the starting tile's tag state to a rectangle;
+this drag policy is a modern interface choice, not a claim about DK2's exact drag behavior.
+Right click drops the held creature, or slaps a creature when the hand is empty.
+`3` selects Build, `4` Sell, and `7` Create Imp. `[` and `]` select the room used by Build; the Game view displays
 its name. The DungeonRunner Inspector's Selected Room Id dropdown also selects
-rooms by name. Choose Lair to build sleeping space. Drag the four rectangle
-tools; click the other three. These controls are interface choices specified by
-ADR-0104, not claims about the original game.
+rooms by name. Choose Lair to build sleeping space. Drag Build and Sell rectangles;
+click Create Imp. The tool hotkeys are interface choices (ADR-0104).
 
 ## Verifying the adapter without opening Unity
 
@@ -124,7 +126,24 @@ Batcher on, every material in a batch-mode render took one texture (Direct3D 12)
 not yet seen. `UseUrp` must save the renderer asset before the pipeline names it, or URP has
 no default renderer and draws nothing.
 
+## Shaders in a built player
+
+The adapter makes its materials at run time from shaders it finds by name (`ClassicMeshes`,
+`ClassicConstructionEffects`). A player only contains shaders, and shader variants, that some
+asset in the build references, so `Assets/DK2/Resources/Shaders` holds one material per shader
+and keyword set the adapter uses: URP Lit opaque and blended, each with and without emission
+(every one with specular and reflections off), URP Unlit opaque and additive, and the Standard
+and Unlit/Color fallbacks. Anything under Resources is always built. A new keyword on a runtime
+material needs a material here that carries it, or the player draws that material with a
+missing-shader fallback, usually pink. The
+`DK2/ClassicEffect` shader is itself under Resources, which includes every variant (ADR-0455).
+
 ## Measuring performance
+
+`DungeonRunner` runs its ticks on a worker thread after each frame is presented (its
+`tickOnWorkerThread` field, on by default; ADR-0458), so a tick overlaps the frame's rendering
+and the view shows it one frame later. The probe below turns that off so its recorders see the
+tick's own cost on the main thread.
 
 Open **Window → Analysis → Profiler**, restart Play mode, and record the CPU
 Timeline, Rendering, Memory and GPU modules where supported. Leave Deep Profile
@@ -138,11 +157,23 @@ off for baseline captures. The adapter exposes these CPU markers:
 | `DK2.Animation.Clock` | Per-instance phase advancement and segment selection |
 | `DK2.Animation.Sample` | KMF interpolation and Unity vertex conversion |
 | `DK2.Animation.MeshUpload` | Vertex upload and mesh bounds recalculation |
+| `DK2.Frame.Input` | Camera, tool keys and pointer input |
+| `DK2.Simulation.CaptureObjectPositions` | The position snapshot, inside `DK2.Simulation.Tick` |
+| `DK2.Sim.tick` | The tick inside the simulation; below it `DK2.Sim.messages`, `DK2.Sim.triggers` and one marker per system by name (ADR-0444) |
+| `DK2.Sim.nav.refresh` / `nav.build` / `nav.route` | Re-reading the navigation bytes, rebuilding the mesh, one route query |
+| `DK2.Sim.grid.nearest` / `grid.path` | One grid search by ImpTask's pathfinder |
+| `DK2.Sim.ImpTask.*` | ImpTask's phases: claim on the way, wander, carry, job |
+| `DK2.TerrainChunks.Rebuild` | One terrain chunk's mesh, inside `DK2.Scene.Present` |
+| `DK2.TerrainChunks.Geometry` / `Upload` | Inside Rebuild: one changed tile's pieces regenerated (cached tiles are copied), and the chunk mesh set |
+| `DK2.TransparentTerrain.SetChunk` / `Sort` | A chunk's blended faces kept; the per-camera depth sort of all of them |
 
 Nested marker times overlap: do not add child totals to their parent's total.
 Animation markers run once per animated instance; use the Hierarchy aggregate
 to assess crowd cost. Tick count varies per rendered frame; report both tick
-cost and whole-frame cost. These scopes do not change the simulation or its hash.
+cost and whole-frame cost. These scopes do not change the simulation or its hash. At 4 ticks a second most
+frames run no tick: select a spike and read the Hierarchy Calls column for how many
+searches or refreshes it ran. The scenario tests print the same `DK2.Sim.` markers
+without the prefix, with allocations and the worst tick (`RunTimings.Summarise`).
 
 For a repeatable baseline, use Level8, seed 1, speed 1, the same camera,
 resolution, quality settings and fog setting. Capture a quiet Heart view and a

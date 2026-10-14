@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using DK2.Art;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Rendering;
 using NumericsVector3 = System.Numerics.Vector3;
@@ -14,6 +15,9 @@ namespace DK2.Unity
     /// <summary>Blended terrain faces share one camera-depth stream across chunks and materials.</summary>
     public sealed class TransparentTerrain : MonoBehaviour
     {
+        private static readonly ProfilerMarker SetChunkMarker = new ProfilerMarker("DK2.TransparentTerrain.SetChunk");
+        private static readonly ProfilerMarker SortMarker = new ProfilerMarker("DK2.TransparentTerrain.Sort");
+
         private sealed class Source
         {
             public Vector3[] Positions, Normals;
@@ -51,22 +55,52 @@ namespace DK2.Unity
         public void SetChunk(int chunk, List<Vector3> positions, List<Vector3> normals,
             List<Vector2> uvs, Dictionary<Material, List<int>> byMaterial)
         {
+            using ProfilerMarker.AutoScope scope = SetChunkMarker.Auto();
             var materials = new List<Material>();
             var triangles = new List<int[]>();
+
+            // Only the vertices the blended triangles use, renumbered in first-use order: a chunk's
+            // opaque bulk would otherwise be copied here and transformed on every camera turn. The
+            // depth sort breaks ties by triangle order, not vertex number, so drawing is unchanged.
+            _remap.Clear();
+            _keptPositions.Clear(); _keptNormals.Clear(); _keptUvs.Clear();
             foreach (KeyValuePair<Material, List<int>> entry in byMaterial)
                 if (entry.Value.Count != 0 && entry.Key.renderQueue >= (int)RenderQueue.Transparent)
                 {
+                    var kept = new int[entry.Value.Count];
+                    for (int i = 0; i < kept.Length; i++)
+                    {
+                        int vertex = entry.Value[i];
+                        if (!_remap.TryGetValue(vertex, out int local))
+                        {
+                            local = _keptPositions.Count;
+                            _remap.Add(vertex, local);
+                            _keptPositions.Add(positions[vertex]);
+                            _keptNormals.Add(normals[vertex]);
+                            _keptUvs.Add(uvs[vertex]);
+                        }
+                        kept[i] = local;
+                    }
                     materials.Add(entry.Key);
-                    triangles.Add(entry.Value.ToArray());
+                    triangles.Add(kept);
                 }
-            if (triangles.Count == 0) _sources.Remove(chunk);
+            if (triangles.Count == 0)
+            {
+                // A chunk with no blended faces before or after changes nothing drawn here.
+                if (!_sources.Remove(chunk)) return;
+            }
             else _sources[chunk] = new Source
             {
-                Positions = positions.ToArray(), Normals = normals.ToArray(), Uvs = uvs.ToArray(),
+                Positions = _keptPositions.ToArray(), Normals = _keptNormals.ToArray(), Uvs = _keptUvs.ToArray(),
                 Materials = materials.ToArray(), Triangles = triangles.ToArray(),
             };
             _dirty = true;
         }
+
+        private readonly Dictionary<int, int> _remap = new Dictionary<int, int>();
+        private readonly List<Vector3> _keptPositions = new List<Vector3>();
+        private readonly List<Vector3> _keptNormals = new List<Vector3>();
+        private readonly List<Vector2> _keptUvs = new List<Vector2>();
 
         public void Clear()
         {
@@ -106,6 +140,7 @@ namespace DK2.Unity
             Vector3 forward = camera.transform.forward;
             Matrix4x4 matrix = transform.localToWorldMatrix;
             if (!_dirty && forward == _lastForward && matrix == _lastMatrix) return;
+            using ProfilerMarker.AutoScope scope = SortMarker.Auto();
             if (_dirty) Collect();
             _worldPositions.Clear();
             foreach (Vector3 local in _positions)

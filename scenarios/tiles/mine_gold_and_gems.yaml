@@ -9,7 +9,7 @@
 #      collapses to dirt path;
 #   2. a gem face is not - it is impenetrable, and the mine action 0x004971D0
 #      skips the strike on it: no damage, and GoldMinedFromGems (25) on every
-#      strike (Q587, ADR-0469). That is why gems are endless but slow.
+#      strike (Q587, ADR-0470). That is why gems are endless but slow.
 #
 # The gold released is reported and then dropped. Nothing swung: this is work
 # injected straight onto the world, so there are no hands for the gold to go into
