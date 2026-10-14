@@ -6295,7 +6295,7 @@ state-10 choices can be put to our selection in DK2's own world.
    `0x00464400` has five callers (26, 27, the dispatcher's kinds 7 and 15, 76). A
    claimer carries its load on: the Level 1 capture's imp held 1092 through 41 claims
    with room in the heart.
-3. State 27 (`0x00467850`) deposits only full hands, falling back to 10; a part-load
+3. State 27 (`0x00466850`) deposits only full hands, falling back to 10; a part-load
    stays held. The hands test is the level-scaled `MaxGoldHeld`, less variable 74
    (no shipped value). The aimed gold retry deposits a full load (`0x00468520` kind 7).
 4. A kind-15 deposit keeps the last kind (`0x00464005` returns before the zeroing), so
@@ -6720,9 +6720,9 @@ Raises match DK2 to tick 1500 on Level 1: digs 5–11 of 51 (DK2 5–13 of 53), 
 a tick after the fall, DK2's after 2 to 4. HashVersion 146.
 
 ## ADR-0306 — A carrier empties its hands at the store tile it was sent to
-**Date:** 2026-10-01 · **Status:** accepted · Research: `functions/00467AC0.md`, `rooms-and-gold.md`
+**Date:** 2026-10-01 · **Status:** accepted · Research: `functions/00466AC0.md`, `rooms-and-gold.md`
 
-**Context.** State 29 (`0x00467AC0`) hands the room the smaller of the purse and the room's
+**Context.** State 29 (`0x00466AC0`) hands the room the smaller of the purse and the room's
 space, a live Heart measured against 16 × 3000, so at a Heart the hands empty in one visit.
 Ours filled the tile underfoot, kept the rest and walked on, and it put the load down on the
 first store tile it crossed. DK2 walks on to the chain tile its chooser picked: imp 454, from
@@ -8618,7 +8618,7 @@ an imp standing in water was never offered by them.
 
 **Context.** When the walk to a free side fails, `0x0046AEA0` deletes the wall's kind-6 entry
 (`0x00508040`), whether it was just raised or found with other sides held, and tries the next
-side. State 22's handler checks `0x00508070(+0x8A, 6)` at `0x004673C4` whenever no action is
+side. State 22's handler checks `0x00508070(+0x8A, 6)` at `0x004663C4` whenever no action is
 playing (`0x00496D00`: no action id, or 0x15), and on a miss clears `+0x8A` and sets 10 (read
 2026-10-06). So every other imp on that wall loses the task. Ours passed the side over and kept no per-wall entry.
 
@@ -8645,7 +8645,7 @@ only when they fail does the latch and the Workshop search follow.
 ## ADR-0382 — State 27's take stops at the pile that fills the hands
 **Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0288
 
-**Context.** `0x00467850` takes neutral piles, each up to what the hands lack against the
+**Context.** `0x00466850` takes neutral piles, each up to what the hands lack against the
 level-scaled maximum, and stops after the first pile that makes `0x00464360(1)` report full (the
 limit less variable 74, 340). Ours took every pile on the tile up to the full limit, so a part-full
 imp could leave up to 340 heavier.
@@ -8811,7 +8811,7 @@ on the seed rig, against 885ec6d8: Level 1 19/20 both (seed 6 lost before, 8 now
 **Date:** 2026-10-06 · **Status:** accepted · Completes ADR-0382 · Research: `gold-on-the-floor.md` §8, §12
 
 **Context.** The gold handler `0x0046B6D0` walks an imp to the pile's own position (`0x0046B90A`:
-the pile's `+0x1A`, word `0xE8`, resume 27), and state 27 (`0x00467850`) runs when that walk
+the pile's `+0x1A`, word `0xE8`, resume 27), and state 27 (`0x00466850`) runs when that walk
 (state 6, which tests no pile or task) ends, taking only the piles strictly within `0x555` of the
 imp on both axes. Ours walked to the tile centre, took on stepping onto the tile, took every pile
 on it, and abandoned the walk when the tile's gold went. Five captures (Level 1, Level 2 seeds 1
