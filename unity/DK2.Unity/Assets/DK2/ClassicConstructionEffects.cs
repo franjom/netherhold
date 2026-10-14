@@ -32,7 +32,8 @@ namespace DK2.Unity
         private readonly Transform _root;
         private readonly IEffectSpriteProvider _sprites;
         private readonly ClassicMeshes _meshes;
-        private readonly Dictionary<ushort, Group> _groups = new Dictionary<ushort, Group>();
+        /// <summary>One particle system per element definition, and per mesh entry for a group part.</summary>
+        private readonly Dictionary<(ushort, string), Group> _groups = new Dictionary<(ushort, string), Group>();
         public RoomConstructionParticles Model { get; }
 
         public ClassicConstructionEffects(Transform root, GameDatabase database, IEffectSpriteProvider sprites, ulong seed,
@@ -48,7 +49,9 @@ namespace DK2.Unity
             _meshes = meshes;
             Model = new RoomConstructionParticles(database, seed, clock ?? ReadClock, visible, effectVisible, floorHeight,
                 terrainDebrisStyle: TerrainDebrisStyle.Crumbling,
-                captureEffectStyle: CaptureEffectStyle.Edges, captureEdges: captureEdges);
+                captureEffectStyle: CaptureEffectStyle.Edges, captureEdges: captureEdges,
+                heartSparkleStyle: HeartSparkleStyle.PillarHeight,
+                groupParts: meshes != null ? meshes.GroupParts : null);
         }
 
         // A stopwatch rather than Unity's clock: the model's Emit runs on the runner's worker thread
@@ -64,7 +67,7 @@ namespace DK2.Unity
             for (int i = 0; i < Model.Particles.Count; i++)
             {
                 ConstructionParticle source = Model.Particles[i];
-                Group group = For(source.Definition);
+                Group group = For(source.Definition, source.MeshEntry);
                 if (group == null) continue;
                 if (group.Count == group.Buffer.Length) Array.Resize(ref group.Buffer, group.Buffer.Length * 2);
                 group.Buffer[group.Count++] = new ParticleSystem.Particle
@@ -106,14 +109,18 @@ namespace DK2.Unity
             return -rotation.eulerAngles;
         }
 
-        private Group MeshGroup(EffectElementDef definition, AssetRef key)
+        private Group MeshGroup(EffectElementDef definition, string meshEntry, AssetRef key)
         {
-            if (_meshes == null || !_meshes.TryGetMesh(key, out Mesh mesh, out Material[] materials))
+            Mesh mesh = null; Material[] materials = null;
+            bool found = _meshes != null && (meshEntry != null
+                ? _meshes.TryGetMeshEntry(meshEntry, out mesh, out materials)
+                : _meshes.TryGetMesh(key, out mesh, out materials));
+            if (!found)
             {
-                _groups.Add(definition.EffectElementId, null);
+                _groups.Add((definition.EffectElementId, meshEntry ?? ""), null);
                 return null;
             }
-            var go = new GameObject("effect " + definition.Name);
+            var go = new GameObject("effect " + definition.Name + (meshEntry != null ? " " + meshEntry : ""));
             go.transform.SetParent(_root, false);
             var group = new Group { IsMesh = true, System = go.AddComponent<ParticleSystem>() };
             var main = group.System.main;
@@ -130,19 +137,20 @@ namespace DK2.Unity
             renderer.sharedMaterials = materials;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             group.System.Play(); group.System.Pause();
-            _groups.Add(definition.EffectElementId, group);
+            _groups.Add((definition.EffectElementId, meshEntry ?? ""), group);
             return group;
         }
 
-        private Group For(EffectElementDef definition)
+        /// <param name="meshEntry">A group part's mesh entry, drawn in place of the definition's art.</param>
+        private Group For(EffectElementDef definition, string meshEntry)
         {
-            if (_groups.TryGetValue(definition.EffectElementId, out Group existing)) return existing;
+            if (_groups.TryGetValue((definition.EffectElementId, meshEntry ?? ""), out Group existing)) return existing;
             AssetRef key = AssetRef.ForEffectElement(definition.Name);
-            if (definition.ArtResource.Type == 5) return MeshGroup(definition, key);
+            if (meshEntry != null || definition.ArtResource.Type == 5) return MeshGroup(definition, meshEntry, key);
             if (_sprites == null || !_sprites.TryResolve(key, out ResolvedAsset asset)
                 || !_sprites.TryGetSprite(asset, out EffectSpriteResource resource))
             {
-                _groups.Add(definition.EffectElementId, null);
+                _groups.Add((definition.EffectElementId, ""), null);
                 return null;
             }
             Shader shader = Shader.Find("DK2/ClassicEffect");
@@ -192,7 +200,7 @@ namespace DK2.Unity
             renderer.sortMode = ParticleSystemSortMode.Distance;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             group.System.Play(); group.System.Pause();
-            _groups.Add(definition.EffectElementId, group);
+            _groups.Add((definition.EffectElementId, ""), group);
             return group;
         }
 

@@ -82,6 +82,34 @@ while its rising and replacement elements survive.
 
 ## 4. Presentation boundary
 
+**Heights, 2026-10-14 (pending owner comparison).** The Heart object sits at its
+tile's floor, 0 for the Heart's centre piece (`Tile_FloorHeight` `0x004545C0`), one
+tile below the ring floor at `0x1000`. Element 98/100 therefore starts 3200 units
+(0.78 tile) above the pit floor, 0.24 above the `Dungeon centre` mesh's top (0.54),
+and with vertical speed 14336..16384, friction 393, mass 0 and 24 updates it climbs
+about 2.0 tiles to peak at 2.66..2.92 tiles; a death element 99/101 with vertical
+speed up to 8192 peaks at 2.98. The `DHeart Arches` mesh spans 0.54..2.73 above
+the same origin, so the sparkles reach the arches' apex. A re-read of
+`0x004366A0`, `0x00435F20`, `0x00436430`, `0x00435660`, `0x004386F0` and
+`0x004476E0` (2026-10-14) found no scale, clamp or quantum that would start or
+peak them lower; one 0x004476E0 step is taken per view call whatever the delta,
+as ours does. An expired parent (HP 0 after two quanta) stays in the view list
+and still updates its children through `0x00435600`: the cleanup loop `0x0043C041`
+removes it through `0x00440530` → `0x004354F0` only once its child list is empty
+(heart-intro.md §3), so no path shortens a sparkle's life.
+**The owner then checked DK2 (2026-10-14): the sparkles originate down at the
+Heart and dissolve at about the Arch Pillars' height, well below the arches'
+apex.** The reading above does not explain that. A one- to three-step sparkle
+life would (handoff at 0.99..1.36 tiles, flakes peaking 1.0..1.65 and settling on
+the pit floor); so would a vertical scale or offset on the sprite draw side.
+Candidates still unread: the vtable `+0x90` request callee (could adjust the
+spawn Z) and the sprite draw path `0x0059C360`. The owner's second observation (same day): the cloud rises
+steadily and pale flakes drift back down, so the lifecycle (24-step rise, then the
+death flakes) is DK2's and only the height of the rise differs. Built as an owner
+adjustment: `HeartSparkleStyle.PillarHeight` scales a rising sparkle's vertical
+speed to 357/1000 (ADR-0474, Q594); Native stays the default.
+
+
 The shared construction particle model implements death-element replacement,
 parent linkage after emission, the two parent modifiers and falling sway,
 using the shipped definitions and additive sprite resources. Its view RNG
@@ -104,5 +132,5 @@ so this is authored loop completion, not a distinct mana-payment callback.
 
 This branch contains no positive-income or mana-cap test. The mana payment
 `0x004C10E0` has no visual-effect creation; room update `0x004D9A60` requests
-intro effects 223, 225 and 314. Room-type response `0x004E7FE0` has no Heart
+intro effects 223, 225 and 314 (the opening sequence, [heart-intro.md](heart-intro.md)). Room-type response `0x004E7FE0` has no Heart
 type-5 arm. Do not attach effect 59 directly to mana payment.

@@ -10851,3 +10851,52 @@ master 434a966b: 18/5/14/5 against master's 18/4/11/2 (Level 1 changes seeds). L
 1,052 `no_alarm` ends have DK2's shape: 142 are non-Scouts, and 812 of the 907 Imp ends fall
 while another creature's alarm run is under way (`0x004754D0`), as in DK2's capture; the
 other 95 Imp ends and 3 Firefly ends are unexplained.
+
+## ADR-0474 — The Heart's mana sparkles rise to the Arch Pillars, an owner adjustment
+**Date:** 2026-10-14 · **Status:** accepted · Research: heart-mana-effects.md §4
+
+**Context.** The owner watched DK2: the Heart's green sparkles originate at the Heart,
+rise steadily to about the Arch Pillars' top, and pale flakes drift back down. Ours rose
+to the arches' apex, 2.8 tiles over the pit floor. Every link of the chain re-read
+(loader, initializer, origin draw, motion helper, HP quantum, parent lifecycle) and the
+shipped data agree with the 2-tile climb; what lowers DK2's rise is unread (Q594).
+
+**Decision.** `RoomConstructionParticles` takes a `HeartSparkleStyle`. `Native` keeps the
+binary's motion and stays the default; `PillarHeight`, which Unity passes, scales a
+rising sparkle's vertical speed to 357/1000 so the cloud peaks about 1.5 tiles over the
+pit floor (ring floor plus half a tile, the pillars' top as judged from screenshots).
+Flakes keep their native motion. The Heart's effect is found through the Dungeon Heart
+room's `CreatedObjectEffectId`, not a literal id.
+
+**Consequences.** Presentation only: no simulation, save or hash change. The 357 is a
+fit to a screenshot, not a reading; when Q594 is answered the style is to be removed and
+the reading built in its place.
+
+## ADR-0475 — The Heart's opening sequence: plug, burst, arches fading in
+**Date:** 2026-10-14 · **Status:** accepted · Research: heart-intro.md
+
+**Context.** The owner recalled the player's Heart bursting from its tiles at level start,
+creating the arches, then beating. `0x004D9A60`'s first branch is that sequence: from game
+turn 1 (variable 218 ships as 0) the local player's Heart asks for effect 225, whose chain
+draws the plug lid, its light and static, the explosion, the cracked plug, rocks, dust and
+the nine flying plug pieces; seven seconds in it asks for the arches' sparkle ring (314)
+while its Arches and Big Steps, created invisible, gain 32 alpha a turn to 255 at nine.
+The ordinary room frame waits for the sequence. Another keeper's Heart gets none of it.
+
+**Decision.** `HeartIntroRules` posts the requests for every Heart with the owner's tag;
+the Unity runner keeps the owner-only ones (225, 314) for the viewing player. The viewer's
+Arches and Big Steps carry an alpha the view computes from the turn; `ClassicMeshes.SetAlpha`
+hides, blends and restores. The particle model learns what the chain needs from the
+binary: a Next effect created with its parent, a death effect created at removal after the
+last child dies, flag `0x40` generating effects, the `GenerateRandomness` gate, and a group
+art's members flung as elements at birth, each drawing its own mesh (`KmfReader` reads
+GROP). Regeneration and ruin wait for the sequence, as DK2's do (hash 247).
+
+**Consequences.** A Heart hurt in its first nine seconds regenerates nine seconds later than
+before; nothing else in play moves. The model changes reach every type-4 effect: a request
+with flag `0x40` is no longer dropped, every effect's `GenerateRandomness` gates its waves
+(shipped construction and capture effects carry 0), and Next and death effects chain where
+the data names them; presentation only, with the view's own random stream. Not built: the
+two sounds, the lights, the tile redraw, and flag `0x8000`'s fog bypass. The sequence's look
+awaits the owner's comparison.
+

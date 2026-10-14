@@ -13,6 +13,12 @@ public readonly record struct EffectTime(long Milliseconds);
 
 public enum TerrainDebrisStyle { Native, Crumbling }
 
+/// <summary>How high the Dungeon Heart's mana sparkles rise. <see cref="Native"/> is the binary's
+/// motion, a climb of about two tiles to the Heart Arches' apex; <see cref="PillarHeight"/> is the
+/// owner's adjustment after watching DK2 (2026-10-14): the cloud rises steadily to about the Arch
+/// Pillars' top and the flakes drift back down. What lowers DK2's rise is unread (Q594).</summary>
+public enum HeartSparkleStyle { Native, PillarHeight }
+
 public sealed class RoomConstructionParticles : ISimulationEventSink
 {
     private readonly GameDatabase _database;
@@ -25,6 +31,19 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
     private readonly Func<FpPosition3, Fp32> _floorHeight;
     private readonly Func<EffectTime> _clock;
     private readonly HashSet<ushort> _crumblingEffects;
+    private readonly HashSet<ushort> _heartManaEffects;
+    private readonly Func<string, IReadOnlyList<EffectGroupPart>?>? _groupParts;
+
+    /// <summary>The longest Next chain followed from one request (<c>0x00440350</c> loops until a
+    /// zero id; shipped chains are two long). A guard against a data cycle.</summary>
+    private const int LongestChain = 8;
+
+    /// <summary>The owner's rise for a Heart sparkle, in thousandths of the binary's vertical speed
+    /// (ADR-0474). Native: born 3200 above the Heart, 24 updates at 14336..16384 with friction 393
+    /// climb 8237 to peak at 2.79 tiles over the pit floor, the arches' apex. The Arch Pillars top out
+    /// about 1.5 tiles over the pit floor (ring floor plus half a tile, judged from screenshots):
+    /// a climb of 2944, which is 357/1000 of the native one.</summary>
+    private const int HeartSparkleRisePerMille = 357;
     private readonly bool _captureAtEdges;
     private readonly Func<ViewEffectRequest, CaptureEdges>? _captureEdges;
     private long _lastUpdateMilliseconds;
@@ -35,8 +54,15 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         Func<FpPosition3, Fp32>? floorHeight = null,
         TerrainDebrisStyle terrainDebrisStyle = TerrainDebrisStyle.Native,
         CaptureEffectStyle captureEffectStyle = CaptureEffectStyle.Native,
-        Func<ViewEffectRequest, CaptureEdges>? captureEdges = null)
+        Func<ViewEffectRequest, CaptureEdges>? captureEdges = null,
+        HeartSparkleStyle heartSparkleStyle = HeartSparkleStyle.Native,
+        Func<string, IReadOnlyList<EffectGroupPart>?>? groupParts = null)
     {
+        _groupParts = groupParts;
+        _heartManaEffects = heartSparkleStyle == HeartSparkleStyle.PillarHeight
+            ? new HashSet<ushort>(database.Rooms.Values.Where(r => r.TypeId == RoomTypeId.DungeonHeart)
+                .Select(r => r.CreatedObjectEffectId).Where(id => id != 0))
+            : [];
         _database = database;
         _random = new SimRandom(seed);
         _visible = visible;
@@ -73,9 +99,52 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
     {
         if ((_effectVisible != null && !_effectVisible(request))
             || !_database.Effects.TryGetValue(request.EffectId.Value, out EffectDef? definition)
-            || definition.GenerationType != 4 || (definition.Flags & 0x40) != 0) return;
+            || definition.GenerationType != 4) return;
         AdvanceTo(_clock());
-        _emitters.Add(CreateEmitter(definition, request));
+        AddEmitterChain(definition, request);
+    }
+
+    /// <summary>An effect instance and, created with it, its Next effects (<c>0x00440350</c> loops
+    /// over <c>NextEffectId</c> at the same position, owner and heading), each with its group parts.
+    /// Only the first id passed the visibility test; the rest never are.</summary>
+    private void AddEmitterChain(EffectDef definition, ViewEffectRequest request)
+    {
+        EffectDef? next = definition;
+        for (int link = 0; next != null && link < LongestChain; link++)
+        {
+            if (next.GenerationType != 4) break;
+            Emitter emitter = CreateEmitter(next, request with { EffectId = new EffectId(next.EffectId) });
+            _emitters.Add(emitter);
+            SpawnGroupParts(emitter);
+            next = next.NextEffectId != 0 && _database.Effects.TryGetValue(next.NextEffectId, out EffectDef? chained)
+                ? chained : null;
+        }
+    }
+
+    /// <summary>The parts of an effect with a group art (type 8; <c>0x004347E0</c>): one element of
+    /// the first generated id per member, at the instance's position plus the member's offset, the
+    /// instance's heading plus a half turn, spinning by the effect's spin range, linked as children.</summary>
+    private void SpawnGroupParts(Emitter emitter)
+    {
+        EffectDef effect = emitter.Definition;
+        if (effect.ArtResource.Type != 8 || _groupParts == null || effect.GenerateIds.Count == 0
+            || effect.GenerateIds[0] == 0
+            || !_database.EffectElements.TryGetValue(effect.GenerateIds[0], out EffectElementDef? element)) return;
+        IReadOnlyList<EffectGroupPart>? parts = _groupParts(effect.ArtResource.Name);
+        if (parts == null) return;
+        foreach (EffectGroupPart part in parts)
+        {
+            FpPosition3 at = emitter.Request.Position;
+            ViewEffectRequest request = emitter.Request with
+            {
+                Position = new FpPosition3(new(at.X.Raw + part.OffsetXRaw), new(at.Y.Raw + part.OffsetYRaw),
+                    new(at.Z.Raw + part.OffsetHeightRaw)),
+            };
+            ConstructionParticle? particle = EmitElement(element, effect, request, null, emitter, atExactPoint: true);
+            if (particle == null) continue;
+            particle.HeadingRaw = particle.PreviousHeadingRaw = (particle.HeadingRaw + 0x400) & 2047;
+            particle.MeshEntry = part.MeshEntry;
+        }
     }
 
     private Emitter CreateEmitter(EffectDef definition, ViewEffectRequest request)
@@ -99,11 +168,26 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             && effect.EffectId == CaptureEffectLayout.RoomEffectId
             ? captureBoundary ?? _captureEdges?.Invoke(request) ?? CaptureEdges.All : null;
         if (edges == CaptureEdges.None) return;
+        // 0x004386F0: a nonzero GenerateRandomness lets a wave through one update in (value + 1).
+        if (effect.GenerateRandomness != 0 && _random.NextInt(effect.GenerateRandomness + 1) != 0) return;
         int lastSlot = effect.GenerateIds.Count - 1;
         while (lastSlot >= 0 && effect.GenerateIds[lastSlot] == 0) lastSlot--;
         if (lastSlot < 0) return;
         void EmitSlot(int slot)
         {
+            if ((effect.Flags & 0x40) != 0)
+            {
+                // Flag 0x40: the generated ids are effects, created as top-level instances at the
+                // element origin draw, not linked to this one (0x004386F0 through vtable +0x94). Their
+                // heading is the draw alone (DK2 draws it over def+0x43; the orientation range stands in).
+                if (_database.Effects.TryGetValue(effect.GenerateIds[slot], out EffectDef? generated))
+                    AddEmitterChain(generated, request with
+                    {
+                        Position = DrawOrigin(effect, request.Position),
+                        Heading = DrawAngularOffset(effect.OrientationRange * 8),
+                    });
+                return;
+            }
             if (_database.EffectElements.TryGetValue(effect.GenerateIds[slot], out EffectElementDef? element))
                 EmitElement(element, effect, request, edges, parent);
         }
@@ -117,16 +201,30 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         }
     }
 
-    private void EmitElement(EffectElementDef element, EffectDef effect, ViewEffectRequest request, CaptureEdges? edges,
-        Emitter? parent = null, ConstructionParticle? replaced = null)
+    /// <summary>The type-4 origin draw (<c>0x00435660</c>): a point within the effect's origin ring,
+    /// raised by its height range, about <paramref name="around"/>.</summary>
+    private FpPosition3 DrawOrigin(EffectDef effect, FpPosition3 around)
     {
-        int radius = replaced == null ? DrawExclusive(effect.InnerOriginRange * 23, effect.OuterOriginRange * 23) : 0;
-        double angle = replaced == null ? _random.NextInt(2048) * Math.PI / 1024 : 0;
+        int radius = DrawExclusive(effect.InnerOriginRange * 23, effect.OuterOriginRange * 23);
+        double angle = _random.NextInt(2048) * Math.PI / 1024;
+        return new FpPosition3(new(around.X.Raw + (int)(Math.Sin(angle) * radius)),
+            new(around.Y.Raw - (int)(Math.Cos(angle) * radius)),
+            new(around.Z.Raw + DrawExclusive(effect.LowerHeightLimit * 16, effect.UpperHeightLimit * 16)));
+    }
+
+    /// <param name="atExactPoint">A group part (0x004352E0 given a ready position): no origin ring,
+    /// height or orientation draw, as for a replacement.</param>
+    private ConstructionParticle? EmitElement(EffectElementDef element, EffectDef effect, ViewEffectRequest request, CaptureEdges? edges,
+        Emitter? parent = null, ConstructionParticle? replaced = null, bool atExactPoint = false)
+    {
+        bool drawn = replaced == null && !atExactPoint;
+        int radius = drawn ? DrawExclusive(effect.InnerOriginRange * 23, effect.OuterOriginRange * 23) : 0;
+        double angle = drawn ? _random.NextInt(2048) * Math.PI / 1024 : 0;
         int x = request.Position.X.Raw + (int)(Math.Sin(angle) * radius);
         int y = request.Position.Y.Raw - (int)(Math.Cos(angle) * radius);
-        int height = request.Position.Z.Raw + (replaced == null
+        int height = request.Position.Z.Raw + (drawn
             ? DrawExclusive(effect.LowerHeightLimit * 16, effect.UpperHeightLimit * 16) : 0);
-        int heading = (request.Heading.Value + (replaced == null
+        int heading = (request.Heading.Value + (drawn
             ? DrawAngularOffset(effect.OrientationRange * 8).Value : 0)) & 2047;
         int speed = DrawInclusive(element.MinSpeedXy, element.MaxSpeedXy);
         double direction = _random.NextInt(2048) * Math.PI / 1024;
@@ -152,6 +250,11 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             Red = red, Green = green, Blue = blue,
             HeadingRaw = heading, PreviousHeadingRaw = heading,
         };
+        if (replaced == null && _heartManaEffects.Contains(effect.EffectId))
+        {
+            // Owner-requested presentation adjustment (ADR-0474, Q594); native motion remains the default.
+            particle.VelocityZ = particle.VelocityZ * HeartSparkleRisePerMille / 1000;
+        }
         if ((element.Flags & 16) != 0)
         {
             particle.SwayPhaseRaw = _random.NextInt(2048);
@@ -197,7 +300,7 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             particle.Green = (byte)(particle.Green * 4 / 5);
             particle.Blue = (byte)(particle.Blue * 4 / 5);
         }
-        if (!ApplyFloorContact(particle)) return;
+        if (!ApplyFloorContact(particle)) return null;
         int spinRange = effect.SpriteSpinRateRange * 8;
         particle.HeadingSpinRaw = replaced?.HeadingSpinRaw ?? DrawAngularOffset(spinRange).Value;
         particle.PitchSpinRaw = replaced?.PitchSpinRaw ?? DrawAngularOffset(spinRange).Value;
@@ -205,6 +308,7 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         particle.PreviousHeightRaw = particle.HeightRaw;
         _particles.Add(particle);
         if (parent != null) { _parents.Add(particle, parent); parent.ChildCount++; }
+        return particle;
     }
 
     public float Advance() => AdvanceTo(_clock());
@@ -274,7 +378,15 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
                 EmitWave(emitter.Definition, emitter.Request, emitter.CaptureBoundary, emitter);
             }
             emitter.Health -= elapsedUpdates;
-            if (emitter.Health <= 0 && emitter.ChildCount == 0) _emitters.RemoveAt(i);
+            if (emitter.Health <= 0 && emitter.ChildCount == 0)
+            {
+                // Removed only once its HP is gone and its last element has died (0x0043C041); the
+                // removal creates the death effect where the instance now is (0x004354F0).
+                _emitters.RemoveAt(i);
+                if (emitter.Definition.DeathEffectId != 0
+                    && _database.Effects.TryGetValue(emitter.Definition.DeathEffectId, out EffectDef? death))
+                    AddEmitterChain(death, emitter.Request);
+            }
         }
         return (now.Milliseconds - _lastUpdateMilliseconds) / 50f;
     }
@@ -397,9 +509,17 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         ? minimum : _random.NextInt(minimum, maximum);
 }
 
+/// <summary>A member of an effect's group art: the mesh entry it draws and its offset from the
+/// instance, in position units (4096 a tile; height up).</summary>
+public readonly record struct EffectGroupPart(string MeshEntry, int OffsetXRaw, int OffsetYRaw, int OffsetHeightRaw);
+
 public sealed class ConstructionParticle
 {
     public required EffectElementDef Definition { get; init; }
+
+    /// <summary>The mesh entry a group part draws instead of its definition's art (null for every
+    /// other particle): the renderer keys its mesh groups by it.</summary>
+    public string? MeshEntry { get; internal set; }
     public int XRaw { get; internal set; }
     public int YRaw { get; internal set; }
     public int HeightRaw { get; internal set; }

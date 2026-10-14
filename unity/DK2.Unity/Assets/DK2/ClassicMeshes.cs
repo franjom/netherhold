@@ -163,6 +163,44 @@ namespace DK2.Unity
             return piece;
         }
 
+        /// <summary>A Meshes.WAD entry by its own name (a group part's), built like any model.</summary>
+        public bool TryGetMeshEntry(string entryName, out Mesh mesh, out Material[] materials)
+        {
+            if (_art.TryResolveEntry(entryName, out ResolvedAsset asset) && TryBuild(asset, false, out Built built))
+            {
+                mesh = built.Mesh;
+                materials = built.Materials;
+                return true;
+            }
+            mesh = null;
+            materials = null;
+            return false;
+        }
+
+        private readonly Dictionary<string, IReadOnlyList<EffectGroupPart>> _groupParts =
+            new Dictionary<string, IReadOnlyList<EffectGroupPart>>();
+
+        /// <summary>The members of a KMF group an effect flings (art type 8), each with its offset in
+        /// position units. INFERRED from the mesh convention (RenderMesh.ToRenderFrame): the KMF's x and
+        /// y are the world's, its z points down, a unit is a tile; the loader that fills the part array
+        /// (heart-intro.md §3) is unread. Null when the install has no such group.</summary>
+        public IReadOnlyList<EffectGroupPart> GroupParts(string groupName)
+        {
+            if (_groupParts.TryGetValue(groupName, out IReadOnlyList<EffectGroupPart> parts)) return parts;
+            parts = null;
+            if (_art.TryLoadGroup(groupName, out KmfGroup group))
+            {
+                var list = new List<EffectGroupPart>(group.Elements.Count);
+                foreach (KmfGroupElement element in group.Elements)
+                    list.Add(new EffectGroupPart(element.Name,
+                        (int)(element.Position.X * Fp32.One), (int)(element.Position.Y * Fp32.One),
+                        (int)(-element.Position.Z * Fp32.One)));
+                parts = list;
+            }
+            _groupParts[groupName] = parts;
+            return parts;
+        }
+
         public bool TryGetMesh(AssetRef key, out Mesh mesh, out Material[] materials)
         {
             if (_art.TryResolve(key, out ResolvedAsset asset) && TryBuild(asset, false, out Built built))
@@ -314,6 +352,51 @@ namespace DK2.Unity
         /// <summary>URP's transparent surface with an explicit blend and no depth write, as DK2's
         /// blended states clear z-write (<c>0x0057C420</c>). <paramref name="urpBlend"/> is URP's
         /// own _Blend enum (0 alpha, 2 additive), kept for its inspector.</summary>
+        private readonly Dictionary<(Material, byte), Material> _faded = new Dictionary<(Material, byte), Material>();
+        private readonly Dictionary<GameObject, Material[]> _opaqueOf = new Dictionary<GameObject, Material[]>();
+
+        /// <summary>Draws a static mesh object at <paramref name="alpha"/> (object <c>+0x8F</c>): opaque
+        /// at 255 with its own materials, hidden at 0, and between with alpha-blended twins of its
+        /// materials (one per material and alpha, shared). The Heart's Arches and Big Steps fade in so
+        /// during the opening sequence (heart-intro.md).</summary>
+        public void SetAlpha(GameObject go, byte alpha)
+        {
+            MeshRenderer renderer = go.GetComponent<MeshRenderer>();
+            if (renderer == null) return;
+            if (alpha == 255)
+            {
+                if (_opaqueOf.TryGetValue(go, out Material[] opaque))
+                {
+                    renderer.sharedMaterials = opaque;
+                    _opaqueOf.Remove(go);
+                }
+                renderer.enabled = true;
+                return;
+            }
+            if (!_opaqueOf.TryGetValue(go, out Material[] source)) _opaqueOf[go] = source = renderer.sharedMaterials;
+            renderer.enabled = alpha > 0;
+            if (alpha == 0) return;
+            var faded = new Material[source.Length];
+            for (int i = 0; i < source.Length; i++) faded[i] = Faded(source[i], alpha);
+            renderer.sharedMaterials = faded;
+        }
+
+        private Material Faded(Material source, byte alpha)
+        {
+            if (source == null) return null;
+            if (_faded.TryGetValue((source, alpha), out Material faded)) return faded;
+            faded = new Material(source) { name = source.name + " (alpha " + alpha + ")" };
+            MakeTransparent(faded, BlendMode.SrcAlpha, BlendMode.OneMinusSrcAlpha, 0f);
+            if (faded.HasProperty("_BaseColor"))
+            {
+                Color colour = faded.GetColor("_BaseColor");
+                colour.a = alpha / 255f;
+                faded.SetColor("_BaseColor", colour);
+            }
+            _faded[(source, alpha)] = faded;
+            return faded;
+        }
+
         private static void MakeTransparent(Material material, BlendMode source, BlendMode destination, float urpBlend)
         {
             material.SetFloat("_Surface", 1f);
