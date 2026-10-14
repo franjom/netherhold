@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**248** — `0xC51BD03052ECA96A`. The Heart's opening sequence is timed in game turns (DK2's turn 1 is our tick 0), so the ordinary frame's wait ends one tick earlier than under 247; no new saved field.
+
 **247** — `0x9B410CB31AADB8BD`. The Dungeon Heart room's ordinary frame (regeneration, ruin) waits until nine seconds after its opening sequence starts, as `0x004D9A60` does (ADR-0475); no new saved field. The view effects of the sequence are neither saved nor hashed.
 
 **246** — `0xD6C4B6C05FD11458`. The flee run and the hero reluctance count only Guard Rooms near the
@@ -389,11 +391,6 @@ value on its own branch.
 **48** — Player condition type 30 reads the walked player's gold, so a shipped
 level's script can branch on it (ADR-0110). Behaviour, not composition.
 
-**46** — `0x52A068B601960E53`. An action DK2's dispatcher succeeds at
-returns true whether or not this executor performs it, so the walker retires it
-under an inherited repeat of 1 (ADR-0107). Behaviour, not composition: the
-fixture runs no triggers, so only the version bump moves the value here, and the
-campaign-wide measurement moved nothing either — every shipped action is a leaf.
 
 
-[Versions 9–45](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–46](hash-versions-early.md) retain the earlier pins and their reasons.

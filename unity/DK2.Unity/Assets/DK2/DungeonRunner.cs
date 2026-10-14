@@ -237,6 +237,12 @@ namespace DK2.Unity
                 DungeonHeartVisual.FromHealth(currentHealth: change.Health, maximumHealth: maximumHeartHealth));
             world.HeartHealthChanged += _heartHealthObserver;
             _heartHealthWorld = world;
+            // The Heart's plug lid is asked for on game turn 1 and by nothing earlier, so DK2 draws
+            // no frame before its first turn (heart-intro.md §4, an inference from 0x004D9A60's
+            // guard). The first tick runs here, and the effect model one update, so the first frame
+            // shows the lid and not the open pit beneath it.
+            RunTicks(1, InputFrame.Empty);
+            _constructionEffects?.Model.UpdateNow();
             _presenter.Present(world);
             LookAt(world);
         }

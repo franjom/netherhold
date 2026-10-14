@@ -318,6 +318,15 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
 
     public float Advance() => AdvanceTo(_clock());
 
+    /// <summary>Runs one 50 ms update now, as if the last ran 50 ms earlier: a request that must
+    /// show in the next frame (the Heart's plug lid before the first) gets its first wave at once.
+    /// The clock is unmoved, so the next update is due when it was.</summary>
+    public void UpdateNow()
+    {
+        _lastUpdateMilliseconds -= 50;
+        AdvanceTo(new EffectTime(_lastUpdateMilliseconds + 51));
+    }
+
     public float AdvanceTo(EffectTime now)
     {
         long elapsedMilliseconds = now.Milliseconds - _lastUpdateMilliseconds;

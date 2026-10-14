@@ -162,7 +162,7 @@ public class DeterminismTests
 
         // HashVersion 246: a fleeing creature counts only Guard Rooms near its attacker (ADR-0473).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x9B410CB31AADB8BDUL, sim.StateHash());
+        Assert.Equal(0xC51BD03052ECA96AUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

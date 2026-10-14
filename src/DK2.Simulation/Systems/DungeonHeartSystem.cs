@@ -41,7 +41,7 @@ public sealed class DungeonHeartSystem : ISimulationSystem
                 if (!player.HeartRuined) HeartIntroRules.RoomFrame(context, player.PlayerId);
                 // The ordinary frame waits for the opening sequence (0x004D9BA5): no regeneration
                 // and no ruin until nine seconds after its start.
-                if (HeartIntroRules.SequenceOver((uint)context.Tick.Value, database))
+                if (HeartIntroRules.SequenceOver(HeartIntroRules.Turn(context.Tick), database))
                     RoomFrame(context, ref player, max, regen, secondEnds);
             }
 

@@ -120,4 +120,13 @@ sparkles and their fade-in run from 7.25 s to 9.25 s.
   mesh material, this beam's among them, at twice the texture (ADR-0476), a
   presentation choice until the additive texture stage is read.
 
+- Turns, not ticks. `HeartIntroRules.Turn` maps our tick to DK2's game turn (tick 0
+  is turn 1, as `GameSimulation` numbers triggers), so 225 is asked for on tick 0
+  and the ordinary frame's wait ends after tick 36. That DK2 draws no frame before
+  its first turn is STRONGLY INFERRED from the guard alone: it asks for the lid (223)
+  on every turn before the start and by nothing else, and its render loop is unread.
+  The Unity runner therefore runs the first tick, and one 50 ms update of the effect
+  model (an emitter's first wave comes at its first update), before its first frame;
+  a frame before either showed the open pit under no lid.
+
 Open: a matched original comparison of the sequence's look and timing.

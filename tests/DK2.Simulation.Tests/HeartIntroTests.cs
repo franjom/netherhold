@@ -32,8 +32,9 @@ public class HeartIntroTests
             .OrderBy(r => r.Turn).ThenBy(r => r.Owner).ToArray();
         Assert.Equal(new[]
         {
-            (1L, HeartIntroRules.StartLevelEffectId, Keeper), (1L, HeartIntroRules.StartLevelEffectId, Rival),
-            (29L, HeartIntroRules.ArchesFadeInEffectId, Keeper), (29L, HeartIntroRules.ArchesFadeInEffectId, Rival),
+            // Game turn 1 is our tick 0; turn 29 (seven seconds in) is tick 28.
+            (0L, HeartIntroRules.StartLevelEffectId, Keeper), (0L, HeartIntroRules.StartLevelEffectId, Rival),
+            (28L, HeartIntroRules.ArchesFadeInEffectId, Keeper), (28L, HeartIntroRules.ArchesFadeInEffectId, Rival),
         }, requests);
         var first = events.Events.First(e => e.EffectRequest.HasValue).EffectRequest!.Value;
         // At the Heart's tile centre, one tile up: (x * 0x1000 + 0x800, y * 0x1000 + 0x800, 0x1000).
@@ -49,6 +50,7 @@ public class HeartIntroTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         Assert.Equal(1u, HeartIntroRules.StartTurn(database));
+        Assert.Equal(1u, HeartIntroRules.Turn(new GameTick(0)));
         Assert.Equal(0, HeartIntroRules.DecorationAlpha(0, database));
         Assert.Equal(0, HeartIntroRules.DecorationAlpha(28, database));
         Assert.Equal(0, HeartIntroRules.DecorationAlpha(29, database));
