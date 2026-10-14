@@ -53,6 +53,9 @@ namespace DK2.Unity
             ("chunk_upload_ms", "DK2.TerrainChunks.Upload", ProfilerCategory.Scripts),
             ("transparent_set_ms", "DK2.TransparentTerrain.SetChunk", ProfilerCategory.Scripts),
             ("transparent_sort_ms", "DK2.TransparentTerrain.Sort", ProfilerCategory.Scripts),
+            ("imp_job_ms", "DK2.Sim.ImpTask.job", ProfilerCategory.Scripts),
+            ("grid_flood_ms", "DK2.Sim.grid.flood", ProfilerCategory.Scripts),
+            ("sleep_ms", "DK2.Sim.CreatureSleep", ProfilerCategory.Scripts),
         };
 
         private const int Tick = 1, Present = 2, Animated = 3, Chunk = 4, ImpTask = 5, Grid = 6, Nav = 7;
