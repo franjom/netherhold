@@ -129,6 +129,7 @@ Portal smoke replay is corrected under ADR-0464 (2026-10-13). Headless verificat
 native sprite completion; Unity visual confirmation is pending (2026-10-13).
 Wall reinforcement completion requests are restored under ADR-0465;
 Unity visual confirmation is pending (2026-10-13).
+Portal buildup is restored under ADR-0467; visual confirmation is pending (2026-10-14).
 Further comparisons:
 construction waves/effects, Prison rats, Portal entrances, Giant melee,
 locked-door chains, corpse poses, Level8 hero visibility/movement and

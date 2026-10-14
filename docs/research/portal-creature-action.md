@@ -34,7 +34,7 @@ count at least `0x1C0` (448). Neither body searches for a vacant walkable
 tile. Occupying the Portal therefore does not itself refuse creation.
 
 CONFIRMED: after initialization the creator sets body `+0x3E6` bit 1,
-applies effect `0x31`, sets `+0xF4=0x400`, enters state 193 for a keeper
+starts creature action 49 (`0x31`, Entrance), sets `+0xF4=0x400`, enters state 193 for a keeper
 Portal (278 for a Hero Portal), and stores the originating room id at
 `+0x4EB`. It emits arrival notifications `0x0D/0x0E` through `0x004C4600`
 under its type-seen/mode checks; it also has mode-specific sound/effect calls.

@@ -79,6 +79,9 @@ public sealed record RoomDef
     /// <summary>Effect after room object creation, ROOMS file ushort at 0x384.</summary>
     public ushort CreatedObjectEffectId { get; init; }
 
+    /// <summary>Portal pre-arrival effect, ROOMS file ushort at 0x386.</summary>
+    public ushort PortalBuildUpEffectId { get; init; }
+
     /// <summary>Object ids auto-placed on the room's tiles.</summary>
     public required IReadOnlyList<byte> ObjectIds { get; init; }
 

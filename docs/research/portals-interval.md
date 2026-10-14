@@ -251,9 +251,25 @@ the scan covered `.text` alone, and a handler table lives in `.data`. A scan
 over every initialised block finds both addresses at once. The silence of a scan
 that could not have found the thing was read as evidence about the thing.
 
-## One smaller thing, read on the way past
+## Portal buildup (built, ADR-0467)
 
-Three game seconds before the creature is due, the same routine computes a
-second threshold — `EDI -= variable19 * 3` at `0x004DBC9E`. The shape of a
-pre-warning: the animation or sound that plays before a creature appears.
-Unbuilt.
+CONFIRMED by fresh whole-function reads on 2026-10-13: `FUN_004DBBE0`
+tests equality with the next due turn minus three game seconds (12 ticks).
+It calls `FUN_004DBF90` with argument zero and, when its candidate count
+and the room definition's runtime ushort `+0x425` are nonzero, requests
+that effect at the portal centre, Z zero, heading zero, owned by the keeper.
+The native request also requires its graphics level to exceed two; the modern
+adapter uses its existing effect rendering path rather than that legacy gate.
+
+The zero-argument preview skips noticing, random selection, modifier decay
+and creation. Admission and positive base weight determine its count; a sack
+block reducing final probability to zero does not exclude that candidate.
+It does not check PortalsOpen. An eligible closed portal can therefore show
+buildup and later refuse creation; the preview reserves neither type nor slot.
+
+`FUN_004EACC0` copies file ushort `0x386`, via intermediate `0x45A`, to
+runtime `0x425`. Shipped Portal sets it to effect 94, "Portal Build up Effect":
+generation type 4, flags `0x280`, HP 30, six elements per turn, ids 234/235,
+origin range 0–64 and height 50–50. The shared effect consumer emits twelve
+sprites per update for thirty updates, retaining authored motion and resources.
+`PortalSystem` requests it without changing the ordinary roll or gameplay RNG.
