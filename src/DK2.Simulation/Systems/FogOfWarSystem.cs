@@ -8,18 +8,12 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Systems;
 
 /// <summary>
-/// Accumulates the tiles each keeper's creatures have explored.
-/// <para>DKII.EXE compares squared fixed-point distances from the creature to
-/// tile centres and reveals only when the distance is strictly less than the
-/// definition's range squared (STRONGLY INFERRED). The shipped table holds
-/// <c>0x6000</c> — six tiles — in that field for all 46 creatures; the range is
-/// read from data here rather than frozen as a constant.</para>
-/// <para>Implements the campaign's observed <em>Stay Revealed</em> behaviour.
-/// <em>Re-shroud</em> and <em>Re-fog</em> are real setup strings, but their
-/// selectors and transition rules are UNKNOWN, so this system does not invent
-/// them (Q192).</para>
+/// Accumulates the unoccluded scanned circle, with native guards and per-term
+/// fixed-point rounding. The separate explored sight pass remains unbuilt.
+/// This system's per-tick cadence differs from DK2's event-driven requests;
+/// see fog-reveal-sources.md section3.1.
 /// </summary>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/fog-of-war.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/fog-reveal-sources.md")]
 public sealed class FogOfWarSystem : ISimulationSystem
 {
     public string Name => "FogOfWar";
@@ -32,30 +26,35 @@ public sealed class FogOfWarSystem : ISimulationSystem
         foreach (CreatureState creature in world.Creatures)
         {
             if (creature.InHand ||
+                creature.PrisonOwnerPlayerId != PrisonRules.NoPrison ||
                 creature.Activity is CreatureActivity.Dying or CreatureActivity.Dead)
                 continue;
 
+            TilePos sourceTile = creature.Tile;
+            if (world.DoorAt(sourceTile.X, sourceTile.Y) is { Open: false }) continue;
+
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-            Reveal(world, context.Database, creature.OwnerPlayerId,
-                creature.PosX, creature.PosY, definition.PerceptionRange.Raw);
+            Scan(world, context.Database, creature.OwnerPlayerId,
+                new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)),
+                definition.PerceptionRange);
         }
     }
 
-    private static void Reveal(
+    private static void Scan(
         WorldState world,
         GameDatabase database,
         PlayerId playerId,
-        int centreX,
-        int centreY,
-        int radius)
+        FpPosition3 position,
+        Fp32 range)
     {
+        int centreX = position.X.Raw, centreY = position.Y.Raw, radius = range.Raw;
         if (radius <= 0 || playerId > TileState.MaxTaggingPlayerId) return;
 
         int minX = Math.Max(0, (centreX - radius) / Fp32.One);
         int minY = Math.Max(0, (centreY - radius) / Fp32.One);
         int maxX = Math.Min(world.Width - 1, (centreX + radius) / Fp32.One);
         int maxY = Math.Min(world.Height - 1, (centreY + radius) / Fp32.One);
-        long radiusSquared = (long)radius * radius;
+        long radiusSquared = ((long)radius * radius) >> 12;
 
         for (int y = minY; y <= maxY; y++)
         {
@@ -63,7 +62,8 @@ public sealed class FogOfWarSystem : ISimulationSystem
             for (int x = minX; x <= maxX; x++)
             {
                 long dx = CreatureState.CentreOf(x) - (long)centreX;
-                if ((dx * dx) + (dy * dy) >= radiusSquared) continue;
+                if (((dx * dx) >> 12) + ((dy * dy) >> 12) >= radiusSquared)
+                    continue;
 
                 ref TileState tile = ref world.Tile(x, y);
                 if (tile.IsDiscoveredBy(playerId)) continue;

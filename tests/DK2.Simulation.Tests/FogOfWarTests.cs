@@ -11,6 +11,47 @@ namespace DK2.Simulation.Tests;
 
 public sealed class FogOfWarTests
 {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void PrisonersDoNotScanTerrainForTheirOwner(int prisonOwner)
+    {
+        (GameDatabase db, WorldState world, CreatureState creature) = FogWorld();
+        creature.PrisonOwnerPlayerId = prisonOwner;
+        new GameSimulation(db, world, 1, [new FogOfWarSystem()]).Tick();
+        Assert.False(world.Tile(10, 10).IsDiscoveredBy(1));
+        Assert.False(world.Tile(15, 10).IsDiscoveredBy(1));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AClosedDoorOnTheSourceTileStopsScanning(bool open)
+    {
+        (GameDatabase db, WorldState world, CreatureState creature) = FogWorld();
+        ThingProjection.Place(world, db, [new DoorThing(new byte[20])
+        {
+            X = creature.Tile.X, Y = creature.Tile.Y, PlayerId = 1, DoorId = 1,
+            Unknown_0011 = new byte[3],
+        }]);
+        world.Doors[0].Open = open;
+        new GameSimulation(db, world, 1, [new FogOfWarSystem()]).Tick();
+        Assert.Equal(open, world.Tile(10, 10).IsDiscoveredBy(1));
+        Assert.Equal(open, world.Tile(15, 10).IsDiscoveredBy(1));
+    }
+
+    [Fact]
+    public void NativePerTermRoundingIncludesThisNearBoundaryTile()
+    {
+        (GameDatabase db, WorldState world, CreatureState creature) = FogWorld();
+        var target = new TilePos(10, 16);
+        creature.PosX = CreatureState.CentreOf(target.X) - 914;
+        creature.PosY = CreatureState.CentreOf(target.Y) - 24559;
+        Assert.True(914L * 914 + 24559L * 24559 >= 24576L * 24576);
+        new GameSimulation(db, world, 1, [new FogOfWarSystem()]).Tick();
+        Assert.True(world.Tile(target).IsDiscoveredBy(1));
+    }
+
     [Fact]
     public void CreatureRevealsTheStrictCircularRangeFromItsDefinition()
     {

@@ -112,6 +112,8 @@ tile's minimap cell (`0x00451C60`) and posts a tile notification (`0x00517480`).
 
 The routine returns at once if the creature has a `PrisonOwner` (`+0x3CB`) or
 is `CreatureDying` (`+0x3E6` bit 21). Otherwise it makes two passes.
+Before either pass, a closed door at the source tile ends the update too
+(door open byte +0x10D; checked after choosing the first pass's radius).
 
 1. **Explored: an occluded square.** For a creature the local player owns, the
    radius is the definition's `DistanceCanSee` in whole tiles (`def+0x77B`,
@@ -311,7 +313,7 @@ unconditional writer becomes "for every keeper".
 |---|---|---|
 | Split the layers | `TileState`: add an `ExploredBy` mask beside `DiscoveredBy` (scanned). `WorldView` substitutes *Fog Of War* when neither bit is set, *Claim Scan* when only scanned is set, and passes `RevealThroughFogOfWar` terrain when scanned. Hash and snapshot both (HashVersion bump) | none |
 | §3.1 explored square | `FogOfWarSystem`: `DistanceCanSee` in whole tiles, clamped 2..7 | **the 15×15 line-of-sight buffer**: the slot rule is read, the table generator in `0x0044E9E0` (slot ranges, sort key) is not; the `+0x475`/`+0x476` tag |
-| §3.1 scanned circle | already built. Fix the per-term `>>12` truncation and keep the exact position. Exclude a creature with a prison owner. `InHand` stays ours | none |
+| §3.1 scanned circle | Built with exact position, per-term `>>12`, prisoner exclusion and source-tile closed-door guard (2026-10-14). Per-tick cadence and `InHand` exclusion stay ours | none |
 | §3.1 cadence | tile-change and event-driven in DK2, every tick in ours. The same sets result, because both layers only grow except §3.2/§3.6 | possession |
 | §3.2 terrain change | `TileWork.Convert` (and `RoomRules.Place`/`Unmake`, `DefeatRules`): explore for the new owner; un-explore for every other keeper when the old terrain has `UnexploreIfDugByAnotherPlayer` | none. `TerrainFlags` already parses it |
 | §3.3 seed | `WorldState.FromMap`: in skirmish and multiplayer, own tiles plus the non-solid 4-neighbours, `AlwaysExplored`, border cleared; all tiles when fog is off | **game mode** |

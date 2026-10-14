@@ -115,6 +115,9 @@ fog-reveal-sources.md as the canonical evidence source.
 
 **Deliverable:** Correct visible terrain and hidden information for supported
 discovery states. No invented distance fog or dimming approximation.
+The existing scanned producer's prisoner/closed-door guards and per-term rounding
+are corrected and independently reviewed; eight focused tests pass. Independent
+explored state, its sight producer and rendering distinction remain unbuilt.
 
 ## 5.6 — Performance
 

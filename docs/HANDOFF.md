@@ -86,6 +86,8 @@ The owner accepted the camera view and requested a modest zoom extension (ADR-04
 Authored terrain colours and scoped whole-room/wall tint application pass independent
 review; see classic-lighting.md. Camera sub-tile startup/framing, native point-light
 response, two-mask fog and performance comparisons remain open; see the Step5 plan.
+The scanned producer now uses native prisoner/closed-door guards and per-term
+rounding; focused fog/save checks pass (2026-10-14). The explored pass remains unbuilt.
 Unity launch is authorized; its previous editor session is closed. Matched captures
 and remaining visual acceptance are pending (2026-10-14).
 Classic follow-ups use hash/save version 239. ADR-0444 covers native bank heights,
