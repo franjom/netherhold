@@ -57,7 +57,7 @@ public sealed class ClassicCamera
     public Vector3 PanDirection(Vector2 screenDirection)
     {
         if (screenDirection.LengthSquared() > 1) screenDirection = Vector2.Normalize(screenDirection);
-        float angle = Radians(_yaw);
+        float angle = -Radians(_yaw);
         float sine = (float)Math.Sin(angle), cosine = (float)Math.Cos(angle);
         return new Vector3(cosine * screenDirection.X - sine * screenDirection.Y, 0,
             sine * screenDirection.X + cosine * screenDirection.Y);
@@ -69,9 +69,9 @@ public sealed class ClassicCamera
             || viewport.Width > viewport.ScreenWidth)
             throw new ArgumentOutOfRangeException(nameof(viewport));
 
-        Matrix4x4 nativeView = Matrix4x4.CreateRotationZ(Radians(_yaw))
+        Matrix4x4 nativeView = Matrix4x4.CreateRotationZ(-Radians(_yaw))
             * Matrix4x4.CreateRotationX(-Radians(new Dk2Angle(_profile.AnglePitch)))
-            * Matrix4x4.CreateRotationZ(Radians(new Dk2Angle(_profile.AngleRoll)));
+            * Matrix4x4.CreateRotationZ(-Radians(new Dk2Angle(_profile.AngleRoll)));
         Matrix4x4 inverseView = Matrix4x4.Transpose(nativeView);
         float distance = (float)Zoom.ToDouble() * 640f / viewport.ScreenWidth;
         Vector3 offset = ToUnity(Vector3.TransformNormal(new Vector3(0, 0, -distance), inverseView));
@@ -82,7 +82,7 @@ public sealed class ClassicCamera
         return new ClassicCameraPose(focus + offset, forward, up, fov,
             Math.Max(_profile.ViewDistance / (float)Fp32.One, 2f * (float)Zoom.ToDouble()),
             90f - new Dk2Angle(_profile.AnglePitch).Value * (360f / 2048),
-            -_yaw.Value * (360f / 2048));
+            _yaw.Value * (360f / 2048));
     }
 
     private static float Radians(Dk2Angle angle) => angle.Value * ((float)Math.PI / 1024);

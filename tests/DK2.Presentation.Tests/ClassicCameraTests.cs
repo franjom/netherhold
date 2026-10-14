@@ -26,14 +26,29 @@ public class ClassicCameraTests
         CameraThing profile = Profile();
         var camera = new ClassicCamera(profile, initialYaw: ClassicCamera.LevelStartYaw);
         ClassicCameraPose pose = camera.Pose(Vector3.Zero, new CameraViewport(640, 640, 480));
-        Assert.Equal(-45f, pose.YawDegrees);
+        Assert.Equal(45f, pose.YawDegrees);
         Assert.Equal(51.328125f, pose.PitchDegrees);
-        Assert.True(pose.Position.X > 0);
+        Assert.True(pose.Position.X < 0);
         Assert.True(pose.Position.Z < 0);
-        Assert.InRange(Math.Abs(pose.Position.X + pose.Position.Z), 0f, 0.00001f);
+        Assert.InRange(Math.Abs(pose.Position.X - pose.Position.Z), 0f, 0.00001f);
         Assert.Equal((ushort)0, profile.AngleYaw);
         camera.Rotate(new Dk2Angle(256));
-        Assert.Equal(-90f, camera.Pose(Vector3.Zero, new CameraViewport(640, 640, 480)).YawDegrees);
+        Assert.Equal(90f, camera.Pose(Vector3.Zero, new CameraViewport(640, 640, 480)).YawDegrees);
+    }
+
+    [InstallFact]
+    public void LevelOneNorthernGoldProjectsLeftOfTheHeartAtStartup()
+    {
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        Assert.Equal("Gold", database.TerrainById(map[14, 24].TerrainId).Name);
+        var focus = new Vector3(14.5f, 1f, -28.5f);
+        var gold = new Vector3(14.5f, 1f, -24.5f);
+        var camera = new ClassicCamera(Profile(), initialYaw: ClassicCamera.LevelStartYaw);
+        ClassicCameraPose pose = camera.Pose(focus, new CameraViewport(640, 640, 480));
+        Vector3 right = Vector3.Normalize(Vector3.Cross(pose.Up, pose.Forward));
+        Assert.True(Vector3.Dot(gold - focus, right) < 0);
+        Assert.True(camera.PanDirection(Vector2.UnitX).Z < 0);
     }
 
     [InstallFact]
@@ -106,11 +121,11 @@ public class ClassicCameraTests
         ClassicCameraPose first = camera.Pose(focus, new CameraViewport(640, 640, 480));
         camera.Rotate(new Dk2Angle(512));
         ClassicCameraPose turned = camera.Pose(focus, new CameraViewport(640, 640, 480));
-        Assert.Equal(-90f, turned.YawDegrees);
+        Assert.Equal(90f, turned.YawDegrees);
         Assert.InRange(turned.Position.Z, focus.Z - 0.00001f, focus.Z + 0.00001f);
-        Assert.True(turned.Position.X > focus.X);
+        Assert.True(turned.Position.X < focus.X);
         Assert.InRange(Vector3.Distance(focus, first.Position) - Vector3.Distance(focus, turned.Position), -0.00001f, 0.00001f);
-        Assert.InRange(camera.PanDirection(Vector2.UnitY).X, -1.00001f, -0.99999f);
+        Assert.InRange(camera.PanDirection(Vector2.UnitY).X, 0.99999f, 1.00001f);
         camera.Rotate(new Dk2Angle(1536));
         Assert.Equal(0f, camera.Pose(focus, new CameraViewport(640, 640, 480)).YawDegrees);
     }
@@ -142,7 +157,7 @@ public class ClassicCameraTests
         var camera = new ClassicCamera(Profile() with { AnglePitch = 0, AngleRoll = 512 });
         ClassicCameraPose pose = camera.Pose(Vector3.Zero, new CameraViewport(640, 640, 480));
         Assert.InRange(Vector3.Distance(new Vector3(0, 10, 0), pose.Position), 0, 0.00001f);
-        Assert.InRange(Vector3.Distance(-Vector3.UnitX, pose.Up), 0, 0.00001f);
+        Assert.InRange(Vector3.Distance(Vector3.UnitX, pose.Up), 0, 0.00001f);
         Assert.InRange(Vector3.Distance(-Vector3.UnitY, pose.Forward), 0, 0.00001f);
     }
 

@@ -66,7 +66,8 @@ DungeonRunner camera input/application; presentation camera tests.
 
 **Deliverable:** Authored camera settings and controls. Native input timing and
 intro/possession cameras remain separate unless their rules are researched here.
-The camera core passes thirteen headless cases, including native diagonal startup.
+The camera core passes fourteen headless cases, including the Level1 northern-gold
+landmark and the native matrix constructor's yaw/roll signs.
 Its scoped independent review and startup follow-up review pass (2026-10-14).
 Starting sub-tile focus and rendered framing remain pending original comparison.
 

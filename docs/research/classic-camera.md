@@ -47,10 +47,17 @@ These values are conversion consequences, not settings invented for Unity.
 0x0044D6D0 forms the view rotation from yaw, pitch and roll using `pi/1024`.
 The pitch matrix's instruction range 0x0044D75C..0x0044D7D8 rotates about X.
 The original's pitch-zero preset is a vertical view; converting pitch220 to
-degrees below the horizontal yields51.328125. Frame orientation and the
+degrees above the floor yields51.328125. Frame orientation and the
 transpose must be checked with asymmetric ground points, not a symmetric Heart.
 Fresh reads of 0x00594CB0 and 0x00594DB0 confirm the existing row-vector math
 records; 0x00594F30 supplies the transpose used for the optical-axis offset.
+
+CONFIRMED (2026-10-14): matrix constructor 0x0042F480 stores its nine
+arguments at element indices0,3,6,1,4,7,2,5,8. Thus the yaw/roll arguments
+in 0x0044D6D0 become rows `(c,-s,0; s,c,0; 0,0,1)` in our row-major
+representation, requiring negative System.Numerics Z angles. Pitch is built
+directly in scratch memory and keeps the negative X angle. Panning uses the
+same corrected yaw; a separate startup offset would leave it inconsistent.
 
 ## 3. Bounds and wheel input
 
@@ -74,7 +81,12 @@ that field as yaw. Entering ordinary modes3/4/5 through 0x0044ACE0 preserves
 the active yaw, rounds it to the nearest eight units and replaces pitch/roll
 with the selected profile. Consequently a fresh dungeon view starts diagonally
 despite preset3's authored yaw0. The adapter supplies this reset yaw separately
-from the untouched preset. Its Unity-facing reported yaw is -45 degrees.
+from the untouched preset. Its Unity-facing reported yaw is45 degrees.
+
+CONFIRMED map/screenshot landmark: Level1's gold tile(14,24) is north of the
+Heart start(14,28). The owner showed it on DK2's left and our right. With the
+corrected matrix sign its projection lies left of the Heart, now pinned by
+an install-backed regression. The reset value256 remains unchanged.
 
 The owner's screenshots confirm the requested diagonal orientation but do not
 establish a different pitch: viewport size, HUD and distance differ. Ordinary
