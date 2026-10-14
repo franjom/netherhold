@@ -29,10 +29,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   of Evil casts with an empty effect (ADR-0352), its region presentation (Q194). Research
   grants every upgrade through ResearchTreeRules (KeeperSpellUpgradeTests); the
   upgraded effects are the bonus data and Possession's 70 % upkeep. The possessed
-  creature's followers (ADR-0445) and its sneak, hypnosis and sniper commands (ADR-0446)
-  are built. Left unbuilt: Horny's idle AI, the possessed object, shot, body and
-  dig/claim arms (Q535), the third cast path (action 56 only, Q537) and the
-  held-creature regeneration in Q152.
+  creature's followers (ADR-0445), its sneak, hypnosis and sniper commands (ADR-0446),
+  its object, pillar, shot and body arms (ADR-0467) and its dig and claim (ADR-0468)
+  are built; a gem face pays every strike (ADR-0469). Left unbuilt: Horny's idle AI,
+  the third cast path (action 56 only, Q537) and the held-creature regeneration in Q152.
   Evidence: research/keeper-spell-*.md.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
   PlayerCommands through a detached, serialisable observation (schema 19).
@@ -175,10 +175,9 @@ The first-approach correction and remaining matched-capture work are in combat-a
    No rig or Unity work yet. Still open: the geometry-index and exact-frame
    export for all 35 Imp files.
 
-6. Possession: the build plan (plans/2026-10-12-possession-arms-build-plan.md) has
-   parts C (objects, shots, bodies), D (dig and claim) and E (gem gold per strike,
-   Q587, which changes every miner) left; the Unity first-person camera and input come
-   after. Owner play questions: possession-arms-and-inputs.md §4–5.
+6. Possession: the simulation side is built (plans/2026-10-12-possession-arms-build-plan.md,
+   ADR-0445–0446, 0467–0469); the Unity first-person camera and input come next. Owner
+   play questions: possession-arms-and-inputs.md §4–5.
 
 After faithful M12, keep it as selectable Classic AI; explore a separate
 Enhanced keeper using the same observation/command interface (KEEPER_AI.md

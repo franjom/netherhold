@@ -53,7 +53,7 @@ public sealed class TileWorkSystem : ISimulationSystem
             {
                 result = TileWorkRules.Apply(
                     context.Database, ref tile, order.Kind, order.PlayerId,
-                    EfficiencyOf(context, order.WorkerCreatureId));
+                    EfficiencyOf(context, order.WorkerCreatureId), order.Multiplier, order.Strike);
 
                 // Anything that made or unmade a room tile, a rival breaking one down, goes
                 // through the chain's own insert and replay.
@@ -75,8 +75,10 @@ public sealed class TileWorkSystem : ISimulationSystem
             // (action 11, 0x00497DF0) pays only a Good creature (ADR-0386).
             if (result.Outcome != TileWorkOutcome.Rejected
                 && (order.Kind != TileWorkKind.AttackRoom || order.PlayerId == PlayerIds.Good)
+                && (order.Strike & TileWorkStrike.NoExperience) == 0
                 && world.CreatureById(order.WorkerCreatureId) is { } worker)
                 CreatureExperienceSystem.AwardWork(context, worker);
+            if ((order.Strike & TileWorkStrike.ClearsWorkerTile) != 0) ClearWorkerTile(context, order);
 
             PostThreat(context, order, result, before, ownerBefore);
             CreditGoldMined(context, order, result.GoldReleased);
@@ -85,6 +87,24 @@ public sealed class TileWorkSystem : ISimulationSystem
         }
 
         world.RawPendingWork.RemoveRange(0, count);
+    }
+
+    /// <summary>Action 6's tail (<c>0x004977F0</c>): once the tile no longer passes its guard
+    /// (<c>0x00454000</c>, the floor fell or never qualified), every trap and door on the worker's own
+    /// tile, not the worked one, has its health zeroed through the health routine with the worker's
+    /// owner as the source. That the zero removes them is LIKELY (unread); ours, as any blow that takes
+    /// them to 0. The change notifier <c>0x00455030</c> is unread and not represented.</summary>
+    private static void ClearWorkerTile(SimulationContext context, TileWorkOrder order)
+    {
+        WorldState world = context.World;
+        if (TileWorkRules.Applies(context.Database, world.TileAtIndex(order.TileIndex), TileWorkKind.AttackTile, order.PlayerId)) return;
+        if (world.CreatureById(order.WorkerCreatureId) is not { } worker) return;
+        int under = (worker.Tile.Y * world.Width) + worker.Tile.X;
+        foreach (TrapState trap in world.Traps)
+            if (trap.TileLink.TileIndex == under) TrapRules.Damage(trap, -trap.Health);
+        foreach (DoorState door in world.Doors)
+            if (door.TileLink.TileIndex == under) DoorRules.Damage(context, door, -door.Health, worker.OwnerPlayerId);
+        context.Emit(SystemName, "worker_tile_cleared", $"creature={worker.Id} tile={under}");
     }
 
     /// <summary>The keeper messages tile work raises: 12 to the owner of a Solid, Ownable tile another

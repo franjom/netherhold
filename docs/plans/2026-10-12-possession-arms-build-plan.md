@@ -32,18 +32,18 @@ keys) stays out: commands carry the original packets' meaning.
   and on death.
 - Sniper: the free-aim range term and the shot's doubled contact damage.
 
-## Part C: objects, shots and bodies (§1–2)
+## Part C: objects, shots and bodies (§1–2) — built, ADR-0467
 
 - Chicken (eat or kill), Training Dummy (no simulation effect), Arch Pillar to the heart, shot and
   body health taken flat, Book Case nothing; action 16 at an Arch Pillar.
 
-## Part D: dig and claim (§3)
+## Part D: dig and claim (§3) — built, ADR-0468
 
 - The pose-tile claim/convert and the facing-tile mine/dig, through `TileWorkSystem` orders with
   the possessed ×MRT factor; claim's repeat strike; action 6's kind with no XP and the trap and
   door health zeroing; the non-Imp dig with the `0x0075AE93` gate taken as 0 (campaign).
 
-## Part E: gems (Q587)
+## Part E: gems (Q587) — built, ADR-0469
 
 - A gem face takes no damage and pays GoldMinedFromGems every strike, for every miner. Measured on
   a gem level against master before and after.

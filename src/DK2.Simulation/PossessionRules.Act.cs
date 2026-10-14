@@ -60,7 +60,7 @@ public static partial class PossessionRules
     {
         CreatureDef mine = context.Database.CreatureById(me.CreatureTypeId);
         if (command.Melee) Melee(context, sight, combat, me, mine, command.Aim);
-        else UseSlot(context, sight, command.PlayerId.Value, me, mine, command.Aim, command.Slot.Value);
+        else UseSlot(context, sight, combat, command.PlayerId.Value, me, mine, command.Aim, command.Slot.Value);
     }
 
     // ------------------------------------------------------------------ the aim
@@ -114,11 +114,11 @@ public static partial class PossessionRules
         long now = context.Tick.Value;
         if (!CombatRules.SwingMayBegin(context.Database, me, mine, now)) return;
         me.TimeLastUsedMelee = now;
-        ChainThing? picked = PickMeleeTarget(context.World, context.Database, me, mine, aim);
-        // No target: the dig/claim arm (def +0x686 bit 0) is LIKELY by listing and not built.
+        ChainThing? picked = PickMeleeTarget(context.World, context.Database, me, mine, aim, combat.Hearts);
         if (picked is not { } target)
         {
             context.Emit(ActSystem, "possessed_melee_miss", $"creature={me.Id}");
+            DigOrClaim(context, me, mine, aim);
             return;
         }
 
@@ -139,11 +139,17 @@ public static partial class PossessionRules
                 Attack(context, me, FightTargetKind.Door, door.Id, now);
                 break;
             case ObjectState thing:
-                ObjectArm(context, me, mine, thing);
+                ObjectArm(context, me, mine, thing, now);
                 break;
-            default:
-                // A shot or a body: action 17 on that class is unread (Q535); only the stamps happen.
-                context.Emit(ActSystem, "possessed_melee_unbuilt", $"creature={me.Id} class={target.Class}");
+            case PillarThing pillar:
+                // Action 17 at the pillar; the health routine hands its blow to the heart (0x004DA200).
+                Attack(context, me, FightTargetKind.Heart, pillar.Id.Value, now, pillar.Owner);
+                break;
+            case ShotState shot:
+                Attack(context, me, FightTargetKind.Shot, shot.Id, now);
+                break;
+            case CreatureState body:
+                Attack(context, me, FightTargetKind.Body, body.Id, now);
                 break;
         }
         // DK2's second stamp. It writes the same tick as the first, so no test can tell it from its
@@ -154,9 +160,9 @@ public static partial class PossessionRules
     /// <summary><c>CreatureAction_Begin(17, target)</c>, which every represented action takes; then
     /// PossessedTargetAttackTime <c>+0x4D2</c> and PossessedTargetTag <c>+0x4D0</c>, the target the
     /// followers take (<c>0x00514DF7</c>).</summary>
-    private static void Attack(SimulationContext context, CreatureState me, FightTargetKind kind, int id, long now)
+    private static void Attack(SimulationContext context, CreatureState me, FightTargetKind kind, int id, long now, byte player = 0)
     {
-        FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, kind, id);
+        FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, kind, id, player);
         Record(me, kind, id, now);
     }
 
@@ -167,21 +173,28 @@ public static partial class PossessionRules
         me.PossessedTargetId = id;
     }
 
-    /// <summary>The object dispatch: gold 1-3 is the pick-up; 15, 16 and 46 only place an impact
-    /// effect (<c>0x004998A0</c>, presentation); the chicken (9), type 14's process state 18 and the
-    /// attack on 64 or 94 are not built (Q535).</summary>
-    private static void ObjectArm(SimulationContext context, CreatureState me, CreatureDef mine, ObjectState thing)
+    /// <summary>The object dispatch (jump table <c>0x005153D0</c>): gold 1-3 is the pick-up, 9
+    /// <see cref="EatChicken"/>, 14 <see cref="SpinDummy"/>; 15, 16 and 46 only place an impact effect
+    /// (<c>0x004998A0</c>, presentation); any other type the pick allows (the Book Case, 64) takes the
+    /// attack. The Arch Pillar (94) is a <see cref="PillarThing"/>.</summary>
+    private static void ObjectArm(SimulationContext context, CreatureState me, CreatureDef mine, ObjectState thing, long now)
     {
         switch (thing.ObjectTypeId)
         {
             case FloorGold.FloorGoldObjectId or GoldBagObjectId or FloorGold.TreasuryPileObjectId:
                 TakeGold(context, me, mine, thing);
                 break;
+            case HatcheryRules.ChickenObjectId:
+                EatChicken(context, me, mine, thing);
+                break;
+            case TrainingDummyObjectId:
+                SpinDummy(context, me, thing);
+                break;
             case AnvilObjectId or SteelBucketObjectId or WorkBenchObjectId:
                 context.Emit(ActSystem, "possessed_impact", $"creature={me.Id} object={thing.Id}");
                 break;
             default:
-                context.Emit(ActSystem, "possessed_melee_unbuilt", $"creature={me.Id} object={thing.Id} type={thing.ObjectTypeId}");
+                Attack(context, me, FightTargetKind.Object, thing.Id, now);
                 break;
         }
     }
@@ -203,7 +216,8 @@ public static partial class PossessionRules
     /// <summary><c>0x00515420</c>: around the pose's tile in <see cref="MeleeTiles"/> order, each
     /// tile's chain from its latest arrival, never the attacker; <see cref="Pickable"/>, the cone and
     /// <see cref="Replaces"/> decide. A tile off the map is skipped (DK2 reads past the edge, unread).</summary>
-    internal static ChainThing? PickMeleeTarget(WorldState world, GameDatabase database, CreatureState me, CreatureDef mine, PossessionAim aim)
+    internal static ChainThing? PickMeleeTarget(
+        WorldState world, GameDatabase database, CreatureState me, CreatureDef mine, PossessionAim aim, HeartSites? hearts = null)
     {
         (int px, int py, int pz) = aim.PacketOrigin;
         var pose = new Vec3(px, py, pz);
@@ -214,7 +228,7 @@ public static partial class PossessionRules
         {
             int x = (px >> 12) + dx, y = (py >> 12) + dy;
             if (!world.Contains(x, y)) continue;
-            ThingsOnTile(world, (y * world.Width) + x, onTile);
+            ThingsOnTile(world, (y * world.Width) + x, onTile, hearts);
             foreach (ChainThing thing in onTile)
             {
                 if (ReferenceEquals(thing.Thing, me) || !Pickable(database, me, mine, thing)) continue;
@@ -225,8 +239,10 @@ public static partial class PossessionRules
         return best;
     }
 
-    /// <summary>One tile's layer-0 chain, head first: every class this simulation represents.</summary>
-    internal static void ThingsOnTile(WorldState world, int tile, List<ChainThing> into)
+    /// <summary>One tile's layer-0 chain, head first: every class this simulation represents. A heart's
+    /// pillar is built with its heart, before anything that arrives later, so it comes last (LIKELY;
+    /// the chain order of things made at load is unread).</summary>
+    internal static void ThingsOnTile(WorldState world, int tile, List<ChainThing> into, HeartSites? hearts = null)
     {
         into.Clear();
         foreach (CreatureState c in world.Creatures)
@@ -248,6 +264,9 @@ public static partial class PossessionRules
         foreach (ShotState s in world.Shots)
             if (s.TileLink.TileIndex == tile)
                 into.Add(new(ChainClass.Shot, s, new(s.PosX, s.PosY, 0), s.OwnerPlayerId, s.TileLink.Order));
+        foreach (PillarThing p in Pillars(world, hearts))
+            if (p.Target.Tile.Y * world.Width + p.Target.Tile.X == tile)
+                into.Add(new(ChainClass.Object, p, new(p.Target.X.Raw, p.Target.Y.Raw, 0), p.Owner, int.MinValue));
         into.Sort((a, b) => b.Order.CompareTo(a.Order));
     }
 
@@ -275,9 +294,13 @@ public static partial class PossessionRules
                         (uint)me.GoldHeld < (uint)CreatureLevelRules.MaxGoldHeld(database, mine, me.Level),
                     HatcheryRules.ChickenObjectId or TrainingDummyObjectId or AnvilObjectId or SteelBucketObjectId
                         or WorkBenchObjectId or BookCaseObjectId => true,
-                    ArchPillarObjectId => !sameOwner,
                     _ => false,
                 };
+            case PillarThing:
+                // Type 94: another owner's only, its definition's DoorKey bit tested as any object's.
+                if (sameOwner) return false;
+                if (database.ObjectById(ArchPillarObjectId) is { } pillarDef && pillarDef.Flags.HasFlag(ObjectFlags.DoorKey)) return false;
+                return InReach(me, mine, thing.At);
             default:
                 if (sameOwner) return false;
                 if (thing.Thing is TrapState trap) return !trap.Hidden;
@@ -302,7 +325,7 @@ public static partial class PossessionRules
 
     /// <summary>Slot 3 is the follower arm (<see cref="Recruit"/>), which never stamps. Other slots: refused by <c>0x0048C800</c> (equality refuses; a slot outside the spells,
     /// negative included, has no spell) → nothing. Past the record, every path stamps the slot.</summary>
-    private static void UseSlot(SimulationContext context, ISightBlocker sight, byte keeper, CreatureState me, CreatureDef mine, PossessionAim aim, int slot)
+    private static void UseSlot(SimulationContext context, ISightBlocker sight, PossessionCombat combat, byte keeper, CreatureState me, CreatureDef mine, PossessionAim aim, int slot)
     {
         GameDatabase database = context.Database;
         long now = context.Tick.Value;
@@ -314,16 +337,13 @@ public static partial class PossessionRules
         if (!SpellRules.CanCast(database, me, mine, slot, now)) return;
         CreatureSpellDef spell = SpellRules.SpellOf(database, mine, slot)!;
 
-        SpellTarget target = PickSpellTarget(context.World, database, sight, me, aim, SpellRules.IsFriendly(spell));
-        if (SpellRules.IsSelfOnly(spell)) target = new(FightTargetKind.Creature, me.Id, null);
+        SpellTarget target = PickSpellTarget(context.World, database, sight, me, aim, SpellRules.IsFriendly(spell), combat.Hearts);
+        if (SpellRules.IsSelfOnly(spell)) target = new(FightTargetKind.Creature, me.Id, 0);
         if (TargetOwner(context.World, target) is { } owner) UnmaskAgainst(context.World, me, owner);
 
         if ((spell.Flags & TeleportSpellFlag) != 0) TeleportHome(context, keeper, me);
         else if ((spell.Flags & SpeedSpellFlag) != 0)
             StatusEffectRules.ModifySpeed(context, me, unchecked((int)spell.ShotData1), unchecked((int)spell.ShotData2));
-        else if (target.Object is { } thing)
-            // Action 16 at an object (type 94) has no target kind here (Q535): stamped only.
-            context.Emit(ActSystem, "possessed_cast_unbuilt", $"creature={me.Id} object={thing.Id}");
         else if (target.Kind == FightTargetKind.None)
         {
             if (spell.ShotTypeId != HomingShotTypeId)
@@ -335,7 +355,8 @@ public static partial class PossessionRules
             }
         }
         else
-            FightRules.BeginPossessedAction(context, me, SpellRules.SpellCast, slot, target.Kind, target.Id);
+            // At a pillar the shot aims at its position (an object has no lead) and hits the heart.
+            FightRules.BeginPossessedAction(context, me, SpellRules.SpellCast, slot, target.Kind, target.Id, target.Player);
 
         me.SpellStamps[slot] = now;
     }
@@ -357,15 +378,16 @@ public static partial class PossessionRules
     public static int FreeAimRangeOf(CreatureSpellDef spell, CreatureState me) =>
         unchecked((int)spell.Range + (me.SniperMode ? 1 : 0)) != 0 ? FreeAimRange : 0;
 
-    internal readonly record struct SpellTarget(FightTargetKind Kind, int Id, ObjectState? Object);
+    /// <summary>The scan's pick; <see cref="Player"/> is a pillar's heart owner.</summary>
+    internal readonly record struct SpellTarget(FightTargetKind Kind, int Id, byte Player);
 
     /// <summary>The spell's target's owner for the unmask test (a self spell's target is the caster).
     /// With no target DK2 reads the owner of thing slot 0 unchecked (<c>0x0051513B</c>), UNKNOWN: ours
     /// does not unmask then.</summary>
     private static byte? TargetOwner(WorldState world, SpellTarget target) =>
-        target.Object is { } thing ? thing.OwnerPlayerId
-        : target.Kind switch
+        target.Kind switch
         {
+            FightTargetKind.Heart => target.Player,
             FightTargetKind.Creature => world.CreatureById(target.Id)?.OwnerPlayerId,
             FightTargetKind.Trap => world.TrapById(target.Id)?.PlayerId,
             FightTargetKind.Door => world.DoorById(target.Id)?.PlayerId,
@@ -378,13 +400,14 @@ public static partial class PossessionRules
     /// from the pose, sight from the creature; the strictly lowest 4096 − dot below the accuracy
     /// threshold wins. A door is sighted one tile nearer the pose. The caster is not excluded.</summary>
     internal static SpellTarget PickSpellTarget(
-        WorldState world, GameDatabase database, ISightBlocker sight, CreatureState me, PossessionAim aim, bool friendly)
+        WorldState world, GameDatabase database, ISightBlocker sight, CreatureState me, PossessionAim aim, bool friendly,
+        HeartSites? hearts = null)
     {
         (int px, int py, int pz) = aim.PacketOrigin;
         var pose = new Vec3(px, py, pz);
         Vec3 aimVector = Normalised(RawAim(aim.Yaw, aim.Pitch));
         int best = (int)(unchecked((uint)(database[VariableTypeId.FirstPersonAccuracyAngleDegrees] * 0x800)) / 360u);
-        var chosen = new SpellTarget(FightTargetKind.None, CombatRules.NoTarget, null);
+        var chosen = new SpellTarget(FightTargetKind.None, CombatRules.NoTarget, 0);
         int yaw = aim.Yaw.Value;
 
         bool Scores(Vec3 at, Vec3 sightAt, uint limit, out int score, Vec3? direction = null)
@@ -411,7 +434,7 @@ public static partial class PossessionRules
                 var at = new Vec3(c.PosX, c.PosY, c.PosZ);
                 if (!Scores(at, at, CreatureAndObjectScanLimit, out int score)) continue;
                 best = score;
-                chosen = new(FightTargetKind.Creature, c.Id, null);
+                chosen = new(FightTargetKind.Creature, c.Id, 0);
             }
             for (int t = world.Traps.Count - 1; t >= 0; t--)
             {
@@ -420,7 +443,7 @@ public static partial class PossessionRules
                 var at = new Vec3(trap.PosX, trap.PosY, 0);
                 if (!Scores(at, at, TrapAndDoorScanLimit, out int score)) continue;
                 best = score;
-                chosen = new(FightTargetKind.Trap, trap.Id, null);
+                chosen = new(FightTargetKind.Trap, trap.Id, 0);
             }
             for (int d = world.Doors.Count - 1; d >= 0; d--)
             {
@@ -432,17 +455,18 @@ public static partial class PossessionRules
                 Vec3 direction = Normalised(at - pose);
                 if (!Scores(at, at - direction, TrapAndDoorScanLimit, out int score, direction)) continue;
                 best = score;
-                chosen = new(FightTargetKind.Door, door.Id, null);
+                chosen = new(FightTargetKind.Door, door.Id, 0);
             }
-            for (int o = world.Objects.Count - 1; o >= 0; o--)
-            {
-                ObjectState thing = world.Objects[o];
-                if (thing.OwnerPlayerId != player || thing.ObjectTypeId != ArchPillarObjectId) continue;
-                Vec3 at = ObjectPosition(world, thing);
-                if (!Scores(at, at, CreatureAndObjectScanLimit, out int score)) continue;
-                best = score;
-                chosen = new(FightTargetKind.None, thing.Id, thing);
-            }
+            // The player's type-94 objects newest first: its heart's pillars, the last built first.
+            if (hearts?.SiteOf(player) is { Standing: true } site)
+                for (int k = site.Pillars.Length - 1; k >= 0; k--)
+                {
+                    HeartPillarTarget pillar = site.Pillars[k];
+                    var at = new Vec3(pillar.X.Raw, pillar.Y.Raw, 0);
+                    if (!Scores(at, at, CreatureAndObjectScanLimit, out int score)) continue;
+                    best = score;
+                    chosen = new(FightTargetKind.Heart, HeartPillarId.For(world, pillar).Value, site.Owner);
+                }
         }
         return chosen;
     }

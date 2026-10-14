@@ -208,7 +208,8 @@ public static class TunnelRules
     }
 
     /// <summary>The swing: action 1, or 2 on a tile with a <c>GoldValue</c>, aimed at the dig tile. Ours
-    /// queues one application of imp work and waits a work period.</summary>
+    /// queues one application and waits a work period; action 1 by a worker that is not an Imp digs at
+    /// six times <c>DigOwnWallHealth</c> (<see cref="TileWorkStrike.NonImpDig"/>).</summary>
     private static bool Dig(SimulationContext context, string system, CreatureState creature, int x, int y)
     {
         WorldState world = context.World;
@@ -219,7 +220,9 @@ public static class TunnelRules
             ? !TileWorkRules.TryResolveDigTask(context.Database, tile, kind, creature.OwnerPlayerId, out _)
             : !TileWorkRules.Applies(world, context.Database, tile, kind, creature.OwnerPlayerId))
             return false;
-        world.QueueWork(new TileWorkOrder(index, kind, creature.OwnerPlayerId, creature.Id));
+        world.QueueWork(new TileWorkOrder(index, kind, creature.OwnerPlayerId, creature.Id,
+            Strike: kind == TileWorkKind.Dig && creature.CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId
+                ? TileWorkStrike.NonImpDig : TileWorkStrike.None));
         creature.Tunnel.ActionUntilTick = context.Tick.Value + SimulationTiming.WorkApplicationPeriodTicks;
         return true;
     }

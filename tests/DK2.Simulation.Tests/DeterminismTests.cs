@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 237: combat contact, facing and melee holds (ADR-0447).
+        // HashVersion 244: possessed dig and claim, work-order multiplier and strike (ADR-0468).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xBC650457E0557295UL, sim.StateHash());
+        Assert.Equal(0x756053ADDCC60CBCUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

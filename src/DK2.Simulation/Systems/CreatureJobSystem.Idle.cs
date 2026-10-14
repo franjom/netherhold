@@ -21,7 +21,7 @@ public sealed partial class CreatureJobSystem
     public const int NothingToDoTicks = 12;
 
     /// <summary>The creature type whose idle action rolls for a shot (<c>+0x36F</c> 3, the Bile Demon).</summary>
-    private const byte BileDemonTypeId = 3;
+    internal const byte BileDemonTypeId = 3;
 
     /// <summary>The shot a Bile Demon's idle action makes under 10 of 100 (<c>0x00477801</c>, the
     /// Heal Instant Shot), at its position with no data words, caster or target.</summary>

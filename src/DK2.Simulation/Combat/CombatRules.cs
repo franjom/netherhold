@@ -25,6 +25,17 @@ public enum FightTargetKind : byte
     /// <summary>A trap, by <see cref="TrapState.Id"/>: chosen by <c>SelectAVictim</c>'s scan D when it
     /// is completed and revealed (traps.md §11) and fought as a thing.</summary>
     Trap = 4,
+
+    /// <summary>A shot, by <see cref="ShotState.Id"/>: only a possessed creature's swing aims at one
+    /// (possession-arms-and-inputs.md §2).</summary>
+    Shot = 5,
+
+    /// <summary>A corpse, by its creature id (DK2's body, class 6): the possessed swing's alone.</summary>
+    Body = 6,
+
+    /// <summary>An object struck by the possessed swing, by <see cref="ObjectState.Id"/>: a Book Case
+    /// (64) is the only one the pick sends there.</summary>
+    Object = 7,
 }
 
 /// <summary>The engagement record and the rules around it: who may look for a fight, who can be

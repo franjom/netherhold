@@ -37,6 +37,7 @@ public sealed class PossessionSystem : ISimulationSystem
         {
             PossessionRules.EndCommandedAttack(context.World, creature);
             PossessionRules.ForgetStaleTarget(context, creature);
+            PossessionRules.ClaimTurn(context, creature);
             PossessionRules.RefreshInfluence(context, creature, sight);
         }
     }

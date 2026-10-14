@@ -46,6 +46,7 @@ public static partial class PossessionRules
             if (target.HypnotisedCreatureId != 0) ReleaseHypnotised(context, target);
             target.SneakingAs = 0;
             target.SniperMode = false;
+            target.ClaimActionTile = -1;
             target.Possessed = false;
             target.FollowerCount = 0;
             if (!HandRules.IsHeld(target))

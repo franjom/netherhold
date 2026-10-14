@@ -1,6 +1,11 @@
 # Early state-hash versions
 
-Versions 9–38, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–39, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**39** — `0x81D58B966898BEC8`. Corrected the trigger timer bank from 256 slots
+to **sixteen**, 240 fewer dwords in the hash. Two readings agree on sixteen: the
+next field on the owning object sits 0x40 bytes after the bank, and the
+condition path compares the id against 0x10 before indexing.
 
 **38** — reserved, never on master. Taken by the action-point branch in the
 codex worktree so the two could not collide; the merged result took 40 rather

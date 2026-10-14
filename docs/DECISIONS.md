@@ -10227,3 +10227,62 @@ Evidence: combat-spacing.md, combat-fight-state.md and kmf-animation-playback.md
 soft and does not guarantee rigid clearance. Other route-less state dispatch,
 remembered-entity activation and original visual comparison remain open.
 Q582 still requires the owner's original-game casualty confirmation.
+
+## ADR-0467 — A possessed creature's blow reaches objects, pillars, shots and bodies
+**Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §1–2
+
+**Context.** Action 26's melee arm stamped and did nothing on a chicken, the Training
+Dummy, a Book Case, an Arch Pillar, a shot or a body (Q535).
+
+**Decision.** A chicken is killed by a creature owing no food that is not a Bile Demon;
+otherwise eaten: hunger anger grows by its bucket over the fill, the level-scaled
+`HungerFill` is paid off (not a Bile Demon's), and the creature heals the lesser of its
+deficit and `HpFromChicken`, with no state change and no hunger-clock restart. The
+dummy enters object process 18, restarting a running spin. A Book Case, an enemy Arch
+Pillar, a shot or a body takes the swing (action 17, recorded for the followers): the
+pillar's blow goes to its heart, a shot's `Health` and a body's rot window shrink flat,
+and the Book Case refuses it (not Damageable). The spell scan aims at enemy pillars,
+the cast hitting the heart. Pillars are `HeartPillarRules`' three, last in their
+tile's chain (LIKELY). A blow at a heart, possessed or from `spFighting`, no longer
+takes the bearing bonus, which 0x00498E30 gives a creature target only. No new saved
+field.
+
+**Consequences.** The Horned Reaper's state 0xEF over a target its blow killed, the
+sounds, the impact effects and action 26 on art 13 are not represented. What removes a
+shot struck to 0 is unread: ours, the shot system's next pass.
+
+## ADR-0468 — A possessed worker digs, mines and claims
+**Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §3
+
+**Context.** A possessed worker's melee press with no target did nothing (Q535).
+
+**Decision.** For a worker (definition `+0x686` bit 0) the press tries the pose's tile
+when it touches the worker's own floor and is not its own: an ally's tile ends it,
+the neutral player's claimable path (`0x00453FC0`) starts a claim (action 4), another
+keeper's claimed floor one attack (action 6, no experience; when the floor falls, traps
+and doors on the worker's own tile are zeroed). Else the tile the packet yaw faces: the
+neutral player's gold (`0x00453D80`; no seam is ownable) is mined (2), any other solid,
+penetrable tile dug (1) under that action's own guard and owner-chosen rate. Actions 1 (an Imp's), 2 and 4 multiply the strike by the possessed
+melee recharge; the claim strikes every tick until the tile turns. Action 1 by a
+worker that is not an Imp, the hero tunneller's included, digs at six times
+`DigOwnWallHealth` with no multiplier: slower than an Imp on rock, far faster through a
+keeper's reinforced wall, as the owner has seen hero Dwarves do. A work order carries
+the multiplier and the strike's flags; a creature its claim tile; hash/save version 244.
+
+**Consequences.** The global `0x0075AE93` that stops a non-Imp's dig is taken as 0
+(campaign); `0x004ECDB0` and `0x00455030` are not represented. On shipped data one
+possessed strike converts a Dirt Path, so a claim runs once; ours also ends it when the
+creature leaves possession, is down or is held (what DK2's action does then is unread).
+
+## ADR-0469 — A gem face pays every strike and is never damaged
+**Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §3
+
+**Context.** Ours damaged a gem face and paid `GoldMinedFromGems` only when it
+collapsed (Q587). Action 2 (`0x004971D0`) skips the strike on an Impenetrable face and
+pays 25 on every strike; the owner saw gold every swing and the face never crack.
+
+**Decision.** Mining a gem face changes no health and releases `GoldMinedFromGems` per
+strike, for every miner; the gold's crediting and hand-off are unchanged.
+
+**Consequences.** A face never reaches its destroyed type, so no gem-mining task ends
+on a collapse. An imp at the base rate earns twice the gold it did there.
