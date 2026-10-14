@@ -72,12 +72,19 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (ADR-0322, leave-hook-bodies.md); the Sleeping leave is believed presentation only.
   Consult CategoryHooks.Slots for the current status of every hook.
 
-## Classic look, steps 3–4 (worktree D:/DungeonKeeperRemake-classic)
+## Classic look, steps 3–5 (worktree D:/DungeonKeeperRemake-classic)
 
 Plans: docs/plans/2026-10-09-classic-look.md and
 plans/2026-10-10-classic-look-step4.md. Supported Step 4 playback is built
 (ADR-0431–0438); room-life follow-ups are built under ADR-0442.
 Combined verification passes; room-life fixes are merged to master at 6f4f2bb2.
+Step5 starts from master on classic-look/step5; its milestones are in
+plans/2026-10-14-classic-look-step5.md. Use targeted, serial checks to limit CPU load.
+The comparison protocol and camera core have passed independent reviews;
+authored projection/zoom, Q/E rotation and relative panning are built.
+Camera sub-tile startup/framing and subsequent materials/lighting/fog work remain open;
+see classic-camera.md and classic-lighting.md for the current evidence.
+Unity captures and visual acceptance remain pending (2026-10-14, owner's AFK restriction).
 Classic follow-ups use hash/save version 239. ADR-0444 covers native bank heights,
 height interpolation, failed-job idle wandering and same-tile dummy approaches.
 Original guard placement/patrol timing is awaiting comparison in Q589.

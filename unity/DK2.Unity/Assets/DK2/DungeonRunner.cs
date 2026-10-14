@@ -88,12 +88,21 @@ namespace DK2.Unity
         [SerializeField] private bool highWalls = true;
 
         [Header("Camera")]
-        [Tooltip("Degrees below horizontal. 90 is straight down; 55 gives enough tilt to read wall heights.")]
+        [Tooltip("Original camera profile used when Play starts.")]
+        [SerializeField] private ClassicCameraMode cameraPreset = ClassicCameraMode.Dungeon;
+        [Tooltip("Diagnostic whole-map overview instead of the original playing camera.")]
+        [SerializeField] private bool frameWholeMap;
+        [Tooltip("Pitch for the diagnostic whole-map overview.")]
         [Range(20f, 90f)]
         [SerializeField] private float cameraPitch = 55f;
         [SerializeField] private float cameraPanSpeed = 12f;
+        [SerializeField] private float cameraRotationSpeed = 90f;
         [SerializeField] private float cameraZoomFraction = 0.15f;
         private const float MinCameraHeight = DungeonScene.FloorHeight + 0.5f;
+        private ClassicCamera _classicCamera;
+        private Vector3 _cameraFocus;
+        private Vector2 _cameraBounds;
+        private float _cameraTurnRemainder;
 
         // With TickMarker and PresentMarker below, so the Profiler separates input, the
         // position snapshot and the tick itself (whose systems UnitySimulationProfiler shows).
@@ -173,12 +182,14 @@ namespace DK2.Unity
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' map.")
                 : LoadSave(install);
 
+            PlayerDef startingCameraPlayer = null;
             if (campaignLevel)
             {
                 var level = GameDatabaseLoader.LoadCampaignLevel(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' level definition.");
                 var players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' players.");
+                startingCameraPlayer = players.FirstOrDefault(p => p.PlayerId == viewingPlayerId);
                 var things = GameDatabaseLoader.LoadCampaignThings(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' things.");
                 var triggers = GameDatabaseLoader.LoadCampaignTriggers(install, levelName)
@@ -236,7 +247,19 @@ namespace DK2.Unity
             world.HeartHealthChanged += _heartHealthObserver;
             _heartHealthWorld = world;
             _presenter.Present(world);
-            LookAt(world);
+            CameraThing profile = GameDatabaseLoader.LoadCameraPresets(install, campaignLevel ? levelName : null)
+                .FirstOrDefault(c => c.CameraId == (ushort)cameraPreset);
+            if (classicMeshes && profile != null)
+            {
+                _classicCamera = new ClassicCamera(profile);
+                _cameraBounds = new Vector2(world.Width, world.Height);
+                _cameraFocus = DungeonScene.Ground(
+                    startingCameraPlayer != null ? startingCameraPlayer.CameraX + 0.5f : world.Width / 2f,
+                    startingCameraPlayer != null ? startingCameraPlayer.CameraY + 0.5f : world.Height / 2f,
+                    profile.Z / (float)Fp32.One);
+            }
+            if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
+            else LookAt(world);
         }
 
         private void OnDestroy()
@@ -455,6 +478,26 @@ namespace DK2.Unity
             Camera camera = Camera.main;
             if (camera == null) return;
 
+            if (_classicCamera != null && !frameWholeMap)
+            {
+                float turn = (Input.GetKey(KeyCode.E) ? 1f : 0f) - (Input.GetKey(KeyCode.Q) ? 1f : 0f);
+                _cameraTurnRemainder += turn * cameraRotationSpeed * (2048f / 360f) * Time.unscaledDeltaTime;
+                int angle = (int)_cameraTurnRemainder;
+                _cameraTurnRemainder -= angle;
+                _classicCamera.Rotate(new Dk2Angle(unchecked((ushort)angle)));
+                var direction = _classicCamera.PanDirection(new System.Numerics.Vector2(
+                    Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")));
+                _cameraFocus += new Vector3(direction.X, direction.Y, direction.Z)
+                    * cameraPanSpeed * Time.unscaledDeltaTime;
+                _cameraFocus.x = Mathf.Clamp(_cameraFocus.x, 0, _cameraBounds.x - 1f / Fp32.One);
+                _cameraFocus.z = Mathf.Clamp(_cameraFocus.z, -_cameraBounds.y + 1f / Fp32.One, 0);
+                float wheel = Input.mouseScrollDelta.y;
+                if (wheel > 0) _classicCamera.ZoomIn();
+                else if (wheel < 0) _classicCamera.ZoomOut();
+                ApplyClassicCamera();
+                return;
+            }
+
             float horizontal = Input.GetAxisRaw("Horizontal");
             float vertical = Input.GetAxisRaw("Vertical");
             var pan = new Vector3(horizontal, 0f, vertical);
@@ -470,6 +513,24 @@ namespace DK2.Unity
             Vector3 next = camera.transform.position +
                 (camera.transform.forward * scroll * cameraZoomFraction * height);
             if (next.y > MinCameraHeight) camera.transform.position = next;
+        }
+
+        private void ApplyClassicCamera()
+        {
+            Camera camera = Camera.main;
+            if (camera == null || camera.pixelWidth <= 0 || camera.pixelHeight <= 0) return;
+            int screenWidth = camera.targetTexture != null ? camera.targetTexture.width : Screen.width;
+            if (screenWidth <= 0) return;
+            ClassicCameraPose pose = _classicCamera.Pose(
+                new System.Numerics.Vector3(_cameraFocus.x, _cameraFocus.y, _cameraFocus.z),
+                new CameraViewport(screenWidth, camera.pixelWidth, camera.pixelHeight));
+            camera.orthographic = false;
+            camera.fieldOfView = pose.VerticalFieldOfView;
+            camera.farClipPlane = Mathf.Max(camera.nearClipPlane + 0.01f, pose.FarClipDistance);
+            camera.transform.position = new Vector3(pose.Position.X, pose.Position.Y, pose.Position.Z);
+            camera.transform.rotation = Quaternion.LookRotation(
+                new Vector3(pose.Forward.X, pose.Forward.Y, pose.Forward.Z),
+                new Vector3(pose.Up.X, pose.Up.Y, pose.Up.Z));
         }
 
         /// <summary>Frames the whole level, whatever shape it is: fits the level's

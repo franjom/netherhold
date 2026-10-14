@@ -14,6 +14,20 @@ namespace DK2.Data;
 /// </summary>
 public static class GameDatabaseLoader
 {
+    /// <summary>Global camera profiles with campaign THINGS overrides, in original id order.</summary>
+    public static IReadOnlyList<CameraThing> LoadCameraPresets(string installDir, string? levelName = null)
+    {
+        var cameras = new Dictionary<ushort, CameraThing>();
+        List<ThingRecord> global = KwdThings.Parse(KwdReader.ReadFile(
+            Path.Combine(installDir, "Data", EditorDir, "GlobalVariables.kwd")));
+        IEnumerable<ThingRecord> campaign = levelName is null ? [] : LoadCampaignThings(installDir, levelName) ?? [];
+        foreach (CameraThing camera in global.Concat(campaign)
+                     .OfType<CameraThing>().Select(c => c with { CameraId = (byte)c.CameraId })
+                     .Where(c => c.CameraId is > 0 and < 19))
+            cameras[camera.CameraId] = camera;
+        return cameras.Values.OrderBy(c => c.CameraId).ToArray();
+    }
+
     /// <summary>Editor KWDs, relative to the install root.</summary>
     private const string EditorDir = "editor";
 

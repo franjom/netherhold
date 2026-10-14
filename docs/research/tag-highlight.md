@@ -105,7 +105,7 @@ UNKNOWN (floor-and-terrain-pieces.md §5).
 ## 5. Open
 
 - The trigger of mode 2 (red).
-- Whether, and where, the vertex light sum is clamped (0x0057BF00 is unread).
+- Where the final vertex light sum is clamped/packed; 0x0057BF00 adds point lights, see classic-lighting.md section1.
   Whether the overlay pass's vertices also carry its material's own colour
   term, which is (255, 255, 255) for an AA_ material.
 - The hover outline at the cursor tile: not looked at.

@@ -61,6 +61,26 @@ Never report this probe's frame rate as the completed game's frame rate.
 
 ## Representations and local measurements
 
+### Classic Step 5 comparison baseline
+
+Use the production scene, not the synthetic crowd probe, for visual acceptance.
+Use Level1's starting keeper focus (14,28), Level7's (5,15), and Level8's (75,9),
+from the shipped player records. Add a wall-torch corridor, Level8's water and
+lava portal areas, and a discovery boundary; record their actual focus coordinates.
+Pin level, modern simulation seed1, turn, camera preset/yaw/zoom, fog and HighWalls.
+For DK2 identify the original save/start condition and fixed comparison moment;
+do not imply its random seed is controlled. Pause world advancement for torch-loss comparisons.
+Start with a 640x480 reference and repeat at 1280x720; compare the same world region.
+Record both games' actual drawable viewport and control-panel visibility, not just
+window resolution. Pin DK2's ambient-light, gamma and graphics options (controls.md).
+Record the active pipeline/renderer, colour space, ambient mode/colours, directional
+lights, postprocessing, and visible torch counts. Change only camera position/yaw
+when checking torch loss. Screenshots require a matching original-game view.
+Use unity/README.md's existing quiet/busy Level8 profiling protocol for CPU/GPU,
+frame-time distribution, allocations and draw calls; do not call submission time GPU time.
+As of 2026-10-14, Step5 runtime captures are pending because the owner prohibited
+Unity launches while AFK. Source settings and the older crowd probe are not a measured baseline.
+
 `-Representation cpu` uses the production renderer. `vat` builds one shared
 RGBAFloat position texture per decoded segment and interpolates two texels in
 URP's native Lit forward vertex pass. The original topology, UVs, static normals,
