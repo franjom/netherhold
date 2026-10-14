@@ -337,7 +337,7 @@ public class CombatFearTests
             }
         }
 
-        List<RoomInstance> rooms = RoomIndex.Build(world, db);
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, db);
         RoomInstance heart = rooms.Single(r => r.Definition.TypeId == RoomTypeId.DungeonHeart);
         RoomInstance treasury = rooms.Single(r => r.Definition.TypeId == RoomTypeId.Treasury);
         Assert.Equal((4, 4), (heart.CentreFieldX, heart.CentreFieldY));

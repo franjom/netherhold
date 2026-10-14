@@ -192,16 +192,16 @@ public sealed partial class ImpTaskSystem
     private static (int X, int Y)? RoomDestination(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
-        List<RoomInstance> rooms = RoomIndex.Build(world, context.Database);
-        int remaining = 0, kept = 0;
-        for (int i = 0; i < rooms.Count; i++)
+        IReadOnlyList<RoomInstance> all = RoomIndex.Build(world, context.Database);
+        var rooms = new List<RoomInstance>(all.Count);
+        int remaining = 0;
+        for (int i = 0; i < all.Count; i++)
         {
-            RoomInstance room = rooms[i];
+            RoomInstance room = all[i];
             if (room.OwnerPlayerId != creature.OwnerPlayerId) continue;
-            rooms[kept++] = room;
+            rooms.Add(room);
             if (IsWanderRoom(room.Definition)) remaining++;
         }
-        rooms.RemoveRange(kept, rooms.Count - kept);
         if (remaining == 0) return null;
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         foreach (RoomInstance room in rooms)

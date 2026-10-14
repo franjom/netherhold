@@ -21,7 +21,7 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
         var roomFurniture = new List<(int TileIndex, byte ObjectTypeId)>();
 
         long now = world.CurrentTick.Value;
-        List<RoomInstance> rooms = RoomIndex.Build(world, context.Database);
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, context.Database);
         // A rebuilt Graveyard (its size stamp this turn, map rooms at the first) runs its own pass
         // before the stones (Room_Rebuild, 0x004DD5C0).
         var rebuilt = new List<RoomInstance>();

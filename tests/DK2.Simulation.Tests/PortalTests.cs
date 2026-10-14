@@ -651,7 +651,7 @@ public class PortalTests
 
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.Lair, 9, 5, 2, 2);
-        List<RoomInstance> rooms = RoomIndex.Build(world, db);
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, db);
 
         Assert.False(PortalRules.IsAttracted(demanding, rooms));
         Assert.True(PortalRules.IsAttracted(goblin, rooms));
@@ -728,7 +728,7 @@ public class PortalTests
 
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.Temple, 5, 5, 5, 5);
-        List<RoomInstance> rooms = RoomIndex.Build(world, db);
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, db);
         RoomInstance temple = rooms.Single(r => r.Definition.TypeId == RoomTypeId.Temple);
 
         // No Hand, no contribution: this is the owner's 3x5 temple.
@@ -755,7 +755,7 @@ public class PortalTests
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.Prison, 5, 5, 3, 3);
         Paint(db, world, RoomTypeId.CombatPit, 9, 1, 5, 4);
-        List<RoomInstance> rooms = RoomIndex.Build(world, db);
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, db);
         RoomInstance prison = rooms.Single(r => r.Definition.TypeId == RoomTypeId.Prison);
         RoomInstance pit = rooms.Single(r => r.Definition.TypeId == RoomTypeId.CombatPit);
 
@@ -785,7 +785,7 @@ public class PortalTests
         };
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.GuardRoom, 5, 5, 3, 3);
-        List<RoomInstance> rooms = RoomIndex.Build(world, db);
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, db);
         RoomInstance guard = rooms.Single(r => r.Definition.TypeId == RoomTypeId.GuardRoom);
 
         Assert.Equal(9, AttractionBudget.Contribution(world, guard));

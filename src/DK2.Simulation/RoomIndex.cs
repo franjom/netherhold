@@ -13,11 +13,9 @@ namespace DK2.Simulation;
 /// cost. <see cref="RoomAt"/> answers for a single tile and walks only that room;
 /// <see cref="Build"/> sweeps the whole map once and is what a caller looping over every tile
 /// should use.</para>
-/// <para>Nothing is cached. A cache would need invalidating on every path that changes a tile's
-/// terrain or owner, and the first one anybody forgets gives a room that disagrees with the map —
-/// the failure keeping membership in <see cref="TileState"/> would have risked. Recomputing is
-/// cheap: a single-room fill is bounded by the room, a full sweep visits each tile once, and
-/// the visited array is per-thread scratch cleared per call (ADR-0454).</para>
+/// <para>The whole-map sweep is kept per world and revalidated against every tile's terrain and
+/// owner and the database instance, never invalidated (ADR-0466). Its list and rooms are shared
+/// until the map changes, so neither may be mutated. The other two entry points are uncached.</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public static class RoomIndex
@@ -61,7 +59,18 @@ public static class RoomIndex
     /// One sweep, each tile visited once. Use this rather than
     /// <see cref="RoomAt"/> in a loop.
     /// </summary>
-    public static List<RoomInstance> Build(WorldState world, GameDatabase database)
+    public static IReadOnlyList<RoomInstance> Build(WorldState world, GameDatabase database)
+    {
+        Cache cache = world.RoomSweepCache;
+        if (cache.Matches(world, database)) return cache.Rooms!;
+
+        List<RoomInstance> rooms = Sweep(world, database);
+        cache.Remember(world, database, rooms);
+        return rooms;
+    }
+
+    /// <summary>The sweep <see cref="Build(WorldState, GameDatabase)"/> caches.</summary>
+    private static List<RoomInstance> Sweep(WorldState world, GameDatabase database)
     {
         var rooms = new List<RoomInstance>();
         bool[] visited = ClearedVisited(world.TileCount);
@@ -122,6 +131,43 @@ public static class RoomIndex
         }
 
         return rooms;
+    }
+
+    /// <summary>A world's last whole-map sweep and the terrain and owner of every tile it read.
+    /// Derived state, never saved or hashed.</summary>
+    internal sealed class Cache
+    {
+        private GameDatabase? _database;
+        private ushort[] _tiles = [];
+        private int _count = -1;
+
+        public IReadOnlyList<RoomInstance>? Rooms { get; private set; }
+
+        /// <summary>Whether <see cref="Rooms"/> is what a sweep of the world would give now: the
+        /// same database, and each tile's terrain and owner as the sweep saw them.</summary>
+        public bool Matches(WorldState world, GameDatabase database)
+        {
+            if (Rooms is null || !ReferenceEquals(_database, database) || _count != world.TileCount) return false;
+            ushort[] seen = _tiles;
+            for (int i = 0; i < seen.Length; i++)
+            {
+                ref TileState tile = ref world.TileAtIndex(i);
+                if (seen[i] != Key(tile)) return false;
+            }
+            return true;
+        }
+
+        public void Remember(WorldState world, GameDatabase database, List<RoomInstance> rooms)
+        {
+            int count = world.TileCount;
+            if (_tiles.Length != count) _tiles = new ushort[count];
+            for (int i = 0; i < count; i++) _tiles[i] = Key(world.TileAtIndex(i));
+            _database = database;
+            _count = count;
+            Rooms = rooms;
+        }
+
+        private static ushort Key(in TileState tile) => (ushort)((tile.TerrainId << 8) | tile.OwnerPlayerId);
     }
 
     /// <summary>

@@ -10637,3 +10637,35 @@ Evidence: research/heart-health-visuals.md and heart-mana-effects.md.
 use shipped resources and view RNG. No simulation/save/hash change. The
 companion effect's dynamic light remains outside this particle renderer.
 Owner comparison of the complete damaged appearance is still required.
+
+## ADR-0466 — The room sweep is kept while every tile's terrain and owner are unchanged
+**Date:** 2026-10-13 · **Status:** accepted
+
+**Context.** `RoomIndex.Build` swept the whole map, filling every room and its
+interior rings, at each of its 66 call sites in code, and a tick makes many of them: a lair
+attempt alone rebuilt it once per creature (43 times in Level 18's first tick,
+19 ms and 3.5 MB of that tick's `CreatureSleep`, against 6 ms for the routes
+themselves). Its doc comment ruled a cache out because one forgotten
+invalidation would give a room that disagrees with the map.
+
+**Decision.** Keep the sweep per world and revalidate it on every call, never
+invalidate it: a room is a function of each tile's terrain and owner and of the
+database's terrain-to-room map, so `Build` compares those two bytes of every
+tile, and the database instance, with what its last sweep read, and sweeps again
+only when something differs. Nothing has to remember to invalidate it, which is
+ADR-0454's pattern. `Build` now returns `IReadOnlyList<RoomInstance>`, because the
+list and its rooms are shared until the next change; the change of type found
+the one caller that edited the list in place (the wander room branch, which now
+filters into its own list). A changed map gets a new list, so a list already
+handed out never changes. The single-room fill and the filtered sweep are left
+uncached. The cache is not thread-safe; it relies on ADR-0458's rule that the
+presenter reads the world only while no tick runs.
+
+**Consequences.** All 42 corpus scenarios give the same final hashes, per-tick
+hashes, event logs and world pictures as master. On Level 18's attack run,
+allocation fell from about 960 MB to 535 MB (2.4 to 1.4 MB a tick), tick 0 from
+9.3 MB to 3.2 MB and its `CreatureSleep` from about 80 ms to 32 ms; times are
+from a shared machine and indicative only. Any new input to a room's fill must
+join the cache's key, and the database is keyed by reference on the assumption
+that a loaded `GameDatabase` and its `RoomDef`s are never changed. `RoomInstanceTests` pins a hit, a rebuild on a terrain or
+an owner change, and that an old list survives a rebuild.

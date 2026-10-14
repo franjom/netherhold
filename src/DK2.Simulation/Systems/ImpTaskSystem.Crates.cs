@@ -36,7 +36,7 @@ public sealed partial class ImpTaskSystem
         WorldState world = context.World;
         GameDatabase database = context.Database;
         List<BlueprintRef> list = world.Player(creature.OwnerPlayerId).Blueprints;
-        List<RoomInstance>? rooms = null;
+        IReadOnlyList<RoomInstance>? rooms = null;
 
         for (int i = 0; i < list.Count;)
         {
@@ -76,7 +76,7 @@ public sealed partial class ImpTaskSystem
     {
         if (!CanTakeACrate(creature)) return false;
         WorldState world = context.World;
-        List<RoomInstance> rooms = RoomIndex.Build(world, context.Database);
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, context.Database);
         (BlueprintRef Blueprint, ObjectState Crate)? job = null;
 
         // The drop scan confines the search to one tile, where the nearest-first search would
@@ -100,7 +100,7 @@ public sealed partial class ImpTaskSystem
     }
 
     private (BlueprintRef, ObjectState)? BlueprintJobAt(
-        SimulationContext context, CreatureState creature, WorldPathGrid grid, List<RoomInstance> rooms, TilePos at)
+        SimulationContext context, CreatureState creature, WorldPathGrid grid, IReadOnlyList<RoomInstance> rooms, TilePos at)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;

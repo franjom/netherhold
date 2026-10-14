@@ -31,7 +31,7 @@ public sealed class PortalSystem : ISimulationSystem
         WorldState world = context.World;
         GameDatabase database = context.Database;
 
-        List<RoomInstance> rooms = RoomIndex.Build(world, database);
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, database);
 
         for (int i = 0; i < world.PlayerCount; i++)
         {
@@ -50,7 +50,7 @@ public sealed class PortalSystem : ISimulationSystem
     }
 
     private static void RunPortalsOf(
-        SimulationContext context, List<RoomInstance> rooms, PlayerId playerId)
+        SimulationContext context, IReadOnlyList<RoomInstance> rooms, PlayerId playerId)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
