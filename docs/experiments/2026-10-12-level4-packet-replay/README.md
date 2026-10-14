@@ -196,6 +196,20 @@ Guard Rooms (`+0x18` == 9, ADR-0473); ours counted every room. With the test fix
 V) Level 3 wins 12/20 against 9/20 and loses 6 Imps over 20 seeds against 78. Master
 434a966b alone wins Level 1 18/20 (M4), down from 20/20 at d8bc7336; not examined.
 
+## Level 4's `no_alarm` ends (set W)
+
+Of W's 1,052 ends, 142 are non-Scouts (96 Dark Elf, 25 Goblin, 15 Troll, 6 Warlock), which the
+flee run (`0x004602E0`) ends outright, and 812 of the 907 Imp ends fall while another creature's
+alarm run is under way (between its `raises_alarm` and `alarm_raised`), `0x004754D0`'s refusal
+(its five-tile test is not checked here); the other 95 Imp ends and 3 Firefly (Scout) ends are
+unexplained. DK2's seed 1 shows the same shape: 25 Imp
+flights, one alarm (Imp 452: flight at 3023, alarm at 3052 at (25,37)), 10 ends at once while it runs or after
+the owner's drops land beside the Imp, 13 withdraws. Neither side's alarm sends anyone: DK2's
+three creatures in state 255 at (22-23,34) are the owner's hand drops (75, 76, 78 before them),
+and ours log `sent=0`. What differs is the volume: our seed 1 has 90 Imp flights and 31
+alarms, mostly from tick 4250 on beside the Guard Room at (24,36), where heroes outlive
+DK2's.
+
 ## What to compare next
 
 Why the keeper's creatures lose the 3766–4600 fights in the losing seeds when most of the

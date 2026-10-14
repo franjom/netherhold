@@ -10848,4 +10848,6 @@ them the creature withdraws, as DK2's do. Hash/save version 246.
 20/3/9/2; Imps lost fall from 78 to 6 in Level 3, 122 to 56 in Level 2 and 783 to 434 in
 Level 4, and `no_alarm` ends vanish where there is no Guard Room. With ADR-0471/0472 on
 master 434a966b: 18/5/14/5 against master's 18/4/11/2 (Level 1 changes seeds). Level 4's
-Guard Rooms still end 1,052 flights with `no_alarm`, unexamined.
+1,052 `no_alarm` ends have DK2's shape: 142 are non-Scouts, and 812 of the 907 Imp ends fall
+while another creature's alarm run is under way (`0x004754D0`), as in DK2's capture; the
+other 95 Imp ends and 3 Firefly ends are unexplained.

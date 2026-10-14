@@ -201,8 +201,9 @@ The first-approach correction and remaining matched-capture work are in combat-a
    14/20; branch `l4/guard-room-replay`, unmerged). Winners hold row 5 before the owner's drops
    there (needed, not sufficient); losers lose Imps to the 3766–4600 hero fights and
    sometimes miss portal arrivals the owner picks up. Party timing is seed spread. Next:
-   Level 4's 1,052 `no_alarm` flight ends near Guard Rooms, master's Level 1 fall to 18/20 at
-   434a966b, then Q590's remainder. The map builder
+   why heroes outlive DK2's beside Level 4's Guard Room (90 Imp flights and 31 alarms in seed 1
+   against DK2's 25 and 1; the `no_alarm` ends themselves match DK2), master's Level 1 fall to
+   18/20 at 434a966b, then Q590's remainder. The map builder
    and runner are in `level4-live1/rig/` (local); seeded DK2 playbacks are still to record.
 5. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built (`tools/blender/imp-reference.ps1`, Blender 5.2.2). The procedural
